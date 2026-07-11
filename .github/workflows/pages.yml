@@ -1,0 +1,59 @@
+name: Deploy GitHub Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/pages.yml"
+      - "site/**"
+      - "apps/companion/**"
+      - "media/tutorials/**"
+      - "VERSION"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Assemble static site
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p _site/companion _site/tutorials
+          cp -R site/. _site/
+          cp apps/companion/index.html _site/companion/
+          cp apps/companion/app.css _site/companion/
+          cp apps/companion/app.js _site/companion/
+          cp apps/companion/data.js _site/companion/
+          cp apps/companion/manifest.webmanifest _site/companion/
+          cp apps/companion/sw.js _site/companion/
+          cp -R media/tutorials/. _site/tutorials/
+          cp media/tutorials/00_оглавление.html _site/tutorials/index.html
+          touch _site/.nojekyll
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4

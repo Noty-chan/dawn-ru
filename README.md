@@ -4,6 +4,8 @@
 
 Текущая версия: **0.9.0**.
 
+Сайт проекта: **https://noty-chan.github.io/dawn-ru/**
+
 ## Структура
 
 - `source/original/` — исходный англоязычный PDF.
