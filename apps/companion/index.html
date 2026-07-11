@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#111118">
+  <meta name="description" content="Автономный русский компаньон для DAWN: герой, игровой стол, броски, часы и справочник.">
+  <title>DAWN RU · Компаньон</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+  <a class="skip" href="#main">К содержимому</a>
+  <header class="topbar">
+    <div class="brand" aria-label="DAWN RU">
+      <span class="brand-mark">D</span>
+      <span><strong>DAWN</strong><small>RU · КОМПАНЬОН 2</small></span>
+    </div>
+    <nav class="mode-tabs" aria-label="Режим компаньона">
+      <button type="button" data-mode="build" aria-current="page">Герой</button>
+      <button type="button" data-mode="play">Стол</button>
+      <button type="button" data-mode="tools">Инструменты</button>
+      <button type="button" data-mode="reference">Справочник</button>
+    </nav>
+    <button type="button" class="icon-button" id="theme-toggle" aria-label="Сменить тему">◐</button>
+  </header>
+
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="Персонажи и состояние сборки">
+      <div class="hero-switcher">
+        <label for="hero-select">Персонаж</label>
+        <select id="hero-select"></select>
+        <div class="button-row compact">
+          <button type="button" id="hero-new">Новый</button>
+          <button type="button" id="hero-copy">Копия</button>
+          <button type="button" id="hero-delete" class="danger">Удалить</button>
+        </div>
+      </div>
+      <section class="summary" aria-labelledby="summary-title">
+        <h2 id="summary-title">Сводка</h2>
+        <div id="derived" class="derived-grid"></div>
+        <div id="budgets" class="budget-list"></div>
+        <div id="warnings" class="warnings" aria-live="polite"></div>
+      </section>
+      <div class="button-stack">
+        <button type="button" id="export-hero">Экспорт героя</button>
+        <label class="file-button">Импорт героя<input id="import-hero" type="file" accept="application/json,.json"></label>
+        <button type="button" id="print-sheet">Печать листа</button>
+      </div>
+      <p class="autosave">Сохраняется автоматически на этом устройстве.</p>
+    </aside>
+
+    <main id="main">
+      <section class="mode-page active" data-page="build" aria-labelledby="build-title">
+        <div class="page-heading">
+          <div><p class="eyebrow">СБОРКА ПЕРСОНАЖА</p><h1 id="build-title">От замысла до готового листа</h1></div>
+          <div id="build-progress" class="progress-label"></div>
+        </div>
+
+        <section class="panel" aria-labelledby="profile-title">
+          <div class="section-title"><span>01</span><div><h2 id="profile-title">Профиль</h2><p>Имя, концепция и текущая Ступень.</p></div></div>
+          <div class="field-grid three">
+            <label>Имя<input id="f-name" autocomplete="off" placeholder="Имя героя"></label>
+            <label>Игрок<input id="f-player" autocomplete="off" placeholder="Имя игрока"></label>
+            <label>Ступень<select id="f-tier"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select></label>
+            <label class="wide">Концепция<textarea id="f-concept" rows="2" placeholder="Кто этот герой и чего он хочет?"></textarea></label>
+          </div>
+        </section>
+
+        <section class="panel" aria-labelledby="attrs-title">
+          <div class="section-title"><span>02</span><div><h2 id="attrs-title">Атрибуты</h2><p>Разложите 4 / 3 / 2 / 2 и распределите рост Ступеней.</p></div></div>
+          <div id="attrs" class="attribute-grid"></div>
+          <div class="subpanel inline-fields">
+            <label>Обмен двух Уровней Техник на +1 к высшему Атрибуту
+              <select id="tech-conversions"></select>
+            </label>
+            <label>Получает бонус<select id="conversion-attr"></select></label>
+          </div>
+        </section>
+
+        <section class="panel" aria-labelledby="outlook-title">
+          <div class="section-title"><span>03</span><div><h2 id="outlook-title">Мировоззрения и Дары</h2><p>Одно Основное, до двух Вторичных; 2 Дара + 1 за каждую новую Ступень.</p></div></div>
+          <div id="outlooks" class="choice-grid"></div>
+          <div id="gifts" class="catalog-grid"></div>
+        </section>
+
+        <section class="panel" aria-labelledby="ranks-title">
+          <div class="section-title"><span>04</span><div><h2 id="ranks-title">Навыки и Способность</h2><p>Ранги 1–3. Стоимость Способности складывается из слов и повышения Ранга.</p></div></div>
+          <div class="split-grid">
+            <div class="subpanel">
+              <div class="subpanel-head"><h3>Навыки</h3><button type="button" id="skill-add">Добавить</button></div>
+              <div id="skills" class="stack"></div>
+            </div>
+            <div class="subpanel">
+              <div class="subpanel-head"><h3>Способность</h3><label class="switch"><input id="ability-enabled" type="checkbox"><span>есть</span></label></div>
+              <div id="ability-builder"></div>
+            </div>
+          </div>
+          <details class="rules-details"><summary>Особые источники Рангов</summary><div id="rank-modifiers"></div></details>
+        </section>
+
+        <section class="panel" aria-labelledby="tech-title">
+          <div class="section-title"><span>05</span><div><h2 id="tech-title">Техники</h2><p>Покупайте Уровни последовательно; не более трёх Архетипов.</p></div></div>
+          <div class="catalog-tools">
+            <input id="tech-search" type="search" placeholder="Название, тег или текст Техники">
+            <div id="arch-tabs" class="chip-row"></div>
+          </div>
+          <div id="tech-list" class="catalog-grid techniques"></div>
+        </section>
+
+        <section class="panel sheet-panel" aria-labelledby="sheet-title">
+          <div class="section-title"><span>06</span><div><h2 id="sheet-title">Лист персонажа</h2><p>Полная переносимая версия выбранной сборки.</p></div></div>
+          <article id="sheet" class="character-sheet"></article>
+        </section>
+      </section>
+
+      <section class="mode-page" data-page="play" aria-labelledby="play-title">
+        <div class="page-heading"><div><p class="eyebrow">ИГРОВОЙ РЕЖИМ</p><h1 id="play-title">Стол героя</h1></div><button type="button" id="focus-mode">Фокус-режим</button></div>
+        <div id="ko-banner" aria-live="assertive"></div>
+        <div id="play-counters" class="counter-grid"></div>
+        <div class="button-row play-actions">
+          <button type="button" id="new-round">Новый Раунд</button>
+          <button type="button" id="new-scene">Новая Сцена</button>
+          <button type="button" id="wound-external">Рана извне (+1 Влияние)</button>
+          <button type="button" id="wound-self">Рана от себя</button>
+          <button type="button" id="intermission">Интермиссия</button>
+        </div>
+        <div class="split-grid play-layout">
+          <section class="panel"><h2>Набор героя</h2><div id="play-kit"></div></section>
+          <section class="panel"><h2>Сцена</h2><label>Заметки<textarea id="scene-notes" rows="8" placeholder="Цель, угрозы, позиции, незакрытые вопросы…"></textarea></label><h3>Активные эффекты</h3><div id="effect-tracker"></div></section>
+        </div>
+      </section>
+
+      <section class="mode-page" data-page="tools" aria-labelledby="tools-title">
+        <div class="page-heading"><div><p class="eyebrow">ИНСТРУМЕНТЫ</p><h1 id="tools-title">Броски и часы</h1></div></div>
+        <div class="split-grid">
+          <section class="panel dice-tool">
+            <h2>XD6</h2>
+            <div class="field-grid three"><label>Кости<input id="dice-count" type="number" min="1" max="40" value="4"></label><label>Преимущество<input id="dice-adv" type="number" min="0" max="30" value="0"></label><label>Помеха<input id="dice-dis" type="number" min="0" max="30" value="0"></label></div>
+            <label class="switch"><input id="all-in" type="checkbox"><span>Ва-банк: успех с 3+</span></label>
+            <button type="button" id="roll-dice" class="primary">Бросить</button>
+            <div id="dice-result" class="dice-result" aria-live="polite"></div>
+            <ol id="dice-history" class="history"></ol>
+          </section>
+          <section class="panel clocks-tool">
+            <div class="subpanel-head"><h2>Часы сцены</h2><button type="button" id="clock-add">Добавить</button></div>
+            <div id="clocks" class="clock-list"></div>
+          </section>
+        </div>
+      </section>
+
+      <section class="mode-page" data-page="reference" aria-labelledby="reference-title">
+        <div class="page-heading"><div><p class="eyebrow">ПРАВИЛА БЕЗ ЛИСТАНИЯ</p><h1 id="reference-title">Справочник</h1></div></div>
+        <div class="catalog-tools sticky-tools">
+          <input id="ref-search" type="search" placeholder="Искать в действиях, эффектах, Техниках и памятках">
+          <div class="chip-row" id="ref-filters"></div>
+        </div>
+        <div id="reference-list" class="catalog-grid reference-grid"></div>
+      </section>
+    </main>
+  </div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

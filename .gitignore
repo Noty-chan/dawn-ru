@@ -1,0 +1,15 @@
+/build/*
+!/build/.gitkeep
+/archive/
+/output/
+/release/*.pdf
+/release/*.zip
+/.agents/
+/.claude/
+/.codex/
+__pycache__/
+*.pyc
+*.tmp.pdf
+*.links.tmp.pdf
+.DS_Store
+Thumbs.db

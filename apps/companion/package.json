@@ -1,0 +1,9 @@
+{
+  "name": "dawn-ru-companion",
+  "private": true,
+  "version": "2.0.0",
+  "scripts": {
+    "data": "python build_data.py",
+    "test": "node tests/qa.mjs"
+  }
+}
