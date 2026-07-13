@@ -122,14 +122,16 @@
       </section>
 
       <section class="mode-page" data-page="play" aria-labelledby="play-title">
-        <div class="page-heading"><div><p class="eyebrow">ИГРОВОЙ РЕЖИМ</p><h1 id="play-title">Сцена DAWN</h1></div><div class="button-row"><label class="scene-view-label">Вид<select id="scene-view"><option value="player">Игрок</option><option value="gm">Нарратор</option></select></label><button type="button" id="focus-mode">Фокус-режим</button></div></div>
+        <div class="page-heading"><div><p class="eyebrow">ИГРОВОЙ РЕЖИМ</p><h1 id="play-title">Сцена DAWN</h1></div></div>
         <div id="ko-banner" aria-live="assertive"></div>
-        <section id="scene-sync-panel" class="panel scene-sync-panel" aria-labelledby="scene-sync-title">
-          <div class="scene-sync-head"><div><p class="eyebrow">ОБЩИЙ СТОЛ</p><h2 id="scene-sync-title">Подключение кампании</h2></div><span id="scene-sync-status" class="sync-status offline">Локально</span></div>
+        <details id="scene-sync-panel" class="panel scene-sync-panel">
+          <summary class="scene-sync-head"><div><p class="eyebrow">ОБЩИЙ СТОЛ</p><h2 id="scene-sync-title">Подключение кампании</h2></div><span id="scene-sync-status" class="sync-status offline">Локально</span></summary>
+          <div class="scene-sync-body">
           <details id="scene-sync-settings"><summary>Supabase-проект DAWN</summary><div class="field-grid three"><label>Project URL<input id="sync-url" type="url" placeholder="https://project.supabase.co" autocomplete="url"></label><label>Publishable / anon key<input id="sync-key" type="password" placeholder="sb_publishable_…" autocomplete="off"></label><label>Имя за столом<input id="sync-display-name" maxlength="80" placeholder="Игрок"></label></div><div class="button-row"><button type="button" id="sync-connect">Подключить Auth</button></div><small>Используется только публичный ключ. Service-role ключ сюда вводить нельзя.</small></details>
-          <div id="scene-sync-lobby" class="scene-sync-lobby"><label>Новая кампания<input id="sync-campaign-name" maxlength="120" placeholder="Название Серии"></label><button type="button" id="sync-create-campaign">Создать как Нарратор</button><span class="sync-or">или</span><label>Пригласительный токен<input id="sync-invite-token" maxlength="120" placeholder="Токен от Нарратора"></label><button type="button" id="sync-join-campaign">Войти игроком</button></div>
+          <div id="scene-sync-lobby" class="scene-sync-lobby"><label class="gm-only">Новая кампания<input id="sync-campaign-name" maxlength="120" placeholder="Название Серии"></label><button type="button" id="sync-create-campaign" class="gm-only">Создать как Нарратор</button><span class="sync-or gm-only">или</span><label>Пригласительный токен<input id="sync-invite-token" maxlength="120" placeholder="Токен от Нарратора"></label><button type="button" id="sync-join-campaign">Войти игроком</button></div>
           <div id="scene-sync-session" class="scene-sync-session" hidden><div><strong id="sync-campaign-title">Кампания</strong><small id="sync-role-label"></small></div><div class="button-row"><button type="button" id="sync-create-invite" class="gm-only">Создать приглашение игрока</button><button type="button" id="sync-copy-invite" hidden>Копировать токен</button><button type="button" id="sync-leave">Покинуть общий стол</button></div><div id="sync-player-actions" class="button-row" hidden><button type="button" id="sync-send-targets">Предложить выбранные цели</button><button type="button" id="sync-request-undo">Запросить откат</button></div><output id="sync-invite-output" aria-live="polite"></output><div id="sync-command-queue" class="sync-command-queue" hidden></div></div>
-        </section>
+          </div>
+        </details>
         <div id="play-counters" class="counter-grid"></div>
         <div class="button-row play-actions">
           <button type="button" id="new-round" class="gm-only">Новый Раунд</button>
@@ -140,7 +142,7 @@
         </div>
         <section id="scene-workbench" class="scene-workbench">
           <div class="panel scene-stage">
-            <div class="scene-stage-head"><div><p class="eyebrow">ПОЛЕ СЦЕНЫ</p><h2 id="scene-name">Структурированный бой</h2></div><div id="scene-space-tabs" class="scene-space-tabs"></div></div>
+            <div class="scene-stage-head"><div><p class="eyebrow">ПОЛЕ СЦЕНЫ</p><h2 id="scene-name">Структурированный бой</h2></div><div class="scene-stage-actions"><div class="button-row"><label class="scene-view-label">Вид<select id="scene-view"><option value="player">Игрок</option><option value="gm">Нарратор</option></select></label><button type="button" id="focus-mode">Только поле</button></div><div id="scene-space-tabs" class="scene-space-tabs"></div></div></div>
             <div class="scene-toolbar" aria-label="Инструменты поля">
               <div class="scene-tool-group">
                 <button type="button" data-scene-tool="select">Выбор / ход</button>
@@ -166,18 +168,18 @@
               <div class="scene-tool-actions"><span id="scene-selection-summary">Нет выбранных целей</span><button type="button" id="scene-clear-targets">Снять цели</button><button type="button" id="scene-undo" class="gm-only">Отменить</button></div>
               <div id="scene-rule-suggestions" class="scene-rule-suggestions gm-only"></div>
             </div>
-            <details id="scene-media-menu" class="scene-media-menu" open><summary>Активные персонажи и арт Сцены</summary><div id="scene-portrait-strip" class="scene-portrait-strip"></div><div id="scene-featured-art" class="scene-featured-art"></div><div id="scene-art-library" class="scene-art-library gm-only"></div><div class="scene-art-upload gm-only"><label>Название<input id="scene-art-name" maxlength="120" placeholder="Локация, улика, противник…"></label><label>Назначение<select id="scene-art-kind"><option value="art">Показываемый арт</option><option value="background">Фон поля</option></select></label><label class="file-button">Загрузить арт<input id="scene-art-upload" type="file" accept="image/png,image/jpeg,image/webp,image/gif"></label></div></details>
             <div id="scene-board-wrap" class="scene-board-wrap"><div id="scene-board" class="scene-board" role="grid" aria-label="Поле DAWN 7 на 7"></div></div>
             <div class="scene-legend"><span><i class="legend-hero"></i> Герой</span><span><i class="legend-enemy"></i> Враг</span><span><i class="legend-target"></i> Цель</span><span><i class="legend-area"></i> Область правила</span><span><i class="legend-marker">◆</i> Маркер</span></div>
           </div>
-          <aside class="scene-rail gm-only">
-            <section class="panel scene-add"><h2>Добавить в Сцену</h2><label>Герой из билдера<select id="scene-hero-select"></select></label><button type="button" id="scene-add-hero">Перейти на стол с героем</button><label>Поиск врага<input id="scene-enemy-search" type="search" placeholder="Название, роль, эффект"></label><label>Профиль<select id="scene-enemy-select"></select></label><div class="inline-fields"><label>Ступень<select id="scene-enemy-tier"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select></label><button type="button" id="scene-add-enemy">Добавить врага</button></div><hr><label>Свободный токен<input id="scene-free-token-name" maxlength="120" placeholder="Призыв, союзник, объект…"></label><div class="inline-fields"><label>Сторона<select id="scene-free-token-team"><option value="hero">Союзник</option><option value="enemy">Противник</option></select></label><button type="button" id="scene-add-free-token">Добавить токен</button></div><hr><label>Новое пространство<input id="scene-space-name" maxlength="60" placeholder="Карманное измерение"></label><button type="button" id="scene-add-space">Создать пространство</button></section>
-            <section class="panel"><h2>Инспектор</h2><div id="scene-inspector" class="scene-inspector"></div></section>
-            <section class="panel"><div class="subpanel-head"><h2>Журнал</h2><button type="button" id="scene-clear-log">Очистить</button></div><ol id="scene-log" class="scene-log"></ol></section>
+          <aside class="scene-rail">
+            <section class="panel scene-inspector-panel"><h2>Выбранный участник</h2><div id="scene-inspector" class="scene-inspector"></div></section>
+            <details class="panel scene-hero-sheet"><summary>Лист героя</summary><div id="play-kit"></div></details>
+            <details id="scene-media-menu" class="scene-media-menu panel"><summary>Активные персонажи и арт Сцены</summary><div id="scene-portrait-strip" class="scene-portrait-strip"></div><div id="scene-featured-art" class="scene-featured-art"></div><div id="scene-art-library" class="scene-art-library gm-only"></div><div class="scene-art-upload gm-only"><label>Название<input id="scene-art-name" maxlength="120" placeholder="Локация, улика, противник…"></label><label>Назначение<select id="scene-art-kind"><option value="art">Показываемый арт</option><option value="background">Фон поля</option></select></label><label class="file-button">Загрузить арт<input id="scene-art-upload" type="file" accept="image/png,image/jpeg,image/webp,image/gif"></label></div></details>
+            <details class="panel scene-add gm-only"><summary>Добавить в Сцену</summary><div class="scene-add-body"><label>Герой из билдера<select id="scene-hero-select"></select></label><button type="button" id="scene-add-hero">Перейти на стол с героем</button><label>Поиск врага<input id="scene-enemy-search" type="search" placeholder="Название, роль, эффект"></label><label>Профиль<select id="scene-enemy-select"></select></label><div class="inline-fields"><label>Ступень<select id="scene-enemy-tier"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select></label><button type="button" id="scene-add-enemy">Добавить врага</button></div><hr><label>Свободный токен<input id="scene-free-token-name" maxlength="120" placeholder="Призыв, союзник, объект…"></label><div class="inline-fields"><label>Сторона<select id="scene-free-token-team"><option value="hero">Союзник</option><option value="enemy">Противник</option></select></label><button type="button" id="scene-add-free-token">Добавить токен</button></div><hr><label>Новое пространство<input id="scene-space-name" maxlength="60" placeholder="Карманное измерение"></label><button type="button" id="scene-add-space">Создать пространство</button></div></details>
+            <details class="panel scene-log-panel"><summary>Журнал</summary><div class="subpanel-head"><span>Последние изменения</span><button type="button" id="scene-clear-log" class="gm-only">Очистить</button></div><ol id="scene-log" class="scene-log"></ol></details>
           </aside>
         </section>
-        <div class="split-grid play-layout">
-          <section class="panel"><h2>Набор героя</h2><div id="play-kit"></div></section>
+        <div class="play-layout">
           <section class="panel"><h2>Сцена</h2><label>Заметки<textarea id="scene-notes" rows="8" placeholder="Цель, угрозы, позиции, незакрытые вопросы…"></textarea></label><h3>Активные эффекты</h3><div id="effect-tracker"></div></section>
         </div>
       </section>
