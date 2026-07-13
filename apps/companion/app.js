@@ -101,6 +101,7 @@ function normalizeHero(raw){
   base.media={portrait:safeImage(h.media?.portrait),token:safeTokenImage(h.media?.token)};
   base.tier=clamp(h.tier,1,6);
   for(const [key] of ATTRS){ base.attrs[key]=clamp(h.attrs?.[key] ?? base.attrs[key],2,4); base.attrBonus[key]=clamp(h.attrBonus?.[key],0,5); }
+  base.attrs=Logic.normalizeAttributeBases(base.attrs,ATTRS.map(([key])=>key));
   base.attrBonus=Logic.normalizeAttributeGrowth(base.attrBonus,base.tier,ATTRS.map(([key])=>key));
   base.techConversions=clamp(h.techConversions,0,5); base.conversionAttr=ATTRS.some(a=>a[0]===h.conversionAttr)?h.conversionAttr:"body";
   base.primaryOutlook=typeof h.primaryOutlook==="string"?h.primaryOutlook:null; base.outlooks=cleanArray(h.outlooks).slice(0,3); base.gifts=cleanArray(h.gifts);

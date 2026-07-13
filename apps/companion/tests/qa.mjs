@@ -156,6 +156,11 @@ assert.deepEqual(
   "choosing a base attribute must swap values and preserve the 4/3/2/2 array",
 );
 assert.deepEqual(
+  JSON.parse(JSON.stringify(logic.normalizeAttributeBases({ body: 3, talent: 4, spirit: 4, mind: 2 }, ["body", "talent", "spirit", "mind"]))),
+  { body: 3, talent: 4, mind: 2, spirit: 2 },
+  "invalid persisted base Attributes must be repaired to the 4/3/2/2 array",
+);
+assert.deepEqual(
   JSON.parse(JSON.stringify(logic.normalizeAttributeGrowth({ body: 2, talent: 2, spirit: 1, mind: 1 }, 2, ["body", "talent", "spirit", "mind"]))),
   { body: 1, talent: 1, spirit: 0, mind: 0 },
   "each gained tier grants two different ordinary Attribute increases",

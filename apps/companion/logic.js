@@ -128,8 +128,23 @@
     return [...new Set(cells)];
   }
 
+  function normalizeAttributeBases(attributes, order = Object.keys(attributes || {})) {
+    const remaining = new Map([[4, 1], [3, 1], [2, 2]]);
+    const result = {};
+    for (const key of order) {
+      const value = clamp(attributes?.[key], 2, 4);
+      if ((remaining.get(value) || 0) > 0) {
+        result[key] = value;
+        remaining.set(value, remaining.get(value) - 1);
+      }
+    }
+    const missing = [...remaining.entries()].flatMap(([value, count]) => Array(count).fill(value));
+    for (const key of order) if (!(key in result)) result[key] = missing.shift();
+    return result;
+  }
+
   function swapAttributeBase(attributes, key, nextValue, order = Object.keys(attributes || {})) {
-    const current = { ...(attributes || {}) };
+    const current = normalizeAttributeBases(attributes, order);
     const value = clamp(nextValue, 2, 4);
     if (!order.includes(key) || current[key] === value) return current;
     const donor = order.find(candidate => candidate !== key && current[candidate] === value);
@@ -173,5 +188,5 @@
     };
   }
 
-  global.DAWN_LOGIC = { areaCells, calculateAbilityCost, calculateCreationBudgets, calculateRankSpend, clamp, normalizeAttributeGrowth, rollXd6, scaleTierFormula, swapAttributeBase };
+  global.DAWN_LOGIC = { areaCells, calculateAbilityCost, calculateCreationBudgets, calculateRankSpend, clamp, normalizeAttributeBases, normalizeAttributeGrowth, rollXd6, scaleTierFormula, swapAttributeBase };
 })(typeof window === "object" ? window : globalThis);
