@@ -193,6 +193,8 @@ assert.match(app, /scene\.markers/);
 assert.match(app, /hero\.media\.token/);
 assert.match(app, /hero\.media\.portrait/);
 assert.match(app, /function renderSceneMedia/);
+assert.match(app, /initCollapsibleBuildPanels/);
+assert.match(app, /builder-mode/);
 assert.match(app, /scene\.artworks/);
 assert.match(app, /data-scene-portrait-actor/);
 assert.match(app, /duration:"nextTurn"/);
