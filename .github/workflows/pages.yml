@@ -8,6 +8,8 @@ on:
       - "site/**"
       - "apps/companion/**"
       - "media/tutorials/**"
+      - "source/translation/**"
+      - "requirements.txt"
       - "VERSION"
   workflow_dispatch:
 
@@ -30,6 +32,26 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Verify generated data and companion
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install -r requirements.txt
+          python apps/companion/build_data.py
+          git diff --exit-code -- apps/companion/data.js
+          cd apps/companion
+          npm test
+
       - name: Assemble static site
         shell: bash
         run: |
@@ -39,9 +61,13 @@ jobs:
           cp apps/companion/index.html _site/companion/
           cp apps/companion/app.css _site/companion/
           cp apps/companion/app.js _site/companion/
+          cp apps/companion/logic.js _site/companion/
+          cp apps/companion/sync.js _site/companion/
           cp apps/companion/data.js _site/companion/
           cp apps/companion/manifest.webmanifest _site/companion/
           cp apps/companion/sw.js _site/companion/
+          cp apps/companion/icon.svg _site/companion/
+          sed -i "s/__BUILD_VERSION__/${GITHUB_SHA}/g" _site/companion/sw.js
           cp -R media/tutorials/. _site/tutorials/
           cp media/tutorials/00_оглавление.html _site/tutorials/index.html
           touch _site/.nojekyll

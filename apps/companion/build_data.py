@@ -3,7 +3,8 @@
 
 Читает канонические файлы из ../../source/translation и собирает data.js:
 - шесть Архетипов с Техниками (название, звёзды, теги, флавор, 3 уровня);
-- десять Мировоззрений с Дарами и избранными действиями Связи.
+- десять Мировоззрений с Дарами и избранными действиями Связи;
+- базовые действия и Эффекты с поисковыми формами терминов.
 
 Запуск:  python build_data.py
 Выход:   data.js  (window.DAWN_DATA = {...})
@@ -28,10 +29,13 @@ TECH_FILES = [
 
 OUTLOOK_FILE = "pages-037-051-unstructured-play.md"
 COMBAT_FILE = "pages-052-064-structured-combat-core.md"
+ENEMY_FILE = "pages-109-119-general-enemy-types.md"
+MODIFIER_FILE = "pages-120-124-combat-stakes-modifiers-credits.md"
 
 RE_TECH_HEAD = re.compile(r"^### (.+?)(?: \(([^)]+)\))? \| (★+) \| (.+)$")
 RE_LEVEL = re.compile(r"^\*\*(\d):\s*(.+):\*\*\s*(.*)$")
 RE_GIFT = re.compile(r"^\*\*(.+?):\*\*\s+(.*)$")
+RE_ENEMY_HEAD = re.compile(r"^### (.+?)(?: \(([^)]+)\))? \| (.+)$")
 
 OUTLOOK_IDS = {
     "Мятежник": "rebel",
@@ -44,6 +48,31 @@ OUTLOOK_IDS = {
     "Благословенный": "blessed",
     "Тихий": "quiet",
     "Уверенный": "confident",
+}
+
+# Канонические названия Эффектов остаются неизменными. Эти формы нужны только
+# справочнику, чтобы запрос действия (например, «Исчезнуть») находил состояние
+# («Исчез») и его полное определение.
+EFFECT_ALIASES = {
+    "Изгнан": ["Изгнать", "Изгнание"],
+    "Ускорен": ["Ускорить", "Ускорение"],
+    "Исчез": ["Исчезнуть", "Исчезает", "Исчезновение"],
+    "Невидим": ["Невидимость", "Стать невидимым"],
+    "Регенерирует": ["Регенерировать", "Регенерация"],
+    "Укреплен": ["Укрепить", "Укрепление"],
+    "Устойчив": ["Устойчивость"],
+    "Усилен": ["Усилить", "Усиление"],
+    "Порчен": ["Портить", "Порча"],
+    "Ошеломлен": ["Ошеломить", "Ошеломление"],
+    "Испуган": ["Испугать", "Страх"],
+    "Обездвижен": ["Обездвижить", "Обездвиживание"],
+    "Подброшен": ["Подбросить", "Подбрасывание"],
+    "Помечен": ["Пометить", "Метка"],
+    "Замедлен": ["Замедлить", "Замедление"],
+    "Разорван": ["Разорвать", "Разрыв"],
+    "Пойман": ["Поймать"],
+    "Спровоцирован": ["Спровоцировать", "Провокация"],
+    "Ослаблен": ["Ослабить", "Ослабление"],
 }
 
 
@@ -208,6 +237,7 @@ def parse_effects() -> dict:
                 "id": f"{zone}.{slugify(en or name)}",
                 "name": name,
                 "en": en,
+                "aliases": EFFECT_ALIASES.get(name, []),
                 "text": m.group(2).strip(),
             })
     return effects
@@ -326,6 +356,71 @@ def parse_ability_words() -> dict:
     return groups
 
 
+def parse_enemy_stats(raw: str) -> dict:
+    stats = {}
+    labels = {
+        "Здоровья": "health",
+        "Скорости": "speed",
+        "Брони": "armor",
+        "Уклонения": "evasion",
+    }
+    for label, key in labels.items():
+        match = re.search(rf"(?:`([^`]+)`|([*Xx0-9+()/.-]+))\s+\*\*{label}\*\*", raw)
+        if match:
+            stats[key] = (match.group(1) or match.group(2)).lstrip("*")
+    return stats
+
+
+def parse_enemies(fname: str, kind: str) -> list:
+    """Канонические профили врагов без потери текста их меняющих правила особенностей."""
+    lines = (TR / fname).read_text(encoding="utf-8").splitlines()
+    enemies = []
+    enemy = None
+    enabled = kind == "common"
+    for raw in lines:
+        line = raw.rstrip()
+        if kind == "modifier" and line == "## Враги-Модификаторы":
+            enabled = True
+            enemy = None
+            continue
+        if not enabled:
+            continue
+        if line.startswith("## Заметки переводчика") or (kind == "modifier" and line.startswith("# Примеры боевых сценариев")):
+            break
+        match = RE_ENEMY_HEAD.match(line)
+        if match:
+            name, en, tags = match.group(1).strip(), (match.group(2) or "").strip(), match.group(3).strip()
+            enemy = {
+                "id": f"enemy.{kind}.{slugify(en or name)}",
+                "kind": kind,
+                "name": name,
+                "en": en,
+                "tags": tags,
+                "examples": "",
+                "statsRaw": "",
+                "stats": {},
+                "text": "",
+            }
+            enemies.append(enemy)
+            continue
+        if enemy is None:
+            continue
+        if line.startswith("## ") or line.startswith("# "):
+            enemy = None
+            continue
+        if not line:
+            continue
+        if line.startswith("_Напр.:"):
+            enemy["examples"] = line.strip("_ ").removeprefix("Напр.:").strip()
+            continue
+        if line.startswith("**Параметры:**"):
+            enemy["statsRaw"] = line.removeprefix("**Параметры:**").strip()
+            enemy["stats"] = parse_enemy_stats(line)
+            continue
+        enemy["text"] = (enemy["text"] + "\n" + line.replace("\\*", "*")).strip()
+    return enemies
+
+
 def main():
     data = {
         "schemaVersion": 2,
@@ -334,6 +429,10 @@ def main():
         "effects": parse_effects(),
         "actions": parse_actions(),
         "abilityWords": parse_ability_words(),
+        "enemies": {
+            "common": parse_enemies(ENEMY_FILE, "common"),
+            "modifiers": parse_enemies(MODIFIER_FILE, "modifier"),
+        },
     }
     n_tech = sum(len(a["techniques"]) for a in data["archetypes"])
     n_gifts = sum(len(o["gifts"]) + (1 if o["builtin"] else 0) for o in data["outlooks"])
@@ -347,6 +446,7 @@ def main():
     ids.extend(g["id"] for o in data["outlooks"] for g in ([o["builtin"]] if o["builtin"] else []) + o["gifts"])
     ids.extend(e["id"] for group in data["effects"].values() for e in group)
     ids.extend(a["id"] for a in data["actions"]["list"])
+    ids.extend(e["id"] for group in data["enemies"].values() for e in group)
     if len(ids) != len(set(ids)):
         raise ValueError("Обнаружены повторяющиеся стабильные id в данных компаньона")
     out = ROOT / "data.js"
@@ -358,7 +458,8 @@ def main():
     print(f"OK: {len(data['archetypes'])} архетипов, {n_tech} техник, "
           f"{len(data['outlooks'])} мировоззрений, {n_gifts} даров, "
           f"{len(data['effects']['positive'])}+{len(data['effects']['negative'])} эффектов, "
-          f"{len(data['actions']['list'])} действий -> {out.name}")
+          f"{len(data['actions']['list'])} действий, "
+          f"{len(data['enemies']['common'])}+{len(data['enemies']['modifiers'])} врагов -> {out.name}")
 
 
 if __name__ == "__main__":

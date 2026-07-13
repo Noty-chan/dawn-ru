@@ -6,5 +6,8 @@
   "display": "standalone",
   "background_color": "#111118",
   "theme_color": "#111118",
-  "description": "Автономный компаньон для русской локализации DAWN."
+  "description": "Автономный компаньон для русской локализации DAWN.",
+  "icons": [
+    {"src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable"}
+  ]
 }

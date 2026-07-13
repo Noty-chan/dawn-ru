@@ -6,8 +6,36 @@ import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const context = { window: {} };
+vm.runInNewContext(fs.readFileSync(path.join(root, "logic.js"), "utf8"), context);
 vm.runInNewContext(fs.readFileSync(path.join(root, "data.js"), "utf8"), context);
 const data = context.window.DAWN_DATA;
+const logic = context.window.DAWN_LOGIC;
+const syncStorage = new Map();
+const syncContext = { window: {}, URL, console, setTimeout, clearTimeout, localStorage: { getItem: key => syncStorage.get(key) || null, setItem: (key, value) => syncStorage.set(key, value) } };
+vm.runInNewContext(fs.readFileSync(path.join(root, "sync.js"), "utf8"), syncContext);
+const syncApi = syncContext.window.DAWN_SYNC;
+assert.ok(syncApi);
+assert.equal(syncApi.hasConfig(), false);
+syncApi.configure({ url: "https://dawn-test.supabase.co/path", publishableKey: "sb_publishable_test", displayName: "Нарратор" });
+assert.equal(syncApi.state().url, "https://dawn-test.supabase.co");
+assert.equal(syncApi.state().displayName, "Нарратор");
+assert.equal(syncApi.hasConfig(), true);
+const fakeScene = { id: "00000000-0000-0000-0000-000000000002", campaign_id: "00000000-0000-0000-0000-000000000001", name: "Структурированный бой", state: { round: 1 }, version: 1 };
+const fakeQuery = { select(){ return this; }, eq(){ return this; }, order(){ return this; }, limit: async () => ({ data: [], error: null }), single: async () => ({ data: fakeScene, error: null }), maybeSingle: async () => ({ data: null, error: null }) };
+const fakeChannel = { on(){ return this; }, subscribe(callback){ callback("SUBSCRIBED"); return this; } };
+const fakeClient = {
+  auth: { getSession: async () => ({ data: { session: null }, error: null }), signInAnonymously: async () => ({ data: { session: { user: { id: "00000000-0000-0000-0000-000000000003" } } }, error: null }) },
+  from: () => fakeQuery,
+  rpc: name => ({ single: async () => name === "create_campaign" ? ({ data: { campaign_id: fakeScene.campaign_id, scene_id: fakeScene.id, role: "owner" }, error: null }) : ({ data: null, error: new Error("unexpected rpc") }) }),
+  channel: () => fakeChannel,
+  removeChannel: async () => {},
+};
+syncContext.window.supabase = { createClient: () => fakeClient };
+await syncApi.connect();
+await syncApi.createCampaign("Тестовая Серия", { round: 1 });
+assert.equal(syncApi.state().role, "owner");
+assert.equal(syncApi.state().sceneId, fakeScene.id);
+assert.equal(syncApi.state().status, "online");
 assert.equal(data.schemaVersion, 2);
 assert.equal(data.archetypes.length, 6);
 assert.equal(data.archetypes.flatMap(a => a.techniques).length, 107);
@@ -15,7 +43,12 @@ assert.equal(data.outlooks.length, 10);
 assert.equal(data.outlooks.flatMap(o => (o.builtin ? [o.builtin] : []).concat(o.gifts)).length, 52);
 assert.equal(data.effects.positive.length, 8);
 assert.equal(data.effects.negative.length, 11);
+assert.ok(data.effects.positive.find(effect => effect.name === "Исчез")?.aliases.includes("Исчезнуть"));
 assert.equal(data.actions.list.length, 15);
+assert.equal(data.enemies.common.length, 41);
+assert.equal(data.enemies.modifiers.length, 11);
+assert.equal(data.enemies.common.find(enemy => enemy.en === "Bruiser")?.stats.armor, "1(+1/2)");
+assert.match(data.enemies.common.find(enemy => enemy.en === "Assassin")?.text || "", /Исчезнуть/);
 assert.ok(data.abilityWords.verbs.length > 20);
 assert.ok(data.abilityWords.nouns.length > 20);
 assert.ok(data.abilityWords.conditions.length > 20);
@@ -26,14 +59,169 @@ const ids = [
   ...data.outlooks.flatMap(o => (o.builtin ? [o.builtin] : []).concat(o.gifts).map(g => g.id)),
   ...Object.values(data.effects).flat().map(e => e.id),
   ...data.actions.list.map(a => a.id),
+  ...Object.values(data.enemies).flat().map(enemy => enemy.id),
   ...Object.values(data.abilityWords).flat().map(w => w.id),
 ];
 assert.equal(new Set(ids).size, ids.length, "stable ids must be unique");
 for (const archetype of data.archetypes) for (const technique of archetype.techniques) assert.equal(technique.levels.length, 3, technique.name);
 
-for (const file of ["index.html", "app.css", "app.js", "data.js", "manifest.webmanifest", "sw.js"]) assert.ok(fs.existsSync(path.join(root, file)), file);
+assert.deepEqual(
+  JSON.parse(JSON.stringify(logic.calculateRankSpend({ skillSpent: 4, abilityCost: 5, abilityExtra: 2, gadgetSpent: 5, gadgetPool: 3 }))),
+  { paidAbility: 3, paidGadgets: 2, rankSpent: 9 },
+  "Gearhead's first three gadget ranks must not spend the main rank budget",
+);
+const cursedBudget = JSON.parse(JSON.stringify(logic.calculateCreationBudgets({
+  tier: 1,
+  gifts: ["Uncontrollable Power"],
+  skillRanks: [2, 2],
+  abilityCost: 6,
+})));
+assert.equal(cursedBudget.rankPool, 8);
+assert.equal(cursedBudget.uncontrollableRanks, 4);
+assert.equal(cursedBudget.abilityExtra, 4);
+assert.equal(cursedBudget.paidAbility, 2);
+assert.equal(cursedBudget.rankSpent, 6, "Uncontrollable Power must visibly grant four Ability-only ranks");
+const taintedBudget = JSON.parse(JSON.stringify(logic.calculateCreationBudgets({
+  tier: 3,
+  gifts: ["Dark Urge", "Uncontrollable Power", "Tainted Body"],
+  skillRanks: [2, 2],
+  abilityCost: 10,
+  taintedBodyUsed: true,
+  taintedAbilityCost: 5,
+})));
+assert.equal(taintedBudget.abilityExtra, 8);
+assert.equal(taintedBudget.taintedAbilityPool, 6);
+assert.equal(taintedBudget.taintedAbilitySpent, 5);
+assert.equal(taintedBudget.taintedAbilityRemaining, 1);
+assert.equal(taintedBudget.taintedAbilityOver, 0);
+assert.equal(taintedBudget.paidAbility, 2, "Tainted Body is reserved for a new Ability, not the existing one");
+assert.equal(logic.calculateCreationBudgets({ tier: 1, gifts: ["Tainted Body"], taintedBodyUsed: true, taintedAbilityCost: 6 }).taintedAbilityOver, 2, "Tainted Body cannot silently overpay its new Ability");
+const artistBudget = JSON.parse(JSON.stringify(logic.calculateCreationBudgets({
+  gifts: ["Performance Artist"],
+  skillRanks: [2, 2],
+  performanceTargetRank: 2,
+})));
+assert.equal(artistBudget.skillSpent, 4);
+assert.equal(artistBudget.performanceBonus, 1, "Performance Artist grants a free rank to the selected Skill");
+assert.equal(logic.calculateCreationBudgets({ gifts: ["Performance Artist"], skillRanks: [3, 1], performanceTargetRank: 3 }).performanceBonus, 0, "Skill rank cannot exceed 3");
+assert.deepEqual(
+  JSON.parse(JSON.stringify(logic.calculateCreationBudgets({ tier: 3, gifts: ["Past Your Prime"], skillRanks: [] }))).rankPool,
+  14,
+);
+assert.equal(logic.calculateCreationBudgets({ tier: 3, gifts: ["Past Your Prime"], skillRanks: [] }).skillMin, 8);
+assert.equal(logic.calculateCreationBudgets({ tier: 3, gifts: ["Amazing Potential"], skillRanks: [] }).rankPool, 12);
+assert.equal(logic.calculateCreationBudgets({ tier: 3, gifts: ["Amazing Potential"], skillRanks: [] }).skillMin, 2);
+assert.equal(logic.calculateCreationBudgets({ gifts: [], skillRanks: [], gadgetSpent: 9 }).rankSpent, 0, "Gadget spend is ignored without Gearhead");
+assert.equal(logic.scaleTierFormula("15(+5)", 1), 15);
+assert.equal(logic.scaleTierFormula("15(+5)", 3), 25);
+assert.equal(logic.scaleTierFormula("1(+1/2)", 1), 1);
+assert.equal(logic.scaleTierFormula("1(+1/2)", 2), 2);
+assert.equal(logic.scaleTierFormula("1(+1/2)", 3), 2);
+assert.equal(logic.scaleTierFormula("X", 3), null);
+assert.equal(logic.areaCells({ shape: "radius2", x: 3, y: 3, width: 7, height: 7 }).length, 13);
+assert.equal(logic.areaCells({ shape: "square5", x: 3, y: 3, width: 7, height: 7 }).length, 25);
+assert.equal(logic.areaCells({ shape: "square5", x: 0, y: 0, width: 7, height: 7 }).length, 9);
+assert.equal(logic.areaCells({ shape: "lineDiagDown", x: 3, y: 3, width: 7, height: 7 }).length, 7);
+assert.deepEqual(Array.from(logic.areaCells({ shape: "square2", x: 6, y: 6, width: 7, height: 7 })), ["6,6"]);
+assert.equal(logic.calculateAbilityCost({
+  enabled: true,
+  words: [
+    { id: "verb.create", group: "verbs", cost: 4, marks: "✢" },
+    { id: "noun.gravity", group: "nouns", cost: 3, marks: "" },
+    { id: "condition.memory", group: "conditions", cost: 3, marks: "" },
+  ],
+}), 7, "✢ omits the Condition and its cost");
+assert.equal(logic.calculateAbilityCost({
+  enabled: true,
+  words: [{ id: "noun.people", group: "nouns", cost: 2, marks: "✝" }],
+  specializations: { "noun.people": "только врачи" },
+}), 1, "✝ narrows a category and reduces its cost by one");
+assert.equal(logic.calculateAbilityCost({
+  enabled: true,
+  words: [
+    { id: "verb.merge", group: "verbs", cost: null, marks: "☾" },
+    { id: "noun.gravity", group: "nouns", cost: 3, marks: "" },
+  ],
+  xWord: { id: "noun.plants", group: "nouns", cost: 1, marks: "✝" },
+  specializations: { "noun.plants": "только розы" },
+}), 3, "☾ derives X from the selected Noun cost, including category narrowing");
+const sequence = [5 / 6, 0, 2 / 6];
+const rolled = logic.rollXd6({ count: 2, threshold: 3, random: () => sequence.shift() });
+assert.deepEqual(Array.from(rolled.rolls), [6, 1, 3]);
+assert.equal(rolled.successes, 2, "All Out succeeds on 3+");
+assert.equal(rolled.crits, 1, "exploding six is still a critical success");
+assert.deepEqual(
+  JSON.parse(JSON.stringify(logic.swapAttributeBase({ body: 4, talent: 3, spirit: 2, mind: 2 }, "spirit", 4, ["body", "talent", "spirit", "mind"]))),
+  { body: 2, talent: 3, spirit: 4, mind: 2 },
+  "choosing a base attribute must swap values and preserve the 4/3/2/2 array",
+);
+
+for (const file of ["index.html", "app.css", "app.js", "logic.js", "sync.js", "data.js", "manifest.webmanifest", "sw.js", "icon.svg"]) assert.ok(fs.existsSync(path.join(root, file)), file);
 const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
-assert.match(app, /Math\.ceil\(attrValue\("talent"\)\/2\)/);
+const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
+const sync = fs.readFileSync(path.join(root, "sync.js"), "utf8");
+const sql = fs.readFileSync(path.resolve(root, "../../supabase/migrations/202607130001_dawn_multiplayer.sql"), "utf8");
+assert.match(app, /Math\.ceil\(attrValueFor\(hero,"talent"\)\/2\)/);
 assert.match(app, /takeWound\(external\)/);
+assert.match(app, /S\.runtime\.influence--/);
+assert.match(app, /Logic\.calculateCreationBudgets/);
+assert.match(app, /performanceSkill/);
+assert.match(app, /taintedAbilityPool/);
+assert.match(app, /taintedAbility/);
+assert.match(app, /function commitScene/);
+assert.match(app, /Logic\.areaCells/);
+assert.match(app, /scaledEnemyStats/);
+assert.match(app, /TECH_SCENE_TEMPLATES/);
+assert.match(app, /disruptor\.chemist/);
+assert.match(app, /disruptor\.inner-world/);
+assert.match(app, /bulwark\.giant-frame/);
+assert.match(app, /powerhouse\.warring-ascendant/);
+assert.match(app, /ruiner\.bombardier/);
+assert.match(app, /shape:"square5"/);
+assert.match(app, /ruiner\.rapid-fire-sorcery/);
+assert.match(app, /ruiner\.ritualist/);
+assert.match(app, /ruiner\.ego-arm/);
+assert.match(app, /ruiner\.sellsword-s-call/);
+assert.match(app, /disruptor\.wave-rider/);
+assert.match(app, /disruptor\.hunter/);
+assert.match(app, /disruptor\.gale-strider/);
+assert.match(app, /GIFT_SCENE_TEMPLATES/);
+assert.match(app, /Trust Fund/);
+assert.match(app, /data-sacrifice/);
+assert.match(app, /tokenImageFromFile/);
+assert.match(app, /scene\.markers/);
+assert.match(app, /hero\.media\.token/);
+assert.match(app, /hero\.media\.portrait/);
+assert.match(app, /function renderSceneMedia/);
+assert.match(app, /scene\.artworks/);
+assert.match(app, /data-scene-portrait-actor/);
+assert.match(app, /duration:"nextTurn"/);
+assert.match(app, /data-scene-turn/);
+assert.match(app, /data-ability-field="xNoun"/);
+assert.match(app, /wordSpecialization/);
+assert.doesNotMatch(app, /id="ability-variable"/);
+assert.match(app, /\(item\.aliases\|\|\[\]\)\.join/);
+assert.match(app, /name:"Эффекты"/);
 assert.doesNotMatch(app, /Math\.floor\(attrValue/);
+assert.match(html, /Метки слов:/);
+assert.match(html, /Новая Способность «Порченого тела»/);
+assert.match(html, /supabase-js@2\.110\.3/);
+assert.match(html, /data-scene-tool="marker"/);
+assert.match(html, /scene-add-free-token/);
+assert.match(html, /scene-marker-kind/);
+assert.match(html, /square5/);
+assert.match(html, /hero-portrait-upload/);
+assert.match(html, /hero-token-upload/);
+assert.match(html, /scene-hero-select/);
+assert.match(html, /scene-media-menu/);
+assert.match(html, /scene-art-upload/);
+assert.match(sync, /signInAnonymously/);
+assert.match(sync, /save_scene_snapshot/);
+assert.match(sync, /postgres_changes/);
+assert.match(sync, /decideCommand/);
+assert.match(app, /Нарратор принял цели игрока/);
+assert.match(sql, /enable row level security/);
+assert.match(sql, /redeem_campaign_invite/);
+assert.match(sql, /scene version conflict/);
+assert.doesNotMatch(sql, /service_role/i);
 console.log(`OK: ${ids.length} unique rule ids; companion data and invariants validated.`);
