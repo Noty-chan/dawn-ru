@@ -140,6 +140,19 @@
     return current;
   }
 
+  function normalizeAttributeGrowth(bonuses, tier = 1, order = Object.keys(bonuses || {})) {
+    const maximum = Math.max(0, clamp(tier, 1, 6) - 1);
+    const pool = maximum * 2;
+    const result = Object.fromEntries(order.map(key => [key, clamp(bonuses?.[key], 0, maximum)]));
+    let spent = Object.values(result).reduce((sum, value) => sum + value, 0);
+    for (const key of [...order].reverse()) {
+      const excess = Math.min(result[key], Math.max(0, spent - pool));
+      result[key] -= excess;
+      spent -= excess;
+    }
+    return result;
+  }
+
   function rollXd6({ count, threshold = 4, random = Math.random, maxRolls = 300 }) {
     const initialCount = clamp(count, 1, 300);
     const successAt = clamp(threshold, 2, 6);
@@ -160,5 +173,5 @@
     };
   }
 
-  global.DAWN_LOGIC = { areaCells, calculateAbilityCost, calculateCreationBudgets, calculateRankSpend, clamp, rollXd6, scaleTierFormula, swapAttributeBase };
+  global.DAWN_LOGIC = { areaCells, calculateAbilityCost, calculateCreationBudgets, calculateRankSpend, clamp, normalizeAttributeGrowth, rollXd6, scaleTierFormula, swapAttributeBase };
 })(typeof window === "object" ? window : globalThis);

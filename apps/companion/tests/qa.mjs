@@ -155,6 +155,11 @@ assert.deepEqual(
   { body: 2, talent: 3, spirit: 4, mind: 2 },
   "choosing a base attribute must swap values and preserve the 4/3/2/2 array",
 );
+assert.deepEqual(
+  JSON.parse(JSON.stringify(logic.normalizeAttributeGrowth({ body: 2, talent: 2, spirit: 1, mind: 1 }, 2, ["body", "talent", "spirit", "mind"]))),
+  { body: 1, talent: 1, spirit: 0, mind: 0 },
+  "each gained tier grants two different ordinary Attribute increases",
+);
 
 for (const file of ["index.html", "app.css", "app.js", "logic.js", "sync.js", "data.js", "manifest.webmanifest", "sw.js", "icon.svg"]) assert.ok(fs.existsSync(path.join(root, file)), file);
 const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
