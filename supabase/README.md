@@ -9,6 +9,8 @@
 3. Применить миграции из `supabase/migrations` через Supabase CLI.
 4. В компаньоне указать Project URL и publishable/anon key. Service-role key в браузер не передаётся.
 
+Для мини-игры «Deus mortuus» используется миграция `202607160001_deus_mortuus.sql`. Её браузерная конфигурация находится в `site/deus-mortuus/config.js`; подробности запуска — в README этой папки.
+
 ## Модель доступа
 
 - приглашение хранится только как SHA-256 и погашается через `redeem_campaign_invite`;

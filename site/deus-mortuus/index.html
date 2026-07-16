@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#090b0c">
+  <meta name="description" content="Deus mortuus — совместное управление погребальным поездом Мира Мёртвых Богов.">
+  <title>Deus mortuus · DAWN RU</title>
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="console.css">
+  <script async src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.3/dist/umd/supabase.min.js" crossorigin="anonymous"></script>
+  <script defer src="config.js"></script>
+  <script defer src="model.js"></script>
+  <script defer src="network.js"></script>
+  <script defer src="console.js"></script>
+</head>
+<body>
+  <div class="orientation-gate" aria-hidden="true">
+    <div class="orientation-device"><i></i></div>
+    <strong>Поверните устройство</strong>
+    <span>Пульты Deus mortuus рассчитаны на горизонтальный экран.</span>
+  </div>
+
+  <main id="lobby" class="lobby">
+    <section class="lobby-hero">
+      <a href="../" class="dawn-mark">DAWN RU</a>
+      <div class="lobby-seal" aria-hidden="true"><i></i><b>III</b></div>
+      <p class="eyebrow">ПОГРЕБАЛЬНЫЙ РЕЙС · МИР МЁРТВЫХ БОГОВ</p>
+      <h1>DEUS <span>MORTUUS</span></h1>
+      <p class="lore">Мёртвое божество нужно доставить в город-святилище. Пока поезд пересекает искалеченные земли, экипаж удерживает машину, оборону и оковы в едином ритме.</p>
+      <div class="lobby-status"><i id="lobby-status-lamp"></i><span id="lobby-status-text">Проверка эфирной линии…</span></div>
+    </section>
+
+    <section class="lobby-terminal player-entry" id="player-entry">
+      <div class="terminal-head"><span>ДОПУСК ЭКИПАЖА</span><i></i><i></i><i></i></div>
+      <form id="join-form">
+        <label>Имя персонажа<input id="join-name" maxlength="80" autocomplete="nickname" placeholder="Например, Лисса Вейр" required></label>
+        <label>Код рейса<input id="join-code" class="code-input" maxlength="6" autocomplete="one-time-code" placeholder="A7K9DM" required></label>
+        <button type="submit" class="metal-button primary">ВОЙТИ В СОСТАВ</button>
+      </form>
+      <p>После входа ожидайте назначения поста управляющим рейса.</p>
+      <button type="button" class="text-button" id="open-gm">Открыть управляющую будку ГМа</button>
+    </section>
+
+    <section class="lobby-terminal gm-entry" id="gm-entry" hidden>
+      <div class="terminal-head"><span>УПРАВЛЯЮЩИЙ ПУНКТ</span><i></i><i></i><i></i></div>
+      <form id="create-form">
+        <label>Позывной ГМа<input id="gm-name" maxlength="80" autocomplete="nickname" value="Смотритель"></label>
+        <button type="submit" class="metal-button danger">СОЗДАТЬ НОВЫЙ РЕЙС</button>
+      </form>
+      <p>Будет создан шестизначный код. Игрокам достаточно имени персонажа и этого кода.</p>
+      <button type="button" class="text-button" id="open-player">Вернуться ко входу экипажа</button>
+    </section>
+
+    <button type="button" class="resume-card" id="resume-session" hidden>
+      <span>НАЙДЕН НЕЗАВЕРШЁННЫЙ РЕЙС</span><strong id="resume-label">Продолжить</strong>
+    </button>
+    <output class="lobby-error" id="lobby-error" aria-live="polite"></output>
+    <nav class="lobby-guides" aria-label="Документы рейса">
+      <a href="manual.html" target="_blank">Открыть книгу экипажа</a>
+      <a href="gm-reference.html" target="_blank">Справочник для ГМа</a>
+    </nav>
+  </main>
+
+  <div id="game" class="game-shell" hidden>
+    <header class="game-header">
+      <div class="header-brand"><small>ПОГРЕБАЛЬНЫЙ ПОЕЗД</small><strong>DEUS MORTUUS</strong></div>
+      <div class="header-trip">
+        <span>РЕЙС <button type="button" id="room-code" class="room-code" aria-label="Скопировать код рейса">——</button></span>
+        <b id="phase-label">ОЖИДАНИЕ</b>
+      </div>
+      <div class="header-operator"><small id="operator-role">ЭКИПАЖ</small><strong id="operator-name">—</strong></div>
+      <div class="header-actions">
+        <a href="manual.html" target="_blank" class="guide-button">КНИГА ЭКИПАЖА</a>
+        <a href="gm-reference.html" target="_blank" id="gm-reference-link" class="guide-button" hidden>СПРАВОЧНИК ГМ</a>
+        <button type="button" id="sound-toggle" class="icon-switch" aria-pressed="false"><span>ЗВУК</span><i></i></button>
+        <button type="button" id="attention-button" class="attention-button">ВНИМАНИЕ ГМ</button>
+        <button type="button" id="alarm-button" class="alarm-button">ТРЕВОГА</button>
+        <button type="button" id="leave-button" class="exit-button">ВЫХОД</button>
+      </div>
+      <div class="connection-line"><i id="connection-lamp"></i><span id="connection-label">Локальный контур</span></div>
+    </header>
+
+    <div class="global-alert" id="global-alert" hidden><span id="global-alert-level">СИГНАЛ</span><strong id="global-alert-text">—</strong><button type="button" id="dismiss-alert" aria-label="Принять и закрыть сигнал" title="Принять и закрыть">×</button></div>
+
+    <main class="console-stage">
+      <section id="waiting-panel" class="waiting-panel station-panel">
+        <div class="waiting-machine" aria-hidden="true"><i></i><i></i><b>✥</b></div>
+        <p class="eyebrow">ДОПУСК ПОДТВЕРЖДЁН</p>
+        <h1>Ожидайте назначения</h1>
+        <p>ГМ переместит персонажа к одному из постов. Пока вы ждёте, можете привлечь его внимание кнопкой вверху.</p>
+        <div class="crew-list" id="waiting-crew"></div>
+      </section>
+
+      <section id="driver-panel" class="station-panel driver-panel" hidden>
+        <header class="station-title">
+          <div><span>ПОСТ 01 · ХОДОВАЯ РУБКА</span><h1>Машинист</h1></div>
+          <div class="station-mode"><span id="driver-mode">УЧЕБНЫЙ РЕЖИМ</span><b id="driver-efficiency">КПД 00%</b></div>
+        </header>
+
+        <div class="driver-layout">
+          <article class="console-screen route-screen">
+            <header><span>МАРШРУТНАЯ МАШИНА</span><b id="distance-reading">128.7 км</b></header>
+            <div class="route-visual" aria-label="Карта маршрута">
+              <svg viewBox="0 0 740 205" role="img">
+                <title>Маршрут к городу-святилищу</title>
+                <path class="terrain-line" d="M0 45Q100 8 190 50T370 48T550 42T760 46M0 175Q120 138 220 180T420 166T760 170"></path>
+                <path class="route-track" d="M20 158C110 150 145 54 245 74S380 176 485 111 615 44 716 69"></path>
+                <circle cx="245" cy="74" r="6"></circle><circle cx="485" cy="111" r="6"></circle><circle class="sanctum-dot" cx="716" cy="69" r="10"></circle>
+                <g id="map-train" class="map-train"><rect x="356" y="121" width="52" height="17"></rect><circle cx="368" cy="141" r="4"></circle><circle cx="396" cy="141" r="4"></circle></g>
+                <text x="185" y="45">ПЕПЕЛЬНЫЕ ПОЛЯ</text><text x="442" y="153">ЧЁРНАЯ МЕЖА</text><text x="628" y="41">СВЯТИЛИЩЕ</text>
+              </svg>
+            </div>
+            <div class="route-message"><span>СООБЩЕНИЕ ГМ</span><p id="route-message">—</p></div>
+            <div class="upcoming-strip" id="upcoming-strip"></div>
+          </article>
+
+          <article class="console-screen speed-screen">
+            <header><span>ПУТЕВАЯ ЦЕПЬ</span><b id="track-state">ПУТЬ ИЗНОШЕН</b></header>
+            <div class="instrument-pair">
+              <div class="dial" id="speed-dial"><span class="dial-label">СКОРОСТЬ</span><i class="dial-needle" id="speed-needle"></i><b id="speed-reading">0</b><small>км/ч</small></div>
+              <div class="dial small-dial" id="traction-dial"><span class="dial-label">ТЯГА</span><i class="dial-needle" id="traction-needle"></i><b id="traction-reading">0</b><small>%</small></div>
+            </div>
+            <div class="track-readings">
+              <div><span>КАЧЕСТВО</span><b id="track-quality">72%</b><i><em id="track-quality-bar"></em></i></div>
+              <div><span>СЦЕПЛЕНИЕ</span><b id="adhesion-reading">82%</b><i><em id="adhesion-bar"></em></i></div>
+              <div><span>БЕЗОПАСНО</span><b id="safe-speed">78 км/ч</b></div>
+              <div><span>УКЛОН</span><b id="grade-reading">+0%</b></div>
+            </div>
+          </article>
+
+          <article class="console-screen consist-screen">
+            <header><span>ДИНАМИКА СОСТАВА</span><b id="wave-summary">СОСТАВ СОБРАН</b></header>
+            <div class="consist" id="driver-consist" aria-label="Продольная волна шести вагонов"></div>
+            <div class="wave-legend"><span>СЖАТИЕ</span><i></i><span>РАВНОВЕСИЕ</span><i></i><span>РАСТЯЖЕНИЕ</span></div>
+            <div class="motion-readings">
+              <div><span>НЕУСТОЙЧИВОСТЬ</span><b id="instability-reading">0%</b><i><em id="instability-bar"></em></i></div>
+              <div><span>ТОРМОЗНАЯ ЛИНИЯ</span><b id="brake-pipe-reading">0%</b><i><em id="brake-pipe-bar"></em></i></div>
+              <div><span>НАГРЕВ КОЛОДОК</span><b id="brake-heat-reading">0%</b><i><em id="brake-heat-bar"></em></i></div>
+              <div><span>ЮЗ КОЛЁС</span><b id="brake-slide-reading">0%</b><i><em id="brake-slide-bar"></em></i></div>
+              <div class="risk-reading"><span>РИСК СХОДА</span><b id="derail-risk-reading">0%</b><i><em id="derail-risk-bar"></em></i><small id="derail-risk-cause">Режим устойчив</small></div>
+            </div>
+          </article>
+        </div>
+
+        <div class="physical-console driver-controls">
+          <div class="control-block cutoff-control">
+            <label>ОТСЕЧКА ПАРА</label>
+            <div class="cutoff-modes" id="cutoff-modes">
+              <button type="button" data-cutoff="start">РАЗГОН</button><button type="button" data-cutoff="run" class="active">ХОД</button><button type="button" data-cutoff="power">МОЩНОСТЬ</button>
+            </div>
+            <label class="full-only range-line">Ручная отсечка <output id="cutoff-output">58%</output><input id="cutoff-input" type="range" min="12" max="82" value="58"></label>
+          </div>
+          <label class="lever-block"><span>ТЯГА</span><output id="throttle-output">28%</output><input id="throttle-input" type="range" min="0" max="100" value="28"><small id="throttle-response">ПАРОВАЯ КАМЕРА 48%</small></label>
+          <div class="engine-buttons"><button type="button" id="engine-toggle" class="machine-button lit">МАШИНА<br><b>В ХОДУ</b></button><button type="button" id="sand-button" class="machine-button hold">ПЕСОК<br><b id="sand-reading">100%</b></button></div>
+          <label class="lever-block brake-lever"><span>ТОРМОЗ</span><output id="brake-output">0%</output><input id="brake-input" type="range" min="0" max="100" value="0"><small id="brake-response">МАГИСТРАЛЬ 92%</small></label>
+        </div>
+      </section>
+
+      <section id="engineer-panel" class="station-panel engineer-panel" hidden>
+        <header class="station-title">
+          <div><span>ПОСТ 02 · КОТЕЛЬНЫЙ ВАГОН</span><h1>Инженер</h1></div>
+          <div class="station-mode"><span id="engineer-mode">УЧЕБНЫЙ РЕЖИМ</span><b id="engineer-efficiency">КПД 00%</b></div>
+        </header>
+
+        <div class="engineer-layout">
+          <article class="console-screen boiler-screen">
+            <header><span>КОТЁЛ «ИОВ»</span><b id="boiler-state">РАБОЧИЙ ЖАР</b></header>
+            <div class="boiler-visual">
+              <div class="boiler-cutaway"><div class="boiler-water" id="boiler-water"></div><div class="boiler-fire" id="boiler-fire"></div><i class="boiler-pressure" id="boiler-pressure-ring"></i><span class="steam-puff p1"></span><span class="steam-puff p2"></span></div>
+              <div class="boiler-gauges">
+                <div><span>ДАВЛЕНИЕ</span><b id="boiler-pressure">68%</b><i><em id="boiler-pressure-bar"></em></i></div>
+                <div><span>ЖАР</span><b id="heat-reading">61%</b><i><em id="heat-bar"></em></i></div>
+                <div><span>ВОДА</span><b id="water-reading">72%</b><i><em id="water-bar"></em></i></div>
+                <div><span>ТОПЛИВО</span><b id="fuel-reading">86%</b><i><em id="fuel-bar"></em></i></div>
+              </div>
+            </div>
+            <div class="boiler-controls-inline">
+              <label>ПОДАЧА УГЛЯ <output id="feed-output">42%</output><input id="feed-input" type="range" min="0" max="100" value="42"><small id="feed-response">ТОПКА ДЕРЖИТ ЖАР</small></label>
+              <label>ИНЖЕКТОР ВОДЫ <output id="injector-output">23%</output><input id="injector-input" type="range" min="0" max="100" value="23"><small id="injector-response">УРОВЕНЬ СТАБИЛЕН</small></label>
+            </div>
+          </article>
+
+          <article class="console-screen collector-screen">
+            <header><span>ГЛАВНЫЙ ПАРОВОЙ КОЛЛЕКТОР</span><b id="collector-total">РАСПРЕДЕЛЕНИЕ</b></header>
+            <div class="collector-pipe" aria-hidden="true"><i></i><b></b><span></span></div>
+            <div class="circuit-grid" id="circuit-grid">
+              <section class="circuit" data-circuit="traction"><header><span>ТЯГА</span><b data-circuit-pressure>0</b></header><div class="circuit-core"><i data-circuit-buffer></i><em data-circuit-flow></em></div><label>КЛАПАН <output>48%</output><input type="range" min="0" max="100" value="48"></label><button type="button" class="full-only isolate-button">ИЗОЛИРОВАТЬ</button></section>
+              <section class="circuit critical" data-circuit="pneumatic"><header><span>ПНЕВМ.</span><b data-circuit-pressure>0</b></header><div class="circuit-core"><i data-circuit-buffer></i><em data-circuit-flow></em></div><label>КЛАПАН <output>30%</output><input type="range" min="0" max="100" value="30"></label><button type="button" class="full-only isolate-button">ИЗОЛИРОВАТЬ</button></section>
+              <section class="circuit" data-circuit="defense"><header><span>ОБОРОНА</span><b data-circuit-pressure>0</b></header><div class="circuit-core"><i data-circuit-buffer></i><em data-circuit-flow></em></div><label>КЛАПАН <output>34%</output><input type="range" min="0" max="100" value="34"></label><button type="button" class="full-only isolate-button">ИЗОЛИРОВАТЬ</button></section>
+              <section class="circuit critical" data-circuit="shackles"><header><span>ОКОВЫ</span><b data-circuit-pressure>0</b></header><div class="circuit-core"><i data-circuit-buffer></i><em data-circuit-flow></em></div><label>КЛАПАН <output>36%</output><input type="range" min="0" max="100" value="36"></label><button type="button" class="full-only isolate-button">ИЗОЛИРОВАТЬ</button></section>
+              <section class="circuit critical" data-circuit="auxiliary"><header><span>СЛУЖЕБ.</span><b data-circuit-pressure>0</b></header><div class="circuit-core"><i data-circuit-buffer></i><em data-circuit-flow></em></div><label>КЛАПАН <output>24%</output><input type="range" min="0" max="100" value="24"></label><button type="button" class="full-only isolate-button">ИЗОЛИРОВАТЬ</button></section>
+            </div>
+            <div class="collector-legend"><span><i></i>давление</span><span><em></em>накопитель</span><span>Критические линии имеют неснимаемый минимум в учебном режиме</span></div>
+          </article>
+
+          <article class="console-screen overdrive-screen">
+            <header><span>ФОРСАЖНЫЙ БАЙПАС</span><b id="overdrive-state">ЗАПЕРТ</b></header>
+            <div class="overdrive-coil"><i id="overdrive-coil"></i><b id="overdrive-power">×0.0</b><span>МОЩНОСТЬ</span></div>
+            <label>НАПРАВЛЕНИЕ<select id="overdrive-target"><option value="traction">Тяговый контур</option><option value="pneumatic">Пневматика</option><option value="defense">Оборона</option><option value="shackles">Оковы</option><option value="auxiliary">Служебный</option></select></label>
+            <div class="overdrive-actions"><button type="button" id="overdrive-arm" class="guard-button">СНЯТЬ ПЛОМБУ</button><button type="button" id="overdrive-toggle" class="danger-button" disabled>ОТКРЫТЬ БАЙПАС</button></div>
+            <div class="instability-line"><span>НЕСТАБИЛЬНОСТЬ</span><b id="overdrive-instability">0%</b><i><em id="overdrive-instability-bar"></em></i></div>
+            <div class="full-only crossfeed"><span>АВАРИЙНАЯ ПЕРЕМЫЧКА</span><select id="crossfeed-from"></select><b>→</b><select id="crossfeed-to"></select><button type="button" id="crossfeed-apply">СОЕДИНИТЬ</button></div>
+          </article>
+        </div>
+
+        <div class="physical-console engineer-controls">
+          <div class="reserve-block"><span>ПАРОВОЙ РЕЗЕРВ</span><strong id="steam-reserve">66%</strong></div>
+          <button type="button" id="vent-button" class="valve-button hold"><i></i><span>АВАРИЙНЫЙ<br>СБРОС ПАРА</span></button>
+          <button type="button" id="manual-coal" class="machine-button">РУЧНАЯ<br>ЗАГРУЗКА</button>
+          <p>Ручная загрузка отражает заявленное действие персонажа и даёт краткий прирост жару.</p>
+        </div>
+      </section>
+
+      <section id="warden-panel" class="station-panel warden-panel" hidden>
+        <header class="station-title">
+          <div><span>ПОСТ 03 · БОЕВАЯ ГАЛЕРЕЯ</span><h1>Страж состава</h1></div>
+          <div class="station-mode"><span id="warden-mode">УЧЕБНЫЙ РЕЖИМ</span><b id="warden-efficiency">КПД 00%</b></div>
+        </header>
+
+        <div class="warden-layout">
+          <article class="console-screen targeting-screen">
+            <header><span>ТАУМАТУРГИЧЕСКАЯ НАВОДКА</span><b id="target-count">0 СИГНАТУР</b></header>
+            <div class="sector-tabs" id="sector-tabs"><button type="button" data-sector="front" class="active">НОС</button><button type="button" data-sector="right">ПРАВЫЙ</button><button type="button" data-sector="rear">ХВОСТ</button><button type="button" data-sector="left">ЛЕВЫЙ</button></div>
+            <div class="target-field" id="target-field" role="application" aria-label="Схематические сигнатуры врагов">
+              <svg viewBox="0 0 600 330" aria-hidden="true"><path class="radar-grid" d="M300 330V0M0 165H600M80 330A220 220 0 01300 110M520 330A220 220 0 00300 110M160 330A140 140 0 01300 190M440 330A140 140 0 00300 190"></path><path class="rail-lines" d="M235 330L292 0M365 330L308 0M170 330L284 0M430 330L316 0"></path><path class="train-mark" d="M274 330l26-82 26 82z"></path></svg>
+              <div id="target-dots"></div>
+              <div class="reticle" id="target-reticle"><i></i><b></b></div>
+            </div>
+            <div class="target-readout"><span>ЗАХВАТ</span><strong id="selected-target">НЕТ ЦЕЛИ</strong><b id="target-distance">—</b></div>
+          </article>
+
+          <article class="console-screen firing-screen">
+            <header><span>СЕКТОРНАЯ БАТАРЕЯ</span><b id="turret-state">ГОТОВА</b></header>
+            <div class="turret-silhouette"><i></i><b></b><span></span></div>
+            <div class="rhythm-track" id="rhythm-track"><span class="hit-zone"></span><i id="rhythm-marker"></i></div>
+            <div class="firing-stats"><div><span>ПЕРЕГРЕВ</span><b id="turret-heat">0%</b><i><em id="turret-heat-bar"></em></i></div><div><span>ПЕРЕЗАРЯДКА</span><b id="turret-reload">100%</b><i><em id="turret-reload-bar"></em></i></div></div>
+            <button type="button" id="fire-button" class="fire-button"><span>ОГОНЬ</span><small>НАЖАТЬ В ТАКТ</small></button>
+            <button type="button" id="turret-toggle" class="machine-button lit">ТУРЕЛИ <b>В СЕТИ</b></button>
+          </article>
+
+          <article class="console-screen defense-screen">
+            <header><span>ЗАЩИТА СОСТАВА</span><b id="defense-pressure">ПИТАНИЕ 0%</b></header>
+            <section class="barrier-module">
+              <div class="barrier-orb"><i id="barrier-orb"></i><b id="barrier-charge">78%</b></div>
+              <div><span>БАРЬЕР</span><button type="button" id="barrier-toggle" class="toggle-button active">ВКЛЮЧЁН</button><label>МОЩНОСТЬ <output id="barrier-power-output">44%</output><input id="barrier-power" type="range" min="0" max="100" value="44"></label></div>
+            </section>
+            <section class="shackle-module">
+              <header><span>ОКОВЫ БОЖЕСТВА</span><b id="shackle-stability">82%</b></header>
+              <div class="anchor-dials" id="anchor-dials"><i></i><i></i><i></i><i></i><b id="shackle-phase"></b></div>
+              <label>УСИЛИЕ <output id="shackle-power-output">52%</output><input id="shackle-power" type="range" min="0" max="100" value="52"></label>
+              <button type="button" id="shackle-sync" class="sync-button">СВЕСТИ ОКОВЫ В ТАКТ</button>
+            </section>
+          </article>
+
+          <article class="console-screen train-security-screen">
+            <header><span>ПЕРЕГОРОДКИ И СЦЕПКИ</span><b id="train-integrity">СОСТАВ 94%</b></header>
+            <div class="security-consist" id="security-consist"></div>
+            <div class="bulkhead-bank" id="bulkhead-bank"></div>
+            <div class="coupling-help">Выберите сцепку на схеме. Повторное нажатие после подготовки отсоединит хвост состава.</div>
+          </article>
+        </div>
+      </section>
+
+      <section id="gm-panel" class="station-panel gm-panel" hidden>
+        <header class="gm-heading"><div><span>СЛУЖЕБНЫЙ ИНТЕРФЕЙС</span><h1>Управляющая будка</h1></div><div class="gm-room"><small>КОД ДЛЯ ИГРОКОВ</small><button type="button" id="gm-room-code">——</button></div></header>
+        <div class="gm-columns">
+          <div class="gm-stack">
+            <section class="gm-card"><header><h2>Рейс</h2><span id="gm-save-state">локально</span></header><div class="gm-button-row"><button type="button" data-phase="moving">Движение</button><button type="button" data-phase="encounter">Энкаунтер</button><button type="button" data-phase="station">Станция</button></div><div class="gm-button-row"><button type="button" id="gm-pause">Запустить</button><button type="button" data-speed="0.5">×0.5</button><button type="button" data-speed="1" class="active">×1</button><button type="button" data-speed="2">×2</button></div><label>Сообщение машинисту<textarea id="gm-message" maxlength="240" rows="2"></textarea></label><button type="button" id="gm-send-message">Передать сообщение</button></section>
+            <section class="gm-card"><header><h2>Экипаж</h2><button type="button" id="gm-refresh-players">Обновить</button></header><div id="gm-player-list" class="gm-player-list"><p>Ожидание игроков…</p></div></section>
+            <section class="gm-card mode-card">
+              <header><div><h2>Сложность постов</h2><span>настраивается отдельно</span></div><a href="gm-reference.html#modes" target="_blank" class="gm-help-link">Что меняется?</a></header>
+              <div class="mode-presets"><button type="button" data-light-all="true">Все учебные</button><button type="button" data-light-all="false">Все полные</button></div>
+              <div class="mode-grid">
+                <label class="mode-row"><span><b>Машинист</b><small>Автоматическая отсечка пара</small></span><input type="checkbox" data-light="driver" checked><i></i><em>УЧЕБНЫЙ</em></label>
+                <label class="mode-row"><span><b>Инженер</b><small>Страховка критических контуров</small></span><input type="checkbox" data-light="engineer" checked><i></i><em>УЧЕБНЫЙ</em></label>
+                <label class="mode-row"><span><b>Страж</b><small>Упрощённые защитные процедуры</small></span><input type="checkbox" data-light="warden" checked><i></i><em>УЧЕБНЫЙ</em></label>
+              </div>
+              <label class="kpi-row"><input id="gm-show-efficiency" type="checkbox" checked><i></i><span><b>Показывать подсказку «КПД»</b><small>Только отображает оценку работы. Не включает автоматику и не меняет сложность.</small></span></label>
+            </section>
+          </div>
+
+          <div class="gm-stack">
+            <section class="gm-card"><header><h2>Параметры движения</h2><span>применяются сразу</span></header><div class="gm-field-grid"><label>До цели, км<input type="number" data-gm-path="route.distance" min="0" max="999" step="0.1"></label><label>Качество пути<input type="number" data-gm-path="route.track.quality" min="0" max="100"></label><label>Безопасная скорость<input type="number" data-gm-path="route.track.safeSpeed" min="0" max="180"></label><label>Сцепление<input type="number" data-gm-path="route.track.adhesion" min="0" max="1" step="0.01"></label><label>Уклон<input type="number" data-gm-path="route.track.grade" min="-0.3" max="0.3" step="0.01"></label><label>Кривизна<input type="number" data-gm-path="route.track.curve" min="0" max="1" step="0.01"></label></div></section>
+            <section class="gm-card risk-card">
+              <header><div><h2>Устойчивость состава</h2><span id="gm-risk-state">режим устойчив</span></div><a href="gm-reference.html#derailment" target="_blank" class="gm-help-link">Пороги и формулы</a></header>
+              <div class="gm-risk-meter"><span>РИСК СХОДА</span><b id="gm-derail-risk">0%</b><i><em id="gm-derail-risk-bar"></em></i><small id="gm-derail-cause">Режим устойчив</small></div>
+              <label class="kpi-row catastrophe-toggle"><input id="gm-auto-catastrophes" type="checkbox" checked><i></i><span><b>Автоматический сход при 100%</b><small>Включено: симуляция сама роняет вагон. Выключено: риск замирает на 99%, а решение принимает ГМ.</small></span></label>
+              <p>После первого схода движение продолжится, но состав начнёт разрушаться и может перейти в полное крушение.</p>
+            </section>
+            <section class="gm-card"><header><h2>Системы</h2><span>грубая настройка</span></header><div class="gm-field-grid"><label>Топливо<input type="number" data-gm-path="engineer.fuel" min="0" max="100"></label><label>Вода<input type="number" data-gm-path="engineer.water" min="0" max="100"></label><label>Давление котла<input type="number" data-gm-path="engineer.boilerPressure" min="0" max="115"></label><label>Целостность состава<input type="number" data-gm-path="train.integrity" min="0" max="100"></label><label>Давление бога<input type="number" data-gm-path="god.pressure" min="0" max="100"></label><label>Рост влияния<input type="number" data-gm-path="gm.godGrowth" min="0" max="5" step="0.1"></label></div></section>
+            <section class="gm-card damage-card">
+              <header><div><h2>Аварии и восстановление</h2><span>прямое управление последствиями</span></div><a href="gm-reference.html#damage" target="_blank" class="gm-help-link">Что произойдёт?</a></header>
+              <label>Вагон<select id="gm-damage-car"><option value="random">Самый пострадавший / случайный</option><option value="0">1 · Командный</option><option value="1">2 · Котельный</option><option value="2">3 · Саркофаг</option><option value="3">4 · Боевой</option><option value="4">5 · Жилой</option><option value="5">6 · Грузовой</option><option value="all">Весь состав</option></select></label>
+              <div class="damage-grid"><button type="button" data-damage="10" data-shock="8"><b>Удар</b><small>−10 · толчок 8</small></button><button type="button" data-damage="25" data-shock="20"><b>Пробоина</b><small>−25 · толчок 20</small></button><button type="button" data-damage="45" data-shock="38"><b>Разрушение</b><small>−45 · толчок 38</small></button></div>
+              <button type="button" id="gm-cascade" class="cascade-button">КАСКАДНЫЙ СРЫВ СИСТЕМ</button>
+              <div class="recovery-block"><strong>После ролевого ремонта</strong><div class="recovery-grid"><button type="button" id="gm-repair-car"><b>Починить вагон</b><small>+25 целостности</small></button><button type="button" id="gm-rerail-car"><b>Вернуть на рельсы</b><small>снять состояние схода</small></button></div><div class="coupling-recovery"><select id="gm-repair-coupling" aria-label="Восстанавливаемая сцепка"><option value="0">Сцепка I · 1—2</option><option value="1">Сцепка II · 2—3</option><option value="2">Сцепка III · 3—4</option><option value="3">Сцепка IV · 4—5</option><option value="4">Сцепка V · 5—6</option></select><button type="button" id="gm-restore-coupling">Восстановить сцепку</button></div></div>
+              <p>Кнопки восстановления ничего не отыгрывают автоматически — они лишь подтверждают результат действий персонажей.</p>
+            </section>
+            <section class="gm-card"><header><h2>Ложные приборы</h2><button type="button" id="gm-clear-false">Очистить</button></header><div class="false-reading-row"><select id="gm-false-gauge"><option value="driver.speed">Скорость</option><option value="engineer.boilerPressure">Давление котла</option><option value="engineer.water">Вода</option><option value="route.track.quality">Качество пути</option><option value="security.shackles.stability">Состояние оков</option><option value="god.pressure">Давление бога</option></select><input id="gm-false-offset" type="number" value="15" min="-100" max="100"><button type="button" id="gm-set-false">ИСКАЗИТЬ</button></div></section>
+          </div>
+
+          <div class="gm-stack">
+            <section class="gm-card"><header><div><h2>Быстрые события</h2><span>готовые окна внимания</span></div><a href="gm-reference.html#events" target="_blank" class="gm-help-link">Все эффекты</a></header><div class="event-grid"><button type="button" data-event="targets" data-sector="front"><b>Враги · нос</b><small>3 цели впереди</small></button><button type="button" data-event="targets" data-sector="rear"><b>Враги · хвост</b><small>3 цели сзади</small></button><button type="button" data-event="targets" data-sector="left"><b>Враги · левый</b><small>3 цели у борта</small></button><button type="button" data-event="targets" data-sector="right"><b>Враги · правый</b><small>3 цели у борта</small></button><button type="button" data-event="track"><b>Разрыв пути</b><small>качество 24 · лимит 42</small></button><button type="button" data-event="god"><b>Импульс бога</b><small>давление +12 · резонанс +18</small></button><button type="button" data-event="storm"><b>Пепельная буря</b><small>сцепление падает до 0,38</small></button><button type="button" data-event="jump"><b>Пропасть впереди</b><small>ориентир разгона 140</small></button></div></section>
+            <section class="gm-card failure-card"><header><div><h2>Поломки</h2><span>эффект действует постоянно</span></div><a href="gm-reference.html#failures" target="_blank" class="gm-help-link">Таблица формул</a></header><div class="failure-controls"><select id="gm-failure-system"><option value="boiler">Котёл</option><option value="traction">Тяговая машина</option><option value="brakes">Тормоза</option><option value="defense">Оборона</option><option value="shackles">Оковы</option><option value="sensors">Приборы</option><option value="coupling">Сцепки</option><option value="auxiliary">Служебный контур</option></select><select id="gm-failure-severity" aria-label="Степень поломки"><option value="1">I · помеха</option><option value="2" selected>II · серьёзная</option><option value="3">III · критическая</option><option value="4">IV · катастрофическая</option></select><label><input id="gm-failure-hidden" type="checkbox">скрытая</label><button type="button" id="gm-add-failure">ДОБАВИТЬ</button></div><p id="gm-failure-preview" class="failure-preview"></p><div id="gm-failure-list" class="gm-failure-list"></div></section>
+            <section class="gm-card log-card"><header><h2>Журнал рейса</h2><button type="button" id="gm-export">Экспорт JSON</button></header><div id="gm-log" class="gm-log"></div><label class="import-label">Восстановить снимок<input id="gm-import" type="file" accept="application/json"></label></section>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <dialog id="confirm-dialog"><form method="dialog"><span>СЛУЖЕБНОЕ ПОДТВЕРЖДЕНИЕ</span><h2 id="confirm-title">Подтвердить действие?</h2><p id="confirm-text"></p><div><button value="cancel">Отмена</button><button value="confirm" class="danger">Подтвердить</button></div></form></dialog>
+</body>
+</html>

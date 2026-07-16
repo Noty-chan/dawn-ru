@@ -215,7 +215,7 @@ begin
   on conflict(id) do update set display_name=excluded.display_name,updated_at=now();
   insert into public.campaign_members(campaign_id,user_id,role,display_name)
   values(invite.campaign_id,current_user_id,invite.role,safe_display_name)
-  on conflict(campaign_id,user_id) do nothing;
+  on conflict on constraint campaign_members_pkey do nothing;
   get diagnostics inserted_count = row_count;
   if inserted_count > 0 then update public.campaign_invites set use_count=use_count+1 where id=invite.id; end if;
   return query
