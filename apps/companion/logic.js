@@ -33,11 +33,12 @@
     const selected = new Set(Array.isArray(gifts) ? gifts : []);
     let rankBase = 8 + 2 * (currentTier - 1);
     let skillMin = 4;
-    if (selected.has("Past Your Prime")) {
+    const rankBudgetConflict = selected.has("Past Your Prime") && selected.has("Amazing Potential");
+    if (selected.has("Past Your Prime") && !rankBudgetConflict) {
       rankBase = 12 + (currentTier - 1);
       skillMin = 8;
     }
-    if (selected.has("Amazing Potential")) {
+    if (selected.has("Amazing Potential") && !rankBudgetConflict) {
       rankBase = 6 + 3 * (currentTier - 1);
       skillMin = 2;
     }
@@ -54,12 +55,14 @@
     const skillSpent = (Array.isArray(skillRanks) ? skillRanks : []).reduce((sum, rank) => sum + clamp(rank, 1, 3), 0);
     const performanceBonus = selected.has("Performance Artist") && clamp(performanceTargetRank, 0, 3) < 3 && clamp(performanceTargetRank, 0, 3) > 0 ? 1 : 0;
     const coreRankPool = rankBase + unrestrictedExtra;
-    const rankPool = coreRankPool + abilityExtra + gadgetPool;
+    const rankPool = coreRankPool + abilityExtra + gadgetPool + taintedAbilityPool;
     const rankAccounting = calculateRankSpend({ skillSpent, abilityCost, abilityExtra, gadgetSpent: effectiveGadgetSpent, gadgetPool });
+    const rankSpent = rankAccounting.rankSpent + taintedAbilitySpent;
 
     return {
       tier: currentTier,
       rankBase,
+      rankBudgetConflict,
       unrestrictedExtra,
       coreRankPool,
       rankPool,
@@ -78,14 +81,15 @@
       gadgetPool,
       gadgetSpent: effectiveGadgetSpent,
       ...rankAccounting,
+      rankSpent,
       rankOver: Math.max(0, rankAccounting.coreRankSpent - coreRankPool),
     };
   }
 
-  function calculateAbilityCost({ enabled = false, rank = 1, words = [], xWord = null, specializations = {} }) {
+  function calculateAbilityCost({ enabled = false, rank = 1, words = [], xWord = null, specializations = {}, forceCondition = false }) {
     if (!enabled) return 0;
     const selectedWords = Array.isArray(words) ? words.filter(Boolean) : [];
-    const omitCondition = selectedWords.some(word => word.group !== "conditions" && String(word.marks || "").includes("✢"));
+    const omitCondition = !forceCondition && selectedWords.some(word => word.group !== "conditions" && String(word.marks || "").includes("✢"));
     const activeWords = selectedWords.filter(word => !(omitCondition && word.group === "conditions"));
     const specializationFor = word => String(specializations?.[word?.id] || "").trim();
     const fixedCost = word => {

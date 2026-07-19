@@ -101,6 +101,8 @@ assert.equal(taintedBudget.taintedAbilityPool, 6);
 assert.equal(taintedBudget.taintedAbilitySpent, 5);
 assert.equal(taintedBudget.taintedAbilityRemaining, 1);
 assert.equal(taintedBudget.taintedAbilityOver, 0);
+assert.equal(taintedBudget.rankPool, 26, "Tainted Body reserve must be present in the visible total pool");
+assert.equal(taintedBudget.rankSpent, 19, "Tainted Body Ability cost must be present in visible spent ranks");
 assert.equal(taintedBudget.paidAbility, 2, "Tainted Body is reserved for a new Ability, not the existing one");
 assert.equal(logic.calculateCreationBudgets({ tier: 1, gifts: ["Tainted Body"], taintedBodyUsed: true, taintedAbilityCost: 6 }).taintedAbilityOver, 2, "Tainted Body cannot silently overpay its new Ability");
 const artistBudget = JSON.parse(JSON.stringify(logic.calculateCreationBudgets({
@@ -111,6 +113,13 @@ const artistBudget = JSON.parse(JSON.stringify(logic.calculateCreationBudgets({
 assert.equal(artistBudget.skillSpent, 4);
 assert.equal(artistBudget.performanceBonus, 1, "Performance Artist grants a free rank to the selected Skill");
 assert.equal(logic.calculateCreationBudgets({ gifts: ["Performance Artist"], skillRanks: [3, 1], performanceTargetRank: 3 }).performanceBonus, 0, "Skill rank cannot exceed 3");
+const deafnessBudget = logic.calculateCreationBudgets({ gifts: ["Supernatural Deafness"], skillRanks: [2, 2], abilityCost: 4 });
+assert.equal(deafnessBudget.rankPool, 11, "Supernatural Deafness adds three unrestricted ranks");
+assert.equal(deafnessBudget.rankSpent, 8, "Selecting Supernatural Deafness must not rewrite already spent ranks");
+const gearheadBudget = logic.calculateCreationBudgets({ gifts: ["Gearhead"], skillRanks: [2, 2], abilityCost: 4, gadgetSpent: 3 });
+assert.equal(gearheadBudget.rankPool, 11, "Gearhead adds its three gadget-only ranks to the visible pool");
+assert.equal(gearheadBudget.rankSpent, 11, "Configured gadget ranks must be visible in total spending");
+assert.equal(gearheadBudget.coreRankSpent, 8, "Gift-paid gadget ranks must not consume the core pool");
 assert.deepEqual(
   JSON.parse(JSON.stringify(logic.calculateCreationBudgets({ tier: 3, gifts: ["Past Your Prime"], skillRanks: [] }))).rankPool,
   14,
@@ -118,7 +127,14 @@ assert.deepEqual(
 assert.equal(logic.calculateCreationBudgets({ tier: 3, gifts: ["Past Your Prime"], skillRanks: [] }).skillMin, 8);
 assert.equal(logic.calculateCreationBudgets({ tier: 3, gifts: ["Amazing Potential"], skillRanks: [] }).rankPool, 12);
 assert.equal(logic.calculateCreationBudgets({ tier: 3, gifts: ["Amazing Potential"], skillRanks: [] }).skillMin, 2);
+const conflictingRankGifts = logic.calculateCreationBudgets({ tier: 1, gifts: ["Past Your Prime", "Amazing Potential"], skillRanks: [2, 2] });
+assert.equal(conflictingRankGifts.rankBudgetConflict, true);
+assert.equal(conflictingRankGifts.rankPool, 8, "An invalid pair must not arbitrarily let one starting budget overwrite the other");
+assert.equal(conflictingRankGifts.skillMin, 4);
 assert.equal(logic.calculateCreationBudgets({ gifts: [], skillRanks: [], gadgetSpent: 9 }).rankSpent, 0, "Gadget spend is ignored without Gearhead");
+const forcedConditionWords = [{ id: "verb", group: "verbs", cost: 1, marks: "✢" }, { id: "noun", group: "nouns", cost: 1, marks: "" }, { id: "condition", group: "conditions", cost: 2, marks: "" }];
+assert.equal(logic.calculateAbilityCost({ enabled: true, words: forcedConditionWords }), 2, "A terminating word normally omits the Condition cost");
+assert.equal(logic.calculateAbilityCost({ enabled: true, words: forcedConditionWords, forceCondition: true }), 4, "Uncontrollable Power must retain and pay for its required Condition");
 assert.equal(logic.scaleTierFormula("15(+5)", 1), 15);
 assert.equal(logic.scaleTierFormula("15(+5)", 3), 25);
 assert.equal(logic.scaleTierFormula("1(+1/2)", 1), 1);
