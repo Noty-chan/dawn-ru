@@ -67,7 +67,7 @@ for (const archetype of data.archetypes) for (const technique of archetype.techn
 
 assert.deepEqual(
   JSON.parse(JSON.stringify(logic.calculateRankSpend({ skillSpent: 4, abilityCost: 5, abilityExtra: 2, gadgetSpent: 5, gadgetPool: 3 }))),
-  { paidAbility: 3, paidGadgets: 2, rankSpent: 9 },
+  { paidAbility: 3, paidGadgets: 2, rankSpent: 14, coreRankSpent: 9 },
   "Gearhead's first three gadget ranks must not spend the main rank budget",
 );
 const cursedBudget = JSON.parse(JSON.stringify(logic.calculateCreationBudgets({
@@ -76,11 +76,18 @@ const cursedBudget = JSON.parse(JSON.stringify(logic.calculateCreationBudgets({
   skillRanks: [2, 2],
   abilityCost: 6,
 })));
-assert.equal(cursedBudget.rankPool, 8);
+assert.equal(cursedBudget.rankPool, 12);
+assert.equal(cursedBudget.coreRankPool, 8);
 assert.equal(cursedBudget.uncontrollableRanks, 4);
 assert.equal(cursedBudget.abilityExtra, 4);
 assert.equal(cursedBudget.paidAbility, 2);
-assert.equal(cursedBudget.rankSpent, 6, "Uncontrollable Power must visibly grant four Ability-only ranks");
+assert.equal(cursedBudget.rankSpent, 10, "Selecting an Ability-only gift must not reduce the visible ranks already spent");
+assert.equal(cursedBudget.coreRankSpent, 6, "Uncontrollable Power still restricts its four bonus ranks to the Ability");
+const darkUrgeRegression = logic.calculateCreationBudgets({ gifts: ["Dark Urge"], skillRanks: [2, 2], abilityCost: 4 });
+assert.equal(darkUrgeRegression.rankSpent, 8, "Dark Urge must not change 8 spent ranks into 4");
+assert.equal(darkUrgeRegression.rankPool, 12, "Dark Urge adds four restricted ranks to the visible total pool");
+assert.equal(darkUrgeRegression.rankOver, 0);
+assert.equal(logic.calculateCreationBudgets({ gifts: ["Dark Urge"], skillRanks: [3, 3, 3, 3] }).rankOver, 4, "Dark Urge ranks cannot be diverted into Skills");
 const taintedBudget = JSON.parse(JSON.stringify(logic.calculateCreationBudgets({
   tier: 3,
   gifts: ["Dark Urge", "Uncontrollable Power", "Tainted Body"],

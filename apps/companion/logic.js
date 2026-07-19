@@ -6,12 +6,16 @@
   }
 
   function calculateRankSpend({ skillSpent, abilityCost, abilityExtra, gadgetSpent, gadgetPool }) {
-    const paidAbility = Math.max(0, clamp(abilityCost, 0, 999) - clamp(abilityExtra, 0, 999));
-    const paidGadgets = Math.max(0, clamp(gadgetSpent, 0, 999) - clamp(gadgetPool, 0, 999));
+    const skills = clamp(skillSpent, 0, 999);
+    const ability = clamp(abilityCost, 0, 999);
+    const gadgets = clamp(gadgetSpent, 0, 999);
+    const paidAbility = Math.max(0, ability - clamp(abilityExtra, 0, 999));
+    const paidGadgets = Math.max(0, gadgets - clamp(gadgetPool, 0, 999));
     return {
       paidAbility,
       paidGadgets,
-      rankSpent: clamp(skillSpent, 0, 999) + paidAbility + paidGadgets,
+      rankSpent: skills + ability + gadgets,
+      coreRankSpent: skills + paidAbility + paidGadgets,
     };
   }
 
@@ -49,13 +53,15 @@
     const effectiveGadgetSpent = selected.has("Gearhead") ? clamp(gadgetSpent, 0, 999) : 0;
     const skillSpent = (Array.isArray(skillRanks) ? skillRanks : []).reduce((sum, rank) => sum + clamp(rank, 1, 3), 0);
     const performanceBonus = selected.has("Performance Artist") && clamp(performanceTargetRank, 0, 3) < 3 && clamp(performanceTargetRank, 0, 3) > 0 ? 1 : 0;
-    const rankPool = rankBase + unrestrictedExtra;
+    const coreRankPool = rankBase + unrestrictedExtra;
+    const rankPool = coreRankPool + abilityExtra + gadgetPool;
     const rankAccounting = calculateRankSpend({ skillSpent, abilityCost, abilityExtra, gadgetSpent: effectiveGadgetSpent, gadgetPool });
 
     return {
       tier: currentTier,
       rankBase,
       unrestrictedExtra,
+      coreRankPool,
       rankPool,
       skillMin,
       skillSpent,
@@ -72,6 +78,7 @@
       gadgetPool,
       gadgetSpent: effectiveGadgetSpent,
       ...rankAccounting,
+      rankOver: Math.max(0, rankAccounting.coreRankSpent - coreRankPool),
     };
   }
 
