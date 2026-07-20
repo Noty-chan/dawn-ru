@@ -12,6 +12,7 @@
   <header class="masthead">
     <a class="wordmark" href="./" aria-label="DAWN RU, главная"><span>DAWN</span><b>RU</b></a>
     <nav aria-label="Основная навигация">
+      <a href="#builds">Боевые сборки</a>
       <a href="companion/">Компаньон</a>
       <a href="tutorials/">Обучение</a>
       <a href="dead-gods/">Мир мёртвых богов</a>
@@ -45,6 +46,28 @@
       <div class="scenario-train" aria-hidden="true"><span>DM</span><i></i><i></i><i></i><i></i><i></i><i></i></div>
     </section>
 
+    <section class="build-lab" id="builds" aria-labelledby="builds-title">
+      <header class="build-lab-head">
+        <div>
+          <p class="eyebrow">16 СПОСОБОВ ВОЙТИ В БОЙ</p>
+          <h2 id="builds-title">Выберите свой ритм</h2>
+          <p>Готовые персонажи первой Ступени: пять Уровней Техник, легальные Атрибуты и понятный путь развития. Не рейтинг силы — шестнадцать разных способов играть.</p>
+        </div>
+        <div class="build-controls" aria-label="Управление каруселью">
+          <button class="build-arrow" id="build-prev" type="button" aria-label="Предыдущая сборка">←</button>
+          <span id="build-position" aria-live="polite">01 / 16</span>
+          <button class="build-arrow" id="build-next" type="button" aria-label="Следующая сборка">→</button>
+        </div>
+      </header>
+
+      <div class="build-viewport" id="build-viewport" tabindex="0" aria-label="Карусель боевых сборок">
+        <div class="build-track" id="build-track"></div>
+      </div>
+      <div class="build-progress" aria-hidden="true"><i id="build-progress"></i></div>
+      <article class="build-detail" id="build-detail" aria-live="polite"></article>
+      <noscript><p class="build-noscript">Для просмотра интерактивной карусели включите JavaScript.</p></noscript>
+    </section>
+
     <section class="features" aria-label="Материалы проекта">
       <a class="feature feature-companion" href="companion/">
         <span class="number">01</span>
@@ -68,5 +91,7 @@
       <span>Наполняйте мир своими идеями. Рискуйте и поднимайтесь после неудач. · Неофициальная русская локализация; оригинал © Joel Vreugdenhil, CC BY 4.0.</span>
     </section>
   </main>
+  <script src="companion/data.js" defer></script>
+  <script src="presets.js" defer></script>
 </body>
 </html>
