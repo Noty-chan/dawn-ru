@@ -113,10 +113,12 @@
     return {
       ok: errors.length === 0,
       engineVersion: VERSION,
+      actorId: actor?.id || null,
       rule: { id: entry?.id || "manual", techniqueId: entry?.techniqueId, level: entry?.level, name, automation: "manual" },
       errors,
       warnings: errors.length ? [] : ["Движок сохранил источник правила, исполнителя и решение, но механический итог подтверждается вручную."],
       summary: errors.length ? `«${name}»: требуется уточнение` : `«${name}»: подготовлено ручное разрешение`,
+      request: { targetIds: clone(request.targetIds || []), note: String(request.note || "").slice(0,500), entryId: entry?.id || null },
       commands: errors.length ? [] : [{ type: "manual_rule", actorId: actor.id, ruleId: entry.id, label: name, note: String(request.note || "").slice(0, 500) }],
       affectedCells: [],
       affectedActorIds: Array.isArray(request.targetIds) ? unique(request.targetIds).filter(id => actorById(scene, id)) : [],
@@ -190,7 +192,34 @@
     }
 
     const summary = errors.length ? `«${rule.name}»: требуется уточнение` : `«${rule.name}»: ${commands.length} команд готово к применению`;
-    return { ok: errors.length === 0, engineVersion: VERSION, rule: publicRule(rule), errors, warnings, summary, commands, affectedCells, affectedActorIds };
+    return { ok: errors.length === 0, engineVersion: VERSION, actorId: actor?.id || null, rule: publicRule(rule), request: { anchor: request.anchor || null, destination: request.destination || null, targetIds: clone(request.targetIds || []), orientation: request.orientation || "horizontal", options: clone(request.options || {}) }, errors, warnings, summary, commands, affectedCells, affectedActorIds };
+  }
+
+  function toEvents(scene, prepared, options = {}) {
+    if (!prepared?.ok) throw new Error("Нельзя создать события Техники с ошибками предпросмотра.");
+    const makeId = typeof options.makeId === "function" ? options.makeId : idFactory;
+    const actorId = prepared.actorId || prepared.commands.find(command => command.actorId)?.actorId || prepared.commands.find(command => command.ownerActorId)?.ownerActorId || null;
+    const events = [{ type: "technique.prepare", actorId, payload: { ruleId: prepared.rule.id, name: prepared.rule.name, request: clone(prepared.request || {}) } }];
+    const references = {};
+    if (prepared.rule.optionMinimum?.key === "focusSpent") events.push({ type: "resource.spend", actorId, payload: { resource: "focus", amount: Number(prepared.request?.options?.focusSpent || 0) } });
+    for (const command of prepared.commands) {
+      if (command.type === "create_area") events.push({ type: "area.create", actorId, payload: { ...clone(command), id: makeId("area") } });
+      else if (command.type === "create_marker") events.push({ type: "marker.create", actorId, payload: { ...clone(command), id: makeId("marker") } });
+      else if (command.type === "set_targets") events.push({ type: "targets.set", actorId, payload: { actorIds: clone(command.actorIds) } });
+      else if (command.type === "move_actor") {
+        events.push({ type: "actor.move", actorId: command.actorId, payload: { space: command.space, x: command.x, y: command.y, movement: command.movement } });
+        events.push({ type: "actor.enter", actorId: command.actorId, payload: { space: command.space, x: command.x, y: command.y } });
+      } else if (command.type === "ensure_space") {
+        const existing = (scene.spaces || []).find(space => space.name === command.name);
+        references[command.ref] = existing?.id || makeId("space");
+        events.push({ type: "space.ensure", actorId, payload: { id: references[command.ref], name: command.name, width: command.width, height: command.height, activate: true } });
+      } else if (command.type === "move_to_space") {
+        const spaceId = references[command.spaceRef],spaceEvent=events.find(event => event.type === "space.ensure" && event.payload.id === spaceId),space=(scene.spaces || []).find(item => item.id === spaceId) || spaceEvent?.payload;
+        command.actorIds.forEach((movingId,index) => {events.push({ type: "actor.move", actorId: movingId, payload: { space: spaceId, x: index % space.width, y: Math.floor(index / space.width) % space.height, movement: "technique" } });events.push({ type: "actor.enter", actorId: movingId, payload: { space: spaceId, x: index % space.width, y: Math.floor(index / space.width) % space.height } })});
+      } else if (command.type === "manual_rule") events.push({ type: "technique.manual", actorId: command.actorId, payload: { ruleId: command.ruleId, name: command.label, note: command.note } });
+    }
+    events.push({ type: "technique.resolve", actorId, payload: { ruleId: prepared.rule.id, name: prepared.rule.name, affectedCells: clone(prepared.affectedCells || []), affectedActorIds: clone(prepared.affectedActorIds || []), warnings: clone(prepared.warnings || []) } });
+    return events;
   }
 
   function applyCommand(scene, command, references, makeId) {
@@ -260,6 +289,7 @@
     preview,
     rulesFor,
     techniqueCoverage,
+    toEvents,
     undo,
   };
 })(typeof window === "object" ? window : globalThis);

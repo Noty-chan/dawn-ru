@@ -3,13 +3,16 @@ import fs from "node:fs";
 import vm from "node:vm";
 
 const source = fs.readFileSync(new URL("../technique-engine.js", import.meta.url), "utf8");
+const sceneSource = fs.readFileSync(new URL("../scene-engine.js", import.meta.url), "utf8");
 const dataSource = fs.readFileSync(new URL("../data.js", import.meta.url), "utf8");
 const context = { console };
 context.globalThis = context;
 context.window = context;
 vm.runInNewContext(dataSource, context);
+vm.runInNewContext(sceneSource, context);
 vm.runInNewContext(source, context);
 const Engine = context.DAWN_TECHNIQUE_ENGINE;
+const SceneEngine = context.DAWN_SCENE_ENGINE;
 
 const scene = {
   activeSpace: "main",
@@ -57,6 +60,10 @@ const committedGas = Engine.commit(scene, gas, { makeId: prefix => `test-${prefi
 assert.equal(scene.objects.length, 0, "preview/commit must not mutate the source scene");
 assert.equal(committedGas.scene.objects[0].type, "gas");
 assert.equal(committedGas.scene.objects[0].duration, "nextTurn");
+const gasEvents = Engine.toEvents(scene, gas, { makeId: prefix => `event-${prefix}` });
+const eventGas = SceneEngine.dispatchMany({ ...scene, version: 0, log: [] }, gasEvents).scene;
+assert.equal(eventGas.objects[0].type, "gas", "Technique commands share the Scene event stream");
+assert.ok(eventGas.log.some(event => event.type === "technique.resolve"));
 assert.equal(JSON.stringify(Engine.undo(committedGas.transaction)), JSON.stringify(scene));
 
 const innerWorld = Engine.preview(scene, {
@@ -69,6 +76,9 @@ const pocket = committedSpace.scene.spaces.find(space => space.name === "Вну�
 assert.ok(pocket);
 assert.equal(committedSpace.scene.actors.find(actor => actor.id === "hero").space, pocket.id);
 assert.equal(committedSpace.scene.actors.find(actor => actor.id === "enemy-a").space, pocket.id);
+const innerEvents = Engine.toEvents(scene, innerWorld, { makeId: prefix => `event-${prefix}` });
+const eventSpace = SceneEngine.dispatchMany({ ...scene, version: 0, log: [] }, innerEvents).scene;
+assert.equal(eventSpace.actors.find(actor => actor.id === "hero").space, eventSpace.activeSpace);
 
 const manualEntry = coverage.find(entry => entry.automation === "manual");
 const manual = Engine.manualPreview(scene, { actorId: "hero", entry: manualEntry, targetIds: ["enemy-a"], note: "Решение подтверждено Нарратором" });

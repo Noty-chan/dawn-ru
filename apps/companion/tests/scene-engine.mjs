@@ -22,6 +22,27 @@ const actions = Engine.availableActions(scene, data, "hero");
 assert.equal(actions.length, 15);
 assert.equal(actions.find(action => action.name === "Стычка").available, true);
 
+assert.throws(() => Engine.dispatch(scene, { type: "turn.end", actorId: "hero" }, { expectedVersion: 9 }), error => error.code === "SCENE_VERSION_CONFLICT");
+const stableEvent = { id: "same-event", type: "resource.gain", actorId: "hero", payload: { resource: "focus", amount: 1 } };
+const once = Engine.dispatch(scene, stableEvent).scene;
+const twice = Engine.dispatch(once, stableEvent);
+assert.equal(twice.duplicate, true);
+assert.equal(twice.scene.actors[0].focus, 51, "Duplicate events are idempotent");
+assert.throws(() => Engine.dispatch(scene, { type: "resource.gain", actorId: "hero", payload: { resource: "admin", amount: 9999 } }), /ресурса/);
+assert.throws(() => Engine.dispatch(scene, { type: "actor.move", actorId: "hero", payload: { space: "main", x: 99, y: 99 } }), /клетка/);
+assert.throws(() => Engine.dispatch(scene, { type: "scene.replace", payload: { state: {} } }), /Неизвестный тип/);
+
+const privateScene = structuredClone(scene);
+privateScene.actors[0].privateNotes = "Тайна игрока";
+privateScene.actors[1].hidden = true;
+privateScene.markers = [{ id: "secret", kind: "hidden", hidden: true }];
+privateScene.log = [{ id: "gm-only", visibility: "gm", type: "gm.note", payload: {} }, { id: "public", type: "roll.public", payload: {} }];
+const playerProjection = Engine.projectScene(privateScene, { role: "player", actorIds: ["hero"] });
+assert.equal(playerProjection.actors.length, 1);
+assert.equal(playerProjection.actors[0].privateNotes, "Тайна игрока");
+assert.equal(playerProjection.markers.length, 0);
+assert.equal(playerProjection.log.length, 1);
+
 const rest = Engine.prepareAction(scene, data, { actorId: "hero", actionId: actions.find(action => action.name === "Передышка").id });
 assert.equal(rest.ok, true);
 const rested = Engine.dispatchMany(scene, rest.events, { makeId: (() => { let id = 0; return () => `event-${++id}`; })() }).scene;

@@ -142,7 +142,7 @@
         </div>
         <section id="scene-workbench" class="scene-workbench">
           <div class="panel scene-stage">
-            <div class="scene-stage-head"><div><p class="eyebrow">ПОЛЕ СЦЕНЫ</p><h2 id="scene-name">Структурированный бой</h2></div><div class="scene-stage-actions"><div class="button-row"><label class="scene-view-label">Вид<select id="scene-view"><option value="player">Игрок</option><option value="gm">Нарратор</option></select></label><button type="button" id="focus-mode">Только поле</button></div><div id="scene-space-tabs" class="scene-space-tabs"></div></div></div>
+            <div class="scene-stage-head"><div><p class="eyebrow">ПОЛЕ СЦЕНЫ</p><h2 id="scene-name">Структурированный бой</h2></div><div class="scene-stage-actions"><div class="button-row"><label class="scene-view-label">Вид<select id="scene-view"><option value="player">Игрок</option><option value="gm">Нарратор</option></select></label><label class="scene-zoom-label">Масштаб<input id="scene-zoom" type="range" min="30" max="180" step="10" value="100"><output id="scene-zoom-value">100%</output></label><button type="button" id="scene-zoom-fit">Вместить</button><button type="button" id="focus-mode">Только поле</button></div><div id="scene-space-tabs" class="scene-space-tabs"></div></div></div>
             <div class="scene-toolbar" aria-label="Инструменты поля">
               <div class="scene-tool-group">
                 <button type="button" data-scene-tool="select">Выбор / ход</button>
@@ -171,12 +171,21 @@
             <div id="scene-board-wrap" class="scene-board-wrap"><div id="scene-board" class="scene-board" role="grid" aria-label="Поле DAWN 7 на 7"></div></div>
             <div class="scene-legend"><span><i class="legend-hero"></i> Герой</span><span><i class="legend-enemy"></i> Враг</span><span><i class="legend-target"></i> Цель</span><span><i class="legend-area"></i> Область правила</span><span><i class="legend-marker">◆</i> Маркер</span></div>
           </div>
-          <aside class="scene-rail">
-            <section class="panel scene-inspector-panel"><h2>Выбранный участник</h2><div id="scene-inspector" class="scene-inspector"></div></section>
-            <details class="panel scene-hero-sheet"><summary>Лист героя</summary><div id="play-kit"></div></details>
-            <details id="scene-media-menu" class="scene-media-menu panel"><summary>Активные персонажи и арт Сцены</summary><div id="scene-portrait-strip" class="scene-portrait-strip"></div><div id="scene-featured-art" class="scene-featured-art"></div><div id="scene-art-library" class="scene-art-library gm-only"></div><div class="scene-art-upload gm-only"><label>Название<input id="scene-art-name" maxlength="120" placeholder="Локация, улика, противник…"></label><label>Назначение<select id="scene-art-kind"><option value="art">Показываемый арт</option><option value="background">Фон поля</option></select></label><label class="file-button">Загрузить арт<input id="scene-art-upload" type="file" accept="image/png,image/jpeg,image/webp,image/gif"></label></div></details>
-            <details class="panel scene-add gm-only"><summary>Добавить в Сцену</summary><div class="scene-add-body"><label>Герой из билдера<select id="scene-hero-select"></select></label><button type="button" id="scene-add-hero">Перейти на стол с героем</button><label>Поиск врага<input id="scene-enemy-search" type="search" placeholder="Название, роль, эффект"></label><label>Профиль<select id="scene-enemy-select"></select></label><div class="inline-fields"><label>Ступень<select id="scene-enemy-tier"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select></label><button type="button" id="scene-add-enemy">Добавить врага</button></div><hr><label>Свободный токен<input id="scene-free-token-name" maxlength="120" placeholder="Призыв, союзник, объект…"></label><div class="inline-fields"><label>Сторона<select id="scene-free-token-team"><option value="hero">Союзник</option><option value="enemy">Противник</option></select></label><button type="button" id="scene-add-free-token">Добавить токен</button></div><hr><label>Новое пространство<input id="scene-space-name" maxlength="60" placeholder="Карманное измерение"></label><button type="button" id="scene-add-space">Создать пространство</button></div></details>
-            <details class="panel scene-log-panel"><summary>Журнал</summary><div class="subpanel-head"><span>Последние изменения</span><button type="button" id="scene-clear-log" class="gm-only">Очистить</button></div><ol id="scene-log" class="scene-log"></ol></details>
+          <nav id="scene-dock" class="scene-dock" aria-label="Панели Сцены">
+            <button type="button" data-scene-panel="inspector" title="Выбранный участник">Цель</button>
+            <button type="button" data-scene-panel="sheet" title="Боевой лист героя">Лист</button>
+            <button type="button" data-scene-panel="roster" class="gm-only" title="Все противники">Враги</button>
+            <button type="button" data-scene-panel="media" title="Портреты и арт">Арт</button>
+            <button type="button" data-scene-panel="add" class="gm-only" title="Добавить участника">Добавить</button>
+            <button type="button" data-scene-panel="log" title="Журнал Сцены">Журнал</button>
+          </nav>
+          <aside class="scene-rail" aria-label="Рабочая панель Сцены">
+            <section class="panel scene-inspector-panel" data-scene-panel-content="inspector"><h2>Выбранный участник</h2><div id="scene-inspector" class="scene-inspector"></div></section>
+            <details class="panel scene-hero-sheet" data-scene-panel-content="sheet" open><summary>Лист героя и действия</summary><div id="play-kit"></div></details>
+            <section class="panel scene-roster-panel gm-only" data-scene-panel-content="roster"><h2>Отряд противников</h2><div id="scene-enemy-roster" class="scene-enemy-roster"></div></section>
+            <details id="scene-media-menu" class="scene-media-menu panel" data-scene-panel-content="media" open><summary>Активные персонажи и арт Сцены</summary><div id="scene-portrait-strip" class="scene-portrait-strip"></div><div id="scene-featured-art" class="scene-featured-art"></div><div id="scene-art-library" class="scene-art-library gm-only"></div><div class="scene-art-upload gm-only"><label>Название<input id="scene-art-name" maxlength="120" placeholder="Локация, улика, противник…"></label><label>Назначение<select id="scene-art-kind"><option value="art">Показываемый арт</option><option value="background">Фон поля</option></select></label><label class="file-button">Загрузить арт<input id="scene-art-upload" type="file" accept="image/png,image/jpeg,image/webp,image/gif"></label></div></details>
+            <details class="panel scene-add gm-only" data-scene-panel-content="add" open><summary>Добавить в Сцену</summary><div class="scene-add-body"><label>Герой из билдера<select id="scene-hero-select"></select></label><button type="button" id="scene-add-hero">Перейти на стол с героем</button><label>Поиск врага<input id="scene-enemy-search" type="search" placeholder="Название, роль, эффект"></label><label>Профиль<select id="scene-enemy-select"></select></label><div class="inline-fields"><label>Ступень<select id="scene-enemy-tier"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select></label><button type="button" id="scene-add-enemy">Добавить врага</button></div><hr><label>Свободный токен<input id="scene-free-token-name" maxlength="120" placeholder="Призыв, союзник, объект…"></label><div class="inline-fields"><label>Сторона<select id="scene-free-token-team"><option value="hero">Союзник</option><option value="enemy">Противник</option></select></label><button type="button" id="scene-add-free-token">Добавить токен</button></div><hr><label>Новое пространство<input id="scene-space-name" maxlength="60" placeholder="Карманное измерение"></label><button type="button" id="scene-add-space">Создать пространство</button></div></details>
+            <details class="panel scene-log-panel" data-scene-panel-content="log" open><summary>Журнал</summary><div class="subpanel-head"><span>Последние изменения</span><button type="button" id="scene-clear-log" class="gm-only">Очистить</button></div><ol id="scene-log" class="scene-log"></ol></details>
           </aside>
         </section>
         <div class="play-layout">
@@ -189,7 +198,7 @@
         <div class="split-grid">
           <section class="panel dice-tool">
             <h2>XD6</h2>
-            <div class="field-grid three"><label>Кости<input id="dice-count" type="number" min="1" max="40" value="4"></label><label>Преимущество<input id="dice-adv" type="number" min="0" max="30" value="0"></label><label>Помеха<input id="dice-dis" type="number" min="0" max="30" value="0"></label></div>
+            <div class="dice-composer"><label>Атрибут<select id="dice-attr"><option value="manual">Ввести кости вручную</option><option value="body">Тело</option><option value="talent">Талант</option><option value="spirit">Дух</option><option value="mind">Разум</option></select></label><label>Навык<select id="dice-skill"><option value="">Без Навыка</option></select></label><label>Способность<select id="dice-ability"><option value="">Без Способности</option></select></label><label>Итого костей<input id="dice-count" type="number" min="1" max="40" value="4"></label><label>Преимущество<input id="dice-adv" type="number" min="0" max="30" value="0"></label><label>Помеха<input id="dice-dis" type="number" min="0" max="30" value="0"></label></div>
             <button type="button" id="roll-dice" class="primary">Бросить</button>
             <div class="button-row">
               <button type="button" id="all-in-reroll" disabled>Ва-банк: перебросить (−1 Влияние)</button>
@@ -221,6 +230,8 @@
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
   <script src="data.js"></script>
   <script src="logic.js"></script>
+  <script src="scene-engine.js"></script>
+  <script src="technique-engine.js"></script>
   <script async src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.3/dist/umd/supabase.min.js" crossorigin="anonymous"></script>
   <script src="sync.js"></script>
   <script src="app.js"></script>
