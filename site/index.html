@@ -60,6 +60,13 @@
         </div>
       </header>
 
+      <div class="build-filters" id="build-filters" role="group" aria-label="Фильтр сборок по стилю игры">
+        <button class="is-active" type="button" data-filter="all" aria-pressed="true">Все</button>
+        <button type="button" data-filter="pressure" aria-pressed="false">Натиск</button>
+        <button type="button" data-filter="control" aria-pressed="false">Контроль</button>
+        <button type="button" data-filter="support" aria-pressed="false">Поддержка</button>
+      </div>
+
       <div class="build-viewport" id="build-viewport" tabindex="0" aria-label="Карусель боевых сборок">
         <div class="build-track" id="build-track"></div>
       </div>
