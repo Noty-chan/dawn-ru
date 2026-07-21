@@ -4,6 +4,7 @@
   const ENGINE = window.DAWN_TECHNIQUE_ENGINE;
   const DATA = window.DAWN_DATA;
   const LOGIC = window.DAWN_LOGIC;
+  const SCENE = window.DAWN_SCENE_ENGINE;
   const root = document.querySelector("#concept-root");
   const surfaceRoot = document.querySelector("#surface-root");
   const toastNode = document.querySelector("#toast");
@@ -19,6 +20,7 @@
 
   function initialScene() {
     return {
+      version: 0,
       round: 2,
       tension: 2,
       activeSpace: "main",
@@ -68,6 +70,7 @@
     scene: initialScene(),
     selectedId: "enemy-assassin",
     pendingRule: null,
+    pendingAction: null,
     preview: null,
     surface: null,
     sheetSection: "main",
@@ -136,9 +139,9 @@
         const cellClasses = ["board-cell"];
         if (area) cellClasses.push(area.areaType === "attack" ? "has-attack" : "has-area");
         if (previewCells.has(key)) cellClasses.push("preview-cell");
-        if (state.pendingRule) cellClasses.push("action-ready");
+        if (state.pendingRule || state.pendingAction) cellClasses.push("action-ready");
         cells.push(`
-          <div class="${cellClasses.join(" ")}" role="gridcell" tabindex="${state.pendingRule ? "0" : "-1"}" data-cell data-x="${x}" data-y="${y}" aria-label="Клетка ${coordName(x, y)}">
+          <div class="${cellClasses.join(" ")}" role="gridcell" tabindex="${state.pendingRule || state.pendingAction ? "0" : "-1"}" data-cell data-x="${x}" data-y="${y}" aria-label="Клетка ${coordName(x, y)}">
             <span class="coord">${coordName(x, y)}</span>
             ${cellActors.map(actor => renderToken(actor, previewTargets.has(actor.id) || permanentTargets.has(actor.id))).join("")}
           </div>
@@ -146,8 +149,8 @@
       }
     }
 
-    const instruction = state.pendingRule
-      ? `<div class="board-instruction">${currentRule()?.kind === "space" ? "Проверьте перенос выбранной цели" : `Выберите клетку для «${escapeHtml(currentRule()?.name || "Техники") }»`}</div>`
+    const instruction = state.pendingRule || state.pendingAction
+      ? `<div class="board-instruction">${state.pendingAction ? `Выберите клетку для «${escapeHtml(state.pendingAction.name)}»` : currentRule()?.kind === "space" ? "Проверьте перенос выбранной цели" : `Выберите клетку для «${escapeHtml(currentRule()?.name || "Техники") }»`}</div>`
       : "";
     const lastRoll = state.scene.rollFeed?.[0];
     const rollBroadcast = lastRoll ? `<div class="public-roll" role="status"><strong>${escapeHtml(lastRoll.actor)}</strong><span>${escapeHtml(lastRoll.formula)}</span><b>${lastRoll.successes} Усп. · ${lastRoll.crits} Крит.</b></div>` : "";
@@ -241,12 +244,15 @@
         </footer>
       `;
     }
+    if (state.pendingAction) {
+      return `<footer class="action-dock"><div class="action-context"><strong>${escapeHtml(state.pendingAction.name)}</strong><small>выбор клетки назначения</small></div><div class="action-scroll"><span class="status-chip">Укажите свободную клетку</span></div><button type="button" data-cancel-action>Отмена</button></footer>`;
+    }
     return `
       <footer class="action-dock">
         <div class="action-context"><strong>Эта · активный Ход</strong><small>${activeHero().ap} ОД · Фокус ${activeHero().focus}</small></div>
         <div class="action-scroll">
-          <button type="button" data-basic-action="step">Шаг</button>
-          <button type="button" data-basic-action="attack">Стычка</button>
+          <button type="button" data-action-name="Шаг">Шаг</button>
+          <button type="button" data-action-name="Стычка">Стычка</button>
           <button type="button" class="primary" data-open-surface="techniques">Техники</button>
           <button type="button" data-open-surface="sheet">Лист</button>
           <button type="button" data-open-surface="utilities">Утилиты</button>
@@ -254,7 +260,7 @@
         </div>
         <div class="dock-tail">
           ${state.history.length ? `<button type="button" data-undo>Отменить</button>` : ""}
-          <button type="button" class="primary" data-basic-action="finish">Завершить Ход</button>
+          <button type="button" class="primary" data-end-turn>Завершить Ход</button>
         </div>
       </footer>
     `;
@@ -359,10 +365,10 @@
 
   function combatSheet(hero) {
     const coverage = ENGINE?.techniqueCoverage(DATA, hero.techniques) || [];
-    const actions = DATA?.actions?.list || [];
+    const actions = SCENE?.availableActions(state.scene, DATA, hero.id) || [];
     return `
       <div class="combat-context"><span class="mini-chip">${hero.ap} ОД</span><span class="mini-chip">Фокус ${hero.focus}</span><span class="mini-chip">цель: ${escapeHtml(selectedActor().name)}</span><span class="mini-chip">Напряжение ${state.scene.tension}</span></div>
-      <section><span class="eyebrow">Базовые действия и Реакции</span><div class="base-action-grid">${actions.map(action => `<button type="button" data-base-action-id="${escapeHtml(action.id)}"><strong>${escapeHtml(action.name)}</strong><small>${escapeHtml(action.cost)} · ${escapeHtml(action.group)}</small></button>`).join("")}</div></section>
+      <section><span class="eyebrow">Базовые действия и Реакции</span><div class="base-action-grid">${actions.map(action => `<button type="button" data-base-action-id="${escapeHtml(action.id)}" ${action.available ? "" : "disabled"} title="${escapeHtml(action.reason || action.text)}"><strong>${escapeHtml(action.name)}</strong><small>${escapeHtml(action.cost)} · ${escapeHtml(action.reason || action.group)}</small></button>`).join("")}</div></section>
       <section><span class="eyebrow">Все изученные Техники</span><div class="technique-list">${coverage.map(entry => `
         <article class="technique-card">
           <header><span class="preview-icon">${entry.automation === "full" ? "✓" : entry.automation === "assist" ? "◐" : "·"}</span><div><span class="eyebrow">${escapeHtml(entry.techniqueName)} · Уровень ${entry.level}</span><h3>${escapeHtml(entry.name)}</h3></div><span class="tag automation-${entry.automation}">${automationName(entry.automation)}</span></header>
@@ -475,6 +481,7 @@
     state.scene = result.scene;
     state.history.push(result.transaction);
     state.pendingRule = null;
+    state.pendingAction = null;
     state.preview = null;
     hoveredPreviewCell = null;
     state.selectedId = state.scene.targetIds?.[0] || "hero-eta";
@@ -485,6 +492,7 @@
   function cancelAction() {
     state.preview = null;
     state.pendingRule = null;
+    state.pendingAction = null;
     hoveredPreviewCell = null;
     render();
   }
@@ -494,6 +502,7 @@
     if (!transaction || !ENGINE) return;
     state.scene = ENGINE.undo(transaction);
     state.pendingRule = null;
+    state.pendingAction = null;
     state.preview = null;
     hoveredPreviewCell = null;
     render();
@@ -528,13 +537,39 @@
     renderSurface();
   }
 
+  function resolveBaseAction(actionId, extra = {}) {
+    const hero = ownedHero();
+    const action = DATA?.actions?.list?.find(item => item.id === actionId);
+    if (!action || !SCENE) return;
+    let roll = extra.roll;
+    if (!roll && ["Стычка", "Заклинание", "Завершение", "Зарядка"].includes(action.name)) {
+      const attribute = action.name === "Заклинание" || action.name === "Зарядка" ? "spirit" : "talent";
+      const result = LOGIC.rollXd6({ count: Math.max(1, Number(hero.attrs?.[attribute] || 1)) });
+      roll = { formula: `${result.initialCount}D6`, rolls: result.rolls, successes: result.successes, crits: result.crits };
+    }
+    const targetIds = extra.targetIds || (selectedActor().team === "enemy" ? [selectedActor().id] : []);
+    const prepared = SCENE.prepareAction(state.scene, DATA, { actorId: hero.id, actionId, targetIds, destination: extra.destination, roll });
+    if (!prepared.ok) return toast(prepared.errors.join(" "));
+    const before = clone(state.scene);
+    const result = SCENE.dispatchMany(state.scene, prepared.events);
+    state.scene = result.scene;
+    state.history.push({ before, after: clone(state.scene), label: action.name });
+    state.pendingAction = null;
+    state.surface = null;
+    render();
+    toast(`${action.name}: применено ${result.events.length} событий Сцены.`);
+  }
+
   function chooseBaseAction(actionId) {
     const action = DATA?.actions?.list?.find(item => item.id === actionId);
     if (!action) return;
-    state.scene.log.unshift({ type: "action.selected", actorId: ownedHero().id, actionId, text: action.text });
-    state.surface = null;
-    render();
-    toast(`${action.name} · ${action.cost}. ${action.text}`);
+    if (["Шаг", "Прыжок"].includes(action.name)) {
+      state.pendingAction = action;
+      state.surface = null;
+      render();
+      return;
+    }
+    resolveBaseAction(actionId);
   }
 
   function chooseManualTechnique(entryId) {
@@ -560,6 +595,7 @@
     state.scene = initialScene();
     state.selectedId = "enemy-assassin";
     state.pendingRule = null;
+    state.pendingAction = null;
     state.preview = null;
     state.surface = null;
     state.history = [];
@@ -580,6 +616,10 @@
       return;
     }
     const cell = event.target.closest("[data-cell]");
+    if (cell && state.pendingAction) {
+      resolveBaseAction(state.pendingAction.id, { destination: { x: Number(cell.dataset.x), y: Number(cell.dataset.y) } });
+      return;
+    }
     if (cell && state.pendingRule && currentRule()?.kind !== "space") {
       runPreview({ anchor: { x: Number(cell.dataset.x), y: Number(cell.dataset.y) } });
       render();
@@ -604,26 +644,34 @@
     if (event.target.closest("[data-cancel-action]")) return cancelAction();
     if (event.target.closest("[data-commit-action]")) return commitPreview();
     if (event.target.closest("[data-undo]")) return undoLast();
+    const quickAction = event.target.closest("[data-action-name]");
+    if (quickAction) {
+      const action = DATA?.actions?.list?.find(item => item.name === quickAction.dataset.actionName);
+      if (action) return chooseBaseAction(action.id);
+    }
+    if (event.target.closest("[data-end-turn]")) {
+      const before = clone(state.scene);
+      const result = SCENE.dispatch(state.scene, { type: "turn.end", actorId: ownedHero().id, payload: {} });
+      state.scene = result.scene;
+      state.history.push({ before, after: clone(state.scene), label: "Завершить Ход" });
+      render();
+      toast("Ход завершён публичным событием Сцены.");
+      return;
+    }
     const gmTool = event.target.closest("[data-gm-tool]");
     if (gmTool) {
       if (gmTool.dataset.gmTool === "add") addDemoEnemy();
       else toast("Пинг появился бы у всех участников как эфемерное событие.");
       return;
     }
-    const basic = event.target.closest("[data-basic-action]");
-    if (basic) {
-      const messages = {
-        step: "Зажмите токен Эты и перетащите его в клетку назначения.",
-        attack: "Для Стычки движок запросит цель, защитную Реакцию и только затем урон.",
-        finish: "Перед завершением Хода появится список снимаемых Эффектов.",
-      };
-      toast(messages[basic.dataset.basicAction]);
-    }
   });
 
   root.addEventListener("keydown", event => {
     const cell = event.target.closest("[data-cell]");
-    if (cell && state.pendingRule && (event.key === "Enter" || event.key === " ")) {
+    if (cell && state.pendingAction && (event.key === "Enter" || event.key === " ")) {
+      event.preventDefault();
+      resolveBaseAction(state.pendingAction.id, { destination: { x: Number(cell.dataset.x), y: Number(cell.dataset.y) } });
+    } else if (cell && state.pendingRule && (event.key === "Enter" || event.key === " ")) {
       event.preventDefault();
       runPreview({ anchor: { x: Number(cell.dataset.x), y: Number(cell.dataset.y) } });
       render();
@@ -670,9 +718,9 @@
       const occupied = state.scene.actors.some(other => other.id !== actor.id && other.space === state.scene.activeSpace && other.x === x && other.y === y);
       if (occupied) toast("Клетка занята. Полный движок также проверит путь и Скорость.");
       else {
-        actor.space = state.scene.activeSpace;
-        actor.x = x;
-        actor.y = y;
+        const before = clone(state.scene);
+        state.scene = SCENE.dispatch(state.scene, { type: "actor.move", actorId: actor.id, payload: { space: state.scene.activeSpace, x, y, movement: "drag" } }).scene;
+        state.history.push({ before, after: clone(state.scene), label: "Перемещение токена" });
         state.selectedId = actor.id;
         suppressClick = true;
         render();
@@ -736,9 +784,7 @@
       const pool = rollPool(hero);
       const result = LOGIC.rollXd6({ count: pool });
       state.diceResult = `${result.rolls.join(" · ")} · успехов ${result.successes}`;
-      state.scene.rollFeed.unshift({ actor: hero.name, formula: `${pool}D6`, successes: result.successes, crits: result.crits });
-      state.scene.rollFeed = state.scene.rollFeed.slice(0, 8);
-      renderSurface();
+      state.scene = SCENE.dispatch(state.scene, { type: "roll.public", actorId: hero.id, payload: { formula: `${pool}D6`, rolls: result.rolls, successes: result.successes, crits: result.crits } }).scene;
       render();
       return;
     }

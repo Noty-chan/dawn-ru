@@ -62,6 +62,7 @@ jobs:
           cp apps/companion/app.css _site/companion/
           cp apps/companion/app.js _site/companion/
           cp apps/companion/logic.js _site/companion/
+          cp apps/companion/scene-engine.js _site/companion/
           cp apps/companion/technique-engine.js _site/companion/
           cp apps/companion/sync.js _site/companion/
           cp apps/companion/data.js _site/companion/
