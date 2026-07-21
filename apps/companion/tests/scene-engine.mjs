@@ -31,6 +31,9 @@ assert.equal(twice.scene.actors[0].focus, 51, "Duplicate events are idempotent")
 assert.throws(() => Engine.dispatch(scene, { type: "resource.gain", actorId: "hero", payload: { resource: "admin", amount: 9999 } }), /ресурса/);
 assert.throws(() => Engine.dispatch(scene, { type: "actor.move", actorId: "hero", payload: { space: "main", x: 99, y: 99 } }), /клетка/);
 assert.throws(() => Engine.dispatch(scene, { type: "scene.replace", payload: { state: {} } }), /Неизвестный тип/);
+const publicRoll = Engine.dispatch(scene, { type: "roll.public", actorId: "hero", payload: { formula: "4D6 ≥4", rolls: [6, 5, 2, 1], successes: 2, crits: 1, outcome: "Минимальный успех" } }).scene;
+assert.equal(publicRoll.rollFeed[0].actor, "Эта");
+assert.equal(publicRoll.rollFeed[0].outcome, "Минимальный успех");
 
 const privateScene = structuredClone(scene);
 privateScene.actors[0].privateNotes = "Тайна игрока";
