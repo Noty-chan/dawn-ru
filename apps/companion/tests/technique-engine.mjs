@@ -31,6 +31,9 @@ assert.equal(Engine.RULES.find(rule => rule.id === "disruptor.chemist.1").automa
 const coverage = Engine.techniqueCoverage(context.DAWN_DATA);
 assert.equal(coverage.length, 321, "every Technique level must have an automation status");
 assert.ok(coverage.every(entry => ["full", "assist", "manual"].includes(entry.automation)));
+assert.ok(coverage.filter(entry => entry.automation !== "manual").length >= 290, "semantic mechanics index assists most canonical levels");
+assert.ok(coverage.some(entry => entry.mechanics?.areas?.length));
+assert.ok(coverage.some(entry => entry.mechanics?.clocks?.length));
 assert.equal(Engine.techniqueCoverage(context.DAWN_DATA, { "ruiner.bombardier": 2 }).length, 2);
 
 const explosion = Engine.preview(scene, {
@@ -85,5 +88,16 @@ const manual = Engine.manualPreview(scene, { actorId: "hero", entry: manualEntry
 assert.equal(manual.ok, true);
 const committedManual = Engine.commit(scene, manual, { makeId: prefix => `test-${prefix}` });
 assert.equal(committedManual.scene.log[0].type, "technique.manual");
+
+const assistedEntry = {
+  id: "test.technique.1", techniqueId: "test.technique", techniqueName: "Проверка", level: 1, name: "Безопасный эффект",
+  mechanics: { directEffects: ["Помечен"], effects: ["Помечен"], conditional: false },
+};
+const assisted = Engine.assistedPreview(scene, { actorId: "hero", entry: assistedEntry, targetIds: ["enemy-a"], effectIds: ["negative.помечен"] });
+assert.equal(assisted.ok, true);
+const assistedEvents = Engine.toEvents(scene, assisted, { makeId: prefix => `event-${prefix}` });
+assert.ok(assistedEvents.some(event => event.type === "effect.apply"));
+const assistedScene = SceneEngine.dispatchMany({ ...scene, version: 0, log: [] }, assistedEvents).scene;
+assert.ok(assistedScene.actors.find(actor => actor.id === "enemy-a").effects.includes("negative.помечен"));
 
 console.log(`Technique engine QA passed: ${Engine.RULES.length} rules`);

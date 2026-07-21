@@ -1,7 +1,7 @@
 "use strict";
 
 (function exposeDawnTechniqueEngine(global) {
-  const VERSION = 1;
+  const VERSION = 2;
 
   const RULES = [
     { id: "ruiner.bombardier.1", techniqueId: "ruiner.bombardier", level: 1, name: "Взрыв!!", kind: "area", shape: "square3", areaType: "attack", duration: "instant", range: 4, note: "Урон и бросок разрешаются базовым действием." },
@@ -86,7 +86,9 @@
       const knownLevel = selected ? Number(selected[technique.id] || 0) : Number.POSITIVE_INFINITY;
       return (technique.levels || []).filter(level => Number(level.n) <= knownLevel).map(level => {
         const rules = RULES.filter(rule => rule.techniqueId === technique.id && rule.level === Number(level.n)).map(publicRule);
-        const automation = rules.length ? (rules.every(rule => rule.automation === "full") ? "full" : "assist") : "manual";
+        const mechanics = clone(level.mechanics || {});
+        const semanticSignals = [mechanics.actions, mechanics.effects, mechanics.areas, mechanics.ranges, mechanics.clocks, mechanics.resources].some(values => Array.isArray(values) && values.length) || mechanics.movement || mechanics.targets;
+        const automation = rules.length ? (rules.every(rule => rule.automation === "full") ? "full" : "assist") : (semanticSignals ? "assist" : "manual");
         return {
           id: `${technique.id}.${level.n}`,
           techniqueId: technique.id,
@@ -96,6 +98,7 @@
           level: Number(level.n),
           name: level.name,
           text: level.text,
+          mechanics,
           automation,
           rules,
         };
@@ -122,6 +125,43 @@
       commands: errors.length ? [] : [{ type: "manual_rule", actorId: actor.id, ruleId: entry.id, label: name, note: String(request.note || "").slice(0, 500) }],
       affectedCells: [],
       affectedActorIds: Array.isArray(request.targetIds) ? unique(request.targetIds).filter(id => actorById(scene, id)) : [],
+    };
+  }
+
+  function assistedPreview(scene, request = {}) {
+    const actor = actorById(scene, request.actorId);
+    const entry = request.entry;
+    const errors = [];
+    if (!actor) errors.push("Не выбран персонаж, использующий правило.");
+    if (!entry?.techniqueId || !entry?.level) errors.push("Не указано правило Техники.");
+    const targetIds = unique(Array.isArray(request.targetIds) ? request.targetIds : []).filter(id => actorById(scene, id));
+    const effectIds = unique(Array.isArray(request.effectIds) ? request.effectIds : []).filter(value => typeof value === "string" && value.length <= 80);
+    if (effectIds.length && !targetIds.length) errors.push("Выберите цели для автоматического наложения Эффекта.");
+    const name = entry?.name || entry?.techniqueName || "Техника";
+    const commands = [];
+    if (!errors.length) {
+      targetIds.forEach(targetId => effectIds.forEach(effect => commands.push({ type: "apply_effect", actorId: actor.id, targetId, effect, ruleId: entry.id })));
+      commands.push({ type: "manual_rule", actorId: actor.id, ruleId: entry.id, label: name, note: String(request.note || "Сложные условия подтверждает Нарратор").slice(0, 500) });
+    }
+    const mechanics = clone(entry?.mechanics || {});
+    const warnings = errors.length ? [] : [
+      mechanics.conditional ? "У правила есть условия или замена базового действия — движок применил только выбранные безопасные последствия." : "Движок применил простые последствия; проверьте полный текст правила.",
+      mechanics.clocks?.length ? `Нужно вести часы: ${mechanics.clocks.join(" / ")} сегм.` : "",
+      mechanics.areas?.length ? `В тексте есть геометрия: ${mechanics.areas.map(area => area.join("×")).join(" / ")}.` : "",
+    ].filter(Boolean);
+    return {
+      ok: errors.length === 0,
+      engineVersion: VERSION,
+      actorId: actor?.id || null,
+      rule: { id: entry?.id || "assist", techniqueId: entry?.techniqueId, level: entry?.level, name, automation: "assist" },
+      errors,
+      warnings,
+      summary: errors.length ? `«${name}»: требуется уточнение` : `«${name}»: простые последствия подготовлены`,
+      request: { targetIds, effectIds, entryId: entry?.id || null, mode: "assist", note: String(request.note || "").slice(0, 500) },
+      commands: errors.length ? [] : commands,
+      affectedCells: [],
+      affectedActorIds: targetIds,
+      mechanics,
     };
   }
 
@@ -216,7 +256,8 @@
       } else if (command.type === "move_to_space") {
         const spaceId = references[command.spaceRef],spaceEvent=events.find(event => event.type === "space.ensure" && event.payload.id === spaceId),space=(scene.spaces || []).find(item => item.id === spaceId) || spaceEvent?.payload;
         command.actorIds.forEach((movingId,index) => {events.push({ type: "actor.move", actorId: movingId, payload: { space: spaceId, x: index % space.width, y: Math.floor(index / space.width) % space.height, movement: "technique" } });events.push({ type: "actor.enter", actorId: movingId, payload: { space: spaceId, x: index % space.width, y: Math.floor(index / space.width) % space.height } })});
-      } else if (command.type === "manual_rule") events.push({ type: "technique.manual", actorId: command.actorId, payload: { ruleId: command.ruleId, name: command.label, note: command.note } });
+      } else if (command.type === "apply_effect") events.push({ type: "effect.apply", actorId: command.actorId, payload: { targetId: command.targetId, effect: command.effect, sourceActionId: command.ruleId } });
+      else if (command.type === "manual_rule") events.push({ type: "technique.manual", actorId: command.actorId, payload: { ruleId: command.ruleId, name: command.label, note: command.note } });
     }
     events.push({ type: "technique.resolve", actorId, payload: { ruleId: prepared.rule.id, name: prepared.rule.name, affectedCells: clone(prepared.affectedCells || []), affectedActorIds: clone(prepared.affectedActorIds || []), warnings: clone(prepared.warnings || []) } });
     return events;
@@ -250,6 +291,12 @@
         if (actor && space) Object.assign(actor, { space: spaceId, x: index % space.width, y: Math.floor(index / space.width) % space.height });
       });
       scene.activeSpace = spaceId;
+    } else if (command.type === "apply_effect") {
+      const target = actorById(scene, command.targetId);
+      if (target) {
+        target.effects ||= [];
+        if (!target.effects.includes(command.effect)) target.effects.push(command.effect);
+      }
     } else if (command.type === "manual_rule") {
       scene.log ||= [];
       scene.log.unshift({ id: makeId("event"), type: "technique.manual", actorId: command.actorId, ruleId: command.ruleId, label: command.label, note: command.note });
@@ -283,6 +330,7 @@
   global.DAWN_TECHNIQUE_ENGINE = {
     VERSION,
     RULES: RULES.map(publicRule),
+    assistedPreview,
     areaCells,
     commit,
     manualPreview,

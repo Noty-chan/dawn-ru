@@ -2,11 +2,13 @@
 
 (function exposeDawnSceneEngine(global) {
   const VERSION = 3;
-  const EVENT_TYPES = new Set(["action.prepare", "action.resolve", "reaction.offer", "reaction.respond", "roll.public", "resource.spend", "resource.gain", "actor.move", "actor.enter", "turn.start", "turn.end", "round.end", "attack.pending", "attack.clear", "damage.apply", "technique.prepare", "technique.resolve", "technique.manual", "area.create", "marker.create", "targets.set", "space.ensure"]);
+  const EVENT_TYPES = new Set(["action.prepare", "action.resolve", "enemy.action.prepare", "enemy.action.resolve", "reaction.offer", "reaction.respond", "roll.public", "resource.spend", "resource.gain", "actor.move", "actor.enter", "turn.start", "turn.end", "round.end", "attack.pending", "attack.clear", "damage.apply", "effect.apply", "technique.prepare", "technique.resolve", "technique.manual", "area.create", "marker.create", "targets.set", "space.ensure"]);
   const RESOURCES = new Set(["ap", "focus", "influence"]);
   const clone = value => JSON.parse(JSON.stringify(value));
   const actorById = (scene, id) => (scene.actors || []).find(actor => actor.id === id) || null;
   const actionById = (data, id) => data?.actions?.list?.find(action => action.id === id) || null;
+  const enemyProfileById = (data, id) => [...(data?.enemies?.common || []), ...(data?.enemies?.modifiers || [])].find(profile => profile.id === id) || null;
+  const effectIdByName = (data, name) => [...(data?.effects?.positive || []), ...(data?.effects?.negative || [])].find(effect => effect.id === name || effect.name === name)?.id || name;
   const distance = (a, b) => a.space === b.space ? Math.abs(a.x - b.x) + Math.abs(a.y - b.y) : Infinity;
   const eventId = () => `event-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
   const actionCost = action => {
@@ -44,6 +46,8 @@
     if (event.type === "attack.pending") {
       if (!Array.isArray(payload.targetIds) || payload.targetIds.length > 40 || payload.targetIds.some(id => !actorById(scene, id)) || !finite(payload.damage) || Number(payload.damage) < 0 || Number(payload.damage) > 9999) throw new Error("Некорректные параметры атаки.");
     }
+    if (event.type === "effect.apply" && (!actorById(scene, payload.targetId) || typeof payload.effect !== "string" || !payload.effect.trim() || payload.effect.length > 80)) throw new Error("Некорректный Эффект.");
+    if (["enemy.action.prepare", "enemy.action.resolve"].includes(event.type) && (typeof payload.ruleId !== "string" || typeof payload.name !== "string" || payload.ruleId.length > 180 || payload.name.length > 120)) throw new Error("Некорректное действие врага.");
     if (event.type === "damage.apply") {
       if (!actorById(scene, payload.targetId) || !finite(payload.amount) || Number(payload.amount) < 0 || Number(payload.amount) > 9999) throw new Error("Некорректный урон.");
     }
@@ -123,9 +127,22 @@
               target.knockedOut = true;
             } else target.hp = guts;
           }
-          if (target.knockedOut) scene.tension = Number(scene.tension || 0) + 1;
+          if (target.knockedOut) {
+            scene.tension = Number(scene.tension || 0) + 1;
+            if (scene.activeActorId === target.id) scene.activeActorId = null;
+          }
         }
       }
+    } else if (event.type === "effect.apply") {
+      const target = actorById(scene, payload.targetId);
+      if (target) {
+        target.effects ||= [];
+        if (!target.effects.includes(payload.effect)) target.effects.push(payload.effect);
+      }
+    } else if (event.type === "enemy.action.prepare" && actor) {
+      actor.usedActions ||= [];
+      if (!actor.usedActions.includes(payload.ruleId)) actor.usedActions.push(payload.ruleId);
+      if (payload.kind === "trump") actor.usedTrump = true;
     } else if (event.type === "actor.enter" && actor) {
       const owner = id => actorById(scene, id);
       const cell = `${actor.x},${actor.y}`;
@@ -135,6 +152,7 @@
         if (!actor.effects.includes("Ослаблен")) actor.effects.push("Ослаблен");
       }
     } else if (event.type === "turn.start" && actor) {
+      scene.activeActorId = actor.id;
       actor.acted = false;
       actor.ap = Number(actor.baseAp || 3);
       scene.objects = (scene.objects || []).filter(object => !(object.duration === "nextTurn" && object.ownerActorId === actor.id));
@@ -142,14 +160,16 @@
     } else if (event.type === "turn.end" && actor) {
       actor.acted = true;
       actor.ap = 0;
+      if (scene.activeActorId === actor.id) scene.activeActorId = null;
       scene.objects = (scene.objects || []).filter(object => !(object.duration === "endTurn" && object.ownerActorId === actor.id));
       scene.markers = (scene.markers || []).filter(marker => !(marker.duration === "endTurn" && marker.ownerActorId === actor.id));
     } else if (event.type === "round.end") {
       scene.round = Number(scene.round || 0) + 1;
       scene.tension = Number(scene.tension || 0) + 1;
+      scene.activeActorId = null;
       scene.objects = (scene.objects || []).filter(object => !["instant", "round"].includes(object.duration));
       scene.markers = (scene.markers || []).filter(marker => marker.duration !== "round");
-      (scene.actors || []).forEach(item => { item.acted = false; item.ap = Number(item.baseAp || 3); });
+      (scene.actors || []).forEach(item => { item.acted = false; item.ap = Number(item.baseAp || 3); item.usedActions = []; });
     }
     scene.log ||= [];
     scene.log.unshift(event);
@@ -241,6 +261,59 @@
     return { ok: errors.length === 0, errors, action: available, events: errors.length ? [] : events };
   }
 
+  function availableEnemyRules(scene, data, actorId) {
+    const actor = actorById(scene, actorId);
+    const profile = actor ? enemyProfileById(data, actor.profileId) : null;
+    if (!actor || !profile) return [];
+    return (profile.rules || []).map(rule => {
+      let reason = "";
+      if (actor.team !== "enemy") reason = "Это не противник";
+      else if (actor.knockedOut) reason = "Противник выведен из строя";
+      else if (scene.pendingAction) reason = "Сначала разрешите текущие Реакции";
+      else if (actor.acted) reason = "Ход противника уже завершён";
+      else if (Number(actor.ap || 0) < Number(rule.apCost || 1)) reason = `Нужно ${rule.apCost || 1} ОД`;
+      else if ((actor.usedActions || []).includes(rule.id)) reason = "Это действие уже использовано в Раунде";
+      else if (rule.kind === "trump" && actor.usedTrump) reason = "Козырь уже использован в этой Сцене";
+      else if (rule.kind === "trump" && Number(scene.tension || 0) < Number(rule.tension || 0)) reason = `Нужно Напряжение ${rule.tension}`;
+      return { ...clone(rule), available: !reason, reason };
+    });
+  }
+
+  function prepareEnemyRule(scene, data, request = {}) {
+    const actor = actorById(scene, request.actorId);
+    const profile = actor ? enemyProfileById(data, actor.profileId) : null;
+    const rule = profile?.rules?.find(item => item.id === request.ruleId);
+    const available = actor && rule ? availableEnemyRules(scene, data, actor.id).find(item => item.id === rule.id) : null;
+    const errors = [];
+    if (!actor || !profile) errors.push("Не выбран профиль противника.");
+    if (!rule) errors.push("Неизвестное действие противника.");
+    if (available && !available.available) errors.push(available.reason);
+    const targetIds = [...new Set(request.targetIds || [])];
+    const targets = targetIds.map(id => actorById(scene, id)).filter(Boolean);
+    if (rule?.requiresTarget && !targets.length) errors.push(rule.kind === "attack" ? "Выберите хотя бы одну цель Атаки." : "Выберите цель действия.");
+    if (rule?.maxTargets && targets.length > Number(rule.maxTargets)) errors.push(`Можно выбрать не больше ${rule.maxTargets} целей.`);
+    if (actor && rule?.adjacent && targets.some(target => distance(actor, target) > 1)) errors.push("Цель должна быть смежной.");
+    if (actor && rule?.range && targets.some(target => distance(actor, target) > Number(rule.range))) errors.push(`Цель должна быть в пределах ${rule.range} клеток.`);
+    const hasRoll = request.roll && Array.isArray(request.roll.rolls);
+    const hasDirectDamage = Number.isFinite(Number(request.damage)) && Number(request.damage) >= 0;
+    if (rule?.kind === "attack" && !hasRoll && !hasDirectDamage) errors.push("Для Атаки нужен бросок или прямой урон из профиля.");
+    if (errors.length) return { ok: false, errors, events: [], rule: available || rule };
+    const targetEffects = (rule.targetEffects || rule.effects || []).map(name => effectIdByName(data, name));
+    const selfEffects = (rule.selfEffects || []).map(name => effectIdByName(data, name));
+    const payload = { ruleId: rule.id, profileId: profile.id, name: rule.name, kind: rule.kind, targetIds, text: rule.text, reward: rule.reward, automation: rule.kind === "attack" ? "attack" : (targetEffects.length || selfEffects.length ? "effect" : "assisted") };
+    const events = [{ type: "enemy.action.prepare", actorId: actor.id, payload }, { type: "resource.spend", actorId: actor.id, payload: { resource: "ap", amount: Number(rule.apCost || 1) } }];
+    selfEffects.forEach(effect => events.push({ type: "effect.apply", actorId: actor.id, payload: { targetId: actor.id, effect, sourceActionId: rule.id } }));
+    if (rule.kind === "attack") {
+      targets.forEach(target => events.push({ type: "reaction.offer", actorId: target.id, payload: { sourceActorId: actor.id, actionId: rule.id } }));
+      const damage = hasRoll ? Number(request.roll.successes || 0) + Number(scene.tension || 0) * Number(rule.tensionMultiplier || 0) : Number(request.damage);
+      events.push({ type: "attack.pending", actorId: actor.id, payload: { actionId: rule.id, enemyRuleId: rule.id, name: rule.name, targetIds, roll: hasRoll ? clone(request.roll) : null, damage, effects: targetEffects, reward: rule.reward || "" } });
+    } else {
+      targets.forEach(target => targetEffects.forEach(effect => events.push({ type: "effect.apply", actorId: actor.id, payload: { targetId: target.id, effect, sourceActionId: rule.id } })));
+      events.push({ type: "enemy.action.resolve", actorId: actor.id, payload });
+    }
+    return { ok: true, errors: [], events, rule: available || clone(rule) };
+  }
+
   function reactionOptions(scene, data, actorId) {
     const actor = actorById(scene, actorId);
     if (!actor || !scene.pendingAction?.responses?.[actorId]) return [];
@@ -289,8 +362,9 @@
       const body = Number(target?.attrs?.body || 0);
       const dodge = Math.ceil(Math.max(Number(target?.attrs?.talent || 0), Number(target?.attrs?.mind || 0)) / 2);
       events.push({ type: "damage.apply", actorId: pending.actorId, payload: { targetId, amount: pending.damage, temporaryArmor: response === "Блок" ? body : 0, temporaryEvasion: response === "Уворот" ? dodge : 0, sourceActionId: pending.actionId } });
+      for (const effect of pending.effects || []) events.push({ type: "effect.apply", actorId: pending.actorId, payload: { targetId, effect, sourceActionId: pending.actionId } });
     }
-    events.push({ type: "action.resolve", actorId: pending.actorId, payload: { actionId: pending.actionId, name: pending.name, targetIds: pending.targetIds } });
+    events.push({ type: pending.enemyRuleId ? "enemy.action.resolve" : "action.resolve", actorId: pending.actorId, payload: pending.enemyRuleId ? { ruleId: pending.enemyRuleId, name: pending.name, kind: "attack", targetIds: pending.targetIds, reward: pending.reward || "" } : { actionId: pending.actionId, name: pending.name, targetIds: pending.targetIds } });
     events.push({ type: "attack.clear", actorId: source?.id || pending.actorId, payload: { pendingId: pending.id } });
     return { ok: true, errors: [], events };
   }
@@ -315,5 +389,5 @@
     return projected;
   }
 
-  global.DAWN_SCENE_ENGINE = { VERSION, actionCost, availableActions, dispatch, dispatchMany, prepareAction, projectScene, reactionOptions, respondReaction, resolvePendingAction, validateEvent };
+  global.DAWN_SCENE_ENGINE = { VERSION, actionCost, availableActions, availableEnemyRules, dispatch, dispatchMany, prepareAction, prepareEnemyRule, projectScene, reactionOptions, respondReaction, resolvePendingAction, validateEvent };
 })(typeof window === "object" ? window : globalThis);

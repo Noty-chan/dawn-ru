@@ -143,6 +143,7 @@
         <section id="scene-workbench" class="scene-workbench">
           <div class="panel scene-stage">
             <div class="scene-stage-head"><div><p class="eyebrow">ПОЛЕ СЦЕНЫ</p><h2 id="scene-name">Структурированный бой</h2></div><div class="scene-stage-actions"><div class="button-row"><label class="scene-view-label">Вид<select id="scene-view"><option value="player">Игрок</option><option value="gm">Нарратор</option></select></label><label class="scene-zoom-label">Масштаб<input id="scene-zoom" type="range" min="30" max="180" step="10" value="100"><output id="scene-zoom-value">100%</output></label><button type="button" id="scene-zoom-fit">Вместить</button><button type="button" id="focus-mode">Только поле</button></div><div id="scene-space-tabs" class="scene-space-tabs"></div></div></div>
+            <nav id="scene-turn-strip" class="scene-turn-strip" aria-label="Ходы участников"></nav>
             <div class="scene-toolbar" aria-label="Инструменты поля">
               <div class="scene-tool-group">
                 <button type="button" data-scene-tool="select">Выбор / ход</button>

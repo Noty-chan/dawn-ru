@@ -14,7 +14,7 @@ const scene = {
   spaces: [{ id: "main", width: 7, height: 7 }],
   actors: [
     { id: "hero", name: "Эта", team: "hero", space: "main", x: 1, y: 1, ap: 3, baseAp: 3, focus: 50, hp: 12, attrs: { body: 3, talent: 4, spirit: 4, mind: 2 } },
-    { id: "enemy", name: "Ассасин", team: "enemy", space: "main", x: 2, y: 1, ap: 2, baseAp: 2, focus: 2, hp: 10, armor: 1 },
+    { id: "enemy", name: "Ассасин", team: "enemy", profileId: "enemy.common.assassin", tier: 1, space: "main", x: 2, y: 1, ap: 2, baseAp: 2, focus: 2, hp: 10, armor: 1, usedActions: [], usedTrump: false },
   ], log: [], rollFeed: [],
 };
 
@@ -71,6 +71,54 @@ assert.equal(attacked.actors[1].hp, 9, "Armor reduces damage, but an Attack stil
 assert.equal(attacked.rollFeed[0].successes, 2);
 assert.equal(attacked.pendingAction, null);
 
+const enemyRules = Engine.availableEnemyRules(scene, data, "enemy");
+assert.equal(enemyRules.length, 3);
+const neutralize = enemyRules.find(rule => rule.en === "Neutralize Target");
+const neutralized = Engine.prepareEnemyRule(scene, data, { actorId: "enemy", ruleId: neutralize.id, targetIds: ["hero"] });
+assert.equal(neutralized.ok, true);
+const afterNeutralize = Engine.dispatchMany(scene, neutralized.events).scene;
+assert.equal(afterNeutralize.actors[1].ap, 1);
+assert.ok(afterNeutralize.actors[1].usedActions.includes(neutralize.id));
+assert.ok(afterNeutralize.actors[0].effects.includes("negative.помечен"));
+assert.ok(!afterNeutralize.actors[0].effects.includes("negative.замедлен"), "Conditional follow-up effects must not be applied early");
+assert.equal(Engine.prepareEnemyRule(afterNeutralize, data, { actorId: "enemy", ruleId: neutralize.id, targetIds: ["hero"] }).ok, false, "Enemy actions are once per Round");
+
+const slice = enemyRules.find(rule => rule.en === "Slice");
+const enemyAttack = Engine.prepareEnemyRule(scene, data, {
+  actorId: "enemy", ruleId: slice.id, targetIds: ["hero"],
+  roll: { formula: "5D6", rolls: [6, 5, 2, 1, 1], successes: 2, crits: 1 },
+});
+assert.equal(enemyAttack.ok, true);
+const enemyAwaiting = Engine.dispatchMany(scene, enemyAttack.events).scene;
+assert.equal(enemyAwaiting.actors[1].ap, 1);
+assert.equal(enemyAwaiting.actors[0].hp, 12);
+const heroPass = Engine.respondReaction(enemyAwaiting, data, { actorId: "hero", choice: "pass" });
+const enemyAnswered = Engine.dispatchMany(enemyAwaiting, heroPass.events).scene;
+const enemyResolved = Engine.dispatchMany(enemyAnswered, Engine.resolvePendingAction(enemyAnswered, data).events).scene;
+assert.equal(enemyResolved.actors[0].hp, 6, "Enemy attack damage includes successes plus Tension multiplier");
+assert.equal(enemyResolved.rollFeed[0].successes, 2);
+assert.equal(enemyResolved.pendingAction, null);
+
+const disappear = enemyRules.find(rule => rule.en === "Disappear");
+const trump = Engine.prepareEnemyRule(scene, data, { actorId: "enemy", ruleId: disappear.id });
+assert.equal(trump.ok, true);
+const afterTrump = Engine.dispatchMany(scene, trump.events).scene;
+assert.equal(afterTrump.actors[1].usedTrump, true);
+assert.ok(afterTrump.actors[1].effects.includes("positive.исчез"));
+const afterEnemyRound = Engine.dispatch(afterTrump, { type: "round.end", payload: {} }).scene;
+assert.equal(afterEnemyRound.actors[1].usedActions.length, 0);
+assert.equal(afterEnemyRound.actors[1].usedTrump, true, "Trump remains spent for the whole Scene");
+
+const builderScene = structuredClone(scene);
+builderScene.actors[1].profileId = "enemy.common.builder";
+builderScene.actors[1].name = "Строитель";
+builderScene.actors[1].x = 5;
+builderScene.actors[1].y = 1;
+const construction = Engine.availableEnemyRules(builderScene, data, "enemy").find(rule => rule.en === "Violent Construction");
+const directAttack = Engine.prepareEnemyRule(builderScene, data, { actorId: "enemy", ruleId: construction.id, targetIds: ["hero"], damage: 3 });
+assert.equal(directAttack.ok, true, "Fixed-damage enemy Attacks do not invent a dice pool");
+assert.equal(directAttack.events.find(event => event.type === "attack.pending").payload.damage, 3);
+
 const dodgingScene = structuredClone(scene);
 dodgingScene.actors[1].attrs = { body: 2, talent: 4, spirit: 1, mind: 2 };
 const awaitingDodge = Engine.dispatchMany(dodgingScene, attack.events).scene;
@@ -100,8 +148,12 @@ lifecycleScene.objects = [{ id: "gas", type: "gas", duration: "nextTurn", ownerA
 const entered = Engine.dispatch(lifecycleScene, { type: "actor.enter", actorId: "enemy", payload: {} }).scene;
 assert.ok(entered.actors[1].effects.includes("Ослаблен"));
 const nextTurn = Engine.dispatch(entered, { type: "turn.start", actorId: "hero", payload: {} }).scene;
+assert.equal(nextTurn.activeActorId, "hero");
 assert.equal(nextTurn.objects.length, 0);
-const nextRound = Engine.dispatch(nextTurn, { type: "round.end", payload: {} }).scene;
+const endedTurn = Engine.dispatch(nextTurn, { type: "turn.end", actorId: "hero", payload: {} }).scene;
+assert.equal(endedTurn.activeActorId, null);
+assert.equal(endedTurn.actors[0].acted, true);
+const nextRound = Engine.dispatch(endedTurn, { type: "round.end", payload: {} }).scene;
 assert.equal(nextRound.round, 2);
 assert.equal(nextRound.tension, 3);
 
@@ -110,4 +162,4 @@ assert.equal(knockedOut.actors[1].knockedOut, true);
 assert.equal(knockedOut.tension, 3);
 assert.ok(Engine.availableActions(knockedOut, data, "enemy").every(action => !action.available));
 
-console.log("Scene engine QA passed: public events, actions, damage, movement, unbounded Focus");
+console.log("Scene engine QA passed: public events, hero and enemy actions, damage, effects, movement, unbounded Focus");

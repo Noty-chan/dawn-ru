@@ -36,6 +36,7 @@ RE_TECH_HEAD = re.compile(r"^### (.+?)(?: \(([^)]+)\))? \| (★+) \| (.+)$")
 RE_LEVEL = re.compile(r"^\*\*(\d):\s*(.+):\*\*\s*(.*)$")
 RE_GIFT = re.compile(r"^\*\*(.+?):\*\*\s+(.*)$")
 RE_ENEMY_HEAD = re.compile(r"^### (.+?)(?: \(([^)]+)\))? \| (.+)$")
+RE_ENEMY_RULE = re.compile(r'^\*\*\[(Действие|Атака|Козырь)(?::Н(\d+))?\]\s+(.+?)(?: \(([^)]+)\))?:\*\*\s*(.*)$')
 
 OUTLOOK_IDS = {
     "Мятежник": "rebel",
@@ -87,6 +88,52 @@ def split_bilingual(value: str) -> tuple[str, str]:
     return (match.group(1).strip(), match.group(2).strip()) if match else (value.strip(), "")
 
 
+def extract_technique_mechanics(text: str) -> dict:
+    """Conservative semantic index used by the in-scene Technique assistant.
+
+    It does not claim to resolve conditional prose. Instead it exposes the mechanical
+    vocabulary of every canonical level and marks only unconditional imperative
+    Effects as safe for automatic application.
+    """
+    actions = [
+        action
+        for action in ["Шаг", "Прыжок", "Стычка", "Заклинание", "Завершение", "Передышка", "Зарядка", "Взаимодействие", "Дуэль"]
+        if re.search(rf"\*\*{re.escape(action)}", text, re.IGNORECASE)
+    ]
+    effects = [effect_name for effect_name in EFFECT_ALIASES if re.search(rf"\*\*{re.escape(effect_name)}", text, re.IGNORECASE)]
+    direct_effects = []
+    for sentence in re.split(r"(?<=[.!?])\s+|\n", text):
+        lower = sentence.lower()
+        sentence_effects = [effect_name for effect_name in effects if f"**{effect_name}**" in sentence]
+        if (
+            not re.search(r"\bналожите\b", lower)
+            or re.search(r"\b(?:если|когда|может|можете|при|выберите|или|один из)\b", lower)
+            or len(sentence_effects) != 1
+        ):
+            continue
+        direct_effects.extend(sentence_effects)
+    areas = []
+    for width, height in re.findall(r"(\d+)\s*[xх×]\s*(\d+)", text, re.IGNORECASE):
+        area = [int(width), int(height)]
+        if area not in areas and 1 <= area[0] <= 12 and 1 <= area[1] <= 12:
+            areas.append(area)
+    ranges = [int(value) for value in re.findall(r"в пределах\s+(\d+)\s+\*\*клет", text, re.IGNORECASE)]
+    clocks = [int(value) for value in re.findall(r"\*\*часы\*\* на\s+(\d+)\s+сегмент", text, re.IGNORECASE)]
+    resources = [resource for resource in ["ОД", "Фокус", "Влияние", "Напряжение", "Здоровье", "Раны", "Стресс"] if re.search(rf"\*\*{resource}", text, re.IGNORECASE)]
+    return {
+        "actions": actions,
+        "effects": effects,
+        "directEffects": sorted(set(direct_effects), key=direct_effects.index),
+        "areas": areas,
+        "ranges": sorted(set(ranges)),
+        "clocks": sorted(set(clocks)),
+        "resources": resources,
+        "movement": bool(re.search(r"\b(?:перемест|телепорт|появляет|клетк)[а-яё]*\b", text, re.IGNORECASE)),
+        "targets": bool(re.search(r"\b(?:цел[ьи]|персонаж|враг|союзник)[а-яё]*\b", text, re.IGNORECASE)),
+        "conditional": bool(re.search(r"\b(?:если|когда|пока|один раз|вместо|можете)\b", text, re.IGNORECASE)),
+    }
+
+
 def parse_techniques(slug: str, fname: str) -> dict:
     lines = (TR / fname).read_text(encoding="utf-8").splitlines()
     arch = {"id": slug, "name": "", "desc": "", "techniques": []}
@@ -134,6 +181,8 @@ def parse_techniques(slug: str, fname: str) -> dict:
             tech["flavor"].append(line.strip("_ "))
     for t in arch["techniques"]:
         t["flavor"] = "\n\n".join(t["flavor"])
+        for level_item in t["levels"]:
+            level_item["mechanics"] = extract_technique_mechanics(level_item["text"])
     return arch
 
 
@@ -376,6 +425,8 @@ def parse_enemies(fname: str, kind: str) -> list:
     lines = (TR / fname).read_text(encoding="utf-8").splitlines()
     enemies = []
     enemy = None
+    active_rule = None
+    active_rule_field = "text"
     enabled = kind == "common"
     for raw in lines:
         line = raw.rstrip()
@@ -399,14 +450,19 @@ def parse_enemies(fname: str, kind: str) -> list:
                 "examples": "",
                 "statsRaw": "",
                 "stats": {},
+                "passive": "",
+                "rules": [],
                 "text": "",
             }
             enemies.append(enemy)
+            active_rule = None
+            active_rule_field = "text"
             continue
         if enemy is None:
             continue
         if line.startswith("## ") or line.startswith("# "):
             enemy = None
+            active_rule = None
             continue
         if not line:
             continue
@@ -417,7 +473,93 @@ def parse_enemies(fname: str, kind: str) -> list:
             enemy["statsRaw"] = line.removeprefix("**Параметры:**").strip()
             enemy["stats"] = parse_enemy_stats(line)
             continue
+        rule_match = RE_ENEMY_RULE.match(line)
+        if rule_match:
+            label, tension, name, en, body = rule_match.groups()
+            rule_kind = {"Действие": "action", "Атака": "attack", "Козырь": "trump"}[label]
+            active_rule = {
+                "id": f'{enemy["id"]}.{rule_kind}.{slugify(en or name)}',
+                "kind": rule_kind,
+                "name": name.strip(),
+                "en": (en or "").strip(),
+                "apCost": 2 if rule_kind == "trump" else 1,
+                "tension": int(tension or 0),
+                "text": body.strip(),
+                "reward": "",
+            }
+            enemy["rules"].append(active_rule)
+            active_rule_field = "text"
+        elif line.startswith("**Пассив:**"):
+            enemy["passive"] = line.removeprefix("**Пассив:**").strip()
+            active_rule = None
+        elif line.startswith("**Награда:**") and active_rule is not None:
+            active_rule["reward"] = line.removeprefix("**Награда:**").strip()
+            active_rule_field = "reward"
+        elif active_rule is not None:
+            active_rule[active_rule_field] = (active_rule[active_rule_field] + "\n" + line.replace("\\*", "*")).strip()
+        elif enemy["passive"] and re.match(r"^\*\*\d+:\*\*", line):
+            enemy["passive"] = (enemy["passive"] + "\n" + line.replace("\\*", "*")).strip()
         enemy["text"] = (enemy["text"] + "\n" + line.replace("\\*", "*")).strip()
+    for item in enemies:
+        item["deployEffects"] = [
+            effect_name
+            for effect_name in EFFECT_ALIASES
+            if re.search(
+                rf"(?:становится|получает)[^\n]{{0,80}}\*\*{re.escape(effect_name)}\*\*[^\n]{{0,100}}Развертыван",
+                item["passive"],
+                re.IGNORECASE,
+            )
+            or re.search(
+                rf"Развертыван[^\n]{{0,100}}(?:становится|получает)[^\n]{{0,80}}\*\*{re.escape(effect_name)}\*\*",
+                item["passive"],
+                re.IGNORECASE,
+            )
+        ]
+        for rule in item["rules"]:
+            dice_match = re.search(r"бросьте\s+`([^`]+)D6`", rule["text"], re.IGNORECASE)
+            rule["dice"] = dice_match.group(1) if dice_match else ""
+            direct_damage_match = re.search(r"нанесите (?:ему|ей|им|цели)?\s*`([^`]+)`\s+урона", rule["text"], re.IGNORECASE)
+            rule["directDamage"] = direct_damage_match.group(1) if direct_damage_match else ""
+            tension_match = re.search(r"Напряжение\s*x\s*(\d+)", rule["reward"], re.IGNORECASE)
+            rule["tensionMultiplier"] = int(tension_match.group(1)) if tension_match else 0
+            combined = f'{rule["text"]}\n{rule["reward"]}'
+            rule["targetEffects"] = [
+                effect_name
+                for effect_name in EFFECT_ALIASES
+                if re.search(
+                    rf"наложите[^.\n]{{0,140}}\*\*{re.escape(effect_name)}\*\*",
+                    combined,
+                    re.IGNORECASE,
+                )
+            ]
+            rule["selfEffects"] = [
+                effect_name
+                for effect_name in EFFECT_ALIASES
+                if re.search(
+                    rf"(?:этот враг|он) (?:становится|получает)[^\n]{{0,80}}\*\*{re.escape(effect_name)}\*\*",
+                    combined,
+                    re.IGNORECASE,
+                )
+            ]
+            # Compatibility for the event engine: attack effects always affect its targets.
+            rule["effects"] = list(rule["targetEffects"])
+            range_match = re.search(r"в пределах\s+(\d+)\s+клет", rule["text"], re.IGNORECASE)
+            rule["range"] = int(range_match.group(1)) if range_match else 0
+            rule["adjacent"] = bool(re.search(r"смежн(?:ой|ого|ую|ых)?\s+(?:цели|персонажа|противника)", rule["text"], re.IGNORECASE))
+            if re.search(r"до двух персонаж", rule["text"], re.IGNORECASE):
+                rule["maxTargets"] = 2
+            elif rule["kind"] == "attack" and not re.search(r"зон[уы]\s+`\d+\s*x\s*\d+`|всех персонаж|персонажей", rule["text"], re.IGNORECASE):
+                rule["maxTargets"] = 1
+            else:
+                rule["maxTargets"] = 0
+            targets_cells = bool(re.search(r"выберите целью[^.\n]{0,80}(?:клетк|участк)", rule["text"], re.IGNORECASE))
+            rule["requiresTarget"] = (rule["kind"] == "attack" and not targets_cells) or bool(rule["targetEffects"]) or bool(
+                re.search(r"выберите (?:целью|персонажа|противника|до двух)|по (?:смежной )?цели", rule["text"], re.IGNORECASE)
+            ) and not targets_cells
+            if rule["requiresTarget"] and not rule["maxTargets"] and not re.search(r"всех (?:персонаж|противник)", rule["text"], re.IGNORECASE):
+                rule["maxTargets"] = 1
+            area_match = re.search(r"зон[уы]\s+`(\d+)\s*x\s*(\d+)`", rule["text"], re.IGNORECASE)
+            rule["area"] = [int(area_match.group(1)), int(area_match.group(2))] if area_match else []
     return enemies
 
 

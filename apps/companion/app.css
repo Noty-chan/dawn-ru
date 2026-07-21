@@ -80,3 +80,31 @@ main{min-width:0;padding:clamp(1rem,3vw,3rem)}.mode-page{display:none}.mode-page
 @media(max-width:720px){.scene-mode .scene-stage{height:auto;min-height:0}.scene-mode .scene-board-wrap{height:calc(100vh - 225px)}.scene-roll-feed{left:.5rem;top:7.2rem;width:min(220px,calc(100vw - 1rem))}.scene-roll-feed article:nth-child(n+2){display:none}.scene-action-tray{bottom:3.8rem;max-width:calc(100vw - 1rem);overflow-x:auto;justify-content:flex-start}.scene-tray-resources b{display:none}.scene-action-tray button{padding:.46rem .55rem}.scene-dock{grid-template-columns:repeat(7,auto)}.scene-mode .scene-rail{bottom:7rem;height:min(68vh,600px)}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
 @media print{body{background:#fff}.topbar,.sidebar,.page-heading,.mode-page:not([data-page="build"]),.panel:not(.sheet-panel),.section-title{display:none!important}.app-shell{display:block}.sheet-panel{display:block;border:0;box-shadow:none;padding:0}.character-sheet{padding:0}.sheet-columns{columns:2}main{padding:0}}
+
+/* Compact complete enemy sheets for the narrator cockpit. */
+.enemy-roster-card>header{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:stretch;border-bottom:1px solid var(--line)}
+.enemy-roster-card>header>[data-scene-roster-actor]{display:grid;gap:.18rem;text-align:left;border:0;border-radius:0;background:transparent}
+.enemy-roster-card>header>[data-scene-roster-actor] span{color:var(--muted);font-size:.66rem}
+.enemy-turn-button{align-self:stretch;border:0;border-left:1px solid var(--line);border-radius:0;padding:.45rem .55rem;font-size:.62rem}
+.enemy-passive{margin:0;padding:.5rem .65rem;border-top:1px solid color-mix(in srgb,var(--line) 65%,transparent);font-size:.68rem;line-height:1.4}
+.enemy-passive p{display:inline;margin:0}
+.enemy-rule-list{display:grid;gap:.35rem;padding:.45rem}
+.enemy-rule{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start;border:1px solid var(--line);border-left:3px solid var(--muted);border-radius:8px;background:color-mix(in srgb,var(--surface) 82%,transparent);overflow:hidden}
+.enemy-rule.attack{border-left-color:var(--red)}
+.enemy-rule.trump{border-left-color:var(--gold)}
+.enemy-rule>button{display:grid;gap:.12rem;min-width:0;padding:.48rem .55rem;text-align:left;border:0;border-radius:0;background:transparent}
+.enemy-rule>button strong{font-size:.72rem}.enemy-rule>button small{color:var(--muted);font-size:.59rem}.enemy-rule>button:disabled{opacity:.42}
+.enemy-rule>details{padding:.42rem .48rem;border-left:1px solid var(--line)}
+.enemy-rule>details>summary{font-size:0;color:var(--gold)}.enemy-rule>details>summary::after{content:"?";font-size:.72rem;font-weight:900}
+.enemy-rule>details[open]{grid-column:1/-1;border-top:1px solid var(--line);border-left:0}.enemy-rule>details[open]>summary{font-size:.65rem}.enemy-rule>details[open]>summary::after{content:""}
+.enemy-rule>details p{margin:.35rem 0;font-size:.67rem;line-height:1.45}
+
+.scene-turn-strip{display:flex;gap:.35rem;margin:-.15rem 0 .5rem;overflow-x:auto;padding:.15rem .05rem .35rem;scrollbar-width:thin}
+.scene-turn-strip>.autosave{align-self:center;padding:.45rem}
+.scene-turn-chip{display:grid;grid-template-columns:30px minmax(74px,auto);align-items:center;gap:.4rem;min-width:max-content;padding:.32rem .5rem .32rem .35rem;border-color:var(--line);background:color-mix(in srgb,var(--surface-2) 86%,transparent);text-align:left}
+.scene-turn-chip>i,.scene-turn-chip>img{display:grid;place-items:center;width:30px;height:30px;border-radius:7px;background:var(--token-color,var(--surface));object-fit:cover;color:#fff;font-size:.65rem;font-style:normal;font-weight:900}
+.scene-turn-chip>span{display:grid;gap:.08rem}.scene-turn-chip b{max-width:115px;overflow:hidden;font-size:.64rem;text-overflow:ellipsis;white-space:nowrap}.scene-turn-chip small{color:var(--muted);font-size:.55rem}
+.scene-turn-chip.enemy{border-bottom-color:color-mix(in srgb,var(--red) 70%,var(--line))}.scene-turn-chip.active{border-color:var(--gold);background:color-mix(in srgb,var(--gold) 15%,var(--surface));box-shadow:0 0 0 1px color-mix(in srgb,var(--gold) 45%,transparent)}
+.scene-turn-chip.acted{opacity:.48}.scene-turn-chip.active{opacity:1}.scene-turn-chip.knocked-out{filter:grayscale(1)}
+@media(max-width:720px){.scene-turn-strip{margin-bottom:.35rem}.scene-turn-chip{grid-template-columns:26px minmax(64px,auto);padding:.28rem .4rem}.scene-turn-chip>i,.scene-turn-chip>img{width:26px;height:26px}.scene-turn-chip b{max-width:90px}}
+.technique-mechanics{display:block;margin-top:.18rem;color:var(--gold);font-size:.6rem;line-height:1.35}
