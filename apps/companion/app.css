@@ -112,3 +112,5 @@ main{min-width:0;padding:clamp(1rem,3vw,3rem)}.mode-page{display:none}.mode-page
 .scene-mode .scene-stage-head .eyebrow{display:none}.scene-mode .scene-stage-head h2{margin:0}
 .scene-roll-feed{top:auto;bottom:4.3rem}
 @media(max-width:720px){.scene-roll-feed{top:auto;bottom:7.25rem}}
+.scene-reference-list{display:grid;gap:.4rem;margin-top:.7rem}.scene-reference-card{border:1px solid var(--line);border-radius:8px;background:var(--surface-2);padding:.5rem}.scene-reference-card summary{display:grid;gap:.1rem;cursor:pointer}.scene-reference-card summary span{color:var(--gold);font-size:.55rem;text-transform:uppercase}.scene-reference-card summary strong{font-size:.72rem}.scene-reference-card>small{display:block;margin-top:.4rem;color:var(--muted);font-size:.62rem}.scene-reference-card>div{margin-top:.45rem;font-size:.69rem;line-height:1.48}.scene-reference-card>div p{margin:.35rem 0}
+@media(max-width:720px){.scene-dock{grid-template-columns:repeat(8,auto)}}
