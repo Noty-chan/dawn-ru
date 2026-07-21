@@ -482,7 +482,7 @@ def parse_enemies(fname: str, kind: str) -> list:
                 "kind": rule_kind,
                 "name": name.strip(),
                 "en": (en or "").strip(),
-                "apCost": 2 if rule_kind == "trump" else 1,
+                "apCost": int(re.search(r"стоит\s+(\d+)\s+\*\*ОД", body, re.IGNORECASE).group(1)) if re.search(r"стоит\s+(\d+)\s+\*\*ОД", body, re.IGNORECASE) else (2 if rule_kind == "trump" else 1),
                 "tension": int(tension or 0),
                 "text": body.strip(),
                 "reward": "",
@@ -560,6 +560,7 @@ def parse_enemies(fname: str, kind: str) -> list:
                 rule["maxTargets"] = 1
             area_match = re.search(r"зон[уы]\s+`(\d+)\s*x\s*(\d+)`", rule["text"], re.IGNORECASE)
             rule["area"] = [int(area_match.group(1)), int(area_match.group(2))] if area_match else []
+            rule["areaAnchor"] = "self" if rule["area"] and re.search(r"(?:центрированн\w+|размещенн\w+)\s+на\s+(?:себе|этом враге)", rule["text"], re.IGNORECASE) else ("point" if rule["area"] else "")
     return enemies
 
 

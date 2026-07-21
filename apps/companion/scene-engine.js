@@ -10,6 +10,15 @@
   const enemyProfileById = (data, id) => [...(data?.enemies?.common || []), ...(data?.enemies?.modifiers || [])].find(profile => profile.id === id) || null;
   const effectIdByName = (data, name) => [...(data?.effects?.positive || []), ...(data?.effects?.negative || [])].find(effect => effect.id === name || effect.name === name)?.id || name;
   const distance = (a, b) => a.space === b.space ? Math.abs(a.x - b.x) + Math.abs(a.y - b.y) : Infinity;
+  const areaCells = (space, anchor, area) => {
+    const width = Number(area?.[0] || 0), height = Number(area?.[1] || 0), cells = [];
+    const startX = Number(anchor?.x) - (width % 2 ? Math.floor(width / 2) : 0), startY = Number(anchor?.y) - (height % 2 ? Math.floor(height / 2) : 0);
+    for (let dy = 0; dy < height; dy += 1) for (let dx = 0; dx < width; dx += 1) {
+      const x = startX + dx, y = startY + dy;
+      if (x >= 0 && y >= 0 && x < Number(space?.width || 0) && y < Number(space?.height || 0)) cells.push(`${x},${y}`);
+    }
+    return cells;
+  };
   const eventId = () => `event-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
   const actionCost = action => {
     const match = String(action?.cost || "").match(/(\d+)\s*(ОД|Фокус)/i);
@@ -290,6 +299,12 @@
     if (available && !available.available) errors.push(available.reason);
     const targetIds = [...new Set(request.targetIds || [])];
     const targets = targetIds.map(id => actorById(scene, id)).filter(Boolean);
+    const space = actor && (scene.spaces || []).find(item => item.id === actor.space);
+    const anchor = rule?.area?.length ? (rule.areaAnchor === "self" ? { x: actor?.x, y: actor?.y } : request.anchor) : null;
+    const affectedCells = rule?.area?.length && space && Number.isInteger(Number(anchor?.x)) && Number.isInteger(Number(anchor?.y)) ? areaCells(space, anchor, rule.area) : [];
+    if (rule?.area?.length && !affectedCells.length) errors.push("Укажите область действия на поле.");
+    if (actor && rule?.areaAnchor !== "self" && rule?.range && anchor && Math.abs(actor.x - Number(anchor.x)) + Math.abs(actor.y - Number(anchor.y)) > Number(rule.range)) errors.push(`Область должна быть в пределах ${rule.range} клеток.`);
+    if (affectedCells.length && targets.some(target => target.space !== actor.space || !affectedCells.includes(`${target.x},${target.y}`))) errors.push("Все выбранные цели должны находиться в области.");
     if (rule?.requiresTarget && !targets.length) errors.push(rule.kind === "attack" ? "Выберите хотя бы одну цель Атаки." : "Выберите цель действия.");
     if (rule?.maxTargets && targets.length > Number(rule.maxTargets)) errors.push(`Можно выбрать не больше ${rule.maxTargets} целей.`);
     if (actor && rule?.adjacent && targets.some(target => distance(actor, target) > 1)) errors.push("Цель должна быть смежной.");
@@ -303,6 +318,7 @@
     const payload = { ruleId: rule.id, profileId: profile.id, name: rule.name, kind: rule.kind, targetIds, text: rule.text, reward: rule.reward, automation: rule.kind === "attack" ? "attack" : (targetEffects.length || selfEffects.length ? "effect" : "assisted") };
     const events = [{ type: "enemy.action.prepare", actorId: actor.id, payload }, { type: "resource.spend", actorId: actor.id, payload: { resource: "ap", amount: Number(rule.apCost || 1) } }];
     selfEffects.forEach(effect => events.push({ type: "effect.apply", actorId: actor.id, payload: { targetId: actor.id, effect, sourceActionId: rule.id } }));
+    if (affectedCells.length) events.push({ type: "area.create", actorId: actor.id, payload: { id: `area-${eventId()}`, space: actor.space, areaType: rule.kind === "attack" ? "attack" : "danger", label: rule.name, source: rule.id, duration: rule.kind === "attack" ? "instant" : "scene", ownerActorId: actor.id, cells: affectedCells } });
     if (rule.kind === "attack") {
       targets.forEach(target => events.push({ type: "reaction.offer", actorId: target.id, payload: { sourceActorId: actor.id, actionId: rule.id } }));
       const damage = hasRoll ? Number(request.roll.successes || 0) + Number(scene.tension || 0) * Number(rule.tensionMultiplier || 0) : Number(request.damage);

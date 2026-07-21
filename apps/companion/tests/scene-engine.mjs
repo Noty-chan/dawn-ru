@@ -119,6 +119,18 @@ const directAttack = Engine.prepareEnemyRule(builderScene, data, { actorId: "ene
 assert.equal(directAttack.ok, true, "Fixed-damage enemy Attacks do not invent a dice pool");
 assert.equal(directAttack.events.find(event => event.type === "attack.pending").payload.damage, 3);
 
+const areaScene = structuredClone(scene);
+areaScene.actors[1].profileId = "enemy.common.witch";
+areaScene.actors[1].name = "Ведьма";
+const runes = Engine.availableEnemyRules(areaScene, data, "enemy").find(rule => rule.en === "Drawing Runes");
+assert.equal(runes.apCost, 2);
+const runeAction = Engine.prepareEnemyRule(areaScene, data, { actorId: "enemy", ruleId: runes.id });
+assert.equal(runeAction.ok, true);
+const runeScene = Engine.dispatchMany(areaScene, runeAction.events).scene;
+assert.equal(runeScene.objects[0].cells.length, 9);
+assert.equal(runeScene.objects[0].type, "danger");
+assert.equal(runeScene.actors[1].ap, 0);
+
 const dodgingScene = structuredClone(scene);
 dodgingScene.actors[1].attrs = { body: 2, talent: 4, spirit: 1, mind: 2 };
 const awaitingDodge = Engine.dispatchMany(dodgingScene, attack.events).scene;

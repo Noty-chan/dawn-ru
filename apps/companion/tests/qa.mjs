@@ -294,6 +294,8 @@ assert.match(app, /activeActorId/);
 assert.match(app, /public-actor-card/);
 assert.match(app, /data-core-assist-technique/);
 assert.match(app, /TechniqueEngine\.assistedPreview/);
+assert.match(app, /pendingEnemyRule/);
+assert.match(app, /enemyAreaCells/);
 assert.match(app, /function sceneSheetPanel/);
 assert.match(app, /function rollSceneDice/);
 assert.match(app, /function measurementPath/);
