@@ -136,7 +136,25 @@ function loadStore(){
   try{const legacy=JSON.parse(localStorage.getItem(LEGACY_KEY)||"null");if(legacy){const migrated=migrateLegacy(legacy);localStorage.setItem(STORAGE_KEY,JSON.stringify(migrated));return migrated;}}catch(e){console.warn(e)}
   return {schema:APP_SCHEMA,current:0,mode:"build",theme:"dark",heroes:[blankHero()],scene:blankScene()};
 }
-let store=loadStore(); let S=store.heroes[store.current]||store.heroes[0]; let Scene=store.scene||blankScene();let activeArch=D.archetypes[0]?.id; let refKind="all";
+function isPristineHero(hero){
+  return hero&&!hero.name&&!hero.player&&!hero.concept&&!hero.primaryOutlook&&!hero.outlooks.length&&!hero.gifts.length&&!Object.keys(hero.techniques).length&&!hero.ability.enabled&&hero.skills.length===1&&!hero.skills[0].name;
+}
+function consumePresetDraft(targetStore){
+  let draft;
+  try{const url=new URL(window.location.href),raw=url.searchParams.get("preset");if(!raw)return null;url.searchParams.delete("preset");history.replaceState(null,"",`${url.pathname}${url.search}${url.hash}`);draft=JSON.parse(raw);}catch{return null}
+  const createdAt=Number(draft?.createdAt);
+  if(!draft||draft.schema!==1||draft.kind!=="dawn-combat-preset"||!Number.isFinite(createdAt)||Math.abs(Date.now()-createdAt)>15*60*1000)return null;
+  const knownTechniques=new Set(D.archetypes.flatMap(archetype=>archetype.techniques.map(technique=>technique.id))),techniques={};
+  for(const [id,level] of Object.entries(draft.techniques||{}))if(knownTechniques.has(id)&&[1,2,3].includes(Number(level)))techniques[id]=Number(level);
+  if(Object.values(techniques).reduce((total,level)=>total+level,0)!==5)return null;
+  const attrs={};for(const [key] of ATTRS)attrs[key]=clamp(draft.attrs?.[key],2,4);
+  if(Object.values(attrs).sort().join(",")!=="2,2,3,4")return null;
+  const hero=normalizeHero({...blankHero(),name:String(draft.title||"").slice(0,120),concept:String(draft.role||"").slice(0,180),attrs,techniques});
+  if(targetStore.heroes.length===1&&isPristineHero(targetStore.heroes[0])){targetStore.heroes[0]=hero;targetStore.current=0;}else{targetStore.heroes.push(hero);targetStore.current=targetStore.heroes.length-1;}
+  targetStore.mode="build";
+  return hero.name||"Новый персонаж";
+}
+let store=loadStore(); const importedPresetName=consumePresetDraft(store); let S=store.heroes[store.current]||store.heroes[0]; let Scene=store.scene||blankScene();let activeArch=D.archetypes[0]?.id; let refKind="all";
 function persist(){ store.heroes[store.current]=S;store.scene=Scene; try{localStorage.setItem(STORAGE_KEY,JSON.stringify(store));}catch(e){toast("Не удалось сохранить: хранилище браузера заполнено");} }
 
 const allGifts=()=>D.outlooks.flatMap(o=>(o.builtin?[o.builtin]:[]).concat(o.gifts));
@@ -499,6 +517,6 @@ $("clocks").addEventListener("click",event=>{const remove=event.target.dataset.c
 $("clocks").addEventListener("input",event=>{const id=event.target.dataset.clockName;if(id){const c=S.runtime.clocks.find(c=>c.id===id);if(c)c.name=event.target.value;persist();}});
 $("ref-search").addEventListener("input",renderReference);$("ref-filters").addEventListener("click",event=>{const b=event.target.closest("[data-ref-kind]");if(b){refKind=b.dataset.refKind;renderReference();}});
 
-document.documentElement.classList.toggle("light",store.theme==="light");initCollapsibleBuildPanels();setMode(store.mode||"build");renderAll();renderSync();
+document.documentElement.classList.toggle("light",store.theme==="light");initCollapsibleBuildPanels();setMode(store.mode||"build");renderAll();renderSync();if(importedPresetName)toast(`Создан персонаж «${importedPresetName}»`);
 if(Sync?.hasConfig())window.addEventListener("load",()=>setTimeout(()=>Sync.connect().catch(()=>renderSync()),250),{once:true});
 if(location.protocol.startsWith("http")&&"serviceWorker" in navigator)navigator.serviceWorker.register("./sw.js").catch(()=>{});

@@ -43,12 +43,24 @@
     2:{roman:"II",label:"Нужна сноровка"},
     3:{roman:"III",label:"Для одержимых"}
   };
+  const attributeKeys = {"ТЕЛ":"body","ТАЛ":"talent","ДУХ":"spirit","РЗМ":"mind"};
   const difficultyBadge = preset => {
     const rank = difficultyRanks[preset.difficulty];
     const marks = "◆".repeat(preset.difficulty) + "◇".repeat(3 - preset.difficulty);
     return `<div class="build-difficulty" aria-label="Сложность: ранг ${rank.roman}, ${rank.label}"><span>Сложность</span><i>${marks}</i><b>${rank.roman}</b></div>`;
   };
   const complexityNote = preset => preset.complexity.split(" · ").slice(1).join(" · ") || preset.complexity;
+
+  function createCharacterFromPreset(preset) {
+    const attrs = Object.fromEntries(preset.order.map((attribute, index) => [attributeKeys[attribute], preset.stats[index]]));
+    const techniques = Object.fromEntries(preset.ids.map(([id, level]) => [id, level]));
+    const target = new URL("companion/", window.location.href);
+    target.searchParams.set("preset", JSON.stringify({
+      schema:1,kind:"dawn-combat-preset",createdAt:Date.now(),
+      title:preset.title,role:preset.role,attrs,techniques
+    }));
+    window.location.assign(target.href);
+  }
 
   function renderTechniqueReference(preset) {
     return preset.ids.map(([id, acquiredLevel], index) => {
@@ -104,11 +116,12 @@
         <span class="build-detail-kicker">СБОРКА ${pad(active + 1)} · СТУПЕНЬ 1</span>
         <h3>${preset.title}</h3>
         <p class="build-detail-role">${preset.role}<br>${preset.tech.join(" + ")}</p>
+        <button class="build-create-character" type="button" data-create-character="${active}">Создать этого персонажа <span>→</span></button>
       </div>
       <div class="build-detail-content">
         <div class="build-detail-body">
           <section><h4>Как это играется</h4><p>${preset.play}</p></section>
-          <aside><div><h4>Путь развития</h4><p>${preset.growth}</p></div><div><h4>Сложность</h4><div class="build-rank"><b>Ранг ${rank.roman}</b><i>${"◆".repeat(preset.difficulty)}${"◇".repeat(3 - preset.difficulty)}</i><span>${rank.label}</span></div><p class="build-rank-note">${complexityNote(preset)}</p></div></aside>
+          <aside><div><h4>Сложность</h4><div class="build-rank"><b>Ранг ${rank.roman}</b><i>${"◆".repeat(preset.difficulty)}${"◇".repeat(3 - preset.difficulty)}</i><span>${rank.label}</span></div><p class="build-rank-note">${complexityNote(preset)}</p></div></aside>
         </div>
         <div class="build-reference">
           <section class="build-tech-reference"><h4>Техники в сборке</h4>${renderTechniqueReference(preset)}</section>
@@ -133,6 +146,10 @@
   cards.forEach((card, index) => card.addEventListener("click", event => {
     renderDetail(index, event.target.closest(".build-open") !== null);
   }));
+  detail.addEventListener("click", event => {
+    const button = event.target.closest("[data-create-character]");
+    if (button) createCharacterFromPreset(presets[Number(button.dataset.createCharacter)]);
+  });
   prev.addEventListener("click", () => moveThroughVisible(-1));
   next.addEventListener("click", () => moveThroughVisible(1));
   viewport.addEventListener("keydown", event => {
