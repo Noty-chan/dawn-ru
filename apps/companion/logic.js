@@ -86,6 +86,22 @@
     };
   }
 
+  function resolveSelectedGifts({
+    outlooks = [],
+    selectedOutlookIds = [],
+    primaryOutlookId = null,
+    selectedGiftIds = [],
+  } = {}) {
+    const selectedOutlooks = new Set(Array.isArray(selectedOutlookIds) ? selectedOutlookIds : []);
+    const selectedGifts = new Set(Array.isArray(selectedGiftIds) ? selectedGiftIds : []);
+    return (Array.isArray(outlooks) ? outlooks : [])
+      .filter(outlook => selectedOutlooks.has(outlook?.id))
+      .flatMap(outlook => {
+        const gifts = (Array.isArray(outlook?.gifts) ? outlook.gifts : []).filter(gift => selectedGifts.has(gift?.id));
+        return outlook.id === primaryOutlookId && outlook.builtin ? [outlook.builtin, ...gifts] : gifts;
+      });
+  }
+
   function calculateAbilityCost({ enabled = false, rank = 1, words = [], xWord = null, specializations = {}, forceCondition = false }) {
     if (!enabled) return 0;
     const selectedWords = Array.isArray(words) ? words.filter(Boolean) : [];
@@ -199,5 +215,5 @@
     };
   }
 
-  global.DAWN_LOGIC = { areaCells, calculateAbilityCost, calculateCreationBudgets, calculateRankSpend, clamp, normalizeAttributeBases, normalizeAttributeGrowth, rollXd6, scaleTierFormula, swapAttributeBase };
+  global.DAWN_LOGIC = { areaCells, calculateAbilityCost, calculateCreationBudgets, calculateRankSpend, clamp, normalizeAttributeBases, normalizeAttributeGrowth, resolveSelectedGifts, rollXd6, scaleTierFormula, swapAttributeBase };
 })(typeof window === "object" ? window : globalThis);

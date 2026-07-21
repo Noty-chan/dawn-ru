@@ -46,6 +46,23 @@ assert.equal(data.archetypes.flatMap(a => a.techniques).length, 107);
 assert.equal(data.archetypes.flatMap(a => a.techniques.flatMap(technique => technique.levels)).filter(level => level.mechanics).length, 321);
 assert.equal(data.outlooks.length, 10);
 assert.equal(data.outlooks.flatMap(o => (o.builtin ? [o.builtin] : []).concat(o.gifts)).length, 52);
+const loyal = data.outlooks.find(outlook => outlook.name === "Верный");
+const wolf = data.outlooks.find(outlook => outlook.name === "Волк");
+const loyalGifts = logic.resolveSelectedGifts({ outlooks: data.outlooks, selectedOutlookIds: [loyal.id], primaryOutlookId: loyal.id, selectedGiftIds: [] });
+const wolfGifts = logic.resolveSelectedGifts({ outlooks: data.outlooks, selectedOutlookIds: [wolf.id], primaryOutlookId: wolf.id, selectedGiftIds: [] });
+assert.deepEqual(JSON.parse(JSON.stringify(loyalGifts.map(gift => gift.en))), ["The Oath"], "The Loyal must automatically receive The Oath");
+assert.deepEqual(JSON.parse(JSON.stringify(wolfGifts.map(gift => gift.en))), ["Lone Wolf"], "The Wolf must automatically receive Lone Wolf");
+assert.deepEqual(
+  JSON.parse(JSON.stringify(logic.resolveSelectedGifts({ outlooks: data.outlooks, selectedOutlookIds: [loyal.id, wolf.id], primaryOutlookId: loyal.id, selectedGiftIds: [] }).map(gift => gift.en))),
+  ["The Oath"],
+  "An inherent Gift belongs only to the Primary Outlook",
+);
+const loyalChoice = loyal.gifts[0];
+assert.deepEqual(
+  JSON.parse(JSON.stringify(logic.resolveSelectedGifts({ outlooks: data.outlooks, selectedOutlookIds: [loyal.id], primaryOutlookId: loyal.id, selectedGiftIds: [loyalChoice.id] }).map(gift => gift.id))),
+  [loyal.builtin.id, loyalChoice.id],
+  "An inherent Gift must be added on top of selectable Gifts without occupying their slots",
+);
 assert.equal(data.effects.positive.length, 8);
 assert.equal(data.effects.negative.length, 11);
 assert.ok(data.effects.positive.find(effect => effect.name === "Исчез")?.aliases.includes("Исчезнуть"));
@@ -211,6 +228,8 @@ assert.match(app, /Math\.ceil\(attrValueFor\(hero,"talent"\)\/2\)/);
 assert.match(app, /takeWound\(external\)/);
 assert.match(app, /setPlayCounter\("influence"/);
 assert.match(app, /Logic\.calculateCreationBudgets/);
+assert.match(app, /builtinGifts\.hidden=!builtin/);
+assert.match(app, /Получен автоматически и не занимает слот/);
 assert.match(app, /performanceSkill/);
 assert.match(app, /taintedAbilityPool/);
 assert.match(app, /taintedAbility/);
@@ -255,6 +274,7 @@ assert.match(app, /\(item\.aliases\|\|\[\]\)\.join/);
 assert.match(app, /name:"Эффекты"/);
 assert.doesNotMatch(app, /Math\.floor\(attrValue/);
 assert.match(html, /Метки слов:/);
+assert.match(html, /id="builtin-gifts"/);
 assert.match(html, /Новая Способность «Порченого тела»/);
 assert.match(html, /supabase-js@2\.110\.3/);
 assert.match(html, /data-scene-tool="marker"/);
