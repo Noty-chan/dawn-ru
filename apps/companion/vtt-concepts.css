@@ -245,6 +245,7 @@ select { padding: .55rem .7rem; }
 .token.enemy { background: linear-gradient(145deg, #b5455c, #692637); }
 .token.selected { outline: 3px solid var(--cyan); outline-offset: 2px; }
 .token.targeted { box-shadow: 0 0 0 4px rgba(226,184,92,.42), 0 5px 12px rgba(0,0,0,.42); border-color: var(--gold); }
+.token.knocked-out { filter: grayscale(1); opacity: .55; transform: rotate(-12deg); }
 .token.active::after {
   content: "";
   position: absolute;
@@ -536,6 +537,16 @@ select { padding: .55rem .7rem; }
 .clock-row button { min-width: 44px; padding: 0; }
 .clock-row output { flex: 1; text-align: center; font-weight: 900; }
 .reference-search { width: 100%; }
+.journal-summary { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: .4rem; }
+.journal-summary span { display: grid; gap: .15rem; border-radius: 10px; background: var(--surface-2); padding: .55rem; color: var(--muted); font-size: .62rem; }
+.journal-summary b { color: var(--ink); font-size: .95rem; }
+.event-list { display: grid; gap: .35rem; }
+.event-list article { display: grid; grid-template-columns: 48px minmax(0,1fr) auto; align-items: center; gap: .5rem; border-bottom: 1px solid var(--line-soft); padding: .45rem .2rem; }
+.event-list time { color: var(--muted); font: .6rem ui-monospace, monospace; }
+.event-list div { display: grid; }
+.event-list strong { font-size: .7rem; }
+.event-list small { color: var(--muted); font-size: .6rem; }
+.event-list code { max-width: 150px; overflow: hidden; color: var(--cyan); font-size: .6rem; text-overflow: ellipsis; white-space: nowrap; }
 
 .toast {
   position: fixed;

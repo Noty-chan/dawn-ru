@@ -28,7 +28,7 @@
       actors: [
         {
           id: "hero-eta", name: "Эта", short: "ЭТ", team: "hero", space: "main", x: 2, y: 4,
-          ownerId: "viewer-player", hp: 11, maxHp: 12, armor: 1, evasion: 3, speed: 4, ap: 3, focus: 5,
+          ownerId: "viewer-player", hp: 11, maxHp: 12, armor: 1, evasion: 3, speed: 4, ap: 3, baseAp: 3, focus: 5, guts: 4, wounds: 0, influence: 2,
           acted: false, effects: ["Собранность"],
           techniques: { "ruiner.bombardier": 3, "disruptor.chemist": 1, "disruptor.inner-world": 2 },
           attrs: { body: 3, talent: 4, spirit: 4, mind: 2 },
@@ -40,18 +40,18 @@
         },
         {
           id: "hero-rin", name: "Рин", short: "РИ", team: "hero", space: "main", x: 1, y: 5,
-          ownerId: "another-player", hp: 9, maxHp: 10, armor: 0, evasion: 4, speed: 5, ap: 3, focus: 3,
+          ownerId: "another-player", hp: 9, maxHp: 10, armor: 0, evasion: 4, speed: 5, ap: 3, baseAp: 3, focus: 3, guts: 3, wounds: 0, influence: 1,
           acted: true, effects: ["Ускорение"], note: "Союзник · уже действовал в этом Раунде.",
         },
         {
           id: "enemy-assassin", name: "Ассасин", short: "АС", team: "enemy", space: "main", x: 4, y: 3,
-          hp: 13, maxHp: 13, armor: 0, evasion: 4, speed: 5, ap: 2, focus: 0,
+          hp: 13, maxHp: 13, armor: 0, evasion: 4, speed: 5, ap: 2, baseAp: 2, focus: 0, guts: 0, wounds: 0,
           acted: false, effects: ["Метка"], passive: "Тень клинка: после промаха может сменить край поля.",
           actions: ["Разделать · смежная цель · 5D6", "Уйти в тень · Реакция защиты"], trump: "Нож во тьме · Н3", note: "Уклонение 4 · Козырь доступен при Напряжении 3.",
         },
         {
           id: "enemy-brute", name: "Громила", short: "ГР", team: "enemy", space: "main", x: 5, y: 3,
-          hp: 18, maxHp: 18, armor: 3, evasion: 0, speed: 3, ap: 2, focus: 0,
+          hp: 18, maxHp: 18, armor: 3, evasion: 0, speed: 3, ap: 2, baseAp: 2, focus: 0, guts: 0, wounds: 0,
           acted: false, effects: [], passive: "Неподвижная масса: смежные клетки считаются трудной местностью.",
           actions: ["Молотить · смежная цель · 6D6", "Отбросить · движение цели"], trump: "Буйство · Н2", note: "Броня 3 · удерживает проход между крышами.",
         },
@@ -71,6 +71,7 @@
     selectedId: "enemy-assassin",
     pendingRule: null,
     pendingAction: null,
+    pendingReactionMove: null,
     preview: null,
     surface: null,
     sheetSection: "main",
@@ -139,9 +140,9 @@
         const cellClasses = ["board-cell"];
         if (area) cellClasses.push(area.areaType === "attack" ? "has-attack" : "has-area");
         if (previewCells.has(key)) cellClasses.push("preview-cell");
-        if (state.pendingRule || state.pendingAction) cellClasses.push("action-ready");
+        if (state.pendingRule || state.pendingAction || state.pendingReactionMove) cellClasses.push("action-ready");
         cells.push(`
-          <div class="${cellClasses.join(" ")}" role="gridcell" tabindex="${state.pendingRule || state.pendingAction ? "0" : "-1"}" data-cell data-x="${x}" data-y="${y}" aria-label="Клетка ${coordName(x, y)}">
+          <div class="${cellClasses.join(" ")}" role="gridcell" tabindex="${state.pendingRule || state.pendingAction || state.pendingReactionMove ? "0" : "-1"}" data-cell data-x="${x}" data-y="${y}" aria-label="Клетка ${coordName(x, y)}">
             <span class="coord">${coordName(x, y)}</span>
             ${cellActors.map(actor => renderToken(actor, previewTargets.has(actor.id) || permanentTargets.has(actor.id))).join("")}
           </div>
@@ -149,8 +150,8 @@
       }
     }
 
-    const instruction = state.pendingRule || state.pendingAction
-      ? `<div class="board-instruction">${state.pendingAction ? `Выберите клетку для «${escapeHtml(state.pendingAction.name)}»` : currentRule()?.kind === "space" ? "Проверьте перенос выбранной цели" : `Выберите клетку для «${escapeHtml(currentRule()?.name || "Техники") }»`}</div>`
+    const instruction = state.pendingRule || state.pendingAction || state.pendingReactionMove
+      ? `<div class="board-instruction">${state.pendingReactionMove ? "Выберите клетку Уворота в пределах 2 клеток" : state.pendingAction ? `Выберите клетку для «${escapeHtml(state.pendingAction.name)}»` : currentRule()?.kind === "space" ? "Проверьте перенос выбранной цели" : `Выберите клетку для «${escapeHtml(currentRule()?.name || "Техники") }»`}</div>`
       : "";
     const lastRoll = state.scene.rollFeed?.[0];
     const rollBroadcast = lastRoll ? `<div class="public-roll" role="status"><strong>${escapeHtml(lastRoll.actor)}</strong><span>${escapeHtml(lastRoll.formula)}</span><b>${lastRoll.successes} Усп. · ${lastRoll.crits} Крит.</b></div>` : "";
@@ -177,9 +178,9 @@
     const selected = state.selectedId === actor.id;
     const isActive = actor.id === "hero-eta";
     return `
-      <button type="button" class="token ${actor.team} ${selected ? "selected" : ""} ${targeted ? "targeted" : ""} ${isActive ? "active" : ""}"
+      <button type="button" class="token ${actor.team} ${selected ? "selected" : ""} ${targeted ? "targeted" : ""} ${isActive ? "active" : ""} ${actor.knockedOut ? "knocked-out" : ""}"
         data-actor="${escapeHtml(actor.id)}" aria-label="${escapeHtml(actor.name)}: ${actor.hp} из ${actor.maxHp} Здоровья" title="${escapeHtml(actor.name)} · ${actor.hp}/${actor.maxHp}">
-        ${escapeHtml(actor.short)}<span class="token-hp">${actor.hp}</span>
+        ${actor.knockedOut ? "×" : escapeHtml(actor.short)}<span class="token-hp">${actor.hp}</span>
       </button>
     `;
   }
@@ -191,6 +192,7 @@
         <button type="button" data-open-surface="techniques" title="Области и Техники">▦</button>
         <button type="button" data-gm-tool="ping" title="Пинг">⌖</button>
         <button type="button" data-open-surface="utilities" title="Утилиты Сцены">◷</button>
+        <button type="button" data-gm-tool="round" title="Завершить Раунд">↻</button>
       </div>
     `;
   }
@@ -234,6 +236,7 @@
   }
 
   function actionDock() {
+    if (state.scene.pendingAction) return `<footer class="action-dock">${reactionPanel()}</footer>`;
     if (state.preview) return `<footer class="action-dock">${previewPanel()}</footer>`;
     if (state.pendingRule) {
       return `
@@ -257,6 +260,7 @@
           <button type="button" data-open-surface="sheet">Лист</button>
           <button type="button" data-open-surface="utilities">Утилиты</button>
           <button type="button" data-open-surface="reference">Справочник</button>
+          <button type="button" data-open-surface="journal">Журнал</button>
         </div>
         <div class="dock-tail">
           ${state.history.length ? `<button type="button" data-undo>Отменить</button>` : ""}
@@ -264,6 +268,19 @@
         </div>
       </footer>
     `;
+  }
+
+  function reactionPanel() {
+    const pending = state.scene.pendingAction;
+    if (state.pendingReactionMove) {
+      const actor = actorById(state.pendingReactionMove.actorId);
+      return `<div class="action-context"><strong>Уворот · ${escapeHtml(actor?.name || "цель")}</strong><small>обязательно переместитесь на 1–2 клетки</small></div><div class="action-scroll"><span class="status-chip">Выберите свободную клетку на поле</span></div><button type="button" data-cancel-reaction-move>Назад</button>`;
+    }
+    const waitingId = Object.keys(pending.responses || {}).find(id => pending.responses[id].choice === "pending");
+    const target = waitingId ? actorById(waitingId) : null;
+    if (!target) return `<div class="action-context"><strong>${escapeHtml(pending.name)}</strong><small>все ответы получены</small></div><div class="action-scroll"><span class="status-chip">Можно разрешить атаку</span></div><button type="button" class="primary" data-resolve-pending>Бросок и урон</button>`;
+    const options = SCENE.reactionOptions(state.scene, DATA, target.id);
+    return `<div class="action-context"><strong>Реакция · ${escapeHtml(target.name)}</strong><small>${escapeHtml(pending.name)} · Фокус ${target.focus}</small></div><div class="action-scroll">${options.map(option => `<button type="button" data-reaction-actor="${escapeHtml(target.id)}" data-reaction-choice="${escapeHtml(option.id)}" ${option.available ? "" : "disabled"} title="${escapeHtml(option.reason || option.cost || "")}">${escapeHtml(option.name)}</button>`).join("")}</div><button type="button" data-cancel-pending>Отменить атаку</button>`;
   }
 
   function previewPanel() {
@@ -313,7 +330,7 @@
       surfaceRoot.innerHTML = "";
       return;
     }
-    const titles = { sheet: state.role === "gm" ? "Листы противников" : "Живой лист", reference: "Справочник и правила" };
+    const titles = { sheet: state.role === "gm" ? "Листы противников" : "Живой лист", reference: "Справочник и правила", journal: "Журнал Сцены" };
     const title = titles[state.surface] || titles.sheet;
     surfaceRoot.innerHTML = `
       <div class="surface-backdrop" data-close-surface>
@@ -330,7 +347,13 @@
 
   function surfaceContent() {
     if (state.surface === "sheet") return sheetSurface();
+    if (state.surface === "journal") return journalSurface();
     return referenceSurface("");
+  }
+
+  function journalSurface() {
+    const labels = { "action.prepare": "Подготовка", "reaction.offer": "Запрос Реакции", "reaction.respond": "Ответ", "roll.public": "Публичный бросок", "damage.apply": "Урон", "action.resolve": "Действие разрешено", "actor.move": "Перемещение", "actor.enter": "Вход в клетку", "resource.spend": "Расход ресурса", "resource.gain": "Получение ресурса", "turn.start": "Начало Хода", "turn.end": "Конец Хода", "round.end": "Конец Раунда", "attack.pending": "Атака ожидает", "attack.clear": "Атака закрыта" };
+    return `<section class="surface-section"><div class="journal-summary"><span>Версия Сцены <b>${state.scene.version || 0}</b></span><span>Событий <b>${state.scene.log?.length || 0}</b></span><span>Раунд <b>${state.scene.round}</b></span></div><div class="event-list">${(state.scene.log || []).map(event => `<article><time>${escapeHtml(String(event.at || "").slice(11, 19))}</time><div><strong>${escapeHtml(labels[event.type] || event.type)}</strong><small>${escapeHtml(actorById(event.actorId)?.name || "Система")}</small></div><code>${escapeHtml(event.payload?.name || event.payload?.formula || event.payload?.resource || event.payload?.targetId || "")}</code></article>`).join("") || "<p>Событий пока нет.</p>"}</div></section>`;
   }
 
   function sheetSurface() {
@@ -493,6 +516,7 @@
     state.preview = null;
     state.pendingRule = null;
     state.pendingAction = null;
+    state.pendingReactionMove = null;
     hoveredPreviewCell = null;
     render();
   }
@@ -503,6 +527,7 @@
     state.scene = ENGINE.undo(transaction);
     state.pendingRule = null;
     state.pendingAction = null;
+    state.pendingReactionMove = null;
     state.preview = null;
     hoveredPreviewCell = null;
     render();
@@ -529,7 +554,7 @@
   }
 
   function openSurface(name) {
-    if (name === "reference") state.surface = "reference";
+    if (["reference", "journal"].includes(name)) state.surface = name;
     else {
       state.surface = "sheet";
       state.sheetSection = ({ techniques: "combat", utilities: "utility", sheet: "main" })[name] || state.sheetSection;
@@ -555,6 +580,7 @@
     state.scene = result.scene;
     state.history.push({ before, after: clone(state.scene), label: action.name });
     state.pendingAction = null;
+    state.pendingReactionMove = null;
     state.surface = null;
     render();
     toast(`${action.name}: применено ${result.events.length} событий Сцены.`);
@@ -596,6 +622,7 @@
     state.selectedId = "enemy-assassin";
     state.pendingRule = null;
     state.pendingAction = null;
+    state.pendingReactionMove = null;
     state.preview = null;
     state.surface = null;
     state.history = [];
@@ -616,6 +643,14 @@
       return;
     }
     const cell = event.target.closest("[data-cell]");
+    if (cell && state.pendingReactionMove) {
+      const prepared = SCENE.respondReaction(state.scene, DATA, { actorId: state.pendingReactionMove.actorId, choice: state.pendingReactionMove.choice, destination: { x: Number(cell.dataset.x), y: Number(cell.dataset.y) } });
+      if (!prepared.ok) return toast(prepared.errors.join(" "));
+      state.scene = SCENE.dispatchMany(state.scene, prepared.events).scene;
+      state.pendingReactionMove = null;
+      render();
+      return;
+    }
     if (cell && state.pendingAction) {
       resolveBaseAction(state.pendingAction.id, { destination: { x: Number(cell.dataset.x), y: Number(cell.dataset.y) } });
       return;
@@ -661,14 +696,56 @@
     const gmTool = event.target.closest("[data-gm-tool]");
     if (gmTool) {
       if (gmTool.dataset.gmTool === "add") addDemoEnemy();
+      else if (gmTool.dataset.gmTool === "round") {
+        const before = clone(state.scene);
+        state.scene = SCENE.dispatch(state.scene, { type: "round.end", payload: {} }).scene;
+        state.history.push({ before, after: clone(state.scene), label: "Завершить Раунд" });
+        render();
+        toast("Раунд завершён: Напряжение выросло, ОД восстановлены.");
+      }
       else toast("Пинг появился бы у всех участников как эфемерное событие.");
       return;
     }
+    const reaction = event.target.closest("[data-reaction-choice]");
+    if (reaction) {
+      const option = SCENE.reactionOptions(state.scene, DATA, reaction.dataset.reactionActor).find(item => item.id === reaction.dataset.reactionChoice);
+      if (option?.name === "Уворот") {
+        state.pendingReactionMove = { actorId: reaction.dataset.reactionActor, choice: reaction.dataset.reactionChoice };
+        render();
+        return;
+      }
+      const prepared = SCENE.respondReaction(state.scene, DATA, { actorId: reaction.dataset.reactionActor, choice: reaction.dataset.reactionChoice });
+      if (!prepared.ok) return toast(prepared.errors.join(" "));
+      state.scene = SCENE.dispatchMany(state.scene, prepared.events).scene;
+      render();
+      return;
+    }
+    if (event.target.closest("[data-cancel-reaction-move]")) {
+      state.pendingReactionMove = null;
+      render();
+      return;
+    }
+    if (event.target.closest("[data-resolve-pending]")) {
+      const prepared = SCENE.resolvePendingAction(state.scene, DATA);
+      if (!prepared.ok) return toast(prepared.errors.join(" "));
+      state.scene = SCENE.dispatchMany(state.scene, prepared.events).scene;
+      render();
+      toast("Атака разрешена после ответов всех целей.");
+      return;
+    }
+    if (event.target.closest("[data-cancel-pending]")) return undoLast();
   });
 
   root.addEventListener("keydown", event => {
     const cell = event.target.closest("[data-cell]");
-    if (cell && state.pendingAction && (event.key === "Enter" || event.key === " ")) {
+    if (cell && state.pendingReactionMove && (event.key === "Enter" || event.key === " ")) {
+      event.preventDefault();
+      const prepared = SCENE.respondReaction(state.scene, DATA, { actorId: state.pendingReactionMove.actorId, choice: state.pendingReactionMove.choice, destination: { x: Number(cell.dataset.x), y: Number(cell.dataset.y) } });
+      if (!prepared.ok) return toast(prepared.errors.join(" "));
+      state.scene = SCENE.dispatchMany(state.scene, prepared.events).scene;
+      state.pendingReactionMove = null;
+      render();
+    } else if (cell && state.pendingAction && (event.key === "Enter" || event.key === " ")) {
       event.preventDefault();
       resolveBaseAction(state.pendingAction.id, { destination: { x: Number(cell.dataset.x), y: Number(cell.dataset.y) } });
     } else if (cell && state.pendingRule && (event.key === "Enter" || event.key === " ")) {
@@ -719,7 +796,10 @@
       if (occupied) toast("Клетка занята. Полный движок также проверит путь и Скорость.");
       else {
         const before = clone(state.scene);
-        state.scene = SCENE.dispatch(state.scene, { type: "actor.move", actorId: actor.id, payload: { space: state.scene.activeSpace, x, y, movement: "drag" } }).scene;
+        state.scene = SCENE.dispatchMany(state.scene, [
+          { type: "actor.move", actorId: actor.id, payload: { space: state.scene.activeSpace, x, y, movement: "drag" } },
+          { type: "actor.enter", actorId: actor.id, payload: { space: state.scene.activeSpace, x, y } },
+        ]).scene;
         state.history.push({ before, after: clone(state.scene), label: "Перемещение токена" });
         state.selectedId = actor.id;
         suppressClick = true;
