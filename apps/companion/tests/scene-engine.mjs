@@ -162,6 +162,8 @@ assert.ok(entered.actors[1].effects.includes("Ослаблен"));
 const nextTurn = Engine.dispatch(entered, { type: "turn.start", actorId: "hero", payload: {} }).scene;
 assert.equal(nextTurn.activeActorId, "hero");
 assert.equal(nextTurn.objects.length, 0);
+assert.ok(Engine.availableActions(nextTurn, data, "enemy").filter(action => !action.reaction).every(action => !action.available));
+assert.ok(Engine.availableEnemyRules(nextTurn, data, "enemy").every(rule => !rule.available));
 const endedTurn = Engine.dispatch(nextTurn, { type: "turn.end", actorId: "hero", payload: {} }).scene;
 assert.equal(endedTurn.activeActorId, null);
 assert.equal(endedTurn.actors[0].acted, true);

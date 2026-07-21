@@ -222,6 +222,7 @@
       let reason = "";
       if (actor.knockedOut) reason = "Персонаж выведен из строя";
       else if (scene.pendingAction && !reaction) reason = "Сначала разрешите Реакцию";
+      else if (!reaction && scene.activeActorId && scene.activeActorId !== actor.id) reason = "Сейчас Ход другого участника";
       else if (!reaction && actor.acted) reason = "Ход уже завершён";
       else if (cost.resource && Number(actor[cost.resource] || 0) < cost.amount) reason = `Недостаточно: ${action.cost}`;
       return { ...clone(action), costModel: cost, reaction, available: !reason, reason };
@@ -279,6 +280,7 @@
       if (actor.team !== "enemy") reason = "Это не противник";
       else if (actor.knockedOut) reason = "Противник выведен из строя";
       else if (scene.pendingAction) reason = "Сначала разрешите текущие Реакции";
+      else if (scene.activeActorId && scene.activeActorId !== actor.id) reason = "Сейчас Ход другого участника";
       else if (actor.acted) reason = "Ход противника уже завершён";
       else if (Number(actor.ap || 0) < Number(rule.apCost || 1)) reason = `Нужно ${rule.apCost || 1} ОД`;
       else if ((actor.usedActions || []).includes(rule.id)) reason = "Это действие уже использовано в Раунде";
