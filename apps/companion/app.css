@@ -109,3 +109,6 @@ main{min-width:0;padding:clamp(1rem,3vw,3rem)}.mode-page{display:none}.mode-page
 @media(max-width:720px){.scene-turn-strip{margin-bottom:.35rem}.scene-turn-chip{grid-template-columns:26px minmax(64px,auto);padding:.28rem .4rem}.scene-turn-chip>i,.scene-turn-chip>img{width:26px;height:26px}.scene-turn-chip b{max-width:90px}}
 .technique-mechanics{display:block;margin-top:.18rem;color:var(--gold);font-size:.6rem;line-height:1.35}
 .scene-board-wrap{touch-action:pan-x pan-y;-webkit-overflow-scrolling:touch}
+.scene-mode .scene-stage-head .eyebrow{display:none}.scene-mode .scene-stage-head h2{margin:0}
+.scene-roll-feed{top:auto;bottom:4.3rem}
+@media(max-width:720px){.scene-roll-feed{top:auto;bottom:7.25rem}}
