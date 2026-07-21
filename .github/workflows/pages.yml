@@ -72,7 +72,7 @@ jobs:
           cp apps/companion/manifest.webmanifest _site/companion/
           cp apps/companion/sw.js _site/companion/
           cp apps/companion/icon.svg _site/companion/
-          sed -i "s/__BUILD_VERSION__/${GITHUB_SHA}/g" _site/companion/sw.js
+          sed -i "s/__BUILD_VERSION__/${GITHUB_SHA}/g" _site/companion/sw.js _site/companion/index.html
           cp -R media/tutorials/. _site/tutorials/
           cp media/tutorials/00_оглавление.html _site/tutorials/index.html
           touch _site/.nojekyll
