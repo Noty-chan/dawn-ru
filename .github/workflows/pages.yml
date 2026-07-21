@@ -62,8 +62,12 @@ jobs:
           cp apps/companion/app.css _site/companion/
           cp apps/companion/app.js _site/companion/
           cp apps/companion/logic.js _site/companion/
+          cp apps/companion/technique-engine.js _site/companion/
           cp apps/companion/sync.js _site/companion/
           cp apps/companion/data.js _site/companion/
+          cp apps/companion/vtt-concepts.html _site/companion/
+          cp apps/companion/vtt-concepts.css _site/companion/
+          cp apps/companion/vtt-concepts.js _site/companion/
           cp apps/companion/manifest.webmanifest _site/companion/
           cp apps/companion/sw.js _site/companion/
           cp apps/companion/icon.svg _site/companion/

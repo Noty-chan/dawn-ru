@@ -10,6 +10,10 @@ vm.runInNewContext(fs.readFileSync(path.join(root, "logic.js"), "utf8"), context
 vm.runInNewContext(fs.readFileSync(path.join(root, "data.js"), "utf8"), context);
 const data = context.window.DAWN_DATA;
 const logic = context.window.DAWN_LOGIC;
+const appSource = fs.readFileSync(path.join(root, "app.js"), "utf8");
+const cockpitSource = fs.readFileSync(path.join(root, "vtt-concepts.js"), "utf8");
+assert.match(appSource, /counter\("focus","Фокус",rt\.focus\)/, "Focus counter must remain unbounded");
+assert.doesNotMatch(cockpitSource, /maxFocus|Фокус\s*\$\{[^}]+\}\s*\//, "Cockpit must not display or store a Focus ceiling");
 const syncStorage = new Map();
 const syncContext = { window: {}, URL, console, setTimeout, clearTimeout, localStorage: { getItem: key => syncStorage.get(key) || null, setItem: (key, value) => syncStorage.set(key, value) } };
 vm.runInNewContext(fs.readFileSync(path.join(root, "sync.js"), "utf8"), syncContext);
