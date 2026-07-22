@@ -2990,9 +2990,63 @@ def write_story_pdf(
     design_layout: bool = False,
     design_intro: bool = False,
     design_intro_first_page: bool = False,
+    balance_columns: bool = False,
+    balance_sparse_tail: bool = False,
 ) -> list[tuple[int, int, str, float]]:
     positions: list[tuple[int, int, str, float]] = []
     ensure_design_assets()
+    layout_col_h = DESIGN_COL_H
+
+    # A Story always fills the left column before the right one. When a section is
+    # emitted as its own PDF, this can leave the final page with a nearly empty
+    # right column (or even just a few orphaned lines in the left column). Use a
+    # full-height preflight to estimate the section's total column depth, then
+    # distribute that depth evenly across the same number of pages.
+    if balance_columns and design_layout and not design_intro_first_page:
+        preflight_path = path.with_name(f"{path.stem}-column-preflight.pdf")
+        write_story_pdf(
+            blocks,
+            preflight_path,
+            css,
+            archive=archive,
+            design_layout=design_layout,
+            design_intro=design_intro,
+            design_intro_first_page=design_intro_first_page,
+            balance_columns=False,
+            balance_sparse_tail=False,
+        )
+        preflight = fitz.open(preflight_path)
+        if len(preflight) > 1:
+            last_page = preflight[-1]
+            right_x0 = column_rect_design(1).x0
+            bbox_log = last_page.get_bboxlog()
+            boxes = [fitz.Rect(entry[1]) for entry in bbox_log]
+            # Bare fill paths can be continuation borders with no visible text.
+            # Count the right column as used only when it contains actual text or
+            # an image; otherwise those borders preserve the orphan-page defect.
+            right_used = any(
+                kind in {"fill-text", "stroke-text", "fill-image"}
+                and fitz.Rect(bbox).x1 > right_x0 + 1
+                for kind, bbox in bbox_log
+            )
+            left_bottom = max(
+                (box.y1 for box in boxes if box.x0 < right_x0),
+                default=DESIGN_TOP,
+            )
+            left_used = max(0.0, min(DESIGN_COL_H, left_bottom - DESIGN_TOP))
+            if not right_used and left_used > 0:
+                total_columns = len(preflight) * 2
+                estimated_depth = (total_columns - 1) * DESIGN_COL_H + left_used
+                # A small reserve absorbs line reflow and indivisible callouts.
+                layout_col_h = min(
+                    DESIGN_COL_H,
+                    max(DESIGN_COL_H * 0.88, estimated_depth / total_columns + 12),
+                )
+                if balance_sparse_tail and left_used < DESIGN_COL_H * 0.5:
+                    layout_col_h = min(layout_col_h, DESIGN_COL_H * 0.93)
+        preflight.close()
+        preflight_path.unlink(missing_ok=True)
+
     document_html = html_document_design_intro(blocks) if design_intro else html_document(blocks)
     story = fitz.Story(document_html, user_css=css, archive=str(archive))
     writer = fitz.DocumentWriter(str(path))
@@ -3029,7 +3083,11 @@ def write_story_pdf(
             return mediabox, rect, None
 
         col = rect_num % 2
-        rect = column_rect_design(col) if design_layout else column_rect(col, TOP)
+        if design_layout:
+            rect = column_rect_design(col)
+            rect.y1 = min(rect.y1, DESIGN_TOP + layout_col_h)
+        else:
+            rect = column_rect(col, TOP)
         mediabox = fitz.Rect(0, 0, PAGE_W, PAGE_H) if col == 0 else None
         return mediabox, rect, None
 
@@ -3317,6 +3375,8 @@ def append_story_blocks(
     design_layout: bool = False,
     design_intro: bool = False,
     design_intro_first_page: bool = False,
+    balance_columns: bool = False,
+    balance_sparse_tail: bool = False,
 ) -> None:
     if not blocks:
         return
@@ -3329,6 +3389,8 @@ def append_story_blocks(
         design_layout=design_layout,
         design_intro=design_intro,
         design_intro_first_page=design_intro_first_page,
+        balance_columns=balance_columns,
+        balance_sparse_tail=balance_sparse_tail,
     )
     section_doc = fitz.open(section_pdf)
     page_offset = len(combined)
@@ -3776,6 +3838,7 @@ def build_final_book(page_refs: dict[str, int] | None = None) -> Path:
         "css": CSS_DESIGN_BOOK,
         "archive": LOCAL_FONT_DIR,
         "design_layout": True,
+        "balance_columns": True,
     }
 
     append_special_doc(combined, draw_cover_page(source), manual_labels, "DAWN")
@@ -3905,6 +3968,7 @@ def build_final_book(page_refs: dict[str, int] | None = None) -> Path:
         positions,
         manual_labels,
         title,
+        balance_sparse_tail=True,
         **design_story_kwargs,
     )
     append_story_blocks(
