@@ -91,13 +91,13 @@ begin
   if jsonb_typeof(p_events)<>'array' then raise exception 'events must be an array'; end if;
   event_count:=jsonb_array_length(p_events);
   if event_count<1 or event_count>64 then raise exception 'event batch size must be 1..64'; end if;
-  if exists(select 1 from jsonb_array_elements(p_events) as batch(item) where nullif(item->>'id','') is null or char_length(item->>'id')>120) then raise exception 'every event needs a valid id'; end if;
-  if (select count(distinct item->>'id') from jsonb_array_elements(p_events) as batch(item))<>event_count then raise exception 'duplicate ids inside event batch'; end if;
+  if exists(select 1 from jsonb_array_elements(p_events) as batch(event_item) where nullif(event_item->>'id','') is null or char_length(event_item->>'id')>120) then raise exception 'every event needs a valid id'; end if;
+  if (select count(distinct event_item->>'id') from jsonb_array_elements(p_events) as batch(event_item))<>event_count then raise exception 'duplicate ids inside event batch'; end if;
   if octet_length(coalesce(p_state,'{}'::jsonb)::text)>2097152 then raise exception 'scene state is too large'; end if;
   select * into current_scene from public.scenes where id=p_scene_id for update;
   if current_scene.id is null then raise exception 'scene not found'; end if;
   if not public.has_campaign_role(current_scene.campaign_id,array['owner','narrator']) then raise exception 'narrator role required'; end if;
-  select count(*) into existing_count from public.scene_events where scene_id=p_scene_id and client_event_id in (select item->>'id' from jsonb_array_elements(p_events) as batch(item));
+  select count(*) into existing_count from public.scene_events where scene_id=p_scene_id and client_event_id in (select event_item->>'id' from jsonb_array_elements(p_events) as batch(event_item));
   if existing_count=event_count then return current_scene.version; end if;
   if existing_count>0 then raise exception 'partially duplicated event batch'; end if;
   if current_scene.version<>p_expected_version then raise exception 'scene version conflict' using errcode='40001'; end if;
