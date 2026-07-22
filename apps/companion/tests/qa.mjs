@@ -24,6 +24,10 @@ syncApi.configure({ url: "https://dawn-test.supabase.co/path", publishableKey: "
 assert.equal(syncApi.state().url, "https://dawn-test.supabase.co");
 assert.equal(syncApi.state().displayName, "Нарратор");
 assert.equal(syncApi.hasConfig(), true);
+const configuredContext = { window: {}, URL, console, setTimeout, clearTimeout, localStorage: { getItem: () => null, setItem: () => {} } };
+vm.runInNewContext(fs.readFileSync(path.join(root, "config.js"), "utf8"), configuredContext);
+vm.runInNewContext(fs.readFileSync(path.join(root, "sync.js"), "utf8"), configuredContext);
+assert.equal(configuredContext.window.DAWN_SYNC.hasConfig(), true, "Published companion must use the DAWN Supabase project by default");
 const fakeScene = { id: "00000000-0000-0000-0000-000000000002", campaign_id: "00000000-0000-0000-0000-000000000001", name: "Структурированный бой", state: { round: 1 }, version: 1 };
 const fakeQuery = { select(){ return this; }, eq(){ return this; }, order(){ return this; }, limit: async () => ({ data: [], error: null }), single: async () => ({ data: fakeScene, error: null }), maybeSingle: async () => ({ data: null, error: null }) };
 const fakeChannel = { on(){ return this; }, subscribe(callback){ callback("SUBSCRIBED"); return this; } };
@@ -228,13 +232,14 @@ assert.deepEqual(
   "each gained tier grants two different ordinary Attribute increases",
 );
 
-for (const file of ["index.html", "app.css", "app.js", "logic.js", "sync.js", "data.js", "manifest.webmanifest", "sw.js", "icon.svg"]) assert.ok(fs.existsSync(path.join(root, file)), file);
+for (const file of ["index.html", "app.css", "app.js", "logic.js", "config.js", "sync.js", "data.js", "manifest.webmanifest", "sw.js", "icon.svg"]) assert.ok(fs.existsSync(path.join(root, file)), file);
 const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
 const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
 const css = fs.readFileSync(path.join(root, "app.css"), "utf8");
 const sync = fs.readFileSync(path.join(root, "sync.js"), "utf8");
 const sql = fs.readFileSync(path.resolve(root, "../../supabase/migrations/202607130001_dawn_multiplayer.sql"), "utf8");
 const eventSql = fs.readFileSync(path.resolve(root, "../../supabase/migrations/202607210001_dawn_event_stream.sql"), "utf8");
+const liveCharacterSql = fs.readFileSync(path.resolve(root, "../../supabase/migrations/202607230001_dawn_live_characters.sql"), "utf8");
 assert.match(app, /Math\.ceil\(attrValueFor\(hero,"talent"\)\/2\)/);
 assert.match(app, /takeWound\(external\)/);
 assert.match(app, /setPlayCounter\("influence"/);
@@ -360,6 +365,10 @@ assert.match(sync, /postgres_changes/);
 assert.match(sync, /decideCommand/);
 assert.match(sync, /scene_public_snapshots/);
 assert.match(sync, /append_scene_events/);
+assert.match(sync, /presenceState/);
+assert.match(sync, /listCharacters/);
+assert.match(html, /config\.js\?v=__BUILD_VERSION__/);
+assert.match(html, /sync-publish-hero/);
 assert.match(app, /Нарратор принял цели игрока/);
 assert.match(app, /canonicalPlayerEvents/);
 assert.match(app, /TechniqueEngine\.toEvents/);
@@ -390,4 +399,6 @@ assert.match(eventSql, /event_log_narrator_select/);
 assert.match(eventSql, /state version does not match event batch/);
 assert.match(eventSql, /join_hero/);
 assert.doesNotMatch(eventSql, /create policy scenes_member_select/);
+assert.match(liveCharacterSql, /bump_character_version/);
+assert.match(liveCharacterSql, /supabase_realtime add table public\.characters/);
 console.log(`OK: ${ids.length} unique rule ids; companion data and invariants validated.`);

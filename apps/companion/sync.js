@@ -2,9 +2,10 @@
 
 (function exposeDawnSync(global){
   const STORAGE_KEY="dawn-ru-sync-v1";
+  const PROJECT=global.DAWN_CONFIG||{};
   const listeners=new Map();
   let client=null,channel=null,saveTimer=null,saveInFlight=false,pendingSave=null,mutationChain=Promise.resolve();
-  let state={status:"offline",authenticated:false,userId:null,url:"",publishableKey:"",displayName:"",campaignId:null,campaignName:"",sceneId:null,role:null,version:0,characterIds:{},error:""};
+  let state={status:"offline",authenticated:false,userId:null,url:String(PROJECT.supabaseUrl||""),publishableKey:String(PROJECT.publishableKey||""),displayName:"",campaignId:null,campaignName:"",sceneId:null,role:null,version:0,characterIds:{},presence:[],error:""};
 
   function stored(){try{return JSON.parse(localStorage.getItem(STORAGE_KEY)||"{}")||{}}catch{return{}}}
   function persist(){localStorage.setItem(STORAGE_KEY,JSON.stringify({url:state.url,publishableKey:state.publishableKey,displayName:state.displayName,campaignId:state.campaignId,campaignName:state.campaignName,sceneId:state.sceneId,role:state.role,characterIds:state.characterIds||{}}))}
@@ -13,8 +14,8 @@
   function patch(next){state={...state,...next};persist();emit("status")}
   function fail(error){const message=error?.message||String(error||"Ошибка синхронизации");patch({status:"error",error:message});throw error instanceof Error?error:new Error(message)}
   function on(type,listener){if(!listeners.has(type))listeners.set(type,new Set());listeners.get(type).add(listener);return()=>listeners.get(type)?.delete(listener)}
-  function hasConfig(){const value=stored();return Boolean(value.url&&value.publishableKey)}
-  function configure({url,publishableKey,displayName}){const parsed=new URL(String(url||"").trim());if(!["https:","http:"].includes(parsed.protocol))throw new Error("Некорректный Project URL");state.url=parsed.origin;state.publishableKey=String(publishableKey||"").trim();state.displayName=String(displayName||"").trim().slice(0,80)||"Игрок";if(!state.publishableKey)throw new Error("Нужен publishable/anon key");persist();return snapshot()}
+  function hasConfig(){return Boolean(state.url&&state.publishableKey)}
+  function configure({url,publishableKey,displayName}={}){const rawUrl=String(url||state.url||PROJECT.supabaseUrl||"").trim(),key=String(publishableKey||state.publishableKey||PROJECT.publishableKey||"").trim(),parsed=new URL(rawUrl);if(!["https:","http:"].includes(parsed.protocol))throw new Error("Некорректный Project URL");state.url=parsed.origin;state.publishableKey=key;state.displayName=String(displayName||state.displayName||"").trim().slice(0,80)||"Игрок";if(!state.publishableKey)throw new Error("Нужен publishable/anon key");persist();return snapshot()}
 
   async function connect(){
     const saved={...stored(),...state};state={...state,...saved,status:"connecting",error:""};emit("status");
@@ -33,18 +34,25 @@
 
   async function ensureConnected(){if(!client||!state.authenticated)await connect();return client}
   async function unsubscribe(){if(channel&&client)await client.removeChannel(channel);channel=null}
+  function presencePayload(extra={}){return{userId:state.userId,displayName:state.displayName||"Игрок",role:state.role||"player",onlineAt:new Date().toISOString(),...extra}}
+  function readPresence(){if(!channel?.presenceState)return[];const rows=Object.values(channel.presenceState()||{}).flat().filter(item=>item&&item.userId),unique=new Map();for(const item of rows)unique.set(item.userId,item);return[...unique.values()].sort((a,b)=>String(a.displayName||"").localeCompare(String(b.displayName||""),"ru"))}
+  async function updatePresence(extra={}){if(!channel?.track||!state.sceneId)return;await channel.track(presencePayload(extra))}
   async function subscribe(){
     await unsubscribe();if(!client||!state.sceneId)return;
     const canNarrate=["owner","narrator"].includes(state.role);
     const sceneTable=canNarrate?"scenes":"scene_public_snapshots";
     const sceneFilter=canNarrate?`id=eq.${state.sceneId}`:`scene_id=eq.${state.sceneId}`;
-    channel=client.channel(`dawn-scene-${state.sceneId}`)
+    channel=client.channel(`dawn-scene-${state.sceneId}`,{config:{presence:{key:state.userId}}})
+      .on("presence",{event:"sync"},()=>{state={...state,presence:readPresence()};emit("presence",state.presence);emit("status")})
+      .on("presence",{event:"join"},()=>setTimeout(()=>{state={...state,presence:readPresence()};emit("presence",state.presence);emit("status")},0))
+      .on("presence",{event:"leave"},()=>setTimeout(()=>{state={...state,presence:readPresence()};emit("presence",state.presence);emit("status")},0))
       .on("postgres_changes",{event:"UPDATE",schema:"public",table:sceneTable,filter:sceneFilter},payload=>{
         const remote=payload.new;if(!remote||remote.version<=state.version)return;patch({version:remote.version,status:"online",error:""});emit("scene",{state:remote.state,version:remote.version,updatedBy:remote.updated_by});
       })
       .on("postgres_changes",{event:"INSERT",schema:"public",table:"scene_commands",filter:`scene_id=eq.${state.sceneId}`},payload=>{if(["owner","narrator"].includes(state.role))emit("command",payload.new)})
       .on("postgres_changes",{event:"INSERT",schema:"public",table:"scene_events",filter:`scene_id=eq.${state.sceneId}`},payload=>{if(payload.new)emit("event",payload.new)})
-      .subscribe(status=>patch({status:status==="SUBSCRIBED"?"online":status==="CHANNEL_ERROR"?"error":"connecting",error:status==="CHANNEL_ERROR"?"Realtime channel error":""}));
+      .on("postgres_changes",{event:"UPDATE",schema:"public",table:"characters",filter:`campaign_id=eq.${state.campaignId}`},payload=>{if(payload.new)emit("character",payload.new)})
+      .subscribe(status=>{patch({status:status==="SUBSCRIBED"?"online":status==="CHANNEL_ERROR"?"error":"connecting",error:status==="CHANNEL_ERROR"?"Realtime channel error":""});if(status==="SUBSCRIBED")void updatePresence().catch(error=>console.warn("Presence update failed",error))});
   }
 
   async function loadScene(sceneId){
@@ -97,12 +105,13 @@
     const localId=String(hero?.id||""),key=`${state.campaignId}:${localId}`,known=state.characterIds?.[key],characterId=known||global.crypto?.randomUUID?.();
     if(!characterId)throw new Error("Браузер не смог создать id персонажа");
     const result=await client.from("characters").upsert({id:characterId,campaign_id:state.campaignId,owner_id:state.userId,name:String(hero?.name||"Безымянный герой").slice(0,180),state:hero||{},updated_by:state.userId,updated_at:new Date().toISOString()},{onConflict:"id"}).select("id,version").single();
-    if(result.error)return fail(result.error);state.characterIds={...(state.characterIds||{}),[key]:result.data.id};persist();return result.data;
+    if(result.error)return fail(result.error);state.characterIds={...(state.characterIds||{}),[key]:result.data.id};persist();await updatePresence({heroName:String(hero?.name||"Безымянный герой").slice(0,180)});return result.data;
   }
+  async function listCharacters(){await ensureConnected();if(!state.campaignId)return[];const result=await client.from("characters").select("id,owner_id,name,state,version,updated_at").eq("campaign_id",state.campaignId).order("updated_at",{ascending:false});if(result.error)return fail(result.error);return result.data||[]}
   async function loadCharacter(characterId){await ensureConnected();if(!["owner","narrator"].includes(state.role))throw new Error("Лист игрока открывает Нарратор");const result=await client.from("characters").select("id,owner_id,name,state,version").eq("id",characterId).eq("campaign_id",state.campaignId).single();if(result.error)return fail(result.error);return result.data}
   async function decideCommand(commandId,decision){await ensureConnected();if(!["owner","narrator"].includes(state.role))throw new Error("Решение принимает Нарратор");const status=decision==="applied"?"applied":"rejected",result=await client.from("scene_commands").update({status,decided_by:state.userId,decided_at:new Date().toISOString()}).eq("id",commandId).eq("status","pending").select().single();if(result.error)return fail(result.error);return result.data}
-  async function leave(){clearTimeout(saveTimer);pendingSave=null;await unsubscribe();patch({status:"authenticated",campaignId:null,campaignName:"",sceneId:null,role:null,version:0,error:""});return snapshot()}
+  async function leave(){clearTimeout(saveTimer);pendingSave=null;await unsubscribe();patch({status:"authenticated",campaignId:null,campaignName:"",sceneId:null,role:null,version:0,presence:[],error:""});return snapshot()}
 
   state={...state,...stored()};if(!state.characterIds||typeof state.characterIds!=="object"||Array.isArray(state.characterIds))state.characterIds={};
-  global.DAWN_SYNC={configure,connect,createCampaign,createInvite,decideCommand,hasConfig,leave,loadCharacter,loadScene,on,publishEvents,queueScene,redeemInvite,saveCharacter,state:snapshot,submitCommand};
+  global.DAWN_SYNC={configure,connect,createCampaign,createInvite,decideCommand,hasConfig,leave,listCharacters,loadCharacter,loadScene,on,publishEvents,queueScene,redeemInvite,saveCharacter,state:snapshot,submitCommand,updatePresence};
 })(window);

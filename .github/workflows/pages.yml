@@ -64,6 +64,7 @@ jobs:
           cp apps/companion/logic.js _site/companion/
           cp apps/companion/scene-engine.js _site/companion/
           cp apps/companion/technique-engine.js _site/companion/
+          cp apps/companion/config.js _site/companion/
           cp apps/companion/sync.js _site/companion/
           cp apps/companion/data.js _site/companion/
           cp apps/companion/vtt-concepts.html _site/companion/
