@@ -4,6 +4,7 @@
 Читает канонические файлы из ../../source/translation и собирает data.js:
 - шесть Архетипов с Техниками (название, звёзды, теги, флавор, 3 уровня);
 - десять Мировоззрений с Дарами и избранными действиями Связи;
+- полные правила Связей, их теги и двенадцать действий Связи;
 - базовые действия и Эффекты с поисковыми формами терминов.
 
 Запуск:  python build_data.py
@@ -31,6 +32,8 @@ OUTLOOK_FILE = "pages-037-051-unstructured-play.md"
 COMBAT_FILE = "pages-052-064-structured-combat-core.md"
 ENEMY_FILE = "pages-109-119-general-enemy-types.md"
 MODIFIER_FILE = "pages-120-124-combat-stakes-modifiers-credits.md"
+UNIVERSAL_FILE = "pages-020-028-universal-rules.md"
+NARRATOR_FILE = "pages-100-108-narrator-tools.md"
 
 RE_TECH_HEAD = re.compile(r"^### (.+?)(?: \(([^)]+)\))? \| (★+) \| (.+)$")
 RE_LEVEL = re.compile(r"^\*\*(\d):\s*(.+):\*\*\s*(.*)$")
@@ -258,6 +261,98 @@ def parse_outlooks() -> list:
         elif gift is not None:
             gift["text"] += "\n" + line
     return outlooks
+
+
+def parse_bonds() -> dict:
+    """Collect the complete Bond rules into a first-class companion dataset."""
+    lines = (TR / OUTLOOK_FILE).read_text(encoding="utf-8").splitlines()
+    start = lines.index("## Связи")
+    end = lines.index("## Мировоззрения")
+    block = lines[start:end]
+    section = "overview"
+    sections = {"overview": []}
+    actions = []
+    antagonistic = False
+    current_action = None
+
+    for raw in block[1:]:
+        line = raw.strip()
+        if not line:
+            continue
+        if line == "## Действия Связи ❂":
+            section = "actions-intro"
+            sections[section] = []
+            current_action = None
+            continue
+        if line == "### Антагонистические действия Связи":
+            section = "antagonistic-intro"
+            sections[section] = []
+            antagonistic = True
+            current_action = None
+            continue
+        if line.startswith("### "):
+            name = line[4:].strip()
+            section = slugify(name)
+            sections[section] = []
+            sections[section + "-name"] = name
+            current_action = None
+            continue
+        match = re.match(r"^\*\*(.+?) \((.+?)\):\*\*\s*(.*)$", line)
+        if section in ("actions-intro", "antagonistic-intro") and match:
+            name, tag = match.group(1), match.group(2)
+            current_action = {
+                "id": f"bond.{slugify(name)}",
+                "name": name,
+                "tag": tag,
+                "antagonistic": antagonistic,
+                "text": match.group(3).strip(),
+            }
+            actions.append(current_action)
+            continue
+        if current_action is not None:
+            current_action["text"] += "\n" + line
+        else:
+            sections.setdefault(section, []).append(line)
+
+    def joined(key: str) -> str:
+        return "\n\n".join(sections.get(key, []))
+
+    outlook_rule = ""
+    for index, line in enumerate(lines):
+        if line == "### Избранные действия Связи":
+            outlook_rule = next((candidate for candidate in lines[index + 1:] if candidate.strip()), "")
+            break
+
+    rank_up = joined(slugify("Повышение Ранга Связей"))
+    # The prose says nine, but the immediately following canonical list contains
+    # ten standard tag/action pairs. The companion follows the actual complete list.
+    rank_up = rank_up.replace('Есть 9 **"стандартных" тегов Связи**', 'Есть 10 **"стандартных" тегов Связи**')
+    universal = (TR / UNIVERSAL_FILE).read_text(encoding="utf-8").splitlines()
+    narrator = (TR / NARRATOR_FILE).read_text(encoding="utf-8").splitlines()
+
+    def first_containing(source: list[str], needle: str) -> str:
+        return next(line.strip() for line in source if needle in line)
+
+    related_rules = [
+        {"id": "bond.context.ranks", "name": "Ранги Связей", "text": first_containing(lines, "Три главные особенности, используемые в свободной игре")},
+        {"id": "bond.context.advantage", "name": "Связь в броске испытания", "text": first_containing(lines, "равное суммарным **Рангам** одного **Навыка**")},
+        {"id": "bond.context.strange-ties", "name": "Риск: Странные связи", "text": first_containing(lines, "**Странные связи:**")},
+        {"id": "bond.context.intermission", "name": "Связи в Интермиссии", "text": "\n\n".join([first_containing(universal, "позволяют этим персонажам развивать свои **Связи**"), first_containing(universal, "единственное время, когда персонаж может повышать **Ранг**")])},
+        {"id": "bond.context.duel", "name": "Связь в Дуэли", "text": first_containing(universal, "участники описывают, как собираются к ней подойти")},
+        {"id": "bond.context.antagonists", "name": "Именованные Антагонисты", "text": first_containing(narrator, "особенно связанные со **Связями**")},
+    ]
+    return {
+        "overview": joined("overview"),
+        "tags": joined(slugify("Теги Связи")),
+        "returningCharacters": joined(slugify("Заметки Джоэла: возвращающиеся персонажи")),
+        "quick": joined(slugify("Быстрые Связи")),
+        "rankUp": rank_up,
+        "actionsIntro": joined("actions-intro"),
+        "antagonisticIntro": joined("antagonistic-intro"),
+        "favoredActions": outlook_rule,
+        "actions": actions,
+        "relatedRules": related_rules,
+    }
 
 
 def parse_effects() -> dict:
@@ -569,6 +664,7 @@ def main():
         "schemaVersion": 2,
         "archetypes": [parse_techniques(slug, fname) for slug, fname in TECH_FILES],
         "outlooks": parse_outlooks(),
+        "bonds": parse_bonds(),
         "effects": parse_effects(),
         "actions": parse_actions(),
         "abilityWords": parse_ability_words(),
@@ -586,6 +682,8 @@ def main():
     ids = []
     ids.extend(t["id"] for a in data["archetypes"] for t in a["techniques"])
     ids.extend(o["id"] for o in data["outlooks"])
+    ids.extend(action["id"] for action in data["bonds"]["actions"])
+    ids.extend(rule["id"] for rule in data["bonds"]["relatedRules"])
     ids.extend(g["id"] for o in data["outlooks"] for g in ([o["builtin"]] if o["builtin"] else []) + o["gifts"])
     ids.extend(e["id"] for group in data["effects"].values() for e in group)
     ids.extend(a["id"] for a in data["actions"]["list"])

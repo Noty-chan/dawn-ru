@@ -63,6 +63,14 @@ assert.deepEqual(
   [loyal.builtin.id, loyalChoice.id],
   "An inherent Gift must be added on top of selectable Gifts without occupying their slots",
 );
+assert.equal(data.bonds.actions.length, 12);
+assert.equal(data.bonds.actions.filter(action => !action.antagonistic).length, 10);
+assert.match(data.bonds.rankUp, /Есть 10/);
+assert.equal(data.bonds.actions.find(action => action.name === "Защита")?.tag, "Подопечный");
+assert.match(data.bonds.quick, /Ранг\*\* 1|Ранг 1/);
+assert.match(data.bonds.favoredActions, /Стресс/);
+assert.equal(data.bonds.relatedRules.length, 6);
+assert.match(data.bonds.relatedRules.find(rule => rule.id === "bond.context.duel")?.text || "", /встречный бросок/);
 assert.equal(data.effects.positive.length, 8);
 assert.equal(data.effects.negative.length, 11);
 assert.ok(data.effects.positive.find(effect => effect.name === "Исчез")?.aliases.includes("Исчезнуть"));
@@ -86,6 +94,8 @@ const ids = [
   ...data.archetypes.flatMap(a => a.techniques.map(t => t.id)),
   ...data.outlooks.map(o => o.id),
   ...data.outlooks.flatMap(o => (o.builtin ? [o.builtin] : []).concat(o.gifts).map(g => g.id)),
+  ...data.bonds.actions.map(action => action.id),
+  ...data.bonds.relatedRules.map(rule => rule.id),
   ...Object.values(data.effects).flat().map(e => e.id),
   ...data.actions.list.map(a => a.id),
   ...Object.values(data.enemies).flat().map(enemy => enemy.id),
@@ -261,6 +271,11 @@ assert.match(app, /function renderSceneMedia/);
 assert.match(app, /initCollapsibleBuildPanels/);
 assert.match(app, /builder-mode/);
 assert.match(app, /scene-mode/);
+assert.match(app, /function renderBondTraining/);
+assert.match(app, /function renderBondReference/);
+assert.match(app, /bondRelatedItems/);
+assert.match(html, /id="bond-training"/);
+assert.match(html, /id="bond-reference"/);
 assert.match(html, /scene-sync-body/);
 assert.match(html, /scene-inspector-panel/);
 assert.match(app, /scene\.artworks/);
