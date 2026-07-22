@@ -20,6 +20,7 @@
       <button type="button" data-mode="build" aria-current="page">Герой</button>
       <button type="button" data-mode="play">Стол</button>
       <button type="button" data-mode="tools">Инструменты</button>
+      <button type="button" data-mode="rules">Правила</button>
       <button type="button" data-mode="reference">Справочник</button>
     </nav>
     <button type="button" class="icon-button" id="theme-toggle" aria-label="Сменить тему">◐</button>
@@ -90,8 +91,8 @@
           <div id="gifts" class="catalog-grid"></div>
         </section>
 
-        <section id="bond-training" class="panel bond-training" aria-labelledby="bond-training-title">
-          <div class="section-title"><span>УЧ</span><div><h2 id="bond-training-title">Как работают Связи</h2><p>От первой встречи до Ранга 3 и действий Связи.</p></div></div>
+        <section id="bond-training" class="panel bond-training bond-builder-hint" aria-labelledby="bond-training-title">
+          <div class="section-title"><span>СВ</span><div><h2 id="bond-training-title">Связи героя</h2><p>Избранные действия выбранных Мировоззрений.</p></div></div>
           <div id="bond-training-content"></div>
         </section>
 
@@ -230,12 +231,15 @@
         </div>
       </section>
 
+      <section class="mode-page" data-page="rules" aria-labelledby="rules-title">
+        <div class="page-heading"><div><p class="eyebrow">КАК ИГРАТЬ В DAWN</p><h1 id="rules-title">Правила</h1></div><p class="rules-heading-note">Последовательные объяснения механик. Каждая глава сворачивается отдельно.</p></div>
+        <nav id="rules-index" class="rules-index" aria-label="Главы правил"></nav>
+        <div id="rules-chapters" class="rules-chapters"></div>
+      </section>
+
       <section class="mode-page" data-page="reference" aria-labelledby="reference-title">
-        <div class="page-heading"><div><p class="eyebrow">ПРАВИЛА БЕЗ ЛИСТАНИЯ</p><h1 id="reference-title">Справочник</h1></div></div>
-        <section id="bond-reference" class="panel bond-reference" aria-labelledby="bond-reference-title">
-          <div class="section-title"><span>СВ</span><div><h2 id="bond-reference-title">Связи</h2><p>Полные правила, теги, рост, действия и изменяющие их особенности.</p></div></div>
-          <div id="bond-reference-content"></div>
-        </section>
+        <div class="page-heading"><div><p class="eyebrow">ТЕРМИНЫ БЕЗ ЛИСТАНИЯ</p><h1 id="reference-title">Справочник</h1></div></div>
+        <aside class="panel reference-rules-link"><div><span>Нужно понять механику целиком?</span><strong>Последовательные объяснения перенесены в «Правила».</strong></div><a class="file-button" href="?mode=rules">Открыть Правила</a></aside>
         <div class="catalog-tools sticky-tools">
           <input id="ref-search" type="search" placeholder="Искать Связи, действия, Эффекты, Техники и памятки">
           <div class="chip-row" id="ref-filters"></div>
