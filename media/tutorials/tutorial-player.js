@@ -3,7 +3,7 @@ const lessons=window.DAWN_LESSONS||[];
 const params=new URLSearchParams(location.search);const lesson=lessons.find(x=>x.id===params.get("lesson"))||lessons[0];
 const $=id=>document.getElementById(id),esc=v=>String(v??"").replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
 const BEAT_MS=6800;let elapsed=0,last=0,playing=false,frame=0,current=-1,visualTimers=[];
-document.title=`DAWN · ${lesson.id} · ${lesson.title}`;$("lesson-number").textContent=`УРОК ${lesson.id} / 12`;$("lesson-title").textContent=lesson.title;$("lesson-subtitle").textContent=lesson.subtitle;
+document.title=`DAWN · ${lesson.id} · ${lesson.title}`;$("lesson-number").textContent=`УРОК ${lesson.id} / ${lessons.length}`;$("lesson-title").textContent=lesson.title;$("lesson-subtitle").textContent=lesson.subtitle;
 const lessonIndex=lessons.indexOf(lesson),lessonHref=x=>`player.html?lesson=${x.id}`;
 const prevLesson=lessons[lessonIndex-1],nextLesson=lessons[lessonIndex+1];
 if(prevLesson){$("prev-lesson").href=lessonHref(prevLesson);$("prev-lesson").title=`${prevLesson.id}. ${prevLesson.title}`}else $("prev-lesson").classList.add("disabled");

@@ -273,6 +273,7 @@ assert.match(app, /builder-mode/);
 assert.match(app, /scene-mode/);
 assert.match(app, /function renderBondTraining/);
 assert.match(app, /function renderBondReference/);
+assert.match(app, /requestedMode/);
 assert.match(app, /bondRelatedItems/);
 assert.match(html, /id="bond-training"/);
 assert.match(html, /id="bond-reference"/);
