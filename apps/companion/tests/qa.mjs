@@ -280,6 +280,7 @@ assert.match(app, /function rulesChapterText/);
 assert.match(app, /function fieldRulesVisual/);
 assert.match(app, /function ruleKey/);
 assert.match(app, /rule-permalink/);
+assert.match(app, /target\?\.matches\?\./);
 assert.match(app, /Преимущество от Рангов/);
 assert.match(app, /Поставить на кон/);
 assert.match(app, /Альтернативные Фокусы/);

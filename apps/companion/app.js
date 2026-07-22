@@ -725,7 +725,7 @@ function renderRules(){
   index.innerHTML=chapters.map(chapter=>`<a href="#rules-${chapter.id}"><span>${esc(chapter.mark)}</span>${esc(chapter.name)}</a>`).join("");
   root.innerHTML=chapters.map((chapter,chapterIndex)=>{const headerMatch=ruleMatches(query,chapter.name,chapter.desc,chapter.source||""),cards=chapter.cards?.filter(card=>headerMatch||ruleMatches(query,...card))||[],specialQuery=headerMatch?"":query,count=chapter.cards?cards.length:(chapter.special==="bonds"?D.bonds.actions.length:D.actions.list.length+D.effects.positive.length+D.effects.negative.length),visual=chapter.id==="field"&&!query?fieldRulesVisual():"",body=chapter.special==="bonds"?`<div id="bond-reference-content"></div>`:chapter.special==="actions"?actionRulesHtml(specialQuery):`${visual}${ruleCardsHtml(cards,chapter.id)}`;return `<details id="rules-${chapter.id}" class="rules-chapter" ${(chapterIndex===0||query)?"open":""}><summary><span>${esc(chapter.mark)}</span><div><h2>${esc(chapter.name)}</h2><p>${esc(chapter.desc)}</p></div><b>${count}</b></summary><div class="rules-chapter-body">${body}<footer class="rules-source">${esc(chapter.source||"")}</footer></div></details>`}).join("")||`<p class="rules-empty">По этому запросу правил не найдено.</p>`;
   renderBondReference();
-  const target=location.hash&&document.getElementById(location.hash.slice(1));if(target?.matches(".rules-chapter,.rules-card")){target.open=true;target.closest(".rules-chapter")?.setAttribute("open","")}
+  const target=location.hash?document.getElementById(location.hash.slice(1)):null;if(target?.matches?.(".rules-chapter,.rules-card")){target.open=true;target.closest(".rules-chapter")?.setAttribute("open","")}
 }
 
 function referenceItems(){
