@@ -1,0 +1,220 @@
+- generic [ref=f5e1]:
+  - link "К содержимому" [ref=f5e2] [cursor=pointer]:
+    - /url: "#main"
+  - banner [ref=f5e3]:
+    - generic "DAWN RU" [ref=f5e4]: D
+    - navigation "Режим компаньона" [ref=f5e6]:
+      - button "Герой" [ref=f5e7] [cursor=pointer]
+      - button "Стол" [ref=f5e8] [cursor=pointer]
+      - button "Инструменты" [ref=f5e9] [cursor=pointer]
+      - button "Правила" [ref=f5e10] [cursor=pointer]
+      - button "Справочник" [ref=f5e11] [cursor=pointer]
+    - button "Сменить тему" [ref=f5e12] [cursor=pointer]: ◐
+  - main [ref=f5e14]:
+    - text: ⌃ ⌃ ⌃ ⌃ ⌃ ⌃ ⌃
+    - region "Сцена DAWN" [ref=f5e15]:
+      - group [ref=f5e16]:
+        - generic "▸ Подключение кампании Auth готов" [ref=f5e233] [cursor=pointer]:
+          - text: ▸
+          - heading "Подключение кампании" [level=2] [ref=f5e19]
+          - generic [ref=f5e20]: Auth готов
+      - generic [ref=f5e21]:
+        - generic [ref=f5e22]:
+          - generic [ref=f5e23]:
+            - generic [ref=f5e24]:
+              - heading "Структурированный бой" [level=2] [ref=f5e25]
+              - generic "Состояние Сцены" [ref=f5e26]:
+                - generic [ref=f5e27]: Раунд 1
+                - generic [ref=f5e28]: Напряжение 0
+            - generic [ref=f5e30]:
+              - generic [ref=f5e31]:
+                - generic [ref=f5e32]: Роль
+                - combobox "Роль" [ref=f5e33]:
+                  - option "Игрок"
+                  - option "Нарратор" [selected]
+              - button "Вместить" [ref=f5e34] [cursor=pointer]
+          - navigation "Ходы участников" [ref=f5e35]:
+            - button "✦ Безымянный герой" [ref=f5e234] [cursor=pointer]:
+              - generic [ref=f5e235]: ✦
+              - generic [ref=f5e236]: Безымянный герой
+            - button "☠ Ассасин" [ref=f5e238] [cursor=pointer]:
+              - generic [ref=f5e239]: ☠
+              - generic [ref=f5e240]: Ассасин
+          - region "Этап текущего действия" [ref=f5e44]:
+            - generic [ref=f5e242]:
+              - strong [ref=f5e243]: "Ход: Ассасин"
+              - generic [ref=f5e244]: Выберите действие противника в панели цели или отряда.
+          - generic "Инструменты поля" [ref=f5e48]:
+            - generic [ref=f5e49]:
+              - generic [ref=f5e50]:
+                - button "↖ Выбор" [ref=f5e51] [cursor=pointer]
+                - button "↔ Линейка" [ref=f5e52] [cursor=pointer]
+              - button "◎ Цели" [pressed] [ref=f5e54] [cursor=pointer]
+              - generic [ref=f5e55]:
+                - button "▦ Область" [ref=f5e56] [cursor=pointer]
+                - button "◆ Маркер" [ref=f5e57] [cursor=pointer]
+              - button "× Удалить" [ref=f5e59] [cursor=pointer]
+            - generic [ref=f5e60]:
+              - generic [ref=f5e61]: "Цели (1): Безымянный герой"
+              - button "◎×Снять цели" [ref=f5e62] [cursor=pointer]
+              - button "↶Отменить" [ref=f5e63] [cursor=pointer]
+          - grid "Поле DAWN 7 на 7" [ref=f5e65]:
+            - gridcell "Клетка 1, 1" [ref=f5e245]:
+              - generic [ref=f5e246]: A1
+              - button "✦" [ref=f5e248]
+            - gridcell "Клетка 2, 1" [ref=f5e249]:
+              - generic [ref=f5e250]: B1
+              - button "☠" [ref=f5e252]
+            - gridcell "Клетка 3, 1" [ref=f5e253]:
+              - generic [ref=f5e254]: C1
+            - gridcell "Клетка 4, 1" [ref=f5e256]:
+              - generic [ref=f5e257]: D1
+            - gridcell "Клетка 5, 1" [ref=f5e259]:
+              - generic [ref=f5e260]: E1
+            - gridcell "Клетка 6, 1" [ref=f5e262]:
+              - generic [ref=f5e263]: F1
+            - gridcell "Клетка 7, 1" [ref=f5e265]:
+              - generic [ref=f5e266]: G1
+            - gridcell "Клетка 1, 2" [ref=f5e268]:
+              - generic [ref=f5e269]: A2
+            - gridcell "Клетка 2, 2" [ref=f5e271]:
+              - generic [ref=f5e272]: B2
+            - gridcell "Клетка 3, 2" [ref=f5e274]:
+              - generic [ref=f5e275]: C2
+            - gridcell "Клетка 4, 2" [ref=f5e277]:
+              - generic [ref=f5e278]: D2
+            - gridcell "Клетка 5, 2" [ref=f5e280]:
+              - generic [ref=f5e281]: E2
+            - gridcell "Клетка 6, 2" [ref=f5e283]:
+              - generic [ref=f5e284]: F2
+            - gridcell "Клетка 7, 2" [ref=f5e286]:
+              - generic [ref=f5e287]: G2
+            - gridcell "Клетка 1, 3" [ref=f5e289]:
+              - generic [ref=f5e290]: A3
+            - gridcell "Клетка 2, 3" [ref=f5e292]:
+              - generic [ref=f5e293]: B3
+            - gridcell "Клетка 3, 3" [ref=f5e295]:
+              - generic [ref=f5e296]: C3
+            - gridcell "Клетка 4, 3" [ref=f5e298]:
+              - generic [ref=f5e299]: D3
+            - gridcell "Клетка 5, 3" [ref=f5e301]:
+              - generic [ref=f5e302]: E3
+            - gridcell "Клетка 6, 3" [ref=f5e304]:
+              - generic [ref=f5e305]: F3
+            - gridcell "Клетка 7, 3" [ref=f5e307]:
+              - generic [ref=f5e308]: G3
+            - gridcell "Клетка 1, 4" [ref=f5e310]:
+              - generic [ref=f5e311]: A4
+            - gridcell "Клетка 2, 4" [ref=f5e313]:
+              - generic [ref=f5e314]: B4
+            - gridcell "Клетка 3, 4" [ref=f5e316]:
+              - generic [ref=f5e317]: C4
+            - gridcell "Клетка 4, 4" [ref=f5e319]:
+              - generic [ref=f5e320]: D4
+            - gridcell "Клетка 5, 4" [ref=f5e322]:
+              - generic [ref=f5e323]: E4
+            - gridcell "Клетка 6, 4" [ref=f5e325]:
+              - generic [ref=f5e326]: F4
+            - gridcell "Клетка 7, 4" [ref=f5e328]:
+              - generic [ref=f5e329]: G4
+            - gridcell "Клетка 1, 5" [ref=f5e331]:
+              - generic [ref=f5e332]: A5
+            - gridcell "Клетка 2, 5" [ref=f5e334]:
+              - generic [ref=f5e335]: B5
+            - gridcell "Клетка 3, 5" [ref=f5e337]:
+              - generic [ref=f5e338]: C5
+            - gridcell "Клетка 4, 5" [ref=f5e340]:
+              - generic [ref=f5e341]: D5
+            - gridcell "Клетка 5, 5" [ref=f5e343]:
+              - generic [ref=f5e344]: E5
+            - gridcell "Клетка 6, 5" [ref=f5e346]:
+              - generic [ref=f5e347]: F5
+            - gridcell "Клетка 7, 5" [ref=f5e349]:
+              - generic [ref=f5e350]: G5
+            - gridcell "Клетка 1, 6" [ref=f5e352]:
+              - generic [ref=f5e353]: A6
+            - gridcell "Клетка 2, 6" [ref=f5e355]:
+              - generic [ref=f5e356]: B6
+            - gridcell "Клетка 3, 6" [ref=f5e358]:
+              - generic [ref=f5e359]: C6
+            - gridcell "Клетка 4, 6" [ref=f5e361]:
+              - generic [ref=f5e362]: D6
+            - gridcell "Клетка 5, 6" [ref=f5e364]:
+              - generic [ref=f5e365]: E6
+            - gridcell "Клетка 6, 6" [ref=f5e367]:
+              - generic [ref=f5e368]: F6
+            - gridcell "Клетка 7, 6" [ref=f5e370]:
+              - generic [ref=f5e371]: G6
+            - gridcell "Клетка 1, 7" [ref=f5e373]:
+              - generic [ref=f5e374]: A7
+            - gridcell "Клетка 2, 7" [ref=f5e376]:
+              - generic [ref=f5e377]: B7
+            - gridcell "Клетка 3, 7" [ref=f5e379]:
+              - generic [ref=f5e380]: C7
+            - gridcell "Клетка 4, 7" [ref=f5e382]:
+              - generic [ref=f5e383]: D7
+            - gridcell "Клетка 5, 7" [ref=f5e385]:
+              - generic [ref=f5e386]: E7
+            - gridcell "Клетка 6, 7" [ref=f5e388]:
+              - generic [ref=f5e389]: F7
+            - gridcell "Клетка 7, 7" [ref=f5e391]:
+              - generic [ref=f5e392]: G7
+          - navigation "Быстрые действия героя" [ref=f5e215]:
+            - generic [ref=f5e394]:
+              - generic [ref=f5e395]: ⌛
+              - generic [ref=f5e396]: "Сейчас Ход: Ассасин"
+              - generic [ref=f5e397]: Действия героя временно заблокированы
+            - button "Все действия" [ref=f5e398] [cursor=pointer]
+            - generic [ref=f5e399]:
+              - button "Новый Раунд" [disabled] [ref=f5e400] [cursor=pointer]
+              - button "Новая Сцена" [ref=f5e401] [cursor=pointer]
+        - navigation "Панели Сцены" [ref=f5e224]:
+          - button "◎ Цель" [ref=f5e225] [cursor=pointer]
+          - button "✦ Герой" [ref=f5e226] [cursor=pointer]
+          - button "⬡ Бросок" [ref=f5e227] [cursor=pointer]
+          - button "? Правила" [ref=f5e228] [cursor=pointer]
+          - button "☠ Враги" [pressed] [ref=f5e229] [cursor=pointer]
+          - button "▧ Арт" [ref=f5e230] [cursor=pointer]
+          - button "+ Добавить" [ref=f5e231] [cursor=pointer]
+          - button "≡ Журнал" [ref=f5e232] [cursor=pointer]
+        - complementary "Рабочая панель Сцены" [ref=f5e402]:
+          - text: "? ? ? ◆ ⚔ ⬡ ✎"
+          - generic [ref=f5e403]:
+            - generic [ref=f5e404]:
+              - generic [ref=f5e405]:
+                - generic [ref=f5e406]: НАРРАТОР
+                - heading "Отряд противников" [level=2] [ref=f5e407]
+              - button "Закрыть панель" [active] [ref=f5e408] [cursor=pointer]: ×
+            - article [ref=f5e410]:
+              - generic [ref=f5e411]:
+                - button "Ассасин · Ст.1 11/13 ЗД · 1 ОД · Б 0 · У 0" [ref=f5e412] [cursor=pointer]:
+                  - strong [ref=f5e413]: Ассасин · Ст.1
+                  - generic [ref=f5e414]: 11/13 ЗД · 1 ОД · Б 0 · У 0
+                - button "Завершить" [ref=f5e415] [cursor=pointer]
+              - generic [ref=f5e416]: дамагер, избегание, хрупкий
+              - paragraph [ref=f5e417]:
+                - text: "Пассив: этот враг становится"
+                - strong [ref=f5e418]: Исчез
+                - text: после
+                - strong [ref=f5e419]: Развертывания
+                - text: .
+              - generic [ref=f5e420]:
+                - article [ref=f5e421]:
+                  - button "Нейтрализовать цель Действие · 1 ОД · эффект авто" [ref=f5e422] [cursor=pointer]:
+                    - strong [ref=f5e423]: Нейтрализовать цель
+                    - generic [ref=f5e424]: Действие · 1 ОД · эффект авто
+                  - group [ref=f5e425]:
+                    - generic "Правило?" [ref=f5e426] [cursor=pointer]
+                - article [ref=f5e427]:
+                  - button "Разрез Это действие уже использовано в Раунде" [disabled] [ref=f5e428] [cursor=pointer]:
+                    - strong [ref=f5e429]: Разрез
+                    - generic [ref=f5e430]: Это действие уже использовано в Раунде
+                  - group [ref=f5e431]:
+                    - generic "Правило?" [ref=f5e432] [cursor=pointer]
+                - article [ref=f5e433]:
+                  - button "Исчезнуть Нужно 2 ОД" [disabled] [ref=f5e434] [cursor=pointer]:
+                    - strong [ref=f5e435]: Исчезнуть
+                    - generic [ref=f5e436]: Нужно 2 ОД
+                  - group [ref=f5e437]:
+                    - generic "Правило?" [ref=f5e438] [cursor=pointer]
+  - status

@@ -1,7 +1,7 @@
 const BUILD = "__BUILD_VERSION__";
 const CACHE = `dawn-ru-companion-${BUILD}`;
 const versioned = path => `${path}?v=${BUILD}`;
-const ASSETS = ["./", "./index.html", versioned("./app.css"), versioned("./app.js"), versioned("./logic.js"), versioned("./scene-engine.js"), versioned("./technique-engine.js"), versioned("./config.js"), versioned("./sync.js"), versioned("./data.js"), "./manifest.webmanifest", "./icon.svg"];
+const ASSETS = ["./", "./index.html", versioned("./app.css"), versioned("./vtt-cockpit.css"), versioned("./app.js"), versioned("./logic.js"), versioned("./scene-engine.js"), versioned("./technique-engine.js"), versioned("./config.js"), versioned("./sync.js"), versioned("./data.js"), "./manifest.webmanifest", "./icon.svg"];
 self.addEventListener("install", event => event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS)).then(() => self.skipWaiting())));
 self.addEventListener("activate", event => event.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(key => key !== CACHE).map(key => caches.delete(key)))).then(() => self.clients.claim())));
 self.addEventListener("fetch", event => {

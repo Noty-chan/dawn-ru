@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Мир Мертвых Богов — карточки мира</title>
+  <style>
+    @font-face {
+      font-family: "Lore Serif";
+      src: url("file:///C:/Windows/Fonts/georgia.ttf") format("truetype");
+      font-weight: 400;
+    }
+    @font-face {
+      font-family: "Lore Serif";
+      src: url("file:///C:/Windows/Fonts/georgiab.ttf") format("truetype");
+      font-weight: 700;
+    }
+    @font-face {
+      font-family: "Lore Serif";
+      src: url("file:///C:/Windows/Fonts/georgiai.ttf") format("truetype");
+      font-style: italic;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; width: 1200px; height: 1600px; overflow: hidden; background: #090909; }
+    body { font-family: "Lore Serif", Georgia, serif; color: #ece7dc; }
+    .card {
+      position: absolute;
+      inset: 0;
+      width: 1200px;
+      height: 1600px;
+      overflow: hidden;
+      isolation: isolate;
+      background-position: center;
+      background-size: cover;
+    }
+    .card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: -1;
+      background:
+        linear-gradient(90deg, rgba(6, 7, 8, .94) 0%, rgba(8, 9, 10, .84) 43%, rgba(8, 9, 10, .27) 74%, rgba(5, 6, 7, .58) 100%),
+        linear-gradient(180deg, rgba(4, 4, 5, .62) 0%, transparent 22%, transparent 72%, rgba(3, 3, 4, .86) 100%);
+    }
+    .card::after {
+      content: "";
+      position: absolute;
+      inset: 30px;
+      border: 1px solid rgba(222, 211, 185, .25);
+      box-shadow: inset 0 0 90px rgba(0, 0, 0, .55);
+      pointer-events: none;
+    }
+    .war { background-image: url("world-war-background.png"); }
+    .journey { background-image: url("world-journey-background.png"); }
+    .system { background-image: url("system-background.png"); }
+    .approach { background-image: url("approach-background.png"); }
+    .journey::before {
+      background:
+        linear-gradient(180deg, rgba(5, 6, 7, .82) 0%, rgba(6, 7, 8, .60) 52%, rgba(4, 4, 5, .20) 70%, rgba(3, 3, 4, .72) 100%),
+        linear-gradient(90deg, rgba(5, 6, 7, .90) 0%, rgba(6, 7, 8, .68) 54%, rgba(4, 5, 6, .12) 100%);
+    }
+    .system::before {
+      background:
+        linear-gradient(90deg, rgba(5, 6, 7, .96) 0%, rgba(6, 7, 8, .87) 49%, rgba(5, 6, 7, .22) 76%, rgba(3, 4, 5, .34) 100%),
+        linear-gradient(180deg, rgba(4, 5, 6, .68) 0%, transparent 54%, rgba(3, 3, 4, .70) 100%);
+    }
+    .approach::before {
+      background:
+        linear-gradient(90deg, rgba(5, 6, 7, .96) 0%, rgba(6, 7, 8, .87) 53%, rgba(5, 6, 7, .24) 78%, rgba(3, 4, 5, .30) 100%),
+        linear-gradient(180deg, rgba(4, 5, 6, .72) 0%, transparent 57%, rgba(3, 3, 4, .72) 100%);
+    }
+    .content {
+      width: 700px;
+      height: 100%;
+      padding: 92px 0 78px 92px;
+      display: flex;
+      flex-direction: column;
+    }
+    .journey .content { width: 790px; }
+    .system .content { width: 815px; }
+    .approach .content { width: 825px; }
+    .kicker {
+      margin: 0 0 19px;
+      color: #b9ad98;
+      font: 700 27px/1.2 Arial, sans-serif;
+      letter-spacing: .32em;
+      text-transform: uppercase;
+    }
+    h1 {
+      margin: 0 0 42px;
+      max-width: 650px;
+      color: #f0eadf;
+      font-size: 72px;
+      line-height: .94;
+      letter-spacing: -.045em;
+      text-shadow: 0 2px 20px rgba(0,0,0,.9);
+    }
+    .rule {
+      width: 104px;
+      height: 2px;
+      margin: -20px 0 37px;
+      background: linear-gradient(90deg, #bdab7b, transparent);
+      box-shadow: 0 0 10px rgba(213, 184, 112, .35);
+    }
+    .copy { max-width: 635px; }
+    p {
+      margin: 0 0 23px;
+      font-size: 30px;
+      line-height: 1.39;
+      text-shadow: 0 2px 12px #000, 0 0 3px #000;
+    }
+    .journey p { font-size: 27px; line-height: 1.38; margin-bottom: 18px; }
+    .system p { font-size: 29px; line-height: 1.42; margin-bottom: 23px; }
+    .system .kicker { font-size: 27px; line-height: 1.2; }
+    .approach p { font-size: 27px; line-height: 1.40; margin-bottom: 19px; }
+    .approach .kicker { font-size: 27px; line-height: 1.2; }
+    .light {
+      color: #fff2be;
+      font-style: italic;
+      text-shadow: 0 0 8px rgba(255, 224, 125, .85), 0 0 22px rgba(255, 203, 74, .45), 0 2px 8px #000;
+    }
+    .darkness {
+      color: #d9c4ed;
+      font-style: italic;
+      text-shadow: 0 0 8px rgba(161, 102, 210, .72), 0 0 25px rgba(91, 38, 134, .62), 0 2px 8px #000;
+    }
+    .dead {
+      color: #ece9df;
+      font-weight: 700;
+      text-shadow: 0 0 8px rgba(231, 227, 209, .42), 0 0 24px rgba(148, 130, 151, .4), 0 2px 8px #000;
+    }
+    .sanctuary {
+      color: #d8e7e3;
+      font-weight: 700;
+      text-shadow: 0 0 9px rgba(136, 190, 181, .58), 0 0 22px rgba(93, 139, 134, .42), 0 2px 8px #000;
+    }
+    .mechanic {
+      color: #e8d8a9;
+      font-weight: 700;
+      text-shadow: 0 0 8px rgba(220, 183, 94, .48), 0 0 20px rgba(177, 126, 42, .32), 0 2px 8px #000;
+    }
+    .closing {
+      margin-top: auto;
+      max-width: 690px;
+      padding-top: 26px;
+      border-top: 1px solid rgba(222, 211, 185, .35);
+      font-size: 35px !important;
+      line-height: 1.24 !important;
+      font-weight: 700;
+      letter-spacing: -.02em;
+    }
+    .folio {
+      position: absolute;
+      right: 66px;
+      bottom: 54px;
+      color: rgba(231, 224, 209, .63);
+      font: 700 17px/1 Arial, sans-serif;
+      letter-spacing: .24em;
+    }
+    body[data-card="1"] .journey,
+    body[data-card="1"] .system,
+    body[data-card="1"] .approach,
+    body[data-card="2"] .war,
+    body[data-card="2"] .system,
+    body[data-card="2"] .approach,
+    body[data-card="3"] .war,
+    body[data-card="3"] .journey,
+    body[data-card="3"] .approach,
+    body[data-card="4"] .war,
+    body[data-card="4"] .journey,
+    body[data-card="4"] .system { display: none; }
+  </style>
+</head>
+<body data-card="1">
+  <article class="card war">
+    <div class="content">
+      <p class="kicker">Мир мертвых богов · I</p>
+      <h1>Падение<br>Божеств</h1>
+      <div class="rule"></div>
+      <div class="copy">
+        <p>Некогда люди жили в мире с Божествами. Одно властвовало над <span class="light">Светом</span>, другое — над <span class="darkness">Тьмой</span>.</p>
+        <p>Когда пришли тяжелые времена, люди вознесли молитвы <span class="light">Свету</span> — и услышали лишь молчание. Молчание породило ненависть, и человечество бросило вызов Божеству.</p>
+        <p>Десятки королевств были стерты. Сотни тысяч погибли в губительных лучах <span class="light">Света</span>. Но люди победили.</p>
+        <p>Двадцать лет спустя пала и <span class="darkness">Тьма</span>.</p>
+      </div>
+      <p class="closing">Пиррова победа</p>
+    </div>
+    <span class="folio">01 / 02</span>
+  </article>
+
+  <article class="card journey">
+    <div class="content">
+      <p class="kicker">Мир мертвых богов · II</p>
+      <h1>Месяц<br>после победы</h1>
+      <div class="rule"></div>
+      <div class="copy">
+        <p>Над миром больше нет звезд. День и ночь различаются лишь оттенками вечного полумрака. Краски поблекли, огонь едва тлеет, зеркала не отражают, а люди почти перестали видеть сны.</p>
+        <p>Земля расколота. Ее части висят в воздухе вместе с обломками статуй и погибших городов. Мертвецы восстают, а пустоши полны чудовищ.</p>
+        <p>Уцелевшие укрепления связаны остатками железных дорог. Их машины питаются водой с ничтожной долей божественной крови: только так вода вновь обращается в пар.</p>
+        <p>На второй неделе после победы над <span class="darkness">Тьмой</span> люди нашли третье Божество. <span class="dead">Мертвое.</span></p>
+        <p>Такие останки запечатывают в <span class="sanctuary">городах-святилищах</span>, созданных для удержания сильной маны. Теперь в мертвом теле вновь собирается сила. Его необходимо доставить в святилище, пока не стало слишком поздно.</p>
+      </div>
+      <p class="closing">Последние крохи жизни в уничтоженном мире оказались под угрозой.</p>
+    </div>
+    <span class="folio">02 / 02</span>
+  </article>
+
+  <article class="card system">
+    <div class="content">
+      <p class="kicker">Мир мертвых богов · Система</p>
+      <h1>DAWN.<br>Рассвет.</h1>
+      <div class="rule"></div>
+      <div class="copy">
+        <p>Это система о ярких героях, личных конфликтах и сражениях, способных решить судьбу мира. Она вдохновлена боевой мангой, аниме и тактическими играми: вне боя правила оставляют простор для свободных решений, а столкновения превращаются в строгие сражения на клеточном поле.</p>
+        <p>Когда исход действия неясен, вы бросаете несколько шестигранных костей. Результаты от <span class="mechanic">4 и выше</span> становятся Успехами, а каждая выпавшая <span class="mechanic">6</span> позволяет бросить еще одну кость.</p>
+        <p>В DAWN нет жестких классов. Вы определяете сильные стороны героя с помощью четырех Атрибутов, придумываете собственные Навыки и сверхъестественную Способность, выбираете Мировоззрение и собираете боевой стиль из Техник нескольких Архетипов.</p>
+      </div>
+      <p class="closing">Сначала придумайте героя, а затем система поможет воплотить идею.</p>
+    </div>
+    <span class="folio">01 / 01</span>
+  </article>
+
+  <article class="card approach">
+    <div class="content">
+      <p class="kicker">Мир мертвых богов · Подход</p>
+      <h1>Подход<br>к игре</h1>
+      <div class="rule"></div>
+      <div class="copy">
+        <p>Это история о сером, почти мертвом мире. Мы будем относиться к нему серьезно, но серьезность не запрещает смеяться. Важно лишь не разрушать атмосферу и давать другим проживать важные сцены.</p>
+        <p><span class="mechanic">Вы — команда.</span> Слушайте друг друга, делитесь вниманием и помогайте чужим идеям становиться частью общей истории. Сеттинг уже задан, но не высечен в камне: особенно при создании персонажей уверенные идеи могут заметно изменить мир.</p>
+        <p>На пути будут столкновения, но не каждая угроза требует боя. Наблюдайте, разговаривайте, рискуйте и ищите необычные решения. При желании часть игроков сможет занять посты управления поездом — это дополнительная возможность, а не обязанность.</p>
+        <p>Провал возможен. Поезд может не добраться до святилища, и тогда мир погибнет. Но от вас не ждут идеальной игры. Достаточно стараться отыгрывать, разбираться в правилах и вместе создавать красивую историю.</p>
+      </div>
+      <p class="closing"><span class="mechanic">Один</span> <span class="mechanic">камешек</span> может потопить корабль.<br>А тысячи камешков…</p>
+    </div>
+    <span class="folio">01 / 01</span>
+  </article>
+  <script>
+    const requested = new URLSearchParams(location.search).get("card");
+    const card = ["2", "3", "4"].includes(requested) ? requested : "1";
+    document.body.dataset.card = card;
+  </script>
+</body>
+</html>
