@@ -232,7 +232,7 @@ assert.deepEqual(
   "each gained tier grants two different ordinary Attribute increases",
 );
 
-for (const file of ["index.html", "app.css", "app.js", "logic.js", "config.js", "sync.js", "data.js", "manifest.webmanifest", "sw.js", "icon.svg"]) assert.ok(fs.existsSync(path.join(root, file)), file);
+for (const file of ["index.html", "app.css", "vtt-cockpit.css", "app.js", "logic.js", "config.js", "sync.js", "data.js", "manifest.webmanifest", "sw.js", "icon.svg"]) assert.ok(fs.existsSync(path.join(root, file)), file);
 const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
 const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
 const css = fs.readFileSync(path.join(root, "app.css"), "utf8");
