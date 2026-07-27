@@ -38,6 +38,27 @@ const currentTurnEvents = (scene, actorId) => {
   }
   return events;
 };
+function turnActionProgressStatus(scene, actorId) {
+  const actor = actorById(scene, actorId);
+  if (!actor) return { available: false, reason: "Участник не найден.", total: 0, used: 0, remaining: 0, currentAction: 0, readyToEnd: false, labels: [] };
+  if (scene.activeActorId !== actor.id) return { available: false, reason: "Сейчас не Ход этого участника.", total: 0, used: 0, remaining: 0, currentAction: 0, readyToEnd: false, labels: [] };
+  const events = currentTurnEvents(scene, actor.id), base = Math.max(1, Number(actor.baseAp || (actor.team === "enemy" ? 2 : 3)));
+  const spent = events.filter(event => event.actorId === actor.id && event.type === "resource.spend" && event.payload?.resource === "ap" && !event.payload?.ignoredReason).reduce((sum, event) => sum + Math.max(0, Number(event.payload?.amount || 0)), 0);
+  const gained = events.filter(event => event.actorId === actor.id && event.type === "resource.gain" && event.payload?.resource === "ap" && !event.payload?.ignoredReason).reduce((sum, event) => sum + Math.max(0, Number(event.payload?.amount || 0)), 0);
+  const paidActions = events.filter(event => event.actorId === actor.id && ["action.prepare", "enemy.action.prepare", "technique.prepare"].includes(event.type) && !event.payload?.quick && !event.payload?.continuation).length;
+  const total = Math.max(base, base + gained, spent, Number(actor.ap || 0)), fallbackUsed = Math.max(0, total - Math.max(0, Number(actor.ap || 0)));
+  const used = Math.min(total, Math.max(spent, fallbackUsed, paidActions)), remaining = Math.max(0, total - used), readyToEnd = remaining === 0 || Number(actor.ap || 0) <= 0;
+  return {
+    available: true,
+    reason: "",
+    total,
+    used: readyToEnd ? total : used,
+    remaining: readyToEnd ? 0 : remaining,
+    currentAction: readyToEnd ? 0 : Math.min(total, used + 1),
+    readyToEnd,
+    labels: ["Ход начат", ...Array.from({ length: total }, (_, index) => `Действие ${index + 1}`), "Завершить Ход"],
+  };
+}
 function movementPath(scene, actorId, destination, options = {}) {
   const actor = actorById(scene, actorId), space = (scene.spaces || []).find(item => item.id === actor?.space);
   if (!actor || !space || !destination || !Number.isInteger(Number(destination.x)) || !Number.isInteger(Number(destination.y))) return [];
