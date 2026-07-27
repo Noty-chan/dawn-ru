@@ -117,12 +117,19 @@ function showSceneContextMenu(event,{actor=null,cell=null,marker=null}={}){
   menu.querySelector("button")?.focus({preventScroll:true});
 }
 function shortTechniqueLineCells(anchor,orientation){const space=activeSceneSpace(),vectors={horizontal:[1,0],vertical:[0,1],"diagonal-down":[1,1],"diagonal-up":[1,-1]},[dx,dy]=vectors[orientation]||vectors.horizontal,cells=[];for(let offset=-1;offset<=1;offset+=1){const x=anchor.x+dx*offset,y=anchor.y+dy*offset;if(x>=0&&y>=0&&x<space.width&&y<space.height)cells.push(`${x},${y}`)}return cells}
+function insetSceneTracePoints(points,startPadding=.22,endPadding=.3){
+  const centered=points.map(point=>({x:Number(point.x)+.5,y:Number(point.y)+.5}));if(centered.length<2)return centered;
+  const inset=(point,toward,padding)=>{const dx=toward.x-point.x,dy=toward.y-point.y,length=Math.hypot(dx,dy)||1,amount=Math.min(padding,length*.34);return{x:point.x+dx/length*amount,y:point.y+dy/length*amount}};
+  const first=centered[0],second=centered[1],last=centered.at(-1),beforeLast=centered.at(-2);
+  centered[0]=inset(first,second,startPadding);centered[centered.length-1]=inset(last,beforeLast,endPadding);
+  return centered
+}
 function sceneMovementTracesSvg(space,actors){
   const status=SceneEngine.movementTraceStatus(Scene,{space:space.id});if(!status.available)return"";
   const actorMap=new Map(actors.map(actor=>[actor.id,actor]));
-  const traces=status.traces.map((trace,index)=>{const actor=actorMap.get(trace.actorId);if(!actor)return"";const color=safeColor(actor.tokenColor,"#47bfd3"),marker=`move-arrow-${index}`,points=trace.points.map(point=>`${point.x+.5},${point.y+.5}`).join(" "),title=esc(`${actor.name}: ${trace.movement}`);
-    if(trace.teleport)return `<g class="scene-move-trace teleport"><title>${title}</title><line x1="${trace.from.x+.5}" y1="${trace.from.y+.5}" x2="${trace.destination.x+.5}" y2="${trace.destination.y+.5}" style="--trace-color:${color}"/><circle class="trace-origin" cx="${trace.from.x+.5}" cy="${trace.from.y+.5}" r=".13" style="--trace-color:${color}"/><circle class="trace-destination" cx="${trace.destination.x+.5}" cy="${trace.destination.y+.5}" r=".18" style="--trace-color:${color}"/></g>`;
-    return `<g class="scene-move-trace normal"><title>${title}</title><defs><marker id="${marker}" markerWidth="5" markerHeight="5" refX="4" refY="2.5" orient="auto"><path d="M0,0 L5,2.5 L0,5 Z" fill="${color}"/></marker></defs><polyline points="${points}" style="--trace-color:${color};marker-end:url(#${marker})"/></g>`
+  const traces=status.traces.map((trace,index)=>{const actor=actorMap.get(trace.actorId);if(!actor)return"";const color=safeColor(actor.tokenColor,"#47bfd3"),marker=`move-arrow-${index}`,geometry=insetSceneTracePoints(trace.teleport?[trace.from,trace.destination]:trace.points),points=geometry.map(point=>`${point.x.toFixed(3)},${point.y.toFixed(3)}`).join(" "),origin=geometry[0],destination=geometry.at(-1),title=esc(`${actor.name}: ${trace.movement}`);
+    if(trace.teleport)return `<g class="scene-move-trace teleport" style="--trace-color:${color}"><title>${title}</title><polyline class="trace-halo" points="${points}"/><polyline class="trace-line" points="${points}"/><circle class="trace-origin" cx="${origin.x}" cy="${origin.y}" r=".075"/><path class="trace-destination" d="M ${destination.x} ${destination.y-.11} L ${destination.x+.11} ${destination.y} L ${destination.x} ${destination.y+.11} L ${destination.x-.11} ${destination.y} Z"/></g>`;
+    return `<g class="scene-move-trace normal" style="--trace-color:${color}"><title>${title}</title><defs><marker id="${marker}" viewBox="0 0 8 8" markerWidth="4" markerHeight="4" refX="6.8" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 L2.2,4 Z" fill="${color}"/></marker></defs><polyline class="trace-halo" points="${points}"/><polyline class="trace-line" points="${points}" marker-end="url(#${marker})"/><circle class="trace-origin" cx="${origin.x}" cy="${origin.y}" r=".055"/></g>`
   }).join("");
   return traces?`<svg class="scene-movement-traces" viewBox="0 0 ${space.width} ${space.height}" preserveAspectRatio="none" aria-hidden="true">${traces}</svg>`:""
 }
