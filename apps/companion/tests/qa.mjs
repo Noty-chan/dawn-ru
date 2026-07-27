@@ -10,7 +10,8 @@ vm.runInNewContext(fs.readFileSync(path.join(root, "logic.js"), "utf8"), context
 vm.runInNewContext(fs.readFileSync(path.join(root, "data.js"), "utf8"), context);
 const data = context.window.DAWN_DATA;
 const logic = context.window.DAWN_LOGIC;
-const appSource = fs.readFileSync(path.join(root, "app.js"), "utf8");
+const appFiles = ["app-bootstrap.js", "app-reference-data.js", "app-core.js", "hero-ui.js", "scene-ui.js", "scene-effects.js", "scene-actions-ui.js", "scene-sync-ui.js", "play-ui.js", "app-builder-events.js", "app-sync-events.js", "app-scene-events.js", "app-play-events.js", "app.js"];
+const appSource = appFiles.map(file => fs.readFileSync(path.join(root, file), "utf8")).join("\n");
 const cockpitSource = fs.readFileSync(path.join(root, "vtt-concepts.js"), "utf8");
 assert.match(appSource, /counter\("focus","Фокус",rt\.focus\)/, "Focus counter must remain unbounded");
 assert.doesNotMatch(cockpitSource, /maxFocus|Фокус\s*\$\{[^}]+\}\s*\//, "Cockpit must not display or store a Focus ceiling");
@@ -216,6 +217,9 @@ const rolled = logic.rollXd6({ count: 2, threshold: 3, random: () => sequence.sh
 assert.deepEqual(Array.from(rolled.rolls), [6, 1, 3]);
 assert.equal(rolled.successes, 2, "All Out succeeds on 3+");
 assert.equal(rolled.crits, 1, "exploding six is still a critical success");
+const assassinSequence = [4 / 6, 1 / 6];
+const assassinRoll = logic.rollXd6({ count: 1, criticalAt: 5, random: () => assassinSequence.shift() });
+assert.deepEqual(Array.from(assassinRoll.rolls), [5, 2], "Assassinate makes a 5 explode into an additional die");
 assert.deepEqual(
   JSON.parse(JSON.stringify(logic.swapAttributeBase({ body: 4, talent: 3, spirit: 2, mind: 2 }, "spirit", 4, ["body", "talent", "spirit", "mind"]))),
   { body: 2, talent: 3, spirit: 4, mind: 2 },
@@ -232,8 +236,8 @@ assert.deepEqual(
   "each gained tier grants two different ordinary Attribute increases",
 );
 
-for (const file of ["index.html", "app.css", "vtt-cockpit.css", "app.js", "logic.js", "config.js", "sync.js", "data.js", "manifest.webmanifest", "sw.js", "icon.svg"]) assert.ok(fs.existsSync(path.join(root, file)), file);
-const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
+for (const file of ["index.html", "app.css", "vtt-cockpit.css", ...appFiles, "logic.js", "config.js", "sync.js", "data.js", "manifest.webmanifest", "sw.js", "icon.svg"]) assert.ok(fs.existsSync(path.join(root, file)), file);
+const app = appSource;
 const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
 const css = fs.readFileSync(path.join(root, "app.css"), "utf8");
 const sync = fs.readFileSync(path.join(root, "sync.js"), "utf8");

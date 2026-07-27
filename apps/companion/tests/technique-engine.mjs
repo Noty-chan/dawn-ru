@@ -1,36 +1,37 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import vm from "node:vm";
+import { loadSceneEngine } from "./load-scene-engine.mjs";
 
 const source = fs.readFileSync(new URL("../technique-engine.js", import.meta.url), "utf8");
-const sceneSource = fs.readFileSync(new URL("../scene-engine.js", import.meta.url), "utf8");
 const dataSource = fs.readFileSync(new URL("../data.js", import.meta.url), "utf8");
 const context = { console };
 context.globalThis = context;
 context.window = context;
 vm.runInNewContext(dataSource, context);
-vm.runInNewContext(sceneSource, context);
+loadSceneEngine(context);
 vm.runInNewContext(source, context);
 const Engine = context.DAWN_TECHNIQUE_ENGINE;
 const SceneEngine = context.DAWN_SCENE_ENGINE;
 
 const scene = {
+  version: 0, round: 1, tension: 5, activeActorId: "hero",
   activeSpace: "main",
   spaces: [{ id: "main", name: "Поле", width: 7, height: 7 }],
   actors: [
-    { id: "hero", name: "Искра", space: "main", x: 1, y: 1, techniques: { "ruiner.bombardier": 3, "disruptor.chemist": 1, "disruptor.inner-world": 2, "powerhouse.spellsword": 2 } },
-    { id: "enemy-a", name: "Ассасин", space: "main", x: 3, y: 3 },
-    { id: "enemy-b", name: "Ведьма", space: "main", x: 4, y: 3 },
+    { id: "hero", name: "Искра", team: "hero", space: "main", x: 1, y: 1, ap: 3, focus: 6, attrs: { spirit: 4, mind: 4 }, usedActions: [], techniques: { "ruiner.bombardier": 3, "disruptor.chemist": 1, "disruptor.inner-world": 2, "powerhouse.spellsword": 2 } },
+    { id: "enemy-a", name: "Ассасин", team: "enemy", space: "main", x: 3, y: 3 },
+    { id: "enemy-b", name: "Ведьма", team: "enemy", space: "main", x: 4, y: 3 },
   ],
   objects: [], markers: [], targetIds: [],
 };
 
 assert.ok(Engine.rulesFor(scene.actors[0].techniques).some(rule => rule.id === "ruiner.bombardier.3"));
-assert.equal(Engine.RULES.find(rule => rule.id === "ruiner.bombardier.3").automation, "assist");
+assert.equal(Engine.RULES.find(rule => rule.id === "ruiner.bombardier.3").automation, "partial");
 assert.equal(Engine.RULES.find(rule => rule.id === "disruptor.chemist.1").automation, "full");
 const coverage = Engine.techniqueCoverage(context.DAWN_DATA);
 assert.equal(coverage.length, 321, "every Technique level must have an automation status");
-assert.ok(coverage.every(entry => ["full", "assist", "manual"].includes(entry.automation)));
+assert.ok(coverage.every(entry => ["full", "partial", "decision", "manual"].includes(entry.automation)));
 assert.ok(coverage.filter(entry => entry.automation !== "manual").length >= 290, "semantic mechanics index assists most canonical levels");
 assert.ok(coverage.some(entry => entry.mechanics?.areas?.length));
 assert.ok(coverage.some(entry => entry.mechanics?.clocks?.length));
@@ -41,10 +42,11 @@ const explosion = Engine.preview(scene, {
   ruleId: "ruiner.bombardier.3",
   anchor: { x: 3, y: 3 },
   options: { focusSpent: 4 },
+  roll: { formula: "8D6", rolls: [4, 4, 4, 4, 2, 2, 2, 2], successes: 4, crits: 0 },
 });
 assert.equal(explosion.ok, true);
 assert.equal(explosion.affectedCells.length, 25);
-assert.deepEqual([...explosion.affectedActorIds].sort(), ["enemy-a", "enemy-b", "hero"].sort());
+assert.deepEqual([...explosion.affectedActorIds].sort(), ["enemy-a", "enemy-b"].sort());
 
 const tooFar = Engine.preview(scene, {
   actorId: "hero",
@@ -54,20 +56,22 @@ const tooFar = Engine.preview(scene, {
 assert.equal(tooFar.ok, false);
 assert.match(tooFar.errors.join(" "), /3 клетками/);
 
-const gas = Engine.preview(scene, {
+const gasScene = structuredClone(scene);
+gasScene.objects = [{ id: "terrain", space: "main", type: "terrain", label: "Стена", cells: ["3,3"] }];
+const gas = Engine.preview(gasScene, {
   actorId: "hero",
   ruleId: "disruptor.chemist.1",
   anchor: { x: 3, y: 3 },
 });
-const committedGas = Engine.commit(scene, gas, { makeId: prefix => `test-${prefix}` });
-assert.equal(scene.objects.length, 0, "preview/commit must not mutate the source scene");
+const committedGas = Engine.commit(gasScene, gas, { makeId: prefix => `test-${prefix}` });
+assert.equal(gasScene.objects.length, 1, "preview/commit must not mutate the source scene");
 assert.equal(committedGas.scene.objects[0].type, "gas");
 assert.equal(committedGas.scene.objects[0].duration, "nextTurn");
-const gasEvents = Engine.toEvents(scene, gas, { makeId: prefix => `event-${prefix}` });
-const eventGas = SceneEngine.dispatchMany({ ...scene, version: 0, log: [] }, gasEvents).scene;
+const gasEvents = Engine.toEvents(gasScene, gas, { makeId: prefix => `event-${prefix}` });
+const eventGas = SceneEngine.dispatchMany({ ...gasScene, version: 0, log: [] }, gasEvents).scene;
 assert.equal(eventGas.objects[0].type, "gas", "Technique commands share the Scene event stream");
 assert.ok(eventGas.log.some(event => event.type === "technique.resolve"));
-assert.equal(JSON.stringify(Engine.undo(committedGas.transaction)), JSON.stringify(scene));
+assert.equal(JSON.stringify(Engine.undo(committedGas.transaction)), JSON.stringify(gasScene));
 
 const innerWorld = Engine.preview(scene, {
   actorId: "hero",

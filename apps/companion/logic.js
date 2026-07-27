@@ -195,22 +195,23 @@
     return result;
   }
 
-  function rollXd6({ count, threshold = 4, random = Math.random, maxRolls = 300 }) {
+  function rollXd6({ count, threshold = 4, criticalAt = 6, random = Math.random, maxRolls = 300 }) {
     const initialCount = clamp(count, 1, 300);
     const successAt = clamp(threshold, 2, 6);
+    const criticalThreshold = clamp(criticalAt, 2, 6);
     const rolls = [];
     let pending = initialCount;
     while (pending > 0 && rolls.length < maxRolls) {
       pending -= 1;
       const value = 1 + Math.floor(clamp(random(), 0, 0.999999999) * 6);
       rolls.push(value);
-      if (value === 6) pending += 1;
+      if (value >= criticalThreshold) pending += 1;
     }
     return {
       initialCount,
       rolls,
       successes: rolls.filter(value => value >= successAt).length,
-      crits: rolls.filter(value => value === 6).length,
+      crits: rolls.filter(value => value >= criticalThreshold).length,
       truncated: pending > 0,
     };
   }

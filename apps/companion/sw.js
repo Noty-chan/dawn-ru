@@ -1,7 +1,14 @@
 const BUILD = "__BUILD_VERSION__";
 const CACHE = `dawn-ru-companion-${BUILD}`;
 const versioned = path => `${path}?v=${BUILD}`;
-const ASSETS = ["./", "./index.html", versioned("./app.css"), versioned("./vtt-cockpit.css"), versioned("./app.js"), versioned("./logic.js"), versioned("./scene-engine.js"), versioned("./technique-engine.js"), versioned("./config.js"), versioned("./sync.js"), versioned("./data.js"), "./manifest.webmanifest", "./icon.svg"];
+const SCRIPT_ASSETS = [
+  "./data.js", "./logic.js",
+  "./scene-engine-core.js", "./scene-movement.js", "./scene-events.js", "./scene-triggers.js", "./scene-actions.js", "./scene-responses.js", "./scene-engine.js",
+  "./technique-engine.js", "./config.js", "./sync.js",
+  "./app-bootstrap.js", "./app-reference-data.js", "./app-core.js", "./hero-ui.js", "./scene-ui.js", "./scene-effects.js", "./scene-actions-ui.js", "./scene-sync-ui.js", "./play-ui.js",
+  "./app-builder-events.js", "./app-sync-events.js", "./app-scene-events.js", "./app-play-events.js", "./app.js",
+];
+const ASSETS = ["./", "./index.html", versioned("./app.css"), versioned("./vtt-cockpit.css"), ...SCRIPT_ASSETS.map(versioned), "./manifest.webmanifest", "./icon.svg"];
 self.addEventListener("install", event => event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS)).then(() => self.skipWaiting())));
 self.addEventListener("activate", event => event.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(key => key !== CACHE).map(key => caches.delete(key)))).then(() => self.clients.claim())));
 self.addEventListener("fetch", event => {

@@ -1,12 +1,13 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import vm from "node:vm";
+import { loadSceneEngine } from "./load-scene-engine.mjs";
 
 const context = { console, Date };
 context.globalThis = context;
 context.window = context;
 vm.runInNewContext(fs.readFileSync(new URL("../data.js", import.meta.url), "utf8"), context);
-vm.runInNewContext(fs.readFileSync(new URL("../scene-engine.js", import.meta.url), "utf8"), context);
+loadSceneEngine(context);
 const Engine = context.DAWN_SCENE_ENGINE;
 const data = context.DAWN_DATA;
 const scene = {
@@ -48,6 +49,20 @@ assert.throws(() => Engine.dispatch(scene, { type: "scene.replace", payload: { s
 const publicRoll = Engine.dispatch(scene, { type: "roll.public", actorId: "hero", payload: { formula: "4D6 ≥4", rolls: [6, 5, 2, 1], successes: 2, crits: 1, outcome: "Минимальный успех" } }).scene;
 assert.equal(publicRoll.rollFeed[0].actor, "Эта");
 assert.equal(publicRoll.rollFeed[0].outcome, "Минимальный успех");
+assert.deepEqual(
+  JSON.parse(JSON.stringify(Engine.eventParticipants(scene, { type: "damage.apply", actorId: "hero", payload: { targetId: "enemy", participantIds: ["hero", "enemy", "missing"] } }))),
+  { sourceIds: ["hero"], targetIds: ["enemy"], actorIds: ["hero", "enemy"] },
+  "Event participants must be canonical, role-aware, unique, and limited to actors on the Scene",
+);
+const previewSource = structuredClone(scene);
+const preview = Engine.previewEvents(previewSource, [{ type: "resource.gain", actorId: "hero", payload: { resource: "focus", amount: 2 } }]);
+assert.equal(preview.ok, true);
+assert.equal(preview.scene.actors[0].focus, 52);
+assert.equal(previewSource.actors[0].focus, 50, "Previewing an event chain must not mutate the source Scene");
+const rejectedPreview = Engine.previewEvents(previewSource, [{ type: "resource.spend", actorId: "hero", payload: { resource: "ap", amount: 99 } }]);
+assert.equal(rejectedPreview.ok, false);
+assert.equal(rejectedPreview.scene.actors[0].ap, 3);
+assert.match(rejectedPreview.errors[0], /нельзя оплатить/);
 
 const privateScene = structuredClone(scene);
 privateScene.actors[0].privateNotes = "Тайна игрока";
@@ -102,8 +117,7 @@ const edgeScene = structuredClone(scene);
 edgeScene.actors[0].x = 0;
 const hide = Engine.prepareAction(edgeScene, data, { actorId: "hero", actionId: actionNamed("Скрыться").id });
 assert.equal(hide.ok, true);
-assert.equal(hide.action.automation, "assist");
-assert.ok(!hide.events.some(event => event.type === "effect.apply"), "Hide records its valid use without inventing a fully automated Vanished effect");
+assert.ok(hide.events.some(event => event.type === "effect.apply" && event.payload.effect === "positive.исчез"), "Hide applies the canonical Disappeared effect");
 assert.equal(Engine.prepareAction(scene, data, { actorId: "hero", actionId: actionNamed("Скрыться").id }).ok, false, "Hide rejects a non-edge cell");
 const study = Engine.prepareAction(scene, data, { actorId: "hero", actionId: actionNamed("Изучение").id, targetIds: ["enemy"] });
 assert.equal(study.ok, true);
@@ -318,8 +332,8 @@ lifecycleScene.tension = 2;
 lifecycleScene.actors[0].ap = 1;
 lifecycleScene.actors[1].ap = 0;
 lifecycleScene.objects = [{ id: "gas", type: "gas", duration: "nextTurn", ownerActorId: "hero", space: "main", cells: ["2,1"] }];
-const entered = Engine.dispatch(lifecycleScene, { type: "actor.enter", actorId: "enemy", payload: {} }).scene;
-assert.ok(entered.actors[1].effects.includes("Ослаблен"));
+const entered = Engine.dispatchMany(lifecycleScene, [{ type: "actor.enter", actorId: "enemy", payload: {} }]).scene;
+assert.ok(entered.actors[1].effects.includes("negative.ослаблен"));
 const heroTurn = Engine.dispatch(entered, { type: "turn.start", actorId: "hero", payload: {} }).scene;
 assert.equal(heroTurn.activeActorId, "hero");
 assert.equal(heroTurn.actors[0].ap, 1, "A hero keeps the AP established at Round start when their Turn begins");
@@ -365,5 +379,124 @@ assert.equal(afterActiveKo.activeActorId, null);
 assert.equal(afterActiveKo.log[0].payload.endedTurnActorId, "hero", "A KO explicitly records the interrupted Turn closure");
 assert.equal(Engine.turnStartStatus(afterActiveKo, "enemy").available, true, "After an active hero is knocked out, alternation passes to an enemy");
 assert.equal(Engine.turnStartStatus(afterActiveKo, "hero-2").available, false, "A second hero cannot act immediately after the interrupted hero Turn");
+
+const staleTargetScene = structuredClone(scene);
+staleTargetScene.actors[1].knockedOut = true;
+assert.equal(prepareAttack(staleTargetScene, "hero", "enemy").ok, false, "A knocked-out participant cannot become a new Attack target");
+assert.equal(prepareAttack(scene, "hero", "missing").ok, false, "A removed participant cannot survive in a new target list");
+assert.throws(() => Engine.dispatch(scene, { type: "resource.spend", actorId: "hero", payload: { resource: "ap", amount: 99 } }), /изменился/, "A stale command cannot silently over-spend a resource");
+
+const interruptedSourceScene = structuredClone(awaiting);
+interruptedSourceScene.actors[0].guts = 0;
+const sourceDown = Engine.dispatch(interruptedSourceScene, { type: "damage.apply", actorId: "enemy", payload: { targetId: "hero", amount: 99, ignoreArmor: true } }).scene;
+const interruptedStatus = Engine.pendingActionStatus(sourceDown);
+assert.equal(interruptedStatus.mustCancel, true);
+assert.match(interruptedStatus.interruptedReason, /выведен из боя/);
+const cancelledResolution = Engine.resolvePendingAction(sourceDown, data);
+assert.equal(cancelledResolution.cancelled, true);
+const afterCancellation = Engine.dispatchMany(sourceDown, cancelledResolution.events).scene;
+assert.equal(afterCancellation.pendingAction, null);
+assert.equal(afterCancellation.actors[1].hp, 10, "An interrupted source never deals delayed damage");
+
+const multiTargetScene = structuredClone(scene);
+multiTargetScene.actors.push({ ...structuredClone(multiTargetScene.actors[1]), id: "enemy-2", name: "Вторая цель", x: 1, y: 2, armor: 0, guts: 0 });
+const multiAttack = prepareAttack(multiTargetScene, "hero", "enemy", "Стычка");
+multiAttack.events.find(event => event.type === "attack.pending").payload.targetIds.push("enemy-2");
+multiAttack.events.splice(-1, 0, { type: "reaction.offer", actorId: "enemy-2", payload: { sourceActorId: "hero", actionId: actionNamed("Стычка").id } });
+let multiAwaiting = Engine.dispatchMany(multiTargetScene, multiAttack.events).scene;
+multiAwaiting = Engine.dispatch(multiAwaiting, { type: "damage.apply", actorId: null, payload: { targetId: "enemy-2", amount: 99, ignoreArmor: true } }).scene;
+assert.equal(multiAwaiting.pendingAction.responses["enemy-2"].choice, "unavailable");
+const firstTargetPass = Engine.respondReaction(multiAwaiting, data, { actorId: "enemy", choice: "pass" });
+multiAwaiting = Engine.dispatchMany(multiAwaiting, firstTargetPass.events).scene;
+const partialResolution = Engine.resolvePendingAction(multiAwaiting, data);
+assert.equal(partialResolution.ok, true);
+const partialResolved = Engine.dispatchMany(multiAwaiting, partialResolution.events).scene;
+assert.equal(partialResolved.pendingAction, null);
+assert.equal(partialResolved.actors.find(actor => actor.id === "enemy").hp, 9);
+assert.equal(partialResolved.actors.find(actor => actor.id === "enemy-2").hp, 0, "An unavailable target is skipped instead of blocking or taking damage twice");
+assert.equal(Engine.respondReaction(answered, data, { actorId: "enemy", choice: "pass" }).ok, false, "A repeated Reaction response is rejected");
+assert.throws(() => Engine.dispatch(awaiting, { type: "attack.clear", actorId: "hero", payload: { pendingId: "stale" } }), /устарела/, "A stale cancel command cannot close a newer Attack");
+
+const planScene = structuredClone(scene);
+planScene.actors[0].techniques = { "vagabond.cunning-fighter": 2 };
+planScene.actors[0].techniqueState = { cunningPlan: 0, studiedActorIds: [] };
+const plannedStudy = Engine.prepareAction(planScene, data, { actorId: "hero", actionId: actionNamed("Изучение").id, targetIds: ["enemy"] });
+const afterPlannedStudy = Engine.dispatchMany(planScene, plannedStudy.events).scene;
+assert.equal(afterPlannedStudy.actors[0].techniqueState.cunningPlan, 1, "A first Study target fills Cunning Plan");
+const plannedRest = Engine.prepareAction(afterPlannedStudy, data, { actorId: "hero", actionId: actionNamed("Передышка").id, useCunningPlan: true });
+assert.equal(plannedRest.ok, true);
+assert.equal(plannedRest.action.quick, true);
+assert.equal(plannedRest.events.some(event => event.type === "resource.spend"), false, "Plan reduces a 1 AP action to zero");
+assert.equal(Engine.dispatchMany(afterPlannedStudy, plannedRest.events).scene.actors[0].techniqueState.cunningPlan, 0);
+
+const comboScene = structuredClone(scene);
+comboScene.actors[0].techniques = { "powerhouse.technician": 3 };
+comboScene.actors[0].comboCooldowns = {};
+comboScene.log.unshift({ id: "previous-skirmish", type: "action.prepare", actorId: "hero", payload: { actionId: actionNamed("Стычка").id, actionName: "Стычка", name: "Стычка" } });
+comboScene.actors[0].ap = 1;
+const finalBlow = Engine.prepareTechniqueCombo(comboScene, data, { actorId: "hero", ruleId: "powerhouse.technician.3", targetIds: ["enemy"], roll: { formula: "4D6", rolls: [6, 5, 2, 1], successes: 2, crits: 1 } });
+assert.equal(finalBlow.ok, true);
+assert.equal(finalBlow.events.find(event => event.type === "resource.spend").payload.amount, 1, "Final Blow costs exactly 1 AP");
+const comboAwaiting = Engine.dispatchMany(comboScene, finalBlow.events).scene;
+assert.equal(comboAwaiting.actors[0].comboCooldowns["powerhouse.technician.3"], 2);
+assert.equal(Engine.prepareTechniqueCombo(comboAwaiting, data, { actorId: "hero", ruleId: "powerhouse.technician.3", targetIds: ["enemy"] }).ok, false, "A combo cannot be reused while pending/on cooldown");
+const speedScene = structuredClone(scene);
+speedScene.actors[0].techniques = { "vagabond.assassin": 3 };
+speedScene.actors[0].ap = 0;
+speedScene.log.unshift({ id: "previous-hide", type: "action.prepare", actorId: "hero", payload: { actionId: actionNamed("Скрыться").id, actionName: "Скрыться", name: "Скрыться" } });
+const speedOfDark = Engine.prepareTechniqueCombo(speedScene, data, { actorId: "hero", ruleId: "vagabond.assassin.3", destination: { x: 1, y: 2 } });
+assert.equal(speedOfDark.ok, true);
+assert.equal(speedOfDark.events.some(event => event.type === "resource.spend"), false);
+assert.ok(speedOfDark.events.some(event => event.type === "effect.apply" && event.payload.effect === "positive.невидим"), "Speed of Dark is free and applies Invisible");
+
+const viperScene = structuredClone(enemyScene);
+viperScene.actors[1].profileId = "enemy.common.viper";
+viperScene.actors[1].tier = 2;
+viperScene.actors[0].effects = ["negative.порчен"];
+viperScene.actors.push({ ...structuredClone(viperScene.actors[0]), id: "hero-corrupt", hp: 12, x: 1, y: 2 });
+const lick = Engine.availableEnemyRules(viperScene, data, "enemy").find(rule => rule.en === "Lick The Knife");
+assert.equal(lick.automation, "full");
+const licked = Engine.dispatchMany(viperScene, Engine.prepareEnemyRule(viperScene, data, { actorId: "enemy", ruleId: lick.id }).events).scene;
+assert.equal(licked.actors.find(actor => actor.id === "hero").hp, 4);
+assert.equal(licked.actors.find(actor => actor.id === "hero-corrupt").hp, 4, "Lick the Knife damages every Corrupted player by count × scaled value");
+
+const cocoonScene = structuredClone(enemyScene);
+cocoonScene.tension = 3;
+cocoonScene.actors[1].profileId = "enemy.common.cocoon";
+const growthRule = Engine.availableEnemyRules(cocoonScene, data, "enemy").find(rule => rule.en === "Quick Growth");
+const grown = Engine.dispatchMany(cocoonScene, Engine.prepareEnemyRule(cocoonScene, data, { actorId: "enemy", ruleId: growthRule.id }).events).scene;
+assert.equal(grown.actors[1].ruleState.growth, 1);
+assert.equal(grown.actors[1].extraTurns, 1, "Quick Growth records Growth and grants the immediate extra Turn");
+const extraTurn = Engine.dispatch(grown, { type: "turn.end", actorId: "enemy", payload: {} }).scene;
+assert.equal(extraTurn.activeActorId, "enemy");
+assert.equal(extraTurn.actors[1].ap, extraTurn.actors[1].baseAp);
+assert.equal(extraTurn.log[0].payload.startedExtraTurn, true, "Ending the first Turn immediately opens the granted Turn with fresh per-Turn history");
+
+const trapScene = structuredClone(scene);
+trapScene.activeActorId = "enemy";
+trapScene.actors[0].techniques = { "disruptor.hunter": 1 };
+trapScene.actors[0].x = 0;
+trapScene.actors[0].y = 0;
+trapScene.actors[1].x = 3;
+trapScene.actors[1].y = 1;
+trapScene.actors[1].speed = 3;
+trapScene.actors[1].ap = 2;
+trapScene.markers = [{ id: "trap", kind: "trap", ruleId: "disruptor.hunter.1", source: "disruptor.hunter.1", ownerActorId: "hero", space: "main", x: 2, y: 1 }];
+const trappedStep = Engine.prepareAction(trapScene, data, { actorId: "enemy", actionId: actionNamed("Шаг").id, destination: { x: 0, y: 1 } });
+assert.equal(trappedStep.ok, true);
+const trapped = Engine.dispatchMany(trapScene, trappedStep.events).scene;
+assert.deepEqual([trapped.actors[1].x, trapped.actors[1].y], [2, 1], "A Hunter trap truncates movement at the crossed trap cell");
+assert.equal(trapped.pendingPrompt.kind, "hunter-trap");
+const trapAttack = Engine.respondRulePrompt(trapped, data, { choice: "attack", roll: { formula: "3D6", rolls: [4, 5, 2], successes: 2, crits: 0 } });
+const trapAttackScene = Engine.dispatchMany(trapped, trapAttack.events).scene;
+assert.equal(trapAttackScene.pendingAction.techniqueRuleId, "disruptor.hunter.1");
+
+const alchemistScene = structuredClone(scene);
+alchemistScene.actors[0].techniques = { "altruist.alchemist": 2 };
+const alchemistRest = Engine.prepareAction(alchemistScene, data, { actorId: "hero", actionId: actionNamed("Передышка").id });
+const mixed = Engine.dispatchMany(alchemistScene, alchemistRest.events).scene;
+assert.equal(mixed.pendingPrompt.kind, "alchemist-mix");
+const potionCreated = Engine.dispatchMany(mixed, Engine.respondRulePrompt(mixed, data, { choice: "rage-fumes" }).events).scene;
+assert.equal(potionCreated.actors[0].inventory["potion:rage-fumes"], 1);
 
 console.log("Scene engine QA passed: canonical Turns and AP, once-per-Round actions, strict Reactions, truthful enemy automation, effects, movement, damage, and public events");

@@ -1,0 +1,117 @@
+"use strict";
+
+function renderSync(){
+  if(!Sync)return;const sync=Sync.state(),statusNames={offline:"Локально",connecting:"Подключение…",authenticated:"Auth готов",online:"Синхронизировано",error:"Ошибка"},roleNames={owner:"Владелец / Нарратор",narrator:"Нарратор",player:"Игрок"},status=$("scene-sync-status");status.textContent=statusNames[sync.status]||sync.status;status.className=`sync-status ${sync.status}`;status.title=sync.error||"";
+  if(document.activeElement!==$("sync-url"))$("sync-url").value=sync.url||"";if(document.activeElement!==$("sync-key"))$("sync-key").value=sync.publishableKey||"";if(document.activeElement!==$("sync-display-name"))$("sync-display-name").value=sync.displayName||S.player||"";
+  $("scene-sync-settings").open=sync.status==="error";$("scene-sync-lobby").hidden=Boolean(sync.sceneId);$("scene-sync-session").hidden=!sync.sceneId;$("sync-player-actions").hidden=sync.role!=="player";$("sync-publish-hero").hidden=sync.role!=="player";const people=Array.isArray(sync.presence)?sync.presence:[];$("sync-presence").innerHTML=sync.sceneId?(people.length?`<strong>Сейчас за столом:</strong>${people.map(person=>`<span class="sync-person ${person.userId===sync.userId?"self":""}"><i></i>${esc(person.displayName||"Игрок")}${person.heroName?` · ${esc(person.heroName)}`:""}<small>${esc(roleNames[person.role]||person.role||"")}</small></span>`).join("")}`:`<span class="autosave">Подключаем участников…</span>`):"";const queue=$("sync-command-queue");queue.hidden=!sync.canNarrate||!pendingSceneCommands.length;queue.innerHTML=queue.hidden?"":`<strong>Команды игроков</strong>${pendingSceneCommands.map(command=>`<article class="sync-command"><span>${esc(commandSummary(command))}</span><button type="button" data-sync-command="${command.id}" data-sync-decision="applied">Принять</button><button type="button" data-sync-command="${command.id}" data-sync-decision="rejected">Отклонить</button></article>`).join("")}`;if(sync.sceneId){$("sync-campaign-title").textContent=sync.campaignName||"Кампания DAWN";$("sync-role-label").textContent=`${roleNames[sync.role]||sync.role} · версия Сцены ${sync.version}`;$("sync-create-invite").hidden=!sync.canNarrate}
+}
+function renderPlay(){
+  ensureRuntime();const d=derived(),rt=S.runtime;
+  $("ko-banner").innerHTML=rt.wounds>=d.guts?`<div class="ko"><strong>Раны догнали Стойкость.</strong> Герой выводится из строя: снимите одну Рану и увеличьте Напряжение — либо поставьте Влияние на кон и вернитесь с 2 Стресса и Здоровьем, равным Стойкости.<div class="button-row"><button type="button" id="ko-yield">Выведен из строя</button><button type="button" id="ko-stake">Поставить на кон</button></div></div>`:"";
+  $("play-counters").innerHTML=counter("hp","Здоровье",rt.hp,d.hp)+counter("wounds","Раны",rt.wounds,d.guts)+counter("focus","Фокус",rt.focus)+counter("ap","ОД",rt.ap)+counter("influence","Влияние",rt.influence)+counter("stress","Стресс",rt.stress,3)+counter("tension","Напряжение",rt.tension)+(hasGift("Trust Fund")?counter("funding","Финансирование",rt.funding):"");
+  $("play-kit").innerHTML=sceneSheetPanel();
+  $("scene-notes").value=rt.notes;
+  $("effect-tracker").innerHTML=`<div class="effect-groups">${[["Положительные",D.effects.positive],["Отрицательные",D.effects.negative]].map(([name,list])=>`<div><h4>${name}</h4><div class="chip-row">${list.map(e=>`<button type="button" class="effect-chip ${rt.effects.includes(e.id)?"on":""}" data-effect="${e.id}" title="${esc(e.text)}">${esc(e.name)}</button>`).join("")}</div></div>`).join("")}</div>`;
+  $("ko-yield")?.addEventListener("click",()=>{rt.wounds=Math.max(0,rt.wounds-1);rt.tension++;persist();renderPlay();});
+  $("ko-stake")?.addEventListener("click",()=>{rt.stress=2;rt.hp=d.guts;rt.wounds=Math.max(0,rt.wounds-1);persist();renderPlay();});
+  renderSync();renderScene();
+}
+
+let pendingAllIn=null;
+function recalculateDicePool(){const attr=$("dice-attr").value,skill=S.skills.find(item=>item.id===$("dice-skill").value),abilityKey=$("dice-ability").value,ability=abilityKey==="tainted"?S.taintedAbility:abilityKey==="main"?S.ability:null,count=$("dice-count");count.readOnly=attr!=="manual";if(attr!=="manual")count.value=Math.max(1,attrValue(attr)+(skill?effectiveSkillRank(skill):0)+(ability?.enabled?ability.rank:0))}
+function renderDiceComposer(){const skill=$("dice-skill"),ability=$("dice-ability"),skillValue=skill.value,abilityValue=ability.value;skill.innerHTML=`<option value="">Без Навыка</option>${S.skills.filter(item=>item.name.trim()).map(item=>`<option value="${item.id}">${esc(item.name)} · ${effectiveSkillRank(item)}</option>`).join("")}`;if([...skill.options].some(option=>option.value===skillValue))skill.value=skillValue;ability.innerHTML=`<option value="">Без Способности</option>${S.ability.enabled?`<option value="main">${esc(S.ability.name||"Способность")} · ${S.ability.rank}</option>`:""}${S.mods.taintedBody&&S.taintedAbility.enabled?`<option value="tainted">${esc(S.taintedAbility.name||"Порченое тело")} · ${S.taintedAbility.rank}</option>`:""}`;if([...ability.options].some(option=>option.value===abilityValue))ability.value=abilityValue;recalculateDicePool()}
+function renderAllInControls(){
+  renderDiceComposer();
+  const stressPayment=hasGift("Overexertion")||hasGift("Durandal");
+  const flashback=hasGift("Plenty To Learn");
+  $("all-in-reroll").disabled=!pendingAllIn||S.runtime.influence<1;
+  $("all-in-stress").hidden=!stressPayment;
+  $("all-in-stress").disabled=!pendingAllIn||S.runtime.stress>=3;
+  $("all-in-flashback-wrap").hidden=!flashback;
+  $("all-in-flashback").disabled=!pendingAllIn;
+  if(!pendingAllIn)$("all-in-flashback").checked=false;
+  $("all-in-hint").textContent=!pendingAllIn?"Сначала совершите обычный бросок.":S.runtime.influence>0?"Можно перебросить этот результат, потратив 1 Влияние.":stressPayment&&S.runtime.stress<3?"Влияния нет, но Дар позволяет получить Стресс вместо оплаты.":"Для Ва-банк недостаточно Влияния.";
+}
+function resolveDice(count,threshold,payment=""){
+  const result=Logic.rollXd6({count,threshold}),target=S.tier+1,outcome=result.successes>=target*2?"Крайний успех":result.successes>=target?"Минимальный успех":"Провал";
+  $("dice-result").innerHTML=`<div class="dice">${result.rolls.map(v=>`<span class="die ${v===6?"crit":v>=threshold?"success":""}">${v}</span>`).join("")}</div><strong>${result.successes} Успехов · ${result.crits} Критов · ${outcome}</strong><div class="autosave">${payment?`Ва-банк (${esc(payment)}). `:""}Исходных костей: ${result.initialCount}; цель Ступени ${S.tier}: ${target} / ${target*2}.${result.truncated?" Цепочка взрывов ограничена 300 костями.":""}</div>`;
+  S.runtime.diceHistory.unshift({at:new Date().toLocaleTimeString("ru-RU",{hour:"2-digit",minute:"2-digit"}),count:result.initialCount,successes:result.successes,crits:result.crits,outcome,allIn:Boolean(payment),payment});
+  S.runtime.diceHistory=S.runtime.diceHistory.slice(0,20);persist();renderDiceHistory();const actor=currentHeroActor();if(actor)commitSceneEvents(payment?"Публичный бросок Ва-банк":"Публичный бросок",[{type:"roll.public",actorId:actor.id,payload:{formula:`${result.initialCount}D6 ≥${threshold}`,rolls:result.rolls,successes:result.successes,crits:result.crits,outcome,payment}}]);
+  return result;
+}
+function rollDice(){
+  const base=clamp($("dice-count").value,1,40),adv=clamp($("dice-adv").value,0,30),dis=clamp($("dice-dis").value,0,30),count=Math.max(1,base+adv-dis);
+  resolveDice(count,4);pendingAllIn={count};renderAllInControls();
+}
+function allIn(payment){
+  if(!pendingAllIn)return;
+  if(payment==="Влияние"){if(S.runtime.influence<1)return toast("Недостаточно Влияния");setPlayCounter("influence",S.runtime.influence-1)}else{if(S.runtime.stress>=3)return toast("Стресс уже максимален");S.runtime.stress++;}
+  const flashback=hasGift("Plenty To Learn")&&$("all-in-flashback").checked,{count}=pendingAllIn;pendingAllIn=null;resolveDice(count+(flashback?4:0),3,flashback?`${payment}, флэшбек +4` : payment);renderAllInControls();if(store.mode==="play")renderPlay();
+}
+function renderDiceHistory(){$("dice-history").innerHTML=S.runtime.diceHistory.map(h=>`<li>${esc(h.at)} · ${h.allIn?"Ва-банк · ":""}${esc(h.count)}D6 → ${esc(h.successes)} успех., ${esc(h.crits)} крит. · ${esc(h.outcome)}</li>`).join("")}
+function renderClocks(){
+  $("clocks").innerHTML=S.runtime.clocks.map(c=>`<article class="clock"><div class="clock-head"><input data-clock-name="${c.id}" value="${esc(c.name)}"><button type="button" class="remove" data-clock-remove="${c.id}">×</button></div><div class="segments">${Array.from({length:c.size},(_,i)=>`<button type="button" class="segment ${i<c.value?"on":""}" data-clock="${c.id}" data-value="${i+1}" aria-label="${i+1} из ${c.size}"></button>`).join("")}</div></article>`).join("")||`<p class="autosave">Добавьте часы угрозы, ритуала или погони.</p>`;
+}
+
+function bondRuleItems(){return [
+  {id:"bond.rule.overview",kind:"Связь · правило",name:"Что такое Связь",text:D.bonds.overview},
+  {id:"bond.rule.tags",kind:"Связь · правило",name:"Теги Связи",text:D.bonds.tags},
+  {id:"bond.rule.quick",kind:"Связь · правило",name:"Быстрые Связи",text:D.bonds.quick},
+  {id:"bond.rule.rank",kind:"Связь · правило",name:"Повышение Ранга Связи",text:D.bonds.rankUp},
+  {id:"bond.rule.actions",kind:"Связь · правило",name:"Как использовать действия Связи",text:D.bonds.actionsIntro},
+  {id:"bond.rule.favored",kind:"Связь · правило",name:"Избранные действия Связи",text:D.bonds.favoredActions},
+  {id:"bond.rule.narrator",kind:"Связь · Нарратору",name:"Возвращающиеся персонажи",text:D.bonds.returningCharacters},
+  ...D.bonds.relatedRules.map(rule=>({...rule,kind:"Связь · смежное правило"})),
+]}
+function bondRelatedItems(){
+  const mentionsBond=text=>/\*\*(?:Связ|Связан|быстр\w+ Связ|Ранг Связ)|действи\w+ Связи/i.test(text||"");
+  const gifts=D.outlooks.flatMap(outlook=>(outlook.builtin?[outlook.builtin]:[]).concat(outlook.gifts).filter(gift=>mentionsBond(gift.text)).map(gift=>({id:gift.id,name:gift.name,source:`Дар · ${outlook.name}`,text:gift.text})));
+  const techniques=D.archetypes.flatMap(archetype=>archetype.techniques.flatMap(technique=>technique.levels.filter(level=>mentionsBond(level.text)).map(level=>({id:`${technique.id}.${level.n}`,name:`${technique.name} · ${level.n}: ${level.name}`,source:`Техника · ${archetype.name}`,text:level.text}))));
+  return gifts.concat(techniques);
+}
+function renderBondReference(){
+  const root=$("bond-reference-content");if(!root)return;
+  const standard=D.bonds.actions.filter(action=>!action.antagonistic),antagonistic=D.bonds.actions.filter(action=>action.antagonistic),related=bondRelatedItems();
+  const cards=actions=>actions.map(action=>`<article class="bond-action-card ${action.antagonistic?"antagonistic":""}"><header><span>${esc(action.tag)}</span><h3>${esc(action.name)}</h3></header><p>${md(action.text)}</p></article>`).join("");
+  root.innerHTML=`<div class="bond-reference-intro">${md(D.bonds.overview)}</div><div class="bond-rule-grid"><article><h3>Теги и пределы</h3><div>${md(D.bonds.tags)}</div></article><article><h3>Быстрые Связи</h3><div>${md(D.bonds.quick)}</div></article><article><h3>Повышение Ранга</h3><div>${md(D.bonds.rankUp)}</div></article><article><h3>Цена и первое действие</h3><div>${md(D.bonds.actionsIntro)}<p>${md(D.bonds.favoredActions)}</p></div></article></div><h3 class="bond-group-title">10 стандартных действий и тегов</h3><div class="bond-action-grid">${cards(standard)}</div><section class="bond-antagonistic"><h3>Антагонистические действия</h3><p>${md(D.bonds.antagonisticIntro)}</p><div class="bond-action-grid">${cards(antagonistic)}</div></section><section class="bond-related"><header><h3>Связи в других базовых правилах</h3><span>${D.bonds.relatedRules.length}</span></header><div class="bond-related-grid">${D.bonds.relatedRules.map(item=>`<article><small>Базовое правило</small><h4>${esc(item.name)}</h4><p>${md(item.text)}</p></article>`).join("")}</div></section><section class="bond-related"><header><h3>Особенности, которые меняют правила Связей</h3><span>${related.length}</span></header><p>Здесь собраны Дары и Техники из остальных разделов книги, которые создают, усиливают, ограничивают или позволяют использовать Связи иначе.</p><div class="bond-related-grid">${related.map(item=>`<article><small>${esc(item.source)}</small><h4>${esc(item.name)}</h4><p>${md(item.text)}</p></article>`).join("")}</div></section><section class="bond-narrator"><h3>Нарратору: связанные NPC должны возвращаться</h3><div>${md(D.bonds.returningCharacters)}</div></section>`;
+}
+function ruleKey(value){let hash=2166136261;for(const char of String(value))hash=Math.imul(hash^char.charCodeAt(0),16777619);return(hash>>>0).toString(36)}
+function ruleCardsHtml(cards,chapterId="rule"){return `<div class="rules-card-grid">${cards.map(([name,text])=>{const id=`rule-${chapterId}-${ruleKey(`${name}:${text}`)}`;return `<article id="${id}" class="rules-card"><header><h3>${esc(name)}</h3><a class="rule-permalink" href="#${id}" aria-label="Ссылка на правило «${esc(name)}»">#</a></header><div>${md(text)}</div></article>`}).join("")}</div>`}
+function fieldRulesVisual(){
+  const grid=(cells,classes)=>`<div class="rule-mini-grid">${cells.map((label,index)=>`<span class="${classes[index]||""}">${label}</span>`).join("")}</div>`,range=[4,3,2,3,4,3,2,1,2,3,2,1,"●",1,2,3,2,1,2,3,4,3,2,3,4],line=Array.from({length:25},(_,index)=>index===12?"●":""),lineClasses=Array.from({length:25},(_,index)=>[0,2,4,6,7,10,11,12,13,14,17,18,20,22,24].includes(index)?(index===12?"origin":"line"):""),zone=Array.from({length:25},(_,index)=>index===12?"●":""),zoneClasses=Array.from({length:25},(_,index)=>[6,7,8,11,12,13,16,17,18].includes(index)?(index===12?"origin":"zone"):"");
+  return `<div class="rules-diagrams"><figure><figcaption>Манхэттенская дальность</figcaption>${grid(range,range.map(value=>value==="●"?"origin":""))}</figure><figure><figcaption>Ортогональные и диагональные Линии</figcaption>${grid(line,lineClasses)}</figure><figure><figcaption>Центрированная Зона 3 × 3</figcaption>${grid(zone,zoneClasses)}</figure><figure class="cinematic"><figcaption>Кинематографичное поле</figcaption><div class="rule-cinematic-line">${["И","И","·","·","·","В","В"].map((label,index)=>`<span class="${index<2?"hero":index>4?"enemy":""}">${label}</span>`).join("")}</div></figure></div>`;
+}
+function ruleMatches(query,...values){return !query||values.join(" ").toLowerCase().includes(query)}
+function actionRulesHtml(query=""){
+  const actions=D.actions.list.filter(action=>ruleMatches(query,action.group,action.name,action.cost||"",action.text)),positive=D.effects.positive.filter(effect=>ruleMatches(query,effect.name,effect.text)),negative=D.effects.negative.filter(effect=>ruleMatches(query,effect.name,effect.text)),groups=[...new Set(actions.map(action=>action.group))];
+  return `<div class="rules-action-intro">${md(D.actions.intro||"")}</div>${groups.map(group=>`<section class="rules-subgroup"><h3>${esc(group)}</h3><div class="rules-card-grid">${actions.filter(action=>action.group===group).map(action=>{const id=`rule-action-${ruleKey(`${action.name}:${action.text}`)}`;return `<article id="${id}" class="rules-card"><header><h3>${esc(action.name)}</h3>${action.cost?`<span>${esc(action.cost)}</span>`:""}<a class="rule-permalink" href="#${id}" aria-label="Ссылка на действие «${esc(action.name)}»">#</a></header><div>${md(action.text)}</div></article>`}).join("")}</div></section>`).join("")}${positive.length?`<section class="rules-subgroup"><h3>Положительные Эффекты</h3>${ruleCardsHtml(positive.map(effect=>[effect.name,effect.text]),"positive-effect")}</section>`:""}${negative.length?`<section class="rules-subgroup"><h3>Отрицательные Эффекты</h3>${ruleCardsHtml(negative.map(effect=>[effect.name,effect.text]),"negative-effect")}</section>`:""}`;
+}
+function rulesChapterText(chapter){
+  const own=(chapter.cards||[]).flat().join(" "),special=chapter.special==="bonds"?JSON.stringify(D.bonds):chapter.special==="actions"?`${D.actions.intro} ${JSON.stringify(D.actions.list)} ${JSON.stringify(D.effects)}`:"";
+  return `${chapter.name} ${chapter.desc} ${chapter.source||""} ${own} ${special}`.toLowerCase();
+}
+function renderRules(){
+  const index=$("rules-index"),root=$("rules-chapters"),query=$("rules-search").value.trim().toLowerCase();if(!index||!root)return;
+  const filters=[{id:"all",name:"Все"},{id:"player",name:"Игрокам"},{id:"gm",name:"Нарратору"}];
+  $("rules-filters").innerHTML=filters.map(filter=>`<button type="button" class="${rulesAudience===filter.id?"on":""}" data-rules-audience="${filter.id}">${filter.name}</button>`).join("");
+  const chapters=RULE_CHAPTERS.filter(chapter=>(rulesAudience==="all"||chapter.audience===rulesAudience)&&rulesChapterText(chapter).includes(query));
+  index.innerHTML=chapters.map(chapter=>`<a href="#rules-${chapter.id}"><span>${esc(chapter.mark)}</span>${esc(chapter.name)}</a>`).join("");
+  root.innerHTML=chapters.map((chapter,chapterIndex)=>{const headerMatch=ruleMatches(query,chapter.name,chapter.desc,chapter.source||""),cards=chapter.cards?.filter(card=>headerMatch||ruleMatches(query,...card))||[],specialQuery=headerMatch?"":query,count=chapter.cards?cards.length:(chapter.special==="bonds"?D.bonds.actions.length:D.actions.list.length+D.effects.positive.length+D.effects.negative.length),visual=chapter.id==="field"&&!query?fieldRulesVisual():"",body=chapter.special==="bonds"?`<div id="bond-reference-content"></div>`:chapter.special==="actions"?actionRulesHtml(specialQuery):`${visual}${ruleCardsHtml(cards,chapter.id)}`;return `<details id="rules-${chapter.id}" class="rules-chapter" ${(chapterIndex===0||query)?"open":""}><summary><span>${esc(chapter.mark)}</span><div><h2>${esc(chapter.name)}</h2><p>${esc(chapter.desc)}</p></div><b>${count}</b></summary><div class="rules-chapter-body">${body}<footer class="rules-source">${esc(chapter.source||"")}</footer></div></details>`}).join("")||`<p class="rules-empty">По этому запросу правил не найдено.</p>`;
+  renderBondReference();
+  const target=location.hash?document.getElementById(location.hash.slice(1)):null;if(target?.matches?.(".rules-chapter"))target.open=true;else if(target?.matches?.(".rules-card"))target.closest(".rules-chapter")?.setAttribute("open","");
+}
+
+function referenceItems(){
+  const items=[...RULES,...GLOSSARY,...bondRuleItems(),...D.bonds.actions.map(x=>({...x,kind:x.antagonistic?"Связь · антагонистическое действие":"Связь · действие",tags:x.tag})),...D.actions.list.map(x=>({...x,kind:"Действие"})),...D.effects.positive.map(x=>({...x,kind:"Положительный эффект"})),...D.effects.negative.map(x=>({...x,kind:"Отрицательный эффект"})),...D.archetypes.flatMap(a=>a.techniques.map(t=>({...t,kind:`Техника · ${a.name}`,text:[t.flavor,...t.levels.map(l=>`${l.n}: ${l.name} — ${l.text}`)].join("\n")}))),...D.outlooks.flatMap(o=>(o.builtin?[o.builtin]:[]).concat(o.gifts).map(g=>({...g,kind:`Дар · ${o.name}`}))),...enemyProfiles().map(enemy=>({...enemy,kind:enemy.kind==="modifier"?"Враг-Модификатор":"Враг",text:`${enemy.statsRaw}\n${enemy.examples}\n${enemy.text}`}))];
+  return items;
+}
+function renderReference(){
+  const q=$("ref-search").value.trim().toLowerCase(),filters=["all","Термин","Памятка","Связь","Действие","Эффект","Техника","Дар","Враг"];
+  $("ref-filters").innerHTML=filters.map(f=>`<button type="button" class="${refKind===f?"on":""}" data-ref-kind="${f}">${f==="all"?"Всё":f}</button>`).join("");
+  const matchKind=item=>refKind==="all"||item.kind.toLowerCase().includes(refKind.toLowerCase()); const list=referenceItems().filter(item=>matchKind(item)&&(!q||`${item.name} ${item.en||""} ${(item.aliases||[]).join(" ")} ${item.kind} ${item.text||""} ${item.tags||""}`.toLowerCase().includes(q)));
+  $("reference-list").innerHTML=list.slice(0,250).map(item=>`<article class="catalog-card"><span class="kind">${esc(item.kind)}</span><h3>${esc(item.name)}${item.cost?` · ${esc(item.cost)}`:""}</h3>${item.aliases?.length?`<div class="meta">Также: ${item.aliases.map(esc).join(" · ")}</div>`:item.tags?`<div class="meta">${esc(item.tags)}</div>`:""}<p>${md(item.text||"")}</p></article>`).join("")||`<p>Ничего не найдено.</p>`;
+}
+
+function renderAll(){renderHeroSelect();renderProfile();renderAttrs();renderOutlooks();renderBondTraining();renderSkillsAbility();renderTechniques();renderSheet();renderSidebar();if(store.mode==="play")renderPlay();if(store.mode==="tools"){renderDiceHistory();renderClocks();renderAllInControls();}if(store.mode==="rules")renderRules();if(store.mode==="reference")renderReference();persist();}
+function initCollapsibleBuildPanels(){$$('.mode-page[data-page="build"]>.panel').forEach(panel=>{const title=panel.querySelector(':scope>.section-title');if(!title)return;panel.classList.add("build-collapsible");title.tabIndex=0;title.setAttribute("role","button");title.setAttribute("aria-expanded","true");const toggle=()=>{const collapsed=panel.classList.toggle("collapsed");title.setAttribute("aria-expanded",String(!collapsed))};title.addEventListener("click",toggle);title.addEventListener("keydown",event=>{if(event.key==="Enter"||event.key===" "){event.preventDefault();toggle()}})})}
+function setMode(mode){store.mode=["build","play","tools","rules","reference"].includes(mode)?mode:"build";if(store.mode!=="play")setScenePanel(null);document.body.classList.toggle("builder-mode",store.mode==="build");document.body.classList.toggle("scene-mode",store.mode==="play");document.body.classList.toggle("scene-player-view",store.mode==="play"&&activeSceneView()==="player");$$('[data-page]').forEach(p=>p.classList.toggle("active",p.dataset.page===store.mode));$$('[data-mode]').forEach(b=>b.setAttribute("aria-current",b.dataset.mode===store.mode?"page":"false"));if(store.mode==="play")renderPlay();if(store.mode==="tools"){renderDiceHistory();renderClocks();renderAllInControls();}if(store.mode==="rules")renderRules();if(store.mode==="reference")renderReference();persist();if(["rules","reference"].includes(store.mode)&&location.hash)requestAnimationFrame(()=>document.getElementById(location.hash.slice(1))?.scrollIntoView());else window.scrollTo({top:0,behavior:"smooth"});}
