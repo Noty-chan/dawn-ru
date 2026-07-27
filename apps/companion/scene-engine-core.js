@@ -1,6 +1,6 @@
 "use strict";
 
-const VERSION = 9;
+const VERSION = 10;
 const EVENT_TYPES = new Set(["action.prepare", "action.resolve", "enemy.action.prepare", "enemy.action.resolve", "reaction.offer", "reaction.respond", "roll.public", "resource.spend", "resource.gain", "actor.move", "actor.enter", "actor.heal", "actor.knockout", "turn.start", "turn.end", "turn.grant", "round.end", "attack.pending", "attack.clear", "damage.apply", "effect.apply", "effect.remove", "inventory.change", "rule.prompt", "rule.respond", "technique.prepare", "technique.resolve", "technique.manual", "technique.state", "actor.state", "area.create", "area.remove", "object.damage", "marker.create", "marker.move", "marker.remove", "targets.set", "space.ensure"]);
 const RESOURCES = new Set(["ap", "focus", "influence", "meals", "creationMarks", "innovationCharges"]);
 const ACTOR_STATE_KEYS = new Set(["pugilistStance", "martialPerfection", "growth", "imposingPresence", "grimTransformed", "grimUsed", "drainLife", "lastCreationSpellMarks"]);

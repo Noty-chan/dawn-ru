@@ -1,9 +1,15 @@
 "use strict";
 
 (function exposeDawnTechniqueEngine(global) {
-  const VERSION = 5;
+  const VERSION = 6;
 
   const RULES = [
+    { id: "powerhouse.braggart.1.foundation", techniqueId: "powerhouse.braggart", level: 1, name: "Гордыня", kind: "foundation", foundation: "clock", automation: "partial", clockId: "powerhouse.braggart.pride", size: 6, initial: 0, note: "Ядро знает размер, заполнение и границы часов Гордости; автоматические источники сегментов подключаются следующим этапом." },
+    { id: "powerhouse.gunslinger.1.foundation", techniqueId: "powerhouse.gunslinger", level: 1, name: "Большой ствол", kind: "foundation", foundation: "alternate-resource", automation: "partial", resource: "bullets", resourceLabel: "Пули", initial: 6, replaces: ["focus"], note: "Стоимость Пулями уже проверяется отдельно от Фокуса; сохранение и перезарядка будут подключены событиями ресурса." },
+    { id: "vagabond.aerial-master.1.foundation", techniqueId: "vagabond.aerial-master", level: 1, name: "Над и вокруг", kind: "foundation", foundation: "stance", automation: "partial", stanceId: "vagabond.aerial-master.flight", requiredEffects: ["positive.ускорен"], note: "Условие входа в Стойку полёта и конфликт с другой Стойкой вычисляются канонически." },
+    { id: "bulwark.servant-s-call.1.foundation", techniqueId: "bulwark.servant-s-call", level: 1, name: "Честь подчинённого", kind: "foundation", foundation: "owned-entities", automation: "partial", rulePrefix: "bulwark.servant-s-call", kinds: ["summon"], note: "Призывы собираются по владельцу и источнику правила; создание полноценного участника вместо маркера остаётся следующим этапом." },
+    { id: "powerhouse.spellsword.3.foundation", techniqueId: "powerhouse.spellsword", level: 3, name: "Охотник на ведьм", kind: "foundation", foundation: "action-history", automation: "partial", scope: "turn", actionNames: ["Заклинание"], note: "Ядро находит предыдущее Заклинание и его цели для проверки цели последующего Завершения." },
+    { id: "powerhouse.improvisational-fighter.1.foundation", techniqueId: "powerhouse.improvisational-fighter", level: 1, name: "Всё — инструмент", kind: "foundation", foundation: "terrain", automation: "partial", range: 5, types: ["terrain", "difficult", "custom"], note: "Поиск, дальность, владение и Здоровье местности готовы; выбор между созданием и удалением пока подтверждает игрок." },
     { id: "vagabond.cunning-fighter.2", techniqueId: "vagabond.cunning-fighter", level: 2, name: "Планы внутри планов", kind: "passive", automation: "full", note: "Снято ограничение одного «Плана и исполнения» за Ход." },
     { id: "bulwark.iron-bodied.2", techniqueId: "bulwark.iron-bodied", level: 2, name: "Выносливость", kind: "passive", automation: "full", note: "Броня автоматически включает [Тело / 2]." },
     { id: "bulwark.rising-challenger.3", techniqueId: "bulwark.rising-challenger", level: 3, name: "Драма и злость", kind: "passive", automation: "full", note: "В бросок Столкновения автоматически добавляются 3 кости." },
@@ -227,6 +233,33 @@
     };
   }
 
+  function foundationPreview(scene, actor, rule, request = {}) {
+    const core = global.DAWN_SCENE_ENGINE;
+    let foundation;
+    if (rule.foundation === "clock") foundation = core.clockStatus(scene, actor.id, rule.clockId, { size: rule.size, initial: rule.initial, delta: Number(request.options?.delta || 0) });
+    else if (rule.foundation === "alternate-resource") foundation = core.alternateResourceStatus(scene, actor.id, { resource: rule.resource, label: rule.resourceLabel, initial: rule.initial, amount: Number(request.options?.amount ?? 1), replaces: rule.replaces });
+    else if (rule.foundation === "stance") foundation = core.stanceStatus(scene, actor.id, rule.stanceId, { requiredEffects: rule.requiredEffects });
+    else if (rule.foundation === "owned-entities") foundation = core.ownedEntities(scene, actor.id, { rulePrefix: rule.rulePrefix, kinds: rule.kinds });
+    else if (rule.foundation === "action-history") foundation = core.actionHistoryStatus(scene, actor.id, { scope: rule.scope, actionNames: rule.actionNames, targetIds: request.targetIds });
+    else if (rule.foundation === "terrain") foundation = core.terrainStatus(scene, { actorId: actor.id, objectId: request.options?.objectId, cell: request.anchor, range: rule.range, types: rule.types, ownerOnly: Boolean(request.options?.ownerOnly) });
+    else foundation = { available: false, reason: "Неизвестная заготовка ядра." };
+    const warning = foundation.available ? "Каноническая проверка готова; полный механический итог пока подтверждает Нарратор." : `Текущее условие не выполнено: ${foundation.reason}`;
+    return {
+      ok: true,
+      engineVersion: VERSION,
+      actorId: actor.id,
+      rule: publicRule(rule),
+      request: { anchor: request.anchor || null, targetIds: clone(request.targetIds || []), options: clone(request.options || {}) },
+      errors: [],
+      warnings: [warning],
+      commands: [{ type: "manual_rule", actorId: actor.id, ruleId: rule.id, label: rule.name, note: warning }],
+      summary: `«${rule.name}»: подготовка ядра выполнена`,
+      affectedCells: request.anchor ? [pointKey(request.anchor)] : [],
+      affectedActorIds: clone(request.targetIds || []),
+      foundation,
+    };
+  }
+
   function preview(scene, request = {}) {
     const errors = [];
     const warnings = [];
@@ -239,6 +272,7 @@
       if (knownLevel < rule.level) errors.push(`Для «${rule.name}» нужен ${rule.level}-й Уровень Техники.`);
     }
     if (errors.length) return { ok: false, errors, warnings, commands: [], affectedCells: [], affectedActorIds: [] };
+    if (rule.kind === "foundation") return foundationPreview(scene, actor, rule, request);
     if (rule.kind === "combo") {
       const prepared = global.DAWN_SCENE_ENGINE?.prepareTechniqueCombo(scene, global.DAWN_DATA, { actorId: actor.id, ruleId: rule.id, targetIds: request.targetIds || [], destination: request.destination || null, roll: request.roll || null });
       if (!prepared?.ok) return { ok: false, engineVersion: VERSION, actorId: actor.id, rule: publicRule(rule), request: clone(request), errors: prepared?.errors || ["Ядро комбо недоступно."], warnings: [], commands: [], events: [], affectedCells: [], affectedActorIds: [] };

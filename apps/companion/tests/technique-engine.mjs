@@ -104,4 +104,37 @@ assert.ok(assistedEvents.some(event => event.type === "effect.apply"));
 const assistedScene = SceneEngine.dispatchMany({ ...scene, version: 0, log: [] }, assistedEvents).scene;
 assert.ok(assistedScene.actors.find(actor => actor.id === "enemy-a").effects.includes("negative.помечен"));
 
+const foundationScene = structuredClone(scene);
+foundationScene.actors[0].techniques = {
+  "powerhouse.braggart": 1,
+  "powerhouse.gunslinger": 1,
+  "vagabond.aerial-master": 1,
+  "bulwark.servant-s-call": 1,
+  "powerhouse.spellsword": 3,
+  "powerhouse.improvisational-fighter": 1,
+};
+foundationScene.actors[0].effects = ["positive.ускорен"];
+foundationScene.actors[0].alternateResources = { bullets: 6 };
+foundationScene.markers = [{ id: "servant", ownerActorId: "hero", kind: "summon", ruleId: "bulwark.servant-s-call.1" }];
+foundationScene.objects = [{ id: "tool", ownerActorId: "hero", space: "main", type: "terrain", hp: 10, cells: ["2,1"], ruleId: "powerhouse.improvisational-fighter.1" }];
+foundationScene.log = [
+  { id: "spell", type: "action.prepare", actorId: "hero", payload: { actionName: "Заклинание", targetIds: ["enemy-a"] } },
+  { id: "turn", type: "turn.start", actorId: "hero", payload: {} },
+];
+const foundationRequests = [
+  ["powerhouse.braggart.1.foundation", {}],
+  ["powerhouse.gunslinger.1.foundation", { options: { amount: 2 } }],
+  ["vagabond.aerial-master.1.foundation", {}],
+  ["bulwark.servant-s-call.1.foundation", {}],
+  ["powerhouse.spellsword.3.foundation", { targetIds: ["enemy-a"] }],
+  ["powerhouse.improvisational-fighter.1.foundation", { anchor: { x: 2, y: 1 }, options: { objectId: "tool" } }],
+];
+for (const [ruleId, request] of foundationRequests) {
+  const prepared = Engine.preview(foundationScene, { actorId: "hero", ruleId, ...request });
+  assert.equal(prepared.ok, true, `${ruleId} foundation preview`);
+  assert.ok(prepared.foundation, `${ruleId} exposes canonical foundation state`);
+  assert.equal(prepared.rule.automation, "partial", `${ruleId} must not claim full automation`);
+}
+assert.equal(Engine.preview(foundationScene, { actorId: "hero", ruleId: "powerhouse.spellsword.3.foundation", targetIds: ["enemy-a"] }).foundation.matched, true);
+
 console.log(`Technique engine QA passed: ${Engine.RULES.length} rules`);

@@ -82,6 +82,23 @@ assert.deepEqual(Array.from(querySummary.targetIds), ["enemy"]);
 assert.deepEqual(JSON.parse(JSON.stringify(querySummary.resourceDelta)), { hero: { ap: -1 } });
 assert.deepEqual(Array.from(querySummary.affectedCells), ["2,1"]);
 assert.equal(Engine.summarizeEvents(scene, null).count, 0);
+const foundationScene = structuredClone(scene);
+foundationScene.actors[0].ruleClocks = { pride: 2 };
+foundationScene.actors[0].alternateResources = { bullets: 4 };
+foundationScene.actors[0].ruleState = { stance: "ground" };
+foundationScene.actors[0].effects = ["positive.ускорен"];
+foundationScene.markers = [{ id: "summon", ownerActorId: "hero", kind: "summon", ruleId: "bulwark.servant-s-call.1" }];
+foundationScene.objects = [{ id: "crate", ownerActorId: "hero", space: "main", type: "terrain", hp: 10, cells: ["2,1"], ruleId: "powerhouse.improvisational-fighter.1" }];
+foundationScene.log = [
+  { id: "spell", type: "action.prepare", actorId: "hero", payload: { actionName: "Заклинание", targetIds: ["enemy"] } },
+  { id: "turn", type: "turn.start", actorId: "hero", payload: {} },
+];
+assert.deepEqual(JSON.parse(JSON.stringify(Engine.clockStatus(foundationScene, "hero", "pride", { size: 6, delta: 1 }))), { available: true, reason: "", id: "pride", size: 6, value: 2, nextValue: 3, remaining: 3, empty: false, full: false });
+assert.equal(Engine.alternateResourceStatus(foundationScene, "hero", { resource: "bullets", amount: 3, replaces: ["focus"] }).remaining, 1);
+assert.deepEqual(Array.from(Engine.stanceStatus(foundationScene, "hero", "flight", { requiredEffects: ["positive.ускорен"] }).conflicts), ["ground"]);
+assert.deepEqual(Array.from(Engine.ownedEntities(foundationScene, "hero", { kinds: ["summon"] }).markers), ["summon"]);
+assert.equal(Engine.actionHistoryStatus(foundationScene, "hero", { scope: "turn", actionNames: ["Заклинание"], targetIds: ["enemy"] }).matched, true);
+assert.equal(Engine.terrainStatus(foundationScene, { actorId: "hero", objectId: "crate", range: 1 }).available, true);
 
 const privateScene = structuredClone(scene);
 privateScene.actors[0].privateNotes = "Тайна игрока";

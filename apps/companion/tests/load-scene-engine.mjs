@@ -5,6 +5,7 @@ export const sceneEngineFiles = [
   "scene-engine-core.js",
   "scene-query.js",
   "scene-movement.js",
+  "scene-foundations.js",
   "scene-events.js",
   "scene-triggers.js",
   "scene-actions.js",
