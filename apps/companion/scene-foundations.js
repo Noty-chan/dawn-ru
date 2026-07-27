@@ -1,21 +1,229 @@
 "use strict";
 
+const RULE_CLOCK_ADAPTERS = [
+  { techniqueId: "powerhouse.braggart", clockId: "powerhouse.braggart.pride", label: "Гордость", size: 6, minimumSize: 2, initial: 0, resetScope: "scene" },
+  { techniqueId: "vagabond.cunning-fighter", clockId: "vagabond.cunning-fighter.plan", label: "Хитрый план", size: 4, initial: 0, resetScope: "scene", legacyTechniqueState: "cunningPlan" },
+  { techniqueId: "vagabond.egomaniac", clockId: "vagabond.egomaniac.style", label: "Стиль", size: 4, initial: 0, resetScope: "scene" },
+  { techniqueId: "bulwark.stalwart-sentry", minimumLevel: 2, clockId: "bulwark.stalwart-sentry.vigilance", label: "Бдительность", size: 4, initial: 4, resetScope: "scene" },
+  { techniqueId: "altruist.chronomancer", minimumLevel: 3, clockId: "altruist.chronomancer.flow", label: "Поток", size: 8, initial: 0, resetScope: "scene" },
+  { techniqueId: "ruiner.cryomancer", minimumLevel: 2, clockId: "ruiner.cryomancer.icicle", label: "Сосулька", size: 4, initial: 0, resetScope: "scene" },
+  { techniqueId: "ruiner.feral-arcana", minimumLevel: 2, clockId: "ruiner.feral-arcana.rage", label: "Ярость", size: 6, initial: 0, resetScope: null, active: false, removeWhenEmpty: true },
+  { techniqueId: "ruiner.void-soul", minimumLevel: 3, clockId: "ruiner.void-soul.void", label: "Пустота", size: 6, initial: 0, resetScope: "scene" },
+  { techniqueId: "ruiner.thunder-blood", clockId: "ruiner.thunder-blood.static", label: "Статика", size: 6, initial: 0, resetScope: "scene" },
+  { techniqueId: "ruiner.zealot", clockId: "ruiner.zealot.revelation", label: "Озарение", size: 6, initial: 0, resetScope: "scene" },
+];
+
+function normalizeRuleClockDefinition(definition = {}) {
+  const size = Math.max(1, Math.min(24, Number(definition.size ?? 6) || 6));
+  return {
+    clockId: String(definition.clockId || ""),
+    label: String(definition.label || definition.clockId || ""),
+    size,
+    minimumSize: Math.max(1, Math.min(size, Number(definition.minimumSize ?? size) || size)),
+    initial: Math.max(0, Math.min(size, Number(definition.initial ?? 0) || 0)),
+    resetScope: ["scene", "round", "turn"].includes(definition.resetScope) ? definition.resetScope : null,
+    active: definition.active !== false,
+    removeWhenEmpty: Boolean(definition.removeWhenEmpty),
+    legacyTechniqueState: typeof definition.legacyTechniqueState === "string" ? definition.legacyTechniqueState : null,
+    techniqueId: typeof definition.techniqueId === "string" ? definition.techniqueId : null,
+  };
+}
+
+function ruleClockDefinitions(actor) {
+  if (!actor) return [];
+  const definitions = RULE_CLOCK_ADAPTERS
+    .filter(definition => Number(actor.techniques?.[definition.techniqueId] || 0) >= Number(definition.minimumLevel || 1))
+    .map(normalizeRuleClockDefinition);
+  for (const [clockId, stored] of Object.entries(actor.ruleClocks || {})) {
+    if (stored == null) continue;
+    const normalized = normalizeRuleClockDefinition(typeof stored === "object" ? { clockId, ...stored } : { clockId, label: clockId, size: 6, initial: 0 });
+    const index = definitions.findIndex(definition => definition.clockId === clockId);
+    if (index >= 0 && typeof stored === "object") definitions[index] = { ...definitions[index], ...normalized };
+    else if (index < 0) definitions.push(normalized);
+  }
+  return definitions;
+}
+
+function ruleClockDefinition(actor, clockId) {
+  return ruleClockDefinitions(actor).find(definition => definition.clockId === clockId) || null;
+}
+
+function ruleClockValue(actor, definition) {
+  const stored = actor?.ruleClocks?.[definition.clockId];
+  const legacy = definition.legacyTechniqueState ? actor?.techniqueState?.[definition.legacyTechniqueState] : undefined;
+  const raw = typeof stored === "object" ? stored.value : stored ?? legacy ?? definition.initial;
+  return Math.max(0, Math.min(definition.size, Number(raw) || 0));
+}
+
 function clockStatus(scene, actorId, clockId, options = {}) {
-  const actor = actorById(scene, actorId), size = Number(options.size ?? 6), initial = Number(options.initial ?? 0), delta = Number(options.delta ?? 0);
-  if (!actor) return { available: false, reason: "Исполнитель не найден.", id: clockId || "", size: 0, value: 0, nextValue: 0, remaining: 0, empty: true, full: false };
-  if (typeof clockId !== "string" || !clockId || !Number.isInteger(size) || size < 1 || size > 24 || !Number.isFinite(initial) || !Number.isFinite(delta)) return { available: false, reason: "Некорректные параметры часов.", id: String(clockId || ""), size: 0, value: 0, nextValue: 0, remaining: 0, empty: true, full: false };
-  const stored = Number(actor.ruleClocks?.[clockId] ?? initial), value = Math.max(0, Math.min(size, Number.isFinite(stored) ? stored : initial));
-  const nextValue = Math.max(0, Math.min(size, value + delta));
-  return { available: true, reason: "", id: clockId, size, value, nextValue, remaining: size - nextValue, empty: nextValue === 0, full: nextValue === size };
+  const actor = actorById(scene, actorId);
+  if (!actor) return { available: false, reason: "Исполнитель не найден.", id: clockId || "", size: 0, value: 0, nextValue: 0, remaining: 0, empty: true, full: false, active: false };
+  let definition = ruleClockDefinition(actor, clockId);
+  if (!definition && options.size != null) definition = normalizeRuleClockDefinition({ clockId, label: options.label || clockId, size: options.size, initial: options.initial, active: options.active });
+  const delta = Number(options.delta ?? 0);
+  if (!definition || !/^[a-z][a-z0-9.-]{0,79}$/.test(String(clockId || "")) || !Number.isFinite(delta)) return { available: false, reason: "Некорректные параметры часов.", id: String(clockId || ""), size: 0, value: 0, nextValue: 0, remaining: 0, empty: true, full: false, active: false };
+  const stored = actor.ruleClocks?.[clockId], active = typeof stored === "object" && typeof stored.active === "boolean" ? stored.active : definition.active;
+  const value = ruleClockValue(actor, definition), nextValue = Math.max(0, Math.min(definition.size, value + delta));
+  return { available: true, reason: "", id: clockId, label: definition.label, size: definition.size, minimumSize: definition.minimumSize, value, nextValue, remaining: definition.size - nextValue, empty: nextValue === 0, full: nextValue === definition.size, active, definition: clone(definition) };
+}
+
+function resetRuleClocks(actor, scope) {
+  if (!actor || !["scene", "round", "turn"].includes(scope)) return [];
+  const resets = [];
+  for (const definition of ruleClockDefinitions(actor).filter(item => item.resetScope === scope)) {
+    actor.ruleClocks ||= {};
+    actor.ruleClocks[definition.clockId] = { ...definition, value: definition.initial, active: definition.active };
+    if (definition.legacyTechniqueState) {
+      actor.techniqueState ||= {};
+      actor.techniqueState[definition.legacyTechniqueState] = definition.initial;
+    }
+    resets.push({ clockId: definition.clockId, label: definition.label, value: definition.initial, size: definition.size, scope });
+  }
+  return resets;
+}
+
+function ruleDiceAdvantage(scene, actorId, request = {}) {
+  const actor = actorById(scene, actorId);
+  if (!actor) return { total: 0, sources: [] };
+  const sources = [];
+  const pride = clockStatus(scene, actor.id, "powerhouse.braggart.pride");
+  if (Number(actor.techniques?.["powerhouse.braggart"] || 0) >= 1 && pride.available && pride.active && pride.full) {
+    const amount = 1 + (Number(actor.techniques?.["powerhouse.braggart"] || 0) >= 2 ? Math.floor((6 - pride.size) / 2) : 0);
+    sources.push({ ruleId: "powerhouse.braggart.1", label: "Гордыня", amount });
+  }
+  if (request.actionName === "Заклинание" && Number(actor.techniques?.["altruist.chronomancer"] || 0) >= 2) sources.push({ ruleId: "altruist.chronomancer.2", label: "Замедление", amount: 1 });
+  if (request.actionName === "Заклинание" && Number(actor.techniques?.["ruiner.cryomancer"] || 0) >= 2) sources.push({ ruleId: "ruiner.cryomancer.2", label: "Ледяной нимб", amount: 1 });
+  if (request.actionName === "Заклинание" && Number(actor.techniques?.["ruiner.feral-arcana"] || 0) >= 3) sources.push({ ruleId: "ruiner.feral-arcana.3", label: "Хватка", amount: 1 });
+  if (request.actionName === "Заклинание" && Number(actor.techniques?.["ruiner.thunder-blood"] || 0) >= 3) sources.push({ ruleId: "ruiner.thunder-blood.3", label: "Разрядка", amount: 1 });
+  return { total: sources.reduce((sum, source) => sum + source.amount, 0), sources };
+}
+
+const RULE_RESOURCE_ADAPTERS = [
+  { techniqueId: "powerhouse.gunslinger", resource: "bullets", label: "Пули", initial: 6, minimum: 0, replaces: ["focus"], spendDirection: -1, gainDirection: 1, resetScope: "scene" },
+  { techniqueId: "vagabond.knife-juggler", resource: "weapons", label: "Оружие", initial: 4, minimum: 0, replaces: ["focus"], spendDirection: -1, gainDirection: 1, resetScope: "scene" },
+  { techniqueId: "vagabond.modified-meister", resource: "heat", label: "Нагрев", initial: 0, minimum: 0, replaces: ["focus"], spendDirection: 1, gainDirection: -1, resetScope: "scene" },
+  { techniqueId: "bulwark.mundane", resource: "grit", label: "Упорство", initial: actor => 1 + Math.floor(Number(actor.attrs?.body || 0) / 2), minimum: 0, replaces: ["focus", "ap"], spendDirection: -1, gainDirection: 1, resetScope: "round", blockedGainActions: ["Передышка", "Зарядка"] },
+  { techniqueId: "altruist.heavenly-saint", resource: "faith", label: "Вера", initial: actor => Number(actor.attrs?.spirit || 0), minimum: 0, replaces: ["focus"], spendDirection: -1, gainDirection: 1, resetScope: "scene", blockedGainActions: ["Передышка", "Зарядка"] },
+  { techniqueId: "disruptor.autophage", resource: "health", label: "Здоровье", initial: 0, minimum: 0, replaces: ["focus"], spendDirection: -1, gainDirection: 1, externalResource: "hp", spendMultiplier: 2, gainMultiplier: 1 },
+  { techniqueId: "ruiner.creation-ascetic", resource: "creation-marks", label: "Метки творения", initial: 0, minimum: 0, replaces: ["focus"], spendDirection: -1, gainDirection: 1, resetScope: "scene", allowedGainActions: ["Передышка", "Зарядка"], legacyProperty: "creationMarks" },
+];
+
+function normalizeRuleResourceDefinition(actor, definition = {}) {
+  const initial = typeof definition.initial === "function" ? definition.initial(actor) : Number(definition.initial ?? 0);
+  return {
+    resource: String(definition.resource || ""),
+    label: String(definition.label || definition.resource || ""),
+    initial: Math.max(0, Number.isFinite(initial) ? initial : 0),
+    minimum: Math.max(0, Number(definition.minimum ?? 0) || 0),
+    maximum: definition.maximum == null ? null : Math.max(0, Number(definition.maximum) || 0),
+    replaces: [...new Set((definition.replaces || []).filter(resource => RESOURCES.has(resource)))],
+    spendDirection: Number(definition.spendDirection) === 1 ? 1 : -1,
+    gainDirection: Number(definition.gainDirection) === -1 ? -1 : 1,
+    resetScope: ["scene", "round", "turn"].includes(definition.resetScope) ? definition.resetScope : null,
+    blockedGainActions: [...new Set((definition.blockedGainActions || []).filter(value => typeof value === "string" && value.length <= 120))],
+    allowedGainActions: [...new Set((definition.allowedGainActions || []).filter(value => typeof value === "string" && value.length <= 120))],
+    externalResource: definition.externalResource === "hp" ? "hp" : null,
+    spendMultiplier: Math.max(0, Number(definition.spendMultiplier ?? 1) || 1),
+    gainMultiplier: Math.max(0, Number(definition.gainMultiplier ?? 1) || 1),
+    legacyProperty: typeof definition.legacyProperty === "string" && RESOURCES.has(definition.legacyProperty) ? definition.legacyProperty : null,
+    techniqueId: typeof definition.techniqueId === "string" ? definition.techniqueId : null,
+  };
+}
+
+function ruleResourceDefinitions(actor) {
+  if (!actor) return [];
+  const definitions = RULE_RESOURCE_ADAPTERS
+    .filter(definition => Number(actor.techniques?.[definition.techniqueId] || 0) >= 1)
+    .map(definition => normalizeRuleResourceDefinition(actor, definition));
+  for (const stored of Object.values(actor.ruleResources || {})) {
+    if (!stored || typeof stored !== "object" || !stored.resource) continue;
+    const normalized = normalizeRuleResourceDefinition(actor, stored);
+    const index = definitions.findIndex(definition => definition.resource === normalized.resource);
+    if (index >= 0) definitions[index] = { ...definitions[index], ...normalized };
+    else definitions.push(normalized);
+  }
+  return definitions;
+}
+
+function ruleResourceDefinition(actor, resource) {
+  return ruleResourceDefinitions(actor).find(definition => definition.resource === resource) || null;
+}
+
+function ruleResourceBalance(actor, definition) {
+  if (definition.externalResource) return Math.max(definition.minimum, Number(actor?.[definition.externalResource] || 0));
+  const stored = actor?.ruleResources?.[definition.resource]?.value ?? (definition.legacyProperty ? actor?.[definition.legacyProperty] : undefined) ?? actor?.alternateResources?.[definition.resource] ?? actor?.inventory?.[`resource:${definition.resource}`];
+  const value = Number(stored ?? definition.initial);
+  const bounded = Math.max(definition.minimum, Number.isFinite(value) ? value : definition.initial);
+  return definition.maximum == null ? bounded : Math.min(definition.maximum, bounded);
+}
+
+function replacementConflict(actor) {
+  const owners = new Map();
+  for (const definition of ruleResourceDefinitions(actor)) {
+    for (const resource of definition.replaces) {
+      if (owners.has(resource) && owners.get(resource) !== definition.resource) return [owners.get(resource), definition.resource];
+      owners.set(resource, definition.resource);
+    }
+  }
+  return null;
+}
+
+function resourceOperationStatus(scene, actorId, request = {}) {
+  const actor = actorById(scene, actorId), operation = request.operation === "gain" ? "gain" : "spend", resource = request.resource, amount = Number(request.amount ?? 0);
+  if (!actor) return { available: false, reason: "Исполнитель не найден.", resource: String(resource || ""), resolvedResource: null, amount: 0, delta: 0 };
+  if (!RESOURCES.has(resource) || !Number.isFinite(amount) || amount < 0) return { available: false, reason: "Некорректное изменение ресурса.", resource: String(resource || ""), resolvedResource: null, amount: 0, delta: 0 };
+  const conflict = replacementConflict(actor);
+  if (conflict) return { available: false, reason: `Конфликт альтернативных ресурсов: «${conflict[0]}» и «${conflict[1]}».`, resource, resolvedResource: null, amount, delta: 0 };
+  const definition = ruleResourceDefinitions(actor).find(candidate => candidate.replaces.includes(resource));
+  if (!definition) {
+    const balance = Math.max(0, Number(actor[resource] || 0)), delta = operation === "gain" ? amount : -amount;
+    return { available: operation === "gain" || balance >= amount, reason: operation === "spend" && balance < amount ? "Ресурс изменился: выбранное действие больше нельзя оплатить." : "", resource, resolvedResource: resource, label: resource, amount, balance, remaining: Math.max(0, balance + delta), delta, replacement: false, ignored: false };
+  }
+  const balance = ruleResourceBalance(actor, definition);
+  const blockedByName = operation === "gain" && definition.blockedGainActions.includes(request.sourceActionName);
+  const blockedByAllowlist = operation === "gain" && definition.allowedGainActions.length > 0 && !definition.allowedGainActions.includes(request.sourceActionName);
+  const blocked = blockedByName || blockedByAllowlist;
+  const direction = operation === "gain" ? definition.gainDirection : definition.spendDirection;
+  const multiplier = operation === "gain" ? definition.gainMultiplier : definition.spendMultiplier;
+  const requestedDelta = blocked ? 0 : amount * direction * multiplier;
+  const remaining = definition.maximum == null ? Math.max(definition.minimum, balance + requestedDelta) : Math.min(definition.maximum, Math.max(definition.minimum, balance + requestedDelta));
+  const boundaryClampedGain = operation === "gain" && direction < 0;
+  const delta = boundaryClampedGain ? remaining - balance : requestedDelta;
+  const available = boundaryClampedGain || delta >= 0 || balance + delta >= definition.minimum;
+  return { available, reason: available ? "" : `Недостаточно ресурса «${definition.label}».`, resource, resolvedResource: definition.resource, label: definition.label, amount, balance, remaining, delta, replacement: true, ignored: blocked, ignoredReason: blocked ? `${request.sourceActionName || "Этот источник"} не даёт «${definition.label}».` : "", definition };
+}
+
+function ruleResourceStatus(scene, actorId, request = {}) {
+  const actor = actorById(scene, actorId), definition = actor && ruleResourceDefinition(actor, request.resource);
+  const amount = Number(request.amount ?? 0), operation = request.operation === "gain" ? "gain" : "spend";
+  if (!actor) return { available: false, reason: "Исполнитель не найден.", resource: String(request.resource || ""), balance: 0, amount: 0, remaining: 0, replaces: [] };
+  if (!definition || !Number.isFinite(amount) || amount < 0) return { available: false, reason: "Некорректный альтернативный ресурс.", resource: String(request.resource || ""), balance: 0, amount: 0, remaining: 0, replaces: [] };
+  const balance = ruleResourceBalance(actor, definition), delta = amount * (operation === "gain" ? 1 : -1);
+  const available = delta >= 0 || balance + delta >= definition.minimum;
+  return { available, reason: available ? "" : `Недостаточно ресурса «${definition.label}».`, resource: definition.resource, label: definition.label, balance, amount, remaining: Math.max(definition.minimum, balance + delta), replaces: [...definition.replaces], definition: clone(definition) };
 }
 
 function alternateResourceStatus(scene, actorId, request = {}) {
-  const actor = actorById(scene, actorId), resource = request.resource, amount = Number(request.amount ?? 0), initial = Number(request.initial ?? 0);
+  const actor = actorById(scene, actorId);
+  if (actor && ruleResourceDefinition(actor, request.resource)) return ruleResourceStatus(scene, actorId, request);
+  const resource = request.resource, amount = Number(request.amount ?? 0), initial = Number(request.initial ?? 0);
   if (!actor) return { available: false, reason: "Исполнитель не найден.", resource: String(resource || ""), balance: 0, amount: 0, remaining: 0, replaces: [] };
   if (typeof resource !== "string" || !resource || !Number.isFinite(amount) || amount < 0 || !Number.isFinite(initial) || initial < 0) return { available: false, reason: "Некорректный альтернативный ресурс.", resource: String(resource || ""), balance: 0, amount: 0, remaining: 0, replaces: [] };
   const stored = actor.alternateResources?.[resource] ?? actor[resource] ?? actor.inventory?.[`resource:${resource}`] ?? initial;
   const balance = Math.max(0, Number(stored) || 0), available = balance >= amount;
   return { available, reason: available ? "" : `Недостаточно ресурса «${request.label || resource}».`, resource, label: request.label || resource, balance, amount, remaining: Math.max(0, balance - amount), replaces: [...new Set((Array.isArray(request.replaces) ? request.replaces : []).filter(value => typeof value === "string"))] };
+}
+
+function resetRuleResources(actor, scope) {
+  if (!actor || !["scene", "round", "turn"].includes(scope)) return [];
+  const resets = [];
+  for (const definition of ruleResourceDefinitions(actor).filter(item => item.resetScope === scope)) {
+    actor.ruleResources ||= {};
+    actor.ruleResources[definition.resource] = { ...definition, value: definition.initial };
+    if (definition.legacyProperty) actor[definition.legacyProperty] = definition.initial;
+    resets.push({ resource: definition.resource, label: definition.label, value: definition.initial, scope });
+  }
+  return resets;
 }
 
 function stanceStatus(scene, actorId, stanceId, options = {}) {
@@ -75,4 +283,41 @@ function terrainStatus(scene, request = {}) {
   if (Number.isNaN(maximum) || maximum < 0 || !Number.isFinite(minimumHp) || minimumHp < 0) return { available: false, reason: "Некорректные ограничения местности.", object: clone(object), distance: nearest, cells: [...(object.cells || [])] };
   const available = nearest <= maximum && Number(object.hp ?? object.maxHp ?? 1) >= minimumHp;
   return { available, reason: available ? "" : nearest > maximum ? "Местность находится вне допустимой дальности." : "У местности недостаточно Здоровья.", object: clone(object), distance: nearest, cells: [...(object.cells || [])] };
+}
+
+function usageLimitStatus(scene, actorId, query = {}) {
+  if (!actorById(scene, actorId)) return { available: false, reason: "Исполнитель не найден.", scope: "scene", maximum: 0, used: 0, remaining: 0, events: [] };
+  const scope = ["turn", "round", "scene"].includes(query.scope) ? query.scope : "scene", maximum = Math.max(0, Number(query.maximum || 0));
+  if (!Number.isInteger(maximum) || maximum < 1) return { available: false, reason: "Лимит использования должен быть положительным целым числом.", scope, maximum, used: 0, remaining: 0, events: [] };
+  const source = scope === "turn" ? currentTurnEvents(scene, actorId) : scope === "round" ? currentRoundEvents(scene) : (scene.log || []);
+  const ruleId = String(query.ruleId || ""), types = new Set(Array.isArray(query.types) && query.types.length ? query.types : ["technique.resolve"]);
+  const matches = source.filter(event => {
+    if (event.actorId !== actorId || !types.has(event.type)) return false;
+    if (!ruleId) return true;
+    const payload = event.payload || {};
+    return [payload.ruleId, payload.sourceActionId, payload.techniqueRuleId].includes(ruleId);
+  });
+  const used = matches.length, remaining = Math.max(0, maximum - used);
+  return { available: remaining > 0, reason: remaining > 0 ? "" : `Лимит использования исчерпан: ${maximum} за ${scope === "turn" ? "Ход" : scope === "round" ? "Раунд" : "Сцену"}.`, scope, maximum, used, remaining, events: clone(matches) };
+}
+
+function terrainComponentStatus(scene, request = {}) {
+  const space = (scene.spaces || []).find(item => item.id === request.space), types = new Set(Array.isArray(request.types) ? request.types : ["terrain"]);
+  if (!space) return { available: false, reason: "Пространство не найдено.", objects: [], objectIds: [], cells: [] };
+  const candidates = (scene.objects || []).filter(object => object.space === space.id && (!types.size || types.has(object.type)));
+  const seedCells = new Set((request.cells || []).map(String)), seedIds = new Set(request.objectIds || []);
+  const selected = new Set(candidates.filter(object => seedIds.has(object.id) || (object.cells || []).some(cell => seedCells.has(String(cell)))).map(object => object.id));
+  if (!selected.size) return { available: false, reason: "На исходных клетках нет подходящей местности.", objects: [], objectIds: [], cells: [] };
+  const points = object => (object.cells || []).map(spatialPoint).filter(Boolean), diagonal = Boolean(request.diagonal);
+  const touches = (left, right) => points(left).some(a => points(right).some(b => diagonal ? Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y)) <= 1 : Math.abs(a.x - b.x) + Math.abs(a.y - b.y) <= 1));
+  const queue = candidates.filter(object => selected.has(object.id));
+  while (queue.length) {
+    const current = queue.shift();
+    for (const candidate of candidates) if (!selected.has(candidate.id) && touches(current, candidate)) {
+      selected.add(candidate.id);
+      queue.push(candidate);
+    }
+  }
+  const objects = candidates.filter(object => selected.has(object.id));
+  return { available: true, reason: "", objects: clone(objects), objectIds: objects.map(object => object.id), cells: [...new Set(objects.flatMap(object => object.cells || []))] };
 }

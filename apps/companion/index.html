@@ -162,7 +162,16 @@
                 <span class="scene-tool-cluster" data-tool-cluster="field"><small>Поле</small><button type="button" data-scene-tool="select" data-tool-icon="↖" data-tool-help="Выбирать и перемещать токены" aria-keyshortcuts="V">Выбор</button><button type="button" data-scene-tool="measure" data-tool-icon="↔" data-tool-help="Измерить расстояние между клетками" aria-keyshortcuts="M">Линейка</button></span>
                 <span class="scene-tool-cluster" data-tool-cluster="combat"><small>Бой</small><button type="button" data-scene-tool="target" data-tool-icon="◎" data-tool-help="Отметить цели следующего действия" aria-keyshortcuts="T">Цели</button></span>
                 <span class="scene-tool-cluster gm-only" data-tool-cluster="create"><small>Создать</small><button type="button" data-scene-tool="area" data-tool-icon="▦" data-tool-help="Нарисовать область правила" aria-keyshortcuts="A">Область</button><button type="button" data-scene-tool="marker" data-tool-icon="◆" data-tool-help="Поставить маркер правила" aria-keyshortcuts="K">Маркер</button></span>
-                <span class="scene-tool-cluster gm-only destructive" data-tool-cluster="edit"><small>Правка</small><button type="button" data-scene-tool="erase" data-tool-icon="×" data-tool-help="Удалять объекты и токены" aria-keyshortcuts="Delete">Удалить</button></span>
+                <span class="scene-tool-cluster gm-only destructive" data-tool-cluster="edit"><small>Правка</small><button type="button" data-scene-tool="topology" data-tool-icon="▧" data-tool-help="Временно удалить клетки из топологии поля" aria-keyshortcuts="G">Разрыв</button><button type="button" data-scene-tool="erase" data-tool-icon="×" data-tool-help="Удалять объекты и токены" aria-keyshortcuts="Delete">Удалить</button></span>
+              </div>
+              <div id="scene-topology-controls" class="scene-area-controls gm-only" hidden>
+                <header><span>▧</span><div><strong>Разрыв поля</strong><small>Выберите клетки, проверьте подсветку и подтвердите</small></div></header>
+                <label>Форма<select id="scene-topology-shape"><option value="cell">Одна клетка</option><option value="lineH">Весь ряд</option><option value="lineV">Весь столбец</option><option value="lineDiagDown">Диагональ ↘</option><option value="lineDiagUp">Диагональ ↗</option></select></label>
+                <label>Название<input id="scene-topology-label" maxlength="80" value="Разрыв поля"></label>
+                <label>Источник<input id="scene-topology-source" maxlength="160" value="Ручное правило"></label>
+                <label>При входе<select id="scene-topology-crossing"><option value="blocked">Клетка непроходима</option><option value="opposite">Телепорт на другую сторону</option></select></label>
+                <label class="switch"><input id="scene-topology-destroy-terrain" type="checkbox"><span>Уничтожить связанную местность</span></label>
+                <div class="button-row compact"><button type="button" id="scene-topology-clear">Очистить выбор</button><button type="button" id="scene-topology-apply" class="primary">Удалить выбранные клетки</button></div>
               </div>
               <div id="scene-marker-controls" class="scene-area-controls gm-only" hidden>
                 <header><span>◆</span><div><strong>Новый маркер</strong><small>Настройте знак, затем выберите клетку</small></div></header>
@@ -187,7 +196,7 @@
             <aside id="scene-token-popover" class="scene-token-popover" role="status" aria-live="polite" hidden></aside>
             <aside id="scene-roll-feed" class="scene-roll-feed" aria-label="Публичные броски" aria-live="polite"></aside>
             <nav id="scene-action-tray" class="scene-action-tray" aria-label="Быстрые действия героя"></nav>
-            <div class="scene-legend"><span><i class="legend-hero"></i> Герой</span><span><i class="legend-enemy"></i> Враг</span><span><i class="legend-target"></i> Цель</span><span><i class="legend-area"></i> Область правила</span><span><i class="legend-marker">◆</i> Маркер</span></div>
+            <div class="scene-legend"><span><i class="legend-hero"></i> Герой</span><span><i class="legend-enemy"></i> Враг</span><span><i class="legend-target"></i> Цель</span><span><i class="legend-area"></i> Область правила</span><span><i class="legend-marker">◆</i> Маркер</span><span><i class="legend-topology">▧</i> Удалённая клетка</span></div>
           </div>
           <nav id="scene-dock" class="scene-dock" aria-label="Панели Сцены">
             <button type="button" data-scene-panel="inspector" data-scene-icon="◎" title="Выбранный участник">Цель</button>

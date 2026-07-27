@@ -1,9 +1,9 @@
 "use strict";
 
-const VERSION = 10;
-const EVENT_TYPES = new Set(["action.prepare", "action.resolve", "enemy.action.prepare", "enemy.action.resolve", "reaction.offer", "reaction.respond", "roll.public", "resource.spend", "resource.gain", "actor.move", "actor.enter", "actor.heal", "actor.knockout", "turn.start", "turn.end", "turn.grant", "round.end", "attack.pending", "attack.clear", "damage.apply", "effect.apply", "effect.remove", "inventory.change", "rule.prompt", "rule.respond", "technique.prepare", "technique.resolve", "technique.manual", "technique.state", "actor.state", "area.create", "area.remove", "object.damage", "marker.create", "marker.move", "marker.remove", "targets.set", "space.ensure"]);
+const VERSION = 22;
+const EVENT_TYPES = new Set(["action.prepare", "action.resolve", "enemy.action.prepare", "enemy.action.resolve", "reaction.offer", "reaction.respond", "roll.public", "resource.spend", "resource.gain", "rule-resource.configure", "rule-resource.spend", "rule-resource.gain", "rule-resource.set", "rule-resource.reset", "rule-clock.configure", "rule-clock.tick", "rule-clock.set", "rule-clock.reset", "rule.trigger", "actor.move", "actor.enter", "actor.heal", "actor.wound", "actor.knockout", "turn.start", "turn.end", "turn.grant", "round.end", "attack.pending", "attack.clear", "damage.apply", "effect.apply", "effect.remove", "inventory.change", "rule.prompt", "rule.respond", "technique.prepare", "technique.resolve", "technique.manual", "technique.state", "actor.state", "area.create", "area.remove", "object.damage", "marker.create", "marker.move", "marker.remove", "topology.cells.remove", "topology.cells.restore", "targets.set", "space.ensure"]);
 const RESOURCES = new Set(["ap", "focus", "influence", "meals", "creationMarks", "innovationCharges"]);
-const ACTOR_STATE_KEYS = new Set(["pugilistStance", "martialPerfection", "growth", "imposingPresence", "grimTransformed", "grimUsed", "drainLife", "lastCreationSpellMarks"]);
+const ACTOR_STATE_KEYS = new Set(["pugilistStance", "martialPerfection", "growth", "imposingPresence", "grimTransformed", "grimUsed", "warringTransformed", "warringUsed", "drainLife", "lastCreationSpellMarks", "modifiedOverclockTurns", "icicleSpellsRemaining", "styleCarryRemaining", "timeStopUsed"]);
 const clone = value => JSON.parse(JSON.stringify(value));
 const actorById = (scene, id) => (scene.actors || []).find(actor => actor.id === id) || null;
 const actionById = (data, id) => data?.actions?.list?.find(action => action.id === id) || null;
@@ -12,6 +12,46 @@ const effectIdByName = (data, name) => [...(data?.effects?.positive || []), ...(
 const distance = (a, b) => a.space === b.space ? Math.abs(a.x - b.x) + Math.abs(a.y - b.y) : Infinity;
 const cellKey = point => `${point.x},${point.y}`;
 const markerById = (scene, id) => (scene.markers || []).find(marker => marker.id === id) || null;
+const topologyCuts = scene => Array.isArray(scene?.topology?.cuts) ? scene.topology.cuts : [];
+const removedCellKeys = (scene, spaceId) => new Set(topologyCuts(scene).filter(cut => cut.space === spaceId).flatMap(cut => cut.cells || []));
+const topologyCutAt = (scene, spaceId, cell) => topologyCuts(scene).find(cut => cut.space === spaceId && (cut.cells || []).includes(cell)) || null;
+function topologyStepDestination(scene, request = {}) {
+  const space = (scene?.spaces || []).find(item => item.id === request.space), from = request.from, attempted = request.attempted;
+  if (!space || !from || !attempted) return null;
+  const dx = Math.sign(Number(attempted.x) - Number(from.x)), dy = Math.sign(Number(attempted.y) - Number(from.y));
+  if ((!dx && !dy) || Math.abs(Number(attempted.x) - Number(from.x)) > 1 || Math.abs(Number(attempted.y) - Number(from.y)) > 1) return null;
+  let point = { x: Number(attempted.x), y: Number(attempted.y) };
+  const crossedCutIds = [];
+  for (let guard = 0; guard < Number(space.width) + Number(space.height); guard += 1) {
+    if (point.x < 0 || point.y < 0 || point.x >= space.width || point.y >= space.height) return null;
+    const cut = topologyCutAt(scene, request.space, cellKey(point));
+    if (!cut) return crossedCutIds.length ? { ...point, teleported: true, crossedCutIds: [...new Set(crossedCutIds)] } : point;
+    if (cut.crossing !== "opposite") return null;
+    crossedCutIds.push(cut.id);
+    point = { x: point.x + dx, y: point.y + dy };
+  }
+  return null;
+}
+function topologyStatus(scene, request = {}) {
+  const space = (scene?.spaces || []).find(item => item.id === request.space);
+  const cells = [...new Set((Array.isArray(request.cells) ? request.cells : request.cell ? [request.cell] : []).map(String))];
+  const removed = removedCellKeys(scene, request.space);
+  const invalidCells = cells.filter(cell => {
+    const match = cell.match(/^(\d{1,2}),(\d{1,2})$/);
+    return !space || !match || Number(match[1]) >= Number(space.width) || Number(match[2]) >= Number(space.height);
+  });
+  const occupiedCells = cells.filter(cell => (scene?.actors || []).some(actor => !actor.knockedOut && actor.space === request.space && cellKey(actor) === cell));
+  const alreadyRemoved = cells.filter(cell => removed.has(cell));
+  const operation = request.operation || "inspect";
+  let reason = "";
+  if (!space) reason = "Пространство не найдено.";
+  else if (!cells.length) reason = "Не выбраны клетки.";
+  else if (invalidCells.length) reason = "Выбор выходит за границы пространства.";
+  else if (operation === "remove" && occupiedCells.length) reason = "Сначала переместите персонажей с удаляемых клеток.";
+  else if (operation === "remove" && alreadyRemoved.length) reason = "Часть выбранных клеток уже удалена.";
+  else if (operation === "restore" && !alreadyRemoved.length) reason = "Выбранные клетки не удалены.";
+  return { available: !reason, reason, space: space || null, cells, invalidCells, occupiedCells, alreadyRemoved, removed: cells.filter(cell => removed.has(cell)) };
+}
 function eventParticipants(scene, event = {}) {
   const payload = event.payload || {};
   const known = new Set((scene?.actors || []).map(actor => actor.id));

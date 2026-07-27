@@ -32,15 +32,45 @@ assert.ok(Engine.rulesFor(scene.actors[0].techniques).some(rule => rule.id === "
 assert.equal(Engine.RULES.find(rule => rule.id === "ruiner.bombardier.3").automation, "partial");
 assert.equal(Engine.RULES.find(rule => rule.id === "disruptor.chemist.1").automation, "full");
 const coverage = Engine.techniqueCoverage(context.DAWN_DATA);
+const canonicalLevelIds = Array.from(context.DAWN_DATA.archetypes.flatMap(archetype =>
+  archetype.techniques.flatMap(technique => technique.levels.map(level => `${technique.id}.${level.n}`))
+)).sort();
+assert.deepEqual(
+  Object.keys(context.DAWN_TECHNIQUE_FOUNDATION_MAP.REVIEWED.profiles).sort(),
+  canonicalLevelIds,
+  "manual REVIEWED profiles must exactly match all canonical Technique levels",
+);
 assert.equal(coverage.length, 321, "every Technique level must have an automation status");
 assert.ok(coverage.every(entry => ["full", "partial", "decision", "manual"].includes(entry.automation)));
 assert.ok(coverage.filter(entry => entry.automation !== "manual").length >= 290, "semantic mechanics index assists most canonical levels");
 assert.ok(coverage.some(entry => entry.mechanics?.areas?.length));
 assert.ok(coverage.some(entry => entry.mechanics?.clocks?.length));
 assert.equal(coverage.filter(entry => entry.foundationPlan?.capabilities?.length).length, 321, "every Technique level must have a foundation plan");
-assert.ok(coverage.every(entry => ["candidate", "started"].includes(entry.foundationPlan.status)));
+assert.ok(coverage.every(entry => ["candidate", "reviewed"].includes(entry.foundationPlan.status)));
+assert.equal(coverage.filter(entry => entry.foundationPlan.status === "reviewed").length, 321, "all current Technique levels were manually reviewed");
+const clockLevels = coverage.filter(entry => entry.foundationPlan.reviewed.includes("rule-clock"));
+assert.equal(clockLevels.length, 19, "manual review identifies exactly nineteen current clock levels");
+assert.ok(clockLevels.every(entry => Engine.RULES.some(rule => rule.techniqueId === entry.techniqueId && Number(rule.level) === Number(entry.level))), "every reviewed clock level has an explicit thin adapter and honest automation status");
 assert.ok(coverage.find(entry => entry.id === "powerhouse.braggart.1").foundationPlan.reviewed.includes("rule-clock"));
 assert.ok(coverage.find(entry => entry.id === "powerhouse.gunslinger.1").foundationPlan.reviewed.includes("alternate-resource"));
+assert.ok(coverage.find(entry => entry.id === "altruist.last-hope.3").foundationPlan.reviewed.includes("reaction-window"));
+assert.ok(coverage.find(entry => entry.id === "bulwark.mecha-pilot.1").foundationPlan.reviewed.includes("multi-space-actor"));
+assert.ok(!coverage.find(entry => entry.id === "powerhouse.technician.1").foundationPlan.reviewed.includes("inventory"), "Charge action is not an inventory charge");
+const explicitBigIron = context.DAWN_TECHNIQUE_FOUNDATION_MAP.planForLevel({
+  id: "powerhouse.gunslinger.1",
+  text: "намеренно неверный текст без механических терминов",
+  mechanics: {},
+});
+assert.deepEqual(
+  [...explicitBigIron.reviewed].sort(),
+  [...coverage.find(entry => entry.id === "powerhouse.gunslinger.1").foundationPlan.reviewed].sort(),
+  "reviewed profiles must not depend on heuristic text classification",
+);
+assert.equal(
+  context.DAWN_TECHNIQUE_FOUNDATION_MAP.planForLevel({ id: "future.technique.1", text: "получите 1 Фокус" }).status,
+  "candidate",
+  "unlisted future levels must never become reviewed automatically",
+);
 assert.equal(Engine.techniqueCoverage(context.DAWN_DATA, { "ruiner.bombardier": 2 }).length, 2);
 
 const explosion = Engine.preview(scene, {
@@ -128,19 +158,38 @@ foundationScene.log = [
   { id: "turn", type: "turn.start", actorId: "hero", payload: {} },
 ];
 const foundationRequests = [
-  ["powerhouse.braggart.1.foundation", {}],
-  ["powerhouse.gunslinger.1.foundation", { options: { amount: 2 } }],
-  ["vagabond.aerial-master.1.foundation", {}],
-  ["bulwark.servant-s-call.1.foundation", {}],
-  ["powerhouse.spellsword.3.foundation", { targetIds: ["enemy-a"] }],
-  ["powerhouse.improvisational-fighter.1.foundation", { anchor: { x: 2, y: 1 }, options: { objectId: "tool" } }],
+  ["powerhouse.braggart.1.foundation", {}, "partial"],
+  ["powerhouse.gunslinger.1.foundation", { options: { amount: 2 } }, "partial"],
+  ["vagabond.aerial-master.1.foundation", {}, "partial"],
+  ["bulwark.servant-s-call.1.foundation", {}, "partial"],
+  ["powerhouse.spellsword.3.foundation", { targetIds: ["enemy-a"] }, "full"],
+  ["powerhouse.improvisational-fighter.1.foundation", { anchor: { x: 2, y: 1 }, options: { objectId: "tool" } }, "partial"],
 ];
-for (const [ruleId, request] of foundationRequests) {
+for (const [ruleId, request, automation] of foundationRequests) {
   const prepared = Engine.preview(foundationScene, { actorId: "hero", ruleId, ...request });
   assert.equal(prepared.ok, true, `${ruleId} foundation preview`);
   assert.ok(prepared.foundation, `${ruleId} exposes canonical foundation state`);
-  assert.equal(prepared.rule.automation, "partial", `${ruleId} must not claim full automation`);
+  assert.equal(prepared.rule.automation, automation, `${ruleId} exposes its reviewed automation status`);
 }
 assert.equal(Engine.preview(foundationScene, { actorId: "hero", ruleId: "powerhouse.spellsword.3.foundation", targetIds: ["enemy-a"] }).foundation.matched, true);
+
+const autophageScene = structuredClone(scene);
+Object.assign(autophageScene.actors[0], { hp: 6, maxHp: 12, guts: 4, techniques: { "disruptor.autophage": 3 } });
+Object.assign(autophageScene.actors[1], { hp: 9, maxHp: 10, effects: [] });
+Object.assign(autophageScene.actors[2], { hp: 5, maxHp: 10, effects: [] });
+autophageScene.log = [
+  { id: "finish-resolve", type: "action.resolve", actorId: "hero", payload: { actionId: "finish", name: "Завершение", attribute: "body", targetIds: ["enemy-a"] } },
+  { id: "finish-hit", type: "damage.apply", actorId: "hero", payload: { sourceActionId: "finish", targetId: "enemy-a", dealt: 3 } },
+];
+const mutableFlesh = Engine.preview(autophageScene, { actorId: "hero", ruleId: "disruptor.autophage.3", rolls: [2, 5] });
+assert.equal(mutableFlesh.ok, true);
+assert.deepEqual([...mutableFlesh.affectedActorIds], ["enemy-a"], "Autophage III targets every enemy with more current Health");
+assert.equal(mutableFlesh.events.filter(event => event.type === "effect.apply").length, 2);
+const wrongFinish = structuredClone(autophageScene);
+wrongFinish.log[0].payload.attribute = "mind";
+assert.equal(Engine.preview(wrongFinish, { actorId: "hero", ruleId: "disruptor.autophage.3", rolls: [2, 5] }).ok, false, "Autophage III rejects a Finish that was not Body or Spirit");
+const usedMutableFlesh = structuredClone(autophageScene);
+usedMutableFlesh.log.unshift({ id: "used", type: "technique.resolve", actorId: "hero", payload: { ruleId: "disruptor.autophage.3" } });
+assert.equal(Engine.preview(usedMutableFlesh, { actorId: "hero", ruleId: "disruptor.autophage.3", rolls: [2, 5] }).ok, false, "Autophage III is once per Scene");
 
 console.log(`Technique engine QA passed: ${Engine.RULES.length} rules`);

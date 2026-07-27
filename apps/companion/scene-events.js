@@ -15,18 +15,48 @@ function validateEvent(scene, event) {
   if (!EVENT_TYPES.has(event.type)) throw new Error(`Неизвестный тип события: ${event.type}.`);
   if (typeof event.id !== "string" || !event.id || event.id.length > 120) throw new Error("Некорректный id события.");
   if (event.actorId && !actorById(scene, event.actorId)) throw new Error("Исполнитель события отсутствует на Сцене.");
-  const payload = event.payload || {};
+  const payload = event.payload || {}, actor = event.actorId ? actorById(scene, event.actorId) : null;
   const finite = value => Number.isFinite(Number(value));
   if (["resource.spend", "resource.gain"].includes(event.type)) {
     if (!RESOURCES.has(payload.resource) || !finite(payload.amount) || Number(payload.amount) < 0 || Number(payload.amount) > 9999) throw new Error("Некорректное изменение ресурса.");
   }
+  if (event.type === "rule-resource.configure") {
+    const definition = normalizeRuleResourceDefinition(actor, payload);
+    if (!actor || !/^[a-z][a-z0-9-]{0,39}$/.test(definition.resource) || !definition.label.trim() || definition.label.length > 80 || definition.initial < definition.minimum || definition.maximum != null && (definition.maximum < definition.minimum || definition.initial > definition.maximum)) throw new Error("Некорректная конфигурация альтернативного ресурса.");
+    const conflicts = ruleResourceDefinitions(actor).filter(item => item.resource !== definition.resource && item.replaces.some(resource => definition.replaces.includes(resource)));
+    if (conflicts.length) throw new Error(`Альтернативный ресурс конфликтует с «${conflicts[0].label}».`);
+  }
+  if (["rule-resource.spend", "rule-resource.gain", "rule-resource.set", "rule-resource.reset"].includes(event.type)) {
+    const definition = actor && ruleResourceDefinition(actor, payload.resource);
+    if (!actor || !definition) throw new Error("Альтернативный ресурс не настроен для исполнителя.");
+    if (["rule-resource.spend", "rule-resource.gain"].includes(event.type) && (!finite(payload.amount) || Number(payload.amount) < 0 || Number(payload.amount) > 9999)) throw new Error("Некорректное изменение альтернативного ресурса.");
+    if (event.type === "rule-resource.set" && (!finite(payload.value) || Number(payload.value) < definition.minimum || definition.maximum != null && Number(payload.value) > definition.maximum)) throw new Error("Некорректное значение альтернативного ресурса.");
+    if (event.type === "rule-resource.reset" && payload.scope != null && !["scene", "round", "turn"].includes(payload.scope)) throw new Error("Некорректная область сброса альтернативного ресурса.");
+  }
+  if (event.type === "rule-clock.configure") {
+    const definition = normalizeRuleClockDefinition(payload);
+    if (!actor || !/^[a-z][a-z0-9.-]{0,79}$/.test(definition.clockId) || !definition.label.trim() || definition.label.length > 80 || !Number.isInteger(Number(payload.size)) || definition.minimumSize > definition.size || payload.value != null && (!Number.isInteger(Number(payload.value)) || Number(payload.value) < 0 || Number(payload.value) > definition.size)) throw new Error("Некорректная конфигурация часов правила.");
+  }
+  if (["rule-clock.tick", "rule-clock.set", "rule-clock.reset"].includes(event.type)) {
+    const status = actor && clockStatus(scene, actor.id, payload.clockId);
+    if (!actor || !status?.available) throw new Error("Часы правила не настроены для исполнителя.");
+    if (event.type === "rule-clock.tick" && (!Number.isInteger(Number(payload.delta)) || Number(payload.delta) === 0 || Math.abs(Number(payload.delta)) > 24)) throw new Error("Некорректное изменение часов правила.");
+    if (event.type === "rule-clock.set" && (!Number.isInteger(Number(payload.value)) || Number(payload.value) < 0 || Number(payload.value) > status.size || payload.active != null && typeof payload.active !== "boolean")) throw new Error("Некорректное значение часов правила.");
+    if (event.type === "rule-clock.reset" && payload.scope != null && !["scene", "round", "turn"].includes(payload.scope)) throw new Error("Некорректная область сброса часов правила.");
+  }
   if (event.type === "actor.move") {
     const space = (scene.spaces || []).find(item => item.id === payload.space);
     if (!space || !Number.isInteger(Number(payload.x)) || !Number.isInteger(Number(payload.y)) || Number(payload.x) < 0 || Number(payload.y) < 0 || Number(payload.x) >= space.width || Number(payload.y) >= space.height) throw new Error("Некорректная клетка перемещения.");
+    if (removedCellKeys(scene, payload.space).has(`${Number(payload.x)},${Number(payload.y)}`)) throw new Error("Нельзя переместиться в удалённую клетку.");
+    if (payload.displacement) {
+      const status = displacementStatus(scene, { actorId: event.actorId, mode: "directed", direction: payload.displacement.direction, maximum: payload.displacement.distance, allowKnockedOut: Boolean(payload.displacement.allowKnockedOut), ignoreActors: Boolean(payload.displacement.ignoreActors), ignoreTerrain: Boolean(payload.displacement.ignoreTerrain) });
+      if (!status.available || status.destination.x !== Number(payload.x) || status.destination.y !== Number(payload.y)) throw new Error(status.reason || "Событие перемещения не совпадает с проверенным направлением.");
+    }
   }
   if (event.type === "marker.move") {
     const marker = markerById(scene, payload.markerId), space = (scene.spaces || []).find(item => item.id === (payload.space || marker?.space));
     if (!marker || !space || !Number.isInteger(Number(payload.x)) || !Number.isInteger(Number(payload.y)) || Number(payload.x) < 0 || Number(payload.y) < 0 || Number(payload.x) >= space.width || Number(payload.y) >= space.height) throw new Error("Некорректное перемещение маркера.");
+    if (removedCellKeys(scene, payload.space || marker.space).has(`${Number(payload.x)},${Number(payload.y)}`)) throw new Error("Нельзя переместить маркер в удалённую клетку.");
   }
   if (event.type === "marker.remove" && !markerById(scene, payload.markerId)) throw new Error("Удаляемый маркер уже отсутствует.");
   if (event.type === "object.damage") {
@@ -42,10 +72,26 @@ function validateEvent(scene, event) {
   if (event.type === "effect.apply" && (!actorById(scene, payload.targetId) || typeof payload.effect !== "string" || !payload.effect.trim() || payload.effect.length > 80)) throw new Error("Некорректный Эффект.");
   if (event.type === "effect.remove" && (!actorById(scene, payload.targetId) || typeof payload.effect !== "string" || !payload.effect.trim() || payload.effect.length > 80)) throw new Error("Некорректное удаление Эффекта.");
   if (event.type === "actor.heal" && (!actorById(scene, payload.targetId) || !finite(payload.amount) || Number(payload.amount) < 0 || Number(payload.amount) > 9999)) throw new Error("Некорректное исцеление.");
+  if (event.type === "actor.wound" && (!actorById(scene, payload.targetId) || !Number.isInteger(Number(payload.delta)) || Math.abs(Number(payload.delta)) !== 1)) throw new Error("Некорректное изменение Ран.");
   if (event.type === "actor.knockout" && !actorById(scene, payload.targetId)) throw new Error("Некорректное выведение из строя.");
   if (event.type === "inventory.change" && (typeof payload.item !== "string" || payload.item.length > 80 || !Number.isInteger(Number(payload.delta)) || Math.abs(Number(payload.delta)) > 99)) throw new Error("Некорректное изменение инвентаря.");
   if (event.type === "rule.prompt" && (typeof payload.id !== "string" || typeof payload.kind !== "string" || !Array.isArray(payload.options) || payload.options.length < 1 || payload.options.length > 12)) throw new Error("Некорректный запрос правила.");
   if (event.type === "rule.respond" && (!scene.pendingPrompt || payload.promptId !== scene.pendingPrompt.id || typeof payload.choice !== "string")) throw new Error("Этот запрос правила уже закрыт.");
+  if (event.type === "rule.trigger" && (
+    typeof payload.triggerId !== "string" || !/^[a-z][a-z0-9.-]{0,119}$/.test(payload.triggerId)
+    || typeof payload.sourceEventId !== "string" || !payload.sourceEventId
+    || !["fired", "queued", "cancelled"].includes(payload.status)
+    || payload.priority != null && !Number.isInteger(Number(payload.priority))
+    || payload.emittedTypes != null && (!Array.isArray(payload.emittedTypes) || payload.emittedTypes.length > 24 || payload.emittedTypes.some(type => !EVENT_TYPES.has(type)))
+    || payload.status === "queued" && (
+      payload.deferredEvent?.type !== "rule.prompt"
+      || typeof payload.deferredEvent?.payload?.id !== "string"
+      || typeof payload.deferredEvent?.payload?.kind !== "string"
+      || !Array.isArray(payload.deferredEvent?.payload?.options)
+      || payload.deferredEvent.payload.options.length < 1
+      || JSON.stringify(payload.deferredEvent).length > 8192
+    )
+  )) throw new Error("Некорректная запись маршрутизации триггера.");
   if (event.type === "technique.state") {
     if (!actorById(scene, event.actorId) || !["cunningPlan", "study", "spellModifiers"].includes(payload.key)) throw new Error("Некорректное состояние Техники.");
     if (payload.key === "cunningPlan" && (!Number.isInteger(Number(payload.delta)) || Math.abs(Number(payload.delta)) > 4)) throw new Error("Некорректное изменение часов Хитрого плана.");
@@ -57,8 +103,9 @@ function validateEvent(scene, event) {
     if (payload.key === "pugilistStance" && (!Number.isInteger(Number(payload.value)) || Number(payload.value) < 1 || Number(payload.value) > 4)) throw new Error("Шаг стойки должен быть от 1 до 4.");
     if (payload.key === "growth" && (!Number.isInteger(Number(payload.delta)) || Math.abs(Number(payload.delta)) > 20)) throw new Error("Некорректное изменение Роста.");
     if (["martialPerfection", "imposingPresence"].includes(payload.key) && typeof payload.value !== "boolean") throw new Error("Некорректный переключатель состояния.");
-    if (["grimTransformed", "grimUsed", "drainLife"].includes(payload.key) && typeof payload.value !== "boolean") throw new Error("Некорректный переключатель Техники.");
+    if (["grimTransformed", "grimUsed", "warringTransformed", "warringUsed", "drainLife"].includes(payload.key) && typeof payload.value !== "boolean") throw new Error("Некорректный переключатель Техники.");
     if (payload.key === "lastCreationSpellMarks" && (!Number.isInteger(Number(payload.value)) || Number(payload.value) < 0 || Number(payload.value) > 99)) throw new Error("Некорректное число Меток творения.");
+    if (payload.key === "modifiedOverclockTurns" && (!Number.isInteger(Number(payload.value)) || Number(payload.value) < 0 || Number(payload.value) > 2)) throw new Error("Некорректная длительность Разгона.");
   }
   if (event.type === "turn.grant" && (!actorById(scene, event.actorId) || !Number.isInteger(Number(payload.amount)) || Number(payload.amount) < 1 || Number(payload.amount) > 4)) throw new Error("Некорректный дополнительный Ход.");
   if (["enemy.action.prepare", "enemy.action.resolve"].includes(event.type) && (typeof payload.ruleId !== "string" || typeof payload.name !== "string" || payload.ruleId.length > 180 || payload.name.length > 120)) throw new Error("Некорректное действие врага.");
@@ -72,6 +119,15 @@ function validateEvent(scene, event) {
   if (event.type === "marker.create") {
     const space = (scene.spaces || []).find(item => item.id === payload.space);
     if ((scene.markers || []).length >= 240 || !space || !Number.isInteger(Number(payload.x)) || !Number.isInteger(Number(payload.y)) || Number(payload.x) < 0 || Number(payload.y) < 0 || Number(payload.x) >= space.width || Number(payload.y) >= space.height) throw new Error("Некорректный маркер Техники.");
+    if (removedCellKeys(scene, payload.space).has(`${Number(payload.x)},${Number(payload.y)}`)) throw new Error("Нельзя поставить маркер в удалённую клетку.");
+  }
+  if (event.type === "topology.cells.remove") {
+    const status = topologyStatus(scene, { space: payload.space, cells: payload.cells, operation: "remove" });
+    if (!status.available || typeof payload.id !== "string" || !payload.id || payload.id.length > 120 || topologyCuts(scene).some(cut => cut.id === payload.id) || typeof payload.label !== "string" || !payload.label.trim() || payload.label.length > 80 || status.cells.length > 144 || payload.crossing != null && !["blocked", "opposite"].includes(payload.crossing) || payload.destroyConnectedTerrain != null && typeof payload.destroyConnectedTerrain !== "boolean") throw new Error(status.reason || "Некорректное удаление клеток.");
+  }
+  if (event.type === "topology.cells.restore") {
+    const cut = topologyCuts(scene).find(item => item.id === payload.cutId);
+    if (!cut) throw new Error("Восстанавливаемый разрыв поля уже отсутствует.");
   }
   if (event.type === "targets.set" && (!Array.isArray(payload.actorIds) || payload.actorIds.length > 40 || payload.actorIds.some(id => !actorById(scene, id) || actorById(scene, id).knockedOut))) throw new Error("Некорректный список целей.");
   if (event.type === "space.ensure" && (typeof payload.id !== "string" || !payload.id || (!((scene.spaces || []).some(space => space.id === payload.id || space.name === payload.name)) && (scene.spaces || []).length >= 12) || !finite(payload.width) || !finite(payload.height) || Number(payload.width) < 1 || Number(payload.height) < 1 || Number(payload.width) > 12 || Number(payload.height) > 12)) throw new Error("Некорректное отдельное пространство.");
@@ -100,8 +156,17 @@ function validateTransition(scene, event) {
     throw new Error(actor ? `Сейчас не Ход «${actor.name}».` : "Исполнитель действия не найден.");
   }
   if (event.type === "area.remove" && (!(scene.objects || []).some(object => object.id === event.payload?.id))) throw new Error("Удаляемая местность уже отсутствует.");
-  if (event.type === "resource.spend" && actor && Number(event.payload?.amount || 0) > Number(actor[event.payload?.resource] || 0)) {
-    throw new Error("Ресурс изменился: выбранное действие больше нельзя оплатить.");
+  if (["resource.spend", "resource.gain"].includes(event.type) && actor) {
+    const status = resourceOperationStatus(scene, actor.id, { ...event.payload, operation: event.type === "resource.gain" ? "gain" : "spend" });
+    if (!status.available) throw new Error(status.reason);
+  }
+  if (event.type === "rule-resource.spend" && actor) {
+    const status = ruleResourceStatus(scene, actor.id, { resource: event.payload.resource, amount: event.payload.amount, operation: "spend" });
+    if (!status.available) throw new Error(status.reason);
+  }
+  if (event.type === "rule-clock.tick" && actor) {
+    const status = clockStatus(scene, actor.id, event.payload.clockId, { delta: event.payload.delta });
+    if (Number(event.payload.delta) < 0 && status.value + Number(event.payload.delta) < 0) throw new Error(`На часах «${status.label}» недостаточно сегментов.`);
   }
   if (event.type === "rule.prompt" && scene.pendingPrompt) throw new Error("Сначала ответьте на уже открытый запрос правила.");
   if (event.type === "reaction.respond") {
@@ -128,14 +193,89 @@ function advanceComboCooldowns(actor) {
 function reduceEvent(scene, event) {
   const actor = event.actorId ? actorById(scene, event.actorId) : null;
   const payload = event.payload;
-  if (event.type === "resource.spend" && actor) {
-    const key = payload.resource;
-    actor[key] = Math.max(0, Number(actor[key] || 0) - Math.max(0, Number(payload.amount || 0)));
-  } else if (event.type === "resource.gain" && actor) {
-    const key = payload.resource;
-    // Focus deliberately has no upper clamp. Starting Focus is not a maximum.
-    const gained = Math.max(0, Number(actor[key] || 0) + Math.max(0, Number(payload.amount || 0)));
-    actor[key] = key === "meals" ? Math.min(Number(actor.maxMeals || gained), gained) : gained;
+  if (["resource.spend", "resource.gain"].includes(event.type) && actor) {
+    const status = resourceOperationStatus(scene, actor.id, { ...payload, operation: event.type === "resource.gain" ? "gain" : "spend" });
+    payload.resolvedResource = status.resolvedResource;
+    payload.resolvedDelta = status.delta;
+    payload.replacement = status.replacement;
+    if (status.ignored) payload.ignoredReason = status.ignoredReason;
+    if (status.replacement && !status.definition.externalResource) {
+      actor.ruleResources ||= {};
+      actor.ruleResources[status.resolvedResource] = { ...status.definition, value: status.remaining };
+      if (status.definition.legacyProperty) actor[status.definition.legacyProperty] = status.remaining;
+    } else {
+      const key = status.replacement ? null : payload.resource;
+      // Focus deliberately has no upper clamp. Starting Focus is not a maximum.
+      if (key) {
+        const next = Math.max(0, Number(actor[key] || 0) + status.delta);
+        actor[key] = key === "meals" ? Math.min(Number(actor.maxMeals || next), next) : next;
+      }
+    }
+  } else if (event.type === "rule-resource.configure" && actor) {
+    const definition = normalizeRuleResourceDefinition(actor, payload);
+    const previous = ruleResourceDefinition(actor, definition.resource);
+    actor.ruleResources ||= {};
+    actor.ruleResources[definition.resource] = { ...definition, value: previous ? ruleResourceBalance(actor, previous) : definition.initial };
+    payload.value = actor.ruleResources[definition.resource].value;
+  } else if (["rule-resource.spend", "rule-resource.gain"].includes(event.type) && actor) {
+    const definition = ruleResourceDefinition(actor, payload.resource), balance = ruleResourceBalance(actor, definition);
+    const direction = event.type === "rule-resource.gain" ? 1 : -1;
+    const delta = Number(payload.amount || 0) * direction;
+    const next = definition.maximum == null ? Math.max(definition.minimum, balance + delta) : Math.min(definition.maximum, Math.max(definition.minimum, balance + delta));
+    actor.ruleResources ||= {};
+    actor.ruleResources[definition.resource] = { ...definition, value: next };
+    if (definition.legacyProperty) actor[definition.legacyProperty] = next;
+    payload.resolvedDelta = next - balance;
+  } else if (event.type === "rule-resource.set" && actor) {
+    const definition = ruleResourceDefinition(actor, payload.resource);
+    actor.ruleResources ||= {};
+    actor.ruleResources[definition.resource] = { ...definition, value: Number(payload.value) };
+    if (definition.legacyProperty) actor[definition.legacyProperty] = Number(payload.value);
+  } else if (event.type === "rule-resource.reset" && actor) {
+    const definition = ruleResourceDefinition(actor, payload.resource);
+    actor.ruleResources ||= {};
+    actor.ruleResources[definition.resource] = { ...definition, value: definition.initial };
+    if (definition.legacyProperty) actor[definition.legacyProperty] = definition.initial;
+    payload.value = definition.initial;
+  } else if (event.type === "rule-clock.configure" && actor) {
+    const definition = normalizeRuleClockDefinition(payload), previous = ruleClockDefinition(actor, definition.clockId), previousValue = previous ? ruleClockValue(actor, previous) : definition.initial;
+    actor.ruleClocks ||= {};
+    const value = payload.value == null ? Math.min(definition.size, previousValue) : Number(payload.value);
+    const active = payload.active == null ? (previous ? clockStatus(scene, actor.id, definition.clockId).active : definition.active) : Boolean(payload.active);
+    actor.ruleClocks[definition.clockId] = { ...definition, value, active };
+    if (definition.legacyTechniqueState) {
+      actor.techniqueState ||= {};
+      actor.techniqueState[definition.legacyTechniqueState] = value;
+    }
+    Object.assign(payload, { value, active, previousSize: previous?.size ?? null });
+  } else if (event.type === "rule-clock.tick" && actor) {
+    const status = clockStatus(scene, actor.id, payload.clockId), definition = status.definition, before = status.value, value = Math.max(0, Math.min(status.size, before + Number(payload.delta)));
+    const active = payload.activate === true ? true : status.active;
+    actor.ruleClocks ||= {};
+    actor.ruleClocks[payload.clockId] = { ...definition, value, active: definition.removeWhenEmpty && value === 0 ? false : active };
+    if (definition.legacyTechniqueState) {
+      actor.techniqueState ||= {};
+      actor.techniqueState[definition.legacyTechniqueState] = value;
+    }
+    Object.assign(payload, { label: status.label, size: status.size, before, value, appliedDelta: value - before, filled: before < status.size && value === status.size, emptied: before > 0 && value === 0, active: actor.ruleClocks[payload.clockId].active });
+  } else if (event.type === "rule-clock.set" && actor) {
+    const status = clockStatus(scene, actor.id, payload.clockId), definition = status.definition, before = status.value, value = Number(payload.value), active = payload.active == null ? status.active : Boolean(payload.active);
+    actor.ruleClocks ||= {};
+    actor.ruleClocks[payload.clockId] = { ...definition, value, active: definition.removeWhenEmpty && value === 0 ? false : active };
+    if (definition.legacyTechniqueState) {
+      actor.techniqueState ||= {};
+      actor.techniqueState[definition.legacyTechniqueState] = value;
+    }
+    Object.assign(payload, { label: status.label, size: status.size, before, appliedDelta: value - before, filled: before < status.size && value === status.size, emptied: before > 0 && value === 0, active: actor.ruleClocks[payload.clockId].active });
+  } else if (event.type === "rule-clock.reset" && actor) {
+    const status = clockStatus(scene, actor.id, payload.clockId), definition = status.definition, value = definition.initial;
+    actor.ruleClocks ||= {};
+    actor.ruleClocks[payload.clockId] = { ...definition, value, active: definition.active };
+    if (definition.legacyTechniqueState) {
+      actor.techniqueState ||= {};
+      actor.techniqueState[definition.legacyTechniqueState] = value;
+    }
+    Object.assign(payload, { label: status.label, size: status.size, before: status.value, value, appliedDelta: value - status.value, active: definition.active });
   } else if (event.type === "actor.move" && actor) {
     payload.from ||= { space: actor.space, x: Number(actor.x), y: Number(actor.y) };
     Object.assign(actor, { space: payload.space || actor.space, x: Number(payload.x), y: Number(payload.y) });
@@ -170,6 +310,20 @@ function reduceEvent(scene, event) {
     const marker = markerById(scene, payload.markerId);
     payload.label = marker?.label || payload.label || "маркер";
     scene.markers = (scene.markers || []).filter(item => item.id !== payload.markerId);
+  } else if (event.type === "topology.cells.remove") {
+    scene.topology ||= { cuts: [] };
+    scene.topology.cuts ||= [];
+    const cells = [...new Set(payload.cells.map(String))];
+    const terrain = payload.destroyConnectedTerrain ? terrainComponentStatus(scene, { space: payload.space, cells, types: ["terrain", "difficult", "custom"] }) : null;
+    const destroyedTerrainIds = terrain?.available ? terrain.objectIds : [];
+    const destroyedTerrainLabels = terrain?.available ? terrain.objects.map(object => object.label) : [];
+    if (destroyedTerrainIds.length) scene.objects = (scene.objects || []).filter(object => !destroyedTerrainIds.includes(object.id));
+    scene.topology.cuts.push({ id: payload.id, space: payload.space, cells, label: payload.label, source: payload.source || "Ручное правило", ruleId: payload.ruleId || "", ownerActorId: payload.ownerActorId || event.actorId || null, crossing: payload.crossing === "opposite" ? "opposite" : "blocked", createdRound: Number(scene.round || 1) });
+    Object.assign(payload, { cells, count: cells.length, crossing: payload.crossing === "opposite" ? "opposite" : "blocked", destroyedTerrainIds, destroyedTerrainLabels });
+  } else if (event.type === "topology.cells.restore") {
+    const cut = topologyCuts(scene).find(item => item.id === payload.cutId);
+    Object.assign(payload, { label: cut?.label || payload.label || "Разрыв поля", cells: [...(cut?.cells || [])], count: Number(cut?.cells?.length || 0), space: cut?.space || payload.space });
+    scene.topology.cuts = topologyCuts(scene).filter(item => item.id !== payload.cutId);
   } else if (event.type === "targets.set") {
     scene.targetIds = [...payload.actorIds];
   } else if (event.type === "space.ensure") {
@@ -262,6 +416,13 @@ function reduceEvent(scene, event) {
       payload.restored = target[key] - before;
       payload.redirectedResource = grimRedirect ? "focus" : null;
     }
+  } else if (event.type === "actor.wound") {
+    const target = actorById(scene, payload.targetId);
+    if (target) {
+      const before = Math.max(0, Number(target.wounds || 0));
+      target.wounds = Math.max(0, before + Number(payload.delta || 0));
+      payload.appliedDelta = target.wounds - before;
+    }
   } else if (event.type === "actor.knockout") {
     const target = actorById(scene, payload.targetId);
     if (target && !target.knockedOut) {
@@ -275,6 +436,14 @@ function reduceEvent(scene, event) {
     actor.inventory ||= {};
     actor.inventory[payload.item] = Math.max(0, Number(actor.inventory[payload.item] || 0) + Number(payload.delta || 0));
     if (!actor.inventory[payload.item]) delete actor.inventory[payload.item];
+  } else if (event.type === "rule.trigger") {
+    scene.triggerQueue ||= [];
+    const key = `${payload.sourceEventId}:${payload.triggerId}`;
+    if (payload.status === "queued" && !scene.triggerQueue.some(item => item.key === key)) {
+      scene.triggerQueue.push({ key, triggerId: payload.triggerId, sourceEventId: payload.sourceEventId, priority: Number(payload.priority || 0), ownerId: event.actorId, event: clone(payload.deferredEvent) });
+      scene.triggerQueue.sort((left, right) => Number(right.priority || 0) - Number(left.priority || 0));
+    }
+    if (payload.queued && ["fired", "cancelled"].includes(payload.status)) scene.triggerQueue = scene.triggerQueue.filter(item => item.key !== key);
   } else if (event.type === "rule.prompt") {
     scene.pendingPrompt = { id: payload.id, kind: payload.kind, actorId: event.actorId, sourceActorId: payload.sourceActorId || event.actorId, targetId: payload.targetId || null, markerId: payload.markerId || null, title: payload.title || "Решение правила", text: payload.text || "", options: clone(payload.options || []), context: clone(payload.context || {}) };
   } else if (event.type === "rule.respond") {
@@ -287,10 +456,8 @@ function reduceEvent(scene, event) {
     if (payload.key === "cunningPlan") actor.techniqueState.cunningPlan = Math.max(0, Math.min(4, Number(actor.techniqueState.cunningPlan || 0) + Number(payload.delta || 0)));
     if (payload.key === "study") {
       actor.techniqueState.studiedActorIds ||= [];
-      if (!actor.techniqueState.studiedActorIds.includes(payload.targetId)) {
-        actor.techniqueState.studiedActorIds.push(payload.targetId);
-        actor.techniqueState.cunningPlan = Math.min(4, Number(actor.techniqueState.cunningPlan || 0) + 1);
-      }
+      payload.newTarget = !actor.techniqueState.studiedActorIds.includes(payload.targetId);
+      if (payload.newTarget) actor.techniqueState.studiedActorIds.push(payload.targetId);
     }
     if (payload.key === "spellModifiers") actor.techniqueState.spellModifiers = [...new Set(payload.value || [])].slice(0, 2);
   } else if (event.type === "actor.state" && actor) {
@@ -334,6 +501,7 @@ function reduceEvent(scene, event) {
     actor.acted = true;
     actor.stepRemaining = 0;
     advanceComboCooldowns(actor);
+    if (Number(actor.ruleState?.modifiedOverclockTurns || 0) > 0) actor.ruleState.modifiedOverclockTurns = Math.max(0, Number(actor.ruleState.modifiedOverclockTurns) - 1);
     (scene.actors || []).forEach(item => { item.speedZeroUntilTurnEnd = false; });
     if (Number(actor.extraTurns || 0) > 0) {
       actor.extraTurns -= 1;
@@ -353,7 +521,17 @@ function reduceEvent(scene, event) {
     scene.activeActorId = null;
     scene.objects = (scene.objects || []).filter(object => !["instant", "round"].includes(object.duration));
     scene.markers = (scene.markers || []).filter(marker => marker.duration !== "round");
-    (scene.actors || []).forEach(item => { item.acted = false; item.ap = Number(item.baseAp || 3); item.usedActions = []; item.stepRemaining = 0; item.speedZeroUntilTurnEnd = false; });
+    payload.ruleResourceResets = [];
+    payload.ruleClockResets = [];
+    (scene.actors || []).forEach(item => {
+      item.acted = false;
+      item.ap = Number(item.baseAp || 3);
+      item.usedActions = [];
+      item.stepRemaining = 0;
+      item.speedZeroUntilTurnEnd = false;
+      resetRuleResources(item, "round").forEach(reset => payload.ruleResourceResets.push({ actorId: item.id, ...reset }));
+      resetRuleClocks(item, "round").forEach(reset => payload.ruleClockResets.push({ actorId: item.id, ...reset }));
+    });
   }
   scene.log ||= [];
   scene.log.unshift(event);

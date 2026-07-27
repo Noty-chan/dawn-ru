@@ -601,7 +601,7 @@ window.DAWN_DATA = {
       {
        "n": 3,
        "name": "Феникс (Phoenix)",
-       "text": "когда вы ставите это **на кон** через **\"Встать снова\"**, вы можете исцелить все свои **Раны**, кроме 1.\n## Техники сложности ★★",
+       "text": "когда вы ставите это **на кон** через **\"Встать снова\"**, вы можете исцелить все свои **Раны**, кроме 1.",
        "mechanics": {
         "actions": [],
         "effects": [],
@@ -745,7 +745,9 @@ window.DAWN_DATA = {
           2
          ]
         ],
-        "ranges": [],
+        "ranges": [
+         3
+        ],
         "clocks": [],
         "resources": [],
         "movement": false,
@@ -980,7 +982,9 @@ window.DAWN_DATA = {
         "effects": [],
         "directEffects": [],
         "areas": [],
-        "ranges": [],
+        "ranges": [
+         2
+        ],
         "clocks": [],
         "resources": [],
         "movement": false,
@@ -999,7 +1003,9 @@ window.DAWN_DATA = {
         "effects": [],
         "directEffects": [],
         "areas": [],
-        "ranges": [],
+        "ranges": [
+         3
+        ],
         "clocks": [],
         "resources": [],
         "movement": false,
@@ -1023,7 +1029,7 @@ window.DAWN_DATA = {
         ],
         "clocks": [],
         "resources": [],
-        "movement": true,
+        "movement": false,
         "targets": true,
         "conditional": true
        }
@@ -1077,7 +1083,7 @@ window.DAWN_DATA = {
       {
        "n": 3,
        "name": "Пожрать (Devour)",
-       "text": "один раз за **Сцену**, когда вы исцеляете **Рану** через **\"Тоску\"**, вы можете **\"предаться\"**, накладывая на себя **Обездвижен** и **Ошеломлен**. Пока вы находитесь под этими **Эффектами**, **Фокус**, получаемый через **Передышку** и **Зарядку**, заменяется исцелением такого же числа **Ран**.\n## Техники сложности ★★★",
+       "text": "один раз за **Сцену**, когда вы исцеляете **Рану** через **\"Тоску\"**, вы можете **\"предаться\"**, накладывая на себя **Обездвижен** и **Ошеломлен**. Пока вы находитесь под этими **Эффектами**, **Фокус**, получаемый через **Передышку** и **Зарядку**, заменяется исцелением такого же числа **Ран**.",
        "mechanics": {
         "actions": [],
         "effects": [
@@ -1217,7 +1223,7 @@ window.DAWN_DATA = {
       {
        "n": 3,
        "name": "Святой меч, Дюрандаль (Saintly Sword, Durandal)",
-       "text": "когда вы используете **Завершение**, вы можете выбрать потерять свою **трансформацию**. Если вы это делаете, это **Завершение** может выбирать целью всех врагов вдоль **линии** бесконечной длины, где хотя бы одна выбранная **клетка** смежна с вами, нанося один дополнительный урон за каждого персонажа, которого оно выбрало целью.\n### Опциональное правило: драматичные Вознесенные\nЕсли **Нарратор** разрешает, когда персонаж применяет **Пробуждение**, **Воинственного Вознесенного** или другую **Технику** **\"Вознесенного\"**, он может использовать **Зарядку** бесплатно, не получая **Фокус**.",
+       "text": "когда вы используете **Завершение**, вы можете выбрать потерять свою **трансформацию**. Если вы это делаете, это **Завершение** может выбирать целью всех врагов вдоль **линии** бесконечной длины, где хотя бы одна выбранная **клетка** смежна с вами, нанося один дополнительный урон за каждого персонажа, которого оно выбрало целью.",
        "mechanics": {
         "actions": [
          "Завершение"
@@ -1227,10 +1233,8 @@ window.DAWN_DATA = {
         "areas": [],
         "ranges": [],
         "clocks": [],
-        "resources": [
-         "Фокус"
-        ],
-        "movement": true,
+        "resources": [],
+        "movement": false,
         "targets": true,
         "conditional": true
        }
@@ -1287,7 +1291,7 @@ window.DAWN_DATA = {
         "ranges": [],
         "clocks": [],
         "resources": [],
-        "movement": false,
+        "movement": true,
         "targets": false,
         "conditional": true
        }
@@ -1374,7 +1378,7 @@ window.DAWN_DATA = {
         "ranges": [],
         "clocks": [],
         "resources": [],
-        "movement": false,
+        "movement": true,
         "targets": false,
         "conditional": false
        }
@@ -1400,7 +1404,9 @@ window.DAWN_DATA = {
         "effects": [],
         "directEffects": [],
         "areas": [],
-        "ranges": [],
+        "ranges": [
+         5
+        ],
         "clocks": [],
         "resources": [],
         "movement": false,
@@ -1441,7 +1447,7 @@ window.DAWN_DATA = {
         "ranges": [],
         "clocks": [],
         "resources": [],
-        "movement": true,
+        "movement": false,
         "targets": true,
         "conditional": false
        }
@@ -1502,7 +1508,7 @@ window.DAWN_DATA = {
         "ranges": [],
         "clocks": [],
         "resources": [],
-        "movement": false,
+        "movement": true,
         "targets": true,
         "conditional": true
        }
@@ -1567,7 +1573,7 @@ window.DAWN_DATA = {
         "ranges": [],
         "clocks": [],
         "resources": [],
-        "movement": true,
+        "movement": false,
         "targets": true,
         "conditional": true
        }
@@ -1594,7 +1600,7 @@ window.DAWN_DATA = {
         "ranges": [],
         "clocks": [],
         "resources": [],
-        "movement": false,
+        "movement": true,
         "targets": false,
         "conditional": true
        }
@@ -1619,7 +1625,7 @@ window.DAWN_DATA = {
       {
        "n": 3,
        "name": "Инстинкт бойца (Fighter's Instinct) [Уворот -> Стычка]",
-       "text": "эта **Стычка** позволяет вам переместиться на 3 **клетки** перед выбором цели и дает **Критический успех** на 5 или 6.\n## Техники сложности ★★",
+       "text": "эта **Стычка** позволяет вам переместиться на 3 **клетки** перед выбором цели и дает **Критический успех** на 5 или 6.",
        "mechanics": {
         "actions": [
          "Стычка"
@@ -1695,7 +1701,7 @@ window.DAWN_DATA = {
         "ranges": [],
         "clocks": [],
         "resources": [],
-        "movement": false,
+        "movement": true,
         "targets": false,
         "conditional": true
        }
@@ -1726,7 +1732,7 @@ window.DAWN_DATA = {
         "ranges": [],
         "clocks": [],
         "resources": [],
-        "movement": false,
+        "movement": true,
         "targets": false,
         "conditional": true
        }
@@ -1746,7 +1752,7 @@ window.DAWN_DATA = {
         "ranges": [],
         "clocks": [],
         "resources": [],
-        "movement": false,
+        "movement": true,
         "targets": true,
         "conditional": true
        }
@@ -1994,7 +2000,9 @@ window.DAWN_DATA = {
         "effects": [],
         "directEffects": [],
         "areas": [],
-        "ranges": [],
+        "ranges": [
+         4
+        ],
         "clocks": [],
         "resources": [
          "Фокус"
@@ -2062,7 +2070,7 @@ window.DAWN_DATA = {
         "ranges": [],
         "clocks": [],
         "resources": [],
-        "movement": false,
+        "movement": true,
         "targets": true,
         "conditional": true
        }
@@ -2079,7 +2087,7 @@ window.DAWN_DATA = {
         "ranges": [],
         "clocks": [],
         "resources": [],
-        "movement": false,
+        "movement": true,
         "targets": true,
         "conditional": true
        }
@@ -2284,7 +2292,7 @@ window.DAWN_DATA = {
       {
        "n": 3,
        "name": "Нести их ярость (To Carry Their Fury)",
-       "text": "когда вы снижаете урон **Атаки** до 0 с помощью **Уклонения**, вы можете **телепортироваться** смежно с атакующим и бесплатно использовать против него **Быструю Стычку**. Когда вы совершаете **Атаку** и наносите урон, равный записанному вами числу, вы можете убрать любое число своих записанных чисел, чтобы нанести два дополнительных урона за каждое убранное.\n## Техники сложности ★★★",
+       "text": "когда вы снижаете урон **Атаки** до 0 с помощью **Уклонения**, вы можете **телепортироваться** смежно с атакующим и бесплатно использовать против него **Быструю Стычку**. Когда вы совершаете **Атаку** и наносите урон, равный записанному вами числу, вы можете убрать любое число своих записанных чисел, чтобы нанести два дополнительных урона за каждое убранное.",
        "mechanics": {
         "actions": [],
         "effects": [],
@@ -2320,7 +2328,7 @@ window.DAWN_DATA = {
         "ranges": [],
         "clocks": [],
         "resources": [],
-        "movement": true,
+        "movement": false,
         "targets": true,
         "conditional": true
        }
@@ -2428,7 +2436,7 @@ window.DAWN_DATA = {
         "ranges": [],
         "clocks": [],
         "resources": [],
-        "movement": false,
+        "movement": true,
         "targets": false,
         "conditional": true
        }
@@ -2577,7 +2585,7 @@ window.DAWN_DATA = {
         "ranges": [],
         "clocks": [],
         "resources": [],
-        "movement": true,
+        "movement": false,
         "targets": true,
         "conditional": true
        }
@@ -2656,7 +2664,7 @@ window.DAWN_DATA = {
         "ranges": [],
         "clocks": [],
         "resources": [],
-        "movement": true,
+        "movement": false,
         "targets": true,
         "conditional": true
        }
@@ -2679,7 +2687,7 @@ window.DAWN_DATA = {
         "resources": [
          "Фокус"
         ],
-        "movement": true,
+        "movement": false,
         "targets": true,
         "conditional": true
        }
@@ -2796,7 +2804,7 @@ window.DAWN_DATA = {
       {
        "n": 3,
        "name": "Вдохновить мужество (Inspire Courage)",
-       "text": "когда вы начинаете источник движения, выходя из **смежности** с союзником, он может переместиться в **клетку**, смежную с вашим новым местоположением, и получить **Укреплен**.\n## Техники сложности ★★",
+       "text": "когда вы начинаете источник движения, выходя из **смежности** с союзником, он может переместиться в **клетку**, смежную с вашим новым местоположением, и получить **Укреплен**.",
        "mechanics": {
         "actions": [],
         "effects": [
@@ -3088,7 +3096,7 @@ window.DAWN_DATA = {
         "ranges": [],
         "clocks": [],
         "resources": [],
-        "movement": false,
+        "movement": true,
         "targets": false,
         "conditional": true
        }
@@ -3385,7 +3393,7 @@ window.DAWN_DATA = {
         "ranges": [],
         "clocks": [],
         "resources": [],
-        "movement": true,
+        "movement": false,
         "targets": false,
         "conditional": true
        }
@@ -3414,7 +3422,7 @@ window.DAWN_DATA = {
       {
        "n": 3,
        "name": "Зона контроля (Zone Of Influence)",
-       "text": "когда вы используете **Изучение**, вы можете поместить до 4 **Прожекторов** в любые незанятые **клетки** на поле. **Прожектор** - уникальный элемент **трудной местности**, действующий только на врагов. Когда персонаж входит в **Прожектор**, вы можете **телепортироваться** в незанятую смежную **клетку** и использовать против него **Наказание**, как если бы он вышел из **смежности** с вами.\n## Техники сложности ★★★",
+       "text": "когда вы используете **Изучение**, вы можете поместить до 4 **Прожекторов** в любые незанятые **клетки** на поле. **Прожектор** - уникальный элемент **трудной местности**, действующий только на врагов. Когда персонаж входит в **Прожектор**, вы можете **телепортироваться** в незанятую смежную **клетку** и использовать против него **Наказание**, как если бы он вышел из **смежности** с вами.",
        "mechanics": {
         "actions": [],
         "effects": [],
@@ -3523,7 +3531,7 @@ window.DAWN_DATA = {
         "resources": [
          "Раны"
         ],
-        "movement": true,
+        "movement": false,
         "targets": true,
         "conditional": true
        }
@@ -3598,7 +3606,7 @@ window.DAWN_DATA = {
         "resources": [
          "Фокус"
         ],
-        "movement": true,
+        "movement": false,
         "targets": true,
         "conditional": true
        }
@@ -3636,7 +3644,7 @@ window.DAWN_DATA = {
         "resources": [
          "Фокус"
         ],
-        "movement": true,
+        "movement": false,
         "targets": true,
         "conditional": true
        }
@@ -4117,7 +4125,7 @@ window.DAWN_DATA = {
         "ranges": [],
         "clocks": [],
         "resources": [],
-        "movement": true,
+        "movement": false,
         "targets": true,
         "conditional": true
        }
@@ -4144,7 +4152,7 @@ window.DAWN_DATA = {
         "ranges": [],
         "clocks": [],
         "resources": [],
-        "movement": true,
+        "movement": false,
         "targets": true,
         "conditional": true
        }
@@ -4169,7 +4177,7 @@ window.DAWN_DATA = {
       {
        "n": 3,
        "name": "Экзорцизм (Exorcize)",
-       "text": "ваше **Завершение Духом** может выбирать целью всех персонажей и все **клетки** с **Талисманами** сразу.\n## Техники сложности ★★",
+       "text": "ваше **Завершение Духом** может выбирать целью всех персонажей и все **клетки** с **Талисманами** сразу.",
        "mechanics": {
         "actions": [
          "Завершение"
@@ -4180,7 +4188,7 @@ window.DAWN_DATA = {
         "ranges": [],
         "clocks": [],
         "resources": [],
-        "movement": true,
+        "movement": false,
         "targets": true,
         "conditional": false
        }
@@ -4508,7 +4516,7 @@ window.DAWN_DATA = {
         "ranges": [],
         "clocks": [],
         "resources": [],
-        "movement": false,
+        "movement": true,
         "targets": true,
         "conditional": true
        }
@@ -4527,7 +4535,7 @@ window.DAWN_DATA = {
         "resources": [
          "Напряжение"
         ],
-        "movement": true,
+        "movement": false,
         "targets": true,
         "conditional": true
        }
@@ -4671,7 +4679,7 @@ window.DAWN_DATA = {
       {
        "n": 3,
        "name": "Парные духи (Twinned Spirits)",
-       "text": "вы можете выбрать дополнительный вариант из **\"Пламени духовного плетения\"**, а когда создаете **Духовное пламя**, можете создать два, по одному каждого типа, или создать одно со свойствами обоих.\n## Техники сложности ★★★",
+       "text": "вы можете выбрать дополнительный вариант из **\"Пламени духовного плетения\"**, а когда создаете **Духовное пламя**, можете создать два, по одному каждого типа, или создать одно со свойствами обоих.",
        "mechanics": {
         "actions": [],
         "effects": [],
@@ -4891,7 +4899,7 @@ window.DAWN_DATA = {
         "ranges": [],
         "clocks": [],
         "resources": [],
-        "movement": true,
+        "movement": false,
         "targets": true,
         "conditional": true
        }
@@ -5018,7 +5026,7 @@ window.DAWN_DATA = {
         "ranges": [],
         "clocks": [],
         "resources": [],
-        "movement": true,
+        "movement": false,
         "targets": true,
         "conditional": true
        }
@@ -5064,7 +5072,7 @@ window.DAWN_DATA = {
         "ranges": [],
         "clocks": [],
         "resources": [],
-        "movement": true,
+        "movement": false,
         "targets": true,
         "conditional": true
        }
@@ -5164,7 +5172,7 @@ window.DAWN_DATA = {
         "resources": [
          "Фокус"
         ],
-        "movement": false,
+        "movement": true,
         "targets": true,
         "conditional": true
        }
@@ -5206,7 +5214,7 @@ window.DAWN_DATA = {
         "ranges": [],
         "clocks": [],
         "resources": [],
-        "movement": false,
+        "movement": true,
         "targets": false,
         "conditional": true
        }
@@ -5412,7 +5420,7 @@ window.DAWN_DATA = {
       {
        "n": 3,
        "name": "Эврика! (Eureka!)",
-       "text": "когда вы начинаете свой **Ход** в **Стойке тактика**, получите 1 дополнительное **ОД**, а ваша первая **Атака** в этот **Ход** стоит на 1 **ОД** больше.\n## Техники сложности ★★",
+       "text": "когда вы начинаете свой **Ход** в **Стойке тактика**, получите 1 дополнительное **ОД**, а ваша первая **Атака** в этот **Ход** стоит на 1 **ОД** больше.",
        "mechanics": {
         "actions": [],
         "effects": [],
@@ -5521,7 +5529,7 @@ window.DAWN_DATA = {
         "ranges": [],
         "clocks": [],
         "resources": [],
-        "movement": true,
+        "movement": false,
         "targets": true,
         "conditional": true
        }
@@ -5606,7 +5614,7 @@ window.DAWN_DATA = {
         "ranges": [],
         "clocks": [],
         "resources": [],
-        "movement": false,
+        "movement": true,
         "targets": true,
         "conditional": true
        }
@@ -5742,7 +5750,7 @@ window.DAWN_DATA = {
         ],
         "clocks": [],
         "resources": [],
-        "movement": true,
+        "movement": false,
         "targets": false,
         "conditional": true
        }
@@ -5889,7 +5897,7 @@ window.DAWN_DATA = {
       {
        "n": 3,
        "name": "Водяная клетка (Aqua Cage)",
-       "text": "если во всех смежных с врагом **клетках** есть **Печати волны**, вы можете убрать эти **Печати**, чтобы наложить на него **Подброшен**, **Ошеломлен** и **Обездвижен**. Каждый враг может быть затронут этим только один раз за **Сцену**.\n## Техники сложности ★★★",
+       "text": "если во всех смежных с врагом **клетках** есть **Печати волны**, вы можете убрать эти **Печати**, чтобы наложить на него **Подброшен**, **Ошеломлен** и **Обездвижен**. Каждый враг может быть затронут этим только один раз за **Сцену**.",
        "mechanics": {
         "actions": [],
         "effects": [
@@ -5902,7 +5910,7 @@ window.DAWN_DATA = {
         "ranges": [],
         "clocks": [],
         "resources": [],
-        "movement": true,
+        "movement": false,
         "targets": true,
         "conditional": true
        }
@@ -5968,7 +5976,7 @@ window.DAWN_DATA = {
         "ranges": [],
         "clocks": [],
         "resources": [],
-        "movement": false,
+        "movement": true,
         "targets": true,
         "conditional": true
        }
@@ -6139,7 +6147,7 @@ window.DAWN_DATA = {
         "ranges": [],
         "clocks": [],
         "resources": [],
-        "movement": true,
+        "movement": false,
         "targets": true,
         "conditional": true
        }
@@ -6173,7 +6181,7 @@ window.DAWN_DATA = {
         "ranges": [],
         "clocks": [],
         "resources": [],
-        "movement": true,
+        "movement": false,
         "targets": false,
         "conditional": true
        }
@@ -6209,7 +6217,7 @@ window.DAWN_DATA = {
         "ranges": [],
         "clocks": [],
         "resources": [],
-        "movement": true,
+        "movement": false,
         "targets": true,
         "conditional": true
        }
@@ -6237,7 +6245,7 @@ window.DAWN_DATA = {
         "resources": [
          "Фокус"
         ],
-        "movement": true,
+        "movement": false,
         "targets": true,
         "conditional": true
        }
@@ -6265,7 +6273,7 @@ window.DAWN_DATA = {
         "resources": [
          "Фокус"
         ],
-        "movement": true,
+        "movement": false,
         "targets": true,
         "conditional": true
        }
@@ -6316,7 +6324,7 @@ window.DAWN_DATA = {
         "ranges": [],
         "clocks": [],
         "resources": [],
-        "movement": true,
+        "movement": false,
         "targets": true,
         "conditional": true
        }
@@ -6366,7 +6374,7 @@ window.DAWN_DATA = {
         "resources": [
          "Фокус"
         ],
-        "movement": true,
+        "movement": false,
         "targets": false,
         "conditional": true
        }
@@ -6534,7 +6542,7 @@ window.DAWN_DATA = {
       {
        "n": 3,
        "name": "Момент истины (Moment Of Truth)",
-       "text": "если вы вступаете в **Дуэль** с 6 или больше **Фокуса**, вы можете потратить весь этот **Фокус**, чтобы получить в этой **Дуэли** **Преимущество**, равное половине потраченного **Фокуса**.\n## Техники сложности ★★",
+       "text": "если вы вступаете в **Дуэль** с 6 или больше **Фокуса**, вы можете потратить весь этот **Фокус**, чтобы получить в этой **Дуэли** **Преимущество**, равное половине потраченного **Фокуса**.",
        "mechanics": {
         "actions": [
          "Дуэль"
@@ -6763,7 +6771,7 @@ window.DAWN_DATA = {
         "resources": [
          "ОД"
         ],
-        "movement": false,
+        "movement": true,
         "targets": true,
         "conditional": true
        }
@@ -6856,7 +6864,7 @@ window.DAWN_DATA = {
         "ranges": [],
         "clocks": [],
         "resources": [],
-        "movement": true,
+        "movement": false,
         "targets": true,
         "conditional": true
        }
@@ -7006,7 +7014,7 @@ window.DAWN_DATA = {
         "resources": [
          "ОД"
         ],
-        "movement": true,
+        "movement": false,
         "targets": true,
         "conditional": true
        }
@@ -7059,7 +7067,7 @@ window.DAWN_DATA = {
         "ranges": [],
         "clocks": [],
         "resources": [],
-        "movement": true,
+        "movement": false,
         "targets": true,
         "conditional": true
        }
@@ -7298,7 +7306,7 @@ window.DAWN_DATA = {
       {
        "n": 3,
        "name": "Так не должно было быть (Never Meant To Be)",
-       "text": "когда вы используете **Завершение Духом** с полными **часами Озарения**, вы можете очистить все сегменты, чтобы оно выбрало целью две пересекающиеся **линии** бесконечной длины в любом месте поля. Все выбранные целью персонажи перемещаются на 1 **клетку** с **линии** в направлении по вашему выбору, а выбранные целью **клетки** удаляются из игры, уничтожая любую **местность** на них или соединенную с ними. Если персонаж должен войти в одну из этих **клеток**, вместо этого он **телепортируется** в ближайшую **клетку** на противоположной стороне **линии**.\n## Техники сложности ★★★",
+       "text": "когда вы используете **Завершение Духом** с полными **часами Озарения**, вы можете очистить все сегменты, чтобы оно выбрало целью две пересекающиеся **линии** бесконечной длины в любом месте поля. Все выбранные целью персонажи перемещаются на 1 **клетку** с **линии** в направлении по вашему выбору, а выбранные целью **клетки** удаляются из игры, уничтожая любую **местность** на них или соединенную с ними. Если персонаж должен войти в одну из этих **клеток**, вместо этого он **телепортируется** в ближайшую **клетку** на противоположной стороне **линии**.",
        "mechanics": {
         "actions": [
          "Завершение"
@@ -7365,7 +7373,7 @@ window.DAWN_DATA = {
       {
        "n": 3,
        "name": "Труд благочестивых (Labor Of The Devout) [Заклинание -> Завершение]",
-       "text": "это **Завершение** считается потратившим столько же **Меток творения**, сколько потратило **Заклинание**, использованное перед ним.\n### Заметки Джоэла: использование Призывов\nЕсли вы создаете персонажа, который может использовать **Призывы** или действия врагов, важно ознакомиться с правилами врагов со стороны Нарратора на стр. 108.",
+       "text": "это **Завершение** считается потратившим столько же **Меток творения**, сколько потратило **Заклинание**, использованное перед ним.",
        "mechanics": {
         "actions": [
          "Заклинание",
@@ -7378,8 +7386,8 @@ window.DAWN_DATA = {
         "clocks": [],
         "resources": [],
         "movement": false,
-        "targets": true,
-        "conditional": true
+        "targets": false,
+        "conditional": false
        }
       }
      ]
@@ -7404,7 +7412,7 @@ window.DAWN_DATA = {
         "ranges": [],
         "clocks": [],
         "resources": [],
-        "movement": true,
+        "movement": false,
         "targets": true,
         "conditional": true
        }
@@ -7425,7 +7433,7 @@ window.DAWN_DATA = {
         "resources": [
          "ОД"
         ],
-        "movement": true,
+        "movement": false,
         "targets": true,
         "conditional": true
        }
@@ -7478,7 +7486,7 @@ window.DAWN_DATA = {
          "Фокус",
          "Здоровье"
         ],
-        "movement": true,
+        "movement": false,
         "targets": true,
         "conditional": true
        }
@@ -7520,7 +7528,7 @@ window.DAWN_DATA = {
         "resources": [
          "Фокус"
         ],
-        "movement": true,
+        "movement": false,
         "targets": true,
         "conditional": true
        }

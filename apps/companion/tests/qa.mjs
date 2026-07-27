@@ -48,6 +48,16 @@ assert.equal(syncApi.state().status, "online");
 assert.equal(data.schemaVersion, 2);
 assert.equal(data.archetypes.length, 6);
 assert.equal(data.archetypes.flatMap(a => a.techniques).length, 107);
+for (const archetype of data.archetypes) {
+  for (const technique of archetype.techniques) {
+    for (const level of technique.levels) {
+      assert.ok(
+        !/^#{2,3} /m.test(level.text || ""),
+        `${technique.id}.${level.n} must not absorb a following Markdown section`,
+      );
+    }
+  }
+}
 assert.equal(data.archetypes.flatMap(a => a.techniques.flatMap(technique => technique.levels)).filter(level => level.mechanics).length, 321);
 assert.equal(data.outlooks.length, 10);
 assert.equal(data.outlooks.flatMap(o => (o.builtin ? [o.builtin] : []).concat(o.gifts)).length, 52);

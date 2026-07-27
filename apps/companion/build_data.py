@@ -120,7 +120,14 @@ def extract_technique_mechanics(text: str) -> dict:
         area = [int(width), int(height)]
         if area not in areas and 1 <= area[0] <= 12 and 1 <= area[1] <= 12:
             areas.append(area)
-    ranges = [int(value) for value in re.findall(r"в пределах\s+(\d+)\s+\*\*клет", text, re.IGNORECASE)]
+    ranges = [
+        int(value)
+        for value in re.findall(
+            r"(?:в пределах|на расстоянии до|дальность(?:ю)?|дальности)\s+(\d+)\s+\*\*клет",
+            text,
+            re.IGNORECASE,
+        )
+    ]
     clocks = [int(value) for value in re.findall(r"\*\*часы\*\* на\s+(\d+)\s+сегмент", text, re.IGNORECASE)]
     resources = [resource for resource in ["ОД", "Фокус", "Влияние", "Напряжение", "Здоровье", "Раны", "Стресс"] if re.search(rf"\*\*{resource}", text, re.IGNORECASE)]
     return {
@@ -131,7 +138,10 @@ def extract_technique_mechanics(text: str) -> dict:
         "ranges": sorted(set(ranges)),
         "clocks": sorted(set(clocks)),
         "resources": resources,
-        "movement": bool(re.search(r"\b(?:перемест|телепорт|появляет|клетк)[а-яё]*\b", text, re.IGNORECASE)),
+        "movement": bool(
+            re.search(r"\b(?:перемест|телепорт|появляет|толк|притян|движ)[а-яё]*\b", text, re.IGNORECASE)
+            or re.search(r"\*\*(?:Шаг|Прыжок|Уворот)", text, re.IGNORECASE)
+        ),
         "targets": bool(re.search(r"\b(?:цел[ьи]|персонаж|враг|союзник)[а-яё]*\b", text, re.IGNORECASE)),
         "conditional": bool(re.search(r"\b(?:если|когда|пока|один раз|вместо|можете)\b", text, re.IGNORECASE)),
     }
@@ -164,6 +174,13 @@ def parse_techniques(slug: str, fname: str) -> dict:
                 "levels": [],
             }
             arch["techniques"].append(tech)
+            level = None
+            continue
+        # Любой прочий заголовок завершает текущую Технику/Уровень. Иначе
+        # заголовки сложности, опциональные правила и заметки Джоэла
+        # приклеиваются к тексту предыдущего третьего Уровня.
+        if line.startswith("## ") or line.startswith("### "):
+            tech = None
             level = None
             continue
         if tech is None:
