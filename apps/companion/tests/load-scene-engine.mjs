@@ -3,6 +3,7 @@ import vm from "node:vm";
 
 export const sceneEngineFiles = [
   "scene-engine-core.js",
+  "scene-query.js",
   "scene-movement.js",
   "scene-events.js",
   "scene-triggers.js",

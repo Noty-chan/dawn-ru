@@ -63,6 +63,25 @@ const rejectedPreview = Engine.previewEvents(previewSource, [{ type: "resource.s
 assert.equal(rejectedPreview.ok, false);
 assert.equal(rejectedPreview.scene.actors[0].ap, 3);
 assert.match(rejectedPreview.errors[0], /нельзя оплатить/);
+assert.deepEqual(Array.from(Engine.actorIdsInCells(scene, "main", ["2,1"], { sourceActorId: "hero", audience: "enemies" })), ["enemy"]);
+assert.deepEqual(Array.from(Engine.actorIdsInRange(scene, "hero", 1, { audience: "enemies" })), ["enemy"]);
+assert.equal(Engine.targetStatus(scene, { sourceActorId: "hero", targetIds: ["enemy"], audience: "enemies", range: 1 }).available, true);
+assert.equal(Engine.targetStatus(scene, { sourceActorId: "hero", targetIds: ["hero"], audience: "enemies", range: 1 }).available, false);
+assert.equal(Engine.targetStatus(scene, { sourceActorId: "hero", targetIds: "enemy", min: 2, max: 1 }).available, false);
+assert.deepEqual(JSON.parse(JSON.stringify(Engine.resourceStatus(scene, "hero", { ap: 2, focus: 51 }).missing)), { focus: 1 });
+assert.equal(Engine.resourceStatus(scene, "hero", ["ap"]).available, false);
+assert.deepEqual(JSON.parse(JSON.stringify(Engine.effectStatus(scene, "hero", "positive.ускорен"))), { active: false, direct: false, ambient: false });
+const querySummary = Engine.summarizeEvents(scene, [
+  { type: "resource.spend", actorId: "hero", payload: { resource: "ap", amount: 1, participantIds: ["hero"] } },
+  { type: "damage.apply", actorId: "hero", payload: { targetId: "enemy", amount: 2, affectedCells: ["2,1"] } },
+]);
+assert.equal(querySummary.count, 2);
+assert.deepEqual(JSON.parse(JSON.stringify(querySummary.eventTypes)), { "resource.spend": 1, "damage.apply": 1 });
+assert.deepEqual(Array.from(querySummary.sourceIds), ["hero"]);
+assert.deepEqual(Array.from(querySummary.targetIds), ["enemy"]);
+assert.deepEqual(JSON.parse(JSON.stringify(querySummary.resourceDelta)), { hero: { ap: -1 } });
+assert.deepEqual(Array.from(querySummary.affectedCells), ["2,1"]);
+assert.equal(Engine.summarizeEvents(scene, null).count, 0);
 
 const privateScene = structuredClone(scene);
 privateScene.actors[0].privateNotes = "Тайна игрока";
