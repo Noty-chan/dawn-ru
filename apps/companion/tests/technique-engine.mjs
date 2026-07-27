@@ -5,10 +5,12 @@ import { loadSceneEngine } from "./load-scene-engine.mjs";
 
 const source = fs.readFileSync(new URL("../technique-engine.js", import.meta.url), "utf8");
 const dataSource = fs.readFileSync(new URL("../data.js", import.meta.url), "utf8");
+const foundationMapSource = fs.readFileSync(new URL("../technique-foundation-map.js", import.meta.url), "utf8");
 const context = { console };
 context.globalThis = context;
 context.window = context;
 vm.runInNewContext(dataSource, context);
+vm.runInNewContext(foundationMapSource, context);
 loadSceneEngine(context);
 vm.runInNewContext(source, context);
 const Engine = context.DAWN_TECHNIQUE_ENGINE;
@@ -35,6 +37,10 @@ assert.ok(coverage.every(entry => ["full", "partial", "decision", "manual"].incl
 assert.ok(coverage.filter(entry => entry.automation !== "manual").length >= 290, "semantic mechanics index assists most canonical levels");
 assert.ok(coverage.some(entry => entry.mechanics?.areas?.length));
 assert.ok(coverage.some(entry => entry.mechanics?.clocks?.length));
+assert.equal(coverage.filter(entry => entry.foundationPlan?.capabilities?.length).length, 321, "every Technique level must have a foundation plan");
+assert.ok(coverage.every(entry => ["candidate", "started"].includes(entry.foundationPlan.status)));
+assert.ok(coverage.find(entry => entry.id === "powerhouse.braggart.1").foundationPlan.reviewed.includes("rule-clock"));
+assert.ok(coverage.find(entry => entry.id === "powerhouse.gunslinger.1").foundationPlan.reviewed.includes("alternate-resource"));
 assert.equal(Engine.techniqueCoverage(context.DAWN_DATA, { "ruiner.bombardier": 2 }).length, 2);
 
 const explosion = Engine.preview(scene, {

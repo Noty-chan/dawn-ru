@@ -157,6 +157,7 @@
         const semanticSignals = [mechanics.actions, mechanics.effects, mechanics.areas, mechanics.ranges, mechanics.clocks, mechanics.resources].some(values => Array.isArray(values) && values.length) || mechanics.movement || mechanics.targets;
         const statuses = rules.map(rule => rule.automation);
         const automation = rules.length ? (statuses.every(status => status === "full") ? "full" : statuses.includes("decision") ? "decision" : "partial") : (semanticSignals ? "partial" : "manual");
+        const foundationPlan = global.DAWN_TECHNIQUE_FOUNDATION_MAP?.planForLevel?.({ id: `${technique.id}.${level.n}`, techniqueId: technique.id, level: Number(level.n), text: level.text, mechanics }) || { version: 0, status: "unmapped", reviewed: [], capabilities: [] };
         return {
           id: `${technique.id}.${level.n}`,
           techniqueId: technique.id,
@@ -169,6 +170,7 @@
           mechanics,
           automation,
           rules,
+          foundationPlan,
         };
       });
     }));
