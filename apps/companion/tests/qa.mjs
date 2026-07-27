@@ -3,8 +3,11 @@ import fs from "node:fs";
 import vm from "node:vm";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { normalizeReviewedSource, reviewedSourceDigest } from "../reviewed-source-digest.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+assert.equal(normalizeReviewedSource("a\r\nb\rc\n"), "a\nb\nc\n");
+assert.equal(reviewedSourceDigest(["первая\r\nстрока\r\n", "вторая\rстрока"]), reviewedSourceDigest(["первая\nстрока\n", "вторая\nстрока"]), "Reviewed source digest must be independent of checkout line endings");
 const context = { window: {} };
 vm.runInNewContext(fs.readFileSync(path.join(root, "logic.js"), "utf8"), context);
 vm.runInNewContext(fs.readFileSync(path.join(root, "data.js"), "utf8"), context);

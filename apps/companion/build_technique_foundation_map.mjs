@@ -1,9 +1,9 @@
 import fs from "node:fs";
 import path from "node:path";
 import vm from "node:vm";
-import crypto from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { loadSceneEngine } from "./tests/load-scene-engine.mjs";
+import { reviewedSourceFilesDigest } from "./reviewed-source-digest.mjs";
 
 const root = path.dirname(fileURLToPath(import.meta.url));
 const context = { console, Date };
@@ -24,11 +24,7 @@ const reviewedSourceFiles = [
   "pages-088-093-disruptor-techniques.md",
   "pages-094-099-ruiner-techniques.md",
 ];
-const sourceHash = crypto.createHash("sha256");
-for (const file of reviewedSourceFiles) {
-  sourceHash.update(fs.readFileSync(path.join(root, "..", "..", "source", "translation", file)));
-}
-const actualSourceDigest = sourceHash.digest("hex");
+const actualSourceDigest = reviewedSourceFilesDigest(reviewedSourceFiles.map(file => path.join(root, "..", "..", "source", "translation", file)));
 if (actualSourceDigest !== map.REVIEWED.sourceDigest) {
   throw new Error("Текст Техник изменился после ручной сверки. Обновите REVIEWED.profiles и sourceDigest.");
 }
