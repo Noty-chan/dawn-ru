@@ -80,8 +80,8 @@ function validateEvent(scene, event, options = {}) {
   if (event.type === "attack.pending") {
     if (!Array.isArray(payload.targetIds) || payload.targetIds.length > 40 || !payload.allowEmptyTargets && payload.targetIds.length < 1 || payload.targetIds.some(id => !actorById(scene, id) || actorById(scene, id).knockedOut) || !finite(payload.damage) || Number(payload.damage) < 0 || Number(payload.damage) > 9999) throw new Error("Некорректные параметры атаки.");
   }
-  if (event.type === "effect.apply" && (!actorById(scene, payload.targetId) || typeof payload.effect !== "string" || !payload.effect.trim() || payload.effect.length > 80)) throw new Error("Некорректный Эффект.");
-  if (event.type === "effect.remove" && (!actorById(scene, payload.targetId) || typeof payload.effect !== "string" || !payload.effect.trim() || payload.effect.length > 80)) throw new Error("Некорректное удаление Эффекта.");
+  if (event.type === "effect.apply" && (!actorById(scene, payload.targetId) || typeof payload.effect !== "string" || !payload.effect.trim() || payload.effect.length > 80 || payload.duration != null && !EFFECT_DURATIONS.has(payload.duration) || payload.removable != null && typeof payload.removable !== "boolean" || payload.exclusiveBySource != null && typeof payload.exclusiveBySource !== "boolean")) throw new Error("Некорректный Эффект.");
+  if (event.type === "effect.remove" && (!actorById(scene, payload.targetId) || typeof payload.effect !== "string" || !payload.effect.trim() || payload.effect.length > 80 || payload.sourceOnly != null && typeof payload.sourceOnly !== "boolean" || payload.sourceActorId != null && !actorById(scene, payload.sourceActorId))) throw new Error("Некорректное удаление Эффекта.");
   if (event.type === "actor.heal" && (!actorById(scene, payload.targetId) || !finite(payload.amount) || Number(payload.amount) < 0 || Number(payload.amount) > 9999)) throw new Error("Некорректное исцеление.");
   if (event.type === "actor.wound" && (!actorById(scene, payload.targetId) || !Number.isInteger(Number(payload.delta)) || Math.abs(Number(payload.delta)) !== 1)) throw new Error("Некорректное изменение Ран.");
   if (event.type === "actor.knockout" && !actorById(scene, payload.targetId)) throw new Error("Некорректное выведение из строя.");
@@ -177,6 +177,10 @@ function validateTransition(scene, event) {
   }
   if (["action.prepare", "enemy.action.prepare", "attack.pending"].includes(event.type) && actor?.knockedOut) throw new Error("Выведенный из строя участник не может действовать.");
   if (event.type === "area.remove" && (!(scene.objects || []).some(object => object.id === event.payload?.id))) throw new Error("Удаляемая местность уже отсутствует.");
+  if (event.type === "effect.remove") {
+    const status = effectStatus(scene, event.payload?.targetId, event.payload?.effect);
+    if (status.direct && !status.removable && !event.payload?.automatic && !event.payload?.force) throw new Error("Этот Эффект нельзя снять до конца Сцены.");
+  }
   if (["resource.spend", "resource.gain"].includes(event.type) && actor) {
     const status = resourceOperationStatus(scene, actor.id, { ...event.payload, operation: event.type === "resource.gain" ? "gain" : "spend" });
     if (!status.available) throw new Error(status.reason);
@@ -432,14 +436,46 @@ function reduceEvent(scene, event) {
     const target = actorById(scene, payload.targetId);
     if (target) {
       target.effects ||= [];
-      payload.applied = !target.effects.includes(payload.effect);
-      if (payload.applied) target.effects.push(payload.effect);
+      target.effectStates ||= {};
+      const added = !target.effects.includes(payload.effect), existing = effectStateFor(target, payload.effect), definition = effectLifecycleDefinition(payload.effect);
+      if (added) target.effects.push(payload.effect);
+      const source = event.actorId ? { actorId: event.actorId, actionId: String(payload.sourceActionId || "").slice(0, 180), eventId: event.id } : null;
+      const sources = [...(existing?.sources || []).filter(item => item.actorId !== source?.actorId), ...(source ? [source] : [])].slice(-12);
+      target.effectStates[payload.effect] = {
+        duration: existing?.removable === false ? existing.duration : payload.duration || existing?.duration || definition.duration,
+        removable: payload.removable === false ? false : existing?.removable !== false,
+        appliedTurnSerial: Number(scene.turnSerial || 0),
+        appliedRound: Number(scene.round || 1),
+        appliedEventId: event.id,
+        sourceBound: existing?.sourceBound === true || definition.sourceBound,
+        exclusiveBySource: payload.exclusiveBySource ?? existing?.exclusiveBySource ?? definition.exclusiveBySource,
+        sources,
+      };
+      payload.applied = true;
+      payload.added = added;
+      payload.refreshed = !added;
+      payload.duration = target.effectStates[payload.effect].duration;
+      payload.sourceActorIds = sources.map(item => item.actorId);
     }
   } else if (event.type === "effect.remove") {
     const target = actorById(scene, payload.targetId);
     if (target) {
-      payload.removed = (target.effects || []).includes(payload.effect);
-      target.effects = (target.effects || []).filter(effect => effect !== payload.effect);
+      const active = (target.effects || []).includes(payload.effect), previous = effectStateFor(target, payload.effect);
+      payload.previousState = previous ? clone(previous) : null;
+      if (payload.sourceOnly && payload.sourceActorId && previous?.sources.length) {
+        const sources = previous.sources.filter(source => source.actorId !== payload.sourceActorId);
+        payload.detachedSource = sources.length !== previous.sources.length;
+        if (sources.length) target.effectStates[payload.effect] = { ...previous, sources };
+        else {
+          target.effects = (target.effects || []).filter(effect => effect !== payload.effect);
+          if (target.effectStates) delete target.effectStates[payload.effect];
+        }
+        payload.removed = active && !sources.length;
+      } else {
+        payload.removed = active;
+        target.effects = (target.effects || []).filter(effect => effect !== payload.effect);
+        if (target.effectStates) delete target.effectStates[payload.effect];
+      }
     }
   } else if (event.type === "actor.heal") {
     const target = actorById(scene, payload.targetId);
@@ -519,13 +555,20 @@ function reduceEvent(scene, event) {
       actor.stepRemaining = 0;
     }
   } else if (event.type === "turn.start" && actor) {
+    scene.turnSerial = Number(scene.turnSerial || 0) + 1;
     scene.activeActorId = actor.id;
     actor.acted = false;
     actor.stepRemaining = 0;
     if (actor.team === "enemy") actor.ap = Number(actor.baseAp || 2);
+    if (hasEffect(scene, actor, "negative.ошеломлен")) {
+      const before = Number(actor.ap || 0);
+      actor.ap = Math.max(0, before - 1);
+      payload.stunnedApPenalty = before - actor.ap;
+    }
     scene.objects = (scene.objects || []).filter(object => !(object.duration === "nextTurn" && object.ownerActorId === actor.id));
     scene.markers = (scene.markers || []).filter(marker => !(marker.duration === "nextTurn" && marker.ownerActorId === actor.id));
   } else if (event.type === "turn.end" && actor) {
+    payload.endedTurnSerial = Number(scene.turnSerial || 0);
     actor.acted = true;
     actor.stepRemaining = 0;
     advanceComboCooldowns(actor);
@@ -535,6 +578,12 @@ function reduceEvent(scene, event) {
       actor.extraTurns -= 1;
       actor.acted = false;
       actor.ap = Number(actor.baseAp || (actor.team === "enemy" ? 2 : 3));
+      scene.turnSerial = Number(scene.turnSerial || 0) + 1;
+      if (hasEffect(scene, actor, "negative.ошеломлен")) {
+        const before = Number(actor.ap || 0);
+        actor.ap = Math.max(0, before - 1);
+        payload.extraTurnStunnedApPenalty = before - actor.ap;
+      }
       scene.activeActorId = actor.id;
       payload.startedExtraTurn = true;
     } else {

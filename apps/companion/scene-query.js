@@ -160,10 +160,38 @@ function resourceStatus(scene, actorId, costs = {}) {
 
 function effectStatus(scene, actorId, effect) {
   const actor = actorById(scene, actorId);
-  if (!actor || typeof effect !== "string") return { active: false, direct: false, ambient: false };
+  if (!actor || typeof effect !== "string") return { active: false, direct: false, ambient: false, state: null, sourceActorIds: [], expiresAt: "" };
   const direct = (actor.effects || []).includes(effect);
   const active = effectiveEffectsFor(scene, actor).includes(effect);
-  return { active, direct, ambient: active && !direct };
+  const state = direct ? effectStateFor(actor, effect) : null, definition = effectLifecycleDefinition(effect), duration = state?.duration || definition.duration;
+  const expiresAt = duration === "default" ? "в конце собственного Хода, кроме Хода применения"
+    : duration === "startTurn" ? "в начале собственного Хода"
+      : duration === "actionOrStartTurn" ? "при действии или в начале собственного Хода"
+        : duration === "roundEnd" ? "в конце Раунда"
+          : duration === "scene" ? "в конце Сцены"
+            : "только по правилу снятия";
+  return { active, direct, ambient: active && !direct, state, duration, removable: state?.removable !== false, sourceActorIds: state?.sources.map(source => source.actorId) || [], expiresAt };
+}
+
+function effectExpiryStatus(scene, actorId, effect, boundary = {}) {
+  const status = effectStatus(scene, actorId, effect), eventType = boundary.type || boundary.eventType || "", boundaryActorId = boundary.actorId || null;
+  if (!status.direct) return { ...status, expires: false, reason: "Эффект не наложен непосредственно." };
+  let expires = false, reason = "";
+  if (status.duration === "default" && eventType === "turn.end" && boundaryActorId === actorId) {
+    const boundaryTurnSerial = boundary.turnSerial == null ? Number(scene.turnSerial || 0) : Number(boundary.turnSerial);
+    expires = status.state?.appliedTurnSerial == null || Number(status.state.appliedTurnSerial) !== boundaryTurnSerial;
+    reason = expires ? "Закончился собственный Ход после Хода применения." : "Эффект применён в этом Ходу и пока сохраняется.";
+  } else if (status.duration === "startTurn" && eventType === "turn.start" && boundaryActorId === actorId) {
+    expires = true;
+    reason = "Наступило начало собственного Хода.";
+  } else if (status.duration === "actionOrStartTurn" && ((eventType === "turn.start" && boundaryActorId === actorId) || (["action.prepare", "enemy.action.prepare"].includes(eventType) && boundaryActorId === actorId))) {
+    expires = true;
+    reason = eventType === "turn.start" ? "Наступило начало собственного Хода." : "Персонаж начал выполнять Действие.";
+  } else if (status.duration === "roundEnd" && eventType === "round.end") {
+    expires = true;
+    reason = "Закончился Раунд.";
+  } else reason = status.duration === "persistent" || status.duration === "scene" ? "Автоматическое истечение не предусмотрено." : "Эта граница не снимает Эффект.";
+  return { ...status, expires, reason };
 }
 
 function summarizeEvents(scene, events = []) {

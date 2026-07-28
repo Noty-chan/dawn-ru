@@ -91,6 +91,35 @@ const TRIGGER_RULES = [
       return empath ? [{ type: "rule.prompt", actorId: empath.id, payload: { id: `prompt-${event.id}-empath-rush`, kind: "empath-rush", sourceActorId: empath.id, targetId: target.id, title: "Защитный отклик", text: `Переместиться смежно с ${target.name} бесплатным Прорывом?`, options: ["rush", "pass"], context: { targetId: target.id }, participantIds: [empath.id, target.id] } }] : [];
     },
   },
+  {
+    id: "core.disappeared.reappear",
+    eventTypes: ["turn.start"],
+    priority: 100,
+    match: ({ scene, event }) => hasEffect(scene, actorById(scene, event.actorId), "positive.исчез"),
+    build: ({ event }) => [{ type: "rule.prompt", actorId: event.actorId, payload: { id: `prompt-${event.id}-reappear`, kind: "reappear-cell", sourceActorId: event.actorId, title: "Возвращение на поле", text: "Выберите свободную клетку, не смежную с персонажами.", options: ["cancel"], context: { actorId: event.actorId }, participantIds: [event.actorId] } }],
+  },
+  {
+    id: "core.invisible.on-loss",
+    eventTypes: ["effect.remove"],
+    priority: 80,
+    match: ({ scene, payload }) => payload.removed && payload.effect === "positive.невидим" && !actorById(scene, payload.targetId)?.knockedOut,
+    build: ({ scene, event, payload }) => {
+      const target = actorById(scene, payload.targetId);
+      return target ? [{ type: "rule.prompt", actorId: target.id, payload: { id: `prompt-${event.id}-invisible`, kind: "invisible-on-loss", sourceActorId: target.id, targetId: target.id, title: "Невидим", text: "Исчезнуть Реакцией на потерю Невидимости?", options: ["disappear", "pass"], participantIds: [target.id] } }] : [];
+    },
+  },
+  {
+    id: "altruist.chronomancer.2.effect-loss",
+    eventTypes: ["effect.remove"],
+    priority: 50,
+    match: ({ scene, payload }) => payload.removed && (scene.actors || []).some(owner => !owner.knockedOut && Number(owner.techniques?.["altruist.chronomancer"] || 0) >= 2 && resourceOperationStatus(scene, owner.id, { resource: "focus", amount: 1, operation: "spend" }).available),
+    build: ({ scene, event, payload }) => {
+      const owner = (scene.actors || []).find(candidate => !candidate.knockedOut && Number(candidate.techniques?.["altruist.chronomancer"] || 0) >= 2 && resourceOperationStatus(scene, candidate.id, { resource: "focus", amount: 1, operation: "spend" }).available);
+      const target = actorById(scene, payload.targetId);
+      if (!owner || !target || target.knockedOut) return [];
+      return [{ type: "rule.prompt", actorId: owner.id, payload: { id: `prompt-${event.id}-chronomancer`, kind: "chronomancer-reapply-effect", sourceActorId: owner.id, targetId: target.id, title: "Замедление", text: `Потратить 1 Фокус и снова применить снятый Эффект к ${target.name}?`, options: ["reapply", "pass"], context: { effect: payload.effect, duration: payload.previousState?.duration || effectLifecycleDefinition(payload.effect).duration, removable: payload.previousState?.removable !== false }, participantIds: [owner.id, target.id] } }];
+    },
+  },
 ].map(defineTriggerRule);
 
 function triggerRegistryStatus() {
@@ -209,6 +238,65 @@ function resumeQueuedTriggers(scene, event) {
     }
   }
   return { events, promptReserved: false };
+}
+
+function effectRetainedAtBoundary(scene, target, effect, event) {
+  if (event.type === "turn.end" && effect === "negative.помечен") {
+    const reaper = (scene.actors || []).find(owner => !owner.knockedOut && owner.team !== target.team && owner.space === target.space && Number(owner.techniques?.["disruptor.reaper"] || 0) >= 2 && distance(owner, target) <= 3);
+    if (reaper) return { retained: true, reason: `«Уход» сохраняет Помечен рядом с ${reaper.name}.`, ruleId: "disruptor.reaper.2" };
+  }
+  if (event.type === "turn.start" && effect === "positive.изгнан") {
+    const state = effectStateFor(target, effect);
+    const owner = state?.sources.map(source => actorById(scene, source.actorId)).find(source => source && !source.knockedOut && Number(source.techniques?.["disruptor.mind-breaker"] || 0) >= 3);
+    if (owner) {
+      const banishedByOwner = (scene.actors || []).filter(candidate => effectStateFor(candidate, effect)?.sources.some(source => source.actorId === owner.id));
+      if (banishedByOwner.length === 1) return { retained: true, reason: `«Кто они?» сохраняет единственного Изгнанного персонажа.`, ruleId: "disruptor.mind-breaker.3" };
+    }
+  }
+  return { retained: false, reason: "", ruleId: "" };
+}
+
+function effectLifecycleEvents(scene, event) {
+  const events = [], boundaryActorId = event.actorId || null;
+  if (["turn.start", "turn.end", "round.end", "action.prepare", "enemy.action.prepare"].includes(event.type)) {
+    for (const target of scene.actors || []) for (const effect of target.effects || []) {
+      const expiry = effectExpiryStatus(scene, target.id, effect, { type: event.type, actorId: boundaryActorId, turnSerial: event.payload?.endedTurnSerial });
+      if (!expiry.expires) continue;
+      if (event.type === "turn.start" && effect === "positive.исчез") continue;
+      const retention = effectRetainedAtBoundary(scene, target, effect, event);
+      if (retention.retained) continue;
+      events.push({ type: "effect.remove", actorId: target.id, payload: { targetId: target.id, effect, automatic: true, reason: expiry.reason, boundaryEventId: event.id, participantIds: [target.id] } });
+    }
+  }
+  if (event.type === "actor.knockout" && event.payload?.applied) {
+    const sourceActorId = event.payload.targetId;
+    for (const target of scene.actors || []) for (const effect of target.effects || []) {
+      const state = effectStateFor(target, effect);
+      if (state?.sourceBound && state.sources.some(source => source.actorId === sourceActorId)) events.push({ type: "effect.remove", actorId: sourceActorId, payload: { targetId: target.id, effect, sourceOnly: true, sourceActorId, automatic: true, reason: "Источник Эффекта выведен из боя.", boundaryEventId: event.id, participantIds: [sourceActorId, target.id] } });
+    }
+  }
+  if (event.type === "effect.apply" && event.payload?.applied && event.payload.effect === "positive.исчез") {
+    const sourceActorId = event.payload.targetId;
+    for (const target of scene.actors || []) {
+      const state = effectStateFor(target, "negative.пойман");
+      if (state?.sources.some(source => source.actorId === sourceActorId)) events.push({ type: "effect.remove", actorId: sourceActorId, payload: { targetId: target.id, effect: "negative.пойман", sourceOnly: true, sourceActorId, automatic: true, reason: "Источник Пойман больше не находится на поле.", boundaryEventId: event.id, participantIds: [sourceActorId, target.id] } });
+    }
+  }
+  if (event.type === "effect.apply" && event.payload?.applied && event.payload.effect === "positive.изгнан" && actorById(scene, event.actorId) && event.payload.exclusiveBySource !== false && Number(actorById(scene, event.actorId).techniques?.["disruptor.mind-breaker"] || 0) < 1) {
+    for (const target of scene.actors || []) {
+      if (target.id === event.payload.targetId) continue;
+      const state = effectStateFor(target, event.payload.effect);
+      if (state?.sources.some(source => source.actorId === event.actorId)) events.push({ type: "effect.remove", actorId: event.actorId, payload: { targetId: target.id, effect: event.payload.effect, sourceOnly: true, sourceActorId: event.actorId, automatic: true, reason: "Источник применил Изгнание к другому персонажу.", boundaryEventId: event.id, participantIds: [event.actorId, target.id] } });
+    }
+  }
+  if (event.type === "damage.apply" && Number(event.payload?.dealt || 0) > 0) {
+    const attacker = actorById(scene, event.actorId), target = actorById(scene, event.payload.targetId), state = effectStateFor(target, "positive.изгнан");
+    if (attacker?.team === "hero" && !hasEffect(scene, attacker, "positive.изгнан") && state) for (const source of state.sources) {
+      const owner = actorById(scene, source.actorId);
+      if (Number(owner?.techniques?.["disruptor.mind-breaker"] || 0) >= 1) events.push({ type: "effect.remove", actorId: owner.id, payload: { targetId: target.id, effect: "positive.изгнан", sourceOnly: true, sourceActorId: owner.id, automatic: true, reason: "Неизгнанный персонаж игрока нанёс урон.", boundaryEventId: event.id, participantIds: [attacker.id, owner.id, target.id] } });
+    }
+  }
+  return events;
 }
 
 function triggeredEvents(scene, event) {
@@ -385,14 +473,8 @@ function triggeredEvents(scene, event) {
       events.push({ type: "rule.prompt", actorId: sentry.id, payload: { id: `prompt-${event.id}-punishment`, kind: "sentry-punishment", sourceActorId: sentry.id, targetId: actor.id, title: "Наказание", text: `${actor.name} покидает смежность. Использовать Быструю Стычку${vigilance.value > 0 ? " и при желании очистить Бдительность вместо ОД" : ""}?`, options, context: { optionLabels: { "punish-free": "Очистить Бдительность · 0 ОД", "punish-paid": "Заплатить обычную стоимость", pass: "Не использовать" } }, participantIds: [sentry.id, actor.id] } });
     }
   }
-  if (event.type === "action.prepare" && actor && hasEffect(scene, actor, "positive.исчез")) {
-    events.push({ type: "effect.remove", actorId: actor.id, payload: { targetId: actor.id, effect: "positive.исчез", sourceActionId: payload.actionId, participantIds: [actor.id] } });
-  }
   if (event.type === "action.prepare" && actor && ["Стычка", "Заклинание", "Завершение"].includes(payload.actionName || payload.name) && hasEffect(scene, actor, "negative.порчен")) {
     events.push({ type: "damage.apply", actorId: actor.id, payload: { targetId: actor.id, amount: Number(actor.tier || 1), ignoreArmor: true, sourceActionId: "negative.порчен", participantIds: [actor.id] } });
-  }
-  if (event.type === "turn.start" && actor && hasEffect(scene, actor, "positive.исчез") && !scene.pendingPrompt) {
-    events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${event.id}-reappear`, kind: "reappear-cell", sourceActorId: actor.id, title: "Возвращение на поле", text: "Выберите свободную клетку, не смежную с персонажами.", options: ["cancel"], context: { actorId: actor.id } } });
   }
   if (event.type === "turn.start" && actor && !scene.pendingPrompt && !promptQueued()) {
     const empath = (scene.actors || []).find(owner => !owner.knockedOut && owner.team === actor.team && owner.id !== actor.id && Number(owner.techniques?.["altruist.empath"] || 0) >= 1 && distance(owner, actor) <= 1);
@@ -464,6 +546,7 @@ function triggeredEvents(scene, event) {
     }
   }
   if ((event.type === "area.remove" || event.type === "object.damage" && Number(payload.dealt || 0) > 0) && actor && Number(actor.techniques?.["ruiner.creation-ascetic"] || 0) >= 2) events.push({ type: "rule-resource.gain", actorId: actor.id, payload: { resource: "creation-marks", amount: 1, sourceActionId: "ruiner.creation-ascetic.2" } });
+  events.push(...effectLifecycleEvents(scene, event));
   return events;
 }
 

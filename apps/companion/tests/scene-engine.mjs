@@ -94,6 +94,140 @@ assert.equal(promptLockScene.pendingPrompt.id, "choice", "Rejected answers leave
 const rawPlacementScene = structuredClone(promptLockScene);
 rawPlacementScene.pendingPrompt = { id: "cell-choice", kind: "untouchable-weave-cell", actorId: "hero", sourceActorId: "hero", targetId: null, options: ["cell", "cancel"] };
 assert.throws(() => Engine.dispatch(rawPlacementScene, { type: "rule.respond", actorId: "hero", payload: { promptId: "cell-choice", choice: "cell", destination: { x: 1, y: 2 } } }), /вместе с проверенным перемещением/, "A raw cell answer cannot close a placement prompt without its movement");
+
+const refreshedEffectScene = structuredClone(scene);
+refreshedEffectScene.turnSerial = 7;
+refreshedEffectScene.actors[1].effects = ["negative.замедлен"];
+const refreshedEffect = Engine.dispatch(refreshedEffectScene, { type: "effect.apply", actorId: "hero", payload: { targetId: "enemy", effect: "negative.замедлен", sourceActionId: "qa.refresh" } });
+assert.equal(refreshedEffect.event.payload.applied, true, "Reapplying an existing Effect still counts as applying it");
+assert.equal(refreshedEffect.event.payload.added, false);
+assert.equal(refreshedEffect.event.payload.refreshed, true);
+assert.equal(Engine.effectStatus(refreshedEffect.scene, "enemy", "negative.замедлен").state.appliedTurnSerial, 7);
+
+const sameTurnEffectScene = structuredClone(scene);
+sameTurnEffectScene.turnSerial = 4;
+sameTurnEffectScene.actors[0].effects = [];
+const appliedThisTurn = Engine.dispatchMany(sameTurnEffectScene, [{ type: "effect.apply", actorId: "enemy", payload: { targetId: "hero", effect: "negative.замедлен" } }]).scene;
+const retainedThisTurn = Engine.dispatchMany(appliedThisTurn, [{ type: "turn.end", actorId: "hero", payload: {} }]).scene;
+assert.ok(retainedThisTurn.actors[0].effects.includes("negative.замедлен"), "An Effect cannot expire at the end of the same Turn in which it was applied");
+retainedThisTurn.activeActorId = "hero";
+retainedThisTurn.turnSerial = 5;
+const expiredNextTurn = Engine.dispatchMany(retainedThisTurn, [{ type: "turn.end", actorId: "hero", payload: {} }]).scene;
+assert.ok(!expiredNextTurn.actors[0].effects.includes("negative.замедлен"), "A default Effect expires at the end of the following own Turn");
+assert.ok(expiredNextTurn.log.some(event => event.type === "effect.remove" && event.payload?.automatic && event.payload?.boundaryEventId), "Automatic expiry is a journaled event with its boundary");
+const extraTurnEffectScene = structuredClone(appliedThisTurn);
+extraTurnEffectScene.actors[0].extraTurns = 1;
+const startedExtraTurn = Engine.dispatchMany(extraTurnEffectScene, [{ type: "turn.end", actorId: "hero", payload: {} }]).scene;
+assert.ok(startedExtraTurn.actors[0].effects.includes("negative.замедлен"), "The first end boundary still belongs to the Turn of application");
+assert.equal(startedExtraTurn.turnSerial, 5, "An immediately granted extra Turn gets its own lifecycle serial");
+const expiredAfterExtraTurn = Engine.dispatchMany(startedExtraTurn, [{ type: "turn.end", actorId: "hero", payload: {} }]).scene;
+assert.ok(!expiredAfterExtraTurn.actors[0].effects.includes("negative.замедлен"), "The same Effect can expire at the end of the distinct extra Turn");
+
+const startBoundaryScene = structuredClone(scene);
+startBoundaryScene.activeActorId = null;
+startBoundaryScene.turnSerial = 3;
+startBoundaryScene.actors[0].effects = ["negative.подброшен", "negative.ошеломлен"];
+startBoundaryScene.actors[0].effectStates = {
+  "negative.подброшен": { duration: "startTurn", appliedTurnSerial: 2, sources: [] },
+  "negative.ошеломлен": { duration: "default", appliedTurnSerial: 2, sources: [] },
+};
+const startBoundary = Engine.dispatchMany(startBoundaryScene, [{ type: "turn.start", actorId: "hero", payload: {} }]).scene;
+assert.equal(startBoundary.actors[0].ap, 2, "Stunned reduces AP when the actor starts their Turn");
+assert.ok(!startBoundary.actors[0].effects.includes("negative.подброшен"), "Launched expires at the start of its owner's Turn");
+assert.ok(startBoundary.actors[0].effects.includes("negative.ошеломлен"));
+
+const disappearedStartScene = structuredClone(scene);
+disappearedStartScene.activeActorId = null;
+disappearedStartScene.actors[0].effects = ["positive.исчез"];
+disappearedStartScene.actors[0].effectStates = { "positive.исчез": { duration: "actionOrStartTurn", appliedTurnSerial: 0, sources: [] } };
+const disappearedAtStart = Engine.dispatchMany(disappearedStartScene, [{ type: "turn.start", actorId: "hero", payload: {} }]).scene;
+assert.equal(disappearedAtStart.pendingPrompt?.kind, "reappear-cell", "Disappeared opens its required reappearance placement at the start of its owner's Turn");
+assert.ok(disappearedAtStart.actors[0].effects.includes("positive.исчез"), "Disappeared remains until its reappearance placement resolves");
+const reappearance = Engine.preparePromptPlacement(disappearedAtStart, { destination: { x: 6, y: 6 } });
+assert.equal(reappearance.ok, true);
+const reappeared = Engine.dispatchMany(disappearedAtStart, reappearance.events).scene;
+assert.ok(!reappeared.actors[0].effects.includes("positive.исчез"), "Resolving the required placement removes Disappeared");
+assert.deepEqual({ x: reappeared.actors[0].x, y: reappeared.actors[0].y }, { x: 6, y: 6 });
+const disappearedActionScene = structuredClone(scene);
+disappearedActionScene.actors[0].effects = ["positive.исчез"];
+disappearedActionScene.actors[0].effectStates = { "positive.исчез": { duration: "actionOrStartTurn", appliedTurnSerial: 0, sources: [] } };
+const disappearedOnAction = Engine.dispatchMany(disappearedActionScene, [{ type: "action.prepare", actorId: "hero", payload: { actionId: "action.test", actionName: "Проверка", name: "Проверка" } }]).scene;
+assert.ok(!disappearedOnAction.actors[0].effects.includes("positive.исчез"), "Disappeared expires when its owner begins an Action");
+assert.equal(disappearedOnAction.log.filter(event => event.type === "effect.remove" && event.payload?.effect === "positive.исчез").length, 1, "Disappeared produces one removal event per Action boundary");
+
+const persistentEffectScene = structuredClone(scene);
+persistentEffectScene.turnSerial = 4;
+persistentEffectScene.actors[0].effects = ["positive.регенерирует", "negative.порчен"];
+persistentEffectScene.actors[0].effectStates = {
+  "positive.регенерирует": { duration: "persistent", appliedTurnSerial: 1, sources: [] },
+  "negative.порчен": { duration: "persistent", appliedTurnSerial: 1, sources: [] },
+};
+persistentEffectScene.actors[0].hp = 8;
+const persistentEffectEnd = Engine.dispatchMany(persistentEffectScene, [{ type: "turn.end", actorId: "hero", payload: {} }]).scene;
+assert.equal(persistentEffectEnd.actors[0].hp, 9, "Regenerating resolves before end-of-Turn lifecycle processing");
+assert.ok(persistentEffectEnd.actors[0].effects.includes("positive.регенерирует"));
+assert.ok(persistentEffectEnd.actors[0].effects.includes("negative.порчен"));
+
+const lockedEffectScene = Engine.dispatch(scene, { type: "effect.apply", actorId: "hero", payload: { targetId: "hero", effect: "positive.укреплен", duration: "scene", removable: false } }).scene;
+assert.throws(() => Engine.dispatch(lockedEffectScene, { type: "effect.remove", actorId: "hero", payload: { targetId: "hero", effect: "positive.укреплен" } }), /нельзя снять/, "An Effect explicitly locked until Scene end cannot be manually removed");
+
+const sourcedEffectScene = structuredClone(scene);
+sourcedEffectScene.actors.push({ ...structuredClone(scene.actors[0]), id: "ally-source", name: "Второй источник", x: 0, y: 0 });
+let sourcedEffect = Engine.dispatchMany(sourcedEffectScene, [
+  { type: "effect.apply", actorId: "hero", payload: { targetId: "enemy", effect: "negative.спровоцирован" } },
+  { type: "effect.apply", actorId: "ally-source", payload: { targetId: "enemy", effect: "negative.спровоцирован" } },
+]).scene;
+assert.deepEqual(Array.from(Engine.effectStatus(sourcedEffect, "enemy", "negative.спровоцирован").sourceActorIds).sort(), ["ally-source", "hero"]);
+sourcedEffect = Engine.dispatchMany(sourcedEffect, [{ type: "actor.knockout", actorId: "enemy", payload: { targetId: "hero" } }]).scene;
+assert.ok(sourcedEffect.actors.find(actor => actor.id === "enemy").effects.includes("negative.спровоцирован"), "A source-bound Effect remains while another valid source still applies it");
+assert.deepEqual(Array.from(Engine.effectStatus(sourcedEffect, "enemy", "negative.спровоцирован").sourceActorIds), ["ally-source"]);
+sourcedEffect = Engine.dispatchMany(sourcedEffect, [{ type: "actor.knockout", actorId: "enemy", payload: { targetId: "ally-source" } }]).scene;
+assert.ok(!sourcedEffect.actors.find(actor => actor.id === "enemy").effects.includes("negative.спровоцирован"), "The last source knockout removes its source-bound Effect");
+const caughtSourceScene = Engine.dispatchMany(scene, [{ type: "effect.apply", actorId: "hero", payload: { targetId: "enemy", effect: "negative.пойман" } }]).scene;
+const disappearedCatcher = Engine.dispatchMany(caughtSourceScene, [{ type: "effect.apply", actorId: "hero", payload: { targetId: "hero", effect: "positive.исчез" } }]).scene;
+assert.ok(!disappearedCatcher.actors[1].effects.includes("negative.пойман"), "Caught ends when its source is no longer on the field");
+
+const reaperEffectScene = structuredClone(scene);
+reaperEffectScene.turnSerial = 4;
+reaperEffectScene.activeActorId = "enemy";
+reaperEffectScene.actors[0].techniques = { "disruptor.reaper": 2 };
+reaperEffectScene.actors[1].effects = ["negative.помечен"];
+reaperEffectScene.actors[1].effectStates = { "negative.помечен": { duration: "default", appliedTurnSerial: 1, sources: [{ actorId: "hero" }] } };
+const reaperRetained = Engine.dispatchMany(reaperEffectScene, [{ type: "turn.end", actorId: "enemy", payload: {} }]).scene;
+assert.ok(reaperRetained.actors[1].effects.includes("negative.помечен"), "Reaper II is a thin retention adapter over the shared Effect lifecycle");
+reaperRetained.activeActorId = "enemy";
+reaperRetained.turnSerial = 5;
+reaperRetained.actors[0].x = 6;
+reaperRetained.actors[0].y = 6;
+const reaperExpired = Engine.dispatchMany(reaperRetained, [{ type: "turn.end", actorId: "enemy", payload: {} }]).scene;
+assert.ok(!reaperExpired.actors[1].effects.includes("negative.помечен"));
+
+const invisibleEffectScene = structuredClone(scene);
+invisibleEffectScene.actors[0].effects = ["positive.невидим"];
+const invisibleLost = Engine.dispatchMany(invisibleEffectScene, [{ type: "effect.remove", actorId: "hero", payload: { targetId: "hero", effect: "positive.невидим" } }]).scene;
+assert.equal(invisibleLost.pendingPrompt?.kind, "invisible-on-loss");
+const invisibleChoice = Engine.respondRulePrompt(invisibleLost, data, { choice: "disappear" });
+assert.equal(invisibleChoice.ok, true);
+const disappearedFromInvisible = Engine.dispatchMany(invisibleLost, invisibleChoice.events).scene;
+assert.ok(disappearedFromInvisible.actors[0].effects.includes("positive.исчез"), "Losing Invisible exposes its complete Reaction path through the shared choice flow");
+
+const chronomancerEffectScene = structuredClone(scene);
+chronomancerEffectScene.actors[0].techniques = { "altruist.chronomancer": 2 };
+chronomancerEffectScene.actors[1].effects = ["negative.замедлен"];
+const chronomancerLoss = Engine.dispatchMany(chronomancerEffectScene, [{ type: "effect.remove", actorId: "enemy", payload: { targetId: "enemy", effect: "negative.замедлен" } }]).scene;
+assert.equal(chronomancerLoss.pendingPrompt?.kind, "chronomancer-reapply-effect");
+const chronomancerChoice = Engine.respondRulePrompt(chronomancerLoss, data, { choice: "reapply" });
+assert.equal(chronomancerChoice.ok, true);
+const chronomancerReapplied = Engine.dispatchMany(chronomancerLoss, chronomancerChoice.events).scene;
+assert.equal(chronomancerReapplied.actors[0].focus, 49);
+assert.ok(chronomancerReapplied.actors[1].effects.includes("negative.замедлен"));
+assert.ok(chronomancerReapplied.log.some(event => event.type === "technique.resolve" && event.payload?.ruleId === "altruist.chronomancer.2"));
+
+const mindBreakerScene = structuredClone(scene);
+mindBreakerScene.actors[0].techniques = { "disruptor.mind-breaker": 2 };
+const mindBreakerBanished = Engine.dispatchMany(mindBreakerScene, [{ type: "effect.apply", actorId: "hero", payload: { targetId: "enemy", effect: "positive.изгнан", sourceActionId: "disruptor.mind-breaker.1" } }]).scene;
+assert.ok(Engine.effectiveEffects(mindBreakerBanished, "enemy").includes("negative.помечен"), "Mind Breaker II derives Marked from its source-aware Banishment relation");
+
 const previewSource = structuredClone(scene);
 const preview = Engine.previewEvents(previewSource, [{ type: "resource.gain", actorId: "hero", payload: { resource: "focus", amount: 2 } }]);
 assert.equal(preview.ok, true);
@@ -215,7 +349,7 @@ const arbitrationSource = { id: "trigger-arbitration-source", type: "effect.appl
 const arbitrationApplied = Engine.dispatch(arbitrationScene, arbitrationSource);
 const triggerRegistry = Engine.triggerRegistryStatus();
 assert.equal(triggerRegistry.available, true);
-assert.equal(triggerRegistry.count, 6);
+assert.equal(triggerRegistry.count, 9);
 assert.ok(triggerRegistry.eventTypes.includes("effect.apply"));
 assert.ok(triggerRegistry.rules.every(rule => typeof rule.id === "string" && Number.isInteger(rule.priority) && Array.isArray(rule.eventTypes)));
 assert.throws(() => Engine.defineTriggerRule({ id: "bad trigger", eventTypes: ["effect.apply"], priority: 1, match: () => true, build: () => [] }), /id декларативного триггера/);
@@ -311,7 +445,7 @@ assert.equal(crossingStep.ok, true);
 assert.deepEqual(JSON.parse(JSON.stringify(crossingStep.events.find(event => event.type === "actor.move").payload.topologyCrossings)), [{ destination: "3,1", cutIds: ["crossing-cut"] }], "Movement events journal the topological teleport explicitly");
 assert.deepEqual(JSON.parse(JSON.stringify(Engine.resourceStatus(scene, "hero", { ap: 2, focus: 51 }).missing)), { focus: 1 });
 assert.equal(Engine.resourceStatus(scene, "hero", ["ap"]).available, false);
-assert.deepEqual(JSON.parse(JSON.stringify(Engine.effectStatus(scene, "hero", "positive.ускорен"))), { active: false, direct: false, ambient: false });
+assert.deepEqual(JSON.parse(JSON.stringify((({ active, direct, ambient }) => ({ active, direct, ambient }))(Engine.effectStatus(scene, "hero", "positive.ускорен")))), { active: false, direct: false, ambient: false });
 const querySummary = Engine.summarizeEvents(scene, [
   { type: "resource.spend", actorId: "hero", payload: { resource: "ap", amount: 1, participantIds: ["hero"] } },
   { type: "damage.apply", actorId: "hero", payload: { targetId: "enemy", amount: 2, affectedCells: ["2,1"] } },

@@ -65,6 +65,14 @@ function respondRulePrompt(scene, data, request = {}) {
   const errors = choiceStatus.available ? [] : [choiceStatus.reason];
   if (errors.length) return { ok: false, errors, events: [] };
   const events = [{ type: "rule.respond", actorId: actor.id, payload: { promptId: prompt.id, choice, sourceActorId: actor.id, targetId: target?.id || null, participantIds: [actor.id, target?.id].filter(Boolean) } }];
+  if (prompt.kind === "invisible-on-loss" && choice === "disappear") events.push({ type: "effect.apply", actorId: actor.id, payload: { targetId: actor.id, effect: "positive.исчез", sourceActionId: "positive.невидим", participantIds: [actor.id] } });
+  if (prompt.kind === "chronomancer-reapply-effect" && choice === "reapply") {
+    if (!target || target.knockedOut) return { ok: false, errors: ["Цель повторного Эффекта больше недоступна."], events: [] };
+    if (!resourceOperationStatus(scene, actor.id, { resource: "focus", amount: 1, operation: "spend" }).available) return { ok: false, errors: ["Для реакции Хрономанта больше не хватает Фокуса."], events: [] };
+    events.push({ type: "resource.spend", actorId: actor.id, payload: { resource: "focus", amount: 1, sourceActionId: "altruist.chronomancer.2", participantIds: [actor.id, target.id] } });
+    events.push({ type: "effect.apply", actorId: actor.id, payload: { targetId: target.id, effect: prompt.context?.effect, duration: prompt.context?.duration, removable: prompt.context?.removable !== false, sourceActionId: "altruist.chronomancer.2", participantIds: [actor.id, target.id] } });
+    events.push({ type: "technique.resolve", actorId: actor.id, payload: { ruleId: "altruist.chronomancer.2", name: "Замедление", affectedActorIds: [target.id], participantIds: [actor.id, target.id] } });
+  }
   if (prompt.kind === "braggart-wound-pride" && choice === "fill") events.push({ type: "rule-clock.tick", actorId: actor.id, payload: { clockId: "powerhouse.braggart.pride", delta: 1, sourceActionId: "powerhouse.braggart.3", reason: "Рана от достойного противника" } });
   if (prompt.kind === "braggart-hold-back" && choice === "hold-back") {
     const status = clockStatus(scene, actor.id, "powerhouse.braggart.pride"), size = Math.max(status.minimumSize, status.size - 2);

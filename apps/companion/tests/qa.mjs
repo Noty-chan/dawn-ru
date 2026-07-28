@@ -16,6 +16,19 @@ const logic = context.window.DAWN_LOGIC;
 const appFiles = ["app-bootstrap.js", "app-reference-data.js", "app-core.js", "hero-ui.js", "scene-ui.js", "scene-effects.js", "scene-actions-ui.js", "scene-sync-ui.js", "play-ui.js", "app-builder-events.js", "app-sync-events.js", "app-scene-events.js", "app-play-events.js", "app.js"];
 const appSource = appFiles.map(file => fs.readFileSync(path.join(root, file), "utf8")).join("\n");
 const cockpitSource = fs.readFileSync(path.join(root, "vtt-concepts.js"), "utf8");
+const appCoreFile = fs.readFileSync(path.join(root, "app-core.js"), "utf8");
+const sceneCoreSource = appCoreFile.slice(appCoreFile.indexOf("function blankScene"), appCoreFile.indexOf("function normalizeScene"));
+const appCoreContext = { console };
+vm.createContext(appCoreContext);
+vm.runInContext(`const uid=()=>"test-id";const clamp=(n,min,max)=>Math.max(min,Math.min(max,Number(n)||0));function cleanArray(value){return Array.isArray(value)?value.filter(item=>typeof item==="string"):[]}${sceneCoreSource}`, appCoreContext);
+const normalizedEffectScene = vm.runInContext(`sceneCore({turnSerial:7,spaces:[{id:"main",name:"Main",width:7,height:7}],actors:[
+  {id:"source",team:"hero",space:"main",name:"Source",effects:[]},
+  {id:"target",team:"enemy",space:"main",name:"Target",effects:["negative.испуган"],effectStates:{"negative.испуган":{duration:"default",appliedTurnSerial:null,appliedRound:null,sourceBound:true,sources:[{actorId:"source",actionId:"test",eventId:"event-1"}]}}}
+]})`, appCoreContext);
+assert.equal(normalizedEffectScene.turnSerial, 7, "Scene persistence must retain the Turn lifecycle serial");
+assert.deepEqual(JSON.parse(JSON.stringify(normalizedEffectScene.actors[1].effectStates["negative.испуган"].sources.map(source => source.actorId))), ["source"], "Scene persistence must retain valid Effect sources");
+assert.equal(normalizedEffectScene.actors[1].effectStates["negative.испуган"].appliedTurnSerial, null, "Unknown Effect application boundaries must remain unknown");
+assert.equal(normalizedEffectScene.actors[1].effectStates["negative.испуган"].appliedRound, null, "Unknown Effect application rounds must remain unknown");
 assert.match(appSource, /counter\("focus","Фокус",rt\.focus\)/, "Focus counter must remain unbounded");
 assert.doesNotMatch(cockpitSource, /maxFocus|Фокус\s*\$\{[^}]+\}\s*\//, "Cockpit must not display or store a Focus ceiling");
 const syncStorage = new Map();

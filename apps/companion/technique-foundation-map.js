@@ -1,7 +1,7 @@
 "use strict";
 
 (function exposeTechniqueFoundationMap(global) {
-  const VERSION = 5;
+  const VERSION = 6;
   const CAPABILITIES = {
     "event-participants": { label: "Участники события", state: "ready", module: "scene-engine-core.js" },
     "event-preview": { label: "Предпросмотр цепочки", state: "ready", module: "scene-triggers.js" },
@@ -27,7 +27,7 @@
     "choice-flow": { label: "Типизированное решение", state: "ready", module: "scene-responses.js / scene-events.js / scene-effects.js" },
     "damage-pipeline": { label: "Конвейер урона, Здоровья и Ран", state: "ready", module: "scene-responses.js / scene-events.js" },
     "action-modifier": { label: "Модификатор или новое действие", state: "ready", module: "scene-actions.js / scene-responses.js" },
-    "effect-lifecycle": { label: "Наложение, снятие и срок Эффекта", state: "planned" },
+    "effect-lifecycle": { label: "Наложение, снятие и срок Эффекта", state: "ready", module: "scene-engine-core.js / scene-query.js / scene-events.js / scene-triggers.js" },
     "entity-lifecycle": { label: "Жизненный цикл зон, маркеров и объектов", state: "planned" },
     inventory: { label: "Инвентарь и заряды", state: "planned" },
     "summon-turns": { label: "Призывы и делегированные Ходы", state: "planned" },
