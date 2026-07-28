@@ -17,8 +17,10 @@ assert.deepEqual(JSON.parse(JSON.stringify(logic.reconcileHealthRuntime({ curren
 assert.deepEqual(JSON.parse(JSON.stringify(logic.reconcileHealthRuntime({ current: 10, previousMax: 10, nextMax: 6 }))), { current: 6, maximum: 6 }, "Changing Body cannot leave current Health above the new maximum");
 assert.deepEqual(JSON.parse(JSON.stringify(logic.reconcileHealthRuntime({ current: 7, previousMax: 10, nextMax: 12 }))), { current: 9, maximum: 12 }, "Changing maximum Health preserves missing Health instead of granting a free heal");
 assert.deepEqual(JSON.parse(JSON.stringify(logic.reconcileHealthRuntime({ current: 6, nextMax: 10 }))), { current: 6, maximum: 10 }, "Legacy saves without a remembered maximum retain valid current Health");
+assert.deepEqual(JSON.parse(JSON.stringify(logic.reconcileHealthRuntime({ current: 0, previousMax: 0, nextMax: 10 }))), { current: 10, maximum: 10 }, "A legacy 0/0 Health placeholder initializes the hero at full Health");
 const appFiles = ["app-bootstrap.js", "app-reference-data.js", "app-core.js", "hero-ui.js", "scene-ui.js", "scene-effects.js", "scene-actions-ui.js", "scene-sync-ui.js", "play-ui.js", "app-builder-events.js", "app-sync-events.js", "app-scene-events.js", "app-play-events.js", "app.js"];
 const appSource = appFiles.map(file => fs.readFileSync(path.join(root, file), "utf8")).join("\n");
+assert.match(appSource, /health=Logic\.reconcileHealthRuntime\(\{current:runtime\.hp,previousMax:runtime\.maxHp,nextMax:derived\.hp\}\)/, "Adding a hero to the table reconciles uninitialized and legacy Health");
 const cockpitSource = fs.readFileSync(path.join(root, "vtt-concepts.js"), "utf8");
 const appCoreFile = fs.readFileSync(path.join(root, "app-core.js"), "utf8");
 const sceneCoreSource = appCoreFile.slice(appCoreFile.indexOf("function blankScene"), appCoreFile.indexOf("function normalizeScene"));
