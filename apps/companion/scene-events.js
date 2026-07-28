@@ -137,6 +137,7 @@ function validateEvent(scene, event, options = {}) {
     if (!actorById(scene, event.actorId) || !ACTOR_STATE_KEYS.has(payload.key)) throw new Error("Некорректное состояние персонажа.");
     if (payload.key === "pugilistStance" && (!Number.isInteger(Number(payload.value)) || Number(payload.value) < 1 || Number(payload.value) > 4)) throw new Error("Шаг стойки должен быть от 1 до 4.");
     if (payload.key === "growth" && (!Number.isInteger(Number(payload.delta)) || Math.abs(Number(payload.delta)) > 20)) throw new Error("Некорректное изменение Роста.");
+    if (payload.key === "evasion" && (!Number.isInteger(Number(payload.delta)) || Math.abs(Number(payload.delta)) > 20)) throw new Error("Некорректное изменение Уклонения.");
     if (["martialPerfection", "imposingPresence"].includes(payload.key) && typeof payload.value !== "boolean") throw new Error("Некорректный переключатель состояния.");
     if (["grimTransformed", "grimUsed", "warringTransformed", "warringUsed", "drainLife"].includes(payload.key) && typeof payload.value !== "boolean") throw new Error("Некорректный переключатель Техники.");
     if (payload.key === "lastCreationSpellMarks" && (!Number.isInteger(Number(payload.value)) || Number(payload.value) < 0 || Number(payload.value) > 99)) throw new Error("Некорректное число Меток творения.");
@@ -586,6 +587,12 @@ function reduceEvent(scene, event) {
   } else if (event.type === "actor.state" && actor) {
     actor.ruleState ||= {};
     if (payload.key === "growth") actor.ruleState.growth = Math.max(0, Number(actor.ruleState.growth || 0) + Number(payload.delta || 0));
+    else if (payload.key === "evasion") {
+      payload.before = Number(actor.evasion || 0);
+      actor.evasion = Math.max(0, payload.before + Number(payload.delta || 0));
+      payload.value = actor.evasion;
+      payload.appliedDelta = actor.evasion - payload.before;
+    }
     else {
       actor.ruleState[payload.key] = payload.value;
       if (payload.key === "grimTransformed" && payload.value) actor.hp = Math.min(Number(actor.hp || 0), 1);

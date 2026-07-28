@@ -323,6 +323,31 @@ function attackModifierStatus(scene, sourceActorId, targetIds = [], selectedIds 
       ruleId: "bulwark.grappler.2",
     });
   }
+  if (Number(source.techniques?.["vagabond.dim-mak"] || 0) >= 1 && targets.length === 1 && (!actionName || ["Стычка", "Заклинание", "Завершение"].includes(actionName))) {
+    const target = targets[0];
+    const weakPoints = (scene.markers || []).filter(marker =>
+      marker.ruleId === "vagabond.dim-mak.1"
+      && marker.ownerActorId === source.id
+      && marker.metadata?.carrierActorId === target.id
+      && marker.space === source.space
+      && Number(marker.x) === Number(source.x)
+      && Number(marker.y) === Number(source.y)
+    );
+    weakPoints.forEach(marker => options.push({
+      id: `vagabond.dim-mak.1:${marker.id}`,
+      kind: "marker-consume",
+      timing: "before-roll",
+      targetId: target.id,
+      exclusiveGroup: `dim-mak:${target.id}`,
+      label: `Слабая точка: ${target.name}`,
+      description: "Убрать Слабую точку, бросить Атаку Разумом и сделать её Быстрой.",
+      advantage: 0,
+      removeMarkerId: marker.id,
+      attributeOverride: "mind",
+      quick: true,
+      ruleId: "vagabond.dim-mak.1",
+    }));
+  }
   const optionById = new Map(options.map(option => [option.id, option])), requested = [...new Set(selectedIds || [])], invalidIds = requested.filter(id => !optionById.has(id)), selected = requested.map(id => optionById.get(id)).filter(Boolean);
   const duplicateGroup = selected.map(option => option.exclusiveGroup).filter(Boolean).find((group, index, groups) => groups.indexOf(group) !== index);
   const transformOptions = selected.filter(option => option.actionTransform), destinationOptions = selected.filter(option => option.requiresDestination);
@@ -343,7 +368,8 @@ function attackModifierStatus(scene, sourceActorId, targetIds = [], selectedIds 
     advantage: selected.reduce((sum, option) => sum + Number(option.advantage || 0), 0),
     requiresDestination: destinationOptions.length === 1,
     destinationOption: destinationOptions[0] ? clone(destinationOptions[0]) : null,
-    attributeOverride: transformOptions[0]?.attributeOverride || null,
+    attributeOverride: selected.find(option => option.attributeOverride)?.attributeOverride || null,
+    quick: selected.some(option => option.quick),
     actionTransform: transformOptions[0]?.actionTransform ? clone(transformOptions[0].actionTransform) : null,
   };
 }

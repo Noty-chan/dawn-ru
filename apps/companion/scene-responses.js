@@ -338,6 +338,22 @@ function respondRulePrompt(scene, data, request = {}) {
     if (!target || target.knockedOut || target.space !== actor.space) return { ok: false, errors: ["Цель «Неотразимой» больше недоступна."], events: [] };
     events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${prompt.id}-cell`, kind: "siren-irresistible-cell", sourceActorId: actor.id, targetId: target.id, title: "Неотразимая", text: `Выберите для ${target.name} клетку на пути к ${actor.name} в пределах 3 клеток.`, options: ["cancel"], context: { maxDistance: 3 }, participantIds: [actor.id, target.id] } });
   }
+  if (prompt.kind === "siren-irresistible-stun" && choice === "stun") {
+    if (!target || target.knockedOut || target.space !== actor.space || distance(actor, target) !== 1) return { ok: false, errors: ["Цель «Неотразимой» больше не смежна с Сиреной."], events: [] };
+    events.push({ type: "effect.apply", actorId: actor.id, payload: { targetId: target.id, effect: "negative.ошеломлен", sourceActionId: "disruptor.siren.2", participantIds: [actor.id, target.id] } });
+  }
+  if (prompt.kind === "dim-mak-weak-point" && choice === "place") {
+    if (!target || target.knockedOut || target.team === actor.team || target.space !== actor.space) return { ok: false, errors: ["Цель Слабой точки больше недоступна."], events: [] };
+    events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${prompt.id}-cell`, kind: "dim-mak-weak-point-cell", sourceActorId: actor.id, targetId: target.id, title: "Слабая точка", text: `Выберите свободную клетку, смежную с ${target.name}.`, options: ["cancel"], participantIds: [actor.id, target.id] } });
+  }
+  if (prompt.kind === "dim-mak-field-investigation" && choice === "study") {
+    const study = (data?.actions?.list || []).find(action => action.name === "Изучение");
+    if (!target || target.knockedOut || target.team === actor.team || !study) return { ok: false, errors: ["Атакующий или базовое Изучение больше недоступны."], events: [] };
+    events.push({ type: "action.prepare", actorId: actor.id, payload: { actionId: study.id, actionName: study.name, name: "Полевое исследование", targetIds: [target.id], quick: true, quickReaction: true, quickSource: { techniqueId: "vagabond.dim-mak", level: 2, name: "Полевое исследование" } } });
+    events.push({ type: "effect.apply", actorId: actor.id, payload: { targetId: target.id, effect: effectIdByName(data, "Помечен"), sourceActionId: "vagabond.dim-mak.2", participantIds: [actor.id, target.id] } });
+    events.push({ type: "action.resolve", actorId: actor.id, payload: { actionId: study.id, name: study.name, targetIds: [target.id], quick: true, quickReaction: true, participantIds: [actor.id, target.id] } });
+    events.push({ type: "technique.resolve", actorId: actor.id, payload: { ruleId: "vagabond.dim-mak.2", name: "Полевое исследование", affectedActorIds: [target.id], participantIds: [actor.id, target.id] } });
+  }
   if (prompt.kind === "siren-study-frighten" && choice === "frighten") {
     const limit = usageLimitStatus(scene, actor.id, { ruleId: "disruptor.siren.1", scope: "scene", maximum: 3 });
     if (!limit.available) return { ok: false, errors: [limit.reason], events: [] };
@@ -415,7 +431,7 @@ function respondRulePrompt(scene, data, request = {}) {
 function preparePromptPlacement(scene, request = {}) {
   const prompt = scene.pendingPrompt, actor = actorById(scene, prompt?.sourceActorId), marker = markerById(scene, prompt?.context?.markerId), target = actorById(scene, prompt?.targetId || prompt?.context?.targetId), destination = request.destination && { x: Number(request.destination.x), y: Number(request.destination.y) }, errors = [];
   const space = (scene.spaces || []).find(item => item.id === (marker?.space || actor?.space));
-  if (!prompt || !actor || !["marker-move-cell", "empath-rush-cell", "reappear-cell", "knife-pickup-step", "meister-overclock-move", "egomaniac-style-move", "thunder-surge-cell", "siren-irresistible-cell", "untouchable-weave-cell"].includes(prompt.kind)) errors.push("Сейчас нет выбора клетки для правила.");
+  if (!prompt || !actor || !["marker-move-cell", "dim-mak-weak-point-cell", "empath-rush-cell", "reappear-cell", "knife-pickup-step", "meister-overclock-move", "egomaniac-style-move", "thunder-surge-cell", "siren-irresistible-cell", "untouchable-weave-cell"].includes(prompt.kind)) errors.push("Сейчас нет выбора клетки для правила.");
   if (!space || !destination || !Number.isInteger(destination.x) || !Number.isInteger(destination.y) || destination.x < 0 || destination.y < 0 || destination.x >= Number(space?.width || 0) || destination.y >= Number(space?.height || 0)) errors.push("Выберите клетку в пределах поля.");
   const movingActor = prompt?.kind === "siren-irresistible-cell" ? target : actor;
   if (prompt?.kind !== "marker-move-cell" && movingActor && !effectCellOccupancyStatus(scene, movingActor.id, { space: space?.id, x: destination?.x, y: destination?.y }).available) errors.push("Клетка занята.");
@@ -440,6 +456,11 @@ function preparePromptPlacement(scene, request = {}) {
     if (distance(actor, { ...destination, space: actor.space }) > maximum || dx > 0 && dy > 0) errors.push(`Пиковая форма перемещает не дальше ${maximum} клеток по прямой.`);
   }
   if (prompt?.kind === "thunder-surge-cell" && (!target || target.knockedOut || target.space !== actor.space || distance(target, { ...destination, space: target.space }) !== 1)) errors.push("Скачок должен закончиться в свободной клетке, смежной с исходной целью.");
+  if (prompt?.kind === "dim-mak-weak-point-cell") {
+    const occupied = (scene.actors || []).some(item => !item.knockedOut && item.space === target?.space && Number(item.x) === Number(destination?.x) && Number(item.y) === Number(destination?.y));
+    if (!target || target.knockedOut || target.space !== actor.space || distance(target, { ...destination, space: target?.space }) !== 1) errors.push("Слабая точка должна находиться в клетке, смежной с целью.");
+    if (occupied) errors.push("Слабую точку можно поставить только в незанятую клетку.");
+  }
   let weavePath = [];
   if (prompt?.kind === "untouchable-weave-cell") {
     const maximum = effectMovementStatus(scene, actor.id, { distance: Number(prompt.context?.maxDistance || 3) }).distance;
@@ -473,13 +494,17 @@ function preparePromptPlacement(scene, request = {}) {
     events.push({ type: "effect.apply", actorId: actor.id, payload: { targetId: actor.id, effect: "negative.ошеломлен", sourceActionId: "ruiner.thunder-blood.2", participantIds: [actor.id] } });
   }
   if (prompt.kind === "marker-move-cell") events.push({ type: "marker.move", actorId: actor.id, payload: { markerId: marker.id, space: marker.space, x: destination.x, y: destination.y, movement: prompt.title, participantIds: [actor.id] } });
+  else if (prompt.kind === "dim-mak-weak-point-cell") {
+    events.push({ type: "marker.create", actorId: actor.id, payload: { id: `dim-mak-${prompt.id}`, space: target.space, x: destination.x, y: destination.y, markerKind: "mark", label: `Слабая точка · ${target.name}`, color: "#db6c9b", source: "vagabond.dim-mak.1", ruleId: "vagabond.dim-mak.1", duration: "scene", ownerActorId: actor.id, metadata: { carrierActorId: target.id, offset: { dx: Number(destination.x) - Number(target.x), dy: Number(destination.y) - Number(target.y) } }, participantIds: [actor.id, target.id] } });
+    events.push({ type: "technique.resolve", actorId: actor.id, payload: { ruleId: "vagabond.dim-mak.1", name: "Изучение слабости", affectedActorIds: [target.id], participantIds: [actor.id, target.id] } });
+  }
   else if (prompt.kind === "siren-irresistible-cell") {
     if (sirenPath.length) {
       events.push({ type: "actor.move", actorId: target.id, payload: { space: target.space, x: destination.x, y: destination.y, movement: "Неотразимая", forced: true, path: sirenPath.map(cellKey), topologyCrossings: sirenPath.filter(point => point.teleported).map(point => ({ destination: cellKey(point), cutIds: point.crossedCutIds || [] })), participantIds: [actor.id, target.id] } });
       events.push({ type: "actor.enter", actorId: target.id, payload: { space: target.space, x: destination.x, y: destination.y, movement: "Неотразимая", forced: true } });
     }
-    if (distance(actor, { ...destination, space: actor.space }) === 1) events.push({ type: "effect.apply", actorId: actor.id, payload: { targetId: target.id, effect: "negative.ошеломлен", sourceActionId: "disruptor.siren.2", participantIds: [actor.id, target.id] } });
     events.push({ type: "technique.resolve", actorId: actor.id, payload: { ruleId: "disruptor.siren.2", name: "Неотразимая", affectedActorIds: [target.id], participantIds: [actor.id, target.id] } });
+    if (distance(actor, { ...destination, space: actor.space }) === 1) events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${prompt.id}-stun`, kind: "siren-irresistible-stun", sourceActorId: actor.id, targetId: target.id, title: "Неотразимая", text: `Наложить Ошеломлен на ${target.name}?`, options: ["stun", "pass"], participantIds: [actor.id, target.id] } });
   } else if (prompt.kind === "untouchable-weave-cell") {
     events.push({ type: "actor.move", actorId: actor.id, payload: { space: actor.space, x: destination.x, y: destination.y, movement: "Маятник", path: weavePath.map(cellKey), topologyCrossings: weavePath.filter(point => point.teleported).map(point => ({ destination: cellKey(point), cutIds: point.crossedCutIds || [] })), participantIds: [actor.id] } });
     events.push({ type: "actor.enter", actorId: actor.id, payload: { space: actor.space, x: destination.x, y: destination.y, movement: "Маятник" } });

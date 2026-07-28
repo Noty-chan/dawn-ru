@@ -345,8 +345,8 @@ SHA-256 проверенных файлов: `d182955a22bfba32780138b24551ebe574
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Изучить слабость (Study Weakness) | проверено | частичная | `target-validation`, `event-participants`, `movement-lifecycle`, `owned-entities`, `entity-lifecycle`, `usage-limits`, `trigger-router`, `turn-lifecycle`, `choice-flow`, `action-modifier`, `information-query` |
-| 2 | Полевая разведка (Field Investigation) | проверено | ручная | `target-validation`, `event-participants`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `reaction-window`, `action-modifier`, `information-query`, `derived-stats` |
+| 1 | Изучить слабость (Study Weakness) | проверено | с выбором | `target-validation`, `event-participants`, `movement-lifecycle`, `owned-entities`, `entity-lifecycle`, `usage-limits`, `trigger-router`, `turn-lifecycle`, `choice-flow`, `action-modifier`, `information-query` |
+| 2 | Полевая разведка (Field Investigation) | проверено | с выбором | `target-validation`, `event-participants`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `reaction-window`, `action-modifier`, `information-query`, `derived-stats` |
 | 3 | Казнь по четырем точкам (4-Point Execution) | проверено | частичная | `target-validation`, `event-participants`, `owned-entities`, `entity-lifecycle`, `movement-lifecycle`, `trigger-router`, `turn-lifecycle`, `action-modifier`, `action-history` |
 
 ### Пьяница (`vagabond.drunkard`)

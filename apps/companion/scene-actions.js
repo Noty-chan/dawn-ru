@@ -157,6 +157,29 @@ function prepareAction(scene, data, request = {}) {
       available = { ...available, available: true, reason: "", quick: true, continuation: false, costModel: discounted, quickSource: { techniqueId: "vagabond.cunning-fighter", level: 1, name: "План и исполнение", needsConfirmation: false } };
     }
   }
+  if (actor && declaredAction?.name === "Изучение" && Number(actor.techniques?.["vagabond.dim-mak"] || 0) >= 1 && request.targetIds?.length === 1) {
+    const studies = currentTurnEvents(scene, actor.id).filter(event => event.type === "action.prepare" && event.actorId === actor.id && (event.payload?.actionName || event.payload?.name) === "Изучение");
+    const sameTarget = studies.some(event => (event.payload?.targetIds || []).includes(request.targetIds[0])), thirdStudy = studies.length === 2;
+    if (sameTarget || thirdStudy) {
+      const free = thirdStudy, blockingReason = available?.reason || "";
+      if (!blockingReason || /^Это действие уже использовано/.test(blockingReason) || free && /^Недостаточно:/.test(blockingReason)) {
+        available = { ...available, available: true, reason: "", quick: true, continuation: false, costModel: free ? { amount: 0, resource: null } : actorActionCost(actor, declaredAction), quickSource: { techniqueId: "vagabond.dim-mak", level: 1, name: free ? "Третье Изучение" : "Изучить слабость", needsConfirmation: false } };
+      }
+    }
+  }
+  const selectedDimMakMarker = actor && declaredAction && ["Стычка", "Заклинание", "Завершение"].includes(declaredAction.name)
+    ? (scene.markers || []).find(marker =>
+        (request.attackModifierIds || []).includes(`vagabond.dim-mak.1:${marker.id}`)
+        && marker.ruleId === "vagabond.dim-mak.1"
+        && marker.ownerActorId === actor.id
+        && marker.metadata?.carrierActorId === request.targetIds?.[0]
+        && marker.space === actor.space
+        && Number(marker.x) === Number(actor.x)
+        && Number(marker.y) === Number(actor.y))
+    : null;
+  if (selectedDimMakMarker && available && /^(Это действие уже использовано|Недостаточно:)/.test(available.reason || "")) {
+    available = { ...available, available: true, reason: "", quick: true, continuation: false, costModel: { amount: 0, resource: null }, quickSource: { techniqueId: "vagabond.dim-mak", level: 1, name: "Слабая точка", needsConfirmation: false } };
+  }
   if (available && !available.available) errors.push(available.reason);
   if (errors.length) return { ok: false, errors, events: [] };
 
@@ -237,7 +260,9 @@ function prepareAction(scene, data, request = {}) {
   if (meisterOverload && !Array.isArray(request.roll?.rolls)) errors.push("Для Перегрузки нужен зафиксированный бросок Атаки.");
   if (mundaneLevel >= 1 && action.name === "Заклинание") errors.push("Обычный не может использовать Заклинание.");
   if (mundaneLevel >= 1 && action.name === "Завершение" && actionAttribute === "spirit") errors.push("Обычный не может использовать Завершение Духом.");
-  const events = [{ type: "action.prepare", actorId: actor.id, payload: { actionId: action.id, actionName: action.name, name: action.name, declaredActionId: declaredAction.id, declaredActionName: declaredAction.name, targetIds, planId: request.planId || null, attackModifierIds: attackModifiers.selectedIds, attackModifierAdvantage: attackModifiers.advantage, actionTransform: attackModifiers.actionTransform, quick: Boolean(available?.quick), quickSource: available?.quickSource ? { techniqueId: available.quickSource.techniqueId, level: available.quickSource.level, name: available.quickSource.name, needsConfirmation: available.quickSource.needsConfirmation } : null, continuation: Boolean(available?.continuation) } }];
+  const modifierQuick = Boolean(attackModifiers.quick);
+  const quickSource = modifierQuick ? { techniqueId: "vagabond.dim-mak", level: 1, name: "Слабая точка", needsConfirmation: false } : available?.quickSource;
+  const events = [{ type: "action.prepare", actorId: actor.id, payload: { actionId: action.id, actionName: action.name, name: action.name, declaredActionId: declaredAction.id, declaredActionName: declaredAction.name, targetIds, planId: request.planId || null, attackModifierIds: attackModifiers.selectedIds, attackModifierAdvantage: attackModifiers.advantage, actionTransform: attackModifiers.actionTransform, quick: Boolean(available?.quick || modifierQuick), quickSource: quickSource ? { techniqueId: quickSource.techniqueId, level: quickSource.level, name: quickSource.name, needsConfirmation: quickSource.needsConfirmation } : null, continuation: Boolean(available?.continuation && !modifierQuick) } }];
   if (request.useCunningPlan) events.push({ type: "rule-clock.tick", actorId: actor.id, payload: { clockId: "vagabond.cunning-fighter.plan", delta: -1, sourceActionId: "vagabond.cunning-fighter.1.plan", reason: "План и исполнение" } });
   if (useRevelation) events.push({ type: "rule-clock.tick", actorId: actor.id, payload: { clockId: "ruiner.zealot.revelation", delta: -1, sourceActionId: "ruiner.zealot.1", reason: "Изменение итоговых Успехов" } });
   if (grasp) {
@@ -251,7 +276,7 @@ function prepareAction(scene, data, request = {}) {
     const adjacentEnemies = (scene.actors || []).filter(target => !target.knockedOut && target.team !== actor.team && distance(actor, target) <= 1).length;
     events.push({ type: "rule-clock.set", actorId: actor.id, payload: { clockId: "ruiner.feral-arcana.rage", value: Math.min(6, adjacentEnemies + Number(scene.tension || 0)), active: true, sourceActionId: "ruiner.feral-arcana.2", reason: "Сорваться с цепи" } });
   }
-  const cost = knifeThrow ? { resource: null, amount: 0 } : available?.costModel || actorActionCost(actor, declaredAction);
+  const cost = knifeThrow || modifierQuick ? { resource: null, amount: 0 } : available?.costModel || actorActionCost(actor, declaredAction);
   if (cost.resource && cost.amount) events.push({ type: "resource.spend", actorId: actor.id, payload: cost });
   if (gunslingerSkirmish) {
     events[0].payload.ruleResource = { resource: "bullets", spent: bulletsSpent, advantage: bulletAdvantage, additionalTargets: Math.max(0, targetIds.length - 1), passiveAdvantage: Number(actor.techniques?.["powerhouse.gunslinger"] || 0) >= 2 ? 1 : 0, ruleId: "powerhouse.gunslinger.1" };

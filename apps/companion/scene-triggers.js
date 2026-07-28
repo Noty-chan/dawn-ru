@@ -68,6 +68,37 @@ const TRIGGER_RULES = [
     },
   },
   {
+    id: "vagabond.dim-mak.1.study",
+    eventTypes: ["action.resolve"],
+    priority: 58,
+    match: ({ actor, payload }) => actor && payload.name === "Изучение" && Number(actor.techniques?.["vagabond.dim-mak"] || 0) >= 1,
+    build: ({ scene, event, actor, payload }) => {
+      const target = actorById(scene, payload.targetIds?.[0]);
+      if (!target || target.knockedOut || target.team === actor.team || target.space !== actor.space) return [];
+      return [{ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${event.id}-dim-mak`, kind: "dim-mak-weak-point", sourceActorId: actor.id, targetId: target.id, title: "Изучение слабости", text: `Поставить Слабую точку в свободной клетке, смежной с ${target.name}?`, options: ["place", "pass"], participantIds: [actor.id, target.id] } }];
+    },
+  },
+  {
+    id: "vagabond.dim-mak.2.miss",
+    eventTypes: ["damage.apply"],
+    priority: 68,
+    match: ({ scene, event, payload }) => {
+      const target = actorById(scene, payload.targetId), attacker = actorById(scene, event.actorId);
+      return Number(payload.dealt || 0) === 0 && target && attacker && target.id !== attacker.id && target.team !== attacker.team && !target.knockedOut && !attacker.knockedOut && Number(target.techniques?.["vagabond.dim-mak"] || 0) >= 2 && scene.pendingAction?.actorId === attacker.id;
+    },
+    build: ({ scene, event, payload }) => {
+      const target = actorById(scene, payload.targetId), attacker = actorById(scene, event.actorId);
+      return [{ type: "rule.prompt", actorId: target.id, payload: { id: `prompt-${event.id}-dim-mak-investigation`, kind: "dim-mak-field-investigation", sourceActorId: target.id, targetId: attacker.id, title: "Полевое исследование", text: `Атака ${attacker.name} не попала. Бесплатно и Быстро Изучить атакующего?`, options: ["study", "pass"], participantIds: [target.id, attacker.id] } }];
+    },
+  },
+  {
+    id: "vagabond.dim-mak.2.evasion",
+    eventTypes: ["marker.remove"],
+    priority: 55,
+    match: ({ actor, payload }) => actor && payload.ruleId === "vagabond.dim-mak.1" && Number(actor.techniques?.["vagabond.dim-mak"] || 0) >= 2,
+    build: ({ actor, payload }) => [{ type: "actor.state", actorId: actor.id, payload: { key: "evasion", delta: 2, sourceActionId: "vagabond.dim-mak.2", reason: "Снята Слабая точка", participantIds: [actor.id, payload.carrierActorId].filter(Boolean) } }],
+  },
+  {
     id: "powerhouse.braggart.3.wound",
     eventTypes: ["damage.apply"],
     priority: 60,
@@ -351,7 +382,21 @@ function triggeredEvents(scene, event) {
   if (event.type === "attack.pending" && actor && Array.isArray(payload.attackModifierIds) && payload.attackModifierIds.length) {
     const modifiers = attackModifierStatus(scene, actor.id, payload.targetIds, payload.attackModifierIds, { actionName: payload.declaredActionName || payload.name });
     for (const option of modifiers.options.filter(item => modifiers.selectedIds.includes(item.id))) {
-      events.push({ type: "effect.remove", actorId: actor.id, payload: { targetId: option.targetId, effect: option.removeEffect, sourceActionId: option.id, reason: option.label, participantIds: [actor.id, option.targetId] } });
+      if (option.removeMarkerId) events.push({ type: "marker.remove", actorId: actor.id, payload: { markerId: option.removeMarkerId, ruleId: option.ruleId, carrierActorId: option.targetId, sourceActionId: option.id, reason: option.label, participantIds: [actor.id, option.targetId] } });
+      else if (option.removeEffect) events.push({ type: "effect.remove", actorId: actor.id, payload: { targetId: option.targetId, effect: option.removeEffect, sourceActionId: option.id, reason: option.label, participantIds: [actor.id, option.targetId] } });
+    }
+  }
+  if (event.type === "actor.move" && actor && payload.from) {
+    const weakPoints = (scene.markers || []).filter(marker => marker.ruleId === "vagabond.dim-mak.1" && marker.metadata?.carrierActorId === actor.id);
+    const space = (scene.spaces || []).find(item => item.id === actor.space), occupied = new Set((scene.actors || []).filter(item => !item.knockedOut && item.space === actor.space).map(item => `${item.x},${item.y}`));
+    for (const marker of weakPoints) {
+      const offset = marker.metadata?.offset || { dx: Number(marker.x) - Number(payload.from.x), dy: Number(marker.y) - Number(payload.from.y) };
+      const preferred = { x: Number(actor.x) + Number(offset.dx || 0), y: Number(actor.y) + Number(offset.dy || 0) };
+      const candidates = [preferred, { x: actor.x + 1, y: actor.y }, { x: actor.x - 1, y: actor.y }, { x: actor.x, y: actor.y + 1 }, { x: actor.x, y: actor.y - 1 }]
+        .filter((point, index, list) => list.findIndex(other => other.x === point.x && other.y === point.y) === index)
+        .filter(point => space && point.x >= 0 && point.y >= 0 && point.x < space.width && point.y < space.height && !removedCellKeys(scene, actor.space).has(cellKey(point)));
+      const destination = candidates.find(point => !occupied.has(cellKey(point))) || candidates[0];
+      if (destination && (marker.space !== actor.space || marker.x !== destination.x || marker.y !== destination.y)) events.push({ type: "marker.move", actorId: marker.ownerActorId, payload: { markerId: marker.id, space: actor.space, x: destination.x, y: destination.y, movement: `Слабая точка следует за ${actor.name}`, sourceActionId: "vagabond.dim-mak.1", participantIds: [marker.ownerActorId, actor.id] } });
     }
   }
   if (actor && payload.resolvedResource === "health" && Number(payload.resolvedDelta || 0) !== 0) {
@@ -618,6 +663,8 @@ function dispatchMany(scene, events, options = {}) {
     const placementResponse = event?.type === "rule.respond" && event.payload?.choice === "cell" && destination && (
       prompt?.kind === "marker-move-cell"
         ? queue.some(candidate => candidate.type === "marker.move" && candidate.payload?.markerId === (prompt.context?.markerId || prompt.markerId) && Number(candidate.payload?.x) === Number(destination.x) && Number(candidate.payload?.y) === Number(destination.y))
+        : prompt?.kind === "dim-mak-weak-point-cell"
+          ? queue.some(candidate => candidate.type === "marker.create" && Number(candidate.payload?.x) === Number(destination.x) && Number(candidate.payload?.y) === Number(destination.y))
         : stationarySiren
           ? queue.some(candidate => candidate.type === "technique.resolve" && candidate.actorId === prompt.sourceActorId && candidate.payload?.ruleId === "disruptor.siren.2")
           : queue.some(candidate => candidate.type === "actor.move" && candidate.actorId === placementActorId && Number(candidate.payload?.x) === Number(destination.x) && Number(candidate.payload?.y) === Number(destination.y))
