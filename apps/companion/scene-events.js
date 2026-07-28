@@ -87,6 +87,9 @@ function validateEvent(scene, event, options = {}) {
   if (event.type === "roll.public") {
     if (!Array.isArray(payload.rolls) || payload.rolls.length > 300 || payload.rolls.some(value => !Number.isInteger(Number(value)) || Number(value) < 1 || Number(value) > 6)) throw new Error("Некорректный публичный бросок.");
   }
+  if (event.type === "rule.share") {
+    if (!/^[a-z0-9][a-z0-9._:-]{0,179}$/i.test(String(payload.ruleId || "")) || typeof payload.title !== "string" || !payload.title.trim() || payload.title.length > 180 || typeof payload.kind !== "string" || payload.kind.length > 80 || typeof payload.sharedBy !== "string" || payload.sharedBy.length > 120) throw new Error("Некорректная ссылка на правило.");
+  }
   if (event.type === "session-clock.create") {
     if (!/^[a-z0-9][a-z0-9-]{0,119}$/i.test(String(payload.id || "")) || (scene.sessionClocks || []).some(clock => clock.id === payload.id) || typeof payload.name !== "string" || !payload.name.trim() || payload.name.length > 120 || ![4, 6, 8, 12].includes(Number(payload.size))) throw new Error("Некорректные часы Сцены.");
   }
@@ -177,7 +180,7 @@ function validateEvent(scene, event, options = {}) {
   if (event.type === "targets.set" && (!Array.isArray(payload.actorIds) || payload.actorIds.length > 40 || payload.actorIds.some(id => !actorById(scene, id) || actorById(scene, id).knockedOut))) throw new Error("Некорректный список целей.");
   if (event.type === "space.ensure" && (typeof payload.id !== "string" || !payload.id || (!((scene.spaces || []).some(space => space.id === payload.id || space.name === payload.name)) && (scene.spaces || []).length >= 12) || !finite(payload.width) || !finite(payload.height) || Number(payload.width) < 1 || Number(payload.height) < 1 || Number(payload.width) > 12 || Number(payload.height) > 12)) throw new Error("Некорректное отдельное пространство.");
   if (["technique.prepare", "technique.resolve", "technique.manual"].includes(event.type) && JSON.stringify(payload).length > 8192) throw new Error("Событие Техники слишком велико.");
-  if (event.type === "reaction.respond" && !["pass", "Блок", "Уворот", "Столкновение"].includes(payload.choice)) throw new Error("Некорректный ответ на Реакцию.");
+  if (event.type === "reaction.respond" && !["pass", "Блок", "Уворот", "Столкновение"].includes(payload.choice) && !String(payload.choice || "").startsWith("enemy.antagonist-trait.")) throw new Error("Некорректный ответ на Реакцию.");
   return event;
 }
 
@@ -432,6 +435,10 @@ function reduceEvent(scene, event) {
     scene.rollFeed ||= [];
     scene.rollFeed.unshift({ id: event.id, actor: actor?.name || payload.actor || "Система", formula: payload.formula, rolls: payload.rolls || [], successes: Number(payload.successes || 0), crits: Number(payload.crits || 0), outcome: typeof payload.outcome === "string" ? payload.outcome.slice(0, 80) : "", payment: typeof payload.payment === "string" ? payload.payment.slice(0, 80) : "" });
     scene.rollFeed = scene.rollFeed.slice(0, 20);
+  } else if (event.type === "rule.share") {
+    scene.ruleHandouts ||= [];
+    scene.ruleHandouts.unshift({ id: event.id, ruleId: payload.ruleId, title: payload.title.trim(), kind: payload.kind.trim() || "Правило", sharedBy: payload.sharedBy.trim() || "Нарратор", at: event.at });
+    scene.ruleHandouts = scene.ruleHandouts.slice(0, 12);
   } else if (event.type === "session-clock.create") {
     scene.sessionClocks ||= [];
     scene.sessionClocks.push({ id: payload.id, name: payload.name.trim(), size: Number(payload.size), value: 0 });
@@ -469,7 +476,17 @@ function reduceEvent(scene, event) {
     }));
     scene.pendingAction = { id: event.id, actorId: event.actorId, ...clone(payload), responses: Object.fromEntries(payload.targetIds.map(id => [id, { choice: "pending" }])) };
   } else if (event.type === "reaction.respond" && scene.pendingAction) {
-    scene.pendingAction.responses[event.actorId] = { choice: payload.choice, destination: payload.destination || null, clash: payload.clash || null };
+    scene.pendingAction.responses[event.actorId] = {
+      choice: payload.choice,
+      label: payload.label || payload.choice,
+      destination: payload.destination || null,
+      clash: payload.clash || null,
+      untouchableEvasion: Number(payload.untouchableEvasion || 0),
+      temporaryArmor: Number(payload.temporaryArmor || 0),
+      temporaryEvasion: Number(payload.temporaryEvasion || 0),
+      redirectTargetId: payload.redirectTargetId || null,
+      enemyTrait: payload.enemyTrait || null,
+    };
   } else if (event.type === "attack.clear") {
     scene.pendingAction = null;
   } else if (event.type === "damage.apply") {

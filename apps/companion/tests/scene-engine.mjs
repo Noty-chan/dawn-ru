@@ -1058,10 +1058,14 @@ assert.equal(prepareAttack(friendlyFireScene, "hero", "ally").ok, false, "Basic 
 assert.deepEqual(Array.from(attack.events, event => event.type), ["action.prepare", "resource.spend", "reaction.offer", "attack.pending"]);
 const awaiting = Engine.dispatchMany(scene, attack.events).scene;
 assert.equal(awaiting.actors[1].hp, 10, "Damage waits for every Reaction response");
-assert.deepEqual(Array.from(Engine.reactionOptions(awaiting, data, "enemy"), option => option.name), ["Без Реакции"], "Enemies do not spend the heroes' Focus Reactions");
+assert.deepEqual(Array.from(Engine.reactionOptions(awaiting, data, "enemy"), option => option.name), [], "An ordinary enemy exposes no player defensive Reactions");
+const ordinaryEnemyStatus = Engine.pendingActionStatus(awaiting, data);
+assert.deepEqual(Array.from(ordinaryEnemyStatus.waitingIds), [], "The table does not wait for an enemy without an available Reaction");
+assert.deepEqual(Array.from(ordinaryEnemyStatus.autoPassedIds), ["enemy"]);
+assert.equal(ordinaryEnemyStatus.canResolve, true);
 assert.throws(() => Engine.dispatch(awaiting, { type: "round.end", payload: {} }), /завершите текущую цепочку Реакций/);
-const passed = Engine.respondReaction(awaiting, data, { actorId: "enemy", choice: "pass" });
-const answered = Engine.dispatchMany(awaiting, passed.events).scene;
+assert.equal(Engine.respondReaction(awaiting, data, { actorId: "enemy", choice: "pass" }).ok, false, "An enemy without a Reaction cannot submit a redundant response");
+const answered = awaiting;
 const resolution = Engine.resolvePendingAction(answered, data);
 assert.equal(resolution.ok, true);
 const attacked = Engine.dispatchMany(answered, resolution.events).scene;
@@ -1069,6 +1073,93 @@ assert.equal(attacked.actors[0].ap, 2);
 assert.equal(attacked.actors[1].hp, 9, "Armor reduces damage, but an Attack still deals at least 1");
 assert.equal(attacked.rollFeed[0].successes, 2);
 assert.equal(attacked.pendingAction, null);
+
+const antagonistTraitId = en => data.enemies.antagonistTraits.find(trait => trait.en === en).id;
+const traitReactionScene = (en, { damage = 4, ownerSeparate = false, sacrifice = false } = {}) => {
+  const state = structuredClone(scene);
+  state.activeActorId = "hero";
+  state.actors[0].x = 3; state.actors[0].y = 2;
+  state.actors[1].x = 3; state.actors[1].y = 3;
+  if (!ownerSeparate) state.actors[1].antagonistTraitId = antagonistTraitId(en);
+  else state.actors.push({ ...structuredClone(state.actors[1]), id: "trait-owner", name: `Антагонист ${en}`, x: 5, y: 5, antagonistTraitId: antagonistTraitId(en) });
+  if (sacrifice) state.actors.push({ ...structuredClone(state.actors[1]), id: "sacrifice", name: "Жертва", x: 6, y: 6, antagonistTraitId: null });
+  return Engine.dispatch(state, { type: "attack.pending", actorId: "hero", payload: { actionId: actionNamed("Стычка").id, name: "Проверочная Атака", targetIds: ["enemy"], damage } }).scene;
+};
+for (const [en, mode] of [["All-Seeing", "evasion-move"], ["Cruel-Hearted", "armor-corrupt"], ["God-Like", "armor-repel"], ["Wild-Eyed", "clash"], ["Swift-Stepping", "evasion-vanish"]]) {
+  const options = Engine.reactionOptions(traitReactionScene(en), data, "enemy").filter(option => option.enemyTrait);
+  assert.ok(options.some(option => option.enemyTrait.mode === mode), `${en} exposes its canonical defensive Reaction instead of player defenses`);
+}
+for (const [en, mode] of [["Iron-Willed", "intercept-armor"], ["World-Renowned", "intercept-clash"]]) {
+  const options = Engine.reactionOptions(traitReactionScene(en, { ownerSeparate: true }), data, "enemy").filter(option => option.enemyTrait);
+  assert.ok(options.some(option => option.enemyTrait.mode === mode && option.enemyTrait.redirectTargetId === "trait-owner"), `${en} can intercept an Attack aimed at an ally`);
+}
+const sacrificeOptions = Engine.reactionOptions(traitReactionScene("Back-Stabbling", { sacrifice: true }), data, "enemy").filter(option => option.enemyTrait);
+assert.ok(sacrificeOptions.some(option => option.enemyTrait.mode === "redirect-ally" && option.enemyTrait.redirectTargetId === "sacrifice"), "Back-Stabbling can make a chosen ally become the target");
+assert.deepEqual(Array.from(Engine.pendingActionStatus(traitReactionScene("Cruel-Hearted"), data).waitingIds), ["enemy"], "A direct Antagonist defense opens the Reaction window");
+assert.deepEqual(Array.from(Engine.pendingActionStatus(traitReactionScene("Iron-Willed", { ownerSeparate: true }), data).waitingIds), ["enemy"], "An allied interception opens the original target's Reaction window");
+const unavailableSacrificeStatus = Engine.pendingActionStatus(traitReactionScene("Back-Stabbling"), data);
+assert.deepEqual(Array.from(unavailableSacrificeStatus.waitingIds), [], "A redirect that has no eligible ally does not block the Attack");
+assert.deepEqual(Array.from(unavailableSacrificeStatus.autoPassedIds), ["enemy"]);
+
+let cruelFlow = traitReactionScene("Cruel-Hearted");
+const cruelOption = Engine.reactionOptions(cruelFlow, data, "enemy").find(option => option.enemyTrait?.mode === "armor-corrupt");
+cruelFlow = Engine.dispatchMany(cruelFlow, Engine.respondReaction(cruelFlow, data, { actorId: "enemy", choice: cruelOption.id }).events).scene;
+cruelFlow = Engine.dispatchMany(cruelFlow, Engine.resolvePendingAction(cruelFlow, data).events).scene;
+assert.equal(cruelFlow.actors.find(actor => actor.id === "enemy").hp, 9, "Telo shipov adds tier ×2 Armor and preserves the minimum 1 damage");
+assert.ok(cruelFlow.actors.find(actor => actor.id === "hero").effects.includes("negative.порчен"), "Telo shipov Corrupts the attacker when damage is reduced to 1");
+let cruelMinimumFlow = traitReactionScene("Cruel-Hearted", { damage: 1 });
+const cruelMinimumOption = Engine.reactionOptions(cruelMinimumFlow, data, "enemy").find(option => option.enemyTrait?.mode === "armor-corrupt");
+cruelMinimumFlow = Engine.dispatchMany(cruelMinimumFlow, Engine.respondReaction(cruelMinimumFlow, data, { actorId: "enemy", choice: cruelMinimumOption.id }).events).scene;
+cruelMinimumFlow = Engine.dispatchMany(cruelMinimumFlow, Engine.resolvePendingAction(cruelMinimumFlow, data).events).scene;
+assert.ok(!cruelMinimumFlow.actors.find(actor => actor.id === "hero").effects.includes("negative.порчен"), "Telo shipov does not trigger when incoming damage was already 1");
+
+let godlikeFlow = traitReactionScene("God-Like");
+const godlikeOption = Engine.reactionOptions(godlikeFlow, data, "enemy").find(option => option.enemyTrait?.mode === "armor-repel");
+godlikeFlow = Engine.dispatchMany(godlikeFlow, Engine.respondReaction(godlikeFlow, data, { actorId: "enemy", choice: godlikeOption.id }).events).scene;
+godlikeFlow = Engine.dispatchMany(godlikeFlow, Engine.resolvePendingAction(godlikeFlow, data).events).scene;
+assert.deepEqual([godlikeFlow.actors.find(actor => actor.id === "hero").x, godlikeFlow.actors.find(actor => actor.id === "hero").y], [3, 0], "God-Like pushes the attacker up to 3 cells away when damage is reduced to 1");
+assert.ok(godlikeFlow.actors.find(actor => actor.id === "hero").effects.includes("negative.замедлен"), "God-Like Slows the pushed attacker");
+
+let seeingFlow = traitReactionScene("All-Seeing", { damage: 3 });
+const seeingOption = Engine.reactionOptions(seeingFlow, data, "enemy").find(option => option.enemyTrait?.postMove);
+seeingFlow = Engine.dispatchMany(seeingFlow, Engine.respondReaction(seeingFlow, data, { actorId: "enemy", choice: seeingOption.id, destination: { x: 4, y: 3 } }).events).scene;
+seeingFlow = Engine.dispatchMany(seeingFlow, Engine.resolvePendingAction(seeingFlow, data).events).scene;
+assert.deepEqual([seeingFlow.actors.find(actor => actor.id === "enemy").x, seeingFlow.actors.find(actor => actor.id === "enemy").y], [4, 3], "All-Seeing moves only after its Evasion makes the Attack miss");
+
+let swiftFlow = traitReactionScene("Swift-Stepping", { damage: 3 });
+const swiftOption = Engine.reactionOptions(swiftFlow, data, "enemy").find(option => option.enemyTrait?.mode === "evasion-vanish");
+assert.equal(Engine.respondReaction(swiftFlow, data, { actorId: "enemy", choice: swiftOption.id, destination: { x: 1, y: 1 } }).ok, false, "Swift-Stepping rejects a destination that is not on the edge");
+swiftFlow = Engine.dispatchMany(swiftFlow, Engine.respondReaction(swiftFlow, data, { actorId: "enemy", choice: swiftOption.id, destination: { x: 0, y: 0 } }).events).scene;
+swiftFlow = Engine.dispatchMany(swiftFlow, Engine.resolvePendingAction(swiftFlow, data).events).scene;
+assert.deepEqual([swiftFlow.actors.find(actor => actor.id === "enemy").x, swiftFlow.actors.find(actor => actor.id === "enemy").y], [0, 0], "Swift-Stepping teleports to the chosen edge cell after a miss");
+assert.ok(swiftFlow.actors.find(actor => actor.id === "enemy").effects.includes("positive.исчез"), "Swift-Stepping Disappears after its defensive teleport");
+
+let interceptFlow = traitReactionScene("Iron-Willed", { ownerSeparate: true });
+const interceptOption = Engine.reactionOptions(interceptFlow, data, "enemy").find(option => option.enemyTrait?.mode === "intercept-armor");
+interceptFlow = Engine.dispatchMany(interceptFlow, Engine.respondReaction(interceptFlow, data, { actorId: "enemy", choice: interceptOption.id, destination: { x: 2, y: 2 } }).events).scene;
+interceptFlow = Engine.dispatchMany(interceptFlow, Engine.resolvePendingAction(interceptFlow, data).events).scene;
+assert.equal(interceptFlow.actors.find(actor => actor.id === "enemy").hp, 10, "Iron-Willed leaves the original target unharmed");
+assert.equal(interceptFlow.actors.find(actor => actor.id === "trait-owner").hp, 9, "Iron-Willed becomes the target and applies its temporary Armor");
+
+let renownedFlow = traitReactionScene("World-Renowned", { ownerSeparate: true });
+const renownedOption = Engine.reactionOptions(renownedFlow, data, "enemy").find(option => option.enemyTrait?.mode === "intercept-clash");
+renownedFlow = Engine.dispatchMany(renownedFlow, Engine.respondReaction(renownedFlow, data, { actorId: "enemy", choice: renownedOption.id, destination: { x: 2, y: 2 }, clash: { defenderRoll: { formula: "4D6", rolls: [6], successes: 2, crits: 0 }, attackerRoll: { formula: "4D6", rolls: [2], successes: 0, crits: 0 } } }).events).scene;
+renownedFlow = Engine.dispatchMany(renownedFlow, Engine.resolvePendingAction(renownedFlow, data).events).scene;
+assert.equal(renownedFlow.actors.find(actor => actor.id === "enemy").hp, 10, "World-Renowned protects the original target");
+assert.equal(renownedFlow.actors.find(actor => actor.id === "trait-owner").hp, 10, "World-Renowned cancels the redirected Attack when it wins the Clash");
+
+let sacrificeFlow = traitReactionScene("Back-Stabbling", { sacrifice: true });
+const sacrificeOption = Engine.reactionOptions(sacrificeFlow, data, "enemy").find(option => option.enemyTrait?.redirectTargetId === "sacrifice");
+sacrificeFlow = Engine.dispatchMany(sacrificeFlow, Engine.respondReaction(sacrificeFlow, data, { actorId: "enemy", choice: sacrificeOption.id, destination: { x: 4, y: 3 } }).events).scene;
+sacrificeFlow = Engine.dispatchMany(sacrificeFlow, Engine.resolvePendingAction(sacrificeFlow, data).events).scene;
+assert.equal(sacrificeFlow.actors.find(actor => actor.id === "enemy").hp, 10, "Back-Stabbling leaves the original target unharmed");
+assert.equal(sacrificeFlow.actors.find(actor => actor.id === "sacrifice").hp, 7, "Back-Stabbling teleports the chosen ally in and makes it take the Attack");
+
+let wildFlow = traitReactionScene("Wild-Eyed");
+const wildOption = Engine.reactionOptions(wildFlow, data, "enemy").find(option => option.enemyTrait?.mode === "clash");
+wildFlow = Engine.dispatchMany(wildFlow, Engine.respondReaction(wildFlow, data, { actorId: "enemy", choice: wildOption.id, clash: { defenderRoll: { formula: "4D6", rolls: [6], successes: 2, crits: 0 }, attackerRoll: { formula: "4D6", rolls: [2], successes: 0, crits: 0 } } }).events).scene;
+wildFlow = Engine.dispatchMany(wildFlow, Engine.resolvePendingAction(wildFlow, data).events).scene;
+assert.equal(wildFlow.actors.find(actor => actor.id === "enemy").hp, 10, "Wild-Eyed cancels the original Attack when it wins the forced Clash");
 
 const enemyScene = structuredClone(scene);
 enemyScene.activeActorId = "enemy";
@@ -1285,6 +1376,33 @@ assert.equal(wounded.actors[0].wounds, 1);
 assert.equal(wounded.actors[0].hp, 4);
 assert.equal(wounded.actors[0].influence, 1);
 
+const finalWoundScene = structuredClone(scene);
+finalWoundScene.actors[0].hp = 1;
+finalWoundScene.actors[0].guts = 2;
+finalWoundScene.actors[0].wounds = 1;
+const finalWound = Engine.dispatch(finalWoundScene, { type: "damage.apply", actorId: "enemy", payload: { targetId: "hero", amount: 1, ignoreArmor: true } }).scene;
+assert.equal(finalWound.actors[0].knockedOut, true, "Reaching Guts in Wounds knocks the hero out");
+assert.equal(finalWound.actors[0].wounds, 1, "Knockout removes one Wound after the threshold is reached");
+assert.equal(finalWound.actors[0].hp, 0);
+
+const selfWoundScene = structuredClone(scene);
+selfWoundScene.actors[0].hp = 1;
+selfWoundScene.actors[0].guts = 4;
+selfWoundScene.actors[0].wounds = 0;
+selfWoundScene.actors[0].influence = 0;
+const selfWound = Engine.dispatch(selfWoundScene, { type: "damage.apply", actorId: "hero", payload: { targetId: "hero", amount: 1, ignoreArmor: true } }).scene;
+assert.equal(selfWound.actors[0].wounds, 1);
+assert.equal(selfWound.actors[0].hp, 4);
+assert.equal(selfWound.actors[0].influence, 0, "A self-inflicted Wound grants no Influence");
+
+const enemyKnockoutScene = structuredClone(scene);
+enemyKnockoutScene.actors[1].hp = 1;
+enemyKnockoutScene.actors[1].guts = 0;
+enemyKnockoutScene.actors[1].wounds = 0;
+const enemyKnockout = Engine.dispatch(enemyKnockoutScene, { type: "damage.apply", actorId: "hero", payload: { targetId: "enemy", amount: 1, ignoreArmor: true } }).scene;
+assert.equal(enemyKnockout.actors[1].knockedOut, true, "An ordinary enemy with zero Guts is knocked out at zero HP");
+assert.equal(enemyKnockout.actors[1].wounds, 0, "An ordinary enemy does not gain Wounds");
+
 const lifecycleScene = structuredClone(scene);
 lifecycleScene.activeActorId = null;
 lifecycleScene.tension = 2;
@@ -1411,15 +1529,14 @@ multiAttack.events.splice(-1, 0, { type: "reaction.offer", actorId: "enemy-2", p
 let multiAwaiting = Engine.dispatchMany(multiTargetScene, multiAttack.events).scene;
 multiAwaiting = Engine.dispatch(multiAwaiting, { type: "damage.apply", actorId: null, payload: { targetId: "enemy-2", amount: 99, ignoreArmor: true } }).scene;
 assert.equal(multiAwaiting.pendingAction.responses["enemy-2"].choice, "unavailable");
-const firstTargetPass = Engine.respondReaction(multiAwaiting, data, { actorId: "enemy", choice: "pass" });
-multiAwaiting = Engine.dispatchMany(multiAwaiting, firstTargetPass.events).scene;
+assert.deepEqual(Array.from(Engine.pendingActionStatus(multiAwaiting, data).waitingIds), [], "Ordinary enemies never hold a multi-target Attack open");
 const partialResolution = Engine.resolvePendingAction(multiAwaiting, data);
 assert.equal(partialResolution.ok, true);
 const partialResolved = Engine.dispatchMany(multiAwaiting, partialResolution.events).scene;
 assert.equal(partialResolved.pendingAction, null);
 assert.equal(partialResolved.actors.find(actor => actor.id === "enemy").hp, 9);
 assert.equal(partialResolved.actors.find(actor => actor.id === "enemy-2").hp, 0, "An unavailable target is skipped instead of blocking or taking damage twice");
-assert.equal(Engine.respondReaction(answered, data, { actorId: "enemy", choice: "pass" }).ok, false, "A repeated Reaction response is rejected");
+assert.equal(Engine.respondReaction(answered, data, { actorId: "enemy", choice: "pass" }).ok, false, "An unavailable enemy Reaction response is rejected");
 assert.throws(() => Engine.dispatch(awaiting, { type: "attack.clear", actorId: "hero", payload: { pendingId: "stale" } }), /устарела/, "A stale cancel command cannot close a newer Attack");
 
 const planScene = structuredClone(scene);

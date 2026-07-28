@@ -1,5 +1,63 @@
 "use strict";
 
+function antagonistDefenseRule(data, actor) {
+  const trait = (data.enemies?.antagonistTraits || []).find(item => item.id === actor?.antagonistTraitId);
+  const rule = trait?.rules?.find(item => item.kind === "defense-reaction");
+  return rule ? { trait, rule } : null;
+}
+
+function antagonistReactionOptions(scene, data, target, source) {
+  if (!target || target.team !== "enemy") return [];
+  const options = [];
+  const enemies = (scene.actors || []).filter(actor => actor.team === target.team && !actor.knockedOut && effectPresenceStatus(scene, actor.id).onField);
+  for (const owner of enemies) {
+    const definition = antagonistDefenseRule(data, owner), automation = definition?.rule?.automation;
+    if (!definition || !automation || automation.mode === "manual") continue;
+    const direct = owner.id === target.id;
+    if (["evasion-move", "armor-corrupt", "armor-repel", "clash", "evasion-vanish"].includes(automation.mode) && !direct) continue;
+    const base = {
+      id: definition.rule.id,
+      name: definition.rule.name,
+      available: true,
+      reason: "",
+      cost: "Без затрат",
+      costModel: { amount: 0, resource: null },
+      enemyTrait: {
+        traitId: definition.trait.id,
+        traitName: definition.trait.name,
+        ruleId: definition.rule.id,
+        ruleName: definition.rule.name,
+        ruleText: definition.rule.text,
+        mode: automation.mode,
+        reactionActorId: owner.id,
+        defenderActorId: owner.id,
+        originalTargetId: target.id,
+        temporaryArmor: Number(automation.temporaryArmorPerTier || 0) * Number(owner.tier || 1),
+        temporaryEvasion: Number(automation.temporaryEvasionPerTier || 0) * Number(owner.tier || 1),
+      },
+    };
+    if (automation.mode === "evasion-move") {
+      options.push(base, { ...base, id: `${base.id}.move`, name: `${base.name} · переместиться при промахе`, requiresDestination: true, destinationKind: "move", maxDistance: Number(automation.move || 3), enemyTrait: { ...base.enemyTrait, postMove: true, maxDistance: Number(automation.move || 3) } });
+    } else if (automation.mode === "evasion-vanish") {
+      options.push({ ...base, requiresDestination: true, destinationKind: "edge", enemyTrait: { ...base.enemyTrait, postMove: true, disappear: true } });
+    } else if (automation.mode === "intercept-armor" || automation.mode === "intercept-clash") {
+      options.push({ ...base, name: `${base.name} · ${owner.name}`, requiresDestination: true, destinationKind: "adjacent-attacker", enemyTrait: { ...base.enemyTrait, redirectTargetId: owner.id } });
+    } else if (automation.mode === "redirect-ally") {
+      for (const ally of enemies.filter(actor => actor.id !== owner.id && actor.id !== target.id)) {
+        options.push({
+          ...base,
+          id: `${base.id}.${ally.id}`,
+          name: `${base.name} · ${ally.name}`,
+          requiresDestination: true,
+          destinationKind: "adjacent-trait-owner",
+          enemyTrait: { ...base.enemyTrait, defenderActorId: ally.id, redirectTargetId: ally.id },
+        });
+      }
+    } else options.push(base);
+  }
+  return options;
+}
+
 function reactionOptions(scene, data, actorId) {
   const actor = actorById(scene, actorId);
   if (!actor || actor.knockedOut || scene.pendingAction?.responses?.[actorId]?.choice !== "pending") return [];
@@ -7,22 +65,28 @@ function reactionOptions(scene, data, actorId) {
   if (!source || source.knockedOut) return [];
   if (!effectTargetingStatus(scene, source.id, actor.id).available) return [];
   const effectDefense = effectDefenseStatus(scene, actorId);
-  const defenses = actor.team === "enemy" ? [] : availableActions(scene, data, actorId).filter(action => action.reaction).map(action => action.name === "Уворот" && !effectDefense.dodgeAllowed ? { ...action, available: false, reason: effectDefense.dodgeReason } : action);
+  const defenses = actor.team === "enemy" ? antagonistReactionOptions(scene, data, actor, source) : availableActions(scene, data, actorId).filter(action => action.reaction).map(action => action.name === "Уворот" && !effectDefense.dodgeAllowed ? { ...action, available: false, reason: effectDefense.dodgeReason } : action);
+  if (actor.team === "enemy" && !defenses.some(option => option.available)) return [];
   return [{ id: "pass", name: "Без Реакции", available: true, reason: "Принять исходную Атаку без защиты", costModel: { amount: 0, resource: null } }, ...defenses];
 }
 
-function pendingActionStatus(scene) {
+function pendingActionStatus(scene, data = null) {
   const pending = scene?.pendingAction;
-  if (!pending) return { exists: false, pending: null, source: null, targetIds: [], eligibleIds: [], unavailableIds: [], waitingIds: [], answeredIds: [], interruptedReason: "", canResolve: false, mustCancel: false };
+  if (!pending) return { exists: false, pending: null, source: null, targetIds: [], eligibleIds: [], unavailableIds: [], waitingIds: [], answeredIds: [], autoPassedIds: [], interruptedReason: "", canResolve: false, mustCancel: false };
   const source = actorById(scene, pending.actorId);
   const targetIds = [...new Set(pending.targetIds || [])];
   const eligibleIds = targetIds.filter(id => { const target = actorById(scene, id); return target && !target.knockedOut && effectTargetingStatus(scene, source?.id, target.id).available; });
   const unavailableIds = targetIds.filter(id => !eligibleIds.includes(id));
-  const waitingIds = eligibleIds.filter(id => pending.responses?.[id]?.choice === "pending");
-  const answeredIds = eligibleIds.filter(id => pending.responses?.[id]?.choice && pending.responses[id].choice !== "pending" && pending.responses[id].choice !== "unavailable");
+  const pendingIds = eligibleIds.filter(id => pending.responses?.[id]?.choice === "pending");
+  const autoPassedIds = data ? pendingIds.filter(id => {
+    const target = actorById(scene, id);
+    return target?.team === "enemy" && !reactionOptions(scene, data, id).some(option => option.id !== "pass" && option.available);
+  }) : [];
+  const waitingIds = pendingIds.filter(id => !autoPassedIds.includes(id));
+  const answeredIds = eligibleIds.filter(id => autoPassedIds.includes(id) || pending.responses?.[id]?.choice && pending.responses[id].choice !== "pending" && pending.responses[id].choice !== "unavailable");
   const sourcePresence = source ? effectPresenceStatus(scene, source.id) : null;
   const interruptedReason = pending.interruptedReason || (!source ? "Атакующий больше не находится на Сцене" : source.knockedOut ? "Атакующий выведен из боя" : !sourcePresence.onField ? sourcePresence.reason : ""), emptyAllowed = Boolean(pending.allowEmptyTargets && targetIds.length === 0);
-  return { exists: true, pending, source, targetIds, eligibleIds, unavailableIds, waitingIds, answeredIds, interruptedReason, canResolve: !interruptedReason && (eligibleIds.length > 0 || emptyAllowed) && waitingIds.length === 0, mustCancel: Boolean(interruptedReason) || (!emptyAllowed && eligibleIds.length === 0) };
+  return { exists: true, pending, source, targetIds, eligibleIds, unavailableIds, waitingIds, answeredIds, autoPassedIds, interruptedReason, canResolve: !interruptedReason && (eligibleIds.length > 0 || emptyAllowed) && waitingIds.length === 0, mustCancel: Boolean(interruptedReason) || (!emptyAllowed && eligibleIds.length === 0) };
 }
 
 function ruleChoiceStatus(scene, request = {}) {
@@ -36,13 +100,13 @@ function ruleChoiceStatus(scene, request = {}) {
 }
 
 function pendingTargetOutcome(scene, pending, targetId) {
-  const source = actorById(scene, pending?.actorId), target = actorById(scene, targetId), reaction = pending?.responses?.[targetId] || {}, response = reaction.choice;
+  const source = actorById(scene, pending?.actorId), originalTarget = actorById(scene, targetId), reaction = pending?.responses?.[targetId] || {}, response = reaction.choice, target = actorById(scene, reaction.redirectTargetId || targetId);
   if (!pending || !source || !target || target.knockedOut) return { available: false, reason: "Источник или цель Атаки больше не доступны.", source, target, cancelled: true, rawDamage: 0, armor: 0, evasion: 0, expectedDamage: 0 };
-  const clashCancelled = response === "Столкновение" && reaction.clash?.defenderWins, body = Number(target.attrs?.body || 0), dodge = Math.ceil(Math.max(Number(target.attrs?.talent || 0), Number(target.attrs?.mind || 0)) / 2);
+  const clashCancelled = (response === "Столкновение" || reaction.enemyTrait?.clash) && reaction.clash?.defenderWins, body = Number(target.attrs?.body || 0), dodge = Math.ceil(Math.max(Number(target.attrs?.talent || 0), Number(target.attrs?.mind || 0)) / 2);
   const alliedGas = (scene.objects || []).find(object => object.type === "gas" && object.space === target.space && object.cells?.includes(`${target.x},${target.y}`) && actorById(scene, object.ownerActorId)?.team === target.team), sourceInsideGas = alliedGas && source.space === alliedGas.space && alliedGas.cells?.includes(`${source.x},${source.y}`), gasEvasion = alliedGas && !sourceInsideGas ? 3 : 0;
-  const defense = effectDefenseStatus(scene, target.id), temporaryArmor = response === "Блок" ? body : 0, temporaryEvasion = (response === "Уворот" ? dodge + Number(reaction.untouchableEvasion || 0) : 0) + gasEvasion;
+  const defense = effectDefenseStatus(scene, target.id), temporaryArmor = response === "Блок" ? body : Number(reaction.temporaryArmor || 0), temporaryEvasion = (response === "Уворот" ? dodge + Number(reaction.untouchableEvasion || 0) : Number(reaction.temporaryEvasion || 0)) + gasEvasion;
   const rawDamage = pending.damageByTarget && Number.isFinite(Number(pending.damageByTarget[targetId])) ? Number(pending.damageByTarget[targetId]) : Number(pending.damage || 0), raw = Math.max(0, rawDamage), armor = defense.armorAllowed ? Math.max(0, Number(target.armor || 0) + temporaryArmor + defense.armorBonus) : 0, afterArmor = raw > 0 ? Math.max(1, raw - armor) : 0, evasion = Math.max(0, Number(target.evasion || 0) + temporaryEvasion), expectedDamage = clashCancelled ? 0 : Math.max(0, afterArmor - Math.min(afterArmor, evasion));
-  return { available: true, reason: "", source, target, response, cancelled: clashCancelled, rawDamage, raw, armor, evasion, temporaryArmor, temporaryEvasion, afterArmor, expectedDamage };
+  return { available: true, reason: "", source, originalTarget, target, reaction, response, cancelled: clashCancelled, rawDamage, raw, armor, evasion, temporaryArmor, temporaryEvasion, afterArmor, expectedDamage };
 }
 
 function prepareInvisibleDisappear(scene, actorId) {
@@ -568,11 +632,26 @@ function prepareSurgery(scene, data, request = {}) {
 function respondReaction(scene, data, request = {}) {
   const pending = scene.pendingAction;
   const actor = actorById(scene, request.actorId);
+  const source = actorById(scene, pending?.actorId);
   const option = reactionOptions(scene, data, request.actorId).find(item => item.id === request.choice || item.name === request.choice);
   const errors = [];
   if (!pending || !actor) errors.push("Нет ожидающей Реакции для персонажа.");
   if (!option) errors.push("Неизвестный ответ на Реакцию.");
   if (option && !option.available) errors.push(option.reason || "Реакция недоступна.");
+  const traitReaction = option?.enemyTrait || null;
+  const reactionActor = actorById(scene, traitReaction?.reactionActorId) || actor;
+  const defender = actorById(scene, traitReaction?.defenderActorId) || actor;
+  if (traitReaction && (!reactionActor || reactionActor.knockedOut || !defender || defender.knockedOut)) errors.push("Участник особой Реакции больше не доступен.");
+  if (option?.requiresDestination) {
+    const destination = request.destination, mover = traitReaction?.postMove ? reactionActor : defender;
+    const space = (scene.spaces || []).find(item => item.id === mover?.space);
+    if (!destination || !space || !Number.isInteger(Number(destination.x)) || !Number.isInteger(Number(destination.y)) || Number(destination.x) < 0 || Number(destination.y) < 0 || Number(destination.x) >= Number(space.width) || Number(destination.y) >= Number(space.height)) errors.push("Выберите клетку назначения особой Реакции.");
+    else if (!effectCellOccupancyStatus(scene, mover.id, { space: mover.space, x: destination.x, y: destination.y }).available) errors.push("Клетка особой Реакции занята.");
+    else if (option.destinationKind === "move" && !movementPath(scene, mover.id, destination, { maxDistance: option.maxDistance }).length && (Number(destination.x) !== Number(mover.x) || Number(destination.y) !== Number(mover.y))) errors.push(`Для этой Реакции выберите достижимую клетку в пределах ${option.maxDistance} клеток.`);
+    else if (option.destinationKind === "edge" && ![0, Number(space.width) - 1].includes(Number(destination.x)) && ![0, Number(space.height) - 1].includes(Number(destination.y))) errors.push("Для этой Реакции выберите свободную клетку на краю поля.");
+    else if (option.destinationKind === "adjacent-attacker" && (!source || source.space !== mover.space || distance(source, { ...destination, space: mover.space }) > 1)) errors.push("Перехватчик должен телепортироваться смежно с атакующим.");
+    else if (option.destinationKind === "adjacent-trait-owner" && (!reactionActor || reactionActor.space !== mover.space || distance(reactionActor, { ...destination, space: mover.space }) > 1)) errors.push("Союзник должен телепортироваться смежно с владельцем Черты.");
+  }
   if (option?.name === "Уворот") {
     const destination = request.destination;
     const space = (scene.spaces || []).find(item => item.id === actor?.space);
@@ -580,11 +659,10 @@ function respondReaction(scene, data, request = {}) {
     if (!destination || !space || !path.length || destination.x < 0 || destination.y < 0 || destination.x >= space.width || destination.y >= space.height) errors.push(`Для Уворота выберите достижимую свободную клетку в пределах ${dodgeDistance} клеток.`);
     else if (!effectCellOccupancyStatus(scene, actor.id, { space: actor.space, x: destination.x, y: destination.y }).available) errors.push("Клетка Уворота занята.");
   }
-  if (option?.name === "Столкновение") {
-    const source = actorById(scene, pending?.actorId);
+  if (option?.name === "Столкновение" || ["clash", "intercept-clash"].includes(traitReaction?.mode)) {
     const clash = request.clash;
     if (!source) errors.push("Атакующий для Столкновения не найден.");
-    else if (distance(actor, source) > 5) errors.push("Атакующий вне дальности Стычки или Заклинания для Столкновения.");
+    else if (!traitReaction && distance(actor, source) > 5) errors.push("Атакующий вне дальности Стычки или Заклинания для Столкновения.");
     if (!clash?.defenderRoll || !clash?.attackerRoll || !Array.isArray(clash.defenderRoll.rolls) || !Array.isArray(clash.attackerRoll.rolls)) errors.push("Для Столкновения нужны оба встречных броска.");
   }
   if (errors.length) return { ok: false, errors, events: [] };
@@ -598,27 +676,42 @@ function respondReaction(scene, data, request = {}) {
   }
   let responseDestination = request.destination || null;
   if (option.name === "Блок") {
-    const source = actorById(scene, pending.actorId), destination = pushDestination(scene, actor, source, 1);
+    const destination = pushDestination(scene, actor, source, 1);
     if (destination.distance > 0) {
       responseDestination = destination;
       events.push({ type: "actor.move", actorId: actor.id, payload: { space: actor.space, x: destination.x, y: destination.y, movement: "Блок · отталкивание", forced: true, displacement: { mode: "push", direction: destination.direction, distance: destination.distance, ruleId: "action.block" }, path: (destination.path || []).map(cellKey), topologyCrossings: destination.topologyCrossings || [] } });
       events.push({ type: "actor.enter", actorId: actor.id, payload: { space: actor.space, x: destination.x, y: destination.y } });
     }
   }
+  if (traitReaction?.redirectTargetId && request.destination) {
+    events.push({ type: "actor.move", actorId: defender.id, payload: { space: defender.space, x: Number(request.destination.x), y: Number(request.destination.y), movement: traitReaction.mode === "redirect-ally" ? "«Почетная» жертва" : traitReaction.ruleName, placement: true, teleport: true, participantIds: [pending.actorId, actor.id, reactionActor.id, defender.id] } });
+    events.push({ type: "actor.enter", actorId: defender.id, payload: { space: defender.space, x: Number(request.destination.x), y: Number(request.destination.y), movement: traitReaction.ruleName, placement: true, teleport: true } });
+  }
   let clash = null;
-  if (option.name === "Столкновение") {
+  if (option.name === "Столкновение" || ["clash", "intercept-clash"].includes(traitReaction?.mode)) {
     const defenderRoll = clone(request.clash.defenderRoll), attackerRoll = clone(request.clash.attackerRoll);
     const defenderWins = Number(defenderRoll.successes || 0) > Number(attackerRoll.successes || 0);
     clash = { defenderRoll, attackerRoll, defenderWins };
-    events.push({ type: "roll.public", actorId: actor.id, payload: { ...defenderRoll, outcome: defenderWins ? "Столкновение выиграно: исходная Атака отменена" : "Столкновение проиграно" } });
+    events.push({ type: "roll.public", actorId: defender.id, payload: { ...defenderRoll, outcome: defenderWins ? "Столкновение выиграно: исходная Атака отменена" : "Столкновение проиграно" } });
     events.push({ type: "roll.public", actorId: pending.actorId, payload: { ...attackerRoll, outcome: defenderWins ? "Столкновение проиграно" : "Столкновение выиграно" } });
   }
-  events.push({ type: "reaction.respond", actorId: actor.id, payload: { choice: option.id === "pass" ? "pass" : option.name, destination: responseDestination, clash, untouchableEvasion, participantIds: [pending.actorId, actor.id] } });
+  events.push({ type: "reaction.respond", actorId: actor.id, payload: {
+    choice: option.id === "pass" ? "pass" : traitReaction ? option.id : option.name,
+    label: option.name,
+    destination: responseDestination,
+    clash,
+    untouchableEvasion,
+    temporaryArmor: Number(traitReaction?.temporaryArmor || 0),
+    temporaryEvasion: Number(traitReaction?.temporaryEvasion || 0),
+    redirectTargetId: traitReaction?.redirectTargetId || null,
+    enemyTrait: traitReaction ? { ...traitReaction, clash: ["clash", "intercept-clash"].includes(traitReaction.mode) } : null,
+    participantIds: [...new Set([pending.actorId, actor.id, reactionActor?.id, defender?.id].filter(Boolean))],
+  } });
   return { ok: true, errors: [], events };
 }
 
 function resolvePendingAction(scene, data) {
-  const status = pendingActionStatus(scene), pending = status.pending;
+  const status = pendingActionStatus(scene, data), pending = status.pending;
   const errors = [];
   if (!pending) errors.push("Нет ожидающего действия.");
   if (errors.length) return { ok: false, errors, events: [] };
@@ -630,14 +723,14 @@ function resolvePendingAction(scene, data) {
   let autophageRegeneration = false;
   if (pending.roll) events.push({ type: "roll.public", actorId: pending.actorId, payload: pending.roll });
   for (const targetId of status.eligibleIds) {
-    const outcome = pendingTargetOutcome(scene, pending, targetId), target = outcome.target;
+    const outcome = pendingTargetOutcome(scene, pending, targetId), target = outcome.target, resolvedTargetId = target?.id || targetId, traitReaction = outcome.reaction?.enemyTrait;
     if (!outcome.cancelled) {
       const { rawDamage, temporaryArmor, temporaryEvasion, expectedDamage } = outcome;
-      events.push({ type: "damage.apply", actorId: pending.actorId, payload: { targetId, amount: rawDamage, temporaryArmor, temporaryEvasion, sourceActionId: pending.actionId, participantIds: [pending.actorId, targetId] } });
+      events.push({ type: "damage.apply", actorId: pending.actorId, payload: { targetId: resolvedTargetId, amount: rawDamage, temporaryArmor, temporaryEvasion, sourceActionId: pending.actionId, participantIds: [pending.actorId, resolvedTargetId] } });
       const attackSucceeded = Number(pending.roll?.successes || 0) > 0 || !pending.roll && rawDamage > 0;
       if (expectedDamage > 0 && Number(source?.techniques?.["disruptor.autophage"] || 0) >= 1 && new Set(target.effects || []).size >= 2) autophageRegeneration = true;
-      if (expectedDamage > 0) for (const effect of pending.effects || []) events.push({ type: "effect.apply", actorId: pending.actorId, payload: { targetId, effect, sourceActionId: pending.actionId } });
-      if (attackSucceeded) for (const effect of pending.successEffects || []) events.push({ type: "effect.apply", actorId: pending.actorId, payload: { targetId, effect, sourceActionId: pending.techniqueRuleId || pending.actionId } });
+      if (expectedDamage > 0) for (const effect of pending.effects || []) events.push({ type: "effect.apply", actorId: pending.actorId, payload: { targetId: resolvedTargetId, effect, sourceActionId: pending.actionId } });
+      if (attackSucceeded) for (const effect of pending.successEffects || []) events.push({ type: "effect.apply", actorId: pending.actorId, payload: { targetId: resolvedTargetId, effect, sourceActionId: pending.techniqueRuleId || pending.actionId } });
       const postDisplacement = (pending.postDisplacements || []).find(item => item.targetId === targetId) || (pending.postPush?.targetId === targetId ? { mode: "push", collisionDamagePerCell: 1, ...pending.postPush } : null);
       if (attackSucceeded && postDisplacement) {
         const destination = postDisplacement.mode === "push" ? pushDestination(scene, target, source, Number(postDisplacement.maximum || 99)) : null;
@@ -646,7 +739,30 @@ function resolvePendingAction(scene, data) {
           events.push({ type: "actor.move", actorId: target.id, payload: { space: target.space, x: destination.x, y: destination.y, movement: movementName, forced: true, displacement: { mode: "push", direction: destination.direction, distance: destination.distance, ruleId }, path: (destination.path || []).map(cellKey), topologyCrossings: destination.topologyCrossings || [], participantIds: [pending.actorId, target.id] } });
           events.push({ type: "actor.enter", actorId: target.id, payload: { space: target.space, x: destination.x, y: destination.y, movement: movementName, forced: true } });
           const collisionDamage = destination.distance * Number(postDisplacement.collisionDamagePerCell || 0);
-          if (collisionDamage > 0) events.push({ type: "damage.apply", actorId: pending.actorId, payload: { targetId, amount: collisionDamage, ignoreArmor: true, sourceActionId: ruleId, participantIds: [pending.actorId, target.id] } });
+          if (collisionDamage > 0) events.push({ type: "damage.apply", actorId: pending.actorId, payload: { targetId: resolvedTargetId, amount: collisionDamage, ignoreArmor: true, sourceActionId: ruleId, participantIds: [pending.actorId, target.id] } });
+        }
+      }
+      if (traitReaction?.mode === "armor-corrupt" && outcome.raw > 1 && expectedDamage === 1 && source) events.push({ type: "effect.apply", actorId: target.id, payload: { targetId: source.id, effect: "negative.порчен", sourceActionId: traitReaction.ruleId, participantIds: [source.id, target.id] } });
+      if (traitReaction?.mode === "armor-repel" && outcome.raw > 1 && expectedDamage === 1 && source) {
+        const destination = pushDestination(scene, source, target, 3);
+        if (destination.distance) {
+          events.push({ type: "actor.move", actorId: source.id, payload: { space: source.space, x: destination.x, y: destination.y, movement: traitReaction.ruleName, forced: true, displacement: { mode: "push", direction: destination.direction, distance: destination.distance, ruleId: traitReaction.ruleId }, path: (destination.path || []).map(cellKey), topologyCrossings: destination.topologyCrossings || [], participantIds: [source.id, target.id] } });
+          events.push({ type: "actor.enter", actorId: source.id, payload: { space: source.space, x: destination.x, y: destination.y, movement: traitReaction.ruleName, forced: true } });
+        }
+        events.push({ type: "effect.apply", actorId: target.id, payload: { targetId: source.id, effect: "negative.замедлен", sourceActionId: traitReaction.ruleId, participantIds: [source.id, target.id] } });
+      }
+      if (traitReaction?.postMove && expectedDamage === 0 && outcome.reaction?.destination) {
+        const destination = outcome.reaction.destination;
+        if (traitReaction.mode === "evasion-move") {
+          const path = movementPath(scene, target.id, destination, { maxDistance: Number(traitReaction.maxDistance || 3) });
+          if (path.length) {
+            events.push({ type: "actor.move", actorId: target.id, payload: { space: target.space, x: destination.x, y: destination.y, movement: traitReaction.ruleName, path: path.map(cellKey), participantIds: [source.id, target.id] } });
+            events.push({ type: "actor.enter", actorId: target.id, payload: { space: target.space, x: destination.x, y: destination.y, movement: traitReaction.ruleName } });
+          }
+        } else if (traitReaction.mode === "evasion-vanish") {
+          events.push({ type: "actor.move", actorId: target.id, payload: { space: target.space, x: destination.x, y: destination.y, movement: traitReaction.ruleName, placement: true, teleport: true, participantIds: [source.id, target.id] } });
+          events.push({ type: "actor.enter", actorId: target.id, payload: { space: target.space, x: destination.x, y: destination.y, movement: traitReaction.ruleName, placement: true, teleport: true } });
+          events.push({ type: "effect.apply", actorId: target.id, payload: { targetId: target.id, effect: "positive.исчез", sourceActionId: traitReaction.ruleId, participantIds: [target.id] } });
         }
       }
     }

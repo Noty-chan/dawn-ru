@@ -195,6 +195,15 @@
     return result;
   }
 
+  function reconcileHealthRuntime({ current = null, previousMax = null, nextMax = 0 } = {}) {
+    const maximum = Math.max(0, Number(nextMax) || 0);
+    if (current === null || current === undefined || current === "" || !Number.isFinite(Number(current))) return { current: maximum, maximum };
+    const health = Number(current);
+    if (previousMax === null || previousMax === undefined || previousMax === "" || !Number.isFinite(Number(previousMax))) return { current: clamp(health, 0, maximum), maximum };
+    const missing = Math.max(0, Number(previousMax) - health);
+    return { current: clamp(maximum - missing, 0, maximum), maximum };
+  }
+
   function rollXd6({ count, threshold = 4, criticalAt = 6, random = Math.random, maxRolls = 300 }) {
     const initialCount = clamp(count, 1, 300);
     const successAt = clamp(threshold, 2, 6);
@@ -216,5 +225,5 @@
     };
   }
 
-  global.DAWN_LOGIC = { areaCells, calculateAbilityCost, calculateCreationBudgets, calculateRankSpend, clamp, normalizeAttributeBases, normalizeAttributeGrowth, resolveSelectedGifts, rollXd6, scaleTierFormula, swapAttributeBase };
+  global.DAWN_LOGIC = { areaCells, calculateAbilityCost, calculateCreationBudgets, calculateRankSpend, clamp, normalizeAttributeBases, normalizeAttributeGrowth, reconcileHealthRuntime, resolveSelectedGifts, rollXd6, scaleTierFormula, swapAttributeBase };
 })(typeof window === "object" ? window : globalThis);

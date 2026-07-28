@@ -40,6 +40,18 @@ RE_LEVEL = re.compile(r"^\*\*(\d):\s*(.+):\*\*\s*(.*)$")
 RE_GIFT = re.compile(r"^\*\*(.+?):\*\*\s+(.*)$")
 RE_ENEMY_HEAD = re.compile(r"^### (.+?)(?: \(([^)]+)\))? \| (.+)$")
 RE_ENEMY_RULE = re.compile(r'^\*\*\[(Действие|Атака|Козырь)(?::Н(\d+))?\]\s+(.+?)(?: \(([^)]+)\))?:\*\*\s*(.*)$')
+RE_ANTAGONIST_RULE = re.compile(r'^\*\*(.+?) \((Реакция защиты|Прочая Реакция|Смена фазы|Начало Хода|Начало Хода союзника)\):\*\*\s*(.*)$')
+
+ANTAGONIST_DEFENSE_PROFILES = {
+    "All-Seeing": {"mode": "evasion-move", "temporaryEvasionPerTier": 2, "move": 3},
+    "Cruel-Hearted": {"mode": "armor-corrupt", "temporaryArmorPerTier": 2},
+    "God-Like": {"mode": "armor-repel", "temporaryArmorPerTier": 2, "push": 3},
+    "Wild-Eyed": {"mode": "clash"},
+    "Iron-Willed": {"mode": "intercept-armor", "temporaryArmorPerTier": 2},
+    "Swift-Stepping": {"mode": "evasion-vanish", "temporaryEvasionPerTier": 2},
+    "World-Renowned": {"mode": "intercept-clash"},
+    "Back-Stabbling": {"mode": "redirect-ally"},
+}
 
 OUTLOOK_IDS = {
     "Мятежник": "rebel",
@@ -676,6 +688,66 @@ def parse_enemies(fname: str, kind: str) -> list:
     return enemies
 
 
+def parse_antagonist_traits() -> list:
+    """Черты Антагониста и их отдельные защитные Реакции из канонического текста."""
+    lines = (TR / NARRATOR_FILE).read_text(encoding="utf-8").splitlines()
+    traits = []
+    trait = None
+    active_rule = None
+    enabled = False
+    for raw in lines:
+        line = raw.rstrip()
+        if line == "## Черты Антагониста":
+            enabled = True
+            continue
+        if not enabled:
+            continue
+        if line == "## Примеры Развертываний":
+            break
+        head = RE_ENEMY_HEAD.match(line)
+        if head:
+            name, en, tags = head.group(1).strip().strip('"'), (head.group(2) or "").strip(), head.group(3).strip()
+            trait = {
+                "id": f"enemy.antagonist-trait.{slugify(en or name)}",
+                "kind": "antagonist-trait",
+                "name": name,
+                "en": en,
+                "tags": tags,
+                "rules": [],
+                "text": "",
+            }
+            traits.append(trait)
+            active_rule = None
+            continue
+        if trait is None or not line:
+            continue
+        rule_match = RE_ANTAGONIST_RULE.match(line)
+        if rule_match:
+            raw_name, trigger, body = rule_match.groups()
+            name = raw_name.strip().strip('"')
+            kind = {
+                "Реакция защиты": "defense-reaction",
+                "Прочая Реакция": "reaction",
+                "Смена фазы": "phase-change",
+                "Начало Хода": "turn-start",
+                "Начало Хода союзника": "ally-turn-start",
+            }[trigger]
+            active_rule = {
+                "id": f'{trait["id"]}.{kind}.{slugify(name)}',
+                "kind": kind,
+                "name": name,
+                "trigger": trigger,
+                "text": body.strip(),
+            }
+            if kind == "defense-reaction":
+                active_rule["automation"] = dict(ANTAGONIST_DEFENSE_PROFILES.get(trait["en"], {"mode": "manual"}))
+            trait["rules"].append(active_rule)
+        elif active_rule is not None:
+            active_rule["text"] = (active_rule["text"] + "\n" + line.replace("\\*", "*")).strip()
+        trait["text"] = (trait["text"] + "\n" + line.replace("\\*", "*")).strip()
+    return traits
+
+
 def main():
     data = {
         "schemaVersion": 2,
@@ -688,6 +760,7 @@ def main():
         "enemies": {
             "common": parse_enemies(ENEMY_FILE, "common"),
             "modifiers": parse_enemies(MODIFIER_FILE, "modifier"),
+            "antagonistTraits": parse_antagonist_traits(),
         },
     }
     n_tech = sum(len(a["techniques"]) for a in data["archetypes"])

@@ -13,6 +13,10 @@ vm.runInNewContext(fs.readFileSync(path.join(root, "logic.js"), "utf8"), context
 vm.runInNewContext(fs.readFileSync(path.join(root, "data.js"), "utf8"), context);
 const data = context.window.DAWN_DATA;
 const logic = context.window.DAWN_LOGIC;
+assert.deepEqual(JSON.parse(JSON.stringify(logic.reconcileHealthRuntime({ current: null, nextMax: 6 }))), { current: 6, maximum: 6 }, "A fresh hero starts at the rules-derived maximum Health");
+assert.deepEqual(JSON.parse(JSON.stringify(logic.reconcileHealthRuntime({ current: 10, previousMax: 10, nextMax: 6 }))), { current: 6, maximum: 6 }, "Changing Body cannot leave current Health above the new maximum");
+assert.deepEqual(JSON.parse(JSON.stringify(logic.reconcileHealthRuntime({ current: 7, previousMax: 10, nextMax: 12 }))), { current: 9, maximum: 12 }, "Changing maximum Health preserves missing Health instead of granting a free heal");
+assert.deepEqual(JSON.parse(JSON.stringify(logic.reconcileHealthRuntime({ current: 6, nextMax: 10 }))), { current: 6, maximum: 10 }, "Legacy saves without a remembered maximum retain valid current Health");
 const appFiles = ["app-bootstrap.js", "app-reference-data.js", "app-core.js", "hero-ui.js", "scene-ui.js", "scene-effects.js", "scene-actions-ui.js", "scene-sync-ui.js", "play-ui.js", "app-builder-events.js", "app-sync-events.js", "app-scene-events.js", "app-play-events.js", "app.js"];
 const appSource = appFiles.map(file => fs.readFileSync(path.join(root, file), "utf8")).join("\n");
 const cockpitSource = fs.readFileSync(path.join(root, "vtt-concepts.js"), "utf8");
@@ -108,6 +112,12 @@ assert.ok(data.effects.positive.find(effect => effect.name === "Исчез")?.al
 assert.equal(data.actions.list.length, 15);
 assert.equal(data.enemies.common.length, 41);
 assert.equal(data.enemies.modifiers.length, 11);
+assert.equal(data.enemies.antagonistTraits.length, 8);
+assert.deepEqual(
+  JSON.parse(JSON.stringify(data.enemies.antagonistTraits.map(trait => trait.rules.find(rule => rule.kind === "defense-reaction")?.automation?.mode))),
+  ["evasion-move", "armor-corrupt", "armor-repel", "clash", "intercept-armor", "evasion-vanish", "intercept-clash", "redirect-ally"],
+  "Every canonical Antagonist defensive Reaction must have an explicit automation profile",
+);
 assert.equal(data.enemies.common.find(enemy => enemy.en === "Bruiser")?.stats.armor, "1(+1/2)");
 const assassin = data.enemies.common.find(enemy => enemy.en === "Assassin");
 assert.match(assassin?.text || "", /Исчезнуть/);
@@ -130,6 +140,7 @@ const ids = [
   ...Object.values(data.effects).flat().map(e => e.id),
   ...data.actions.list.map(a => a.id),
   ...Object.values(data.enemies).flat().map(enemy => enemy.id),
+  ...data.enemies.antagonistTraits.flatMap(trait => trait.rules.map(rule => rule.id)),
   ...Object.values(data.abilityWords).flat().map(w => w.id),
 ];
 assert.equal(new Set(ids).size, ids.length, "stable ids must be unique");
@@ -267,11 +278,23 @@ const app = appSource;
 const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
 const css = fs.readFileSync(path.join(root, "app.css"), "utf8");
 const cockpitCss = fs.readFileSync(path.join(root, "vtt-cockpit.css"), "utf8");
+const sceneResponsesSource = fs.readFileSync(path.join(root, "scene-responses.js"), "utf8");
 const sync = fs.readFileSync(path.join(root, "sync.js"), "utf8");
 const sql = fs.readFileSync(path.resolve(root, "../../supabase/migrations/202607130001_dawn_multiplayer.sql"), "utf8");
 const eventSql = fs.readFileSync(path.resolve(root, "../../supabase/migrations/202607210001_dawn_event_stream.sql"), "utf8");
 const liveCharacterSql = fs.readFileSync(path.resolve(root, "../../supabase/migrations/202607230001_dawn_live_characters.sql"), "utf8");
 const eventRepairSql = fs.readFileSync(path.resolve(root, "../../supabase/migrations/202607230002_fix_append_scene_events.sql"), "utf8");
+assert.match(html, /data-scene-tool="place"/, "The GM table exposes an explicit manual placement tool");
+assert.match(app, /movement:"Ручная перестановка",placement:true/, "Manual GM placement is journaled without invoking a Turn movement action");
+assert.match(app, /class="core-action-rule"/, "Every table action keeps its full rule text directly reachable");
+assert.match(app, /function combatActionReferenceHtml/, "Structured combat embeds the complete base-action reference");
+assert.match(html, /id="scene-enemy-trait"/, "Enemy setup exposes Antagonist Traits");
+assert.match(sceneResponsesSource, /autoPassedIds/, "Enemy targets without an available Reaction are skipped automatically");
+assert.match(app, /function sceneNarratorConsoleHtml/, "The selected actor exposes a dedicated Narrator adjudication console");
+assert.match(app, /sourceActionId:"manual\.adjudication"/, "Manual health, resources, and Effects remain explicit journaled events");
+assert.match(html, /id="scene-space-manager"/, "The Narrator can inspect and remove created spaces");
+assert.match(html, /id="scene-clear-field"/, "The Narrator has an explicit reversible field cleanup command");
+assert.match(html, /id="scene-reset-table"/, "The Narrator has an explicit full table reset command");
 assert.match(app, /Math\.ceil\(attrValueFor\(hero,"talent"\)\/2\)/);
 assert.match(app, /takeWound\(external\)/);
 assert.match(app, /setPlayCounter\("influence"/);

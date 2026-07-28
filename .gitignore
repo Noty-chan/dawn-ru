@@ -8,7 +8,7 @@
 /.claude/
 /.codex/
 /supabase/.temp/
-/.playwright-cli/
+**/.playwright-cli/
 **/.edge-render-*/
 /tmp/
 __pycache__/
