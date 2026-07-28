@@ -289,6 +289,45 @@ function effectDefenseStatus(scene, targetActorId) {
   };
 }
 
+function attackModifierStatus(scene, sourceActorId, targetIds = [], selectedIds = []) {
+  const source = actorById(scene, sourceActorId), targets = [...new Set(targetIds || [])].map(id => actorById(scene, id)).filter(Boolean);
+  if (!source) return { available: false, reason: "Атакующий не найден.", source: null, targets, options: [], selectedIds: [], invalidIds: [], advantage: 0 };
+  const options = targets.filter(target => hasEffect(scene, target, "negative.подброшен")).map(target => ({
+    id: `core.launch-spike:${target.id}`,
+    kind: "effect-consume",
+    timing: "before-roll",
+    targetId: target.id,
+    label: `Вбить: ${target.name}`,
+    description: `Снять «Подброшен» и получить ${Number(source.tier || 1)} Преимущества.`,
+    advantage: Number(source.tier || 1),
+    removeEffect: "negative.подброшен",
+  }));
+  const optionById = new Map(options.map(option => [option.id, option])), requested = [...new Set(selectedIds || [])];
+  const invalidIds = requested.filter(id => !optionById.has(id)), selected = requested.map(id => optionById.get(id)).filter(Boolean);
+  return {
+    available: invalidIds.length === 0,
+    reason: invalidIds.length ? "Выбранный модификатор Атаки больше недоступен." : "",
+    source,
+    targets,
+    options,
+    selectedIds: selected.map(option => option.id),
+    invalidIds,
+    advantage: selected.reduce((sum, option) => sum + Number(option.advantage || 0), 0),
+  };
+}
+
+function actionPlanStatus(scene, actorId = null) {
+  const plan = scene?.pendingActionPlan;
+  if (!plan) return { available: false, reason: "Нет подготовленного составного действия.", plan: null, actor: null };
+  const actor = actorById(scene, plan.actorId);
+  let reason = "";
+  if (!actor) reason = "Исполнитель составного действия больше не находится на Сцене.";
+  else if (actor.knockedOut) reason = "Исполнитель составного действия выведен из боя.";
+  else if (scene.activeActorId !== actor.id) reason = "Ход исполнителя составного действия уже закончился.";
+  else if (actorId && actor.id !== actorId) reason = "Это составное действие принадлежит другому персонажу.";
+  return { available: !reason, reason, plan: clone(plan), actor };
+}
+
 function summarizeEvents(scene, events = []) {
   const list = Array.isArray(events) ? events : [];
   const eventTypes = {}, resourceDelta = {}, sourceIds = new Set(), targetIds = new Set(), affectedCells = new Set();

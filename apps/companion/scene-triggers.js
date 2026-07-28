@@ -345,6 +345,15 @@ function effectLifecycleEvents(scene, event) {
 
 function triggeredEvents(scene, event) {
   const payload = event.payload || {}, actor = event.actorId ? actorById(scene, event.actorId) : null, resumed = event.type === "rule.respond" ? resumeQueuedTriggers(scene, event) : { events: [], promptReserved: false }, routed = triggerRouteStatus(scene, event, { promptReserved: resumed.promptReserved }), events = [...resumed.events, ...routed.events], promptQueued = () => events.some(item => item.type === "rule.prompt");
+  if (event.type === "actor.knockout" && payload.applied && scene.pendingActionPlan?.actorId === payload.targetId) {
+    events.push({ type: "action.plan.cancel", actorId: payload.targetId, payload: { planId: scene.pendingActionPlan.id, reason: "Исполнитель выведен из боя.", participantIds: [payload.targetId] } });
+  }
+  if (event.type === "attack.pending" && actor && Array.isArray(payload.attackModifierIds) && payload.attackModifierIds.length) {
+    const modifiers = attackModifierStatus(scene, actor.id, payload.targetIds, payload.attackModifierIds);
+    for (const option of modifiers.options.filter(item => modifiers.selectedIds.includes(item.id))) {
+      events.push({ type: "effect.remove", actorId: actor.id, payload: { targetId: option.targetId, effect: option.removeEffect, sourceActionId: option.id, reason: option.label, participantIds: [actor.id, option.targetId] } });
+    }
+  }
   if (actor && payload.resolvedResource === "health" && Number(payload.resolvedDelta || 0) !== 0) {
     if (Number(payload.resolvedDelta) < 0) events.push({ type: "damage.apply", actorId: actor.id, payload: { targetId: actor.id, amount: Math.abs(Number(payload.resolvedDelta)), ignoreArmor: true, sourceActionId: payload.sourceActionId || "disruptor.autophage.1", resourcePayment: true, participantIds: [actor.id] } });
     else events.push({ type: "actor.heal", actorId: actor.id, payload: { targetId: actor.id, amount: Number(payload.resolvedDelta), sourceActionId: payload.sourceActionId || "disruptor.autophage.1", resourcePayment: true, participantIds: [actor.id] } });

@@ -17,6 +17,13 @@ function validateEvent(scene, event, options = {}) {
   if (event.actorId && !actorById(scene, event.actorId)) throw new Error("Исполнитель события отсутствует на Сцене.");
   const payload = event.payload || {}, actor = event.actorId ? actorById(scene, event.actorId) : null;
   const finite = value => Number.isFinite(Number(value));
+  if (event.type === "action.plan") {
+    if (!actor || typeof payload.id !== "string" || !payload.id || payload.id.length > 120 || typeof payload.actionId !== "string" || !payload.actionId || payload.actionId.length > 180 || !ACTION_PLAN_PHASES.has(payload.phase) || !payload.context || typeof payload.context !== "object" || Array.isArray(payload.context) || JSON.stringify(payload.context).length > 8192) throw new Error("Некорректный план составного действия.");
+  }
+  if (event.type === "action.plan.update") {
+    if (!actor || typeof payload.planId !== "string" || !payload.planId || !ACTION_PLAN_PHASES.has(payload.phase) || payload.context != null && (typeof payload.context !== "object" || Array.isArray(payload.context) || JSON.stringify(payload.context).length > 8192)) throw new Error("Некорректное продолжение составного действия.");
+  }
+  if (event.type === "action.plan.cancel" && (!actor || typeof payload.planId !== "string" || !payload.planId || payload.reason != null && (typeof payload.reason !== "string" || payload.reason.length > 240))) throw new Error("Некорректная отмена составного действия.");
   if (["resource.spend", "resource.gain"].includes(event.type)) {
     if (!RESOURCES.has(payload.resource) || !finite(payload.amount) || Number(payload.amount) < 0 || Number(payload.amount) > 9999) throw new Error("Некорректное изменение ресурса.");
   }
@@ -84,6 +91,7 @@ function validateEvent(scene, event, options = {}) {
     if (!Array.isArray(payload.targetIds) || payload.targetIds.length > 40 || !payload.allowEmptyTargets && payload.targetIds.length < 1 || payload.targetIds.some(id => !actorById(scene, id) || actorById(scene, id).knockedOut) || !finite(payload.damage) || Number(payload.damage) < 0 || Number(payload.damage) > 9999) throw new Error("Некорректные параметры атаки.");
     const unavailableTarget = payload.targetIds.find(id => !effectTargetingStatus(scene, event.actorId, id).available);
     if (unavailableTarget) throw new Error(effectTargetingStatus(scene, event.actorId, unavailableTarget).reason);
+    if (payload.attackModifierIds != null && (!Array.isArray(payload.attackModifierIds) || payload.attackModifierIds.length > 40 || !attackModifierStatus(scene, event.actorId, payload.targetIds, payload.attackModifierIds).available)) throw new Error("Некорректные модификаторы Атаки.");
   }
   if (event.type === "effect.apply" && (!actorById(scene, payload.targetId) || typeof payload.effect !== "string" || !payload.effect.trim() || payload.effect.length > 80 || payload.duration != null && !EFFECT_DURATIONS.has(payload.duration) || payload.removable != null && typeof payload.removable !== "boolean" || payload.exclusiveBySource != null && typeof payload.exclusiveBySource !== "boolean")) throw new Error("Некорректный Эффект.");
   if (event.type === "effect.apply" && actor && !payload.ignoreEffectTargeting) {
@@ -165,6 +173,18 @@ function validateEvent(scene, event, options = {}) {
 
 function validateTransition(scene, event) {
   const actor = event.actorId ? actorById(scene, event.actorId) : null;
+  const plan = scene.pendingActionPlan;
+  if (event.type === "action.plan") {
+    if (scene.pendingAction || scene.pendingPrompt || plan) throw new Error("Сначала завершите текущую цепочку или составное действие.");
+    if (scene.activeActorId !== event.actorId || actor?.knockedOut) throw new Error("Составное действие можно готовить только в собственный Ход.");
+  }
+  if (["action.plan.update", "action.plan.cancel"].includes(event.type)) {
+    if (!plan || plan.id !== event.payload?.planId) throw new Error("Этот план составного действия уже устарел.");
+    if (plan.actorId !== event.actorId) throw new Error("План составного действия принадлежит другому персонажу.");
+  }
+  if (plan && ["turn.start", "turn.end", "round.end", "enemy.action.prepare"].includes(event.type)) throw new Error("Сначала завершите или отмените составное действие.");
+  if (plan && event.type === "action.prepare" && (event.payload?.planId !== plan.id || event.actorId !== plan.actorId || event.payload?.actionId !== plan.actionId)) throw new Error("Действие не совпадает с сохранённым составным планом.");
+  if (plan && event.type === "attack.pending" && event.actorId !== plan.actorId) throw new Error("Сначала завершите сохранённое составное действие.");
   if (scene.pendingAction && ["turn.start", "turn.end", "round.end"].includes(event.type)) {
     throw new Error("Сначала завершите текущую цепочку Реакций.");
   }
@@ -250,7 +270,18 @@ function applyKnockoutState(scene, target, payload) {
 function reduceEvent(scene, event) {
   const actor = event.actorId ? actorById(scene, event.actorId) : null;
   const payload = event.payload;
-  if (["resource.spend", "resource.gain"].includes(event.type) && actor) {
+  if (event.type === "action.plan" && actor) {
+    scene.pendingActionPlan = { id: payload.id, actorId: actor.id, actionId: payload.actionId, actionName: payload.actionName || payload.name || "Действие", phase: payload.phase, context: clone(payload.context), createdVersion: Number(scene.version || 0), createdEventId: event.id };
+  } else if (event.type === "action.plan.update" && actor) {
+    scene.pendingActionPlan.phase = payload.phase;
+    if (payload.context) scene.pendingActionPlan.context = clone(payload.context);
+    payload.actionId = scene.pendingActionPlan.actionId;
+  } else if (event.type === "action.plan.cancel" && actor) {
+    payload.actionId = scene.pendingActionPlan?.actionId || payload.actionId || null;
+    payload.actionName = scene.pendingActionPlan?.actionName || payload.actionName || "Действие";
+    payload.cancelled = true;
+    scene.pendingActionPlan = null;
+  } else if (["resource.spend", "resource.gain"].includes(event.type) && actor) {
     const status = resourceOperationStatus(scene, actor.id, { ...payload, operation: event.type === "resource.gain" ? "gain" : "spend" });
     payload.resolvedResource = status.resolvedResource;
     payload.resolvedDelta = status.delta;
@@ -567,6 +598,7 @@ function reduceEvent(scene, event) {
     if (!actor.usedActions.includes(payload.ruleId)) actor.usedActions.push(payload.ruleId);
     if (payload.kind === "trump") actor.usedTrump = true;
   } else if (event.type === "action.prepare" && actor) {
+    if (scene.pendingActionPlan?.id === payload.planId) scene.pendingActionPlan = null;
     actor.usedActions ||= [];
     if (payload.actionId && !payload.quick && !payload.continuation && !actor.usedActions.includes(payload.actionId)) actor.usedActions.push(payload.actionId);
     if (payload.actionName === "Шаг" || payload.name === "Шаг") actor.stepRemaining = Math.max(0, Number(payload.stepRemaining || 0));

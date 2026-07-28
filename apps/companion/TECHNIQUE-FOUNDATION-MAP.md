@@ -36,6 +36,7 @@ SHA-256 проверенных файлов: `d182955a22bfba32780138b24551ebe574
 | `choice-flow` | Типизированное решение | готово | `scene-responses.js / scene-events.js / scene-effects.js` | 144 |
 | `damage-pipeline` | Конвейер урона, Здоровья и Ран | готово | `scene-responses.js / scene-events.js` | 106 |
 | `action-modifier` | Модификатор или новое действие | готово | `scene-actions.js / scene-responses.js` | 244 |
+| `composite-action` | Сохраняемое составное действие | готово | `scene-query.js / scene-events.js / scene-responses.js / scene-effects.js` | 4 |
 | `effect-lifecycle` | Механика, источник и срок Эффекта | готово | `scene-engine-core.js / scene-query.js / scene-events.js / scene-triggers.js / scene-responses.js` | 129 |
 | `entity-lifecycle` | Жизненный цикл зон, маркеров и объектов | планируется | — | 63 |
 | `inventory` | Инвентарь и заряды | планируется | — | 24 |
@@ -225,7 +226,7 @@ SHA-256 проверенных файлов: `d182955a22bfba32780138b24551ebe574
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
 | 1 | Засада (Ambush) | проверено | полная | `usage-limits`, `trigger-router`, `action-modifier`, `deployment-hooks` |
-| 2 | Ликвидация (Assassinate) | проверено | с выбором | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `movement-lifecycle`, `trigger-router`, `reaction-window`, `choice-flow`, `action-modifier`, `dice-hooks` |
+| 2 | Ликвидация (Assassinate) | проверено | с выбором | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `movement-lifecycle`, `trigger-router`, `reaction-window`, `choice-flow`, `action-modifier`, `composite-action`, `dice-hooks` |
 | 3 | Скорость тьмы (Speed of Dark) [Скрыться -> Шаг] | проверено | полная | `effect-state`, `effect-lifecycle`, `movement-lifecycle`, `action-modifier`, `action-history` |
 
 ### Снайпер (`vagabond.sniper`)
@@ -420,7 +421,7 @@ SHA-256 проверенных файлов: `d182955a22bfba32780138b24551ebe574
 | ---: | --- | --- | --- | --- |
 | 1 | Удержание (Restrain) | проверено | частичная | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `trigger-router`, `action-modifier` |
 | 2 | Перелом позвоночника (Spine Breaker) | проверено | частичная | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `movement-lifecycle`, `trigger-router`, `action-modifier`, `dice-hooks` |
-| 3 | Завершающий прием (Finishing Move) [Завершение Телом -> Прыжок] | проверено | частичная | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `movement-lifecycle`, `trigger-router`, `reaction-window`, `turn-lifecycle`, `duration-scheduler`, `action-modifier`, `action-history` |
+| 3 | Завершающий прием (Finishing Move) [Завершение Телом -> Прыжок] | проверено | частичная | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `movement-lifecycle`, `trigger-router`, `reaction-window`, `turn-lifecycle`, `duration-scheduler`, `action-modifier`, `composite-action`, `action-history` |
 
 ### Джаггернаут (`bulwark.juggernaut`)
 
@@ -588,8 +589,8 @@ SHA-256 проверенных файлов: `d182955a22bfba32780138b24551ebe574
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Пустить дым (Blowing Smoke) | проверено | частичная | `target-validation`, `event-participants`, `movement-lifecycle`, `resource-check`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `turn-lifecycle`, `choice-flow`, `action-modifier` |
-| 2 | Мистическая дымка (Mystic Mist) | проверено | частичная | `movement-lifecycle`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `derived-stats` |
+| 1 | Пустить дым (Blowing Smoke) | проверено | частичная | `target-validation`, `event-participants`, `movement-lifecycle`, `resource-check`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `turn-lifecycle`, `choice-flow`, `action-modifier`, `composite-action` |
+| 2 | Мистическая дымка (Mystic Mist) | проверено | частичная | `movement-lifecycle`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `derived-stats`, `composite-action` |
 | 3 | Жалящий пар (Stinging Steam) | проверено | частичная | `target-validation`, `event-participants`, `movement-lifecycle`, `resource-check`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier` |
 
 ### Последняя надежда (`altruist.last-hope`)

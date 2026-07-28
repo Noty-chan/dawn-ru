@@ -1,5 +1,14 @@
 "use strict";
 
+document.addEventListener("click",event=>{
+  const button=event.target.closest("[data-core-action],[data-core-action-plan]");if(!button)return;
+  const actor=currentHeroActor(),actionId=button.dataset.coreActionPlan||button.dataset.coreAction,action=D.actions.list.find(item=>item.id===actionId),attack=action&&["Стычка","Заклинание","Завершение"].includes(action.name);
+  if(!actor||!action)return;
+  pendingCoreActionContext={actionId:action.id,context:coreActionDraftContext(action,actor,{useCunningPlan:Boolean(button.dataset.coreActionPlan)})};
+  if(attack||!sceneActorEffects(actor).includes("positive.исчез"))return;
+  event.preventDefault();event.stopImmediatePropagation();startCompositeCoreAction(action.id,{useCunningPlan:Boolean(button.dataset.coreActionPlan)});
+},true);
+
 function setPlayCounter(key,value){
   value=Math.max(0,Number(value)||0);if(key==="stress")value=Math.min(3,value);const actor=currentHeroActor(),sync=Sync?.state(),actorKeys=new Set(["hp","wounds","focus","influence","ap"]);
   if(sync?.sceneId&&sync.role==="player"&&key==="tension")return toast("Общее Напряжение меняет Нарратор");

@@ -1528,4 +1528,74 @@ assert.equal(mixed.pendingPrompt.kind, "alchemist-mix");
 const potionCreated = Engine.dispatchMany(mixed, Engine.respondRulePrompt(mixed, data, { choice: "rage-fumes" }).events).scene;
 assert.equal(potionCreated.actors[0].inventory["potion:rage-fumes"], 1);
 
+const modifierScene = structuredClone(scene);
+modifierScene.actors[0].tier = 2;
+modifierScene.actors[1].effects = ["negative.подброшен"];
+modifierScene.actors[1].effectStates = { "negative.подброшен": { duration: "startTurn", sources: [{ actorId: "hero", sourceActionId: "qa.launch" }] } };
+const spikeId = "core.launch-spike:enemy";
+const spikeStatus = Engine.attackModifierStatus(modifierScene, "hero", ["enemy"], [spikeId]);
+assert.equal(spikeStatus.available, true);
+assert.equal(spikeStatus.advantage, 2, "Spike grants the attacker's Tier as Advantage");
+const spikedAttack = Engine.prepareAction(modifierScene, data, {
+  actorId: "hero",
+  actionId: actionNamed("Стычка").id,
+  targetIds: ["enemy"],
+  attackModifierIds: [spikeId],
+  roll: { formula: "5D6 · Вбить +2", rolls: [6, 5, 4, 2, 1], successes: 3, crits: 1 },
+});
+assert.equal(spikedAttack.ok, true);
+const afterSpike = Engine.dispatchMany(modifierScene, spikedAttack.events).scene;
+assert.ok(!afterSpike.actors[1].effects.includes("negative.подброшен"), "A committed Spike removes Launched from only the selected target");
+assert.deepEqual(Array.from(afterSpike.pendingAction.attackModifierIds), [spikeId]);
+assert.equal(afterSpike.pendingAction.attackModifierAdvantage, 2);
+assert.ok(afterSpike.log.some(event => event.type === "effect.remove" && event.payload?.sourceActionId === spikeId), "The consumed Effect is a separate journal event");
+const staleSpike = Engine.prepareAction(modifierScene, data, {
+  actorId: "hero",
+  actionId: actionNamed("Стычка").id,
+  targetIds: ["enemy"],
+  attackModifierIds: ["core.launch-spike:missing"],
+  roll: { formula: "3D6", rolls: [4, 2, 1], successes: 1, crits: 0 },
+});
+assert.equal(staleSpike.ok, false, "A stale pre-roll modifier cannot silently alter an Attack");
+assert.ok(modifierScene.actors[1].effects.includes("negative.подброшен"), "Rejected modifier preparation leaves the source Scene unchanged");
+
+const compositeScene = structuredClone(scene);
+compositeScene.actors[0].effects = ["positive.исчез"];
+compositeScene.actors[0].effectStates = { "positive.исчез": { duration: "actionOrStartTurn", sources: [{ actorId: "hero", sourceActionId: "qa.disappear" }] } };
+const restId = actionNamed("Передышка").id;
+const draft = Engine.prepareActionPlan(compositeScene, data, { actorId: "hero", actionId: restId, phase: "reappear", context: { targetIds: [] } });
+assert.equal(draft.ok, true);
+const drafted = Engine.dispatchMany(compositeScene, draft.events).scene;
+assert.equal(drafted.actors[0].ap, 3);
+assert.equal(drafted.pendingActionPlan.phase, "reappear");
+assert.throws(() => Engine.dispatch(drafted, { type: "turn.end", actorId: "hero", payload: {} }), /составное действие/, "An open composite plan blocks its owner from ending the Turn");
+const invalidAppearance = Engine.prepareActionPlanReappearance(drafted, { actorId: "hero", destination: { x: 3, y: 1 } });
+assert.equal(invalidAppearance.ok, false, "Ordinary reappearance cannot be adjacent to another character");
+const appearance = Engine.prepareActionPlanReappearance(drafted, { actorId: "hero", destination: { x: 5, y: 5 } });
+assert.equal(appearance.ok, true);
+const stagedComposite = Engine.dispatchMany(drafted, appearance.events).scene;
+assert.equal(stagedComposite.pendingActionPlan.phase, "confirm");
+assert.deepEqual([stagedComposite.actors[0].x, stagedComposite.actors[0].y], [1, 1], "Choosing phase one does not move the actor before final confirmation");
+assert.ok(stagedComposite.actors[0].effects.includes("positive.исчез"));
+assert.equal(stagedComposite.actors[0].ap, 3);
+const cancelledComposite = Engine.dispatchMany(stagedComposite, Engine.cancelActionPlan(stagedComposite, { actorId: "hero" }).events).scene;
+assert.equal(cancelledComposite.pendingActionPlan, null);
+assert.deepEqual([cancelledComposite.actors[0].x, cancelledComposite.actors[0].y], [1, 1]);
+assert.ok(cancelledComposite.actors[0].effects.includes("positive.исчез"));
+assert.equal(cancelledComposite.actors[0].ap, 3, "Cancelling a composite plan leaves position, Effect, and resources untouched");
+assert.ok(cancelledComposite.log.some(event => event.type === "action.plan.cancel"), "Cancellation remains visible in the event journal");
+const interruptedComposite = Engine.dispatchMany(drafted, [{ type: "actor.knockout", actorId: "enemy", payload: { targetId: "hero" } }]).scene;
+assert.equal(interruptedComposite.pendingActionPlan, null, "Knockout interrupts and cancels an open composite plan");
+assert.ok(interruptedComposite.log.some(event => event.type === "action.plan.cancel" && /выведен из боя/i.test(event.payload?.reason || "")), "Interruption has an explicit journal reason");
+const draftedAgain = Engine.dispatchMany(compositeScene, Engine.prepareActionPlan(compositeScene, data, { actorId: "hero", actionId: restId, phase: "reappear", context: { targetIds: [] } }).events).scene;
+const stagedAgain = Engine.dispatchMany(draftedAgain, Engine.prepareActionPlanReappearance(draftedAgain, { actorId: "hero", destination: { x: 5, y: 5 } }).events).scene;
+const continued = Engine.prepareActionPlanContinuation(stagedAgain, data, { actorId: "hero" });
+assert.equal(continued.ok, true);
+const completedComposite = Engine.dispatchMany(stagedAgain, continued.events).scene;
+assert.equal(completedComposite.pendingActionPlan, null);
+assert.deepEqual([completedComposite.actors[0].x, completedComposite.actors[0].y], [5, 5]);
+assert.ok(!completedComposite.actors[0].effects.includes("positive.исчез"));
+assert.equal(completedComposite.actors[0].ap, 2);
+assert.equal(completedComposite.actors[0].focus, 51, "Appearance, Effect loss, payment, and action resolve in one committed batch");
+
 console.log("Scene engine QA passed: canonical Turns and AP, once-per-Round actions, strict Reactions, truthful enemy automation, effects, movement, damage, and public events");

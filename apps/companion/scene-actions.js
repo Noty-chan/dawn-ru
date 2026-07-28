@@ -106,6 +106,7 @@ function availableActions(scene, data, actorId) {
     else if (reaction && !offeredReaction) reason = "Доступно только в ответ на Атаку";
     else if (scene.pendingAction && !reaction) reason = "Сначала разрешите Реакцию";
     else if (scene.pendingPrompt && !reaction) reason = "Сначала ответьте на сработавшее правило";
+    else if (scene.pendingActionPlan && !reaction && (scene.pendingActionPlan.actorId !== actor.id || scene.pendingActionPlan.actionId !== action.id)) reason = `Сначала завершите составное действие «${scene.pendingActionPlan.actionName}»`;
     else if (!reaction && !scene.activeActorId) reason = "Сначала начните Ход";
     else if (!reaction && scene.activeActorId !== actor.id) reason = "Сейчас Ход другого участника";
     else if (!reaction && actor.acted) reason = "Ход уже завершён";
@@ -144,6 +145,7 @@ function prepareAction(scene, data, request = {}) {
   const errors = [];
   if (!actor) errors.push("Не выбран исполнитель действия.");
   if (!action) errors.push("Неизвестное базовое действие.");
+  if (scene.pendingActionPlan && (request.planId !== scene.pendingActionPlan.id || request.actorId !== scene.pendingActionPlan.actorId || request.actionId !== scene.pendingActionPlan.actionId)) errors.push("Действие не совпадает с сохранённым составным планом.");
   let available = actor && action ? availableActions(scene, data, actor.id).find(item => item.id === action.id) : null;
   const planStatus = actor && action ? cunningPlanStatus(scene, data, actor.id, action.id) : null;
   if (request.useCunningPlan) {
@@ -195,6 +197,8 @@ function prepareAction(scene, data, request = {}) {
     targets = targetIds.map(id => actorById(scene, id));
   }
   const heavenlyLevel = Number(actor.techniques?.["altruist.heavenly-saint"] || 0), heavenlyHealing = !zealotRupture && (action.name === "Заклинание" && heavenlyLevel >= 2 || action.name === "Завершение" && heavenlyLevel >= 3 && actionAttribute === "spirit");
+  const attackModifiers = attackNames.has(action.name) ? attackModifierStatus(scene, actor.id, targetIds, request.attackModifierIds || []) : { available: !(request.attackModifierIds || []).length, reason: "Модификаторы Атаки применимы только к Атакам.", selectedIds: [], advantage: 0 };
+  if (!attackModifiers.available) errors.push(attackModifiers.reason);
   const startRage = action.name === "Взаимодействие" && Number(actor.techniques?.["ruiner.feral-arcana"] || 0) >= 2 && Boolean(request.startRage);
   const revelationEligible = ["Зарядка", "Заклинание"].includes(action.name) || action.name === "Завершение" && actionAttribute === "spirit";
   const useRevelation = Boolean(request.useRevelation) && Number(actor.techniques?.["ruiner.zealot"] || 0) >= 1 && revelationEligible;
@@ -219,7 +223,7 @@ function prepareAction(scene, data, request = {}) {
   if (meisterOverload && !Array.isArray(request.roll?.rolls)) errors.push("Для Перегрузки нужен зафиксированный бросок Атаки.");
   if (mundaneLevel >= 1 && action.name === "Заклинание") errors.push("Обычный не может использовать Заклинание.");
   if (mundaneLevel >= 1 && action.name === "Завершение" && actionAttribute === "spirit") errors.push("Обычный не может использовать Завершение Духом.");
-  const events = [{ type: "action.prepare", actorId: actor.id, payload: { actionId: action.id, actionName: action.name, name: action.name, targetIds, quick: Boolean(available?.quick), quickSource: available?.quickSource ? { techniqueId: available.quickSource.techniqueId, level: available.quickSource.level, name: available.quickSource.name, needsConfirmation: available.quickSource.needsConfirmation } : null, continuation: Boolean(available?.continuation) } }];
+  const events = [{ type: "action.prepare", actorId: actor.id, payload: { actionId: action.id, actionName: action.name, name: action.name, targetIds, planId: request.planId || null, attackModifierIds: attackModifiers.selectedIds, attackModifierAdvantage: attackModifiers.advantage, quick: Boolean(available?.quick), quickSource: available?.quickSource ? { techniqueId: available.quickSource.techniqueId, level: available.quickSource.level, name: available.quickSource.name, needsConfirmation: available.quickSource.needsConfirmation } : null, continuation: Boolean(available?.continuation) } }];
   if (request.useCunningPlan) events.push({ type: "rule-clock.tick", actorId: actor.id, payload: { clockId: "vagabond.cunning-fighter.plan", delta: -1, sourceActionId: "vagabond.cunning-fighter.1.plan", reason: "План и исполнение" } });
   if (useRevelation) events.push({ type: "rule-clock.tick", actorId: actor.id, payload: { clockId: "ruiner.zealot.revelation", delta: -1, sourceActionId: "ruiner.zealot.1", reason: "Изменение итоговых Успехов" } });
   if (grasp) {
@@ -315,7 +319,7 @@ function prepareAction(scene, data, request = {}) {
       const effectDamageBaseByTarget = Object.fromEntries(targets.map(target => [target.id, effectDamageBase + (thunderDischarge && hasEffect(scene, target, "negative.ошеломлен") ? Number(actor.tier || 1) : 0)]));
       const postDisplacements = breacherSkirmish ? targets.filter(target => distance(attackOrigin, target) <= 2).map(target => ({ targetId: target.id, mode: "push", maximum: 1, name: "Картечь", ruleId: "powerhouse.breacher.1", collisionDamagePerCell: 0 })) : [];
       const dragonslayerTear = action.name === "Завершение" && actionAttribute === "body" && Number(actor.techniques?.["powerhouse.dragonslayer"] || 0) >= 1 ? ["negative.разорван"] : [];
-      events.push({ type: "attack.pending", actorId: actor.id, payload: { actionId: action.id, name: thunderDischarge ? "Разрядка" : eclipseStars ? "Затмить звезды" : zealotRupture ? "Так не должно было быть" : icicleHalo ? "Ледяной нимб" : action.name, attribute: actionAttribute, targetIds, allowEmptyTargets: zealotRupture, roll: clone(request.roll || null), damage: areaDamage(effectDamageBase), damageByTarget: Object.fromEntries(Object.entries(effectDamageBaseByTarget).map(([targetId, value]) => [targetId, areaDamage(value)])), effectDamageBase, effectDamageBaseByTarget, effectDamageDivisor, successEffects: dragonslayerTear, thunderDischarge, eclipseStars, zealotRupture, zealotCells, icicleHalo, drainLife, postDisplacements, gunslingerBulletJuggle: gunslingerSkirmish && Number(actor.techniques?.["powerhouse.gunslinger"] || 0) >= 3 && bulletsSpent >= 3 && targetIds.length === 1, knifeThrow: knifeThrow && Number(actor.techniques?.["vagabond.knife-juggler"] || 0) >= 2, overload: meisterOverload ? clone(events[0].payload.overload) : null } });
+      events.push({ type: "attack.pending", actorId: actor.id, payload: { actionId: action.id, name: thunderDischarge ? "Разрядка" : eclipseStars ? "Затмить звезды" : zealotRupture ? "Так не должно было быть" : icicleHalo ? "Ледяной нимб" : action.name, attribute: actionAttribute, targetIds, allowEmptyTargets: zealotRupture, roll: clone(request.roll || null), damage: areaDamage(effectDamageBase), damageByTarget: Object.fromEntries(Object.entries(effectDamageBaseByTarget).map(([targetId, value]) => [targetId, areaDamage(value)])), effectDamageBase, effectDamageBaseByTarget, effectDamageDivisor, attackModifierIds: attackModifiers.selectedIds, attackModifierAdvantage: attackModifiers.advantage, successEffects: dragonslayerTear, thunderDischarge, eclipseStars, zealotRupture, zealotCells, icicleHalo, drainLife, postDisplacements, gunslingerBulletJuggle: gunslingerSkirmish && Number(actor.techniques?.["powerhouse.gunslinger"] || 0) >= 3 && bulletsSpent >= 3 && targetIds.length === 1, knifeThrow: knifeThrow && Number(actor.techniques?.["vagabond.knife-juggler"] || 0) >= 2, overload: meisterOverload ? clone(events[0].payload.overload) : null } });
     }
   } else if (action.name === "Передышка") {
     events.push({ type: "resource.gain", actorId: actor.id, payload: { resource: "focus", amount: 1, sourceActionName: "Передышка", sourceActionId: action.id } });
@@ -387,7 +391,7 @@ function prepareTechniqueCombo(scene, data, request = {}) {
     roll.successes = roll.rolls.length + Number(roll.crits || 0);
     roll.outcome = "Все кости считаются Успехами";
   }
-  const prepared = prepareAction(working, data, { actorId: actor.id, actionId: action.id, targetIds, destination: request.destination, roll, attribute: requestedAttribute, movementMultiplier: rule.movementMultiplier });
+  const prepared = prepareAction(working, data, { actorId: actor.id, actionId: action.id, targetIds, destination: request.destination, roll, attribute: requestedAttribute, movementMultiplier: rule.movementMultiplier, attackModifierIds: request.attackModifierIds || [] });
   if (!prepared.ok) return { ok: false, errors: prepared.errors, events: [], rule };
 
   const events = clone(prepared.events);
@@ -468,6 +472,8 @@ function prepareEnemyRule(scene, data, request = {}) {
   if (affectedCells.length && targets.some(target => target.space !== actor.space || !affectedCells.includes(`${target.x},${target.y}`))) errors.push("Все выбранные цели должны находиться в области.");
   if (rule?.requiresTarget && !targets.length) errors.push(rule.kind === "attack" ? "Выберите хотя бы одну цель Атаки." : "Выберите цель действия.");
   if (actor && rule?.kind === "attack" && available?.automation === "attack" && targets.some(target => target.team === actor.team)) errors.push("Эта автоматизированная Атака может выбирать целью только другую сторону.");
+  const attackModifiers = actor && rule?.kind === "attack" && available?.automation === "attack" ? attackModifierStatus(scene, actor.id, targetIds, request.attackModifierIds || []) : { available: !(request.attackModifierIds || []).length, reason: "Модификаторы доступны только Атаке, подключённой к общему окну Реакций.", selectedIds: [], advantage: 0 };
+  if (!attackModifiers.available) errors.push(attackModifiers.reason);
   const maxTargets = Number(available?.maxTargets ?? rule?.maxTargets ?? 0);
   if (maxTargets && targets.length > maxTargets) errors.push(`Можно выбрать не больше ${maxTargets} целей.`);
   if (actor && rule?.adjacent && targets.some(target => distance(actor, target) > 1)) errors.push("Цель должна быть смежной.");
@@ -475,6 +481,7 @@ function prepareEnemyRule(scene, data, request = {}) {
   if (fullRule?.type === "pugilist-stance" && (!Number.isInteger(Number(request.options?.stanceStep)) || Number(request.options.stanceStep) < 1 || Number(request.options.stanceStep) > 4)) errors.push("Выберите шаг Пассивa от 1 до 4.");
   const hasRoll = request.roll && Array.isArray(request.roll.rolls);
   const hasDirectDamage = Number.isFinite(Number(request.damage)) && Number(request.damage) >= 0;
+  if (attackModifiers.selectedIds.length && !hasRoll) errors.push("Модификатор Преимущества требует бросок Атаки.");
   if (rule?.kind === "attack" && !hasRoll && !hasDirectDamage) errors.push("Для Атаки нужен бросок или прямой урон из профиля.");
   if (errors.length) return { ok: false, errors, events: [], rule: available || rule };
   const targetEffects = (rule.targetEffects || rule.effects || []).map(name => effectIdByName(data, name));
@@ -502,7 +509,7 @@ function prepareEnemyRule(scene, data, request = {}) {
     targets.forEach(target => events.push({ type: "reaction.offer", actorId: target.id, payload: { sourceActorId: actor.id, actionId: rule.id } }));
     const tensionMultiplier = Number(ENEMY_AUTO_ATTACK_RULES.get(rule.id) || 0);
     const damage = hasRoll ? Number(request.roll.successes || 0) + Number(scene.tension || 0) * tensionMultiplier : Number(request.damage);
-    events.push({ type: "attack.pending", actorId: actor.id, payload: { actionId: rule.id, enemyRuleId: rule.id, name: rule.name, targetIds, roll: hasRoll ? clone(request.roll) : null, damage, effects: targetEffects, reward: rule.reward || "" } });
+    events.push({ type: "attack.pending", actorId: actor.id, payload: { actionId: rule.id, enemyRuleId: rule.id, name: rule.name, targetIds, roll: hasRoll ? clone(request.roll) : null, damage, effects: targetEffects, reward: rule.reward || "", attackModifierIds: attackModifiers.selectedIds, attackModifierAdvantage: attackModifiers.advantage } });
   } else {
     if (rule.kind !== "attack" && ["effect", "full"].includes(payload.automation)) targets.forEach(target => targetEffects.forEach(effect => events.push({ type: "effect.apply", actorId: actor.id, payload: { targetId: target.id, effect, sourceActionId: rule.id } })));
     if (rule.kind === "attack" && hasRoll) events.push({ type: "roll.public", actorId: actor.id, payload: clone(request.roll) });

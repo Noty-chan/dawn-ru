@@ -61,6 +61,76 @@ function prepareInvisibleDisappear(scene, actorId) {
   ] };
 }
 
+function prepareActionPlan(scene, data, request = {}) {
+  const actor = actorById(scene, request.actorId), action = actionById(data, request.actionId), errors = [];
+  if (!actor) errors.push("Не выбран исполнитель составного действия.");
+  if (!action) errors.push("Неизвестное действие для составного плана.");
+  if (scene.pendingActionPlan || scene.pendingAction || scene.pendingPrompt) errors.push("Сначала завершите текущую цепочку правил.");
+  if (actor && (actor.knockedOut || scene.activeActorId !== actor.id)) errors.push("Составное действие можно готовить только в собственный Ход.");
+  if (actor && !hasEffect(scene, actor, "positive.исчез") && request.phase === "reappear") errors.push("Появление требуется только Исчезнувшему персонажу.");
+  if (actor && action) {
+    const available = availableActions(scene, data, actor.id).find(item => item.id === action.id);
+    const planned = request.context?.useCunningPlan ? cunningPlanStatus(scene, data, actor.id, action.id) : null;
+    if (request.context?.useCunningPlan ? !planned?.available : !available?.available) errors.push(planned?.reason || available?.reason || "Действие сейчас недоступно.");
+  }
+  const context = clone(request.context || {});
+  if (JSON.stringify(context).length > 8192) errors.push("Контекст составного действия слишком велик.");
+  if (errors.length) return { ok: false, errors, events: [] };
+  const planId = request.planId || `action-plan-${eventId()}`;
+  return {
+    ok: true,
+    errors: [],
+    plan: { id: planId, actorId: actor.id, actionId: action.id, actionName: action.name, phase: request.phase || "confirm", context },
+    events: [{ type: "action.plan", actorId: actor.id, payload: { id: planId, actionId: action.id, actionName: action.name, phase: request.phase || "confirm", context, participantIds: [actor.id, ...(context.targetIds || [])] } }],
+  };
+}
+
+function prepareActionPlanReappearance(scene, request = {}) {
+  const status = actionPlanStatus(scene, request.actorId), plan = status.plan, actor = status.actor, destination = request.destination && { x: Number(request.destination.x), y: Number(request.destination.y) }, errors = [];
+  if (!status.available) errors.push(status.reason);
+  if (plan?.phase !== "reappear") errors.push("Составной план сейчас не ожидает появления.");
+  if (actor && !hasEffect(scene, actor, "positive.исчез")) errors.push("Персонаж уже находится на поле.");
+  const space = (scene.spaces || []).find(item => item.id === actor?.space);
+  if (!space || !destination || !Number.isInteger(destination.x) || !Number.isInteger(destination.y) || destination.x < 0 || destination.y < 0 || destination.x >= Number(space?.width || 0) || destination.y >= Number(space?.height || 0)) errors.push("Выберите клетку появления в пределах поля.");
+  if (actor && destination && !effectCellOccupancyStatus(scene, actor.id, { space: actor.space, x: destination.x, y: destination.y }).available) errors.push("Клетка появления занята.");
+  if (actor && destination && (scene.actors || []).some(item => item.id !== actor.id && effectPresenceStatus(scene, item.id).onField && item.space === actor.space && distance(item, { ...destination, space: actor.space }) <= 1)) errors.push("При появлении клетка не должна быть смежна с персонажем.");
+  if (errors.length) return { ok: false, errors, events: [] };
+  const action = plan.actionName, nextPhase = ["Шаг", "Прыжок"].includes(action) ? "destination" : "confirm", context = { ...(plan.context || {}), reappearance: { space: actor.space, x: destination.x, y: destination.y } };
+  const events = [{ type: "action.plan.update", actorId: actor.id, payload: { planId: plan.id, phase: nextPhase, context, participantIds: [actor.id, ...(context.targetIds || [])] } }];
+  const preview = previewEvents(scene, events, { expectedVersion: scene.version });
+  if (!preview.ok) return { ok: false, errors: preview.errors, events: [] };
+  return { ok: true, errors: [], plan: { ...plan, phase: nextPhase, context }, events };
+}
+
+function prepareActionPlanContinuation(scene, data, request = {}) {
+  const status = actionPlanStatus(scene, request.actorId), plan = status.plan, actor = status.actor, errors = [];
+  if (!status.available) errors.push(status.reason);
+  if (plan && !["confirm", "destination"].includes(plan.phase)) errors.push("Составной план ещё не готов к подтверждению.");
+  const context = { ...(plan?.context || {}), ...(request.context || {}) }, reappearance = context.reappearance;
+  if (!reappearance || !actor) errors.push("В составном плане не выбрана клетка появления.");
+  if (plan?.phase === "destination" && !request.destination) errors.push("Выберите клетку назначения действия.");
+  if (errors.length) return { ok: false, errors, events: [] };
+  const prefix = [
+    { type: "actor.move", actorId: actor.id, payload: { space: actor.space, x: reappearance.x, y: reappearance.y, movement: "Появление перед действием", placement: true, participantIds: [actor.id, ...(context.targetIds || [])] } },
+    { type: "actor.enter", actorId: actor.id, payload: { space: actor.space, x: reappearance.x, y: reappearance.y, movement: "Появление перед действием", placement: true } },
+    { type: "effect.remove", actorId: actor.id, payload: { targetId: actor.id, effect: "positive.исчез", sourceActionId: "core.composite-action.reappear", participantIds: [actor.id] } },
+  ];
+  const staged = previewEvents(scene, prefix, { expectedVersion: scene.version });
+  if (!staged.ok) return { ok: false, errors: staged.errors, events: [] };
+  const prepared = prepareAction(staged.scene, data, { ...context, actorId: actor.id, actionId: plan.actionId, destination: request.destination || context.destination || null, planId: plan.id });
+  if (!prepared.ok) return prepared;
+  const events = [...prefix, ...prepared.events], preview = previewEvents(scene, events, { expectedVersion: scene.version });
+  if (!preview.ok) return { ok: false, errors: preview.errors, events: [] };
+  return { ...prepared, plan, events };
+}
+
+function cancelActionPlan(scene, request = {}) {
+  const status = actionPlanStatus(scene, request.actorId);
+  if (!status.plan) return { ok: false, errors: [status.reason], events: [] };
+  if (request.actorId && status.plan.actorId !== request.actorId) return { ok: false, errors: ["Этот составной план принадлежит другому персонажу."], events: [] };
+  return { ok: true, errors: [], events: [{ type: "action.plan.cancel", actorId: status.plan.actorId, payload: { planId: status.plan.id, reason: String(request.reason || "Отменено до оплаты.").slice(0, 240), participantIds: [status.plan.actorId] } }] };
+}
+
 function cancelPendingAction(scene, request = {}) {
   const status = pendingActionStatus(scene);
   if (!status.exists) return { ok: false, errors: ["Нет ожидающего действия."], events: [] };

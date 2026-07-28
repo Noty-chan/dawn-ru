@@ -1,7 +1,7 @@
 "use strict";
 
 (function exposeTechniqueFoundationMap(global) {
-  const VERSION = 6;
+  const VERSION = 7;
   const CAPABILITIES = {
     "event-participants": { label: "Участники события", state: "ready", module: "scene-engine-core.js" },
     "event-preview": { label: "Предпросмотр цепочки", state: "ready", module: "scene-triggers.js" },
@@ -27,6 +27,7 @@
     "choice-flow": { label: "Типизированное решение", state: "ready", module: "scene-responses.js / scene-events.js / scene-effects.js" },
     "damage-pipeline": { label: "Конвейер урона, Здоровья и Ран", state: "ready", module: "scene-responses.js / scene-events.js" },
     "action-modifier": { label: "Модификатор или новое действие", state: "ready", module: "scene-actions.js / scene-responses.js" },
+    "composite-action": { label: "Сохраняемое составное действие", state: "ready", module: "scene-query.js / scene-events.js / scene-responses.js / scene-effects.js" },
     "effect-lifecycle": { label: "Механика, источник и срок Эффекта", state: "ready", module: "scene-engine-core.js / scene-query.js / scene-events.js / scene-triggers.js / scene-responses.js" },
     "entity-lifecycle": { label: "Жизненный цикл зон, маркеров и объектов", state: "planned" },
     inventory: { label: "Инвентарь и заряды", state: "planned" },
@@ -115,7 +116,7 @@
       "vagabond.aerial-master.2": "effect move trigger choice action",
       "vagabond.aerial-master.3": "tg effect stance trigger action dice stats",
       "vagabond.assassin.1": "limit trigger action deploy",
-      "vagabond.assassin.2": "tg effect move trigger reaction choice action dice",
+      "vagabond.assassin.2": "tg effect move trigger reaction choice action composite dice",
       "vagabond.assassin.3": "effect move action history",
       "vagabond.sniper.1": "tg range action",
       "vagabond.sniper.2": "effect trigger turn action dice range",
@@ -188,7 +189,7 @@
       "bulwark.battle-jockey.3": "tg range move effect entity summon limit trigger scene choice turn",
       "bulwark.grappler.1": "tg effect trigger action",
       "bulwark.grappler.2": "tg effect move trigger action dice",
-      "bulwark.grappler.3": "tg effect move trigger reaction turn duration action history",
+      "bulwark.grappler.3": "tg effect move trigger reaction turn duration action composite history",
       "bulwark.juggernaut.1": "tg move terrain trigger choice damage action stats",
       "bulwark.juggernaut.2": "tg move effect limit trigger turn damage",
       "bulwark.juggernaut.3": "move trigger choice action",
@@ -249,8 +250,8 @@
       "altruist.dancer.1": "tg move effect limit trigger turn choice action",
       "altruist.dancer.2": "res trigger action history",
       "altruist.dancer.3": "effect trigger choice action history",
-      "altruist.fog-walker.1": "tg move res entity trigger turn choice action",
-      "altruist.fog-walker.2": "move entity trigger stats",
+      "altruist.fog-walker.1": "tg move res entity trigger turn choice action composite",
+      "altruist.fog-walker.2": "move entity trigger stats composite",
       "altruist.fog-walker.3": "tg move res entity trigger choice damage action",
       "altruist.last-hope.1": "tg effect trigger reaction action",
       "altruist.last-hope.2": "move effect trigger reaction turn duration choice meter",
@@ -403,6 +404,7 @@
     choice: ["choice-flow"],
     damage: ["damage-pipeline"],
     action: ["action-modifier"],
+    composite: ["composite-action"],
     summon: ["summon-turns"],
     inventory: ["inventory"],
     dice: ["dice-hooks"],
