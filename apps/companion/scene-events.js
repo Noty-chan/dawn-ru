@@ -87,6 +87,15 @@ function validateEvent(scene, event, options = {}) {
   if (event.type === "roll.public") {
     if (!Array.isArray(payload.rolls) || payload.rolls.length > 300 || payload.rolls.some(value => !Number.isInteger(Number(value)) || Number(value) < 1 || Number(value) > 6)) throw new Error("Некорректный публичный бросок.");
   }
+  if (event.type === "session-clock.create") {
+    if (!/^[a-z0-9][a-z0-9-]{0,119}$/i.test(String(payload.id || "")) || (scene.sessionClocks || []).some(clock => clock.id === payload.id) || typeof payload.name !== "string" || !payload.name.trim() || payload.name.length > 120 || ![4, 6, 8, 12].includes(Number(payload.size))) throw new Error("Некорректные часы Сцены.");
+  }
+  if (["session-clock.set", "session-clock.rename", "session-clock.remove"].includes(event.type)) {
+    const clock = (scene.sessionClocks || []).find(item => item.id === payload.id);
+    if (!clock) throw new Error("Часы Сцены уже отсутствуют.");
+    if (event.type === "session-clock.set" && (!Number.isInteger(Number(payload.value)) || Number(payload.value) < 0 || Number(payload.value) > Number(clock.size))) throw new Error("Некорректное значение часов Сцены.");
+    if (event.type === "session-clock.rename" && (typeof payload.name !== "string" || !payload.name.trim() || payload.name.length > 120)) throw new Error("Некорректное название часов Сцены.");
+  }
   if (event.type === "attack.pending") {
     if (!Array.isArray(payload.targetIds) || payload.targetIds.length > 40 || !payload.allowEmptyTargets && payload.targetIds.length < 1 || payload.targetIds.some(id => !actorById(scene, id) || actorById(scene, id).knockedOut) || !finite(payload.damage) || Number(payload.damage) < 0 || Number(payload.damage) > 9999) throw new Error("Некорректные параметры атаки.");
     const unavailableTarget = payload.targetIds.find(id => !effectTargetingStatus(scene, event.actorId, id).available);
@@ -423,6 +432,22 @@ function reduceEvent(scene, event) {
     scene.rollFeed ||= [];
     scene.rollFeed.unshift({ id: event.id, actor: actor?.name || payload.actor || "Система", formula: payload.formula, rolls: payload.rolls || [], successes: Number(payload.successes || 0), crits: Number(payload.crits || 0), outcome: typeof payload.outcome === "string" ? payload.outcome.slice(0, 80) : "", payment: typeof payload.payment === "string" ? payload.payment.slice(0, 80) : "" });
     scene.rollFeed = scene.rollFeed.slice(0, 20);
+  } else if (event.type === "session-clock.create") {
+    scene.sessionClocks ||= [];
+    scene.sessionClocks.push({ id: payload.id, name: payload.name.trim(), size: Number(payload.size), value: 0 });
+    scene.tools = { ...(scene.tools || {}), clocksMigrated: true };
+  } else if (event.type === "session-clock.set") {
+    const clock = (scene.sessionClocks || []).find(item => item.id === payload.id);
+    payload.before = clock.value;
+    clock.value = Number(payload.value);
+  } else if (event.type === "session-clock.rename") {
+    const clock = (scene.sessionClocks || []).find(item => item.id === payload.id);
+    payload.before = clock.name;
+    clock.name = payload.name.trim();
+  } else if (event.type === "session-clock.remove") {
+    const clock = (scene.sessionClocks || []).find(item => item.id === payload.id);
+    payload.name = clock.name;
+    scene.sessionClocks = (scene.sessionClocks || []).filter(item => item.id !== payload.id);
   } else if (event.type === "attack.pending") {
     payload.targetIds = [...new Set(payload.targetIds || [])];
     const modifiers = effectAttackStatus(scene, event.actorId, payload.targetIds), originalDamage = Number(payload.damage || 0), originalByTarget = clone(payload.damageByTarget || {});
