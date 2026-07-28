@@ -91,13 +91,15 @@ function validateEvent(scene, event, options = {}) {
     if (!/^[a-z0-9][a-z0-9._:-]{0,179}$/i.test(String(payload.ruleId || "")) || typeof payload.title !== "string" || !payload.title.trim() || payload.title.length > 180 || typeof payload.kind !== "string" || payload.kind.length > 80 || typeof payload.sharedBy !== "string" || payload.sharedBy.length > 120) throw new Error("Некорректная ссылка на правило.");
   }
   if (event.type === "session-clock.create") {
-    if (!/^[a-z0-9][a-z0-9-]{0,119}$/i.test(String(payload.id || "")) || (scene.sessionClocks || []).some(clock => clock.id === payload.id) || typeof payload.name !== "string" || !payload.name.trim() || payload.name.length > 120 || ![4, 6, 8, 12].includes(Number(payload.size))) throw new Error("Некорректные часы Сцены.");
+    if (!/^[a-z0-9][a-z0-9-]{0,119}$/i.test(String(payload.id || "")) || (scene.sessionClocks || []).some(clock => clock.id === payload.id) || typeof payload.name !== "string" || !payload.name.trim() || payload.name.length > 120 || !["progress", "danger"].includes(payload.kind) || ![4, 6, 8, 12].includes(Number(payload.size))) throw new Error("Некорректные часы Сцены.");
   }
-  if (["session-clock.set", "session-clock.rename", "session-clock.remove"].includes(event.type)) {
+  if (["session-clock.set", "session-clock.rename", "session-clock.kind", "session-clock.size", "session-clock.remove"].includes(event.type)) {
     const clock = (scene.sessionClocks || []).find(item => item.id === payload.id);
     if (!clock) throw new Error("Часы Сцены уже отсутствуют.");
     if (event.type === "session-clock.set" && (!Number.isInteger(Number(payload.value)) || Number(payload.value) < 0 || Number(payload.value) > Number(clock.size))) throw new Error("Некорректное значение часов Сцены.");
     if (event.type === "session-clock.rename" && (typeof payload.name !== "string" || !payload.name.trim() || payload.name.length > 120)) throw new Error("Некорректное название часов Сцены.");
+    if (event.type === "session-clock.kind" && !["progress", "danger"].includes(payload.kind)) throw new Error("Некорректный тип часов Сцены.");
+    if (event.type === "session-clock.size" && ![4, 6, 8, 12].includes(Number(payload.size))) throw new Error("Некорректный размер часов Сцены.");
   }
   if (event.type === "attack.pending") {
     if (!Array.isArray(payload.targetIds) || payload.targetIds.length > 40 || !payload.allowEmptyTargets && payload.targetIds.length < 1 || payload.targetIds.some(id => !actorById(scene, id) || actorById(scene, id).knockedOut) || !finite(payload.damage) || Number(payload.damage) < 0 || Number(payload.damage) > 9999) throw new Error("Некорректные параметры атаки.");
@@ -441,7 +443,7 @@ function reduceEvent(scene, event) {
     scene.ruleHandouts = scene.ruleHandouts.slice(0, 12);
   } else if (event.type === "session-clock.create") {
     scene.sessionClocks ||= [];
-    scene.sessionClocks.push({ id: payload.id, name: payload.name.trim(), size: Number(payload.size), value: 0 });
+    scene.sessionClocks.push({ id: payload.id, name: payload.name.trim(), kind: payload.kind, size: Number(payload.size), value: 0 });
     scene.tools = { ...(scene.tools || {}), clocksMigrated: true };
   } else if (event.type === "session-clock.set") {
     const clock = (scene.sessionClocks || []).find(item => item.id === payload.id);
@@ -451,6 +453,15 @@ function reduceEvent(scene, event) {
     const clock = (scene.sessionClocks || []).find(item => item.id === payload.id);
     payload.before = clock.name;
     clock.name = payload.name.trim();
+  } else if (event.type === "session-clock.kind") {
+    const clock = (scene.sessionClocks || []).find(item => item.id === payload.id);
+    payload.before = clock.kind;
+    clock.kind = payload.kind;
+  } else if (event.type === "session-clock.size") {
+    const clock = (scene.sessionClocks || []).find(item => item.id === payload.id);
+    payload.before = clock.size;
+    clock.size = Number(payload.size);
+    clock.value = Math.min(clock.value, clock.size);
   } else if (event.type === "session-clock.remove") {
     const clock = (scene.sessionClocks || []).find(item => item.id === payload.id);
     payload.name = clock.name;

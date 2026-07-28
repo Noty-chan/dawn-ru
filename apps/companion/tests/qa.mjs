@@ -38,6 +38,12 @@ assert.match(appSource, /querySelector\("article:last-child"\)/, "Roll animation
 assert.match(appSource, /if\(performance\.now\(\)<sceneSuppressBoardClickUntil\)/, "A synthetic click after dropping a token must not move the previously selected actor");
 assert.match(appSource, /actorId=event\.dataTransfer\.getData\("text\/plain"\)\|\|sceneDragActorId/, "A dropped token must be resolved from its drag payload, not Scene selection");
 assert.match(appSource, /requestAnimationFrame\(\(\)=>\{const actor=Scene\.actors\.find\(item=>item\.id===actorId\)/, "Token movement must wait until the native drop animation has completed");
+assert.doesNotMatch(appSource, /queueScene\?\.\(sceneSnapshot\(\),"tools\.clocks\.migrate"\)/, "Opening shared clocks must not race an event batch with a stale snapshot migration");
+assert.match(appSource, /clock-add-progress/);
+assert.match(appSource, /clock-add-danger/);
+assert.match(appSource, /data-clock-save/);
+assert.match(appSource, /session-clock\.kind/);
+assert.match(appSource, /session-clock\.size/);
 const cockpitSource = fs.readFileSync(path.join(root, "vtt-concepts.js"), "utf8");
 const appCoreFile = fs.readFileSync(path.join(root, "app-core.js"), "utf8");
 const sceneCoreSource = appCoreFile.slice(appCoreFile.indexOf("function blankScene"), appCoreFile.indexOf("function normalizeScene"));
