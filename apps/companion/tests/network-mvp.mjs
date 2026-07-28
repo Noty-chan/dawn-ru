@@ -82,6 +82,8 @@ assert.match(migration, /update public\.scene_commands[\s\S]+status = 'applied'/
 assert.match(migration, /update public\.scenes[\s\S]+version = next_version/i);
 
 const syncSource = fs.readFileSync(new URL("../sync.js", import.meta.url), "utf8");
+assert.match(syncSource, /async function listCampaigns\(\)/);
+assert.match(syncSource, /async function openCampaign\(campaignId,sceneId\)/);
 assert.match(syncSource, /p_command_id:rawId/, "bigint command ids must not pass through Number");
 assert.match(syncSource, /acceptedVersion!==Number\(scene\?\.version\).*loadScene/s, "idempotent retries must reconcile a newer canonical Scene");
 assert.match(syncSource, /\["http:","https:"\]\.includes\(global\.location\.protocol\)/, "file:// account links must fall back to the configured Site URL");

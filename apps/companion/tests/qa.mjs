@@ -292,6 +292,9 @@ assert.match(app, /SCENE_RULE_SECTIONS=\[/, "The table sidebar exposes focused s
 assert.match(app, /sceneRuleChapter\(chapterId\)\?\.cards/, "The table sidebar reuses the canonical Rules chapters instead of a separate help catalog");
 assert.match(html, /Правила структурированного боя/, "The table labels its sidebar as a structured-combat rules view");
 assert.match(html, /Как запустить общий стол/, "The network lobby contains an in-product quick start for narrator and players");
+assert.match(html, /id="sync-leave-table"/, "An active table exposes a leave action outside the collapsible connection panel");
+assert.match(html, /id="sync-table-select"/, "The connection panel exposes saved table selection");
+assert.match(app, /Sync\.listCampaigns\(\)/, "Saved tables are loaded from authenticated campaign memberships");
 assert.match(app, /class="core-action-rule"/, "Every table action keeps its full rule text directly reachable");
 assert.match(app, /function combatActionReferenceHtml/, "Structured combat embeds the complete base-action reference");
 assert.match(html, /id="scene-enemy-trait"/, "Enemy setup exposes Antagonist Traits");

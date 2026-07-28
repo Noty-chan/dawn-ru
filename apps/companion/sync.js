@@ -112,6 +112,21 @@
     await ensureConnected();const result=await client.rpc("create_campaign",{p_name:String(name||"").trim(),p_display_name:state.displayName||"Нарратор",p_initial_state:initialState||{}}).single();if(result.error)return fail(result.error);
     patch({campaignId:result.data.campaign_id,sceneId:result.data.scene_id,role:result.data.role,campaignName:String(name||"").trim(),version:1});await loadScene(result.data.scene_id);return snapshot();
   }
+  async function listCampaigns(){
+    await ensureConnected();const memberships=await client.from("campaign_members").select("campaign_id,role,display_name").eq("user_id",state.userId);if(memberships.error)return fail(memberships.error);
+    const rows=memberships.data||[],ids=rows.map(row=>row.campaign_id);if(!ids.length)return[];
+    const narratorIds=rows.filter(row=>["owner","narrator"].includes(row.role)).map(row=>row.campaign_id),playerIds=rows.filter(row=>row.role==="player").map(row=>row.campaign_id);
+    const campaigns=await client.from("campaigns").select("id,name,updated_at").in("id",ids);if(campaigns.error)return fail(campaigns.error);
+    const privateScenes=narratorIds.length?await client.from("scenes").select("id,campaign_id,name,version,updated_at").in("campaign_id",narratorIds):{data:[],error:null};if(privateScenes.error)return fail(privateScenes.error);
+    const publicScenes=playerIds.length?await client.from("scene_public_snapshots").select("scene_id,campaign_id,version,updated_at").in("campaign_id",playerIds):{data:[],error:null};if(publicScenes.error)return fail(publicScenes.error);
+    const membershipByCampaign=new Map(rows.map(row=>[row.campaign_id,row])),sceneByCampaign=new Map([...(privateScenes.data||[]).map(scene=>[scene.campaign_id,{...scene,sceneId:scene.id}]),...(publicScenes.data||[]).map(scene=>[scene.campaign_id,{...scene,sceneId:scene.scene_id,name:"Структурированный бой"}])]);
+    return(campaigns.data||[]).map(campaign=>{const membership=membershipByCampaign.get(campaign.id),scene=sceneByCampaign.get(campaign.id);return{id:campaign.id,name:campaign.name,role:membership?.role||"player",displayName:membership?.display_name||"",sceneId:scene?.sceneId||null,sceneName:scene?.name||"Структурированный бой",version:Number(scene?.version||0),updatedAt:scene?.updated_at||campaign.updated_at||""}}).filter(campaign=>campaign.sceneId).sort((a,b)=>String(b.updatedAt).localeCompare(String(a.updatedAt)));
+  }
+  async function openCampaign(campaignId,sceneId){
+    await ensureConnected();const membership=await client.from("campaign_members").select("role,display_name").eq("campaign_id",campaignId).eq("user_id",state.userId).maybeSingle();if(membership.error)return fail(membership.error);if(!membership.data)throw new Error("Этот стол больше недоступен");
+    const campaign=await client.from("campaigns").select("id,name").eq("id",campaignId).single();if(campaign.error)return fail(campaign.error);
+    patch({campaignId:campaign.data.id,campaignName:campaign.data.name,sceneId,role:membership.data.role,displayName:membership.data.display_name||state.displayName,version:0,error:""});return loadScene(sceneId);
+  }
 
   async function createInvite(role="player"){
     await ensureConnected();if(!["owner","narrator"].includes(state.role))throw new Error("Приглашения создаёт только Нарратор");const result=await client.rpc("create_campaign_invite",{p_campaign_id:state.campaignId,p_role:role,p_max_uses:8,p_expires_hours:168});if(result.error)return fail(result.error);return result.data;
@@ -174,5 +189,5 @@
   state={...state,...stored()};if(!state.characterIds||typeof state.characterIds!=="object"||Array.isArray(state.characterIds))state.characterIds={};
   global.addEventListener?.("offline",()=>patch({status:"offline",error:"Нет соединения; локальные данные сохранены"}));
   global.addEventListener?.("online",()=>scheduleReconnect("offline"));
-  global.DAWN_SYNC={acceptCommand,configure,connect,createCampaign,createInvite,decideCommand,deleteLibraryCharacter,hasConfig,leave,listCharacters,listLibraryCharacters,loadCharacter,loadLibraryCharacter,loadScene,on,publishEvents,queueScene,redeemInvite,requestEmailLink,saveCharacter,saveLibraryCharacter,signOutAccount,state:snapshot,submitCommand,updatePresence};
+  global.DAWN_SYNC={acceptCommand,configure,connect,createCampaign,createInvite,decideCommand,deleteLibraryCharacter,hasConfig,leave,listCampaigns,listCharacters,listLibraryCharacters,loadCharacter,loadLibraryCharacter,loadScene,on,openCampaign,publishEvents,queueScene,redeemInvite,requestEmailLink,saveCharacter,saveLibraryCharacter,signOutAccount,state:snapshot,submitCommand,updatePresence};
 })(window);
