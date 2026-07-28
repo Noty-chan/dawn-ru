@@ -288,6 +288,10 @@ const liveCharacterSql = fs.readFileSync(path.resolve(root, "../../supabase/migr
 const eventRepairSql = fs.readFileSync(path.resolve(root, "../../supabase/migrations/202607230002_fix_append_scene_events.sql"), "utf8");
 assert.match(html, /data-scene-tool="place"/, "The GM table exposes an explicit manual placement tool");
 assert.match(app, /movement:"Ручная перестановка",placement:true/, "Manual GM placement is journaled without invoking a Turn movement action");
+assert.match(app, /SCENE_RULE_SECTIONS=\[/, "The table sidebar exposes focused structured-combat rule sections");
+assert.match(app, /sceneRuleChapter\(chapterId\)\?\.cards/, "The table sidebar reuses the canonical Rules chapters instead of a separate help catalog");
+assert.match(html, /Правила структурированного боя/, "The table labels its sidebar as a structured-combat rules view");
+assert.match(html, /Как запустить общий стол/, "The network lobby contains an in-product quick start for narrator and players");
 assert.match(app, /class="core-action-rule"/, "Every table action keeps its full rule text directly reachable");
 assert.match(app, /function combatActionReferenceHtml/, "Structured combat embeds the complete base-action reference");
 assert.match(html, /id="scene-enemy-trait"/, "Enemy setup exposes Antagonist Traits");
