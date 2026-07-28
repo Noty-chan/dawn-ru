@@ -80,7 +80,7 @@ $("scene-topology-apply").addEventListener("click",()=>{const cells=[...sceneTop
 $("scene-clear-targets").onclick=()=>{Scene.targetIds=[];persist();renderScene()};$("scene-undo").onclick=undoScene;
 $("scene-add-hero").onclick=()=>{
   const heroId=$("scene-hero-select").value,index=store.heroes.findIndex(hero=>hero.id===heroId),hero=store.heroes[index];if(!hero)return toast("Выберите героя из билдера");store.current=index;S=hero;ensureRuntime();renderHeroSelect();renderProfile();renderSidebar();const existing=Scene.actors.find(actor=>actor.heroId===hero.id);
-  if(existing){commitScene(`Обновлён герой «${hero.name||"Безымянный"}» из билдера`,()=>{Object.assign(existing,heroActorState(hero,existing));Scene.activeSpace=existing.space;Scene.selectedActor=existing.id});return}
+  if(existing){commitScene(`Обновлён герой «${hero.name||"Безымянный"}» из билдера`,()=>{const base={...existing};if(!sceneCombatStarted(Scene))delete base.focus;Object.assign(existing,heroActorState(hero,base));Scene.activeSpace=existing.space;Scene.selectedActor=existing.id});return}
   const position=firstEmptyCell(Scene.activeSpace);commitScene(`Добавлен герой «${hero.name||"Безымянный"}»`,scene=>{const actor=heroActorState(hero,{id:uid(),ownerId:null,space:scene.activeSpace,...position,armor:0,evasion:0});scene.actors.push(actor);scene.selectedActor=actor.id})
 };
 $("scene-enemy-search").addEventListener("input",event=>{sceneEnemyFilter=event.target.value;renderEnemySelect()});

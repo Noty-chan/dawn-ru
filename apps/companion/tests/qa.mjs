@@ -30,6 +30,11 @@ assert.match(appSource, /if\(presenceNode\.innerHTML!==presenceMarkup\)presenceN
 assert.doesNotMatch(fs.readFileSync(path.join(root, "sync.js"), "utf8"), /emit\("presence",state\.presence\);emit\("status"\)/, "Presence events must not trigger a duplicate status render");
 assert.match(appSource, /if\(root\.innerHTML!==markup\)root\.innerHTML=markup/, "Unchanged rule cards must retain their open state across Scene renders");
 assert.match(appSource, /health=Logic\.reconcileHealthRuntime\(\{current:runtime\.hp,previousMax:runtime\.maxHp,nextMax:derived\.hp\}\)/, "Adding a hero to the table reconciles uninitialized and legacy Health");
+assert.match(appSource, /Number\.isFinite\(Number\(base\.focus\)\)\?Number\(base\.focus\)-Number\(base\.techniqueFocusBonus\|\|0\):derived\.focus/, "A hero entering combat starts with Focus derived from Spirit while an existing table actor keeps current Focus");
+assert.match(appSource, /if\(!sceneCombatStarted\(scene\)\)delete base\.focus/, "Refreshing a remotely submitted hero before combat must repair its starting Focus");
+assert.match(appSource, /if\(!sceneCombatStarted\(Scene\)\)delete base\.focus/, "Refreshing a local hero before combat must repair its starting Focus");
+assert.match(appSource, /feed\.innerHTML=\[\.\.\.rolls\]\.reverse\(\)\.map/, "The newest public roll must stay at the bottom edge of the upward-growing feed");
+assert.match(appSource, /querySelector\("article:last-child"\)/, "Roll animation must target the newest bottom card");
 const cockpitSource = fs.readFileSync(path.join(root, "vtt-concepts.js"), "utf8");
 const appCoreFile = fs.readFileSync(path.join(root, "app-core.js"), "utf8");
 const sceneCoreSource = appCoreFile.slice(appCoreFile.indexOf("function blankScene"), appCoreFile.indexOf("function normalizeScene"));
