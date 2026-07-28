@@ -22,6 +22,7 @@ const appFiles = ["app-bootstrap.js", "app-reference-data.js", "app-core.js", "h
 const appSource = appFiles.map(file => fs.readFileSync(path.join(root, file), "utf8")).join("\n");
 const companionMarkup = fs.readFileSync(path.join(root, "index.html"), "utf8");
 assert.match(companionMarkup, /data-scene-panel="network"/, "The immersive table must expose network controls in its dock");
+assert.match(companionMarkup, /data-scene-panel="network"[^>]*>Сеть<\/button>\s*<button[^>]+data-scene-panel="log"/, "The network button must sit directly above the Scene log");
 assert.match(companionMarkup, /id="scene-sync-panel"[^>]+data-scene-panel-content="network"/, "The network controls must open as a table rail panel");
 assert.match(companionMarkup, /id="sync-leave-table"[^>]+title="Выйти из общего стола"/, "A connected table must expose a quick leave action in the visible header");
 assert.match(appSource, /sceneRail\.prepend\(syncPanel\)/, "The network panel must be mounted into the immersive table rail");
