@@ -469,21 +469,35 @@ function triggeredEvents(scene, event) {
 
 function dispatchMany(scene, events, options = {}) {
   let next = clone(scene);
-  const committed = [];
+  const committed = [], duplicates = [];
   const queue = [...(events || [])];
-  let first = true;
+  let versionPending = options.expectedVersion !== undefined;
   let handled = 0;
   while (queue.length) {
     if (handled++ > 240) throw new Error("Слишком длинная цепочка автоматических правил.");
     const event = queue.shift();
-    const result = dispatch(next, event, first ? options : { ...options, expectedVersion: undefined });
+    const prompt = next.pendingPrompt, destination = event?.payload?.destination;
+    const placementActorId = prompt?.kind === "siren-irresistible-cell" ? prompt.targetId : prompt?.sourceActorId;
+    const stationarySiren = prompt?.kind === "siren-irresistible-cell" && actorById(next, prompt.targetId)?.x === Number(destination?.x) && actorById(next, prompt.targetId)?.y === Number(destination?.y);
+    const placementResponse = event?.type === "rule.respond" && event.payload?.choice === "cell" && destination && (
+      prompt?.kind === "marker-move-cell"
+        ? queue.some(candidate => candidate.type === "marker.move" && candidate.payload?.markerId === (prompt.context?.markerId || prompt.markerId) && Number(candidate.payload?.x) === Number(destination.x) && Number(candidate.payload?.y) === Number(destination.y))
+        : stationarySiren
+          ? queue.some(candidate => candidate.type === "technique.resolve" && candidate.actorId === prompt.sourceActorId && candidate.payload?.ruleId === "disruptor.siren.2")
+          : queue.some(candidate => candidate.type === "actor.move" && candidate.actorId === placementActorId && Number(candidate.payload?.x) === Number(destination.x) && Number(candidate.payload?.y) === Number(destination.y))
+    );
+    const dispatchOptions = { ...options, expectedVersion: versionPending ? options.expectedVersion : undefined, placementResponse };
+    const result = dispatch(next, event, dispatchOptions);
     next = result.scene;
-    committed.push(result.event);
+    if (result.duplicate) duplicates.push(result.event);
+    else {
+      committed.push(result.event);
+      versionPending = false;
+    }
     const derived = result.duplicate ? [] : triggeredEvents(next, result.event);
     if (derived.length) queue.unshift(...derived);
-    first = false;
   }
-  return { scene: next, events: committed };
+  return { scene: next, events: committed, duplicates };
 }
 
 function previewEvents(scene, events, options = {}) {

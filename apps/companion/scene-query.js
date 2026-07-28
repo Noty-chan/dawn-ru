@@ -205,7 +205,7 @@ function movementTraceStatus(scene, request = {}) {
     }).filter(Boolean);
     const points = [{ x: Number(from.x), y: Number(from.y) }, ...path, { x: Number(payload.x), y: Number(payload.y) }].filter((point, index, values) => index === 0 || point.x !== values[index - 1].x || point.y !== values[index - 1].y);
     if (points.length < 2) continue;
-    const forced = Boolean(payload.displacement), jump = !teleport && /прыж|jump/i.test(String(payload.movement || ""));
+    const forced = Boolean(payload.forced || payload.displacement), jump = !teleport && /прыж|jump/i.test(String(payload.movement || ""));
     const kind = teleport ? "teleport" : forced ? "forced" : jump ? "jump" : "step";
     const parts = points.slice(1).map((point, index) => ({ index: index + 1, from: clone(points[index]), destination: clone(point) }));
     traces.push({ actorId: actor.id, movement: payload.movement || "Перемещение", kind, teleport, forced, from: points[0], destination: points.at(-1), points, parts, topologyCrossings: clone(payload.topologyCrossings || []), eventId: event.id });

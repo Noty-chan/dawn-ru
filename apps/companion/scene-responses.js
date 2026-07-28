@@ -336,7 +336,7 @@ function preparePromptPlacement(scene, request = {}) {
     }
   }
   if (errors.length) return { ok: false, errors, events: [] };
-  const events = [{ type: "rule.respond", actorId: actor.id, payload: { promptId: prompt.id, choice: "cell", sourceActorId: actor.id, targetId: target?.id || null, participantIds: [actor.id, target?.id].filter(Boolean) } }];
+  const events = [{ type: "rule.respond", actorId: actor.id, payload: { promptId: prompt.id, choice: "cell", destination: clone(destination), sourceActorId: actor.id, targetId: target?.id || null, participantIds: [actor.id, target?.id].filter(Boolean) } }];
   if (prompt.kind === "thunder-surge-cell") {
     events.push({ type: "rule-clock.tick", actorId: actor.id, payload: { clockId: "ruiner.thunder-blood.static", delta: -1, sourceActionId: "ruiner.thunder-blood.2", reason: "Скачок" } });
     events.push({ type: "effect.apply", actorId: actor.id, payload: { targetId: actor.id, effect: "negative.ошеломлен", sourceActionId: "ruiner.thunder-blood.2", participantIds: [actor.id] } });

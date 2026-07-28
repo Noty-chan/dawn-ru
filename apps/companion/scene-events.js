@@ -11,7 +11,7 @@ function normalizeEvent(event, options = {}) {
   };
 }
 
-function validateEvent(scene, event) {
+function validateEvent(scene, event, options = {}) {
   if (!EVENT_TYPES.has(event.type)) throw new Error(`Неизвестный тип события: ${event.type}.`);
   if (typeof event.id !== "string" || !event.id || event.id.length > 120) throw new Error("Некорректный id события.");
   if (event.actorId && !actorById(scene, event.actorId)) throw new Error("Исполнитель события отсутствует на Сцене.");
@@ -48,6 +48,17 @@ function validateEvent(scene, event) {
     const space = (scene.spaces || []).find(item => item.id === payload.space);
     if (!space || !Number.isInteger(Number(payload.x)) || !Number.isInteger(Number(payload.y)) || Number(payload.x) < 0 || Number(payload.y) < 0 || Number(payload.x) >= space.width || Number(payload.y) >= space.height) throw new Error("Некорректная клетка перемещения.");
     if (removedCellKeys(scene, payload.space).has(`${Number(payload.x)},${Number(payload.y)}`)) throw new Error("Нельзя переместиться в удалённую клетку.");
+    if (actor?.knockedOut && !payload.displacement?.allowKnockedOut) throw new Error("Выведенный из строя участник не может перемещаться.");
+    if ((scene.actors || []).some(item => item.id !== event.actorId && item.space === payload.space && Number(item.x) === Number(payload.x) && Number(item.y) === Number(payload.y))) throw new Error("Клетка назначения уже занята.");
+    if (payload.from && (payload.from.space !== actor?.space || Number(payload.from.x) !== Number(actor?.x) || Number(payload.from.y) !== Number(actor?.y))) throw new Error("Исходная клетка перемещения устарела.");
+    if (payload.path != null) {
+      if (!Array.isArray(payload.path) || payload.path.length > 144) throw new Error("Некорректный путь перемещения.");
+      const pathCells = payload.path.map(String), invalidPath = pathCells.some(cell => {
+        const match = cell.match(/^(\d{1,2}),(\d{1,2})$/);
+        return !match || Number(match[1]) >= Number(space.width) || Number(match[2]) >= Number(space.height) || removedCellKeys(scene, payload.space).has(cell);
+      });
+      if (invalidPath || pathCells.length && pathCells.at(-1) !== `${Number(payload.x)},${Number(payload.y)}`) throw new Error("Путь перемещения не совпадает с клеткой назначения.");
+    }
     if (payload.displacement) {
       const status = displacementStatus(scene, { actorId: event.actorId, mode: "directed", direction: payload.displacement.direction, maximum: payload.displacement.distance, allowKnockedOut: Boolean(payload.displacement.allowKnockedOut), ignoreActors: Boolean(payload.displacement.ignoreActors), ignoreTerrain: Boolean(payload.displacement.ignoreTerrain) });
       if (!status.available || status.destination.x !== Number(payload.x) || status.destination.y !== Number(payload.y)) throw new Error(status.reason || "Событие перемещения не совпадает с проверенным направлением.");
@@ -67,7 +78,7 @@ function validateEvent(scene, event) {
     if (!Array.isArray(payload.rolls) || payload.rolls.length > 300 || payload.rolls.some(value => !Number.isInteger(Number(value)) || Number(value) < 1 || Number(value) > 6)) throw new Error("Некорректный публичный бросок.");
   }
   if (event.type === "attack.pending") {
-    if (!Array.isArray(payload.targetIds) || payload.targetIds.length > 40 || payload.targetIds.some(id => !actorById(scene, id) || actorById(scene, id).knockedOut) || !finite(payload.damage) || Number(payload.damage) < 0 || Number(payload.damage) > 9999) throw new Error("Некорректные параметры атаки.");
+    if (!Array.isArray(payload.targetIds) || payload.targetIds.length > 40 || !payload.allowEmptyTargets && payload.targetIds.length < 1 || payload.targetIds.some(id => !actorById(scene, id) || actorById(scene, id).knockedOut) || !finite(payload.damage) || Number(payload.damage) < 0 || Number(payload.damage) > 9999) throw new Error("Некорректные параметры атаки.");
   }
   if (event.type === "effect.apply" && (!actorById(scene, payload.targetId) || typeof payload.effect !== "string" || !payload.effect.trim() || payload.effect.length > 80)) throw new Error("Некорректный Эффект.");
   if (event.type === "effect.remove" && (!actorById(scene, payload.targetId) || typeof payload.effect !== "string" || !payload.effect.trim() || payload.effect.length > 80)) throw new Error("Некорректное удаление Эффекта.");
@@ -75,8 +86,15 @@ function validateEvent(scene, event) {
   if (event.type === "actor.wound" && (!actorById(scene, payload.targetId) || !Number.isInteger(Number(payload.delta)) || Math.abs(Number(payload.delta)) !== 1)) throw new Error("Некорректное изменение Ран.");
   if (event.type === "actor.knockout" && !actorById(scene, payload.targetId)) throw new Error("Некорректное выведение из строя.");
   if (event.type === "inventory.change" && (typeof payload.item !== "string" || payload.item.length > 80 || !Number.isInteger(Number(payload.delta)) || Math.abs(Number(payload.delta)) > 99)) throw new Error("Некорректное изменение инвентаря.");
-  if (event.type === "rule.prompt" && (typeof payload.id !== "string" || typeof payload.kind !== "string" || !Array.isArray(payload.options) || payload.options.length < 1 || payload.options.length > 12)) throw new Error("Некорректный запрос правила.");
-  if (event.type === "rule.respond" && (!scene.pendingPrompt || payload.promptId !== scene.pendingPrompt.id || typeof payload.choice !== "string")) throw new Error("Этот запрос правила уже закрыт.");
+  if (event.type === "rule.prompt" && (typeof payload.id !== "string" || !payload.id || payload.id.length > 160 || typeof payload.kind !== "string" || !payload.kind || !Array.isArray(payload.options) || payload.options.length < 1 || payload.options.length > 12 || payload.options.some(option => typeof option !== "string" || !option || option.length > 120) || new Set(payload.options).size !== payload.options.length)) throw new Error("Некорректный запрос правила.");
+  if (event.type === "rule.respond") {
+    const prompt = scene.pendingPrompt, source = actorById(scene, prompt?.sourceActorId), target = actorById(scene, prompt?.targetId);
+    if (!prompt || payload.promptId !== prompt.id) throw new Error("Этот запрос правила уже закрыт.");
+    if (event.actorId !== prompt.sourceActorId || !source || source.knockedOut) throw new Error("Источник решения больше не доступен.");
+    if (typeof payload.choice !== "string" || !(prompt.options || []).includes(payload.choice)) throw new Error("Такого ответа нет в запросе правила.");
+    if (prompt.targetId && (!target || target.knockedOut)) throw new Error("Цель решения больше не доступна.");
+    if (payload.choice === "cell" && !options.placementResponse) throw new Error("Выбор клетки должен применяться вместе с проверенным перемещением.");
+  }
   if (event.type === "rule.trigger" && (
     typeof payload.triggerId !== "string" || !/^[a-z][a-z0-9.-]{0,119}$/.test(payload.triggerId)
     || typeof payload.sourceEventId !== "string" || !payload.sourceEventId
@@ -114,11 +132,11 @@ function validateEvent(scene, event) {
   }
   if (event.type === "area.create") {
     const space = (scene.spaces || []).find(item => item.id === payload.space);
-    if ((scene.objects || []).length >= 240 || !space || !Array.isArray(payload.cells) || payload.cells.length > 144 || payload.cells.some(cell => {const match=String(cell).match(/^(\d{1,2}),(\d{1,2})$/);return !match||Number(match[1])>=space.width||Number(match[2])>=space.height}) || !["attack","gas","terrain","difficult","danger","portal","custom"].includes(payload.areaType)) throw new Error("Некорректная область Техники.");
+    if ((scene.objects || []).length >= 240 || typeof payload.id !== "string" || !payload.id || payload.id.length > 120 || (scene.objects || []).some(object => object.id === payload.id) || !space || !Array.isArray(payload.cells) || payload.cells.length < 1 || payload.cells.length > 144 || payload.cells.some(cell => {const match=String(cell).match(/^(\d{1,2}),(\d{1,2})$/);return !match||Number(match[1])>=space.width||Number(match[2])>=space.height||removedCellKeys(scene,payload.space).has(String(cell))}) || !["attack","gas","terrain","difficult","danger","portal","custom"].includes(payload.areaType)) throw new Error("Некорректная область Техники.");
   }
   if (event.type === "marker.create") {
     const space = (scene.spaces || []).find(item => item.id === payload.space);
-    if ((scene.markers || []).length >= 240 || !space || !Number.isInteger(Number(payload.x)) || !Number.isInteger(Number(payload.y)) || Number(payload.x) < 0 || Number(payload.y) < 0 || Number(payload.x) >= space.width || Number(payload.y) >= space.height) throw new Error("Некорректный маркер Техники.");
+    if ((scene.markers || []).length >= 240 || typeof payload.id !== "string" || !payload.id || payload.id.length > 120 || (scene.markers || []).some(marker => marker.id === payload.id) || typeof payload.markerKind !== "string" || !payload.markerKind || payload.markerKind.length > 40 || !space || !Number.isInteger(Number(payload.x)) || !Number.isInteger(Number(payload.y)) || Number(payload.x) < 0 || Number(payload.y) < 0 || Number(payload.x) >= space.width || Number(payload.y) >= space.height) throw new Error("Некорректный маркер Техники.");
     if (removedCellKeys(scene, payload.space).has(`${Number(payload.x)},${Number(payload.y)}`)) throw new Error("Нельзя поставить маркер в удалённую клетку.");
   }
   if (event.type === "topology.cells.remove") {
@@ -141,6 +159,8 @@ function validateTransition(scene, event) {
   if (scene.pendingAction && ["turn.start", "turn.end", "round.end"].includes(event.type)) {
     throw new Error("Сначала завершите текущую цепочку Реакций.");
   }
+  if (scene.pendingAction && event.type === "attack.pending") throw new Error("Сначала завершите текущую цепочку Реакций.");
+  if (scene.pendingPrompt && ["action.prepare", "enemy.action.prepare", "attack.pending"].includes(event.type)) throw new Error("Сначала ответьте на сработавшее правило.");
   if (event.type === "turn.start") {
     const status = turnStartStatus(scene, event.actorId);
     if (!status.available) throw new Error(status.reason);
@@ -155,6 +175,7 @@ function validateTransition(scene, event) {
   if (["action.prepare", "enemy.action.prepare", "attack.pending"].includes(event.type) && scene.activeActorId !== event.actorId && !event.payload?.quickReaction) {
     throw new Error(actor ? `Сейчас не Ход «${actor.name}».` : "Исполнитель действия не найден.");
   }
+  if (["action.prepare", "enemy.action.prepare", "attack.pending"].includes(event.type) && actor?.knockedOut) throw new Error("Выведенный из строя участник не может действовать.");
   if (event.type === "area.remove" && (!(scene.objects || []).some(object => object.id === event.payload?.id))) throw new Error("Удаляемая местность уже отсутствует.");
   if (["resource.spend", "resource.gain"].includes(event.type) && actor) {
     const status = resourceOperationStatus(scene, actor.id, { ...event.payload, operation: event.type === "resource.gain" ? "gain" : "spend" });
@@ -188,6 +209,29 @@ function advanceComboCooldowns(actor) {
     actor.comboCooldowns[ruleId] = Math.max(0, Number(actor.comboCooldowns[ruleId] || 0) - 1);
     if (!actor.comboCooldowns[ruleId]) delete actor.comboCooldowns[ruleId];
   });
+}
+
+function applyKnockoutState(scene, target, payload) {
+  if (!target || target.knockedOut) {
+    payload.applied = false;
+    return false;
+  }
+  target.hp = 0;
+  target.knockedOut = true;
+  scene.tension = Number(scene.tension || 0) + 1;
+  scene.targetIds = (scene.targetIds || []).filter(id => id !== target.id);
+  if (scene.pendingAction?.responses?.[target.id]?.choice === "pending") scene.pendingAction.responses[target.id] = { choice: "unavailable", reason: "Цель выведена из боя" };
+  if (scene.pendingAction?.actorId === target.id) scene.pendingAction.interruptedReason = "Атакующий выведен из боя";
+  if (scene.activeActorId === target.id) {
+    target.acted = true;
+    target.stepRemaining = 0;
+    target.extraTurns = 0;
+    advanceComboCooldowns(target);
+    payload.endedTurnActorId = target.id;
+    scene.activeActorId = null;
+  }
+  payload.applied = true;
+  return true;
 }
 
 function reduceEvent(scene, event) {
@@ -335,7 +379,8 @@ function reduceEvent(scene, event) {
     scene.rollFeed.unshift({ id: event.id, actor: actor?.name || payload.actor || "Система", formula: payload.formula, rolls: payload.rolls || [], successes: Number(payload.successes || 0), crits: Number(payload.crits || 0), outcome: typeof payload.outcome === "string" ? payload.outcome.slice(0, 80) : "", payment: typeof payload.payment === "string" ? payload.payment.slice(0, 80) : "" });
     scene.rollFeed = scene.rollFeed.slice(0, 20);
   } else if (event.type === "attack.pending") {
-    scene.pendingAction = { id: event.id, actorId: event.actorId, ...clone(payload), responses: Object.fromEntries((payload.targetIds || []).map(id => [id, { choice: "pending" }])) };
+    payload.targetIds = [...new Set(payload.targetIds || [])];
+    scene.pendingAction = { id: event.id, actorId: event.actorId, ...clone(payload), responses: Object.fromEntries(payload.targetIds.map(id => [id, { choice: "pending" }])) };
   } else if (event.type === "reaction.respond" && scene.pendingAction) {
     scene.pendingAction.responses[event.actorId] = { choice: payload.choice, destination: payload.destination || null, clash: payload.clash || null };
   } else if (event.type === "attack.clear") {
@@ -369,30 +414,18 @@ function reduceEvent(scene, event) {
       if (!grimRedirect && target.hp === 0 && dealt > 0) {
         const guts = Math.max(0, Number(target.guts ?? (target.team === "enemy" ? 0 : 1 + Number(target.attrs?.body || 0))));
         target.wounds = Math.max(0, Number(target.wounds || 0));
-        if (guts === 0) target.knockedOut = true;
+        let knockedOut = guts === 0;
+        if (guts === 0) target.hp = 0;
         else {
           target.wounds += 1;
           payload.woundGained = true;
           if (event.actorId !== target.id) target.influence = Math.max(0, Number(target.influence || 0) + 1);
           if (target.wounds >= guts) {
             target.wounds -= 1;
-            target.knockedOut = true;
+            knockedOut = true;
           } else target.hp = guts;
         }
-        if (target.knockedOut) {
-          scene.tension = Number(scene.tension || 0) + 1;
-          scene.targetIds = (scene.targetIds || []).filter(id => id !== target.id);
-          if (scene.pendingAction?.responses?.[target.id]?.choice === "pending") scene.pendingAction.responses[target.id] = { choice: "unavailable", reason: "Цель выведена из боя" };
-          if (scene.pendingAction?.actorId === target.id) scene.pendingAction.interruptedReason = "Атакующий выведен из боя";
-          if (scene.activeActorId === target.id) {
-            target.acted = true;
-            target.stepRemaining = 0;
-            target.extraTurns = 0;
-            advanceComboCooldowns(target);
-            payload.endedTurnActorId = target.id;
-            scene.activeActorId = null;
-          }
-        }
+        if (knockedOut) applyKnockoutState(scene, target, payload);
       }
     }
   } else if (event.type === "effect.apply") {
@@ -425,13 +458,7 @@ function reduceEvent(scene, event) {
     }
   } else if (event.type === "actor.knockout") {
     const target = actorById(scene, payload.targetId);
-    if (target && !target.knockedOut) {
-      target.hp = 0;
-      target.knockedOut = true;
-      scene.targetIds = (scene.targetIds || []).filter(id => id !== target.id);
-      if (scene.activeActorId === target.id) scene.activeActorId = null;
-      payload.applied = true;
-    } else payload.applied = false;
+    applyKnockoutState(scene, target, payload);
   } else if (event.type === "inventory.change" && actor) {
     actor.inventory ||= {};
     actor.inventory[payload.item] = Math.max(0, Number(actor.inventory[payload.item] || 0) + Number(payload.delta || 0));
@@ -445,7 +472,8 @@ function reduceEvent(scene, event) {
     }
     if (payload.queued && ["fired", "cancelled"].includes(payload.status)) scene.triggerQueue = scene.triggerQueue.filter(item => item.key !== key);
   } else if (event.type === "rule.prompt") {
-    scene.pendingPrompt = { id: payload.id, kind: payload.kind, actorId: event.actorId, sourceActorId: payload.sourceActorId || event.actorId, targetId: payload.targetId || null, markerId: payload.markerId || null, title: payload.title || "Решение правила", text: payload.text || "", options: clone(payload.options || []), context: clone(payload.context || {}) };
+    const options = PLACEMENT_PROMPT_KINDS.has(payload.kind) && !payload.options.includes("cell") ? ["cell", ...payload.options] : payload.options;
+    scene.pendingPrompt = { id: payload.id, kind: payload.kind, actorId: event.actorId, sourceActorId: payload.sourceActorId || event.actorId, targetId: payload.targetId || null, markerId: payload.markerId || null, title: payload.title || "Решение правила", text: payload.text || "", options: clone(options || []), context: clone(payload.context || {}) };
   } else if (event.type === "rule.respond") {
     payload.kind = scene.pendingPrompt?.kind || payload.kind;
     payload.sourceActorId = scene.pendingPrompt?.sourceActorId || null;
@@ -502,7 +530,7 @@ function reduceEvent(scene, event) {
     actor.stepRemaining = 0;
     advanceComboCooldowns(actor);
     if (Number(actor.ruleState?.modifiedOverclockTurns || 0) > 0) actor.ruleState.modifiedOverclockTurns = Math.max(0, Number(actor.ruleState.modifiedOverclockTurns) - 1);
-    (scene.actors || []).forEach(item => { item.speedZeroUntilTurnEnd = false; });
+    actor.speedZeroUntilTurnEnd = false;
     if (Number(actor.extraTurns || 0) > 0) {
       actor.extraTurns -= 1;
       actor.acted = false;
@@ -539,14 +567,28 @@ function reduceEvent(scene, event) {
 }
 
 function dispatch(scene, event, options = {}) {
+  const stored = event?.id ? (scene?.log || []).find(item => item.id === event.id) : null;
+  if (stored) {
+    const subsetMatches = (canonical, candidate) => {
+      if (Array.isArray(candidate)) return Array.isArray(canonical) && canonical.length === candidate.length && candidate.every((value, index) => subsetMatches(canonical[index], value));
+      if (candidate && typeof candidate === "object") return canonical && typeof canonical === "object" && !Array.isArray(canonical) && Object.keys(candidate).every(key => subsetMatches(canonical[key], candidate[key]));
+      return Object.is(canonical, candidate);
+    };
+    const sameEvent = stored.type === event.type && (stored.actorId || null) === (event.actorId || null) && subsetMatches(stored.payload || {}, event.payload || {});
+    if (!sameEvent) {
+      const error = new Error(`Конфликт id события «${event.id}»: под этим id уже записано другое событие.`);
+      error.code = "SCENE_EVENT_ID_CONFLICT";
+      throw error;
+    }
+    return { scene: clone(scene), event: clone(stored), duplicate: true };
+  }
   if (options.expectedVersion !== undefined && Number(scene?.version || 0) !== Number(options.expectedVersion)) {
     const error = new Error(`Конфликт версии Сцены: ожидалась ${options.expectedVersion}, получена ${Number(scene?.version || 0)}.`);
     error.code = "SCENE_VERSION_CONFLICT";
     throw error;
   }
-  if (event?.id && (scene?.log || []).some(item => item.id === event.id)) return { scene: clone(scene), event: clone(event), duplicate: true };
   const normalized = normalizeEvent(event, options);
-  validateEvent(scene, normalized);
+  validateEvent(scene, normalized, options);
   validateTransition(scene, normalized);
   const next = clone(scene);
   reduceEvent(next, normalized);
