@@ -124,12 +124,33 @@ function insetSceneTracePoints(points,startPadding=.22,endPadding=.3){
   centered[0]=inset(first,second,startPadding);centered[centered.length-1]=inset(last,beforeLast,endPadding);
   return centered
 }
+function sceneTracePathData(points,actors,actorId,space){
+  if(points.length<2)return"";
+  const occupied=actors.filter(actor=>actor.id!==actorId).map(actor=>({x:Number(actor.x)+.5,y:Number(actor.y)+.5}));
+  const commands=[`M ${points[0].x.toFixed(3)} ${points[0].y.toFixed(3)}`];
+  for(let index=1;index<points.length;index+=1){
+    const from=points[index-1],to=points[index],dx=to.x-from.x,dy=to.y-from.y,length=Math.hypot(dx,dy)||1,ux=dx/length,uy=dy/length,nx=-uy,ny=ux;
+    const obstacles=occupied.map(point=>{const projection=(point.x-from.x)*ux+(point.y-from.y)*uy,closest={x:from.x+ux*projection,y:from.y+uy*projection},distance=Math.hypot(point.x-closest.x,point.y-closest.y);return{...point,projection,distance}}).filter(point=>point.projection>.18&&point.projection<length-.18&&point.distance<.31).sort((a,b)=>a.projection-b.projection);
+    for(const obstacle of obstacles){
+      const plus={x:obstacle.x+nx*.36,y:obstacle.y+ny*.36},minus={x:obstacle.x-nx*.36,y:obstacle.y-ny*.36},edgeScore=point=>Math.min(point.x,point.y,Number(space.width)-point.x,Number(space.height)-point.y),side=edgeScore(plus)>=edgeScore(minus)?1:-1,before={x:obstacle.x-ux*.26+nx*.34*side,y:obstacle.y-uy*.26+ny*.34*side},around={x:obstacle.x+nx*.43*side,y:obstacle.y+ny*.43*side},after={x:obstacle.x+ux*.26+nx*.34*side,y:obstacle.y+uy*.26+ny*.34*side};
+      commands.push(`L ${before.x.toFixed(3)} ${before.y.toFixed(3)} Q ${around.x.toFixed(3)} ${around.y.toFixed(3)} ${after.x.toFixed(3)} ${after.y.toFixed(3)}`)
+    }
+    commands.push(`L ${to.x.toFixed(3)} ${to.y.toFixed(3)}`)
+  }
+  return commands.join(" ")
+}
+function sceneTracePartGlyph(part,kind){
+  const from={x:Number(part.from.x)+.5,y:Number(part.from.y)+.5},destination={x:Number(part.destination.x)+.5,y:Number(part.destination.y)+.5},dx=destination.x-from.x,dy=destination.y-from.y,length=Math.hypot(dx,dy)||1,middle={x:(from.x+destination.x)/2,y:(from.y+destination.y)/2},badge={x:destination.x-dy/length*.31,y:destination.y+dx/length*.31},angle=Math.atan2(dy,dx)*180/Math.PI;
+  if(kind==="teleport")return"";
+  const symbol=kind==="forced"?"»":kind==="jump"?"⌁":"›";
+  return `<g class="trace-part trace-part-${kind}" transform="translate(${middle.x.toFixed(3)} ${middle.y.toFixed(3)}) rotate(${angle.toFixed(2)})"><circle r=".105"/><text x="0" y=".006">${symbol}</text></g><g class="trace-part-number" transform="translate(${badge.x.toFixed(3)} ${badge.y.toFixed(3)})"><circle r=".095"/><text x="0" y=".006">${part.index}</text></g>`
+}
 function sceneMovementTracesSvg(space,actors){
   const status=SceneEngine.movementTraceStatus(Scene,{space:space.id});if(!status.available)return"";
   const actorMap=new Map(actors.map(actor=>[actor.id,actor]));
-  const traces=status.traces.map((trace,index)=>{const actor=actorMap.get(trace.actorId);if(!actor)return"";const color=safeColor(actor.tokenColor,"#47bfd3"),marker=`move-arrow-${index}`,geometry=insetSceneTracePoints(trace.teleport?[trace.from,trace.destination]:trace.points),points=geometry.map(point=>`${point.x.toFixed(3)},${point.y.toFixed(3)}`).join(" "),origin=geometry[0],destination=geometry.at(-1),title=esc(`${actor.name}: ${trace.movement}`);
-    if(trace.teleport)return `<g class="scene-move-trace teleport" style="--trace-color:${color}"><title>${title}</title><polyline class="trace-halo" points="${points}"/><polyline class="trace-line" points="${points}"/><circle class="trace-origin" cx="${origin.x}" cy="${origin.y}" r=".075"/><path class="trace-destination" d="M ${destination.x} ${destination.y-.11} L ${destination.x+.11} ${destination.y} L ${destination.x} ${destination.y+.11} L ${destination.x-.11} ${destination.y} Z"/></g>`;
-    return `<g class="scene-move-trace normal" style="--trace-color:${color}"><title>${title}</title><defs><marker id="${marker}" viewBox="0 0 8 8" markerWidth="4" markerHeight="4" refX="6.8" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 L2.2,4 Z" fill="${color}"/></marker></defs><polyline class="trace-halo" points="${points}"/><polyline class="trace-line" points="${points}" marker-end="url(#${marker})"/><circle class="trace-origin" cx="${origin.x}" cy="${origin.y}" r=".055"/></g>`
+  const traces=status.traces.map((trace,index)=>{const actor=actorMap.get(trace.actorId);if(!actor)return"";const color=safeColor(actor.tokenColor,"#47bfd3"),marker=`move-arrow-${index}`,geometry=insetSceneTracePoints(trace.teleport?[trace.from,trace.destination]:trace.points),path=sceneTracePathData(geometry,actors,actor.id,space),origin=geometry[0],destination=geometry.at(-1),kind=trace.kind||"step",title=esc(`${actor.name}: ${trace.movement} · ${trace.parts?.length||1} ч. пути`),parts=(trace.parts||[]).map(part=>sceneTracePartGlyph(part,kind)).join("");
+    if(trace.teleport)return `<g class="scene-move-trace teleport" style="--trace-color:${color}"><title>${title}</title><path class="trace-halo" d="${path}"/><path class="trace-line" d="${path}"/><circle class="trace-origin-ring" cx="${origin.x}" cy="${origin.y}" r=".13"/><circle class="trace-origin" cx="${origin.x}" cy="${origin.y}" r=".045"/><path class="trace-rift" d="M ${((origin.x+destination.x)/2)-.12} ${(origin.y+destination.y)/2} l .08 -.08 l .08 .08 l .08 -.08"/><path class="trace-destination" d="M ${destination.x} ${destination.y-.14} L ${destination.x+.14} ${destination.y} L ${destination.x} ${destination.y+.14} L ${destination.x-.14} ${destination.y} Z"/><text class="trace-destination-symbol" x="${destination.x}" y="${destination.y+.012}">✦</text></g>`;
+    return `<g class="scene-move-trace normal ${kind}" style="--trace-color:${color}"><title>${title}</title><defs><marker id="${marker}" viewBox="0 0 8 8" markerWidth="4" markerHeight="4" refX="6.8" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 L2.2,4 Z" fill="${color}"/></marker></defs><path class="trace-halo" d="${path}"/><path class="trace-line" d="${path}" marker-end="url(#${marker})"/><circle class="trace-origin-ring" cx="${origin.x}" cy="${origin.y}" r=".105"/><circle class="trace-origin" cx="${origin.x}" cy="${origin.y}" r=".04"/>${parts}</g>`
   }).join("");
   return traces?`<svg class="scene-movement-traces" viewBox="0 0 ${space.width} ${space.height}" preserveAspectRatio="none" aria-hidden="true">${traces}</svg>`:""
 }

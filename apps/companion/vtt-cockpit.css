@@ -133,15 +133,22 @@
 .scene-mode .scene-cell.reaction-valid{box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--cyan) 76%,transparent),inset 0 0 20px color-mix(in srgb,var(--cyan) 13%,transparent)}
 .scene-mode .scene-cell.movement-valid{box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--gold) 80%,transparent),inset 0 0 20px color-mix(in srgb,var(--gold) 14%,transparent)}
 .scene-movement-traces{position:absolute;inset:0;z-index:2;width:100%;height:100%;overflow:visible;pointer-events:none;opacity:.88}
-.scene-move-trace polyline{fill:none;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke}
+.scene-move-trace .trace-halo,.scene-move-trace .trace-line{fill:none;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke}
 .scene-move-trace .trace-halo{stroke:rgba(4,6,11,.84);stroke-width:6}
 .scene-move-trace .trace-line{stroke:var(--trace-color);stroke-width:2.25;filter:drop-shadow(0 0 3px color-mix(in srgb,var(--trace-color) 68%,transparent))}
-.scene-move-trace .trace-origin{fill:var(--trace-color);stroke:rgba(4,6,11,.92);stroke-width:1.5;vector-effect:non-scaling-stroke}
+.scene-move-trace .trace-origin{fill:var(--trace-color)}
+.scene-move-trace .trace-origin-ring{fill:rgba(4,6,11,.82);stroke:var(--trace-color);stroke-width:1.5;vector-effect:non-scaling-stroke}
 .scene-move-trace.normal .trace-line{opacity:.9}
+.scene-move-trace.jump .trace-line{stroke-dasharray:9 4}
+.scene-move-trace.forced .trace-line{stroke-width:3;stroke-dasharray:2 3}
+.scene-move-trace .trace-part circle,.scene-move-trace .trace-part-number circle{fill:rgba(6,7,12,.9);stroke:var(--trace-color);stroke-width:1.15;vector-effect:non-scaling-stroke}
+.scene-move-trace .trace-part text,.scene-move-trace .trace-part-number text,.scene-move-trace .trace-destination-symbol{fill:#fff;font-family:system-ui,sans-serif;font-weight:950;text-anchor:middle;dominant-baseline:middle;paint-order:stroke;stroke:rgba(4,6,11,.92);stroke-width:.025}
+.scene-move-trace .trace-part text{font-size:.16px}.scene-move-trace .trace-part-number text{font-size:.105px}
 .scene-move-trace.teleport .trace-halo{stroke-dasharray:3 7;stroke-width:5}
 .scene-move-trace.teleport .trace-line{stroke-width:2.4;stroke-dasharray:3 7;opacity:.82}
-.scene-move-trace.teleport .trace-origin{fill:color-mix(in srgb,var(--trace-color) 30%,transparent);stroke:var(--trace-color)}
 .scene-move-trace.teleport .trace-destination{fill:color-mix(in srgb,var(--trace-color) 18%,transparent);stroke:var(--trace-color);stroke-width:1.7;filter:drop-shadow(0 0 3px color-mix(in srgb,var(--trace-color) 65%,transparent));vector-effect:non-scaling-stroke}
+.scene-move-trace.teleport .trace-rift{fill:none;stroke:var(--trace-color);stroke-width:1.8;stroke-linecap:round;vector-effect:non-scaling-stroke}
+.scene-move-trace .trace-destination-symbol{font-size:.14px}
 .scene-mode .scene-cell:nth-child(odd){background:color-mix(in srgb,var(--surface-2) 64%,var(--surface))}
 .scene-mode .scene-cell::after{content:"";position:absolute;inset:0;z-index:-1;border:1px solid color-mix(in srgb,var(--line) 74%,transparent);pointer-events:none}
 .scene-mode .scene-cell:hover{filter:brightness(1.12);z-index:2}
@@ -409,8 +416,8 @@
 .scene-mode .scene-board.has-map .scene-cell.has-danger{background:repeating-linear-gradient(135deg,#e2b54a45 0 8px,transparent 8px 16px),rgba(17,17,25,var(--scene-grid-opacity,.58))}
 .scene-mode .scene-board.has-map .scene-cell.has-portal{background:radial-gradient(circle,#47bfd360,rgba(17,17,25,var(--scene-grid-opacity,.58)) 72%)}
 .scene-mode .scene-board.has-map .scene-cell.has-custom{background:linear-gradient(#9370db4d,#9370db4d),rgba(17,17,25,var(--scene-grid-opacity,.58))}
-.scene-mode .scene-cell:has(.scene-token){overflow:visible;z-index:3}
-.scene-mode .scene-token{position:relative;overflow:visible!important}
+.scene-mode .scene-cell:has(.scene-token){overflow:visible;z-index:auto}
+.scene-mode .scene-token{position:relative;z-index:4;overflow:visible!important}
 .scene-token-visual{display:grid;place-items:center;width:100%;height:100%;overflow:hidden;border-radius:50%;background:var(--token-color)}
 .scene-token-visual img{width:100%;height:100%;object-fit:cover}
 .scene-token-hud{position:absolute;left:50%;top:calc(100% + 4px);display:grid;grid-template-columns:1fr auto;align-items:center;gap:3px;width:48px;padding:2px 3px;border:1px solid #ffffff2b;border-radius:5px;background:#08080ee8;box-shadow:0 4px 10px #0009;pointer-events:none;transform:translateX(-50%)}

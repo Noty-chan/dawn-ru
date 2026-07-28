@@ -120,6 +120,8 @@ const movementTraces = Engine.movementTraceStatus(displacementPlan.scene, { spac
 assert.equal(movementTraces.available, true);
 assert.equal(movementTraces.traces.find(trace => trace.actorId === "hero").teleport, false);
 assert.deepEqual(JSON.parse(JSON.stringify(movementTraces.traces.find(trace => trace.actorId === "hero").points)), [{ x: 1, y: 1 }, { x: 2, y: 1 }], "The board can project the latest ordinary movement from the event journal");
+assert.equal(movementTraces.traces.find(trace => trace.actorId === "hero").kind, "forced");
+assert.deepEqual(JSON.parse(JSON.stringify(movementTraces.traces.find(trace => trace.actorId === "hero").parts)), [{ index: 1, from: { x: 1, y: 1 }, destination: { x: 2, y: 1 } }], "Movement traces expose journaled path parts for board labels");
 assert.equal(Engine.prepareDisplacements(scene, [
   { actorId: "hero", destination: { x: 2, y: 1 }, maximum: 1 },
   { actorId: "enemy", mode: "push", sourceActorId: "hero", maximum: 1 },
@@ -1022,16 +1024,32 @@ assert.equal(nextRound.actors[1].ap, 2);
 
 const alternating = structuredClone(lifecycleScene);
 alternating.actors.push({ ...structuredClone(alternating.actors[0]), id: "hero-2", name: "Второй герой", x: 1, y: 3, ap: 3, acted: false });
+alternating.actors.push({ ...structuredClone(alternating.actors[1]), id: "enemy-2", name: "Второй враг", x: 3, y: 2, ap: 2, acted: false });
+alternating.actors.push({ ...structuredClone(alternating.actors[1]), id: "enemy-3", name: "Третий враг", x: 3, y: 3, ap: 2, acted: false });
 let alternatingState = Engine.dispatch(alternating, { type: "turn.start", actorId: "hero", payload: {} }).scene;
 alternatingState = Engine.dispatch(alternatingState, { type: "turn.end", actorId: "hero", payload: {} }).scene;
 alternatingState = Engine.dispatch(alternatingState, { type: "turn.start", actorId: "enemy", payload: {} }).scene;
 alternatingState = Engine.dispatch(alternatingState, { type: "turn.end", actorId: "enemy", payload: {} }).scene;
 alternatingState = Engine.dispatch(alternatingState, { type: "turn.start", actorId: "hero-2", payload: {} }).scene;
 alternatingState = Engine.dispatch(alternatingState, { type: "turn.end", actorId: "hero-2", payload: {} }).scene;
-assert.equal(Engine.turnStartStatus(alternatingState, "enemy").available, true, "When all enemies have acted, one of them may repeat to preserve alternation");
-alternatingState = Engine.dispatch(alternatingState, { type: "turn.start", actorId: "enemy", payload: {} }).scene;
-alternatingState = Engine.dispatch(alternatingState, { type: "turn.end", actorId: "enemy", payload: {} }).scene;
-assert.equal(Engine.roundEndStatus(alternatingState).available, true, "A Round closes after every hero and one enemy Turn per hero");
+alternatingState = Engine.dispatch(alternatingState, { type: "turn.start", actorId: "enemy-2", payload: {} }).scene;
+alternatingState = Engine.dispatch(alternatingState, { type: "turn.end", actorId: "enemy-2", payload: {} }).scene;
+assert.equal(Engine.turnStartStatus(alternatingState, "enemy-3").available, true, "The larger side may take consecutive Turns after every actor on the smaller side has acted");
+assert.equal(Engine.roundEndStatus(alternatingState).available, false, "A Round stays open while an eligible actor has not acted");
+alternatingState = Engine.dispatch(alternatingState, { type: "turn.start", actorId: "enemy-3", payload: {} }).scene;
+alternatingState = Engine.dispatch(alternatingState, { type: "turn.end", actorId: "enemy-3", payload: {} }).scene;
+assert.equal(Engine.roundEndStatus(alternatingState).available, true, "A Round closes after every eligible hero and enemy has acted");
+
+const heroHeavy = structuredClone(lifecycleScene);
+heroHeavy.actors.push({ ...structuredClone(heroHeavy.actors[0]), id: "hero-2", name: "Второй герой", x: 1, y: 3, ap: 3, acted: false });
+heroHeavy.actors.push({ ...structuredClone(heroHeavy.actors[0]), id: "hero-3", name: "Третий герой", x: 1, y: 4, ap: 3, acted: false });
+let heroHeavyState = Engine.dispatch(heroHeavy, { type: "turn.start", actorId: "hero", payload: {} }).scene;
+heroHeavyState = Engine.dispatch(heroHeavyState, { type: "turn.end", actorId: "hero", payload: {} }).scene;
+heroHeavyState = Engine.dispatch(heroHeavyState, { type: "turn.start", actorId: "enemy", payload: {} }).scene;
+heroHeavyState = Engine.dispatch(heroHeavyState, { type: "turn.end", actorId: "enemy", payload: {} }).scene;
+heroHeavyState = Engine.dispatch(heroHeavyState, { type: "turn.start", actorId: "hero-2", payload: {} }).scene;
+heroHeavyState = Engine.dispatch(heroHeavyState, { type: "turn.end", actorId: "hero-2", payload: {} }).scene;
+assert.equal(Engine.turnStartStatus(heroHeavyState, "hero-3").available, true, "Consecutive hero Turns are allowed after every enemy has acted");
 
 const knockedOut = Engine.dispatch(scene, { type: "damage.apply", actorId: "hero", payload: { targetId: "enemy", amount: 20, ignoreArmor: true } }).scene;
 assert.equal(knockedOut.actors[1].knockedOut, true);
