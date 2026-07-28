@@ -1,6 +1,6 @@
 "use strict";
 
-const VERSION = 26;
+const VERSION = 27;
 const EVENT_TYPES = new Set(["action.prepare", "action.resolve", "enemy.action.prepare", "enemy.action.resolve", "reaction.offer", "reaction.respond", "roll.public", "resource.spend", "resource.gain", "rule-resource.configure", "rule-resource.spend", "rule-resource.gain", "rule-resource.set", "rule-resource.reset", "rule-clock.configure", "rule-clock.tick", "rule-clock.set", "rule-clock.reset", "rule.trigger", "actor.move", "actor.enter", "actor.heal", "actor.wound", "actor.knockout", "turn.start", "turn.end", "turn.grant", "round.end", "attack.pending", "attack.clear", "damage.apply", "effect.apply", "effect.remove", "inventory.change", "rule.prompt", "rule.respond", "technique.prepare", "technique.resolve", "technique.manual", "technique.state", "actor.state", "area.create", "area.remove", "object.damage", "marker.create", "marker.move", "marker.remove", "topology.cells.remove", "topology.cells.restore", "targets.set", "space.ensure"]);
 const RESOURCES = new Set(["ap", "focus", "influence", "meals", "creationMarks", "innovationCharges"]);
 const PLACEMENT_PROMPT_KINDS = new Set(["marker-move-cell", "empath-rush-cell", "reappear-cell", "thunder-surge-cell", "siren-irresistible-cell", "untouchable-weave-cell", "knife-pickup-step", "meister-overclock-move", "egomaniac-style-move"]);
@@ -10,10 +10,10 @@ const EFFECT_LIFECYCLE = Object.freeze({
   "positive.исчез": Object.freeze({ duration: "actionOrStartTurn" }),
   "positive.регенерирует": Object.freeze({ duration: "persistent" }),
   "negative.порчен": Object.freeze({ duration: "persistent" }),
-  "negative.испуган": Object.freeze({ duration: "default", sourceBound: true }),
+  "negative.испуган": Object.freeze({ duration: "default", sourceBound: true, removeWithSource: true }),
   "negative.подброшен": Object.freeze({ duration: "startTurn" }),
-  "negative.пойман": Object.freeze({ duration: "default", sourceBound: true }),
-  "negative.спровоцирован": Object.freeze({ duration: "default", sourceBound: true }),
+  "negative.пойман": Object.freeze({ duration: "default", sourceBound: true, removeWithSource: true }),
+  "negative.спровоцирован": Object.freeze({ duration: "default", sourceBound: true, removeWithSource: true }),
 });
 const ACTOR_STATE_KEYS = new Set(["pugilistStance", "martialPerfection", "growth", "imposingPresence", "grimTransformed", "grimUsed", "warringTransformed", "warringUsed", "drainLife", "lastCreationSpellMarks", "modifiedOverclockTurns", "icicleSpellsRemaining", "styleCarryRemaining", "timeStopUsed"]);
 const clone = value => JSON.parse(JSON.stringify(value));
@@ -52,7 +52,7 @@ function topologyStatus(scene, request = {}) {
     const match = cell.match(/^(\d{1,2}),(\d{1,2})$/);
     return !space || !match || Number(match[1]) >= Number(space.width) || Number(match[2]) >= Number(space.height);
   });
-  const occupiedCells = cells.filter(cell => (scene?.actors || []).some(actor => !actor.knockedOut && actor.space === request.space && cellKey(actor) === cell));
+  const occupiedCells = cells.filter(cell => (scene?.actors || []).some(actor => !actor.knockedOut && !hasEffect(scene, actor, "positive.исчез") && actor.space === request.space && cellKey(actor) === cell));
   const alreadyRemoved = cells.filter(cell => removed.has(cell));
   const operation = request.operation || "inspect";
   let reason = "";
@@ -91,7 +91,7 @@ function ambientEffects(scene, actor) {
 }
 const effectiveEffectsFor = (scene, actor) => [...new Set([...(actor?.effects || []), ...ambientEffects(scene, actor)])];
 const hasEffect = (scene, actor, effect) => effectiveEffectsFor(scene, actor).includes(effect);
-const effectLifecycleDefinition = effect => ({ duration: "default", sourceBound: false, exclusiveBySource: false, ...(EFFECT_LIFECYCLE[effect] || {}) });
+const effectLifecycleDefinition = effect => ({ duration: "default", sourceBound: false, exclusiveBySource: false, removeWithSource: false, ...(EFFECT_LIFECYCLE[effect] || {}) });
 function effectStateFor(actor, effect) {
   const saved = actor?.effectStates?.[effect];
   if (!saved || typeof saved !== "object") return null;
@@ -105,6 +105,7 @@ function effectStateFor(actor, effect) {
     appliedEventId: typeof saved.appliedEventId === "string" ? saved.appliedEventId : "",
     sourceBound: saved.sourceBound === true || definition.sourceBound,
     exclusiveBySource: saved.exclusiveBySource === true || definition.exclusiveBySource,
+    removeWithSource: saved.removeWithSource === true || definition.removeWithSource,
     sources,
   };
 }

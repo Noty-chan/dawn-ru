@@ -110,6 +110,7 @@ function availableActions(scene, data, actorId) {
     else if (!reaction && scene.activeActorId !== actor.id) reason = "Сейчас Ход другого участника";
     else if (!reaction && actor.acted) reason = "Ход уже завершён";
     else if (!reaction && action.name === "Шаг" && actor.speedZeroUntilTurnEnd) reason = "Скорость равна 0 до конца текущего Хода";
+    else if (!reaction && ["Шаг", "Прыжок"].includes(action.name) && !effectMovementStatus(scene, actor.id).available) reason = effectMovementStatus(scene, actor.id).reason;
     else if (!reaction && rage.available && rage.active && rage.value > 0 && effectiveCost.resource === "ap" && !["Прыжок", "Завершение"].includes(action.name)) reason = "Пока существует Ярость, ОД можно тратить только на Прыжки и Завершения";
     else if (!reaction && Number(actor.ruleState?.icicleSpellsRemaining || 0) > 0 && action.name !== "Заклинание") reason = "Сначала завершите или остановите серию Заклинаний Сосульки";
     else if (!reaction && (actor.usedActions || []).includes(action.id) && !continuation && !quick) reason = "Это действие уже использовано в Раунде";
@@ -173,8 +174,9 @@ function prepareAction(scene, data, request = {}) {
   let graspPath = [];
   if (request.useGrasp && !grasp) errors.push("Хватка требует Завершение Телом и непустую Ярость.");
   if (grasp) {
-    graspPath = request.destination ? movementPath(scene, actor.id, request.destination, { maxDistance: 3 }) : [];
-    if (!request.destination || !graspPath.length && (Number(request.destination?.x) !== Number(actor.x) || Number(request.destination?.y) !== Number(actor.y))) errors.push("Для Хватки выберите достижимую свободную клетку в пределах 3.");
+    const graspDistance = effectMovementStatus(scene, actor.id, { distance: 3 }).distance;
+    graspPath = request.destination ? movementPath(scene, actor.id, request.destination, { maxDistance: graspDistance }) : [];
+    if (!request.destination || !graspPath.length && (Number(request.destination?.x) !== Number(actor.x) || Number(request.destination?.y) !== Number(actor.y))) errors.push(`Для Хватки выберите достижимую свободную клетку в пределах ${graspDistance}.`);
   }
   if (request.useThunderDischarge && !thunderDischarge) errors.push("Для Разрядки нужно Завершение Духом и минимум 3 Статики.");
   if (request.useEclipseStars && !eclipseStars) errors.push("Для Затмения звезд нужно Завершение Духом и полная Пустота.");
@@ -251,9 +253,9 @@ function prepareAction(scene, data, request = {}) {
   if (["Шаг", "Прыжок"].includes(action.name)) {
     const destination = request.destination;
     const space = (scene.spaces || []).find(item => item.id === actor.space);
-    const accelerated = hasEffect(scene, actor, "positive.ускорен"), slowed = hasEffect(scene, actor, "negative.замедлен"), baseMovement = action.name === "Прыжок" ? Number(actor.attrs?.talent || 0) : actor.speedZeroUntilTurnEnd ? 0 : available?.continuation ? Number(actor.stepRemaining || 0) : Number(actor.speed || 0), modifiedMovement = baseMovement * Math.max(1, Number(request.movementMultiplier || 1)), moveLimit = Math.max(0, accelerated ? modifiedMovement * 2 : slowed ? Math.floor(modifiedMovement / 2) : modifiedMovement);
+    const baseMovement = action.name === "Прыжок" ? Number(actor.attrs?.talent || 0) : actor.speedZeroUntilTurnEnd ? 0 : available?.continuation ? Number(actor.stepRemaining || 0) : Number(actor.speed || 0), modifiedMovement = baseMovement * Math.max(1, Number(request.movementMultiplier || 1)), moveLimit = effectMovementStatus(scene, actor.id, { distance: modifiedMovement }).distance;
     if (!destination || !space || destination.x < 0 || destination.y < 0 || destination.x >= space.width || destination.y >= space.height) errors.push("Выберите свободную клетку назначения.");
-    else if ((scene.actors || []).some(item => item.id !== actor.id && item.space === actor.space && item.x === destination.x && item.y === destination.y)) errors.push("Клетка назначения занята.");
+    else if (!effectCellOccupancyStatus(scene, actor.id, { space: actor.space, x: destination.x, y: destination.y }).available) errors.push("Клетка назначения занята.");
     else {
       let path = movementPath(scene, actor.id, destination, { maxDistance: moveLimit, straight: action.name === "Прыжок", ignoreEnemies: action.name === "Прыжок", ignoreDifficult: action.name === "Прыжок" });
       if (!path.length) errors.push(action.name === "Прыжок" ? `Прыжок должен идти по свободной прямой Линии длиной до ${moveLimit}.` : `До этой клетки нет свободного пути в пределах Скорости ${moveLimit}.`);
@@ -276,21 +278,22 @@ function prepareAction(scene, data, request = {}) {
     if (disappeared) {
       const destination = request.destination, space = (scene.spaces || []).find(item => item.id === actor.space);
       if (!destination || !space || destination.x < 0 || destination.y < 0 || destination.x >= space.width || destination.y >= space.height) errors.push("При выходе из Исчезновения выберите клетку появления.");
-      else if ((scene.actors || []).some(item => !item.knockedOut && item.id !== actor.id && item.space === actor.space && item.x === destination.x && item.y === destination.y)) errors.push("Клетка появления занята.");
-      else if (Number(actor.techniques?.["vagabond.assassin"] || 0) < 2 && (scene.actors || []).some(item => !item.knockedOut && item.id !== actor.id && item.space === actor.space && distance(item, { ...destination, space: actor.space }) <= 1)) errors.push("При появлении клетка не должна быть смежна с персонажем.");
+      else if (!effectCellOccupancyStatus(scene, actor.id, { space: actor.space, x: destination.x, y: destination.y }).available) errors.push("Клетка появления занята.");
+      else if (Number(actor.techniques?.["vagabond.assassin"] || 0) < 2 && (scene.actors || []).some(item => item.id !== actor.id && effectPresenceStatus(scene, item.id).onField && item.space === actor.space && distance(item, { ...destination, space: actor.space }) <= 1)) errors.push("При появлении клетка не должна быть смежна с персонажем.");
       else {
         attackOrigin = { ...actor, x: destination.x, y: destination.y };
-        events.splice(1, 0, { type: "actor.move", actorId: actor.id, payload: { space: actor.space, x: destination.x, y: destination.y, movement: Number(actor.techniques?.["vagabond.assassin"] || 0) >= 2 ? "Ликвидация" : "Появление", participantIds: [actor.id, ...targetIds] } });
+        events.splice(1, 0, { type: "actor.move", actorId: actor.id, payload: { space: actor.space, x: destination.x, y: destination.y, movement: Number(actor.techniques?.["vagabond.assassin"] || 0) >= 2 ? "Ликвидация" : "Появление", placement: true, participantIds: [actor.id, ...targetIds] } });
         events.splice(2, 0, { type: "actor.enter", actorId: actor.id, payload: { space: actor.space, x: destination.x, y: destination.y, movement: "Появление" } });
       }
     }
     if (!targets.length && !zealotRupture) errors.push("Выберите цель атаки.");
+    const unavailableEffectTarget = targets.find(target => !effectTargetingStatus(scene, actor.id, target.id, { sourceReappearing: disappeared }).available);
+    if (unavailableEffectTarget) errors.push(effectTargetingStatus(scene, actor.id, unavailableEffectTarget.id, { sourceReappearing: disappeared }).reason);
     if (heavenlyHealing ? targets.some(target => target.team !== actor.team || target.id === actor.id) : !thunderDischarge && !zealotRupture && targets.some(target => target.team === actor.team)) errors.push(heavenlyHealing ? "Очищающий свет выбирает союзника, но не самого исполнителя." : "Базовая Атака может выбирать целью только противника.");
     if (action.name === "Стычка" && !gunslingerSkirmish && !knifeThrow && targets.length > 2) errors.push("Стычка выбирает не больше 2 целей.");
     if (action.name !== "Стычка" && targets.length > 1 && !thunderDischarge && !eclipseStars && !zealotRupture) errors.push(`${action.name} выбирает только одну цель.`);
     if (!thunderDischarge && !eclipseStars && !zealotRupture && targets.some(target => distance(attackOrigin, target) > limit)) errors.push(`Цель должна быть в пределах ${limit} клеток от клетки появления.`);
-    const effectDamage = (hasEffect(scene, actor, "positive.усилен") ? Number(actor.tier || 1) : 0) - (hasEffect(scene, actor, "negative.ослаблен") ? Number(actor.tier || 1) : 0), bonus = (action.name === "Завершение" ? Number(scene.tension || 0) : 0) + (spellModifiers.includes("fierce") ? Number(actor.attrs?.mind || 0) : 0) + effectDamage, drainLife = Boolean(actor.ruleState?.drainLife && action.name === "Завершение" && actor.ruleState?.grimTransformed), adjustedDamage = value => drainLife ? Math.ceil(Math.max(0, value) / 2) : Math.max(0, value);
-    const markedBonusByTarget = Object.fromEntries(targets.map(target => [target.id, hasEffect(scene, target, "negative.помечен") ? Number(actor.tier || 1) : 0]));
+    const bonus = (action.name === "Завершение" ? Number(scene.tension || 0) : 0) + (spellModifiers.includes("fierce") ? Number(actor.attrs?.mind || 0) : 0), drainLife = Boolean(actor.ruleState?.drainLife && action.name === "Завершение" && actor.ruleState?.grimTransformed), adjustedDamage = value => drainLife ? Math.ceil(Math.max(0, value) / 2) : Math.max(0, value);
     if (heavenlyHealing) {
       const removalMap = request.removeEffectIdsByTarget && typeof request.removeEffectIdsByTarget === "object" ? request.removeEffectIdsByTarget : {};
       targets.forEach(target => {
@@ -305,10 +308,14 @@ function prepareAction(scene, data, request = {}) {
       events.push({ type: "action.resolve", actorId: actor.id, payload: { actionId: action.id, name: action.name, targetIds, heavenlyHealing: true } });
     } else {
       targets.forEach(target => events.push({ type: "reaction.offer", actorId: target.id, payload: { sourceActorId: actor.id, actionId: action.id } }));
-      const icicleHalo = available?.quickSource?.id === "ruiner.cryomancer.2.icicle", areaDamage = value => eclipseStars || icicleHalo ? Math.ceil(adjustedDamage(value) / 2) : adjustedDamage(value);
+      const icicleHalo = available?.quickSource?.id === "ruiner.cryomancer.2.icicle";
+      const effectDamageDivisor = (drainLife ? 2 : 1) * (eclipseStars || icicleHalo ? 2 : 1);
+      const areaDamage = value => eclipseStars || icicleHalo ? Math.ceil(adjustedDamage(value) / 2) : adjustedDamage(value);
+      const effectDamageBase = Number(request.roll?.successes || 0) + bonus;
+      const effectDamageBaseByTarget = Object.fromEntries(targets.map(target => [target.id, effectDamageBase + (thunderDischarge && hasEffect(scene, target, "negative.ошеломлен") ? Number(actor.tier || 1) : 0)]));
       const postDisplacements = breacherSkirmish ? targets.filter(target => distance(attackOrigin, target) <= 2).map(target => ({ targetId: target.id, mode: "push", maximum: 1, name: "Картечь", ruleId: "powerhouse.breacher.1", collisionDamagePerCell: 0 })) : [];
       const dragonslayerTear = action.name === "Завершение" && actionAttribute === "body" && Number(actor.techniques?.["powerhouse.dragonslayer"] || 0) >= 1 ? ["negative.разорван"] : [];
-      events.push({ type: "attack.pending", actorId: actor.id, payload: { actionId: action.id, name: thunderDischarge ? "Разрядка" : eclipseStars ? "Затмить звезды" : zealotRupture ? "Так не должно было быть" : icicleHalo ? "Ледяной нимб" : action.name, attribute: actionAttribute, targetIds, allowEmptyTargets: zealotRupture, roll: clone(request.roll || null), damage: areaDamage(Number(request.roll?.successes || 0) + bonus), damageByTarget: Object.fromEntries(targets.map(target => [target.id, areaDamage(Number(request.roll?.successes || 0) + bonus + markedBonusByTarget[target.id] + (thunderDischarge && hasEffect(scene, target, "negative.ошеломлен") ? Number(actor.tier || 1) : 0))])), successEffects: dragonslayerTear, thunderDischarge, eclipseStars, zealotRupture, zealotCells, icicleHalo, drainLife, postDisplacements, gunslingerBulletJuggle: gunslingerSkirmish && Number(actor.techniques?.["powerhouse.gunslinger"] || 0) >= 3 && bulletsSpent >= 3 && targetIds.length === 1, knifeThrow: knifeThrow && Number(actor.techniques?.["vagabond.knife-juggler"] || 0) >= 2, overload: meisterOverload ? clone(events[0].payload.overload) : null } });
+      events.push({ type: "attack.pending", actorId: actor.id, payload: { actionId: action.id, name: thunderDischarge ? "Разрядка" : eclipseStars ? "Затмить звезды" : zealotRupture ? "Так не должно было быть" : icicleHalo ? "Ледяной нимб" : action.name, attribute: actionAttribute, targetIds, allowEmptyTargets: zealotRupture, roll: clone(request.roll || null), damage: areaDamage(effectDamageBase), damageByTarget: Object.fromEntries(Object.entries(effectDamageBaseByTarget).map(([targetId, value]) => [targetId, areaDamage(value)])), effectDamageBase, effectDamageBaseByTarget, effectDamageDivisor, successEffects: dragonslayerTear, thunderDischarge, eclipseStars, zealotRupture, zealotCells, icicleHalo, drainLife, postDisplacements, gunslingerBulletJuggle: gunslingerSkirmish && Number(actor.techniques?.["powerhouse.gunslinger"] || 0) >= 3 && bulletsSpent >= 3 && targetIds.length === 1, knifeThrow: knifeThrow && Number(actor.techniques?.["vagabond.knife-juggler"] || 0) >= 2, overload: meisterOverload ? clone(events[0].payload.overload) : null } });
     }
   } else if (action.name === "Передышка") {
     events.push({ type: "resource.gain", actorId: actor.id, payload: { resource: "focus", amount: 1, sourceActionName: "Передышка", sourceActionId: action.id } });
@@ -451,6 +458,8 @@ function prepareEnemyRule(scene, data, request = {}) {
   const targets = targetIds.map(id => actorById(scene, id)).filter(Boolean);
   if (targets.length !== targetIds.length) errors.push("Одна из выбранных целей больше не находится на Сцене.");
   if (targets.some(target => target.knockedOut)) errors.push("Выведенный из боя персонаж не может быть целью действия.");
+  const unavailableEffectTarget = actor && targets.find(target => !effectTargetingStatus(scene, actor.id, target.id).available);
+  if (unavailableEffectTarget) errors.push(effectTargetingStatus(scene, actor.id, unavailableEffectTarget.id).reason);
   const space = actor && (scene.spaces || []).find(item => item.id === actor.space);
   const anchor = rule?.area?.length ? (rule.areaAnchor === "self" ? { x: actor?.x, y: actor?.y } : request.anchor) : null;
   const affectedCells = rule?.area?.length && space && Number.isInteger(Number(anchor?.x)) && Number.isInteger(Number(anchor?.y)) ? areaCells(space, anchor, rule.area) : [];

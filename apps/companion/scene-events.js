@@ -49,7 +49,10 @@ function validateEvent(scene, event, options = {}) {
     if (!space || !Number.isInteger(Number(payload.x)) || !Number.isInteger(Number(payload.y)) || Number(payload.x) < 0 || Number(payload.y) < 0 || Number(payload.x) >= space.width || Number(payload.y) >= space.height) throw new Error("Некорректная клетка перемещения.");
     if (removedCellKeys(scene, payload.space).has(`${Number(payload.x)},${Number(payload.y)}`)) throw new Error("Нельзя переместиться в удалённую клетку.");
     if (actor?.knockedOut && !payload.displacement?.allowKnockedOut) throw new Error("Выведенный из строя участник не может перемещаться.");
-    if ((scene.actors || []).some(item => item.id !== event.actorId && item.space === payload.space && Number(item.x) === Number(payload.x) && Number(item.y) === Number(payload.y))) throw new Error("Клетка назначения уже занята.");
+    const movement = effectMovementStatus(scene, event.actorId, { forced: Boolean(payload.forced || payload.displacement), placement: Boolean(payload.placement), ignoreResistance: Boolean(payload.displacement?.ignoreResistance), ignoreVoluntaryRestrictions: Boolean(payload.ignoreVoluntaryRestrictions) });
+    if (!movement.available) throw new Error(movement.reason);
+    const occupancy = effectCellOccupancyStatus(scene, event.actorId, { space: payload.space, x: payload.x, y: payload.y });
+    if (!occupancy.available) throw new Error(occupancy.reason);
     if (payload.from && (payload.from.space !== actor?.space || Number(payload.from.x) !== Number(actor?.x) || Number(payload.from.y) !== Number(actor?.y))) throw new Error("Исходная клетка перемещения устарела.");
     if (payload.path != null) {
       if (!Array.isArray(payload.path) || payload.path.length > 144) throw new Error("Некорректный путь перемещения.");
@@ -60,7 +63,7 @@ function validateEvent(scene, event, options = {}) {
       if (invalidPath || pathCells.length && pathCells.at(-1) !== `${Number(payload.x)},${Number(payload.y)}`) throw new Error("Путь перемещения не совпадает с клеткой назначения.");
     }
     if (payload.displacement) {
-      const status = displacementStatus(scene, { actorId: event.actorId, mode: "directed", direction: payload.displacement.direction, maximum: payload.displacement.distance, allowKnockedOut: Boolean(payload.displacement.allowKnockedOut), ignoreActors: Boolean(payload.displacement.ignoreActors), ignoreTerrain: Boolean(payload.displacement.ignoreTerrain) });
+      const status = displacementStatus(scene, { actorId: event.actorId, mode: "directed", direction: payload.displacement.direction, maximum: payload.displacement.distance, allowKnockedOut: Boolean(payload.displacement.allowKnockedOut), ignoreActors: Boolean(payload.displacement.ignoreActors), ignoreTerrain: Boolean(payload.displacement.ignoreTerrain), ignoreResistance: Boolean(payload.displacement.ignoreResistance) });
       if (!status.available || status.destination.x !== Number(payload.x) || status.destination.y !== Number(payload.y)) throw new Error(status.reason || "Событие перемещения не совпадает с проверенным направлением.");
     }
   }
@@ -79,8 +82,14 @@ function validateEvent(scene, event, options = {}) {
   }
   if (event.type === "attack.pending") {
     if (!Array.isArray(payload.targetIds) || payload.targetIds.length > 40 || !payload.allowEmptyTargets && payload.targetIds.length < 1 || payload.targetIds.some(id => !actorById(scene, id) || actorById(scene, id).knockedOut) || !finite(payload.damage) || Number(payload.damage) < 0 || Number(payload.damage) > 9999) throw new Error("Некорректные параметры атаки.");
+    const unavailableTarget = payload.targetIds.find(id => !effectTargetingStatus(scene, event.actorId, id).available);
+    if (unavailableTarget) throw new Error(effectTargetingStatus(scene, event.actorId, unavailableTarget).reason);
   }
   if (event.type === "effect.apply" && (!actorById(scene, payload.targetId) || typeof payload.effect !== "string" || !payload.effect.trim() || payload.effect.length > 80 || payload.duration != null && !EFFECT_DURATIONS.has(payload.duration) || payload.removable != null && typeof payload.removable !== "boolean" || payload.exclusiveBySource != null && typeof payload.exclusiveBySource !== "boolean")) throw new Error("Некорректный Эффект.");
+  if (event.type === "effect.apply" && actor && !payload.ignoreEffectTargeting) {
+    const targeting = effectTargetingStatus(scene, actor.id, payload.targetId, { sourceReappearing: Boolean(payload.sourceReappearing) });
+    if (!targeting.available) throw new Error(targeting.reason);
+  }
   if (event.type === "effect.remove" && (!actorById(scene, payload.targetId) || typeof payload.effect !== "string" || !payload.effect.trim() || payload.effect.length > 80 || payload.sourceOnly != null && typeof payload.sourceOnly !== "boolean" || payload.sourceActorId != null && !actorById(scene, payload.sourceActorId))) throw new Error("Некорректное удаление Эффекта.");
   if (event.type === "actor.heal" && (!actorById(scene, payload.targetId) || !finite(payload.amount) || Number(payload.amount) < 0 || Number(payload.amount) > 9999)) throw new Error("Некорректное исцеление.");
   if (event.type === "actor.wound" && (!actorById(scene, payload.targetId) || !Number.isInteger(Number(payload.delta)) || Math.abs(Number(payload.delta)) !== 1)) throw new Error("Некорректное изменение Ран.");
@@ -384,6 +393,23 @@ function reduceEvent(scene, event) {
     scene.rollFeed = scene.rollFeed.slice(0, 20);
   } else if (event.type === "attack.pending") {
     payload.targetIds = [...new Set(payload.targetIds || [])];
+    const modifiers = effectAttackStatus(scene, event.actorId, payload.targetIds), originalDamage = Number(payload.damage || 0), originalByTarget = clone(payload.damageByTarget || {});
+    const effectDamageDivisor = Math.max(1, Number(payload.effectDamageDivisor || 1));
+    const transformDamage = value => Math.ceil(Math.max(0, Number(value || 0)) / effectDamageDivisor);
+    const effectDamageBase = Number.isFinite(Number(payload.effectDamageBase)) ? Number(payload.effectDamageBase) : originalDamage;
+    const effectDamageBaseByTarget = clone(payload.effectDamageBaseByTarget || originalByTarget);
+    payload.baseDamage = originalDamage;
+    payload.baseDamageByTarget = originalByTarget;
+    payload.effectDamageModifier = modifiers.damageModifier;
+    payload.effectHindrance = modifiers.hindrance;
+    payload.effectHindranceEffects = modifiers.hindranceEffects;
+    payload.damage = Math.max(0, originalDamage + transformDamage(effectDamageBase + modifiers.damageModifier) - transformDamage(effectDamageBase));
+    payload.damageByTarget = Object.fromEntries(payload.targetIds.map(targetId => {
+      const base = Number.isFinite(Number(originalByTarget[targetId])) ? Number(originalByTarget[targetId]) : originalDamage;
+      const effectBase = Number.isFinite(Number(effectDamageBaseByTarget[targetId])) ? Number(effectDamageBaseByTarget[targetId]) : effectDamageBase;
+      const modifier = modifiers.damageModifier + Number(modifiers.damageByTarget[targetId] || 0);
+      return [targetId, Math.max(0, base + transformDamage(effectBase + modifier) - transformDamage(effectBase))];
+    }));
     scene.pendingAction = { id: event.id, actorId: event.actorId, ...clone(payload), responses: Object.fromEntries(payload.targetIds.map(id => [id, { choice: "pending" }])) };
   } else if (event.type === "reaction.respond" && scene.pendingAction) {
     scene.pendingAction.responses[event.actorId] = { choice: payload.choice, destination: payload.destination || null, clash: payload.clash || null };
@@ -401,11 +427,12 @@ function reduceEvent(scene, event) {
         return;
       }
       const raw = Math.max(0, Number(payload.amount || 0));
-      const armor = payload.ignoreArmor ? 0 : Math.max(0, Number(target.armor || 0) + Number(payload.temporaryArmor || 0));
+      const defense = effectDefenseStatus(scene, target.id);
+      const armor = payload.ignoreArmor || !defense.armorAllowed ? 0 : Math.max(0, Number(target.armor || 0) + Number(payload.temporaryArmor || 0) + Number(defense.armorBonus || 0));
       const afterArmor = raw > 0 ? Math.max(1, raw - armor) : 0;
-      const evasion = Math.max(0, Number(target.evasion || 0) + Number(payload.temporaryEvasion || 0));
+      const evasion = payload.ignoreEvasion ? 0 : Math.max(0, Number(target.evasion || 0) + Number(payload.temporaryEvasion || 0));
       const evaded = Math.min(afterArmor, evasion);
-      target.evasion = Math.max(0, Number(target.evasion || 0) - Math.max(0, evaded - Number(payload.temporaryEvasion || 0)));
+      if (!payload.ignoreEvasion) target.evasion = Math.max(0, Number(target.evasion || 0) - Math.max(0, evaded - Number(payload.temporaryEvasion || 0)));
       const dealt = Math.max(0, afterArmor - evaded);
       const grimRedirect = Boolean(target.ruleState?.grimTransformed);
       if (grimRedirect) target.focus = Math.max(0, Number(target.focus || 0) - dealt);
@@ -449,6 +476,7 @@ function reduceEvent(scene, event) {
         appliedEventId: event.id,
         sourceBound: existing?.sourceBound === true || definition.sourceBound,
         exclusiveBySource: payload.exclusiveBySource ?? existing?.exclusiveBySource ?? definition.exclusiveBySource,
+        removeWithSource: existing?.removeWithSource === true || definition.removeWithSource,
         sources,
       };
       payload.applied = true;

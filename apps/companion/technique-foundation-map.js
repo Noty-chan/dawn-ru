@@ -27,7 +27,7 @@
     "choice-flow": { label: "Типизированное решение", state: "ready", module: "scene-responses.js / scene-events.js / scene-effects.js" },
     "damage-pipeline": { label: "Конвейер урона, Здоровья и Ран", state: "ready", module: "scene-responses.js / scene-events.js" },
     "action-modifier": { label: "Модификатор или новое действие", state: "ready", module: "scene-actions.js / scene-responses.js" },
-    "effect-lifecycle": { label: "Наложение, снятие и срок Эффекта", state: "ready", module: "scene-engine-core.js / scene-query.js / scene-events.js / scene-triggers.js" },
+    "effect-lifecycle": { label: "Механика, источник и срок Эффекта", state: "ready", module: "scene-engine-core.js / scene-query.js / scene-events.js / scene-triggers.js / scene-responses.js" },
     "entity-lifecycle": { label: "Жизненный цикл зон, маркеров и объектов", state: "planned" },
     inventory: { label: "Инвентарь и заряды", state: "planned" },
     "summon-turns": { label: "Призывы и делегированные Ходы", state: "planned" },

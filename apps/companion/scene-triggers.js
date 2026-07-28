@@ -102,7 +102,7 @@ const TRIGGER_RULES = [
     id: "core.invisible.on-loss",
     eventTypes: ["effect.remove"],
     priority: 80,
-    match: ({ scene, payload }) => payload.removed && payload.effect === "positive.невидим" && !actorById(scene, payload.targetId)?.knockedOut,
+    match: ({ scene, payload }) => payload.removed && payload.effect === "positive.невидим" && !payload.suppressInvisibleReaction && !actorById(scene, payload.targetId)?.knockedOut,
     build: ({ scene, event, payload }) => {
       const target = actorById(scene, payload.targetId);
       return target ? [{ type: "rule.prompt", actorId: target.id, payload: { id: `prompt-${event.id}-invisible`, kind: "invisible-on-loss", sourceActorId: target.id, targetId: target.id, title: "Невидим", text: "Исчезнуть Реакцией на потерю Невидимости?", options: ["disappear", "pass"], participantIds: [target.id] } }] : [];
@@ -126,6 +126,37 @@ function triggerRegistryStatus() {
   const rules = TRIGGER_RULES.map(rule => ({ id: rule.id, eventTypes: [...rule.eventTypes], priority: rule.priority }));
   const eventTypes = [...new Set(rules.flatMap(rule => rule.eventTypes))].sort();
   return { available: true, count: rules.length, eventTypes, rules };
+}
+
+function caughtFollowEvent(scene, source, target, boundaryEvent, movement) {
+  if (!source || !target || source.id === target.id || source.space !== target.space || distance(source, target) <= 1) return null;
+  const space = (scene.spaces || []).find(item => item.id === source.space), removed = removedCellKeys(scene, source.space);
+  if (!space) return null;
+  const candidates = [{ x: source.x + 1, y: source.y }, { x: source.x - 1, y: source.y }, { x: source.x, y: source.y + 1 }, { x: source.x, y: source.y - 1 }]
+    .filter(point => point.x >= 0 && point.y >= 0 && point.x < space.width && point.y < space.height && !removed.has(cellKey(point)))
+    .filter(point => !(scene.objects || []).some(object => object.space === source.space && object.type === "terrain" && (object.cells || []).includes(cellKey(point))))
+    .filter(point => effectCellOccupancyStatus(scene, target.id, { space: source.space, x: point.x, y: point.y }).available)
+    .map(point => ({ point, path: movementPath(scene, target.id, point, { forced: true, maxDistance: 144 }) }))
+    .filter(candidate => candidate.path.length)
+    .sort((left, right) => left.path.length - right.path.length);
+  const chosen = candidates[0];
+  if (!chosen) return null;
+  return {
+    type: "actor.move",
+    actorId: target.id,
+    payload: {
+      space: target.space,
+      x: chosen.point.x,
+      y: chosen.point.y,
+      movement,
+      forced: true,
+      path: chosen.path.map(cellKey),
+      topologyCrossings: chosen.path.filter(point => point.teleported).map(point => ({ destination: cellKey(point), cutIds: point.crossedCutIds || [] })),
+      sourceActionId: "negative.пойман",
+      boundaryEventId: boundaryEvent.id,
+      participantIds: [source.id, target.id],
+    },
+  };
 }
 
 function triggerQueueStatus(scene) {
@@ -272,7 +303,7 @@ function effectLifecycleEvents(scene, event) {
     const sourceActorId = event.payload.targetId;
     for (const target of scene.actors || []) for (const effect of target.effects || []) {
       const state = effectStateFor(target, effect);
-      if (state?.sourceBound && state.sources.some(source => source.actorId === sourceActorId)) events.push({ type: "effect.remove", actorId: sourceActorId, payload: { targetId: target.id, effect, sourceOnly: true, sourceActorId, automatic: true, reason: "Источник Эффекта выведен из боя.", boundaryEventId: event.id, participantIds: [sourceActorId, target.id] } });
+      if (state?.removeWithSource && state.sources.some(source => source.actorId === sourceActorId)) events.push({ type: "effect.remove", actorId: sourceActorId, payload: { targetId: target.id, effect, sourceOnly: true, sourceActorId, automatic: true, reason: "Источник Эффекта выведен из боя.", boundaryEventId: event.id, participantIds: [sourceActorId, target.id] } });
     }
   }
   if (event.type === "effect.apply" && event.payload?.applied && event.payload.effect === "positive.исчез") {
@@ -280,6 +311,19 @@ function effectLifecycleEvents(scene, event) {
     for (const target of scene.actors || []) {
       const state = effectStateFor(target, "negative.пойман");
       if (state?.sources.some(source => source.actorId === sourceActorId)) events.push({ type: "effect.remove", actorId: sourceActorId, payload: { targetId: target.id, effect: "negative.пойман", sourceOnly: true, sourceActorId, automatic: true, reason: "Источник Пойман больше не находится на поле.", boundaryEventId: event.id, participantIds: [sourceActorId, target.id] } });
+    }
+  }
+  if (event.type === "effect.apply" && event.payload?.applied && event.payload.effect === "negative.пойман") {
+    const source = actorById(scene, event.actorId), target = actorById(scene, event.payload.targetId), follow = caughtFollowEvent(scene, source, target, event, "Пойман · притягивание");
+    if (follow) events.push(follow, { type: "actor.enter", actorId: target.id, payload: { space: follow.payload.space, x: follow.payload.x, y: follow.payload.y, movement: follow.payload.movement, forced: true, participantIds: [source.id, target.id] } });
+  }
+  if (event.type === "actor.move" && actorById(scene, event.actorId)) {
+    const source = actorById(scene, event.actorId);
+    for (const target of scene.actors || []) {
+      const state = effectStateFor(target, "negative.пойман");
+      if (!state?.sources.some(item => item.actorId === source.id)) continue;
+      const follow = caughtFollowEvent(scene, source, target, event, "Пойман · следует за источником");
+      if (follow) events.push(follow, { type: "actor.enter", actorId: target.id, payload: { space: follow.payload.space, x: follow.payload.x, y: follow.payload.y, movement: follow.payload.movement, forced: true, participantIds: [source.id, target.id] } });
     }
   }
   if (event.type === "effect.apply" && event.payload?.applied && event.payload.effect === "positive.изгнан" && actorById(scene, event.actorId) && event.payload.exclusiveBySource !== false && Number(actorById(scene, event.actorId).techniques?.["disruptor.mind-breaker"] || 0) < 1) {
@@ -401,7 +445,7 @@ function triggeredEvents(scene, event) {
   }
   if (event.type === "rule-clock.tick" && payload.clockId === "ruiner.feral-arcana.rage" && payload.emptied && actor) events.push({ type: "effect.apply", actorId: actor.id, payload: { targetId: actor.id, effect: "negative.ошеломлен", sourceActionId: "ruiner.feral-arcana.2", participantIds: [actor.id] } });
   if (event.type === "rule-clock.set" && payload.clockId === "ruiner.feral-arcana.rage" && Number(payload.value || 0) === 0 && actor) events.push({ type: "effect.apply", actorId: actor.id, payload: { targetId: actor.id, effect: "negative.ошеломлен", sourceActionId: "ruiner.feral-arcana.2", participantIds: [actor.id] } });
-  if ((event.type === "actor.move" && /телепорт/i.test(payload.movement || "") || event.type === "effect.apply" && payload.applied && payload.effect === "negative.изгнан") && actor) {
+  if ((event.type === "actor.move" && /телепорт/i.test(payload.movement || "") || event.type === "effect.apply" && payload.applied && payload.effect === "positive.изгнан") && actor) {
     const voidOwner = event.type === "effect.apply" ? actorById(scene, payload.targetId) : actor;
     if (voidOwner && Number(voidOwner.techniques?.["ruiner.void-soul"] || 0) >= 3) events.push({ type: "rule-clock.tick", actorId: voidOwner.id, payload: { clockId: "ruiner.void-soul.void", delta: 1, sourceActionId: "ruiner.void-soul.3", reason: event.type === "actor.move" ? "Телепортация" : "Получен Изгнан", participantIds: [voidOwner.id] } });
   }
@@ -473,8 +517,8 @@ function triggeredEvents(scene, event) {
       events.push({ type: "rule.prompt", actorId: sentry.id, payload: { id: `prompt-${event.id}-punishment`, kind: "sentry-punishment", sourceActorId: sentry.id, targetId: actor.id, title: "Наказание", text: `${actor.name} покидает смежность. Использовать Быструю Стычку${vigilance.value > 0 ? " и при желании очистить Бдительность вместо ОД" : ""}?`, options, context: { optionLabels: { "punish-free": "Очистить Бдительность · 0 ОД", "punish-paid": "Заплатить обычную стоимость", pass: "Не использовать" } }, participantIds: [sentry.id, actor.id] } });
     }
   }
-  if (event.type === "action.prepare" && actor && ["Стычка", "Заклинание", "Завершение"].includes(payload.actionName || payload.name) && hasEffect(scene, actor, "negative.порчен")) {
-    events.push({ type: "damage.apply", actorId: actor.id, payload: { targetId: actor.id, amount: Number(actor.tier || 1), ignoreArmor: true, sourceActionId: "negative.порчен", participantIds: [actor.id] } });
+  if (event.type === "attack.pending" && actor && hasEffect(scene, actor, "negative.порчен")) {
+    events.push({ type: "damage.apply", actorId: actor.id, payload: { targetId: actor.id, amount: Number(actor.tier || 1), ignoreArmor: true, ignoreEvasion: true, healthLoss: true, sourceActionId: "negative.порчен", participantIds: [actor.id] } });
   }
   if (event.type === "turn.start" && actor && !scene.pendingPrompt && !promptQueued()) {
     const empath = (scene.actors || []).find(owner => !owner.knockedOut && owner.team === actor.team && owner.id !== actor.id && Number(owner.techniques?.["altruist.empath"] || 0) >= 1 && distance(owner, actor) <= 1);

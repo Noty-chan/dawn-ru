@@ -15,6 +15,7 @@ function actorIdsInCells(scene, spaceId, cells = [], options = {}) {
   const wanted = new Set((Array.isArray(cells) ? cells : []).map(String));
   return (scene?.actors || [])
     .filter(actor => actor.space === spaceId && wanted.has(cellKey(actor)) && actorMatchesQuery(actor, source, options))
+    .filter(actor => options.ignoreEffectTargeting || effectTargetingStatus(scene, source?.id, actor.id, options).available)
     .map(actor => actor.id);
 }
 
@@ -24,6 +25,7 @@ function actorIdsInRange(scene, sourceActorId, range, options = {}) {
   if (!source || Number.isNaN(maximum) || maximum < 0) return [];
   return (scene?.actors || [])
     .filter(actor => distance(source, actor) <= maximum && actorMatchesQuery(actor, source, options))
+    .filter(actor => options.ignoreEffectTargeting || effectTargetingStatus(scene, source.id, actor.id, options).available)
     .map(actor => actor.id);
 }
 
@@ -192,6 +194,99 @@ function effectExpiryStatus(scene, actorId, effect, boundary = {}) {
     reason = "Закончился Раунд.";
   } else reason = status.duration === "persistent" || status.duration === "scene" ? "Автоматическое истечение не предусмотрено." : "Эта граница не снимает Эффект.";
   return { ...status, expires, reason };
+}
+
+function effectPresenceStatus(scene, actorId) {
+  const actor = actorById(scene, actorId);
+  if (!actor) return { available: false, reason: "Участник не найден.", actor: null, onField: false, disappeared: false, banished: false };
+  const disappeared = hasEffect(scene, actor, "positive.исчез"), banished = hasEffect(scene, actor, "positive.изгнан");
+  return {
+    available: !actor.knockedOut && !disappeared,
+    reason: actor.knockedOut ? "Участник выведен из боя." : disappeared ? "Участник Исчез и сейчас не находится на поле." : "",
+    actor,
+    onField: !disappeared,
+    disappeared,
+    banished,
+  };
+}
+
+function effectTargetingStatus(scene, sourceActorId, targetActorId, options = {}) {
+  const source = sourceActorId ? actorById(scene, sourceActorId) : null, target = actorById(scene, targetActorId);
+  if (!target) return { available: false, reason: "Цель не найдена.", source, target: null };
+  const targetPresence = effectPresenceStatus(scene, target.id);
+  if (targetPresence.disappeared && !options.includeDisappeared) return { available: false, reason: "Исчезнувший персонаж не может быть целью.", source, target };
+  if (!source) return { available: true, reason: "", source: null, target };
+  const sourcePresence = effectPresenceStatus(scene, source.id);
+  if (sourcePresence.disappeared && !options.sourceReappearing) return { available: false, reason: "Исчезнувший персонаж сначала должен появиться.", source, target };
+  if (!options.ignoreBanished && sourcePresence.banished !== targetPresence.banished) {
+    return { available: false, reason: sourcePresence.banished ? "Изгнанный персонаж может выбирать целью только Изгнанных." : "Неизгнанный персонаж не может выбирать целью Изгнанного.", source, target };
+  }
+  return { available: true, reason: "", source, target };
+}
+
+function effectMovementStatus(scene, actorId, request = {}) {
+  const actor = actorById(scene, actorId);
+  if (!actor) return { available: false, reason: "Перемещаемый персонаж не найден.", actor: null, multiplier: 1, distance: 0, blockers: [] };
+  const forced = Boolean(request.forced), placement = Boolean(request.placement), blockers = [];
+  if (!placement && forced && hasEffect(scene, actor, "positive.устойчив") && !request.ignoreResistance) blockers.push("Устойчив");
+  if (!placement && !forced && !request.ignoreVoluntaryRestrictions) {
+    if (hasEffect(scene, actor, "negative.обездвижен")) blockers.push("Обездвижен");
+    if (hasEffect(scene, actor, "negative.подброшен")) blockers.push("Подброшен");
+    if (hasEffect(scene, actor, "negative.пойман")) blockers.push("Пойман");
+  }
+  const accelerated = hasEffect(scene, actor, "positive.ускорен"), slowed = hasEffect(scene, actor, "negative.замедлен");
+  const multiplier = accelerated === slowed ? 1 : accelerated ? 2 : .5;
+  const baseDistance = Math.max(0, Number(request.distance ?? request.maximum ?? 0));
+  const adjustedDistance = multiplier < 1 ? Math.floor(baseDistance * multiplier) : baseDistance * multiplier;
+  const reason = forced && blockers.includes("Устойчив")
+    ? "Устойчивого персонажа нельзя перемещать против воли."
+    : blockers.length ? `${blockers.join(", ")} запрещает добровольное перемещение.` : "";
+  return { available: !blockers.length, reason, actor, forced, placement, multiplier, distance: adjustedDistance, blockers };
+}
+
+function effectCellOccupancyStatus(scene, actorId, request = {}) {
+  const actor = actorById(scene, actorId), space = request.space || actor?.space, x = Number(request.x), y = Number(request.y);
+  if (!actor || !space || !Number.isInteger(x) || !Number.isInteger(y)) return { available: false, reason: "Некорректная клетка назначения.", actor, blockers: [] };
+  const banished = hasEffect(scene, actor, "positive.изгнан");
+  const blockers = (scene.actors || []).filter(other => other.id !== actor.id && other.space === space && Number(other.x) === x && Number(other.y) === y)
+    .filter(other => effectPresenceStatus(scene, other.id).onField)
+    .filter(other => !banished && !hasEffect(scene, other, "positive.изгнан"));
+  return { available: blockers.length === 0, reason: blockers.length ? "Клетка назначения уже занята." : "", actor, blockers };
+}
+
+function effectAttackStatus(scene, sourceActorId, targetIds = []) {
+  const source = actorById(scene, sourceActorId), targets = [...new Set(targetIds || [])].map(id => actorById(scene, id)).filter(Boolean);
+  if (!source) return { available: false, reason: "Атакующий не найден.", source: null, targets, damageModifier: 0, damageByTarget: {}, hindrance: 0, hindranceEffects: [] };
+  const tier = Number(source.tier || 1);
+  const damageModifier = (hasEffect(scene, source, "positive.усилен") ? tier : 0) - (hasEffect(scene, source, "negative.ослаблен") ? tier : 0);
+  const damageByTarget = Object.fromEntries(targets.map(target => [target.id, hasEffect(scene, target, "negative.помечен") ? tier : 0]));
+  const targetSet = new Set(targets.map(target => target.id)), hindranceEffects = [];
+  const frightened = effectStateFor(source, "negative.испуган");
+  if (frightened?.sources.some(item => targetSet.has(item.actorId))) hindranceEffects.push("Испуган");
+  const taunted = effectStateFor(source, "negative.спровоцирован");
+  if (taunted?.sources.length && !taunted.sources.some(item => targetSet.has(item.actorId))) hindranceEffects.push("Спровоцирован");
+  return { available: true, reason: "", source, targets, damageModifier, damageByTarget, hindrance: hindranceEffects.length * tier, hindranceEffects };
+}
+
+function effectDefenseStatus(scene, targetActorId) {
+  const target = actorById(scene, targetActorId);
+  if (!target) return { available: false, reason: "Защищающийся не найден.", target: null, armorAllowed: false, armorBonus: 0, dodgeAllowed: false, dodgeReason: "" };
+  const armorAllowed = !hasEffect(scene, target, "negative.разорван");
+  const armorBonus = armorAllowed && hasEffect(scene, target, "positive.укреплен") ? Number(target.tier || 1) : 0;
+  const dodgeBlockers = [
+    hasEffect(scene, target, "negative.обездвижен") && "Обездвижен",
+    hasEffect(scene, target, "negative.пойман") && "Пойман",
+    hasEffect(scene, target, "negative.подброшен") && "Подброшен",
+  ].filter(Boolean);
+  return {
+    available: true,
+    reason: "",
+    target,
+    armorAllowed,
+    armorBonus,
+    dodgeAllowed: dodgeBlockers.length === 0,
+    dodgeReason: dodgeBlockers.length ? `${dodgeBlockers.join(", ")} не позволяет получить преимущество Уворота.` : "",
+  };
 }
 
 function summarizeEvents(scene, events = []) {

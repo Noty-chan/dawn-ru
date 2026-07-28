@@ -186,6 +186,11 @@ assert.ok(!sourcedEffect.actors.find(actor => actor.id === "enemy").effects.incl
 const caughtSourceScene = Engine.dispatchMany(scene, [{ type: "effect.apply", actorId: "hero", payload: { targetId: "enemy", effect: "negative.пойман" } }]).scene;
 const disappearedCatcher = Engine.dispatchMany(caughtSourceScene, [{ type: "effect.apply", actorId: "hero", payload: { targetId: "hero", effect: "positive.исчез" } }]).scene;
 assert.ok(!disappearedCatcher.actors[1].effects.includes("negative.пойман"), "Caught ends when its source is no longer on the field");
+const banishedSourceScene = Engine.dispatchMany(scene, [
+  { type: "effect.apply", actorId: "hero", payload: { targetId: "enemy", effect: "positive.изгнан" } },
+  { type: "actor.knockout", actorId: "enemy", payload: { targetId: "hero" } },
+]).scene;
+assert.ok(banishedSourceScene.actors[1].effects.includes("positive.изгнан"), "Banishment tracks its source but does not invent source-knockout expiry");
 
 const reaperEffectScene = structuredClone(scene);
 reaperEffectScene.turnSerial = 4;
@@ -227,6 +232,114 @@ const mindBreakerScene = structuredClone(scene);
 mindBreakerScene.actors[0].techniques = { "disruptor.mind-breaker": 2 };
 const mindBreakerBanished = Engine.dispatchMany(mindBreakerScene, [{ type: "effect.apply", actorId: "hero", payload: { targetId: "enemy", effect: "positive.изгнан", sourceActionId: "disruptor.mind-breaker.1" } }]).scene;
 assert.ok(Engine.effectiveEffects(mindBreakerBanished, "enemy").includes("negative.помечен"), "Mind Breaker II derives Marked from its source-aware Banishment relation");
+
+const banishedPolicyScene = structuredClone(scene);
+banishedPolicyScene.actors[1].effects = ["positive.изгнан"];
+assert.equal(Engine.effectTargetingStatus(banishedPolicyScene, "hero", "enemy").available, false, "A non-Banished actor cannot target a Banished actor");
+assert.equal(Engine.effectCellOccupancyStatus(banishedPolicyScene, "hero", { space: "main", x: 2, y: 1 }).available, true, "Banished and non-Banished actors may share a cell");
+banishedPolicyScene.actors[0].effects = ["positive.изгнан"];
+assert.equal(Engine.effectTargetingStatus(banishedPolicyScene, "hero", "enemy").available, true, "Banished actors can target one another");
+assert.equal(Engine.effectCellOccupancyStatus(banishedPolicyScene, "hero", { space: "main", x: 2, y: 1 }).available, true, "Banished actors may share a cell with one another");
+assert.throws(() => Engine.dispatch(scene, { type: "actor.move", actorId: "hero", payload: { space: "main", x: 2, y: 1 } }), /занята/);
+
+const movementEffectScene = structuredClone(scene);
+movementEffectScene.actors[0].effects = ["positive.ускорен"];
+assert.equal(Engine.effectMovementStatus(movementEffectScene, "hero", { distance: 4 }).distance, 8, "Accelerated doubles every shared movement allowance");
+movementEffectScene.actors[0].effects = ["negative.замедлен"];
+assert.equal(Engine.effectMovementStatus(movementEffectScene, "hero", { distance: 5 }).distance, 2, "Slowed halves and rounds down every shared movement allowance");
+movementEffectScene.actors[0].effects = ["positive.ускорен", "negative.замедлен"];
+assert.equal(Engine.effectMovementStatus(movementEffectScene, "hero", { distance: 4 }).distance, 4, "Accelerated and Slowed cancel rather than one silently winning");
+
+const disappearedPolicyScene = structuredClone(scene);
+disappearedPolicyScene.actors[1].effects = ["positive.исчез"];
+assert.equal(Engine.effectPresenceStatus(disappearedPolicyScene, "enemy").onField, false);
+assert.equal(Engine.effectTargetingStatus(disappearedPolicyScene, "hero", "enemy").available, false, "Disappeared actors are removed from shared targeting");
+assert.deepEqual(Array.from(Engine.actorIdsInRange(disappearedPolicyScene, "hero", 5, { audience: "enemies" })), [], "Spatial target queries omit Disappeared actors");
+
+const invisibleFreeScene = structuredClone(scene);
+invisibleFreeScene.actors[0].effects = ["positive.невидим"];
+const invisibleFree = Engine.prepareInvisibleDisappear(invisibleFreeScene, "hero");
+assert.equal(invisibleFree.ok, true);
+const invisibleFreeResult = Engine.dispatchMany(invisibleFreeScene, invisibleFree.events).scene;
+assert.ok(invisibleFreeResult.actors[0].effects.includes("positive.исчез"));
+assert.ok(!invisibleFreeResult.actors[0].effects.includes("positive.невидим"));
+assert.ok(!invisibleFreeResult.pendingPrompt, "Freely losing Invisible does not recursively offer the loss Reaction");
+
+const attackEffectScene = structuredClone(scene);
+attackEffectScene.actors[0].tier = 2;
+attackEffectScene.actors[0].effects = ["positive.усилен", "negative.ослаблен"];
+attackEffectScene.actors[1].effects = ["negative.помечен"];
+let attackEffects = Engine.dispatch(attackEffectScene, { type: "attack.pending", actorId: "hero", payload: { name: "Проверка Эффектов", targetIds: ["enemy"], damage: 3 } }).scene;
+assert.equal(attackEffects.pendingAction.damageByTarget.enemy, 5, "Empowered and Weakened cancel while Marked adds the attacker's Tier");
+const empoweredOnlyScene = structuredClone(attackEffectScene);
+empoweredOnlyScene.actors[0].effects = ["positive.усилен"];
+attackEffects = Engine.dispatch(empoweredOnlyScene, { type: "attack.pending", actorId: "hero", payload: { name: "Проверка Усиления", targetIds: ["enemy"], damage: 3 } }).scene;
+assert.equal(attackEffects.pendingAction.damageByTarget.enemy, 7, "Empowered and Marked are applied once in the universal Attack pipeline");
+const dividedAttackEffects = Engine.dispatch(empoweredOnlyScene, { type: "attack.pending", actorId: "hero", payload: { name: "Проверка порядка урона", targetIds: ["enemy"], damage: 2, damageByTarget: { enemy: 2 }, effectDamageBase: 3, effectDamageBaseByTarget: { enemy: 3 }, effectDamageDivisor: 2 } }).scene;
+assert.equal(dividedAttackEffects.pendingAction.damageByTarget.enemy, 4, "universal effect damage is applied before a technique halves the result");
+
+const defenseEffectScene = structuredClone(scene);
+defenseEffectScene.actors[1].tier = 2;
+defenseEffectScene.actors[1].armor = 2;
+defenseEffectScene.actors[1].evasion = 0;
+defenseEffectScene.actors[1].effects = ["positive.укреплен"];
+let defended = Engine.dispatch(defenseEffectScene, { type: "damage.apply", actorId: "hero", payload: { targetId: "enemy", amount: 6 } }).scene;
+assert.equal(defended.actors[1].hp, 8, "Fortified adds the target's Tier to Armor for shared damage resolution");
+const rupturedDefenseScene = structuredClone(defenseEffectScene);
+rupturedDefenseScene.actors[1].effects = ["positive.укреплен", "negative.разорван"];
+defended = Engine.dispatch(rupturedDefenseScene, { type: "damage.apply", actorId: "hero", payload: { targetId: "enemy", amount: 6 } }).scene;
+assert.equal(defended.actors[1].hp, 4, "Ruptured suppresses both base and Fortified Armor");
+
+const resistantScene = structuredClone(scene);
+resistantScene.actors[1].effects = ["positive.устойчив"];
+assert.equal(Engine.displacementStatus(resistantScene, { actorId: "enemy", mode: "push", sourceActorId: "hero", maximum: 1 }).available, false, "Resistant blocks forced displacement");
+assert.throws(() => Engine.dispatch(resistantScene, { type: "actor.move", actorId: "enemy", payload: { space: "main", x: 3, y: 1, forced: true } }), /Устойчив/);
+
+const corruptedScene = structuredClone(scene);
+corruptedScene.actors[0].tier = 2;
+corruptedScene.actors[0].hp = 10;
+corruptedScene.actors[0].armor = 20;
+corruptedScene.actors[0].evasion = 20;
+corruptedScene.actors[0].effects = ["negative.порчен"];
+const corruptedAttack = Engine.dispatchMany(corruptedScene, [{ type: "attack.pending", actorId: "hero", payload: { name: "Порченая Атака", targetIds: ["enemy"], damage: 1 } }]).scene;
+assert.equal(corruptedAttack.actors[0].hp, 8, "Corrupted loses Health on every canonical Attack, bypassing Armor and Evasion");
+assert.equal(corruptedAttack.actors[0].evasion, 20);
+
+const controlEffectScene = structuredClone(scene);
+controlEffectScene.actors[0].tier = 2;
+controlEffectScene.actors.push({ ...structuredClone(scene.actors[1]), id: "provoker", name: "Провокатор", x: 3, y: 1 });
+let controlled = Engine.dispatchMany(controlEffectScene, [
+  { type: "effect.apply", actorId: "enemy", payload: { targetId: "hero", effect: "negative.испуган" } },
+  { type: "effect.apply", actorId: "provoker", payload: { targetId: "hero", effect: "negative.спровоцирован" } },
+]).scene;
+assert.equal(Engine.effectAttackStatus(controlled, "hero", ["enemy"]).hindrance, 4, "Frightened and Taunted stack their separate Tier Hindrances");
+assert.equal(Engine.effectAttackStatus(controlled, "hero", ["enemy", "provoker"]).hindrance, 2, "Targeting the provoking source removes only Taunted Hindrance");
+assert.equal(Engine.effectAttackStatus(controlled, "hero", ["provoker"]).hindrance, 0, "Avoiding the frightening source and targeting the provoking source removes both Hindrances");
+
+const immobilizedScene = structuredClone(scene);
+immobilizedScene.actors[0].effects = ["negative.обездвижен"];
+assert.equal(Engine.effectMovementStatus(immobilizedScene, "hero", { distance: 4 }).available, false);
+assert.deepEqual(Array.from(Engine.movementPath(immobilizedScene, "hero", { x: 1, y: 2 }, { maxDistance: 4 })), []);
+assert.equal(Engine.effectDefenseStatus(immobilizedScene, "hero").dodgeAllowed, false, "Immobilized blocks both voluntary movement and Dodge benefit");
+
+const launchedOrderScene = structuredClone(scene);
+launchedOrderScene.activeActorId = null;
+launchedOrderScene.actors[0].effects = ["negative.подброшен"];
+launchedOrderScene.actors.push({ ...structuredClone(scene.actors[0]), id: "ally", name: "Союзник", x: 0, y: 0, effects: [], acted: false });
+assert.equal(Engine.turnStartStatus(launchedOrderScene, "hero").available, false, "Launched actors wait for every ready non-Launched ally");
+launchedOrderScene.actors.find(actor => actor.id === "ally").acted = true;
+assert.equal(Engine.turnStartStatus(launchedOrderScene, "hero").available, true);
+assert.equal(Engine.effectDefenseStatus(launchedOrderScene, "hero").dodgeAllowed, false);
+
+const caughtPolicyScene = structuredClone(scene);
+caughtPolicyScene.actors[1].x = 5;
+caughtPolicyScene.actors[1].y = 1;
+let caughtPolicy = Engine.dispatchMany(caughtPolicyScene, [{ type: "effect.apply", actorId: "hero", payload: { targetId: "enemy", effect: "negative.пойман" } }]).scene;
+assert.equal(Math.abs(caughtPolicy.actors[0].x - caughtPolicy.actors[1].x) + Math.abs(caughtPolicy.actors[0].y - caughtPolicy.actors[1].y), 1, "Caught pulls its target adjacent when applied");
+assert.equal(Engine.effectMovementStatus(caughtPolicy, "enemy", { distance: 3 }).available, false);
+assert.equal(Engine.effectDefenseStatus(caughtPolicy, "enemy").dodgeAllowed, false);
+caughtPolicy = Engine.dispatchMany(caughtPolicy, [{ type: "actor.move", actorId: "hero", payload: { space: "main", x: 1, y: 4, movement: "Шаг источника" } }]).scene;
+assert.equal(Math.abs(caughtPolicy.actors[0].x - caughtPolicy.actors[1].x) + Math.abs(caughtPolicy.actors[0].y - caughtPolicy.actors[1].y), 1, "Caught follows its source and remains adjacent");
 
 const previewSource = structuredClone(scene);
 const preview = Engine.previewEvents(previewSource, [{ type: "resource.gain", actorId: "hero", payload: { resource: "focus", amount: 2 } }]);
@@ -1055,6 +1168,7 @@ assert.equal(runeScene.actors[1].ap, 0);
 
 const awaitingDodge = structuredClone(enemyAwaiting);
 awaitingDodge.pendingAction.damage = 2;
+awaitingDodge.pendingAction.damageByTarget.hero = 2;
 awaitingDodge.pendingAction.effects = ["negative.помечен"];
 const dodge = Engine.respondReaction(awaitingDodge, data, { actorId: "hero", choice: "Уворот", destination: { x: 0, y: 1 } });
 assert.equal(dodge.ok, true);
@@ -1086,6 +1200,7 @@ assert.ok(afterDuelistBlock.actors.find(actor => actor.id === "enemy").effects.i
 
 const untouchableAwaiting = structuredClone(enemyAwaiting);
 untouchableAwaiting.pendingAction.damage = 2;
+untouchableAwaiting.pendingAction.damageByTarget.hero = 2;
 untouchableAwaiting.actors[0].techniques = { "vagabond.untouchable": 2 };
 const longDodge = Engine.respondReaction(untouchableAwaiting, data, { actorId: "hero", choice: "Уворот", destination: { x: 1, y: 4 } });
 assert.equal(longDodge.ok, true, "Untouchable II extends Dodge movement to three cells");

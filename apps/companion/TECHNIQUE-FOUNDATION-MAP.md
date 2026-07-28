@@ -36,7 +36,7 @@ SHA-256 проверенных файлов: `d182955a22bfba32780138b24551ebe574
 | `choice-flow` | Типизированное решение | готово | `scene-responses.js / scene-events.js / scene-effects.js` | 144 |
 | `damage-pipeline` | Конвейер урона, Здоровья и Ран | готово | `scene-responses.js / scene-events.js` | 106 |
 | `action-modifier` | Модификатор или новое действие | готово | `scene-actions.js / scene-responses.js` | 244 |
-| `effect-lifecycle` | Наложение, снятие и срок Эффекта | готово | `scene-engine-core.js / scene-query.js / scene-events.js / scene-triggers.js` | 129 |
+| `effect-lifecycle` | Механика, источник и срок Эффекта | готово | `scene-engine-core.js / scene-query.js / scene-events.js / scene-triggers.js / scene-responses.js` | 129 |
 | `entity-lifecycle` | Жизненный цикл зон, маркеров и объектов | планируется | — | 63 |
 | `inventory` | Инвентарь и заряды | планируется | — | 24 |
 | `summon-turns` | Призывы и делегированные Ходы | планируется | — | 11 |

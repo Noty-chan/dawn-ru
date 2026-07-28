@@ -62,12 +62,16 @@ function turnActionProgressStatus(scene, actorId) {
 function movementPath(scene, actorId, destination, options = {}) {
   const actor = actorById(scene, actorId), space = (scene.spaces || []).find(item => item.id === actor?.space);
   if (!actor || !space || !destination || !Number.isInteger(Number(destination.x)) || !Number.isInteger(Number(destination.y))) return [];
+  const movement = effectMovementStatus(scene, actorId, { forced: Boolean(options.forced), placement: Boolean(options.placement), ignoreResistance: Boolean(options.ignoreResistance), ignoreVoluntaryRestrictions: Boolean(options.ignoreVoluntaryRestrictions) });
+  if (!movement.available) return [];
   const end = { x: Number(destination.x), y: Number(destination.y) }, limit = Number.isFinite(Number(options.maxDistance)) ? Number(options.maxDistance) : Infinity;
   if (end.x < 0 || end.y < 0 || end.x >= space.width || end.y >= space.height) return [];
   const terrain = new Set((scene.objects || []).filter(object => object.space === actor.space && object.type === "terrain").flatMap(object => object.cells || []));
   const difficult = new Set((scene.objects || []).filter(object => object.space === actor.space && object.type === "difficult").flatMap(object => object.cells || []));
   const removed = removedCellKeys(scene, actor.space);
-  const opponents = new Set((scene.actors || []).filter(item => item.id !== actor.id && item.space === actor.space && item.team !== actor.team).map(item => `${item.x},${item.y}`));
+  const actorBanished = hasEffect(scene, actor, "positive.изгнан");
+  const opponents = new Set((scene.actors || []).filter(item => item.id !== actor.id && item.space === actor.space && item.team !== actor.team && effectPresenceStatus(scene, item.id).onField)
+    .filter(item => !actorBanished && !hasEffect(scene, item, "positive.изгнан")).map(item => `${item.x},${item.y}`));
   const blocked = point => removed.has(cellKey(point)) || (!options.ignoreTerrain && terrain.has(cellKey(point))) || (!options.ignoreEnemies && opponents.has(cellKey(point)));
   if (options.straight) {
     const dx = end.x - actor.x, dy = end.y - actor.y, ax = Math.abs(dx), ay = Math.abs(dy);
@@ -120,6 +124,8 @@ function displacementStatus(scene, request = {}) {
   if (!actor) return unavailable("Перемещаемый персонаж не найден.");
   if (!space) return unavailable("Поле персонажа не найдено.");
   if (actor.knockedOut && !request.allowKnockedOut) return unavailable("Выведенного из строя персонажа нельзя переместить этим правилом.");
+  const effectMovement = effectMovementStatus(scene, actor.id, { forced: true, ignoreResistance: Boolean(request.ignoreResistance) });
+  if (!effectMovement.available) return unavailable(effectMovement.reason);
 
   const maximum = Math.max(1, Math.min(99, Number(request.maximum || request.distance || 1)));
   const mode = String(request.mode || "directed");
@@ -142,7 +148,8 @@ function displacementStatus(scene, request = {}) {
   if (!vector || !Number.isInteger(Number(vector.x)) || !Number.isInteger(Number(vector.y)) || Math.abs(Number(vector.x)) > 1 || Math.abs(Number(vector.y)) > 1 || !Number(vector.x) && !Number(vector.y)) return unavailable("Не задано допустимое направление перемещения.");
   vector = { x: Math.sign(Number(vector.x)), y: Math.sign(Number(vector.y)) };
 
-  const occupied = new Set((scene.actors || []).filter(item => item.id !== actor.id && item.space === actor.space).map(cellKey));
+  const occupied = new Set((scene.actors || []).filter(item => item.id !== actor.id && item.space === actor.space && effectPresenceStatus(scene, item.id).onField)
+    .filter(item => !hasEffect(scene, actor, "positive.изгнан") && !hasEffect(scene, item, "positive.изгнан")).map(cellKey));
   const blockingTypes = new Set(request.blockingTypes || ["terrain"]);
   const terrain = new Set((scene.objects || []).filter(object => object.space === actor.space && blockingTypes.has(object.type)).flatMap(object => object.cells || []));
   const removed = removedCellKeys(scene, actor.space), path = [], crossings = [];
@@ -202,7 +209,7 @@ function prepareDisplacements(scene, requests = [], options = {}) {
           y: status.destination.y,
           movement: String(request.name || options.name || "Принудительное перемещение").slice(0, 120),
           forced: request.forced !== false,
-          displacement: { mode: status.mode, direction: status.direction, distance: status.distance, ruleId: request.ruleId || options.ruleId || null, allowKnockedOut: Boolean(request.allowKnockedOut), ignoreActors: Boolean(request.ignoreActors), ignoreTerrain: Boolean(request.ignoreTerrain) },
+          displacement: { mode: status.mode, direction: status.direction, distance: status.distance, ruleId: request.ruleId || options.ruleId || null, allowKnockedOut: Boolean(request.allowKnockedOut), ignoreActors: Boolean(request.ignoreActors), ignoreTerrain: Boolean(request.ignoreTerrain), ignoreResistance: Boolean(request.ignoreResistance) },
           path: status.path.map(cellKey),
           topologyCrossings: status.topologyCrossings,
           participantIds: [...new Set([...(request.participantIds || []), request.actorId])],
@@ -226,6 +233,10 @@ function turnStartStatus(scene, actorId) {
   if (scene.activeActorId) return { available: false, reason: "Сначала завершите текущий Ход." };
   if (actor.knockedOut) return { available: false, reason: "Выведенный из строя участник не может начать Ход." };
   if (actor.acted) return { available: false, reason: "Этот участник уже действовал в текущем Раунде." };
+  if (hasEffect(scene, actor, "negative.подброшен")) {
+    const unlaunchedAlly = (scene.actors || []).find(item => item.id !== actor.id && item.team === actor.team && !item.knockedOut && !item.acted && !hasEffect(scene, item, "negative.подброшен"));
+    if (unlaunchedAlly) return { available: false, reason: `Подброшенный персонаж действует после союзника «${unlaunchedAlly.name}».` };
+  }
   const lastEnd = currentRoundEvents(scene).find(event => closedTurnActorId(event)), lastActor = actorById(scene, closedTurnActorId(lastEnd));
   if (heroes.length && enemies.length) {
     if (!lastEnd && actor.team !== "hero") return { available: false, reason: "Раунд начинает персонаж игрока." };

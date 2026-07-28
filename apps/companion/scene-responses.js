@@ -5,7 +5,9 @@ function reactionOptions(scene, data, actorId) {
   if (!actor || actor.knockedOut || scene.pendingAction?.responses?.[actorId]?.choice !== "pending") return [];
   const source = actorById(scene, scene.pendingAction.actorId);
   if (!source || source.knockedOut) return [];
-  const defenses = actor.team === "enemy" ? [] : availableActions(scene, data, actorId).filter(action => action.reaction);
+  if (!effectTargetingStatus(scene, source.id, actor.id).available) return [];
+  const effectDefense = effectDefenseStatus(scene, actorId);
+  const defenses = actor.team === "enemy" ? [] : availableActions(scene, data, actorId).filter(action => action.reaction).map(action => action.name === "Уворот" && !effectDefense.dodgeAllowed ? { ...action, available: false, reason: effectDefense.dodgeReason } : action);
   return [{ id: "pass", name: "Без Реакции", available: true, reason: "Принять исходную Атаку без защиты", costModel: { amount: 0, resource: null } }, ...defenses];
 }
 
@@ -14,11 +16,12 @@ function pendingActionStatus(scene) {
   if (!pending) return { exists: false, pending: null, source: null, targetIds: [], eligibleIds: [], unavailableIds: [], waitingIds: [], answeredIds: [], interruptedReason: "", canResolve: false, mustCancel: false };
   const source = actorById(scene, pending.actorId);
   const targetIds = [...new Set(pending.targetIds || [])];
-  const eligibleIds = targetIds.filter(id => { const target = actorById(scene, id); return target && !target.knockedOut; });
+  const eligibleIds = targetIds.filter(id => { const target = actorById(scene, id); return target && !target.knockedOut && effectTargetingStatus(scene, source?.id, target.id).available; });
   const unavailableIds = targetIds.filter(id => !eligibleIds.includes(id));
   const waitingIds = eligibleIds.filter(id => pending.responses?.[id]?.choice === "pending");
   const answeredIds = eligibleIds.filter(id => pending.responses?.[id]?.choice && pending.responses[id].choice !== "pending" && pending.responses[id].choice !== "unavailable");
-  const interruptedReason = pending.interruptedReason || (!source ? "Атакующий больше не находится на Сцене" : source.knockedOut ? "Атакующий выведен из боя" : ""), emptyAllowed = Boolean(pending.allowEmptyTargets && targetIds.length === 0);
+  const sourcePresence = source ? effectPresenceStatus(scene, source.id) : null;
+  const interruptedReason = pending.interruptedReason || (!source ? "Атакующий больше не находится на Сцене" : source.knockedOut ? "Атакующий выведен из боя" : !sourcePresence.onField ? sourcePresence.reason : ""), emptyAllowed = Boolean(pending.allowEmptyTargets && targetIds.length === 0);
   return { exists: true, pending, source, targetIds, eligibleIds, unavailableIds, waitingIds, answeredIds, interruptedReason, canResolve: !interruptedReason && (eligibleIds.length > 0 || emptyAllowed) && waitingIds.length === 0, mustCancel: Boolean(interruptedReason) || (!emptyAllowed && eligibleIds.length === 0) };
 }
 
@@ -37,9 +40,25 @@ function pendingTargetOutcome(scene, pending, targetId) {
   if (!pending || !source || !target || target.knockedOut) return { available: false, reason: "Источник или цель Атаки больше не доступны.", source, target, cancelled: true, rawDamage: 0, armor: 0, evasion: 0, expectedDamage: 0 };
   const clashCancelled = response === "Столкновение" && reaction.clash?.defenderWins, body = Number(target.attrs?.body || 0), dodge = Math.ceil(Math.max(Number(target.attrs?.talent || 0), Number(target.attrs?.mind || 0)) / 2);
   const alliedGas = (scene.objects || []).find(object => object.type === "gas" && object.space === target.space && object.cells?.includes(`${target.x},${target.y}`) && actorById(scene, object.ownerActorId)?.team === target.team), sourceInsideGas = alliedGas && source.space === alliedGas.space && alliedGas.cells?.includes(`${source.x},${source.y}`), gasEvasion = alliedGas && !sourceInsideGas ? 3 : 0;
-  const fortifiedArmor = hasEffect(scene, target, "positive.укреплен") ? Number(target.tier || 1) : 0, temporaryArmor = (response === "Блок" ? body : 0) + fortifiedArmor, temporaryEvasion = (response === "Уворот" ? dodge + Number(reaction.untouchableEvasion || 0) : 0) + gasEvasion;
-  const rawDamage = pending.damageByTarget && Number.isFinite(Number(pending.damageByTarget[targetId])) ? Number(pending.damageByTarget[targetId]) : Number(pending.damage || 0), raw = Math.max(0, rawDamage), armor = Math.max(0, Number(target.armor || 0) + temporaryArmor), afterArmor = raw > 0 ? Math.max(1, raw - armor) : 0, evasion = Math.max(0, Number(target.evasion || 0) + temporaryEvasion), expectedDamage = clashCancelled ? 0 : Math.max(0, afterArmor - Math.min(afterArmor, evasion));
+  const defense = effectDefenseStatus(scene, target.id), temporaryArmor = response === "Блок" ? body : 0, temporaryEvasion = (response === "Уворот" ? dodge + Number(reaction.untouchableEvasion || 0) : 0) + gasEvasion;
+  const rawDamage = pending.damageByTarget && Number.isFinite(Number(pending.damageByTarget[targetId])) ? Number(pending.damageByTarget[targetId]) : Number(pending.damage || 0), raw = Math.max(0, rawDamage), armor = defense.armorAllowed ? Math.max(0, Number(target.armor || 0) + temporaryArmor + defense.armorBonus) : 0, afterArmor = raw > 0 ? Math.max(1, raw - armor) : 0, evasion = Math.max(0, Number(target.evasion || 0) + temporaryEvasion), expectedDamage = clashCancelled ? 0 : Math.max(0, afterArmor - Math.min(afterArmor, evasion));
   return { available: true, reason: "", source, target, response, cancelled: clashCancelled, rawDamage, raw, armor, evasion, temporaryArmor, temporaryEvasion, afterArmor, expectedDamage };
+}
+
+function prepareInvisibleDisappear(scene, actorId) {
+  const actor = actorById(scene, actorId), errors = [];
+  if (!actor) errors.push("Персонаж не найден.");
+  if (actor && scene.activeActorId !== actor.id) errors.push("Свободно Исчезнуть можно только в собственный Ход.");
+  if (actor?.knockedOut) errors.push("Выведенный из боя персонаж не может Исчезнуть.");
+  if (actor && !hasEffect(scene, actor, "positive.невидим")) errors.push("У персонажа нет Эффекта Невидим.");
+  if (actor && hasEffect(scene, actor, "positive.исчез")) errors.push("Персонаж уже Исчез.");
+  if (scene.pendingAction) errors.push("Сначала завершите текущую цепочку Реакций.");
+  if (scene.pendingPrompt) errors.push("Сначала ответьте на сработавшее правило.");
+  if (errors.length) return { ok: false, errors, events: [] };
+  return { ok: true, errors: [], events: [
+    { type: "effect.remove", actorId: actor.id, payload: { targetId: actor.id, effect: "positive.невидим", suppressInvisibleReaction: true, sourceActionId: "positive.невидим", participantIds: [actor.id] } },
+    { type: "effect.apply", actorId: actor.id, payload: { targetId: actor.id, effect: "positive.исчез", sourceActionId: "positive.невидим", participantIds: [actor.id] } },
+  ] };
 }
 
 function cancelPendingAction(scene, request = {}) {
@@ -302,7 +321,7 @@ function preparePromptPlacement(scene, request = {}) {
   if (!prompt || !actor || !["marker-move-cell", "empath-rush-cell", "reappear-cell", "knife-pickup-step", "meister-overclock-move", "egomaniac-style-move", "thunder-surge-cell", "siren-irresistible-cell", "untouchable-weave-cell"].includes(prompt.kind)) errors.push("Сейчас нет выбора клетки для правила.");
   if (!space || !destination || !Number.isInteger(destination.x) || !Number.isInteger(destination.y) || destination.x < 0 || destination.y < 0 || destination.x >= Number(space?.width || 0) || destination.y >= Number(space?.height || 0)) errors.push("Выберите клетку в пределах поля.");
   const movingActor = prompt?.kind === "siren-irresistible-cell" ? target : actor;
-  if (prompt?.kind !== "marker-move-cell" && (scene.actors || []).some(item => !item.knockedOut && item.id !== movingActor?.id && item.space === space?.id && item.x === destination?.x && item.y === destination?.y)) errors.push("Клетка занята.");
+  if (prompt?.kind !== "marker-move-cell" && movingActor && !effectCellOccupancyStatus(scene, movingActor.id, { space: space?.id, x: destination?.x, y: destination?.y }).available) errors.push("Клетка занята.");
   if (prompt?.kind === "marker-move-cell") {
     if (!marker) errors.push("Духовное пламя больше не существует.");
     if (prompt.context?.maxDistance && marker && distance(marker, { ...destination, space: marker.space }) > Number(prompt.context.maxDistance)) errors.push(`Маркер можно переместить не дальше ${prompt.context.maxDistance} клеток.`);
@@ -311,26 +330,33 @@ function preparePromptPlacement(scene, request = {}) {
   }
   if (prompt?.kind === "empath-rush-cell") {
     if (!target || distance(target, { ...destination, space: target.space }) !== 1) errors.push("Прорыв должен закончиться смежно с союзником.");
-    if (actor && movementPath(scene, actor.id, destination, { maxDistance: Number(prompt.context?.maxDistance || actor.speed || 0) }).length < 1) errors.push("До этой клетки нельзя добраться Прорывом.");
+    const maximum = actor ? effectMovementStatus(scene, actor.id, { distance: Number(prompt.context?.maxDistance || actor.speed || 0) }).distance : 0;
+    if (actor && movementPath(scene, actor.id, destination, { maxDistance: maximum }).length < 1) errors.push("До этой клетки нельзя добраться Прорывом.");
   }
-  if (prompt?.kind === "reappear-cell" && (scene.actors || []).some(item => !item.knockedOut && item.id !== actor.id && item.space === actor.space && distance(item, { ...destination, space: actor.space }) <= 1)) errors.push("При появлении клетка не должна быть смежна с персонажем.");
-  if (["knife-pickup-step", "meister-overclock-move"].includes(prompt?.kind) && distance(actor, { ...destination, space: actor.space }) > Number(prompt.context?.maxDistance || 0)) errors.push("Клетка находится за пределами разрешённого перемещения.");
+  if (prompt?.kind === "reappear-cell" && (scene.actors || []).some(item => item.id !== actor.id && effectPresenceStatus(scene, item.id).onField && item.space === actor.space && distance(item, { ...destination, space: actor.space }) <= 1)) errors.push("При появлении клетка не должна быть смежна с персонажем.");
+  if (["knife-pickup-step", "meister-overclock-move"].includes(prompt?.kind)) {
+    const maximum = effectMovementStatus(scene, actor.id, { distance: Number(prompt.context?.maxDistance || 0) }).distance;
+    if (distance(actor, { ...destination, space: actor.space }) > maximum) errors.push("Клетка находится за пределами разрешённого перемещения.");
+  }
   if (prompt?.kind === "egomaniac-style-move") {
-    const dx = Math.abs(Number(destination?.x) - Number(actor?.x)), dy = Math.abs(Number(destination?.y) - Number(actor?.y));
-    if (distance(actor, { ...destination, space: actor.space }) > Number(prompt.context?.maxDistance || 2) || dx > 0 && dy > 0) errors.push("Пиковая форма перемещает не дальше 2 клеток по прямой.");
+    const dx = Math.abs(Number(destination?.x) - Number(actor?.x)), dy = Math.abs(Number(destination?.y) - Number(actor?.y)), maximum = effectMovementStatus(scene, actor.id, { distance: Number(prompt.context?.maxDistance || 2) }).distance;
+    if (distance(actor, { ...destination, space: actor.space }) > maximum || dx > 0 && dy > 0) errors.push(`Пиковая форма перемещает не дальше ${maximum} клеток по прямой.`);
   }
   if (prompt?.kind === "thunder-surge-cell" && (!target || target.knockedOut || target.space !== actor.space || distance(target, { ...destination, space: target.space }) !== 1)) errors.push("Скачок должен закончиться в свободной клетке, смежной с исходной целью.");
   let weavePath = [];
   if (prompt?.kind === "untouchable-weave-cell") {
-    weavePath = movementPath(scene, actor.id, destination, { maxDistance: Number(prompt.context?.maxDistance || 3) });
-    if (!weavePath.length) errors.push("Для «Маятника» выберите достижимую свободную клетку в пределах 3 клеток.");
+    const maximum = effectMovementStatus(scene, actor.id, { distance: Number(prompt.context?.maxDistance || 3) }).distance;
+    weavePath = movementPath(scene, actor.id, destination, { maxDistance: maximum });
+    if (!weavePath.length) errors.push(`Для «Маятника» выберите достижимую свободную клетку в пределах ${maximum} клеток.`);
   }
   let sirenPath = [];
   if (prompt?.kind === "siren-irresistible-cell") {
     if (!target || target.knockedOut || target.space !== actor.space) errors.push("Цель «Неотразимой» больше недоступна.");
     else {
       const unchanged = target.x === destination?.x && target.y === destination?.y;
-      sirenPath = unchanged ? [] : movementPath(scene, target.id, destination, { maxDistance: Number(prompt.context?.maxDistance || 3) });
+      const movement = effectMovementStatus(scene, target.id, { forced: true, distance: Number(prompt.context?.maxDistance || 3) });
+      if (!movement.available) errors.push(movement.reason);
+      sirenPath = unchanged ? [] : movementPath(scene, target.id, destination, { maxDistance: movement.distance, forced: true });
       if (!unchanged && !sirenPath.length) errors.push("Цель должна добраться до клетки обычным перемещением не дальше 3 клеток.");
       let previous = distance(target, actor);
       for (const point of sirenPath) {
@@ -362,7 +388,7 @@ function preparePromptPlacement(scene, request = {}) {
     events.push({ type: "actor.enter", actorId: actor.id, payload: { space: actor.space, x: destination.x, y: destination.y, movement: "Маятник" } });
     events.push({ type: "technique.resolve", actorId: actor.id, payload: { ruleId: "vagabond.untouchable.2", name: "Маятник", affectedActorIds: [actor.id], participantIds: [actor.id] } });
   } else {
-    events.push({ type: "actor.move", actorId: actor.id, payload: { space: actor.space, x: destination.x, y: destination.y, movement: prompt.kind === "thunder-surge-cell" ? "Телепортация · Скачок" : prompt.title, participantIds: [actor.id, target?.id].filter(Boolean) } });
+    events.push({ type: "actor.move", actorId: actor.id, payload: { space: actor.space, x: destination.x, y: destination.y, movement: prompt.kind === "thunder-surge-cell" ? "Телепортация · Скачок" : prompt.title, placement: ["reappear-cell", "thunder-surge-cell"].includes(prompt.kind), participantIds: [actor.id, target?.id].filter(Boolean) } });
     events.push({ type: "actor.enter", actorId: actor.id, payload: { space: actor.space, x: destination.x, y: destination.y, movement: prompt.title } });
     if (prompt.kind === "reappear-cell") events.push({ type: "effect.remove", actorId: actor.id, payload: { targetId: actor.id, effect: "positive.исчез", sourceActionId: "reappear", participantIds: [actor.id] } });
   }
@@ -428,9 +454,9 @@ function respondReaction(scene, data, request = {}) {
   if (option?.name === "Уворот") {
     const destination = request.destination;
     const space = (scene.spaces || []).find(item => item.id === actor?.space);
-    const dodgeDistance = Number(actor?.techniques?.["vagabond.untouchable"] || 0) >= 2 ? 3 : 2, path = actor && destination ? movementPath(scene, actor.id, destination, { maxDistance: dodgeDistance }) : [];
+    const baseDodgeDistance = Number(actor?.techniques?.["vagabond.untouchable"] || 0) >= 2 ? 3 : 2, dodgeDistance = actor ? effectMovementStatus(scene, actor.id, { distance: baseDodgeDistance }).distance : 0, path = actor && destination ? movementPath(scene, actor.id, destination, { maxDistance: dodgeDistance }) : [];
     if (!destination || !space || !path.length || destination.x < 0 || destination.y < 0 || destination.x >= space.width || destination.y >= space.height) errors.push(`Для Уворота выберите достижимую свободную клетку в пределах ${dodgeDistance} клеток.`);
-    else if ((scene.actors || []).some(item => item.id !== actor.id && item.space === actor.space && item.x === destination.x && item.y === destination.y)) errors.push("Клетка Уворота занята.");
+    else if (!effectCellOccupancyStatus(scene, actor.id, { space: actor.space, x: destination.x, y: destination.y }).available) errors.push("Клетка Уворота занята.");
   }
   if (option?.name === "Столкновение") {
     const source = actorById(scene, pending?.actorId);
@@ -444,7 +470,7 @@ function respondReaction(scene, data, request = {}) {
   const untouchableEvasion = option?.name === "Уворот" && Number(actor?.techniques?.["vagabond.untouchable"] || 0) >= 1 && !currentRoundEvents(scene).some(event => event.type === "reaction.respond" && event.actorId === actor.id && event.payload?.choice === "Уворот" && Number(event.payload?.untouchableEvasion || 0) > 0) ? Math.ceil(Number(actor.attrs?.talent || 0) / 2) : 0;
   if (option.costModel?.resource && option.costModel.amount) events.push({ type: "resource.spend", actorId: actor.id, payload: option.costModel });
   if (option.name === "Уворот") {
-    const dodgeDistance = Number(actor?.techniques?.["vagabond.untouchable"] || 0) >= 2 ? 3 : 2, path = movementPath(scene, actor.id, request.destination, { maxDistance: dodgeDistance });
+    const baseDodgeDistance = Number(actor?.techniques?.["vagabond.untouchable"] || 0) >= 2 ? 3 : 2, dodgeDistance = effectMovementStatus(scene, actor.id, { distance: baseDodgeDistance }).distance, path = movementPath(scene, actor.id, request.destination, { maxDistance: dodgeDistance });
     events.push({ type: "actor.move", actorId: actor.id, payload: { space: actor.space, x: request.destination.x, y: request.destination.y, movement: "Уворот", path: path.map(cellKey) } });
     events.push({ type: "actor.enter", actorId: actor.id, payload: { space: actor.space, x: request.destination.x, y: request.destination.y } });
   }
