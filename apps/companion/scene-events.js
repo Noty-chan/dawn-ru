@@ -91,7 +91,7 @@ function validateEvent(scene, event, options = {}) {
     if (!Array.isArray(payload.targetIds) || payload.targetIds.length > 40 || !payload.allowEmptyTargets && payload.targetIds.length < 1 || payload.targetIds.some(id => !actorById(scene, id) || actorById(scene, id).knockedOut) || !finite(payload.damage) || Number(payload.damage) < 0 || Number(payload.damage) > 9999) throw new Error("Некорректные параметры атаки.");
     const unavailableTarget = payload.targetIds.find(id => !effectTargetingStatus(scene, event.actorId, id).available);
     if (unavailableTarget) throw new Error(effectTargetingStatus(scene, event.actorId, unavailableTarget).reason);
-    if (payload.attackModifierIds != null && (!Array.isArray(payload.attackModifierIds) || payload.attackModifierIds.length > 40 || !attackModifierStatus(scene, event.actorId, payload.targetIds, payload.attackModifierIds).available)) throw new Error("Некорректные модификаторы Атаки.");
+    if (payload.attackModifierIds != null && (!Array.isArray(payload.attackModifierIds) || payload.attackModifierIds.length > 40 || !attackModifierStatus(scene, event.actorId, payload.targetIds, payload.attackModifierIds, { actionName: payload.declaredActionName || payload.name }).available)) throw new Error("Некорректные модификаторы Атаки.");
   }
   if (event.type === "effect.apply" && (!actorById(scene, payload.targetId) || typeof payload.effect !== "string" || !payload.effect.trim() || payload.effect.length > 80 || payload.duration != null && !EFFECT_DURATIONS.has(payload.duration) || payload.removable != null && typeof payload.removable !== "boolean" || payload.exclusiveBySource != null && typeof payload.exclusiveBySource !== "boolean")) throw new Error("Некорректный Эффект.");
   if (event.type === "effect.apply" && actor && !payload.ignoreEffectTargeting) {
@@ -183,7 +183,7 @@ function validateTransition(scene, event) {
     if (plan.actorId !== event.actorId) throw new Error("План составного действия принадлежит другому персонажу.");
   }
   if (plan && ["turn.start", "turn.end", "round.end", "enemy.action.prepare"].includes(event.type)) throw new Error("Сначала завершите или отмените составное действие.");
-  if (plan && event.type === "action.prepare" && (event.payload?.planId !== plan.id || event.actorId !== plan.actorId || event.payload?.actionId !== plan.actionId)) throw new Error("Действие не совпадает с сохранённым составным планом.");
+  if (plan && event.type === "action.prepare" && (event.payload?.planId !== plan.id || event.actorId !== plan.actorId || (event.payload?.declaredActionId || event.payload?.actionId) !== plan.actionId)) throw new Error("Действие не совпадает с сохранённым составным планом.");
   if (plan && event.type === "attack.pending" && event.actorId !== plan.actorId) throw new Error("Сначала завершите сохранённое составное действие.");
   if (scene.pendingAction && ["turn.start", "turn.end", "round.end"].includes(event.type)) {
     throw new Error("Сначала завершите текущую цепочку Реакций.");

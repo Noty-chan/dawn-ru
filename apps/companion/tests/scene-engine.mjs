@@ -1598,4 +1598,92 @@ assert.ok(!completedComposite.actors[0].effects.includes("positive.исчез"))
 assert.equal(completedComposite.actors[0].ap, 2);
 assert.equal(completedComposite.actors[0].focus, 51, "Appearance, Effect loss, payment, and action resolve in one committed batch");
 
+const assassinScene = structuredClone(scene);
+assassinScene.actors[0].techniques = { "vagabond.assassin": 2 };
+assassinScene.actors[0].effects = ["positive.исчез"];
+assassinScene.actors[0].effectStates = { "positive.исчез": { duration: "actionOrStartTurn", sources: [{ actorId: "hero", sourceActionId: "vagabond.assassin.1" }] } };
+const assassinateDraft = Engine.prepareActionPlan(assassinScene, data, {
+  actorId: "hero",
+  actionId: actionNamed("Стычка").id,
+  phase: "reappear",
+  context: { targetIds: ["enemy"], attackModifierIds: [] },
+});
+assert.equal(assassinateDraft.ok, true);
+const assassinatePlanned = Engine.dispatchMany(assassinScene, assassinateDraft.events).scene;
+const adjacentAssassination = Engine.prepareActionPlanReappearance(assassinatePlanned, { actorId: "hero", destination: { x: 2, y: 2 } });
+assert.equal(adjacentAssassination.ok, true, "Assassinate explicitly permits reappearing adjacent to a character");
+const assassinateReady = Engine.dispatchMany(assassinatePlanned, adjacentAssassination.events).scene;
+assert.equal(assassinateReady.pendingActionPlan.phase, "confirm");
+assert.equal(assassinateReady.actors[0].ap, 3);
+assert.ok(assassinateReady.actors[0].effects.includes("positive.исчез"), "Assassinate remains reversible before final confirmation");
+const assassinateCommit = Engine.prepareActionPlanContinuation(assassinateReady, data, {
+  actorId: "hero",
+  context: { roll: { formula: "6D6 · Ликвидация · крит 5–6", rolls: [6, 5, 4, 3, 2, 1], successes: 3, crits: 2 }, attribute: "talent" },
+});
+assert.equal(assassinateCommit.ok, true);
+const assassinated = Engine.dispatchMany(assassinateReady, assassinateCommit.events).scene;
+assert.equal(assassinated.pendingActionPlan, null);
+assert.deepEqual([assassinated.actors[0].x, assassinated.actors[0].y], [2, 2]);
+assert.ok(!assassinated.actors[0].effects.includes("positive.исчез"));
+assert.equal(assassinated.actors[0].ap, 2);
+assert.equal(assassinated.pendingAction.responses.enemy.choice, "pending", "Assassinate keeps the ordinary Reaction window");
+assert.ok(assassinated.log.some(event => event.type === "actor.move" && event.payload?.movement === "Ликвидация"));
+
+const grapplerScene = structuredClone(scene);
+grapplerScene.actors[0].techniques = { "bulwark.grappler": 2 };
+grapplerScene.actors[0].tier = 2;
+grapplerScene.actors[1].effects = ["negative.подброшен"];
+grapplerScene.actors[1].effectStates = { "negative.подброшен": { duration: "endTurn", sources: [{ actorId: "hero", sourceActionId: "qa.launch" }] } };
+assert.equal(Engine.ruleDiceAdvantage(grapplerScene, "hero", { actionName: "Стычка" }).total, 1, "Spine Breaker grants its passive Skirmish Advantage through the common dice query");
+const spineId = "bulwark.grappler.2:enemy";
+const spineStatus = Engine.attackModifierStatus(grapplerScene, "hero", ["enemy"], [spineId], { actionName: "Стычка" });
+assert.equal(spineStatus.available, true);
+assert.equal(spineStatus.advantage, 2);
+assert.equal(spineStatus.requiresDestination, true);
+assert.equal(spineStatus.actionTransform.actionName, "Завершение");
+assert.equal(Engine.attackModifierDestinationStatus(grapplerScene, "hero", ["enemy"], [spineId], { x: 6, y: 6 }, { actionName: "Стычка" }).available, false);
+const spineDraft = Engine.prepareActionPlan(grapplerScene, data, {
+  actorId: "hero",
+  actionId: actionNamed("Стычка").id,
+  phase: "destination",
+  context: { targetIds: ["enemy"], attackModifierIds: [spineId], destinationKind: "attack-modifier" },
+});
+assert.equal(spineDraft.ok, true);
+const spinePlanned = Engine.dispatchMany(grapplerScene, spineDraft.events).scene;
+const spineDestination = Engine.prepareActionPlanModifierDestination(spinePlanned, { actorId: "hero", destination: { x: 2, y: 2 } });
+assert.equal(spineDestination.ok, true);
+const spineReady = Engine.dispatchMany(spinePlanned, spineDestination.events).scene;
+assert.equal(spineReady.pendingActionPlan.phase, "confirm");
+assert.deepEqual([spineReady.actors[0].x, spineReady.actors[0].y], [1, 1]);
+assert.equal(spineReady.actors[0].ap, 3, "Choosing the Spine Breaker teleport does not pay or move early");
+const spineCommit = Engine.prepareActionPlanContinuation(spineReady, data, {
+  actorId: "hero",
+  context: { roll: { formula: "6D6 · Тело · Перелом позвоночника", rolls: [6, 5, 4, 3, 2, 1], successes: 3, crits: 1 }, attribute: "body" },
+});
+assert.equal(spineCommit.ok, true);
+const spineBroken = Engine.dispatchMany(spineReady, spineCommit.events).scene;
+assert.deepEqual([spineBroken.actors[0].x, spineBroken.actors[0].y], [2, 2]);
+assert.equal(spineBroken.actors[0].ap, 2, "Transformed Finisher keeps the original Skirmish cost");
+assert.ok(!spineBroken.actors[1].effects.includes("negative.подброшен"));
+assert.equal(spineBroken.pendingAction.name, "Завершение");
+assert.equal(spineBroken.pendingAction.attribute, "body");
+assert.equal(spineBroken.pendingAction.declaredActionName, "Стычка");
+assert.equal(spineBroken.pendingAction.responses.enemy.choice, "pending");
+assert.ok(spineBroken.actors[0].usedActions.includes(actionNamed("Завершение").id), "The transformed attack consumes the Finisher use for this Round");
+assert.ok(spineBroken.log.some(event => event.type === "actor.move" && /Перелом позвоночника/.test(event.payload?.movement || "")), "The optional teleport has its own journalled movement");
+const spentFinisherScene = structuredClone(grapplerScene);
+spentFinisherScene.actors[0].usedActions = [actionNamed("Завершение").id];
+const spentFinisherDraft = Engine.prepareActionPlan(spentFinisherScene, data, {
+  actorId: "hero",
+  actionId: actionNamed("Стычка").id,
+  phase: "destination",
+  context: { targetIds: ["enemy"], attackModifierIds: [spineId], destinationKind: "attack-modifier" },
+});
+assert.equal(spentFinisherDraft.ok, false, "Spine Breaker cannot bypass the once-per-Round Finisher use");
+const interruptedSpineScene = Engine.dispatchMany(spinePlanned, [{ type: "actor.knockout", actorId: "hero", payload: { targetId: "enemy" } }]).scene;
+const interruptedSpine = Engine.prepareActionPlanModifierDestination(interruptedSpineScene, { actorId: "hero", destination: { x: 2, y: 2 } });
+assert.equal(interruptedSpine.ok, false, "Losing the launched target interrupts the modifier before payment");
+assert.deepEqual([interruptedSpineScene.actors[0].x, interruptedSpineScene.actors[0].y], [1, 1]);
+assert.equal(interruptedSpineScene.actors[0].ap, 3);
+
 console.log("Scene engine QA passed: canonical Turns and AP, once-per-Round actions, strict Reactions, truthful enemy automation, effects, movement, damage, and public events");

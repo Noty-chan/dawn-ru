@@ -349,7 +349,7 @@ function triggeredEvents(scene, event) {
     events.push({ type: "action.plan.cancel", actorId: payload.targetId, payload: { planId: scene.pendingActionPlan.id, reason: "Исполнитель выведен из боя.", participantIds: [payload.targetId] } });
   }
   if (event.type === "attack.pending" && actor && Array.isArray(payload.attackModifierIds) && payload.attackModifierIds.length) {
-    const modifiers = attackModifierStatus(scene, actor.id, payload.targetIds, payload.attackModifierIds);
+    const modifiers = attackModifierStatus(scene, actor.id, payload.targetIds, payload.attackModifierIds, { actionName: payload.declaredActionName || payload.name });
     for (const option of modifiers.options.filter(item => modifiers.selectedIds.includes(item.id))) {
       events.push({ type: "effect.remove", actorId: actor.id, payload: { targetId: option.targetId, effect: option.removeEffect, sourceActionId: option.id, reason: option.label, participantIds: [actor.id, option.targetId] } });
     }

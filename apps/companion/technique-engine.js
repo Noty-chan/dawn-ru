@@ -1,7 +1,7 @@
 "use strict";
 
 (function exposeDawnTechniqueEngine(global) {
-  const VERSION = 13;
+  const VERSION = 14;
 
   const RULES = [
     { id: "powerhouse.braggart.1.foundation", techniqueId: "powerhouse.braggart", level: 1, name: "Гордыня", kind: "foundation", foundation: "clock", automation: "partial", clockId: "powerhouse.braggart.pride", size: 6, initial: 0, note: "Гордость получает сегменты от Атак низкими Атрибутами и попаданий без защитной Реакции; полные часы дают Преимущество." },
@@ -55,8 +55,9 @@
     { id: "powerhouse.dragonslayer.3", techniqueId: "powerhouse.dragonslayer", level: 3, name: "Титанический замах", kind: "combo", automation: "full", sequence: ["Передышка", "Завершение"], action: "Завершение", attribute: "body", allDiceSucceed: true, postPush: 2, postSelfEffects: ["Ослаблен"] },
     { id: "powerhouse.spellsword.3", techniqueId: "powerhouse.spellsword", level: 3, name: "Охотник на ведьм", kind: "combo", automation: "full", sequence: ["Заклинание", "Завершение"], action: "Завершение", attributes: ["body", "talent"], sameTargets: true, bonusDamageAttribute: "spirit" },
     { id: "powerhouse.duelist.2", techniqueId: "powerhouse.duelist", level: 2, name: "Парирование", kind: "passive", automation: "full", note: "Ответ Блоком против смежного атакующего автоматически накладывает Ошеломлен до разрешения исходной Атаки." },
+    { id: "bulwark.grappler.2", techniqueId: "bulwark.grappler", level: 2, name: "Перелом позвоночника", kind: "passive", automation: "decision", note: "Стычки получают 1 Преимущество. Для единственной Подброшенной цели можно выбрать составной модификатор: Вбить, телепортироваться в свободную смежную клетку и заменить Атаку на Завершение Телом по исходной Стоимости." },
     { id: "vagabond.assassin.1", techniqueId: "vagabond.assassin", level: 1, name: "Засада", kind: "passive", automation: "full", note: "Первое Скрыться после Развертывания автоматически бесплатно и игнорирует требования." },
-    { id: "vagabond.assassin.2", techniqueId: "vagabond.assassin", level: 2, name: "Ликвидация", kind: "passive", automation: "decision", note: "При Атаке из Исчезновения стол запросит клетку появления, добавит кости Ступени и критические успехи на 5–6." },
+    { id: "vagabond.assassin.2", techniqueId: "vagabond.assassin", level: 2, name: "Ликвидация", kind: "passive", automation: "decision", note: "При Атаке из Исчезновения сохраняемый план запросит клетку появления, в том числе смежную, добавит кости Ступени и критические успехи на 5–6; отмена не расходует действие." },
     { id: "vagabond.assassin.3", techniqueId: "vagabond.assassin", level: 3, name: "Скорость тьмы", kind: "combo", automation: "full", sequence: ["Скрыться", "Шаг"], action: "Шаг", apCost: 0, selfEffect: "Невидим" },
     { id: "vagabond.speed-demon.2", techniqueId: "vagabond.speed-demon", level: 2, name: "Мгновенный шаг", kind: "combo", automation: "full", sequence: ["Передышка", "Шаг"], action: "Шаг", movementMultiplier: 3 },
     { id: "vagabond.enchained.1", techniqueId: "vagabond.enchained", level: 1, name: "Выстрел крюком", kind: "equidistant-teleport", automation: "full", range: 5 },

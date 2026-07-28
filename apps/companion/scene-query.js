@@ -289,31 +289,78 @@ function effectDefenseStatus(scene, targetActorId) {
   };
 }
 
-function attackModifierStatus(scene, sourceActorId, targetIds = [], selectedIds = []) {
-  const source = actorById(scene, sourceActorId), targets = [...new Set(targetIds || [])].map(id => actorById(scene, id)).filter(Boolean);
-  if (!source) return { available: false, reason: "Атакующий не найден.", source: null, targets, options: [], selectedIds: [], invalidIds: [], advantage: 0 };
-  const options = targets.filter(target => hasEffect(scene, target, "negative.подброшен")).map(target => ({
+function attackModifierStatus(scene, sourceActorId, targetIds = [], selectedIds = [], request = {}) {
+  const source = actorById(scene, sourceActorId), targets = [...new Set(targetIds || [])].map(id => actorById(scene, id)).filter(Boolean), actionName = String(request.actionName || "");
+  if (!source) return { available: false, reason: "Атакующий не найден.", source: null, targets, options: [], selectedOptions: [], selectedIds: [], invalidIds: [], advantage: 0, requiresDestination: false, attributeOverride: null, actionTransform: null };
+  const launchedTargets = targets.filter(target => !target.knockedOut && hasEffect(scene, target, "negative.подброшен")), options = launchedTargets.map(target => ({
     id: `core.launch-spike:${target.id}`,
     kind: "effect-consume",
     timing: "before-roll",
     targetId: target.id,
+    exclusiveGroup: `launch-spike:${target.id}`,
     label: `Вбить: ${target.name}`,
     description: `Снять «Подброшен» и получить ${Number(source.tier || 1)} Преимущества.`,
     advantage: Number(source.tier || 1),
     removeEffect: "negative.подброшен",
   }));
-  const optionById = new Map(options.map(option => [option.id, option])), requested = [...new Set(selectedIds || [])];
-  const invalidIds = requested.filter(id => !optionById.has(id)), selected = requested.map(id => optionById.get(id)).filter(Boolean);
+  if (Number(source.techniques?.["bulwark.grappler"] || 0) >= 2 && targets.length === 1 && launchedTargets.length === 1 && (!actionName || actionName === "Стычка")) {
+    const target = launchedTargets[0];
+    options.push({
+      id: `bulwark.grappler.2:${target.id}`,
+      kind: "attack-transform",
+      timing: "before-roll",
+      targetId: target.id,
+      exclusiveGroup: `launch-spike:${target.id}`,
+      label: `Перелом позвоночника: ${target.name}`,
+      description: `Вбить, телепортироваться смежно и заменить Стычку на Завершение Телом без доплаты.`,
+      advantage: Number(source.tier || 1),
+      removeEffect: "negative.подброшен",
+      requiresActionName: "Стычка",
+      requiresDestination: true,
+      destinationKind: "adjacent-target",
+      attributeOverride: "body",
+      actionTransform: { actionName: "Завершение", attribute: "body", costActionName: "Стычка", ruleId: "bulwark.grappler.2" },
+      ruleId: "bulwark.grappler.2",
+    });
+  }
+  const optionById = new Map(options.map(option => [option.id, option])), requested = [...new Set(selectedIds || [])], invalidIds = requested.filter(id => !optionById.has(id)), selected = requested.map(id => optionById.get(id)).filter(Boolean);
+  const duplicateGroup = selected.map(option => option.exclusiveGroup).filter(Boolean).find((group, index, groups) => groups.indexOf(group) !== index);
+  const transformOptions = selected.filter(option => option.actionTransform), destinationOptions = selected.filter(option => option.requiresDestination);
+  const reason = invalidIds.length ? "Выбранный модификатор Атаки больше недоступен."
+    : duplicateGroup ? "Нельзя дважды потратить один и тот же Эффект на модификаторы Атаки."
+      : transformOptions.length > 1 ? "Одна Атака не может получить две замены базового действия."
+        : destinationOptions.length > 1 ? "Одна Атака не может требовать две разные клетки модификатора."
+          : "";
   return {
-    available: invalidIds.length === 0,
-    reason: invalidIds.length ? "Выбранный модификатор Атаки больше недоступен." : "",
+    available: !reason,
+    reason,
     source,
     targets,
     options,
+    selectedOptions: selected.map(clone),
     selectedIds: selected.map(option => option.id),
     invalidIds,
     advantage: selected.reduce((sum, option) => sum + Number(option.advantage || 0), 0),
+    requiresDestination: destinationOptions.length === 1,
+    destinationOption: destinationOptions[0] ? clone(destinationOptions[0]) : null,
+    attributeOverride: transformOptions[0]?.attributeOverride || null,
+    actionTransform: transformOptions[0]?.actionTransform ? clone(transformOptions[0].actionTransform) : null,
   };
+}
+
+function attackModifierDestinationStatus(scene, sourceActorId, targetIds = [], selectedIds = [], destination = null, request = {}) {
+  const modifiers = attackModifierStatus(scene, sourceActorId, targetIds, selectedIds, request), source = modifiers.source, option = modifiers.destinationOption, target = option ? actorById(scene, option.targetId) : null;
+  let reason = modifiers.reason;
+  const point = destination && { x: Number(destination.x), y: Number(destination.y) }, space = (scene.spaces || []).find(item => item.id === source?.space);
+  const origin = request.origin && { x: Number(request.origin.x), y: Number(request.origin.y) };
+  if (!reason && !option) reason = "Выбранные модификаторы Атаки не требуют клетки.";
+  else if (!reason && !target) reason = "Цель модификатора больше не находится на Сцене.";
+  else if (!reason && (!point || !Number.isInteger(point.x) || !Number.isInteger(point.y) || !space || point.x < 0 || point.y < 0 || point.x >= Number(space.width || 0) || point.y >= Number(space.height || 0))) reason = "Выберите клетку модификатора в пределах поля.";
+  else if (!reason && target.space !== source.space) reason = "Цель модификатора находится в другом пространстве.";
+  else if (!reason && distance(target, { ...point, space: source.space }) !== 1) reason = "Клетка телепортации должна быть смежна с целью.";
+  else if (!reason && ((origin && origin.x === point.x && origin.y === point.y) || effectPresenceStatus(scene, source.id).onField && Number(source.x) === point.x && Number(source.y) === point.y)) reason = "Телепортация должна завершиться в другой незанятой клетке.";
+  else if (!reason && !effectCellOccupancyStatus(scene, source.id, { space: source.space, x: point.x, y: point.y }).available) reason = "Клетка телепортации занята.";
+  return { available: !reason, reason, source, target, destination: point, option, modifiers };
 }
 
 function actionPlanStatus(scene, actorId = null) {

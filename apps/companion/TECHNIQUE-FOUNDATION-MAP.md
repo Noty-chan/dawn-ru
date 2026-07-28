@@ -420,7 +420,7 @@ SHA-256 проверенных файлов: `d182955a22bfba32780138b24551ebe574
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
 | 1 | Удержание (Restrain) | проверено | частичная | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `trigger-router`, `action-modifier` |
-| 2 | Перелом позвоночника (Spine Breaker) | проверено | частичная | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `movement-lifecycle`, `trigger-router`, `action-modifier`, `dice-hooks` |
+| 2 | Перелом позвоночника (Spine Breaker) | проверено | с выбором | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `movement-lifecycle`, `trigger-router`, `action-modifier`, `dice-hooks` |
 | 3 | Завершающий прием (Finishing Move) [Завершение Телом -> Прыжок] | проверено | частичная | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `movement-lifecycle`, `trigger-router`, `reaction-window`, `turn-lifecycle`, `duration-scheduler`, `action-modifier`, `composite-action`, `action-history` |
 
 ### Джаггернаут (`bulwark.juggernaut`)

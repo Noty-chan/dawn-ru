@@ -62,7 +62,7 @@ function prepareInvisibleDisappear(scene, actorId) {
 }
 
 function prepareActionPlan(scene, data, request = {}) {
-  const actor = actorById(scene, request.actorId), action = actionById(data, request.actionId), errors = [];
+  const actor = actorById(scene, request.actorId), action = actionById(data, request.actionId), context = clone(request.context || {}), errors = [];
   if (!actor) errors.push("Не выбран исполнитель составного действия.");
   if (!action) errors.push("Неизвестное действие для составного плана.");
   if (scene.pendingActionPlan || scene.pendingAction || scene.pendingPrompt) errors.push("Сначала завершите текущую цепочку правил.");
@@ -72,8 +72,15 @@ function prepareActionPlan(scene, data, request = {}) {
     const available = availableActions(scene, data, actor.id).find(item => item.id === action.id);
     const planned = request.context?.useCunningPlan ? cunningPlanStatus(scene, data, actor.id, action.id) : null;
     if (request.context?.useCunningPlan ? !planned?.available : !available?.available) errors.push(planned?.reason || available?.reason || "Действие сейчас недоступно.");
+    const attack = ["Стычка", "Заклинание", "Завершение"].includes(action.name), modifiers = attack ? attackModifierStatus(scene, actor.id, context.targetIds || [], context.attackModifierIds || [], { actionName: action.name }) : null;
+    if (modifiers && !modifiers.available) errors.push(modifiers.reason);
+    if (modifiers?.actionTransform) {
+      const transformedAction = (data.actions?.list || []).find(item => item.name === modifiers.actionTransform.actionName), transformedAvailable = transformedAction && availableActions(scene, data, actor.id).find(item => item.id === transformedAction.id);
+      if (!transformedAction) errors.push("Действие-замена модификатора не найдено.");
+      else if (!transformedAvailable?.available && !/^Недостаточно:/.test(transformedAvailable?.reason || "")) errors.push(transformedAvailable?.reason || "Действие-замена сейчас недоступно.");
+    }
+    if (request.phase === "destination" && !modifiers?.requiresDestination && !["Шаг", "Прыжок"].includes(action.name)) errors.push("Это составное действие не требует клетки назначения.");
   }
-  const context = clone(request.context || {});
   if (JSON.stringify(context).length > 8192) errors.push("Контекст составного действия слишком велик.");
   if (errors.length) return { ok: false, errors, events: [] };
   const planId = request.planId || `action-plan-${eventId()}`;
@@ -90,16 +97,34 @@ function prepareActionPlanReappearance(scene, request = {}) {
   if (!status.available) errors.push(status.reason);
   if (plan?.phase !== "reappear") errors.push("Составной план сейчас не ожидает появления.");
   if (actor && !hasEffect(scene, actor, "positive.исчез")) errors.push("Персонаж уже находится на поле.");
+  const attack = ["Стычка", "Заклинание", "Завершение"].includes(plan?.actionName), assassination = attack && Number(actor?.techniques?.["vagabond.assassin"] || 0) >= 2;
+  const modifiers = actor && plan ? attackModifierStatus(scene, actor.id, plan.context?.targetIds || [], plan.context?.attackModifierIds || [], { actionName: plan.actionName }) : null;
+  if (modifiers && !modifiers.available) errors.push(modifiers.reason);
   const space = (scene.spaces || []).find(item => item.id === actor?.space);
   if (!space || !destination || !Number.isInteger(destination.x) || !Number.isInteger(destination.y) || destination.x < 0 || destination.y < 0 || destination.x >= Number(space?.width || 0) || destination.y >= Number(space?.height || 0)) errors.push("Выберите клетку появления в пределах поля.");
   if (actor && destination && !effectCellOccupancyStatus(scene, actor.id, { space: actor.space, x: destination.x, y: destination.y }).available) errors.push("Клетка появления занята.");
-  if (actor && destination && (scene.actors || []).some(item => item.id !== actor.id && effectPresenceStatus(scene, item.id).onField && item.space === actor.space && distance(item, { ...destination, space: actor.space }) <= 1)) errors.push("При появлении клетка не должна быть смежна с персонажем.");
+  if (!assassination && actor && destination && (scene.actors || []).some(item => item.id !== actor.id && effectPresenceStatus(scene, item.id).onField && item.space === actor.space && distance(item, { ...destination, space: actor.space }) <= 1)) errors.push("При появлении клетка не должна быть смежна с персонажем.");
   if (errors.length) return { ok: false, errors, events: [] };
-  const action = plan.actionName, nextPhase = ["Шаг", "Прыжок"].includes(action) ? "destination" : "confirm", context = { ...(plan.context || {}), reappearance: { space: actor.space, x: destination.x, y: destination.y } };
+  const action = plan.actionName, needsDestination = ["Шаг", "Прыжок"].includes(action) || Boolean(modifiers?.requiresDestination), nextPhase = needsDestination ? "destination" : "confirm", context = { ...(plan.context || {}), reappearance: { space: actor.space, x: destination.x, y: destination.y }, destinationKind: modifiers?.requiresDestination ? "attack-modifier" : needsDestination ? "movement" : null };
   const events = [{ type: "action.plan.update", actorId: actor.id, payload: { planId: plan.id, phase: nextPhase, context, participantIds: [actor.id, ...(context.targetIds || [])] } }];
   const preview = previewEvents(scene, events, { expectedVersion: scene.version });
   if (!preview.ok) return { ok: false, errors: preview.errors, events: [] };
   return { ok: true, errors: [], plan: { ...plan, phase: nextPhase, context }, events };
+}
+
+function prepareActionPlanModifierDestination(scene, request = {}) {
+  const status = actionPlanStatus(scene, request.actorId), plan = status.plan, actor = status.actor, errors = [];
+  if (!status.available) errors.push(status.reason);
+  if (plan?.phase !== "destination") errors.push("Составной план сейчас не ожидает клетку модификатора.");
+  const destination = request.destination && { x: Number(request.destination.x), y: Number(request.destination.y) };
+  const placement = actor && plan ? attackModifierDestinationStatus(scene, actor.id, plan.context?.targetIds || [], plan.context?.attackModifierIds || [], destination, { actionName: plan.actionName, origin: plan.context?.reappearance || null }) : null;
+  if (!placement?.available) errors.push(placement?.reason || "Клетку модификатора проверить не удалось.");
+  if (errors.length) return { ok: false, errors, events: [] };
+  const context = { ...(plan.context || {}), modifierDestination: { space: actor.space, x: destination.x, y: destination.y }, destinationKind: "attack-modifier" };
+  const events = [{ type: "action.plan.update", actorId: actor.id, payload: { planId: plan.id, phase: "confirm", context, participantIds: [actor.id, ...(context.targetIds || [])] } }];
+  const preview = previewEvents(scene, events, { expectedVersion: scene.version });
+  if (!preview.ok) return { ok: false, errors: preview.errors, events: [] };
+  return { ok: true, errors: [], plan: { ...plan, phase: "confirm", context }, events };
 }
 
 function prepareActionPlanContinuation(scene, data, request = {}) {
@@ -107,17 +132,19 @@ function prepareActionPlanContinuation(scene, data, request = {}) {
   if (!status.available) errors.push(status.reason);
   if (plan && !["confirm", "destination"].includes(plan.phase)) errors.push("Составной план ещё не готов к подтверждению.");
   const context = { ...(plan?.context || {}), ...(request.context || {}) }, reappearance = context.reappearance;
-  if (!reappearance || !actor) errors.push("В составном плане не выбрана клетка появления.");
-  if (plan?.phase === "destination" && !request.destination) errors.push("Выберите клетку назначения действия.");
+  if (!actor) errors.push("Исполнитель составного действия больше не находится на Сцене.");
+  if (actor && hasEffect(scene, actor, "positive.исчез") && !reappearance) errors.push("В составном плане не выбрана клетка появления.");
+  if (plan?.phase === "destination" && context.destinationKind === "movement" && !request.destination) errors.push("Выберите клетку назначения действия.");
+  if (context.destinationKind === "attack-modifier" && !context.modifierDestination) errors.push("В составном плане не выбрана клетка модификатора.");
   if (errors.length) return { ok: false, errors, events: [] };
-  const prefix = [
-    { type: "actor.move", actorId: actor.id, payload: { space: actor.space, x: reappearance.x, y: reappearance.y, movement: "Появление перед действием", placement: true, participantIds: [actor.id, ...(context.targetIds || [])] } },
+  const prefix = reappearance ? [
+    { type: "actor.move", actorId: actor.id, payload: { space: actor.space, x: reappearance.x, y: reappearance.y, movement: Number(actor.techniques?.["vagabond.assassin"] || 0) >= 2 && ["Стычка", "Заклинание", "Завершение"].includes(plan.actionName) ? "Ликвидация" : "Появление перед действием", placement: true, participantIds: [actor.id, ...(context.targetIds || [])] } },
     { type: "actor.enter", actorId: actor.id, payload: { space: actor.space, x: reappearance.x, y: reappearance.y, movement: "Появление перед действием", placement: true } },
     { type: "effect.remove", actorId: actor.id, payload: { targetId: actor.id, effect: "positive.исчез", sourceActionId: "core.composite-action.reappear", participantIds: [actor.id] } },
-  ];
+  ] : [];
   const staged = previewEvents(scene, prefix, { expectedVersion: scene.version });
   if (!staged.ok) return { ok: false, errors: staged.errors, events: [] };
-  const prepared = prepareAction(staged.scene, data, { ...context, actorId: actor.id, actionId: plan.actionId, destination: request.destination || context.destination || null, planId: plan.id });
+  const prepared = prepareAction(staged.scene, data, { ...context, actorId: actor.id, actionId: plan.actionId, destination: request.destination || context.destination || null, attackModifierDestination: context.modifierDestination || null, planId: plan.id });
   if (!prepared.ok) return prepared;
   const events = [...prefix, ...prepared.events], preview = previewEvents(scene, events, { expectedVersion: scene.version });
   if (!preview.ok) return { ok: false, errors: preview.errors, events: [] };

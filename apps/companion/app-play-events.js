@@ -1,13 +1,21 @@
 "use strict";
 
 document.addEventListener("click",event=>{
+  if(event.target.closest("#new-scene")&&Scene.pendingActionPlan){event.preventDefault();event.stopImmediatePropagation();toast("Сначала завершите или отмените составное действие");return}
   const button=event.target.closest("[data-core-action],[data-core-action-plan]");if(!button)return;
-  const actor=currentHeroActor(),actionId=button.dataset.coreActionPlan||button.dataset.coreAction,action=D.actions.list.find(item=>item.id===actionId),attack=action&&["Стычка","Заклинание","Завершение"].includes(action.name);
+  const actor=currentHeroActor(),actionId=button.dataset.coreActionPlan||button.dataset.coreAction,action=D.actions.list.find(item=>item.id===actionId);
   if(!actor||!action)return;
   pendingCoreActionContext={actionId:action.id,context:coreActionDraftContext(action,actor,{useCunningPlan:Boolean(button.dataset.coreActionPlan)})};
-  if(attack||!sceneActorEffects(actor).includes("positive.исчез"))return;
+  const disappeared=sceneActorEffects(actor).includes("positive.исчез"),modifiers=SceneEngine.attackModifierStatus(Scene,actor.id,pendingCoreActionContext.context.targetIds||[],pendingCoreActionContext.context.attackModifierIds||[],{actionName:action.name}),phase=disappeared?"reappear":modifiers.requiresDestination?"destination":null;
+  if(!phase)return;
   event.preventDefault();event.stopImmediatePropagation();startCompositeCoreAction(action.id,{useCunningPlan:Boolean(button.dataset.coreActionPlan)});
 },true);
+
+document.addEventListener("change",event=>{
+  const input=event.target.closest("[data-attack-modifier-group]");if(!input?.checked)return;
+  const group=input.dataset.attackModifierGroup,actor=input.dataset.attackModifierActor;
+  for(const sibling of document.querySelectorAll("[data-attack-modifier-group]"))if(sibling!==input&&sibling.dataset.attackModifierGroup===group&&sibling.dataset.attackModifierActor===actor)sibling.checked=false;
+});
 
 function setPlayCounter(key,value){
   value=Math.max(0,Number(value)||0);if(key==="stress")value=Math.min(3,value);const actor=currentHeroActor(),sync=Sync?.state(),actorKeys=new Set(["hp","wounds","focus","influence","ap"]);

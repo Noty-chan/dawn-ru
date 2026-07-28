@@ -95,6 +95,7 @@ function ruleDiceAdvantage(scene, actorId, request = {}) {
   if (request.actionName === "Заклинание" && Number(actor.techniques?.["ruiner.cryomancer"] || 0) >= 2) sources.push({ ruleId: "ruiner.cryomancer.2", label: "Ледяной нимб", amount: 1 });
   if (request.actionName === "Заклинание" && Number(actor.techniques?.["ruiner.feral-arcana"] || 0) >= 3) sources.push({ ruleId: "ruiner.feral-arcana.3", label: "Хватка", amount: 1 });
   if (request.actionName === "Заклинание" && Number(actor.techniques?.["ruiner.thunder-blood"] || 0) >= 3) sources.push({ ruleId: "ruiner.thunder-blood.3", label: "Разрядка", amount: 1 });
+  if (request.actionName === "Стычка" && Number(actor.techniques?.["bulwark.grappler"] || 0) >= 2) sources.push({ ruleId: "bulwark.grappler.2", label: "Перелом позвоночника", amount: 1 });
   return { total: sources.reduce((sum, source) => sum + source.amount, 0), sources };
 }
 
