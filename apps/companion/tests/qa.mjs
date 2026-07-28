@@ -27,6 +27,8 @@ assert.match(companionMarkup, /id="scene-sync-panel"[^>]+data-scene-panel-conten
 assert.match(companionMarkup, /id="sync-leave-table"[^>]+title="Выйти из общего стола"/, "A connected table must expose a quick leave action in the visible header");
 assert.match(appSource, /sceneRail\.prepend\(syncPanel\)/, "The network panel must be mounted into the immersive table rail");
 assert.match(appSource, /if\(presenceNode\.innerHTML!==presenceMarkup\)presenceNode\.innerHTML=presenceMarkup/, "Unchanged presence markup must not be recreated on every realtime status event");
+assert.doesNotMatch(fs.readFileSync(path.join(root, "sync.js"), "utf8"), /emit\("presence",state\.presence\);emit\("status"\)/, "Presence events must not trigger a duplicate status render");
+assert.match(appSource, /if\(root\.innerHTML!==markup\)root\.innerHTML=markup/, "Unchanged rule cards must retain their open state across Scene renders");
 assert.match(appSource, /health=Logic\.reconcileHealthRuntime\(\{current:runtime\.hp,previousMax:runtime\.maxHp,nextMax:derived\.hp\}\)/, "Adding a hero to the table reconciles uninitialized and legacy Health");
 const cockpitSource = fs.readFileSync(path.join(root, "vtt-concepts.js"), "utf8");
 const appCoreFile = fs.readFileSync(path.join(root, "app-core.js"), "utf8");

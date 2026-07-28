@@ -80,6 +80,9 @@ assert.match(migration, /for update/i);
 assert.match(migration, /current_command\.status = 'applied'/i);
 assert.match(migration, /update public\.scene_commands[\s\S]+status = 'applied'/i);
 assert.match(migration, /update public\.scenes[\s\S]+version = next_version/i);
+const commandFixMigration = fs.readFileSync(new URL("../../../supabase/migrations/202607290003_fix_accept_scene_command_event_alias.sql", import.meta.url), "utf8");
+assert.doesNotMatch(commandFixMigration, /declare[\s\S]*\bevent_item jsonb/i, "The command acceptor must not shadow its SQL event alias with a PL/pgSQL variable");
+assert.match(commandFixMigration, /batch\.value->>'id'/, "Event validation must qualify the JSON array value explicitly");
 
 const syncSource = fs.readFileSync(new URL("../sync.js", import.meta.url), "utf8");
 assert.match(syncSource, /async function listCampaigns\(\)/);

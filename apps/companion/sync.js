@@ -84,9 +84,9 @@
     const sceneTable=canNarrate?"scenes":"scene_public_snapshots";
     const sceneFilter=canNarrate?`id=eq.${state.sceneId}`:`scene_id=eq.${state.sceneId}`;
     channel=client.channel(`dawn-scene-${state.sceneId}`,{config:{presence:{key:state.userId}}})
-      .on("presence",{event:"sync"},()=>{state={...state,presence:readPresence()};emit("presence",state.presence);emit("status")})
-      .on("presence",{event:"join"},()=>setTimeout(()=>{state={...state,presence:readPresence()};emit("presence",state.presence);emit("status")},0))
-      .on("presence",{event:"leave"},()=>setTimeout(()=>{state={...state,presence:readPresence()};emit("presence",state.presence);emit("status")},0))
+      .on("presence",{event:"sync"},()=>{state={...state,presence:readPresence()};emit("presence",state.presence)})
+      .on("presence",{event:"join"},()=>setTimeout(()=>{state={...state,presence:readPresence()};emit("presence",state.presence)},0))
+      .on("presence",{event:"leave"},()=>setTimeout(()=>{state={...state,presence:readPresence()};emit("presence",state.presence)},0))
       .on("postgres_changes",{event:"UPDATE",schema:"public",table:sceneTable,filter:sceneFilter},payload=>{
         const remote=payload.new;if(!remote||remote.version<=state.version)return;patch({version:remote.version,status:"online",lastSyncedAt:new Date().toISOString(),error:""});emit("scene",{state:remote.state,version:remote.version,updatedBy:remote.updated_by});
       })
