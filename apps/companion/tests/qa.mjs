@@ -21,6 +21,7 @@ assert.deepEqual(JSON.parse(JSON.stringify(logic.reconcileHealthRuntime({ curren
 const appFiles = ["app-bootstrap.js", "app-reference-data.js", "app-core.js", "hero-ui.js", "scene-ui.js", "scene-effects.js", "scene-actions-ui.js", "scene-sync-ui.js", "play-ui.js", "app-builder-events.js", "app-sync-events.js", "app-scene-events.js", "app-play-events.js", "app.js"];
 const appSource = appFiles.map(file => fs.readFileSync(path.join(root, file), "utf8")).join("\n");
 const companionMarkup = fs.readFileSync(path.join(root, "index.html"), "utf8");
+const companionCss = fs.readFileSync(path.join(root, "app.css"), "utf8");
 assert.match(companionMarkup, /data-scene-panel="network"/, "The immersive table must expose network controls in its dock");
 assert.match(companionMarkup, /data-scene-panel="network"[^>]*>Сеть<\/button>\s*<button[^>]+data-scene-panel="log"/, "The network button must sit directly above the Scene log");
 assert.match(companionMarkup, /id="scene-sync-panel"[^>]+data-scene-panel-content="network"/, "The network controls must open as a table rail panel");
@@ -49,6 +50,9 @@ assert.match(appSource, /clock-add-danger/);
 assert.match(appSource, /data-clock-save/);
 assert.match(appSource, /session-clock\.kind/);
 assert.match(appSource, /session-clock\.size/);
+assert.match(appSource, /closest\("\[data-clock-save\]"\)[\s\S]+closest\("\[data-clock-remove\]"\)/, "clock controls must use resilient delegated button lookup");
+assert.match(companionCss, /\.clock-head\{[^}]*grid-template-columns:minmax\(0,1fr\) 44px 44px/, "clock editor actions must not force the card beyond its column");
+assert.match(companionCss, /\.segments\{[^}]*flex-wrap:wrap/, "large clocks must wrap instead of overflowing into the neighbouring group");
 const cockpitSource = fs.readFileSync(path.join(root, "vtt-concepts.js"), "utf8");
 const appCoreFile = fs.readFileSync(path.join(root, "app-core.js"), "utf8");
 const sceneCoreSource = appCoreFile.slice(appCoreFile.indexOf("function blankScene"), appCoreFile.indexOf("function normalizeScene"));
