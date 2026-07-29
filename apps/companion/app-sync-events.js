@@ -7,6 +7,10 @@ async function publishCurrentHero(){await Sync.saveLibraryCharacter(S);const cha
 async function runSyncAction(action,success){try{await action();renderSync();renderScene();if(success)toast(success)}catch(error){renderSync();toast(error?.message||"Не удалось подключить общий стол")}}
 let lastInviteToken="",pendingSceneCommands=[],pendingCommandSceneId=null,cloudCharacters=[],cloudLibraryUserId=null,cloudLibraryLoading=false,savedCampaigns=[],savedCampaignUserId=null,savedCampaignsLoading=false,automaticCommandChain=Promise.resolve();
 const automaticCommandAttempts=new Map();
+function resetClientTableRuntime(){
+  resetNetworkV2Runtime();pendingSceneCommands=[];pendingCommandSceneId=null;automaticCommandAttempts.clear();lastInviteToken="";
+  $("sync-invite-output").textContent="";$("sync-copy-invite").hidden=true;
+}
 function renderCloudLibrary(){
   const select=$("sync-library-select"),selected=select.value;select.innerHTML=cloudCharacters.length?`<option value="">Выберите персонажа</option>${cloudCharacters.map(record=>`<option value="${record.id}">${esc(record.name)} · версия ${record.version}</option>`).join("")}`:`<option value="">В облаке пока нет персонажей</option>`;if(cloudCharacters.some(record=>record.id===selected))select.value=selected;const chosen=Boolean(select.value);$("sync-library-load").disabled=!chosen;$("sync-library-delete").disabled=!chosen;
 }
@@ -25,7 +29,7 @@ function hydratePlayerScene(scene){
 }
 $("sync-config-form").addEventListener("submit",event=>{event.preventDefault();runSyncAction(async()=>{configureSyncFromForm();await Sync.connect()},"Авторизация общего стола готова")});
 $("sync-account-link").onclick=()=>runSyncAction(async()=>{if(!Sync.hasConfig())configureSyncFromForm();const result=await Sync.requestEmailLink($("sync-account-email").value);if(result.mode==="ready")throw new Error("Этот аккаунт уже подключён")},"Ссылка отправлена. Откройте письмо в этом браузере");
-$("sync-account-signout").onclick=()=>runSyncAction(async()=>{resetNetworkV2Runtime();pendingSceneCommands=[];pendingCommandSceneId=null;automaticCommandAttempts.clear();await Sync.signOutAccount();cloudCharacters=[];cloudLibraryUserId=null;renderCloudLibrary()},"Вы вышли из аккаунта");
+$("sync-account-signout").onclick=()=>runSyncAction(async()=>{resetClientTableRuntime();await Sync.signOutAccount();cloudCharacters=[];cloudLibraryUserId=null;renderCloudLibrary()},"Вы вышли из аккаунта");
 $("sync-library-save").onclick=()=>runSyncAction(async()=>{await Sync.saveLibraryCharacter(S);await refreshCloudCharacters()},"Персонаж сохранён в облаке");
 $("sync-library-refresh").onclick=()=>runSyncAction(refreshCloudCharacters,"Список облачных персонажей обновлён");
 $("sync-library-select").onchange=renderCloudLibrary;
@@ -33,14 +37,14 @@ $("sync-library-load").onclick=()=>runSyncAction(async()=>{const record=await Sy
 $("sync-library-delete").onclick=()=>runSyncAction(async()=>{const record=cloudCharacters.find(item=>item.id===$("sync-library-select").value);if(!record||!window.confirm(`Удалить облачную копию «${record.name}»? Локальный персонаж останется.`))return;await Sync.deleteLibraryCharacter(record.id);await refreshCloudCharacters()},"Облачная копия удалена");
 $("sync-table-select").onchange=renderSavedCampaigns;
 $("sync-table-refresh").onclick=()=>runSyncAction(refreshSavedCampaigns,"Список столов обновлён");
-$("sync-table-open").onclick=()=>runSyncAction(async()=>{const campaign=savedCampaigns.find(item=>item.sceneId===$("sync-table-select").value);if(!campaign)throw new Error("Выберите сохранённый стол");await Sync.openCampaign(campaign.id,campaign.sceneId)},"Стол открыт");
-$("sync-table-delete").onclick=()=>{const campaign=savedCampaigns.find(item=>item.sceneId===$("sync-table-select").value);if(!campaign||campaign.role!=="owner"){toast("Удалить стол может только его владелец");return}if(!window.confirm(`Удалить стол «${campaign.name}» без возможности восстановления?`))return;runSyncAction(async()=>{const deletingCurrent=Sync.state().campaignId===campaign.id;if(deletingCurrent){resetNetworkV2Runtime();pendingSceneCommands=[];pendingCommandSceneId=null;automaticCommandAttempts.clear()}await Sync.deleteCampaign(campaign.id);await refreshSavedCampaigns()},"Стол удалён")};
-$("sync-create-campaign").onclick=()=>runSyncAction(async()=>{configureSyncFromForm();await Sync.connect();await Sync.createCampaign($("sync-campaign-name").value.trim()||"Серия DAWN",sceneSnapshot());await refreshSavedCampaigns()},"Кампания создана; Сцена синхронизируется");
-$("sync-join-campaign").onclick=()=>runSyncAction(async()=>{configureSyncFromForm();await Sync.connect();await Sync.redeemInvite(inviteToken($("sync-invite-token").value));await refreshSavedCampaigns()},"Вы вошли за общий стол");
+$("sync-table-open").onclick=()=>runSyncAction(async()=>{const campaign=savedCampaigns.find(item=>item.sceneId===$("sync-table-select").value);if(!campaign)throw new Error("Выберите сохранённый стол");resetClientTableRuntime();await Sync.openCampaign(campaign.id,campaign.sceneId)},"Стол открыт");
+$("sync-table-delete").onclick=()=>{const campaign=savedCampaigns.find(item=>item.sceneId===$("sync-table-select").value);if(!campaign||campaign.role!=="owner"){toast("Удалить стол может только его владелец");return}if(!window.confirm(`Удалить стол «${campaign.name}» без возможности восстановления?`))return;runSyncAction(async()=>{if(Sync.state().campaignId===campaign.id)resetClientTableRuntime();await Sync.deleteCampaign(campaign.id);await refreshSavedCampaigns()},"Стол удалён")};
+$("sync-create-campaign").onclick=()=>runSyncAction(async()=>{configureSyncFromForm();await Sync.connect();resetClientTableRuntime();await Sync.createCampaign($("sync-campaign-name").value.trim()||"Серия DAWN",sceneCore(blankScene()));await refreshSavedCampaigns()},"Кампания создана; Сцена синхронизируется");
+$("sync-join-campaign").onclick=()=>runSyncAction(async()=>{configureSyncFromForm();await Sync.connect();resetClientTableRuntime();await Sync.redeemInvite(inviteToken($("sync-invite-token").value));await refreshSavedCampaigns()},"Вы вошли за общий стол");
 $("sync-create-invite").onclick=()=>runSyncAction(async()=>{lastInviteToken=await Sync.createInvite("player");$("sync-invite-output").textContent=`Ссылка для игроков: ${inviteLink(lastInviteToken)}`;$("sync-copy-invite").hidden=false},"Приглашение действует 7 дней или 8 входов");
 $("sync-copy-invite").onclick=()=>runSyncAction(async()=>{if(!lastInviteToken)throw new Error("Сначала создайте приглашение");await navigator.clipboard.writeText(inviteLink(lastInviteToken))},"Ссылка скопирована");
 $("sync-publish-hero").onclick=()=>runSyncAction(publishCurrentHero,"Лист и токен отправлены за стол");
-const leaveCurrentTable=()=>runSyncAction(async()=>{resetNetworkV2Runtime();pendingSceneCommands=[];pendingCommandSceneId=null;automaticCommandAttempts.clear();await Sync.leave();lastInviteToken="";$("sync-invite-output").textContent="";$("sync-copy-invite").hidden=true;await refreshSavedCampaigns()},"Компаньон снова работает локально");
+const leaveCurrentTable=()=>runSyncAction(async()=>{resetClientTableRuntime();await Sync.leave();await refreshSavedCampaigns()},"Компаньон снова работает локально");
 $("sync-leave").onclick=leaveCurrentTable;
 $("sync-leave-table").onclick=leaveCurrentTable;
 $("sync-send-targets").onclick=()=>runSyncAction(async()=>{await Sync.submitCommand("set_targets",{targetIds:Scene.targetIds.slice(0,40),heroId:S.id})},"Цели отправлены за стол");

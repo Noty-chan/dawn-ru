@@ -133,6 +133,9 @@ assert.match(syncUiSource, /NetworkV2\.AUTOMATIC_COMMANDS[\s\S]+command_type===[
 assert.match(syncUiSource, /command_type===["']set_targets["'][\s\S]+applyTransientTargetsCommand[\s\S]+Sync\.decideCommand/, "player target suggestions must stay local to the narrator instead of versioning the whole Scene");
 assert.match(syncUiSource, /retainPendingNetworkV2Commands\(pendingSceneCommands\.map/, "a second narrator must prune commands already settled elsewhere");
 assert.match(syncUiSource, /chosen\?\.role===["']owner["'][\s\S]+sync-table-delete[\s\S]+Sync\.deleteCampaign/, "only the table owner sees and invokes destructive campaign deletion");
+assert.match(syncUiSource, /sync-create-campaign[\s\S]+resetClientTableRuntime\(\)[\s\S]+Sync\.createCampaign\([^;]+sceneCore\(blankScene\(\)\)/, "a new campaign must start from a clean Scene instead of cloning the currently open table");
+assert.doesNotMatch(syncUiSource, /Sync\.createCampaign\([^;]+sceneSnapshot\(\)/, "current table actors must never seed a new campaign");
+assert.match(syncUiSource, /sync-table-open[\s\S]+resetClientTableRuntime\(\)[\s\S]+Sync\.openCampaign[\s\S]+sync-join-campaign[\s\S]+resetClientTableRuntime\(\)[\s\S]+Sync\.redeemInvite/, "every table switch must clear the previous table's client queues");
 const sceneSyncUiSource = fs.readFileSync(new URL("../scene-sync-ui.js", import.meta.url), "utf8");
 assert.match(sceneSyncUiSource, /ruleResponse[\s\S]+preparePromptPlacement[\s\S]+respondRulePrompt/, "rule prompt choices and placement events must be reconstructed against the narrator Scene");
 assert.match(sceneSyncUiSource, /actor\.ownerId!==command\.actor_id/, "automatic event acceptance must verify actor ownership");

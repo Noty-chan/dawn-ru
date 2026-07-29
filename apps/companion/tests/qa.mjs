@@ -66,6 +66,11 @@ const sceneCoreSource = appCoreFile.slice(appCoreFile.indexOf("function blankSce
 const appCoreContext = { console };
 vm.createContext(appCoreContext);
 vm.runInContext(`const uid=()=>"test-id";const clamp=(n,min,max)=>Math.max(min,Math.min(max,Number(n)||0));function cleanArray(value){return Array.isArray(value)?value.filter(item=>typeof item==="string"):[]}${sceneCoreSource}`, appCoreContext);
+const freshCampaignScene = vm.runInContext("sceneCore(blankScene())", appCoreContext);
+assert.equal(freshCampaignScene.actors.length, 0, "A newly created campaign must not inherit actors from the current local Scene");
+assert.equal(freshCampaignScene.objects.length, 0, "A newly created campaign must not inherit terrain from the current local Scene");
+assert.equal(freshCampaignScene.markers.length, 0, "A newly created campaign must not inherit markers from the current local Scene");
+assert.equal(freshCampaignScene.log.length, 0, "A newly created campaign must start with an empty event log");
 const normalizedEffectScene = vm.runInContext(`sceneCore({turnSerial:7,spaces:[{id:"main",name:"Main",width:7,height:7}],actors:[
   {id:"source",team:"hero",space:"main",name:"Source",effects:[]},
   {id:"target",team:"enemy",space:"main",name:"Target",effects:["negative.испуган"],effectStates:{"negative.испуган":{duration:"default",appliedTurnSerial:null,appliedRound:null,sourceBound:true,sources:[{actorId:"source",actionId:"test",eventId:"event-1"}]}}}
