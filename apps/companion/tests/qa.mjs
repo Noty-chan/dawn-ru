@@ -30,7 +30,7 @@ assert.match(appSource, /sceneRail\.prepend\(syncPanel\)/, "The network panel mu
 assert.match(appSource, /if\(presenceNode\.innerHTML!==presenceMarkup\)presenceNode\.innerHTML=presenceMarkup/, "Unchanged presence markup must not be recreated on every realtime status event");
 assert.doesNotMatch(fs.readFileSync(path.join(root, "sync.js"), "utf8"), /emit\("presence",state\.presence\);emit\("status"\)/, "Presence events must not trigger a duplicate status render");
 assert.doesNotMatch(fs.readFileSync(path.join(root, "sync.js"), "utf8"), /if\(session&&state\.sceneId\).*scheduleReconnect/, "Auth refreshes must not rebuild an already subscribed Scene channel");
-assert.match(fs.readFileSync(path.join(root, "sync.js"), "utf8"), /generation!==channelGeneration/, "Callbacks from an intentionally removed realtime channel must be ignored");
+assert.match(fs.readFileSync(path.join(root, "sync.js"), "utf8"), /subscriptionIsActive=\(\)=>generation===channelGeneration/, "Callbacks from an intentionally removed realtime channel must be ignored");
 assert.doesNotMatch(appSource, /Sync\?\.on\("status",\(\)=>\{[^}]*renderScene\(\)/, "A connection-status repaint must not rebuild the table");
 assert.match(appSource, /openDetails=new Map/, "Expanded hero rules must survive a canonical Scene repaint");
 assert.match(companionMarkup, /id="stress-trackers"/, "Tools must expose the shared Stress tracker");

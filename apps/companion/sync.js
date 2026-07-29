@@ -64,13 +64,16 @@
   async function unsubscribe(){clearTimeout(reconnectTimer);global.clearInterval?.(sceneRefreshTimer);reconnectTimer=null;sceneRefreshTimer=null;channelGeneration+=1;const previous=channel;channel=null;if(previous&&client)await client.removeChannel(previous)}
   async function refreshSceneIfNewer(force=false){
     if(sceneRefreshInFlight||!client||!state.sceneId||!force&&global.document?.hidden)return;
+    const sceneId=state.sceneId,generation=sceneSessionGeneration;
     sceneRefreshInFlight=true;
     try{
       const canNarrate=["owner","narrator"].includes(state.role),table=canNarrate?"scenes":"scene_public_snapshots",idColumn=canNarrate?"id":"scene_id";
-      const versionResult=await client.from(table).select("version").eq(idColumn,state.sceneId).single();
+      const versionResult=await client.from(table).select("version").eq(idColumn,sceneId).single();
+      if(!sceneSessionIsActive(sceneId,generation))return;
       if(versionResult.error)throw versionResult.error;
       if(Number(versionResult.data?.version)>Number(state.version)){
-        const result=await client.from(table).select("state,version").eq(idColumn,state.sceneId).single();
+        const result=await client.from(table).select("state,version").eq(idColumn,sceneId).single();
+        if(!sceneSessionIsActive(sceneId,generation))return;
         if(result.error)throw result.error;
         if(Number(result.data?.version)>Number(state.version)){patch({version:Number(result.data.version),status:"online",lastSyncedAt:new Date().toISOString(),error:""});emit("scene",{state:result.data.state,version:Number(result.data.version),polled:true})}
       }
@@ -79,9 +82,11 @@
   }
   async function refreshPendingCommands(){
     if(pendingCommandsRefreshInFlight||!client||!state.sceneId||!["owner","narrator"].includes(state.role))return;
+    const sceneId=state.sceneId,generation=sceneSessionGeneration;
     pendingCommandsRefreshInFlight=true;
     try{
-      const result=await client.from("scene_commands").select("id,actor_id,command_type,payload,status,created_at").eq("scene_id",state.sceneId).eq("status","pending").order("created_at",{ascending:true}).limit(30);
+      const result=await client.from("scene_commands").select("id,actor_id,command_type,payload,status,created_at").eq("scene_id",sceneId).eq("status","pending").order("created_at",{ascending:true}).limit(30);
+      if(!sceneSessionIsActive(sceneId,generation))return;
       if(result.error)throw result.error;
       const commands=result.data||[],signature=commands.map(command=>`${command.id}:${command.command_type}`).join("|");
       if(signature!==lastPendingCommandSignature){lastPendingCommandSignature=signature;emit("commands",commands)}
@@ -124,21 +129,24 @@
   async function subscribe(){
     await unsubscribe();if(!client||!state.sceneId)return;
     const generation=++channelGeneration;
+    const subscribedSceneId=state.sceneId,subscribedCampaignId=state.campaignId;
+    const subscriptionIsActive=()=>generation===channelGeneration&&String(subscribedSceneId)===String(state.sceneId)&&String(subscribedCampaignId)===String(state.campaignId);
     const canNarrate=["owner","narrator"].includes(state.role);
     const sceneTable=canNarrate?"scenes":"scene_public_snapshots";
-    const sceneFilter=canNarrate?`id=eq.${state.sceneId}`:`scene_id=eq.${state.sceneId}`;
-    channel=client.channel(`dawn-scene-${state.sceneId}`,{config:{presence:{key:state.userId}}})
-      .on("presence",{event:"sync"},()=>{state={...state,presence:readPresence()};emit("presence",state.presence)})
-      .on("presence",{event:"join"},()=>setTimeout(()=>{state={...state,presence:readPresence()};emit("presence",state.presence)},0))
-      .on("presence",{event:"leave"},()=>{setTimeout(()=>{state={...state,presence:readPresence()};emit("presence",state.presence)},0);setTimeout(()=>{state={...state,presence:readPresence()};emit("presence",state.presence)},10100)})
+    const sceneFilter=canNarrate?`id=eq.${subscribedSceneId}`:`scene_id=eq.${subscribedSceneId}`;
+    channel=client.channel(`dawn-scene-${subscribedSceneId}`,{config:{presence:{key:state.userId}}})
+      .on("presence",{event:"sync"},()=>{if(!subscriptionIsActive())return;state={...state,presence:readPresence()};emit("presence",state.presence)})
+      .on("presence",{event:"join"},()=>setTimeout(()=>{if(!subscriptionIsActive())return;state={...state,presence:readPresence()};emit("presence",state.presence)},0))
+      .on("presence",{event:"leave"},()=>{setTimeout(()=>{if(!subscriptionIsActive())return;state={...state,presence:readPresence()};emit("presence",state.presence)},0);setTimeout(()=>{if(!subscriptionIsActive())return;state={...state,presence:readPresence()};emit("presence",state.presence)},10100)})
       .on("postgres_changes",{event:"UPDATE",schema:"public",table:sceneTable,filter:sceneFilter},payload=>{
+        if(!subscriptionIsActive())return;
         const remote=payload.new;if(!remote||remote.version<=state.version||localMutationInFlight&&remote.updated_by===state.userId)return;patch({version:remote.version,status:"online",lastSyncedAt:new Date().toISOString(),error:""});emit("scene",{state:remote.state,version:remote.version,updatedBy:remote.updated_by});
       })
-      .on("postgres_changes",{event:"INSERT",schema:"public",table:"scene_commands",filter:`scene_id=eq.${state.sceneId}`},payload=>{if(["owner","narrator"].includes(state.role))emit("command",payload.new)})
-      .on("postgres_changes",{event:"UPDATE",schema:"public",table:"scene_commands",filter:`scene_id=eq.${state.sceneId}`},payload=>{if(payload.new)emit("command-update",payload.new)})
-      .on("postgres_changes",{event:"INSERT",schema:"public",table:"scene_events",filter:`scene_id=eq.${state.sceneId}`},payload=>{if(payload.new){emit("event",payload.new);if(Number(payload.new.scene_version)>Number(state.version)&&!(localMutationInFlight&&payload.new.actor_id===state.userId))void refreshSceneIfNewer(true)}})
-      .on("postgres_changes",{event:"UPDATE",schema:"public",table:"characters",filter:`campaign_id=eq.${state.campaignId}`},payload=>{if(payload.new)emit("character",payload.new)})
-      .subscribe(status=>{if(generation!==channelGeneration)return;if(status==="SUBSCRIBED"){reconnectAttempt=0;patch({status:"online",lastSyncedAt:new Date().toISOString(),error:""});global.clearInterval?.(sceneRefreshTimer);sceneRefreshTimer=global.setInterval?.(()=>{void refreshSceneIfNewer();void refreshPendingCommands()},2500)||null;void updatePresence().catch(error=>console.warn("Presence update failed",error));void refreshPendingCommands()}else if(["CHANNEL_ERROR","TIMED_OUT","CLOSED"].includes(status))scheduleReconnect(status)});
+      .on("postgres_changes",{event:"INSERT",schema:"public",table:"scene_commands",filter:`scene_id=eq.${subscribedSceneId}`},payload=>{if(subscriptionIsActive()&&["owner","narrator"].includes(state.role))emit("command",payload.new)})
+      .on("postgres_changes",{event:"UPDATE",schema:"public",table:"scene_commands",filter:`scene_id=eq.${subscribedSceneId}`},payload=>{if(subscriptionIsActive()&&payload.new)emit("command-update",payload.new)})
+      .on("postgres_changes",{event:"INSERT",schema:"public",table:"scene_events",filter:`scene_id=eq.${subscribedSceneId}`},payload=>{if(subscriptionIsActive()&&payload.new){emit("event",payload.new);if(Number(payload.new.scene_version)>Number(state.version)&&!(localMutationInFlight&&payload.new.actor_id===state.userId))void refreshSceneIfNewer(true)}})
+      .on("postgres_changes",{event:"UPDATE",schema:"public",table:"characters",filter:`campaign_id=eq.${subscribedCampaignId}`},payload=>{if(subscriptionIsActive()&&payload.new)emit("character",payload.new)})
+      .subscribe(status=>{if(!subscriptionIsActive())return;if(status==="SUBSCRIBED"){reconnectAttempt=0;patch({status:"online",lastSyncedAt:new Date().toISOString(),error:""});global.clearInterval?.(sceneRefreshTimer);sceneRefreshTimer=global.setInterval?.(()=>{void refreshSceneIfNewer();void refreshPendingCommands()},2500)||null;void updatePresence().catch(error=>console.warn("Presence update failed",error));void refreshPendingCommands()}else if(["CHANNEL_ERROR","TIMED_OUT","CLOSED"].includes(status))scheduleReconnect(status)});
   }
 
   async function loadScene(sceneId){
@@ -169,6 +177,21 @@
     const publicScenes=playerIds.length?await client.from("scene_public_snapshots").select("scene_id,campaign_id,version,updated_at").in("campaign_id",playerIds):{data:[],error:null};if(publicScenes.error)return fail(publicScenes.error);
     const membershipByCampaign=new Map(rows.map(row=>[row.campaign_id,row])),sceneByCampaign=new Map([...(privateScenes.data||[]).map(scene=>[scene.campaign_id,{...scene,sceneId:scene.id}]),...(publicScenes.data||[]).map(scene=>[scene.campaign_id,{...scene,sceneId:scene.scene_id,name:"Структурированный бой"}])]);
     return(campaigns.data||[]).map(campaign=>{const membership=membershipByCampaign.get(campaign.id),scene=sceneByCampaign.get(campaign.id);return{id:campaign.id,name:campaign.name,role:membership?.role||"player",displayName:membership?.display_name||"",sceneId:scene?.sceneId||null,sceneName:scene?.name||"Структурированный бой",version:Number(scene?.version||0),updatedAt:scene?.updated_at||campaign.updated_at||""}}).filter(campaign=>campaign.sceneId).sort((a,b)=>String(b.updatedAt).localeCompare(String(a.updatedAt)));
+  }
+  async function deleteCampaign(campaignId){
+    await ensureConnected();
+    const targetId=String(campaignId||"").trim();
+    if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(targetId))throw new Error("Некорректный id стола");
+    if(String(state.campaignId)===targetId){clearTimeout(saveTimer);pendingSave=null}
+    const result=await serializeSceneMutation(()=>client.rpc("delete_owned_campaign",{p_campaign_id:targetId}));
+    if(result.error)return fail(result.error);
+    if(!result.data)throw new Error("Удалить стол может только его владелец");
+    if(String(state.campaignId)===targetId){
+      sceneLoadGeneration++;sceneSessionGeneration++;presenceCache.clear();presenceDetails={};lastPendingCommandSignature="";
+      await unsubscribe();
+      patch({status:"authenticated",campaignId:null,campaignName:"",sceneId:null,role:null,version:0,presence:[],error:""});
+    }
+    return true;
   }
   async function openCampaign(campaignId,sceneId){
     await ensureConnected();const membership=await client.from("campaign_members").select("role,display_name").eq("campaign_id",campaignId).eq("user_id",state.userId).maybeSingle();if(membership.error)return fail(membership.error);if(!membership.data)throw new Error("Этот стол больше недоступен");
@@ -209,11 +232,14 @@
 
   async function submitCommand(commandType,payload={}){
     await ensureConnected();if(!state.sceneId)throw new Error("Сначала войдите в кампанию");
-    const record={campaign_id:state.campaignId,scene_id:state.sceneId,actor_id:state.userId,command_type:commandType,payload};
+    const sceneId=state.sceneId,generation=sceneSessionGeneration,actorId=state.userId;
+    const record={campaign_id:state.campaignId,scene_id:sceneId,actor_id:actorId,command_type:commandType,payload};
     if(commandType==="intent_v2"){if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(payload?.clientIntentId||"")))throw new Error("У сетевой команды нет корректного id");record.client_intent_id=payload.clientIntentId}
     const result=await client.from("scene_commands").insert(record).select().single();
+    if(!sceneSessionIsActive(sceneId,generation))throw new Error("Стол уже закрыт");
     if(result.error?.code==="23505"&&record.client_intent_id){
-      const existing=await client.from("scene_commands").select().eq("scene_id",state.sceneId).eq("actor_id",state.userId).eq("client_intent_id",record.client_intent_id).single();
+      const existing=await client.from("scene_commands").select().eq("scene_id",sceneId).eq("actor_id",actorId).eq("client_intent_id",record.client_intent_id).single();
+      if(!sceneSessionIsActive(sceneId,generation))throw new Error("Стол уже закрыт");
       if(existing.error)return fail(existing.error);
       return existing.data;
     }
@@ -257,10 +283,10 @@
   async function deleteLibraryCharacter(characterId){await ensureConnected();const result=await client.from("user_characters").delete().eq("id",characterId).select("id").single();if(result.error)throw new Error(result.error.message||"Не удалось удалить облачную копию");return result.data}
   async function saveCharacter(hero){
     await ensureConnected();if(!state.campaignId)throw new Error("Сначала войдите в кампанию");
-    const localId=String(hero?.id||""),key=`${state.campaignId}:${localId}`,known=state.characterIds?.[key],characterId=known||global.crypto?.randomUUID?.();
+    const sceneId=state.sceneId,generation=sceneSessionGeneration,localId=String(hero?.id||""),key=`${state.campaignId}:${localId}`,known=state.characterIds?.[key],characterId=known||global.crypto?.randomUUID?.();
     if(!characterId)throw new Error("Браузер не смог создать id персонажа");
     const result=await client.from("characters").upsert({id:characterId,campaign_id:state.campaignId,owner_id:state.userId,name:String(hero?.name||"Безымянный герой").slice(0,180),state:hero||{},updated_by:state.userId,updated_at:new Date().toISOString()},{onConflict:"id"}).select("id,version").single();
-    if(result.error)return fail(result.error);state.characterIds={...(state.characterIds||{}),[key]:result.data.id};persist();await updatePresence({heroName:String(hero?.name||"Безымянный герой").slice(0,180)});return result.data;
+    if(result.error)return fail(result.error);state.characterIds={...(state.characterIds||{}),[key]:result.data.id};persist();if(sceneSessionIsActive(sceneId,generation))await updatePresence({heroName:String(hero?.name||"Безымянный герой").slice(0,180)});return result.data;
   }
   async function listCharacters(){await ensureConnected();if(!state.campaignId)return[];const result=await client.from("characters").select("id,owner_id,name,state,version,updated_at").eq("campaign_id",state.campaignId).order("updated_at",{ascending:false});if(result.error)return fail(result.error);return result.data||[]}
   async function loadCharacter(characterId){await ensureConnected();if(!["owner","narrator"].includes(state.role))throw new Error("Лист игрока открывает Нарратор");const result=await client.from("characters").select("id,owner_id,name,state,version").eq("id",characterId).eq("campaign_id",state.campaignId).single();if(result.error)return fail(result.error);return result.data}
@@ -271,5 +297,5 @@
   global.addEventListener?.("offline",()=>patch({status:"offline",error:"Нет соединения; локальные данные сохранены"}));
   global.addEventListener?.("online",()=>scheduleReconnect("offline"));
   global.document?.addEventListener?.("visibilitychange",()=>{if(!global.document.hidden)void refreshSceneIfNewer(true)});
-  global.DAWN_SYNC={acceptCommand,configure,connect,createCampaign,createInvite,decideCommand,deleteLibraryCharacter,hasConfig,leave,listCampaigns,listCharacters,listLibraryCharacters,loadCharacter,loadLibraryCharacter,loadScene,on,openCampaign,publishEvents,queueScene,redeemInvite,refreshScene,requestEmailLink,saveCharacter,saveLibraryCharacter,settleIntentBatch,signOutAccount,state:snapshot,submitCommand,updatePresence};
+  global.DAWN_SYNC={acceptCommand,configure,connect,createCampaign,createInvite,decideCommand,deleteCampaign,deleteLibraryCharacter,hasConfig,leave,listCampaigns,listCharacters,listLibraryCharacters,loadCharacter,loadLibraryCharacter,loadScene,on,openCampaign,publishEvents,queueScene,redeemInvite,refreshScene,requestEmailLink,saveCharacter,saveLibraryCharacter,settleIntentBatch,signOutAccount,state:snapshot,submitCommand,updatePresence};
 })(window);

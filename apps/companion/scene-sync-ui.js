@@ -131,6 +131,14 @@ function enqueueNetworkV2Command(command){
   runtime.authority.enqueue({kind:"command",command});
   return true;
 }
+function retainPendingNetworkV2Commands(commandIds=[]){
+  const pending=new Set(commandIds.map(String));
+  networkV2Authority?.discard?.(item=>item.kind==="command"&&!pending.has(String(item.command?.id)));
+}
+function discardNetworkV2Commands(commandIds=[]){
+  const settled=new Set(commandIds.map(String));
+  if(settled.size)networkV2Authority?.discard?.(item=>item.kind==="command"&&settled.has(String(item.command?.id)));
+}
 async function flushNetworkV2Authority(items){
   const sync=Sync.state();
   if(!sync.sceneId||!sync.canNarrate)throw new Error("Авторитетный стол Нарратора сейчас недоступен");

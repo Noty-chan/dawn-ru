@@ -324,6 +324,7 @@
       this.inFlight=null;
       this.failures=0;
       this.generation=0;
+      this.discarded=new WeakSet();
     }
     enqueue(item){
       const normalized={...item,queuedAt:Date.now()};
@@ -363,16 +364,24 @@
       catch(error){
         if(generation===this.generation){
           this.failures=Math.min(this.failures+1,5);
-          this.queue.unshift(...source);
+          this.queue.unshift(...source.filter(item=>!this.discarded.has(item)));
           this.options.onError?.(error);
         }
       }finally{
+        source.forEach(item=>this.discarded.delete(item));
         if(this.inFlight===source)this.inFlight=null;
         this.flushing=false;
         if(generation===this.generation&&this.queue.length)this.schedule();
       }
     }
-    clear(){this.generation++;clearTimeout(this.timer);this.timer=null;this.queue=[];this.inFlight=null;this.failures=0}
+    discard(predicate){
+      if(typeof predicate!=="function")return 0;
+      let removed=0;
+      this.queue=this.queue.filter(item=>{if(!predicate(item))return true;removed++;return false});
+      for(const item of this.inFlight||[])if(predicate(item)){this.discarded.add(item);removed++}
+      return removed;
+    }
+    clear(){this.generation++;clearTimeout(this.timer);this.timer=null;this.queue=[];this.inFlight=null;this.failures=0;this.discarded=new WeakSet()}
     latestQueuedSnapshot(){return[...this.queue].reverse().find(item=>item.kind==="snapshot")||null}
     latestSnapshot(){return[...(this.inFlight||[]),...this.queue].reverse().find(item=>item.kind==="snapshot")||null}
     pending(){return this.queue.length+(this.flushing?1:0)}

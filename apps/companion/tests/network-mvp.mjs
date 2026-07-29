@@ -120,6 +120,10 @@ assert.match(syncSource, /function serializeSceneMutation[\s\S]+acceptCommand[\s
 assert.match(syncSource, /presenceDetails=\{\.\.\.presenceDetails,\.\.\.extra\}/, "presence metadata must survive a Realtime reconnect");
 assert.match(syncSource, /try\{localStorage\.setItem[\s\S]+DAWN sync settings could not be persisted/, "full browser storage must not break network state updates");
 assert.match(syncSource, /client&&clientConfigKey!==nextConfigKey[\s\S]+if\(!client\)/, "the sync client must only be replaced when project credentials change");
+assert.match(syncSource, /function refreshSceneIfNewer[\s\S]+sceneSessionIsActive\(sceneId,generation\)[\s\S]+function refreshPendingCommands[\s\S]+sceneSessionIsActive\(sceneId,generation\)/, "late heartbeat results from a previous table must be ignored");
+assert.match(syncSource, /const subscriptionIsActive=[\s\S]+if\(!subscriptionIsActive\(\)\)return[\s\S]+scene_commands[\s\S]+subscriptionIsActive\(\)/, "callbacks from a removed Realtime channel must not mutate the current table");
+assert.match(syncSource, /async function submitCommand[\s\S]+const sceneId=state\.sceneId,generation=sceneSessionGeneration,actorId=state\.userId[\s\S]+eq\("scene_id",sceneId\)[\s\S]+eq\("actor_id",actorId\)/, "idempotent command recovery must stay bound to the table and actor that sent it");
+assert.match(syncSource, /async function deleteCampaign\(campaignId\)[\s\S]+delete_owned_campaign[\s\S]+campaignId:null[\s\S]+global\.DAWN_SYNC=\{[\s\S]+deleteCampaign/, "an owner can delete a saved table and the active client session is cleared");
 const privacyMigration = fs.readFileSync(new URL("../../../supabase/migrations/202607290002_dawn_public_actor_privacy.sql", import.meta.url), "utf8");
 assert.match(privacyMigration, /item[\s\S]+- 'ownerId'[\s\S]+- 'skills'[\s\S]+- 'techniques'/, "player snapshots must redact private actor sheets");
 assert.match(privacyMigration, /update public\.scene_public_snapshots/, "existing public snapshots must be backfilled");
@@ -127,9 +131,17 @@ const syncUiSource = fs.readFileSync(new URL("../app-sync-events.js", import.met
 assert.match(syncUiSource, /function hydratePlayerScene[\s\S]+heroActorState\(S,actor\)/, "the local player's redacted actor must be hydrated from their own hero");
 assert.match(syncUiSource, /NetworkV2\.AUTOMATIC_COMMANDS[\s\S]+command_type===["']intent_v2["'][\s\S]+enqueueNetworkV2Command/, "safe player intents and legacy MVP commands must be applied automatically");
 assert.match(syncUiSource, /command_type===["']set_targets["'][\s\S]+applyTransientTargetsCommand[\s\S]+Sync\.decideCommand/, "player target suggestions must stay local to the narrator instead of versioning the whole Scene");
+assert.match(syncUiSource, /retainPendingNetworkV2Commands\(pendingSceneCommands\.map/, "a second narrator must prune commands already settled elsewhere");
+assert.match(syncUiSource, /chosen\?\.role===["']owner["'][\s\S]+sync-table-delete[\s\S]+Sync\.deleteCampaign/, "only the table owner sees and invokes destructive campaign deletion");
 const sceneSyncUiSource = fs.readFileSync(new URL("../scene-sync-ui.js", import.meta.url), "utf8");
 assert.match(sceneSyncUiSource, /ruleResponse[\s\S]+preparePromptPlacement[\s\S]+respondRulePrompt/, "rule prompt choices and placement events must be reconstructed against the narrator Scene");
 assert.match(sceneSyncUiSource, /actor\.ownerId!==command\.actor_id/, "automatic event acceptance must verify actor ownership");
 assert.match(sceneSyncUiSource, /settleIntentBatch/, "network v2 must settle a whole narrator tick atomically");
+
+const deleteCampaignMigration = fs.readFileSync(new URL("../../../supabase/migrations/202607300001_delete_owned_campaign.sql", import.meta.url), "utf8");
+assert.match(deleteCampaignMigration, /create or replace function public\.delete_owned_campaign/i);
+assert.match(deleteCampaignMigration, /security definer[\s\S]+owner_id = auth\.uid\(\)/i, "campaign deletion must be owner-only even through the privileged RPC");
+assert.match(deleteCampaignMigration, /delete from public\.campaigns/i, "campaign cascades are the single deletion root");
+assert.match(deleteCampaignMigration, /grant execute on function public\.delete_owned_campaign\(uuid\)[\s\S]+to authenticated/i);
 
 console.log("Network MVP QA passed: cloud character ownership, rule handouts, and atomic command SQL");

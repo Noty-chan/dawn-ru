@@ -240,6 +240,26 @@ assert.equal(authorityBatch.find(item=>item.kind==="snapshot").label,"latest");
 assert.equal(authorityBatch.find(item=>item.kind==="events").events[0].payload.value,4);
 authority.clear();
 
+const prunedAuthority=new Network.AuthorityQueue({tickMs:10000,flush:async()=>{}});
+prunedAuthority.enqueue({kind:"command",command:{id:"11"}});
+prunedAuthority.enqueue({kind:"command",command:{id:"12"}});
+assert.equal(prunedAuthority.discard(item=>item.command?.id==="11"),1);
+assert.deepEqual(Array.from(prunedAuthority.queue,item=>item.command.id),["12"],"commands settled by another narrator are removed before the next tick");
+prunedAuthority.clear();
+
+let rejectDiscardedFlush;
+let startDiscardedFlush;
+const discardedStarted=new Promise(resolve=>{startDiscardedFlush=resolve});
+const discardedGate=new Promise((_,reject)=>{rejectDiscardedFlush=reject});
+const discardedAuthority=new Network.AuthorityQueue({tickMs:10000,flush:async()=>{startDiscardedFlush();await discardedGate}});
+discardedAuthority.enqueue({kind:"command",command:{id:"13"}});
+const discardedFlush=discardedAuthority.flush();
+await discardedStarted;
+assert.equal(discardedAuthority.discard(item=>item.command?.id==="13"),1);
+rejectDiscardedFlush(new Error("already settled elsewhere"));
+await discardedFlush;
+assert.equal(discardedAuthority.pending(),0,"a command settled by another narrator must not return after an in-flight failure");
+
 let rejectAuthorityFlush;
 let startAuthorityFlush;
 const authorityStarted=new Promise(resolve=>{startAuthorityFlush=resolve});
