@@ -18,6 +18,8 @@ assert.deepEqual(JSON.parse(JSON.stringify(logic.reconcileHealthRuntime({ curren
 assert.deepEqual(JSON.parse(JSON.stringify(logic.reconcileHealthRuntime({ current: 7, previousMax: 10, nextMax: 12 }))), { current: 9, maximum: 12 }, "Changing maximum Health preserves missing Health instead of granting a free heal");
 assert.deepEqual(JSON.parse(JSON.stringify(logic.reconcileHealthRuntime({ current: 6, nextMax: 10 }))), { current: 6, maximum: 10 }, "Legacy saves without a remembered maximum retain valid current Health");
 assert.deepEqual(JSON.parse(JSON.stringify(logic.reconcileHealthRuntime({ current: 0, previousMax: 0, nextMax: 10 }))), { current: 10, maximum: 10 }, "A legacy 0/0 Health placeholder initializes the hero at full Health");
+assert.deepEqual(JSON.parse(JSON.stringify(logic.reconcileSceneActorHealth({ current: 0, previousMax: 6, nextMax: 6, existing: false }))), { current: 6, maximum: 6 }, "A newly spawned table actor starts at full Health even when the saved character sheet was at zero");
+assert.deepEqual(JSON.parse(JSON.stringify(logic.reconcileSceneActorHealth({ current: 2, previousMax: 6, nextMax: 8, existing: true }))), { current: 4, maximum: 8 }, "Refreshing an existing table actor preserves its missing Health");
 const appFiles = ["app-bootstrap.js", "app-reference-data.js", "app-core.js", "hero-ui.js", "scene-ui.js", "scene-effects.js", "scene-actions-ui.js", "scene-sync-ui.js", "play-ui.js", "app-builder-events.js", "app-sync-events.js", "app-scene-events.js", "app-play-events.js", "app.js"];
 const appSource = appFiles.map(file => fs.readFileSync(path.join(root, file), "utf8")).join("\n");
 const companionMarkup = fs.readFileSync(path.join(root, "index.html"), "utf8");
@@ -39,7 +41,7 @@ assert.match(appSource, /scene\.undo=\[\]/, "Recursive undo snapshots must never
 assert.match(appSource, /indexedDB\.open\(HERO_MEDIA_DB,1\)/, "Large hero images must move out of localStorage");
 assert.match(companionMarkup, /id="scene-clear-movement-traces"/, "The narrator toolbar must expose movement-trace cleanup");
 assert.match(appSource, /sceneReferenceMarkup!==markup[\s\S]+openRuleIds[\s\S]+details\.open=openRuleIds\.has/, "Unchanged rule cards must retain their open state across Scene renders");
-assert.match(appSource, /health=Logic\.reconcileHealthRuntime\(\{current:runtime\.hp,previousMax:runtime\.maxHp,nextMax:derived\.hp\}\)/, "Adding a hero to the table reconciles uninitialized and legacy Health");
+assert.match(appSource, /health=Logic\.reconcileSceneActorHealth\(\{current:base\.hp,previousMax:base\.maxHp,nextMax:derived\.hp,existing:hasSceneHealth\}\)/, "A newly spawned hero starts at full Health while an existing table actor retains battle damage");
 assert.match(appSource, /Number\.isFinite\(Number\(base\.focus\)\)\?Number\(base\.focus\)-Number\(base\.techniqueFocusBonus\|\|0\):derived\.focus/, "A hero entering combat starts with Focus derived from Spirit while an existing table actor keeps current Focus");
 assert.match(appSource, /if\(!sceneCombatStarted\(scene\)\)delete base\.focus/, "Refreshing a remotely submitted hero before combat must repair its starting Focus");
 assert.match(appSource, /if\(!sceneCombatStarted\(Scene\)\)delete base\.focus/, "Refreshing a local hero before combat must repair its starting Focus");
