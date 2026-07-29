@@ -27,6 +27,7 @@ assert.throws(() => Engine.dispatch(scene, { type: "rule.share", payload: { rule
 const storage = new Map();
 const library = [];
 let pendingUpsert = null;
+let createClientCalls = 0;
 const user = { id: "00000000-0000-0000-0000-000000000101", email: "hero@example.com", is_anonymous: false };
 function query(table) {
   let operation = "select", selectedId = null;
@@ -50,13 +51,16 @@ function query(table) {
 const syncContext = {
   window: {
     supabase: {
-      createClient: () => ({
+      createClient: () => {
+        createClientCalls++;
+        return {
         auth: {
           getSession: async () => ({ data: { session: { user } }, error: null }),
           onAuthStateChange: () => ({ data: { subscription: { unsubscribe() {} } } }),
         },
         from: query,
-      }),
+      };
+      },
     },
   },
   URL, console, setTimeout, clearTimeout,
@@ -67,11 +71,30 @@ const Sync = syncContext.window.DAWN_SYNC;
 Sync.configure({ url: "https://dawn-test.supabase.co", publishableKey: "sb_publishable_test", displayName: "Эта" });
 await Sync.connect();
 assert.equal(Sync.state().hasAccount, true);
+await Sync.connect();
+assert.equal(createClientCalls, 1, "reconnecting with the same project must reuse one Supabase client");
 await Sync.saveLibraryCharacter({ id: "local-hero", name: "Эта" });
 assert.equal((await Sync.listLibraryCharacters()).length, 1);
 assert.equal((await Sync.loadLibraryCharacter(library[0].id)).name, "Эта");
 await Sync.deleteLibraryCharacter(library[0].id);
 assert.equal((await Sync.listLibraryCharacters()).length, 0);
+
+const quotaContext = {
+  window: {},
+  URL,
+  console: { ...console, warn() {} },
+  setTimeout,
+  clearTimeout,
+  localStorage: {
+    getItem: () => null,
+    setItem: () => { throw Object.assign(new Error("quota"), { name: "QuotaExceededError" }); },
+  },
+};
+vm.runInNewContext(fs.readFileSync(new URL("../sync.js", import.meta.url), "utf8"), quotaContext);
+assert.doesNotThrow(
+  () => quotaContext.window.DAWN_SYNC.configure({ url: "https://dawn-test.supabase.co", publishableKey: "sb_publishable_test", displayName: "Эта" }),
+  "full browser storage must not interrupt network state transitions",
+);
 
 const migration = fs.readFileSync(new URL("../../../supabase/migrations/202607290001_dawn_network_mvp.sql", import.meta.url), "utf8");
 assert.match(migration, /create table if not exists public\.user_characters/i);
@@ -91,14 +114,22 @@ assert.match(syncSource, /p_command_id:rawId/, "bigint command ids must not pass
 assert.match(syncSource, /acceptedVersion!==Number\(scene\?\.version\).*loadScene/s, "idempotent retries must reconcile a newer canonical Scene");
 assert.match(syncSource, /\["http:","https:"\]\.includes\(global\.location\.protocol\)/, "file:// account links must fall back to the configured Site URL");
 assert.match(syncSource, /function refreshSceneIfNewer[\s\S]+select\("version"\)[\s\S]+2500/, "a lightweight version heartbeat must recover missed Realtime Scene updates");
+assert.match(syncSource, /scene_events[\s\S]+scene_version[\s\S]+refreshSceneIfNewer\(true\)/, "a public Scene event must immediately recover a missed snapshot update");
+assert.match(syncSource, /function refreshPendingCommands[\s\S]+status","pending"[\s\S]+refreshPendingCommands\(\)/, "the narrator heartbeat must recover missed player commands");
+assert.match(syncSource, /function serializeSceneMutation[\s\S]+acceptCommand[\s\S]+serializeSceneMutation[\s\S]+settleIntentBatch[\s\S]+serializeSceneMutation/s, "all authoritative Scene writes must share one mutation queue");
+assert.match(syncSource, /presenceDetails=\{\.\.\.presenceDetails,\.\.\.extra\}/, "presence metadata must survive a Realtime reconnect");
+assert.match(syncSource, /try\{localStorage\.setItem[\s\S]+DAWN sync settings could not be persisted/, "full browser storage must not break network state updates");
+assert.match(syncSource, /client&&clientConfigKey!==nextConfigKey[\s\S]+if\(!client\)/, "the sync client must only be replaced when project credentials change");
 const privacyMigration = fs.readFileSync(new URL("../../../supabase/migrations/202607290002_dawn_public_actor_privacy.sql", import.meta.url), "utf8");
 assert.match(privacyMigration, /item[\s\S]+- 'ownerId'[\s\S]+- 'skills'[\s\S]+- 'techniques'/, "player snapshots must redact private actor sheets");
 assert.match(privacyMigration, /update public\.scene_public_snapshots/, "existing public snapshots must be backfilled");
 const syncUiSource = fs.readFileSync(new URL("../app-sync-events.js", import.meta.url), "utf8");
 assert.match(syncUiSource, /function hydratePlayerScene[\s\S]+heroActorState\(S,actor\)/, "the local player's redacted actor must be hydrated from their own hero");
-assert.match(syncUiSource, /command_type!==["']dispatch_events["'][\s\S]+automaticCommandChain/, "safe player event batches must be applied automatically and serially");
+assert.match(syncUiSource, /NetworkV2\.AUTOMATIC_COMMANDS[\s\S]+command_type===["']intent_v2["'][\s\S]+enqueueNetworkV2Command/, "safe player intents and legacy MVP commands must be applied automatically");
+assert.match(syncUiSource, /command_type===["']set_targets["'][\s\S]+applyTransientTargetsCommand[\s\S]+Sync\.decideCommand/, "player target suggestions must stay local to the narrator instead of versioning the whole Scene");
 const sceneSyncUiSource = fs.readFileSync(new URL("../scene-sync-ui.js", import.meta.url), "utf8");
 assert.match(sceneSyncUiSource, /ruleResponse[\s\S]+preparePromptPlacement[\s\S]+respondRulePrompt/, "rule prompt choices and placement events must be reconstructed against the narrator Scene");
 assert.match(sceneSyncUiSource, /actor\.ownerId!==command\.actor_id/, "automatic event acceptance must verify actor ownership");
+assert.match(sceneSyncUiSource, /settleIntentBatch/, "network v2 must settle a whole narrator tick atomically");
 
 console.log("Network MVP QA passed: cloud character ownership, rule handouts, and atomic command SQL");

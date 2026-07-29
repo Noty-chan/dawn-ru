@@ -14,7 +14,7 @@ function blankAbility(){return {enabled:false,name:"",desc:"",rank:1,words:{verb
 
 function blankHero(){
   return {
-    schema:APP_SCHEMA,id:uid(),name:"",player:"",concept:"",tier:1,media:{portrait:"",token:""},
+    schema:APP_SCHEMA,id:uid(),name:"",player:"",concept:"",tier:1,media:{portrait:"",token:"",portraitStored:false,tokenStored:false},
     attrs:{body:4,talent:3,spirit:2,mind:2},attrBonus:{body:0,talent:0,spirit:0,mind:0},
     techConversions:0,conversionAttr:"body",primaryOutlook:null,outlooks:[],gifts:[],
     skills:[{id:uid(),name:"",rank:1}],
@@ -49,7 +49,7 @@ function sceneCore(raw){
   base.version=clamp(scene.version,0,999999999);base.name=typeof scene.name==="string"?scene.name.slice(0,120):base.name;base.view=scene.view==="player"?"player":"gm";base.round=clamp(scene.round||1,1,999);base.turnSerial=clamp(scene.turnSerial,0,999999999);base.tension=clamp(scene.tension,0,999);base.tool=["select","place","measure","target","area","marker","topology","erase"].includes(scene.tool)?scene.tool:"select";
   base.spaces=Array.isArray(scene.spaces)?scene.spaces.slice(0,12).map((space,index)=>({id:typeof space.id==="string"?space.id:uid(),name:typeof space.name==="string"?space.name.slice(0,60):`Пространство ${index+1}`,width:clamp(space.width||7,1,12),height:clamp(space.height||7,1,12)})):base.spaces;
   if(!base.spaces.length)base.spaces=blankScene().spaces;const spaceIds=new Set(base.spaces.map(space=>space.id));base.activeSpace=spaceIds.has(scene.activeSpace)?scene.activeSpace:base.spaces[0].id;
-  base.actors=Array.isArray(scene.actors)?scene.actors.slice(0,120).map(actor=>({id:typeof actor.id==="string"?actor.id:uid(),kind:["hero","enemy","token"].includes(actor.kind)?actor.kind:(actor.team==="enemy"?"enemy":"hero"),team:actor.team==="enemy"?"enemy":"hero",heroId:typeof actor.heroId==="string"?actor.heroId:null,ownerId:typeof actor.ownerId==="string"?actor.ownerId:null,characterId:typeof actor.characterId==="string"?actor.characterId:null,profileId:typeof actor.profileId==="string"?actor.profileId:null,antagonistTraitId:typeof actor.antagonistTraitId==="string"?actor.antagonistTraitId:null,sheetVersion:clamp(actor.sheetVersion,0,99),name:typeof actor.name==="string"?actor.name.slice(0,120):"Участник",tier:clamp(actor.tier||1,1,99),space:spaceIds.has(actor.space)?actor.space:base.activeSpace,x:clamp(actor.x,0,11),y:clamp(actor.y,0,11),hp:clamp(actor.hp,0,9999),maxHp:clamp(actor.maxHp,0,9999),guts:clamp(actor.guts,0,99),wounds:clamp(actor.wounds,0,99),focus:actor.team==="enemy"?0:Math.max(0,Number(actor.focus)||0),influence:clamp(actor.influence,0,999),ap:clamp(actor.ap??3,0,99),baseAp:clamp(actor.baseAp??3,0,99),speed:clamp(actor.speed,0,99),armor:clamp(actor.armor,0,99),evasion:clamp(actor.evasion,0,9999),attrs:{body:clamp(actor.attrs?.body,0,99),talent:clamp(actor.attrs?.talent,0,99),spirit:clamp(actor.attrs?.spirit,0,99),mind:clamp(actor.attrs?.mind,0,99)},skills:Array.isArray(actor.skills)?actor.skills.slice(0,30):[],ability:actor.ability&&typeof actor.ability==="object"?actor.ability:null,taintedAbility:actor.taintedAbility&&typeof actor.taintedAbility==="object"?actor.taintedAbility:null,techniques:actor.techniques&&typeof actor.techniques==="object"?actor.techniques:{},ruleResources:actor.ruleResources&&typeof actor.ruleResources==="object"?actor.ruleResources:{},ruleClocks:actor.ruleClocks&&typeof actor.ruleClocks==="object"?actor.ruleClocks:{},effects:cleanArray(actor.effects).slice(0,30),acted:Boolean(actor.acted),knockedOut:Boolean(actor.knockedOut),hidden:Boolean(actor.hidden),tokenSymbol:typeof actor.tokenSymbol==="string"?actor.tokenSymbol.slice(0,4):"",tokenColor:safeColor(actor.tokenColor,actor.team==="enemy"?"#902a3d":"#256a92"),tokenImage:safeTokenImage(actor.tokenImage),portraitImage:safeImage(actor.portraitImage)})):[];
+  base.actors=Array.isArray(scene.actors)?scene.actors.slice(0,120).map(actor=>({id:typeof actor.id==="string"?actor.id:uid(),kind:["hero","enemy","token"].includes(actor.kind)?actor.kind:(actor.team==="enemy"?"enemy":"hero"),team:actor.team==="enemy"?"enemy":"hero",heroId:typeof actor.heroId==="string"?actor.heroId:null,ownerId:typeof actor.ownerId==="string"?actor.ownerId:null,characterId:typeof actor.characterId==="string"?actor.characterId:null,profileId:typeof actor.profileId==="string"?actor.profileId:null,antagonistTraitId:typeof actor.antagonistTraitId==="string"?actor.antagonistTraitId:null,sheetVersion:clamp(actor.sheetVersion,0,99),name:typeof actor.name==="string"?actor.name.slice(0,120):"Участник",tier:clamp(actor.tier||1,1,99),space:spaceIds.has(actor.space)?actor.space:base.activeSpace,x:clamp(actor.x,0,11),y:clamp(actor.y,0,11),hp:clamp(actor.hp,0,9999),maxHp:clamp(actor.maxHp,0,9999),guts:clamp(actor.guts,0,99),wounds:clamp(actor.wounds,0,99),stress:clamp(actor.stress,0,3),focus:actor.team==="enemy"?0:Math.max(0,Number(actor.focus)||0),influence:clamp(actor.influence,0,999),ap:clamp(actor.ap??3,0,99),baseAp:clamp(actor.baseAp??3,0,99),speed:clamp(actor.speed,0,99),armor:clamp(actor.armor,0,99),evasion:clamp(actor.evasion,0,9999),attrs:{body:clamp(actor.attrs?.body,0,99),talent:clamp(actor.attrs?.talent,0,99),spirit:clamp(actor.attrs?.spirit,0,99),mind:clamp(actor.attrs?.mind,0,99)},skills:Array.isArray(actor.skills)?actor.skills.slice(0,30):[],ability:actor.ability&&typeof actor.ability==="object"?actor.ability:null,taintedAbility:actor.taintedAbility&&typeof actor.taintedAbility==="object"?actor.taintedAbility:null,techniques:actor.techniques&&typeof actor.techniques==="object"?actor.techniques:{},ruleResources:actor.ruleResources&&typeof actor.ruleResources==="object"?actor.ruleResources:{},ruleClocks:actor.ruleClocks&&typeof actor.ruleClocks==="object"?actor.ruleClocks:{},effects:cleanArray(actor.effects).slice(0,30),acted:Boolean(actor.acted),knockedOut:Boolean(actor.knockedOut),hidden:Boolean(actor.hidden),tokenSymbol:typeof actor.tokenSymbol==="string"?actor.tokenSymbol.slice(0,4):"",tokenColor:safeColor(actor.tokenColor,actor.team==="enemy"?"#902a3d":"#256a92"),tokenImage:safeTokenImage(actor.tokenImage),portraitImage:safeImage(actor.portraitImage)})):[];
   const persistedActorIds=new Set(base.actors.map(actor=>actor.id));
   base.actors.forEach((actor,index)=>{
     const source=scene.actors?.[index]||{};
@@ -100,7 +100,7 @@ function normalizeHero(raw){
   const base=blankHero(), h=raw && typeof raw==="object" ? raw : {};
   base.id=typeof h.id==="string"?h.id:base.id;
   for(const key of ["name","player","concept"]) base[key]=typeof h[key]==="string"?h[key].slice(0,500):"";
-  base.media={portrait:safeImage(h.media?.portrait),token:safeTokenImage(h.media?.token)};
+  base.media={portrait:safeImage(h.media?.portrait),token:safeTokenImage(h.media?.token),portraitStored:Boolean(h.media?.portraitStored),tokenStored:Boolean(h.media?.tokenStored)};
   base.tier=clamp(h.tier,1,6);
   for(const [key] of ATTRS){ base.attrs[key]=clamp(h.attrs?.[key] ?? base.attrs[key],2,4); base.attrBonus[key]=clamp(h.attrBonus?.[key],0,5); }
   base.attrs=Logic.normalizeAttributeBases(base.attrs,ATTRS.map(([key])=>key));
@@ -133,8 +133,85 @@ function migrateLegacy(raw){
   return {schema:APP_SCHEMA,current:clamp(raw?.current,0,Math.max(0,heroes.length-1)),mode:raw?.mode||"build",theme:"dark",heroes:heroes.length?heroes:[blankHero()],scene:blankScene()};
 }
 
+const HERO_MEDIA_DB="dawn-ru-companion-media",HERO_MEDIA_STORE="hero-media";
+let heroMediaDbPromise=null,heroMediaStorageReady=false,heroMediaWriteTimer=null,heroMediaWriteRunning=false,lastStorageWarningAt=0;
+const storedHeroMediaSignatures=new Map();
+const heroMediaKey=(heroId,kind)=>`hero:${heroId}:${kind}`;
+const mediaSignature=value=>`${String(value||"").length}:${String(value||"").slice(0,48)}:${String(value||"").slice(-48)}`;
+function heroMediaEntries(heroes){
+  const entries=[];
+  for(const hero of heroes||[])for(const kind of ["portrait","token"]){const value=hero?.media?.[kind];if(value)entries.push({key:heroMediaKey(hero.id,kind),value})}
+  return entries;
+}
+function openHeroMediaDb(){
+  if(heroMediaDbPromise)return heroMediaDbPromise;
+  if(!globalThis.indexedDB)return Promise.reject(new Error("IndexedDB недоступен"));
+  heroMediaDbPromise=new Promise((resolve,reject)=>{
+    const request=globalThis.indexedDB.open(HERO_MEDIA_DB,1);
+    request.onupgradeneeded=()=>{if(!request.result.objectStoreNames.contains(HERO_MEDIA_STORE))request.result.createObjectStore(HERO_MEDIA_STORE,{keyPath:"key"})};
+    request.onsuccess=()=>resolve(request.result);
+    request.onerror=()=>reject(request.error||new Error("Не удалось открыть хранилище изображений"));
+  });
+  return heroMediaDbPromise;
+}
+async function writeHeroMedia(entries){
+  const pending=(entries||[]).filter(entry=>entry.value&&storedHeroMediaSignatures.get(entry.key)!==mediaSignature(entry.value));
+  if(!pending.length)return;
+  const db=await openHeroMediaDb();
+  await new Promise((resolve,reject)=>{
+    const tx=db.transaction(HERO_MEDIA_STORE,"readwrite"),bucket=tx.objectStore(HERO_MEDIA_STORE);
+    pending.forEach(entry=>bucket.put({key:entry.key,value:entry.value,updatedAt:Date.now()}));
+    tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error||new Error("Не удалось сохранить изображения"));tx.onabort=()=>reject(tx.error||new Error("Сохранение изображений отменено"));
+  });
+  pending.forEach(entry=>storedHeroMediaSignatures.set(entry.key,mediaSignature(entry.value)));
+}
+async function readHeroMedia(keys){
+  const db=await openHeroMediaDb(),values=new Map();
+  await new Promise((resolve,reject)=>{
+    const tx=db.transaction(HERO_MEDIA_STORE,"readonly"),bucket=tx.objectStore(HERO_MEDIA_STORE);
+    for(const key of keys){const request=bucket.get(key);request.onsuccess=()=>{if(request.result?.value)values.set(key,request.result.value)}}
+    tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error||new Error("Не удалось прочитать изображения"));
+  });
+  return values;
+}
+function restoreLocalHeroMedia(scene,heroes){
+  const byId=new Map((heroes||[]).map(hero=>[hero.id,hero]));
+  for(const actor of scene?.actors||[]){const hero=byId.get(actor.heroId);if(!hero)continue;actor.tokenImage||=hero.media?.token||"";actor.portraitImage||=hero.media?.portrait||""}
+  return scene;
+}
+function scheduleHeroMediaPersistence(){
+  if(!heroMediaStorageReady||heroMediaWriteTimer)return;
+  heroMediaWriteTimer=setTimeout(async()=>{
+    heroMediaWriteTimer=null;
+    if(heroMediaWriteRunning)return scheduleHeroMediaPersistence();
+    const entries=heroMediaEntries(store?.heroes).filter(entry=>storedHeroMediaSignatures.get(entry.key)!==mediaSignature(entry.value));
+    if(!entries.length)return;
+    heroMediaWriteRunning=true;
+    try{await writeHeroMedia(entries);persist()}
+    catch(error){console.warn("DAWN hero media persistence failed",error);if(Date.now()-lastStorageWarningAt>5000){lastStorageWarningAt=Date.now();toast("Изображения пока не вынесены в расширенное хранилище")}}
+    finally{heroMediaWriteRunning=false}
+  },40);
+}
+async function initializeHeroMediaStorage(){
+  await openHeroMediaDb();
+  await writeHeroMedia(heroMediaEntries(store.heroes));
+  const bindings=[];
+  for(const hero of store.heroes)for(const kind of ["portrait","token"])if(!hero.media?.[kind]&&hero.media?.[`${kind}Stored`])bindings.push({hero,kind,key:heroMediaKey(hero.id,kind)});
+  const stored=await readHeroMedia(bindings.map(binding=>binding.key));
+  let hydrated=false;
+  for(const binding of bindings){if(!binding.hero.media?.[`${binding.kind}Stored`]||binding.hero.media[binding.kind])continue;const value=stored.get(binding.key),safe=binding.kind==="token"?safeTokenImage(value):safeImage(value);if(!safe)continue;binding.hero.media[binding.kind]=safe;storedHeroMediaSignatures.set(binding.key,mediaSignature(safe));hydrated=true}
+  heroMediaStorageReady=true;
+  S=store.heroes[store.current]||store.heroes[0];
+  restoreLocalHeroMedia(Scene,store.heroes);
+  persist();
+  if(hydrated)renderAll();
+}
+function normalizedStoredState(parsed){
+  const heroes=parsed.heroes.map(normalizeHero),scene=restoreLocalHeroMedia(normalizeScene(parsed.scene),heroes);
+  return {...parsed,heroes,scene};
+}
 function loadStore(){
-  try{const parsed=JSON.parse(localStorage.getItem(STORAGE_KEY)||"null");if(parsed?.schema===APP_SCHEMA&&Array.isArray(parsed.heroes))return {...parsed,heroes:parsed.heroes.map(normalizeHero),scene:normalizeScene(parsed.scene)};}catch(e){console.warn(e)}
+  try{const parsed=JSON.parse(localStorage.getItem(STORAGE_KEY)||"null");if(parsed?.schema===APP_SCHEMA&&Array.isArray(parsed.heroes))return normalizedStoredState(parsed);}catch(e){console.warn(e)}
   try{const legacy=JSON.parse(localStorage.getItem(LEGACY_KEY)||"null");if(legacy){const migrated=migrateLegacy(legacy);localStorage.setItem(STORAGE_KEY,JSON.stringify(migrated));return migrated;}}catch(e){console.warn(e)}
   return {schema:APP_SCHEMA,current:0,mode:"build",theme:"dark",heroes:[blankHero()],scene:blankScene()};
 }
@@ -158,7 +235,21 @@ function consumePresetDraft(targetStore){
 }
 function sceneViewportProfile(){if(matchMedia("(max-width: 950px) and (max-height: 500px) and (orientation: landscape)").matches)return"phone-landscape";if(matchMedia("(max-width: 720px)").matches)return"phone";return"desktop"}
 let store=loadStore(); const importedPresetName=consumePresetDraft(store),requestedMode=new URLSearchParams(location.search).get("mode");if(["build","play","tools","rules","reference"].includes(requestedMode))store.mode=requestedMode;let S=store.heroes[store.current]||store.heroes[0]; let Scene=store.scene||blankScene();let activeArch=D.archetypes[0]?.id; let refKind="all",rulesAudience="all";let activeScenePanel=null,scenePanelTrigger=null,activeSheetTab="combat",activeUtilityPreset={skillId:"",abilityKey:""},activeUtilityActorId=null;let sceneViewportMode=sceneViewportProfile(),sceneZoom=clamp(store.sceneUi?.zoom||60,30,180),sceneNeedsInitialFit=store.sceneUi?.fitVersion!==7||store.sceneUi?.viewport!==sceneViewportMode,sceneResizeTimer=null;let sceneDragActorId=null,sceneSuppressBoardClickUntil=0,sceneMeasureStart=null,sceneMeasureCells=new Set(),sceneMeasureLabel="",scenePanState=null,sceneSpaceHeld=false,sceneTokenTipTimer=null,hoveredSceneActorId=null,sceneContextTarget=null;
-function persist(){ store.heroes[store.current]=S;store.scene=Scene;store.sceneUi={zoom:sceneZoom,fitVersion:7,viewport:sceneViewportMode}; try{localStorage.setItem(STORAGE_KEY,JSON.stringify(store));}catch(e){toast("Не удалось сохранить: хранилище браузера заполнено");} }
+function persistableStore(){
+  const heroes=store.heroes.map(normalizeHero),scene=sceneCore(Scene),sourceById=new Map(store.heroes.map(hero=>[hero.id,hero]));
+  scene.undo=[];
+  for(let index=0;index<heroes.length;index++)for(const kind of ["portrait","token"]){
+    const source=store.heroes[index],copy=heroes[index],value=source.media?.[kind]||"",stored=storedHeroMediaSignatures.get(heroMediaKey(source.id,kind))===mediaSignature(value);
+    if(value&&heroMediaStorageReady&&stored){copy.media[kind]="";copy.media[`${kind}Stored`]=true}
+  }
+  for(const actor of scene.actors){const hero=sourceById.get(actor.heroId);if(!hero)continue;if(actor.tokenImage&&actor.tokenImage===hero.media?.token)actor.tokenImage="";if(actor.portraitImage&&actor.portraitImage===hero.media?.portrait)actor.portraitImage=""}
+  return {...store,heroes,scene,sceneUi:{zoom:sceneZoom,fitVersion:7,viewport:sceneViewportMode}};
+}
+function persist(){
+  store.heroes[store.current]=S;store.scene=Scene;store.sceneUi={zoom:sceneZoom,fitVersion:7,viewport:sceneViewportMode};scheduleHeroMediaPersistence();
+  try{localStorage.setItem(STORAGE_KEY,JSON.stringify(persistableStore()))}
+  catch(error){console.warn("DAWN local state persistence failed",error);if(Date.now()-lastStorageWarningAt>5000){lastStorageWarningAt=Date.now();toast(heroMediaStorageReady?"Не удалось сохранить локально; удалите лишний арт Сцены":"Переношу изображения из тесного хранилища браузера…")}}
+}
 
 const allGifts=()=>D.outlooks.flatMap(o=>(o.builtin?[o.builtin]:[]).concat(o.gifts));
 const giftById=id=>allGifts().find(g=>g.id===id);

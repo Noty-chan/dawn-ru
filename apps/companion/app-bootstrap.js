@@ -6,6 +6,7 @@ const Logic = window.DAWN_LOGIC;
 if (!Logic) throw new Error("Не удалось загрузить модуль механики DAWN.");
 const SceneEngine = window.DAWN_SCENE_ENGINE;
 const TechniqueEngine = window.DAWN_TECHNIQUE_ENGINE;
+const NetworkV2 = window.DAWN_NETWORK_V2;
 if (!SceneEngine || !TechniqueEngine) throw new Error("Не удалось загрузить ядро игровой Сцены DAWN.");
 const Sync = window.DAWN_SYNC;
 

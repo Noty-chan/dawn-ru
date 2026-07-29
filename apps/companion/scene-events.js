@@ -27,6 +27,10 @@ function validateEvent(scene, event, options = {}) {
   if (["resource.spend", "resource.gain"].includes(event.type)) {
     if (!RESOURCES.has(payload.resource) || !finite(payload.amount) || Number(payload.amount) < 0 || Number(payload.amount) > 9999) throw new Error("Некорректное изменение ресурса.");
   }
+  if (event.type === "actor.runtime.set") {
+    const limits = { hp: 9999, wounds: 99, stress: 3, focus: 9999, influence: 999, ap: 99 };
+    if (!actor || !Object.hasOwn(limits, payload.key) || !finite(payload.value) || Number(payload.value) < 0 || Number(payload.value) > limits[payload.key]) throw new Error("Некорректное значение ресурса героя.");
+  }
   if (event.type === "rule-resource.configure") {
     const definition = normalizeRuleResourceDefinition(actor, payload);
     if (!actor || !/^[a-z][a-z0-9-]{0,39}$/.test(definition.resource) || !definition.label.trim() || definition.label.length > 80 || definition.initial < definition.minimum || definition.maximum != null && (definition.maximum < definition.minimum || definition.initial > definition.maximum)) throw new Error("Некорректная конфигурация альтернативного ресурса.");
@@ -314,6 +318,9 @@ function reduceEvent(scene, event) {
         actor[key] = key === "meals" ? Math.min(Number(actor.maxMeals || next), next) : next;
       }
     }
+  } else if (event.type === "actor.runtime.set" && actor) {
+    payload.before = Number(actor[payload.key] || 0);
+    actor[payload.key] = Number(payload.value);
   } else if (event.type === "rule-resource.configure" && actor) {
     const definition = normalizeRuleResourceDefinition(actor, payload);
     const previous = ruleResourceDefinition(actor, definition.resource);

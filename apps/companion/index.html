@@ -250,6 +250,10 @@
             <div class="subpanel-head"><h2>Часы сцены</h2><div class="clock-add-actions"><button type="button" id="clock-add-progress">+ Хорошие</button><button type="button" id="clock-add-danger">+ Плохие</button></div></div>
             <div id="clocks" class="clock-list"></div>
           </section>
+          <section class="panel stress-tool">
+            <div class="subpanel-head"><div><h2>Стресс героев</h2><small>При 3 Стресса герой выводится из строя и возвращается в следующей Сцене с 2.</small></div></div>
+            <div id="stress-trackers" class="stress-trackers"></div>
+          </section>
         </div>
       </section>
 
@@ -294,6 +298,7 @@
   <script src="config.js?v=__BUILD_VERSION__"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.3/dist/umd/supabase.min.js" crossorigin="anonymous"></script>
   <script src="sync.js?v=__BUILD_VERSION__"></script>
+  <script src="network-v2.js?v=__BUILD_VERSION__"></script>
   <script src="app-bootstrap.js?v=__BUILD_VERSION__"></script>
   <script src="app-reference-data.js?v=__BUILD_VERSION__"></script>
   <script src="app-core.js?v=__BUILD_VERSION__"></script>

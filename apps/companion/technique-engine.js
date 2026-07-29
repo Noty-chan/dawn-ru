@@ -71,7 +71,7 @@
     { id: "ruiner.creation-ascetic.1", techniqueId: "ruiner.creation-ascetic", level: 1, name: "Формирование знаков", kind: "resource-replacement", automation: "full", note: "Метки творения заменяют Фокус; обычная Атака с Метками направляется к подходящей форме." },
     { id: "ruiner.creation-ascetic.1.nails", techniqueId: "ruiner.creation-ascetic", level: 1, name: "Скрещенные гвозди", kind: "creation-attack", automation: "decision", action: "Заклинание", markBand: "low", form: "nails" },
     { id: "ruiner.creation-ascetic.1.mallet", techniqueId: "ruiner.creation-ascetic", level: 1, name: "Невозможный молот", kind: "creation-attack", automation: "decision", action: "Заклинание", markBand: "high", form: "mallet" },
-    { id: "ruiner.creation-ascetic.1.pile-arm", techniqueId: "ruiner.creation-ascetic", level: 1, name: "Небесный сваебой", kind: "creation-attack", automation: "decision", action: "Завершение", markBand: "low", form: "pile-arm", advantage: 2 },
+    { id: "ruiner.creation-ascetic.1.pile-arm", techniqueId: "ruiner.creation-ascetic", level: 1, name: "Небесный копер", kind: "creation-attack", automation: "decision", action: "Завершение", markBand: "low", form: "pile-arm", advantage: 2 },
     { id: "ruiner.creation-ascetic.1.idol", techniqueId: "ruiner.creation-ascetic", level: 1, name: "Живой идол", kind: "creation-attack", automation: "decision", action: "Завершение", markBand: "high", form: "idol", advantage: 4 },
     { id: "ruiner.creation-ascetic.2", techniqueId: "ruiner.creation-ascetic", level: 2, name: "Один истинный мир", kind: "passive", automation: "full", note: "Передышка, Зарядка и получение Меток от повреждения или уничтожения местности автоматизированы." },
     { id: "ruiner.creation-ascetic.3", techniqueId: "ruiner.creation-ascetic", level: 3, name: "Труд благочестивых", kind: "passive", automation: "full", note: "Форма Завершения получает число Меток непосредственно предшествовавшего Заклинания." },
@@ -411,7 +411,7 @@
         else targetIds.push(...(scene.actors || []).filter(target => !target.knockedOut && target.team !== actor.team && distance(actor, target) === chosenDistance).map(target => target.id));
       } else if (rule.form === "pile-arm") {
         const selected = unique(request.targetIds || []);
-        if (selected.length !== 1 || !actorById(scene, selected[0]) || actorById(scene, selected[0]).team === actor.team || distance(actor, actorById(scene, selected[0])) !== 1) errors.push("Небесный сваебой выбирает одного смежного врага.");
+        if (selected.length !== 1 || !actorById(scene, selected[0]) || actorById(scene, selected[0]).team === actor.team || distance(actor, actorById(scene, selected[0])) !== 1) errors.push("Небесный копер выбирает одного смежного врага.");
         else targetIds.push(selected[0]);
       } else if (rule.form === "idol") {
         const selectedCells = unique(request.cells || []);

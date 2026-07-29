@@ -5,7 +5,7 @@ function inviteToken(value){const raw=String(value||"").trim();if(!raw)return"";
 function inviteLink(token){const url=new URL(location.href);url.search="";url.hash="";url.searchParams.set("mode","play");url.searchParams.set("invite",token);return url.href}
 async function publishCurrentHero(){await Sync.saveLibraryCharacter(S);const character=await Sync.saveCharacter(S);await Sync.submitCommand("join_hero",{characterId:character.id,heroId:S.id});return character}
 async function runSyncAction(action,success){try{await action();renderSync();renderScene();if(success)toast(success)}catch(error){renderSync();toast(error?.message||"Не удалось подключить общий стол")}}
-let lastInviteToken="",pendingSceneCommands=[],cloudCharacters=[],cloudLibraryUserId=null,cloudLibraryLoading=false,savedCampaigns=[],savedCampaignUserId=null,savedCampaignsLoading=false,automaticCommandChain=Promise.resolve();
+let lastInviteToken="",pendingSceneCommands=[],pendingCommandSceneId=null,cloudCharacters=[],cloudLibraryUserId=null,cloudLibraryLoading=false,savedCampaigns=[],savedCampaignUserId=null,savedCampaignsLoading=false,automaticCommandChain=Promise.resolve();
 const automaticCommandAttempts=new Map();
 function renderCloudLibrary(){
   const select=$("sync-library-select"),selected=select.value;select.innerHTML=cloudCharacters.length?`<option value="">Выберите персонажа</option>${cloudCharacters.map(record=>`<option value="${record.id}">${esc(record.name)} · версия ${record.version}</option>`).join("")}`:`<option value="">В облаке пока нет персонажей</option>`;if(cloudCharacters.some(record=>record.id===selected))select.value=selected;const chosen=Boolean(select.value);$("sync-library-load").disabled=!chosen;$("sync-library-delete").disabled=!chosen;
@@ -20,12 +20,12 @@ function renderSyncAccount(sync=Sync.state()){
 function installCloudHero(record){const hero=normalizeHero(record.state),index=store.heroes.findIndex(item=>item.id===hero.id);if(index>=0)store.heroes[index]=hero;else store.heroes.push(hero);store.current=index>=0?index:store.heroes.length-1;S=store.heroes[store.current];persist();renderAll();return hero}
 function hydratePlayerScene(scene){
   if(Sync.state().role!=="player")return scene;const actor=scene.actors.find(item=>item.heroId===S.id);if(!actor)return scene;
-  Object.assign(S.runtime,{hp:actor.hp,maxHp:actor.maxHp,wounds:actor.wounds,focus:actor.focus,influence:actor.influence,ap:actor.ap,effects:[...(actor.effects||[])]});S.runtime.tension=scene.tension;
-  Object.assign(actor,heroActorState(S,actor),{ownerId:null,characterId:null,hp:actor.hp,maxHp:actor.maxHp,wounds:actor.wounds,focus:actor.focus,influence:actor.influence,ap:actor.ap,effects:[...(actor.effects||[])]});return scene;
+  Object.assign(S.runtime,{hp:actor.hp,maxHp:actor.maxHp,wounds:actor.wounds,stress:actor.stress,focus:actor.focus,influence:actor.influence,ap:actor.ap,effects:[...(actor.effects||[])]});S.runtime.tension=scene.tension;
+  Object.assign(actor,heroActorState(S,actor),{ownerId:null,characterId:null,hp:actor.hp,maxHp:actor.maxHp,wounds:actor.wounds,stress:actor.stress,focus:actor.focus,influence:actor.influence,ap:actor.ap,effects:[...(actor.effects||[])]});return scene;
 }
 $("sync-config-form").addEventListener("submit",event=>{event.preventDefault();runSyncAction(async()=>{configureSyncFromForm();await Sync.connect()},"Авторизация общего стола готова")});
 $("sync-account-link").onclick=()=>runSyncAction(async()=>{if(!Sync.hasConfig())configureSyncFromForm();const result=await Sync.requestEmailLink($("sync-account-email").value);if(result.mode==="ready")throw new Error("Этот аккаунт уже подключён")},"Ссылка отправлена. Откройте письмо в этом браузере");
-$("sync-account-signout").onclick=()=>runSyncAction(async()=>{await Sync.signOutAccount();cloudCharacters=[];cloudLibraryUserId=null;renderCloudLibrary()},"Вы вышли из аккаунта");
+$("sync-account-signout").onclick=()=>runSyncAction(async()=>{resetNetworkV2Runtime();pendingSceneCommands=[];pendingCommandSceneId=null;automaticCommandAttempts.clear();await Sync.signOutAccount();cloudCharacters=[];cloudLibraryUserId=null;renderCloudLibrary()},"Вы вышли из аккаунта");
 $("sync-library-save").onclick=()=>runSyncAction(async()=>{await Sync.saveLibraryCharacter(S);await refreshCloudCharacters()},"Персонаж сохранён в облаке");
 $("sync-library-refresh").onclick=()=>runSyncAction(refreshCloudCharacters,"Список облачных персонажей обновлён");
 $("sync-library-select").onchange=renderCloudLibrary;
@@ -38,23 +38,31 @@ $("sync-create-campaign").onclick=()=>runSyncAction(async()=>{configureSyncFromF
 $("sync-join-campaign").onclick=()=>runSyncAction(async()=>{configureSyncFromForm();await Sync.connect();await Sync.redeemInvite(inviteToken($("sync-invite-token").value));await refreshSavedCampaigns()},"Вы вошли за общий стол");
 $("sync-create-invite").onclick=()=>runSyncAction(async()=>{lastInviteToken=await Sync.createInvite("player");$("sync-invite-output").textContent=`Ссылка для игроков: ${inviteLink(lastInviteToken)}`;$("sync-copy-invite").hidden=false},"Приглашение действует 7 дней или 8 входов");
 $("sync-copy-invite").onclick=()=>runSyncAction(async()=>{if(!lastInviteToken)throw new Error("Сначала создайте приглашение");await navigator.clipboard.writeText(inviteLink(lastInviteToken))},"Ссылка скопирована");
-$("sync-publish-hero").onclick=()=>runSyncAction(publishCurrentHero,"Лист и токен отправлены Нарратору");
-const leaveCurrentTable=()=>runSyncAction(async()=>{await Sync.leave();lastInviteToken="";$("sync-invite-output").textContent="";$("sync-copy-invite").hidden=true;await refreshSavedCampaigns()},"Компаньон снова работает локально");
+$("sync-publish-hero").onclick=()=>runSyncAction(publishCurrentHero,"Лист и токен отправлены за стол");
+const leaveCurrentTable=()=>runSyncAction(async()=>{resetNetworkV2Runtime();pendingSceneCommands=[];pendingCommandSceneId=null;automaticCommandAttempts.clear();await Sync.leave();lastInviteToken="";$("sync-invite-output").textContent="";$("sync-copy-invite").hidden=true;await refreshSavedCampaigns()},"Компаньон снова работает локально");
 $("sync-leave").onclick=leaveCurrentTable;
 $("sync-leave-table").onclick=leaveCurrentTable;
-$("sync-send-targets").onclick=()=>runSyncAction(async()=>{await Sync.submitCommand("set_targets",{targetIds:Scene.targetIds.slice(0,40),heroId:S.id})},"Цели отправлены Нарратору на подтверждение");
+$("sync-send-targets").onclick=()=>runSyncAction(async()=>{await Sync.submitCommand("set_targets",{targetIds:Scene.targetIds.slice(0,40),heroId:S.id})},"Цели отправлены за стол");
 $("sync-request-undo").onclick=()=>runSyncAction(async()=>{await Sync.submitCommand("request_undo",{reason:"player_request"})},"Запрос отката отправлен Нарратору");
 async function prepareSceneCommand(command){if(command.command_type==="set_targets")return prepareTargetsCommand(command);if(command.command_type==="request_undo")return prepareUndoCommand(command);if(command.command_type==="join_hero")return prepareRemoteHeroCommand(command);if(command.command_type==="update_runtime")return prepareRuntimeCommand(command);if(command.command_type==="dispatch_events")return prepareEventCommand(command);return null}
-async function decideSceneCommand(command,decision){if(decision==="applied"){const prepared=await prepareSceneCommand(command);if(!prepared)decision="rejected";else await acceptPreparedRemoteCommand(command,prepared)}if(decision==="rejected")await Sync.decideCommand(command.id,"rejected");pendingSceneCommands=pendingSceneCommands.filter(item=>String(item.id)!==String(command.id));automaticCommandAttempts.delete(String(command.id));renderSync()}
+async function decideSceneCommand(command,decision){if(decision==="applied"&&command.command_type==="set_targets"){applyTransientTargetsCommand(command);await Sync.decideCommand(command.id,"applied")}else if(decision==="applied"){const prepared=await prepareSceneCommand(command);if(!prepared)decision="rejected";else await acceptPreparedRemoteCommand(command,prepared)}if(decision==="rejected")await Sync.decideCommand(command.id,"rejected");pendingSceneCommands=pendingSceneCommands.filter(item=>String(item.id)!==String(command.id));automaticCommandAttempts.delete(String(command.id));renderSync()}
 function queueAutomaticCommand(command){
   const id=String(command?.id||""),version=Number(Scene.version||0);
-  if(!id||command.command_type!=="dispatch_events"||!Sync.state().canNarrate||automaticCommandAttempts.get(id)===version)return;
+  if(!id||!Sync.state().canNarrate||!NetworkV2.AUTOMATIC_COMMANDS.has(command.command_type))return;
+  if(command.command_type==="intent_v2"){
+    if(automaticCommandAttempts.has(id))return;
+    automaticCommandAttempts.set(id,"v2");
+    try{if(!enqueueNetworkV2Command(command))automaticCommandAttempts.delete(id)}
+    catch(error){automaticCommandAttempts.delete(id);throw error}
+    return;
+  }
+  if(automaticCommandAttempts.get(id)===version)return;
   automaticCommandAttempts.set(id,version);
   automaticCommandChain=automaticCommandChain.catch(()=>{}).then(async()=>{
     const current=pendingSceneCommands.find(item=>String(item.id)===id);
     if(!current)return;
     try{await decideSceneCommand(current,"applied")}
-    catch(error){renderSync();toast(`Действие игрока требует внимания: ${error?.message||"не удалось проверить"}`)}
+    catch(error){automaticCommandAttempts.delete(id);renderSync();toast(`Действие игрока временно задержано: ${error?.message||"не удалось проверить"}`);setTimeout(()=>{const retry=pendingSceneCommands.find(item=>String(item.id)===id);if(retry)queueAutomaticCommand(retry)},1200)}
   });
 }
 function queueAutomaticCommands(){pendingSceneCommands.forEach(queueAutomaticCommand)}
@@ -62,7 +70,8 @@ $("sync-command-queue").addEventListener("click",event=>{const button=event.targ
 
 Sync?.on("status",()=>{renderSync();if(store.mode==="tools")renderToolsSyncState()});
 Sync?.on("presence",()=>renderSync());
-Sync?.on("scene",payload=>{if(!payload?.state||typeof payload.state!=="object")return;Scene=hydratePlayerScene(normalizeScene({...payload.state,version:Number(payload.version??payload.state.version??0)}));store.scene=Scene;persist();if(store.mode==="play")renderPlay();if(store.mode==="tools"){renderClocks();renderDiceHistory();renderAllInControls()}queueAutomaticCommands()});
+Sync?.on("scene",payload=>{if(!payload?.state||typeof payload.state!=="object")return;const sceneId=Sync.state().sceneId;if(sceneId!==pendingCommandSceneId){pendingSceneCommands=[];automaticCommandAttempts.clear();pendingCommandSceneId=sceneId}const remote=mergeNetworkV2Scene({...payload.state,version:Number(payload.version??payload.state.version??0)},Scene);Scene=hydratePlayerScene(remote);store.scene=Scene;persist();if(store.mode==="play")renderPlay();if(store.mode==="tools"){renderClocks();renderDiceHistory();renderAllInControls()}queueAutomaticCommands()});
 Sync?.on("commands",commands=>{pendingSceneCommands=Array.isArray(commands)?commands:[];renderSync();queueAutomaticCommands()});
-Sync?.on("command",command=>{if(command&&!pendingSceneCommands.some(item=>String(item.id)===String(command.id)))pendingSceneCommands.push(command);renderSync();if(command?.command_type==="dispatch_events")queueAutomaticCommand(command);else toast(`Получена команда игрока: ${command.command_type}`)});
-Sync?.on("command-update",command=>{if(!command)return;if(command.status!=="pending")pendingSceneCommands=pendingSceneCommands.filter(item=>String(item.id)!==String(command.id));renderSync()});
+Sync?.on("command",command=>{if(command&&!pendingSceneCommands.some(item=>String(item.id)===String(command.id)))pendingSceneCommands.push(command);renderSync();queueAutomaticCommand(command)});
+Sync?.on("command-update",command=>{if(!command)return;if(command.status!=="pending"){pendingSceneCommands=pendingSceneCommands.filter(item=>String(item.id)!==String(command.id));automaticCommandAttempts.delete(String(command.id))}renderSync()});
+globalThis.addEventListener("dawn-network-v2-settled",event=>{const ids=new Set([...(event.detail?.commandIds||[]),...(event.detail?.rejectedCommandIds||[])].map(String));pendingSceneCommands=pendingSceneCommands.filter(command=>!ids.has(String(command.id)));ids.forEach(id=>automaticCommandAttempts.delete(id));renderSync()});
