@@ -16,9 +16,9 @@ function canonicalPlayerEvents(command){
   if(!raw.length||raw.length>16)throw new Error("Команда содержит некорректный пакет событий");
   const prepared=raw.find(event=>event.type==="action.prepare");
   if(prepared){
-    const actor=Scene.actors.find(item=>item.id===prepared.actorId),move=raw.find(event=>event.type==="actor.move"&&event.actorId===prepared.actorId),pending=raw.find(event=>event.type==="attack.pending"),roll=raw.find(event=>event.type==="roll.public")?.payload||pending?.payload?.roll||null;
+    const actor=Scene.actors.find(item=>item.id===prepared.actorId),move=raw.find(event=>event.type==="actor.move"&&event.actorId===prepared.actorId),pending=raw.find(event=>event.type==="attack.pending"),roll=raw.find(event=>event.type==="roll.public")?.payload||pending?.payload?.roll||null,request=prepared.payload?.request||{};
     if(!actor||actor.ownerId!==command.actor_id)throw new Error("Игрок не владеет исполнителем действия");
-    const result=SceneEngine.prepareAction(Scene,D,{actorId:prepared.actorId,actionId:prepared.payload?.actionId,targetIds:prepared.payload?.targetIds||[],destination:move?{x:Number(move.payload?.x),y:Number(move.payload?.y)}:undefined,roll});
+    const result=SceneEngine.prepareAction(Scene,D,{actorId:prepared.actorId,actionId:prepared.payload?.actionId,targetIds:prepared.payload?.targetIds||[],destination:move?{x:Number(move.payload?.x),y:Number(move.payload?.y)}:undefined,roll,attribute:request.attribute||roll?.attribute||null,useCunningPlan:Boolean(request.useCunningPlan),useRevelation:Boolean(request.useRevelation),useThunderDischarge:Boolean(request.useThunderDischarge),useEclipseStars:Boolean(request.useEclipseStars),useGrasp:Boolean(request.useGrasp),startRage:Boolean(request.startRage),bulletsSpent:request.bulletsSpent,bulletAdvantage:request.bulletAdvantage,throwWeapon:Boolean(request.throwWeapon),overload:Boolean(request.overload),provokeTargetIds:Array.isArray(request.provokeTargetIds)?request.provokeTargetIds:[],removeEffectIdsByTarget:request.removeEffectIdsByTarget&&typeof request.removeEffectIdsByTarget==="object"?request.removeEffectIdsByTarget:{},attackModifierIds:Array.isArray(request.attackModifierIds)?request.attackModifierIds:[]});
     if(!result.ok)throw new Error(result.errors.join(" "));
     return result.events;
   }

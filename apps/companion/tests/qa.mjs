@@ -28,6 +28,11 @@ assert.match(companionMarkup, /id="sync-leave-table"[^>]+title="Выйти из 
 assert.match(appSource, /sceneRail\.prepend\(syncPanel\)/, "The network panel must be mounted into the immersive table rail");
 assert.match(appSource, /if\(presenceNode\.innerHTML!==presenceMarkup\)presenceNode\.innerHTML=presenceMarkup/, "Unchanged presence markup must not be recreated on every realtime status event");
 assert.doesNotMatch(fs.readFileSync(path.join(root, "sync.js"), "utf8"), /emit\("presence",state\.presence\);emit\("status"\)/, "Presence events must not trigger a duplicate status render");
+assert.doesNotMatch(fs.readFileSync(path.join(root, "sync.js"), "utf8"), /if\(session&&state\.sceneId\).*scheduleReconnect/, "Auth refreshes must not rebuild an already subscribed Scene channel");
+assert.match(fs.readFileSync(path.join(root, "sync.js"), "utf8"), /generation!==channelGeneration/, "Callbacks from an intentionally removed realtime channel must be ignored");
+assert.doesNotMatch(appSource, /Sync\?\.on\("status",\(\)=>\{[^}]*renderScene\(\)/, "A connection-status repaint must not rebuild the table");
+assert.match(appSource, /openDetails=new Map/, "Expanded hero rules must survive a canonical Scene repaint");
+assert.match(companionMarkup, /id="scene-clear-movement-traces"/, "The narrator toolbar must expose movement-trace cleanup");
 assert.match(appSource, /if\(root\.innerHTML!==markup\)root\.innerHTML=markup/, "Unchanged rule cards must retain their open state across Scene renders");
 assert.match(appSource, /health=Logic\.reconcileHealthRuntime\(\{current:runtime\.hp,previousMax:runtime\.maxHp,nextMax:derived\.hp\}\)/, "Adding a hero to the table reconciles uninitialized and legacy Health");
 assert.match(appSource, /Number\.isFinite\(Number\(base\.focus\)\)\?Number\(base\.focus\)-Number\(base\.techniqueFocusBonus\|\|0\):derived\.focus/, "A hero entering combat starts with Focus derived from Spirit while an existing table actor keeps current Focus");

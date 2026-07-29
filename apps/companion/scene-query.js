@@ -427,9 +427,14 @@ function summarizeEvents(scene, events = []) {
 
 function movementTraceStatus(scene, request = {}) {
   const space = request.space || scene.activeSpace, traces = [];
+  const visibleLog = [];
+  for (const item of scene.log || []) {
+    if (item.type === "movement-traces.clear") break;
+    visibleLog.push(item);
+  }
   for (const actor of scene.actors || []) {
     if (actor.space !== space) continue;
-    const event = (scene.log || []).find(item => item.type === "actor.move" && item.actorId === actor.id && item.payload?.from && (item.payload.space || item.payload.from.space) === space);
+    const event = visibleLog.find(item => item.type === "actor.move" && item.actorId === actor.id && item.payload?.from && (item.payload.space || item.payload.from.space) === space);
     if (!event) continue;
     const payload = event.payload || {}, from = payload.from;
     if (Number(payload.x) !== Number(actor.x) || Number(payload.y) !== Number(actor.y) || from.space !== space) continue;

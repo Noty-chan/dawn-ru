@@ -4,14 +4,14 @@
   const STORAGE_KEY="dawn-ru-sync-v1";
   const PROJECT=global.DAWN_CONFIG||{};
   const listeners=new Map();
-  let client=null,channel=null,authSubscription=null,saveTimer=null,saveInFlight=false,pendingSave=null,reconnectTimer=null,reconnectAttempt=0,mutationChain=Promise.resolve();
+  let client=null,channel=null,channelGeneration=0,authSubscription=null,saveTimer=null,saveInFlight=false,pendingSave=null,reconnectTimer=null,reconnectAttempt=0,mutationChain=Promise.resolve();
   let state={status:"offline",authenticated:false,userId:null,email:"",isAnonymous:true,accountPending:false,userIdChanged:false,url:String(PROJECT.supabaseUrl||""),publishableKey:String(PROJECT.publishableKey||""),displayName:"",campaignId:null,campaignName:"",sceneId:null,role:null,version:0,characterIds:{},presence:[],lastSyncedAt:"",error:""};
 
   function stored(){try{return JSON.parse(localStorage.getItem(STORAGE_KEY)||"{}")||{}}catch{return{}}}
   function persist(){localStorage.setItem(STORAGE_KEY,JSON.stringify({url:state.url,publishableKey:state.publishableKey,displayName:state.displayName,campaignId:state.campaignId,campaignName:state.campaignName,sceneId:state.sceneId,role:state.role,characterIds:state.characterIds||{}}))}
   function snapshot(){return {...state,canNarrate:["owner","narrator"].includes(state.role),hasAccount:Boolean(state.email&&!state.isAnonymous)}}
   function emit(type,payload=snapshot()){for(const listener of listeners.get(type)||[])try{listener(payload)}catch(error){console.error(error)}}
-  function patch(next){state={...state,...next};persist();emit("status")}
+  function patch(next){if(!Object.keys(next).some(key=>state[key]!==next[key]))return snapshot();state={...state,...next};persist();emit("status");return snapshot()}
   function fail(error){const message=error?.message||String(error||"Ошибка синхронизации");patch({status:"error",error:message});throw error instanceof Error?error:new Error(message)}
   function on(type,listener){if(!listeners.has(type))listeners.set(type,new Set());listeners.get(type).add(listener);return()=>listeners.get(type)?.delete(listener)}
   function hasConfig(){return Boolean(state.url&&state.publishableKey)}
@@ -25,8 +25,8 @@
     authSubscription?.unsubscribe?.();
     const result=client?.auth?.onAuthStateChange?.((_event,session)=>{
       const next=authState(session),resetIdentity=!session||next.userIdChanged,sceneId=resetIdentity?null:state.sceneId;
-      patch({...next,...(resetIdentity?{campaignId:null,campaignName:"",sceneId:null,role:null,version:0,characterIds:{},presence:[]}:{}),status:session?(sceneId?"connecting":"authenticated"):"offline",error:""});
-      if(session&&state.sceneId)setTimeout(()=>scheduleReconnect("auth"),0);
+      const keepSceneSession=Boolean(session&&sceneId&&!resetIdentity);
+      patch({...next,...(resetIdentity?{campaignId:null,campaignName:"",sceneId:null,role:null,version:0,characterIds:{},presence:[]}:{}),status:keepSceneSession?state.status:session?(sceneId?"connecting":"authenticated"):"offline",error:""});
     });
     authSubscription=result?.data?.subscription||null;
   }
@@ -50,7 +50,7 @@
   }
 
   async function ensureConnected(){if(!client||!state.authenticated)await connect();return client}
-  async function unsubscribe(){clearTimeout(reconnectTimer);reconnectTimer=null;if(channel&&client)await client.removeChannel(channel);channel=null}
+  async function unsubscribe(){clearTimeout(reconnectTimer);reconnectTimer=null;channelGeneration+=1;const previous=channel;channel=null;if(previous&&client)await client.removeChannel(previous)}
   function scheduleReconnect(reason="connection"){
     if(!state.sceneId||reconnectTimer||global.navigator?.onLine===false)return;
     reconnectAttempt=Math.min(reconnectAttempt+1,6);patch({status:"connecting",error:reason==="offline"?"Соединение восстановлено; загружаем Сцену":"Realtime переподключается"});
@@ -80,6 +80,7 @@
   async function updatePresence(extra={}){if(!channel?.track||!state.sceneId)return;await channel.track(presencePayload(extra))}
   async function subscribe(){
     await unsubscribe();if(!client||!state.sceneId)return;
+    const generation=++channelGeneration;
     const canNarrate=["owner","narrator"].includes(state.role);
     const sceneTable=canNarrate?"scenes":"scene_public_snapshots";
     const sceneFilter=canNarrate?`id=eq.${state.sceneId}`:`scene_id=eq.${state.sceneId}`;
@@ -94,7 +95,7 @@
       .on("postgres_changes",{event:"UPDATE",schema:"public",table:"scene_commands",filter:`scene_id=eq.${state.sceneId}`},payload=>{if(payload.new)emit("command-update",payload.new)})
       .on("postgres_changes",{event:"INSERT",schema:"public",table:"scene_events",filter:`scene_id=eq.${state.sceneId}`},payload=>{if(payload.new)emit("event",payload.new)})
       .on("postgres_changes",{event:"UPDATE",schema:"public",table:"characters",filter:`campaign_id=eq.${state.campaignId}`},payload=>{if(payload.new)emit("character",payload.new)})
-      .subscribe(status=>{if(status==="SUBSCRIBED"){reconnectAttempt=0;patch({status:"online",lastSyncedAt:new Date().toISOString(),error:""});void updatePresence().catch(error=>console.warn("Presence update failed",error))}else if(["CHANNEL_ERROR","TIMED_OUT","CLOSED"].includes(status)){patch({status:"connecting",error:"Realtime переподключается"});scheduleReconnect(status)}else patch({status:"connecting"})});
+      .subscribe(status=>{if(generation!==channelGeneration)return;if(status==="SUBSCRIBED"){reconnectAttempt=0;patch({status:"online",lastSyncedAt:new Date().toISOString(),error:""});void updatePresence().catch(error=>console.warn("Presence update failed",error))}else if(["CHANNEL_ERROR","TIMED_OUT","CLOSED"].includes(status))scheduleReconnect(status)});
   }
 
   async function loadScene(sceneId){

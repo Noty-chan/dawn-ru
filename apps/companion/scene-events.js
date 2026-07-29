@@ -12,7 +12,7 @@ function normalizeEvent(event, options = {}) {
 }
 
 function validateEvent(scene, event, options = {}) {
-  if (!EVENT_TYPES.has(event.type)) throw new Error(`Неизвестный тип события: ${event.type}.`);
+  if (!EVENT_TYPES.has(event.type) && event.type !== "movement-traces.clear") throw new Error(`Неизвестный тип события: ${event.type}.`);
   if (typeof event.id !== "string" || !event.id || event.id.length > 120) throw new Error("Некорректный id события.");
   if (event.actorId && !actorById(scene, event.actorId)) throw new Error("Исполнитель события отсутствует на Сцене.");
   const payload = event.payload || {}, actor = event.actorId ? actorById(scene, event.actorId) : null;

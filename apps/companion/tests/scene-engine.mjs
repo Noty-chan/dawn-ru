@@ -72,6 +72,16 @@ assert.throws(() => Engine.dispatch(scene, { type: "scene.replace", payload: { s
 const publicRoll = Engine.dispatch(scene, { type: "roll.public", actorId: "hero", payload: { formula: "4D6 ≥4", rolls: [6, 5, 2, 1], successes: 2, crits: 1, outcome: "Минимальный успех" } }).scene;
 assert.equal(publicRoll.rollFeed[0].actor, "Эта");
 assert.equal(publicRoll.rollFeed[0].outcome, "Минимальный успех");
+const chargeScene = structuredClone(scene);
+chargeScene.actors[0].focus = 0;
+const chargePrepared = Engine.prepareAction(chargeScene, data, { actorId: "hero", actionId: actionNamed("Зарядка").id, roll: { formula: "4D6 ≥4", attribute: "spirit", rolls: [6, 5, 4, 1], successes: 3, crits: 1 } });
+assert.equal(chargePrepared.ok, true);
+const charged = Engine.dispatchMany(chargeScene, chargePrepared.events).scene;
+assert.equal(charged.actors[0].focus, 3, "Charge grants Focus equal to three rolled successes");
+const tracedMove = Engine.dispatch(scene, { type: "actor.move", actorId: "hero", payload: { space: "main", x: 1, y: 2, movement: "Шаг", path: ["1,2"] } }).scene;
+assert.equal(Engine.movementTraceStatus(tracedMove, { space: "main" }).available, true);
+const tracesCleared = Engine.dispatch(tracedMove, { type: "movement-traces.clear", payload: { space: "main" } }).scene;
+assert.equal(Engine.movementTraceStatus(tracesCleared, { space: "main" }).available, false, "The narrator can clear movement traces without deleting combat history");
 const clockCreated = Engine.dispatch(scene, { id: "clock-create", type: "session-clock.create", payload: { id: "scene-clock-threat", name: "Приближение угрозы", kind: "danger", size: 6 } }).scene;
 assert.deepEqual(JSON.parse(JSON.stringify(clockCreated.sessionClocks[0])), { id: "scene-clock-threat", name: "Приближение угрозы", kind: "danger", size: 6, value: 0 }, "Session clocks live in the canonical Scene state");
 const clockSet = Engine.dispatch(clockCreated, { id: "clock-set", type: "session-clock.set", payload: { id: "scene-clock-threat", value: 4 } }).scene;
