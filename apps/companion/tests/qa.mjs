@@ -43,8 +43,8 @@ assert.match(companionMarkup, /id="scene-clear-movement-traces"/, "The narrator 
 assert.match(appSource, /sceneReferenceMarkup!==markup[\s\S]+openRuleIds[\s\S]+details\.open=openRuleIds\.has/, "Unchanged rule cards must retain their open state across Scene renders");
 assert.match(appSource, /health=Logic\.reconcileSceneActorHealth\(\{current:base\.hp,previousMax:base\.maxHp,nextMax:derived\.hp,existing:hasSceneHealth\}\)/, "A newly spawned hero starts at full Health while an existing table actor retains battle damage");
 assert.match(appSource, /Number\.isFinite\(Number\(base\.focus\)\)\?Number\(base\.focus\)-Number\(base\.techniqueFocusBonus\|\|0\):derived\.focus/, "A hero entering combat starts with Focus derived from Spirit while an existing table actor keeps current Focus");
-assert.match(appSource, /if\(!sceneCombatStarted\(scene\)\)delete base\.focus/, "Refreshing a remotely submitted hero before combat must repair its starting Focus");
-assert.match(appSource, /if\(!sceneCombatStarted\(Scene\)\)delete base\.focus/, "Refreshing a local hero before combat must repair its starting Focus");
+assert.match(appSource, /if\(!sceneCombatStarted\(scene\)\)\{delete base\.focus;delete base\.hp;delete base\.maxHp\}/, "Refreshing a remotely submitted hero before combat must repair its starting Focus and Health");
+assert.match(appSource, /if\(!sceneCombatStarted\(Scene\)\)\{delete base\.focus;delete base\.hp;delete base\.maxHp\}/, "Refreshing a local hero before combat must repair its starting Focus and Health");
 assert.match(appSource, /feed\.innerHTML=\[\.\.\.rolls\]\.reverse\(\)\.map/, "The newest public roll must stay at the bottom edge of the upward-growing feed");
 assert.match(appSource, /querySelector\("article:last-child"\)/, "Roll animation must target the newest bottom card");
 assert.match(appSource, /if\(performance\.now\(\)<sceneSuppressBoardClickUntil\)/, "A synthetic click after dropping a token must not move the previously selected actor");
