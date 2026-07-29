@@ -6,9 +6,11 @@ function commandSummary(command){
   if(command.command_type==="join_hero")return "Герой готов войти в Сцену";
   if(command.command_type==="update_runtime")return "Изменение ресурса героя";
   if(command.command_type!=="dispatch_events")return command.command_type;
-  const events=Array.isArray(command.payload?.events)?command.payload.events:[],prepared=events.find(event=>event.type==="action.prepare"),reaction=events.find(event=>event.type==="reaction.respond"),actor=Scene.actors.find(item=>item.id===(prepared?.actorId||reaction?.actorId));
+  const events=Array.isArray(command.payload?.events)?command.payload.events:[],prepared=events.find(event=>event.type==="action.prepare"),reaction=events.find(event=>event.type==="reaction.respond"),technique=events.find(event=>event.type==="technique.prepare"),ruleResponse=events.find(event=>event.type==="rule.respond"),actor=Scene.actors.find(item=>item.id===(prepared?.actorId||reaction?.actorId||technique?.actorId||ruleResponse?.actorId));
   if(prepared)return `${actor?.name||"Игрок"}: ${prepared.payload?.name||"действие"}`;
   if(reaction)return `${actor?.name||"Игрок"}: Реакция — ${reaction.payload?.choice||"ответ"}`;
+  if(technique)return `${actor?.name||"Игрок"}: ${technique.payload?.name||"Техника"}`;
+  if(ruleResponse)return `${actor?.name||"Игрок"}: ${Scene.pendingPrompt?.title||"решение правила"}`;
   return "Пакет событий игрока";
 }
 function canonicalPlayerEvents(command){
@@ -32,9 +34,21 @@ function canonicalPlayerEvents(command){
   }
   const technique=raw.find(event=>event.type==="technique.prepare");
   if(technique){const actor=Scene.actors.find(item=>item.id===technique.actorId);if(!actor||actor.ownerId!==command.actor_id)throw new Error("Игрок не владеет исполнителем Техники");const request=technique.payload?.request||{},rule=TechniqueEngine.RULES.find(item=>item.id===technique.payload?.ruleId);let prepared;if(rule)prepared=TechniqueEngine.preview(Scene,{...request,actorId:actor.id,ruleId:rule.id});else{const entry=TechniqueEngine.techniqueCoverage(D,actor.techniques||{}).find(item=>item.id===request.entryId),effectIds=safeTechniqueEffectIds(entry);prepared=request.mode==="assist"?TechniqueEngine.assistedPreview(Scene,{actorId:actor.id,entry,targetIds:request.targetIds,effectIds,note:request.note}):TechniqueEngine.manualPreview(Scene,{actorId:actor.id,entry,targetIds:request.targetIds,note:request.note})}if(!prepared?.ok)throw new Error(prepared?.errors?.join(" ")||"Техника больше недоступна");return TechniqueEngine.toEvents(Scene,prepared)}
+  const ruleResponse=raw.find(event=>event.type==="rule.respond");
+  if(ruleResponse){
+    const actor=Scene.actors.find(item=>item.id===ruleResponse.actorId),prompt=Scene.pendingPrompt;
+    if(!actor||actor.ownerId!==command.actor_id)throw new Error("Игрок не владеет героем, отвечающим на правило");
+    if(!prompt||prompt.id!==ruleResponse.payload?.promptId||prompt.sourceActorId!==actor.id)throw new Error("Это решение относится к уже завершённому вопросу");
+    const markerMove=raw.find(event=>event.type==="marker.move"),actorMove=raw.find(event=>event.type==="actor.move"),destination=ruleResponse.payload?.destination||(markerMove||actorMove)?.payload;
+    const result=ruleResponse.payload?.choice==="cell"&&destination
+      ?SceneEngine.preparePromptPlacement(Scene,{destination:{x:Number(destination.x),y:Number(destination.y)}})
+      :SceneEngine.respondRulePrompt(Scene,D,{choice:ruleResponse.payload?.choice,roll:raw.find(event=>event.type==="roll.public")?.payload||null});
+    if(!result.ok)throw new Error(result.errors.join(" "));
+    return result.events;
+  }
   const publicRoll=raw.find(event=>event.type==="roll.public");
   if(publicRoll&&raw.length===1){const actor=Scene.actors.find(item=>item.id===publicRoll.actorId);if(!actor||actor.ownerId!==command.actor_id)throw new Error("Игрок не владеет автором броска");SceneEngine.validateEvent(Scene,{...publicRoll,id:publicRoll.id||uid(),payload:publicRoll.payload||{}});return [{type:"roll.public",actorId:actor.id,payload:publicRoll.payload}]}
-  throw new Error("Этот пакет нельзя безопасно восстановить как действие или Реакцию");
+  throw new Error("Этот пакет нельзя безопасно восстановить как действие, Технику или решение правила");
 }
 function remoteCommandEvent(type,command,payload={}){
   return{id:uid(),type,actorId:null,payload:{commandId:command.id,commandActorId:command.actor_id,...payload},at:new Date().toISOString()};

@@ -1828,4 +1828,30 @@ assert.equal(interruptedSpine.ok, false, "Losing the launched target interrupts 
 assert.deepEqual([interruptedSpineScene.actors[0].x, interruptedSpineScene.actors[0].y], [1, 1]);
 assert.equal(interruptedSpineScene.actors[0].ap, 3);
 
+const wispScene = structuredClone(scene);
+wispScene.actors[0].techniques = { "altruist.will-o-wisp": 3 };
+wispScene.pendingPrompt = { id: "wisp-primary-test", kind: "wisp-primary", sourceActorId: "hero", options: ["dreamy", "bright", "pass"], context: {} };
+const firstWispChoice = Engine.respondRulePrompt(wispScene, data, { choice: "dreamy" });
+assert.equal(firstWispChoice.ok, true);
+const pairedWispPrompt = Engine.dispatchMany(wispScene, firstWispChoice.events).scene;
+assert.equal(pairedWispPrompt.pendingPrompt.kind, "wisp-secondary");
+const pairedWispChoice = Engine.respondRulePrompt(pairedWispPrompt, data, { choice: "split:bright" });
+assert.equal(pairedWispChoice.ok, true);
+let movingWispScene = Engine.dispatchMany(pairedWispPrompt, pairedWispChoice.events).scene;
+assert.equal(movingWispScene.markers.length, 2, "Paired Spirits creates two separately identifiable wisps");
+const selectedWisp = movingWispScene.markers[0];
+movingWispScene = Engine.dispatch(movingWispScene, {
+  type: "rule.prompt", actorId: "hero",
+  payload: { id: "wisp-move-test", kind: "wisp-move-select", sourceActorId: "hero", options: [selectedWisp.id, "pass"], context: {} },
+}).scene;
+const selectWispMove = Engine.respondRulePrompt(movingWispScene, data, { choice: selectedWisp.id });
+assert.equal(selectWispMove.ok, true);
+movingWispScene = Engine.dispatchMany(movingWispScene, selectWispMove.events).scene;
+assert.equal(movingWispScene.pendingPrompt.kind, "marker-move-cell");
+const placeWisp = Engine.preparePromptPlacement(movingWispScene, { destination: { x: 4, y: 1 } });
+assert.equal(placeWisp.ok, true);
+const movedWispScene = Engine.dispatchMany(movingWispScene, placeWisp.events).scene;
+const movedWisp = movedWispScene.markers.find(marker => marker.id === selectedWisp.id);
+assert.deepEqual([movedWisp.x, movedWisp.y], [4, 1], "The selected wisp moves to the confirmed highlighted cell");
+
 console.log("Scene engine QA passed: canonical Turns and AP, once-per-Round actions, strict Reactions, truthful enemy automation, effects, movement, damage, and public events");

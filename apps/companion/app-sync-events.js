@@ -5,7 +5,8 @@ function inviteToken(value){const raw=String(value||"").trim();if(!raw)return"";
 function inviteLink(token){const url=new URL(location.href);url.search="";url.hash="";url.searchParams.set("mode","play");url.searchParams.set("invite",token);return url.href}
 async function publishCurrentHero(){await Sync.saveLibraryCharacter(S);const character=await Sync.saveCharacter(S);await Sync.submitCommand("join_hero",{characterId:character.id,heroId:S.id});return character}
 async function runSyncAction(action,success){try{await action();renderSync();renderScene();if(success)toast(success)}catch(error){renderSync();toast(error?.message||"Не удалось подключить общий стол")}}
-let lastInviteToken="",pendingSceneCommands=[],cloudCharacters=[],cloudLibraryUserId=null,cloudLibraryLoading=false,savedCampaigns=[],savedCampaignUserId=null,savedCampaignsLoading=false;
+let lastInviteToken="",pendingSceneCommands=[],cloudCharacters=[],cloudLibraryUserId=null,cloudLibraryLoading=false,savedCampaigns=[],savedCampaignUserId=null,savedCampaignsLoading=false,automaticCommandChain=Promise.resolve();
+const automaticCommandAttempts=new Map();
 function renderCloudLibrary(){
   const select=$("sync-library-select"),selected=select.value;select.innerHTML=cloudCharacters.length?`<option value="">Выберите персонажа</option>${cloudCharacters.map(record=>`<option value="${record.id}">${esc(record.name)} · версия ${record.version}</option>`).join("")}`:`<option value="">В облаке пока нет персонажей</option>`;if(cloudCharacters.some(record=>record.id===selected))select.value=selected;const chosen=Boolean(select.value);$("sync-library-load").disabled=!chosen;$("sync-library-delete").disabled=!chosen;
 }
@@ -43,11 +44,25 @@ $("sync-leave").onclick=leaveCurrentTable;
 $("sync-leave-table").onclick=leaveCurrentTable;
 $("sync-send-targets").onclick=()=>runSyncAction(async()=>{await Sync.submitCommand("set_targets",{targetIds:Scene.targetIds.slice(0,40),heroId:S.id})},"Цели отправлены Нарратору на подтверждение");
 $("sync-request-undo").onclick=()=>runSyncAction(async()=>{await Sync.submitCommand("request_undo",{reason:"player_request"})},"Запрос отката отправлен Нарратору");
-$("sync-command-queue").addEventListener("click",event=>{const button=event.target.closest("[data-sync-command]");if(!button)return;runSyncAction(async()=>{const command=pendingSceneCommands.find(item=>String(item.id)===button.dataset.syncCommand);if(!command)return;button.disabled=true;let decision=button.dataset.syncDecision;if(decision==="applied"){let prepared;if(command.command_type==="set_targets")prepared=prepareTargetsCommand(command);else if(command.command_type==="request_undo")prepared=prepareUndoCommand(command);else if(command.command_type==="join_hero")prepared=await prepareRemoteHeroCommand(command);else if(command.command_type==="update_runtime")prepared=prepareRuntimeCommand(command);else if(command.command_type==="dispatch_events")prepared=prepareEventCommand(command);else decision="rejected";if(prepared)await acceptPreparedRemoteCommand(command,prepared)}if(decision==="rejected")await Sync.decideCommand(command.id,"rejected");pendingSceneCommands=pendingSceneCommands.filter(item=>String(item.id)!==String(command.id));renderSync()},"Команда игрока обработана")});
+async function prepareSceneCommand(command){if(command.command_type==="set_targets")return prepareTargetsCommand(command);if(command.command_type==="request_undo")return prepareUndoCommand(command);if(command.command_type==="join_hero")return prepareRemoteHeroCommand(command);if(command.command_type==="update_runtime")return prepareRuntimeCommand(command);if(command.command_type==="dispatch_events")return prepareEventCommand(command);return null}
+async function decideSceneCommand(command,decision){if(decision==="applied"){const prepared=await prepareSceneCommand(command);if(!prepared)decision="rejected";else await acceptPreparedRemoteCommand(command,prepared)}if(decision==="rejected")await Sync.decideCommand(command.id,"rejected");pendingSceneCommands=pendingSceneCommands.filter(item=>String(item.id)!==String(command.id));automaticCommandAttempts.delete(String(command.id));renderSync()}
+function queueAutomaticCommand(command){
+  const id=String(command?.id||""),version=Number(Scene.version||0);
+  if(!id||command.command_type!=="dispatch_events"||!Sync.state().canNarrate||automaticCommandAttempts.get(id)===version)return;
+  automaticCommandAttempts.set(id,version);
+  automaticCommandChain=automaticCommandChain.catch(()=>{}).then(async()=>{
+    const current=pendingSceneCommands.find(item=>String(item.id)===id);
+    if(!current)return;
+    try{await decideSceneCommand(current,"applied")}
+    catch(error){renderSync();toast(`Действие игрока требует внимания: ${error?.message||"не удалось проверить"}`)}
+  });
+}
+function queueAutomaticCommands(){pendingSceneCommands.forEach(queueAutomaticCommand)}
+$("sync-command-queue").addEventListener("click",event=>{const button=event.target.closest("[data-sync-command]");if(!button)return;runSyncAction(async()=>{const command=pendingSceneCommands.find(item=>String(item.id)===button.dataset.syncCommand);if(!command)return;button.disabled=true;await decideSceneCommand(command,button.dataset.syncDecision)},"Команда игрока обработана")});
 
 Sync?.on("status",()=>{renderSync();if(store.mode==="tools")renderToolsSyncState()});
 Sync?.on("presence",()=>renderSync());
-Sync?.on("scene",payload=>{if(!payload?.state||typeof payload.state!=="object")return;Scene=hydratePlayerScene(normalizeScene({...payload.state,version:Number(payload.version??payload.state.version??0)}));store.scene=Scene;persist();if(store.mode==="play")renderPlay();if(store.mode==="tools"){renderClocks();renderDiceHistory();renderAllInControls()}});
-Sync?.on("commands",commands=>{pendingSceneCommands=Array.isArray(commands)?commands:[];renderSync()});
-Sync?.on("command",command=>{if(command&&!pendingSceneCommands.some(item=>String(item.id)===String(command.id)))pendingSceneCommands.push(command);renderSync();toast(`Получена команда игрока: ${command.command_type}`)});
+Sync?.on("scene",payload=>{if(!payload?.state||typeof payload.state!=="object")return;Scene=hydratePlayerScene(normalizeScene({...payload.state,version:Number(payload.version??payload.state.version??0)}));store.scene=Scene;persist();if(store.mode==="play")renderPlay();if(store.mode==="tools"){renderClocks();renderDiceHistory();renderAllInControls()}queueAutomaticCommands()});
+Sync?.on("commands",commands=>{pendingSceneCommands=Array.isArray(commands)?commands:[];renderSync();queueAutomaticCommands()});
+Sync?.on("command",command=>{if(command&&!pendingSceneCommands.some(item=>String(item.id)===String(command.id)))pendingSceneCommands.push(command);renderSync();if(command?.command_type==="dispatch_events")queueAutomaticCommand(command);else toast(`Получена команда игрока: ${command.command_type}`)});
 Sync?.on("command-update",command=>{if(!command)return;if(command.status!=="pending")pendingSceneCommands=pendingSceneCommands.filter(item=>String(item.id)!==String(command.id));renderSync()});

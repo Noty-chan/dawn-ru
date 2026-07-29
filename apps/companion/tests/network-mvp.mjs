@@ -95,5 +95,9 @@ assert.match(privacyMigration, /item[\s\S]+- 'ownerId'[\s\S]+- 'skills'[\s\S]+- 
 assert.match(privacyMigration, /update public\.scene_public_snapshots/, "existing public snapshots must be backfilled");
 const syncUiSource = fs.readFileSync(new URL("../app-sync-events.js", import.meta.url), "utf8");
 assert.match(syncUiSource, /function hydratePlayerScene[\s\S]+heroActorState\(S,actor\)/, "the local player's redacted actor must be hydrated from their own hero");
+assert.match(syncUiSource, /command_type!==["']dispatch_events["'][\s\S]+automaticCommandChain/, "safe player event batches must be applied automatically and serially");
+const sceneSyncUiSource = fs.readFileSync(new URL("../scene-sync-ui.js", import.meta.url), "utf8");
+assert.match(sceneSyncUiSource, /ruleResponse[\s\S]+preparePromptPlacement[\s\S]+respondRulePrompt/, "rule prompt choices and placement events must be reconstructed against the narrator Scene");
+assert.match(sceneSyncUiSource, /actor\.ownerId!==command\.actor_id/, "automatic event acceptance must verify actor ownership");
 
 console.log("Network MVP QA passed: cloud character ownership, rule handouts, and atomic command SQL");

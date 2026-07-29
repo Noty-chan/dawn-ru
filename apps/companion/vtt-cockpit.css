@@ -137,6 +137,8 @@
 .scene-mode .scene-board,.scene-mode .scene-cell,.scene-mode .scene-coord,.scene-mode .scene-token,.scene-mode .scene-marker{-webkit-user-select:none;user-select:none}
 .scene-mode .scene-cell.reaction-valid{box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--cyan) 76%,transparent),inset 0 0 20px color-mix(in srgb,var(--cyan) 13%,transparent)}
 .scene-mode .scene-cell.movement-valid{box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--gold) 80%,transparent),inset 0 0 20px color-mix(in srgb,var(--gold) 14%,transparent)}
+.scene-mode .scene-cell.prompt-placement-valid{box-shadow:inset 0 0 0 3px color-mix(in srgb,#ef9ac1 86%,transparent),inset 0 0 24px color-mix(in srgb,#ef9ac1 22%,transparent);cursor:pointer}
+.scene-mode .scene-marker.marker-selected{outline:3px solid #fff;outline-offset:2px;box-shadow:0 0 0 5px color-mix(in srgb,#ef9ac1 52%,transparent),0 2px 10px #0009;z-index:7}
 .scene-movement-traces{position:absolute;inset:0;z-index:2;width:100%;height:100%;overflow:visible;pointer-events:none;opacity:.88}
 .scene-move-trace .trace-halo,.scene-move-trace .trace-line{fill:none;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke}
 .scene-move-trace .trace-halo{stroke:rgba(4,6,11,.84);stroke-width:6}
