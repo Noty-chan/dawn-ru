@@ -4,7 +4,7 @@
   const STORAGE_KEY="dawn-ru-sync-v1";
   const PROJECT=global.DAWN_CONFIG||{};
   const listeners=new Map();
-  let client=null,channel=null,channelGeneration=0,authSubscription=null,saveTimer=null,saveInFlight=false,pendingSave=null,reconnectTimer=null,reconnectAttempt=0,mutationChain=Promise.resolve();
+  let client=null,channel=null,channelGeneration=0,authSubscription=null,saveTimer=null,saveInFlight=false,pendingSave=null,reconnectTimer=null,reconnectAttempt=0,sceneRefreshTimer=null,sceneRefreshInFlight=false,mutationChain=Promise.resolve();
   let state={status:"offline",authenticated:false,userId:null,email:"",isAnonymous:true,accountPending:false,userIdChanged:false,url:String(PROJECT.supabaseUrl||""),publishableKey:String(PROJECT.publishableKey||""),displayName:"",campaignId:null,campaignName:"",sceneId:null,role:null,version:0,characterIds:{},presence:[],lastSyncedAt:"",error:""};
 
   function stored(){try{return JSON.parse(localStorage.getItem(STORAGE_KEY)||"{}")||{}}catch{return{}}}
@@ -50,7 +50,22 @@
   }
 
   async function ensureConnected(){if(!client||!state.authenticated)await connect();return client}
-  async function unsubscribe(){clearTimeout(reconnectTimer);reconnectTimer=null;channelGeneration+=1;const previous=channel;channel=null;if(previous&&client)await client.removeChannel(previous)}
+  async function unsubscribe(){clearTimeout(reconnectTimer);global.clearInterval?.(sceneRefreshTimer);reconnectTimer=null;sceneRefreshTimer=null;channelGeneration+=1;const previous=channel;channel=null;if(previous&&client)await client.removeChannel(previous)}
+  async function refreshSceneIfNewer(){
+    if(sceneRefreshInFlight||!client||!state.sceneId||global.document?.hidden)return;
+    sceneRefreshInFlight=true;
+    try{
+      const canNarrate=["owner","narrator"].includes(state.role),table=canNarrate?"scenes":"scene_public_snapshots",idColumn=canNarrate?"id":"scene_id";
+      const versionResult=await client.from(table).select("version").eq(idColumn,state.sceneId).single();
+      if(versionResult.error)throw versionResult.error;
+      if(Number(versionResult.data?.version)>Number(state.version)){
+        const result=await client.from(table).select("state,version").eq(idColumn,state.sceneId).single();
+        if(result.error)throw result.error;
+        if(Number(result.data?.version)>Number(state.version)){patch({version:Number(result.data.version),status:"online",lastSyncedAt:new Date().toISOString(),error:""});emit("scene",{state:result.data.state,version:Number(result.data.version),polled:true})}
+      }
+    }catch(error){console.warn("DAWN scene refresh failed",error)}
+    finally{sceneRefreshInFlight=false}
+  }
   function scheduleReconnect(reason="connection"){
     if(!state.sceneId||reconnectTimer||global.navigator?.onLine===false)return;
     reconnectAttempt=Math.min(reconnectAttempt+1,6);patch({status:"connecting",error:reason==="offline"?"Соединение восстановлено; загружаем Сцену":"Realtime переподключается"});
@@ -95,7 +110,7 @@
       .on("postgres_changes",{event:"UPDATE",schema:"public",table:"scene_commands",filter:`scene_id=eq.${state.sceneId}`},payload=>{if(payload.new)emit("command-update",payload.new)})
       .on("postgres_changes",{event:"INSERT",schema:"public",table:"scene_events",filter:`scene_id=eq.${state.sceneId}`},payload=>{if(payload.new)emit("event",payload.new)})
       .on("postgres_changes",{event:"UPDATE",schema:"public",table:"characters",filter:`campaign_id=eq.${state.campaignId}`},payload=>{if(payload.new)emit("character",payload.new)})
-      .subscribe(status=>{if(generation!==channelGeneration)return;if(status==="SUBSCRIBED"){reconnectAttempt=0;patch({status:"online",lastSyncedAt:new Date().toISOString(),error:""});void updatePresence().catch(error=>console.warn("Presence update failed",error))}else if(["CHANNEL_ERROR","TIMED_OUT","CLOSED"].includes(status))scheduleReconnect(status)});
+      .subscribe(status=>{if(generation!==channelGeneration)return;if(status==="SUBSCRIBED"){reconnectAttempt=0;patch({status:"online",lastSyncedAt:new Date().toISOString(),error:""});global.clearInterval?.(sceneRefreshTimer);sceneRefreshTimer=global.setInterval?.(()=>void refreshSceneIfNewer(),2500)||null;void updatePresence().catch(error=>console.warn("Presence update failed",error))}else if(["CHANNEL_ERROR","TIMED_OUT","CLOSED"].includes(status))scheduleReconnect(status)});
   }
 
   async function loadScene(sceneId){

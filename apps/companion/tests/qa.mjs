@@ -473,6 +473,8 @@ assert.match(html, /config\.js\?v=__BUILD_VERSION__/);
 assert.match(html, /sync-publish-hero/);
 assert.match(app, /Нарратор принял цели игрока/);
 assert.match(app, /canonicalPlayerEvents/);
+assert.match(app, /function activeSceneTool\(\)[\s\S]+playerSceneTool/, "a player must never inherit the narrator's destructive board tool");
+assert.match(app, /function canControlScenePrompt[\s\S]+heroId===S\.id/, "players may only resolve prompts belonging to their own hero");
 assert.match(app, /TechniqueEngine\.toEvents/);
 assert.match(app, /data-core-technique/);
 assert.match(app, /SceneEngine\.prepareEnemyRule/);

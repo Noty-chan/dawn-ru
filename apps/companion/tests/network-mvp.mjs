@@ -90,6 +90,7 @@ assert.match(syncSource, /async function openCampaign\(campaignId,sceneId\)/);
 assert.match(syncSource, /p_command_id:rawId/, "bigint command ids must not pass through Number");
 assert.match(syncSource, /acceptedVersion!==Number\(scene\?\.version\).*loadScene/s, "idempotent retries must reconcile a newer canonical Scene");
 assert.match(syncSource, /\["http:","https:"\]\.includes\(global\.location\.protocol\)/, "file:// account links must fall back to the configured Site URL");
+assert.match(syncSource, /function refreshSceneIfNewer[\s\S]+select\("version"\)[\s\S]+2500/, "a lightweight version heartbeat must recover missed Realtime Scene updates");
 const privacyMigration = fs.readFileSync(new URL("../../../supabase/migrations/202607290002_dawn_public_actor_privacy.sql", import.meta.url), "utf8");
 assert.match(privacyMigration, /item[\s\S]+- 'ownerId'[\s\S]+- 'skills'[\s\S]+- 'techniques'/, "player snapshots must redact private actor sheets");
 assert.match(privacyMigration, /update public\.scene_public_snapshots/, "existing public snapshots must be backfilled");
