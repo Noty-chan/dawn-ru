@@ -26,7 +26,7 @@ assert.deepEqual(
 );
 
 const markup = fs.readFileSync(path.join(root, "index.html"), "utf8");
-const source = ["app-core.js", "play-ui.js", "app-play-events.js", "hero-ui.js", "scene-events.js"]
+const source = ["app-core.js", "play-ui.js", "app-play-events.js", "hero-ui.js", "scene-events.js", "scene-sync-ui.js", "app-sync-events.js"]
   .map(file => fs.readFileSync(path.join(root, file), "utf8"))
   .join("\n");
 
@@ -41,6 +41,10 @@ assert.match(source, /ruleId:`freeplay\.skill:/, "A Skill must enter a challenge
 assert.match(source, /ruleId:`freeplay\.ability:/, "An Ability must enter a challenge roll through the reusable Advantage hook");
 assert.match(source, /ruleId:`freeplay\.bond:/, "A Bond must enter a challenge roll through the reusable Advantage hook");
 assert.match(source, /challengeRequestId:challenge\.id/, "A requested network roll must retain the Narrator request id");
+assert.match(source, /Получен результат:/, "The Narrator tools must visibly expose an accepted requested roll");
+assert.match(source, /Нарратор получил этот бросок/, "The player must receive explicit confirmation that the requested result was accepted");
+assert.match(source, /toast\(`Получен бросок:/, "The Narrator must receive an immediate notification when the network roll is accepted");
+assert.match(source, /legacyResult=base\.rollFeed\.find/, "An already-recorded roll must be recovered into its still-active legacy request");
 assert.match(source, /opposedRequestId:opposed\.id/, "Each side's result must retain the opposed-roll request id");
 assert.match(source, /opposed\.tie\.resolve/, "A Narrator must be able to resolve both compatible Rewards after a tie");
 assert.match(source, /Перебросить ничью/, "The UI must expose the canonical tie reroll");

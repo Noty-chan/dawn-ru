@@ -124,7 +124,7 @@ function validateEvent(scene, event, options = {}) {
     if (!Array.isArray(payload.rolls) || payload.rolls.length > 300 || payload.rolls.some(value => !Number.isInteger(Number(value)) || Number(value) < 1 || Number(value) > 6)) throw new Error("Некорректный публичный бросок.");
     if (!Number.isInteger(Number(payload.successes)) || Number(payload.successes) < 0 || Number(payload.successes) > 300 || !Number.isInteger(Number(payload.crits)) || Number(payload.crits) < 0 || Number(payload.crits) > Number(payload.successes)) throw new Error("Некорректный результат публичного броска.");
     if (payload.target != null && (!Number.isInteger(Number(payload.target)) || Number(payload.target) < 1 || Number(payload.target) > 99) || ["intent", "threat", "reward"].some(key => payload[key] != null && (typeof payload[key] !== "string" || payload[key].length > 240))) throw new Error("Некорректный контекст испытания.");
-    if (payload.challengeRequestId != null && (!scene.challengeRequest || payload.challengeRequestId !== scene.challengeRequest.id || event.actorId !== scene.challengeRequest.actorId || Number(payload.target) !== Number(scene.challengeRequest.target))) throw new Error("Бросок не соответствует активному запросу Нарратора.");
+    if (payload.challengeRequestId != null && (!scene.challengeRequest || payload.challengeRequestId !== scene.challengeRequest.id || event.actorId !== scene.challengeRequest.actorId || Number(payload.target) !== Number(scene.challengeRequest.target) || scene.challengeRequest.result && !payload.payment)) throw new Error("Бросок не соответствует активному запросу Нарратора.");
     if (payload.opposedRequestId != null) {
       const opposed = scene.opposedRoll, participant = opposed?.participants?.find(item => item.id === payload.opposedParticipantId), previous = opposed?.results?.[payload.opposedParticipantId];
       if (!opposed || payload.opposedRequestId !== opposed.id || Number(payload.opposedAttempt) !== Number(opposed.attempt) || !participant || event.actorId !== (participant.actorId || null) || opposed.resolution === "both" || previous && !payload.payment) throw new Error("Бросок не соответствует активному встречному броску.");
@@ -498,7 +498,7 @@ function reduceEvent(scene, event) {
     if (!scene.spaces.some(space => space.id === payload.id || space.name === payload.name)) scene.spaces.push({ id: payload.id, name: payload.name, width: Number(payload.width), height: Number(payload.height) });
     if (payload.activate) scene.activeSpace = (scene.spaces.find(space => space.id === payload.id || space.name === payload.name) || {}).id || scene.activeSpace;
   } else if (event.type === "challenge.request") {
-    scene.challengeRequest = { id: payload.id, actorId: payload.actorId, target: Number(payload.target), requestedBy: payload.requestedBy.trim(), at: event.at };
+    scene.challengeRequest = { id: payload.id, actorId: payload.actorId, target: Number(payload.target), requestedBy: payload.requestedBy.trim(), at: event.at, result: null };
     scene.opposedRoll = null;
   } else if (event.type === "challenge.clear") {
     scene.challengeRequest = null;
@@ -521,6 +521,9 @@ function reduceEvent(scene, event) {
     scene.rollFeed ||= [];
     scene.rollFeed.unshift({ id: event.id, at: event.at || new Date().toISOString(), actor: actor?.name || payload.actor || "Система", actorId: actor?.id || null, formula: payload.formula, rolls: payload.rolls || [], successes: Number(payload.successes || 0), crits: Number(payload.crits || 0), outcome: typeof payload.outcome === "string" ? payload.outcome.slice(0, 80) : "", payment: typeof payload.payment === "string" ? payload.payment.slice(0, 80) : "", target: payload.target == null ? null : Number(payload.target), challengeRequestId: typeof payload.challengeRequestId === "string" ? payload.challengeRequestId.slice(0, 120) : "", opposedRequestId: typeof payload.opposedRequestId === "string" ? payload.opposedRequestId.slice(0, 120) : "", opposedParticipantId: typeof payload.opposedParticipantId === "string" ? payload.opposedParticipantId.slice(0, 120) : "", opposedAttempt: payload.opposedAttempt == null ? null : Number(payload.opposedAttempt), dice: payload.dice ? clone(payload.dice) : null, targetIds: clone(payload.dice?.targetIds || payload.targetIds || []) });
     scene.rollFeed = scene.rollFeed.slice(0, 20);
+    if (payload.challengeRequestId && scene.challengeRequest?.id === payload.challengeRequestId) {
+      scene.challengeRequest.result = { rollEventId: event.id, formula: payload.formula, rolls: clone(payload.rolls || []), successes: Number(payload.successes || 0), crits: Number(payload.crits || 0), outcome: typeof payload.outcome === "string" ? payload.outcome.slice(0, 80) : "", payment: typeof payload.payment === "string" ? payload.payment.slice(0, 80) : "", at: event.at };
+    }
     if (payload.opposedRequestId && scene.opposedRoll?.id === payload.opposedRequestId) {
       const opposed = scene.opposedRoll, participantId = payload.opposedParticipantId;
       opposed.results ||= {};

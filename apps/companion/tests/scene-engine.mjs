@@ -79,9 +79,14 @@ const publicRoll = Engine.dispatch(scene, { type: "roll.public", actorId: "hero"
 assert.equal(publicRoll.rollFeed[0].actor, "Эта");
 assert.equal(publicRoll.rollFeed[0].outcome, "Минимальный успех");
 const requestedChallenge = Engine.dispatch(scene, { type: "challenge.request", payload: { id: "challenge-1", actorId: "hero", target: 3, requestedBy: "Нарратор" } }).scene;
-assert.deepEqual(JSON.parse(JSON.stringify(requestedChallenge.challengeRequest)), { id: "challenge-1", actorId: "hero", target: 3, requestedBy: "Нарратор", at: requestedChallenge.challengeRequest.at });
+assert.deepEqual(JSON.parse(JSON.stringify(requestedChallenge.challengeRequest)), { id: "challenge-1", actorId: "hero", target: 3, requestedBy: "Нарратор", at: requestedChallenge.challengeRequest.at, result: null });
 const requestedRoll = Engine.dispatch(requestedChallenge, { type: "roll.public", actorId: "hero", payload: { formula: "4D6 ≥4", rolls: [6, 5, 2, 1], successes: 2, crits: 1, target: 3, challengeRequestId: "challenge-1" } }).scene;
 assert.equal(requestedRoll.rollFeed[0].challengeRequestId, "challenge-1", "A public roll remains tied to the Narrator request");
+assert.equal(requestedRoll.challengeRequest.result.successes, 2, "The active request exposes the accepted result to the Narrator");
+assert.throws(() => Engine.dispatch(requestedRoll, { type: "roll.public", actorId: "hero", payload: { formula: "4D6 ≥4", rolls: [6, 5, 2, 1], successes: 2, crits: 1, target: 3, challengeRequestId: "challenge-1" } }), /не соответствует/, "A normal result cannot silently replace an accepted result");
+const allInRequestedRoll = Engine.dispatch(requestedRoll, { type: "roll.public", actorId: "hero", payload: { formula: "4D6 ≥3", rolls: [6, 5, 4, 1], successes: 3, crits: 1, outcome: "Минимальный успех", payment: "Влияние", target: 3, challengeRequestId: "challenge-1" } }).scene;
+assert.equal(allInRequestedRoll.challengeRequest.result.successes, 3, "All Out explicitly replaces the stored request result");
+assert.equal(allInRequestedRoll.challengeRequest.result.payment, "Влияние");
 assert.throws(() => Engine.dispatch(requestedChallenge, { type: "roll.public", actorId: "hero", payload: { formula: "4D6 ≥4", rolls: [6, 5, 2, 1], successes: 2, crits: 1, target: 2, challengeRequestId: "challenge-1" } }), /не соответствует/, "A player cannot lower the requested difficulty");
 const clearedChallenge = Engine.dispatch(requestedChallenge, { type: "challenge.clear", payload: { requestId: "challenge-1" } }).scene;
 assert.equal(clearedChallenge.challengeRequest, null);

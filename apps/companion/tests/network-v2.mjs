@@ -182,6 +182,8 @@ const canonicalNetworkRoll=Network.materializeIntent(networkChallenge,data,netwo
 const networkRolled=Engine.dispatchMany(networkChallenge,canonicalNetworkRoll).scene;
 assert.equal(networkRolled.rollFeed[0].challengeRequestId,"network-challenge","A requested online roll survives the complete player-intent and Narrator-authority path");
 assert.equal(networkRolled.rollFeed[0].successes,2);
+assert.equal(networkRolled.challengeRequest.result.successes,2,"The authoritative network request exposes the player's result to the Narrator");
+assert.equal(networkRolled.challengeRequest.result.rolls.join(","),"5,4,2,1");
 const networkOpposed=Engine.dispatch(baseScene,{type:"opposed.request",payload:{id:"network-opposed",requestedBy:"Нарратор",participants:[
   {id:"network-player-side",actorId:"hero",heroId:"sheet-1",name:"Герой",controller:"participant",pool:4},
   {id:"network-enemy-side",actorId:"enemy",name:"Противник",controller:"narrator",pool:6},

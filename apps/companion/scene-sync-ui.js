@@ -88,6 +88,8 @@ function renderNetworkScene(events=[]){
   else renderScene();
   renderChallengeRequestDock();
   if(events.length)playSceneEventFx(events);
+  const requestedRoll=[...events].reverse().find(event=>event.type==="roll.public"&&event.payload?.challengeRequestId);
+  if(requestedRoll&&Sync?.state?.().canNarrate){const actor=Scene.actors.find(item=>item.id===requestedRoll.actorId);toast(`Получен бросок: ${actor?.name||"герой"} · ${requestedRoll.payload.successes} Успехов`)}
 }
 function ensureNetworkV2Runtime(){
   if(!NetworkV2||!Sync)return null;
