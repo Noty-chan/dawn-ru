@@ -1,7 +1,7 @@
 "use strict";
 
 (function exposeTechniqueFoundationMap(global) {
-  const VERSION = 7;
+  const VERSION = 8;
   const CAPABILITIES = {
     "event-participants": { label: "Участники события", state: "ready", module: "scene-engine-core.js" },
     "event-preview": { label: "Предпросмотр цепочки", state: "ready", module: "scene-triggers.js" },
@@ -15,6 +15,7 @@
     "rule-clock": { label: "Часы правила", state: "ready", module: "scene-foundations.js" },
     "alternate-resource": { label: "Альтернативный ресурс", state: "ready", module: "scene-foundations.js" },
     stance: { label: "Стойки", state: "ready", module: "scene-foundations.js" },
+    "exclusive-mode": { label: "Взаимоисключающие режимы", state: "ready", module: "scene-foundations.js / scene-events.js" },
     "owned-entities": { label: "Принадлежащие сущности", state: "ready", module: "scene-foundations.js" },
     "action-history": { label: "История действий", state: "ready", module: "scene-foundations.js" },
     terrain: { label: "Местность", state: "ready", module: "scene-foundations.js" },
@@ -32,7 +33,7 @@
     "entity-lifecycle": { label: "Жизненный цикл зон, маркеров и объектов", state: "planned" },
     inventory: { label: "Инвентарь и заряды", state: "planned" },
     "summon-turns": { label: "Призывы и делегированные Ходы", state: "planned" },
-    "dice-hooks": { label: "Модификаторы и повтор броска", state: "planned" },
+    "dice-hooks": { label: "Модификаторы и повтор броска", state: "ready", module: "scene-foundations.js / scene-events.js / scene-triggers.js" },
     "duration-scheduler": { label: "Сроки действия и отложенные эффекты", state: "planned" },
     "deployment-hooks": { label: "Развертывание", state: "planned" },
     "intermission-reset": { label: "Сброс на Интермиссии", state: "planned" },
@@ -166,9 +167,9 @@
       "vagabond.drunkard.1": "tg effect move limit trigger turn choice damage action deploy dice",
       "vagabond.drunkard.2": "effect trigger turn stats",
       "vagabond.drunkard.3": "effect move limit trigger turn action",
-      "vagabond.master-at-arms.1": "tg range effect move limit trigger turn choice action",
-      "vagabond.master-at-arms.2": "res effect limit trigger turn stats",
-      "vagabond.master-at-arms.3": "tg cells effect move terrain trigger choice damage action dice",
+      "vagabond.master-at-arms.1": "tg range effect move limit mode trigger turn choice action",
+      "vagabond.master-at-arms.2": "res effect limit mode trigger turn stats",
+      "vagabond.master-at-arms.3": "tg cells effect move terrain mode trigger choice damage action dice",
       "bulwark.crusher.1": "tg effect trigger choice damage action",
       "bulwark.crusher.2": "tg cells effect trigger turn damage action history",
       "bulwark.crusher.3": "trigger turn damage action history",
@@ -391,6 +392,7 @@
     clock: ["rule-clock"],
     alt: ["alternate-resource"],
     stance: ["stance"],
+    mode: ["exclusive-mode"],
     entity: ["owned-entities", "entity-lifecycle"],
     history: ["action-history"],
     terrain: ["terrain"],

@@ -210,6 +210,22 @@
     return reconcileHealthRuntime({ current, previousMax, nextMax: maximum });
   }
 
+  function challengeOutcome({ successes = 0, target = 1 } = {}) {
+    const required = clamp(target, 1, 99);
+    const total = Math.max(0, Number(successes) || 0);
+    if (total >= required * 2) return { id: "extreme", label: "Крайний успех", target: required, extremeTarget: required * 2 };
+    if (total >= required) return { id: "minimal", label: "Минимальный успех", target: required, extremeTarget: required * 2 };
+    return { id: "failure", label: "Провал", target: required, extremeTarget: required * 2 };
+  }
+
+  function freeplayBondAdvantage({ rank = 0, tags = [], standardTags = [] } = {}) {
+    const bondRank = clamp(rank, 0, 99);
+    const standard = new Set((Array.isArray(standardTags) ? standardTags : []).map(tag => String(tag).trim().toLocaleLowerCase("ru-RU")));
+    const normalizedTags = [...new Set((Array.isArray(tags) ? tags : []).map(tag => String(tag).trim()).filter(Boolean))];
+    const customTagBonus = normalizedTags.some(tag => !standard.has(tag.toLocaleLowerCase("ru-RU"))) ? 1 : 0;
+    return { rank: bondRank, customTagBonus, total: bondRank + customTagBonus };
+  }
+
   function rollXd6({ count, threshold = 4, criticalAt = 6, random = Math.random, maxRolls = 300 }) {
     const initialCount = clamp(count, 1, 300);
     const successAt = clamp(threshold, 2, 6);
@@ -231,5 +247,5 @@
     };
   }
 
-  global.DAWN_LOGIC = { areaCells, calculateAbilityCost, calculateCreationBudgets, calculateRankSpend, clamp, normalizeAttributeBases, normalizeAttributeGrowth, reconcileHealthRuntime, reconcileSceneActorHealth, resolveSelectedGifts, rollXd6, scaleTierFormula, swapAttributeBase };
+  global.DAWN_LOGIC = { areaCells, calculateAbilityCost, calculateCreationBudgets, calculateRankSpend, challengeOutcome, clamp, freeplayBondAdvantage, normalizeAttributeBases, normalizeAttributeGrowth, reconcileHealthRuntime, reconcileSceneActorHealth, resolveSelectedGifts, rollXd6, scaleTierFormula, swapAttributeBase };
 })(typeof window === "object" ? window : globalThis);

@@ -82,20 +82,106 @@ function resetRuleClocks(actor, scope) {
   return resets;
 }
 
-function ruleDiceAdvantage(scene, actorId, request = {}) {
+const DICE_HOOK_TYPES = new Set(["advantage", "hindrance", "attribute", "success-threshold", "critical-at", "all-dice-succeed", "successes-invert", "reroll", "result-trigger", "random-table"]);
+
+function activeActorsInSpace(scene, actor) {
+  return (scene?.actors || []).filter(item => item.id !== actor.id && item.space === actor.space && !item.knockedOut && effectPresenceStatus(scene, item.id).available && effectPresenceStatus(scene, item.id).onField);
+}
+
+function sideBalanceStatus(scene, actorId) {
   const actor = actorById(scene, actorId);
-  if (!actor) return { total: 0, sources: [] };
-  const sources = [];
+  if (!actor) return { available: false, reason: "Исполнитель не найден.", enemies: 0, allies: 0, outnumbered: false, enemyIds: [], allyIds: [] };
+  const present = activeActorsInSpace(scene, actor), enemies = present.filter(item => item.team !== actor.team), allies = present.filter(item => item.team === actor.team);
+  return { available: true, reason: "", enemies: enemies.length, allies: allies.length, outnumbered: enemies.length > allies.length, enemyIds: enemies.map(item => item.id), allyIds: allies.map(item => item.id) };
+}
+
+function normalizeDiceHook(hook = {}) {
+  const type = String(hook.type || ""), ruleId = String(hook.ruleId || ""), label = String(hook.label || ruleId || type);
+  if (!DICE_HOOK_TYPES.has(type) || !/^[a-z0-9][a-z0-9._:-]{0,179}$/i.test(ruleId) || !label || label.length > 160) return null;
+  const normalized = { type, ruleId, label };
+  if (["advantage", "hindrance"].includes(type)) {
+    const amount = Number(hook.amount);
+    if (!Number.isInteger(amount) || amount < 1 || amount > 99) return null;
+    normalized.amount = amount;
+  }
+  if (type === "attribute") {
+    if (!["body", "talent", "spirit", "mind"].includes(hook.value)) return null;
+    normalized.value = hook.value;
+  }
+  if (["success-threshold", "critical-at"].includes(type)) {
+    const value = Number(hook.value);
+    if (!Number.isInteger(value) || value < 2 || value > 6) return null;
+    normalized.value = value;
+  }
+  if (type === "reroll") {
+    if (!["failed", "successful", "all", "selected"].includes(hook.faces || hook.mode)) return null;
+    normalized.faces = hook.faces || hook.mode;
+    normalized.maximum = Math.max(1, Math.min(99, Number(hook.maximum || 1)));
+  }
+  if (type === "result-trigger") {
+    if (!["odd-successes", "even-successes", "critical", "failed-die", "success"].includes(hook.when)) return null;
+    normalized.when = hook.when;
+  }
+  if (type === "random-table") {
+    if (!Array.isArray(hook.entries) || hook.entries.length < 2 || hook.entries.length > 100) return null;
+    normalized.entries = hook.entries.map(entry => String(entry).slice(0,240));
+  }
+  return normalized;
+}
+
+function passiveDiceHooks(scene, actor, request = {}) {
+  const hooks = [];
   const pride = clockStatus(scene, actor.id, "powerhouse.braggart.pride");
   if (Number(actor.techniques?.["powerhouse.braggart"] || 0) >= 1 && pride.available && pride.active && pride.full) {
     const amount = 1 + (Number(actor.techniques?.["powerhouse.braggart"] || 0) >= 2 ? Math.floor((6 - pride.size) / 2) : 0);
-    sources.push({ ruleId: "powerhouse.braggart.1", label: "Гордыня", amount });
+    hooks.push({ type: "advantage", ruleId: "powerhouse.braggart.1", label: "Гордыня", amount });
   }
-  if (request.actionName === "Заклинание" && Number(actor.techniques?.["altruist.chronomancer"] || 0) >= 2) sources.push({ ruleId: "altruist.chronomancer.2", label: "Замедление", amount: 1 });
-  if (request.actionName === "Заклинание" && Number(actor.techniques?.["ruiner.cryomancer"] || 0) >= 2) sources.push({ ruleId: "ruiner.cryomancer.2", label: "Ледяной нимб", amount: 1 });
-  if (request.actionName === "Заклинание" && Number(actor.techniques?.["ruiner.feral-arcana"] || 0) >= 3) sources.push({ ruleId: "ruiner.feral-arcana.3", label: "Хватка", amount: 1 });
-  if (request.actionName === "Заклинание" && Number(actor.techniques?.["ruiner.thunder-blood"] || 0) >= 3) sources.push({ ruleId: "ruiner.thunder-blood.3", label: "Разрядка", amount: 1 });
-  if (request.actionName === "Стычка" && Number(actor.techniques?.["bulwark.grappler"] || 0) >= 2) sources.push({ ruleId: "bulwark.grappler.2", label: "Перелом позвоночника", amount: 1 });
+  if (request.actionName === "Заклинание" && Number(actor.techniques?.["altruist.chronomancer"] || 0) >= 2) hooks.push({ type: "advantage", ruleId: "altruist.chronomancer.2", label: "Замедление", amount: 1 });
+  if (request.actionName === "Заклинание" && Number(actor.techniques?.["ruiner.cryomancer"] || 0) >= 2) hooks.push({ type: "advantage", ruleId: "ruiner.cryomancer.2", label: "Ледяной нимб", amount: 1 });
+  if (request.actionName === "Заклинание" && Number(actor.techniques?.["ruiner.feral-arcana"] || 0) >= 3) hooks.push({ type: "advantage", ruleId: "ruiner.feral-arcana.3", label: "Хватка", amount: 1 });
+  if (request.actionName === "Заклинание" && Number(actor.techniques?.["ruiner.thunder-blood"] || 0) >= 3) hooks.push({ type: "advantage", ruleId: "ruiner.thunder-blood.3", label: "Разрядка", amount: 1 });
+  if (request.actionName === "Стычка" && Number(actor.techniques?.["bulwark.grappler"] || 0) >= 2) hooks.push({ type: "advantage", ruleId: "bulwark.grappler.2", label: "Перелом позвоночника", amount: 1 });
+  const balance = sideBalanceStatus(scene, actor.id);
+  if ((actor.gifts || []).includes("wolf.outgunned") && balance.outnumbered) hooks.push({ type: "advantage", ruleId: "wolf.outgunned", label: `В меньшинстве (${balance.enemies} враг. / ${balance.allies} союзн.)`, amount: 2 });
+  const selected = new Set(Array.isArray(request.selectedHookIds) ? request.selectedHookIds : []);
+  if ((actor.gifts || []).includes("wolf.dark-urge") && request.scope === "challenge" && request.usesAbility && selected.has("wolf.dark-urge")) hooks.push({ type: "advantage", ruleId: "wolf.dark-urge", label: "Тёмный порыв", amount: 4 });
+  return hooks;
+}
+
+function diceHookStatus(scene, actorId, request = {}) {
+  const actor = actorById(scene, actorId);
+  if (!actor) return { available: false, reason: "Исполнитель не найден.", hooks: [], sources: [], advantage: 0, hindrance: 0, count: 0, threshold: 4, criticalAt: 6 };
+  const explicit = Array.isArray(request.hooks) ? request.hooks.map(normalizeDiceHook) : [];
+  if (explicit.some(hook => !hook)) return { available: false, reason: "В броске передан неподдерживаемый хук кубов.", hooks: [], sources: [], advantage: 0, hindrance: 0, count: 0, threshold: 4, criticalAt: 6 };
+  const hooks = [...passiveDiceHooks(scene, actor, request), ...explicit], attributeHook = [...hooks].reverse().find(hook => hook.type === "attribute");
+  const thresholdHook = [...hooks].reverse().find(hook => hook.type === "success-threshold"), criticalHook = [...hooks].reverse().find(hook => hook.type === "critical-at");
+  const manualAdvantage = Math.max(0, Math.min(99, Number(request.advantage || 0))), manualHindrance = Math.max(0, Math.min(99, Number(request.hindrance || 0)));
+  const advantage = manualAdvantage + hooks.filter(hook => hook.type === "advantage").reduce((sum, hook) => sum + hook.amount, 0);
+  const hindrance = manualHindrance + hooks.filter(hook => hook.type === "hindrance").reduce((sum, hook) => sum + hook.amount, 0);
+  const rawBaseCount = request.baseCount == null ? null : Number(request.baseCount), count = rawBaseCount == null ? null : Math.max(1, Math.min(300, rawBaseCount + advantage - hindrance));
+  const sources = hooks.filter(hook => ["advantage", "hindrance", "attribute", "success-threshold", "critical-at", "all-dice-succeed", "successes-invert"].includes(hook.type));
+  return { available: true, reason: "", actorId: actor.id, scope: String(request.scope || "roll"), baseCount: rawBaseCount, count, advantage, hindrance, manualAdvantage, manualHindrance, attribute: attributeHook?.value || request.attribute || null, threshold: thresholdHook?.value || Math.max(2, Math.min(6, Number(request.threshold || 4))), criticalAt: criticalHook?.value || Math.max(2, Math.min(6, Number(request.criticalAt || 6))), usesAbility: Boolean(request.usesAbility), abilityKey: request.abilityKey || null, selectedHookIds: [...new Set(Array.isArray(request.selectedHookIds) ? request.selectedHookIds.map(String) : [])], targetIds: [...new Set(Array.isArray(request.targetIds) ? request.targetIds.map(String) : [])], explicitHooks: explicit, hooks, sources, sideBalance: sideBalanceStatus(scene, actor.id) };
+}
+
+function evaluateDiceRoll(status, roll = {}) {
+  if (!status?.available || !Array.isArray(roll.rolls) || roll.rolls.some(value => !Number.isInteger(Number(value)) || Number(value) < 1 || Number(value) > 6)) return { available: false, reason: status?.reason || "Некорректный результат броска." };
+  const rolls = roll.rolls.map(Number), ordinary = rolls.filter(value => value >= status.threshold).length, crits = rolls.filter(value => value >= status.criticalAt).length;
+  let successes = status.hooks.some(hook => hook.type === "all-dice-succeed") ? rolls.length : ordinary;
+  if (status.hooks.some(hook => hook.type === "successes-invert")) successes = rolls.length - successes;
+  const resultTriggers = status.hooks.filter(hook => hook.type === "result-trigger").filter(hook => hook.when === "odd-successes" ? successes % 2 === 1 : hook.when === "even-successes" ? successes % 2 === 0 : hook.when === "critical" ? crits > 0 : hook.when === "failed-die" ? successes < rolls.length : successes > 0);
+  return { available: true, reason: "", rolls, successes, crits, threshold: status.threshold, criticalAt: status.criticalAt, resultTriggers, formula: `${status.count ?? rolls.length}D6 ≥${status.threshold}` };
+}
+
+function diceRollPayload(scene, actorId, request = {}, roll = {}) {
+  const status = diceHookStatus(scene, actorId, request), evaluated = evaluateDiceRoll(status, roll);
+  if (!evaluated.available) return { available: false, reason: evaluated.reason, status, payload: null };
+  const dice = { scope: status.scope, baseCount: status.baseCount, count: status.count, advantage: status.advantage, hindrance: status.hindrance, manualAdvantage: status.manualAdvantage, manualHindrance: status.manualHindrance, attribute: status.attribute, threshold: status.threshold, criticalAt: status.criticalAt, usesAbility: status.usesAbility, abilityKey: status.abilityKey, selectedHookIds: status.selectedHookIds, targetIds: status.targetIds, explicitHooks: clone(status.explicitHooks), hooks: clone(status.hooks), sources: clone(status.sources) };
+  return { available: true, reason: "", status, payload: { formula: evaluated.formula, rolls: evaluated.rolls, successes: evaluated.successes, crits: evaluated.crits, dice } };
+}
+
+function ruleDiceAdvantage(scene, actorId, request = {}) {
+  const status = diceHookStatus(scene, actorId, request);
+  const sources = status.available ? status.hooks.filter(hook => hook.type === "advantage").map(hook => ({ ruleId: hook.ruleId, label: hook.label, amount: hook.amount })) : [];
   return { total: sources.reduce((sum, source) => sum + source.amount, 0), sources };
 }
 
@@ -236,6 +322,40 @@ function stanceStatus(scene, actorId, stanceId, options = {}) {
   const missingEffects = requiredEffects.filter(effect => !effectiveEffectsFor(scene, actor).includes(effect));
   const available = !actor.knockedOut && !missingEffects.length;
   return { available, reason: actor.knockedOut ? "Выведенный из строя персонаж не может менять Стойку." : missingEffects.length ? `Не хватает Эффектов: ${missingEffects.join(", ")}.` : "", stanceId, active: current === stanceId, current, conflicts: current && current !== stanceId ? [current] : [], missingEffects };
+}
+
+const RULE_MODE_ADAPTERS = [
+  {
+    techniqueId: "vagabond.master-at-arms",
+    minimumLevel: 1,
+    groupId: "vagabond.master-at-arms.armament",
+    label: "Вооружение",
+    maximumEachPerTurn: 1,
+    modes: [
+      { id: "blade", label: "Клинок" },
+      { id: "polearm", label: "Древко" },
+      { id: "chain", label: "Цепь" },
+    ],
+  },
+];
+
+function ruleModeDefinitions(actor) {
+  if (!actor) return [];
+  return RULE_MODE_ADAPTERS.filter(definition => Number(actor.techniques?.[definition.techniqueId] || 0) >= Number(definition.minimumLevel || 1)).map(definition => clone(definition));
+}
+
+function ruleModeDefinition(actor, groupId) {
+  return ruleModeDefinitions(actor).find(definition => definition.groupId === groupId) || null;
+}
+
+function ruleModeStatus(scene, actorId, request = {}) {
+  const actor = actorById(scene, actorId), groupId = String(request.groupId || ""), modeId = request.modeId == null ? null : String(request.modeId);
+  if (!actor) return { available: false, reason: "Исполнитель не найден.", groupId, modeId, current: null, used: 0, remaining: 0, modes: [] };
+  const definition = ruleModeDefinition(actor, groupId), mode = definition?.modes.find(item => item.id === modeId) || null, current = actor.ruleModes?.[groupId] || null;
+  if (!definition || modeId && !mode) return { available: false, reason: "Такой режим правила недоступен персонажу.", groupId, modeId, current: clone(current), used: 0, remaining: 0, modes: clone(definition?.modes || []) };
+  const uses = modeId ? currentTurnEvents(scene, actor.id).filter(event => event.type === "rule-mode.set" && event.payload?.groupId === groupId && event.payload?.modeId === modeId).length : 0;
+  const maximum = Number(definition.maximumEachPerTurn || 1), available = !actor.knockedOut && (!modeId || uses < maximum);
+  return { available, reason: actor.knockedOut ? "Выведенный из строя персонаж не может менять режим." : modeId && uses >= maximum ? `«${mode.label}» уже экипирован в этом Ходу.` : "", groupId, label: definition.label, modeId, mode: clone(mode), current: clone(current), active: current?.modeId === modeId, used: uses, maximum, remaining: Math.max(0, maximum - uses), modes: clone(definition.modes), definition: clone(definition) };
 }
 
 function ownedEntities(scene, ownerActorId, options = {}) {

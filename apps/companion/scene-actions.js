@@ -87,6 +87,36 @@ function quickActionSources(scene, data, actor, action) {
   return sources;
 }
 
+const MASTER_AT_ARMS_GROUP = "vagabond.master-at-arms.armament";
+
+function masterAtArmsStatus(scene, actorId, request = {}) {
+  const actor = actorById(scene, actorId), modeId = request.modeId || null, targetIds = [...new Set(request.targetIds || [])], targets = targetIds.map(id => actorById(scene, id)).filter(Boolean);
+  if (!actor || Number(actor.techniques?.["vagabond.master-at-arms"] || 0) < 1) return { available: false, reason: "Персонаж не владеет «Многогранностью».", modeId, options: [] };
+  if (!modeId) {
+    const options = ["blade", "polearm", "chain"].map(id => masterAtArmsStatus(scene, actorId, { ...request, modeId: id, requireDestination: false }));
+    return { available: options.some(option => option.available), reason: "", modeId: null, current: ruleModeStatus(scene, actor.id, { groupId: MASTER_AT_ARMS_GROUP }).current, options };
+  }
+  const mode = ruleModeStatus(scene, actor.id, { groupId: MASTER_AT_ARMS_GROUP, modeId });
+  if (!mode.available) return { ...mode, options: [] };
+  const present = (scene.actors || []).filter(item => item.id !== actor.id && item.space === actor.space && !item.knockedOut && effectPresenceStatus(scene, item.id).available), enemies = present.filter(item => item.team !== actor.team), labels = { blade: "Клинок", polearm: "Древко", chain: "Цепь" };
+  let reason = "", destination = request.destination && { x: Number(request.destination.x), y: Number(request.destination.y) }, path = [];
+  if (targets.length !== targetIds.length || targets.some(target => target.team === actor.team || target.knockedOut || target.space !== actor.space)) reason = "Вооружение требует доступные вражеские цели.";
+  else if (modeId === "blade") {
+    if (present.some(item => distance(actor, item) <= 1)) reason = "Клинок требует, чтобы персонаж ни с кем не был смежен.";
+    else if (!enemies.some(enemy => distance(actor, enemy) === 2)) reason = "Для Клинка нужен враг ровно в 2 клетках.";
+    else if (request.requireDestination !== false) {
+      path = destination ? movementPath(scene, actor.id, destination, { maxDistance: 1 }) : [];
+      if (!destination || path.length !== 1) reason = "Клинок требует переместиться ровно на 1 свободную клетку перед выбором целей.";
+      else if (!targetIds.length || targetIds.length > 2 || targets.some(target => distance({ ...actor, ...destination }, target) > 1)) reason = "После перемещения Клинок выбирает одну или две смежные вражеские цели.";
+    }
+  } else if (modeId === "polearm") {
+    if (targetIds.length !== 2 || targets.some(target => distance(actor, target) !== 1)) reason = "Древко требует ровно двух смежных врагов.";
+  } else if (modeId === "chain") {
+    if (targetIds.length !== 1 || distance(actor, targets[0]) !== 4) reason = "Цепь требует ровно одну вражескую цель на расстоянии 4.";
+  } else reason = "Неизвестное Вооружение.";
+  return { ...mode, available: !reason, reason, modeId, label: labels[modeId] || mode.mode?.label || modeId, destination, path, targetIds, options: [] };
+}
+
 function availableActions(scene, data, actorId) {
   const actor = actorById(scene, actorId);
   if (!actor) return [];
@@ -180,6 +210,12 @@ function prepareAction(scene, data, request = {}) {
   if (selectedDimMakMarker && available && /^(Это действие уже использовано|Недостаточно:)/.test(available.reason || "")) {
     available = { ...available, available: true, reason: "", quick: true, continuation: false, costModel: { amount: 0, resource: null }, quickSource: { techniqueId: "vagabond.dim-mak", level: 1, name: "Слабая точка", needsConfirmation: false } };
   }
+  const armamentMode = declaredAction?.name === "Стычка" && Number(actor?.techniques?.["vagabond.master-at-arms"] || 0) >= 1 && request.armamentMode ? String(request.armamentMode) : null;
+  const armament = armamentMode ? masterAtArmsStatus(scene, actor.id, { modeId: armamentMode, targetIds: request.targetIds || [], destination: request.armamentDestination || request.destination }) : null;
+  const armamentChoices = declaredAction?.name === "Стычка" && Number(actor?.techniques?.["vagabond.master-at-arms"] || 0) >= 1 && !armamentMode ? masterAtArmsStatus(scene, actor.id, { targetIds: request.targetIds || [], requireDestination: false }).options.filter(option => option.available) : [];
+  if (armamentChoices.length) errors.push(`Условие Вооружения выполнено: выберите ${armamentChoices.map(option => option.label).join(" или ")}.`);
+  if (armamentMode && !armament.available) errors.push(armament.reason);
+  if (armament?.available && available && (available.available || /^(Это действие уже использовано|Недостаточно:)/.test(available.reason || ""))) available = { ...available, available: true, reason: "", quick: true, continuation: false, costModel: { amount: 0, resource: null }, quickSource: { techniqueId: "vagabond.master-at-arms", level: 1, name: armament.label, needsConfirmation: false } };
   if (available && !available.available) errors.push(available.reason);
   if (errors.length) return { ok: false, errors, events: [] };
 
@@ -260,10 +296,14 @@ function prepareAction(scene, data, request = {}) {
   if (meisterOverload && !Array.isArray(request.roll?.rolls)) errors.push("Для Перегрузки нужен зафиксированный бросок Атаки.");
   if (mundaneLevel >= 1 && action.name === "Заклинание") errors.push("Обычный не может использовать Заклинание.");
   if (mundaneLevel >= 1 && action.name === "Завершение" && actionAttribute === "spirit") errors.push("Обычный не может использовать Завершение Духом.");
-  const modifierQuick = Boolean(attackModifiers.quick);
-  const quickSource = modifierQuick ? { techniqueId: "vagabond.dim-mak", level: 1, name: "Слабая точка", needsConfirmation: false } : available?.quickSource;
-  const events = [{ type: "action.prepare", actorId: actor.id, payload: { actionId: action.id, actionName: action.name, name: action.name, declaredActionId: declaredAction.id, declaredActionName: declaredAction.name, targetIds, planId: request.planId || null, attackModifierIds: attackModifiers.selectedIds, attackModifierAdvantage: attackModifiers.advantage, actionTransform: attackModifiers.actionTransform, quick: Boolean(available?.quick || modifierQuick), quickSource: quickSource ? { techniqueId: quickSource.techniqueId, level: quickSource.level, name: quickSource.name, needsConfirmation: quickSource.needsConfirmation } : null, continuation: Boolean(available?.continuation && !modifierQuick) } }];
-  events[0].payload.request = { attribute: actionAttribute, useCunningPlan: Boolean(request.useCunningPlan), useRevelation: Boolean(request.useRevelation), useThunderDischarge: Boolean(request.useThunderDischarge), useEclipseStars: Boolean(request.useEclipseStars), useGrasp: Boolean(request.useGrasp), startRage: Boolean(request.startRage), bulletsSpent: Number.isFinite(Number(request.bulletsSpent)) ? Number(request.bulletsSpent) : null, bulletAdvantage: Number.isFinite(Number(request.bulletAdvantage)) ? Number(request.bulletAdvantage) : null, throwWeapon: Boolean(request.throwWeapon), overload: Boolean(request.overload), provokeTargetIds: [...new Set(request.provokeTargetIds || [])].slice(0, 40), removeEffectIdsByTarget: clone(request.removeEffectIdsByTarget || {}), attackModifierIds: attackModifiers.selectedIds };
+  const modifierQuick = Boolean(attackModifiers.quick), armamentQuick = Boolean(armament?.available);
+  const quickSource = armamentQuick ? { techniqueId: "vagabond.master-at-arms", level: 1, name: armament.label, needsConfirmation: false } : modifierQuick ? { techniqueId: "vagabond.dim-mak", level: 1, name: "Слабая точка", needsConfirmation: false } : available?.quickSource;
+  const events = [{ type: "action.prepare", actorId: actor.id, payload: { actionId: action.id, actionName: action.name, name: action.name, declaredActionId: declaredAction.id, declaredActionName: declaredAction.name, targetIds, planId: request.planId || null, attackModifierIds: attackModifiers.selectedIds, attackModifierAdvantage: attackModifiers.advantage, actionTransform: attackModifiers.actionTransform, quick: Boolean(available?.quick || modifierQuick || armamentQuick), quickSource: quickSource ? { techniqueId: quickSource.techniqueId, level: quickSource.level, name: quickSource.name, needsConfirmation: quickSource.needsConfirmation } : null, continuation: Boolean(available?.continuation && !modifierQuick && !armamentQuick) } }];
+  events[0].payload.request = { attribute: actionAttribute, useCunningPlan: Boolean(request.useCunningPlan), useRevelation: Boolean(request.useRevelation), useThunderDischarge: Boolean(request.useThunderDischarge), useEclipseStars: Boolean(request.useEclipseStars), useGrasp: Boolean(request.useGrasp), startRage: Boolean(request.startRage), armamentMode, armamentDestination: armament?.destination || null, bulletsSpent: Number.isFinite(Number(request.bulletsSpent)) ? Number(request.bulletsSpent) : null, bulletAdvantage: Number.isFinite(Number(request.bulletAdvantage)) ? Number(request.bulletAdvantage) : null, throwWeapon: Boolean(request.throwWeapon), overload: Boolean(request.overload), provokeTargetIds: [...new Set(request.provokeTargetIds || [])].slice(0, 40), removeEffectIdsByTarget: clone(request.removeEffectIdsByTarget || {}), attackModifierIds: attackModifiers.selectedIds };
+  if (armamentQuick) {
+    events[0].payload.armament = { groupId: MASTER_AT_ARMS_GROUP, modeId: armamentMode, label: armament.label };
+    events.push({ type: "rule-mode.set", actorId: actor.id, payload: { groupId: MASTER_AT_ARMS_GROUP, modeId: armamentMode, ruleId: "vagabond.master-at-arms.1", participantIds: [actor.id, ...targetIds] } });
+  }
   if (request.useCunningPlan) events.push({ type: "rule-clock.tick", actorId: actor.id, payload: { clockId: "vagabond.cunning-fighter.plan", delta: -1, sourceActionId: "vagabond.cunning-fighter.1.plan", reason: "План и исполнение" } });
   if (useRevelation) events.push({ type: "rule-clock.tick", actorId: actor.id, payload: { clockId: "ruiner.zealot.revelation", delta: -1, sourceActionId: "ruiner.zealot.1", reason: "Изменение итоговых Успехов" } });
   if (grasp) {
@@ -277,7 +317,7 @@ function prepareAction(scene, data, request = {}) {
     const adjacentEnemies = (scene.actors || []).filter(target => !target.knockedOut && target.team !== actor.team && distance(actor, target) <= 1).length;
     events.push({ type: "rule-clock.set", actorId: actor.id, payload: { clockId: "ruiner.feral-arcana.rage", value: Math.min(6, adjacentEnemies + Number(scene.tension || 0)), active: true, sourceActionId: "ruiner.feral-arcana.2", reason: "Сорваться с цепи" } });
   }
-  const cost = knifeThrow || modifierQuick ? { resource: null, amount: 0 } : available?.costModel || actorActionCost(actor, declaredAction);
+  const cost = knifeThrow || modifierQuick || armamentQuick ? { resource: null, amount: 0 } : available?.costModel || actorActionCost(actor, declaredAction);
   if (cost.resource && cost.amount) events.push({ type: "resource.spend", actorId: actor.id, payload: cost });
   if (gunslingerSkirmish) {
     events[0].payload.ruleResource = { resource: "bullets", spent: bulletsSpent, advantage: bulletAdvantage, additionalTargets: Math.max(0, targetIds.length - 1), passiveAdvantage: Number(actor.techniques?.["powerhouse.gunslinger"] || 0) >= 2 ? 1 : 0, ruleId: "powerhouse.gunslinger.1" };
@@ -316,9 +356,14 @@ function prepareAction(scene, data, request = {}) {
       }
     }
   } else if (["Стычка", "Заклинание", "Завершение"].includes(action.name)) {
-    const limit = (gunslingerSkirmish || knifeThrow || breacherSkirmish ? 4 : action.name === "Заклинание" ? 5 : 1) + (spellModifiers.includes("outstanding") ? Number(actor.attrs?.mind || 0) : 0);
+    const limit = (armamentMode === "chain" || gunslingerSkirmish || knifeThrow || breacherSkirmish ? 4 : action.name === "Заклинание" ? 5 : 1) + (spellModifiers.includes("outstanding") ? Number(actor.attrs?.mind || 0) : 0);
     const disappeared = hasEffect(scene, actor, "positive.исчез");
     let attackOrigin = grasp && request.destination ? { ...actor, x: request.destination.x, y: request.destination.y } : actor;
+    if (armamentMode === "blade" && armament?.available) {
+      attackOrigin = { ...actor, x: armament.destination.x, y: armament.destination.y };
+      events.push({ type: "actor.move", actorId: actor.id, payload: { space: actor.space, x: attackOrigin.x, y: attackOrigin.y, movement: "Клинок · Многогранность", path: armament.path.map(cellKey), participantIds: [actor.id, ...targetIds] } });
+      events.push({ type: "actor.enter", actorId: actor.id, payload: { space: actor.space, x: attackOrigin.x, y: attackOrigin.y, movement: "Клинок · Многогранность" } });
+    }
     if (attackModifierDestination?.available) {
       attackOrigin = { ...actor, x: attackModifierDestination.destination.x, y: attackModifierDestination.destination.y };
       events.push({ type: "actor.move", actorId: actor.id, payload: { space: actor.space, x: attackOrigin.x, y: attackOrigin.y, movement: "Телепортация · Перелом позвоночника", placement: true, sourceActionId: "bulwark.grappler.2", participantIds: [actor.id, ...targetIds] } });
@@ -362,9 +407,10 @@ function prepareAction(scene, data, request = {}) {
       const areaDamage = value => eclipseStars || icicleHalo ? Math.ceil(adjustedDamage(value) / 2) : adjustedDamage(value);
       const effectDamageBase = Number(request.roll?.successes || 0) + bonus;
       const effectDamageBaseByTarget = Object.fromEntries(targets.map(target => [target.id, effectDamageBase + (thunderDischarge && hasEffect(scene, target, "negative.ошеломлен") ? Number(actor.tier || 1) : 0)]));
-      const postDisplacements = breacherSkirmish ? targets.filter(target => distance(attackOrigin, target) <= 2).map(target => ({ targetId: target.id, mode: "push", maximum: 1, name: "Картечь", ruleId: "powerhouse.breacher.1", collisionDamagePerCell: 0 })) : [];
+      const postDisplacements = armamentMode === "polearm" ? targets.map(target => ({ targetId: target.id, mode: "push", maximum: 3, name: "Древко", ruleId: "vagabond.master-at-arms.1", collisionDamagePerCell: 0 })) : breacherSkirmish ? targets.filter(target => distance(attackOrigin, target) <= 2).map(target => ({ targetId: target.id, mode: "push", maximum: 1, name: "Картечь", ruleId: "powerhouse.breacher.1", collisionDamagePerCell: 0 })) : [];
       const dragonslayerTear = action.name === "Завершение" && actionAttribute === "body" && Number(actor.techniques?.["powerhouse.dragonslayer"] || 0) >= 1 ? ["negative.разорван"] : [];
-      events.push({ type: "attack.pending", actorId: actor.id, payload: { actionId: action.id, declaredActionId: declaredAction.id, declaredActionName: declaredAction.name, name: thunderDischarge ? "Разрядка" : eclipseStars ? "Затмить звезды" : zealotRupture ? "Так не должно было быть" : icicleHalo ? "Ледяной нимб" : action.name, attribute: actionAttribute, targetIds, allowEmptyTargets: zealotRupture, roll: clone(request.roll || null), damage: areaDamage(effectDamageBase), damageByTarget: Object.fromEntries(Object.entries(effectDamageBaseByTarget).map(([targetId, value]) => [targetId, areaDamage(value)])), effectDamageBase, effectDamageBaseByTarget, effectDamageDivisor, attackModifierIds: attackModifiers.selectedIds, attackModifierAdvantage: attackModifiers.advantage, attackModifierDestination: attackModifierDestination?.destination || null, actionTransform: attackModifiers.actionTransform, successEffects: dragonslayerTear, thunderDischarge, eclipseStars, zealotRupture, zealotCells, icicleHalo, drainLife, postDisplacements, gunslingerBulletJuggle: gunslingerSkirmish && Number(actor.techniques?.["powerhouse.gunslinger"] || 0) >= 3 && bulletsSpent >= 3 && targetIds.length === 1, knifeThrow: knifeThrow && Number(actor.techniques?.["vagabond.knife-juggler"] || 0) >= 2, overload: meisterOverload ? clone(events[0].payload.overload) : null } });
+      const postSelfEffects = armamentMode === "blade" ? ["positive.усилен"] : [], postTargetEffects = armamentMode === "polearm" ? ["negative.подброшен", "negative.замедлен"] : armamentMode === "chain" ? ["negative.разорван", "negative.порчен"] : [];
+      events.push({ type: "attack.pending", actorId: actor.id, payload: { actionId: action.id, declaredActionId: declaredAction.id, declaredActionName: declaredAction.name, name: armamentQuick ? `Стычка · ${armament.label}` : thunderDischarge ? "Разрядка" : eclipseStars ? "Затмить звезды" : zealotRupture ? "Так не должно было быть" : icicleHalo ? "Ледяной нимб" : action.name, attribute: actionAttribute, targetIds, allowEmptyTargets: zealotRupture, roll: clone(request.roll || null), damage: areaDamage(effectDamageBase), damageByTarget: Object.fromEntries(Object.entries(effectDamageBaseByTarget).map(([targetId, value]) => [targetId, areaDamage(value)])), effectDamageBase, effectDamageBaseByTarget, effectDamageDivisor, attackModifierIds: attackModifiers.selectedIds, attackModifierAdvantage: attackModifiers.advantage, attackModifierDestination: attackModifierDestination?.destination || null, actionTransform: attackModifiers.actionTransform, techniqueRuleId: armamentQuick ? "vagabond.master-at-arms.1" : null, armamentMode, successEffects: dragonslayerTear, postSelfEffects, postTargetEffects, thunderDischarge, eclipseStars, zealotRupture, zealotCells, icicleHalo, drainLife, postDisplacements, gunslingerBulletJuggle: gunslingerSkirmish && Number(actor.techniques?.["powerhouse.gunslinger"] || 0) >= 3 && bulletsSpent >= 3 && targetIds.length === 1, knifeThrow: knifeThrow && Number(actor.techniques?.["vagabond.knife-juggler"] || 0) >= 2, overload: meisterOverload ? clone(events[0].payload.overload) : null } });
     }
   } else if (action.name === "Передышка") {
     events.push({ type: "resource.gain", actorId: actor.id, payload: { resource: "focus", amount: 1, sourceActionName: "Передышка", sourceActionId: action.id } });

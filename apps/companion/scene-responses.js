@@ -245,6 +245,21 @@ function respondRulePrompt(scene, data, request = {}) {
   const errors = choiceStatus.available ? [] : [choiceStatus.reason];
   if (errors.length) return { ok: false, errors, events: [] };
   const events = [{ type: "rule.respond", actorId: actor.id, payload: { promptId: prompt.id, choice, sourceActorId: actor.id, targetId: target?.id || null, participantIds: [actor.id, target?.id].filter(Boolean) } }];
+  if (prompt.kind === "dark-urge-narrator" && choice.startsWith("target:")) {
+    const redirected = actorById(scene, choice.slice(7)), original = prompt.context?.originalTargetIds || [], sourceRoll = (scene.rollFeed || []).find(roll => roll.id === prompt.context?.sourceRollId);
+    if (!redirected || redirected.knockedOut || redirected.id === actor.id || redirected.space !== actor.space || original.includes(redirected.id) || !sourceRoll || sourceRoll.actorId !== actor.id) return { ok: false, errors: ["Выбранная Нарратором цель или исходный бросок больше недоступны."], events: [] };
+    const options = Number(actor.stress || 0) <= 1 ? ["accept", "resist"] : ["accept"];
+    events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${prompt.id}-resist`, kind: "dark-urge-resist", sourceActorId: actor.id, targetId: redirected.id, title: "Сопротивление Тёмному порыву", text: `Нарратор перенаправляет сохранённый результат на ${redirected.name}. Принять это или получить 2 Стресса, чтобы сохранить исходную цель?${options.includes("resist")?"":" Сейчас получить 2 Стресса нельзя: шкала переполнится."}`, options, context: { sourceRollId: sourceRoll.id, originalTargetIds: [...original], optionLabels: { accept: `Принять: цель — ${redirected.name}`, resist: "Сопротивляться: +2 Стресса" } }, participantIds: [actor.id, redirected.id] } });
+  }
+  if (prompt.kind === "dark-urge-resist" && choice === "resist") {
+    if (Number(actor.stress || 0) > 1) return { ok: false, errors: [`${actor.name} больше не может получить 2 Стресса без переполнения шкалы.`], events: [] };
+    events.push({ type: "actor.runtime.set", actorId: actor.id, payload: { key: "stress", value: Number(actor.stress || 0) + 2, sourceActionId: "wolf.dark-urge", reason: "Сопротивление Тёмному порыву", participantIds: [actor.id] } });
+  }
+  if (prompt.kind === "dark-urge-resist" && choice === "accept") {
+    const sourceRoll = (scene.rollFeed || []).find(roll => roll.id === prompt.context?.sourceRollId);
+    if (!target || target.knockedOut || target.id === actor.id || target.space !== actor.space || !sourceRoll || sourceRoll.actorId !== actor.id || (sourceRoll.targetIds || []).includes(target.id)) return { ok: false, errors: ["Цель перенаправления или сохранённый результат больше недоступны."], events: [] };
+    events.push({ type: "roll.redirect", actorId: actor.id, payload: { sourceRollId: sourceRoll.id, targetId: target.id, originalTargetIds: clone(sourceRoll.targetIds || []), ruleId: "wolf.dark-urge", participantIds: [actor.id, target.id, ...(sourceRoll.targetIds || [])] } });
+  }
   if (prompt.kind === "invisible-on-loss" && choice === "disappear") events.push({ type: "effect.apply", actorId: actor.id, payload: { targetId: actor.id, effect: "positive.исчез", sourceActionId: "positive.невидим", participantIds: [actor.id] } });
   if (prompt.kind === "chronomancer-reapply-effect" && choice === "reapply") {
     if (!target || target.knockedOut) return { ok: false, errors: ["Цель повторного Эффекта больше недоступна."], events: [] };
@@ -732,6 +747,7 @@ function resolvePendingAction(scene, data) {
       if (expectedDamage > 0 && Number(source?.techniques?.["disruptor.autophage"] || 0) >= 1 && new Set(target.effects || []).size >= 2) autophageRegeneration = true;
       if (expectedDamage > 0) for (const effect of pending.effects || []) events.push({ type: "effect.apply", actorId: pending.actorId, payload: { targetId: resolvedTargetId, effect, sourceActionId: pending.actionId } });
       if (attackSucceeded) for (const effect of pending.successEffects || []) events.push({ type: "effect.apply", actorId: pending.actorId, payload: { targetId: resolvedTargetId, effect, sourceActionId: pending.techniqueRuleId || pending.actionId } });
+      for (const effect of pending.postTargetEffects || []) events.push({ type: "effect.apply", actorId: pending.actorId, payload: { targetId: resolvedTargetId, effect, sourceActionId: pending.techniqueRuleId || pending.actionId, participantIds: [pending.actorId, resolvedTargetId] } });
       const postDisplacement = (pending.postDisplacements || []).find(item => item.targetId === targetId) || (pending.postPush?.targetId === targetId ? { mode: "push", collisionDamagePerCell: 1, ...pending.postPush } : null);
       if (attackSucceeded && postDisplacement) {
         const destination = postDisplacement.mode === "push" ? pushDestination(scene, target, source, Number(postDisplacement.maximum || 99)) : null;

@@ -354,7 +354,7 @@ assert.match(html, /id="scene-clear-field"/, "The Narrator has an explicit rever
 assert.match(html, /id="scene-reset-table"/, "The Narrator has an explicit full table reset command");
 assert.match(app, /Math\.ceil\(attrValueFor\(hero,"talent"\)\/2\)/);
 assert.match(app, /takeWound\(external\)/);
-assert.match(app, /setPlayCounter\("influence"/);
+assert.match(app, /setToolsResource\("influence"/, "Free-play Influence changes must update the local sheet or canonical shared actor");
 assert.match(app, /Logic\.calculateCreationBudgets/);
 assert.match(app, /builtinGifts\.hidden=!builtin/);
 assert.match(app, /Получен автоматически и не занимает слот/);

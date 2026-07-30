@@ -24,6 +24,7 @@ SHA-256 проверенных файлов: `b9ab51ceb86ee102cd6ddb503572811679
 | `rule-clock` | Часы правила | готово | `scene-foundations.js` | 19 |
 | `alternate-resource` | Альтернативный ресурс | готово | `scene-foundations.js` | 17 |
 | `stance` | Стойки | готово | `scene-foundations.js` | 6 |
+| `exclusive-mode` | Взаимоисключающие режимы | готово | `scene-foundations.js / scene-events.js` | 3 |
 | `owned-entities` | Принадлежащие сущности | готово | `scene-foundations.js` | 63 |
 | `action-history` | История действий | готово | `scene-foundations.js` | 36 |
 | `terrain` | Местность | готово | `scene-foundations.js` | 33 |
@@ -41,7 +42,7 @@ SHA-256 проверенных файлов: `b9ab51ceb86ee102cd6ddb503572811679
 | `entity-lifecycle` | Жизненный цикл зон, маркеров и объектов | планируется | — | 63 |
 | `inventory` | Инвентарь и заряды | планируется | — | 24 |
 | `summon-turns` | Призывы и делегированные Ходы | планируется | — | 11 |
-| `dice-hooks` | Модификаторы и повтор броска | планируется | — | 73 |
+| `dice-hooks` | Модификаторы и повтор броска | готово | `scene-foundations.js / scene-events.js / scene-triggers.js` | 73 |
 | `duration-scheduler` | Сроки действия и отложенные эффекты | планируется | — | 16 |
 | `deployment-hooks` | Развертывание | планируется | — | 6 |
 | `intermission-reset` | Сброс на Интермиссии | планируется | — | 3 |
@@ -361,9 +362,9 @@ SHA-256 проверенных файлов: `b9ab51ceb86ee102cd6ddb503572811679
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Многогранность (Multi-Faceted) | проверено | частичная | `target-validation`, `event-participants`, `spatial-range`, `effect-state`, `effect-lifecycle`, `movement-lifecycle`, `usage-limits`, `trigger-router`, `turn-lifecycle`, `choice-flow`, `action-modifier` |
-| 2 | Как вода (Like Water) | проверено | частичная | `resource-check`, `effect-state`, `effect-lifecycle`, `usage-limits`, `trigger-router`, `turn-lifecycle`, `derived-stats` |
-| 3 | Мастер за работой (Master At Work) | проверено | частичная | `target-validation`, `event-participants`, `spatial-cells`, `effect-state`, `effect-lifecycle`, `movement-lifecycle`, `terrain`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier`, `dice-hooks` |
+| 1 | Многогранность (Multi-Faceted) | проверено | полная | `target-validation`, `event-participants`, `spatial-range`, `effect-state`, `effect-lifecycle`, `movement-lifecycle`, `usage-limits`, `exclusive-mode`, `trigger-router`, `turn-lifecycle`, `choice-flow`, `action-modifier` |
+| 2 | Как вода (Like Water) | проверено | частичная | `resource-check`, `effect-state`, `effect-lifecycle`, `usage-limits`, `exclusive-mode`, `trigger-router`, `turn-lifecycle`, `derived-stats` |
+| 3 | Мастер за работой (Master At Work) | проверено | частичная | `target-validation`, `event-participants`, `spatial-cells`, `effect-state`, `effect-lifecycle`, `movement-lifecycle`, `terrain`, `exclusive-mode`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier`, `dice-hooks` |
 
 ## Оплот
 

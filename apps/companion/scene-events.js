@@ -31,6 +31,10 @@ function validateEvent(scene, event, options = {}) {
     const limits = { hp: 9999, wounds: 99, stress: 3, focus: 9999, influence: 999, ap: 99 };
     if (!actor || !Object.hasOwn(limits, payload.key) || !finite(payload.value) || Number(payload.value) < 0 || Number(payload.value) > limits[payload.key]) throw new Error("Некорректное значение ресурса героя.");
   }
+  if (event.type === "rule-mode.set") {
+    const status = ruleModeStatus(scene, event.actorId, { groupId: payload.groupId, modeId: payload.modeId });
+    if (!status.available) throw new Error(status.reason || "Некорректное изменение режима правила.");
+  }
   if (event.type === "rule-resource.configure") {
     const definition = normalizeRuleResourceDefinition(actor, payload);
     if (!actor || !/^[a-z][a-z0-9-]{0,39}$/.test(definition.resource) || !definition.label.trim() || definition.label.length > 80 || definition.initial < definition.minimum || definition.maximum != null && (definition.maximum < definition.minimum || definition.initial > definition.maximum)) throw new Error("Некорректная конфигурация альтернативного ресурса.");
@@ -90,6 +94,18 @@ function validateEvent(scene, event, options = {}) {
   }
   if (event.type === "roll.public") {
     if (!Array.isArray(payload.rolls) || payload.rolls.length > 300 || payload.rolls.some(value => !Number.isInteger(Number(value)) || Number(value) < 1 || Number(value) > 6)) throw new Error("Некорректный публичный бросок.");
+    if (payload.target != null && (!Number.isInteger(Number(payload.target)) || Number(payload.target) < 1 || Number(payload.target) > 99) || ["intent", "threat", "reward"].some(key => payload[key] != null && (typeof payload[key] !== "string" || payload[key].length > 240))) throw new Error("Некорректный контекст испытания.");
+    if (payload.dice != null) {
+      const dice = payload.dice;
+      if (!actor || !dice || typeof dice !== "object" || !Number.isInteger(Number(dice.baseCount)) || Number(dice.baseCount) < 1 || Number(dice.baseCount) > 300 || !Number.isInteger(Number(dice.count)) || Number(dice.count) < 1 || Number(dice.count) > 300 || !Array.isArray(dice.selectedHookIds) || dice.selectedHookIds.length > 30 || dice.selectedHookIds.some(id => typeof id !== "string" || id.length > 180) || !Array.isArray(dice.targetIds) || dice.targetIds.length > 40 || dice.targetIds.some(id => !actorById(scene, id))) throw new Error("Некорректный снимок правил броска.");
+      const status = diceHookStatus(scene, actor.id, { scope: dice.scope, baseCount: dice.baseCount, advantage: dice.manualAdvantage, hindrance: dice.manualHindrance, attribute: dice.attribute, threshold: dice.threshold, criticalAt: dice.criticalAt, usesAbility: dice.usesAbility, abilityKey: dice.abilityKey, selectedHookIds: dice.selectedHookIds, targetIds: dice.targetIds, hooks: dice.explicitHooks || [] });
+      const evaluated = evaluateDiceRoll(status, payload);
+      if (!status.available || !evaluated.available || payload.rolls.length < status.count || status.count !== Number(dice.count) || status.advantage !== Number(dice.advantage) || status.hindrance !== Number(dice.hindrance) || status.threshold !== Number(dice.threshold) || status.criticalAt !== Number(dice.criticalAt) || evaluated.successes !== Number(payload.successes) || evaluated.crits !== Number(payload.crits) || JSON.stringify(status.hooks) !== JSON.stringify(dice.hooks || [])) throw new Error("Результат броска не соответствует активным правилам.");
+    }
+  }
+  if (event.type === "roll.redirect") {
+    const sourceRoll = (scene.rollFeed || []).find(roll => roll.id === payload.sourceRollId), target = actorById(scene, payload.targetId);
+    if (!actor || !sourceRoll || sourceRoll.actorId !== actor.id || !target || target.knockedOut || target.id === actor.id || target.space !== actor.space || (sourceRoll.targetIds || []).includes(target.id)) throw new Error("Перенаправление броска больше недоступно.");
   }
   if (event.type === "rule.share") {
     if (!/^[a-z0-9][a-z0-9._:-]{0,179}$/i.test(String(payload.ruleId || "")) || typeof payload.title !== "string" || !payload.title.trim() || payload.title.length > 180 || typeof payload.kind !== "string" || payload.kind.length > 80 || typeof payload.sharedBy !== "string" || payload.sharedBy.length > 120) throw new Error("Некорректная ссылка на правило.");
@@ -121,7 +137,7 @@ function validateEvent(scene, event, options = {}) {
   if (event.type === "actor.wound" && (!actorById(scene, payload.targetId) || !Number.isInteger(Number(payload.delta)) || Math.abs(Number(payload.delta)) !== 1)) throw new Error("Некорректное изменение Ран.");
   if (event.type === "actor.knockout" && !actorById(scene, payload.targetId)) throw new Error("Некорректное выведение из строя.");
   if (event.type === "inventory.change" && (typeof payload.item !== "string" || payload.item.length > 80 || !Number.isInteger(Number(payload.delta)) || Math.abs(Number(payload.delta)) > 99)) throw new Error("Некорректное изменение инвентаря.");
-  if (event.type === "rule.prompt" && (typeof payload.id !== "string" || !payload.id || payload.id.length > 160 || typeof payload.kind !== "string" || !payload.kind || !Array.isArray(payload.options) || payload.options.length < 1 || payload.options.length > 12 || payload.options.some(option => typeof option !== "string" || !option || option.length > 120) || new Set(payload.options).size !== payload.options.length)) throw new Error("Некорректный запрос правила.");
+  if (event.type === "rule.prompt" && (typeof payload.id !== "string" || !payload.id || payload.id.length > 160 || typeof payload.kind !== "string" || !payload.kind || payload.controller != null && !["source", "narrator"].includes(payload.controller) || !Array.isArray(payload.options) || payload.options.length < 1 || payload.options.length > 48 || payload.options.some(option => typeof option !== "string" || !option || option.length > 120) || new Set(payload.options).size !== payload.options.length)) throw new Error("Некорректный запрос правила.");
   if (event.type === "rule.respond") {
     const prompt = scene.pendingPrompt, source = actorById(scene, prompt?.sourceActorId), target = actorById(scene, prompt?.targetId);
     if (!prompt || payload.promptId !== prompt.id) throw new Error("Этот запрос правила уже закрыт.");
@@ -321,6 +337,12 @@ function reduceEvent(scene, event) {
   } else if (event.type === "actor.runtime.set" && actor) {
     payload.before = Number(actor[payload.key] || 0);
     actor[payload.key] = Number(payload.value);
+  } else if (event.type === "rule-mode.set" && actor) {
+    const status = ruleModeStatus(scene, actor.id, { groupId: payload.groupId, modeId: payload.modeId });
+    actor.ruleModes ||= {};
+    actor.ruleModes[payload.groupId] = { modeId: payload.modeId, label: status.mode.label, ruleId: payload.ruleId || null, equippedTurnSerial: Number(scene.turnSerial || 0) };
+    payload.label = status.mode.label;
+    payload.replacedModeId = status.current?.modeId || null;
   } else if (event.type === "rule-resource.configure" && actor) {
     const definition = normalizeRuleResourceDefinition(actor, payload);
     const previous = ruleResourceDefinition(actor, definition.resource);
@@ -442,8 +464,16 @@ function reduceEvent(scene, event) {
     if (payload.activate) scene.activeSpace = (scene.spaces.find(space => space.id === payload.id || space.name === payload.name) || {}).id || scene.activeSpace;
   } else if (event.type === "roll.public") {
     scene.rollFeed ||= [];
-    scene.rollFeed.unshift({ id: event.id, at: event.at || new Date().toISOString(), actor: actor?.name || payload.actor || "Система", formula: payload.formula, rolls: payload.rolls || [], successes: Number(payload.successes || 0), crits: Number(payload.crits || 0), outcome: typeof payload.outcome === "string" ? payload.outcome.slice(0, 80) : "", payment: typeof payload.payment === "string" ? payload.payment.slice(0, 80) : "" });
+    scene.rollFeed.unshift({ id: event.id, at: event.at || new Date().toISOString(), actor: actor?.name || payload.actor || "Система", actorId: actor?.id || null, formula: payload.formula, rolls: payload.rolls || [], successes: Number(payload.successes || 0), crits: Number(payload.crits || 0), outcome: typeof payload.outcome === "string" ? payload.outcome.slice(0, 80) : "", payment: typeof payload.payment === "string" ? payload.payment.slice(0, 80) : "", target: payload.target == null ? null : Number(payload.target), intent: typeof payload.intent === "string" ? payload.intent.slice(0, 240) : "", threat: typeof payload.threat === "string" ? payload.threat.slice(0, 240) : "", reward: typeof payload.reward === "string" ? payload.reward.slice(0, 240) : "", dice: payload.dice ? clone(payload.dice) : null, targetIds: clone(payload.dice?.targetIds || payload.targetIds || []) });
     scene.rollFeed = scene.rollFeed.slice(0, 20);
+  } else if (event.type === "roll.redirect") {
+    const sourceRoll = (scene.rollFeed || []).find(roll => roll.id === payload.sourceRollId);
+    if (sourceRoll) {
+      sourceRoll.redirected = true;
+      sourceRoll.redirectTargetId = payload.targetId;
+      sourceRoll.originalTargetIds = clone(sourceRoll.targetIds || []);
+    }
+    scene.targetIds = [payload.targetId];
   } else if (event.type === "rule.share") {
     scene.ruleHandouts ||= [];
     scene.ruleHandouts.unshift({ id: event.id, ruleId: payload.ruleId, title: payload.title.trim(), kind: payload.kind.trim() || "Правило", sharedBy: payload.sharedBy.trim() || "Нарратор", at: event.at });
@@ -629,7 +659,7 @@ function reduceEvent(scene, event) {
     if (payload.queued && ["fired", "cancelled"].includes(payload.status)) scene.triggerQueue = scene.triggerQueue.filter(item => item.key !== key);
   } else if (event.type === "rule.prompt") {
     const options = PLACEMENT_PROMPT_KINDS.has(payload.kind) && !payload.options.includes("cell") ? ["cell", ...payload.options] : payload.options;
-    scene.pendingPrompt = { id: payload.id, kind: payload.kind, actorId: event.actorId, sourceActorId: payload.sourceActorId || event.actorId, targetId: payload.targetId || null, markerId: payload.markerId || null, title: payload.title || "Решение правила", text: payload.text || "", options: clone(options || []), context: clone(payload.context || {}) };
+    scene.pendingPrompt = { id: payload.id, kind: payload.kind, actorId: event.actorId, sourceActorId: payload.sourceActorId || event.actorId, controller: payload.controller === "narrator" ? "narrator" : "source", targetId: payload.targetId || null, markerId: payload.markerId || null, title: payload.title || "Решение правила", text: payload.text || "", options: clone(options || []), context: clone(payload.context || {}) };
   } else if (event.type === "rule.respond") {
     payload.kind = scene.pendingPrompt?.kind || payload.kind;
     payload.sourceActorId = scene.pendingPrompt?.sourceActorId || null;

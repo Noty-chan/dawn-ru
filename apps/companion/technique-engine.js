@@ -1,7 +1,7 @@
 "use strict";
 
 (function exposeDawnTechniqueEngine(global) {
-  const VERSION = 14;
+  const VERSION = 15;
 
   const RULES = [
     { id: "powerhouse.braggart.1.foundation", techniqueId: "powerhouse.braggart", level: 1, name: "Гордыня", kind: "foundation", foundation: "clock", automation: "partial", clockId: "powerhouse.braggart.pride", size: 6, initial: 0, note: "Гордость получает сегменты от Атак низкими Атрибутами и попаданий без защитной Реакции; полные часы дают Преимущество." },
@@ -34,6 +34,7 @@
     { id: "vagabond.knife-juggler.3", techniqueId: "vagabond.knife-juggler", level: 3, name: "Преследователь", kind: "passive", automation: "decision", note: "Выход врага из клетки маркера предлагает телепортацию и оплаченную Быструю Стычку без Метания." },
     { id: "vagabond.modified-meister.2", techniqueId: "vagabond.modified-meister", level: 2, name: "Перегрузка", kind: "passive", automation: "decision", note: "Явный выбор Перегрузки записывает Преимущество, Порчу целей и Нагрев за неуспешные кости после Реакций." },
     { id: "vagabond.modified-meister.3", techniqueId: "vagabond.modified-meister", level: 3, name: "Разгон", kind: "passive", automation: "decision", note: "Передышка при Напряжении 2+ предлагает Разгон; урон создаёт Нагрев, а взрыв предлагает альтернативное разрешение и перемещение." },
+    { id: "vagabond.master-at-arms.1", techniqueId: "vagabond.master-at-arms", level: 1, name: "Многогранность", kind: "passive", automation: "full", note: "Условия Клинка, Древка и Цепи проверяются до Стычки; экипировка хранится взаимоисключающим режимом и каждое Вооружение ограничено одним разом за Ход." },
     { id: "bulwark.mundane.2", techniqueId: "bulwark.mundane", level: 2, name: "Копнуть глубже, стоять твердо", kind: "passive", automation: "full", note: "Получение предложения Реакции как цели Атаки даёт 1 Упорство." },
     { id: "bulwark.mundane.3", techniqueId: "bulwark.mundane", level: 3, name: "Перед лицом Запредельного", kind: "passive", automation: "decision", note: "Передышка и Зарядка принимают явный список целей Спровоцированного в пределах 4 и ограничивают его несостоявшимся получением Фокуса." },
     { id: "altruist.heavenly-saint.1.foundation", techniqueId: "altruist.heavenly-saint", level: 1, name: "Сила молитвы", kind: "foundation", foundation: "alternate-resource", automation: "partial", resource: "faith", resourceLabel: "Вера", initialFormula: "spirit", replaces: ["focus"], note: "Вера начинается с Духа, не пополняется Передышкой/Зарядкой и растёт при выборе союзника целью." },

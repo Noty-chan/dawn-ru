@@ -230,13 +230,24 @@
       </section>
 
       <section class="mode-page" data-page="tools" aria-labelledby="tools-title">
-        <div class="page-heading"><div><p class="eyebrow">ИНСТРУМЕНТЫ</p><h1 id="tools-title">Броски и часы</h1></div><output id="tools-sync-state" class="tools-sync-state">Локальные инструменты</output></div>
-        <div class="split-grid">
+        <div class="page-heading"><div><p class="eyebrow">ИНСТРУМЕНТЫ</p><h1 id="tools-title">Свободная игра</h1></div><output id="tools-sync-state" class="tools-sync-state">Локальные инструменты</output></div>
+        <div class="freeplay-grid">
+          <section class="panel freeplay-hero-tool">
+            <div id="freeplay-hero-panel"></div>
+          </section>
           <section class="panel dice-tool">
-            <div class="dice-tool-head"><h2>XD6</h2><div id="dice-hero-context" class="dice-hero-context"></div></div>
-            <div class="dice-composer"><label>Атрибут<select id="dice-attr"><option value="manual">Ручной пул</option><option value="body">Тело</option><option value="talent">Талант</option><option value="spirit">Дух</option><option value="mind">Разум</option></select></label><label>Навык<select id="dice-skill"><option value="">Без Навыка</option></select></label><label>Способность<select id="dice-ability"><option value="">Без Способности</option></select></label><fieldset class="dice-count-field"><legend>Кости</legend><div class="dice-stepper"><button type="button" data-dice-delta="-1" aria-label="Убрать одну кость">−</button><input id="dice-count" type="number" min="1" max="40" value="4" aria-label="Количество костей"><button type="button" data-dice-delta="1" aria-label="Добавить одну кость">+</button></div></fieldset><fieldset class="dice-modifier-field"><legend>Преимущество</legend><div class="dice-stepper"><button type="button" data-dice-modifier="dice-adv" data-dice-modifier-delta="-1" aria-label="Уменьшить Преимущество">−</button><input id="dice-adv" type="number" min="0" max="30" value="0" aria-label="Преимущество"><button type="button" data-dice-modifier="dice-adv" data-dice-modifier-delta="1" aria-label="Увеличить Преимущество">+</button></div></fieldset><fieldset class="dice-modifier-field"><legend>Помеха</legend><div class="dice-stepper"><button type="button" data-dice-modifier="dice-dis" data-dice-modifier-delta="-1" aria-label="Уменьшить Помеху">−</button><input id="dice-dis" type="number" min="0" max="30" value="0" aria-label="Помеха"><button type="button" data-dice-modifier="dice-dis" data-dice-modifier-delta="1" aria-label="Увеличить Помеху">+</button></div></fieldset><div class="dice-quick-count" aria-label="Быстрый выбор количества костей"><button type="button" data-dice-count="1">1</button><button type="button" data-dice-count="2">2</button><button type="button" data-dice-count="3">3</button><button type="button" data-dice-count="4">4</button><button type="button" data-dice-count="5">5</button><button type="button" data-dice-count="6">6</button><button type="button" data-dice-count="7">7</button></div></div>
+            <div class="dice-tool-head"><div><span class="kind">БРОСОК ИСПЫТАНИЯ</span><h2>Разрешить действие</h2></div><div id="dice-hero-context" class="dice-hero-context"></div></div>
+            <div class="freeplay-situation">
+              <label>Что хочет сделать герой<input id="freeplay-intent" maxlength="240" placeholder="Например: незаметно проникнуть в архив"></label>
+              <label>Угроза и Риск провала<input id="freeplay-threat" maxlength="240" placeholder="Охрана поднимет тревогу; герой получит Стресс…"></label>
+              <label>Награда успеха<input id="freeplay-reward" maxlength="240" placeholder="Герой получает доступ к закрытым записям"></label>
+              <label class="freeplay-target">Цель Успехов<span><input id="dice-target" type="number" min="1" max="99" value="2"><button type="button" id="dice-target-default">По Ступени</button></span></label>
+            </div>
+            <output id="dice-outcome-guide" class="dice-outcome-guide" aria-live="polite"></output>
+            <div class="dice-composer"><label>Базовый Атрибут<select id="dice-attr"><option value="manual">Ручной пул</option><option value="body">Тело</option><option value="talent">Талант</option><option value="spirit">Дух</option><option value="mind">Разум</option></select></label><label>Один Навык<select id="dice-skill"><option value="">Без Навыка</option></select></label><label>Одна Способность<select id="dice-ability"><option value="">Без Способности</option></select></label><label>Одна Связь<select id="dice-bond"><option value="">Без Связи</option></select></label><fieldset class="dice-count-field"><legend>Базовые кости</legend><div class="dice-stepper"><button type="button" data-dice-delta="-1" aria-label="Убрать одну кость">−</button><input id="dice-count" type="number" min="1" max="40" value="4" aria-label="Количество базовых костей"><button type="button" data-dice-delta="1" aria-label="Добавить одну кость">+</button></div></fieldset><fieldset class="dice-modifier-field"><legend>Прочее Преимущество</legend><div class="dice-stepper"><button type="button" data-dice-modifier="dice-adv" data-dice-modifier-delta="-1" aria-label="Уменьшить Преимущество">−</button><input id="dice-adv" type="number" min="0" max="30" value="0" aria-label="Прочее Преимущество"><button type="button" data-dice-modifier="dice-adv" data-dice-modifier-delta="1" aria-label="Увеличить Преимущество">+</button></div></fieldset><fieldset class="dice-modifier-field"><legend>Помеха</legend><div class="dice-stepper"><button type="button" data-dice-modifier="dice-dis" data-dice-modifier-delta="-1" aria-label="Уменьшить Помеху">−</button><input id="dice-dis" type="number" min="0" max="30" value="0" aria-label="Помеха"><button type="button" data-dice-modifier="dice-dis" data-dice-modifier-delta="1" aria-label="Увеличить Помеху">+</button></div></fieldset><div class="dice-quick-count" aria-label="Быстрый выбор количества базовых костей"><button type="button" data-dice-count="1">1</button><button type="button" data-dice-count="2">2</button><button type="button" data-dice-count="3">3</button><button type="button" data-dice-count="4">4</button><button type="button" data-dice-count="5">5</button><button type="button" data-dice-count="6">6</button><button type="button" data-dice-count="7">7</button></div></div>
+            <div id="dice-hook-controls" class="dice-hook-controls"></div>
             <output id="dice-pool-total" class="dice-pool-total" aria-live="polite"></output>
-            <button type="button" id="roll-dice" class="primary">Бросить</button>
+            <button type="button" id="roll-dice" class="primary">Бросить испытание</button>
             <div class="button-row">
               <button type="button" id="all-in-reroll" disabled>Ва-банк: перебросить (−1 Влияние)</button>
               <button type="button" id="all-in-stress" hidden disabled>Ва-банк через Стресс (+1 Стресс)</button>
@@ -244,7 +255,13 @@
             <label id="all-in-flashback-wrap" class="switch" hidden><input id="all-in-flashback" type="checkbox"><span>Флэшбек «Ещё многому учиться»: +4 Преимущества</span></label>
             <p id="all-in-hint" class="autosave">Сначала совершите обычный бросок.</p>
             <div id="dice-result" class="dice-result" aria-live="polite"></div>
+            <div id="freeplay-risk-actions" class="freeplay-risk-actions"></div>
             <ol id="dice-history" class="history"></ol>
+          </section>
+          <section class="panel freeplay-bonds-tool">
+            <div class="subpanel-head"><div><h2>Связи персонажа</h2><small>В испытании можно применить Ранг одной Связи. Нестандартный тег даёт ещё 1 Преимущество.</small></div></div>
+            <div class="freeplay-bond-create"><label>Имя Связи<input id="freeplay-bond-name" maxlength="120" placeholder="Имя персонажа или оружия"></label><label class="switch"><input id="freeplay-bond-quick" type="checkbox"><span>Быстрая Связь</span></label><button type="button" id="freeplay-bond-add">+ Создать Связь</button></div>
+            <div id="freeplay-bonds" class="freeplay-bonds"></div>
           </section>
           <section class="panel clocks-tool">
             <div class="subpanel-head"><h2>Часы сцены</h2><div class="clock-add-actions"><button type="button" id="clock-add-progress">+ Хорошие</button><button type="button" id="clock-add-danger">+ Плохие</button></div></div>

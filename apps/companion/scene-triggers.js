@@ -21,6 +21,22 @@ function defineTriggerRule(definition = {}) {
 
 const TRIGGER_RULES = [
   {
+    id: "wolf.dark-urge.redirect",
+    eventTypes: ["roll.public"],
+    priority: 90,
+    match: ({ scene, actor, payload }) => {
+      const selected = payload.dice?.selectedHookIds || [];
+      if (!actor || !(actor.gifts || []).includes("wolf.dark-urge") || payload.dice?.scope !== "challenge" || !payload.dice?.usesAbility || !selected.includes("wolf.dark-urge") || Number(payload.successes || 0) % 2 !== 1) return false;
+      const original = new Set(payload.dice?.targetIds || []);
+      return (scene.actors || []).some(target => target.id !== actor.id && target.space === actor.space && !target.knockedOut && effectPresenceStatus(scene, target.id).available && !original.has(target.id));
+    },
+    build: ({ scene, event, actor, payload }) => {
+      const original = new Set(payload.dice?.targetIds || []), targets = (scene.actors || []).filter(target => target.id !== actor.id && target.space === actor.space && !target.knockedOut && effectPresenceStatus(scene, target.id).available && !original.has(target.id));
+      const options = ["pass", ...targets.map(target => `target:${target.id}`)], optionLabels = Object.fromEntries(targets.map(target => [`target:${target.id}`, `Перенаправить на ${target.name}`]));
+      return [{ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${event.id}-dark-urge`, kind: "dark-urge-narrator", sourceActorId: actor.id, controller: "narrator", title: "Тёмный порыв", text: `${actor.name}: нечётное число Успехов (${payload.successes}). Нарратор может заменить исходную цель, сохранив этот результат броска.`, options, context: { sourceRollId: event.id, originalTargetIds: [...original], optionLabels }, participantIds: [actor.id, ...targets.map(target => target.id)] } }];
+    },
+  },
+  {
     id: "disruptor.siren.1.study",
     eventTypes: ["action.resolve"],
     priority: 60,
