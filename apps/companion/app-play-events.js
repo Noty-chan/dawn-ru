@@ -63,10 +63,42 @@ for(const id of ["dice-attr","dice-skill","dice-ability","dice-bond"])$(id).addE
 $("dice-count").addEventListener("input",updateDicePoolTotal);for(const id of ["dice-adv","dice-dis"])$(id).addEventListener("input",updateDicePoolTotal);$("dice-hook-controls").addEventListener("input",updateDicePoolTotal);
 $("dice-target").addEventListener("input",()=>{if(toolsRole()==="network-player")return;const state=freeplayState();state.target=clamp($("dice-target").value,1,99);renderOutcomeGuide();persistAfterPaint()});
 $("dice-target-default").onclick=()=>{const actor=toolsRole()==="network-narrator"?Scene.actors.find(item=>item.id===$("freeplay-request-actor").value):null,state=freeplayState();state.target=(actor?.tier||S.tier)+1;$("dice-target").value=state.target;renderOutcomeGuide();persistAfterPaint()};
-$("freeplay-local-hero").addEventListener("change",event=>{store.heroes[store.current]=S;store.current=clamp(event.target.value,0,store.heroes.length-1);S=normalizeHero(store.heroes[store.current]);pendingAllIn=null;renderAll()});
-$("freeplay-request-actor").addEventListener("change",event=>{const actor=Scene.actors.find(item=>item.id===event.target.value);if(actor&&!Scene.challengeRequest){$("dice-target").value=actor.tier+1;freeplayState().target=actor.tier+1;renderOutcomeGuide();persistAfterPaint()}});
-$("freeplay-request-roll").onclick=()=>{const context=toolsSyncContext(),actor=Scene.actors.find(item=>item.id===$("freeplay-request-actor").value),target=clamp($("dice-target").value,1,99);if(!context.shared||!context.canEdit)return toast("Запрос броска доступен сетевому Нарратору");if(!actor)return toast("Выберите героя игрока");const payload={id:uid(),actorId:actor.id,target,requestedBy:context.displayName||"Нарратор"},result=commitSceneEvents(`Запрошен бросок у ${actor.name} · цель ${target}`,[{type:"challenge.request",payload}]);if(!result)return;if(result.pending)Scene.challengeRequest={...payload,at:new Date().toISOString()};renderFreeplayDirector();toast(`Запрос отправлен: ${actor.name}, цель ${target}`)};
-$("freeplay-request-clear").onclick=()=>{const request=Scene.challengeRequest;if(!request)return;const result=commitSceneEvents("Запрос броска отменён",[{type:"challenge.clear",payload:{requestId:request.id}}]);if(!result)return;if(result.pending)Scene.challengeRequest=null;renderFreeplayDirector();toast("Запрос броска закрыт")};
+$("freeplay-local-hero").addEventListener("change",event=>{store.heroes[store.current]=S;store.current=clamp(event.target.value,0,store.heroes.length-1);S=normalizeHero(store.heroes[store.current]);resetToolsRollResult();renderAll()});
+$("freeplay-request-kind").addEventListener("change",()=>{resetToolsRollResult();renderFreeplayDirector();renderDiceComposer()});
+$("freeplay-opponent").addEventListener("change",renderFreeplayDirector);
+$("freeplay-request-actor").addEventListener("change",event=>{const actor=Scene.actors.find(item=>item.id===event.target.value);if(actor&&!Scene.challengeRequest&&!Scene.opposedRoll&&$("freeplay-request-kind").value==="challenge"){$("dice-target").value=actor.tier+1;freeplayState().target=actor.tier+1;renderOutcomeGuide();persistAfterPaint()}renderFreeplayDirector()});
+function opposedParticipantFromChoice(value){
+  if(String(value).startsWith("hero:")){
+    const hero=store.heroes.find(item=>item.id===String(value).slice(5)),actor=hero&&Scene.actors.find(item=>item.heroId===hero.id);if(!hero)return null;
+    return{id:uid(),actorId:actor?.id||null,heroId:hero.id,name:hero.name||"Безымянный герой",controller:"participant",pool:Math.max(1,hero.tier+3)};
+  }
+  if(String(value).startsWith("actor:")){
+    const actor=Scene.actors.find(item=>item.id===String(value).slice(6));if(!actor)return null;
+    return{id:uid(),actorId:actor.id,heroId:actor.heroId||null,name:actor.name,controller:actor.ownerId?"participant":"narrator",pool:actor.team==="enemy"?actor.tier+5:Math.max(1,actor.tier+3)};
+  }
+  if(value==="custom"){const name=$("freeplay-opponent-name").value.trim()||"Безымянный NPC";return{id:uid(),actorId:null,heroId:null,name:name.slice(0,120),controller:"narrator",pool:6}}
+  return null;
+}
+$("freeplay-request-roll").onclick=()=>{
+  const context=toolsSyncContext(),role=toolsRole(),kind=$("freeplay-request-kind").value;
+  if(kind==="opposed"){
+    const first=role==="local-table"?opposedParticipantFromChoice(`hero:${S.id}`):opposedParticipantFromChoice(`actor:${$("freeplay-request-actor").value}`),second=opposedParticipantFromChoice($("freeplay-opponent").value);
+    if(!context.canEdit||role==="network-player")return toast("Встречный бросок создаёт Нарратор");if(!first||!second)return toast("Выберите обе стороны встречного броска");if(first.actorId&&first.actorId===second.actorId||first.heroId&&first.heroId===second.heroId)return toast("Персонаж не может противостоять самому себе");
+    const payload={id:uid(),participants:[first,second],requestedBy:context.displayName||"Нарратор"},event={type:"opposed.request",payload},result=commitSceneEvents(`Встречный бросок: ${first.name} против ${second.name}`,[event]);if(!result)return;resetToolsRollResult();if(result.pending)applyOptimisticToolsEvents([event]);renderToolsWorkspace();toast(`Создан встречный бросок: ${first.name} против ${second.name}`);return;
+  }
+  const actor=Scene.actors.find(item=>item.id===$("freeplay-request-actor").value),target=clamp($("dice-target").value,1,99);if(!context.shared||!context.canEdit)return toast("Запрос броска доступен сетевому Нарратору");if(!actor)return toast("Выберите героя игрока");const payload={id:uid(),actorId:actor.id,target,requestedBy:context.displayName||"Нарратор"},event={type:"challenge.request",payload},result=commitSceneEvents(`Запрошен бросок у ${actor.name} · цель ${target}`,[event]);if(!result)return;resetToolsRollResult();if(result.pending)applyOptimisticToolsEvents([event]);renderFreeplayDirector();toast(`Запрос отправлен: ${actor.name}, цель ${target}`)
+};
+$("freeplay-request-clear").onclick=()=>{const request=Scene.challengeRequest,opposed=Scene.opposedRoll;if(!request&&!opposed)return;const event=opposed?{type:"opposed.clear",payload:{requestId:opposed.id}}:{type:"challenge.clear",payload:{requestId:request.id}},result=commitSceneEvents(opposed?"Встречный бросок отменён":"Запрос броска отменён",[event]);if(!result)return;resetToolsRollResult();if(result.pending)applyOptimisticToolsEvents([event]);renderToolsWorkspace();toast(opposed?"Встречный бросок закрыт":"Запрос броска закрыт")};
+$("freeplay-opposed-status").addEventListener("click",event=>{
+  const open=event.target.closest("[data-opposed-open-hero]"),rollButton=event.target.closest("[data-opposed-roll]"),reroll=event.target.closest("[data-opposed-reroll]"),both=event.target.closest("[data-opposed-both]"),close=event.target.closest("[data-opposed-close]"),request=Scene.opposedRoll;if(!request)return;
+  if(open){const index=store.heroes.findIndex(hero=>hero.id===open.dataset.opposedOpenHero);if(index>=0){store.heroes[store.current]=S;store.current=index;S=normalizeHero(store.heroes[index]);resetToolsRollResult();renderAll()}return}
+  let sceneEvent,label;
+  if(rollButton){const participant=request.participants.find(item=>item.id===rollButton.dataset.opposedRoll),input=$("freeplay-opposed-status").querySelector(`[data-opposed-pool="${CSS.escape(participant?.id||"")}"]`),count=clamp(input?.value||participant?.pool,1,99),rolled=Logic.rollXd6({count,threshold:4,criticalAt:6});if(!participant)return;sceneEvent={type:"roll.public",actorId:participant.actorId||null,payload:{actor:participant.name,formula:`${count}D6 ≥4`,rolls:rolled.rolls,successes:rolled.successes,crits:rolled.crits,outcome:"Встречный бросок",opposedRequestId:request.id,opposedParticipantId:participant.id,opposedAttempt:request.attempt}};label=`${participant.name}: встречный бросок`; }
+  else if(reroll){sceneEvent={type:"opposed.reroll",payload:{requestId:request.id}};label="Переброс после ничьей"}
+  else if(both){sceneEvent={type:"opposed.tie.resolve",payload:{requestId:request.id}};label="Обе Награды разрешены"}
+  else if(close){sceneEvent={type:"opposed.clear",payload:{requestId:request.id}};label="Встречный бросок завершён"}
+  if(!sceneEvent)return;const result=commitSceneEvents(label,[sceneEvent]);if(!result)return;if(reroll||close)resetToolsRollResult();if(result.pending)applyOptimisticToolsEvents([sceneEvent]);renderToolsWorkspace();
+});
 $("challenge-request-open").onclick=()=>{setMode("tools");renderToolsWorkspace();requestAnimationFrame(()=>$("roll-dice").focus())};
 document.querySelector(".dice-tool").addEventListener("click",event=>{const countButton=event.target.closest("[data-dice-count]"),deltaButton=event.target.closest("[data-dice-delta]"),modifierButton=event.target.closest("[data-dice-modifier]");if(modifierButton){const input=$(modifierButton.dataset.diceModifier);input.value=clamp(+input.value+ +modifierButton.dataset.diceModifierDelta,0,30);updateDicePoolTotal();return}if(!countButton&&!deltaButton)return;$("dice-attr").value="manual";$("dice-count").value=countButton?countButton.dataset.diceCount:clamp(+$("dice-count").value+ +deltaButton.dataset.diceDelta,1,40);recalculateDicePool()});
 $("freeplay-hero-panel").addEventListener("click",event=>{

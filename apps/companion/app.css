@@ -140,3 +140,21 @@ main{min-width:0;padding:clamp(1rem,3vw,3rem)}.mode-page{display:none}.mode-page
 @media(max-width:720px){.scene-dock{grid-template-columns:repeat(9,auto)}}
 @media(max-width:900px){.freeplay-grid,.freeplay-grid[data-tools-role="network-narrator"]{grid-template-columns:1fr}.freeplay-grid>.panel,.freeplay-director-tool,.dice-tool,.freeplay-bonds-tool,.clocks-tool,.stress-tool,.freeplay-grid[data-tools-role="network-narrator"] .clocks-tool{grid-column:1;grid-row:auto}.freeplay-sheet-picks{grid-template-columns:1fr 1fr}.freeplay-sheet-picks>section:last-child{grid-column:1/-1}.freeplay-director-controls{grid-template-columns:1fr 1fr}.freeplay-director-controls .button-row{grid-column:1/-1}}
 @media(max-width:720px){.scene-dock{grid-template-columns:repeat(9,auto)}.clock-list{grid-template-columns:1fr}.clock-add-actions{width:100%}.clock-add-actions button{flex:1}.clock-head-actions{justify-content:stretch}.clock-head-actions button{flex:1}.freeplay-director-controls{grid-template-columns:1fr}.freeplay-director-controls .freeplay-target,.freeplay-director-controls .button-row{grid-column:1;min-width:0}.freeplay-request-state{display:grid}.freeplay-request-state span{text-align:left}.challenge-request-dock{right:.6rem;bottom:5rem;left:.6rem;max-width:none}.challenge-request-dock button{padding:.55rem .7rem}.freeplay-hero-head{grid-template-columns:48px minmax(0,1fr)}.freeplay-hero-head>img,.freeplay-hero-head>i{width:48px;height:48px}.freeplay-resources{grid-column:1/-1;justify-content:stretch}.freeplay-resource{flex:1}.freeplay-sheet-picks,.freeplay-features{grid-template-columns:1fr}.freeplay-sheet-picks>section:last-child{grid-column:auto}.dice-outcome-guide{grid-template-columns:1fr}.dice-outcome-guide span+span{border-top:1px solid var(--line);border-left:0}.dice-composer{grid-template-columns:1fr 1fr}.dice-count-field,.dice-modifier-field{grid-column:span 1}.freeplay-bond-actions{grid-template-columns:1fr 1fr}.freeplay-bond-actions select{grid-column:1/-1}}
+
+.freeplay-opposed-status{display:grid;gap:.65rem;margin-top:.75rem;padding-top:.75rem;border-top:1px solid var(--line)}
+.freeplay-opposed-status[hidden]{display:none}
+.freeplay-opposed-status>header span,.opposed-side>div:first-child>span{color:var(--gold);font-size:.58rem;font-weight:800;letter-spacing:.08em}
+.freeplay-opposed-status>header div,.opposed-side>div:first-child{display:grid;gap:.15rem}
+.freeplay-opposed-status>header strong{font-size:.72rem;line-height:1.45}
+.opposed-sides{display:grid;grid-template-columns:1fr 1fr;gap:.55rem}
+.opposed-side{display:grid;gap:.55rem;padding:.7rem;border:1px solid var(--line);border-radius:10px;background:var(--surface-2)}
+.opposed-side.current{border-color:var(--cyan);box-shadow:0 0 0 1px color-mix(in srgb,var(--cyan) 35%,transparent)}
+.opposed-side small{color:var(--muted);font-size:.62rem}
+.opposed-dice{display:flex;flex-wrap:wrap;gap:.25rem}
+.opposed-dice i{display:grid;place-items:center;width:25px;height:25px;border:1px solid var(--line);border-radius:6px;background:var(--surface);font-size:.62rem;font-style:normal;font-weight:800}
+.opposed-dice i.success{border-color:var(--cyan)}.opposed-dice i.crit{border-color:var(--gold);color:var(--gold)}
+.opposed-side-actions{display:flex;flex-wrap:wrap;align-items:end;gap:.4rem}
+.opposed-side-actions label{display:grid;gap:.2rem;color:var(--muted);font-size:.58rem}.opposed-side-actions input{width:92px}
+.opposed-resolution-actions{display:flex;flex-wrap:wrap;gap:.45rem}
+.dice-result.outcome-opposed{border-color:var(--cyan)}
+@media(max-width:720px){.opposed-sides{grid-template-columns:1fr}.opposed-resolution-actions,.opposed-resolution-actions button{width:100%}.opposed-side-actions{display:grid;grid-template-columns:1fr 1fr}.opposed-side-actions label,.opposed-side-actions input,.opposed-side-actions button{width:100%}}

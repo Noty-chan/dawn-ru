@@ -171,6 +171,28 @@ const stressEvents=Network.materializeIntent(baseScene,data,{kind:"runtime",acto
 assert.equal(Engine.dispatchMany(baseScene,stressEvents).scene.actors[0].stress,3,"Stress uses the same owned canonical runtime path");
 assert.throws(()=>Network.materializeIntent(baseScene,data,{kind:"runtime",actorId:"hero",key:"focus",value:9},"other-player",{sceneEngine:Engine}),/не владеет/i);
 assert.throws(()=>Network.materializeIntent(baseScene,data,{kind:"runtime",actorId:"hero",key:"admin",value:9},"player-1",{sceneEngine:Engine}),/ресурса/i);
+const networkChallenge=Engine.dispatch(baseScene,{type:"challenge.request",payload:{id:"network-challenge",actorId:"hero",target:3,requestedBy:"Нарратор"}}).scene;
+const networkDiceRequest={scope:"challenge",baseCount:4,advantage:0,hindrance:0,attribute:null,usesAbility:false,abilityKey:null,selectedHookIds:[],targetIds:[],hooks:[]};
+const networkDice=Engine.diceRollPayload(networkChallenge,"hero",networkDiceRequest,{rolls:[5,4,2,1]});
+assert.equal(networkDice.available,true);
+const networkRollEvent={type:"roll.public",actorId:"hero",payload:{...networkDice.payload,actor:"Герой",outcome:"Провал",target:3,challengeRequestId:"network-challenge"}};
+const networkRollIntent=Network.intentFromEvents(networkChallenge,[networkRollEvent],"Публичный бросок");
+assert.equal(networkRollIntent.kind,"public-roll");
+const canonicalNetworkRoll=Network.materializeIntent(networkChallenge,data,networkRollIntent,"player-1",{sceneEngine:Engine});
+const networkRolled=Engine.dispatchMany(networkChallenge,canonicalNetworkRoll).scene;
+assert.equal(networkRolled.rollFeed[0].challengeRequestId,"network-challenge","A requested online roll survives the complete player-intent and Narrator-authority path");
+assert.equal(networkRolled.rollFeed[0].successes,2);
+const networkOpposed=Engine.dispatch(baseScene,{type:"opposed.request",payload:{id:"network-opposed",requestedBy:"Нарратор",participants:[
+  {id:"network-player-side",actorId:"hero",heroId:"sheet-1",name:"Герой",controller:"participant",pool:4},
+  {id:"network-enemy-side",actorId:"enemy",name:"Противник",controller:"narrator",pool:6},
+]}}).scene;
+const opposedDice=Engine.diceRollPayload(networkOpposed,"hero",networkDiceRequest,{rolls:[6,4,2,1]});
+const opposedRollEvent={type:"roll.public",actorId:"hero",payload:{...opposedDice.payload,actor:"Герой",outcome:"Встречный бросок",opposedRequestId:"network-opposed",opposedParticipantId:"network-player-side",opposedAttempt:1}};
+const opposedRollIntent=Network.intentFromEvents(networkOpposed,[opposedRollEvent],"Публичный встречный бросок");
+const canonicalOpposedRoll=Network.materializeIntent(networkOpposed,data,opposedRollIntent,"player-1",{sceneEngine:Engine});
+const networkOpposedRolled=Engine.dispatchMany(networkOpposed,canonicalOpposedRoll).scene;
+assert.equal(networkOpposedRolled.opposedRoll.results["network-player-side"].successes,2,"An online opposed result is stored for the owned participant");
+assert.throws(()=>Network.materializeIntent(networkOpposed,data,opposedRollIntent,"other-player",{sceneEngine:Engine}),/не владеет/i,"Another player cannot submit this side's opposed result");
 
 const sent=[];
 const outbox=new Network.PlayerOutbox({tickMs:10000,send:async payload=>sent.push(payload)});

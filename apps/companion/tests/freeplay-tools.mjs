@@ -30,7 +30,7 @@ const source = ["app-core.js", "play-ui.js", "app-play-events.js", "hero-ui.js",
   .map(file => fs.readFileSync(path.join(root, file), "utf8"))
   .join("\n");
 
-for (const id of ["freeplay-director-title", "freeplay-local-hero", "freeplay-request-actor", "freeplay-request-roll", "challenge-request-dock", "dice-target", "dice-bond", "freeplay-bonds", "freeplay-risk-actions"]) {
+for (const id of ["freeplay-director-title", "freeplay-local-hero", "freeplay-request-kind", "freeplay-request-actor", "freeplay-opponent", "freeplay-request-roll", "freeplay-opposed-status", "challenge-request-dock", "dice-tool-kind", "dice-tool-title", "dice-target", "dice-bond", "freeplay-bonds", "freeplay-risk-actions"]) {
   assert.match(markup, new RegExp(`id="${id}"`), `Free-play tools must expose #${id}`);
 }
 for (const id of ["freeplay-intent", "freeplay-threat", "freeplay-reward"]) {
@@ -41,6 +41,9 @@ assert.match(source, /ruleId:`freeplay\.skill:/, "A Skill must enter a challenge
 assert.match(source, /ruleId:`freeplay\.ability:/, "An Ability must enter a challenge roll through the reusable Advantage hook");
 assert.match(source, /ruleId:`freeplay\.bond:/, "A Bond must enter a challenge roll through the reusable Advantage hook");
 assert.match(source, /challengeRequestId:challenge\.id/, "A requested network roll must retain the Narrator request id");
+assert.match(source, /opposedRequestId:opposed\.id/, "Each side's result must retain the opposed-roll request id");
+assert.match(source, /opposed\.tie\.resolve/, "A Narrator must be able to resolve both compatible Rewards after a tie");
+assert.match(source, /Перебросить ничью/, "The UI must expose the canonical tie reroll");
 assert.match(source, /role==="network-narrator"/, "Network Narrators must receive a separate tools view");
 assert.match(source, /role==="local-table"/, "One-device offline play must retain a dedicated local-table view");
 assert.match(source, /refreshFreeplayResourceUi\(\).*persistAfterPaint\(\)/s, "Resource buttons must update visibly before deferred persistence");

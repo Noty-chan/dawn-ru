@@ -86,6 +86,39 @@ assert.throws(() => Engine.dispatch(requestedChallenge, { type: "roll.public", a
 const clearedChallenge = Engine.dispatch(requestedChallenge, { type: "challenge.clear", payload: { requestId: "challenge-1" } }).scene;
 assert.equal(clearedChallenge.challengeRequest, null);
 assert.throws(() => Engine.dispatch(scene, { type: "challenge.request", payload: { id: "challenge-invalid", actorId: "hero", target: 0, requestedBy: "Нарратор" } }), /запрос испытания/);
+const opposedRequested = Engine.dispatch(scene, { type: "opposed.request", payload: { id: "opposed-1", requestedBy: "Нарратор", participants: [
+  { id: "side-hero", actorId: "hero", heroId: "sheet-1", name: "Эта", controller: "participant", pool: 4 },
+  { id: "side-enemy", actorId: "enemy", name: "Противник", controller: "narrator", pool: 6 },
+] } }).scene;
+assert.equal(opposedRequested.challengeRequest, null, "An opposed request replaces a plain challenge request");
+assert.equal(opposedRequested.opposedRoll.status, "rolling");
+const opposedHeroRoll = Engine.dispatch(opposedRequested, { type: "roll.public", actorId: "hero", payload: { formula: "4D6 ≥4", rolls: [6, 5, 2, 1], successes: 2, crits: 1, opposedRequestId: "opposed-1", opposedParticipantId: "side-hero", opposedAttempt: 1 } }).scene;
+assert.equal(opposedHeroRoll.opposedRoll.results["side-hero"].successes, 2);
+assert.throws(() => Engine.dispatch(opposedHeroRoll, { type: "roll.public", actorId: "hero", payload: { formula: "4D6 ≥4", rolls: [6, 5, 2, 1], successes: 2, crits: 1, opposedRequestId: "opposed-1", opposedParticipantId: "side-hero", opposedAttempt: 1 } }), /не соответствует/, "A side cannot silently replace its result without going All Out");
+assert.throws(() => Engine.dispatch(opposedHeroRoll, { type: "roll.public", actorId: "enemy", payload: { formula: "4D6 ≥4", rolls: [6, 5, 2, 1], successes: 2, crits: 1, opposedRequestId: "opposed-1", opposedParticipantId: "side-hero", opposedAttempt: 1 } }), /не соответствует/, "An opponent cannot submit the other side's result");
+const opposedTie = Engine.dispatch(opposedHeroRoll, { type: "roll.public", actorId: "enemy", payload: { formula: "6D6 ≥4", rolls: [6, 4, 3, 2, 2, 1], successes: 2, crits: 1, opposedRequestId: "opposed-1", opposedParticipantId: "side-enemy", opposedAttempt: 1 } }).scene;
+assert.equal(opposedTie.opposedRoll.status, "tied", "Equal Successes produce the canonical tie state");
+const bothRewards = Engine.dispatch(opposedTie, { type: "opposed.tie.resolve", payload: { requestId: "opposed-1" } }).scene;
+assert.equal(bothRewards.opposedRoll.resolution, "both", "Only an explicit Narrator decision resolves both compatible Rewards");
+const opposedReroll = Engine.dispatch(opposedTie, { type: "opposed.reroll", payload: { requestId: "opposed-1" } }).scene;
+assert.equal(opposedReroll.opposedRoll.attempt, 2);
+assert.deepEqual(JSON.parse(JSON.stringify(opposedReroll.opposedRoll.results)), {});
+const rerolledHero = Engine.dispatch(opposedReroll, { type: "roll.public", actorId: "hero", payload: { formula: "4D6 ≥4", rolls: [6, 5, 4, 1], successes: 3, crits: 1, opposedRequestId: "opposed-1", opposedParticipantId: "side-hero", opposedAttempt: 2 } }).scene;
+const opposedWon = Engine.dispatch(rerolledHero, { type: "roll.public", actorId: "enemy", payload: { formula: "6D6 ≥4", rolls: [4, 3, 3, 2, 2, 1], successes: 1, crits: 0, opposedRequestId: "opposed-1", opposedParticipantId: "side-enemy", opposedAttempt: 2 } }).scene;
+assert.equal(opposedWon.opposedRoll.winnerParticipantId, "side-hero");
+assert.match(opposedWon.opposedRoll.participants.find(item => item.id === opposedWon.opposedRoll.winnerParticipantId).name, /Эта/);
+const clearedOpposed = Engine.dispatch(opposedWon, { type: "opposed.clear", payload: { requestId: "opposed-1" } }).scene;
+assert.equal(clearedOpposed.opposedRoll, null);
+assert.throws(() => Engine.dispatch(scene, { type: "opposed.request", payload: { id: "opposed-invalid", requestedBy: "Нарратор", participants: [
+  { id: "same-a", actorId: "hero", name: "Эта", controller: "participant", pool: 4 },
+  { id: "same-b", actorId: "hero", name: "Эта снова", controller: "participant", pool: 4 },
+] } }), /встречный бросок/, "A character cannot oppose itself");
+const linkedHeroScene = structuredClone(scene);
+linkedHeroScene.actors[0].heroId = "sheet-1";
+assert.throws(() => Engine.dispatch(linkedHeroScene, { type: "opposed.request", payload: { id: "opposed-mismatched-sheet", requestedBy: "Нарратор", participants: [
+  { id: "mismatch-a", actorId: "hero", heroId: "another-sheet", name: "Подмена", controller: "participant", pool: 4 },
+  { id: "mismatch-b", actorId: "enemy", name: "Противник", controller: "narrator", pool: 6 },
+] } }), /встречный бросок/, "An actor-backed side cannot claim another character sheet");
 const raashaDiceScene = structuredClone(scene);
 raashaDiceScene.actors[0].name = "Рааша Шаадрин";
 raashaDiceScene.actors[0].stress = 0;
