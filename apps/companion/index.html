@@ -232,18 +232,22 @@
       <section class="mode-page" data-page="tools" aria-labelledby="tools-title">
         <div class="page-heading"><div><p class="eyebrow">ИНСТРУМЕНТЫ</p><h1 id="tools-title">Свободная игра</h1></div><output id="tools-sync-state" class="tools-sync-state">Локальные инструменты</output></div>
         <div class="freeplay-grid">
+          <section class="panel freeplay-director-tool">
+            <div class="subpanel-head"><div><span class="kind" id="freeplay-director-kind">ЛОКАЛЬНЫЙ СТОЛ</span><h2 id="freeplay-director-title">Испытание</h2><small id="freeplay-director-help">Нарратор назначает сложность, затем передаёт устройство нужному игроку.</small></div></div>
+            <div class="freeplay-director-controls">
+              <label id="freeplay-local-hero-wrap">Бросает<select id="freeplay-local-hero"></select></label>
+              <label id="freeplay-request-actor-wrap" hidden>Запросить у<select id="freeplay-request-actor"></select></label>
+              <label class="freeplay-target">Цель Успехов<span><input id="dice-target" type="number" min="1" max="99" value="2"><button type="button" id="dice-target-default">По Ступени</button></span></label>
+              <div id="freeplay-request-actions" class="button-row" hidden><button type="button" id="freeplay-request-roll" class="primary">Запросить бросок</button><button type="button" id="freeplay-request-clear" hidden>Отменить запрос</button></div>
+            </div>
+            <output id="freeplay-request-state" class="freeplay-request-state" aria-live="polite"></output>
+            <output id="dice-outcome-guide" class="dice-outcome-guide" aria-live="polite"></output>
+          </section>
           <section class="panel freeplay-hero-tool">
             <div id="freeplay-hero-panel"></div>
           </section>
           <section class="panel dice-tool">
             <div class="dice-tool-head"><div><span class="kind">БРОСОК ИСПЫТАНИЯ</span><h2>Разрешить действие</h2></div><div id="dice-hero-context" class="dice-hero-context"></div></div>
-            <div class="freeplay-situation">
-              <label>Что хочет сделать герой<input id="freeplay-intent" maxlength="240" placeholder="Например: незаметно проникнуть в архив"></label>
-              <label>Угроза и Риск провала<input id="freeplay-threat" maxlength="240" placeholder="Охрана поднимет тревогу; герой получит Стресс…"></label>
-              <label>Награда успеха<input id="freeplay-reward" maxlength="240" placeholder="Герой получает доступ к закрытым записям"></label>
-              <label class="freeplay-target">Цель Успехов<span><input id="dice-target" type="number" min="1" max="99" value="2"><button type="button" id="dice-target-default">По Ступени</button></span></label>
-            </div>
-            <output id="dice-outcome-guide" class="dice-outcome-guide" aria-live="polite"></output>
             <div class="dice-composer"><label>Базовый Атрибут<select id="dice-attr"><option value="manual">Ручной пул</option><option value="body">Тело</option><option value="talent">Талант</option><option value="spirit">Дух</option><option value="mind">Разум</option></select></label><label>Один Навык<select id="dice-skill"><option value="">Без Навыка</option></select></label><label>Одна Способность<select id="dice-ability"><option value="">Без Способности</option></select></label><label>Одна Связь<select id="dice-bond"><option value="">Без Связи</option></select></label><fieldset class="dice-count-field"><legend>Базовые кости</legend><div class="dice-stepper"><button type="button" data-dice-delta="-1" aria-label="Убрать одну кость">−</button><input id="dice-count" type="number" min="1" max="40" value="4" aria-label="Количество базовых костей"><button type="button" data-dice-delta="1" aria-label="Добавить одну кость">+</button></div></fieldset><fieldset class="dice-modifier-field"><legend>Прочее Преимущество</legend><div class="dice-stepper"><button type="button" data-dice-modifier="dice-adv" data-dice-modifier-delta="-1" aria-label="Уменьшить Преимущество">−</button><input id="dice-adv" type="number" min="0" max="30" value="0" aria-label="Прочее Преимущество"><button type="button" data-dice-modifier="dice-adv" data-dice-modifier-delta="1" aria-label="Увеличить Преимущество">+</button></div></fieldset><fieldset class="dice-modifier-field"><legend>Помеха</legend><div class="dice-stepper"><button type="button" data-dice-modifier="dice-dis" data-dice-modifier-delta="-1" aria-label="Уменьшить Помеху">−</button><input id="dice-dis" type="number" min="0" max="30" value="0" aria-label="Помеха"><button type="button" data-dice-modifier="dice-dis" data-dice-modifier-delta="1" aria-label="Увеличить Помеху">+</button></div></fieldset><div class="dice-quick-count" aria-label="Быстрый выбор количества базовых костей"><button type="button" data-dice-count="1">1</button><button type="button" data-dice-count="2">2</button><button type="button" data-dice-count="3">3</button><button type="button" data-dice-count="4">4</button><button type="button" data-dice-count="5">5</button><button type="button" data-dice-count="6">6</button><button type="button" data-dice-count="7">7</button></div></div>
             <div id="dice-hook-controls" class="dice-hook-controls"></div>
             <output id="dice-pool-total" class="dice-pool-total" aria-live="polite"></output>
@@ -298,6 +302,7 @@
   </div>
 
   <div id="scene-context-menu" class="scene-context-menu" role="menu" hidden></div>
+  <aside id="challenge-request-dock" class="challenge-request-dock" aria-live="polite" hidden><div><span>ЗАПРОС НАРРАТОРА</span><strong id="challenge-request-dock-text"></strong></div><button type="button" id="challenge-request-open">Открыть бросок</button></aside>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
   <script src="data.js?v=__BUILD_VERSION__"></script>
   <script src="logic.js?v=__BUILD_VERSION__"></script>

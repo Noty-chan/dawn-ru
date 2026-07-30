@@ -92,9 +92,15 @@ function validateEvent(scene, event, options = {}) {
     const object = (scene.objects || []).find(item => item.id === payload.objectId);
     if (!object || !finite(payload.amount) || Number(payload.amount) < 0 || Number(payload.amount) > 9999) throw new Error("Некорректное повреждение местности.");
   }
+  if (event.type === "challenge.request") {
+    const targetActor = actorById(scene, payload.actorId);
+    if (!/^[a-z0-9][a-z0-9-]{0,119}$/i.test(String(payload.id || "")) || !targetActor || targetActor.team !== "hero" || targetActor.knockedOut || !Number.isInteger(Number(payload.target)) || Number(payload.target) < 1 || Number(payload.target) > 99 || typeof payload.requestedBy !== "string" || !payload.requestedBy.trim() || payload.requestedBy.length > 120) throw new Error("Некорректный запрос испытания.");
+  }
+  if (event.type === "challenge.clear" && (!scene.challengeRequest || payload.requestId !== scene.challengeRequest.id)) throw new Error("Этот запрос испытания уже закрыт.");
   if (event.type === "roll.public") {
     if (!Array.isArray(payload.rolls) || payload.rolls.length > 300 || payload.rolls.some(value => !Number.isInteger(Number(value)) || Number(value) < 1 || Number(value) > 6)) throw new Error("Некорректный публичный бросок.");
     if (payload.target != null && (!Number.isInteger(Number(payload.target)) || Number(payload.target) < 1 || Number(payload.target) > 99) || ["intent", "threat", "reward"].some(key => payload[key] != null && (typeof payload[key] !== "string" || payload[key].length > 240))) throw new Error("Некорректный контекст испытания.");
+    if (payload.challengeRequestId != null && (!scene.challengeRequest || payload.challengeRequestId !== scene.challengeRequest.id || event.actorId !== scene.challengeRequest.actorId || Number(payload.target) !== Number(scene.challengeRequest.target))) throw new Error("Бросок не соответствует активному запросу Нарратора.");
     if (payload.dice != null) {
       const dice = payload.dice;
       if (!actor || !dice || typeof dice !== "object" || !Number.isInteger(Number(dice.baseCount)) || Number(dice.baseCount) < 1 || Number(dice.baseCount) > 300 || !Number.isInteger(Number(dice.count)) || Number(dice.count) < 1 || Number(dice.count) > 300 || !Array.isArray(dice.selectedHookIds) || dice.selectedHookIds.length > 30 || dice.selectedHookIds.some(id => typeof id !== "string" || id.length > 180) || !Array.isArray(dice.targetIds) || dice.targetIds.length > 40 || dice.targetIds.some(id => !actorById(scene, id))) throw new Error("Некорректный снимок правил броска.");
@@ -462,9 +468,13 @@ function reduceEvent(scene, event) {
     scene.spaces ||= [];
     if (!scene.spaces.some(space => space.id === payload.id || space.name === payload.name)) scene.spaces.push({ id: payload.id, name: payload.name, width: Number(payload.width), height: Number(payload.height) });
     if (payload.activate) scene.activeSpace = (scene.spaces.find(space => space.id === payload.id || space.name === payload.name) || {}).id || scene.activeSpace;
+  } else if (event.type === "challenge.request") {
+    scene.challengeRequest = { id: payload.id, actorId: payload.actorId, target: Number(payload.target), requestedBy: payload.requestedBy.trim(), at: event.at };
+  } else if (event.type === "challenge.clear") {
+    scene.challengeRequest = null;
   } else if (event.type === "roll.public") {
     scene.rollFeed ||= [];
-    scene.rollFeed.unshift({ id: event.id, at: event.at || new Date().toISOString(), actor: actor?.name || payload.actor || "Система", actorId: actor?.id || null, formula: payload.formula, rolls: payload.rolls || [], successes: Number(payload.successes || 0), crits: Number(payload.crits || 0), outcome: typeof payload.outcome === "string" ? payload.outcome.slice(0, 80) : "", payment: typeof payload.payment === "string" ? payload.payment.slice(0, 80) : "", target: payload.target == null ? null : Number(payload.target), intent: typeof payload.intent === "string" ? payload.intent.slice(0, 240) : "", threat: typeof payload.threat === "string" ? payload.threat.slice(0, 240) : "", reward: typeof payload.reward === "string" ? payload.reward.slice(0, 240) : "", dice: payload.dice ? clone(payload.dice) : null, targetIds: clone(payload.dice?.targetIds || payload.targetIds || []) });
+    scene.rollFeed.unshift({ id: event.id, at: event.at || new Date().toISOString(), actor: actor?.name || payload.actor || "Система", actorId: actor?.id || null, formula: payload.formula, rolls: payload.rolls || [], successes: Number(payload.successes || 0), crits: Number(payload.crits || 0), outcome: typeof payload.outcome === "string" ? payload.outcome.slice(0, 80) : "", payment: typeof payload.payment === "string" ? payload.payment.slice(0, 80) : "", target: payload.target == null ? null : Number(payload.target), challengeRequestId: typeof payload.challengeRequestId === "string" ? payload.challengeRequestId.slice(0, 120) : "", dice: payload.dice ? clone(payload.dice) : null, targetIds: clone(payload.dice?.targetIds || payload.targetIds || []) });
     scene.rollFeed = scene.rollFeed.slice(0, 20);
   } else if (event.type === "roll.redirect") {
     const sourceRoll = (scene.rollFeed || []).find(roll => roll.id === payload.sourceRollId);

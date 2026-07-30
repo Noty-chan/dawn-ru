@@ -18,11 +18,14 @@ function renderPlay(){
 }
 
 let pendingAllIn=null;
-function toolsSyncContext(){const state=Sync?.state?.()||{};return{shared:Boolean(state.sceneId),canEdit:!state.sceneId||Boolean(state.canNarrate),status:state.status||"offline"}}
-function renderToolsSyncState(){const context=toolsSyncContext(),output=$("tools-sync-state");output.classList.toggle("online",context.shared);output.textContent=context.shared?(context.canEdit?"Общий стол · управление Нарратора":"Общий стол · синхронизируется"):"Локальные инструменты"}
+function toolsSyncContext(){const state=Sync?.state?.()||{};return{shared:Boolean(state.sceneId),canEdit:!state.sceneId||Boolean(state.canNarrate),status:state.status||"offline",role:state.role||"",displayName:state.displayName||S.player||"Нарратор"}}
+function toolsRole(){const context=toolsSyncContext();return context.shared?(context.canEdit?"network-narrator":"network-player"):"local-table"}
+function renderToolsSyncState(){const context=toolsSyncContext(),output=$("tools-sync-state"),role=toolsRole();output.classList.toggle("online",context.shared);output.textContent=role==="network-narrator"?"Общий стол · Нарратор":role==="network-player"?"Общий стол · Игрок":"Один стол · одно устройство"}
 function sessionClocks(){Scene.sessionClocks||=[];Scene.tools||={clocksMigrated:false};const context=toolsSyncContext();if(!Scene.tools.clocksMigrated&&!context.shared&&context.canEdit){Scene.sessionClocks=S.runtime.clocks.map(clock=>({...clock,kind:clock.kind==="progress"?"progress":"danger"}));Scene.tools.clocksMigrated=true;persist()}return Scene.sessionClocks}
-function freeplayState(){S.runtime.freeplay||={intent:"",threat:"",reward:"",target:null};return S.runtime.freeplay}
-function freeplayScenario(){return{intent:$("freeplay-intent").value.trim().slice(0,240),threat:$("freeplay-threat").value.trim().slice(0,240),reward:$("freeplay-reward").value.trim().slice(0,240),target:clamp($("dice-target").value,1,99)}}
+function freeplayState(){S.runtime.freeplay||={target:null};return S.runtime.freeplay}
+function currentChallengeRequest(){const request=Scene.challengeRequest,actor=currentHeroActor();return request&&actor&&request.actorId===actor.id?request:null}
+function freeplayTarget(){const context=toolsSyncContext(),request=currentChallengeRequest();return context.shared&&!context.canEdit?clamp(request?.target||S.tier+1,1,99):clamp($("dice-target").value,1,99)}
+function freeplayScenario(){return{target:freeplayTarget()}}
 function toolsRollContext(){
   const persisted=currentHeroActor();
   if(persisted)return{scene:Scene,actor:persisted,persisted:true};
@@ -31,11 +34,27 @@ function toolsRollContext(){
 }
 function toolsRuntimeActor(){return toolsSyncContext().shared?currentHeroActor():null}
 function toolsResourceValue(key){const actor=toolsRuntimeActor();return clamp(actor?.[key]??S.runtime[key],0,key==="stress"?3:999)}
+function refreshFreeplayResourceUi(){
+  for(const key of ["influence","stress"]){
+    const value=toolsResourceValue(key),maximum=key==="stress"?3:null,group=document.querySelector(`[data-freeplay-resource-group="${key}"]`);
+    if(!group)continue;
+    group.querySelector("strong").textContent=maximum?`${value} / ${maximum}`:String(value);
+    const down=group.querySelector(`[data-freeplay-delta="-1"]`),up=group.querySelector(`[data-freeplay-delta="1"]`);
+    if(down)down.disabled=value<=0;if(up)up.disabled=maximum!=null&&value>=maximum;
+  }
+}
 function setToolsResource(key,value,label){
-  const actor=toolsRuntimeActor(),maximum=key==="stress"?3:999,next=clamp(value,0,maximum);
-  if(actor){if(!commitSceneEvents(`${actor.name}: ${label} → ${next}`,[{type:"actor.runtime.set",actorId:actor.id,payload:{key,value:next}}]))return false}
-  else{S.runtime[key]=next;persist()}
-  renderFreeplayHeroPanel();renderStressTrackers();renderAllInControls();return true;
+  const actor=toolsRuntimeActor(),context=toolsSyncContext(),maximum=key==="stress"?3:999,next=clamp(value,0,maximum);
+  if(actor&&context.shared&&!context.canEdit){
+    actor[key]=next;S.runtime[key]=next;refreshFreeplayResourceUi();if(key==="stress")renderStressTrackers();updateAllInAvailability();persistAfterPaint();
+    Sync.submitCommand("update_runtime",{actorId:actor.id,key,value:next}).catch(error=>{toast(error?.message||"Не удалось синхронизировать ресурс");Promise.resolve(Sync.refreshScene?.()).catch(()=>{})});
+    return true;
+  }
+  if(actor){
+    if(!commitSceneEvents(`${actor.name}: ${label} → ${next}`,[{type:"actor.runtime.set",actorId:actor.id,payload:{key,value:next}}]))return false;
+    actor[key]=next;if(actor.heroId===S.id)S.runtime[key]=next;
+  }else S.runtime[key]=next;
+  refreshFreeplayResourceUi();if(key==="stress")renderStressTrackers();updateAllInAvailability();persistAfterPaint();return true;
 }
 function freeplayBondStatus(bond){
   if(!bond)return{amount:0,parts:[]};
@@ -58,6 +77,42 @@ function renderOutcomeGuide(){
   const target=clamp($("dice-target").value,1,99),minimumEnd=target*2-1;
   $("dice-outcome-guide").innerHTML=`<span><b>Провал</b> · 0–${target-1}</span><span><b>Минимальный успех</b> · ${target}${minimumEnd>target?`–${minimumEnd}`:""}</span><span><b>Крайний успех</b> · ${target*2}+</span>`;
 }
+function challengeActors(){
+  const heroes=Scene.actors.filter(actor=>actor.team==="hero"&&actor.kind!=="token"&&!actor.knockedOut),players=heroes.filter(actor=>actor.ownerId);
+  return players.length?players:heroes;
+}
+function renderFreeplayDirector(){
+  const context=toolsSyncContext(),role=toolsRole(),request=Scene.challengeRequest,localSelect=$("freeplay-local-hero"),actorSelect=$("freeplay-request-actor"),target=$("dice-target"),requestActorWrap=$("freeplay-request-actor-wrap"),localHeroWrap=$("freeplay-local-hero-wrap"),actions=$("freeplay-request-actions"),state=$("freeplay-request-state"),requestButton=$("freeplay-request-roll"),clearButton=$("freeplay-request-clear"),defaultButton=$("dice-target-default");
+  document.body.classList.toggle("tools-narrator-mode",role==="network-narrator"&&store.mode==="tools");
+  document.querySelector(".freeplay-grid").dataset.toolsRole=role;
+  document.querySelector(".freeplay-hero-tool").hidden=role==="network-narrator";
+  document.querySelector(".dice-tool").hidden=role==="network-narrator";
+  document.querySelector(".freeplay-bonds-tool").hidden=role==="network-narrator";
+  localHeroWrap.hidden=role!=="local-table";requestActorWrap.hidden=role!=="network-narrator";actions.hidden=role!=="network-narrator";defaultButton.hidden=role==="network-player";target.disabled=role==="network-player";
+  if(role!=="network-player")$("roll-dice").disabled=false;
+  if(role==="local-table"){
+    $("freeplay-director-kind").textContent="ЛОКАЛЬНЫЙ СТОЛ";$("freeplay-director-title").textContent="Испытание за одним устройством";$("freeplay-director-help").textContent="Нарратор выбирает героя и сложность, затем игрок собирает пул и бросает.";
+    localSelect.innerHTML=store.heroes.map((hero,index)=>`<option value="${index}" ${index===store.current?"selected":""}>${esc(hero.name||"Безымянный герой")} · Ст.${hero.tier}</option>`).join("");
+    if(document.activeElement!==target)target.value=freeplayState().target||S.tier+1;
+    state.innerHTML="<strong>Локальная игра</strong><span>Все герои и броски остаются на этом устройстве; переключение героя использует его настоящий лист.</span>";
+  }else if(role==="network-narrator"){
+    $("freeplay-director-kind").textContent="СЕТЕВОЙ СТОЛ";$("freeplay-director-title").textContent="Пульт Нарратора";$("freeplay-director-help").textContent="Выберите героя и назначьте Цель Успехов. Игрок получит запрос на своём устройстве.";
+    const actors=challengeActors(),selected=actorSelect.value||request?.actorId;actorSelect.innerHTML=actors.map(actor=>`<option value="${actor.id}">${esc(actor.name)}</option>`).join("")||`<option value="">Нет подключённых героев</option>`;if(actors.some(actor=>actor.id===selected))actorSelect.value=selected;
+    if(document.activeElement!==target)target.value=request?.target||freeplayState().target||S.tier+1;
+    requestButton.disabled=!actors.length;clearButton.hidden=!request;
+    const actor=Scene.actors.find(item=>item.id===request?.actorId);state.innerHTML=request?`<strong>Ожидается бросок: ${esc(actor?.name||"герой")}</strong><span>Назначенная цель — ${request.target}. Новый запрос заменит текущий.</span>`:`<strong>Активного запроса нет</strong><span>Назначьте сложность, когда станет понятно, что действие требует испытания.</span>`;
+  }else{
+    $("freeplay-director-kind").textContent="ЗАПРОС НАРРАТОРА";$("freeplay-director-title").textContent=request?"Назначено испытание":"Ожидайте решения Нарратора";$("freeplay-director-help").textContent=request?"Соберите пул по листу персонажа и совершите публичный бросок.":"В сетевой игре сложность задаёт Нарратор.";
+    const ownRequest=currentChallengeRequest();target.value=ownRequest?.target||S.tier+1;
+    state.innerHTML=ownRequest?`<strong>Цель Успехов: ${ownRequest.target}</strong><span>${esc(ownRequest.requestedBy)} запросил бросок для ${esc(S.name||"вашего героя")}.</span>`:request?`<strong>Нарратор запросил другого героя</strong><span>Сейчас бросает ${esc(Scene.actors.find(actor=>actor.id===request.actorId)?.name||"другой участник")}.</span>`:`<strong>Запроса пока нет</strong><span>Обсудите действие вслух; когда нужен бросок, Нарратор назначит сложность.</span>`;
+    $("roll-dice").disabled=!ownRequest;
+  }
+  renderOutcomeGuide();renderToolsSyncState();
+}
+function renderChallengeRequestDock(){
+  const dock=$("challenge-request-dock"),context=toolsSyncContext(),request=currentChallengeRequest(),visible=context.shared&&!context.canEdit&&Boolean(request)&&store.mode!=="tools";
+  dock.hidden=!visible;if(visible)$("challenge-request-dock-text").textContent=`${request.requestedBy} просит бросок · цель ${request.target}`;
+}
 function updateDicePoolTotal(){
   const request=toolsDiceRequest(),context=toolsRollContext(),status=SceneEngine.diceHookStatus(context.scene,context.actor.id,request),total=status.available?status.count:Math.max(1,request.baseCount+request.advantage-request.hindrance),dark=$("dice-dark-urge");
   if(dark){dark.disabled=!request.usesAbility;if(!request.usesAbility)dark.checked=false}
@@ -71,14 +126,14 @@ function renderDiceComposer(){
   skill.innerHTML=`<option value="">Без Навыка</option>${S.skills.filter(item=>item.name.trim()).map(item=>`<option value="${item.id}">${esc(item.name)} · +${effectiveSkillRank(item)}D6</option>`).join("")}`;if([...skill.options].some(option=>option.value===skillValue))skill.value=skillValue;
   ability.innerHTML=`<option value="">Без Способности</option>${S.ability.enabled?`<option value="main">${esc(S.ability.name||"Способность")} · +${S.ability.rank}D6</option>`:""}${S.mods.taintedBody&&S.taintedAbility.enabled?`<option value="tainted">${esc(S.taintedAbility.name||"Порченое тело")} · +${S.taintedAbility.rank}D6</option>`:""}`;if([...ability.options].some(option=>option.value===abilityValue))ability.value=abilityValue;
   bond.innerHTML=`<option value="">Без Связи</option>${S.bonds.map(item=>{const status=freeplayBondStatus(item);return`<option value="${item.id}">${esc(item.name)} · +${status.amount}D6</option>`}).join("")}`;if([...bond.options].some(option=>option.value===bondValue))bond.value=bondValue;
-  $("dice-hero-context").innerHTML=`<span>Бросает</span><strong>${esc(S.name||"Безымянный герой")}</strong><small>Ступень ${S.tier} · обычная цель ${S.tier+1}</small>`;
+  $("dice-hero-context").innerHTML=`<span>Бросает</span><strong>${esc(S.name||"Безымянный герой")}</strong><small>Ступень ${S.tier} · назначенная цель ${freeplayTarget()}</small>`;
   $("dice-hook-controls").innerHTML=S.gifts.includes("wolf.dark-urge")?`<label class="switch"><input id="dice-dark-urge" type="checkbox" ${darkChecked?"checked":""}><span><b>Тёмный порыв</b> · +4 Преимущества со Способностью; нечётные Успехи дают Нарратору право сменить цель</span></label>`:"";
   recalculateDicePool();
 }
 function openToolsDicePreset({attr="",skillId="",abilityKey=""}={}){setMode("tools");renderDiceComposer();if(attr&&[...$("dice-attr").options].some(option=>option.value===attr))$("dice-attr").value=attr;if(skillId&&[...$("dice-skill").options].some(option=>option.value===skillId))$("dice-skill").value=skillId;if(abilityKey&&[...$("dice-ability").options].some(option=>option.value===abilityKey))$("dice-ability").value=abilityKey;recalculateDicePool();requestAnimationFrame(()=>$("roll-dice").focus())}
 function renderFreeplayHeroPanel(){
   const actor=toolsRuntimeActor(),stress=clamp(actor?.stress??S.runtime.stress,0,3),influence=Math.max(0,Number(actor?.influence??S.runtime.influence)||0),gifts=selectedGifts(),techniques=Object.entries(S.techniques).filter(([,level])=>level>0).map(([id,level])=>({tech:techById(id),level})).filter(item=>item.tech),locked=toolsSyncContext().shared&&!actor;
-  const resource=(key,label,value,maximum="")=>`<div class="freeplay-resource"><span>${label}</span><button type="button" data-freeplay-resource="${key}" data-freeplay-delta="-1" ${locked||value<=0?"disabled":""}>−</button><strong>${value}${maximum?` / ${maximum}`:""}</strong><button type="button" data-freeplay-resource="${key}" data-freeplay-delta="1" ${locked||maximum&&value>=maximum?"disabled":""}>+</button></div>`;
+  const resource=(key,label,value,maximum="")=>`<div class="freeplay-resource" data-freeplay-resource-group="${key}"><span>${label}</span><button type="button" data-freeplay-resource="${key}" data-freeplay-delta="-1" ${locked||value<=0?"disabled":""}>−</button><strong>${value}${maximum?` / ${maximum}`:""}</strong><button type="button" data-freeplay-resource="${key}" data-freeplay-delta="1" ${locked||maximum&&value>=maximum?"disabled":""}>+</button></div>`;
   $("freeplay-hero-panel").innerHTML=`<header class="freeplay-hero-head">${S.media.portrait?`<img src="${S.media.portrait}" alt="">`:`<i>✦</i>`}<div><span class="kind">ЛИСТ ПЕРСОНАЖА</span><h2>${esc(S.name||"Безымянный герой")}</h2><p>${esc(S.concept||"Концепция не записана")} · Ступень ${S.tier}</p></div><div class="freeplay-resources">${resource("influence","Влияние",influence)}${resource("stress","Стресс",stress,3)}</div></header><div class="freeplay-sheet-picks"><section><h3>Атрибуты</h3><div>${ATTRS.map(([key,label])=>`<button type="button" data-freeplay-attr="${key}"><span>${label}</span><b>${attrValue(key)}D6</b></button>`).join("")}</div></section><section><h3>Навыки</h3><div>${S.skills.filter(skill=>skill.name.trim()).map(skill=>`<button type="button" data-freeplay-skill="${skill.id}"><span>${esc(skill.name)}</span><b>+${effectiveSkillRank(skill)}D6</b></button>`).join("")||`<p class="autosave">Навыки не записаны.</p>`}</div></section>${S.ability.enabled?`<section><h3>Способность</h3><button type="button" class="freeplay-ability-pick" data-freeplay-ability="main"><span><b>${esc(S.ability.name||abilityFormula())}</b><small>${esc(abilityFormula())}</small></span><strong>+${S.ability.rank}D6</strong></button></section>`:""}</div><div class="freeplay-features"><details><summary>Мировоззрения и Дары <small>${gifts.length}</small></summary>${gifts.map(gift=>`<article><strong>${esc(gift.name)}</strong><p>${md(gift.text)}</p></article>`).join("")||`<p class="autosave">Дары не выбраны.</p>`}</details><details><summary>Техники <small>${techniques.reduce((sum,item)=>sum+item.level,0)} ур.</small></summary>${techniques.map(({tech,level})=>`<article><strong>${esc(tech.name)} · Уровень ${level}</strong>${tech.levels.slice(0,level).map(item=>`<p><b>${item.n}: ${esc(item.name)}</b> — ${md(item.text)}</p>`).join("")}</article>`).join("")||`<p class="autosave">Техники не выбраны.</p>`}</details></div>`;
 }
 function renderFreeplayBonds(){
@@ -86,14 +141,15 @@ function renderFreeplayBonds(){
   $("freeplay-bonds").innerHTML=S.bonds.map(bond=>{const status=freeplayBondStatus(bond),canRaise=bond.rank<3&&bond.tags.length>=bond.rank;return`<article class="freeplay-bond-card"><header><div><strong>${esc(bond.name)}</strong><small>${bond.quick?"Быстрая Связь · ":""}Преимущество +${status.amount}</small></div><div class="freeplay-bond-rank"><button type="button" data-bond-rank="${bond.id}" data-bond-delta="-1" ${bond.rank<=1?"disabled":""}>−</button><b>Ранг ${bond.rank}</b><button type="button" data-bond-rank="${bond.id}" data-bond-delta="1" title="${canRaise?"Повысить Ранг":"Для повышения нужны все теги текущего Ранга"}" ${canRaise?"":"disabled"}>+</button></div></header><div class="freeplay-bond-tags">${bond.tags.map(tag=>`<span>${esc(tag)}</span>`).join("")||`<small>Тегов пока нет</small>`}</div><div class="freeplay-bond-actions"><select data-bond-tag-select="${bond.id}" ${bond.tags.length>=bond.rank?"disabled":""}><option value="">${bond.tags.length>=bond.rank?"Все места тегов заняты":"Добавить тег…"}</option>${standard.filter(tag=>!bond.tags.includes(tag)).map(tag=>`<option>${esc(tag)}</option>`).join("")}<option value="__custom">Свой тег…</option></select><button type="button" data-bond-use="${bond.id}">В бросок</button><button type="button" class="remove" data-bond-remove="${bond.id}">Удалить</button></div></article>`}).join("")||`<p class="autosave">Связей пока нет. В обычной или быстрой Связи можно хранить Ранг и неизменяемые теги.</p>`;
 }
 function renderAllInControls(){
-  const state=freeplayState();
-  for(const [id,key]of[["freeplay-intent","intent"],["freeplay-threat","threat"],["freeplay-reward","reward"]])if(document.activeElement!==$(id))$(id).value=state[key]||"";
-  if(document.activeElement!==$("dice-target"))$("dice-target").value=state.target||S.tier+1;
+  renderFreeplayDirector();
+  if(toolsRole()==="network-narrator")return;
   renderDiceComposer();
   renderFreeplayHeroPanel();
   renderFreeplayBonds();
-  renderToolsSyncState();
   renderStressTrackers();
+  updateAllInAvailability();
+}
+function updateAllInAvailability(){
   const stressPayment=hasGift("Overexertion")||hasGift("Durandal");
   const flashback=hasGift("Plenty To Learn");
   const influence=toolsResourceValue("influence"),stress=toolsResourceValue("stress");
@@ -105,22 +161,23 @@ function renderAllInControls(){
   if(!pendingAllIn)$("all-in-flashback").checked=false;
   $("all-in-hint").textContent=!pendingAllIn?"Сначала совершите обычный бросок.":influence>0?"Можно перебросить этот результат, потратив 1 Влияние.":stressPayment&&stress<3?"Влияния нет, но Дар позволяет получить Стресс вместо оплаты.":"Для Ва-банк недостаточно Влияния.";
 }
+function renderToolsWorkspace(){renderFreeplayDirector();renderClocks();renderStressTrackers();if(toolsRole()!=="network-narrator"){renderDiceHistory();renderAllInControls()}renderChallengeRequestDock()}
 function resolveDice(count,threshold,payment="",diceRequest=null,scenario=freeplayScenario()){
   const context=toolsRollContext(),request=diceRequest?{...diceRequest,threshold}:null,status=request?SceneEngine.diceHookStatus(context.scene,context.actor.id,request):null;
   if(request&&!status.available){toast(status.reason);return null}
   const result=Logic.rollXd6({count:status?.count||count,threshold:status?.threshold||threshold,criticalAt:status?.criticalAt||6}),prepared=request?SceneEngine.diceRollPayload(context.scene,context.actor.id,request,result):null,roll=prepared?.available?prepared.payload:{formula:`${result.initialCount}D6 ≥${threshold}`,rolls:result.rolls,successes:result.successes,crits:result.crits},resolution=Logic.challengeOutcome({successes:roll.successes,target:scenario.target}),outcome=resolution.label,sources=roll.dice?.sources?.map(source=>source.label).join(" · "),darkUrge=roll.dice?.selectedHookIds?.includes("wolf.dark-urge")&&roll.successes%2===1;
   $("dice-result").className=`dice-result outcome-${resolution.id}`;
-  $("dice-result").innerHTML=`${scenario.intent?`<p class="dice-intent">${esc(scenario.intent)}</p>`:""}<div class="dice">${roll.rolls.map(v=>`<span class="die ${v>=(roll.dice?.criticalAt||6)?"crit":v>=(roll.dice?.threshold||threshold)?"success":""}">${v}</span>`).join("")}</div><strong>${roll.successes} Успехов · ${roll.crits} Критов · ${outcome}</strong><div class="dice-resolution">${resolution.id==="failure"?`Награда не получена.${scenario.threat?` Срабатывает Риск: ${esc(scenario.threat)}.`:" Выберите подходящий Риск."}`:resolution.id==="minimal"?`${scenario.reward?`Награда: ${esc(scenario.reward)}. `:""}Нарратор добавляет значительную трудность.`:`${scenario.reward?`Награда: ${esc(scenario.reward)}. `:""}Игрок описывает дополнительный эффект.`}</div><div class="autosave">${payment?`Ва-банк (${esc(payment)}). `:""}Исходных костей: ${result.initialCount}; цель: ${scenario.target}, Крайний успех: ${scenario.target*2}.${sources?` Правила: ${esc(sources)}.`:""}${result.truncated?" Цепочка взрывов ограничена 300 костями.":""}</div>`;
+  $("dice-result").innerHTML=`<div class="dice">${roll.rolls.map(v=>`<span class="die ${v>=(roll.dice?.criticalAt||6)?"crit":v>=(roll.dice?.threshold||threshold)?"success":""}">${v}</span>`).join("")}</div><strong>${roll.successes} Успехов · ${roll.crits} Критов · ${outcome}</strong><div class="dice-resolution">${resolution.id==="failure"?"Награда не получена. Нарратор применяет проговорённый Риск.":resolution.id==="minimal"?"Герой получает оговорённую награду; Нарратор добавляет значительную трудность.":"Герой получает оговорённую награду и описывает дополнительный эффект."}</div><div class="autosave">${payment?`Ва-банк (${esc(payment)}). `:""}Исходных костей: ${result.initialCount}; цель: ${scenario.target}, Крайний успех: ${scenario.target*2}.${sources?` Правила: ${esc(sources)}.`:""}${result.truncated?" Цепочка взрывов ограничена 300 костями.":""}</div>`;
   $("freeplay-risk-actions").innerHTML=`${darkUrge?`<div class="freeplay-rule-alert"><strong>Тёмный порыв: нечётное число Успехов</strong><span>Нарратор может перенаправить сохранённый результат на другого персонажа; сопротивление стоит 2 Стресса.</span></div>`:""}${resolution.id==="failure"?`<div class="freeplay-failure-tools"><button type="button" data-freeplay-risk="stress" ${toolsResourceValue("stress")>=3?"disabled":""}>Применить базовый Риск: +1 Стресс, +1 Влияние</button><details><summary>Другие Риски по правилам</summary><ul><li><b>Обоюдоострый исход:</b> желаемый эффект происходит с героем.</li><li><b>Эскалация:</b> возникает более значимая связанная Угроза.</li><li><b>Компромисс:</b> теряется вещь, безопасность или ценность.</li><li><b>Дрогнуть:</b> принять довод против Мотивации и получить 2 Влияния.</li><li><b>Напоминание, Смена Сцены или Споткнуться.</b></li></ul></details></div>`:""}`;
-  S.runtime.diceHistory.unshift({at:new Date().toLocaleTimeString("ru-RU",{hour:"2-digit",minute:"2-digit"}),count:result.initialCount,successes:roll.successes,crits:roll.crits,outcome,target:scenario.target,intent:scenario.intent,threat:scenario.threat,reward:scenario.reward,allIn:Boolean(payment),payment});
-  S.runtime.diceHistory=S.runtime.diceHistory.slice(0,20);persist();renderDiceHistory();
-  const sync=toolsSyncContext(),payload={...roll,actor:S.name||"Система",outcome,payment,target:scenario.target,intent:scenario.intent,threat:scenario.threat,reward:scenario.reward};
-  if(context.persisted||!sync.shared||sync.canEdit){if(!context.persisted)delete payload.dice;commitSceneEvents(payment?"Публичный бросок Ва-банк":"Публичный бросок",[{type:"roll.public",actorId:context.persisted?context.actor.id:null,payload}])}
+  S.runtime.diceHistory.unshift({at:new Date().toLocaleTimeString("ru-RU",{hour:"2-digit",minute:"2-digit"}),count:result.initialCount,successes:roll.successes,crits:roll.crits,outcome,target:scenario.target,allIn:Boolean(payment),payment});
+  S.runtime.diceHistory=S.runtime.diceHistory.slice(0,20);persistAfterPaint();renderDiceHistory();
+  const sync=toolsSyncContext(),challenge=currentChallengeRequest(),payload={...roll,actor:S.name||"Система",outcome,payment,target:scenario.target,...(challenge?{challengeRequestId:challenge.id}:{})};
+  if(context.persisted||sync.shared&&sync.canEdit){if(!context.persisted)delete payload.dice;commitSceneEvents(payment?"Публичный бросок Ва-банк":"Публичный бросок",[{type:"roll.public",actorId:context.persisted?context.actor.id:null,payload}])}
   return result;
 }
 function rollDice(){
-  const scenario=freeplayScenario(),state=freeplayState();Object.assign(state,scenario);persist();
-  if(!scenario.intent)toast("Можно бросить и без записи намерения, но игрокам должно быть понятно, чего добивается герой");
+  const syncContext=toolsSyncContext(),challenge=currentChallengeRequest();if(syncContext.shared&&!syncContext.canEdit&&!challenge)return toast("Дождитесь запроса Нарратора для этого героя");
+  const scenario=freeplayScenario(),state=freeplayState();Object.assign(state,scenario);persistAfterPaint();
   const request=toolsDiceRequest(),context=toolsRollContext(),status=SceneEngine.diceHookStatus(context.scene,context.actor.id,request),count=status.available?status.count:Math.max(1,request.baseCount+request.advantage-request.hindrance);
   if(!status.available)return toast(status.reason);resolveDice(count,4,"",request,scenario);pendingAllIn={count,diceRequest:request,scenario};renderAllInControls();
 }
@@ -129,14 +186,14 @@ function allIn(payment){
   if(payment==="Влияние"){const influence=toolsResourceValue("influence");if(influence<1)return toast("Недостаточно Влияния");if(!setToolsResource("influence",influence-1,"Влияние"))return}else{const stress=toolsResourceValue("stress");if(stress>=3)return toast("Стресс уже максимален");if(!setToolsResource("stress",stress+1,"Стресс"))return}
   const flashback=hasGift("Plenty To Learn")&&$("all-in-flashback").checked,{count,diceRequest,scenario}=pendingAllIn,request=diceRequest?{...diceRequest,hooks:[...(diceRequest.hooks||[]),...(flashback?[{type:"advantage",ruleId:"student.plenty-to-learn",label:"Ещё многому учиться",amount:4}]:[])]}:null;pendingAllIn=null;resolveDice(count+(request?0:flashback?4:0),3,flashback?`${payment}, флэшбек +4` : payment,request,scenario);renderAllInControls();if(store.mode==="play")renderPlay();
 }
-function renderDiceHistory(){const context=toolsSyncContext(),history=context.shared?(Scene.rollFeed||[]):S.runtime.diceHistory;$("dice-history").innerHTML=context.shared?history.map(h=>`<li><strong>${esc(h.actor||"Система")}</strong>${h.intent?` · ${esc(h.intent)}`:""}<br>${esc(h.formula||"Бросок")} → ${esc(h.successes)} успех., ${esc(h.crits)} крит.${h.outcome?` · ${esc(h.outcome)}`:""}</li>`).join("")||`<li>На общем столе ещё не было публичных бросков.</li>`:history.map(h=>`<li>${esc(h.at)} · ${h.intent?`${esc(h.intent)} · `:""}${h.allIn?"Ва-банк · ":""}${esc(h.count)}D6 → ${esc(h.successes)} успех., ${esc(h.crits)} крит. · ${esc(h.outcome)}${h.target?` (цель ${h.target})`:""}</li>`).join("")}
+function renderDiceHistory(){const context=toolsSyncContext(),history=context.shared?(Scene.rollFeed||[]):S.runtime.diceHistory;$("dice-history").innerHTML=context.shared?history.map(h=>`<li><strong>${esc(h.actor||"Система")}</strong><br>${esc(h.formula||"Бросок")} → ${esc(h.successes)} успех., ${esc(h.crits)} крит.${h.outcome?` · ${esc(h.outcome)}`:""}${h.target?` · цель ${h.target}`:""}</li>`).join("")||`<li>На общем столе ещё не было публичных бросков.</li>`:history.map(h=>`<li>${esc(h.at)} · ${h.allIn?"Ва-банк · ":""}${esc(h.count)}D6 → ${esc(h.successes)} успех., ${esc(h.crits)} крит. · ${esc(h.outcome)}${h.target?` (цель ${h.target})`:""}</li>`).join("")}
 function renderClocks(){
   const context=toolsSyncContext(),clocks=sessionClocks(),locked=context.shared&&!context.canEdit,addActions=$("clock-add-progress").closest(".clock-add-actions");addActions.hidden=locked;const editableCard=c=>`<article class="clock ${c.kind==="progress"?"progress":"danger"}"><div class="clock-head"><label>Название<input data-clock-name="${c.id}" value="${esc(c.name)}" maxlength="120" title="${esc(c.name)}"></label><div class="clock-head-actions"><button type="button" data-clock-save="${c.id}">✓ Сохранить</button><button type="button" class="remove" data-clock-remove="${c.id}">× Удалить</button></div></div><div class="clock-meta"><label>Тип<select data-clock-kind="${c.id}"><option value="progress" ${c.kind==="progress"?"selected":""}>Хорошие</option><option value="danger" ${c.kind==="progress"?"":"selected"}>Плохие</option></select></label><label>Сегменты<select data-clock-size="${c.id}">${[4,6,8,12].map(size=>`<option value="${size}" ${c.size===size?"selected":""}>${size}</option>`).join("")}</select></label></div><div class="segments">${Array.from({length:c.size},(_,i)=>`<button type="button" class="segment ${i<c.value?"on":""}" data-clock="${c.id}" data-value="${i+1}" aria-label="${i+1} из ${c.size}"></button>`).join("")}</div></article>`,readOnlyCard=c=>`<article class="clock clock-readonly ${c.kind==="progress"?"progress":"danger"}"><div class="clock-readonly-head"><strong title="${esc(c.name)}">${esc(c.name)}</strong><small>${c.value} / ${c.size}</small></div><div class="segments" role="img" aria-label="${esc(`${c.name}: заполнено ${c.value} из ${c.size}`)}">${Array.from({length:c.size},(_,i)=>`<span class="segment ${i<c.value?"on":""}"></span>`).join("")}</div></article>`,card=locked?readOnlyCard:editableCard,group=(kind,title,empty)=>{const items=clocks.filter(clock=>(clock.kind==="progress"?"progress":"danger")===kind);return`<section class="clock-group ${kind}"><h3>${title}</h3>${items.map(card).join("")||`<p class="autosave">${empty}</p>`}</section>`};$("clocks").innerHTML=group("progress","Хорошие часы","Пока нет часов прогресса.")+group("danger","Плохие часы",locked?"Нарратор ещё не добавил часы угрозы.":"Пока нет часов угрозы.");renderToolsSyncState();
 }
 function renderStressTrackers(){
   const root=$("stress-trackers"),context=toolsSyncContext(),heroes=context.shared
     ?Scene.actors.filter(actor=>actor.team==="hero"&&actor.kind!=="token")
-    :[{id:"",name:S.name||"Безымянный герой",stress:clamp(S.runtime.stress,0,3)}];
+    :store.heroes.map(hero=>({id:hero.id,name:hero.name||"Безымянный герой",stress:clamp(hero.runtime?.stress,0,3)}));
   const segment=(hero,index)=>context.canEdit
     ?`<button type="button" class="${index<=hero.stress?"on":""}" data-stress-actor="${esc(hero.id)}" data-stress-value="${index}" aria-label="${esc(`${hero.name}: Стресс ${index}`)}"></button>`
     :`<span class="${index<=hero.stress?"on":""}"></span>`;
@@ -207,6 +264,6 @@ function renderReference(){
   $("reference-list").innerHTML=list.slice(0,250).map(item=>`<article class="catalog-card"><span class="kind">${esc(item.kind)}</span><h3>${esc(item.name)}${item.cost?` · ${esc(item.cost)}`:""}</h3>${item.aliases?.length?`<div class="meta">Также: ${item.aliases.map(esc).join(" · ")}</div>`:item.tags?`<div class="meta">${esc(item.tags)}</div>`:""}<p>${md(item.text||"")}</p></article>`).join("")||`<p>Ничего не найдено.</p>`;
 }
 
-function renderAll(){renderHeroSelect();renderProfile();renderAttrs();renderOutlooks();renderBondTraining();renderSkillsAbility();renderTechniques();renderSheet();renderSidebar();if(store.mode==="play")renderPlay();if(store.mode==="tools"){renderDiceHistory();renderClocks();renderAllInControls();}if(store.mode==="rules")renderRules();if(store.mode==="reference")renderReference();persist();}
+function renderAll(){renderHeroSelect();renderProfile();renderAttrs();renderOutlooks();renderBondTraining();renderSkillsAbility();renderTechniques();renderSheet();renderSidebar();if(store.mode==="play")renderPlay();if(store.mode==="tools")renderToolsWorkspace();if(store.mode==="rules")renderRules();if(store.mode==="reference")renderReference();renderChallengeRequestDock();persist();}
 function initCollapsibleBuildPanels(){$$('.mode-page[data-page="build"]>.panel').forEach(panel=>{const title=panel.querySelector(':scope>.section-title');if(!title)return;panel.classList.add("build-collapsible");title.tabIndex=0;title.setAttribute("role","button");title.setAttribute("aria-expanded","true");const toggle=()=>{const collapsed=panel.classList.toggle("collapsed");title.setAttribute("aria-expanded",String(!collapsed))};title.addEventListener("click",toggle);title.addEventListener("keydown",event=>{if(event.key==="Enter"||event.key===" "){event.preventDefault();toggle()}})})}
-function setMode(mode){store.mode=["build","play","tools","rules","reference"].includes(mode)?mode:"build";if(store.mode!=="play")setScenePanel(null);document.body.classList.toggle("builder-mode",store.mode==="build");document.body.classList.toggle("scene-mode",store.mode==="play");document.body.classList.toggle("scene-player-view",store.mode==="play"&&activeSceneView()==="player");$$('[data-page]').forEach(p=>p.classList.toggle("active",p.dataset.page===store.mode));$$('[data-mode]').forEach(b=>b.setAttribute("aria-current",b.dataset.mode===store.mode?"page":"false"));if(store.mode==="play")renderPlay();if(store.mode==="tools"){renderDiceHistory();renderClocks();renderAllInControls();}if(store.mode==="rules")renderRules();if(store.mode==="reference")renderReference();persist();if(["rules","reference"].includes(store.mode)&&location.hash)requestAnimationFrame(()=>document.getElementById(location.hash.slice(1))?.scrollIntoView());else window.scrollTo({top:0,behavior:"smooth"});}
+function setMode(mode){store.mode=["build","play","tools","rules","reference"].includes(mode)?mode:"build";if(store.mode!=="play")setScenePanel(null);document.body.classList.toggle("builder-mode",store.mode==="build");document.body.classList.toggle("scene-mode",store.mode==="play");document.body.classList.toggle("scene-player-view",store.mode==="play"&&activeSceneView()==="player");if(store.mode!=="tools")document.body.classList.remove("tools-narrator-mode");$$('[data-page]').forEach(p=>p.classList.toggle("active",p.dataset.page===store.mode));$$('[data-mode]').forEach(b=>b.setAttribute("aria-current",b.dataset.mode===store.mode?"page":"false"));if(store.mode==="play")renderPlay();if(store.mode==="tools")renderToolsWorkspace();if(store.mode==="rules")renderRules();if(store.mode==="reference")renderReference();renderChallengeRequestDock();persist();if(["rules","reference"].includes(store.mode)&&location.hash)requestAnimationFrame(()=>document.getElementById(location.hash.slice(1))?.scrollIntoView());else window.scrollTo({top:0,behavior:"smooth"});}

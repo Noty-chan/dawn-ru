@@ -30,16 +30,22 @@ const source = ["app-core.js", "play-ui.js", "app-play-events.js", "hero-ui.js",
   .map(file => fs.readFileSync(path.join(root, file), "utf8"))
   .join("\n");
 
-for (const id of ["freeplay-intent", "freeplay-threat", "freeplay-reward", "dice-target", "dice-bond", "freeplay-bonds", "freeplay-risk-actions"]) {
+for (const id of ["freeplay-director-title", "freeplay-local-hero", "freeplay-request-actor", "freeplay-request-roll", "challenge-request-dock", "dice-target", "dice-bond", "freeplay-bonds", "freeplay-risk-actions"]) {
   assert.match(markup, new RegExp(`id="${id}"`), `Free-play tools must expose #${id}`);
+}
+for (const id of ["freeplay-intent", "freeplay-threat", "freeplay-reward"]) {
+  assert.doesNotMatch(markup, new RegExp(`id="${id}"`), `Spoken table context must not be duplicated in #${id}`);
 }
 assert.match(source, /base\.bonds=Array\.isArray\(h\.bonds\)/, "Bonds must survive character import and normalization");
 assert.match(source, /ruleId:`freeplay\.skill:/, "A Skill must enter a challenge roll through the reusable Advantage hook");
 assert.match(source, /ruleId:`freeplay\.ability:/, "An Ability must enter a challenge roll through the reusable Advantage hook");
 assert.match(source, /ruleId:`freeplay\.bond:/, "A Bond must enter a challenge roll through the reusable Advantage hook");
-assert.match(source, /target:scenario\.target,intent:scenario\.intent,threat:scenario\.threat,reward:scenario\.reward/, "Public rolls must retain their declared narrative context");
+assert.match(source, /challengeRequestId:challenge\.id/, "A requested network roll must retain the Narrator request id");
+assert.match(source, /role==="network-narrator"/, "Network Narrators must receive a separate tools view");
+assert.match(source, /role==="local-table"/, "One-device offline play must retain a dedicated local-table view");
+assert.match(source, /refreshFreeplayResourceUi\(\).*persistAfterPaint\(\)/s, "Resource buttons must update visibly before deferred persistence");
 assert.match(source, /Применить базовый Риск: \+1 Стресс, \+1 Влияние/, "Failure resolution must offer the canonical basic Risk");
 assert.match(source, /hasGift\("Lone Wolf"\)&&S\.bonds\.length>=3/, "The Wolf Bond limit must be enforced in the tools");
 assert.match(source, /bond\.tags\.length<bond\.rank/, "Bond rank increases must require all current tag slots");
 
-console.log("Free-play tools QA passed: outcomes, character features, Bonds, narrative context, and Risks");
+console.log("Free-play tools QA passed: roles, requested difficulty, immediate resources, character features, Bonds, and Risks");

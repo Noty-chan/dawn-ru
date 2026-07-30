@@ -78,6 +78,14 @@ assert.throws(() => Engine.dispatch(scene, { type: "scene.replace", payload: { s
 const publicRoll = Engine.dispatch(scene, { type: "roll.public", actorId: "hero", payload: { formula: "4D6 ≥4", rolls: [6, 5, 2, 1], successes: 2, crits: 1, outcome: "Минимальный успех" } }).scene;
 assert.equal(publicRoll.rollFeed[0].actor, "Эта");
 assert.equal(publicRoll.rollFeed[0].outcome, "Минимальный успех");
+const requestedChallenge = Engine.dispatch(scene, { type: "challenge.request", payload: { id: "challenge-1", actorId: "hero", target: 3, requestedBy: "Нарратор" } }).scene;
+assert.deepEqual(JSON.parse(JSON.stringify(requestedChallenge.challengeRequest)), { id: "challenge-1", actorId: "hero", target: 3, requestedBy: "Нарратор", at: requestedChallenge.challengeRequest.at });
+const requestedRoll = Engine.dispatch(requestedChallenge, { type: "roll.public", actorId: "hero", payload: { formula: "4D6 ≥4", rolls: [6, 5, 2, 1], successes: 2, crits: 1, target: 3, challengeRequestId: "challenge-1" } }).scene;
+assert.equal(requestedRoll.rollFeed[0].challengeRequestId, "challenge-1", "A public roll remains tied to the Narrator request");
+assert.throws(() => Engine.dispatch(requestedChallenge, { type: "roll.public", actorId: "hero", payload: { formula: "4D6 ≥4", rolls: [6, 5, 2, 1], successes: 2, crits: 1, target: 2, challengeRequestId: "challenge-1" } }), /не соответствует/, "A player cannot lower the requested difficulty");
+const clearedChallenge = Engine.dispatch(requestedChallenge, { type: "challenge.clear", payload: { requestId: "challenge-1" } }).scene;
+assert.equal(clearedChallenge.challengeRequest, null);
+assert.throws(() => Engine.dispatch(scene, { type: "challenge.request", payload: { id: "challenge-invalid", actorId: "hero", target: 0, requestedBy: "Нарратор" } }), /запрос испытания/);
 const raashaDiceScene = structuredClone(scene);
 raashaDiceScene.actors[0].name = "Рааша Шаадрин";
 raashaDiceScene.actors[0].stress = 0;

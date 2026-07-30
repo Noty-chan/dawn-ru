@@ -84,8 +84,9 @@ function mergeNetworkV2Scene(remote,current=Scene){
 function renderNetworkScene(events=[]){
   syncHeroFromScene();store.scene=Scene;persist();
   if(store.mode==="play")renderPlay();
-  else if(store.mode==="tools"){renderClocks();renderDiceHistory();renderAllInControls()}
+  else if(store.mode==="tools")renderToolsWorkspace();
   else renderScene();
+  renderChallengeRequestDock();
   if(events.length)playSceneEventFx(events);
 }
 function ensureNetworkV2Runtime(){
