@@ -1,5 +1,6 @@
 "use strict";
 
+const APP_BUILD_VERSION = new URL(document.currentScript?.src || location.href).searchParams.get("v") || "dev";
 const D = window.DAWN_DATA;
 if (!D || D.schemaVersion !== 2) document.body.innerHTML = "<p style='padding:2rem'>Не удалось загрузить данные правил. Запустите build_data.py.</p>";
 const Logic = window.DAWN_LOGIC;

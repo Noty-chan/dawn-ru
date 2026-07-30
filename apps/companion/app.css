@@ -158,3 +158,7 @@ main{min-width:0;padding:clamp(1rem,3vw,3rem)}.mode-page{display:none}.mode-page
 .opposed-resolution-actions{display:flex;flex-wrap:wrap;gap:.45rem}
 .dice-result.outcome-opposed{border-color:var(--cyan)}
 @media(max-width:720px){.opposed-sides{grid-template-columns:1fr}.opposed-resolution-actions,.opposed-resolution-actions button{width:100%}.opposed-side-actions{display:grid;grid-template-columns:1fr 1fr}.opposed-side-actions label,.opposed-side-actions input,.opposed-side-actions button{width:100%}}
+
+.app-update-banner{position:fixed;z-index:120;right:1rem;bottom:1rem;display:flex;align-items:center;gap:1rem;max-width:min(520px,calc(100vw - 2rem));padding:.8rem 1rem;border:1px solid var(--gold);border-radius:12px;background:var(--surface);box-shadow:0 12px 40px #0008;color:var(--text);text-align:left}
+.app-update-banner[hidden]{display:none}.app-update-banner span{display:grid;gap:.15rem}.app-update-banner small{color:var(--muted);font-weight:500;line-height:1.35}.app-update-banner b{flex:none;color:var(--gold)}
+@media(max-width:620px){.app-update-banner{right:.6rem;bottom:.6rem;left:.6rem;align-items:flex-start}.app-update-banner b{max-width:92px;text-align:right}}

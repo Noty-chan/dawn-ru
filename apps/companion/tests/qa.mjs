@@ -24,6 +24,9 @@ const appFiles = ["app-bootstrap.js", "app-reference-data.js", "app-core.js", "h
 const appSource = appFiles.map(file => fs.readFileSync(path.join(root, file), "utf8")).join("\n");
 const companionMarkup = fs.readFileSync(path.join(root, "index.html"), "utf8");
 const companionCss = fs.readFileSync(path.join(root, "app.css"), "utf8");
+assert.match(companionMarkup, /id="app-update-banner"/, "An open table must expose a visible path to the latest deployed build");
+assert.match(appSource, /APP_BUILD_VERSION[\s\S]+update-check=[^)]*Date\.now\(\)[\s\S]+cache:"no-store"/, "The companion must compare its running build with uncached deployed markup");
+assert.match(appSource, /visibilitychange[\s\S]+document\.hidden[\s\S]+check\(\)/, "Returning to a stale table tab must trigger an update check");
 assert.match(companionMarkup, /data-scene-panel="network"/, "The immersive table must expose network controls in its dock");
 assert.match(companionMarkup, /data-scene-panel="network"[^>]*>Сеть<\/button>\s*<button[^>]+data-scene-panel="log"/, "The network button must sit directly above the Scene log");
 assert.match(companionMarkup, /id="scene-sync-panel"[^>]+data-scene-panel-content="network"/, "The network controls must open as a table rail panel");
