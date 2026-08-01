@@ -83,7 +83,7 @@ function toolsDiceRequest(){
   if(skill)hooks.push({type:"advantage",ruleId:`freeplay.skill:${skill.id}`,label:`Навык: ${skill.name}`,amount:effectiveSkillRank(skill)});
   if(ability?.enabled)hooks.push({type:"advantage",ruleId:`freeplay.ability:${abilityKey}`,label:`Способность: ${ability.name||"без названия"}`,amount:ability.rank});
   if(bond&&bondStatus.amount)hooks.push({type:"advantage",ruleId:`freeplay.bond:${bond.id}`,label:`Связь: ${bond.name} (${bondStatus.parts.join(", ")})`,amount:bondStatus.amount});
-  return{scope:"challenge",baseCount:clamp($("dice-count").value,1,40),advantage:clamp($("dice-adv").value,0,30),hindrance:clamp($("dice-dis").value,0,30),attribute:$("dice-attr").value==="manual"?null:$("dice-attr").value,usesAbility:Boolean(abilityKey),abilityKey:abilityKey||null,selectedHookIds:$("dice-dark-urge")?.checked?["wolf.dark-urge"]:[],targetIds:[...(Scene.targetIds||[])],hooks};
+  return{scope:"challenge",sceneContext:false,baseCount:clamp($("dice-count").value,1,40),advantage:clamp($("dice-adv").value,0,30),hindrance:clamp($("dice-dis").value,0,30),attribute:$("dice-attr").value==="manual"?null:$("dice-attr").value,usesAbility:Boolean(abilityKey),abilityKey:abilityKey||null,selectedHookIds:$("dice-dark-urge")?.checked?["wolf.dark-urge"]:[],targetIds:[],hooks};
 }
 function renderOutcomeGuide(){
   if($("freeplay-request-kind")?.value==="opposed"||Scene.opposedRoll){

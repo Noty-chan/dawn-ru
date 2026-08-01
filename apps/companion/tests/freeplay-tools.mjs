@@ -26,7 +26,7 @@ assert.deepEqual(
 );
 
 const markup = fs.readFileSync(path.join(root, "index.html"), "utf8");
-const source = ["app-core.js", "play-ui.js", "app-play-events.js", "hero-ui.js", "scene-events.js", "scene-sync-ui.js", "app-sync-events.js"]
+const source = ["app-core.js", "play-ui.js", "app-play-events.js", "hero-ui.js", "scene-events.js", "scene-sync-ui.js", "app-sync-events.js", "scene-ui.js", "app-scene-events.js"]
   .map(file => fs.readFileSync(path.join(root, file), "utf8"))
   .join("\n");
 
@@ -50,6 +50,8 @@ assert.match(source, /opposed\.tie\.resolve/, "A Narrator must be able to resolv
 assert.match(source, /Перебросить ничью/, "The UI must expose the canonical tie reroll");
 assert.match(source, /role==="network-narrator"/, "Network Narrators must receive a separate tools view");
 assert.match(source, /role==="local-table"/, "One-device offline play must retain a dedicated local-table view");
+assert.match(source, /data-gm-core-action/, "The Narrator must be able to invoke basic actions for the selected hero or enemy");
+assert.match(source, /sceneContext:false/, "Narrative rolls must explicitly opt out of structured-board spatial hooks");
 assert.match(source, /refreshFreeplayResourceUi\(\).*persistAfterPaint\(\)/s, "Resource buttons must update visibly before deferred persistence");
 assert.match(source, /Применить базовый Риск: \+1 Стресс, \+1 Влияние/, "Failure resolution must offer the canonical basic Risk");
 assert.match(source, /hasGift\("Lone Wolf"\)&&S\.bonds\.length>=3/, "The Wolf Bond limit must be enforced in the tools");
