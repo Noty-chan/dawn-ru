@@ -83,6 +83,7 @@ function toolsDiceRequest(){
   if(skill)hooks.push({type:"advantage",ruleId:`freeplay.skill:${skill.id}`,label:`Навык: ${skill.name}`,amount:effectiveSkillRank(skill)});
   if(ability?.enabled)hooks.push({type:"advantage",ruleId:`freeplay.ability:${abilityKey}`,label:`Способность: ${ability.name||"без названия"}`,amount:ability.rank});
   if(bond&&bondStatus.amount)hooks.push({type:"advantage",ruleId:`freeplay.bond:${bond.id}`,label:`Связь: ${bond.name} (${bondStatus.parts.join(", ")})`,amount:bondStatus.amount});
+  if($("dice-outgunned")?.checked)hooks.push({type:"advantage",ruleId:"freeplay.wolf.outgunned",label:"В меньшинстве · подтверждено по нарративу",amount:2});
   return{scope:"challenge",sceneContext:false,baseCount:clamp($("dice-count").value,1,40),advantage:clamp($("dice-adv").value,0,30),hindrance:clamp($("dice-dis").value,0,30),attribute:$("dice-attr").value==="manual"?null:$("dice-attr").value,usesAbility:Boolean(abilityKey),abilityKey:abilityKey||null,selectedHookIds:$("dice-dark-urge")?.checked?["wolf.dark-urge"]:[],targetIds:[],hooks};
 }
 function renderOutcomeGuide(){
@@ -171,13 +172,13 @@ function updateDicePoolTotal(){
 }
 function recalculateDicePool(){const attr=$("dice-attr").value,count=$("dice-count");count.readOnly=attr!=="manual";if(attr!=="manual")count.value=Math.max(1,attrValue(attr));updateDicePoolTotal()}
 function renderDiceComposer(){
-  const skill=$("dice-skill"),ability=$("dice-ability"),bond=$("dice-bond"),skillValue=skill.value,abilityValue=ability.value,bondValue=bond.value,darkChecked=$("dice-dark-urge")?.checked;
+  const skill=$("dice-skill"),ability=$("dice-ability"),bond=$("dice-bond"),skillValue=skill.value,abilityValue=ability.value,bondValue=bond.value,darkChecked=$("dice-dark-urge")?.checked,outgunnedChecked=$("dice-outgunned")?.checked;
   skill.innerHTML=`<option value="">Без Навыка</option>${S.skills.filter(item=>item.name.trim()).map(item=>`<option value="${item.id}">${esc(item.name)} · +${effectiveSkillRank(item)}D6</option>`).join("")}`;if([...skill.options].some(option=>option.value===skillValue))skill.value=skillValue;
   ability.innerHTML=`<option value="">Без Способности</option>${S.ability.enabled?`<option value="main">${esc(S.ability.name||"Способность")} · +${S.ability.rank}D6</option>`:""}${S.mods.taintedBody&&S.taintedAbility.enabled?`<option value="tainted">${esc(S.taintedAbility.name||"Порченое тело")} · +${S.taintedAbility.rank}D6</option>`:""}`;if([...ability.options].some(option=>option.value===abilityValue))ability.value=abilityValue;
   bond.innerHTML=`<option value="">Без Связи</option>${S.bonds.map(item=>{const status=freeplayBondStatus(item);return`<option value="${item.id}">${esc(item.name)} · +${status.amount}D6</option>`}).join("")}`;if([...bond.options].some(option=>option.value===bondValue))bond.value=bondValue;
   const opposed=Scene.opposedRoll,participant=currentOpposedParticipant(),opponent=opposed?.participants.find(item=>item.id!==participant?.id);
   $("dice-hero-context").innerHTML=`<span>Бросает</span><strong>${esc(S.name||"Безымянный герой")}</strong><small>${participant?`Встречный бросок против ${esc(opponent?.name||"соперника")} · попытка ${opposed.attempt}`:`Ступень ${S.tier} · назначенная цель ${freeplayTarget()}`}</small>`;
-  $("dice-hook-controls").innerHTML=S.gifts.includes("wolf.dark-urge")?`<label class="switch"><input id="dice-dark-urge" type="checkbox" ${darkChecked?"checked":""}><span><b>Тёмный порыв</b> · +4 Преимущества со Способностью; нечётные Успехи дают Нарратору право сменить цель</span></label>`:"";
+  $("dice-hook-controls").innerHTML=`${S.gifts.includes("wolf.outgunned")?`<label class="switch"><input id="dice-outgunned" type="checkbox" ${outgunnedChecked?"checked":""}><span><b>В меньшинстве</b> · +2 Преимущества, если это верно в текущем повествовании</span></label>`:""}${S.gifts.includes("wolf.dark-urge")?`<label class="switch"><input id="dice-dark-urge" type="checkbox" ${darkChecked?"checked":""}><span><b>Тёмный порыв</b> · +4 Преимущества со Способностью; нечётные Успехи дают Нарратору право сменить цель</span></label>`:""}`;
   recalculateDicePool();
 }
 function openToolsDicePreset({attr="",skillId="",abilityKey=""}={}){setMode("tools");renderDiceComposer();if(attr&&[...$("dice-attr").options].some(option=>option.value===attr))$("dice-attr").value=attr;if(skillId&&[...$("dice-skill").options].some(option=>option.value===skillId))$("dice-skill").value=skillId;if(abilityKey&&[...$("dice-ability").options].some(option=>option.value===abilityKey))$("dice-ability").value=abilityKey;recalculateDicePool();requestAnimationFrame(()=>$("roll-dice").focus())}

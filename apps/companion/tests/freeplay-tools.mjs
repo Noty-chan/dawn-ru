@@ -52,6 +52,7 @@ assert.match(source, /role==="network-narrator"/, "Network Narrators must receiv
 assert.match(source, /role==="local-table"/, "One-device offline play must retain a dedicated local-table view");
 assert.match(source, /data-gm-core-action/, "The Narrator must be able to invoke basic actions for the selected hero or enemy");
 assert.match(source, /sceneContext:false/, "Narrative rolls must explicitly opt out of structured-board spatial hooks");
+assert.match(source, /freeplay\.wolf\.outgunned/, "Outgunned must be an explicit narrative choice instead of reading the structured board");
 assert.match(source, /refreshFreeplayResourceUi\(\).*persistAfterPaint\(\)/s, "Resource buttons must update visibly before deferred persistence");
 assert.match(source, /Применить базовый Риск: \+1 Стресс, \+1 Влияние/, "Failure resolution must offer the canonical basic Risk");
 assert.match(source, /hasGift\("Lone Wolf"\)&&S\.bonds\.length>=3/, "The Wolf Bond limit must be enforced in the tools");
