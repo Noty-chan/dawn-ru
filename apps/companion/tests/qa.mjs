@@ -517,6 +517,7 @@ assert.match(app, /data-gm-technique-actor/);
 assert.match(app, /scene-dice-actor-select/);
 assert.match(app, /scene-dice-target/);
 assert.match(app, /data-scene-request-roll/);
+assert.match(app, /sync\.canNarrate\?"gm":"player"/);
 assert.match(cockpitCss, /\.automation-badge/);
 assert.match(cockpitCss, /focus-mode\.scene-mode \.scene-board-wrap\{height:100%/);
 assert.match(app, /function measurementPath/);

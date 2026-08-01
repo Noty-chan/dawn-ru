@@ -351,4 +351,4 @@ function renderScene(){
   document.body.classList.toggle("scene-player-view",store.mode==="play"&&view==="player");
   $("scene-log").innerHTML=Scene.log.map(row=>`<li><time>${esc(String(row.at||"").slice(11,19)||row.at)}</time>${esc(clockEventText(row)||eventText(row))}</li>`).join("")||`<li class="autosave">Изменения Сцены появятся здесь.</li>`;
 }
-function activeSceneView(){const sync=Sync?.state();return sync?.sceneId&&sync.role==="player"?"player":Scene.view}
+function activeSceneView(){const sync=Sync?.state();return sync?.sceneId?(sync.canNarrate?"gm":"player"):Scene.view}
