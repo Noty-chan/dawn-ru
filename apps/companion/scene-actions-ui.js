@@ -69,8 +69,8 @@ function techniqueButtonsHtml(entry,actor,ready){
     return `${focusChoice}<button type="button" data-core-technique="${rule.id}" ${available?"":"disabled"} title="${esc(title)}">${esc(rule.name)}${cooldown?` · перезарядка ${cooldown}`:""}</button>${ready&&combo&&!combo.available?`<small class="combo-status">${esc(combo.reason)}</small>`:""}`;
   }).join("");
 }
-function sceneActionPanel(){
-  const actor=currentHeroActor(),pending=Scene.pendingAction,pendingStatus=SceneEngine.pendingActionStatus(Scene,D),sync=Sync?.state(),canNarrate=!sync?.sceneId||sync.canNarrate;
+function sceneActionPanel(actorOverride=null){
+  const actor=actorOverride||currentHeroActor(),pending=Scene.pendingAction,pendingStatus=SceneEngine.pendingActionStatus(Scene,D),sync=Sync?.state(),canNarrate=!sync?.sceneId||sync.canNarrate;
   if(pending){
     if(pendingStatus.mustCancel)return `<section class="core-action-panel pending interrupted"><span class="kind">ЦЕПОЧКА ПРЕРВАНА</span><h3>${esc(pending.name)}</h3><p>${esc(pendingStatus.interruptedReason||"Все цели уже недоступны. Урон применён не будет.")}</p>${canNarrate?`<button type="button" class="primary" data-core-cancel-pending>Закрыть цепочку</button>`:`<p>Нарратор закрывает цепочку.</p>`}</section>`;
     const waitingId=pendingStatus.waitingIds[0],target=Scene.actors.find(item=>item.id===waitingId);
