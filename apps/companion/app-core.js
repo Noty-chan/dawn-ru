@@ -291,6 +291,12 @@ const hasGift=(enOrName)=>selectedGifts().some(g=>g.en===enOrName||g.name===enOr
 const selectedGiftNames=()=>selectedGifts().map(g=>g.en||g.name);
 const outlookById=id=>D.outlooks.find(o=>o.id===id);
 const techById=id=>D.archetypes.flatMap(a=>a.techniques).find(t=>t.id===id);
+function automationBadge(status){
+  const labels={full:"Автоматизировано",attack:"Автоматизированная Атака",effect:"Автоматизированный Эффект",state:"Автоматизированное состояние",decision:"Автоматизировано с выбором",partial:"Частично автоматизировано"},label=labels[status];
+  return label?`<span class="automation-badge automation-${esc(status)}" title="${esc(label)}" aria-label="${esc(label)}">${status==="partial"?"◐":"⚙"}</span>`:"";
+}
+function techniqueLevelAutomation(techniqueId,level){return TechniqueEngine?.techniqueCoverage(D,{[techniqueId]:Number(level)}).find(entry=>entry.techniqueId===techniqueId&&Number(entry.level)===Number(level))?.automation||"manual"}
+function enemyProfileAutomation(profile){const statuses=(profile?.rules||[]).map(rule=>SceneEngine?.enemyRuleAutomation?.(rule.id)||"assisted"),automated=statuses.filter(status=>status!=="assisted").length;return automated===statuses.length&&automated?"full":automated?"partial":"assisted"}
 const wordById=(id,ability=null)=>{const known=Object.values(D.abilityWords).flat().find(w=>w.id===id);if(known)return known;if(typeof id==="string"&&id.startsWith("custom:")){const [,group,...parts]=id.split(":"),stored=ability?.customWordCosts?.[id],variable=stored==="X",cost=variable?null:Number.isFinite(Number(stored))?clamp(stored,-1,4):0;return{id,name:decodeURIComponent(parts.join(":")),cost,costLabel:variable?"X":String(cost),marks:variable?"☾":"",group}}};
 function attrValueFor(hero,key,includeConversion=true){return hero.attrs[key]+hero.attrBonus[key]+(includeConversion&&hero.conversionAttr===key?hero.techConversions:0)}
 function attrValue(key,includeConversion=true){return attrValueFor(S,key,includeConversion)}

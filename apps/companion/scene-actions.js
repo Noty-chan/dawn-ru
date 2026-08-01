@@ -25,6 +25,22 @@ const ENEMY_AUTO_ATTACK_RULES = new Map([
   ["enemy.common.baron.attack.suppress", 1],
   ["enemy.common.cultist.attack.swipe", 1],
   ["enemy.common.necromancer.attack.terrifying-shot", 2],
+  ["enemy.common.glutton.attack.slobber", 1],
+  ["enemy.common.guardian.attack.shove", 1],
+  ["enemy.common.mount.attack.thrash", 1],
+  ["enemy.common.daredevil.attack.dance", 1],
+  ["enemy.common.berserker.attack.thrash", 1],
+  ["enemy.common.hound-master.attack.shove", 1],
+]);
+// These overrides are reviewed facts omitted by the prose parser. They route
+// otherwise ordinary attacks through existing target and post-hit families.
+const ENEMY_ATTACK_FAMILY_RULES = new Map([
+  ["enemy.common.glutton.attack.slobber", { maxTargets: 2, adjacent: true }],
+  ["enemy.common.guardian.attack.shove", { postPush: 2 }],
+  ["enemy.common.mount.attack.thrash", { maxTargets: 2, adjacent: true }],
+  ["enemy.common.daredevil.attack.dance", { maxTargets: 2, adjacent: true }],
+  ["enemy.common.berserker.attack.thrash", { postPush: 1 }],
+  ["enemy.common.hound-master.attack.shove", { postPush: 2 }],
 ]);
 const ENEMY_AUTO_EFFECT_RULES = new Set([
   "enemy.common.assassin.action.neutralize-target",
@@ -519,7 +535,8 @@ function availableEnemyRules(scene, data, actorId) {
   const profile = actor ? enemyProfileById(data, actor.profileId) : null;
   if (!actor || !profile) return [];
   return (profile.rules || []).map(rule => {
-    const maxTargets = ENEMY_TARGET_LIMITS.has(rule.id) ? ENEMY_TARGET_LIMITS.get(rule.id) : Number(rule.maxTargets || 0);
+    const family = ENEMY_ATTACK_FAMILY_RULES.get(rule.id) || {};
+    const maxTargets = family.maxTargets || (ENEMY_TARGET_LIMITS.has(rule.id) ? ENEMY_TARGET_LIMITS.get(rule.id) : Number(rule.maxTargets || 0));
     const fullRule = ENEMY_FULL_RULES.get(rule.id), stateOnly = ["pugilist-stance", "martial-perfection", "imposing-presence"].includes(fullRule?.type);
     const automation = ENEMY_AUTO_ATTACK_RULES.has(rule.id) ? "attack" : fullRule ? stateOnly ? "state" : "full" : ENEMY_AUTO_EFFECT_RULES.has(rule.id) ? "effect" : "assisted";
     let reason = "";
@@ -533,8 +550,15 @@ function availableEnemyRules(scene, data, actorId) {
     else if ((actor.usedActions || []).includes(rule.id)) reason = "Это действие уже использовано в Раунде";
     else if (rule.kind === "trump" && actor.usedTrump) reason = "Козырь уже использован в этой Сцене";
     else if (rule.kind === "trump" && Number(scene.tension || 0) < Number(rule.tension || 0)) reason = `Нужно Напряжение ${rule.tension}`;
-    return { ...clone(rule), maxTargets, automation, available: !reason, reason };
+    return { ...clone(rule), ...family, maxTargets, automation, available: !reason, reason };
   });
+}
+
+function enemyRuleAutomation(ruleId) {
+  const fullRule = ENEMY_FULL_RULES.get(ruleId);
+  if (ENEMY_AUTO_ATTACK_RULES.has(ruleId)) return "attack";
+  if (fullRule) return ["pugilist-stance", "martial-perfection", "imposing-presence"].includes(fullRule.type) ? "state" : "full";
+  return ENEMY_AUTO_EFFECT_RULES.has(ruleId) ? "effect" : "assisted";
 }
 
 function prepareEnemyRule(scene, data, request = {}) {
@@ -567,7 +591,7 @@ function prepareEnemyRule(scene, data, request = {}) {
   if (!attackModifiers.available) errors.push(attackModifiers.reason);
   const maxTargets = Number(available?.maxTargets ?? rule?.maxTargets ?? 0);
   if (maxTargets && targets.length > maxTargets) errors.push(`Можно выбрать не больше ${maxTargets} целей.`);
-  if (actor && rule?.adjacent && targets.some(target => distance(actor, target) > 1)) errors.push("Цель должна быть смежной.");
+  if (actor && (available?.adjacent || rule?.adjacent) && targets.some(target => distance(actor, target) > 1)) errors.push("Цель должна быть смежной.");
   if (actor && rule?.range && targets.some(target => distance(actor, target) > Number(rule.range))) errors.push(`Цель должна быть в пределах ${rule.range} клеток.`);
   if (fullRule?.type === "pugilist-stance" && (!Number.isInteger(Number(request.options?.stanceStep)) || Number(request.options.stanceStep) < 1 || Number(request.options.stanceStep) > 4)) errors.push("Выберите шаг Пассивa от 1 до 4.");
   const hasRoll = request.roll && Array.isArray(request.roll.rolls);
@@ -600,7 +624,9 @@ function prepareEnemyRule(scene, data, request = {}) {
     targets.forEach(target => events.push({ type: "reaction.offer", actorId: target.id, payload: { sourceActorId: actor.id, actionId: rule.id } }));
     const tensionMultiplier = Number(ENEMY_AUTO_ATTACK_RULES.get(rule.id) || 0);
     const damage = hasRoll ? Number(request.roll.successes || 0) + Number(scene.tension || 0) * tensionMultiplier : Number(request.damage);
-    events.push({ type: "attack.pending", actorId: actor.id, payload: { actionId: rule.id, enemyRuleId: rule.id, name: rule.name, targetIds, roll: hasRoll ? clone(request.roll) : null, damage, effects: targetEffects, reward: rule.reward || "", attackModifierIds: attackModifiers.selectedIds, attackModifierAdvantage: attackModifiers.advantage } });
+    const push = Number(ENEMY_ATTACK_FAMILY_RULES.get(rule.id)?.postPush || 0);
+    const postDisplacements = push ? targetIds.map(targetId => ({ targetId, mode: "push", maximum: push, name: rule.name, ruleId: rule.id, collisionDamagePerCell: 1 })) : [];
+    events.push({ type: "attack.pending", actorId: actor.id, payload: { actionId: rule.id, enemyRuleId: rule.id, name: rule.name, targetIds, roll: hasRoll ? clone(request.roll) : null, damage, effects: targetEffects, reward: rule.reward || "", attackModifierIds: attackModifiers.selectedIds, attackModifierAdvantage: attackModifiers.advantage, postDisplacements } });
   } else {
     if (rule.kind !== "attack" && ["effect", "full"].includes(payload.automation)) targets.forEach(target => targetEffects.forEach(effect => events.push({ type: "effect.apply", actorId: actor.id, payload: { targetId: target.id, effect, sourceActionId: rule.id } })));
     if (rule.kind === "attack" && hasRoll) events.push({ type: "roll.public", actorId: actor.id, payload: clone(request.roll) });

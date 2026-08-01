@@ -1379,9 +1379,29 @@ const daredevilScene = structuredClone(enemyScene);
 daredevilScene.actors[1].profileId = "enemy.common.daredevil";
 daredevilScene.actors.push({ ...structuredClone(daredevilScene.actors[0]), id: "hero-2", name: "Вторая цель", x: 2, y: 2 });
 const dance = Engine.availableEnemyRules(daredevilScene, data, "enemy").find(rule => rule.en === "Dance");
-assert.equal(dance.automation, "assisted", "A two-target textual Attack is not falsely presented as fully automatic");
+assert.equal(dance.automation, "attack", "Reviewed multi-target attacks use the shared target and reaction family");
 assert.equal(dance.maxTargets, 2);
-assert.equal(Engine.prepareEnemyRule(daredevilScene, data, { actorId: "enemy", ruleId: dance.id, targetIds: ["hero", "hero-2"], roll: { formula: "5D6", rolls: [6, 4, 2, 1, 1], successes: 2, crits: 1 } }).ok, true, "Dance accepts its canonical two targets");
+const danceAttack = Engine.prepareEnemyRule(daredevilScene, data, { actorId: "enemy", ruleId: dance.id, targetIds: ["hero", "hero-2"], roll: { formula: "5D6", rolls: [6, 4, 2, 1, 1], successes: 2, crits: 1 } });
+assert.equal(danceAttack.ok, true, "Dance accepts its canonical two adjacent targets");
+assert.ok(danceAttack.events.some(event => event.type === "attack.pending"), "Dance uses the shared reaction window");
+assert.equal(Engine.enemyRuleAutomation(dance.id), "attack");
+
+for (const [profileId, englishName, expectedTargets, expectedPush] of [
+  ["enemy.common.glutton", "Slobber", 2, 0],
+  ["enemy.common.guardian", "Shove", 1, 2],
+  ["enemy.common.mount", "Thrash", 2, 0],
+  ["enemy.common.berserker", "Thrash", 1, 1],
+  ["enemy.common.hound-master", "Shove", 1, 2],
+]) {
+  const familyScene = structuredClone(enemyScene);
+  familyScene.actors[1].profileId = profileId;
+  const familyRule = Engine.availableEnemyRules(familyScene, data, "enemy").find(rule => rule.en === englishName);
+  assert.equal(familyRule.automation, "attack", `${profileId} is connected to the shared attack family`);
+  assert.equal(familyRule.maxTargets, expectedTargets);
+  const prepared = Engine.prepareEnemyRule(familyScene, data, { actorId: "enemy", ruleId: familyRule.id, targetIds: ["hero"], roll: { formula: "6D6", rolls: [6, 4, 2, 1, 1, 1], successes: 2, crits: 1 } });
+  assert.equal(prepared.ok, true);
+  assert.equal(prepared.events.find(event => event.type === "attack.pending").payload.postDisplacements[0]?.maximum || 0, expectedPush);
+}
 
 const bodyguardsScene = structuredClone(enemyScene);
 bodyguardsScene.actors[1].profileId = "enemy.common.bodyguards";
