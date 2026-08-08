@@ -74,6 +74,11 @@ function validateEvent(scene, event, options = {}) {
       if (!status.available || status.destination.x !== Number(payload.x) || status.destination.y !== Number(payload.y)) throw new Error(status.reason || "Событие перемещения не совпадает с проверенным направлением.");
     }
   }
+  if (event.type === "actor.spawn") {
+    const spawned = payload.actor, space = (scene.spaces || []).find(item => item.id === spawned?.space);
+    if (!spawned || typeof spawned.id !== "string" || !spawned.id || actorById(scene, spawned.id) || !space || !Number.isInteger(Number(spawned.x)) || !Number.isInteger(Number(spawned.y)) || Number(spawned.x) < 0 || Number(spawned.y) < 0 || Number(spawned.x) >= Number(space.width) || Number(spawned.y) >= Number(space.height)) throw new Error("Некорректный призыв участника.");
+    if ((scene.actors || []).some(item => !item.knockedOut && item.space === spawned.space && Number(item.x) === Number(spawned.x) && Number(item.y) === Number(spawned.y))) throw new Error("Клетка призыва занята.");
+  }
   if (event.type === "marker.move") {
     const marker = markerById(scene, payload.markerId), space = (scene.spaces || []).find(item => item.id === (payload.space || marker?.space));
     if (!marker || !space || !Number.isInteger(Number(payload.x)) || !Number.isInteger(Number(payload.y)) || Number(payload.x) < 0 || Number(payload.y) < 0 || Number(payload.x) >= space.width || Number(payload.y) >= space.height) throw new Error("Некорректное перемещение маркера.");
@@ -139,8 +144,10 @@ function validateEvent(scene, event, options = {}) {
     if (payload.key === "growth" && (!Number.isInteger(Number(payload.delta)) || Math.abs(Number(payload.delta)) > 20)) throw new Error("Некорректное изменение Роста.");
     if (payload.key === "evasion" && (!Number.isInteger(Number(payload.delta)) || Math.abs(Number(payload.delta)) > 20)) throw new Error("Некорректное изменение Уклонения.");
     if (["martialPerfection", "imposingPresence"].includes(payload.key) && typeof payload.value !== "boolean") throw new Error("Некорректный переключатель состояния.");
-    if (["grimTransformed", "grimUsed", "warringTransformed", "warringUsed", "drainLife"].includes(payload.key) && typeof payload.value !== "boolean") throw new Error("Некорректный переключатель Техники.");
+    if (["grimTransformed", "grimUsed", "warringTransformed", "warringUsed", "drainLife", "wispCreationUsed"].includes(payload.key) && typeof payload.value !== "boolean") throw new Error("Некорректный переключатель Техники.");
     if (payload.key === "lastCreationSpellMarks" && (!Number.isInteger(Number(payload.value)) || Number(payload.value) < 0 || Number(payload.value) > 99)) throw new Error("Некорректное число Меток творения.");
+    if (payload.key === "empathSupport" && (!Number.isInteger(Number(payload.value)) || Number(payload.value) < 0 || Number(payload.value) > 99)) throw new Error("Некорректная Поддержка Эмпата.");
+    if(payload.key==="masterArmament"&&!["blade","pole","chain"].includes(payload.value))throw new Error("Некорректное Вооружение.");
     if (payload.key === "modifiedOverclockTurns" && (!Number.isInteger(Number(payload.value)) || Number(payload.value) < 0 || Number(payload.value) > 2)) throw new Error("Некорректная длительность Разгона.");
   }
   if (event.type === "turn.grant" && (!actorById(scene, event.actorId) || !Number.isInteger(Number(payload.amount)) || Number(payload.amount) < 1 || Number(payload.amount) > 4)) throw new Error("Некорректный дополнительный Ход.");
@@ -365,6 +372,9 @@ function reduceEvent(scene, event) {
       actor.techniqueState[definition.legacyTechniqueState] = value;
     }
     Object.assign(payload, { label: status.label, size: status.size, before: status.value, value, appliedDelta: value - status.value, active: definition.active });
+  } else if (event.type === "actor.spawn") {
+    scene.actors ||= [];
+    scene.actors.push(clone(payload.actor));
   } else if (event.type === "actor.move" && actor) {
     payload.from ||= { space: actor.space, x: Number(actor.x), y: Number(actor.y) };
     Object.assign(actor, { space: payload.space || actor.space, x: Number(payload.x), y: Number(payload.y) });

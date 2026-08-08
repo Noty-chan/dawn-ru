@@ -350,7 +350,13 @@ function effectLifecycleEvents(scene, event) {
   }
   if (event.type === "actor.move" && actorById(scene, event.actorId)) {
     const source = actorById(scene, event.actorId);
-    for (const target of scene.actors || []) {
+    const caughtTargets = (scene.actors || []).filter(target => effectStateFor(target, "negative.пойман")?.sources.some(item => item.actorId === source.id));
+    if (Number(source.techniques?.["disruptor.constrictor"] || 0) >= 1 && caughtTargets.some(target => distance(source, target) > 1) && !scene.pendingPrompt) {
+      const targetIds = caughtTargets.filter(target => distance(source, target) > 1).map(target => target.id);
+      events.push({ type: "rule.prompt", actorId: source.id, payload: { id: `prompt-${event.id}-constrictor-follow`, kind: "constrictor-follow", sourceActorId: source.id, title: "Обвить · притягивание", text: "Притянуть Пойманных персонажей в смежность после своего перемещения?", options: ["pull", "pass"], context: { targetIds }, participantIds: [source.id, ...targetIds] } });
+      return events;
+    }
+    for (const target of caughtTargets) {
       const state = effectStateFor(target, "negative.пойман");
       if (!state?.sources.some(item => item.actorId === source.id)) continue;
       const follow = caughtFollowEvent(scene, source, target, event, "Пойман · следует за источником");
@@ -587,11 +593,15 @@ function triggeredEvents(scene, event) {
   if (event.type === "action.resolve" && actor && payload.name === "Зарядка" && Number(actor.techniques?.["powerhouse.warring-ascendant"] || 0) >= 1 && Number(scene.tension || 0) >= 2 && !actor.ruleState?.warringUsed && !scene.pendingPrompt && !promptQueued()) {
     events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${event.id}-warring`, kind: "warring-transform", sourceActorId: actor.id, title: "Небесная рука", text: "Трансформироваться и оттолкнуть всех врагов в пределах 2 клеток на 3 клетки? Выбранные оружейные Техники должны быть заранее записаны в листе.", options: ["transform", "pass"], participantIds: [actor.id] } });
   }
-  if (event.type === "action.resolve" && actor && payload.name === "Зарядка" && Number(actor.techniques?.["altruist.will-o-wisp"] || 0) >= 1 && !wispMarkers(scene, actor.id).length && !scene.pendingPrompt && !promptQueued()) {
+  if (event.type === "action.resolve" && actor && payload.name === "Зарядка" && Number(actor.techniques?.["altruist.will-o-wisp"] || 0) >= 1 && !actor.ruleState?.wispCreationUsed && !wispMarkers(scene, actor.id).length && !scene.pendingPrompt && !promptQueued()) {
     events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${event.id}-wisp`, kind: "wisp-primary", sourceActorId: actor.id, title: "Пламя духовного плетения", text: "Выберите первый Дух для Духовного пламени.", options: [...Object.keys(WISP_TYPES), "pass"], participantIds: [actor.id] } });
   }
   if ((event.type === "action.resolve" && payload.name === "Шаг" && !payload.continuation || event.type === "turn.end") && actor && Number(actor.techniques?.["altruist.will-o-wisp"] || 0) >= 1 && wispMarkers(scene, actor.id).length && !scene.pendingPrompt && !promptQueued()) {
     events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${event.id}-wisp-move`, kind: "wisp-move-select", sourceActorId: actor.id, title: "Духовное пламя", text: "Можно переместить одно Духовное пламя на расстояние до 4 клеток.", options: [...wispMarkers(scene, actor.id).map(marker => marker.id), "pass"], participantIds: [actor.id] } });
+  }
+  if (event.type === "turn.end" && actor && Number(actor.techniques?.["disruptor.constrictor"] || 0) >= 1 && !scene.pendingPrompt && !promptQueued()) {
+    const caughtIds = (scene.actors || []).filter(target => !target.knockedOut && effectStateFor(target, "negative.пойман")?.sources.some(source => source.actorId === actor.id)).map(target => target.id);
+    if (caughtIds.length) events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${event.id}-constrictor-move`, kind: "constrictor-move-select", sourceActorId: actor.id, title: "Обвить · конец Хода", text: "Можно по очереди переместить каждого Пойманного персонажа на расстояние до 5 клеток.", options: [...caughtIds, "pass"], context: { targetIds: caughtIds }, participantIds: [actor.id, ...caughtIds] } });
   }
   if (event.type === "turn.end" && actor && hasEffect(scene, actor, "positive.регенерирует")) events.push({ type: "actor.heal", actorId: actor.id, payload: { targetId: actor.id, amount: Number(actor.tier || 1), sourceActionId: "positive.регенерирует", participantIds: [actor.id] } });
   if (event.type === "damage.apply" && actorById(scene, payload.targetId)?.ruleState?.grimTransformed && Number(actorById(scene, payload.targetId)?.focus || 0) === 0) {
@@ -658,13 +668,15 @@ function dispatchMany(scene, events, options = {}) {
     if (handled++ > 240) throw new Error("Слишком длинная цепочка автоматических правил.");
     const event = queue.shift();
     const prompt = next.pendingPrompt, destination = event?.payload?.destination;
-    const placementActorId = prompt?.kind === "siren-irresistible-cell" ? prompt.targetId : prompt?.sourceActorId;
+    const placementActorId = ["siren-irresistible-cell", "constrictor-move-cell"].includes(prompt?.kind) ? prompt.targetId : prompt?.sourceActorId;
     const stationarySiren = prompt?.kind === "siren-irresistible-cell" && actorById(next, prompt.targetId)?.x === Number(destination?.x) && actorById(next, prompt.targetId)?.y === Number(destination?.y);
     const placementResponse = event?.type === "rule.respond" && event.payload?.choice === "cell" && destination && (
       prompt?.kind === "marker-move-cell"
         ? queue.some(candidate => candidate.type === "marker.move" && candidate.payload?.markerId === (prompt.context?.markerId || prompt.markerId) && Number(candidate.payload?.x) === Number(destination.x) && Number(candidate.payload?.y) === Number(destination.y))
         : prompt?.kind === "dim-mak-weak-point-cell"
           ? queue.some(candidate => candidate.type === "marker.create" && Number(candidate.payload?.x) === Number(destination.x) && Number(candidate.payload?.y) === Number(destination.y))
+        : prompt?.kind === "constrictor-move-cell"
+          ? queue.some(candidate => candidate.type === "actor.move" && candidate.actorId === event.payload?.targetId && Number(candidate.payload?.x) === Number(destination.x) && Number(candidate.payload?.y) === Number(destination.y))
         : stationarySiren
           ? queue.some(candidate => candidate.type === "technique.resolve" && candidate.actorId === prompt.sourceActorId && candidate.payload?.ruleId === "disruptor.siren.2")
           : queue.some(candidate => candidate.type === "actor.move" && candidate.actorId === placementActorId && Number(candidate.payload?.x) === Number(destination.x) && Number(candidate.payload?.y) === Number(destination.y))

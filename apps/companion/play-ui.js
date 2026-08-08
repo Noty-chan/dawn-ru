@@ -102,7 +102,7 @@ function renderRules(){
 }
 
 function referenceItems(){
-  const items=[...RULES,...GLOSSARY,...bondRuleItems(),...D.bonds.actions.map(x=>({...x,kind:x.antagonistic?"Связь · антагонистическое действие":"Связь · действие",tags:x.tag})),...D.actions.list.map(x=>({...x,kind:"Действие"})),...D.effects.positive.map(x=>({...x,kind:"Положительный эффект"})),...D.effects.negative.map(x=>({...x,kind:"Отрицательный эффект"})),...D.archetypes.flatMap(a=>a.techniques.map(t=>({...t,kind:`Техника · ${a.name}`,text:[t.flavor,...t.levels.map(l=>`${l.n}: ${l.name} — ${l.text}`)].join("\n")}))),...D.outlooks.flatMap(o=>(o.builtin?[o.builtin]:[]).concat(o.gifts).map(g=>({...g,kind:`Дар · ${o.name}`}))),...enemyProfiles().map(enemy=>({...enemy,kind:enemy.kind==="modifier"?"Враг-Модификатор":"Враг",text:`${enemy.statsRaw}\n${enemy.examples}\n${enemy.text}`}))];
+  const items=[...RULES,...GLOSSARY,...bondRuleItems(),...D.bonds.actions.map(x=>({...x,kind:x.antagonistic?"Связь · антагонистическое действие":"Связь · действие",tags:x.tag})),...D.actions.list.map(x=>({...x,kind:"Действие"})),...D.effects.positive.map(x=>({...x,kind:"Положительный эффект"})),...D.effects.negative.map(x=>({...x,kind:"Отрицательный эффект"})),...D.archetypes.flatMap(a=>a.techniques.map(t=>({...t,kind:`Техника · ${a.name}`,text:[t.flavor,...t.levels.map(l=>`${l.n}: ${l.name} — ${l.text}`)].join("\n")}))),...D.outlooks.flatMap(o=>(o.builtin?[o.builtin]:[]).concat(o.gifts).map(g=>({...g,kind:`Дар · ${o.name}`}))),...enemyProfiles().filter(enemy=>enemy.kind!=="named").map(enemy=>({...enemy,kind:enemy.kind==="modifier"?"Враг-Модификатор":"Враг",text:`${enemy.statsRaw}\n${enemy.examples}\n${enemy.text}`}))];
   return items;
 }
 function renderReference(){

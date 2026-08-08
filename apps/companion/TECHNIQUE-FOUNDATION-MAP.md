@@ -361,8 +361,8 @@ SHA-256 проверенных файлов: `d182955a22bfba32780138b24551ebe574
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Многогранность (Multi-Faceted) | проверено | частичная | `target-validation`, `event-participants`, `spatial-range`, `effect-state`, `effect-lifecycle`, `movement-lifecycle`, `usage-limits`, `trigger-router`, `turn-lifecycle`, `choice-flow`, `action-modifier` |
-| 2 | Как вода (Like Water) | проверено | частичная | `resource-check`, `effect-state`, `effect-lifecycle`, `usage-limits`, `trigger-router`, `turn-lifecycle`, `derived-stats` |
+| 1 | Многогранность (Multi-Faceted) | проверено | с выбором | `target-validation`, `event-participants`, `spatial-range`, `effect-state`, `effect-lifecycle`, `movement-lifecycle`, `usage-limits`, `trigger-router`, `turn-lifecycle`, `choice-flow`, `action-modifier` |
+| 2 | Как вода (Like Water) | проверено | полная | `resource-check`, `effect-state`, `effect-lifecycle`, `usage-limits`, `trigger-router`, `turn-lifecycle`, `derived-stats` |
 | 3 | Мастер за работой (Master At Work) | проверено | частичная | `target-validation`, `event-participants`, `spatial-cells`, `effect-state`, `effect-lifecycle`, `movement-lifecycle`, `terrain`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier`, `dice-hooks` |
 
 ## Оплот
@@ -519,7 +519,7 @@ SHA-256 проверенных файлов: `d182955a22bfba32780138b24551ebe574
 | ---: | --- | --- | --- | --- |
 | 1 | Успокаивающая аура (Calming Aura) | проверено | с выбором | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `trigger-router`, `turn-lifecycle`, `choice-flow` |
 | 2 | Защитный отклик (Protective Response) | проверено | с выбором | `target-validation`, `event-participants`, `spatial-range`, `resource-check`, `movement-lifecycle`, `trigger-router`, `reaction-window`, `damage-pipeline`, `action-modifier` |
-| 3 | "Ты в порядке?" ("Are You Ok?") | проверено | частичная | `target-validation`, `event-participants`, `resource-check`, `bond-actions`, `action-modifier` |
+| 3 | "Ты в порядке?" ("Are You Ok?") | проверено | с выбором | `target-validation`, `event-participants`, `resource-check`, `bond-actions`, `action-modifier` |
 
 ### Гурман (`altruist.gourmand`)
 
@@ -663,8 +663,8 @@ SHA-256 проверенных файлов: `d182955a22bfba32780138b24551ebe574
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Обвить (Wrap) | проверено | частичная | `target-validation`, `event-participants`, `movement-lifecycle`, `effect-state`, `effect-lifecycle`, `trigger-router`, `turn-lifecycle`, `choice-flow`, `action-modifier` |
-| 2 | Удушение (Choke) | проверено | частичная | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `trigger-router`, `damage-pipeline`, `action-modifier` |
+| 1 | Обвить (Wrap) | проверено | с выбором | `target-validation`, `event-participants`, `movement-lifecycle`, `effect-state`, `effect-lifecycle`, `trigger-router`, `turn-lifecycle`, `choice-flow`, `action-modifier` |
+| 2 | Удушение (Choke) | проверено | полная | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `trigger-router`, `damage-pipeline`, `action-modifier` |
 | 3 | Скручивающий удар (Twisting Impact) | проверено | частичная | `target-validation`, `event-participants`, `movement-lifecycle`, `effect-state`, `effect-lifecycle`, `trigger-router`, `damage-pipeline`, `action-modifier`, `dice-hooks` |
 
 ### Карманник (`disruptor.cutpurse`)
@@ -703,7 +703,7 @@ SHA-256 проверенных файлов: `d182955a22bfba32780138b24551ebe574
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Переливание (Transfusion) | проверено | частичная | `resource-check`, `alternate-resource`, `effect-state`, `effect-lifecycle`, `trigger-router`, `damage-pipeline`, `action-modifier` |
+| 1 | Переливание (Transfusion) | проверено | полная | `resource-check`, `alternate-resource`, `effect-state`, `effect-lifecycle`, `trigger-router`, `damage-pipeline`, `action-modifier` |
 | 2 | Перенапряжение (Overexert) | проверено | с выбором | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier`, `dice-hooks` |
 | 3 | Рожденный изменчивой плотью (Born Of Mutable Flesh) | проверено | с выбором | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `usage-limits`, `trigger-router`, `scene-lifecycle`, `choice-flow`, `damage-pipeline`, `action-modifier` |
 
@@ -795,7 +795,7 @@ SHA-256 проверенных файлов: `d182955a22bfba32780138b24551ebe574
 | ---: | --- | --- | --- | --- |
 | 1 | Взрыв!! (Explosion!!) | проверено | полная | `target-validation`, `event-participants`, `spatial-cells`, `spatial-range`, `action-modifier` |
 | 2 | Взрыв!!! (Explosion!!!) | проверено | полная | `target-validation`, `event-participants`, `spatial-cells`, `spatial-range`, `resource-check`, `trigger-router`, `choice-flow`, `action-modifier` |
-| 3 | ВЗРЫВ!!!! (EXPLOSION!!!!) | проверено | частичная | `target-validation`, `event-participants`, `spatial-cells`, `spatial-range`, `resource-check`, `trigger-router`, `choice-flow`, `action-modifier` |
+| 3 | ВЗРЫВ!!!! (EXPLOSION!!!!) | проверено | полная | `target-validation`, `event-participants`, `spatial-cells`, `spatial-range`, `resource-check`, `trigger-router`, `choice-flow`, `action-modifier` |
 
 ### Револьверное колдовство (`ruiner.rapid-fire-sorcery`)
 

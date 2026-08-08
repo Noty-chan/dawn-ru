@@ -21,10 +21,24 @@ const ENEMY_AUTO_ATTACK_RULES = new Map([
   ["enemy.common.captor.attack.catch-and-release", 2],
   ["enemy.common.pugilist.attack.flurry-of-strikes", 2],
   ["enemy.common.slime.attack.goop", 1],
+  ["enemy.common.glutton.attack.slobber", 1],
+  ["enemy.common.mount.attack.thrash", 1],
+  ["enemy.common.daredevil.attack.dance", 1],
+  ["enemy.common.guardian.attack.shove", 1],
+  ["enemy.common.berserker.attack.thrash", 1],
+  ["enemy.common.hound-master.attack.shove", 1],
   ["enemy.common.bannerman.attack.swing", 1],
   ["enemy.common.baron.attack.suppress", 1],
   ["enemy.common.cultist.attack.swipe", 1],
   ["enemy.common.necromancer.attack.terrifying-shot", 2],
+  ["enemy.named.leon-academy-spatial-mage.attack.emerge", 1],
+  ["enemy.named.leon-s-vayu-spirit.attack.air-shove", 0],
+  ["enemy.named.leon-s-agni-spirit.attack.fire-spark", 0],
+]);
+const ENEMY_ATTACK_ADAPTERS = new Map([
+  ["enemy.common.guardian.attack.shove", { push: 2 }],
+  ["enemy.common.berserker.attack.thrash", { push: 1 }],
+  ["enemy.common.hound-master.attack.shove", { push: 2 }],
 ]);
 const ENEMY_AUTO_EFFECT_RULES = new Set([
   "enemy.common.assassin.action.neutralize-target",
@@ -50,6 +64,10 @@ const ENEMY_FULL_RULES = new Map([
   ["enemy.common.viper.action.lick-the-knife", { type: "corrupted-damage", formula: "3(+1)" }],
   ["enemy.common.cocoon.trump.quick-growth", { type: "growth-and-turn" }],
   ["enemy.common.guardian.trump.imposing-presence", { type: "imposing-presence" }],
+  ["enemy.named.leon-academy-spatial-mage.trump.elemental-breach", {
+    type: "summon-profiles",
+    profiles: ["enemy.named.leon-s-vayu-spirit", "enemy.named.leon-s-agni-spirit"],
+  }],
 ]);
 const ENEMY_TARGET_LIMITS = new Map([
   ["enemy.common.behemoth.action.leap", 40],
@@ -90,7 +108,11 @@ function quickActionSources(scene, data, actor, action) {
 function availableActions(scene, data, actorId) {
   const actor = actorById(scene, actorId);
   if (!actor) return [];
-  return (data?.actions?.list || []).map(action => {
+  // Canon: enemies spend AP on their profile actions or Step. They do not get
+  // the player's Jump, Attacks, Utility actions, or defensive Reactions.
+  const enemyProfileActor = actor.kind === "enemy" || Boolean(actor.profileId);
+  const baseActions = enemyProfileActor ? (data?.actions?.list || []).filter(action => action.name === "Шаг") : (data?.actions?.list || []);
+  return baseActions.map(action => {
     const cost = actorActionCost(actor, action);
     const reaction = action.group === "Защита" || action.en === "Реакция";
     let quickSource = quickActionSources(scene, data, actor, action)[0] || null;
@@ -148,6 +170,7 @@ function prepareAction(scene, data, request = {}) {
   if (!declaredAction) errors.push("Неизвестное базовое действие.");
   if (scene.pendingActionPlan && (request.planId !== scene.pendingActionPlan.id || request.actorId !== scene.pendingActionPlan.actorId || request.actionId !== scene.pendingActionPlan.actionId)) errors.push("Действие не совпадает с сохранённым составным планом.");
   let available = actor && declaredAction ? availableActions(scene, data, actor.id).find(item => item.id === declaredAction.id) : null;
+  if (actor && declaredAction && !available) errors.push("Это базовое действие недоступно этому типу участника.");
   const planStatus = actor && declaredAction ? cunningPlanStatus(scene, data, actor.id, declaredAction.id) : null;
   if (request.useCunningPlan) {
     if (!planStatus?.available) errors.push(planStatus?.reason || "Хитрый план сейчас недоступен.");
@@ -205,6 +228,7 @@ function prepareAction(scene, data, request = {}) {
   const bulletAdvantage = gunslingerSkirmish ? Number(request.bulletAdvantage ?? Math.max(0, bulletsSpent - Math.max(1, targetIds.length))) : 0;
   const knifeThrow = action.name === "Стычка" && Number(actor.techniques?.["vagabond.knife-juggler"] || 0) >= 1 && Boolean(request.throwWeapon);
   const meisterOverload = ["Стычка", "Завершение"].includes(action.name) && Number(actor.techniques?.["vagabond.modified-meister"] || 0) >= 2 && Boolean(request.overload);
+  const armament=action.name==="Стычка"&&Number(actor.techniques?.["vagabond.master-at-arms"]||0)>=1&&["blade","pole","chain"].includes(request.armament)?request.armament:null;
   const mundaneLevel = Number(actor.techniques?.["bulwark.mundane"] || 0), actionAttribute = attackModifiers.attributeOverride || request.attribute || request.roll?.attribute || null;
   const attackModifierDestination = attackModifiers.requiresDestination ? attackModifierDestinationStatus(scene, actor.id, targetIds, attackModifiers.selectedIds, request.attackModifierDestination, { actionName: declaredAction.name }) : null;
   if (attackModifierDestination && !attackModifierDestination.available) errors.push(attackModifierDestination.reason);
@@ -236,6 +260,7 @@ function prepareAction(scene, data, request = {}) {
     targets = targetIds.map(id => actorById(scene, id));
   }
   const heavenlyLevel = Number(actor.techniques?.["altruist.heavenly-saint"] || 0), heavenlyHealing = !zealotRupture && (action.name === "Заклинание" && heavenlyLevel >= 2 || action.name === "Завершение" && heavenlyLevel >= 3 && actionAttribute === "spirit");
+  const caughtByConstrictor = target => Number(actor.techniques?.["disruptor.constrictor"] || 0) >= 1 && effectStateFor(target, "negative.пойман")?.sources.some(source => source.actorId === actor.id);
   const startRage = action.name === "Взаимодействие" && Number(actor.techniques?.["ruiner.feral-arcana"] || 0) >= 2 && Boolean(request.startRage);
   const revelationEligible = ["Зарядка", "Заклинание"].includes(action.name) || action.name === "Завершение" && actionAttribute === "spirit";
   const useRevelation = Boolean(request.useRevelation) && Number(actor.techniques?.["ruiner.zealot"] || 0) >= 1 && revelationEligible;
@@ -258,11 +283,15 @@ function prepareAction(scene, data, request = {}) {
   if (knifeThrow && !ruleResourceStatus(scene, actor.id, { resource: "weapons", amount: 1 }).available) errors.push("Для Метания нужно 1 Оружие.");
   if (knifeThrow && targetIds.length !== 1) errors.push("Метание выбирает ровно одного персонажа.");
   if (meisterOverload && !Array.isArray(request.roll?.rolls)) errors.push("Для Перегрузки нужен зафиксированный бросок Атаки.");
+  if(request.armament&&!armament)errors.push("Это Вооружение недоступно для текущей Стычки.");
+  if(armament){const equipped=[];for(const event of scene.log||[]){if(event.type==="turn.start"&&event.actorId===actor.id)break;if(event.type==="technique.resolve"&&event.actorId===actor.id&&event.payload?.ruleId==="vagabond.master-at-arms.1")equipped.push(event.payload.armament)}if(equipped.includes(armament))errors.push("Каждое Вооружение можно экипировать только один раз за Ход.");if(armament==="blade"&&(targetIds.length!==1||distance(actor,targets[0])!==2||(scene.actors||[]).some(item=>item.id!==actor.id&&!item.knockedOut&&item.space===actor.space&&distance(actor,item)<=1)))errors.push("Клинок требует одну цель ровно в 2 клетках и отсутствие смежных персонажей.");if(armament==="pole"&&(targetIds.length!==2||targets.some(target=>distance(actor,target)!==1)))errors.push("Древко требует ровно двух смежных врагов.");if(armament==="chain"&&(targetIds.length!==1||distance(actor,targets[0])!==4))errors.push("Цепь требует одну цель ровно в 4 клетках.")}
   if (mundaneLevel >= 1 && action.name === "Заклинание") errors.push("Обычный не может использовать Заклинание.");
   if (mundaneLevel >= 1 && action.name === "Завершение" && actionAttribute === "spirit") errors.push("Обычный не может использовать Завершение Духом.");
   const modifierQuick = Boolean(attackModifiers.quick);
   const quickSource = modifierQuick ? { techniqueId: "vagabond.dim-mak", level: 1, name: "Слабая точка", needsConfirmation: false } : available?.quickSource;
   const events = [{ type: "action.prepare", actorId: actor.id, payload: { actionId: action.id, actionName: action.name, name: action.name, declaredActionId: declaredAction.id, declaredActionName: declaredAction.name, targetIds, planId: request.planId || null, attackModifierIds: attackModifiers.selectedIds, attackModifierAdvantage: attackModifiers.advantage, actionTransform: attackModifiers.actionTransform, quick: Boolean(available?.quick || modifierQuick), quickSource: quickSource ? { techniqueId: quickSource.techniqueId, level: quickSource.level, name: quickSource.name, needsConfirmation: quickSource.needsConfirmation } : null, continuation: Boolean(available?.continuation && !modifierQuick) } }];
+  if(armament){events[0].payload.quick=true;events[0].payload.quickSource={techniqueId:"vagabond.master-at-arms",level:1,name:{blade:"Клинок",pole:"Древко",chain:"Цепь"}[armament],needsConfirmation:false};events[0].payload.armament=armament}
+  if(request.roll&&Number(actor.ruleState?.empathSupport||0)>0)events.push({type:"actor.state",actorId:actor.id,payload:{key:"empathSupport",value:0,sourceActionId:"altruist.empath.3",reason:"Поддержка применена к следующему броску"}});
   if (request.useCunningPlan) events.push({ type: "rule-clock.tick", actorId: actor.id, payload: { clockId: "vagabond.cunning-fighter.plan", delta: -1, sourceActionId: "vagabond.cunning-fighter.1.plan", reason: "План и исполнение" } });
   if (useRevelation) events.push({ type: "rule-clock.tick", actorId: actor.id, payload: { clockId: "ruiner.zealot.revelation", delta: -1, sourceActionId: "ruiner.zealot.1", reason: "Изменение итоговых Успехов" } });
   if (grasp) {
@@ -315,7 +344,7 @@ function prepareAction(scene, data, request = {}) {
       }
     }
   } else if (["Стычка", "Заклинание", "Завершение"].includes(action.name)) {
-    const limit = (gunslingerSkirmish || knifeThrow || breacherSkirmish ? 4 : action.name === "Заклинание" ? 5 : 1) + (spellModifiers.includes("outstanding") ? Number(actor.attrs?.mind || 0) : 0);
+    const limit = (armament==="chain"||gunslingerSkirmish || knifeThrow || breacherSkirmish ? 4 : armament==="blade"?2:action.name === "Заклинание" ? 5 : 1) + (spellModifiers.includes("outstanding") ? Number(actor.attrs?.mind || 0) : 0);
     const disappeared = hasEffect(scene, actor, "positive.исчез");
     let attackOrigin = grasp && request.destination ? { ...actor, x: request.destination.x, y: request.destination.y } : actor;
     if (attackModifierDestination?.available) {
@@ -340,7 +369,8 @@ function prepareAction(scene, data, request = {}) {
     if (heavenlyHealing ? targets.some(target => target.team !== actor.team || target.id === actor.id) : !thunderDischarge && !zealotRupture && targets.some(target => target.team === actor.team)) errors.push(heavenlyHealing ? "Очищающий свет выбирает союзника, но не самого исполнителя." : "Базовая Атака может выбирать целью только противника.");
     if (action.name === "Стычка" && !gunslingerSkirmish && !knifeThrow && targets.length > 2) errors.push("Стычка выбирает не больше 2 целей.");
     if (action.name !== "Стычка" && targets.length > 1 && !thunderDischarge && !eclipseStars && !zealotRupture) errors.push(`${action.name} выбирает только одну цель.`);
-    if (!thunderDischarge && !eclipseStars && !zealotRupture && targets.some(target => distance(attackOrigin, target) > limit)) errors.push(`Цель должна быть в пределах ${limit} клеток от клетки появления.`);
+    const constrictorReach = target => action.name === "Завершение" && Number(actor.techniques?.["disruptor.constrictor"] || 0) >= 2 && ["body", "talent"].includes(actionAttribute) && caughtByConstrictor(target);
+    if (!thunderDischarge && !eclipseStars && !zealotRupture && targets.some(target => distance(attackOrigin, target) > limit && !constrictorReach(target))) errors.push(`Цель должна быть в пределах ${limit} клеток от клетки появления.`);
     const bonus = (action.name === "Завершение" ? Number(scene.tension || 0) : 0) + (spellModifiers.includes("fierce") ? Number(actor.attrs?.mind || 0) : 0), drainLife = Boolean(actor.ruleState?.drainLife && action.name === "Завершение" && actor.ruleState?.grimTransformed), adjustedDamage = value => drainLife ? Math.ceil(Math.max(0, value) / 2) : Math.max(0, value);
     if (heavenlyHealing) {
       const removalMap = request.removeEffectIdsByTarget && typeof request.removeEffectIdsByTarget === "object" ? request.removeEffectIdsByTarget : {};
@@ -360,10 +390,10 @@ function prepareAction(scene, data, request = {}) {
       const effectDamageDivisor = (drainLife ? 2 : 1) * (eclipseStars || icicleHalo ? 2 : 1);
       const areaDamage = value => eclipseStars || icicleHalo ? Math.ceil(adjustedDamage(value) / 2) : adjustedDamage(value);
       const effectDamageBase = Number(request.roll?.successes || 0) + bonus;
-      const effectDamageBaseByTarget = Object.fromEntries(targets.map(target => [target.id, effectDamageBase + (thunderDischarge && hasEffect(scene, target, "negative.ошеломлен") ? Number(actor.tier || 1) : 0)]));
-      const postDisplacements = breacherSkirmish ? targets.filter(target => distance(attackOrigin, target) <= 2).map(target => ({ targetId: target.id, mode: "push", maximum: 1, name: "Картечь", ruleId: "powerhouse.breacher.1", collisionDamagePerCell: 0 })) : [];
-      const dragonslayerTear = action.name === "Завершение" && actionAttribute === "body" && Number(actor.techniques?.["powerhouse.dragonslayer"] || 0) >= 1 ? ["negative.разорван"] : [];
-      events.push({ type: "attack.pending", actorId: actor.id, payload: { actionId: action.id, declaredActionId: declaredAction.id, declaredActionName: declaredAction.name, name: thunderDischarge ? "Разрядка" : eclipseStars ? "Затмить звезды" : zealotRupture ? "Так не должно было быть" : icicleHalo ? "Ледяной нимб" : action.name, attribute: actionAttribute, targetIds, allowEmptyTargets: zealotRupture, roll: clone(request.roll || null), damage: areaDamage(effectDamageBase), damageByTarget: Object.fromEntries(Object.entries(effectDamageBaseByTarget).map(([targetId, value]) => [targetId, areaDamage(value)])), effectDamageBase, effectDamageBaseByTarget, effectDamageDivisor, attackModifierIds: attackModifiers.selectedIds, attackModifierAdvantage: attackModifiers.advantage, attackModifierDestination: attackModifierDestination?.destination || null, actionTransform: attackModifiers.actionTransform, successEffects: dragonslayerTear, thunderDischarge, eclipseStars, zealotRupture, zealotCells, icicleHalo, drainLife, postDisplacements, gunslingerBulletJuggle: gunslingerSkirmish && Number(actor.techniques?.["powerhouse.gunslinger"] || 0) >= 3 && bulletsSpent >= 3 && targetIds.length === 1, knifeThrow: knifeThrow && Number(actor.techniques?.["vagabond.knife-juggler"] || 0) >= 2, overload: meisterOverload ? clone(events[0].payload.overload) : null } });
+      const effectDamageBaseByTarget = Object.fromEntries(targets.map(target => [target.id, effectDamageBase + (thunderDischarge && hasEffect(scene, target, "negative.ошеломлен") ? Number(actor.tier || 1) : 0) + (action.name === "Завершение" && Number(actor.techniques?.["disruptor.constrictor"] || 0) >= 2 && caughtByConstrictor(target) ? Number(actor.tier || 1) : 0)]));
+      const postDisplacements = armament==="pole"?targets.map(target=>({targetId:target.id,mode:"push",maximum:3,name:"Древко",ruleId:"vagabond.master-at-arms.1",collisionDamagePerCell:0})):breacherSkirmish ? targets.filter(target => distance(attackOrigin, target) <= 2).map(target => ({ targetId: target.id, mode: "push", maximum: 1, name: "Картечь", ruleId: "powerhouse.breacher.1", collisionDamagePerCell: 0 })) : [];
+      const dragonslayerTear = action.name === "Завершение" && actionAttribute === "body" && Number(actor.techniques?.["powerhouse.dragonslayer"] || 0) >= 1 ? ["negative.разорван"] : [],armamentEffects=armament==="pole"?["negative.подброшен","negative.замедлен"]:armament==="chain"?["negative.разорван","negative.порчен"]:[];
+      events.push({ type: "attack.pending", actorId: actor.id, payload: { actionId: action.id, declaredActionId: declaredAction.id, declaredActionName: declaredAction.name, name: thunderDischarge ? "Разрядка" : eclipseStars ? "Затмить звезды" : zealotRupture ? "Так не должно было быть" : icicleHalo ? "Ледяной нимб" : action.name, attribute: actionAttribute, targetIds, allowEmptyTargets: zealotRupture, roll: clone(request.roll || null), damage: areaDamage(effectDamageBase), damageByTarget: Object.fromEntries(Object.entries(effectDamageBaseByTarget).map(([targetId, value]) => [targetId, areaDamage(value)])), effectDamageBase, effectDamageBaseByTarget, effectDamageDivisor, attackModifierIds: attackModifiers.selectedIds, attackModifierAdvantage: attackModifiers.advantage, attackModifierDestination: attackModifierDestination?.destination || null, actionTransform: attackModifiers.actionTransform, successEffects: dragonslayerTear.concat(armamentEffects),postSelfEffects:armament==="blade"?["positive.усилен"]:[],masterArmament:armament, thunderDischarge, eclipseStars, zealotRupture, zealotCells, icicleHalo, drainLife, postDisplacements, gunslingerBulletJuggle: gunslingerSkirmish && Number(actor.techniques?.["powerhouse.gunslinger"] || 0) >= 3 && bulletsSpent >= 3 && targetIds.length === 1, knifeThrow: knifeThrow && Number(actor.techniques?.["vagabond.knife-juggler"] || 0) >= 2, overload: meisterOverload ? clone(events[0].payload.overload) : null } });
     }
   } else if (action.name === "Передышка") {
     events.push({ type: "resource.gain", actorId: actor.id, payload: { resource: "focus", amount: 1, sourceActionName: "Передышка", sourceActionId: action.id } });
@@ -523,6 +553,19 @@ function prepareEnemyRule(scene, data, request = {}) {
   if (actor && rule?.adjacent && targets.some(target => distance(actor, target) > 1)) errors.push("Цель должна быть смежной.");
   if (actor && rule?.range && targets.some(target => distance(actor, target) > Number(rule.range))) errors.push(`Цель должна быть в пределах ${rule.range} клеток.`);
   if (fullRule?.type === "pugilist-stance" && (!Number.isInteger(Number(request.options?.stanceStep)) || Number(request.options.stanceStep) < 1 || Number(request.options.stanceStep) > 4)) errors.push("Выберите шаг Пассивa от 1 до 4.");
+  const summonCells = [];
+  if (fullRule?.type === "summon-profiles" && actor && space) {
+    const occupied = new Set((scene.actors || []).filter(item => !item.knockedOut && item.space === actor.space).map(item => `${item.x},${item.y}`));
+    for (const [dx, dy] of [[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,-1],[1,-1],[-1,1]]) {
+      const x = Number(actor.x) + dx, y = Number(actor.y) + dy;
+      if (x >= 0 && y >= 0 && x < Number(space.width) && y < Number(space.height) && !occupied.has(`${x},${y}`) && !removedCellKeys(scene, actor.space).has(`${x},${y}`)) {
+        summonCells.push({ x, y });
+        occupied.add(`${x},${y}`);
+      }
+      if (summonCells.length >= fullRule.profiles.length) break;
+    }
+    if (!summonCells.length) errors.push("Для призыва нужен хотя бы один свободный участок рядом с Леоном.");
+  }
   const hasRoll = request.roll && Array.isArray(request.roll.rolls);
   const hasDirectDamage = Number.isFinite(Number(request.damage)) && Number(request.damage) >= 0;
   if (attackModifiers.selectedIds.length && !hasRoll) errors.push("Модификатор Преимущества требует бросок Атаки.");
@@ -549,11 +592,55 @@ function prepareEnemyRule(scene, data, request = {}) {
     const amount = targetIds.length * perTarget;
     targets.forEach(target => events.push({ type: "damage.apply", actorId: actor.id, payload: { targetId: target.id, amount, sourceActionId: rule.id } }));
   }
+  if (fullRule?.type === "summon-profiles") {
+    fullRule.profiles.slice(0, summonCells.length).forEach((profileId, index) => {
+      const summonProfile = enemyProfileById(data, profileId), stats = summonProfile?.stats || {}, baseAp = 1;
+      if (!summonProfile) return;
+      events.push({
+        type: "actor.spawn",
+        actorId: actor.id,
+        payload: {
+          actor: {
+            id: `summon-${eventId()}`,
+            kind: "enemy",
+            team: actor.team,
+            heroId: null,
+            profileId: summonProfile.id,
+            name: summonProfile.name,
+            tier: actor.tier,
+            space: actor.space,
+            x: summonCells[index].x,
+            y: summonCells[index].y,
+            hp: Number(stats.health || 1),
+            maxHp: Number(stats.health || 1),
+            focus: 0,
+            ap: baseAp,
+            baseAp,
+            speed: Number(stats.speed || 3),
+            armor: Number(stats.armor || 0),
+            evasion: Number(stats.evasion || 0),
+            effects: [],
+            usedActions: [],
+            usedTrump: false,
+            acted: false,
+            hidden: false,
+            tokenSymbol: index === 0 ? "◎" : "✹",
+            tokenColor: index === 0 ? "#6fc9d8" : "#df7836",
+            tokenImage: "",
+            portraitImage: "",
+            summonerId: actor.id,
+          },
+        },
+      });
+    });
+  }
   if (rule.kind === "attack" && payload.automation === "attack") {
     targets.forEach(target => events.push({ type: "reaction.offer", actorId: target.id, payload: { sourceActorId: actor.id, actionId: rule.id } }));
     const tensionMultiplier = Number(ENEMY_AUTO_ATTACK_RULES.get(rule.id) || 0);
     const damage = hasRoll ? Number(request.roll.successes || 0) + Number(scene.tension || 0) * tensionMultiplier : Number(request.damage);
-    events.push({ type: "attack.pending", actorId: actor.id, payload: { actionId: rule.id, enemyRuleId: rule.id, name: rule.name, targetIds, roll: hasRoll ? clone(request.roll) : null, damage, effects: targetEffects, reward: rule.reward || "", attackModifierIds: attackModifiers.selectedIds, attackModifierAdvantage: attackModifiers.advantage } });
+    const attackAdapter = ENEMY_ATTACK_ADAPTERS.get(rule.id) || {};
+    const postDisplacements = Number(attackAdapter.push || 0) > 0 ? targetIds.map(targetId => ({ targetId, mode: "push", maximum: Number(attackAdapter.push), name: rule.name, ruleId: rule.id, collisionDamagePerCell: 0 })) : [];
+    events.push({ type: "attack.pending", actorId: actor.id, payload: { actionId: rule.id, enemyRuleId: rule.id, name: rule.name, targetIds, roll: hasRoll ? clone(request.roll) : null, damage, effects: targetEffects, reward: rule.reward || "", postDisplacements, attackModifierIds: attackModifiers.selectedIds, attackModifierAdvantage: attackModifiers.advantage } });
   } else {
     if (rule.kind !== "attack" && ["effect", "full"].includes(payload.automation)) targets.forEach(target => targetEffects.forEach(effect => events.push({ type: "effect.apply", actorId: actor.id, payload: { targetId: target.id, effect, sourceActionId: rule.id } })));
     if (rule.kind === "attack" && hasRoll) events.push({ type: "roll.public", actorId: actor.id, payload: clone(request.roll) });
