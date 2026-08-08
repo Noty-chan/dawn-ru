@@ -769,6 +769,7 @@ function resolvePendingAction(scene, data) {
   const source = status.source;
   const events = [];
   let autophageRegeneration = false;
+  let postSelfHeal = false;
   if (pending.roll) events.push({ type: "roll.public", actorId: pending.actorId, payload: pending.roll });
   for (const targetId of status.eligibleIds) {
     const outcome = pendingTargetOutcome(scene, pending, targetId), target = outcome.target, resolvedTargetId = target?.id || targetId, traitReaction = outcome.reaction?.enemyTrait;
@@ -777,6 +778,11 @@ function resolvePendingAction(scene, data) {
       events.push({ type: "damage.apply", actorId: pending.actorId, payload: { targetId: resolvedTargetId, amount: rawDamage, temporaryArmor, temporaryEvasion, sourceActionId: pending.actionId, participantIds: [pending.actorId, resolvedTargetId] } });
       const attackSucceeded = Number(pending.roll?.successes || 0) > 0 || !pending.roll && rawDamage > 0;
       if (expectedDamage > 0 && Number(source?.techniques?.["disruptor.autophage"] || 0) >= 1 && new Set(target.effects || []).size >= 2) autophageRegeneration = true;
+      if (expectedDamage > 0 && pending.postResourceLoss?.resource && Number(pending.postResourceLoss.amount) > 0) {
+        const requested = Number(pending.postResourceLoss.amount), balance = Number(resourceOperationStatus(scene, resolvedTargetId, { resource: pending.postResourceLoss.resource, amount: requested, operation: "spend" }).balance || 0), amount = Math.min(requested, balance);
+        if (amount > 0) events.push({ type: "resource.spend", actorId: resolvedTargetId, payload: { resource: pending.postResourceLoss.resource, amount, sourceActionId: pending.postResourceLoss.ruleId || pending.enemyRuleId || pending.actionId, participantIds: [pending.actorId, resolvedTargetId] } });
+      }
+      if (expectedDamage > 0 && Number(pending.postSelfHealMissingFraction) > 0) postSelfHeal = true;
       if (expectedDamage > 0) for (const effect of pending.effects || []) events.push({ type: "effect.apply", actorId: pending.actorId, payload: { targetId: resolvedTargetId, effect, sourceActionId: pending.actionId } });
       if (attackSucceeded) for (const effect of pending.successEffects || []) events.push({ type: "effect.apply", actorId: pending.actorId, payload: { targetId: resolvedTargetId, effect, sourceActionId: pending.techniqueRuleId || pending.actionId } });
       for (const effect of pending.postTargetEffects || []) events.push({ type: "effect.apply", actorId: pending.actorId, payload: { targetId: resolvedTargetId, effect, sourceActionId: pending.techniqueRuleId || pending.actionId, participantIds: [pending.actorId, resolvedTargetId] } });
@@ -816,6 +822,11 @@ function resolvePendingAction(scene, data) {
         }
       }
     }
+  }
+  if (postSelfHeal && source) {
+    const missing = Math.max(0, Number(source.maxHp || 0) - Number(source.hp || 0));
+    const amount = Math.ceil(missing * Number(pending.postSelfHealMissingFraction));
+    if (amount > 0) events.push({ type: "actor.heal", actorId: source.id, payload: { targetId: source.id, amount, sourceActionId: pending.enemyRuleId || pending.actionId, participantIds: [source.id, ...status.eligibleIds] } });
   }
   if (source) for (const effect of pending.postSelfEffects || []) events.push({ type: "effect.apply", actorId: source.id, payload: { targetId: source.id, effect, sourceActionId: pending.techniqueRuleId || pending.actionId, participantIds: [source.id] } });
   if (pending.gunslingerBulletJuggle && status.eligibleIds[0]) events.push({ type: "effect.apply", actorId: pending.actorId, payload: { targetId: status.eligibleIds[0], effect: "negative.подброшен", sourceActionId: "powerhouse.gunslinger.3", participantIds: [pending.actorId, status.eligibleIds[0]] } });

@@ -31,6 +31,8 @@ const ENEMY_AUTO_ATTACK_RULES = new Map([
   ["enemy.common.baron.attack.suppress", 1],
   ["enemy.common.cultist.attack.swipe", 1],
   ["enemy.common.necromancer.attack.terrifying-shot", 2],
+  ["enemy.common.revenant.attack.tear-from-the-soul", 1],
+  ["enemy.common.martyr.attack.savor-my-blood", 1],
   ["enemy.named.leon-academy-spatial-mage.attack.emerge", 1],
   ["enemy.named.leon-s-vayu-spirit.attack.air-shove", 0],
   ["enemy.named.leon-s-agni-spirit.attack.fire-spark", 0],
@@ -44,8 +46,15 @@ const ENEMY_ATTACK_FAMILY_RULES = new Map([
   ["enemy.common.daredevil.attack.dance", { maxTargets: 2, adjacent: true }],
   ["enemy.common.berserker.attack.thrash", { postPush: 1 }],
   ["enemy.common.hound-master.attack.shove", { postPush: 2 }],
+  ["enemy.common.revenant.attack.tear-from-the-soul", { postResourceLoss: { resource: "focus", formula: "2(+1)" } }],
+  ["enemy.common.martyr.attack.savor-my-blood", { requiresTarget: true, targetCellOccupant: true, postSelfHealMissingFraction: 0.5 }],
   ["enemy.named.leon-s-vayu-spirit.attack.air-shove", { postPush: 1 }],
 ]);
+
+function enemyTierFormula(formula, tier) {
+  const match = String(formula || "").match(/^(\d+)(?:\(\+(\d+)\))?$/);
+  return match ? Number(match[1]) + Math.max(0, Number(tier || 1) - 1) * Number(match[2] || 0) : 0;
+}
 const ENEMY_AUTO_EFFECT_RULES = new Set([
   "enemy.common.assassin.action.neutralize-target",
   "enemy.common.assassin.trump.disappear",
@@ -601,7 +610,7 @@ function prepareEnemyRule(scene, data, request = {}) {
   if (rule?.area?.length && !affectedCells.length) errors.push("Укажите область действия на поле.");
   if (actor && rule?.areaAnchor !== "self" && rule?.range && anchor && Math.abs(actor.x - Number(anchor.x)) + Math.abs(actor.y - Number(anchor.y)) > Number(rule.range)) errors.push(`Область должна быть в пределах ${rule.range} клеток.`);
   if (affectedCells.length && targets.some(target => target.space !== actor.space || !affectedCells.includes(`${target.x},${target.y}`))) errors.push("Все выбранные цели должны находиться в области.");
-  if (rule?.requiresTarget && !targets.length) errors.push(rule.kind === "attack" ? "Выберите хотя бы одну цель Атаки." : "Выберите цель действия.");
+  if ((available?.requiresTarget ?? rule?.requiresTarget) && !targets.length) errors.push(rule.kind === "attack" ? "Выберите хотя бы одну цель Атаки." : "Выберите цель действия.");
   if (actor && rule?.kind === "attack" && available?.automation === "attack" && targets.some(target => target.team === actor.team)) errors.push("Эта автоматизированная Атака может выбирать целью только другую сторону.");
   const attackModifiers = actor && rule?.kind === "attack" && available?.automation === "attack" ? attackModifierStatus(scene, actor.id, targetIds, request.attackModifierIds || []) : { available: !(request.attackModifierIds || []).length, reason: "Модификаторы доступны только Атаке, подключённой к общему окну Реакций.", selectedIds: [], advantage: 0 };
   if (!attackModifiers.available) errors.push(attackModifiers.reason);
@@ -695,9 +704,11 @@ function prepareEnemyRule(scene, data, request = {}) {
     targets.forEach(target => events.push({ type: "reaction.offer", actorId: target.id, payload: { sourceActorId: actor.id, actionId: rule.id } }));
     const tensionMultiplier = Number(ENEMY_AUTO_ATTACK_RULES.get(rule.id) || 0);
     const damage = hasRoll ? Number(request.roll.successes || 0) + Number(scene.tension || 0) * tensionMultiplier : Number(request.damage);
-    const push = Number(ENEMY_ATTACK_FAMILY_RULES.get(rule.id)?.postPush || 0);
+    const family = ENEMY_ATTACK_FAMILY_RULES.get(rule.id) || {};
+    const push = Number(family.postPush || 0);
     const postDisplacements = push ? targetIds.map(targetId => ({ targetId, mode: "push", maximum: push, name: rule.name, ruleId: rule.id, collisionDamagePerCell: 1 })) : [];
-    events.push({ type: "attack.pending", actorId: actor.id, payload: { actionId: rule.id, enemyRuleId: rule.id, name: rule.name, targetIds, roll: hasRoll ? clone(request.roll) : null, damage, effects: targetEffects, reward: rule.reward || "", attackModifierIds: attackModifiers.selectedIds, attackModifierAdvantage: attackModifiers.advantage, postDisplacements } });
+    const postResourceLoss = family.postResourceLoss ? { resource: family.postResourceLoss.resource, amount: enemyTierFormula(family.postResourceLoss.formula, actor.tier), ruleId: rule.id } : null;
+    events.push({ type: "attack.pending", actorId: actor.id, payload: { actionId: rule.id, enemyRuleId: rule.id, name: rule.name, targetIds, roll: hasRoll ? clone(request.roll) : null, damage, effects: targetEffects, reward: rule.reward || "", attackModifierIds: attackModifiers.selectedIds, attackModifierAdvantage: attackModifiers.advantage, postDisplacements, postResourceLoss, postSelfHealMissingFraction: Number(family.postSelfHealMissingFraction || 0) } });
   } else {
     if (rule.kind !== "attack" && ["effect", "full"].includes(payload.automation)) targets.forEach(target => targetEffects.forEach(effect => events.push({ type: "effect.apply", actorId: actor.id, payload: { targetId: target.id, effect, sourceActionId: rule.id } })));
     if (rule.kind === "attack" && hasRoll) events.push({ type: "roll.public", actorId: actor.id, payload: clone(request.roll) });

@@ -1379,6 +1379,38 @@ assert.equal(swipe.automation, "attack");
 const swipeAttack = Engine.prepareEnemyRule(baseTensionScene, data, { actorId: "enemy", ruleId: swipe.id, targetIds: ["hero"], roll: { formula: "5D6", rolls: [6, 5, 2, 1, 1], successes: 2, crits: 1 } });
 assert.equal(swipeAttack.events.find(event => event.type === "attack.pending").payload.damage, 4, "[Tension] without an explicit multiplier still adds Tension once");
 
+const revenantScene = structuredClone(enemyScene);
+revenantScene.actors[1].profileId = "enemy.common.revenant";
+revenantScene.actors[1].tier = 2;
+revenantScene.actors[0].focus = 2;
+const tearFromSoul = Engine.availableEnemyRules(revenantScene, data, "enemy").find(rule => rule.en === "Tear From The Soul");
+assert.equal(tearFromSoul.automation, "attack", "Reviewed resource-loss rewards use the shared post-hit family");
+const soulAttack = Engine.prepareEnemyRule(revenantScene, data, { actorId: "enemy", ruleId: tearFromSoul.id, targetIds: ["hero"], roll: { formula: "7D6", rolls: [6, 4, 2, 1, 1, 1, 1], successes: 2, crits: 1 } });
+assert.equal(soulAttack.events.find(event => event.type === "attack.pending").payload.postResourceLoss.amount, 3, "Tier formulas are resolved before opening Reactions");
+let soulResolved = Engine.dispatchMany(revenantScene, soulAttack.events).scene;
+soulResolved = Engine.dispatchMany(soulResolved, Engine.respondReaction(soulResolved, data, { actorId: "hero", choice: "pass" }).events).scene;
+soulResolved = Engine.dispatchMany(soulResolved, Engine.resolvePendingAction(soulResolved, data).events).scene;
+assert.equal(soulResolved.actors[0].focus, 0, "Tear From The Soul removes its tier-scaled Focus after dealing damage");
+
+const martyrScene = structuredClone(enemyScene);
+martyrScene.actors[1].profileId = "enemy.common.martyr";
+martyrScene.actors[1].hp = 5;
+martyrScene.actors[1].maxHp = 12;
+const savorBlood = Engine.availableEnemyRules(martyrScene, data, "enemy").find(rule => rule.en === "Savor My Blood");
+assert.equal(savorBlood.automation, "attack", "Reviewed self-healing rewards use the shared post-hit family");
+assert.equal(Engine.prepareEnemyRule(martyrScene, data, { actorId: "enemy", ruleId: savorBlood.id, targetIds: [], roll: { rolls: [6], successes: 1 } }).ok, false, "The occupied target cell must be selected");
+const bloodAttack = Engine.prepareEnemyRule(martyrScene, data, { actorId: "enemy", ruleId: savorBlood.id, targetIds: ["hero"], roll: { formula: "6D6", rolls: [6, 4, 2, 1, 1, 1], successes: 2, crits: 1 } });
+let bloodResolved = Engine.dispatchMany(martyrScene, bloodAttack.events).scene;
+bloodResolved = Engine.dispatchMany(bloodResolved, Engine.respondReaction(bloodResolved, data, { actorId: "hero", choice: "pass" }).events).scene;
+bloodResolved = Engine.dispatchMany(bloodResolved, Engine.resolvePendingAction(bloodResolved, data).events).scene;
+assert.equal(bloodResolved.actors[1].hp, 9, "Savor My Blood restores half the Martyr's missing Health, rounded up");
+const evadedMartyrScene = structuredClone(martyrScene);
+const evadedBloodAttack = Engine.prepareEnemyRule(evadedMartyrScene, data, { actorId: "enemy", ruleId: savorBlood.id, targetIds: ["hero"], roll: { formula: "6D6", rolls: [3, 3, 2, 1, 1, 1], successes: 0, crits: 0 } });
+let evadedBlood = Engine.dispatchMany(evadedMartyrScene, evadedBloodAttack.events).scene;
+evadedBlood = Engine.dispatchMany(evadedBlood, Engine.respondReaction(evadedBlood, data, { actorId: "hero", choice: "Уворот", destination: { x: 0, y: 1 } }).events).scene;
+evadedBlood = Engine.dispatchMany(evadedBlood, Engine.resolvePendingAction(evadedBlood, data).events).scene;
+assert.equal(evadedBlood.actors[1].hp, 5, "A fully evaded Savor My Blood hit grants no healing");
+
 const paladinScene = structuredClone(enemyScene);
 paladinScene.actors[1].profileId = "enemy.common.paladin";
 paladinScene.actors[1].name = "Паладин";

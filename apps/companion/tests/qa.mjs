@@ -49,6 +49,9 @@ assert.match(appSource, /Number\.isFinite\(Number\(base\.focus\)\)\?Number\(base
 assert.match(appSource, /if\(!sceneCombatStarted\(scene\)\)\{delete base\.focus;delete base\.hp;delete base\.maxHp\}/, "Refreshing a remotely submitted hero before combat must repair its starting Focus and Health");
 assert.match(appSource, /if\(!sceneCombatStarted\(Scene\)\)\{delete base\.focus;delete base\.hp;delete base\.maxHp\}/, "Refreshing a local hero before combat must repair its starting Focus and Health");
 assert.match(appSource, /feed\.innerHTML=\[\.\.\.rolls\]\.reverse\(\)\.map/, "The newest public roll must stay at the bottom edge of the upward-growing feed");
+assert.match(appSource, /function sceneTrayHeroActor\(\)[\s\S]+selected\.team==="hero"[\s\S]+active\.team==="hero"/, "The Narrator tray follows selected or active heroes and never exposes hero actions for enemies");
+assert.match(appSource, /data-core-action="\$\{esc\(action\.id\)\}" data-core-actor="\$\{esc\(actor\.id\)\}"/, "Narrator tray actions retain the delegated hero identity");
+assert.match(appSource, /activeSceneView\(\)==="gm"&&button\.dataset\.coreActor\)pendingCoreActorId=button\.dataset\.coreActor/, "Clicking a Narrator tray action delegates it before preparation");
 assert.match(appSource, /querySelector\("article:last-child"\)/, "Roll animation must target the newest bottom card");
 assert.match(appSource, /if\(performance\.now\(\)<sceneSuppressBoardClickUntil\)/, "A synthetic click after dropping a token must not move the previously selected actor");
 assert.match(appSource, /actorId=event\.dataTransfer\.getData\("text\/plain"\)\|\|sceneDragActorId/, "A dropped token must be resolved from its drag payload, not Scene selection");
