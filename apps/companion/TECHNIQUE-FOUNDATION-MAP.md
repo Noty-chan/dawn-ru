@@ -362,7 +362,7 @@ SHA-256 проверенных файлов: `b9ab51ceb86ee102cd6ddb503572811679
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Многогранность (Multi-Faceted) | проверено | с выбором | `target-validation`, `event-participants`, `spatial-range`, `effect-state`, `effect-lifecycle`, `movement-lifecycle`, `usage-limits`, `exclusive-mode`, `trigger-router`, `turn-lifecycle`, `choice-flow`, `action-modifier` |
+| 1 | Многогранность (Multi-Faceted) | проверено | полная | `target-validation`, `event-participants`, `spatial-range`, `effect-state`, `effect-lifecycle`, `movement-lifecycle`, `usage-limits`, `exclusive-mode`, `trigger-router`, `turn-lifecycle`, `choice-flow`, `action-modifier` |
 | 2 | Как вода (Like Water) | проверено | полная | `resource-check`, `effect-state`, `effect-lifecycle`, `usage-limits`, `exclusive-mode`, `trigger-router`, `turn-lifecycle`, `derived-stats` |
 | 3 | Мастер за работой (Master At Work) | проверено | частичная | `target-validation`, `event-participants`, `spatial-cells`, `effect-state`, `effect-lifecycle`, `movement-lifecycle`, `terrain`, `exclusive-mode`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier`, `dice-hooks` |
 

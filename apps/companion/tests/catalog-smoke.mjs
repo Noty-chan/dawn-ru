@@ -51,6 +51,8 @@ const sceneFor = techniques => ({
 const canonicalFamilies = data.archetypes.flatMap(archetype => archetype.techniques);
 const canonicalLevels = canonicalFamilies.flatMap(technique => technique.levels.map(level => `${technique.id}.${level.n}`));
 assert.equal(new Set(canonicalLevels).size, canonicalLevels.length, "Technique level ids must be unique");
+const adapterIds = TechniqueEngine.RULES.map(rule => rule.id);
+assert.equal(new Set(adapterIds).size, adapterIds.length, "Technique adapter ids must be unique");
 
 const failures = [];
 for (const technique of canonicalFamilies) {
