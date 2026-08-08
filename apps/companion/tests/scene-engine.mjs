@@ -36,6 +36,9 @@ outnumberedScene.actors[0].gifts = ["wolf.outgunned"];
 outnumberedScene.actors.push({ ...structuredClone(outnumberedScene.actors[1]), id: "enemy-2", x: 3 });
 assert.equal(Engine.diceHookStatus(outnumberedScene, "hero", { scope: "challenge", sceneContext: true, baseCount: 3 }).advantage, 2, "Structured rolls may read the tactical side balance");
 assert.equal(Engine.diceHookStatus(outnumberedScene, "hero", { scope: "challenge", sceneContext: false, baseCount: 3 }).advantage, 0, "Narrative rolls never infer being outnumbered from the structured board");
+const enemyBaseActions = Engine.availableActions(scene, data, "enemy");
+assert.deepEqual(Array.from(enemyBaseActions, action => action.name), ["Шаг"], "Enemies expose only their canonical shared Step; hero actions and Reactions stay unavailable");
+assert.equal(Engine.prepareAction(scene, data, { actorId: "enemy", actionId: actionNamed("Передышка").id }).ok, false, "The engine rejects hero-only base actions for enemies even when called directly");
 const freshTurnProgress = Engine.turnActionProgressStatus(scene, "hero");
 assert.equal(freshTurnProgress.total, 3);
 assert.equal(freshTurnProgress.currentAction, 1);
@@ -1321,6 +1324,16 @@ assert.equal(wildFlow.actors.find(actor => actor.id === "enemy").hp, 10, "Wild-E
 
 const enemyScene = structuredClone(scene);
 enemyScene.activeActorId = "enemy";
+enemyScene.actors[1].speed = 4;
+const enemyStep = Engine.prepareAction(enemyScene, data, { actorId: "enemy", actionId: actionNamed("Шаг").id, destination: { x: 3, y: 1 } });
+assert.equal(enemyStep.ok, true, "An enemy can spend its canonical Step during its Turn");
+const afterEnemyStep = Engine.dispatchMany(enemyScene, enemyStep.events).scene;
+assert.equal(afterEnemyStep.actors[1].ap, 1);
+assert.equal(afterEnemyStep.actors[1].stepRemaining, 3, "Unused enemy Step movement is retained like the canonical shared action");
+const continuedEnemyStep = Engine.prepareAction(afterEnemyStep, data, { actorId: "enemy", actionId: actionNamed("Шаг").id, destination: { x: 5, y: 1 } });
+assert.equal(continuedEnemyStep.ok, true);
+const afterContinuedEnemyStep = Engine.dispatchMany(afterEnemyStep, continuedEnemyStep.events).scene;
+assert.equal(afterContinuedEnemyStep.actors[1].ap, 1, "Continuing an already paid enemy Step costs no additional AP");
 const enemyRules = Engine.availableEnemyRules(enemyScene, data, "enemy");
 assert.equal(enemyRules.length, 3);
 const neutralize = enemyRules.find(rule => rule.en === "Neutralize Target");
@@ -1402,6 +1415,42 @@ for (const [profileId, englishName, expectedTargets, expectedPush] of [
   assert.equal(prepared.ok, true);
   assert.equal(prepared.events.find(event => event.type === "attack.pending").payload.postDisplacements[0]?.maximum || 0, expectedPush);
 }
+assert.equal(dance.automation, "attack", "The audited multi-target damage-and-effect family uses the shared Reaction pipeline");
+assert.equal(dance.maxTargets, 2);
+const preparedDance = Engine.prepareEnemyRule(daredevilScene, data, { actorId: "enemy", ruleId: dance.id, targetIds: ["hero", "hero-2"], roll: { formula: "5D6", rolls: [6, 4, 2, 1, 1], successes: 2, crits: 1 } });
+assert.equal(preparedDance.ok, true, "Dance accepts its canonical two targets");
+let danced = Engine.dispatchMany(daredevilScene, preparedDance.events).scene;
+danced = Engine.dispatchMany(danced, Engine.respondReaction(danced, data, { actorId: "hero", choice: "pass" }).events).scene;
+danced = Engine.dispatchMany(danced, Engine.respondReaction(danced, data, { actorId: "hero-2", choice: "pass" }).events).scene;
+danced = Engine.dispatchMany(danced, Engine.resolvePendingAction(danced, data).events).scene;
+assert.equal(danced.actors.find(actor => actor.id === "hero").hp, 8);
+assert.equal(danced.actors.find(actor => actor.id === "hero-2").hp, 8);
+assert.ok(danced.actors.filter(actor => actor.id.startsWith("hero")).every(actor => actor.effects.includes("negative.подброшен")), "Every damaged Dance target receives Launched after its Reaction resolves");
+
+for (const [profileId, ruleEn] of [
+  ["enemy.common.glutton", "Slobber"],
+  ["enemy.common.mount", "Thrash"],
+  ["enemy.common.guardian", "Shove"],
+  ["enemy.common.berserker", "Thrash"],
+  ["enemy.common.hound-master", "Shove"],
+]) {
+  const familyScene = structuredClone(enemyScene);
+  familyScene.actors[1].profileId = profileId;
+  const familyRule = Engine.availableEnemyRules(familyScene, data, "enemy").find(rule => rule.en === ruleEn);
+  assert.equal(familyRule.automation, "attack", `${profileId} joins the audited enemy Attack family`);
+}
+
+const guardianScene = structuredClone(enemyScene);
+guardianScene.actors[1].profileId = "enemy.common.guardian";
+guardianScene.actors[1].x = 1;
+guardianScene.actors[0].x = 2;
+const guardianShove = Engine.availableEnemyRules(guardianScene, data, "enemy").find(rule => rule.en === "Shove");
+const guardianAttack = Engine.prepareEnemyRule(guardianScene, data, { actorId: "enemy", ruleId: guardianShove.id, targetIds: ["hero"], roll: { formula: "4D6", rolls: [6, 5, 2, 1], successes: 2, crits: 1 } });
+let guardianResolved = Engine.dispatchMany(guardianScene, guardianAttack.events).scene;
+guardianResolved = Engine.dispatchMany(guardianResolved, Engine.respondReaction(guardianResolved, data, { actorId: "hero", choice: "pass" }).events).scene;
+guardianResolved = Engine.dispatchMany(guardianResolved, Engine.resolvePendingAction(guardianResolved, data).events).scene;
+assert.equal(guardianResolved.actors[0].x, 4, "Audited enemy push rewards resolve after the target's Reaction");
+assert.ok(guardianResolved.actors[0].effects.includes("negative.подброшен"));
 
 const bodyguardsScene = structuredClone(enemyScene);
 bodyguardsScene.actors[1].profileId = "enemy.common.bodyguards";
@@ -2017,5 +2066,23 @@ assert.equal(placeWisp.ok, true);
 const movedWispScene = Engine.dispatchMany(movingWispScene, placeWisp.events).scene;
 const movedWisp = movedWispScene.markers.find(marker => marker.id === selectedWisp.id);
 assert.deepEqual([movedWisp.x, movedWisp.y], [4, 1], "The selected wisp moves to the confirmed highlighted cell");
+const leonScene = structuredClone(scene);
+leonScene.tension = 3;
+leonScene.activeActorId = "leon";
+leonScene.actors[1] = {
+  id: "leon", kind: "enemy", name: "Леон", team: "enemy",
+  profileId: "enemy.named.leon-academy-spatial-mage", tier: 1,
+  space: "main", x: 3, y: 3, ap: 2, baseAp: 2, focus: 0,
+  hp: 16, maxHp: 16, speed: 2, armor: 0, evasion: 2,
+  effects: [], usedActions: [], usedTrump: false, acted: false,
+};
+const elementalBreach = data.enemies.named.find(enemy => enemy.en === "Leon, Academy Spatial Mage").rules.find(rule => rule.en === "Elemental Breach");
+const preparedBreach = Engine.prepareEnemyRule(leonScene, data, { actorId: "leon", ruleId: elementalBreach.id });
+assert.equal(preparedBreach.ok, true);
+assert.equal(preparedBreach.events.filter(event => event.type === "actor.spawn").length, 2);
+const breachedScene = Engine.dispatchMany(leonScene, preparedBreach.events).scene;
+assert.equal(breachedScene.actors.filter(actor => actor.summonerId === "leon").length, 2);
+assert.equal(breachedScene.actors.find(actor => actor.name.includes("Вайю"))?.baseAp, 1);
+assert.equal(breachedScene.actors.find(actor => actor.name.includes("Агни"))?.hp, 1);
 
 console.log("Scene engine QA passed: canonical Turns and AP, once-per-Round actions, strict Reactions, truthful enemy automation, effects, movement, damage, and public events");

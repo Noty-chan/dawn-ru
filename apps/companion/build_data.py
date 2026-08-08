@@ -32,6 +32,7 @@ OUTLOOK_FILE = "pages-037-051-unstructured-play.md"
 COMBAT_FILE = "pages-052-064-structured-combat-core.md"
 ENEMY_FILE = "pages-109-119-general-enemy-types.md"
 MODIFIER_FILE = "pages-120-124-combat-stakes-modifiers-credits.md"
+NAMED_ENEMY_FILE = ROOT.parent.parent / "source" / "companion" / "named-enemies.md"
 UNIVERSAL_FILE = "pages-020-028-universal-rules.md"
 NARRATOR_FILE = "pages-100-108-narrator-tools.md"
 
@@ -544,14 +545,15 @@ def parse_enemy_stats(raw: str) -> dict:
     return stats
 
 
-def parse_enemies(fname: str, kind: str) -> list:
+def parse_enemies(fname, kind: str) -> list:
     """Канонические профили врагов без потери текста их меняющих правила особенностей."""
-    lines = (TR / fname).read_text(encoding="utf-8").splitlines()
+    path = fname if isinstance(fname, Path) else TR / fname
+    lines = path.read_text(encoding="utf-8").splitlines()
     enemies = []
     enemy = None
     active_rule = None
     active_rule_field = "text"
-    enabled = kind == "common"
+    enabled = kind in {"common", "named"}
     for raw in lines:
         line = raw.rstrip()
         if kind == "modifier" and line == "## Враги-Модификаторы":
@@ -574,6 +576,7 @@ def parse_enemies(fname: str, kind: str) -> list:
                 "examples": "",
                 "statsRaw": "",
                 "stats": {},
+                "tokenImage": "",
                 "passive": "",
                 "rules": [],
                 "text": "",
@@ -596,6 +599,9 @@ def parse_enemies(fname: str, kind: str) -> list:
         if line.startswith("**Параметры:**"):
             enemy["statsRaw"] = line.removeprefix("**Параметры:**").strip()
             enemy["stats"] = parse_enemy_stats(line)
+            continue
+        if line.startswith("**Токен:**"):
+            enemy["tokenImage"] = line.removeprefix("**Токен:**").strip().strip("`")
             continue
         rule_match = RE_ENEMY_RULE.match(line)
         if rule_match:
@@ -761,6 +767,7 @@ def main():
             "common": parse_enemies(ENEMY_FILE, "common"),
             "modifiers": parse_enemies(MODIFIER_FILE, "modifier"),
             "antagonistTraits": parse_antagonist_traits(),
+            "named": parse_enemies(NAMED_ENEMY_FILE, "named"),
         },
     }
     n_tech = sum(len(a["techniques"]) for a in data["archetypes"])
@@ -790,7 +797,7 @@ def main():
           f"{len(data['outlooks'])} мировоззрений, {n_gifts} даров, "
           f"{len(data['effects']['positive'])}+{len(data['effects']['negative'])} эффектов, "
           f"{len(data['actions']['list'])} действий, "
-          f"{len(data['enemies']['common'])}+{len(data['enemies']['modifiers'])} врагов -> {out.name}")
+          f"{len(data['enemies']['common'])}+{len(data['enemies']['modifiers'])}+{len(data['enemies']['named'])} врагов -> {out.name}")
 
 
 if __name__ == "__main__":

@@ -21,16 +21,19 @@ const ENEMY_AUTO_ATTACK_RULES = new Map([
   ["enemy.common.captor.attack.catch-and-release", 2],
   ["enemy.common.pugilist.attack.flurry-of-strikes", 2],
   ["enemy.common.slime.attack.goop", 1],
+  ["enemy.common.glutton.attack.slobber", 1],
+  ["enemy.common.mount.attack.thrash", 1],
+  ["enemy.common.daredevil.attack.dance", 1],
+  ["enemy.common.guardian.attack.shove", 1],
+  ["enemy.common.berserker.attack.thrash", 1],
+  ["enemy.common.hound-master.attack.shove", 1],
   ["enemy.common.bannerman.attack.swing", 1],
   ["enemy.common.baron.attack.suppress", 1],
   ["enemy.common.cultist.attack.swipe", 1],
   ["enemy.common.necromancer.attack.terrifying-shot", 2],
-  ["enemy.common.glutton.attack.slobber", 1],
-  ["enemy.common.guardian.attack.shove", 1],
-  ["enemy.common.mount.attack.thrash", 1],
-  ["enemy.common.daredevil.attack.dance", 1],
-  ["enemy.common.berserker.attack.thrash", 1],
-  ["enemy.common.hound-master.attack.shove", 1],
+  ["enemy.named.leon-academy-spatial-mage.attack.emerge", 1],
+  ["enemy.named.leon-s-vayu-spirit.attack.air-shove", 0],
+  ["enemy.named.leon-s-agni-spirit.attack.fire-spark", 0],
 ]);
 // These overrides are reviewed facts omitted by the prose parser. They route
 // otherwise ordinary attacks through existing target and post-hit families.
@@ -41,6 +44,7 @@ const ENEMY_ATTACK_FAMILY_RULES = new Map([
   ["enemy.common.daredevil.attack.dance", { maxTargets: 2, adjacent: true }],
   ["enemy.common.berserker.attack.thrash", { postPush: 1 }],
   ["enemy.common.hound-master.attack.shove", { postPush: 2 }],
+  ["enemy.named.leon-s-vayu-spirit.attack.air-shove", { postPush: 1 }],
 ]);
 const ENEMY_AUTO_EFFECT_RULES = new Set([
   "enemy.common.assassin.action.neutralize-target",
@@ -66,6 +70,10 @@ const ENEMY_FULL_RULES = new Map([
   ["enemy.common.viper.action.lick-the-knife", { type: "corrupted-damage", formula: "3(+1)" }],
   ["enemy.common.cocoon.trump.quick-growth", { type: "growth-and-turn" }],
   ["enemy.common.guardian.trump.imposing-presence", { type: "imposing-presence" }],
+  ["enemy.named.leon-academy-spatial-mage.trump.elemental-breach", {
+    type: "summon-profiles",
+    profiles: ["enemy.named.leon-s-vayu-spirit", "enemy.named.leon-s-agni-spirit"],
+  }],
 ]);
 const ENEMY_TARGET_LIMITS = new Map([
   ["enemy.common.behemoth.action.leap", 40],
@@ -136,7 +144,11 @@ function masterAtArmsStatus(scene, actorId, request = {}) {
 function availableActions(scene, data, actorId) {
   const actor = actorById(scene, actorId);
   if (!actor) return [];
-  return (data?.actions?.list || []).map(action => {
+  // Canon: enemies spend AP on their profile actions or Step. They do not get
+  // the player's Jump, Attacks, Utility actions, or defensive Reactions.
+  const enemyProfileActor = actor.kind === "enemy" || Boolean(actor.profileId);
+  const baseActions = enemyProfileActor ? (data?.actions?.list || []).filter(action => action.name === "Шаг") : (data?.actions?.list || []);
+  return baseActions.map(action => {
     const cost = actorActionCost(actor, action);
     const reaction = action.group === "Защита" || action.en === "Реакция";
     let quickSource = quickActionSources(scene, data, actor, action)[0] || null;
@@ -194,6 +206,7 @@ function prepareAction(scene, data, request = {}) {
   if (!declaredAction) errors.push("Неизвестное базовое действие.");
   if (scene.pendingActionPlan && (request.planId !== scene.pendingActionPlan.id || request.actorId !== scene.pendingActionPlan.actorId || request.actionId !== scene.pendingActionPlan.actionId)) errors.push("Действие не совпадает с сохранённым составным планом.");
   let available = actor && declaredAction ? availableActions(scene, data, actor.id).find(item => item.id === declaredAction.id) : null;
+  if (actor && declaredAction && !available) errors.push("Это базовое действие недоступно этому типу участника.");
   const planStatus = actor && declaredAction ? cunningPlanStatus(scene, data, actor.id, declaredAction.id) : null;
   if (request.useCunningPlan) {
     if (!planStatus?.available) errors.push(planStatus?.reason || "Хитрый план сейчас недоступен.");
@@ -288,6 +301,7 @@ function prepareAction(scene, data, request = {}) {
     targets = targetIds.map(id => actorById(scene, id));
   }
   const heavenlyLevel = Number(actor.techniques?.["altruist.heavenly-saint"] || 0), heavenlyHealing = !zealotRupture && (action.name === "Заклинание" && heavenlyLevel >= 2 || action.name === "Завершение" && heavenlyLevel >= 3 && actionAttribute === "spirit");
+  const caughtByConstrictor = target => Number(actor.techniques?.["disruptor.constrictor"] || 0) >= 1 && effectStateFor(target, "negative.пойман")?.sources.some(source => source.actorId === actor.id);
   const startRage = action.name === "Взаимодействие" && Number(actor.techniques?.["ruiner.feral-arcana"] || 0) >= 2 && Boolean(request.startRage);
   const revelationEligible = ["Зарядка", "Заклинание"].includes(action.name) || action.name === "Завершение" && actionAttribute === "spirit";
   const useRevelation = Boolean(request.useRevelation) && Number(actor.techniques?.["ruiner.zealot"] || 0) >= 1 && revelationEligible;
@@ -320,6 +334,7 @@ function prepareAction(scene, data, request = {}) {
     events[0].payload.armament = { groupId: MASTER_AT_ARMS_GROUP, modeId: armamentMode, label: armament.label };
     events.push({ type: "rule-mode.set", actorId: actor.id, payload: { groupId: MASTER_AT_ARMS_GROUP, modeId: armamentMode, ruleId: "vagabond.master-at-arms.1", participantIds: [actor.id, ...targetIds] } });
   }
+  if(request.roll&&Number(actor.ruleState?.empathSupport||0)>0)events.push({type:"actor.state",actorId:actor.id,payload:{key:"empathSupport",value:0,sourceActionId:"altruist.empath.3",reason:"Поддержка применена к следующему броску"}});
   if (request.useCunningPlan) events.push({ type: "rule-clock.tick", actorId: actor.id, payload: { clockId: "vagabond.cunning-fighter.plan", delta: -1, sourceActionId: "vagabond.cunning-fighter.1.plan", reason: "План и исполнение" } });
   if (useRevelation) events.push({ type: "rule-clock.tick", actorId: actor.id, payload: { clockId: "ruiner.zealot.revelation", delta: -1, sourceActionId: "ruiner.zealot.1", reason: "Изменение итоговых Успехов" } });
   if (grasp) {
@@ -372,7 +387,7 @@ function prepareAction(scene, data, request = {}) {
       }
     }
   } else if (["Стычка", "Заклинание", "Завершение"].includes(action.name)) {
-    const limit = (armamentMode === "chain" || gunslingerSkirmish || knifeThrow || breacherSkirmish ? 4 : action.name === "Заклинание" ? 5 : 1) + (spellModifiers.includes("outstanding") ? Number(actor.attrs?.mind || 0) : 0);
+  const limit = (armamentMode === "chain" || gunslingerSkirmish || knifeThrow || breacherSkirmish ? 4 : action.name === "Заклинание" ? 5 : 1) + (spellModifiers.includes("outstanding") ? Number(actor.attrs?.mind || 0) : 0);
     const disappeared = hasEffect(scene, actor, "positive.исчез");
     let attackOrigin = grasp && request.destination ? { ...actor, x: request.destination.x, y: request.destination.y } : actor;
     if (armamentMode === "blade" && armament?.available) {
@@ -402,7 +417,8 @@ function prepareAction(scene, data, request = {}) {
     if (heavenlyHealing ? targets.some(target => target.team !== actor.team || target.id === actor.id) : !thunderDischarge && !zealotRupture && targets.some(target => target.team === actor.team)) errors.push(heavenlyHealing ? "Очищающий свет выбирает союзника, но не самого исполнителя." : "Базовая Атака может выбирать целью только противника.");
     if (action.name === "Стычка" && !gunslingerSkirmish && !knifeThrow && targets.length > 2) errors.push("Стычка выбирает не больше 2 целей.");
     if (action.name !== "Стычка" && targets.length > 1 && !thunderDischarge && !eclipseStars && !zealotRupture) errors.push(`${action.name} выбирает только одну цель.`);
-    if (!thunderDischarge && !eclipseStars && !zealotRupture && targets.some(target => distance(attackOrigin, target) > limit)) errors.push(`Цель должна быть в пределах ${limit} клеток от клетки появления.`);
+    const constrictorReach = target => action.name === "Завершение" && Number(actor.techniques?.["disruptor.constrictor"] || 0) >= 2 && ["body", "talent"].includes(actionAttribute) && caughtByConstrictor(target);
+    if (!thunderDischarge && !eclipseStars && !zealotRupture && targets.some(target => distance(attackOrigin, target) > limit && !constrictorReach(target))) errors.push(`Цель должна быть в пределах ${limit} клеток от клетки появления.`);
     const bonus = (action.name === "Завершение" ? Number(scene.tension || 0) : 0) + (spellModifiers.includes("fierce") ? Number(actor.attrs?.mind || 0) : 0), drainLife = Boolean(actor.ruleState?.drainLife && action.name === "Завершение" && actor.ruleState?.grimTransformed), adjustedDamage = value => drainLife ? Math.ceil(Math.max(0, value) / 2) : Math.max(0, value);
     if (heavenlyHealing) {
       const removalMap = request.removeEffectIdsByTarget && typeof request.removeEffectIdsByTarget === "object" ? request.removeEffectIdsByTarget : {};
@@ -422,7 +438,7 @@ function prepareAction(scene, data, request = {}) {
       const effectDamageDivisor = (drainLife ? 2 : 1) * (eclipseStars || icicleHalo ? 2 : 1);
       const areaDamage = value => eclipseStars || icicleHalo ? Math.ceil(adjustedDamage(value) / 2) : adjustedDamage(value);
       const effectDamageBase = Number(request.roll?.successes || 0) + bonus;
-      const effectDamageBaseByTarget = Object.fromEntries(targets.map(target => [target.id, effectDamageBase + (thunderDischarge && hasEffect(scene, target, "negative.ошеломлен") ? Number(actor.tier || 1) : 0)]));
+      const effectDamageBaseByTarget = Object.fromEntries(targets.map(target => [target.id, effectDamageBase + (thunderDischarge && hasEffect(scene, target, "negative.ошеломлен") ? Number(actor.tier || 1) : 0) + (action.name === "Завершение" && Number(actor.techniques?.["disruptor.constrictor"] || 0) >= 2 && caughtByConstrictor(target) ? Number(actor.tier || 1) : 0)]));
       const postDisplacements = armamentMode === "polearm" ? targets.map(target => ({ targetId: target.id, mode: "push", maximum: 3, name: "Древко", ruleId: "vagabond.master-at-arms.1", collisionDamagePerCell: 0 })) : breacherSkirmish ? targets.filter(target => distance(attackOrigin, target) <= 2).map(target => ({ targetId: target.id, mode: "push", maximum: 1, name: "Картечь", ruleId: "powerhouse.breacher.1", collisionDamagePerCell: 0 })) : [];
       const dragonslayerTear = action.name === "Завершение" && actionAttribute === "body" && Number(actor.techniques?.["powerhouse.dragonslayer"] || 0) >= 1 ? ["negative.разорван"] : [];
       const postSelfEffects = armamentMode === "blade" ? ["positive.усилен"] : [], postTargetEffects = armamentMode === "polearm" ? ["negative.подброшен", "negative.замедлен"] : armamentMode === "chain" ? ["negative.разорван", "negative.порчен"] : [];
@@ -594,6 +610,19 @@ function prepareEnemyRule(scene, data, request = {}) {
   if (actor && (available?.adjacent || rule?.adjacent) && targets.some(target => distance(actor, target) > 1)) errors.push("Цель должна быть смежной.");
   if (actor && rule?.range && targets.some(target => distance(actor, target) > Number(rule.range))) errors.push(`Цель должна быть в пределах ${rule.range} клеток.`);
   if (fullRule?.type === "pugilist-stance" && (!Number.isInteger(Number(request.options?.stanceStep)) || Number(request.options.stanceStep) < 1 || Number(request.options.stanceStep) > 4)) errors.push("Выберите шаг Пассивa от 1 до 4.");
+  const summonCells = [];
+  if (fullRule?.type === "summon-profiles" && actor && space) {
+    const occupied = new Set((scene.actors || []).filter(item => !item.knockedOut && item.space === actor.space).map(item => `${item.x},${item.y}`));
+    for (const [dx, dy] of [[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,-1],[1,-1],[-1,1]]) {
+      const x = Number(actor.x) + dx, y = Number(actor.y) + dy;
+      if (x >= 0 && y >= 0 && x < Number(space.width) && y < Number(space.height) && !occupied.has(`${x},${y}`) && !removedCellKeys(scene, actor.space).has(`${x},${y}`)) {
+        summonCells.push({ x, y });
+        occupied.add(`${x},${y}`);
+      }
+      if (summonCells.length >= fullRule.profiles.length) break;
+    }
+    if (!summonCells.length) errors.push("Для призыва нужен хотя бы один свободный участок рядом с Леоном.");
+  }
   const hasRoll = request.roll && Array.isArray(request.roll.rolls);
   const hasDirectDamage = Number.isFinite(Number(request.damage)) && Number(request.damage) >= 0;
   if (attackModifiers.selectedIds.length && !hasRoll) errors.push("Модификатор Преимущества требует бросок Атаки.");
@@ -619,6 +648,48 @@ function prepareEnemyRule(scene, data, request = {}) {
     const match = String(fullRule.formula).match(/^(\d+)\(\+(\d+)\)$/), perTarget = match ? Number(match[1]) + Math.max(0, Number(actor.tier || 1) - 1) * Number(match[2]) : 0;
     const amount = targetIds.length * perTarget;
     targets.forEach(target => events.push({ type: "damage.apply", actorId: actor.id, payload: { targetId: target.id, amount, sourceActionId: rule.id } }));
+  }
+  if (fullRule?.type === "summon-profiles") {
+    fullRule.profiles.slice(0, summonCells.length).forEach((profileId, index) => {
+      const summonProfile = enemyProfileById(data, profileId), stats = summonProfile?.stats || {}, baseAp = 1;
+      if (!summonProfile) return;
+      events.push({
+        type: "actor.spawn",
+        actorId: actor.id,
+        payload: {
+          actor: {
+            id: `summon-${eventId()}`,
+            kind: "enemy",
+            team: actor.team,
+            heroId: null,
+            profileId: summonProfile.id,
+            name: summonProfile.name,
+            tier: actor.tier,
+            space: actor.space,
+            x: summonCells[index].x,
+            y: summonCells[index].y,
+            hp: Number(stats.health || 1),
+            maxHp: Number(stats.health || 1),
+            focus: 0,
+            ap: baseAp,
+            baseAp,
+            speed: Number(stats.speed || 3),
+            armor: Number(stats.armor || 0),
+            evasion: Number(stats.evasion || 0),
+            effects: [],
+            usedActions: [],
+            usedTrump: false,
+            acted: false,
+            hidden: false,
+            tokenSymbol: index === 0 ? "◎" : "✹",
+            tokenColor: index === 0 ? "#6fc9d8" : "#df7836",
+            tokenImage: "",
+            portraitImage: "",
+            summonerId: actor.id,
+          },
+        },
+      });
+    });
   }
   if (rule.kind === "attack" && payload.automation === "attack") {
     targets.forEach(target => events.push({ type: "reaction.offer", actorId: target.id, payload: { sourceActorId: actor.id, actionId: rule.id } }));

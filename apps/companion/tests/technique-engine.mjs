@@ -29,7 +29,7 @@ const scene = {
 };
 
 assert.ok(Engine.rulesFor(scene.actors[0].techniques).some(rule => rule.id === "ruiner.bombardier.3"));
-assert.equal(Engine.RULES.find(rule => rule.id === "ruiner.bombardier.3").automation, "partial");
+assert.equal(Engine.RULES.find(rule => rule.id === "ruiner.bombardier.3").automation, "full");
 assert.equal(Engine.RULES.find(rule => rule.id === "disruptor.chemist.1").automation, "full");
 const coverage = Engine.techniqueCoverage(context.DAWN_DATA);
 const canonicalLevelIds = Array.from(context.DAWN_DATA.archetypes.flatMap(archetype =>
@@ -83,6 +83,15 @@ const explosion = Engine.preview(scene, {
 assert.equal(explosion.ok, true);
 assert.equal(explosion.affectedCells.length, 25);
 assert.deepEqual([...explosion.affectedActorIds].sort(), ["enemy-a", "enemy-b"].sort());
+
+const empathScene=structuredClone(scene);
+empathScene.actors[0].techniques={"altruist.empath":3};
+empathScene.actors[0].focus=3;empathScene.actors[0].ap=1;
+empathScene.actors[1].team="hero";empathScene.actors[1].tier=2;
+const support=Engine.preview(empathScene,{actorId:"hero",ruleId:"altruist.empath.3",targetIds:["enemy-a"]});
+assert.equal(support.ok,true);
+assert.deepEqual(JSON.parse(JSON.stringify(support.events.filter(event=>event.type==="resource.spend").map(event=>[event.payload.resource,event.payload.amount]))),[["focus",3],["ap",1]]);
+assert.equal(support.events.find(event=>event.type==="actor.state").payload.value,2);
 
 const tooFar = Engine.preview(scene, {
   actorId: "hero",

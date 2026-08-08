@@ -469,11 +469,12 @@ function respondRulePrompt(scene, data, request = {}) {
       }
     }
   }
-  if (prompt.kind === "wisp-primary" && choice !== "pass") {
-    if (Number(actor.techniques?.["altruist.will-o-wisp"] || 0) >= 3) {
+  if (prompt.kind === "wisp-primary") {
+    events.push({ type: "actor.state", actorId: actor.id, payload: { key: "wispCreationUsed", value: true, sourceActionId: "altruist.will-o-wisp.1" } });
+    if (choice !== "pass" && Number(actor.techniques?.["altruist.will-o-wisp"] || 0) >= 3) {
       const secondOptions = ["single", ...Object.keys(WISP_TYPES).filter(id => id !== choice).flatMap(id => [`combine:${id}`, `split:${id}`])];
       events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${prompt.id}-secondary`, kind: "wisp-secondary", sourceActorId: actor.id, title: "Парные духи", text: "Оставить один Дух, объединить два свойства или создать два отдельных Пламени?", options: secondOptions, context: { firstType: choice }, participantIds: [actor.id] } });
-    } else {
+    } else if (choice !== "pass") {
       const spirit = WISP_TYPES[choice];
       events.push({ type: "marker.create", actorId: actor.id, payload: { id: `wisp-${prompt.id}`, space: actor.space, x: actor.x, y: actor.y, markerKind: "ritual", label: `Духовное пламя · ${spirit.label}`, color: "#ef9ac1", source: "altruist.will-o-wisp.1", ruleId: "altruist.will-o-wisp.1", duration: "scene", ownerActorId: actor.id, metadata: { spiritTypes: [choice], effectRules: [{ effect: spirit.effect, audience: spirit.audience }] } } });
     }
@@ -495,6 +496,19 @@ function respondRulePrompt(scene, data, request = {}) {
     events.push({ type: "actor.move", actorId: target.id, payload: { space: target.space, x: stop.x, y: stop.y, movement: "Дружелюбные духи", forced: true, participantIds: [actor.id, target.id] } });
     events.push({ type: "actor.enter", actorId: target.id, payload: { space: target.space, x: stop.x, y: stop.y, movement: "Дружелюбные духи", forced: true } });
   }
+  if (prompt.kind === "constrictor-follow" && choice === "pull") {
+    const targetIds = [...new Set(prompt.context?.targetIds || [])].filter(id => actorById(scene, id));
+    const plan = prepareDisplacements(scene, targetIds.map(targetId => ({ actorId: targetId, mode: "pull", sourceActorId: actor.id, maximum: 99, allowPartial: true, optional: true, name: "Обвить · притягивание", ruleId: "disruptor.constrictor.1", participantIds: [actor.id, targetId] })));
+    if (!plan.ok) return { ok: false, errors: plan.errors, events: [] };
+    for (const move of plan.events) {
+      events.push(move);
+      events.push({ type: "actor.enter", actorId: move.actorId, payload: { space: move.payload.space, x: move.payload.x, y: move.payload.y, movement: "Обвить · притягивание", forced: true } });
+    }
+  }
+  if (prompt.kind === "constrictor-move-select" && choice !== "pass") {
+    const remainingTargetIds = [...new Set(prompt.context?.targetIds || prompt.options || [])].filter(id => id !== choice && actorById(scene, id));
+    events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${prompt.id}-${choice}-cell`, kind: "constrictor-move-cell", sourceActorId: actor.id, targetId: choice, title: "Обвить · перемещение", text: `Переместите ${actorById(scene, choice)?.name || "Пойманного"} на расстояние до 5 клеток.`, options: ["cancel"], context: { maxDistance: 5, remainingTargetIds }, participantIds: [actor.id, choice] } });
+  }
   if (prompt.kind === "empath-rush" && choice === "rush") events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${prompt.id}-cell`, kind: "empath-rush-cell", sourceActorId: actor.id, targetId: target.id, title: "Защитный отклик · Прорыв", text: `Выберите свободную клетку, смежную с ${target.name}, в пределах Скорости.`, options: ["cancel"], context: { targetId: target.id, maxDistance: Number(actor.speed || 0) }, participantIds: [actor.id, target.id] } });
   if (prompt.kind === "hunter-trap" && choice === "attack") {
     if (!target || target.knockedOut) return { ok: false, errors: ["Цель ловушки уже недоступна."], events: [] };
@@ -510,10 +524,10 @@ function respondRulePrompt(scene, data, request = {}) {
 function preparePromptPlacement(scene, request = {}) {
   const prompt = scene.pendingPrompt, actor = actorById(scene, prompt?.sourceActorId), marker = markerById(scene, prompt?.context?.markerId), target = actorById(scene, prompt?.targetId || prompt?.context?.targetId), destination = request.destination && { x: Number(request.destination.x), y: Number(request.destination.y) }, errors = [];
   const space = (scene.spaces || []).find(item => item.id === (marker?.space || actor?.space));
-  if (!prompt || !actor || !["marker-move-cell", "dim-mak-weak-point-cell", "empath-rush-cell", "reappear-cell", "knife-pickup-step", "meister-overclock-move", "egomaniac-style-move", "thunder-surge-cell", "siren-irresistible-cell", "untouchable-weave-cell"].includes(prompt.kind)) errors.push("Сейчас нет выбора клетки для правила.");
+  if (!prompt || !actor || !["marker-move-cell", "dim-mak-weak-point-cell", "empath-rush-cell", "reappear-cell", "knife-pickup-step", "meister-overclock-move", "egomaniac-style-move", "thunder-surge-cell", "siren-irresistible-cell", "untouchable-weave-cell", "constrictor-move-cell"].includes(prompt.kind)) errors.push("Сейчас нет выбора клетки для правила.");
   if (!space || !destination || !Number.isInteger(destination.x) || !Number.isInteger(destination.y) || destination.x < 0 || destination.y < 0 || destination.x >= Number(space?.width || 0) || destination.y >= Number(space?.height || 0)) errors.push("Выберите клетку в пределах поля.");
   if (space && destination && removedCellKeys(scene, space.id).has(cellKey(destination))) errors.push("Эта клетка удалена из поля.");
-  const movingActor = prompt?.kind === "siren-irresistible-cell" ? target : actor;
+  const movingActor = ["siren-irresistible-cell", "constrictor-move-cell"].includes(prompt?.kind) ? target : actor;
   if (prompt?.kind !== "marker-move-cell" && movingActor && !effectCellOccupancyStatus(scene, movingActor.id, { space: space?.id, x: destination?.x, y: destination?.y }).available) errors.push("Клетка занята.");
   if (prompt?.kind === "marker-move-cell") {
     if (!marker) errors.push("Духовное пламя больше не существует.");
@@ -567,6 +581,16 @@ function preparePromptPlacement(scene, request = {}) {
       }
     }
   }
+  let constrictorPath = [];
+  if (prompt?.kind === "constrictor-move-cell") {
+    if (!target || !effectStateFor(target, "negative.пойман")?.sources.some(source => source.actorId === actor.id)) errors.push("Цель больше не Поймана этим персонажем.");
+    else {
+      const unchanged = target.x === destination?.x && target.y === destination?.y;
+      constrictorPath = unchanged ? [] : movementPath(scene, target.id, destination, { forced: true, maxDistance: Number(prompt.context?.maxDistance || 5) });
+      if (!unchanged && !constrictorPath.length) errors.push("Пойманного можно переместить не дальше 5 клеток по доступному пути.");
+      if (unchanged) errors.push("Чтобы оставить Пойманного на месте, выберите «Не использовать» на предыдущем шаге.");
+    }
+  }
   if (errors.length) return { ok: false, errors, events: [] };
   const events = [{ type: "rule.respond", actorId: actor.id, payload: { promptId: prompt.id, choice: "cell", destination: clone(destination), sourceActorId: actor.id, targetId: target?.id || null, participantIds: [actor.id, target?.id].filter(Boolean) } }];
   if (prompt.kind === "thunder-surge-cell") {
@@ -585,6 +609,14 @@ function preparePromptPlacement(scene, request = {}) {
     }
     events.push({ type: "technique.resolve", actorId: actor.id, payload: { ruleId: "disruptor.siren.2", name: "Неотразимая", affectedActorIds: [target.id], participantIds: [actor.id, target.id] } });
     if (distance(actor, { ...destination, space: actor.space }) === 1) events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${prompt.id}-stun`, kind: "siren-irresistible-stun", sourceActorId: actor.id, targetId: target.id, title: "Неотразимая", text: `Наложить Ошеломлен на ${target.name}?`, options: ["stun", "pass"], participantIds: [actor.id, target.id] } });
+  } else if (prompt.kind === "constrictor-move-cell") {
+    if (constrictorPath.length) {
+      events.push({ type: "actor.move", actorId: target.id, payload: { space: target.space, x: destination.x, y: destination.y, movement: "Обвить · конец Хода", forced: true, path: constrictorPath.map(cellKey), topologyCrossings: constrictorPath.filter(point => point.teleported).map(point => ({ destination: cellKey(point), cutIds: point.crossedCutIds || [] })), participantIds: [actor.id, target.id] } });
+      events.push({ type: "actor.enter", actorId: target.id, payload: { space: target.space, x: destination.x, y: destination.y, movement: "Обвить · конец Хода", forced: true } });
+    }
+    events.push({ type: "technique.resolve", actorId: actor.id, payload: { ruleId: "disruptor.constrictor.1", name: "Обвить", affectedActorIds: [target.id], participantIds: [actor.id, target.id] } });
+    const remaining = [...new Set(prompt.context?.remainingTargetIds || [])].filter(id => actorById(scene, id));
+    if (remaining.length) events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${prompt.id}-next`, kind: "constrictor-move-select", sourceActorId: actor.id, title: "Обвить · конец Хода", text: "Можно переместить следующего Пойманного персонажа на расстояние до 5 клеток.", options: [...remaining, "pass"], context: { targetIds: remaining }, participantIds: [actor.id, ...remaining] } });
   } else if (prompt.kind === "untouchable-weave-cell") {
     events.push({ type: "actor.move", actorId: actor.id, payload: { space: actor.space, x: destination.x, y: destination.y, movement: "Маятник", path: weavePath.map(cellKey), topologyCrossings: weavePath.filter(point => point.teleported).map(point => ({ destination: cellKey(point), cutIds: point.crossedCutIds || [] })), participantIds: [actor.id] } });
     events.push({ type: "actor.enter", actorId: actor.id, payload: { space: actor.space, x: destination.x, y: destination.y, movement: "Маятник" } });
@@ -748,6 +780,7 @@ function resolvePendingAction(scene, data) {
       if (expectedDamage > 0) for (const effect of pending.effects || []) events.push({ type: "effect.apply", actorId: pending.actorId, payload: { targetId: resolvedTargetId, effect, sourceActionId: pending.actionId } });
       if (attackSucceeded) for (const effect of pending.successEffects || []) events.push({ type: "effect.apply", actorId: pending.actorId, payload: { targetId: resolvedTargetId, effect, sourceActionId: pending.techniqueRuleId || pending.actionId } });
       for (const effect of pending.postTargetEffects || []) events.push({ type: "effect.apply", actorId: pending.actorId, payload: { targetId: resolvedTargetId, effect, sourceActionId: pending.techniqueRuleId || pending.actionId, participantIds: [pending.actorId, resolvedTargetId] } });
+      if (attackSucceeded && status.eligibleIds.length === 1 && Number(source?.techniques?.["disruptor.constrictor"] || 0) >= 1 && (pending.declaredActionName || pending.name) === "Стычка") events.push({ type: "effect.apply", actorId: source.id, payload: { targetId: resolvedTargetId, effect: "negative.пойман", sourceActionId: "disruptor.constrictor.1", participantIds: [source.id, resolvedTargetId] } });
       const postDisplacement = (pending.postDisplacements || []).find(item => item.targetId === targetId) || (pending.postPush?.targetId === targetId ? { mode: "push", collisionDamagePerCell: 1, ...pending.postPush } : null);
       if (attackSucceeded && postDisplacement) {
         const destination = postDisplacement.mode === "push" ? pushDestination(scene, target, source, Number(postDisplacement.maximum || 99)) : null;
@@ -800,6 +833,7 @@ function resolvePendingAction(scene, data) {
     if (Number(pending.roll?.successes || 0) > 0) events.push({ type: "effect.apply", actorId: source.id, payload: { targetId: source.id, effect: "positive.регенерирует", sourceActionId: "ruiner.grim-ascendant.2", participantIds: [source.id] } });
     events.push({ type: "actor.state", actorId: source.id, payload: { key: "drainLife", value: false, sourceActionId: "ruiner.grim-ascendant.2" } });
   }
+  if(pending.masterArmament&&source){const equipped=[];for(const event of scene.log||[]){if(event.type==="turn.start"&&event.actorId===source.id)break;if(event.type==="technique.resolve"&&event.actorId===source.id&&event.payload?.ruleId==="vagabond.master-at-arms.1")equipped.push(event.payload.armament)}events.push({type:"actor.state",actorId:source.id,payload:{key:"masterArmament",value:pending.masterArmament,sourceActionId:"vagabond.master-at-arms.1"}});if(Number(source.techniques?.["vagabond.master-at-arms"]||0)>=2&&equipped.length===1){events.push({type:"resource.gain",actorId:source.id,payload:{resource:"ap",amount:1,sourceActionId:"vagabond.master-at-arms.2"}});events.push({type:"effect.apply",actorId:source.id,payload:{targetId:source.id,effect:"positive.ускорен",sourceActionId:"vagabond.master-at-arms.2",participantIds:[source.id]}})}events.push({type:"technique.resolve",actorId:source.id,payload:{ruleId:"vagabond.master-at-arms.1",name:"Многогранность",armament:pending.masterArmament,affectedActorIds:status.eligibleIds,participantIds:[source.id,...status.eligibleIds]}})}
   if (pending.createTerrain?.cells?.length && source) pending.createTerrain.cells.forEach((cell, index) => events.push({ type: "area.create", actorId: source.id, payload: { id: `terrain-${pending.id}-${index}`, space: source.space, areaType: "terrain", label: pending.createTerrain.label || "Высокая местность", source: pending.createTerrain.ruleId, ruleId: pending.createTerrain.ruleId, duration: "scene", ownerActorId: source.id, cells: [cell], hp: Number(pending.createTerrain.hp || 10), maxHp: Number(pending.createTerrain.hp || 10), participantIds: [source.id, ...status.eligibleIds] } }));
   const targetedCells = [...new Set([...(pending.targetCells || []), ...status.eligibleIds.map(id => actorById(scene, id)).filter(Boolean).map(cellKey)])];
   if (targetedCells.length && source) {
@@ -808,7 +842,7 @@ function resolvePendingAction(scene, data) {
       if (destination.distance) events.push({ type: "marker.move", actorId: marker.ownerActorId, payload: { markerId: marker.id, space: marker.space, x: destination.x, y: destination.y, movement: "Атака по Духовному пламени", participantIds: [source.id, marker.ownerActorId] } });
     }
   }
-  events.push({ type: pending.enemyRuleId ? "enemy.action.resolve" : "action.resolve", actorId: pending.actorId, payload: pending.enemyRuleId ? { ruleId: pending.enemyRuleId, name: pending.name, kind: "attack", targetIds: status.eligibleIds, skippedTargetIds: status.unavailableIds, reward: pending.reward || "" } : { actionId: pending.actionId, name: pending.name, attribute: pending.attribute || pending.roll?.attribute || null, roll: clone(pending.roll || null), targetIds: status.eligibleIds, skippedTargetIds: status.unavailableIds, icicleHalo: Boolean(pending.icicleHalo) } });
+  events.push({ type: pending.enemyRuleId ? "enemy.action.resolve" : "action.resolve", actorId: pending.actorId, payload: pending.enemyRuleId ? { ruleId: pending.enemyRuleId, name: pending.name, kind: "attack", targetIds: status.eligibleIds, skippedTargetIds: status.unavailableIds, reward: pending.reward || "" } : { actionId: pending.actionId, name: pending.name, attribute: pending.attribute || pending.roll?.attribute || null, roll: clone(pending.roll || null), targetIds: status.eligibleIds, skippedTargetIds: status.unavailableIds, icicleHalo: Boolean(pending.icicleHalo),masterArmament:pending.masterArmament||null } });
   if (pending.techniqueRuleId) events.push({ type: "technique.resolve", actorId: pending.actorId, payload: { ruleId: pending.techniqueRuleId, name: pending.techniqueName || pending.name, affectedActorIds: status.eligibleIds, skippedTargetIds: status.unavailableIds } });
   events.push({ type: "attack.clear", actorId: source?.id || pending.actorId, payload: { pendingId: pending.id } });
   return { ok: true, errors: [], events };

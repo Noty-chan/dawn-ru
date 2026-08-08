@@ -40,9 +40,11 @@
     { id: "altruist.heavenly-saint.1.foundation", techniqueId: "altruist.heavenly-saint", level: 1, name: "Сила молитвы", kind: "foundation", foundation: "alternate-resource", automation: "partial", resource: "faith", resourceLabel: "Вера", initialFormula: "spirit", replaces: ["focus"], note: "Вера начинается с Духа, не пополняется Передышкой/Зарядкой и растёт при выборе союзника целью." },
     { id: "altruist.heavenly-saint.2", techniqueId: "altruist.heavenly-saint", level: 2, name: "Очищающий свет", kind: "passive", automation: "decision", note: "Заклинание по союзникам использует лечебное разрешение и явный выбор снимаемых Эффектов." },
     { id: "altruist.heavenly-saint.3", techniqueId: "altruist.heavenly-saint", level: 3, name: "Великое восстановление", kind: "passive", automation: "decision", note: "Завершение Духом наследует лечение, даёт Регенерацию и один раз за Сцену снимает Рану цели." },
-    { id: "disruptor.autophage.1.foundation", techniqueId: "disruptor.autophage", level: 1, name: "Переливание", kind: "foundation", foundation: "alternate-resource", automation: "partial", resource: "health", resourceLabel: "Здоровье", initial: 0, replaces: ["focus"], note: "Трата Фокуса создаёт оплату уроном 2:1 через конвейер урона; получение Фокуса создаёт лечение 1:1." },
+    { id: "disruptor.autophage.1.foundation", techniqueId: "disruptor.autophage", level: 1, name: "Переливание", kind: "foundation", foundation: "alternate-resource", automation: "full", resource: "health", resourceLabel: "Здоровье", initial: 0, replaces: ["focus"], note: "Трата Фокуса создаёт оплату уроном 2:1 через конвейер урона; получение Фокуса создаёт лечение 1:1, а успешная Атака цели с двумя Эффектами запускает Регенерацию." },
     { id: "disruptor.autophage.2", techniqueId: "disruptor.autophage", level: 2, name: "Перенапряжение", kind: "autophage-overexert", automation: "decision" },
     { id: "disruptor.autophage.3", techniqueId: "disruptor.autophage", level: 3, name: "Рожденный изменчивой плотью", kind: "autophage-overexert", automation: "decision", double: true },
+    { id: "disruptor.constrictor.1", techniqueId: "disruptor.constrictor", level: 1, name: "Обвить", kind: "passive", automation: "decision", note: "Успешная одиночная Стычка накладывает Пойман; движение источника предлагает притянуть цели, а конец Хода — по очереди переместить их на расстояние до 5 клеток." },
+    { id: "disruptor.constrictor.2", techniqueId: "disruptor.constrictor", level: 2, name: "Удушение", kind: "passive", automation: "full", note: "Завершения Телом и Талантом игнорируют дальность для собственных Пойманных целей, а любое Завершение наносит им дополнительный урон Ступени." },
     { id: "vagabond.aerial-master.1.foundation", techniqueId: "vagabond.aerial-master", level: 1, name: "Над и вокруг", kind: "foundation", foundation: "stance", automation: "partial", stanceId: "vagabond.aerial-master.flight", requiredEffects: ["positive.ускорен"], note: "Условие входа в Стойку полёта и конфликт с другой Стойкой вычисляются канонически." },
     { id: "bulwark.servant-s-call.1.foundation", techniqueId: "bulwark.servant-s-call", level: 1, name: "Честь подчинённого", kind: "foundation", foundation: "owned-entities", automation: "partial", rulePrefix: "bulwark.servant-s-call", kinds: ["summon"], note: "Призывы собираются по владельцу и источнику правила; создание полноценного участника вместо маркера остаётся следующим этапом." },
     { id: "powerhouse.spellsword.3.foundation", techniqueId: "powerhouse.spellsword", level: 3, name: "Охотник на ведьм", kind: "foundation", foundation: "action-history", automation: "full", scope: "turn", actionNames: ["Заклинание"], note: "Ядро находит непосредственно предыдущее Заклинание и его цели; комбо проверяет Завершение Телом/Талантом по тем же целям и добавляет Дух к урону." },
@@ -66,6 +68,9 @@
     { id: "vagabond.untouchable.2", techniqueId: "vagabond.untouchable", level: 2, name: "Маятник", kind: "passive", automation: "decision", note: "Уворот перемещает до 3 клеток; если итоговое Уклонение сводит урон к 0, стол предлагает отменяемое повторное перемещение до 3 клеток и пишет его в журнал." },
     { id: "vagabond.dim-mak.1", techniqueId: "vagabond.dim-mak", level: 1, name: "Изучить слабость", kind: "passive", automation: "decision", note: "Повторное и третье Изучение получают Быстроту по тексту уровня; после Изучения можно поставить привязанную к цели Слабую точку, а Атака с её клетки снимает маркер, становится Быстрой и использует Разум." },
     { id: "vagabond.dim-mak.2", techniqueId: "vagabond.dim-mak", level: 2, name: "Полевая разведка", kind: "passive", automation: "decision", note: "Промах вражеской Атаки предлагает бесплатное Быстрое Изучение атакующего; снятие Слабой точки автоматически даёт 2 Уклонения." },
+    { id: "vagabond.master-at-arms.1", techniqueId: "vagabond.master-at-arms", level: 1, name: "Многогранность", kind: "armament", automation: "decision", note: "Вооружение выбирается вместе со Стычкой; ядро проверяет дистанцию, число целей и повторное экипирование, затем ведёт Эффекты и толчок." },
+    { id: "vagabond.master-at-arms.2", techniqueId: "vagabond.master-at-arms", level: 2, name: "Как вода", kind: "passive", automation: "full", note: "Второе экипирование за Ход автоматически даёт 1 ОД и Ускорен." },
+    { id: "vagabond.master-at-arms.3", techniqueId: "vagabond.master-at-arms", level: 3, name: "Мастер за работой", kind: "passive", automation: "partial", note: "Экипированное Вооружение сохраняется как состояние. Сложная геометрия Завершения пока остаётся под подтверждением Нарратора." },
     { id: "altruist.surgeon.1", techniqueId: "altruist.surgeon", level: 1, name: "Не навреди", kind: "surgery", automation: "full" },
     { id: "altruist.alchemist.1", techniqueId: "altruist.alchemist", level: 1, name: "Быстрая смесь", kind: "inventory", automation: "full" },
     { id: "altruist.alchemist.2", techniqueId: "altruist.alchemist", level: 2, name: "Мощная смесь", kind: "passive", automation: "full" },
@@ -81,7 +86,7 @@
     { id: "ruiner.spellcrafter.3", techniqueId: "ruiner.spellcrafter", level: 3, name: "Финализация", kind: "modifier-choice", automation: "decision", note: "Можно выбрать две разные Модификации и оплатить обе." },
     { id: "ruiner.bombardier.1", techniqueId: "ruiner.bombardier", level: 1, name: "Взрыв!!", kind: "area", automation: "full", shape: "square3", areaType: "attack", duration: "instant", range: 4 },
     { id: "ruiner.bombardier.2", techniqueId: "ruiner.bombardier", level: 2, name: "Взрыв!!!", kind: "area", automation: "full", shape: "square3", areaType: "attack", duration: "instant", range: 5, optionMinimum: { key: "focusSpent", value: 2, label: "потрачено Фокуса" } },
-    { id: "ruiner.bombardier.3", techniqueId: "ruiner.bombardier", level: 3, name: "ВЗРЫВ!!!!", kind: "area", shape: "square5", areaType: "attack", duration: "instant", range: 6, optionMinimum: { key: "focusSpent", value: 4, label: "потрачено Фокуса" }, note: "Урон и бросок разрешаются базовым действием." },
+    { id: "ruiner.bombardier.3", techniqueId: "ruiner.bombardier", level: 3, name: "ВЗРЫВ!!!!", kind: "area", automation: "full", shape: "square5", areaType: "attack", duration: "instant", range: 6, optionMinimum: { key: "focusSpent", value: 4, label: "потрачено Фокуса" }, note: "Зона, цели, трата Фокуса, Реакции и урон разрешаются общим конвейером зональной Атаки." },
     { id: "ruiner.rapid-fire-sorcery.2", techniqueId: "ruiner.rapid-fire-sorcery", level: 2, name: "Выжженная земля", kind: "area", shape: "cell", areaType: "difficult", duration: "scene" },
     { id: "ruiner.ritualist.1", techniqueId: "ruiner.ritualist", level: 1, name: "Лей-линии", kind: "marker", markerKind: "ritual", duration: "scene", color: "#6fc9d8" },
     { id: "ruiner.student-of-stars.2-line", techniqueId: "ruiner.student-of-stars", level: 2, name: "Бесформенная сила · линия", kind: "area", shape: "line", areaType: "attack", duration: "instant" },
@@ -109,6 +114,7 @@
     { id: "ruiner.grim-ascendant.2", techniqueId: "ruiner.grim-ascendant", level: 2, name: "Вытянуть жизнь", kind: "state-toggle", stateKey: "drainLife", automation: "decision", note: "Включите перед Завершением Духом: урон будет округлён вверх пополам, а Успех даст Регенерацию." },
     { id: "altruist.empath.1", techniqueId: "altruist.empath", level: 1, name: "Успокаивающая аура", kind: "passive", automation: "decision", note: "В начале Хода союзника стол предлагает снять один выбранный Эффект и наложить Усилен." },
     { id: "altruist.empath.2", techniqueId: "altruist.empath", level: 2, name: "Защитный отклик", kind: "passive", automation: "decision", note: "После внешней Раны или Эффекта стол предлагает бесплатный Прорыв в смежную клетку." },
+    { id: "altruist.empath.3", techniqueId: "altruist.empath", level: 3, name: "Ты в порядке?", kind: "bond-support", automation: "decision", note: "В бою оплачивает Поддержку 3 Фокусом и 1 ОД; следующая проверка выбранного союзника игнорирует Помеху или получает Преимущество Ступени." },
     { id: "altruist.will-o-wisp.1", techniqueId: "altruist.will-o-wisp", level: 1, name: "Пламя духовного плетения", kind: "passive", automation: "decision", note: "Первая Зарядка создаёт выбранное Пламя; его аура рассчитывается непосредственно по положению маркера." },
     { id: "altruist.will-o-wisp.2", techniqueId: "altruist.will-o-wisp", level: 2, name: "Дружелюбные духи", kind: "passive", automation: "decision", note: "Выход из Пламени вызывает выбор перемещения или остановки с проверкой Фокуса." },
     { id: "altruist.will-o-wisp.3", techniqueId: "altruist.will-o-wisp", level: 3, name: "Парные духи", kind: "passive", automation: "decision", note: "Поддерживаются одно Пламя с двумя свойствами либо два независимых Пламени." },
@@ -339,7 +345,12 @@
       if (errors.length) return { ok: false, engineVersion: VERSION, actorId: actor.id, rule: publicRule(rule), request: clone(request), errors, warnings: [], commands: [], events: [], affectedCells: [], affectedActorIds: targetIds };
       const effectFor = value => value <= 2 ? "negative.порчен" : value <= 4 ? "negative.ошеломлен" : "negative.обездвижен";
       const events = [{ type: "technique.prepare", actorId: actor.id, payload: { ruleId: rule.id, name: rule.name, targetIds, participantIds: [actor.id, ...targetIds] } }];
-      if (Number(actor.hp || 0) > Number(actor.guts || 0)) events.push({ type: "damage.apply", actorId: actor.id, payload: { targetId: actor.id, amount: 5, ignoreArmor: true, sourceActionId: rule.id, participantIds: [actor.id] } });
+      const overexertUses = rule.double ? 2 : 1;
+      let projectedHealth = Number(actor.hp || 0);
+      for (let use = 0; use < overexertUses; use += 1) if (projectedHealth > Number(actor.guts || 0)) {
+        events.push({ type: "damage.apply", actorId: actor.id, payload: { targetId: actor.id, amount: 5, ignoreArmor: true, ignoreEvasion: true, sourceActionId: rule.id, overexertUse: use + 1, participantIds: [actor.id] } });
+        projectedHealth = Math.max(0, projectedHealth - 5);
+      }
       if (rule.double) targetIds.forEach(targetId => rolls.forEach(value => events.push({ type: "effect.apply", actorId: actor.id, payload: { targetId, effect: effectFor(value), sourceActionId: rule.id, participantIds: [actor.id, targetId] } })));
       else targetIds.forEach(targetId => events.push({ type: "effect.apply", actorId: actor.id, payload: { targetId, effect: effectFor(rolls[0]), sourceActionId: rule.id, participantIds: [actor.id, targetId] } }));
       events.push({ type: "technique.resolve", actorId: actor.id, payload: { ruleId: rule.id, name: rule.name, affectedActorIds: targetIds, participantIds: [actor.id, ...targetIds] } });
@@ -349,6 +360,15 @@
       const prepared = global.DAWN_SCENE_ENGINE?.prepareTechniqueCombo(scene, global.DAWN_DATA, { actorId: actor.id, ruleId: rule.id, targetIds: request.targetIds || [], destination: request.destination || null, roll: request.roll || null, attribute: request.attribute || request.roll?.attribute || null, attackModifierIds: request.attackModifierIds || [] });
       if (!prepared?.ok) return { ok: false, engineVersion: VERSION, actorId: actor.id, rule: publicRule(rule), request: clone(request), errors: prepared?.errors || ["Ядро комбо недоступно."], warnings: [], commands: [], events: [], affectedCells: [], affectedActorIds: [] };
       return { ok: true, engineVersion: VERSION, actorId: actor.id, rule: publicRule(rule), request: clone(request), errors: [], warnings: [], commands: [], events: prepared.events, summary: `«${rule.name}»: комбо готово`, affectedCells: request.destination ? [pointKey(request.destination)] : [], affectedActorIds: clone(request.targetIds || []) };
+    }
+    if (rule.kind === "bond-support") {
+      const targetId=unique(request.targetIds||[])[0]||null,target=actorById(scene,targetId);
+      if((request.targetIds||[]).length!==1||!target||target.id===actor.id||target.team!==actor.team)errors.push("Поддержка выбирает ровно одного союзника, но не самого Эмпата.");
+      if(Number(actor.focus||0)<3)errors.push("Для Поддержки нужно 3 Фокуса.");
+      if(Number(actor.ap||0)<1)errors.push("Для Поддержки нужен 1 ОД.");
+      if(errors.length)return{ok:false,engineVersion:VERSION,actorId:actor.id,rule:publicRule(rule),request:clone(request),errors,warnings:[],commands:[],events:[],affectedCells:[],affectedActorIds:target?[target.id]:[]};
+      const advantage=Number(target.tier||1),events=[{type:"technique.prepare",actorId:actor.id,payload:{ruleId:rule.id,name:rule.name,targetIds:[target.id],participantIds:[actor.id,target.id]}},{type:"resource.spend",actorId:actor.id,payload:{resource:"focus",amount:3,sourceActionId:rule.id,participantIds:[actor.id,target.id]}},{type:"resource.spend",actorId:actor.id,payload:{resource:"ap",amount:1,sourceActionId:rule.id,participantIds:[actor.id,target.id]}},{type:"actor.state",actorId:target.id,payload:{key:"empathSupport",value:advantage,sourceActionId:rule.id,participantIds:[actor.id,target.id]}},{type:"technique.resolve",actorId:actor.id,payload:{ruleId:rule.id,name:rule.name,affectedActorIds:[target.id],participantIds:[actor.id,target.id]}}];
+      return{ok:true,engineVersion:VERSION,actorId:actor.id,rule:publicRule(rule),request:clone(request),errors:[],warnings:[],commands:[],events,summary:`${target.name} получает Поддержку на следующий бросок`,affectedCells:[],affectedActorIds:[target.id]};
     }
     if (rule.kind === "passive") return { ok: false, engineVersion: VERSION, actorId: actor.id, rule: publicRule(rule), request: clone(request), errors: ["Пассивное правило уже учтено автоматически."], warnings: [], commands: [], affectedCells: [], affectedActorIds: [] };
     if (rule.kind === "state-toggle") {
@@ -439,6 +459,8 @@
 
     if (rule.kind === "equidistant-teleport") {
       const destination = request.destination && { x: integer(request.destination.x), y: integer(request.destination.y) };
+      const creationMarks = Number(global.DAWN_SCENE_ENGINE?.ruleResourceStatus(scene, actor.id, { resource: "creation-marks" }).balance || 0);
+      if (Number(actor.techniques?.["ruiner.creation-ascetic"] || 0) >= 1 && creationMarks > 0) errors.push("С Метками творения Заклинание должно использовать форму Аскета творения и потратить все Метки.");
       if (!inBounds(sourceSpace, anchor)) errors.push("Сначала выберите несмежную пустую клетку Заклинания.");
       if (anchor && manhattan(actor, anchor) <= 1) errors.push("Клетка Заклинания должна быть несмежной.");
       if (anchor && manhattan(actor, anchor) > Number(rule.range || 5)) errors.push(`Клетка Заклинания должна быть в пределах ${rule.range || 5} клеток.`);
