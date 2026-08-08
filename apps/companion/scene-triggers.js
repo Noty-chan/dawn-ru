@@ -396,6 +396,34 @@ function effectLifecycleEvents(scene, event) {
   return events;
 }
 
+function entityLifecycleEvents(scene, event) {
+  const events = [], actorId = event.actorId || null;
+  const areaDue = object => event.type === "area.create" && object.id === event.payload?.id && object.duration === "instant"
+    || event.type === "turn.start" && object.duration === "nextTurn" && object.ownerActorId === actorId
+    || event.type === "turn.end" && object.duration === "endTurn" && object.ownerActorId === actorId
+    || event.type === "round.end" && object.duration === "round";
+  const markerDue = marker => event.type === "turn.start" && marker.duration === "nextTurn" && marker.ownerActorId === actorId
+    || event.type === "turn.end" && marker.duration === "endTurn" && marker.ownerActorId === actorId
+    || event.type === "round.end" && marker.duration === "round";
+  const reason = event.type === "area.create" ? "Мгновенная область разрешена." : event.type === "turn.start" ? "Начался следующий Ход владельца." : event.type === "turn.end" ? "Завершился Ход владельца." : "Завершился Раунд.";
+  for (const object of (scene.objects || []).filter(areaDue)) events.push({ type: "area.remove", actorId: object.ownerActorId || actorId, payload: { id: object.id, automatic: true, reason, boundaryEventId: event.id, participantIds: object.ownerActorId ? [object.ownerActorId] : [] } });
+  for (const marker of (scene.markers || []).filter(markerDue)) events.push({ type: "marker.remove", actorId: marker.ownerActorId || actorId, payload: { markerId: marker.id, automatic: true, reason, boundaryEventId: event.id, participantIds: marker.ownerActorId ? [marker.ownerActorId] : [] } });
+  return events;
+}
+
+function reminderLifecycleEvents(scene, event) {
+  const events = [];
+  for (const reminder of scene.reminders || []) {
+    if (reminder.due) continue;
+    const ownerMatches = reminder.ownerActorId === event.actorId;
+    const due = reminder.boundary === "turnStart" && event.type === "turn.start" && ownerMatches && Number(reminder.createdTurnSerial || 0) < Number(scene.turnSerial || 0)
+      || reminder.boundary === "turnEnd" && event.type === "turn.end" && ownerMatches && Number(reminder.createdTurnSerial || 0) <= Number(event.payload?.endedTurnSerial || 0)
+      || reminder.boundary === "roundEnd" && event.type === "round.end" && Number(reminder.createdRound || 1) < Number(scene.round || 1);
+    if (due) events.push({ type: "reminder.due", actorId: reminder.ownerActorId || event.actorId, payload: { id: reminder.id, boundaryEventId: event.id, participantIds: reminder.ownerActorId ? [reminder.ownerActorId] : [] } });
+  }
+  return events;
+}
+
 function triggeredEvents(scene, event) {
   const payload = event.payload || {}, actor = event.actorId ? actorById(scene, event.actorId) : null, resumed = event.type === "rule.respond" ? resumeQueuedTriggers(scene, event) : { events: [], promptReserved: false }, routed = triggerRouteStatus(scene, event, { promptReserved: resumed.promptReserved }), events = [...resumed.events, ...routed.events], promptQueued = () => events.some(item => item.type === "rule.prompt");
   if (event.type === "actor.knockout" && payload.applied && scene.pendingActionPlan?.actorId === payload.targetId) {
@@ -671,6 +699,8 @@ function triggeredEvents(scene, event) {
   }
   if ((event.type === "area.remove" || event.type === "object.damage" && Number(payload.dealt || 0) > 0) && actor && Number(actor.techniques?.["ruiner.creation-ascetic"] || 0) >= 2) events.push({ type: "rule-resource.gain", actorId: actor.id, payload: { resource: "creation-marks", amount: 1, sourceActionId: "ruiner.creation-ascetic.2" } });
   events.push(...effectLifecycleEvents(scene, event));
+  events.push(...entityLifecycleEvents(scene, event));
+  events.push(...reminderLifecycleEvents(scene, event));
   return events;
 }
 

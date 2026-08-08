@@ -39,11 +39,11 @@ SHA-256 проверенных файлов: `b9ab51ceb86ee102cd6ddb503572811679
 | `action-modifier` | Модификатор или новое действие | готово | `scene-actions.js / scene-responses.js` | 244 |
 | `composite-action` | Сохраняемое составное действие | готово | `scene-query.js / scene-events.js / scene-responses.js / scene-effects.js` | 4 |
 | `effect-lifecycle` | Механика, источник и срок Эффекта | готово | `scene-engine-core.js / scene-query.js / scene-events.js / scene-triggers.js / scene-responses.js` | 129 |
-| `entity-lifecycle` | Жизненный цикл зон, маркеров и объектов | планируется | — | 63 |
+| `entity-lifecycle` | Жизненный цикл зон, маркеров и объектов | готово | `scene-events.js / scene-triggers.js / scene-ui.js` | 63 |
 | `inventory` | Инвентарь и заряды | планируется | — | 24 |
 | `summon-turns` | Призывы и делегированные Ходы | планируется | — | 11 |
 | `dice-hooks` | Модификаторы и повтор броска | готово | `scene-foundations.js / scene-events.js / scene-triggers.js` | 73 |
-| `duration-scheduler` | Сроки действия и отложенные эффекты | планируется | — | 16 |
+| `duration-scheduler` | Сроки действия и отложенные эффекты | готово | `scene-events.js / scene-triggers.js / scene-ui.js` | 16 |
 | `deployment-hooks` | Развертывание | планируется | — | 6 |
 | `intermission-reset` | Сброс на Интермиссии | планируется | — | 3 |
 | `bond-actions` | Связи и действия Связей | планируется | — | 6 |

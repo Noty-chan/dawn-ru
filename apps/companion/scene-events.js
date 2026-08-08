@@ -93,6 +93,22 @@ function validateEvent(scene, event, options = {}) {
     if (removedCellKeys(scene, payload.space || marker.space).has(`${Number(payload.x)},${Number(payload.y)}`)) throw new Error("Нельзя переместить маркер в удалённую клетку.");
   }
   if (event.type === "marker.remove" && !markerById(scene, payload.markerId)) throw new Error("Удаляемый маркер уже отсутствует.");
+  if (event.type === "area.duration") {
+    if (!(scene.objects || []).some(object => object.id === payload.id) || !["instant", "endTurn", "nextTurn", "round", "scene", "persistent"].includes(payload.duration)) throw new Error("Некорректная длительность области.");
+  }
+  if (event.type === "marker.duration") {
+    if (!markerById(scene, payload.markerId) || !["endTurn", "nextTurn", "round", "scene", "persistent"].includes(payload.duration)) throw new Error("Некорректная длительность маркера.");
+  }
+  if (event.type === "reminder.create") {
+    const boundary = payload.boundary;
+    if ((scene.reminders || []).length >= 80 || typeof payload.id !== "string" || !/^[a-z0-9][a-z0-9-]{0,119}$/i.test(payload.id) || (scene.reminders || []).some(item => item.id === payload.id) || typeof payload.label !== "string" || !payload.label.trim() || payload.label.length > 120 || typeof payload.text !== "string" || !payload.text.trim() || payload.text.length > 800 || !["turnStart", "turnEnd", "roundEnd", "manual"].includes(boundary) || (["turnStart", "turnEnd"].includes(boundary) && !actorById(scene, payload.ownerActorId || event.actorId))) throw new Error("Некорректное напоминание.");
+  }
+  if (["reminder.due", "reminder.resolve", "reminder.remove"].includes(event.type)) {
+    const reminder = (scene.reminders || []).find(item => item.id === payload.id);
+    if (!reminder) throw new Error("Напоминание уже отсутствует.");
+    if (event.type === "reminder.due" && reminder.due) throw new Error("Напоминание уже сработало.");
+    if (event.type === "reminder.resolve" && !reminder.due) throw new Error("Напоминание ещё не наступило.");
+  }
   if (event.type === "object.damage") {
     const object = (scene.objects || []).find(item => item.id === payload.objectId);
     if (!object || !finite(payload.amount) || Number(payload.amount) < 0 || Number(payload.amount) > 9999) throw new Error("Некорректное повреждение местности.");
@@ -227,11 +243,11 @@ function validateEvent(scene, event, options = {}) {
   }
   if (event.type === "area.create") {
     const space = (scene.spaces || []).find(item => item.id === payload.space);
-    if ((scene.objects || []).length >= 240 || typeof payload.id !== "string" || !payload.id || payload.id.length > 120 || (scene.objects || []).some(object => object.id === payload.id) || !space || !Array.isArray(payload.cells) || payload.cells.length < 1 || payload.cells.length > 144 || payload.cells.some(cell => {const match=String(cell).match(/^(\d{1,2}),(\d{1,2})$/);return !match||Number(match[1])>=space.width||Number(match[2])>=space.height||removedCellKeys(scene,payload.space).has(String(cell))}) || !["attack","gas","terrain","difficult","danger","portal","custom"].includes(payload.areaType)) throw new Error("Некорректная область Техники.");
+    if ((scene.objects || []).length >= 240 || typeof payload.id !== "string" || !payload.id || payload.id.length > 120 || (scene.objects || []).some(object => object.id === payload.id) || !space || !Array.isArray(payload.cells) || payload.cells.length < 1 || payload.cells.length > 144 || payload.cells.some(cell => {const match=String(cell).match(/^(\d{1,2}),(\d{1,2})$/);return !match||Number(match[1])>=space.width||Number(match[2])>=space.height||removedCellKeys(scene,payload.space).has(String(cell))}) || !["attack","gas","terrain","difficult","danger","portal","custom"].includes(payload.areaType) || !["instant","endTurn","nextTurn","round","scene","persistent"].includes(payload.duration)) throw new Error("Некорректная область Техники.");
   }
   if (event.type === "marker.create") {
     const space = (scene.spaces || []).find(item => item.id === payload.space);
-    if ((scene.markers || []).length >= 240 || typeof payload.id !== "string" || !payload.id || payload.id.length > 120 || (scene.markers || []).some(marker => marker.id === payload.id) || typeof payload.markerKind !== "string" || !payload.markerKind || payload.markerKind.length > 40 || !space || !Number.isInteger(Number(payload.x)) || !Number.isInteger(Number(payload.y)) || Number(payload.x) < 0 || Number(payload.y) < 0 || Number(payload.x) >= space.width || Number(payload.y) >= space.height) throw new Error("Некорректный маркер Техники.");
+    if ((scene.markers || []).length >= 240 || typeof payload.id !== "string" || !payload.id || payload.id.length > 120 || (scene.markers || []).some(marker => marker.id === payload.id) || typeof payload.markerKind !== "string" || !payload.markerKind || payload.markerKind.length > 40 || !space || !Number.isInteger(Number(payload.x)) || !Number.isInteger(Number(payload.y)) || Number(payload.x) < 0 || Number(payload.y) < 0 || Number(payload.x) >= space.width || Number(payload.y) >= space.height || !["endTurn","nextTurn","round","scene","persistent"].includes(payload.duration)) throw new Error("Некорректный маркер Техники.");
     if (removedCellKeys(scene, payload.space).has(`${Number(payload.x)},${Number(payload.y)}`)) throw new Error("Нельзя поставить маркер в удалённую клетку.");
   }
   if (event.type === "topology.cells.remove") {
@@ -464,6 +480,11 @@ function reduceEvent(scene, event) {
     const removed = (scene.objects || []).find(object => object.id === payload.id);
     payload.label = removed?.label || payload.label || "местность";
     scene.objects = (scene.objects || []).filter(object => object.id !== payload.id);
+  } else if (event.type === "area.duration") {
+    const object = (scene.objects || []).find(item => item.id === payload.id);
+    payload.before = object.duration;
+    payload.label = object.label;
+    object.duration = payload.duration;
   } else if (event.type === "object.damage") {
     const object = (scene.objects || []).find(item => item.id === payload.objectId);
     if (object) {
@@ -488,6 +509,24 @@ function reduceEvent(scene, event) {
     const marker = markerById(scene, payload.markerId);
     payload.label = marker?.label || payload.label || "маркер";
     scene.markers = (scene.markers || []).filter(item => item.id !== payload.markerId);
+  } else if (event.type === "marker.duration") {
+    const marker = markerById(scene, payload.markerId);
+    payload.before = marker.duration;
+    payload.label = marker.label;
+    marker.duration = payload.duration;
+  } else if (event.type === "reminder.create") {
+    scene.reminders ||= [];
+    scene.reminders.push({ id: payload.id, label: payload.label.trim(), text: payload.text.trim(), boundary: payload.boundary, ownerActorId: payload.ownerActorId || event.actorId || null, createdTurnSerial: Number(scene.turnSerial || 0), createdRound: Number(scene.round || 1), due: false, dueEventId: "", sourceActionId: payload.sourceActionId || "manual.reminder" });
+  } else if (event.type === "reminder.due") {
+    const reminder = (scene.reminders || []).find(item => item.id === payload.id);
+    reminder.due = true;
+    reminder.dueEventId = event.id;
+    payload.label = reminder.label;
+    payload.text = reminder.text;
+  } else if (["reminder.resolve", "reminder.remove"].includes(event.type)) {
+    const reminder = (scene.reminders || []).find(item => item.id === payload.id);
+    payload.label = reminder.label;
+    scene.reminders = (scene.reminders || []).filter(item => item.id !== payload.id);
   } else if (event.type === "topology.cells.remove") {
     scene.topology ||= { cuts: [] };
     scene.topology.cuts ||= [];
@@ -812,8 +851,6 @@ function reduceEvent(scene, event) {
       actor.ap = Math.max(0, before - 1);
       payload.stunnedApPenalty = before - actor.ap;
     }
-    scene.objects = (scene.objects || []).filter(object => !(object.duration === "nextTurn" && object.ownerActorId === actor.id));
-    scene.markers = (scene.markers || []).filter(marker => !(marker.duration === "nextTurn" && marker.ownerActorId === actor.id));
   } else if (event.type === "turn.end" && actor) {
     payload.endedTurnSerial = Number(scene.turnSerial || 0);
     actor.acted = true;
@@ -837,14 +874,10 @@ function reduceEvent(scene, event) {
       if (actor.team === "enemy") actor.ap = 0;
       if (scene.activeActorId === actor.id) scene.activeActorId = null;
     }
-    scene.objects = (scene.objects || []).filter(object => !(object.duration === "endTurn" && object.ownerActorId === actor.id));
-    scene.markers = (scene.markers || []).filter(marker => !(marker.duration === "endTurn" && marker.ownerActorId === actor.id));
   } else if (event.type === "round.end") {
     scene.round = Number(scene.round || 0) + 1;
     scene.tension = Number(scene.tension || 0) + 1;
     scene.activeActorId = null;
-    scene.objects = (scene.objects || []).filter(object => !["instant", "round"].includes(object.duration));
-    scene.markers = (scene.markers || []).filter(marker => marker.duration !== "round");
     payload.ruleResourceResets = [];
     payload.ruleClockResets = [];
     (scene.actors || []).forEach(item => {
