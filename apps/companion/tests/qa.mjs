@@ -58,6 +58,11 @@ assert.match(appSource, /compoundId:typeof enemy\?\.compoundId[\s\S]+crowdGroupI
 assert.match(appSource, /compoundIds=new Map\(\)[\s\S]+compoundCells=new Map\(\)/, "Encounter deployment remaps Compound groups and keeps their parts in one cell");
 assert.match(appSource, /deployment=new Set\([\s\S]+type==="deploy-enemy"/, "Encounter deployment uses explicit enemy deployment zones");
 assert.match(appSource, /gmDeployTerrainCells[\s\S]+availableEncounterCell/, "Encounter deployment avoids saved blocking Terrain");
+assert.match(appSource, /const BUILTIN_ENCOUNTERS=Object\.freeze\(\[/, "Narrator tools provide reusable built-in encounter presets");
+assert.match(appSource, /data-gm-encounter-copy/, "A built-in encounter can be copied into the user's editable library");
+assert.match(appSource, /Зоны Развёртывания задаются сценарием; это не фиксированные квадраты 2×2/, "The preset UI must not present a 2×2 deployment zone as a universal rule");
+assert.ok(appSource.includes('canonicalGroup:true')&&appSource.includes('Канонический состав: Т3 Громила + Т3 Бехемот + Т3 Гигант'), "The canonical compound-enemy example is available at its printed Tier");
+assert.match(appSource, /defined=\(value,fallback\)[\s\S]+source\.maxHp,stats\.health/, "Sparse built-in blueprints derive Health from enemy rules instead of spawning as 1 HP placeholders");
 assert.match(appSource, /data-core-action="\$\{esc\(action\.id\)\}" data-core-actor="\$\{esc\(actor\.id\)\}"/, "Narrator tray actions retain the delegated hero identity");
 assert.match(appSource, /activeSceneView\(\)==="gm"&&button\.dataset\.coreActor\)pendingCoreActorId=button\.dataset\.coreActor/, "Clicking a Narrator tray action delegates it before preparation");
 assert.match(appSource, /querySelector\("article:last-child"\)/, "Roll animation must target the newest bottom card");
