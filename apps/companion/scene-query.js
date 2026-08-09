@@ -29,6 +29,29 @@ function actorIdsInRange(scene, sourceActorId, range, options = {}) {
     .map(actor => actor.id);
 }
 
+function wallTargetingStatus(scene, sourceActorId, targetActorId, request = {}) {
+  const source = typeof sourceActorId === "string" ? actorById(scene, sourceActorId) : sourceActorId;
+  const target = typeof targetActorId === "string" ? actorById(scene, targetActorId) : targetActorId;
+  const space = (scene.spaces || []).find(item => item.id === source?.space);
+  if (!source || !target || !space || source.space !== target.space) return { available: false, reason: "Цель находится на другом поле.", walls: [] };
+  if (source.x === target.x && source.y === target.y) return { available: true, reason: "", walls: [] };
+  const maximum = distance(source, target);
+  const queue = [{ x: Number(source.x), y: Number(source.y), steps: 0 }], seen = new Set([cellKey(source)]), blocking = new Set();
+  while (queue.length) {
+    const current = queue.shift();
+    if (current.x === Number(target.x) && current.y === Number(target.y)) return { available: true, reason: "", walls: [...blocking] };
+    if (current.steps >= maximum) continue;
+    [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(([dx, dy]) => {
+      const next = { x: current.x + dx, y: current.y + dy }, key = cellKey(next);
+      if (next.x < 0 || next.y < 0 || next.x >= space.width || next.y >= space.height || seen.has(key)) return;
+      const wall = wallAt(scene, space.id, current, next);
+      if (wall) { blocking.add(wall.id); return; }
+      seen.add(key); queue.push({ ...next, steps: current.steps + 1 });
+    });
+  }
+  return { available: false, reason: "Стена перекрывает проведение цели.", walls: [...blocking] };
+}
+
 const spatialPoint = value => {
   if (typeof value === "string") {
     const match = value.match(/^(\d{1,2}),(\d{1,2})$/);
@@ -130,7 +153,7 @@ function targetStatus(scene, request = {}) {
     includeSelf: Boolean(request.includeSelf),
     includeKnockedOut: Boolean(request.includeKnockedOut),
     excludeIds: request.excludeIds,
-  }));
+  }).filter(id => request.ignoreWalls || wallTargetingStatus(scene, source.id, id, { range: request.range }).available));
   const invalidIds = requested.filter(id => !valid.has(id));
   if (invalidIds.length) return { available: false, reason: "Среди целей есть недоступные персонажи.", targetIds: requested.filter(id => valid.has(id)), invalidIds };
   if (requested.length < minimum) return { available: false, reason: `Нужно выбрать целей: минимум ${minimum}.`, targetIds: requested, invalidIds: [] };
@@ -253,7 +276,8 @@ function effectCellOccupancyStatus(scene, actorId, request = {}) {
   const blockers = (scene.actors || []).filter(other => other.id !== actor.id && other.space === space && Number(other.x) === x && Number(other.y) === y)
     .filter(other => effectPresenceStatus(scene, other.id).onField)
     .filter(other => !banished && !hasEffect(scene, other, "positive.изгнан"));
-  return { available: blockers.length === 0, reason: blockers.length ? "Клетка назначения уже занята." : "", actor, blockers };
+  const terrain = !banished && (scene.objects || []).find(object => object.space === space && object.type === "terrain" && (object.cells || []).includes(`${x},${y}`));
+  return { available: blockers.length === 0 && !terrain, reason: blockers.length ? "Клетка назначения уже занята." : terrain ? "Клетка занята непроходимой местностью." : "", actor, blockers: terrain ? blockers.concat(terrain) : blockers };
 }
 
 function effectAttackStatus(scene, sourceActorId, targetIds = []) {

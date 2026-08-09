@@ -75,7 +75,7 @@ function pendingActionStatus(scene, data = null) {
   if (!pending) return { exists: false, pending: null, source: null, targetIds: [], eligibleIds: [], unavailableIds: [], waitingIds: [], answeredIds: [], autoPassedIds: [], interruptedReason: "", canResolve: false, mustCancel: false };
   const source = actorById(scene, pending.actorId);
   const targetIds = [...new Set(pending.targetIds || [])];
-  const eligibleIds = targetIds.filter(id => { const target = actorById(scene, id); return target && !target.knockedOut && effectTargetingStatus(scene, source?.id, target.id).available; });
+  const eligibleIds = targetIds.filter(id => { const target = actorById(scene, id); return target && !target.knockedOut && effectTargetingStatus(scene, source?.id, target.id).available && wallTargetingStatus(scene, source, target).available; });
   const unavailableIds = targetIds.filter(id => !eligibleIds.includes(id));
   const pendingIds = eligibleIds.filter(id => pending.responses?.[id]?.choice === "pending");
   const autoPassedIds = data ? pendingIds.filter(id => {

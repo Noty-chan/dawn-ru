@@ -2152,4 +2152,21 @@ const difficultStarted = Engine.dispatch(difficultStartScene, { type: "turn.star
 assert.deepEqual(Array.from(difficultStarted.actors[0].difficultTerrainImmunity), ["1,1", "2,1", "3,1"], "Starting a Turn in Difficult Terrain grants immunity to its connected component");
 assert.equal(Engine.movementPath(difficultStarted, "hero", { x: 3, y: 1 }, { maxDistance: 4 }).length, 2, "The connected Difficult Terrain no longer stops that Turn's movement");
 
+const walledScene = Engine.dispatch(scene, { type: "wall.create", actorId: "hero", payload: { id: "stone-wall", space: "main", a: "1,1", b: "2,1", label: "Каменная Стена", source: "QA", hp: 10, maxHp: 10 } }).scene;
+assert.equal(walledScene.walls.length, 1, "Walls are canonical Scene entities");
+assert.equal(Engine.movementPath(walledScene, "hero", { x: 2, y: 1 }, { maxDistance: 1 }).length, 0, "A Wall blocks voluntary movement across its edge");
+assert.equal(Engine.displacementStatus(walledScene, { actorId: "hero", direction: "east", maximum: 1 }).available, false, "A Wall blocks forced movement across its edge");
+assert.equal(Engine.wallTargetingStatus(walledScene, "hero", "enemy").available, false, "A Wall blocks targeting across its edge");
+assert.equal(prepareAttack(walledScene, "hero", "enemy").ok, false, "Canonical attacks reject a target behind a Wall");
+const damagedWallScene = Engine.dispatch(walledScene, { type: "wall.damage", actorId: "hero", payload: { wallId: "stone-wall", amount: 5 } }).scene;
+const repairedWallScene = Engine.dispatch(damagedWallScene, { type: "wall.restore", actorId: "hero", payload: { wallId: "stone-wall", amount: 3 } }).scene;
+assert.equal(repairedWallScene.walls[0].hp, 8, "A Wall can be repaired up to its maximum Health");
+const brokenWallScene = Engine.dispatch(repairedWallScene, { type: "wall.damage", actorId: "hero", payload: { wallId: "stone-wall", amount: 8 } }).scene;
+assert.equal(brokenWallScene.walls.length, 0, "A Wall is removed when its Health reaches zero");
+assert.equal(Engine.effectCellOccupancyStatus(canonicalTerrainScene, "hero", { space: "main", x: 3, y: 3 }).available, false, "Solid Terrain blocks placement as well as paths");
+const damagedTerrainScene = Engine.dispatch(canonicalTerrainScene, { type: "object.damage", actorId: "hero", payload: { objectId: "wall-of-crates", amount: 5 } }).scene;
+assert.equal(Engine.dispatch(damagedTerrainScene, { type: "object.restore", actorId: "hero", payload: { objectId: "wall-of-crates", amount: 3 } }).scene.objects.at(-1).hp, 18, "Terrain can be repaired up to its maximum Health");
+const switchedElevation = Engine.dispatch(elevationScene, { type: "area.create", actorId: "hero", payload: { id: "pit", space: "main", areaType: "low", label: "Провал", source: "QA", duration: "persistent", cells: ["1,1"] } }).scene;
+assert.equal(switchedElevation.objects.some(object => object.type === "high" && object.cells.includes("1,1")), false, "High and Low Terrain cannot overlap");
+
 console.log("Scene engine QA passed: canonical Turns and AP, once-per-Round actions, strict Reactions, truthful enemy automation, effects, movement, damage, and public events");

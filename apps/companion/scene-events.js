@@ -109,7 +109,7 @@ function validateEvent(scene, event, options = {}) {
     if (event.type === "reminder.due" && reminder.due) throw new Error("Напоминание уже сработало.");
     if (event.type === "reminder.resolve" && !reminder.due) throw new Error("Напоминание ещё не наступило.");
   }
-  if (event.type === "object.damage") {
+  if (["object.damage","object.restore"].includes(event.type)) {
     const object = (scene.objects || []).find(item => item.id === payload.objectId);
     if (!object || !finite(payload.amount) || Number(payload.amount) < 0 || Number(payload.amount) > 9999) throw new Error("Некорректное повреждение местности.");
   }
@@ -244,6 +244,13 @@ function validateEvent(scene, event, options = {}) {
   if (event.type === "area.create") {
     const space = (scene.spaces || []).find(item => item.id === payload.space);
     if ((scene.objects || []).length >= 240 || typeof payload.id !== "string" || !payload.id || payload.id.length > 120 || (scene.objects || []).some(object => object.id === payload.id) || !space || !Array.isArray(payload.cells) || payload.cells.length < 1 || payload.cells.length > 144 || payload.cells.some(cell => {const match=String(cell).match(/^(\d{1,2}),(\d{1,2})$/);return !match||Number(match[1])>=space.width||Number(match[2])>=space.height||removedCellKeys(scene,payload.space).has(String(cell))}) || !["attack","gas","terrain","difficult","high","low","deploy-hero","deploy-enemy","objective","danger","portal","custom"].includes(payload.areaType) || !["instant","endTurn","nextTurn","round","scene","persistent"].includes(payload.duration)) throw new Error("Некорректная область Техники.");
+  }
+  if(event.type==="wall.create"){
+    const space=(scene.spaces||[]).find(item=>item.id===payload.space),parse=value=>{const match=String(value||"").match(/^(\d{1,2}),(\d{1,2})$/);return match?{x:Number(match[1]),y:Number(match[2])}:null},a=parse(payload.a),b=parse(payload.b),duplicate=a&&b&&wallAt(scene,payload.space,a,b);
+    if((scene.walls||[]).length>=240||typeof payload.id!=="string"||!payload.id||payload.id.length>120||(scene.walls||[]).some(wall=>wall.id===payload.id)||!space||!a||!b||a.x<0||a.y<0||b.x<0||b.y<0||a.x>=space.width||b.x>=space.width||a.y>=space.height||b.y>=space.height||Math.abs(a.x-b.x)+Math.abs(a.y-b.y)!==1||duplicate||typeof payload.label!=="string"||!payload.label.trim()||payload.label.length>80||!finite(payload.hp)||Number(payload.hp)<1||Number(payload.hp)>9999||payload.maxHp!=null&&(!finite(payload.maxHp)||Number(payload.maxHp)<Number(payload.hp)||Number(payload.maxHp)>9999))throw new Error("Некорректная Стена.");
+  }
+  if(["wall.damage","wall.restore","wall.remove"].includes(event.type)){
+    const wall=(scene.walls||[]).find(item=>item.id===payload.wallId);if(!wall||event.type!=="wall.remove"&&(!finite(payload.amount)||Number(payload.amount)<0||Number(payload.amount)>9999))throw new Error("Стена уже отсутствует или изменение некорректно.");
   }
   if (event.type === "marker.create") {
     const space = (scene.spaces || []).find(item => item.id === payload.space);
@@ -475,6 +482,10 @@ function reduceEvent(scene, event) {
     Object.assign(actor, { space: payload.space || actor.space, x: Number(payload.x), y: Number(payload.y) });
   } else if (event.type === "area.create") {
     scene.objects ||= [];
+    if (["high","low"].includes(payload.areaType)) {
+      const cells = new Set(payload.cells), opposite = payload.areaType === "high" ? "low" : "high";
+      scene.objects = scene.objects.map(object => object.space === payload.space && object.type === opposite ? { ...object, cells: (object.cells || []).filter(cell => !cells.has(cell)) } : object).filter(object => object.type !== opposite || object.cells.length);
+    }
     const destructible = payload.areaType === "terrain", defaultHp = destructible ? payload.cells.length * 10 : 0;
     scene.objects.push({ id: payload.id, space: payload.space, type: payload.areaType, label: payload.label, source: payload.source, ruleId: payload.ruleId || payload.source || "", duration: payload.duration, ownerActorId: payload.ownerActorId || event.actorId, cells: [...payload.cells], hp: destructible ? Number(payload.hp ?? payload.metadata?.hp ?? defaultHp) : null, maxHp: destructible ? Number(payload.maxHp ?? payload.metadata?.maxHp ?? payload.hp ?? defaultHp) : null, createdRound: Number(scene.round || 1), metadata: clone(payload.metadata || {}) });
   } else if (event.type === "area.remove") {
@@ -497,6 +508,16 @@ function reduceEvent(scene, event) {
       payload.label = object.label;
       if (payload.destroyed) scene.objects = (scene.objects || []).filter(item => item.id !== object.id);
     }
+  } else if (event.type === "object.restore") {
+    const object=(scene.objects||[]).find(item=>item.id===payload.objectId);if(object){const before=Number(object.hp||0);object.hp=Math.min(Number(object.maxHp||before),before+Number(payload.amount||0));payload.restored=object.hp-before;payload.label=object.label}
+  } else if(event.type==="wall.create"){
+    scene.walls||=[];scene.walls.push({id:payload.id,space:payload.space,a:payload.a,b:payload.b,label:payload.label,source:payload.source||"Ручное правило",hp:Number(payload.hp),maxHp:Number(payload.maxHp||payload.hp),createdRound:Number(scene.round||1)});
+  } else if(event.type==="wall.damage"){
+    const wall=(scene.walls||[]).find(item=>item.id===payload.wallId);if(wall){const before=Number(wall.hp||wall.maxHp||10);wall.hp=Math.max(0,before-Number(payload.amount||0));payload.dealt=before-wall.hp;payload.destroyed=wall.hp===0;payload.label=wall.label;if(payload.destroyed)scene.walls=scene.walls.filter(item=>item.id!==wall.id)}
+  } else if(event.type==="wall.restore"){
+    const wall=(scene.walls||[]).find(item=>item.id===payload.wallId);if(wall){const before=Number(wall.hp||0);wall.hp=Math.min(Number(wall.maxHp||before),before+Number(payload.amount||0));payload.restored=wall.hp-before;payload.label=wall.label}
+  } else if(event.type==="wall.remove"){
+    const wall=(scene.walls||[]).find(item=>item.id===payload.wallId);payload.label=wall?.label||payload.label||"Стена";scene.walls=(scene.walls||[]).filter(item=>item.id!==payload.wallId);
   } else if (event.type === "marker.create") {
     scene.markers ||= [];
     scene.markers.push({ id: payload.id, space: payload.space, x: Number(payload.x), y: Number(payload.y), kind: payload.markerKind, label: payload.label, color: payload.color, source: payload.source, ruleId: payload.ruleId || payload.source || "", duration: payload.duration, ownerActorId: payload.ownerActorId || event.actorId, createdRound: Number(scene.round || 1), metadata: clone(payload.metadata || {}) });

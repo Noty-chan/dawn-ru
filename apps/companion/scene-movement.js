@@ -15,7 +15,9 @@ function pushDestination(scene, target, source, maximum = 1) {
   const removed = removedCellKeys(scene, target.space);
   let x = target.x, y = target.y, moved = 0;
   for (let step = 0; step < Number(maximum || 0); step += 1) {
-    const attempted = { x: x + dx, y: y + dy }, next = removed.has(cellKey(attempted)) ? topologyStepDestination(scene, { space: target.space, from: { x, y }, attempted }) : attempted, key = next && cellKey(next);
+    const attempted = { x: x + dx, y: y + dy };
+    if (wallBlocksStep(scene, target.space, { x, y }, attempted)) break;
+    const next = removed.has(cellKey(attempted)) ? topologyStepDestination(scene, { space: target.space, from: { x, y }, attempted }) : attempted, key = next && cellKey(next);
     if (!next || next.x < 0 || next.y < 0 || next.x >= space.width || next.y >= space.height || occupied.has(key) || terrain.has(key) || removed.has(key)) break;
     x = next.x; y = next.y; moved += 1;
   }
@@ -86,7 +88,9 @@ function movementPath(scene, actorId, destination, options = {}) {
     while (path.length < limit) {
       const current = path.at(-1) || actor;
       if (current.x === end.x && current.y === end.y) return path;
-      const attempted = { x: current.x + direction.x, y: current.y + direction.y }, point = removed.has(cellKey(attempted)) ? topologyStepDestination(scene, { space: actor.space, from: current, attempted }) : attempted;
+      const attempted = { x: current.x + direction.x, y: current.y + direction.y };
+      if (!options.ignoreTerrain && wallBlocksStep(scene, actor.space, current, attempted)) return [];
+      const point = removed.has(cellKey(attempted)) ? topologyStepDestination(scene, { space: actor.space, from: current, attempted }) : attempted;
       if (!point) return [];
       if (blocked(point)) return [];
       if (direction.x && Math.sign(end.x - point.x) !== direction.x && end.x !== point.x || direction.y && Math.sign(end.y - point.y) !== direction.y && end.y !== point.y) return [];
@@ -102,7 +106,9 @@ function movementPath(scene, actorId, destination, options = {}) {
     if (!options.ignoreDifficult && current.path.length && difficult.has(cellKey(current.point))) continue;
     if (!options.ignoreTerrain && current.path.length) { const previous=current.path.length>1?current.path.at(-2):start,from=elevation.get(cellKey(previous))||"normal",to=elevation.get(cellKey(current.point))||"normal";if(from!==to)continue; }
     for (const direction of directions) {
-      const attempted = { x: current.point.x + direction.x, y: current.point.y + direction.y }, point = removed.has(cellKey(attempted)) ? topologyStepDestination(scene, { space: actor.space, from: current.point, attempted }) : attempted, key = point && cellKey(point);
+      const attempted = { x: current.point.x + direction.x, y: current.point.y + direction.y };
+      if (!options.ignoreTerrain && wallBlocksStep(scene, actor.space, current.point, attempted)) continue;
+      const point = removed.has(cellKey(attempted)) ? topologyStepDestination(scene, { space: actor.space, from: current.point, attempted }) : attempted, key = point && cellKey(point);
       if (!point) continue;
       if (point.x < 0 || point.y < 0 || point.x >= space.width || point.y >= space.height || seen.has(key) || blocked(point)) continue;
       seen.add(key);
@@ -163,6 +169,7 @@ function displacementStatus(scene, request = {}) {
   let stoppedReason = "", blockedAt = null;
   for (let step = 0; step < steps; step += 1) {
     const attempted = { x: current.x + vector.x, y: current.y + vector.y };
+    if (!request.ignoreTerrain && wallBlocksStep(scene, actor.space, current, attempted)) { stoppedReason = "Стена блокирует перемещение."; blockedAt = attempted; break; }
     const next = removed.has(cellKey(attempted)) ? topologyStepDestination(scene, { space: actor.space, from: current, attempted }) : attempted;
     const key = next && cellKey(next);
     if (!next) { stoppedReason = "Разрыв поля блокирует перемещение."; blockedAt = attempted; break; }

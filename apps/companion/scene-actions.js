@@ -423,6 +423,8 @@ function prepareAction(scene, data, request = {}) {
     if (!targets.length && !zealotRupture) errors.push("Выберите цель атаки.");
     const unavailableEffectTarget = targets.find(target => !effectTargetingStatus(scene, actor.id, target.id, { sourceReappearing: disappeared }).available);
     if (unavailableEffectTarget) errors.push(effectTargetingStatus(scene, actor.id, unavailableEffectTarget.id, { sourceReappearing: disappeared }).reason);
+    const unavailableWallTarget = targets.find(target => !wallTargetingStatus(scene, attackOrigin, target, { range: limit }).available);
+    if (unavailableWallTarget) errors.push("Стена перекрывает проведение цели.");
     if (heavenlyHealing ? targets.some(target => target.team !== actor.team || target.id === actor.id) : !thunderDischarge && !zealotRupture && targets.some(target => target.team === actor.team)) errors.push(heavenlyHealing ? "Очищающий свет выбирает союзника, но не самого исполнителя." : "Базовая Атака может выбирать целью только противника.");
     if (action.name === "Стычка" && !gunslingerSkirmish && !knifeThrow && targets.length > 2) errors.push("Стычка выбирает не больше 2 целей.");
     if (action.name !== "Стычка" && targets.length > 1 && !thunderDischarge && !eclipseStars && !zealotRupture) errors.push(`${action.name} выбирает только одну цель.`);
@@ -604,6 +606,8 @@ function prepareEnemyRule(scene, data, request = {}) {
   if (targets.some(target => target.knockedOut)) errors.push("Выведенный из боя персонаж не может быть целью действия.");
   const unavailableEffectTarget = actor && targets.find(target => !effectTargetingStatus(scene, actor.id, target.id).available);
   if (unavailableEffectTarget) errors.push(effectTargetingStatus(scene, actor.id, unavailableEffectTarget.id).reason);
+  const unavailableWallTarget = actor && targets.find(target => !wallTargetingStatus(scene, actor, target, { range: rule?.range }).available);
+  if (unavailableWallTarget) errors.push("Стена перекрывает проведение цели.");
   const space = actor && (scene.spaces || []).find(item => item.id === actor.space);
   const anchor = rule?.area?.length ? (rule.areaAnchor === "self" ? { x: actor?.x, y: actor?.y } : request.anchor) : null;
   const affectedCells = rule?.area?.length && space && Number.isInteger(Number(anchor?.x)) && Number.isInteger(Number(anchor?.y)) ? areaCells(space, anchor, rule.area) : [];
