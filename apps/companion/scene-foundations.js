@@ -145,6 +145,10 @@ function passiveDiceHooks(scene, actor, request = {}) {
   if (request.sceneContext !== false && (actor.gifts || []).includes("wolf.outgunned") && balance.outnumbered) hooks.push({ type: "advantage", ruleId: "wolf.outgunned", label: `В меньшинстве (${balance.enemies} враг. / ${balance.allies} союзн.)`, amount: 2 });
   const selected = new Set(Array.isArray(request.selectedHookIds) ? request.selectedHookIds : []);
   if ((actor.gifts || []).includes("wolf.dark-urge") && request.scope === "challenge" && request.usesAbility && selected.has("wolf.dark-urge")) hooks.push({ type: "advantage", ruleId: "wolf.dark-urge", label: "Тёмный порыв", amount: 4 });
+  if (["Стычка","Заклинание","Завершение"].includes(request.actionName) && Array.isArray(request.targetIds) && request.targetIds.length) {
+    const levelAt = target => { const key=cellKey(target),types=(scene.objects||[]).filter(object=>object.space===target.space&&(object.cells||[]).includes(key)).map(object=>object.type);return types.includes("high")?1:types.includes("low")?-1:0 }, targets=request.targetIds.map(id=>actorById(scene,id)).filter(Boolean),sourceLevel=levelAt(actor),targetLevels=[...new Set(targets.map(levelAt))];
+    if(targets.length===request.targetIds.length&&targetLevels.length===1&&sourceLevel!==targetLevels[0])hooks.push({type:sourceLevel>targetLevels[0]?"advantage":"hindrance",ruleId:"battlefield.elevation",label:sourceLevel>targetLevels[0]?"Атака сверху":"Атака снизу",amount:Number(actor.tier||1)});
+  }
   return hooks;
 }
 

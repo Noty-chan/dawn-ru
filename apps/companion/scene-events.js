@@ -243,7 +243,7 @@ function validateEvent(scene, event, options = {}) {
   }
   if (event.type === "area.create") {
     const space = (scene.spaces || []).find(item => item.id === payload.space);
-    if ((scene.objects || []).length >= 240 || typeof payload.id !== "string" || !payload.id || payload.id.length > 120 || (scene.objects || []).some(object => object.id === payload.id) || !space || !Array.isArray(payload.cells) || payload.cells.length < 1 || payload.cells.length > 144 || payload.cells.some(cell => {const match=String(cell).match(/^(\d{1,2}),(\d{1,2})$/);return !match||Number(match[1])>=space.width||Number(match[2])>=space.height||removedCellKeys(scene,payload.space).has(String(cell))}) || !["attack","gas","terrain","difficult","danger","portal","custom"].includes(payload.areaType) || !["instant","endTurn","nextTurn","round","scene","persistent"].includes(payload.duration)) throw new Error("Некорректная область Техники.");
+    if ((scene.objects || []).length >= 240 || typeof payload.id !== "string" || !payload.id || payload.id.length > 120 || (scene.objects || []).some(object => object.id === payload.id) || !space || !Array.isArray(payload.cells) || payload.cells.length < 1 || payload.cells.length > 144 || payload.cells.some(cell => {const match=String(cell).match(/^(\d{1,2}),(\d{1,2})$/);return !match||Number(match[1])>=space.width||Number(match[2])>=space.height||removedCellKeys(scene,payload.space).has(String(cell))}) || !["attack","gas","terrain","difficult","high","low","deploy-hero","deploy-enemy","objective","danger","portal","custom"].includes(payload.areaType) || !["instant","endTurn","nextTurn","round","scene","persistent"].includes(payload.duration)) throw new Error("Некорректная область Техники.");
   }
   if (event.type === "marker.create") {
     const space = (scene.spaces || []).find(item => item.id === payload.space);
@@ -475,7 +475,8 @@ function reduceEvent(scene, event) {
     Object.assign(actor, { space: payload.space || actor.space, x: Number(payload.x), y: Number(payload.y) });
   } else if (event.type === "area.create") {
     scene.objects ||= [];
-    scene.objects.push({ id: payload.id, space: payload.space, type: payload.areaType, label: payload.label, source: payload.source, ruleId: payload.ruleId || payload.source || "", duration: payload.duration, ownerActorId: payload.ownerActorId || event.actorId, cells: [...payload.cells], hp: Number(payload.hp ?? payload.metadata?.hp ?? 0), maxHp: Number(payload.maxHp ?? payload.metadata?.maxHp ?? payload.hp ?? 0), createdRound: Number(scene.round || 1), metadata: clone(payload.metadata || {}) });
+    const destructible = payload.areaType === "terrain", defaultHp = destructible ? payload.cells.length * 10 : 0;
+    scene.objects.push({ id: payload.id, space: payload.space, type: payload.areaType, label: payload.label, source: payload.source, ruleId: payload.ruleId || payload.source || "", duration: payload.duration, ownerActorId: payload.ownerActorId || event.actorId, cells: [...payload.cells], hp: destructible ? Number(payload.hp ?? payload.metadata?.hp ?? defaultHp) : null, maxHp: destructible ? Number(payload.maxHp ?? payload.metadata?.maxHp ?? payload.hp ?? defaultHp) : null, createdRound: Number(scene.round || 1), metadata: clone(payload.metadata || {}) });
   } else if (event.type === "area.remove") {
     const removed = (scene.objects || []).find(object => object.id === payload.id);
     payload.label = removed?.label || payload.label || "местность";
@@ -836,7 +837,7 @@ function reduceEvent(scene, event) {
   } else if (event.type === "actor.enter" && actor) {
     const cell = `${actor.x},${actor.y}`;
     const hazards = (scene.objects || []).filter(object => object.space === actor.space && object.cells?.includes(cell));
-    if (!payload.ignoreDifficult && hazards.some(object => object.type === "difficult")) {
+    if (!payload.ignoreDifficult && !(actor.difficultTerrainImmunity||[]).includes(cell) && hazards.some(object => object.type === "difficult")) {
       actor.speedZeroUntilTurnEnd = true;
       actor.stepRemaining = 0;
     }
@@ -845,6 +846,7 @@ function reduceEvent(scene, event) {
     scene.activeActorId = actor.id;
     actor.acted = false;
     actor.stepRemaining = 0;
+    const difficult=terrainComponentStatus(scene,{space:actor.space,cells:[`${actor.x},${actor.y}`],types:["difficult"]});actor.difficultTerrainImmunity=difficult.available?difficult.cells:[];
     if (actor.team === "enemy") actor.ap = Number(actor.baseAp || 2);
     if (hasEffect(scene, actor, "negative.ошеломлен")) {
       const before = Number(actor.ap || 0);
@@ -858,6 +860,7 @@ function reduceEvent(scene, event) {
     advanceComboCooldowns(actor);
     if (Number(actor.ruleState?.modifiedOverclockTurns || 0) > 0) actor.ruleState.modifiedOverclockTurns = Math.max(0, Number(actor.ruleState.modifiedOverclockTurns) - 1);
     actor.speedZeroUntilTurnEnd = false;
+    actor.difficultTerrainImmunity = [];
     if (Number(actor.extraTurns || 0) > 0) {
       actor.extraTurns -= 1;
       actor.acted = false;

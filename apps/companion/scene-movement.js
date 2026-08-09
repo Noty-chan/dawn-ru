@@ -68,11 +68,15 @@ function movementPath(scene, actorId, destination, options = {}) {
   if (end.x < 0 || end.y < 0 || end.x >= space.width || end.y >= space.height) return [];
   const terrain = new Set((scene.objects || []).filter(object => object.space === actor.space && object.type === "terrain").flatMap(object => object.cells || []));
   const difficult = new Set((scene.objects || []).filter(object => object.space === actor.space && object.type === "difficult").flatMap(object => object.cells || []));
+  for(const cell of actor.difficultTerrainImmunity||[])difficult.delete(cell);
+  const elevation = new Map((scene.objects || []).filter(object => object.space === actor.space && ["high","low"].includes(object.type)).flatMap(object => (object.cells || []).map(cell => [cell,object.type])));
   const removed = removedCellKeys(scene, actor.space);
   const actorBanished = hasEffect(scene, actor, "positive.изгнан");
   const opponents = new Set((scene.actors || []).filter(item => item.id !== actor.id && item.space === actor.space && item.team !== actor.team && effectPresenceStatus(scene, item.id).onField)
     .filter(item => !actorBanished && !hasEffect(scene, item, "positive.изгнан")).map(item => `${item.x},${item.y}`));
-  const blocked = point => removed.has(cellKey(point)) || (!options.ignoreTerrain && terrain.has(cellKey(point))) || (!options.ignoreEnemies && opponents.has(cellKey(point)));
+  const cinematic = space.mode === "cinematic";
+  if (cinematic && !options.ignoreDifficult) opponents.forEach(cell => difficult.add(cell));
+  const blocked = point => removed.has(cellKey(point)) || (!options.ignoreTerrain && terrain.has(cellKey(point))) || (!cinematic && !options.ignoreEnemies && opponents.has(cellKey(point)));
   if (options.straight) {
     const dx = end.x - actor.x, dy = end.y - actor.y, ax = Math.abs(dx), ay = Math.abs(dy);
     if (!(dx === 0 || dy === 0 || ax === ay)) return [];
@@ -96,6 +100,7 @@ function movementPath(scene, actorId, destination, options = {}) {
     if (current.point.x === end.x && current.point.y === end.y) return current.path;
     if (current.path.length >= limit) continue;
     if (!options.ignoreDifficult && current.path.length && difficult.has(cellKey(current.point))) continue;
+    if (!options.ignoreTerrain && current.path.length) { const previous=current.path.length>1?current.path.at(-2):start,from=elevation.get(cellKey(previous))||"normal",to=elevation.get(cellKey(current.point))||"normal";if(from!==to)continue; }
     for (const direction of directions) {
       const attempted = { x: current.point.x + direction.x, y: current.point.y + direction.y }, point = removed.has(cellKey(attempted)) ? topologyStepDestination(scene, { space: actor.space, from: current.point, attempted }) : attempted, key = point && cellKey(point);
       if (!point) continue;

@@ -2127,4 +2127,29 @@ assert.equal(breachedScene.actors.filter(actor => actor.summonerId === "leon").l
 assert.equal(breachedScene.actors.find(actor => actor.name.includes("Вайю"))?.baseAp, 1);
 assert.equal(breachedScene.actors.find(actor => actor.name.includes("Агни"))?.hp, 1);
 
+const cinematicScene = structuredClone(scene);
+cinematicScene.spaces[0] = { id: "main", mode: "cinematic", width: 7, height: 1 };
+cinematicScene.actors[0].x = 0; cinematicScene.actors[0].y = 0;
+cinematicScene.actors[1].x = 2; cinematicScene.actors[1].y = 0;
+assert.equal(Engine.effectCellOccupancyStatus(cinematicScene, "hero", { space: "main", x: 2, y: 0 }).available, true, "Cinematic positions allow any number of characters");
+assert.equal(Engine.movementPath(cinematicScene, "hero", { x: 2, y: 0 }, { maxDistance: 4 }).length, 2, "A character may enter an enemy cinematic position");
+assert.equal(Engine.movementPath(cinematicScene, "hero", { x: 3, y: 0 }, { maxDistance: 4 }).length, 0, "Entering an enemy cinematic position ends ordinary movement as Difficult Terrain");
+
+const elevationScene = structuredClone(scene);
+elevationScene.actors[1].x = 6; elevationScene.actors[1].y = 6;
+elevationScene.objects = [{ id: "ledge", space: "main", type: "high", cells: Array.from({length:7},(_,y)=>`2,${y}`), duration: "persistent" }];
+assert.equal(Engine.movementPath(elevationScene, "hero", { x: 2, y: 1 }, { maxDistance: 4 }).length, 1, "A character may enter a new height level");
+assert.equal(Engine.movementPath(elevationScene, "hero", { x: 3, y: 1 }, { maxDistance: 4 }).length, 0, "Crossing to a new height level ends the current movement");
+elevationScene.objects[0].cells = ["1,1"];
+assert.equal(Engine.diceHookStatus(elevationScene, "hero", { scope: "action", actionName: "Стычка", baseCount: 4, targetIds: ["enemy"] }).advantage, 1, "An attack from higher Terrain gains Tier Advantage");
+const canonicalTerrainScene = Engine.dispatch(scene, { type: "area.create", actorId: "hero", payload: { id: "wall-of-crates", space: "main", areaType: "terrain", label: "Ящики", source: "QA", duration: "persistent", cells: ["3,3", "3,4"] } }).scene;
+assert.equal(canonicalTerrainScene.objects.at(-1).maxHp, 20, "Canonical Terrain receives 10 Health per occupied space");
+const difficultStartScene = structuredClone(scene);
+difficultStartScene.activeActorId = null;
+difficultStartScene.actors[1].x = 6; difficultStartScene.actors[1].y = 6;
+difficultStartScene.objects = [{ id: "mud", space: "main", type: "difficult", cells: ["1,1", "2,1", "3,1"], duration: "persistent" }];
+const difficultStarted = Engine.dispatch(difficultStartScene, { type: "turn.start", actorId: "hero", payload: {} }).scene;
+assert.deepEqual(Array.from(difficultStarted.actors[0].difficultTerrainImmunity), ["1,1", "2,1", "3,1"], "Starting a Turn in Difficult Terrain grants immunity to its connected component");
+assert.equal(Engine.movementPath(difficultStarted, "hero", { x: 3, y: 1 }, { maxDistance: 4 }).length, 2, "The connected Difficult Terrain no longer stops that Turn's movement");
+
 console.log("Scene engine QA passed: canonical Turns and AP, once-per-Round actions, strict Reactions, truthful enemy automation, effects, movement, damage, and public events");

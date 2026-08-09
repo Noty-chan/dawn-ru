@@ -247,6 +247,8 @@ function effectMovementStatus(scene, actorId, request = {}) {
 function effectCellOccupancyStatus(scene, actorId, request = {}) {
   const actor = actorById(scene, actorId), space = request.space || actor?.space, x = Number(request.x), y = Number(request.y);
   if (!actor || !space || !Number.isInteger(x) || !Number.isInteger(y)) return { available: false, reason: "Некорректная клетка назначения.", actor, blockers: [] };
+  const battlefield = (scene.spaces || []).find(item => item.id === space);
+  if (battlefield?.mode === "cinematic") return { available: true, reason: "", actor, blockers: [] };
   const banished = hasEffect(scene, actor, "positive.изгнан");
   const blockers = (scene.actors || []).filter(other => other.id !== actor.id && other.space === space && Number(other.x) === x && Number(other.y) === y)
     .filter(other => effectPresenceStatus(scene, other.id).onField)
