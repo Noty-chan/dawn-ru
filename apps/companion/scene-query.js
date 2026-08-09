@@ -189,7 +189,7 @@ function effectStatus(scene, actorId, effect) {
   const direct = (actor.effects || []).includes(effect);
   const active = effectiveEffectsFor(scene, actor).includes(effect);
   const state = direct ? effectStateFor(actor, effect) : null, definition = effectLifecycleDefinition(effect), duration = state?.duration || definition.duration;
-  const expiresAt = duration === "default" ? "в конце собственного Хода, кроме Хода применения"
+  const compound = compoundEnemyStatus(scene, actor), expiresAt = duration === "default" ? compound.active ? "в конце Раунда (Составной враг)" : "в конце собственного Хода, кроме Хода применения"
     : duration === "startTurn" ? "в начале собственного Хода"
       : duration === "actionOrStartTurn" ? "при действии или в начале собственного Хода"
         : duration === "roundEnd" ? "в конце Раунда"
@@ -202,7 +202,11 @@ function effectExpiryStatus(scene, actorId, effect, boundary = {}) {
   const status = effectStatus(scene, actorId, effect), eventType = boundary.type || boundary.eventType || "", boundaryActorId = boundary.actorId || null;
   if (!status.direct) return { ...status, expires: false, reason: "Эффект не наложен непосредственно." };
   let expires = false, reason = "";
-  if (status.duration === "default" && eventType === "turn.end" && boundaryActorId === actorId) {
+  const compound = compoundEnemyStatus(scene, actorId);
+  if (status.duration === "default" && compound.active && eventType === "round.end") {
+    expires = true;
+    reason = "Эффект Составного врага сохранялся до конца Раунда.";
+  } else if (status.duration === "default" && !compound.active && eventType === "turn.end" && boundaryActorId === actorId) {
     const boundaryTurnSerial = boundary.turnSerial == null ? Number(scene.turnSerial || 0) : Number(boundary.turnSerial);
     expires = status.state?.appliedTurnSerial == null || Number(status.state.appliedTurnSerial) !== boundaryTurnSerial;
     reason = expires ? "Закончился собственный Ход после Хода применения." : "Эффект применён в этом Ходу и пока сохраняется.";
@@ -250,6 +254,7 @@ function effectTargetingStatus(scene, sourceActorId, targetActorId, options = {}
 function effectMovementStatus(scene, actorId, request = {}) {
   const actor = actorById(scene, actorId);
   if (!actor) return { available: false, reason: "Перемещаемый персонаж не найден.", actor: null, multiplier: 1, distance: 0, blockers: [] };
+  if (actor.kind === "crowd" && !request.placement) return { available: false, reason: "Зоны массовки перемещаются только после Хода врага.", actor, multiplier: 1, distance: 0, blockers: ["Массовка"] };
   const forced = Boolean(request.forced), placement = Boolean(request.placement), blockers = [];
   if (!placement && forced && hasEffect(scene, actor, "positive.устойчив") && !request.ignoreResistance) blockers.push("Устойчив");
   if (!placement && !forced && !request.ignoreVoluntaryRestrictions) {
@@ -268,13 +273,16 @@ function effectMovementStatus(scene, actorId, request = {}) {
 }
 
 function effectCellOccupancyStatus(scene, actorId, request = {}) {
-  const actor = actorById(scene, actorId), space = request.space || actor?.space, x = Number(request.x), y = Number(request.y);
+  const actor = request.actor || actorById(scene, actorId) || null, space = request.space || actor?.space, x = Number(request.x), y = Number(request.y);
   if (!actor || !space || !Number.isInteger(x) || !Number.isInteger(y)) return { available: false, reason: "Некорректная клетка назначения.", actor, blockers: [] };
   const battlefield = (scene.spaces || []).find(item => item.id === space);
   if (battlefield?.mode === "cinematic") return { available: true, reason: "", actor, blockers: [] };
   const banished = hasEffect(scene, actor, "positive.изгнан");
+  const compoundId = actor.team === "enemy" && typeof actor.compoundId === "string" && actor.compoundId.trim() ? actor.compoundId.trim() : null;
   const blockers = (scene.actors || []).filter(other => other.id !== actor.id && other.space === space && Number(other.x) === x && Number(other.y) === y)
     .filter(other => effectPresenceStatus(scene, other.id).onField)
+    .filter(other => actor.kind !== "crowd" && other.kind !== "crowd")
+    .filter(other => !compoundId || other.team !== "enemy" || String(other.compoundId || "").trim() !== compoundId)
     .filter(other => !banished && !hasEffect(scene, other, "positive.изгнан"));
   const terrain = !banished && (scene.objects || []).find(object => object.space === space && object.type === "terrain" && (object.cells || []).includes(`${x},${y}`));
   return { available: blockers.length === 0 && !terrain, reason: blockers.length ? "Клетка назначения уже занята." : terrain ? "Клетка занята непроходимой местностью." : "", actor, blockers: terrain ? blockers.concat(terrain) : blockers };
@@ -297,17 +305,19 @@ function effectAttackStatus(scene, sourceActorId, targetIds = []) {
 function effectDefenseStatus(scene, targetActorId) {
   const target = actorById(scene, targetActorId);
   if (!target) return { available: false, reason: "Защищающийся не найден.", target: null, armorAllowed: false, armorBonus: 0, dodgeAllowed: false, dodgeReason: "" };
-  const armorAllowed = !hasEffect(scene, target, "negative.разорван");
-  const armorBonus = armorAllowed && hasEffect(scene, target, "positive.укреплен") ? Number(target.tier || 1) : 0;
+  const compound = compoundEnemyStatus(scene, target), defendedParts = compound.active ? compound.parts : [target];
+  const armorAllowed = !defendedParts.some(part => hasEffect(scene, part, "negative.разорван"));
+  const armorBonus = armorAllowed && defendedParts.some(part => hasEffect(scene, part, "positive.укреплен")) ? Math.max(...defendedParts.map(part => Number(part.tier || 1))) : 0;
   const dodgeBlockers = [
-    hasEffect(scene, target, "negative.обездвижен") && "Обездвижен",
-    hasEffect(scene, target, "negative.пойман") && "Пойман",
-    hasEffect(scene, target, "negative.подброшен") && "Подброшен",
+    defendedParts.some(part => hasEffect(scene, part, "negative.обездвижен")) && "Обездвижен",
+    defendedParts.some(part => hasEffect(scene, part, "negative.пойман")) && "Пойман",
+    defendedParts.some(part => hasEffect(scene, part, "negative.подброшен")) && "Подброшен",
   ].filter(Boolean);
   return {
     available: true,
     reason: "",
     target,
+    compound,
     armorAllowed,
     armorBonus,
     dodgeAllowed: dodgeBlockers.length === 0,

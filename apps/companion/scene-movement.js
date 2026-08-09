@@ -70,6 +70,7 @@ function movementPath(scene, actorId, destination, options = {}) {
   if (end.x < 0 || end.y < 0 || end.x >= space.width || end.y >= space.height) return [];
   const terrain = new Set((scene.objects || []).filter(object => object.space === actor.space && object.type === "terrain").flatMap(object => object.cells || []));
   const difficult = new Set((scene.objects || []).filter(object => object.space === actor.space && object.type === "difficult").flatMap(object => object.cells || []));
+  for (const zone of (scene.actors || []).filter(item => item.kind === "crowd" && !item.knockedOut && item.team !== actor.team && item.space === actor.space)) difficult.add(cellKey(zone));
   for(const cell of actor.difficultTerrainImmunity||[])difficult.delete(cell);
   const elevation = new Map((scene.objects || []).filter(object => object.space === actor.space && ["high","low"].includes(object.type)).flatMap(object => (object.cells || []).map(cell => [cell,object.type])));
   const removed = removedCellKeys(scene, actor.space);
@@ -238,8 +239,9 @@ function prepareDisplacements(scene, requests = [], options = {}) {
   }
 }
 function turnStartStatus(scene, actorId) {
-  const actor = actorById(scene, actorId), heroes = (scene.actors || []).filter(item => item.kind === "hero" && item.team === "hero" && !item.knockedOut), enemies = (scene.actors || []).filter(item => item.team === "enemy" && !item.knockedOut);
+  const actor = actorById(scene, actorId), heroes = (scene.actors || []).filter(item => item.kind === "hero" && item.team === "hero" && !item.knockedOut), enemies = (scene.actors || []).filter(item => item.team === "enemy" && item.kind !== "crowd" && !item.knockedOut);
   if (!actor) return { available: false, reason: "Участник не найден." };
+  if (actor.kind === "crowd") return { available: false, reason: "Зоны массовки не совершают Ходы." };
   if (scene.pendingAction) return { available: false, reason: "Сначала завершите текущую цепочку Реакций." };
   if (scene.pendingPrompt) return { available: false, reason: "Сначала ответьте на сработавшее правило." };
   if (scene.activeActorId) return { available: false, reason: "Сначала завершите текущий Ход." };
@@ -264,10 +266,18 @@ function roundEndStatus(scene) {
   if (scene.activeActorId) return { available: false, reason: "Сначала завершите текущий Ход." };
   const completedTurns = currentRoundEvents(scene).filter(event => closedTurnActorId(event));
   if (!completedTurns.length) return { available: false, reason: "Раунд ещё не начат." };
-  const readyActors = (scene.actors || []).filter(item => !item.knockedOut && (item.kind === "hero" && item.team === "hero" || item.team === "enemy"));
+  const readyActors = (scene.actors || []).filter(item => !item.knockedOut && item.kind !== "crowd" && (item.kind === "hero" && item.team === "hero" || item.team === "enemy"));
   const remaining = readyActors.filter(actor => !actor.acted);
   if (remaining.length) return { available: false, reason: `Не завершили Ход: ${remaining.map(actor => actor.name).join(", ")}.` };
   return { available: true, reason: "" };
+}
+function fodderMoveStatus(scene, actorId) {
+  const actor = actorById(scene, actorId);
+  if (!actor || actor.kind !== "crowd" || actor.knockedOut) return { available: false, reason: "Зона массовки недоступна.", remaining: 0, boundaryEventId: null };
+  const events = currentRoundEvents(scene), boundaryIndex = events.findIndex(event => event.type === "turn.end" && actorById(scene, event.actorId)?.team === "enemy" && actorById(scene, event.actorId)?.kind !== "crowd");
+  if (boundaryIndex < 0) return { available: false, reason: "Массовка перемещается после завершения Хода врага.", remaining: 0, boundaryEventId: null };
+  const boundary = events[boundaryIndex], used = events.slice(0, boundaryIndex).filter(event => event.type === "actor.move" && event.actorId === actor.id && event.payload?.fodderMove && event.payload?.boundaryEventId === boundary.id).reduce((sum, event) => sum + Math.max(0, Number(event.payload?.distance || 0)), 0), remaining = Math.max(0, 2 - used);
+  return { available: remaining > 0, reason: remaining > 0 ? "" : "Эта зона уже переместилась на 2 клетки после последнего Хода врага.", remaining, used, boundaryEventId: boundary.id };
 }
 const areaCells = (space, anchor, area) => {
   const width = Number(area?.[0] || 0), height = Number(area?.[1] || 0), cells = [];

@@ -64,6 +64,11 @@ function validateEvent(scene, event, options = {}) {
     if (!space || !Number.isInteger(Number(payload.x)) || !Number.isInteger(Number(payload.y)) || Number(payload.x) < 0 || Number(payload.y) < 0 || Number(payload.x) >= space.width || Number(payload.y) >= space.height) throw new Error("Некорректная клетка перемещения.");
     if (removedCellKeys(scene, payload.space).has(`${Number(payload.x)},${Number(payload.y)}`)) throw new Error("Нельзя переместиться в удалённую клетку.");
     if (actor?.knockedOut && !payload.displacement?.allowKnockedOut) throw new Error("Выведенный из строя участник не может перемещаться.");
+    if (actor?.kind === "crowd") {
+      const status = fodderMoveStatus(scene, actor.id), moveDistance = Math.abs(Number(payload.x) - Number(actor.x)) + Math.abs(Number(payload.y) - Number(actor.y));
+      if (!payload.fodderMove || !status.available || payload.boundaryEventId !== status.boundaryEventId || moveDistance < 1 || moveDistance > status.remaining || (payload.space || actor.space) !== actor.space) throw new Error(status.reason || "Некорректное перемещение зоны массовки.");
+      payload.distance = moveDistance;
+    }
     const movement = effectMovementStatus(scene, event.actorId, { forced: Boolean(payload.forced || payload.displacement), placement: Boolean(payload.placement), ignoreResistance: Boolean(payload.displacement?.ignoreResistance), ignoreVoluntaryRestrictions: Boolean(payload.ignoreVoluntaryRestrictions) });
     if (!movement.available) throw new Error(movement.reason);
     const occupancy = effectCellOccupancyStatus(scene, event.actorId, { space: payload.space, x: payload.x, y: payload.y });
@@ -84,8 +89,9 @@ function validateEvent(scene, event, options = {}) {
   }
   if (event.type === "actor.spawn") {
     const spawned = payload.actor, space = (scene.spaces || []).find(item => item.id === spawned?.space);
-    if (!spawned || typeof spawned.id !== "string" || !spawned.id || actorById(scene, spawned.id) || !space || !Number.isInteger(Number(spawned.x)) || !Number.isInteger(Number(spawned.y)) || Number(spawned.x) < 0 || Number(spawned.y) < 0 || Number(spawned.x) >= Number(space.width) || Number(spawned.y) >= Number(space.height)) throw new Error("Некорректный призыв участника.");
-    if ((scene.actors || []).some(item => !item.knockedOut && item.space === spawned.space && Number(item.x) === Number(spawned.x) && Number(item.y) === Number(spawned.y))) throw new Error("Клетка призыва занята.");
+    if (!spawned || typeof spawned.id !== "string" || !spawned.id || actorById(scene, spawned.id) || !space || !Number.isInteger(Number(spawned.x)) || !Number.isInteger(Number(spawned.y)) || Number(spawned.x) < 0 || Number(spawned.y) < 0 || Number(spawned.x) >= Number(space.width) || Number(spawned.y) >= Number(space.height) || spawned.compoundId != null && (typeof spawned.compoundId !== "string" || !spawned.compoundId.trim() || spawned.compoundId.length > 120)) throw new Error("Некорректный призыв участника.");
+    const occupancy = effectCellOccupancyStatus(scene, null, { actor: spawned, space: spawned.space, x: spawned.x, y: spawned.y });
+    if (!occupancy.available) throw new Error(occupancy.reason || "Клетка призыва занята.");
   }
   if (event.type === "marker.move") {
     const marker = markerById(scene, payload.markerId), space = (scene.spaces || []).find(item => item.id === (payload.space || marker?.space));
@@ -95,6 +101,10 @@ function validateEvent(scene, event, options = {}) {
   if (event.type === "marker.remove" && !markerById(scene, payload.markerId)) throw new Error("Удаляемый маркер уже отсутствует.");
   if (event.type === "area.duration") {
     if (!(scene.objects || []).some(object => object.id === payload.id) || !["instant", "endTurn", "nextTurn", "round", "scene", "persistent"].includes(payload.duration)) throw new Error("Некорректная длительность области.");
+  }
+  if (event.type === "damage.apply" && payload.sourceActionId === "fodder.round-end") {
+    const target = actorById(scene, payload.targetId), alreadyUsed = currentRoundEvents(scene).some(item => item.type === "damage.apply" && item.actorId === actor?.id && item.payload?.sourceActionId === "fodder.round-end");
+    if (actor?.kind !== "crowd" || actor.knockedOut || !target || target.team === actor.team || target.knockedOut || target.space !== actor.space || distance(actor, target) > 1 || Number(payload.amount) !== 2 || !roundEndStatus(scene).available || alreadyUsed) throw new Error("Урон массовки доступен один раз для каждой зоны в конце Раунда по герою в пределах 1 клетки.");
   }
   if (event.type === "marker.duration") {
     if (!markerById(scene, payload.markerId) || !["endTurn", "nextTurn", "round", "scene", "persistent"].includes(payload.duration)) throw new Error("Некорректная длительность маркера.");
@@ -179,6 +189,7 @@ function validateEvent(scene, event, options = {}) {
     if (event.type === "session-clock.size" && ![4, 6, 8, 12].includes(Number(payload.size))) throw new Error("Некорректный размер часов Сцены.");
   }
   if (event.type === "attack.pending") {
+    payload.targetIds = [...new Map((payload.targetIds || []).map(id => [canonicalTargetId(scene, id), canonicalTargetId(scene, id)])).values()];
     if (!Array.isArray(payload.targetIds) || payload.targetIds.length > 40 || !payload.allowEmptyTargets && payload.targetIds.length < 1 || payload.targetIds.some(id => !actorById(scene, id) || actorById(scene, id).knockedOut) || !finite(payload.damage) || Number(payload.damage) < 0 || Number(payload.damage) > 9999) throw new Error("Некорректные параметры атаки.");
     const unavailableTarget = payload.targetIds.find(id => !effectTargetingStatus(scene, event.actorId, id).available);
     if (unavailableTarget) throw new Error(effectTargetingStatus(scene, event.actorId, unavailableTarget).reason);
@@ -368,6 +379,17 @@ function applyKnockoutState(scene, target, payload) {
   return true;
 }
 
+function setCompoundHealth(scene, status, total) {
+  let remaining = Math.max(0, Math.min(Number(status.maxHp || 0), Number(total || 0)));
+  for (const part of status.parts) {
+    const value = Math.min(Math.max(0, Number(part.maxHp || 0)), remaining);
+    part.hp = value;
+    part.knockedOut = Number(total || 0) <= 0;
+    remaining -= value;
+  }
+  if (total <= 0) for (const part of status.parts) part.knockedOut = true;
+}
+
 function reduceEvent(scene, event) {
   const actor = event.actorId ? actorById(scene, event.actorId) : null;
   const payload = event.payload;
@@ -479,7 +501,10 @@ function reduceEvent(scene, event) {
     scene.actors.push(clone(payload.actor));
   } else if (event.type === "actor.move" && actor) {
     payload.from ||= { space: actor.space, x: Number(actor.x), y: Number(actor.y) };
-    Object.assign(actor, { space: payload.space || actor.space, x: Number(payload.x), y: Number(payload.y) });
+    const compoundId = actor.team === "enemy" && typeof actor.compoundId === "string" && actor.compoundId.trim() ? actor.compoundId.trim() : null;
+    const moved = compoundId ? (scene.actors || []).filter(item => item.team === "enemy" && String(item.compoundId || "").trim() === compoundId) : [actor];
+    for (const part of moved) Object.assign(part, { space: payload.space || actor.space, x: Number(payload.x), y: Number(payload.y) });
+    if (compoundId) payload.movedActorIds = moved.map(part => part.id);
   } else if (event.type === "area.create") {
     scene.objects ||= [];
     if (["high","low"].includes(payload.areaType)) {
@@ -700,22 +725,40 @@ function reduceEvent(scene, event) {
         return;
       }
       const raw = Math.max(0, Number(payload.amount || 0));
-      const defense = effectDefenseStatus(scene, target.id);
-      const armor = payload.ignoreArmor || !defense.armorAllowed ? 0 : Math.max(0, Number(target.armor || 0) + Number(payload.temporaryArmor || 0) + Number(defense.armorBonus || 0));
+      const compound = compoundEnemyStatus(scene, target), defense = effectDefenseStatus(scene, target.id);
+      const armor = payload.ignoreArmor || !defense.armorAllowed ? 0 : Math.max(0, Number(compound.active ? compound.armor : target.armor || 0) + Number(payload.temporaryArmor || 0) + Number(defense.armorBonus || 0));
       const afterArmor = raw > 0 ? Math.max(1, raw - armor) : 0;
-      const evasion = payload.ignoreEvasion ? 0 : Math.max(0, Number(target.evasion || 0) + Number(payload.temporaryEvasion || 0));
+      const evasionOwner = compound.active ? compound.parts.reduce((best, part) => Number(part.evasion || 0) > Number(best.evasion || 0) ? part : best, compound.parts[0]) : target;
+      const evasion = payload.ignoreEvasion ? 0 : Math.max(0, Number(evasionOwner.evasion || 0) + Number(payload.temporaryEvasion || 0));
       const evaded = Math.min(afterArmor, evasion);
-      if (!payload.ignoreEvasion) target.evasion = Math.max(0, Number(target.evasion || 0) - Math.max(0, evaded - Number(payload.temporaryEvasion || 0)));
-      const dealt = Math.max(0, afterArmor - evaded);
+      if (!payload.ignoreEvasion) evasionOwner.evasion = Math.max(0, Number(evasionOwner.evasion || 0) - Math.max(0, evaded - Number(payload.temporaryEvasion || 0)));
+      let dealt = Math.max(0, afterArmor - evaded);
+      if (compound.active && dealt > 0) {
+        const gate = Number(compound.gate || 0), nextGate = gate > 0 ? Math.max(0, (Math.ceil(compound.hp / gate - 1e-9) - 1) * gate) : 0;
+        dealt = Math.min(dealt, Math.max(0, compound.hp - nextGate));
+        setCompoundHealth(scene, compound, compound.hp - dealt);
+        payload.compoundId = compound.id;
+        payload.compoundTargetIds = compound.parts.map(part => part.id);
+        payload.healthGate = gate;
+        payload.healthGateCrossed = compound.hp - dealt <= nextGate && dealt > 0;
+        if (payload.healthGateCrossed) scene.tension = Number(scene.tension || 0) + 1;
+      }
       const grimRedirect = Boolean(target.ruleState?.grimTransformed);
-      if (grimRedirect) target.focus = Math.max(0, Number(target.focus || 0) - dealt);
-      else target.hp = Math.max(0, Number(target.hp || 0) - dealt);
+      if (!compound.active) {
+        if (grimRedirect) target.focus = Math.max(0, Number(target.focus || 0) - dealt);
+        else target.hp = Math.max(0, Number(target.hp || 0) - dealt);
+      }
       payload.raw = raw;
       payload.armor = armor;
       payload.evaded = evaded;
       payload.dealt = dealt;
       payload.redirectedResource = grimRedirect ? "focus" : null;
-      if (!grimRedirect && target.hp === 0 && dealt > 0) {
+      if (compound.active && compound.hp - dealt <= 0 && dealt > 0) {
+        const ids = new Set(compound.parts.map(part => part.id));
+        scene.targetIds = (scene.targetIds || []).filter(id => !ids.has(id));
+        if (ids.has(scene.activeActorId)) scene.activeActorId = null;
+        payload.applied = true;
+      } else if (!compound.active && !grimRedirect && target.hp === 0 && dealt > 0) {
         const guts = Math.max(0, Number(target.guts ?? (target.team === "enemy" ? 0 : 1 + Number(target.attrs?.body || 0))));
         target.wounds = Math.max(0, Number(target.wounds || 0));
         let knockedOut = guts === 0;
@@ -735,55 +778,48 @@ function reduceEvent(scene, event) {
   } else if (event.type === "effect.apply") {
     const target = actorById(scene, payload.targetId);
     if (target) {
-      target.effects ||= [];
-      target.effectStates ||= {};
-      const added = !target.effects.includes(payload.effect), existing = effectStateFor(target, payload.effect), definition = effectLifecycleDefinition(payload.effect);
-      if (added) target.effects.push(payload.effect);
-      const source = event.actorId ? { actorId: event.actorId, actionId: String(payload.sourceActionId || "").slice(0, 180), eventId: event.id } : null;
-      const sources = [...(existing?.sources || []).filter(item => item.actorId !== source?.actorId), ...(source ? [source] : [])].slice(-12);
-      target.effectStates[payload.effect] = {
-        duration: existing?.removable === false ? existing.duration : payload.duration || existing?.duration || definition.duration,
-        removable: payload.removable === false ? false : existing?.removable !== false,
-        appliedTurnSerial: Number(scene.turnSerial || 0),
-        appliedRound: Number(scene.round || 1),
-        appliedEventId: event.id,
-        sourceBound: existing?.sourceBound === true || definition.sourceBound,
-        exclusiveBySource: payload.exclusiveBySource ?? existing?.exclusiveBySource ?? definition.exclusiveBySource,
-        removeWithSource: existing?.removeWithSource === true || definition.removeWithSource,
-        sources,
-      };
-      payload.applied = true;
-      payload.added = added;
-      payload.refreshed = !added;
-      payload.duration = target.effectStates[payload.effect].duration;
-      payload.sourceActorIds = sources.map(item => item.actorId);
+      const affected = compoundParts(scene, target), source = event.actorId ? { actorId: event.actorId, actionId: String(payload.sourceActionId || "").slice(0, 180), eventId: event.id } : null, definition = effectLifecycleDefinition(payload.effect);
+      for (const recipient of affected) {
+        recipient.effects ||= []; recipient.effectStates ||= {};
+        const added = !recipient.effects.includes(payload.effect), existing = effectStateFor(recipient, payload.effect);
+        if (added) recipient.effects.push(payload.effect);
+        const sources = [...(existing?.sources || []).filter(item => item.actorId !== source?.actorId), ...(source ? [source] : [])].slice(-12);
+        recipient.effectStates[payload.effect] = {duration:existing?.removable===false?existing.duration:payload.duration||existing?.duration||definition.duration,removable:payload.removable===false?false:existing?.removable!==false,appliedTurnSerial:Number(scene.turnSerial||0),appliedRound:Number(scene.round||1),appliedEventId:event.id,sourceBound:existing?.sourceBound===true||definition.sourceBound,exclusiveBySource:payload.exclusiveBySource??existing?.exclusiveBySource??definition.exclusiveBySource,removeWithSource:existing?.removeWithSource===true||definition.removeWithSource,sources};
+        if (recipient.id === target.id) {payload.added=added;payload.refreshed=!added;payload.duration=recipient.effectStates[payload.effect].duration;payload.sourceActorIds=sources.map(item=>item.actorId)}
+      }
+      payload.applied = true; payload.affectedActorIds = affected.map(item => item.id);
     }
   } else if (event.type === "effect.remove") {
     const target = actorById(scene, payload.targetId);
     if (target) {
-      const active = (target.effects || []).includes(payload.effect), previous = effectStateFor(target, payload.effect);
+      const affected = compoundParts(scene, target);
+      for (const recipient of affected) {
+      const active = (recipient.effects || []).includes(payload.effect), previous = effectStateFor(recipient, payload.effect);
       payload.previousState = previous ? clone(previous) : null;
       if (payload.sourceOnly && payload.sourceActorId && previous?.sources.length) {
         const sources = previous.sources.filter(source => source.actorId !== payload.sourceActorId);
         payload.detachedSource = sources.length !== previous.sources.length;
-        if (sources.length) target.effectStates[payload.effect] = { ...previous, sources };
+        if (sources.length) recipient.effectStates[payload.effect] = { ...previous, sources };
         else {
-          target.effects = (target.effects || []).filter(effect => effect !== payload.effect);
-          if (target.effectStates) delete target.effectStates[payload.effect];
+          recipient.effects = (recipient.effects || []).filter(effect => effect !== payload.effect);
+          if (recipient.effectStates) delete recipient.effectStates[payload.effect];
         }
         payload.removed = active && !sources.length;
       } else {
         payload.removed = active;
-        target.effects = (target.effects || []).filter(effect => effect !== payload.effect);
-        if (target.effectStates) delete target.effectStates[payload.effect];
+        recipient.effects = (recipient.effects || []).filter(effect => effect !== payload.effect);
+        if (recipient.effectStates) delete recipient.effectStates[payload.effect];
       }
+      }
+      payload.affectedActorIds = affected.map(item => item.id);
     }
   } else if (event.type === "actor.heal") {
     const target = actorById(scene, payload.targetId);
     if (target) {
-      const grimRedirect = Boolean(target.ruleState?.grimTransformed), key = grimRedirect ? "focus" : "hp", before = Number(target[key] || 0);
-      target[key] = grimRedirect ? before + Number(payload.amount || 0) : Math.min(Number(target.maxHp || before + Number(payload.amount || 0)), before + Number(payload.amount || 0));
-      payload.restored = target[key] - before;
+      const compound=compoundEnemyStatus(scene,target),grimRedirect = Boolean(target.ruleState?.grimTransformed), key = grimRedirect ? "focus" : "hp", before = compound.active?compound.hp:Number(target[key] || 0);
+      if(compound.active)setCompoundHealth(scene,compound,Math.min(compound.maxHp,before+Number(payload.amount||0)));else target[key] = grimRedirect ? before + Number(payload.amount || 0) : Math.min(Number(target.maxHp || before + Number(payload.amount || 0)), before + Number(payload.amount || 0));
+      payload.restored = (compound.active?compoundEnemyStatus(scene,target).hp:target[key]) - before;
+      if(compound.active)payload.affectedActorIds=compound.parts.map(part=>part.id);
       payload.redirectedResource = grimRedirect ? "focus" : null;
     }
   } else if (event.type === "actor.wound") {
@@ -795,7 +831,7 @@ function reduceEvent(scene, event) {
     }
   } else if (event.type === "actor.knockout") {
     const target = actorById(scene, payload.targetId);
-    applyKnockoutState(scene, target, payload);
+    const compound=compoundEnemyStatus(scene,target);if(compound.active){for(const part of compound.parts){part.hp=0;part.knockedOut=true}scene.tension=Number(scene.tension||0)+1;scene.targetIds=(scene.targetIds||[]).filter(id=>!compound.parts.some(part=>part.id===id));if(compound.parts.some(part=>part.id===scene.activeActorId))scene.activeActorId=null;payload.applied=true;payload.affectedActorIds=compound.parts.map(part=>part.id)}else applyKnockoutState(scene, target, payload);
   } else if (event.type === "inventory.change" && actor) {
     actor.inventory ||= {};
     actor.inventory[payload.item] = Math.max(0, Number(actor.inventory[payload.item] || 0) + Number(payload.delta || 0));
@@ -858,7 +894,8 @@ function reduceEvent(scene, event) {
   } else if (event.type === "actor.enter" && actor) {
     const cell = `${actor.x},${actor.y}`;
     const hazards = (scene.objects || []).filter(object => object.space === actor.space && object.cells?.includes(cell));
-    if (!payload.ignoreDifficult && !(actor.difficultTerrainImmunity||[]).includes(cell) && hazards.some(object => object.type === "difficult")) {
+    const hostileFodder = (scene.actors || []).some(item => item.kind === "crowd" && !item.knockedOut && item.team !== actor.team && item.space === actor.space && Number(item.x) === Number(actor.x) && Number(item.y) === Number(actor.y));
+    if (!payload.ignoreDifficult && !(actor.difficultTerrainImmunity||[]).includes(cell) && (hazards.some(object => object.type === "difficult") || hostileFodder)) {
       actor.speedZeroUntilTurnEnd = true;
       actor.stepRemaining = 0;
     }
@@ -867,7 +904,7 @@ function reduceEvent(scene, event) {
     scene.activeActorId = actor.id;
     actor.acted = false;
     actor.stepRemaining = 0;
-    const difficult=terrainComponentStatus(scene,{space:actor.space,cells:[`${actor.x},${actor.y}`],types:["difficult"]});actor.difficultTerrainImmunity=difficult.available?difficult.cells:[];
+    const difficult=terrainComponentStatus(scene,{space:actor.space,cells:[`${actor.x},${actor.y}`],types:["difficult"]}),crowdHere=(scene.actors||[]).some(item=>item.kind==="crowd"&&!item.knockedOut&&item.team!==actor.team&&item.space===actor.space&&Number(item.x)===Number(actor.x)&&Number(item.y)===Number(actor.y));actor.difficultTerrainImmunity=difficult.available?difficult.cells:crowdHere?[`${actor.x},${actor.y}`]:[];
     if (actor.team === "enemy") actor.ap = Number(actor.baseAp || 2);
     if (hasEffect(scene, actor, "negative.ошеломлен")) {
       const before = Number(actor.ap || 0);
@@ -905,8 +942,8 @@ function reduceEvent(scene, event) {
     payload.ruleResourceResets = [];
     payload.ruleClockResets = [];
     (scene.actors || []).forEach(item => {
-      item.acted = false;
-      item.ap = Number(item.baseAp || 3);
+      item.acted = item.kind === "crowd";
+      item.ap = item.kind === "crowd" ? 0 : Number(item.baseAp || 3);
       item.usedActions = [];
       item.stepRemaining = 0;
       item.speedZeroUntilTurnEnd = false;

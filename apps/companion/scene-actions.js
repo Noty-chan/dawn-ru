@@ -153,6 +153,7 @@ function masterAtArmsStatus(scene, actorId, request = {}) {
 function availableActions(scene, data, actorId) {
   const actor = actorById(scene, actorId);
   if (!actor) return [];
+  if (actor.kind === "crowd") return [];
   // Canon: enemies spend AP on their profile actions or Step. They do not get
   // the player's Jump, Attacks, Utility actions, or defensive Reactions.
   const enemyProfileActor = actor.kind === "enemy" || Boolean(actor.profileId);
@@ -377,7 +378,7 @@ function prepareAction(scene, data, request = {}) {
   if (["Шаг", "Прыжок"].includes(action.name)) {
     const destination = request.destination;
     const space = (scene.spaces || []).find(item => item.id === actor.space);
-    const baseMovement = action.name === "Прыжок" ? Number(actor.attrs?.talent || 0) : actor.speedZeroUntilTurnEnd ? 0 : available?.continuation ? Number(actor.stepRemaining || 0) : Number(actor.speed || 0), modifiedMovement = baseMovement * Math.max(1, Number(request.movementMultiplier || 1)), moveLimit = effectMovementStatus(scene, actor.id, { distance: modifiedMovement }).distance;
+    const baseMovement = action.name === "Прыжок" ? Number(actor.attrs?.talent || 0) : actor.speedZeroUntilTurnEnd ? 0 : available?.continuation ? Number(actor.stepRemaining || 0) : effectiveActorSpeed(scene, actor.id), modifiedMovement = baseMovement * Math.max(1, Number(request.movementMultiplier || 1)), moveLimit = effectMovementStatus(scene, actor.id, { distance: modifiedMovement }).distance;
     if (!destination || !space || destination.x < 0 || destination.y < 0 || destination.x >= space.width || destination.y >= space.height) errors.push("Выберите свободную клетку назначения.");
     else if (!effectCellOccupancyStatus(scene, actor.id, { space: actor.space, x: destination.x, y: destination.y }).available) errors.push("Клетка назначения занята.");
     else {
@@ -613,6 +614,7 @@ function prepareEnemyRule(scene, data, request = {}) {
   const affectedCells = rule?.area?.length && space && Number.isInteger(Number(anchor?.x)) && Number.isInteger(Number(anchor?.y)) ? areaCells(space, anchor, rule.area) : [];
   if (rule?.area?.length && !affectedCells.length) errors.push("Укажите область действия на поле.");
   if (actor && rule?.areaAnchor !== "self" && rule?.range && anchor && Math.abs(actor.x - Number(anchor.x)) + Math.abs(actor.y - Number(anchor.y)) > Number(rule.range)) errors.push(`Область должна быть в пределах ${rule.range} клеток.`);
+  if (actor && rule?.areaAnchor !== "self" && anchor && !wallTargetingStatus(scene, actor, { space: actor.space, x: Number(anchor.x), y: Number(anchor.y) }).available) errors.push("Стена перекрывает размещение области.");
   if (affectedCells.length && targets.some(target => target.space !== actor.space || !affectedCells.includes(`${target.x},${target.y}`))) errors.push("Все выбранные цели должны находиться в области.");
   if ((available?.requiresTarget ?? rule?.requiresTarget) && !targets.length) errors.push(rule.kind === "attack" ? "Выберите хотя бы одну цель Атаки." : "Выберите цель действия.");
   if (actor && rule?.kind === "attack" && available?.automation === "attack" && targets.some(target => target.team === actor.team)) errors.push("Эта автоматизированная Атака может выбирать целью только другую сторону.");
@@ -625,10 +627,10 @@ function prepareEnemyRule(scene, data, request = {}) {
   if (fullRule?.type === "pugilist-stance" && (!Number.isInteger(Number(request.options?.stanceStep)) || Number(request.options.stanceStep) < 1 || Number(request.options.stanceStep) > 4)) errors.push("Выберите шаг Пассивa от 1 до 4.");
   const summonCells = [];
   if (fullRule?.type === "summon-profiles" && actor && space) {
-    const occupied = new Set((scene.actors || []).filter(item => !item.knockedOut && item.space === actor.space).map(item => `${item.x},${item.y}`));
+    const occupied = new Set((scene.actors || []).filter(item => item.kind !== "crowd" && !item.knockedOut && item.space === actor.space).map(item => `${item.x},${item.y}`));
     for (const [dx, dy] of [[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,-1],[1,-1],[-1,1]]) {
       const x = Number(actor.x) + dx, y = Number(actor.y) + dy;
-      if (x >= 0 && y >= 0 && x < Number(space.width) && y < Number(space.height) && !occupied.has(`${x},${y}`) && !removedCellKeys(scene, actor.space).has(`${x},${y}`)) {
+      if (x >= 0 && y >= 0 && x < Number(space.width) && y < Number(space.height) && !occupied.has(`${x},${y}`) && !removedCellKeys(scene, actor.space).has(`${x},${y}`) && effectCellOccupancyStatus(scene, actor.id, {actor:{...actor,id:`summon-probe-${x}-${y}`,compoundId:null},space:actor.space,x,y}).available) {
         summonCells.push({ x, y });
         occupied.add(`${x},${y}`);
       }

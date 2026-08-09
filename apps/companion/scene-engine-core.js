@@ -1,6 +1,6 @@
 "use strict";
 
-const VERSION = 42;
+const VERSION = 43;
 const EVENT_TYPES = new Set(["action.plan", "action.plan.update", "action.plan.cancel", "action.prepare", "action.resolve", "enemy.action.prepare", "enemy.action.resolve", "reaction.offer", "reaction.respond", "roll.public", "roll.redirect", "challenge.request", "challenge.clear", "opposed.request", "opposed.reroll", "opposed.tie.resolve", "opposed.clear", "rule.share", "session-clock.create", "session-clock.set", "session-clock.rename", "session-clock.kind", "session-clock.size", "session-clock.remove", "reminder.create", "reminder.due", "reminder.resolve", "reminder.remove", "resource.spend", "resource.gain", "actor.runtime.set", "rule-mode.set", "rule-resource.configure", "rule-resource.spend", "rule-resource.gain", "rule-resource.set", "rule-resource.reset", "rule-clock.configure", "rule-clock.tick", "rule-clock.set", "rule-clock.reset", "rule.trigger", "actor.spawn", "actor.move", "actor.enter", "actor.heal", "actor.wound", "actor.knockout", "turn.start", "turn.end", "turn.grant", "round.end", "attack.pending", "attack.clear", "damage.apply", "effect.apply", "effect.remove", "inventory.change", "rule.prompt", "rule.respond", "technique.prepare", "technique.resolve", "technique.manual", "technique.state", "actor.state", "area.create", "area.remove", "area.duration", "object.damage", "object.restore", "wall.create", "wall.damage", "wall.restore", "wall.remove", "marker.create", "marker.move", "marker.remove", "marker.duration", "topology.cells.remove", "topology.cells.restore", "targets.set", "space.ensure"]);
 const RESOURCES = new Set(["ap", "focus", "influence", "meals", "creationMarks", "innovationCharges"]);
 const PLACEMENT_PROMPT_KINDS = new Set(["marker-move-cell", "dim-mak-weak-point-cell", "empath-rush-cell", "reappear-cell", "thunder-surge-cell", "siren-irresistible-cell", "untouchable-weave-cell", "knife-pickup-step", "meister-overclock-move", "egomaniac-style-move", "constrictor-move-cell"]);
@@ -19,6 +19,25 @@ const EFFECT_LIFECYCLE = Object.freeze({
 const ACTOR_STATE_KEYS = new Set(["pugilistStance", "martialPerfection", "growth", "evasion", "imposingPresence", "grimTransformed", "grimUsed", "warringTransformed", "warringUsed", "drainLife", "lastCreationSpellMarks", "modifiedOverclockTurns", "icicleSpellsRemaining", "styleCarryRemaining", "timeStopUsed", "empathSupport", "masterArmament", "wispCreationUsed"]);
 const clone = value => JSON.parse(JSON.stringify(value));
 const actorById = (scene, id) => (scene.actors || []).find(actor => actor.id === id) || null;
+const compoundParts = (scene, actorOrId, options = {}) => {
+  const actor = typeof actorOrId === "string" ? actorById(scene, actorOrId) : actorOrId;
+  const compoundId = actor?.team === "enemy" && typeof actor.compoundId === "string" ? actor.compoundId.trim() : "";
+  if (!actor || !compoundId) return actor ? [actor] : [];
+  return (scene.actors || []).filter(part => part.team === "enemy" && String(part.compoundId || "").trim() === compoundId && (options.includeKnockedOut || !part.knockedOut));
+};
+function compoundEnemyStatus(scene, actorOrId) {
+  const actor = typeof actorOrId === "string" ? actorById(scene, actorOrId) : actorOrId, parts = compoundParts(scene, actor, { includeKnockedOut: true });
+  if (!actor || parts.length < 2) return { active: false, actor, parts: actor ? [actor] : [], id: null };
+  const maxHp = parts.reduce((sum, part) => sum + Math.max(0, Number(part.maxHp || 0)), 0), hp = parts.reduce((sum, part) => sum + Math.max(0, Number(part.hp || 0)), 0), speeds = parts.map(part => Math.max(0, Number(part.compoundBaseSpeed ?? part.speed ?? 0))), frequency = new Map();
+  speeds.forEach(speed => frequency.set(speed, Number(frequency.get(speed) || 0) + 1));
+  const speed = [...frequency.entries()].sort((left, right) => right[1] - left[1] || right[0] - left[0])[0]?.[0] || 0;
+  return { active: true, actor, parts, id: String(actor.compoundId).trim(), representativeId: parts[0].id, hp, maxHp, gate: maxHp / parts.length, armor: Math.max(...parts.map(part => Number(part.armor || 0))), evasion: Math.max(...parts.map(part => Number(part.evasion || 0))), speed };
+}
+const canonicalTargetId = (scene, actorId) => compoundEnemyStatus(scene, actorId).representativeId || actorId;
+const effectiveActorSpeed = (scene, actorId) => {
+  const actor = actorById(scene, actorId), compound = compoundEnemyStatus(scene, actor);
+  return compound.active ? compound.speed : Math.max(0, Number(actor?.speed || 0));
+};
 const actionById = (data, id) => data?.actions?.list?.find(action => action.id === id) || null;
 const enemyProfileById = (data, id) => Object.values(data?.enemies || {}).flat().find(profile => profile.id === id) || null;
 const effectIdByName = (data, name) => [...(data?.effects?.positive || []), ...(data?.effects?.negative || [])].find(effect => effect.id === name || effect.name === name)?.id || name;
