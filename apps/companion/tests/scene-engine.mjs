@@ -93,7 +93,12 @@ assert.deepEqual(Array.from(movedCompound.scene.actors.filter(actor => actor.com
 assert.deepEqual(Array.from(movedCompound.event.payload.movedActorIds), ["enemy", "enemy-part-2"], "The journal records every synchronously moved Compound Enemy part");
 const compoundStatus = Engine.compoundEnemyStatus(compoundScene, "enemy");
 assert.deepEqual({ hp: compoundStatus.hp, maxHp: compoundStatus.maxHp, gate: compoundStatus.gate }, { hp: 20, maxHp: 20, gate: 10 }, "A Compound Enemy exposes one summed Health pool and one gate per part");
-assert.deepEqual({ speed: compoundStatus.speed, armor: compoundStatus.armor }, { speed: 5, armor: 4 }, "A tied modal Speed uses the higher value and Compound defenses use the highest part");
+assert.deepEqual({ speed: compoundStatus.speed, defenseType: compoundStatus.defenseType, armor: compoundStatus.armor, evasion: compoundStatus.evasion }, { speed: 5, defenseType: "armor", armor: 4, evasion: 0 }, "A tied modal Speed uses the higher value and a Compound Enemy inherits only one best defense");
+const evasionCompoundScene = structuredClone(compoundScene);
+evasionCompoundScene.actors.filter(actor => actor.compoundId === "boss-1").forEach(actor => { actor.compoundDefense = "evasion"; actor.armor = 7; actor.evasion = 7; });
+assert.deepEqual({ defenseType: Engine.compoundEnemyStatus(evasionCompoundScene, "enemy").defenseType, armor: Engine.compoundEnemyStatus(evasionCompoundScene, "enemy").armor, evasion: Engine.compoundEnemyStatus(evasionCompoundScene, "enemy").evasion }, { defenseType: "evasion", armor: 0, evasion: 7 }, "When the best Armor and Evasion are tied, the Narrator's persisted choice applies only one of them");
+const heroClosedForCompound = Engine.dispatch(compoundScene, { type: "turn.end", actorId: "hero", payload: {} }).scene;
+assert.equal(Engine.turnStartStatus(heroClosedForCompound, "enemy").available, true, "The first Compound Enemy part has its own Turn");
 const compoundDamaged = Engine.dispatch(compoundScene, { type: "damage.apply", actorId: "hero", payload: { targetId: "enemy-part-2", amount: 99, ignoreArmor: true, ignoreEvasion: true } });
 assert.equal(Engine.compoundEnemyStatus(compoundDamaged.scene, "enemy").hp, 10, "One hit cannot cross more than one Compound Enemy Health Gate");
 assert.equal(compoundDamaged.scene.tension, compoundScene.tension + 1, "Crossing a Compound Enemy Health Gate adds one Tension");

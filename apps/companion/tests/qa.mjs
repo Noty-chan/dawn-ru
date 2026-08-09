@@ -63,6 +63,11 @@ assert.match(appSource, /data-gm-encounter-copy/, "A built-in encounter can be c
 assert.match(appSource, /Зоны Развёртывания задаются сценарием; это не фиксированные квадраты 2×2/, "The preset UI must not present a 2×2 deployment zone as a universal rule");
 assert.ok(appSource.includes('canonicalGroup:true')&&appSource.includes('Канонический состав: Т3 Громила + Т3 Бехемот + Т3 Гигант'), "The canonical compound-enemy example is available at its printed Tier");
 assert.match(appSource, /defined=\(value,fallback\)[\s\S]+source\.maxHp,stats\.health/, "Sparse built-in blueprints derive Health from enemy rules instead of spawning as 1 HP placeholders");
+assert.match(companionMarkup, /id="scene-export-table"[\s\S]+id="scene-import-table"[\s\S]+id="scene-save-recovery"[\s\S]+id="scene-restore-recovery"/, "Narrator tools expose downloadable and local table recovery paths");
+assert.match(appSource, /TABLE_BACKUP_FORMAT="dawn-ru-table-backup"[\s\S]+normalizedTableBackup/, "Table backups use a versioned normalized format with legacy migration");
+assert.match(appSource, /saveTableRecovery[\s\S]+writeHeroMedia\(\[\{key:TABLE_RECOVERY_KEY/, "Large local recovery points use IndexedDB instead of competing with the Scene for localStorage quota");
+assert.match(appSource, /templateScene=sceneCore\(Scene\)[\s\S]+templateScene\.spaces\.length/, "Saved encounter presets preserve the complete multi-space table and its media");
+assert.match(appSource, /compound\.defenseType==="armor"[\s\S]+data-scene-compound-defense/, "Compound Enemies expose one explicit shared defense rather than stacking Armor and Evasion");
 assert.match(appSource, /data-core-action="\$\{esc\(action\.id\)\}" data-core-actor="\$\{esc\(actor\.id\)\}"/, "Narrator tray actions retain the delegated hero identity");
 assert.match(appSource, /activeSceneView\(\)==="gm"&&button\.dataset\.coreActor\)pendingCoreActorId=button\.dataset\.coreActor/, "Clicking a Narrator tray action delegates it before preparation");
 assert.match(appSource, /querySelector\("article:last-child"\)/, "Roll animation must target the newest bottom card");
