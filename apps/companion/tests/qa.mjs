@@ -35,6 +35,7 @@ assert.match(appSource, /sceneRail\.prepend\(syncPanel\)/, "The network panel mu
 assert.match(appSource, /if\(presenceNode\.innerHTML!==presenceMarkup\)presenceNode\.innerHTML=presenceMarkup/, "Unchanged presence markup must not be recreated on every realtime status event");
 assert.doesNotMatch(fs.readFileSync(path.join(root, "sync.js"), "utf8"), /emit\("presence",state\.presence\);emit\("status"\)/, "Presence events must not trigger a duplicate status render");
 assert.doesNotMatch(fs.readFileSync(path.join(root, "sync.js"), "utf8"), /if\(session&&state\.sceneId\).*scheduleReconnect/, "Auth refreshes must not rebuild an already subscribed Scene channel");
+assert.match(appSource, /acceptPreparedRemoteCommand[\s\S]+setConfirmedScene\?\.\(Scene\)/, "Accepting a joined hero must update the Narrator's confirmed network Scene before the next roll");
 assert.match(fs.readFileSync(path.join(root, "sync.js"), "utf8"), /subscriptionIsActive=\(\)=>generation===channelGeneration/, "Callbacks from an intentionally removed realtime channel must be ignored");
 assert.doesNotMatch(appSource, /Sync\?\.on\("status",\(\)=>\{[^}]*renderScene\(\)/, "A connection-status repaint must not rebuild the table");
 assert.match(appSource, /openDetails=new Map/, "Expanded hero rules must survive a canonical Scene repaint");
@@ -42,6 +43,8 @@ assert.match(companionMarkup, /id="stress-trackers"/, "Tools must expose the sha
 assert.match(appSource, /key:"stress",value:next/, "The narrator edits Stress through a canonical Scene event");
 assert.match(appSource, /scene\.undo=\[\]/, "Recursive undo snapshots must never fill localStorage");
 assert.match(appSource, /indexedDB\.open\(HERO_MEDIA_DB,1\)/, "Large hero images must move out of localStorage");
+assert.match(appSource, /HERO_STORAGE_KEY[\s\S]+function loadStoredHeroes\([\s\S]+storedHeroes\.heroes/, "Hero sheets must restore from storage independently of the heavier table Scene");
+assert.match(appSource, /function persistHeroStore\([\s\S]+localStorage\.setItem\(HERO_STORAGE_KEY[\s\S]+sync\.role==="player"[\s\S]+localStorage\.removeItem\(STORAGE_KEY\)/, "An online player's hero sheet must survive local Scene quota exhaustion");
 assert.match(companionMarkup, /id="scene-clear-movement-traces"/, "The narrator toolbar must expose movement-trace cleanup");
 assert.match(appSource, /sceneReferenceMarkup!==markup[\s\S]+openRuleIds[\s\S]+details\.open=openRuleIds\.has/, "Unchanged rule cards must retain their open state across Scene renders");
 assert.match(appSource, /health=Logic\.reconcileSceneActorHealth\(\{current:base\.hp,previousMax:base\.maxHp,nextMax:derived\.hp,existing:hasSceneHealth\}\)/, "A newly spawned hero starts at full Health while an existing table actor retains battle damage");
@@ -59,6 +62,8 @@ assert.match(appSource, /compoundIds=new Map\(\)[\s\S]+compoundCells=new Map\(\)
 assert.match(appSource, /deployment=new Set\([\s\S]+type==="deploy-enemy"/, "Encounter deployment uses explicit enemy deployment zones");
 assert.match(appSource, /gmDeployTerrainCells[\s\S]+availableEncounterCell/, "Encounter deployment avoids saved blocking Terrain");
 assert.match(appSource, /const BUILTIN_ENCOUNTERS=Object\.freeze\(\[/, "Narrator tools provide reusable built-in encounter presets");
+assert.match(appSource, /id:"builtin\.svetozar-team"[\s\S]+compoundId:"svetozar"[\s\S]+enemy\.common\.coordinator[\s\S]+name:"Мира"[\s\S]+name:"Том"[\s\S]+name:"Нейра"[\s\S]+name:"Бранн"/, "The six-hour battle test has a deployable Svetozar-team preset with a Compound boss and named allies");
+assert.match(appSource, /Светозар · Тройной взгляд Сурьи[\s\S]+maxHp:13,hp:13[\s\S]+Светозар · Усилитель Сурьи[\s\S]+maxHp:13,hp:13/, "Svetozar deploys as two 13-Health parts sharing one 26-Health Compound pool");
 assert.match(appSource, /data-gm-encounter-copy/, "A built-in encounter can be copied into the user's editable library");
 assert.match(appSource, /Зоны Развёртывания задаются сценарием; это не фиксированные квадраты 2×2/, "The preset UI must not present a 2×2 deployment zone as a universal rule");
 assert.ok(appSource.includes('canonicalGroup:true')&&appSource.includes('Канонический состав: Т3 Громила + Т3 Бехемот + Т3 Гигант'), "The canonical compound-enemy example is available at its printed Tier");
@@ -566,6 +571,10 @@ assert.match(app, /scene-turn-strip[\s\S]{0,500}setScenePanel\(activeSceneView\(
 assert.match(app, /sceneActionPanel\(actorOverride=null\)/);
 assert.match(app, /data-scene-sheet-actor/);
 assert.match(app, /pendingCoreActorId=delegatedSheet\.dataset\.sceneSheetActor/);
+assert.match(app, /localActor=Scene\.actors\.find\(item=>item\.heroId===S\.id\)/);
+assert.match(app, /openSceneRollPreset\(\{actorId,skillId:/);
+assert.match(app, /openSceneRollPreset\(\{actorId,abilityKey:/);
+assert.doesNotMatch(app, /ГЕРОЙ · СТУПЕНЬ \$\{S\.tier\}/);
 assert.match(cockpitCss, /\.automation-badge/);
 assert.match(cockpitCss, /focus-mode\.scene-mode \.scene-board-wrap\{height:100%/);
 assert.match(app, /function measurementPath/);

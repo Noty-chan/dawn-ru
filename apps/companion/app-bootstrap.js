@@ -12,6 +12,7 @@ if (!SceneEngine || !TechniqueEngine) throw new Error("Не удалось за�
 const Sync = window.DAWN_SYNC;
 
 const STORAGE_KEY = "dawn-ru-companion-v2";
+const HERO_STORAGE_KEY = "dawn-ru-companion-heroes-v1";
 const LEGACY_KEY = "dawn-heroes";
 const APP_SCHEMA = 2;
 const ATTRS = [

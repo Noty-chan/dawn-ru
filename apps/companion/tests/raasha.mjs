@@ -133,6 +133,18 @@ assert.equal(Engine.triggerQueueStatus(studyFlow).next?.triggerId, "vagabond.dim
 studyFlow = Engine.dispatchMany(studyFlow, Engine.respondRulePrompt(studyFlow, data, { choice: "pass" }).events).scene;
 assert.equal(studyFlow.pendingPrompt?.kind, "dim-mak-weak-point", "После решения Сирены открывается решение Дим Мак");
 
+let combinedStudyFlow = Engine.dispatchMany(scene, study.events).scene;
+combinedStudyFlow = Engine.dispatchMany(combinedStudyFlow, Engine.respondRulePrompt(combinedStudyFlow, data, { choice: "frighten" }).events).scene;
+assert.equal(combinedStudyFlow.pendingPrompt?.kind, "dim-mak-weak-point", "Наложение Испуга не поглощает решение Дим Мака");
+assert.equal(Engine.triggerQueueStatus(combinedStudyFlow).next?.triggerId, "disruptor.siren.2.frightened", "Неотразимая ждёт завершения Дим Мака в очереди");
+combinedStudyFlow = Engine.dispatchMany(combinedStudyFlow, Engine.respondRulePrompt(combinedStudyFlow, data, { choice: "place" }).events).scene;
+assert.equal(combinedStudyFlow.pendingPrompt?.kind, "dim-mak-weak-point-cell");
+const weakPointPlacement = Engine.preparePromptPlacement(combinedStudyFlow, { destination: { x: 3, y: 2 } });
+assert.equal(weakPointPlacement.ok, true);
+combinedStudyFlow = Engine.dispatchMany(combinedStudyFlow, weakPointPlacement.events).scene;
+assert.ok(combinedStudyFlow.markers.some(marker => marker.ruleId === "vagabond.dim-mak.1"), "Дим Мак создаёт Слабую точку");
+assert.equal(combinedStudyFlow.pendingPrompt?.kind, "siren-irresistible", "После полного решения Дим Мака продолжается Сирена II");
+
 const chainScene = structuredClone(scene);
 chainScene.actors[1].x = 6;
 const chainStatus = Engine.masterAtArmsStatus(chainScene, "raasha", { modeId: "chain", targetIds: ["enemy-b"] });

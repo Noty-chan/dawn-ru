@@ -712,7 +712,7 @@ function prepareEnemyRule(scene, data, request = {}) {
     const damage = hasRoll ? Number(request.roll.successes || 0) + Number(scene.tension || 0) * tensionMultiplier : Number(request.damage);
     const family = ENEMY_ATTACK_FAMILY_RULES.get(rule.id) || {};
     const push = Number(family.postPush || 0);
-    const postDisplacements = push ? targetIds.map(targetId => ({ targetId, mode: "push", maximum: push, name: rule.name, ruleId: rule.id, collisionDamagePerCell: 1 })) : [];
+    const postDisplacements = push ? targetIds.map(targetId => ({ targetId, mode: "push", maximum: push, name: rule.name, ruleId: rule.id, collisionDamagePerCell: 0 })) : [];
     const postResourceLoss = family.postResourceLoss ? { resource: family.postResourceLoss.resource, amount: enemyTierFormula(family.postResourceLoss.formula, actor.tier), ruleId: rule.id } : null;
     events.push({ type: "attack.pending", actorId: actor.id, payload: { actionId: rule.id, enemyRuleId: rule.id, name: rule.name, targetIds, roll: hasRoll ? clone(request.roll) : null, damage, effects: targetEffects, reward: rule.reward || "", attackModifierIds: attackModifiers.selectedIds, attackModifierAdvantage: attackModifiers.advantage, postDisplacements, postResourceLoss, postSelfHealMissingFraction: Number(family.postSelfHealMissingFraction || 0) } });
   } else {

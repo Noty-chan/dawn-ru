@@ -271,8 +271,14 @@ function normalizedStoredState(parsed){
   const heroes=parsed.heroes.map(normalizeHero),scene=restoreLocalHeroMedia(normalizeScene(parsed.scene),heroes);
   return {...parsed,heroes,scene,gmLibrary:normalizeGmLibrary(parsed.gmLibrary)};
 }
+function loadStoredHeroes(){
+  try{const parsed=JSON.parse(localStorage.getItem(HERO_STORAGE_KEY)||"null");if(parsed?.schema===APP_SCHEMA&&Array.isArray(parsed.heroes)&&parsed.heroes.length)return{current:clamp(parsed.current,0,parsed.heroes.length-1),heroes:parsed.heroes.map(normalizeHero)}}catch(e){console.warn(e)}
+  return null;
+}
 function loadStore(){
-  try{const parsed=JSON.parse(localStorage.getItem(STORAGE_KEY)||"null");if(parsed?.schema===APP_SCHEMA&&Array.isArray(parsed.heroes))return normalizedStoredState(parsed);}catch(e){console.warn(e)}
+  const storedHeroes=loadStoredHeroes();
+  try{const parsed=JSON.parse(localStorage.getItem(STORAGE_KEY)||"null");if(parsed?.schema===APP_SCHEMA&&Array.isArray(parsed.heroes)){const restored=normalizedStoredState(parsed);if(storedHeroes){restored.heroes=storedHeroes.heroes;restored.current=storedHeroes.current;restoreLocalHeroMedia(restored.scene,restored.heroes)}return restored}}catch(e){console.warn(e)}
+  if(storedHeroes)return {schema:APP_SCHEMA,current:storedHeroes.current,mode:"build",theme:"dark",heroes:storedHeroes.heroes,scene:blankScene(),gmLibrary:normalizeGmLibrary(null)};
   try{const legacy=JSON.parse(localStorage.getItem(LEGACY_KEY)||"null");if(legacy){const migrated=migrateLegacy(legacy);localStorage.setItem(STORAGE_KEY,JSON.stringify(migrated));return migrated;}}catch(e){console.warn(e)}
   return {schema:APP_SCHEMA,current:0,mode:"build",theme:"dark",heroes:[blankHero()],scene:blankScene(),gmLibrary:normalizeGmLibrary(null)};
 }
@@ -297,17 +303,31 @@ function consumePresetDraft(targetStore){
 function sceneViewportProfile(){if(matchMedia("(max-width: 950px) and (max-height: 500px) and (orientation: landscape)").matches)return"phone-landscape";if(matchMedia("(max-width: 720px)").matches)return"phone";return"desktop"}
 let store=loadStore(); const importedPresetName=consumePresetDraft(store),requestedMode=new URLSearchParams(location.search).get("mode");if(["build","play","tools","rules","reference"].includes(requestedMode))store.mode=requestedMode;let S=store.heroes[store.current]||store.heroes[0]; let Scene=store.scene||blankScene();let activeArch=D.archetypes[0]?.id; let refKind="all",rulesAudience="all";let activeScenePanel=null,scenePanelTrigger=null,activeSheetTab="combat",activeUtilityPreset={skillId:"",abilityKey:""},activeUtilityActorId=null;let sceneViewportMode=sceneViewportProfile(),sceneZoom=clamp(store.sceneUi?.zoom||70,30,180),sceneControlMode=["auto","guided","manual"].includes(store.sceneUi?.controlMode)?store.sceneUi.controlMode:"guided",sceneNeedsInitialFit=store.sceneUi?.fitVersion!==8||store.sceneUi?.viewport!==sceneViewportMode,sceneResizeTimer=null;let sceneDragActorId=null,sceneSuppressBoardClickUntil=0,sceneMeasureStart=null,sceneMeasureCells=new Set(),sceneMeasureLabel="",scenePanState=null,sceneSpaceHeld=false,sceneTokenTipTimer=null,hoveredSceneActorId=null,sceneContextTarget=null;
 function persistableStore(){
-  const heroes=store.heroes.map(normalizeHero),scene=sceneCore(Scene),sourceById=new Map(store.heroes.map(hero=>[hero.id,hero]));
+  const heroes=persistableHeroes(),scene=sceneCore(Scene),sourceById=new Map(store.heroes.map(hero=>[hero.id,hero]));
   scene.undo=[];
+  for(const actor of scene.actors){const hero=sourceById.get(actor.heroId);if(!hero)continue;if(actor.tokenImage&&actor.tokenImage===hero.media?.token)actor.tokenImage="";if(actor.portraitImage&&actor.portraitImage===hero.media?.portrait)actor.portraitImage=""}
+  return {...store,heroes,scene,gmLibrary:normalizeGmLibrary(store.gmLibrary),sceneUi:{zoom:sceneZoom,controlMode:sceneControlMode,fitVersion:8,viewport:sceneViewportMode}};
+}
+function persistableHeroes(){
+  const heroes=store.heroes.map(normalizeHero);
   for(let index=0;index<heroes.length;index++)for(const kind of ["portrait","token"]){
     const source=store.heroes[index],copy=heroes[index],value=source.media?.[kind]||"",stored=storedHeroMediaSignatures.get(heroMediaKey(source.id,kind))===mediaSignature(value);
     if(value&&heroMediaStorageReady&&stored){copy.media[kind]="";copy.media[`${kind}Stored`]=true}
   }
-  for(const actor of scene.actors){const hero=sourceById.get(actor.heroId);if(!hero)continue;if(actor.tokenImage&&actor.tokenImage===hero.media?.token)actor.tokenImage="";if(actor.portraitImage&&actor.portraitImage===hero.media?.portrait)actor.portraitImage=""}
-  return {...store,heroes,scene,gmLibrary:normalizeGmLibrary(store.gmLibrary),sceneUi:{zoom:sceneZoom,controlMode:sceneControlMode,fitVersion:8,viewport:sceneViewportMode}};
+  return heroes;
+}
+function persistHeroStore(){
+  const payload=JSON.stringify({schema:APP_SCHEMA,current:store.current,heroes:persistableHeroes()});
+  try{localStorage.setItem(HERO_STORAGE_KEY,payload);return true}
+  catch(error){
+    const sync=Sync?.state?.();
+    if(sync?.sceneId&&sync.role==="player")try{localStorage.removeItem(STORAGE_KEY);localStorage.setItem(HERO_STORAGE_KEY,payload);return true}catch(retryError){console.warn("DAWN hero persistence retry failed",retryError)}
+    console.warn("DAWN hero persistence failed",error);return false
+  }
 }
 function persist(){
   store.heroes[store.current]=S;store.scene=Scene;store.gmLibrary=normalizeGmLibrary(store.gmLibrary);store.sceneUi={zoom:sceneZoom,controlMode:sceneControlMode,fitVersion:8,viewport:sceneViewportMode};scheduleHeroMediaPersistence();
+  persistHeroStore();
   try{localStorage.setItem(STORAGE_KEY,JSON.stringify(persistableStore()))}
   catch(error){console.warn("DAWN local state persistence failed",error);if(Date.now()-lastStorageWarningAt>5000){lastStorageWarningAt=Date.now();toast(heroMediaStorageReady?"Не удалось сохранить локально; удалите лишний арт Сцены":"Переношу изображения из тесного хранилища браузера…")}}
 }

@@ -424,8 +424,8 @@ function reminderLifecycleEvents(scene, event) {
   return events;
 }
 
-function triggeredEvents(scene, event) {
-  const payload = event.payload || {}, actor = event.actorId ? actorById(scene, event.actorId) : null, resumed = event.type === "rule.respond" ? resumeQueuedTriggers(scene, event) : { events: [], promptReserved: false }, routed = triggerRouteStatus(scene, event, { promptReserved: resumed.promptReserved }), events = [...resumed.events, ...routed.events], promptQueued = () => events.some(item => item.type === "rule.prompt");
+function triggeredEvents(scene, event, options = {}) {
+  const payload = event.payload || {}, actor = event.actorId ? actorById(scene, event.actorId) : null, resumed = event.type === "rule.respond" && !options.deferQueuedResume ? resumeQueuedTriggers(scene, event) : { events: [], promptReserved: false }, routed = triggerRouteStatus(scene, event, { promptReserved: resumed.promptReserved }), events = [...resumed.events, ...routed.events], promptQueued = () => events.some(item => item.type === "rule.prompt");
   if (event.type === "actor.knockout" && payload.applied && scene.pendingActionPlan?.actorId === payload.targetId) {
     events.push({ type: "action.plan.cancel", actorId: payload.targetId, payload: { planId: scene.pendingActionPlan.id, reason: "Исполнитель выведен из боя.", participantIds: [payload.targetId] } });
   }
@@ -735,7 +735,8 @@ function dispatchMany(scene, events, options = {}) {
       committed.push(result.event);
       versionPending = false;
     }
-    const derived = result.duplicate ? [] : triggeredEvents(next, result.event);
+    const deferQueuedResume = result.event.type === "rule.respond" && queue.some(candidate => candidate?.type === "rule.prompt");
+    const derived = result.duplicate ? [] : triggeredEvents(next, result.event, { deferQueuedResume });
     if (derived.length) queue.unshift(...derived);
   }
   return { scene: next, events: committed, duplicates };

@@ -1544,6 +1544,8 @@ guardianResolved = Engine.dispatchMany(guardianResolved, Engine.respondReaction(
 guardianResolved = Engine.dispatchMany(guardianResolved, Engine.resolvePendingAction(guardianResolved, data).events).scene;
 assert.equal(guardianResolved.actors[0].x, 4, "Audited enemy push rewards resolve after the target's Reaction");
 assert.ok(guardianResolved.actors[0].effects.includes("negative.подброшен"));
+assert.equal(guardianResolved.actors[0].hp, 8, "Guardian Shove deals successes plus Tension only; its two-cell push is not extra damage");
+assert.equal(guardianResolved.log.filter(event => event.type === "damage.apply" && event.payload?.sourceActionId === guardianShove.id).length, 1, "A rules-text push does not create a second collision-damage event");
 
 const bodyguardsScene = structuredClone(enemyScene);
 bodyguardsScene.actors[1].profileId = "enemy.common.bodyguards";
