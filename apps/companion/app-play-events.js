@@ -5,7 +5,12 @@ document.addEventListener("click",event=>{
   const button=event.target.closest("[data-core-action],[data-core-action-plan]");if(!button)return;
   const actor=currentHeroActor(),actionId=button.dataset.coreActionPlan||button.dataset.coreAction,action=D.actions.list.find(item=>item.id===actionId);
   if(!actor||!action)return;
-  pendingCoreActionContext={actionId:action.id,context:coreActionDraftContext(action,actor,{useCunningPlan:Boolean(button.dataset.coreActionPlan)})};
+  const previousContext=pendingCoreActionContext?.actionId===action.id?pendingCoreActionContext.context:null,draftContext=coreActionDraftContext(action,actor,{useCunningPlan:Boolean(button.dataset.coreActionPlan)});
+  if(previousContext?.armamentDestination&&draftContext.armamentMode==="blade"){
+    pendingCoreActionContext={actionId:action.id,context:{...draftContext,armamentDestination:previousContext.armamentDestination}};
+    event.preventDefault();event.stopImmediatePropagation();prepareCoreAction(action.id,{destination:previousContext.armamentDestination,useCunningPlan:Boolean(button.dataset.coreActionPlan)});return
+  }
+  pendingCoreActionContext={actionId:action.id,context:draftContext};
   const disappeared=sceneActorEffects(actor).includes("positive.исчез"),modifiers=SceneEngine.attackModifierStatus(Scene,actor.id,pendingCoreActionContext.context.targetIds||[],pendingCoreActionContext.context.attackModifierIds||[],{actionName:action.name}),phase=disappeared?"reappear":modifiers.requiresDestination?"destination":pendingCoreActionContext.context.armamentMode==="blade"?"armament":null;
   if(!phase)return;
   if(phase==="armament"){event.preventDefault();event.stopImmediatePropagation();pendingCoreAction=action.id;pendingCoreActionPlan=Boolean(button.dataset.coreActionPlan);Scene.tool="select";renderScene();toast(`«Клинок»: выберите свободную клетку ровно в 1 клетке от ${actor.name}`);return}

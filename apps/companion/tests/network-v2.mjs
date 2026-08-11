@@ -92,6 +92,18 @@ const stepped=Engine.dispatchMany(baseScene,canonicalStep).scene;
 assert.equal(stepped.actors[0].x,0);
 assert.equal(stepped.actors[0].y,1,"movement is authoritative and arrives as one canonical result");
 
+const onlineBladeScene=structuredClone(baseScene);
+onlineBladeScene.actors[0].x=0;onlineBladeScene.actors[0].y=0;onlineBladeScene.actors[0].techniques={"vagabond.master-at-arms":1};
+onlineBladeScene.actors[1].x=2;onlineBladeScene.actors[1].y=0;
+const onlineBladePreview=Engine.prepareAction(onlineBladeScene,data,{actorId:"hero",actionId:actionNamed("Стычка").id,targetIds:["enemy"],armamentMode:"blade",armamentDestination:{x:1,y:0},roll:{formula:"3D6 ≥4",attribute:"talent",rolls:[5,4,2],successes:2,crits:0}});
+assert.equal(onlineBladePreview.ok,true);
+const onlineBladeIntent=Network.intentFromEvents(onlineBladeScene,onlineBladePreview.events,"Стычка · Клинок");
+assert.equal(onlineBladeIntent.options.armamentMode,"blade","the player's network intent retains the selected Armament");
+assert.deepEqual(JSON.parse(JSON.stringify(onlineBladeIntent.options.armamentDestination)),{x:1,y:0},"the player's network intent retains Blade movement");
+const canonicalBlade=Network.materializeIntent(onlineBladeScene,data,onlineBladeIntent,"player-1",{sceneEngine:Engine});
+assert.ok(canonicalBlade.some(event=>event.type==="actor.move"&&event.payload.movement.startsWith("Клинок")),"the narrator rebuilds Blade movement from the safe intent");
+assert.ok(canonicalBlade.some(event=>event.type==="attack.pending"&&event.payload.armamentMode==="blade"),"the narrator rebuilds the complete Blade Skirmish instead of dropping it after submission");
+
 const planPreview=Engine.prepareActionPlan(baseScene,data,{actorId:"hero",actionId:actionNamed("Шаг").id,phase:"destination",context:{destinationKind:"movement",targetIds:[]}});
 assert.equal(planPreview.ok,true);
 const planIntent=Network.intentFromEvents(baseScene,planPreview.events,"Подготовка Шага");

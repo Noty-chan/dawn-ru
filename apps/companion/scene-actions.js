@@ -137,11 +137,11 @@ function masterAtArmsStatus(scene, actorId, request = {}) {
   else if (modeId === "blade") {
     if (present.some(item => distance(actor, item) <= 1)) reason = "Клинок требует, чтобы персонаж ни с кем не был смежен.";
     else if (!enemies.some(enemy => distance(actor, enemy) === 2)) reason = "Для Клинка нужен враг ровно в 2 клетках.";
-    else if (request.requireDestination === false && (!targetIds.length || targetIds.length > 2 || targets.some(target => distance(actor, target) !== 2))) reason = "Сначала выберите одну или две цели Клинка ровно в 2 клетках, затем клетку перемещения.";
     else if (request.requireDestination !== false) {
       path = destination ? movementPath(scene, actor.id, destination, { maxDistance: 1 }) : [];
       if (!destination || path.length !== 1) reason = "Клинок требует переместиться ровно на 1 свободную клетку перед выбором целей.";
-      else if (!targetIds.length || targetIds.length > 2 || targets.some(target => distance({ ...actor, ...destination }, target) > 1)) reason = "После перемещения Клинок выбирает одну или две смежные вражеские цели.";
+      else if (request.requireTargets === false && !enemies.some(target => distance({ ...actor, ...destination }, target) <= 1)) reason = "Клетка Клинка должна вывести к одной или нескольким смежным вражеским целям.";
+      else if (request.requireTargets !== false && (!targetIds.length || targetIds.length > 2 || targets.some(target => distance({ ...actor, ...destination }, target) > 1))) reason = "После перемещения Клинок выбирает одну или две смежные вражеские цели.";
     }
   } else if (modeId === "polearm") {
     if (targetIds.length !== 2 || targets.some(target => distance(actor, target) !== 1)) reason = "Древко требует ровно двух смежных врагов.";

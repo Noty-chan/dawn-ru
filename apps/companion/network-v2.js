@@ -121,6 +121,8 @@
   }
 
   function actionOptions(request={}){
+    const armamentMode=["blade","polearm","chain"].includes(request.armamentMode)?request.armamentMode:null;
+    const armamentDestination=request.armamentDestination&&Number.isFinite(Number(request.armamentDestination.x))&&Number.isFinite(Number(request.armamentDestination.y))?{x:Number(request.armamentDestination.x),y:Number(request.armamentDestination.y)}:null;
     return {
       attribute:typeof request.attribute==="string"?request.attribute:null,
       useCunningPlan:Boolean(request.useCunningPlan),
@@ -136,6 +138,8 @@
       provokeTargetIds:safeIds(request.provokeTargetIds),
       removeEffectIdsByTarget:safeObject(request.removeEffectIdsByTarget),
       attackModifierIds:safeIds(request.attackModifierIds),
+      armamentMode,
+      armamentDestination,
     };
   }
 
