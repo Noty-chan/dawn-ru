@@ -278,11 +278,11 @@ function effectCellOccupancyStatus(scene, actorId, request = {}) {
   const battlefield = (scene.spaces || []).find(item => item.id === space);
   if (battlefield?.mode === "cinematic") return { available: true, reason: "", actor, blockers: [] };
   const banished = hasEffect(scene, actor, "positive.изгнан");
-  const compoundId = actor.team === "enemy" && typeof actor.compoundId === "string" && actor.compoundId.trim() ? actor.compoundId.trim() : null;
+  const compoundId = (actor.kind === "enemy" || actor.profileId) && typeof actor.compoundId === "string" && actor.compoundId.trim() ? actor.compoundId.trim() : null;
   const blockers = (scene.actors || []).filter(other => other.id !== actor.id && other.space === space && Number(other.x) === x && Number(other.y) === y)
     .filter(other => effectPresenceStatus(scene, other.id).onField)
     .filter(other => actor.kind !== "crowd" && other.kind !== "crowd")
-    .filter(other => !compoundId || other.team !== "enemy" || String(other.compoundId || "").trim() !== compoundId)
+    .filter(other => !compoundId || other.team !== actor.team || String(other.compoundId || "").trim() !== compoundId)
     .filter(other => !banished && !hasEffect(scene, other, "positive.изгнан"));
   const terrain = !banished && (scene.objects || []).find(object => object.space === space && object.type === "terrain" && (object.cells || []).includes(`${x},${y}`));
   return { available: blockers.length === 0 && !terrain, reason: blockers.length ? "Клетка назначения уже занята." : terrain ? "Клетка занята непроходимой местностью." : "", actor, blockers: terrain ? blockers.concat(terrain) : blockers };

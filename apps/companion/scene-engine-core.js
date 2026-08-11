@@ -21,9 +21,9 @@ const clone = value => JSON.parse(JSON.stringify(value));
 const actorById = (scene, id) => (scene.actors || []).find(actor => actor.id === id) || null;
 const compoundParts = (scene, actorOrId, options = {}) => {
   const actor = typeof actorOrId === "string" ? actorById(scene, actorOrId) : actorOrId;
-  const compoundId = actor?.team === "enemy" && typeof actor.compoundId === "string" ? actor.compoundId.trim() : "";
+  const compoundId = (actor?.kind === "enemy" || actor?.profileId) && typeof actor.compoundId === "string" ? actor.compoundId.trim() : "";
   if (!actor || !compoundId) return actor ? [actor] : [];
-  return (scene.actors || []).filter(part => part.team === "enemy" && String(part.compoundId || "").trim() === compoundId && (options.includeKnockedOut || !part.knockedOut));
+  return (scene.actors || []).filter(part => part.team === actor.team && (part.kind === "enemy" || part.profileId) && String(part.compoundId || "").trim() === compoundId && (options.includeKnockedOut || !part.knockedOut));
 };
 function compoundEnemyStatus(scene, actorOrId) {
   const actor = typeof actorOrId === "string" ? actorById(scene, actorOrId) : actorOrId, parts = compoundParts(scene, actor, { includeKnockedOut: true });

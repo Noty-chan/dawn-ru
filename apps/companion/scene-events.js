@@ -283,9 +283,10 @@ function validateEvent(scene, event, options = {}) {
   return event;
 }
 
-function validateTransition(scene, event) {
+function validateTransition(scene, event, options = {}) {
   const actor = event.actorId ? actorById(scene, event.actorId) : null;
   const plan = scene.pendingActionPlan;
+  const narratorBoundaryOverride=Boolean(options.narratorOverride&&["turn.start","turn.end","round.end"].includes(event.type));
   if (event.type === "action.plan") {
     if (scene.pendingAction || scene.pendingPrompt || plan) throw new Error("Сначала завершите текущую цепочку или составное действие.");
     if (scene.activeActorId !== event.actorId || actor?.knockedOut) throw new Error("Составное действие можно готовить только в собственный Ход.");
@@ -294,22 +295,22 @@ function validateTransition(scene, event) {
     if (!plan || plan.id !== event.payload?.planId) throw new Error("Этот план составного действия уже устарел.");
     if (plan.actorId !== event.actorId) throw new Error("План составного действия принадлежит другому персонажу.");
   }
-  if (plan && ["turn.start", "turn.end", "round.end", "enemy.action.prepare"].includes(event.type)) throw new Error("Сначала завершите или отмените составное действие.");
+  if (plan && ["turn.start", "turn.end", "round.end", "enemy.action.prepare"].includes(event.type) && !narratorBoundaryOverride) throw new Error("Сначала завершите или отмените составное действие.");
   if (plan && event.type === "action.prepare" && (event.payload?.planId !== plan.id || event.actorId !== plan.actorId || (event.payload?.declaredActionId || event.payload?.actionId) !== plan.actionId)) throw new Error("Действие не совпадает с сохранённым составным планом.");
   if (plan && event.type === "attack.pending" && event.actorId !== plan.actorId) throw new Error("Сначала завершите сохранённое составное действие.");
-  if (scene.pendingAction && ["turn.start", "turn.end", "round.end"].includes(event.type)) {
+  if (scene.pendingAction && ["turn.start", "turn.end", "round.end"].includes(event.type) && !narratorBoundaryOverride) {
     throw new Error("Сначала завершите текущую цепочку Реакций.");
   }
   if (scene.pendingAction && event.type === "attack.pending") throw new Error("Сначала завершите текущую цепочку Реакций.");
   if (scene.pendingPrompt && ["action.prepare", "enemy.action.prepare", "attack.pending"].includes(event.type)) throw new Error("Сначала ответьте на сработавшее правило.");
-  if (event.type === "turn.start") {
+  if (event.type === "turn.start" && !narratorBoundaryOverride) {
     const status = turnStartStatus(scene, event.actorId);
     if (!status.available) throw new Error(status.reason);
   }
-  if (event.type === "turn.end" && scene.activeActorId !== event.actorId) {
+  if (event.type === "turn.end" && scene.activeActorId !== event.actorId && !narratorBoundaryOverride) {
     throw new Error("Завершить можно только текущий Ход.");
   }
-  if (event.type === "round.end") {
+  if (event.type === "round.end" && !narratorBoundaryOverride) {
     const status = roundEndStatus(scene);
     if (!status.available) throw new Error(status.reason);
   }
@@ -501,8 +502,8 @@ function reduceEvent(scene, event) {
     scene.actors.push(clone(payload.actor));
   } else if (event.type === "actor.move" && actor) {
     payload.from ||= { space: actor.space, x: Number(actor.x), y: Number(actor.y) };
-    const compoundId = actor.team === "enemy" && typeof actor.compoundId === "string" && actor.compoundId.trim() ? actor.compoundId.trim() : null;
-    const moved = compoundId ? (scene.actors || []).filter(item => item.team === "enemy" && String(item.compoundId || "").trim() === compoundId) : [actor];
+    const compoundId = (actor.kind === "enemy" || actor.profileId) && typeof actor.compoundId === "string" && actor.compoundId.trim() ? actor.compoundId.trim() : null;
+    const moved = compoundId ? (scene.actors || []).filter(item => item.team === actor.team && (item.kind === "enemy" || item.profileId) && String(item.compoundId || "").trim() === compoundId) : [actor];
     for (const part of moved) Object.assign(part, { space: payload.space || actor.space, x: Number(payload.x), y: Number(payload.y) });
     if (compoundId) payload.movedActorIds = moved.map(part => part.id);
   } else if (event.type === "area.create") {
@@ -616,7 +617,8 @@ function reduceEvent(scene, event) {
     scene.opposedRoll = null;
   } else if (event.type === "roll.public") {
     scene.rollFeed ||= [];
-    scene.rollFeed.unshift({ id: event.id, at: event.at || new Date().toISOString(), actor: actor?.name || payload.actor || "Система", actorId: actor?.id || null, formula: payload.formula, rolls: payload.rolls || [], successes: Number(payload.successes || 0), crits: Number(payload.crits || 0), outcome: typeof payload.outcome === "string" ? payload.outcome.slice(0, 80) : "", payment: typeof payload.payment === "string" ? payload.payment.slice(0, 80) : "", target: payload.target == null ? null : Number(payload.target), challengeRequestId: typeof payload.challengeRequestId === "string" ? payload.challengeRequestId.slice(0, 120) : "", opposedRequestId: typeof payload.opposedRequestId === "string" ? payload.opposedRequestId.slice(0, 120) : "", opposedParticipantId: typeof payload.opposedParticipantId === "string" ? payload.opposedParticipantId.slice(0, 120) : "", opposedAttempt: payload.opposedAttempt == null ? null : Number(payload.opposedAttempt), dice: payload.dice ? clone(payload.dice) : null, targetIds: clone(payload.dice?.targetIds || payload.targetIds || []) });
+    scene.rollFeed=scene.rollFeed.filter(item=>!(item.pending&&item.actorId===(actor?.id||null)&&JSON.stringify(item.rolls||[])===JSON.stringify(payload.rolls||[])));
+    scene.rollFeed.unshift({ id: event.id, at: event.at || new Date().toISOString(), actor: actor?.name || payload.actor || "Система", actorId: actor?.id || null, formula: payload.formula, rolls: payload.rolls || [], successes: Number(payload.successes || 0), crits: Number(payload.crits || 0), outcome: typeof payload.outcome === "string" ? payload.outcome.slice(0, 80) : "", payment: typeof payload.payment === "string" ? payload.payment.slice(0, 80) : "", target: payload.target == null ? null : Number(payload.target), challengeRequestId: typeof payload.challengeRequestId === "string" ? payload.challengeRequestId.slice(0, 120) : "", opposedRequestId: typeof payload.opposedRequestId === "string" ? payload.opposedRequestId.slice(0, 120) : "", opposedParticipantId: typeof payload.opposedParticipantId === "string" ? payload.opposedParticipantId.slice(0, 120) : "", opposedAttempt: payload.opposedAttempt == null ? null : Number(payload.opposedAttempt), dice: payload.dice ? clone(payload.dice) : null, targetIds: clone(payload.dice?.targetIds || payload.targetIds || []), visibility:event.visibility==="gm"?"gm":"public" });
     scene.rollFeed = scene.rollFeed.slice(0, 20);
     if (payload.challengeRequestId && scene.challengeRequest?.id === payload.challengeRequestId) {
       scene.challengeRequest.result = { rollEventId: event.id, formula: payload.formula, rolls: clone(payload.rolls || []), successes: Number(payload.successes || 0), crits: Number(payload.crits || 0), outcome: typeof payload.outcome === "string" ? payload.outcome.slice(0, 80) : "", payment: typeof payload.payment === "string" ? payload.payment.slice(0, 80) : "", at: event.at };
@@ -699,6 +701,7 @@ function reduceEvent(scene, event) {
       return [targetId, Math.max(0, base + transformDamage(effectBase + modifier) - transformDamage(effectBase))];
     }));
     scene.pendingAction = { id: event.id, actorId: event.actorId, ...clone(payload), responses: Object.fromEntries(payload.targetIds.map(id => [id, { choice: "pending" }])) };
+    if(payload.roll?.rolls){scene.rollFeed||=[];scene.rollFeed=scene.rollFeed.filter(item=>!item.pending);scene.rollFeed.unshift({id:`pending-${event.id}`,at:event.at||new Date().toISOString(),actor:actor?.name||"Система",actorId:actor?.id||null,formula:payload.roll.formula||`${payload.roll.rolls.length}D6`,rolls:clone(payload.roll.rolls),successes:Number(payload.roll.successes||0),crits:Number(payload.roll.crits||0),outcome:"Запрос → ожидаются Реакции",payment:"",target:null,dice:payload.roll.dice?clone(payload.roll.dice):null,targetIds:clone(payload.targetIds),pending:true,visibility:event.visibility==="gm"?"gm":"public"});scene.rollFeed=scene.rollFeed.slice(0,20)}
   } else if (event.type === "reaction.respond" && scene.pendingAction) {
     scene.pendingAction.responses[event.actorId] = {
       choice: payload.choice,
@@ -905,7 +908,7 @@ function reduceEvent(scene, event) {
     actor.acted = false;
     actor.stepRemaining = 0;
     const difficult=terrainComponentStatus(scene,{space:actor.space,cells:[`${actor.x},${actor.y}`],types:["difficult"]}),crowdHere=(scene.actors||[]).some(item=>item.kind==="crowd"&&!item.knockedOut&&item.team!==actor.team&&item.space===actor.space&&Number(item.x)===Number(actor.x)&&Number(item.y)===Number(actor.y));actor.difficultTerrainImmunity=difficult.available?difficult.cells:crowdHere?[`${actor.x},${actor.y}`]:[];
-    if (actor.team === "enemy") actor.ap = Number(actor.baseAp || 2);
+    if (actor.kind === "enemy" || actor.profileId) actor.ap = Number(actor.baseAp || 2);
     if (hasEffect(scene, actor, "negative.ошеломлен")) {
       const before = Number(actor.ap || 0);
       actor.ap = Math.max(0, before - 1);
@@ -922,7 +925,7 @@ function reduceEvent(scene, event) {
     if (Number(actor.extraTurns || 0) > 0) {
       actor.extraTurns -= 1;
       actor.acted = false;
-      actor.ap = Number(actor.baseAp || (actor.team === "enemy" ? 2 : 3));
+      actor.ap = Number(actor.baseAp || (actor.kind === "enemy" || actor.profileId ? 2 : 3));
       scene.turnSerial = Number(scene.turnSerial || 0) + 1;
       if (hasEffect(scene, actor, "negative.ошеломлен")) {
         const before = Number(actor.ap || 0);
@@ -932,7 +935,7 @@ function reduceEvent(scene, event) {
       scene.activeActorId = actor.id;
       payload.startedExtraTurn = true;
     } else {
-      if (actor.team === "enemy") actor.ap = 0;
+      if (actor.kind === "enemy" || actor.profileId) actor.ap = 0;
       if (scene.activeActorId === actor.id) scene.activeActorId = null;
     }
   } else if (event.type === "round.end") {
@@ -978,8 +981,9 @@ function dispatch(scene, event, options = {}) {
     throw error;
   }
   const normalized = normalizeEvent(event, options);
+  if(actorById(scene,normalized.actorId)?.hidden&&!event.visibility)normalized.visibility="gm";else if(event.visibility==="gm")normalized.visibility="gm";
   validateEvent(scene, normalized, options);
-  validateTransition(scene, normalized);
+  validateTransition(scene, normalized, options);
   const next = clone(scene);
   reduceEvent(next, normalized);
   next.version = Number(next.version || 0) + 1;

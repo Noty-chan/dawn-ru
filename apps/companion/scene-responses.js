@@ -7,7 +7,7 @@ function antagonistDefenseRule(data, actor) {
 }
 
 function antagonistReactionOptions(scene, data, target, source) {
-  if (!target || target.team !== "enemy") return [];
+  if (!target || !(target.kind === "enemy" || target.profileId)) return [];
   const options = [];
   const enemies = (scene.actors || []).filter(actor => actor.team === target.team && !actor.knockedOut && effectPresenceStatus(scene, actor.id).onField);
   for (const owner of enemies) {
@@ -65,8 +65,9 @@ function reactionOptions(scene, data, actorId) {
   if (!source || source.knockedOut) return [];
   if (!effectTargetingStatus(scene, source.id, actor.id).available) return [];
   const effectDefense = effectDefenseStatus(scene, actorId);
-  const defenses = actor.team === "enemy" ? antagonistReactionOptions(scene, data, actor, source) : availableActions(scene, data, actorId).filter(action => action.reaction).map(action => action.name === "Уворот" && !effectDefense.dodgeAllowed ? { ...action, available: false, reason: effectDefense.dodgeReason } : action);
-  if (actor.team === "enemy" && !defenses.some(option => option.available)) return [];
+  const profileActor = actor.kind === "enemy" || Boolean(actor.profileId);
+  const defenses = profileActor ? antagonistReactionOptions(scene, data, actor, source) : availableActions(scene, data, actorId).filter(action => action.reaction).map(action => action.name === "Уворот" && !effectDefense.dodgeAllowed ? { ...action, available: false, reason: effectDefense.dodgeReason } : action);
+  if (profileActor && !defenses.some(option => option.available)) return [];
   return [{ id: "pass", name: "Без Реакции", available: true, reason: "Принять исходную Атаку без защиты", costModel: { amount: 0, resource: null } }, ...defenses];
 }
 
@@ -80,7 +81,7 @@ function pendingActionStatus(scene, data = null) {
   const pendingIds = eligibleIds.filter(id => pending.responses?.[id]?.choice === "pending");
   const autoPassedIds = data ? pendingIds.filter(id => {
     const target = actorById(scene, id);
-    return target?.team === "enemy" && !reactionOptions(scene, data, id).some(option => option.id !== "pass" && option.available);
+    return Boolean(target?.kind === "enemy" || target?.profileId) && !reactionOptions(scene, data, id).some(option => option.id !== "pass" && option.available);
   }) : [];
   const waitingIds = pendingIds.filter(id => !autoPassedIds.includes(id));
   const answeredIds = eligibleIds.filter(id => autoPassedIds.includes(id) || pending.responses?.[id]?.choice && pending.responses[id].choice !== "pending" && pending.responses[id].choice !== "unavailable");
@@ -788,7 +789,7 @@ function resolvePendingAction(scene, data) {
       for (const effect of pending.postTargetEffects || []) events.push({ type: "effect.apply", actorId: pending.actorId, payload: { targetId: resolvedTargetId, effect, sourceActionId: pending.techniqueRuleId || pending.actionId, participantIds: [pending.actorId, resolvedTargetId] } });
       if (attackSucceeded && status.eligibleIds.length === 1 && Number(source?.techniques?.["disruptor.constrictor"] || 0) >= 1 && (pending.declaredActionName || pending.name) === "Стычка") events.push({ type: "effect.apply", actorId: source.id, payload: { targetId: resolvedTargetId, effect: "negative.пойман", sourceActionId: "disruptor.constrictor.1", participantIds: [source.id, resolvedTargetId] } });
       const postDisplacement = (pending.postDisplacements || []).find(item => item.targetId === targetId) || (pending.postPush?.targetId === targetId ? { mode: "push", collisionDamagePerCell: 1, ...pending.postPush } : null);
-      if (attackSucceeded && postDisplacement) {
+      if (expectedDamage > 0 && postDisplacement) {
         const destination = postDisplacement.mode === "push" ? pushDestination(scene, target, source, Number(postDisplacement.maximum || 99)) : null;
         if (destination?.distance) {
           const movementName = postDisplacement.name || "Принудительное движение", ruleId = postDisplacement.ruleId || pending.techniqueRuleId || pending.enemyRuleId || pending.actionId;

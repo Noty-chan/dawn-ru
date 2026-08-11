@@ -12,7 +12,7 @@ function heroActorState(hero,base={}){
   return {...base,...bonuses,sheetVersion:6,kind:"hero",team:"hero",heroId:hero.id,profileId:null,name:hero.name||"Безымянный герой",tier:hero.tier,primaryOutlook:hero.primaryOutlook||null,outlooks:[...(hero.outlooks||[])],gifts:[...(hero.gifts||[])],hp:health.current,maxHp:health.maximum,guts:derived.guts,wounds:Number.isFinite(Number(base.wounds))?Math.max(0,Number(base.wounds)):runtime.wounds||0,stress:clamp(runtime.stress,0,3),focus:Math.max(0,rawFocus)+bonuses.techniqueFocusBonus,creationMarks:Number(hero.techniques?.["ruiner.creation-ascetic"]||0)>=1?clamp(base.creationMarks,0,99):0,innovationCharges:Number(hero.techniques?.["ruiner.spellcrafter"]||0)===1?clamp(base.innovationCharges??attrValueFor(hero,"mind"),0,99):0,inventory:base.inventory&&typeof base.inventory==="object"?{...base.inventory}:{},ruleResources:base.ruleResources&&typeof base.ruleResources==="object"?structuredClone(base.ruleResources):{},ruleClocks:base.ruleClocks&&typeof base.ruleClocks==="object"?structuredClone(base.ruleClocks):{},ruleModes:base.ruleModes&&typeof base.ruleModes==="object"?structuredClone(base.ruleModes):{},influence:Number.isFinite(Number(base.influence))?Math.max(0,Number(base.influence)):runtime.influence??1,ap:Number.isFinite(Number(base.ap))?Math.max(0,Number(base.ap)):runtime.ap??3,baseAp:3,speed:derived.speed,stepRemaining:clamp(base.stepRemaining,0,99),attrs:Object.fromEntries(ATTRS.map(([key])=>[key,attrValueFor(hero,key)])),skills:hero.skills.map(skill=>({id:skill.id,name:skill.name,rank:Math.min(3,skill.rank+(performanceGift&&hero.mods.performanceSkill===skill.id?1:0))})),ability:abilityActorState(hero.ability,"Способность"),taintedAbility:hero.mods.taintedBody?abilityActorState(hero.taintedAbility,"Способность Порченого тела"):null,techniques:{...hero.techniques},techniqueState:base.techniqueState&&typeof base.techniqueState==="object"?{...base.techniqueState}:{cunningPlan:0,studiedActorIds:[],spellModifiers:[]},comboCooldowns:base.comboCooldowns&&typeof base.comboCooldowns==="object"?{...base.comboCooldowns}:{},effects:[...(base.effects||runtime.effects||[])],acted:Boolean(base.acted),knockedOut:Boolean(base.knockedOut),hidden:Boolean(base.hidden),tokenSymbol:base.tokenSymbol||"✦",tokenColor:base.tokenColor||"#256a92",tokenImage:hero.media.token||base.tokenImage||"",portraitImage:hero.media.portrait||base.portraitImage||""};
 }
 function currentHeroActor(){
-  const delegated=Scene.actors.find(item=>item.id===pendingCoreActorId);if(delegated)return delegated;
+  const delegated=Scene.actors.find(item=>item.id===pendingCoreActorId);if(delegated&&(delegated.kind==="hero"||delegated.heroId))return delegated;
   const actor=Scene.actors.find(item=>item.heroId===S.id);if(!actor)return null;
   const synced=heroActorState(S,actor),legacy=actor.sheetVersion<6,changed=legacy||actor.name!==synced.name||actor.tier!==synced.tier||actor.maxHp!==synced.maxHp||actor.speed!==synced.speed||actor.primaryOutlook!==synced.primaryOutlook||JSON.stringify(actor.outlooks)!==JSON.stringify(synced.outlooks)||JSON.stringify(actor.gifts)!==JSON.stringify(synced.gifts)||JSON.stringify(actor.attrs)!==JSON.stringify(synced.attrs)||JSON.stringify(actor.techniques)!==JSON.stringify(synced.techniques)||actor.tokenImage!==synced.tokenImage||actor.portraitImage!==synced.portraitImage;
   if(changed){Object.assign(actor,synced);if(legacy)Scene.tension=S.runtime.tension;persist()}
@@ -126,7 +126,7 @@ function startZealotFinish(actionId,{useCunningPlan=false}={}){
   if(root?.querySelector("[data-action-thunder-discharge]:checked,[data-action-eclipse-stars]:checked,[data-action-grasp]:checked"))return toast("Сначала отключите другую особую форму Завершения.");
   const available=SceneEngine.availableActions(Scene,D,actor.id).find(item=>item.id===actionId);if(!available?.available&&!useCunningPlan)return toast(available?.reason||"Завершение сейчас недоступно.");
   pendingZealotPlan={actorId:actor.id,actionId,useCunningPlan,lines:[],targetIds:[],destinations:[],phase:"lines",overload:Boolean(root?.querySelector("[data-action-overload]:checked"))};
-  pendingCoreAction=null;pendingCoreActionPlan=false;techniqueOrientation="horizontal";Scene.tool="select";setScenePanel(null);scenePreviewCells.clear();renderScene();toast("Выберите первую бесконечную Линию; R меняет направление.");
+  pendingCoreAction=null;pendingCoreActionPlan=false;techniqueOrientation="horizontal";Scene.tool="select";scenePreviewCells.clear();renderScene();toast("Выберите первую бесконечную Линию; R меняет направление.");
 }
 function selectZealotPlanCell(point){
   if(!pendingZealotPlan)return false;
@@ -177,7 +177,7 @@ function startCompositeCoreAction(actionId,{useCunningPlan=false}={}){
   const prepared=SceneEngine.prepareActionPlan(Scene,D,{actorId:actor.id,actionId:action.id,phase,context});
   if(!prepared.ok)return toast(prepared.errors.join(" "));
   if(!commitSceneEvents(`Подготовка: ${action.name}`,prepared.events))return;
-  pendingCoreAction=null;pendingCoreActionPlan=false;pendingCoreActionContext=null;Scene.tool="select";setScenePanel(null);renderScene();toast(phase==="reappear"?`«${action.name}»: выберите клетку появления; до подтверждения поле и ресурсы не изменятся`:`«${action.name}»: выберите клетку телепортации для модификатора; ресурсы пока не тратятся`);
+  pendingCoreAction=null;pendingCoreActionPlan=false;pendingCoreActionContext=null;Scene.tool="select";renderScene();toast(phase==="reappear"?`«${action.name}»: выберите клетку появления; до подтверждения поле и ресурсы не изменятся`:`«${action.name}»: выберите клетку телепортации для модификатора; ресурсы пока не тратятся`);
 }
 function continueCompositeCoreAction(destination=null){
   const plan=Scene.pendingActionPlan;if(!plan)return;
@@ -203,7 +203,7 @@ function respondCoreReaction(actorId,choice,destination=null){
   if(!actor||!option)return toast("Реакция больше не доступна");
   if((option.name==="Уворот"||option.requiresDestination)&&!destination){
     const instruction=option.name==="Уворот"?`свободную клетку в пределах ${Number(actor.techniques?.["vagabond.untouchable"]||0)>=2?3:2} клеток`:option.destinationKind==="edge"?"свободную клетку на краю поля":option.destinationKind==="move"?`достижимую клетку в пределах ${option.maxDistance} клеток`:"свободную смежную клетку для телепортации";
-    pendingCoreReaction={actorId,choice};Scene.tool="select";setScenePanel(null);renderScene();toast(`${option.name}: выберите ${instruction}`);return;
+    pendingCoreReaction={actorId,choice};Scene.tool="select";renderScene();toast(`${option.name}: выберите ${instruction}`);return;
   }
   const source=Scene.actors.find(item=>item.id===Scene.pendingAction?.actorId),defenderActor=Scene.actors.find(item=>item.id===option.enemyTrait?.defenderActorId)||actor,needsClash=option.name==="Столкновение"||["clash","intercept-clash"].includes(option.enemyTrait?.mode);
   let clash=null;
@@ -225,14 +225,14 @@ setActorTurn=function(actor){
 };
 function startEnemyStep(actorId){
   const actor=Scene.actors.find(item=>item.id===actorId),step=D.actions.list.find(item=>item.name==="Шаг"),available=actor&&step&&SceneEngine.availableActions(Scene,D,actor.id).find(item=>item.id===step.id);
-  if(!actor||actor.team!=="enemy"||!step)return toast("Канонический Шаг противника недоступен");
+  if(!actor||!(actor.kind==="enemy"||actor.profileId)||!step)return toast("Канонический Шаг профильного НПС недоступен");
   if(!available?.available)return toast(available?.reason||"Сейчас нельзя использовать Шаг");
-  pendingEnemyRule=null;pendingEnemyStepActorId=actor.id;Scene.activeSpace=actor.space;Scene.selectedActor=actor.id;Scene.tool="select";persist();setScenePanel(null);renderScene();toast(`«Шаг»: выберите клетку для ${actor.name}; ОД пока не потрачено`)
+  pendingEnemyRule=null;pendingEnemyStepActorId=actor.id;Scene.activeSpace=actor.space;Scene.selectedActor=actor.id;Scene.tool="select";persist();renderScene();toast(`«Шаг»: выберите клетку для ${actor.name}; ОД пока не потрачено`)
 }
 function commitEnemyStep(actorId,destination){
   const actor=Scene.actors.find(item=>item.id===actorId),step=D.actions.list.find(item=>item.name==="Шаг");if(!actor||!step)return toast("Противник или Шаг больше не доступны");
   const prepared=SceneEngine.prepareAction(Scene,D,{actorId:actor.id,actionId:step.id,targetIds:[],destination});if(!prepared.ok)return toast(prepared.errors.join(" "));
-  pendingEnemyStepActorId=null;const committed=commitSceneEvents(`Шаг: ${actor.name}`,prepared.events);if(!committed)return;setScenePanel("roster");const updated=Scene.actors.find(item=>item.id===actor.id);toast(prepared.action?.continuation?`Шаг продолжен · осталось ${updated?.stepRemaining||0} клеток`:`Шаг выполнен${updated?.stepRemaining?` · сохранено ${updated.stepRemaining} клеток`:""}`)
+  pendingEnemyStepActorId=null;const committed=commitSceneEvents(`Шаг: ${actor.name}`,prepared.events);if(!committed)return;if(activeScenePanel!=="director")setScenePanel("roster");const updated=Scene.actors.find(item=>item.id===actor.id);toast(prepared.action?.continuation?`Шаг продолжен · осталось ${updated?.stepRemaining||0} клеток`:`Шаг выполнен${updated?.stepRemaining?` · сохранено ${updated.stepRemaining} клеток`:""}`)
 }
 function useEnemyRule(actorId,ruleId,{anchor=null,areaReady=false,options={}}={}){
   const actor=Scene.actors.find(item=>item.id===actorId),profile=enemyProfile(actor?.profileId),rule=profile?.rules?.find(item=>item.id===ruleId);if(!actor||!rule)return toast("Действие противника больше не доступно");
@@ -240,15 +240,15 @@ function useEnemyRule(actorId,ruleId,{anchor=null,areaReady=false,options={}}={}
   const ruleState=SceneEngine.availableEnemyRules(Scene,D,actor.id).find(item=>item.id===rule.id),automaticAttack=ruleState?.automation==="attack";
   Scene.activeSpace=actor.space;Scene.selectedActor=actor.id;
   if(automaticAttack)Scene.targetIds=Scene.targetIds.filter(id=>{const target=Scene.actors.find(item=>item.id===id);return target&&target.team!==actor.team});
-  if(rule.area?.length&&!areaReady){if(rule.areaAnchor==="self"){anchor={x:actor.x,y:actor.y};areaReady=true}else{pendingEnemyRule={actorId,ruleId};Scene.tool="select";persist();setScenePanel(null);renderScene();return toast(`«${rule.name}»: укажите центр области ${rule.area[0]}×${rule.area[1]} на поле`)}}
+  if(rule.area?.length&&!areaReady){if(rule.areaAnchor==="self"){anchor={x:actor.x,y:actor.y};areaReady=true}else{pendingEnemyRule={actorId,ruleId};Scene.tool="select";persist();renderScene();return toast(`«${rule.name}»: укажите центр области ${rule.area[0]}×${rule.area[1]} на поле`)}}
   if(rule.area?.length&&areaReady){const cells=enemyAreaCells(rule,anchor);Scene.targetIds=rule.kind==="attack"||rule.requiresTarget?Scene.actors.filter(target=>target.id!==actor.id&&target.space===actor.space&&cells.includes(`${target.x},${target.y}`)&&(!automaticAttack||target.team!==actor.team)).map(target=>target.id):[]}
-  if(rule.requiresTarget&&!Scene.targetIds.length){Scene.tool="target";persist();setScenePanel(null);renderScene();return toast(`«${rule.name}»: отметьте цель на поле, затем снова нажмите действие в панели «Враги»`)}
+  if(rule.requiresTarget&&!Scene.targetIds.length){Scene.tool="target";persist();renderScene();return toast(`«${rule.name}»: отметьте цель на поле, затем снова нажмите действие в панели «Враги»`)}
   const attackModifierIds=automaticAttack?selectedAttackModifierIds(actor.id):[],attackModifiers=automaticAttack?SceneEngine.attackModifierStatus(Scene,actor.id,Scene.targetIds,attackModifierIds):{available:true,advantage:0,selectedIds:[]};if(!attackModifiers.available)return toast(attackModifiers.reason);const baseCount=rule.kind==="attack"&&rule.dice?Logic.scaleTierFormula(rule.dice,actor.tier):0,effectAttack=rule.kind==="attack"?SceneEngine.effectAttackStatus(Scene,actor.id,Scene.targetIds):{hindrance:0,hindranceEffects:[]},count=Math.max(baseCount>0?1:0,baseCount+attackModifiers.advantage-Number(effectAttack.hindrance||0)),directDamage=rule.directDamage?Logic.scaleTierFormula(rule.directDamage,actor.tier):null;
   if(rule.kind==="attack"&&(!Number.isFinite(count)||count<1)&&!Number.isFinite(directDamage))return toast(`Для «${rule.name}» не удалось вычислить урон или пул костей; проверьте правило профиля`);
   const result=count>0?Logic.rollXd6({count}):null,roll=result?{formula:`${result.initialCount}D6 · ${rule.name}${attackModifiers.advantage?` · Вбить +${attackModifiers.advantage}`:""}${effectAttack.hindrance?` · Помеха −${effectAttack.hindrance} (${effectAttack.hindranceEffects.join(", ")})`:""}`,rolls:result.rolls,successes:result.successes,crits:result.crits}:null;
   const prepared=SceneEngine.prepareEnemyRule(Scene,D,{actorId:actor.id,ruleId:rule.id,targetIds:[...Scene.targetIds],anchor,roll,damage:directDamage,options,attackModifierIds});if(!prepared.ok)return toast(prepared.errors.join(" "));
   const committed=commitSceneEvents(`${actor.name}: ${rule.name}`,prepared.events);if(!committed)return;
-  const automation=prepared.events.find(event=>event.type==="enemy.action.prepare")?.payload?.automation;setScenePanel(Scene.pendingAction?"sheet":"roster");toast(automation==="assisted"?`${rule.name}: стоимость и бросок записаны; особое правило разрешает Нарратор`:automation==="state"?`${rule.name}: состояние правила сохранено; связанные пространственные решения остаются видимыми Нарратору`:rule.kind==="attack"?(result?`${rule.name}: ${result.successes} успехов; ожидаются Реакции`:`${rule.name}: ${directDamage} урона; ожидаются Реакции`):`${rule.name}: правило применено и записано в журнал`)
+  const automation=prepared.events.find(event=>event.type==="enemy.action.prepare")?.payload?.automation;if(activeScenePanel!=="director")setScenePanel(Scene.pendingAction?"sheet":"roster");toast(automation==="assisted"?`${rule.name}: стоимость и бросок записаны; особое правило разрешает Нарратор`:automation==="state"?`${rule.name}: состояние правила сохранено; связанные пространственные решения остаются видимыми Нарратору`:rule.kind==="attack"?(result?`${rule.name}: ${result.successes} успехов; ожидаются Реакции`:`${rule.name}: ${directDamage} урона; ожидаются Реакции`):`${rule.name}: правило применено и записано в журнал`)
 }
 function techniquePreview(rule,point=null){
   const actor=currentHeroActor(),focusSpent=Number(pendingTechniqueOptions.focusSpent??rule.optionMinimum?.value??0),request={actorId:actor?.id,ruleId:rule.id,targetIds:[...Scene.targetIds],orientation:techniqueOrientation,options:{...pendingTechniqueOptions,focusSpent}};
@@ -295,8 +295,8 @@ function startTechnique(ruleId,options={}){
     if(rule.kind==="surgery"&&Scene.targetIds.length!==1)return toast("«Не навреди»: выберите одного смежного союзника");
     const prepared=techniquePreview(rule);if(!prepared.ok)return toast(prepared.errors.join(" "));commitTechniquePreview(prepared);return
   }
-  if(rule.kind==="combo"&&["Стычка","Заклинание","Завершение"].includes(rule.action)&&!Scene.targetIds.length){Scene.tool="target";setScenePanel(null);renderScene();return toast(`«${rule.name}»: отметьте цель и снова нажмите комбо`)}
-  pendingTechniqueRule=rule;pendingTechniqueAnchor=null;pendingTechniqueCells=[];pendingTechniqueLines=[];techniqueOrientation="horizontal";Scene.tool="select";setScenePanel(null);renderScene();
+  if(rule.kind==="combo"&&["Стычка","Заклинание","Завершение"].includes(rule.action)&&!Scene.targetIds.length){Scene.tool="target";renderScene();return toast(`«${rule.name}»: отметьте цель и снова нажмите комбо`)}
+  pendingTechniqueRule=rule;pendingTechniqueAnchor=null;pendingTechniqueCells=[];pendingTechniqueLines=[];techniqueOrientation="horizontal";Scene.tool="select";renderScene();
   const hint=rule.kind==="equidistant-teleport"?"выберите несмежную пустую клетку Заклинания":rule.kind==="trap-placement"?"выберите пустую клетку для Малой ловушки":rule.form==="nails"?"выберите первую Линию; R меняет направление":rule.form==="idol"?"выберите от 1 до 6 связанных клеток и подтвердите":"выберите клетку";
   toast(`«${rule.name}»: ${hint}`)
 }

@@ -137,6 +137,7 @@ function masterAtArmsStatus(scene, actorId, request = {}) {
   else if (modeId === "blade") {
     if (present.some(item => distance(actor, item) <= 1)) reason = "Клинок требует, чтобы персонаж ни с кем не был смежен.";
     else if (!enemies.some(enemy => distance(actor, enemy) === 2)) reason = "Для Клинка нужен враг ровно в 2 клетках.";
+    else if (request.requireDestination === false && (!targetIds.length || targetIds.length > 2 || targets.some(target => distance(actor, target) !== 2))) reason = "Сначала выберите одну или две цели Клинка ровно в 2 клетках, затем клетку перемещения.";
     else if (request.requireDestination !== false) {
       path = destination ? movementPath(scene, actor.id, destination, { maxDistance: 1 }) : [];
       if (!destination || path.length !== 1) reason = "Клинок требует переместиться ровно на 1 свободную клетку перед выбором целей.";
@@ -568,8 +569,8 @@ function availableEnemyRules(scene, data, actorId) {
     const fullRule = ENEMY_FULL_RULES.get(rule.id), stateOnly = ["pugilist-stance", "martial-perfection", "imposing-presence"].includes(fullRule?.type);
     const automation = ENEMY_AUTO_ATTACK_RULES.has(rule.id) ? "attack" : fullRule ? stateOnly ? "state" : "full" : ENEMY_AUTO_EFFECT_RULES.has(rule.id) ? "effect" : "assisted";
     let reason = "";
-    if (actor.team !== "enemy") reason = "Это не противник";
-    else if (actor.knockedOut) reason = "Противник выведен из строя";
+    if (!(actor.kind === "enemy" || actor.profileId)) reason = "Это не профильный НПС";
+    else if (actor.knockedOut) reason = "Профильный НПС выведен из строя";
     else if (scene.pendingAction) reason = "Сначала разрешите текущие Реакции";
     else if (!scene.activeActorId) reason = "Сначала начните Ход противника";
     else if (scene.activeActorId !== actor.id) reason = "Сейчас Ход другого участника";

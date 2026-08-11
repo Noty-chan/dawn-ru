@@ -6,7 +6,7 @@
   const MAX_BATCH_EVENTS=192;
   const MAX_AUTHORITY_ITEMS=200;
   const MAX_OUTBOX_ITEMS=40;
-  const LOCAL_UI_KEYS=["view","tool","activeSpace","selectedActor","targetIds","undo"];
+  const LOCAL_UI_KEYS=["view","tool","activeSpace","selectedActor","targetIds","undo","redo"];
   const AUTOMATIC_COMMANDS=new Set(["intent_v2","dispatch_events","join_hero","update_runtime","set_targets"]);
   const clone=value=>value==null?value:JSON.parse(JSON.stringify(value));
   const makeId=()=>{
@@ -38,6 +38,7 @@
     state.selectedActor=null;
     state.targetIds=[];
     delete state.undo;
+    delete state.redo;
     return state;
   }
 
@@ -46,13 +47,13 @@
     const scene=typeof global.normalizeScene==="function"?global.normalizeScene(remote):clone(remote||{});
     const spaceIds=new Set((scene.spaces||[]).map(space=>space.id));
     const actorIds=new Set((scene.actors||[]).map(actor=>actor.id));
-    const targetable=new Set((scene.actors||[]).filter(actor=>!actor.knockedOut).map(actor=>actor.id));
     scene.view=ui.view==="player"?"player":"gm";
     scene.tool=typeof ui.tool==="string"?ui.tool:scene.tool;
     scene.activeSpace=spaceIds.has(ui.activeSpace)?ui.activeSpace:(scene.spaces?.[0]?.id||"main");
     scene.selectedActor=actorIds.has(ui.selectedActor)?ui.selectedActor:null;
-    scene.targetIds=safeIds(ui.targetIds).filter(id=>targetable.has(id));
+    scene.targetIds=safeIds(ui.targetIds).filter(id=>actorIds.has(id));
     scene.undo=Array.isArray(ui.undo)?ui.undo.slice(0,20):[];
+    scene.redo=Array.isArray(ui.redo)?ui.redo.slice(0,20):[];
     return scene;
   }
 

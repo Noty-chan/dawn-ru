@@ -239,7 +239,7 @@ function prepareDisplacements(scene, requests = [], options = {}) {
   }
 }
 function turnStartStatus(scene, actorId) {
-  const actor = actorById(scene, actorId), heroes = (scene.actors || []).filter(item => item.kind === "hero" && item.team === "hero" && !item.knockedOut), enemies = (scene.actors || []).filter(item => item.team === "enemy" && item.kind !== "crowd" && !item.knockedOut);
+  const actor = actorById(scene, actorId), heroes = (scene.actors || []).filter(item => item.team === "hero" && item.kind !== "crowd" && !item.knockedOut), enemies = (scene.actors || []).filter(item => item.team === "enemy" && item.kind !== "crowd" && !item.knockedOut);
   if (!actor) return { available: false, reason: "Участник не найден." };
   if (actor.kind === "crowd") return { available: false, reason: "Зоны массовки не совершают Ходы." };
   if (scene.pendingAction) return { available: false, reason: "Сначала завершите текущую цепочку Реакций." };
@@ -253,7 +253,7 @@ function turnStartStatus(scene, actorId) {
   }
   const lastEnd = currentRoundEvents(scene).find(event => closedTurnActorId(event)), lastActor = actorById(scene, closedTurnActorId(lastEnd));
   if (heroes.length && enemies.length) {
-    if (!lastEnd && actor.team !== "hero") return { available: false, reason: "Раунд начинает персонаж игрока." };
+    if (!lastEnd && !(actor.kind === "hero" || actor.heroId)) return { available: false, reason: "Раунд начинает персонаж игрока." };
     const oppositeTeam = lastActor?.team === "enemy" ? "hero" : "enemy";
     const oppositeReady = (oppositeTeam === "hero" ? heroes : enemies).some(item => !item.acted);
     if (lastActor?.team === actor.team && oppositeReady) return { available: false, reason: actor.team === "enemy" ? "Сначала должен действовать ещё не ходивший герой." : "Сначала должен действовать ещё не ходивший враг." };
@@ -266,7 +266,7 @@ function roundEndStatus(scene) {
   if (scene.activeActorId) return { available: false, reason: "Сначала завершите текущий Ход." };
   const completedTurns = currentRoundEvents(scene).filter(event => closedTurnActorId(event));
   if (!completedTurns.length) return { available: false, reason: "Раунд ещё не начат." };
-  const readyActors = (scene.actors || []).filter(item => !item.knockedOut && item.kind !== "crowd" && (item.kind === "hero" && item.team === "hero" || item.team === "enemy"));
+  const readyActors = (scene.actors || []).filter(item => !item.knockedOut && item.kind !== "crowd");
   const remaining = readyActors.filter(actor => !actor.acted);
   if (remaining.length) return { available: false, reason: `Не завершили Ход: ${remaining.map(actor => actor.name).join(", ")}.` };
   return { available: true, reason: "" };
