@@ -71,11 +71,14 @@ function movementPath(scene, actorId, destination, options = {}) {
   const terrain = new Set((scene.objects || []).filter(object => object.space === actor.space && object.type === "terrain").flatMap(object => object.cells || []));
   const difficult = new Set((scene.objects || []).filter(object => object.space === actor.space && object.type === "difficult").flatMap(object => object.cells || []));
   for (const zone of (scene.actors || []).filter(item => item.kind === "crowd" && !item.knockedOut && item.team !== actor.team && item.space === actor.space)) difficult.add(cellKey(zone));
+  for (const guardian of (scene.actors || []).filter(item => !item.knockedOut && item.team !== actor.team && item.profileId === "enemy.common.guardian" && item.space === actor.space)) {
+    for (const [dx, dy] of [[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,-1],[1,-1],[-1,1]]) difficult.add(`${guardian.x + dx},${guardian.y + dy}`);
+  }
   for(const cell of actor.difficultTerrainImmunity||[])difficult.delete(cell);
   const elevation = new Map((scene.objects || []).filter(object => object.space === actor.space && ["high","low"].includes(object.type)).flatMap(object => (object.cells || []).map(cell => [cell,object.type])));
   const removed = removedCellKeys(scene, actor.space);
   const actorBanished = hasEffect(scene, actor, "positive.изгнан");
-  const opponents = new Set((scene.actors || []).filter(item => item.id !== actor.id && item.space === actor.space && item.team !== actor.team && effectPresenceStatus(scene, item.id).onField)
+  const opponents = new Set((scene.actors || []).filter(item => item.id !== actor.id && !item.knockedOut && item.space === actor.space && item.team !== actor.team && effectPresenceStatus(scene, item.id).onField)
     .filter(item => !actorBanished && !hasEffect(scene, item, "positive.изгнан")).map(item => `${item.x},${item.y}`));
   const cinematic = space.mode === "cinematic";
   if (cinematic && !options.ignoreDifficult) opponents.forEach(cell => difficult.add(cell));
@@ -295,6 +298,6 @@ const actionCost = action => {
 };
 const actorActionCost = (actor, action) => {
   const cost = actionCost(action);
-  if (Number(actor?.techniques?.["ruiner.creation-ascetic"] || 0) >= 2 && action?.name === "Зарядка") cost.amount = 1;
+  if (Number(actor?.techniques?.["ruiner.creation-ascetic"] || 0) >= 2 && actionIs(action, "charge")) cost.amount = 1;
   return cost;
 };

@@ -1437,7 +1437,7 @@ assert.equal(afterContinuedEnemyStep.actors[1].ap, 1, "Continuing an already pai
 const enemyRules = Engine.availableEnemyRules(enemyScene, data, "enemy");
 assert.equal(enemyRules.length, 3);
 const neutralize = enemyRules.find(rule => rule.en === "Neutralize Target");
-assert.equal(neutralize.automation, "effect");
+assert.equal(neutralize.automation, "full");
 const neutralized = Engine.prepareEnemyRule(enemyScene, data, { actorId: "enemy", ruleId: neutralize.id, targetIds: ["hero"] });
 assert.equal(neutralized.ok, true);
 const afterNeutralize = Engine.dispatchMany(enemyScene, neutralized.events).scene;
@@ -1448,11 +1448,10 @@ assert.ok(!afterNeutralize.actors[0].effects.includes("negative.замедлен
 assert.equal(Engine.prepareEnemyRule(afterNeutralize, data, { actorId: "enemy", ruleId: neutralize.id, targetIds: ["hero"] }).ok, false, "Enemy actions are once per Round");
 
 const slice = enemyRules.find(rule => rule.en === "Slice");
-assert.equal(slice.automation, "assisted", "Conditional wounds and positioning keep Slice under Narrator confirmation");
+assert.equal(slice.automation, "attack", "Slice uses the shared Attack pipeline and resolves its conditional effects itself");
 const assistedSlice = Engine.prepareEnemyRule(enemyScene, data, { actorId: "enemy", ruleId: slice.id, targetIds: ["hero"], roll: { formula: "5D6", rolls: [6, 5, 2, 1, 1], successes: 2, crits: 1 } });
 assert.equal(assistedSlice.ok, true);
-assert.ok(!assistedSlice.events.some(event => event.type === "attack.pending"), "Assisted attacks never silently apply a partial rule as if it were complete");
-assert.ok(assistedSlice.events.some(event => event.type === "roll.public"));
+assert.ok(assistedSlice.events.some(event => event.type === "attack.pending"), "Slice offers the target the normal defensive reaction window");
 
 const simpleEnemyScene = structuredClone(enemyScene);
 simpleEnemyScene.actors[1].profileId = "enemy.common.pugilist";
@@ -1492,6 +1491,32 @@ soulResolved = Engine.dispatchMany(soulResolved, Engine.respondReaction(soulReso
 soulResolved = Engine.dispatchMany(soulResolved, Engine.resolvePendingAction(soulResolved, data).events).scene;
 assert.equal(soulResolved.actors[0].focus, 0, "Tear From The Soul removes its tier-scaled Focus after dealing damage");
 
+const lurkingScene = structuredClone(revenantScene);
+lurkingScene.actors[0].focus = 1;
+lurkingScene.actors.push({ ...structuredClone(lurkingScene.actors[0]), id: "anchor", name: "Не-Ревенант", team: "enemy", profileId: "enemy.common.assassin", x: 2, y: 1, focus: 0, effects: [] });
+const lurk = Engine.availableEnemyRules(lurkingScene, data, "enemy").find(rule => rule.id === "enemy.common.revenant.action.lurk");
+assert.equal(lurk.automation, "full");
+const lurked = Engine.dispatchMany(lurkingScene, Engine.prepareEnemyRule(lurkingScene, data, { actorId: "enemy", ruleId: lurk.id }).events).scene;
+assert.ok(lurked.actors[0].effects.includes("negative.испуган"), "Lurk frightens a low-Focus opponent near a non-Revenant");
+
+const oniScene = structuredClone(enemyScene);
+oniScene.actors[1].profileId = "enemy.common.oni";
+oniScene.actors[1].effects = ["negative.ошеломлен", "positive.усилен"];
+const stabilize = Engine.availableEnemyRules(oniScene, data, "enemy").find(rule => rule.id === "enemy.common.oni.action.stabilize");
+const stabilized = Engine.dispatchMany(oniScene, Engine.prepareEnemyRule(oniScene, data, { actorId: "enemy", ruleId: stabilize.id }).events).scene;
+assert.deepEqual(Array.from(stabilized.actors[1].effects), ["positive.ускорен"], "Stabilize replaces all current Effects with Hasted");
+
+const broodScene = structuredClone(enemyScene);
+broodScene.actors[1].profileId = "enemy.common.broodmother";
+broodScene.actors[1].x = 2;
+broodScene.actors[1].y = 2;
+broodScene.actors[0].x = 4;
+broodScene.actors[0].y = 4;
+const roar = Engine.availableEnemyRules(broodScene, data, "enemy").find(rule => rule.id === "enemy.common.broodmother.trump.roar");
+const roared = Engine.dispatchMany(broodScene, Engine.prepareEnemyRule(broodScene, data, { actorId: "enemy", ruleId: roar.id }).events).scene;
+assert.ok(roared.actors[0].effects.includes("negative.спровоцирован"), "Roar provokes opponents in its centered 5x5 zone");
+assert.equal(roared.actors[1].extraTurns, 1, "Roar grants the Broodmother another Turn");
+
 const martyrScene = structuredClone(enemyScene);
 martyrScene.actors[1].profileId = "enemy.common.martyr";
 martyrScene.actors[1].hp = 5;
@@ -1516,9 +1541,9 @@ paladinScene.actors[1].profileId = "enemy.common.paladin";
 paladinScene.actors[1].name = "Паладин";
 paladinScene.actors.push({ ...structuredClone(paladinScene.actors[1]), id: "enemy-ally", name: "Союзник Паладина", x: 2, y: 2 });
 const gift = Engine.availableEnemyRules(paladinScene, data, "enemy").find(rule => rule.en === "Gift From God");
-assert.equal(gift.automation, "assisted");
+assert.equal(gift.automation, "attack");
 assert.equal(gift.maxTargets, 2);
-assert.equal(Engine.prepareEnemyRule(paladinScene, data, { actorId: "enemy", ruleId: gift.id, targetIds: ["hero", "enemy-ally"], roll: { formula: "5D6", rolls: [6, 4, 2, 1, 1], successes: 2, crits: 1 } }).ok, true, "Mixed ally/enemy actions honor the two textual targets through Narrator confirmation");
+assert.equal(Engine.prepareEnemyRule(paladinScene, data, { actorId: "enemy", ruleId: gift.id, targetIds: ["hero", "enemy-ally"], roll: { formula: "5D6", rolls: [6, 4, 2, 1, 1], successes: 2, crits: 1 } }).ok, true, "Mixed ally/enemy actions honor the two textual targets in the shared Attack pipeline");
 
 const daredevilScene = structuredClone(enemyScene);
 daredevilScene.actors[1].profileId = "enemy.common.daredevil";
@@ -1619,10 +1644,10 @@ builderScene.actors[1].profileId = "enemy.common.builder";
 builderScene.actors[1].name = "Строитель";
 builderScene.actors[1].x = 5;
 const construction = Engine.availableEnemyRules(builderScene, data, "enemy").find(rule => rule.en === "Violent Construction");
-assert.equal(construction.automation, "assisted");
+assert.equal(construction.automation, "attack");
 const directAttack = Engine.prepareEnemyRule(builderScene, data, { actorId: "enemy", ruleId: construction.id, targetIds: ["hero"], damage: 3 });
 assert.equal(directAttack.ok, true, "Fixed-damage special attacks remain usable");
-assert.ok(!directAttack.events.some(event => event.type === "attack.pending"), "Terrain placement is not falsely presented as fully automated");
+assert.ok(directAttack.events.some(event => event.type === "attack.pending"), "Violent Construction uses the Attack pipeline before creating its terrain");
 
 const areaScene = structuredClone(enemyScene);
 areaScene.actors[1].profileId = "enemy.common.witch";
@@ -2234,6 +2259,20 @@ assert.equal(breachedScene.actors.filter(actor => actor.summonerId === "leon").l
 assert.equal(breachedScene.actors.find(actor => actor.name.includes("Вайю"))?.baseAp, 1);
 assert.equal(breachedScene.actors.find(actor => actor.name.includes("Агни"))?.hp, 1);
 
+const corpseScene = structuredClone(scene);
+corpseScene.actors[1].x = 2; corpseScene.actors[1].y = 1; corpseScene.actors[1].knockedOut = true;
+assert.equal(Engine.effectCellOccupancyStatus(corpseScene, "hero", { space: "main", x: 2, y: 1 }).available, true, "A defeated actor does not occupy its cell");
+assert.equal(Engine.movementPath(corpseScene, "hero", { x: 3, y: 1 }, { maxDistance: 3 }).length, 2, "Movement may pass through a defeated enemy");
+const movedCorpse = Engine.dispatch(corpseScene, { type: "actor.move", actorId: "enemy", payload: { space: "main", x: 4, y: 4, placement: true, allowKnockedOut: true, movement: "Ручная перестановка" } }).scene;
+assert.deepEqual([movedCorpse.actors[1].x, movedCorpse.actors[1].y], [4, 4], "The Narrator may reposition a defeated token through the explicit placement override");
+
+const manualAttackScene = Engine.dispatchMany(scene, [
+  { type: "action.prepare", actorId: "enemy", payload: { actionId: "manual.attack", actionName: "Ручная атака", name: "Ручная атака", targetIds: ["hero"], quickReaction: true } },
+  { type: "reaction.offer", actorId: "hero", payload: { sourceActorId: "enemy", actionId: "manual.attack", participantIds: ["enemy", "hero"] } },
+  { type: "attack.pending", actorId: "enemy", payload: { actionId: "manual.attack", name: "Ручная атака", targetIds: ["hero"], damage: 2, roll: null, quickReaction: true, manualAttack: true } },
+]).scene;
+assert.equal(manualAttackScene.pendingAction?.responses?.hero?.choice, "pending", "A Narrator-declared unautomated attack opens the normal defensive Reaction window");
+
 const cinematicScene = structuredClone(scene);
 cinematicScene.spaces[0] = { id: "main", mode: "cinematic", width: 7, height: 1 };
 cinematicScene.actors[0].x = 0; cinematicScene.actors[0].y = 0;
@@ -2278,5 +2317,61 @@ const damagedTerrainScene = Engine.dispatch(canonicalTerrainScene, { type: "obje
 assert.equal(Engine.dispatch(damagedTerrainScene, { type: "object.restore", actorId: "hero", payload: { objectId: "wall-of-crates", amount: 3 } }).scene.objects.at(-1).hp, 18, "Terrain can be repaired up to its maximum Health");
 const switchedElevation = Engine.dispatch(elevationScene, { type: "area.create", actorId: "hero", payload: { id: "pit", space: "main", areaType: "low", label: "Провал", source: "QA", duration: "persistent", cells: ["1,1"] } }).scene;
 assert.equal(switchedElevation.objects.some(object => object.type === "high" && object.cells.includes("1,1")), false, "High and Low Terrain cannot overlap");
+
+const giftScene = structuredClone(scene);giftScene.actors[0].gifts = ["rebel.not-today", "cursed.sacrifice"];giftScene.actors[0].sacrifices = [];giftScene.actors[1].kind = "hero";giftScene.actors[1].profileId = null;giftScene.activeActorId = "enemy";
+const giftAttack = Engine.dispatchMany(giftScene, prepareAttack(giftScene, "enemy", "hero").events).scene, notToday = Engine.reactionOptions(giftAttack, data, "hero").find(option => option.giftReaction);
+assert.ok(notToday, "Not Today is exposed inside the actual defensive Reaction picker");
+let notTodayScene = Engine.dispatchMany(giftAttack, Engine.respondReaction(giftAttack, data, { actorId: "hero", choice: notToday.id }).events).scene;
+assert.equal(notTodayScene.pendingPrompt.kind, "not-today-risk", "Not Today asks the Narrator its three canonical risk questions");assert.equal(Engine.pendingTargetOutcome(notTodayScene, notTodayScene.pendingAction, "hero").cancelled, true, "Not Today negates the protected Attack before damage");
+notTodayScene = Engine.dispatchMany(notTodayScene, Engine.respondRulePrompt(notTodayScene, data, { choice: "answers:000" }).events).scene;assert.equal(notTodayScene.rollFeed[0].rolls.length, 0, "Zero yes answers roll zero risk dice");
+const sacrificeScene = Engine.dispatch(scene, { id: "gift-roll", type: "roll.public", actorId: "hero", payload: { formula: "3D6 ≥4", rolls: [4, 2, 1], successes: 1, crits: 0, target: 2, outcome: "Минимальный успех" } }).scene;sacrificeScene.actors[0].gifts = ["cursed.sacrifice"];sacrificeScene.actors[0].sacrifices = [];
+const sacrificed = Engine.dispatchMany(sacrificeScene, Engine.prepareSacrifice(sacrificeScene, { actorId: "hero", rollId: "gift-roll", sacrifice: "eye" }).events).scene;assert.equal(sacrificed.rollFeed[0].outcome, "Крайний успех");assert.deepEqual(Array.from(sacrificed.actors[0].sacrifices), ["eye"]);
+
+const enemyProfiles = [...(data.enemies?.common || []), ...(data.enemies?.named || [])];
+const declaredAttacks = enemyProfiles.flatMap(profile => (profile.rules || []).filter(rule => rule.kind === "attack").map(rule => ({ profile, rule })));
+assert.ok(declaredAttacks.length >= 40, "The enemy catalogue exposes the complete common Attack set");
+assert.deepEqual(declaredAttacks.filter(({ rule }) => Engine.enemyRuleAutomation(rule.id) === "assisted").map(({ rule }) => rule.id), [], "Every declared enemy Attack has an executable automation contract");
+for (const profileId of ["enemy.common.assassin", "enemy.common.pugilist", "enemy.common.guardian", "enemy.common.berserker", "enemy.common.ranger"]) {
+  const profile = enemyProfiles.find(item => item.id === profileId);
+  assert.ok(profile, `${profileId} exists in the canonical enemy catalogue`);
+  assert.equal((profile.rules || []).filter(rule => Engine.enemyRuleAutomation(rule.id) === "assisted").length, 0, `${profile.name} has no Narrator-only profile buttons`);
+}
+const profileScene = profileId => { const value = structuredClone(enemyScene); value.actors[1].profileId = profileId; value.actors[1].name = enemyProfiles.find(item => item.id === profileId).name; value.actors[1].hp = 5; value.actors[1].maxHp = 30; value.actors[1].ruleState = {}; value.actors[1].usedActions = []; value.actors[1].usedTrump = false; value.actors[1].ap = 3; return value; };
+const profileRule = (profileId, en) => enemyProfiles.find(item => item.id === profileId).rules.find(rule => rule.en === en);
+let assassinFull = profileScene("enemy.common.assassin"), assassinMark = profileRule("enemy.common.assassin", "Neutralize Target");
+assassinFull = Engine.dispatchMany(assassinFull, Engine.prepareEnemyRule(assassinFull, data, { actorId: "enemy", ruleId: assassinMark.id, targetIds: ["hero"] }).events).scene;
+assert.ok(assassinFull.actors[0].effects.includes("negative.помечен"), "Assassin creates its durable Mark through the shared Effect state");
+let pugilistFull = profileScene("enemy.common.pugilist"), stanceRule = profileRule("enemy.common.pugilist", "Take Stance");
+pugilistFull = Engine.dispatchMany(pugilistFull, Engine.prepareEnemyRule(pugilistFull, data, { actorId: "enemy", ruleId: stanceRule.id, options: { stanceStep: 3 } }).events).scene;
+assert.equal(pugilistFull.actors[1].ruleState.pugilistStance, 3, "Pugilist stance selection persists for Flurry sequencing");
+let guardianFull = profileScene("enemy.common.guardian"), shieldRule = profileRule("enemy.common.guardian", "Guardian Shield");
+guardianFull = Engine.dispatchMany(guardianFull, Engine.prepareEnemyRule(guardianFull, data, { actorId: "enemy", ruleId: shieldRule.id }).events).scene;
+assert.ok(guardianFull.actors[1].effects.includes("negative.обездвижен") && guardianFull.actors[0].effects.includes("negative.спровоцирован"), "Guardian Shield applies both halves of its profile rule");
+let berserkerFull = profileScene("enemy.common.berserker"), seethRule = profileRule("enemy.common.berserker", "Seeth");
+berserkerFull = Engine.dispatchMany(berserkerFull, Engine.prepareEnemyRule(berserkerFull, data, { actorId: "enemy", ruleId: seethRule.id }).events).scene;
+assert.equal(berserkerFull.actors[1].hp, 9, "Berserker Seeth heals its tier-scaled amount");
+let rangerFull = profileScene("enemy.common.ranger"), nestRule = profileRule("enemy.common.ranger", "Nest");
+rangerFull = Engine.dispatchMany(rangerFull, Engine.prepareEnemyRule(rangerFull, data, { actorId: "enemy", ruleId: nestRule.id }).events).scene;
+assert.equal(rangerFull.actors[1].ruleState.enemyAim, 1, "Ranger Nest stores Aim for Take The Shot");
+const resolveEnemyFamily = (sourceScene, family, targetIds = ["hero"], anchor = null) => {
+  let value = structuredClone(sourceScene); value.pendingAction = null;
+  value = Engine.dispatchMany(value, [
+    ...targetIds.map(targetId => ({ type: "reaction.offer", actorId: targetId, payload: { sourceActorId: "enemy", actionId: "qa.enemy.attack" } })),
+    { type: "attack.pending", actorId: "enemy", payload: { actionId: "qa.enemy.attack", name: "QA attack", targetIds, roll: { rolls: [6], successes: 1, crits: 1 }, damage: 1, damageByTarget: Object.fromEntries(targetIds.map(id => [id, 1])), enemyAttackFamily: family, attackAnchor: anchor } },
+  ]).scene;
+  for (const targetId of targetIds) value = Engine.dispatchMany(value, Engine.respondReaction(value, data, { actorId: targetId, choice: "pass" }).events).scene;
+  return Engine.dispatchMany(value, Engine.resolvePendingAction(value, data).events).scene;
+};
+let fluxScene = profileScene("enemy.common.illusionist"); fluxScene.actors.push({ ...structuredClone(fluxScene.actors[1]), id: "illusion-ally", profileId: "enemy.common.guardian", x: 4, y: 1, ruleState: {} });
+fluxScene = resolveEnemyFamily(fluxScene, { flux: true });
+assert.ok(fluxScene.actors[0].effects.includes("special.поток"), "Distort Reality stores Flux as source-aware scene state");
+fluxScene.activeActorId = null; fluxScene = Engine.dispatchMany(fluxScene, [{ type: "turn.start", actorId: "hero", payload: {} }]).scene;
+assert.equal(fluxScene.pendingPrompt?.kind, "enemy-flux-swap", "Flux offers the Illusionist its canonical swap at the target's Turn start");
+let cocoonRepeat = profileScene("enemy.common.cocoon"); cocoonRepeat.actors.push({ ...structuredClone(cocoonRepeat.actors[0]), id: "hero-2", name: "Свежая цель", x: 2, y: 2 });
+cocoonRepeat = resolveEnemyFamily(cocoonRepeat, { repeatFreshTargets: true });
+assert.equal(cocoonRepeat.pendingPrompt?.kind, "enemy-cocoon-repeat", "Rampage offers a fresh adjacent target after resolution");
+let witchExpel = profileScene("enemy.common.witch"), beforeExpel = { x: witchExpel.actors[0].x, y: witchExpel.actors[0].y };
+witchExpel = resolveEnemyFamily(witchExpel, { expelFromArea: true, area: [3, 3] }, ["hero"], { x: 1, y: 1 });
+assert.notDeepEqual({ x: witchExpel.actors[0].x, y: witchExpel.actors[0].y }, beforeExpel, "Expelling Force moves a hit target to the nearest reachable cell outside its area");
 
 console.log("Scene engine QA passed: canonical Turns and AP, once-per-Round actions, strict Reactions, truthful enemy automation, effects, movement, damage, and public events");

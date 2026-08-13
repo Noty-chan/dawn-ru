@@ -9,6 +9,12 @@ const WISP_TYPES = {
   fierce: { label: "Яростный дух", effect: "positive.усилен", audience: "allies" },
 };
 const wispMarkers = (scene, ownerId) => (scene.markers || []).filter(marker => marker.ownerActorId === ownerId && /altruist\.will-o-wisp\.1/.test(`${marker.ruleId || ""} ${marker.source || ""}`));
+// Old saved event logs may only contain the former Russian display name.
+// Normalize that value once at the event boundary; trigger rules still compare stable IDs.
+const eventActionId = payload => {
+  const explicit = canonicalActionId(payload?.baseActionId || payload?.actionId);
+  return Object.values(ACTION_IDS).includes(explicit) ? explicit : canonicalActionId(payload?.actionName || payload?.name || explicit);
+};
 
 function defineTriggerRule(definition = {}) {
   const id = String(definition.id || ""), eventTypes = [...new Set(definition.eventTypes || [])], priority = Number(definition.priority ?? 0);
@@ -40,7 +46,7 @@ const TRIGGER_RULES = [
     id: "disruptor.siren.1.study",
     eventTypes: ["action.resolve"],
     priority: 60,
-    match: ({ scene, actor, payload }) => actor && payload.name === "Изучение" && Number(actor.techniques?.["disruptor.siren"] || 0) >= 1 && usageLimitStatus(scene, actor.id, { ruleId: "disruptor.siren.1", scope: "scene", maximum: 3 }).available,
+    match: ({ scene, actor, payload }) => actor && actionIdIs(eventActionId(payload), "study") && Number(actor.techniques?.["disruptor.siren"] || 0) >= 1 && usageLimitStatus(scene, actor.id, { ruleId: "disruptor.siren.1", scope: "scene", maximum: 3 }).available,
     build: ({ scene, event, actor, payload }) => {
       const limit = usageLimitStatus(scene, actor.id, { ruleId: "disruptor.siren.1", scope: "scene", maximum: 3 }), target = actorById(scene, payload.targetIds?.[0]);
       if (!target || target.knockedOut || target.team === actor.team) return [];
@@ -51,7 +57,7 @@ const TRIGGER_RULES = [
     id: "powerhouse.duelist.2.block",
     eventTypes: ["reaction.respond"],
     priority: 80,
-    match: ({ actor, payload }) => actor && payload.choice === "Блок" && Number(actor.techniques?.["powerhouse.duelist"] || 0) >= 2,
+    match: ({ actor, payload }) => actor && actionIdIs(payload.choice, "block") && Number(actor.techniques?.["powerhouse.duelist"] || 0) >= 2,
     build: ({ scene, actor }) => {
       const source = actorById(scene, scene.pendingAction?.actorId), blockMove = (scene.log || []).find(item => item.type === "actor.move" && item.actorId === actor.id && item.payload?.displacement?.ruleId === "action.block"), blockOrigin = blockMove?.payload?.from || actor;
       return source && !source.knockedOut && distance(blockOrigin, source) <= 1
@@ -87,7 +93,7 @@ const TRIGGER_RULES = [
     id: "vagabond.dim-mak.1.study",
     eventTypes: ["action.resolve"],
     priority: 58,
-    match: ({ actor, payload }) => actor && payload.name === "Изучение" && Number(actor.techniques?.["vagabond.dim-mak"] || 0) >= 1,
+    match: ({ actor, payload }) => actor && actionIdIs(eventActionId(payload), "study") && Number(actor.techniques?.["vagabond.dim-mak"] || 0) >= 1,
     build: ({ scene, event, actor, payload }) => {
       const target = actorById(scene, payload.targetIds?.[0]);
       if (!target || target.knockedOut || target.team === actor.team || target.space !== actor.space) return [];
@@ -430,7 +436,7 @@ function triggeredEvents(scene, event, options = {}) {
     events.push({ type: "action.plan.cancel", actorId: payload.targetId, payload: { planId: scene.pendingActionPlan.id, reason: "Исполнитель выведен из боя.", participantIds: [payload.targetId] } });
   }
   if (event.type === "attack.pending" && actor && Array.isArray(payload.attackModifierIds) && payload.attackModifierIds.length) {
-    const modifiers = attackModifierStatus(scene, actor.id, payload.targetIds, payload.attackModifierIds, { actionName: payload.declaredActionName || payload.name });
+    const modifiers = attackModifierStatus(scene, actor.id, payload.targetIds, payload.attackModifierIds, { actionId: payload.declaredActionId || payload.actionId });
     for (const option of modifiers.options.filter(item => modifiers.selectedIds.includes(item.id))) {
       if (option.removeMarkerId) events.push({ type: "marker.remove", actorId: actor.id, payload: { markerId: option.removeMarkerId, ruleId: option.ruleId, carrierActorId: option.targetId, sourceActionId: option.id, reason: option.label, participantIds: [actor.id, option.targetId] } });
       else if (option.removeEffect) events.push({ type: "effect.remove", actorId: actor.id, payload: { targetId: option.targetId, effect: option.removeEffect, sourceActionId: option.id, reason: option.label, participantIds: [actor.id, option.targetId] } });
@@ -445,8 +451,8 @@ function triggeredEvents(scene, event, options = {}) {
       const candidates = [preferred, { x: actor.x + 1, y: actor.y }, { x: actor.x - 1, y: actor.y }, { x: actor.x, y: actor.y + 1 }, { x: actor.x, y: actor.y - 1 }]
         .filter((point, index, list) => list.findIndex(other => other.x === point.x && other.y === point.y) === index)
         .filter(point => space && point.x >= 0 && point.y >= 0 && point.x < space.width && point.y < space.height && !removedCellKeys(scene, actor.space).has(cellKey(point)));
-      const destination = candidates.find(point => !occupied.has(cellKey(point))) || candidates[0];
-      if (destination && (marker.space !== actor.space || marker.x !== destination.x || marker.y !== destination.y)) events.push({ type: "marker.move", actorId: marker.ownerActorId, payload: { markerId: marker.id, space: actor.space, x: destination.x, y: destination.y, movement: `Слабая точка следует за ${actor.name}`, sourceActionId: "vagabond.dim-mak.1", participantIds: [marker.ownerActorId, actor.id] } });
+      const destination = candidates.find(point => !occupied.has(cellKey(point)));
+      if (destination && (marker.space !== actor.space || marker.x !== destination.x || marker.y !== destination.y)) events.push({ type: "marker.move", actorId: marker.ownerActorId, payload: { markerId: marker.id, space: actor.space, x: destination.x, y: destination.y, carrierActorId: actor.id, offset: { dx: destination.x - actor.x, dy: destination.y - actor.y }, movement: `Слабая точка следует за ${actor.name}`, sourceActionId: "vagabond.dim-mak.1", participantIds: [marker.ownerActorId, actor.id] } });
     }
   }
   if (actor && payload.resolvedResource === "health" && Number(payload.resolvedDelta || 0) !== 0) {
@@ -467,7 +473,7 @@ function triggeredEvents(scene, event, options = {}) {
   }
   if (event.type === "reaction.offer" && actor && Number(actor.techniques?.["bulwark.mundane"] || 0) >= 2) events.push({ type: "rule-resource.gain", actorId: actor.id, payload: { resource: "grit", amount: 1, sourceActionId: "bulwark.mundane.2" } });
   if (event.type === "technique.state" && payload.key === "study" && payload.newTarget && actor && Number(actor.techniques?.["vagabond.cunning-fighter"] || 0) >= 1) events.push({ type: "rule-clock.tick", actorId: actor.id, payload: { clockId: "vagabond.cunning-fighter.plan", delta: 1, sourceActionId: "vagabond.cunning-fighter.1.study", reason: "Новая цель Изучения" } });
-  if (event.type === "action.resolve" && actor && Number(actor.techniques?.["powerhouse.braggart"] || 0) >= 1 && ["Стычка", "Заклинание", "Завершение"].includes(payload.name)) {
+  if (event.type === "action.resolve" && actor && Number(actor.techniques?.["powerhouse.braggart"] || 0) >= 1 && ["skirmish", "spell", "finish"].some(key => actionIdIs(eventActionId(payload), key))) {
     const attribute = payload.attribute, lowest = Object.entries(actor.attrs || {}).sort((left, right) => Number(left[1]) - Number(right[1])).slice(0, 2).map(([key]) => key);
     if (lowest.includes(attribute)) events.push({ type: "rule-clock.tick", actorId: actor.id, payload: { clockId: "powerhouse.braggart.pride", delta: 1, sourceActionId: "powerhouse.braggart.1", reason: `Атака низким Атрибутом: ${attribute}` } });
   }
@@ -475,7 +481,7 @@ function triggeredEvents(scene, event, options = {}) {
     const target = actorById(scene, payload.targetId), response = scene.pendingAction?.responses?.[payload.targetId]?.choice, source = actorById(scene, event.actorId);
     if (target && source?.team !== target.team && response === "pass" && Number(target.techniques?.["powerhouse.braggart"] || 0) >= 1) events.push({ type: "rule-clock.tick", actorId: target.id, payload: { clockId: "powerhouse.braggart.pride", delta: 1, sourceActionId: "powerhouse.braggart.1", reason: "Попадание без защитной Реакции", participantIds: [source.id, target.id] } });
   }
-  if (event.type === "action.resolve" && actor && Number(actor.techniques?.["vagabond.egomaniac"] || 0) >= 1 && clockStatus(scene, actor.id, "vagabond.egomaniac.style").active && ["Стычка", "Заклинание", "Завершение"].includes(payload.name)) {
+  if (event.type === "action.resolve" && actor && Number(actor.techniques?.["vagabond.egomaniac"] || 0) >= 1 && clockStatus(scene, actor.id, "vagabond.egomaniac.style").active && ["skirmish", "spell", "finish"].some(key => actionIdIs(eventActionId(payload), key))) {
     const targets = [...new Set(payload.targetIds || [])].map(id => actorById(scene, id)).filter(Boolean), priorResolve = (scene.log || []).find(logged => logged.id !== event.id && logged.type === "action.resolve" && logged.actorId === actor.id);
     const priorMove = (scene.log || []).find(logged => logged.type === "actor.move" && logged.actorId === actor.id);
     const drama = Number(payload.roll?.crits || 0) >= 2;
@@ -499,7 +505,7 @@ function triggeredEvents(scene, event, options = {}) {
     const options = Number(actor.techniques?.["vagabond.egomaniac"] || 0) >= 2 ? ["flow", "provoke", "frighten"] : ["flow"];
     events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${event.id}-style`, kind: "egomaniac-style-full", sourceActorId: actor.id, title: "Пиковая форма", text: options.length > 1 ? "Получить 1 ОД и переместиться либо отказаться от ОД ради массового Эффекта?" : "Очистить Стиль, получить 1 ОД и переместиться до 2 клеток по прямой?", options, participantIds: [actor.id] } });
   }
-  if (event.type === "action.resolve" && actor && payload.name === "Зарядка" && Number(actor.techniques?.["vagabond.egomaniac"] || 0) >= 3 && clockStatus(scene, actor.id, "vagabond.egomaniac.style").active && Number(scene.tension || 0) > 0 && !scene.pendingPrompt && !promptQueued()) events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${event.id}-finale`, kind: "egomaniac-finale", sourceActorId: actor.id, title: "Финал", text: `Заполнить ${Number(scene.tension || 0) * 2} сегмента Стиля с переносом между заполнениями, затем потерять Стиль до конца Сцены?`, options: ["finale", "pass"], participantIds: [actor.id] } });
+  if (event.type === "action.resolve" && actor && actionIdIs(eventActionId(payload), "charge") && Number(actor.techniques?.["vagabond.egomaniac"] || 0) >= 3 && clockStatus(scene, actor.id, "vagabond.egomaniac.style").active && Number(scene.tension || 0) > 0 && !scene.pendingPrompt && !promptQueued()) events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${event.id}-finale`, kind: "egomaniac-finale", sourceActorId: actor.id, title: "Финал", text: `Заполнить ${Number(scene.tension || 0) * 2} сегмента Стиля с переносом между заполнениями, затем потерять Стиль до конца Сцены?`, options: ["finale", "pass"], participantIds: [actor.id] } });
   if (event.type === "rule-clock.tick" && payload.clockId === "vagabond.egomaniac.style" && payload.sourceActionId === "vagabond.egomaniac.3" && actor) {
     const remaining = Math.max(0, Number(actor.ruleState?.styleCarryRemaining || 0) - Number(payload.appliedDelta || 0));
     events.push({ type: "actor.state", actorId: actor.id, payload: { key: "styleCarryRemaining", value: remaining, sourceActionId: "vagabond.egomaniac.3" } });
@@ -521,13 +527,13 @@ function triggeredEvents(scene, event, options = {}) {
     events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${event.id}-time-stop`, kind: "chronomancer-time-stop", sourceActorId: actor.id, title: "Остановка времени", text: "Потратить все ОД, очистить Поток и использовать Заклинание против всех персонажей Сцены?", options: enemies.length <= 2 ? ["time-stop", "time-stop-all-in", "pass"] : ["time-stop", "pass"], context: { optionLabels: { "time-stop": "Остановить время", "time-stop-all-in": "Получить Рану и применить Ва-банк", pass: "Не использовать" } }, participantIds: (scene.actors || []).map(item => item.id) } });
   }
   if (event.type === "rule-clock.tick" && payload.clockId === "powerhouse.braggart.pride" && payload.filled && actor && Number(actor.techniques?.["powerhouse.braggart"] || 0) >= 2 && clockStatus(scene, actor.id, payload.clockId).size > 2 && !scene.pendingPrompt && !promptQueued()) events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${event.id}-hold-back`, kind: "braggart-hold-back", sourceActorId: actor.id, title: "Докажи, чего стоишь", text: "Сдержаться: очистить Гордость и уменьшить размер часов на 2?", options: ["hold-back", "pass"], context: { clockId: payload.clockId }, participantIds: [actor.id] } });
-  if (event.type === "action.resolve" && actor && payload.name === "Зарядка" && Number(actor.techniques?.["bulwark.stalwart-sentry"] || 0) >= 2) events.push({ type: "rule-clock.set", actorId: actor.id, payload: { clockId: "bulwark.stalwart-sentry.vigilance", value: 4, sourceActionId: "bulwark.stalwart-sentry.2", reason: "Зарядка восстанавливает Бдительность" } });
+  if (event.type === "action.resolve" && actor && actionIdIs(eventActionId(payload), "charge") && Number(actor.techniques?.["bulwark.stalwart-sentry"] || 0) >= 2) events.push({ type: "rule-clock.set", actorId: actor.id, payload: { clockId: "bulwark.stalwart-sentry.vigilance", value: 4, sourceActionId: "bulwark.stalwart-sentry.2", reason: "Зарядка восстанавливает Бдительность" } });
   if (event.type === "effect.apply" && payload.applied && actor && event.actorId !== payload.targetId) {
     const target = actorById(scene, payload.targetId);
     if (target?.team === actor.team && Number(actor.techniques?.["altruist.chronomancer"] || 0) >= 3) events.push({ type: "rule-clock.tick", actorId: actor.id, payload: { clockId: "altruist.chronomancer.flow", delta: 1, sourceActionId: "altruist.chronomancer.3", reason: "Эффект применён к союзнику", participantIds: [actor.id, target.id] } });
   }
   if (event.type === "resource.gain" && actor && payload.resolvedResource === "focus" && Number(payload.resolvedDelta || 0) > 0 && Number(actor.techniques?.["ruiner.cryomancer"] || 0) >= 2) events.push({ type: "rule-clock.tick", actorId: actor.id, payload: { clockId: "ruiner.cryomancer.icicle", delta: 1, sourceActionId: "ruiner.cryomancer.2", reason: "Получен Фокус" } });
-  if (event.type === "action.resolve" && actor && payload.name === "Передышка" && Number(actor.techniques?.["ruiner.cryomancer"] || 0) >= 2 && clockStatus(scene, actor.id, "ruiner.cryomancer.icicle").value > 0 && !scene.pendingPrompt && !promptQueued()) events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${event.id}-icicle`, kind: "cryomancer-icicle-rest", sourceActorId: actor.id, title: "Ледяной нимб", text: "Отказаться от полученного Передышкой Фокуса, очистить Сосульку и начать серию Быстрых Заклинаний с половинным уроном?", options: ["convert", "pass"], participantIds: [actor.id] } });
+  if (event.type === "action.resolve" && actor && actionIdIs(eventActionId(payload), "breathe") && Number(actor.techniques?.["ruiner.cryomancer"] || 0) >= 2 && clockStatus(scene, actor.id, "ruiner.cryomancer.icicle").value > 0 && !scene.pendingPrompt && !promptQueued()) events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${event.id}-icicle`, kind: "cryomancer-icicle-rest", sourceActorId: actor.id, title: "Ледяной нимб", text: "Отказаться от полученного Передышкой Фокуса, очистить Сосульку и начать серию Быстрых Заклинаний с половинным уроном?", options: ["convert", "pass"], participantIds: [actor.id] } });
   if (event.type === "action.resolve" && actor && payload.icicleHalo) {
     const remaining = Math.max(0, Number(actor.ruleState?.icicleSpellsRemaining || 0) - 1);
     events.push({ type: "actor.state", actorId: actor.id, payload: { key: "icicleSpellsRemaining", value: remaining, sourceActionId: "ruiner.cryomancer.2" } });
@@ -537,12 +543,12 @@ function triggeredEvents(scene, event, options = {}) {
     }
     if (remaining > 0 && !scene.pendingPrompt && !promptQueued()) events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${event.id}-icicle-next`, kind: "cryomancer-icicle-series", sourceActorId: actor.id, title: "Ледяной нимб", text: `Осталось Быстрых Заклинаний: ${remaining}. Продолжить серию?`, options: ["continue", "stop"], context: { remaining }, participantIds: [actor.id] } });
   }
-  if (event.type === "action.resolve" && actor && (payload.name === "Заклинание" || payload.icicleHalo) && Number(payload.roll?.successes || 0) > 0 && Number(actor.techniques?.["ruiner.cryomancer"] || 0) >= 1) for (const targetId of payload.targetIds || []) events.push({ type: "effect.apply", actorId: actor.id, payload: { targetId, effect: "negative.замедлен", sourceActionId: "ruiner.cryomancer.1", participantIds: [actor.id, targetId] } });
+  if (event.type === "action.resolve" && actor && (actionIdIs(eventActionId(payload), "spell") || payload.icicleHalo) && Number(payload.roll?.successes || 0) > 0 && Number(actor.techniques?.["ruiner.cryomancer"] || 0) >= 1) for (const targetId of payload.targetIds || []) events.push({ type: "effect.apply", actorId: actor.id, payload: { targetId, effect: "negative.замедлен", sourceActionId: "ruiner.cryomancer.1", participantIds: [actor.id, targetId] } });
   if (event.type === "turn.end" && actor && Number(actor.techniques?.["ruiner.feral-arcana"] || 0) >= 2) {
     const rage = clockStatus(scene, actor.id, "ruiner.feral-arcana.rage");
     if (rage.active && rage.value > 0) events.push({ type: "rule-clock.tick", actorId: actor.id, payload: { clockId: rage.id, delta: -1, sourceActionId: "ruiner.feral-arcana.2", reason: "Конец Хода" } });
   }
-  if (event.type === "action.resolve" && actor && payload.name === "Прыжок" && Number(actor.techniques?.["ruiner.feral-arcana"] || 0) >= 2 && !scene.pendingPrompt && !scene.pendingAction && !promptQueued()) {
+  if (event.type === "action.resolve" && actor && actionIdIs(eventActionId(payload), "jump") && Number(actor.techniques?.["ruiner.feral-arcana"] || 0) >= 2 && !scene.pendingPrompt && !scene.pendingAction && !promptQueued()) {
     const rage = clockStatus(scene, actor.id, "ruiner.feral-arcana.rage");
     const targetIds = (scene.actors || []).filter(target => !target.knockedOut && target.id !== actor.id && target.space === actor.space && distance(actor, target) <= 1).map(target => target.id);
     if (rage.active && rage.value > 0 && targetIds.length) events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${event.id}-rage-spell`, kind: "feral-rage-jump-spell", sourceActorId: actor.id, title: "Сорваться с цепи", text: "После Прыжка обязательно используйте бесплатное Быстрое Заклинание против всех персонажей в смежных клетках.", options: ["attack"], context: { targetIds }, participantIds: [actor.id, ...targetIds] } });
@@ -553,8 +559,8 @@ function triggeredEvents(scene, event, options = {}) {
     const voidOwner = event.type === "effect.apply" ? actorById(scene, payload.targetId) : actor;
     if (voidOwner && Number(voidOwner.techniques?.["ruiner.void-soul"] || 0) >= 3) events.push({ type: "rule-clock.tick", actorId: voidOwner.id, payload: { clockId: "ruiner.void-soul.void", delta: 1, sourceActionId: "ruiner.void-soul.3", reason: event.type === "actor.move" ? "Телепортация" : "Получен Изгнан", participantIds: [voidOwner.id] } });
   }
-  if (event.type === "action.resolve" && actor && payload.name === "Передышка" && Number(actor.techniques?.["ruiner.thunder-blood"] || 0) >= 1 && !scene.pendingPrompt && !promptQueued()) events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${event.id}-static`, kind: "thunder-rest-static", sourceActorId: actor.id, title: "Райден", text: `Заполнить ${Number(actor.techniques?.["ruiner.thunder-blood"] || 0) >= 3 ? 4 : 2} сегмента Статики?`, options: ["fill", "pass"], context: { amount: Number(actor.techniques?.["ruiner.thunder-blood"] || 0) >= 3 ? 4 : 2 }, participantIds: [actor.id] } });
-  if (event.type === "action.resolve" && actor && payload.name === "Заклинание" && Number(payload.roll?.successes || 0) > 0 && Number(actor.techniques?.["ruiner.thunder-blood"] || 0) >= 2 && clockStatus(scene, actor.id, "ruiner.thunder-blood.static").value > 0 && !scene.pendingPrompt && !promptQueued()) {
+  if (event.type === "action.resolve" && actor && actionIdIs(eventActionId(payload), "breathe") && Number(actor.techniques?.["ruiner.thunder-blood"] || 0) >= 1 && !scene.pendingPrompt && !promptQueued()) events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${event.id}-static`, kind: "thunder-rest-static", sourceActorId: actor.id, title: "Райден", text: `Заполнить ${Number(actor.techniques?.["ruiner.thunder-blood"] || 0) >= 3 ? 4 : 2} сегмента Статики?`, options: ["fill", "pass"], context: { amount: Number(actor.techniques?.["ruiner.thunder-blood"] || 0) >= 3 ? 4 : 2 }, participantIds: [actor.id] } });
+  if (event.type === "action.resolve" && actor && actionIdIs(eventActionId(payload), "spell") && Number(payload.roll?.successes || 0) > 0 && Number(actor.techniques?.["ruiner.thunder-blood"] || 0) >= 2 && clockStatus(scene, actor.id, "ruiner.thunder-blood.static").value > 0 && !scene.pendingPrompt && !promptQueued()) {
     const originalTargets = [...new Set(payload.targetIds || [])].map(id => actorById(scene, id)).filter(target => target && !target.knockedOut);
     const options = ["pass"], optionLabels = { pass: "Не использовать" };
     for (const target of originalTargets) {
@@ -597,10 +603,10 @@ function triggeredEvents(scene, event, options = {}) {
       if (logged.type === "turn.start" && logged.actorId === actor.id) break;
       turnEvents.push(logged);
     }
-    const attacked = turnEvents.some(logged => logged.type === "action.prepare" && logged.actorId === actor.id && ["Стычка", "Заклинание", "Завершение"].includes(logged.payload?.actionName || logged.payload?.name));
+    const attacked = turnEvents.some(logged => logged.type === "action.prepare" && logged.actorId === actor.id && ["skirmish", "spell", "finish"].some(key => actionIdIs(logged.payload?.actionId, key)));
     if (!attacked && ruleResourceStatus(scene, actor.id, { resource: "bullets" }).balance < 6) events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${event.id}-reload`, kind: "gunslinger-reload", sourceActorId: actor.id, title: "Зарядить и взвести", text: "Выставить Пули на 6?", options: ["reload", "pass"], participantIds: [actor.id] } });
   }
-  if (event.type === "action.resolve" && actor && payload.name === "Передышка" && Number(actor.techniques?.["vagabond.modified-meister"] || 0) >= 3 && Number(scene.tension || 0) >= 2 && !scene.pendingPrompt && !promptQueued()) events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${event.id}-overclock`, kind: "meister-overclock", sourceActorId: actor.id, title: "Разгон", text: "Разогнаться до конца следующего Хода?", options: ["overclock", "pass"], participantIds: [actor.id] } });
+  if (event.type === "action.resolve" && actor && actionIdIs(eventActionId(payload), "breathe") && Number(actor.techniques?.["vagabond.modified-meister"] || 0) >= 3 && Number(scene.tension || 0) >= 2 && !scene.pendingPrompt && !promptQueued()) events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${event.id}-overclock`, kind: "meister-overclock", sourceActorId: actor.id, title: "Разгон", text: "Разогнаться до конца следующего Хода?", options: ["overclock", "pass"], participantIds: [actor.id] } });
   if (event.type === "damage.apply" && Number(payload.dealt || 0) > 0) {
     const owners = [...new Set([event.actorId, payload.targetId])].map(id => actorById(scene, id)).filter(owner => owner && Number(owner.techniques?.["vagabond.modified-meister"] || 0) >= 3 && Number(owner.ruleState?.modifiedOverclockTurns || 0) > 0);
     owners.forEach(owner => events.push({ type: "rule-resource.gain", actorId: owner.id, payload: { resource: "heat", amount: 1, sourceActionId: "vagabond.modified-meister.3", participantIds: [owner.id, payload.targetId].filter(Boolean) } }));
@@ -628,19 +634,19 @@ function triggeredEvents(scene, event, options = {}) {
     const empath = (scene.actors || []).find(owner => !owner.knockedOut && owner.team === actor.team && owner.id !== actor.id && Number(owner.techniques?.["altruist.empath"] || 0) >= 1 && distance(owner, actor) <= 1);
     if (empath && (actor.effects || []).length) events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${event.id}-empath`, kind: "empath-calm", sourceActorId: empath.id, targetId: actor.id, title: "Успокаивающая аура", text: "Можно потерять один Эффект и стать Усиленным.", options: [...actor.effects.slice(0, 11), "pass"], participantIds: [empath.id, actor.id] } });
   }
-  if (event.type === "action.resolve" && actor && payload.name === "Передышка" && Number(actor.techniques?.["altruist.alchemist"] || 0) >= 1 && !scene.pendingPrompt) {
+  if (event.type === "action.resolve" && actor && actionIdIs(eventActionId(payload), "breathe") && Number(actor.techniques?.["altruist.alchemist"] || 0) >= 1 && !scene.pendingPrompt) {
     events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${event.id}`, kind: "alchemist-mix", sourceActorId: actor.id, title: "Быстрая смесь", text: "Передышка позволяет создать одно Зелье.", options: ["pure-water", "rage-fumes", "growth-serum", "adrenaline", "stone-skin", "thorn-rot"] } });
   }
-  if (event.type === "action.resolve" && actor && payload.name === "Зарядка" && Number(actor.techniques?.["ruiner.grim-ascendant"] || 0) >= 1 && Number(scene.tension || 0) >= 2 && !actor.ruleState?.grimUsed && !scene.pendingPrompt && !promptQueued()) {
+  if (event.type === "action.resolve" && actor && actionIdIs(eventActionId(payload), "charge") && Number(actor.techniques?.["ruiner.grim-ascendant"] || 0) >= 1 && Number(scene.tension || 0) >= 2 && !actor.ruleState?.grimUsed && !scene.pendingPrompt && !promptQueued()) {
     events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${event.id}-grim`, kind: "grim-transform", sourceActorId: actor.id, title: "Непостоянная мощь", text: "Трансформироваться: получить 2 ОД, обратить потерянное Здоровье в удвоенный Фокус и оттолкнуть ближайших врагов?", options: ["transform", "pass"], participantIds: [actor.id] } });
   }
-  if (event.type === "action.resolve" && actor && payload.name === "Зарядка" && Number(actor.techniques?.["powerhouse.warring-ascendant"] || 0) >= 1 && Number(scene.tension || 0) >= 2 && !actor.ruleState?.warringUsed && !scene.pendingPrompt && !promptQueued()) {
+  if (event.type === "action.resolve" && actor && actionIdIs(eventActionId(payload), "charge") && Number(actor.techniques?.["powerhouse.warring-ascendant"] || 0) >= 1 && Number(scene.tension || 0) >= 2 && !actor.ruleState?.warringUsed && !scene.pendingPrompt && !promptQueued()) {
     events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${event.id}-warring`, kind: "warring-transform", sourceActorId: actor.id, title: "Небесная рука", text: "Трансформироваться и оттолкнуть всех врагов в пределах 2 клеток на 3 клетки? Выбранные оружейные Техники должны быть заранее записаны в листе.", options: ["transform", "pass"], participantIds: [actor.id] } });
   }
-  if (event.type === "action.resolve" && actor && payload.name === "Зарядка" && Number(actor.techniques?.["altruist.will-o-wisp"] || 0) >= 1 && !actor.ruleState?.wispCreationUsed && !wispMarkers(scene, actor.id).length && !scene.pendingPrompt && !promptQueued()) {
+  if (event.type === "action.resolve" && actor && actionIdIs(eventActionId(payload), "charge") && Number(actor.techniques?.["altruist.will-o-wisp"] || 0) >= 1 && !actor.ruleState?.wispCreationUsed && !wispMarkers(scene, actor.id).length && !scene.pendingPrompt && !promptQueued()) {
     events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${event.id}-wisp`, kind: "wisp-primary", sourceActorId: actor.id, title: "Пламя духовного плетения", text: "Выберите первый Дух для Духовного пламени.", options: [...Object.keys(WISP_TYPES), "pass"], participantIds: [actor.id] } });
   }
-  if ((event.type === "action.resolve" && payload.name === "Шаг" && !payload.continuation || event.type === "turn.end") && actor && Number(actor.techniques?.["altruist.will-o-wisp"] || 0) >= 1 && wispMarkers(scene, actor.id).length && !scene.pendingPrompt && !promptQueued()) {
+  if ((event.type === "action.resolve" && actionIdIs(eventActionId(payload), "step") && !payload.continuation || event.type === "turn.end") && actor && Number(actor.techniques?.["altruist.will-o-wisp"] || 0) >= 1 && wispMarkers(scene, actor.id).length && !scene.pendingPrompt && !promptQueued()) {
     events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${event.id}-wisp-move`, kind: "wisp-move-select", sourceActorId: actor.id, title: "Духовное пламя", text: "Можно переместить одно Духовное пламя на расстояние до 4 клеток.", options: [...wispMarkers(scene, actor.id).map(marker => marker.id), "pass"], participantIds: [actor.id] } });
   }
   if (event.type === "turn.end" && actor && Number(actor.techniques?.["disruptor.constrictor"] || 0) >= 1 && !scene.pendingPrompt && !promptQueued()) {
@@ -698,6 +704,28 @@ function triggeredEvents(scene, event, options = {}) {
     }
   }
   if ((event.type === "area.remove" || event.type === "object.damage" && Number(payload.dealt || 0) > 0) && actor && Number(actor.techniques?.["ruiner.creation-ascetic"] || 0) >= 2) events.push({ type: "rule-resource.gain", actorId: actor.id, payload: { resource: "creation-marks", amount: 1, sourceActionId: "ruiner.creation-ascetic.2" } });
+  if (event.type === "attack.clear" && !scene.pendingPrompt && !promptQueued()) {
+    const ranger = [...new Set(payload.targetIds || [])].map(id => actorById(scene, id)).find(target => !target?.knockedOut && target?.profileId === "enemy.common.ranger");
+    if (ranger) events.push({ type: "rule.prompt", actorId: ranger.id, payload: { id: `prompt-${event.id}-ranger-retreat`, kind: "enemy-ranger-retreat", sourceActorId: ranger.id, controller: "narrator", title: "Снайперская дистанция", text: `${ranger.name} может переместиться на 1 клетку после Атаки по нему.`, options: ["move", "pass"], context: { optionLabels: { move: "Переместиться", pass: "Не использовать" } }, participantIds: [ranger.id, event.actorId].filter(Boolean) } });
+  }
+  if (event.type === "turn.start" && actor && !scene.pendingPrompt && !promptQueued()) {
+    const flux = effectStateFor(actor, "special.поток"), sourceState = flux?.sources.find(source => actorById(scene, source.actorId)?.profileId === "enemy.common.illusionist"), illusionist = actorById(scene, sourceState?.actorId);
+    const swaps = illusionist ? (scene.actors || []).filter(candidate => !candidate.knockedOut && candidate.team === illusionist.team && candidate.id !== illusionist.id && candidate.id !== actor.id) : [];
+    if (illusionist && swaps.length) events.push({ type: "rule.prompt", actorId: illusionist.id, payload: { id: `prompt-${event.id}-flux`, kind: "enemy-flux-swap", sourceActorId: illusionist.id, targetId: actor.id, controller: "narrator", title: "Поток", text: `${actor.name} начинает Ход в Потоке. Иллюзионист может поменять его позицию с позицией другого врага.`, options: [...swaps.map(target => `swap:${target.id}`), "pass"], context: { optionLabels: Object.fromEntries(swaps.map(target => [`swap:${target.id}`, `Поменять с ${target.name}`])) }, participantIds: [illusionist.id, actor.id, ...swaps.map(target => target.id)] } });
+  }
+  if (event.type === "attack.pending" && actor) {
+    for (const targetId of payload.targetIds || []) {
+      const target = actorById(scene, targetId), mark = effectStateFor(target, "negative.помечен"), healerSource = mark?.sources.find(source => actorById(scene, source.actorId)?.profileId === "enemy.common.healer" && source.sourceActionId === "enemy.common.healer.attack.exsanguinate");
+      if (!healerSource) continue;
+      events.push({ type: "effect.remove", actorId: healerSource.actorId, payload: { targetId, effect: "negative.помечен", sourceActorId: healerSource.actorId, sourceActionId: "enemy.common.healer.attack.exsanguinate", participantIds: [healerSource.actorId, targetId, actor.id] } });
+      events.push({ type: "actor.heal", actorId: healerSource.actorId, payload: { targetId: actor.id, amount: enemyTierFormula("5(+2)", actorById(scene, healerSource.actorId)?.tier), sourceActionId: "enemy.common.healer.attack.exsanguinate", participantIds: [healerSource.actorId, actor.id, targetId] } });
+    }
+  }
+  if (event.type === "damage.apply" && Number(payload.dealt || 0) >= 4 && !scene.pendingPrompt && !promptQueued()) {
+    const berserker = actorById(scene, payload.targetId), attacker = actorById(scene, event.actorId);
+    if (berserker && !berserker.knockedOut && berserker.profileId === "enemy.common.berserker" && attacker && attacker.team !== berserker.team && Number(berserker.ruleState?.berserkerReactionTurnSerial || -1) !== Number(scene.turnSerial || 0)) events.push({ type: "rule.prompt", actorId: berserker.id, payload: { id: `prompt-${event.id}-berserker-retaliate`, kind: "enemy-berserker-retaliate", sourceActorId: berserker.id, targetId: attacker.id, controller: "narrator", title: "Неумолимое разрушение", text: `${berserker.name} получил не менее 4 урона: переместиться к ${attacker.name} и использовать Сокрушение?`, options: ["retaliate", "pass"], context: { ruleId: "enemy.common.berserker.attack.thrash", optionLabels: { retaliate: "Ответить Сокрушением", pass: "Не использовать" } }, participantIds: [berserker.id, attacker.id] } });
+  }
+  if (event.type === "actor.move" && actor?.profileId === "enemy.common.ranger" && Number(actor.ruleState?.enemyAim || 0) > 0) events.push({ type: "actor.state", actorId: actor.id, payload: { key: "enemyAim", value: 0, sourceActionId: "enemy.common.ranger.action.nest" } });
   events.push(...effectLifecycleEvents(scene, event));
   events.push(...entityLifecycleEvents(scene, event));
   events.push(...reminderLifecycleEvents(scene, event));
@@ -714,7 +742,7 @@ function dispatchMany(scene, events, options = {}) {
     if (handled++ > 240) throw new Error("Слишком длинная цепочка автоматических правил.");
     const event = queue.shift();
     const prompt = next.pendingPrompt, destination = event?.payload?.destination;
-    const placementActorId = ["siren-irresistible-cell", "constrictor-move-cell"].includes(prompt?.kind) ? prompt.targetId : prompt?.sourceActorId;
+    const placementActorId = ["siren-irresistible-cell", "constrictor-move-cell"].includes(prompt?.kind) || prompt?.kind === "enemy-move-cell" && prompt.context?.moveTarget ? prompt.targetId : prompt?.sourceActorId;
     const stationarySiren = prompt?.kind === "siren-irresistible-cell" && actorById(next, prompt.targetId)?.x === Number(destination?.x) && actorById(next, prompt.targetId)?.y === Number(destination?.y);
     const placementResponse = event?.type === "rule.respond" && event.payload?.choice === "cell" && destination && (
       prompt?.kind === "marker-move-cell"

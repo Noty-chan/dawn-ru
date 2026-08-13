@@ -1,6 +1,10 @@
 // Автогенерация: python build_data.py — не редактировать вручную.
 window.DAWN_DATA = {
  "schemaVersion": 2,
+ "sourceLocale": "ru",
+ "availableLocales": [
+  "ru"
+ ],
  "archetypes": [
   {
    "id": "powerhouse",
@@ -9670,7 +9674,7 @@ window.DAWN_DATA = {
       "reward": "нанесите `[Успехи] + [Напряжение]` урона. Нанесите 1 **Рану**.",
       "dice": "6(+1)",
       "directDamage": "",
-      "tensionMultiplier": 0,
+      "tensionMultiplier": 1,
       "targetEffects": [],
       "selfEffects": [],
       "effects": [],
@@ -9755,7 +9759,7 @@ window.DAWN_DATA = {
       "reward": "нанесите `[Успехи] + [Напряжение]` урона. Если выпало два или больше **Критов**, нанесите 1 **Рану**.",
       "dice": "5(+1)",
       "directDamage": "",
-      "tensionMultiplier": 0,
+      "tensionMultiplier": 1,
       "targetEffects": [],
       "selfEffects": [],
       "effects": [],
@@ -9842,7 +9846,7 @@ window.DAWN_DATA = {
       "reward": "нанесите `[Успехи] + [Напряжение]` урона и наложите на цель **Порчен**. Если цель уже была **Порчена**, нанесите 1 **Рану**.",
       "dice": "5(+1)",
       "directDamage": "",
-      "tensionMultiplier": 0,
+      "tensionMultiplier": 1,
       "targetEffects": [
        "Порчен"
       ],
@@ -10022,7 +10026,7 @@ window.DAWN_DATA = {
       "reward": "нанесите `[Успехи] + [Напряжение]` урона.",
       "dice": "6(+1)",
       "directDamage": "",
-      "tensionMultiplier": 0,
+      "tensionMultiplier": 1,
       "targetEffects": [
        "Укреплен"
       ],
@@ -10032,7 +10036,7 @@ window.DAWN_DATA = {
       ],
       "range": 0,
       "adjacent": false,
-      "maxTargets": 1,
+      "maxTargets": 3,
       "requiresTarget": true,
       "area": [],
       "areaAnchor": ""
@@ -10112,7 +10116,7 @@ window.DAWN_DATA = {
       "reward": "нанесите `[Успехи] + [Напряжение]` урона, +1 за каждую **Зону массовки**, смежную с Маткой.",
       "dice": "5(+1)",
       "directDamage": "",
-      "tensionMultiplier": 0,
+      "tensionMultiplier": 1,
       "targetEffects": [],
       "selfEffects": [],
       "effects": [],
@@ -10291,7 +10295,7 @@ window.DAWN_DATA = {
       "reward": "нанесите `[Успехи] + [Напряжение]` урона, и этот враг перемещается на 1 клетку.",
       "dice": "6(+1)",
       "directDamage": "",
-      "tensionMultiplier": 0,
+      "tensionMultiplier": 1,
       "targetEffects": [],
       "selfEffects": [],
       "effects": [],
@@ -10373,10 +10377,10 @@ window.DAWN_DATA = {
       "apCost": 1,
       "tension": 0,
       "text": "выберите до 2 смежных персонажей. Бросьте `6(+1)D6`.",
-      "reward": "нанесите `[Успехи] + [Напряжение]` урона и наложите на цели **Замедлен**.\n***[Козырь:Н4] Отрыгнуть (Regurgitate):** этот враг размещает **Зоны массовки** в количестве, равном числу Зон, которые он уничтожил своим **Пассивом**, в клеткух по своему выбору. Если какие-либо из этих Зон размещены на персонажах, эти персонажи получают **Подброшен**.",
+      "reward": "нанесите `[Успехи] + [Напряжение]` урона и наложите на цели **Замедлен**.",
       "dice": "6(+1)",
       "directDamage": "",
-      "tensionMultiplier": 0,
+      "tensionMultiplier": 1,
       "targetEffects": [
        "Замедлен"
       ],
@@ -10388,6 +10392,28 @@ window.DAWN_DATA = {
       "adjacent": false,
       "maxTargets": 1,
       "requiresTarget": true,
+      "area": [],
+      "areaAnchor": ""
+     },
+     {
+      "id": "enemy.common.glutton.trump.regurgitate",
+      "kind": "trump",
+      "name": "Отрыгнуть",
+      "en": "Regurgitate",
+      "apCost": 2,
+      "tension": 4,
+      "text": "этот враг размещает **Зоны массовки** в количестве, равном числу Зон, которые он уничтожил своим **Пассивом**, в клеткух по своему выбору. Если какие-либо из этих Зон размещены на персонажах, эти персонажи получают **Подброшен**.",
+      "reward": "",
+      "dice": "",
+      "directDamage": "",
+      "tensionMultiplier": 0,
+      "targetEffects": [],
+      "selfEffects": [],
+      "effects": [],
+      "range": 0,
+      "adjacent": false,
+      "maxTargets": 0,
+      "requiresTarget": false,
       "area": [],
       "areaAnchor": ""
      }
@@ -10444,7 +10470,7 @@ window.DAWN_DATA = {
       "reward": "нанесите `[Успехи] + [Напряжение]` урона, толкните цель на 2 клетки и наложите на нее **Подброшен**.",
       "dice": "5(+1)",
       "directDamage": "",
-      "tensionMultiplier": 0,
+      "tensionMultiplier": 1,
       "targetEffects": [
        "Подброшен"
       ],
@@ -10533,7 +10559,7 @@ window.DAWN_DATA = {
       "reward": "нанесите `[Успехи] + [Напряжение]` урона.",
       "dice": "6(+1)",
       "directDamage": "",
-      "tensionMultiplier": 0,
+      "tensionMultiplier": 1,
       "targetEffects": [],
       "selfEffects": [],
       "effects": [],
@@ -10618,7 +10644,7 @@ window.DAWN_DATA = {
       "reward": "нанесите `[Успехи] + [Напряжение]` урона и наложите на цель или цели **Подброшен**, если этот враг **Усилен**; или исцелите `[Успехи]` **Здоровья** и наложите на цель или цели **Ускорен**, если этот враг **Укреплен**.",
       "dice": "6(+1)",
       "directDamage": "",
-      "tensionMultiplier": 0,
+      "tensionMultiplier": 1,
       "targetEffects": [
        "Ускорен",
        "Укреплен",
@@ -10718,7 +10744,7 @@ window.DAWN_DATA = {
       "reward": "нанесите `[Успехи] + [Напряжение]` урона и наложите на цель **Ошеломлен**, если это противник; или наложите **Регенерирует**, если это союзник.",
       "dice": "5(+1)",
       "directDamage": "",
-      "tensionMultiplier": 0,
+      "tensionMultiplier": 1,
       "targetEffects": [
        "Регенерирует",
        "Ошеломлен"
@@ -10809,7 +10835,7 @@ window.DAWN_DATA = {
       "reward": "нанесите `[Успехи] + [Напряжение]` урона, и цель теряет `2(+1)` **Фокуса**.",
       "dice": "6(+1)",
       "directDamage": "",
-      "tensionMultiplier": 0,
+      "tensionMultiplier": 1,
       "targetEffects": [],
       "selfEffects": [],
       "effects": [],
@@ -10895,7 +10921,7 @@ window.DAWN_DATA = {
       "reward": "нанесите `[Успехи] + [Напряжение]` урона и наложите на цель **Ослаблен**.",
       "dice": "6(+1)",
       "directDamage": "",
-      "tensionMultiplier": 0,
+      "tensionMultiplier": 1,
       "targetEffects": [
        "Ослаблен"
       ],
@@ -10990,7 +11016,7 @@ window.DAWN_DATA = {
       "reward": "нанесите `[Успехи] + [Напряжение]` урона и наложите на цель **Ослаблен**.",
       "dice": "5(+1)",
       "directDamage": "",
-      "tensionMultiplier": 0,
+      "tensionMultiplier": 1,
       "targetEffects": [
        "Ослаблен"
       ],
@@ -11169,7 +11195,7 @@ window.DAWN_DATA = {
       "reward": "нанесите `[Успехи] + [Напряжение]` урона и позвольте союзнику переместиться на свою **Скорость** или использовать свою основную **Атаку** по персонажу, который еще не был атакован в этот Ход.",
       "dice": "6(+1)",
       "directDamage": "",
-      "tensionMultiplier": 0,
+      "tensionMultiplier": 1,
       "targetEffects": [],
       "selfEffects": [],
       "effects": [],
@@ -11317,7 +11343,7 @@ window.DAWN_DATA = {
       "reward": "нанесите `[Успехи] + [Напряжение]` урона и наложите на цель **Помечен**. Когда персонаж с этой Меткой атакован, эта Метка снимается, а атакующий восстанавливает `5(+2)` **Здоровья**.",
       "dice": "6(+1)",
       "directDamage": "",
-      "tensionMultiplier": 0,
+      "tensionMultiplier": 1,
       "targetEffects": [
        "Помечен"
       ],
@@ -11406,7 +11432,7 @@ window.DAWN_DATA = {
       "reward": "нанесите `[Успехи] + [Напряжение]` урона. Цель находится в **Потоке**. Когда персонаж в **Потоке** начинает свой Ход, этот враг может использовать на нем свой **Пассив**, как если бы он был врагом; это снимает **Поток**.",
       "dice": "5(+1)",
       "directDamage": "",
-      "tensionMultiplier": 0,
+      "tensionMultiplier": 1,
       "targetEffects": [],
       "selfEffects": [],
       "effects": [],
@@ -11491,7 +11517,7 @@ window.DAWN_DATA = {
       "reward": "нанесите `[Успехи] + [Напряжение]` урона, наложите **Изгнан** и переместите цель на расстояние до 4 клеток.",
       "dice": "6(+1)",
       "directDamage": "",
-      "tensionMultiplier": 0,
+      "tensionMultiplier": 1,
       "targetEffects": [
        "Изгнан"
       ],
@@ -11580,7 +11606,7 @@ window.DAWN_DATA = {
       "reward": "нанесите `[Успехи] + [Напряжение]` урона и восстановите **Здоровье**, равное половине недостающего **Здоровья** этого врага.",
       "dice": "6(+1)",
       "directDamage": "",
-      "tensionMultiplier": 0,
+      "tensionMultiplier": 1,
       "targetEffects": [],
       "selfEffects": [],
       "effects": [],
@@ -11650,7 +11676,7 @@ window.DAWN_DATA = {
       "effects": [],
       "range": 0,
       "adjacent": false,
-      "maxTargets": 0,
+      "maxTargets": 3,
       "requiresTarget": false,
       "area": [],
       "areaAnchor": ""
@@ -11666,7 +11692,7 @@ window.DAWN_DATA = {
       "reward": "нанесите `[Успехи] + [Напряжение]` урона и наложите на цель **Ослаблен**.",
       "dice": "5(+1)",
       "directDamage": "",
-      "tensionMultiplier": 0,
+      "tensionMultiplier": 1,
       "targetEffects": [
        "Ослаблен"
       ],
@@ -11755,7 +11781,7 @@ window.DAWN_DATA = {
       "reward": "нанесите `[Успехи] + [Напряжение]` урона и толкните цель на 1 клетку от себя.",
       "dice": "6(+1)",
       "directDamage": "",
-      "tensionMultiplier": 0,
+      "tensionMultiplier": 1,
       "targetEffects": [],
       "selfEffects": [],
       "effects": [],
@@ -11839,11 +11865,33 @@ window.DAWN_DATA = {
       "en": "Load",
       "apCost": 1,
       "tension": 0,
-      "text": "заполните **Подготовку** на 1 сегмент, или на 2, если этот враг не двигался в этот Ход.\n***[Козырь:НX] Огонь (Fire):** используйте этот **Козырь**, когда этот враг начинает свой Ход с полными **Часами Подготовки**. Очистите **Часы Подготовки** и выберите целью персонажа в пределах 10 клеток. Бросьте `6(+1)D6`.",
+      "text": "заполните **Подготовку** на 1 сегмент, или на 2, если этот враг не двигался в этот Ход.",
+      "reward": "",
+      "dice": "",
+      "directDamage": "",
+      "tensionMultiplier": 0,
+      "targetEffects": [],
+      "selfEffects": [],
+      "effects": [],
+      "range": 0,
+      "adjacent": false,
+      "maxTargets": 1,
+      "requiresTarget": true,
+      "area": [],
+      "areaAnchor": ""
+     },
+     {
+      "id": "enemy.common.cannoneer.trump.fire",
+      "kind": "trump",
+      "name": "Огонь",
+      "en": "Fire",
+      "apCost": 2,
+      "tension": 0,
+      "text": "используйте этот **Козырь**, когда этот враг начинает свой Ход с полными **Часами Подготовки**. Очистите **Часы Подготовки** и выберите целью персонажа в пределах 10 клеток. Бросьте `6(+1)D6`.",
       "reward": "нанесите `[Успехи] + [Напряжение]` урона трижды.",
       "dice": "6(+1)",
       "directDamage": "",
-      "tensionMultiplier": 0,
+      "tensionMultiplier": 1,
       "targetEffects": [],
       "selfEffects": [],
       "effects": [],
@@ -11910,7 +11958,7 @@ window.DAWN_DATA = {
       "reward": "нанесите `[Успехи] + [Напряжение]` урона.",
       "dice": "5(+1)",
       "directDamage": "",
-      "tensionMultiplier": 0,
+      "tensionMultiplier": 1,
       "targetEffects": [],
       "selfEffects": [],
       "effects": [],
@@ -11995,7 +12043,7 @@ window.DAWN_DATA = {
       "reward": "нанесите `[Успехи] + [Напряжение]` урона и наложите на цель или цели **Подброшен**.",
       "dice": "5(+1)",
       "directDamage": "",
-      "tensionMultiplier": 0,
+      "tensionMultiplier": 1,
       "targetEffects": [
        "Подброшен"
       ],
@@ -12090,7 +12138,7 @@ window.DAWN_DATA = {
       "reward": "нанесите `[Успехи] + [Напряжение]` урона. Если цель была **Испугана** или **Спровоцирована**, наложите на нее **Ослаблен** и **Замедлен**.",
       "dice": "6(+1)",
       "directDamage": "",
-      "tensionMultiplier": 0,
+      "tensionMultiplier": 1,
       "targetEffects": [
        "Замедлен",
        "Ослаблен"
@@ -12181,7 +12229,7 @@ window.DAWN_DATA = {
       "reward": "нанесите `[Успехи] + [Напряжение]` урона и толкните цель на 2 клетки от себя.",
       "dice": "6(+1)",
       "directDamage": "",
-      "tensionMultiplier": 0,
+      "tensionMultiplier": 1,
       "targetEffects": [],
       "selfEffects": [],
       "effects": [],
@@ -12444,7 +12492,7 @@ window.DAWN_DATA = {
       "reward": "нанесите `[Успехи] + [Напряжение]` урона.",
       "dice": "6(+1)",
       "directDamage": "",
-      "tensionMultiplier": 0,
+      "tensionMultiplier": 1,
       "targetEffects": [],
       "selfEffects": [],
       "effects": [],
@@ -12529,7 +12577,7 @@ window.DAWN_DATA = {
       "reward": "нанесите `[Успехи] + [Напряжение]` урона и наложите **Ошеломлен** на одну из целей.",
       "dice": "6(+1)",
       "directDamage": "",
-      "tensionMultiplier": 0,
+      "tensionMultiplier": 1,
       "targetEffects": [
        "Ошеломлен"
       ],
@@ -12539,7 +12587,7 @@ window.DAWN_DATA = {
       ],
       "range": 0,
       "adjacent": false,
-      "maxTargets": 1,
+      "maxTargets": 3,
       "requiresTarget": true,
       "area": [],
       "areaAnchor": ""
@@ -13098,7 +13146,7 @@ window.DAWN_DATA = {
       "reward": "нанесите `[Успехи] + [Напряжение]` урона. Цель может ответить обычной защитной Реакцией: Блок снизит урон, Уворот даст Уклонение и движение, а успешное Столкновение отменит атаку. Телепортация уже произошла и не отменяется, даже если сама Атака была предотвращена.",
       "dice": "6",
       "directDamage": "",
-      "tensionMultiplier": 0,
+      "tensionMultiplier": 1,
       "targetEffects": [],
       "selfEffects": [],
       "effects": [],

@@ -20,7 +20,7 @@ assert.deepEqual(JSON.parse(JSON.stringify(logic.reconcileHealthRuntime({ curren
 assert.deepEqual(JSON.parse(JSON.stringify(logic.reconcileHealthRuntime({ current: 0, previousMax: 0, nextMax: 10 }))), { current: 10, maximum: 10 }, "A legacy 0/0 Health placeholder initializes the hero at full Health");
 assert.deepEqual(JSON.parse(JSON.stringify(logic.reconcileSceneActorHealth({ current: 0, previousMax: 6, nextMax: 6, existing: false }))), { current: 6, maximum: 6 }, "A newly spawned table actor starts at full Health even when the saved character sheet was at zero");
 assert.deepEqual(JSON.parse(JSON.stringify(logic.reconcileSceneActorHealth({ current: 2, previousMax: 6, nextMax: 8, existing: true }))), { current: 4, maximum: 8 }, "Refreshing an existing table actor preserves its missing Health");
-const appFiles = ["app-bootstrap.js", "app-reference-data.js", "app-core.js", "hero-ui.js", "scene-ui.js", "gm-library.js", "scene-effects.js", "scene-actions-ui.js", "scene-sync-ui.js", "play-ui.js", "app-builder-events.js", "app-sync-events.js", "app-scene-events.js", "app-play-events.js", "app.js"];
+const appFiles = ["localization.js", "locale-ru.js", "app-bootstrap.js", "app-reference-data.js", "app-core.js", "hero-ui.js", "scene-ui.js", "gm-library.js", "scene-effects.js", "scene-actions-ui.js", "scene-sync-ui.js", "play-ui.js", "app-builder-events.js", "app-sync-events.js", "app-scene-events.js", "app-play-events.js", "app.js"];
 const appSource = appFiles.map(file => fs.readFileSync(path.join(root, file), "utf8")).join("\n");
 const companionMarkup = fs.readFileSync(path.join(root, "index.html"), "utf8");
 const companionCss = fs.readFileSync(path.join(root, "app.css"), "utf8");

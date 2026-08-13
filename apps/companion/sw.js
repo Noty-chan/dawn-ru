@@ -2,7 +2,7 @@ const BUILD = "__BUILD_VERSION__";
 const CACHE = `dawn-ru-companion-${BUILD}`;
 const versioned = path => `${path}?v=${BUILD}`;
 const SCRIPT_ASSETS = [
-  "./data.js", "./logic.js",
+  "./localization.js", "./locale-ru.js", "./data.js", "./logic.js",
   "./scene-engine-core.js", "./scene-query.js", "./scene-movement.js", "./scene-foundations.js", "./scene-events.js", "./scene-triggers.js", "./scene-actions.js", "./scene-responses.js", "./scene-engine.js",
   "./technique-foundation-map.js", "./technique-engine.js", "./config.js", "./sync.js", "./network-v2.js",
   "./app-bootstrap.js", "./app-reference-data.js", "./app-core.js", "./hero-ui.js", "./scene-ui.js", "./scene-effects.js", "./scene-actions-ui.js", "./scene-sync-ui.js", "./play-ui.js",

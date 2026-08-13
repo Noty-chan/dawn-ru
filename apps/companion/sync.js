@@ -296,6 +296,6 @@
   state={...state,...stored()};if(!state.characterIds||typeof state.characterIds!=="object"||Array.isArray(state.characterIds))state.characterIds={};
   global.addEventListener?.("offline",()=>patch({status:"offline",error:"Нет соединения; локальные данные сохранены"}));
   global.addEventListener?.("online",()=>scheduleReconnect("offline"));
-  global.document?.addEventListener?.("visibilitychange",()=>{if(!global.document.hidden)void refreshSceneIfNewer(true)});
+  global.document?.addEventListener?.("visibilitychange",()=>{if(!global.document.hidden){if(state.sceneId&&state.status!=="online")scheduleReconnect("visible");else void refreshSceneIfNewer(true)}});
   global.DAWN_SYNC={acceptCommand,configure,connect,createCampaign,createInvite,decideCommand,deleteCampaign,deleteLibraryCharacter,hasConfig,leave,listCampaigns,listCharacters,listLibraryCharacters,loadCharacter,loadLibraryCharacter,loadScene,on,openCampaign,publishEvents,queueScene,redeemInvite,refreshScene,requestEmailLink,saveCharacter,saveLibraryCharacter,settleIntentBatch,signOutAccount,state:snapshot,submitCommand,updatePresence};
 })(window);

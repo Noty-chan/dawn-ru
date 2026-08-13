@@ -136,16 +136,17 @@ function passiveDiceHooks(scene, actor, request = {}) {
     const amount = 1 + (Number(actor.techniques?.["powerhouse.braggart"] || 0) >= 2 ? Math.floor((6 - pride.size) / 2) : 0);
     hooks.push({ type: "advantage", ruleId: "powerhouse.braggart.1", label: "Гордыня", amount });
   }
-  if (request.actionName === "Заклинание" && Number(actor.techniques?.["altruist.chronomancer"] || 0) >= 2) hooks.push({ type: "advantage", ruleId: "altruist.chronomancer.2", label: "Замедление", amount: 1 });
-  if (request.actionName === "Заклинание" && Number(actor.techniques?.["ruiner.cryomancer"] || 0) >= 2) hooks.push({ type: "advantage", ruleId: "ruiner.cryomancer.2", label: "Ледяной нимб", amount: 1 });
-  if (request.actionName === "Заклинание" && Number(actor.techniques?.["ruiner.feral-arcana"] || 0) >= 3) hooks.push({ type: "advantage", ruleId: "ruiner.feral-arcana.3", label: "Хватка", amount: 1 });
-  if (request.actionName === "Заклинание" && Number(actor.techniques?.["ruiner.thunder-blood"] || 0) >= 3) hooks.push({ type: "advantage", ruleId: "ruiner.thunder-blood.3", label: "Разрядка", amount: 1 });
-  if (request.actionName === "Стычка" && Number(actor.techniques?.["bulwark.grappler"] || 0) >= 2) hooks.push({ type: "advantage", ruleId: "bulwark.grappler.2", label: "Перелом позвоночника", amount: 1 });
+  const actionId = canonicalActionId(request.actionId || request.actionName || "");
+  if (actionIdIs(actionId, "spell") && Number(actor.techniques?.["altruist.chronomancer"] || 0) >= 2) hooks.push({ type: "advantage", ruleId: "altruist.chronomancer.2", label: "Замедление", amount: 1 });
+  if (actionIdIs(actionId, "spell") && Number(actor.techniques?.["ruiner.cryomancer"] || 0) >= 2) hooks.push({ type: "advantage", ruleId: "ruiner.cryomancer.2", label: "Ледяной нимб", amount: 1 });
+  if (actionIdIs(actionId, "spell") && Number(actor.techniques?.["ruiner.feral-arcana"] || 0) >= 3) hooks.push({ type: "advantage", ruleId: "ruiner.feral-arcana.3", label: "Хватка", amount: 1 });
+  if (actionIdIs(actionId, "spell") && Number(actor.techniques?.["ruiner.thunder-blood"] || 0) >= 3) hooks.push({ type: "advantage", ruleId: "ruiner.thunder-blood.3", label: "Разрядка", amount: 1 });
+  if (actionIdIs(actionId, "skirmish") && Number(actor.techniques?.["bulwark.grappler"] || 0) >= 2) hooks.push({ type: "advantage", ruleId: "bulwark.grappler.2", label: "Перелом позвоночника", amount: 1 });
   const balance = request.sceneContext === false ? { enemies: 0, allies: 0, outnumbered: false } : sideBalanceStatus(scene, actor.id);
   if (request.sceneContext !== false && (actor.gifts || []).includes("wolf.outgunned") && balance.outnumbered) hooks.push({ type: "advantage", ruleId: "wolf.outgunned", label: `В меньшинстве (${balance.enemies} враг. / ${balance.allies} союзн.)`, amount: 2 });
   const selected = new Set(Array.isArray(request.selectedHookIds) ? request.selectedHookIds : []);
   if ((actor.gifts || []).includes("wolf.dark-urge") && request.scope === "challenge" && request.usesAbility && selected.has("wolf.dark-urge")) hooks.push({ type: "advantage", ruleId: "wolf.dark-urge", label: "Тёмный порыв", amount: 4 });
-  if (["Стычка","Заклинание","Завершение"].includes(request.actionName) && Array.isArray(request.targetIds) && request.targetIds.length) {
+  if (["skirmish", "spell", "finish"].some(key => actionIdIs(actionId, key)) && Array.isArray(request.targetIds) && request.targetIds.length) {
     const levelAt = target => { const key=cellKey(target),types=(scene.objects||[]).filter(object=>object.space===target.space&&(object.cells||[]).includes(key)).map(object=>object.type);return types.includes("high")?1:types.includes("low")?-1:0 }, targets=request.targetIds.map(id=>actorById(scene,id)).filter(Boolean),sourceLevel=levelAt(actor),targetLevels=[...new Set(targets.map(levelAt))];
     if(targets.length===request.targetIds.length&&targetLevels.length===1&&sourceLevel!==targetLevels[0])hooks.push({type:sourceLevel>targetLevels[0]?"advantage":"hindrance",ruleId:"battlefield.elevation",label:sourceLevel>targetLevels[0]?"Атака сверху":"Атака снизу",amount:Number(actor.tier||1)});
   }
@@ -193,10 +194,10 @@ const RULE_RESOURCE_ADAPTERS = [
   { techniqueId: "powerhouse.gunslinger", resource: "bullets", label: "Пули", initial: 6, minimum: 0, replaces: ["focus"], spendDirection: -1, gainDirection: 1, resetScope: "scene" },
   { techniqueId: "vagabond.knife-juggler", resource: "weapons", label: "Оружие", initial: 4, minimum: 0, replaces: ["focus"], spendDirection: -1, gainDirection: 1, resetScope: "scene" },
   { techniqueId: "vagabond.modified-meister", resource: "heat", label: "Нагрев", initial: 0, minimum: 0, replaces: ["focus"], spendDirection: 1, gainDirection: -1, resetScope: "scene" },
-  { techniqueId: "bulwark.mundane", resource: "grit", label: "Упорство", initial: actor => 1 + Math.floor(Number(actor.attrs?.body || 0) / 2), minimum: 0, replaces: ["focus", "ap"], spendDirection: -1, gainDirection: 1, resetScope: "round", blockedGainActions: ["Передышка", "Зарядка"] },
-  { techniqueId: "altruist.heavenly-saint", resource: "faith", label: "Вера", initial: actor => Number(actor.attrs?.spirit || 0), minimum: 0, replaces: ["focus"], spendDirection: -1, gainDirection: 1, resetScope: "scene", blockedGainActions: ["Передышка", "Зарядка"] },
+  { techniqueId: "bulwark.mundane", resource: "grit", label: "Упорство", initial: actor => 1 + Math.floor(Number(actor.attrs?.body || 0) / 2), minimum: 0, replaces: ["focus", "ap"], spendDirection: -1, gainDirection: 1, resetScope: "round", blockedGainActionKeys: ["breathe", "charge"] },
+  { techniqueId: "altruist.heavenly-saint", resource: "faith", label: "Вера", initial: actor => Number(actor.attrs?.spirit || 0), minimum: 0, replaces: ["focus"], spendDirection: -1, gainDirection: 1, resetScope: "scene", blockedGainActionKeys: ["breathe", "charge"] },
   { techniqueId: "disruptor.autophage", resource: "health", label: "Здоровье", initial: 0, minimum: 0, replaces: ["focus"], spendDirection: -1, gainDirection: 1, externalResource: "hp", spendMultiplier: 2, gainMultiplier: 1 },
-  { techniqueId: "ruiner.creation-ascetic", resource: "creation-marks", label: "Метки творения", initial: 0, minimum: 0, replaces: ["focus"], spendDirection: -1, gainDirection: 1, resetScope: "scene", allowedGainActions: ["Передышка", "Зарядка"], legacyProperty: "creationMarks" },
+  { techniqueId: "ruiner.creation-ascetic", resource: "creation-marks", label: "Метки творения", initial: 0, minimum: 0, replaces: ["focus"], spendDirection: -1, gainDirection: 1, resetScope: "scene", allowedGainActionKeys: ["breathe", "charge"], legacyProperty: "creationMarks" },
 ];
 
 function normalizeRuleResourceDefinition(actor, definition = {}) {
@@ -211,8 +212,8 @@ function normalizeRuleResourceDefinition(actor, definition = {}) {
     spendDirection: Number(definition.spendDirection) === 1 ? 1 : -1,
     gainDirection: Number(definition.gainDirection) === -1 ? -1 : 1,
     resetScope: ["scene", "round", "turn"].includes(definition.resetScope) ? definition.resetScope : null,
-    blockedGainActions: [...new Set((definition.blockedGainActions || []).filter(value => typeof value === "string" && value.length <= 120))],
-    allowedGainActions: [...new Set((definition.allowedGainActions || []).filter(value => typeof value === "string" && value.length <= 120))],
+    blockedGainActionIds: [...new Set([...(definition.blockedGainActionKeys || []).map(key => ACTION_IDS[key]).filter(Boolean), ...(definition.blockedGainActions || []).map(canonicalActionId)].filter(value => typeof value === "string" && value.length <= 180))],
+    allowedGainActionIds: [...new Set([...(definition.allowedGainActionKeys || []).map(key => ACTION_IDS[key]).filter(Boolean), ...(definition.allowedGainActions || []).map(canonicalActionId)].filter(value => typeof value === "string" && value.length <= 180))],
     externalResource: definition.externalResource === "hp" ? "hp" : null,
     spendMultiplier: Math.max(0, Number(definition.spendMultiplier ?? 1) || 1),
     gainMultiplier: Math.max(0, Number(definition.gainMultiplier ?? 1) || 1),
@@ -271,9 +272,10 @@ function resourceOperationStatus(scene, actorId, request = {}) {
     return { available: operation === "gain" || balance >= amount, reason: operation === "spend" && balance < amount ? "Ресурс изменился: выбранное действие больше нельзя оплатить." : "", resource, resolvedResource: resource, label: resource, amount, balance, remaining: Math.max(0, balance + delta), delta, replacement: false, ignored: false };
   }
   const balance = ruleResourceBalance(actor, definition);
-  const blockedByName = operation === "gain" && definition.blockedGainActions.includes(request.sourceActionName);
-  const blockedByAllowlist = operation === "gain" && definition.allowedGainActions.length > 0 && !definition.allowedGainActions.includes(request.sourceActionName);
-  const blocked = blockedByName || blockedByAllowlist;
+  const sourceActionId = canonicalActionId(request.sourceActionId || request.sourceActionName || "");
+  const blockedById = operation === "gain" && definition.blockedGainActionIds.includes(sourceActionId);
+  const blockedByAllowlist = operation === "gain" && definition.allowedGainActionIds.length > 0 && !definition.allowedGainActionIds.includes(sourceActionId);
+  const blocked = blockedById || blockedByAllowlist;
   const direction = operation === "gain" ? definition.gainDirection : definition.spendDirection;
   const multiplier = operation === "gain" ? definition.gainMultiplier : definition.spendMultiplier;
   const requestedDelta = blocked ? 0 : amount * direction * multiplier;
@@ -378,14 +380,12 @@ function actionHistoryStatus(scene, actorId, query = {}) {
   const scope = ["turn", "round", "scene"].includes(query.scope) ? query.scope : "turn";
   const source = scope === "turn" ? currentTurnEvents(scene, actorId) : scope === "round" ? currentRoundEvents(scene) : (scene.log || []);
   const types = new Set(Array.isArray(query.types) ? query.types : ["action.prepare", "action.resolve"]);
-  const actionNames = new Set(Array.isArray(query.actionNames) ? query.actionNames : []);
-  const actionIds = new Set(Array.isArray(query.actionIds) ? query.actionIds : []);
+  const actionIds = new Set([...(Array.isArray(query.actionIds) ? query.actionIds.map(canonicalActionId) : []), ...(Array.isArray(query.actionKeys) ? query.actionKeys.map(key => ACTION_IDS[key]).filter(Boolean) : []), ...(Array.isArray(query.actionNames) ? query.actionNames.map(canonicalActionId) : [])]);
   const requestedTargets = [...new Set((Array.isArray(query.targetIds) ? query.targetIds : []).filter(value => typeof value === "string"))];
   const events = source.filter(event => {
     if (event.actorId !== actorId || (types.size && !types.has(event.type))) return false;
     const payload = event.payload || {};
-    if (actionNames.size && !actionNames.has(payload.actionName || payload.name)) return false;
-    if (actionIds.size && !actionIds.has(payload.actionId)) return false;
+    if (actionIds.size && !actionIds.has(canonicalActionId(payload.actionId || payload.actionName || payload.name))) return false;
     if (requestedTargets.length) {
       const eventTargets = new Set([payload.targetId, ...(Array.isArray(payload.targetIds) ? payload.targetIds : [])].filter(Boolean));
       if (!requestedTargets.every(id => eventTargets.has(id))) return false;

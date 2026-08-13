@@ -66,7 +66,11 @@ function reactionOptions(scene, data, actorId) {
   if (!effectTargetingStatus(scene, source.id, actor.id).available) return [];
   const effectDefense = effectDefenseStatus(scene, actorId);
   const profileActor = actor.kind === "enemy" || Boolean(actor.profileId);
-  const defenses = profileActor ? antagonistReactionOptions(scene, data, actor, source) : availableActions(scene, data, actorId).filter(action => action.reaction).map(action => action.name === "Уворот" && !effectDefense.dodgeAllowed ? { ...action, available: false, reason: effectDefense.dodgeReason } : action);
+  const defenses = profileActor ? antagonistReactionOptions(scene, data, actor, source) : availableActions(scene, data, actorId).filter(action => action.reaction).map(action => actionIs(action, "dodge") && !effectDefense.dodgeAllowed ? { ...action, available: false, reason: effectDefense.dodgeReason } : action);
+  if (!profileActor) {
+    const key = value => String(value || "").trim().toLocaleLowerCase("ru-RU"), protectors = (scene.actors || []).filter(candidate => candidate.team === actor.team && !candidate.knockedOut && (candidate.gifts || []).includes("rebel.not-today") && (candidate.id === actor.id || (candidate.bonds || []).some(bond => key(bond.name) === key(actor.name))));
+    for (const protector of protectors) defenses.push({ id: `rebel.not-today:${protector.id}`, name: protector.id === actor.id ? "Не сегодня" : `Не сегодня · ${protector.name}`, available: true, reason: "Стать целью и свести эту Атаку на нет; затем Нарратор отвечает на три вопроса риска.", cost: "0 ОД · возможен Стресс", costModel: { amount: 0, resource: null }, giftReaction: { ruleId: "rebel.not-today", reactionActorId: protector.id, originalTargetId: actor.id, cancelAttack: true } });
+  }
   if (profileActor && !defenses.some(option => option.available)) return [];
   return [{ id: "pass", name: "Без Реакции", available: true, reason: "Принять исходную Атаку без защиты", costModel: { amount: 0, resource: null } }, ...defenses];
 }
@@ -103,11 +107,11 @@ function ruleChoiceStatus(scene, request = {}) {
 function pendingTargetOutcome(scene, pending, targetId) {
   const source = actorById(scene, pending?.actorId), originalTarget = actorById(scene, targetId), reaction = pending?.responses?.[targetId] || {}, response = reaction.choice, target = actorById(scene, reaction.redirectTargetId || targetId);
   if (!pending || !source || !target || target.knockedOut) return { available: false, reason: "Источник или цель Атаки больше не доступны.", source, target, cancelled: true, rawDamage: 0, armor: 0, evasion: 0, expectedDamage: 0 };
-  const clashCancelled = (response === "Столкновение" || reaction.enemyTrait?.clash) && reaction.clash?.defenderWins, body = Number(target.attrs?.body || 0), dodge = Math.ceil(Math.max(Number(target.attrs?.talent || 0), Number(target.attrs?.mind || 0)) / 2);
+  const clashCancelled = (actionIdIs(response, "clash") || reaction.enemyTrait?.clash) && reaction.clash?.defenderWins, giftCancelled = Boolean(reaction.giftReaction?.cancelAttack), body = Number(target.attrs?.body || 0), dodge = Math.ceil(Math.max(Number(target.attrs?.talent || 0), Number(target.attrs?.mind || 0)) / 2);
   const alliedGas = (scene.objects || []).find(object => object.type === "gas" && object.space === target.space && object.cells?.includes(`${target.x},${target.y}`) && actorById(scene, object.ownerActorId)?.team === target.team), sourceInsideGas = alliedGas && source.space === alliedGas.space && alliedGas.cells?.includes(`${source.x},${source.y}`), gasEvasion = alliedGas && !sourceInsideGas ? 3 : 0;
-  const defense = effectDefenseStatus(scene, target.id), temporaryArmor = response === "Блок" ? body : Number(reaction.temporaryArmor || 0), temporaryEvasion = (response === "Уворот" ? dodge + Number(reaction.untouchableEvasion || 0) : Number(reaction.temporaryEvasion || 0)) + gasEvasion;
-  const rawDamage = pending.damageByTarget && Number.isFinite(Number(pending.damageByTarget[targetId])) ? Number(pending.damageByTarget[targetId]) : Number(pending.damage || 0), raw = Math.max(0, rawDamage), armor = defense.armorAllowed ? Math.max(0, Number(target.armor || 0) + temporaryArmor + defense.armorBonus) : 0, afterArmor = raw > 0 ? Math.max(1, raw - armor) : 0, evasion = Math.max(0, Number(target.evasion || 0) + temporaryEvasion), expectedDamage = clashCancelled ? 0 : Math.max(0, afterArmor - Math.min(afterArmor, evasion));
-  return { available: true, reason: "", source, originalTarget, target, reaction, response, cancelled: clashCancelled, rawDamage, raw, armor, evasion, temporaryArmor, temporaryEvasion, afterArmor, expectedDamage };
+  const defense = effectDefenseStatus(scene, target.id), temporaryArmor = actionIdIs(response, "block") ? body : Number(reaction.temporaryArmor || 0), temporaryEvasion = (actionIdIs(response, "dodge") ? dodge + Number(reaction.untouchableEvasion || 0) : Number(reaction.temporaryEvasion || 0)) + gasEvasion;
+  const rawDamage = pending.damageByTarget && Number.isFinite(Number(pending.damageByTarget[targetId])) ? Number(pending.damageByTarget[targetId]) : Number(pending.damage || 0), raw = Math.max(0, rawDamage), armor = defense.armorAllowed ? Math.max(0, Number(target.armor || 0) + temporaryArmor + defense.armorBonus) : 0, afterArmor = raw > 0 ? Math.max(1, raw - armor) : 0, evasion = Math.max(0, Number(target.evasion || 0) + temporaryEvasion), expectedDamage = clashCancelled || giftCancelled ? 0 : Math.max(0, afterArmor - Math.min(afterArmor, evasion));
+  return { available: true, reason: "", source, originalTarget, target, reaction, response, cancelled: clashCancelled || giftCancelled, rawDamage, raw, armor, evasion, temporaryArmor, temporaryEvasion, afterArmor, expectedDamage };
 }
 
 function prepareInvisibleDisappear(scene, actorId) {
@@ -126,6 +130,16 @@ function prepareInvisibleDisappear(scene, actorId) {
   ] };
 }
 
+function prepareSacrifice(scene, request = {}) {
+  const actor = actorById(scene, request.actorId), roll = (scene.rollFeed || []).find(item => item.id === request.rollId), sacrifice = String(request.sacrifice || ""), errors = [];
+  if (!actor || !(actor.gifts || []).includes("cursed.sacrifice")) errors.push("У персонажа нет Дара «Жертва».");
+  if (!roll || roll.pending) errors.push("Выберите уже завершённый публичный бросок.");
+  if (roll?.sacrificedBy) errors.push("Этот бросок уже превращён в Крайний успех Жертвой.");
+  if (!["eye", "arm", "leg", "tongue", "life"].includes(sacrifice) || (actor?.sacrifices || []).includes(sacrifice)) errors.push("Выберите ещё не принесённую необратимую цену.");
+  if (errors.length) return { ok: false, errors, events: [] };
+  return { ok: true, errors: [], events: [{ type: "gift.sacrifice", actorId: actor.id, payload: { rollId: roll.id, sacrifice, sourceActionId: "cursed.sacrifice", participantIds: [actor.id, roll.actorId].filter(Boolean) } }] };
+}
+
 function prepareActionPlan(scene, data, request = {}) {
   const actor = actorById(scene, request.actorId), action = actionById(data, request.actionId), context = clone(request.context || {}), errors = [];
   if (!actor) errors.push("Не выбран исполнитель составного действия.");
@@ -137,14 +151,14 @@ function prepareActionPlan(scene, data, request = {}) {
     const available = availableActions(scene, data, actor.id).find(item => item.id === action.id);
     const planned = request.context?.useCunningPlan ? cunningPlanStatus(scene, data, actor.id, action.id) : null;
     if (request.context?.useCunningPlan ? !planned?.available : !available?.available) errors.push(planned?.reason || available?.reason || "Действие сейчас недоступно.");
-    const attack = ["Стычка", "Заклинание", "Завершение"].includes(action.name), modifiers = attack ? attackModifierStatus(scene, actor.id, context.targetIds || [], context.attackModifierIds || [], { actionName: action.name }) : null;
+    const attack = actionIsAny(action, ["skirmish", "spell", "finish"]), modifiers = attack ? attackModifierStatus(scene, actor.id, context.targetIds || [], context.attackModifierIds || [], { actionId: action.id }) : null;
     if (modifiers && !modifiers.available) errors.push(modifiers.reason);
     if (modifiers?.actionTransform) {
-      const transformedAction = (data.actions?.list || []).find(item => item.name === modifiers.actionTransform.actionName), transformedAvailable = transformedAction && availableActions(scene, data, actor.id).find(item => item.id === transformedAction.id);
+      const transformedAction = actionByKey(data, modifiers.actionTransform.actionKey), transformedAvailable = transformedAction && availableActions(scene, data, actor.id).find(item => item.id === transformedAction.id);
       if (!transformedAction) errors.push("Действие-замена модификатора не найдено.");
       else if (!transformedAvailable?.available && !/^Недостаточно:/.test(transformedAvailable?.reason || "")) errors.push(transformedAvailable?.reason || "Действие-замена сейчас недоступно.");
     }
-    if (request.phase === "destination" && !modifiers?.requiresDestination && !["Шаг", "Прыжок"].includes(action.name)) errors.push("Это составное действие не требует клетки назначения.");
+    if (request.phase === "destination" && !modifiers?.requiresDestination && !actionIsAny(action, ["step", "jump"])) errors.push("Это составное действие не требует клетки назначения.");
   }
   if (JSON.stringify(context).length > 8192) errors.push("Контекст составного действия слишком велик.");
   if (errors.length) return { ok: false, errors, events: [] };
@@ -162,15 +176,15 @@ function prepareActionPlanReappearance(scene, request = {}) {
   if (!status.available) errors.push(status.reason);
   if (plan?.phase !== "reappear") errors.push("Составной план сейчас не ожидает появления.");
   if (actor && !hasEffect(scene, actor, "positive.исчез")) errors.push("Персонаж уже находится на поле.");
-  const attack = ["Стычка", "Заклинание", "Завершение"].includes(plan?.actionName), assassination = attack && Number(actor?.techniques?.["vagabond.assassin"] || 0) >= 2;
-  const modifiers = actor && plan ? attackModifierStatus(scene, actor.id, plan.context?.targetIds || [], plan.context?.attackModifierIds || [], { actionName: plan.actionName }) : null;
+  const attack = ["skirmish", "spell", "finish"].some(key => actionIdIs(plan?.actionId, key)), assassination = attack && Number(actor?.techniques?.["vagabond.assassin"] || 0) >= 2;
+  const modifiers = actor && plan ? attackModifierStatus(scene, actor.id, plan.context?.targetIds || [], plan.context?.attackModifierIds || [], { actionId: plan.actionId }) : null;
   if (modifiers && !modifiers.available) errors.push(modifiers.reason);
   const space = (scene.spaces || []).find(item => item.id === actor?.space);
   if (!space || !destination || !Number.isInteger(destination.x) || !Number.isInteger(destination.y) || destination.x < 0 || destination.y < 0 || destination.x >= Number(space?.width || 0) || destination.y >= Number(space?.height || 0)) errors.push("Выберите клетку появления в пределах поля.");
   if (actor && destination && !effectCellOccupancyStatus(scene, actor.id, { space: actor.space, x: destination.x, y: destination.y }).available) errors.push("Клетка появления занята.");
   if (!assassination && actor && destination && (scene.actors || []).some(item => item.id !== actor.id && effectPresenceStatus(scene, item.id).onField && item.space === actor.space && distance(item, { ...destination, space: actor.space }) <= 1)) errors.push("При появлении клетка не должна быть смежна с персонажем.");
   if (errors.length) return { ok: false, errors, events: [] };
-  const action = plan.actionName, needsDestination = ["Шаг", "Прыжок"].includes(action) || Boolean(modifiers?.requiresDestination), nextPhase = needsDestination ? "destination" : "confirm", context = { ...(plan.context || {}), reappearance: { space: actor.space, x: destination.x, y: destination.y }, destinationKind: modifiers?.requiresDestination ? "attack-modifier" : needsDestination ? "movement" : null };
+  const needsDestination = ["step", "jump"].some(key => actionIdIs(plan.actionId, key)) || Boolean(modifiers?.requiresDestination), nextPhase = needsDestination ? "destination" : "confirm", context = { ...(plan.context || {}), reappearance: { space: actor.space, x: destination.x, y: destination.y }, destinationKind: modifiers?.requiresDestination ? "attack-modifier" : needsDestination ? "movement" : null };
   const events = [{ type: "action.plan.update", actorId: actor.id, payload: { planId: plan.id, phase: nextPhase, context, participantIds: [actor.id, ...(context.targetIds || [])] } }];
   const preview = previewEvents(scene, events, { expectedVersion: scene.version });
   if (!preview.ok) return { ok: false, errors: preview.errors, events: [] };
@@ -182,7 +196,7 @@ function prepareActionPlanModifierDestination(scene, request = {}) {
   if (!status.available) errors.push(status.reason);
   if (plan?.phase !== "destination") errors.push("Составной план сейчас не ожидает клетку модификатора.");
   const destination = request.destination && { x: Number(request.destination.x), y: Number(request.destination.y) };
-  const placement = actor && plan ? attackModifierDestinationStatus(scene, actor.id, plan.context?.targetIds || [], plan.context?.attackModifierIds || [], destination, { actionName: plan.actionName, origin: plan.context?.reappearance || null }) : null;
+  const placement = actor && plan ? attackModifierDestinationStatus(scene, actor.id, plan.context?.targetIds || [], plan.context?.attackModifierIds || [], destination, { actionId: plan.actionId, origin: plan.context?.reappearance || null }) : null;
   if (!placement?.available) errors.push(placement?.reason || "Клетку модификатора проверить не удалось.");
   if (errors.length) return { ok: false, errors, events: [] };
   const context = { ...(plan.context || {}), modifierDestination: { space: actor.space, x: destination.x, y: destination.y }, destinationKind: "attack-modifier" };
@@ -203,7 +217,7 @@ function prepareActionPlanContinuation(scene, data, request = {}) {
   if (context.destinationKind === "attack-modifier" && !context.modifierDestination) errors.push("В составном плане не выбрана клетка модификатора.");
   if (errors.length) return { ok: false, errors, events: [] };
   const prefix = reappearance ? [
-    { type: "actor.move", actorId: actor.id, payload: { space: actor.space, x: reappearance.x, y: reappearance.y, movement: Number(actor.techniques?.["vagabond.assassin"] || 0) >= 2 && ["Стычка", "Заклинание", "Завершение"].includes(plan.actionName) ? "Ликвидация" : "Появление перед действием", placement: true, participantIds: [actor.id, ...(context.targetIds || [])] } },
+    { type: "actor.move", actorId: actor.id, payload: { space: actor.space, x: reappearance.x, y: reappearance.y, movement: Number(actor.techniques?.["vagabond.assassin"] || 0) >= 2 && ["skirmish", "spell", "finish"].some(key => actionIdIs(plan.actionId, key)) ? "Ликвидация" : "Появление перед действием", placement: true, participantIds: [actor.id, ...(context.targetIds || [])] } },
     { type: "actor.enter", actorId: actor.id, payload: { space: actor.space, x: reappearance.x, y: reappearance.y, movement: "Появление перед действием", placement: true } },
     { type: "effect.remove", actorId: actor.id, payload: { targetId: actor.id, effect: "positive.исчез", sourceActionId: "core.composite-action.reappear", participantIds: [actor.id] } },
   ] : [];
@@ -246,6 +260,50 @@ function respondRulePrompt(scene, data, request = {}) {
   const errors = choiceStatus.available ? [] : [choiceStatus.reason];
   if (errors.length) return { ok: false, errors, events: [] };
   const events = [{ type: "rule.respond", actorId: actor.id, payload: { promptId: prompt.id, choice, sourceActorId: actor.id, targetId: target?.id || null, participantIds: [actor.id, target?.id].filter(Boolean) } }];
+  if (prompt.kind === "enemy-ranger-retreat" && choice === "move") {
+    events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${prompt.id}-cell`, kind: "enemy-move-cell", sourceActorId: actor.id, controller: "narrator", title: "Снайперская дистанция", text: "Переместите Егеря на 1 клетку после Атаки по нему.", options: ["cancel"], context: { maxDistance: 1 }, participantIds: [actor.id] } });
+  }
+  if (prompt.kind === "enemy-berserker-retaliate" && choice === "retaliate") {
+    const roll = request.roll, maximum = actor.ruleState?.berserkerLastStand ? 2 : 1;
+    if (!target || target.knockedOut || !roll || !Array.isArray(roll.rolls)) return { ok: false, errors: ["Цель или бросок ответного Сокрушения больше недоступны."], events: [] };
+    let destination = { x: actor.x, y: actor.y }, path = [];
+    const space = (scene.spaces || []).find(item => item.id === actor.space);
+    for (let y = 0; y < Number(space?.height || 0); y += 1) for (let x = 0; x < Number(space?.width || 0); x += 1) {
+      const candidatePath = movementPath(scene, actor.id, { x, y }, { maxDistance: maximum });
+      if (!candidatePath.length || distance({ ...destination, space: actor.space }, target) <= distance({ x, y, space: actor.space }, target)) continue;
+      destination = { x, y }; path = candidatePath;
+    }
+    if (path.length) {
+      events.push({ type: "actor.move", actorId: actor.id, payload: { space: actor.space, x: destination.x, y: destination.y, movement: "Неумолимое разрушение", path: path.map(cellKey), participantIds: [actor.id, target.id] } });
+      events.push({ type: "actor.enter", actorId: actor.id, payload: { space: actor.space, x: destination.x, y: destination.y, movement: "Неумолимое разрушение" } });
+    }
+    if (distance({ ...destination, space: actor.space }, target) <= 1) {
+      events.push({ type: "reaction.offer", actorId: target.id, payload: { sourceActorId: actor.id, actionId: "enemy.common.berserker.attack.thrash", participantIds: [actor.id, target.id] } });
+      events.push({ type: "attack.pending", actorId: actor.id, payload: { actionId: "enemy.common.berserker.attack.thrash", enemyRuleId: "enemy.common.berserker.attack.thrash", name: "Сокрушение · реакция", targetIds: [target.id], roll: clone(roll), damage: Number(roll.successes || 0) + Number(scene.tension || 0), damageByTarget: { [target.id]: Number(roll.successes || 0) + Number(scene.tension || 0) }, quickReaction: true, postDisplacements: [{ targetId: target.id, mode: "push", maximum: 1, name: "Сокрушение", ruleId: "enemy.common.berserker.attack.thrash", collisionDamagePerCell: 0 }], enemyAttackFamily: { postPush: 1 }, participantIds: [actor.id, target.id] } });
+    }
+    events.push({ type: "actor.state", actorId: actor.id, payload: { key: "berserkerReactionTurnSerial", value: Number(scene.turnSerial || 0), sourceActionId: "enemy.common.berserker.passive.relentless-destruction" } });
+  }
+  if (prompt.kind === "enemy-cocoon-repeat" && choice.startsWith("target:")) {
+    const repeatTarget = actorById(scene, choice.slice(7)), rule = enemyProfileById(data, actor.profileId)?.rules?.find(item => item.id === "enemy.common.cocoon.attack.rampage"), roll = request.roll;
+    if (!repeatTarget || repeatTarget.knockedOut || repeatTarget.team === actor.team || distance(actor, repeatTarget) > 1 || !rule || !roll || !Array.isArray(roll.rolls)) return { ok: false, errors: ["Новая цель Буйства или бросок больше недоступны."], events: [] };
+    events.push({ type: "reaction.offer", actorId: repeatTarget.id, payload: { sourceActorId: actor.id, actionId: rule.id, participantIds: [actor.id, repeatTarget.id] } });
+    events.push({ type: "attack.pending", actorId: actor.id, payload: { actionId: rule.id, enemyRuleId: rule.id, name: `${rule.name} · повтор`, targetIds: [repeatTarget.id], roll: clone(roll), damage: Number(roll.successes || 0) + Number(scene.tension || 0) * 2, damageByTarget: { [repeatTarget.id]: Number(roll.successes || 0) + Number(scene.tension || 0) * 2 }, quickReaction: true, enemyAttackFamily: { repeatFreshTargets: true }, participantIds: [actor.id, repeatTarget.id] } });
+  }
+  if (prompt.kind === "enemy-flux-swap" && choice.startsWith("swap:")) {
+    const swapTarget = actorById(scene, choice.slice(5)), fluxTarget = target;
+    if (!fluxTarget || fluxTarget.knockedOut || !swapTarget || swapTarget.knockedOut || swapTarget.team !== actor.team || swapTarget.id === actor.id || swapTarget.id === fluxTarget.id) return { ok: false, errors: ["Участники перестановки Потока больше недоступны."], events: [] };
+    const first = { space: fluxTarget.space, x: fluxTarget.x, y: fluxTarget.y }, second = { space: swapTarget.space, x: swapTarget.x, y: swapTarget.y };
+    events.push({ type: "actor.move", actorId: fluxTarget.id, payload: { ...second, movement: "Поток: перестановка", placement: true, teleport: true, participantIds: [actor.id, fluxTarget.id, swapTarget.id] } });
+    events.push({ type: "actor.move", actorId: swapTarget.id, payload: { ...first, movement: "Поток: перестановка", placement: true, teleport: true, participantIds: [actor.id, fluxTarget.id, swapTarget.id] } });
+    events.push({ type: "effect.remove", actorId: actor.id, payload: { targetId: fluxTarget.id, effect: "special.поток", sourceActorId: actor.id, sourceActionId: "enemy.common.illusionist.attack.distort-reality", participantIds: [actor.id, fluxTarget.id] } });
+  }
+  if (prompt.kind === "not-today-risk") {
+    const answers = choice.replace(/^answers:/, ""), count = [...answers].filter(value => value === "1").length, rolled = Array.from({ length: count }, () => 1 + Math.floor(Math.random() * 6)), failures = rolled.filter(value => value < 4).length, stress = Math.min(3, Number(actor.stress || 0) + failures);
+    events.push({ type: "roll.public", actorId: actor.id, payload: { formula: `${count}D6 ≥4`, rolls: rolled, successes: count - failures, crits: rolled.filter(value => value === 6).length, outcome: `Не сегодня · ${failures} Стресса`, targetIds: [prompt.context?.originalTargetId].filter(Boolean) } });
+    if (failures) events.push({ type: "actor.runtime.set", actorId: actor.id, payload: { key: "stress", value: stress, sourceActionId: "rebel.not-today", reason: "Не сегодня" } });
+    if (failures && stress >= 3 && !actor.knockedOut) events.push({ type: "actor.knockout", actorId: actor.id, payload: { targetId: actor.id, sourceActionId: "rebel.not-today", reason: "Достигнут максимум Стресса" } });
+    events.push({ type: "technique.resolve", actorId: actor.id, payload: { ruleId: "rebel.not-today", name: "Не сегодня", affectedActorIds: [prompt.context?.originalTargetId].filter(Boolean) } });
+  }
   if (prompt.kind === "dark-urge-narrator" && choice.startsWith("target:")) {
     const redirected = actorById(scene, choice.slice(7)), original = prompt.context?.originalTargetIds || [], sourceRoll = (scene.rollFeed || []).find(roll => roll.id === prompt.context?.sourceRollId);
     if (!redirected || redirected.knockedOut || redirected.id === actor.id || redirected.space !== actor.space || original.includes(redirected.id) || !sourceRoll || sourceRoll.actorId !== actor.id) return { ok: false, errors: ["Выбранная Нарратором цель или исходный бросок больше недоступны."], events: [] };
@@ -300,7 +358,7 @@ function respondRulePrompt(scene, data, request = {}) {
     }
   }
   if (prompt.kind === "thunder-chain-target" && choice.startsWith("target:")) {
-    const originalTarget = actorById(scene, prompt.context?.originalTargetId), chainTarget = actorById(scene, choice.slice(7)), spell = (data?.actions?.list || []).find(action => action.name === "Заклинание"), roll = request.roll;
+    const originalTarget = actorById(scene, prompt.context?.originalTargetId), chainTarget = actorById(scene, choice.slice(7)), spell = actionByKey(data, "spell"), roll = request.roll;
     if (!originalTarget || originalTarget.knockedOut || !chainTarget || chainTarget.knockedOut || chainTarget.team === actor.team || chainTarget.id === originalTarget.id || chainTarget.space !== originalTarget.space || distance(originalTarget, chainTarget) > 5) return { ok: false, errors: ["Цель Цепи больше не соответствует условиям правила."], events: [] };
     if (!spell || !roll || !Array.isArray(roll.rolls)) return { ok: false, errors: ["Для Заклинания Цепи нужен бросок."], events: [] };
     events.push({ type: "rule-clock.tick", actorId: actor.id, payload: { clockId: "ruiner.thunder-blood.static", delta: -1, sourceActionId: "ruiner.thunder-blood.2", reason: "Цепь" } });
@@ -355,7 +413,7 @@ function respondRulePrompt(scene, data, request = {}) {
     events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${prompt.id}-step`, kind: "knife-pickup-step", sourceActorId: actor.id, title: "Пополнение: шаг", text: "Выберите свободную клетку на расстоянии 1.", options: ["cancel"], context: { maxDistance: 1 }, participantIds: [actor.id] } });
   }
   if (prompt.kind === "knife-chaser" && choice === "chase") {
-    const marker = markerById(scene, prompt.context?.markerId), roll = request.roll, skirmish = (data?.actions?.list || []).find(action => action.name === "Стычка");
+    const marker = markerById(scene, prompt.context?.markerId), roll = request.roll, skirmish = actionByKey(data, "skirmish");
     if (!marker || !target || target.knockedOut) return { ok: false, errors: ["Цель или маркер Преследователя уже недоступны."], events: [] };
     if ((scene.actors || []).some(item => !item.knockedOut && item.id !== actor.id && item.space === marker.space && item.x === marker.x && item.y === marker.y)) return { ok: false, errors: ["Клетка маркера Оружия занята: телепортация Преследователя невозможна."], events: [] };
     if (!roll || !Array.isArray(roll.rolls)) return { ok: false, errors: ["Для Быстрой Стычки нужен бросок."], events: [] };
@@ -369,7 +427,7 @@ function respondRulePrompt(scene, data, request = {}) {
     events.push({ type: "attack.pending", actorId: actor.id, payload: { actionId: skirmish.id, techniqueRuleId: "vagabond.knife-juggler.3", techniqueName: "Преследователь", name: "Преследователь", targetIds: [target.id], roll: clone(roll), damage: Number(roll.successes || 0), quickReaction: true, participantIds: [actor.id, target.id] } });
   }
   if (prompt.kind === "feral-rage-jump-spell" && choice === "attack") {
-    const spell = (data?.actions?.list || []).find(action => action.name === "Заклинание"), roll = request.roll;
+    const spell = actionByKey(data, "spell"), roll = request.roll;
     const targetIds = [...new Set(prompt.context?.targetIds || [])].filter(id => {
       const candidate = actorById(scene, id);
       return candidate && !candidate.knockedOut && candidate.id !== actor.id && candidate.space === actor.space && distance(actor, candidate) <= 1;
@@ -381,7 +439,7 @@ function respondRulePrompt(scene, data, request = {}) {
     events.push({ type: "attack.pending", actorId: actor.id, payload: { actionId: spell.id, techniqueRuleId: "ruiner.feral-arcana.2", techniqueName: "Сорваться с цепи", name: "Сорваться с цепи", targetIds, roll: clone(roll), damage: Number(roll.successes || 0), quickReaction: true, participantIds: [actor.id, ...targetIds] } });
   }
   if (prompt.kind === "sentry-punishment" && choice !== "pass") {
-    const skirmish = (data?.actions?.list || []).find(action => action.name === "Стычка"), roll = request.roll;
+    const skirmish = actionByKey(data, "skirmish"), roll = request.roll;
     if (!target || target.knockedOut || !skirmish || !roll || !Array.isArray(roll.rolls)) return { ok: false, errors: ["Цель Наказания или бросок больше недоступны."], events: [] };
     if (choice === "punish-free") {
       if (clockStatus(scene, actor.id, "bulwark.stalwart-sentry.vigilance").value < 1) return { ok: false, errors: ["Бдительность уже пуста."], events: [] };
@@ -396,7 +454,7 @@ function respondRulePrompt(scene, data, request = {}) {
     events.push({ type: "attack.pending", actorId: actor.id, payload: { actionId: skirmish.id, techniqueRuleId: "bulwark.stalwart-sentry.2", techniqueName: "На посту", name: "Наказание", targetIds: [target.id], roll: clone(roll), damage: Number(roll.successes || 0), quickReaction: true, participantIds: [actor.id, target.id] } });
   }
   if (prompt.kind === "chronomancer-time-stop" && choice !== "pass") {
-    const flow = clockStatus(scene, actor.id, "altruist.chronomancer.flow"), spell = (data?.actions?.list || []).find(action => action.name === "Заклинание"), roll = request.roll, allIn = choice === "time-stop-all-in";
+    const flow = clockStatus(scene, actor.id, "altruist.chronomancer.flow"), spell = actionByKey(data, "spell"), roll = request.roll, allIn = choice === "time-stop-all-in";
     const targets = (scene.actors || []).filter(candidate => !candidate.knockedOut), enemies = targets.filter(candidate => candidate.team !== actor.team);
     if (!flow.full || actor.ruleState?.timeStopUsed || !spell || !roll || !Array.isArray(roll.rolls)) return { ok: false, errors: ["Остановка времени больше недоступна или не имеет броска."], events: [] };
     if (allIn && enemies.length > 2) return { ok: false, errors: ["Ва-банк доступен только при двух или менее врагах."], events: [] };
@@ -427,7 +485,7 @@ function respondRulePrompt(scene, data, request = {}) {
     events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${prompt.id}-cell`, kind: "dim-mak-weak-point-cell", sourceActorId: actor.id, targetId: target.id, title: "Слабая точка", text: `Выберите свободную клетку, смежную с ${target.name}.`, options: ["cancel"], participantIds: [actor.id, target.id] } });
   }
   if (prompt.kind === "dim-mak-field-investigation" && choice === "study") {
-    const study = (data?.actions?.list || []).find(action => action.name === "Изучение");
+    const study = actionByKey(data, "study");
     if (!target || target.knockedOut || target.team === actor.team || !study) return { ok: false, errors: ["Атакующий или базовое Изучение больше недоступны."], events: [] };
     events.push({ type: "action.prepare", actorId: actor.id, payload: { actionId: study.id, actionName: study.name, name: "Полевое исследование", targetIds: [target.id], quick: true, quickReaction: true, quickSource: { techniqueId: "vagabond.dim-mak", level: 2, name: "Полевое исследование" } } });
     events.push({ type: "effect.apply", actorId: actor.id, payload: { targetId: target.id, effect: effectIdByName(data, "Помечен"), sourceActionId: "vagabond.dim-mak.2", participantIds: [actor.id, target.id] } });
@@ -525,10 +583,10 @@ function respondRulePrompt(scene, data, request = {}) {
 function preparePromptPlacement(scene, request = {}) {
   const prompt = scene.pendingPrompt, actor = actorById(scene, prompt?.sourceActorId), marker = markerById(scene, prompt?.context?.markerId), target = actorById(scene, prompt?.targetId || prompt?.context?.targetId), destination = request.destination && { x: Number(request.destination.x), y: Number(request.destination.y) }, errors = [];
   const space = (scene.spaces || []).find(item => item.id === (marker?.space || actor?.space));
-  if (!prompt || !actor || !["marker-move-cell", "dim-mak-weak-point-cell", "empath-rush-cell", "reappear-cell", "knife-pickup-step", "meister-overclock-move", "egomaniac-style-move", "thunder-surge-cell", "siren-irresistible-cell", "untouchable-weave-cell", "constrictor-move-cell"].includes(prompt.kind)) errors.push("Сейчас нет выбора клетки для правила.");
+  if (!prompt || !actor || !["marker-move-cell", "dim-mak-weak-point-cell", "empath-rush-cell", "reappear-cell", "knife-pickup-step", "meister-overclock-move", "egomaniac-style-move", "thunder-surge-cell", "siren-irresistible-cell", "untouchable-weave-cell", "constrictor-move-cell", "enemy-move-cell"].includes(prompt.kind)) errors.push("Сейчас нет выбора клетки для правила.");
   if (!space || !destination || !Number.isInteger(destination.x) || !Number.isInteger(destination.y) || destination.x < 0 || destination.y < 0 || destination.x >= Number(space?.width || 0) || destination.y >= Number(space?.height || 0)) errors.push("Выберите клетку в пределах поля.");
   if (space && destination && removedCellKeys(scene, space.id).has(cellKey(destination))) errors.push("Эта клетка удалена из поля.");
-  const movingActor = ["siren-irresistible-cell", "constrictor-move-cell"].includes(prompt?.kind) ? target : actor;
+  const movingActor = ["siren-irresistible-cell", "constrictor-move-cell"].includes(prompt?.kind) || prompt?.kind === "enemy-move-cell" && prompt.context?.moveTarget ? target : actor;
   if (prompt?.kind !== "marker-move-cell" && movingActor && !effectCellOccupancyStatus(scene, movingActor.id, { space: space?.id, x: destination?.x, y: destination?.y }).available) errors.push("Клетка занята.");
   if (prompt?.kind === "marker-move-cell") {
     if (!marker) errors.push("Духовное пламя больше не существует.");
@@ -592,6 +650,13 @@ function preparePromptPlacement(scene, request = {}) {
       if (unchanged) errors.push("Чтобы оставить Пойманного на месте, выберите «Не использовать» на предыдущем шаге.");
     }
   }
+  let enemyMovePath = [];
+  if (prompt?.kind === "enemy-move-cell") {
+    const mover = movingActor, unchanged = mover.x === destination?.x && mover.y === destination?.y;
+    const maximum = effectMovementStatus(scene, mover.id, { forced: Boolean(prompt.context?.moveTarget), distance: Number(prompt.context?.maxDistance || 1) }).distance;
+    enemyMovePath = unchanged ? [] : movementPath(scene, mover.id, destination, { maxDistance: maximum, forced: Boolean(prompt.context?.moveTarget) });
+    if (!unchanged && !enemyMovePath.length) errors.push(`Выберите достижимую клетку в пределах ${maximum}.`);
+  }
   if (errors.length) return { ok: false, errors, events: [] };
   const events = [{ type: "rule.respond", actorId: actor.id, payload: { promptId: prompt.id, choice: "cell", destination: clone(destination), sourceActorId: actor.id, targetId: target?.id || null, participantIds: [actor.id, target?.id].filter(Boolean) } }];
   if (prompt.kind === "thunder-surge-cell") {
@@ -623,15 +688,16 @@ function preparePromptPlacement(scene, request = {}) {
     events.push({ type: "actor.enter", actorId: actor.id, payload: { space: actor.space, x: destination.x, y: destination.y, movement: "Маятник" } });
     events.push({ type: "technique.resolve", actorId: actor.id, payload: { ruleId: "vagabond.untouchable.2", name: "Маятник", affectedActorIds: [actor.id], participantIds: [actor.id] } });
   } else {
-    events.push({ type: "actor.move", actorId: actor.id, payload: { space: actor.space, x: destination.x, y: destination.y, movement: prompt.kind === "thunder-surge-cell" ? "Телепортация · Скачок" : prompt.title, placement: ["reappear-cell", "thunder-surge-cell"].includes(prompt.kind), participantIds: [actor.id, target?.id].filter(Boolean) } });
-    events.push({ type: "actor.enter", actorId: actor.id, payload: { space: actor.space, x: destination.x, y: destination.y, movement: prompt.title } });
+    const mover = prompt.kind === "enemy-move-cell" && prompt.context?.moveTarget ? target : actor, forced = Boolean(prompt.kind === "enemy-move-cell" && prompt.context?.moveTarget);
+    events.push({ type: "actor.move", actorId: mover.id, payload: { space: mover.space, x: destination.x, y: destination.y, movement: prompt.kind === "thunder-surge-cell" ? "Телепортация · Скачок" : prompt.title, path: prompt.kind === "enemy-move-cell" ? enemyMovePath.map(cellKey) : undefined, placement: ["reappear-cell", "thunder-surge-cell"].includes(prompt.kind), forced, participantIds: [actor.id, target?.id].filter(Boolean) } });
+    events.push({ type: "actor.enter", actorId: mover.id, payload: { space: mover.space, x: destination.x, y: destination.y, movement: prompt.title, forced } });
     if (prompt.kind === "reappear-cell") events.push({ type: "effect.remove", actorId: actor.id, payload: { targetId: actor.id, effect: "positive.исчез", sourceActionId: "reappear", participantIds: [actor.id] } });
   }
   return { ok: true, errors: [], events };
 }
 
 function preparePotionUse(scene, data, request = {}) {
-  const actor = actorById(scene, request.actorId), target = actorById(scene, request.targetId), potion = String(request.potion || ""), interaction = (data?.actions?.list || []).find(action => action.name === "Взаимодействие");
+  const actor = actorById(scene, request.actorId), target = actorById(scene, request.targetId), potion = String(request.potion || ""), interaction = actionByKey(data, "interact");
   const errors = [], stockKey = `potion:${potion}`;
   if (!actor || !target || !interaction) errors.push("Не найдены алхимик, цель или Взаимодействие.");
   if (actor && Number(actor.techniques?.["altruist.alchemist"] || 0) < 1) errors.push("Герой не владеет «Быстрой смесью».");
@@ -658,7 +724,7 @@ function preparePotionUse(scene, data, request = {}) {
 }
 
 function prepareSurgery(scene, data, request = {}) {
-  const actor = actorById(scene, request.actorId), target = actorById(scene, request.targetId), skirmish = (data?.actions?.list || []).find(action => action.name === "Стычка"), roll = request.roll, errors = [];
+  const actor = actorById(scene, request.actorId), target = actorById(scene, request.targetId), skirmish = actionByKey(data, "skirmish"), roll = request.roll, errors = [];
   if (!actor || !target || !skirmish) errors.push("Не найдены хирург, союзник или Стычка.");
   if (actor && Number(actor.techniques?.["altruist.surgeon"] || 0) < 1) errors.push("Герой не владеет «Не навреди».");
   if (actor && target && (target.team !== actor.team || distance(actor, target) > 1)) errors.push("Оперировать можно только смежного союзника.");
@@ -682,12 +748,12 @@ function respondReaction(scene, data, request = {}) {
   const pending = scene.pendingAction;
   const actor = actorById(scene, request.actorId);
   const source = actorById(scene, pending?.actorId);
-  const option = reactionOptions(scene, data, request.actorId).find(item => item.id === request.choice || item.name === request.choice);
+  const requestedChoiceId = canonicalActionId(request.choice), option = reactionOptions(scene, data, request.actorId).find(item => item.id === requestedChoiceId);
   const errors = [];
   if (!pending || !actor) errors.push("Нет ожидающей Реакции для персонажа.");
   if (!option) errors.push("Неизвестный ответ на Реакцию.");
   if (option && !option.available) errors.push(option.reason || "Реакция недоступна.");
-  const traitReaction = option?.enemyTrait || null;
+  const traitReaction = option?.enemyTrait || null, giftReaction = option?.giftReaction || null;
   const reactionActor = actorById(scene, traitReaction?.reactionActorId) || actor;
   const defender = actorById(scene, traitReaction?.defenderActorId) || actor;
   if (traitReaction && (!reactionActor || reactionActor.knockedOut || !defender || defender.knockedOut)) errors.push("Участник особой Реакции больше не доступен.");
@@ -701,14 +767,14 @@ function respondReaction(scene, data, request = {}) {
     else if (option.destinationKind === "adjacent-attacker" && (!source || source.space !== mover.space || distance(source, { ...destination, space: mover.space }) > 1)) errors.push("Перехватчик должен телепортироваться смежно с атакующим.");
     else if (option.destinationKind === "adjacent-trait-owner" && (!reactionActor || reactionActor.space !== mover.space || distance(reactionActor, { ...destination, space: mover.space }) > 1)) errors.push("Союзник должен телепортироваться смежно с владельцем Черты.");
   }
-  if (option?.name === "Уворот") {
+  if (actionIs(option, "dodge")) {
     const destination = request.destination;
     const space = (scene.spaces || []).find(item => item.id === actor?.space);
     const baseDodgeDistance = Number(actor?.techniques?.["vagabond.untouchable"] || 0) >= 2 ? 3 : 2, dodgeDistance = actor ? effectMovementStatus(scene, actor.id, { distance: baseDodgeDistance }).distance : 0, path = actor && destination ? movementPath(scene, actor.id, destination, { maxDistance: dodgeDistance }) : [];
     if (!destination || !space || !path.length || destination.x < 0 || destination.y < 0 || destination.x >= space.width || destination.y >= space.height) errors.push(`Для Уворота выберите достижимую свободную клетку в пределах ${dodgeDistance} клеток.`);
     else if (!effectCellOccupancyStatus(scene, actor.id, { space: actor.space, x: destination.x, y: destination.y }).available) errors.push("Клетка Уворота занята.");
   }
-  if (option?.name === "Столкновение" || ["clash", "intercept-clash"].includes(traitReaction?.mode)) {
+  if (actionIs(option, "clash") || ["clash", "intercept-clash"].includes(traitReaction?.mode)) {
     const clash = request.clash;
     if (!source) errors.push("Атакующий для Столкновения не найден.");
     else if (!traitReaction && distance(actor, source) > 5) errors.push("Атакующий вне дальности Стычки или Заклинания для Столкновения.");
@@ -716,15 +782,21 @@ function respondReaction(scene, data, request = {}) {
   }
   if (errors.length) return { ok: false, errors, events: [] };
   const events = [];
-  const untouchableEvasion = option?.name === "Уворот" && Number(actor?.techniques?.["vagabond.untouchable"] || 0) >= 1 && !currentRoundEvents(scene).some(event => event.type === "reaction.respond" && event.actorId === actor.id && event.payload?.choice === "Уворот" && Number(event.payload?.untouchableEvasion || 0) > 0) ? Math.ceil(Number(actor.attrs?.talent || 0) / 2) : 0;
+  if (giftReaction) {
+    const protector = actorById(scene, giftReaction.reactionActorId), options = [], optionLabels = {}, questions = ["Нападающий назван по имени?", "У защитницы нет Связи с нападающим?", "По мнению Нарратора, Атака могла её убить?"];
+    if (!protector || protector.knockedOut || !(protector.gifts || []).includes("rebel.not-today")) return { ok: false, errors: ["Владелица «Не сегодня» больше не может защитить цель."], events: [] };
+    for (let mask = 0; mask < 8; mask++) { const bits = [0, 1, 2].map(bit => mask & (1 << bit) ? "1" : "0").join(""); options.push(`answers:${bits}`); optionLabels[`answers:${bits}`] = questions.map((question, index) => `${bits[index] === "1" ? "Да" : "Нет"}: ${question}`).join(" · "); }
+    events.push({ type: "rule.prompt", actorId: protector.id, payload: { id: `prompt-${pending.id}-not-today-${actor.id}`, kind: "not-today-risk", sourceActorId: protector.id, controller: "narrator", title: "Не сегодня · вопросы риска", text: `${protector.name} становится целью вместо ${actor.name}, а Атака сводится на нет. Отметьте ответы на три канонических вопроса; за каждое «да» будет брошена кость.`, options, context: { originalTargetId: actor.id, attackerId: source?.id || null, optionLabels }, participantIds: [source?.id, actor.id, protector.id].filter(Boolean) } });
+  }
+  const untouchableEvasion = actionIs(option, "dodge") && Number(actor?.techniques?.["vagabond.untouchable"] || 0) >= 1 && !currentRoundEvents(scene).some(event => event.type === "reaction.respond" && event.actorId === actor.id && actionIdIs(event.payload?.choice, "dodge") && Number(event.payload?.untouchableEvasion || 0) > 0) ? Math.ceil(Number(actor.attrs?.talent || 0) / 2) : 0;
   if (option.costModel?.resource && option.costModel.amount) events.push({ type: "resource.spend", actorId: actor.id, payload: option.costModel });
-  if (option.name === "Уворот") {
+  if (actionIs(option, "dodge")) {
     const baseDodgeDistance = Number(actor?.techniques?.["vagabond.untouchable"] || 0) >= 2 ? 3 : 2, dodgeDistance = effectMovementStatus(scene, actor.id, { distance: baseDodgeDistance }).distance, path = movementPath(scene, actor.id, request.destination, { maxDistance: dodgeDistance });
     events.push({ type: "actor.move", actorId: actor.id, payload: { space: actor.space, x: request.destination.x, y: request.destination.y, movement: "Уворот", path: path.map(cellKey) } });
     events.push({ type: "actor.enter", actorId: actor.id, payload: { space: actor.space, x: request.destination.x, y: request.destination.y } });
   }
   let responseDestination = request.destination || null;
-  if (option.name === "Блок") {
+  if (actionIs(option, "block")) {
     const destination = pushDestination(scene, actor, source, 1);
     if (destination.distance > 0) {
       responseDestination = destination;
@@ -737,7 +809,7 @@ function respondReaction(scene, data, request = {}) {
     events.push({ type: "actor.enter", actorId: defender.id, payload: { space: defender.space, x: Number(request.destination.x), y: Number(request.destination.y), movement: traitReaction.ruleName, placement: true, teleport: true } });
   }
   let clash = null;
-  if (option.name === "Столкновение" || ["clash", "intercept-clash"].includes(traitReaction?.mode)) {
+  if (actionIs(option, "clash") || ["clash", "intercept-clash"].includes(traitReaction?.mode)) {
     const defenderRoll = clone(request.clash.defenderRoll), attackerRoll = clone(request.clash.attackerRoll);
     const defenderWins = Number(defenderRoll.successes || 0) > Number(attackerRoll.successes || 0);
     clash = { defenderRoll, attackerRoll, defenderWins };
@@ -745,15 +817,16 @@ function respondReaction(scene, data, request = {}) {
     events.push({ type: "roll.public", actorId: pending.actorId, payload: { ...attackerRoll, outcome: defenderWins ? "Столкновение проиграно" : "Столкновение выиграно" } });
   }
   events.push({ type: "reaction.respond", actorId: actor.id, payload: {
-    choice: option.id === "pass" ? "pass" : traitReaction ? option.id : option.name,
+    choice: option.id,
     label: option.name,
     destination: responseDestination,
     clash,
     untouchableEvasion,
     temporaryArmor: Number(traitReaction?.temporaryArmor || 0),
     temporaryEvasion: Number(traitReaction?.temporaryEvasion || 0),
-    redirectTargetId: traitReaction?.redirectTargetId || null,
+    redirectTargetId: traitReaction?.redirectTargetId || giftReaction?.reactionActorId || null,
     enemyTrait: traitReaction ? { ...traitReaction, clash: ["clash", "intercept-clash"].includes(traitReaction.mode) } : null,
+    giftReaction,
     participantIds: [...new Set([pending.actorId, actor.id, reactionActor?.id, defender?.id].filter(Boolean))],
   } });
   return { ok: true, errors: [], events };
@@ -771,6 +844,7 @@ function resolvePendingAction(scene, data) {
   const events = [];
   let autophageRegeneration = false;
   let postSelfHeal = false;
+  const successfulEnemyTargets = [];
   if (pending.roll) events.push({ type: "roll.public", actorId: pending.actorId, payload: pending.roll });
   for (const targetId of status.eligibleIds) {
     const outcome = pendingTargetOutcome(scene, pending, targetId), target = outcome.target, resolvedTargetId = target?.id || targetId, traitReaction = outcome.reaction?.enemyTrait;
@@ -778,6 +852,8 @@ function resolvePendingAction(scene, data) {
       const { rawDamage, temporaryArmor, temporaryEvasion, expectedDamage } = outcome;
       events.push({ type: "damage.apply", actorId: pending.actorId, payload: { targetId: resolvedTargetId, amount: rawDamage, temporaryArmor, temporaryEvasion, sourceActionId: pending.actionId, participantIds: [pending.actorId, resolvedTargetId] } });
       const attackSucceeded = Number(pending.roll?.successes || 0) > 0 || !pending.roll && rawDamage > 0;
+      const enemyFamily = pending.enemyAttackFamily || {};
+      if (expectedDamage > 0) successfulEnemyTargets.push(resolvedTargetId);
       if (expectedDamage > 0 && Number(source?.techniques?.["disruptor.autophage"] || 0) >= 1 && new Set(target.effects || []).size >= 2) autophageRegeneration = true;
       if (expectedDamage > 0 && pending.postResourceLoss?.resource && Number(pending.postResourceLoss.amount) > 0) {
         const requested = Number(pending.postResourceLoss.amount), balance = Number(resourceOperationStatus(scene, resolvedTargetId, { resource: pending.postResourceLoss.resource, amount: requested, operation: "spend" }).balance || 0), amount = Math.min(requested, balance);
@@ -785,6 +861,18 @@ function resolvePendingAction(scene, data) {
       }
       if (expectedDamage > 0 && Number(pending.postSelfHealMissingFraction) > 0) postSelfHeal = true;
       if (expectedDamage > 0) for (const effect of pending.effects || []) events.push({ type: "effect.apply", actorId: pending.actorId, payload: { targetId: resolvedTargetId, effect, sourceActionId: pending.actionId } });
+      if (expectedDamage > 0 && enemyFamily.conditionalSingleEffect && status.eligibleIds.length === 1) events.push({ type: "effect.apply", actorId: pending.actorId, payload: { targetId: resolvedTargetId, effect: effectIdByName(data, enemyFamily.conditionalSingleEffect), sourceActionId: pending.actionId, participantIds: [pending.actorId, resolvedTargetId] } });
+      if (expectedDamage > 0 && enemyFamily.enemyEffects) for (const effect of enemyFamily.enemyEffects) events.push({ type: "effect.apply", actorId: pending.actorId, payload: { targetId: resolvedTargetId, effect: effectIdByName(data, effect), sourceActionId: pending.actionId, participantIds: [pending.actorId, resolvedTargetId] } });
+      if (expectedDamage > 0 && enemyFamily.conditionalEffectsByTarget?.any?.some(name => (target.effects || []).includes(effectIdByName(data, name)))) for (const effect of enemyFamily.conditionalEffectsByTarget.apply || []) events.push({ type: "effect.apply", actorId: pending.actorId, payload: { targetId: resolvedTargetId, effect: effectIdByName(data, effect), sourceActionId: pending.actionId, participantIds: [pending.actorId, resolvedTargetId] } });
+      if (expectedDamage > 0 && enemyFamily.markedSlow) {
+        const marked = effectStateFor(target, "negative.помечен"), ownedMark = marked ? marked.sources.some(item => item.actorId === pending.actorId) : (target.effects || []).includes("negative.помечен");
+        if (ownedMark) events.push({ type: "effect.apply", actorId: pending.actorId, payload: { targetId: resolvedTargetId, effect: "negative.замедлен", sourceActionId: pending.actionId, participantIds: [pending.actorId, resolvedTargetId] } });
+      }
+      const wound = enemyFamily.wound === "always"
+        || enemyFamily.wound === "two-crits" && Number(pending.roll?.crits || 0) >= 2
+        || enemyFamily.wound === "already-corrupted" && (target.effects || []).includes("negative.порчен")
+        || enemyFamily.wound === "isolated" && !(scene.actors || []).some(other => other.id !== target.id && other.id !== pending.actorId && !other.knockedOut && other.space === target.space && distance(other, target) <= 1);
+      if (expectedDamage > 0 && wound) events.push({ type: "actor.wound", actorId: pending.actorId, payload: { targetId: resolvedTargetId, delta: 1, sourceActionId: pending.actionId, participantIds: [pending.actorId, resolvedTargetId] } });
       if (attackSucceeded) for (const effect of pending.successEffects || []) events.push({ type: "effect.apply", actorId: pending.actorId, payload: { targetId: resolvedTargetId, effect, sourceActionId: pending.techniqueRuleId || pending.actionId } });
       for (const effect of pending.postTargetEffects || []) events.push({ type: "effect.apply", actorId: pending.actorId, payload: { targetId: resolvedTargetId, effect, sourceActionId: pending.techniqueRuleId || pending.actionId, participantIds: [pending.actorId, resolvedTargetId] } });
       if (attackSucceeded && status.eligibleIds.length === 1 && Number(source?.techniques?.["disruptor.constrictor"] || 0) >= 1 && (pending.declaredActionName || pending.name) === "Стычка") events.push({ type: "effect.apply", actorId: source.id, payload: { targetId: resolvedTargetId, effect: "negative.пойман", sourceActionId: "disruptor.constrictor.1", participantIds: [source.id, resolvedTargetId] } });
@@ -824,6 +912,62 @@ function resolvePendingAction(scene, data) {
       }
     }
   }
+  const enemyFamily = pending.enemyAttackFamily || {};
+  if (enemyFamily.healerMark) for (const targetId of successfulEnemyTargets) events.push({ type: "effect.apply", actorId: pending.actorId, payload: { targetId, effect: "negative.помечен", sourceActionId: pending.actionId, duration: "scene", participantIds: [pending.actorId, targetId] } });
+  if (enemyFamily.flux) for (const targetId of successfulEnemyTargets) events.push({ type: "effect.apply", actorId: pending.actorId, payload: { targetId, effect: "special.поток", sourceActionId: pending.actionId, duration: "scene", participantIds: [pending.actorId, targetId] } });
+  if (enemyFamily.expelFromArea && pending.attackAnchor && source) {
+    const space = (scene.spaces || []).find(item => item.id === source.space), selected = new Set(areaCells(space, pending.attackAnchor, enemyFamily.area || [3, 3]));
+    for (const targetId of successfulEnemyTargets) {
+      const target = actorById(scene, targetId); if (!target) continue;
+      const candidates = [];
+      for (let y = 0; y < Number(space?.height || 0); y += 1) for (let x = 0; x < Number(space?.width || 0); x += 1) {
+        if (selected.has(`${x},${y}`) || !effectCellOccupancyStatus(scene, target.id, { actor: target, space: target.space, x, y }).available) continue;
+        const path = movementPath(scene, target.id, { x, y }, { maxDistance: Number(space.width) + Number(space.height), forced: true });
+        if (path.length) candidates.push({ x, y, path });
+      }
+      candidates.sort((a, b) => a.path.length - b.path.length || distance(target, a) - distance(target, b));
+      const destination = candidates[0]; if (!destination) continue;
+      events.push({ type: "actor.move", actorId: target.id, payload: { space: target.space, x: destination.x, y: destination.y, movement: pending.name, forced: true, path: destination.path.map(cellKey), participantIds: [source.id, target.id] } });
+      events.push({ type: "actor.enter", actorId: target.id, payload: { space: target.space, x: destination.x, y: destination.y, movement: pending.name, forced: true } });
+    }
+  }
+  if (successfulEnemyTargets.length && enemyFamily.chooseOneEffect) events.push({ type: "effect.apply", actorId: pending.actorId, payload: { targetId: successfulEnemyTargets[0], effect: effectIdByName(data, enemyFamily.chooseOneEffect), sourceActionId: pending.actionId, participantIds: [pending.actorId, successfulEnemyTargets[0]] } });
+  if (successfulEnemyTargets.length && enemyFamily.createTerrainAdjacent && source) {
+    const space = (scene.spaces || []).find(item => item.id === source.space), occupied = new Set((scene.actors || []).filter(item => !item.knockedOut && item.kind !== "crowd" && item.space === source.space).map(cellKey));
+    for (const targetId of successfulEnemyTargets) {
+      const target = actorById(scene, targetId), cell = target && [[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,-1],[1,-1],[-1,1]].map(([dx,dy]) => ({ x: target.x + dx, y: target.y + dy })).find(point => point.x >= 0 && point.y >= 0 && point.x < Number(space?.width || 0) && point.y < Number(space?.height || 0) && !occupied.has(`${point.x},${point.y}`) && !removedCellKeys(scene, source.space).has(`${point.x},${point.y}`));
+      if (!cell) continue;
+      occupied.add(`${cell.x},${cell.y}`);
+      const hp = enemyTierFormula(enemyFamily.createTerrainAdjacent, source.tier);
+      events.push({ type: "area.create", actorId: source.id, payload: { id: `enemy-terrain-${pending.id}-${targetId}`, space: source.space, areaType: "terrain", label: `${pending.name}: местность`, source: pending.actionId, ruleId: pending.actionId, duration: "scene", ownerActorId: source.id, cells: [`${cell.x},${cell.y}`], hp, maxHp: hp, participantIds: [source.id, targetId] } });
+    }
+  }
+  if (source && enemyFamily.chargedAttack) events.push({ type: "effect.remove", actorId: source.id, payload: { targetId: source.id, effect: "positive.заряжен", sourceActionId: pending.actionId, participantIds: [source.id] } });
+  if (source?.ruleState?.rangerHeadshotTargetId && successfulEnemyTargets.includes(source.ruleState.rangerHeadshotTargetId)) events.push({ type: "actor.state", actorId: source.id, payload: { key: "rangerHeadshotTargetId", value: null, sourceActionId: pending.actionId } });
+  if (source && enemyFamily.postSelfMove) events.push({ type: "rule.prompt", actorId: source.id, payload: { id: `prompt-${pending.id}-enemy-move`, kind: "enemy-move-cell", sourceActorId: source.id, controller: "narrator", title: `${pending.name}: перемещение`, text: `Переместите ${source.name} на расстояние до ${enemyFamily.postSelfMove} клетки.`, options: ["cancel"], context: { maxDistance: Number(enemyFamily.postSelfMove) }, participantIds: [source.id] } });
+  if (source && enemyFamily.postMoveMaximum && successfulEnemyTargets[0]) {
+    const target = actorById(scene, successfulEnemyTargets[0]);
+    events.push({ type: "rule.prompt", actorId: source.id, payload: { id: `prompt-${pending.id}-target-move`, kind: "enemy-move-cell", sourceActorId: source.id, targetId: target.id, controller: "narrator", title: `${pending.name}: перемещение цели`, text: `Переместите ${target.name} на расстояние до ${enemyFamily.postMoveMaximum} клеток.`, options: ["cancel"], context: { maxDistance: Number(enemyFamily.postMoveMaximum), moveTarget: true }, participantIds: [source.id, target.id] } });
+  }
+  if (source && enemyFamily.repeatFreshTargets) {
+    const attacked = new Set(currentTurnEvents(scene, source.id).filter(event => event.actorId === source.id && event.type === "attack.pending").flatMap(event => event.payload?.targetIds || []).concat(pending.targetIds || []));
+    const candidates = (scene.actors || []).filter(target => !target.knockedOut && target.team !== source.team && target.space === source.space && distance(source, target) <= 1 && !attacked.has(target.id));
+    if (candidates.length) events.push({ type: "rule.prompt", actorId: source.id, payload: { id: `prompt-${pending.id}-cocoon-repeat`, kind: "enemy-cocoon-repeat", sourceActorId: source.id, controller: "narrator", title: "Буйство · повтор", text: "Бесплатно повторите Буйство против персонажа, которого Кокон ещё не атаковал в этот Ход.", options: [...candidates.map(target => `target:${target.id}`), "pass"], context: { optionLabels: Object.fromEntries(candidates.map(target => [`target:${target.id}`, target.name])) }, participantIds: [source.id, ...candidates.map(target => target.id)] } });
+  }
+  if (source && enemyFamily.pugilistSequence && successfulEnemyTargets.length) {
+    const firstStep = Math.max(1, Math.min(4, Number(source.ruleState?.pugilistStance || 1))), targetId = successfulEnemyTargets[0], target = actorById(scene, targetId), steps = source.ruleState?.martialPerfection ? [firstStep, firstStep % 4 + 1] : [firstStep];
+    for (const step of steps) {
+      if (step === 1 && target) {
+        const origin = { x: target.x, y: target.y }, destination = pushDestination(scene, target, source, 3);
+        if (destination.distance) {
+          events.push({ type: "actor.move", actorId: target.id, payload: { space: target.space, x: destination.x, y: destination.y, movement: "Град ударов", forced: true, displacement: { mode: "push", direction: destination.direction, distance: destination.distance, ruleId: pending.actionId }, path: (destination.path || []).map(cellKey), participantIds: [source.id, target.id] } });
+          events.push({ type: "actor.move", actorId: source.id, payload: { space: source.space, x: origin.x, y: origin.y, movement: "Град ударов: следом", placement: true, participantIds: [source.id, target.id] } });
+        }
+      } else if (step === 2) events.push({ type: "effect.apply", actorId: source.id, payload: { targetId, effect: "negative.пойман", sourceActionId: pending.actionId, participantIds: [source.id, targetId] } });
+      else if (step === 3) events.push({ type: "effect.apply", actorId: source.id, payload: { targetId, effect: "negative.подброшен", sourceActionId: pending.actionId, participantIds: [source.id, targetId] } });
+    }
+    events.push({ type: "actor.state", actorId: source.id, payload: { key: "pugilistStance", value: ((firstStep - 1 + steps.length) % 4) + 1, sourceActionId: pending.actionId } });
+  }
   if (postSelfHeal && source) {
     const missing = Math.max(0, Number(source.maxHp || 0) - Number(source.hp || 0));
     const amount = Math.ceil(missing * Number(pending.postSelfHealMissingFraction));
@@ -856,6 +1000,6 @@ function resolvePendingAction(scene, data) {
   }
   events.push({ type: pending.enemyRuleId ? "enemy.action.resolve" : "action.resolve", actorId: pending.actorId, payload: pending.enemyRuleId ? { ruleId: pending.enemyRuleId, name: pending.name, kind: "attack", targetIds: status.eligibleIds, skippedTargetIds: status.unavailableIds, reward: pending.reward || "" } : { actionId: pending.actionId, name: pending.name, attribute: pending.attribute || pending.roll?.attribute || null, roll: clone(pending.roll || null), targetIds: status.eligibleIds, skippedTargetIds: status.unavailableIds, icicleHalo: Boolean(pending.icicleHalo),masterArmament:pending.masterArmament||null } });
   if (pending.techniqueRuleId) events.push({ type: "technique.resolve", actorId: pending.actorId, payload: { ruleId: pending.techniqueRuleId, name: pending.techniqueName || pending.name, affectedActorIds: status.eligibleIds, skippedTargetIds: status.unavailableIds } });
-  events.push({ type: "attack.clear", actorId: source?.id || pending.actorId, payload: { pendingId: pending.id } });
+  events.push({ type: "attack.clear", actorId: source?.id || pending.actorId, payload: { pendingId: pending.id, targetIds: status.eligibleIds, sourceActionId: pending.actionId } });
   return { ok: true, errors: [], events };
 }

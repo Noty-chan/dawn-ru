@@ -47,6 +47,18 @@ dimMak = Engine.dispatchMany(dimMak, attack.events).scene;
 assert.equal(dimMak.markers.length, 0);
 assert.equal(dimMak.actors[0].evasion, 2);
 
+let bladeDimMak = baseScene({ "vagabond.dim-mak": 1, "vagabond.master-at-arms": 1 });
+bladeDimMak.actors[0].x = 1; bladeDimMak.actors[0].y = 1;
+bladeDimMak.actors[1].x = 3; bladeDimMak.actors[1].y = 1;
+bladeDimMak.markers = [{ id: "blade-weak-point", space: "main", x: 2, y: 1, kind: "mark", label: "Слабая точка", ruleId: "vagabond.dim-mak.1", ownerActorId: "hero", metadata: { carrierActorId: "enemy", offset: { dx: -1, dy: 0 } } }];
+const bladeModifier = Engine.attackModifierStatus(bladeDimMak, "hero", ["enemy"], [], { actionName: "Стычка", origin: { x: 2, y: 1 } }).options.find(option => option.ruleId === "vagabond.dim-mak.1")?.id;
+assert.ok(bladeModifier, "Слабая точка доступна после подготовленного перемещения Клинка");
+const bladeAttack = Engine.prepareAction(bladeDimMak, data, { actorId: "hero", actionId: actionNamed("Стычка").id, targetIds: ["enemy"], armamentMode: "blade", armamentDestination: { x: 2, y: 1 }, attackModifierIds: [bladeModifier], attribute: "mind", roll: { formula: "4D6 · Разум", attribute: "mind", rolls: [6, 5, 3, 2], successes: 2, crits: 1 } });
+assert.equal(bladeAttack.ok, true);
+assert.equal(bladeAttack.events.find(event => event.type === "attack.pending").payload.attribute, "mind", "Дим Мак имеет приоритет над обычным атрибутом Клинка");
+assert.ok(bladeAttack.events.find(event => event.type === "action.prepare").payload.attackModifierIds.includes(bladeModifier));
+assert.equal(bladeAttack.events.some(event => event.type === "resource.spend"), false, "Клинок со Слабой точкой остаётся Быстрым");
+
 let miss = baseScene({ "vagabond.dim-mak": 2 });
 miss.actors[0].evasion = 3;
 miss.activeActorId = "enemy";

@@ -93,6 +93,8 @@ function sceneCore(raw){
   const persistedActorIds=new Set(base.actors.map(actor=>actor.id));
   base.actors.forEach((actor,index)=>{
     const source=scene.actors?.[index]||{};
+    actor.bonds=Array.isArray(source.bonds)?source.bonds.slice(0,30).filter(bond=>bond&&typeof bond.name==="string").map(bond=>({id:typeof bond.id==="string"?bond.id.slice(0,120):"",name:bond.name.slice(0,120)})):[];
+    actor.sacrifices=cleanArray(source.sacrifices).filter(item=>["eye","arm","leg","tongue","life"].includes(item));
     actor.compoundId=(actor.kind==="enemy"||Boolean(actor.profileId))&&typeof source.compoundId==="string"&&source.compoundId.trim()?source.compoundId.trim().slice(0,120):null;
     actor.compoundBaseSpeed=actor.compoundId?clamp(source.compoundBaseSpeed??actor.speed,0,99):null;
     actor.compoundDefense=actor.compoundId&&["armor","evasion"].includes(source.compoundDefense)?source.compoundDefense:null;
@@ -109,7 +111,7 @@ function sceneCore(raw){
     actor.creationMarks=clamp(source.creationMarks,0,99);
     actor.innovationCharges=clamp(source.innovationCharges,0,99);
     actor.inventory=source.inventory&&typeof source.inventory==="object"?Object.fromEntries(Object.entries(source.inventory).filter(([id,value])=>typeof id==="string"&&id.length<=80&&Number(value)>0).slice(0,60).map(([id,value])=>[id,clamp(value,1,99)])):{};
-    actor.ruleState=source.ruleState&&typeof source.ruleState==="object"?{pugilistStance:clamp(source.ruleState.pugilistStance,0,4),martialPerfection:Boolean(source.ruleState.martialPerfection),growth:clamp(source.ruleState.growth,0,99),imposingPresence:Boolean(source.ruleState.imposingPresence),grimTransformed:Boolean(source.ruleState.grimTransformed),grimUsed:Boolean(source.ruleState.grimUsed),warringTransformed:Boolean(source.ruleState.warringTransformed),warringUsed:Boolean(source.ruleState.warringUsed),drainLife:Boolean(source.ruleState.drainLife),lastCreationSpellMarks:clamp(source.ruleState.lastCreationSpellMarks,0,99)}:{};
+    actor.ruleState=source.ruleState&&typeof source.ruleState==="object"?{pugilistStance:clamp(source.ruleState.pugilistStance,0,4),martialPerfection:Boolean(source.ruleState.martialPerfection),growth:clamp(source.ruleState.growth,0,99),imposingPresence:Boolean(source.ruleState.imposingPresence),enemyAim:clamp(source.ruleState.enemyAim,0,1),rangerHeadshotTargetId:source.ruleState.rangerHeadshotTargetId||null,berserkerLastStand:Boolean(source.ruleState.berserkerLastStand),berserkerReactionTurnSerial:clamp(source.ruleState.berserkerReactionTurnSerial,0,999999),grimTransformed:Boolean(source.ruleState.grimTransformed),grimUsed:Boolean(source.ruleState.grimUsed),warringTransformed:Boolean(source.ruleState.warringTransformed),warringUsed:Boolean(source.ruleState.warringUsed),drainLife:Boolean(source.ruleState.drainLife),lastCreationSpellMarks:clamp(source.ruleState.lastCreationSpellMarks,0,99)}:{};
     actor.ruleState.modifiedOverclockTurns=clamp(source.ruleState?.modifiedOverclockTurns,0,2);
     actor.ruleState.icicleSpellsRemaining=clamp(source.ruleState?.icicleSpellsRemaining,0,4);
     actor.ruleState.styleCarryRemaining=clamp(source.ruleState?.styleCarryRemaining,0,99);

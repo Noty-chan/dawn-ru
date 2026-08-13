@@ -281,6 +281,7 @@ function effectCellOccupancyStatus(scene, actorId, request = {}) {
   const compoundId = (actor.kind === "enemy" || actor.profileId) && typeof actor.compoundId === "string" && actor.compoundId.trim() ? actor.compoundId.trim() : null;
   const blockers = (scene.actors || []).filter(other => other.id !== actor.id && other.space === space && Number(other.x) === x && Number(other.y) === y)
     .filter(other => effectPresenceStatus(scene, other.id).onField)
+    .filter(other => !other.knockedOut)
     .filter(other => actor.kind !== "crowd" && other.kind !== "crowd")
     .filter(other => !compoundId || other.team !== actor.team || String(other.compoundId || "").trim() !== compoundId)
     .filter(other => !banished && !hasEffect(scene, other, "positive.изгнан"));
@@ -298,7 +299,10 @@ function effectAttackStatus(scene, sourceActorId, targetIds = []) {
   const frightened = effectStateFor(source, "negative.испуган");
   if (frightened?.sources.some(item => targetSet.has(item.actorId))) hindranceEffects.push("Испуган");
   const taunted = effectStateFor(source, "negative.спровоцирован");
-  if (taunted?.sources.length && !taunted.sources.some(item => targetSet.has(item.actorId))) hindranceEffects.push("Спровоцирован");
+  if (taunted?.sources.length && !taunted.sources.some(item => targetSet.has(item.actorId))) {
+    hindranceEffects.push("Спровоцирован");
+    if (taunted.sources.some(item => actorById(scene, item.actorId)?.ruleState?.imposingPresence)) hindranceEffects.push("Внушительное присутствие");
+  }
   return { available: true, reason: "", source, targets, damageModifier, damageByTarget, hindrance: hindranceEffects.length * tier, hindranceEffects };
 }
 
@@ -326,7 +330,7 @@ function effectDefenseStatus(scene, targetActorId) {
 }
 
 function attackModifierStatus(scene, sourceActorId, targetIds = [], selectedIds = [], request = {}) {
-  const source = actorById(scene, sourceActorId), targets = [...new Set(targetIds || [])].map(id => actorById(scene, id)).filter(Boolean), actionName = String(request.actionName || "");
+  const source = actorById(scene, sourceActorId), targets = [...new Set(targetIds || [])].map(id => actorById(scene, id)).filter(Boolean), actionId = canonicalActionId(String(request.actionId || request.actionName || ""));
   if (!source) return { available: false, reason: "Атакующий не найден.", source: null, targets, options: [], selectedOptions: [], selectedIds: [], invalidIds: [], advantage: 0, requiresDestination: false, attributeOverride: null, actionTransform: null };
   const launchedTargets = targets.filter(target => !target.knockedOut && hasEffect(scene, target, "negative.подброшен")), options = launchedTargets.map(target => ({
     id: `core.launch-spike:${target.id}`,
@@ -339,7 +343,7 @@ function attackModifierStatus(scene, sourceActorId, targetIds = [], selectedIds 
     advantage: Number(source.tier || 1),
     removeEffect: "negative.подброшен",
   }));
-  if (Number(source.techniques?.["bulwark.grappler"] || 0) >= 2 && targets.length === 1 && launchedTargets.length === 1 && (!actionName || actionName === "Стычка")) {
+  if (Number(source.techniques?.["bulwark.grappler"] || 0) >= 2 && targets.length === 1 && launchedTargets.length === 1 && (!actionId || actionIdIs(actionId, "skirmish"))) {
     const target = launchedTargets[0];
     options.push({
       id: `bulwark.grappler.2:${target.id}`,
@@ -355,19 +359,22 @@ function attackModifierStatus(scene, sourceActorId, targetIds = [], selectedIds 
       requiresDestination: true,
       destinationKind: "adjacent-target",
       attributeOverride: "body",
-      actionTransform: { actionName: "Завершение", attribute: "body", costActionName: "Стычка", ruleId: "bulwark.grappler.2" },
+      actionTransform: { actionKey: "finish", actionName: "Завершение", attribute: "body", costActionKey: "skirmish", costActionName: "Стычка", ruleId: "bulwark.grappler.2" },
       ruleId: "bulwark.grappler.2",
     });
   }
-  if (Number(source.techniques?.["vagabond.dim-mak"] || 0) >= 1 && targets.length === 1 && (!actionName || ["Стычка", "Заклинание", "Завершение"].includes(actionName))) {
+  if (Number(source.techniques?.["vagabond.dim-mak"] || 0) >= 1 && targets.length === 1 && (!actionId || ["skirmish", "spell", "finish"].some(key => actionIdIs(actionId, key)))) {
     const target = targets[0];
+    const attackOrigin = request.origin && Number.isInteger(Number(request.origin.x)) && Number.isInteger(Number(request.origin.y))
+      ? { space: request.origin.space || source.space, x: Number(request.origin.x), y: Number(request.origin.y) }
+      : source;
     const weakPoints = (scene.markers || []).filter(marker =>
       marker.ruleId === "vagabond.dim-mak.1"
       && marker.ownerActorId === source.id
       && marker.metadata?.carrierActorId === target.id
-      && marker.space === source.space
-      && Number(marker.x) === Number(source.x)
-      && Number(marker.y) === Number(source.y)
+      && marker.space === attackOrigin.space
+      && Number(marker.x) === Number(attackOrigin.x)
+      && Number(marker.y) === Number(attackOrigin.y)
     );
     weakPoints.forEach(marker => options.push({
       id: `vagabond.dim-mak.1:${marker.id}`,

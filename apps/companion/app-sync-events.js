@@ -44,6 +44,7 @@ $("sync-join-campaign").onclick=()=>runSyncAction(async()=>{configureSyncFromFor
 $("sync-create-invite").onclick=()=>runSyncAction(async()=>{lastInviteToken=await Sync.createInvite("player");$("sync-invite-output").textContent=`Ссылка для игроков: ${inviteLink(lastInviteToken)}`;$("sync-copy-invite").hidden=false},"Приглашение действует 7 дней или 8 входов");
 $("sync-copy-invite").onclick=()=>runSyncAction(async()=>{if(!lastInviteToken)throw new Error("Сначала создайте приглашение");await navigator.clipboard.writeText(inviteLink(lastInviteToken))},"Ссылка скопирована");
 $("sync-publish-hero").onclick=()=>runSyncAction(publishCurrentHero,"Лист и токен отправлены за стол");
+$("sync-reconnect").onclick=()=>runSyncAction(async()=>{const state=Sync.state();if(!state.authenticated)await Sync.connect();if(Sync.state().sceneId)await Sync.refreshScene()},"Соединение и Сцена обновлены");
 const leaveCurrentTable=()=>runSyncAction(async()=>{resetClientTableRuntime();await Sync.leave();await refreshSavedCampaigns()},"Компаньон снова работает локально");
 $("sync-leave").onclick=leaveCurrentTable;
 $("sync-leave-table").onclick=leaveCurrentTable;

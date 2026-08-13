@@ -46,22 +46,22 @@
     { id: "disruptor.constrictor.2", techniqueId: "disruptor.constrictor", level: 2, name: "Удушение", kind: "passive", automation: "full", note: "Завершения Телом и Талантом игнорируют дальность для собственных Пойманных целей, а любое Завершение наносит им дополнительный урон Ступени." },
     { id: "vagabond.aerial-master.1.foundation", techniqueId: "vagabond.aerial-master", level: 1, name: "Над и вокруг", kind: "foundation", foundation: "stance", automation: "partial", stanceId: "vagabond.aerial-master.flight", requiredEffects: ["positive.ускорен"], note: "Условие входа в Стойку полёта и конфликт с другой Стойкой вычисляются канонически." },
     { id: "bulwark.servant-s-call.1.foundation", techniqueId: "bulwark.servant-s-call", level: 1, name: "Честь подчинённого", kind: "foundation", foundation: "owned-entities", automation: "partial", rulePrefix: "bulwark.servant-s-call", kinds: ["summon"], note: "Призывы собираются по владельцу и источнику правила; создание полноценного участника вместо маркера остаётся следующим этапом." },
-    { id: "powerhouse.spellsword.3.foundation", techniqueId: "powerhouse.spellsword", level: 3, name: "Охотник на ведьм", kind: "foundation", foundation: "action-history", automation: "full", scope: "turn", actionNames: ["Заклинание"], note: "Ядро находит непосредственно предыдущее Заклинание и его цели; комбо проверяет Завершение Телом/Талантом по тем же целям и добавляет Дух к урону." },
+    { id: "powerhouse.spellsword.3.foundation", techniqueId: "powerhouse.spellsword", level: 3, name: "Охотник на ведьм", kind: "foundation", foundation: "action-history", automation: "full", scope: "turn", actionKeys: ["spell"], note: "Ядро находит непосредственно предыдущее Заклинание и его цели; комбо проверяет Завершение Телом/Талантом по тем же целям и добавляет Дух к урону." },
     { id: "powerhouse.improvisational-fighter.1.foundation", techniqueId: "powerhouse.improvisational-fighter", level: 1, name: "Всё — инструмент", kind: "foundation", foundation: "terrain", automation: "partial", range: 5, types: ["terrain", "difficult", "custom"], note: "Поиск, дальность, владение и Здоровье местности готовы; выбор между созданием и удалением пока подтверждает игрок." },
     { id: "vagabond.cunning-fighter.2", techniqueId: "vagabond.cunning-fighter", level: 2, name: "Планы внутри планов", kind: "passive", automation: "full", note: "Снято ограничение одного «Плана и исполнения» за Ход." },
     { id: "bulwark.iron-bodied.2", techniqueId: "bulwark.iron-bodied", level: 2, name: "Выносливость", kind: "passive", automation: "full", note: "Броня автоматически включает [Тело / 2]." },
     { id: "bulwark.rising-challenger.3", techniqueId: "bulwark.rising-challenger", level: 3, name: "Драма и злость", kind: "passive", automation: "full", note: "В бросок Столкновения автоматически добавляются 3 кости." },
     { id: "altruist.gourmand.2", techniqueId: "altruist.gourmand", level: 2, name: "Бездонная кладовая", kind: "passive", automation: "full", note: "Запас Трапез автоматически равен 3 за Интермиссию." },
-    { id: "powerhouse.technician.3", techniqueId: "powerhouse.technician", level: 3, name: "Последний удар", kind: "combo", automation: "full", sequence: ["Стычка", "Завершение"], action: "Завершение", apCost: 1 },
+    { id: "powerhouse.technician.3", techniqueId: "powerhouse.technician", level: 3, name: "Последний удар", kind: "combo", automation: "full", sequenceKeys: ["skirmish", "finish"], actionKey: "finish", apCost: 1 },
     { id: "powerhouse.dragonslayer.1", techniqueId: "powerhouse.dragonslayer", level: 1, name: "Скорость — это вес", kind: "passive", automation: "full", note: "Успешное Завершение Телом после общего окна Реакций накладывает Разорван на доступные цели." },
-    { id: "powerhouse.dragonslayer.3", techniqueId: "powerhouse.dragonslayer", level: 3, name: "Титанический замах", kind: "combo", automation: "full", sequence: ["Передышка", "Завершение"], action: "Завершение", attribute: "body", allDiceSucceed: true, postPush: 2, postSelfEffects: ["Ослаблен"] },
-    { id: "powerhouse.spellsword.3", techniqueId: "powerhouse.spellsword", level: 3, name: "Охотник на ведьм", kind: "combo", automation: "full", sequence: ["Заклинание", "Завершение"], action: "Завершение", attributes: ["body", "talent"], sameTargets: true, bonusDamageAttribute: "spirit" },
+    { id: "powerhouse.dragonslayer.3", techniqueId: "powerhouse.dragonslayer", level: 3, name: "Титанический замах", kind: "combo", automation: "full", sequenceKeys: ["breathe", "finish"], actionKey: "finish", attribute: "body", allDiceSucceed: true, postPush: 2, postSelfEffects: ["Ослаблен"] },
+    { id: "powerhouse.spellsword.3", techniqueId: "powerhouse.spellsword", level: 3, name: "Охотник на ведьм", kind: "combo", automation: "full", sequenceKeys: ["spell", "finish"], actionKey: "finish", attributes: ["body", "talent"], sameTargets: true, bonusDamageAttribute: "spirit" },
     { id: "powerhouse.duelist.2", techniqueId: "powerhouse.duelist", level: 2, name: "Парирование", kind: "passive", automation: "full", note: "Ответ Блоком против смежного атакующего автоматически накладывает Ошеломлен до разрешения исходной Атаки." },
     { id: "bulwark.grappler.2", techniqueId: "bulwark.grappler", level: 2, name: "Перелом позвоночника", kind: "passive", automation: "decision", note: "Стычки получают 1 Преимущество. Для единственной Подброшенной цели можно выбрать составной модификатор: Вбить, телепортироваться в свободную смежную клетку и заменить Атаку на Завершение Телом по исходной Стоимости." },
     { id: "vagabond.assassin.1", techniqueId: "vagabond.assassin", level: 1, name: "Засада", kind: "passive", automation: "full", note: "Первое Скрыться после Развертывания автоматически бесплатно и игнорирует требования." },
     { id: "vagabond.assassin.2", techniqueId: "vagabond.assassin", level: 2, name: "Ликвидация", kind: "passive", automation: "decision", note: "При Атаке из Исчезновения сохраняемый план запросит клетку появления, в том числе смежную, добавит кости Ступени и критические успехи на 5–6; отмена не расходует действие." },
-    { id: "vagabond.assassin.3", techniqueId: "vagabond.assassin", level: 3, name: "Скорость тьмы", kind: "combo", automation: "full", sequence: ["Скрыться", "Шаг"], action: "Шаг", apCost: 0, selfEffect: "Невидим" },
-    { id: "vagabond.speed-demon.2", techniqueId: "vagabond.speed-demon", level: 2, name: "Мгновенный шаг", kind: "combo", automation: "full", sequence: ["Передышка", "Шаг"], action: "Шаг", movementMultiplier: 3 },
+    { id: "vagabond.assassin.3", techniqueId: "vagabond.assassin", level: 3, name: "Скорость тьмы", kind: "combo", automation: "full", sequenceKeys: ["disappear", "step"], actionKey: "step", apCost: 0, selfEffect: "Невидим" },
+    { id: "vagabond.speed-demon.2", techniqueId: "vagabond.speed-demon", level: 2, name: "Мгновенный шаг", kind: "combo", automation: "full", sequenceKeys: ["breathe", "step"], actionKey: "step", movementMultiplier: 3 },
     { id: "vagabond.enchained.1", techniqueId: "vagabond.enchained", level: 1, name: "Выстрел крюком", kind: "equidistant-teleport", automation: "full", range: 5 },
     { id: "vagabond.untouchable.1", techniqueId: "vagabond.untouchable", level: 1, name: "Нырок", kind: "passive", automation: "full", note: "Первый Уворот за Раунд автоматически получает дополнительное [Талант / 2] Уклонение." },
     { id: "vagabond.untouchable.2", techniqueId: "vagabond.untouchable", level: 2, name: "Маятник", kind: "passive", automation: "decision", note: "Уворот перемещает до 3 клеток; если итоговое Уклонение сводит урон к 0, стол предлагает отменяемое повторное перемещение до 3 клеток и пишет его в журнал." },
@@ -74,10 +74,10 @@
     { id: "altruist.alchemist.1", techniqueId: "altruist.alchemist", level: 1, name: "Быстрая смесь", kind: "inventory", automation: "full" },
     { id: "altruist.alchemist.2", techniqueId: "altruist.alchemist", level: 2, name: "Мощная смесь", kind: "passive", automation: "full" },
     { id: "ruiner.creation-ascetic.1", techniqueId: "ruiner.creation-ascetic", level: 1, name: "Формирование знаков", kind: "resource-replacement", automation: "full", note: "Метки творения заменяют Фокус; обычная Атака с Метками направляется к подходящей форме." },
-    { id: "ruiner.creation-ascetic.1.nails", techniqueId: "ruiner.creation-ascetic", level: 1, name: "Скрещенные гвозди", kind: "creation-attack", automation: "decision", action: "Заклинание", markBand: "low", form: "nails" },
-    { id: "ruiner.creation-ascetic.1.mallet", techniqueId: "ruiner.creation-ascetic", level: 1, name: "Невозможный молот", kind: "creation-attack", automation: "decision", action: "Заклинание", markBand: "high", form: "mallet" },
-    { id: "ruiner.creation-ascetic.1.pile-arm", techniqueId: "ruiner.creation-ascetic", level: 1, name: "Небесный копер", kind: "creation-attack", automation: "decision", action: "Завершение", markBand: "low", form: "pile-arm", advantage: 2 },
-    { id: "ruiner.creation-ascetic.1.idol", techniqueId: "ruiner.creation-ascetic", level: 1, name: "Живой идол", kind: "creation-attack", automation: "decision", action: "Завершение", markBand: "high", form: "idol", advantage: 4 },
+    { id: "ruiner.creation-ascetic.1.nails", techniqueId: "ruiner.creation-ascetic", level: 1, name: "Скрещенные гвозди", kind: "creation-attack", automation: "decision", actionKey: "spell", markBand: "low", form: "nails" },
+    { id: "ruiner.creation-ascetic.1.mallet", techniqueId: "ruiner.creation-ascetic", level: 1, name: "Невозможный молот", kind: "creation-attack", automation: "decision", actionKey: "spell", markBand: "high", form: "mallet" },
+    { id: "ruiner.creation-ascetic.1.pile-arm", techniqueId: "ruiner.creation-ascetic", level: 1, name: "Небесный копер", kind: "creation-attack", automation: "decision", actionKey: "finish", markBand: "low", form: "pile-arm", advantage: 2 },
+    { id: "ruiner.creation-ascetic.1.idol", techniqueId: "ruiner.creation-ascetic", level: 1, name: "Живой идол", kind: "creation-attack", automation: "decision", actionKey: "finish", markBand: "high", form: "idol", advantage: 4 },
     { id: "ruiner.creation-ascetic.2", techniqueId: "ruiner.creation-ascetic", level: 2, name: "Один истинный мир", kind: "passive", automation: "full", note: "Передышка, Зарядка и получение Меток от повреждения или уничтожения местности автоматизированы." },
     { id: "ruiner.creation-ascetic.3", techniqueId: "ruiner.creation-ascetic", level: 3, name: "Труд благочестивых", kind: "passive", automation: "full", note: "Форма Завершения получает число Меток непосредственно предшествовавшего Заклинания." },
     { id: "ruiner.spellcrafter.1", techniqueId: "ruiner.spellcrafter", level: 1, name: "Эксперимент", kind: "modifier-choice", automation: "decision", note: "Игрок выбирает Модификацию; ядро не угадывает выбранный вариант." },
@@ -194,7 +194,7 @@
     }
     return seen.size === set.size;
   }
-  const actionNamed = name => (global.DAWN_DATA?.actions?.list || []).find(action => action.name === name);
+  const actionByKey = key => global.DAWN_SCENE_ENGINE?.actionByKey(global.DAWN_DATA, key) || null;
   const effectiveEffects = (scene, actor) => global.DAWN_SCENE_ENGINE?.effectiveEffects?.(scene, actor.id) || actor.effects || [];
 
   function rulesFor(techniques = {}) {
@@ -297,7 +297,7 @@
     else if (rule.foundation === "alternate-resource") foundation = core.alternateResourceStatus(scene, actor.id, { resource: rule.resource, label: rule.resourceLabel, initial: rule.initial, amount: Number(request.options?.amount ?? 1), replaces: rule.replaces });
     else if (rule.foundation === "stance") foundation = core.stanceStatus(scene, actor.id, rule.stanceId, { requiredEffects: rule.requiredEffects });
     else if (rule.foundation === "owned-entities") foundation = core.ownedEntities(scene, actor.id, { rulePrefix: rule.rulePrefix, kinds: rule.kinds });
-    else if (rule.foundation === "action-history") foundation = core.actionHistoryStatus(scene, actor.id, { scope: rule.scope, actionNames: rule.actionNames, targetIds: request.targetIds });
+    else if (rule.foundation === "action-history") foundation = core.actionHistoryStatus(scene, actor.id, { scope: rule.scope, actionKeys: rule.actionKeys, targetIds: request.targetIds });
     else if (rule.foundation === "terrain") foundation = core.terrainStatus(scene, { actorId: actor.id, objectId: request.options?.objectId, cell: request.anchor, range: rule.range, types: rule.types, ownerOnly: Boolean(request.options?.ownerOnly) });
     else foundation = { available: false, reason: "Неизвестная заготовка ядра." };
     const warning = foundation.available ? "Каноническая проверка готова; полный механический итог пока подтверждает Нарратор." : `Текущее условие не выполнено: ${foundation.reason}`;
@@ -394,7 +394,7 @@
     let affectedActorIds = [];
 
     if (rule.kind === "trap-placement") {
-      const actionMode = request.options?.actionMode === "finish" ? "finish" : "skirmish", action = actionNamed(actionMode === "finish" ? "Завершение" : "Стычка"), available = global.DAWN_SCENE_ENGINE?.availableActions(scene, global.DAWN_DATA, actor.id).find(item => item.id === action?.id);
+      const actionMode = request.options?.actionMode === "finish" ? "finish" : "skirmish", action = actionByKey(actionMode), available = global.DAWN_SCENE_ENGINE?.availableActions(scene, global.DAWN_DATA, actor.id).find(item => item.id === action?.id);
       if (!inBounds(sourceSpace, anchor)) errors.push("Выберите пустую клетку для Малой ловушки.");
       if (anchor && (scene.actors || []).some(item => !item.knockedOut && item.space === actor.space && item.x === anchor.x && item.y === anchor.y)) errors.push("Малая ловушка ставится только в пустую клетку.");
       const range = actionMode === "skirmish" ? 1 + (Number(actor.techniques?.["disruptor.hunter"] || 0) >= 2 ? 3 : 0) : 1;
@@ -413,7 +413,7 @@
     }
 
     if (rule.kind === "creation-attack") {
-      const action = actionNamed(rule.action), available = global.DAWN_SCENE_ENGINE?.availableActions(scene, global.DAWN_DATA, actor.id).find(item => item.id === action?.id), lastAction = (scene.log || []).find(event => event.type === "action.prepare" && event.actorId === actor.id), inherited = rule.action === "Завершение" && Number(actor.techniques?.["ruiner.creation-ascetic"] || 0) >= 3 && lastAction?.payload?.actionName === "Заклинание" ? Number(actor.ruleState?.lastCreationSpellMarks || 0) : 0, marks = Number(global.DAWN_SCENE_ENGINE?.ruleResourceStatus(scene, actor.id, { resource: "creation-marks" }).balance || 0), effectiveMarks = marks || inherited;
+      const action = actionByKey(rule.actionKey), available = global.DAWN_SCENE_ENGINE?.availableActions(scene, global.DAWN_DATA, actor.id).find(item => item.id === action?.id), lastAction = (scene.log || []).find(event => event.type === "action.prepare" && event.actorId === actor.id), inherited = rule.actionKey === "finish" && Number(actor.techniques?.["ruiner.creation-ascetic"] || 0) >= 3 && global.DAWN_SCENE_ENGINE?.actionIdIs(lastAction?.payload?.actionId, "spell") ? Number(actor.ruleState?.lastCreationSpellMarks || 0) : 0, marks = Number(global.DAWN_SCENE_ENGINE?.ruleResourceStatus(scene, actor.id, { resource: "creation-marks" }).balance || 0), effectiveMarks = marks || inherited;
       if (!action || !available) errors.push("Базовая Атака для формы не найдена.");
       if (available && !available.available) errors.push(available.reason);
       if (rule.markBand === "low" && (effectiveMarks < 1 || effectiveMarks > 2)) errors.push("Эта форма требует 1–2 Метки творения.");
@@ -443,14 +443,14 @@
       if (targetCells.length) targetIds.push(...(scene.actors || []).filter(target => !target.knockedOut && target.team !== actor.team && target.space === actor.space && targetCells.includes(pointKey(target))).map(target => target.id));
       if (!targetIds.length && ["mallet", "pile-arm"].includes(rule.form)) errors.push("В выбранной форме нет доступной цели.");
       if (errors.length) return { ok: false, engineVersion: VERSION, actorId: actor.id, rule: publicRule(rule), request: clone(request), errors, warnings: [], commands: [], events: [], affectedCells: targetCells, affectedActorIds: targetIds };
-      const cost = global.DAWN_SCENE_ENGINE?.actionCost(action) || { resource: "ap", amount: rule.action === "Завершение" ? 2 : 1 }, baseDamage = Number(request.roll.successes || 0) + (rule.action === "Завершение" ? Number(scene.tension || 0) : 0), chosenDistance = Number(request.options?.distance || 0), damageByTarget = Object.fromEntries(targetIds.map(id => [id, Math.max(0, baseDamage + (rule.form === "mallet" ? chosenDistance : 0))])), events = [
+      const cost = global.DAWN_SCENE_ENGINE?.actionCost(action) || { resource: "ap", amount: rule.actionKey === "finish" ? 2 : 1 }, baseDamage = Number(request.roll.successes || 0) + (rule.actionKey === "finish" ? Number(scene.tension || 0) : 0), chosenDistance = Number(request.options?.distance || 0), damageByTarget = Object.fromEntries(targetIds.map(id => [id, Math.max(0, baseDamage + (rule.form === "mallet" ? chosenDistance : 0))])), events = [
         { type: "technique.prepare", actorId: actor.id, payload: { ruleId: rule.id, name: rule.name, affectedCells: targetCells, targetIds, participantIds: [actor.id, ...targetIds], creationMarksSpent: effectiveMarks } },
         { type: "action.prepare", actorId: actor.id, payload: { actionId: action.id, actionName: action.name, name: rule.name, targetIds, quick: false, creationMarksSpent: effectiveMarks } },
       ];
       if (cost.resource && cost.amount) events.push({ type: "resource.spend", actorId: actor.id, payload: cost });
       if (marks) events.push({ type: "rule-resource.spend", actorId: actor.id, payload: { resource: "creation-marks", amount: marks, sourceActionId: rule.id } });
-      if (rule.action === "Заклинание" && Number(actor.techniques?.["ruiner.creation-ascetic"] || 0) >= 3) events.push({ type: "actor.state", actorId: actor.id, payload: { key: "lastCreationSpellMarks", value: effectiveMarks, sourceActionId: "ruiner.creation-ascetic.3" } });
-      if (rule.action === "Завершение" && inherited) events.push({ type: "actor.state", actorId: actor.id, payload: { key: "lastCreationSpellMarks", value: 0, sourceActionId: "ruiner.creation-ascetic.3" } });
+      if (rule.actionKey === "spell" && Number(actor.techniques?.["ruiner.creation-ascetic"] || 0) >= 3) events.push({ type: "actor.state", actorId: actor.id, payload: { key: "lastCreationSpellMarks", value: effectiveMarks, sourceActionId: "ruiner.creation-ascetic.3" } });
+      if (rule.actionKey === "finish" && inherited) events.push({ type: "actor.state", actorId: actor.id, payload: { key: "lastCreationSpellMarks", value: 0, sourceActionId: "ruiner.creation-ascetic.3" } });
       targetIds.forEach(id => events.push({ type: "reaction.offer", actorId: id, payload: { sourceActorId: actor.id, actionId: rule.id, participantIds: [actor.id, id] } }));
       events.push({ type: "attack.pending", actorId: actor.id, payload: { actionId: action.id, techniqueRuleId: rule.id, techniqueName: rule.name, name: rule.name, targetIds, targetCells, allowEmptyTargets: ["nails", "idol"].includes(rule.form), roll: clone(request.roll), damage: Math.max(0, baseDamage), damageByTarget, attackModifierIds: clone(request.attackModifierIds || []), creationMarksSpent: effectiveMarks, postPush: rule.form === "pile-arm" ? { targetId: targetIds[0], maximum: 99, name: rule.name, ruleId: rule.id } : null, createTerrain: rule.form === "idol" ? { cells: targetCells, label: "Живой идол · высокая местность", ruleId: rule.id, hp: 10 } : null, participantIds: [actor.id, ...targetIds] } });
       return { ok: true, engineVersion: VERSION, actorId: actor.id, rule: publicRule(rule), request: clone(request), errors: [], warnings: [], commands: [], events, summary: `${rule.name}: Атака подготовлена`, affectedCells: targetCells, affectedActorIds: targetIds };
@@ -467,7 +467,7 @@
       if (!inBounds(sourceSpace, destination)) errors.push("Теперь выберите клетку приземления.");
       if (destination && (scene.actors || []).some(item => item.id !== actor.id && item.space === actor.space && item.x === destination.x && item.y === destination.y)) errors.push("Клетка приземления занята.");
       if (anchor && destination && manhattan(anchor, destination) !== manhattan(actor, anchor)) errors.push(`Приземление должно быть ровно в ${manhattan(actor, anchor)} клетках от цели Заклинания.`);
-      const spell = (global.DAWN_DATA?.actions?.list || []).find(action => action.name === "Заклинание");
+      const spell = actionByKey("spell");
       const available = global.DAWN_SCENE_ENGINE?.availableActions(scene, global.DAWN_DATA, actor.id).find(action => action.id === spell?.id);
       if (available && !available.available) errors.push(available.reason);
       if (errors.length) return { ok: false, engineVersion: VERSION, actorId: actor.id, rule: publicRule(rule), request: clone(request), errors, warnings: [], commands: [], events: [], affectedCells: [], affectedActorIds: [] };
@@ -489,7 +489,7 @@
       if (actual < rule.optionMinimum.value) errors.push(`Нужно: ${rule.optionMinimum.label} — не меньше ${rule.optionMinimum.value}.`);
     }
     if (rule.areaType === "attack") {
-      const finish = (global.DAWN_DATA?.actions?.list || []).find(action => action.name === "Завершение"), available = global.DAWN_SCENE_ENGINE?.availableActions(scene, global.DAWN_DATA, actor.id).find(action => action.id === finish?.id), spent = Number(request.options?.focusSpent || 0);
+      const finish = actionByKey("finish"), available = global.DAWN_SCENE_ENGINE?.availableActions(scene, global.DAWN_DATA, actor.id).find(action => action.id === finish?.id), spent = Number(request.options?.focusSpent || 0);
       if (available && !available.available) errors.push(available.reason);
       if (spent < 0 || spent > Number(actor.focus || 0) || spent > Number(scene.tension || 0)) errors.push("На Завершение нельзя потратить больше Фокуса, чем есть у героя или текущего Напряжения.");
       const modifiers = [...new Set(actor.techniqueState?.spellModifiers || [])], level = Number(actor.techniques?.["ruiner.spellcrafter"] || 0), resource = level >= 2 ? "focus" : "innovationCharges";
@@ -561,7 +561,7 @@
     const events = [{ type: "technique.prepare", actorId, payload: { ruleId: prepared.rule.id, name: prepared.rule.name, request: clone(prepared.request || {}) } }];
     const references = {};
     if (prepared.rule.areaType === "attack") {
-      const actor = actorById(scene, actorId), finish = (global.DAWN_DATA?.actions?.list || []).find(action => action.name === "Завершение"), targetIds = clone(prepared.affectedActorIds || []), roll = clone(prepared.request?.roll || null), focusSpent = Number(prepared.request?.options?.focusSpent || 0), modifiers = [...new Set(actor?.techniqueState?.spellModifiers || [])], modifierResource = Number(actor?.techniques?.["ruiner.spellcrafter"] || 0) >= 2 ? "focus" : "innovationCharges";
+      const actor = actorById(scene, actorId), finish = actionByKey("finish"), targetIds = clone(prepared.affectedActorIds || []), roll = clone(prepared.request?.roll || null), focusSpent = Number(prepared.request?.options?.focusSpent || 0), modifiers = [...new Set(actor?.techniqueState?.spellModifiers || [])], modifierResource = Number(actor?.techniques?.["ruiner.spellcrafter"] || 0) >= 2 ? "focus" : "innovationCharges";
       events.push({ type: "action.prepare", actorId, payload: { actionId: finish.id, actionName: finish.name, name: prepared.rule.name, targetIds, quick: false } });
       events.push({ type: "resource.spend", actorId, payload: { resource: "ap", amount: 2 } });
       if (focusSpent) events.push({ type: "resource.spend", actorId, payload: { resource: "focus", amount: focusSpent } });

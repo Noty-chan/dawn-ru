@@ -40,7 +40,7 @@ RE_TECH_HEAD = re.compile(r"^### (.+?)(?: \(([^)]+)\))? \| (★+) \| (.+)$")
 RE_LEVEL = re.compile(r"^\*\*(\d):\s*(.+):\*\*\s*(.*)$")
 RE_GIFT = re.compile(r"^\*\*(.+?):\*\*\s+(.*)$")
 RE_ENEMY_HEAD = re.compile(r"^### (.+?)(?: \(([^)]+)\))? \| (.+)$")
-RE_ENEMY_RULE = re.compile(r'^\*\*\[(Действие|Атака|Козырь)(?::Н(\d+))?\]\s+(.+?)(?: \(([^)]+)\))?:\*\*\s*(.*)$')
+RE_ENEMY_RULE = re.compile(r'^\*\*(?:\\\*)?\[(Действие|Атака|Козырь)(?::Н(\d+|X))?\]\s+(.+?)(?: \(([^)]+)\))?:\*\*\s*(.*)$')
 RE_ANTAGONIST_RULE = re.compile(r'^\*\*(.+?) \((Реакция защиты|Прочая Реакция|Смена фазы|Начало Хода|Начало Хода союзника)\):\*\*\s*(.*)$')
 
 ANTAGONIST_DEFENSE_PROFILES = {
@@ -613,7 +613,7 @@ def parse_enemies(fname, kind: str) -> list:
                 "name": name.strip(),
                 "en": (en or "").strip(),
                 "apCost": int(re.search(r"стоит\s+(\d+)\s+\*\*ОД", body, re.IGNORECASE).group(1)) if re.search(r"стоит\s+(\d+)\s+\*\*ОД", body, re.IGNORECASE) else (2 if rule_kind == "trump" else 1),
-                "tension": int(tension or 0),
+                "tension": int(tension) if tension and tension.isdigit() else 0,
                 "text": body.strip(),
                 "reward": "",
             }
@@ -651,7 +651,7 @@ def parse_enemies(fname, kind: str) -> list:
             direct_damage_match = re.search(r"нанесите (?:ему|ей|им|цели)?\s*`([^`]+)`\s+урона", rule["text"], re.IGNORECASE)
             rule["directDamage"] = direct_damage_match.group(1) if direct_damage_match else ""
             tension_match = re.search(r"Напряжение\s*x\s*(\d+)", rule["reward"], re.IGNORECASE)
-            rule["tensionMultiplier"] = int(tension_match.group(1)) if tension_match else 0
+            rule["tensionMultiplier"] = int(tension_match.group(1)) if tension_match else (1 if re.search(r"\[Напряжение\]", rule["reward"], re.IGNORECASE) else 0)
             combined = f'{rule["text"]}\n{rule["reward"]}'
             rule["targetEffects"] = [
                 effect_name
@@ -676,8 +676,13 @@ def parse_enemies(fname, kind: str) -> list:
             range_match = re.search(r"в пределах\s+(\d+)\s+клет", rule["text"], re.IGNORECASE)
             rule["range"] = int(range_match.group(1)) if range_match else 0
             rule["adjacent"] = bool(re.search(r"смежн(?:ой|ого|ую|ых)?\s+(?:цели|персонажа|противника)", rule["text"], re.IGNORECASE))
-            if re.search(r"до двух персонаж", rule["text"], re.IGNORECASE):
-                rule["maxTargets"] = 2
+            word_limits = {"двух": 2, "трех": 3, "трёх": 3, "четырех": 4, "четырёх": 4}
+            numeric_limit = re.search(r"до\s+(\d+)\s+(?:персонаж|противник)", rule["text"], re.IGNORECASE)
+            word_limit = re.search(r"до\s+(двух|трех|трёх|четырех|четырёх)\s+(?:персонаж|противник)", rule["text"], re.IGNORECASE)
+            if numeric_limit:
+                rule["maxTargets"] = int(numeric_limit.group(1))
+            elif word_limit:
+                rule["maxTargets"] = word_limits[word_limit.group(1).lower()]
             elif rule["kind"] == "attack" and not re.search(r"зон[уы]\s+`\d+\s*x\s*\d+`|всех персонаж|персонажей", rule["text"], re.IGNORECASE):
                 rule["maxTargets"] = 1
             else:
@@ -757,6 +762,8 @@ def parse_antagonist_traits() -> list:
 def main():
     data = {
         "schemaVersion": 2,
+        "sourceLocale": "ru",
+        "availableLocales": ["ru"],
         "archetypes": [parse_techniques(slug, fname) for slug, fname in TECH_FILES],
         "outlooks": parse_outlooks(),
         "bonds": parse_bonds(),

@@ -1,9 +1,36 @@
 "use strict";
 
-const VERSION = 44;
-const EVENT_TYPES = new Set(["action.plan", "action.plan.update", "action.plan.cancel", "action.prepare", "action.resolve", "enemy.action.prepare", "enemy.action.resolve", "reaction.offer", "reaction.respond", "roll.public", "roll.redirect", "challenge.request", "challenge.clear", "opposed.request", "opposed.reroll", "opposed.tie.resolve", "opposed.clear", "rule.share", "session-clock.create", "session-clock.set", "session-clock.rename", "session-clock.kind", "session-clock.size", "session-clock.remove", "reminder.create", "reminder.due", "reminder.resolve", "reminder.remove", "resource.spend", "resource.gain", "actor.runtime.set", "rule-mode.set", "rule-resource.configure", "rule-resource.spend", "rule-resource.gain", "rule-resource.set", "rule-resource.reset", "rule-clock.configure", "rule-clock.tick", "rule-clock.set", "rule-clock.reset", "rule.trigger", "actor.spawn", "actor.move", "actor.enter", "actor.heal", "actor.wound", "actor.knockout", "turn.start", "turn.end", "turn.grant", "round.end", "attack.pending", "attack.clear", "damage.apply", "effect.apply", "effect.remove", "inventory.change", "rule.prompt", "rule.respond", "technique.prepare", "technique.resolve", "technique.manual", "technique.state", "actor.state", "area.create", "area.remove", "area.duration", "object.damage", "object.restore", "wall.create", "wall.damage", "wall.restore", "wall.remove", "marker.create", "marker.move", "marker.remove", "marker.duration", "topology.cells.remove", "topology.cells.restore", "targets.set", "space.ensure"]);
+const VERSION = 45;
+// Persisted ids are the rules contract. Display names may be translated and must
+// never be used as the only way to identify an action.
+const ACTION_IDS = Object.freeze({
+  jump: "action.движение.прыжок",
+  step: "action.движение.шаг",
+  spell: "action.атаки.заклинание",
+  finish: "action.атаки.завершение",
+  skirmish: "action.атаки.стычка",
+  block: "action.защита.блок",
+  clash: "action.защита.столкновение",
+  dodge: "action.защита.уворот",
+  breathe: "action.утилитарные-действия.передышка",
+  charge: "action.утилитарные-действия.зарядка",
+  disappear: "action.утилитарные-действия.скрыться",
+  shove: "action.утилитарные-действия.толчок",
+  study: "action.утилитарные-действия.изучение",
+  interact: "action.утилитарные-действия.взаимодействие",
+  improvise: "action.утилитарные-действия.импровизация",
+});
+// Read-only compatibility for scenes created before reaction/action ids became
+// mandatory. New events must always write the canonical id.
+const LEGACY_ACTION_IDS_BY_NAME = Object.freeze({ "Прыжок": ACTION_IDS.jump, "Шаг": ACTION_IDS.step, "Заклинание": ACTION_IDS.spell, "Завершение": ACTION_IDS.finish, "Стычка": ACTION_IDS.skirmish, "Блок": ACTION_IDS.block, "Столкновение": ACTION_IDS.clash, "Уворот": ACTION_IDS.dodge, "Передышка": ACTION_IDS.breathe, "Зарядка": ACTION_IDS.charge, "Скрыться": ACTION_IDS.disappear, "Толчок": ACTION_IDS.shove, "Изучение": ACTION_IDS.study, "Взаимодействие": ACTION_IDS.interact, "Импровизация": ACTION_IDS.improvise });
+const canonicalActionId = value => Object.values(ACTION_IDS).includes(value) ? value : LEGACY_ACTION_IDS_BY_NAME[value] || value;
+const actionIs = (action, key) => Boolean(action && ACTION_IDS[key] && action.id === ACTION_IDS[key]);
+const actionIsAny = (action, keys) => Array.isArray(keys) && keys.some(key => actionIs(action, key));
+const actionIdIs = (actionId, key) => Boolean(ACTION_IDS[key] && canonicalActionId(actionId) === ACTION_IDS[key]);
+const actionByKey = (data, key) => data?.actions?.list?.find(action => actionIs(action, key)) || null;
+const EVENT_TYPES = new Set(["action.plan", "action.plan.update", "action.plan.cancel", "action.prepare", "action.resolve", "enemy.action.prepare", "enemy.action.resolve", "reaction.offer", "reaction.respond", "roll.public", "roll.redirect", "gift.sacrifice", "challenge.request", "challenge.clear", "opposed.request", "opposed.reroll", "opposed.tie.resolve", "opposed.clear", "rule.share", "session-clock.create", "session-clock.set", "session-clock.rename", "session-clock.kind", "session-clock.size", "session-clock.remove", "reminder.create", "reminder.due", "reminder.resolve", "reminder.remove", "resource.spend", "resource.gain", "actor.runtime.set", "rule-mode.set", "rule-resource.configure", "rule-resource.spend", "rule-resource.gain", "rule-resource.set", "rule-resource.reset", "rule-clock.configure", "rule-clock.tick", "rule-clock.set", "rule-clock.reset", "rule.trigger", "actor.spawn", "actor.move", "actor.enter", "actor.heal", "actor.wound", "actor.knockout", "turn.start", "turn.end", "turn.grant", "round.end", "attack.pending", "attack.clear", "damage.apply", "effect.apply", "effect.remove", "inventory.change", "rule.prompt", "rule.respond", "technique.prepare", "technique.resolve", "technique.manual", "technique.state", "actor.state", "area.create", "area.remove", "area.duration", "object.damage", "object.restore", "wall.create", "wall.damage", "wall.restore", "wall.remove", "marker.create", "marker.move", "marker.remove", "marker.duration", "topology.cells.remove", "topology.cells.restore", "targets.set", "space.ensure"]);
 const RESOURCES = new Set(["ap", "focus", "influence", "meals", "creationMarks", "innovationCharges"]);
-const PLACEMENT_PROMPT_KINDS = new Set(["marker-move-cell", "dim-mak-weak-point-cell", "empath-rush-cell", "reappear-cell", "thunder-surge-cell", "siren-irresistible-cell", "untouchable-weave-cell", "knife-pickup-step", "meister-overclock-move", "egomaniac-style-move", "constrictor-move-cell"]);
+const PLACEMENT_PROMPT_KINDS = new Set(["marker-move-cell", "dim-mak-weak-point-cell", "empath-rush-cell", "reappear-cell", "thunder-surge-cell", "siren-irresistible-cell", "untouchable-weave-cell", "knife-pickup-step", "meister-overclock-move", "egomaniac-style-move", "constrictor-move-cell", "enemy-move-cell"]);
 const EFFECT_DURATIONS = new Set(["default", "persistent", "scene", "startTurn", "actionOrStartTurn", "roundEnd"]);
 const ACTION_PLAN_PHASES = new Set(["reappear", "targets", "destination", "modifiers", "confirm"]);
 const EFFECT_LIFECYCLE = Object.freeze({
@@ -16,7 +43,7 @@ const EFFECT_LIFECYCLE = Object.freeze({
   "negative.пойман": Object.freeze({ duration: "default", sourceBound: true, removeWithSource: true }),
   "negative.спровоцирован": Object.freeze({ duration: "default", sourceBound: true, removeWithSource: true }),
 });
-const ACTOR_STATE_KEYS = new Set(["pugilistStance", "martialPerfection", "growth", "evasion", "imposingPresence", "grimTransformed", "grimUsed", "warringTransformed", "warringUsed", "drainLife", "lastCreationSpellMarks", "modifiedOverclockTurns", "icicleSpellsRemaining", "styleCarryRemaining", "timeStopUsed", "empathSupport", "masterArmament", "wispCreationUsed"]);
+const ACTOR_STATE_KEYS = new Set(["pugilistStance", "martialPerfection", "growth", "evasion", "imposingPresence", "enemyAim", "rangerHeadshotTargetId", "berserkerLastStand", "berserkerReactionTurnSerial", "grimTransformed", "grimUsed", "warringTransformed", "warringUsed", "drainLife", "lastCreationSpellMarks", "modifiedOverclockTurns", "icicleSpellsRemaining", "styleCarryRemaining", "timeStopUsed", "empathSupport", "masterArmament", "wispCreationUsed"]);
 const clone = value => JSON.parse(JSON.stringify(value));
 const actorById = (scene, id) => (scene.actors || []).find(actor => actor.id === id) || null;
 const compoundParts = (scene, actorOrId, options = {}) => {
