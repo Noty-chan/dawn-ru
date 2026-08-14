@@ -77,7 +77,7 @@
         if(result.error)throw result.error;
         if(Number(result.data?.version)>Number(state.version)){patch({version:Number(result.data.version),status:"online",lastSyncedAt:new Date().toISOString(),error:""});emit("scene",{state:result.data.state,version:Number(result.data.version),polled:true})}
       }
-    }catch(error){console.warn("DAWN scene refresh failed",error)}
+    }catch(error){console.warn("DAWN scene refresh failed",error);scheduleReconnect("scene-refresh")}
     finally{sceneRefreshInFlight=false}
   }
   async function refreshPendingCommands(){
@@ -90,7 +90,7 @@
       if(result.error)throw result.error;
       const commands=result.data||[],signature=commands.map(command=>`${command.id}:${command.command_type}`).join("|");
       if(signature!==lastPendingCommandSignature){lastPendingCommandSignature=signature;emit("commands",commands)}
-    }catch(error){console.warn("DAWN command refresh failed",error)}
+    }catch(error){console.warn("DAWN command refresh failed",error);scheduleReconnect("command-refresh")}
     finally{pendingCommandsRefreshInFlight=false}
   }
   function scheduleReconnect(reason="connection"){
@@ -126,6 +126,7 @@
     return[...presenceCache.values()].map(entry=>entry.item).sort((a,b)=>String(a.displayName||"").localeCompare(String(b.displayName||""),"ru"));
   }
   async function updatePresence(extra={}){presenceDetails={...presenceDetails,...extra};if(!channel?.track||!state.sceneId)return;await channel.track(presencePayload(presenceDetails))}
+  function signalTable(event,payload={}){if(!channel?.send||!state.sceneId)return;void channel.send({type:"broadcast",event,payload:{sceneId:state.sceneId,version:Number(state.version||0),...payload}}).catch(error=>console.warn("DAWN realtime signal failed",error))}
   async function subscribe(){
     await unsubscribe();if(!client||!state.sceneId)return;
     const generation=++channelGeneration;
@@ -134,7 +135,7 @@
     const canNarrate=["owner","narrator"].includes(state.role);
     const sceneTable=canNarrate?"scenes":"scene_public_snapshots";
     const sceneFilter=canNarrate?`id=eq.${subscribedSceneId}`:`scene_id=eq.${subscribedSceneId}`;
-    channel=client.channel(`dawn-scene-${subscribedSceneId}`,{config:{presence:{key:state.userId}}})
+    channel=client.channel(`dawn-scene-${subscribedSceneId}`,{config:{presence:{key:state.userId},broadcast:{self:false}}})
       .on("presence",{event:"sync"},()=>{if(!subscriptionIsActive())return;state={...state,presence:readPresence()};emit("presence",state.presence)})
       .on("presence",{event:"join"},()=>setTimeout(()=>{if(!subscriptionIsActive())return;state={...state,presence:readPresence()};emit("presence",state.presence)},0))
       .on("presence",{event:"leave"},()=>{setTimeout(()=>{if(!subscriptionIsActive())return;state={...state,presence:readPresence()};emit("presence",state.presence)},0);setTimeout(()=>{if(!subscriptionIsActive())return;state={...state,presence:readPresence()};emit("presence",state.presence)},10100)})
@@ -146,7 +147,9 @@
       .on("postgres_changes",{event:"UPDATE",schema:"public",table:"scene_commands",filter:`scene_id=eq.${subscribedSceneId}`},payload=>{if(subscriptionIsActive()&&payload.new)emit("command-update",payload.new)})
       .on("postgres_changes",{event:"INSERT",schema:"public",table:"scene_events",filter:`scene_id=eq.${subscribedSceneId}`},payload=>{if(subscriptionIsActive()&&payload.new){emit("event",payload.new);if(Number(payload.new.scene_version)>Number(state.version)&&!(localMutationInFlight&&payload.new.actor_id===state.userId))void refreshSceneIfNewer(true)}})
       .on("postgres_changes",{event:"UPDATE",schema:"public",table:"characters",filter:`campaign_id=eq.${subscribedCampaignId}`},payload=>{if(subscriptionIsActive()&&payload.new)emit("character",payload.new)})
-      .subscribe(status=>{if(!subscriptionIsActive())return;if(status==="SUBSCRIBED"){reconnectAttempt=0;patch({status:"online",lastSyncedAt:new Date().toISOString(),error:""});global.clearInterval?.(sceneRefreshTimer);sceneRefreshTimer=global.setInterval?.(()=>{void refreshSceneIfNewer();void refreshPendingCommands()},2500)||null;void updatePresence().catch(error=>console.warn("Presence update failed",error));void refreshPendingCommands()}else if(["CHANNEL_ERROR","TIMED_OUT","CLOSED"].includes(status))scheduleReconnect(status)});
+      .on("broadcast",{event:"scene-command"},()=>{if(subscriptionIsActive()&&canNarrate)void refreshPendingCommands()})
+      .on("broadcast",{event:"scene-updated"},payload=>{if(subscriptionIsActive()&&Number(payload?.payload?.version||0)>Number(state.version))void refreshSceneIfNewer(true)})
+      .subscribe(status=>{if(!subscriptionIsActive())return;if(status==="SUBSCRIBED"){reconnectAttempt=0;patch({status:"online",lastSyncedAt:new Date().toISOString(),error:""});global.clearInterval?.(sceneRefreshTimer);sceneRefreshTimer=global.setInterval?.(()=>{void refreshSceneIfNewer();void refreshPendingCommands()},1000)||null;void updatePresence().catch(error=>console.warn("Presence update failed",error));void refreshPendingCommands()}else if(["CHANNEL_ERROR","TIMED_OUT","CLOSED"].includes(status))scheduleReconnect(status)});
   }
 
   async function loadScene(sceneId){
@@ -212,7 +215,7 @@
   function sceneSessionIsActive(sceneId,generation){return generation===sceneSessionGeneration&&String(sceneId||"")===String(state.sceneId||"")}
   async function flushSave(){
     if(saveInFlight||!pendingSave||!["owner","narrator"].includes(state.role))return;saveInFlight=true;const current=pendingSave;pendingSave=null;
-    try{await serializeSceneMutation(async()=>{await ensureConnected();const sceneId=state.sceneId,generation=sceneSessionGeneration,result=await client.rpc("save_scene_snapshot",{p_scene_id:sceneId,p_expected_version:state.version,p_state:current.scene,p_event_type:current.label||"scene.snapshot"});if(!sceneSessionIsActive(sceneId,generation))throw new Error("Стол уже закрыт");if(result.error){if(result.error.code==="40001"||/version conflict/i.test(result.error.message||"")){patch({error:"Сцена изменилась на другом устройстве; загружена свежая версия"});await loadScene(sceneId)}else return fail(result.error)}else patch({version:Number(result.data),status:"online",lastSyncedAt:new Date().toISOString(),error:""})})}finally{saveInFlight=false;if(pendingSave)void flushSave()}
+    try{await serializeSceneMutation(async()=>{await ensureConnected();const sceneId=state.sceneId,generation=sceneSessionGeneration,result=await client.rpc("save_scene_snapshot",{p_scene_id:sceneId,p_expected_version:state.version,p_state:current.scene,p_event_type:current.label||"scene.snapshot"});if(!sceneSessionIsActive(sceneId,generation))throw new Error("Стол уже закрыт");if(result.error){if(result.error.code==="40001"||/version conflict/i.test(result.error.message||"")){patch({error:"Сцена изменилась на другом устройстве; загружена свежая версия"});await loadScene(sceneId)}else return fail(result.error)}else{patch({version:Number(result.data),status:"online",lastSyncedAt:new Date().toISOString(),error:""});signalTable("scene-updated",{version:Number(result.data)})}})}finally{saveInFlight=false;if(pendingSave)void flushSave()}
   }
   function queueScene(scene,label="scene.snapshot"){if(!["owner","narrator"].includes(state.role)||!state.sceneId)return;pendingSave={scene:global.DAWN_NETWORK_V2?.networkSceneState?.(scene)||scene,label};clearTimeout(saveTimer);saveTimer=setTimeout(()=>void flushSave(),250)}
 
@@ -222,7 +225,7 @@
     localMutationInFlight++;let result;try{result=await client.rpc("append_scene_events",{p_scene_id:sceneId,p_expected_version:state.version,p_events:payload,p_state:scene,p_label:label})}finally{localMutationInFlight--}
     if(!sceneSessionIsActive(sceneId,generation))throw new Error("Стол уже закрыт");
     if(result.error){if(result.error.code==="40001"||/version conflict/i.test(result.error.message||"")){await loadScene(sceneId);throw new Error("Сцена изменилась на другом устройстве; события не отправлены повторно автоматически")};return fail(result.error)}
-    patch({version:Number(result.data),status:"online",lastSyncedAt:new Date().toISOString(),error:""});return result.data;
+    patch({version:Number(result.data),status:"online",lastSyncedAt:new Date().toISOString(),error:""});signalTable("scene-updated",{version:Number(result.data)});return result.data;
   }
   async function publishEvents(events,scene,label="scene.events"){
     if(!state.sceneId||!Array.isArray(events)||!events.length)return null;
@@ -241,9 +244,9 @@
       const existing=await client.from("scene_commands").select().eq("scene_id",sceneId).eq("actor_id",actorId).eq("client_intent_id",record.client_intent_id).single();
       if(!sceneSessionIsActive(sceneId,generation))throw new Error("Стол уже закрыт");
       if(existing.error)return fail(existing.error);
-      return existing.data;
+      signalTable("scene-command",{commandId:String(existing.data.id)});return existing.data;
     }
-    if(result.error)return fail(result.error);return result.data;
+    if(result.error)return fail(result.error);signalTable("scene-command",{commandId:String(result.data.id)});return result.data;
   }
   async function acceptCommand(commandId,events,scene,label="scene.command.accepted"){
     return serializeSceneMutation(async()=>{
@@ -253,7 +256,7 @@
       localMutationInFlight++;let result;try{result=await client.rpc("accept_scene_command",{p_command_id:rawId,p_expected_version:state.version,p_events:payload,p_state:scene,p_label:label})}finally{localMutationInFlight--}
       if(!sceneSessionIsActive(sceneId,generation))throw new Error("Стол уже закрыт");
       if(result.error){if(result.error.code==="40001"||/version conflict/i.test(result.error.message||"")){await loadScene(sceneId);throw new Error("Сцена изменилась; проверьте команду игрока ещё раз")};return fail(result.error)}
-      const acceptedVersion=Number(result.data);patch({version:acceptedVersion,status:"online",lastSyncedAt:new Date().toISOString(),error:""});if(acceptedVersion!==Number(scene?.version))await loadScene(sceneId);return acceptedVersion;
+      const acceptedVersion=Number(result.data);patch({version:acceptedVersion,status:"online",lastSyncedAt:new Date().toISOString(),error:""});signalTable("scene-updated",{version:acceptedVersion});if(acceptedVersion!==Number(scene?.version))await loadScene(sceneId);return acceptedVersion;
     });
   }
   async function settleIntentBatch({commandIds=[],rejectedCommandIds=[],events=[],scene,expectedVersion=state.version,label="network.v2.tick"}={}){
@@ -268,7 +271,7 @@
         if(result.error.code==="40001"||/version conflict/i.test(result.error.message||"")){await loadScene(sceneId);throw new Error("Сетевой такт столкнулся с новой версией Сцены и будет пересчитан")}
         return fail(result.error);
       }
-      const acceptedVersion=Number(result.data);patch({version:acceptedVersion,status:"online",lastSyncedAt:new Date().toISOString(),error:""});return acceptedVersion;
+      const acceptedVersion=Number(result.data);patch({version:acceptedVersion,status:"online",lastSyncedAt:new Date().toISOString(),error:""});signalTable("scene-updated",{version:acceptedVersion});return acceptedVersion;
     });
   }
   async function refreshScene(){await ensureConnected();if(state.sceneId)await loadScene(state.sceneId);return snapshot()}
