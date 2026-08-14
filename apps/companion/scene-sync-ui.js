@@ -171,7 +171,7 @@ async function flushNetworkV2Authority(items){
       candidate=normalizeScene(result.scene);allEvents.push(...result.events);
       if(command)commandIds.push(String(command.id));
     }catch(error){
-      if(item.command)rejectedCommandIds.push(String(item.command.id));
+      if(item.command){rejectedCommandIds.push(String(item.command.id));toast(`Действие игрока отклонено: ${friendlySyncError(error,"ошибка проверки правил")}`)}
       else toast(`Изменение Нарратора отклонено: ${error?.message||"ошибка правил"}`);
     }
   }

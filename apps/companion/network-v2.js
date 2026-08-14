@@ -192,7 +192,7 @@
     const reaction=raw.find(event=>event.type==="reaction.respond");
     if(reaction){
       const move=raw.find(event=>event.type==="actor.move"&&event.actorId===reaction.actorId);
-      return {kind:"reaction",label:String(label).slice(0,160),actorId:reaction.payload?.giftReaction?.reactionActorId||reaction.actorId,targetActorId:reaction.actorId,choice:reaction.payload?.choice,destination:clone(move?.payload||reaction.payload?.destination||null)};
+      return {kind:"reaction",label:String(label).slice(0,160),actorId:reaction.payload?.giftReaction?.reactionActorId||reaction.actorId,targetActorId:reaction.actorId,choice:reaction.payload?.choice,destination:clone(move?.payload||reaction.payload?.destination||null),clash:clone(reaction.payload?.clash||null)};
     }
     const sacrifice=raw.length===1&&raw[0].type==="gift.sacrifice"?raw[0]:null;
     if(sacrifice)return{kind:"gift-sacrifice",label:String(label).slice(0,160),actorId:sacrifice.actorId,rollId:String(sacrifice.payload?.rollId||"").slice(0,120),sacrifice:String(sacrifice.payload?.sacrifice||"")};
@@ -288,7 +288,7 @@
     if(intent.kind==="reaction"){
       const targetActorId=intent.targetActorId||actor.id,option=targetActorId!==actor.id&&typeof Engine.reactionOptions==="function"?Engine.reactionOptions(scene,data,targetActorId).find(item=>item.id===intent.choice):null;
       if(targetActorId!==actor.id&&(!option||option.giftReaction?.reactionActorId!==actor.id))throw new Error("Игрок не управляет этой Реакцией");
-      const result=Engine.respondReaction(scene,data,{actorId:targetActorId,choice:intent.choice,destination:intent.destination||undefined});
+      const result=Engine.respondReaction(scene,data,{actorId:targetActorId,choice:intent.choice,destination:intent.destination||undefined,clash:intent.clash||undefined});
       if(!result.ok)throw new Error(result.errors.join(" "));
       return result.events;
     }

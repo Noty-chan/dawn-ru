@@ -138,6 +138,11 @@ let reactionRequest=null;
 const reactionEvents=Network.materializeIntent(baseScene,data,{kind:"reaction",actorId:"hero",choice:"dodge",destination:{x:0,y:1}},"player-1",{sceneEngine:{respondReaction:(_scene,_data,request)=>{reactionRequest=request;return{ok:true,events:[{type:"reaction.respond",actorId:request.actorId,payload:{choice:request.choice}}]}}}});
 assert.equal(reactionRequest.choice,"dodge");
 assert.equal(reactionEvents[0].type,"reaction.respond","the narrator rebuilds a Reaction from the player's choice");
+const clashPayload={defenderRoll:{formula:"4D6 · Столкновение",rolls:[6,5,4,1],successes:3,crits:1},attackerRoll:{formula:"4D6 · Столкновение",rolls:[4,2,2,1],successes:1,crits:0},defenderWins:true};
+const clashIntent=Network.intentFromEvents(baseScene,[{type:"roll.public",actorId:"hero",payload:clashPayload.defenderRoll},{type:"roll.public",actorId:"enemy",payload:clashPayload.attackerRoll},{type:"reaction.respond",actorId:"hero",payload:{choice:"action.clash",clash:clashPayload}}],"Столкновение");
+assert.deepEqual(JSON.parse(JSON.stringify(clashIntent.clash)),clashPayload,"an online Clash must retain both opposed rolls");
+Network.materializeIntent(baseScene,data,clashIntent,"player-1",{sceneEngine:{respondReaction:(_scene,_data,request)=>{reactionRequest=request;return{ok:true,events:[{type:"reaction.respond",actorId:request.actorId,payload:{choice:request.choice,clash:request.clash}}]}}}});
+assert.deepEqual(JSON.parse(JSON.stringify(reactionRequest.clash)),clashPayload,"the narrator must receive the player's complete defensive Clash");
 
 let techniqueRequest=null;
 const techniqueEvents=Network.materializeIntent(baseScene,data,{kind:"technique",actorId:"hero",ruleId:"test.rule",request:{targetIds:["enemy"]}},"player-1",{
