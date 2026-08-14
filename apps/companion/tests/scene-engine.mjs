@@ -2121,6 +2121,15 @@ assert.equal(mixed.pendingPrompt.kind, "alchemist-mix");
 const potionCreated = Engine.dispatchMany(mixed, Engine.respondRulePrompt(mixed, data, { choice: "rage-fumes" }).events).scene;
 assert.equal(potionCreated.actors[0].inventory["potion:rage-fumes"], 1);
 
+const chemistBombardierScene = structuredClone(scene);
+chemistBombardierScene.actors[0].techniques = { "ruiner.bombardier": 1, "disruptor.chemist": 1 };
+chemistBombardierScene.objects = [{ id: "chemist-terrain", space: chemistBombardierScene.actors[0].space, type: "terrain", label: "Баррикада", cells: ["2,2"], duration: "scene" }];
+const sublimationOffered = Engine.dispatchMany(chemistBombardierScene, [{ type: "action.resolve", actorId: "hero", payload: { actionId: actionNamed("Завершение").id, name: "Взрыв!!", techniqueRuleId: "ruiner.bombardier.1", techniqueAnchor: { x: 2, y: 2 }, targetedTerrainId: "chemist-terrain", targetIds: [] } }]).scene;
+assert.equal(sublimationOffered.pendingPrompt.kind, "chemist-sublimation");
+const sublimated = Engine.dispatchMany(sublimationOffered, Engine.respondRulePrompt(sublimationOffered, data, { choice: "sublimate" }).events).scene;
+assert.equal(sublimated.objects.some(object => object.id === "chemist-terrain"), false);
+assert.equal(sublimated.objects.find(object => object.type === "gas")?.cells.length, 9);
+
 const modifierScene = structuredClone(scene);
 modifierScene.actors[0].tier = 2;
 modifierScene.actors[1].effects = ["negative.подброшен"];

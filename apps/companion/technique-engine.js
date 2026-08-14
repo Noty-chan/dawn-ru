@@ -579,7 +579,8 @@
         else if (command.type === "set_targets") events.push({ type: "targets.set", actorId, payload: { actorIds: clone(command.actorIds) } });
       }
       targetIds.forEach(targetId => events.push({ type: "reaction.offer", actorId: targetId, payload: { sourceActorId: actorId, actionId: prepared.rule.id, participantIds: [actorId, targetId] } }));
-      events.push({ type: "attack.pending", actorId, payload: { actionId: finish.id, techniqueRuleId: prepared.rule.id, techniqueName: prepared.rule.name, name: prepared.rule.name, targetIds, roll, damage: Number(roll?.successes || 0) + Number(scene.tension || 0) + (modifiers.includes("fierce") ? Number(actor?.attrs?.mind || 0) : 0), spellModifiers: modifiers, attackModifierIds: clone(prepared.request?.attackModifierIds || []), participantIds: [actorId, ...targetIds] } });
+      const terrainAnchor = prepared.request?.anchor && [...(scene.objects || [])].reverse().find(object => object.space === actor?.space && ["terrain", "difficult", "custom"].includes(object.type) && (object.cells || []).includes(pointKey(prepared.request.anchor)));
+      events.push({ type: "attack.pending", actorId, payload: { actionId: finish.id, techniqueRuleId: prepared.rule.id, techniqueName: prepared.rule.name, name: prepared.rule.name, targetIds, roll, damage: Number(roll?.successes || 0) + Number(scene.tension || 0) + (modifiers.includes("fierce") ? Number(actor?.attrs?.mind || 0) : 0), spellModifiers: modifiers, attackModifierIds: clone(prepared.request?.attackModifierIds || []), techniqueAnchor: clone(prepared.request?.anchor || null), targetedTerrainId: terrainAnchor?.id || null, participantIds: [actorId, ...targetIds] } });
       if (roll?.rolls) events.push({ type: "roll.public", actorId, payload: clone(roll) });
       return events;
     }

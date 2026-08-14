@@ -652,6 +652,10 @@ function triggeredEvents(scene, event, options = {}) {
   if (event.type === "action.resolve" && actor && actionIdIs(eventActionId(payload), "breathe") && Number(actor.techniques?.["altruist.alchemist"] || 0) >= 1 && !scene.pendingPrompt) {
     events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${event.id}`, kind: "alchemist-mix", sourceActorId: actor.id, title: "Быстрая смесь", text: "Передышка позволяет создать одно Зелье.", options: ["pure-water", "rage-fumes", "growth-serum", "adrenaline", "stone-skin", "thorn-rot"] } });
   }
+  if (event.type === "action.resolve" && actor && Number(actor.techniques?.["disruptor.chemist"] || 0) >= 1 && payload.targetedTerrainId && payload.techniqueAnchor && !scene.pendingPrompt && !promptQueued()) {
+    const terrain = (scene.objects || []).find(object => object.id === payload.targetedTerrainId);
+    if (terrain) events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${event.id}-sublimation`, kind: "chemist-sublimation", sourceActorId: actor.id, title: "Сублимация", text: `Уничтожить «${terrain.label}» и создать на его клетке зону Газа 3×3?`, options: ["sublimate", "pass"], context: { terrainId: terrain.id, cells: squareCells(scene, actor, payload.techniqueAnchor, 1), optionLabels: { sublimate: "Уничтожить и создать Газ", pass: "Оставить местность" } }, participantIds: [actor.id] } });
+  }
   if (event.type === "action.resolve" && actor && actionIdIs(eventActionId(payload), "charge") && Number(actor.techniques?.["ruiner.grim-ascendant"] || 0) >= 1 && Number(scene.tension || 0) >= 2 && !actor.ruleState?.grimUsed && !scene.pendingPrompt && !promptQueued()) {
     events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${event.id}-grim`, kind: "grim-transform", sourceActorId: actor.id, title: "Непостоянная мощь", text: "Трансформироваться: получить 2 ОД, обратить потерянное Здоровье в удвоенный Фокус и оттолкнуть ближайших врагов?", options: ["transform", "pass"], participantIds: [actor.id] } });
   }
