@@ -45,6 +45,8 @@ assert.ok(html.indexOf("locale-ru.js") < html.indexOf("data.js"));
 const serviceWorker = fs.readFileSync(new URL("sw.js", root), "utf8");
 assert.match(serviceWorker, /localization\.js/);
 assert.match(serviceWorker, /locale-ru\.js/);
+const referenceSource = fs.readFileSync(new URL("app-reference-data.js", root), "utf8");
+assert.match(referenceSource,/rule\.regeneration[\s\S]+Регенерирует \/ Регенерация[\s\S]+заканчивает свой \*\*Ход\*\*[\s\S]+максимального Здоровья[\s\S]+не снимается автоматически/,"the main reference must expose the complete Regenerating rule without relying on hover text");
 
 const productionSources = fs.readdirSync(root)
   .filter(file => file.endsWith(".js") && !["data.js", "technique-foundation-map.js", "vtt-concepts.js"].includes(file))

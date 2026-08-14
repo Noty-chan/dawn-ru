@@ -67,10 +67,6 @@ function reactionOptions(scene, data, actorId) {
   const effectDefense = effectDefenseStatus(scene, actorId);
   const profileActor = actor.kind === "enemy" || Boolean(actor.profileId);
   const defenses = profileActor ? antagonistReactionOptions(scene, data, actor, source) : availableActions(scene, data, actorId).filter(action => action.reaction).map(action => actionIs(action, "dodge") && !effectDefense.dodgeAllowed ? { ...action, available: false, reason: effectDefense.dodgeReason } : action);
-  if (!profileActor) {
-    const key = value => String(value || "").trim().toLocaleLowerCase("ru-RU"), protectors = (scene.actors || []).filter(candidate => candidate.team === actor.team && !candidate.knockedOut && (candidate.gifts || []).includes("rebel.not-today") && (candidate.id === actor.id || (candidate.bonds || []).some(bond => key(bond.name) === key(actor.name))));
-    for (const protector of protectors) defenses.push({ id: `rebel.not-today:${protector.id}`, name: protector.id === actor.id ? "Не сегодня" : `Не сегодня · ${protector.name}`, available: true, reason: "Стать целью и свести эту Атаку на нет; затем Нарратор отвечает на три вопроса риска.", cost: "0 ОД · возможен Стресс", costModel: { amount: 0, resource: null }, giftReaction: { ruleId: "rebel.not-today", reactionActorId: protector.id, originalTargetId: actor.id, cancelAttack: true } });
-  }
   if (profileActor && !defenses.some(option => option.available)) return [];
   return [{ id: "pass", name: "Без Реакции", available: true, reason: "Принять исходную Атаку без защиты", costModel: { amount: 0, resource: null } }, ...defenses];
 }

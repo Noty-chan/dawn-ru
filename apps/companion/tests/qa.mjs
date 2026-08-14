@@ -212,6 +212,9 @@ assert.match(data.bonds.relatedRules.find(rule => rule.id === "bond.context.duel
 assert.equal(data.effects.positive.length, 8);
 assert.equal(data.effects.negative.length, 11);
 assert.ok(data.effects.positive.find(effect => effect.name === "Исчез")?.aliases.includes("Исчезнуть"));
+const regeneration=data.effects.positive.find(effect=>effect.name==="Регенерирует");
+assert.ok(regeneration?.aliases.includes("Регенерация"));
+assert.match(regeneration?.text||"",/Ступень[\s\S]+Здоровья[\s\S]+не удаляется/i,"the effect catalog must explain Regenerating's amount, timing, and persistence");
 assert.equal(data.actions.list.length, 15);
 assert.equal(data.enemies.common.length, 41);
 assert.equal(data.enemies.modifiers.length, 11);

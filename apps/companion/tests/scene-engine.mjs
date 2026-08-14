@@ -2319,11 +2319,9 @@ const switchedElevation = Engine.dispatch(elevationScene, { type: "area.create",
 assert.equal(switchedElevation.objects.some(object => object.type === "high" && object.cells.includes("1,1")), false, "High and Low Terrain cannot overlap");
 
 const giftScene = structuredClone(scene);giftScene.actors[0].gifts = ["rebel.not-today", "cursed.sacrifice"];giftScene.actors[0].sacrifices = [];giftScene.actors[1].kind = "hero";giftScene.actors[1].profileId = null;giftScene.activeActorId = "enemy";
-const giftAttack = Engine.dispatchMany(giftScene, prepareAttack(giftScene, "enemy", "hero").events).scene, notToday = Engine.reactionOptions(giftAttack, data, "hero").find(option => option.giftReaction);
-assert.ok(notToday, "Not Today is exposed inside the actual defensive Reaction picker");
-let notTodayScene = Engine.dispatchMany(giftAttack, Engine.respondReaction(giftAttack, data, { actorId: "hero", choice: notToday.id }).events).scene;
-assert.equal(notTodayScene.pendingPrompt.kind, "not-today-risk", "Not Today asks the Narrator its three canonical risk questions");assert.equal(Engine.pendingTargetOutcome(notTodayScene, notTodayScene.pendingAction, "hero").cancelled, true, "Not Today negates the protected Attack before damage");
-notTodayScene = Engine.dispatchMany(notTodayScene, Engine.respondRulePrompt(notTodayScene, data, { choice: "answers:000" }).events).scene;assert.equal(notTodayScene.rollFeed[0].rolls.length, 0, "Zero yes answers roll zero risk dice");
+const giftAttack = Engine.dispatchMany(giftScene, prepareAttack(giftScene, "enemy", "hero").events).scene;
+assert.equal(Engine.reactionOptions(giftAttack, data, "hero").some(option => option.giftReaction?.ruleId === "rebel.not-today"),false,"Not Today belongs to unstructured play and must not appear as a structured-combat defensive Reaction");
+assert.equal(Engine.respondReaction(giftAttack, data, { actorId: "hero", choice: "rebel.not-today:hero" }).ok,false,"a forged structured-combat Not Today response must be rejected by the engine");
 const sacrificeScene = Engine.dispatch(scene, { id: "gift-roll", type: "roll.public", actorId: "hero", payload: { formula: "3D6 ≥4", rolls: [4, 2, 1], successes: 1, crits: 0, target: 2, outcome: "Минимальный успех" } }).scene;sacrificeScene.actors[0].gifts = ["cursed.sacrifice"];sacrificeScene.actors[0].sacrifices = [];
 const sacrificed = Engine.dispatchMany(sacrificeScene, Engine.prepareSacrifice(sacrificeScene, { actorId: "hero", rollId: "gift-roll", sacrifice: "eye" }).events).scene;assert.equal(sacrificed.rollFeed[0].outcome, "Крайний успех");assert.deepEqual(Array.from(sacrificed.actors[0].sacrifices), ["eye"]);
 
