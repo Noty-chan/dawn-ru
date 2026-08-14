@@ -428,6 +428,7 @@ assert.match(app, /taintedAbility/);
 assert.match(app, /function commitScene/);
 assert.match(app, /function insetSceneTracePoints/);
 assert.match(app, /function sceneTracePathData/);
+assert.match(app, /points=points\.map[\s\S]+occupied\.some/, "movement traces must bend around actors occupying intermediate path cells");
 assert.match(app, /function sceneTracePartGlyph/);
 assert.match(app, /const sceneMarkerType=/);
 assert.match(app, /class="trace-halo"/);
