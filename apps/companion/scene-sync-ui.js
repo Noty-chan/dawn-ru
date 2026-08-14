@@ -152,6 +152,7 @@ async function flushNetworkV2Authority(items){
   let candidate=latestSnapshot?normalizeScene(NetworkV2.rebaseSceneSnapshot(latestSnapshot.baseScene||confirmed,latestSnapshot.scene,confirmed)):normalizeScene(confirmed);
   candidate.version=expectedVersion;
   const allEvents=[],commandIds=[],rejectedCommandIds=[],deferred=[];
+  let localUndoState=null,undoableEventCount=0;
   if(latestSnapshot){
     const audit={id:uid(),type:"scene.snapshot",actorId:null,payload:{label:String(latestSnapshot.label||"Изменение Нарратора").slice(0,160)},at:new Date().toISOString()};
     candidate.version++;
@@ -167,7 +168,9 @@ async function flushNetworkV2Authority(items){
       if(!Array.isArray(prepared)||!prepared.length)throw new Error("Изменение не создало событий");
       if(prepared.length>NetworkV2.MAX_BATCH_EVENTS)throw new Error("Одно действие создало слишком много событий для безопасного сетевого такта");
       if(allEvents.length+prepared.length>NetworkV2.MAX_BATCH_EVENTS){deferred.push(item);continue}
-      const result=SceneEngine.dispatchMany(candidate,prepared,{expectedVersion:Number(candidate.version||0)});
+      const beforeItem=sceneCore(candidate),result=SceneEngine.dispatchMany(candidate,prepared,{expectedVersion:Number(candidate.version||0)});
+      if(!localUndoState)localUndoState=beforeItem;
+      undoableEventCount+=result.events.length;
       candidate=normalizeScene(result.scene);allEvents.push(...result.events);
       if(command)commandIds.push(String(command.id));
     }catch(error){
@@ -175,8 +178,8 @@ async function flushNetworkV2Authority(items){
       else toast(`Изменение Нарратора отклонено: ${error?.message||"ошибка правил"}`);
     }
   }
-  const localUndoEntry=allEvents.length&&!latestSnapshot
-    ?{id:uid(),label:`Сетевой такт · ${allEvents.length} событий`,state:confirmed}
+  const localUndoEntry=localUndoState
+    ?{id:uid(),label:`Сетевой такт · ${undoableEventCount} событий`,state:localUndoState}
     :null;
   if(!allEvents.length&&!rejectedCommandIds.length){deferred.forEach(item=>networkV2Authority.enqueue(item));return}
   const networkState=NetworkV2.networkSceneState(candidate);
