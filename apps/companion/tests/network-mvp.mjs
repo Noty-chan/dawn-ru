@@ -131,6 +131,10 @@ const privacyMigration = fs.readFileSync(new URL("../../../supabase/migrations/2
 assert.match(privacyMigration, /item[\s\S]+- 'ownerId'[\s\S]+- 'skills'[\s\S]+- 'techniques'/, "player snapshots must redact private actor sheets");
 assert.match(privacyMigration, /update public\.scene_public_snapshots/, "existing public snapshots must be backfilled");
 const syncUiSource = fs.readFileSync(new URL("../app-sync-events.js", import.meta.url), "utf8");
+const appCoreSource = fs.readFileSync(new URL("../app-core.js", import.meta.url), "utf8");
+assert.match(appCoreSource, /function friendlySyncError[\s\S]+failed to fetch[\s\S]+сервер временно недоступен/i, "transient transport failures must be shown in Russian");
+assert.doesNotMatch(syncUiSource, /Действие игрока[^\n]+error\?\.message/, "automatic command retries must not expose raw English transport errors");
+assert.match(syncUiSource, /delayedAutomaticCommands\.has\(id\)[\s\S]+Задержанное действие игрока обработано/, "the narrator must see when a delayed action eventually succeeds");
 assert.match(syncUiSource, /function hydratePlayerScene[\s\S]+heroActorState\(S,actor\)/, "the local player's redacted actor must be hydrated from their own hero");
 assert.match(syncUiSource, /NetworkV2\.AUTOMATIC_COMMANDS[\s\S]+command_type===["']intent_v2["'][\s\S]+enqueueNetworkV2Command/, "safe player intents and legacy MVP commands must be applied automatically");
 assert.match(syncUiSource, /command_type===["']set_targets["'][\s\S]+applyTransientTargetsCommand[\s\S]+Sync\.decideCommand/, "player target suggestions must stay local to the narrator instead of versioning the whole Scene");

@@ -95,12 +95,12 @@ function ensureNetworkV2Runtime(){
   if(!NetworkV2||!Sync)return null;
   if(!networkV2Outbox)networkV2Outbox=new NetworkV2.PlayerOutbox({
     send:payload=>Sync.submitCommand("intent_v2",payload),
-    onError:error=>toast(`Команда ждёт отправки: ${error?.message||"нет соединения"}`),
+    onError:error=>toast(`Команда ждёт отправки: ${friendlySyncError(error,"нет соединения")}`),
   });
   if(!networkV2Authority)networkV2Authority=new NetworkV2.AuthorityQueue({
     tickMs:NetworkV2.TICK_MS,
     flush:flushNetworkV2Authority,
-    onError:error=>toast(error?.message||"Сетевой такт будет повторён"),
+    onError:error=>toast(friendlySyncError(error,"Сетевой такт будет повторён")),
   });
   return{authority:networkV2Authority,outbox:networkV2Outbox};
 }

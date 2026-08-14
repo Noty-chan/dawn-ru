@@ -9,6 +9,15 @@ const clamp = (n,min,max) => Math.max(min,Math.min(max,Number(n)||0));
 const download = (name, content, type="application/json") => { const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([content],{type})); a.download=name; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1000); };
 let toastTimer;
 function toast(message){ const el=$("toast"); el.textContent=message; el.classList.add("on"); clearTimeout(toastTimer); toastTimer=setTimeout(()=>el.classList.remove("on"),2600); }
+function friendlySyncError(error,fallback="временная ошибка соединения"){
+  const raw=String(error?.message||error||"").trim();
+  if(!raw)return fallback;
+  if(/statement timeout|canceling statement|lock timeout|57014/i.test(raw))return "сервер занят; команда будет повторена";
+  if(/failed to fetch|network\s*error|networkerror|load failed|fetch failed|connection (?:closed|terminated|timed? ?out)|websocket/i.test(raw))return "сервер временно недоступен; команда будет повторена";
+  if(/jwt|token.*expired|not authenticated|invalid.*session/i.test(raw))return "сессия обновляется; команда будет повторена";
+  if(/version conflict|serialization|40001/i.test(raw))return "сцена уже обновилась; команда пересчитывается";
+  return /[А-Яа-яЁё]/.test(raw)?raw:fallback;
+}
 
 function blankAbility(){return {enabled:false,name:"",desc:"",rank:1,words:{verbs:[],nouns:[],conditions:[]},xNoun:null,specializations:{},customWordCosts:{}}}
 
