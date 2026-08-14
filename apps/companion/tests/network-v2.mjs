@@ -134,6 +134,17 @@ const canonicalContinuation=Network.materializeIntent(planned,data,continuationI
 const continued=Engine.dispatchMany(planned,canonicalContinuation).scene;
 assert.equal(continued.actors[0].y,1,"multi-step actions are rebuilt from their authoritative plan");
 
+const wispTurn=structuredClone(baseScene);
+wispTurn.actors[0].techniques={"altruist.will-o-wisp":3};
+wispTurn.markers=[{id:"wisp-online",space:"side",x:0,y:0,markerKind:"ritual",label:"Духовное пламя",source:"altruist.will-o-wisp.1",ruleId:"altruist.will-o-wisp.1",duration:"scene",ownerActorId:"hero",metadata:{spiritTypes:["dreamy"]}}];
+const turnEndIntent=Network.intentFromEvents(wispTurn,[{type:"turn.end",actorId:"hero",payload:{}}],"Герой: завершён Ход");
+assert.equal(turnEndIntent.kind,"turn-end","a player can send the end of their own Turn as a safe intent");
+const canonicalTurnEnd=Network.materializeIntent(wispTurn,data,turnEndIntent,"player-1",{sceneEngine:Engine});
+const endedWispTurn=Engine.dispatchMany(wispTurn,canonicalTurnEnd).scene;
+assert.equal(endedWispTurn.activeActorId,null,"the authoritative table ends the player's Turn");
+assert.equal(endedWispTurn.pendingPrompt?.kind,"wisp-move-select","Will-O-Wisp receives its end-of-Turn flame movement choice online");
+assert.throws(()=>Network.materializeIntent({...wispTurn,activeActorId:"enemy"},data,turnEndIntent,"player-1",{sceneEngine:Engine}),/текущий Ход/i,"a player cannot end another participant's Turn");
+
 let reactionRequest=null;
 const reactionEvents=Network.materializeIntent(baseScene,data,{kind:"reaction",actorId:"hero",choice:"dodge",destination:{x:0,y:1}},"player-1",{sceneEngine:{respondReaction:(_scene,_data,request)=>{reactionRequest=request;return{ok:true,events:[{type:"reaction.respond",actorId:request.actorId,payload:{choice:request.choice}}]}}}});
 assert.equal(reactionRequest.choice,"dodge");

@@ -157,6 +157,8 @@
     if(modifiers)return{kind:"spell-modifiers",label:String(label).slice(0,160),actorId:modifiers.actorId,value:safeIds(modifiers.payload?.value)};
     const wound=raw.length===1&&raw[0].type==="damage.apply"&&raw[0].payload?.targetId?raw[0]:null;
     if(wound)return{kind:"take-wound",label:String(label).slice(0,160),actorId:wound.payload.targetId,external:!wound.actorId};
+    const turnEnd=raw.length===1&&raw[0].type==="turn.end"?raw[0]:null;
+    if(turnEnd)return{kind:"turn-end",label:String(label).slice(0,160),actorId:turnEnd.actorId};
     const planStart=raw.find(event=>event.type==="action.plan");
     if(planStart)return{kind:"action-plan-start",label:String(label).slice(0,160),actorId:planStart.actorId,actionId:planStart.payload?.actionId,phase:planStart.payload?.phase,context:safeObject(planStart.payload?.context)};
     const planCancel=raw.find(event=>event.type==="action.plan.cancel");
@@ -278,6 +280,10 @@
     }
     if(intent.kind==="take-wound"){
       return[{type:"damage.apply",actorId:intent.external?null:actor.id,payload:{targetId:actor.id,amount:Math.max(1,Number(actor.hp)||0),ignoreArmor:true}}];
+    }
+    if(intent.kind==="turn-end"){
+      if(scene.activeActorId!==actor.id)throw new Error("Завершить можно только текущий Ход");
+      return[{type:"turn.end",actorId:actor.id,payload:{}}];
     }
     if(intent.kind==="action"){
       const options=actionOptions(intent.options);
