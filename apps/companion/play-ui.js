@@ -36,7 +36,7 @@ function opposedParticipantForHero(request=Scene.opposedRoll,hero=S){if(!request
 function currentOpposedParticipant(){return opposedParticipantForHero()}
 function opposedParticipantResult(participant,request=Scene.opposedRoll){return participant&&request?.results?.[participant.id]||null}
 function activeToolsRollKind(){return Scene.opposedRoll?"opposed":"challenge"}
-function freeplayTarget(){const context=toolsSyncContext(),request=currentChallengeRequest();return context.shared&&!context.canEdit?clamp(request?.target||S.tier+1,1,99):clamp($("dice-target").value,1,99)}
+function freeplayTarget(){const context=toolsSyncContext(),request=currentChallengeRequest();return context.shared&&!context.canEdit&&request?clamp(request.target,1,99):clamp($("dice-target").value,1,99)}
 function freeplayScenario(){return{target:freeplayTarget()}}
 function toolsRollContext(){
   const persisted=currentHeroActor();
@@ -131,9 +131,9 @@ function renderFreeplayDirector(){
   document.body.classList.toggle("tools-narrator-mode",role==="network-narrator"&&store.mode==="tools");
   document.querySelector(".freeplay-grid").dataset.toolsRole=role;
   document.querySelector(".freeplay-hero-tool").hidden=role==="network-narrator";
-  document.querySelector(".dice-tool").hidden=role==="network-narrator";
+  document.querySelector(".dice-tool").hidden=false;
   document.querySelector(".freeplay-bonds-tool").hidden=role==="network-narrator";
-  localHeroWrap.hidden=role!=="local-table";requestActorWrap.hidden=role!=="network-narrator";actions.hidden=role==="network-player"||role==="local-table"&&kind!=="opposed";defaultButton.hidden=role==="network-player";target.disabled=role==="network-player";
+  localHeroWrap.hidden=role!=="local-table";requestActorWrap.hidden=role!=="network-narrator";actions.hidden=role==="network-player"||role==="local-table"&&kind!=="opposed";defaultButton.hidden=false;target.disabled=false;
   if(role!=="network-player")$("roll-dice").disabled=false;
   if(role==="local-table"){
     $("freeplay-director-kind").textContent="ЛОКАЛЬНЫЙ СТОЛ";$("freeplay-director-title").textContent=kind==="opposed"?"Встречный бросок за одним устройством":"Испытание за одним устройством";$("freeplay-director-help").textContent=kind==="opposed"?"Выберите две стороны. Герои используют свои листы, за NPC Нарратор может бросить вручную.":"Нарратор выбирает героя и сложность, затем игрок собирает пул и бросает.";
@@ -150,10 +150,11 @@ function renderFreeplayDirector(){
     const actor=Scene.actors.find(item=>item.id===request?.actorId),result=request?.result;state.innerHTML=opposed?`<strong>${esc(opposed.participants.map(item=>item.name).join(" против "))}</strong><span>${esc(opposedResultSummary(opposed))}</span>`:result?`<strong>Получен результат: ${esc(challengeResultSummary(result))}</strong><span>${esc(actor?.name||"Герой")} · кости: ${result.rolls.join(" · ")}. Запрос можно завершить или заменить новым.</span>`:request?`<strong>Ожидается бросок: ${esc(actor?.name||"герой")}</strong><span>Назначенная цель — ${request.target}. Новый запрос заменит текущий.</span>`:`<strong>Активного запроса нет</strong><span>${kind==="opposed"?"Создайте состязание двух персонажей без фиксированной сложности.":"Назначьте сложность, когда станет понятно, что действие требует испытания."}</span>`;
   }else{
     const ownRequest=currentChallengeRequest(),ownChallengeResult=ownRequest?.result,ownSide=currentOpposedParticipant(),ownResult=opposedParticipantResult(ownSide,opposed),opponentSide=opposed?.participants.find(item=>item.id!==ownSide?.id);
-    $("freeplay-director-kind").textContent="ЗАПРОС НАРРАТОРА";$("freeplay-director-title").textContent=ownSide?"Встречный бросок":request?"Назначено испытание":"Ожидайте решения Нарратора";$("freeplay-director-help").textContent=ownSide?`Ваш противник — ${opponentSide?.name||"другой персонаж"}. Соберите пул по листу и бросьте.`:request?"Соберите пул по листу персонажа и совершите публичный бросок.":"В сетевой игре тип и сложность броска задаёт Нарратор.";
+    $("freeplay-director-kind").textContent=ownSide||request?"ЗАПРОС НАРРАТОРА":"СВОБОДНЫЙ БРОСОК";$("freeplay-director-title").textContent=ownSide?"Встречный бросок":request?"Назначено испытание":"Бросить без запроса";$("freeplay-director-help").textContent=ownSide?`Ваш противник — ${opponentSide?.name||"другой персонаж"}. Соберите пул по листу и бросьте.`:request?"Соберите пул по листу персонажа и совершите публичный бросок.":"Соберите любой пул и бросьте: результат сразу появится в общей истории стола.";
     target.value=ownRequest?.target||S.tier+1;
-    state.innerHTML=ownSide?`<strong>${ownResult?`Ваш результат: ${ownResult.successes} Успехов`:"Нужен ваш результат"}</strong><span>${esc(opposedResultSummary(opposed))}</span>`:ownChallengeResult?`<strong>Результат принят: ${esc(challengeResultSummary(ownChallengeResult))}</strong><span>Нарратор получил этот бросок. Для замены результата используйте «Ва-банк».</span>`:ownRequest?`<strong>Цель Успехов: ${ownRequest.target}</strong><span>${esc(ownRequest.requestedBy)} запросил бросок для ${esc(S.name||"вашего героя")}.</span>`:opposed?`<strong>Встречный бросок других персонажей</strong><span>${esc(opposed.participants.map(item=>item.name).join(" против "))}.</span>`:request?`<strong>Нарратор запросил другого героя</strong><span>Сейчас бросает ${esc(Scene.actors.find(actor=>actor.id===request.actorId)?.name||"другой участник")}.</span>`:`<strong>Запроса пока нет</strong><span>Обсудите действие вслух; когда нужен бросок, Нарратор назначит его тип.</span>`;
-    $("roll-dice").disabled=ownSide?Boolean(ownResult):!ownRequest||Boolean(ownChallengeResult);
+    state.innerHTML=ownSide?`<strong>${ownResult?`Ваш результат: ${ownResult.successes} Успехов`:"Нужен ваш результат"}</strong><span>${esc(opposedResultSummary(opposed))}</span>`:ownChallengeResult?`<strong>Результат принят: ${esc(challengeResultSummary(ownChallengeResult))}</strong><span>Нарратор получил этот бросок. Для замены результата используйте «Ва-банк».</span>`:ownRequest?`<strong>Цель Успехов: ${ownRequest.target}</strong><span>${esc(ownRequest.requestedBy)} запросил бросок для ${esc(S.name||"вашего героя")}.</span>`:opposed?`<strong>Встречный бросок других персонажей</strong><span>${esc(opposed.participants.map(item=>item.name).join(" против "))}.</span>`:request?`<strong>Нарратор запросил другого героя</strong><span>Сейчас бросает ${esc(Scene.actors.find(actor=>actor.id===request.actorId)?.name||"другой участник")}.</span>`:`<strong>Свободный публичный бросок</strong><span>Запрос Нарратора не требуется. Выберите пул и при необходимости укажите цель результата.</span>`;
+    target.disabled=Boolean(ownRequest||ownSide);
+    $("roll-dice").disabled=ownSide?Boolean(ownResult):Boolean(ownChallengeResult);
   }
   if(role==="local-table"&&kind==="opposed"){$("roll-dice").disabled=!opposed||!currentOpposedParticipant()||Boolean(opposedParticipantResult(currentOpposedParticipant(),opposed));requestButton.textContent=opposed?"Заменить встречный бросок":"Создать встречный бросок";clearButton.hidden=!opposed}
   const sideResult=opposedParticipantResult(currentOpposedParticipant(),opposed);$("dice-tool-kind").textContent=kind==="opposed"?"ВСТРЕЧНЫЙ БРОСОК":"БРОСОК ИСПЫТАНИЯ";$("dice-tool-title").textContent=kind==="opposed"?"Собрать пул своей стороны":"Разрешить действие";$("roll-dice").textContent=kind==="opposed"?(sideResult?"Результат стороны сохранён":"Бросить за свою сторону"):request?.result?"Результат принят Нарратором":"Бросить испытание";
@@ -212,7 +213,7 @@ function updateAllInAvailability(){
   if(!pendingAllIn)$("all-in-flashback").checked=false;
   $("all-in-hint").textContent=!pendingAllIn?"Сначала совершите обычный бросок.":influence>0?"Можно перебросить этот результат, потратив 1 Влияние.":stressPayment&&stress<3?"Влияния нет, но Дар позволяет получить Стресс вместо оплаты.":"Для Ва-банк недостаточно Влияния.";
 }
-function renderToolsWorkspace(){renderFreeplayDirector();renderClocks();renderStressTrackers();if(toolsRole()!=="network-narrator"){renderDiceHistory();renderAllInControls()}renderChallengeRequestDock()}
+function renderToolsWorkspace(){renderFreeplayDirector();renderClocks();renderStressTrackers();renderDiceHistory();if(toolsRole()!=="network-narrator")renderAllInControls();renderChallengeRequestDock()}
 function applyOptimisticToolsEvents(events){
   try{Scene=normalizeScene(SceneEngine.dispatchMany(Scene,events,{expectedVersion:Number(Scene.version||0)}).scene);syncHeroFromScene();persistAfterPaint();return true}catch{return false}
 }
@@ -231,7 +232,7 @@ function resolveDice(count,threshold,payment="",diceRequest=null,scenario=freepl
   return result;
 }
 function rollDice(){
-  const syncContext=toolsSyncContext(),challenge=currentChallengeRequest(),opposed=Scene.opposedRoll,participant=currentOpposedParticipant(),opposedResult=opposedParticipantResult(participant,opposed);if(syncContext.shared&&!syncContext.canEdit&&!challenge&&!participant)return toast("Дождитесь запроса Нарратора для этого героя");if(opposed&&(!participant||opposedResult))return toast(opposedResult?"Результат этой стороны уже сохранён":"Текущий герой не участвует во встречном броске");
+  const syncContext=toolsSyncContext(),challenge=currentChallengeRequest(),opposed=Scene.opposedRoll,participant=currentOpposedParticipant(),opposedResult=opposedParticipantResult(participant,opposed);if(opposed&&(!participant||opposedResult))return toast(opposedResult?"Результат этой стороны уже сохранён":"Текущий герой не участвует во встречном броске");
   const scenario=freeplayScenario(),state=freeplayState();Object.assign(state,scenario);persistAfterPaint();
   const request=toolsDiceRequest(),context=toolsRollContext(),status=SceneEngine.diceHookStatus(context.scene,context.actor.id,request),count=status.available?status.count:Math.max(1,request.baseCount+request.advantage-request.hindrance);
   if(!status.available)return toast(status.reason);resolveDice(count,4,"",request,scenario);pendingAllIn={count,diceRequest:request,scenario};renderAllInControls();

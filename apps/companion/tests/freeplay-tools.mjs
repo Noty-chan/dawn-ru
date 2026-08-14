@@ -50,6 +50,9 @@ assert.match(source, /opposed\.tie\.resolve/, "A Narrator must be able to resolv
 assert.match(source, /Перебросить ничью/, "The UI must expose the canonical tie reroll");
 assert.match(source, /role==="network-narrator"/, "Network Narrators must receive a separate tools view");
 assert.match(source, /role==="local-table"/, "One-device offline play must retain a dedicated local-table view");
+assert.match(source, /document\.querySelector\("\.dice-tool"\)\.hidden=false/, "The dice composer must remain available in shared-table tools");
+assert.doesNotMatch(source, /!challenge&&!participant\)return toast/, "A network player must be able to roll without a Narrator request");
+assert.match(source, /renderStressTrackers\(\);renderDiceHistory\(\)/, "Shared-table tools must render the public roll history for every role");
 assert.match(source, /data-gm-core-action/, "The Narrator must be able to invoke basic actions for the selected hero or enemy");
 assert.match(source, /sceneContext:false/, "Narrative rolls must explicitly opt out of structured-board spatial hooks");
 assert.match(source, /freeplay\.wolf\.outgunned/, "Outgunned must be an explicit narrative choice instead of reading the structured board");
