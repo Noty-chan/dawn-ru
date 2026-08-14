@@ -259,11 +259,11 @@ function respondRulePrompt(scene, data, request = {}) {
   if (prompt.kind === "clash-counterattack") {
     const attacker = actorById(scene, prompt.context?.attackerId), action = ["skirmish", "spell"].includes(choice) ? actionByKey(data, choice) : null, roll = request.roll;
     if (choice === "pass") {
-      events.push({ type: "attack.clear", actorId: actor.id, payload: { reason: "Столкновение выиграно; ответная Атака пропущена", participantIds: [actor.id, attacker?.id].filter(Boolean) } });
+      if (scene.pendingAction) events.push({ type: "attack.clear", actorId: actor.id, payload: { reason: "Столкновение выиграно; ответная Атака пропущена", participantIds: [actor.id, attacker?.id].filter(Boolean) } });
     } else {
       const maximum = choice === "skirmish" ? 1 : 5;
       if (!attacker || attacker.knockedOut || attacker.team === actor.team || attacker.space !== actor.space || distance(actor, attacker) > maximum || !action || !roll || !Array.isArray(roll.rolls)) return { ok: false, errors: [`Ответная ${choice === "skirmish" ? "Стычка" : "Заклинание"} или её цель больше недоступны.`], events: [] };
-      events.push({ type: "attack.clear", actorId: actor.id, payload: { reason: "Столкновение выиграно; исходная Атака отменена", participantIds: [actor.id, attacker.id] } });
+      if (scene.pendingAction) events.push({ type: "attack.clear", actorId: actor.id, payload: { reason: "Столкновение выиграно; исходная Атака отменена", participantIds: [actor.id, attacker.id] } });
       events.push({ type: "action.prepare", actorId: actor.id, payload: { actionId: action.id, name: `${action.name} · ответ Столкновения`, targetIds: [attacker.id], quick: true, quickReaction: true, reaction: true, free: true, participantIds: [actor.id, attacker.id] } });
       events.push({ type: "reaction.offer", actorId: attacker.id, payload: { sourceActorId: actor.id, actionId: action.id, participantIds: [actor.id, attacker.id] } });
       events.push({ type: "attack.pending", actorId: actor.id, payload: { actionId: action.id, name: `${action.name} · ответ Столкновения`, targetIds: [attacker.id], roll: clone(roll), damage: Number(roll.successes || 0), damageByTarget: { [attacker.id]: Number(roll.successes || 0) }, quickReaction: true, clashCounterattack: true, participantIds: [actor.id, attacker.id] } });
@@ -840,7 +840,7 @@ function respondReaction(scene, data, request = {}) {
     giftReaction,
     participantIds: [...new Set([pending.actorId, actor.id, reactionActor?.id, defender?.id].filter(Boolean))],
   } });
-  if (clash?.defenderWins) {
+  if (clash?.defenderWins && defender.team === "hero") {
     const attacker = actorById(scene, pending.actorId), options = ["pass"], optionLabels = { pass: "Не атаковать" };
     if (attacker && attacker.space === defender.space && distance(defender, attacker) <= 1) { options.unshift("skirmish"); optionLabels.skirmish = "Ответная Стычка"; }
     if (attacker && attacker.space === defender.space && distance(defender, attacker) <= 5) { options.splice(options.length - 1, 0, "spell"); optionLabels.spell = "Ответное Заклинание"; }
