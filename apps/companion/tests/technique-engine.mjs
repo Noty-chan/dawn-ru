@@ -121,6 +121,14 @@ const gas = Engine.preview(gasScene, {
 const committedGas = Engine.commit(gasScene, gas, { makeId: prefix => `test-${prefix}` });
 assert.equal(gasScene.objects.length, 1, "preview/commit must not mutate the source scene");
 assert.equal(committedGas.scene.objects[0].type, "gas");
+const bombardierOnTerrain = Engine.preview(gasScene, {
+  actorId: "hero", ruleId: "ruiner.bombardier.1", anchor: { x: 3, y: 3 },
+  options: { focusSpent: 0 }, roll: { formula: "4D6", rolls: [4, 4, 2, 2], successes: 2, crits: 0 },
+});
+const bombardierEvents = Engine.toEvents(gasScene, bombardierOnTerrain, { makeId: prefix => `test-${prefix}` });
+const bombardierPending = bombardierEvents.find(event => event.type === "attack.pending");
+assert.equal(bombardierPending.payload.targetedTerrainId, "terrain");
+assert.deepEqual(JSON.parse(JSON.stringify(bombardierPending.payload.techniqueAnchor)), { x: 3, y: 3 });
 assert.equal(committedGas.scene.objects[0].duration, "nextTurn");
 const gasEvents = Engine.toEvents(gasScene, gas, { makeId: prefix => `event-${prefix}` });
 const eventGas = SceneEngine.dispatchMany({ ...gasScene, version: 0, log: [] }, gasEvents).scene;

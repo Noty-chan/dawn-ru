@@ -335,6 +335,7 @@ assert.equal(logic.scaleTierFormula("1(+1/2)", 2), 2);
 assert.equal(logic.scaleTierFormula("1(+1/2)", 3), 2);
 assert.equal(logic.scaleTierFormula("X", 3), null);
 assert.equal(logic.areaCells({ shape: "radius2", x: 3, y: 3, width: 7, height: 7 }).length, 13);
+assert.deepEqual(Array.from(logic.areaCells({ shape: "adjacent", x: 3, y: 3, width: 7, height: 7 })).sort(), ["2,3", "3,2", "3,3", "3,4", "4,3"]);
 assert.equal(logic.areaCells({ shape: "square5", x: 3, y: 3, width: 7, height: 7 }).length, 25);
 assert.equal(logic.areaCells({ shape: "square5", x: 0, y: 0, width: 7, height: 7 }).length, 9);
 assert.equal(logic.areaCells({ shape: "lineDiagDown", x: 3, y: 3, width: 7, height: 7 }).length, 7);

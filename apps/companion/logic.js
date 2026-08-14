@@ -135,7 +135,9 @@
     const add = (cellX, cellY) => {
       if (cellX >= 0 && cellX < width && cellY >= 0 && cellY < height) cells.push(`${cellX},${cellY}`);
     };
-    if (shape === "square2") {
+    if (shape === "adjacent") {
+      [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]].forEach(([dx, dy]) => add(x + dx, y + dy));
+    } else if (shape === "square2") {
       for (let dy = 0; dy < 2; dy += 1) for (let dx = 0; dx < 2; dx += 1) add(x + dx, y + dy);
     } else if (shape === "square3") {
       for (let dy = -1; dy <= 1; dy += 1) for (let dx = -1; dx <= 1; dx += 1) add(x + dx, y + dy);

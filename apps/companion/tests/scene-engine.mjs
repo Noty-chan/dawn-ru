@@ -2130,6 +2130,28 @@ const sublimated = Engine.dispatchMany(sublimationOffered, Engine.respondRulePro
 assert.equal(sublimated.objects.some(object => object.id === "chemist-terrain"), false);
 assert.equal(sublimated.objects.find(object => object.type === "gas")?.cells.length, 9);
 
+const chemistGasDefense = structuredClone(scene);
+chemistGasDefense.objects = [{ id: "friendly-gas", space: "main", type: "gas", ownerActorId: "hero", cells: ["1,1"], duration: "nextTurn" }];
+const protectedOutcome = Engine.pendingTargetOutcome(chemistGasDefense, { actorId: "enemy", targetIds: ["hero"], damage: 5, responses: { hero: { choice: "accept" } } }, "hero");
+assert.equal(protectedOutcome.temporaryEvasion, 3, "an ally inside friendly Gas gains 3 Evasion against an Attack from outside");
+assert.equal(protectedOutcome.expectedDamage, 2);
+
+const chemistEntry = structuredClone(scene);
+chemistEntry.actors[0].techniques = { "disruptor.chemist": 2 };
+chemistEntry.actors[1].x = 2; chemistEntry.actors[1].y = 2; chemistEntry.actors[1].hp = 2;
+chemistEntry.objects = [{ id: "entry-gas", space: "main", type: "gas", ownerActorId: "hero", ruleId: "disruptor.chemist.1", cells: ["2,2"], duration: "nextTurn" }];
+const executedByGas = Engine.dispatchMany(chemistEntry, [{ type: "actor.enter", actorId: "enemy", payload: { space: "main", x: 2, y: 2, movement: "test" } }]).scene;
+assert.ok(executedByGas.actors[1].effects.includes("negative.ослаблен"), "entering hostile Gas applies Weakened");
+assert.equal(executedByGas.actors[1].knockedOut, true, "Experimental Mixture executes a Weakened enemy at Mind or less Health");
+assert.equal(executedByGas.actors[0].focus, 52, "Experimental Mixture grants 2 Focus after its execution");
+
+const chemistDeposition = structuredClone(scene);
+chemistDeposition.actors[0].techniques = { "disruptor.chemist": 3 };
+chemistDeposition.actors[1].x = 2; chemistDeposition.actors[1].y = 2; chemistDeposition.actors[1].hp = 10;
+const deposited = Engine.dispatchMany(chemistDeposition, [{ type: "area.create", actorId: "hero", payload: { id: "deposition-gas", space: "main", areaType: "gas", label: "Сублимация", source: "disruptor.chemist.1", ruleId: "disruptor.chemist.1", duration: "nextTurn", ownerActorId: "hero", cells: ["2,2"] } }]).scene;
+assert.ok(deposited.actors[1].effects.includes("negative.ослаблен"), "Deposition immediately applies Weakened inside newly created Gas");
+assert.equal(deposited.actors[1].hp, 9, "Deposition immediately deals Mind damage through the normal Armor pipeline");
+
 const modifierScene = structuredClone(scene);
 modifierScene.actors[0].tier = 2;
 modifierScene.actors[1].effects = ["negative.подброшен"];
