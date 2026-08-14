@@ -256,6 +256,30 @@ function respondRulePrompt(scene, data, request = {}) {
   const errors = choiceStatus.available ? [] : [choiceStatus.reason];
   if (errors.length) return { ok: false, errors, events: [] };
   const events = [{ type: "rule.respond", actorId: actor.id, payload: { promptId: prompt.id, choice, sourceActorId: actor.id, targetId: target?.id || null, participantIds: [actor.id, target?.id].filter(Boolean) } }];
+  if (["enemy-executioner-bifurcate", "enemy-revenant-hollowed"].includes(prompt.kind)) {
+    const executioner = prompt.kind === "enemy-executioner-bifurcate", stateKey = executioner ? "executionerBifurcate" : "revenantHollowedEyes";
+    if (choice === "pass") events.push({ type: "actor.state", actorId: actor.id, payload: { key: stateKey, value: null, sourceActionId: prompt.context?.ruleId } });
+    else {
+      const rule = enemyProfileById(data, actor.profileId)?.rules?.find(item => item.id === prompt.context?.ruleId), advantage = executioner ? 0 : Math.max(0, enemyTierFormula("7(+1)", actor.tier) - Number(target?.focus || 0)), dice = enemyTierFormula(rule?.dice || "0", actor.tier) + advantage, rolled = Array.from({ length: dice }, () => 1 + Math.floor(Math.random() * 6)), roll = request.roll || { formula: `${dice}D6 · ${rule?.name || prompt.title}`, rolls: rolled, successes: rolled.filter(value => value >= 4).length, crits: rolled.filter(value => value === 6).length }, space = (scene.spaces || []).find(item => item.id === actor.space);
+      if (!target || target.knockedOut || !roll || !Array.isArray(roll.rolls)) return { ok: false, errors: ["Цель или бросок отложенной Атаки больше недоступны."], events: [] };
+      let destination = null, path = [];
+      for (let y = 0; y < Number(space?.height || 0); y += 1) for (let x = 0; x < Number(space?.width || 0); x += 1) {
+        if (distance({ x, y, space: actor.space }, target) > 1 || !effectCellOccupancyStatus(scene, actor.id, { space: actor.space, x, y }).available) continue;
+        const candidate = executioner ? movementPath(scene, actor.id, { x, y }, { maxDistance: Number(space.width || 0) + Number(space.height || 0) }) : [];
+        if (executioner && !candidate.length && (actor.x !== x || actor.y !== y)) continue;
+        if (!destination || candidate.length < path.length) { destination = { x, y }; path = candidate; }
+      }
+      if (!destination) return { ok: false, errors: ["Рядом с указанной целью нет доступной клетки."], events: [] };
+      const targetIds = executioner ? [...new Set((scene.actors || []).filter(item => !item.knockedOut && item.team !== actor.team && item.space === actor.space && (path.map(cellKey).includes(cellKey(item)) || distance({ ...destination, space: actor.space }, item) <= 1)).map(item => item.id))] : [target.id];
+      events.push({ type: "actor.move", actorId: actor.id, payload: { space: actor.space, ...destination, movement: prompt.title, path: path.map(cellKey), placement: !executioner, teleport: !executioner, participantIds: [actor.id, ...targetIds] } });
+      events.push({ type: "actor.enter", actorId: actor.id, payload: { space: actor.space, ...destination, movement: prompt.title, placement: !executioner, teleport: !executioner } });
+      targetIds.forEach(targetId => events.push({ type: "reaction.offer", actorId: targetId, payload: { sourceActorId: actor.id, actionId: prompt.context.ruleId, participantIds: [actor.id, targetId] } }));
+      const damage = Number(roll.successes || 0) + Number(scene.tension || 0) * (executioner ? 2 : 1);
+      events.push({ type: "attack.pending", actorId: actor.id, payload: { actionId: prompt.context.ruleId, enemyRuleId: prompt.context.ruleId, name: `${prompt.title} · отложенная Атака`, targetIds, roll: clone(roll), damage, damageByTarget: Object.fromEntries(targetIds.map(id => [id, damage])), quickReaction: true, enemyAttackFamily: executioner ? { effects: ["Разорван"], chargedAttack: true } : { postResourceLoss: { resource: "focus", formula: "2(+1)" } }, participantIds: [actor.id, ...targetIds] } });
+      if (executioner) events.push({ type: "effect.remove", actorId: actor.id, payload: { targetId: actor.id, effect: "positive.заряжен", sourceActionId: prompt.context.ruleId, participantIds: [actor.id] } });
+      events.push({ type: "actor.state", actorId: actor.id, payload: { key: stateKey, value: null, sourceActionId: prompt.context.ruleId } });
+    }
+  }
   if (prompt.kind === "chemist-sublimation" && choice === "sublimate") {
     const terrain = (scene.objects || []).find(object => object.id === prompt.context?.terrainId);
     if (prompt.context?.terrainId && !terrain) return { ok: false, errors: ["Выбранная местность уже уничтожена."], events: [] };

@@ -262,7 +262,9 @@ function effectMovementStatus(scene, actorId, request = {}) {
     if (hasEffect(scene, actor, "negative.подброшен")) blockers.push("Подброшен");
     if (hasEffect(scene, actor, "negative.пойман")) blockers.push("Пойман");
   }
-  const accelerated = hasEffect(scene, actor, "positive.ускорен"), slowed = hasEffect(scene, actor, "negative.замедлен");
+  const executioner = actor.profileId === "enemy.common.executioner";
+  if (executioner && !placement && !forced) blockers.splice(0, blockers.length);
+  const accelerated = hasEffect(scene, actor, "positive.ускорен"), slowed = !executioner && hasEffect(scene, actor, "negative.замедлен");
   const multiplier = accelerated === slowed ? 1 : accelerated ? 2 : .5;
   const baseDistance = Math.max(0, Number(request.distance ?? request.maximum ?? 0));
   const adjustedDistance = multiplier < 1 ? Math.floor(baseDistance * multiplier) : baseDistance * multiplier;
@@ -311,7 +313,9 @@ function effectDefenseStatus(scene, targetActorId) {
   if (!target) return { available: false, reason: "Защищающийся не найден.", target: null, armorAllowed: false, armorBonus: 0, dodgeAllowed: false, dodgeReason: "" };
   const compound = compoundEnemyStatus(scene, target), defendedParts = compound.active ? compound.parts : [target];
   const armorAllowed = !defendedParts.some(part => hasEffect(scene, part, "negative.разорван"));
-  const armorBonus = armorAllowed && defendedParts.some(part => hasEffect(scene, part, "positive.укреплен")) ? Math.max(...defendedParts.map(part => Number(part.tier || 1))) : 0;
+  const fortifiedBonus = armorAllowed && defendedParts.some(part => hasEffect(scene, part, "positive.укреплен")) ? Math.max(...defendedParts.map(part => Number(part.tier || 1))) : 0;
+  const chargedBonus = armorAllowed ? Math.max(0, ...defendedParts.filter(part => part.profileId === "enemy.common.executioner" && hasEffect(scene, part, "positive.заряжен")).map(part => 3 + Math.floor(Number(part.tier || 1) / 2))) : 0;
+  const armorBonus = fortifiedBonus + chargedBonus;
   const dodgeBlockers = [
     defendedParts.some(part => hasEffect(scene, part, "negative.обездвижен")) && "Обездвижен",
     defendedParts.some(part => hasEffect(scene, part, "negative.пойман")) && "Пойман",

@@ -248,6 +248,7 @@ function validateEvent(scene, event, options = {}) {
     if (payload.key === "growth" && (!Number.isInteger(Number(payload.delta)) || Math.abs(Number(payload.delta)) > 20)) throw new Error("Некорректное изменение Роста.");
     if (payload.key === "evasion" && (!Number.isInteger(Number(payload.delta)) || Math.abs(Number(payload.delta)) > 20)) throw new Error("Некорректное изменение Уклонения.");
     if (["martialPerfection", "imposingPresence", "berserkerLastStand"].includes(payload.key) && typeof payload.value !== "boolean") throw new Error("Некорректный переключатель состояния.");
+    if (["executionerBifurcate", "revenantHollowedEyes"].includes(payload.key) && payload.value !== null && (typeof payload.value !== "object" || !actorById(scene, payload.value.targetId) || !Number.isInteger(Number(payload.value.dueTurnSerial)))) throw new Error("Некорректное отложенное действие врага.");
     if (payload.key === "enemyAim" && (!Number.isInteger(Number(payload.value)) || Number(payload.value) < 0 || Number(payload.value) > 1)) throw new Error("Некорректное значение Прицела.");
     if (payload.key === "berserkerReactionTurnSerial" && (!Number.isInteger(Number(payload.value)) || Number(payload.value) < 0)) throw new Error("Некорректная отметка Пассивa Берсерка.");
     if (payload.key === "rangerHeadshotTargetId" && payload.value !== null && !actorById(scene, payload.value)) throw new Error("Некорректная цель Выстрела в голову.");
@@ -374,7 +375,7 @@ function applyKnockoutState(scene, target, payload) {
   }
   target.hp = 0;
   target.knockedOut = true;
-  scene.tension = Number(scene.tension || 0) + 1;
+  if (target.profileId !== "enemy.common.revenant") scene.tension = Number(scene.tension || 0) + 1;
   scene.targetIds = (scene.targetIds || []).filter(id => id !== target.id);
   if (scene.pendingAction?.responses?.[target.id]?.choice === "pending") scene.pendingAction.responses[target.id] = { choice: "unavailable", reason: "Цель выведена из боя" };
   if (scene.pendingAction?.actorId === target.id) scene.pendingAction.interruptedReason = "Атакующий выведен из боя";
@@ -803,6 +804,7 @@ function reduceEvent(scene, event) {
     if (target) {
       const affected = compoundParts(scene, target), source = event.actorId ? { actorId: event.actorId, actionId: String(payload.sourceActionId || "").slice(0, 180), eventId: event.id } : null, definition = effectLifecycleDefinition(payload.effect);
       for (const recipient of affected) {
+        if (recipient.profileId === "enemy.common.executioner" && ["negative.замедлен", "negative.обездвижен", "negative.пойман", "negative.подброшен"].includes(payload.effect)) { payload.blocked = true; continue; }
         recipient.effects ||= []; recipient.effectStates ||= {};
         const added = !recipient.effects.includes(payload.effect), existing = effectStateFor(recipient, payload.effect);
         if (added) recipient.effects.push(payload.effect);
@@ -854,7 +856,8 @@ function reduceEvent(scene, event) {
     }
   } else if (event.type === "actor.knockout") {
     const target = actorById(scene, payload.targetId);
-    const compound=compoundEnemyStatus(scene,target);if(compound.active){for(const part of compound.parts){part.hp=0;part.knockedOut=true}scene.tension=Number(scene.tension||0)+1;scene.targetIds=(scene.targetIds||[]).filter(id=>!compound.parts.some(part=>part.id===id));if(compound.parts.some(part=>part.id===scene.activeActorId))scene.activeActorId=null;payload.applied=true;payload.affectedActorIds=compound.parts.map(part=>part.id)}else applyKnockoutState(scene, target, payload);
+    if (target && payload.restore) { target.knockedOut=false;target.hp=Math.max(1,Number(payload.amount||target.maxHp||1));target.acted=false;payload.applied=true; }
+    else { const compound=compoundEnemyStatus(scene,target);if(compound.active){for(const part of compound.parts){part.hp=0;part.knockedOut=true}scene.tension=Number(scene.tension||0)+1;scene.targetIds=(scene.targetIds||[]).filter(id=>!compound.parts.some(part=>part.id===id));if(compound.parts.some(part=>part.id===scene.activeActorId))scene.activeActorId=null;payload.applied=true;payload.affectedActorIds=compound.parts.map(part=>part.id)}else applyKnockoutState(scene, target, payload); }
   } else if (event.type === "inventory.change" && actor) {
     actor.inventory ||= {};
     actor.inventory[payload.item] = Math.max(0, Number(actor.inventory[payload.item] || 0) + Number(payload.delta || 0));

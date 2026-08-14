@@ -2504,4 +2504,23 @@ let witchExpel = profileScene("enemy.common.witch"), beforeExpel = { x: witchExp
 witchExpel = resolveEnemyFamily(witchExpel, { expelFromArea: true, area: [3, 3] }, ["hero"], { x: 1, y: 1 });
 assert.notDeepEqual({ x: witchExpel.actors[0].x, y: witchExpel.actors[0].y }, beforeExpel, "Expelling Force moves a hit target to the nearest reachable cell outside its area");
 
+for (const ruleId of ["enemy.common.assassin.trump.disappear", "enemy.common.pugilist.trump.martial-perfection", "enemy.common.ranger.trump.headshot", "enemy.common.cocoon.trump.quick-growth", "enemy.common.guardian.trump.imposing-presence", "enemy.common.berserker.trump.last-stand", "enemy.common.cannoneer.trump.fire", "enemy.common.executioner.trump.bifurcate", "enemy.common.revenant.trump.hollowed-eyes"]) assert.notEqual(Engine.enemyRuleAutomation(ruleId), "assisted", `${ruleId} must not leave a fully automated profile's Trump manual`);
+let executionerScene = profileScene("enemy.common.executioner"); executionerScene.tension = 2;
+let executionerTrump = Engine.prepareEnemyRule(executionerScene, data, { actorId: "enemy", ruleId: "enemy.common.executioner.trump.bifurcate", targetIds: ["hero"] });
+assert.equal(executionerTrump.ok, true, "Executioner can arm Bifurcate against one opponent");
+executionerScene = Engine.dispatchMany(executionerScene, executionerTrump.events).scene;
+assert.equal(executionerScene.actors.find(actor => actor.id === "enemy").ruleState.executionerBifurcate.targetId, "hero");
+assert.equal(Engine.effectiveActorSpeed(executionerScene, "enemy"), 1, "Charged Executioner has Speed 1");
+assert.ok(Engine.effectDefenseStatus(executionerScene, "enemy").armorBonus >= 3, "Charged Executioner receives profile Armor");
+let revenantAutomationScene = profileScene("enemy.common.revenant"); revenantAutomationScene.tension = 2;
+const revenantTrump = Engine.prepareEnemyRule(revenantAutomationScene, data, { actorId: "enemy", ruleId: "enemy.common.revenant.trump.hollowed-eyes" });
+assert.equal(revenantTrump.ok, true, "Hollowed Eyes automatically chooses a lowest-Focus opponent");
+const tensionBeforeRevenantKnockout = revenantAutomationScene.tension;
+revenantAutomationScene = Engine.dispatchMany(revenantAutomationScene, [{ type: "actor.knockout", actorId: "hero", payload: { targetId: "enemy" } }]).scene;
+assert.equal(revenantAutomationScene.tension, tensionBeforeRevenantKnockout, "Knocking out a Revenant grants no Tension");
+revenantAutomationScene.activeActorId = null; revenantAutomationScene.actors.forEach(actor => actor.acted = true);
+revenantAutomationScene = Engine.dispatchMany(revenantAutomationScene, [{ type: "round.end", actorId: "hero", payload: {} }]).scene;
+assert.equal(revenantAutomationScene.actors.find(actor => actor.id === "enemy").knockedOut, false, "A knocked-out Revenant returns at the beginning of the next Round");
+assert.equal(revenantAutomationScene.actors.find(actor => actor.id === "enemy").hp, revenantAutomationScene.actors.find(actor => actor.id === "enemy").maxHp, "Returning Revenant restores full Health");
+
 console.log("Scene engine QA passed: canonical Turns and AP, once-per-Round actions, strict Reactions, truthful enemy automation, effects, movement, damage, and public events");

@@ -435,6 +435,24 @@ function triggeredEvents(scene, event, options = {}) {
   if (event.type === "actor.knockout" && payload.applied && scene.pendingActionPlan?.actorId === payload.targetId) {
     events.push({ type: "action.plan.cancel", actorId: payload.targetId, payload: { planId: scene.pendingActionPlan.id, reason: "Исполнитель выведен из боя.", participantIds: [payload.targetId] } });
   }
+  if (event.type === "turn.end" && !scene.pendingPrompt && !promptQueued()) {
+    const delayed = (scene.actors || []).find(item => !item.knockedOut && (Number(item.ruleState?.executionerBifurcate?.dueTurnSerial || Infinity) <= Number(scene.turnSerial || 0) || Number(item.ruleState?.revenantHollowedEyes?.dueTurnSerial || Infinity) <= Number(scene.turnSerial || 0)));
+    const state = delayed?.ruleState?.executionerBifurcate || delayed?.ruleState?.revenantHollowedEyes, target = actorById(scene, state?.targetId);
+    if (delayed && target && !target.knockedOut) {
+      const executioner = Boolean(delayed.ruleState?.executionerBifurcate);
+      events.push({ type: "rule.prompt", actorId: delayed.id, payload: { id: `prompt-${event.id}-${executioner ? "bifurcate" : "hollowed"}`, kind: executioner ? "enemy-executioner-bifurcate" : "enemy-revenant-hollowed", sourceActorId: delayed.id, targetId: target.id, controller: "narrator", title: executioner ? "Рассечение" : "Пустые глаза", text: executioner ? "Отложенное Рассечение готово: переместить Палача и провести Разруб?" : "Пустые глаза готовы: телепортировать Ревенанта и вырвать душу?", options: ["resolve", "pass"], context: { ruleId: executioner ? "enemy.common.executioner.attack.cleave" : "enemy.common.revenant.attack.tear-from-the-soul" }, participantIds: [delayed.id, target.id] } });
+    } else if (delayed) events.push({ type: "actor.state", actorId: delayed.id, payload: { key: delayed.ruleState?.executionerBifurcate ? "executionerBifurcate" : "revenantHollowedEyes", value: null, sourceActionId: "delayed-target-unavailable" } });
+  }
+  if (event.type === "round.end") {
+    for (const revenant of (scene.actors || []).filter(item => item.knockedOut && item.profileId === "enemy.common.revenant")) {
+      const space = (scene.spaces || []).find(item => item.id === revenant.space), occupied = new Set((scene.actors || []).filter(item => !item.knockedOut && item.space === revenant.space).map(cellKey)); let destination = null;
+      for (let y = 0; y < Number(space?.height || 0) && !destination; y += 1) for (let x = 0; x < Number(space?.width || 0); x += 1) if (!occupied.has(`${x},${y}`) && !removedCellKeys(scene, revenant.space).has(`${x},${y}`) && effectCellOccupancyStatus(scene, revenant.id, { actor: revenant, space: revenant.space, x, y }).available) { destination = { x, y }; break; }
+      if (destination) {
+        events.push({ type: "actor.move", actorId: revenant.id, payload: { space: revenant.space, ...destination, placement: true, allowKnockedOut: true, movement: "Возвращение Ревенанта", participantIds: [revenant.id] } });
+        events.push({ type: "actor.knockout", actorId: revenant.id, payload: { targetId: revenant.id, restore: true, amount: Number(revenant.maxHp || 1), sourceActionId: "enemy.common.revenant.passive.return", participantIds: [revenant.id] } });
+      }
+    }
+  }
   if (["actor.knockout", "damage.apply"].includes(event.type) && actorById(scene, payload.targetId)?.knockedOut && scene.pendingAction?.targetIds?.includes(payload.targetId) && scene.pendingAction?.punishmentStop) {
     const target = actorById(scene, payload.targetId), stop = scene.pendingAction.punishmentStop;
     if (target && (target.space !== stop.space || target.x !== stop.x || target.y !== stop.y)) events.push({ type: "actor.move", actorId: target.id, payload: { space: stop.space || target.space, x: Number(stop.x), y: Number(stop.y), movement: "Наказание: движение прервано", placement: true, allowKnockedOut: true, participantIds: [event.actorId, target.id].filter(Boolean) } });

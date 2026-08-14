@@ -69,7 +69,7 @@ const ENEMY_ATTACK_FAMILY_RULES = new Map([
   ["enemy.common.bruiser.attack.skulduggery", { effects: [], area: [2, 2], areaAnchor: "self", maxTargets: 40, postPushFormula: "1(+1)" }],
   ["enemy.common.behemoth.attack.tore-from-earth", { effects: [], maxTargets: 2, range: 6, createTerrainAdjacent: "10(+1)" }],
   ["enemy.common.glutton.attack.slobber", { maxTargets: 2, adjacent: true }],
-  ["enemy.common.executioner.attack.cleave", { effects: ["Разорван"], maxTargets: 2, adjacent: true, chargedAttack: true }],
+  ["enemy.common.executioner.attack.cleave", { effects: ["Разорван"], maxTargets: 2, lineLength: 2, chargedAttack: true }],
   ["enemy.common.javelin.attack.crushing-impact", { effects: [], conditionalSingleEffect: "Подброшен", area: [2, 2], areaAnchor: "self", maxTargets: 40 }],
   ["enemy.common.pugilist.attack.flurry-of-strikes", { effects: [], adjacent: true, pugilistSequence: true }],
   ["enemy.common.ranger.attack.take-the-shot", { effects: [], range: 8, bonusTensionAtRange: 4, wound: "always", aimDamage: true }],
@@ -125,6 +125,7 @@ const ENEMY_FULL_RULES = new Map([
   ["enemy.common.assassin.trump.disappear", { type: "effects" }],
   ["enemy.common.assassin.action.neutralize-target", { type: "assassin-mark" }],
   ["enemy.common.executioner.action.focus-up", { type: "effects" }],
+  ["enemy.common.executioner.trump.bifurcate", { type: "executioner-bifurcate" }],
   ["enemy.common.paladin.action.gospel", { type: "regenerating-allies" }],
   ["enemy.common.cannoneer.action.aim", { type: "effects" }],
   ["enemy.common.pugilist.action.take-stance", { type: "pugilist-stance" }],
@@ -140,6 +141,7 @@ const ENEMY_FULL_RULES = new Map([
   ["enemy.common.cannoneer.attack.load", { type: "cannoneer-load" }],
   ["enemy.common.oni.action.stabilize", { type: "oni-stabilize" }],
   ["enemy.common.revenant.action.lurk", { type: "revenant-lurk" }],
+  ["enemy.common.revenant.trump.hollowed-eyes", { type: "revenant-hollowed-eyes" }],
   ["enemy.common.broodmother.trump.roar", { type: "broodmother-roar" }],
   ["enemy.named.leon-academy-spatial-mage.trump.elemental-breach", {
     type: "summon-profiles",
@@ -678,6 +680,12 @@ function prepareEnemyRule(scene, data, request = {}) {
   if (fullRule?.type === "regenerating-allies" && actor) targetIds = (scene.actors || []).filter(target => !target.knockedOut && target.team === actor.team && (target.effects || []).some(effect => String(effect).includes("регенер"))).map(target => target.id);
   if (fullRule?.type === "corrupted-damage" && actor) targetIds = (scene.actors || []).filter(target => !target.knockedOut && target.team !== actor.team && (target.effects || []).some(effect => String(effect).includes("порчен"))).map(target => target.id);
   if (fullRule?.type === "guardian-shield" && actor) targetIds = (scene.actors || []).filter(target => !target.knockedOut && target.team !== actor.team && target.space === actor.space && distance(actor, target) <= 4).map(target => target.id);
+  if (fullRule?.type === "revenant-hollowed-eyes" && actor) {
+    const enemies = (scene.actors || []).filter(target => !target.knockedOut && target.team !== actor.team);
+    const lowest = Math.min(...enemies.map(target => Number(target.focus || 0)));
+    const eligible = enemies.filter(target => Number(target.focus || 0) === lowest);
+    targetIds = eligible.some(target => targetIds.includes(target.id)) ? [targetIds.find(id => eligible.some(target => target.id === id))] : eligible.slice(0, 1).map(target => target.id);
+  }
   const targets = targetIds.map(id => actorById(scene, id)).filter(Boolean);
   const hiddenAssassinAttack = Boolean(family.hiddenAdvantage && (actor?.effects || []).includes("positive.исчез"));
   const assassinReappearance = hiddenAssassinAttack && request.options?.reappearance ? { x: Number(request.options.reappearance.x), y: Number(request.options.reappearance.y) } : null;
@@ -720,12 +728,18 @@ function prepareEnemyRule(scene, data, request = {}) {
   if (actor && rule?.areaAnchor !== "self" && anchor && !wallTargetingStatus(scene, actor, { space: actor.space, x: Number(anchor.x), y: Number(anchor.y) }).available) errors.push("Стена перекрывает размещение области.");
   if (affectedCells.length && targets.some(target => target.space !== actor.space || !affectedCells.includes(`${target.x},${target.y}`))) errors.push("Все выбранные цели должны находиться в области.");
   if ((available?.requiresTarget ?? rule?.requiresTarget) && !targets.length && fullRule?.type !== "guardian-shield") errors.push(rule.kind === "attack" ? "Выберите хотя бы одну цель Атаки." : "Выберите цель действия.");
+  if (fullRule?.type === "executioner-bifurcate" && (targets.length !== 1 || targets[0]?.team === actor?.team)) errors.push("Рассечение требует одного противника.");
+  if (fullRule?.type === "revenant-hollowed-eyes" && targets.length !== 1) errors.push("Для Пустых глаз нужен игрок с наименьшим Фокусом.");
   if (actor && isAttackRule && available?.automation === "attack" && family.audience !== "any" && targets.some(target => target.team === actor.team)) errors.push("Эта автоматизированная Атака может выбирать целью только другую сторону.");
   const attackModifiers = actor && isAttackRule && available?.automation === "attack" ? attackModifierStatus(scene, actor.id, targetIds.filter(id => actorById(scene, id)?.team !== actor.team), request.attackModifierIds || []) : { available: !(request.attackModifierIds || []).length, reason: "Модификаторы доступны только Атаке, подключённой к общему окну Реакций.", selectedIds: [], advantage: 0 };
   if (!attackModifiers.available) errors.push(attackModifiers.reason);
   const maxTargets = Number(available?.maxTargets ?? rule?.maxTargets ?? 0);
   if (maxTargets && targets.length > maxTargets) errors.push(`Можно выбрать не больше ${maxTargets} целей.`);
   if (attackOrigin && (available?.adjacent || rule?.adjacent || family.targetsAdjacentAfterMove) && !hiddenAssassinAttack && targets.some(target => distance(attackOrigin, target) > 1)) errors.push("Цель должна быть смежной.");
+  if (attackOrigin && rule?.id === "enemy.common.executioner.attack.cleave" && targets.length) {
+    const vectors = targets.map(target => ({ dx: Number(target.x) - Number(attackOrigin.x), dy: Number(target.y) - Number(attackOrigin.y) })), axis = vectors[0].dx ? "x" : "y", sign = Math.sign(vectors[0][axis === "x" ? "dx" : "dy"]), valid = vectors.every(vector => (axis === "x" ? vector.dy === 0 : vector.dx === 0) && Math.sign(vector[axis === "x" ? "dx" : "dy"]) === sign && Math.abs(vector[axis === "x" ? "dx" : "dy"]) <= 2);
+    if (!valid) errors.push("Цели Разруба должны находиться на одной смежной Линии длиной 2 клетки.");
+  }
   if (attackOrigin && rule?.range && targets.some(target => distance(attackOrigin, target) > Number(rule.range))) errors.push(`Цель должна быть в пределах ${rule.range} клеток.`);
   if (fullRule?.type === "pugilist-stance" && (!Number.isInteger(Number(request.options?.stanceStep)) || Number(request.options.stanceStep) < 1 || Number(request.options.stanceStep) > 4)) errors.push("Выберите шаг Пассивa от 1 до 4.");
   const summonCells = [];
@@ -806,6 +820,12 @@ function prepareEnemyRule(scene, data, request = {}) {
     const frightened = (scene.actors || []).filter(target => !target.knockedOut && target.team !== actor.team && Number(target.focus || 0) <= 1 && nonRevenants.some(anchor => anchor.id !== target.id && anchor.space === target.space && distance(anchor, target) <= 2));
     for (const target of frightened) events.push({ type: "effect.apply", actorId: actor.id, payload: { targetId: target.id, effect: "negative.испуган", sourceActionId: rule.id, participantIds: [actor.id, target.id] } });
   }
+  if (fullRule?.type === "executioner-bifurcate") {
+    events.push({ type: "effect.apply", actorId: actor.id, payload: { targetId: actor.id, effect: "positive.заряжен", sourceActionId: rule.id, participantIds: [actor.id] } });
+    events.push({ type: "effect.apply", actorId: actor.id, payload: { targetId: actor.id, effect: "positive.устойчив", sourceActionId: rule.id, participantIds: [actor.id] } });
+    events.push({ type: "actor.state", actorId: actor.id, payload: { key: "executionerBifurcate", value: { targetId: targets[0].id, dueTurnSerial: Number(scene.turnSerial || 0) + 1 }, sourceActionId: rule.id } });
+  }
+  if (fullRule?.type === "revenant-hollowed-eyes") events.push({ type: "actor.state", actorId: actor.id, payload: { key: "revenantHollowedEyes", value: { targetId: targets[0].id, dueTurnSerial: Number(scene.turnSerial || 0) + 1 }, sourceActionId: rule.id } });
   if (fullRule?.type === "broodmother-roar") {
     const provoked = (scene.actors || []).filter(target => !target.knockedOut && target.team !== actor.team && target.space === actor.space && Math.abs(target.x - actor.x) <= 2 && Math.abs(target.y - actor.y) <= 2);
     for (const target of provoked) events.push({ type: "effect.apply", actorId: actor.id, payload: { targetId: target.id, effect: "negative.спровоцирован", sourceActionId: rule.id, participantIds: [actor.id, target.id] } });
