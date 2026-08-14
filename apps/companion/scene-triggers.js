@@ -431,9 +431,13 @@ function reminderLifecycleEvents(scene, event) {
 }
 
 function triggeredEvents(scene, event, options = {}) {
-  const payload = event.payload || {}, actor = event.actorId ? actorById(scene, event.actorId) : null, resumed = event.type === "rule.respond" && !options.deferQueuedResume ? resumeQueuedTriggers(scene, event) : { events: [], promptReserved: false }, routed = triggerRouteStatus(scene, event, { promptReserved: resumed.promptReserved }), events = [...resumed.events, ...routed.events], promptQueued = () => events.some(item => item.type === "rule.prompt");
+  const payload = event.payload || {}, actor = event.actorId ? actorById(scene, event.actorId) : null, resumesQueue = event.type === "attack.clear" || event.type === "rule.respond" && !options.deferQueuedResume, resumed = resumesQueue ? resumeQueuedTriggers(scene, event) : { events: [], promptReserved: false }, routed = triggerRouteStatus(scene, event, { promptReserved: resumed.promptReserved }), events = [...resumed.events, ...routed.events], promptQueued = () => events.some(item => item.type === "rule.prompt");
   if (event.type === "actor.knockout" && payload.applied && scene.pendingActionPlan?.actorId === payload.targetId) {
     events.push({ type: "action.plan.cancel", actorId: payload.targetId, payload: { planId: scene.pendingActionPlan.id, reason: "Исполнитель выведен из боя.", participantIds: [payload.targetId] } });
+  }
+  if (["actor.knockout", "damage.apply"].includes(event.type) && actorById(scene, payload.targetId)?.knockedOut && scene.pendingAction?.targetIds?.includes(payload.targetId) && scene.pendingAction?.punishmentStop) {
+    const target = actorById(scene, payload.targetId), stop = scene.pendingAction.punishmentStop;
+    if (target && (target.space !== stop.space || target.x !== stop.x || target.y !== stop.y)) events.push({ type: "actor.move", actorId: target.id, payload: { space: stop.space || target.space, x: Number(stop.x), y: Number(stop.y), movement: "Наказание: движение прервано", placement: true, allowKnockedOut: true, participantIds: [event.actorId, target.id].filter(Boolean) } });
   }
   if (event.type === "attack.pending" && actor && Array.isArray(payload.attackModifierIds) && payload.attackModifierIds.length) {
     const modifiers = attackModifierStatus(scene, actor.id, payload.targetIds, payload.attackModifierIds, { actionId: payload.declaredActionId || payload.actionId });
@@ -624,13 +628,15 @@ function triggeredEvents(scene, event, options = {}) {
     const route = [payload.from, ...(payload.path || []).map(cell => { const [x, y] = String(cell).split(",").map(Number); return { space: payload.space || actor.space, x, y }; })];
     if (!route.length || route.at(-1).x !== actor.x || route.at(-1).y !== actor.y) route.push({ space: actor.space, x: actor.x, y: actor.y });
     const leavesAdjacency = owner => route.some((point, index) => index < route.length - 1 && owner.space === point.space && distance(owner, point) <= 1 && distance(owner, route[index + 1]) > 1);
-    const sentry = (scene.actors || []).find(owner => !owner.knockedOut && owner.team !== actor.team && Number(owner.techniques?.["bulwark.stalwart-sentry"] || 0) >= 2 && leavesAdjacency(owner));
-    if (sentry) {
-      const vigilance = clockStatus(scene, sentry.id, "bulwark.stalwart-sentry.vigilance"), options = vigilance.value > 0 ? ["punish-free", "punish-paid", "pass"] : ["punish-paid", "pass"];
-      events.push({ type: "rule.prompt", actorId: sentry.id, payload: { id: `prompt-${event.id}-punishment`, kind: "sentry-punishment", sourceActorId: sentry.id, targetId: actor.id, title: "Наказание", text: `${actor.name} покидает смежность. Использовать Быструю Стычку${vigilance.value > 0 ? " и при желании очистить Бдительность вместо ОД" : ""}?`, options, context: { optionLabels: { "punish-free": "Очистить Бдительность · 0 ОД", "punish-paid": "Заплатить обычную стоимость", pass: "Не использовать" } }, participantIds: [sentry.id, actor.id] } });
-    } else {
-      const punisher = actionIdIs(payload.sourceActionId, "step") && (scene.actors || []).find(owner => !owner.knockedOut && owner.kind === "hero" && !owner.profileId && owner.team !== actor.team && leavesAdjacency(owner));
-      if (punisher) events.push({ type: "rule.prompt", actorId: punisher.id, payload: { id: `prompt-${event.id}-base-punishment`, kind: "sentry-punishment", sourceActorId: punisher.id, targetId: actor.id, title: "Наказание", text: `${actor.name} покидает смежность с ${punisher.name}. Использовать Стычку как Быструю Реакцию?`, options: ["punish-paid", "pass"], context: { basePunishment: true, optionLabels: { "punish-paid": "Использовать Наказание", pass: "Пропустить" } }, participantIds: [punisher.id, actor.id] } });
+    const departureIndex = owner => route.findIndex((point, index) => index < route.length - 1 && owner.space === point.space && distance(owner, point) <= 1 && distance(owner, route[index + 1]) > 1);
+    const punishers = (scene.actors || []).filter(owner => !owner.knockedOut && owner.team !== actor.team && (Number(owner.techniques?.["bulwark.stalwart-sentry"] || 0) >= 2 || actionIdIs(payload.sourceActionId, "step") && owner.kind === "hero" && !owner.profileId)).map(owner => ({ owner, index: departureIndex(owner) })).filter(item => item.index >= 0).sort((left, right) => left.index - right.index);
+    const prompts = punishers.map(({ owner, index }, order) => {
+      const sentry = Number(owner.techniques?.["bulwark.stalwart-sentry"] || 0) >= 2, vigilance = sentry ? clockStatus(scene, owner.id, "bulwark.stalwart-sentry.vigilance") : { value: 0 }, options = sentry && vigilance.value > 0 ? ["punish-free", "punish-paid", "pass"] : ["punish-paid", "pass"];
+      return { type: "rule.prompt", actorId: owner.id, payload: { id: `prompt-${event.id}-punishment-${order}`, kind: "sentry-punishment", sourceActorId: owner.id, targetId: actor.id, title: "Наказание", text: `${actor.name} покидает смежность с ${owner.name}. Использовать Стычку как Быструю Реакцию?`, options, context: { basePunishment: !sentry, stop: clone(route[index]), optionLabels: { "punish-free": "Очистить Бдительность · 0 ОД", "punish-paid": sentry ? "Заплатить обычную стоимость" : "Использовать Наказание", pass: "Пропустить" } }, participantIds: [owner.id, actor.id] } };
+    });
+    if (prompts.length) {
+      events.push(prompts[0]);
+      prompts.slice(1).forEach((prompt, index) => events.push({ type: "rule.trigger", actorId: prompt.actorId, payload: { triggerId: `core.punishment.${prompt.actorId}.${index}`, sourceEventId: event.id, sourceEventType: event.type, status: "queued", reason: "Предыдущее Наказание разрешается первым.", priority: 0, emittedTypes: ["rule.prompt"], triggerOwnerId: prompt.actorId, participantIds: prompt.payload.participantIds, deferredEvent: prompt } }));
     }
   }
   if (event.type === "attack.pending" && actor && hasEffect(scene, actor, "negative.порчен")) {
@@ -769,7 +775,7 @@ function dispatchMany(scene, events, options = {}) {
       committed.push(result.event);
       versionPending = false;
     }
-    const deferQueuedResume = result.event.type === "rule.respond" && queue.some(candidate => candidate?.type === "rule.prompt");
+    const deferQueuedResume = result.event.type === "rule.respond" && queue.some(candidate => ["rule.prompt", "action.prepare", "attack.pending"].includes(candidate?.type));
     const derived = result.duplicate ? [] : triggeredEvents(next, result.event, { deferQueuedResume });
     if (derived.length) queue.unshift(...derived);
   }
