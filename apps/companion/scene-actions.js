@@ -679,16 +679,25 @@ function prepareEnemyRule(scene, data, request = {}) {
   if (fullRule?.type === "corrupted-damage" && actor) targetIds = (scene.actors || []).filter(target => !target.knockedOut && target.team !== actor.team && (target.effects || []).some(effect => String(effect).includes("порчен"))).map(target => target.id);
   if (fullRule?.type === "guardian-shield" && actor) targetIds = (scene.actors || []).filter(target => !target.knockedOut && target.team !== actor.team && target.space === actor.space && distance(actor, target) <= 4).map(target => target.id);
   const targets = targetIds.map(id => actorById(scene, id)).filter(Boolean);
+  const hiddenAssassinAttack = Boolean(family.hiddenAdvantage && (actor?.effects || []).includes("positive.исчез"));
+  const assassinReappearance = hiddenAssassinAttack && request.options?.reappearance ? { x: Number(request.options.reappearance.x), y: Number(request.options.reappearance.y) } : null;
   const attackDestination = request.options?.destination && { x: Number(request.options.destination.x), y: Number(request.options.destination.y) };
-  const attackOrigin = actor && attackDestination ? { ...actor, ...attackDestination } : actor;
+  const attackOrigin = actor && (assassinReappearance || attackDestination) ? { ...actor, ...(assassinReappearance || attackDestination) } : actor;
   let attackMovePath = [];
   if (targets.length !== targetIds.length) errors.push("Одна из выбранных целей больше не находится на Сцене.");
   if (targets.some(target => target.knockedOut)) errors.push("Выведенный из боя персонаж не может быть целью действия.");
-  const unavailableEffectTarget = actor && targets.find(target => !effectTargetingStatus(scene, actor.id, target.id).available);
+  const unavailableEffectTarget = actor && !hiddenAssassinAttack && targets.find(target => !effectTargetingStatus(scene, actor.id, target.id).available);
   if (unavailableEffectTarget) errors.push(effectTargetingStatus(scene, actor.id, unavailableEffectTarget.id).reason);
   const unavailableWallTarget = attackOrigin && targets.find(target => !wallTargetingStatus(scene, attackOrigin, target, { range: rule?.range }).available);
   if (unavailableWallTarget) errors.push("Стена перекрывает проведение цели.");
   const space = actor && (scene.spaces || []).find(item => item.id === actor.space);
+  if (hiddenAssassinAttack) {
+    const target = targets[0], point = assassinReappearance;
+    if (!point) errors.push("Выберите свободную клетку рядом с целью для появления Ассасина.");
+    else if (!target || target.space !== actor.space || !Number.isInteger(point.x) || !Number.isInteger(point.y) || point.x < 0 || point.y < 0 || point.x >= Number(space?.width || 0) || point.y >= Number(space?.height || 0)) errors.push("Клетка появления Ассасина находится за пределами поля цели.");
+    else if (distance({ ...actor, ...point }, target) > 1) errors.push("Ассасин должен появиться в клетке, смежной с целью.");
+    else if (!effectCellOccupancyStatus(scene, actor.id, { actor, space: actor.space, x: point.x, y: point.y }).available || removedCellKeys(scene, actor.space).has(`${point.x},${point.y}`)) errors.push("Клетка появления Ассасина занята или недоступна.");
+  }
   if (attackDestination && actor) {
     const maximum = Number(family.preMoveMaximum || 0), dx = Math.abs(attackDestination.x - actor.x), dy = Math.abs(attackDestination.y - actor.y);
     if (!Number.isInteger(attackDestination.x) || !Number.isInteger(attackDestination.y) || attackDestination.x < 0 || attackDestination.y < 0 || attackDestination.x >= Number(space?.width || 0) || attackDestination.y >= Number(space?.height || 0)) errors.push("Клетка перемещения Атаки находится за пределами поля.");
@@ -716,7 +725,6 @@ function prepareEnemyRule(scene, data, request = {}) {
   if (!attackModifiers.available) errors.push(attackModifiers.reason);
   const maxTargets = Number(available?.maxTargets ?? rule?.maxTargets ?? 0);
   if (maxTargets && targets.length > maxTargets) errors.push(`Можно выбрать не больше ${maxTargets} целей.`);
-  const hiddenAssassinAttack = Boolean(family.hiddenAdvantage && (actor?.effects || []).includes("positive.исчез"));
   if (attackOrigin && (available?.adjacent || rule?.adjacent || family.targetsAdjacentAfterMove) && !hiddenAssassinAttack && targets.some(target => distance(attackOrigin, target) > 1)) errors.push("Цель должна быть смежной.");
   if (attackOrigin && rule?.range && targets.some(target => distance(attackOrigin, target) > Number(rule.range))) errors.push(`Цель должна быть в пределах ${rule.range} клеток.`);
   if (fullRule?.type === "pugilist-stance" && (!Number.isInteger(Number(request.options?.stanceStep)) || Number(request.options.stanceStep) < 1 || Number(request.options.stanceStep) > 4)) errors.push("Выберите шаг Пассивa от 1 до 4.");
@@ -863,10 +871,9 @@ function prepareEnemyRule(scene, data, request = {}) {
       return { ok: true, errors: [], events, rule: available || clone(rule) };
     }
     if (hiddenAssassinAttack) {
-      const target = targets[0], candidate = target && [[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,-1],[1,-1],[-1,1]].map(([dx,dy]) => ({ x: target.x + dx, y: target.y + dy })).find(point => effectCellOccupancyStatus(scene, actor.id, { actor, space: target.space, x: point.x, y: point.y }).available && !removedCellKeys(scene, target.space).has(`${point.x},${point.y}`));
-      if (!candidate) return { ok: false, errors: ["У цели нет свободной смежной клетки для появления Ассасина."], events: [], rule: available || clone(rule) };
-      events.push({ type: "actor.move", actorId: actor.id, payload: { space: target.space, x: candidate.x, y: candidate.y, movement: "Разрез: появление", placement: true, teleport: true, participantIds: [actor.id, target.id] } });
-      events.push({ type: "actor.enter", actorId: actor.id, payload: { space: target.space, x: candidate.x, y: candidate.y, movement: "Разрез: появление", placement: true, teleport: true } });
+      const target = targets[0];
+      events.push({ type: "actor.move", actorId: actor.id, payload: { space: target.space, x: assassinReappearance.x, y: assassinReappearance.y, movement: "Разрез: появление", placement: true, teleport: true, participantIds: [actor.id, target.id] } });
+      events.push({ type: "actor.enter", actorId: actor.id, payload: { space: target.space, x: assassinReappearance.x, y: assassinReappearance.y, movement: "Разрез: появление", placement: true, teleport: true } });
       events.push({ type: "effect.remove", actorId: actor.id, payload: { targetId: actor.id, effect: "positive.исчез", sourceActionId: rule.id, participantIds: [actor.id] } });
     }
     if (rule.id === "enemy.common.cannoneer.trump.fire") events.push({ type: "rule-clock.set", actorId: actor.id, payload: { clockId: "enemy.common.cannoneer.preparation", value: 0, sourceActionId: rule.id } });

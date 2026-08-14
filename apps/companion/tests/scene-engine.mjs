@@ -1505,6 +1505,20 @@ const assistedSlice = Engine.prepareEnemyRule(enemyScene, data, { actorId: "enem
 assert.equal(assistedSlice.ok, true);
 assert.ok(assistedSlice.events.some(event => event.type === "attack.pending"), "Slice offers the target the normal defensive reaction window");
 
+const hiddenAssassinScene = structuredClone(enemyScene);
+hiddenAssassinScene.actors[1].x = 6;
+hiddenAssassinScene.actors[1].y = 6;
+hiddenAssassinScene.actors[1].effects = ["positive.исчез"];
+const hiddenSliceWithoutCell = Engine.prepareEnemyRule(hiddenAssassinScene, data, { actorId: "enemy", ruleId: slice.id, targetIds: ["hero"], roll: { formula: "8D6", rolls: [6, 5, 4, 3, 2, 1, 1, 1], successes: 3, crits: 1 } });
+assert.equal(hiddenSliceWithoutCell.ok, false, "A hidden Assassin must explicitly choose its reappearance cell");
+const hiddenSlice = Engine.prepareEnemyRule(hiddenAssassinScene, data, { actorId: "enemy", ruleId: slice.id, targetIds: ["hero"], options: { reappearance: { x: 1, y: 2 } }, roll: { formula: "8D6", rolls: [6, 5, 4, 3, 2, 1, 1, 1], successes: 3, crits: 1 } });
+assert.equal(hiddenSlice.ok, true, "A hidden Assassin can reappear adjacent to a remote target and continue Slice");
+const hiddenSliceMove = hiddenSlice.events.find(event => event.type === "actor.move");
+assert.deepEqual([hiddenSliceMove.payload.x, hiddenSliceMove.payload.y], [1, 2]);
+assert.ok(hiddenSlice.events.some(event => event.type === "effect.remove" && event.payload.effect === "positive.исчез"));
+assert.ok(hiddenSlice.events.some(event => event.type === "attack.pending"), "Reappearance and Slice remain one atomic attack chain");
+assert.equal(Engine.prepareEnemyRule(hiddenAssassinScene, data, { actorId: "enemy", ruleId: slice.id, targetIds: ["hero"], options: { reappearance: { x: 4, y: 4 } }, roll: { rolls: [6], successes: 1 } }).ok, false, "The chosen reappearance cell must be adjacent to the target");
+
 const simpleEnemyScene = structuredClone(enemyScene);
 simpleEnemyScene.actors[1].profileId = "enemy.common.pugilist";
 simpleEnemyScene.actors[1].name = "Кулачный боец";

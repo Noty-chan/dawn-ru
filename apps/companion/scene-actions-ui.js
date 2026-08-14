@@ -247,6 +247,10 @@ function useEnemyRule(actorId,ruleId,{anchor=null,areaReady=false,options={}}={}
   const automaticAttack=ruleState?.automation==="attack";
   Scene.activeSpace=actor.space;Scene.selectedActor=actor.id;
   if(automaticAttack&&rule.audience!=="any")Scene.targetIds=Scene.targetIds.filter(id=>{const target=Scene.actors.find(item=>item.id===id);return target&&target.team!==actor.team});
+  const hiddenAssassinAttack=automaticAttack&&rule.hiddenAdvantage&&(actor.effects||[]).includes("positive.исчез");
+  if(hiddenAssassinAttack&&!Scene.targetIds.length){Scene.tool="target";persist();renderScene();return toast(`«${rule.name}»: сначала выберите цель появления и Атаки`)}
+  if(hiddenAssassinAttack&&!areaReady){pendingEnemyRule={actorId,ruleId,phase:"assassin-reappear",targetIds:[...Scene.targetIds]};Scene.tool="select";persist();renderScene();return toast(`«${rule.name}»: выберите свободную клетку рядом с целью для появления Ассасина`)}
+  if(hiddenAssassinAttack&&areaReady){Scene.targetIds=[...(pendingEnemyRule?.targetIds||Scene.targetIds)];options={...options,reappearance:anchor}}
   const oniMoves=rule.oniModes&&(actor.effects||[]).includes("positive.усилен"),needsAttackDestination=automaticAttack&&(rule.teleportAttack||rule.preMoveMaximum&&(rule.id!=="enemy.common.oni.attack.polaris"||oniMoves));
   if(needsAttackDestination&&!areaReady){pendingEnemyRule={actorId,ruleId};Scene.tool="select";persist();renderScene();return toast(`«${rule.name}»: укажите клетку перемещения перед Атакой`)}
   if(needsAttackDestination&&areaReady){options={...options,destination:anchor};if(rule.targetsAdjacentAfterMove)Scene.targetIds=Scene.actors.filter(target=>target.id!==actor.id&&!target.knockedOut&&target.space===actor.space&&Math.abs(target.x-anchor.x)+Math.abs(target.y-anchor.y)<=1&&(rule.audience==="any"||target.team!==actor.team)).map(target=>target.id)}
@@ -257,7 +261,7 @@ function useEnemyRule(actorId,ruleId,{anchor=null,areaReady=false,options={}}={}
   if(automaticAttack&&(!Number.isFinite(count)||count<1)&&!Number.isFinite(directDamage))return toast(`Для «${rule.name}» не удалось вычислить урон или пул костей; проверьте правило профиля`);
   const result=count>0?Logic.rollXd6({count}):null,roll=result?{formula:`${result.initialCount}D6 · ${rule.name}${hiddenAdvantage?` · из Исчезновения +${hiddenAdvantage}`:""}${pugilistAdvantage?` · шаг 4 по Подброшенному +${pugilistAdvantage}`:""}${attackModifiers.advantage?` · Вбить +${attackModifiers.advantage}`:""}${effectAttack.hindrance?` · Помеха −${effectAttack.hindrance} (${effectAttack.hindranceEffects.join(", ")})`:""}`,rolls:result.rolls,successes:result.successes,crits:result.crits}:null;
   const prepared=SceneEngine.prepareEnemyRule(Scene,D,{actorId:actor.id,ruleId:rule.id,targetIds:[...Scene.targetIds],anchor,roll,damage:directDamage,options,attackModifierIds});if(!prepared.ok)return toast(prepared.errors.join(" "));
-  const committed=commitSceneEvents(`${actor.name}: ${rule.name}`,prepared.events);if(!committed)return;
+  pendingEnemyRule=null;const committed=commitSceneEvents(`${actor.name}: ${rule.name}`,prepared.events);if(!committed)return;
   const automation=prepared.events.find(event=>event.type==="enemy.action.prepare")?.payload?.automation;if(activeScenePanel!=="director")setScenePanel(Scene.pendingAction?"sheet":"roster");toast(automation==="assisted"?`${rule.name}: стоимость и бросок записаны; особое правило разрешает Нарратор`:automation==="state"?`${rule.name}: состояние правила сохранено; связанные пространственные решения остаются видимыми Нарратору`:rule.kind==="attack"?(result?`${rule.name}: ${result.successes} успехов; ожидаются Реакции`:`${rule.name}: ${directDamage} урона; ожидаются Реакции`):`${rule.name}: правило применено и записано в журнал`)
 }
 function techniquePreview(rule,point=null){
