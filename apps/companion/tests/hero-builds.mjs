@@ -100,6 +100,12 @@ assert.equal(transformed.actors[0].hp, 1);
 assert.equal(transformed.actors[0].ruleState.grimTransformed, true);
 assert.ok(transformed.actors[0].focus >= 14, "Lost Health becomes doubled Focus");
 assert.ok(SceneEngine.availableActions(transformed, data, "hero").find(item => item.name === "Заклинание")?.quick, "The first transformed Spell is Quick");
+const grimSpell = actionNamed("Заклинание");
+const afterFirstGrimSpell = SceneEngine.dispatch(transformed, { type: "action.prepare", actorId: "hero", payload: { actionId: grimSpell.id, name: grimSpell.name, quick: true } }).scene;
+assert.equal(SceneEngine.availableActions(afterFirstGrimSpell, data, "hero").find(item => item.name === grimSpell.name)?.quick, false, "Only the first transformed Spell in a Turn is Quick");
+const nextGrimTurn = structuredClone(afterFirstGrimSpell);
+nextGrimTurn.log.unshift({ id: "next-grim-turn", type: "turn.start", actorId: "hero", payload: {} });
+assert.equal(SceneEngine.availableActions(nextGrimTurn, data, "hero").find(item => item.name === grimSpell.name)?.quick, true, "A transformed Spell becomes Quick again at the start of every Turn");
 
 const trapScene = sceneWith(actor({ techniques: shadowBuild, x: 3, y: 3 }), [foe({ x: 7, y: 7 })]);
 const trap = TechniqueEngine.preview(trapScene, { actorId: "hero", ruleId: "disruptor.hunter.1", anchor: { x: 4, y: 3 }, options: { actionMode: "skirmish" } });

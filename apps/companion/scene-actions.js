@@ -520,8 +520,9 @@ function prepareAction(scene, data, request = {}) {
       const icicleHalo = available?.quickSource?.id === "ruiner.cryomancer.2.icicle";
       const effectDamageDivisor = (drainLife ? 2 : 1) * (eclipseStars || icicleHalo ? 2 : 1);
       const areaDamage = value => eclipseStars || icicleHalo ? Math.ceil(adjustedDamage(value) / 2) : adjustedDamage(value);
-      const effectDamageBase = Number(request.roll?.successes || 0) + bonus;
-      const effectDamageBaseByTarget = Object.fromEntries(targets.map(target => [target.id, effectDamageBase + (thunderDischarge && hasEffect(scene, target, "negative.ошеломлен") ? Number(actor.tier || 1) : 0) + (actionIs(action, "finish") && Number(actor.techniques?.["disruptor.constrictor"] || 0) >= 2 && caughtByConstrictor(target) ? Number(actor.tier || 1) : 0)]));
+      const effectAttack = effectAttackStatus(scene, actor.id, targetIds);
+      const effectDamageBase = Number(request.roll?.successes || 0) + bonus + Number(effectAttack.damageModifier || 0);
+      const effectDamageBaseByTarget = Object.fromEntries(targets.map(target => [target.id, effectDamageBase + Number(effectAttack.damageByTarget?.[target.id] || 0) + (thunderDischarge && hasEffect(scene, target, "negative.ошеломлен") ? Number(actor.tier || 1) : 0) + (actionIs(action, "finish") && Number(actor.techniques?.["disruptor.constrictor"] || 0) >= 2 && caughtByConstrictor(target) ? Number(actor.tier || 1) : 0)]));
       const postDisplacements = armamentMode === "polearm" ? targets.map(target => ({ targetId: target.id, mode: "push", maximum: 3, name: "Древко", ruleId: "vagabond.master-at-arms.1", collisionDamagePerCell: 0 })) : breacherSkirmish ? targets.filter(target => distance(attackOrigin, target) <= 2).map(target => ({ targetId: target.id, mode: "push", maximum: 1, name: "Картечь", ruleId: "powerhouse.breacher.1", collisionDamagePerCell: 0 })) : [];
       const dragonslayerTear = actionIs(action, "finish") && actionAttribute === "body" && Number(actor.techniques?.["powerhouse.dragonslayer"] || 0) >= 1 ? ["negative.разорван"] : [];
       const postSelfEffects = armamentMode === "blade" ? ["positive.усилен"] : [], postTargetEffects = armamentMode === "polearm" ? ["negative.подброшен", "negative.замедлен"] : armamentMode === "chain" ? ["negative.разорван", "negative.порчен"] : [];
@@ -900,9 +901,10 @@ function prepareEnemyRule(scene, data, request = {}) {
     const hostileTargets = targets.filter(target => target.team !== actor.team), alliedTargets = targets.filter(target => target.team === actor.team);
     hostileTargets.forEach(target => events.push({ type: "reaction.offer", actorId: target.id, payload: { sourceActorId: actor.id, actionId: rule.id } }));
     const tensionMultiplier = Number(ENEMY_AUTO_ATTACK_RULES.get(rule.id) || 0);
-    const baseDamage = (hasRoll ? Number(request.roll.successes || 0) + Number(scene.tension || 0) * tensionMultiplier : Number(request.damage)) * Math.max(1, Number(family.damageRepeats || 1));
+    const effectAttack = effectAttackStatus(scene, actor.id, hostileTargets.map(target => target.id));
+    const baseDamage = ((hasRoll ? Number(request.roll.successes || 0) + Number(scene.tension || 0) * tensionMultiplier : Number(request.damage)) + Number(effectAttack.damageModifier || 0)) * Math.max(1, Number(family.damageRepeats || 1));
     const damageByTarget = Object.fromEntries(hostileTargets.map(target => {
-      let amount = baseDamage;
+      let amount = baseDamage + Number(effectAttack.damageByTarget?.[target.id] || 0);
       if (family.bonusTensionAtRange && distance(attackOrigin, target) >= Number(family.bonusTensionAtRange)) amount += Number(scene.tension || 0);
       if (family.provokedTierDamage && (target.effects || []).includes("negative.спровоцирован")) amount += Number(actor.tier || 1);
       if (family.broodmotherDamage) amount += (scene.actors || []).filter(item => item.kind === "crowd" && !item.knockedOut && item.team === actor.team && distance(attackOrigin, item) <= 1).length;
