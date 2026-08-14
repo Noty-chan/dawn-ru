@@ -92,6 +92,21 @@ const stepped=Engine.dispatchMany(baseScene,canonicalStep).scene;
 assert.equal(stepped.actors[0].x,0);
 assert.equal(stepped.actors[0].y,1,"movement is authoritative and arrives as one canonical result");
 
+const deploymentScene=structuredClone(baseScene);
+deploymentScene.activeActorId=null;
+deploymentScene.actors.forEach(actor=>{actor.acted=false});
+deploymentScene.objects=[{id:"custom-hero-deploy",type:"deploy-hero",space:"side",cells:["1,2","2,2"]}];
+const deploymentEvents=[
+  {type:"actor.move",actorId:"hero",payload:{space:"side",x:2,y:2,movement:"Развертывание",placement:true}},
+  {type:"actor.enter",actorId:"hero",payload:{space:"side",x:2,y:2,movement:"Развертывание",placement:true}},
+];
+const deploymentIntent=Network.intentFromEvents(deploymentScene,deploymentEvents,"Развертывание: Герой");
+assert.equal(deploymentIntent.kind,"deployment","pre-combat placement has a dedicated safe online intent");
+const canonicalDeployment=Network.materializeIntent(deploymentScene,data,deploymentIntent,"player-1",{sceneEngine:Engine});
+const deployed=Engine.dispatchMany(deploymentScene,canonicalDeployment).scene;
+assert.deepEqual([deployed.actors[0].x,deployed.actors[0].y],[2,2],"a player can reposition inside a custom hero deployment zone");
+assert.throws(()=>Network.materializeIntent(deploymentScene,data,{...deploymentIntent,destination:{space:"side",x:3,y:3}},"player-1",{sceneEngine:Engine}),/только в зоне/i,"the authority still rejects placement outside the custom zone");
+
 const onlineBladeScene=structuredClone(baseScene);
 onlineBladeScene.actors[0].x=0;onlineBladeScene.actors[0].y=0;onlineBladeScene.actors[0].techniques={"vagabond.master-at-arms":1};
 onlineBladeScene.actors[1].x=2;onlineBladeScene.actors[1].y=0;

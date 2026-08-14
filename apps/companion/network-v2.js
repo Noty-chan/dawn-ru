@@ -146,6 +146,8 @@
   function intentFromEvents(scene,events,label="Действие игрока"){
     const raw=Array.isArray(events)?events:[];
     if(!raw.length||raw.length>192)throw new Error("Некорректный пакет событий");
+    const deploymentMove=raw.find(event=>event.type==="actor.move"&&event.payload?.placement&&event.payload?.movement==="Развертывание");
+    if(deploymentMove)return{kind:"deployment",label:String(label).slice(0,160),actorId:deploymentMove.actorId,destination:{space:String(deploymentMove.payload.space||""),x:Number(deploymentMove.payload.x),y:Number(deploymentMove.payload.y)}};
     const invisibleRemove=raw.find(event=>event.type==="effect.remove"&&event.payload?.effect==="positive.невидим");
     const invisibleApply=raw.find(event=>event.type==="effect.apply"&&event.payload?.effect==="positive.исчез");
     if(invisibleRemove&&invisibleApply&&invisibleRemove.actorId===invisibleApply.actorId)return{kind:"invisible-disappear",label:String(label).slice(0,160),actorId:invisibleRemove.actorId};
@@ -216,6 +218,14 @@
     if(!Engine)throw new Error("Ядро Сцены не загружено");
     if(!intent||typeof intent!=="object")throw new Error("Пустое намерение игрока");
     const actor=ownedActor(scene,intent.actorId,ownerId);
+    if(intent.kind==="deployment"){
+      const destination=intent.destination||{},space=(scene.spaces||[]).find(item=>item.id===destination.space),combatStarted=Boolean(scene.activeActorId||Number(scene.round||1)>1||(scene.actors||[]).some(item=>item.kind!=="crowd"&&item.acted));
+      if(combatStarted)throw new Error("Развертывание уже завершено");
+      if(!space||actor.space!==space.id||!Number.isInteger(Number(destination.x))||!Number.isInteger(Number(destination.y))||Number(destination.x)<0||Number(destination.y)<0||Number(destination.x)>=Number(space.width)||Number(destination.y)>=Number(space.height))throw new Error("Некорректная клетка развертывания");
+      const team=actor.team==="enemy"?"enemy":"hero",explicit=[...new Set((scene.objects||[]).filter(object=>object.space===space.id&&object.type===`deploy-${team}`).flatMap(object=>object.cells||[]))],fallback=space.mode==="cinematic"?(team==="hero"?["0,0","1,0"]:["5,0","6,0"]):Array.from({length:Number(space.height)},(_,y)=>`${team==="hero"?0:Number(space.width)-1},${y}`),allowed=explicit.length?explicit:fallback,key=`${Number(destination.x)},${Number(destination.y)}`;
+      if(!allowed.includes(key))throw new Error(`Развертывание ${team==="enemy"?"врага":"героя"} разрешено только в зоне его стороны`);
+      return[{type:"actor.move",actorId:actor.id,payload:{space:space.id,x:Number(destination.x),y:Number(destination.y),movement:"Развертывание",placement:true}},{type:"actor.enter",actorId:actor.id,payload:{space:space.id,x:Number(destination.x),y:Number(destination.y),movement:"Развертывание",placement:true}}];
+    }
     if(intent.kind==="action-plan-start"){
       const result=Engine.prepareActionPlan(scene,data,{actorId:actor.id,actionId:intent.actionId,phase:intent.phase,context:safeObject(intent.context)});
       if(!result.ok)throw new Error(result.errors.join(" "));

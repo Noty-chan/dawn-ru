@@ -387,7 +387,7 @@ function attrValueFor(hero,key,includeConversion=true){return hero.attrs[key]+he
 function attrValue(key,includeConversion=true){return attrValueFor(S,key,includeConversion)}
 function derivedFor(hero){return {hp:attrValueFor(hero,"body")*2+hero.tier*2,guts:1+attrValueFor(hero,"body"),speed:2+Math.ceil(attrValueFor(hero,"talent")/2),focus:1+Math.ceil(attrValueFor(hero,"spirit")/2)}}
 function derived(){return derivedFor(S)}
-function sceneCombatStarted(scene=Scene){return Boolean(scene.activeActorId||Number(scene.round||1)>1||(scene.actors||[]).some(actor=>actor.acted))}
+function sceneCombatStarted(scene=Scene){return Boolean(scene.activeActorId||Number(scene.round||1)>1||(scene.actors||[]).some(actor=>actor.kind!=="crowd"&&actor.acted))}
 function ensureRuntime(){const d=derived(),health=Logic.reconcileHealthRuntime({current:S.runtime.hp,previousMax:S.runtime.maxHp,nextMax:d.hp});S.runtime.hp=health.current;S.runtime.maxHp=health.maximum;if(S.runtime.focus===null)S.runtime.focus=d.focus;if(hasGift("Trust Fund")){if(S.runtime.funding===null){S.runtime.funding=10+5*(S.tier-1);S.runtime.fundingTier=S.tier}else if(S.runtime.fundingTier<S.tier){S.runtime.funding+=5*(S.tier-S.runtime.fundingTier);S.runtime.fundingTier=S.tier}}}
 
 function abilityCost(ability=S.ability){
