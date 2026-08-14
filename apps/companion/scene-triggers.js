@@ -620,11 +620,17 @@ function triggeredEvents(scene, event, options = {}) {
     const owner = marker && actorById(scene, marker.ownerActorId);
     if (owner && !owner.knockedOut) events.push({ type: "rule.prompt", actorId: owner.id, payload: { id: `prompt-${event.id}-chaser`, kind: "knife-chaser", sourceActorId: owner.id, targetId: actor.id, markerId: marker.id, title: "Преследователь", text: `Телепортироваться к Оружию и использовать Быструю Стычку против ${actor.name}?`, options: ["chase", "pass"], context: { markerId: marker.id }, participantIds: [owner.id, actor.id] } });
   }
-  if (event.type === "actor.move" && actor && payload.from && !payload.forced && !scene.pendingPrompt && !scene.pendingAction && !promptQueued()) {
-    const sentry = (scene.actors || []).find(owner => !owner.knockedOut && owner.team !== actor.team && Number(owner.techniques?.["bulwark.stalwart-sentry"] || 0) >= 2 && owner.space === payload.from.space && distance(owner, payload.from) <= 1 && distance(owner, actor) > 1);
+  if (event.type === "actor.move" && actor && payload.from && !payload.forced && !payload.placement && scene.activeActorId && !scene.pendingPrompt && !scene.pendingAction && !promptQueued()) {
+    const route = [payload.from, ...(payload.path || []).map(cell => { const [x, y] = String(cell).split(",").map(Number); return { space: payload.space || actor.space, x, y }; })];
+    if (!route.length || route.at(-1).x !== actor.x || route.at(-1).y !== actor.y) route.push({ space: actor.space, x: actor.x, y: actor.y });
+    const leavesAdjacency = owner => route.some((point, index) => index < route.length - 1 && owner.space === point.space && distance(owner, point) <= 1 && distance(owner, route[index + 1]) > 1);
+    const sentry = (scene.actors || []).find(owner => !owner.knockedOut && owner.team !== actor.team && Number(owner.techniques?.["bulwark.stalwart-sentry"] || 0) >= 2 && leavesAdjacency(owner));
     if (sentry) {
       const vigilance = clockStatus(scene, sentry.id, "bulwark.stalwart-sentry.vigilance"), options = vigilance.value > 0 ? ["punish-free", "punish-paid", "pass"] : ["punish-paid", "pass"];
       events.push({ type: "rule.prompt", actorId: sentry.id, payload: { id: `prompt-${event.id}-punishment`, kind: "sentry-punishment", sourceActorId: sentry.id, targetId: actor.id, title: "Наказание", text: `${actor.name} покидает смежность. Использовать Быструю Стычку${vigilance.value > 0 ? " и при желании очистить Бдительность вместо ОД" : ""}?`, options, context: { optionLabels: { "punish-free": "Очистить Бдительность · 0 ОД", "punish-paid": "Заплатить обычную стоимость", pass: "Не использовать" } }, participantIds: [sentry.id, actor.id] } });
+    } else {
+      const punisher = actionIdIs(payload.sourceActionId, "step") && (scene.actors || []).find(owner => !owner.knockedOut && owner.kind === "hero" && !owner.profileId && owner.team !== actor.team && leavesAdjacency(owner));
+      if (punisher) events.push({ type: "rule.prompt", actorId: punisher.id, payload: { id: `prompt-${event.id}-base-punishment`, kind: "sentry-punishment", sourceActorId: punisher.id, targetId: actor.id, title: "Наказание", text: `${actor.name} покидает смежность с ${punisher.name}. Использовать Стычку как Быструю Реакцию?`, options: ["punish-paid", "pass"], context: { basePunishment: true, optionLabels: { "punish-paid": "Использовать Наказание", pass: "Пропустить" } }, participantIds: [punisher.id, actor.id] } });
     }
   }
   if (event.type === "attack.pending" && actor && hasEffect(scene, actor, "negative.порчен")) {

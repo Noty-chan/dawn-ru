@@ -435,7 +435,7 @@ function respondRulePrompt(scene, data, request = {}) {
     events.push({ type: "attack.pending", actorId: actor.id, payload: { actionId: spell.id, techniqueRuleId: "ruiner.feral-arcana.2", techniqueName: "Сорваться с цепи", name: "Сорваться с цепи", targetIds, roll: clone(roll), damage: Number(roll.successes || 0), quickReaction: true, participantIds: [actor.id, ...targetIds] } });
   }
   if (prompt.kind === "sentry-punishment" && choice !== "pass") {
-    const skirmish = actionByKey(data, "skirmish"), roll = request.roll;
+    const skirmish = actionByKey(data, "skirmish"), roll = request.roll, basePunishment = Boolean(prompt.context?.basePunishment), sourceActionId = basePunishment ? "core.punishment" : "bulwark.stalwart-sentry.2";
     if (!target || target.knockedOut || !skirmish || !roll || !Array.isArray(roll.rolls)) return { ok: false, errors: ["Цель Наказания или бросок больше недоступны."], events: [] };
     if (choice === "punish-free") {
       if (clockStatus(scene, actor.id, "bulwark.stalwart-sentry.vigilance").value < 1) return { ok: false, errors: ["Бдительность уже пуста."], events: [] };
@@ -443,11 +443,11 @@ function respondRulePrompt(scene, data, request = {}) {
     } else {
       const cost = actorActionCost(actor, skirmish);
       if (!resourceOperationStatus(scene, actor.id, { ...cost, operation: "spend" }).available) return { ok: false, errors: ["Наказание больше нельзя оплатить."], events: [] };
-      if (cost.resource && cost.amount) events.push({ type: "resource.spend", actorId: actor.id, payload: { ...cost, sourceActionId: "bulwark.stalwart-sentry.2" } });
+      if (cost.resource && cost.amount) events.push({ type: "resource.spend", actorId: actor.id, payload: { ...cost, sourceActionId } });
     }
-    events.push({ type: "action.prepare", actorId: actor.id, payload: { actionId: skirmish.id, actionName: skirmish.name, name: "Наказание", targetIds: [target.id], quick: true, quickReaction: true, quickSource: { techniqueId: "bulwark.stalwart-sentry", level: 2, name: "На посту" } } });
-    events.push({ type: "reaction.offer", actorId: target.id, payload: { sourceActorId: actor.id, actionId: "bulwark.stalwart-sentry.2", participantIds: [actor.id, target.id] } });
-    events.push({ type: "attack.pending", actorId: actor.id, payload: { actionId: skirmish.id, techniqueRuleId: "bulwark.stalwart-sentry.2", techniqueName: "На посту", name: "Наказание", targetIds: [target.id], roll: clone(roll), damage: Number(roll.successes || 0), quickReaction: true, participantIds: [actor.id, target.id] } });
+    events.push({ type: "action.prepare", actorId: actor.id, payload: { actionId: skirmish.id, actionName: skirmish.name, name: "Наказание", targetIds: [target.id], quick: true, quickReaction: true, ...(basePunishment ? {} : { quickSource: { techniqueId: "bulwark.stalwart-sentry", level: 2, name: "На посту" } }) } });
+    events.push({ type: "reaction.offer", actorId: target.id, payload: { sourceActorId: actor.id, actionId: sourceActionId, participantIds: [actor.id, target.id] } });
+    events.push({ type: "attack.pending", actorId: actor.id, payload: { actionId: skirmish.id, ...(basePunishment ? {} : { techniqueRuleId: "bulwark.stalwart-sentry.2", techniqueName: "На посту" }), name: "Наказание", targetIds: [target.id], roll: clone(roll), damage: Number(roll.successes || 0), quickReaction: true, participantIds: [actor.id, target.id] } });
   }
   if (prompt.kind === "chronomancer-time-stop" && choice !== "pass") {
     const flow = clockStatus(scene, actor.id, "altruist.chronomancer.flow"), spell = actionByKey(data, "spell"), roll = request.roll, allIn = choice === "time-stop-all-in";
