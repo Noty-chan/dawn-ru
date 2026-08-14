@@ -47,6 +47,11 @@ assert.equal(merged.tool,"erase","the local tool survives a network snapshot");
 assert.equal(merged.activeSpace,"side","the open board space is local UI");
 assert.equal(merged.selectedActor,"hero","the open actor card is not collapsed by synchronization");
 assert.deepEqual(Array.from(merged.targetIds),["enemy"],"local target selection is not overwritten by another client");
+const historyScene=structuredClone(baseScene);
+historyScene.undo=Array.from({length:25},(_,index)=>({id:`undo-${index}`,state:{},...(index===24?{checkpoint:"turn-start"}:{})}));
+const historyMerged=Network.mergeRemoteScene(remote,historyScene);
+assert.equal(historyMerged.undo.length,20);
+assert.ok(historyMerged.undo.some(entry=>entry.checkpoint==="turn-start"),"network merges preserve the latest Turn-start checkpoint beyond the ordinary undo window");
 
 const snapshotBase=structuredClone(baseScene);
 snapshotBase.objects=[{id:"old-object",label:"Старая область",space:"side"}];

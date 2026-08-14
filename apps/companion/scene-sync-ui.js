@@ -179,7 +179,7 @@ async function flushNetworkV2Authority(items){
     }
   }
   const localUndoEntry=localUndoState
-    ?{id:uid(),label:`Сетевой такт · ${undoableEventCount} событий`,state:localUndoState}
+    ?{id:uid(),label:`Сетевой такт · ${undoableEventCount} событий`,state:localUndoState,...(allEvents.some(event=>event.type==="turn.start")?{checkpoint:"turn-start"}:{})}
     :null;
   if(!allEvents.length&&!rejectedCommandIds.length){deferred.forEach(item=>networkV2Authority.enqueue(item));return}
   const networkState=NetworkV2.networkSceneState(candidate);
@@ -195,7 +195,7 @@ async function flushNetworkV2Authority(items){
   // the canonical network snapshot. Add the accepted player tick only after
   // restoring that local state, otherwise mergeRemoteScene discards it.
   if(localUndoEntry){
-    Scene.undo=[localUndoEntry,...(Scene.undo||[])].slice(0,20);
+    Scene.undo=trimSceneHistory([localUndoEntry,...(Scene.undo||[])]);
     Scene.redo=[];
   }
   renderNetworkScene(allEvents);

@@ -93,6 +93,7 @@ function normalizedChallengeResult(value){
   return{rollEventId:typeof value.rollEventId==="string"?value.rollEventId.slice(0,120):typeof value.id==="string"?value.id.slice(0,120):"",formula:typeof value.formula==="string"?value.formula.slice(0,120):`${value.rolls.length}D6 ≥4`,rolls:value.rolls.map(Number),successes,crits,outcome:typeof value.outcome==="string"?value.outcome.slice(0,80):"",payment:typeof value.payment==="string"?value.payment.slice(0,80):"",at:typeof value.at==="string"?value.at.slice(0,32):""};
 }
 
+function trimSceneHistory(entries,limit=20){const list=Array.isArray(entries)?entries:[],kept=list.slice(0,limit),checkpoint=list.find(entry=>entry?.checkpoint==="turn-start");if(checkpoint&&!kept.includes(checkpoint)&&kept.length)kept[kept.length-1]=checkpoint;return kept}
 function sceneCore(raw){
   const base=blankScene(),scene=raw&&typeof raw==="object"?raw:{};
   base.version=clamp(scene.version,0,999999999);base.name=typeof scene.name==="string"?scene.name.slice(0,120):base.name;base.view=scene.view==="player"?"player":"gm";base.round=clamp(scene.round||1,1,999);base.turnSerial=clamp(scene.turnSerial,0,999999999);base.tension=clamp(scene.tension,0,999);base.tool=["select","place","measure","target","area","wall","marker","topology","erase"].includes(scene.tool)?scene.tool:"select";

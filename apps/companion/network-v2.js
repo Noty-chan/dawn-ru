@@ -52,8 +52,9 @@
     scene.activeSpace=spaceIds.has(ui.activeSpace)?ui.activeSpace:(scene.spaces?.[0]?.id||"main");
     scene.selectedActor=actorIds.has(ui.selectedActor)?ui.selectedActor:null;
     scene.targetIds=safeIds(ui.targetIds).filter(id=>actorIds.has(id));
-    scene.undo=Array.isArray(ui.undo)?ui.undo.slice(0,20):[];
-    scene.redo=Array.isArray(ui.redo)?ui.redo.slice(0,20):[];
+    const trimHistory=entries=>{const list=Array.isArray(entries)?entries:[],kept=list.slice(0,20),checkpoint=list.find(entry=>entry?.checkpoint==="turn-start");if(checkpoint&&!kept.includes(checkpoint)&&kept.length)kept[kept.length-1]=checkpoint;return kept};
+    scene.undo=trimHistory(ui.undo);
+    scene.redo=trimHistory(ui.redo);
     return scene;
   }
 
