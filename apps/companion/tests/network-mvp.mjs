@@ -147,6 +147,7 @@ const sceneSyncUiSource = fs.readFileSync(new URL("../scene-sync-ui.js", import.
 assert.match(sceneSyncUiSource, /ruleResponse[\s\S]+preparePromptPlacement[\s\S]+respondRulePrompt/, "rule prompt choices and placement events must be reconstructed against the narrator Scene");
 assert.match(sceneSyncUiSource, /actor\.ownerId!==command\.actor_id/, "automatic event acceptance must verify actor ownership");
 assert.match(sceneSyncUiSource, /settleIntentBatch/, "network v2 must settle a whole narrator tick atomically");
+assert.match(sceneSyncUiSource, /Scene=mergeNetworkV2Scene\(candidate,Scene\);[\s\S]+Scene\.undo=\[localUndoEntry,\.\.\.\(Scene\.undo\|\|\[\]\)\]/, "accepted player ticks must enter narrator-local undo history after the canonical scene merge");
 
 const deleteCampaignMigration = fs.readFileSync(new URL("../../../supabase/migrations/202607300001_delete_owned_campaign.sql", import.meta.url), "utf8");
 assert.match(deleteCampaignMigration, /create or replace function public\.delete_owned_campaign/i);

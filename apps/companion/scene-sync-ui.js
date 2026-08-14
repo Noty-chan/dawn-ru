@@ -175,10 +175,9 @@ async function flushNetworkV2Authority(items){
       else toast(`Изменение Нарратора отклонено: ${error?.message||"ошибка правил"}`);
     }
   }
-  if(allEvents.length&&!latestSnapshot){
-    candidate.undo.unshift({id:uid(),label:`Сетевой такт · ${allEvents.length} событий`,state:confirmed});
-    candidate.undo=candidate.undo.slice(0,20);
-  }
+  const localUndoEntry=allEvents.length&&!latestSnapshot
+    ?{id:uid(),label:`Сетевой такт · ${allEvents.length} событий`,state:confirmed}
+    :null;
   if(!allEvents.length&&!rejectedCommandIds.length){deferred.forEach(item=>networkV2Authority.enqueue(item));return}
   const networkState=NetworkV2.networkSceneState(candidate);
   const acceptedVersion=await Sync.settleIntentBatch({commandIds,rejectedCommandIds,events:allEvents,scene:networkState,expectedVersion,label:"network.v2.tick"});
@@ -189,6 +188,13 @@ async function flushNetworkV2Authority(items){
     return;
   }
   Scene=mergeNetworkV2Scene(candidate,Scene);
+  // Undo/redo are Narrator-local UI state and are deliberately stripped from
+  // the canonical network snapshot. Add the accepted player tick only after
+  // restoring that local state, otherwise mergeRemoteScene discards it.
+  if(localUndoEntry){
+    Scene.undo=[localUndoEntry,...(Scene.undo||[])].slice(0,20);
+    Scene.redo=[];
+  }
   renderNetworkScene(allEvents);
   globalThis.dispatchEvent(new CustomEvent("dawn-network-v2-settled",{detail:{commandIds,rejectedCommandIds,version:acceptedVersion}}));
   deferred.forEach(item=>networkV2Authority.enqueue(item));
