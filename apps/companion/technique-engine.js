@@ -453,6 +453,7 @@
       if (rule.actionKey === "finish" && inherited) events.push({ type: "actor.state", actorId: actor.id, payload: { key: "lastCreationSpellMarks", value: 0, sourceActionId: "ruiner.creation-ascetic.3" } });
       targetIds.forEach(id => events.push({ type: "reaction.offer", actorId: id, payload: { sourceActorId: actor.id, actionId: rule.id, participantIds: [actor.id, id] } }));
       events.push({ type: "attack.pending", actorId: actor.id, payload: { actionId: action.id, techniqueRuleId: rule.id, techniqueName: rule.name, name: rule.name, targetIds, targetCells, allowEmptyTargets: ["nails", "idol"].includes(rule.form), roll: clone(request.roll), damage: Math.max(0, baseDamage), damageByTarget, attackModifierIds: clone(request.attackModifierIds || []), creationMarksSpent: effectiveMarks, postPush: rule.form === "pile-arm" ? { targetId: targetIds[0], maximum: 99, name: rule.name, ruleId: rule.id } : null, createTerrain: rule.form === "idol" ? { cells: targetCells, label: "Живой идол · высокая местность", ruleId: rule.id, hp: 10 } : null, participantIds: [actor.id, ...targetIds] } });
+      if (request.roll?.rolls) events.push({ type: "roll.public", actorId: actor.id, payload: clone(request.roll) });
       return { ok: true, engineVersion: VERSION, actorId: actor.id, rule: publicRule(rule), request: clone(request), errors: [], warnings: [], commands: [], events, summary: `${rule.name}: Атака подготовлена`, affectedCells: targetCells, affectedActorIds: targetIds };
     }
 
@@ -575,6 +576,7 @@
       }
       targetIds.forEach(targetId => events.push({ type: "reaction.offer", actorId: targetId, payload: { sourceActorId: actorId, actionId: prepared.rule.id, participantIds: [actorId, targetId] } }));
       events.push({ type: "attack.pending", actorId, payload: { actionId: finish.id, techniqueRuleId: prepared.rule.id, techniqueName: prepared.rule.name, name: prepared.rule.name, targetIds, roll, damage: Number(roll?.successes || 0) + Number(scene.tension || 0) + (modifiers.includes("fierce") ? Number(actor?.attrs?.mind || 0) : 0), spellModifiers: modifiers, attackModifierIds: clone(prepared.request?.attackModifierIds || []), participantIds: [actorId, ...targetIds] } });
+      if (roll?.rolls) events.push({ type: "roll.public", actorId, payload: clone(roll) });
       return events;
     }
     if (prepared.rule.optionMinimum?.key === "focusSpent") events.push({ type: "resource.spend", actorId, payload: { resource: "focus", amount: Number(prepared.request?.options?.focusSpent || 0) } });

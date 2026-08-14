@@ -1366,7 +1366,7 @@ assert.equal(attack.ok, true);
 const friendlyFireScene = structuredClone(scene);
 friendlyFireScene.actors.push({ ...structuredClone(friendlyFireScene.actors[0]), id: "ally", name: "Союзник", x: 1, y: 2 });
 assert.equal(prepareAttack(friendlyFireScene, "hero", "ally").ok, false, "Basic Attacks reject allies");
-assert.deepEqual(Array.from(attack.events, event => event.type), ["action.prepare", "resource.spend", "reaction.offer", "attack.pending"]);
+assert.deepEqual(Array.from(attack.events, event => event.type), ["action.prepare", "resource.spend", "reaction.offer", "attack.pending", "roll.public"]);
 const awaiting = Engine.dispatchMany(scene, attack.events).scene;
 assert.equal(awaiting.actors[1].hp, 10, "Damage waits for every Reaction response");
 assert.deepEqual(Array.from(Engine.reactionOptions(awaiting, data, "enemy"), option => option.name), [], "An ordinary enemy exposes no player defensive Reactions");

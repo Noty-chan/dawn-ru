@@ -846,6 +846,8 @@ function respondReaction(scene, data, request = {}) {
     if (attacker && attacker.space === defender.space && distance(defender, attacker) <= 5) { options.splice(options.length - 1, 0, "spell"); optionLabels.spell = "Ответное Заклинание"; }
     events.push({ type: "rule.prompt", actorId: defender.id, payload: { id: `prompt-clash-${pending.id || pending.actorId}-${defender.id}`, kind: "clash-counterattack", sourceActorId: defender.id, targetId: pending.actorId, controller: defender.team === "hero" ? "source" : "narrator", title: "Ответ Столкновения", text: "Исходная Атака отменена. По правилам победитель может бесплатно провести Стычку или Заклинание против атакующего.", options, context: { attackerId: pending.actorId, optionLabels }, participantIds: [defender.id, pending.actorId] } });
   }
+  const pendingRoll = events.find(event => event.type === "attack.pending" && event.payload?.roll?.rolls)?.payload.roll;
+  if (pendingRoll && !events.some(event => event.type === "roll.public" && JSON.stringify(event.payload?.rolls || []) === JSON.stringify(pendingRoll.rolls || []))) events.push({ type: "roll.public", actorId: actor.id, payload: clone(pendingRoll) });
   return { ok: true, errors: [], events };
 }
 
