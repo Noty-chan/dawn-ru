@@ -116,6 +116,7 @@ assert.match(syncSource, /\["http:","https:"\]\.includes\(global\.location\.prot
 assert.match(syncSource, /function refreshSceneIfNewer[\s\S]+select\("version"\)[\s\S]+1000/, "a fast lightweight version heartbeat must recover missed Realtime Scene updates");
 assert.match(syncSource, /broadcast[\s\S]+scene-command[\s\S]+refreshPendingCommands[\s\S]+scene-updated[\s\S]+refreshSceneIfNewer\(true\)/, "Realtime broadcast wakeups must bypass the polling delay in both directions");
 assert.match(syncSource, /scene refresh failed[\s\S]+scheduleReconnect[\s\S]+command refresh failed[\s\S]+scheduleReconnect/, "transient synchronization failures must reconnect the current table automatically");
+assert.match(syncSource, /57014[\s\S]+statement timeout[\s\S]+scheduleReconnect/, "database statement timeouts must be treated as retryable connection failures");
 assert.match(syncSource, /scene_events[\s\S]+scene_version[\s\S]+refreshSceneIfNewer\(true\)/, "a public Scene event must immediately recover a missed snapshot update");
 assert.match(syncSource, /function refreshPendingCommands[\s\S]+status","pending"[\s\S]+refreshPendingCommands\(\)/, "the narrator heartbeat must recover missed player commands");
 assert.match(syncSource, /function serializeSceneMutation[\s\S]+acceptCommand[\s\S]+serializeSceneMutation[\s\S]+settleIntentBatch[\s\S]+serializeSceneMutation/s, "all authoritative Scene writes must share one mutation queue");
