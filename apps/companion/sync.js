@@ -77,7 +77,7 @@
         if(result.error)throw result.error;
         if(Number(result.data?.version)>Number(state.version)){patch({version:Number(result.data.version),status:"online",lastSyncedAt:new Date().toISOString(),error:""});emit("scene",{state:result.data.state,version:Number(result.data.version),polled:true})}
       }
-    }catch(error){console.warn("DAWN scene refresh failed",error);scheduleReconnect("scene-refresh")}
+    }catch(error){console.warn("DAWN scene refresh failed",error)}
     finally{sceneRefreshInFlight=false}
   }
   async function refreshPendingCommands(){
@@ -90,7 +90,7 @@
       if(result.error)throw result.error;
       const commands=result.data||[],signature=commands.map(command=>`${command.id}:${command.command_type}`).join("|");
       if(signature!==lastPendingCommandSignature){lastPendingCommandSignature=signature;emit("commands",commands)}
-    }catch(error){console.warn("DAWN command refresh failed",error);scheduleReconnect("command-refresh")}
+    }catch(error){console.warn("DAWN command refresh failed",error)}
     finally{pendingCommandsRefreshInFlight=false}
   }
   function scheduleReconnect(reason="connection"){
@@ -149,7 +149,7 @@
       .on("postgres_changes",{event:"UPDATE",schema:"public",table:"characters",filter:`campaign_id=eq.${subscribedCampaignId}`},payload=>{if(subscriptionIsActive()&&payload.new)emit("character",payload.new)})
       .on("broadcast",{event:"scene-command"},()=>{if(subscriptionIsActive()&&canNarrate)void refreshPendingCommands()})
       .on("broadcast",{event:"scene-updated"},payload=>{if(subscriptionIsActive()&&Number(payload?.payload?.version||0)>Number(state.version))void refreshSceneIfNewer(true)})
-      .subscribe(status=>{if(!subscriptionIsActive())return;if(status==="SUBSCRIBED"){reconnectAttempt=0;patch({status:"online",lastSyncedAt:new Date().toISOString(),error:""});global.clearInterval?.(sceneRefreshTimer);sceneRefreshTimer=global.setInterval?.(()=>{void refreshSceneIfNewer();void refreshPendingCommands()},1000)||null;void updatePresence().catch(error=>console.warn("Presence update failed",error));void refreshPendingCommands()}else if(["CHANNEL_ERROR","TIMED_OUT","CLOSED"].includes(status))scheduleReconnect(status)});
+      .subscribe(status=>{if(!subscriptionIsActive())return;if(status==="SUBSCRIBED"){reconnectAttempt=0;patch({status:"online",lastSyncedAt:new Date().toISOString(),error:""});global.clearInterval?.(sceneRefreshTimer);sceneRefreshTimer=global.setInterval?.(()=>{void refreshSceneIfNewer();void refreshPendingCommands()},5000)||null;void updatePresence().catch(error=>console.warn("Presence update failed",error));void refreshPendingCommands()}else if(["CHANNEL_ERROR","TIMED_OUT","CLOSED"].includes(status))scheduleReconnect(status)});
   }
 
   async function loadScene(sceneId){
