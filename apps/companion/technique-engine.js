@@ -83,7 +83,7 @@
     { id: "ruiner.spellcrafter.1", techniqueId: "ruiner.spellcrafter", level: 1, name: "Эксперимент", kind: "modifier-choice", automation: "decision", note: "Игрок выбирает Модификацию; ядро не угадывает выбранный вариант." },
     { id: "ruiner.spellcrafter.2", techniqueId: "ruiner.spellcrafter", level: 2, name: "Закрепление", kind: "modifier-choice", automation: "decision", note: "Оплата Новаторства Фокусом требует выбора игрока." },
     { id: "ruiner.spellcrafter.3", techniqueId: "ruiner.spellcrafter", level: 3, name: "Финализация", kind: "modifier-choice", automation: "decision", note: "Можно выбрать две разные Модификации и оплатить обе." },
-    { id: "ruiner.bombardier.1", techniqueId: "ruiner.bombardier", level: 1, name: "Взрыв!!", kind: "area", automation: "full", shape: "square3", areaType: "attack", duration: "instant", range: 4 },
+    { id: "ruiner.bombardier.1", techniqueId: "ruiner.bombardier", level: 1, name: "Взрыв!!", kind: "area", automation: "full", shape: "adjacent", areaType: "attack", duration: "instant", range: 4 },
     { id: "ruiner.bombardier.2", techniqueId: "ruiner.bombardier", level: 2, name: "Взрыв!!!", kind: "area", automation: "full", shape: "square3", areaType: "attack", duration: "instant", range: 5, optionMinimum: { key: "focusSpent", value: 2, label: "потрачено Фокуса" } },
     { id: "ruiner.bombardier.3", techniqueId: "ruiner.bombardier", level: 3, name: "ВЗРЫВ!!!!", kind: "area", automation: "full", shape: "square5", areaType: "attack", duration: "instant", range: 6, optionMinimum: { key: "focusSpent", value: 4, label: "потрачено Фокуса" }, note: "Зона, цели, трата Фокуса, Реакции и урон разрешаются общим конвейером зональной Атаки." },
     { id: "ruiner.rapid-fire-sorcery.2", techniqueId: "ruiner.rapid-fire-sorcery", level: 2, name: "Выжженная земля", kind: "area", shape: "cell", areaType: "difficult", duration: "scene" },
@@ -153,6 +153,10 @@
 
   function areaCells({ shape, anchor, width, height, orientation }) {
     if (shape === "line") return lineCells({ ...anchor, width, height, orientation });
+    if (shape === "adjacent") return unique([[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]].flatMap(([dx, dy]) => {
+      const point = { x: anchor.x + dx, y: anchor.y + dy };
+      return point.x >= 0 && point.y >= 0 && point.x < width && point.y < height ? [pointKey(point)] : [];
+    }));
     const radius = shape === "square5" ? 2 : shape === "square3" ? 1 : 0;
     const cells = [];
     if (shape === "square2") {

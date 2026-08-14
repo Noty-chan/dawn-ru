@@ -7,7 +7,7 @@ const SCENE_MARKERS={mark:{name:"Метка",symbol:"◆"},damocles:{name:"Да�
 const sceneMarkerType=kind=>SCENE_MARKERS[kind]||{name:String(kind||"Маркер"),symbol:"●"};
 const TOKEN_SYMBOLS=["","✦","☠","♟","♞","⬢","✹","◎","⚠","◈","◆"];
 const TECH_SCENE_TEMPLATES=[
-  {tech:"ruiner.bombardier",level:1,kind:"area",name:"Бомбардир I: клетка + смежные",type:"attack",shape:"square3",duration:"instant",source:"Техника: Бомбардир — Взрыв!! (Explosion!!)",hint:"центр в пределах 4 клеток"},
+  {tech:"ruiner.bombardier",level:1,kind:"area",name:"Бомбардир I: клетка + смежные",type:"attack",shape:"adjacent",duration:"instant",source:"Техника: Бомбардир — Взрыв!! (Explosion!!)",hint:"центр в пределах 4 клеток"},
   {tech:"ruiner.bombardier",level:2,kind:"area",name:"Бомбардир II: зона 3×3",type:"attack",shape:"square3",duration:"instant",source:"Техника: Бомбардир — Взрыв!!! (Explosion!!!)",hint:"при трате 2+ Фокуса; центр в пределах 5 клеток"},
   {tech:"ruiner.bombardier",level:3,kind:"area",name:"Бомбардир III: зона 5×5",type:"attack",shape:"square5",duration:"instant",source:"Техника: Бомбардир — ВЗРЫВ!!!! (EXPLOSION!!!!)",hint:"при трате 4+ Фокуса; центр в пределах 6 клеток"},
   {tech:"ruiner.rapid-fire-sorcery",level:2,kind:"area",name:"Выжженная земля",type:"difficult",shape:"cell",duration:"scene",source:"Техника: Револьверное колдовство — Выжженная земля (Scorched Earth)"},

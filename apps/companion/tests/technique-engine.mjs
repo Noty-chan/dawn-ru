@@ -73,6 +73,16 @@ assert.equal(
 );
 assert.equal(Engine.techniqueCoverage(context.DAWN_DATA, { "ruiner.bombardier": 2 }).length, 2);
 
+const baseExplosion = Engine.preview(scene, {
+  actorId: "hero",
+  ruleId: "ruiner.bombardier.1",
+  anchor: { x: 3, y: 3 },
+  options: { focusSpent: 0 },
+  roll: { formula: "8D6", rolls: [4, 4, 4, 4, 2, 2, 2, 2], successes: 4, crits: 0 },
+});
+assert.equal(baseExplosion.ok, true);
+assert.deepEqual([...baseExplosion.affectedCells].sort(), ["2,3", "3,2", "3,3", "3,4", "4,3"]);
+
 const explosion = Engine.preview(scene, {
   actorId: "hero",
   ruleId: "ruiner.bombardier.3",
