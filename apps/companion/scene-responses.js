@@ -103,9 +103,9 @@ function ruleChoiceStatus(scene, request = {}) {
 function pendingTargetOutcome(scene, pending, targetId) {
   const source = actorById(scene, pending?.actorId), originalTarget = actorById(scene, targetId), reaction = pending?.responses?.[targetId] || {}, response = reaction.choice, target = actorById(scene, reaction.redirectTargetId || targetId);
   if (!pending || !source || !target || target.knockedOut) return { available: false, reason: "Источник или цель Атаки больше не доступны.", source, target, cancelled: true, rawDamage: 0, armor: 0, evasion: 0, expectedDamage: 0 };
-  const clashCancelled = (actionIdIs(response, "clash") || reaction.enemyTrait?.clash) && reaction.clash?.defenderWins, giftCancelled = Boolean(reaction.giftReaction?.cancelAttack), body = Number(target.attrs?.body || 0), dodge = Math.ceil(Math.max(Number(target.attrs?.talent || 0), Number(target.attrs?.mind || 0)) / 2);
+  const clashCancelled = (actionIdIs(response, "clash") || reaction.enemyTrait?.clash) && reaction.clash?.defenderWins, giftCancelled = Boolean(reaction.giftReaction?.cancelAttack), body = Number(target.attrs?.body || 0);
   const alliedGas = (scene.objects || []).find(object => object.type === "gas" && object.space === target.space && object.cells?.includes(`${target.x},${target.y}`) && actorById(scene, object.ownerActorId)?.team === target.team), sourceInsideGas = alliedGas && source.space === alliedGas.space && alliedGas.cells?.includes(`${source.x},${source.y}`), gasEvasion = alliedGas && !sourceInsideGas ? 3 : 0;
-  const defense = effectDefenseStatus(scene, target.id), temporaryArmor = actionIdIs(response, "block") ? body : Number(reaction.temporaryArmor || 0), temporaryEvasion = (actionIdIs(response, "dodge") ? dodge + Number(reaction.untouchableEvasion || 0) : Number(reaction.temporaryEvasion || 0)) + gasEvasion;
+  const defense = effectDefenseStatus(scene, target.id), temporaryArmor = actionIdIs(response, "block") ? body : Number(reaction.temporaryArmor || 0), temporaryEvasion = Number(reaction.temporaryEvasion || 0) + gasEvasion;
   const rawDamage = pending.damageByTarget && Number.isFinite(Number(pending.damageByTarget[targetId])) ? Number(pending.damageByTarget[targetId]) : Number(pending.damage || 0), raw = Math.max(0, rawDamage), armor = defense.armorAllowed ? Math.max(0, Number(target.armor || 0) + temporaryArmor + defense.armorBonus) : 0, afterArmor = raw > 0 ? Math.max(1, raw - armor) : 0, evasion = Math.max(0, Number(target.evasion || 0) + temporaryEvasion), expectedDamage = clashCancelled || giftCancelled ? 0 : Math.max(0, afterArmor - Math.min(afterArmor, evasion));
   return { available: true, reason: "", source, originalTarget, target, reaction, response, cancelled: clashCancelled || giftCancelled, rawDamage, raw, armor, evasion, temporaryArmor, temporaryEvasion, afterArmor, expectedDamage };
 }
@@ -790,6 +790,8 @@ function respondReaction(scene, data, request = {}) {
     const baseDodgeDistance = Number(actor?.techniques?.["vagabond.untouchable"] || 0) >= 2 ? 3 : 2, dodgeDistance = effectMovementStatus(scene, actor.id, { distance: baseDodgeDistance }).distance, path = movementPath(scene, actor.id, request.destination, { maxDistance: dodgeDistance });
     events.push({ type: "actor.move", actorId: actor.id, payload: { space: actor.space, x: request.destination.x, y: request.destination.y, movement: "Уворот", path: path.map(cellKey) } });
     events.push({ type: "actor.enter", actorId: actor.id, payload: { space: actor.space, x: request.destination.x, y: request.destination.y } });
+    const gainedEvasion = Math.ceil(Math.max(Number(actor.attrs?.talent || 0), Number(actor.attrs?.mind || 0)) / 2) + untouchableEvasion;
+    events.push({ type: "actor.state", actorId: actor.id, payload: { key: "evasion", delta: gainedEvasion, sourceActionId: option.id, reason: "Уворот", participantIds: [actor.id, pending.actorId].filter(Boolean) } });
   }
   let responseDestination = request.destination || null;
   if (actionIs(option, "block")) {
@@ -846,7 +848,7 @@ function resolvePendingAction(scene, data) {
     const outcome = pendingTargetOutcome(scene, pending, targetId), target = outcome.target, resolvedTargetId = target?.id || targetId, traitReaction = outcome.reaction?.enemyTrait;
     if (!outcome.cancelled) {
       const { rawDamage, temporaryArmor, temporaryEvasion, expectedDamage } = outcome;
-      events.push({ type: "damage.apply", actorId: pending.actorId, payload: { targetId: resolvedTargetId, amount: rawDamage, temporaryArmor, temporaryEvasion, sourceActionId: pending.actionId, participantIds: [pending.actorId, resolvedTargetId] } });
+      events.push({ type: "damage.apply", actorId: pending.actorId, payload: { targetId: resolvedTargetId, amount: rawDamage, temporaryArmor, temporaryEvasion, dodgeEvasion: actionIdIs(outcome.response,"dodge"), sourceActionId: pending.actionId, participantIds: [pending.actorId, resolvedTargetId] } });
       const attackSucceeded = Number(pending.roll?.successes || 0) > 0 || !pending.roll && rawDamage > 0;
       const enemyFamily = pending.enemyAttackFamily || {};
       if (expectedDamage > 0) successfulEnemyTargets.push(resolvedTargetId);

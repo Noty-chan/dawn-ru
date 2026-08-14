@@ -1662,20 +1662,22 @@ assert.equal(runeScene.objects[0].type, "danger");
 assert.equal(runeScene.actors[1].ap, 0);
 
 const awaitingDodge = structuredClone(enemyAwaiting);
-awaitingDodge.pendingAction.damage = 2;
-awaitingDodge.pendingAction.damageByTarget.hero = 2;
+awaitingDodge.pendingAction.damage = 1;
+awaitingDodge.pendingAction.damageByTarget.hero = 1;
 awaitingDodge.pendingAction.effects = ["negative.помечен"];
 const dodge = Engine.respondReaction(awaitingDodge, data, { actorId: "hero", choice: "Уворот", destination: { x: 0, y: 1 } });
 assert.equal(dodge.ok, true);
 const afterDodge = Engine.dispatchMany(awaitingDodge, dodge.events).scene;
 assert.equal(afterDodge.actors[0].focus, 48);
 assert.equal(afterDodge.actors[0].x, 0);
+assert.equal(afterDodge.actors[0].evasion,2,"Dodge adds a real Evasion pool before the triggering Attack resolves");
 const dodgeOutcome = Engine.pendingTargetOutcome(afterDodge, afterDodge.pendingAction, "hero");
 assert.equal(dodgeOutcome.available, true);
 assert.equal(dodgeOutcome.expectedDamage, 0, "The shared damage outcome exposes Armor and Evasion before committing damage");
-assert.ok(dodgeOutcome.temporaryEvasion > 0);
+assert.equal(dodgeOutcome.temporaryEvasion,0,"Dodge Evasion is persistent rather than scoped to one Attack");
 const dodged = Engine.dispatchMany(afterDodge, Engine.resolvePendingAction(afterDodge, data).events).scene;
-assert.equal(dodged.actors[0].hp, 12, "Temporary Evasion can absorb all post-Armor damage");
+assert.equal(dodged.actors[0].hp, 12, "Dodge Evasion can absorb all post-Armor damage");
+assert.equal(dodged.actors[0].evasion,1,"unused Dodge Evasion remains after the triggering Attack");
 assert.ok(!dodged.actors[0].effects.includes("negative.помечен"), "A fully evaded Attack does not apply its secondary Effects");
 
 const awaitingBlock = structuredClone(enemyAwaiting);

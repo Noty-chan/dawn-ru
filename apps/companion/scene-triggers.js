@@ -71,7 +71,7 @@ const TRIGGER_RULES = [
     priority: 70,
     match: ({ scene, payload }) => {
       const target = actorById(scene, payload.targetId);
-      return Number(payload.dealt || 0) === 0 && Number(payload.temporaryEvasion || 0) > 0 && target && !target.knockedOut && Number(target.techniques?.["vagabond.untouchable"] || 0) >= 2;
+      return Number(payload.dealt || 0) === 0 && payload.dodgeEvasion === true && target && !target.knockedOut && Number(target.techniques?.["vagabond.untouchable"] || 0) >= 2;
     },
     build: ({ scene, event, payload }) => {
       const target = actorById(scene, payload.targetId);
