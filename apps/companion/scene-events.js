@@ -783,7 +783,8 @@ function reduceEvent(scene, event) {
         if (ids.has(scene.activeActorId)) scene.activeActorId = null;
         payload.applied = true;
       } else if (!compound.active && !grimRedirect && target.hp === 0 && dealt > 0) {
-        const guts = Math.max(0, Number(target.guts ?? (target.team === "enemy" ? 0 : 1 + Number(target.attrs?.body || 0))));
+        const storedGuts = Number(target.guts), guts = target.team === "enemy" ? Math.max(0, Number.isFinite(storedGuts) ? storedGuts : 0) : Math.max(1, storedGuts > 0 ? storedGuts : 1 + Number(target.attrs?.body || 0));
+        if (target.team !== "enemy" && !(storedGuts > 0)) target.guts = guts;
         target.wounds = Math.max(0, Number(target.wounds || 0));
         let knockedOut = guts === 0;
         if (guts === 0) target.hp = 0;

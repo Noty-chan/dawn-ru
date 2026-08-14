@@ -1847,6 +1847,16 @@ assert.equal(wounded.actors[0].wounds, 1);
 assert.equal(wounded.actors[0].hp, 4);
 assert.equal(wounded.actors[0].influence, 1);
 
+const legacyZeroGutsScene = structuredClone(scene);
+legacyZeroGutsScene.actors[0].hp = 7;
+legacyZeroGutsScene.actors[0].guts = 0;
+legacyZeroGutsScene.actors[0].wounds = 0;
+const legacyZeroGuts = Engine.dispatch(legacyZeroGutsScene, { type: "damage.apply", actorId: "enemy", payload: { targetId: "hero", amount: 7, ignoreArmor: true } }).scene;
+assert.equal(Boolean(legacyZeroGuts.actors[0].knockedOut), false, "A legacy network hero with zero stored Guts gains a Wound instead of being knocked out");
+assert.equal(legacyZeroGuts.actors[0].wounds, 1);
+assert.equal(legacyZeroGuts.actors[0].guts, 1 + legacyZeroGuts.actors[0].attrs.body);
+assert.equal(legacyZeroGuts.actors[0].hp, legacyZeroGuts.actors[0].guts);
+
 const finalWoundScene = structuredClone(scene);
 finalWoundScene.actors[0].hp = 1;
 finalWoundScene.actors[0].guts = 2;
@@ -1974,7 +1984,8 @@ assert.ok(Engine.availableActions(knockedOut, data, "enemy").every(action => !ac
 
 const activeKoScene = structuredClone(scene);
 activeKoScene.actors[0].hp = 1;
-activeKoScene.actors[0].guts = 0;
+activeKoScene.actors[0].guts = 4;
+activeKoScene.actors[0].wounds = 3;
 activeKoScene.actors.push({ ...structuredClone(activeKoScene.actors[0]), id: "hero-2", name: "Оставшийся герой", x: 1, y: 3, hp: 12, guts: 4, knockedOut: false, acted: false });
 const afterActiveKo = Engine.dispatch(activeKoScene, { type: "damage.apply", actorId: "enemy", payload: { targetId: "hero", amount: 5, ignoreArmor: true } }).scene;
 assert.equal(afterActiveKo.activeActorId, null);
@@ -1989,7 +2000,8 @@ assert.equal(prepareAttack(scene, "hero", "missing").ok, false, "A removed parti
 assert.throws(() => Engine.dispatch(scene, { type: "resource.spend", actorId: "hero", payload: { resource: "ap", amount: 99 } }), /изменился/, "A stale command cannot silently over-spend a resource");
 
 const interruptedSourceScene = structuredClone(awaiting);
-interruptedSourceScene.actors[0].guts = 0;
+interruptedSourceScene.actors[0].guts = 4;
+interruptedSourceScene.actors[0].wounds = 3;
 const sourceDown = Engine.dispatch(interruptedSourceScene, { type: "damage.apply", actorId: "enemy", payload: { targetId: "hero", amount: 99, ignoreArmor: true } }).scene;
 const interruptedStatus = Engine.pendingActionStatus(sourceDown);
 assert.equal(interruptedStatus.mustCancel, true);
