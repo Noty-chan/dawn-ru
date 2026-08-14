@@ -2385,6 +2385,9 @@ const sacrificeScene = Engine.dispatch(scene, { id: "gift-roll", type: "roll.pub
 const sacrificed = Engine.dispatchMany(sacrificeScene, Engine.prepareSacrifice(sacrificeScene, { actorId: "hero", rollId: "gift-roll", sacrifice: "eye" }).events).scene;assert.equal(sacrificed.rollFeed[0].outcome, "Крайний успех");assert.deepEqual(Array.from(sacrificed.actors[0].sacrifices), ["eye"]);
 
 const enemyProfiles = [...(data.enemies?.common || []), ...(data.enemies?.named || [])];
+const ritualDrawings = enemyProfiles.find(profile => profile.id === "enemy.common.cultist").rules.find(rule => rule.id === "enemy.common.cultist.action.ritual-drawings");
+assert.equal(ritualDrawings.requiresTarget, false, "Ritual Drawings selects empty cells, not an enemy character");
+assert.equal(ritualDrawings.maxTargets, 0);
 const declaredAttacks = enemyProfiles.flatMap(profile => (profile.rules || []).filter(rule => rule.kind === "attack").map(rule => ({ profile, rule })));
 assert.ok(declaredAttacks.length >= 40, "The enemy catalogue exposes the complete common Attack set");
 assert.deepEqual(declaredAttacks.filter(({ rule }) => Engine.enemyRuleAutomation(rule.id) === "assisted").map(({ rule }) => rule.id), [], "Every declared enemy Attack has an executable automation contract");

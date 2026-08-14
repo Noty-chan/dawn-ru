@@ -11931,19 +11931,15 @@ window.DAWN_DATA = {
       "text": "**Напряжение** повышается на 1. Разместите жетон **Ритуала** в трех пустых клетокх. Если противник входит в клетку с **Ритуалом**, удалите его, нанесите `[Напряжение]` урона и наложите **Ошеломлен**.",
       "reward": "",
       "dice": "",
-      "directDamage": "[Напряжение]",
+      "directDamage": "",
       "tensionMultiplier": 0,
-      "targetEffects": [
-       "Ошеломлен"
-      ],
+      "targetEffects": [],
       "selfEffects": [],
-      "effects": [
-       "Ошеломлен"
-      ],
+      "effects": [],
       "range": 0,
       "adjacent": false,
-      "maxTargets": 1,
-      "requiresTarget": true,
+      "maxTargets": 0,
+      "requiresTarget": false,
       "area": [],
       "areaAnchor": ""
      },

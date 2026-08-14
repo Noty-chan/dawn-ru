@@ -696,6 +696,15 @@ def parse_enemies(fname, kind: str) -> list:
             area_match = re.search(r"зон[уы]\s+`(\d+)\s*x\s*(\d+)`", rule["text"], re.IGNORECASE)
             rule["area"] = [int(area_match.group(1)), int(area_match.group(2))] if area_match else []
             rule["areaAnchor"] = "self" if rule["area"] and re.search(r"(?:центрированн\w+|размещенн\w+)\s+на\s+(?:себе|этом враге)", rule["text"], re.IGNORECASE) else ("point" if rule["area"] else "")
+            # Ritual Drawings creates three dormant board tokens. Its damage and
+            # Stunned effect belong to the later enter-cell trigger, not to a
+            # character selected when the action is declared.
+            if rule["id"] == "enemy.common.cultist.action.ritual-drawings":
+                rule["directDamage"] = ""
+                rule["targetEffects"] = []
+                rule["effects"] = []
+                rule["requiresTarget"] = False
+                rule["maxTargets"] = 0
     return enemies
 
 
