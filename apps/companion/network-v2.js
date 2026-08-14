@@ -169,6 +169,13 @@
       const destination=context.reappearance||context.modifierDestination||null;
       return{kind:context.reappearance&&scene?.pendingActionPlan?.phase==="reappear"?"action-plan-reappearance":"action-plan-modifier",label:String(label).slice(0,160),actorId:planUpdate.actorId,planId:planUpdate.payload?.planId,destination:clone(destination)};
     }
+    // A rule response may legitimately open an Attack in the same atomic batch
+    // (for example Punishment). Classify the answer before its derived action.
+    const response=raw.find(event=>event.type==="rule.respond");
+    if(response){
+      const move=raw.find(event=>event.type==="marker.move")||raw.find(event=>event.type==="actor.move");
+      return {kind:"rule-response",label:String(label).slice(0,160),actorId:response.actorId,promptId:response.payload?.promptId,choice:response.payload?.choice,destination:clone(response.payload?.destination||move?.payload||null),roll:clone(raw.find(event=>event.type==="roll.public")?.payload||raw.find(event=>event.type==="attack.pending")?.payload?.roll||null)};
+    }
     const technique=raw.find(event=>event.type==="technique.prepare");
     if(technique?.payload?.ruleId==="altruist.alchemist.1"){
       const potionAction=raw.find(event=>event.type==="action.prepare"&&event.actorId===technique.actorId);
@@ -198,11 +205,6 @@
     }
     const sacrifice=raw.length===1&&raw[0].type==="gift.sacrifice"?raw[0]:null;
     if(sacrifice)return{kind:"gift-sacrifice",label:String(label).slice(0,160),actorId:sacrifice.actorId,rollId:String(sacrifice.payload?.rollId||"").slice(0,120),sacrifice:String(sacrifice.payload?.sacrifice||"")};
-    const response=raw.find(event=>event.type==="rule.respond");
-    if(response){
-      const move=raw.find(event=>event.type==="marker.move")||raw.find(event=>event.type==="actor.move");
-      return {kind:"rule-response",label:String(label).slice(0,160),actorId:response.actorId,promptId:response.payload?.promptId,choice:response.payload?.choice,destination:clone(response.payload?.destination||move?.payload||null),roll:clone(raw.find(event=>event.type==="roll.public")?.payload||null)};
-    }
     const publicRoll=raw.find(event=>event.type==="roll.public");
     if(publicRoll&&raw.length===1)return {kind:"public-roll",label:String(label).slice(0,160),actorId:publicRoll.actorId,payload:safeObject(publicRoll.payload)};
     throw new Error("Это изменение пока нельзя отправить как безопасное намерение игрока");
