@@ -2176,6 +2176,16 @@ const deposited = Engine.dispatchMany(chemistDeposition, [{ type: "area.create",
 assert.ok(deposited.actors[1].effects.includes("negative.ослаблен"), "Deposition immediately applies Weakened inside newly created Gas");
 assert.equal(deposited.actors[1].hp, 9, "Deposition immediately deals Mind damage through the normal Armor pipeline");
 
+const chemistDepositionExecution = structuredClone(scene);
+chemistDepositionExecution.actors[0].techniques = { "disruptor.chemist": 3 };
+chemistDepositionExecution.actors[0].attrs.mind = 4;
+chemistDepositionExecution.actors[1].x = 2; chemistDepositionExecution.actors[1].y = 2;
+chemistDepositionExecution.actors[1].hp = 8; chemistDepositionExecution.actors[1].armor = 0;
+const depositedExecution = Engine.dispatchMany(chemistDepositionExecution, [{ type: "area.create", actorId: "hero", payload: { id: "execution-gas", space: "main", areaType: "gas", label: "Сублимация", source: "disruptor.chemist.1", ruleId: "disruptor.chemist.1", duration: "nextTurn", ownerActorId: "hero", cells: ["2,2"] } }]).scene;
+assert.equal(depositedExecution.log.find(event => event.type === "damage.apply" && event.payload?.sourceActionId === "disruptor.chemist.3")?.payload?.dealt, 4, "Deposition deals the Chemist's full Mind damage to an unarmored Assassin");
+assert.equal(depositedExecution.actors[1].knockedOut, true, "Experimental Mixture rechecks the threshold after Deposition damage from the same Gas creation");
+assert.equal(depositedExecution.actors[0].focus, 52, "The post-Deposition execution grants 2 Focus exactly once");
+
 const modifierScene = structuredClone(scene);
 modifierScene.actors[0].tier = 2;
 modifierScene.actors[1].effects = ["negative.подброшен"];

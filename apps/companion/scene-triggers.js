@@ -722,6 +722,14 @@ function triggeredEvents(scene, event, options = {}) {
       if (Number(actor.techniques?.["disruptor.chemist"] || 0) >= 3) events.push({ type: "area.create", actorId: actor.id, payload: { id: `gas-${event.id}-${target.id}`, space: target.space, areaType: "gas", label: "Сублимация", source: "disruptor.chemist.1", ruleId: "disruptor.chemist.1", duration: "nextTurn", ownerActorId: actor.id, cells: squareCells(scene, target, target, 1), participantIds: [actor.id, target.id] } });
     }
   }
+  if (event.type === "damage.apply" && payload.sourceActionId === "disruptor.chemist.3" && Number(payload.dealt || 0) > 0 && actor && Number(actor.techniques?.["disruptor.chemist"] || 0) >= 2) {
+    const target = actorById(scene, payload.targetId);
+    if (target && !target.knockedOut && (target.effects || []).includes("negative.ослаблен") && Number(target.hp || 0) <= Number(actor.attrs?.mind || 0)) {
+      events.push({ type: "actor.knockout", actorId: actor.id, payload: { targetId: target.id, sourceActionId: "disruptor.chemist.2", reason: "Экспериментальная смесь после урона Осаждения", participantIds: [actor.id, target.id] } });
+      events.push({ type: "resource.gain", actorId: actor.id, payload: { resource: "focus", amount: 2, sourceActionId: "disruptor.chemist.2", participantIds: [actor.id, target.id] } });
+      if (Number(actor.techniques?.["disruptor.chemist"] || 0) >= 3) events.push({ type: "area.create", actorId: actor.id, payload: { id: `gas-${event.id}-${target.id}`, space: target.space, areaType: "gas", label: "Сублимация", source: "disruptor.chemist.1", ruleId: "disruptor.chemist.1", duration: "nextTurn", ownerActorId: actor.id, cells: squareCells(scene, target, target, 1), participantIds: [actor.id, target.id] } });
+    }
+  }
   if ((event.type === "area.remove" || event.type === "object.damage" && Number(payload.dealt || 0) > 0) && actor && Number(actor.techniques?.["ruiner.creation-ascetic"] || 0) >= 2) events.push({ type: "rule-resource.gain", actorId: actor.id, payload: { resource: "creation-marks", amount: 1, sourceActionId: "ruiner.creation-ascetic.2" } });
   if (event.type === "attack.clear" && !scene.pendingPrompt && !promptQueued()) {
     const ranger = [...new Set(payload.targetIds || [])].map(id => actorById(scene, id)).find(target => !target?.knockedOut && target?.profileId === "enemy.common.ranger");
