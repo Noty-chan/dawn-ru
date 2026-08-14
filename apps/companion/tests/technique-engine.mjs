@@ -128,6 +128,7 @@ const bombardierOnTerrain = Engine.preview(gasScene, {
 const bombardierEvents = Engine.toEvents(gasScene, bombardierOnTerrain, { makeId: prefix => `test-${prefix}` });
 const bombardierPending = bombardierEvents.find(event => event.type === "attack.pending");
 assert.equal(bombardierPending.payload.targetedTerrainId, "terrain");
+assert.equal(bombardierPending.payload.targetsTerrainCell, true);
 assert.deepEqual(JSON.parse(JSON.stringify(bombardierPending.payload.techniqueAnchor)), { x: 3, y: 3 });
 const highGroundScene = structuredClone(gasScene);
 highGroundScene.objects[0] = { ...highGroundScene.objects[0], id: "roof", type: "high", label: "Крыша" };
@@ -136,6 +137,12 @@ const bombardierOnRoof = Engine.preview(highGroundScene, {
   options: { focusSpent: 0 }, roll: { formula: "4D6", rolls: [4, 4, 2, 2], successes: 2, crits: 0 },
 });
 assert.equal(Engine.toEvents(highGroundScene, bombardierOnRoof).find(event => event.type === "attack.pending").payload.targetedTerrainId, "roof", "Chemist recognizes high ground under the centered enemy as terrain");
+const plainGroundPending = Engine.toEvents(scene, Engine.preview(scene, {
+  actorId: "hero", ruleId: "ruiner.bombardier.1", anchor: { x: 3, y: 3 },
+  options: { focusSpent: 0 }, roll: { formula: "4D6", rolls: [4, 4, 2, 2], successes: 2, crits: 0 },
+})).find(event => event.type === "attack.pending");
+assert.equal(plainGroundPending.payload.targetedTerrainId, null);
+assert.equal(plainGroundPending.payload.targetsTerrainCell, true, "the centered enemy cell remains a Chemist terrain target on ordinary ground");
 assert.equal(committedGas.scene.objects[0].duration, "nextTurn");
 const gasEvents = Engine.toEvents(gasScene, gas, { makeId: prefix => `event-${prefix}` });
 const eventGas = SceneEngine.dispatchMany({ ...gasScene, version: 0, log: [] }, gasEvents).scene;

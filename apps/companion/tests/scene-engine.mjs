@@ -2130,6 +2130,16 @@ const sublimated = Engine.dispatchMany(sublimationOffered, Engine.respondRulePro
 assert.equal(sublimated.objects.some(object => object.id === "chemist-terrain"), false);
 assert.equal(sublimated.objects.find(object => object.type === "gas")?.cells.length, 9);
 
+const plainGroundChemist = structuredClone(scene);
+plainGroundChemist.actors[0].techniques = { "ruiner.bombardier": 1, "disruptor.chemist": 3 };
+plainGroundChemist.actors[1].x = 2; plainGroundChemist.actors[1].y = 2;
+const plainSublimationOffered = Engine.dispatchMany(plainGroundChemist, [{ type: "action.resolve", actorId: "hero", payload: { actionId: actionNamed("Завершение").id, name: "Взрыв!!", techniqueRuleId: "ruiner.bombardier.1", techniqueAnchor: { x: 2, y: 2 }, targetsTerrainCell: true, targetedTerrainId: null, targetIds: ["enemy"] } }]).scene;
+assert.equal(plainSublimationOffered.pendingPrompt.kind, "chemist-sublimation", "Bombardier centered on an enemy offers Chemist on ordinary ground");
+const plainGas = Engine.dispatchMany(plainSublimationOffered, Engine.respondRulePrompt(plainSublimationOffered, data, { choice: "sublimate" }).events).scene;
+assert.equal(plainGas.objects.find(object => object.type === "gas")?.cells.length, 9);
+assert.ok(plainGas.actors[1].effects.includes("negative.ослаблен"), "Deposition applies Weakened when ordinary ground becomes Gas");
+assert.equal(plainGas.actors[1].hp, 9, "Deposition damage follows the same ordinary-ground chain");
+
 const chemistGasDefense = structuredClone(scene);
 chemistGasDefense.objects = [{ id: "friendly-gas", space: "main", type: "gas", ownerActorId: "hero", cells: ["1,1"], duration: "nextTurn" }];
 const protectedOutcome = Engine.pendingTargetOutcome(chemistGasDefense, { actorId: "enemy", targetIds: ["hero"], damage: 5, responses: { hero: { choice: "accept" } } }, "hero");
