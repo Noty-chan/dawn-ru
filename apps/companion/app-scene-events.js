@@ -1,5 +1,9 @@
 "use strict";
 
+// Clash has a rules-mandated free counterattack whose roll depends on the
+// player's selected base Attack. Handle it before the generic prompt router.
+$('scene-flow').addEventListener('click',event=>{const button=event.target.closest('[data-rule-prompt-choice]'),choice=button?.dataset.rulePromptChoice;if(Scene.pendingPrompt?.kind!=="clash-counterattack"||!["skirmish","spell"].includes(choice))return;event.preventDefault();event.stopImmediatePropagation();if(!canControlScenePrompt())return toast("Это решение принимает другой участник");const owner=Scene.actors.find(actor=>actor.id===Scene.pendingPrompt?.sourceActorId),action=SceneEngine.actionByKey(D,choice),roll=owner&&action?coreActionRoll(owner,action):null,prepared=SceneEngine.respondRulePrompt(Scene,D,{choice,roll});if(!prepared.ok)return toast(prepared.errors.join(" "));const committed=commitSceneEvents(Scene.pendingPrompt?.title||"Ответ Столкновения",prepared.events);if(committed)toast(committed.pending?"Решение отправлено за стол":"Ответная Атака подготовлена")},true);
+
 // Narrator cleanup must remain available even when a rules chain is stale.
 document.addEventListener("click",event=>{
   if(activeSceneView()!=="gm"||!(Scene.pendingAction||Scene.pendingPrompt||Scene.pendingActionPlan))return;

@@ -34,7 +34,7 @@ function blankHero(){
 }
 
 function blankScene(){
-  return {schema:14,version:0,name:"Структурированный бой",view:"gm",round:1,turnSerial:0,tension:0,tool:"select",activeSpace:"main",activeActorId:null,spaces:[{id:"main",name:"Основное поле",mode:"standard",width:7,height:7}],actors:[],objects:[],walls:[],markers:[],topology:{cuts:[]},artworks:[],backgroundArt:null,backgroundView:{fit:"cover",position:"center",dim:28,gridOpacity:58},featuredArt:null,selectedActor:null,targetIds:[],pendingActionPlan:null,pendingAction:null,pendingPrompt:null,triggerQueue:[],challengeRequest:null,opposedRoll:null,sessionClocks:[],reminders:[],ruleHandouts:[],tools:{clocksMigrated:false},rollFeed:[],log:[],undo:[],redo:[]};
+  return {schema:14,version:0,name:"Структурированный бой",view:"gm",round:1,turnSerial:0,tension:0,tool:"select",activeSpace:"main",activeActorId:null,spaces:[{id:"main",name:"Основное поле",mode:"standard",width:7,height:7}],actors:[],objects:[],walls:[],markers:[],topology:{cuts:[]},artworks:[],backgroundArt:null,backgroundView:{fit:"cover",position:"center",dim:28,gridOpacity:58},featuredArt:null,selectedActor:null,targetIds:[],pendingActionPlan:null,pendingAction:null,pendingPrompt:null,triggerQueue:[],challengeRequest:null,opposedRoll:null,sessionClocks:[],reminders:[],ruleHandouts:[],tools:{clocksMigrated:false},rollFeed:[],log:[],undo:[],redo:[],turnUndo:[]};
 }
 
 function safeImage(value,maxLength=520000){
@@ -93,7 +93,7 @@ function normalizedChallengeResult(value){
   return{rollEventId:typeof value.rollEventId==="string"?value.rollEventId.slice(0,120):typeof value.id==="string"?value.id.slice(0,120):"",formula:typeof value.formula==="string"?value.formula.slice(0,120):`${value.rolls.length}D6 ≥4`,rolls:value.rolls.map(Number),successes,crits,outcome:typeof value.outcome==="string"?value.outcome.slice(0,80):"",payment:typeof value.payment==="string"?value.payment.slice(0,80):"",at:typeof value.at==="string"?value.at.slice(0,32):""};
 }
 
-function trimSceneHistory(entries,limit=20){const list=Array.isArray(entries)?entries:[],kept=list.slice(0,limit),checkpoint=list.find(entry=>entry?.checkpoint==="turn-start");if(checkpoint&&!kept.includes(checkpoint)&&kept.length)kept[kept.length-1]=checkpoint;return kept}
+function trimSceneHistory(entries,limit=20){return(Array.isArray(entries)?entries:[]).slice(0,limit)}
 function sceneCore(raw){
   const base=blankScene(),scene=raw&&typeof raw==="object"?raw:{};
   base.version=clamp(scene.version,0,999999999);base.name=typeof scene.name==="string"?scene.name.slice(0,120):base.name;base.view=scene.view==="player"?"player":"gm";base.round=clamp(scene.round||1,1,999);base.turnSerial=clamp(scene.turnSerial,0,999999999);base.tension=clamp(scene.tension,0,999);base.tool=["select","place","measure","target","area","wall","marker","topology","erase"].includes(scene.tool)?scene.tool:"select";
@@ -174,8 +174,8 @@ function sceneCore(raw){
 }
 
 function normalizeScene(raw){
-  const history=rows=>Array.isArray(rows)?rows.slice(0,20).filter(row=>row&&typeof row==="object"&&row.state).map(row=>({id:typeof row.id==="string"?row.id:uid(),label:typeof row.label==="string"?row.label.slice(0,160):"Изменение",state:sceneCore(row.state)})):[];
-  const base=sceneCore(raw);base.undo=history(raw?.undo);base.redo=history(raw?.redo);return base;
+  const history=(rows,limit=20)=>Array.isArray(rows)?rows.slice(0,limit).filter(row=>row&&typeof row==="object"&&row.state).map(row=>({id:typeof row.id==="string"?row.id:uid(),label:typeof row.label==="string"?row.label.slice(0,160):"Изменение",state:sceneCore(row.state),...(row.checkpoint==="turn-start"?{checkpoint:"turn-start"}:{})})):[];
+  const base=sceneCore(raw);base.undo=history(raw?.undo);base.redo=history(raw?.redo);base.turnUndo=history(raw?.turnUndo,120);return base;
 }
 
 const TABLE_BACKUP_FORMAT="dawn-ru-table-backup",TABLE_BACKUP_SCHEMA=1,TABLE_RECOVERY_KEY="dawn-ru-companion-table-recovery-v1",TABLE_RECOVERY_META_KEY="dawn-ru-companion-table-recovery-meta-v1";

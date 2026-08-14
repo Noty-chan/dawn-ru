@@ -179,8 +179,9 @@ async function flushNetworkV2Authority(items){
     }
   }
   const localUndoEntry=localUndoState
-    ?{id:uid(),label:`Сетевой такт · ${undoableEventCount} событий`,state:localUndoState,...(allEvents.some(event=>event.type==="turn.start")?{checkpoint:"turn-start"}:{})}
+    ?{id:uid(),label:`Сетевой такт · ${undoableEventCount} событий`,state:localUndoState}
     :null;
+  const startsTurn=allEvents.some(event=>event.type==="turn.start"),endsRound=allEvents.some(event=>event.type==="round.end"),turnCheckpoint=startsTurn&&localUndoState?{id:uid(),label:"До начала Хода",state:localUndoState,checkpoint:"turn-start"}:null;
   if(!allEvents.length&&!rejectedCommandIds.length){deferred.forEach(item=>networkV2Authority.enqueue(item));return}
   const networkState=NetworkV2.networkSceneState(candidate);
   const acceptedVersion=await Sync.settleIntentBatch({commandIds,rejectedCommandIds,events:allEvents,scene:networkState,expectedVersion,label:"network.v2.tick"});
@@ -191,6 +192,8 @@ async function flushNetworkV2Authority(items){
     return;
   }
   Scene=mergeNetworkV2Scene(candidate,Scene);
+  if(endsRound)Scene.turnUndo=[];
+  if(turnCheckpoint)Scene.turnUndo=[turnCheckpoint,...(Scene.turnUndo||[])].slice(0,120);
   // Undo/redo are Narrator-local UI state and are deliberately stripped from
   // the canonical network snapshot. Add the accepted player tick only after
   // restoring that local state, otherwise mergeRemoteScene discards it.

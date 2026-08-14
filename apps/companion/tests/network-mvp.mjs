@@ -150,7 +150,7 @@ assert.match(sceneSyncUiSource, /settleIntentBatch/, "network v2 must settle a w
 assert.match(sceneSyncUiSource, /Scene=mergeNetworkV2Scene\(candidate,Scene\);[\s\S]+Scene\.undo=trimSceneHistory\(\[localUndoEntry,\.\.\.\(Scene\.undo\|\|\[\]\)\]\)/, "accepted player ticks must enter narrator-local undo history after the canonical scene merge");
 assert.match(sceneSyncUiSource, /beforeItem=sceneCore\(candidate\)[\s\S]+if\(!localUndoState\)localUndoState=beforeItem[\s\S]+const localUndoEntry=localUndoState/, "undo must capture the state immediately before accepted events even when a narrator snapshot shares the same network tick");
 assert.doesNotMatch(sceneSyncUiSource, /localUndoEntry=allEvents\.length&&!latestSnapshot/, "a coalesced narrator snapshot must not suppress undo for accepted player actions");
-assert.match(sceneSyncUiSource, /allEvents\.some\(event=>event\.type===["']turn\.start["']\)[\s\S]+checkpoint:["']turn-start["']/, "accepted Turn starts must become protected undo checkpoints");
+assert.match(sceneSyncUiSource, /allEvents\.some\(event=>event\.type===["']turn\.start["']\)[\s\S]+turnCheckpoint[\s\S]+Scene\.turnUndo=\[turnCheckpoint/, "accepted Turn starts must enter separate turn checkpoint history");
 
 const deleteCampaignMigration = fs.readFileSync(new URL("../../../supabase/migrations/202607300001_delete_owned_campaign.sql", import.meta.url), "utf8");
 assert.match(deleteCampaignMigration, /create or replace function public\.delete_owned_campaign/i);

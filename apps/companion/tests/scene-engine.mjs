@@ -1770,8 +1770,18 @@ const clash = Engine.respondReaction(awaitingClash, data, { actorId: "hero", cho
 assert.equal(clash.ok, true, "Clash is an automated hero Reaction option");
 const afterClash = Engine.dispatchMany(awaitingClash, clash.events).scene;
 assert.equal(afterClash.pendingAction.responses.hero.clash.defenderWins, true);
-const clashed = Engine.dispatchMany(afterClash, Engine.resolvePendingAction(afterClash, data).events).scene;
+assert.equal(afterClash.pendingPrompt?.kind, "clash-counterattack", "A won Clash opens the free counterattack required by the rules");
+assert.ok(afterClash.pendingPrompt.options.includes("spell"));
+const counterattack = Engine.respondRulePrompt(afterClash, data, { choice: "spell", roll: { formula: "4D6 · Заклинание", rolls: [6, 5, 2, 1], successes: 2, crits: 1 } });
+assert.equal(counterattack.ok, true);
+const counterAwaiting = Engine.dispatchMany(afterClash, counterattack.events).scene;
+assert.equal(counterAwaiting.pendingAction.actorId, "hero");
+assert.deepEqual(Array.from(counterAwaiting.pendingAction.targetIds), ["enemy"]);
+const enemyCounterPass = Engine.respondReaction(counterAwaiting, data, { actorId: "enemy", choice: "pass" });
+const counterAnswered = Engine.dispatchMany(counterAwaiting, enemyCounterPass.events).scene;
+const clashed = Engine.dispatchMany(counterAnswered, Engine.resolvePendingAction(counterAnswered, data).events).scene;
 assert.equal(clashed.actors[0].hp, 12, "A won Clash cancels the original Attack");
+assert.equal(clashed.actors[1].hp, simpleEnemyScene.actors[1].hp - 1, "The free Skirmish or Spell, not the opposed roll itself, deals counterattack damage through normal Armor");
 
 const moved = Engine.prepareAction(scene, data, { actorId: "hero", actionId: actionNamed("Шаг").id, destination: { x: 1, y: 3 } });
 assert.equal(moved.ok, true);

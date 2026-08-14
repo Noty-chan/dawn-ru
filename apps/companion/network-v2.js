@@ -6,7 +6,7 @@
   const MAX_BATCH_EVENTS=192;
   const MAX_AUTHORITY_ITEMS=200;
   const MAX_OUTBOX_ITEMS=40;
-  const LOCAL_UI_KEYS=["view","tool","activeSpace","selectedActor","targetIds","undo","redo"];
+  const LOCAL_UI_KEYS=["view","tool","activeSpace","selectedActor","targetIds","undo","redo","turnUndo"];
   const AUTOMATIC_COMMANDS=new Set(["intent_v2","dispatch_events","join_hero","update_runtime","set_targets"]);
   const clone=value=>value==null?value:JSON.parse(JSON.stringify(value));
   const makeId=()=>{
@@ -39,6 +39,7 @@
     state.targetIds=[];
     delete state.undo;
     delete state.redo;
+    delete state.turnUndo;
     return state;
   }
 
@@ -52,9 +53,9 @@
     scene.activeSpace=spaceIds.has(ui.activeSpace)?ui.activeSpace:(scene.spaces?.[0]?.id||"main");
     scene.selectedActor=actorIds.has(ui.selectedActor)?ui.selectedActor:null;
     scene.targetIds=safeIds(ui.targetIds).filter(id=>actorIds.has(id));
-    const trimHistory=entries=>{const list=Array.isArray(entries)?entries:[],kept=list.slice(0,20),checkpoint=list.find(entry=>entry?.checkpoint==="turn-start");if(checkpoint&&!kept.includes(checkpoint)&&kept.length)kept[kept.length-1]=checkpoint;return kept};
-    scene.undo=trimHistory(ui.undo);
-    scene.redo=trimHistory(ui.redo);
+    scene.undo=Array.isArray(ui.undo)?ui.undo.slice(0,20):[];
+    scene.redo=Array.isArray(ui.redo)?ui.redo.slice(0,20):[];
+    scene.turnUndo=Array.isArray(ui.turnUndo)?ui.turnUndo.slice(0,120):[];
     return scene;
   }
 
