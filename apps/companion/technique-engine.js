@@ -2,6 +2,7 @@
 
 (function exposeDawnTechniqueEngine(global) {
   const VERSION = 15;
+  const CHEMIST_TERRAIN_TYPES = new Set(["terrain", "difficult", "high", "low", "custom"]);
 
   const RULES = [
     { id: "powerhouse.braggart.1.foundation", techniqueId: "powerhouse.braggart", level: 1, name: "Гордыня", kind: "foundation", foundation: "clock", automation: "partial", clockId: "powerhouse.braggart.pride", size: 6, initial: 0, note: "Гордость получает сегменты от Атак низкими Атрибутами и попаданий без защитной Реакции; полные часы дают Преимущество." },
@@ -517,7 +518,7 @@
       affectedCells = focused && rule.shape !== "line" ? segmentLineCells({ anchor, width: sourceSpace.width, height: sourceSpace.height, orientation: request.orientation, length: 7 + (outstanding ? Number(actor.attrs?.mind || 0) : 0) }) : areaCells({ shape: effectiveShape, anchor, width: sourceSpace.width, height: sourceSpace.height, orientation: request.orientation });
       affectedActorIds = (scene.actors || []).filter(item => !item.knockedOut && item.space === actor.space && affectedCells.includes(pointKey(item)) && (rule.areaType !== "attack" || item.team !== actor.team)).map(item => item.id);
       if (rule.id === "disruptor.chemist.1") {
-        const terrain = [...(scene.objects || [])].reverse().find(object => object.space === actor.space && ["terrain", "difficult", "custom"].includes(object.type) && (object.cells || []).includes(pointKey(anchor)));
+        const terrain = [...(scene.objects || [])].reverse().find(object => object.space === actor.space && CHEMIST_TERRAIN_TYPES.has(object.type) && (object.cells || []).includes(pointKey(anchor)));
         if (!terrain) errors.push("«Сублимация» должна выбирать существующий элемент местности.");
         else commands.push({ type: "remove_area", id: terrain.id, label: terrain.label });
       }
@@ -579,7 +580,7 @@
         else if (command.type === "set_targets") events.push({ type: "targets.set", actorId, payload: { actorIds: clone(command.actorIds) } });
       }
       targetIds.forEach(targetId => events.push({ type: "reaction.offer", actorId: targetId, payload: { sourceActorId: actorId, actionId: prepared.rule.id, participantIds: [actorId, targetId] } }));
-      const terrainAnchor = prepared.request?.anchor && [...(scene.objects || [])].reverse().find(object => object.space === actor?.space && ["terrain", "difficult", "custom"].includes(object.type) && (object.cells || []).includes(pointKey(prepared.request.anchor)));
+      const terrainAnchor = prepared.request?.anchor && [...(scene.objects || [])].reverse().find(object => object.space === actor?.space && CHEMIST_TERRAIN_TYPES.has(object.type) && (object.cells || []).includes(pointKey(prepared.request.anchor)));
       events.push({ type: "attack.pending", actorId, payload: { actionId: finish.id, techniqueRuleId: prepared.rule.id, techniqueName: prepared.rule.name, name: prepared.rule.name, targetIds, roll, damage: Number(roll?.successes || 0) + Number(scene.tension || 0) + (modifiers.includes("fierce") ? Number(actor?.attrs?.mind || 0) : 0), spellModifiers: modifiers, attackModifierIds: clone(prepared.request?.attackModifierIds || []), techniqueAnchor: clone(prepared.request?.anchor || null), targetedTerrainId: terrainAnchor?.id || null, participantIds: [actorId, ...targetIds] } });
       if (roll?.rolls) events.push({ type: "roll.public", actorId, payload: clone(roll) });
       return events;

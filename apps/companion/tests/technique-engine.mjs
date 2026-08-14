@@ -129,6 +129,13 @@ const bombardierEvents = Engine.toEvents(gasScene, bombardierOnTerrain, { makeId
 const bombardierPending = bombardierEvents.find(event => event.type === "attack.pending");
 assert.equal(bombardierPending.payload.targetedTerrainId, "terrain");
 assert.deepEqual(JSON.parse(JSON.stringify(bombardierPending.payload.techniqueAnchor)), { x: 3, y: 3 });
+const highGroundScene = structuredClone(gasScene);
+highGroundScene.objects[0] = { ...highGroundScene.objects[0], id: "roof", type: "high", label: "Крыша" };
+const bombardierOnRoof = Engine.preview(highGroundScene, {
+  actorId: "hero", ruleId: "ruiner.bombardier.1", anchor: { x: 3, y: 3 },
+  options: { focusSpent: 0 }, roll: { formula: "4D6", rolls: [4, 4, 2, 2], successes: 2, crits: 0 },
+});
+assert.equal(Engine.toEvents(highGroundScene, bombardierOnRoof).find(event => event.type === "attack.pending").payload.targetedTerrainId, "roof", "Chemist recognizes high ground under the centered enemy as terrain");
 assert.equal(committedGas.scene.objects[0].duration, "nextTurn");
 const gasEvents = Engine.toEvents(gasScene, gas, { makeId: prefix => `event-${prefix}` });
 const eventGas = SceneEngine.dispatchMany({ ...gasScene, version: 0, log: [] }, gasEvents).scene;
