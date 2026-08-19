@@ -210,7 +210,7 @@ SHA-256 проверенных файлов: `b9ab51ceb86ee102cd6ddb503572811679
 | ---: | --- | --- | --- | --- |
 | 1 | Небесная рука (Heavenly Arm) | проверено | частичная | `target-validation`, `event-participants`, `spatial-range`, `resource-check`, `effect-state`, `effect-lifecycle`, `movement-lifecycle`, `usage-limits`, `trigger-router`, `scene-lifecycle`, `choice-flow`, `damage-pipeline`, `action-modifier`, `transformation`, `combat-meter`, `action-copy` |
 | 2 | Эзотерические клинки (Esoteric Blades) | проверено | ручная | `trigger-router`, `choice-flow`, `transformation`, `action-copy` |
-| 3 | Святой меч, Дюрандаль (Saintly Sword, Durandal) | проверено | частичная | `target-validation`, `event-participants`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier`, `transformation` |
+| 3 | Святой меч, Дюрандаль (Saintly Sword, Durandal) | проверено | полная | `target-validation`, `event-participants`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier`, `transformation` |
 
 ## Бродяга
 
@@ -380,7 +380,7 @@ SHA-256 проверенных файлов: `b9ab51ceb86ee102cd6ddb503572811679
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Огромные руки (Big Arms) | проверено | частичная | `target-validation`, `event-participants`, `spatial-cells`, `resource-check`, `trigger-router`, `choice-flow`, `action-modifier` |
+| 1 | Огромные руки (Big Arms) | проверено | полная | `target-validation`, `event-participants`, `spatial-cells`, `resource-check`, `trigger-router`, `choice-flow`, `action-modifier` |
 | 2 | Исполин (Immense) | проверено | частичная | `movement-lifecycle`, `terrain`, `trigger-router`, `choice-flow`, `deployment-hooks`, `derived-stats`, `multi-space-actor` |
 | 3 | Ударная волна (Shockwave) | проверено | частичная | `target-validation`, `event-participants`, `spatial-cells`, `resource-check`, `effect-state`, `effect-lifecycle`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier` |
 
@@ -752,7 +752,7 @@ SHA-256 проверенных файлов: `b9ab51ceb86ee102cd6ddb503572811679
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Мягкие волны (Gentle Waves) | проверено | частичная | `target-validation`, `event-participants`, `movement-lifecycle`, `effect-state`, `effect-lifecycle`, `owned-entities`, `entity-lifecycle`, `usage-limits`, `trigger-router`, `turn-lifecycle`, `choice-flow`, `action-modifier` |
+| 1 | Мягкие волны (Gentle Waves) | проверено | полная | `target-validation`, `event-participants`, `movement-lifecycle`, `effect-state`, `effect-lifecycle`, `owned-entities`, `entity-lifecycle`, `usage-limits`, `trigger-router`, `turn-lifecycle`, `choice-flow`, `action-modifier` |
 | 2 | Мощные волны (Momentous Waves) | проверено | частичная | `target-validation`, `event-participants`, `movement-lifecycle`, `trigger-router`, `turn-lifecycle`, `damage-pipeline`, `action-modifier` |
 | 3 | Водяная клетка (Aqua Cage) | проверено | частичная | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `owned-entities`, `entity-lifecycle`, `usage-limits`, `trigger-router`, `scene-lifecycle` |
 
@@ -760,7 +760,7 @@ SHA-256 проверенных файлов: `b9ab51ceb86ee102cd6ddb503572811679
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Растущие ветра (Growing Winds) | проверено | частичная | `target-validation`, `event-participants`, `movement-lifecycle`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `turn-lifecycle`, `choice-flow`, `action-modifier`, `action-history` |
+| 1 | Растущие ветра (Growing Winds) | проверено | полная | `target-validation`, `event-participants`, `movement-lifecycle`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `turn-lifecycle`, `choice-flow`, `action-modifier`, `action-history` |
 | 2 | Восходящий поток (Updraft) | проверено | частичная | `target-validation`, `event-participants`, `movement-lifecycle`, `effect-state`, `effect-lifecycle`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `turn-lifecycle` |
 | 3 | Рассекатель гор (Mountain Carver) | проверено | частичная | `target-validation`, `event-participants`, `movement-lifecycle`, `terrain`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `choice-flow`, `damage-pipeline` |
 
@@ -770,14 +770,14 @@ SHA-256 проверенных файлов: `b9ab51ceb86ee102cd6ddb503572811679
 | ---: | --- | --- | --- | --- |
 | 1 | Стальные челюсти (Steel Jaws) | проверено | с выбором | `target-validation`, `event-participants`, `movement-lifecycle`, `terrain`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `reaction-window`, `choice-flow`, `action-modifier` |
 | 2 | Дальняя установка (Far Setting) | проверено | полная | `target-validation`, `event-participants`, `spatial-range`, `effect-state`, `effect-lifecycle`, `trigger-router`, `action-modifier` |
-| 3 | Яма-ловушка (Pit Trap) | проверено | частичная | `target-validation`, `event-participants`, `spatial-cells`, `terrain`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `action-modifier` |
+| 3 | Яма-ловушка (Pit Trap) | проверено | полная | `target-validation`, `event-participants`, `spatial-cells`, `terrain`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `action-modifier` |
 
 ### Внутренний мир (`disruptor.inner-world`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
 | 1 | Глубокий взгляд (Gaze Deeply) | проверено | частичная | `target-validation`, `event-participants`, `resource-check`, `effect-state`, `effect-lifecycle`, `trigger-router`, `choice-flow`, `action-modifier` |
-| 2 | Домен контроля (Domain Of Control) | проверено | частичная | `target-validation`, `event-participants`, `spatial-cells`, `movement-lifecycle`, `effect-state`, `effect-lifecycle`, `usage-limits`, `trigger-router`, `scene-lifecycle`, `damage-pipeline` |
+| 2 | Домен контроля (Domain Of Control) | проверено | полная | `target-validation`, `event-participants`, `spatial-cells`, `movement-lifecycle`, `effect-state`, `effect-lifecycle`, `usage-limits`, `trigger-router`, `scene-lifecycle`, `damage-pipeline` |
 | 3 | Родная территория (Home Turf) | проверено | частичная | `usage-limits`, `trigger-router`, `scene-lifecycle`, `action-modifier`, `duel-flow`, `dice-hooks` |
 
 ### Магическая схема (`disruptor.mage-s-array`)
@@ -803,14 +803,14 @@ SHA-256 проверенных файлов: `b9ab51ceb86ee102cd6ddb503572811679
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
 | 1 | Размножение (Proliferate) | проверено | частичная | `target-validation`, `event-participants`, `spatial-range`, `resource-check`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier`, `dice-hooks` |
-| 2 | Выжженная земля (Scorched Earth) | проверено | частичная | `target-validation`, `event-participants`, `terrain`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `turn-lifecycle`, `damage-pipeline` |
+| 2 | Выжженная земля (Scorched Earth) | проверено | полная | `target-validation`, `event-participants`, `terrain`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `turn-lifecycle`, `damage-pipeline` |
 | 3 | Бесконечный огонь (Endless Fire) [Зарядка -> Заклинание] | проверено | частичная | `target-validation`, `event-participants`, `trigger-router`, `action-modifier`, `action-history`, `dice-hooks`, `combat-meter` |
 
 ### Ритуалист (`ruiner.ritualist`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Лей-линии (Ley Lines) | проверено | частичная | `resource-check`, `terrain`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `choice-flow`, `action-modifier`, `combat-meter` |
+| 1 | Лей-линии (Ley Lines) | проверено | полная | `resource-check`, `terrain`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `choice-flow`, `action-modifier`, `combat-meter` |
 | 2 | Магическая артиллерия (Arcane Artillery) | проверено | частичная | `spatial-range`, `terrain`, `owned-entities`, `entity-lifecycle`, `usage-limits`, `trigger-router`, `turn-lifecycle`, `action-modifier`, `dice-hooks`, `combat-meter` |
 | 3 | Фрактальные начертания (Fractal Etchings) | проверено | ручная | `terrain`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `scene-lifecycle`, `choice-flow`, `action-modifier` |
 
@@ -827,7 +827,7 @@ SHA-256 проверенных файлов: `b9ab51ceb86ee102cd6ddb503572811679
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
 | 1 | Высвобожденная мощь (Power Unleashed) [Зарядка -> Завершение] | проверено | частичная | `resource-check`, `usage-limits`, `action-modifier`, `action-history`, `combat-meter` |
-| 2 | Бесформенная сила (Formless Strength) | проверено | частичная | `target-validation`, `event-participants`, `spatial-cells`, `choice-flow`, `action-modifier`, `action-history` |
+| 2 | Бесформенная сила (Formless Strength) | проверено | полная | `target-validation`, `event-participants`, `spatial-cells`, `choice-flow`, `action-modifier`, `action-history` |
 | 3 | Момент истины (Moment Of Truth) | проверено | частичная | `resource-check`, `trigger-router`, `choice-flow`, `duel-flow`, `dice-hooks` |
 
 ### Криомант (`ruiner.cryomancer`)
@@ -923,14 +923,14 @@ SHA-256 проверенных файлов: `b9ab51ceb86ee102cd6ddb503572811679
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
 | 1 | Я - твой меч (I Am Your Sword) | проверено | частичная | `target-validation`, `event-participants`, `movement-lifecycle`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier`, `deployment-hooks`, `transformation` |
-| 2 | Покажи свои цели (Show Your Targets) | проверено | частичная | `target-validation`, `event-participants`, `resource-check`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `turn-lifecycle`, `damage-pipeline`, `action-modifier`, `action-history`, `derived-stats` |
+| 2 | Покажи свои цели (Show Your Targets) | проверено | полная | `target-validation`, `event-participants`, `resource-check`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `turn-lifecycle`, `damage-pipeline`, `action-modifier`, `action-history`, `derived-stats` |
 | 3 | И я стану незаменимым (And I'll Become Irreplaceable) | проверено | частичная | `target-validation`, `event-participants`, `resource-check`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `choice-flow`, `action-modifier`, `dice-hooks`, `derived-stats` |
 
 ### Зов наемника (`ruiner.sellsword-s-call`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Реприза воина (A Warrior's Reprise) | проверено | частичная | `target-validation`, `event-participants`, `spatial-cells`, `resource-check`, `owned-entities`, `entity-lifecycle`, `summon-turns`, `usage-limits`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier` |
+| 1 | Реприза воина (A Warrior's Reprise) | проверено | полная | `target-validation`, `event-participants`, `spatial-cells`, `resource-check`, `owned-entities`, `entity-lifecycle`, `summon-turns`, `usage-limits`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier` |
 | 2 | Боевой гимн (Battle Hymn) | проверено | частичная | `resource-check`, `movement-lifecycle`, `effect-state`, `effect-lifecycle`, `owned-entities`, `entity-lifecycle`, `summon-turns`, `trigger-router`, `choice-flow`, `action-modifier` |
 | 3 | Верховный наемник (Supreme Sellsword) | проверено | частичная | `target-validation`, `event-participants`, `spatial-cells`, `resource-check`, `owned-entities`, `entity-lifecycle`, `summon-turns`, `usage-limits`, `trigger-router`, `scene-lifecycle`, `choice-flow`, `action-modifier`, `bond-actions`, `deployment-hooks` |
 
