@@ -187,6 +187,43 @@ const TRIGGER_RULES = [
       return [{ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${event.id}-wave-seal`, kind: "wave-rider-seal", sourceActorId: actor.id, targetId: actor.id, markerId: seal.id, title: "Печать волны", text: `${actor.name} ${event.type === "turn.start" ? "начинает Ход" : "входит"} в клетку с Печатью волны: убрать её, чтобы наложить Подброшен или переместиться до 2 клеток по линии?`, options: ["knockdown", "move", "pass"], context: { markerId: seal.id, space: seal.space, x: seal.x, y: seal.y }, participantIds: [actor.id] } }];
     },
   },
+  {
+    id: "disruptor.inner-world.2.evacuate",
+    eventTypes: ["actor.knockout", "damage.apply"],
+    priority: 70,
+    match: ({ scene, event, payload }) => {
+      const innerSpace = (scene.spaces || []).find(space => /Внутренний мир/.test(space.name || ""));
+      if (!innerSpace) return false;
+      const caster = (scene.actors || []).find(actor => !actor.knockedOut && Number(actor.techniques?.["disruptor.inner-world"] || 0) >= 2 && actor.space === innerSpace.id);
+      if (!caster) return false;
+      if (event.type === "actor.knockout") return payload.targetId && actorById(scene, payload.targetId)?.space === innerSpace.id;
+      return payload.woundGained && payload.targetId === caster.id;
+    },
+    build: ({ scene, event, payload }) => {
+      const innerSpace = (scene.spaces || []).find(space => /Внутренний мир/.test(space.name || ""));
+      const mainSpace = (scene.spaces || []).find(space => space.id !== innerSpace?.id);
+      if (!innerSpace || !mainSpace) return [];
+      const knockedOutId = event.type === "actor.knockout" ? payload.targetId : null;
+      const leaving = (scene.actors || []).filter(actor => actor.space === innerSpace.id && !actor.knockedOut && actor.id !== knockedOutId);
+      if (!leaving.length) return [];
+      const edgeCells = [];
+      for (let y = 0; y < Number(mainSpace.height || 0); y += 1) for (let x = 0; x < Number(mainSpace.width || 0); x += 1) {
+        if (x === 0 || y === 0 || x === Number(mainSpace.width) - 1 || y === Number(mainSpace.height) - 1) edgeCells.push({ x, y });
+      }
+      const occupied = new Set((scene.actors || []).filter(item => item.space === mainSpace.id && !item.knockedOut).map(item => cellKey(item)));
+      const freeEdges = edgeCells.filter(cell => !occupied.has(cellKey(cell)) && !(scene.objects || []).some(object => object.space === mainSpace.id && object.type === "terrain" && (object.cells || []).includes(cellKey(cell))));
+      if (freeEdges.length < leaving.length) return [];
+      const events = [];
+      for (let index = 0; index < leaving.length; index += 1) {
+        const mover = leaving[index], spot = freeEdges[index];
+        events.push({ type: "actor.move", actorId: mover.id, payload: { space: mainSpace.id, x: spot.x, y: spot.y, movement: "Домен контроля · выход", teleport: true, placement: true, actorInvolvedInRelease: true, participantIds: [...leaving.map(item => item.id)] } });
+        events.push({ type: "actor.enter", actorId: mover.id, payload: { space: mainSpace.id, x: spot.x, y: spot.y, movement: "Домен контроля · выход", teleport: true, placement: true } });
+        occupied.add(cellKey(spot));
+      }
+      events.push({ type: "technique.resolve", actorId: leaving[0].id, payload: { ruleId: "disruptor.inner-world.2", name: "Домен контроля", note: "Внутренний мир опустел; живые персонажи вернулись на край поля", affectedActorIds: leaving.map(item => item.id), participantIds: leaving.map(item => item.id) } });
+      return events;
+    },
+  },
 ].map(defineTriggerRule);
 
 function triggerRegistryStatus() {

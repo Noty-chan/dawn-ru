@@ -718,7 +718,7 @@ const arbitrationSource = { id: "trigger-arbitration-source", type: "effect.appl
 const arbitrationApplied = Engine.dispatch(arbitrationScene, arbitrationSource);
 const triggerRegistry = Engine.triggerRegistryStatus();
 assert.equal(triggerRegistry.available, true);
-assert.equal(triggerRegistry.count, 14);
+assert.equal(triggerRegistry.count, 15);
 assert.ok(triggerRegistry.eventTypes.includes("effect.apply"));
 assert.ok(triggerRegistry.rules.every(rule => typeof rule.id === "string" && Number.isInteger(rule.priority) && Array.isArray(rule.eventTypes)));
 assert.throws(() => Engine.defineTriggerRule({ id: "bad trigger", eventTypes: ["effect.apply"], priority: 1, match: () => true, build: () => [] }), /id декларативного триггера/);
@@ -2562,5 +2562,17 @@ assert.ok(ritualistSpend.events.some(event => event.type === "resource.spend" &&
 const noCircle = structuredClone(ritualistScene);
 noCircle.markers = [];
 assert.equal(Engine.prepareAction(noCircle, data, { actorId: "hero", actionId: actionNamed("Завершение").id, targetIds: ["enemy"], attribute: "spirit", focusSpent: 4, roll: { rolls: [6], successes: 1 } }).ok, false, "Without a circle the Spirit Finish focus ceiling stays at Tension");
+
+// Inner World: evacuating a living character to the field edge triggers the caster's Inner World release
+const innerWorldScene = structuredClone(scene);
+const innerId = "inner-1";
+innerWorldScene.spaces.push({ id: innerId, name: "Внутренний мир", width: 3, height: 3 });
+innerWorldScene.activeSpace = innerId;
+innerWorldScene.actors[0].techniques = { "disruptor.inner-world": 2 };
+Object.assign(innerWorldScene.actors[1], { space: innerId, x: 0, y: 0 });
+Object.assign(innerWorldScene.actors[0], { space: innerId, x: 1, y: 1 });
+const evacuated = Engine.dispatchMany(innerWorldScene, [{ type: "actor.knockout", actorId: "hero", payload: { targetId: "enemy", sourceActionId: "finish" } }]).scene;
+assert.equal(evacuated.actors.find(actor => actor.id === "hero").space !== innerId, true, "Knocking out a foe inside the Inner World returns the living caster to the normal field");
+assert.equal(evacuated.actors.find(actor => actor.id === "enemy").knockedOut, true, "The knocked-out prisoner stays out of combat");
 
 console.log("Scene engine QA passed: canonical Turns and AP, once-per-Round actions, strict Reactions, truthful enemy automation, effects, movement, damage, and public events");
