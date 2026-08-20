@@ -754,9 +754,15 @@ function triggeredEvents(scene, event, options = {}) {
     if (ranger) events.push({ type: "rule.prompt", actorId: ranger.id, payload: { id: `prompt-${event.id}-ranger-retreat`, kind: "enemy-ranger-retreat", sourceActorId: ranger.id, controller: "narrator", title: "Снайперская дистанция", text: `${ranger.name} может переместиться на 1 клетку после Атаки по нему.`, options: ["move", "pass"], context: { optionLabels: { move: "Переместиться", pass: "Не использовать" } }, participantIds: [ranger.id, event.actorId].filter(Boolean) } });
   }
   if (event.type === "turn.start" && actor && !scene.pendingPrompt && !promptQueued()) {
+    if (actor.profileId === "enemy.common.coordinator") {
+      for (const ally of (scene.actors || []).filter(item => !item.knockedOut && item.id !== actor.id && item.team === actor.team && item.space === actor.space && distance(actor, item) <= 4)) events.push({ type: "effect.apply", actorId: actor.id, payload: { targetId: ally.id, effect: "positive.усилен", duration: "scene", sourceActionId: "enemy.common.coordinator.passive", participantIds: [actor.id, ally.id] } });
+    }
     const flux = effectStateFor(actor, "special.поток"), sourceState = flux?.sources.find(source => actorById(scene, source.actorId)?.profileId === "enemy.common.illusionist"), illusionist = actorById(scene, sourceState?.actorId);
     const swaps = illusionist ? (scene.actors || []).filter(candidate => !candidate.knockedOut && candidate.team === illusionist.team && candidate.id !== illusionist.id && candidate.id !== actor.id) : [];
     if (illusionist && swaps.length) events.push({ type: "rule.prompt", actorId: illusionist.id, payload: { id: `prompt-${event.id}-flux`, kind: "enemy-flux-swap", sourceActorId: illusionist.id, targetId: actor.id, controller: "narrator", title: "Поток", text: `${actor.name} начинает Ход в Потоке. Иллюзионист может поменять его позицию с позицией другого врага.`, options: [...swaps.map(target => `swap:${target.id}`), "pass"], context: { optionLabels: Object.fromEntries(swaps.map(target => [`swap:${target.id}`, `Поменять с ${target.name}`])) }, participantIds: [illusionist.id, actor.id, ...swaps.map(target => target.id)] } });
+  }
+  if (event.type === "turn.end" && actor?.profileId === "enemy.common.coordinator") {
+    for (const ally of scene.actors || []) if (effectStateFor(ally, "positive.усилен")?.sources.some(source => source.actorId === actor.id && source.sourceActionId === "enemy.common.coordinator.passive")) events.push({ type: "effect.remove", actorId: actor.id, payload: { targetId: ally.id, effect: "positive.усилен", sourceOnly: true, sourceActorId: actor.id, sourceActionId: "enemy.common.coordinator.passive", participantIds: [actor.id, ally.id] } });
   }
   if (event.type === "attack.pending" && actor) {
     const duelistSource = actor.profileId === "enemy.common.duelist" ? actor : null;

@@ -2501,6 +2501,23 @@ duelistAttackFlow = Engine.dispatchMany(duelistAttackFlow, Engine.respondReactio
 duelistAttackFlow = Engine.dispatchMany(duelistAttackFlow, Engine.resolvePendingAction(duelistAttackFlow, data).events).scene;
 assert.equal(duelistAttackFlow.pendingPrompt?.kind, "enemy-move-cell", "Resolved Fleche offers the required one-cell Duelist movement");
 assert.equal(Engine.enemyRuleAutomation(profileRule("enemy.common.duelist", "Disassemble").id), "assisted", "Disassemble stays assisted until bound weak-point placement and Trump reset share a UI contract");
+// Coordinator: allies in range receive the passive Empowered state for this
+// Turn, while Neutralize Them and Fanaticize use the audited effect/attack paths.
+let coordinatorContractScene = profileScene("enemy.common.coordinator");
+coordinatorContractScene.actors.push({ ...structuredClone(coordinatorContractScene.actors[1]), id: "coordinator-ally", name: "Союзник Координатора", profileId: "enemy.common.guardian", team: "enemy", x: 3, y: 1, effects: [] });
+coordinatorContractScene.activeActorId = null;
+coordinatorContractScene = Engine.dispatchMany(coordinatorContractScene, [{ type: "turn.start", actorId: "enemy", payload: { narratorOverride: true } }], { narratorOverride: true }).scene;
+assert.ok(coordinatorContractScene.actors.find(actor => actor.id === "coordinator-ally").effects.includes("positive.усилен"), "Coordinator empowers an ally within four cells at Turn start");
+const neutralizeContract = enemyProfiles.find(item => item.id === "enemy.common.coordinator").rules.find(rule => rule.id === "enemy.common.coordinator.action.neutralize-them"), fanaticizeContract = profileRule("enemy.common.coordinator", "Fanaticize");
+assert.equal(Engine.enemyRuleAutomation(neutralizeContract.id), "effect", "Neutralize Them applies its Mark through the effect adapter");
+coordinatorContractScene.actors[1].usedActions = []; coordinatorContractScene.actors[1].ap = 3;
+coordinatorContractScene = Engine.dispatchMany(coordinatorContractScene, Engine.prepareEnemyRule(coordinatorContractScene, data, { actorId: "enemy", ruleId: neutralizeContract.id, targetIds: ["hero"] }).events).scene;
+assert.ok(coordinatorContractScene.actors[0].effects.includes("negative.помечен"), "Neutralize Them marks the selected character");
+coordinatorContractScene.actors[1].usedActions = []; coordinatorContractScene.actors[1].ap = 3;
+const fanaticizePrepared = Engine.prepareEnemyRule(coordinatorContractScene, data, { actorId: "enemy", ruleId: fanaticizeContract.id, targetIds: ["hero"], roll: { rolls: [6, 5, 4, 2, 1, 1, 1], successes: 3, crits: 1 } });
+assert.equal(fanaticizePrepared.ok, true, "Coordinator can prepare Fanaticize against an adjacent character");
+assert.equal(fanaticizePrepared.events.find(event => event.type === "attack.pending").payload.damageByTarget.hero, 6, "Fanaticize combines three successes, one Tension, and the Coordinator's Tier 2 bonus against its Marked target");
+assert.equal(Engine.enemyRuleAutomation(profileRule("enemy.common.coordinator", "Coordinated Charge").id), "assisted", "Coordinated Charge remains assisted until its ally follow-up choices have a dedicated prompt contract");
 let assassinFull = profileScene("enemy.common.assassin"), assassinMark = profileRule("enemy.common.assassin", "Neutralize Target");
 assassinFull = Engine.dispatchMany(assassinFull, Engine.prepareEnemyRule(assassinFull, data, { actorId: "enemy", ruleId: assassinMark.id, targetIds: ["hero"] }).events).scene;
 assert.ok(assassinFull.actors[0].effects.includes("negative.помечен"), "Assassin creates its durable Mark through the shared Effect state");
