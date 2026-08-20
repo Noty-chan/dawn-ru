@@ -216,12 +216,34 @@ const TRIGGER_RULES = [
       const events = [];
       for (let index = 0; index < leaving.length; index += 1) {
         const mover = leaving[index], spot = freeEdges[index];
-        events.push({ type: "actor.move", actorId: mover.id, payload: { space: mainSpace.id, x: spot.x, y: spot.y, movement: "Домен контроля · выход", teleport: true, placement: true, actorInvolvedInRelease: true, participantIds: [...leaving.map(item => item.id)] } });
+        events.push({ type: "actor.move", actorId: mover.id, payload: { space: mainSpace.id, x: spot.x, y: spot.y, movement: "Домен контроля · выход", teleport: true, placement: true, participantIds: [...leaving.map(item => item.id)] } });
         events.push({ type: "actor.enter", actorId: mover.id, payload: { space: mainSpace.id, x: spot.x, y: spot.y, movement: "Домен контроля · выход", teleport: true, placement: true } });
         occupied.add(cellKey(spot));
       }
       events.push({ type: "technique.resolve", actorId: leaving[0].id, payload: { ruleId: "disruptor.inner-world.2", name: "Домен контроля", note: "Внутренний мир опустел; живые персонажи вернулись на край поля", affectedActorIds: leaving.map(item => item.id), participantIds: leaving.map(item => item.id) } });
       return events;
+    },
+  },
+  {
+    id: "disruptor.gale-strider.1.shift",
+    eventTypes: ["turn.end"],
+    priority: 65,
+    match: ({ scene, actor }) => {
+      if (!actor || actor.knockedOut || scene.pendingPrompt || scene.pendingAction) return false;
+      const caster = (scene.actors || []).find(candidate => !candidate.knockedOut && candidate.team !== actor.team && Number(candidate.techniques?.["disruptor.gale-strider"] || 0) >= 1 && candidate.space === actor.space);
+      if (!caster) return false;
+      const typhoon = (scene.objects || []).find(object => object.space === actor.space && object.type === "danger" && object.ownerActorId === caster.id && /Тайфун|gale-strider|Растущие ветра/.test(`${object.label || ""} ${object.ruleId || object.source || ""}`) && (object.cells || []).includes(`${actor.x},${actor.y}`));
+      return Boolean(typhoon);
+    },
+    build: ({ scene, event, actor }) => {
+      const caster = (scene.actors || []).find(candidate => !candidate.knockedOut && candidate.team !== actor.team && Number(candidate.techniques?.["disruptor.gale-strider"] || 0) >= 1 && candidate.space === actor.space);
+      const typhoon = (scene.objects || []).find(object => object.space === actor.space && object.type === "danger" && object.ownerActorId === caster?.id && /Тайфун|gale-strider|Растущие ветра/.test(`${object.label || ""} ${object.ruleId || object.source || ""}`) && (object.cells || []).includes(`${actor.x},${actor.y}`));
+      if (!caster || !typhoon) return [];
+      const targets = (scene.actors || []).filter(target => !target.knockedOut && target.space === actor.space && (typhoon.cells || []).includes(`${target.x},${target.y}`));
+      const others = targets.filter(target => target.id !== caster.id);
+      if (!others.length) return [];
+      const directions = ["north", "east", "south", "west", "north-east", "south-east", "south-west", "north-west"];
+      return [{ type: "rule.prompt", actorId: caster.id, payload: { id: `prompt-${event.id}-gale-shift`, kind: "gale-strider-shift", sourceActorId: caster.id, title: "Растущие ветра", text: `${actor.name} завершил Ход в Тайфуне: переместить всех персонажей в Тайфуне на 1 клетку в одном направлении?`, options: [...directions, "pass"], context: { targetIds: targets.map(target => target.id), space: actor.space }, participantIds: [caster.id, ...targets.map(target => target.id)] } }];
     },
   },
 ].map(defineTriggerRule);

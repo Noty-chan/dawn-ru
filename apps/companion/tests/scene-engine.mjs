@@ -718,7 +718,7 @@ const arbitrationSource = { id: "trigger-arbitration-source", type: "effect.appl
 const arbitrationApplied = Engine.dispatch(arbitrationScene, arbitrationSource);
 const triggerRegistry = Engine.triggerRegistryStatus();
 assert.equal(triggerRegistry.available, true);
-assert.equal(triggerRegistry.count, 15);
+assert.equal(triggerRegistry.count, 16);
 assert.ok(triggerRegistry.eventTypes.includes("effect.apply"));
 assert.ok(triggerRegistry.rules.every(rule => typeof rule.id === "string" && Number.isInteger(rule.priority) && Array.isArray(rule.eventTypes)));
 assert.throws(() => Engine.defineTriggerRule({ id: "bad trigger", eventTypes: ["effect.apply"], priority: 1, match: () => true, build: () => [] }), /id декларативного триггера/);
@@ -2729,5 +2729,17 @@ Object.assign(innerWorldScene.actors[0], { space: innerId, x: 1, y: 1 });
 const evacuated = Engine.dispatchMany(innerWorldScene, [{ type: "actor.knockout", actorId: "hero", payload: { targetId: "enemy", sourceActionId: "finish" } }]).scene;
 assert.equal(evacuated.actors.find(actor => actor.id === "hero").space !== innerId, true, "Knocking out a foe inside the Inner World returns the living caster to the normal field");
 assert.equal(evacuated.actors.find(actor => actor.id === "enemy").knockedOut, true, "The knocked-out prisoner stays out of combat");
+
+// Gale Strider: ending a turn inside a Typhoon offers a directional shift
+const galeScene = structuredClone(scene);
+galeScene.actors[1].techniques = { "disruptor.gale-strider": 1 };
+galeScene.objects = [{ id: "typhoon", type: "danger", label: "Растущие ветра", ruleId: "disruptor.gale-strider.1", ownerActorId: "enemy", space: "main", duration: "scene", cells: ["2,1", "3,1", "4,1", "2,0", "3,0", "4,0", "2,2", "3,2", "4,2"] }];
+Object.assign(galeScene.actors[0], { x: 3, y: 1, acted: true });
+const galeFlow = Engine.dispatchMany(galeScene, [{ type: "turn.end", actorId: "hero", payload: { narratorOverride: true } }], { narratorOverride: true }).scene;
+assert.equal(galeFlow.pendingPrompt?.kind, "gale-strider-shift", "Ending a turn in a Typhoon opens the Gale Strider shift prompt");
+const galeShift = Engine.respondRulePrompt(galeFlow, data, { choice: "north" });
+assert.equal(galeShift.ok, true);
+const galeMoved = Engine.dispatchMany(galeFlow, galeShift.events).scene;
+assert.equal(galeMoved.actors.find(actor => actor.id === "hero").y, 0, "Gale Strider shifts actors in the Typhoon one cell north");
 
 console.log("Scene engine QA passed: canonical Turns and AP, once-per-Round actions, strict Reactions, truthful enemy automation, effects, movement, damage, and public events");

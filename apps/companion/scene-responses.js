@@ -650,6 +650,19 @@ function respondRulePrompt(scene, data, request = {}) {
   if (prompt.kind === "wave-rider-seal" && choice === "move") {
     events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${prompt.id}-wave-move`, kind: "wave-rider-move-cell", sourceActorId: actor.id, targetId: actor.id, markerId: prompt.context?.markerId, title: "Печать волны · перемещение", text: `Выберите клетку не дальше 2 клеток по линии от Печати волны.`, options: ["cancel"], context: { markerId: prompt.context?.markerId, seal: { space: prompt.context?.space, x: prompt.context?.x, y: prompt.context?.y } }, participantIds: [actor.id] } });
   }
+  if (prompt.kind === "gale-strider-shift" && choice !== "pass") {
+    const vectors = { north: [0, -1], east: [1, 0], south: [0, 1], west: [-1, 0], "north-east": [1, -1], "south-east": [1, 1], "south-west": [-1, 1], "north-west": [-1, -1] }, [dx, dy] = vectors[choice] || [0, 0];
+    const space = (scene.spaces || []).find(item => item.id === prompt.context?.space), spaceId = prompt.context?.space;
+    const targets = (scene.actors || []).filter(target => !target.knockedOut && (prompt.context?.targetIds || []).includes(target.id) && target.space === spaceId);
+    for (const mover of targets) {
+      const nx = Number(mover.x) + dx, ny = Number(mover.y) + dy;
+      const blocked = nx < 0 || ny < 0 || (space && (nx >= Number(space.width) || ny >= Number(space.height))) || (scene.actors || []).some(other => other.id !== mover.id && !other.knockedOut && other.space === spaceId && other.x === nx && other.y === ny);
+      if (blocked) continue;
+      events.push({ type: "actor.move", actorId: mover.id, payload: { space: spaceId, x: nx, y: ny, movement: "Растущие ветра", forced: true, placement: true, participantIds: [actor.id, ...targets.map(item => item.id)] } });
+      events.push({ type: "actor.enter", actorId: mover.id, payload: { space: spaceId, x: nx, y: ny, movement: "Растущие ветра", forced: true, placement: true } });
+    }
+    if (targets.some(mover => Number(mover.x) + dx !== Number(mover.x) || Number(mover.y) + dy !== Number(mover.y))) events.push({ type: "technique.resolve", actorId: actor.id, payload: { ruleId: "disruptor.gale-strider.1", name: "Растущие ветра", affectedActorIds: targets.map(mover => mover.id), participantIds: [actor.id, ...targets.map(mover => mover.id)] } });
+  }
   return { ok: true, errors: [], events };
 }
 
