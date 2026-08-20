@@ -2504,6 +2504,20 @@ const resolveEnemyFamily = (sourceScene, family, targetIds = ["hero"], anchor = 
   for (const targetId of targetIds) value = Engine.dispatchMany(value, Engine.respondReaction(value, data, { actorId: targetId, choice: "pass" }).events).scene;
   return Engine.dispatchMany(value, Engine.resolvePendingAction(value, data).events).scene;
 };
+// Glutton: Slobber is a real two-target Attack, including Reactions and Slow.
+let gluttonScene = profileScene("enemy.common.glutton");
+gluttonScene.actors.push({ ...structuredClone(gluttonScene.actors[0]), id: "hero-2", name: "Вторая цель", x: 2, y: 2 });
+const slobber = profileRule("enemy.common.glutton", "Slobber");
+const slobberPrepared = Engine.prepareEnemyRule(gluttonScene, data, { actorId: "enemy", ruleId: slobber.id, targetIds: ["hero", "hero-2"], roll: { rolls: [6, 5, 4, 2, 1, 1], successes: 3, crits: 1 } });
+assert.equal(slobberPrepared.ok, true, "Glutton can prepare Slobber against two adjacent targets");
+assert.equal(slobberPrepared.events.find(event => event.type === "attack.pending").payload.targetIds.length, 2, "Slobber keeps both selected targets in the pending Attack");
+let gluttonFlow = Engine.dispatchMany(gluttonScene, slobberPrepared.events).scene;
+for (const targetId of ["hero", "hero-2"]) gluttonFlow = Engine.dispatchMany(gluttonFlow, Engine.respondReaction(gluttonFlow, data, { actorId: targetId, choice: "pass" }).events).scene;
+gluttonFlow = Engine.dispatchMany(gluttonFlow, Engine.resolvePendingAction(gluttonFlow, data).events).scene;
+assert.ok(gluttonFlow.actors.find(actor => actor.id === "hero").effects.includes("negative.замедлен"), "Slobber applies Slow after a resolved hit");
+assert.ok(gluttonFlow.actors.find(actor => actor.id === "hero-2").effects.includes("negative.замедлен"), "Slobber applies Slow independently to its second hit target");
+const gluttonThird = structuredClone(gluttonScene); gluttonThird.actors.push({ ...structuredClone(gluttonScene.actors[0]), id: "hero-3", x: 1, y: 2 });
+assert.equal(Engine.prepareEnemyRule(gluttonThird, data, { actorId: "enemy", ruleId: slobber.id, targetIds: ["hero", "hero-2", "hero-3"], roll: { rolls: [6, 5], successes: 1 } }).ok, false, "Slobber rejects a third target");
 let fluxScene = profileScene("enemy.common.illusionist"); fluxScene.actors.push({ ...structuredClone(fluxScene.actors[1]), id: "illusion-ally", profileId: "enemy.common.guardian", x: 4, y: 1, ruleState: {} });
 fluxScene = resolveEnemyFamily(fluxScene, { flux: true });
 assert.ok(fluxScene.actors[0].effects.includes("special.поток"), "Distort Reality stores Flux as source-aware scene state");
