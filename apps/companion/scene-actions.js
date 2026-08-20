@@ -66,7 +66,7 @@ const ENEMY_AUTO_ATTACK_RULES = new Map([
 // otherwise ordinary attacks through existing target and post-hit families.
 const ENEMY_ATTACK_FAMILY_RULES = new Map([
   ["enemy.common.assassin.attack.slice", { effects: [], wound: "isolated", markedSlow: true, hiddenAdvantage: "3(+1)", adjacent: true }],
-  ["enemy.common.bruiser.attack.skulduggery", { effects: [], area: [2, 2], areaAnchor: "self", maxTargets: 40, postPushFormula: "1(+1)" }],
+  ["enemy.common.bruiser.attack.skulduggery", { effects: [], area: [2, 2], areaAnchor: "self", maxTargets: 40, postPushFormula: "1(+1)", stunOnIncompletePush: true }],
   ["enemy.common.behemoth.attack.tore-from-earth", { effects: [], maxTargets: 2, range: 6, createTerrainAdjacent: "10(+1)" }],
   ["enemy.common.glutton.attack.slobber", { maxTargets: 2, adjacent: true }],
   ["enemy.common.executioner.attack.cleave", { effects: ["Разорван"], maxTargets: 2, lineLength: 2, chargedAttack: true }],
@@ -139,6 +139,8 @@ const ENEMY_FULL_RULES = new Map([
   ["enemy.common.ranger.action.nest", { type: "ranger-nest" }],
   ["enemy.common.ranger.trump.headshot", { type: "ranger-headshot" }],
   ["enemy.common.duelist.action.goad", { type: "duelist-goad" }],
+  ["enemy.common.healer.action.heal", { type: "healer-heal", formula: "3(+1)" }],
+  ["enemy.common.healer.trump.savior", { type: "healer-savior" }],
   ["enemy.common.cannoneer.attack.load", { type: "cannoneer-load" }],
   ["enemy.common.oni.action.stabilize", { type: "oni-stabilize" }],
   ["enemy.common.revenant.action.lurk", { type: "revenant-lurk" }],
@@ -688,6 +690,7 @@ function prepareEnemyRule(scene, data, request = {}) {
     const eligible = enemies.filter(target => Number(target.focus || 0) === lowest);
     targetIds = eligible.some(target => targetIds.includes(target.id)) ? [targetIds.find(id => eligible.some(target => target.id === id))] : eligible.slice(0, 1).map(target => target.id);
   }
+  if (fullRule?.type === "healer-savior" && actor) targetIds = actor.ruleState?.healerGuardianId ? [actor.ruleState.healerGuardianId] : [];
   const targets = targetIds.map(id => actorById(scene, id)).filter(Boolean);
   const hiddenAssassinAttack = Boolean(family.hiddenAdvantage && (actor?.effects || []).includes("positive.исчез"));
   const assassinReappearance = hiddenAssassinAttack && request.options?.reappearance ? { x: Number(request.options.reappearance.x), y: Number(request.options.reappearance.y) } : null;
@@ -732,6 +735,8 @@ function prepareEnemyRule(scene, data, request = {}) {
   if ((available?.requiresTarget ?? rule?.requiresTarget) && !targets.length && fullRule?.type !== "guardian-shield") errors.push(rule.kind === "attack" ? "Выберите хотя бы одну цель Атаки." : "Выберите цель действия.");
   if (fullRule?.type === "executioner-bifurcate" && (targets.length !== 1 || targets[0]?.team === actor?.team)) errors.push("Рассечение требует одного противника.");
   if (fullRule?.type === "revenant-hollowed-eyes" && targets.length !== 1) errors.push("Для Пустых глаз нужен игрок с наименьшим Фокусом.");
+  if (fullRule?.type === "healer-heal" && (targets.length !== 1 || targets[0]?.team !== actor?.team || distance(actor, targets[0]) > 3)) errors.push("Лечение требует одного союзника в пределах 3 клеток.");
+  if (fullRule?.type === "healer-savior" && (targets.length !== 1 || targets[0]?.knockedOut || targets[0]?.id !== actor?.ruleState?.healerGuardianId)) errors.push("Для Спасителя сначала выберите доступного Стража в начале Хода Целителя.");
   if (actor && isAttackRule && available?.automation === "attack" && family.audience !== "any" && targets.some(target => target.team === actor.team)) errors.push("Эта автоматизированная Атака может выбирать целью только другую сторону.");
   const attackModifiers = actor && isAttackRule && available?.automation === "attack" ? attackModifierStatus(scene, actor.id, targetIds.filter(id => actorById(scene, id)?.team !== actor.team), request.attackModifierIds || []) : { available: !(request.attackModifierIds || []).length, reason: "Модификаторы доступны только Атаке, подключённой к общему окну Реакций.", selectedIds: [], advantage: 0 };
   if (!attackModifiers.available) errors.push(attackModifiers.reason);
@@ -819,6 +824,15 @@ function prepareEnemyRule(scene, data, request = {}) {
       const options = Number(target.focus || 0) >= 2 ? ["focus", "move"] : ["move"];
       events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${eventId()}-duelist-goad`, kind: "enemy-duelist-goad", sourceActorId: actor.id, targetId: target.id, controller: "narrator", title: "Поддразнить", text: `${target.name} уже Спровоцирован: потратить 2 Фокуса или переместиться на 3 клетки прямо к ${actor.name}.`, options, context: { optionLabels: { focus: "Потратить 2 Фокуса", move: "Переместиться к Дуэлянту" } }, participantIds: [actor.id, target.id] } });
     } else events.push({ type: "effect.apply", actorId: actor.id, payload: { targetId: target.id, effect: "negative.спровоцирован", sourceActionId: rule.id, participantIds: [actor.id, target.id] } });
+  }
+  if (fullRule?.type === "healer-heal") {
+    const target = targets[0], multiplier = actor.ruleState?.healerGuardianId === target.id ? 2 : 1;
+    events.push({ type: "actor.heal", actorId: actor.id, payload: { targetId: target.id, amount: enemyTierFormula(fullRule.formula, actor.tier) * multiplier, sourceActionId: rule.id, participantIds: [actor.id, target.id] } });
+  }
+  if (fullRule?.type === "healer-savior") {
+    const guardian = targets[0];
+    for (const effect of [...new Set(guardian.effects || [])]) events.push({ type: "effect.remove", actorId: actor.id, payload: { targetId: guardian.id, effect, force: true, sourceActionId: rule.id, participantIds: [actor.id, guardian.id] } });
+    events.push({ type: "effect.apply", actorId: actor.id, payload: { targetId: guardian.id, effect: "positive.регенерирует", duration: "scene", sourceActionId: rule.id, participantIds: [actor.id, guardian.id] } });
   }
   if (fullRule?.type === "oni-stabilize") {
     for (const effect of [...new Set(actor.effects || [])]) events.push({ type: "effect.remove", actorId: actor.id, payload: { targetId: actor.id, effect, force: true, sourceActionId: rule.id, participantIds: [actor.id] } });

@@ -248,6 +248,10 @@ function effectTargetingStatus(scene, sourceActorId, targetActorId, options = {}
   if (!options.ignoreBanished && sourcePresence.banished !== targetPresence.banished) {
     return { available: false, reason: sourcePresence.banished ? "Изгнанный персонаж может выбирать целью только Изгнанных." : "Неизгнанный персонаж не может выбирать целью Изгнанного.", source, target };
   }
+  if (!options.ignoreHealerGuardian && target.profileId === "enemy.common.healer" && target.ruleState?.healerGuardianId) {
+    const guardian = actorById(scene, target.ruleState.healerGuardianId);
+    if (guardian && !guardian.knockedOut && guardian.id !== target.id && guardian.space === target.space && distance(target, guardian) <= 1 && effectTargetingStatus(scene, sourceActorId, guardian.id, { ...options, ignoreHealerGuardian: true }).available) return { available: false, reason: `${target.name} защищён смежным Стражем ${guardian.name}.`, source, target, guardian };
+  }
   return { available: true, reason: "", source, target };
 }
 

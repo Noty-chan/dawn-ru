@@ -754,6 +754,10 @@ function triggeredEvents(scene, event, options = {}) {
     if (ranger) events.push({ type: "rule.prompt", actorId: ranger.id, payload: { id: `prompt-${event.id}-ranger-retreat`, kind: "enemy-ranger-retreat", sourceActorId: ranger.id, controller: "narrator", title: "Снайперская дистанция", text: `${ranger.name} может переместиться на 1 клетку после Атаки по нему.`, options: ["move", "pass"], context: { optionLabels: { move: "Переместиться", pass: "Не использовать" } }, participantIds: [ranger.id, event.actorId].filter(Boolean) } });
   }
   if (event.type === "turn.start" && actor && !scene.pendingPrompt && !promptQueued()) {
+    if (actor.profileId === "enemy.common.healer") {
+      const allies = (scene.actors || []).filter(item => !item.knockedOut && item.id !== actor.id && item.team === actor.team && effectPresenceStatus(scene, item.id).onField);
+      events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${event.id}-healer-guardian`, kind: "enemy-healer-guardian", sourceActorId: actor.id, controller: "narrator", title: "Страж Целителя", text: "Выберите союзника Стражем Целителя на этот Ход.", options: [...allies.map(item => `guard:${item.id}`), "pass"], context: { optionLabels: Object.fromEntries([...allies.map(item => [`guard:${item.id}`, item.name]), ["pass", "Не выбирать Стража"]]) }, participantIds: [actor.id, ...allies.map(item => item.id)] } });
+    }
     if (actor.profileId === "enemy.common.coordinator") {
       for (const ally of (scene.actors || []).filter(item => !item.knockedOut && item.id !== actor.id && item.team === actor.team && item.space === actor.space && distance(actor, item) <= 4)) events.push({ type: "effect.apply", actorId: actor.id, payload: { targetId: ally.id, effect: "positive.усилен", duration: "scene", sourceActionId: "enemy.common.coordinator.passive", participantIds: [actor.id, ally.id] } });
     }
@@ -762,7 +766,18 @@ function triggeredEvents(scene, event, options = {}) {
     if (illusionist && swaps.length) events.push({ type: "rule.prompt", actorId: illusionist.id, payload: { id: `prompt-${event.id}-flux`, kind: "enemy-flux-swap", sourceActorId: illusionist.id, targetId: actor.id, controller: "narrator", title: "Поток", text: `${actor.name} начинает Ход в Потоке. Иллюзионист может поменять его позицию с позицией другого врага.`, options: [...swaps.map(target => `swap:${target.id}`), "pass"], context: { optionLabels: Object.fromEntries(swaps.map(target => [`swap:${target.id}`, `Поменять с ${target.name}`])) }, participantIds: [illusionist.id, actor.id, ...swaps.map(target => target.id)] } });
   }
   if (event.type === "turn.end" && actor?.profileId === "enemy.common.coordinator") {
-    for (const ally of scene.actors || []) if (effectStateFor(ally, "positive.усилен")?.sources.some(source => source.actorId === actor.id && source.sourceActionId === "enemy.common.coordinator.passive")) events.push({ type: "effect.remove", actorId: actor.id, payload: { targetId: ally.id, effect: "positive.усилен", sourceOnly: true, sourceActorId: actor.id, sourceActionId: "enemy.common.coordinator.passive", participantIds: [actor.id, ally.id] } });
+    for (const ally of scene.actors || []) if (effectStateFor(ally, "positive.усилен")?.sources.some(source => source.actorId === actor.id && source.actionId === "enemy.common.coordinator.passive")) events.push({ type: "effect.remove", actorId: actor.id, payload: { targetId: ally.id, effect: "positive.усилен", sourceOnly: true, sourceActorId: actor.id, sourceActionId: "enemy.common.coordinator.passive", participantIds: [actor.id, ally.id] } });
+  }
+  if (event.type === "actor.move") {
+    const coordinator = actorById(scene, scene.activeActorId);
+    if (coordinator?.profileId === "enemy.common.coordinator") {
+      for (const ally of (scene.actors || []).filter(item => item.id !== coordinator.id && item.team === coordinator.team)) {
+        const inRange = !ally.knockedOut && ally.space === coordinator.space && distance(coordinator, ally) <= 4;
+        const sourced = effectStateFor(ally, "positive.усилен")?.sources.some(source => source.actorId === coordinator.id && source.actionId === "enemy.common.coordinator.passive");
+        if (inRange && !sourced) events.push({ type: "effect.apply", actorId: coordinator.id, payload: { targetId: ally.id, effect: "positive.усилен", duration: "scene", sourceActionId: "enemy.common.coordinator.passive", participantIds: [coordinator.id, ally.id] } });
+        if (!inRange && sourced) events.push({ type: "effect.remove", actorId: coordinator.id, payload: { targetId: ally.id, effect: "positive.усилен", sourceOnly: true, sourceActorId: coordinator.id, sourceActionId: "enemy.common.coordinator.passive", participantIds: [coordinator.id, ally.id] } });
+      }
+    }
   }
   if (event.type === "attack.pending" && actor) {
     const duelistSource = actor.profileId === "enemy.common.duelist" ? actor : null;
@@ -772,7 +787,7 @@ function triggeredEvents(scene, event, options = {}) {
       if (duelistTarget?.profileId === "enemy.common.duelist") events.push({ type: "effect.apply", actorId: duelistTarget.id, payload: { targetId: actor.id, effect: "negative.спровоцирован", sourceActionId: "enemy.common.duelist.passive", duration: "scene", participantIds: [duelistTarget.id, actor.id] } });
     }
     for (const targetId of payload.targetIds || []) {
-      const target = actorById(scene, targetId), mark = effectStateFor(target, "negative.помечен"), healerSource = mark?.sources.find(source => actorById(scene, source.actorId)?.profileId === "enemy.common.healer" && source.sourceActionId === "enemy.common.healer.attack.exsanguinate");
+      const target = actorById(scene, targetId), mark = effectStateFor(target, "negative.помечен"), healerSource = mark?.sources.find(source => actorById(scene, source.actorId)?.profileId === "enemy.common.healer" && source.actionId === "enemy.common.healer.attack.exsanguinate");
       if (!healerSource) continue;
       events.push({ type: "effect.remove", actorId: healerSource.actorId, payload: { targetId, effect: "negative.помечен", sourceActorId: healerSource.actorId, sourceActionId: "enemy.common.healer.attack.exsanguinate", participantIds: [healerSource.actorId, targetId, actor.id] } });
       events.push({ type: "actor.heal", actorId: healerSource.actorId, payload: { targetId: actor.id, amount: enemyTierFormula("5(+2)", actorById(scene, healerSource.actorId)?.tier), sourceActionId: "enemy.common.healer.attack.exsanguinate", participantIds: [healerSource.actorId, actor.id, targetId] } });

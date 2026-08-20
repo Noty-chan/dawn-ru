@@ -256,6 +256,11 @@ function respondRulePrompt(scene, data, request = {}) {
   const errors = choiceStatus.available ? [] : [choiceStatus.reason];
   if (errors.length) return { ok: false, errors, events: [] };
   const events = [{ type: "rule.respond", actorId: actor.id, payload: { promptId: prompt.id, choice, sourceActorId: actor.id, targetId: target?.id || null, participantIds: [actor.id, target?.id].filter(Boolean) } }];
+  if (prompt.kind === "enemy-healer-guardian") {
+    const guardian = choice.startsWith("guard:") ? actorById(scene, choice.slice(6)) : null;
+    if (guardian && (guardian.knockedOut || guardian.id === actor.id || guardian.team !== actor.team || !effectPresenceStatus(scene, guardian.id).onField)) return { ok: false, errors: ["Выбранный Страж больше недоступен."], events: [] };
+    events.push({ type: "actor.state", actorId: actor.id, payload: { key: "healerGuardianId", value: guardian?.id || null, sourceActionId: "enemy.common.healer.passive", participantIds: [actor.id, guardian?.id].filter(Boolean) } });
+  }
   if (prompt.kind === "enemy-duelist-goad") {
     if (!target || target.knockedOut || target.space !== actor.space) return { ok: false, errors: ["Цель Поддразнивания больше недоступна."], events: [] };
     if (choice === "focus") {
@@ -955,6 +960,7 @@ function resolvePendingAction(scene, data) {
           const collisionDamage = destination.distance * Number(postDisplacement.collisionDamagePerCell || 0);
           if (collisionDamage > 0) events.push({ type: "damage.apply", actorId: pending.actorId, payload: { targetId: resolvedTargetId, amount: collisionDamage, ignoreArmor: true, sourceActionId: ruleId, participantIds: [pending.actorId, target.id] } });
         }
+        if (enemyFamily.stunOnIncompletePush && Number(destination?.distance || 0) < Number(postDisplacement.maximum || 0)) events.push({ type: "effect.apply", actorId: pending.actorId, payload: { targetId: resolvedTargetId, effect: "negative.ошеломлен", sourceActionId: pending.enemyRuleId || pending.actionId, participantIds: [pending.actorId, resolvedTargetId] } });
       }
       if (traitReaction?.mode === "armor-corrupt" && outcome.raw > 1 && expectedDamage === 1 && source) events.push({ type: "effect.apply", actorId: target.id, payload: { targetId: source.id, effect: "negative.порчен", sourceActionId: traitReaction.ruleId, participantIds: [source.id, target.id] } });
       if (traitReaction?.mode === "armor-repel" && outcome.raw > 1 && expectedDamage === 1 && source) {
