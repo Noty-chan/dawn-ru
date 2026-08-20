@@ -288,7 +288,8 @@ function validateEvent(scene, event, options = {}) {
     if (!cut) throw new Error("Восстанавливаемый разрыв поля уже отсутствует.");
   }
   if (event.type === "targets.set" && (!Array.isArray(payload.actorIds) || payload.actorIds.length > 40 || payload.actorIds.some(id => !actorById(scene, id) || actorById(scene, id).knockedOut))) throw new Error("Некорректный список целей.");
-  if (event.type === "space.ensure" && (typeof payload.id !== "string" || !payload.id || (!((scene.spaces || []).some(space => space.id === payload.id || space.name === payload.name)) && (scene.spaces || []).length >= 12) || !finite(payload.width) || !finite(payload.height) || Number(payload.width) < 1 || Number(payload.height) < 1 || Number(payload.width) > 12 || Number(payload.height) > 12)) throw new Error("Некорректное отдельное пространство.");
+  if (event.type === "space.ensure" && (typeof payload.id !== "string" || !payload.id || (!((scene.spaces || []).some(space => space.id === payload.id || space.name === payload.name)) && (scene.spaces || []).length >= 12) || !finite(payload.width) || !finite(payload.height) || Number(payload.width) < 1 || Number(payload.height) < 1 || Number(payload.width) > 12 || Number(payload.height) > 12 || payload.returnSpaceId != null && (typeof payload.returnSpaceId !== "string" || !((scene.spaces || []).some(space => space.id === payload.returnSpaceId)) || payload.returnSpaceId === payload.id) || payload.ownerActorId != null && (typeof payload.ownerActorId !== "string" || !actorById(scene, payload.ownerActorId)))) throw new Error("Некорректное отдельное пространство.");
+  if (event.type === "space.remove" && (typeof payload.id !== "string" || !(scene.spaces || []).some(space => space.id === payload.id) || (scene.actors || []).some(item => item.space === payload.id) || scene.activeSpace === payload.id)) throw new Error("Нельзя удалить отсутствующее, активное или занятое пространство.");
   if (["technique.prepare", "technique.resolve", "technique.manual"].includes(event.type) && JSON.stringify(payload).length > 8192) throw new Error("Событие Техники слишком велико.");
   if (event.type === "reaction.respond" && payload.choice !== "pass" && !["block", "dodge", "clash"].some(key => actionIdIs(payload.choice, key)) && !String(payload.choice || "").startsWith("enemy.antagonist-trait.") && !String(payload.choice || "").startsWith("rebel.not-today:")) throw new Error("Некорректный ответ на Реакцию.");
   return event;
@@ -605,8 +606,15 @@ function reduceEvent(scene, event) {
     scene.targetIds = [...payload.actorIds];
   } else if (event.type === "space.ensure") {
     scene.spaces ||= [];
-    if (!scene.spaces.some(space => space.id === payload.id || space.name === payload.name)) scene.spaces.push({ id: payload.id, name: payload.name, width: Number(payload.width), height: Number(payload.height) });
+    const existing = scene.spaces.find(space => space.id === payload.id || space.name === payload.name);
+    if (!existing) scene.spaces.push({ id: payload.id, name: payload.name, width: Number(payload.width), height: Number(payload.height), ...(typeof payload.returnSpaceId === "string" ? { returnSpaceId: payload.returnSpaceId } : {}), ...(typeof payload.ownerActorId === "string" ? { ownerActorId: payload.ownerActorId } : {}) });
+    else {
+      if (typeof payload.returnSpaceId === "string" && !existing.returnSpaceId) existing.returnSpaceId = payload.returnSpaceId;
+      if (typeof payload.ownerActorId === "string" && !existing.ownerActorId) existing.ownerActorId = payload.ownerActorId;
+    }
     if (payload.activate) scene.activeSpace = (scene.spaces.find(space => space.id === payload.id || space.name === payload.name) || {}).id || scene.activeSpace;
+  } else if (event.type === "space.remove") {
+    scene.spaces = (scene.spaces || []).filter(space => space.id !== payload.id);
   } else if (event.type === "challenge.request") {
     scene.challengeRequest = { id: payload.id, actorId: payload.actorId, target: Number(payload.target), requestedBy: payload.requestedBy.trim(), at: event.at, result: null };
     scene.opposedRoll = null;

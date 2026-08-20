@@ -256,12 +256,34 @@ function respondRulePrompt(scene, data, request = {}) {
   const errors = choiceStatus.available ? [] : [choiceStatus.reason];
   if (errors.length) return { ok: false, errors, events: [] };
   const events = [{ type: "rule.respond", actorId: actor.id, payload: { promptId: prompt.id, choice, sourceActorId: actor.id, targetId: target?.id || null, participantIds: [actor.id, target?.id].filter(Boolean) } }];
+  let participantPromptOpened = false;
   if (prompt.kind === "inner-world-offer" && choice === "invoke") {
-    const innerSpace = (scene.spaces || []).find(space => space.id === `inner-world-${actor.id}`), occupied = new Set((scene.actors || []).filter(item => !item.knockedOut && item.space === innerSpace?.id).map(cellKey));
+    const candidates = (prompt.context?.candidateIds || []).map(id => actorById(scene, id)).filter(candidate => candidate && !candidate.knockedOut && candidate.id !== actor.id && candidate.space === actor.space && effectPresenceStatus(scene, candidate.id).onField);
+    if (!candidates.length) return { ok: false, errors: ["Для Домена больше нет подходящих участников."], events: [] };
+    const optionLabels = Object.fromEntries(candidates.map(candidate => [`target:${candidate.id}`, candidate.name]));
+    events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${prompt.id}-participant`, kind: "inner-world-participant", sourceActorId: actor.id, title: "Домен контроля · участник", text: "Выберите подходящего персонажа, которого затягиваете во Внутренний мир.", options: [...candidates.map(candidate => `target:${candidate.id}`), "pass"], context: { ...prompt.context, optionLabels }, participantIds: [actor.id, ...candidates.map(candidate => candidate.id)] } });
+    participantPromptOpened = true;
+  }
+  let selectedParticipant = null;
+  if (prompt.kind === "inner-world-participant" && choice.startsWith("target:")) {
+    const selectedTarget = actorById(scene, choice.slice(7)), candidates = (prompt.context?.candidateIds || []).map(id => actorById(scene, id));
+    if (!selectedTarget || !candidates.some(candidate => candidate?.id === selectedTarget.id) || selectedTarget.knockedOut || selectedTarget.id === actor.id || selectedTarget.space !== actor.space || !effectPresenceStatus(scene, selectedTarget.id).onField) return { ok: false, errors: ["Выбранный участник больше не подходит для Домена."], events: [] };
+    selectedParticipant = selectedTarget;
+  }
+  if (!participantPromptOpened && ((prompt.kind === "inner-world-offer" && choice === "invoke") || selectedParticipant)) {
+    const domainTarget = selectedParticipant || target;
+    if (!domainTarget) return { ok: false, errors: ["Не выбран участник Домена."], events: [] };
+    const spaceId = `inner-world-${actor.id}`, innerSpace = (scene.spaces || []).find(space => space.id === spaceId), occupied = new Set((scene.actors || []).filter(item => !item.knockedOut && item.space === innerSpace?.id).map(cellKey));
     const innerCells = ["cell:0,0", "cell:1,0", "cell:2,0", "cell:0,1", "cell:1,1", "cell:2,1", "cell:0,2", "cell:1,2", "cell:2,2"].filter(cell => !occupied.has(cell.slice(5)));
     if (!innerCells.length) return { ok: false, errors: ["Во Внутреннем мире нет свободной клетки для цели."], events: [] };
     const optionLabels = Object.fromEntries(innerCells.map(cell => [cell, `Клетка ${String.fromCharCode(65 + Number(cell[5]))}${Number(cell[7]) + 1}`]));
-    events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${prompt.id}-target-cell`, kind: "inner-world-target-cell", sourceActorId: actor.id, targetId: target.id, title: "Домен контроля · цель", text: `Выберите клетку Внутреннего мира для ${target.name}.`, options: innerCells, context: { ruleId: "disruptor.inner-world.2", targetId: target.id, optionLabels }, participantIds: [actor.id, target.id] } });
+    events.push({ type: "space.ensure", actorId: actor.id, payload: { id: spaceId, name: `Внутренний мир · ${actor.name}`, width: 3, height: 3, returnSpaceId: actor.space, ownerActorId: actor.id, activate: true, sourceActionId: "disruptor.inner-world.2", ruleId: "disruptor.inner-world.2", innerWorldPrelude: true, participantIds: [actor.id, domainTarget.id] } });
+    events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${prompt.id}-target-cell`, kind: "inner-world-target-cell", sourceActorId: actor.id, targetId: domainTarget.id, title: "Домен контроля · противник", text: `Выберите на поле клетку Внутреннего мира для ${domainTarget.name}.`, options: [...innerCells, "cancel"], context: { ruleId: "disruptor.inner-world.2", targetId: domainTarget.id, spaceId, returnSpaceId: actor.space, temporarySpace: !innerSpace, optionLabels }, participantIds: [actor.id, domainTarget.id] } });
+  }
+  if (["inner-world-target-cell", "inner-world-caster-cell"].includes(prompt.kind) && choice === "cancel") {
+    const returnSpaceId = prompt.context?.returnSpaceId, spaceId = prompt.context?.spaceId;
+    if (returnSpaceId) events.push({ type: "space.ensure", actorId: actor.id, payload: { id: returnSpaceId, name: (scene.spaces || []).find(space => space.id === returnSpaceId)?.name || "Основное поле", width: Number((scene.spaces || []).find(space => space.id === returnSpaceId)?.width || 7), height: Number((scene.spaces || []).find(space => space.id === returnSpaceId)?.height || 7), activate: true, participantIds: [actor.id, target?.id].filter(Boolean) } });
+    if (prompt.context?.temporarySpace && spaceId) events.push({ type: "space.remove", actorId: actor.id, payload: { id: spaceId, reason: "Активация Внутреннего мира отменена", participantIds: [actor.id, target?.id].filter(Boolean) } });
   }
   if (prompt.kind === "inner-world-target-cell" && choice.startsWith("cell:")) {
     const targetPoint = choice.slice(5).split(",").map(Number), targetCell = { x: targetPoint[0], y: targetPoint[1] };
@@ -269,7 +291,7 @@ function respondRulePrompt(scene, data, request = {}) {
     const innerSpace = (scene.spaces || []).find(space => space.id === `inner-world-${actor.id}`), occupied = new Set((scene.actors || []).filter(item => !item.knockedOut && item.space === innerSpace?.id).map(cellKey));
     const innerCells = ["cell:0,0", "cell:1,0", "cell:2,0", "cell:0,1", "cell:1,1", "cell:2,1", "cell:0,2", "cell:1,2", "cell:2,2"].filter(cell => cell !== choice && !occupied.has(cell.slice(5))), optionLabels = Object.fromEntries(innerCells.map(cell => [cell, `Клетка ${String.fromCharCode(65 + Number(cell[5]))}${Number(cell[7]) + 1}`]));
     if (!innerCells.length) return { ok: false, errors: ["Во Внутреннем мире нет второй свободной клетки."], events: [] };
-    events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${prompt.id}-caster-cell`, kind: "inner-world-caster-cell", sourceActorId: actor.id, targetId: target.id, title: "Домен контроля · инициатор", text: "Выберите свободную клетку Внутреннего мира для себя.", options: innerCells, context: { ruleId: "disruptor.inner-world.2", targetId: target.id, targetCell, optionLabels }, participantIds: [actor.id, target.id] } });
+    events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${prompt.id}-caster-cell`, kind: "inner-world-caster-cell", sourceActorId: actor.id, targetId: target.id, title: "Домен контроля · инициатор", text: `Клетка ${String.fromCharCode(65 + targetCell.x)}${targetCell.y + 1} сохранена для ${target.name}. Теперь выберите на поле свободную клетку для себя.`, options: [...innerCells, "cancel"], context: { ...prompt.context, ruleId: "disruptor.inner-world.2", targetId: target.id, targetCell, optionLabels }, participantIds: [actor.id, target.id] } });
   }
   if (prompt.kind === "inner-world-caster-cell" && choice.startsWith("cell:")) {
     const casterPoint = choice.slice(5).split(",").map(Number), targetPoint = prompt.context?.targetCell, spaceId = `inner-world-${actor.id}`;
@@ -281,7 +303,7 @@ function respondRulePrompt(scene, data, request = {}) {
     if (!limit.available) return { ok: false, errors: [limit.reason], events: [] };
     const participants = [actor.id, target.id];
     events.push({ type: "technique.prepare", actorId: actor.id, payload: { ruleId: "disruptor.inner-world.2", name: "Домен контроля", targetIds: [target.id], participantIds: participants } });
-    events.push({ type: "space.ensure", actorId: actor.id, payload: { id: spaceId, name: "Внутренний мир", width: 3, height: 3, activate: true, sourceActionId: "disruptor.inner-world.2", ruleId: "disruptor.inner-world.2", participantIds: participants } });
+    events.push({ type: "space.ensure", actorId: actor.id, payload: { id: spaceId, name: `Внутренний мир · ${actor.name}`, width: 3, height: 3, returnSpaceId: prompt.context?.returnSpaceId || actor.space, ownerActorId: actor.id, activate: true, sourceActionId: "disruptor.inner-world.2", ruleId: "disruptor.inner-world.2", participantIds: participants } });
     events.push({ type: "actor.move", actorId: target.id, payload: { space: spaceId, x: Number(targetPoint.x), y: Number(targetPoint.y), movement: "Домен контроля", teleport: true, placement: true, sourceActionId: "disruptor.inner-world.2", ruleId: "disruptor.inner-world.2", participantIds: participants } });
     events.push({ type: "actor.enter", actorId: target.id, payload: { space: spaceId, x: Number(targetPoint.x), y: Number(targetPoint.y), movement: "Домен контроля", teleport: true, placement: true, sourceActionId: "disruptor.inner-world.2", ruleId: "disruptor.inner-world.2", participantIds: participants } });
     events.push({ type: "actor.move", actorId: actor.id, payload: { space: spaceId, x: casterPoint[0], y: casterPoint[1], movement: "Домен контроля", teleport: true, placement: true, sourceActionId: "disruptor.inner-world.2", ruleId: "disruptor.inner-world.2", participantIds: participants } });
@@ -404,6 +426,14 @@ function respondRulePrompt(scene, data, request = {}) {
     events.push({ type: "rule-clock.configure", actorId: actor.id, payload: { ...status.definition, size, minimumSize: status.minimumSize, initial: 0, value: 0, active: true, sourceActionId: "powerhouse.braggart.2" } });
   }
   if (prompt.kind === "thunder-rest-static" && choice === "fill") events.push({ type: "rule-clock.tick", actorId: actor.id, payload: { clockId: "ruiner.thunder-blood.static", delta: Number(prompt.context?.amount || 2), sourceActionId: "ruiner.thunder-blood.1", reason: "Райден" } });
+  if (prompt.kind === "inner-world-gaze" && choice === "gaze") {
+    const amount = Math.max(1, Number(prompt.context?.amount || 0)), range = Math.max(1, Number(prompt.context?.range || amount));
+    const targets = (scene.actors || []).filter(target => target.id !== actor.id && target.team !== actor.team && !target.knockedOut && target.space === actor.space && distance(actor, target) <= range);
+    if (!resourceOperationStatus(scene, actor.id, { resource: "focus", amount, operation: "spend" }).available) return { ok: false, errors: ["Полученный Зарядкой Фокус уже недоступен."], events: [] };
+    events.push({ type: "resource.spend", actorId: actor.id, payload: { resource: "focus", amount, sourceActionId: "disruptor.inner-world.1", reason: "Глубокий взгляд", participantIds: [actor.id, ...targets.map(target => target.id)] } });
+    targets.forEach(target => events.push({ type: "effect.apply", actorId: actor.id, payload: { targetId: target.id, effect: "negative.обездвижен", sourceActionId: "disruptor.inner-world.1", participantIds: [actor.id, target.id] } }));
+    events.push({ type: "technique.resolve", actorId: actor.id, payload: { ruleId: "disruptor.inner-world.1", name: "Глубокий взгляд", affectedActorIds: targets.map(target => target.id), participantIds: [actor.id, ...targets.map(target => target.id)] } });
+  }
   if (prompt.kind === "cryomancer-icicle-rest" && choice === "convert") {
     const segments = clockStatus(scene, actor.id, "ruiner.cryomancer.icicle").value;
     if (segments < 1 || Number(actor.focus || 0) < 1) return { ok: false, errors: ["Сосулька или полученный Передышкой Фокус уже недоступны."], events: [] };

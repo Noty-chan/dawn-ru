@@ -93,5 +93,14 @@
 - Быстрый локальный запуск без зависимостей:
   `python -m http.server 8000 --bind 127.0.0.1` из `apps/companion`, затем открыть
   `http://127.0.0.1:8000/` и `http://127.0.0.1:8000/inner-world-animation-draft.html`.
+- Для техник с последовательным выбором клеток используйте общий шаблон: верхняя
+  панель открывает `rule.prompt` с решением активации/цели, `space.ensure` создаёт и
+  активирует временное поле до первого выбора, затем каждый шаг хранит выбор в
+  `pendingPrompt.context`, а клики идут через `[data-scene-cell="x,y"]` и
+  `respondRulePrompt`. Не создавайте отдельный мини-борд или picker в FX-файле.
+  Финальный пакет обязан атомарно содержать оба `actor.move` и `technique.resolve`;
+  переходный FX запускается только по этому пакету. Для шаблонов смотрите
+  `scene-responses.js`, `scene-events.js`, `scene-ui.js`, `app-scene-events.js` и
+  `scene-effects.js`; подробное правило описано в `TECHNIQUE-AUTOMATION.md`.
 - После правок: `node --check scene-effects.js`, `npm test`, затем из корня репозитория
   `git diff --check` и `git status --short --branch`.
