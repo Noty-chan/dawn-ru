@@ -309,6 +309,16 @@ const chargePrepared = Engine.prepareAction(chargeScene, data, { actorId: "hero"
 assert.equal(chargePrepared.ok, true);
 const charged = Engine.dispatchMany(chargeScene, chargePrepared.events).scene;
 assert.equal(charged.actors[0].focus, 3, "Charge grants Focus equal to three rolled successes");
+const gazeScene = structuredClone(scene);
+gazeScene.actors[0].focus = 0;
+gazeScene.actors[0].techniques = { "disruptor.inner-world": 1 };
+gazeScene.actors[1].x = 3;
+const gazePrepared = Engine.prepareAction(gazeScene, data, { actorId: "hero", actionId: actionNamed("Зарядка").id, roll: { formula: "4D6 ≥4", attribute: "spirit", rolls: [6, 5, 4, 1], successes: 3, crits: 1 } });
+const gazeOffered = Engine.dispatchMany(gazeScene, gazePrepared.events).scene;
+assert.equal(gazeOffered.pendingPrompt?.kind, "inner-world-gaze", "Inner World I offers its choice after Charge");
+const gazeResolved = Engine.dispatchMany(gazeOffered, Engine.respondRulePrompt(gazeOffered, data, { choice: "gaze" }).events).scene;
+assert.equal(gazeResolved.actors[0].focus, 0, "Gaze Deeply gives up the Focus gained by Charge");
+assert.ok(gazeResolved.actors[1].effects.includes("negative.обездвижен"), "Gaze Deeply applies Immobilized within the gained Focus range");
 const tracedMove = Engine.dispatch(scene, { type: "actor.move", actorId: "hero", payload: { space: "main", x: 1, y: 2, movement: "Шаг", path: ["1,2"] } }).scene;
 assert.equal(Engine.movementTraceStatus(tracedMove, { space: "main" }).available, true);
 const tracesCleared = Engine.dispatch(tracedMove, { type: "movement-traces.clear", payload: { space: "main" } }).scene;
@@ -754,9 +764,13 @@ innerWindowScene.actors[0].techniques = { "disruptor.inner-world": 2 };
 innerWindowScene.actors[0].attrs.spirit = 3;
 let innerWindow = Engine.dispatchMany(innerWindowScene, [{ id: "inner-effect", type: "effect.apply", actorId: "hero", payload: { targetId: "enemy", effect: "negative.помечен" } }]).scene;
 assert.equal(innerWindow.pendingPrompt?.kind, "inner-world-offer", "Applying an Effect opens Domain of Control automatically");
+assert.ok(innerWindow.pendingPrompt.context.candidateIds.includes("enemy"), "The Effect target is one possible Domain participant");
 const passedInnerWindow = Engine.dispatchMany(innerWindow, Engine.respondRulePrompt(innerWindow, data, { choice: "pass" }).events).scene;
 assert.equal(Engine.usageLimitStatus(passedInnerWindow, "hero", { ruleId: "disruptor.inner-world.2", scope: "scene", maximum: 1 }).remaining, 1, "Passing the trigger window does not spend the Scene use");
 innerWindow = Engine.dispatchMany(innerWindow, Engine.respondRulePrompt(innerWindow, data, { choice: "invoke" }).events).scene;
+assert.equal(innerWindow.pendingPrompt?.kind, "inner-world-participant");
+assert.ok(innerWindow.pendingPrompt.options.includes("target:enemy"), "Activation opens a separate participant choice");
+innerWindow = Engine.dispatchMany(innerWindow, Engine.respondRulePrompt(innerWindow, data, { choice: "target:enemy" }).events).scene;
 assert.equal(innerWindow.pendingPrompt?.kind, "inner-world-target-cell");
 innerWindow = Engine.dispatchMany(innerWindow, Engine.respondRulePrompt(innerWindow, data, { choice: "cell:0,0" }).events).scene;
 assert.equal(innerWindow.pendingPrompt?.kind, "inner-world-caster-cell");
@@ -2759,6 +2773,48 @@ Object.assign(innerWorldScene.actors[0], { space: innerId, x: 1, y: 1 });
 const evacuated = Engine.dispatchMany(innerWorldScene, [{ type: "actor.knockout", actorId: "hero", payload: { targetId: "enemy", sourceActionId: "finish" } }]).scene;
 assert.equal(evacuated.actors.find(actor => actor.id === "hero").space !== innerId, true, "Knocking out a foe inside the Inner World returns the living caster to the normal field");
 assert.equal(evacuated.actors.find(actor => actor.id === "enemy").knockedOut, true, "The knocked-out prisoner stays out of combat");
+
+const multiDomainScene = structuredClone(scene);
+multiDomainScene.spaces.push(
+  { id: "origin-a", name: "Башня", width: 7, height: 7 },
+  { id: "inner-world-hero", name: "Внутренний мир · Эта", width: 3, height: 3, returnSpaceId: "origin-a", ownerActorId: "hero" },
+  { id: "inner-world-rival", name: "Внутренний мир · Соперник", width: 3, height: 3, returnSpaceId: "main", ownerActorId: "rival" },
+);
+multiDomainScene.actors.push(
+  { ...structuredClone(multiDomainScene.actors[0]), id: "rival", name: "Соперник", space: "inner-world-rival", x: 1, y: 1, techniques: { "disruptor.inner-world": 2 } },
+  { ...structuredClone(multiDomainScene.actors[1]), id: "prisoner-b", name: "Пленник Б", space: "inner-world-rival", x: 0, y: 0 },
+);
+Object.assign(multiDomainScene.actors[0], { space: "inner-world-hero", x: 1, y: 1, techniques: { "disruptor.inner-world": 2 } });
+Object.assign(multiDomainScene.actors[1], { space: "inner-world-hero", x: 0, y: 0 });
+const otherDomainEvent = Engine.dispatchMany(multiDomainScene, [{ type: "actor.knockout", actorId: "rival", payload: { targetId: "prisoner-b", sourceActionId: "finish" } }]).scene;
+assert.equal(otherDomainEvent.actors.find(actor => actor.id === "hero").space, "inner-world-hero", "An event in another owner's simultaneous Inner World does not evacuate this domain");
+assert.equal(otherDomainEvent.actors.find(actor => actor.id === "rival").space, "main", "Only the domain involved in the event evacuates");
+const ownerKnockout = Engine.dispatchMany(multiDomainScene, [{ type: "actor.knockout", actorId: "hero", payload: { targetId: "enemy", sourceActionId: "finish" } }]);
+assert.equal(ownerKnockout.scene.actors.find(actor => actor.id === "hero").space, "origin-a", "The owner returns to the domain's recorded originating space after knocking out a target");
+assert.equal(ownerKnockout.scene.activeSpace, "origin-a", "Evacuation activates the recorded originating space");
+assert.ok(ownerKnockout.events.some(event => event.type === "actor.move" && event.payload?.innerWorldExit && event.payload?.sourceActionId === "disruptor.inner-world.2"), "Evacuation carries the stable semantic marker required by the return FX");
+const woundedOwnerScene = structuredClone(multiDomainScene);
+woundedOwnerScene.actors.find(actor => actor.id === "hero").hp = 1;
+const woundedOwner = Engine.dispatchMany(woundedOwnerScene, [{ type: "damage.apply", actorId: "enemy", payload: { targetId: "hero", amount: 1, ignoreArmor: true } }]).scene;
+assert.equal(woundedOwner.actors.find(actor => actor.id === "hero").space, "origin-a", "A Wound dealt to the owner by a participant inside the domain evacuates its survivors");
+
+const homeTurfScene = structuredClone(scene);
+homeTurfScene.actors[0].techniques = { "disruptor.inner-world": 3 };
+homeTurfScene.actors[0].tier = 3;
+homeTurfScene.actors[0].space = "inner-world-hero";
+homeTurfScene.spaces.push({ id: "inner-world-hero", name: "Внутренний мир · Эта", width: 3, height: 3, returnSpaceId: "main" });
+assert.equal(Engine.diceHookStatus(homeTurfScene, "hero", { scope: "action", actionName: "Стычка", baseCount: 4 }).advantage, 3, "Home Turf grants Tier Advantage to attacks inside the caster's own Inner World");
+assert.equal(Engine.diceHookStatus(homeTurfScene, "hero", { scope: "opposed", baseCount: 4 }).advantage, 3, "Home Turf grants Tier Advantage to opposed rolls inside the caster's own Inner World");
+const otherDomain = structuredClone(homeTurfScene);
+otherDomain.spaces.push({ id: "inner-world-enemy", name: "Внутренний мир · Ассасин", width: 3, height: 3, returnSpaceId: "main" });
+otherDomain.actors[0].space = "inner-world-enemy";
+assert.equal(Engine.diceHookStatus(otherDomain, "hero", { scope: "action", actionName: "Стычка", baseCount: 4 }).advantage, 0, "Home Turf does not apply inside another caster's Inner World");
+const belowHomeTurf = structuredClone(homeTurfScene);
+belowHomeTurf.actors[0].techniques["disruptor.inner-world"] = 2;
+assert.equal(Engine.diceHookStatus(belowHomeTurf, "hero", { scope: "opposed", baseCount: 4 }).advantage, 0, "Home Turf does not apply below Inner World III");
+const outsideHomeTurf = structuredClone(homeTurfScene);
+outsideHomeTurf.actors[0].space = "main";
+assert.equal(Engine.diceHookStatus(outsideHomeTurf, "hero", { scope: "action", actionName: "Стычка", baseCount: 4 }).advantage, 0, "Home Turf does not apply outside the owner's domain");
 
 // Gale Strider: ending a turn inside a Typhoon offers a directional shift
 const galeScene = structuredClone(scene);

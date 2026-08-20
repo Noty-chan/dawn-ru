@@ -142,6 +142,10 @@ function passiveDiceHooks(scene, actor, request = {}) {
   if (actionIdIs(actionId, "spell") && Number(actor.techniques?.["ruiner.feral-arcana"] || 0) >= 3) hooks.push({ type: "advantage", ruleId: "ruiner.feral-arcana.3", label: "Хватка", amount: 1 });
   if (actionIdIs(actionId, "spell") && Number(actor.techniques?.["ruiner.thunder-blood"] || 0) >= 3) hooks.push({ type: "advantage", ruleId: "ruiner.thunder-blood.3", label: "Разрядка", amount: 1 });
   if (actionIdIs(actionId, "skirmish") && Number(actor.techniques?.["bulwark.grappler"] || 0) >= 2) hooks.push({ type: "advantage", ruleId: "bulwark.grappler.2", label: "Перелом позвоночника", amount: 1 });
+  const innerWorldLevel = Number(actor.techniques?.["disruptor.inner-world"] || 0);
+  if (innerWorldLevel >= 3 && actor.space === `inner-world-${actor.id}` && (["skirmish", "spell", "finish"].some(key => actionIdIs(actionId, key)) || request.scope === "opposed")) {
+    hooks.push({ type: "advantage", ruleId: "disruptor.inner-world.3", label: "Родная территория", amount: Number(actor.tier || 1) });
+  }
   const balance = request.sceneContext === false ? { enemies: 0, allies: 0, outnumbered: false } : sideBalanceStatus(scene, actor.id);
   if (request.sceneContext !== false && (actor.gifts || []).includes("wolf.outgunned") && balance.outnumbered) hooks.push({ type: "advantage", ruleId: "wolf.outgunned", label: `В меньшинстве (${balance.enemies} враг. / ${balance.allies} союзн.)`, amount: 2 });
   const selected = new Set(Array.isArray(request.selectedHookIds) ? request.selectedHookIds : []);
