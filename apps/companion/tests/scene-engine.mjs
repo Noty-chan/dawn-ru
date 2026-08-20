@@ -718,7 +718,7 @@ const arbitrationSource = { id: "trigger-arbitration-source", type: "effect.appl
 const arbitrationApplied = Engine.dispatch(arbitrationScene, arbitrationSource);
 const triggerRegistry = Engine.triggerRegistryStatus();
 assert.equal(triggerRegistry.available, true);
-assert.equal(triggerRegistry.count, 13);
+assert.equal(triggerRegistry.count, 14);
 assert.ok(triggerRegistry.eventTypes.includes("effect.apply"));
 assert.ok(triggerRegistry.rules.every(rule => typeof rule.id === "string" && Number.isInteger(rule.priority) && Array.isArray(rule.eventTypes)));
 assert.throws(() => Engine.defineTriggerRule({ id: "bad trigger", eventTypes: ["effect.apply"], priority: 1, match: () => true, build: () => [] }), /id декларативного триггера/);
@@ -2534,5 +2534,33 @@ revenantAutomationScene.activeActorId = null; revenantAutomationScene.actors.for
 revenantAutomationScene = Engine.dispatchMany(revenantAutomationScene, [{ type: "round.end", actorId: "hero", payload: {} }]).scene;
 assert.equal(revenantAutomationScene.actors.find(actor => actor.id === "enemy").knockedOut, false, "A knocked-out Revenant returns at the beginning of the next Round");
 assert.equal(revenantAutomationScene.actors.find(actor => actor.id === "enemy").hp, revenantAutomationScene.actors.find(actor => actor.id === "enemy").maxHp, "Returning Revenant restores full Health");
+
+// Wave Rider seal trigger: starting a turn on a seal cell (or entering it) offers its effect
+const waveScene = structuredClone(scene);
+waveScene.actors[0].techniques = { "disruptor.wave-rider": 1 };
+waveScene.actors[1].x = 2; waveScene.actors[1].y = 1;
+waveScene.markers = [{ id: "seal", kind: "ritual", space: "main", x: 2, y: 1, ruleId: "disruptor.wave-rider.1", duration: "scene", ownerActorId: "hero" }];
+const waveTurnFlow = Engine.dispatchMany(waveScene, [
+  { type: "turn.end", actorId: "hero", payload: { narratorOverride: true } },
+  { type: "turn.start", actorId: "enemy", payload: { narratorOverride: true } },
+], { narratorOverride: true }).scene;
+assert.equal(waveTurnFlow.pendingPrompt?.kind, "wave-rider-seal", "Starting a turn on a Wave Rider seal cell opens the seal prompt");
+const knockSeal = Engine.respondRulePrompt(waveTurnFlow, data, { choice: "knockdown" });
+assert.equal(knockSeal.ok, true);
+const knockedScene = Engine.dispatchMany(waveTurnFlow, knockSeal.events).scene;
+assert.equal((knockedScene.markers || []).some(marker => marker.id === "seal"), false, "Wave Rider seal is removed after use");
+assert.ok(knockedScene.actors.find(actor => actor.id === "enemy").effects.includes("negative.подброшен"), "Wave Rider seal can apply Подброшен");
+
+// Ritualist: standing on own circle raises the Spirit Finish focus ceiling to Tension + 2
+const ritualistScene = structuredClone(scene);
+ritualistScene.actors[0].techniques = { "ruiner.ritualist": 1 };
+ritualistScene.markers = [{ id: "circle", kind: "ritual", space: "main", x: 1, y: 1, ruleId: "ruiner.ritualist.1", duration: "scene", ownerActorId: "hero" }];
+ritualistScene.tension = 2; ritualistScene.actors[0].focus = 10;
+const ritualistSpend = Engine.prepareAction(ritualistScene, data, { actorId: "hero", actionId: actionNamed("Завершение").id, targetIds: ["enemy"], attribute: "spirit", focusSpent: 4, roll: { formula: "6D6", attribute: "spirit", finisherFocus: 4, rolls: [6, 5, 4, 3, 2, 1], successes: 3, crits: 1 } });
+assert.equal(ritualistSpend.ok, true, "Ritualist on own circle can spend Tension+2 Focus on a Spirit Finish");
+assert.ok(ritualistSpend.events.some(event => event.type === "resource.spend" && event.payload?.resource === "focus" && event.payload?.amount === 4));
+const noCircle = structuredClone(ritualistScene);
+noCircle.markers = [];
+assert.equal(Engine.prepareAction(noCircle, data, { actorId: "hero", actionId: actionNamed("Завершение").id, targetIds: ["enemy"], attribute: "spirit", focusSpent: 4, roll: { rolls: [6], successes: 1 } }).ok, false, "Without a circle the Spirit Finish focus ceiling stays at Tension");
 
 console.log("Scene engine QA passed: canonical Turns and AP, once-per-Round actions, strict Reactions, truthful enemy automation, effects, movement, damage, and public events");

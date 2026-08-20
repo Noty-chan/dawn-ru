@@ -173,6 +173,20 @@ const TRIGGER_RULES = [
       return [{ type: "rule.prompt", actorId: owner.id, payload: { id: `prompt-${event.id}-chronomancer`, kind: "chronomancer-reapply-effect", sourceActorId: owner.id, targetId: target.id, title: "Замедление", text: `Потратить 1 Фокус и снова применить снятый Эффект к ${target.name}?`, options: ["reapply", "pass"], context: { effect: payload.effect, duration: payload.previousState?.duration || effectLifecycleDefinition(payload.effect).duration, removable: payload.previousState?.removable !== false }, participantIds: [owner.id, target.id] } }];
     },
   },
+  {
+    id: "disruptor.wave-rider.1.seal-trigger",
+    eventTypes: ["actor.enter", "turn.start"],
+    priority: 75,
+    match: ({ scene, actor }) => {
+      if (!actor || actor.knockedOut || scene.pendingPrompt || scene.pendingAction) return false;
+      return (scene.markers || []).some(marker => /disruptor\.wave-rider\.1/.test(`${marker.ruleId || ""} ${marker.source || ""}`) && marker.space === actor.space && Number(marker.x) === Number(actor.x) && Number(marker.y) === Number(actor.y));
+    },
+    build: ({ scene, event, actor }) => {
+      const seal = (scene.markers || []).find(marker => /disruptor\.wave-rider\.1/.test(`${marker.ruleId || ""} ${marker.source || ""}`) && marker.space === actor.space && Number(marker.x) === Number(actor.x) && Number(marker.y) === Number(actor.y));
+      if (!seal) return [];
+      return [{ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${event.id}-wave-seal`, kind: "wave-rider-seal", sourceActorId: actor.id, targetId: actor.id, markerId: seal.id, title: "Печать волны", text: `${actor.name} ${event.type === "turn.start" ? "начинает Ход" : "входит"} в клетку с Печатью волны: убрать её, чтобы наложить Подброшен или переместиться до 2 клеток по линии?`, options: ["knockdown", "move", "pass"], context: { markerId: seal.id, space: seal.space, x: seal.x, y: seal.y }, participantIds: [actor.id] } }];
+    },
+  },
 ].map(defineTriggerRule);
 
 function triggerRegistryStatus() {
