@@ -2523,6 +2523,24 @@ assert.equal(lastStandScene.pendingPrompt?.context?.maxDistance, 2, "Last Stand 
 let rangerFull = profileScene("enemy.common.ranger"), nestRule = profileRule("enemy.common.ranger", "Nest");
 rangerFull = Engine.dispatchMany(rangerFull, Engine.prepareEnemyRule(rangerFull, data, { actorId: "enemy", ruleId: nestRule.id }).events).scene;
 assert.equal(rangerFull.actors[1].ruleState.enemyAim, 1, "Ranger Nest stores Aim for Take The Shot");
+assert.ok(rangerFull.actors[1].effects.includes("positive.устойчив"), "Ranger Nest applies Steadfast");
+const rangerMoved = Engine.dispatchMany(rangerFull, [{ type: "actor.move", actorId: "enemy", payload: { space: "main", x: 3, y: 1 } }]).scene;
+assert.equal(rangerMoved.actors[1].ruleState.enemyAim, 0, "Ranger loses Aim as soon as it moves");
+let rangerShotScene = profileScene("enemy.common.ranger"); rangerShotScene.actors[1].x = 1; rangerShotScene.actors[1].y = 1; rangerShotScene.actors[1].ruleState = { enemyAim: 1 }; rangerShotScene.actors[0].x = 5; rangerShotScene.actors[0].y = 1; rangerShotScene.tension = 2;
+const headshot = profileRule("enemy.common.ranger", "Headshot");
+const headshotPrepared = Engine.prepareEnemyRule(rangerShotScene, data, { actorId: "enemy", ruleId: headshot.id, targetIds: ["hero"] });
+assert.equal(headshotPrepared.ok, true, "Ranger can designate a visible Headshot target");
+rangerShotScene = Engine.dispatchMany(rangerShotScene, headshotPrepared.events).scene;
+assert.equal(rangerShotScene.actors[1].ruleState.rangerHeadshotTargetId, "hero", "Headshot stores the selected target id");
+const takeTheShot = profileRule("enemy.common.ranger", "Take The Shot");
+const rangerAttack = Engine.prepareEnemyRule(rangerShotScene, data, { actorId: "enemy", ruleId: takeTheShot.id, targetIds: ["hero"], roll: { rolls: [6, 5, 4, 2, 1, 1], successes: 3, crits: 1 } });
+assert.equal(rangerAttack.ok, true, "Ranger can shoot a target at range 4 or more");
+const rangerPending = rangerAttack.events.find(event => event.type === "attack.pending");
+assert.equal(rangerPending.payload.damageByTarget.hero, 11, "Take The Shot combines successes, Tension, Aim, long-range bonus, and Headshot bonus");
+let rangerResolved = Engine.dispatchMany(rangerShotScene, rangerAttack.events).scene;
+rangerResolved = Engine.dispatchMany(rangerResolved, Engine.respondReaction(rangerResolved, data, { actorId: "hero", choice: "pass" }).events).scene;
+rangerResolved = Engine.dispatchMany(rangerResolved, Engine.resolvePendingAction(rangerResolved, data).events).scene;
+assert.equal(rangerResolved.actors[1].ruleState.rangerHeadshotTargetId, null, "Headshot target is cleared after the designated shot resolves");
 const resolveEnemyFamily = (sourceScene, family, targetIds = ["hero"], anchor = null) => {
   let value = structuredClone(sourceScene); value.pendingAction = null;
   value = Engine.dispatchMany(value, [
