@@ -2517,13 +2517,41 @@ assert.equal(ritualDrawings.maxTargets, 0);
 const declaredAttacks = enemyProfiles.flatMap(profile => (profile.rules || []).filter(rule => rule.kind === "attack").map(rule => ({ profile, rule })));
 assert.ok(declaredAttacks.length >= 40, "The enemy catalogue exposes the complete common Attack set");
 assert.deepEqual(declaredAttacks.filter(({ rule }) => Engine.enemyRuleAutomation(rule.id) === "assisted").map(({ rule }) => rule.id), [], "Every declared enemy Attack has an executable automation contract");
+const profileRule = (profileId, en) => enemyProfiles.find(item => item.id === profileId).rules.find(rule => rule.en === en);
 for (const profileId of ["enemy.common.assassin", "enemy.common.pugilist", "enemy.common.guardian", "enemy.common.berserker", "enemy.common.ranger"]) {
   const profile = enemyProfiles.find(item => item.id === profileId);
   assert.ok(profile, `${profileId} exists in the canonical enemy catalogue`);
   assert.equal((profile.rules || []).filter(rule => Engine.enemyRuleAutomation(rule.id) === "assisted").length, 0, `${profile.name} has no Narrator-only profile buttons`);
 }
+for (const profileId of ["enemy.common.bodyguards", "enemy.common.glutton", "enemy.common.pugilist", "enemy.common.berserker", "enemy.common.bruiser", "enemy.common.ranger"]) {
+  const profile = enemyProfiles.find(item => item.id === profileId);
+  assert.ok(profile, `${profileId} exists in the canonical enemy catalogue`);
+  assert.ok((profile.rules || []).some(rule => Engine.enemyRuleAutomation(rule.id) !== "assisted"), `${profile.name} exposes at least one executable rule`);
+}
+const sixProfileAttackRules = [
+  ["enemy.common.bodyguards", "Behind Me", "attack"],
+  ["enemy.common.glutton", "Slobber", "attack"],
+  ["enemy.common.pugilist", "Flurry Of Strikes", "attack"],
+  ["enemy.common.berserker", "Thrash", "attack"],
+  ["enemy.common.bruiser", "Skulduggery", "attack"],
+  ["enemy.common.ranger", "Take The Shot", "attack"],
+];
+for (const [profileId, ruleEn, expectedAutomation] of sixProfileAttackRules) {
+  const rule = profileRule(profileId, ruleEn);
+  assert.ok(rule, `${profileId} exposes the reviewed ${ruleEn} rule`);
+  assert.equal(Engine.enemyRuleAutomation(rule.id), expectedAutomation, `${rule.id} uses the shared audited Attack pipeline`);
+}
+for (const [profileId, ruleEn] of [
+  ["enemy.common.bodyguards", "Brace"],
+  ["enemy.common.bodyguards", "Reinforcements"],
+  ["enemy.common.glutton", "Regurgitate"],
+  ["enemy.common.bruiser", "Decimate"],
+]) {
+  const rule = profileRule(profileId, ruleEn);
+  assert.ok(rule, `${profileId} exposes the reviewed ${ruleEn} rule`);
+  assert.equal(Engine.enemyRuleAutomation(rule.id), "assisted", `${rule.id} keeps its unresolved placement or delayed-choice step assisted`);
+}
 const profileScene = profileId => { const value = structuredClone(enemyScene); value.actors[1].profileId = profileId; value.actors[1].name = enemyProfiles.find(item => item.id === profileId).name; value.actors[1].hp = 5; value.actors[1].maxHp = 30; value.actors[1].ruleState = {}; value.actors[1].usedActions = []; value.actors[1].usedTrump = false; value.actors[1].ap = 3; return value; };
-const profileRule = (profileId, en) => enemyProfiles.find(item => item.id === profileId).rules.find(rule => rule.en === en);
 let assassinFull = profileScene("enemy.common.assassin"), assassinMark = profileRule("enemy.common.assassin", "Neutralize Target");
 assassinFull = Engine.dispatchMany(assassinFull, Engine.prepareEnemyRule(assassinFull, data, { actorId: "enemy", ruleId: assassinMark.id, targetIds: ["hero"] }).events).scene;
 assert.ok(assassinFull.actors[0].effects.includes("negative.помечен"), "Assassin creates its durable Mark through the shared Effect state");
