@@ -2480,6 +2480,27 @@ for (const profileId of ["enemy.common.assassin", "enemy.common.pugilist", "enem
 }
 const profileScene = profileId => { const value = structuredClone(enemyScene); value.actors[1].profileId = profileId; value.actors[1].name = enemyProfiles.find(item => item.id === profileId).name; value.actors[1].hp = 5; value.actors[1].maxHp = 30; value.actors[1].ruleState = {}; value.actors[1].usedActions = []; value.actors[1].usedTrump = false; value.actors[1].ap = 3; return value; };
 const profileRule = (profileId, en) => enemyProfiles.find(item => item.id === profileId).rules.find(rule => rule.en === en);
+// Duelist: passive Provocation, both Goad branches, and Fleche's complete
+// damage/movement contract run through the public engine adapters.
+let duelistContractScene = profileScene("enemy.common.duelist"); duelistContractScene.actors[1].tier = 2; duelistContractScene.tension = 2;
+const goadContract = profileRule("enemy.common.duelist", "Goad"), flecheContract = profileRule("enemy.common.duelist", "Flèche");
+assert.equal(Engine.enemyRuleAutomation(goadContract.id), "full", "Goad exposes its repeated-target choice as an executable prompt");
+duelistContractScene = Engine.dispatchMany(duelistContractScene, Engine.prepareEnemyRule(duelistContractScene, data, { actorId: "enemy", ruleId: goadContract.id, targetIds: ["hero"] }).events).scene;
+assert.ok(duelistContractScene.actors[0].effects.includes("negative.спровоцирован"), "First Goad applies Provoked");
+duelistContractScene.actors[1].usedActions = []; duelistContractScene.actors[1].ap = 3; duelistContractScene.actors[0].focus = 3;
+duelistContractScene = Engine.dispatchMany(duelistContractScene, Engine.prepareEnemyRule(duelistContractScene, data, { actorId: "enemy", ruleId: goadContract.id, targetIds: ["hero"] }).events).scene;
+assert.equal(duelistContractScene.pendingPrompt?.kind, "enemy-duelist-goad", "Repeated Goad opens its canonical Focus-or-movement choice");
+duelistContractScene = Engine.dispatchMany(duelistContractScene, Engine.respondRulePrompt(duelistContractScene, data, { choice: "focus" }).events).scene;
+assert.equal(duelistContractScene.actors[0].focus, 1, "Repeated Goad can spend exactly 2 Focus");
+duelistContractScene.actors[1].usedActions = []; duelistContractScene.actors[1].ap = 3;
+const flechePrepared = Engine.prepareEnemyRule(duelistContractScene, data, { actorId: "enemy", ruleId: flecheContract.id, targetIds: ["hero"], roll: { rolls: [6, 5, 2, 1, 1, 1, 1], successes: 2, crits: 1 } });
+assert.equal(flechePrepared.events.find(event => event.type === "attack.pending").payload.damageByTarget.hero, 6, "Fleche adds successes, Tension, and Tier against a Provoked target");
+let duelistAttackFlow = Engine.dispatchMany(duelistContractScene, flechePrepared.events).scene;
+assert.ok(duelistAttackFlow.actors[0].effects.includes("negative.спровоцирован"), "A Duelist attack applies its passive Provocation");
+duelistAttackFlow = Engine.dispatchMany(duelistAttackFlow, Engine.respondReaction(duelistAttackFlow, data, { actorId: "hero", choice: "pass" }).events).scene;
+duelistAttackFlow = Engine.dispatchMany(duelistAttackFlow, Engine.resolvePendingAction(duelistAttackFlow, data).events).scene;
+assert.equal(duelistAttackFlow.pendingPrompt?.kind, "enemy-move-cell", "Resolved Fleche offers the required one-cell Duelist movement");
+assert.equal(Engine.enemyRuleAutomation(profileRule("enemy.common.duelist", "Disassemble").id), "assisted", "Disassemble stays assisted until bound weak-point placement and Trump reset share a UI contract");
 let assassinFull = profileScene("enemy.common.assassin"), assassinMark = profileRule("enemy.common.assassin", "Neutralize Target");
 assassinFull = Engine.dispatchMany(assassinFull, Engine.prepareEnemyRule(assassinFull, data, { actorId: "enemy", ruleId: assassinMark.id, targetIds: ["hero"] }).events).scene;
 assert.ok(assassinFull.actors[0].effects.includes("negative.помечен"), "Assassin creates its durable Mark through the shared Effect state");

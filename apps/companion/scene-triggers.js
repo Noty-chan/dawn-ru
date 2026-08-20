@@ -759,6 +759,12 @@ function triggeredEvents(scene, event, options = {}) {
     if (illusionist && swaps.length) events.push({ type: "rule.prompt", actorId: illusionist.id, payload: { id: `prompt-${event.id}-flux`, kind: "enemy-flux-swap", sourceActorId: illusionist.id, targetId: actor.id, controller: "narrator", title: "Поток", text: `${actor.name} начинает Ход в Потоке. Иллюзионист может поменять его позицию с позицией другого врага.`, options: [...swaps.map(target => `swap:${target.id}`), "pass"], context: { optionLabels: Object.fromEntries(swaps.map(target => [`swap:${target.id}`, `Поменять с ${target.name}`])) }, participantIds: [illusionist.id, actor.id, ...swaps.map(target => target.id)] } });
   }
   if (event.type === "attack.pending" && actor) {
+    const duelistSource = actor.profileId === "enemy.common.duelist" ? actor : null;
+    if (duelistSource) for (const targetId of payload.targetIds || []) events.push({ type: "effect.apply", actorId: duelistSource.id, payload: { targetId, effect: "negative.спровоцирован", sourceActionId: "enemy.common.duelist.passive", duration: "scene", participantIds: [duelistSource.id, targetId] } });
+    for (const targetId of payload.targetIds || []) {
+      const duelistTarget = actorById(scene, targetId);
+      if (duelistTarget?.profileId === "enemy.common.duelist") events.push({ type: "effect.apply", actorId: duelistTarget.id, payload: { targetId: actor.id, effect: "negative.спровоцирован", sourceActionId: "enemy.common.duelist.passive", duration: "scene", participantIds: [duelistTarget.id, actor.id] } });
+    }
     for (const targetId of payload.targetIds || []) {
       const target = actorById(scene, targetId), mark = effectStateFor(target, "negative.помечен"), healerSource = mark?.sources.find(source => actorById(scene, source.actorId)?.profileId === "enemy.common.healer" && source.sourceActionId === "enemy.common.healer.attack.exsanguinate");
       if (!healerSource) continue;

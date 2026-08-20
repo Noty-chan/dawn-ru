@@ -256,6 +256,26 @@ function respondRulePrompt(scene, data, request = {}) {
   const errors = choiceStatus.available ? [] : [choiceStatus.reason];
   if (errors.length) return { ok: false, errors, events: [] };
   const events = [{ type: "rule.respond", actorId: actor.id, payload: { promptId: prompt.id, choice, sourceActorId: actor.id, targetId: target?.id || null, participantIds: [actor.id, target?.id].filter(Boolean) } }];
+  if (prompt.kind === "enemy-duelist-goad") {
+    if (!target || target.knockedOut || target.space !== actor.space) return { ok: false, errors: ["Цель Поддразнивания больше недоступна."], events: [] };
+    if (choice === "focus") {
+      if (Number(target.focus || 0) < 2) return { ok: false, errors: ["У цели больше нет 2 Фокуса."], events: [] };
+      events.push({ type: "resource.spend", actorId: target.id, payload: { resource: "focus", amount: 2, sourceActionId: "enemy.common.duelist.action.goad", participantIds: [actor.id, target.id] } });
+    } else {
+      const space = (scene.spaces || []).find(item => item.id === target.space), candidates = [];
+      for (let y = 0; y < Number(space?.height || 0); y += 1) for (let x = 0; x < Number(space?.width || 0); x += 1) {
+        const path = movementPath(scene, target.id, { x, y }, { maxDistance: 3, forced: true, straight: true });
+        if (path.length && path.every((point, index) => distance({ ...point, space: target.space }, actor) < distance(index ? { ...path[index - 1], space: target.space } : target, actor))) candidates.push({ x, y, path });
+      }
+      candidates.sort((left, right) => right.path.length - left.path.length || distance({ ...left, space: target.space }, actor) - distance({ ...right, space: target.space }, actor));
+      const destination = candidates[0];
+      if (destination) {
+        events.push({ type: "actor.move", actorId: target.id, payload: { space: target.space, x: destination.x, y: destination.y, movement: "Поддразнить", forced: true, path: destination.path.map(cellKey), participantIds: [actor.id, target.id] } });
+        events.push({ type: "actor.enter", actorId: target.id, payload: { space: target.space, x: destination.x, y: destination.y, movement: "Поддразнить", forced: true } });
+        if (distance({ ...destination, space: target.space }, actor) === 1) events.push({ type: "effect.apply", actorId: actor.id, payload: { targetId: target.id, effect: "negative.ошеломлен", sourceActionId: "enemy.common.duelist.action.goad", participantIds: [actor.id, target.id] } });
+      }
+    }
+  }
   if (["enemy-executioner-bifurcate", "enemy-revenant-hollowed"].includes(prompt.kind)) {
     const executioner = prompt.kind === "enemy-executioner-bifurcate", stateKey = executioner ? "executionerBifurcate" : "revenantHollowedEyes";
     if (choice === "pass") events.push({ type: "actor.state", actorId: actor.id, payload: { key: stateKey, value: null, sourceActionId: prompt.context?.ruleId } });

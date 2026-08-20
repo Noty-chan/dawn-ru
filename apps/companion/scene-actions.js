@@ -138,6 +138,7 @@ const ENEMY_FULL_RULES = new Map([
   ["enemy.common.berserker.trump.last-stand", { type: "berserker-last-stand", formula: "10(+3)" }],
   ["enemy.common.ranger.action.nest", { type: "ranger-nest" }],
   ["enemy.common.ranger.trump.headshot", { type: "ranger-headshot" }],
+  ["enemy.common.duelist.action.goad", { type: "duelist-goad" }],
   ["enemy.common.cannoneer.attack.load", { type: "cannoneer-load" }],
   ["enemy.common.oni.action.stabilize", { type: "oni-stabilize" }],
   ["enemy.common.revenant.action.lurk", { type: "revenant-lurk" }],
@@ -812,6 +813,13 @@ function prepareEnemyRule(scene, data, request = {}) {
     events.push({ type: "actor.state", actorId: actor.id, payload: { key: "enemyAim", value: 1, sourceActionId: rule.id } });
   }
   if (fullRule?.type === "ranger-headshot") events.push({ type: "actor.state", actorId: actor.id, payload: { key: "rangerHeadshotTargetId", value: targetIds[0], sourceActionId: rule.id } });
+  if (fullRule?.type === "duelist-goad") {
+    const target = targets[0], alreadyProvoked = (target.effects || []).includes("negative.спровоцирован");
+    if (alreadyProvoked) {
+      const options = Number(target.focus || 0) >= 2 ? ["focus", "move"] : ["move"];
+      events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${eventId()}-duelist-goad`, kind: "enemy-duelist-goad", sourceActorId: actor.id, targetId: target.id, controller: "narrator", title: "Поддразнить", text: `${target.name} уже Спровоцирован: потратить 2 Фокуса или переместиться на 3 клетки прямо к ${actor.name}.`, options, context: { optionLabels: { focus: "Потратить 2 Фокуса", move: "Переместиться к Дуэлянту" } }, participantIds: [actor.id, target.id] } });
+    } else events.push({ type: "effect.apply", actorId: actor.id, payload: { targetId: target.id, effect: "negative.спровоцирован", sourceActionId: rule.id, participantIds: [actor.id, target.id] } });
+  }
   if (fullRule?.type === "oni-stabilize") {
     for (const effect of [...new Set(actor.effects || [])]) events.push({ type: "effect.remove", actorId: actor.id, payload: { targetId: actor.id, effect, force: true, sourceActionId: rule.id, participantIds: [actor.id] } });
     events.push({ type: "effect.apply", actorId: actor.id, payload: { targetId: actor.id, effect: "positive.ускорен", sourceActionId: rule.id, participantIds: [actor.id] } });
