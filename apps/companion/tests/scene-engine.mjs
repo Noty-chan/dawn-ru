@@ -2552,6 +2552,18 @@ for (const [profileId, ruleEn] of [
   assert.equal(Engine.enemyRuleAutomation(rule.id), "assisted", `${rule.id} keeps its unresolved placement or delayed-choice step assisted`);
 }
 const profileScene = profileId => { const value = structuredClone(enemyScene); value.actors[1].profileId = profileId; value.actors[1].name = enemyProfiles.find(item => item.id === profileId).name; value.actors[1].hp = 5; value.actors[1].maxHp = 30; value.actors[1].ruleState = {}; value.actors[1].usedActions = []; value.actors[1].usedTrump = false; value.actors[1].ap = 3; return value; };
+// Bodyguards: the reviewed auto portion supports mixed ally/enemy targets,
+// while the unresolved Fodder placement remains outside this adapter.
+let bodyguardsContractScene = profileScene("enemy.common.bodyguards");
+bodyguardsContractScene.actors.push({ ...structuredClone(bodyguardsContractScene.actors[1]), id: "bodyguard-ally", name: "Союзник", team: "enemy", x: 3, y: 1, effects: [] });
+const behindMeContract = profileRule("enemy.common.bodyguards", "Behind Me");
+const bodyguardsPrepared = Engine.prepareEnemyRule(bodyguardsContractScene, data, { actorId: "enemy", ruleId: behindMeContract.id, targetIds: ["bodyguard-ally", "hero"], roll: { rolls: [6, 5, 2, 1, 1, 1], successes: 2, crits: 1 } });
+assert.equal(bodyguardsPrepared.ok, true, "Bodyguards can prepare Behind Me with one ally and one enemy target");
+const bodyguardsPreparedAttack = bodyguardsPrepared.events.find(event => event.type === "attack.pending");
+assert.equal(bodyguardsPreparedAttack.payload.targetIds.length, 1, "Behind Me sends one hostile target through the shared Attack pipeline");
+assert.equal(bodyguardsPreparedAttack.payload.targetIds[0], "hero", "Behind Me preserves the hostile target identity");
+assert.ok(bodyguardsPrepared.events.some(event => event.type === "effect.apply" && event.payload?.targetId === "bodyguard-ally" && event.payload?.effect === "positive.укреплен"), "Behind Me applies Укреплен to a selected ally");
+assert.equal(Engine.prepareEnemyRule(bodyguardsContractScene, data, { actorId: "enemy", ruleId: behindMeContract.id, targetIds: ["bodyguard-ally", "hero", "bodyguard-ally-2", "bodyguard-ally-3"] }).ok, false, "Behind Me rejects more than three selected characters");
 let assassinFull = profileScene("enemy.common.assassin"), assassinMark = profileRule("enemy.common.assassin", "Neutralize Target");
 assassinFull = Engine.dispatchMany(assassinFull, Engine.prepareEnemyRule(assassinFull, data, { actorId: "enemy", ruleId: assassinMark.id, targetIds: ["hero"] }).events).scene;
 assert.ok(assassinFull.actors[0].effects.includes("negative.помечен"), "Assassin creates its durable Mark through the shared Effect state");
