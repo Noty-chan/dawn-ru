@@ -254,6 +254,9 @@ const sellsword = Engine.preview(mScene, { actorId: "hero", ruleId: "ruiner.sell
 assert.equal(sellsword.ok, true, "Sellsword summon on empty cell with focus/type is valid");
 assert.ok(Engine.toEvents(mScene, sellsword).some(event => event.type === "resource.spend" && event.payload.resource === "focus" && event.payload.amount === 1), "Sellsword summon spends 1 Focus");
 assert.equal(Engine.preview(mScene, { actorId: "hero", ruleId: "ruiner.sellsword-s-call.1", anchor: { x: 3, y: 3 } }).ok, false, "Summon point cannot sit on an occupied cell");
+const occupiedByKnockedOut = structuredClone(mScene);
+occupiedByKnockedOut.actors.find(actor => actor.id === "enemy-a").knockedOut = true;
+assert.equal(Engine.preview(occupiedByKnockedOut, { actorId: "hero", ruleId: "ruiner.sellsword-s-call.1", anchor: { x: 3, y: 3 }, options: { summonType: "ranger" } }).ok, true, "A knocked-out actor does not block a summon point");
 assert.equal(Engine.preview(mScene, { actorId: "hero", ruleId: "ruiner.sellsword-s-call.1", anchor: { x: 3, y: 4 } }).ok, false, "Sellsword summon requires a summon type");
 const sellswordZeroFocus = structuredClone(mScene);
 sellswordZeroFocus.actors[0].focus = 0;
