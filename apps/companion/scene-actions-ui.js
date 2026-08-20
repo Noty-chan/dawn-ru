@@ -307,6 +307,7 @@ function startTechnique(ruleId,options={}){
   if(Scene.pendingActionPlan||Scene.pendingAction||Scene.pendingPrompt)return toast("Сначала завершите текущую цепочку правил");
   if(actor.knockedOut||Scene.activeActorId!==actor.id)return toast("Технику можно применить только в Ход этого героя");
   const focusSpent=Number(options.focusSpent??rule.optionMinimum?.value??0);if(actor.focus<focusSpent||Scene.tension<focusSpent)return toast(`Для «${rule.name}» нужно ${focusSpent} Фокуса и достаточное Напряжение`);
+  if(rule.kind==="space"&&!Scene.targetIds.length){Scene.tool="target";renderScene();return toast(`«${rule.name}»: отметьте хотя бы одного персонажа для переноса и снова откройте Технику`)}
   if(rule.kind==="state-toggle"||rule.kind==="surgery"||rule.kind==="space"||rule.kind==="autophage-overexert"||rule.kind==="bond-support"||(rule.kind==="creation-attack"&&["mallet","pile-arm"].includes(rule.form))||(rule.kind==="combo"&&["skirmish","spell","finish"].includes(rule.actionKey)&&Scene.targetIds.length)){
     if(rule.kind==="surgery"&&Scene.targetIds.length!==1)return toast("«Не навреди»: выберите одного смежного союзника");
     const prepared=techniquePreview(rule);if(!prepared.ok)return toast(prepared.errors.join(" "));commitTechniquePreview(prepared);return

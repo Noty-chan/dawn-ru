@@ -859,6 +859,14 @@ function reduceEvent(scene, event) {
     const target = actorById(scene, payload.targetId);
     if (target && payload.restore) { target.knockedOut=false;target.hp=Math.max(1,Number(payload.amount||target.maxHp||1));target.acted=false;payload.applied=true; }
     else { const compound=compoundEnemyStatus(scene,target);if(compound.active){for(const part of compound.parts){part.hp=0;part.knockedOut=true}scene.tension=Number(scene.tension||0)+1;scene.targetIds=(scene.targetIds||[]).filter(id=>!compound.parts.some(part=>part.id===id));if(compound.parts.some(part=>part.id===scene.activeActorId))scene.activeActorId=null;payload.applied=true;payload.affectedActorIds=compound.parts.map(part=>part.id)}else applyKnockoutState(scene, target, payload); }
+    if (payload.applied && target && target.knockedOut) {
+      const defeatedIds = new Set([target.id, ...(payload.affectedActorIds || [])]);
+      if (scene.pendingPrompt && defeatedIds.has(scene.pendingPrompt.sourceActorId) || scene.pendingPrompt?.targetId && defeatedIds.has(scene.pendingPrompt.targetId)) scene.pendingPrompt = null;
+      scene.triggerQueue = (scene.triggerQueue || []).filter(item => {
+        const deferred = item.event?.payload || {};
+        return !defeatedIds.has(item.event?.actorId) && !defeatedIds.has(deferred.sourceActorId) && !defeatedIds.has(deferred.targetId) && !(deferred.targetIds || []).some(id => defeatedIds.has(id));
+      });
+    }
   } else if (event.type === "inventory.change" && actor) {
     actor.inventory ||= {};
     actor.inventory[payload.item] = Math.max(0, Number(actor.inventory[payload.item] || 0) + Number(payload.delta || 0));
@@ -868,12 +876,14 @@ function reduceEvent(scene, event) {
     const key = `${payload.sourceEventId}:${payload.triggerId}`;
     if (payload.status === "queued" && !scene.triggerQueue.some(item => item.key === key)) {
       scene.triggerQueue.push({ key, triggerId: payload.triggerId, sourceEventId: payload.sourceEventId, priority: Number(payload.priority || 0), ownerId: event.actorId, event: clone(payload.deferredEvent) });
-      scene.triggerQueue.sort((left, right) => Number(right.priority || 0) - Number(left.priority || 0));
+      // Queue order is the order in which decisions became pending. A newly
+      // generated prompt must not overtake an older prompt during a chain.
     }
     if (payload.queued && ["fired", "cancelled"].includes(payload.status)) scene.triggerQueue = scene.triggerQueue.filter(item => item.key !== key);
   } else if (event.type === "rule.prompt") {
     const options = PLACEMENT_PROMPT_KINDS.has(payload.kind) && !payload.options.includes("cell") ? ["cell", ...payload.options] : payload.options;
-    scene.pendingPrompt = { id: payload.id, kind: payload.kind, actorId: event.actorId, sourceActorId: payload.sourceActorId || event.actorId, controller: payload.controller === "narrator" ? "narrator" : "source", targetId: payload.targetId || null, markerId: payload.markerId || null, title: payload.title || "Решение правила", text: payload.text || "", options: clone(options || []), context: clone(payload.context || {}) };
+    const participantIds = [event.actorId, payload.sourceActorId, payload.targetId, ...(payload.targetIds || []), ...(payload.participantIds || [])].filter(Boolean);
+    if (!participantIds.some(id => actorById(scene, id)?.knockedOut)) scene.pendingPrompt = { id: payload.id, kind: payload.kind, actorId: event.actorId, sourceActorId: payload.sourceActorId || event.actorId, controller: payload.controller === "narrator" ? "narrator" : "source", targetId: payload.targetId || null, markerId: payload.markerId || null, title: payload.title || "Решение правила", text: payload.text || "", options: clone(options || []), context: clone(payload.context || {}) };
   } else if (event.type === "rule.respond") {
     payload.kind = scene.pendingPrompt?.kind || payload.kind;
     payload.sourceActorId = scene.pendingPrompt?.sourceActorId || null;
