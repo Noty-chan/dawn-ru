@@ -350,6 +350,8 @@ function prepareAction(scene, data, request = {}) {
   const meisterOverload = actionIsAny(action, ["skirmish", "finish"]) && Number(actor.techniques?.["vagabond.modified-meister"] || 0) >= 2 && Boolean(request.overload);
   const finisherFocus = actionIs(action, "finish") ? Number(request.focusSpent ?? request.roll?.finisherFocus ?? 0) : 0;
   const mundaneLevel = Number(actor.techniques?.["bulwark.mundane"] || 0), actionAttribute = attackModifiers.attributeOverride || request.attribute || request.roll?.attribute || null;
+  const ritualistCircle = actionIs(action, "finish") && actionAttribute === "spirit" && Number(actor.techniques?.["ruiner.ritualist"] || 0) >= 1 && (scene.markers || []).some(marker => marker.ownerActorId === actor.id && marker.kind === "ritual" && marker.duration === "scene" && /ritualist/.test(String(marker.ruleId || "")) && marker.space === actor.space && Number(marker.x) === Number(actor.x) && Number(marker.y) === Number(actor.y));
+  const finisherFocusCap = Number(scene.tension || 0) + (ritualistCircle ? 2 : 0);
   const attackModifierDestination = attackModifiers.requiresDestination ? attackModifierDestinationStatus(scene, actor.id, targetIds, attackModifiers.selectedIds, request.attackModifierDestination, { actionId: declaredAction.id }) : null;
   if (attackModifierDestination && !attackModifierDestination.available) errors.push(attackModifierDestination.reason);
   const thunderDischarge = Boolean(request.useThunderDischarge) && actionIs(action, "finish") && actionAttribute === "spirit" && Number(actor.techniques?.["ruiner.thunder-blood"] || 0) >= 3 && clockStatus(scene, actor.id, "ruiner.thunder-blood.static").value >= 3;
@@ -403,7 +405,7 @@ function prepareAction(scene, data, request = {}) {
   if (knifeThrow && !ruleResourceStatus(scene, actor.id, { resource: "weapons", amount: 1 }).available) errors.push("Для Метания нужно 1 Оружие.");
   if (knifeThrow && targetIds.length !== 1) errors.push("Метание выбирает ровно одного персонажа.");
   if (meisterOverload && !Array.isArray(request.roll?.rolls)) errors.push("Для Перегрузки нужен зафиксированный бросок Атаки.");
-  if (!Number.isInteger(finisherFocus) || finisherFocus < 0 || finisherFocus > Number(scene.tension || 0) || finisherFocus > Number(actor.focus || 0)) errors.push("Фокус Завершения должен быть целым числом от 0 до текущего Напряжения и не больше доступного Фокуса.");
+  if (!Number.isInteger(finisherFocus) || finisherFocus < 0 || finisherFocus > finisherFocusCap || finisherFocus > Number(actor.focus || 0)) errors.push(`Фокус Завершения должен быть целым числом от 0 до ${finisherFocusCap} и не больше доступного Фокуса.`);
   if (mundaneLevel >= 1 && actionIs(action, "spell")) errors.push("Обычный не может использовать Заклинание.");
   if (mundaneLevel >= 1 && actionIs(action, "finish") && actionAttribute === "spirit") errors.push("Обычный не может использовать Завершение Духом.");
   const modifierQuick = Boolean(attackModifiers.quick), armamentQuick = Boolean(armament?.available);
