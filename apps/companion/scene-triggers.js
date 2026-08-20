@@ -27,6 +27,23 @@ function defineTriggerRule(definition = {}) {
 
 const TRIGGER_RULES = [
   {
+    id: "disruptor.inner-world.2.offer",
+    eventTypes: ["effect.apply"],
+    priority: 75,
+    match: ({ scene, actor, payload }) => {
+      const target = actorById(scene, payload.targetId), level = Number(actor?.techniques?.["disruptor.inner-world"] || 0);
+      if (!actor || !target || actor.knockedOut || target.knockedOut || actor.id === target.id || level < 2 || !payload.applied || payload.ignoreInnerWorldTrigger || payload.effect === "positive.исчез") return false;
+      if (actor.space !== target.space || actor.space === (scene.spaces || []).find(space => /Внутренний мир/.test(space.name || ""))?.id) return false;
+      const maximum = level >= 3 ? Math.max(1, Number(actor.attrs?.spirit || 1)) : 1;
+      return usageLimitStatus(scene, actor.id, { ruleId: "disruptor.inner-world.2", scope: "scene", maximum }).available;
+    },
+    build: ({ scene, event, actor, payload }) => {
+      const target = actorById(scene, payload.targetId), level = Number(actor.techniques?.["disruptor.inner-world"] || 0), maximum = level >= 3 ? Math.max(1, Number(actor.attrs?.spirit || 1)) : 1;
+      if (!target) return [];
+      return [{ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${event.id}-inner-world`, kind: "inner-world-offer", sourceActorId: actor.id, targetId: target.id, title: "Домен контроля", text: `После наложения Эффекта можно телепортировать ${target.name} и себя во Внутренний мир. Осталось применений за Сцену: ${usageLimitStatus(scene, actor.id, { ruleId: "disruptor.inner-world.2", scope: "scene", maximum }).remaining}.`, options: ["invoke", "pass"], context: { ruleId: "disruptor.inner-world.2", effectEventId: event.id }, participantIds: [actor.id, target.id] } }];
+    },
+  },
+  {
     id: "wolf.dark-urge.redirect",
     eventTypes: ["roll.public"],
     priority: 90,
@@ -503,8 +520,31 @@ function reminderLifecycleEvents(scene, event) {
   return events;
 }
 
+function routeLegacyPromptEvents(scene, sourceEvent, prefixEvents, legacyEvents) {
+  let promptReserved = Boolean(scene.pendingPrompt || prefixEvents.some(item => item.type === "rule.prompt"));
+  const routed = [...prefixEvents];
+  legacyEvents.forEach((candidate, index) => {
+    if (candidate.type !== "rule.prompt") {
+      routed.push(candidate);
+      return;
+    }
+    const payload = candidate.payload || {}, ownerId = candidate.actorId || payload.sourceActorId || sourceEvent.actorId || null;
+    const suffix = String(payload.kind || "prompt").toLowerCase().replace(/[^a-z0-9.-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 72) || "prompt";
+    const triggerId = `legacy.${suffix}.${index}`, participants = eventParticipants(scene, candidate).actorIds;
+    const status = promptReserved ? "queued" : "fired", reason = promptReserved ? "Запрос ждёт завершения уже открытого решения." : "";
+    const audit = { type: "rule.trigger", actorId: ownerId, payload: { triggerId, sourceEventId: sourceEvent.id, sourceEventType: sourceEvent.type, status, reason, priority: 0, emittedTypes: ["rule.prompt"], triggerOwnerId: ownerId, participantIds: participants } };
+    if (status === "queued") audit.payload.deferredEvent = clone(candidate);
+    routed.push(audit);
+    if (!promptReserved) {
+      routed.push(candidate);
+      promptReserved = true;
+    }
+  });
+  return routed;
+}
+
 function triggeredEvents(scene, event, options = {}) {
-  const payload = event.payload || {}, actor = event.actorId ? actorById(scene, event.actorId) : null, resumesQueue = event.type === "attack.clear" || event.type === "rule.respond" && !options.deferQueuedResume, resumed = resumesQueue ? resumeQueuedTriggers(scene, event) : { events: [], promptReserved: false }, routed = triggerRouteStatus(scene, event, { promptReserved: resumed.promptReserved }), events = [...resumed.events, ...routed.events], promptQueued = () => events.some(item => item.type === "rule.prompt");
+  const payload = event.payload || {}, actor = event.actorId ? actorById(scene, event.actorId) : null, resumesQueue = event.type === "attack.clear" || event.type === "rule.respond" && !options.deferQueuedResume, resumed = resumesQueue ? resumeQueuedTriggers(scene, event) : { events: [], promptReserved: false }, routed = triggerRouteStatus(scene, event, { promptReserved: resumed.promptReserved || options.deferQueuedResume || Boolean(scene.triggerQueue?.length) }), prefixEvents = [...resumed.events, ...routed.events], events = [], promptQueued = () => prefixEvents.some(item => item.type === "rule.prompt") || events.some(item => item.type === "rule.prompt");
   if (event.type === "actor.knockout" && payload.applied && scene.pendingActionPlan?.actorId === payload.targetId) {
     events.push({ type: "action.plan.cancel", actorId: payload.targetId, payload: { planId: scene.pendingActionPlan.id, reason: "Исполнитель выведен из боя.", participantIds: [payload.targetId] } });
   }
@@ -847,19 +887,25 @@ function triggeredEvents(scene, event, options = {}) {
   events.push(...effectLifecycleEvents(scene, event));
   events.push(...entityLifecycleEvents(scene, event));
   events.push(...reminderLifecycleEvents(scene, event));
-  return events;
+  return routeLegacyPromptEvents(scene, event, prefixEvents, events);
 }
 
 function dispatchMany(scene, events, options = {}) {
   let next = clone(scene);
   const committed = [], duplicates = [];
   const queue = [...(events || [])];
+  const invalidatedActorIds = new Set();
   let versionPending = options.expectedVersion !== undefined;
   let handled = 0;
   while (queue.length) {
     if (handled++ > 240) throw new Error("Слишком длинная цепочка автоматических правил.");
     const event = queue.shift();
     const prompt = next.pendingPrompt, destination = event?.payload?.destination;
+    if (event?.type === "rule.prompt") {
+      const payload = event.payload || {};
+      const participantIds = [event.actorId, payload.sourceActorId, payload.targetId, ...(payload.targetIds || []), ...(payload.participantIds || [])].filter(Boolean);
+      if (participantIds.some(id => invalidatedActorIds.has(id) || actorById(next, id)?.knockedOut)) continue;
+    }
     const placementActorId = ["siren-irresistible-cell", "constrictor-move-cell"].includes(prompt?.kind) || prompt?.kind === "enemy-move-cell" && prompt.context?.moveTarget ? prompt.targetId : prompt?.sourceActorId;
     const stationarySiren = prompt?.kind === "siren-irresistible-cell" && actorById(next, prompt.targetId)?.x === Number(destination?.x) && actorById(next, prompt.targetId)?.y === Number(destination?.y);
     const placementResponse = event?.type === "rule.respond" && event.payload?.choice === "cell" && destination && (
@@ -876,15 +922,44 @@ function dispatchMany(scene, events, options = {}) {
     const dispatchOptions = { ...options, expectedVersion: versionPending ? options.expectedVersion : undefined, placementResponse };
     const result = dispatch(next, event, dispatchOptions);
     next = result.scene;
+    if (result.event.type === "actor.knockout" && result.event.payload?.applied && result.event.payload?.targetId) {
+      invalidatedActorIds.add(result.event.payload.targetId);
+      for (const id of result.event.payload.affectedActorIds || []) invalidatedActorIds.add(id);
+    }
+    // A knockout can invalidate prompts already expanded into this local
+    // dispatch queue before their persisted trigger-queue entry is reduced.
+    // Drop those events at the same lifecycle boundary as scene.triggerQueue.
+    for (let index = queue.length - 1; index >= 0; index -= 1) {
+      const candidate = queue[index], candidatePayload = candidate?.payload || {};
+      if (candidate?.type !== "rule.prompt") continue;
+      const participantIds = [candidate.actorId, candidatePayload.sourceActorId, candidatePayload.targetId, ...(candidatePayload.targetIds || []), ...(candidatePayload.participantIds || [])].filter(Boolean);
+      const queuedKnockout = queue.some(followUp => followUp?.type === "actor.knockout" && followUp.payload?.applied !== false && participantIds.includes(followUp.payload?.targetId));
+      if (queuedKnockout || participantIds.some(id => invalidatedActorIds.has(id) || actorById(next, id)?.knockedOut)) queue.splice(index, 1);
+    }
     if (result.duplicate) duplicates.push(result.event);
     else {
       committed.push(result.event);
       versionPending = false;
     }
-    const deferQueuedResume = result.event.type === "rule.respond" && queue.some(candidate => ["rule.prompt", "action.prepare", "attack.pending"].includes(candidate?.type));
+    const deferQueuedResume = result.event.type === "rule.respond" && queue.length > 0;
     const derived = result.duplicate ? [] : triggeredEvents(next, result.event, { deferQueuedResume });
     if (derived.length) queue.unshift(...derived);
+    if (!queue.length && !next.pendingPrompt && triggerQueueStatus(next).available) {
+      const resumed = resumeQueuedTriggers(next, result.event);
+      if (resumed.events.length) queue.push(...resumed.events);
+    }
   }
+  const unavailable = new Set((next.actors || []).filter(actor => actor.knockedOut).map(actor => actor.id));
+  if (next.pendingPrompt) {
+    const prompt = next.pendingPrompt;
+    const participantIds = [prompt.actorId, prompt.sourceActorId, prompt.targetId, ...(prompt.targetIds || []), ...(prompt.participantIds || [])].filter(Boolean);
+    if (participantIds.some(id => unavailable.has(id))) next.pendingPrompt = null;
+  }
+  next.triggerQueue = (next.triggerQueue || []).filter(item => {
+    const payload = item.event?.payload || {};
+    const participantIds = [item.event?.actorId, payload.sourceActorId, payload.targetId, ...(payload.targetIds || []), ...(payload.participantIds || [])].filter(Boolean);
+    return !participantIds.some(id => unavailable.has(id));
+  });
   return { scene: next, events: committed, duplicates };
 }
 

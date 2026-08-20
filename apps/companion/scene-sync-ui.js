@@ -71,7 +71,7 @@ function applyTransientTargetsCommand(command){const ids=Array.isArray(command.p
 function prepareUndoCommand(command){const step=Scene.undo?.[0];if(!step)throw new Error("В журнале нет обратимого действия");const before=sceneSnapshot(),event=remoteCommandEvent("command.undo",command,{stepId:step.id,label:step.label}),candidate=normalizeScene(step.state);candidate.version=Number(before.version||0)+1;candidate.undo=(Scene.undo||[]).slice(1);candidate.log.unshift({id:event.id,at:event.at,text:`По запросу игрока отменено: ${step.label}`,type:event.type,actorId:null,payload:event.payload,visibility:"public"});candidate.log=candidate.log.slice(0,200);return{candidate,events:[event],label:`scene.undo:${step.label}`}}
 function prepareEventCommand(command){const events=canonicalPlayerEvents(command),before=sceneSnapshot(),expectedVersion=Number(Scene.version||0),result=SceneEngine.dispatchMany(Scene,events,{expectedVersion}),candidate=normalizeScene(result.scene);candidate.undo.unshift({id:uid(),label:commandSummary(command),state:before});candidate.undo=candidate.undo.slice(0,20);return{candidate,events:result.events,label:commandSummary(command),effects:result.events}}
 async function acceptPreparedRemoteCommand(command,prepared){
-  const acceptedVersion=await Sync.acceptCommand(command.id,prepared.events,sceneCore(prepared.candidate),prepared.label);if(acceptedVersion!==Number(prepared.candidate.version))return{...prepared,reconciled:true};Scene=normalizeScene(prepared.candidate);NetworkV2?.setConfirmedScene?.(Scene);syncHeroFromScene();persist();if(store.mode==="play")renderPlay();else renderScene();if(prepared.effects)playSceneEventFx(prepared.effects);return prepared;
+  const acceptedVersion=await Sync.acceptCommand(command.id,prepared.events,sceneCore(prepared.candidate),prepared.label);if(acceptedVersion!==Number(prepared.candidate.version))return{...prepared,reconciled:true};const fxContext=captureSceneFxContext(prepared.effects);Scene=normalizeScene(prepared.candidate);NetworkV2?.setConfirmedScene?.(Scene);syncHeroFromScene();persist();if(store.mode==="play")renderPlay();else renderScene();if(prepared.effects)playSceneEventFx(prepared.effects,fxContext);return prepared;
 }
 
 let networkV2Authority=null,networkV2Outbox=null,networkV2Reconciling=false;
@@ -82,12 +82,13 @@ function mergeNetworkV2Scene(remote,current=Scene){
   return NetworkV2.restoreLocalUi(overlay,canonical);
 }
 function renderNetworkScene(events=[]){
+  const fxContext=captureSceneFxContext(events);
   syncHeroFromScene();store.scene=Scene;persist();
   if(store.mode==="play")renderPlay();
   else if(store.mode==="tools")renderToolsWorkspace();
   else renderScene();
   renderChallengeRequestDock();
-  if(events.length)playSceneEventFx(events);
+  if(events.length)playSceneEventFx(events,fxContext);
   const requestedRoll=[...events].reverse().find(event=>event.type==="roll.public"&&event.payload?.challengeRequestId);
   if(requestedRoll&&Sync?.state?.().canNarrate){const actor=Scene.actors.find(item=>item.id===requestedRoll.actorId);toast(`Получен бросок: ${actor?.name||"герой"} · ${requestedRoll.payload.successes} Успехов`)}
 }

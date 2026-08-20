@@ -574,8 +574,13 @@
     }
 
     if (rule.kind === "space") {
-      const targetIds = unique([actor.id, ...(Array.isArray(request.targetIds) ? request.targetIds : [])]).filter(id => actorById(scene, id));
-      if (!targetIds.length) errors.push("Выберите участников переноса.");
+      const selectedTargetIds = unique(Array.isArray(request.targetIds) ? request.targetIds : []).filter(id => actorById(scene, id) && id !== actor.id);
+      const targetIds = [actor.id, ...selectedTargetIds];
+      const maximumUses = Number(actor.techniques?.["disruptor.inner-world"] || 0) >= 3 ? Math.max(1, Number(actor.attrs?.spirit || 1)) : 1;
+      const limit = global.DAWN_SCENE_ENGINE?.usageLimitStatus?.(scene, actor.id, { ruleId: rule.id, scope: "scene", maximum: maximumUses });
+      if (limit && !limit.available) errors.push(limit.reason);
+      if (selectedTargetIds.length > 1) errors.push("Домен контроля переносит только одного выбранного персонажа за применение.");
+      if (!selectedTargetIds.length) errors.push("Выберите хотя бы одного персонажа, которого нужно перенести во Внутренний мир.");
       if (!errors.length) {
         commands.push({ type: "ensure_space", ref: rule.id, name: rule.spaceName, width: rule.width, height: rule.height });
         commands.push({ type: "move_to_space", actorIds: targetIds, spaceRef: rule.id });
@@ -629,10 +634,10 @@
       } else if (command.type === "ensure_space") {
         const existing = (scene.spaces || []).find(space => space.name === command.name);
         references[command.ref] = existing?.id || makeId("space");
-        events.push({ type: "space.ensure", actorId, payload: { id: references[command.ref], name: command.name, width: command.width, height: command.height, activate: true } });
+        events.push({ type: "space.ensure", actorId, payload: { id: references[command.ref], name: command.name, width: command.width, height: command.height, activate: true, sourceActionId: prepared.rule.id, ruleId: prepared.rule.id } });
       } else if (command.type === "move_to_space") {
         const spaceId = references[command.spaceRef],spaceEvent=events.find(event => event.type === "space.ensure" && event.payload.id === spaceId),space=(scene.spaces || []).find(item => item.id === spaceId) || spaceEvent?.payload;
-        command.actorIds.forEach((movingId,index) => {events.push({ type: "actor.move", actorId: movingId, payload: { space: spaceId, x: index % space.width, y: Math.floor(index / space.width) % space.height, movement: "technique" } });events.push({ type: "actor.enter", actorId: movingId, payload: { space: spaceId, x: index % space.width, y: Math.floor(index / space.width) % space.height } })});
+        command.actorIds.forEach((movingId,index) => {events.push({ type: "actor.move", actorId: movingId, payload: { space: spaceId, x: index % space.width, y: Math.floor(index / space.width) % space.height, movement: "technique", sourceActionId: prepared.rule.id, ruleId: prepared.rule.id } });events.push({ type: "actor.enter", actorId: movingId, payload: { space: spaceId, x: index % space.width, y: Math.floor(index / space.width) % space.height, sourceActionId: prepared.rule.id, ruleId: prepared.rule.id } })});
       } else if (command.type === "apply_effect") events.push({ type: "effect.apply", actorId: command.actorId, payload: { targetId: command.targetId, effect: command.effect, sourceActionId: command.ruleId } });
       else if (command.type === "manual_rule") events.push({ type: "technique.manual", actorId: command.actorId, payload: { ruleId: command.ruleId, name: command.label, note: command.note } });
     }

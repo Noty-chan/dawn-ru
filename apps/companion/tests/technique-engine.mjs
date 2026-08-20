@@ -155,12 +155,29 @@ const innerWorld = Engine.preview(scene, {
   ruleId: "disruptor.inner-world.2",
   targetIds: ["enemy-a"],
 });
+const emptyInnerWorld = Engine.preview(scene, { actorId: "hero", ruleId: "disruptor.inner-world.2", targetIds: [] });
+assert.equal(emptyInnerWorld.ok, false, "Inner World cannot silently transfer only its caster when no affected character is selected");
+assert.match(emptyInnerWorld.errors.join(" "), /хотя бы одного персонажа/);
+const multiTargetInnerWorld = Engine.preview(scene, { actorId: "hero", ruleId: "disruptor.inner-world.2", targetIds: ["enemy-a", "enemy-b"] });
+assert.equal(multiTargetInnerWorld.ok, false, "Inner World transfers one affected character per use");
+const usedInnerWorld = structuredClone(scene);
+usedInnerWorld.log = [];
+usedInnerWorld.log.unshift({ id: "inner-used", type: "technique.resolve", actorId: "hero", payload: { ruleId: "disruptor.inner-world.2" } });
+assert.equal(Engine.preview(usedInnerWorld, { actorId: "hero", ruleId: "disruptor.inner-world.2", targetIds: ["enemy-a"] }).ok, false, "Inner World II is limited to one use per Scene");
+const homeTurfInnerWorld = structuredClone(usedInnerWorld);
+homeTurfInnerWorld.actors[0].techniques["disruptor.inner-world"] = 3;
+assert.equal(Engine.preview(homeTurfInnerWorld, { actorId: "hero", ruleId: "disruptor.inner-world.2", targetIds: ["enemy-a"] }).ok, true, "Inner World III raises the Scene limit to Spirit uses");
 const committedSpace = Engine.commit(scene, innerWorld, { makeId: prefix => `test-${prefix}` });
 const pocket = committedSpace.scene.spaces.find(space => space.name === "Внутренний мир");
 assert.ok(pocket);
 assert.equal(committedSpace.scene.actors.find(actor => actor.id === "hero").space, pocket.id);
 assert.equal(committedSpace.scene.actors.find(actor => actor.id === "enemy-a").space, pocket.id);
 const innerEvents = Engine.toEvents(scene, innerWorld, { makeId: prefix => `event-${prefix}` });
+const innerEnsure = innerEvents.find(event => event.type === "space.ensure");
+const innerMoves = innerEvents.filter(event => event.type === "actor.move");
+assert.equal(innerEvents.find(event => event.type === "technique.prepare")?.payload.ruleId, "disruptor.inner-world.2", "Inner World identifies its initiating Technique");
+assert.equal(innerEnsure.payload.sourceActionId, "disruptor.inner-world.2", "The pocket-space event carries a stable FX and audit source");
+assert.ok(innerMoves.length >= 2 && innerMoves.every(event => event.payload.sourceActionId === "disruptor.inner-world.2"), "Every Inner World transfer carries the stable source marker");
 const eventSpace = SceneEngine.dispatchMany({ ...scene, version: 0, log: [] }, innerEvents).scene;
 assert.equal(eventSpace.actors.find(actor => actor.id === "hero").space, eventSpace.activeSpace);
 
