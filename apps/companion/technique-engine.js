@@ -88,13 +88,13 @@
     { id: "ruiner.bombardier.2", techniqueId: "ruiner.bombardier", level: 2, name: "Взрыв!!!", kind: "area", automation: "full", shape: "square3", areaType: "attack", duration: "instant", range: 5, optionMinimum: { key: "focusSpent", value: 2, label: "потрачено Фокуса" } },
     { id: "ruiner.bombardier.3", techniqueId: "ruiner.bombardier", level: 3, name: "ВЗРЫВ!!!!", kind: "area", automation: "full", shape: "square5", areaType: "attack", duration: "instant", range: 6, optionMinimum: { key: "focusSpent", value: 4, label: "потрачено Фокуса" }, note: "Зона, цели, трата Фокуса, Реакции и урон разрешаются общим конвейером зональной Атаки." },
     { id: "ruiner.rapid-fire-sorcery.2", techniqueId: "ruiner.rapid-fire-sorcery", level: 2, name: "Выжженная земля", kind: "area", automation: "full", shape: "cell", areaType: "difficult", duration: "scene", note: "Область трудной местности ставится выбором клетки и записывается в журнал." },
-    { id: "ruiner.ritualist.1", techniqueId: "ruiner.ritualist", level: 1, name: "Лей-линии", kind: "marker", automation: "full", markerKind: "ritual", duration: "scene", color: "#6fc9d8", note: "Заклинательный круг ставится выбором клетки и записывается в журнал." },
+    { id: "ruiner.ritualist.1", techniqueId: "ruiner.ritualist", level: 1, name: "Лей-линии", kind: "marker", automation: "full", markerKind: "ritual", duration: "scene", color: "#6fc9d8", note: "Заклинательный круг ставится только в текущую клетку героя, убирая его прежние круги; применение идёт через общий конвейер маркеров." },
     { id: "ruiner.student-of-stars.2-line", techniqueId: "ruiner.student-of-stars", level: 2, name: "Бесформенная сила · линия", kind: "area", automation: "full", shape: "line", areaType: "attack", duration: "instant", note: "Зональная Атака по линии с общими Реакциями и уроном." },
     { id: "ruiner.student-of-stars.2-zone", techniqueId: "ruiner.student-of-stars", level: 2, name: "Бесформенная сила · зона 2×2", kind: "area", automation: "full", shape: "square2", areaType: "attack", duration: "instant", note: "Зональная Атака по зоне 2×2 с общими Реакциями и уроном." },
-    { id: "ruiner.ego-arm.2", techniqueId: "ruiner.ego-arm", level: 2, name: "Покажи свои цели", kind: "marker", automation: "full", markerKind: "damocles", duration: "scene", color: "#d04f64", note: "Маркер Дамокла ставится выбором клетки и записывается в журнал." },
-    { id: "ruiner.sellsword-s-call.1", techniqueId: "ruiner.sellsword-s-call", level: 1, name: "Реприза воина", kind: "marker", automation: "full", markerKind: "summon", duration: "scene", color: "#6fc9d8", note: "Точка призыва наёмника ставится выбором клетки и записывается в журнал." },
-    { id: "bulwark.servant-s-call.1", techniqueId: "bulwark.servant-s-call", level: 1, name: "Честь подчинённого", kind: "marker", automation: "partial", markerKind: "summon", duration: "scene", color: "#6fc9d8", note: "Точка призыва ставится выбором клетки; полноценный призыв слуги остаётся следующим этапом ядра сущностей." },
-    { id: "disruptor.wave-rider.1", techniqueId: "disruptor.wave-rider", level: 1, name: "Мягкие волны", kind: "marker", automation: "full", markerKind: "ritual", duration: "scene", color: "#3fa9d4", note: "Печать волны ставится выбором клетки и записывается в журнал." },
+    { id: "ruiner.ego-arm.2", techniqueId: "ruiner.ego-arm", level: 2, name: "Покажи свои цели", kind: "marker", automation: "decision", markerKind: "damocles", duration: "scene", color: "#d04f64", note: "Маркер Дамокла ставится выбором цели за 2 ОД; выбор целей по врагам, атакованным носителем в его Ход, требует модели Трансформации Эго-оружия, которую ядро ещё не ведёт, поэтому цель подтверждает герой." },
+    { id: "ruiner.sellsword-s-call.1", techniqueId: "ruiner.sellsword-s-call", level: 1, name: "Реприза воина", kind: "marker", automation: "decision", markerKind: "summon", duration: "scene", color: "#6fc9d8", note: "Точка призыва ставится только в пустую клетку за 1 Фокус, с выбором типа (Рейнджер/Палач/Гадюка) и лимитом [Ступень/2]; полноценный Призыв-участник остаётся следующим этапом ядра сущностей." },
+    { id: "bulwark.servant-s-call.1", techniqueId: "bulwark.servant-s-call", level: 1, name: "Честь подчинённого", kind: "marker", automation: "partial", markerKind: "summon", duration: "scene", color: "#6fc9d8", note: "Точка призыва ставится в пустую клетку за 1 Фокус с выбором типа и лимитом [Ступень]; полноценный Призыв слуги остаётся следующим этапом ядра сущностей." },
+    { id: "disruptor.wave-rider.1", techniqueId: "disruptor.wave-rider", level: 1, name: "Мягкие волны", kind: "marker", automation: "full", markerKind: "ritual", duration: "scene", color: "#3fa9d4", note: "Печать волны ставится только в пустую клетку с лимитом 4+Ступень своих печатей и записывается в журнал." },
     { id: "disruptor.hunter.1", techniqueId: "disruptor.hunter", level: 1, name: "Стальные челюсти", kind: "trap-placement", automation: "decision", markerKind: "trap", duration: "scene", color: "#c28a45" },
     { id: "disruptor.hunter.2", techniqueId: "disruptor.hunter", level: 2, name: "Дальняя установка", kind: "passive", automation: "full", note: "Дальность пустой Стычки и Обездвиживание цели ловушки учитываются автоматически." },
     { id: "disruptor.hunter.3", techniqueId: "disruptor.hunter", level: 3, name: "Яма-ловушка", kind: "area", automation: "full", shape: "square2", areaType: "terrain", duration: "scene", note: "Область ямы ставится выбором клетки и записывается в журнал." },
@@ -494,6 +494,7 @@
       const actual = Number(request.options?.[rule.optionMinimum.key] || 0);
       if (actual < rule.optionMinimum.value) errors.push(`Нужно: ${rule.optionMinimum.label} — не меньше ${rule.optionMinimum.value}.`);
     }
+    if (rule.id === "powerhouse.warring-ascendant.3" && !actor.ruleState?.warringTransformed) errors.push("«Святой меч, Дюрандаль» требует активной Трансформации Небесной руки.");
     if (rule.areaType === "attack") {
       const finish = actionByKey("finish"), available = global.DAWN_SCENE_ENGINE?.availableActions(scene, global.DAWN_DATA, actor.id).find(action => action.id === finish?.id), spent = Number(request.options?.focusSpent || 0);
       if (available && !available.available) errors.push(available.reason);
@@ -510,6 +511,21 @@
         if (manhattan(actor, anchor) > rule.range + rangeBonus) errors.push(`Клетка находится дальше ${rule.range + rangeBonus} клеток.`);
       }
       if (rule.adjacency && anchor && manhattan(actor, anchor) !== 1) errors.push("Зона должна быть смежна с персонажем.");
+      if (rule.kind === "marker") {
+        const ownedOfKind = count => (scene.markers || []).filter(item => item.ownerActorId === actor.id && item.kind === count && item.duration === "scene").length;
+        if (rule.id === "ruiner.ritualist.1" && anchor && (anchor.x !== Number(actor.x) || anchor.y !== Number(actor.y))) errors.push("Заклинательный круг ставится только в текущую клетку героя.");
+        if (["sellsword-s-call", "servant-s-call"].some(key => rule.id.startsWith(key)) && anchor && (scene.actors || []).some(item => item.space === actor.space && item.x === anchor.x && item.y === anchor.y)) errors.push("Точка призыва ставится только в пустую клетку.");
+        if (rule.id === "ruiner.sellsword-s-call.1" && !["ranger", "hangman", "viper"].includes(request.options?.summonType)) errors.push("Выберите тип Призыва: Рейнджер, Палач или Гадюка.");
+        if (rule.id === "bulwark.servant-s-call.1" && !["warden", "slime", "paladin"].includes(request.options?.summonType)) errors.push("Выберите тип Призыва: Страж, Слизень или Паладин.");
+        const step = Number(actor.tier || 1);
+        const ownOfRule = (kind, ruleId) => (scene.markers || []).filter(item => item.ownerActorId === actor.id && item.kind === kind && item.duration === "scene" && String(item.ruleId || item.source || "").startsWith(ruleId)).length;
+        const summonLimit = rule.id === "ruiner.sellsword-s-call.1" ? Math.floor(step / 2) : rule.id === "bulwark.servant-s-call.1" ? step : Infinity;
+        if (rule.id.endsWith("-call.1") && ownOfRule("summon", rule.id) >= summonLimit) errors.push(`Призывов уже максимально: ${summonLimit}.`);
+        if (rule.id.endsWith("-call.1") && Number(actor.focus || 0) < 1) errors.push("Для точки призыва нужен 1 Фокус.");
+        if (rule.id === "disruptor.wave-rider.1" && anchor && (scene.actors || []).some(item => item.space === actor.space && item.x === anchor.x && item.y === anchor.y)) errors.push("Печать волны ставится только в пустую клетку.");
+        if (rule.id === "disruptor.wave-rider.1" && ownOfRule("ritual", "disruptor.wave-rider") >= 4 + step) errors.push(`Печатей волны уже максимально: ${4 + step}.`);
+        if (rule.id === "ruiner.ego-arm.2" && Number(actor.ap || 0) < 2) errors.push("«Покажи свои цели» стоит 2 ОД.");
+      }
     }
 
     if (rule.kind === "area" && !errors.length) {
@@ -522,14 +538,27 @@
         if (!terrain) errors.push("«Сублимация» должна выбирать существующий элемент местности.");
         else commands.push({ type: "remove_area", id: terrain.id, label: terrain.label });
       }
-      commands.push({ type: "create_area", space: actor.space, areaType: rule.areaType, label: rule.name, source: rule.id, ruleId: rule.id, duration: rule.duration, ownerActorId: actor.id, cells: affectedCells, metadata: modifiers.length ? { spellModifiers: modifiers } : {} });
+      if (rule.id === "disruptor.gale-strider.1") {
+        (scene.objects || []).filter(object => object.space === actor.space && object.type === "danger" && object.ownerActorId === actor.id && /Тайфун|gale-strider/.test(`${object.label || ""} ${object.ruleId || object.source || ""}`)).forEach(object => commands.push({ type: "remove_area", id: object.id, label: object.label }));
+      }
+      const markerMetaFor = (rule.id === "disruptor.gale-strider.1" && affectedCells.length) ? { replaceOthers: true, shape: rule.shape, areaType: rule.areaType } : {};
+      commands.push({ type: "create_area", space: actor.space, areaType: rule.areaType, label: rule.name, source: rule.id, ruleId: rule.id, duration: rule.duration, ownerActorId: actor.id, cells: affectedCells, metadata: { ...(rule.areaType === "attack" && modifiers.length ? { spellModifiers: modifiers } : {}), ...markerMetaFor } });
       commands.push({ type: "set_targets", actorIds: affectedActorIds });
       if (rule.areaType === "attack" && !request.roll) errors.push("Для зональной Атаки нужен бросок Завершения.");
     }
 
     if (rule.kind === "marker" && !errors.length) {
       affectedCells = [pointKey(anchor)];
-      commands.push({ type: "create_marker", space: actor.space, x: anchor.x, y: anchor.y, markerKind: rule.markerKind, label: rule.name, color: rule.color, source: rule.id, ruleId: rule.id, duration: rule.duration, ownerActorId: actor.id });
+      (scene.markers || []).filter(item => String(item.ruleId || item.source || "").startsWith(rule.id) && item.ownerActorId === actor.id && item.duration === "scene").forEach(item => commands.push({ type: "remove_marker", markerId: item.id, label: item.label }));
+      if (rule.id.endsWith("-call.1")) {
+        commands.push({ type: "create_marker", space: actor.space, x: anchor.x, y: anchor.y, markerKind: rule.markerKind, label: `${rule.name} · ${request.options?.summonType || ""}`, color: rule.color, source: rule.id, ruleId: rule.id, duration: rule.duration, ownerActorId: actor.id, metadata: { summonType: request.options?.summonType } });
+        commands.push({ type: "spend_focus", actorId: actor.id, amount: 1 });
+      } else if (rule.id === "ruiner.ego-arm.2") {
+        commands.push({ type: "create_marker", space: actor.space, x: anchor.x, y: anchor.y, markerKind: rule.markerKind, label: rule.name, color: rule.color, source: rule.id, ruleId: rule.id, duration: rule.duration, ownerActorId: actor.id, metadata: { targetActorId: Array.isArray(request.targetIds) ? request.targetIds[0] : null } });
+        commands.push({ type: "spend_ap", actorId: actor.id, amount: 2 });
+      } else {
+        commands.push({ type: "create_marker", space: actor.space, x: anchor.x, y: anchor.y, markerKind: rule.markerKind, label: rule.name, color: rule.color, source: rule.id, ruleId: rule.id, duration: rule.duration, ownerActorId: actor.id });
+      }
     }
 
     if (rule.kind === "teleport") {
@@ -589,7 +618,10 @@
     for (const command of prepared.commands) {
       if (command.type === "create_area") events.push({ type: "area.create", actorId, payload: { ...clone(command), id: makeId("area") } });
       else if (command.type === "create_marker") events.push({ type: "marker.create", actorId, payload: { ...clone(command), id: makeId("marker") } });
+      else if (command.type === "remove_marker") events.push({ type: "marker.remove", actorId, payload: { markerId: command.markerId, label: command.label, sourceActionId: prepared.rule.id } });
       else if (command.type === "remove_area") events.push({ type: "area.remove", actorId, payload: { id: command.id, label: command.label, sourceActionId: prepared.rule.id } });
+      else if (command.type === "spend_focus") events.push({ type: "resource.spend", actorId, payload: { resource: "focus", amount: command.amount, sourceActionId: prepared.rule.id } });
+      else if (command.type === "spend_ap") events.push({ type: "resource.spend", actorId, payload: { resource: "ap", amount: command.amount, sourceActionId: prepared.rule.id } });
       else if (command.type === "set_targets") events.push({ type: "targets.set", actorId, payload: { actorIds: clone(command.actorIds) } });
       else if (command.type === "move_actor") {
         events.push({ type: "actor.move", actorId: command.actorId, payload: { space: command.space, x: command.x, y: command.y, movement: command.movement } });
@@ -617,6 +649,14 @@
     } else if (command.type === "create_marker") {
       scene.markers ||= [];
       scene.markers.push({ id: makeId("marker"), space: command.space, x: command.x, y: command.y, kind: command.markerKind, label: command.label, color: command.color, source: command.source, duration: command.duration, ownerActorId: command.ownerActorId });
+    } else if (command.type === "remove_marker") {
+      scene.markers = (scene.markers || []).filter(item => item.id !== command.markerId);
+    } else if (command.type === "spend_focus") {
+      const actor = actorById(scene, command.actorId);
+      if (actor) actor.focus = Math.max(0, Number(actor.focus || 0) - Number(command.amount || 0));
+    } else if (command.type === "spend_ap") {
+      const actor = actorById(scene, command.actorId);
+      if (actor) actor.ap = Math.max(0, Number(actor.ap || 0) - Number(command.amount || 0));
     } else if (command.type === "set_targets") {
       scene.targetIds = [...command.actorIds];
     } else if (command.type === "move_actor") {

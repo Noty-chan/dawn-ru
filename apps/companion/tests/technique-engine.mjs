@@ -233,4 +233,68 @@ const usedMutableFlesh = structuredClone(autophageScene);
 usedMutableFlesh.log.unshift({ id: "used", type: "technique.resolve", actorId: "hero", payload: { ruleId: "disruptor.autophage.3" } });
 assert.equal(Engine.preview(usedMutableFlesh, { actorId: "hero", ruleId: "disruptor.autophage.3", rolls: [2, 5] }).ok, false, "Autophage III is once per Scene");
 
+// ---- Markers: canonical placement, resource, replace, limits ----
+const mScene = structuredClone(scene);
+mScene.actors[0].techniques = { "ruiner.ritualist": 1, "ruiner.sellsword-s-call": 1, "bulwark.servant-s-call": 1, "disruptor.wave-rider": 1, "ruiner.ego-arm": 2 };
+mScene.actors[0].tier = 2;
+// Ritualist: only own cell
+const ritualistAway = Engine.preview(mScene, { actorId: "hero", ruleId: "ruiner.ritualist.1", anchor: { x: 3, y: 3 } });
+assert.equal(ritualistAway.ok, false, "Ritualist circle only in the hero's own cell");
+assert.match(ritualistAway.errors.join(" "), /текущую клетку/);
+const ritualistOwn = Engine.preview(mScene, { actorId: "hero", ruleId: "ruiner.ritualist.1", anchor: { x: 1, y: 1 } });
+assert.equal(ritualistOwn.ok, true, "Ritualist circle in own cell is valid");
+// existing own ritual is replaced, not duplicated
+const ritualistScene = structuredClone(mScene);
+ritualistScene.markers = [{ id: "old", ownerActorId: "hero", kind: "ritual", duration: "scene", ruleId: "ruiner.ritualist.1", x: 1, y: 1, space: "main" }];
+const ritualistReplace = Engine.toEvents(ritualistScene, Engine.preview(ritualistScene, { actorId: "hero", ruleId: "ruiner.ritualist.1", anchor: { x: 1, y: 1 } }));
+assert.ok(ritualistReplace.some(event => event.type === "marker.remove" && event.payload.markerId === "old"), "Ritualist replaces previous own circles");
+assert.ok(ritualistReplace.some(event => event.type === "marker.create"), "Ritualist creates the new circle");
+// Sellsword summon: needs empty cell + 1 focus + type, spends focus, obeys limit
+const sellsword = Engine.preview(mScene, { actorId: "hero", ruleId: "ruiner.sellsword-s-call.1", anchor: { x: 3, y: 4 }, options: { summonType: "ranger" } });
+assert.equal(sellsword.ok, true, "Sellsword summon on empty cell with focus/type is valid");
+assert.ok(Engine.toEvents(mScene, sellsword).some(event => event.type === "resource.spend" && event.payload.resource === "focus" && event.payload.amount === 1), "Sellsword summon spends 1 Focus");
+assert.equal(Engine.preview(mScene, { actorId: "hero", ruleId: "ruiner.sellsword-s-call.1", anchor: { x: 3, y: 3 } }).ok, false, "Summon point cannot sit on an occupied cell");
+assert.equal(Engine.preview(mScene, { actorId: "hero", ruleId: "ruiner.sellsword-s-call.1", anchor: { x: 3, y: 4 } }).ok, false, "Sellsword summon requires a summon type");
+const sellswordZeroFocus = structuredClone(mScene);
+sellswordZeroFocus.actors[0].focus = 0;
+assert.equal(Engine.preview(sellswordZeroFocus, { actorId: "hero", ruleId: "ruiner.sellsword-s-call.1", anchor: { x: 3, y: 4 }, options: { summonType: "hangman" } }).ok, false, "Sellsword summon needs 1 Focus");
+const sellswordLimit = structuredClone(mScene);
+for (let i = 0; i < 1; i += 1) sellswordLimit.markers.push({ id: `s${i}`, ownerActorId: "hero", kind: "summon", duration: "scene", ruleId: "ruiner.sellsword-s-call.1", x: i + 2, y: 0, space: "main" });
+assert.equal(Engine.preview(sellswordLimit, { actorId: "hero", ruleId: "ruiner.sellsword-s-call.1", anchor: { x: 3, y: 4 }, options: { summonType: "viper" } }).ok, false, "Sellsword summon respects [Tier/2] limit");
+// Wave rider: empty cell + 4+step limit
+assert.equal(Engine.preview(mScene, { actorId: "hero", ruleId: "disruptor.wave-rider.1", anchor: { x: 3, y: 3 } }).ok, false, "Wave Rider seal only on empty cell");
+const waveScene = structuredClone(mScene);
+for (let i = 0; i < 6; i += 1) waveScene.markers.push({ id: `w${i}`, ownerActorId: "hero", kind: "ritual", duration: "scene", ruleId: "disruptor.wave-rider.1", x: i + 2, y: 5, space: "main" });
+assert.equal(Engine.preview(waveScene, { actorId: "hero", ruleId: "disruptor.wave-rider.1", anchor: { x: 5, y: 5 } }).ok, false, "Wave Rider respects 4+Tier seal limit");
+// Ego-arm: costs 2 AP, spends it
+const egoLowAp = structuredClone(mScene);
+Object.assign(egoLowAp.actors[0], { ap: 1 });
+assert.equal(Engine.preview(egoLowAp, { actorId: "hero", ruleId: "ruiner.ego-arm.2", anchor: { x: 3, y: 4 }, targetIds: ["enemy-a"] }).ok, false, "Ego-arm costs 2 AP");
+const egoScene = structuredClone(mScene);
+Object.assign(egoScene.actors[0], { ap: 3, techniques: { "ruiner.ego-arm": 2 } });
+const ego = Engine.preview(egoScene, { actorId: "hero", ruleId: "ruiner.ego-arm.2", anchor: { x: 3, y: 4 }, targetIds: ["enemy-a"] });
+assert.equal(ego.ok, true, "Ego-arm with 2 AP is valid");
+assert.ok(Engine.toEvents(egoScene, ego).some(event => event.type === "resource.spend" && event.payload.resource === "ap" && event.payload.amount === 2), "Ego-arm spends 2 AP");
+
+// ---- Gale-strider: replaces previous own Taifuns ----
+const galeScene = structuredClone(scene);
+galeScene.actors[0].techniques = { "disruptor.gale-strider": 1 };
+galeScene.objects = [
+  { id: "taifun-old", ownerActorId: "hero", space: "main", type: "danger", label: "Тайфун", ruleId: "disruptor.gale-strider.1", cells: ["4,3", "4,4"], duration: "scene" },
+  { id: "other", ownerActorId: "hero", space: "main", type: "danger", label: "Чужая зона", cells: ["0,0"], duration: "scene" },
+];
+const gale = Engine.preview(galeScene, { actorId: "hero", ruleId: "disruptor.gale-strider.1", anchor: { x: 1, y: 1 } });
+assert.equal(gale.ok, true);
+const galeEvents = Engine.toEvents(galeScene, gale, { makeId: prefix => `e-${prefix}` });
+assert.ok(galeEvents.some(event => event.type === "area.remove" && event.payload.id === "taifun-old"), "Gale-strider replaces previous own Taifun");
+assert.ok(!galeEvents.some(event => event.type === "area.remove" && event.payload.id === "other"), "Gale-strider does not replace other Taifuns");
+
+// ---- Warring Ascendant Durendal requires Warring transformation ----
+const warringScene = structuredClone(scene);
+warringScene.actors[0].techniques = { "powerhouse.warring-ascendant": 3 };
+assert.equal(Engine.preview(warringScene, { actorId: "hero", ruleId: "powerhouse.warring-ascendant.3", anchor: { x: 1, y: 3 }, orientation: "vertical", roll: { formula: "4D6", rolls: [4, 4, 2, 2], successes: 2, crits: 0 } }).ok, false, "Durendal requires active Warring Ascendant transformation");
+warringScene.actors[0].ruleState = { warringTransformed: true };
+const durendal = Engine.preview(warringScene, { actorId: "hero", ruleId: "powerhouse.warring-ascendant.3", anchor: { x: 1, y: 2 }, orientation: "vertical", roll: { formula: "4D6", rolls: [4, 4, 2, 2], successes: 2, crits: 0 } });
+assert.equal(durendal.ok, true, "Durendal line attack resolves while transformed");
+
 console.log(`Technique engine QA passed: ${Engine.RULES.length} rules`);
