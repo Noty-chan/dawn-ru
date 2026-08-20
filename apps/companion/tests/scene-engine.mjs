@@ -2742,4 +2742,12 @@ assert.equal(galeShift.ok, true);
 const galeMoved = Engine.dispatchMany(galeFlow, galeShift.events).scene;
 assert.equal(galeMoved.actors.find(actor => actor.id === "hero").y, 0, "Gale Strider shifts actors in the Typhoon one cell north");
 
+// Gale Strider also shifts characters inside the caster's own Typhoon.
+const ownGaleScene = structuredClone(scene);
+ownGaleScene.actors[0].techniques = { "disruptor.gale-strider": 1 };
+ownGaleScene.objects = [{ id: "own-typhoon", type: "danger", label: "Тайфун", ruleId: "disruptor.gale-strider.1", ownerActorId: "hero", space: "main", duration: "scene", cells: ["1,1", "2,1", "3,1", "1,0", "2,0", "3,0", "1,2", "2,2", "3,2"] }];
+Object.assign(ownGaleScene.actors[0], { x: 2, y: 1, acted: true });
+const ownGaleFlow = Engine.dispatchMany(ownGaleScene, [{ type: "turn.end", actorId: "hero", payload: { narratorOverride: true } }], { narratorOverride: true }).scene;
+assert.equal(ownGaleFlow.pendingPrompt?.kind, "gale-strider-shift", "Ending a turn in the caster's own Typhoon opens the shift prompt");
+
 console.log("Scene engine QA passed: canonical Turns and AP, once-per-Round actions, strict Reactions, truthful enemy automation, effects, movement, damage, and public events");

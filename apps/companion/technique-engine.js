@@ -514,7 +514,7 @@
       if (rule.kind === "marker") {
         const ownedOfKind = count => (scene.markers || []).filter(item => item.ownerActorId === actor.id && item.kind === count && item.duration === "scene").length;
         if (rule.id === "ruiner.ritualist.1" && anchor && (anchor.x !== Number(actor.x) || anchor.y !== Number(actor.y))) errors.push("Заклинательный круг ставится только в текущую клетку героя.");
-        if (["sellsword-s-call", "servant-s-call"].some(key => rule.id.startsWith(key)) && anchor && (scene.actors || []).some(item => item.space === actor.space && item.x === anchor.x && item.y === anchor.y)) errors.push("Точка призыва ставится только в пустую клетку.");
+        if (["ruiner.sellsword-s-call", "bulwark.servant-s-call"].some(key => rule.id.startsWith(key)) && anchor && (scene.actors || []).some(item => !item.knockedOut && item.space === actor.space && item.x === anchor.x && item.y === anchor.y)) errors.push("Точка призыва ставится только в пустую клетку.");
         if (rule.id === "ruiner.sellsword-s-call.1" && !["ranger", "hangman", "viper"].includes(request.options?.summonType)) errors.push("Выберите тип Призыва: Рейнджер, Палач или Гадюка.");
         if (rule.id === "bulwark.servant-s-call.1" && !["warden", "slime", "paladin"].includes(request.options?.summonType)) errors.push("Выберите тип Призыва: Страж, Слизень или Паладин.");
         const step = Number(actor.tier || 1);

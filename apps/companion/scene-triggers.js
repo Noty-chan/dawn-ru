@@ -230,13 +230,13 @@ const TRIGGER_RULES = [
     priority: 65,
     match: ({ scene, actor }) => {
       if (!actor || actor.knockedOut || scene.pendingPrompt || scene.pendingAction) return false;
-      const caster = (scene.actors || []).find(candidate => !candidate.knockedOut && candidate.team !== actor.team && Number(candidate.techniques?.["disruptor.gale-strider"] || 0) >= 1 && candidate.space === actor.space);
+      const caster = (scene.actors || []).find(candidate => !candidate.knockedOut && Number(candidate.techniques?.["disruptor.gale-strider"] || 0) >= 1 && candidate.space === actor.space);
       if (!caster) return false;
       const typhoon = (scene.objects || []).find(object => object.space === actor.space && object.type === "danger" && object.ownerActorId === caster.id && /Тайфун|gale-strider|Растущие ветра/.test(`${object.label || ""} ${object.ruleId || object.source || ""}`) && (object.cells || []).includes(`${actor.x},${actor.y}`));
       return Boolean(typhoon);
     },
     build: ({ scene, event, actor }) => {
-      const caster = (scene.actors || []).find(candidate => !candidate.knockedOut && candidate.team !== actor.team && Number(candidate.techniques?.["disruptor.gale-strider"] || 0) >= 1 && candidate.space === actor.space);
+      const caster = (scene.actors || []).find(candidate => !candidate.knockedOut && Number(candidate.techniques?.["disruptor.gale-strider"] || 0) >= 1 && candidate.space === actor.space);
       const typhoon = (scene.objects || []).find(object => object.space === actor.space && object.type === "danger" && object.ownerActorId === caster?.id && /Тайфун|gale-strider|Растущие ветра/.test(`${object.label || ""} ${object.ruleId || object.source || ""}`) && (object.cells || []).includes(`${actor.x},${actor.y}`));
       if (!caster || !typhoon) return [];
       const targets = (scene.actors || []).filter(target => !target.knockedOut && target.space === actor.space && (typhoon.cells || []).includes(`${target.x},${target.y}`));
