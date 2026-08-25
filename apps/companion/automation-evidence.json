@@ -1,5 +1,48 @@
 {
   "schemaVersion": 1,
   "description": "Independent evidence for automation claims. Registry labels in technique-foundation-map.js and enemy adapters are declarations, not certification.",
-  "entries": []
+  "entries": [
+    {
+      "id": "technique.disruptor.inner-world.2.domain-of-control.core-20260825",
+      "kind": "technique",
+      "ruleId": "disruptor.inner-world.2",
+      "declaredStatus": "decision",
+      "confidence": "core-tested",
+      "sourcePath": "data.js",
+      "sourceDigest": "sha256:f81d9a3a51c1ffaf72ae810337fbdf94c5bdd1dd2d1da90a3fe91eb774aa2809",
+      "claims": [
+        "После наложения Эффекта на другого живого персонажа открывается optional prompt владельцу Внутреннего мира.",
+        "На уровне II правило доступно один раз за Сцену; отказ не тратит использование, уровень III повышает лимит до Духа.",
+        "Цель и владелец выбирают разные свободные канонические клетки пространства 3x3; до финального ответа никто не перемещается.",
+        "Финальный ответ повторно проверяет доступность цели и источника; KO прерывает цепочку без перемещения.",
+        "После KO цели или Раны от участника живые участники возвращаются на допустимую клетку исходного поля."
+      ],
+      "tests": [
+        {
+          "path": "tests/scene-engine.mjs",
+          "coverage": "Положительный путь, отказ, лимит, канонические клетки, занятая клетка, KO между prompt и ответом, повторный ответ и возврат из домена."
+        },
+        {
+          "path": "tests/technique-engine.mjs",
+          "coverage": "Проверка цели, лимита и атомарного создания пространства/переноса."
+        }
+      ],
+      "surfaces": {
+        "core": true,
+        "ui": false,
+        "network": false,
+        "persistence": false
+      },
+      "edgeCases": [
+        "отказ до оплаты",
+        "KO цели между выбором клеток",
+        "KO источника между выбором клеток",
+        "повторный ответ после закрытия prompt",
+        "занятая или неканоническая клетка",
+        "недоступный край поля при возврате"
+      ],
+      "auditedAtCommit": "0a7429c72a1b23abdf58bf6df7722b2c3eb070bd",
+      "auditScope": "Только ядро. UI, сеть, reconnect/import и полный пользовательский путь не проверялись."
+    }
+  ]
 }

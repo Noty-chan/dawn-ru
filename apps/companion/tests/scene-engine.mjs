@@ -794,6 +794,10 @@ assert.equal(Engine.dispatchMany(levelThreeInnerScene, [{ type: "effect.apply", 
 const staleInnerTarget = structuredClone(innerBeforeCommit);
 staleInnerTarget.actors[1].knockedOut = true;
 assert.equal(Engine.respondRulePrompt(staleInnerTarget, data, { choice: "cell:1,1" }).ok, false, "The final Domain choice revalidates its target before moving anyone");
+const staleInnerSource = structuredClone(innerBeforeCommit);
+staleInnerSource.actors[0].knockedOut = true;
+assert.equal(Engine.respondRulePrompt(staleInnerSource, data, { choice: "cell:1,1" }).ok, false, "The final Domain choice rejects a source knocked out while its placement prompt was open");
+assert.equal(Engine.respondRulePrompt(innerWindow, data, { choice: "cell:1,1" }).ok, false, "A completed Domain prompt cannot be answered twice");
 
 const sirenScene = structuredClone(scene);
 sirenScene.actors[0].techniques = { "disruptor.siren": 2 };
