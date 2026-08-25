@@ -65,3 +65,58 @@
 **Гипотезы, пока не доказательства:** заявленные `full/decision/attack/effect/state` остальных строк соответствуют каноническому тексту.
 
 **Непроверенное:** browser E2E, сетевые гонки/reconnect, импорт сохранения в незавершённой цепочке и семантика 39 остальных атак врагов.
+
+## Дополнительная волна — все оставшиеся заявленные `full` / `decision`
+
+Для этой волны проверен реестр всех 88 таких уровней. Ниже приведены оставшиеся после первой волны уровни. «Не подтверждено» — не предположение о поломке, а строгий результат: нет evidence-записи с каноническими claims и позитивным, негативным и граничным тестом. Наличие адаптера, точечного happy-path или общего теста не повышает доверие.
+
+| Правило (стабильный ID) | Заявлено | Доказанный уровень | Результат независимой проверки / что требуется |
+| --- | --- | --- | --- |
+| `powerhouse.dragonslayer.1` Скорость — это вес | full | declared | Нет прямого набора pos/neg/boundary; проверить модификацию цели/стоимости и KO. |
+| `powerhouse.dragonslayer.3` Титанический замах | full | declared | Есть след одного теста, но нет полного набора claims/отмены. |
+| `powerhouse.duelist.2` Парирование | full | declared | Нет прямого набора; проверить окно Блока, смежность и порядок Ошеломления. |
+| `powerhouse.gunslinger.2` Зарядить и взвести | decision | declared | Нет прямого набора; проверить ресурс, выбор и повторный ответ. |
+| `powerhouse.gunslinger.3` Жонглирование пулями | full | declared | Нет прямого набора; проверить перенос/траты и границы. |
+| `powerhouse.spellsword.3` Охотник на ведьм | full | declared | Есть прямые тестовые следы, но нет доказательства UI/network/persistence и всех отрицательных ветвей. |
+| `powerhouse.technician.3` Последний удар | full | declared | Есть прямые тестовые следы, но нет полного набора claims и поверхностей. |
+| `powerhouse.braggart.2` Докажи, чего стоишь | decision | declared | Нет прямого набора; проверить часы, отказ и прерывание. |
+| `powerhouse.braggart.3` Достойный противник | decision | declared | Нет прямого набора; проверить выбор, лимиты и KO. |
+| `powerhouse.breacher.1` Картечь | full | declared | Есть тестовые следы, но нет независимых negative/boundary и поверхностей. |
+| `vagabond.speed-demon.2` Мгновенный шаг | full | declared | Есть тестовый след; отсутствуют доказательства истории, отмены и persistence. |
+| `vagabond.untouchable.1` Нырок | full | declared | Нет прямого набора; проверить допустимые цели и стоимость. |
+| `vagabond.untouchable.2` Маятник | decision | declared | Есть один след; проверить stale placement, KO и повтор. |
+| `vagabond.cunning-fighter.1` План и исполнение | decision | declared | Нет прямого набора; проверить выбор/срок/отмену. |
+| `vagabond.cunning-fighter.2` Планы внутри планов | full | declared | Нет прямого набора; проверить стек и reset. |
+| `vagabond.egomaniac.1–3` Пиковая форма / Дразнить… / Финал | decision | declared | Нет отдельных доказательных наборов для каждого уровня; нужны часы, target legality, отказ и KO. |
+| `vagabond.enchained.1` Выстрел крюком | full | declared | Есть тестовые следы, но нет полного набора пути, wall/occupied edge и поверхностей. |
+| `vagabond.knife-juggler.2–3` Пополнение / Преследователь | decision | declared | Нет прямых наборов; проверить инвентарь, цель, срок и повтор. |
+| `vagabond.modified-meister.2–3` Перегрузка / Разгон | decision | declared | Есть частичный след только для II; нужны цена, срок, KO и восстановление. |
+| `vagabond.dim-mak.1–2` Изучить слабость / Полевая разведка | decision | declared | Есть несколько тестовых следов, но нет evidence и полного E2E; не повышено. |
+| `vagabond.master-at-arms.1–2` Многогранность / Как вода | full | declared | У I есть тестовые следы, у II нет; нужны раздельные канонические claims. |
+| `bulwark.iron-bodied.2` Выносливость | full | declared | Нет прямого набора. |
+| `bulwark.grappler.2` Перелом позвоночника | decision | declared | Есть тестовый след; нет отдельного KO/stale placement/reconnect набора. |
+| `bulwark.mundane.2–3` Копнуть глубже… / Перед лицом Запредельного | full / decision | declared | Нет прямых наборов. |
+| `bulwark.rising-challenger.3` Драма и злость | full | declared | Нет прямого набора. |
+| `bulwark.stalwart-sentry.2` На посту | decision | declared | Нет прямого набора; проверить уход из смежности, оплату и очередь prompt. |
+| `altruist.empath.1–3` Успокаивающая аура / Защитный отклик / «Ты в порядке?» | decision | declared | Есть следы у II–III, но не для полной матрицы claims; не повышено. |
+| `altruist.gourmand.2` Бездонная кладовая | full | declared | Нет прямого набора. |
+| `altruist.heavenly-saint.2–3` Очищающий свет / Великое восстановление | decision | declared | Нет прямых наборов. |
+| `altruist.surgeon.1` Не навреди | full | declared | Есть тестовый след; нет независимой матрицы предотвращения/KO/повторов. |
+| `altruist.alchemist.1–2` Быстрая / Мощная смесь | full | declared | У I есть тестовый след, у II нет; нет evidence уровня правила. |
+| `altruist.chronomancer.3` Остановка времени | decision | declared | Нет прямого набора именно для ID; проверить all-in, Рану, цели и отмену. |
+| `altruist.will-o-wisp.1–3` Пламя / Дружелюбные / Парные духи | decision | declared | Есть частичный след у I; II–III без прямых наборов. |
+| `disruptor.chemist.1–3` Сублимация / Смесь / Осаждение | full | declared | Есть тестовые следы у I и III, но не доказательная матрица по каждому уровню. |
+| `disruptor.constrictor.1–2` Обвить / Удушение | decision / full | declared | У I есть тестовый след, у II нет; нужна проверка срока, движения и KO. |
+| `disruptor.autophage.1–3` Переливание / Перенапряжение / Рождённый… | full / decision | declared | Прямые тестовые следы есть лишь у III; доказательств всех claims нет. |
+| `disruptor.siren.1–2` Ты ведь… / Неотразимая | decision | declared | Есть несколько тестовых следов, но нет UI/network/persistence и полного edge corpus. |
+| `ruiner.bombardier.1–3` Взрыв!! / Взрыв!!! / ВЗРЫВ!!!! | full | declared | У I и III есть тестовые следы; II без прямого набора. Нужна матрица area/cell/cost/cancel. |
+| `ruiner.spellcrafter.1–3` Эксперимент / Закрепление / Финализация | decision | declared | Нет прямых наборов; проверить предметы, траты, срок и импорт. |
+| `ruiner.feral-arcana.2–3` Сорваться с цепи / Хватка | decision | declared | Есть частичный след у II; III без прямого набора. |
+| `ruiner.grim-ascendant.1–2` Непостоянная мощь / Вытянуть жизнь | decision | declared | Нет прямых наборов. |
+| `ruiner.void-soul.3` Полое сердце | decision | declared | Нет прямого набора; проверить область, пол-урона, реакции и KO. |
+| `ruiner.zealot.1–3` Еретическая… / Всегда… / Так не должно… | decision | declared | Есть след у III; I–II без прямого набора. |
+| `ruiner.creation-ascetic.1–3` Формирование… / Один истинный… / Труд… | decision / full | declared | Нет прямых наборов. |
+| `ruiner.ego-arm.2` Покажи свои цели | decision | declared | Есть тестовые следы, но нет complete claims/cancel/reconnect. |
+| `ruiner.sellsword-s-call.1` Реприза воина | decision | declared | Есть тестовые следы, но нет доказательства summon/deploy/turn/persistence пути. |
+
+Итого после двух волн: из 88 заявленных автоматизаций **1** правило имеет доказанный `core-tested`; остальные **87** остаются `declared`. Это не оценка процента дефектов, а строгая граница доказанного знания.
