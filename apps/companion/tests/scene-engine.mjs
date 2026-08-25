@@ -2519,7 +2519,7 @@ assert.equal(ritualDrawings.requiresTarget, false, "Ritual Drawings selects empt
 assert.equal(ritualDrawings.maxTargets, 0);
 const declaredAttacks = enemyProfiles.flatMap(profile => (profile.rules || []).filter(rule => rule.kind === "attack").map(rule => ({ profile, rule })));
 assert.ok(declaredAttacks.length >= 40, "The enemy catalogue exposes the complete common Attack set");
-assert.deepEqual(declaredAttacks.filter(({ rule }) => Engine.enemyRuleAutomation(rule.id) === "assisted").map(({ rule }) => rule.id), ["enemy.common.bruiser.attack.skulduggery", "enemy.common.oni.attack.polaris", "enemy.common.builder.attack.violent-construction"], "Skulduggery, Polaris, and Violent Construction stay assisted until their mismatched result branches are fixed");
+assert.deepEqual(declaredAttacks.filter(({ rule }) => Engine.enemyRuleAutomation(rule.id) === "assisted").map(({ rule }) => rule.id), ["enemy.common.bruiser.attack.skulduggery", "enemy.common.bodyguards.attack.behind-me", "enemy.common.oni.attack.polaris", "enemy.common.builder.attack.violent-construction", "enemy.common.coordinator.attack.fanaticize", "enemy.common.swarm.attack.tear"], "Audited attacks with absent canonical movement or follow-up branches stay assisted");
 for (const profileId of ["enemy.common.assassin", "enemy.common.pugilist", "enemy.common.guardian", "enemy.common.berserker", "enemy.common.ranger"]) {
   const profile = enemyProfiles.find(item => item.id === profileId);
   assert.ok(profile, `${profileId} exists in the canonical enemy catalogue`);
@@ -2567,9 +2567,7 @@ coordinatorContractScene.actors[1].usedActions = []; coordinatorContractScene.ac
 coordinatorContractScene = Engine.dispatchMany(coordinatorContractScene, Engine.prepareEnemyRule(coordinatorContractScene, data, { actorId: "enemy", ruleId: neutralizeContract.id, targetIds: ["hero"] }).events).scene;
 assert.ok(coordinatorContractScene.actors[0].effects.includes("negative.помечен"), "Neutralize Them marks the selected character");
 coordinatorContractScene.actors[1].usedActions = []; coordinatorContractScene.actors[1].ap = 3;
-const fanaticizePrepared = Engine.prepareEnemyRule(coordinatorContractScene, data, { actorId: "enemy", ruleId: fanaticizeContract.id, targetIds: ["hero"], roll: { rolls: [6, 5, 4, 2, 1, 1, 1], successes: 3, crits: 1 } });
-assert.equal(fanaticizePrepared.ok, true, "Coordinator can prepare Fanaticize against an adjacent character");
-assert.equal(fanaticizePrepared.events.find(event => event.type === "attack.pending").payload.damageByTarget.hero, 6, "Fanaticize combines three successes, one Tension, and the Coordinator's Tier 2 bonus against its Marked target");
+assert.equal(Engine.enemyRuleAutomation(fanaticizeContract.id), "assisted", "Fanaticize stays assisted until the required ally follow-up is executable");
 assert.equal(Engine.enemyRuleAutomation(profileRule("enemy.common.coordinator", "Coordinated Charge").id), "assisted", "Coordinated Charge remains assisted until its ally follow-up choices have a dedicated prompt contract");
 coordinatorContractScene = Engine.dispatchMany(coordinatorContractScene, [{ type: "actor.move", actorId: "coordinator-ally", payload: { space: "main", x: 6, y: 2, movement: "QA" } }]).scene;
 assert.ok(!coordinatorContractScene.actors.find(actor => actor.id === "coordinator-ally").effects.includes("positive.усилен"), "Coordinator stops empowering an ally that leaves its four-cell radius during the Turn");
