@@ -53,7 +53,6 @@ const ENEMY_AUTO_ATTACK_RULES = new Map([
   ["enemy.common.necromancer.attack.terrifying-shot", 2],
   ["enemy.common.revenant.attack.tear-from-the-soul", 1],
   ["enemy.common.martyr.attack.savor-my-blood", 1],
-  ["enemy.common.cannoneer.trump.fire", 1],
   ["enemy.common.enchanter.attack.heartbreaker", 1],
   ["enemy.common.privateer.attack.spray-and-pray", 2],
   ["enemy.common.rifter.attack.emerge", 1],

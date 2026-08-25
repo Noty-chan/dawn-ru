@@ -2522,7 +2522,7 @@ assert.equal(ritualDrawings.requiresTarget, false, "Ritual Drawings selects empt
 assert.equal(ritualDrawings.maxTargets, 0);
 const declaredAttacks = enemyProfiles.flatMap(profile => (profile.rules || []).filter(rule => rule.kind === "attack").map(rule => ({ profile, rule })));
 assert.ok(declaredAttacks.length >= 40, "The enemy catalogue exposes the complete common Attack set");
-assert.deepEqual(declaredAttacks.filter(({ rule }) => Engine.enemyRuleAutomation(rule.id) === "assisted").map(({ rule }) => rule.id), [], "Every declared enemy Attack has an executable automation contract");
+assert.deepEqual(declaredAttacks.filter(({ rule }) => Engine.enemyRuleAutomation(rule.id) === "assisted").map(({ rule }) => rule.id), [], "Every declared kind:attack remains covered by an executable attack contract; audited Trumps are checked separately");
 for (const profileId of ["enemy.common.assassin", "enemy.common.pugilist", "enemy.common.guardian", "enemy.common.berserker", "enemy.common.ranger"]) {
   const profile = enemyProfiles.find(item => item.id === profileId);
   assert.ok(profile, `${profileId} exists in the canonical enemy catalogue`);
@@ -2733,7 +2733,8 @@ let witchExpel = profileScene("enemy.common.witch"), beforeExpel = { x: witchExp
 witchExpel = resolveEnemyFamily(witchExpel, { expelFromArea: true, area: [3, 3] }, ["hero"], { x: 1, y: 1 });
 assert.notDeepEqual({ x: witchExpel.actors[0].x, y: witchExpel.actors[0].y }, beforeExpel, "Expelling Force moves a hit target to the nearest reachable cell outside its area");
 
-for (const ruleId of ["enemy.common.assassin.trump.disappear", "enemy.common.pugilist.trump.martial-perfection", "enemy.common.ranger.trump.headshot", "enemy.common.cocoon.trump.quick-growth", "enemy.common.guardian.trump.imposing-presence", "enemy.common.berserker.trump.last-stand", "enemy.common.cannoneer.trump.fire", "enemy.common.executioner.trump.bifurcate", "enemy.common.revenant.trump.hollowed-eyes"]) assert.notEqual(Engine.enemyRuleAutomation(ruleId), "assisted", `${ruleId} must not leave a fully automated profile's Trump manual`);
+for (const ruleId of ["enemy.common.assassin.trump.disappear", "enemy.common.pugilist.trump.martial-perfection", "enemy.common.ranger.trump.headshot", "enemy.common.cocoon.trump.quick-growth", "enemy.common.guardian.trump.imposing-presence", "enemy.common.berserker.trump.last-stand", "enemy.common.executioner.trump.bifurcate", "enemy.common.revenant.trump.hollowed-eyes"]) assert.notEqual(Engine.enemyRuleAutomation(ruleId), "assisted", `${ruleId} must not leave a fully automated profile's Trump manual`);
+assert.equal(Engine.enemyRuleAutomation("enemy.common.cannoneer.trump.fire"), "assisted", "Cannoneer Fire stays assisted: the adapter multiplied one canonical roll's damage by three");
 let executionerScene = profileScene("enemy.common.executioner"); executionerScene.tension = 2;
 let executionerTrump = Engine.prepareEnemyRule(executionerScene, data, { actorId: "enemy", ruleId: "enemy.common.executioner.trump.bifurcate", targetIds: ["hero"] });
 assert.equal(executionerTrump.ok, true, "Executioner can arm Bifurcate against one opponent");
