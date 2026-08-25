@@ -17,3 +17,5 @@ __pycache__/
 *.links.tmp.pdf
 .DS_Store
 Thumbs.db
+*.stackdump
+/scene-engine-final.log
