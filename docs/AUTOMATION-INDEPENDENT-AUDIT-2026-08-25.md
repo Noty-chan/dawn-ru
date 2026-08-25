@@ -62,7 +62,7 @@
 
 ## Факты, гипотезы, непроверенное
 
-**Факты:** исходный SHA совпал; `npm test` проходит; карта свежая; один `core-tested` evidence record структурно и по digest валиден; у Покорителя Волн I нет автоматической Быстроты/бесплатности первого Заклинания; пять ранее заявленных уровней понижены по конкретным дефектам (`knife-juggler.2`, `alchemist.2`, `chemist.2`, `ego-arm.2`, `sellsword-s-call.1`); Ритуалист III остаётся manual.
+**Факты:** исходный SHA совпал; `npm test` проходит; карта свежая; один `core-tested` evidence record структурно и по digest валиден; у Покорителя Волн I нет автоматической Быстроты/бесплатности первого Заклинания; пять ранее заявленных уровней Техник понижены по конкретным дефектам (`knife-juggler.2`, `alchemist.2`, `chemist.2`, `ego-arm.2`, `sellsword-s-call.1`); восемь исходно автоматизированных правил врагов понижены до `assisted` (`cannoneer.fire`, `bruiser.skulduggery`, `oni.polaris`, `builder.violent-construction`, `bodyguards.behind-me`, `coordinator.fanaticize`, `swarm.tear`, `paladin.gift-from-god`); Ритуалист III остаётся manual.
 
 **Гипотезы, пока не доказательства:** заявленные `full/decision/attack/effect/state` остальных строк соответствуют каноническому тексту.
 
