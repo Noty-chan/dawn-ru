@@ -221,3 +221,24 @@
 | `ruiner.creation-ascetic.3`: Spell → Finish uses same count Creation Marks | full | Spell saves `lastCreationSpellMarks`; Finish reads then clears it. | Нет test intervening action, zero/changed marks, cancelled Spell, import and repeated Finish. | declared |
 | `ruiner.ego-arm.2`: carrier end Turn, spend2 AP, mark every enemy carrier attacked; Spirit Finish half damage all marked | manual (было decision) | Current preview accepts arbitrary anchor and selected target; map itself admits it does not model carrier/end-turn attacked set. | **Подтверждён дефект:** отсутствует основной trigger и выбор «каждый атакованный носителем враг»; placement можно сделать в иной клетке. Остаётся `manual` до модели carrier/transformation. | refuted |
 | `ruiner.sellsword-s-call.1`: empty-cell Spell, 1 Focus per; Ranger/Executioner/Viper tier1, HP1, half damage, cap [Tier/2] | partial (было decision) | Реализован только marker, type, Focus and cap. | **Подтверждён дефект:** marker не является Призывом-участником: нет HP=1, атак профиля, half damage или ходов. Остаётся `partial`. | refuted |
+
+## Враги — построчный журнал (продолжается)
+
+Источник и digest: тот же `apps/companion/data.js`. Метки `attack`/`full`/`effect`/`state` ниже — исходные заявления контракта; без evidence они не выше `declared`.
+
+| ID и канонические claims | Заявлено | Сверка ветки реализации | Точный пробел | Доверие |
+| --- | --- | --- | --- | --- |
+| `enemy.common.assassin.action.neutralize-target`: любая цель; Помечен нельзя потерять; атака по своей метке может Замедлить | full | `assassin-mark` ставит non-removable mark, а Slice ищет mark именно этого источника. | Нет matrix: снятие всех Effects, несколько Ассасинов/меток, KO между mark и Slice, reconnect. | declared |
+| `enemy.common.assassin.attack.slice`: смежная цель; Исчез → optional свободная смежная клетка, 3(+1) advantage | attack | Адаптер валидирует появление/занятую клетку и post-hit mark Slow. | Нет тестов отмены появления, KO/смены позиции цели и повторного resolve. | declared |
+| `enemy.common.assassin.trump.disappear`: Tension 2, 2 AP, Исчез | full | Effects-route накладывает Исчез и общий lifecycle ведёт козырь. | Нет boundary Tension=1/2, повтор/KO и persistence срока. | declared |
+| `enemy.common.executioner.action.focus-up`: Усилен + Укреплен | full | Effects-route применяет обе self-effects. | Нет tests duplicate effect, отмены/KO и import. | declared |
+| `enemy.common.executioner.attack.cleave`: если не Заряжен — только Заряжен; иначе line 2, 8(+2)D6, снять Заряжен | attack | chargedAttack route разделяет подготовку и атаку, line/target cap ведутся adapter-ом. | Нет test перехода не-заряжен→заряжен без броска, line geometry/edge, KO и повтор. | declared |
+| `enemy.common.executioner.trump.bifurcate`: выбрать врага; Заряжен/Устойчив; в конце следующего Хода путь к цели, Разруб по пройденным/смежным | full | Delay prompt и отдельный path/attack route существуют. | Нет negative path-blocking, исчезновения цели, KO между delay/prompt и import/reconnect. | declared |
+| `enemy.common.pugilist.action.take-stance`: выбрать любой шаг Пассива | state | Сохраняет выбранную стойку в state. | Нет tests допустимых шагов, смены/срока стойки и import. | declared |
+| `enemy.common.pugilist.attack.flurry-of-strikes`: смежная цель, 6(+1)D6; пассивные срабатывания | attack | Смежность и sequence hook подключены. | Нет corpus всех стоек, два passive после Trump, отмены и idempotency. | declared |
+| `enemy.common.pugilist.trump.martial-perfection`: до конца боя passive дважды при Attack; немедленный ход | state | State и grant-turn существуют. | Нет test end-of-battle cleanup, double-passive ровно дважды, повтор Trump и reconnect. | declared |
+| `enemy.common.ranger.action.nest`: Устойчив, Aim 1; Aim теряется от move, +1 damage success attacks | full | ranger-nest state и damage hook есть. | Нет tests forced move/teleport, miss, несколько Aim sources и persistence. | declared |
+| `enemy.common.ranger.attack.take-the-shot`: target range8, 6(+1)D6; +Tension damage at range≥4 | attack | Range и distance bonus передаются в pending damage. | Нет boundary 3/4/8/9, wall, movement before resolve и duplicate reply. | declared |
+| `enemy.common.ranger.trump.headshot`: видимая цель; next hit by this enemy +[successes] damage | full | Target state сохраняется и очищается на success. | Нет test miss retains mark, visibility/wall, target KO and reconnect. | declared |
+| `enemy.common.ronin.attack.dissect`: смежная цель, 5(+1)D6 | attack | Общая атака валидирует смежность. | Нет direct pos/neg/boundary и взаимодействия с Sheath/Trump. | declared |
+| `enemy.common.ronin.trump.thunderclap-and-flash`: 4 connected lines, delayed traversal/attacks, crit 5 | effect | Статус автоматизирует только Устойчив; геометрия/отложенный путь не являются доказанным исполнением. | Нужны typed lines, выбор/валидация цепи, stale path, KO и import; не повышать. | declared |
