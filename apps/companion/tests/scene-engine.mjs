@@ -2522,7 +2522,7 @@ assert.equal(ritualDrawings.requiresTarget, false, "Ritual Drawings selects empt
 assert.equal(ritualDrawings.maxTargets, 0);
 const declaredAttacks = enemyProfiles.flatMap(profile => (profile.rules || []).filter(rule => rule.kind === "attack").map(rule => ({ profile, rule })));
 assert.ok(declaredAttacks.length >= 40, "The enemy catalogue exposes the complete common Attack set");
-assert.deepEqual(declaredAttacks.filter(({ rule }) => Engine.enemyRuleAutomation(rule.id) === "assisted").map(({ rule }) => rule.id), [], "Every declared kind:attack remains covered by an executable attack contract; audited Trumps are checked separately");
+assert.deepEqual(declaredAttacks.filter(({ rule }) => Engine.enemyRuleAutomation(rule.id) === "assisted").map(({ rule }) => rule.id), ["enemy.common.bruiser.attack.skulduggery", "enemy.common.oni.attack.polaris"], "Skulduggery and Polaris stay assisted until their mismatched post-hit effects are fixed");
 for (const profileId of ["enemy.common.assassin", "enemy.common.pugilist", "enemy.common.guardian", "enemy.common.berserker", "enemy.common.ranger"]) {
   const profile = enemyProfiles.find(item => item.id === profileId);
   assert.ok(profile, `${profileId} exists in the canonical enemy catalogue`);
@@ -2705,21 +2705,7 @@ assert.ok(gluttonFlow.actors.find(actor => actor.id === "hero").effects.includes
 assert.ok(gluttonFlow.actors.find(actor => actor.id === "hero-2").effects.includes("negative.замедлен"), "Slobber applies Slow independently to its second hit target");
 const gluttonThird = structuredClone(gluttonScene); gluttonThird.actors.push({ ...structuredClone(gluttonScene.actors[0]), id: "hero-3", x: 1, y: 2 });
 assert.equal(Engine.prepareEnemyRule(gluttonThird, data, { actorId: "enemy", ruleId: slobber.id, targetIds: ["hero", "hero-2", "hero-3"], roll: { rolls: [6, 5], successes: 1 } }).ok, false, "Slobber rejects a third target");
-// Bruiser: Skulduggery anchors its 2x2 area on the enemy and pushes by tier.
-let bruiserScene = profileScene("enemy.common.bruiser"); bruiserScene.actors[1].tier = 2; bruiserScene.actors[0].x = 2; bruiserScene.actors[0].y = 2;
-const skulduggery = profileRule("enemy.common.bruiser", "Skulduggery");
-const bruiserPrepared = Engine.prepareEnemyRule(bruiserScene, data, { actorId: "enemy", ruleId: skulduggery.id, targetIds: ["hero"], roll: { rolls: [6, 5, 4, 2, 1, 1], successes: 3, crits: 1 } });
-assert.equal(bruiserPrepared.ok, true, "Bruiser can prepare Skulduggery against a target in its anchored area");
-const bruiserPending = bruiserPrepared.events.find(event => event.type === "attack.pending");
-assert.equal(bruiserPending.payload.attackAnchor.x, 2, "Skulduggery records the Bruiser x coordinate as its area anchor");
-assert.equal(bruiserPending.payload.attackAnchor.y, 1, "Skulduggery records the Bruiser y coordinate as its area anchor");
-assert.equal(bruiserPending.payload.postDisplacements[0].maximum, 2, "Skulduggery scales its one-cell push by Bruiser tier");
-let blockedBruiserScene = profileScene("enemy.common.bruiser"); blockedBruiserScene.actors[1].tier = 2; blockedBruiserScene.actors[1].x = 2; blockedBruiserScene.actors[1].y = 5; blockedBruiserScene.actors[0].x = 2; blockedBruiserScene.actors[0].y = 6;
-const blockedBruiserPrepared = Engine.prepareEnemyRule(blockedBruiserScene, data, { actorId: "enemy", ruleId: skulduggery.id, targetIds: ["hero"], roll: { rolls: [6, 5, 4, 2, 1, 1], successes: 3, crits: 1 } });
-blockedBruiserScene = Engine.dispatchMany(blockedBruiserScene, blockedBruiserPrepared.events).scene;
-blockedBruiserScene = Engine.dispatchMany(blockedBruiserScene, Engine.respondReaction(blockedBruiserScene, data, { actorId: "hero", choice: "pass" }).events).scene;
-blockedBruiserScene = Engine.dispatchMany(blockedBruiserScene, Engine.resolvePendingAction(blockedBruiserScene, data).events).scene;
-assert.ok(blockedBruiserScene.actors[0].effects.includes("negative.ошеломлен"), "Bruiser Stuns a target when the board edge prevents its full tier-scaled push");
+assert.equal(Engine.enemyRuleAutomation(profileRule("enemy.common.bruiser", "Skulduggery").id), "assisted", "Skulduggery stays assisted: the old adapter added non-canonical Stun on incomplete push");
 assert.equal(Engine.enemyRuleAutomation(profileRule("enemy.common.bruiser", "Decimate").id), "assisted", "Decimate remains assisted until delayed area placement is implemented");
 let fluxScene = profileScene("enemy.common.illusionist"); fluxScene.actors.push({ ...structuredClone(fluxScene.actors[1]), id: "illusion-ally", profileId: "enemy.common.guardian", x: 4, y: 1, ruleState: {} });
 fluxScene = resolveEnemyFamily(fluxScene, { flux: true });

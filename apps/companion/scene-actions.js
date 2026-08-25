@@ -19,7 +19,6 @@ const TECHNIQUE_COMBO_RULES = new Map([
 // stays assisted and is confirmed by the Narrator.
 const ENEMY_AUTO_ATTACK_RULES = new Map([
   ["enemy.common.assassin.attack.slice", 2],
-  ["enemy.common.bruiser.attack.skulduggery", 2],
   ["enemy.common.behemoth.attack.tore-from-earth", 2],
   ["enemy.common.captor.attack.catch-and-release", 2],
   ["enemy.common.executioner.attack.cleave", 2],
@@ -36,7 +35,6 @@ const ENEMY_AUTO_ATTACK_RULES = new Map([
   ["enemy.common.slime.attack.goop", 1],
   ["enemy.common.glutton.attack.slobber", 1],
   ["enemy.common.mount.attack.thrash", 1],
-  ["enemy.common.oni.attack.polaris", 1],
   ["enemy.common.paladin.attack.gift-from-god", 1],
   ["enemy.common.daredevil.attack.dance", 1],
   ["enemy.common.guardian.attack.shove", 1],
