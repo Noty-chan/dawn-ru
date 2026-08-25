@@ -77,6 +77,11 @@ const AUDIT_FINDINGS = new Map([
   ["enemy.common.coordinator.attack.fanaticize", "Обязательная союзная follow-up ветка отсутствует."],
   ["enemy.common.swarm.attack.tear", "Отсутствует движение зон массовки; Stun накладывается автоматически вместо выбора."],
   ["enemy.common.paladin.attack.gift-from-god", "Союзник дополнительно лечится, хотя канон предписывает только Regeneration."],
+  ["enemy.common.privateer.action.escort", "Исполнялась только выдача эффекта «Ускорен»; обязательное окно выбора и равное движение вслед за союзником отсутствуют."],
+]);
+
+const TRANSLATION_FINDINGS = new Map([
+  ["enemy.common.viper.trump.knife-in-the-dark", "Проектный RU-текст меняет механику: вместо атаки всех игроков без смежного союзника описывает телепорт к цели атаки союзного игрока. До исправления авторитетен английский оригинал, PDF стр. 112."],
 ]);
 
 const statusRu = { full: "полная", decision: "решение", partial: "частичная", manual: "ручная", attack: "атака", effect: "эффект", state: "состояние", assisted: "помощь Нарратора" };
@@ -264,6 +269,7 @@ function enemyCatalog() {
     `- Локальные (не из английского PDF) пары Леона подтверждены ${code("source/companion/named-enemies.md")}: ${namedEnemyPairs.length ? namedEnemyPairs.map(item => code(item.rule.id)).join(", ") : "нет"}.`,
     `- Черты Антагониста: ${traitRows.length - traitTranslationIssues.length}/${traitRows.length} английских названий извлечены из оригинального PDF (стр. 106–107).`,
     `- Непроверенные пары: ${[...enemyTranslationIssues, ...traitTranslationIssues].length ? [...enemyTranslationIssues.map(item => code(item.rule.id)), ...traitTranslationIssues.map(item => code(item.rule.id))].join(", ") : "нет"}.`,
+    `- Подтверждённые смысловые расхождения RU/EN: ${TRANSLATION_FINDINGS.size}; ${[...TRANSLATION_FINDINGS.keys()].map(code).join(", ")}. Проверка пар названий сама по себе этого не выявляет.`,
     "",
   ];
   const groups = [["Обычные враги", data.enemies.common], ["Враги-модификаторы", data.enemies.modifiers], ["Именованные враги", data.enemies.named], ["Черты Антагониста", data.enemies.antagonistTraits]];
@@ -285,6 +291,7 @@ function enemyCatalog() {
         if (rule.directDamage) meta.push(`${rule.directDamage} direct damage`);
         lines.push(`#### ${rule.name} (${en}) ${code(rule.id)}`, "", `**Тип / type:** ${meta.join(" · ")}.`, "", `**RU — канон.** ${quote(rule.text)}`, "");
         if (rule.reward) lines.push(`**Награда / reward.** ${quote(rule.reward)}`, "");
+        if (TRANSLATION_FINDINGS.has(rule.id)) lines.push(`**Расхождение с EN-каноном.** ${TRANSLATION_FINDINGS.get(rule.id)}`, "");
       }
     }
   }

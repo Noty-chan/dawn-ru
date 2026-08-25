@@ -111,7 +111,6 @@ const ENEMY_AUTO_EFFECT_RULES = new Set([
   "enemy.common.bannerman.action.in-position",
   "enemy.common.coordinator.action.neutralize-them",
   "enemy.common.cannoneer.action.aim",
-  "enemy.common.privateer.action.escort",
 ]);
 const ENEMY_FULL_RULES = new Map([
   ["enemy.common.assassin.trump.disappear", { type: "effects" }],
