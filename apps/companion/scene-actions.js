@@ -43,7 +43,6 @@ const ENEMY_AUTO_ATTACK_RULES = new Map([
   ["enemy.common.bannerman.attack.swing", 1],
   ["enemy.common.baron.attack.suppress", 1],
   ["enemy.common.cultist.attack.swipe", 1],
-  ["enemy.common.builder.attack.violent-construction", 0],
   ["enemy.common.coordinator.attack.fanaticize", 1],
   ["enemy.common.healer.attack.exsanguinate", 1],
   ["enemy.common.illusionist.attack.distort-reality", 1],
