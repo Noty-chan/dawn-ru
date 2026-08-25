@@ -869,10 +869,10 @@ function reduceEvent(scene, event) {
     else { const compound=compoundEnemyStatus(scene,target);if(compound.active){for(const part of compound.parts){part.hp=0;part.knockedOut=true}scene.tension=Number(scene.tension||0)+1;scene.targetIds=(scene.targetIds||[]).filter(id=>!compound.parts.some(part=>part.id===id));if(compound.parts.some(part=>part.id===scene.activeActorId))scene.activeActorId=null;payload.applied=true;payload.affectedActorIds=compound.parts.map(part=>part.id)}else applyKnockoutState(scene, target, payload); }
     if (payload.applied && target && target.knockedOut) {
       const defeatedIds = new Set([target.id, ...(payload.affectedActorIds || [])]);
-      if (scene.pendingPrompt && defeatedIds.has(scene.pendingPrompt.sourceActorId) || scene.pendingPrompt?.targetId && defeatedIds.has(scene.pendingPrompt.targetId)) scene.pendingPrompt = null;
+      if (scene.pendingPrompt && (defeatedIds.has(scene.pendingPrompt.sourceActorId) || scene.pendingPrompt.targetId && defeatedIds.has(scene.pendingPrompt.targetId))) scene.pendingPrompt = null;
       scene.triggerQueue = (scene.triggerQueue || []).filter(item => {
         const deferred = item.event?.payload || {};
-        return !defeatedIds.has(item.event?.actorId) && !defeatedIds.has(deferred.sourceActorId) && !defeatedIds.has(deferred.targetId) && !(deferred.targetIds || []).some(id => defeatedIds.has(id));
+        return !defeatedIds.has(item.event?.actorId) && !defeatedIds.has(deferred.sourceActorId) && !defeatedIds.has(deferred.targetId);
       });
     }
   } else if (event.type === "inventory.change" && actor) {
@@ -890,8 +890,8 @@ function reduceEvent(scene, event) {
     if (payload.queued && ["fired", "cancelled"].includes(payload.status)) scene.triggerQueue = scene.triggerQueue.filter(item => item.key !== key);
   } else if (event.type === "rule.prompt") {
     const options = PLACEMENT_PROMPT_KINDS.has(payload.kind) && !payload.options.includes("cell") ? ["cell", ...payload.options] : payload.options;
-    const participantIds = [event.actorId, payload.sourceActorId, payload.targetId, ...(payload.targetIds || []), ...(payload.participantIds || [])].filter(Boolean);
-    if (!participantIds.some(id => actorById(scene, id)?.knockedOut)) scene.pendingPrompt = { id: payload.id, kind: payload.kind, actorId: event.actorId, sourceActorId: payload.sourceActorId || event.actorId, controller: payload.controller === "narrator" ? "narrator" : "source", targetId: payload.targetId || null, markerId: payload.markerId || null, title: payload.title || "Решение правила", text: payload.text || "", options: clone(options || []), context: clone(payload.context || {}) };
+    const requiredActorIds = [event.actorId, payload.sourceActorId, payload.targetId].filter(Boolean);
+    if (!requiredActorIds.some(id => actorById(scene, id)?.knockedOut)) scene.pendingPrompt = { id: payload.id, kind: payload.kind, actorId: event.actorId, sourceActorId: payload.sourceActorId || event.actorId, controller: payload.controller === "narrator" ? "narrator" : "source", targetId: payload.targetId || null, markerId: payload.markerId || null, title: payload.title || "Решение правила", text: payload.text || "", options: clone(options || []), context: clone(payload.context || {}) };
   } else if (event.type === "rule.respond") {
     payload.kind = scene.pendingPrompt?.kind || payload.kind;
     payload.sourceActorId = scene.pendingPrompt?.sourceActorId || null;

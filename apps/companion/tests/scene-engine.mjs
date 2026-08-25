@@ -758,20 +758,22 @@ assert.equal(cancelledQueuedTrigger.pendingPrompt, null);
 assert.equal(cancelledQueuedTrigger.triggerQueue.length, 0);
 assert.ok(cancelledQueuedTrigger.log.some(event => event.type === "rule.trigger" && event.payload?.triggerId === "altruist.empath.2.protective-response" && event.payload?.status === "cancelled" && /Источник/.test(event.payload.reason)), "An interrupted queued trigger is cancelled with an explicit reason");
 assert.throws(() => Engine.dispatch(scene, { type: "rule.trigger", actorId: "hero", payload: { triggerId: "bad trigger", sourceEventId: "x", status: "fired" } }), /маршрутизации триггера/);
+const optionalParticipantScene = structuredClone(scene);
+optionalParticipantScene.actors.find(actor => actor.id === "enemy").knockedOut = true;
+const optionalParticipantPrompt = Engine.dispatchMany(optionalParticipantScene, [{ type: "rule.prompt", actorId: "hero", payload: { id: "optional-participant", kind: "test-optional-participant", sourceActorId: "hero", title: "Optional context", options: ["pass"], participantIds: ["hero", "enemy"] } }]).scene;
+assert.equal(optionalParticipantPrompt.pendingPrompt?.id, "optional-participant", "A knocked-out contextual participant does not invalidate a prompt whose source and target remain available");
 
 const innerWindowScene = structuredClone(scene);
 innerWindowScene.actors[0].techniques = { "disruptor.inner-world": 2 };
 innerWindowScene.actors[0].attrs.spirit = 3;
 let innerWindow = Engine.dispatchMany(innerWindowScene, [{ id: "inner-effect", type: "effect.apply", actorId: "hero", payload: { targetId: "enemy", effect: "negative.помечен" } }]).scene;
 assert.equal(innerWindow.pendingPrompt?.kind, "inner-world-offer", "Applying an Effect opens Domain of Control automatically");
-assert.ok(innerWindow.pendingPrompt.context.candidateIds.includes("enemy"), "The Effect target is one possible Domain participant");
+assert.equal(innerWindow.pendingPrompt.targetId, "enemy", "Domain of Control is bound to the character that actually received the Effect");
+assert.equal(innerWindow.pendingPrompt.context.targetId, "enemy");
 const passedInnerWindow = Engine.dispatchMany(innerWindow, Engine.respondRulePrompt(innerWindow, data, { choice: "pass" }).events).scene;
 assert.equal(Engine.usageLimitStatus(passedInnerWindow, "hero", { ruleId: "disruptor.inner-world.2", scope: "scene", maximum: 1 }).remaining, 1, "Passing the trigger window does not spend the Scene use");
 innerWindow = Engine.dispatchMany(innerWindow, Engine.respondRulePrompt(innerWindow, data, { choice: "invoke" }).events).scene;
-assert.equal(innerWindow.pendingPrompt?.kind, "inner-world-participant");
-assert.ok(innerWindow.pendingPrompt.options.includes("target:enemy"), "Activation opens a separate participant choice");
-innerWindow = Engine.dispatchMany(innerWindow, Engine.respondRulePrompt(innerWindow, data, { choice: "target:enemy" }).events).scene;
-assert.equal(innerWindow.pendingPrompt?.kind, "inner-world-target-cell");
+assert.equal(innerWindow.pendingPrompt?.kind, "inner-world-target-cell", "Activation proceeds directly to placing the actual Effect target");
 innerWindow = Engine.dispatchMany(innerWindow, Engine.respondRulePrompt(innerWindow, data, { choice: "cell:0,0" }).events).scene;
 assert.equal(innerWindow.pendingPrompt?.kind, "inner-world-caster-cell");
 const innerBeforeCommit = structuredClone(innerWindow);
@@ -2744,11 +2746,33 @@ const waveTurnFlow = Engine.dispatchMany(waveScene, [
   { type: "turn.start", actorId: "enemy", payload: { narratorOverride: true } },
 ], { narratorOverride: true }).scene;
 assert.equal(waveTurnFlow.pendingPrompt?.kind, "wave-rider-seal", "Starting a turn on a Wave Rider seal cell opens the seal prompt");
+assert.equal(waveTurnFlow.pendingPrompt?.sourceActorId, "hero", "The seal owner, not the entering character, resolves a Wave Rider seal");
+assert.equal(waveTurnFlow.pendingPrompt?.targetId, "enemy");
 const knockSeal = Engine.respondRulePrompt(waveTurnFlow, data, { choice: "knockdown" });
 assert.equal(knockSeal.ok, true);
 const knockedScene = Engine.dispatchMany(waveTurnFlow, knockSeal.events).scene;
 assert.equal((knockedScene.markers || []).some(marker => marker.id === "seal"), false, "Wave Rider seal is removed after use");
 assert.ok(knockedScene.actors.find(actor => actor.id === "enemy").effects.includes("negative.подброшен"), "Wave Rider seal can apply Подброшен");
+let waveMoveFlow = Engine.dispatchMany(waveTurnFlow, Engine.respondRulePrompt(waveTurnFlow, data, { choice: "move" }).events).scene;
+assert.equal(waveMoveFlow.pendingPrompt?.kind, "wave-rider-move-cell");
+assert.equal(Engine.preparePromptPlacement(waveMoveFlow, { destination: { x: 1, y: 1 } }).ok, false, "Wave Rider cannot move through or onto an occupied cell");
+const waveMove = Engine.preparePromptPlacement(waveMoveFlow, { destination: { x: 3, y: 1 } });
+assert.equal(waveMove.ok, true);
+waveMoveFlow = Engine.dispatchMany(waveMoveFlow, waveMove.events).scene;
+assert.equal(waveMoveFlow.actors.find(actor => actor.id === "enemy").x, 3, "Wave Rider moves the seal entrant, not its owner");
+assert.equal(waveMoveFlow.markers.some(marker => marker.id === "seal"), false);
+
+const alliedWaveScene = structuredClone(scene);
+alliedWaveScene.actors[1].x = 5;
+alliedWaveScene.actors.push({ ...structuredClone(alliedWaveScene.actors[0]), id: "ally", name: "Союзник", x: 2, y: 1, techniques: {} });
+alliedWaveScene.markers = [{ id: "ally-seal", kind: "ritual", space: "main", x: 2, y: 1, ruleId: "disruptor.wave-rider.1", duration: "scene", ownerActorId: "hero" }];
+let alliedWaveFlow = Engine.dispatchMany(alliedWaveScene, [{ type: "actor.enter", actorId: "ally", payload: { space: "main", x: 2, y: 1, movement: "test" } }]).scene;
+assert.equal(alliedWaveFlow.pendingPrompt?.kind, "wave-rider-consent", "An ally must consent before the seal owner may move or affect them");
+assert.equal(alliedWaveFlow.pendingPrompt?.sourceActorId, "ally");
+alliedWaveFlow = Engine.dispatchMany(alliedWaveFlow, Engine.respondRulePrompt(alliedWaveFlow, data, { choice: "consent" }).events).scene;
+assert.equal(alliedWaveFlow.pendingPrompt?.kind, "wave-rider-seal");
+assert.equal(alliedWaveFlow.pendingPrompt?.sourceActorId, "hero");
+assert.equal(alliedWaveFlow.pendingPrompt?.targetId, "ally");
 
 // Ritualist: standing on own circle raises the Spirit Finish focus ceiling to Tension + 2
 const ritualistScene = structuredClone(scene);
@@ -2833,7 +2857,33 @@ const ownGaleScene = structuredClone(scene);
 ownGaleScene.actors[0].techniques = { "disruptor.gale-strider": 1 };
 ownGaleScene.objects = [{ id: "own-typhoon", type: "danger", label: "Тайфун", ruleId: "disruptor.gale-strider.1", ownerActorId: "hero", space: "main", duration: "scene", cells: ["1,1", "2,1", "3,1", "1,0", "2,0", "3,0", "1,2", "2,2", "3,2"] }];
 Object.assign(ownGaleScene.actors[0], { x: 2, y: 1, acted: true });
+Object.assign(ownGaleScene.actors[1], { x: 3, y: 1 });
 const ownGaleFlow = Engine.dispatchMany(ownGaleScene, [{ type: "turn.end", actorId: "hero", payload: { narratorOverride: true } }], { narratorOverride: true }).scene;
 assert.equal(ownGaleFlow.pendingPrompt?.kind, "gale-strider-shift", "Ending a turn in the caster's own Typhoon opens the shift prompt");
+const ownGaleShift = Engine.respondRulePrompt(ownGaleFlow, data, { choice: "east" });
+const ownGaleMoved = Engine.dispatchMany(ownGaleFlow, ownGaleShift.events).scene;
+assert.equal(ownGaleMoved.actors.find(actor => actor.id === "enemy").x, 4, "The front character moves first during a shared Typhoon shift");
+assert.equal(ownGaleMoved.actors.find(actor => actor.id === "hero").x, 3, "A following character may enter the cell vacated by another Typhoon occupant");
+
+const blockedGaleScene = structuredClone(scene);
+blockedGaleScene.actors[0].techniques = { "disruptor.gale-strider": 1 };
+Object.assign(blockedGaleScene.actors[0], { x: 0, y: 1, acted: true });
+Object.assign(blockedGaleScene.actors[1], { x: 1, y: 1 });
+blockedGaleScene.objects = [{ id: "blocked-typhoon", type: "danger", label: "Тайфун", ruleId: "disruptor.gale-strider.1", ownerActorId: "hero", space: "main", duration: "scene", cells: ["0,1", "1,1"] }];
+const blockedGaleFlow = Engine.dispatchMany(blockedGaleScene, [{ type: "turn.end", actorId: "hero", payload: { narratorOverride: true } }], { narratorOverride: true }).scene;
+const blockedGaleShift = Engine.respondRulePrompt(blockedGaleFlow, data, { choice: "west" });
+assert.equal(blockedGaleShift.events.some(event => event.type === "actor.move"), false, "A blocked Typhoon chain does not overlap its occupants");
+assert.equal(blockedGaleShift.events.some(event => event.type === "technique.resolve"), false, "A no-op Typhoon shift is not logged as a resolved Technique");
+
+const multiOwnerGaleScene = structuredClone(scene);
+multiOwnerGaleScene.actors[0].techniques = { "disruptor.gale-strider": 1 };
+multiOwnerGaleScene.actors.push({ ...structuredClone(multiOwnerGaleScene.actors[0]), id: "second-gale", name: "Второй ветровик", team: "enemy", x: 5, y: 5, techniques: { "disruptor.gale-strider": 1 } });
+Object.assign(multiOwnerGaleScene.actors[1], { x: 4, y: 5, acted: true });
+multiOwnerGaleScene.objects = [
+  { id: "first-gale", type: "danger", label: "Тайфун", ruleId: "disruptor.gale-strider.1", ownerActorId: "hero", space: "main", duration: "scene", cells: ["0,0"] },
+  { id: "second-gale-area", type: "danger", label: "Тайфун", ruleId: "disruptor.gale-strider.1", ownerActorId: "second-gale", space: "main", duration: "scene", cells: ["4,5", "5,5"] },
+];
+const multiOwnerGaleFlow = Engine.dispatchMany(multiOwnerGaleScene, [{ type: "turn.end", actorId: "enemy", payload: { narratorOverride: true } }], { narratorOverride: true }).scene;
+assert.equal(multiOwnerGaleFlow.pendingPrompt?.sourceActorId, "second-gale", "A Typhoon trigger is routed to the owner of the area that actually contains the ending character");
 
 console.log("Scene engine QA passed: canonical Turns and AP, once-per-Round actions, strict Reactions, truthful enemy automation, effects, movement, damage, and public events");

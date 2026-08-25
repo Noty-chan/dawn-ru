@@ -281,11 +281,27 @@ assert.equal(Engine.preview(sellswordZeroFocus, { actorId: "hero", ruleId: "ruin
 const sellswordLimit = structuredClone(mScene);
 for (let i = 0; i < 1; i += 1) sellswordLimit.markers.push({ id: `s${i}`, ownerActorId: "hero", kind: "summon", duration: "scene", ruleId: "ruiner.sellsword-s-call.1", x: i + 2, y: 0, space: "main" });
 assert.equal(Engine.preview(sellswordLimit, { actorId: "hero", ruleId: "ruiner.sellsword-s-call.1", anchor: { x: 3, y: 4 }, options: { summonType: "viper" } }).ok, false, "Sellsword summon respects [Tier/2] limit");
+let sequentialSellsword = structuredClone(mScene);
+sequentialSellsword.actors[0].tier = 4;
+let markerSerial = 0;
+for (const [anchor, summonType] of [[{ x: 0, y: 4 }, "ranger"], [{ x: 1, y: 4 }, "viper"]]) {
+  const prepared = Engine.preview(sequentialSellsword, { actorId: "hero", ruleId: "ruiner.sellsword-s-call.1", anchor, options: { summonType } });
+  assert.equal(prepared.ok, true);
+  sequentialSellsword = Engine.commit(sequentialSellsword, prepared, { makeId: prefix => `${prefix}-${markerSerial++}` }).scene;
+}
+assert.equal(sequentialSellsword.markers.filter(marker => marker.source === "ruiner.sellsword-s-call.1").length, 2, "Creating a second allowed summon does not remove the first one");
 // Wave rider: empty cell + 4+step limit
 assert.equal(Engine.preview(mScene, { actorId: "hero", ruleId: "disruptor.wave-rider.1", anchor: { x: 3, y: 3 } }).ok, false, "Wave Rider seal only on empty cell");
 const waveScene = structuredClone(mScene);
 for (let i = 0; i < 6; i += 1) waveScene.markers.push({ id: `w${i}`, ownerActorId: "hero", kind: "ritual", duration: "scene", ruleId: "disruptor.wave-rider.1", x: i + 2, y: 5, space: "main" });
 assert.equal(Engine.preview(waveScene, { actorId: "hero", ruleId: "disruptor.wave-rider.1", anchor: { x: 5, y: 5 } }).ok, false, "Wave Rider respects 4+Tier seal limit");
+let sequentialWaves = structuredClone(mScene);
+for (const anchor of [{ x: 0, y: 5 }, { x: 1, y: 5 }]) {
+  const prepared = Engine.preview(sequentialWaves, { actorId: "hero", ruleId: "disruptor.wave-rider.1", anchor });
+  assert.equal(prepared.ok, true);
+  sequentialWaves = Engine.commit(sequentialWaves, prepared, { makeId: prefix => `${prefix}-${markerSerial++}` }).scene;
+}
+assert.equal(sequentialWaves.markers.filter(marker => marker.source === "disruptor.wave-rider.1").length, 2, "Creating a second Wave Seal preserves earlier seals up to the rule limit");
 // Ego-arm: costs 2 AP, spends it
 const egoLowAp = structuredClone(mScene);
 Object.assign(egoLowAp.actors[0], { ap: 1 });
@@ -299,14 +315,17 @@ assert.ok(Engine.toEvents(egoScene, ego).some(event => event.type === "resource.
 // ---- Gale-strider: replaces previous own Taifuns ----
 const galeScene = structuredClone(scene);
 galeScene.actors[0].techniques = { "disruptor.gale-strider": 1 };
+galeScene.spaces.push({ id: "side", name: "Боковое поле", width: 7, height: 7 });
 galeScene.objects = [
   { id: "taifun-old", ownerActorId: "hero", space: "main", type: "danger", label: "Тайфун", ruleId: "disruptor.gale-strider.1", cells: ["4,3", "4,4"], duration: "scene" },
+  { id: "taifun-other-space", ownerActorId: "hero", space: "side", type: "danger", label: "Тайфун", ruleId: "disruptor.gale-strider.1", cells: ["1,1"], duration: "scene" },
   { id: "other", ownerActorId: "hero", space: "main", type: "danger", label: "Чужая зона", cells: ["0,0"], duration: "scene" },
 ];
 const gale = Engine.preview(galeScene, { actorId: "hero", ruleId: "disruptor.gale-strider.1", anchor: { x: 1, y: 1 } });
 assert.equal(gale.ok, true);
 const galeEvents = Engine.toEvents(galeScene, gale, { makeId: prefix => `e-${prefix}` });
 assert.ok(galeEvents.some(event => event.type === "area.remove" && event.payload.id === "taifun-old"), "Gale-strider replaces previous own Taifun");
+assert.ok(galeEvents.some(event => event.type === "area.remove" && event.payload.id === "taifun-other-space"), "Gale-strider replaces the owner's Typhoons across Scene spaces");
 assert.ok(!galeEvents.some(event => event.type === "area.remove" && event.payload.id === "other"), "Gale-strider does not replace other Taifuns");
 
 // ---- Warring Ascendant Durendal requires Warring transformation ----

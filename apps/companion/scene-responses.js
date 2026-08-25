@@ -280,23 +280,10 @@ function respondRulePrompt(scene, data, request = {}) {
         if (distance({ ...destination, space: target.space }, actor) === 1) events.push({ type: "effect.apply", actorId: actor.id, payload: { targetId: target.id, effect: "negative.ошеломлен", sourceActionId: "enemy.common.duelist.action.goad", participantIds: [actor.id, target.id] } });
       }
     }
-  let participantPromptOpened = false;
+  }
   if (prompt.kind === "inner-world-offer" && choice === "invoke") {
-    const candidates = (prompt.context?.candidateIds || []).map(id => actorById(scene, id)).filter(candidate => candidate && !candidate.knockedOut && candidate.id !== actor.id && candidate.space === actor.space && effectPresenceStatus(scene, candidate.id).onField);
-    if (!candidates.length) return { ok: false, errors: ["Для Домена больше нет подходящих участников."], events: [] };
-    const optionLabels = Object.fromEntries(candidates.map(candidate => [`target:${candidate.id}`, candidate.name]));
-    events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${prompt.id}-participant`, kind: "inner-world-participant", sourceActorId: actor.id, title: "Домен контроля · участник", text: "Выберите подходящего персонажа, которого затягиваете во Внутренний мир.", options: [...candidates.map(candidate => `target:${candidate.id}`), "pass"], context: { ...prompt.context, optionLabels }, participantIds: [actor.id, ...candidates.map(candidate => candidate.id)] } });
-    participantPromptOpened = true;
-  }
-  let selectedParticipant = null;
-  if (prompt.kind === "inner-world-participant" && choice.startsWith("target:")) {
-    const selectedTarget = actorById(scene, choice.slice(7)), candidates = (prompt.context?.candidateIds || []).map(id => actorById(scene, id));
-    if (!selectedTarget || !candidates.some(candidate => candidate?.id === selectedTarget.id) || selectedTarget.knockedOut || selectedTarget.id === actor.id || selectedTarget.space !== actor.space || !effectPresenceStatus(scene, selectedTarget.id).onField) return { ok: false, errors: ["Выбранный участник больше не подходит для Домена."], events: [] };
-    selectedParticipant = selectedTarget;
-  }
-  if (!participantPromptOpened && ((prompt.kind === "inner-world-offer" && choice === "invoke") || selectedParticipant)) {
-    const domainTarget = selectedParticipant || target;
-    if (!domainTarget) return { ok: false, errors: ["Не выбран участник Домена."], events: [] };
+    const domainTarget = target;
+    if (!domainTarget || domainTarget.id !== prompt.context?.targetId || domainTarget.knockedOut || domainTarget.id === actor.id || domainTarget.space !== actor.space || !effectPresenceStatus(scene, domainTarget.id).onField) return { ok: false, errors: ["Цель наложенного Эффекта больше не подходит для Домена."], events: [] };
     const spaceId = `inner-world-${actor.id}`, innerSpace = (scene.spaces || []).find(space => space.id === spaceId), occupied = new Set((scene.actors || []).filter(item => !item.knockedOut && item.space === innerSpace?.id).map(cellKey));
     const innerCells = ["cell:0,0", "cell:1,0", "cell:2,0", "cell:0,1", "cell:1,1", "cell:2,1", "cell:0,2", "cell:1,2", "cell:2,2"].filter(cell => !occupied.has(cell.slice(5)));
     if (!innerCells.length) return { ok: false, errors: ["Во Внутреннем мире нет свободной клетки для цели."], events: [] };
@@ -702,27 +689,40 @@ function respondRulePrompt(scene, data, request = {}) {
     events.push({ type: "reaction.offer", actorId: target.id, payload: { sourceActorId: actor.id, actionId: "disruptor.hunter.1", participantIds: [actor.id, target.id] } });
     events.push({ type: "attack.pending", actorId: actor.id, payload: { actionId: "action.атаки.стычка", techniqueRuleId: "disruptor.hunter.1", techniqueName: "Стальные челюсти", name: "Стальные челюсти", targetIds: [target.id], roll: clone(roll), damage: Number(roll.successes || 0), effects: Number(actor.techniques?.["disruptor.hunter"] || 0) >= 2 ? ["negative.обездвижен"] : [], quickReaction: true, participantIds: [actor.id, target.id] } });
   }
+  if (prompt.kind === "wave-rider-consent" && choice === "consent") {
+    const owner = actorById(scene, prompt.context?.ownerActorId), entrant = actorById(scene, prompt.context?.entrantActorId), seal = markerById(scene, prompt.context?.markerId);
+    if (!owner || owner.knockedOut || !entrant || entrant.knockedOut || entrant.id !== actor.id || !seal || seal.ownerActorId !== owner.id || seal.space !== entrant.space || Number(seal.x) !== Number(entrant.x) || Number(seal.y) !== Number(entrant.y)) return { ok: false, errors: ["Участники или Печать волны больше недоступны."], events: [] };
+    events.push({ type: "rule.prompt", actorId: owner.id, payload: { id: `prompt-${prompt.id}-resolve`, kind: "wave-rider-seal", sourceActorId: owner.id, targetId: entrant.id, markerId: seal.id, title: "Печать волны", text: `${entrant.name} согласился: убрать Печать, чтобы наложить Подброшен или переместить персонажа до 2 клеток по линии?`, options: ["knockdown", "move", "pass"], context: { ...prompt.context }, participantIds: [owner.id, entrant.id] } });
+  }
   if (prompt.kind === "wave-rider-seal" && choice === "knockdown") {
-    if (!actor || prompt.context?.markerId && !(scene.markers || []).some(item => item.id === prompt.context.markerId)) return { ok: false, errors: ["Печать волны уже убрана."], events: [] };
-    if (prompt.context?.markerId) events.push({ type: "marker.remove", actorId: actor.id, payload: { markerId: prompt.context.markerId, label: "Печать волны", sourceActionId: "disruptor.wave-rider.1", participantIds: [actor.id] } });
-    events.push({ type: "effect.apply", actorId: actor.id, payload: { targetId: actor.id, effect: "negative.подброшен", sourceActionId: "disruptor.wave-rider.1", participantIds: [actor.id] } });
-    events.push({ type: "technique.resolve", actorId: actor.id, payload: { ruleId: "disruptor.wave-rider.1", name: "Мягкие волны", affectedActorIds: [actor.id], participantIds: [actor.id] } });
+    const seal = markerById(scene, prompt.context?.markerId);
+    if (!actor || !target || target.knockedOut || !seal || seal.ownerActorId !== actor.id || seal.space !== target.space || Number(seal.x) !== Number(target.x) || Number(seal.y) !== Number(target.y)) return { ok: false, errors: ["Цель или Печать волны больше недоступны."], events: [] };
+    events.push({ type: "marker.remove", actorId: actor.id, payload: { markerId: seal.id, label: "Печать волны", sourceActionId: "disruptor.wave-rider.1", participantIds: [actor.id, target.id] } });
+    events.push({ type: "effect.apply", actorId: actor.id, payload: { targetId: target.id, effect: "negative.подброшен", sourceActionId: "disruptor.wave-rider.1", participantIds: [actor.id, target.id] } });
+    events.push({ type: "technique.resolve", actorId: actor.id, payload: { ruleId: "disruptor.wave-rider.1", name: "Мягкие волны", affectedActorIds: [target.id], participantIds: [actor.id, target.id] } });
   }
   if (prompt.kind === "wave-rider-seal" && choice === "move") {
-    events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${prompt.id}-wave-move`, kind: "wave-rider-move-cell", sourceActorId: actor.id, targetId: actor.id, markerId: prompt.context?.markerId, title: "Печать волны · перемещение", text: `Выберите клетку не дальше 2 клеток по линии от Печати волны.`, options: ["cancel"], context: { markerId: prompt.context?.markerId, seal: { space: prompt.context?.space, x: prompt.context?.x, y: prompt.context?.y } }, participantIds: [actor.id] } });
+    const seal = markerById(scene, prompt.context?.markerId);
+    if (!target || target.knockedOut || !seal || seal.ownerActorId !== actor.id || seal.space !== target.space || Number(seal.x) !== Number(target.x) || Number(seal.y) !== Number(target.y)) return { ok: false, errors: ["Цель или Печать волны больше недоступны."], events: [] };
+    events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${prompt.id}-wave-move`, kind: "wave-rider-move-cell", sourceActorId: actor.id, targetId: target.id, markerId: seal.id, title: "Печать волны · перемещение", text: `Выберите для ${target.name} достижимую клетку не дальше 2 клеток по линии от Печати волны.`, options: ["cancel"], context: { markerId: seal.id, seal: { space: seal.space, x: seal.x, y: seal.y } }, participantIds: [actor.id, target.id] } });
   }
   if (prompt.kind === "gale-strider-shift" && choice !== "pass") {
     const vectors = { north: [0, -1], east: [1, 0], south: [0, 1], west: [-1, 0], "north-east": [1, -1], "south-east": [1, 1], "south-west": [-1, 1], "north-west": [-1, -1] }, [dx, dy] = vectors[choice] || [0, 0];
     const space = (scene.spaces || []).find(item => item.id === prompt.context?.space), spaceId = prompt.context?.space;
-    const targets = (scene.actors || []).filter(target => !target.knockedOut && (prompt.context?.targetIds || []).includes(target.id) && target.space === spaceId);
-    for (const mover of targets) {
+    const targets = (scene.actors || []).filter(target => !target.knockedOut && (prompt.context?.targetIds || []).includes(target.id) && target.space === spaceId).sort((left, right) => Number(right.x) * dx + Number(right.y) * dy - (Number(left.x) * dx + Number(left.y) * dy));
+    const workingScene = clone(scene), movedIds = [];
+    for (const original of targets) {
+      const mover = actorById(workingScene, original.id);
       const nx = Number(mover.x) + dx, ny = Number(mover.y) + dy;
-      const blocked = nx < 0 || ny < 0 || (space && (nx >= Number(space.width) || ny >= Number(space.height))) || (scene.actors || []).some(other => other.id !== mover.id && !other.knockedOut && other.space === spaceId && other.x === nx && other.y === ny);
+      const movement = effectMovementStatus(workingScene, mover.id, { forced: true, distance: 1 });
+      const blocked = !space || !movement.available || nx < 0 || ny < 0 || nx >= Number(space.width) || ny >= Number(space.height) || removedCellKeys(workingScene, spaceId).has(`${nx},${ny}`) || !effectCellOccupancyStatus(workingScene, mover.id, { space: spaceId, x: nx, y: ny }).available;
       if (blocked) continue;
-      events.push({ type: "actor.move", actorId: mover.id, payload: { space: spaceId, x: nx, y: ny, movement: "Растущие ветра", forced: true, placement: true, participantIds: [actor.id, ...targets.map(item => item.id)] } });
-      events.push({ type: "actor.enter", actorId: mover.id, payload: { space: spaceId, x: nx, y: ny, movement: "Растущие ветра", forced: true, placement: true } });
+      Object.assign(mover, { x: nx, y: ny });
+      movedIds.push(mover.id);
+      events.push({ type: "actor.move", actorId: mover.id, payload: { space: spaceId, x: nx, y: ny, movement: "Растущие ветра", forced: true, participantIds: [actor.id, ...targets.map(item => item.id)] } });
+      events.push({ type: "actor.enter", actorId: mover.id, payload: { space: spaceId, x: nx, y: ny, movement: "Растущие ветра", forced: true } });
     }
-    if (targets.some(mover => Number(mover.x) + dx !== Number(mover.x) || Number(mover.y) + dy !== Number(mover.y))) events.push({ type: "technique.resolve", actorId: actor.id, payload: { ruleId: "disruptor.gale-strider.1", name: "Растущие ветра", affectedActorIds: targets.map(mover => mover.id), participantIds: [actor.id, ...targets.map(mover => mover.id)] } });
+    if (movedIds.length) events.push({ type: "technique.resolve", actorId: actor.id, payload: { ruleId: "disruptor.gale-strider.1", name: "Растущие ветра", affectedActorIds: movedIds, participantIds: [actor.id, ...targets.map(mover => mover.id)] } });
   }
   return { ok: true, errors: [], events };
 }
@@ -733,7 +733,7 @@ function preparePromptPlacement(scene, request = {}) {
   if (!prompt || !actor || !["marker-move-cell", "dim-mak-weak-point-cell", "empath-rush-cell", "reappear-cell", "knife-pickup-step", "meister-overclock-move", "egomaniac-style-move", "thunder-surge-cell", "siren-irresistible-cell", "untouchable-weave-cell", "constrictor-move-cell", "enemy-move-cell", "wave-rider-move-cell"].includes(prompt.kind)) errors.push("Сейчас нет выбора клетки для правила.");
   if (!space || !destination || !Number.isInteger(destination.x) || !Number.isInteger(destination.y) || destination.x < 0 || destination.y < 0 || destination.x >= Number(space?.width || 0) || destination.y >= Number(space?.height || 0)) errors.push("Выберите клетку в пределах поля.");
   if (space && destination && removedCellKeys(scene, space.id).has(cellKey(destination))) errors.push("Эта клетка удалена из поля.");
-  const movingActor = ["siren-irresistible-cell", "constrictor-move-cell"].includes(prompt?.kind) || prompt?.kind === "enemy-move-cell" && prompt.context?.moveTarget ? target : actor;
+  const movingActor = ["siren-irresistible-cell", "constrictor-move-cell", "wave-rider-move-cell"].includes(prompt?.kind) || prompt?.kind === "enemy-move-cell" && prompt.context?.moveTarget ? target : actor;
   if (prompt?.kind !== "marker-move-cell" && movingActor && !effectCellOccupancyStatus(scene, movingActor.id, { space: space?.id, x: destination?.x, y: destination?.y }).available) errors.push("Клетка занята.");
   if (prompt?.kind === "marker-move-cell") {
     if (!marker) errors.push("Духовное пламя больше не существует.");
@@ -804,11 +804,19 @@ function preparePromptPlacement(scene, request = {}) {
     enemyMovePath = unchanged ? [] : movementPath(scene, mover.id, destination, { maxDistance: maximum, forced: Boolean(prompt.context?.moveTarget) });
     if (!unchanged && !enemyMovePath.length) errors.push(`Выберите достижимую клетку в пределах ${maximum}.`);
   }
+  let wavePath = [];
   if (prompt?.kind === "wave-rider-move-cell") {
     const seal = prompt.context?.seal || { space: actor.space, x: actor.x, y: actor.y };
     const dx = Number(destination?.x) - Number(seal.x), dy = Number(destination?.y) - Number(seal.y);
+    const marker = markerById(scene, prompt.context?.markerId);
+    if (!target || target.knockedOut || !marker || marker.ownerActorId !== actor.id || marker.space !== target.space || Number(marker.x) !== Number(target.x) || Number(marker.y) !== Number(target.y)) errors.push("Цель или Печать волны больше недоступны.");
     if (distance({ ...seal, space: actor.space }, { ...destination, space: actor.space }) > 2) errors.push("Перемещение Печатью волны ограничено 2 клетками.");
     if (dx !== 0 && dy !== 0 && Math.abs(dx) !== Math.abs(dy)) errors.push("Перемещение Печатью волны идёт по прямой линии от Печати.");
+    if (target && destination && Number(target.x) === Number(destination.x) && Number(target.y) === Number(destination.y)) errors.push("Выберите другую клетку или отмените перемещение.");
+    if (target && destination) {
+      wavePath = movementPath(scene, target.id, destination, { maxDistance: 2, forced: true, straight: true });
+      if (!wavePath.length) errors.push("До выбранной клетки нельзя переместить персонажа по прямой.");
+    }
   }
   if (errors.length) return { ok: false, errors, events: [] };
   const events = [{ type: "rule.respond", actorId: actor.id, payload: { promptId: prompt.id, choice: "cell", destination: clone(destination), sourceActorId: actor.id, targetId: target?.id || null, participantIds: [actor.id, target?.id].filter(Boolean) } }];
@@ -841,11 +849,10 @@ function preparePromptPlacement(scene, request = {}) {
     events.push({ type: "actor.enter", actorId: actor.id, payload: { space: actor.space, x: destination.x, y: destination.y, movement: "Маятник" } });
     events.push({ type: "technique.resolve", actorId: actor.id, payload: { ruleId: "vagabond.untouchable.2", name: "Маятник", affectedActorIds: [actor.id], participantIds: [actor.id] } });
   } else if (prompt.kind === "wave-rider-move-cell") {
-    if (prompt.context?.markerId && !(scene.markers || []).some(item => item.id === prompt.context.markerId)) return { ok: false, errors: ["Печать волны уже убрана."], events: [] };
-    if (prompt.context?.markerId) events.push({ type: "marker.remove", actorId: actor.id, payload: { markerId: prompt.context.markerId, label: "Печать волны", sourceActionId: "disruptor.wave-rider.1", participantIds: [actor.id] } });
-    events.push({ type: "actor.move", actorId: actor.id, payload: { space: actor.space, x: destination.x, y: destination.y, movement: "Печать волны", participantIds: [actor.id] } });
-    events.push({ type: "actor.enter", actorId: actor.id, payload: { space: actor.space, x: destination.x, y: destination.y, movement: "Печать волны" } });
-    events.push({ type: "technique.resolve", actorId: actor.id, payload: { ruleId: "disruptor.wave-rider.1", name: "Мягкие волны", affectedActorIds: [actor.id], participantIds: [actor.id] } });
+    events.push({ type: "marker.remove", actorId: actor.id, payload: { markerId: prompt.context.markerId, label: "Печать волны", sourceActionId: "disruptor.wave-rider.1", participantIds: [actor.id, target.id] } });
+    events.push({ type: "actor.move", actorId: target.id, payload: { space: target.space, x: destination.x, y: destination.y, movement: "Печать волны", forced: true, path: wavePath.map(cellKey), participantIds: [actor.id, target.id] } });
+    events.push({ type: "actor.enter", actorId: target.id, payload: { space: target.space, x: destination.x, y: destination.y, movement: "Печать волны", forced: true } });
+    events.push({ type: "technique.resolve", actorId: actor.id, payload: { ruleId: "disruptor.wave-rider.1", name: "Мягкие волны", affectedActorIds: [target.id], participantIds: [actor.id, target.id] } });
   } else {
     const mover = prompt.kind === "enemy-move-cell" && prompt.context?.moveTarget ? target : actor, forced = Boolean(prompt.kind === "enemy-move-cell" && prompt.context?.moveTarget);
     events.push({ type: "actor.move", actorId: mover.id, payload: { space: mover.space, x: destination.x, y: destination.y, movement: prompt.kind === "thunder-surge-cell" ? "Телепортация · Скачок" : prompt.title, path: prompt.kind === "enemy-move-cell" ? enemyMovePath.map(cellKey) : undefined, placement: ["reappear-cell", "thunder-surge-cell"].includes(prompt.kind), forced, participantIds: [actor.id, target?.id].filter(Boolean) } });

@@ -33,17 +33,17 @@ const TRIGGER_RULES = [
     match: ({ scene, actor, payload }) => {
       const target = actorById(scene, payload.targetId), level = Number(actor?.techniques?.["disruptor.inner-world"] || 0);
       if (!actor || !target || actor.knockedOut || target.knockedOut || actor.id === target.id || level < 2 || !payload.applied || payload.ignoreInnerWorldTrigger || payload.effect === "positive.исчез") return false;
-      if (actor.space !== target.space || actor.space === (scene.spaces || []).find(space => /Внутренний мир/.test(space.name || ""))?.id) return false;
+      const insideInnerWorld = (scene.spaces || []).some(space => space.id === actor.space && (/^inner-world-/.test(space.id) || /Внутренний мир/.test(space.name || "")));
+      if (actor.space !== target.space || insideInnerWorld) return false;
       const maximum = level >= 3 ? Math.max(1, Number(actor.attrs?.spirit || 1)) : 1;
       return usageLimitStatus(scene, actor.id, { ruleId: "disruptor.inner-world.2", scope: "scene", maximum }).available;
     },
     build: ({ scene, event, actor, payload }) => {
       const level = Number(actor.techniques?.["disruptor.inner-world"] || 0), maximum = level >= 3 ? Math.max(1, Number(actor.attrs?.spirit || 1)) : 1;
-      const innerWorldId = (scene.spaces || []).find(space => /Внутренний мир/.test(space.name || ""))?.id;
-      const candidates = (scene.actors || []).filter(candidate => candidate.id !== actor.id && !candidate.knockedOut && candidate.space === actor.space && candidate.space !== innerWorldId && effectPresenceStatus(scene, candidate.id).onField);
-      if (!candidates.length) return [];
-      const options = ["invoke", "pass"], optionLabels = { invoke: "Выбрать участника", pass: "Не использовать" };
-      return [{ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${event.id}-inner-world`, kind: "inner-world-offer", sourceActorId: actor.id, title: "Домен контроля", text: `После наложения Эффекта можно выбрать персонажа для телепортации во Внутренний мир. Осталось применений за Сцену: ${usageLimitStatus(scene, actor.id, { ruleId: "disruptor.inner-world.2", scope: "scene", maximum }).remaining}.`, options, context: { ruleId: "disruptor.inner-world.2", effectEventId: event.id, optionLabels, candidateIds: candidates.map(candidate => candidate.id) }, participantIds: [actor.id, ...candidates.map(candidate => candidate.id)] } }];
+      const target = actorById(scene, payload.targetId);
+      if (!target) return [];
+      const options = ["invoke", "pass"], optionLabels = { invoke: `Телепортировать ${target.name}`, pass: "Не использовать" };
+      return [{ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${event.id}-inner-world`, kind: "inner-world-offer", sourceActorId: actor.id, targetId: target.id, title: "Домен контроля", text: `Телепортировать ${target.name} и себя во Внутренний мир? Осталось применений за Сцену: ${usageLimitStatus(scene, actor.id, { ruleId: "disruptor.inner-world.2", scope: "scene", maximum }).remaining}.`, options, context: { ruleId: "disruptor.inner-world.2", effectEventId: event.id, targetId: target.id, optionLabels }, participantIds: [actor.id, target.id] } }];
     },
   },
   {
@@ -203,8 +203,11 @@ const TRIGGER_RULES = [
     },
     build: ({ scene, event, actor }) => {
       const seal = (scene.markers || []).find(marker => /disruptor\.wave-rider\.1/.test(`${marker.ruleId || ""} ${marker.source || ""}`) && marker.space === actor.space && Number(marker.x) === Number(actor.x) && Number(marker.y) === Number(actor.y));
-      if (!seal) return [];
-      return [{ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${event.id}-wave-seal`, kind: "wave-rider-seal", sourceActorId: actor.id, targetId: actor.id, markerId: seal.id, title: "Печать волны", text: `${actor.name} ${event.type === "turn.start" ? "начинает Ход" : "входит"} в клетку с Печатью волны: убрать её, чтобы наложить Подброшен или переместиться до 2 клеток по линии?`, options: ["knockdown", "move", "pass"], context: { markerId: seal.id, space: seal.space, x: seal.x, y: seal.y }, participantIds: [actor.id] } }];
+      const owner = actorById(scene, seal?.ownerActorId);
+      if (!seal || !owner || owner.knockedOut) return [];
+      const context = { markerId: seal.id, space: seal.space, x: seal.x, y: seal.y, ownerActorId: owner.id, entrantActorId: actor.id };
+      if (actor.id !== owner.id && actor.team === owner.team) return [{ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${event.id}-wave-consent`, kind: "wave-rider-consent", sourceActorId: actor.id, targetId: owner.id, markerId: seal.id, title: "Печать волны · согласие", text: `${owner.name} может использовать Печать волны на ${actor.name}. Согласиться?`, options: ["consent", "pass"], context, participantIds: [owner.id, actor.id] } }];
+      return [{ type: "rule.prompt", actorId: owner.id, payload: { id: `prompt-${event.id}-wave-seal`, kind: "wave-rider-seal", sourceActorId: owner.id, targetId: actor.id, markerId: seal.id, title: "Печать волны", text: `${actor.name} ${event.type === "turn.start" ? "начинает Ход" : "входит"} в клетку с Печатью волны: убрать её, чтобы наложить Подброшен или переместить персонажа до 2 клеток по линии?`, options: ["knockdown", "move", "pass"], context, participantIds: [owner.id, actor.id] } }];
     },
   },
   {
@@ -226,7 +229,7 @@ const TRIGGER_RULES = [
       const innerSpace = (scene.spaces || []).find(space => space.id === eventSpaceId && /Внутренний мир/.test(space.name || ""));
       const mainSpace = (scene.spaces || []).find(space => space.id === innerSpace.returnSpaceId) || (scene.spaces || []).find(space => space.id !== innerSpace?.id && !/^inner-world-/.test(space.id));
       if (!innerSpace || !mainSpace) return [];
-      const caster = actorById(scene, innerSpace.id.replace(/^inner-world-/, "")) || (scene.actors || []).find(candidate => !candidate.knockedOut && Number(candidate.techniques?.["disruptor.inner-world"] || 0) >= 2 && candidate.space === innerSpace.id);
+      const caster = actorById(scene, innerSpace.ownerActorId) || actorById(scene, innerSpace.id.replace(/^inner-world-/, "")) || (scene.actors || []).find(candidate => !candidate.knockedOut && Number(candidate.techniques?.["disruptor.inner-world"] || 0) >= 2 && candidate.space === innerSpace.id);
       const knockedOutId = event.type === "actor.knockout" ? payload.targetId : null;
       const leaving = (scene.actors || []).filter(actor => actor.space === innerSpace.id && !actor.knockedOut && actor.id !== knockedOutId);
       if (!leaving.length) return [];
@@ -235,7 +238,8 @@ const TRIGGER_RULES = [
         if (x === 0 || y === 0 || x === Number(mainSpace.width) - 1 || y === Number(mainSpace.height) - 1) edgeCells.push({ x, y });
       }
       const occupied = new Set((scene.actors || []).filter(item => item.space === mainSpace.id && !item.knockedOut).map(item => cellKey(item)));
-      const freeEdges = edgeCells.filter(cell => !occupied.has(cellKey(cell)) && !(scene.objects || []).some(object => object.space === mainSpace.id && object.type === "terrain" && (object.cells || []).includes(cellKey(cell))));
+      const removed = removedCellKeys(scene, mainSpace.id);
+      const freeEdges = edgeCells.filter(cell => !removed.has(cellKey(cell)) && !occupied.has(cellKey(cell)) && !(scene.objects || []).some(object => object.space === mainSpace.id && object.type === "terrain" && (object.cells || []).includes(cellKey(cell))));
       if (freeEdges.length < leaving.length) return [];
       const participants = leaving.map(item => item.id), events = [{ type: "space.ensure", actorId: caster?.id || leaving[0].id, payload: { id: mainSpace.id, name: mainSpace.name, width: Number(mainSpace.width), height: Number(mainSpace.height), activate: true, innerWorldExit: true, sourceActionId: "disruptor.inner-world.2", participantIds: participants } }];
       for (let index = 0; index < leaving.length; index += 1) {
@@ -254,18 +258,21 @@ const TRIGGER_RULES = [
     priority: 65,
     match: ({ scene, actor }) => {
       if (!actor || actor.knockedOut || scene.pendingPrompt || scene.pendingAction) return false;
-      const caster = (scene.actors || []).find(candidate => !candidate.knockedOut && Number(candidate.techniques?.["disruptor.gale-strider"] || 0) >= 1 && candidate.space === actor.space);
-      if (!caster) return false;
-      const typhoon = (scene.objects || []).find(object => object.space === actor.space && object.type === "danger" && object.ownerActorId === caster.id && /Тайфун|gale-strider|Растущие ветра/.test(`${object.label || ""} ${object.ruleId || object.source || ""}`) && (object.cells || []).includes(`${actor.x},${actor.y}`));
+      const typhoon = (scene.objects || []).find(object => {
+        const owner = actorById(scene, object.ownerActorId);
+        return object.space === actor.space && object.type === "danger" && owner && !owner.knockedOut && Number(owner.techniques?.["disruptor.gale-strider"] || 0) >= 1 && /Тайфун|gale-strider|Растущие ветра/.test(`${object.label || ""} ${object.ruleId || object.source || ""}`) && (object.cells || []).includes(`${actor.x},${actor.y}`);
+      });
       return Boolean(typhoon);
     },
     build: ({ scene, event, actor }) => {
-      const caster = (scene.actors || []).find(candidate => !candidate.knockedOut && Number(candidate.techniques?.["disruptor.gale-strider"] || 0) >= 1 && candidate.space === actor.space);
-      const typhoon = (scene.objects || []).find(object => object.space === actor.space && object.type === "danger" && object.ownerActorId === caster?.id && /Тайфун|gale-strider|Растущие ветра/.test(`${object.label || ""} ${object.ruleId || object.source || ""}`) && (object.cells || []).includes(`${actor.x},${actor.y}`));
+      const typhoon = (scene.objects || []).find(object => {
+        const owner = actorById(scene, object.ownerActorId);
+        return object.space === actor.space && object.type === "danger" && owner && !owner.knockedOut && Number(owner.techniques?.["disruptor.gale-strider"] || 0) >= 1 && /Тайфун|gale-strider|Растущие ветра/.test(`${object.label || ""} ${object.ruleId || object.source || ""}`) && (object.cells || []).includes(`${actor.x},${actor.y}`);
+      });
+      const caster = actorById(scene, typhoon?.ownerActorId);
       if (!caster || !typhoon) return [];
       const targets = (scene.actors || []).filter(target => !target.knockedOut && target.space === actor.space && (typhoon.cells || []).includes(`${target.x},${target.y}`));
-      const others = targets.filter(target => target.id !== caster.id);
-      if (!others.length) return [];
+      if (!targets.length) return [];
       const directions = ["north", "east", "south", "west", "north-east", "south-east", "south-west", "north-west"];
       return [{ type: "rule.prompt", actorId: caster.id, payload: { id: `prompt-${event.id}-gale-shift`, kind: "gale-strider-shift", sourceActorId: caster.id, title: "Растущие ветра", text: `${actor.name} завершил Ход в Тайфуне: переместить всех персонажей в Тайфуне на 1 клетку в одном направлении?`, options: [...directions, "pass"], context: { targetIds: targets.map(target => target.id), space: actor.space }, participantIds: [caster.id, ...targets.map(target => target.id)] } }];
     },
@@ -942,10 +949,10 @@ function dispatchMany(scene, events, options = {}) {
     const prompt = next.pendingPrompt, destination = event?.payload?.destination;
     if (event?.type === "rule.prompt") {
       const payload = event.payload || {};
-      const participantIds = [event.actorId, payload.sourceActorId, payload.targetId, ...(payload.targetIds || []), ...(payload.participantIds || [])].filter(Boolean);
-      if (participantIds.some(id => invalidatedActorIds.has(id) || actorById(next, id)?.knockedOut)) continue;
+      const requiredActorIds = [event.actorId, payload.sourceActorId, payload.targetId].filter(Boolean);
+      if (requiredActorIds.some(id => invalidatedActorIds.has(id) || actorById(next, id)?.knockedOut)) continue;
     }
-    const placementActorId = ["siren-irresistible-cell", "constrictor-move-cell"].includes(prompt?.kind) || prompt?.kind === "enemy-move-cell" && prompt.context?.moveTarget ? prompt.targetId : prompt?.sourceActorId;
+    const placementActorId = ["siren-irresistible-cell", "constrictor-move-cell", "wave-rider-move-cell"].includes(prompt?.kind) || prompt?.kind === "enemy-move-cell" && prompt.context?.moveTarget ? prompt.targetId : prompt?.sourceActorId;
     const stationarySiren = prompt?.kind === "siren-irresistible-cell" && actorById(next, prompt.targetId)?.x === Number(destination?.x) && actorById(next, prompt.targetId)?.y === Number(destination?.y);
     const placementResponse = event?.type === "rule.respond" && event.payload?.choice === "cell" && destination && (
       prompt?.kind === "marker-move-cell"
@@ -971,9 +978,9 @@ function dispatchMany(scene, events, options = {}) {
     for (let index = queue.length - 1; index >= 0; index -= 1) {
       const candidate = queue[index], candidatePayload = candidate?.payload || {};
       if (candidate?.type !== "rule.prompt") continue;
-      const participantIds = [candidate.actorId, candidatePayload.sourceActorId, candidatePayload.targetId, ...(candidatePayload.targetIds || []), ...(candidatePayload.participantIds || [])].filter(Boolean);
-      const queuedKnockout = queue.some(followUp => followUp?.type === "actor.knockout" && followUp.payload?.applied !== false && participantIds.includes(followUp.payload?.targetId));
-      if (queuedKnockout || participantIds.some(id => invalidatedActorIds.has(id) || actorById(next, id)?.knockedOut)) queue.splice(index, 1);
+      const requiredActorIds = [candidate.actorId, candidatePayload.sourceActorId, candidatePayload.targetId].filter(Boolean);
+      const queuedKnockout = queue.some(followUp => followUp?.type === "actor.knockout" && followUp.payload?.applied !== false && requiredActorIds.includes(followUp.payload?.targetId));
+      if (queuedKnockout || requiredActorIds.some(id => invalidatedActorIds.has(id) || actorById(next, id)?.knockedOut)) queue.splice(index, 1);
     }
     if (result.duplicate) duplicates.push(result.event);
     else {
@@ -991,13 +998,13 @@ function dispatchMany(scene, events, options = {}) {
   const unavailable = new Set((next.actors || []).filter(actor => actor.knockedOut).map(actor => actor.id));
   if (next.pendingPrompt) {
     const prompt = next.pendingPrompt;
-    const participantIds = [prompt.actorId, prompt.sourceActorId, prompt.targetId, ...(prompt.targetIds || []), ...(prompt.participantIds || [])].filter(Boolean);
-    if (participantIds.some(id => unavailable.has(id))) next.pendingPrompt = null;
+    const requiredActorIds = [prompt.actorId, prompt.sourceActorId, prompt.targetId].filter(Boolean);
+    if (requiredActorIds.some(id => unavailable.has(id))) next.pendingPrompt = null;
   }
   next.triggerQueue = (next.triggerQueue || []).filter(item => {
     const payload = item.event?.payload || {};
-    const participantIds = [item.event?.actorId, payload.sourceActorId, payload.targetId, ...(payload.targetIds || []), ...(payload.participantIds || [])].filter(Boolean);
-    return !participantIds.some(id => unavailable.has(id));
+    const requiredActorIds = [item.event?.actorId, payload.sourceActorId, payload.targetId].filter(Boolean);
+    return !requiredActorIds.some(id => unavailable.has(id));
   });
   return { scene: next, events: committed, duplicates };
 }
