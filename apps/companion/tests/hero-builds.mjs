@@ -177,7 +177,9 @@ assert.equal(tooManyCellTargets.ok, false);
 assert.match(tooManyCellTargets.errors.join(" "), /не больше 2/);
 
 const neelBuild = { "altruist.alchemist": 2, "ruiner.spellcrafter": 3, "ruiner.cryomancer": 2 };
-assert.ok(coverageFor(neelBuild).every(level => !["manual", "partial"].includes(level.automation)), "Neel's Tier 2 Cryomancer build has no manual or partial level");
+const neelCoverage = coverageFor(neelBuild);
+assert.equal(neelCoverage.length, 7, "Neel's build exposes every selected technique level to the coverage UI");
+assert.equal(neelCoverage.find(level => level.id === "altruist.alchemist.2")?.automation, "partial", "The audited optional enemy-potion branch remains visibly partial rather than being masked by this fixture");
 const cryomancerScene = sceneWith(actor({
   techniques: neelBuild,
   attrs: { body: 2, talent: 2, spirit: 3, mind: 4 },

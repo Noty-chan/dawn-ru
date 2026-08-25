@@ -307,7 +307,7 @@ SHA-256 проверенных файлов: `b9ab51ceb86ee102cd6ddb503572811679
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
 | 1 | Метнуть (Throw) | проверено | частичная | `target-validation`, `event-participants`, `spatial-range`, `resource-check`, `alternate-resource`, `trigger-router`, `choice-flow`, `action-modifier` |
-| 2 | Пополнение (Resupply) | проверено | с выбором | `target-validation`, `event-participants`, `movement-lifecycle`, `resource-check`, `alternate-resource`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `action-modifier`, `dice-hooks` |
+| 2 | Пополнение (Resupply) | проверено | частичная | `target-validation`, `event-participants`, `movement-lifecycle`, `resource-check`, `alternate-resource`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `action-modifier`, `dice-hooks` |
 | 3 | Преследователь (Chaser) | проверено | с выбором | `target-validation`, `event-participants`, `spatial-range`, `resource-check`, `alternate-resource`, `owned-entities`, `entity-lifecycle`, `movement-lifecycle`, `trigger-router`, `reaction-window`, `action-modifier` |
 
 ### Злобный подражатель (`vagabond.malicious-mimic`)
@@ -567,7 +567,7 @@ SHA-256 проверенных файлов: `b9ab51ceb86ee102cd6ddb503572811679
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
 | 1 | Быстрая смесь (Quick Mix) | проверено | полная | `target-validation`, `event-participants`, `spatial-range`, `effect-state`, `effect-lifecycle`, `inventory`, `trigger-router`, `choice-flow`, `action-modifier` |
-| 2 | Мощная смесь (Powerful Mix) | проверено | полная | `target-validation`, `event-participants`, `resource-check`, `inventory`, `trigger-router`, `choice-flow`, `damage-pipeline` |
+| 2 | Мощная смесь (Powerful Mix) | проверено | частичная | `target-validation`, `event-participants`, `resource-check`, `inventory`, `trigger-router`, `choice-flow`, `damage-pipeline` |
 | 3 | Высокоинтенсивная смесь (High Intensity Mix) | проверено | частичная | `resource-check`, `inventory`, `trigger-router`, `choice-flow`, `action-modifier`, `dice-hooks` |
 
 ### Хрономант (`altruist.chronomancer`)
@@ -657,7 +657,7 @@ SHA-256 проверенных файлов: `b9ab51ceb86ee102cd6ddb503572811679
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
 | 1 | Сублимация (Sublimation) | проверено | полная | `target-validation`, `event-participants`, `spatial-cells`, `effect-state`, `effect-lifecycle`, `terrain`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `turn-lifecycle`, `duration-scheduler`, `damage-pipeline`, `action-modifier`, `derived-stats` |
-| 2 | Экспериментальная смесь (Experimental Mixture) | проверено | полная | `target-validation`, `event-participants`, `resource-check`, `effect-state`, `effect-lifecycle`, `trigger-router`, `choice-flow`, `damage-pipeline`, `information-query` |
+| 2 | Экспериментальная смесь (Experimental Mixture) | проверено | частичная | `target-validation`, `event-participants`, `resource-check`, `effect-state`, `effect-lifecycle`, `trigger-router`, `choice-flow`, `damage-pipeline`, `information-query` |
 | 3 | Осаждение (Deposition) | проверено | полная | `target-validation`, `event-participants`, `spatial-cells`, `effect-state`, `effect-lifecycle`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `damage-pipeline` |
 
 ### Душитель (`disruptor.constrictor`)
@@ -923,14 +923,14 @@ SHA-256 проверенных файлов: `b9ab51ceb86ee102cd6ddb503572811679
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
 | 1 | Я - твой меч (I Am Your Sword) | проверено | частичная | `target-validation`, `event-participants`, `movement-lifecycle`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier`, `deployment-hooks`, `transformation` |
-| 2 | Покажи свои цели (Show Your Targets) | проверено | с выбором | `target-validation`, `event-participants`, `resource-check`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `turn-lifecycle`, `damage-pipeline`, `action-modifier`, `action-history`, `derived-stats` |
+| 2 | Покажи свои цели (Show Your Targets) | проверено | ручная | `target-validation`, `event-participants`, `resource-check`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `turn-lifecycle`, `damage-pipeline`, `action-modifier`, `action-history`, `derived-stats` |
 | 3 | И я стану незаменимым (And I'll Become Irreplaceable) | проверено | частичная | `target-validation`, `event-participants`, `resource-check`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `choice-flow`, `action-modifier`, `dice-hooks`, `derived-stats` |
 
 ### Зов наемника (`ruiner.sellsword-s-call`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Реприза воина (A Warrior's Reprise) | проверено | с выбором | `target-validation`, `event-participants`, `spatial-cells`, `resource-check`, `owned-entities`, `entity-lifecycle`, `summon-turns`, `usage-limits`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier` |
+| 1 | Реприза воина (A Warrior's Reprise) | проверено | частичная | `target-validation`, `event-participants`, `spatial-cells`, `resource-check`, `owned-entities`, `entity-lifecycle`, `summon-turns`, `usage-limits`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier` |
 | 2 | Боевой гимн (Battle Hymn) | проверено | частичная | `resource-check`, `movement-lifecycle`, `effect-state`, `effect-lifecycle`, `owned-entities`, `entity-lifecycle`, `summon-turns`, `trigger-router`, `choice-flow`, `action-modifier` |
 | 3 | Верховный наемник (Supreme Sellsword) | проверено | частичная | `target-validation`, `event-participants`, `spatial-cells`, `resource-check`, `owned-entities`, `entity-lifecycle`, `summon-turns`, `usage-limits`, `trigger-router`, `scene-lifecycle`, `choice-flow`, `action-modifier`, `bond-actions`, `deployment-hooks` |
 

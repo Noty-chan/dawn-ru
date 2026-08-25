@@ -42,6 +42,15 @@ assert.deepEqual(
 );
 assert.equal(coverage.length, 321, "every Technique level must have an automation status");
 assert.ok(coverage.every(entry => ["full", "partial", "decision", "manual"].includes(entry.automation)));
+for (const [id, automation] of [
+  ["vagabond.knife-juggler.2", "partial"],
+  ["altruist.alchemist.2", "partial"],
+  ["disruptor.chemist.2", "partial"],
+  ["ruiner.ego-arm.2", "manual"],
+  ["ruiner.sellsword-s-call.1", "partial"],
+]) {
+  assert.equal(coverage.find(entry => entry.id === id)?.automation, automation, `${id} remains honestly downgraded until its missing canonical branch is implemented and evidenced`);
+}
 assert.ok(coverage.filter(entry => entry.automation !== "manual").length >= 290, "semantic mechanics index assists most canonical levels");
 assert.ok(coverage.some(entry => entry.mechanics?.areas?.length));
 assert.ok(coverage.some(entry => entry.mechanics?.clocks?.length));
