@@ -1657,9 +1657,7 @@ paladinScene.actors[1].profileId = "enemy.common.paladin";
 paladinScene.actors[1].name = "Паладин";
 paladinScene.actors.push({ ...structuredClone(paladinScene.actors[1]), id: "enemy-ally", name: "Союзник Паладина", x: 2, y: 2 });
 const gift = Engine.availableEnemyRules(paladinScene, data, "enemy").find(rule => rule.en === "Gift From God");
-assert.equal(gift.automation, "attack");
-assert.equal(gift.maxTargets, 2);
-assert.equal(Engine.prepareEnemyRule(paladinScene, data, { actorId: "enemy", ruleId: gift.id, targetIds: ["hero", "enemy-ally"], roll: { formula: "5D6", rolls: [6, 4, 2, 1, 1], successes: 2, crits: 1 } }).ok, true, "Mixed ally/enemy actions honor the two textual targets in the shared Attack pipeline");
+assert.equal(gift.automation, "assisted", "Gift From God stays assisted: its old mixed-target adapter added non-canonical healing to allies");
 
 const daredevilScene = structuredClone(enemyScene);
 daredevilScene.actors[1].profileId = "enemy.common.daredevil";
@@ -2519,7 +2517,7 @@ assert.equal(ritualDrawings.requiresTarget, false, "Ritual Drawings selects empt
 assert.equal(ritualDrawings.maxTargets, 0);
 const declaredAttacks = enemyProfiles.flatMap(profile => (profile.rules || []).filter(rule => rule.kind === "attack").map(rule => ({ profile, rule })));
 assert.ok(declaredAttacks.length >= 40, "The enemy catalogue exposes the complete common Attack set");
-assert.deepEqual(declaredAttacks.filter(({ rule }) => Engine.enemyRuleAutomation(rule.id) === "assisted").map(({ rule }) => rule.id), ["enemy.common.bruiser.attack.skulduggery", "enemy.common.bodyguards.attack.behind-me", "enemy.common.oni.attack.polaris", "enemy.common.builder.attack.violent-construction", "enemy.common.coordinator.attack.fanaticize", "enemy.common.swarm.attack.tear"], "Audited attacks with absent canonical movement or follow-up branches stay assisted");
+assert.deepEqual(declaredAttacks.filter(({ rule }) => Engine.enemyRuleAutomation(rule.id) === "assisted").map(({ rule }) => rule.id), ["enemy.common.bruiser.attack.skulduggery", "enemy.common.bodyguards.attack.behind-me", "enemy.common.oni.attack.polaris", "enemy.common.paladin.attack.gift-from-god", "enemy.common.builder.attack.violent-construction", "enemy.common.coordinator.attack.fanaticize", "enemy.common.swarm.attack.tear"], "Audited attacks with absent or extra canonical branches stay assisted");
 for (const profileId of ["enemy.common.assassin", "enemy.common.pugilist", "enemy.common.guardian", "enemy.common.berserker", "enemy.common.ranger"]) {
   const profile = enemyProfiles.find(item => item.id === profileId);
   assert.ok(profile, `${profileId} exists in the canonical enemy catalogue`);

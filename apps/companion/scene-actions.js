@@ -34,7 +34,6 @@ const ENEMY_AUTO_ATTACK_RULES = new Map([
   ["enemy.common.slime.attack.goop", 1],
   ["enemy.common.glutton.attack.slobber", 1],
   ["enemy.common.mount.attack.thrash", 1],
-  ["enemy.common.paladin.attack.gift-from-god", 1],
   ["enemy.common.daredevil.attack.dance", 1],
   ["enemy.common.guardian.attack.shove", 1],
   ["enemy.common.berserker.attack.thrash", 1],
