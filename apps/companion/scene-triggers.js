@@ -274,7 +274,7 @@ const TRIGGER_RULES = [
       const targets = (scene.actors || []).filter(target => !target.knockedOut && target.space === actor.space && (typhoon.cells || []).includes(`${target.x},${target.y}`));
       if (!targets.length) return [];
       const directions = ["north", "east", "south", "west", "north-east", "south-east", "south-west", "north-west"];
-      return [{ type: "rule.prompt", actorId: caster.id, payload: { id: `prompt-${event.id}-gale-shift`, kind: "gale-strider-shift", sourceActorId: caster.id, title: "Растущие ветра", text: `${actor.name} завершил Ход в Тайфуне: переместить всех персонажей в Тайфуне на 1 клетку в одном направлении?`, options: [...directions, "pass"], context: { targetIds: targets.map(target => target.id), space: actor.space }, participantIds: [caster.id, ...targets.map(target => target.id)] } }];
+      return [{ type: "rule.prompt", actorId: caster.id, payload: { id: `prompt-${event.id}-gale-shift-${typhoon.id}`, kind: "gale-strider-shift", sourceActorId: caster.id, title: "Растущие ветра", text: `${actor.name} завершил Ход в Тайфуне ${caster.name}: переместить всех персонажей в нём на 1 клетку в одном направлении?`, options: [...directions, "pass"], context: { typhoonId: typhoon.id, targetIds: targets.map(target => target.id), space: actor.space }, participantIds: [caster.id, ...targets.map(target => target.id)] } }];
     },
   },
 ].map(defineTriggerRule);

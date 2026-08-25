@@ -709,7 +709,9 @@ function respondRulePrompt(scene, data, request = {}) {
   if (prompt.kind === "gale-strider-shift" && choice !== "pass") {
     const vectors = { north: [0, -1], east: [1, 0], south: [0, 1], west: [-1, 0], "north-east": [1, -1], "south-east": [1, 1], "south-west": [-1, 1], "north-west": [-1, -1] }, [dx, dy] = vectors[choice] || [0, 0];
     const space = (scene.spaces || []).find(item => item.id === prompt.context?.space), spaceId = prompt.context?.space;
-    const targets = (scene.actors || []).filter(target => !target.knockedOut && (prompt.context?.targetIds || []).includes(target.id) && target.space === spaceId).sort((left, right) => Number(right.x) * dx + Number(right.y) * dy - (Number(left.x) * dx + Number(left.y) * dy));
+    const typhoon = (scene.objects || []).find(object => object.id === prompt.context?.typhoonId && object.ownerActorId === actor.id && object.space === spaceId && object.type === "danger" && /Тайфун|gale-strider|Растущие ветра/.test(`${object.label || ""} ${object.ruleId || object.source || ""}`));
+    if (!typhoon) return { ok: false, errors: ["Тайфун больше не существует или сменил владельца."], events: [] };
+    const targets = (scene.actors || []).filter(target => !target.knockedOut && (prompt.context?.targetIds || []).includes(target.id) && target.space === spaceId && (typhoon.cells || []).includes(`${target.x},${target.y}`)).sort((left, right) => Number(right.x) * dx + Number(right.y) * dy - (Number(left.x) * dx + Number(left.y) * dy));
     const workingScene = clone(scene), movedIds = [];
     for (const original of targets) {
       const mover = actorById(workingScene, original.id);
