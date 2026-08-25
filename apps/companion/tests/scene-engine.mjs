@@ -2834,6 +2834,13 @@ woundedOwnerScene.actors.find(actor => actor.id === "hero").hp = 1;
 const woundedOwner = Engine.dispatchMany(woundedOwnerScene, [{ type: "damage.apply", actorId: "enemy", payload: { targetId: "hero", amount: 1, ignoreArmor: true } }]).scene;
 assert.equal(woundedOwner.actors.find(actor => actor.id === "hero").space, "origin-a", "A Wound dealt to the owner by a participant inside the domain evacuates its survivors");
 
+const blockedEdgeDomain = structuredClone(multiDomainScene);
+blockedEdgeDomain.spaces.find(space => space.id === "origin-a").width = 3;
+blockedEdgeDomain.spaces.find(space => space.id === "origin-a").height = 3;
+blockedEdgeDomain.topology = { cuts: [{ id: "sealed-edge", space: "origin-a", cells: ["0,0", "1,0", "2,0", "0,1", "2,1", "0,2", "1,2", "2,2"] }] };
+const blockedEdgeExit = Engine.dispatchMany(blockedEdgeDomain, [{ type: "actor.knockout", actorId: "hero", payload: { targetId: "enemy", sourceActionId: "finish" } }]).scene;
+assert.deepEqual([blockedEdgeExit.actors.find(actor => actor.id === "hero").space, blockedEdgeExit.actors.find(actor => actor.id === "hero").x, blockedEdgeExit.actors.find(actor => actor.id === "hero").y], ["origin-a", 1, 1], "Inner World evacuation falls back to a safe interior cell when every edge cell is unavailable");
+
 const homeTurfScene = structuredClone(scene);
 homeTurfScene.actors[0].techniques = { "disruptor.inner-world": 3 };
 homeTurfScene.actors[0].tier = 3;

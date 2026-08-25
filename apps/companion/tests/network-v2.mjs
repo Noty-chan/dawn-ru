@@ -112,6 +112,8 @@ const cellSkirmishIntent=Network.intentFromEvents(baseScene,cellSkirmishPreview.
 assert.deepEqual(Array.from(cellSkirmishIntent.targetCells),["0,1"]);
 const canonicalCellSkirmish=Network.materializeIntent(baseScene,data,cellSkirmishIntent,"player-1",{sceneEngine:Engine});
 assert.deepEqual(Array.from(canonicalCellSkirmish.find(event=>event.type==="attack.pending").payload.targetCells),["0,1"],"empty-cell targets survive authoritative network recomputation");
+const malformedCellIntent=Network.intentFromEvents(baseScene,[{type:"action.prepare",actorId:"hero",payload:{actionId:actionNamed("Стычка").id,targetIds:[],targetCells:["00,1","0,1","0,1"]}}],"Неканоническая клетка");
+assert.deepEqual(Array.from(malformedCellIntent.targetCells),["0,1"],"network intents discard non-canonical and duplicate cell keys");
 
 const stepPreview=Engine.prepareAction(baseScene,data,{actorId:"hero",actionId:actionNamed("Шаг").id,targetIds:[],destination:{x:0,y:1}});
 assert.equal(stepPreview.ok,true);

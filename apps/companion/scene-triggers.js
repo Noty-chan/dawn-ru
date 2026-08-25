@@ -233,17 +233,17 @@ const TRIGGER_RULES = [
       const knockedOutId = event.type === "actor.knockout" ? payload.targetId : null;
       const leaving = (scene.actors || []).filter(actor => actor.space === innerSpace.id && !actor.knockedOut && actor.id !== knockedOutId);
       if (!leaving.length) return [];
-      const edgeCells = [];
+      const edgeCells = [], innerCells = [];
       for (let y = 0; y < Number(mainSpace.height || 0); y += 1) for (let x = 0; x < Number(mainSpace.width || 0); x += 1) {
-        if (x === 0 || y === 0 || x === Number(mainSpace.width) - 1 || y === Number(mainSpace.height) - 1) edgeCells.push({ x, y });
+        (x === 0 || y === 0 || x === Number(mainSpace.width) - 1 || y === Number(mainSpace.height) - 1 ? edgeCells : innerCells).push({ x, y });
       }
       const occupied = new Set((scene.actors || []).filter(item => item.space === mainSpace.id && !item.knockedOut).map(item => cellKey(item)));
       const removed = removedCellKeys(scene, mainSpace.id);
-      const freeEdges = edgeCells.filter(cell => !removed.has(cellKey(cell)) && !occupied.has(cellKey(cell)) && !(scene.objects || []).some(object => object.space === mainSpace.id && object.type === "terrain" && (object.cells || []).includes(cellKey(cell))));
-      if (freeEdges.length < leaving.length) return [];
+      const availableReturnCells = [...edgeCells, ...innerCells].filter(cell => !removed.has(cellKey(cell)) && !occupied.has(cellKey(cell)) && !(scene.objects || []).some(object => object.space === mainSpace.id && object.type === "terrain" && (object.cells || []).includes(cellKey(cell))));
+      if (availableReturnCells.length < leaving.length) return [];
       const participants = leaving.map(item => item.id), events = [{ type: "space.ensure", actorId: caster?.id || leaving[0].id, payload: { id: mainSpace.id, name: mainSpace.name, width: Number(mainSpace.width), height: Number(mainSpace.height), activate: true, innerWorldExit: true, sourceActionId: "disruptor.inner-world.2", participantIds: participants } }];
       for (let index = 0; index < leaving.length; index += 1) {
-        const mover = leaving[index], spot = freeEdges[index];
+        const mover = leaving[index], spot = availableReturnCells[index];
         events.push({ type: "actor.move", actorId: mover.id, payload: { space: mainSpace.id, x: spot.x, y: spot.y, movement: "Домен контроля · выход", teleport: true, placement: true, innerWorldExit: true, sourceActionId: "disruptor.inner-world.2", returnSpaceId: mainSpace.id, participantIds: participants } });
         events.push({ type: "actor.enter", actorId: mover.id, payload: { space: mainSpace.id, x: spot.x, y: spot.y, movement: "Домен контроля · выход", teleport: true, placement: true, innerWorldExit: true, sourceActionId: "disruptor.inner-world.2", returnSpaceId: mainSpace.id } });
         occupied.add(cellKey(spot));

@@ -21,7 +21,7 @@
   };
   const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
   const safeIds=value=>Array.isArray(value)?value.filter(id=>typeof id==="string").slice(0,40):[];
-  const safeCells=value=>Array.isArray(value)?[...new Set(value.filter(cell=>typeof cell==="string"&&/^\d+,\d+$/.test(cell)))].slice(0,40):[];
+  const safeCells=value=>Array.isArray(value)?[...new Set(value.filter(cell=>typeof cell==="string"&&/^(?:0|[1-9]\d*),(?:0|[1-9]\d*)$/.test(cell)))].slice(0,40):[];
   const safeObject=value=>value&&typeof value==="object"&&!Array.isArray(value)?clone(value):{};
   let confirmedScene=null;
 

@@ -330,7 +330,8 @@ function prepareAction(scene, data, request = {}) {
   if (errors.length) return { ok: false, errors, events: [] };
 
   let targetIds = request.startRage ? [] : [...new Set(request.targetIds || [])];
-  let targetCells = [...new Set(request.targetCells || [])].filter(cell => typeof cell === "string");
+  const requestedTargetCells = Array.isArray(request.targetCells) ? request.targetCells : [];
+  let targetCells = [...new Set(requestedTargetCells)].filter(cell => typeof cell === "string");
   let targets = targetIds.map(id => actorById(scene, id)).filter(Boolean);
   const attack = candidate => actionIsAny(candidate, ["skirmish", "spell", "finish"]);
   const attackModifiers = attack(declaredAction) ? attackModifierStatus(scene, actor.id, targetIds, request.attackModifierIds || [], { actionId: declaredAction.id, origin: request.armamentMode === "blade" ? request.armamentDestination : null }) : { available: !(request.attackModifierIds || []).length, reason: "Модификаторы Атаки применимы только к Атакам.", selectedIds: [], advantage: 0, actionTransform: null };
@@ -500,10 +501,11 @@ function prepareAction(scene, data, request = {}) {
       }
     }
     const space = (scene.spaces || []).find(item => item.id === actor.space), targetCellPoints = targetCells.map(cell => { const [x, y] = cell.split(",").map(Number); return { cell, space: actor.space, x, y }; });
-    const invalidTargetCell = targetCellPoints.find(point => !space || !/^\d+,\d+$/.test(point.cell) || !Number.isInteger(point.x) || !Number.isInteger(point.y) || point.x < 0 || point.y < 0 || point.x >= Number(space.width) || point.y >= Number(space.height) || removedCellKeys(scene, actor.space).has(point.cell));
+    const invalidTargetCell = targetCellPoints.find(point => !space || !/^(?:0|[1-9]\d*),(?:0|[1-9]\d*)$/.test(point.cell) || !Number.isInteger(point.x) || !Number.isInteger(point.y) || point.x < 0 || point.y < 0 || point.x >= Number(space.width) || point.y >= Number(space.height) || removedCellKeys(scene, actor.space).has(point.cell));
     const occupiedTargetCell = targetCellPoints.find(point => (scene.actors || []).some(candidate => candidate.space === actor.space && Number(candidate.x) === point.x && Number(candidate.y) === point.y && effectPresenceStatus(scene, candidate.id).onField));
     const cellLimit = limit + (actionIs(action, "skirmish") && Number(actor.techniques?.["disruptor.hunter"] || 0) >= 2 ? 3 : 0), distantTargetCell = targetCellPoints.find(point => distance(attackOrigin, point) > cellLimit), blockedTargetCell = targetCellPoints.find(point => !wallTargetingStatus(scene, attackOrigin, point, { range: cellLimit }).available);
     if (targetCells.length && !actionIs(action, "skirmish")) errors.push("Пустую клетку можно выбрать целью только для Стычки.");
+    if (requestedTargetCells.length > 40) errors.push("Можно передать не больше 40 клеток-целей.");
     if (invalidTargetCell) errors.push("Одна из выбранных клеток находится вне доступного поля.");
     if (occupiedTargetCell) errors.push("Цель-клетка должна быть пустой: персонажа выбирайте как обычную цель.");
     if (distantTargetCell) errors.push(`Пустая клетка должна быть в пределах ${cellLimit} клеток.`);

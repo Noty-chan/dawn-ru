@@ -142,6 +142,13 @@ const occupiedCellSkirmish = SceneEngine.prepareAction(emptyCellScene, data, {
 assert.equal(occupiedCellSkirmish.ok, false);
 assert.match(occupiedCellSkirmish.errors.join(" "), /должна быть пустой/);
 
+const nonCanonicalCellSkirmish = SceneEngine.prepareAction(emptyCellScene, data, {
+  actorId: "hero", actionId: actionNamed("Стычка").id, targetCells: ["02,1"], attribute: "talent",
+  roll: { formula: "4D6 · Талант", attribute: "talent", rolls: [6, 4, 2, 1], successes: 2, crits: 1 },
+});
+assert.equal(nonCanonicalCellSkirmish.ok, false);
+assert.match(nonCanonicalCellSkirmish.errors.join(" "), /вне доступного поля/, "Non-canonical cell keys cannot bypass topology and occupancy checks");
+
 const hunterCellSkirmish = SceneEngine.prepareAction(farTrapScene, data, {
   actorId: "hero", actionId: actionNamed("Стычка").id, targetCells: ["5,1"], attribute: "talent",
   roll: { formula: "4D6 · Талант", attribute: "talent", rolls: [6, 4, 2, 1], successes: 2, crits: 1 },
