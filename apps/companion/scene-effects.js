@@ -83,7 +83,7 @@ function changeSceneTool(requested){
   if(localFlow)cancelSceneFlow();
   const current=activeSceneTool(),toggleOff=requested===current&&requested==="target";
   if(activeSceneView()==="player")playerSceneTool=toggleOff?"select":requested;else Scene.tool=toggleOff?"select":requested;
-  if(toggleOff||!["select","target","measure"].includes(requested))Scene.targetIds=[];
+  if(toggleOff||!["select","target","measure"].includes(requested)){Scene.targetIds=[];Scene.targetCells=[]}
   scenePreviewCells.clear();sceneTopologyCells.clear();sceneMeasureStart=null;sceneMeasureCells.clear();sceneMeasureLabel=activeSceneTool()==="measure"?"Линейка: выберите начальную клетку":"";
   persist();renderScene();
 }

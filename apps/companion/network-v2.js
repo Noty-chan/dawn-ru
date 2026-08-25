@@ -6,7 +6,7 @@
   const MAX_BATCH_EVENTS=192;
   const MAX_AUTHORITY_ITEMS=200;
   const MAX_OUTBOX_ITEMS=40;
-  const LOCAL_UI_KEYS=["view","tool","activeSpace","selectedActor","targetIds","undo","redo","turnUndo"];
+  const LOCAL_UI_KEYS=["view","tool","activeSpace","selectedActor","targetIds","targetCells","undo","redo","turnUndo"];
   const AUTOMATIC_COMMANDS=new Set(["intent_v2","dispatch_events","join_hero","update_runtime","set_targets"]);
   const clone=value=>value==null?value:JSON.parse(JSON.stringify(value));
   const makeId=()=>{
@@ -21,6 +21,7 @@
   };
   const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
   const safeIds=value=>Array.isArray(value)?value.filter(id=>typeof id==="string").slice(0,40):[];
+  const safeCells=value=>Array.isArray(value)?[...new Set(value.filter(cell=>typeof cell==="string"&&/^\d+,\d+$/.test(cell)))].slice(0,40):[];
   const safeObject=value=>value&&typeof value==="object"&&!Array.isArray(value)?clone(value):{};
   let confirmedScene=null;
 
@@ -37,6 +38,7 @@
     state.activeSpace=state.spaces?.[0]?.id||"main";
     state.selectedActor=null;
     state.targetIds=[];
+    state.targetCells=[];
     delete state.undo;
     delete state.redo;
     delete state.turnUndo;
@@ -53,6 +55,7 @@
     scene.activeSpace=spaceIds.has(ui.activeSpace)?ui.activeSpace:(scene.spaces?.[0]?.id||"main");
     scene.selectedActor=actorIds.has(ui.selectedActor)?ui.selectedActor:null;
     scene.targetIds=safeIds(ui.targetIds).filter(id=>actorIds.has(id));
+    scene.targetCells=safeCells(ui.targetCells);
     scene.undo=Array.isArray(ui.undo)?ui.undo.slice(0,20):[];
     scene.redo=Array.isArray(ui.redo)?ui.redo.slice(0,20):[];
     scene.turnUndo=Array.isArray(ui.turnUndo)?ui.turnUndo.slice(0,120):[];
@@ -191,11 +194,11 @@
       const pending=raw.find(event=>event.type==="attack.pending");
       const roll=raw.find(event=>event.type==="roll.public")?.payload||pending?.payload?.roll||null;
       if(prepared.payload?.planId){
-        return{kind:"action-plan-continue",label:String(label).slice(0,160),actorId:prepared.actorId,planId:prepared.payload.planId,destination:move?{x:Number(move.payload?.x),y:Number(move.payload?.y)}:null,context:{...safeObject(scene?.pendingActionPlan?.context),targetIds:safeIds(prepared.payload?.targetIds),roll:roll?clone(roll):null,...actionOptions(prepared.payload?.request)}};
+        return{kind:"action-plan-continue",label:String(label).slice(0,160),actorId:prepared.actorId,planId:prepared.payload.planId,destination:move?{x:Number(move.payload?.x),y:Number(move.payload?.y)}:null,context:{...safeObject(scene?.pendingActionPlan?.context),targetIds:safeIds(prepared.payload?.targetIds),targetCells:safeCells(prepared.payload?.targetCells),roll:roll?clone(roll):null,...actionOptions(prepared.payload?.request)}};
       }
       return {
         kind:"action",label:String(label).slice(0,160),actorId:prepared.actorId,
-        actionId:prepared.payload?.actionId,targetIds:safeIds(prepared.payload?.targetIds),
+        actionId:prepared.payload?.actionId,targetIds:safeIds(prepared.payload?.targetIds),targetCells:safeCells(prepared.payload?.targetCells),
         destination:move?{x:Number(move.payload?.x),y:Number(move.payload?.y)}:null,
         roll:roll?clone(roll):null,options:actionOptions(prepared.payload?.request),
       };
@@ -291,7 +294,7 @@
     }
     if(intent.kind==="action"){
       const options=actionOptions(intent.options);
-      const result=Engine.prepareAction(scene,data,{actorId:actor.id,actionId:intent.actionId,targetIds:safeIds(intent.targetIds),destination:intent.destination||undefined,roll:intent.roll||null,...options});
+      const result=Engine.prepareAction(scene,data,{actorId:actor.id,actionId:intent.actionId,targetIds:safeIds(intent.targetIds),targetCells:safeCells(intent.targetCells),destination:intent.destination||undefined,roll:intent.roll||null,...options});
       if(!result.ok)throw new Error(result.errors.join(" "));
       return result.events;
     }

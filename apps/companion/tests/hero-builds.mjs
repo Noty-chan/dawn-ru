@@ -82,6 +82,8 @@ assert.equal(SceneEngine.ruleResourceStatus(charged, "hero", { resource: "creati
 
 const shadowBuild = { "vagabond.assassin": 2, "ruiner.grim-ascendant": 2, "disruptor.hunter": 1 };
 assert.ok(coverageFor(shadowBuild).every(level => !["manual", "partial"].includes(level.automation)), "The assassin/ascendant/hunter build has no manual or partial level");
+const upgradedShadowBuild = { "vagabond.assassin": 3, "ruiner.grim-ascendant": 2, "disruptor.hunter": 2 };
+assert.ok(coverageFor(upgradedShadowBuild).every(level => !["manual", "partial"].includes(level.automation)), "Nari's Tier 2 Assassin/Hunter upgrades stay automated");
 const shadowScene = sceneWith(actor({ techniques: shadowBuild, x: 3, y: 3, hp: 8, focus: 0 }), [foe({ x: 4, y: 3 })]);
 const hide = SceneEngine.prepareAction(shadowScene, data, { actorId: "hero", actionId: actionNamed("Скрыться").id });
 assert.equal(hide.ok, true, "Assassin I ignores the ordinary edge requirement on the first Scene action");
@@ -114,6 +116,63 @@ const trapped = SceneEngine.dispatchMany(trapScene, trap.events).scene;
 assert.equal(trapped.markers[0]?.kind, "trap");
 assert.equal(trapped.actors[0].ap, 2, "Hunter I pays the Skirmish cost while marking the trap placement Quick");
 assert.equal(trap.events.find(event => event.type === "action.prepare")?.payload.quick, true);
+
+const farTrapScene = sceneWith(actor({ techniques: upgradedShadowBuild, x: 1, y: 1 }), [foe({ x: 8, y: 7 })]);
+const farTrap = TechniqueEngine.preview(farTrapScene, { actorId: "hero", ruleId: "disruptor.hunter.1", anchor: { x: 5, y: 1 }, options: { actionMode: "skirmish" } });
+assert.equal(farTrap.ok, true, "Hunter II extends empty-cell Skirmishes to range 4");
+
+const emptyCellScene = sceneWith(actor({ x: 1, y: 1 }), [foe({ x: 8, y: 7 })]);
+const emptyCellSkirmish = SceneEngine.prepareAction(emptyCellScene, data, {
+  actorId: "hero", actionId: actionNamed("Стычка").id, targetCells: ["2,1"], attribute: "talent",
+  roll: { formula: "4D6 · Талант", attribute: "talent", rolls: [6, 4, 2, 1], successes: 2, crits: 1 },
+});
+assert.equal(emptyCellSkirmish.ok, true, "A core Skirmish can target an adjacent empty cell");
+assert.deepEqual(Array.from(emptyCellSkirmish.events[0].payload.targetCells), ["2,1"]);
+const emptyCellPending = SceneEngine.dispatchMany(emptyCellScene, emptyCellSkirmish.events).scene;
+assert.deepEqual(Array.from(emptyCellPending.pendingAction.targetCells), ["2,1"]);
+assert.equal(SceneEngine.pendingActionStatus(emptyCellPending, data).canResolve, true, "An empty-cell Skirmish needs no character Reaction");
+const emptyCellResolution = SceneEngine.resolvePendingAction(emptyCellPending, data);
+assert.equal(emptyCellResolution.ok, true);
+assert.deepEqual(Array.from(emptyCellResolution.events.find(event => event.type === "action.resolve").payload.targetCells), ["2,1"], "Resolved actions expose targeted cells to technique triggers");
+
+const occupiedCellSkirmish = SceneEngine.prepareAction(emptyCellScene, data, {
+  actorId: "hero", actionId: actionNamed("Стычка").id, targetCells: ["8,7"], attribute: "talent",
+  roll: { formula: "4D6 · Талант", attribute: "talent", rolls: [6, 4, 2, 1], successes: 2, crits: 1 },
+});
+assert.equal(occupiedCellSkirmish.ok, false);
+assert.match(occupiedCellSkirmish.errors.join(" "), /должна быть пустой/);
+
+const hunterCellSkirmish = SceneEngine.prepareAction(farTrapScene, data, {
+  actorId: "hero", actionId: actionNamed("Стычка").id, targetCells: ["5,1"], attribute: "talent",
+  roll: { formula: "4D6 · Талант", attribute: "talent", rolls: [6, 4, 2, 1], successes: 2, crits: 1 },
+});
+assert.equal(hunterCellSkirmish.ok, true, "Hunter II extends the common empty-cell Skirmish target to range 4");
+
+const tooManyCellTargets = SceneEngine.prepareAction(emptyCellScene, data, {
+  actorId: "hero", actionId: actionNamed("Стычка").id, targetCells: ["2,1", "1,2", "0,1"], attribute: "talent",
+  roll: { formula: "4D6 · Талант", attribute: "talent", rolls: [6, 4, 2, 1], successes: 2, crits: 1 },
+});
+assert.equal(tooManyCellTargets.ok, false);
+assert.match(tooManyCellTargets.errors.join(" "), /не больше 2/);
+
+const neelBuild = { "altruist.alchemist": 2, "ruiner.spellcrafter": 3, "ruiner.cryomancer": 2 };
+assert.ok(coverageFor(neelBuild).every(level => !["manual", "partial"].includes(level.automation)), "Neel's Tier 2 Cryomancer build has no manual or partial level");
+const cryomancerScene = sceneWith(actor({
+  techniques: neelBuild,
+  attrs: { body: 2, talent: 2, spirit: 3, mind: 4 },
+  ruleClocks: { "ruiner.cryomancer.icicle": { clockId: "ruiner.cryomancer.icicle", label: "Сосулька", size: 4, minimumSize: 4, initial: 0, resetScope: "scene", active: true, value: 0 } },
+}), [foe({ x: 5, y: 1 })]);
+const chillingSpell = SceneEngine.prepareAction(cryomancerScene, data, {
+  actorId: "hero", actionId: actionNamed("Заклинание").id, targetIds: ["enemy"], attribute: "spirit",
+  roll: { formula: "4D6 · Дух", attribute: "spirit", rolls: [6, 4, 2, 1], successes: 2, crits: 1 },
+});
+assert.equal(chillingSpell.ok, true);
+let chilled = SceneEngine.dispatchMany(cryomancerScene, chillingSpell.events).scene;
+chilled = SceneEngine.dispatchMany(chilled, SceneEngine.respondReaction(chilled, data, { actorId: "enemy", choice: "pass" }).events).scene;
+chilled = SceneEngine.dispatchMany(chilled, SceneEngine.resolvePendingAction(chilled, data).events).scene;
+assert.ok(chilled.actors.find(item => item.id === "enemy").effects.includes("negative.замедлен"), "Cryomancer I slows every target of a successful Spell");
+const focused = SceneEngine.dispatchMany(chilled, [{ type: "resource.gain", actorId: "hero", payload: { resource: "focus", amount: 3, sourceActionId: "test.focus" } }]).scene;
+assert.equal(SceneEngine.clockStatus(focused, "hero", "ruiner.cryomancer.icicle").value, 1, "Cryomancer II fills one Icicle segment whenever Focus is gained");
 
 const spellcrafterBuild = { "ruiner.spellcrafter": 3 };
 assert.ok(coverageFor(spellcrafterBuild).every(level => level.automation === "decision"), "Spellcrafter levels are explicit player decisions, not manual gaps");
@@ -203,4 +262,4 @@ assert.ok(moveBound.events.some(event => event.type === "actor.move" && event.ac
 const repositioned = SceneEngine.dispatchMany(choosingBoundCell, moveBound.events).scene;
 assert.deepEqual([repositioned.actors.find(item => item.id === "bound").x, repositioned.actors.find(item => item.id === "bound").y], [5, 1]);
 
-console.log("Hero build QA passed: Autophage/Constrictor, shadow hunter, Spellcrafter III, Will-O-Wisp III, and deferred chained support");
+console.log("Hero build QA passed: Nari Tier 2, Neel Tier 2, Autophage/Constrictor, Spellcrafter III, Will-O-Wisp III, and deferred chained support");

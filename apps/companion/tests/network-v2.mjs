@@ -19,7 +19,7 @@ assert.equal(new Network.PlayerOutbox({tickMs:1,send:async()=>{}}).tickMs,200,"c
 assert.equal(new Network.AuthorityQueue({tickMs:1,flush:async()=>{}}).tickMs,200,"callers cannot bypass the five-per-second authority cap");
 
 const baseScene={
-  version:7,round:1,tension:0,activeActorId:"hero",view:"gm",tool:"erase",activeSpace:"side",selectedActor:"hero",targetIds:["enemy"],
+  version:7,round:1,tension:0,activeActorId:"hero",view:"gm",tool:"erase",activeSpace:"side",selectedActor:"hero",targetIds:["enemy"],targetCells:["1,1"],
   spaces:[{id:"main",width:7,height:7},{id:"side",width:4,height:4}],
   actors:[
     {id:"hero",ownerId:"player-1",heroId:"sheet-1",name:"Герой",team:"hero",space:"side",x:0,y:0,hp:10,maxHp:10,wounds:0,focus:3,influence:1,ap:3,baseAp:3,speed:4,effects:[],usedActions:[],attrs:{body:3,talent:3,spirit:3,mind:3},techniques:{}},
@@ -31,6 +31,7 @@ const wire=Network.networkSceneState(baseScene);
 assert.equal(wire.tool,"select");
 assert.equal(wire.selectedActor,null);
 assert.deepEqual(Array.from(wire.targetIds),[]);
+assert.deepEqual(Array.from(wire.targetCells),[]);
 assert.equal(wire.activeSpace,"main","the wire snapshot must not publish the narrator's open space");
 
 const remote=structuredClone(baseScene);
@@ -47,6 +48,7 @@ assert.equal(merged.tool,"erase","the local tool survives a network snapshot");
 assert.equal(merged.activeSpace,"side","the open board space is local UI");
 assert.equal(merged.selectedActor,"hero","the open actor card is not collapsed by synchronization");
 assert.deepEqual(Array.from(merged.targetIds),["enemy"],"local target selection is not overwritten by another client");
+assert.deepEqual(Array.from(merged.targetCells),["1,1"],"local cell target selection is not overwritten by another client");
 const historyScene=structuredClone(baseScene);
 historyScene.undo=Array.from({length:25},(_,index)=>({id:`undo-${index}`,state:{}}));
 historyScene.turnUndo=[{id:"turn-1",state:{},checkpoint:"turn-start"}];
@@ -103,6 +105,13 @@ const chargeIntent=Network.intentFromEvents(chargeSource,chargePreview.events,"�
 const canonicalCharge=Network.materializeIntent(chargeSource,data,chargeIntent,"player-1",{sceneEngine:Engine});
 const charged=Engine.dispatchMany(chargeSource,canonicalCharge).scene;
 assert.equal(charged.actors[0].focus,3,"Charge is recomputed by the narrator and grants all three Focus");
+
+const cellSkirmishPreview=Engine.prepareAction(baseScene,data,{actorId:"hero",actionId:actionNamed("Стычка").id,targetIds:[],targetCells:["0,1"],attribute:"talent",roll:{formula:"3D6 ≥4",attribute:"talent",rolls:[6,4,2],successes:2,crits:1}});
+assert.equal(cellSkirmishPreview.ok,true);
+const cellSkirmishIntent=Network.intentFromEvents(baseScene,cellSkirmishPreview.events,"Стычка по клетке");
+assert.deepEqual(Array.from(cellSkirmishIntent.targetCells),["0,1"]);
+const canonicalCellSkirmish=Network.materializeIntent(baseScene,data,cellSkirmishIntent,"player-1",{sceneEngine:Engine});
+assert.deepEqual(Array.from(canonicalCellSkirmish.find(event=>event.type==="attack.pending").payload.targetCells),["0,1"],"empty-cell targets survive authoritative network recomputation");
 
 const stepPreview=Engine.prepareAction(baseScene,data,{actorId:"hero",actionId:actionNamed("Шаг").id,targetIds:[],destination:{x:0,y:1}});
 assert.equal(stepPreview.ok,true);
