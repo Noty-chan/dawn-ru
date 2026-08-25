@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import vm from "node:vm";
+import crypto from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { loadSceneEngine } from "./tests/load-scene-engine.mjs";
 
@@ -16,12 +17,39 @@ const data = context.DAWN_DATA;
 const engine = context.DAWN_SCENE_ENGINE;
 const techniqueEngine = context.DAWN_TECHNIQUE_ENGINE;
 const foundation = context.DAWN_TECHNIQUE_FOUNDATION_MAP;
+const evidence = JSON.parse(fs.readFileSync(path.join(root, "automation-evidence.json"), "utf8"));
 const coverage = techniqueEngine.techniqueCoverage(data);
 const capabilities = foundation.CAPABILITIES;
 const escape = value => String(value ?? "").replaceAll("|", "\\|").replace(/\s+/g, " ").trim();
 const countBy = (rows, key) => rows.reduce((result, row) => ({ ...result, [row[key]]: Number(result[row[key]] || 0) + 1 }), {});
 const percent = (value, total) => `${(value * 100 / total).toFixed(1)}%`;
 const automationLabels = { full: "полная", decision: "решение", partial: "частичная", manual: "ручная", attack: "Атака", effect: "Эффект", state: "состояние", assisted: "помощь Нарратора" };
+
+if (evidence.schemaVersion !== 1 || !Array.isArray(evidence.entries)) throw new Error("automation-evidence.json: unsupported schema");
+const evidenceIds = new Set();
+for (const entry of evidence.entries) {
+  if (!entry.id || evidenceIds.has(entry.id)) throw new Error(`automation-evidence.json: missing or duplicate id ${entry.id || "<empty>"}`);
+  evidenceIds.add(entry.id);
+  if (!['core-tested', 'surface-tested', 'certified'].includes(entry.confidence)) throw new Error(`automation-evidence.json: invalid confidence for ${entry.id}`);
+  if (!['technique', 'enemy-rule', 'enemy-attack'].includes(entry.kind)) throw new Error(`automation-evidence.json: invalid kind for ${entry.id}`);
+  if (!entry.sourcePath || !entry.sourceDigest || !Array.isArray(entry.claims) || !entry.claims.length || !entry.auditedAtCommit || !entry.surfaces || !Array.isArray(entry.tests) || !entry.tests.length || !Array.isArray(entry.edgeCases) || !entry.edgeCases.length) {
+    throw new Error(`automation-evidence.json: ${entry.id} lacks source, tests, or edge cases`);
+  }
+  const sourcePath = path.join(root, entry.sourcePath);
+  if (!fs.existsSync(sourcePath)) throw new Error(`automation-evidence.json: missing source ${entry.sourcePath} for ${entry.id}`);
+  const actualDigest = crypto.createHash('sha256').update(fs.readFileSync(sourcePath)).digest('hex');
+  if (entry.sourceDigest !== `sha256:${actualDigest}`) throw new Error(`automation-evidence.json: stale source digest for ${entry.id}`);
+  for (const test of entry.tests) {
+    if (!test.path || !fs.existsSync(path.join(root, test.path))) throw new Error(`automation-evidence.json: missing test file ${test.path || "<empty>"} for ${entry.id}`);
+  }
+  if (entry.confidence === 'certified') {
+    const surfaces = entry.surfaces || {};
+    for (const surface of ['core', 'ui', 'network', 'persistence']) {
+      if (surfaces[surface] !== true && !entry.notApplicable?.includes(surface)) throw new Error(`automation-evidence.json: certified ${entry.id} lacks ${surface} evidence`);
+    }
+  }
+}
+const certifiedEvidence = evidence.entries.filter(entry => entry.confidence === "certified");
 
 const techniqueCounts = countBy(coverage, "automation");
 const executableTechniqueLevels = Number(techniqueCounts.full || 0) + Number(techniqueCounts.decision || 0);
@@ -37,20 +65,46 @@ for (const entry of coverage.filter(item => ["partial", "manual"].includes(item.
 }
 
 const lines = [
-  "# Карта готовности автоматизации",
+  "# Карта заявленной готовности и доказательств автоматизации",
   "",
   "> Генерируется командой `npm run readiness`. Таблицы не редактируются вручную.",
-  "> Источник истины по каждому Уровню Техники — `technique-foundation-map.js`; исполнимость врагов определяется публичным контрактом `enemyRuleAutomation`.",
+  "> **Важно:** статусы `full`, `decision`, `attack`, `effect` и `state` — заявления реализации, а не независимая сертификация корректности.",
+  "> Источник заявлений по Уровням Техник — `technique-foundation-map.js`; по врагам — контракт `enemyRuleAutomation`. Независимые доказательства хранятся только в `automation-evidence.json`.",
   "",
   "## Сводка",
   "",
-  "| Контур | Всего | Готово без ручного расчёта | Неполный путь | Что означает «готово» |",
+  "| Контур | Всего | Заявлено исполнимым | Формально E2E-сертифицировано | Неполный путь |",
   "| --- | ---: | ---: | ---: | --- |",
-  `| Уровни Техник | ${coverage.length} | ${executableTechniqueLevels} (${percent(executableTechniqueLevels, coverage.length)}) | ${techniqueCounts.partial || 0} частичных; ${techniqueCounts.manual || 0} ручных | Полный адаптер либо типизированное решение игрока; стандартный выбор цели и бросок не считаются ручным пробелом |`,
-  `| Правила обычных врагов | ${enemyRules.length} | ${executableEnemyRules} (${percent(executableEnemyRules, enemyRules.length)}) | ${enemyCounts.assisted || 0} assisted | Правило создаёт проверяемые события ядра; текстовая кнопка без исполнения считается неполной |`,
-  `| Атаки врагов | ${enemyRules.filter(item => item.rule.kind === "attack").length} | ${enemyRules.filter(item => item.rule.kind === "attack" && item.automation !== "assisted").length} | 0 | Все объявленные Атаки используют исполнимый общий или специальный pipeline Реакций, урона и разрешения |`,
+  `| Уровни Техник | ${coverage.length} | ${executableTechniqueLevels} (${percent(executableTechniqueLevels, coverage.length)}) | ${certifiedEvidence.filter(entry => entry.kind === "technique").length} | ${techniqueCounts.partial || 0} частичных; ${techniqueCounts.manual || 0} ручных |`,
+  `| Правила обычных врагов | ${enemyRules.length} | ${executableEnemyRules} (${percent(executableEnemyRules, enemyRules.length)}) | ${certifiedEvidence.filter(entry => entry.kind === "enemy-rule").length} | ${enemyCounts.assisted || 0} assisted |`,
+  `| Атаки врагов | ${enemyRules.filter(item => item.rule.kind === "attack").length} | ${enemyRules.filter(item => item.rule.kind === "attack" && item.automation !== "assisted").length} | ${certifiedEvidence.filter(entry => entry.kind === "enemy-attack").length} | не установлено независимым аудитом |`,
   "",
-  "Статус описывает механическую автоматизацию, а не качество текста правила. `partial` не следует массово повышать до `full`: сначала нужен полный пользовательский путь — выбор, отмена до оплаты, повторная валидация, прерывание, журнал, сохранение и сетевое исполнение.",
+  `Формально сертифицировано сейчас: **${certifiedEvidence.length}** записей. Это не означает, что остальные сломаны: до появления доказательной записи их корректность считается **неизвестной**, даже если адаптер существует и happy-path тест проходит. Проценты выше измеряют охват кодом, а не верность правилам игры.`,
+  "",
+  "## Модель доверия",
+  "",
+  "| Уровень | Что действительно доказано | Можно показывать как готовое |",
+  "| --- | --- | --- |",
+  "| `declared` | В реестре или адаптере стоит исполнимый статус | нет; это гипотеза для аудита |",
+  "| `core-tested` | Исходный текст сверен, есть прямые позитивный, негативный и граничный тесты ядра | только как проверенное ядро |",
+  "| `surface-tested` | Дополнительно проверены применимые UI, сеть и сохранение/загрузка | как кандидат на сертификацию |",
+  "| `certified` | Evidence-запись привязана к версии исходника и покрывает весь пользовательский путь | да, для указанной версии |",
+  "",
+  "Генератор этой карты умеет доказать согласованность реестров, существование указанных тестовых файлов и полноту evidence-записи. Он намеренно **не выводит смысловую корректность из названия статуса, наличия обработчика или grep по тестам**.",
+  "",
+  "### Как ложный `full` проходит незамеченным",
+  "",
+  "- адаптер создаёт событие, но неверно трактует дальность, цель, стоимость или момент срабатывания;",
+  "- happy path работает, но отмена, KO, повторный ответ или устаревший prompt оставляют состояние;",
+  "- ядро верно, а UI, сеть или импорт теряют часть контекста;",
+  "- исходный текст изменился после реализации, а статус остался прежним;",
+  "- уникальная оговорка правила молча пропущена универсальным обработчиком.",
+  "",
+  "### Обязательная evidence-запись",
+  "",
+  "Для повышения до `certified` в `automation-evidence.json` нужны: стабильный id правила, `sourceDigest`, заявленный статус, уровень доверия, проверяемые claims, точные тестовые файлы, применимые поверхности `core/ui/network/persistence`, граничные случаи и commit аудита. CI отклоняет неполную запись и пропавший тестовый файл. Изменение исходника должно менять digest и тем самым отзывать прежнюю сертификацию.",
+  "",
+  "До независимого прохода системные оценки ниже означают зрелость инфраструктуры и объём найденных тестов, а не процент буквально верных игровых правил.",
   "",
   "## Готовность системных слоёв",
   "",
@@ -69,7 +123,7 @@ const lines = [
   "",
   "## Техники по архетипам",
   "",
-  "| Архетип | Уровней | Полная | С решением | Частичная | Ручная |",
+  "| Архетип | Уровней | Заявлено full | Заявлено decision | Заявлено partial | Заявлено manual |",
   "| --- | ---: | ---: | ---: | ---: | ---: |",
 ];
 
@@ -80,7 +134,7 @@ for (const archetype of [...new Set(coverage.map(entry => entry.archetypeName))]
 
 lines.push(
   "",
-  "Полная построчная карта всех 321 Уровней находится в `TECHNIQUE-FOUNDATION-MAP.md`. Ниже перечислены только самые дорогие пробелы и их реальные блокеры.",
+  "Полная построчная карта всех 321 Уровней находится в `TECHNIQUE-FOUNDATION-MAP.md`. Её статусы также заявленные: таблица удобна для планирования аудита, но не заменяет evidence-записи. Ниже перечислены самые дорогие известные пробелы.",
   "",
   "### Ручные Уровни",
   "",
@@ -109,9 +163,9 @@ lines.push(
   "",
   "## Враги",
   "",
-  "`attack`, `full`, `effect` и `state` — исполнимые контракты. `assisted` означает: Нарратор видит правило и фиксирует использование, но уникальные цели, сущности, перемещения или последствия ещё обязан разыграть вручную.",
+  "`attack`, `full`, `effect` и `state` заявляют исполнимый контракт, но без evidence-записи не доказывают соответствие исходному правилу. `assisted` означает: Нарратор видит правило и фиксирует использование, но уникальные цели, сущности, перемещения или последствия ещё обязан разыграть вручную.",
   "",
-  "| Профиль | Правил | Исполнимо | Assisted | Непокрытые правила |",
+  "| Профиль | Правил | Заявлено исполнимым | Assisted | Непокрытые правила |",
   "| --- | ---: | ---: | ---: | --- |",
 );
 for (const profile of enemyProfiles) {
@@ -130,6 +184,13 @@ lines.push(
   "5. **Уникальные trump-переходы:** Громила, Ловец, Гадюка, Дуэлянт, Они, Паладин, Знаменосец и Сорвиголова. Их следует брать после общих кластеров: они дают меньше повторного использования ядра.",
   "",
   "## Рекомендуемый путь развития",
+  "",
+  "### Этап 0 — аудит доверия",
+  "",
+  "1. Зафиксировать digest канонического текста каждого проверяемого правила.",
+  "2. Начать с текущих `full/decision` высокого влияния: Внутренние миры, Охотник, Ассасин, Криомант, Вестник Бури, Покоритель Волн и Ритуалист. Их считать кандидатами `core-tested`, но не E2E-сертифицированными.",
+  "3. Для атак врагов проверять не 40 одинаковых happy path, а семейства механик и каждое уникальное исключение: цель, реакция, урон, сроки, KO, отмена и повтор.",
+  "4. Любое смысловое расхождение немедленно понижать в заявленном реестре; сертифицировать только после полного evidence-прохода.",
   "",
   "### Этап 1 — надёжность релиза",
   "",
@@ -160,11 +221,12 @@ lines.push(
   "- события атомарны, журналируемы и идемпотентны;",
   "- сохранение/загрузка и сеть сохраняют цепочку;",
   "- есть позитивный, негативный и хотя бы один граничный тест;",
+  "- создана evidence-запись с digest исходника, поверхностями и commit аудита;",
   "- статус в карте повышен только после полного пользовательского пути.",
   "",
   "## Поддержание карты",
   "",
-  "После изменения `technique-foundation-map.js`, каталога врагов или адаптеров выполните `npm run readiness`. `npm test` проверяет, что эта карта не устарела.",
+  "После изменения `technique-foundation-map.js`, каталога врагов, адаптеров или `automation-evidence.json` выполните `npm run readiness`. `npm test` проверяет, что карта не устарела и evidence-реестр структурно допустим.",
 );
 
 const output = `${lines.join("\n")}\n`;
