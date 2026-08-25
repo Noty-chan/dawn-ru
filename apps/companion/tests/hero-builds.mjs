@@ -148,6 +148,20 @@ const hunterCellSkirmish = SceneEngine.prepareAction(farTrapScene, data, {
 });
 assert.equal(hunterCellSkirmish.ok, true, "Hunter II extends the common empty-cell Skirmish target to range 4");
 
+const assassinCellScene = sceneWith(actor({ techniques: { "vagabond.assassin": 2 }, x: 1, y: 1, effects: ["positive.исчез"] }), [foe({ x: 8, y: 7 })]);
+const assassinCellPlan = SceneEngine.prepareActionPlan(assassinCellScene, data, {
+  actorId: "hero", actionId: actionNamed("Стычка").id, phase: "reappear",
+  context: { targetIds: [], targetCells: ["3,2"], attackModifierIds: [], attribute: "talent", roll: { formula: "4D6 · Талант", attribute: "talent", rolls: [6, 4, 2, 1], successes: 2, crits: 1 } },
+});
+assert.equal(assassinCellPlan.ok, true);
+const assassinCellPlanned = SceneEngine.dispatchMany(assassinCellScene, assassinCellPlan.events).scene;
+const assassinCellPlacement = SceneEngine.prepareActionPlanReappearance(assassinCellPlanned, { actorId: "hero", destination: { x: 2, y: 2 } });
+assert.equal(assassinCellPlacement.ok, true);
+const assassinCellReady = SceneEngine.dispatchMany(assassinCellPlanned, assassinCellPlacement.events).scene;
+const assassinCellAttack = SceneEngine.prepareActionPlanContinuation(assassinCellReady, data, { actorId: "hero" });
+assert.equal(assassinCellAttack.ok, true, "Assassin reappearance remains compatible with empty-cell Skirmish targets");
+assert.deepEqual(Array.from(assassinCellAttack.events.find(event => event.type === "attack.pending").payload.targetCells), ["3,2"]);
+
 const tooManyCellTargets = SceneEngine.prepareAction(emptyCellScene, data, {
   actorId: "hero", actionId: actionNamed("Стычка").id, targetCells: ["2,1", "1,2", "0,1"], attribute: "talent",
   roll: { formula: "4D6 · Талант", attribute: "talent", rolls: [6, 4, 2, 1], successes: 2, crits: 1 },
