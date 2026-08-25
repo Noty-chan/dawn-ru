@@ -1760,10 +1760,7 @@ builderScene.actors[1].profileId = "enemy.common.builder";
 builderScene.actors[1].name = "Строитель";
 builderScene.actors[1].x = 5;
 const construction = Engine.availableEnemyRules(builderScene, data, "enemy").find(rule => rule.en === "Violent Construction");
-assert.equal(construction.automation, "attack");
-const directAttack = Engine.prepareEnemyRule(builderScene, data, { actorId: "enemy", ruleId: construction.id, targetIds: ["hero"], damage: 3 });
-assert.equal(directAttack.ok, true, "Fixed-damage special attacks remain usable");
-assert.ok(directAttack.events.some(event => event.type === "attack.pending"), "Violent Construction uses the Attack pipeline before creating its terrain");
+assert.equal(construction.automation, "assisted", "Violent Construction stays assisted until its fixed tier-scaled direct damage is computed by the engine rather than supplied externally");
 
 const areaScene = structuredClone(enemyScene);
 areaScene.actors[1].profileId = "enemy.common.witch";
