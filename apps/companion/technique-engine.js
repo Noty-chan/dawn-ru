@@ -508,6 +508,7 @@
       if (spent < 0 || spent > Number(actor.focus || 0) || spent > Number(scene.tension || 0)) errors.push("На Завершение нельзя потратить больше Фокуса, чем есть у героя или текущего Напряжения.");
       const modifiers = [...new Set(actor.techniqueState?.spellModifiers || [])], level = Number(actor.techniques?.["ruiner.spellcrafter"] || 0), resource = level >= 2 ? "focus" : "innovationCharges";
       if (modifiers.length > (level >= 3 ? 2 : 1)) errors.push("Выбрано слишком много Модификаций.");
+      if (modifiers.some(modifier => !(actor.techniqueState?.spellcrafterLearnedModifiers || []).includes(modifier))) errors.push("Выбрана неизученная Модификация.");
       if (modifiers.length && Number(actor[resource] || 0) < modifiers.length + (resource === "focus" ? spent : 0)) errors.push("Недостаточно ресурса для выбранных Модификаций.");
     }
 

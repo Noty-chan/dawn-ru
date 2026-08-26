@@ -202,7 +202,7 @@ assert.equal(SceneEngine.clockStatus(focused, "hero", "ruiner.cryomancer.icicle"
 
 const spellcrafterBuild = { "ruiner.spellcrafter": 3 };
 assert.ok(coverageFor(spellcrafterBuild).every(level => level.automation === "partial"), "Spellcrafter remains partial until learned Modifications are persisted and enforced");
-const spellScene = sceneWith(actor({ techniques: spellcrafterBuild, focus: 5, techniqueState: { spellModifiers: ["fierce", "outstanding"] } }), [foe({ x: 8, y: 1 })]);
+const spellScene = sceneWith(actor({ techniques: spellcrafterBuild, focus: 5, techniqueState: { spellcrafterLearnedModifiers: ["fierce", "outstanding"], spellModifiers: ["fierce", "outstanding"] } }), [foe({ x: 8, y: 1 })]);
 const spell = SceneEngine.prepareAction(spellScene, data, {
   actorId: "hero", actionId: actionNamed("Заклинание").id, targetIds: ["enemy"], attribute: "spirit",
   roll: { formula: "4D6 · Дух", attribute: "spirit", rolls: [6, 5, 2, 1], successes: 2, crits: 1 },

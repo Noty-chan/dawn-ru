@@ -338,6 +338,7 @@ function prepareAction(scene, data, request = {}) {
     }
   }
   const spellcrafterLevel = Number(actor.techniques?.["ruiner.spellcrafter"] || 0), spellModifiers = spellcrafterLevel && actionIsAny(action, ["spell", "finish"]) ? [...new Set(actor.techniqueState?.spellModifiers || [])] : [], modifierResource = spellcrafterLevel >= 2 ? "focus" : "innovationCharges";
+  const learnedSpellModifiers = new Set(actor.techniqueState?.spellcrafterLearnedModifiers || []);
   if (errors.length) return { ok: false, errors, events: [] };
   const breacherSkirmish = actionIs(action, "skirmish") && Number(actor.techniques?.["powerhouse.breacher"] || 0) >= 1;
   const gunslingerSkirmish = actionIs(action, "skirmish") && Number(actor.techniques?.["powerhouse.gunslinger"] || 0) >= 1;
@@ -395,6 +396,7 @@ function prepareAction(scene, data, request = {}) {
   if (targets.length !== targetIds.length) errors.push("Одна из выбранных целей больше не находится на Сцене.");
   if (targets.some(target => target.knockedOut)) errors.push("Выведенный из боя персонаж не может быть целью действия.");
   if (spellModifiers.length > (spellcrafterLevel >= 3 ? 2 : 1)) errors.push("Этот Уровень Творца заклинаний не позволяет столько Модификаций.");
+  if (spellModifiers.some(mod => !learnedSpellModifiers.has(mod))) errors.push("Можно применить только Модификации, изученные при получении Уровней Творца заклинаний.");
   if (spellModifiers.some(mod => ["focused", "wild"].includes(mod))) errors.push("Сфокусированная и Дикая Модификации применяются через зональный конструктор Техники.");
   if (spellModifiers.length && Number(actor[modifierResource] || 0) < spellModifiers.length) errors.push(`Недостаточно ресурса для ${spellModifiers.length} Модификаций.`);
   if (gunslingerSkirmish && (!Number.isInteger(bulletsSpent) || bulletsSpent < 1 || !Number.isInteger(bulletAdvantage) || bulletAdvantage < 0)) errors.push("Укажите целое число потраченных Пуль и Пуль на Преимущество.");

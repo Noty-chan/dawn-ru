@@ -281,8 +281,8 @@
       return[{type:delta>0?"resource.gain":"resource.spend",actorId:actor.id,payload:{resource:"meals",amount:1}}];
     }
     if(intent.kind==="spell-modifiers"){
-      const level=Number(actor.techniques?.["ruiner.spellcrafter"]||0),allowed=new Set(["fierce","focused","wild","outstanding"]),value=[...new Set(safeIds(intent.value))],limit=level>=3?2:1;
-      if(level<1||value.length>limit||value.some(id=>!allowed.has(id)))throw new Error("Некорректный выбор Модификаций");
+      const level=Number(actor.techniques?.["ruiner.spellcrafter"]||0),learned=new Set(actor.techniqueState?.spellcrafterLearnedModifiers||[]),value=[...new Set(safeIds(intent.value))],limit=level>=3?2:1;
+      if(level<1||value.length>limit||value.some(id=>!learned.has(id)))throw new Error("Можно выбрать только изученные Модификации");
       return[{type:"technique.state",actorId:actor.id,payload:{key:"spellModifiers",value,ruleId:"ruiner.spellcrafter",name:"Творец заклинаний"}}];
     }
     if(intent.kind==="take-wound"){

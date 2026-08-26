@@ -228,10 +228,12 @@ assert.equal(Network.materializeIntent(baseScene,data,mealIntent,"player-1",{sce
 
 const spellScene=structuredClone(baseScene);
 spellScene.actors[0].techniques["ruiner.spellcrafter"]=3;
+spellScene.actors[0].techniqueState={spellcrafterLearnedModifiers:["fierce","outstanding"],spellModifiers:[]};
 const modifierIntent=Network.intentFromEvents(spellScene,[{type:"technique.state",actorId:"hero",payload:{key:"spellModifiers",value:["fierce","outstanding"]}}],"Выбор Модификаций");
 const modifierEvents=Network.materializeIntent(spellScene,data,modifierIntent,"player-1",{sceneEngine:Engine});
 assert.deepEqual(Array.from(modifierEvents[0].payload.value),["fierce","outstanding"]);
-assert.throws(()=>Network.materializeIntent(baseScene,data,modifierIntent,"player-1",{sceneEngine:Engine}),/Модификаций/i,"the narrator rechecks the current Technique level");
+assert.throws(()=>Network.materializeIntent(spellScene,data,{...modifierIntent,value:["wild"]},"player-1",{sceneEngine:Engine}),/изученные Модификации/,"network authority rejects a forged unlearned Modifier");
+assert.throws(()=>Network.materializeIntent(baseScene,data,modifierIntent,"player-1",{sceneEngine:Engine}),/Модификац/i,"the narrator rechecks the current Technique level");
 
 const woundIntent=Network.intentFromEvents(baseScene,[{type:"damage.apply",actorId:null,payload:{targetId:"hero",amount:999,ignoreArmor:true}}],"Рана");
 const woundEvents=Network.materializeIntent(baseScene,data,woundIntent,"player-1",{sceneEngine:Engine});

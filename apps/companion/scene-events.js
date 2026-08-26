@@ -242,7 +242,10 @@ function validateEvent(scene, event, options = {}) {
     if (!actorById(scene, event.actorId) || !["cunningPlan", "study", "spellModifiers"].includes(payload.key)) throw new Error("Некорректное состояние Техники.");
     if (payload.key === "cunningPlan" && (!Number.isInteger(Number(payload.delta)) || Math.abs(Number(payload.delta)) > 4)) throw new Error("Некорректное изменение часов Хитрого плана.");
     if (payload.key === "study" && (!actorById(scene, payload.targetId) || typeof payload.targetId !== "string")) throw new Error("Некорректная цель Хитрого плана.");
-    if (payload.key === "spellModifiers" && (!Array.isArray(payload.value) || payload.value.length > 2 || payload.value.some(value => !["fierce", "focused", "wild", "outstanding"].includes(value)))) throw new Error("Некорректный выбор Модификаций.");
+    if (payload.key === "spellModifiers") {
+      const learned = new Set(actorById(scene, event.actorId)?.techniqueState?.spellcrafterLearnedModifiers || []), level = Number(actorById(scene, event.actorId)?.techniques?.["ruiner.spellcrafter"] || 0);
+      if (!Array.isArray(payload.value) || new Set(payload.value).size !== payload.value.length || payload.value.length > (level >= 3 ? 2 : 1) || payload.value.some(value => !learned.has(value))) throw new Error("Можно подготовить только разные изученные Модификации.");
+    }
   }
   if (event.type === "actor.state") {
     if (!actorById(scene, event.actorId) || !ACTOR_STATE_KEYS.has(payload.key)) throw new Error("Некорректное состояние персонажа.");
