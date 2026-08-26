@@ -2253,7 +2253,7 @@ assert.equal(extraTurn.log[0].payload.startedExtraTurn, true, "Ending the first 
 
 const trapScene = structuredClone(scene);
 trapScene.activeActorId = "enemy";
-trapScene.actors[0].techniques = { "disruptor.hunter": 1 };
+trapScene.actors[0].techniques = { "disruptor.hunter": 2 };
 trapScene.actors[0].x = 0;
 trapScene.actors[0].y = 0;
 trapScene.actors[1].x = 3;
@@ -2266,9 +2266,18 @@ assert.equal(trappedStep.ok, true);
 const trapped = Engine.dispatchMany(trapScene, trappedStep.events).scene;
 assert.deepEqual([trapped.actors[1].x, trapped.actors[1].y], [2, 1], "A Hunter trap truncates movement at the crossed trap cell");
 assert.equal(trapped.pendingPrompt.kind, "hunter-trap");
-const trapAttack = Engine.respondRulePrompt(trapped, data, { choice: "attack", roll: { formula: "3D6", rolls: [4, 5, 2], successes: 2, crits: 0 } });
+assert.equal(Engine.respondRulePrompt(trapped, data, { choice: "attack", roll: { rolls: [6, 6, 6], successes: 99, crits: 3 } }).ok, false, "Steel Jaws rejects forged successes without a dice snapshot");
+const trapDiceRequest = { scope: "action", baseCount: 3, advantage: 0, hindrance: 0, attribute: "body", actionId: actionNamed("Стычка").id, targetIds: ["enemy"] };
+const trapDice = Engine.diceRollPayload(trapped, "hero", trapDiceRequest, { rolls: [4, 5, 2] });
+assert.equal(trapDice.available, true);
+const trapAttack = Engine.respondRulePrompt(trapped, data, { choice: "attack", roll: trapDice.payload });
 const trapAttackScene = Engine.dispatchMany(trapped, trapAttack.events).scene;
 assert.equal(trapAttackScene.pendingAction.techniqueRuleId, "disruptor.hunter.1");
+let trapAttackPassed = Engine.dispatchMany(trapAttackScene, Engine.respondReaction(trapAttackScene, data, { actorId: "enemy", choice: "pass" }).events).scene;
+const trapAttackResolved = Engine.dispatchMany(trapAttackPassed, Engine.resolvePendingAction(trapAttackPassed, data).events).scene;
+assert.ok(trapAttackResolved.actors[1].effects.includes("negative.обездвижен"), "Hunter II Immobilizes the actual victim of its owned Steel Jaws Skirmish");
+const missingTrapScene = structuredClone(trapped); missingTrapScene.markers = [];
+assert.equal(Engine.respondRulePrompt(missingTrapScene, data, { choice: "attack", roll: trapDice.payload }).ok, false, "A removed or ownership-lost trap invalidates the stale attack prompt");
 
 const alchemistScene = structuredClone(scene);
 alchemistScene.actors[0].techniques = { "altruist.alchemist": 2 };

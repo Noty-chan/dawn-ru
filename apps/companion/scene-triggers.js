@@ -106,7 +106,7 @@ const TRIGGER_RULES = [
     build: ({ scene, event, actor, payload }) => {
       const target = actorById(scene, payload.targetId);
       if (!target || target.knockedOut || target.id === actor.id || target.space !== actor.space) return [];
-      return [{ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${event.id}-siren-irresistible`, kind: "siren-irresistible", sourceActorId: actor.id, targetId: target.id, title: "Неотразимая", text: `Заставить ${target.name} переместиться на расстояние до 3 клеток к вам? Если цель окажется смежной, можно наложить Ошеломлен.`, options: ["rush", "pass"], participantIds: [actor.id, target.id] } }];
+      return [{ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${event.id}-siren-irresistible`, kind: "siren-irresistible", sourceActorId: actor.id, targetId: target.id, title: "Неотразимая", text: `Заставить ${target.name} переместиться на расстояние до 3 клеток к вам? Если цель окажется смежной, можно наложить Ошеломлен.`, options: ["rush", "pass"], context: { frightenedEventId: event.id }, participantIds: [actor.id, target.id] } }];
     },
   },
   {
@@ -126,11 +126,11 @@ const TRIGGER_RULES = [
     priority: 68,
     match: ({ scene, event, payload }) => {
       const target = actorById(scene, payload.targetId), attacker = actorById(scene, event.actorId);
-      return Number(payload.dealt || 0) === 0 && target && attacker && target.id !== attacker.id && target.team !== attacker.team && !target.knockedOut && !attacker.knockedOut && Number(target.techniques?.["vagabond.dim-mak"] || 0) >= 2 && scene.pendingAction?.actorId === attacker.id;
+      return payload.attackMiss === true && target && attacker && target.id !== attacker.id && target.team !== attacker.team && !target.knockedOut && !attacker.knockedOut && Number(target.techniques?.["vagabond.dim-mak"] || 0) >= 2 && scene.pendingAction?.id === payload.attackPendingId && scene.pendingAction.actorId === attacker.id;
     },
     build: ({ scene, event, payload }) => {
       const target = actorById(scene, payload.targetId), attacker = actorById(scene, event.actorId);
-      return [{ type: "rule.prompt", actorId: target.id, payload: { id: `prompt-${event.id}-dim-mak-investigation`, kind: "dim-mak-field-investigation", sourceActorId: target.id, targetId: attacker.id, title: "Полевое исследование", text: `Атака ${attacker.name} не попала. Бесплатно и Быстро Изучить атакующего?`, options: ["study", "pass"], participantIds: [target.id, attacker.id] } }];
+      return [{ type: "rule.prompt", actorId: target.id, payload: { id: `prompt-${event.id}-dim-mak-investigation`, kind: "dim-mak-field-investigation", sourceActorId: target.id, targetId: attacker.id, title: "Полевое исследование", text: `Атака ${attacker.name} не попала. Бесплатно и Быстро Изучить атакующего?`, options: ["study", "pass"], context: { missEventId: event.id, pendingId: scene.pendingAction.id }, participantIds: [target.id, attacker.id] } }];
     },
   },
   {

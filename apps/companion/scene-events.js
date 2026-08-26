@@ -164,8 +164,8 @@ function validateEvent(scene, event, options = {}) {
       if (!opposed || payload.opposedRequestId !== opposed.id || Number(payload.opposedAttempt) !== Number(opposed.attempt) || !participant || event.actorId !== (participant.actorId || null) || opposed.resolution === "both" || previous && !payload.payment) throw new Error("Бросок не соответствует активному встречному броску.");
     }
     if (payload.challengeRequestId != null && payload.opposedRequestId != null) throw new Error("Бросок не может одновременно быть обычным и встречным.");
-    const techniqueAttackRoll = scene.pendingAction?.actorId === actor?.id && String(scene.pendingAction?.techniqueRuleId || "").startsWith("ruiner.bombardier.");
-    if (techniqueAttackRoll && payload.dice == null) throw new Error("«Бомбардир» требует проверяемый снимок пула Завершения Духом.");
+    const techniqueRuleId = String(scene.pendingAction?.techniqueRuleId || ""), techniqueAttackRoll = scene.pendingAction?.actorId === actor?.id && (techniqueRuleId.startsWith("ruiner.bombardier.") || techniqueRuleId === "disruptor.hunter.1");
+    if (techniqueAttackRoll && payload.dice == null) throw new Error(techniqueRuleId === "disruptor.hunter.1" ? "«Стальные челюсти» требуют проверяемый снимок пула Стычки." : "«Бомбардир» требует проверяемый снимок пула Завершения Духом.");
     if (payload.dice != null) {
       const dice = payload.dice;
       if (!actor || !dice || typeof dice !== "object" || dice.sceneContext != null && typeof dice.sceneContext !== "boolean" || !Number.isInteger(Number(dice.baseCount)) || Number(dice.baseCount) < 1 || Number(dice.baseCount) > 300 || !Number.isInteger(Number(dice.count)) || Number(dice.count) < 1 || Number(dice.count) > 300 || !Array.isArray(dice.selectedHookIds) || dice.selectedHookIds.length > 30 || dice.selectedHookIds.some(id => typeof id !== "string" || id.length > 180) || !Array.isArray(dice.targetIds) || dice.targetIds.length > 40 || dice.targetIds.some(id => !actorById(scene, id))) throw new Error("Некорректный снимок правил броска.");

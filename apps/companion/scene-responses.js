@@ -593,7 +593,8 @@ function respondRulePrompt(scene, data, request = {}) {
     events.push({ type: "effect.apply", actorId: actor.id, payload: { targetId: target.id, effect: "positive.усилен", sourceActionId: "altruist.empath.1", participantIds: [actor.id, target.id] } });
   }
   if (prompt.kind === "siren-irresistible" && choice === "rush") {
-    if (!target || target.knockedOut || target.space !== actor.space) return { ok: false, errors: ["Цель «Неотразимой» больше недоступна."], events: [] };
+    const frightenedEvent = (scene.log || []).find(event => event.id === prompt.context?.frightenedEventId);
+    if (Number(actor.techniques?.["disruptor.siren"] || 0) < 2 || !target || target.knockedOut || target.space !== actor.space || frightenedEvent?.type !== "effect.apply" || frightenedEvent.actorId !== actor.id || frightenedEvent.payload?.targetId !== target.id || frightenedEvent.payload?.effect !== "negative.испуган" || !frightenedEvent.payload?.applied) return { ok: false, errors: ["Источник или цель «Неотразимой» больше не соответствуют сработавшему Испугу."], events: [] };
     events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${prompt.id}-cell`, kind: "siren-irresistible-cell", sourceActorId: actor.id, targetId: target.id, title: "Неотразимая", text: `Выберите для ${target.name} клетку на пути к ${actor.name} в пределах 3 клеток.`, options: ["cancel"], context: { maxDistance: 3 }, participantIds: [actor.id, target.id] } });
   }
   if (prompt.kind === "siren-irresistible-stun" && choice === "stun") {
@@ -606,7 +607,8 @@ function respondRulePrompt(scene, data, request = {}) {
   }
   if (prompt.kind === "dim-mak-field-investigation" && choice === "study") {
     const study = actionByKey(data, "study");
-    if (!target || target.knockedOut || target.team === actor.team || !study) return { ok: false, errors: ["Атакующий или базовое Изучение больше недоступны."], events: [] };
+    const missEvent = (scene.log || []).find(event => event.id === prompt.context?.missEventId), pending = scene.pendingAction;
+    if (Number(actor.techniques?.["vagabond.dim-mak"] || 0) < 2 || !target || target.knockedOut || target.team === actor.team || !study || missEvent?.type !== "damage.apply" || missEvent.actorId !== target.id || missEvent.payload?.targetId !== actor.id || missEvent.payload?.attackMiss !== true || pending?.id !== prompt.context?.pendingId || pending.actorId !== target.id) return { ok: false, errors: ["Промах, атакующий или право на Полевое исследование больше недоступны."], events: [] };
     events.push({ type: "action.prepare", actorId: actor.id, payload: { actionId: study.id, actionName: study.name, name: "Полевое исследование", targetIds: [target.id], quick: true, quickReaction: true, quickSource: { techniqueId: "vagabond.dim-mak", level: 2, name: "Полевое исследование" } } });
     events.push({ type: "effect.apply", actorId: actor.id, payload: { targetId: target.id, effect: effectIdByName(data, "Помечен"), sourceActionId: "vagabond.dim-mak.2", participantIds: [actor.id, target.id] } });
     events.push({ type: "action.resolve", actorId: actor.id, payload: { actionId: study.id, name: study.name, targetIds: [target.id], quick: true, quickReaction: true, participantIds: [actor.id, target.id] } });
@@ -691,12 +693,14 @@ function respondRulePrompt(scene, data, request = {}) {
   }
   if (prompt.kind === "empath-rush" && choice === "rush") events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${prompt.id}-cell`, kind: "empath-rush-cell", sourceActorId: actor.id, targetId: target.id, title: "Защитный отклик · Прорыв", text: `Выберите свободную клетку, смежную с ${target.name}, в пределах Скорости.`, options: ["cancel"], context: { targetId: target.id, maxDistance: Number(actor.speed || 0) }, participantIds: [actor.id, target.id] } });
   if (prompt.kind === "hunter-trap" && choice === "attack") {
-    if (!target || target.knockedOut) return { ok: false, errors: ["Цель ловушки уже недоступна."], events: [] };
+    const trap = markerById(scene, prompt.markerId);
+    if (!target || target.knockedOut || Number(actor.techniques?.["disruptor.hunter"] || 0) < 1 || !trap || trap.ownerActorId !== actor.id || trap.kind !== "trap" || !/disruptor\.hunter\.1/.test(`${trap.ruleId || ""} ${trap.source || ""}`) || target.team === actor.team || trap.space !== target.space || Number(trap.x) !== Number(target.x) || Number(trap.y) !== Number(target.y)) return { ok: false, errors: ["Цель или принадлежащая Охотнику ловушка уже недоступны."], events: [] };
     const roll = request.roll;
-    if (!roll || !Array.isArray(roll.rolls)) return { ok: false, errors: ["Для Стычки от ловушки нужен бросок."], events: [] };
+    if (!roll || !Array.isArray(roll.rolls) || !roll.dice || roll.dice.attribute && !["body", "talent"].includes(roll.dice.attribute)) return { ok: false, errors: ["Для Стычки от ловушки нужен проверяемый бросок Тела или Таланта."], events: [] };
     events.push({ type: "action.prepare", actorId: actor.id, payload: { actionId: "action.атаки.стычка", actionName: "Стычка", name: "Стальные челюсти", targetIds: [target.id], quick: true, quickReaction: true, quickSource: { techniqueId: "disruptor.hunter", level: 1, name: "Стальные челюсти" } } });
     events.push({ type: "reaction.offer", actorId: target.id, payload: { sourceActorId: actor.id, actionId: "disruptor.hunter.1", participantIds: [actor.id, target.id] } });
     events.push({ type: "attack.pending", actorId: actor.id, payload: { actionId: "action.атаки.стычка", techniqueRuleId: "disruptor.hunter.1", techniqueName: "Стальные челюсти", name: "Стальные челюсти", targetIds: [target.id], roll: clone(roll), damage: Number(roll.successes || 0), effects: Number(actor.techniques?.["disruptor.hunter"] || 0) >= 2 ? ["negative.обездвижен"] : [], quickReaction: true, participantIds: [actor.id, target.id] } });
+    events.push({ type: "roll.public", actorId: actor.id, payload: clone(roll) });
   }
   if (prompt.kind === "wave-rider-consent" && choice === "consent") {
     const owner = actorById(scene, prompt.context?.ownerActorId), entrant = actorById(scene, prompt.context?.entrantActorId), seal = markerById(scene, prompt.context?.markerId);
@@ -1037,7 +1041,7 @@ function resolvePendingAction(scene, data) {
     const outcome = pendingTargetOutcome(scene, pending, targetId), target = outcome.target, resolvedTargetId = target?.id || targetId, traitReaction = outcome.reaction?.enemyTrait;
     if (!outcome.cancelled) {
       const { rawDamage, temporaryArmor, temporaryEvasion, expectedDamage } = outcome;
-      events.push({ type: "damage.apply", actorId: pending.actorId, payload: { targetId: resolvedTargetId, amount: rawDamage, temporaryArmor, temporaryEvasion, dodgeEvasion: actionIdIs(outcome.response,"dodge"), sourceActionId: pending.actionId, participantIds: [pending.actorId, resolvedTargetId] } });
+      events.push({ type: "damage.apply", actorId: pending.actorId, payload: { targetId: resolvedTargetId, amount: rawDamage, temporaryArmor, temporaryEvasion, dodgeEvasion: actionIdIs(outcome.response,"dodge"), attackMiss: expectedDamage === 0, attackPendingId: pending.id, sourceActionId: pending.actionId, participantIds: [pending.actorId, resolvedTargetId] } });
       const attackSucceeded = Number(pending.roll?.successes || 0) > 0 || !pending.roll && rawDamage > 0;
       const enemyFamily = pending.enemyAttackFamily || {};
       if (expectedDamage > 0) successfulEnemyTargets.push(resolvedTargetId);

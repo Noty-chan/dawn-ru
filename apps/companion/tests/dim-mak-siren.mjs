@@ -63,14 +63,18 @@ let miss = baseScene({ "vagabond.dim-mak": 2 });
 miss.actors[0].evasion = 3;
 miss.activeActorId = "enemy";
 miss = Engine.dispatchMany(miss, [
-  { type: "attack.pending", actorId: "enemy", payload: { actionId: "enemy.attack", name: "Атака", targetIds: ["hero"], damage: 1 } },
-  { type: "damage.apply", actorId: "enemy", payload: { targetId: "hero", amount: 1 } },
+  { id: "dim-mak-miss-pending", type: "attack.pending", actorId: "enemy", payload: { actionId: "enemy.attack", name: "Атака", targetIds: ["hero"], damage: 1 } },
+  { type: "damage.apply", actorId: "enemy", payload: { targetId: "hero", amount: 1, attackMiss: true, attackPendingId: "dim-mak-miss-pending" } },
 ]).scene;
 assert.equal(miss.pendingPrompt?.kind, "dim-mak-field-investigation");
 const investigation = Engine.respondRulePrompt(miss, data, { choice: "study" });
 assert.equal(investigation.ok, true);
 miss = Engine.dispatchMany(miss, investigation.events).scene;
 assert.ok(miss.log.some(event => event.type === "action.prepare" && event.payload?.quickReaction && event.payload?.name === "Полевое исследование"));
+const zeroButHit = baseScene({ "vagabond.dim-mak": 2 });
+zeroButHit.activeActorId = "enemy";
+const zeroButHitResolved = Engine.dispatchMany(zeroButHit, [{ id: "zero-hit", type: "attack.pending", actorId: "enemy", payload: { actionId: "enemy.attack", name: "Атака", targetIds: ["hero"], damage: 0 } }, { type: "damage.apply", actorId: "enemy", payload: { targetId: "hero", amount: 0, attackMiss: false, attackPendingId: "zero-hit" } }]).scene;
+assert.notEqual(zeroButHitResolved.pendingPrompt?.kind, "dim-mak-field-investigation", "Zero damage without authoritative miss provenance is not enough to forge Field Investigation");
 
 let siren = baseScene({ "disruptor.siren": 2 });
 siren = Engine.dispatchMany(siren, [{ type: "effect.apply", actorId: "hero", payload: { targetId: "enemy", effect: "negative.испуган" } }]).scene;
