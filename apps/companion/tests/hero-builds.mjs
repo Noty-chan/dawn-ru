@@ -83,13 +83,14 @@ assert.equal(SceneEngine.ruleResourceStatus(charged, "hero", { resource: "creati
 
 const shadowBuild = { "vagabond.assassin": 2, "ruiner.grim-ascendant": 2, "disruptor.hunter": 1 };
 const shadowCoverage = coverageFor(shadowBuild);
-assert.deepEqual(Array.from(shadowCoverage.filter(level => level.automation === "partial"), level => level.id), ["vagabond.assassin.1", "vagabond.assassin.2"], "Assassin I-II stay explicitly partial after the deployment and dice-contract audit");
+assert.deepEqual(Array.from(shadowCoverage.filter(level => level.automation === "partial"), level => level.id), [], "Assassin I-II expose their completed deployment and dice contracts");
 assert.ok(shadowCoverage.every(level => level.automation !== "manual"), "The assassin/ascendant/hunter build has no fully manual level");
 const upgradedShadowBuild = { "vagabond.assassin": 3, "ruiner.grim-ascendant": 2, "disruptor.hunter": 2 };
-assert.deepEqual(Array.from(coverageFor(upgradedShadowBuild).filter(level => level.automation === "partial"), level => level.id), ["vagabond.assassin.1", "vagabond.assassin.2"], "Upgrading Assassin keeps the two audited partial foundations visible");
-const shadowScene = sceneWith(actor({ techniques: shadowBuild, x: 3, y: 3, hp: 8, focus: 0 }), [foe({ x: 4, y: 3 })]);
+assert.deepEqual(Array.from(coverageFor(upgradedShadowBuild).filter(level => level.automation === "partial"), level => level.id), [], "Upgrading Assassin keeps every family level on an implemented path");
+const shadowBeforeDeployment = sceneWith(actor({ techniques: shadowBuild, x: 3, y: 3, hp: 8, focus: 0 }), [foe({ x: 4, y: 3 })]);
+const shadowScene = SceneEngine.dispatch(shadowBeforeDeployment, { type: "actor.move", actorId: "hero", payload: { space: "main", x: 3, y: 4, movement: "Развертывание", placement: true } }).scene;
 const hide = SceneEngine.prepareAction(shadowScene, data, { actorId: "hero", actionId: actionNamed("Скрыться").id });
-assert.equal(hide.ok, true, "Assassin I ignores the ordinary edge requirement on the first Scene action");
+assert.equal(hide.ok, true, "Assassin I ignores the ordinary edge requirement on the first action after Deployment");
 const hidden = SceneEngine.dispatchMany(shadowScene, hide.events).scene;
 assert.equal(hidden.actors[0].ap, 3, "Assassin I makes the opening Hide free and Quick");
 assert.ok(hidden.actors[0].effects.includes("positive.исчез"));
@@ -168,7 +169,8 @@ const assassinCellPlanned = SceneEngine.dispatchMany(assassinCellScene, assassin
 const assassinCellPlacement = SceneEngine.prepareActionPlanReappearance(assassinCellPlanned, { actorId: "hero", destination: { x: 2, y: 2 } });
 assert.equal(assassinCellPlacement.ok, true);
 const assassinCellReady = SceneEngine.dispatchMany(assassinCellPlanned, assassinCellPlacement.events).scene;
-const assassinCellAttack = SceneEngine.prepareActionPlanContinuation(assassinCellReady, data, { actorId: "hero" });
+const assassinCellDice = SceneEngine.diceRollPayload(assassinCellReady, "hero", { scope: "action", baseCount: 4, advantage: 1, hindrance: 0, attribute: "talent", actionId: actionNamed("Стычка").id, criticalAt: 5, targetIds: [] }, { rolls: [6, 5, 4, 2, 1] });
+const assassinCellAttack = SceneEngine.prepareActionPlanContinuation(assassinCellReady, data, { actorId: "hero", context: { roll: assassinCellDice.payload, attribute: "talent" } });
 assert.equal(assassinCellAttack.ok, true, "Assassin reappearance remains compatible with empty-cell Skirmish targets");
 assert.deepEqual(Array.from(assassinCellAttack.events.find(event => event.type === "attack.pending").payload.targetCells), ["3,2"]);
 

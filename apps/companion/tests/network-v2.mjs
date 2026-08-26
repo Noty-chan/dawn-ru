@@ -165,6 +165,30 @@ const canonicalContinuation=Network.materializeIntent(planned,data,continuationI
 const continued=Engine.dispatchMany(planned,canonicalContinuation).scene;
 assert.equal(continued.actors[0].y,1,"multi-step actions are rebuilt from their authoritative plan");
 
+const onlineAssassinScene=structuredClone(baseScene);
+onlineAssassinScene.actors[0].tier=2;
+onlineAssassinScene.actors[0].techniques={"vagabond.assassin":2};
+onlineAssassinScene.actors[0].effects=["positive.исчез"];
+onlineAssassinScene.actors[0].effectStates={"positive.исчез":{duration:"actionOrStartTurn",sources:[{actorId:"hero",sourceActionId:"action.utility.hide"}]}};
+const onlineAssassinPlan=Engine.prepareActionPlan(onlineAssassinScene,data,{actorId:"hero",actionId:actionNamed("Стычка").id,phase:"reappear",context:{targetIds:["enemy"],attackModifierIds:[]}});
+const onlineAssassinPlanIntent=Network.intentFromEvents(onlineAssassinScene,onlineAssassinPlan.events,"Ликвидация: план");
+assert.throws(()=>Network.materializeIntent(onlineAssassinScene,data,onlineAssassinPlanIntent,"player-2",{sceneEngine:Engine}),/не владеет/,"another controller cannot start the Assassin's plan");
+const onlineAssassinPlanned=Engine.dispatchMany(onlineAssassinScene,Network.materializeIntent(onlineAssassinScene,data,onlineAssassinPlanIntent,"player-1",{sceneEngine:Engine})).scene;
+const onlineAssassinPlacement=Engine.prepareActionPlanReappearance(onlineAssassinPlanned,{actorId:"hero",destination:{x:1,y:1}});
+const onlineAssassinPlacementIntent=Network.intentFromEvents(onlineAssassinPlanned,onlineAssassinPlacement.events,"Ликвидация: появление");
+const onlineAssassinReady=Engine.dispatchMany(onlineAssassinPlanned,Network.materializeIntent(onlineAssassinPlanned,data,onlineAssassinPlacementIntent,"player-1",{sceneEngine:Engine})).scene;
+const onlineAssassinDice=Engine.diceRollPayload(onlineAssassinReady,"hero",{scope:"action",baseCount:3,advantage:2,hindrance:0,attribute:"talent",actionId:actionNamed("Стычка").id,criticalAt:5,targetIds:["enemy"]},{rolls:[6,5,4,2,1]});
+const onlineAssassinContinuation=Engine.prepareActionPlanContinuation(onlineAssassinReady,data,{actorId:"hero",context:{roll:onlineAssassinDice.payload,attribute:"talent"}});
+assert.equal(onlineAssassinContinuation.ok,true);
+const onlineAssassinIntent=Network.intentFromEvents(onlineAssassinReady,onlineAssassinContinuation.events,"Ликвидация");
+const transferredAssassin=structuredClone(onlineAssassinReady);transferredAssassin.actors[0].ownerId="player-2";
+assert.throws(()=>Network.materializeIntent(transferredAssassin,data,onlineAssassinIntent,"player-1",{sceneEngine:Engine}),/не владеет/,"a controller transfer invalidates an in-flight Assassin continuation");
+const forgedOnlineAssassin=structuredClone(onlineAssassinIntent);forgedOnlineAssassin.context.roll.dice.criticalAt=6;
+assert.throws(()=>Network.materializeIntent(onlineAssassinReady,data,forgedOnlineAssassin,"player-1",{sceneEngine:Engine}),/Ликвидац|бросок/i,"network authority rejects a forged Assassinate critical threshold");
+const canonicalOnlineAssassin=Network.materializeIntent(onlineAssassinReady,data,onlineAssassinIntent,"player-1",{sceneEngine:Engine});
+const onlineAssassinated=Engine.dispatchMany(onlineAssassinReady,canonicalOnlineAssassin).scene;
+assert.equal(onlineAssassinated.pendingAction?.techniqueRuleId,"vagabond.assassin.2","the network path rebuilds the canonical Assassinate pending Attack");
+
 const wispTurn=structuredClone(baseScene);
 wispTurn.actors[0].techniques={"altruist.will-o-wisp":3};
 wispTurn.markers=[{id:"wisp-online",space:"side",x:0,y:0,markerKind:"ritual",label:"Духовное пламя",source:"altruist.will-o-wisp.1",ruleId:"altruist.will-o-wisp.1",duration:"scene",ownerActorId:"hero",metadata:{spiritTypes:["dreamy"]}}];

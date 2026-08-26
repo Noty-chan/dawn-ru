@@ -138,6 +138,7 @@ function prepareSacrifice(scene, request = {}) {
 
 function prepareActionPlan(scene, data, request = {}) {
   const actor = actorById(scene, request.actorId), action = actionById(data, request.actionId), context = clone(request.context || {}), errors = [];
+  delete context.assassination;
   if (!actor) errors.push("Не выбран исполнитель составного действия.");
   if (!action) errors.push("Неизвестное действие для составного плана.");
   if (scene.pendingActionPlan || scene.pendingAction || scene.pendingPrompt) errors.push("Сначала завершите текущую цепочку правил.");
@@ -148,6 +149,7 @@ function prepareActionPlan(scene, data, request = {}) {
     const planned = request.context?.useCunningPlan ? cunningPlanStatus(scene, data, actor.id, action.id) : null;
     if (request.context?.useCunningPlan ? !planned?.available : !available?.available) errors.push(planned?.reason || available?.reason || "Действие сейчас недоступно.");
     const attack = actionIsAny(action, ["skirmish", "spell", "finish"]), modifiers = attack ? attackModifierStatus(scene, actor.id, context.targetIds || [], context.attackModifierIds || [], { actionId: action.id }) : null;
+    if (attack && hasEffect(scene, actor, "positive.исчез") && Number(actor.techniques?.["vagabond.assassin"] || 0) >= 2) context.assassination = { ruleId: "vagabond.assassin.2", tier: Number(actor.tier || 1) };
     if (modifiers && !modifiers.available) errors.push(modifiers.reason);
     if (modifiers?.actionTransform) {
       const transformedAction = actionByKey(data, modifiers.actionTransform.actionKey), transformedAvailable = transformedAction && availableActions(scene, data, actor.id).find(item => item.id === transformedAction.id);
@@ -177,7 +179,7 @@ function prepareActionPlanReappearance(scene, request = {}) {
   if (modifiers && !modifiers.available) errors.push(modifiers.reason);
   const space = (scene.spaces || []).find(item => item.id === actor?.space);
   if (!space || !destination || !Number.isInteger(destination.x) || !Number.isInteger(destination.y) || destination.x < 0 || destination.y < 0 || destination.x >= Number(space?.width || 0) || destination.y >= Number(space?.height || 0)) errors.push("Выберите клетку появления в пределах поля.");
-  if (actor && destination && !effectCellOccupancyStatus(scene, actor.id, { space: actor.space, x: destination.x, y: destination.y }).available) errors.push("Клетка появления занята.");
+  if (actor && destination && (removedCellKeys(scene, actor.space).has(`${destination.x},${destination.y}`) || !effectCellOccupancyStatus(scene, actor.id, { space: actor.space, x: destination.x, y: destination.y }).available)) errors.push("Клетка появления занята или удалена.");
   if (!assassination && actor && destination && (scene.actors || []).some(item => item.id !== actor.id && effectPresenceStatus(scene, item.id).onField && item.space === actor.space && distance(item, { ...destination, space: actor.space }) <= 1)) errors.push("При появлении клетка не должна быть смежна с персонажем.");
   if (errors.length) return { ok: false, errors, events: [] };
   const needsDestination = ["step", "jump"].some(key => actionIdIs(plan.actionId, key)) || Boolean(modifiers?.requiresDestination), nextPhase = needsDestination ? "destination" : "confirm", context = { ...(plan.context || {}), reappearance: { space: actor.space, x: destination.x, y: destination.y }, destinationKind: modifiers?.requiresDestination ? "attack-modifier" : needsDestination ? "movement" : null };
@@ -206,14 +208,17 @@ function prepareActionPlanContinuation(scene, data, request = {}) {
   const status = actionPlanStatus(scene, request.actorId), plan = status.plan, actor = status.actor, errors = [];
   if (!status.available) errors.push(status.reason);
   if (plan && !["confirm", "destination"].includes(plan.phase)) errors.push("Составной план ещё не готов к подтверждению.");
-  const context = { ...(plan?.context || {}), ...(request.context || {}) }, reappearance = context.reappearance;
+  const context = { ...(plan?.context || {}), ...(request.context || {}) };
+  if (plan?.context?.assassination) context.assassination = clone(plan.context.assassination); else delete context.assassination;
+  const reappearance = context.reappearance, assassination = context.assassination?.ruleId === "vagabond.assassin.2";
   if (!actor) errors.push("Исполнитель составного действия больше не находится на Сцене.");
+  if (assassination && (Number(actor?.techniques?.["vagabond.assassin"] || 0) < 2 || !hasEffect(scene, actor, "positive.исчез") || !["skirmish", "spell", "finish"].some(key => actionIdIs(plan?.actionId, key)))) errors.push("Источник Ликвидации больше не действует.");
   if (actor && hasEffect(scene, actor, "positive.исчез") && !reappearance) errors.push("В составном плане не выбрана клетка появления.");
   if (plan?.phase === "destination" && context.destinationKind === "movement" && !request.destination) errors.push("Выберите клетку назначения действия.");
   if (context.destinationKind === "attack-modifier" && !context.modifierDestination) errors.push("В составном плане не выбрана клетка модификатора.");
   if (errors.length) return { ok: false, errors, events: [] };
   const prefix = reappearance ? [
-    { type: "actor.move", actorId: actor.id, payload: { space: actor.space, x: reappearance.x, y: reappearance.y, movement: Number(actor.techniques?.["vagabond.assassin"] || 0) >= 2 && ["skirmish", "spell", "finish"].some(key => actionIdIs(plan.actionId, key)) ? "Ликвидация" : "Появление перед действием", placement: true, participantIds: [actor.id, ...(context.targetIds || [])] } },
+    { type: "actor.move", actorId: actor.id, payload: { space: actor.space, x: reappearance.x, y: reappearance.y, movement: assassination ? "Ликвидация" : "Появление перед действием", placement: true, participantIds: [actor.id, ...(context.targetIds || [])] } },
     { type: "actor.enter", actorId: actor.id, payload: { space: actor.space, x: reappearance.x, y: reappearance.y, movement: "Появление перед действием", placement: true } },
     { type: "effect.remove", actorId: actor.id, payload: { targetId: actor.id, effect: "positive.исчез", sourceActionId: "core.composite-action.reappear", participantIds: [actor.id] } },
   ] : [];

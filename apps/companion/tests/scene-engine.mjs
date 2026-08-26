@@ -2197,6 +2197,17 @@ const speedOfDark = Engine.prepareTechniqueCombo(speedScene, data, { actorId: "h
 assert.equal(speedOfDark.ok, true);
 assert.equal(speedOfDark.events.some(event => event.type === "resource.spend"), false);
 assert.ok(speedOfDark.events.some(event => event.type === "effect.apply" && event.payload.effect === "positive.невидим"), "Speed of Dark is free and applies Invisible");
+const speedResolved = Engine.dispatchMany(speedScene, speedOfDark.events).scene;
+assert.deepEqual([speedResolved.actors[0].x, speedResolved.actors[0].y], [1, 2]);
+assert.ok(speedResolved.actors[0].effects.includes("positive.невидим"));
+assert.equal(Engine.prepareTechniqueCombo(speedResolved, data, { actorId: "hero", ruleId: "vagabond.assassin.3", destination: { x: 1, y: 3 } }).ok, false, "Speed of Dark cannot be duplicated after its Step has committed");
+const interruptedSpeedScene = structuredClone(speedScene);
+interruptedSpeedScene.log.unshift({ id: "intervening-rest", type: "action.prepare", actorId: "hero", payload: { actionId: actionNamed("Передышка").id, actionName: "Передышка" } });
+assert.equal(Engine.prepareTechniqueCombo(interruptedSpeedScene, data, { actorId: "hero", ruleId: "vagabond.assassin.3", destination: { x: 1, y: 2 } }).ok, false, "An intervening action breaks the exact Hide → Step sequence");
+assert.equal(Engine.prepareTechniqueCombo(speedScene, data, { actorId: "hero", ruleId: "vagabond.assassin.3", destination: { x: 2, y: 1 } }).ok, false, "Speed of Dark rejects an occupied destination before applying Invisible");
+const knockedOutSpeedScene = structuredClone(speedScene);
+knockedOutSpeedScene.actors[0].knockedOut = true;
+assert.equal(Engine.prepareTechniqueCombo(knockedOutSpeedScene, data, { actorId: "hero", ruleId: "vagabond.assassin.3", destination: { x: 1, y: 2 } }).ok, false, "A knocked-out Assassin cannot complete Speed of Dark");
 
 const flashStepScene = structuredClone(scene);
 flashStepScene.actors[0].techniques = { "vagabond.speed-demon": 2 };
@@ -2470,8 +2481,21 @@ assert.equal(completedComposite.actors[0].focus, 51, "Appearance, Effect loss, p
 
 const assassinScene = structuredClone(scene);
 assassinScene.actors[0].techniques = { "vagabond.assassin": 2 };
+assassinScene.actors[0].tier = 2;
 assassinScene.actors[0].effects = ["positive.исчез"];
 assassinScene.actors[0].effectStates = { "positive.исчез": { duration: "actionOrStartTurn", sources: [{ actorId: "hero", sourceActionId: "vagabond.assassin.1" }] } };
+assert.equal(Engine.prepareAction(assassinScene, data, { actorId: "hero", actionId: actionNamed("Стычка").id, targetIds: ["enemy"], destination: { x: 2, y: 2 }, attribute: "talent", roll: { rolls: [6, 6, 6], successes: 99, crits: 3 } }).ok, false, "A direct forged attack cannot bypass the typed Assassinate plan and roll provenance");
+const ambushWithoutDeployment = structuredClone(scene);
+ambushWithoutDeployment.actors[0].techniques = { "vagabond.assassin": 1 };
+assert.equal(Engine.prepareAction(ambushWithoutDeployment, data, { actorId: "hero", actionId: actionNamed("Скрыться").id }).ok, false, "Ambush never activates merely because the Scene journal is empty");
+const ambushDeployment = Engine.dispatch(ambushWithoutDeployment, { type: "actor.move", actorId: "hero", payload: { space: "main", x: 3, y: 3, movement: "Развертывание", placement: true } }).scene;
+const ambushHide = Engine.prepareAction(ambushDeployment, data, { actorId: "hero", actionId: actionNamed("Скрыться").id });
+assert.equal(ambushHide.ok, true, "The first Hide after Deployment ignores its edge requirement");
+assert.equal(ambushHide.events.some(event => event.type === "resource.spend"), false, "Ambush makes that Hide cost-free");
+const ambushConsumed = Engine.dispatch(ambushDeployment, { type: "action.prepare", actorId: "hero", payload: { actionId: actionNamed("Передышка").id, actionName: "Передышка" } }).scene;
+assert.equal(Engine.prepareAction(ambushConsumed, data, { actorId: "hero", actionId: actionNamed("Скрыться").id }).ok, false, "Any other first action after Deployment permanently consumes Ambush for that deployment");
+const ambushRedeployed = Engine.dispatch(ambushConsumed, { type: "actor.move", actorId: "hero", payload: { space: "main", x: 4, y: 4, movement: "Развертывание", placement: true } }).scene;
+assert.equal(Engine.prepareAction(ambushRedeployed, data, { actorId: "hero", actionId: actionNamed("Скрыться").id }).ok, true, "A later canonical Deployment opens a new Ambush window");
 const assassinateDraft = Engine.prepareActionPlan(assassinScene, data, {
   actorId: "hero",
   actionId: actionNamed("Стычка").id,
@@ -2486,11 +2510,30 @@ const assassinateReady = Engine.dispatchMany(assassinatePlanned, adjacentAssassi
 assert.equal(assassinateReady.pendingActionPlan.phase, "confirm");
 assert.equal(assassinateReady.actors[0].ap, 3);
 assert.ok(assassinateReady.actors[0].effects.includes("positive.исчез"), "Assassinate remains reversible before final confirmation");
+const cancelledAssassination = Engine.dispatchMany(assassinateReady, Engine.cancelActionPlan(assassinateReady, { actorId: "hero" }).events).scene;
+assert.equal(cancelledAssassination.actors[0].ap, 3);
+assert.ok(cancelledAssassination.actors[0].effects.includes("positive.исчез"), "Cancelling Assassinate before confirmation leaks neither cost nor Disappeared");
+const assassinationDiceRequest = { scope: "action", baseCount: 4, advantage: 2, hindrance: 0, attribute: "talent", actionId: actionNamed("Стычка").id, criticalAt: 5, targetIds: ["enemy"] };
+const assassinationDice = Engine.diceRollPayload(assassinateReady, "hero", assassinationDiceRequest, { rolls: [6, 5, 4, 3, 2, 1] });
+assert.equal(assassinationDice.available, true);
+const forgedAssassinationCritical = structuredClone(assassinationDice.payload);
+forgedAssassinationCritical.dice.criticalAt = 6;
+assert.equal(Engine.prepareActionPlanContinuation(assassinateReady, data, { actorId: "hero", context: { roll: forgedAssassinationCritical, attribute: "talent" } }).ok, false, "Assassinate rejects a forged ordinary critical threshold");
+const forgedAssassinationAdvantage = structuredClone(assassinationDice.payload);
+forgedAssassinationAdvantage.dice.manualAdvantage = 0;
+assert.equal(Engine.prepareActionPlanContinuation(assassinateReady, data, { actorId: "hero", context: { roll: forgedAssassinationAdvantage, attribute: "talent" } }).ok, false, "Assassinate re-derives its exact Tier Advantage");
+const removedAssassinationCell = Engine.dispatch(assassinateReady, { type: "topology.cells.remove", actorId: "enemy", payload: { id: "assassination-cut", space: "main", cells: ["2,2"], label: "Разрыв перед Ликвидацией" } }).scene;
+assert.equal(Engine.prepareActionPlanContinuation(removedAssassinationCell, data, { actorId: "hero", context: { roll: assassinationDice.payload, attribute: "talent" } }).ok, false, "A reappearance cell removed after selection invalidates Assassinate atomically");
+const lostAssassinationSource = Engine.dispatch(assassinateReady, { type: "effect.remove", actorId: "hero", payload: { targetId: "hero", effect: "positive.исчез" } }).scene;
+assert.equal(Engine.prepareActionPlanContinuation(lostAssassinationSource, data, { actorId: "hero", context: { roll: assassinationDice.payload, attribute: "talent" } }).ok, false, "Losing Disappeared while a plan is open invalidates its Assassinate provenance");
+const staleAssassinationTarget = Engine.dispatch(assassinateReady, { type: "actor.knockout", actorId: "hero", payload: { targetId: "enemy" } }).scene;
+assert.equal(Engine.prepareActionPlanContinuation(staleAssassinationTarget, data, { actorId: "hero", context: { roll: assassinationDice.payload, attribute: "talent" } }).ok, false, "A target knocked out after cell selection invalidates Assassinate before payment");
 const assassinateCommit = Engine.prepareActionPlanContinuation(assassinateReady, data, {
   actorId: "hero",
-  context: { roll: { formula: "6D6 · Ликвидация · крит 5–6", rolls: [6, 5, 4, 3, 2, 1], successes: 3, crits: 2 }, attribute: "talent" },
+  context: { roll: assassinationDice.payload, attribute: "talent" },
 });
 assert.equal(assassinateCommit.ok, true);
+assert.equal(Engine.prepareActionPlanContinuation(structuredClone(assassinateReady), data, { actorId: "hero", context: { roll: structuredClone(assassinationDice.payload), attribute: "talent" } }).ok, true, "An imported/reconnected mid-plan Assassinate retains its typed continuation provenance");
 const assassinated = Engine.dispatchMany(assassinateReady, assassinateCommit.events).scene;
 assert.equal(assassinated.pendingActionPlan, null);
 assert.deepEqual([assassinated.actors[0].x, assassinated.actors[0].y], [2, 2]);
@@ -2498,6 +2541,8 @@ assert.ok(!assassinated.actors[0].effects.includes("positive.исчез"));
 assert.equal(assassinated.actors[0].ap, 2);
 assert.equal(assassinated.pendingAction.responses.enemy.choice, "pending", "Assassinate keeps the ordinary Reaction window");
 assert.ok(assassinated.log.some(event => event.type === "actor.move" && event.payload?.movement === "Ликвидация"));
+assert.equal(assassinated.pendingAction.expectedManualAdvantage, 2, "The authoritative pending Attack persists the exact Assassinate bonus across reconnect");
+assert.equal(Engine.prepareActionPlanContinuation(assassinated, data, { actorId: "hero", context: { roll: assassinationDice.payload, attribute: "talent" } }).ok, false, "A duplicate Assassinate continuation cannot spend or create a second pending Attack");
 
 const grapplerScene = structuredClone(scene);
 grapplerScene.actors[0].techniques = { "bulwark.grappler": 2 };
