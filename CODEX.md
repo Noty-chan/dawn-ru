@@ -60,6 +60,8 @@
 - Не полагайтесь только на `TechniqueEngine.RULES`: у Chronomancer II core-автоматика жила напрямую в dice hooks/triggers при заявлении `manual`. Ищите level id и technique family во всех `scene-*` файлах.
 - Will-O-Wisp II нельзя реализовывать как полный `actor.move` с последующим возвратом: остановка должна усечь путь до выполнения enter/path-триггеров за первой клеткой выхода.
 - Для marker-правил проверяйте не только ручное движение и aura: Spirit Flame I отдельно требует push маркера, когда Attack targeting включает его клетку.
+- В Choke ограничение «you've Snared» относится к дистанционному Body/Talent targeting; отдельное предложение о `[Tier]` damage говорит о любом Snared character. Не переносите ownership между claims.
+- Триггеры вида «when you create a Gas Zone» должны проверять тип созданной зоны и владельца, а не хардкодить единственный известный source id.
 - Удаление/добавление строки в `scene-actions.js` меняет сгенерированные line references во всём `ENEMIES-IMPLEMENTATION-SPEC.md`; большой механический diff ожидаем.
 
 ## Команды проверки
@@ -89,4 +91,5 @@ npm test
 - Пакет 11 Техник: позиции 161–176 (`bulwark.mecha-pilot.2` … `altruist.precognizant.2`) — завершён; исправлены два round-up дефекта и self-Wound Empath II, полный `npm test` прошёл.
 - Пакет 12 Техник: позиции 177–192 (`altruist.precognizant.3` … `altruist.dancer.3`) — завершён; Surgeon I и Alchemist I понижены до partial, Chronomancer II поднят из ошибочного manual в decision, Quick Mix получил отказ и проверку canonical potion id; полный `npm test` прошёл.
 - Пакет 13 Техник: позиции 193–208 (`altruist.fog-walker.1` … `altruist.bardic-savant.1`) — завершён; Will-O-Wisp I–II понижены до partial, исправлены Intense Spirit и согласование Yellow; карты пересобраны, полный `npm test` прошёл.
+- Пакет 14 Техник: позиции 209–224 (`altruist.bardic-savant.2` … `disruptor.cutpurse.2`) — завершён; исправлены ownership bonus Choke II и generic Gas trigger Deposition III; карты пересобраны, полный `npm test` прошёл.
 - Всего предстоит 472 записи: 321 уровень Техник + 151 активируемое правило врагов, то есть 30 пакетов (29 полных по 16 и последний из 8).

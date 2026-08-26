@@ -860,7 +860,7 @@ function triggeredEvents(scene, event, options = {}) {
       events.push({ type: "rule.prompt", actorId: trap.ownerActorId, payload: { id: `prompt-${event.id}-${trap.id}`, kind: "hunter-trap", sourceActorId: trap.ownerActorId, targetId: actor.id, markerId: trap.id, title: "Стальные челюсти", text: `${actor.name} проходит через Малую ловушку: движение остановлено. Использовать бесплатную Быструю Стычку?`, options: ["attack", "pass"], triggerOwnerId: trap.ownerActorId, participantIds: [trap.ownerActorId, actor.id] } });
     }
   }
-  if (event.type === "area.create" && actor && (payload.ruleId === "disruptor.chemist.1" || payload.source === "disruptor.chemist.1") && Number(actor.techniques?.["disruptor.chemist"] || 0) >= 3) {
+  if (event.type === "area.create" && actor && payload.areaType === "gas" && Number(actor.techniques?.["disruptor.chemist"] || 0) >= 3) {
     const targets = (scene.actors || []).filter(target => !target.knockedOut && target.team !== actor.team && target.space === payload.space && (payload.cells || []).includes(`${target.x},${target.y}`));
     for (const target of targets) {
       events.push({ type: "effect.apply", actorId: actor.id, payload: { targetId: target.id, effect: "negative.ослаблен", sourceActionId: "disruptor.chemist.3", participantIds: [actor.id, target.id] } });

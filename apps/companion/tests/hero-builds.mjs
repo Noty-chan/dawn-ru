@@ -265,6 +265,18 @@ assert.equal(choke.ok, true, "A Body Finisher can target the Constrictor's own C
 const choked = SceneEngine.dispatchMany(remoteFinishScene, choke.events).scene;
 assert.equal(choked.pendingAction.damageByTarget.bound, 6, "Choke adds the hero Tier to Finisher damage against their Caught target");
 
+const otherSnareScene = structuredClone(wrapped);
+otherSnareScene.actors[0].tier = 2;
+otherSnareScene.actors.find(item => item.id === "bound").x = 2;
+otherSnareScene.actors.find(item => item.id === "bound").effects = ["negative.пойман"];
+otherSnareScene.actors.find(item => item.id === "bound").effectStates = { "negative.пойман": { duration: "default", sources: [{ actorId: "another-constrictor", actionId: "disruptor.constrictor.1", eventId: "other-snare" }] } };
+const otherSnareFinish = SceneEngine.prepareAction(otherSnareScene, data, {
+  actorId: "hero", actionId: actionNamed("Завершение").id, targetIds: ["bound"], attribute: "body",
+  roll: { formula: "3D6 · Тело", attribute: "body", rolls: [6, 4, 2], successes: 2, crits: 1 },
+});
+assert.equal(otherSnareFinish.ok, true);
+assert.equal(otherSnareFinish.events.find(event => event.type === "attack.pending").payload.damageByTarget.bound, 6, "Choke adds Tier damage to any Snared target, while remote targeting remains restricted to the Constrictor's own Snare");
+
 let finished = SceneEngine.dispatchMany(choked, SceneEngine.respondReaction(choked, data, { actorId: "bound", choice: "pass" }).events).scene;
 finished = SceneEngine.dispatchMany(finished, SceneEngine.resolvePendingAction(finished, data).events).scene;
 const mutable = TechniqueEngine.preview(finished, { actorId: "hero", ruleId: "disruptor.autophage.3", rolls: [2, 5] });

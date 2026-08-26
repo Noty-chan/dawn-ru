@@ -1757,7 +1757,7 @@
 - **Заявленный статус:** `full` (полная).
 - **Текущий адаптер:** `disruptor.chemist.3` · `passive` · {"kind":"passive"}.
 - **Готовые foundations:** `target-validation`, `event-participants`, `spatial-cells`, `effect-state`, `effect-lifecycle`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `damage-pipeline`.
-- **Нужно добавить:** Для кода явный следующий шаг не выведен автоматически; нужны direct pos/neg/boundary тесты и evidence до повышения доверия.
+- **Нужно добавить:** До повторного аудита Осаждение срабатывало только для зон с source/ruleId Сублимации, хотя канон говорит о любой создаваемой владельцем зоне Газа; trigger расширен по areaType=gas и закреплён regression с другим источником.
 
 ### Душитель (Constrictor) `disruptor.constrictor`
 
@@ -1773,7 +1773,7 @@
 - **Заявленный статус:** `full` (полная).
 - **Текущий адаптер:** `disruptor.constrictor.2` · `passive` · {"kind":"passive"}; Завершения Телом и Талантом игнорируют дальность для собственных Пойманных целей, а любое Завершение наносит им дополнительный урон Ступени..
 - **Готовые foundations:** `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `trigger-router`, `damage-pipeline`, `action-modifier`.
-- **Нужно добавить:** Для кода явный следующий шаг не выведен автоматически; нужны direct pos/neg/boundary тесты и evidence до повышения доверия.
+- **Нужно добавить:** До повторного аудита дополнительный урон Ступени ошибочно требовал Пойман именно от этого Душителя, хотя ограничение владельца относится только к дистанционному targeting; исправлено для любого Пойманного персонажа с отдельным regression.
 
 #### 3. Скручивающий удар (Twisting Impact) `disruptor.constrictor.3`
 

@@ -2284,7 +2284,7 @@ assert.equal(executedByGas.actors[0].focus, 52, "Experimental Mixture grants 2 F
 const chemistDeposition = structuredClone(scene);
 chemistDeposition.actors[0].techniques = { "disruptor.chemist": 3 };
 chemistDeposition.actors[1].x = 2; chemistDeposition.actors[1].y = 2; chemistDeposition.actors[1].hp = 10;
-const deposited = Engine.dispatchMany(chemistDeposition, [{ type: "area.create", actorId: "hero", payload: { id: "deposition-gas", space: "main", areaType: "gas", label: "Сублимация", source: "disruptor.chemist.1", ruleId: "disruptor.chemist.1", duration: "nextTurn", ownerActorId: "hero", cells: ["2,2"] } }]).scene;
+const deposited = Engine.dispatchMany(chemistDeposition, [{ type: "area.create", actorId: "hero", payload: { id: "deposition-gas", space: "main", areaType: "gas", label: "Другой источник Газа", source: "test.other-gas", ruleId: "test.other-gas", duration: "nextTurn", ownerActorId: "hero", cells: ["2,2"] } }]).scene;
 assert.ok(deposited.actors[1].effects.includes("negative.ослаблен"), "Deposition immediately applies Weakened inside newly created Gas");
 assert.equal(deposited.actors[1].hp, 9, "Deposition immediately deals Mind damage through the normal Armor pipeline");
 
