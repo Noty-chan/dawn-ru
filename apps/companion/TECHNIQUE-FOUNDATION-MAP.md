@@ -681,15 +681,15 @@ SHA-256 проверенных файлов: `8ef65ff26b48171cd938d7c8c3cdd7f49f
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
 | 1 | "Где вы?" ("Where Are You?") | проверено | ручная | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `usage-limits`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier` |
-| 2 | "Что вы делаете?" ("What Do You Do?") | проверено | ручная | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `trigger-router` |
-| 3 | "Кто они?" ("Who Are They?") | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle`, `effect-state`, `effect-lifecycle`, `usage-limits`, `trigger-router`, `turn-lifecycle`, `choice-flow`, `action-modifier` |
+| 2 | "Что вы делаете?" ("What Do You Do?") | проверено | частичная | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `trigger-router` |
+| 3 | "Кто они?" ("Who Are They?") | проверено | частичная | `target-validation`, `event-participants`, `movement-lifecycle`, `effect-state`, `effect-lifecycle`, `usage-limits`, `trigger-router`, `turn-lifecycle`, `choice-flow`, `action-modifier` |
 
 ### Жнец (`disruptor.reaper`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
 | 1 | Посев (Sow) | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle`, `effect-state`, `effect-lifecycle`, `usage-limits`, `trigger-router`, `turn-lifecycle`, `action-modifier` |
-| 2 | Уход (Tend) | проверено | ручная | `spatial-range`, `effect-state`, `effect-lifecycle`, `trigger-router`, `turn-lifecycle`, `duration-scheduler` |
+| 2 | Уход (Tend) | проверено | частичная | `spatial-range`, `effect-state`, `effect-lifecycle`, `trigger-router`, `turn-lifecycle`, `duration-scheduler` |
 | 3 | Жатва (Reap) | проверено | ручная | `target-validation`, `event-participants`, `spatial-range`, `resource-check`, `movement-lifecycle`, `effect-state`, `effect-lifecycle`, `usage-limits`, `trigger-router`, `turn-lifecycle`, `action-modifier` |
 
 ### Мастер тактики (`disruptor.tactical-master`)
@@ -704,9 +704,9 @@ SHA-256 проверенных файлов: `8ef65ff26b48171cd938d7c8c3cdd7f49f
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Переливание (Transfusion) | проверено | полная | `resource-check`, `alternate-resource`, `effect-state`, `effect-lifecycle`, `trigger-router`, `damage-pipeline`, `action-modifier` |
-| 2 | Перенапряжение (Overexert) | проверено | с выбором | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier`, `dice-hooks` |
-| 3 | Рожденный изменчивой плотью (Born Of Mutable Flesh) | проверено | с выбором | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `usage-limits`, `trigger-router`, `scene-lifecycle`, `choice-flow`, `damage-pipeline`, `action-modifier` |
+| 1 | Переливание (Transfusion) | проверено | частичная | `resource-check`, `alternate-resource`, `effect-state`, `effect-lifecycle`, `trigger-router`, `damage-pipeline`, `action-modifier` |
+| 2 | Перенапряжение (Overexert) | проверено | частичная | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier`, `dice-hooks` |
+| 3 | Рожденный изменчивой плотью (Born Of Mutable Flesh) | проверено | частичная | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `usage-limits`, `trigger-router`, `scene-lifecycle`, `choice-flow`, `damage-pipeline`, `action-modifier` |
 
 ### Говорящий с землей (`disruptor.earth-speaker`)
 

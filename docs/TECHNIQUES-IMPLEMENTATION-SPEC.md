@@ -1816,17 +1816,17 @@
 
 #### 2. "Что вы делаете?" ("What Do You Do?") `disruptor.mind-breaker.2`
 
-- **Заявленный статус:** `manual` (ручная).
-- **Текущий адаптер:** нет записи в `RULES`.
+- **Заявленный статус:** `partial` (частичная).
+- **Текущий адаптер:** `disruptor.mind-breaker.2` · `passive` · {"kind":"passive"}; Source-aware Изгнание производит Помечен/Усилен, но канонический способ наложить Изгнание уровнем I отсутствует..
 - **Готовые foundations:** `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `trigger-router`.
-- **Нужно добавить:** Зарегистрировать отдельный adapter (trigger → validation → events/resolver) и прямые тесты; общая инфраструктура сама правило не исполняет.
+- **Нужно добавить:** Реестр заявлял manual, хотя source-aware Изгнание уже производит Помечен для врага и Усилен для союзника. Добавлен partial-adapter; уровень I и полный пользовательский путь отсутствуют.
 
 #### 3. "Кто они?" ("Who Are They?") `disruptor.mind-breaker.3`
 
-- **Заявленный статус:** `manual` (ручная).
-- **Текущий адаптер:** нет записи в `RULES`.
+- **Заявленный статус:** `partial` (частичная).
+- **Текущий адаптер:** `disruptor.mind-breaker.3` · `passive` · {"kind":"passive"}; Единственный Изгнанный сохраняет эффект в начале Хода; перемещение двух целей и принудительная Атака отсутствуют..
 - **Готовые foundations:** `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `usage-limits`, `trigger-router`, `choice-flow`, `action-modifier`.
-- **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `movement-lifecycle`, `turn-lifecycle`.
+- **Нужно добавить:** Реестр заявлял manual, хотя единственная source-owned Изгнанная цель уже сохраняет эффект в начале Хода. Добавлен partial-adapter; end-Turn перемещение и принудительная Атака отсутствуют.
 
 ### Жнец (Reaper) `disruptor.reaper`
 
@@ -1839,10 +1839,10 @@
 
 #### 2. Уход (Tend) `disruptor.reaper.2`
 
-- **Заявленный статус:** `manual` (ручная).
-- **Текущий адаптер:** нет записи в `RULES`.
+- **Заявленный статус:** `partial` (частичная).
+- **Текущий адаптер:** `disruptor.reaper.2` · `passive` · {"kind":"passive"}; Помечен удерживается на враге в пределах 3 клеток; уровень I, создающий каноническую Метку, не автоматизирован..
 - **Готовые foundations:** `spatial-range`, `effect-state`, `effect-lifecycle`, `trigger-router`, `duration-scheduler`.
-- **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `turn-lifecycle`.
+- **Нужно добавить:** Реестр заявлял manual, хотя effect lifecycle уже удерживает Помечен на враге в пределах 3 клеток. Добавлен partial-adapter; источник Метки уровнем I и surface evidence отсутствуют.
 
 #### 3. Жатва (Reap) `disruptor.reaper.3`
 
@@ -1878,24 +1878,24 @@
 
 #### 1. Переливание (Transfusion) `disruptor.autophage.1`
 
-- **Заявленный статус:** `full` (полная).
-- **Текущий адаптер:** `disruptor.autophage.1.foundation` · `foundation` · {"kind":"foundation","foundation":"alternate-resource","resource":"health","resourceLabel":"Здоровье","initial":0,"replaces":["focus"]}; Трата Фокуса создаёт оплату уроном 2:1 через конвейер урона; получение Фокуса создаёт лечение 1:1, а успешная Атака цели с двумя Эффектами запускает Регенерацию..
+- **Заявленный статус:** `partial` (частичная).
+- **Текущий адаптер:** `disruptor.autophage.1.foundation` · `foundation` · {"kind":"foundation","foundation":"alternate-resource","resource":"health","resourceLabel":"Здоровье","initial":0,"replaces":["focus"]}; Замена Фокуса Здоровьем работает, но Регенерация ошибочно требует прошедшего урона вместо успешной Атаки..
 - **Готовые foundations:** `resource-check`, `alternate-resource`, `effect-state`, `effect-lifecycle`, `trigger-router`, `damage-pipeline`, `action-modifier`.
-- **Нужно добавить:** Для кода явный следующий шаг не выведен автоматически; нужны direct pos/neg/boundary тесты и evidence до повышения доверия.
+- **Нужно добавить:** Заявление full понижено до partial: замена Фокуса работает, но Регенерация требует `expectedDamage > 0`, тогда как канон требует успешной Атаки и не отменяется полной Бронёй/Уворотом.
 
 #### 2. Перенапряжение (Overexert) `disruptor.autophage.2`
 
-- **Заявленный статус:** `decision` (решение).
-- **Текущий адаптер:** `disruptor.autophage.2` · `autophage-overexert` · {"kind":"autophage-overexert"}.
+- **Заявленный статус:** `partial` (частичная).
+- **Текущий адаптер:** `disruptor.autophage.2` · `autophage-overexert` · {"kind":"autophage-overexert"}; Эффект и цена реализованы, но адаптер принимает устаревший успешный удар из журнала вместо текущего окна Атаки..
 - **Готовые foundations:** `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier`, `dice-hooks`.
-- **Нужно добавить:** Для кода явный следующий шаг не выведен автоматически; нужны direct pos/neg/boundary тесты и evidence до повышения доверия.
+- **Нужно добавить:** Заявление decision понижено до partial: preview ищет любой прежний успешный удар в журнале Сцены и не доказывает незавершённое окно текущей Атаки; возможна поздняя повторная активация.
 
 #### 3. Рожденный изменчивой плотью (Born Of Mutable Flesh) `disruptor.autophage.3`
 
-- **Заявленный статус:** `decision` (решение).
-- **Текущий адаптер:** `disruptor.autophage.3` · `autophage-overexert` · {"kind":"autophage-overexert","double":true}.
+- **Заявленный статус:** `partial` (частичная).
+- **Текущий адаптер:** `disruptor.autophage.3` · `autophage-overexert` · {"kind":"autophage-overexert","double":true}; Двойной эффект, цели и once/Scene реализованы, но запуск не связан с текущим Завершением и наследует stale-trigger уровня II..
 - **Готовые foundations:** `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `usage-limits`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier`.
-- **Нужно добавить:** Сохранить существующий adapter и добавить недостающий контракт: `scene-lifecycle`.
+- **Нужно добавить:** Заявление decision понижено до partial: once/Scene и выбор всех врагов с большим HP есть, но запуск наследует stale-hit уровня II и не атомарен с текущим Завершением.
 
 ### Говорящий с землей (Earth Speaker) `disruptor.earth-speaker`
 

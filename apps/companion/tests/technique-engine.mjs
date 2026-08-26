@@ -49,6 +49,12 @@ for (const [id, automation] of [
   ["altruist.chronomancer.2", "decision"],
   ["altruist.will-o-wisp.1", "partial"],
   ["altruist.will-o-wisp.2", "partial"],
+  ["disruptor.autophage.1", "partial"],
+  ["disruptor.autophage.2", "partial"],
+  ["disruptor.autophage.3", "partial"],
+  ["disruptor.mind-breaker.2", "partial"],
+  ["disruptor.mind-breaker.3", "partial"],
+  ["disruptor.reaper.2", "partial"],
   ["vagabond.knife-juggler.2", "partial"],
   ["altruist.alchemist.2", "partial"],
   ["disruptor.chemist.2", "partial"],
@@ -57,7 +63,7 @@ for (const [id, automation] of [
 ]) {
   assert.equal(coverage.find(entry => entry.id === id)?.automation, automation, `${id} remains honestly downgraded until its missing canonical branch is implemented and evidenced`);
 }
-assert.equal(coverage.filter(entry => entry.automation !== "manual").length, 108, "only levels with a registered runtime rule may claim any automation");
+assert.equal(coverage.filter(entry => entry.automation !== "manual").length, 111, "only levels with a registered runtime rule may claim any automation");
 assert.ok(coverage.some(entry => entry.mechanics?.areas?.length));
 assert.ok(coverage.some(entry => entry.mechanics?.clocks?.length));
 assert.equal(coverage.filter(entry => entry.foundationPlan?.capabilities?.length).length, 321, "every Technique level must have a foundation plan");

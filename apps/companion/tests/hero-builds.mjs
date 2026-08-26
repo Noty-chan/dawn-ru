@@ -238,7 +238,7 @@ const noSecondOffer = SceneEngine.dispatchMany(declined, [{ type: "action.resolv
 assert.equal(noSecondOffer.pendingPrompt, null, "Declining the first Scene offer cannot be retried on a later Charge");
 
 const autophageConstrictorBuild = { "disruptor.autophage": 3, "disruptor.constrictor": 2 };
-assert.ok(coverageFor(autophageConstrictorBuild).every(level => !["manual", "partial"].includes(level.automation)), "Autophage III plus Constrictor II has no manual or partial level");
+assert.ok(coverageFor(autophageConstrictorBuild).filter(level => level.techniqueId === "disruptor.autophage").every(level => level.automation === "partial"), "Autophage I-III remain partial until success timing and stale-trigger defects are fixed");
 const constrictorScene = sceneWith(actor({ techniques: autophageConstrictorBuild, tier: 2, hp: 20, maxHp: 20, guts: 4, focus: 0 }), [
   foe({ id: "bound", name: "Связанная цель", x: 2, y: 1, hp: 35, maxHp: 35, effects: ["negative.порчен", "negative.замедлен"] }),
 ]);
