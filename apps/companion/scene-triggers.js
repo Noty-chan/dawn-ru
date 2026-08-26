@@ -634,7 +634,10 @@ function triggeredEvents(scene, event, options = {}) {
     const targets = [...new Set(payload.targetIds || [])].map(id => actorById(scene, id)).filter(Boolean), priorResolve = (scene.log || []).find(logged => logged.id !== event.id && logged.type === "action.resolve" && logged.actorId === actor.id);
     const priorMove = (scene.log || []).find(logged => logged.type === "actor.move" && logged.actorId === actor.id);
     const drama = Number(payload.roll?.crits || 0) >= 2;
-    const dance = Boolean(targets.length && priorMove && (!priorResolve || (scene.log || []).indexOf(priorMove) < (scene.log || []).indexOf(priorResolve)) && targets.some(target => distance(actor, target) <= 1));
+    const dance = Boolean(targets.length && priorMove && (!priorResolve || (scene.log || []).indexOf(priorMove) < (scene.log || []).indexOf(priorResolve)) && targets.some(target => {
+      const from = priorMove.payload?.from;
+      return from && from.space === target.space && Math.abs(Number(from.x) - Number(target.x)) + Math.abs(Number(from.y) - Number(target.y)) > 1 && distance(actor, target) <= 1;
+    }));
     const finale = Number(actor.ap || 0) === 0;
     const previousTurn = [], log = scene.log || [];
     let foundCurrentStart = false;

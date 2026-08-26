@@ -648,3 +648,26 @@
 | `vagabond.cunning-fighter.2` | совпадает | full → core-reviewed | Level gate снимает once/Turn limit; доверие ограничено неполным L1 user path и отсутствием surface evidence. |
 
 Итог пакета: 16/16 записей рассмотрены отдельно; RU↔EN расхождений нет; найден и исправлен 1 граничный дефект с regression; evidence/certified не повышались.
+
+### Пакет 6 — уровни 81–96
+
+| Правило | RU↔EN | Заявление → результат | Точное расхождение / недостающее доказательство |
+| --- | --- | --- | --- |
+| `vagabond.cunning-fighter.3` | совпадает с PDF-стр. 74 | manual → confirmed-manual | Нет first/Turn Investigate hook, оплаты 1 Focus, выбора 2×2 зоны в пределах Mind и массового knowledge-state; нужны empty/occupied/noncanonical cells и turn reset. |
+| `vagabond.egomaniac.1` | совпадает | decision → core-tested, defect fixed | Исправлен false positive «Танца»: adjacent→adjacent больше не считается входом в смежность. Нужны отдельные pos/neg/boundary для всех четырёх условий, hit без damage, KO/stale/duplicate и import/reconnect. |
+| `vagabond.egomaniac.2` | совпадает | decision → core-tested | Массовый выбор и очистка часов проверены; не закрыты ровно 3/за пределами 3, смешанные команды, KO после prompt, повтор ответа и восстановление pending choice. |
+| `vagabond.egomaniac.3` | совпадает | decision → core-tested | Перенос 6 сегментов через два заполнения и отключение проверены; отсутствуют Tension=0, отказ, смена контролируемого героя, прерывание/KO и scene-reset после import. |
+| `vagabond.enchained.1` | совпадает с PDF-стр. 75 | full → core-reviewed | Anchor/range/occupancy/equidistance и расход Cast есть; нет прямых тестов removed/noncanonical destination, KO между двумя кликами, cancel до оплаты, stale network intent и import незавершённого выбора. Не certified. |
+| `vagabond.enchained.2` | совпадает | manual → confirmed-manual | Нет отказа от damage, cost→0 и парного пошагового move/pull до adjacency; нужны blocked path, уже adjacent, KO и прерывание цепочки. |
+| `vagabond.enchained.3` | совпадает | manual → confirmed-manual | Нет доказательства движения именно от Cast, связанной следующей Skirmish, Tier×2 Advantage и push 4 только при success; нужны смена цели и разрыв combo. |
+| `vagabond.knife-juggler.1` | совпадает | partial → core-reviewed-partial | Alternate resource, spend 1, cost0, single target/range4 работают; нет полного запрета обычного targeting, нулевого ресурса, cancel-before-spend и scene reset/reconnect evidence. |
+| `vagabond.knife-juggler.2` | совпадает | partial → confirmed-partial | Известный дефект остаётся: marker всегда ставится в клетку персонажа-цели, нет канонического выбора свободной смежной клетки. Pickup не закрыт для occupied/removed destination, stale marker и duplicate response. |
+| `vagabond.knife-juggler.3` | совпадает | decision → core-reviewed | Exit trigger, teleport и оплаченная Swift Skirmish существуют; нет direct tests для enemy-only, marker ownership, KO/stale marker, недостаточной стоимости, запрета Throw и повторного ответа. |
+| `vagabond.malicious-mimic.1` | совпадает | manual → confirmed-manual | Нет успешного Dodge/Clash capture, inventory Impression по имени врага, costless copied Attack, enemy-context execution и scene expiry. |
+| `vagabond.malicious-mimic.2` | совпадает | manual → confirmed-manual | Нет matching-name lookup и +2 Evasion только при попытке Dodge соответствующего врага; нужны одинаковые имена, потраченное Impression и Clash negative. |
+| `vagabond.malicious-mimic.3` | совпадает | manual → confirmed-manual | Нет spend 1 AP, выбора Ace вместо Attack и копирования его полного контракта; нужны insufficient AP, cancel-before-pay и одноразовое расходование Impression. |
+| `vagabond.modified-meister.1` | совпадает с PDF-стр. 76 | partial → core-reviewed-partial | Heat substitution/reduction и explosion path есть; не закрыты все источники Focus, скачок через 6, self/opponents only, одновременно KO, scene reset и повтор после import. |
+| `vagabond.modified-meister.2` | совпадает | decision → core-reviewed | Skirmish/Finisher option, floor(Mind/2), Blighted targets и Heat за non-Hits реализованы; нужны cancel, нулевые/изменённые dice, removed target after reaction, duplicate resolve и network replay. |
+| `vagabond.modified-meister.3` | совпадает | decision → core-reviewed | Tension gate, срок через следующий Turn, damage→Heat и альтернативный explosion есть; не закрыты один event с self-damage, точная граница срока/extra turn, KO before movement, cancel и reconnect/import pending explosion. |
+
+Итог пакета: 16/16 уровней сверены с английским оригиналом и русским каноном; перевод смысловых расхождений не содержит. Один воспроизводимый false positive «Пиковой формы» исправлен и покрыт отрицательным regression. Статусы не повышались, `certified` и evidence не добавлялись: ни один уровень пакета не имеет полного UI/network/save-load пути.

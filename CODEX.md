@@ -73,5 +73,6 @@ npm test
 - Пакет 2 Техник: позиции 17–32 (`powerhouse.struggler.2` … `powerhouse.breacher.2`) — завершён; полный `npm test` прошёл, коммит `1e1849c0611f345e0b8ef8fb5e005e96cdcbf464`.
 - Пакет 3 Техник: позиции 33–48 (`powerhouse.breacher.3` … `powerhouse.predator.3`) — завершён; полный `npm test` прошёл, коммит `62d146b02bd79a8252bdf31f8c0a8ca8f66b42db`.
 - Пакет 4 Техник: позиции 49–64 (`powerhouse.improvisational-fighter.1` … `vagabond.skirmisher.1`) — завершён; Assassin I–II понижены до partial, полный `npm test` прошёл, коммит `85e56d2ee6b33489410ed922a61489d61010ad9f`.
-- Пакет 5 Техник: позиции 65–80 (`vagabond.skirmisher.2` … `vagabond.cunning-fighter.2`) — содержательно проверен; Untouchable II исправлен, полный `npm test` прошёл.
+- Пакет 5 Техник: позиции 65–80 (`vagabond.skirmisher.2` … `vagabond.cunning-fighter.2`) — завершён; Untouchable II исправлен, полный `npm test` прошёл, коммит `03242bf92406f32df0223940c5dbb55649253ad7`.
+- Пакет 6 Техник: позиции 81–96 (`vagabond.cunning-fighter.3` … `vagabond.modified-meister.3`) — содержательно проверен; исправлена причинность условия «Танец» у Egomaniac I, полный `npm test` прошёл.
 - Всего предстоит 472 записи: 321 уровень Техник + 151 активируемое правило врагов, то есть 30 пакетов (29 полных по 16 и последний из 8).

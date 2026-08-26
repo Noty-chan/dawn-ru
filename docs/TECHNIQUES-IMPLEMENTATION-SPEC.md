@@ -702,7 +702,7 @@
 - **Заявленный статус:** `decision` (решение).
 - **Текущий адаптер:** `vagabond.egomaniac.1.foundation` · `foundation` · {"kind":"foundation","foundation":"clock","clockId":"vagabond.egomaniac.style","size":4,"initial":0}; Четыре условия заполняют Стиль, попадание очищает сегмент, а полные часы запускают получение ОД и выбор прямого перемещения..
 - **Готовые foundations:** `target-validation`, `event-participants`, `resource-check`, `rule-clock`, `trigger-router`, `action-modifier`, `action-history`, `dice-hooks`.
-- **Нужно добавить:** Сохранить существующий adapter и добавить недостающий контракт: `movement-lifecycle`, `turn-lifecycle`, `scene-lifecycle`.
+- **Нужно добавить:** До повторного аудита условие «Танец» принимало любое недавнее перемещение при текущей смежности; теперь требуется переход предыдущим действием из несмежной клетки в смежность. Добавлен отрицательный regression для adjacent→adjacent.
 
 #### 2. Дразнить, красоваться, устрашать (Taunt, Flaunt, Daunt) `vagabond.egomaniac.2`
 

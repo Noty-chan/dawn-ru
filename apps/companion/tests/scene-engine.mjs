@@ -1045,6 +1045,15 @@ assert.equal(stylish.pendingPrompt?.kind, "egomaniac-style-full");
 const stylishProvoke = Engine.dispatchMany(stylish, Engine.respondRulePrompt(stylish, data, { choice: "provoke" }).events).scene;
 assert.equal(Engine.clockStatus(stylishProvoke, "hero", "vagabond.egomaniac.style").value, 0);
 assert.ok(stylishProvoke.actors[1].effects.includes("negative.спровоцирован"));
+const falseDanceScene = structuredClone(scene);
+falseDanceScene.actors[0].techniques = { "vagabond.egomaniac": 1 };
+falseDanceScene.actors[0].ruleClocks = { "vagabond.egomaniac.style": { clockId: "vagabond.egomaniac.style", label: "Стиль", size: 4, minimumSize: 4, initial: 0, resetScope: "scene", active: true, value: 0 } };
+falseDanceScene.log = [
+  { id: "adjacent-move", type: "actor.move", actorId: "hero", payload: { from: { space: "main", x: 2, y: 2 }, space: "main", x: 1, y: 1 } },
+  { id: "prior-action", type: "action.resolve", actorId: "hero", payload: { actionId: actionNamed("Шаг").id, name: "Шаг" } },
+];
+const falseDance = Engine.dispatchMany(falseDanceScene, [{ type: "action.resolve", actorId: "hero", payload: { actionId: actionNamed("Стычка").id, name: "Стычка", roll: { crits: 0 }, targetIds: ["enemy"] } }]).scene;
+assert.equal(Engine.clockStatus(falseDance, "hero", "vagabond.egomaniac.style").value, 1, "Dance requires the preceding action to move the hero from non-adjacent into adjacency; merely remaining adjacent does not qualify");
 const finaleScene = structuredClone(scene);
 finaleScene.tension = 3;
 finaleScene.actors[0].techniques = { "vagabond.egomaniac": 3 };
