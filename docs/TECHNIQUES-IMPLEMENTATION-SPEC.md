@@ -1116,9 +1116,9 @@
 #### 1. Чего не хватает Духу (For What The Spirit Lacks) `bulwark.mundane.1`
 
 - **Заявленный статус:** `partial` (частичная).
-- **Текущий адаптер:** `bulwark.mundane.1.foundation` · `foundation` · {"kind":"foundation","foundation":"alternate-resource","resource":"grit","resourceLabel":"Упорство","initialFormula":"1 + floor(body / 2)","replaces":["focus","ap"]}; Общий запас оплачивает Фокус и ОД, сбрасывается в начале Раунда; Передышка и Зарядка не пополняют его..
+- **Текущий адаптер:** `bulwark.mundane.1.foundation` · `foundation` · {"kind":"foundation","foundation":"alternate-resource","resource":"grit","resourceLabel":"Упорство","initialFormula":"1 + ceil(body / 2)","replaces":["focus","ap"]}; Общий запас оплачивает Фокус и ОД, округляет [Тело / 2] вверх, сбрасывается в начале Раунда; Передышка и Зарядка не пополняют его..
 - **Готовые foundations:** `resource-check`, `alternate-resource`, `action-modifier`.
-- **Нужно добавить:** Сохранить существующий adapter и добавить недостающий контракт: `turn-lifecycle`, `derived-stats`.
+- **Нужно добавить:** До повторного аудита `[Тело / 2]` ошибочно округлялось вниз, вопреки общему правилу Always Round Up (PDF-стр. 22); исправлено на `ceil` и закреплено нечётным Body regression.
 
 #### 2. Копнуть глубже, стоять твердо (Dig Deep, Stand Firm) `bulwark.mundane.2`
 
@@ -1357,7 +1357,7 @@
 - **Заявленный статус:** `decision` (решение).
 - **Текущий адаптер:** `altruist.empath.2` · `passive` · {"kind":"passive"}; После внешней Раны или Эффекта стол предлагает бесплатный Прорыв в смежную клетку..
 - **Готовые foundations:** `target-validation`, `event-participants`, `spatial-range`, `resource-check`, `trigger-router`, `reaction-window`, `damage-pipeline`, `action-modifier`.
-- **Нужно добавить:** Сохранить существующий adapter и добавить недостающий контракт: `movement-lifecycle`.
+- **Нужно добавить:** До повторного аудита самонанесённая Рана открывала Protective Response, хотя канон исключает source=self; добавлена проверка источника и отрицательный regression.
 
 #### 3. "Ты в порядке?" ("Are You Ok?") `altruist.empath.3`
 
@@ -1403,7 +1403,7 @@
 - **Заявленный статус:** `decision` (решение).
 - **Текущий адаптер:** `altruist.heavenly-saint.2` · `passive` · {"kind":"passive"}; Заклинание по союзникам использует лечебное разрешение и явный выбор снимаемых Эффектов..
 - **Готовые foundations:** `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier`, `dice-hooks`.
-- **Нужно добавить:** Для кода явный следующий шаг не выведен автоматически; нужны direct pos/neg/boundary тесты и evidence до повышения доверия.
+- **Нужно добавить:** До повторного аудита лечение `[Успехи / 2]` ошибочно округлялось вниз; исправлено на Always Round Up и закреплено regression с 3 Успехами → 2 лечения.
 
 #### 3. Великое восстановление (Grand Restoration) `altruist.heavenly-saint.3`
 

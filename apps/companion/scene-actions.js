@@ -516,7 +516,7 @@ function prepareAction(scene, data, request = {}) {
     if (heavenlyHealing) {
       const removalMap = request.removeEffectIdsByTarget && typeof request.removeEffectIdsByTarget === "object" ? request.removeEffectIdsByTarget : {};
       targets.forEach(target => {
-        events.push({ type: "actor.heal", actorId: actor.id, payload: { targetId: target.id, amount: Math.floor(Number(request.roll?.successes || 0) / 2), sourceActionId: heavenlyLevel >= 3 && actionIs(action, "finish") ? "altruist.heavenly-saint.3" : "altruist.heavenly-saint.2", participantIds: [actor.id, target.id] } });
+        events.push({ type: "actor.heal", actorId: actor.id, payload: { targetId: target.id, amount: Math.ceil(Number(request.roll?.successes || 0) / 2), sourceActionId: heavenlyLevel >= 3 && actionIs(action, "finish") ? "altruist.heavenly-saint.3" : "altruist.heavenly-saint.2", participantIds: [actor.id, target.id] } });
         [...new Set(removalMap[target.id] || [])].filter(effect => (target.effects || []).includes(effect)).forEach(effect => events.push({ type: "effect.remove", actorId: actor.id, payload: { targetId: target.id, effect, sourceActionId: "altruist.heavenly-saint.2", participantIds: [actor.id, target.id] } }));
         if (heavenlyLevel >= 3 && actionIs(action, "finish")) {
           events.push({ type: "effect.apply", actorId: actor.id, payload: { targetId: target.id, effect: "positive.регенерирует", sourceActionId: "altruist.heavenly-saint.3", participantIds: [actor.id, target.id] } });

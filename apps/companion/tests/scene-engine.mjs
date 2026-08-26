@@ -764,6 +764,11 @@ const cancelledQueuedTrigger = Engine.dispatchMany(interruptedArbitration, Engin
 assert.equal(cancelledQueuedTrigger.pendingPrompt, null);
 assert.equal(cancelledQueuedTrigger.triggerQueue.length, 0);
 assert.ok(cancelledQueuedTrigger.log.some(event => event.type === "rule.trigger" && event.payload?.triggerId === "altruist.empath.2.protective-response" && event.payload?.status === "cancelled" && /Источник/.test(event.payload.reason)), "An interrupted queued trigger is cancelled with an explicit reason");
+const selfWoundEmpathScene = structuredClone(arbitrationScene);
+selfWoundEmpathScene.actors.find(actor => actor.id === "hero").guts = 0;
+const selfWoundedNearEmpath = Engine.dispatchMany(selfWoundEmpathScene, [{ type: "damage.apply", actorId: "hero", payload: { targetId: "hero", amount: 1, ignoreArmor: true } }]).scene;
+assert.notEqual(selfWoundedNearEmpath.pendingPrompt?.kind, "empath-rush", "Protective Response ignores self-inflicted Wounds");
+assert.ok(!selfWoundedNearEmpath.log.some(event => event.type === "rule.trigger" && event.payload?.triggerId === "altruist.empath.2.protective-response"), "A self-inflicted Wound does not enter the Empath trigger queue");
 assert.throws(() => Engine.dispatch(scene, { type: "rule.trigger", actorId: "hero", payload: { triggerId: "bad trigger", sourceEventId: "x", status: "fired" } }), /маршрутизации триггера/);
 const optionalParticipantScene = structuredClone(scene);
 optionalParticipantScene.actors.find(actor => actor.id === "enemy").knockedOut = true;
@@ -1249,13 +1254,13 @@ assert.equal(Engine.ruleResourceStatus(cooled, "hero", { resource: "heat" }).bal
 
 const gritScene = structuredClone(scene);
 gritScene.actors[0].techniques = { "bulwark.mundane": 1 };
-assert.equal(Engine.ruleResourceStatus(gritScene, "hero", { resource: "grit" }).balance, 2);
-assert.deepEqual(JSON.parse(JSON.stringify(Engine.resourceStatus(gritScene, "hero", { ap: 1, focus: 2 }).missing)), { grit: 1 }, "AP and Focus share one Grit pool");
+assert.equal(Engine.ruleResourceStatus(gritScene, "hero", { resource: "grit" }).balance, 3, "Bracket division rounds Body/2 up");
+assert.deepEqual(JSON.parse(JSON.stringify(Engine.resourceStatus(gritScene, "hero", { ap: 1, focus: 3 }).missing)), { grit: 1 }, "AP and Focus share one Grit pool");
 const restCannotGrantGrit = Engine.dispatch(gritScene, { type: "resource.gain", actorId: "hero", payload: { resource: "focus", amount: 1, sourceActionName: "Передышка" } }).scene;
-assert.equal(Engine.ruleResourceStatus(restCannotGrantGrit, "hero", { resource: "grit" }).balance, 2);
+assert.equal(Engine.ruleResourceStatus(restCannotGrantGrit, "hero", { resource: "grit" }).balance, 3);
 assert.match(restCannotGrantGrit.log[0].payload.ignoredReason, /Передышка/);
 const gritSpent = Engine.dispatch(gritScene, { type: "resource.spend", actorId: "hero", payload: { resource: "ap", amount: 1 } }).scene;
-assert.equal(Engine.ruleResourceStatus(gritSpent, "hero", { resource: "grit" }).balance, 1);
+assert.equal(Engine.ruleResourceStatus(gritSpent, "hero", { resource: "grit" }).balance, 2);
 gritSpent.actors.forEach(actor => { actor.acted = true; });
 gritSpent.activeActorId = null;
 gritSpent.log = [
@@ -1263,8 +1268,8 @@ gritSpent.log = [
   { id: "grit-hero-turn", type: "turn.end", actorId: "hero", payload: { endedTurnActorId: "hero" } },
 ];
 const gritReset = Engine.dispatch(gritSpent, { type: "round.end", payload: {} }).scene;
-assert.equal(Engine.ruleResourceStatus(gritReset, "hero", { resource: "grit" }).balance, 2, "Grit resets from Body at Round boundary");
-assert.deepEqual(JSON.parse(JSON.stringify(gritReset.log[0].payload.ruleResourceResets)), [{ actorId: "hero", resource: "grit", label: "Упорство", value: 2, scope: "round" }], "Round reset is explicit in the event journal");
+assert.equal(Engine.ruleResourceStatus(gritReset, "hero", { resource: "grit" }).balance, 3, "Grit resets from rounded-up Body at Round boundary");
+assert.deepEqual(JSON.parse(JSON.stringify(gritReset.log[0].payload.ruleResourceResets)), [{ actorId: "hero", resource: "grit", label: "Упорство", value: 3, scope: "round" }], "Round reset is explicit in the event journal");
 
 const gunslingerActionScene = structuredClone(scene);
 gunslingerActionScene.actors[0].techniques = { "powerhouse.gunslinger": 1 };
@@ -1327,7 +1332,7 @@ assert.equal(meisterRested.pendingPrompt?.kind, "meister-overclock", "Modified M
 const mundaneScene = structuredClone(scene);
 mundaneScene.actors[0].techniques = { "bulwark.mundane": 3 };
 const mundaneTargeted = Engine.dispatchMany(mundaneScene, [{ type: "reaction.offer", actorId: "hero", payload: { sourceActorId: "enemy", actionId: "test" } }]).scene;
-assert.equal(Engine.ruleResourceStatus(mundaneTargeted, "hero", { resource: "grit" }).balance, 3, "Mundane II gains Grit when made the target of an Attack");
+assert.equal(Engine.ruleResourceStatus(mundaneTargeted, "hero", { resource: "grit" }).balance, 4, "Mundane II gains Grit when made the target of an Attack");
 const mundaneRest = Engine.prepareAction(mundaneScene, data, { actorId: "hero", actionId: actionNamed("Передышка").id, provokeTargetIds: ["enemy"] });
 assert.equal(mundaneRest.ok, true);
 assert.ok(mundaneRest.events.some(event => event.type === "effect.apply" && event.payload.effect === "negative.спровоцирован"), "Mundane III applies Provoke to explicit legal targets");
@@ -1347,7 +1352,7 @@ const cleansing = Engine.prepareAction(faithScene, data, {
   roll: { formula: "4D6", attribute: "spirit", rolls: [6, 5, 4, 1], successes: 3, crits: 1 },
 });
 assert.equal(cleansing.ok, true);
-assert.ok(cleansing.events.some(event => event.type === "actor.heal" && event.payload.amount === 1));
+assert.ok(cleansing.events.some(event => event.type === "actor.heal" && event.payload.amount === 2), "Cleansing Light rounds odd Hits/2 up");
 assert.ok(cleansing.events.some(event => event.type === "effect.remove" && event.payload.effect === "negative.ослаблен"));
 
 const autophageScene = structuredClone(scene);
