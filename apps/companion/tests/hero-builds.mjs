@@ -201,7 +201,13 @@ const focused = SceneEngine.dispatchMany(chilled, [{ type: "resource.gain", acto
 assert.equal(SceneEngine.clockStatus(focused, "hero", "ruiner.cryomancer.icicle").value, 1, "Cryomancer II fills one Icicle segment whenever Focus is gained");
 
 const spellcrafterBuild = { "ruiner.spellcrafter": 3 };
-assert.ok(coverageFor(spellcrafterBuild).every(level => level.automation === "partial"), "Spellcrafter remains partial until learned Modifications are persisted and enforced");
+assert.ok(coverageFor(spellcrafterBuild).every(level => level.automation === "decision"), "Spellcrafter exposes the completed persisted modifier choices at every level");
+const experimentalScene = sceneWith(actor({ techniques: { "ruiner.spellcrafter": 1 }, innovationCharges: 3, techniqueState: { spellcrafterLearnedModifiers: ["fierce"], spellModifiers: ["fierce"] } }), [foe({ x: 4, y: 1 })]);
+const experimentalSpell = SceneEngine.prepareAction(experimentalScene, data, { actorId: "hero", actionId: actionNamed("Заклинание").id, targetIds: ["enemy"], attribute: "spirit", roll: { formula: "4D6 · Дух", attribute: "spirit", rolls: [6, 4, 2, 1], successes: 2, crits: 1 } });
+assert.equal(experimentalSpell.ok, true);
+assert.deepEqual(Array.from(experimentalSpell.events.filter(event => event.type === "resource.spend").map(event => [event.payload.resource, event.payload.amount])), [["ap", 1], ["innovationCharges", 1]], "Spellcrafter I spends one Innovation, not Focus");
+const experimentalPending = SceneEngine.dispatchMany(experimentalScene, experimentalSpell.events).scene;
+assert.equal(experimentalPending.pendingAction.damage, 5, "The single persisted level-I Fierce augment adds Mind damage");
 const spellScene = sceneWith(actor({ techniques: spellcrafterBuild, focus: 5, techniqueState: { spellcrafterLearnedModifiers: ["fierce", "outstanding"], spellModifiers: ["fierce", "outstanding"] } }), [foe({ x: 8, y: 1 })]);
 const spell = SceneEngine.prepareAction(spellScene, data, {
   actorId: "hero", actionId: actionNamed("Заклинание").id, targetIds: ["enemy"], attribute: "spirit",
@@ -212,6 +218,8 @@ const crafted = SceneEngine.dispatchMany(spellScene, spell.events).scene;
 assert.equal(crafted.actors[0].focus, 3, "Two different level-3 Modifications cost 2 Focus");
 assert.deepEqual(Array.from(crafted.actors[0].techniqueState.spellModifiers), [], "Applied Modifications clear after the attack is prepared");
 assert.equal(crafted.pendingAction.damage, 5, "Fierce adds Mind to attack damage");
+const underfundedFinalization = sceneWith(actor({ techniques: spellcrafterBuild, focus: 1, techniqueState: { spellcrafterLearnedModifiers: ["fierce", "outstanding"], spellModifiers: ["fierce", "outstanding"] } }), [foe({ x: 4, y: 1 })]);
+assert.equal(SceneEngine.prepareAction(underfundedFinalization, data, { actorId: "hero", actionId: actionNamed("Заклинание").id, targetIds: ["enemy"], attribute: "spirit", roll: { formula: "4D6", attribute: "spirit", rolls: [6, 4, 2, 1], successes: 2, crits: 1 } }).ok, false, "Finalization cannot partially pay for two learned augments");
 
 const wispBuild = { "altruist.will-o-wisp": 3 };
 assert.deepEqual(Array.from(coverageFor(wispBuild), level => level.automation), ["decision", "decision", "decision"], "Will-O-Wisp exposes all three completed interactive levels");

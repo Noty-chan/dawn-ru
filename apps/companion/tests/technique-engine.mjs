@@ -29,7 +29,7 @@ const scene = {
 };
 
 assert.ok(Engine.rulesFor(scene.actors[0].techniques).some(rule => rule.id === "ruiner.bombardier.3"));
-assert.equal(Engine.RULES.find(rule => rule.id === "ruiner.bombardier.3").automation, "partial");
+assert.equal(Engine.RULES.find(rule => rule.id === "ruiner.bombardier.3").automation, "full");
 assert.equal(Engine.RULES.find(rule => rule.id === "disruptor.chemist.1").automation, "full");
 const coverage = Engine.techniqueCoverage(context.DAWN_DATA);
 const canonicalLevelIds = Array.from(context.DAWN_DATA.archetypes.flatMap(archetype =>
@@ -56,14 +56,14 @@ for (const [id, automation] of [
   ["disruptor.mind-breaker.3", "partial"],
   ["disruptor.reaper.2", "partial"],
   ["disruptor.inner-world.1", "partial"],
-  ["ruiner.bombardier.1", "partial"],
-  ["ruiner.bombardier.2", "partial"],
-  ["ruiner.bombardier.3", "partial"],
-  ["ruiner.spellcrafter.1", "partial"],
-  ["ruiner.spellcrafter.2", "partial"],
-  ["ruiner.spellcrafter.3", "partial"],
+  ["ruiner.bombardier.1", "full"],
+  ["ruiner.bombardier.2", "full"],
+  ["ruiner.bombardier.3", "full"],
+  ["ruiner.spellcrafter.1", "decision"],
+  ["ruiner.spellcrafter.2", "decision"],
+  ["ruiner.spellcrafter.3", "decision"],
   ["ruiner.ritualist.1", "partial"],
-  ["ruiner.cryomancer.2", "partial"],
+  ["ruiner.cryomancer.2", "decision"],
   ["vagabond.knife-juggler.2", "partial"],
   ["altruist.alchemist.2", "partial"],
   ["disruptor.chemist.2", "partial"],
@@ -112,6 +112,11 @@ const baseExplosion = Engine.preview(scene, {
 });
 assert.equal(baseExplosion.ok, true);
 assert.deepEqual([...baseExplosion.affectedCells].sort(), ["2,3", "3,2", "3,3", "3,4", "4,3"]);
+const mediumExplosion = Engine.preview(scene, { actorId: "hero", ruleId: "ruiner.bombardier.2", anchor: { x: 3, y: 3 }, options: { focusSpent: 2 }, roll: { formula: "6D6", rolls: [4, 4, 2, 2, 2, 2], successes: 2, crits: 0 } });
+assert.equal(mediumExplosion.ok, true);
+assert.equal(mediumExplosion.affectedCells.length, 9, "Bombardier II uses exactly a 3×3 zone");
+assert.equal(Engine.preview(scene, { actorId: "hero", ruleId: "ruiner.bombardier.2", anchor: { x: 3, y: 3 }, options: { focusSpent: 1 }, roll: mediumExplosion.request.roll }).ok, false, "Bombardier II requires at least 2 actually declared Focus");
+assert.equal(Engine.preview(scene, { actorId: "hero", ruleId: "ruiner.bombardier.3", anchor: { x: 3, y: 3 }, options: { focusSpent: 3 }, roll: mediumExplosion.request.roll }).ok, false, "Bombardier III requires at least 4 actually declared Focus");
 
 const explosion = Engine.preview(scene, {
   actorId: "hero",
@@ -123,6 +128,10 @@ const explosion = Engine.preview(scene, {
 assert.equal(explosion.ok, true);
 assert.equal(explosion.affectedCells.length, 25);
 assert.deepEqual([...explosion.affectedActorIds].sort(), ["enemy-a", "enemy-b"].sort());
+assert.equal(Engine.preview(scene, { actorId: "hero", ruleId: "ruiner.bombardier.1", anchor: { x: 6, y: 1 }, options: { focusSpent: 0 }, roll: baseExplosion.request.roll }).ok, false, "Bombardier I rejects a center beyond range 4");
+assert.equal(Engine.preview(scene, { actorId: "hero", ruleId: "ruiner.bombardier.2", anchor: { x: 6, y: 1 }, options: { focusSpent: 2 }, roll: mediumExplosion.request.roll }).ok, true, "Bombardier II accepts its range-5 boundary");
+const clippedExplosion = Engine.preview(scene, { actorId: "hero", ruleId: "ruiner.bombardier.3", anchor: { x: 0, y: 0 }, options: { focusSpent: 4 }, roll: explosion.request.roll });
+assert.equal(clippedExplosion.affectedCells.length, 9, "Bombardier III clips its 5×5 zone canonically at a field corner");
 
 const empathScene=structuredClone(scene);
 empathScene.actors[0].techniques={"altruist.empath":3};
@@ -161,11 +170,14 @@ assert.equal(bombardierPending.payload.targetedTerrainId, "terrain");
 assert.equal(bombardierPending.payload.targetsTerrainCell, true);
 assert.deepEqual(JSON.parse(JSON.stringify(bombardierPending.payload.techniqueAnchor)), { x: 3, y: 3 });
 assert.throws(() => SceneEngine.dispatchMany({ ...gasScene, version: 0, log: [] }, bombardierEvents), /проверяемый снимок пула Завершения Духом/, "Bombardier cannot commit client-supplied successes without Spirit Finisher dice provenance");
-const bombardierDiceRequest = { scope: "action", baseCount: 4, advantage: 0, hindrance: 0, attribute: "spirit", actionId: context.DAWN_DATA.actions.list.find(action => action.name === "Завершение").id, targetIds: [] };
+const bombardierDiceRequest = { scope: "action", baseCount: 4, advantage: 0, hindrance: 0, attribute: "spirit", actionId: context.DAWN_DATA.actions.list.find(action => action.name === "Завершение").id, targetIds: bombardierOnTerrain.affectedActorIds };
 const verifiedBombardierRoll = SceneEngine.diceRollPayload(gasScene, "hero", bombardierDiceRequest, { rolls: [4, 4, 2, 2] });
 assert.equal(verifiedBombardierRoll.available, true);
 const verifiedBombardier = Engine.preview(gasScene, { actorId: "hero", ruleId: "ruiner.bombardier.1", anchor: { x: 3, y: 3 }, options: { focusSpent: 0 }, roll: verifiedBombardierRoll.payload });
 assert.doesNotThrow(() => SceneEngine.dispatchMany({ ...gasScene, version: 0, log: [] }, Engine.toEvents(gasScene, verifiedBombardier, { makeId: prefix => `verified-${prefix}` })), "A canonically derived Spirit Finisher roll commits through the same authority path");
+const forgedMindRoll = SceneEngine.diceRollPayload(gasScene, "hero", { ...bombardierDiceRequest, attribute: "mind" }, { rolls: [4, 4, 2, 2] });
+const forgedMindBombardier = Engine.preview(gasScene, { actorId: "hero", ruleId: "ruiner.bombardier.1", anchor: { x: 3, y: 3 }, options: { focusSpent: 0 }, roll: forgedMindRoll.payload });
+assert.throws(() => SceneEngine.dispatchMany({ ...gasScene, version: 0, log: [] }, Engine.toEvents(gasScene, forgedMindBombardier, { makeId: prefix => `forged-mind-${prefix}` })), /авторитетному Завершению Духом/, "A valid Mind dice snapshot cannot be forged into the required Spirit Finisher");
 const highGroundScene = structuredClone(gasScene);
 highGroundScene.objects[0] = { ...highGroundScene.objects[0], id: "roof", type: "high", label: "Крыша" };
 const bombardierOnRoof = Engine.preview(highGroundScene, {
