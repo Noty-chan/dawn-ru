@@ -121,3 +121,11 @@ npm test
 - Spellcrafter должен хранить известную Модификацию уровня I (и допустимый расширенный набор для III) как character-build state. Текущий transient `techniqueState.spellModifiers` — только выбор на следующую Атаку и не заменяет learned set.
 - Ritualist I сейчас можно нажать отдельно в любой момент: placement и cap работают, но нет Charge trigger/forgone Focus. Не путать наличие маркера с автоматизацией момента/цены.
 - Cryomancer II должен отказаться именно от Focus текущей Breathe. Нужен provenance token/ссылка на resource.gain; проверка `actor.focus >= 1` допускает старый Focus и ломается с alternate resource.
+
+## Повторный аудит: пакет 19 (уровни 289–304, незавершён)
+
+- Пакет остановлен до заполнения 16 отдельных строк основного ledger; общий доказанный счётчик остаётся 288/472. Ниже зафиксированы только уже подтверждённые дефекты, чтобы их не потерять при смене приоритета.
+- Feral Arcana II нельзя считать decision целиком: `startRage` проверяет только targetless Interact и не доказывает непосредственно предшествующую Charge из комбинации `[Charge → Interact]`.
+- Grim Ascendant I завершает Трансформацию только в trigger на `damage.apply`. Расход Фокуса до 0 оставляет форму активной; обязательные push 3 сейчас создаются с `optional: true`.
+- Grim Ascendant II обязан работать только с Spirit Finisher. Текущий `drainLife` в `scene-actions.js` проверяет любой Finisher и потому допускает Body/Talent.
+- Общие ручные кнопки, effect lifecycle, marker/entity foundations и generic action-copy не являются реализацией Flame Heart, Long Draw или Mana Blades без rule-specific trigger/validation/events.
