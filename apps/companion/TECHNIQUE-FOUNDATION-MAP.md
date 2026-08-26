@@ -776,7 +776,7 @@ SHA-256 проверенных файлов: `6049f3ff6b79b8204c45cb8b830b265369
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Глубокий взгляд (Gaze Deeply) | проверено | с выбором | `target-validation`, `event-participants`, `resource-check`, `effect-state`, `effect-lifecycle`, `trigger-router`, `choice-flow`, `action-modifier` |
+| 1 | Глубокий взгляд (Gaze Deeply) | проверено | частичная | `target-validation`, `event-participants`, `resource-check`, `effect-state`, `effect-lifecycle`, `trigger-router`, `choice-flow`, `action-modifier` |
 | 2 | Домен контроля (Domain Of Control) | проверено | с выбором | `target-validation`, `event-participants`, `spatial-cells`, `movement-lifecycle`, `effect-state`, `effect-lifecycle`, `usage-limits`, `trigger-router`, `scene-lifecycle`, `damage-pipeline` |
 | 3 | Родная территория (Home Turf) | проверено | частичная | `usage-limits`, `trigger-router`, `scene-lifecycle`, `action-modifier`, `duel-flow`, `dice-hooks` |
 
@@ -794,9 +794,9 @@ SHA-256 проверенных файлов: `6049f3ff6b79b8204c45cb8b830b265369
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Взрыв!! (Explosion!!) | проверено | полная | `target-validation`, `event-participants`, `spatial-cells`, `spatial-range`, `action-modifier` |
-| 2 | Взрыв!!! (Explosion!!!) | проверено | полная | `target-validation`, `event-participants`, `spatial-cells`, `spatial-range`, `resource-check`, `trigger-router`, `choice-flow`, `action-modifier` |
-| 3 | ВЗРЫВ!!!! (EXPLOSION!!!!) | проверено | полная | `target-validation`, `event-participants`, `spatial-cells`, `spatial-range`, `resource-check`, `trigger-router`, `choice-flow`, `action-modifier` |
+| 1 | Взрыв!! (Explosion!!) | проверено | частичная | `target-validation`, `event-participants`, `spatial-cells`, `spatial-range`, `action-modifier` |
+| 2 | Взрыв!!! (Explosion!!!) | проверено | частичная | `target-validation`, `event-participants`, `spatial-cells`, `spatial-range`, `resource-check`, `trigger-router`, `choice-flow`, `action-modifier` |
+| 3 | ВЗРЫВ!!!! (EXPLOSION!!!!) | проверено | частичная | `target-validation`, `event-participants`, `spatial-cells`, `spatial-range`, `resource-check`, `trigger-router`, `choice-flow`, `action-modifier` |
 
 ### Револьверное колдовство (`ruiner.rapid-fire-sorcery`)
 

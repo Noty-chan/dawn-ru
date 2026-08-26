@@ -29,7 +29,7 @@ const scene = {
 };
 
 assert.ok(Engine.rulesFor(scene.actors[0].techniques).some(rule => rule.id === "ruiner.bombardier.3"));
-assert.equal(Engine.RULES.find(rule => rule.id === "ruiner.bombardier.3").automation, "full");
+assert.equal(Engine.RULES.find(rule => rule.id === "ruiner.bombardier.3").automation, "partial");
 assert.equal(Engine.RULES.find(rule => rule.id === "disruptor.chemist.1").automation, "full");
 const coverage = Engine.techniqueCoverage(context.DAWN_DATA);
 const canonicalLevelIds = Array.from(context.DAWN_DATA.archetypes.flatMap(archetype =>
@@ -55,6 +55,10 @@ for (const [id, automation] of [
   ["disruptor.mind-breaker.2", "partial"],
   ["disruptor.mind-breaker.3", "partial"],
   ["disruptor.reaper.2", "partial"],
+  ["disruptor.inner-world.1", "partial"],
+  ["ruiner.bombardier.1", "partial"],
+  ["ruiner.bombardier.2", "partial"],
+  ["ruiner.bombardier.3", "partial"],
   ["vagabond.knife-juggler.2", "partial"],
   ["altruist.alchemist.2", "partial"],
   ["disruptor.chemist.2", "partial"],

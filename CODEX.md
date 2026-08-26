@@ -107,3 +107,10 @@ npm test
 - Siren I–II — хорошие примеры реального decision core: trigger queue, повторная валидация и размещение есть, но это всё ещё не evidence полного UI/network/save-load пути.
 - Wave Rider I и Gale Strider I нельзя повышать выше partial: entity/trigger lifecycle работает, однако создание запускается отдельной кнопкой и не связано атомарно с каноническим Spell/Finisher/Jump.
 - При RU↔EN сверке проверять не только смысл, но согласование: в пакете исправлены Inhuman Strength I и Swarm Body II одновременно в `source/translation` и `data.js`.
+
+## Повторный аудит: пакет 17 (уровни 257–272)
+
+- После пакета 17 проверено 272/472: остаётся 49 уровней Техник + 151 правило врагов = 200.
+- Generic `areaType: "attack"` не доказывает конкретное каноническое Завершение/атрибут. Bombardier I–III строят AP/Focus/reaction/damage events, но принимают готовые `roll.successes` без проверки Spirit; их `full` понижен до partial.
+- Inner World I ищет последнее Charge `resource.gain` по всему журналу. До исправления нужен event id/token конкретной Charge; иначе нулевая/заменённая текущая Charge может повторно использовать старое получение Фокуса.
+- Inner World II — редкий уровень с core evidence, но даже он не certified: не доказаны UI/network/reconnect/import и полная отрицательная матрица.

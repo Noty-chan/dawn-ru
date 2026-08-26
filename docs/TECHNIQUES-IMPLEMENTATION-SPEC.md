@@ -2085,10 +2085,10 @@
 
 #### 1. Глубокий взгляд (Gaze Deeply) `disruptor.inner-world.1`
 
-- **Заявленный статус:** `decision` (решение).
-- **Текущий адаптер:** `disruptor.inner-world.1` · `passive` · {"kind":"passive"}; После Зарядки предлагает отказаться от фактически полученного Фокуса и наложить Обездвижен на врагов в соответствующей дальности..
+- **Заявленный статус:** `partial` (частичная).
+- **Текущий адаптер:** `disruptor.inner-world.1` · `passive` · {"kind":"passive"}; Основная ветка работает, но trigger может подобрать старое получение Фокуса от прежней Зарядки вместо текущего события..
 - **Готовые foundations:** `target-validation`, `event-participants`, `resource-check`, `effect-state`, `effect-lifecycle`, `trigger-router`, `choice-flow`, `action-modifier`.
-- **Нужно добавить:** Для кода явный следующий шаг не выведен автоматически; нужны direct pos/neg/boundary тесты и evidence до повышения доверия.
+- **Нужно добавить:** Заявление decision понижено до partial: после action.resolve Зарядки trigger ищет последнее подходящее получение Фокуса во всём журнале и может повторно использовать старое событие, если текущая Зарядка дала 0 или ресурс был заменён.
 
 #### 2. Домен контроля (Domain Of Control) `disruptor.inner-world.2`
 
@@ -2133,24 +2133,24 @@
 
 #### 1. Взрыв!! (Explosion!!) `ruiner.bombardier.1`
 
-- **Заявленный статус:** `full` (полная).
-- **Текущий адаптер:** `ruiner.bombardier.1` · `area` · {"kind":"area","shape":"adjacent","areaType":"attack","duration":"instant","range":4}.
+- **Заявленный статус:** `partial` (частичная).
+- **Текущий адаптер:** `ruiner.bombardier.1` · `area` · {"kind":"area","shape":"adjacent","areaType":"attack","duration":"instant","range":4}; Геометрия и attack pipeline готовы, но preview не доказывает обязательный бросок Завершения Духом..
 - **Готовые foundations:** `target-validation`, `event-participants`, `spatial-cells`, `spatial-range`, `action-modifier`.
-- **Нужно добавить:** Для кода явный следующий шаг не выведен автоматически; нужны direct pos/neg/boundary тесты и evidence до повышения доверия.
+- **Нужно добавить:** Заявление full понижено до partial: area/reaction/damage pipeline существует, но preview принимает готовые `roll.successes` и не валидирует обязательное Завершение Духом.
 
 #### 2. Взрыв!!! (Explosion!!!) `ruiner.bombardier.2`
 
-- **Заявленный статус:** `full` (полная).
-- **Текущий адаптер:** `ruiner.bombardier.2` · `area` · {"kind":"area","shape":"square3","areaType":"attack","duration":"instant","range":5,"optionMinimum":{"key":"focusSpent","value":2,"label":"потрачено Фокуса"}}.
+- **Заявленный статус:** `partial` (частичная).
+- **Текущий адаптер:** `ruiner.bombardier.2` · `area` · {"kind":"area","shape":"square3","areaType":"attack","duration":"instant","range":5,"optionMinimum":{"key":"focusSpent","value":2,"label":"потрачено Фокуса"}}; Зона и минимум Фокуса готовы, но атрибут и результаты Завершения Духом доверены запросу..
 - **Готовые foundations:** `target-validation`, `event-participants`, `spatial-cells`, `spatial-range`, `resource-check`, `trigger-router`, `choice-flow`, `action-modifier`.
-- **Нужно добавить:** Для кода явный следующий шаг не выведен автоматически; нужны direct pos/neg/boundary тесты и evidence до повышения доверия.
+- **Нужно добавить:** Заявление full понижено до partial: 3×3, range 5 и Focus≥2 проверяются, но атрибут и результаты Spirit Finisher не авторитетны.
 
 #### 3. ВЗРЫВ!!!! (EXPLOSION!!!!) `ruiner.bombardier.3`
 
-- **Заявленный статус:** `full` (полная).
-- **Текущий адаптер:** `ruiner.bombardier.3` · `area` · {"kind":"area","shape":"square5","areaType":"attack","duration":"instant","range":6,"optionMinimum":{"key":"focusSpent","value":4,"label":"потрачено Фокуса"}}; Зона, цели, трата Фокуса, Реакции и урон разрешаются общим конвейером зональной Атаки..
+- **Заявленный статус:** `partial` (частичная).
+- **Текущий адаптер:** `ruiner.bombardier.3` · `area` · {"kind":"area","shape":"square5","areaType":"attack","duration":"instant","range":6,"optionMinimum":{"key":"focusSpent","value":4,"label":"потрачено Фокуса"}}; Зона, цели, трата Фокуса и Реакции работают, но обязательный Spirit Finisher roll не валидируется авторитетно..
 - **Готовые foundations:** `target-validation`, `event-participants`, `spatial-cells`, `spatial-range`, `resource-check`, `trigger-router`, `choice-flow`, `action-modifier`.
-- **Нужно добавить:** Для кода явный следующий шаг не выведен автоматически; нужны direct pos/neg/boundary тесты и evidence до повышения доверия.
+- **Нужно добавить:** Заявление full понижено до partial: 5×5, range 6 и Focus≥4 проверяются, но атрибут и результаты Spirit Finisher не авторитетны; полного surface evidence нет.
 
 ### Револьверное колдовство (Rapid-Fire Sorcery) `ruiner.rapid-fire-sorcery`
 
