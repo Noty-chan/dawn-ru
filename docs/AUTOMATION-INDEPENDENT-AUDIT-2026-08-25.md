@@ -694,3 +694,26 @@
 | `bulwark.crusher.1` | совпадает | manual → confirmed-manual | Нет Swing без целей, self-Fortified + adjacent-enemy Taunt и обязательного следующего Slam с double damage/clear; нужны cancel, обычная Skirmish while unfortified, KO/reconnect and duplicate resolve. |
 
 Итог пакета: все 16 уровней проверены отдельно по EN/RU claims и фактическому коду. Смысловых ошибок перевода не найдено; новых доказанных исполняемых дефектов, безопасных для малого исправления, нет. Два заявления `full` ограничены уровнем core-tested/core-reviewed и не получили evidence/certified; 11 уровней подтверждены как полностью ручные, один — как partial.
+
+### Пакет 8 — уровни 113–128
+
+| Правило | RU↔EN | Заявление → результат | Точное расхождение / недостающее доказательство |
+| --- | --- | --- | --- |
+| `bulwark.crusher.2` | совпадает с PDF-стр. 79 | manual → confirmed-manual | Нет pre-mitigation damage accumulator since end of last Turn, Fall≥5 gate, adjacent-cell retargeting и Weaken all targets; нужны 4/5 boundary, armor/evasion, turn reset, KO/import. |
+| `bulwark.crusher.3` | совпадает | manual → confirmed-manual | Нет того же accumulator с порогом 10 и triple вместо double Fall damage; нужны 9/10 boundary, совместимость L2, duplicate damage events и new-Turn reset. |
+| `bulwark.giant-frame.1` | грамматика RU исправлена: «одна … смежна» | partial → confirmed-partial | Generic 2×2 area/Focus preview есть, но не связан атомарно с конкретным Body Finisher, его roll/reactions/damage и условием хотя бы одной adjacent клетки; нужны cancel-before-pay и empty/noncanonical-zone tests. |
+| `bulwark.giant-frame.2` | совпадает | manual → confirmed-manual | Нет выбора 2×2 actor footprint при Deploy, постоянного size-until-tier-up, прохода через 1×1 enemies/terrain и `[Tier]` Guts; нужны edge/occupied cells, resize/import/reconnect. |
+| `bulwark.giant-frame.3` | совпадает | manual → confirmed-manual | Нет Body Finisher modifier с оплатой 1 Focus, all-adjacent cells, half damage и Launch; нужны zero targets, mixed teams, reactions, odd damage rounding and cancellation. |
+| `bulwark.iron-bodied.1` | совпадает | manual → confirmed-manual | Нет derived Speed floor 3 и исключения, позволяющего собственные movement Actions сквозь любые запреты; нужны Slow/Immobilized/Speed=0 conflict, forced movement negative and import. |
+| `bulwark.iron-bodied.2` | совпадает | full → integration-reviewed | `heroActorState` добавляет округлённую вверх `[Body/2]` Armor и отделяет manual Armor от techniqueArmor. Нет direct tests для odd/even Body, repeated sync/import, manual bonus preservation и фактического damage pipeline; не certified. |
+| `bulwark.iron-bodied.3` | совпадает | manual → confirmed-manual | Нет optional start-Turn Immobilize и post-reduction per-instance cap `4+ceil(Tier/2)`; нужны multi-hit, ignoreArmor, self/environment source, KO and duplicate event. |
+| `bulwark.vanguard-defender.1` | совпадает | manual → confirmed-manual | Нет remote Block ally within Body, adjacent teleport и atomic target replacement; нужны occupied/removed cells, multi-target attack, ally KO, stale reaction and reconnect. |
+| `bulwark.vanguard-defender.2` | совпадает | manual → confirmed-manual | Нет first/Round ally-Block cost0 и temporary Tier Armor through start of next Turn; нужны self-Block negative, second Block, round/turn boundaries, cancel-before-pay and import. |
+| `bulwark.vanguard-defender.3` | совпадает | manual → confirmed-manual | Нет movement-source start detection from leaving ally adjacency, ally choice, move adjacent to new location и Reinforce; нужны multiple allies, blocked destination, interrupted movement, KO and replay. |
+| `bulwark.absolute-bastard.1` | совпадает с PDF-стр. 80 | manual → confirmed-manual | Нет optional Taunt after Investigate enemy и 3/Scene usage; нужны ally/self negative, pass, fourth use, scene reset, duplicate Investigate and import. |
+| `bulwark.absolute-bastard.2` | совпадает | manual → confirmed-manual | Нет once/Turn Taunt trigger, optional move≤3 toward target, adjacency Snare and +1 AP; нужны already-adjacent, blocked path, Taunt by other source, cancel and turn reset. |
+| `bulwark.absolute-bastard.3` | совпадает | manual → confirmed-manual | Нет provenance-aware own-Taunt check и Tier Advantage on Attacks; нужны Taunt by ally/other enemy, expired/removed effect, multi-target attack and dice-hook proof. |
+| `bulwark.battle-jockey.1` | совпадает | manual → confirmed-manual | Нет post-Deploy optional adjacent Mount summon at owner Tier и override disabling Mount passive redirect; нужны no-space, KO owner, tier sync, ownership and save/load summon lifecycle. |
+| `bulwark.battle-jockey.2` | совпадает | manual → confirmed-manual | Нет owned-Mount attack trigger и optional Taunt target; нужны чужой summon, non-enemy target, miss/reaction semantics, KO/stale prompt and duplicate response. |
+
+Итог пакета: 16/16 уровней независимо сверены. Исправлено одно подтверждённое грамматическое расхождение RU без изменения механики; 14 уровней доказанно остаются manual, Giant Frame I — partial, Iron Bodied II — только integration-reviewed `full`. Evidence/certified не повышались: UI/network/save-load и обязательные граничные матрицы не закрыты.

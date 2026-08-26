@@ -53,6 +53,7 @@
 - `vagabond.assassin.1`: «первое действие после Deploy» нельзя заменять проверкой пустого Scene action log; нужен deployment serial/anchor.
 - `vagabond.assassin.2`: пользовательский roll не является доказательством `[Tier]` Advantage и crit5–6; core обязан вывести/проверить эти параметры.
 - `vagabond.untouchable.2`: условие «Evasion reduces damage to 0» требует одновременно `dealt === 0` и `evaded > 0`; одного итогового нуля недостаточно.
+- `automation-evidence.json` привязывает evidence к SHA-256 всего `data.js`: даже несвязанная правка перевода делает запись stale. Обновлять digest можно только после проверки точечного diff; claims/confidence/auditedAtCommit при этом не переписывать.
 - Удаление/добавление строки в `scene-actions.js` меняет сгенерированные line references во всём `ENEMIES-IMPLEMENTATION-SPEC.md`; большой механический diff ожидаем.
 
 ## Команды проверки
@@ -76,4 +77,5 @@ npm test
 - Пакет 5 Техник: позиции 65–80 (`vagabond.skirmisher.2` … `vagabond.cunning-fighter.2`) — завершён; Untouchable II исправлен, полный `npm test` прошёл, коммит `03242bf92406f32df0223940c5dbb55649253ad7`.
 - Пакет 6 Техник: позиции 81–96 (`vagabond.cunning-fighter.3` … `vagabond.modified-meister.3`) — содержательно проверен; исправлена причинность условия «Танец» у Egomaniac I, полный `npm test` прошёл.
 - Пакет 7 Техник: позиции 97–112 (`vagabond.opportunist.1` … `bulwark.crusher.1`) — завершён; RU/EN совпадают, новых малых исправлений нет, полный `npm test` прошёл.
+- Пакет 8 Техник: позиции 113–128 (`bulwark.crusher.2` … `bulwark.battle-jockey.2`) — завершён; исправлено согласование в RU Giant Frame I, данные/карты/каталоги пересобраны, полный `npm test` прошёл.
 - Всего предстоит 472 записи: 321 уровень Техник + 151 активируемое правило врагов, то есть 30 пакетов (29 полных по 16 и последний из 8).

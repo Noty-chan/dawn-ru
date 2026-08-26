@@ -1,6 +1,6 @@
 # DAWN: кодовая спецификация Техник
 
-> Сгенерировано `npm run docs:rules` из канонического `apps/companion/data.js` (SHA-256 `f81d9a3a51c1ffaf72ae810337fbdf94c5bdd1dd2d1da90a3fe91eb774aa2809`).
+> Сгенерировано `npm run docs:rules` из канонического `apps/companion/data.js` (SHA-256 `d05b7ccd360c75a392902642367d6bdc0804875f02cb17a7307d931e46730a42`).
 > Русский текст - канонический перевод из `source/translation/`; локальные профили Леона взяты из `source/companion/named-enemies.md`. Английские названия сверяются с `source/translation/adapted-names-index.md` и, для Черточек Антагониста, с `source/original/Dawn - A Diceless Fantasy TTRPG.pdf`.
 
 ## Границы этого документа
@@ -957,7 +957,7 @@
 - **Заявленный статус:** `partial` (частичная).
 - **Текущий адаптер:** `bulwark.giant-frame.1` · `area` · {"kind":"area","shape":"square2","areaType":"attack","duration":"instant","adjacency":true,"optionMinimum":{"key":"focusSpent","value":1,"label":"дополнительно потрачено Фокуса"}}; Зона, оплата и общий конвейер Атаки поддержаны; замена цели конкретного Завершения Телом ещё не связана атомарно..
 - **Готовые foundations:** `target-validation`, `event-participants`, `spatial-cells`, `resource-check`, `trigger-router`, `choice-flow`, `action-modifier`.
-- **Нужно добавить:** Для кода явный следующий шаг не выведен автоматически; нужны direct pos/neg/boundary тесты и evidence до повышения доверия.
+- **Нужно добавить:** Повторная сверка выявила грамматическое рассогласование «одно из этих клеток»; источник RU исправлен на «одна из этих клеток / смежна». Механическая partial-реализация по-прежнему не связана атомарно с Завершением Телом.
 
 #### 2. Исполин (Immense) `bulwark.giant-frame.2`
 

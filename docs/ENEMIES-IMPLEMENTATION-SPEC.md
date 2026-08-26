@@ -1,6 +1,6 @@
 # DAWN: кодовая спецификация способностей врагов
 
-> Сгенерировано `npm run docs:rules` из канонического `apps/companion/data.js` (SHA-256 `f81d9a3a51c1ffaf72ae810337fbdf94c5bdd1dd2d1da90a3fe91eb774aa2809`).
+> Сгенерировано `npm run docs:rules` из канонического `apps/companion/data.js` (SHA-256 `d05b7ccd360c75a392902642367d6bdc0804875f02cb17a7307d931e46730a42`).
 > Русский текст - канонический перевод из `source/translation/`; локальные профили Леона взяты из `source/companion/named-enemies.md`. Английские названия сверяются с `source/translation/adapted-names-index.md` и, для Черточек Антагониста, с `source/original/Dawn - A Diceless Fantasy TTRPG.pdf`.
 
 ## Границы и правило честности

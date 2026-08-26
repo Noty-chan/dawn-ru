@@ -9,7 +9,7 @@
       "declaredStatus": "decision",
       "confidence": "core-tested",
       "sourcePath": "data.js",
-      "sourceDigest": "sha256:f81d9a3a51c1ffaf72ae810337fbdf94c5bdd1dd2d1da90a3fe91eb774aa2809",
+      "sourceDigest": "sha256:d05b7ccd360c75a392902642367d6bdc0804875f02cb17a7307d931e46730a42",
       "claims": [
         "После наложения Эффекта на другого живого персонажа открывается optional prompt владельцу Внутреннего мира.",
         "На уровне II правило доступно один раз за Сцену; отказ не тратит использование, уровень III повышает лимит до Духа.",
