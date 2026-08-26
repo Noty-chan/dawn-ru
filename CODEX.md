@@ -52,6 +52,7 @@
 - `powerhouse.predator.2` требует knowledge-state, а не прямого чтения HP: ограничение движения зависит от того, что персонажу известно.
 - `vagabond.assassin.1`: «первое действие после Deploy» нельзя заменять проверкой пустого Scene action log; нужен deployment serial/anchor.
 - `vagabond.assassin.2`: пользовательский roll не является доказательством `[Tier]` Advantage и crit5–6; core обязан вывести/проверить эти параметры.
+- `vagabond.untouchable.2`: условие «Evasion reduces damage to 0» требует одновременно `dealt === 0` и `evaded > 0`; одного итогового нуля недостаточно.
 - Удаление/добавление строки в `scene-actions.js` меняет сгенерированные line references во всём `ENEMIES-IMPLEMENTATION-SPEC.md`; большой механический diff ожидаем.
 
 ## Команды проверки
@@ -71,5 +72,6 @@ npm test
 - Пакет 1 Техник: позиции 1–16 (`powerhouse.berserker.1` … `powerhouse.struggler.1`) — завершён; полный `npm test` прошёл, коммит `480dd263a7e153bcc90feeb74e4964c272763f05`.
 - Пакет 2 Техник: позиции 17–32 (`powerhouse.struggler.2` … `powerhouse.breacher.2`) — завершён; полный `npm test` прошёл, коммит `1e1849c0611f345e0b8ef8fb5e005e96cdcbf464`.
 - Пакет 3 Техник: позиции 33–48 (`powerhouse.breacher.3` … `powerhouse.predator.3`) — завершён; полный `npm test` прошёл, коммит `62d146b02bd79a8252bdf31f8c0a8ca8f66b42db`.
-- Пакет 4 Техник: позиции 49–64 (`powerhouse.improvisational-fighter.1` … `vagabond.skirmisher.1`) — содержательно проверен; Assassin I–II понижены до partial, полный `npm test` прошёл.
+- Пакет 4 Техник: позиции 49–64 (`powerhouse.improvisational-fighter.1` … `vagabond.skirmisher.1`) — завершён; Assassin I–II понижены до partial, полный `npm test` прошёл, коммит `85e56d2ee6b33489410ed922a61489d61010ad9f`.
+- Пакет 5 Техник: позиции 65–80 (`vagabond.skirmisher.2` … `vagabond.cunning-fighter.2`) — содержательно проверен; Untouchable II исправлен, полный `npm test` прошёл.
 - Всего предстоит 472 записи: 321 уровень Техник + 151 активируемое правило врагов, то есть 30 пакетов (29 полных по 16 и последний из 8).

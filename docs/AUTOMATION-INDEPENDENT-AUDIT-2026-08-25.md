@@ -148,7 +148,7 @@
 | `vagabond.assassin.3`: Скрыться → Шаг бесплатно и Невидим | full | Combo требует непосредственно предыдущее Скрыться, снимает AP cost и добавляет effect. | Нужны проверки уже использованного Шага, KO до confirm и срока Невидим. | declared |
 | `vagabond.speed-demon.2`: Передышка → Шаг с утроенной дальностью | full | Combo передаёт `movementMultiplier: 3` в общий путь Шага. | Нет tests для препятствий, края и отмены combo; UI не показывает доказанно множитель до оплаты. | declared |
 | `vagabond.untouchable.1`: первый Уворот Раунда +[Талант/2] Уклонения | full | Код отслеживает первый `reaction.respond` Уворот текущего Раунда и добавляет бонус. | Требуется сверить правило округления `[Талант/2]`: код применяет `ceil`; канонический текст не фиксирует округление в этом файле. Нужны тесты второго Уворота, round reset и нечётного Таланта. | declared |
-| `vagabond.untouchable.2`: Уворот до 3; при сведении урона к 0 — optional ещё один Уворот | decision | Дальность Уворота поднята до 3; после нулевого damage открывается отменяемый placement prompt. | Нет теста stale prompt после смены позиции/KO и точного условия «Уклонение снизило источник до 0», а не иной prevent. | declared |
+| `vagabond.untouchable.2`: Уворот до 3; при сведении урона к 0 — optional ещё один Уворот | decision | Дальность Уворота поднята до 3; после фактического поглощения урона Уклонением открывается отменяемый placement prompt. | **Исправленный дефект:** раньше любой итоговый 0 открывал prompt; теперь требуется `evaded > 0`, positive и zero-source regressions есть. Ещё нет stale placement/KO/reconnect evidence. | core-tested, not certified |
 | `vagabond.cunning-fighter.1`: новые цели Изучения заполняют часы; раз/Ход сегмент = -1 cost и Быстрое не-Атаки | decision | `cunningPlanStatus` запрещает Атаки/реакции, проверяет сегмент и раз за Ход, события тратят сегмент. | Нет теста повторного Изучения той же цели после import, отмены до оплаты и max часов. | declared |
 | `vagabond.cunning-fighter.2`: снять лимит раз/Ход предыдущего уровня | full | `unlimited = level >= 2` убирает только ограничение одного применения, остальные ограничения сохранены. | Нет прямого теста двух применений в одном Ходу с разными действиями и stale event между ними. | declared |
 | `vagabond.egomaniac.1`: четыре условия Стиля; hit снимает сегмент; full → очистить, move 2, +1 ОД | decision | Trigger считает условия и открывает placement; путь проверяет прямую линию и 2 клетки. | Нет доказательства семантики «по вам попадают» при успешной Атаке с нулевым урона, множественных условиях и одновременных prompts. | declared |
@@ -625,3 +625,26 @@
 | `vagabond.skirmisher.1` | совпадает | manual → confirmed-manual | Нет once/Turn cost0 Jab, adjacent character, Talent/2 damage, Swift-Skirmish identity и запрета изменения damage/targeting внешними features. |
 
 Итог пакета: 16/16 записей рассмотрены отдельно; RU↔EN расхождений нет; 2 завышенных статуса опровергнуты и понижены до `partial`; крупных исправлений не начато, `certified` не присвоен.
+
+### Пакет 5 — уровни 65–80
+
+| Правило | RU↔EN | Заявление → результат | Точное расхождение / недостающее доказательство |
+| --- | --- | --- | --- |
+| `vagabond.skirmisher.2` | совпадает с PDF-стр. 73 | manual → confirmed-manual | Нет optional straight-line move≤2 до или после Skirmish и общего choice/cancel lifecycle. |
+| `vagabond.skirmisher.3` | совпадает | manual → confirmed-manual | Нет +1 Advantage, leave-adjacency target capture, normal-target addition и half damage exception for Jab. |
+| `vagabond.speed-demon.1` | совпадает | manual → confirmed-manual | Нет pass-through enemy spaces с обязательным empty endpoint и пошаговой occupancy validation. |
+| `vagabond.speed-demon.2` | совпадает | full → core-reviewed | Breathe→Stride и triple movement реализованы; нет topology/occupied/removed-cell, KO/stale/reconnect/import E2E. |
+| `vagabond.speed-demon.3` | совпадает | manual → confirmed-manual | Нет leave-enemy-space trigger, Talent/2 non-Attack damage, once/target/Round и Launch only during Flash Step. |
+| `vagabond.untouchable.1` | совпадает | full → core-reviewed | First Dodge/Round получает `[Talent/2]` Evasion; не закрыты round reset/import и duplicate response surfaces. |
+| `vagabond.untouchable.2` | совпадает | decision → core-tested, defect fixed | Repeat Dodge теперь требует `dealt=0`, Dodge Evasion и `evaded>0`; zero-source false positive закрыт. Остались stale placement/KO/network/save-load. |
+| `vagabond.untouchable.3` | совпадает | manual → confirmed-manual | Нет Dodge→Skirmish, pre-target move3 и crit5–6 только для этой Skirmish. |
+| `vagabond.acrobat.1` | совпадает с PDF-стр. 74 | manual → confirmed-manual | Нет Jump→single adjacent Skirmish и Advantage=Jump distance capped by Talent. |
+| `vagabond.acrobat.2` | совпадает | manual → confirmed-manual | Нет end-Jump adjacent terrain/edge, optional straight-line +3, +1 Evasion, same-Jump distance и once/Turn. |
+| `vagabond.acrobat.3` | совпадает | manual → confirmed-manual | Нет unlimited Wall Jumps и запрета повторного использования той же terrain/board edge в одном Jump. |
+| `vagabond.blade-master.1` | совпадает | manual → confirmed-manual | Нет Breathe/Charge stance choice, replacement, expiry after Attack/Stride/Jump и crit5–6 Talent Finish while stance. |
+| `vagabond.blade-master.2` | совпадает | manual → confirmed-manual | Нет Breathe→Jump preserving stance, free Talent Finish и target set всех enemies adjacent-to/or-crossed during path. |
+| `vagabond.blade-master.3` | совпадает | manual → confirmed-manual | Нет pre-movement Finisher roll и +3 straight movement per Critical as part of Jump. |
+| `vagabond.cunning-fighter.1` | совпадает | decision → core-reviewed | New target/Scene clock, once/Turn segment spend, non-Attack cost−1/Swift есть; нет full information-query/UI/network/reconnect/import evidence. |
+| `vagabond.cunning-fighter.2` | совпадает | full → core-reviewed | Level gate снимает once/Turn limit; доверие ограничено неполным L1 user path и отсутствием surface evidence. |
+
+Итог пакета: 16/16 записей рассмотрены отдельно; RU↔EN расхождений нет; найден и исправлен 1 граничный дефект с regression; evidence/certified не повышались.

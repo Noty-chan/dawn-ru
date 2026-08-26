@@ -1850,6 +1850,14 @@ assert.equal(weavePlacement.ok, true);
 untouchableFlow = Engine.dispatchMany(untouchableFlow, weavePlacement.events).scene;
 assert.deepEqual([untouchableFlow.actors[0].x, untouchableFlow.actors[0].y], [4, 4], "Untouchable II performs its optional second Dodge movement");
 assert.ok(untouchableFlow.log.some(event => event.type === "technique.resolve" && event.payload?.ruleId === "vagabond.untouchable.2"));
+const zeroDamageUntouchable = structuredClone(enemyAwaiting);
+zeroDamageUntouchable.pendingAction.damage = 0;
+zeroDamageUntouchable.pendingAction.damageByTarget.hero = 0;
+zeroDamageUntouchable.actors[0].techniques = { "vagabond.untouchable": 2 };
+const zeroDamageDodge = Engine.respondReaction(zeroDamageUntouchable, data, { actorId: "hero", choice: "Уворот", destination: { x: 1, y: 2 } });
+let zeroDamageFlow = Engine.dispatchMany(zeroDamageUntouchable, zeroDamageDodge.events).scene;
+zeroDamageFlow = Engine.dispatchMany(zeroDamageFlow, Engine.resolvePendingAction(zeroDamageFlow, data).events).scene;
+assert.notEqual(zeroDamageFlow.pendingPrompt?.kind, "untouchable-weave", "Weave requires Evasion to actually reduce damage, not merely an already-zero source");
 
 const awaitingClash = structuredClone(enemyAwaiting);
 const clash = Engine.respondReaction(awaitingClash, data, { actorId: "hero", choice: "Столкновение", clash: {
