@@ -214,8 +214,8 @@ assert.deepEqual(Array.from(crafted.actors[0].techniqueState.spellModifiers), []
 assert.equal(crafted.pendingAction.damage, 5, "Fierce adds Mind to attack damage");
 
 const wispBuild = { "altruist.will-o-wisp": 3 };
-assert.deepEqual(Array.from(coverageFor(wispBuild), level => level.automation), ["partial", "partial", "decision"], "Will-O-Wisp exposes the audited missing attack-push and pre-trigger movement truncation instead of overstating all three levels");
-const wispScene = sceneWith(actor({ techniques: wispBuild, focus: 4 }), [ally({ x: 2, y: 1 }), foe({ x: 1, y: 2 })]);
+assert.deepEqual(Array.from(coverageFor(wispBuild), level => level.automation), ["decision", "decision", "decision"], "Will-O-Wisp exposes all three completed interactive levels");
+const wispScene = sceneWith(actor({ techniques: wispBuild, focus: 4, techniqueState: { wispLearnedTypes: ["bright", "dreamy"] } }), [ally({ x: 2, y: 1 }), foe({ x: 1, y: 2 })]);
 const wispCharge = SceneEngine.prepareAction(wispScene, data, { actorId: "hero", actionId: actionNamed("Зарядка").id });
 const offered = SceneEngine.dispatchMany(wispScene, wispCharge.events).scene;
 assert.equal(offered.pendingPrompt?.kind, "wisp-primary");
@@ -229,8 +229,42 @@ assert.equal(twinWisps.markers.length, 2);
 assert.ok(SceneEngine.effectiveEffects(twinWisps, "ally").includes("positive.ускорен"));
 assert.ok(SceneEngine.effectiveEffects(twinWisps, "enemy").includes("negative.замедлен"));
 
-const declinedScene = sceneWith(actor({ techniques: wispBuild, focus: 4 }));
+const attackedWispScene = sceneWith(actor({ techniques: wispBuild, x: 1, y: 1, techniqueState: { wispLearnedTypes: ["bright", "dreamy"] } }), [foe({ x: 2, y: 1 })]);
+attackedWispScene.markers = [{ id: "attacked-wisp", kind: "ritual", ruleId: "altruist.will-o-wisp.1", source: "altruist.will-o-wisp.1", ownerActorId: "hero", space: "main", x: 2, y: 1, duration: "scene", metadata: { spiritTypes: ["bright"] } }];
+const attackFlame = SceneEngine.prepareAction(attackedWispScene, data, { actorId: "hero", actionId: actionNamed("Стычка").id, targetIds: ["enemy"], attribute: "body", roll: { formula: "3D6 · Тело", attribute: "body", rolls: [6, 4, 2], successes: 2, crits: 1 } });
+let flameUnderAttack = SceneEngine.dispatchMany(attackedWispScene, attackFlame.events).scene;
+flameUnderAttack = SceneEngine.dispatchMany(flameUnderAttack, SceneEngine.respondReaction(flameUnderAttack, data, { actorId: "enemy", choice: "pass" }).events).scene;
+flameUnderAttack = SceneEngine.dispatchMany(flameUnderAttack, SceneEngine.resolvePendingAction(flameUnderAttack, data).events).scene;
+assert.deepEqual([flameUnderAttack.markers[0].x, flameUnderAttack.markers[0].y], [3, 1], "An attack targeting a Spirit Flame's cell pushes it exactly one cell away");
+
+const wispStopScene = sceneWith(actor({ techniques: wispBuild, focus: 2, x: 0, y: 0, techniqueState: { wispLearnedTypes: ["bright", "dreamy"] } }), [foe({ x: 1, y: 1, ap: 2, speed: 4 })]);
+wispStopScene.activeActorId = "enemy";
+wispStopScene.markers = [{ id: "hostile-wisp", kind: "ritual", ruleId: "altruist.will-o-wisp.1", source: "altruist.will-o-wisp.1", ownerActorId: "hero", space: "main", x: 1, y: 1, duration: "scene", metadata: { spiritTypes: ["dreamy"] } }];
+const crossingStep = SceneEngine.prepareAction(wispStopScene, data, { actorId: "enemy", actionId: actionNamed("Шаг").id, destination: { x: 4, y: 1 } });
+assert.equal(crossingStep.ok, true);
+const interruptedByWisp = SceneEngine.dispatchMany(wispStopScene, crossingStep.events).scene;
+assert.deepEqual([interruptedByWisp.actors[1].x, interruptedByWisp.actors[1].y], [2, 1], "Will-O-Wisp II interrupts movement at the first exit before downstream cells are entered");
+assert.equal(interruptedByWisp.pendingPrompt?.kind, "wisp-stop");
+assert.ok(!interruptedByWisp.log.some(event => event.type === "actor.move" && event.actorId === "enemy" && Number(event.payload?.x) === 4), "The unconfirmed remainder is not committed before the owner's decision");
+const reconnectedWispPrompt = structuredClone(interruptedByWisp);
+const stoppedByWisp = SceneEngine.dispatchMany(reconnectedWispPrompt, SceneEngine.respondRulePrompt(reconnectedWispPrompt, data, { choice: "stop" }).events).scene;
+assert.deepEqual([stoppedByWisp.actors[1].x, stoppedByWisp.actors[1].y], [2, 1]);
+assert.equal(stoppedByWisp.actors[0].focus, 1, "Stopping after reconnect spends exactly one Focus and does not roll movement back");
+const staleWispMarker = structuredClone(interruptedByWisp);
+staleWispMarker.markers = [];
+assert.equal(SceneEngine.respondRulePrompt(staleWispMarker, data, { choice: "stop" }).ok, false, "A removed flame invalidates the persisted stop prompt before payment");
+const staleWispTarget = structuredClone(interruptedByWisp);
+staleWispTarget.actors.find(item => item.id === "enemy").x = 3;
+assert.equal(SceneEngine.respondRulePrompt(staleWispTarget, data, { choice: "stop" }).ok, false, "A target moved after the prompt cannot be stopped from stale continuation state");
+const exhaustedWispOwner = structuredClone(interruptedByWisp);
+exhaustedWispOwner.actors.find(item => item.id === "hero").focus = 0;
+assert.equal(SceneEngine.respondRulePrompt(exhaustedWispOwner, data, { choice: "stop" }).ok, false, "Focus is revalidated at response time and is not leaked on rejection");
+const resumedPastWisp = SceneEngine.dispatchMany(interruptedByWisp, SceneEngine.respondRulePrompt(interruptedByWisp, data, { choice: "pass" }).events).scene;
+assert.deepEqual([resumedPastWisp.actors[1].x, resumedPastWisp.actors[1].y], [4, 1], "Passing resumes only the revalidated remaining path");
+
+const declinedScene = sceneWith(actor({ techniques: wispBuild, focus: 4, techniqueState: { wispLearnedTypes: ["bright", "dreamy"] } }));
 const firstDeclinedCharge = SceneEngine.dispatchMany(declinedScene, SceneEngine.prepareAction(declinedScene, data, { actorId: "hero", actionId: actionNamed("Зарядка").id }).events).scene;
+assert.equal(SceneEngine.respondRulePrompt(firstDeclinedCharge, data, { actorId: "hero", choice: "heated" }).ok, false, "A forged unlearned spirit type is rejected");
 const decline = SceneEngine.respondRulePrompt(firstDeclinedCharge, data, { actorId: "hero", choice: "pass" });
 const declined = SceneEngine.dispatchMany(firstDeclinedCharge, decline.events).scene;
 assert.equal(declined.actors[0].ruleState.wispCreationUsed, true);

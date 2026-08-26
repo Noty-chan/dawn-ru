@@ -2535,6 +2535,7 @@ assert.equal(interruptedSpineScene.actors[0].ap, 3);
 
 const wispScene = structuredClone(scene);
 wispScene.actors[0].techniques = { "altruist.will-o-wisp": 3 };
+wispScene.actors[0].techniqueState = { wispLearnedTypes: ["dreamy", "bright"] };
 wispScene.pendingPrompt = { id: "wisp-primary-test", kind: "wisp-primary", sourceActorId: "hero", options: ["dreamy", "bright", "pass"], context: {} };
 const firstWispChoice = Engine.respondRulePrompt(wispScene, data, { choice: "dreamy" });
 assert.equal(firstWispChoice.ok, true);

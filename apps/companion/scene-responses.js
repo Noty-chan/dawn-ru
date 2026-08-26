@@ -652,9 +652,11 @@ function respondRulePrompt(scene, data, request = {}) {
     }
   }
   if (prompt.kind === "wisp-primary") {
+    const learned = [...new Set(actor.techniqueState?.wispLearnedTypes || [])].filter(id => WISP_TYPES[id]);
+    if (choice !== "pass" && (!learned.includes(choice) || Number(actor.techniques?.["altruist.will-o-wisp"] || 0) < 1)) return { ok: false, errors: ["Выбранный тип Духа не изучен владельцем Пламени."], events: [] };
     events.push({ type: "actor.state", actorId: actor.id, payload: { key: "wispCreationUsed", value: true, sourceActionId: "altruist.will-o-wisp.1" } });
     if (choice !== "pass" && Number(actor.techniques?.["altruist.will-o-wisp"] || 0) >= 3) {
-      const secondOptions = ["single", ...Object.keys(WISP_TYPES).filter(id => id !== choice).flatMap(id => [`combine:${id}`, `split:${id}`])];
+      const secondOptions = ["single", ...learned.filter(id => id !== choice).flatMap(id => [`combine:${id}`, `split:${id}`])];
       events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${prompt.id}-secondary`, kind: "wisp-secondary", sourceActorId: actor.id, title: "Парные духи", text: "Оставить один Дух, объединить два свойства или создать два отдельных Пламени?", options: secondOptions, context: { firstType: choice }, participantIds: [actor.id] } });
     } else if (choice !== "pass") {
       const spirit = WISP_TYPES[choice];
@@ -672,11 +674,28 @@ function respondRulePrompt(scene, data, request = {}) {
   }
   if (prompt.kind === "wisp-move-select" && choice !== "pass") events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${prompt.id}-cell`, kind: "marker-move-cell", sourceActorId: actor.id, title: "Перемещение Пламени", text: "Выберите клетку в пределах 4 клеток.", options: ["cancel"], context: { markerId: choice, maxDistance: 4 }, participantIds: [actor.id] } });
   if (prompt.kind === "wisp-follow" && choice !== "pass") events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${prompt.id}-cell`, kind: "marker-move-cell", sourceActorId: actor.id, targetId: target.id, title: "Пламя следует за союзником", text: `Выберите клетку, смежную с ${target.name}.`, options: ["cancel"], context: { markerId: choice, adjacentToActorId: target.id }, participantIds: [actor.id, target.id] } });
-  if (prompt.kind === "wisp-stop" && choice === "stop") {
-    const stop = prompt.context?.stopCell;
-    events.push({ type: "resource.spend", actorId: actor.id, payload: { resource: "focus", amount: 1, sourceActionId: "altruist.will-o-wisp.2" } });
-    events.push({ type: "actor.move", actorId: target.id, payload: { space: target.space, x: stop.x, y: stop.y, movement: "Дружелюбные духи", forced: true, participantIds: [actor.id, target.id] } });
-    events.push({ type: "actor.enter", actorId: target.id, payload: { space: target.space, x: stop.x, y: stop.y, movement: "Дружелюбные духи", forced: true } });
+  if (prompt.kind === "wisp-stop") {
+    const candidates = prompt.context?.candidates || [], current = candidates[0], marker = markerById(scene, current?.markerId), exit = prompt.context?.exitCell;
+    if (!target || target.knockedOut || !exit || target.space !== exit.space || Number(target.x) !== Number(exit.x) || Number(target.y) !== Number(exit.y) || current?.ownerActorId !== actor.id || !marker || marker.ownerActorId !== actor.id || Number(actor.techniques?.["altruist.will-o-wisp"] || 0) < 2) return { ok: false, errors: ["Пламя, владелец или остановленный персонаж больше не соответствуют прерванному перемещению."], events: [] };
+    if (choice === "stop") {
+      if (!resourceOperationStatus(scene, actor.id, { resource: "focus", amount: 1, operation: "spend" }).available) return { ok: false, errors: ["Для остановки больше не хватает Фокуса."], events: [] };
+      events.push({ type: "resource.spend", actorId: actor.id, payload: { resource: "focus", amount: 1, sourceActionId: "altruist.will-o-wisp.2", reason: "Остановка при выходе из клетки Пламени", participantIds: [actor.id, target.id] } });
+      events.push({ type: "technique.resolve", actorId: actor.id, payload: { ruleId: "altruist.will-o-wisp.2", name: "Дружелюбные духи", affectedActorIds: [target.id], participantIds: [actor.id, target.id] } });
+    } else {
+      const remainingCandidates = candidates.slice(1).filter(candidate => actorById(scene, candidate.ownerActorId) && markerById(scene, candidate.markerId));
+      if (remainingCandidates.length) {
+        const nextOwner = actorById(scene, remainingCandidates[0].ownerActorId);
+        events.push({ type: "rule.prompt", actorId: nextOwner.id, payload: { id: `prompt-${prompt.id}-${nextOwner.id}`, kind: "wisp-stop", sourceActorId: nextOwner.id, targetId: target.id, title: "Дружелюбные духи", text: `Потратить 1 Фокус и остановить ${target.name} после выхода из клетки Пламени?`, options: ["stop", "pass"], context: { ...clone(prompt.context), candidates: remainingCandidates }, participantIds: [nextOwner.id, target.id] } });
+      } else {
+        const final = prompt.context?.finalDestination, maximum = (prompt.context?.remainingPath || []).length;
+        const path = final && maximum > 0 ? movementPath(scene, target.id, final, { maxDistance: maximum, forced: Boolean(prompt.context?.forced) }) : [];
+        if (final && maximum > 0 && !path.length) return { ok: false, errors: ["Оставшийся путь изменился и больше недоступен."], events: [] };
+        if (path.length) {
+          events.push({ type: "actor.move", actorId: target.id, payload: { space: target.space, x: final.x, y: final.y, movement: prompt.context?.movement || "Продолжение перемещения", forced: Boolean(prompt.context?.forced), path: path.map(cellKey), participantIds: [actor.id, target.id] } });
+          events.push({ type: "actor.enter", actorId: target.id, payload: { space: target.space, x: final.x, y: final.y, movement: prompt.context?.movement || "Продолжение перемещения", forced: Boolean(prompt.context?.forced) } });
+        }
+      }
+    }
   }
   if (prompt.kind === "constrictor-follow" && choice === "pull") {
     const targetIds = [...new Set(prompt.context?.targetIds || [])].filter(id => actorById(scene, id));

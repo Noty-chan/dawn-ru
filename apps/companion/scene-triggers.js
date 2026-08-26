@@ -782,7 +782,14 @@ function triggeredEvents(scene, event, options = {}) {
     const weapon = (scene.markers || []).find(marker => marker.ownerActorId === actor.id && marker.ruleId === "vagabond.knife-juggler.2" && marker.space === actor.space && marker.x === actor.x && marker.y === actor.y);
     if (weapon) events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${event.id}-weapon`, kind: "knife-pickup", sourceActorId: actor.id, markerId: weapon.id, title: "Пополнение", text: "Подобрать Оружие, получить 1 Оружие и переместиться на 1 клетку?", options: ["pickup", "pass"], context: { markerId: weapon.id }, participantIds: [actor.id] } });
   }
-  if (event.type === "actor.move" && actor && payload.from && !scene.pendingPrompt) {
+  if (event.type === "actor.move" && actor && payload.wispInterruption && !scene.pendingPrompt) {
+    const candidates = (payload.wispInterruption.candidates || []).filter(candidate => {
+      const owner = actorById(scene, candidate.ownerActorId), marker = markerById(scene, candidate.markerId);
+      return owner && !owner.knockedOut && owner.team !== actor.team && Number(owner.techniques?.["altruist.will-o-wisp"] || 0) >= 2 && Number(owner.focus || 0) >= 1 && marker?.ownerActorId === owner.id;
+    });
+    const candidate = candidates[0], owner = actorById(scene, candidate?.ownerActorId);
+    if (owner) events.push({ type: "rule.prompt", actorId: owner.id, payload: { id: `prompt-${event.id}-wisp-stop`, kind: "wisp-stop", sourceActorId: owner.id, targetId: actor.id, title: "Дружелюбные духи", text: `Потратить 1 Фокус и остановить ${actor.name} после выхода из клетки Пламени?`, options: ["stop", "pass"], context: { ...clone(payload.wispInterruption), candidates }, participantIds: [owner.id, actor.id] } });
+  } else if (event.type === "actor.move" && actor && payload.from && !scene.pendingPrompt) {
     const marker = (scene.markers || []).find(item => item.ruleId === "vagabond.knife-juggler.2" && item.space === payload.from.space && item.x === Number(payload.from.x) && item.y === Number(payload.from.y) && actorById(scene, item.ownerActorId)?.team !== actor.team && Number(actorById(scene, item.ownerActorId)?.techniques?.["vagabond.knife-juggler"] || 0) >= 3);
     const owner = marker && actorById(scene, marker.ownerActorId);
     if (owner && !owner.knockedOut) events.push({ type: "rule.prompt", actorId: owner.id, payload: { id: `prompt-${event.id}-chaser`, kind: "knife-chaser", sourceActorId: owner.id, targetId: actor.id, markerId: marker.id, title: "Преследователь", text: `Телепортироваться к Оружию и использовать Быструю Стычку против ${actor.name}?`, options: ["chase", "pass"], context: { markerId: marker.id }, participantIds: [owner.id, actor.id] } });
@@ -826,7 +833,8 @@ function triggeredEvents(scene, event, options = {}) {
     events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${event.id}-warring`, kind: "warring-transform", sourceActorId: actor.id, title: "Небесная рука", text: "Трансформироваться и оттолкнуть всех врагов в пределах 2 клеток на 3 клетки? Выбранные оружейные Техники должны быть заранее записаны в листе.", options: ["transform", "pass"], participantIds: [actor.id] } });
   }
   if (event.type === "action.resolve" && actor && actionIdIs(eventActionId(payload), "charge") && Number(actor.techniques?.["altruist.will-o-wisp"] || 0) >= 1 && !actor.ruleState?.wispCreationUsed && !wispMarkers(scene, actor.id).length && !scene.pendingPrompt && !promptQueued()) {
-    events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${event.id}-wisp`, kind: "wisp-primary", sourceActorId: actor.id, title: "Пламя духовного плетения", text: "Выберите первый Дух для Духовного пламени.", options: [...Object.keys(WISP_TYPES), "pass"], participantIds: [actor.id] } });
+    const learned = [...new Set(actor.techniqueState?.wispLearnedTypes || [])].filter(id => WISP_TYPES[id]);
+    if (learned.length) events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${event.id}-wisp`, kind: "wisp-primary", sourceActorId: actor.id, title: "Пламя духовного плетения", text: "Создать Духовное пламя из известного типа Духа?", options: [...learned, "pass"], context: { learnedTypes: learned }, participantIds: [actor.id] } });
   }
   if ((event.type === "action.resolve" && actionIdIs(eventActionId(payload), "step") && !payload.continuation || event.type === "turn.end") && actor && Number(actor.techniques?.["altruist.will-o-wisp"] || 0) >= 1 && wispMarkers(scene, actor.id).length && !scene.pendingPrompt && !promptQueued()) {
     events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${event.id}-wisp-move`, kind: "wisp-move-select", sourceActorId: actor.id, title: "Духовное пламя", text: "Можно переместить одно Духовное пламя на расстояние до 4 клеток.", options: [...wispMarkers(scene, actor.id).map(marker => marker.id), "pass"], participantIds: [actor.id] } });
@@ -846,17 +854,14 @@ function triggeredEvents(scene, event, options = {}) {
     events.push({ type: "actor.state", actorId: target.id, payload: { key: "warringTransformed", value: false, sourceActionId: "powerhouse.warring-ascendant.1" } });
     events.push({ type: "effect.apply", actorId: target.id, payload: { targetId: target.id, effect: "negative.ошеломлен", sourceActionId: "powerhouse.warring-ascendant.1", participantIds: [target.id] } });
   }
-  if (event.type === "actor.move" && actor && payload.from && !scene.pendingPrompt) {
+  if (event.type === "actor.move" && actor && payload.from && !payload.wispInterruption && !scene.pendingPrompt) {
     for (const owner of (scene.actors || []).filter(item => !item.knockedOut && Number(item.techniques?.["altruist.will-o-wisp"] || 0) >= 2)) {
       const flames = wispMarkers(scene, owner.id);
       const exited = flames.filter(marker => marker.space === actor.space && marker.x === Number(payload.from.x) && marker.y === Number(payload.from.y) && (marker.x !== actor.x || marker.y !== actor.y));
       if (!exited.length) continue;
       if (owner.team === actor.team) events.push({ type: "rule.prompt", actorId: owner.id, payload: { id: `prompt-${event.id}-wisp-follow`, kind: "wisp-follow", sourceActorId: owner.id, targetId: actor.id, title: "Дружелюбные духи", text: `Переместить Пламя вслед за ${actor.name}?`, options: [...exited.map(marker => marker.id), "pass"], context: { targetId: actor.id }, participantIds: [owner.id, actor.id] } });
-      else if (Number(owner.focus || 0) >= 1) {
-        const path = (payload.path || []).map(value => { const [x, y] = String(value).split(",").map(Number); return { x, y }; });
-        const firstExit = path.find(point => exited.some(marker => marker.x !== point.x || marker.y !== point.y)) || { x: actor.x, y: actor.y };
-        events.push({ type: "rule.prompt", actorId: owner.id, payload: { id: `prompt-${event.id}-wisp-stop`, kind: "wisp-stop", sourceActorId: owner.id, targetId: actor.id, title: "Дружелюбные духи", text: `Потратить 1 Фокус и остановить ${actor.name} рядом с Пламенем?`, options: ["stop", "pass"], context: { stopCell: firstExit }, participantIds: [owner.id, actor.id] } });
-      }
+      // Hostile movement is intercepted before dispatchMany commits downstream
+      // cells. This post-move hook is deliberately limited to friendly follow.
       break;
     }
   }
@@ -958,7 +963,23 @@ function dispatchMany(scene, events, options = {}) {
   let handled = 0;
   while (queue.length) {
     if (handled++ > 240) throw new Error("Слишком длинная цепочка автоматических правил.");
-    const event = queue.shift();
+    let event = queue.shift();
+    if (event?.type === "actor.move" && !event.payload?.wispInterruptionChecked) {
+      const mover = actorById(next, event.actorId), route = mover ? [{ space: mover.space, x: Number(mover.x), y: Number(mover.y) }, ...(event.payload?.path || []).map(value => { const [x, y] = String(value).split(",").map(Number); return { space: event.payload?.space || mover.space, x, y }; })] : [];
+      const declaredDestination = mover ? { space: event.payload?.space || mover.space, x: Number(event.payload?.x), y: Number(event.payload?.y) } : null;
+      if (mover && (!route.length || route.at(-1).x !== declaredDestination.x || route.at(-1).y !== declaredDestination.y)) route.push(declaredDestination);
+      let interruption = null;
+      for (let index = 0; index < route.length - 1 && !interruption; index += 1) {
+        const candidates = (next.markers || []).filter(marker => /altruist\.will-o-wisp\.1/.test(`${marker.ruleId || ""} ${marker.source || ""}`) && marker.space === route[index].space && Number(marker.x) === route[index].x && Number(marker.y) === route[index].y).map(marker => ({ marker, owner: actorById(next, marker.ownerActorId) })).filter(({ owner }) => owner && !owner.knockedOut && owner.team !== mover.team && Number(owner.techniques?.["altruist.will-o-wisp"] || 0) >= 2 && Number(owner.focus || 0) >= 1).sort((left, right) => left.owner.id.localeCompare(right.owner.id) || left.marker.id.localeCompare(right.marker.id));
+        if (candidates.length) interruption = { index, candidates: candidates.map(({ marker, owner }) => ({ markerId: marker.id, ownerActorId: owner.id })) };
+      }
+      if (interruption) {
+        const exit = route[interruption.index + 1], remaining = route.slice(interruption.index + 2);
+        event = { ...event, payload: { ...event.payload, space: exit.space, x: exit.x, y: exit.y, path: route.slice(1, interruption.index + 2).map(cellKey), wispInterruptionChecked: true, wispInterruption: { candidates: interruption.candidates, exitCell: clone(exit), finalDestination: clone(declaredDestination), remainingPath: remaining.map(cellKey), movement: event.payload?.movement || "Перемещение", forced: Boolean(event.payload?.forced) } } };
+        const enter = queue.find(candidate => candidate?.type === "actor.enter" && candidate.actorId === event.actorId);
+        if (enter) Object.assign(enter.payload, { space: exit.space, x: exit.x, y: exit.y, interruptedByWisp: true });
+      }
+    }
     const prompt = next.pendingPrompt, destination = event?.payload?.destination;
     if (event?.type === "rule.prompt") {
       const payload = event.payload || {};
