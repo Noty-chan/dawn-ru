@@ -627,12 +627,13 @@ function respondRulePrompt(scene, data, request = {}) {
     events.push({ type: "resource.gain", actorId: actor.id, payload: { resource: "focus", amount: lostHealth * 2, sourceActionId: "ruiner.grim-ascendant.1" } });
     const enemies = (scene.actors || []).filter(item => !item.knockedOut && item.team !== actor.team && distance(actor, item) <= 2);
     if (enemies.length) {
-      const plan = prepareDisplacements(scene, enemies.map(enemy => ({ actorId: enemy.id, mode: "push", sourceActorId: actor.id, maximum: 3, allowPartial: true, optional: true, name: "Непостоянная мощь", ruleId: "ruiner.grim-ascendant.1", participantIds: [actor.id, enemy.id] })));
+      const plan = prepareDisplacements(scene, enemies.map(enemy => ({ actorId: enemy.id, mode: "push", sourceActorId: actor.id, maximum: 3, allowPartial: true, allowBlocked: true, name: "Непостоянная мощь", ruleId: "ruiner.grim-ascendant.1", participantIds: [actor.id, enemy.id] })));
       if (!plan.ok) return { ok: false, errors: plan.errors, events: [] };
       for (const move of plan.events) {
         events.push(move);
         events.push({ type: "actor.enter", actorId: move.actorId, payload: { space: move.payload.space, x: move.payload.x, y: move.payload.y, movement: "Непостоянная мощь", forced: true } });
       }
+      events.push({ type: "technique.resolve", actorId: actor.id, payload: { ruleId: "ruiner.grim-ascendant.1", name: "Непостоянная мощь", affectedActorIds: plan.statuses.filter(status => status.available).map(status => status.actor.id), blockedActorIds: plan.statuses.filter(status => status.blocked).map(status => status.actor?.id).filter(Boolean), participantIds: [actor.id, ...enemies.map(enemy => enemy.id)] } });
     }
   }
   if (prompt.kind === "warring-transform" && choice === "transform") {

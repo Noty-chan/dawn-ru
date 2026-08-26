@@ -157,7 +157,10 @@ const TRIGGER_RULES = [
     id: "altruist.empath.2.protective-response",
     eventTypes: ["effect.apply", "damage.apply"],
     priority: 50,
-    match: ({ event, payload }) => event.type === "effect.apply" ? Boolean(payload.applied) && event.actorId !== payload.targetId : Boolean(payload.woundGained) && event.actorId !== payload.targetId,
+    match: ({ scene, event, payload }) => {
+      const source = actorById(scene, event.actorId), target = actorById(scene, payload.targetId);
+      return Boolean(source && target && source.id !== target.id) && (event.type === "effect.apply" ? Boolean(payload.applied) : Boolean(payload.woundGained));
+    },
     build: ({ scene, event, payload }) => {
       const target = actorById(scene, payload.targetId);
       const empath = (scene.actors || []).find(owner => target && !owner.knockedOut && owner.team === target.team && owner.id !== target.id && Number(owner.techniques?.["altruist.empath"] || 0) >= 2 && distance(owner, target) <= Number(owner.attrs?.talent || 0));

@@ -211,6 +211,10 @@ function prepareDisplacements(scene, requests = [], options = {}) {
     for (const request of requests) {
       if (moved.has(request.actorId) && !options.allowRepeatedActors) throw new Error("Один персонаж не может быть перемещён дважды в одном плане.");
       const status = displacementStatus(working, request);
+      if (!status.available && request.allowBlocked) {
+        statuses.push({ ...status, mandatory: true, blocked: true });
+        continue;
+      }
       if (!status.available && request.optional) {
         statuses.push(status);
         continue;
