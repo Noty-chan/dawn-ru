@@ -100,3 +100,10 @@ npm test
 - Autophage I: regeneration в `scene-responses.js` сейчас использует `expectedDamage > 0`, но канон говорит successful Attack; полное поглощение урона не должно отменять trigger.
 - Autophage II–III: `TechniqueEngine.preview` ищет старый `damage.apply` во всём scene log (`find`, без pending trigger token). Это stale/replay уязвимость: адаптер надо привязать к конкретному незавершённому successful Attack/Finisher и его исходной цели.
 - Финальный этап цели после всех 30 пакетов обязателен: сквозная проверка 4 reference-файлов, evidence digest/claims, UI/network/save-load, freshness map и полный npm test. Пакетная отметка не означает завершение всей цели.
+
+## Повторный аудит: пакет 16 (уровни 241–256)
+
+- После пакета 16 проверено 256/472: 256/321 уровней Техник; остаётся 65 уровней Техник + 151 правило врагов = 216.
+- Siren I–II — хорошие примеры реального decision core: trigger queue, повторная валидация и размещение есть, но это всё ещё не evidence полного UI/network/save-load пути.
+- Wave Rider I и Gale Strider I нельзя повышать выше partial: entity/trigger lifecycle работает, однако создание запускается отдельной кнопкой и не связано атомарно с каноническим Spell/Finisher/Jump.
+- При RU↔EN сверке проверять не только смысл, но согласование: в пакете исправлены Inhuman Strength I и Swarm Body II одновременно в `source/translation` и `data.js`.
