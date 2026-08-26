@@ -300,7 +300,7 @@
 - **Заявленный статус:** `decision` (решение).
 - **Текущий адаптер:** `powerhouse.braggart.3` · `passive` · {"kind":"passive"}; Полученная Рана предлагает заполнить сегмент Гордости..
 - **Готовые foundations:** `rule-clock`, `trigger-router`, `damage-pipeline`.
-- **Нужно добавить:** Для кода явный следующий шаг не выведен автоматически; нужны direct pos/neg/boundary тесты и evidence до повышения доверия.
+- **Нужно добавить:** До повторного аудита prompt открывался от любой Раны, включая союзный/собственный источник; исправлена обязательная проверка вражеской команды. Нужны UI/network/save-load и stale/duplicate evidence.
 
 ### Картечник (Breacher) `powerhouse.breacher`
 
@@ -309,7 +309,7 @@
 - **Заявленный статус:** `full` (полная).
 - **Текущий адаптер:** `powerhouse.breacher.1` · `passive` · {"kind":"passive"}; Стычка получает дальность 4; каждая цель в пределах 2 после Успеха проходит обычные Реакции и затем отталкивается на 1 через общий post-hit displacement без добавочного урона..
 - **Готовые foundations:** `target-validation`, `event-participants`, `spatial-range`, `trigger-router`, `action-modifier`.
-- **Нужно добавить:** Сохранить существующий adapter и добавить недостающий контракт: `movement-lifecycle`.
+- **Нужно добавить:** До повторного аудита толчок срабатывал при ненулевом уроне от Напряжения даже без Успеха; исправлено отдельным requiresSuccess и negative regression.
 
 #### 2. Из обоих стволов (Both Barrels) `powerhouse.breacher.2`
 

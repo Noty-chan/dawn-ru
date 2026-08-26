@@ -556,3 +556,26 @@
 | `powerhouse.struggler.1` | совпадает | manual → confirmed-manual | Нет выбора на каждую 1 в Challenge: Speed−1 на Scene или `[Tier]` damage при минимальной Speed. |
 
 Итог пакета: 16/16 записей рассмотрены отдельно; RU↔EN смысловых расхождений в полном разделе нет; найден и исправлен 1 кодовый дефект; 6 исполняемых заявлений остаются максимум `core-reviewed`, `certified` не присвоен.
+
+### Пакет 2 — уровни 17–32
+
+| Правило | RU↔EN | Заявление → результат | Точное расхождение / недостающее доказательство |
+| --- | --- | --- | --- |
+| `powerhouse.struggler.2` | совпадает с PDF-стр. 68 | manual → confirmed-manual | Нет optional move≤3 toward chosen enemy и optional Mark только при adjacent результате. |
+| `powerhouse.struggler.3` | совпадает | manual → confirmed-manual | Нет расширения Effort на любую кость Finisher независимо от значения. |
+| `powerhouse.spellsword.1` | совпадает | manual → confirmed-manual | Нет оплаты 1 Focus и переноса всех Cast-Technique modifiers с явным исключением других уровней SpellSword. |
+| `powerhouse.spellsword.2` | совпадает | partial → confirmed-partial | Есть только teleport preview≤3; нет атомарного Cast→Swift/free Skirmish, pre-target timing, cancellation и lifecycle. |
+| `powerhouse.spellsword.3` | совпадает | full → core-reviewed | Непосредственный Cast, same character, Body/Talent Finish и +Spirit damage проверяются; нет KO/stale/replay/UI/network/save-load. |
+| `powerhouse.technician.1` | совпадает | manual → confirmed-manual | Нет Stretch duration through end of next Turn, +1 AP per completed Combo и per-combo/Turn limit. |
+| `powerhouse.technician.2` | совпадает | manual → confirmed-manual | Нет +1 Armor on Combo completion и expiry at start next Turn. |
+| `powerhouse.technician.3` | совпадает | full → core-reviewed | Skirmish→Finisher и точная стоимость 1 AP реализованы; нет cancel-before-payment, KO между частями и replay evidence. |
+| `powerhouse.unbroken.1` | совпадает | manual → confirmed-manual | Нет once/Scene Influence spend, free On The Line и запрета дальнейшего gain Influence на Scene. |
+| `powerhouse.unbroken.2` | совпадает | manual → confirmed-manual | Нет trigger от Influence spend в combat Scene и Swift/free cost-1 Action. |
+| `powerhouse.unbroken.3` | совпадает | manual → confirmed-manual | Нет связи только с Get Back Up и optional heal Wounds до ровно 1. |
+| `powerhouse.braggart.1` | совпадает с PDF-стр. 69 | partial → confirmed-partial | Clock/low-attribute/full bonus есть; «enemy Attack without Defensive Reaction» неполно моделирует отсутствие доступной реакции и не имеет полного surface evidence. |
+| `powerhouse.braggart.2` | совпадает | decision → core-reviewed | Hold Back, reset, size−2 min2 и scaling Advantage есть; нет stale/duplicate/reconnect/import и decline-boundary evidence. |
+| `powerhouse.braggart.3` | совпадает | decision → core-reviewed, defect fixed | Prompt ошибочно принимал Wound от союзника/самого себя; добавлена проверка enemy source и positive/negative regression. |
+| `powerhouse.breacher.1` | совпадает | full → core-tested, defect fixed | Push ошибочно срабатывал от Tension damage при 0 Successes; добавлен `requiresSuccess` и regression. UI/network/save-load всё ещё не доказаны. |
+| `powerhouse.breacher.2` | совпадает | manual → confirmed-manual | Нет optional Both Barrels only while not Weakened, `[Body/2]` Advantage и delayed self-Weakens after resolution. |
+
+Итог пакета: 16/16 записей рассмотрены отдельно; смысловых RU↔EN расхождений нет; найдены и исправлены 2 кодовых дефекта с regressions; `certified` не присвоен.

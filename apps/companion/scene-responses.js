@@ -1055,7 +1055,7 @@ function resolvePendingAction(scene, data) {
       for (const effect of pending.postTargetEffects || []) events.push({ type: "effect.apply", actorId: pending.actorId, payload: { targetId: resolvedTargetId, effect, sourceActionId: pending.techniqueRuleId || pending.actionId, participantIds: [pending.actorId, resolvedTargetId] } });
       if (attackSucceeded && status.eligibleIds.length === 1 && Number(source?.techniques?.["disruptor.constrictor"] || 0) >= 1 && (pending.declaredActionName || pending.name) === "Стычка") events.push({ type: "effect.apply", actorId: source.id, payload: { targetId: resolvedTargetId, effect: "negative.пойман", sourceActionId: "disruptor.constrictor.1", participantIds: [source.id, resolvedTargetId] } });
       const postDisplacement = (pending.postDisplacements || []).find(item => item.targetId === targetId) || (pending.postPush?.targetId === targetId ? { mode: "push", collisionDamagePerCell: 1, ...pending.postPush } : null);
-      if (expectedDamage > 0 && postDisplacement) {
+      if (expectedDamage > 0 && postDisplacement && (!postDisplacement.requiresSuccess || attackSucceeded)) {
         const destination = postDisplacement.mode === "push" ? pushDestination(scene, target, source, Number(postDisplacement.maximum || 99)) : null;
         if (destination?.distance) {
           const movementName = postDisplacement.name || "Принудительное движение", ruleId = postDisplacement.ruleId || pending.techniqueRuleId || pending.enemyRuleId || pending.actionId;

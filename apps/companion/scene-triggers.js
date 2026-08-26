@@ -144,9 +144,9 @@ const TRIGGER_RULES = [
     id: "powerhouse.braggart.3.wound",
     eventTypes: ["damage.apply"],
     priority: 60,
-    match: ({ scene, payload }) => {
-      const target = actorById(scene, payload.targetId);
-      return Boolean(payload.woundGained) && target && Number(target.techniques?.["powerhouse.braggart"] || 0) >= 3;
+    match: ({ scene, event, payload }) => {
+      const target = actorById(scene, payload.targetId), source = actorById(scene, event.actorId);
+      return Boolean(payload.woundGained) && target && source && source.team !== target.team && Number(target.techniques?.["powerhouse.braggart"] || 0) >= 3;
     },
     build: ({ scene, event, payload }) => {
       const target = actorById(scene, payload.targetId);
