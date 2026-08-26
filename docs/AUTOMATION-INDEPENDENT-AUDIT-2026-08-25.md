@@ -529,3 +529,30 @@
 | `ruiner.rapid-fire-sorcery.2`: damage empty cell→own difficult terrain; enemy enter/start there takes Tier damage | partial | Generic difficult-area placement works. | Нет link only after damage to empty cell, owner/source, entry/start damage, overlapping terrain/KO/replay/import. | partial, scoped |
 | `ruiner.student-of-stars.2`: only Power Unleashed may become infinite line or adjacent 2×2 | partial | Generic line/2×2 area previews exist. | Нет strict linkage to L1 Power Unleashed, cost/timing preservation, choice/cancel, edge/target-KO/reconnect tests. | partial, scoped |
 | `ruiner.sellsword-s-call.1`: Spell empty cell, 1 Focus each→tier1 Ranger/Executioner/Viper HP1, half damage, cap floor(Tier/2) | partial | Empty cell/type/Focus/cap marker portion works. | **Known defect:** marker is not summon actor: no HP1, profile attack, half-damage, turn/controller. Need multi-cell payment, cap boundaries, KO/import/reconnect. | refuted to partial |
+
+## Повторный сквозной аудит пакетами по 16
+
+Авторитет английского текста: полный раздел Техник; ранние пояснительные примеры не заменяют его. В частности, пример Берсерка на PDF-стр. 65 содержит старую редакцию, а актуальный полный блок находится на стр. 67. `core-reviewed` означает сверку канона с исполняемыми ветками кода, но не UI/сеть/save-load и не `certified`.
+
+### Пакет 1 — уровни 1–16
+
+| Правило | RU↔EN | Заявление → результат | Точное расхождение / недостающее доказательство |
+| --- | --- | --- | --- |
+| `powerhouse.berserker.1` | совпадает с PDF-стр. 67 | manual → confirmed-manual | Нет trigger Раны, оплаты 1 Фокуса, бесплатного Swift action и лимита `[Tension+Tier]`/Turn. |
+| `powerhouse.berserker.2` | совпадает | manual → confirmed-manual | Нет derived Guts и изменения потери Health при достижении 0. |
+| `powerhouse.berserker.3` | совпадает | manual → confirmed-manual | Нет окна выбора «Effect или Wound» и атомарной замены до применения Effect. |
+| `powerhouse.dragonslayer.1` | совпадает | full → core-reviewed | Body Finisher + success → Shred после damage реализовано; нет UI/network/save-load evidence и negative/boundary набора. |
+| `powerhouse.dragonslayer.2` | совпадает | manual → confirmed-manual | Нет выбора при расходе 3+ Focus и замены цели на self-anchored 2×2 без владельца. |
+| `powerhouse.dragonslayer.3` | совпадает | full → core-reviewed | Breathe→Body Finisher, all dice Hits, push 2 и self Weakens реализованы; нет stale/KO/replay и blocked-push E2E. |
+| `powerhouse.duelist.1` | совпадает | manual → confirmed-manual | Нет combo Block→Skirmish, pre-target move 3 и Taunt только on Success. |
+| `powerhouse.duelist.2` | совпадает | full → core-reviewed | Block проверяет исходную смежность и Dazes attacker; нет повторного ответа, KO и reconnect evidence. |
+| `powerhouse.duelist.3` | совпадает | manual → confirmed-manual | Нет окна после Block ranged≥2, оплаты 1 Focus и Skirmish цели≤5 от attacker. |
+| `powerhouse.flagellant.1` | совпадает | manual → confirmed-manual | Нет optional Strengthen при получении Negative Effect. |
+| `powerhouse.flagellant.2` | совпадает | manual → confirmed-manual | Нет first-Skirmish/Turn, self-Blight, line move, adjacency Advantage и already-Blighted Mark/+1 move. |
+| `powerhouse.flagellant.3` | совпадает | manual → confirmed-manual | Нет подавления Negative Effects при 3+ Wounds и восстановления поведения ниже границы. |
+| `powerhouse.gunslinger.1` | совпадает | partial → partial, defect fixed | Код допускал пустую клетку вместо обязательного character target; добавлена валидация и regression. Остались Scene lifecycle/UI/network/save-load. |
+| `powerhouse.gunslinger.2` | совпадает | decision → core-reviewed | +1 Advantage и optional set Bullets=6 после Turn без Attack есть; не закрыты cancelled Attack, stale prompt, replay/reconnect. |
+| `powerhouse.gunslinger.3` | совпадает | full → core-reviewed | Single-character Skirmish с 3+ Bullets → Launch реализовано; нет negative multi-target/2-bullets и E2E evidence. |
+| `powerhouse.struggler.1` | совпадает | manual → confirmed-manual | Нет выбора на каждую 1 в Challenge: Speed−1 на Scene или `[Tier]` damage при минимальной Speed. |
+
+Итог пакета: 16/16 записей рассмотрены отдельно; RU↔EN смысловых расхождений в полном разделе нет; найден и исправлен 1 кодовый дефект; 6 исполняемых заявлений остаются максимум `core-reviewed`, `certified` не присвоен.

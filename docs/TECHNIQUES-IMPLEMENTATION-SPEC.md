@@ -171,7 +171,7 @@
 - **Заявленный статус:** `partial` (частичная).
 - **Текущий адаптер:** `powerhouse.gunslinger.1.foundation` · `foundation` · {"kind":"foundation","foundation":"alternate-resource","resource":"bullets","resourceLabel":"Пули","initial":6,"replaces":["focus"]}; Пули сохраняются и изменяются событиями ядра; Стычка проверяет минимум, дальность и явное распределение дополнительных Пуль..
 - **Готовые foundations:** `target-validation`, `event-participants`, `spatial-range`, `resource-check`, `alternate-resource`, `choice-flow`, `action-modifier`, `dice-hooks`.
-- **Нужно добавить:** Сохранить существующий adapter и добавить недостающий контракт: `scene-lifecycle`.
+- **Нужно добавить:** До повторного аудита Стычка ошибочно принимала пустые клетки, хотя канон требует персонажей; исправлено отдельной валидацией, статус остаётся partial до полного пользовательского пути.
 
 #### 2. Зарядить и взвести (Lock And Load) `powerhouse.gunslinger.2`
 

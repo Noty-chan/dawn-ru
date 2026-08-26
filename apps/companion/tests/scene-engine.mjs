@@ -1254,6 +1254,15 @@ const bigIron = Engine.prepareAction(gunslingerActionScene, data, {
 });
 assert.equal(bigIron.ok, true, "Big Iron replaces the Skirmish range and requires an explicit Bullet allocation");
 assert.equal(bigIron.events.find(event => event.type === "rule-resource.spend").payload.amount, 3);
+const bigIronEmptyCell = Engine.prepareAction(gunslingerActionScene, data, {
+  actorId: "hero",
+  actionId: actionNamed("Стычка").id,
+  targetCells: ["4,2"],
+  bulletsSpent: 1,
+  roll: { formula: "4D6", rolls: [6, 5, 2, 1], successes: 2, crits: 1 },
+});
+assert.equal(bigIronEmptyCell.ok, false, "Big Iron targets characters, never an empty cell");
+assert.match(bigIronEmptyCell.errors.join(" "), /персонажей.*пустые клетки/);
 const bigIronPending = Engine.dispatchMany(gunslingerActionScene, bigIron.events).scene;
 assert.equal(Engine.ruleResourceStatus(bigIronPending, "hero", { resource: "bullets" }).balance, 3);
 const interruptedBigIron = Engine.dispatch(bigIronPending, { type: "damage.apply", actorId: "enemy", payload: { targetId: "hero", amount: 99, ignoreArmor: true } }).scene;

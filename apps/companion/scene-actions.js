@@ -399,6 +399,7 @@ function prepareAction(scene, data, request = {}) {
   if (gunslingerSkirmish && (!Number.isInteger(bulletsSpent) || bulletsSpent < 1 || !Number.isInteger(bulletAdvantage) || bulletAdvantage < 0)) errors.push("Укажите целое число потраченных Пуль и Пуль на Преимущество.");
   if (gunslingerSkirmish && bulletAdvantage + Math.max(0, selectedTargetCount - 1) > bulletsSpent - 1) errors.push("Дополнительных Пуль не хватает одновременно на выбранные цели и Преимущество.");
   if (gunslingerSkirmish && !ruleResourceStatus(scene, actor.id, { resource: "bullets", amount: bulletsSpent }).available) errors.push("Недостаточно Пуль для Стычки.");
+  if (gunslingerSkirmish && targetCells.length) errors.push("«Большой ствол» выбирает персонажей, а не пустые клетки.");
   if (knifeThrow && !ruleResourceStatus(scene, actor.id, { resource: "weapons", amount: 1 }).available) errors.push("Для Метания нужно 1 Оружие.");
   if (knifeThrow && (targetIds.length !== 1 || targetCells.length)) errors.push("Метание выбирает ровно одного персонажа.");
   if (meisterOverload && !Array.isArray(request.roll?.rolls)) errors.push("Для Перегрузки нужен зафиксированный бросок Атаки.");
