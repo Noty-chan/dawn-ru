@@ -81,9 +81,11 @@ const charged = SceneEngine.dispatchMany(creationScene, charge.events).scene;
 assert.equal(SceneEngine.ruleResourceStatus(charged, "hero", { resource: "creation-marks" }).balance, 2, "Charge gains Creation Marks instead of Focus");
 
 const shadowBuild = { "vagabond.assassin": 2, "ruiner.grim-ascendant": 2, "disruptor.hunter": 1 };
-assert.ok(coverageFor(shadowBuild).every(level => !["manual", "partial"].includes(level.automation)), "The assassin/ascendant/hunter build has no manual or partial level");
+const shadowCoverage = coverageFor(shadowBuild);
+assert.deepEqual(Array.from(shadowCoverage.filter(level => level.automation === "partial"), level => level.id), ["vagabond.assassin.1", "vagabond.assassin.2"], "Assassin I-II stay explicitly partial after the deployment and dice-contract audit");
+assert.ok(shadowCoverage.every(level => level.automation !== "manual"), "The assassin/ascendant/hunter build has no fully manual level");
 const upgradedShadowBuild = { "vagabond.assassin": 3, "ruiner.grim-ascendant": 2, "disruptor.hunter": 2 };
-assert.ok(coverageFor(upgradedShadowBuild).every(level => !["manual", "partial"].includes(level.automation)), "Nari's Tier 2 Assassin/Hunter upgrades stay automated");
+assert.deepEqual(Array.from(coverageFor(upgradedShadowBuild).filter(level => level.automation === "partial"), level => level.id), ["vagabond.assassin.1", "vagabond.assassin.2"], "Upgrading Assassin keeps the two audited partial foundations visible");
 const shadowScene = sceneWith(actor({ techniques: shadowBuild, x: 3, y: 3, hp: 8, focus: 0 }), [foe({ x: 4, y: 3 })]);
 const hide = SceneEngine.prepareAction(shadowScene, data, { actorId: "hero", actionId: actionNamed("Скрыться").id });
 assert.equal(hide.ok, true, "Assassin I ignores the ordinary edge requirement on the first Scene action");

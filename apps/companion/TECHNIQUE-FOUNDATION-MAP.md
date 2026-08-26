@@ -226,8 +226,8 @@ SHA-256 проверенных файлов: `b9ab51ceb86ee102cd6ddb503572811679
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Засада (Ambush) | проверено | полная | `usage-limits`, `trigger-router`, `action-modifier`, `deployment-hooks` |
-| 2 | Ликвидация (Assassinate) | проверено | с выбором | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `movement-lifecycle`, `trigger-router`, `reaction-window`, `choice-flow`, `action-modifier`, `composite-action`, `dice-hooks` |
+| 1 | Засада (Ambush) | проверено | частичная | `usage-limits`, `trigger-router`, `action-modifier`, `deployment-hooks` |
+| 2 | Ликвидация (Assassinate) | проверено | частичная | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `movement-lifecycle`, `trigger-router`, `reaction-window`, `choice-flow`, `action-modifier`, `composite-action`, `dice-hooks` |
 | 3 | Скорость тьмы (Speed of Dark) [Скрыться -> Шаг] | проверено | полная | `effect-state`, `effect-lifecycle`, `movement-lifecycle`, `action-modifier`, `action-history` |
 
 ### Снайпер (`vagabond.sniper`)

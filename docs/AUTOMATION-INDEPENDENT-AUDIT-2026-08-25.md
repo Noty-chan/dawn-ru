@@ -143,8 +143,8 @@
 | `powerhouse.braggart.2`: при заполнении Гордости — optional очистить, -2 размера до 2; бонус от недостающих сегментов | decision | Trigger/response уменьшает размер до minimum 2 и очищает часы; вычислитель преимущества учитывает размер. | Нет теста pass, повторного full prompt, KO источника и сохранения уменьшенного размера. | declared |
 | `powerhouse.braggart.3`: Рана от врага → optional +1 Гордость | decision | Trigger создаёт prompt при `actor.wound`; ответ добавляет сегмент. | Нужны тесты Раны не от врага, KO с Раной, заполненных часов и stale prompt. | declared |
 | `powerhouse.breacher.1`: Стычка на персонажа до 4; успешная цель до 2 — толчок 1 | full | Дальность Стычки повышена до 4; post displacement создаётся только для целей на расстоянии ≤2 и разрешается только при положительном уроне. | Нет теста стен, двух целей с разной дальностью, нулевого урона и недоступного destination толчка. | declared |
-| `vagabond.assassin.1`: первое действие после Развёртывания — Скрыться бесплатно, без требований | full | `quickActionSources` отмечает только первое после deploy Скрыться, а cost заменяется на 0. | Нужны тесты другого первого действия, отмены Скрыться и import сразу после deploy. | declared |
-| `vagabond.assassin.2`: Атака из Исчез; появление смежно; +Ступень преимуществ; крит 5–6 | decision | Составной план не оплачивает/не снимает Исчез до confirm; клетка повторно валидируется. | Нет isolated KO/reconnect/import теста этой ветки и проверки, что крит-порог не протекает в обычную Атаку. | declared |
+| `vagabond.assassin.1`: первое действие после Развёртывания — Скрыться бесплатно, без требований | partial (было full) | `quickActionSources` обнуляет cost/requirements только при пустом журнале действий Сцены. | **Подтверждён дефект:** нет связи с конкретным Развертыванием; повторное или позднее deploy после прежних действий не получает каноническое окно. | refuted to partial |
+| `vagabond.assassin.2`: Атака из Исчез; появление смежно; +Ступень преимуществ; крит 5–6 | partial (было decision) | Составной план не оплачивает/не снимает Исчез до confirm и повторно валидирует клетку. | **Подтверждён дефект:** `[Tier]` Advantage и crit threshold 5–6 не вычисляются/не валидируются ядром; happy-path передаёт готовый roll из запроса. | refuted to partial |
 | `vagabond.assassin.3`: Скрыться → Шаг бесплатно и Невидим | full | Combo требует непосредственно предыдущее Скрыться, снимает AP cost и добавляет effect. | Нужны проверки уже использованного Шага, KO до confirm и срока Невидим. | declared |
 | `vagabond.speed-demon.2`: Передышка → Шаг с утроенной дальностью | full | Combo передаёт `movementMultiplier: 3` в общий путь Шага. | Нет tests для препятствий, края и отмены combo; UI не показывает доказанно множитель до оплаты. | declared |
 | `vagabond.untouchable.1`: первый Уворот Раунда +[Талант/2] Уклонения | full | Код отслеживает первый `reaction.respond` Уворот текущего Раунда и добавляет бонус. | Требуется сверить правило округления `[Талант/2]`: код применяет `ceil`; канонический текст не фиксирует округление в этом файле. Нужны тесты второго Уворота, round reset и нечётного Таланта. | declared |
@@ -602,3 +602,26 @@
 | `powerhouse.predator.3` | совпадает | manual → confirmed-manual | Нет once/Scene Indulge только после Yearn heal, self Immobilize+Daze и замены Breathe/Charge Focus на равное Wound healing. |
 
 Итог пакета: 16/16 записей рассмотрены отдельно; смысловых RU↔EN расхождений нет; все 16 честно заявлены `manual`, исполняемых адаптеров и оснований для evidence/certified нет.
+
+### Пакет 4 — уровни 49–64
+
+| Правило | RU↔EN | Заявление → результат | Точное расхождение / недостающее доказательство |
+| --- | --- | --- | --- |
+| `powerhouse.improvisational-fighter.1` | совпадает с PDF-стр. 71 | partial → confirmed-partial | Foundation знает terrain/range/owner/HP, но нет атомарных create-or-remove branches, Swift Skirmish/Cast, any Attribute, cancellation и surfaces. |
+| `powerhouse.improvisational-fighter.2` | совпадает | manual → confirmed-manual | Нет once/Round free+Swift Interact only if non-Attack и +3 Advantage для Interact-derived Attacks. |
+| `powerhouse.improvisational-fighter.3` | совпадает | manual → confirmed-manual | Нет once/Scene attack без removable terrain и `[Tension]` Advantage. |
+| `powerhouse.warring-ascendant.1` | совпадает | partial → confirmed-partial | Prompt/Tension/once/push/end-at-0 частично есть; нет выбора Weapon Technique, временного grant всех 3 Levels и полного transformation lifecycle. |
+| `powerhouse.warring-ascendant.2` | совпадает | manual → confirmed-manual | Нет выбора второй любой Technique и grant первых двух Levels только while transformed. |
+| `powerhouse.warring-ascendant.3` | совпадает | partial → confirmed-partial | Line preview есть; нет optional loss transformation, infinite line contract и +1 damage per targeted character. |
+| `vagabond.aerial-master.1` | совпадает с PDF-стр. 73 | partial → confirmed-partial | Вход/stance conflict вычисляются; нет forced `[Tier]` incoming Disadvantage, terrain immunity и прохода через enemy spaces. |
+| `vagabond.aerial-master.2` | совпадает | manual → confirmed-manual | Нет optional self-Haste вместо любого движения Jump и безопасной отмены. |
+| `vagabond.aerial-master.3` | совпадает | manual → confirmed-manual | Нет stance-gated roll Speed instead Attribute, removal Haste и Launch target. |
+| `vagabond.assassin.1` | совпадает | full → partial, refuted | Код использовал «нет прежних действий в Scene», а не first Action after конкретного Deploy; позднее/повторное Deploy сломано. |
+| `vagabond.assassin.2` | совпадает | decision → partial, refuted | Reappearance/cancel есть, но `[Tier]` Advantage и crit 5–6 не вычисляются ядром; готовый roll полностью доверен запросу. |
+| `vagabond.assassin.3` | совпадает | full → core-reviewed | Hide→Stride, cost0 и Invisible реализованы; нет full stale/KO/reconnect/import/UI/network evidence. |
+| `vagabond.sniper.1` | совпадает | manual → confirmed-manual | Нет Talent Finish character targeting≤5 вместо normal target contract. |
+| `vagabond.sniper.2` | совпадает | manual → confirmed-manual | Нет end-Turn-without-Attack choice, Immobilized state и while-Immobilized +5 range/crit5–6. |
+| `vagabond.sniper.3` | совпадает | manual → confirmed-manual | Нет Hide→Talent Finish, +damage per crit, +damage per shortest-path space и all-enemies-between target expansion. |
+| `vagabond.skirmisher.1` | совпадает | manual → confirmed-manual | Нет once/Turn cost0 Jab, adjacent character, Talent/2 damage, Swift-Skirmish identity и запрета изменения damage/targeting внешними features. |
+
+Итог пакета: 16/16 записей рассмотрены отдельно; RU↔EN расхождений нет; 2 завышенных статуса опровергнуты и понижены до `partial`; крупных исправлений не начато, `certified` не присвоен.
