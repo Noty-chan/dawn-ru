@@ -579,3 +579,26 @@
 | `powerhouse.breacher.2` | совпадает | manual → confirmed-manual | Нет optional Both Barrels only while not Weakened, `[Body/2]` Advantage и delayed self-Weakens after resolution. |
 
 Итог пакета: 16/16 записей рассмотрены отдельно; смысловых RU↔EN расхождений нет; найдены и исправлены 2 кодовых дефекта с regressions; `certified` не присвоен.
+
+### Пакет 3 — уровни 33–48
+
+| Правило | RU↔EN | Заявление → результат | Точное расхождение / недостающее доказательство |
+| --- | --- | --- | --- |
+| `powerhouse.breacher.3` | совпадает с PDF-стр. 69 | manual → confirmed-manual | Нет Body Finish range≤3, допуска Both Barrels, adjacent 2×2 target replacement и исключения владельца/неканонических клеток. |
+| `powerhouse.dual-wielder.1` | совпадает | manual → confirmed-manual | Нет optional `[Tier]` Disadvantage, одной Flurry, выбора Body/Talent half damage, Swift/cost0 semantics и запрета retarget другими Techniques. |
+| `powerhouse.dual-wielder.2` | совпадает | manual → confirmed-manual | Нет порога 2 Focus на Finisher, optional Disadvantage и двух Flurry только по персонажам исходного Finisher. |
+| `powerhouse.dual-wielder.3` | совпадает | manual → confirmed-manual | Нет выбора двух из шести эффектов, строгого A/B чередования, reset at Turn start и отдельных resource/damage/teleport/heal/armor-ignore/move веток. |
+| `powerhouse.martial-artist.1` | совпадает | manual → confirmed-manual | Нет successful Skirmish/Body-or-Talent Finish gate, запрета Weapon-tag Technique, четырёх choices и отдельного once/Round лимита каждого. |
+| `powerhouse.martial-artist.2` | совпадает | manual → confirmed-manual | Нет Combo choice, Body/Talent half damage и проверки, что персонаж уже атакован в текущем Turn. |
+| `powerhouse.martial-artist.3` | совпадает | manual → confirmed-manual | Нет постоянного +1 Advantage и дополнительного срабатывания Art при ≥1 Critical на Skirmish/Finisher. |
+| `powerhouse.monastic-sage.1` | совпадает с PDF-стр. 70 | manual → confirmed-manual | Нет derived +2 Armor while Strengthened и end-Turn +2 Evasion while Hasted с корректным снятием условий. |
+| `powerhouse.monastic-sage.2` | совпадает | manual → confirmed-manual | Нет Wrath/Peace counters, точной классификации Attack/Clash/Breathe/Charge/Defense, end-Turn equality choice и атомарного spend→Strengthen+Haste. |
+| `powerhouse.monastic-sage.3` | совпадает | manual → confirmed-manual | Нет расширения equality до абсолютной разницы 1 при minimum 1 each. |
+| `powerhouse.lancer.1` | совпадает | manual → confirmed-manual | Нет single-enemy targeting≤2 для Skirmish/Body Finish и Skirmish Advantage=distance с cap3. |
+| `powerhouse.lancer.2` | совпадает | manual → confirmed-manual | Нет range≤3, сбора всех enemies between source/original targets и half-damage для промежуточных целей. |
+| `powerhouse.lancer.3` | совпадает | manual → confirmed-manual | Нет Breathe→Skirmish, space target≤4, Pierce cap4, threshold total Advantage≥4, adjacent splash half damage и Difficult Terrain на каждой affected space. |
+| `powerhouse.predator.1` | совпадает | manual → confirmed-manual | Нет first Investigate/Turn Swift/free с ограничением только current/max Health и heal Wound при adjacent opponent KO. |
+| `powerhouse.predator.2` | совпадает | manual → confirmed-manual | Нет knowledge-state half-health, Speed+3, difficult-terrain immunity и path rule «каждый move ближе хотя бы к одной известной цели». |
+| `powerhouse.predator.3` | совпадает | manual → confirmed-manual | Нет once/Scene Indulge только после Yearn heal, self Immobilize+Daze и замены Breathe/Charge Focus на равное Wound healing. |
+
+Итог пакета: 16/16 записей рассмотрены отдельно; смысловых RU↔EN расхождений нет; все 16 честно заявлены `manual`, исполняемых адаптеров и оснований для evidence/certified нет.
