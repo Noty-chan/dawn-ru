@@ -129,7 +129,7 @@ function sceneCore(raw){
     actor.ruleState.styleCarryRemaining=clamp(source.ruleState?.styleCarryRemaining,0,99);
     actor.ruleState.timeStopUsed=Boolean(source.ruleState?.timeStopUsed);
     actor.ruleState.empathSupport=clamp(source.ruleState?.empathSupport,0,99);
-    actor.ruleState.masterArmament=["blade","pole","chain"].includes(source.ruleState?.masterArmament)?source.ruleState.masterArmament:null;
+    actor.ruleState.masterArmament=source.ruleState?.masterArmament==="pole"?"polearm":["blade","polearm","chain"].includes(source.ruleState?.masterArmament)?source.ruleState.masterArmament:null;
     actor.techniqueArmor=clamp(source.techniqueArmor,0,99);
     actor.techniqueFocusBonus=clamp(source.techniqueFocusBonus,0,99);
     actor.clashAdvantage=clamp(source.clashAdvantage,0,30);

@@ -260,7 +260,7 @@ function validateEvent(scene, event, options = {}) {
     if (["grimTransformed", "grimUsed", "warringTransformed", "warringUsed", "drainLife", "wispCreationUsed"].includes(payload.key) && typeof payload.value !== "boolean") throw new Error("Некорректный переключатель Техники.");
     if (payload.key === "lastCreationSpellMarks" && (!Number.isInteger(Number(payload.value)) || Number(payload.value) < 0 || Number(payload.value) > 99)) throw new Error("Некорректное число Меток творения.");
     if (payload.key === "empathSupport" && (!Number.isInteger(Number(payload.value)) || Number(payload.value) < 0 || Number(payload.value) > 99)) throw new Error("Некорректная Поддержка Эмпата.");
-    if(payload.key==="masterArmament"&&!["blade","pole","chain"].includes(payload.value))throw new Error("Некорректное Вооружение.");
+    if(payload.key==="masterArmament"&&!["blade","polearm","chain"].includes(payload.value))throw new Error("Некорректное Вооружение.");
     if (payload.key === "modifiedOverclockTurns" && (!Number.isInteger(Number(payload.value)) || Number(payload.value) < 0 || Number(payload.value) > 2)) throw new Error("Некорректная длительность Разгона.");
   }
   if (event.type === "turn.grant" && (!actorById(scene, event.actorId) || !Number.isInteger(Number(payload.amount)) || Number(payload.amount) < 1 || Number(payload.amount) > 4)) throw new Error("Некорректный дополнительный Ход.");
