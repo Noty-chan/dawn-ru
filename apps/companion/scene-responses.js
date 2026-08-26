@@ -588,6 +588,18 @@ function respondRulePrompt(scene, data, request = {}) {
     events.push({ type: "attack.pending", actorId: actor.id, payload: { actionId: spell.id, techniqueRuleId: "altruist.chronomancer.3", techniqueName: "Остановка времени", name: allIn ? "Остановка времени · Ва-банк" : "Остановка времени", targetIds: targets.map(target => target.id), roll: clone(roll), damage: baseDamage, damageByTarget, quickReaction: true, participantIds: targets.map(target => target.id) } });
   }
   if (prompt.kind === "alchemist-mix" && choice !== "pass") events.push({ type: "inventory.change", actorId: actor.id, payload: { item: `potion:${choice}`, delta: 1, sourceActionId: "altruist.alchemist.1" } });
+  if (prompt.kind === "alchemist-pure-water") {
+    const currentEffects = [...new Set(target?.effects || [])], selected = [...new Set(prompt.context?.selectedEffectIds || [])].filter(effect => currentEffects.includes(effect));
+    if (!target || target.knockedOut || Number(actor.techniques?.["altruist.alchemist"] || 0) < 1 || Number(actor.inventory?.["potion:pure-water"] || 0) < 1 || distance(actor, target) > 4) return { ok: false, errors: ["Алхимик, цель или Чистая вода больше не доступны."], events: [] };
+    if (currentEffects.includes(choice)) {
+      const next = selected.includes(choice) ? selected.filter(effect => effect !== choice) : [...selected, choice];
+      events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${prompt.id}-${events.length}`, kind: "alchemist-pure-water", sourceActorId: actor.id, targetId: target.id, title: "Чистая вода", text: "Выберите любое подмножество Эффектов, затем примените Зелье.", options: [...currentEffects, "use", "cancel"], context: { selectedEffectIds: next, optionLabels: { use: `Применить (${next.length})`, cancel: "Отмена до оплаты" } }, participantIds: [actor.id, target.id] } });
+    } else if (choice === "use") {
+      const prepared = preparePotionUse(scene, data, { actorId: actor.id, targetId: target.id, potion: "pure-water", removeEffectIds: selected, continuation: true });
+      if (!prepared.ok) return prepared;
+      events.push(...prepared.events);
+    }
+  }
   if (prompt.kind === "empath-calm" && choice !== "pass") {
     events.push({ type: "effect.remove", actorId: actor.id, payload: { targetId: target.id, effect: choice, sourceActionId: "altruist.empath.1", participantIds: [actor.id, target.id] } });
     events.push({ type: "effect.apply", actorId: actor.id, payload: { targetId: target.id, effect: "positive.усилен", sourceActionId: "altruist.empath.1", participantIds: [actor.id, target.id] } });
@@ -905,15 +917,21 @@ function preparePotionUse(scene, data, request = {}) {
   if (actor && Number(actor.inventory?.[stockKey] || 0) < 1) errors.push("Такого Зелья нет в запасе.");
   if (actor && target && distance(actor, target) > 4) errors.push("Зелье применяется в пределах 4 клеток.");
   const available = actor && interaction ? availableActions(scene, data, actor.id).find(action => action.id === interaction.id) : null;
-  if (available && !available.available) errors.push(available.reason);
+  if (available && !available.available && !(request.continuation && /^Сначала ответьте/.test(available.reason || ""))) errors.push(available.reason);
+  const hasPureWaterSelection = Object.prototype.hasOwnProperty.call(request, "removeEffectIds"), removeEffectIds = [...new Set(Array.isArray(request.removeEffectIds) ? request.removeEffectIds : [])];
+  if (potion === "pure-water" && hasPureWaterSelection && removeEffectIds.some(effect => !(target?.effects || []).includes(effect))) errors.push("Выбранный Эффект Чистой воды больше не действует на цель.");
   if (errors.length) return { ok: false, errors, events: [] };
+  if (potion === "pure-water" && !hasPureWaterSelection) return { ok: true, errors: [], events: [
+    { type: "technique.prepare", actorId: actor.id, payload: { ruleId: "altruist.alchemist.1", name: "Быстрая смесь · Чистая вода", targetIds: [target.id], potion, selectionOnly: true, participantIds: [actor.id, target.id] } },
+    { type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-pure-water-${actor.id}-${target.id}-${Number(scene.version || 0)}`, kind: "alchemist-pure-water", sourceActorId: actor.id, targetId: target.id, title: "Чистая вода", text: "Выберите любое подмножество Эффектов, затем примените Зелье.", options: [...new Set(target.effects || []), "use", "cancel"], context: { selectedEffectIds: [], optionLabels: { use: "Применить без снятия Эффектов", cancel: "Отмена до оплаты" } }, participantIds: [actor.id, target.id] } },
+  ] };
   const events = [
     { type: "technique.prepare", actorId: actor.id, payload: { ruleId: "altruist.alchemist.1", name: "Быстрая смесь", targetIds: [target.id], participantIds: [actor.id, target.id] } },
     { type: "action.prepare", actorId: actor.id, payload: { actionId: interaction.id, actionName: interaction.name, name: `Зелье: ${potion}`, targetIds: [target.id] } },
     { type: "resource.spend", actorId: actor.id, payload: actorActionCost(actor, interaction) },
     { type: "inventory.change", actorId: actor.id, payload: { item: stockKey, delta: -1, sourceActionId: "altruist.alchemist.1" } },
   ];
-  if (potion === "pure-water") for (const effect of target.effects || []) events.push({ type: "effect.remove", actorId: actor.id, payload: { targetId: target.id, effect, sourceActionId: "altruist.alchemist.1", participantIds: [actor.id, target.id] } });
+  if (potion === "pure-water") for (const effect of removeEffectIds) events.push({ type: "effect.remove", actorId: actor.id, payload: { targetId: target.id, effect, force: true, sourceActionId: "altruist.alchemist.1", participantIds: [actor.id, target.id] } });
   else if (POTION_EFFECTS[potion]) events.push({ type: "effect.apply", actorId: actor.id, payload: { targetId: target.id, effect: POTION_EFFECTS[potion], sourceActionId: "altruist.alchemist.1", participantIds: [actor.id, target.id] } });
   if (Number(actor.techniques?.["altruist.alchemist"] || 0) >= 2) {
     if (target.team === actor.team) events.push({ type: "resource.gain", actorId: target.id, payload: { resource: "focus", amount: Math.ceil(Number(actor.attrs?.mind || 0) / 2), sourceActionId: "altruist.alchemist.2", participantIds: [actor.id, target.id] } });

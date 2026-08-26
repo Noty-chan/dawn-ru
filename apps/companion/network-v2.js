@@ -184,7 +184,7 @@
     const technique=raw.find(event=>event.type==="technique.prepare");
     if(technique?.payload?.ruleId==="altruist.alchemist.1"){
       const potionAction=raw.find(event=>event.type==="action.prepare"&&event.actorId===technique.actorId);
-      const potion=String(potionAction?.payload?.name||"").replace(/^Зелье:\s*/u,"");
+      const potion=String(technique.payload?.potion||potionAction?.payload?.name||"").replace(/^Зелье:\s*/u,"");
       return{kind:"potion",label:String(label).slice(0,160),actorId:technique.actorId,targetId:safeIds(technique.payload?.targetIds)[0]||null,potion};
     }
     if(technique)return {kind:"technique",label:String(label).slice(0,160),actorId:technique.actorId,ruleId:technique.payload?.ruleId||null,request:safeObject(technique.payload?.request)};

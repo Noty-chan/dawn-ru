@@ -45,7 +45,7 @@ assert.ok(coverage.every(entry => ["full", "partial", "decision", "manual"].incl
 assert.ok(coverage.filter(entry => !entry.rules.length).every(entry => entry.automation === "manual"), "canonical text and foundation-map annotations alone never claim partial automation");
 for (const [id, automation] of [
   ["altruist.surgeon.1", "partial"],
-  ["altruist.alchemist.1", "partial"],
+  ["altruist.alchemist.1", "decision"],
   ["altruist.chronomancer.2", "decision"],
   ["altruist.will-o-wisp.1", "decision"],
   ["altruist.will-o-wisp.2", "decision"],
@@ -65,7 +65,7 @@ for (const [id, automation] of [
   ["ruiner.ritualist.1", "partial"],
   ["ruiner.cryomancer.2", "decision"],
   ["vagabond.knife-juggler.2", "partial"],
-  ["altruist.alchemist.2", "partial"],
+  ["altruist.alchemist.2", "decision"],
   ["disruptor.chemist.2", "partial"],
   ["ruiner.ego-arm.2", "manual"],
   ["ruiner.sellsword-s-call.1", "partial"],
