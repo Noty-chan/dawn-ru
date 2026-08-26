@@ -2236,8 +2236,16 @@ alchemistScene.actors[0].techniques = { "altruist.alchemist": 2 };
 const alchemistRest = Engine.prepareAction(alchemistScene, data, { actorId: "hero", actionId: actionNamed("Передышка").id });
 const mixed = Engine.dispatchMany(alchemistScene, alchemistRest.events).scene;
 assert.equal(mixed.pendingPrompt.kind, "alchemist-mix");
+assert.ok(mixed.pendingPrompt.options.includes("pass"), "Quick Mix preserves the canonical option not to create a potion");
+const mixDeclined = Engine.dispatchMany(mixed, Engine.respondRulePrompt(mixed, data, { choice: "pass" }).events).scene;
+assert.equal(Object.keys(mixDeclined.actors[0].inventory || {}).filter(key => key.startsWith("potion:")).length, 0, "declining Quick Mix creates no inventory entry");
 const potionCreated = Engine.dispatchMany(mixed, Engine.respondRulePrompt(mixed, data, { choice: "rage-fumes" }).events).scene;
 assert.equal(potionCreated.actors[0].inventory["potion:rage-fumes"], 1);
+const noncanonicalPotionScene = structuredClone(alchemistScene);
+noncanonicalPotionScene.actors[0].inventory = { "potion:invented": 1 };
+const noncanonicalPotion = Engine.preparePotionUse(noncanonicalPotionScene, data, { actorId: "hero", targetId: "enemy", potion: "invented" });
+assert.equal(noncanonicalPotion.ok, false, "imported or network-supplied noncanonical potion identifiers are rejected");
+assert.match(noncanonicalPotion.errors.join(" "), /Неизвестный тип Зелья/);
 
 const chemistBombardierScene = structuredClone(scene);
 chemistBombardierScene.actors[0].techniques = { "ruiner.bombardier": 1, "disruptor.chemist": 1 };

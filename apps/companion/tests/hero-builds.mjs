@@ -44,7 +44,8 @@ const chainedBuild = {
   "altruist.surgeon": 1,
   "ruiner.creation-ascetic": 2,
 };
-assert.ok(coverageFor(chainedBuild).every(level => !["manual", "partial"].includes(level.automation)), "The chained support build has no manual or partial level");
+assert.equal(coverageFor(chainedBuild).find(level => level.id === "altruist.surgeon.1")?.automation, "partial", "The build UI exposes the audited missing authoritative Mind-roll validation");
+assert.ok(coverageFor(chainedBuild).filter(level => level.id !== "altruist.surgeon.1").every(level => !["manual", "partial"].includes(level.automation)), "Only the independently downgraded Surgery level is partial in the chained support fixture");
 const chainedHero = actor({ techniques: chainedBuild, creationMarks: 0 });
 const chainedScene = sceneWith(chainedHero, [ally(), foe({ x: 7, y: 7 })]);
 const hook = TechniqueEngine.preview(chainedScene, {

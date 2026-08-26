@@ -550,7 +550,7 @@ SHA-256 проверенных файлов: `ff8e0353fb78e8470e8a6ffae40a72b254
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Не навреди (Do No Harm) | проверено | полная | `target-validation`, `event-participants`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier`, `dice-hooks` |
+| 1 | Не навреди (Do No Harm) | проверено | частичная | `target-validation`, `event-participants`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier`, `dice-hooks` |
 | 2 | Операционная процедура (Operational Procedure) | проверено | ручная | `effect-state`, `effect-lifecycle`, `inventory`, `trigger-router`, `intermission-reset`, `choice-flow`, `damage-pipeline`, `dice-hooks` |
 | 3 | Чудотворец (Miracle Worker) | проверено | ручная | `target-validation`, `event-participants`, `owned-entities`, `entity-lifecycle`, `inventory`, `trigger-router`, `damage-pipeline`, `action-modifier`, `dice-hooks` |
 
@@ -566,7 +566,7 @@ SHA-256 проверенных файлов: `ff8e0353fb78e8470e8a6ffae40a72b254
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Быстрая смесь (Quick Mix) | проверено | полная | `target-validation`, `event-participants`, `spatial-range`, `effect-state`, `effect-lifecycle`, `inventory`, `trigger-router`, `choice-flow`, `action-modifier` |
+| 1 | Быстрая смесь (Quick Mix) | проверено | частичная | `target-validation`, `event-participants`, `spatial-range`, `effect-state`, `effect-lifecycle`, `inventory`, `trigger-router`, `choice-flow`, `action-modifier` |
 | 2 | Мощная смесь (Powerful Mix) | проверено | частичная | `target-validation`, `event-participants`, `resource-check`, `inventory`, `trigger-router`, `choice-flow`, `damage-pipeline` |
 | 3 | Высокоинтенсивная смесь (High Intensity Mix) | проверено | ручная | `resource-check`, `inventory`, `trigger-router`, `choice-flow`, `action-modifier`, `dice-hooks` |
 
@@ -575,7 +575,7 @@ SHA-256 проверенных файлов: `ff8e0353fb78e8470e8a6ffae40a72b254
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
 | 1 | Ускорение (Accelerate) | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle`, `effect-state`, `effect-lifecycle`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier` |
-| 2 | Замедление (Decelerate) | проверено | ручная | `target-validation`, `event-participants`, `resource-check`, `effect-state`, `effect-lifecycle`, `trigger-router`, `reaction-window`, `action-modifier`, `dice-hooks` |
+| 2 | Замедление (Decelerate) | проверено | с выбором | `target-validation`, `event-participants`, `resource-check`, `effect-state`, `effect-lifecycle`, `trigger-router`, `reaction-window`, `action-modifier`, `dice-hooks` |
 | 3 | Остановка времени (Time Stop) | проверено | с выбором | `target-validation`, `event-participants`, `resource-check`, `rule-clock`, `usage-limits`, `trigger-router`, `turn-lifecycle`, `scene-lifecycle`, `choice-flow`, `damage-pipeline`, `action-modifier`, `duel-flow`, `dice-hooks` |
 
 ### Танцор (`altruist.dancer`)

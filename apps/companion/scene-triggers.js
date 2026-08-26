@@ -803,7 +803,7 @@ function triggeredEvents(scene, event, options = {}) {
     if (empath && (actor.effects || []).length) events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${event.id}-empath`, kind: "empath-calm", sourceActorId: empath.id, targetId: actor.id, title: "Успокаивающая аура", text: "Можно потерять один Эффект и стать Усиленным.", options: [...actor.effects.slice(0, 11), "pass"], participantIds: [empath.id, actor.id] } });
   }
   if (event.type === "action.resolve" && actor && actionIdIs(eventActionId(payload), "breathe") && Number(actor.techniques?.["altruist.alchemist"] || 0) >= 1 && !scene.pendingPrompt) {
-    events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${event.id}`, kind: "alchemist-mix", sourceActorId: actor.id, title: "Быстрая смесь", text: "Передышка позволяет создать одно Зелье.", options: ["pure-water", "rage-fumes", "growth-serum", "adrenaline", "stone-skin", "thorn-rot"] } });
+    events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${event.id}`, kind: "alchemist-mix", sourceActorId: actor.id, title: "Быстрая смесь", text: "Передышка позволяет создать одно Зелье.", options: ["pure-water", "rage-fumes", "growth-serum", "adrenaline", "stone-skin", "thorn-rot", "pass"], context: { optionLabels: { pass: "Не создавать Зелье" } }, participantIds: [actor.id] } });
   }
   if (event.type === "action.resolve" && actor && Number(actor.techniques?.["disruptor.chemist"] || 0) >= 1 && (payload.targetedTerrainId || payload.targetsTerrainCell) && payload.techniqueAnchor && !scene.pendingPrompt && !promptQueued()) {
     const terrain = (scene.objects || []).find(object => object.id === payload.targetedTerrainId);

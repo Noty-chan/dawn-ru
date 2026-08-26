@@ -1439,10 +1439,10 @@
 
 #### 1. Не навреди (Do No Harm) `altruist.surgeon.1`
 
-- **Заявленный статус:** `full` (полная).
-- **Текущий адаптер:** `altruist.surgeon.1` · `surgery` · {"kind":"surgery"}.
+- **Заявленный статус:** `partial` (частичная).
+- **Текущий адаптер:** `altruist.surgeon.1` · `surgery` · {"kind":"surgery"}; Смежный союзник, стоимость и округлённое вверх лечение работают, но ядро принимает готовые successes и не доказывает обязательный бросок Разума..
 - **Готовые foundations:** `target-validation`, `event-participants`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier`, `dice-hooks`.
-- **Нужно добавить:** Для кода явный следующий шаг не выведен автоматически; нужны direct pos/neg/boundary тесты и evidence до повышения доверия.
+- **Нужно добавить:** Заявление full понижено до partial: core проверяет наличие массива rolls, но доверяет присланным successes и не доказывает обязательный бросок Разума.
 
 #### 2. Операционная процедура (Operational Procedure) `altruist.surgeon.2`
 
@@ -1485,10 +1485,10 @@
 
 #### 1. Быстрая смесь (Quick Mix) `altruist.alchemist.1`
 
-- **Заявленный статус:** `full` (полная).
-- **Текущий адаптер:** `altruist.alchemist.1` · `inventory` · {"kind":"inventory"}.
+- **Заявленный статус:** `partial` (частичная).
+- **Текущий адаптер:** `altruist.alchemist.1` · `inventory` · {"kind":"inventory"}; Создание, запас, дальность и пять одноэффектных Зелий работают; Чистая вода удаляет все Эффекты без канонического выбора подмножества..
 - **Готовые foundations:** `target-validation`, `event-participants`, `spatial-range`, `effect-state`, `effect-lifecycle`, `trigger-router`, `choice-flow`, `action-modifier`.
-- **Нужно добавить:** Сохранить существующий adapter и добавить недостающий контракт: `inventory`.
+- **Нужно добавить:** Заявление full понижено до partial: Чистая вода удаляет все Эффекты без канонического выбора любого подмножества. Опциональный отказ от создания Зелья и запрет неканонических типов добавлены при повторном аудите.
 
 #### 2. Мощная смесь (Powerful Mix) `altruist.alchemist.2`
 
@@ -1515,10 +1515,10 @@
 
 #### 2. Замедление (Decelerate) `altruist.chronomancer.2`
 
-- **Заявленный статус:** `manual` (ручная).
-- **Текущий адаптер:** нет записи в `RULES`.
+- **Заявленный статус:** `decision` (решение).
+- **Текущий адаптер:** `altruist.chronomancer.2` · `passive` · {"kind":"passive"}; Заклинания получают 1 Преимущество; удаление Эффекта открывает перепроверяемое окно повторного применения за 1 Фокус..
 - **Готовые foundations:** `target-validation`, `event-participants`, `resource-check`, `effect-state`, `effect-lifecycle`, `trigger-router`, `reaction-window`, `action-modifier`, `dice-hooks`.
-- **Нужно добавить:** Зарегистрировать отдельный adapter (trigger → validation → events/resolver) и прямые тесты; общая инфраструктура сама правило не исполняет.
+- **Нужно добавить:** Реестр заявлял manual, хотя core уже выдаёт 1 Преимущество Заклинаниям и ведёт prompt повторного применения снятого Эффекта за 1 Фокус; добавлен честный decision-adapter. Полный surface evidence отсутствует.
 
 #### 3. Остановка времени (Time Stop) `altruist.chronomancer.3`
 
