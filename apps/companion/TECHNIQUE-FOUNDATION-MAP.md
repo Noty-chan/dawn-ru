@@ -810,7 +810,7 @@ SHA-256 проверенных файлов: `6049f3ff6b79b8204c45cb8b830b265369
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Лей-линии (Ley Lines) | проверено | с выбором | `resource-check`, `terrain`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `choice-flow`, `action-modifier`, `combat-meter` |
+| 1 | Лей-линии (Ley Lines) | проверено | частичная | `resource-check`, `terrain`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `choice-flow`, `action-modifier`, `combat-meter` |
 | 2 | Магическая артиллерия (Arcane Artillery) | проверено | ручная | `spatial-range`, `terrain`, `owned-entities`, `entity-lifecycle`, `usage-limits`, `trigger-router`, `turn-lifecycle`, `action-modifier`, `dice-hooks`, `combat-meter` |
 | 3 | Фрактальные начертания (Fractal Etchings) | проверено | ручная | `terrain`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `scene-lifecycle`, `choice-flow`, `action-modifier` |
 
@@ -818,9 +818,9 @@ SHA-256 проверенных файлов: `6049f3ff6b79b8204c45cb8b830b265369
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Эксперимент (Experimentation) | проверено | с выбором | `spatial-cells`, `spatial-range`, `inventory`, `usage-limits`, `trigger-router`, `scene-lifecycle`, `choice-flow`, `damage-pipeline`, `action-modifier`, `derived-stats` |
-| 2 | Закрепление (Solidification) | проверено | с выбором | `resource-check`, `inventory`, `trigger-router`, `action-modifier`, `derived-stats` |
-| 3 | Финализация (Finalization) | проверено | с выбором | `resource-check`, `inventory`, `trigger-router`, `action-modifier` |
+| 1 | Эксперимент (Experimentation) | проверено | частичная | `spatial-cells`, `spatial-range`, `inventory`, `usage-limits`, `trigger-router`, `scene-lifecycle`, `choice-flow`, `damage-pipeline`, `action-modifier`, `derived-stats` |
+| 2 | Закрепление (Solidification) | проверено | частичная | `resource-check`, `inventory`, `trigger-router`, `action-modifier`, `derived-stats` |
+| 3 | Финализация (Finalization) | проверено | частичная | `resource-check`, `inventory`, `trigger-router`, `action-modifier` |
 
 ### Ученик звезд (`ruiner.student-of-stars`)
 
@@ -835,7 +835,7 @@ SHA-256 проверенных файлов: `6049f3ff6b79b8204c45cb8b830b265369
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
 | 1 | Охлаждение (Chill) | проверено | полная | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `trigger-router`, `action-modifier` |
-| 2 | Ледяной нимб (Icicle Halo) | проверено | с выбором | `target-validation`, `event-participants`, `resource-check`, `effect-state`, `effect-lifecycle`, `rule-clock`, `trigger-router`, `scene-lifecycle`, `choice-flow`, `damage-pipeline`, `action-modifier`, `dice-hooks` |
+| 2 | Ледяной нимб (Icicle Halo) | проверено | частичная | `target-validation`, `event-participants`, `resource-check`, `effect-state`, `effect-lifecycle`, `rule-clock`, `trigger-router`, `scene-lifecycle`, `choice-flow`, `damage-pipeline`, `action-modifier`, `dice-hooks` |
 | 3 | Раскол (Shatter) | проверено | ручная | `target-validation`, `event-participants`, `spatial-range`, `resource-check`, `effect-state`, `effect-lifecycle`, `trigger-router`, `damage-pipeline`, `action-modifier`, `information-query` |
 
 ### Драматург (`ruiner.dramaturge`)

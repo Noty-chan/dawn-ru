@@ -2179,10 +2179,10 @@
 
 #### 1. Лей-линии (Ley Lines) `ruiner.ritualist.1`
 
-- **Заявленный статус:** `decision` (решение).
-- **Текущий адаптер:** `ruiner.ritualist.1` · `marker` · {"kind":"marker","markerKind":"ritual","duration":"scene","color":"#6fc9d8"}; Заклинательный круг ставится только в текущую клетку героя, заменяет его прежний круг и повышает предел Фокуса Завершения Духом; решение после Зарядки остаётся явным..
+- **Заявленный статус:** `partial` (частичная).
+- **Текущий адаптер:** `ruiner.ritualist.1` · `marker` · {"kind":"marker","markerKind":"ritual","duration":"scene","color":"#6fc9d8"}; Круг и бонус работают, но отдельная кнопка не требует Зарядки и не отказывается от полученного ею Фокуса..
 - **Готовые foundations:** `resource-check`, `terrain`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `choice-flow`, `action-modifier`.
-- **Нужно добавить:** Сохранить существующий adapter и добавить недостающий контракт: `combat-meter`.
+- **Нужно добавить:** Заявление decision понижено до partial: круг создаётся отдельной кнопкой без обязательной Зарядки и без отказа от полученного ею Фокуса; работают лишь placement/replacement и бонус лимита Spirit Finisher.
 
 #### 2. Магическая артиллерия (Arcane Artillery) `ruiner.ritualist.2`
 
@@ -2202,24 +2202,24 @@
 
 #### 1. Эксперимент (Experimentation) `ruiner.spellcrafter.1`
 
-- **Заявленный статус:** `decision` (решение).
-- **Текущий адаптер:** `ruiner.spellcrafter.1` · `modifier-choice` · {"kind":"modifier-choice"}; Игрок выбирает Модификацию; ядро не угадывает выбранный вариант..
+- **Заявленный статус:** `partial` (частичная).
+- **Текущий адаптер:** `ruiner.spellcrafter.1` · `modifier-choice` · {"kind":"modifier-choice"}; Эффекты модификаций работают, но UI позволяет выбирать любую из четырёх вместо одной, зафиксированной при получении уровня..
 - **Готовые foundations:** `spatial-cells`, `spatial-range`, `usage-limits`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier`.
-- **Нужно добавить:** Сохранить существующий adapter и добавить недостающий контракт: `inventory`, `scene-lifecycle`, `derived-stats`.
+- **Нужно добавить:** Заявление decision понижено до partial: канон фиксирует одну Модификацию при получении уровня, а текущий UI позволяет перед каждой Атакой выбрать любую из четырёх.
 
 #### 2. Закрепление (Solidification) `ruiner.spellcrafter.2`
 
-- **Заявленный статус:** `decision` (решение).
-- **Текущий адаптер:** `ruiner.spellcrafter.2` · `modifier-choice` · {"kind":"modifier-choice"}; Оплата Новаторства Фокусом требует выбора игрока..
+- **Заявленный статус:** `partial` (частичная).
+- **Текущий адаптер:** `ruiner.spellcrafter.2` · `modifier-choice` · {"kind":"modifier-choice"}; Оплата Фокусом и стартовый бонус есть, но отсутствует постоянный набор изученных модификаций уровня I..
 - **Готовые foundations:** `resource-check`, `trigger-router`, `action-modifier`.
-- **Нужно добавить:** Сохранить существующий adapter и добавить недостающий контракт: `inventory`, `derived-stats`.
+- **Нужно добавить:** Заявление decision понижено до partial: Focus-оплата и стартовый бонус работают, но уровень наследует отсутствие постоянного набора изученных Модификаций.
 
 #### 3. Финализация (Finalization) `ruiner.spellcrafter.3`
 
-- **Заявленный статус:** `decision` (решение).
-- **Текущий адаптер:** `ruiner.spellcrafter.3` · `modifier-choice` · {"kind":"modifier-choice"}; Можно выбрать две разные Модификации и оплатить обе..
+- **Заявленный статус:** `partial` (частичная).
+- **Текущий адаптер:** `ruiner.spellcrafter.3` · `modifier-choice` · {"kind":"modifier-choice"}; Две разные модификации оплачиваются, но могут быть выбраны из полного списка независимо от изученного набора..
 - **Готовые foundations:** `resource-check`, `trigger-router`, `action-modifier`.
-- **Нужно добавить:** Сохранить существующий adapter и добавить недостающий контракт: `inventory`.
+- **Нужно добавить:** Заявление decision понижено до partial: две разные Модификации можно оплатить, однако они выбираются из полного списка, а не из канонически изученных вариантов.
 
 ### Ученик звезд (Student Of Stars) `ruiner.student-of-stars`
 
@@ -2255,10 +2255,10 @@
 
 #### 2. Ледяной нимб (Icicle Halo) `ruiner.cryomancer.2`
 
-- **Заявленный статус:** `decision` (решение).
-- **Текущий адаптер:** `ruiner.cryomancer.2.foundation` · `foundation` · {"kind":"foundation","foundation":"clock","clockId":"ruiner.cryomancer.icicle","size":4,"initial":0}; Передышка предлагает отказаться от Фокуса, очистить Сосульку и провести ограниченную серию Быстрых Заклинаний с половинным уроном, Реакциями и превращением Замедлен в Обездвижен..
+- **Заявленный статус:** `partial` (частичная).
+- **Текущий адаптер:** `ruiner.cryomancer.2.foundation` · `foundation` · {"kind":"foundation","foundation":"clock","clockId":"ruiner.cryomancer.icicle","size":4,"initial":0}; Часы и серия работают, но отказ тратит любой текущий Фокус и не связан с Фокусом именно этой Передышки..
 - **Готовые foundations:** `target-validation`, `event-participants`, `resource-check`, `effect-state`, `effect-lifecycle`, `rule-clock`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier`, `dice-hooks`.
-- **Нужно добавить:** Сохранить существующий adapter и добавить недостающий контракт: `scene-lifecycle`.
+- **Нужно добавить:** Заявление decision понижено до partial: Breathe prompt тратит любой текущий 1 Focus и не доказывает, что это Фокус, полученный именно текущей Передышкой; при alternate-resource возможна ложная активация.
 
 #### 3. Раскол (Shatter) `ruiner.cryomancer.3`
 

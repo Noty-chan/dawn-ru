@@ -114,3 +114,10 @@ npm test
 - Generic `areaType: "attack"` не доказывает конкретное каноническое Завершение/атрибут. Bombardier I–III строят AP/Focus/reaction/damage events, но принимают готовые `roll.successes` без проверки Spirit; их `full` понижен до partial.
 - Inner World I ищет последнее Charge `resource.gain` по всему журналу. До исправления нужен event id/token конкретной Charge; иначе нулевая/заменённая текущая Charge может повторно использовать старое получение Фокуса.
 - Inner World II — редкий уровень с core evidence, но даже он не certified: не доказаны UI/network/reconnect/import и полная отрицательная матрица.
+
+## Повторный аудит: пакет 18 (уровни 273–288)
+
+- После пакета 18 проверено 288/472: остаётся 33 уровня Техник + 151 правило врагов = 184.
+- Spellcrafter должен хранить известную Модификацию уровня I (и допустимый расширенный набор для III) как character-build state. Текущий transient `techniqueState.spellModifiers` — только выбор на следующую Атаку и не заменяет learned set.
+- Ritualist I сейчас можно нажать отдельно в любой момент: placement и cap работают, но нет Charge trigger/forgone Focus. Не путать наличие маркера с автоматизацией момента/цены.
+- Cryomancer II должен отказаться именно от Focus текущей Breathe. Нужен provenance token/ссылка на resource.gain; проверка `actor.focus >= 1` допускает старый Focus и ломается с alternate resource.

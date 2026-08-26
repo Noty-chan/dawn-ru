@@ -201,7 +201,7 @@ const focused = SceneEngine.dispatchMany(chilled, [{ type: "resource.gain", acto
 assert.equal(SceneEngine.clockStatus(focused, "hero", "ruiner.cryomancer.icicle").value, 1, "Cryomancer II fills one Icicle segment whenever Focus is gained");
 
 const spellcrafterBuild = { "ruiner.spellcrafter": 3 };
-assert.ok(coverageFor(spellcrafterBuild).every(level => level.automation === "decision"), "Spellcrafter levels are explicit player decisions, not manual gaps");
+assert.ok(coverageFor(spellcrafterBuild).every(level => level.automation === "partial"), "Spellcrafter remains partial until learned Modifications are persisted and enforced");
 const spellScene = sceneWith(actor({ techniques: spellcrafterBuild, focus: 5, techniqueState: { spellModifiers: ["fierce", "outstanding"] } }), [foe({ x: 8, y: 1 })]);
 const spell = SceneEngine.prepareAction(spellScene, data, {
   actorId: "hero", actionId: actionNamed("Заклинание").id, targetIds: ["enemy"], attribute: "spirit",

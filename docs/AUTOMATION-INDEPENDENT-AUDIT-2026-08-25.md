@@ -924,3 +924,26 @@
 | `ruiner.rapid-fire-sorcery.2` | совпадает | partial → confirmed-partial | Можно отдельно создать difficult cell, но нет trigger from damage to empty cell, conversion of that cell, enemy enter/start-Turn Tier damage and ownership lifecycle; нужны occupied-cell negative, multiple cells, armor, owner KO and import. |
 
 Итог пакета: 16/16 уровней проверены отдельно; RU смыслово совпадает с EN. Bombardier I–III понижены `full→partial`, Inner World I — `decision→partial`. 6 уровней confirmed-manual, Hunter III и Rapid-Fire II confirmed-partial; certified/evidence не повышались.
+
+### Пакет 18 — уровни 273–288
+
+| Правило | RU↔EN | Заявление → результат | Точное расхождение / недостающее доказательство |
+| --- | --- | --- | --- |
+| `ruiner.rapid-fire-sorcery.3` | совпадает с PDF-стр. 95 | manual → confirmed-manual | Нет Charge→Spell combo и Advantage=`different targetable enemies + Tension`; нужны 0/many enemies, KO/Banished/out-of-range exclusions, targetability at roll time, cancellation and public roll. |
+| `ruiner.ritualist.1` | совпадает | decision → partial, refuted | Own-cell marker replacement и Spirit Finisher cap `Tension+2` работают, но круг создаётся отдельной кнопкой без Charge и без отказа от её Focus. Нужны atomic Charge prompt, zero/alternate gain, stale/duplicate/import. |
+| `ruiner.ritualist.2` | совпадает | manual → confirmed-manual | Нет circle-owner Spell-from-circle origin, range12 и empty-cell-only targeting; нужны owner outside circle, occupied/removed cell, foreign circle, wall/range 12/13 and save/load. |
+| `ruiner.ritualist.3` | совпадает | manual → confirmed-manual | Нет Cast target on owned circle→new circle placement and max3 replacement/choice semantics; нужны 3/4 circles, target occupied by actor, foreign circle, cancellation and persistence. |
+| `ruiner.spellcrafter.1` | совпадает | decision → partial, refuted | Four modifier effects and Innovation payment exist, but UI exposes all four every Attack instead of one fixed when level acquired. Need learned-modifier persistence, invalid network selection, scene refill/reset and import. |
+| `ruiner.spellcrafter.2` | совпадает + source typo `my` interpreted as `by` | decision → partial, refuted | Focus payment and starting Focus+Mind are implemented, but unrestricted modifier choice persists; need character-build selection, resync preserving manual Focus, insufficient payment and reconnect. |
+| `ruiner.spellcrafter.3` | совпадает | decision → partial, refuted | Two distinct modifiers and two payments work, but selection is from all four, not learned set. Need known-set cardinality, duplicate modifier rejection, cancellation before payment and network retry. |
+| `ruiner.student-of-stars.1` | совпадает | manual → confirmed-manual | Нет Charge→Finisher combo, AP cost1 and Focus cap `3×Tension`; нужны wrong preceding action, 0/max focus, cancel-before-pay, attribute choices, stale plan and reconnect. |
+| `ruiner.student-of-stars.2` | совпадает | partial → confirmed-partial | Generic infinite-line/2×2 geometry previews exist, but are not bound to Power Unleashed and inherit untrusted Finisher roll; need adjacency, clipped infinite line, choice cancellation, reactions and atomic combo. |
+| `ruiner.student-of-stars.3` | совпадает | manual → confirmed-manual | Нет Duel-entry Focus≥6, optional spend-all and Advantage=`Focus/2`; нужны 5/6, odd Focus rounding, declined spend, non-Duel roll, duplicate duel start and network authority. |
+| `ruiner.cryomancer.1` | совпадает | full → core-tested | Successful Spell by roll successes applies Slow after resolution and has positive integration test. Missing failure/zero-success, multi-target with KO during reactions, duplicate resolve, UI/network/import; not certified. |
+| `ruiner.cryomancer.2` | совпадает | decision → partial, refuted | +1 Advantage, 4-clock, Focus ticks, quick half-damage series and Slow→Immobilize exist. Breathe conversion spends any current Focus, not necessarily current Breathe gain; alternate-resource/stale semantics wrong. |
+| `ruiner.cryomancer.3` | совпадает | manual → confirmed-manual | Нет narrator health reveal, Immobilized Spirit Finisher gate, HP≤Spirit KO and post-Shatter Slow enemies≤3; needs privacy/ask flow, exact threshold, target heals/KO race, armor and reconnect. |
+| `ruiner.dramaturge.1` | совпадает | manual → confirmed-manual | Нет once/action critical window, AP1-or-Focus3 choice and Tension+1; need multiple crits, non-action roll, insufficient resources, cancel-before-pay, duplicate roll and public narration. |
+| `ruiner.dramaturge.2` | совпадает | manual → confirmed-manual | Нет False Tension resource replacing all owner Tension increases and hero/enemy Turn projection; needs multiple owners, phase/turn transitions, generic tension sources, import and reconnect. |
+| `ruiner.dramaturge.3` | совпадает | manual → confirmed-manual | Нет elevated-action branches: Finisher tension damage, Charge AP refund, Interact effect choices per crit; need action provenance, multi-crit options, target validation, cancellation and replay. |
+
+Итог пакета: 16/16 уровней проверены отдельно; смысловых RU↔EN ошибок не найдено. Ritualist I, Spellcrafter I–III и Cryomancer II понижены до partial. 8 уровней confirmed-manual, Student II partial, Cryomancer I только core-tested full; evidence/certified не повышались.
