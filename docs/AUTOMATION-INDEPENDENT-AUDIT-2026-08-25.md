@@ -740,3 +740,26 @@
 | `bulwark.runic-retribution.3` | совпадает | manual → confirmed-manual | Нет Double Down enemy Mark, two unremovable Marks through Scene и optional 1-step toward any Marked enemy after any ally Action; нужны provenance, removal attempts, multiple enemies, blocked move and expiry. |
 
 Итог пакета: 16 уровней проверены отдельно; RU смыслово совпадает с EN. 11 уровней подтверждены manual; Grappler II и все три Mundane имеют только ограниченное core-доверие, два `full` не вышли за core/integration review. Новых безопасных малых исправлений не потребовалось, evidence/certified не повышались.
+
+### Пакет 10 — уровни 145–160
+
+| Правило | RU↔EN | Заявление → результат | Точное расхождение / недостающее доказательство |
+| --- | --- | --- | --- |
+| `bulwark.shield-bearer.1` | совпадает с PDF-стр. 81 | manual → confirmed-manual | Нет optional Block spend2 Focus, Tier Armor и retention until guard broken/start Turn; нужны cancel-before-pay, repeated Blocks, guard-break semantics, stale response and import. |
+| `bulwark.shield-bearer.2` | совпадает | manual → confirmed-manual | Нет Shield Marker placement/follow lifecycle и optional collision remove→ceil(Body/2) damage+push2; нужны occupied placement, multiple opponents, blocked push, KO and duplicate movement. |
+| `bulwark.shield-bearer.3` | совпадает | manual → confirmed-manual | Нет marker-centered 3×3 zone и conditional Tier Armor only when enemy attacker is inside; нужны border clipping, attacker moves after declaration, foreign marker and multi-target attack. |
+| `bulwark.stalwart-sentry.1` | совпадает | manual → confirmed-manual | Нет «не двигался в этот Turn» state и beneficial-only diagonal adjacency substitution; нужны start/end Turn reset, forced/teleport movement, Punishment/range interactions and import. |
+| `bulwark.stalwart-sentry.2` | совпадает | decision → core-tested | Scene-full Vigilance, Charge refill, leave-adjacency prompt, paid/free Punishment, segment spend and Reaction pipeline имеют прямой happy-path. Нужны empty clock/no AP, cancel, forced move, KO after prompt, stale/duplicate response, reconnect/import. |
+| `bulwark.stalwart-sentry.3` | совпадает | manual → confirmed-manual | Нет Investigate→up to4 unoccupied Spotlights, enemy-only difficult terrain и enter→optional adjacent teleport+Punish; нужны 0/4/5 cells, allies, occupied/removed cells, owner KO and entity expiry. |
+| `bulwark.beastial-ascendant.1` | совпадает с PDF-стр. 82 | manual → confirmed-manual | Нет locked choice of two non-Modifier enemy types, once/Scene Charge+Tension transform, area push/heal, copied Attacks without Tension damage и 0HP end+Daze. |
+| `bulwark.beastial-ascendant.2` | совпадает | manual → confirmed-manual | Нет inherited Passive of one chosen enemy during transformation и remap KO-trigger to transformation end; нужны passive variants, nested prompts, owner KO and import. |
+| `bulwark.beastial-ascendant.3` | совпадает | manual → confirmed-manual | Нет transformed-only copied Ace spend2 AP и per-Ace once/Scene; нужны two enemy types, insufficient AP, cancel-before-pay, scene reset and duplicate intent. |
+| `bulwark.guardian-angel.1` | совпадает | manual → confirmed-manual | Нет two-space actor Deployment, separate dual movement, Cast/Skirmish origins and Defendant damage→1/2 Wounds by Guts threshold; нужны topology, occupied cells, KO and save/load. |
+| `bulwark.guardian-angel.2` | совпадает | manual → confirmed-manual | Нет successful Cast→Weak and subsequent successful Skirmish on Weak→Launch; нужны source provenance, multi-target, failed/zero-success attacks and removed Weak. |
+| `bulwark.guardian-angel.3` | совпадает | manual → confirmed-manual | Нет Health/Guts scaling from Spirit and remote ally Attack intercept by Guardian for 1 Focus; нужны dual-position range, occupied teleport, cancel, ally/guardian KO and reconnect. |
+| `bulwark.servant-s-call.1` | совпадает | partial → confirmed-partial | Оплата, empty-cell point, type choice и Tier-counted marker работают, но marker не является Tier1 Guardian/Slime/Paladin actor: нет half HP, max1 attack damage, Turn/actions/reactions. |
+| `bulwark.servant-s-call.2` | совпадает | manual → confirmed-manual | Нет Charge→owned Summon adjacent teleport и mandatory redirect-to-Summon through next Turn start; нужны multiple summons, occupied cells, summon KO, multi-target attack and duration import. |
+| `bulwark.servant-s-call.3` | совпадает | manual → confirmed-manual | Нет once/Scene Spirit Finisher one-empty-space +3 Focus creation of same-Tier Tank, named status and Rank3 Bond; нужны target validation, cancel-before-pay, summon lifecycle and persistence. |
+| `bulwark.mecha-pilot.1` | совпадает | manual → confirmed-manual | Нет combat-entry adjacent 2×2 Suit terrain with 15 HP/Tier Armor, Interact equip/unequip, actor resize, armor grant/loss and sufficient-empty-space placement; нужны destroyed Suit and import. |
+
+Итог пакета: все 16 уровней рассмотрены отдельно, RU смыслово совпадает с EN. 14 уровней подтверждены manual; Stalwart Sentry II остаётся decision с ограниченным core-tested доверием, Servant’s Call I — partial из-за marker-only модели. Evidence/certified не повышались; крупных сущностных переделок не начато.
