@@ -717,3 +717,26 @@
 | `bulwark.battle-jockey.2` | совпадает | manual → confirmed-manual | Нет owned-Mount attack trigger и optional Taunt target; нужны чужой summon, non-enemy target, miss/reaction semantics, KO/stale prompt and duplicate response. |
 
 Итог пакета: 16/16 уровней независимо сверены. Исправлено одно подтверждённое грамматическое расхождение RU без изменения механики; 14 уровней доказанно остаются manual, Giant Frame I — partial, Iron Bodied II — только integration-reviewed `full`. Evidence/certified не повышались: UI/network/save-load и обязательные граничные матрицы не закрыты.
+
+### Пакет 9 — уровни 129–144
+
+| Правило | RU↔EN | Заявление → результат | Точное расхождение / недостающее доказательство |
+| --- | --- | --- | --- |
+| `bulwark.battle-jockey.3` | совпадает с PDF-стр. 80 | manual → confirmed-manual | Нет once/Scene замены Хода owned Mount на Roar, Daze всех enemies≤3 и push3; нужны чужой summon, no enemies, blocked push, KO, scene reset/import. |
+| `bulwark.grappler.1` | совпадает | manual → confirmed-manual | Нет successful Body Finisher→Snare и provenance rule «свои Snared также Taunted вами»; нужны miss/zero-success, multi-target, removed/foreign Snare and effect lifecycle. |
+| `bulwark.grappler.2` | совпадает | decision → core-tested | +1 Skirmish Advantage и composite single-Launched Spike→teleport→Body Finisher по исходной стоимости имеют прямой pos/invalid-destination/atomicity тест. Не закрыты occupied/removed adjacency, KO after plan, cancel, stale/duplicate, network retry/import и точный successful Spike boundary. |
+| `bulwark.grappler.3` | совпадает | manual → confirmed-manual | Нет Body Finisher→Jump replacement, paired Disappear, earliest(next Round/next Action) return, shared space, area Launch и free Swift repeat Finisher; нужны KO обоих, occupied return and reconnect. |
+| `bulwark.juggernaut.1` | совпадает | manual → confirmed-manual | Нет Jump distance Body-vs-Talent choice, 30 terrain damage along path и reposition любого числа crossed/adjacent characters; нужны terrain destruction, mixed teams, blocked cells and cancel. |
+| `bulwark.juggernaut.2` | совпадает | manual → confirmed-manual | Нет once/Round Wild Charge participant capture, ceil(Body/2) damage всем выбранным и Launch ровно одного; нужны repeated contact, same target twice, no target and round reset. |
+| `bulwark.juggernaut.3` | совпадает | manual → confirmed-manual | Нет optional Jump distance−2 and removal of Line constraint; нужны distance<2, cancel-before-move, topology/occupied cells and interaction with Wild Charge. |
+| `bulwark.mundane.1` | совпадает с PDF-стр. 81 | partial → core-tested-partial | Общий Tenacity pool, round reset, AP/Focus replacement и blocked Breathe/Charge gain проверены; Cast/Spirit Finisher bans есть. Нет full UI cost preview, odd/even Body boundary, multi-cost atomicity, network replay/import and reconnect. |
+| `bulwark.mundane.2` | совпадает | full → core-tested | `reaction.offer` цели Атаки даёт 1 Tenacity и имеет positive test. Не закрыты multi-target/multi-reaction, non-Attack offer, cancelled declaration, duplicate offer, KO and network replay; не certified. |
+| `bulwark.mundane.3` | совпадает | decision → core-tested | Breathe/Charge explicit targets≤wouldGain within4 и Body Charge option существуют; проверен Breathe positive. Нужны Charge successes/min2, Body-vs-Spirit dice proof, allies allowed, over-limit/range boundary, cancel and duplicate resolve. |
+| `bulwark.rising-challenger.1` | совпадает | manual → confirmed-manual | Нет successful Clash trigger, +1 Focus и optional move Tier; нужны tie/win semantics, cancel, blocked destination, KO and duplicate reaction resolution. |
+| `bulwark.rising-challenger.2` | совпадает | manual → confirmed-manual | Нет ally-target remote Clash within Talent и optional teleport adjacent to attacker; нужны multi-target, occupied cells, ally/attacker KO, stale prompt and range boundary. |
+| `bulwark.rising-challenger.3` | совпадает | full → integration-reviewed | `heroActorState` даёт clashAdvantage=3, UI включает его в обе Clash rolls через dice hooks. Нет direct odd context tests, repeated sync/import, non-Clash negative и network-controlled Clash; не certified. |
+| `bulwark.runic-retribution.1` | совпадает | manual → confirmed-manual | Нет ally-hit trigger и free Swift Cast attacker regardless range; нужны miss/zero damage, self/other team, KO attacker, reactions, duplicate hit and cancel. |
+| `bulwark.runic-retribution.2` | совпадает | manual → confirmed-manual | Нет Investigate replacement Deal, ally-in-range accept/decline, Swift 1-Cost Action+Mark и AP refund on decline; нужны invalid action/cost, cancel, payment atomicity and reconnect. |
+| `bulwark.runic-retribution.3` | совпадает | manual → confirmed-manual | Нет Double Down enemy Mark, two unremovable Marks through Scene и optional 1-step toward any Marked enemy after any ally Action; нужны provenance, removal attempts, multiple enemies, blocked move and expiry. |
+
+Итог пакета: 16 уровней проверены отдельно; RU смыслово совпадает с EN. 11 уровней подтверждены manual; Grappler II и все три Mundane имеют только ограниченное core-доверие, два `full` не вышли за core/integration review. Новых безопасных малых исправлений не потребовалось, evidence/certified не повышались.
