@@ -447,11 +447,19 @@ function respondRulePrompt(scene, data, request = {}) {
   }
   if (prompt.kind === "cryomancer-icicle-rest" && choice === "convert") {
     const segments = clockStatus(scene, actor.id, "ruiner.cryomancer.icicle").value;
-    if (segments < 1 || Number(actor.focus || 0) < 1) return { ok: false, errors: ["Сосулька или полученный Передышкой Фокус уже недоступны."], events: [] };
-    events.push({ type: "resource.spend", actorId: actor.id, payload: { resource: "focus", amount: 1, sourceActionId: "ruiner.cryomancer.2", reason: "Отказ от Фокуса Передышки" } });
+    const gain = (scene.log || []).find(event => event.id === prompt.context?.focusGainEventId);
+    const alreadyConverted = (scene.log || []).some(event => event.type === "resource.spend" && event.payload?.forgoneGainEventId === gain?.id);
+    const exactBreatheGain = gain?.type === "resource.gain" && gain.actorId === actor.id && gain.payload?.actionInstanceId === prompt.context?.actionInstanceId && actionIdIs(gain.payload?.sourceActionId, "breathe") && gain.payload?.resolvedResource === "focus" && Number(gain.payload?.resolvedDelta || 0) > 0;
+    if (segments < 1 || !exactBreatheGain || alreadyConverted || Number(actor.focus || 0) < Number(gain.payload.resolvedDelta)) return { ok: false, errors: ["Сосулька или Фокус именно этой Передышки уже недоступны."], events: [] };
+    events.push({ type: "resource.spend", actorId: actor.id, payload: { actionInstanceId: prompt.context.actionInstanceId, forgoneGainEventId: gain.id, resource: "focus", amount: Number(gain.payload.resolvedDelta), sourceActionId: "ruiner.cryomancer.2", reason: "Отказ от Фокуса Передышки" } });
     events.push({ type: "rule-clock.set", actorId: actor.id, payload: { clockId: "ruiner.cryomancer.icicle", value: 0, sourceActionId: "ruiner.cryomancer.2" } });
     events.push({ type: "actor.state", actorId: actor.id, payload: { key: "icicleSpellsRemaining", value: segments, sourceActionId: "ruiner.cryomancer.2" } });
     events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${prompt.id}-series`, kind: "cryomancer-icicle-series", sourceActorId: actor.id, title: "Ледяной нимб", text: `Доступно Быстрых Заклинаний: ${segments}. Продолжить серию?`, options: ["continue", "stop"], context: { remaining: segments }, participantIds: [actor.id] } });
+  }
+  if (prompt.kind === "alchemist-powerful-mix-damage" && choice === "damage") {
+    const amount = Number(prompt.context?.amount || 0);
+    if (!target || target.knockedOut || target.team === actor.team || Number(actor.techniques?.["altruist.alchemist"] || 0) < 2 || amount !== Number(actor.attrs?.mind || 0)) return { ok: false, errors: ["Цель или величина урона «Мощной смеси» больше не соответствует правилу."], events: [] };
+    events.push({ type: "damage.apply", actorId: actor.id, payload: { targetId: target.id, amount, sourceActionId: "altruist.alchemist.2", participantIds: [actor.id, target.id] } });
   }
   if (prompt.kind === "cryomancer-icicle-series" && choice === "stop") events.push({ type: "actor.state", actorId: actor.id, payload: { key: "icicleSpellsRemaining", value: 0, sourceActionId: "ruiner.cryomancer.2" } });
   if (prompt.kind === "thunder-charged-spell" && choice !== "pass") {
@@ -885,9 +893,8 @@ function preparePotionUse(scene, data, request = {}) {
   else if (POTION_EFFECTS[potion]) events.push({ type: "effect.apply", actorId: actor.id, payload: { targetId: target.id, effect: POTION_EFFECTS[potion], sourceActionId: "altruist.alchemist.1", participantIds: [actor.id, target.id] } });
   if (Number(actor.techniques?.["altruist.alchemist"] || 0) >= 2) {
     if (target.team === actor.team) events.push({ type: "resource.gain", actorId: target.id, payload: { resource: "focus", amount: Math.ceil(Number(actor.attrs?.mind || 0) / 2), sourceActionId: "altruist.alchemist.2", participantIds: [actor.id, target.id] } });
-    else events.push({ type: "damage.apply", actorId: actor.id, payload: { targetId: target.id, amount: Number(actor.attrs?.mind || 0), sourceActionId: "altruist.alchemist.2", participantIds: [actor.id, target.id] } });
   }
-  events.push({ type: "action.resolve", actorId: actor.id, payload: { actionId: interaction.id, name: interaction.name, targetIds: [target.id] } });
+  events.push({ type: "action.resolve", actorId: actor.id, payload: { actionId: interaction.id, name: interaction.name, targetIds: [target.id], alchemistPowerfulMixTargetId: Number(actor.techniques?.["altruist.alchemist"] || 0) >= 2 && target.team !== actor.team ? target.id : null } });
   events.push({ type: "technique.resolve", actorId: actor.id, payload: { ruleId: "altruist.alchemist.1", name: "Быстрая смесь", affectedActorIds: [target.id] } });
   return { ok: true, errors: [], events };
 }

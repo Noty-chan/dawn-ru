@@ -267,6 +267,7 @@ function cunningPlanStatus(scene, data, actorId, actionId) {
 }
 
 function prepareAction(scene, data, request = {}) {
+  const actionInstanceId = eventId();
   const actor = actorById(scene, request.actorId);
   const declaredAction = actionById(data, request.actionId);
   let action = declaredAction;
@@ -408,7 +409,7 @@ function prepareAction(scene, data, request = {}) {
   if (mundaneLevel >= 1 && actionIs(action, "finish") && actionAttribute === "spirit") errors.push("Обычный не может использовать Завершение Духом.");
   const modifierQuick = Boolean(attackModifiers.quick), armamentQuick = Boolean(armament?.available);
   const quickSource = armamentQuick ? { techniqueId: "vagabond.master-at-arms", level: 1, name: armament.label, needsConfirmation: false } : modifierQuick ? { techniqueId: "vagabond.dim-mak", level: 1, name: "Слабая точка", needsConfirmation: false } : available?.quickSource;
-  const events = [{ type: "action.prepare", actorId: actor.id, payload: { actionId: action.id, actionName: action.name, name: action.name, declaredActionId: declaredAction.id, declaredActionName: declaredAction.name, targetIds, targetCells, planId: request.planId || null, attackModifierIds: attackModifiers.selectedIds, attackModifierAdvantage: attackModifiers.advantage, actionTransform: attackModifiers.actionTransform, quick: Boolean(available?.quick || modifierQuick || armamentQuick), quickSource: quickSource ? { techniqueId: quickSource.techniqueId, level: quickSource.level, name: quickSource.name, needsConfirmation: quickSource.needsConfirmation } : null, continuation: Boolean(available?.continuation && !modifierQuick && !armamentQuick) } }];
+  const events = [{ type: "action.prepare", actorId: actor.id, payload: { actionInstanceId, actionId: action.id, actionName: action.name, name: action.name, declaredActionId: declaredAction.id, declaredActionName: declaredAction.name, targetIds, targetCells, planId: request.planId || null, attackModifierIds: attackModifiers.selectedIds, attackModifierAdvantage: attackModifiers.advantage, actionTransform: attackModifiers.actionTransform, quick: Boolean(available?.quick || modifierQuick || armamentQuick), quickSource: quickSource ? { techniqueId: quickSource.techniqueId, level: quickSource.level, name: quickSource.name, needsConfirmation: quickSource.needsConfirmation } : null, continuation: Boolean(available?.continuation && !modifierQuick && !armamentQuick) } }];
   events[0].payload.request = { attribute: actionAttribute, focusSpent: finisherFocus, targetCells, useCunningPlan: Boolean(request.useCunningPlan), useRevelation: Boolean(request.useRevelation), useThunderDischarge: Boolean(request.useThunderDischarge), useEclipseStars: Boolean(request.useEclipseStars), useGrasp: Boolean(request.useGrasp), startRage: Boolean(request.startRage), armamentMode, armamentDestination: armament?.destination || null, bulletsSpent: Number.isFinite(Number(request.bulletsSpent)) ? Number(request.bulletsSpent) : null, bulletAdvantage: Number.isFinite(Number(request.bulletAdvantage)) ? Number(request.bulletAdvantage) : null, throwWeapon: Boolean(request.throwWeapon), overload: Boolean(request.overload), provokeTargetIds: [...new Set(request.provokeTargetIds || [])].slice(0, 40), removeEffectIdsByTarget: clone(request.removeEffectIdsByTarget || {}), attackModifierIds: attackModifiers.selectedIds };
   if (armamentQuick) {
     events[0].payload.armament = { groupId: MASTER_AT_ARMS_GROUP, modeId: armamentMode, label: armament.label };
@@ -512,7 +513,9 @@ function prepareAction(scene, data, request = {}) {
     if (!actionIs(action, "skirmish") && targets.length > 1 && !thunderDischarge && !eclipseStars && !zealotRupture) errors.push(`${action.name} выбирает только одну цель.`);
     const constrictorReach = target => actionIs(action, "finish") && Number(actor.techniques?.["disruptor.constrictor"] || 0) >= 2 && ["body", "talent"].includes(actionAttribute) && caughtByConstrictor(target);
     if (!thunderDischarge && !eclipseStars && !zealotRupture && targets.some(target => distance(attackOrigin, target) > limit && !constrictorReach(target))) errors.push(`Цель должна быть в пределах ${limit} клеток от клетки появления.`);
-    const bonus = (actionIs(action, "finish") ? Number(scene.tension || 0) : 0) + (spellModifiers.includes("fierce") ? Number(actor.attrs?.mind || 0) : 0), drainLife = Boolean(actor.ruleState?.drainLife && actionIs(action, "finish") && actor.ruleState?.grimTransformed), adjustedDamage = value => drainLife ? Math.ceil(Math.max(0, value) / 2) : Math.max(0, value);
+    const drainLifeArmed = Boolean(actor.ruleState?.drainLife && actor.ruleState?.grimTransformed);
+    if (drainLifeArmed && actionIs(action, "finish") && actionAttribute !== "spirit") errors.push("«Вытянуть жизнь» применяется только к Завершению Духом.");
+    const bonus = (actionIs(action, "finish") ? Number(scene.tension || 0) : 0) + (spellModifiers.includes("fierce") ? Number(actor.attrs?.mind || 0) : 0), drainLife = Boolean(drainLifeArmed && actionIs(action, "finish") && actionAttribute === "spirit"), adjustedDamage = value => drainLife ? Math.ceil(Math.max(0, value) / 2) : Math.max(0, value);
     if (heavenlyHealing) {
       const removalMap = request.removeEffectIdsByTarget && typeof request.removeEffectIdsByTarget === "object" ? request.removeEffectIdsByTarget : {};
       targets.forEach(target => {
@@ -524,7 +527,7 @@ function prepareAction(scene, data, request = {}) {
           if (!woundUsed && Number(target.wounds || 0) > 0) events.push({ type: "actor.wound", actorId: actor.id, payload: { targetId: target.id, delta: -1, sourceActionId: "altruist.heavenly-saint.3", participantIds: [actor.id, target.id] } });
         }
       });
-      events.push({ type: "action.resolve", actorId: actor.id, payload: { actionId: action.id, name: action.name, targetIds, heavenlyHealing: true } });
+      events.push({ type: "action.resolve", actorId: actor.id, payload: { actionInstanceId, actionId: action.id, name: action.name, targetIds, heavenlyHealing: true } });
     } else {
       targets.forEach(target => events.push({ type: "reaction.offer", actorId: target.id, payload: { sourceActorId: actor.id, actionId: action.id } }));
       const icicleHalo = available?.quickSource?.id === "ruiner.cryomancer.2.icicle";
@@ -540,7 +543,7 @@ function prepareAction(scene, data, request = {}) {
       if (request.roll?.rolls) events.push({ type: "roll.public", actorId: actor.id, payload: clone(request.roll) });
     }
   } else if (actionIs(action, "breathe")) {
-    events.push({ type: "resource.gain", actorId: actor.id, payload: { resource: "focus", amount: 1, sourceActionName: "Передышка", sourceActionId: action.id } });
+    events.push({ type: "resource.gain", actorId: actor.id, payload: { actionInstanceId, resource: "focus", amount: 1, sourceActionName: "Передышка", sourceActionId: action.id } });
   } else if (actionIs(action, "charge") && request.roll) {
     events.push({ type: "roll.public", actorId: actor.id, payload: clone(request.roll) });
     events.push({ type: "resource.gain", actorId: actor.id, payload: { resource: "focus", amount: Math.max(2, Number(request.roll.successes || 0)), sourceActionName: "Зарядка", sourceActionId: action.id } });
@@ -569,7 +572,7 @@ function prepareAction(scene, data, request = {}) {
     if (invalid.length) errors.push("Все цели «Перед лицом Запредельного» должны быть доступны в дальности 4.");
     provokeIds.forEach(targetId => events.push({ type: "effect.apply", actorId: actor.id, payload: { targetId, effect: "negative.спровоцирован", sourceActionId: "bulwark.mundane.3", participantIds: [actor.id, targetId] } }));
   }
-  if (!attack(action)) events.push({ type: "action.resolve", actorId: actor.id, payload: { actionId: action.id, name: action.name, attribute: actionAttribute, text: action.text, targetIds, continuation: Boolean(available?.continuation) } });
+  if (!attack(action)) events.push({ type: "action.resolve", actorId: actor.id, payload: { actionInstanceId, actionId: action.id, name: action.name, attribute: actionAttribute, text: action.text, targetIds, continuation: Boolean(available?.continuation) } });
   return { ok: errors.length === 0, errors, action: available, events: errors.length ? [] : events };
 }
 

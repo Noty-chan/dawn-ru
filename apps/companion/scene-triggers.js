@@ -690,7 +690,14 @@ function triggeredEvents(scene, event, options = {}) {
     const amount = Number(gain?.payload?.resolvedDelta || 0), range = amount;
     if (amount > 0) events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${event.id}-inner-world-gaze`, kind: "inner-world-gaze", sourceActorId: actor.id, title: "Глубокий взгляд", text: `Отказаться от ${amount} Фокуса, чтобы наложить Обездвижен на всех врагов в дальности ${range}?`, options: ["gaze", "pass"], context: { amount, range }, participantIds: [actor.id] } });
   }
-  if (event.type === "action.resolve" && actor && actionIdIs(eventActionId(payload), "breathe") && Number(actor.techniques?.["ruiner.cryomancer"] || 0) >= 2 && clockStatus(scene, actor.id, "ruiner.cryomancer.icicle").value > 0 && !scene.pendingPrompt && !promptQueued()) events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${event.id}-icicle`, kind: "cryomancer-icicle-rest", sourceActorId: actor.id, title: "Ледяной нимб", text: "Отказаться от полученного Передышкой Фокуса, очистить Сосульку и начать серию Быстрых Заклинаний с половинным уроном?", options: ["convert", "pass"], participantIds: [actor.id] } });
+  if (event.type === "action.resolve" && actor && actionIdIs(eventActionId(payload), "breathe") && Number(actor.techniques?.["ruiner.cryomancer"] || 0) >= 2 && clockStatus(scene, actor.id, "ruiner.cryomancer.icicle").value > 0 && !scene.pendingPrompt && !promptQueued()) {
+    const gain = [...(scene.log || [])].reverse().find(logged => logged.type === "resource.gain" && logged.actorId === actor.id && logged.payload?.actionInstanceId === payload.actionInstanceId && actionIdIs(logged.payload?.sourceActionId, "breathe") && logged.payload?.resolvedResource === "focus" && Number(logged.payload?.resolvedDelta || 0) > 0);
+    if (gain) events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${event.id}-icicle`, kind: "cryomancer-icicle-rest", sourceActorId: actor.id, title: "Ледяной нимб", text: "Отказаться от Фокуса именно этой Передышки, очистить Сосульку и начать серию Быстрых Заклинаний с половинным уроном?", options: ["convert", "pass"], context: { actionInstanceId: payload.actionInstanceId, focusGainEventId: gain.id }, participantIds: [actor.id] } });
+  }
+  if (event.type === "action.resolve" && actor && payload.alchemistPowerfulMixTargetId && Number(actor.techniques?.["altruist.alchemist"] || 0) >= 2 && !scene.pendingPrompt && !promptQueued()) {
+    const target = actorById(scene, payload.alchemistPowerfulMixTargetId);
+    if (target && !target.knockedOut && target.team !== actor.team) events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${event.id}-powerful-mix`, kind: "alchemist-powerful-mix-damage", sourceActorId: actor.id, targetId: target.id, title: "Мощная смесь", text: `Нанести ${Number(actor.attrs?.mind || 0)} урона врагу, выпившему Зелье?`, options: ["damage", "pass"], context: { amount: Number(actor.attrs?.mind || 0), actionResolveEventId: event.id }, participantIds: [actor.id, target.id] } });
+  }
   if (event.type === "action.resolve" && actor && payload.icicleHalo) {
     const remaining = Math.max(0, Number(actor.ruleState?.icicleSpellsRemaining || 0) - 1);
     events.push({ type: "actor.state", actorId: actor.id, payload: { key: "icicleSpellsRemaining", value: remaining, sourceActionId: "ruiner.cryomancer.2" } });
@@ -826,8 +833,8 @@ function triggeredEvents(scene, event, options = {}) {
     if (caughtIds.length) events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${event.id}-constrictor-move`, kind: "constrictor-move-select", sourceActorId: actor.id, title: "Обвить · конец Хода", text: "Можно по очереди переместить каждого Пойманного персонажа на расстояние до 5 клеток.", options: [...caughtIds, "pass"], context: { targetIds: caughtIds }, participantIds: [actor.id, ...caughtIds] } });
   }
   if (event.type === "turn.end" && actor && hasEffect(scene, actor, "positive.регенерирует")) events.push({ type: "actor.heal", actorId: actor.id, payload: { targetId: actor.id, amount: Number(actor.tier || 1), sourceActionId: "positive.регенерирует", participantIds: [actor.id] } });
-  if (event.type === "damage.apply" && actorById(scene, payload.targetId)?.ruleState?.grimTransformed && Number(actorById(scene, payload.targetId)?.focus || 0) === 0) {
-    const target = actorById(scene, payload.targetId);
+  if ((event.type === "damage.apply" || event.type === "resource.spend" && (payload.resolvedResource || payload.resource) === "focus") && actorById(scene, event.type === "damage.apply" ? payload.targetId : event.actorId)?.ruleState?.grimTransformed && Number(actorById(scene, event.type === "damage.apply" ? payload.targetId : event.actorId)?.focus || 0) === 0) {
+    const target = actorById(scene, event.type === "damage.apply" ? payload.targetId : event.actorId);
     events.push({ type: "actor.state", actorId: target.id, payload: { key: "grimTransformed", value: false, sourceActionId: "ruiner.grim-ascendant.1" } });
     events.push({ type: "effect.apply", actorId: target.id, payload: { targetId: target.id, effect: "negative.ошеломлен", sourceActionId: "ruiner.grim-ascendant.1", participantIds: [target.id] } });
   }

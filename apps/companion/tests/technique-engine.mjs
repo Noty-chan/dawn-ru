@@ -160,6 +160,12 @@ const bombardierPending = bombardierEvents.find(event => event.type === "attack.
 assert.equal(bombardierPending.payload.targetedTerrainId, "terrain");
 assert.equal(bombardierPending.payload.targetsTerrainCell, true);
 assert.deepEqual(JSON.parse(JSON.stringify(bombardierPending.payload.techniqueAnchor)), { x: 3, y: 3 });
+assert.throws(() => SceneEngine.dispatchMany({ ...gasScene, version: 0, log: [] }, bombardierEvents), /проверяемый снимок пула Завершения Духом/, "Bombardier cannot commit client-supplied successes without Spirit Finisher dice provenance");
+const bombardierDiceRequest = { scope: "action", baseCount: 4, advantage: 0, hindrance: 0, attribute: "spirit", actionId: context.DAWN_DATA.actions.list.find(action => action.name === "Завершение").id, targetIds: [] };
+const verifiedBombardierRoll = SceneEngine.diceRollPayload(gasScene, "hero", bombardierDiceRequest, { rolls: [4, 4, 2, 2] });
+assert.equal(verifiedBombardierRoll.available, true);
+const verifiedBombardier = Engine.preview(gasScene, { actorId: "hero", ruleId: "ruiner.bombardier.1", anchor: { x: 3, y: 3 }, options: { focusSpent: 0 }, roll: verifiedBombardierRoll.payload });
+assert.doesNotThrow(() => SceneEngine.dispatchMany({ ...gasScene, version: 0, log: [] }, Engine.toEvents(gasScene, verifiedBombardier, { makeId: prefix => `verified-${prefix}` })), "A canonically derived Spirit Finisher roll commits through the same authority path");
 const highGroundScene = structuredClone(gasScene);
 highGroundScene.objects[0] = { ...highGroundScene.objects[0], id: "roof", type: "high", label: "Крыша" };
 const bombardierOnRoof = Engine.preview(highGroundScene, {
