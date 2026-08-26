@@ -61,17 +61,16 @@ For each level/rule independently record RU↔EN, declared status, proven confid
 
 ## Work deliberately delegated away from the audit
 
-The separate implementation task is `docs/TASK-SPELLCRAFTER-LEARNED-MODIFIERS.md`. It is intentionally not another audit package. Create a new branch from the remote audit branch:
+The separate large implementation program is `docs/TASK-RUINER-AUTOMATION-PROGRAM.md`. Spellcrafter learned modifiers (`docs/TASK-SPELLCRAFTER-LEARNED-MODIFIERS.md`) is its first bounded workstream, not the whole assignment. This is intentionally implementation work rather than another audit package. Create a new branch from the remote audit branch:
 
 ```bash
 git switch codex/dawn-automation-audit
 git pull --ff-only origin codex/dawn-automation-audit
-git switch -c codex/spellcrafter-learned-modifiers
+git switch -c codex/ruiner-automation-program
 ```
 
-That task may implement and test the known defect, but must not resume package 19, rewrite the audit ledger, add certification, or push to `main`.
+That program may implement and test audited gaps throughout the Ruiner archetype, but must not resume audit package 19, rewrite the independent ledger, self-certify its work, or push to `main`.
 
 ## Review strategy for a weaker model
 
 Accept small commits by layer: character schema/migration, scene synchronization, authoritative validation, UI, tests/docs. Reject a solution if it merely hides buttons: imported/network-supplied unknown modifiers must be rejected by core validation. Reject transient-only state: learned modifiers belong to the character build and must survive save/load, reconnect and scene resync. Keep the audit statuses `partial` until a later independent audit verifies every surface.
-
