@@ -4,7 +4,7 @@ const WISP_TYPES = {
   dreamy: { label: "Мечтательный дух", effect: "negative.замедлен", audience: "enemies" },
   angry: { label: "Злой дух", effect: "negative.порчен", audience: "enemies" },
   insightful: { label: "Проницательный дух", effect: "negative.помечен", audience: "enemies" },
-  bright: { label: "Яркий дух", effect: "positive.ускорен", audience: "allies" },
+  bright: { label: "Пылкий дух", effect: "positive.ускорен", audience: "allies" },
   kind: { label: "Добрый дух", effect: "positive.регенерирует", audience: "allies" },
   fierce: { label: "Яростный дух", effect: "positive.усилен", audience: "allies" },
 };

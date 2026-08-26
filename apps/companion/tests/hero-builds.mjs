@@ -214,7 +214,7 @@ assert.deepEqual(Array.from(crafted.actors[0].techniqueState.spellModifiers), []
 assert.equal(crafted.pendingAction.damage, 5, "Fierce adds Mind to attack damage");
 
 const wispBuild = { "altruist.will-o-wisp": 3 };
-assert.ok(coverageFor(wispBuild).every(level => level.automation === "decision"), "Will-O-Wisp levels expose choices without manual resolution");
+assert.deepEqual(Array.from(coverageFor(wispBuild), level => level.automation), ["partial", "partial", "decision"], "Will-O-Wisp exposes the audited missing attack-push and pre-trigger movement truncation instead of overstating all three levels");
 const wispScene = sceneWith(actor({ techniques: wispBuild, focus: 4 }), [ally({ x: 2, y: 1 }), foe({ x: 1, y: 2 })]);
 const wispCharge = SceneEngine.prepareAction(wispScene, data, { actorId: "hero", actionId: actionNamed("Зарядка").id });
 const offered = SceneEngine.dispatchMany(wispScene, wispCharge.events).scene;

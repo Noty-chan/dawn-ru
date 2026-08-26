@@ -6,7 +6,7 @@
 Покрыто Уровней: **321**. Ручная сверка текста завершена: **321**. Непроверенные строки остаются кандидатами и не являются утверждением о полной автоматизации.
 
 Ревизия источника ручной сверки: `d41acc9`.
-SHA-256 проверенных файлов: `ff8e0353fb78e8470e8a6ffae40a72b254864f03908c50a98b7d44e876fad0b1`.
+SHA-256 проверенных файлов: `8ef65ff26b48171cd938d7c8c3cdd7f49f107a84a5db4b6fe604dc5e3916c407`.
 
 ## Легенда возможностей
 
@@ -614,8 +614,8 @@ SHA-256 проверенных файлов: `ff8e0353fb78e8470e8a6ffae40a72b254
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Пламя духовного плетения (Spirit Weaving Flame) | проверено | с выбором | `target-validation`, `event-participants`, `movement-lifecycle`, `effect-state`, `effect-lifecycle`, `owned-entities`, `entity-lifecycle`, `usage-limits`, `trigger-router`, `turn-lifecycle`, `scene-lifecycle`, `choice-flow`, `action-modifier` |
-| 2 | Дружелюбные духи (Friendly Spirits) | проверено | с выбором | `target-validation`, `event-participants`, `resource-check`, `movement-lifecycle`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `reaction-window`, `choice-flow` |
+| 1 | Пламя духовного плетения (Spirit Weaving Flame) | проверено | частичная | `target-validation`, `event-participants`, `movement-lifecycle`, `effect-state`, `effect-lifecycle`, `owned-entities`, `entity-lifecycle`, `usage-limits`, `trigger-router`, `turn-lifecycle`, `scene-lifecycle`, `choice-flow`, `action-modifier` |
+| 2 | Дружелюбные духи (Friendly Spirits) | проверено | частичная | `target-validation`, `event-participants`, `resource-check`, `movement-lifecycle`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `reaction-window`, `choice-flow` |
 | 3 | Парные духи (Twinned Spirits) | проверено | с выбором | `owned-entities`, `entity-lifecycle`, `trigger-router`, `choice-flow` |
 
 ### Художник (`altruist.artist`)

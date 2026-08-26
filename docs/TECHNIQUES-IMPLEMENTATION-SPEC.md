@@ -1,6 +1,6 @@
 # DAWN: кодовая спецификация Техник
 
-> Сгенерировано `npm run docs:rules` из канонического `apps/companion/data.js` (SHA-256 `d05b7ccd360c75a392902642367d6bdc0804875f02cb17a7307d931e46730a42`).
+> Сгенерировано `npm run docs:rules` из канонического `apps/companion/data.js` (SHA-256 `f01d63a8e89afee3c0abe59fedb9e78c9d20ab741608b247d90629e7e16a0248`).
 > Русский текст - канонический перевод из `source/translation/`; локальные профили Леона взяты из `source/companion/named-enemies.md`. Английские названия сверяются с `source/translation/adapted-names-index.md` и, для Черточек Антагониста, с `source/original/Dawn - A Diceless Fantasy TTRPG.pdf`.
 
 ## Границы этого документа
@@ -1623,17 +1623,17 @@
 
 #### 1. Пламя духовного плетения (Spirit Weaving Flame) `altruist.will-o-wisp.1`
 
-- **Заявленный статус:** `decision` (решение).
-- **Текущий адаптер:** `altruist.will-o-wisp.1` · `passive` · {"kind":"passive"}; Первая Зарядка создаёт выбранное Пламя; его аура рассчитывается непосредственно по положению маркера..
+- **Заявленный статус:** `partial` (частичная).
+- **Текущий адаптер:** `altruist.will-o-wisp.1` · `passive` · {"kind":"passive"}; Первая Зарядка, выбранная аура и ручное движение Пламени работают; обязательный толчок маркера при атаке его клетки отсутствует..
 - **Готовые foundations:** `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `owned-entities`, `entity-lifecycle`, `usage-limits`, `trigger-router`, `choice-flow`, `action-modifier`.
-- **Нужно добавить:** Сохранить существующий adapter и добавить недостающий контракт: `movement-lifecycle`, `turn-lifecycle`, `scene-lifecycle`.
+- **Нужно добавить:** Заявление decision понижено до partial: первая Зарядка, аура и выбранное движение есть, но Пламя не толкается на 1 клетку, когда Атака выбирает целью его клетку.
 
 #### 2. Дружелюбные духи (Friendly Spirits) `altruist.will-o-wisp.2`
 
-- **Заявленный статус:** `decision` (решение).
-- **Текущий адаптер:** `altruist.will-o-wisp.2` · `passive` · {"kind":"passive"}; Выход из Пламени вызывает выбор перемещения или остановки с проверкой Фокуса..
+- **Заявленный статус:** `partial` (частичная).
+- **Текущий адаптер:** `altruist.will-o-wisp.2` · `passive` · {"kind":"passive"}; Выход из Пламени вызывает выбор, но enemy movement уже разрешён целиком и затем откатывается: путь не обрывается до downstream enter-триггеров..
 - **Готовые foundations:** `target-validation`, `event-participants`, `resource-check`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `reaction-window`, `choice-flow`.
-- **Нужно добавить:** Сохранить существующий adapter и добавить недостающий контракт: `movement-lifecycle`.
+- **Нужно добавить:** Заявление decision понижено до partial: остановка врага происходит после полного actor.move и ретроспективно возвращает его в первую клетку выхода, поэтому downstream enter/path-триггеры уже могли сработать за канонической точкой остановки.
 
 #### 3. Парные духи (Twinned Spirits) `altruist.will-o-wisp.3`
 

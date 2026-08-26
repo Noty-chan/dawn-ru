@@ -47,6 +47,8 @@ for (const [id, automation] of [
   ["altruist.surgeon.1", "partial"],
   ["altruist.alchemist.1", "partial"],
   ["altruist.chronomancer.2", "decision"],
+  ["altruist.will-o-wisp.1", "partial"],
+  ["altruist.will-o-wisp.2", "partial"],
   ["vagabond.knife-juggler.2", "partial"],
   ["altruist.alchemist.2", "partial"],
   ["disruptor.chemist.2", "partial"],

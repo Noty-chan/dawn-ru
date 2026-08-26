@@ -1,6 +1,6 @@
 # DAWN: каталог способностей врагов RU/EN
 
-> Сгенерировано `npm run docs:rules` из канонического `apps/companion/data.js` (SHA-256 `d05b7ccd360c75a392902642367d6bdc0804875f02cb17a7307d931e46730a42`).
+> Сгенерировано `npm run docs:rules` из канонического `apps/companion/data.js` (SHA-256 `f01d63a8e89afee3c0abe59fedb9e78c9d20ab741608b247d90629e7e16a0248`).
 > Русский текст - канонический перевод из `source/translation/`; локальные профили Леона взяты из `source/companion/named-enemies.md`. Английские названия сверяются с `source/translation/adapted-names-index.md` и, для Черточек Антагониста, с `source/original/Dawn - A Diceless Fantasy TTRPG.pdf`.
 
 ## Область каталога
@@ -28,7 +28,7 @@
 - Локальные (не из английского PDF) пары Леона подтверждены `source/companion/named-enemies.md`: `enemy.named.leon-academy-spatial-mage.trump.elemental-breach`, `enemy.named.leon-s-vayu-spirit.attack.air-shove`, `enemy.named.leon-s-agni-spirit.attack.fire-spark`.
 - Черты Антагониста: 24/24 английских названий извлечены из оригинального PDF (стр. 106–107).
 - Непроверенные пары: нет.
-- Подтверждённые смысловые расхождения RU/EN: 1; `enemy.common.viper.trump.knife-in-the-dark`. Проверка пар названий сама по себе этого не выявляет.
+- Подтверждённые смысловые расхождения RU/EN: 3; `enemy.common.viper.trump.knife-in-the-dark`, `altruist.will-o-wisp.1`, `altruist.artist.1`. Проверка пар названий сама по себе этого не выявляет.
 
 ## Обычные враги
 
