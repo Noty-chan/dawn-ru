@@ -579,7 +579,7 @@ function respondRulePrompt(scene, data, request = {}) {
     const baseDamage = Number(roll.successes || 0), damageByTarget = Object.fromEntries(targets.map(target => [target.id, baseDamage + (allIn && target.team !== actor.team ? Number(scene.tension || 0) : 0)]));
     events.push({ type: "attack.pending", actorId: actor.id, payload: { actionId: spell.id, techniqueRuleId: "altruist.chronomancer.3", techniqueName: "Остановка времени", name: allIn ? "Остановка времени · Ва-банк" : "Остановка времени", targetIds: targets.map(target => target.id), roll: clone(roll), damage: baseDamage, damageByTarget, quickReaction: true, participantIds: targets.map(target => target.id) } });
   }
-  if (prompt.kind === "alchemist-mix") events.push({ type: "inventory.change", actorId: actor.id, payload: { item: `potion:${choice}`, delta: 1, sourceActionId: "altruist.alchemist.1" } });
+  if (prompt.kind === "alchemist-mix" && choice !== "pass") events.push({ type: "inventory.change", actorId: actor.id, payload: { item: `potion:${choice}`, delta: 1, sourceActionId: "altruist.alchemist.1" } });
   if (prompt.kind === "empath-calm" && choice !== "pass") {
     events.push({ type: "effect.remove", actorId: actor.id, payload: { targetId: target.id, effect: choice, sourceActionId: "altruist.empath.1", participantIds: [actor.id, target.id] } });
     events.push({ type: "effect.apply", actorId: actor.id, payload: { targetId: target.id, effect: "positive.усилен", sourceActionId: "altruist.empath.1", participantIds: [actor.id, target.id] } });
@@ -866,8 +866,9 @@ function preparePromptPlacement(scene, request = {}) {
 
 function preparePotionUse(scene, data, request = {}) {
   const actor = actorById(scene, request.actorId), target = actorById(scene, request.targetId), potion = String(request.potion || ""), interaction = actionByKey(data, "interact");
-  const errors = [], stockKey = `potion:${potion}`;
+  const errors = [], stockKey = `potion:${potion}`, canonicalPotions = new Set(["pure-water", ...Object.keys(POTION_EFFECTS)]);
   if (!actor || !target || !interaction) errors.push("Не найдены алхимик, цель или Взаимодействие.");
+  if (!canonicalPotions.has(potion)) errors.push("Неизвестный тип Зелья.");
   if (actor && Number(actor.techniques?.["altruist.alchemist"] || 0) < 1) errors.push("Герой не владеет «Быстрой смесью».");
   if (actor && Number(actor.inventory?.[stockKey] || 0) < 1) errors.push("Такого Зелья нет в запасе.");
   if (actor && target && distance(actor, target) > 4) errors.push("Зелье применяется в пределах 4 клеток.");
@@ -1055,7 +1056,7 @@ function resolvePendingAction(scene, data) {
       for (const effect of pending.postTargetEffects || []) events.push({ type: "effect.apply", actorId: pending.actorId, payload: { targetId: resolvedTargetId, effect, sourceActionId: pending.techniqueRuleId || pending.actionId, participantIds: [pending.actorId, resolvedTargetId] } });
       if (attackSucceeded && status.eligibleIds.length === 1 && Number(source?.techniques?.["disruptor.constrictor"] || 0) >= 1 && (pending.declaredActionName || pending.name) === "Стычка") events.push({ type: "effect.apply", actorId: source.id, payload: { targetId: resolvedTargetId, effect: "negative.пойман", sourceActionId: "disruptor.constrictor.1", participantIds: [source.id, resolvedTargetId] } });
       const postDisplacement = (pending.postDisplacements || []).find(item => item.targetId === targetId) || (pending.postPush?.targetId === targetId ? { mode: "push", collisionDamagePerCell: 1, ...pending.postPush } : null);
-      if (expectedDamage > 0 && postDisplacement) {
+      if (expectedDamage > 0 && postDisplacement && (!postDisplacement.requiresSuccess || attackSucceeded)) {
         const destination = postDisplacement.mode === "push" ? pushDestination(scene, target, source, Number(postDisplacement.maximum || 99)) : null;
         if (destination?.distance) {
           const movementName = postDisplacement.name || "Принудительное движение", ruleId = postDisplacement.ruleId || pending.techniqueRuleId || pending.enemyRuleId || pending.actionId;

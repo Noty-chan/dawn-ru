@@ -19,7 +19,6 @@ const TECHNIQUE_COMBO_RULES = new Map([
 // stays assisted and is confirmed by the Narrator.
 const ENEMY_AUTO_ATTACK_RULES = new Map([
   ["enemy.common.assassin.attack.slice", 2],
-  ["enemy.common.bruiser.attack.skulduggery", 2],
   ["enemy.common.behemoth.attack.tore-from-earth", 2],
   ["enemy.common.captor.attack.catch-and-release", 2],
   ["enemy.common.executioner.attack.cleave", 2],
@@ -29,15 +28,12 @@ const ENEMY_AUTO_ATTACK_RULES = new Map([
   ["enemy.common.ronin.attack.dissect", 1],
   ["enemy.common.viper.attack.filet", 1],
   ["enemy.common.witch.attack.expelling-force", 2],
-  ["enemy.common.bodyguards.attack.behind-me", 1],
   ["enemy.common.broodmother.attack.swarming-chase", 1],
   ["enemy.common.cocoon.attack.rampage", 2],
   ["enemy.common.duelist.attack.fl-che", 1],
   ["enemy.common.slime.attack.goop", 1],
   ["enemy.common.glutton.attack.slobber", 1],
   ["enemy.common.mount.attack.thrash", 1],
-  ["enemy.common.oni.attack.polaris", 1],
-  ["enemy.common.paladin.attack.gift-from-god", 1],
   ["enemy.common.daredevil.attack.dance", 1],
   ["enemy.common.guardian.attack.shove", 1],
   ["enemy.common.berserker.attack.thrash", 1],
@@ -45,19 +41,15 @@ const ENEMY_AUTO_ATTACK_RULES = new Map([
   ["enemy.common.bannerman.attack.swing", 1],
   ["enemy.common.baron.attack.suppress", 1],
   ["enemy.common.cultist.attack.swipe", 1],
-  ["enemy.common.builder.attack.violent-construction", 0],
-  ["enemy.common.coordinator.attack.fanaticize", 1],
   ["enemy.common.healer.attack.exsanguinate", 1],
   ["enemy.common.illusionist.attack.distort-reality", 1],
   ["enemy.common.shade.attack.destroy-the-interloper", 1],
   ["enemy.common.necromancer.attack.terrifying-shot", 2],
   ["enemy.common.revenant.attack.tear-from-the-soul", 1],
   ["enemy.common.martyr.attack.savor-my-blood", 1],
-  ["enemy.common.cannoneer.trump.fire", 1],
   ["enemy.common.enchanter.attack.heartbreaker", 1],
   ["enemy.common.privateer.attack.spray-and-pray", 2],
   ["enemy.common.rifter.attack.emerge", 1],
-  ["enemy.common.swarm.attack.tear", 1],
   ["enemy.named.leon-academy-spatial-mage.attack.emerge", 1],
   ["enemy.named.leon-s-vayu-spirit.attack.air-shove", 0],
   ["enemy.named.leon-s-agni-spirit.attack.fire-spark", 0],
@@ -119,7 +111,6 @@ const ENEMY_AUTO_EFFECT_RULES = new Set([
   "enemy.common.bannerman.action.in-position",
   "enemy.common.coordinator.action.neutralize-them",
   "enemy.common.cannoneer.action.aim",
-  "enemy.common.privateer.action.escort",
 ]);
 const ENEMY_FULL_RULES = new Map([
   ["enemy.common.assassin.trump.disappear", { type: "effects" }],
@@ -408,6 +399,7 @@ function prepareAction(scene, data, request = {}) {
   if (gunslingerSkirmish && (!Number.isInteger(bulletsSpent) || bulletsSpent < 1 || !Number.isInteger(bulletAdvantage) || bulletAdvantage < 0)) errors.push("Укажите целое число потраченных Пуль и Пуль на Преимущество.");
   if (gunslingerSkirmish && bulletAdvantage + Math.max(0, selectedTargetCount - 1) > bulletsSpent - 1) errors.push("Дополнительных Пуль не хватает одновременно на выбранные цели и Преимущество.");
   if (gunslingerSkirmish && !ruleResourceStatus(scene, actor.id, { resource: "bullets", amount: bulletsSpent }).available) errors.push("Недостаточно Пуль для Стычки.");
+  if (gunslingerSkirmish && targetCells.length) errors.push("«Большой ствол» выбирает персонажей, а не пустые клетки.");
   if (knifeThrow && !ruleResourceStatus(scene, actor.id, { resource: "weapons", amount: 1 }).available) errors.push("Для Метания нужно 1 Оружие.");
   if (knifeThrow && (targetIds.length !== 1 || targetCells.length)) errors.push("Метание выбирает ровно одного персонажа.");
   if (meisterOverload && !Array.isArray(request.roll?.rolls)) errors.push("Для Перегрузки нужен зафиксированный бросок Атаки.");
@@ -524,7 +516,7 @@ function prepareAction(scene, data, request = {}) {
     if (heavenlyHealing) {
       const removalMap = request.removeEffectIdsByTarget && typeof request.removeEffectIdsByTarget === "object" ? request.removeEffectIdsByTarget : {};
       targets.forEach(target => {
-        events.push({ type: "actor.heal", actorId: actor.id, payload: { targetId: target.id, amount: Math.floor(Number(request.roll?.successes || 0) / 2), sourceActionId: heavenlyLevel >= 3 && actionIs(action, "finish") ? "altruist.heavenly-saint.3" : "altruist.heavenly-saint.2", participantIds: [actor.id, target.id] } });
+        events.push({ type: "actor.heal", actorId: actor.id, payload: { targetId: target.id, amount: Math.ceil(Number(request.roll?.successes || 0) / 2), sourceActionId: heavenlyLevel >= 3 && actionIs(action, "finish") ? "altruist.heavenly-saint.3" : "altruist.heavenly-saint.2", participantIds: [actor.id, target.id] } });
         [...new Set(removalMap[target.id] || [])].filter(effect => (target.effects || []).includes(effect)).forEach(effect => events.push({ type: "effect.remove", actorId: actor.id, payload: { targetId: target.id, effect, sourceActionId: "altruist.heavenly-saint.2", participantIds: [actor.id, target.id] } }));
         if (heavenlyLevel >= 3 && actionIs(action, "finish")) {
           events.push({ type: "effect.apply", actorId: actor.id, payload: { targetId: target.id, effect: "positive.регенерирует", sourceActionId: "altruist.heavenly-saint.3", participantIds: [actor.id, target.id] } });
@@ -540,8 +532,8 @@ function prepareAction(scene, data, request = {}) {
       const areaDamage = value => eclipseStars || icicleHalo ? Math.ceil(adjustedDamage(value) / 2) : adjustedDamage(value);
       const effectAttack = effectAttackStatus(scene, actor.id, targetIds);
       const effectDamageBase = Number(request.roll?.successes || 0) + bonus + Number(effectAttack.damageModifier || 0);
-      const effectDamageBaseByTarget = Object.fromEntries(targets.map(target => [target.id, effectDamageBase + Number(effectAttack.damageByTarget?.[target.id] || 0) + (thunderDischarge && hasEffect(scene, target, "negative.ошеломлен") ? Number(actor.tier || 1) : 0) + (actionIs(action, "finish") && Number(actor.techniques?.["disruptor.constrictor"] || 0) >= 2 && caughtByConstrictor(target) ? Number(actor.tier || 1) : 0)]));
-      const postDisplacements = armamentMode === "polearm" ? targets.map(target => ({ targetId: target.id, mode: "push", maximum: 3, name: "Древко", ruleId: "vagabond.master-at-arms.1", collisionDamagePerCell: 0 })) : breacherSkirmish ? targets.filter(target => distance(attackOrigin, target) <= 2).map(target => ({ targetId: target.id, mode: "push", maximum: 1, name: "Картечь", ruleId: "powerhouse.breacher.1", collisionDamagePerCell: 0 })) : [];
+      const effectDamageBaseByTarget = Object.fromEntries(targets.map(target => [target.id, effectDamageBase + Number(effectAttack.damageByTarget?.[target.id] || 0) + (thunderDischarge && hasEffect(scene, target, "negative.ошеломлен") ? Number(actor.tier || 1) : 0) + (actionIs(action, "finish") && Number(actor.techniques?.["disruptor.constrictor"] || 0) >= 2 && hasEffect(scene, target, "negative.пойман") ? Number(actor.tier || 1) : 0)]));
+      const postDisplacements = armamentMode === "polearm" ? targets.map(target => ({ targetId: target.id, mode: "push", maximum: 3, name: "Древко", ruleId: "vagabond.master-at-arms.1", collisionDamagePerCell: 0 })) : breacherSkirmish ? targets.filter(target => distance(attackOrigin, target) <= 2).map(target => ({ targetId: target.id, mode: "push", maximum: 1, name: "Картечь", ruleId: "powerhouse.breacher.1", collisionDamagePerCell: 0, requiresSuccess: true })) : [];
       const dragonslayerTear = actionIs(action, "finish") && actionAttribute === "body" && Number(actor.techniques?.["powerhouse.dragonslayer"] || 0) >= 1 ? ["negative.разорван"] : [];
       const postSelfEffects = armamentMode === "blade" ? ["positive.усилен"] : [], postTargetEffects = armamentMode === "polearm" ? ["negative.подброшен", "negative.замедлен"] : armamentMode === "chain" ? ["negative.разорван", "negative.порчен"] : [];
       events.push({ type: "attack.pending", actorId: actor.id, payload: { actionId: action.id, declaredActionId: declaredAction.id, declaredActionName: declaredAction.name, name: armamentQuick ? `Стычка · ${armament.label}` : thunderDischarge ? "Разрядка" : eclipseStars ? "Затмить звезды" : zealotRupture ? "Так не должно было быть" : icicleHalo ? "Ледяной нимб" : action.name, attribute: actionAttribute, targetIds, targetCells, allowEmptyTargets: zealotRupture || targetCells.length > 0, roll: clone(request.roll || null), damage: areaDamage(effectDamageBase), damageByTarget: Object.fromEntries(Object.entries(effectDamageBaseByTarget).map(([targetId, value]) => [targetId, areaDamage(value)])), effectDamageBase, effectDamageBaseByTarget, effectDamageDivisor, attackModifierIds: attackModifiers.selectedIds, attackModifierAdvantage: attackModifiers.advantage, attackModifierDestination: attackModifierDestination?.destination || null, actionTransform: attackModifiers.actionTransform, techniqueRuleId: armamentQuick ? "vagabond.master-at-arms.1" : null, armamentMode, successEffects: dragonslayerTear, postSelfEffects, postTargetEffects, thunderDischarge, eclipseStars, zealotRupture, zealotCells, icicleHalo, drainLife, postDisplacements, gunslingerBulletJuggle: gunslingerSkirmish && Number(actor.techniques?.["powerhouse.gunslinger"] || 0) >= 3 && bulletsSpent >= 3 && targetIds.length === 1 && !targetCells.length, knifeThrow: knifeThrow && Number(actor.techniques?.["vagabond.knife-juggler"] || 0) >= 2, overload: meisterOverload ? clone(events[0].payload.overload) : null } });

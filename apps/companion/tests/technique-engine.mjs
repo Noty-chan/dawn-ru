@@ -29,7 +29,7 @@ const scene = {
 };
 
 assert.ok(Engine.rulesFor(scene.actors[0].techniques).some(rule => rule.id === "ruiner.bombardier.3"));
-assert.equal(Engine.RULES.find(rule => rule.id === "ruiner.bombardier.3").automation, "full");
+assert.equal(Engine.RULES.find(rule => rule.id === "ruiner.bombardier.3").automation, "partial");
 assert.equal(Engine.RULES.find(rule => rule.id === "disruptor.chemist.1").automation, "full");
 const coverage = Engine.techniqueCoverage(context.DAWN_DATA);
 const canonicalLevelIds = Array.from(context.DAWN_DATA.archetypes.flatMap(archetype =>
@@ -42,7 +42,37 @@ assert.deepEqual(
 );
 assert.equal(coverage.length, 321, "every Technique level must have an automation status");
 assert.ok(coverage.every(entry => ["full", "partial", "decision", "manual"].includes(entry.automation)));
-assert.ok(coverage.filter(entry => entry.automation !== "manual").length >= 290, "semantic mechanics index assists most canonical levels");
+assert.ok(coverage.filter(entry => !entry.rules.length).every(entry => entry.automation === "manual"), "canonical text and foundation-map annotations alone never claim partial automation");
+for (const [id, automation] of [
+  ["altruist.surgeon.1", "partial"],
+  ["altruist.alchemist.1", "partial"],
+  ["altruist.chronomancer.2", "decision"],
+  ["altruist.will-o-wisp.1", "partial"],
+  ["altruist.will-o-wisp.2", "partial"],
+  ["disruptor.autophage.1", "partial"],
+  ["disruptor.autophage.2", "partial"],
+  ["disruptor.autophage.3", "partial"],
+  ["disruptor.mind-breaker.2", "partial"],
+  ["disruptor.mind-breaker.3", "partial"],
+  ["disruptor.reaper.2", "partial"],
+  ["disruptor.inner-world.1", "partial"],
+  ["ruiner.bombardier.1", "partial"],
+  ["ruiner.bombardier.2", "partial"],
+  ["ruiner.bombardier.3", "partial"],
+  ["ruiner.spellcrafter.1", "partial"],
+  ["ruiner.spellcrafter.2", "partial"],
+  ["ruiner.spellcrafter.3", "partial"],
+  ["ruiner.ritualist.1", "partial"],
+  ["ruiner.cryomancer.2", "partial"],
+  ["vagabond.knife-juggler.2", "partial"],
+  ["altruist.alchemist.2", "partial"],
+  ["disruptor.chemist.2", "partial"],
+  ["ruiner.ego-arm.2", "manual"],
+  ["ruiner.sellsword-s-call.1", "partial"],
+]) {
+  assert.equal(coverage.find(entry => entry.id === id)?.automation, automation, `${id} remains honestly downgraded until its missing canonical branch is implemented and evidenced`);
+}
+assert.equal(coverage.filter(entry => entry.automation !== "manual").length, 111, "only levels with a registered runtime rule may claim any automation");
 assert.ok(coverage.some(entry => entry.mechanics?.areas?.length));
 assert.ok(coverage.some(entry => entry.mechanics?.clocks?.length));
 assert.equal(coverage.filter(entry => entry.foundationPlan?.capabilities?.length).length, 321, "every Technique level must have a foundation plan");

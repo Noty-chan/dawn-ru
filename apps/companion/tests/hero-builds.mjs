@@ -44,7 +44,8 @@ const chainedBuild = {
   "altruist.surgeon": 1,
   "ruiner.creation-ascetic": 2,
 };
-assert.ok(coverageFor(chainedBuild).every(level => !["manual", "partial"].includes(level.automation)), "The chained support build has no manual or partial level");
+assert.equal(coverageFor(chainedBuild).find(level => level.id === "altruist.surgeon.1")?.automation, "partial", "The build UI exposes the audited missing authoritative Mind-roll validation");
+assert.ok(coverageFor(chainedBuild).filter(level => level.id !== "altruist.surgeon.1").every(level => !["manual", "partial"].includes(level.automation)), "Only the independently downgraded Surgery level is partial in the chained support fixture");
 const chainedHero = actor({ techniques: chainedBuild, creationMarks: 0 });
 const chainedScene = sceneWith(chainedHero, [ally(), foe({ x: 7, y: 7 })]);
 const hook = TechniqueEngine.preview(chainedScene, {
@@ -81,9 +82,11 @@ const charged = SceneEngine.dispatchMany(creationScene, charge.events).scene;
 assert.equal(SceneEngine.ruleResourceStatus(charged, "hero", { resource: "creation-marks" }).balance, 2, "Charge gains Creation Marks instead of Focus");
 
 const shadowBuild = { "vagabond.assassin": 2, "ruiner.grim-ascendant": 2, "disruptor.hunter": 1 };
-assert.ok(coverageFor(shadowBuild).every(level => !["manual", "partial"].includes(level.automation)), "The assassin/ascendant/hunter build has no manual or partial level");
+const shadowCoverage = coverageFor(shadowBuild);
+assert.deepEqual(Array.from(shadowCoverage.filter(level => level.automation === "partial"), level => level.id), ["vagabond.assassin.1", "vagabond.assassin.2"], "Assassin I-II stay explicitly partial after the deployment and dice-contract audit");
+assert.ok(shadowCoverage.every(level => level.automation !== "manual"), "The assassin/ascendant/hunter build has no fully manual level");
 const upgradedShadowBuild = { "vagabond.assassin": 3, "ruiner.grim-ascendant": 2, "disruptor.hunter": 2 };
-assert.ok(coverageFor(upgradedShadowBuild).every(level => !["manual", "partial"].includes(level.automation)), "Nari's Tier 2 Assassin/Hunter upgrades stay automated");
+assert.deepEqual(Array.from(coverageFor(upgradedShadowBuild).filter(level => level.automation === "partial"), level => level.id), ["vagabond.assassin.1", "vagabond.assassin.2"], "Upgrading Assassin keeps the two audited partial foundations visible");
 const shadowScene = sceneWith(actor({ techniques: shadowBuild, x: 3, y: 3, hp: 8, focus: 0 }), [foe({ x: 4, y: 3 })]);
 const hide = SceneEngine.prepareAction(shadowScene, data, { actorId: "hero", actionId: actionNamed("Скрыться").id });
 assert.equal(hide.ok, true, "Assassin I ignores the ordinary edge requirement on the first Scene action");
@@ -177,7 +180,9 @@ assert.equal(tooManyCellTargets.ok, false);
 assert.match(tooManyCellTargets.errors.join(" "), /не больше 2/);
 
 const neelBuild = { "altruist.alchemist": 2, "ruiner.spellcrafter": 3, "ruiner.cryomancer": 2 };
-assert.ok(coverageFor(neelBuild).every(level => !["manual", "partial"].includes(level.automation)), "Neel's Tier 2 Cryomancer build has no manual or partial level");
+const neelCoverage = coverageFor(neelBuild);
+assert.equal(neelCoverage.length, 7, "Neel's build exposes every selected technique level to the coverage UI");
+assert.equal(neelCoverage.find(level => level.id === "altruist.alchemist.2")?.automation, "partial", "The audited optional enemy-potion branch remains visibly partial rather than being masked by this fixture");
 const cryomancerScene = sceneWith(actor({
   techniques: neelBuild,
   attrs: { body: 2, talent: 2, spirit: 3, mind: 4 },
@@ -196,7 +201,7 @@ const focused = SceneEngine.dispatchMany(chilled, [{ type: "resource.gain", acto
 assert.equal(SceneEngine.clockStatus(focused, "hero", "ruiner.cryomancer.icicle").value, 1, "Cryomancer II fills one Icicle segment whenever Focus is gained");
 
 const spellcrafterBuild = { "ruiner.spellcrafter": 3 };
-assert.ok(coverageFor(spellcrafterBuild).every(level => level.automation === "decision"), "Spellcrafter levels are explicit player decisions, not manual gaps");
+assert.ok(coverageFor(spellcrafterBuild).every(level => level.automation === "partial"), "Spellcrafter remains partial until learned Modifications are persisted and enforced");
 const spellScene = sceneWith(actor({ techniques: spellcrafterBuild, focus: 5, techniqueState: { spellModifiers: ["fierce", "outstanding"] } }), [foe({ x: 8, y: 1 })]);
 const spell = SceneEngine.prepareAction(spellScene, data, {
   actorId: "hero", actionId: actionNamed("Заклинание").id, targetIds: ["enemy"], attribute: "spirit",
@@ -209,7 +214,7 @@ assert.deepEqual(Array.from(crafted.actors[0].techniqueState.spellModifiers), []
 assert.equal(crafted.pendingAction.damage, 5, "Fierce adds Mind to attack damage");
 
 const wispBuild = { "altruist.will-o-wisp": 3 };
-assert.ok(coverageFor(wispBuild).every(level => level.automation === "decision"), "Will-O-Wisp levels expose choices without manual resolution");
+assert.deepEqual(Array.from(coverageFor(wispBuild), level => level.automation), ["partial", "partial", "decision"], "Will-O-Wisp exposes the audited missing attack-push and pre-trigger movement truncation instead of overstating all three levels");
 const wispScene = sceneWith(actor({ techniques: wispBuild, focus: 4 }), [ally({ x: 2, y: 1 }), foe({ x: 1, y: 2 })]);
 const wispCharge = SceneEngine.prepareAction(wispScene, data, { actorId: "hero", actionId: actionNamed("Зарядка").id });
 const offered = SceneEngine.dispatchMany(wispScene, wispCharge.events).scene;
@@ -233,7 +238,7 @@ const noSecondOffer = SceneEngine.dispatchMany(declined, [{ type: "action.resolv
 assert.equal(noSecondOffer.pendingPrompt, null, "Declining the first Scene offer cannot be retried on a later Charge");
 
 const autophageConstrictorBuild = { "disruptor.autophage": 3, "disruptor.constrictor": 2 };
-assert.ok(coverageFor(autophageConstrictorBuild).every(level => !["manual", "partial"].includes(level.automation)), "Autophage III plus Constrictor II has no manual or partial level");
+assert.ok(coverageFor(autophageConstrictorBuild).filter(level => level.techniqueId === "disruptor.autophage").every(level => level.automation === "partial"), "Autophage I-III remain partial until success timing and stale-trigger defects are fixed");
 const constrictorScene = sceneWith(actor({ techniques: autophageConstrictorBuild, tier: 2, hp: 20, maxHp: 20, guts: 4, focus: 0 }), [
   foe({ id: "bound", name: "Связанная цель", x: 2, y: 1, hp: 35, maxHp: 35, effects: ["negative.порчен", "negative.замедлен"] }),
 ]);
@@ -259,6 +264,18 @@ const choke = SceneEngine.prepareAction(remoteFinishScene, data, {
 assert.equal(choke.ok, true, "A Body Finisher can target the Constrictor's own Caught character at any distance");
 const choked = SceneEngine.dispatchMany(remoteFinishScene, choke.events).scene;
 assert.equal(choked.pendingAction.damageByTarget.bound, 6, "Choke adds the hero Tier to Finisher damage against their Caught target");
+
+const otherSnareScene = structuredClone(wrapped);
+otherSnareScene.actors[0].tier = 2;
+otherSnareScene.actors.find(item => item.id === "bound").x = 2;
+otherSnareScene.actors.find(item => item.id === "bound").effects = ["negative.пойман"];
+otherSnareScene.actors.find(item => item.id === "bound").effectStates = { "negative.пойман": { duration: "default", sources: [{ actorId: "another-constrictor", actionId: "disruptor.constrictor.1", eventId: "other-snare" }] } };
+const otherSnareFinish = SceneEngine.prepareAction(otherSnareScene, data, {
+  actorId: "hero", actionId: actionNamed("Завершение").id, targetIds: ["bound"], attribute: "body",
+  roll: { formula: "3D6 · Тело", attribute: "body", rolls: [6, 4, 2], successes: 2, crits: 1 },
+});
+assert.equal(otherSnareFinish.ok, true);
+assert.equal(otherSnareFinish.events.find(event => event.type === "attack.pending").payload.damageByTarget.bound, 6, "Choke adds Tier damage to any Snared target, while remote targeting remains restricted to the Constrictor's own Snare");
 
 let finished = SceneEngine.dispatchMany(choked, SceneEngine.respondReaction(choked, data, { actorId: "bound", choice: "pass" }).events).scene;
 finished = SceneEngine.dispatchMany(finished, SceneEngine.resolvePendingAction(finished, data).events).scene;

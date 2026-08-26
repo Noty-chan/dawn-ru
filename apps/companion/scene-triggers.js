@@ -4,7 +4,7 @@ const WISP_TYPES = {
   dreamy: { label: "Мечтательный дух", effect: "negative.замедлен", audience: "enemies" },
   angry: { label: "Злой дух", effect: "negative.порчен", audience: "enemies" },
   insightful: { label: "Проницательный дух", effect: "negative.помечен", audience: "enemies" },
-  bright: { label: "Яркий дух", effect: "positive.ускорен", audience: "allies" },
+  bright: { label: "Пылкий дух", effect: "positive.ускорен", audience: "allies" },
   kind: { label: "Добрый дух", effect: "positive.регенерирует", audience: "allies" },
   fierce: { label: "Яростный дух", effect: "positive.усилен", audience: "allies" },
 };
@@ -91,7 +91,7 @@ const TRIGGER_RULES = [
     priority: 70,
     match: ({ scene, payload }) => {
       const target = actorById(scene, payload.targetId);
-      return Number(payload.dealt || 0) === 0 && payload.dodgeEvasion === true && target && !target.knockedOut && Number(target.techniques?.["vagabond.untouchable"] || 0) >= 2;
+      return Number(payload.dealt || 0) === 0 && Number(payload.evaded || 0) > 0 && payload.dodgeEvasion === true && target && !target.knockedOut && Number(target.techniques?.["vagabond.untouchable"] || 0) >= 2;
     },
     build: ({ scene, event, payload }) => {
       const target = actorById(scene, payload.targetId);
@@ -144,9 +144,9 @@ const TRIGGER_RULES = [
     id: "powerhouse.braggart.3.wound",
     eventTypes: ["damage.apply"],
     priority: 60,
-    match: ({ scene, payload }) => {
-      const target = actorById(scene, payload.targetId);
-      return Boolean(payload.woundGained) && target && Number(target.techniques?.["powerhouse.braggart"] || 0) >= 3;
+    match: ({ scene, event, payload }) => {
+      const target = actorById(scene, payload.targetId), source = actorById(scene, event.actorId);
+      return Boolean(payload.woundGained) && target && source && source.team !== target.team && Number(target.techniques?.["powerhouse.braggart"] || 0) >= 3;
     },
     build: ({ scene, event, payload }) => {
       const target = actorById(scene, payload.targetId);
@@ -157,7 +157,7 @@ const TRIGGER_RULES = [
     id: "altruist.empath.2.protective-response",
     eventTypes: ["effect.apply", "damage.apply"],
     priority: 50,
-    match: ({ event, payload }) => event.type === "effect.apply" ? Boolean(payload.applied) && event.actorId !== payload.targetId : Boolean(payload.woundGained),
+    match: ({ event, payload }) => event.type === "effect.apply" ? Boolean(payload.applied) && event.actorId !== payload.targetId : Boolean(payload.woundGained) && event.actorId !== payload.targetId,
     build: ({ scene, event, payload }) => {
       const target = actorById(scene, payload.targetId);
       const empath = (scene.actors || []).find(owner => target && !owner.knockedOut && owner.team === target.team && owner.id !== target.id && Number(owner.techniques?.["altruist.empath"] || 0) >= 2 && distance(owner, target) <= Number(owner.attrs?.talent || 0));
@@ -634,7 +634,10 @@ function triggeredEvents(scene, event, options = {}) {
     const targets = [...new Set(payload.targetIds || [])].map(id => actorById(scene, id)).filter(Boolean), priorResolve = (scene.log || []).find(logged => logged.id !== event.id && logged.type === "action.resolve" && logged.actorId === actor.id);
     const priorMove = (scene.log || []).find(logged => logged.type === "actor.move" && logged.actorId === actor.id);
     const drama = Number(payload.roll?.crits || 0) >= 2;
-    const dance = Boolean(targets.length && priorMove && (!priorResolve || (scene.log || []).indexOf(priorMove) < (scene.log || []).indexOf(priorResolve)) && targets.some(target => distance(actor, target) <= 1));
+    const dance = Boolean(targets.length && priorMove && (!priorResolve || (scene.log || []).indexOf(priorMove) < (scene.log || []).indexOf(priorResolve)) && targets.some(target => {
+      const from = priorMove.payload?.from;
+      return from && from.space === target.space && Math.abs(Number(from.x) - Number(target.x)) + Math.abs(Number(from.y) - Number(target.y)) > 1 && distance(actor, target) <= 1;
+    }));
     const finale = Number(actor.ap || 0) === 0;
     const previousTurn = [], log = scene.log || [];
     let foundCurrentStart = false;
@@ -800,7 +803,7 @@ function triggeredEvents(scene, event, options = {}) {
     if (empath && (actor.effects || []).length) events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${event.id}-empath`, kind: "empath-calm", sourceActorId: empath.id, targetId: actor.id, title: "Успокаивающая аура", text: "Можно потерять один Эффект и стать Усиленным.", options: [...actor.effects.slice(0, 11), "pass"], participantIds: [empath.id, actor.id] } });
   }
   if (event.type === "action.resolve" && actor && actionIdIs(eventActionId(payload), "breathe") && Number(actor.techniques?.["altruist.alchemist"] || 0) >= 1 && !scene.pendingPrompt) {
-    events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${event.id}`, kind: "alchemist-mix", sourceActorId: actor.id, title: "Быстрая смесь", text: "Передышка позволяет создать одно Зелье.", options: ["pure-water", "rage-fumes", "growth-serum", "adrenaline", "stone-skin", "thorn-rot"] } });
+    events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${event.id}`, kind: "alchemist-mix", sourceActorId: actor.id, title: "Быстрая смесь", text: "Передышка позволяет создать одно Зелье.", options: ["pure-water", "rage-fumes", "growth-serum", "adrenaline", "stone-skin", "thorn-rot", "pass"], context: { optionLabels: { pass: "Не создавать Зелье" } }, participantIds: [actor.id] } });
   }
   if (event.type === "action.resolve" && actor && Number(actor.techniques?.["disruptor.chemist"] || 0) >= 1 && (payload.targetedTerrainId || payload.targetsTerrainCell) && payload.techniqueAnchor && !scene.pendingPrompt && !promptQueued()) {
     const terrain = (scene.objects || []).find(object => object.id === payload.targetedTerrainId);
@@ -857,7 +860,7 @@ function triggeredEvents(scene, event, options = {}) {
       events.push({ type: "rule.prompt", actorId: trap.ownerActorId, payload: { id: `prompt-${event.id}-${trap.id}`, kind: "hunter-trap", sourceActorId: trap.ownerActorId, targetId: actor.id, markerId: trap.id, title: "Стальные челюсти", text: `${actor.name} проходит через Малую ловушку: движение остановлено. Использовать бесплатную Быструю Стычку?`, options: ["attack", "pass"], triggerOwnerId: trap.ownerActorId, participantIds: [trap.ownerActorId, actor.id] } });
     }
   }
-  if (event.type === "area.create" && actor && (payload.ruleId === "disruptor.chemist.1" || payload.source === "disruptor.chemist.1") && Number(actor.techniques?.["disruptor.chemist"] || 0) >= 3) {
+  if (event.type === "area.create" && actor && payload.areaType === "gas" && Number(actor.techniques?.["disruptor.chemist"] || 0) >= 3) {
     const targets = (scene.actors || []).filter(target => !target.knockedOut && target.team !== actor.team && target.space === payload.space && (payload.cells || []).includes(`${target.x},${target.y}`));
     for (const target of targets) {
       events.push({ type: "effect.apply", actorId: actor.id, payload: { targetId: target.id, effect: "negative.ослаблен", sourceActionId: "disruptor.chemist.3", participantIds: [actor.id, target.id] } });

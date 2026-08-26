@@ -466,6 +466,11 @@ reaperEffectScene.actors[1].effects = ["negative.помечен"];
 reaperEffectScene.actors[1].effectStates = { "negative.помечен": { duration: "default", appliedTurnSerial: 1, sources: [{ actorId: "hero" }] } };
 const reaperRetained = Engine.dispatchMany(reaperEffectScene, [{ type: "turn.end", actorId: "enemy", payload: {} }]).scene;
 assert.ok(reaperRetained.actors[1].effects.includes("negative.помечен"), "Reaper II is a thin retention adapter over the shared Effect lifecycle");
+const reaperBoundaryScene = structuredClone(reaperEffectScene);
+reaperBoundaryScene.actors[0].x = reaperBoundaryScene.actors[1].x + 3;
+reaperBoundaryScene.actors[0].y = reaperBoundaryScene.actors[1].y;
+const reaperBoundaryRetained = Engine.dispatchMany(reaperBoundaryScene, [{ type: "turn.end", actorId: "enemy", payload: {} }]).scene;
+assert.ok(reaperBoundaryRetained.actors[1].effects.includes("negative.помечен"), "Reaper II includes the canonical distance-3 boundary");
 reaperRetained.activeActorId = "enemy";
 reaperRetained.turnSerial = 5;
 reaperRetained.actors[0].x = 6;
@@ -498,6 +503,19 @@ const mindBreakerScene = structuredClone(scene);
 mindBreakerScene.actors[0].techniques = { "disruptor.mind-breaker": 2 };
 const mindBreakerBanished = Engine.dispatchMany(mindBreakerScene, [{ type: "effect.apply", actorId: "hero", payload: { targetId: "enemy", effect: "positive.изгнан", sourceActionId: "disruptor.mind-breaker.1" } }]).scene;
 assert.ok(Engine.effectiveEffects(mindBreakerBanished, "enemy").includes("negative.помечен"), "Mind Breaker II derives Marked from its source-aware Banishment relation");
+const mindBreakerAllyScene = structuredClone(mindBreakerScene);
+mindBreakerAllyScene.actors.push({ ...structuredClone(mindBreakerScene.actors[0]), id: "ally", name: "Союзник", x: 0, y: 1, techniques: {} });
+const mindBreakerAllyBanished = Engine.dispatchMany(mindBreakerAllyScene, [{ type: "effect.apply", actorId: "hero", payload: { targetId: "ally", effect: "positive.изгнан", sourceActionId: "disruptor.mind-breaker.1" } }]).scene;
+assert.ok(Engine.effectiveEffects(mindBreakerAllyBanished, "ally").includes("positive.усилен"), "Mind Breaker II derives Strengthened for an allied Banished target");
+assert.ok(!Engine.effectiveEffects(mindBreakerAllyBanished, "ally").includes("negative.помечен"), "Mind Breaker II does not apply the enemy branch to an ally");
+const soleBanishmentScene = structuredClone(mindBreakerScene);
+soleBanishmentScene.actors[0].techniques = { "disruptor.mind-breaker": 3 };
+soleBanishmentScene.turnSerial = 4;
+soleBanishmentScene.activeActorId = null;
+soleBanishmentScene.actors[1].effects = ["positive.изгнан"];
+soleBanishmentScene.actors[1].effectStates = { "positive.изгнан": { duration: "default", appliedTurnSerial: 1, sources: [{ actorId: "hero" }] } };
+const soleBanishmentRetained = Engine.dispatchMany(soleBanishmentScene, [{ type: "turn.start", actorId: "enemy", payload: {} }], { narratorOverride: true }).scene;
+assert.ok(soleBanishmentRetained.actors[1].effects.includes("positive.изгнан"), "Mind Breaker III retains exactly one source-owned Banished target at its turn start");
 
 const banishedPolicyScene = structuredClone(scene);
 banishedPolicyScene.actors[1].effects = ["positive.изгнан"];
@@ -682,13 +700,20 @@ breacherScene.actors[0].techniques = { "powerhouse.breacher": 1 };
 breacherScene.actors[1].x = 3;
 const breacherAttack = prepareAttack(breacherScene, "hero", "enemy");
 assert.equal(breacherAttack.ok, true);
-assert.deepEqual(JSON.parse(JSON.stringify(breacherAttack.events.find(event => event.type === "attack.pending").payload.postDisplacements)), [{ targetId: "enemy", mode: "push", maximum: 1, name: "Картечь", ruleId: "powerhouse.breacher.1", collisionDamagePerCell: 0 }]);
+assert.deepEqual(JSON.parse(JSON.stringify(breacherAttack.events.find(event => event.type === "attack.pending").payload.postDisplacements)), [{ targetId: "enemy", mode: "push", maximum: 1, name: "Картечь", ruleId: "powerhouse.breacher.1", collisionDamagePerCell: 0, requiresSuccess: true }]);
 let breacherFlow = Engine.dispatchMany(breacherScene, breacherAttack.events).scene;
 breacherFlow = Engine.dispatchMany(breacherFlow, Engine.respondReaction(breacherFlow, data, { actorId: "enemy", choice: "pass" }).events).scene;
 const breacherResolution = Engine.resolvePendingAction(breacherFlow, data);
 assert.equal(breacherResolution.ok, true);
 assert.ok(breacherResolution.events.some(event => event.type === "actor.move" && event.actorId === "enemy" && event.payload?.x === 4 && event.payload?.movement === "Картечь"), "Breacher I pushes a close successful Skirmish target through post-hit displacement");
 assert.ok(!breacherResolution.events.some(event => event.type === "damage.apply" && event.payload?.sourceActionId === "powerhouse.breacher.1"), "Breacher I adds no collision damage");
+const missedBreacherScene = structuredClone(breacherScene);
+missedBreacherScene.tension = 2;
+const missedBreacher = Engine.prepareAction(missedBreacherScene, data, { actorId: "hero", actionId: actionNamed("Стычка").id, targetIds: ["enemy"], roll: { formula: "4D6", rolls: [1, 1, 2, 2], successes: 0, crits: 0 } });
+let missedBreacherFlow = Engine.dispatchMany(missedBreacherScene, missedBreacher.events).scene;
+missedBreacherFlow = Engine.dispatchMany(missedBreacherFlow, Engine.respondReaction(missedBreacherFlow, data, { actorId: "enemy", choice: "pass" }).events).scene;
+const missedBreacherResolution = Engine.resolvePendingAction(missedBreacherFlow, data);
+assert.ok(!missedBreacherResolution.events.some(event => event.type === "actor.move" && event.actorId === "enemy"), "Buck Shot never pushes without a Success, even when Tension still produces damage");
 const rangedBreacher = structuredClone(breacherScene);
 rangedBreacher.actors[1].x = 5;
 assert.equal(prepareAttack(rangedBreacher, "hero", "enemy").ok, true, "Breacher I extends Skirmish targeting to range 4");
@@ -757,6 +782,11 @@ const cancelledQueuedTrigger = Engine.dispatchMany(interruptedArbitration, Engin
 assert.equal(cancelledQueuedTrigger.pendingPrompt, null);
 assert.equal(cancelledQueuedTrigger.triggerQueue.length, 0);
 assert.ok(cancelledQueuedTrigger.log.some(event => event.type === "rule.trigger" && event.payload?.triggerId === "altruist.empath.2.protective-response" && event.payload?.status === "cancelled" && /Источник/.test(event.payload.reason)), "An interrupted queued trigger is cancelled with an explicit reason");
+const selfWoundEmpathScene = structuredClone(arbitrationScene);
+selfWoundEmpathScene.actors.find(actor => actor.id === "hero").guts = 0;
+const selfWoundedNearEmpath = Engine.dispatchMany(selfWoundEmpathScene, [{ type: "damage.apply", actorId: "hero", payload: { targetId: "hero", amount: 1, ignoreArmor: true } }]).scene;
+assert.notEqual(selfWoundedNearEmpath.pendingPrompt?.kind, "empath-rush", "Protective Response ignores self-inflicted Wounds");
+assert.ok(!selfWoundedNearEmpath.log.some(event => event.type === "rule.trigger" && event.payload?.triggerId === "altruist.empath.2.protective-response"), "A self-inflicted Wound does not enter the Empath trigger queue");
 assert.throws(() => Engine.dispatch(scene, { type: "rule.trigger", actorId: "hero", payload: { triggerId: "bad trigger", sourceEventId: "x", status: "fired" } }), /маршрутизации триггера/);
 const optionalParticipantScene = structuredClone(scene);
 optionalParticipantScene.actors.find(actor => actor.id === "enemy").knockedOut = true;
@@ -794,6 +824,10 @@ assert.equal(Engine.dispatchMany(levelThreeInnerScene, [{ type: "effect.apply", 
 const staleInnerTarget = structuredClone(innerBeforeCommit);
 staleInnerTarget.actors[1].knockedOut = true;
 assert.equal(Engine.respondRulePrompt(staleInnerTarget, data, { choice: "cell:1,1" }).ok, false, "The final Domain choice revalidates its target before moving anyone");
+const staleInnerSource = structuredClone(innerBeforeCommit);
+staleInnerSource.actors[0].knockedOut = true;
+assert.equal(Engine.respondRulePrompt(staleInnerSource, data, { choice: "cell:1,1" }).ok, false, "The final Domain choice rejects a source knocked out while its placement prompt was open");
+assert.equal(Engine.respondRulePrompt(innerWindow, data, { choice: "cell:1,1" }).ok, false, "A completed Domain prompt cannot be answered twice");
 
 const sirenScene = structuredClone(scene);
 sirenScene.actors[0].techniques = { "disruptor.siren": 2 };
@@ -933,6 +967,15 @@ assert.equal(proudAttack.pendingPrompt?.kind, "braggart-hold-back");
 const heldBack = Engine.dispatchMany(proudAttack, Engine.respondRulePrompt(proudAttack, data, { choice: "hold-back" }).events).scene;
 assert.equal(Engine.clockStatus(heldBack, "hero", "powerhouse.braggart.pride").size, 4);
 assert.equal(Engine.clockStatus(heldBack, "hero", "powerhouse.braggart.pride").value, 0);
+const alliedWoundScene = structuredClone(braggartScene);
+Object.assign(alliedWoundScene.actors[0], { hp: 1, wounds: 0, guts: 3 });
+alliedWoundScene.actors.push({ ...structuredClone(alliedWoundScene.actors[0]), id: "hero-ally", name: "Союзник", techniques: {}, x: 2, y: 1 });
+const alliedWound = Engine.dispatchMany(alliedWoundScene, [{ type: "damage.apply", actorId: "hero-ally", payload: { targetId: "hero", amount: 2, ignoreArmor: true, ignoreEvasion: true } }]).scene;
+assert.notEqual(alliedWound.pendingPrompt?.kind, "braggart-wound-pride", "A Worthy Opponent ignores Wounds dealt by allies");
+const enemyWoundScene = structuredClone(braggartScene);
+Object.assign(enemyWoundScene.actors[0], { hp: 1, wounds: 0, guts: 3 });
+const enemyWound = Engine.dispatchMany(enemyWoundScene, [{ type: "damage.apply", actorId: "enemy", payload: { targetId: "hero", amount: 2, ignoreArmor: true, ignoreEvasion: true } }]).scene;
+assert.equal(enemyWound.pendingPrompt?.kind, "braggart-wound-pride", "A Worthy Opponent triggers only when an enemy deals the Wound");
 const refilledPride = Engine.dispatch(heldBack, { type: "rule-clock.set", actorId: "hero", payload: { clockId: "powerhouse.braggart.pride", value: 4 } }).scene;
 assert.equal(Engine.ruleDiceAdvantage(refilledPride, "hero", { actionName: "Стычка" }).total, 2, "Shrunken full Pride grants the increased Advantage");
 
@@ -1025,6 +1068,15 @@ assert.equal(stylish.pendingPrompt?.kind, "egomaniac-style-full");
 const stylishProvoke = Engine.dispatchMany(stylish, Engine.respondRulePrompt(stylish, data, { choice: "provoke" }).events).scene;
 assert.equal(Engine.clockStatus(stylishProvoke, "hero", "vagabond.egomaniac.style").value, 0);
 assert.ok(stylishProvoke.actors[1].effects.includes("negative.спровоцирован"));
+const falseDanceScene = structuredClone(scene);
+falseDanceScene.actors[0].techniques = { "vagabond.egomaniac": 1 };
+falseDanceScene.actors[0].ruleClocks = { "vagabond.egomaniac.style": { clockId: "vagabond.egomaniac.style", label: "Стиль", size: 4, minimumSize: 4, initial: 0, resetScope: "scene", active: true, value: 0 } };
+falseDanceScene.log = [
+  { id: "adjacent-move", type: "actor.move", actorId: "hero", payload: { from: { space: "main", x: 2, y: 2 }, space: "main", x: 1, y: 1 } },
+  { id: "prior-action", type: "action.resolve", actorId: "hero", payload: { actionId: actionNamed("Шаг").id, name: "Шаг" } },
+];
+const falseDance = Engine.dispatchMany(falseDanceScene, [{ type: "action.resolve", actorId: "hero", payload: { actionId: actionNamed("Стычка").id, name: "Стычка", roll: { crits: 0 }, targetIds: ["enemy"] } }]).scene;
+assert.equal(Engine.clockStatus(falseDance, "hero", "vagabond.egomaniac.style").value, 1, "Dance requires the preceding action to move the hero from non-adjacent into adjacency; merely remaining adjacent does not qualify");
 const finaleScene = structuredClone(scene);
 finaleScene.tension = 3;
 finaleScene.actors[0].techniques = { "vagabond.egomaniac": 3 };
@@ -1220,13 +1272,13 @@ assert.equal(Engine.ruleResourceStatus(cooled, "hero", { resource: "heat" }).bal
 
 const gritScene = structuredClone(scene);
 gritScene.actors[0].techniques = { "bulwark.mundane": 1 };
-assert.equal(Engine.ruleResourceStatus(gritScene, "hero", { resource: "grit" }).balance, 2);
-assert.deepEqual(JSON.parse(JSON.stringify(Engine.resourceStatus(gritScene, "hero", { ap: 1, focus: 2 }).missing)), { grit: 1 }, "AP and Focus share one Grit pool");
+assert.equal(Engine.ruleResourceStatus(gritScene, "hero", { resource: "grit" }).balance, 3, "Bracket division rounds Body/2 up");
+assert.deepEqual(JSON.parse(JSON.stringify(Engine.resourceStatus(gritScene, "hero", { ap: 1, focus: 3 }).missing)), { grit: 1 }, "AP and Focus share one Grit pool");
 const restCannotGrantGrit = Engine.dispatch(gritScene, { type: "resource.gain", actorId: "hero", payload: { resource: "focus", amount: 1, sourceActionName: "Передышка" } }).scene;
-assert.equal(Engine.ruleResourceStatus(restCannotGrantGrit, "hero", { resource: "grit" }).balance, 2);
+assert.equal(Engine.ruleResourceStatus(restCannotGrantGrit, "hero", { resource: "grit" }).balance, 3);
 assert.match(restCannotGrantGrit.log[0].payload.ignoredReason, /Передышка/);
 const gritSpent = Engine.dispatch(gritScene, { type: "resource.spend", actorId: "hero", payload: { resource: "ap", amount: 1 } }).scene;
-assert.equal(Engine.ruleResourceStatus(gritSpent, "hero", { resource: "grit" }).balance, 1);
+assert.equal(Engine.ruleResourceStatus(gritSpent, "hero", { resource: "grit" }).balance, 2);
 gritSpent.actors.forEach(actor => { actor.acted = true; });
 gritSpent.activeActorId = null;
 gritSpent.log = [
@@ -1234,8 +1286,8 @@ gritSpent.log = [
   { id: "grit-hero-turn", type: "turn.end", actorId: "hero", payload: { endedTurnActorId: "hero" } },
 ];
 const gritReset = Engine.dispatch(gritSpent, { type: "round.end", payload: {} }).scene;
-assert.equal(Engine.ruleResourceStatus(gritReset, "hero", { resource: "grit" }).balance, 2, "Grit resets from Body at Round boundary");
-assert.deepEqual(JSON.parse(JSON.stringify(gritReset.log[0].payload.ruleResourceResets)), [{ actorId: "hero", resource: "grit", label: "Упорство", value: 2, scope: "round" }], "Round reset is explicit in the event journal");
+assert.equal(Engine.ruleResourceStatus(gritReset, "hero", { resource: "grit" }).balance, 3, "Grit resets from rounded-up Body at Round boundary");
+assert.deepEqual(JSON.parse(JSON.stringify(gritReset.log[0].payload.ruleResourceResets)), [{ actorId: "hero", resource: "grit", label: "Упорство", value: 3, scope: "round" }], "Round reset is explicit in the event journal");
 
 const gunslingerActionScene = structuredClone(scene);
 gunslingerActionScene.actors[0].techniques = { "powerhouse.gunslinger": 1 };
@@ -1250,6 +1302,15 @@ const bigIron = Engine.prepareAction(gunslingerActionScene, data, {
 });
 assert.equal(bigIron.ok, true, "Big Iron replaces the Skirmish range and requires an explicit Bullet allocation");
 assert.equal(bigIron.events.find(event => event.type === "rule-resource.spend").payload.amount, 3);
+const bigIronEmptyCell = Engine.prepareAction(gunslingerActionScene, data, {
+  actorId: "hero",
+  actionId: actionNamed("Стычка").id,
+  targetCells: ["4,2"],
+  bulletsSpent: 1,
+  roll: { formula: "4D6", rolls: [6, 5, 2, 1], successes: 2, crits: 1 },
+});
+assert.equal(bigIronEmptyCell.ok, false, "Big Iron targets characters, never an empty cell");
+assert.match(bigIronEmptyCell.errors.join(" "), /персонажей.*пустые клетки/);
 const bigIronPending = Engine.dispatchMany(gunslingerActionScene, bigIron.events).scene;
 assert.equal(Engine.ruleResourceStatus(bigIronPending, "hero", { resource: "bullets" }).balance, 3);
 const interruptedBigIron = Engine.dispatch(bigIronPending, { type: "damage.apply", actorId: "enemy", payload: { targetId: "hero", amount: 99, ignoreArmor: true } }).scene;
@@ -1289,7 +1350,7 @@ assert.equal(meisterRested.pendingPrompt?.kind, "meister-overclock", "Modified M
 const mundaneScene = structuredClone(scene);
 mundaneScene.actors[0].techniques = { "bulwark.mundane": 3 };
 const mundaneTargeted = Engine.dispatchMany(mundaneScene, [{ type: "reaction.offer", actorId: "hero", payload: { sourceActorId: "enemy", actionId: "test" } }]).scene;
-assert.equal(Engine.ruleResourceStatus(mundaneTargeted, "hero", { resource: "grit" }).balance, 3, "Mundane II gains Grit when made the target of an Attack");
+assert.equal(Engine.ruleResourceStatus(mundaneTargeted, "hero", { resource: "grit" }).balance, 4, "Mundane II gains Grit when made the target of an Attack");
 const mundaneRest = Engine.prepareAction(mundaneScene, data, { actorId: "hero", actionId: actionNamed("Передышка").id, provokeTargetIds: ["enemy"] });
 assert.equal(mundaneRest.ok, true);
 assert.ok(mundaneRest.events.some(event => event.type === "effect.apply" && event.payload.effect === "negative.спровоцирован"), "Mundane III applies Provoke to explicit legal targets");
@@ -1309,7 +1370,7 @@ const cleansing = Engine.prepareAction(faithScene, data, {
   roll: { formula: "4D6", attribute: "spirit", rolls: [6, 5, 4, 1], successes: 3, crits: 1 },
 });
 assert.equal(cleansing.ok, true);
-assert.ok(cleansing.events.some(event => event.type === "actor.heal" && event.payload.amount === 1));
+assert.ok(cleansing.events.some(event => event.type === "actor.heal" && event.payload.amount === 2), "Cleansing Light rounds odd Hits/2 up");
 assert.ok(cleansing.events.some(event => event.type === "effect.remove" && event.payload.effect === "negative.ослаблен"));
 
 const autophageScene = structuredClone(scene);
@@ -1653,9 +1714,7 @@ paladinScene.actors[1].profileId = "enemy.common.paladin";
 paladinScene.actors[1].name = "Паладин";
 paladinScene.actors.push({ ...structuredClone(paladinScene.actors[1]), id: "enemy-ally", name: "Союзник Паладина", x: 2, y: 2 });
 const gift = Engine.availableEnemyRules(paladinScene, data, "enemy").find(rule => rule.en === "Gift From God");
-assert.equal(gift.automation, "attack");
-assert.equal(gift.maxTargets, 2);
-assert.equal(Engine.prepareEnemyRule(paladinScene, data, { actorId: "enemy", ruleId: gift.id, targetIds: ["hero", "enemy-ally"], roll: { formula: "5D6", rolls: [6, 4, 2, 1, 1], successes: 2, crits: 1 } }).ok, true, "Mixed ally/enemy actions honor the two textual targets in the shared Attack pipeline");
+assert.equal(gift.automation, "assisted", "Gift From God stays assisted: its old mixed-target adapter added non-canonical healing to allies");
 
 const daredevilScene = structuredClone(enemyScene);
 daredevilScene.actors[1].profileId = "enemy.common.daredevil";
@@ -1756,10 +1815,7 @@ builderScene.actors[1].profileId = "enemy.common.builder";
 builderScene.actors[1].name = "Строитель";
 builderScene.actors[1].x = 5;
 const construction = Engine.availableEnemyRules(builderScene, data, "enemy").find(rule => rule.en === "Violent Construction");
-assert.equal(construction.automation, "attack");
-const directAttack = Engine.prepareEnemyRule(builderScene, data, { actorId: "enemy", ruleId: construction.id, targetIds: ["hero"], damage: 3 });
-assert.equal(directAttack.ok, true, "Fixed-damage special attacks remain usable");
-assert.ok(directAttack.events.some(event => event.type === "attack.pending"), "Violent Construction uses the Attack pipeline before creating its terrain");
+assert.equal(construction.automation, "assisted", "Violent Construction stays assisted until its fixed tier-scaled direct damage is computed by the engine rather than supplied externally");
 
 const areaScene = structuredClone(enemyScene);
 areaScene.actors[1].profileId = "enemy.common.witch";
@@ -1826,6 +1882,14 @@ assert.equal(weavePlacement.ok, true);
 untouchableFlow = Engine.dispatchMany(untouchableFlow, weavePlacement.events).scene;
 assert.deepEqual([untouchableFlow.actors[0].x, untouchableFlow.actors[0].y], [4, 4], "Untouchable II performs its optional second Dodge movement");
 assert.ok(untouchableFlow.log.some(event => event.type === "technique.resolve" && event.payload?.ruleId === "vagabond.untouchable.2"));
+const zeroDamageUntouchable = structuredClone(enemyAwaiting);
+zeroDamageUntouchable.pendingAction.damage = 0;
+zeroDamageUntouchable.pendingAction.damageByTarget.hero = 0;
+zeroDamageUntouchable.actors[0].techniques = { "vagabond.untouchable": 2 };
+const zeroDamageDodge = Engine.respondReaction(zeroDamageUntouchable, data, { actorId: "hero", choice: "Уворот", destination: { x: 1, y: 2 } });
+let zeroDamageFlow = Engine.dispatchMany(zeroDamageUntouchable, zeroDamageDodge.events).scene;
+zeroDamageFlow = Engine.dispatchMany(zeroDamageFlow, Engine.resolvePendingAction(zeroDamageFlow, data).events).scene;
+assert.notEqual(zeroDamageFlow.pendingPrompt?.kind, "untouchable-weave", "Weave requires Evasion to actually reduce damage, not merely an already-zero source");
 
 const awaitingClash = structuredClone(enemyAwaiting);
 const clash = Engine.respondReaction(awaitingClash, data, { actorId: "hero", choice: "Столкновение", clash: {
@@ -2190,8 +2254,16 @@ alchemistScene.actors[0].techniques = { "altruist.alchemist": 2 };
 const alchemistRest = Engine.prepareAction(alchemistScene, data, { actorId: "hero", actionId: actionNamed("Передышка").id });
 const mixed = Engine.dispatchMany(alchemistScene, alchemistRest.events).scene;
 assert.equal(mixed.pendingPrompt.kind, "alchemist-mix");
+assert.ok(mixed.pendingPrompt.options.includes("pass"), "Quick Mix preserves the canonical option not to create a potion");
+const mixDeclined = Engine.dispatchMany(mixed, Engine.respondRulePrompt(mixed, data, { choice: "pass" }).events).scene;
+assert.equal(Object.keys(mixDeclined.actors[0].inventory || {}).filter(key => key.startsWith("potion:")).length, 0, "declining Quick Mix creates no inventory entry");
 const potionCreated = Engine.dispatchMany(mixed, Engine.respondRulePrompt(mixed, data, { choice: "rage-fumes" }).events).scene;
 assert.equal(potionCreated.actors[0].inventory["potion:rage-fumes"], 1);
+const noncanonicalPotionScene = structuredClone(alchemistScene);
+noncanonicalPotionScene.actors[0].inventory = { "potion:invented": 1 };
+const noncanonicalPotion = Engine.preparePotionUse(noncanonicalPotionScene, data, { actorId: "hero", targetId: "enemy", potion: "invented" });
+assert.equal(noncanonicalPotion.ok, false, "imported or network-supplied noncanonical potion identifiers are rejected");
+assert.match(noncanonicalPotion.errors.join(" "), /Неизвестный тип Зелья/);
 
 const chemistBombardierScene = structuredClone(scene);
 chemistBombardierScene.actors[0].techniques = { "ruiner.bombardier": 1, "disruptor.chemist": 1 };
@@ -2230,7 +2302,7 @@ assert.equal(executedByGas.actors[0].focus, 52, "Experimental Mixture grants 2 F
 const chemistDeposition = structuredClone(scene);
 chemistDeposition.actors[0].techniques = { "disruptor.chemist": 3 };
 chemistDeposition.actors[1].x = 2; chemistDeposition.actors[1].y = 2; chemistDeposition.actors[1].hp = 10;
-const deposited = Engine.dispatchMany(chemistDeposition, [{ type: "area.create", actorId: "hero", payload: { id: "deposition-gas", space: "main", areaType: "gas", label: "Сублимация", source: "disruptor.chemist.1", ruleId: "disruptor.chemist.1", duration: "nextTurn", ownerActorId: "hero", cells: ["2,2"] } }]).scene;
+const deposited = Engine.dispatchMany(chemistDeposition, [{ type: "area.create", actorId: "hero", payload: { id: "deposition-gas", space: "main", areaType: "gas", label: "Другой источник Газа", source: "test.other-gas", ruleId: "test.other-gas", duration: "nextTurn", ownerActorId: "hero", cells: ["2,2"] } }]).scene;
 assert.ok(deposited.actors[1].effects.includes("negative.ослаблен"), "Deposition immediately applies Weakened inside newly created Gas");
 assert.equal(deposited.actors[1].hp, 9, "Deposition immediately deals Mind damage through the normal Armor pipeline");
 
@@ -2518,7 +2590,7 @@ assert.equal(ritualDrawings.requiresTarget, false, "Ritual Drawings selects empt
 assert.equal(ritualDrawings.maxTargets, 0);
 const declaredAttacks = enemyProfiles.flatMap(profile => (profile.rules || []).filter(rule => rule.kind === "attack").map(rule => ({ profile, rule })));
 assert.ok(declaredAttacks.length >= 40, "The enemy catalogue exposes the complete common Attack set");
-assert.deepEqual(declaredAttacks.filter(({ rule }) => Engine.enemyRuleAutomation(rule.id) === "assisted").map(({ rule }) => rule.id), [], "Every declared enemy Attack has an executable automation contract");
+assert.deepEqual(declaredAttacks.filter(({ rule }) => Engine.enemyRuleAutomation(rule.id) === "assisted").map(({ rule }) => rule.id), ["enemy.common.bruiser.attack.skulduggery", "enemy.common.bodyguards.attack.behind-me", "enemy.common.oni.attack.polaris", "enemy.common.paladin.attack.gift-from-god", "enemy.common.builder.attack.violent-construction", "enemy.common.coordinator.attack.fanaticize", "enemy.common.swarm.attack.tear"], "Audited attacks with absent or extra canonical branches stay assisted");
 for (const profileId of ["enemy.common.assassin", "enemy.common.pugilist", "enemy.common.guardian", "enemy.common.berserker", "enemy.common.ranger"]) {
   const profile = enemyProfiles.find(item => item.id === profileId);
   assert.ok(profile, `${profileId} exists in the canonical enemy catalogue`);
@@ -2566,9 +2638,7 @@ coordinatorContractScene.actors[1].usedActions = []; coordinatorContractScene.ac
 coordinatorContractScene = Engine.dispatchMany(coordinatorContractScene, Engine.prepareEnemyRule(coordinatorContractScene, data, { actorId: "enemy", ruleId: neutralizeContract.id, targetIds: ["hero"] }).events).scene;
 assert.ok(coordinatorContractScene.actors[0].effects.includes("negative.помечен"), "Neutralize Them marks the selected character");
 coordinatorContractScene.actors[1].usedActions = []; coordinatorContractScene.actors[1].ap = 3;
-const fanaticizePrepared = Engine.prepareEnemyRule(coordinatorContractScene, data, { actorId: "enemy", ruleId: fanaticizeContract.id, targetIds: ["hero"], roll: { rolls: [6, 5, 4, 2, 1, 1, 1], successes: 3, crits: 1 } });
-assert.equal(fanaticizePrepared.ok, true, "Coordinator can prepare Fanaticize against an adjacent character");
-assert.equal(fanaticizePrepared.events.find(event => event.type === "attack.pending").payload.damageByTarget.hero, 6, "Fanaticize combines three successes, one Tension, and the Coordinator's Tier 2 bonus against its Marked target");
+assert.equal(Engine.enemyRuleAutomation(fanaticizeContract.id), "assisted", "Fanaticize stays assisted until the required ally follow-up is executable");
 assert.equal(Engine.enemyRuleAutomation(profileRule("enemy.common.coordinator", "Coordinated Charge").id), "assisted", "Coordinated Charge remains assisted until its ally follow-up choices have a dedicated prompt contract");
 coordinatorContractScene = Engine.dispatchMany(coordinatorContractScene, [{ type: "actor.move", actorId: "coordinator-ally", payload: { space: "main", x: 6, y: 2, movement: "QA" } }]).scene;
 assert.ok(!coordinatorContractScene.actors.find(actor => actor.id === "coordinator-ally").effects.includes("positive.усилен"), "Coordinator stops empowering an ally that leaves its four-cell radius during the Turn");
@@ -2605,18 +2675,8 @@ assert.ok(healerMarkScene.actors[0].effects.includes("negative.помечен"),
 healerMarkScene = Engine.dispatchMany(healerMarkScene, [{ type: "attack.pending", actorId: "healer-attacker", payload: { name: "Проверка метки Целителя", targetIds: ["hero"], damage: 1, quickReaction: true } }]).scene;
 assert.equal(healerMarkScene.actors.find(actor => actor.id === "healer-attacker").hp, 10, "Attacking an Exsanguinate-marked target heals the attacker for tier-scaled 7 Health");
 assert.ok(!healerMarkScene.actors[0].effects.includes("negative.помечен"), "The Exsanguinate Mark is consumed by the next attack");
-// Bodyguards: the reviewed auto portion supports mixed ally/enemy targets,
-// while the unresolved Fodder placement remains outside this adapter.
-let bodyguardsContractScene = profileScene("enemy.common.bodyguards");
-bodyguardsContractScene.actors.push({ ...structuredClone(bodyguardsContractScene.actors[1]), id: "bodyguard-ally", name: "Союзник", team: "enemy", x: 3, y: 1, effects: [] });
 const behindMeContract = profileRule("enemy.common.bodyguards", "Behind Me");
-const bodyguardsPrepared = Engine.prepareEnemyRule(bodyguardsContractScene, data, { actorId: "enemy", ruleId: behindMeContract.id, targetIds: ["bodyguard-ally", "hero"], roll: { rolls: [6, 5, 2, 1, 1, 1], successes: 2, crits: 1 } });
-assert.equal(bodyguardsPrepared.ok, true, "Bodyguards can prepare Behind Me with one ally and one enemy target");
-const bodyguardsPreparedAttack = bodyguardsPrepared.events.find(event => event.type === "attack.pending");
-assert.equal(bodyguardsPreparedAttack.payload.targetIds.length, 1, "Behind Me sends one hostile target through the shared Attack pipeline");
-assert.equal(bodyguardsPreparedAttack.payload.targetIds[0], "hero", "Behind Me preserves the hostile target identity");
-assert.ok(bodyguardsPrepared.events.some(event => event.type === "effect.apply" && event.payload?.targetId === "bodyguard-ally" && event.payload?.effect === "positive.укреплен"), "Behind Me applies Укреплен to a selected ally");
-assert.equal(Engine.prepareEnemyRule(bodyguardsContractScene, data, { actorId: "enemy", ruleId: behindMeContract.id, targetIds: ["bodyguard-ally", "hero", "bodyguard-ally-2", "bodyguard-ally-3"] }).ok, false, "Behind Me rejects more than three selected characters");
+assert.equal(Engine.enemyRuleAutomation(behindMeContract.id), "assisted", "Behind Me stays assisted until moving every Fodder zone is atomically implemented");
 let assassinFull = profileScene("enemy.common.assassin"), assassinMark = profileRule("enemy.common.assassin", "Neutralize Target");
 assassinFull = Engine.dispatchMany(assassinFull, Engine.prepareEnemyRule(assassinFull, data, { actorId: "enemy", ruleId: assassinMark.id, targetIds: ["hero"] }).events).scene;
 assert.ok(assassinFull.actors[0].effects.includes("negative.помечен"), "Assassin creates its durable Mark through the shared Effect state");
@@ -2701,21 +2761,7 @@ assert.ok(gluttonFlow.actors.find(actor => actor.id === "hero").effects.includes
 assert.ok(gluttonFlow.actors.find(actor => actor.id === "hero-2").effects.includes("negative.замедлен"), "Slobber applies Slow independently to its second hit target");
 const gluttonThird = structuredClone(gluttonScene); gluttonThird.actors.push({ ...structuredClone(gluttonScene.actors[0]), id: "hero-3", x: 1, y: 2 });
 assert.equal(Engine.prepareEnemyRule(gluttonThird, data, { actorId: "enemy", ruleId: slobber.id, targetIds: ["hero", "hero-2", "hero-3"], roll: { rolls: [6, 5], successes: 1 } }).ok, false, "Slobber rejects a third target");
-// Bruiser: Skulduggery anchors its 2x2 area on the enemy and pushes by tier.
-let bruiserScene = profileScene("enemy.common.bruiser"); bruiserScene.actors[1].tier = 2; bruiserScene.actors[0].x = 2; bruiserScene.actors[0].y = 2;
-const skulduggery = profileRule("enemy.common.bruiser", "Skulduggery");
-const bruiserPrepared = Engine.prepareEnemyRule(bruiserScene, data, { actorId: "enemy", ruleId: skulduggery.id, targetIds: ["hero"], roll: { rolls: [6, 5, 4, 2, 1, 1], successes: 3, crits: 1 } });
-assert.equal(bruiserPrepared.ok, true, "Bruiser can prepare Skulduggery against a target in its anchored area");
-const bruiserPending = bruiserPrepared.events.find(event => event.type === "attack.pending");
-assert.equal(bruiserPending.payload.attackAnchor.x, 2, "Skulduggery records the Bruiser x coordinate as its area anchor");
-assert.equal(bruiserPending.payload.attackAnchor.y, 1, "Skulduggery records the Bruiser y coordinate as its area anchor");
-assert.equal(bruiserPending.payload.postDisplacements[0].maximum, 2, "Skulduggery scales its one-cell push by Bruiser tier");
-let blockedBruiserScene = profileScene("enemy.common.bruiser"); blockedBruiserScene.actors[1].tier = 2; blockedBruiserScene.actors[1].x = 2; blockedBruiserScene.actors[1].y = 5; blockedBruiserScene.actors[0].x = 2; blockedBruiserScene.actors[0].y = 6;
-const blockedBruiserPrepared = Engine.prepareEnemyRule(blockedBruiserScene, data, { actorId: "enemy", ruleId: skulduggery.id, targetIds: ["hero"], roll: { rolls: [6, 5, 4, 2, 1, 1], successes: 3, crits: 1 } });
-blockedBruiserScene = Engine.dispatchMany(blockedBruiserScene, blockedBruiserPrepared.events).scene;
-blockedBruiserScene = Engine.dispatchMany(blockedBruiserScene, Engine.respondReaction(blockedBruiserScene, data, { actorId: "hero", choice: "pass" }).events).scene;
-blockedBruiserScene = Engine.dispatchMany(blockedBruiserScene, Engine.resolvePendingAction(blockedBruiserScene, data).events).scene;
-assert.ok(blockedBruiserScene.actors[0].effects.includes("negative.ошеломлен"), "Bruiser Stuns a target when the board edge prevents its full tier-scaled push");
+assert.equal(Engine.enemyRuleAutomation(profileRule("enemy.common.bruiser", "Skulduggery").id), "assisted", "Skulduggery stays assisted: the old adapter added non-canonical Stun on incomplete push");
 assert.equal(Engine.enemyRuleAutomation(profileRule("enemy.common.bruiser", "Decimate").id), "assisted", "Decimate remains assisted until delayed area placement is implemented");
 let fluxScene = profileScene("enemy.common.illusionist"); fluxScene.actors.push({ ...structuredClone(fluxScene.actors[1]), id: "illusion-ally", profileId: "enemy.common.guardian", x: 4, y: 1, ruleState: {} });
 fluxScene = resolveEnemyFamily(fluxScene, { flux: true });
@@ -2729,7 +2775,8 @@ let witchExpel = profileScene("enemy.common.witch"), beforeExpel = { x: witchExp
 witchExpel = resolveEnemyFamily(witchExpel, { expelFromArea: true, area: [3, 3] }, ["hero"], { x: 1, y: 1 });
 assert.notDeepEqual({ x: witchExpel.actors[0].x, y: witchExpel.actors[0].y }, beforeExpel, "Expelling Force moves a hit target to the nearest reachable cell outside its area");
 
-for (const ruleId of ["enemy.common.assassin.trump.disappear", "enemy.common.pugilist.trump.martial-perfection", "enemy.common.ranger.trump.headshot", "enemy.common.cocoon.trump.quick-growth", "enemy.common.guardian.trump.imposing-presence", "enemy.common.berserker.trump.last-stand", "enemy.common.cannoneer.trump.fire", "enemy.common.executioner.trump.bifurcate", "enemy.common.revenant.trump.hollowed-eyes"]) assert.notEqual(Engine.enemyRuleAutomation(ruleId), "assisted", `${ruleId} must not leave a fully automated profile's Trump manual`);
+for (const ruleId of ["enemy.common.assassin.trump.disappear", "enemy.common.pugilist.trump.martial-perfection", "enemy.common.ranger.trump.headshot", "enemy.common.cocoon.trump.quick-growth", "enemy.common.guardian.trump.imposing-presence", "enemy.common.berserker.trump.last-stand", "enemy.common.executioner.trump.bifurcate", "enemy.common.revenant.trump.hollowed-eyes"]) assert.notEqual(Engine.enemyRuleAutomation(ruleId), "assisted", `${ruleId} must not leave a fully automated profile's Trump manual`);
+assert.equal(Engine.enemyRuleAutomation("enemy.common.cannoneer.trump.fire"), "assisted", "Cannoneer Fire stays assisted: the adapter multiplied one canonical roll's damage by three");
 let executionerScene = profileScene("enemy.common.executioner"); executionerScene.tension = 2;
 let executionerTrump = Engine.prepareEnemyRule(executionerScene, data, { actorId: "enemy", ruleId: "enemy.common.executioner.trump.bifurcate", targetIds: ["hero"] });
 assert.equal(executionerTrump.ok, true, "Executioner can arm Bifurcate against one opponent");
