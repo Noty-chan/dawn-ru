@@ -102,7 +102,10 @@ const TRIGGER_RULES = [
     id: "disruptor.siren.2.frightened",
     eventTypes: ["effect.apply"],
     priority: 65,
-    match: ({ scene, actor, payload }) => actor && payload.applied && payload.effect === "negative.испуган" && Number(actor.techniques?.["disruptor.siren"] || 0) >= 2 && !currentTurnEvents(scene, actor.id).some(item => item.type === "technique.resolve" && item.payload?.ruleId === "disruptor.siren.2"),
+    match: ({ scene, actor, payload }) => {
+      const target = actorById(scene, payload.targetId);
+      return actor && scene.activeActorId === actor.id && target && target.team !== actor.team && payload.applied && payload.effect === "negative.испуган" && Number(actor.techniques?.["disruptor.siren"] || 0) >= 2 && !currentTurnEvents(scene, actor.id).some(item => item.type === "technique.resolve" && item.payload?.ruleId === "disruptor.siren.2");
+    },
     build: ({ scene, event, actor, payload }) => {
       const target = actorById(scene, payload.targetId);
       if (!target || target.knockedOut || target.id === actor.id || target.space !== actor.space) return [];
@@ -137,8 +140,14 @@ const TRIGGER_RULES = [
     id: "vagabond.dim-mak.2.evasion",
     eventTypes: ["marker.remove"],
     priority: 55,
-    match: ({ actor, payload }) => actor && payload.ruleId === "vagabond.dim-mak.1" && Number(actor.techniques?.["vagabond.dim-mak"] || 0) >= 2,
-    build: ({ actor, payload }) => [{ type: "actor.state", actorId: actor.id, payload: { key: "evasion", delta: 2, sourceActionId: "vagabond.dim-mak.2", reason: "Снята Слабая точка", participantIds: [actor.id, payload.carrierActorId].filter(Boolean) } }],
+    match: ({ scene, payload }) => {
+      const owner = actorById(scene, payload.ownerActorId);
+      return payload.ruleId === "vagabond.dim-mak.1" && owner && Number(owner.techniques?.["vagabond.dim-mak"] || 0) >= 2;
+    },
+    build: ({ scene, payload }) => {
+      const owner = actorById(scene, payload.ownerActorId);
+      return [{ type: "actor.state", actorId: owner.id, payload: { key: "evasion", delta: 2, sourceActionId: "vagabond.dim-mak.2", reason: "Снята Слабая точка", participantIds: [owner.id, payload.carrierActorId].filter(Boolean) } }];
+    },
   },
   {
     id: "powerhouse.braggart.3.wound",
@@ -695,7 +704,7 @@ function triggeredEvents(scene, event, options = {}) {
   }
   if (event.type === "action.resolve" && actor && actionIdIs(eventActionId(payload), "breathe") && Number(actor.techniques?.["ruiner.cryomancer"] || 0) >= 2 && clockStatus(scene, actor.id, "ruiner.cryomancer.icicle").value > 0 && !scene.pendingPrompt && !promptQueued()) {
     const gain = [...(scene.log || [])].reverse().find(logged => logged.type === "resource.gain" && logged.actorId === actor.id && logged.payload?.actionInstanceId === payload.actionInstanceId && actionIdIs(logged.payload?.sourceActionId, "breathe") && logged.payload?.resolvedResource === "focus" && Number(logged.payload?.resolvedDelta || 0) > 0);
-    if (gain) events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${event.id}-icicle`, kind: "cryomancer-icicle-rest", sourceActorId: actor.id, title: "Ледяной нимб", text: "Отказаться от Фокуса именно этой Передышки, очистить Сосульку и начать серию Быстрых Заклинаний с половинным уроном?", options: ["convert", "pass"], context: { actionInstanceId: payload.actionInstanceId, focusGainEventId: gain.id }, participantIds: [actor.id] } });
+    if (gain) events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${event.id}-icicle`, kind: "cryomancer-icicle-rest", sourceActorId: actor.id, title: "Ледяной нимб", text: "Отказаться от Фокуса именно этой Передышки, очистить Сосульку и получить столько Быстрых Заклинаний с половинным уроном, сколько сегментов очищено? Заряды сохраняются до использования или конца Сцены и не блокируют другие действия.", options: ["convert", "pass"], context: { actionInstanceId: payload.actionInstanceId, focusGainEventId: gain.id }, participantIds: [actor.id] } });
   }
   if (event.type === "action.resolve" && actor && payload.alchemistPowerfulMixTargetId && Number(actor.techniques?.["altruist.alchemist"] || 0) >= 2 && !scene.pendingPrompt && !promptQueued()) {
     const target = actorById(scene, payload.alchemistPowerfulMixTargetId);
@@ -708,7 +717,6 @@ function triggeredEvents(scene, event, options = {}) {
       const target = actorById(scene, targetId);
       if (target && hasEffect(scene, target, "negative.замедлен")) events.push({ type: "effect.apply", actorId: actor.id, payload: { targetId, effect: "negative.обездвижен", sourceActionId: "ruiner.cryomancer.2", participantIds: [actor.id, targetId] } });
     }
-    if (remaining > 0 && !scene.pendingPrompt && !promptQueued()) events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${event.id}-icicle-next`, kind: "cryomancer-icicle-series", sourceActorId: actor.id, title: "Ледяной нимб", text: `Осталось Быстрых Заклинаний: ${remaining}. Продолжить серию?`, options: ["continue", "stop"], context: { remaining }, participantIds: [actor.id] } });
   }
   if (event.type === "action.resolve" && actor && (actionIdIs(eventActionId(payload), "spell") || payload.icicleHalo) && Number(payload.roll?.successes || 0) > 0 && Number(actor.techniques?.["ruiner.cryomancer"] || 0) >= 1) for (const targetId of payload.targetIds || []) events.push({ type: "effect.apply", actorId: actor.id, payload: { targetId, effect: "negative.замедлен", sourceActionId: "ruiner.cryomancer.1", participantIds: [actor.id, targetId] } });
   if (event.type === "turn.end" && actor && Number(actor.techniques?.["ruiner.feral-arcana"] || 0) >= 2) {

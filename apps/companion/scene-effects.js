@@ -86,6 +86,7 @@ function changeSceneTool(requested){
   if(toggleOff||!["select","target","measure"].includes(requested)){Scene.targetIds=[];Scene.targetCells=[]}
   scenePreviewCells.clear();sceneTopologyCells.clear();sceneMeasureStart=null;sceneMeasureCells.clear();sceneMeasureLabel=activeSceneTool()==="measure"?"Линейка: выберите начальную клетку":"";
   persist();renderScene();
+  if(!toggleOff&&requested==="target")toast("Цель: клик по жетону выбирает персонажа; Shift+клик выбирает именно клетку под жетоном");
 }
 function cancelCommittedAction(reason="Цепочка прервана Нарратором"){const prepared=SceneEngine.cancelPendingAction(Scene,{reason});if(!prepared.ok)return toast(prepared.errors.join(" "));if(commitSceneEvents("Цепочка Атаки прервана",prepared.events))toast("Цепочка закрыта без урона")}
 function resolveCommittedAction(){const prepared=SceneEngine.resolvePendingAction(Scene,D);if(!prepared.ok)return toast(prepared.errors.join(" "));const label=prepared.cancelled?"Цепочка Атаки прервана":"Атака разрешена";if(commitSceneEvents(label,prepared.events))toast(prepared.cancelled?"Цепочка закрыта без урона":"Цепочка действия завершена: урон и Эффекты применены")}

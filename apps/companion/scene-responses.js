@@ -459,14 +459,12 @@ function respondRulePrompt(scene, data, request = {}) {
     events.push({ type: "resource.spend", actorId: actor.id, payload: { actionInstanceId: prompt.context.actionInstanceId, forgoneGainEventId: gain.id, resource: "focus", amount: Number(gain.payload.resolvedDelta), sourceActionId: "ruiner.cryomancer.2", reason: "Отказ от Фокуса Передышки" } });
     events.push({ type: "rule-clock.set", actorId: actor.id, payload: { clockId: "ruiner.cryomancer.icicle", value: 0, sourceActionId: "ruiner.cryomancer.2" } });
     events.push({ type: "actor.state", actorId: actor.id, payload: { key: "icicleSpellsRemaining", value: segments, sourceActionId: "ruiner.cryomancer.2" } });
-    events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${prompt.id}-series`, kind: "cryomancer-icicle-series", sourceActorId: actor.id, title: "Ледяной нимб", text: `Доступно Быстрых Заклинаний: ${segments}. Продолжить серию?`, options: ["continue", "stop"], context: { remaining: segments }, participantIds: [actor.id] } });
   }
   if (prompt.kind === "alchemist-powerful-mix-damage" && choice === "damage") {
     const amount = Number(prompt.context?.amount || 0);
     if (!target || target.knockedOut || target.team === actor.team || Number(actor.techniques?.["altruist.alchemist"] || 0) < 2 || amount !== Number(actor.attrs?.mind || 0)) return { ok: false, errors: ["Цель или величина урона «Мощной смеси» больше не соответствует правилу."], events: [] };
     events.push({ type: "damage.apply", actorId: actor.id, payload: { targetId: target.id, amount, sourceActionId: "altruist.alchemist.2", participantIds: [actor.id, target.id] } });
   }
-  if (prompt.kind === "cryomancer-icicle-series" && choice === "stop") events.push({ type: "actor.state", actorId: actor.id, payload: { key: "icicleSpellsRemaining", value: 0, sourceActionId: "ruiner.cryomancer.2" } });
   if (prompt.kind === "thunder-charged-spell" && choice !== "pass") {
     const [mode, originalTargetId] = choice.split(":"), originalTarget = actorById(scene, originalTargetId);
     if (!["surge", "discharge", "chain"].includes(mode) || !originalTarget || originalTarget.knockedOut) return { ok: false, errors: ["Исходная цель Заряженного заклинания больше недоступна."], events: [] };
@@ -609,6 +607,7 @@ function respondRulePrompt(scene, data, request = {}) {
     events.push({ type: "effect.remove", actorId: actor.id, payload: { targetId: target.id, effect: choice, sourceActionId: "altruist.empath.1", participantIds: [actor.id, target.id] } });
     events.push({ type: "effect.apply", actorId: actor.id, payload: { targetId: target.id, effect: "positive.усилен", sourceActionId: "altruist.empath.1", participantIds: [actor.id, target.id] } });
   }
+  if (prompt.kind === "siren-irresistible") events.push({ type: "technique.resolve", actorId: actor.id, payload: { ruleId: "disruptor.siren.2", name: "Неотразимая · первое окно Хода", affectedActorIds: [target?.id].filter(Boolean), used: choice === "rush", participantIds: [actor.id, target?.id].filter(Boolean) } });
   if (prompt.kind === "siren-irresistible" && choice === "rush") {
     const frightenedEvent = (scene.log || []).find(event => event.id === prompt.context?.frightenedEventId);
     if (Number(actor.techniques?.["disruptor.siren"] || 0) < 2 || !target || target.knockedOut || target.space !== actor.space || frightenedEvent?.type !== "effect.apply" || frightenedEvent.actorId !== actor.id || frightenedEvent.payload?.targetId !== target.id || frightenedEvent.payload?.effect !== "negative.испуган" || !frightenedEvent.payload?.applied) return { ok: false, errors: ["Источник или цель «Неотразимой» больше не соответствуют сработавшему Испугу."], events: [] };
@@ -885,7 +884,6 @@ function preparePromptPlacement(scene, request = {}) {
       events.push({ type: "actor.move", actorId: target.id, payload: { space: target.space, x: destination.x, y: destination.y, movement: "Неотразимая", forced: true, path: sirenPath.map(cellKey), topologyCrossings: sirenPath.filter(point => point.teleported).map(point => ({ destination: cellKey(point), cutIds: point.crossedCutIds || [] })), participantIds: [actor.id, target.id] } });
       events.push({ type: "actor.enter", actorId: target.id, payload: { space: target.space, x: destination.x, y: destination.y, movement: "Неотразимая", forced: true } });
     }
-    events.push({ type: "technique.resolve", actorId: actor.id, payload: { ruleId: "disruptor.siren.2", name: "Неотразимая", affectedActorIds: [target.id], participantIds: [actor.id, target.id] } });
     if (distance(actor, { ...destination, space: actor.space }) === 1) events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${prompt.id}-stun`, kind: "siren-irresistible-stun", sourceActorId: actor.id, targetId: target.id, title: "Неотразимая", text: `Наложить Ошеломлен на ${target.name}?`, options: ["stun", "pass"], participantIds: [actor.id, target.id] } });
   } else if (prompt.kind === "constrictor-move-cell") {
     if (constrictorPath.length) {

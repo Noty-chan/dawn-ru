@@ -139,12 +139,16 @@ const emptyCellResolution = SceneEngine.resolvePendingAction(emptyCellPending, d
 assert.equal(emptyCellResolution.ok, true);
 assert.deepEqual(Array.from(emptyCellResolution.events.find(event => event.type === "action.resolve").payload.targetCells), ["2,1"], "Resolved actions expose targeted cells to technique triggers");
 
-const occupiedCellSkirmish = SceneEngine.prepareAction(emptyCellScene, data, {
-  actorId: "hero", actionId: actionNamed("Стычка").id, targetCells: ["8,7"], attribute: "talent",
+const occupiedCellScene = structuredClone(emptyCellScene);
+occupiedCellScene.actors.find(item => item.id === "enemy").x = 2;
+occupiedCellScene.actors.find(item => item.id === "enemy").y = 1;
+const occupiedCellSkirmish = SceneEngine.prepareAction(occupiedCellScene, data, {
+  actorId: "hero", actionId: actionNamed("Стычка").id, targetCells: ["2,1"], attribute: "talent",
   roll: { formula: "4D6 · Талант", attribute: "talent", rolls: [6, 4, 2, 1], successes: 2, crits: 1 },
 });
-assert.equal(occupiedCellSkirmish.ok, false);
-assert.match(occupiedCellSkirmish.errors.join(" "), /должна быть пустой/);
+assert.equal(occupiedCellSkirmish.ok, true, "A board cell remains targetable when an opponent occupies it");
+assert.deepEqual(Array.from(occupiedCellSkirmish.events.find(event => event.type === "attack.pending").payload.targetIds), ["enemy"], "The authority derives the current occupant of a targeted cell");
+assert.deepEqual(Array.from(occupiedCellSkirmish.events.find(event => event.type === "attack.pending").payload.targetCells), ["2,1"], "The cell provenance is preserved alongside its occupant");
 
 const nonCanonicalCellSkirmish = SceneEngine.prepareAction(emptyCellScene, data, {
   actorId: "hero", actionId: actionNamed("Стычка").id, targetCells: ["02,1"], attribute: "talent",
@@ -210,6 +214,10 @@ assert.equal(experimentalSpell.ok, true);
 assert.deepEqual(Array.from(experimentalSpell.events.filter(event => event.type === "resource.spend").map(event => [event.payload.resource, event.payload.amount])), [["ap", 1], ["innovationCharges", 1]], "Spellcrafter I spends one Innovation, not Focus");
 const experimentalPending = SceneEngine.dispatchMany(experimentalScene, experimentalSpell.events).scene;
 assert.equal(experimentalPending.pendingAction.damage, 5, "The single persisted level-I Fierce augment adds Mind damage");
+const focusedTargetScene = sceneWith(actor({ techniques: spellcrafterBuild, focus: 3, techniqueState: { spellcrafterLearnedModifiers: ["focused"], spellModifiers: ["focused"] } }), [foe({ x: 4, y: 1 })]);
+const focusedTargetSpell = SceneEngine.prepareAction(focusedTargetScene, data, { actorId: "hero", actionId: actionNamed("Заклинание").id, targetIds: ["enemy"], attribute: "spirit", roll: { formula: "4D6 · Дух", attribute: "spirit", rolls: [6, 4, 2, 1], successes: 2, crits: 1 } });
+assert.equal(focusedTargetSpell.ok, true, "Focused no longer blocks the normal target picker when the current attack has no Zone to replace");
+assert.deepEqual(Array.from(focusedTargetSpell.events.find(event => event.type === "attack.pending").payload.targetIds), ["enemy"]);
 const spellScene = sceneWith(actor({ techniques: spellcrafterBuild, focus: 5, techniqueState: { spellcrafterLearnedModifiers: ["fierce", "outstanding"], spellModifiers: ["fierce", "outstanding"] } }), [foe({ x: 8, y: 1 })]);
 const spell = SceneEngine.prepareAction(spellScene, data, {
   actorId: "hero", actionId: actionNamed("Заклинание").id, targetIds: ["enemy"], attribute: "spirit",

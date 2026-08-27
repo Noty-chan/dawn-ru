@@ -583,6 +583,9 @@ function reduceEvent(scene, event) {
   } else if (event.type === "marker.remove") {
     const marker = markerById(scene, payload.markerId);
     payload.label = marker?.label || payload.label || "маркер";
+    payload.ruleId = marker?.ruleId || null;
+    payload.ownerActorId = marker?.ownerActorId || null;
+    payload.carrierActorId = marker?.metadata?.carrierActorId || null;
     scene.markers = (scene.markers || []).filter(item => item.id !== payload.markerId);
   } else if (event.type === "marker.duration") {
     const marker = markerById(scene, payload.markerId);

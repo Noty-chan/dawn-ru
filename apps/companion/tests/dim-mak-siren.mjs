@@ -47,6 +47,17 @@ dimMak = Engine.dispatchMany(dimMak, attack.events).scene;
 assert.equal(dimMak.markers.length, 0);
 assert.equal(dimMak.actors[0].evasion, 2);
 
+const removedByOther = baseScene({ "vagabond.dim-mak": 2 });
+removedByOther.markers = [{ id: "owned-point", space: "main", x: 3, y: 2, kind: "mark", label: "Слабая точка", ruleId: "vagabond.dim-mak.1", ownerActorId: "hero", metadata: { carrierActorId: "enemy" } }, { id: "ordinary-marker", space: "main", x: 2, y: 2, kind: "mark", label: "Обычный маркер", ruleId: "qa.marker", ownerActorId: "hero" }];
+const externalRemoval = { id: "external-point-removal", type: "marker.remove", actorId: "enemy", payload: { markerId: "owned-point", ruleId: "forged.other-rule" } };
+const externallyRemoved = Engine.dispatchMany(removedByOther, [externalRemoval]).scene;
+assert.equal(externallyRemoved.actors[0].evasion, 2, "Dim Mak II rewards the actual Weak Point owner even when another actor removes it");
+assert.equal(externallyRemoved.log.find(event => event.id === externalRemoval.id).payload.ruleId, "vagabond.dim-mak.1", "Marker removal provenance is re-derived from the removed entity");
+const canonicalExternalRemoval = structuredClone(externallyRemoved.log.find(event => event.id === externalRemoval.id));
+const forgedRemoval = Engine.dispatchMany(externallyRemoved, [{ type: "marker.remove", actorId: "hero", payload: { markerId: "ordinary-marker", ruleId: "vagabond.dim-mak.1" } }]).scene;
+assert.equal(forgedRemoval.actors[0].evasion, 2, "A forged ruleId on an unrelated marker cannot grant Dim Mak II Evasion");
+assert.equal(Engine.dispatchMany(externallyRemoved, [canonicalExternalRemoval]).events.length, 0, "A duplicate Weak Point removal cannot grant Evasion twice");
+
 let bladeDimMak = baseScene({ "vagabond.dim-mak": 1, "vagabond.master-at-arms": 1 });
 bladeDimMak.actors[0].x = 1; bladeDimMak.actors[0].y = 1;
 bladeDimMak.actors[1].x = 3; bladeDimMak.actors[1].y = 1;
@@ -69,6 +80,9 @@ miss = Engine.dispatchMany(miss, [
 assert.equal(miss.pendingPrompt?.kind, "dim-mak-field-investigation");
 const investigation = Engine.respondRulePrompt(miss, data, { choice: "study" });
 assert.equal(investigation.ok, true);
+const staleInvestigation = structuredClone(miss);
+staleInvestigation.actors.find(actor => actor.id === "enemy").knockedOut = true;
+assert.equal(Engine.respondRulePrompt(staleInvestigation, data, { choice: "study" }).ok, false, "Field Investigation revalidates the actual attacker before the free Study");
 miss = Engine.dispatchMany(miss, investigation.events).scene;
 assert.ok(miss.log.some(event => event.type === "action.prepare" && event.payload?.quickReaction && event.payload?.name === "Полевое исследование"));
 const zeroButHit = baseScene({ "vagabond.dim-mak": 2 });

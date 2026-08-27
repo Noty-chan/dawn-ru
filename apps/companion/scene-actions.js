@@ -168,7 +168,7 @@ function quickActionSources(scene, data, actor, action) {
   if (actionIs(action, "spell") && actor.ruleState?.grimTransformed && !currentTurnEvents(scene, actor.id).some(event => event.type === "action.prepare" && actionIdIs(event.payload?.actionId, "spell"))) {
     sources.push({ id: "ruiner.grim-ascendant.1.spell", techniqueId: "ruiner.grim-ascendant", level: 1, name: "Непостоянная мощь", condition: "firstTurn", needsConfirmation: false, text: "Первое Заклинание в Ход является Быстрым." });
   }
-  if (actionIs(action, "spell") && Number(actor.ruleState?.icicleSpellsRemaining || 0) > 0) sources.push({ id: "ruiner.cryomancer.2.icicle", techniqueId: "ruiner.cryomancer", level: 2, name: "Ледяной нимб", condition: "series", needsConfirmation: false, text: "Заклинание серии Сосульки является Быстрым и наносит половину урона." });
+  if (actionIs(action, "spell") && Number(actor.ruleState?.icicleSpellsRemaining || 0) > 0) sources.push({ id: "ruiner.cryomancer.2.icicle", techniqueId: "ruiner.cryomancer", level: 2, name: "Ледяной нимб", condition: "quota", needsConfirmation: false, text: "Один из оставшихся зарядов Сосульки делает Заклинание Быстрым и уменьшает его урон вдвое; другие действия не блокируются." });
   for (const rule of QUICK_ACTION_RULES.filter(item => actionIs(action, item.actionKey) && Number(actor.techniques?.[item.techniqueId] || 0) >= item.level)) {
     if (rule.condition === "firstTurn" && usesThisTurn > 0) continue;
     const technique = (data.archetypes || []).flatMap(archetype => archetype.techniques || []).find(item => item.id === rule.techniqueId);
@@ -240,7 +240,6 @@ function availableActions(scene, data, actorId) {
     else if (!reaction && actionIs(action, "step") && actor.speedZeroUntilTurnEnd) reason = "Скорость равна 0 до конца текущего Хода";
     else if (!reaction && ["step", "jump"].some(key => actionIs(action, key)) && !effectMovementStatus(scene, actor.id).available) reason = effectMovementStatus(scene, actor.id).reason;
     else if (!reaction && rage.available && rage.active && rage.value > 0 && effectiveCost.resource === "ap" && !["jump", "finish"].some(key => actionIs(action, key))) reason = "Пока существует Ярость, ОД можно тратить только на Прыжки и Завершения";
-    else if (!reaction && Number(actor.ruleState?.icicleSpellsRemaining || 0) > 0 && !actionIs(action, "spell")) reason = "Сначала завершите или остановите серию Заклинаний Сосульки";
     else if (!reaction && (actor.usedActions || []).includes(action.id) && !continuation && !quick) reason = "Это действие уже использовано в Раунде";
     else if (actionIs(action, "skirmish") && Number(actor.techniques?.["powerhouse.gunslinger"] || 0) >= 1 && !ruleResourceStatus(scene, actor.id, { resource: "bullets", amount: 1 }).available) reason = "Для Стычки нужна хотя бы 1 Пуля";
     else if (effectiveCost.resource && !resourceOperationStatus(scene, actor.id, { ...effectiveCost, operation: "spend" }).available) reason = `Недостаточно: ${action.cost}`;
@@ -324,6 +323,11 @@ function prepareAction(scene, data, request = {}) {
   let targetIds = request.startRage ? [] : [...new Set(request.targetIds || [])];
   const requestedTargetCells = Array.isArray(request.targetCells) ? request.targetCells : [];
   let targetCells = [...new Set(requestedTargetCells)].filter(cell => typeof cell === "string");
+  const occupiedCellTargetIds = actionIs(declaredAction, "skirmish") ? targetCells.flatMap(cell => {
+    const [x, y] = cell.split(",").map(Number);
+    return (scene.actors || []).filter(candidate => candidate.team !== actor.team && candidate.space === actor.space && Number(candidate.x) === x && Number(candidate.y) === y && effectPresenceStatus(scene, candidate.id).onField).map(candidate => candidate.id);
+  }) : [];
+  targetIds = [...new Set([...targetIds, ...occupiedCellTargetIds])];
   let targets = targetIds.map(id => actorById(scene, id)).filter(Boolean);
   const attack = candidate => actionIsAny(candidate, ["skirmish", "spell", "finish"]);
   const attackModifiers = attack(declaredAction) ? attackModifierStatus(scene, actor.id, targetIds, request.attackModifierIds || [], { actionId: declaredAction.id, origin: request.armamentMode === "blade" ? request.armamentDestination : null }) : { available: !(request.attackModifierIds || []).length, reason: "Модификаторы Атаки применимы только к Атакам.", selectedIds: [], advantage: 0, actionTransform: null };
@@ -398,7 +402,6 @@ function prepareAction(scene, data, request = {}) {
   if (targets.some(target => target.knockedOut)) errors.push("Выведенный из боя персонаж не может быть целью действия.");
   if (spellModifiers.length > (spellcrafterLevel >= 3 ? 2 : 1)) errors.push("Этот Уровень Творца заклинаний не позволяет столько Модификаций.");
   if (spellModifiers.some(mod => !learnedSpellModifiers.has(mod))) errors.push("Можно применить только Модификации, изученные при получении Уровней Творца заклинаний.");
-  if (spellModifiers.some(mod => ["focused", "wild"].includes(mod))) errors.push("Сфокусированная и Дикая Модификации применяются через зональный конструктор Техники.");
   if (spellModifiers.length && Number(actor[modifierResource] || 0) < spellModifiers.length) errors.push(`Недостаточно ресурса для ${spellModifiers.length} Модификаций.`);
   if (gunslingerSkirmish && (!Number.isInteger(bulletsSpent) || bulletsSpent < 1 || !Number.isInteger(bulletAdvantage) || bulletAdvantage < 0)) errors.push("Укажите целое число потраченных Пуль и Пуль на Преимущество.");
   if (gunslingerSkirmish && bulletAdvantage + Math.max(0, selectedTargetCount - 1) > bulletsSpent - 1) errors.push("Дополнительных Пуль не хватает одновременно на выбранные цели и Преимущество.");
@@ -499,12 +502,10 @@ function prepareAction(scene, data, request = {}) {
     }
     const space = (scene.spaces || []).find(item => item.id === actor.space), targetCellPoints = targetCells.map(cell => { const [x, y] = cell.split(",").map(Number); return { cell, space: actor.space, x, y }; });
     const invalidTargetCell = targetCellPoints.find(point => !space || !/^(?:0|[1-9]\d*),(?:0|[1-9]\d*)$/.test(point.cell) || !Number.isInteger(point.x) || !Number.isInteger(point.y) || point.x < 0 || point.y < 0 || point.x >= Number(space.width) || point.y >= Number(space.height) || removedCellKeys(scene, actor.space).has(point.cell));
-    const occupiedTargetCell = targetCellPoints.find(point => (scene.actors || []).some(candidate => candidate.space === actor.space && Number(candidate.x) === point.x && Number(candidate.y) === point.y && effectPresenceStatus(scene, candidate.id).onField));
-    const cellLimit = limit + (actionIs(action, "skirmish") && Number(actor.techniques?.["disruptor.hunter"] || 0) >= 2 ? 3 : 0), distantTargetCell = targetCellPoints.find(point => distance(attackOrigin, point) > cellLimit), blockedTargetCell = targetCellPoints.find(point => !wallTargetingStatus(scene, attackOrigin, point, { range: cellLimit }).available);
+    const cellLimit = limit + (actionIs(action, "skirmish") && !targetIds.length && Number(actor.techniques?.["disruptor.hunter"] || 0) >= 2 ? 3 : 0), distantTargetCell = targetCellPoints.find(point => distance(attackOrigin, point) > cellLimit), blockedTargetCell = targetCellPoints.find(point => !wallTargetingStatus(scene, attackOrigin, point, { range: cellLimit }).available);
     if (targetCells.length && !actionIs(action, "skirmish")) errors.push("Пустую клетку можно выбрать целью только для Стычки.");
     if (requestedTargetCells.length > 40) errors.push("Можно передать не больше 40 клеток-целей.");
     if (invalidTargetCell) errors.push("Одна из выбранных клеток находится вне доступного поля.");
-    if (occupiedTargetCell) errors.push("Цель-клетка должна быть пустой: персонажа выбирайте как обычную цель.");
     if (distantTargetCell) errors.push(`Пустая клетка должна быть в пределах ${cellLimit} клеток.`);
     if (blockedTargetCell) errors.push("Стена перекрывает проведение цели к выбранной клетке.");
     if (!targets.length && !targetCells.length && !zealotRupture) errors.push("Выберите цель атаки.");
@@ -513,7 +514,8 @@ function prepareAction(scene, data, request = {}) {
     const unavailableWallTarget = targets.find(target => !wallTargetingStatus(scene, attackOrigin, target, { range: limit }).available);
     if (unavailableWallTarget) errors.push("Стена перекрывает проведение цели.");
     if (heavenlyHealing ? targets.some(target => target.team !== actor.team || target.id === actor.id) : !thunderDischarge && !zealotRupture && targets.some(target => target.team === actor.team)) errors.push(heavenlyHealing ? "Очищающий свет выбирает союзника, но не самого исполнителя." : "Базовая Атака может выбирать целью только противника.");
-    if (actionIs(action, "skirmish") && !gunslingerSkirmish && !knifeThrow && targets.length + targetCells.length > 2) errors.push("Стычка выбирает не больше 2 целей или клеток суммарно.");
+    const occupiedSelectedCells = new Set(targetCellPoints.filter(point => targets.some(target => target.space === point.space && Number(target.x) === point.x && Number(target.y) === point.y)).map(point => point.cell));
+    if (actionIs(action, "skirmish") && !gunslingerSkirmish && !knifeThrow && targets.length + targetCells.filter(cell => !occupiedSelectedCells.has(cell)).length > 2) errors.push("Стычка выбирает не больше 2 целей или клеток суммарно.");
     if (!actionIs(action, "skirmish") && targets.length > 1 && !thunderDischarge && !eclipseStars && !zealotRupture) errors.push(`${action.name} выбирает только одну цель.`);
     const constrictorReach = target => actionIs(action, "finish") && Number(actor.techniques?.["disruptor.constrictor"] || 0) >= 2 && ["body", "talent"].includes(actionAttribute) && caughtByConstrictor(target);
     if (!thunderDischarge && !eclipseStars && !zealotRupture && targets.some(target => distance(attackOrigin, target) > limit && !constrictorReach(target))) errors.push(`Цель должна быть в пределах ${limit} клеток от клетки появления.`);
@@ -532,6 +534,7 @@ function prepareAction(scene, data, request = {}) {
         }
       });
       events.push({ type: "action.resolve", actorId: actor.id, payload: { actionInstanceId, actionId: action.id, name: action.name, targetIds, heavenlyHealing: true } });
+      if (request.roll?.rolls) events.push({ type: "roll.public", actorId: actor.id, payload: clone(request.roll) });
     } else {
       targets.forEach(target => events.push({ type: "reaction.offer", actorId: target.id, payload: { sourceActorId: actor.id, actionId: action.id } }));
       const icicleHalo = available?.quickSource?.id === "ruiner.cryomancer.2.icicle";
@@ -714,8 +717,9 @@ function prepareEnemyRule(scene, data, request = {}) {
   let attackMovePath = [];
   if (targets.length !== targetIds.length) errors.push("Одна из выбранных целей больше не находится на Сцене.");
   if (targets.some(target => target.knockedOut)) errors.push("Выведенный из боя персонаж не может быть целью действия.");
-  const unavailableEffectTarget = actor && !hiddenAssassinAttack && targets.find(target => !effectTargetingStatus(scene, actor.id, target.id).available);
-  if (unavailableEffectTarget) errors.push(effectTargetingStatus(scene, actor.id, unavailableEffectTarget.id).reason);
+  const targetingOptions = fullRule?.type === "healer-heal" ? { ignoreHealerGuardian: true } : {};
+  const unavailableEffectTarget = actor && !hiddenAssassinAttack && targets.find(target => !effectTargetingStatus(scene, actor.id, target.id, targetingOptions).available);
+  if (unavailableEffectTarget) errors.push(effectTargetingStatus(scene, actor.id, unavailableEffectTarget.id, targetingOptions).reason);
   const unavailableWallTarget = attackOrigin && targets.find(target => !wallTargetingStatus(scene, attackOrigin, target, { range: rule?.range }).available);
   if (unavailableWallTarget) errors.push("Стена перекрывает проведение цели.");
   const space = actor && (scene.spaces || []).find(item => item.id === actor.space);
@@ -750,7 +754,7 @@ function prepareEnemyRule(scene, data, request = {}) {
   if ((available?.requiresTarget ?? rule?.requiresTarget) && !targets.length && fullRule?.type !== "guardian-shield") errors.push(rule.kind === "attack" ? "Выберите хотя бы одну цель Атаки." : "Выберите цель действия.");
   if (fullRule?.type === "executioner-bifurcate" && (targets.length !== 1 || targets[0]?.team === actor?.team)) errors.push("Рассечение требует одного противника.");
   if (fullRule?.type === "revenant-hollowed-eyes" && targets.length !== 1) errors.push("Для Пустых глаз нужен игрок с наименьшим Фокусом.");
-  if (fullRule?.type === "healer-heal" && (targets.length !== 1 || targets[0]?.team !== actor?.team || distance(actor, targets[0]) > 3)) errors.push("Лечение требует одного союзника в пределах 3 клеток.");
+  if (fullRule?.type === "healer-heal" && (targets.length !== 1 || targets[0]?.team !== actor?.team || distance(actor, targets[0]) > 3)) errors.push("Лечение требует самого Целителя или одного союзника в пределах 3 клеток.");
   if (fullRule?.type === "healer-savior" && (targets.length !== 1 || targets[0]?.knockedOut || targets[0]?.id !== actor?.ruleState?.healerGuardianId)) errors.push("Для Спасителя сначала выберите доступного Стража в начале Хода Целителя.");
   if (actor && isAttackRule && available?.automation === "attack" && family.audience !== "any" && targets.some(target => target.team === actor.team)) errors.push("Эта автоматизированная Атака может выбирать целью только другую сторону.");
   const attackModifiers = actor && isAttackRule && available?.automation === "attack" ? attackModifierStatus(scene, actor.id, targetIds.filter(id => actorById(scene, id)?.team !== actor.team), request.attackModifierIds || []) : { available: !(request.attackModifierIds || []).length, reason: "Модификаторы доступны только Атаке, подключённой к общему окну Реакций.", selectedIds: [], advantage: 0 };
