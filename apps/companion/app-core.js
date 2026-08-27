@@ -166,7 +166,7 @@ function sceneCore(raw){
     for(const targetId of base.pendingAction.targetIds||[])if(!actorAvailable(targetId)&&base.pendingAction.responses?.[targetId]?.choice==="pending")base.pendingAction.responses[targetId]={choice:"unavailable",reason:"Цель больше недоступна"};
   }
   const rawPrompt=base.pendingPrompt,promptSource=actorFor(rawPrompt?.sourceActorId),promptTarget=rawPrompt?.targetId?actorFor(rawPrompt.targetId):null,promptMarkerId=rawPrompt?.markerId||rawPrompt?.context?.markerId;
-  if(rawPrompt&&(!promptSource||promptSource.knockedOut||rawPrompt.targetId&&(!promptTarget||promptTarget.knockedOut)||promptMarkerId&&!markerIds.has(promptMarkerId))){base.pendingPrompt=null;base.triggerQueue=[]}
+  if(rawPrompt&&(!promptSource||promptSource.knockedOut||rawPrompt.targetId&&(!promptTarget||promptTarget.knockedOut)||promptMarkerId&&!markerIds.has(promptMarkerId)||Number(rawPrompt.expiresAt)>0&&Number(rawPrompt.expiresAt)<=Date.now())){base.pendingPrompt=null;base.triggerQueue=[]}
   const queuedPromptValid=item=>{const deferred=item?.event?.payload||{},source=actorFor(item?.event?.actorId||deferred.sourceActorId),target=deferred.targetId?actorFor(deferred.targetId):null,markerId=deferred.markerId||deferred.context?.markerId;return item&&typeof item.key==="string"&&item.event?.type==="rule.prompt"&&source&&!source.knockedOut&&(!deferred.targetId||target&&!target.knockedOut)&&(!markerId||markerIds.has(markerId))};
   base.triggerQueue=(base.triggerQueue||[]).filter(queuedPromptValid);
   if(base.challengeRequest&&!actorAvailable(base.challengeRequest.actorId))base.challengeRequest=null;

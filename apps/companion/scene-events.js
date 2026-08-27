@@ -908,7 +908,7 @@ function reduceEvent(scene, event) {
   } else if (event.type === "rule.prompt") {
     const options = PLACEMENT_PROMPT_KINDS.has(payload.kind) && !payload.options.includes("cell") ? ["cell", ...payload.options] : payload.options;
     const requiredActorIds = [event.actorId, payload.sourceActorId, payload.targetId].filter(Boolean);
-    if (!requiredActorIds.some(id => actorById(scene, id)?.knockedOut)) scene.pendingPrompt = { id: payload.id, kind: payload.kind, actorId: event.actorId, sourceActorId: payload.sourceActorId || event.actorId, controller: payload.controller === "narrator" ? "narrator" : "source", targetId: payload.targetId || null, markerId: payload.markerId || null, title: payload.title || "Решение правила", text: payload.text || "", options: clone(options || []), context: clone(payload.context || {}) };
+    if (!requiredActorIds.some(id => actorById(scene, id)?.knockedOut)) scene.pendingPrompt = { id: payload.id, kind: payload.kind, actorId: event.actorId, sourceActorId: payload.sourceActorId || event.actorId, controller: payload.controller === "narrator" ? "narrator" : "source", targetId: payload.targetId || null, markerId: payload.markerId || null, title: payload.title || "Решение правила", text: payload.text || "", options: clone(options || []), context: clone(payload.context || {}), createdAt: event.at || new Date().toISOString(), expiresAt: Date.now() + 120000 };
   } else if (event.type === "rule.respond") {
     payload.kind = scene.pendingPrompt?.kind || payload.kind;
     payload.sourceActorId = scene.pendingPrompt?.sourceActorId || null;
