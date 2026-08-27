@@ -1,6 +1,6 @@
 # DAWN: кодовая спецификация способностей врагов
 
-> Сгенерировано `npm run docs:rules` из канонического `apps/companion/data.js` (SHA-256 `51a5735632f72c02ce775a41bf0f11df28bc982eeb2c98f3fe1f1b2ae2b9bbb7`).
+> Сгенерировано `npm run docs:rules` из канонического `apps/companion/data.js` (SHA-256 `73ba9392e5278649ae74f01b58e721cc17a156fc694c570544f6c44eb27de24d`).
 > Русский текст - канонический перевод из `source/translation/`; локальные профили Леона взяты из `source/companion/named-enemies.md`. Английские названия сверяются с `source/translation/adapted-names-index.md` и, для Черточек Антагониста, с `source/original/Dawn - A Diceless Fantasy TTRPG.pdf`.
 
 ## Границы и правило честности
@@ -138,7 +138,7 @@
 
 - **Заявленный кодовый статус:** `attack` (атака).
 - **Входная конфигурация:** `{"kind":"attack","apCost":1,"tension":0,"dice":"8(+2)","tensionMultiplier":2,"target":"targetIds: 1..1","targetEffects":["Разорван"]}`.
-- **Текущий адаптер:** статус `attack`; реестр: `scene-actions.js:24`, `scene-actions.js:64`, `scene-actions.js:753`.
+- **Текущий адаптер:** статус `attack`; реестр: `scene-actions.js:24`, `scene-actions.js:64`, `scene-actions.js:765`.
 - **Нужно добавить / проверить:** Кодовый пробел не выведен из статуса; нужны прямые pos/neg/boundary тесты и evidence для UI/сети/save-load.
 
 #### Рассечение `enemy.common.executioner.trump.bifurcate`
@@ -782,7 +782,7 @@
 
 - **Заявленный кодовый статус:** `assisted` (помощь Нарратора).
 - **Входная конфигурация:** `{"kind":"trump","apCost":2,"tension":0,"dice":"6(+1)","tensionMultiplier":1,"target":"targetIds: 1..1, range≤10"}`.
-- **Текущий адаптер:** частичная конфигурация есть в `scene-actions.js:89`, `scene-actions.js:666`, `scene-actions.js:929`, но исполнимого статуса нет.
+- **Текущий адаптер:** частичная конфигурация есть в `scene-actions.js:89`, `scene-actions.js:677`, `scene-actions.js:941`, но исполнимого статуса нет.
 - **Нужно добавить / проверить:** Конфигурация повторяет канонический урон три раза вместо одного броска 6(+1)D6.
 
 ### Культист (Cultist) `enemy.common.cultist`

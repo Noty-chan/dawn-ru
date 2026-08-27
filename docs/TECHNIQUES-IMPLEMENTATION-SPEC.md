@@ -1,6 +1,6 @@
 # DAWN: кодовая спецификация Техник
 
-> Сгенерировано `npm run docs:rules` из канонического `apps/companion/data.js` (SHA-256 `51a5735632f72c02ce775a41bf0f11df28bc982eeb2c98f3fe1f1b2ae2b9bbb7`).
+> Сгенерировано `npm run docs:rules` из канонического `apps/companion/data.js` (SHA-256 `73ba9392e5278649ae74f01b58e721cc17a156fc694c570544f6c44eb27de24d`).
 > Русский текст - канонический перевод из `source/translation/`; локальные профили Леона взяты из `source/companion/named-enemies.md`. Английские названия сверяются с `source/translation/adapted-names-index.md` и, для Черточек Антагониста, с `source/original/Dawn - A Diceless Fantasy TTRPG.pdf`.
 
 ## Границы этого документа
@@ -515,15 +515,15 @@
 
 #### 1. Засада (Ambush) `vagabond.assassin.1`
 
-- **Заявленный статус:** `partial` (частичная).
-- **Текущий адаптер:** `vagabond.assassin.1` · `passive` · {"kind":"passive"}; Первое Скрыться в пустом журнале Сцены бесплатно и игнорирует требования; нет привязки к последнему Развертыванию, поэтому повторное/позднее Развертывание не покрыто..
+- **Заявленный статус:** `full` (полная).
+- **Текущий адаптер:** `vagabond.assassin.1` · `passive` · {"kind":"passive"}; Первое действие после последнего Развертывания проверяется по журналу; только Скрыться становится бесплатным и игнорирует требования..
 - **Готовые foundations:** `usage-limits`, `trigger-router`, `action-modifier`.
 - **Нужно добавить:** Заявление full понижено до partial: quickActionSources проверяет пустой журнал действий Сцены, а не первое действие после конкретного Развертывания.
 
 #### 2. Ликвидация (Assassinate) `vagabond.assassin.2`
 
-- **Заявленный статус:** `partial` (частичная).
-- **Текущий адаптер:** `vagabond.assassin.2` · `passive` · {"kind":"passive"}; Сохраняемый план разрешает отменяемый выбор клетки появления, включая смежную; ядро не добавляет и не валидирует [Ступень] Преимущества и критические успехи на 5–6..
+- **Заявленный статус:** `decision` (решение).
+- **Текущий адаптер:** `vagabond.assassin.2` · `passive` · {"kind":"passive"}; Сохраняемый план разрешает отменяемое смежное появление; ядро повторно проверяет источник Исчезновения, клетку, цели и авторитетный бросок с [Ступень] Преимущества и критом на 5–6..
 - **Готовые foundations:** `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `trigger-router`, `reaction-window`, `choice-flow`, `action-modifier`, `composite-action`, `dice-hooks`.
 - **Нужно добавить:** Заявление decision понижено до partial: composite plan покрывает появление и отмену, но ядро принимает готовый roll и не добавляет/не валидирует [Ступень] Преимущества и крит на 5–6.
 
@@ -1485,15 +1485,15 @@
 
 #### 1. Быстрая смесь (Quick Mix) `altruist.alchemist.1`
 
-- **Заявленный статус:** `partial` (частичная).
-- **Текущий адаптер:** `altruist.alchemist.1` · `inventory` · {"kind":"inventory"}; Создание, запас, дальность и пять одноэффектных Зелий работают; Чистая вода удаляет все Эффекты без канонического выбора подмножества..
+- **Заявленный статус:** `decision` (решение).
+- **Текущий адаптер:** `altruist.alchemist.1` · `inventory` · {"kind":"inventory"}; Передышка опционально создаёт один из канонических типов; Взаимодействие проверяет запас и дальность, а Чистая вода выбирает любое подмножество Эффектов до оплаты и расхода Зелья..
 - **Готовые foundations:** `target-validation`, `event-participants`, `spatial-range`, `effect-state`, `effect-lifecycle`, `trigger-router`, `choice-flow`, `action-modifier`.
 - **Нужно добавить:** Заявление full понижено до partial: Чистая вода удаляет все Эффекты без канонического выбора любого подмножества. Опциональный отказ от создания Зелья и запрет неканонических типов добавлены при повторном аудите.
 
 #### 2. Мощная смесь (Powerful Mix) `altruist.alchemist.2`
 
-- **Заявленный статус:** `partial` (частичная).
-- **Текущий адаптер:** `altruist.alchemist.2` · `passive` · {"kind":"passive"}; Фокус союзнику работает; для врага нужен отсутствующий канонический выбор, наносить ли урон..
+- **Заявленный статус:** `decision` (решение).
+- **Текущий адаптер:** `altruist.alchemist.2` · `passive` · {"kind":"passive"}; Союзник автоматически получает ceil(Разум/2) Фокуса; для врага после фактического использования Зелья открывается перепроверяемый выбор нанести Разум урона или отказаться..
 - **Готовые foundations:** `target-validation`, `event-participants`, `resource-check`, `trigger-router`, `choice-flow`, `damage-pipeline`.
 - **Нужно добавить:** Урон зельем по врагу применяется обязательно, хотя канон требует опциональный выбор.
 
@@ -1623,22 +1623,22 @@
 
 #### 1. Пламя духовного плетения (Spirit Weaving Flame) `altruist.will-o-wisp.1`
 
-- **Заявленный статус:** `partial` (частичная).
-- **Текущий адаптер:** `altruist.will-o-wisp.1` · `passive` · {"kind":"passive"}; Первая Зарядка, выбранная аура и ручное движение Пламени работают; обязательный толчок маркера при атаке его клетки отсутствует..
+- **Заявленный статус:** `decision` (решение).
+- **Текущий адаптер:** `altruist.will-o-wisp.1` · `passive` · {"kind":"passive"}; Изученный тип Духа сохраняется в листе и импорте; первая Зарядка создаёт Пламя, а Атака по его клетке обязательно толкает маркер на 1..
 - **Готовые foundations:** `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `owned-entities`, `entity-lifecycle`, `usage-limits`, `trigger-router`, `choice-flow`, `action-modifier`.
 - **Нужно добавить:** Заявление decision понижено до partial: первая Зарядка, аура и выбранное движение есть, но Пламя не толкается на 1 клетку, когда Атака выбирает целью его клетку.
 
 #### 2. Дружелюбные духи (Friendly Spirits) `altruist.will-o-wisp.2`
 
-- **Заявленный статус:** `partial` (частичная).
-- **Текущий адаптер:** `altruist.will-o-wisp.2` · `passive` · {"kind":"passive"}; Выход из Пламени вызывает выбор, но enemy movement уже разрешён целиком и затем откатывается: путь не обрывается до downstream enter-триггеров..
+- **Заявленный статус:** `decision` (решение).
+- **Текущий адаптер:** `altruist.will-o-wisp.2` · `passive` · {"kind":"passive"}; Дружественный выход предлагает переместить Пламя; вражеский путь прерывается на первой клетке выхода до downstream enter-триггеров и продолжается только после перепроверяемого отказа..
 - **Готовые foundations:** `target-validation`, `event-participants`, `resource-check`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `reaction-window`, `choice-flow`.
 - **Нужно добавить:** Заявление decision понижено до partial: остановка врага происходит после полного actor.move и ретроспективно возвращает его в первую клетку выхода, поэтому downstream enter/path-триггеры уже могли сработать за канонической точкой остановки.
 
 #### 3. Парные духи (Twinned Spirits) `altruist.will-o-wisp.3`
 
 - **Заявленный статус:** `decision` (решение).
-- **Текущий адаптер:** `altruist.will-o-wisp.3` · `passive` · {"kind":"passive"}; Поддерживаются одно Пламя с двумя свойствами либо два независимых Пламени..
+- **Текущий адаптер:** `altruist.will-o-wisp.3` · `passive` · {"kind":"passive"}; Второй изученный тип сохраняется; поддерживаются одно Пламя с двумя свойствами либо два независимых Пламени с отдельными эффектами и движением..
 - **Готовые foundations:** `owned-entities`, `entity-lifecycle`, `trigger-router`, `choice-flow`.
 - **Нужно добавить:** Для кода явный следующий шаг не выведен автоматически; нужны direct pos/neg/boundary тесты и evidence до повышения доверия.
 
@@ -2133,22 +2133,22 @@
 
 #### 1. Взрыв!! (Explosion!!) `ruiner.bombardier.1`
 
-- **Заявленный статус:** `partial` (частичная).
-- **Текущий адаптер:** `ruiner.bombardier.1` · `area` · {"kind":"area","shape":"adjacent","areaType":"attack","duration":"instant","range":4}; Геометрия и attack pipeline готовы, но preview не доказывает обязательный бросок Завершения Духом..
+- **Заявленный статус:** `full` (полная).
+- **Текущий адаптер:** `ruiner.bombardier.1` · `area` · {"kind":"area","shape":"adjacent","areaType":"attack","duration":"instant","range":4}; Завершение Духом использует авторитетный снимок пула; центр в дальности 4 поражает выбранную клетку и четыре смежные через общий attack pipeline..
 - **Готовые foundations:** `target-validation`, `event-participants`, `spatial-cells`, `spatial-range`, `action-modifier`.
 - **Нужно добавить:** Заявление full понижено до partial: area/reaction/damage pipeline существует, но preview принимает готовые `roll.successes` и не валидирует обязательное Завершение Духом.
 
 #### 2. Взрыв!!! (Explosion!!!) `ruiner.bombardier.2`
 
-- **Заявленный статус:** `partial` (частичная).
-- **Текущий адаптер:** `ruiner.bombardier.2` · `area` · {"kind":"area","shape":"square3","areaType":"attack","duration":"instant","range":5,"optionMinimum":{"key":"focusSpent","value":2,"label":"потрачено Фокуса"}}; Зона и минимум Фокуса готовы, но атрибут и результаты Завершения Духом доверены запросу..
+- **Заявленный статус:** `full` (полная).
+- **Текущий адаптер:** `ruiner.bombardier.2` · `area` · {"kind":"area","shape":"square3","areaType":"attack","duration":"instant","range":5,"optionMinimum":{"key":"focusSpent","value":2,"label":"потрачено Фокуса"}}; При фактической оплате 2+ Фокуса Завершение Духом использует перепроверяемую зону 3×3 в дальности 5..
 - **Готовые foundations:** `target-validation`, `event-participants`, `spatial-cells`, `spatial-range`, `resource-check`, `trigger-router`, `choice-flow`, `action-modifier`.
 - **Нужно добавить:** Заявление full понижено до partial: 3×3, range 5 и Focus≥2 проверяются, но атрибут и результаты Spirit Finisher не авторитетны.
 
 #### 3. ВЗРЫВ!!!! (EXPLOSION!!!!) `ruiner.bombardier.3`
 
-- **Заявленный статус:** `partial` (частичная).
-- **Текущий адаптер:** `ruiner.bombardier.3` · `area` · {"kind":"area","shape":"square5","areaType":"attack","duration":"instant","range":6,"optionMinimum":{"key":"focusSpent","value":4,"label":"потрачено Фокуса"}}; Зона, цели, трата Фокуса и Реакции работают, но обязательный Spirit Finisher roll не валидируется авторитетно..
+- **Заявленный статус:** `full` (полная).
+- **Текущий адаптер:** `ruiner.bombardier.3` · `area` · {"kind":"area","shape":"square5","areaType":"attack","duration":"instant","range":6,"optionMinimum":{"key":"focusSpent","value":4,"label":"потрачено Фокуса"}}; При фактической оплате 4+ Фокуса Завершение Духом использует перепроверяемую и обрезаемую краем поля зону 5×5 в дальности 6..
 - **Готовые foundations:** `target-validation`, `event-participants`, `spatial-cells`, `spatial-range`, `resource-check`, `trigger-router`, `choice-flow`, `action-modifier`.
 - **Нужно добавить:** Заявление full понижено до partial: 5×5, range 6 и Focus≥4 проверяются, но атрибут и результаты Spirit Finisher не авторитетны; полного surface evidence нет.
 
@@ -2202,22 +2202,22 @@
 
 #### 1. Эксперимент (Experimentation) `ruiner.spellcrafter.1`
 
-- **Заявленный статус:** `partial` (частичная).
-- **Текущий адаптер:** `ruiner.spellcrafter.1` · `modifier-choice` · {"kind":"modifier-choice"}; Эффекты модификаций работают, но UI позволяет выбирать любую из четырёх вместо одной, зафиксированной при получении уровня..
+- **Заявленный статус:** `decision` (решение).
+- **Текущий адаптер:** `ruiner.spellcrafter.1` · `modifier-choice` · {"kind":"modifier-choice"}; Одна изученная Модификация сохраняется в листе, сцене и импорте; каждое применение к Заклинанию или Завершению атомарно тратит 1 Новаторство..
 - **Готовые foundations:** `spatial-cells`, `spatial-range`, `usage-limits`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier`.
 - **Нужно добавить:** Заявление decision понижено до partial: канон фиксирует одну Модификацию при получении уровня, а текущий UI позволяет перед каждой Атакой выбрать любую из четырёх.
 
 #### 2. Закрепление (Solidification) `ruiner.spellcrafter.2`
 
-- **Заявленный статус:** `partial` (частичная).
-- **Текущий адаптер:** `ruiner.spellcrafter.2` · `modifier-choice` · {"kind":"modifier-choice"}; Оплата Фокусом и стартовый бонус есть, но отсутствует постоянный набор изученных модификаций уровня I..
+- **Заявленный статус:** `decision` (решение).
+- **Текущий адаптер:** `ruiner.spellcrafter.2` · `modifier-choice` · {"kind":"modifier-choice"}; Новаторство отключается, стартовый Фокус увеличивается на Разум, а изученная Модификация атомарно стоит 1 Фокус за применение..
 - **Готовые foundations:** `resource-check`, `trigger-router`, `action-modifier`.
 - **Нужно добавить:** Заявление decision понижено до partial: Focus-оплата и стартовый бонус работают, но уровень наследует отсутствие постоянного набора изученных Модификаций.
 
 #### 3. Финализация (Finalization) `ruiner.spellcrafter.3`
 
-- **Заявленный статус:** `partial` (частичная).
-- **Текущий адаптер:** `ruiner.spellcrafter.3` · `modifier-choice` · {"kind":"modifier-choice"}; Две разные модификации оплачиваются, но могут быть выбраны из полного списка независимо от изученного набора..
+- **Заявленный статус:** `decision` (решение).
+- **Текущий адаптер:** `ruiner.spellcrafter.3` · `modifier-choice` · {"kind":"modifier-choice"}; Второй изученный вариант сохраняется; одно действие может выбрать не более двух разных изученных Модификаций и платит за обе в одной проверяемой цепочке..
 - **Готовые foundations:** `resource-check`, `trigger-router`, `action-modifier`.
 - **Нужно добавить:** Заявление decision понижено до partial: две разные Модификации можно оплатить, однако они выбираются из полного списка, а не из канонически изученных вариантов.
 
@@ -2255,8 +2255,8 @@
 
 #### 2. Ледяной нимб (Icicle Halo) `ruiner.cryomancer.2`
 
-- **Заявленный статус:** `partial` (частичная).
-- **Текущий адаптер:** `ruiner.cryomancer.2.foundation` · `foundation` · {"kind":"foundation","foundation":"clock","clockId":"ruiner.cryomancer.icicle","size":4,"initial":0}; Часы и серия работают, но отказ тратит любой текущий Фокус и не связан с Фокусом именно этой Передышки..
+- **Заявленный статус:** `decision` (решение).
+- **Текущий адаптер:** `ruiner.cryomancer.2.foundation` · `foundation` · {"kind":"foundation","foundation":"clock","clockId":"ruiner.cryomancer.icicle","size":4,"initial":0}; Заклинания получают Преимущество; Сосулька заполняется только фактическим Focus gain, а persisted prompt может отказаться лишь от gain конкретной Передышки и ведёт точную серию Быстрых Заклинаний с половинным уроном..
 - **Готовые foundations:** `target-validation`, `event-participants`, `resource-check`, `effect-state`, `effect-lifecycle`, `rule-clock`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier`, `dice-hooks`.
 - **Нужно добавить:** Заявление decision понижено до partial: Breathe prompt тратит любой текущий 1 Focus и не доказывает, что это Фокус, полученный именно текущей Передышкой; при alternate-resource возможна ложная активация.
 

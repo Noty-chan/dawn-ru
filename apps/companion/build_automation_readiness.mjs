@@ -27,6 +27,7 @@ const automationLabels = { full: "полная", decision: "решение", par
 
 if (evidence.schemaVersion !== 1 || !Array.isArray(evidence.entries)) throw new Error("automation-evidence.json: unsupported schema");
 const evidenceIds = new Set();
+const staleEvidence = [];
 for (const entry of evidence.entries) {
   if (!entry.id || evidenceIds.has(entry.id)) throw new Error(`automation-evidence.json: missing or duplicate id ${entry.id || "<empty>"}`);
   evidenceIds.add(entry.id);
@@ -38,7 +39,7 @@ for (const entry of evidence.entries) {
   const sourcePath = path.join(root, entry.sourcePath);
   if (!fs.existsSync(sourcePath)) throw new Error(`automation-evidence.json: missing source ${entry.sourcePath} for ${entry.id}`);
   const actualDigest = crypto.createHash('sha256').update(fs.readFileSync(sourcePath)).digest('hex');
-  if (entry.sourceDigest !== `sha256:${actualDigest}`) throw new Error(`automation-evidence.json: stale source digest for ${entry.id}`);
+  if (entry.sourceDigest !== `sha256:${actualDigest}`) staleEvidence.push({ entry, actualDigest: `sha256:${actualDigest}` });
   for (const test of entry.tests) {
     if (!test.path || !fs.existsSync(path.join(root, test.path))) throw new Error(`automation-evidence.json: missing test file ${test.path || "<empty>"} for ${entry.id}`);
   }
@@ -49,7 +50,8 @@ for (const entry of evidence.entries) {
     }
   }
 }
-const certifiedEvidence = evidence.entries.filter(entry => entry.confidence === "certified");
+const staleEvidenceIds = new Set(staleEvidence.map(({ entry }) => entry.id));
+const certifiedEvidence = evidence.entries.filter(entry => entry.confidence === "certified" && !staleEvidenceIds.has(entry.id));
 
 const techniqueCounts = countBy(coverage, "automation");
 const executableTechniqueLevels = Number(techniqueCounts.full || 0) + Number(techniqueCounts.decision || 0);
@@ -81,6 +83,16 @@ const lines = [
   "",
   `Формально сертифицировано сейчас: **${certifiedEvidence.length}** записей. Это не означает, что остальные сломаны: до появления доказательной записи их корректность считается **неизвестной**, даже если адаптер существует и happy-path тест проходит. Проценты выше измеряют охват кодом, а не верность правилам игры.`,
   "",
+  `Автоматически отозвано из-за изменившегося исходника: **${staleEvidence.length}** записей. Они перечислены ниже и не учитываются ни в одном сертифицированном счётчике.`,
+  "",
+  "### Автоматически отозванные evidence-записи",
+  "",
+  "| Evidence id | Исходник | Зафиксированный digest | Текущий digest |",
+  "| --- | --- | --- | --- |",
+  ...(staleEvidence.length
+    ? staleEvidence.map(({ entry, actualDigest }) => `| \`${escape(entry.id)}\` | \`${escape(entry.sourcePath)}\` | \`${escape(entry.sourceDigest)}\` | \`${escape(actualDigest)}\` |`)
+    : ["| — | — | — | — |"]),
+  "",
   "## Модель доверия",
   "",
   "| Уровень | Что действительно доказано | Можно показывать как готовое |",
@@ -102,7 +114,7 @@ const lines = [
   "",
   "### Обязательная evidence-запись",
   "",
-  "Для повышения до `certified` в `automation-evidence.json` нужны: стабильный id правила, `sourceDigest`, заявленный статус, уровень доверия, проверяемые claims, точные тестовые файлы, применимые поверхности `core/ui/network/persistence`, граничные случаи и commit аудита. CI отклоняет неполную запись и пропавший тестовый файл. Изменение исходника должно менять digest и тем самым отзывать прежнюю сертификацию.",
+  "Для повышения до `certified` в `automation-evidence.json` нужны: стабильный id правила, `sourceDigest`, заявленный статус, уровень доверия, проверяемые claims, точные тестовые файлы, применимые поверхности `core/ui/network/persistence`, граничные случаи и commit аудита. CI отклоняет неполную запись и пропавший тестовый файл. Изменение исходника меняет digest: генератор автоматически отзывает и явно перечисляет прежнее evidence, не принимая его за действующую сертификацию.",
   "",
   "До независимого прохода системные оценки ниже означают зрелость инфраструктуры и объём найденных тестов, а не процент буквально верных игровых правил.",
   "",
@@ -239,5 +251,5 @@ if (process.argv.includes("--check")) {
   } else console.log(`Automation readiness map is current: ${coverage.length} technique levels, ${enemyRules.length} enemy rules`);
 } else {
   fs.writeFileSync(target, output, "utf8");
-  console.log(`Automation readiness map written: ${coverage.length} technique levels, ${enemyRules.length} enemy rules`);
+  console.log(`Automation readiness map written: ${coverage.length} technique levels, ${enemyRules.length} enemy rules, ${staleEvidence.length} stale evidence entries revoked`);
 }

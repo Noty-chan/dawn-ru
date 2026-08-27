@@ -226,8 +226,8 @@ SHA-256 проверенных файлов: `6049f3ff6b79b8204c45cb8b830b265369
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Засада (Ambush) | проверено | частичная | `usage-limits`, `trigger-router`, `action-modifier`, `deployment-hooks` |
-| 2 | Ликвидация (Assassinate) | проверено | частичная | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `movement-lifecycle`, `trigger-router`, `reaction-window`, `choice-flow`, `action-modifier`, `composite-action`, `dice-hooks` |
+| 1 | Засада (Ambush) | проверено | полная | `usage-limits`, `trigger-router`, `action-modifier`, `deployment-hooks` |
+| 2 | Ликвидация (Assassinate) | проверено | с выбором | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `movement-lifecycle`, `trigger-router`, `reaction-window`, `choice-flow`, `action-modifier`, `composite-action`, `dice-hooks` |
 | 3 | Скорость тьмы (Speed of Dark) [Скрыться -> Шаг] | проверено | полная | `effect-state`, `effect-lifecycle`, `movement-lifecycle`, `action-modifier`, `action-history` |
 
 ### Снайпер (`vagabond.sniper`)
@@ -566,8 +566,8 @@ SHA-256 проверенных файлов: `6049f3ff6b79b8204c45cb8b830b265369
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Быстрая смесь (Quick Mix) | проверено | частичная | `target-validation`, `event-participants`, `spatial-range`, `effect-state`, `effect-lifecycle`, `inventory`, `trigger-router`, `choice-flow`, `action-modifier` |
-| 2 | Мощная смесь (Powerful Mix) | проверено | частичная | `target-validation`, `event-participants`, `resource-check`, `inventory`, `trigger-router`, `choice-flow`, `damage-pipeline` |
+| 1 | Быстрая смесь (Quick Mix) | проверено | с выбором | `target-validation`, `event-participants`, `spatial-range`, `effect-state`, `effect-lifecycle`, `inventory`, `trigger-router`, `choice-flow`, `action-modifier` |
+| 2 | Мощная смесь (Powerful Mix) | проверено | с выбором | `target-validation`, `event-participants`, `resource-check`, `inventory`, `trigger-router`, `choice-flow`, `damage-pipeline` |
 | 3 | Высокоинтенсивная смесь (High Intensity Mix) | проверено | ручная | `resource-check`, `inventory`, `trigger-router`, `choice-flow`, `action-modifier`, `dice-hooks` |
 
 ### Хрономант (`altruist.chronomancer`)
@@ -614,8 +614,8 @@ SHA-256 проверенных файлов: `6049f3ff6b79b8204c45cb8b830b265369
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Пламя духовного плетения (Spirit Weaving Flame) | проверено | частичная | `target-validation`, `event-participants`, `movement-lifecycle`, `effect-state`, `effect-lifecycle`, `owned-entities`, `entity-lifecycle`, `usage-limits`, `trigger-router`, `turn-lifecycle`, `scene-lifecycle`, `choice-flow`, `action-modifier` |
-| 2 | Дружелюбные духи (Friendly Spirits) | проверено | частичная | `target-validation`, `event-participants`, `resource-check`, `movement-lifecycle`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `reaction-window`, `choice-flow` |
+| 1 | Пламя духовного плетения (Spirit Weaving Flame) | проверено | с выбором | `target-validation`, `event-participants`, `movement-lifecycle`, `effect-state`, `effect-lifecycle`, `owned-entities`, `entity-lifecycle`, `usage-limits`, `trigger-router`, `turn-lifecycle`, `scene-lifecycle`, `choice-flow`, `action-modifier` |
+| 2 | Дружелюбные духи (Friendly Spirits) | проверено | с выбором | `target-validation`, `event-participants`, `resource-check`, `movement-lifecycle`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `reaction-window`, `choice-flow` |
 | 3 | Парные духи (Twinned Spirits) | проверено | с выбором | `owned-entities`, `entity-lifecycle`, `trigger-router`, `choice-flow` |
 
 ### Художник (`altruist.artist`)
@@ -794,9 +794,9 @@ SHA-256 проверенных файлов: `6049f3ff6b79b8204c45cb8b830b265369
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Взрыв!! (Explosion!!) | проверено | частичная | `target-validation`, `event-participants`, `spatial-cells`, `spatial-range`, `action-modifier` |
-| 2 | Взрыв!!! (Explosion!!!) | проверено | частичная | `target-validation`, `event-participants`, `spatial-cells`, `spatial-range`, `resource-check`, `trigger-router`, `choice-flow`, `action-modifier` |
-| 3 | ВЗРЫВ!!!! (EXPLOSION!!!!) | проверено | частичная | `target-validation`, `event-participants`, `spatial-cells`, `spatial-range`, `resource-check`, `trigger-router`, `choice-flow`, `action-modifier` |
+| 1 | Взрыв!! (Explosion!!) | проверено | полная | `target-validation`, `event-participants`, `spatial-cells`, `spatial-range`, `action-modifier` |
+| 2 | Взрыв!!! (Explosion!!!) | проверено | полная | `target-validation`, `event-participants`, `spatial-cells`, `spatial-range`, `resource-check`, `trigger-router`, `choice-flow`, `action-modifier` |
+| 3 | ВЗРЫВ!!!! (EXPLOSION!!!!) | проверено | полная | `target-validation`, `event-participants`, `spatial-cells`, `spatial-range`, `resource-check`, `trigger-router`, `choice-flow`, `action-modifier` |
 
 ### Револьверное колдовство (`ruiner.rapid-fire-sorcery`)
 
@@ -818,9 +818,9 @@ SHA-256 проверенных файлов: `6049f3ff6b79b8204c45cb8b830b265369
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Эксперимент (Experimentation) | проверено | частичная | `spatial-cells`, `spatial-range`, `inventory`, `usage-limits`, `trigger-router`, `scene-lifecycle`, `choice-flow`, `damage-pipeline`, `action-modifier`, `derived-stats` |
-| 2 | Закрепление (Solidification) | проверено | частичная | `resource-check`, `inventory`, `trigger-router`, `action-modifier`, `derived-stats` |
-| 3 | Финализация (Finalization) | проверено | частичная | `resource-check`, `inventory`, `trigger-router`, `action-modifier` |
+| 1 | Эксперимент (Experimentation) | проверено | с выбором | `spatial-cells`, `spatial-range`, `inventory`, `usage-limits`, `trigger-router`, `scene-lifecycle`, `choice-flow`, `damage-pipeline`, `action-modifier`, `derived-stats` |
+| 2 | Закрепление (Solidification) | проверено | с выбором | `resource-check`, `inventory`, `trigger-router`, `action-modifier`, `derived-stats` |
+| 3 | Финализация (Finalization) | проверено | с выбором | `resource-check`, `inventory`, `trigger-router`, `action-modifier` |
 
 ### Ученик звезд (`ruiner.student-of-stars`)
 
@@ -835,7 +835,7 @@ SHA-256 проверенных файлов: `6049f3ff6b79b8204c45cb8b830b265369
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
 | 1 | Охлаждение (Chill) | проверено | полная | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `trigger-router`, `action-modifier` |
-| 2 | Ледяной нимб (Icicle Halo) | проверено | частичная | `target-validation`, `event-participants`, `resource-check`, `effect-state`, `effect-lifecycle`, `rule-clock`, `trigger-router`, `scene-lifecycle`, `choice-flow`, `damage-pipeline`, `action-modifier`, `dice-hooks` |
+| 2 | Ледяной нимб (Icicle Halo) | проверено | с выбором | `target-validation`, `event-participants`, `resource-check`, `effect-state`, `effect-lifecycle`, `rule-clock`, `trigger-router`, `scene-lifecycle`, `choice-flow`, `damage-pipeline`, `action-modifier`, `dice-hooks` |
 | 3 | Раскол (Shatter) | проверено | ручная | `target-validation`, `event-participants`, `spatial-range`, `resource-check`, `effect-state`, `effect-lifecycle`, `trigger-router`, `damage-pipeline`, `action-modifier`, `information-query` |
 
 ### Драматург (`ruiner.dramaturge`)
