@@ -51,6 +51,8 @@ jobs:
           python apps/companion/build_data.py
           git diff --exit-code -- apps/companion/data.js
           cd apps/companion
+          npm run readiness
+          npm run docs:rules
           npm test
 
       - name: Assemble static site
