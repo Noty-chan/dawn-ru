@@ -420,6 +420,9 @@ function setCompoundHealth(scene, status, total) {
 function reduceEvent(scene, event) {
   const actor = event.actorId ? actorById(scene, event.actorId) : null;
   const payload = event.payload;
+  const target = payload?.targetId ? actorById(scene, payload.targetId) : null;
+  if(actor&&!payload.actorName)payload.actorName=actor.name;
+  if(target&&!payload.targetName)payload.targetName=target.name;
   if (event.type === "action.plan" && actor) {
     scene.pendingActionPlan = { id: payload.id, actorId: actor.id, actionId: payload.actionId, actionName: payload.actionName || payload.name || "Действие", phase: payload.phase, context: clone(payload.context), createdVersion: Number(scene.version || 0), createdEventId: event.id };
   } else if (event.type === "action.plan.update" && actor) {

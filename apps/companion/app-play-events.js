@@ -32,9 +32,9 @@ function setPlayCounter(key,value){
 $("play-counters").addEventListener("click",event=>{const b=event.target.closest("[data-counter]");if(!b)return;const key=b.dataset.counter;setPlayCounter(key,(+S.runtime[key]||0)+(+b.dataset.delta))});
 $("play-counters").addEventListener("change",event=>{const key=event.target.dataset.counterInput;if(key)setPlayCounter(key,event.target.value)});
 $("new-round").onclick=()=>{const committed=commitSceneEvents(`Завершён Раунд ${Scene.round}`,[{type:"round.end",actorId:null,payload:{}}]);if(committed)toast("Раунд завершён: Напряжение +1, ОД восстановлены")};
-$("new-scene").onclick=()=>{
-  renderSceneResults();$("scene-results")?.showModal();
+function finishSceneResults(clearTable=false){
   const d=derived();S.runtime.hp=d.hp;S.runtime.focus=d.focus;S.runtime.ap=3;S.runtime.tension=0;S.runtime.effects=[];
+  if(clearTable){commitScene("Начата новая пустая Сцена",scene=>{const view=scene.view,reset=blankScene();for(const key of Object.keys(scene))delete scene[key];Object.assign(scene,reset,{view})});$("scene-results")?.close();renderPlay();return}
   commitScene("Начата новая Сцена",scene=>{
     scene.round=1;scene.turnSerial=0;scene.tension=0;scene.activeActorId=null;scene.targetIds=[];
     scene.pendingAction=null;scene.pendingActionPlan=null;scene.pendingPrompt=null;scene.triggerQueue=[];scene.challengeRequest=null;scene.opposedRoll=null;scene.reminders=[];
@@ -46,10 +46,12 @@ $("new-scene").onclick=()=>{
       const persistentEffects=(actor.effects||[]).filter(effect=>actor.effectStates?.[effect]?.duration==="persistent");actor.effects=persistentEffects;actor.effectStates=Object.fromEntries(persistentEffects.map(effect=>[effect,actor.effectStates[effect]]));
       SceneEngine.resetRuleResources(actor,"scene");SceneEngine.resetRuleResources(actor,"round");SceneEngine.resetRuleClocks(actor,"scene");SceneEngine.resetRuleClocks(actor,"round");
     });
-    scene.objects=scene.objects.filter(object=>object.duration==="persistent");scene.markers=scene.markers.filter(marker=>marker.duration==="persistent");
+    scene.objects=scene.objects.filter(object=>object.duration==="persistent");scene.markers=scene.markers.filter(marker=>marker.duration==="persistent");scene.log=[];scene.rollFeed=[];
   });
-  renderPlay();
-};
+  $("scene-results")?.close();renderPlay();
+}
+$("new-scene").onclick=()=>{renderSceneResults();$("scene-results-clear-table").checked=false;$("scene-results")?.showModal()};
+$("scene-results-finish").onclick=()=>finishSceneResults(Boolean($("scene-results-clear-table")?.checked));
 function takeWound(external){const actor=currentHeroActor();if(actor){commitSceneEvents(external?"Рана от внешнего источника":"Рана от себя",[{type:"damage.apply",actorId:external?null:actor.id,payload:{targetId:actor.id,amount:Math.max(1,actor.hp),ignoreArmor:true}}]);return}const d=derived();S.runtime.wounds++;S.runtime.hp=d.guts;if(external)S.runtime.influence++;persist();renderPlay();}
 $("wound-external").onclick=()=>takeWound(true);$("wound-self").onclick=()=>takeWound(false);$("intermission").onclick=()=>{S.runtime.wounds=0;S.runtime.stress=0;const actor=currentHeroActor();if(actor?.maxMeals)commitScene("Интермиссия: Трапезы восстановлены",()=>{actor.wounds=0;actor.meals=actor.maxMeals});else{persist();renderPlay()}};
 $("scene-notes").addEventListener("input",e=>{S.runtime.notes=e.target.value;persist();});
