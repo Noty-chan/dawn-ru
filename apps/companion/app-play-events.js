@@ -33,6 +33,7 @@ $("play-counters").addEventListener("click",event=>{const b=event.target.closest
 $("play-counters").addEventListener("change",event=>{const key=event.target.dataset.counterInput;if(key)setPlayCounter(key,event.target.value)});
 $("new-round").onclick=()=>{const committed=commitSceneEvents(`Завершён Раунд ${Scene.round}`,[{type:"round.end",actorId:null,payload:{}}]);if(committed)toast("Раунд завершён: Напряжение +1, ОД восстановлены")};
 $("new-scene").onclick=()=>{
+  renderSceneResults();$("scene-results")?.showModal();
   const d=derived();S.runtime.hp=d.hp;S.runtime.focus=d.focus;S.runtime.ap=3;S.runtime.tension=0;S.runtime.effects=[];
   commitScene("Начата новая Сцена",scene=>{
     scene.round=1;scene.turnSerial=0;scene.tension=0;scene.activeActorId=null;scene.targetIds=[];
