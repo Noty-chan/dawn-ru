@@ -173,7 +173,7 @@ const TRIGGER_RULES = [
     build: ({ scene, event, payload }) => {
       const target = actorById(scene, payload.targetId);
       const empath = (scene.actors || []).find(owner => target && !owner.knockedOut && owner.team === target.team && owner.id !== target.id && Number(owner.techniques?.["altruist.empath"] || 0) >= 2 && distance(owner, target) <= Number(owner.attrs?.talent || 0));
-      return empath ? [{ type: "rule.prompt", actorId: empath.id, payload: { id: `prompt-${event.id}-empath-rush`, kind: "empath-rush", sourceActorId: empath.id, targetId: target.id, title: "Защитный отклик", text: `Переместиться смежно с ${target.name} бесплатным Прорывом?`, options: ["rush", "pass"], context: { targetId: target.id }, participantIds: [empath.id, target.id] } }] : [];
+      return empath ? [{ type: "rule.prompt", actorId: empath.id, payload: { id: `prompt-${event.id}-empath-rush`, kind: "empath-rush", sourceActorId: empath.id, targetId: target.id, title: "Защитный отклик", text: `Переместиться смежно с ${target.name} бесплатным Прорывом?`, options: ["rush", "pass"], context: { targetId: target.id, sourceEventId: event.id }, participantIds: [empath.id, target.id] } }] : [];
     },
   },
   {
