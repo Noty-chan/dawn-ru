@@ -124,6 +124,13 @@ assert.equal(trap.events.find(event => event.type === "action.prepare")?.payload
 const farTrapScene = sceneWith(actor({ techniques: upgradedShadowBuild, x: 1, y: 1 }), [foe({ x: 8, y: 7 })]);
 const farTrap = TechniqueEngine.preview(farTrapScene, { actorId: "hero", ruleId: "disruptor.hunter.1", anchor: { x: 5, y: 1 }, options: { actionMode: "skirmish" } });
 assert.equal(farTrap.ok, true, "Hunter II extends empty-cell Skirmishes to range 4");
+const occupiedTrapScene = structuredClone(trapScene);
+occupiedTrapScene.actors.find(item => item.id === "enemy").x = 4;
+occupiedTrapScene.actors.find(item => item.id === "enemy").y = 3;
+assert.equal(TechniqueEngine.preview(occupiedTrapScene, { actorId: "hero", ruleId: "disruptor.hunter.1", anchor: { x: 4, y: 3 }, options: { actionMode: "skirmish" } }).ok, false, "Steel Jaws can place a trap only in an actually empty cell");
+const removedTrapScene = structuredClone(trapScene);
+removedTrapScene.topology = { cuts: [{ id: "hunter-cut", space: "main", cells: ["4,3"], label: "Разрыв", crossing: "blocked" }] };
+assert.equal(TechniqueEngine.preview(removedTrapScene, { actorId: "hero", ruleId: "disruptor.hunter.1", anchor: { x: 4, y: 3 }, options: { actionMode: "skirmish" } }).ok, false, "Steel Jaws rejects a removed trap cell during preview");
 
 const emptyCellScene = sceneWith(actor({ x: 1, y: 1 }), [foe({ x: 8, y: 7 })]);
 const emptyCellSkirmish = SceneEngine.prepareAction(emptyCellScene, data, {
@@ -162,6 +169,10 @@ const hunterCellSkirmish = SceneEngine.prepareAction(farTrapScene, data, {
   roll: { formula: "4D6 · Талант", attribute: "talent", rolls: [6, 4, 2, 1], successes: 2, crits: 1 },
 });
 assert.equal(hunterCellSkirmish.ok, true, "Hunter II extends the common empty-cell Skirmish target to range 4");
+const occupiedFarHunterScene = structuredClone(farTrapScene);
+occupiedFarHunterScene.actors.find(item => item.id === "enemy").x = 5;
+occupiedFarHunterScene.actors.find(item => item.id === "enemy").y = 1;
+assert.equal(SceneEngine.prepareAction(occupiedFarHunterScene, data, { actorId: "hero", actionId: actionNamed("Стычка").id, targetCells: ["5,1"], attribute: "talent", roll: { formula: "4D6", attribute: "talent", rolls: [6, 4, 2, 1], successes: 2, crits: 1 } }).ok, false, "Hunter II cannot disguise a distant character as an empty cell to obtain +3 range");
 
 const assassinCellScene = sceneWith(actor({ techniques: { "vagabond.assassin": 2 }, x: 1, y: 1, effects: ["positive.исчез"] }), [foe({ x: 8, y: 7 })]);
 const assassinCellPlan = SceneEngine.prepareActionPlan(assassinCellScene, data, {
@@ -203,6 +214,12 @@ let chilled = SceneEngine.dispatchMany(cryomancerScene, chillingSpell.events).sc
 chilled = SceneEngine.dispatchMany(chilled, SceneEngine.respondReaction(chilled, data, { actorId: "enemy", choice: "pass" }).events).scene;
 chilled = SceneEngine.dispatchMany(chilled, SceneEngine.resolvePendingAction(chilled, data).events).scene;
 assert.ok(chilled.actors.find(item => item.id === "enemy").effects.includes("negative.замедлен"), "Cryomancer I slows every target of a successful Spell");
+const missedCryomancerScene = sceneWith(actor({ techniques: { "ruiner.cryomancer": 1 }, attrs: { body: 2, talent: 2, spirit: 3, mind: 4 } }), [foe({ x: 5, y: 1 })]);
+const missedCryomancerSpell = SceneEngine.prepareAction(missedCryomancerScene, data, { actorId: "hero", actionId: actionNamed("Заклинание").id, targetIds: ["enemy"], attribute: "spirit", roll: { formula: "3D6 · Дух", attribute: "spirit", rolls: [3, 2, 1], successes: 0, crits: 0 } });
+let missedCryomancer = SceneEngine.dispatchMany(missedCryomancerScene, missedCryomancerSpell.events).scene;
+missedCryomancer = SceneEngine.dispatchMany(missedCryomancer, SceneEngine.respondReaction(missedCryomancer, data, { actorId: "enemy", choice: "pass" }).events).scene;
+missedCryomancer = SceneEngine.dispatchMany(missedCryomancer, SceneEngine.resolvePendingAction(missedCryomancer, data).events).scene;
+assert.equal(missedCryomancer.actors.find(item => item.id === "enemy").effects.includes("negative.замедлен"), false, "Cryomancer I does not Slow a target when the Spell produces no damage");
 const focused = SceneEngine.dispatchMany(chilled, [{ type: "resource.gain", actorId: "hero", payload: { resource: "focus", amount: 3, sourceActionId: "test.focus" } }]).scene;
 assert.equal(SceneEngine.clockStatus(focused, "hero", "ruiner.cryomancer.icicle").value, 1, "Cryomancer II fills one Icicle segment whenever Focus is gained");
 
@@ -230,6 +247,16 @@ assert.deepEqual(Array.from(crafted.actors[0].techniqueState.spellModifiers), []
 assert.equal(crafted.pendingAction.damage, 5, "Fierce adds Mind to attack damage");
 const underfundedFinalization = sceneWith(actor({ techniques: spellcrafterBuild, focus: 1, techniqueState: { spellcrafterLearnedModifiers: ["fierce", "outstanding"], spellModifiers: ["fierce", "outstanding"] } }), [foe({ x: 4, y: 1 })]);
 assert.equal(SceneEngine.prepareAction(underfundedFinalization, data, { actorId: "hero", actionId: actionNamed("Заклинание").id, targetIds: ["enemy"], attribute: "spirit", roll: { formula: "4D6", attribute: "spirit", rolls: [6, 4, 2, 1], successes: 2, crits: 1 } }).ok, false, "Finalization cannot partially pay for two learned augments");
+assert.deepEqual([underfundedFinalization.actors[0].focus, underfundedFinalization.actors[0].ap, ...underfundedFinalization.actors[0].techniqueState.spellModifiers], [1, 3, "fierce", "outstanding"], "A rejected Finalization leaks no resource and preserves the selected modifiers for correction");
+const reconnectedSpellcrafter = structuredClone(spellScene);
+assert.equal(SceneEngine.prepareAction(reconnectedSpellcrafter, data, { actorId: "hero", actionId: actionNamed("Заклинание").id, targetIds: ["enemy"], attribute: "spirit", roll: { formula: "4D6", attribute: "spirit", rolls: [6, 5, 2, 1], successes: 2, crits: 1 } }).ok, true, "Imported learned and selected modifier sets retain their typed action path");
+const lateSpellcrafterFunds = structuredClone(spellScene);
+lateSpellcrafterFunds.actors[0].focus = 1;
+assert.throws(() => SceneEngine.dispatchMany(lateSpellcrafterFunds, spell.events), /Ресурс изменился|Недостаточно ресурса/, "Finalization revalidates its complete two-modifier payment at commit time");
+assert.deepEqual([lateSpellcrafterFunds.actors[0].focus, lateSpellcrafterFunds.actors[0].ap], [1, 3], "A stale Finalization payment fails atomically without AP leakage");
+const knockedOutSpellcrafter = structuredClone(spellScene);
+knockedOutSpellcrafter.actors[0].knockedOut = true;
+assert.equal(SceneEngine.prepareAction(knockedOutSpellcrafter, data, { actorId: "hero", actionId: actionNamed("Заклинание").id, targetIds: ["enemy"], attribute: "spirit", roll: { rolls: [6, 4, 2, 1], successes: 2, crits: 1 } }).ok, false, "A knocked-out Spellcrafter cannot spend persisted modifiers");
 
 const wispBuild = { "altruist.will-o-wisp": 3 };
 assert.deepEqual(Array.from(coverageFor(wispBuild), level => level.automation), ["decision", "decision", "decision"], "Will-O-Wisp exposes all three completed interactive levels");
@@ -237,15 +264,31 @@ const wispScene = sceneWith(actor({ techniques: wispBuild, focus: 4, techniqueSt
 const wispCharge = SceneEngine.prepareAction(wispScene, data, { actorId: "hero", actionId: actionNamed("Зарядка").id });
 const offered = SceneEngine.dispatchMany(wispScene, wispCharge.events).scene;
 assert.equal(offered.pendingPrompt?.kind, "wisp-primary");
+const knockedOutWispOwner = structuredClone(offered);
+knockedOutWispOwner.actors[0].knockedOut = true;
+assert.equal(SceneEngine.respondRulePrompt(knockedOutWispOwner, data, { actorId: "hero", choice: "bright" }).ok, false, "KO of the owner invalidates the persisted first-Flame prompt");
+const staleWispCreation = structuredClone(offered);
+staleWispCreation.markers = [{ id: "already-created-wisp", kind: "ritual", ruleId: "altruist.will-o-wisp.1", source: "altruist.will-o-wisp.1", ownerActorId: "hero", space: "main", x: 1, y: 1, duration: "scene", metadata: { spiritTypes: ["bright"] } }];
+assert.equal(SceneEngine.respondRulePrompt(staleWispCreation, data, { actorId: "hero", choice: "bright" }).ok, false, "A Flame created while the prompt was in flight invalidates the stale creation response");
 const firstSpirit = SceneEngine.respondRulePrompt(offered, data, { actorId: "hero", choice: "bright" });
 const choosingLayout = SceneEngine.dispatchMany(offered, firstSpirit.events).scene;
 assert.equal(choosingLayout.pendingPrompt?.kind, "wisp-secondary");
 assert.equal(choosingLayout.actors[0].ruleState.wispCreationUsed, true);
+const changedWispLearning = structuredClone(choosingLayout);
+changedWispLearning.actors[0].techniqueState.wispLearnedTypes = ["bright"];
+assert.equal(SceneEngine.respondRulePrompt(changedWispLearning, data, { actorId: "hero", choice: "split:dreamy" }).ok, false, "The secondary layout revalidates the persisted learned-property set");
 const secondSpirit = SceneEngine.respondRulePrompt(choosingLayout, data, { actorId: "hero", choice: "split:dreamy" });
-const twinWisps = SceneEngine.dispatchMany(choosingLayout, secondSpirit.events).scene;
+const secondSpiritEvents = secondSpirit.events.map((event, index) => ({ ...event, id: `wisp-layout-${index}` }));
+const twinWisps = SceneEngine.dispatchMany(choosingLayout, secondSpiritEvents).scene;
 assert.equal(twinWisps.markers.length, 2);
 assert.ok(SceneEngine.effectiveEffects(twinWisps, "ally").includes("positive.ускорен"));
 assert.ok(SceneEngine.effectiveEffects(twinWisps, "enemy").includes("negative.замедлен"));
+assert.equal(SceneEngine.dispatchMany(twinWisps, secondSpiritEvents).events.length, 0, "A replayed Twinned Spirits response cannot create duplicate Flames");
+const combinedWispScene = structuredClone(choosingLayout);
+const combinedWisp = SceneEngine.respondRulePrompt(combinedWispScene, data, { actorId: "hero", choice: "combine:dreamy" });
+const combinedWispResolved = SceneEngine.dispatchMany(combinedWispScene, combinedWisp.events).scene;
+assert.equal(combinedWispResolved.markers.length, 1);
+assert.deepEqual(Array.from(combinedWispResolved.markers[0].metadata.spiritTypes), ["bright", "dreamy"], "Twinned Spirits can combine two distinct learned properties into one Flame");
 
 const attackedWispScene = sceneWith(actor({ techniques: wispBuild, x: 1, y: 1, techniqueState: { wispLearnedTypes: ["bright", "dreamy"] } }), [foe({ x: 2, y: 1 })]);
 attackedWispScene.markers = [{ id: "attacked-wisp", kind: "ritual", ruleId: "altruist.will-o-wisp.1", source: "altruist.will-o-wisp.1", ownerActorId: "hero", space: "main", x: 2, y: 1, duration: "scene", metadata: { spiritTypes: ["bright"] } }];

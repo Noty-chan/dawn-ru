@@ -462,7 +462,8 @@ function respondRulePrompt(scene, data, request = {}) {
   }
   if (prompt.kind === "alchemist-powerful-mix-damage" && choice === "damage") {
     const amount = Number(prompt.context?.amount || 0);
-    if (!target || target.knockedOut || target.team === actor.team || Number(actor.techniques?.["altruist.alchemist"] || 0) < 2 || amount !== Number(actor.attrs?.mind || 0)) return { ok: false, errors: ["Цель или величина урона «Мощной смеси» больше не соответствует правилу."], events: [] };
+    const resolveEvent = (scene.log || []).find(event => event.id === prompt.context?.actionResolveEventId);
+    if (!target || target.knockedOut || target.team === actor.team || Number(actor.techniques?.["altruist.alchemist"] || 0) < 2 || amount !== Number(actor.attrs?.mind || 0) || resolveEvent?.type !== "action.resolve" || resolveEvent.actorId !== actor.id || resolveEvent.payload?.alchemistPowerfulMixTargetId !== target.id) return { ok: false, errors: ["Цель, источник или величина урона «Мощной смеси» больше не соответствует правилу."], events: [] };
     events.push({ type: "damage.apply", actorId: actor.id, payload: { targetId: target.id, amount, sourceActionId: "altruist.alchemist.2", participantIds: [actor.id, target.id] } });
   }
   if (prompt.kind === "thunder-charged-spell" && choice !== "pass") {
@@ -604,6 +605,7 @@ function respondRulePrompt(scene, data, request = {}) {
     }
   }
   if (prompt.kind === "empath-calm" && choice !== "pass") {
+    if (!target || target.knockedOut || target.id === actor.id || target.team !== actor.team || Number(actor.techniques?.["altruist.empath"] || 0) < 1 || distance(actor, target) !== 1 || !(target.effects || []).includes(choice)) return { ok: false, errors: ["Эмпат, союзник или выбранный Эффект больше не соответствуют «Успокаивающей ауре»."], events: [] };
     events.push({ type: "effect.remove", actorId: actor.id, payload: { targetId: target.id, effect: choice, sourceActionId: "altruist.empath.1", participantIds: [actor.id, target.id] } });
     events.push({ type: "effect.apply", actorId: actor.id, payload: { targetId: target.id, effect: "positive.усилен", sourceActionId: "altruist.empath.1", participantIds: [actor.id, target.id] } });
   }
@@ -638,6 +640,7 @@ function respondRulePrompt(scene, data, request = {}) {
   }
   if (prompt.kind === "untouchable-weave" && choice === "rush") events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${prompt.id}-cell`, kind: "untouchable-weave-cell", sourceActorId: actor.id, title: "Маятник", text: "Выберите свободную клетку в пределах 3 клеток.", options: ["cancel"], context: { maxDistance: 3 }, participantIds: [actor.id] } });
   if (prompt.kind === "grim-transform" && choice === "transform") {
+    if (Number(actor.techniques?.["ruiner.grim-ascendant"] || 0) < 1 || Number(scene.tension || 0) < 2 || actor.ruleState?.grimUsed || actor.ruleState?.grimTransformed) return { ok: false, errors: ["Условия «Непостоянной мощи» больше не выполнены."], events: [] };
     const lostHealth = Math.max(0, Number(actor.hp || 0) - 1);
     events.push({ type: "actor.state", actorId: actor.id, payload: { key: "grimUsed", value: true, sourceActionId: "ruiner.grim-ascendant.1" } });
     events.push({ type: "actor.state", actorId: actor.id, payload: { key: "grimTransformed", value: true, lostHealth, sourceActionId: "ruiner.grim-ascendant.1" } });
@@ -669,6 +672,7 @@ function respondRulePrompt(scene, data, request = {}) {
   }
   if (prompt.kind === "wisp-primary") {
     const learned = [...new Set(actor.techniqueState?.wispLearnedTypes || [])].filter(id => WISP_TYPES[id]);
+    if (actor.ruleState?.wispCreationUsed || wispMarkers(scene, actor.id).length) return { ok: false, errors: ["Первое предложение создать Духовное пламя уже использовано в этой Сцене."], events: [] };
     if (choice !== "pass" && (!learned.includes(choice) || Number(actor.techniques?.["altruist.will-o-wisp"] || 0) < 1)) return { ok: false, errors: ["Выбранный тип Духа не изучен владельцем Пламени."], events: [] };
     events.push({ type: "actor.state", actorId: actor.id, payload: { key: "wispCreationUsed", value: true, sourceActionId: "altruist.will-o-wisp.1" } });
     if (choice !== "pass" && Number(actor.techniques?.["altruist.will-o-wisp"] || 0) >= 3) {
@@ -680,7 +684,8 @@ function respondRulePrompt(scene, data, request = {}) {
     }
   }
   if (prompt.kind === "wisp-secondary") {
-    const firstType = prompt.context?.firstType, [layout, secondType] = choice.split(":"), first = WISP_TYPES[firstType], second = WISP_TYPES[secondType];
+    const learned = [...new Set(actor.techniqueState?.wispLearnedTypes || [])].filter(id => WISP_TYPES[id]), firstType = prompt.context?.firstType, [layout, secondType] = choice.split(":"), first = WISP_TYPES[firstType], second = WISP_TYPES[secondType];
+    if (Number(actor.techniques?.["altruist.will-o-wisp"] || 0) < 3 || !actor.ruleState?.wispCreationUsed || wispMarkers(scene, actor.id).length || !learned.includes(firstType) || choice !== "single" && (!learned.includes(secondType) || secondType === firstType)) return { ok: false, errors: ["Парные духи больше не соответствуют изученным свойствам или состоянию Сцены."], events: [] };
     if (choice === "single" && first) events.push({ type: "marker.create", actorId: actor.id, payload: { id: `wisp-${prompt.id}-a`, space: actor.space, x: actor.x, y: actor.y, markerKind: "ritual", label: `Духовное пламя · ${first.label}`, color: "#ef9ac1", source: "altruist.will-o-wisp.1", ruleId: "altruist.will-o-wisp.1", duration: "scene", ownerActorId: actor.id, metadata: { spiritTypes: [firstType], effectRules: [{ effect: first.effect, audience: first.audience }] } } });
     else if (layout === "combine" && first && second) {
       events.push({ type: "marker.create", actorId: actor.id, payload: { id: `wisp-${prompt.id}-a`, space: actor.space, x: actor.x, y: actor.y, markerKind: "ritual", label: `Духовное пламя · ${first.label} + ${second.label}`, color: "#ef9ac1", source: "altruist.will-o-wisp.1", ruleId: "altruist.will-o-wisp.1", duration: "scene", ownerActorId: actor.id, metadata: { spiritTypes: [firstType, secondType], effectRules: [{ effect: first.effect, audience: first.audience }, { effect: second.effect, audience: second.audience }] } } });
@@ -726,7 +731,12 @@ function respondRulePrompt(scene, data, request = {}) {
     const remainingTargetIds = [...new Set(prompt.context?.targetIds || prompt.options || [])].filter(id => id !== choice && actorById(scene, id));
     events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${prompt.id}-${choice}-cell`, kind: "constrictor-move-cell", sourceActorId: actor.id, targetId: choice, title: "Обвить · перемещение", text: `Переместите ${actorById(scene, choice)?.name || "Пойманного"} на расстояние до 5 клеток.`, options: ["cancel"], context: { maxDistance: 5, remainingTargetIds }, participantIds: [actor.id, choice] } });
   }
-  if (prompt.kind === "empath-rush" && choice === "rush") events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${prompt.id}-cell`, kind: "empath-rush-cell", sourceActorId: actor.id, targetId: target.id, title: "Защитный отклик · Прорыв", text: `Выберите свободную клетку, смежную с ${target.name}, в пределах Скорости.`, options: ["cancel"], context: { targetId: target.id, maxDistance: Number(actor.speed || 0) }, participantIds: [actor.id, target.id] } });
+  if (prompt.kind === "empath-rush" && choice === "rush") {
+    const sourceEvent = (scene.log || []).find(event => event.id === prompt.context?.sourceEventId), externalSource = actorById(scene, sourceEvent?.actorId);
+    const proven = sourceEvent?.payload?.targetId === target?.id && (sourceEvent?.type === "effect.apply" && sourceEvent.payload?.applied || sourceEvent?.type === "damage.apply" && sourceEvent.payload?.woundGained);
+    if (!target || target.knockedOut || target.id === actor.id || target.team !== actor.team || Number(actor.techniques?.["altruist.empath"] || 0) < 2 || distance(actor, target) > Number(actor.attrs?.talent || 0) || !externalSource || externalSource.id === target.id || !proven) return { ok: false, errors: ["Внешний источник, союзник или дальность «Защитного отклика» больше не подтверждены."], events: [] };
+    events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${prompt.id}-cell`, kind: "empath-rush-cell", sourceActorId: actor.id, targetId: target.id, title: "Защитный отклик · Прорыв", text: `Выберите свободную клетку, смежную с ${target.name}, в пределах Скорости.`, options: ["cancel"], context: { targetId: target.id, maxDistance: Number(actor.speed || 0), sourceEventId: sourceEvent.id }, participantIds: [actor.id, target.id] } });
+  }
   if (prompt.kind === "hunter-trap" && choice === "attack") {
     const trap = markerById(scene, prompt.markerId);
     if (!target || target.knockedOut || Number(actor.techniques?.["disruptor.hunter"] || 0) < 1 || !trap || trap.ownerActorId !== actor.id || trap.kind !== "trap" || !/disruptor\.hunter\.1/.test(`${trap.ruleId || ""} ${trap.source || ""}`) || target.team === actor.team || trap.space !== target.space || Number(trap.x) !== Number(target.x) || Number(trap.y) !== Number(target.y)) return { ok: false, errors: ["Цель или принадлежащая Охотнику ловушка уже недоступны."], events: [] };

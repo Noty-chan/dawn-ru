@@ -143,7 +143,7 @@
   }
 
   function inBounds(space, point) {
-    return Boolean(space && point && point.x >= 0 && point.y >= 0 && point.x < space.width && point.y < space.height);
+    return Boolean(space && point && Number.isInteger(point.x) && Number.isInteger(point.y) && point.x >= 0 && point.y >= 0 && point.x < space.width && point.y < space.height);
   }
 
   function lineCells({ x, y, width, height, orientation = "horizontal" }) {
@@ -401,6 +401,7 @@
 
     const sourceSpace = activeSpace(scene, actor.space);
     const anchor = request.anchor && { x: integer(request.anchor.x), y: integer(request.anchor.y) };
+    const removedCells = global.DAWN_SCENE_ENGINE?.removedCellKeys?.(scene, actor.space) || new Set();
     const commands = [];
     let affectedCells = [];
     let affectedActorIds = [];
@@ -408,6 +409,7 @@
     if (rule.kind === "trap-placement") {
       const actionMode = request.options?.actionMode === "finish" ? "finish" : "skirmish", action = actionByKey(actionMode), available = global.DAWN_SCENE_ENGINE?.availableActions(scene, global.DAWN_DATA, actor.id).find(item => item.id === action?.id);
       if (!inBounds(sourceSpace, anchor)) errors.push("Выберите пустую клетку для Малой ловушки.");
+      if (anchor && removedCells.has(pointKey(anchor))) errors.push("Выбранная клетка удалена из поля.");
       if (anchor && (scene.actors || []).some(item => !item.knockedOut && item.space === actor.space && item.x === anchor.x && item.y === anchor.y)) errors.push("Малая ловушка ставится только в пустую клетку.");
       const range = actionMode === "skirmish" ? 1 + (Number(actor.techniques?.["disruptor.hunter"] || 0) >= 2 ? 3 : 0) : 1;
       if (anchor && manhattan(actor, anchor) > range) errors.push(`Для этого способа установки клетка должна быть в пределах ${range}.`);
@@ -514,6 +516,7 @@
 
     if (["area", "marker"].includes(rule.kind)) {
       if (!inBounds(sourceSpace, anchor)) errors.push("Укажите клетку на текущем поле.");
+      if (anchor && removedCells.has(pointKey(anchor))) errors.push("Выбранная клетка удалена из поля.");
       if (rule.range && anchor) {
         const rangeBonus = rule.areaType === "attack" && (actor.techniqueState?.spellModifiers || []).includes("outstanding") ? Number(actor.attrs?.mind || 0) : 0;
         if (manhattan(actor, anchor) > rule.range + rangeBonus) errors.push(`Клетка находится дальше ${rule.range + rangeBonus} клеток.`);
@@ -540,6 +543,7 @@
       const modifiers = rule.areaType === "attack" ? [...new Set(actor.techniqueState?.spellModifiers || [])] : [], focused = modifiers.includes("focused"), wild = modifiers.includes("wild"), outstanding = modifiers.includes("outstanding");
       const effectiveShape = wild && rule.shape === "line" ? "square2" : rule.shape;
       affectedCells = focused && rule.shape !== "line" ? segmentLineCells({ anchor, width: sourceSpace.width, height: sourceSpace.height, orientation: request.orientation, length: 7 + (outstanding ? Number(actor.attrs?.mind || 0) : 0) }) : areaCells({ shape: effectiveShape, anchor, width: sourceSpace.width, height: sourceSpace.height, orientation: request.orientation });
+      affectedCells = affectedCells.filter(cell => !removedCells.has(cell));
       affectedActorIds = (scene.actors || []).filter(item => !item.knockedOut && item.space === actor.space && affectedCells.includes(pointKey(item)) && (rule.areaType !== "attack" || item.team !== actor.team)).map(item => item.id);
       if (rule.id === "disruptor.chemist.1") {
         const terrain = [...(scene.objects || [])].reverse().find(object => object.space === actor.space && CHEMIST_TERRAIN_TYPES.has(object.type) && (object.cells || []).includes(pointKey(anchor)));

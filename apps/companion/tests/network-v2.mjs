@@ -10,9 +10,10 @@ context.normalizeScene=value=>structuredClone(value);
 context.sceneCore=value=>structuredClone(value);
 vm.runInNewContext(fs.readFileSync(new URL("../data.js",import.meta.url),"utf8"),context);
 loadSceneEngine(context);
+vm.runInNewContext(fs.readFileSync(new URL("../technique-engine.js",import.meta.url),"utf8"),context);
 vm.runInNewContext(fs.readFileSync(new URL("../network-v2.js",import.meta.url),"utf8"),context);
 
-const Network=context.DAWN_NETWORK_V2,Engine=context.DAWN_SCENE_ENGINE,data=context.DAWN_DATA;
+const Network=context.DAWN_NETWORK_V2,Engine=context.DAWN_SCENE_ENGINE,Techniques=context.DAWN_TECHNIQUE_ENGINE,data=context.DAWN_DATA;
 assert.equal(Network.PROTOCOL,2);
 assert.equal(Network.TICK_MS,200,"the authoritative cadence is capped at five ticks per second");
 assert.equal(new Network.PlayerOutbox({tickMs:1,send:async()=>{}}).tickMs,200,"callers cannot bypass the five-per-second client cap");
@@ -149,6 +150,8 @@ assert.equal(onlineBladePreview.ok,true);
 const onlineBladeIntent=Network.intentFromEvents(onlineBladeScene,onlineBladePreview.events,"Стычка · Клинок");
 assert.equal(onlineBladeIntent.options.armamentMode,"blade","the player's network intent retains the selected Armament");
 assert.deepEqual(JSON.parse(JSON.stringify(onlineBladeIntent.options.armamentDestination)),{x:1,y:0},"the player's network intent retains Blade movement");
+assert.throws(()=>Network.materializeIntent(onlineBladeScene,data,onlineBladeIntent,"player-2",{sceneEngine:Engine}),/не владеет/,"another controller cannot submit an Armament attack");
+assert.throws(()=>Network.materializeIntent(onlineBladeScene,data,{...onlineBladeIntent,options:{...onlineBladeIntent.options,armamentDestination:{x:3,y:3}}},"player-1",{sceneEngine:Engine}),/Клинок|клетк/i,"the authority revalidates a forged Blade destination");
 const canonicalBlade=Network.materializeIntent(onlineBladeScene,data,onlineBladeIntent,"player-1",{sceneEngine:Engine});
 assert.ok(canonicalBlade.some(event=>event.type==="actor.move"&&event.payload.movement.startsWith("Клинок")),"the narrator rebuilds Blade movement from the safe intent");
 assert.ok(canonicalBlade.some(event=>event.type==="attack.pending"&&event.payload.armamentMode==="blade"),"the narrator rebuilds the complete Blade Skirmish instead of dropping it after submission");
@@ -203,6 +206,20 @@ assert.equal(endedWispTurn.activeActorId,null,"the authoritative table ends the 
 assert.equal(endedWispTurn.pendingPrompt?.kind,"wisp-move-select","Will-O-Wisp receives its end-of-Turn flame movement choice online");
 assert.throws(()=>Network.materializeIntent({...wispTurn,activeActorId:"enemy"},data,turnEndIntent,"player-1",{sceneEngine:Engine}),/текущий Ход/i,"a player cannot end another participant's Turn");
 
+const onlineHunterScene=structuredClone(baseScene);
+onlineHunterScene.actors[0].techniques={"disruptor.hunter":2};
+onlineHunterScene.actors[1].x=1;onlineHunterScene.actors[1].y=0;
+onlineHunterScene.markers=[{id:"online-trap",kind:"trap",ruleId:"disruptor.hunter.1",source:"disruptor.hunter.1",ownerActorId:"hero",space:"side",x:1,y:0}];
+onlineHunterScene.pendingPrompt={id:"online-hunter-prompt",kind:"hunter-trap",sourceActorId:"hero",targetId:"enemy",markerId:"online-trap",title:"Стальные челюсти",options:["attack","pass"],context:{}};
+const onlineHunterRoll=Engine.diceRollPayload(onlineHunterScene,"hero",{scope:"action",baseCount:3,advantage:0,hindrance:0,attribute:"body",actionId:actionNamed("Стычка").id,targetIds:["enemy"]},{rolls:[6,4,2]});
+const onlineHunterResponse=Engine.respondRulePrompt(onlineHunterScene,data,{choice:"attack",roll:onlineHunterRoll.payload});
+const onlineHunterIntent=Network.intentFromEvents(onlineHunterScene,onlineHunterResponse.events,"Стальные челюсти");
+assert.throws(()=>Network.materializeIntent(onlineHunterScene,data,onlineHunterIntent,"player-2",{sceneEngine:Engine}),/не владеет/,"another controller cannot answer the Hunter's persisted trap prompt");
+const forgedHunterIntent=structuredClone(onlineHunterIntent);forgedHunterIntent.roll.successes=99;
+assert.throws(()=>Engine.dispatchMany(onlineHunterScene,Network.materializeIntent(onlineHunterScene,data,forgedHunterIntent,"player-1",{sceneEngine:Engine})),/результат броска|Стальных челюстей/i,"network authority rejects forged Steel Jaws successes");
+const canonicalHunterResponse=Network.materializeIntent(onlineHunterScene,data,onlineHunterIntent,"player-1",{sceneEngine:Engine});
+assert.equal(Engine.dispatchMany(onlineHunterScene,canonicalHunterResponse).scene.pendingAction?.techniqueRuleId,"disruptor.hunter.1","the authoritative Hunter network response opens only the canonical trap Skirmish");
+
 let reactionRequest=null;
 const reactionEvents=Network.materializeIntent(baseScene,data,{kind:"reaction",actorId:"hero",choice:"dodge",destination:{x:0,y:1}},"player-1",{sceneEngine:{respondReaction:(_scene,_data,request)=>{reactionRequest=request;return{ok:true,events:[{type:"reaction.respond",actorId:request.actorId,payload:{choice:request.choice}}]}}}});
 assert.equal(reactionRequest.choice,"dodge");
@@ -224,6 +241,22 @@ const techniqueEvents=Network.materializeIntent(baseScene,data,{kind:"technique"
 });
 assert.equal(techniqueRequest.actorId,"hero");
 assert.equal(techniqueEvents[0].type,"technique.prepare","the narrator rebuilds a Technique instead of trusting its computed effects");
+
+const onlineBombardierScene=structuredClone(baseScene);
+onlineBombardierScene.tension=4;
+onlineBombardierScene.actors[0].focus=6;
+onlineBombardierScene.actors[0].techniques={"ruiner.bombardier":3};
+const bombardierRoll=Engine.diceRollPayload(onlineBombardierScene,"hero",{scope:"action",baseCount:3,advantage:4,hindrance:0,attribute:"spirit",actionId:actionNamed("Завершение").id,targetIds:["enemy"]},{rolls:[6,5,4,3,2,1,1]});
+assert.equal(bombardierRoll.available,true);
+const onlineExplosion=Techniques.preview(onlineBombardierScene,{actorId:"hero",ruleId:"ruiner.bombardier.3",anchor:{x:1,y:1},options:{focusSpent:4},targetIds:["forged-target"],roll:bombardierRoll.payload});
+assert.equal(onlineExplosion.ok,true);
+const explosionIntent=Network.intentFromEvents(onlineBombardierScene,Techniques.toEvents(onlineBombardierScene,onlineExplosion),"ВЗРЫВ!!!!");
+const canonicalExplosion=Network.materializeIntent(onlineBombardierScene,data,explosionIntent,"player-1",{sceneEngine:Engine,techniqueEngine:Techniques});
+assert.deepEqual(Array.from(canonicalExplosion.find(event=>event.type==="attack.pending").payload.targetIds),["enemy"],"network authority derives Bombardier targets from the current zone instead of trusting targetIds");
+assert.doesNotThrow(()=>Engine.dispatchMany(onlineBombardierScene,canonicalExplosion),"an authoritative Spirit Finisher snapshot survives the complete Technique network path");
+const forgedExplosionIntent=structuredClone(explosionIntent);
+forgedExplosionIntent.request.roll.successes=99;
+assert.throws(()=>Engine.dispatchMany(onlineBombardierScene,Network.materializeIntent(onlineBombardierScene,data,forgedExplosionIntent,"player-1",{sceneEngine:Engine,techniqueEngine:Techniques})),/результат броска|авторитетному Завершению/i,"network authority rejects forged Bombardier successes atomically");
 
 const mixedTechniqueIntent=Network.intentFromEvents(baseScene,[
   {type:"technique.prepare",actorId:"hero",payload:{ruleId:"test.rule",request:{targetIds:["enemy"]}}},

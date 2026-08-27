@@ -261,6 +261,9 @@ assert.equal(Engine.masterAtArmsStatus(bladeScene, "hero", { modeId: "blade", ta
 assert.equal(Engine.masterAtArmsStatus(bladeScene, "hero", { modeId: "blade", targetIds: [], destination: { x: 2, y: 1 }, requireTargets: false }).available, true, "Blade accepts a valid one-cell movement preview before target selection");
 const bladeStatus = Engine.masterAtArmsStatus(bladeScene, "hero", { modeId: "blade", targetIds: ["enemy"], destination: { x: 2, y: 1 } });
 assert.equal(bladeStatus.available, true);
+const removedBladeDestination = structuredClone(bladeScene);
+removedBladeDestination.topology = { cuts: [{ id: "blade-cut", space: "main", cells: ["2,1"], label: "Разрыв", crossing: "blocked" }] };
+assert.equal(Engine.masterAtArmsStatus(removedBladeDestination, "hero", { modeId: "blade", targetIds: ["enemy"], destination: { x: 2, y: 1 } }).available, false, "Blade revalidates a removed movement cell before opening the attack");
 const bladePrepared = Engine.prepareAction(bladeScene, data, { actorId: "hero", actionId: actionNamed("Стычка").id, targetIds: ["enemy"], armamentMode: "blade", armamentDestination: { x: 2, y: 1 }, roll: { formula: "3D6", rolls: [4, 3, 2], successes: 1, crits: 0 } });
 assert.equal(bladePrepared.ok, true);
 assert.equal(bladePrepared.action.quick, true);
@@ -287,6 +290,7 @@ const secondArmamentResolved = Engine.dispatchMany(secondPolearmPending, Engine.
 assert.equal(secondArmamentResolved.actors[0].ap, 4, "Exactly the second Armament equip in the Turn grants 1 AP");
 assert.ok(secondArmamentResolved.actors[0].effects.includes("positive.ускорен"), "Exactly the second Armament equip Hastens the owner");
 assert.equal(secondArmamentResolved.actors[0].ruleState.masterArmament, "polearm", "The persisted equipped mode uses the canonical stable id");
+assert.ok(secondArmamentResolved.actors.find(actor => actor.id === "enemy").effects.includes("negative.подброшен") && secondArmamentResolved.actors.find(actor => actor.id === "enemy").effects.includes("negative.замедлен"), "Polearm applies both canonical effects through the shared hit pipeline");
 const thirdArmamentScene = structuredClone(secondArmamentResolved);
 Object.assign(thirdArmamentScene.actors.find(actor => actor.id === "enemy"), { x: 6, y: 1 });
 thirdArmamentScene.actors.find(actor => actor.id === "enemy-2").knockedOut = true;
@@ -810,6 +814,18 @@ assert.notEqual(arbitrated.triggerQueue[0].event.payload.title, "Changed outside
 const resumedArbitration = Engine.dispatchMany(arbitrated, Engine.respondRulePrompt(arbitrated, data, { choice: "pass" }).events).scene;
 assert.equal(resumedArbitration.pendingPrompt?.kind, "empath-rush", "The next valid trigger opens after the higher-priority decision closes");
 assert.equal(resumedArbitration.triggerQueue.length, 0);
+const importedEmpathRush = structuredClone(resumedArbitration);
+assert.equal(Engine.respondRulePrompt(importedEmpathRush, data, { choice: "rush" }).ok, true, "Protective Response retains its exact external-event provenance across reconnect/import");
+const staleEmpathRange = structuredClone(resumedArbitration);
+staleEmpathRange.actors.find(actor => actor.id === "hero").x = 6;
+assert.equal(Engine.respondRulePrompt(staleEmpathRange, data, { choice: "rush" }).ok, false, "Protective Response revalidates Talent range when the prompt is answered");
+let empathRushCell = Engine.dispatchMany(importedEmpathRush, Engine.respondRulePrompt(importedEmpathRush, data, { choice: "rush" }).events).scene;
+assert.equal(empathRushCell.pendingPrompt?.kind, "empath-rush-cell");
+const removedEmpathDestination = structuredClone(empathRushCell);
+removedEmpathDestination.topology = { cuts: [{ id: "removed-empath-cell", space: "main", cells: ["1,2"] }] };
+assert.equal(Engine.preparePromptPlacement(removedEmpathDestination, { destination: { x: 1, y: 2 } }).ok, false, "Protective Response rejects a removed destination cell");
+const empathRushMoved = Engine.dispatchMany(empathRushCell, Engine.preparePromptPlacement(empathRushCell, { destination: { x: 1, y: 2 } }).events).scene;
+assert.deepEqual([empathRushMoved.actors.find(actor => actor.id === "empath").x, empathRushMoved.actors.find(actor => actor.id === "empath").y], [1, 2], "Protective Response ends adjacent through the typed free-rush placement");
 const interruptedArbitration = structuredClone(arbitrated);
 interruptedArbitration.actors.find(actor => actor.id === "empath").knockedOut = true;
 assert.match(Engine.triggerQueueStatus(interruptedArbitration).next.reason, /Источник/);
@@ -824,6 +840,22 @@ assert.notEqual(selfWoundedNearEmpath.pendingPrompt?.kind, "empath-rush", "Prote
 assert.ok(!selfWoundedNearEmpath.log.some(event => event.type === "rule.trigger" && event.payload?.triggerId === "altruist.empath.2.protective-response"), "A self-inflicted Wound does not enter the Empath trigger queue");
 const unknownSourceNearEmpath = Engine.dispatchMany(arbitrationScene, [{ type: "effect.apply", actorId: null, payload: { targetId: "hero", effect: "negative.замедлен" } }]).scene;
 assert.ok(!unknownSourceNearEmpath.log.some(event => event.type === "rule.trigger" && event.payload?.triggerId === "altruist.empath.2.protective-response"), "An unproven null source cannot be forged into Empath's external-source trigger");
+const calmScene = structuredClone(scene);
+calmScene.activeActorId = null;
+calmScene.actors[0].techniques = { "altruist.empath": 2 };
+calmScene.actors[1].team = "hero";
+calmScene.actors[1].effects = ["negative.замедлен"];
+const calmPrompt = Engine.dispatchMany(calmScene, [{ id: "empath-calm-turn", type: "turn.start", actorId: "enemy", payload: {} }]).scene;
+assert.equal(calmPrompt.pendingPrompt?.kind, "empath-calm", "An adjacent ally with an Effect receives Calming Aura at Turn start");
+const calmResolved = Engine.dispatchMany(structuredClone(calmPrompt), Engine.respondRulePrompt(structuredClone(calmPrompt), data, { choice: "negative.замедлен" }).events).scene;
+assert.equal(calmResolved.actors[1].effects.includes("negative.замедлен"), false);
+assert.equal(calmResolved.actors[1].effects.includes("positive.усилен"), true, "Calming Aura removes the chosen current Effect and applies Empowered");
+const staleCalmEffect = structuredClone(calmPrompt);
+staleCalmEffect.actors[1].effects = [];
+assert.equal(Engine.respondRulePrompt(staleCalmEffect, data, { choice: "negative.замедлен" }).ok, false, "Calming Aura rejects a stale removed Effect");
+const staleCalmAdjacency = structuredClone(calmPrompt);
+staleCalmAdjacency.actors[1].x = 6;
+assert.equal(Engine.respondRulePrompt(staleCalmAdjacency, data, { choice: "negative.замедлен" }).ok, false, "Calming Aura revalidates adjacency");
 assert.throws(() => Engine.dispatch(scene, { type: "rule.trigger", actorId: "hero", payload: { triggerId: "bad trigger", sourceEventId: "x", status: "fired" } }), /маршрутизации триггера/);
 const optionalParticipantScene = structuredClone(scene);
 optionalParticipantScene.actors.find(actor => actor.id === "enemy").knockedOut = true;
@@ -1111,6 +1143,13 @@ assert.equal(icicleConverted.pendingPrompt ?? null, null, "Icicle grants a persi
 assert.equal(icicleConverted.actors[0].focus, 50, "Converting Icicle refuses the Focus gained from Rest");
 const duplicateIcicleResponse = Engine.dispatchMany(icicleConverted, icicleResponse);
 assert.equal(duplicateIcicleResponse.events.length, 0, "A retried Icicle response is idempotent and cannot spend Focus twice");
+const passedIcicle = Engine.dispatchMany(icicleRest, Engine.respondRulePrompt(icicleRest, data, { choice: "pass" }).events).scene;
+assert.ok(passedIcicle.actors[0].focus > icicleScene.actors[0].focus, "Declining Icicle keeps the Focus from this Breathe");
+assert.equal(Number(passedIcicle.actors[0].ruleState?.icicleSpellsRemaining || 0), 0, "Declining Icicle creates no hidden Cast quota");
+const knockedOutIcicleOwner = structuredClone(icicleRest);
+knockedOutIcicleOwner.actors[0].knockedOut = true;
+assert.equal(Engine.respondRulePrompt(knockedOutIcicleOwner, data, { choice: "convert" }).ok, false, "KO of the Cryomancer invalidates the persisted conversion prompt before payment");
+assert.equal(Engine.respondRulePrompt(structuredClone(icicleRest), data, { choice: "convert" }).ok, true, "An imported/reconnected Icicle prompt retains its exact Breathe gain provenance");
 const unrelatedBreatheResolve = structuredClone(icicleScene);
 unrelatedBreatheResolve.actors[0].focus = 60;
 const noBreatheGain = Engine.dispatch(unrelatedBreatheResolve, { type: "action.resolve", actorId: "hero", payload: { actionInstanceId: "forged-breathe", actionId: actionNamed("Передышка").id } }).scene;
@@ -1131,6 +1170,10 @@ const icicleResolved = Engine.dispatchMany(iciclePassed, Engine.resolvePendingAc
 assert.equal(icicleResolved.actors[0].ruleState.icicleSpellsRemaining, 3);
 assert.ok(icicleResolved.actors[1].effects.includes("negative.обездвижен"));
 assert.equal(icicleResolved.pendingPrompt ?? null, null, "Remaining Icicle Casts persist without interrupting play");
+const icicleRoundBoundary = structuredClone(icicleResolved);
+icicleRoundBoundary.activeActorId = null;
+const icicleNextRound = Engine.dispatch(icicleRoundBoundary, { type: "round.end", actorId: null, payload: { narratorOverride: true } }, { narratorOverride: true }).scene;
+assert.equal(icicleNextRound.actors[0].ruleState.icicleSpellsRemaining, 3, "Unused Icicle Casts survive a Round boundary and expire only with the Scene");
 
 const styleScene = structuredClone(scene);
 styleScene.actors[0].techniques = { "vagabond.egomaniac": 2 };
@@ -2329,16 +2372,42 @@ assert.equal(trappedStep.ok, true);
 const trapped = Engine.dispatchMany(trapScene, trappedStep.events).scene;
 assert.deepEqual([trapped.actors[1].x, trapped.actors[1].y], [2, 1], "A Hunter trap truncates movement at the crossed trap cell");
 assert.equal(trapped.pendingPrompt.kind, "hunter-trap");
+const forcedTrapScene = structuredClone(trapScene);
+const forcedTrapLanding = Engine.dispatchMany(forcedTrapScene, [
+  { type: "actor.move", actorId: "enemy", payload: { space: "main", x: 2, y: 1, movement: "Принудительное перемещение", forced: true, path: ["2,1"] } },
+  { type: "actor.enter", actorId: "enemy", payload: { space: "main", x: 2, y: 1, movement: "Принудительное перемещение", forced: true } },
+]).scene;
+assert.equal(forcedTrapLanding.pendingPrompt?.kind, "hunter-trap", "Entering Steel Jaws through forced movement triggers the same authoritative pipeline");
+const foreignTrapScene = structuredClone(trapScene);
+foreignTrapScene.markers[0].ownerActorId = "missing-owner";
+const foreignTrapLanding = Engine.dispatchMany(foreignTrapScene, [
+  { type: "actor.move", actorId: "enemy", payload: { space: "main", x: 2, y: 1, movement: "Чужая ловушка", forced: true, path: ["2,1"] } },
+  { type: "actor.enter", actorId: "enemy", payload: { space: "main", x: 2, y: 1, movement: "Чужая ловушка", forced: true } },
+]).scene;
+assert.notEqual(foreignTrapLanding.pendingPrompt?.kind, "hunter-trap", "An orphaned or foreign trap cannot forge Steel Jaws");
 assert.equal(Engine.respondRulePrompt(trapped, data, { choice: "attack", roll: { rolls: [6, 6, 6], successes: 99, crits: 3 } }).ok, false, "Steel Jaws rejects forged successes without a dice snapshot");
 const trapDiceRequest = { scope: "action", baseCount: 3, advantage: 0, hindrance: 0, attribute: "body", actionId: actionNamed("Стычка").id, targetIds: ["enemy"] };
 const trapDice = Engine.diceRollPayload(trapped, "hero", trapDiceRequest, { rolls: [4, 5, 2] });
 assert.equal(trapDice.available, true);
+assert.equal(Engine.respondRulePrompt(structuredClone(trapped), data, { choice: "attack", roll: structuredClone(trapDice.payload) }).ok, true, "A reconnected Steel Jaws prompt retains trap and target provenance");
+const knockedOutHunterPrompt = structuredClone(trapped); knockedOutHunterPrompt.actors[0].knockedOut = true;
+assert.equal(Engine.respondRulePrompt(knockedOutHunterPrompt, data, { choice: "attack", roll: trapDice.payload }).ok, false, "KO of the Hunter invalidates the persisted Steel Jaws prompt");
+const knockedOutTrapVictim = structuredClone(trapped); knockedOutTrapVictim.actors[1].knockedOut = true;
+assert.equal(Engine.respondRulePrompt(knockedOutTrapVictim, data, { choice: "attack", roll: trapDice.payload }).ok, false, "KO of the trapped target invalidates Steel Jaws before the attack opens");
 const trapAttack = Engine.respondRulePrompt(trapped, data, { choice: "attack", roll: trapDice.payload });
-const trapAttackScene = Engine.dispatchMany(trapped, trapAttack.events).scene;
+const trapAttackEvents = trapAttack.events.map((event, index) => ({ ...event, id: `hunter-response-${index}` }));
+const trapAttackScene = Engine.dispatchMany(trapped, trapAttackEvents).scene;
 assert.equal(trapAttackScene.pendingAction.techniqueRuleId, "disruptor.hunter.1");
+assert.equal(Engine.dispatchMany(trapAttackScene, trapAttackEvents).events.length, 0, "A duplicate Steel Jaws response cannot open or pay for a second Skirmish");
 let trapAttackPassed = Engine.dispatchMany(trapAttackScene, Engine.respondReaction(trapAttackScene, data, { actorId: "enemy", choice: "pass" }).events).scene;
 const trapAttackResolved = Engine.dispatchMany(trapAttackPassed, Engine.resolvePendingAction(trapAttackPassed, data).events).scene;
 assert.ok(trapAttackResolved.actors[1].effects.includes("negative.обездвижен"), "Hunter II Immobilizes the actual victim of its owned Steel Jaws Skirmish");
+const missedTrapDice = Engine.diceRollPayload(trapped, "hero", trapDiceRequest, { rolls: [3, 2, 1] });
+const missedTrapAttack = Engine.respondRulePrompt(trapped, data, { choice: "attack", roll: missedTrapDice.payload });
+let missedTrapAttackScene = Engine.dispatchMany(trapped, missedTrapAttack.events).scene;
+missedTrapAttackScene = Engine.dispatchMany(missedTrapAttackScene, Engine.respondReaction(missedTrapAttackScene, data, { actorId: "enemy", choice: "pass" }).events).scene;
+missedTrapAttackScene = Engine.dispatchMany(missedTrapAttackScene, Engine.resolvePendingAction(missedTrapAttackScene, data).events).scene;
+assert.equal(missedTrapAttackScene.actors[1].effects.includes("negative.обездвижен"), false, "Hunter II does not Immobilize when the Steel Jaws Skirmish misses");
 const missingTrapScene = structuredClone(trapped); missingTrapScene.markers = [];
 assert.equal(Engine.respondRulePrompt(missingTrapScene, data, { choice: "attack", roll: trapDice.payload }).ok, false, "A removed or ownership-lost trap invalidates the stale attack prompt");
 
@@ -2387,6 +2456,33 @@ const enemyPotionPassed = Engine.dispatchMany(enemyPotionOffered, Engine.respond
 assert.equal(enemyPotionPassed.actors[1].hp, 10, "Declining Powerful Mix deals no damage");
 const enemyPotionDamaged = Engine.dispatchMany(enemyPotionOffered, Engine.respondRulePrompt(enemyPotionOffered, data, { choice: "damage" }).events).scene;
 assert.equal(enemyPotionDamaged.actors[1].hp, 9, "Accepting Powerful Mix deals Mind damage through the normal Armor pipeline");
+assert.equal(Engine.respondRulePrompt(structuredClone(enemyPotionOffered), data, { choice: "damage" }).ok, true, "The optional Powerful Mix continuation survives reconnect/import");
+const stalePotionTarget = structuredClone(enemyPotionOffered);
+stalePotionTarget.actors[1].knockedOut = true;
+assert.equal(Engine.respondRulePrompt(stalePotionTarget, data, { choice: "damage" }).ok, false, "Powerful Mix rejects a target knocked out before the optional damage choice");
+const changedPotionTeam = structuredClone(enemyPotionOffered);
+changedPotionTeam.actors[1].team = "hero";
+assert.equal(Engine.respondRulePrompt(changedPotionTeam, data, { choice: "damage" }).ok, false, "Powerful Mix rejects a target that is no longer an enemy");
+const forgedPotionPrompt = structuredClone(enemyPotionOffered);
+forgedPotionPrompt.pendingPrompt.context.actionResolveEventId = "missing-potion-source";
+assert.equal(Engine.respondRulePrompt(forgedPotionPrompt, data, { choice: "damage" }).ok, false, "Powerful Mix damage requires the exact resolved potion-use event");
+for (const [potion, effect] of Object.entries({ "rage-fumes": "positive.усилен", "growth-serum": "positive.регенерирует", adrenaline: "positive.ускорен", "stone-skin": "positive.укреплен", "thorn-rot": "negative.порчен" })) {
+  const potionEffectScene = structuredClone(alchemistScene);
+  potionEffectScene.actors[0].inventory = { [`potion:${potion}`]: 1 };
+  potionEffectScene.actors[1].team = "hero";
+  const preparedPotion = Engine.preparePotionUse(potionEffectScene, data, { actorId: "hero", targetId: "enemy", potion });
+  assert.equal(preparedPotion.ok, true, `${potion} has a complete Interaction path`);
+  const usedPotion = Engine.dispatchMany(potionEffectScene, preparedPotion.events).scene;
+  assert.ok(usedPotion.actors[1].effects.includes(effect), `${potion} applies its canonical Effect`);
+  assert.equal(usedPotion.actors[0].inventory[`potion:${potion}`] || 0, 0, `${potion} is consumed exactly once`);
+}
+const oddMindPotionScene = structuredClone(alchemistScene);
+oddMindPotionScene.actors[0].attrs.mind = 3;
+oddMindPotionScene.actors[0].inventory = { "potion:adrenaline": 1 };
+const selfFocusBefore = oddMindPotionScene.actors[0].focus;
+const oddMindPotion = Engine.preparePotionUse(oddMindPotionScene, data, { actorId: "hero", targetId: "hero", potion: "adrenaline" });
+const oddMindPotionUsed = Engine.dispatchMany(oddMindPotionScene, oddMindPotion.events).scene;
+assert.equal(oddMindPotionUsed.actors[0].focus, selfFocusBefore + 2, "Powerful Mix supports self-use and rounds odd Mind ally Focus upward");
 
 const grimScene = structuredClone(scene);
 grimScene.actors[0].techniques = { "ruiner.grim-ascendant": 2 };
@@ -2405,6 +2501,27 @@ const blockedGrimPrompt = Engine.dispatchMany(blockedGrimScene, [{ type: "rule.p
 const blockedGrim = Engine.dispatchMany(blockedGrimPrompt, Engine.respondRulePrompt(blockedGrimPrompt, data, { choice: "transform" }).events).scene;
 assert.equal(blockedGrim.actors[0].ruleState.grimTransformed, true, "Mandatory Grim push is attempted but a board edge cannot cancel the Transformation");
 assert.ok(blockedGrim.log.some(event => event.type === "technique.resolve" && event.payload?.ruleId === "ruiner.grim-ascendant.1" && event.payload?.blockedActorIds?.includes("enemy")), "A blocked mandatory push remains explicit in the typed resolution record");
+const declinedGrim = Engine.dispatchMany(blockedGrimPrompt, Engine.respondRulePrompt(blockedGrimPrompt, data, { choice: "pass" }).events).scene;
+assert.equal(declinedGrim.actors[0].ruleState.grimTransformed, false, "Declining the optional transformation changes no Health, Focus, or form state");
+assert.equal(declinedGrim.actors[0].hp, blockedGrimPrompt.actors[0].hp);
+assert.equal(declinedGrim.actors[0].focus, blockedGrimPrompt.actors[0].focus);
+const staleGrimPrompt = structuredClone(blockedGrimPrompt);
+staleGrimPrompt.actors[0].ruleState.grimUsed = true;
+assert.equal(Engine.respondRulePrompt(staleGrimPrompt, data, { choice: "transform" }).ok, false, "A stale duplicate Grim transformation prompt is rejected before any resources change");
+const koGrimPrompt = structuredClone(blockedGrimPrompt);
+koGrimPrompt.actors[0].knockedOut = true;
+assert.equal(Engine.respondRulePrompt(koGrimPrompt, data, { choice: "transform" }).ok, false, "A knocked-out owner cannot answer the transformation prompt");
+const grimDrainScene = structuredClone(scene);
+grimDrainScene.actors[0].techniques = { "ruiner.grim-ascendant": 2 };
+grimDrainScene.actors[0].ruleState = { grimTransformed: true, grimUsed: true, drainLife: true };
+const grimDrainPrepared = Engine.prepareAction(grimDrainScene, data, { actorId: "hero", actionId: actionNamed("Завершение").id, attribute: "spirit", targetIds: ["enemy"], roll: { attribute: "spirit", rolls: [6, 5, 2, 1], successes: 2, crits: 1 } });
+assert.equal(grimDrainPrepared.ok, true);
+assert.equal(grimDrainPrepared.events.find(event => event.type === "attack.pending")?.payload.damage, 2, "Drain Life halves the full Spirit Finisher damage and rounds upward");
+let grimDrainPending = Engine.dispatchMany(grimDrainScene, grimDrainPrepared.events).scene;
+grimDrainPending = Engine.dispatchMany(grimDrainPending, Engine.respondReaction(grimDrainPending, data, { actorId: "enemy", choice: "pass" }).events).scene;
+const grimDrainResolved = Engine.dispatchMany(grimDrainPending, Engine.resolvePendingAction(grimDrainPending, data).events).scene;
+assert.ok(grimDrainResolved.actors[0].effects.includes("positive.регенерирует"), "A successful Drain Life Spirit Finisher grants Regenerating");
+assert.equal(grimDrainResolved.actors[0].ruleState.drainLife, false, "Drain Life is consumed exactly once after resolution");
 
 const chemistBombardierScene = structuredClone(scene);
 chemistBombardierScene.actors[0].techniques = { "ruiner.bombardier": 1, "disruptor.chemist": 1 };
@@ -2670,6 +2787,10 @@ const selectWispMove = Engine.respondRulePrompt(movingWispScene, data, { choice:
 assert.equal(selectWispMove.ok, true);
 movingWispScene = Engine.dispatchMany(movingWispScene, selectWispMove.events).scene;
 assert.equal(movingWispScene.pendingPrompt.kind, "marker-move-cell");
+assert.equal(Engine.preparePromptPlacement(movingWispScene, { destination: { x: 2, y: 1 } }).ok, true, "A Spirit Flame may share an occupied character cell without treating the marker as a token");
+const removedWispDestination = structuredClone(movingWispScene);
+removedWispDestination.topology = { cuts: [{ id: "wisp-cut", space: "main", cells: ["4,1"], label: "Разрыв", crossing: "blocked" }] };
+assert.equal(Engine.preparePromptPlacement(removedWispDestination, { destination: { x: 4, y: 1 } }).ok, false, "A removed cell cannot receive a moved Spirit Flame");
 const placeWisp = Engine.preparePromptPlacement(movingWispScene, { destination: { x: 4, y: 1 } });
 assert.equal(placeWisp.ok, true);
 const movedWispScene = Engine.dispatchMany(movingWispScene, placeWisp.events).scene;
