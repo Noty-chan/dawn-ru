@@ -33,12 +33,13 @@ $("play-counters").addEventListener("click",event=>{const b=event.target.closest
 $("play-counters").addEventListener("change",event=>{const key=event.target.dataset.counterInput;if(key)setPlayCounter(key,event.target.value)});
 $("new-round").onclick=()=>{const committed=commitSceneEvents(`Завершён Раунд ${Scene.round}`,[{type:"round.end",actorId:null,payload:{}}]);if(committed)toast("Раунд завершён: Напряжение +1, ОД восстановлены")};
 function finishSceneResults(clearTable=false){
-  const d=derived();S.runtime.hp=d.hp;S.runtime.focus=d.focus;S.runtime.ap=3;S.runtime.tension=0;S.runtime.effects=[];
+  const d=derived();S.runtime.hp=d.maxHp;S.runtime.focus=d.focus;S.runtime.ap=3;S.runtime.tension=1;S.runtime.effects=[];
   if(clearTable){commitScene("Начата новая пустая Сцена",scene=>{const view=scene.view,reset=blankScene();for(const key of Object.keys(scene))delete scene[key];Object.assign(scene,reset,{view})});$("scene-results")?.close();renderPlay();return}
   commitScene("Начата новая Сцена",scene=>{
-    scene.round=1;scene.turnSerial=0;scene.tension=0;scene.activeActorId=null;scene.targetIds=[];
+    scene.round=1;scene.turnSerial=0;scene.tension=1;scene.activeActorId=null;scene.targetIds=[];scene.targetCells=[];
     scene.pendingAction=null;scene.pendingActionPlan=null;scene.pendingPrompt=null;scene.triggerQueue=[];scene.challengeRequest=null;scene.opposedRoll=null;scene.reminders=[];
     scene.actors.forEach(actor=>{
+      actor.hp=Math.max(0,Number(actor.maxHp||actor.hp||0));actor.knockedOut=false;
       actor.acted=actor.kind==="crowd";actor.ap=actor.kind==="crowd"?0:actor.baseAp||3;
       if(actor.kind==="hero"||actor.heroId)actor.focus=1+Math.ceil(Number(actor.attrs?.spirit||0)/2)+(Number(actor.techniques?.["ruiner.spellcrafter"]||0)>=2?Number(actor.attrs?.mind||0):0);
       actor.usedActions=[];actor.usedTrump=false;actor.stepRemaining=0;actor.speedZeroUntilTurnEnd=false;actor.difficultTerrainImmunity=[];actor.extraTurns=0;actor.creationMarks=0;

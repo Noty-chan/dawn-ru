@@ -425,6 +425,9 @@ assert.match(app, /sourceActionId:"manual\.adjudication"/, "Manual health, resou
 assert.match(html, /id="scene-space-manager"/, "The Narrator can inspect and remove created spaces");
 assert.match(html, /id="scene-clear-field"/, "The Narrator has an explicit reversible field cleanup command");
 assert.match(html, /id="scene-reset-table"/, "The Narrator has an explicit full table reset command");
+assert.match(app, /S\.runtime\.hp=d\.maxHp[\s\S]+S\.runtime\.tension=1/, "Ending a Scene restores the sheet Health and applies the canonical Tension reset");
+assert.match(app, /scene\.tension=1[\s\S]+actor\.hp=Math\.max\(0,Number\(actor\.maxHp[\s\S]+actor\.knockedOut=false/, "Starting the next Scene restores combatant Health and returns knocked-out participants");
+assert.doesNotMatch(app, /rollKeys/, "Post-battle replay preserves separate public rolls even when their dice match");
 assert.match(app, /Math\.ceil\(attrValueFor\(hero,"talent"\)\/2\)/);
 assert.match(app, /takeWound\(external\)/);
 assert.match(app, /setToolsResource\("influence"/, "Free-play Influence changes must update the local sheet or canonical shared actor");
