@@ -172,12 +172,14 @@ assert.equal(fodderStrike.actors.find(actor => actor.id === "hero").hp, 10, "At 
 assert.throws(() => Engine.dispatch(fodderStrike, { type: "damage.apply", actorId: "fodder-a-1", payload: { targetId: "hero", amount: 2, sourceActionId: "fodder.round-end" } }), /один раз/, "Each Fodder Zone may deal its Round-end damage only once");
 let promptedFodderDamage = structuredClone(fodderMoved); promptedFodderDamage.pendingPrompt = null; promptedFodderDamage.activeActorId = null; promptedFodderDamage.actors.forEach(actor => { actor.acted = actor.kind !== "crowd"; }); promptedFodderDamage.actors.find(actor => actor.id === "fodder-a-1").x = 1; promptedFodderDamage.actors.find(actor => actor.id === "fodder-a-1").y = 1;
 promptedFodderDamage = Engine.dispatchMany(promptedFodderDamage, [{ id: "round-end-fodder-prompt", type: "round.end", payload: {} }]).scene;
-assert.equal(promptedFodderDamage.pendingPrompt?.kind, "fodder-round-damage", "Round end automatically asks for every eligible Fodder Zone's optional damage");
+assert.equal(promptedFodderDamage.pendingPrompt?.kind, "fodder-round-batch", "Round end opens one editable batch for every eligible Fodder Zone");
 assert.throws(() => Engine.dispatch(promptedFodderDamage, { type: "damage.apply", actorId: "fodder-a-1", payload: { targetId: "hero", amount: 2, sourceActionId: "fodder.round-end", fodderDecisionPromptId: "forged" } }), /конце Раунда/, "A forged Fodder decision token cannot bypass the authoritative prompt");
+const staleFodderBatch = structuredClone(promptedFodderDamage); staleFodderBatch.actors.find(actor => actor.id === "hero").knockedOut = true;
+assert.equal(Engine.respondRulePrompt(staleFodderBatch, data, { choice: "custom", assignments: { "fodder-a-1": "hero" } }).ok, false, "The editable Fodder batch revalidates a target knocked out after the prompt opened");
 const hpBeforeFodderPrompt = promptedFodderDamage.actors.find(actor => actor.id === "hero").hp;
-promptedFodderDamage = Engine.dispatchMany(promptedFodderDamage, Engine.respondRulePrompt(structuredClone(promptedFodderDamage), data, { choice: "target:hero" }).events).scene;
+promptedFodderDamage = Engine.dispatchMany(promptedFodderDamage, Engine.respondRulePrompt(structuredClone(promptedFodderDamage), data, { choice: "custom", assignments: { "fodder-a-1": "hero" } }).events).scene;
 assert.equal(promptedFodderDamage.actors.find(actor => actor.id === "hero").hp, hpBeforeFodderPrompt - 2, "The typed Round-end Fodder decision deals exactly two damage after save/load");
-assert.equal(Engine.respondRulePrompt(promptedFodderDamage, data, { choice: "target:hero" }).ok, false, "A duplicate Fodder damage response cannot apply twice");
+assert.equal(Engine.respondRulePrompt(promptedFodderDamage, data, { choice: "custom", assignments: { "fodder-a-1": "hero" } }).ok, false, "A duplicate Fodder damage response cannot apply twice");
 assert.throws(() => Engine.dispatch(scene, { type: "actor.move", actorId: "hero", payload: { space: "main", x: 1, y: 2, from: { space: "main", x: 0, y: 0 } } }), /устарела/, "A movement event cannot forge its journal origin");
 assert.throws(() => Engine.dispatch(scene, { type: "actor.move", actorId: "hero", payload: { space: "main", x: 1, y: 2, path: ["1,1"] } }), /не совпадает/, "A journaled path must finish at the movement destination");
 assert.throws(() => Engine.dispatch(scene, { type: "scene.replace", payload: { state: {} } }), /Неизвестный тип/);

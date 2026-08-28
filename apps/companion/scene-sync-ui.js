@@ -26,7 +26,7 @@ function canonicalPlayerEvents(command){
     const markerMove=raw.find(event=>event.type==="marker.move"),actorMove=raw.find(event=>event.type==="actor.move"),destination=ruleResponse.payload?.destination||(markerMove||actorMove)?.payload;
     const result=ruleResponse.payload?.choice==="cell"&&destination
       ?SceneEngine.preparePromptPlacement(Scene,{destination:{x:Number(destination.x),y:Number(destination.y)}})
-      :SceneEngine.respondRulePrompt(Scene,D,{choice:ruleResponse.payload?.choice,roll:raw.find(event=>event.type==="roll.public")?.payload||raw.find(event=>event.type==="attack.pending")?.payload?.roll||null});
+      :SceneEngine.respondRulePrompt(Scene,D,{choice:ruleResponse.payload?.choice,assignments:ruleResponse.payload?.assignments||{},roll:raw.find(event=>event.type==="roll.public")?.payload||raw.find(event=>event.type==="attack.pending")?.payload?.roll||null});
     if(!result.ok)throw new Error(result.errors.join(" "));
     return result.events;
   }

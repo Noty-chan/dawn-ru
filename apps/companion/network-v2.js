@@ -179,7 +179,7 @@
     const response=raw.find(event=>event.type==="rule.respond");
     if(response){
       const move=raw.find(event=>event.type==="marker.move")||raw.find(event=>event.type==="actor.move");
-      return {kind:"rule-response",label:String(label).slice(0,160),actorId:response.actorId,promptId:response.payload?.promptId,choice:response.payload?.choice,destination:clone(response.payload?.destination||move?.payload||null),roll:clone(raw.find(event=>event.type==="roll.public")?.payload||raw.find(event=>event.type==="attack.pending")?.payload?.roll||null)};
+      return {kind:"rule-response",label:String(label).slice(0,160),actorId:response.actorId,promptId:response.payload?.promptId,choice:response.payload?.choice,assignments:safeObject(response.payload?.assignments),destination:clone(response.payload?.destination||move?.payload||null),roll:clone(raw.find(event=>event.type==="roll.public")?.payload||raw.find(event=>event.type==="attack.pending")?.payload?.roll||null)};
     }
     const technique=raw.find(event=>event.type==="technique.prepare");
     if(technique?.payload?.ruleId==="altruist.alchemist.1"){
@@ -327,7 +327,7 @@
       if(!prompt||prompt.id!==intent.promptId||prompt.sourceActorId!==actor.id)throw new Error("Этот вопрос правила уже завершён");
       const result=intent.choice==="cell"&&intent.destination
         ?Engine.preparePromptPlacement(scene,{destination:{x:Number(intent.destination.x),y:Number(intent.destination.y)}})
-        :Engine.respondRulePrompt(scene,data,{choice:intent.choice,roll:intent.roll||null});
+        :Engine.respondRulePrompt(scene,data,{choice:intent.choice,assignments:safeObject(intent.assignments),roll:intent.roll||null});
       if(!result.ok)throw new Error(result.errors.join(" "));
       return result.events;
     }

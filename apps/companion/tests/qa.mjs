@@ -61,7 +61,8 @@ assert.match(companionCss, /\.scene-token\.crowd\{[^}]*border-radius:7px[^}]*rep
 assert.match(appSource, /compoundId:typeof enemy\?\.compoundId[\s\S]+crowdGroupId:/, "Encounter normalization preserves Compound Enemy and Fodder identities");
 assert.match(fs.readFileSync(path.join(root, "index.html"), "utf8"), /id="scene-crowd-style"[\s\S]+id="scene-crowd-team"[\s\S]+id="scene-crowd-symbol"[\s\S]+id="scene-crowd-color"/, "Narrator can create visually distinct allied or hostile Fodder groups");
 assert.match(appSource, /data-crowd-add-group[\s\S]+data-crowd-remove-defeated[\s\S]+data-crowd-remove-group/, "Narrator has group-level Fodder add and cleanup controls");
-assert.match(fs.readFileSync(path.join(root, "scene-triggers.js"), "utf8"), /fodder-move-select[\s\S]+fodder-round-damage/, "Canonical Fodder movement and Round-end damage are surfaced as typed prompts");
+assert.match(fs.readFileSync(path.join(root, "scene-triggers.js"), "utf8"), /fodder-move-select[\s\S]+fodder-round-batch/, "Canonical Fodder movement and Round-end damage are surfaced as typed prompts");
+assert.match(appSource, /fodder-batch-editor[\s\S]+data-fodder-batch-zone[\s\S]+data-fodder-batch-submit/, "Narrator resolves all eligible Fodder zones through one editable damage interface");
 assert.match(appSource, /compoundIds=new Map\(\)[\s\S]+compoundCells=new Map\(\)/, "Encounter deployment remaps Compound groups and keeps their parts in one cell");
 assert.match(appSource, /parts\.length<2[\s\S]+part\.compoundId=null/, "Removing Compound parts cannot leave an unusable one-part Compound identity");
 assert.match(appSource, /sceneActorSpace[\s\S]+compound\.active\?compound\.parts:\[actor\][\s\S]+moving\.forEach/, "Moving a Compound part between spaces must move the complete enemy");

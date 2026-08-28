@@ -290,6 +290,19 @@ function respondRulePrompt(scene, data, request = {}) {
       events.push({ type: "rule.prompt", actorId: next.id, payload: { id: `prompt-${prompt.id}-${next.id}`, kind: "fodder-round-damage", sourceActorId: next.id, controller: "narrator", title: `Массовка: ${next.name}`, text: "Эта Зона может нанести 2 урона одному игроку в пределах 1 клетки.", options: [...targets.map(target => `target:${target.id}`), "pass"], context: { remainingCrowdIds: rest, optionLabels: Object.fromEntries([...targets.map(target => [`target:${target.id}`, `2 урона: ${target.name}`]), ["pass", "Не наносить урон"]]) }, participantIds: [next.id, ...targets.map(target => target.id), ...rest] } });
     }
   }
+  if (prompt.kind === "fodder-round-batch") {
+    const crowdIds = [...new Set(prompt.context?.eligibleCrowdIds || [])], crowds = crowdIds.map(id => actorById(scene, id)), assignments = request.assignments && typeof request.assignments === "object" ? request.assignments : {};
+    if (choice === "custom") {
+      for (const crowd of crowds) {
+        if (!crowd || crowd.knockedOut || crowd.kind !== "crowd") return { ok: false, errors: ["Состав массовки изменился — откройте распределение заново."], events: [] };
+        const targetId = typeof assignments[crowd.id] === "string" ? assignments[crowd.id] : "", target = targetId && actorById(scene, targetId);
+        if (!targetId) continue;
+        if (!target || target.knockedOut || target.team === crowd.team || target.space !== crowd.space || distance(crowd, target) > 1) return { ok: false, errors: [`Цель для зоны «${crowd.name}» больше недоступна.`], events: [] };
+        events.push({ type: "damage.apply", actorId: crowd.id, payload: { targetId: target.id, amount: 2, sourceActionId: "fodder.round-end", fodderDecisionPromptId: prompt.id, participantIds: [crowd.id, target.id] } });
+      }
+      events[0].payload.assignments = Object.fromEntries(crowdIds.map(id => [id, typeof assignments[id] === "string" ? assignments[id] : ""]));
+    }
+  }
   if (prompt.kind === "enemy-swarm-stun") {
     const targetId = choice.startsWith("target:") ? choice.slice(7) : "", selected = actorById(scene, targetId);
     if (!selected || selected.knockedOut || !(prompt.context?.eligibleTargetIds || []).includes(targetId) || selected.team === actor.team) return { ok: false, errors: ["Выбранная цель Роя больше недоступна."], events: [] };

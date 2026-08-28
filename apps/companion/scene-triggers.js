@@ -965,7 +965,8 @@ function triggeredEvents(scene, event, options = {}) {
     const first = eligibleCrowds[0];
     if (first) {
       const remainingIds = eligibleCrowds.map(item => item.id), targets = (scene.actors || []).filter(target => !target.knockedOut && target.team !== first.team && target.space === first.space && distance(first, target) <= 1);
-      events.push({ type: "rule.prompt", actorId: first.id, payload: { id: `prompt-${event.id}-fodder-damage`, kind: "fodder-round-damage", sourceActorId: first.id, controller: "narrator", title: `Массовка: ${first.name}`, text: "В конце Раунда эта Зона может нанести 2 урона одному игроку в пределах 1 клетки.", options: [...targets.map(target => `target:${target.id}`), "pass"], context: { remainingCrowdIds: remainingIds.slice(1), optionLabels: Object.fromEntries([...targets.map(target => [`target:${target.id}`, `2 урона: ${target.name}`]), ["pass", "Не наносить урон"]]) }, participantIds: [first.id, ...targets.map(target => target.id), ...remainingIds.slice(1)] } });
+      const allTargets = [...new Map(eligibleCrowds.flatMap(crowd => (scene.actors || []).filter(target => !target.knockedOut && target.team !== crowd.team && target.space === crowd.space && distance(crowd, target) <= 1)).map(target => [target.id, target])).values()];
+      events.push({ type: "rule.prompt", actorId: first.id, payload: { id: `prompt-${event.id}-fodder-damage`, kind: "fodder-round-batch", sourceActorId: first.id, controller: "narrator", title: `Массовка · ${eligibleCrowds.length} зон могут атаковать`, text: "Назначьте цель каждой Зоне, проверьте сводку и примените весь урон одним пакетом.", options: ["custom", "pass"], context: { eligibleCrowdIds: remainingIds }, participantIds: [...remainingIds, ...allTargets.map(target => target.id)] } });
     }
   }
   events.push(...effectLifecycleEvents(scene, event));
