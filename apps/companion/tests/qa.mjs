@@ -56,6 +56,7 @@ assert.match(appSource, /feed\.innerHTML=\[\.\.\.rolls\]\.reverse\(\)\.map/, "Th
 assert.match(appSource, /function sceneTrayHeroActor\(\)[\s\S]+selected\.team==="hero"[\s\S]+active\.team==="hero"/, "The Narrator tray follows selected or active heroes and never exposes hero actions for enemies");
 assert.match(companionMarkup, /option value="crowd">Зона массовки/, "The terrain painter exposes canonical Fodder Zones");
 assert.match(appSource, /source\.kind==="crowd"[\s\S]+actor\.crowdGroupId/, "Scene normalization preserves Fodder identity and its shared visual type");
+assert.match(appSource, /actor\.crowdSubtype=source\.crowdSubtype==="seeker"[\s\S]+actor\.seekerTargetId[\s\S]+actor\.seekerDamage/, "Scene import preserves a Hound Master's Seeker target and canonical explosion state");
 assert.match(appSource, /editTargets=actor\.kind==="crowd"[\s\S]+targets\.forEach\(item=>item\.tokenImage=image\)/, "Renaming or uploading a token updates every zone of that Fodder type");
 assert.match(companionCss, /\.scene-token\.crowd\{[^}]*border-radius:7px[^}]*repeating-linear-gradient/, "Fodder Zones are visually distinct from circular character tokens");
 assert.match(appSource, /compoundId:typeof enemy\?\.compoundId[\s\S]+crowdGroupId:/, "Encounter normalization preserves Compound Enemy and Fodder identities");

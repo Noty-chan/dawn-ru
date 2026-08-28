@@ -143,6 +143,8 @@ const ENEMY_FULL_RULES = new Map([
   ["enemy.common.revenant.action.lurk", { type: "revenant-lurk" }],
   ["enemy.common.revenant.trump.hollowed-eyes", { type: "revenant-hollowed-eyes" }],
   ["enemy.common.broodmother.trump.roar", { type: "broodmother-roar" }],
+  ["enemy.common.hound-master.action.fire-seeker", { type: "hound-seekers", count: 1, minimumTargetDistance: 4 }],
+  ["enemy.common.hound-master.trump.wild-hunt", { type: "hound-seekers", count: 3, minimumTargetDistance: 0 }],
   ["enemy.named.leon-academy-spatial-mage.trump.elemental-breach", {
     type: "summon-profiles",
     profiles: ["enemy.named.leon-s-vayu-spirit", "enemy.named.leon-s-agni-spirit"],
@@ -724,7 +726,7 @@ function prepareEnemyRule(scene, data, request = {}) {
   const targets = targetIds.map(id => actorById(scene, id)).filter(Boolean);
   const hiddenAssassinAttack = Boolean(family.hiddenAdvantage && (actor?.effects || []).includes("positive.исчез"));
   const assassinReappearance = hiddenAssassinAttack && request.options?.reappearance ? { x: Number(request.options.reappearance.x), y: Number(request.options.reappearance.y) } : null;
-  const attackDestination = request.options?.destination && { x: Number(request.options.destination.x), y: Number(request.options.destination.y) };
+  const attackDestination = fullRule?.type !== "hound-seekers" && request.options?.destination && { x: Number(request.options.destination.x), y: Number(request.options.destination.y) };
   const attackOrigin = actor && (assassinReappearance || attackDestination) ? { ...actor, ...(assassinReappearance || attackDestination) } : actor;
   let attackMovePath = [];
   if (targets.length !== targetIds.length) errors.push("Одна из выбранных целей больше не находится на Сцене.");
@@ -768,6 +770,18 @@ function prepareEnemyRule(scene, data, request = {}) {
   if (fullRule?.type === "revenant-hollowed-eyes" && targets.length !== 1) errors.push("Для Пустых глаз нужен игрок с наименьшим Фокусом.");
   if (fullRule?.type === "healer-heal" && (targets.length !== 1 || targets[0]?.team !== actor?.team || distance(actor, targets[0]) > 3)) errors.push("Лечение требует самого Целителя или одного союзника в пределах 3 клеток.");
   if (fullRule?.type === "healer-savior" && (targets.length !== 1 || targets[0]?.knockedOut || targets[0]?.id !== actor?.ruleState?.healerGuardianId)) errors.push("Для Спасителя сначала выберите доступного Стража в начале Хода Целителя.");
+  const seekerCells = [];
+  if (fullRule?.type === "hound-seekers" && actor && space) {
+    const target = targets[0], destination = request.options?.destination;
+    if (targets.length !== 1 || !target || target.team === actor.team || target.kind === "crowd") errors.push("Ищейке нужен один персонаж-противник.");
+    else if (Number(fullRule.minimumTargetDistance || 0) && distance(actor, target) < Number(fullRule.minimumTargetDistance)) errors.push(`Цель Ищейки должна находиться на расстоянии не меньше ${fullRule.minimumTargetDistance} клеток.`);
+    if (!destination || !Number.isInteger(Number(destination.x)) || !Number.isInteger(Number(destination.y)) || distance(actor, { ...destination, space: actor.space }) !== 1) errors.push("Выберите клетку, смежную с Псарем.");
+    else {
+      const occupiedCrowd = new Set((scene.actors || []).filter(item => item.kind === "crowd" && !item.knockedOut && item.space === actor.space).map(cellKey)), removed = removedCellKeys(scene, actor.space), candidates = [{ x: Number(destination.x), y: Number(destination.y) }, ...[[1,0],[0,1],[-1,0],[0,-1]].map(([dx,dy]) => ({ x: Number(actor.x)+dx, y: Number(actor.y)+dy }))].filter(point => point.x >= 0 && point.y >= 0 && point.x < Number(space.width) && point.y < Number(space.height) && distance(actor, { ...point, space: actor.space }) === 1 && !removed.has(cellKey(point)) && !occupiedCrowd.has(cellKey(point)));
+      for (const point of candidates) if (!seekerCells.some(item => cellKey(item) === cellKey(point)) && seekerCells.length < Number(fullRule.count || 1)) seekerCells.push(point);
+      if (seekerCells.length < Number(fullRule.count || 1)) errors.push(`Рядом с Псарем недостаточно свободных клеток для ${fullRule.count} Ищеек.`);
+    }
+  }
   if (actor && isAttackRule && available?.automation === "attack" && family.audience !== "any" && targets.some(target => target.team === actor.team)) errors.push("Эта автоматизированная Атака может выбирать целью только другую сторону.");
   const attackModifiers = actor && isAttackRule && available?.automation === "attack" ? attackModifierStatus(scene, actor.id, targetIds.filter(id => actorById(scene, id)?.team !== actor.team), request.attackModifierIds || []) : { available: !(request.attackModifierIds || []).length, reason: "Модификаторы доступны только Атаке, подключённой к общему окну Реакций.", selectedIds: [], advantage: 0 };
   if (!attackModifiers.available) errors.push(attackModifiers.reason);
@@ -886,6 +900,10 @@ function prepareEnemyRule(scene, data, request = {}) {
     const provoked = (scene.actors || []).filter(target => !target.knockedOut && target.team !== actor.team && target.space === actor.space && Math.abs(target.x - actor.x) <= 2 && Math.abs(target.y - actor.y) <= 2);
     for (const target of provoked) events.push({ type: "effect.apply", actorId: actor.id, payload: { targetId: target.id, effect: "negative.спровоцирован", sourceActionId: rule.id, participantIds: [actor.id, target.id] } });
     events.push({ type: "turn.grant", actorId: actor.id, payload: { amount: 1, sourceActionId: rule.id } });
+  }
+  if (fullRule?.type === "hound-seekers") {
+    const target = targets[0], damage = enemyTierFormula("7(+1)", actor.tier), groupId = `seekers-${eventId()}`;
+    for (const [index, point] of seekerCells.entries()) events.push({ type: "actor.spawn", actorId: actor.id, payload: { actor: { id: `seeker-${eventId()}-${index}`, kind: "crowd", crowdSubtype: "seeker", crowdType: "hounds", crowdGroupId: groupId, seekerTargetId: target.id, seekerOwnerId: actor.id, seekerDamage: damage, source: rule.id, sourceActionId: rule.id, team: actor.team, heroId: null, profileId: null, name: "Ищейка", tier: 0, space: actor.space, x: point.x, y: point.y, hp: 1, maxHp: 1, focus: 0, ap: 0, baseAp: 0, speed: 0, armor: 0, evasion: 0, effects: [], usedActions: [], acted: true, hidden: false, tokenSymbol: "◆", tokenColor: "#72558f", tokenImage: "", portraitImage: "" }, participantIds: [actor.id, target.id] } });
   }
   if (fullRule?.type === "cannoneer-load") {
     const clockId = "enemy.common.cannoneer.preparation", configured = clockStatus(scene, actor.id, clockId).available;

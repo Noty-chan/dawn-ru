@@ -96,9 +96,14 @@ function validateEvent(scene, event, options = {}) {
   if (event.type === "actor.spawn") {
     const spawned = payload.actor, space = (scene.spaces || []).find(item => item.id === spawned?.space);
     if (!spawned || typeof spawned.id !== "string" || !spawned.id || actorById(scene, spawned.id) || !space || !Number.isInteger(Number(spawned.x)) || !Number.isInteger(Number(spawned.y)) || Number(spawned.x) < 0 || Number(spawned.y) < 0 || Number(spawned.x) >= Number(space.width) || Number(spawned.y) >= Number(space.height) || spawned.compoundId != null && (typeof spawned.compoundId !== "string" || !spawned.compoundId.trim() || spawned.compoundId.length > 120)) throw new Error("Некорректный призыв участника.");
+    if (spawned.crowdSubtype === "seeker") {
+      const owner = actorById(scene, spawned.seekerOwnerId), target = actorById(scene, spawned.seekerTargetId), ruleId = spawned.sourceActionId || spawned.source;
+      if (!owner || event.actorId !== owner.id || owner.profileId !== "enemy.common.hound-master" || owner.knockedOut || !target || target.knockedOut || target.kind === "crowd" || target.team === owner.team || spawned.kind !== "crowd" || spawned.team !== owner.team || spawned.space !== owner.space || distance(owner, spawned) !== 1 || !["enemy.common.hound-master.action.fire-seeker", "enemy.common.hound-master.trump.wild-hunt"].includes(ruleId) || Number(spawned.seekerDamage) !== enemyTierFormula("7(+1)", owner.tier)) throw new Error("Ищейка не соответствует авторитетному правилу Псаря.");
+    }
     const occupancy = effectCellOccupancyStatus(scene, null, { actor: spawned, space: spawned.space, x: spawned.x, y: spawned.y });
     if (!occupancy.available) throw new Error(occupancy.reason || "Клетка призыва занята.");
   }
+  if (event.type === "actor.despawn" && (!actor || actor.kind !== "crowd" || typeof payload.reason !== "string" || !payload.reason.trim() || payload.reason.length > 160)) throw new Error("Некорректное исчезновение Зоны массовки.");
   if (event.type === "marker.move") {
     const marker = markerById(scene, payload.markerId), space = (scene.spaces || []).find(item => item.id === (payload.space || marker?.space));
     if (!marker || !space || !Number.isInteger(Number(payload.x)) || !Number.isInteger(Number(payload.y)) || Number(payload.x) < 0 || Number(payload.y) < 0 || Number(payload.x) >= space.width || Number(payload.y) >= space.height) throw new Error("Некорректное перемещение маркера.");
@@ -532,6 +537,10 @@ function reduceEvent(scene, event) {
   } else if (event.type === "actor.spawn") {
     scene.actors ||= [];
     scene.actors.push(clone(payload.actor));
+  } else if (event.type === "actor.despawn" && actor) {
+    scene.actors = (scene.actors || []).filter(item => item.id !== actor.id);
+    scene.targetIds = (scene.targetIds || []).filter(id => id !== actor.id);
+    if (scene.selectedActor === actor.id) scene.selectedActor = null;
   } else if (event.type === "actor.move" && actor) {
     payload.from ||= { space: actor.space, x: Number(actor.x), y: Number(actor.y) };
     const compoundId = (actor.kind === "enemy" || actor.profileId) && typeof actor.compoundId === "string" && actor.compoundId.trim() ? actor.compoundId.trim() : null;
