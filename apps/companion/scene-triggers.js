@@ -994,7 +994,7 @@ function dispatchMany(scene, events, options = {}) {
       const requiredActorIds = [event.actorId, payload.sourceActorId, payload.targetId].filter(Boolean);
       if (requiredActorIds.some(id => invalidatedActorIds.has(id) || actorById(next, id)?.knockedOut)) continue;
     }
-    const placementActorId = ["siren-irresistible-cell", "constrictor-move-cell", "wave-rider-move-cell"].includes(prompt?.kind) || prompt?.kind === "enemy-move-cell" && prompt.context?.moveTarget ? prompt.targetId : prompt?.sourceActorId;
+    const placementActorId = ["siren-irresistible-cell", "constrictor-move-cell", "enemy-crowd-move-cell", "wave-rider-move-cell"].includes(prompt?.kind) || prompt?.kind === "enemy-move-cell" && prompt.context?.moveTarget ? prompt.targetId : prompt?.sourceActorId;
     const stationarySiren = prompt?.kind === "siren-irresistible-cell" && actorById(next, prompt.targetId)?.x === Number(destination?.x) && actorById(next, prompt.targetId)?.y === Number(destination?.y);
     const placementResponse = event?.type === "rule.respond" && event.payload?.choice === "cell" && destination && (
       prompt?.kind === "marker-move-cell"

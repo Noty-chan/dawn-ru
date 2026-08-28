@@ -33,7 +33,7 @@ const RESOURCES = new Set(["ap", "focus", "influence", "meals", "creationMarks",
 // Every prompt whose answer is a board placement must expose the typed `cell`
 // option at the event boundary. Keep this registry wider than the current UI
 // lists: prompts can be restored from a save or answered by a remote client.
-const PLACEMENT_PROMPT_KINDS = new Set(["marker-move-cell", "dim-mak-weak-point-cell", "empath-rush-cell", "reappear-cell", "thunder-surge-cell", "siren-irresistible-cell", "untouchable-weave-cell", "knife-pickup-step", "meister-overclock-move", "egomaniac-style-move", "constrictor-move-cell", "enemy-move-cell", "wave-rider-move-cell"]);
+const PLACEMENT_PROMPT_KINDS = new Set(["marker-move-cell", "dim-mak-weak-point-cell", "empath-rush-cell", "reappear-cell", "thunder-surge-cell", "siren-irresistible-cell", "untouchable-weave-cell", "knife-pickup-step", "meister-overclock-move", "egomaniac-style-move", "constrictor-move-cell", "enemy-move-cell", "enemy-crowd-move-cell", "wave-rider-move-cell"]);
 const EFFECT_DURATIONS = new Set(["default", "persistent", "scene", "startTurn", "actionOrStartTurn", "roundEnd"]);
 const ACTION_PLAN_PHASES = new Set(["reappear", "targets", "destination", "modifiers", "confirm"]);
 const EFFECT_LIFECYCLE = Object.freeze({
@@ -46,7 +46,7 @@ const EFFECT_LIFECYCLE = Object.freeze({
   "negative.пойман": Object.freeze({ duration: "default", sourceBound: true, removeWithSource: true }),
   "negative.спровоцирован": Object.freeze({ duration: "default", sourceBound: true, removeWithSource: true }),
 });
-const ACTOR_STATE_KEYS = new Set(["pugilistStance", "martialPerfection", "growth", "evasion", "imposingPresence", "enemyAim", "rangerHeadshotTargetId", "berserkerLastStand", "berserkerReactionTurnSerial", "executionerBifurcate", "revenantHollowedEyes", "healerGuardianId", "grimTransformed", "grimUsed", "warringTransformed", "warringUsed", "drainLife", "lastCreationSpellMarks", "modifiedOverclockTurns", "icicleSpellsRemaining", "styleCarryRemaining", "timeStopUsed", "empathSupport", "masterArmament", "wispCreationUsed"]);
+const ACTOR_STATE_KEYS = new Set(["pugilistStance", "martialPerfection", "growth", "evasion", "imposingPresence", "enemyAim", "rangerHeadshotTargetId", "berserkerLastStand", "berserkerReactionTurnSerial", "executionerBifurcate", "revenantHollowedEyes", "healerGuardianId", "enemyCrowdMovement", "grimTransformed", "grimUsed", "warringTransformed", "warringUsed", "drainLife", "lastCreationSpellMarks", "modifiedOverclockTurns", "icicleSpellsRemaining", "styleCarryRemaining", "timeStopUsed", "empathSupport", "masterArmament", "wispCreationUsed"]);
 const clone = value => JSON.parse(JSON.stringify(value));
 const actorById = (scene, id) => (scene.actors || []).find(actor => actor.id === id) || null;
 const compoundParts = (scene, actorOrId, options = {}) => {

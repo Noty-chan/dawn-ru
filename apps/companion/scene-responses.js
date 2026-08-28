@@ -261,6 +261,14 @@ function respondRulePrompt(scene, data, request = {}) {
   const errors = choiceStatus.available ? [] : [choiceStatus.reason];
   if (errors.length) return { ok: false, errors, events: [] };
   const events = [{ type: "rule.respond", actorId: actor.id, payload: { promptId: prompt.id, choice, sourceActorId: actor.id, targetId: target?.id || null, participantIds: [actor.id, target?.id].filter(Boolean) } }];
+  if (prompt.kind === "enemy-crowd-move-select") {
+    if (choice === "finish") events.push({ type: "actor.state", actorId: actor.id, payload: { key: "enemyCrowdMovement", value: { ruleId: prompt.context?.ruleId, turnSerial: Number(scene.turnSerial || 0) }, sourceActionId: prompt.context?.ruleId, participantIds: [actor.id] } });
+    else {
+      const crowdId = choice.startsWith("target:") ? choice.slice(7) : "", crowd = actorById(scene, crowdId), remaining = [...new Set(prompt.context?.remainingTargetIds || [])].filter(id => id !== crowdId && actorById(scene, id));
+      if (!crowd || crowd.knockedOut || crowd.kind !== "crowd" || crowd.team !== actor.team || crowd.space !== actor.space || !(prompt.context?.remainingTargetIds || []).includes(crowdId)) return { ok: false, errors: ["Выбранная Зона массовки больше недоступна."], events: [] };
+      events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${prompt.id}-${crowd.id}`, kind: "enemy-crowd-move-cell", sourceActorId: actor.id, targetId: crowd.id, controller: "narrator", title: `${prompt.title}: ${crowd.name}`, text: `Выберите достижимую клетку в пределах ${prompt.context?.maxDistance || 1}.`, options: ["cancel"], context: { ...clone(prompt.context), remainingTargetIds: remaining, moveTarget: true }, participantIds: [actor.id, crowd.id, ...remaining] } });
+    }
+  }
   if (prompt.kind === "enemy-healer-guardian") {
     const guardian = choice.startsWith("guard:") ? actorById(scene, choice.slice(6)) : null;
     if (guardian && (guardian.knockedOut || guardian.id === actor.id || guardian.team !== actor.team || !effectPresenceStatus(scene, guardian.id).onField)) return { ok: false, errors: ["Выбранный Страж больше недоступен."], events: [] };
@@ -790,10 +798,10 @@ function respondRulePrompt(scene, data, request = {}) {
 function preparePromptPlacement(scene, request = {}) {
   const prompt = scene.pendingPrompt, actor = actorById(scene, prompt?.sourceActorId), marker = markerById(scene, prompt?.context?.markerId), target = actorById(scene, prompt?.targetId || prompt?.context?.targetId), destination = request.destination && { x: Number(request.destination.x), y: Number(request.destination.y) }, errors = [];
   const space = (scene.spaces || []).find(item => item.id === (marker?.space || actor?.space));
-  if (!prompt || !actor || !["marker-move-cell", "dim-mak-weak-point-cell", "empath-rush-cell", "reappear-cell", "knife-pickup-step", "meister-overclock-move", "egomaniac-style-move", "thunder-surge-cell", "siren-irresistible-cell", "untouchable-weave-cell", "constrictor-move-cell", "enemy-move-cell", "wave-rider-move-cell"].includes(prompt.kind)) errors.push("Сейчас нет выбора клетки для правила.");
+  if (!prompt || !actor || !["marker-move-cell", "dim-mak-weak-point-cell", "empath-rush-cell", "reappear-cell", "knife-pickup-step", "meister-overclock-move", "egomaniac-style-move", "thunder-surge-cell", "siren-irresistible-cell", "untouchable-weave-cell", "constrictor-move-cell", "enemy-move-cell", "enemy-crowd-move-cell", "wave-rider-move-cell"].includes(prompt.kind)) errors.push("Сейчас нет выбора клетки для правила.");
   if (!space || !destination || !Number.isInteger(destination.x) || !Number.isInteger(destination.y) || destination.x < 0 || destination.y < 0 || destination.x >= Number(space?.width || 0) || destination.y >= Number(space?.height || 0)) errors.push("Выберите клетку в пределах поля.");
   if (space && destination && removedCellKeys(scene, space.id).has(cellKey(destination))) errors.push("Эта клетка удалена из поля.");
-  const movingActor = ["siren-irresistible-cell", "constrictor-move-cell", "wave-rider-move-cell"].includes(prompt?.kind) || prompt?.kind === "enemy-move-cell" && prompt.context?.moveTarget ? target : actor;
+  const movingActor = ["siren-irresistible-cell", "constrictor-move-cell", "enemy-crowd-move-cell", "wave-rider-move-cell"].includes(prompt?.kind) || prompt?.kind === "enemy-move-cell" && prompt.context?.moveTarget ? target : actor;
   if (prompt?.kind !== "marker-move-cell" && movingActor && !effectCellOccupancyStatus(scene, movingActor.id, { space: space?.id, x: destination?.x, y: destination?.y }).available) errors.push("Клетка занята.");
   if (prompt?.kind === "marker-move-cell") {
     if (!marker) errors.push("Духовное пламя больше не существует.");
@@ -858,10 +866,10 @@ function preparePromptPlacement(scene, request = {}) {
     }
   }
   let enemyMovePath = [];
-  if (prompt?.kind === "enemy-move-cell") {
+  if (["enemy-move-cell", "enemy-crowd-move-cell"].includes(prompt?.kind)) {
     const mover = movingActor, unchanged = mover.x === destination?.x && mover.y === destination?.y;
-    const maximum = effectMovementStatus(scene, mover.id, { forced: Boolean(prompt.context?.moveTarget), distance: Number(prompt.context?.maxDistance || 1) }).distance;
-    enemyMovePath = unchanged ? [] : movementPath(scene, mover.id, destination, { maxDistance: maximum, forced: Boolean(prompt.context?.moveTarget) });
+    const forced = Boolean(prompt.kind === "enemy-crowd-move-cell" || prompt.context?.moveTarget), maximum = prompt.kind === "enemy-crowd-move-cell" ? Number(prompt.context?.maxDistance || 1) : effectMovementStatus(scene, mover.id, { forced, distance: Number(prompt.context?.maxDistance || 1) }).distance;
+    enemyMovePath = unchanged ? [] : prompt.kind === "enemy-crowd-move-cell" && distance(mover, { ...destination, space: mover.space }) <= maximum ? [{ ...destination }] : movementPath(scene, mover.id, destination, { maxDistance: maximum, forced });
     if (!unchanged && !enemyMovePath.length) errors.push(`Выберите достижимую клетку в пределах ${maximum}.`);
   }
   let wavePath = [];
@@ -913,9 +921,13 @@ function preparePromptPlacement(scene, request = {}) {
     events.push({ type: "actor.enter", actorId: target.id, payload: { space: target.space, x: destination.x, y: destination.y, movement: "Печать волны", forced: true } });
     events.push({ type: "technique.resolve", actorId: actor.id, payload: { ruleId: "disruptor.wave-rider.1", name: "Мягкие волны", affectedActorIds: [target.id], participantIds: [actor.id, target.id] } });
   } else {
-    const mover = prompt.kind === "enemy-move-cell" && prompt.context?.moveTarget ? target : actor, forced = Boolean(prompt.kind === "enemy-move-cell" && prompt.context?.moveTarget);
-    events.push({ type: "actor.move", actorId: mover.id, payload: { space: mover.space, x: destination.x, y: destination.y, movement: prompt.kind === "thunder-surge-cell" ? "Телепортация · Скачок" : prompt.title, path: prompt.kind === "enemy-move-cell" ? enemyMovePath.map(cellKey) : undefined, placement: ["reappear-cell", "thunder-surge-cell"].includes(prompt.kind), forced, participantIds: [actor.id, target?.id].filter(Boolean) } });
+    const mover = ["enemy-move-cell", "enemy-crowd-move-cell"].includes(prompt.kind) && prompt.context?.moveTarget ? target : actor, forced = Boolean(["enemy-move-cell", "enemy-crowd-move-cell"].includes(prompt.kind) && prompt.context?.moveTarget);
+    events.push({ type: "actor.move", actorId: mover.id, payload: { space: mover.space, x: destination.x, y: destination.y, movement: prompt.kind === "thunder-surge-cell" ? "Телепортация · Скачок" : prompt.title, path: ["enemy-move-cell", "enemy-crowd-move-cell"].includes(prompt.kind) ? enemyMovePath.map(cellKey) : undefined, placement: ["reappear-cell", "thunder-surge-cell"].includes(prompt.kind), forced, enemyRuleMove: prompt.kind === "enemy-crowd-move-cell" ? prompt.context?.ruleId : null, sourceActorId: prompt.kind === "enemy-crowd-move-cell" ? actor.id : null, maximum: prompt.kind === "enemy-crowd-move-cell" ? Number(prompt.context?.maxDistance || 1) : null, participantIds: [actor.id, target?.id].filter(Boolean) } });
     events.push({ type: "actor.enter", actorId: mover.id, payload: { space: mover.space, x: destination.x, y: destination.y, movement: prompt.title, forced } });
+    if (prompt.kind === "enemy-crowd-move-cell") {
+      const remaining = [...new Set(prompt.context?.remainingTargetIds || [])].filter(id => { const crowd = actorById(scene, id); return crowd && !crowd.knockedOut && crowd.kind === "crowd" && crowd.team === actor.team && crowd.space === actor.space; });
+      events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${prompt.id}-next`, kind: "enemy-crowd-move-select", sourceActorId: actor.id, controller: "narrator", title: prompt.title.split(": ")[0] + ": движение массовки", text: "Переместите следующую Зону массовки или закончите движение.", options: [...remaining.map(id => `target:${id}`), "finish"], context: { ...clone(prompt.context), remainingTargetIds: remaining }, participantIds: [actor.id, ...remaining] } });
+    }
     if (prompt.kind === "reappear-cell") events.push({ type: "effect.remove", actorId: actor.id, payload: { targetId: actor.id, effect: "positive.исчез", sourceActionId: "reappear", participantIds: [actor.id] } });
   }
   return { ok: true, errors: [], events };

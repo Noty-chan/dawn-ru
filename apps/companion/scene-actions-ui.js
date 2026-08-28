@@ -246,6 +246,8 @@ function commitEnemyStep(actorId,destination){
 function useEnemyRule(actorId,ruleId,{anchor=null,areaReady=false,options={}}={}){
   const actor=Scene.actors.find(item=>item.id===actorId),profile=enemyProfile(actor?.profileId),sourceRule=profile?.rules?.find(item=>item.id===ruleId);if(!actor||!sourceRule)return toast("Действие противника больше не доступно");
   const ruleState=SceneEngine.availableEnemyRules(Scene,D,actor.id).find(item=>item.id===sourceRule.id),rule={...sourceRule,...(ruleState||{})};
+  const crowdMovementReady=actor.ruleState?.enemyCrowdMovement?.ruleId===rule.id&&Number(actor.ruleState.enemyCrowdMovement.turnSerial)===Number(Scene.turnSerial||0);
+  if(rule.crowdAdvance&&!crowdMovementReady){const prepared=SceneEngine.prepareEnemyRule(Scene,D,{actorId:actor.id,ruleId:rule.id,options:{beginCrowdMovement:true}});if(!prepared.ok)return toast(prepared.errors.join(" "));if(commitSceneEvents(`${actor.name}: подготовка «${rule.name}»`,prepared.events))toast("Сначала переместите Зоны массовки; после завершения снова выберите Атаку");return}
   if(rule.id==="enemy.common.pugilist.action.take-stance"&&!options.stanceStep)return toast("«Принять стойку»: выберите шаг 1–4 под текстом правила");
   const automaticAttack=ruleState?.automation==="attack";
   Scene.activeSpace=actor.space;Scene.selectedActor=actor.id;

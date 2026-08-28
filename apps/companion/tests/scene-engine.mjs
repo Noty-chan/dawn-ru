@@ -1909,8 +1909,10 @@ const bodyguardsScene = structuredClone(enemyScene);
 bodyguardsScene.actors[1].profileId = "enemy.common.bodyguards";
 bodyguardsScene.actors.push({ ...structuredClone(bodyguardsScene.actors[0]), id: "hero-2", name: "Вторая цель", x: 2, y: 2 });
 bodyguardsScene.actors.push({ ...structuredClone(bodyguardsScene.actors[0]), id: "hero-3", name: "Третья цель", x: 3, y: 1 });
+bodyguardsScene.actors.push({ ...structuredClone(bodyguardsScene.actors[1]), id: "bodyguard-crowd", kind: "crowd", name: "Зона массовки", x: 2, y: 1, hp: 1, maxHp: 1 });
 const behindMe = Engine.availableEnemyRules(bodyguardsScene, data, "enemy").find(rule => rule.en === "Behind Me");
 assert.equal(behindMe.maxTargets, 3);
+bodyguardsScene.actors[1].ruleState = { enemyCrowdMovement: { ruleId: behindMe.id, turnSerial: Number(bodyguardsScene.turnSerial || 0) } };
 assert.equal(Engine.prepareEnemyRule(bodyguardsScene, data, { actorId: "enemy", ruleId: behindMe.id, targetIds: ["hero", "hero-2", "hero-3"], roll: { formula: "6D6", rolls: [6, 5, 4, 2, 1, 1], successes: 3, crits: 1 } }).ok, true, "Behind Me accepts all three textual targets under assisted resolution");
 
 const disappear = enemyRules.find(rule => rule.en === "Disappear");
@@ -2887,7 +2889,7 @@ assert.equal(ritualDrawings.requiresTarget, false, "Ritual Drawings selects empt
 assert.equal(ritualDrawings.maxTargets, 0);
 const declaredAttacks = enemyProfiles.flatMap(profile => (profile.rules || []).filter(rule => rule.kind === "attack").map(rule => ({ profile, rule })));
 assert.ok(declaredAttacks.length >= 40, "The enemy catalogue exposes the complete common Attack set");
-assert.deepEqual(declaredAttacks.filter(({ rule }) => Engine.enemyRuleAutomation(rule.id) === "assisted").map(({ rule }) => rule.id), ["enemy.common.bodyguards.attack.behind-me", "enemy.common.coordinator.attack.fanaticize", "enemy.common.swarm.attack.tear"], "Attacks with absent mandatory movement or follow-up branches stay assisted");
+assert.deepEqual(declaredAttacks.filter(({ rule }) => Engine.enemyRuleAutomation(rule.id) === "assisted").map(({ rule }) => rule.id), ["enemy.common.coordinator.attack.fanaticize", "enemy.common.swarm.attack.tear"], "Attacks with absent mandatory follow-up or target-choice branches stay assisted");
 for (const profileId of ["enemy.common.assassin", "enemy.common.pugilist", "enemy.common.guardian", "enemy.common.berserker", "enemy.common.ranger"]) {
   const profile = enemyProfiles.find(item => item.id === profileId);
   assert.ok(profile, `${profileId} exists in the canonical enemy catalogue`);
@@ -3002,7 +3004,22 @@ healerMarkScene = Engine.dispatchMany(healerMarkScene, [{ type: "attack.pending"
 assert.equal(healerMarkScene.actors.find(actor => actor.id === "healer-attacker").hp, 10, "Attacking an Exsanguinate-marked target heals the attacker for tier-scaled 7 Health");
 assert.ok(!healerMarkScene.actors[0].effects.includes("negative.помечен"), "The Exsanguinate Mark is consumed by the next attack");
 const behindMeContract = profileRule("enemy.common.bodyguards", "Behind Me");
-assert.equal(Engine.enemyRuleAutomation(behindMeContract.id), "assisted", "Behind Me stays assisted until moving every Fodder zone is atomically implemented");
+assert.equal(Engine.enemyRuleAutomation(behindMeContract.id), "attack", "Behind Me uses the persisted Fodder-movement preflight before its mixed-target attack");
+let bodyguardCrowdFlow = profileScene("enemy.common.bodyguards");
+bodyguardCrowdFlow.actors.push({ ...structuredClone(bodyguardCrowdFlow.actors[1]), id: "crowd-a", kind: "crowd", name: "Зона A", x: 3, y: 2, hp: 1, maxHp: 1 });
+const crowdPreflight = Engine.prepareEnemyRule(bodyguardCrowdFlow, data, { actorId: "enemy", ruleId: behindMeContract.id, options: { beginCrowdMovement: true } });
+assert.equal(crowdPreflight.ok, true); bodyguardCrowdFlow = Engine.dispatchMany(bodyguardCrowdFlow, crowdPreflight.events).scene;
+const chooseCrowd = Engine.respondRulePrompt(structuredClone(bodyguardCrowdFlow), data, { choice: "target:crowd-a" });
+assert.equal(chooseCrowd.ok, true, "Fodder selection survives save/load because its remaining ids live in typed prompt context");
+bodyguardCrowdFlow = Engine.dispatchMany(bodyguardCrowdFlow, chooseCrowd.events).scene;
+assert.equal(Engine.preparePromptPlacement(bodyguardCrowdFlow, { destination: { x: 8, y: 8 } }).ok, false, "Fodder movement rejects cells beyond one space");
+const crowdDestination = [{ x: 3, y: 3 }, { x: 4, y: 2 }, { x: 2, y: 2 }, { x: 3, y: 1 }].map(destination => ({ destination, prepared: Engine.preparePromptPlacement(bodyguardCrowdFlow, { destination }) })).find(candidate => candidate.prepared.ok);
+assert.ok(crowdDestination, `At least one adjacent Fodder destination remains legal: ${JSON.stringify([{ x: 3, y: 3 }, { x: 4, y: 2 }, { x: 2, y: 2 }, { x: 3, y: 1 }].map(destination => Engine.preparePromptPlacement(bodyguardCrowdFlow, { destination }).errors))}`);
+bodyguardCrowdFlow = Engine.dispatchMany(bodyguardCrowdFlow, crowdDestination.prepared.events).scene;
+bodyguardCrowdFlow = Engine.dispatchMany(bodyguardCrowdFlow, Engine.respondRulePrompt(bodyguardCrowdFlow, data, { choice: "finish" }).events).scene;
+assert.deepEqual({ x: bodyguardCrowdFlow.actors.find(actor => actor.id === "crowd-a").x, y: bodyguardCrowdFlow.actors.find(actor => actor.id === "crowd-a").y }, crowdDestination.destination, "Behind Me atomically records the chosen Fodder movement");
+assert.equal(bodyguardCrowdFlow.actors[1].ruleState.enemyCrowdMovement.ruleId, behindMeContract.id, "Completed movement preflight persists for the current Turn");
+assert.equal(Engine.respondRulePrompt(bodyguardCrowdFlow, data, { choice: "finish" }).ok, false, "A duplicate prompt response is idempotently rejected");
 let assassinFull = profileScene("enemy.common.assassin"), assassinMark = profileRule("enemy.common.assassin", "Neutralize Target");
 assassinFull = Engine.dispatchMany(assassinFull, Engine.prepareEnemyRule(assassinFull, data, { actorId: "enemy", ruleId: assassinMark.id, targetIds: ["hero"] }).events).scene;
 assert.ok(assassinFull.actors[0].effects.includes("negative.помечен"), "Assassin creates its durable Mark through the shared Effect state");

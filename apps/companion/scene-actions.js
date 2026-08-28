@@ -35,6 +35,7 @@ const ENEMY_AUTO_ATTACK_RULES = new Map([
   ["enemy.common.slime.attack.goop", 1],
   ["enemy.common.glutton.attack.slobber", 1],
   ["enemy.common.mount.attack.thrash", 1],
+  ["enemy.common.bodyguards.attack.behind-me", 1],
   ["enemy.common.oni.attack.polaris", 1],
   ["enemy.common.paladin.attack.gift-from-god", 1],
   ["enemy.common.daredevil.attack.dance", 1],
@@ -72,7 +73,7 @@ const ENEMY_ATTACK_FAMILY_RULES = new Map([
   ["enemy.common.ronin.attack.dissect", { effects: [], adjacent: true, wound: "two-crits" }],
   ["enemy.common.viper.attack.filet", { effects: ["Порчен"], adjacent: true, wound: "already-corrupted" }],
   ["enemy.common.witch.attack.expelling-force", { effects: [], area: [3, 3], maxTargets: 40, expelFromArea: true }],
-  ["enemy.common.bodyguards.attack.behind-me", { effects: [], maxTargets: 3, audience: "any", allyEffects: ["Укреплен"], crowdAdvance: 1 }],
+  ["enemy.common.bodyguards.attack.behind-me", { effects: [], maxTargets: 3, audience: "any", allyEffects: ["Укреплен"], crowdAdvance: 1, targetAdjacentToCrowd: true }],
   ["enemy.common.broodmother.attack.swarming-chase", { effects: [], maxTargets: 40, broodmotherDamage: true, preMoveMaximum: 1, moveAdjacentAllies: true, targetsAdjacentAfterMove: true }],
   ["enemy.common.cocoon.attack.rampage", { effects: [], adjacent: true, preMoveMaximum: 3, preMoveStraight: true, preMoveIgnoreRestrictions: true, repeatFreshTargets: true }],
   ["enemy.common.duelist.attack.fl-che", { effects: [], range: 2, provokedTierDamage: true, postSelfMove: 1 }],
@@ -94,7 +95,7 @@ const ENEMY_ATTACK_FAMILY_RULES = new Map([
   ["enemy.common.enchanter.attack.heartbreaker", { effects: [], conditionalEffectsByTarget: { any: ["Испуган", "Спровоцирован"], apply: ["Ослаблен", "Замедлен"] } }],
   ["enemy.common.privateer.attack.spray-and-pray", { effects: [], range: 3, maxTargets: 40, lineLength: 2 }],
   ["enemy.common.rifter.attack.emerge", { effects: [], maxTargets: 40, teleportAttack: true, preMoveMaximum: 5, targetsAdjacentAfterMove: true }],
-  ["enemy.common.swarm.attack.tear", { effects: [], maxTargets: 3, chooseOneEffect: "Ошеломлен", crowdAdvance: 1 }],
+  ["enemy.common.swarm.attack.tear", { effects: [], maxTargets: 3, chooseOneEffect: "Ошеломлен", crowdAdvance: 1, targetAdjacentToCrowd: true }],
   ["enemy.named.leon-s-vayu-spirit.attack.air-shove", { postPush: 1 }],
   ["enemy.named.leon-academy-spatial-mage.attack.emerge", { effects: [], range: 5, maxTargets: 40, teleportAttack: true }],
 ]);
@@ -702,6 +703,12 @@ function prepareEnemyRule(scene, data, request = {}) {
   if (available && !available.available) errors.push(available.reason);
   const fullRule = rule ? ENEMY_FULL_RULES.get(rule.id) : null, family = rule ? ENEMY_ATTACK_FAMILY_RULES.get(rule.id) || {} : {};
   const isAttackRule = Boolean(rule && (rule.kind === "attack" || family.attack));
+  const crowdMovementReady = Boolean(actor?.ruleState?.enemyCrowdMovement?.ruleId === rule?.id && Number(actor.ruleState.enemyCrowdMovement.turnSerial) === Number(scene.turnSerial || 0));
+  if (actor && rule && family.crowdAdvance && request.options?.beginCrowdMovement && !crowdMovementReady) {
+    const crowdIds = (scene.actors || []).filter(item => item.kind === "crowd" && !item.knockedOut && item.team === actor.team && item.space === actor.space).map(item => item.id);
+    return { ok: true, errors: [], events: [{ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${eventId()}-enemy-crowds`, kind: "enemy-crowd-move-select", sourceActorId: actor.id, controller: "narrator", title: `${rule.name}: движение массовки`, text: `По очереди переместите каждую союзную Зону массовки на расстояние до ${family.crowdAdvance} клетки или оставьте её на месте.`, options: [...crowdIds.map(id => `target:${id}`), "finish"], context: { ruleId: rule.id, remainingTargetIds: crowdIds, maxDistance: Number(family.crowdAdvance), optionLabels: { finish: "Закончить движение" } }, participantIds: [actor.id, ...crowdIds] } }], rule: available || clone(rule) };
+  }
+  if (actor && rule && family.crowdAdvance && !crowdMovementReady) errors.push("Сначала разрешите движение всех союзных Зон массовки.");
   let targetIds = [...new Set(request.targetIds || [])];
   if (fullRule?.type === "regenerating-allies" && actor) targetIds = (scene.actors || []).filter(target => !target.knockedOut && target.team === actor.team && (target.effects || []).some(effect => String(effect).includes("регенер"))).map(target => target.id);
   if (fullRule?.type === "corrupted-damage" && actor) targetIds = (scene.actors || []).filter(target => !target.knockedOut && target.team !== actor.team && (target.effects || []).some(effect => String(effect).includes("порчен"))).map(target => target.id);
@@ -766,6 +773,7 @@ function prepareEnemyRule(scene, data, request = {}) {
   const maxTargets = Number(available?.maxTargets ?? rule?.maxTargets ?? 0);
   if (maxTargets && targets.length > maxTargets) errors.push(`Можно выбрать не больше ${maxTargets} целей.`);
   if (attackOrigin && (available?.adjacent || rule?.adjacent || family.targetsAdjacentAfterMove) && !hiddenAssassinAttack && targets.some(target => distance(attackOrigin, target) > 1)) errors.push("Цель должна быть смежной.");
+  if (family.targetAdjacentToCrowd && targets.some(target => !(scene.actors || []).some(crowd => crowd.kind === "crowd" && !crowd.knockedOut && crowd.team === actor.team && crowd.space === target.space && distance(crowd, target) <= 1))) errors.push("Каждая цель должна быть смежна с союзной Зоной массовки.");
   if (attackOrigin && rule?.id === "enemy.common.executioner.attack.cleave" && targets.length) {
     const vectors = targets.map(target => ({ dx: Number(target.x) - Number(attackOrigin.x), dy: Number(target.y) - Number(attackOrigin.y) })), axis = vectors[0].dx ? "x" : "y", sign = Math.sign(vectors[0][axis === "x" ? "dx" : "dy"]), valid = vectors.every(vector => (axis === "x" ? vector.dy === 0 : vector.dx === 0) && Math.sign(vector[axis === "x" ? "dx" : "dy"]) === sign && Math.abs(vector[axis === "x" ? "dx" : "dy"]) <= 2);
     if (!valid) errors.push("Цели Разруба должны находиться на одной смежной Линии длиной 2 клетки.");

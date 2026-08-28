@@ -64,16 +64,18 @@ function validateEvent(scene, event, options = {}) {
   }
   if (event.type === "actor.move") {
     const space = (scene.spaces || []).find(item => item.id === payload.space);
+    let validCrowdRuleMove = false;
     if (!space || !Number.isInteger(Number(payload.x)) || !Number.isInteger(Number(payload.y)) || Number(payload.x) < 0 || Number(payload.y) < 0 || Number(payload.x) >= space.width || Number(payload.y) >= space.height) throw new Error("Некорректная клетка перемещения.");
     if (removedCellKeys(scene, payload.space).has(`${Number(payload.x)},${Number(payload.y)}`)) throw new Error("Нельзя переместиться в удалённую клетку.");
     if (actor?.knockedOut && !payload.allowKnockedOut && !payload.displacement?.allowKnockedOut) throw new Error("Выведенный из строя участник не может перемещаться.");
     if (actor?.kind === "crowd") {
       const status = fodderMoveStatus(scene, actor.id), moveDistance = Math.abs(Number(payload.x) - Number(actor.x)) + Math.abs(Number(payload.y) - Number(actor.y));
-      if (!payload.fodderMove || !status.available || payload.boundaryEventId !== status.boundaryEventId || moveDistance < 1 || moveDistance > status.remaining || (payload.space || actor.space) !== actor.space) throw new Error(status.reason || "Некорректное перемещение зоны массовки.");
+      const ruleMover = payload.enemyRuleMove && actorById(scene, payload.sourceActorId); validCrowdRuleMove = Boolean(ruleMover && !ruleMover.knockedOut && scene.activeActorId === ruleMover.id && ruleMover.team === actor.team && ["enemy.common.bodyguards.attack.behind-me", "enemy.common.swarm.attack.tear"].includes(payload.enemyRuleMove) && moveDistance >= 1 && moveDistance <= Number(payload.maximum || 1) && (payload.space || actor.space) === actor.space);
+      if (!validCrowdRuleMove && (!payload.fodderMove || !status.available || payload.boundaryEventId !== status.boundaryEventId || moveDistance < 1 || moveDistance > status.remaining || (payload.space || actor.space) !== actor.space)) throw new Error(status.reason || "Некорректное перемещение зоны массовки.");
       payload.distance = moveDistance;
     }
     const movement = effectMovementStatus(scene, event.actorId, { forced: Boolean(payload.forced || payload.displacement), placement: Boolean(payload.placement), ignoreResistance: Boolean(payload.displacement?.ignoreResistance), ignoreVoluntaryRestrictions: Boolean(payload.ignoreVoluntaryRestrictions) });
-    if (!movement.available) throw new Error(movement.reason);
+    if (!movement.available && !validCrowdRuleMove) throw new Error(movement.reason);
     const occupancy = effectCellOccupancyStatus(scene, event.actorId, { space: payload.space, x: payload.x, y: payload.y });
     if (!occupancy.available) throw new Error(occupancy.reason);
     if (payload.from && (payload.from.space !== actor?.space || Number(payload.from.x) !== Number(actor?.x) || Number(payload.from.y) !== Number(actor?.y))) throw new Error("Исходная клетка перемещения устарела.");
