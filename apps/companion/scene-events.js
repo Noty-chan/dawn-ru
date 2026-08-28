@@ -80,6 +80,7 @@ function validateEvent(scene, event, options = {}) {
     const occupancy = effectCellOccupancyStatus(scene, event.actorId, { space: payload.space, x: payload.x, y: payload.y });
     if (!occupancy.available) throw new Error(occupancy.reason);
     if (payload.from && (payload.from.space !== actor?.space || Number(payload.from.x) !== Number(actor?.x) || Number(payload.from.y) !== Number(actor?.y))) throw new Error("Исходная клетка перемещения устарела.");
+    if(actor?.crowdSubtype==="vortex"&&payload.fodderMove){const owner=actorById(scene,actor.vortexOwnerId),carrier=modifierCarrier(scene,owner),destination={space:payload.space,x:Number(payload.x),y:Number(payload.y)};if(!carrier||carrier.knockedOut||distance(destination,carrier)>=distance(actor,carrier))throw new Error("Массовка Вихря может двигаться только ближе к носителю.");}
     if (payload.path != null) {
       if (!Array.isArray(payload.path) || payload.path.length > 144) throw new Error("Некорректный путь перемещения.");
       const pathCells = payload.path.map(String), invalidPath = pathCells.some(cell => {
@@ -100,10 +101,26 @@ function validateEvent(scene, event, options = {}) {
       const owner = actorById(scene, spawned.seekerOwnerId), target = actorById(scene, spawned.seekerTargetId), ruleId = spawned.sourceActionId || spawned.source;
       if (!owner || event.actorId !== owner.id || owner.profileId !== "enemy.common.hound-master" || owner.knockedOut || !target || target.knockedOut || target.kind === "crowd" || target.team === owner.team || spawned.kind !== "crowd" || spawned.team !== owner.team || spawned.space !== owner.space || distance(owner, spawned) !== 1 || !["enemy.common.hound-master.action.fire-seeker", "enemy.common.hound-master.trump.wild-hunt"].includes(ruleId) || Number(spawned.seekerDamage) !== enemyTierFormula("7(+1)", owner.tier)) throw new Error("Ищейка не соответствует авторитетному правилу Псаря.");
     }
+    if(spawned.crowdSubtype==="vortex"){
+      const owner=actorById(scene,spawned.vortexOwnerId),carrier=modifierCarrier(scene,owner),anchor=actorById(scene,modifierState(owner).targetId),boundary=(scene.log||[]).find(item=>item.id===payload.boundaryEventId),space=(scene.spaces||[]).find(item=>item.id===spawned.space);
+      const distances=anchor&&space?[(spawned.x===0?anchor.x:-1),(spawned.x===space.width-1?space.width-1-anchor.x:-1),(spawned.y===0?anchor.y:-1),(spawned.y===space.height-1?space.height-1-anchor.y:-1)]:[],farthest=anchor&&space?Math.max(anchor.x,space.width-1-anchor.x,anchor.y,space.height-1-anchor.y):-1;
+      if(!owner||owner.profileId!==ENEMY_MODIFIER_IDS.vortex||owner.knockedOut||event.actorId!==owner.id||!carrier||!anchor||anchor.knockedOut||spawned.kind!=="crowd"||spawned.team!==owner.team||boundary?.type!=="round.end"||Math.max(...distances)!==farthest)throw new Error("Зона Вихря не соответствует дальней границе указанного игрока и актуальному носителю.");
+    }
     const occupancy = effectCellOccupancyStatus(scene, null, { actor: spawned, space: spawned.space, x: spawned.x, y: spawned.y });
     if (!occupancy.available) throw new Error(occupancy.reason || "Клетка призыва занята.");
   }
-  if (event.type === "actor.despawn" && (!actor || actor.kind !== "crowd" || typeof payload.reason !== "string" || !payload.reason.trim() || payload.reason.length > 160)) throw new Error("Некорректное исчезновение Зоны массовки.");
+  if(event.type==="actor.despawn"){
+    const collateralRescue=actor?.profileId===ENEMY_MODIFIER_IDS.collateral&&payload.sourceActionId==="enemy.modifier.collateral.rescue",rescuer=actorById(scene,payload.rescuerId),roll=(scene.log||[]).find(item=>item.id===payload.rollEventId);
+    if(!actor||typeof payload.reason!=="string"||!payload.reason.trim()||payload.reason.length>160||actor.kind!=="crowd"&&!collateralRescue)throw new Error("Некорректное удаление участника.");
+    if(collateralRescue&&(!rescuer||rescuer.team===actor.team||rescuer.knockedOut||rescuer.space!==actor.space||distance(rescuer,actor)>1||roll?.type!=="roll.public"||roll.actorId!==rescuer.id||Number(roll.payload?.successes)<modifierTierValue("2(+1)",actor.tier)||Number(payload.threshold)!==modifierTierValue("2(+1)",actor.tier)))throw new Error("Спасение Случайной жертвы не подтверждено актуальным Взаимодействием.");
+  }
+  if(event.type==="modifier.configure"){
+    if(!actor||payload.profileId!==actor.profileId||!isEnemyModifier(actor)||!payload.state||typeof payload.state!=="object")throw new Error("Некорректная настройка врага-модификатора.");
+    const status=modifierConfigurationStatus(scene,actor.id,payload.state);if(!status.available)throw new Error(status.reason);
+    const collateral=actor.profileId===ENEMY_MODIFIER_IDS.collateral,legion=actor.profileId===ENEMY_MODIFIER_IDS.legion,gargantuan=actor.profileId===ENEMY_MODIFIER_IDS.gargantuan,canonical={carrierId:isAttachedModifier(actor)?status.carrier.id:null,targetId:PLAYER_ANCHOR_MODIFIER_IDS.has(actor.profileId)?status.target.id:null,cells:AREA_MODIFIER_IDS.has(actor.profileId)||collateral?status.cells:[],mode:status.mode||null,configuredRound:Number(scene.round||1),...(collateral?{groupId:`collateral-${actor.id}`,clockId:`collateral-clock-${actor.id}`,deployed:true}:legion?{deployed:true,legionHp:livePlayers(scene).length*10}:gargantuan?{expanded:true}:{})};
+    if(JSON.stringify(canonical)!==JSON.stringify(payload.state))throw new Error("Настройка модификатора не совпадает с актуальной Сценой.");
+  }
+  if(event.type==="modifier.action"){const status=modifierActionStatus(scene,{actorId:event.actorId,...payload});if(payload.profileId!==actor?.profileId||!status.available)throw new Error(status.reason||"Некорректное действие модификатора.");if(payload.action==="gargantuan-strike"&&!modifierTwoSquareCover(payload.cells))throw new Error("Области Громадины должны быть одной или двумя точными зонами 2×2.");}
   if (event.type === "marker.move") {
     const marker = markerById(scene, payload.markerId), space = (scene.spaces || []).find(item => item.id === (payload.space || marker?.space));
     if (!marker || !space || !Number.isInteger(Number(payload.x)) || !Number.isInteger(Number(payload.y)) || Number(payload.x) < 0 || Number(payload.y) < 0 || Number(payload.x) >= space.width || Number(payload.y) >= space.height) throw new Error("Некорректное перемещение маркера.");
@@ -268,7 +285,7 @@ function validateEvent(scene, event, options = {}) {
     if (!actorById(scene, event.actorId) || !ACTOR_STATE_KEYS.has(payload.key)) throw new Error("Некорректное состояние персонажа.");
     if (payload.key === "pugilistStance" && (!Number.isInteger(Number(payload.value)) || Number(payload.value) < 1 || Number(payload.value) > 4)) throw new Error("Шаг стойки должен быть от 1 до 4.");
     if (payload.key === "growth" && (!Number.isInteger(Number(payload.delta)) || Math.abs(Number(payload.delta)) > 20)) throw new Error("Некорректное изменение Роста.");
-    if (payload.key === "evasion" && (!Number.isInteger(Number(payload.delta)) || Math.abs(Number(payload.delta)) > 20)) throw new Error("Некорректное изменение Уклонения.");
+    if (["evasion","armor"].includes(payload.key) && (!Number.isInteger(Number(payload.delta)) || Math.abs(Number(payload.delta)) > 20)) throw new Error("Некорректное изменение защиты.");
     if (["martialPerfection", "imposingPresence", "berserkerLastStand"].includes(payload.key) && typeof payload.value !== "boolean") throw new Error("Некорректный переключатель состояния.");
     if (["executionerBifurcate", "revenantHollowedEyes"].includes(payload.key) && payload.value !== null && (typeof payload.value !== "object" || !actorById(scene, payload.value.targetId) || !Number.isInteger(Number(payload.value.dueTurnSerial)))) throw new Error("Некорректное отложенное действие врага.");
     if (payload.key === "enemyAim" && (!Number.isInteger(Number(payload.value)) || Number(payload.value) < 0 || Number(payload.value) > 1)) throw new Error("Некорректное значение Прицела.");
@@ -284,6 +301,8 @@ function validateEvent(scene, event, options = {}) {
   if (["enemy.action.prepare", "enemy.action.resolve"].includes(event.type) && (typeof payload.ruleId !== "string" || typeof payload.name !== "string" || payload.ruleId.length > 180 || payload.name.length > 120)) throw new Error("Некорректное действие врага.");
   if (event.type === "damage.apply") {
     if (!actorById(scene, payload.targetId) || !finite(payload.amount) || Number(payload.amount) < 0 || Number(payload.amount) > 9999) throw new Error("Некорректный урон.");
+    if(actorById(scene,payload.targetId)?.profileId===ENEMY_MODIFIER_IDS.legion&&payload.sourceActionId!=="enemy.modifier.legion.passive")throw new Error("Легион получает урон только от своего Пассивa при поражении другого врага.");
+    if(actor&&actor.team===actorById(scene,payload.targetId)?.team&&[ENEMY_MODIFIER_IDS.collateral,ENEMY_MODIFIER_IDS.vip].includes(actorById(scene,payload.targetId)?.profileId)&&!effectTargetingStatus(scene,actor.id,payload.targetId).available)throw new Error(effectTargetingStatus(scene,actor.id,payload.targetId).reason);
   }
   if (event.type === "area.create") {
     const space = (scene.spaces || []).find(item => item.id === payload.space);
@@ -554,7 +573,7 @@ function reduceEvent(scene, event) {
       scene.objects = scene.objects.map(object => object.space === payload.space && object.type === opposite ? { ...object, cells: (object.cells || []).filter(cell => !cells.has(cell)) } : object).filter(object => object.type !== opposite || object.cells.length);
     }
     const destructible = payload.areaType === "terrain", defaultHp = destructible ? payload.cells.length * 10 : 0;
-    scene.objects.push({ id: payload.id, space: payload.space, type: payload.areaType, label: payload.label, source: payload.source, ruleId: payload.ruleId || payload.source || "", duration: payload.duration, ownerActorId: payload.ownerActorId || event.actorId, cells: [...payload.cells], hp: destructible ? Number(payload.hp ?? payload.metadata?.hp ?? defaultHp) : null, maxHp: destructible ? Number(payload.maxHp ?? payload.metadata?.maxHp ?? payload.hp ?? defaultHp) : null, createdRound: Number(scene.round || 1), metadata: clone(payload.metadata || {}) });
+    scene.objects.push({ id: payload.id, space: payload.space, type: payload.areaType, label: payload.label, source: payload.source, ruleId: payload.ruleId || payload.source || "", duration: payload.duration, ownerActorId: payload.ownerActorId || event.actorId, cells: [...payload.cells], hp: destructible ? Number(payload.hp ?? payload.metadata?.hp ?? defaultHp) : null, maxHp: destructible ? Number(payload.maxHp ?? payload.metadata?.maxHp ?? payload.hp ?? defaultHp) : null, createdRound: Number(scene.round || 1), metadata: {...clone(payload.metadata || {}),...(payload.metadata?.enemyModifier==="gargantuan"?{redirectTargetId:payload.ownerActorId||event.actorId}:{})} });
   } else if (event.type === "area.remove") {
     const removed = (scene.objects || []).find(object => object.id === payload.id);
     payload.label = removed?.label || payload.label || "местность";
@@ -567,6 +586,8 @@ function reduceEvent(scene, event) {
   } else if (event.type === "object.damage") {
     const object = (scene.objects || []).find(item => item.id === payload.objectId);
     if (object) {
+      if(object.metadata?.redirectTargetId){payload.redirectedTargetId=object.metadata.redirectTargetId;payload.dealt=0;payload.destroyed=false;payload.label=object.label;}
+      else {
       const fallback = Math.max(1, Number(object.cells?.length || 1) * 10), before = Number(object.hp || object.maxHp || fallback);
       object.maxHp = Math.max(before, Number(object.maxHp || before));
       object.hp = Math.max(0, before - Number(payload.amount || 0));
@@ -574,6 +595,7 @@ function reduceEvent(scene, event) {
       payload.destroyed = object.hp === 0;
       payload.label = object.label;
       if (payload.destroyed) scene.objects = (scene.objects || []).filter(item => item.id !== object.id);
+      }
     }
   } else if (event.type === "object.restore") {
     const object=(scene.objects||[]).find(item=>item.id===payload.objectId);if(object){const before=Number(object.hp||0);object.hp=Math.min(Number(object.maxHp||before),before+Number(payload.amount||0));payload.restored=object.hp-before;payload.label=object.label}
@@ -938,14 +960,22 @@ function reduceEvent(scene, event) {
       if (payload.newTarget) actor.techniqueState.studiedActorIds.push(payload.targetId);
     }
     if (payload.key === "spellModifiers") actor.techniqueState.spellModifiers = [...new Set(payload.value || [])].slice(0, 2);
+  } else if(event.type==="modifier.configure"&&actor){
+    const firstCollateralDeploy=actor.profileId===ENEMY_MODIFIER_IDS.collateral&&!actor.modifierState?.deployed;
+    if(actor.profileId===ENEMY_MODIFIER_IDS.gargantuan&&!actor.modifierState?.expanded){actor.modifierState=clone(payload.state);applyGargantuanExpansion(scene,actor,payload.state.mode)}
+    actor.modifierState=clone(payload.state);
+    if(actor.profileId===ENEMY_MODIFIER_IDS.legion){actor.maxHp=Number(payload.state.legionHp||0);actor.hp=actor.maxHp}
+    if(actor.profileId===ENEMY_MODIFIER_IDS.giant){const carrier=actorById(scene,payload.state.carrierId);carrier.occupiedWidth=2;carrier.occupiedHeight=2;actor.occupiedWidth=2;actor.occupiedHeight=2}
+    if(firstCollateralDeploy){const cells=payload.state.cells.map(cell=>cell.split(",").map(Number)),[firstX,firstY]=cells[0];actor.x=firstX;actor.y=firstY;actor.modifierState.instanceRootId=actor.id;for(let index=1;index<cells.length;index++){const[x,y]=cells[index],copy=clone(actor);copy.id=`collateral-${actor.id}-${index}`;copy.x=x;copy.y=y;copy.name=`${actor.name} ${index+1}`;copy.modifierState={...clone(actor.modifierState),instanceRootId:actor.id};scene.actors.push(copy)}scene.sessionClocks||=[];scene.sessionClocks.push({id:payload.state.clockId,name:`Случайные жертвы · ${actor.name}`,kind:"danger",size:livePlayers(scene).length,value:0})}
+    if(isAttachedModifier(actor)){const carrier=actorById(scene,payload.state.carrierId),compoundId=carrier.compoundId||`modifier-carrier-${carrier.id}`;carrier.compoundId=compoundId;actor.compoundId=compoundId;actor.space=carrier.space;actor.x=carrier.x;actor.y=carrier.y;actor.hidden=true;actor.acted=true;actor.ap=0}
   } else if (event.type === "actor.state" && actor) {
     actor.ruleState ||= {};
     if (payload.key === "growth") actor.ruleState.growth = Math.max(0, Number(actor.ruleState.growth || 0) + Number(payload.delta || 0));
-    else if (payload.key === "evasion") {
-      payload.before = Number(actor.evasion || 0);
-      actor.evasion = Math.max(0, payload.before + Number(payload.delta || 0));
-      payload.value = actor.evasion;
-      payload.appliedDelta = actor.evasion - payload.before;
+    else if (["evasion","armor"].includes(payload.key)) {
+      payload.before = Number(actor[payload.key] || 0);
+      actor[payload.key] = Math.max(0, payload.before + Number(payload.delta || 0));
+      payload.value = actor[payload.key];
+      payload.appliedDelta = actor[payload.key] - payload.before;
     }
     else {
       actor.ruleState[payload.key] = payload.value;
@@ -1013,6 +1043,7 @@ function reduceEvent(scene, event) {
       if (scene.activeActorId === actor.id) scene.activeActorId = null;
     }
   } else if (event.type === "round.end") {
+    payload.endedTension = Number(scene.tension || 0);
     scene.round = Number(scene.round || 0) + 1;
     scene.tension = Number(scene.tension || 0) + 1;
     scene.activeActorId = null;

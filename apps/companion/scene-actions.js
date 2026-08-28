@@ -782,7 +782,7 @@ function prepareEnemyRule(scene, data, request = {}) {
       if (seekerCells.length < Number(fullRule.count || 1)) errors.push(`Рядом с Псарем недостаточно свободных клеток для ${fullRule.count} Ищеек.`);
     }
   }
-  if (actor && isAttackRule && available?.automation === "attack" && family.audience !== "any" && targets.some(target => target.team === actor.team)) errors.push("Эта автоматизированная Атака может выбирать целью только другую сторону.");
+  if (actor && isAttackRule && available?.automation === "attack" && family.audience !== "any" && targets.some(target => target.team === actor.team && !([ENEMY_MODIFIER_IDS.collateral,ENEMY_MODIFIER_IDS.vip].includes(target.profileId) && effectTargetingStatus(scene,actor.id,target.id).available))) errors.push("Эта автоматизированная Атака может выбирать целью только другую сторону, кроме незащищённых VIP и Случайных жертв.");
   const attackModifiers = actor && isAttackRule && available?.automation === "attack" ? attackModifierStatus(scene, actor.id, targetIds.filter(id => actorById(scene, id)?.team !== actor.team), request.attackModifierIds || []) : { available: !(request.attackModifierIds || []).length, reason: "Модификаторы доступны только Атаке, подключённой к общему окну Реакций.", selectedIds: [], advantage: 0 };
   if (!attackModifiers.available) errors.push(attackModifiers.reason);
   const maxTargets = Number(available?.maxTargets ?? rule?.maxTargets ?? 0);
@@ -793,7 +793,7 @@ function prepareEnemyRule(scene, data, request = {}) {
     const vectors = targets.map(target => ({ dx: Number(target.x) - Number(attackOrigin.x), dy: Number(target.y) - Number(attackOrigin.y) })), axis = vectors[0].dx ? "x" : "y", sign = Math.sign(vectors[0][axis === "x" ? "dx" : "dy"]), valid = vectors.every(vector => (axis === "x" ? vector.dy === 0 : vector.dx === 0) && Math.sign(vector[axis === "x" ? "dx" : "dy"]) === sign && Math.abs(vector[axis === "x" ? "dx" : "dy"]) <= 2);
     if (!valid) errors.push("Цели Разруба должны находиться на одной смежной Линии длиной 2 клетки.");
   }
-  if (attackOrigin && rule?.range && targets.some(target => distance(attackOrigin, target) > Number(rule.range))) errors.push(`Цель должна быть в пределах ${rule.range} клеток.`);
+  if (attackOrigin && rule?.range && targets.some(target => modifierRangeDistance(scene, attackOrigin, target) > Number(rule.range))) errors.push(`Цель должна быть в пределах ${rule.range} клеток (включая местность Громадины).`);
   if (fullRule?.type === "pugilist-stance" && (!Number.isInteger(Number(request.options?.stanceStep)) || Number(request.options.stanceStep) < 1 || Number(request.options.stanceStep) > 4)) errors.push("Выберите шаг Пассивa от 1 до 4.");
   const summonCells = [];
   if (fullRule?.type === "summon-profiles" && actor && space) {

@@ -261,6 +261,10 @@ function respondRulePrompt(scene, data, request = {}) {
   const errors = choiceStatus.available ? [] : [choiceStatus.reason];
   if (errors.length) return { ok: false, errors, events: [] };
   const events = [{ type: "rule.respond", actorId: actor.id, payload: { promptId: prompt.id, choice, sourceActorId: actor.id, targetId: target?.id || null, participantIds: [actor.id, target?.id].filter(Boolean) } }];
+  if(prompt.kind==="modifier-refresh"){
+    const state=modifierState(actor),status=modifierConfigurationStatus(scene,actor.id,state);
+    if(!status.available||Number(state.configuredRound||0)!==Number(scene.round||1))return{ok:false,errors:[status.reason||"Сначала задайте новую настройку модификатора в его панели."],events:[]};
+  }
   if (prompt.kind === "enemy-crowd-move-select") {
     if (choice === "finish") events.push({ type: "actor.state", actorId: actor.id, payload: { key: "enemyCrowdMovement", value: { ruleId: prompt.context?.ruleId, turnSerial: Number(scene.turnSerial || 0) }, sourceActionId: prompt.context?.ruleId, participantIds: [actor.id] } });
     else {

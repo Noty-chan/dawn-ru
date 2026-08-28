@@ -14,7 +14,7 @@ function actorIdsInCells(scene, spaceId, cells = [], options = {}) {
   const source = actorById(scene, options.sourceActorId);
   const wanted = new Set((Array.isArray(cells) ? cells : []).map(String));
   return (scene?.actors || [])
-    .filter(actor => actor.space === spaceId && wanted.has(cellKey(actor)) && actorMatchesQuery(actor, source, options))
+    .filter(actor => {if(actor.space!==spaceId||!actorMatchesQuery(actor,source,options))return false;for(let oy=0;oy<Math.max(1,Number(actor.occupiedHeight||1));oy++)for(let ox=0;ox<Math.max(1,Number(actor.occupiedWidth||1));ox++)if(wanted.has(`${Number(actor.x)+ox},${Number(actor.y)+oy}`))return true;return false})
     .filter(actor => options.ignoreEffectTargeting || effectTargetingStatus(scene, source?.id, actor.id, options).available)
     .map(actor => actor.id);
 }
@@ -252,6 +252,10 @@ function effectTargetingStatus(scene, sourceActorId, targetActorId, options = {}
     const guardian = actorById(scene, target.ruleState.healerGuardianId);
     if (guardian && !guardian.knockedOut && guardian.id !== target.id && guardian.space === target.space && distance(target, guardian) <= 1 && effectTargetingStatus(scene, sourceActorId, guardian.id, { ...options, ignoreHealerGuardian: true }).available) return { available: false, reason: `${target.name} защищён смежным Стражем ${guardian.name}.`, source, target, guardian };
   }
+  if(source.team===target.team&&[ENEMY_MODIFIER_IDS.collateral,ENEMY_MODIFIER_IDS.vip].includes(target.profileId)){
+    const protectedBy=(scene.actors||[]).find(item=>item.team!==target.team&&!item.knockedOut&&item.id!==target.id&&item.space===target.space&&distance(item,target)<=1&&(item.kind==="hero"||item.heroId));
+    if(protectedBy)return{available:false,reason:`${target.name} нельзя ранить врагом рядом с ${protectedBy.name}.`,source,target,guardian:protectedBy};
+  }
   return { available: true, reason: "", source, target };
 }
 
@@ -285,13 +289,15 @@ function effectCellOccupancyStatus(scene, actorId, request = {}) {
   if (battlefield?.mode === "cinematic") return { available: true, reason: "", actor, blockers: [] };
   const banished = hasEffect(scene, actor, "positive.изгнан");
   const compoundId = (actor.kind === "enemy" || actor.profileId) && typeof actor.compoundId === "string" && actor.compoundId.trim() ? actor.compoundId.trim() : null;
-  const blockers = (scene.actors || []).filter(other => other.id !== actor.id && other.space === space && Number(other.x) === x && Number(other.y) === y)
+  const width=Math.max(1,Number(actor.occupiedWidth||1)),height=Math.max(1,Number(actor.occupiedHeight||1));if(x+width>Number(battlefield?.width||0)||y+height>Number(battlefield?.height||0))return{available:false,reason:"Фигура целиком не помещается на поле.",actor,blockers:[]};
+  const overlaps=other=>x<Number(other.x)+Math.max(1,Number(other.occupiedWidth||1))&&x+width>Number(other.x)&&y<Number(other.y)+Math.max(1,Number(other.occupiedHeight||1))&&y+height>Number(other.y);
+  const blockers = (scene.actors || []).filter(other => other.id !== actor.id && other.space === space && overlaps(other))
     .filter(other => effectPresenceStatus(scene, other.id).onField)
     .filter(other => !other.knockedOut)
     .filter(other => actor.kind !== "crowd" && other.kind !== "crowd")
     .filter(other => !compoundId || other.team !== actor.team || String(other.compoundId || "").trim() !== compoundId)
     .filter(other => !banished && !hasEffect(scene, other, "positive.изгнан"));
-  const terrain = !banished && (scene.objects || []).find(object => object.space === space && object.type === "terrain" && (object.cells || []).includes(`${x},${y}`));
+  const footprint=[];for(let oy=0;oy<height;oy++)for(let ox=0;ox<width;ox++)footprint.push(`${x+ox},${y+oy}`);const terrain = !banished && (scene.objects || []).find(object => object.space === space && object.type === "terrain" && (object.cells || []).some(cell=>footprint.includes(cell)));
   return { available: blockers.length === 0 && !terrain, reason: blockers.length ? "Клетка назначения уже занята." : terrain ? "Клетка занята непроходимой местностью." : "", actor, blockers: terrain ? blockers.concat(terrain) : blockers };
 }
 

@@ -6,6 +6,20 @@
   --radius:16px;--max:1540px;
   font-family:"Segoe UI",Arial,sans-serif;font-size:16px
 }
+
+/* Haven is intentionally unlike ordinary technique targeting: the teal-gold
+   sanctuary remains legible for the whole Round and the hostile exterior
+   flashes crimson when its canonical damage resolves. */
+.scene-cell.haven-safe-cell{box-shadow:inset 0 0 0 3px rgba(92,235,211,.9),inset 0 0 26px rgba(41,173,158,.32);background-image:radial-gradient(circle at 50% 50%,rgba(238,210,105,.22),rgba(47,189,170,.14))!important}
+.scene-cell.haven-safe-cell::after{content:"◇";position:absolute;inset:.18rem;color:rgba(121,255,230,.72);font-size:1rem;text-shadow:0 0 10px #ffe88a;pointer-events:none}
+.scene-cell.fx-haven-appear{z-index:3;animation:haven-appear 1.8s ease-out}
+.scene-cell.fx-haven-damage{z-index:3;animation:haven-damage 1.75s ease-out}
+.scene-cell.fx-haven-witness{animation:haven-witness 1.5s ease-out}
+@keyframes haven-appear{0%{filter:brightness(3);box-shadow:inset 0 0 0 5px #fff4a8,0 0 30px #57ffe0}45%{filter:brightness(1.35);box-shadow:inset 0 0 0 4px #5cffdd,0 0 18px #ffe77a}100%{filter:none}}
+@keyframes haven-damage{0%,100%{filter:none}15%{background:#6d0818;box-shadow:inset 0 0 0 4px #ff375f,0 0 24px #e7143f;filter:brightness(1.8)}45%{background:#28030b;box-shadow:inset 0 0 18px #ff123f}}
+@keyframes haven-witness{0%,100%{filter:none}25%{filter:brightness(.52) saturate(.55)}}
+@media(prefers-reduced-motion:reduce){.scene-cell.fx-haven-appear,.scene-cell.fx-haven-damage,.scene-cell.fx-haven-witness{animation-duration:.25s}}
+.scene-cell.giant-footprint-cell{box-shadow:inset 0 0 0 3px color-mix(in srgb,var(--giant-color) 78%,#ffd889),inset 0 0 20px color-mix(in srgb,var(--giant-color) 38%,transparent);background-image:repeating-linear-gradient(135deg,color-mix(in srgb,var(--giant-color) 22%,transparent) 0 7px,transparent 7px 14px)!important}
 .inner-world-exit-fx{position:absolute;inset:0;z-index:78;overflow:hidden;pointer-events:none;background:radial-gradient(circle at var(--iw-exit-x) var(--iw-exit-y),#71e5e844 0 2%,#9d82ff55 6%,transparent 24%);animation:inner-world-exit 1.9s ease-out both}.scene-board-wrap.fx-inner-world-exit-board .scene-board{filter:brightness(1.2) saturate(1.25);transition:filter .25s ease}.scene-token.fx-inner-world-exit{animation:inner-world-exit-token 1.9s cubic-bezier(.2,.8,.2,1) both}@keyframes inner-world-exit{0%{opacity:0;transform:scale(.3)}20%{opacity:1;transform:scale(1)}70%{opacity:.8}100%{opacity:0;transform:scale(1.8)}}@keyframes inner-world-exit-token{0%{opacity:0;filter:brightness(2) blur(8px);transform:scale(.55)}32%{opacity:1;filter:none;transform:scale(1.12)}100%{opacity:1;filter:none;transform:none}}@media(prefers-reduced-motion:reduce){.scene-board-wrap.fx-inner-world-exit-board .scene-board{filter:none;transition:none}.inner-world-exit-fx,.scene-token.fx-inner-world-exit{animation:none!important}}
 :root.light{color-scheme:light;--bg:#ede9e1;--surface:#fffdf8;--surface-2:#f4efe7;--surface-3:#e7e0d7;--ink:#1b1920;--muted:#65616a;--line:#ccc3b8;--red:#8d2538;--red-2:#641a2a;--gold:#9e6910;--cyan:#16757f;--good:#247a4b;--bad:#ae263b;--shadow:0 18px 45px #34220e20}
 *{box-sizing:border-box}

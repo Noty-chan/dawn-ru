@@ -1,0 +1,2 @@
+"use strict";
+function modifierTerrainRedirectEvents(scene,event){if(event.type!=="object.damage"||!event.payload?.redirectedTargetId)return[];const target=actorById(scene,event.payload.redirectedTargetId);return target&&!target.knockedOut?[{type:"damage.apply",actorId:event.actorId,payload:{targetId:target.id,amount:Number(event.payload.amount||0),ignoreEvasion:true,sourceActionId:"enemy.modifier.gargantuan.terrain-redirect",terrainObjectId:event.payload.objectId,participantIds:[event.actorId,target.id].filter(Boolean)}}]:[]}

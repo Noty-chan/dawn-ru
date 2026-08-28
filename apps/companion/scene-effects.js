@@ -64,7 +64,9 @@ function playInnerWorldExitFx(events=[],context={}){
   const cleanup=()=>{overlay.remove();wrap.classList.remove("fx-inner-world-exit-board");tokens.forEach(token=>token.classList.remove("fx-inner-world-exit"))};
   const reduced=window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;setTimeout(cleanup,reduced?260:1900);
 }
+function playHavenFx(events=[]){const configured=events.find(event=>event.type==="modifier.configure"&&event.payload?.profileId==="enemy.modifier.haven"),damages=events.filter(event=>event.type==="damage.apply"&&event.payload?.sourceActionId==="enemy.modifier.haven.round-end");if(!configured&&!damages.length)return;const ownerId=configured?.actorId||damages[0]?.actorId,safe=new Set(configured?.payload?.state?.cells||Scene.objects.find(item=>item.ownerActorId===ownerId&&item.metadata?.enemyModifier==="haven")?.cells||[]);requestAnimationFrame(()=>{const touched=[];for(const cell of document.querySelectorAll("#scene-board [data-scene-cell]")){const inside=safe.has(cell.dataset.sceneCell),name=configured&&inside?"fx-haven-appear":damages.length&&!inside?"fx-haven-damage":"fx-haven-witness";cell.classList.add(name);touched.push(cell)}setTimeout(()=>touched.forEach(cell=>cell.classList.remove("fx-haven-appear","fx-haven-damage","fx-haven-witness")),1900)})}
 function playSceneEventFx(events=[],context={}){
+  playHavenFx(events);
   const actorFx=new Map(),add=(id,name)=>{if(!id)return;const set=actorFx.get(id)||new Set();set.add(name);actorFx.set(id,set)};
   let boardFx="";
   for(const event of events){

@@ -571,6 +571,13 @@ function routeLegacyPromptEvents(scene, sourceEvent, prefixEvents, legacyEvents)
 
 function triggeredEvents(scene, event, options = {}) {
   const payload = event.payload || {}, actor = event.actorId ? actorById(scene, event.actorId) : null, resumesQueue = event.type === "attack.clear" || event.type === "rule.respond" && !options.deferQueuedResume, resumed = resumesQueue ? resumeQueuedTriggers(scene, event) : { events: [], promptReserved: false }, routed = triggerRouteStatus(scene, event, { promptReserved: resumed.promptReserved || options.deferQueuedResume || Boolean(scene.triggerQueue?.length) }), prefixEvents = [...resumed.events, ...routed.events], events = [], promptQueued = () => prefixEvents.some(item => item.type === "rule.prompt") || events.some(item => item.type === "rule.prompt");
+  events.push(...modifierKnockoutEvents(scene,event));
+  events.push(...modifierMovementEvents(scene,event));
+  events.push(...modifierConfigureEvents(scene,event));
+  events.push(...modifierPreActionEvents(scene,event));
+  events.push(...modifierTerrainRedirectEvents(scene,event));
+  events.push(...modifierActionEvents(scene,event));
+  if(event.type==="round.end")events.push(...modifierRoundEndEvents(scene,event));
   if (event.type === "actor.knockout" && payload.applied && scene.pendingActionPlan?.actorId === payload.targetId) {
     events.push({ type: "action.plan.cancel", actorId: payload.targetId, payload: { planId: scene.pendingActionPlan.id, reason: "Исполнитель выведен из боя.", participantIds: [payload.targetId] } });
   }
