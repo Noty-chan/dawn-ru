@@ -428,6 +428,11 @@ assert.match(html, /id="scene-reset-table"/, "The Narrator has an explicit full 
 assert.match(app, /S\.runtime\.hp=d\.maxHp[\s\S]+S\.runtime\.tension=1/, "Ending a Scene restores the sheet Health and applies the canonical Tension reset");
 assert.match(app, /scene\.tension=1[\s\S]+actor\.hp=Math\.max\(0,Number\(actor\.maxHp[\s\S]+actor\.knockedOut=false/, "Starting the next Scene restores combatant Health and returns knocked-out participants");
 assert.doesNotMatch(app, /rollKeys/, "Post-battle replay preserves separate public rolls even when their dice match");
+assert.match(app, /base\.results=scene\.results[\s\S]+openedAt[\s\S]+openedBy/, "The open battle-results state survives normalization, sync, export, and reconnect");
+assert.match(app, /Итоги боя открыты для всего стола[\s\S]+scene\.results=\{id:uid\(\)/, "The Narrator publishes one shared battle-results token instead of opening a local-only dialog");
+assert.match(app, /Scene\.results\?`<button[^`]+data-scene-session-action="results">К итогам/, "Every participant receives a persistent reopen button while shared results exist");
+assert.match(app, /sceneBattleComplete\(\)[\s\S]+Завершить бой/, "The Narrator receives a finish-battle action when either side is knocked out");
+assert.match(app, /reconcileSceneResultsDialog\(\)/, "A newly synchronized results token opens the post-battle dialog on every client");
 assert.match(app, /Math\.ceil\(attrValueFor\(hero,"talent"\)\/2\)/);
 assert.match(app, /takeWound\(external\)/);
 assert.match(app, /setToolsResource\("influence"/, "Free-play Influence changes must update the local sheet or canonical shared actor");

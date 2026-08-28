@@ -14,7 +14,7 @@ function renderPlay(){
   $("effect-tracker").innerHTML=`<div class="effect-groups">${[["Положительные",D.effects.positive],["Отрицательные",D.effects.negative]].map(([name,list])=>`<div><h4>${name}</h4><div class="chip-row">${list.map(e=>`<button type="button" class="effect-chip ${rt.effects.includes(e.id)?"on":""}" data-effect="${e.id}" title="${esc(e.text)}">${esc(e.name)}</button>`).join("")}</div></div>`).join("")}</div>`;
   $("ko-yield")?.addEventListener("click",()=>{rt.wounds=Math.max(0,rt.wounds-1);rt.tension++;persist();renderPlay();});
   $("ko-stake")?.addEventListener("click",()=>{rt.stress=2;rt.hp=d.guts;rt.wounds=Math.max(0,rt.wounds-1);persist();renderPlay();});
-  renderSync();renderScene();
+  renderSync();renderScene();reconcileSceneResultsDialog();
 }
 
 let pendingAllIn=null;
