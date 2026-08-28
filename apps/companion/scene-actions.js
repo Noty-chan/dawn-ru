@@ -55,6 +55,7 @@ const ENEMY_AUTO_ATTACK_RULES = new Map([
   ["enemy.common.enchanter.attack.heartbreaker", 1],
   ["enemy.common.privateer.attack.spray-and-pray", 2],
   ["enemy.common.rifter.attack.emerge", 1],
+  ["enemy.common.swarm.attack.tear", 1],
   ["enemy.named.leon-academy-spatial-mage.attack.emerge", 1],
   ["enemy.named.leon-s-vayu-spirit.attack.air-shove", 0],
   ["enemy.named.leon-s-agni-spirit.attack.fire-spark", 0],

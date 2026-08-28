@@ -2889,7 +2889,7 @@ assert.equal(ritualDrawings.requiresTarget, false, "Ritual Drawings selects empt
 assert.equal(ritualDrawings.maxTargets, 0);
 const declaredAttacks = enemyProfiles.flatMap(profile => (profile.rules || []).filter(rule => rule.kind === "attack").map(rule => ({ profile, rule })));
 assert.ok(declaredAttacks.length >= 40, "The enemy catalogue exposes the complete common Attack set");
-assert.deepEqual(declaredAttacks.filter(({ rule }) => Engine.enemyRuleAutomation(rule.id) === "assisted").map(({ rule }) => rule.id), ["enemy.common.coordinator.attack.fanaticize", "enemy.common.swarm.attack.tear"], "Attacks with absent mandatory follow-up or target-choice branches stay assisted");
+assert.deepEqual(declaredAttacks.filter(({ rule }) => Engine.enemyRuleAutomation(rule.id) === "assisted").map(({ rule }) => rule.id), ["enemy.common.coordinator.attack.fanaticize"], "Only an attack with an absent mandatory ally follow-up stays assisted");
 for (const profileId of ["enemy.common.assassin", "enemy.common.pugilist", "enemy.common.guardian", "enemy.common.berserker", "enemy.common.ranger"]) {
   const profile = enemyProfiles.find(item => item.id === profileId);
   assert.ok(profile, `${profileId} exists in the canonical enemy catalogue`);
@@ -3020,6 +3020,18 @@ bodyguardCrowdFlow = Engine.dispatchMany(bodyguardCrowdFlow, Engine.respondRuleP
 assert.deepEqual({ x: bodyguardCrowdFlow.actors.find(actor => actor.id === "crowd-a").x, y: bodyguardCrowdFlow.actors.find(actor => actor.id === "crowd-a").y }, crowdDestination.destination, "Behind Me atomically records the chosen Fodder movement");
 assert.equal(bodyguardCrowdFlow.actors[1].ruleState.enemyCrowdMovement.ruleId, behindMeContract.id, "Completed movement preflight persists for the current Turn");
 assert.equal(Engine.respondRulePrompt(bodyguardCrowdFlow, data, { choice: "finish" }).ok, false, "A duplicate prompt response is idempotently rejected");
+let swarmContractScene = profileScene("enemy.common.swarm"), tearContract = profileRule("enemy.common.swarm", "Tear");
+swarmContractScene.actors.push({ ...structuredClone(swarmContractScene.actors[1]), id: "swarm-crowd", kind: "crowd", name: "Зона Роя", x: 2, y: 1, hp: 1, maxHp: 1 });
+swarmContractScene.actors.push({ ...structuredClone(swarmContractScene.actors[0]), id: "swarm-target-2", name: "Вторая цель Роя", x: 2, y: 2 });
+swarmContractScene.actors[1].ruleState = { enemyCrowdMovement: { ruleId: tearContract.id, turnSerial: Number(swarmContractScene.turnSerial || 0) } };
+const tearPrepared = Engine.prepareEnemyRule(swarmContractScene, data, { actorId: "enemy", ruleId: tearContract.id, targetIds: ["hero", "swarm-target-2"], roll: { rolls: [6, 5, 2, 1, 1, 1], successes: 2, crits: 1 } });
+assert.equal(tearPrepared.ok, true); swarmContractScene = Engine.dispatchMany(swarmContractScene, tearPrepared.events).scene;
+for (const targetId of ["hero", "swarm-target-2"]) swarmContractScene = Engine.dispatchMany(swarmContractScene, Engine.respondReaction(swarmContractScene, data, { actorId: targetId, choice: "pass" }).events).scene;
+swarmContractScene = Engine.dispatchMany(swarmContractScene, Engine.resolvePendingAction(swarmContractScene, data).events).scene;
+assert.equal(swarmContractScene.pendingPrompt.kind, "enemy-swarm-stun", "Tear waits for the Narrator to choose one successfully hit target");
+assert.ok(!swarmContractScene.actors[0].effects.includes("negative.ошеломлен") && !swarmContractScene.actors.find(actor => actor.id === "swarm-target-2").effects.includes("negative.ошеломлен"), "Tear never auto-selects the first target");
+swarmContractScene = Engine.dispatchMany(swarmContractScene, Engine.respondRulePrompt(structuredClone(swarmContractScene), data, { choice: "target:swarm-target-2" }).events).scene;
+assert.ok(swarmContractScene.actors.find(actor => actor.id === "swarm-target-2").effects.includes("negative.ошеломлен"), "Tear applies Stunned only to the chosen successful target after reconnect");
 let assassinFull = profileScene("enemy.common.assassin"), assassinMark = profileRule("enemy.common.assassin", "Neutralize Target");
 assassinFull = Engine.dispatchMany(assassinFull, Engine.prepareEnemyRule(assassinFull, data, { actorId: "enemy", ruleId: assassinMark.id, targetIds: ["hero"] }).events).scene;
 assert.ok(assassinFull.actors[0].effects.includes("negative.помечен"), "Assassin creates its durable Mark through the shared Effect state");

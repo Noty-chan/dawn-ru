@@ -104,7 +104,6 @@ const AUDIT_FINDINGS = new Map([
   ["ruiner.sellsword-s-call.1", "Создаётся marker, а не Призыв-actor с HP, атакой, половиной урона и Ходом."],
   ["enemy.common.cannoneer.trump.fire", "Конфигурация повторяет канонический урон три раза вместо одного броска 6(+1)D6."],
   ["enemy.common.coordinator.attack.fanaticize", "Обязательная союзная follow-up ветка отсутствует."],
-  ["enemy.common.swarm.attack.tear", "Отсутствует движение зон массовки; Stun накладывается автоматически вместо выбора."],
   ["enemy.common.privateer.action.escort", "Исполнялась только выдача эффекта «Ускорен»; обязательное окно выбора и равное движение вслед за союзником отсутствуют."],
 ]);
 

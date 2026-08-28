@@ -269,6 +269,11 @@ function respondRulePrompt(scene, data, request = {}) {
       events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${prompt.id}-${crowd.id}`, kind: "enemy-crowd-move-cell", sourceActorId: actor.id, targetId: crowd.id, controller: "narrator", title: `${prompt.title}: ${crowd.name}`, text: `Выберите достижимую клетку в пределах ${prompt.context?.maxDistance || 1}.`, options: ["cancel"], context: { ...clone(prompt.context), remainingTargetIds: remaining, moveTarget: true }, participantIds: [actor.id, crowd.id, ...remaining] } });
     }
   }
+  if (prompt.kind === "enemy-swarm-stun") {
+    const targetId = choice.startsWith("target:") ? choice.slice(7) : "", selected = actorById(scene, targetId);
+    if (!selected || selected.knockedOut || !(prompt.context?.eligibleTargetIds || []).includes(targetId) || selected.team === actor.team) return { ok: false, errors: ["Выбранная цель Роя больше недоступна."], events: [] };
+    events.push({ type: "effect.apply", actorId: actor.id, payload: { targetId: selected.id, effect: "negative.ошеломлен", sourceActionId: prompt.context?.ruleId || "enemy.common.swarm.attack.tear", participantIds: [actor.id, selected.id] } });
+  }
   if (prompt.kind === "enemy-healer-guardian") {
     const guardian = choice.startsWith("guard:") ? actorById(scene, choice.slice(6)) : null;
     if (guardian && (guardian.knockedOut || guardian.id === actor.id || guardian.team !== actor.team || !effectPresenceStatus(scene, guardian.id).onField)) return { ok: false, errors: ["Выбранный Страж больше недоступен."], events: [] };
@@ -1185,7 +1190,7 @@ function resolvePendingAction(scene, data) {
       events.push({ type: "actor.enter", actorId: target.id, payload: { space: target.space, x: destination.x, y: destination.y, movement: pending.name, forced: true } });
     }
   }
-  if (successfulEnemyTargets.length && enemyFamily.chooseOneEffect) events.push({ type: "effect.apply", actorId: pending.actorId, payload: { targetId: successfulEnemyTargets[0], effect: effectIdByName(data, enemyFamily.chooseOneEffect), sourceActionId: pending.actionId, participantIds: [pending.actorId, successfulEnemyTargets[0]] } });
+  if (successfulEnemyTargets.length && enemyFamily.chooseOneEffect) events.push({ type: "rule.prompt", actorId: pending.actorId, payload: { id: `prompt-${pending.id}-enemy-choice-effect`, kind: "enemy-swarm-stun", sourceActorId: pending.actorId, controller: "narrator", title: `${pending.name}: ${enemyFamily.chooseOneEffect}`, text: "Выберите одну успешно поражённую цель для обязательного Эффекта.", options: successfulEnemyTargets.map(targetId => `target:${targetId}`), context: { ruleId: pending.actionId, eligibleTargetIds: successfulEnemyTargets, optionLabels: Object.fromEntries(successfulEnemyTargets.map(targetId => [`target:${targetId}`, actorById(scene, targetId)?.name || targetId])) }, participantIds: [pending.actorId, ...successfulEnemyTargets] } });
   if (successfulEnemyTargets.length && enemyFamily.createTerrainAdjacent && source) {
     const space = (scene.spaces || []).find(item => item.id === source.space), occupied = new Set((scene.actors || []).filter(item => !item.knockedOut && item.kind !== "crowd" && item.space === source.space).map(cellKey));
     for (const targetId of successfulEnemyTargets) {
