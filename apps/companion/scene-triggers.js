@@ -956,6 +956,18 @@ function triggeredEvents(scene, event, options = {}) {
     if (berserker && !berserker.knockedOut && berserker.profileId === "enemy.common.berserker" && attacker && attacker.team !== berserker.team && Number(berserker.ruleState?.berserkerReactionTurnSerial || -1) !== Number(scene.turnSerial || 0)) events.push({ type: "rule.prompt", actorId: berserker.id, payload: { id: `prompt-${event.id}-berserker-retaliate`, kind: "enemy-berserker-retaliate", sourceActorId: berserker.id, targetId: attacker.id, controller: "narrator", title: "Неумолимое разрушение", text: `${berserker.name} получил не менее 4 урона: переместиться к ${attacker.name} и использовать Сокрушение?`, options: ["retaliate", "pass"], context: { maxDistance: berserker.ruleState?.berserkerLastStand ? 2 : 1, ruleId: "enemy.common.berserker.attack.thrash", optionLabels: { retaliate: "Ответить Сокрушением", pass: "Не использовать" } }, participantIds: [berserker.id, attacker.id] } });
   }
   if (event.type === "actor.move" && actor?.profileId === "enemy.common.ranger" && Number(actor.ruleState?.enemyAim || 0) > 0) events.push({ type: "actor.state", actorId: actor.id, payload: { key: "enemyAim", value: 0, sourceActionId: "enemy.common.ranger.action.nest" } });
+  if (event.type === "turn.end" && actor?.team === "enemy" && actor.kind !== "crowd" && !scene.pendingPrompt && !promptQueued()) {
+    const crowdIds = (scene.actors || []).filter(item => item.kind === "crowd" && !item.knockedOut && item.team === actor.team && item.space === actor.space).map(item => item.id);
+    if (crowdIds.length) events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${event.id}-fodder-move`, kind: "fodder-move-select", sourceActorId: actor.id, controller: "narrator", title: "Движение массовки", text: "После Хода врага переместите каждую Зону массовки на расстояние до 2 клеток (до 4 после Хода Псаря) или оставьте её на месте.", options: [...crowdIds.map(id => `target:${id}`), "finish"], context: { remainingTargetIds: crowdIds, optionLabels: { finish: "Оставить остальные на месте" } }, participantIds: [actor.id, ...crowdIds] } });
+  }
+  if (event.type === "round.end" && !scene.pendingPrompt && !promptQueued()) {
+    const eligibleCrowds = (scene.actors || []).filter(item => item.kind === "crowd" && !item.knockedOut).filter(crowd => (scene.actors || []).some(target => !target.knockedOut && target.team !== crowd.team && target.space === crowd.space && distance(crowd, target) <= 1));
+    const first = eligibleCrowds[0];
+    if (first) {
+      const remainingIds = eligibleCrowds.map(item => item.id), targets = (scene.actors || []).filter(target => !target.knockedOut && target.team !== first.team && target.space === first.space && distance(first, target) <= 1);
+      events.push({ type: "rule.prompt", actorId: first.id, payload: { id: `prompt-${event.id}-fodder-damage`, kind: "fodder-round-damage", sourceActorId: first.id, controller: "narrator", title: `Массовка: ${first.name}`, text: "В конце Раунда эта Зона может нанести 2 урона одному игроку в пределах 1 клетки.", options: [...targets.map(target => `target:${target.id}`), "pass"], context: { remainingCrowdIds: remainingIds.slice(1), optionLabels: Object.fromEntries([...targets.map(target => [`target:${target.id}`, `2 урона: ${target.name}`]), ["pass", "Не наносить урон"]]) }, participantIds: [first.id, ...targets.map(target => target.id), ...remainingIds.slice(1)] } });
+    }
+  }
   events.push(...effectLifecycleEvents(scene, event));
   events.push(...entityLifecycleEvents(scene, event));
   events.push(...reminderLifecycleEvents(scene, event));
@@ -994,7 +1006,7 @@ function dispatchMany(scene, events, options = {}) {
       const requiredActorIds = [event.actorId, payload.sourceActorId, payload.targetId].filter(Boolean);
       if (requiredActorIds.some(id => invalidatedActorIds.has(id) || actorById(next, id)?.knockedOut)) continue;
     }
-    const placementActorId = ["siren-irresistible-cell", "constrictor-move-cell", "enemy-crowd-move-cell", "wave-rider-move-cell"].includes(prompt?.kind) || prompt?.kind === "enemy-move-cell" && prompt.context?.moveTarget ? prompt.targetId : prompt?.sourceActorId;
+    const placementActorId = ["siren-irresistible-cell", "constrictor-move-cell", "enemy-crowd-move-cell", "fodder-move-cell", "wave-rider-move-cell"].includes(prompt?.kind) || prompt?.kind === "enemy-move-cell" && prompt.context?.moveTarget ? prompt.targetId : prompt?.sourceActorId;
     const stationarySiren = prompt?.kind === "siren-irresistible-cell" && actorById(next, prompt.targetId)?.x === Number(destination?.x) && actorById(next, prompt.targetId)?.y === Number(destination?.y);
     const placementResponse = event?.type === "rule.respond" && event.payload?.choice === "cell" && destination && (
       prompt?.kind === "marker-move-cell"

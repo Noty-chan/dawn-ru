@@ -64,18 +64,19 @@ function validateEvent(scene, event, options = {}) {
   }
   if (event.type === "actor.move") {
     const space = (scene.spaces || []).find(item => item.id === payload.space);
-    let validCrowdRuleMove = false;
+    let validCrowdRuleMove = false, validFodderMove = false;
     if (!space || !Number.isInteger(Number(payload.x)) || !Number.isInteger(Number(payload.y)) || Number(payload.x) < 0 || Number(payload.y) < 0 || Number(payload.x) >= space.width || Number(payload.y) >= space.height) throw new Error("Некорректная клетка перемещения.");
     if (removedCellKeys(scene, payload.space).has(`${Number(payload.x)},${Number(payload.y)}`)) throw new Error("Нельзя переместиться в удалённую клетку.");
     if (actor?.knockedOut && !payload.allowKnockedOut && !payload.displacement?.allowKnockedOut) throw new Error("Выведенный из строя участник не может перемещаться.");
     if (actor?.kind === "crowd") {
       const status = fodderMoveStatus(scene, actor.id), moveDistance = Math.abs(Number(payload.x) - Number(actor.x)) + Math.abs(Number(payload.y) - Number(actor.y));
       const ruleMover = payload.enemyRuleMove && actorById(scene, payload.sourceActorId); validCrowdRuleMove = Boolean(ruleMover && !ruleMover.knockedOut && scene.activeActorId === ruleMover.id && ruleMover.team === actor.team && ["enemy.common.bodyguards.attack.behind-me", "enemy.common.swarm.attack.tear"].includes(payload.enemyRuleMove) && moveDistance >= 1 && moveDistance <= Number(payload.maximum || 1) && (payload.space || actor.space) === actor.space);
-      if (!validCrowdRuleMove && (!payload.fodderMove || !status.available || payload.boundaryEventId !== status.boundaryEventId || moveDistance < 1 || moveDistance > status.remaining || (payload.space || actor.space) !== actor.space)) throw new Error(status.reason || "Некорректное перемещение зоны массовки.");
+      validFodderMove = Boolean(payload.fodderMove && status.available && payload.boundaryEventId === status.boundaryEventId && moveDistance >= 1 && moveDistance <= status.remaining && (payload.space || actor.space) === actor.space);
+      if (!validCrowdRuleMove && !validFodderMove) throw new Error(status.reason || "Некорректное перемещение зоны массовки.");
       payload.distance = moveDistance;
     }
     const movement = effectMovementStatus(scene, event.actorId, { forced: Boolean(payload.forced || payload.displacement), placement: Boolean(payload.placement), ignoreResistance: Boolean(payload.displacement?.ignoreResistance), ignoreVoluntaryRestrictions: Boolean(payload.ignoreVoluntaryRestrictions) });
-    if (!movement.available && !validCrowdRuleMove) throw new Error(movement.reason);
+    if (!movement.available && !validCrowdRuleMove && !validFodderMove) throw new Error(movement.reason);
     const occupancy = effectCellOccupancyStatus(scene, event.actorId, { space: payload.space, x: payload.x, y: payload.y });
     if (!occupancy.available) throw new Error(occupancy.reason);
     if (payload.from && (payload.from.space !== actor?.space || Number(payload.from.x) !== Number(actor?.x) || Number(payload.from.y) !== Number(actor?.y))) throw new Error("Исходная клетка перемещения устарела.");
@@ -108,8 +109,8 @@ function validateEvent(scene, event, options = {}) {
     if (!(scene.objects || []).some(object => object.id === payload.id) || !["instant", "endTurn", "nextTurn", "round", "scene", "persistent"].includes(payload.duration)) throw new Error("Некорректная длительность области.");
   }
   if (event.type === "damage.apply" && payload.sourceActionId === "fodder.round-end") {
-    const target = actorById(scene, payload.targetId), alreadyUsed = currentRoundEvents(scene).some(item => item.type === "damage.apply" && item.actorId === actor?.id && item.payload?.sourceActionId === "fodder.round-end");
-    if (actor?.kind !== "crowd" || actor.knockedOut || !target || target.team === actor.team || target.knockedOut || target.space !== actor.space || distance(actor, target) > 1 || Number(payload.amount) !== 2 || !roundEndStatus(scene).available || alreadyUsed) throw new Error("Урон массовки доступен один раз для каждой зоны в конце Раунда по герою в пределах 1 клетки.");
+    const target = actorById(scene, payload.targetId), alreadyUsed = currentRoundEvents(scene).some(item => item.type === "damage.apply" && item.actorId === actor?.id && item.payload?.sourceActionId === "fodder.round-end"), decision = payload.fodderDecisionPromptId && (scene.log || []).some(item => item.type === "rule.respond" && item.actorId === actor?.id && item.payload?.promptId === payload.fodderDecisionPromptId && item.payload?.kind === "fodder-round-damage" && item.payload?.choice === `target:${target?.id}`);
+    if (actor?.kind !== "crowd" || actor.knockedOut || !target || target.team === actor.team || target.knockedOut || target.space !== actor.space || distance(actor, target) > 1 || Number(payload.amount) !== 2 || !decision && !roundEndStatus(scene).available || alreadyUsed) throw new Error("Урон массовки доступен один раз для каждой зоны в конце Раунда по герою в пределах 1 клетки.");
   }
   if (event.type === "marker.duration") {
     if (!markerById(scene, payload.markerId) || !["endTurn", "nextTurn", "round", "scene", "persistent"].includes(payload.duration)) throw new Error("Некорректная длительность маркера.");

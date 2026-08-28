@@ -33,7 +33,7 @@ const RESOURCES = new Set(["ap", "focus", "influence", "meals", "creationMarks",
 // Every prompt whose answer is a board placement must expose the typed `cell`
 // option at the event boundary. Keep this registry wider than the current UI
 // lists: prompts can be restored from a save or answered by a remote client.
-const PLACEMENT_PROMPT_KINDS = new Set(["marker-move-cell", "dim-mak-weak-point-cell", "empath-rush-cell", "reappear-cell", "thunder-surge-cell", "siren-irresistible-cell", "untouchable-weave-cell", "knife-pickup-step", "meister-overclock-move", "egomaniac-style-move", "constrictor-move-cell", "enemy-move-cell", "enemy-crowd-move-cell", "wave-rider-move-cell"]);
+const PLACEMENT_PROMPT_KINDS = new Set(["marker-move-cell", "dim-mak-weak-point-cell", "empath-rush-cell", "reappear-cell", "thunder-surge-cell", "siren-irresistible-cell", "untouchable-weave-cell", "knife-pickup-step", "meister-overclock-move", "egomaniac-style-move", "constrictor-move-cell", "enemy-move-cell", "enemy-crowd-move-cell", "fodder-move-cell", "wave-rider-move-cell"]);
 const EFFECT_DURATIONS = new Set(["default", "persistent", "scene", "startTurn", "actionOrStartTurn", "roundEnd"]);
 const ACTION_PLAN_PHASES = new Set(["reappear", "targets", "destination", "modifiers", "confirm"]);
 const EFFECT_LIFECYCLE = Object.freeze({

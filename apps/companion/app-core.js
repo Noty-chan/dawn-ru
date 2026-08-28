@@ -110,7 +110,7 @@ function sceneCore(raw){
     actor.compoundId=(actor.kind==="enemy"||Boolean(actor.profileId))&&typeof source.compoundId==="string"&&source.compoundId.trim()?source.compoundId.trim().slice(0,120):null;
     actor.compoundBaseSpeed=actor.compoundId?clamp(source.compoundBaseSpeed??actor.speed,0,99):null;
     actor.compoundDefense=actor.compoundId&&["armor","evasion"].includes(source.compoundDefense)?source.compoundDefense:null;
-    if(source.kind==="crowd"){actor.kind="crowd";actor.crowdGroupId=typeof source.crowdGroupId==="string"&&source.crowdGroupId?source.crowdGroupId.slice(0,120):actor.id;actor.source=typeof source.source==="string"?source.source.slice(0,160):"Ручное правило";actor.tier=0;actor.ap=0;actor.baseAp=0;actor.speed=0;actor.acted=true}
+    if(source.kind==="crowd"){actor.kind="crowd";actor.crowdType=["mob","swarm","guards","undead","hounds","civilians","custom"].includes(source.crowdType)?source.crowdType:"mob";actor.crowdGroupId=typeof source.crowdGroupId==="string"&&source.crowdGroupId?source.crowdGroupId.slice(0,120):actor.id;actor.source=typeof source.source==="string"?source.source.slice(0,160):"Ручное правило";actor.tier=0;actor.ap=0;actor.baseAp=0;actor.speed=0;actor.acted=true}
     actor.usedActions=cleanArray(source.usedActions).slice(0,30);
     actor.usedTrump=Boolean(source.usedTrump);
     actor.stepRemaining=clamp(source.stepRemaining,0,99);

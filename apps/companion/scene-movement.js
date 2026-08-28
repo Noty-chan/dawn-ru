@@ -283,8 +283,8 @@ function fodderMoveStatus(scene, actorId) {
   if (!actor || actor.kind !== "crowd" || actor.knockedOut) return { available: false, reason: "Зона массовки недоступна.", remaining: 0, boundaryEventId: null };
   const events = currentRoundEvents(scene), boundaryIndex = events.findIndex(event => event.type === "turn.end" && actorById(scene, event.actorId)?.team === "enemy" && actorById(scene, event.actorId)?.kind !== "crowd");
   if (boundaryIndex < 0) return { available: false, reason: "Массовка перемещается после завершения Хода врага.", remaining: 0, boundaryEventId: null };
-  const boundary = events[boundaryIndex], used = events.slice(0, boundaryIndex).filter(event => event.type === "actor.move" && event.actorId === actor.id && event.payload?.fodderMove && event.payload?.boundaryEventId === boundary.id).reduce((sum, event) => sum + Math.max(0, Number(event.payload?.distance || 0)), 0), remaining = Math.max(0, 2 - used);
-  return { available: remaining > 0, reason: remaining > 0 ? "" : "Эта зона уже переместилась на 2 клетки после последнего Хода врага.", remaining, used, boundaryEventId: boundary.id };
+  const boundary = events[boundaryIndex], boundaryActor = actorById(scene, boundary.actorId), maximum = boundaryActor?.profileId === "enemy.common.hound-master" ? 4 : 2, used = events.slice(0, boundaryIndex).filter(event => event.type === "actor.move" && event.actorId === actor.id && event.payload?.fodderMove && event.payload?.boundaryEventId === boundary.id).reduce((sum, event) => sum + Math.max(0, Number(event.payload?.distance || 0)), 0), remaining = Math.max(0, maximum - used);
+  return { available: remaining > 0, reason: remaining > 0 ? "" : `Эта зона уже переместилась на ${maximum} клетки после последнего Хода врага.`, remaining, maximum, used, boundaryEventId: boundary.id };
 }
 const areaCells = (space, anchor, area) => {
   const width = Number(area?.[0] || 0), height = Number(area?.[1] || 0), cells = [];
