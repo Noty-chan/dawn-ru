@@ -59,6 +59,7 @@ assert.match(appSource, /source\.kind==="crowd"[\s\S]+actor\.crowdGroupId/, "Sce
 assert.match(appSource, /actor\.crowdSubtype=\["seeker","vortex"\][\s\S]+actor\.seekerTargetId[\s\S]+actor\.seekerDamage[\s\S]+actor\.vortexOwnerId/, "Scene import preserves special Fodder provenance for Hound Master Seekers and Vortex flows");
 assert.match(appSource, /editTargets=actor\.kind==="crowd"[\s\S]+targets\.forEach\(item=>item\.tokenImage=image\)/, "Renaming or uploading a token updates every zone of that Fodder type");
 assert.match(companionCss, /\.scene-token\.crowd\{[^}]*border-radius:7px[^}]*repeating-linear-gradient/, "Fodder Zones are visually distinct from circular character tokens");
+assert.match(companionCss, /modifier-carrier-pulse[\s\S]+modifier-artillery-cell[\s\S]+modifier-gargantuan-body-cell[\s\S]+modifier-vortex-edge/, "Rule-critical Enemy Modifiers have distinct carrier, danger-area, body-edge, and spawn-edge visuals");
 assert.match(appSource, /compoundId:typeof enemy\?\.compoundId[\s\S]+crowdGroupId:/, "Encounter normalization preserves Compound Enemy and Fodder identities");
 assert.match(fs.readFileSync(path.join(root, "index.html"), "utf8"), /id="scene-crowd-style"[\s\S]+id="scene-crowd-team"[\s\S]+id="scene-crowd-symbol"[\s\S]+id="scene-crowd-color"/, "Narrator can create visually distinct allied or hostile Fodder groups");
 assert.match(appSource, /data-crowd-add-group[\s\S]+data-crowd-remove-defeated[\s\S]+data-crowd-remove-group/, "Narrator has group-level Fodder add and cleanup controls");
