@@ -18,6 +18,7 @@ const TECHNIQUE_COMBO_RULES = new Map([
 // registries contain only the deterministic part of a rule; everything else
 // stays assisted and is confirmed by the Narrator.
 const ENEMY_AUTO_ATTACK_RULES = new Map([
+  ["enemy.common.bruiser.attack.skulduggery", 2],
   ["enemy.common.assassin.attack.slice", 2],
   ["enemy.common.behemoth.attack.tore-from-earth", 2],
   ["enemy.common.captor.attack.catch-and-release", 2],
@@ -34,10 +35,13 @@ const ENEMY_AUTO_ATTACK_RULES = new Map([
   ["enemy.common.slime.attack.goop", 1],
   ["enemy.common.glutton.attack.slobber", 1],
   ["enemy.common.mount.attack.thrash", 1],
+  ["enemy.common.oni.attack.polaris", 1],
+  ["enemy.common.paladin.attack.gift-from-god", 1],
   ["enemy.common.daredevil.attack.dance", 1],
   ["enemy.common.guardian.attack.shove", 1],
   ["enemy.common.berserker.attack.thrash", 1],
   ["enemy.common.hound-master.attack.shove", 1],
+  ["enemy.common.builder.attack.violent-construction", 0],
   ["enemy.common.bannerman.attack.swing", 1],
   ["enemy.common.baron.attack.suppress", 1],
   ["enemy.common.cultist.attack.swipe", 1],
@@ -782,7 +786,8 @@ function prepareEnemyRule(scene, data, request = {}) {
     if (!summonCells.length) errors.push("Для призыва нужен хотя бы один свободный участок рядом с Леоном.");
   }
   const hasRoll = request.roll && Array.isArray(request.roll.rolls);
-  const hasDirectDamage = Number.isFinite(Number(request.damage)) && Number(request.damage) >= 0;
+  const canonicalDirectDamage = rule?.directDamage ? enemyTierFormula(rule.directDamage, actor?.tier) : null;
+  const hasDirectDamage = Number.isFinite(canonicalDirectDamage) || Number.isFinite(Number(request.damage)) && Number(request.damage) >= 0;
   if (attackModifiers.selectedIds.length && !hasRoll) errors.push("Модификатор Преимущества требует бросок Атаки.");
   if (isAttackRule && fullRule?.type !== "cannoneer-load" && !hasRoll && !hasDirectDamage) errors.push("Для Атаки нужен бросок или прямой урон из профиля.");
   if (errors.length) return { ok: false, errors, events: [], rule: available || rule };
@@ -939,11 +944,12 @@ function prepareEnemyRule(scene, data, request = {}) {
       events.push({ type: "effect.remove", actorId: actor.id, payload: { targetId: actor.id, effect: "positive.исчез", sourceActionId: rule.id, participantIds: [actor.id] } });
     }
     if (rule.id === "enemy.common.cannoneer.trump.fire") events.push({ type: "rule-clock.set", actorId: actor.id, payload: { clockId: "enemy.common.cannoneer.preparation", value: 0, sourceActionId: rule.id } });
-    const hostileTargets = targets.filter(target => target.team !== actor.team), alliedTargets = targets.filter(target => target.team === actor.team);
+    const oniReinforced = Boolean(family.oniModes && (actor.effects || []).includes("positive.укреплен"));
+    const hostileTargets = oniReinforced ? [] : targets.filter(target => target.team !== actor.team), alliedTargets = targets.filter(target => target.team === actor.team);
     hostileTargets.forEach(target => events.push({ type: "reaction.offer", actorId: target.id, payload: { sourceActorId: actor.id, actionId: rule.id } }));
     const tensionMultiplier = Number(ENEMY_AUTO_ATTACK_RULES.get(rule.id) || 0);
     const effectAttack = effectAttackStatus(scene, actor.id, hostileTargets.map(target => target.id));
-    const baseDamage = ((hasRoll ? Number(request.roll.successes || 0) + Number(scene.tension || 0) * tensionMultiplier : Number(request.damage)) + Number(effectAttack.damageModifier || 0)) * Math.max(1, Number(family.damageRepeats || 1));
+    const baseDamage = ((hasRoll ? Number(request.roll.successes || 0) + Number(scene.tension || 0) * tensionMultiplier : Number.isFinite(canonicalDirectDamage) ? canonicalDirectDamage : Number(request.damage)) + Number(effectAttack.damageModifier || 0)) * Math.max(1, Number(family.damageRepeats || 1));
     const damageByTarget = Object.fromEntries(hostileTargets.map(target => {
       let amount = baseDamage + Number(effectAttack.damageByTarget?.[target.id] || 0);
       if (family.bonusTensionAtRange && distance(attackOrigin, target) >= Number(family.bonusTensionAtRange)) amount += Number(scene.tension || 0);
@@ -957,8 +963,10 @@ function prepareEnemyRule(scene, data, request = {}) {
     const postDisplacements = push ? hostileTargets.map(target => ({ targetId: target.id, mode: "push", maximum: push, name: rule.name, ruleId: rule.id, collisionDamagePerCell: 0 })) : [];
     const postResourceLoss = family.postResourceLoss ? { resource: family.postResourceLoss.resource, amount: enemyTierFormula(family.postResourceLoss.formula, actor.tier), ruleId: rule.id } : null;
     const allyEffectIds = (family.allyEffects || []).map(name => effectIdByName(data, name));
-    for (const target of alliedTargets) {
-      if (family.allyHeal || family.oniModes && (actor.effects || []).includes("positive.укреплен")) events.push({ type: "actor.heal", actorId: actor.id, payload: { targetId: target.id, amount: Number(request.roll?.successes || request.damage || 0), sourceActionId: rule.id, participantIds: [actor.id, target.id] } });
+    const supportTargets = oniReinforced ? targets : alliedTargets;
+    for (const target of supportTargets) {
+      if (family.allyHeal || oniReinforced) events.push({ type: "actor.heal", actorId: actor.id, payload: { targetId: target.id, amount: oniReinforced ? Number(request.roll?.successes || 0) : baseDamage, sourceActionId: rule.id, participantIds: [actor.id, target.id] } });
+      if (oniReinforced) events.push({ type: "effect.apply", actorId: actor.id, payload: { targetId: target.id, effect: effectIdByName(data, "Ускорен"), sourceActionId: rule.id, participantIds: [actor.id, target.id] } });
       allyEffectIds.forEach(effect => events.push({ type: "effect.apply", actorId: actor.id, payload: { targetId: target.id, effect, sourceActionId: rule.id, participantIds: [actor.id, target.id] } }));
     }
     const attackEffects = family.oniModes ? ((actor.effects || []).includes("positive.усилен") ? [effectIdByName(data, "Подброшен")] : []) : targetEffects;

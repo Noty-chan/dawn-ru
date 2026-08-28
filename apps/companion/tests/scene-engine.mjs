@@ -1830,7 +1830,7 @@ paladinScene.actors[1].profileId = "enemy.common.paladin";
 paladinScene.actors[1].name = "Паладин";
 paladinScene.actors.push({ ...structuredClone(paladinScene.actors[1]), id: "enemy-ally", name: "Союзник Паладина", x: 2, y: 2 });
 const gift = Engine.availableEnemyRules(paladinScene, data, "enemy").find(rule => rule.en === "Gift From God");
-assert.equal(gift.automation, "assisted", "Gift From God stays assisted: its old mixed-target adapter added non-canonical healing to allies");
+assert.equal(gift.automation, "attack", "Gift From God executes both its reward and the Paladin passive that converts allied damage to healing");
 
 const daredevilScene = structuredClone(enemyScene);
 daredevilScene.actors[1].profileId = "enemy.common.daredevil";
@@ -1931,7 +1931,7 @@ builderScene.actors[1].profileId = "enemy.common.builder";
 builderScene.actors[1].name = "Строитель";
 builderScene.actors[1].x = 5;
 const construction = Engine.availableEnemyRules(builderScene, data, "enemy").find(rule => rule.en === "Violent Construction");
-assert.equal(construction.automation, "assisted", "Violent Construction stays assisted until its fixed tier-scaled direct damage is computed by the engine rather than supplied externally");
+assert.equal(construction.automation, "attack", "Violent Construction derives its fixed tier-scaled direct damage inside the engine");
 
 const areaScene = structuredClone(enemyScene);
 areaScene.actors[1].profileId = "enemy.common.witch";
@@ -2887,7 +2887,7 @@ assert.equal(ritualDrawings.requiresTarget, false, "Ritual Drawings selects empt
 assert.equal(ritualDrawings.maxTargets, 0);
 const declaredAttacks = enemyProfiles.flatMap(profile => (profile.rules || []).filter(rule => rule.kind === "attack").map(rule => ({ profile, rule })));
 assert.ok(declaredAttacks.length >= 40, "The enemy catalogue exposes the complete common Attack set");
-assert.deepEqual(declaredAttacks.filter(({ rule }) => Engine.enemyRuleAutomation(rule.id) === "assisted").map(({ rule }) => rule.id), ["enemy.common.bruiser.attack.skulduggery", "enemy.common.bodyguards.attack.behind-me", "enemy.common.oni.attack.polaris", "enemy.common.paladin.attack.gift-from-god", "enemy.common.builder.attack.violent-construction", "enemy.common.coordinator.attack.fanaticize", "enemy.common.swarm.attack.tear"], "Audited attacks with absent or extra canonical branches stay assisted");
+assert.deepEqual(declaredAttacks.filter(({ rule }) => Engine.enemyRuleAutomation(rule.id) === "assisted").map(({ rule }) => rule.id), ["enemy.common.bodyguards.attack.behind-me", "enemy.common.coordinator.attack.fanaticize", "enemy.common.swarm.attack.tear"], "Attacks with absent mandatory movement or follow-up branches stay assisted");
 for (const profileId of ["enemy.common.assassin", "enemy.common.pugilist", "enemy.common.guardian", "enemy.common.berserker", "enemy.common.ranger"]) {
   const profile = enemyProfiles.find(item => item.id === profileId);
   assert.ok(profile, `${profileId} exists in the canonical enemy catalogue`);
@@ -2895,6 +2895,21 @@ for (const profileId of ["enemy.common.assassin", "enemy.common.pugilist", "enem
 }
 const profileScene = profileId => { const value = structuredClone(enemyScene); value.actors[1].profileId = profileId; value.actors[1].name = enemyProfiles.find(item => item.id === profileId).name; value.actors[1].hp = 5; value.actors[1].maxHp = 30; value.actors[1].ruleState = {}; value.actors[1].usedActions = []; value.actors[1].usedTrump = false; value.actors[1].ap = 3; return value; };
 const profileRule = (profileId, en) => enemyProfiles.find(item => item.id === profileId).rules.find(rule => rule.en === en);
+// Refuted enemy rows are promoted only after their complete canonical branch is executable.
+let oniContractScene = profileScene("enemy.common.oni");
+oniContractScene.tension = 4; oniContractScene.actors[1].effects = ["positive.укреплен"]; oniContractScene.actors[0].hp = 2; oniContractScene.actors[0].maxHp = 20;
+const polarisContract = Engine.prepareEnemyRule(oniContractScene, data, { actorId: "enemy", ruleId: profileRule("enemy.common.oni", "Polaris").id, targetIds: ["hero"], roll: { formula: "7D6", rolls: [6, 4, 1, 1, 1, 1, 1], successes: 2, crits: 1 } });
+assert.equal(polarisContract.ok, true); assert.equal(polarisContract.events.some(event => event.type === "attack.pending"), false, "Reinforced Polaris heals rather than damaging every character");
+assert.equal(polarisContract.events.find(event => event.type === "actor.heal")?.payload.amount, 2, "Reinforced Polaris heals Hits without Tension");
+assert.ok(polarisContract.events.some(event => event.type === "effect.apply" && event.payload.effect === "positive.ускорен"), "Reinforced Polaris also Hastens its targets");
+let paladinContractScene = profileScene("enemy.common.paladin");
+paladinContractScene.tension = 3; paladinContractScene.actors.push({ ...structuredClone(paladinContractScene.actors[1]), id: "paladin-ally", profileId: "enemy.common.guardian", team: "enemy", x: 2, y: 1, hp: 1, maxHp: 20, effects: [] });
+const giftContract = Engine.prepareEnemyRule(paladinContractScene, data, { actorId: "enemy", ruleId: profileRule("enemy.common.paladin", "Gift From God").id, targetIds: ["paladin-ally"], roll: { formula: "6D6", rolls: [6, 4, 1, 1, 1, 1], successes: 2, crits: 1 } });
+assert.equal(giftContract.events.find(event => event.type === "actor.heal")?.payload.amount, 5, "Paladin passive replaces allied Gift damage with Hits plus Tension healing");
+assert.ok(giftContract.events.some(event => event.type === "effect.apply" && event.payload.effect === "positive.регенерирует"), "Gift also grants Regenerate to an ally");
+let builderContractScene = profileScene("enemy.common.builder"); builderContractScene.actors[1].tier = 3; builderContractScene.actors[0].x = 5;
+const constructionContract = Engine.prepareEnemyRule(builderContractScene, data, { actorId: "enemy", ruleId: profileRule("enemy.common.builder", "Violent Construction").id, targetIds: ["hero"], damage: 999 });
+assert.equal(constructionContract.events.find(event => event.type === "attack.pending")?.payload.damage, 5, "Violent Construction re-derives 3(+1) damage from the actor Tier and ignores forged input");
 // Duelist: passive Provocation, both Goad branches, and Fleche's complete
 // damage/movement contract run through the public engine adapters.
 let duelistContractScene = profileScene("enemy.common.duelist"); duelistContractScene.actors[1].tier = 2; duelistContractScene.tension = 2;
@@ -3072,7 +3087,7 @@ assert.ok(gluttonFlow.actors.find(actor => actor.id === "hero").effects.includes
 assert.ok(gluttonFlow.actors.find(actor => actor.id === "hero-2").effects.includes("negative.замедлен"), "Slobber applies Slow independently to its second hit target");
 const gluttonThird = structuredClone(gluttonScene); gluttonThird.actors.push({ ...structuredClone(gluttonScene.actors[0]), id: "hero-3", x: 1, y: 2 });
 assert.equal(Engine.prepareEnemyRule(gluttonThird, data, { actorId: "enemy", ruleId: slobber.id, targetIds: ["hero", "hero-2", "hero-3"], roll: { rolls: [6, 5], successes: 1 } }).ok, false, "Slobber rejects a third target");
-assert.equal(Engine.enemyRuleAutomation(profileRule("enemy.common.bruiser", "Skulduggery").id), "assisted", "Skulduggery stays assisted: the old adapter added non-canonical Stun on incomplete push");
+assert.equal(Engine.enemyRuleAutomation(profileRule("enemy.common.bruiser", "Skulduggery").id), "attack", "Skulduggery includes the Bruiser passive that Dazes targets when its push cannot travel the full distance");
 assert.equal(Engine.enemyRuleAutomation(profileRule("enemy.common.bruiser", "Decimate").id), "assisted", "Decimate remains assisted until delayed area placement is implemented");
 let fluxScene = profileScene("enemy.common.illusionist"); fluxScene.actors.push({ ...structuredClone(fluxScene.actors[1]), id: "illusion-ally", profileId: "enemy.common.guardian", x: 4, y: 1, ruleState: {} });
 fluxScene = resolveEnemyFamily(fluxScene, { flux: true });
