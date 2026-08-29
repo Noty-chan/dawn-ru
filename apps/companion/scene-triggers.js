@@ -971,11 +971,11 @@ function triggeredEvents(scene, event, options = {}) {
       events.push({ type: "actor.despawn", actorId: actor.id, payload: { reason: `Ищейка достигла цели ${target.name}`, sourceActionId: "enemy.common.hound-master.seeker.explode", participantIds: [target.id, ...victims.map(item => item.id)] } });
     }
   }
-  if (event.type === "turn.end" && actor?.team === "enemy" && actor.kind !== "crowd" && !scene.pendingPrompt && !promptQueued()) {
+  if (event.type === "turn.end" && actor?.team === "enemy" && actor.kind !== "crowd") {
     const crowdIds = (scene.actors || []).filter(item => item.kind === "crowd" && !item.knockedOut && item.team === actor.team && item.space === actor.space).map(item => item.id);
     if (crowdIds.length) events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${event.id}-fodder-move`, kind: "fodder-move-select", sourceActorId: actor.id, controller: "narrator", title: "Движение массовки", text: "После Хода врага переместите каждую Зону массовки на расстояние до 2 клеток (до 4 после Хода Псаря) или оставьте её на месте.", options: [...crowdIds.map(id => `target:${id}`), "finish"], context: { remainingTargetIds: crowdIds, optionLabels: { finish: "Оставить остальные на месте" } }, participantIds: [actor.id, ...crowdIds] } });
   }
-  if (event.type === "round.end" && !scene.pendingPrompt && !promptQueued()) {
+  if (event.type === "round.end") {
     const eligibleCrowds = (scene.actors || []).filter(item => item.kind === "crowd" && !item.knockedOut).filter(crowd => (scene.actors || []).some(target => !target.knockedOut && target.team !== crowd.team && target.space === crowd.space && distance(crowd, target) <= 1));
     const first = eligibleCrowds[0];
     if (first) {

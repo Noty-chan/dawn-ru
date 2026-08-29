@@ -153,6 +153,12 @@ const fodderWindow = Engine.dispatch(fodderWindowSource, { id: "enemy-turn-befor
 assert.equal(Engine.fodderMoveStatus(fodderWindow, "fodder-a-1").remaining, 2, "Every enemy Turn end opens two spaces of movement for each Fodder Zone");
 let promptedFodderWindow = Engine.dispatchMany(fodderWindowSource, [{ id: "enemy-turn-prompt-fodder", type: "turn.end", actorId: "enemy", payload: {} }]).scene;
 assert.equal(promptedFodderWindow.pendingPrompt?.kind, "fodder-move-select", "Ending an enemy Turn automatically surfaces Fodder movement to the Narrator");
+const queuedFodderSource = structuredClone(fodderWindowSource); queuedFodderSource.turnSerial = 2; queuedFodderSource.actors[1].profileId = "enemy.common.executioner"; queuedFodderSource.actors[1].ruleState = { executionerBifurcate: { dueTurnSerial: 1, targetId: "hero" } };
+let queuedFodderWindow = Engine.dispatchMany(queuedFodderSource, [{ id: "enemy-turn-with-two-prompts", type: "turn.end", actorId: "enemy", payload: {} }]).scene;
+assert.equal(queuedFodderWindow.pendingPrompt?.kind, "enemy-executioner-bifurcate", "A higher-priority end-of-Turn decision opens first");
+assert.equal(Engine.triggerQueueStatus(queuedFodderWindow).queued.some(item => item.kind === "fodder-move-select"), true, "Fodder movement is queued instead of being lost behind another end-of-Turn prompt");
+queuedFodderWindow = Engine.dispatchMany(queuedFodderWindow, Engine.respondRulePrompt(queuedFodderWindow, data, { choice: "pass" }).events).scene;
+assert.equal(queuedFodderWindow.pendingPrompt?.kind, "fodder-move-select", "Queued Fodder movement resumes after the earlier decision");
 promptedFodderWindow = Engine.dispatchMany(promptedFodderWindow, Engine.respondRulePrompt(structuredClone(promptedFodderWindow), data, { choice: "target:fodder-a-1" }).events).scene;
 assert.equal(promptedFodderWindow.pendingPrompt?.kind, "fodder-move-cell", "The movement chain persists the selected Fodder zone across reconnect");
 assert.equal(Engine.preparePromptPlacement(promptedFodderWindow, { destination: { x: 6, y: 6 } }).ok, false, "Automatic Fodder movement rejects an over-range destination");
