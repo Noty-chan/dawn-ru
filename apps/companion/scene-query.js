@@ -24,7 +24,7 @@ function actorIdsInRange(scene, sourceActorId, range, options = {}) {
   const maximum = Number(range);
   if (!source || Number.isNaN(maximum) || maximum < 0) return [];
   return (scene?.actors || [])
-    .filter(actor => distance(source, actor) <= maximum && actorMatchesQuery(actor, source, options))
+    .filter(actor => modifierRangeDistance(scene, source, actor) <= maximum && actorMatchesQuery(actor, source, options))
     .filter(actor => options.ignoreEffectTargeting || effectTargetingStatus(scene, source.id, actor.id, options).available)
     .map(actor => actor.id);
 }
@@ -34,12 +34,13 @@ function wallTargetingStatus(scene, sourceActorId, targetActorId, request = {}) 
   const target = typeof targetActorId === "string" ? actorById(scene, targetActorId) : targetActorId;
   const space = (scene.spaces || []).find(item => item.id === source?.space);
   if (!source || !target || !space || source.space !== target.space) return { available: false, reason: "Цель находится на другом поле.", walls: [] };
-  if (source.x === target.x && source.y === target.y) return { available: true, reason: "", walls: [] };
-  const maximum = distance(source, target);
+  const targetCells=new Set(modifierTargetCells(scene,target));
+  if(targetCells.has(cellKey(source)))return {available:true,reason:"",walls:[]};
+  const maximum = modifierRangeDistance(scene,source,target);
   const queue = [{ x: Number(source.x), y: Number(source.y), steps: 0 }], seen = new Set([cellKey(source)]), blocking = new Set();
   while (queue.length) {
     const current = queue.shift();
-    if (current.x === Number(target.x) && current.y === Number(target.y)) return { available: true, reason: "", walls: [...blocking] };
+    if (targetCells.has(cellKey(current))) return { available: true, reason: "", walls: [...blocking] };
     if (current.steps >= maximum) continue;
     [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(([dx, dy]) => {
       const next = { x: current.x + dx, y: current.y + dy }, key = cellKey(next);

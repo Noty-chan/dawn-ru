@@ -224,6 +224,7 @@ function modifierConfigurationStatus(scene, actorId, request = {}) {
           )
           .map(cellKey),
       );
+    if (required < 1) errors.push("Сначала добавьте на поле хотя бы одного персонажа игрока.");
     if (cells.length !== required)
       errors.push(
         `Для Случайных жертв выберите ровно ${required} пустых клеток.`,

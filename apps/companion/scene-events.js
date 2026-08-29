@@ -966,7 +966,7 @@ function reduceEvent(scene, event) {
     actor.modifierState=clone(payload.state);
     if(actor.profileId===ENEMY_MODIFIER_IDS.legion){actor.maxHp=Number(payload.state.legionHp||0);actor.hp=actor.maxHp}
     if(actor.profileId===ENEMY_MODIFIER_IDS.giant){const carrier=actorById(scene,payload.state.carrierId);carrier.occupiedWidth=2;carrier.occupiedHeight=2;actor.occupiedWidth=2;actor.occupiedHeight=2}
-    if(firstCollateralDeploy){const cells=payload.state.cells.map(cell=>cell.split(",").map(Number)),[firstX,firstY]=cells[0];actor.x=firstX;actor.y=firstY;actor.modifierState.instanceRootId=actor.id;for(let index=1;index<cells.length;index++){const[x,y]=cells[index],copy=clone(actor);copy.id=`collateral-${actor.id}-${index}`;copy.x=x;copy.y=y;copy.name=`${actor.name} ${index+1}`;copy.modifierState={...clone(actor.modifierState),instanceRootId:actor.id};scene.actors.push(copy)}scene.sessionClocks||=[];scene.sessionClocks.push({id:payload.state.clockId,name:`Случайные жертвы · ${actor.name}`,kind:"danger",size:livePlayers(scene).length,value:0})}
+    if(firstCollateralDeploy){const cells=payload.state.cells.map(cell=>cell.split(",").map(Number)),[firstX,firstY]=cells[0];actor.x=firstX;actor.y=firstY;actor.hidden=false;actor.modifierState.instanceRootId=actor.id;for(let index=1;index<cells.length;index++){const[x,y]=cells[index],copy=clone(actor);copy.id=`collateral-${actor.id}-${index}`;copy.x=x;copy.y=y;copy.hidden=false;copy.name=`${actor.name} ${index+1}`;copy.modifierState={...clone(actor.modifierState),instanceRootId:actor.id};scene.actors.push(copy)}scene.sessionClocks||=[];scene.sessionClocks.push({id:payload.state.clockId,name:`Случайные жертвы · ${actor.name}`,kind:"danger",size:livePlayers(scene).length,value:0})}
     if(isAttachedModifier(actor)){const carrier=actorById(scene,payload.state.carrierId),compoundId=carrier.compoundId||`modifier-carrier-${carrier.id}`;carrier.compoundId=compoundId;actor.compoundId=compoundId;actor.space=carrier.space;actor.x=carrier.x;actor.y=carrier.y;actor.hidden=true;actor.acted=true;actor.ap=0}
   } else if (event.type === "actor.state" && actor) {
     actor.ruleState ||= {};
@@ -1050,8 +1050,8 @@ function reduceEvent(scene, event) {
     payload.ruleResourceResets = [];
     payload.ruleClockResets = [];
     (scene.actors || []).forEach(item => {
-      item.acted = item.kind === "crowd";
-      item.ap = item.kind === "crowd" ? 0 : Number(item.baseAp || 3);
+      item.acted = item.kind === "crowd" || isEnemyModifier(item);
+      item.ap = item.kind === "crowd" || isEnemyModifier(item) ? 0 : Number(item.baseAp || 3);
       item.usedActions = [];
       item.stepRemaining = 0;
       item.speedZeroUntilTurnEnd = false;

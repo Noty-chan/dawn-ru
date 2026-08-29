@@ -246,9 +246,10 @@ function prepareDisplacements(scene, requests = [], options = {}) {
   }
 }
 function turnStartStatus(scene, actorId) {
-  const actor = actorById(scene, actorId), heroes = (scene.actors || []).filter(item => item.team === "hero" && item.kind !== "crowd" && !item.knockedOut), enemies = (scene.actors || []).filter(item => item.team === "enemy" && item.kind !== "crowd" && !item.knockedOut);
+  const actor = actorById(scene, actorId), heroes = (scene.actors || []).filter(item => item.team === "hero" && item.kind !== "crowd" && !isEnemyModifier(item) && !item.knockedOut), enemies = (scene.actors || []).filter(item => item.team === "enemy" && item.kind !== "crowd" && !isEnemyModifier(item) && !item.knockedOut);
   if (!actor) return { available: false, reason: "Участник не найден." };
   if (actor.kind === "crowd") return { available: false, reason: "Зоны массовки не совершают Ходы." };
+  if (isEnemyModifier(actor)) return { available: false, reason: "Враги-Модификаторы не совершают отдельных Ходов." };
   if (scene.pendingAction) return { available: false, reason: "Сначала завершите текущую цепочку Реакций." };
   if (scene.pendingPrompt) return { available: false, reason: "Сначала ответьте на сработавшее правило." };
   if (scene.activeActorId) return { available: false, reason: "Сначала завершите текущий Ход." };
@@ -273,7 +274,7 @@ function roundEndStatus(scene) {
   if (scene.activeActorId) return { available: false, reason: "Сначала завершите текущий Ход." };
   const completedTurns = currentRoundEvents(scene).filter(event => closedTurnActorId(event));
   if (!completedTurns.length) return { available: false, reason: "Раунд ещё не начат." };
-  const readyActors = (scene.actors || []).filter(item => !item.knockedOut && item.kind !== "crowd");
+  const readyActors = (scene.actors || []).filter(item => !item.knockedOut && item.kind !== "crowd" && !isEnemyModifier(item));
   const remaining = readyActors.filter(actor => !actor.acted);
   if (remaining.length) return { available: false, reason: `Не завершили Ход: ${remaining.map(actor => actor.name).join(", ")}.` };
   return { available: true, reason: "" };
