@@ -34,10 +34,10 @@ function wallTargetingStatus(scene, sourceActorId, targetActorId, request = {}) 
   const target = typeof targetActorId === "string" ? actorById(scene, targetActorId) : targetActorId;
   const space = (scene.spaces || []).find(item => item.id === source?.space);
   if (!source || !target || !space || source.space !== target.space) return { available: false, reason: "Цель находится на другом поле.", walls: [] };
-  const targetCells=new Set(modifierTargetCells(scene,target));
-  if(targetCells.has(cellKey(source)))return {available:true,reason:"",walls:[]};
+  const targetCells=new Set(modifierTargetCells(scene,target)),sourceCells=modifierTargetCells(scene,source);
+  if(sourceCells.some(key=>targetCells.has(key)))return {available:true,reason:"",walls:[]};
   const maximum = modifierRangeDistance(scene,source,target);
-  const queue = [{ x: Number(source.x), y: Number(source.y), steps: 0 }], seen = new Set([cellKey(source)]), blocking = new Set();
+  const queue = sourceCells.map(key=>{const[x,y]=key.split(",").map(Number);return{x,y,steps:0}}), seen = new Set(sourceCells), blocking = new Set();
   while (queue.length) {
     const current = queue.shift();
     if (targetCells.has(cellKey(current))) return { available: true, reason: "", walls: [...blocking] };

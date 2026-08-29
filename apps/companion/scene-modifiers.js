@@ -507,7 +507,7 @@ function modifierMovementEvents(scene, event) {
     owner.knockedOut ||
     !carrier ||
     carrier.knockedOut ||
-    distance(crowd, carrier) > 0
+    modifierRangeDistance(scene, crowd, carrier) > 0
   )
     return [];
   const nextArmor = Number(carrier.armor || 0) + 1,
@@ -697,6 +697,10 @@ function modifierActionStatus(scene, request = {}) {
     errors = [];
   if (!isEnemyModifier(actor) || actor.knockedOut)
     errors.push("Модификатор недоступен.");
+  if (["gargantuan-strike", "giant-charge", "legion-return"].includes(action)) {
+    if (["gargantuan-strike", "giant-charge"].includes(action) && (!carrier || scene.activeActorId !== carrier.id)) errors.push("Дополнительная Атака доступна только в Ход носителя.");
+    if (Number(modifierState(actor).lastActionRound || 0) === Number(scene.round || 1)) errors.push("Эта дополнительная Атака уже использована в текущем Раунде.");
+  }
   if (action === "gargantuan-strike") {
     const count = modifierTierValue("5(+1)", actor?.tier),
       roll = request.roll;
@@ -961,5 +965,6 @@ function modifierActionEvents(scene, event) {
       });
     }
   }
+  if (["gargantuan-strike", "giant-charge", "legion-return"].includes(status.action)) events.push({type:"modifier.used",actorId:actor.id,payload:{action:status.action,round:Number(scene.round||1),carrierId:status.carrier?.id||null,sourceActionId:`enemy.modifier.${status.action}.attack`,participantIds:[actor.id,status.carrier?.id].filter(Boolean)}});
   return events;
 }

@@ -80,7 +80,7 @@ function validateEvent(scene, event, options = {}) {
     const occupancy = effectCellOccupancyStatus(scene, event.actorId, { space: payload.space, x: payload.x, y: payload.y });
     if (!occupancy.available) throw new Error(occupancy.reason);
     if (payload.from && (payload.from.space !== actor?.space || Number(payload.from.x) !== Number(actor?.x) || Number(payload.from.y) !== Number(actor?.y))) throw new Error("Исходная клетка перемещения устарела.");
-    if(actor?.crowdSubtype==="vortex"&&payload.fodderMove){const owner=actorById(scene,actor.vortexOwnerId),carrier=modifierCarrier(scene,owner),destination={space:payload.space,x:Number(payload.x),y:Number(payload.y)};if(!carrier||carrier.knockedOut||distance(destination,carrier)>=distance(actor,carrier))throw new Error("Массовка Вихря может двигаться только ближе к носителю.");}
+    if(actor?.crowdSubtype==="vortex"&&payload.fodderMove){const owner=actorById(scene,actor.vortexOwnerId),carrier=modifierCarrier(scene,owner),destination={space:payload.space,x:Number(payload.x),y:Number(payload.y)};if(!carrier||carrier.knockedOut||modifierRangeDistance(scene,destination,carrier)>=modifierRangeDistance(scene,actor,carrier))throw new Error("Массовка Вихря может двигаться только ближе к носителю.");}
     if (payload.path != null) {
       if (!Array.isArray(payload.path) || payload.path.length > 144) throw new Error("Некорректный путь перемещения.");
       const pathCells = payload.path.map(String), invalidPath = pathCells.some(cell => {
@@ -121,6 +121,7 @@ function validateEvent(scene, event, options = {}) {
     if(JSON.stringify(canonical)!==JSON.stringify(payload.state))throw new Error("Настройка модификатора не совпадает с актуальной Сценой.");
   }
   if(event.type==="modifier.action"){const status=modifierActionStatus(scene,{actorId:event.actorId,...payload});if(payload.profileId!==actor?.profileId||!status.available)throw new Error(status.reason||"Некорректное действие модификатора.");if(payload.action==="gargantuan-strike"&&!modifierTwoSquareCover(payload.cells))throw new Error("Области Громадины должны быть одной или двумя точными зонами 2×2.");}
+  if(event.type==="modifier.used"&&(!isEnemyModifier(actor)||!['gargantuan-strike','giant-charge','legion-return'].includes(payload.action)||Number(payload.round)!==Number(scene.round||1)||(['gargantuan-strike','giant-charge'].includes(payload.action)&&modifierCarrier(scene,actor)?.id!==payload.carrierId)))throw new Error("Некорректная отметка дополнительной Атаки модификатора.");
   if (event.type === "marker.move") {
     const marker = markerById(scene, payload.markerId), space = (scene.spaces || []).find(item => item.id === (payload.space || marker?.space));
     if (!marker || !space || !Number.isInteger(Number(payload.x)) || !Number.isInteger(Number(payload.y)) || Number(payload.x) < 0 || Number(payload.y) < 0 || Number(payload.x) >= space.width || Number(payload.y) >= space.height) throw new Error("Некорректное перемещение маркера.");
@@ -960,6 +961,8 @@ function reduceEvent(scene, event) {
       if (payload.newTarget) actor.techniqueState.studiedActorIds.push(payload.targetId);
     }
     if (payload.key === "spellModifiers") actor.techniqueState.spellModifiers = [...new Set(payload.value || [])].slice(0, 2);
+  } else if(event.type==="modifier.used"&&actor){
+    actor.modifierState||={};actor.modifierState.lastActionRound=Number(scene.round||1);
   } else if(event.type==="modifier.configure"&&actor){
     const firstCollateralDeploy=actor.profileId===ENEMY_MODIFIER_IDS.collateral&&!actor.modifierState?.deployed;
     if(actor.profileId===ENEMY_MODIFIER_IDS.gargantuan&&!actor.modifierState?.expanded){actor.modifierState=clone(payload.state);applyGargantuanExpansion(scene,actor,payload.state.mode)}
