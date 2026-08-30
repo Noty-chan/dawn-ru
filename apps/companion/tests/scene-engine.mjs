@@ -321,6 +321,8 @@ assert.equal(gazeResolved.actors[0].focus, 0, "Gaze Deeply gives up the Focus ga
 assert.ok(gazeResolved.actors[1].effects.includes("negative.обездвижен"), "Gaze Deeply applies Immobilized within the gained Focus range");
 const tracedMove = Engine.dispatch(scene, { type: "actor.move", actorId: "hero", payload: { space: "main", x: 1, y: 2, movement: "Шаг", path: ["1,2"] } }).scene;
 assert.equal(Engine.movementTraceStatus(tracedMove, { space: "main" }).available, true);
+const manuallyPlaced = Engine.dispatch(scene, { type: "actor.move", actorId: "hero", payload: { space: "main", x: 1, y: 2, movement: "Ручная перестановка", placement: true, trace: false } }).scene;
+assert.equal(Engine.movementTraceStatus(manuallyPlaced, { space: "main" }).available, false, "Administrative placement never creates a movement trace");
 const tracesCleared = Engine.dispatch(tracedMove, { type: "movement-traces.clear", payload: { space: "main" } }).scene;
 assert.equal(Engine.movementTraceStatus(tracesCleared, { space: "main" }).available, false, "The narrator can clear movement traces without deleting combat history");
 const clockCreated = Engine.dispatch(scene, { id: "clock-create", type: "session-clock.create", payload: { id: "scene-clock-threat", name: "Приближение угрозы", kind: "danger", size: 6 } }).scene;

@@ -408,7 +408,11 @@ const eventSql = fs.readFileSync(path.resolve(root, "../../supabase/migrations/2
 const liveCharacterSql = fs.readFileSync(path.resolve(root, "../../supabase/migrations/202607230001_dawn_live_characters.sql"), "utf8");
 const eventRepairSql = fs.readFileSync(path.resolve(root, "../../supabase/migrations/202607230002_fix_append_scene_events.sql"), "utf8");
 assert.match(html, /data-scene-tool="place"/, "The GM table exposes an explicit manual placement tool");
-assert.match(app, /movement:"Ручная перестановка",placement:true/, "Manual GM placement is journaled without invoking a Turn movement action");
+assert.match(app, /movement:"Ручная перестановка",placement:true,trace:false/, "Manual GM placement is journaled without invoking a Turn movement action or drawing a route");
+assert.match(cockpitCss, /\.scene-mode \.scene-action-tray\{\s*position:absolute/, "The desktop action tray is anchored to the visible Scene stage");
+assert.match(cockpitCss, /calc\(44px \* var\(--scene-zoom,1\)\)/, "Tactical tokens scale with the board instead of stopping at the old small cap");
+assert.match(cockpitCss, /\.scene-mode \.scene-cell-rules\{[^}]*clip-path:inset\(50%\)/, "Area names remain accessible without rendering letter badges over the board");
+assert.doesNotMatch(cockpitCss, /keyboard-target-ready::before\{content:"T"/, "Token hover no longer draws the legacy blue T badge");
 assert.match(app, /SCENE_RULE_SECTIONS=\[/, "The table sidebar exposes focused structured-combat rule sections");
 assert.match(app, /sceneRuleChapter\(chapterId\)\?\.cards/, "The table sidebar reuses the canonical Rules chapters instead of a separate help catalog");
 assert.match(html, /Правила структурированного боя/, "The table labels its sidebar as a structured-combat rules view");

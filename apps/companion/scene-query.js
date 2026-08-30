@@ -485,7 +485,7 @@ function movementTraceStatus(scene, request = {}) {
   }
   for (const actor of scene.actors || []) {
     if (actor.space !== space) continue;
-    const event = visibleLog.find(item => item.type === "actor.move" && item.actorId === actor.id && item.payload?.from && (item.payload.space || item.payload.from.space) === space);
+    const event = visibleLog.find(item => item.type === "actor.move" && item.actorId === actor.id && item.payload?.trace !== false && item.payload?.from && (item.payload.space || item.payload.from.space) === space);
     if (!event) continue;
     const payload = event.payload || {}, from = payload.from;
     if (Number(payload.x) !== Number(actor.x) || Number(payload.y) !== Number(actor.y) || from.space !== space) continue;
