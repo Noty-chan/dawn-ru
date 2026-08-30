@@ -410,6 +410,9 @@ const eventRepairSql = fs.readFileSync(path.resolve(root, "../../supabase/migrat
 assert.match(html, /data-scene-tool="place"/, "The GM table exposes an explicit manual placement tool");
 assert.match(app, /movement:"Ручная перестановка",placement:true,trace:false/, "Manual GM placement is journaled without invoking a Turn movement action or drawing a route");
 assert.match(cockpitCss, /\.scene-mode \.scene-action-tray\{\s*position:absolute/, "The desktop action tray is anchored to the visible Scene stage");
+assert.match(cockpitCss, /grid-template-columns:minmax\(0,1fr\) minmax\(320px,404px\) 68px/, "An open desktop Scene panel occupies an embedded column between the stage and tool rail");
+assert.match(cockpitCss, /\.scene-panel-open\.scene-mode \.scene-dock,[\s\S]*?grid-column:3;[\s\S]*?right:auto/, "The right-hand Scene tool rail remains in the final grid column instead of sliding left");
+assert.match(cockpitCss, /\.scene-panel-open\.scene-mode \.scene-rail,[\s\S]*?display:block;[\s\S]*?grid-column:2/, "Desktop Scene panel content is rendered in the page grid rather than as an overlay");
 assert.match(cockpitCss, /calc\(44px \* var\(--scene-zoom,1\)\)/, "Tactical tokens scale with the board instead of stopping at the old small cap");
 assert.match(cockpitCss, /\.scene-mode \.scene-cell-rules\{[^}]*clip-path:inset\(50%\)/, "Area names remain accessible without rendering letter badges over the board");
 assert.doesNotMatch(cockpitCss, /keyboard-target-ready::before\{content:"T"/, "Token hover no longer draws the legacy blue T badge");
