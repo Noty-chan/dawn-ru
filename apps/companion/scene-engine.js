@@ -50,6 +50,7 @@ function projectScene(scene, viewer = {}) {
 (typeof window === "object" ? window : globalThis).DAWN_SCENE_ENGINE.canonicalActionId = canonicalActionId;
 (typeof window === "object" ? window : globalThis).DAWN_SCENE_ENGINE.actionByKey = actionByKey;
 (typeof window === "object" ? window : globalThis).DAWN_SCENE_ENGINE.fodderMoveStatus = fodderMoveStatus;
+(typeof window === "object" ? window : globalThis).DAWN_SCENE_ENGINE.fodderMoveDestinations = fodderMoveDestinations;
 (typeof window === "object" ? window : globalThis).DAWN_SCENE_ENGINE.isEnemyModifier = isEnemyModifier;
 (typeof window === "object" ? window : globalThis).DAWN_SCENE_ENGINE.isAttachedModifier = isAttachedModifier;
 (typeof window === "object" ? window : globalThis).DAWN_SCENE_ENGINE.modifierConfigurationStatus = modifierConfigurationStatus;

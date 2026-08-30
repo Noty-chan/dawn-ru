@@ -20,7 +20,6 @@ const ATTACHED_MODIFIER_IDS = new Set([
   ENEMY_MODIFIER_IDS.giant,
   ENEMY_MODIFIER_IDS.haven,
   ENEMY_MODIFIER_IDS.isolation,
-  ENEMY_MODIFIER_IDS.vortex,
 ]);
 const AREA_MODIFIER_IDS = new Set([
   ENEMY_MODIFIER_IDS.artillery,
@@ -374,8 +373,8 @@ function modifierRoundEndEvents(scene, boundaryEvent) {
   )) {
     events.push(...modifierDamageEvents(scene, actor, boundaryEvent));
     if (actor.profileId === ENEMY_MODIFIER_IDS.vortex) {
-      const carrier = modifierCarrier(scene, actor),
-        anchor = actorById(scene, modifierState(actor).targetId),
+      const carrier = actorById(scene, modifierState(actor).targetId),
+        anchor = carrier,
         space = (scene.spaces || []).find((item) => item.id === carrier?.space);
       if (
         carrier &&
@@ -501,7 +500,7 @@ function modifierMovementEvents(scene, event) {
   )
     return [];
   const owner = actorById(scene, crowd.vortexOwnerId),
-    carrier = modifierCarrier(scene, owner);
+    carrier = actorById(scene, modifierState(owner).targetId);
   if (
     !owner ||
     owner.knockedOut ||

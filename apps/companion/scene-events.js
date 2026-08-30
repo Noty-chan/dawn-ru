@@ -69,18 +69,19 @@ function validateEvent(scene, event, options = {}) {
     if (removedCellKeys(scene, payload.space).has(`${Number(payload.x)},${Number(payload.y)}`)) throw new Error("Нельзя переместиться в удалённую клетку.");
     if (actor?.knockedOut && !payload.allowKnockedOut && !payload.displacement?.allowKnockedOut) throw new Error("Выведенный из строя участник не может перемещаться.");
     if (actor?.kind === "crowd") {
-      const status = fodderMoveStatus(scene, actor.id), moveDistance = Math.abs(Number(payload.x) - Number(actor.x)) + Math.abs(Number(payload.y) - Number(actor.y));
+      const status = fodderMoveStatus(scene, actor.id), canonicalPath = movementPath(scene, actor.id, { x: Number(payload.x), y: Number(payload.y) }, { maxDistance: payload.fodderMove ? status.remaining : Number(payload.maximum || 1), placement: true, ignoreEnemies: true, ignoreDifficult: true }), moveDistance = canonicalPath.length;
       const ruleMover = payload.enemyRuleMove && actorById(scene, payload.sourceActorId); validCrowdRuleMove = Boolean(ruleMover && !ruleMover.knockedOut && scene.activeActorId === ruleMover.id && ruleMover.team === actor.team && ["enemy.common.bodyguards.attack.behind-me", "enemy.common.swarm.attack.tear"].includes(payload.enemyRuleMove) && moveDistance >= 1 && moveDistance <= Number(payload.maximum || 1) && (payload.space || actor.space) === actor.space);
       validFodderMove = Boolean(payload.fodderMove && status.available && payload.boundaryEventId === status.boundaryEventId && moveDistance >= 1 && moveDistance <= status.remaining && (payload.space || actor.space) === actor.space);
       if (!validCrowdRuleMove && !validFodderMove) throw new Error(status.reason || "Некорректное перемещение зоны массовки.");
       payload.distance = moveDistance;
+      payload.path = canonicalPath.map(cellKey);
     }
     const movement = effectMovementStatus(scene, event.actorId, { forced: Boolean(payload.forced || payload.displacement), placement: Boolean(payload.placement), ignoreResistance: Boolean(payload.displacement?.ignoreResistance), ignoreVoluntaryRestrictions: Boolean(payload.ignoreVoluntaryRestrictions) });
     if (!movement.available && !validCrowdRuleMove && !validFodderMove) throw new Error(movement.reason);
     const occupancy = effectCellOccupancyStatus(scene, event.actorId, { space: payload.space, x: payload.x, y: payload.y });
     if (!occupancy.available) throw new Error(occupancy.reason);
     if (payload.from && (payload.from.space !== actor?.space || Number(payload.from.x) !== Number(actor?.x) || Number(payload.from.y) !== Number(actor?.y))) throw new Error("Исходная клетка перемещения устарела.");
-    if(actor?.crowdSubtype==="vortex"&&payload.fodderMove){const owner=actorById(scene,actor.vortexOwnerId),carrier=modifierCarrier(scene,owner),destination={space:payload.space,x:Number(payload.x),y:Number(payload.y)};if(!carrier||carrier.knockedOut||modifierRangeDistance(scene,destination,carrier)>=modifierRangeDistance(scene,actor,carrier))throw new Error("Массовка Вихря может двигаться только ближе к носителю.");}
+    if(actor?.crowdSubtype==="vortex"&&payload.fodderMove){const owner=actorById(scene,actor.vortexOwnerId),carrier=actorById(scene,modifierState(owner).targetId),destination={space:payload.space,x:Number(payload.x),y:Number(payload.y)};if(!carrier||carrier.knockedOut||modifierRangeDistance(scene,destination,carrier)>=modifierRangeDistance(scene,actor,carrier))throw new Error("Массовка Вихря может двигаться только ближе к выбранному персонажу игрока.");}
     if (payload.path != null) {
       if (!Array.isArray(payload.path) || payload.path.length > 144) throw new Error("Некорректный путь перемещения.");
       const pathCells = payload.path.map(String), invalidPath = pathCells.some(cell => {
@@ -102,7 +103,7 @@ function validateEvent(scene, event, options = {}) {
       if (!owner || event.actorId !== owner.id || owner.profileId !== "enemy.common.hound-master" || owner.knockedOut || !target || target.knockedOut || target.kind === "crowd" || target.team === owner.team || spawned.kind !== "crowd" || spawned.team !== owner.team || spawned.space !== owner.space || distance(owner, spawned) !== 1 || !["enemy.common.hound-master.action.fire-seeker", "enemy.common.hound-master.trump.wild-hunt"].includes(ruleId) || Number(spawned.seekerDamage) !== enemyTierFormula("7(+1)", owner.tier)) throw new Error("Ищейка не соответствует авторитетному правилу Псаря.");
     }
     if(spawned.crowdSubtype==="vortex"){
-      const owner=actorById(scene,spawned.vortexOwnerId),carrier=modifierCarrier(scene,owner),anchor=actorById(scene,modifierState(owner).targetId),boundary=(scene.log||[]).find(item=>item.id===payload.boundaryEventId),space=(scene.spaces||[]).find(item=>item.id===spawned.space);
+      const owner=actorById(scene,spawned.vortexOwnerId),anchor=actorById(scene,modifierState(owner).targetId),carrier=anchor,boundary=(scene.log||[]).find(item=>item.id===payload.boundaryEventId),space=(scene.spaces||[]).find(item=>item.id===spawned.space);
       const distances=anchor&&space?[(spawned.x===0?anchor.x:-1),(spawned.x===space.width-1?space.width-1-anchor.x:-1),(spawned.y===0?anchor.y:-1),(spawned.y===space.height-1?space.height-1-anchor.y:-1)]:[],farthest=anchor&&space?Math.max(anchor.x,space.width-1-anchor.x,anchor.y,space.height-1-anchor.y):-1;
       if(!owner||owner.profileId!==ENEMY_MODIFIER_IDS.vortex||owner.knockedOut||event.actorId!==owner.id||!carrier||!anchor||anchor.knockedOut||spawned.kind!=="crowd"||spawned.team!==owner.team||boundary?.type!=="round.end"||Math.max(...distances)!==farthest)throw new Error("Зона Вихря не соответствует дальней границе указанного игрока и актуальному носителю.");
     }

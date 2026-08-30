@@ -287,6 +287,23 @@ function fodderMoveStatus(scene, actorId) {
   const boundary = events[boundaryIndex], boundaryActor = actorById(scene, boundary.actorId), maximum = boundaryActor?.profileId === "enemy.common.hound-master" ? 4 : 2, used = events.slice(0, boundaryIndex).filter(event => event.type === "actor.move" && event.actorId === actor.id && event.payload?.fodderMove && event.payload?.boundaryEventId === boundary.id).reduce((sum, event) => sum + Math.max(0, Number(event.payload?.distance || 0)), 0), remaining = Math.max(0, maximum - used);
   return { available: remaining > 0, reason: remaining > 0 ? "" : `Эта зона уже переместилась на ${maximum} клетки после последнего Хода врага.`, remaining, maximum, used, boundaryEventId: boundary.id };
 }
+function fodderMoveDestinations(scene, actorId) {
+  const actor = actorById(scene, actorId), status = fodderMoveStatus(scene, actorId), space = (scene.spaces || []).find(item => item.id === actor?.space);
+  if (!actor || !space || !status.available) return [];
+  const destinations = [{ x: Number(actor.x), y: Number(actor.y), path: [], distance: 0 }];
+  for (let y = 0; y < Number(space.height || 0); y += 1) for (let x = 0; x < Number(space.width || 0); x += 1) {
+    if (x === Number(actor.x) && y === Number(actor.y)) continue;
+    if (!effectCellOccupancyStatus(scene, actor.id, { space: actor.space, x, y }).available) continue;
+    const path = movementPath(scene, actor.id, { x, y }, { maxDistance: status.remaining, placement: true, ignoreEnemies: true, ignoreDifficult: true });
+    if (!path.length) continue;
+    if (actor.crowdSubtype === "vortex") {
+      const owner = actorById(scene, actor.vortexOwnerId), carrier = actorById(scene, modifierState(owner).targetId), destination = { space: actor.space, x, y };
+      if (!carrier || carrier.knockedOut || modifierRangeDistance(scene, destination, carrier) >= modifierRangeDistance(scene, actor, carrier)) continue;
+    }
+    destinations.push({ x, y, path: path.map(cellKey), distance: path.length });
+  }
+  return destinations.sort((left, right) => left.distance - right.distance || left.y - right.y || left.x - right.x);
+}
 const areaCells = (space, anchor, area) => {
   const width = Number(area?.[0] || 0), height = Number(area?.[1] || 0), cells = [];
   const startX = Number(anchor?.x) - (width % 2 ? Math.floor(width / 2) : 0), startY = Number(anchor?.y) - (height % 2 ? Math.floor(height / 2) : 0);

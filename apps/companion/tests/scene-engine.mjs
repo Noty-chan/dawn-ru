@@ -159,6 +159,14 @@ assert.equal(queuedFodderWindow.pendingPrompt?.kind, "enemy-executioner-bifurcat
 assert.equal(Engine.triggerQueueStatus(queuedFodderWindow).queued.some(item => item.kind === "fodder-move-select"), true, "Fodder movement is queued instead of being lost behind another end-of-Turn prompt");
 queuedFodderWindow = Engine.dispatchMany(queuedFodderWindow, Engine.respondRulePrompt(queuedFodderWindow, data, { choice: "pass" }).events).scene;
 assert.equal(queuedFodderWindow.pendingPrompt?.kind, "fodder-move-select", "Queued Fodder movement resumes after the earlier decision");
+const batchFodderSource = structuredClone(fodderWindowSource); batchFodderSource.actors.push({ ...structuredClone(fodderActor), id: "fodder-a-2", x: 4, y: 4, crowdGroupId: "fodder-a" });
+let batchFodderWindow = Engine.dispatchMany(batchFodderSource, [{ id: "enemy-turn-batch-fodder", type: "turn.end", actorId: "enemy", payload: {} }]).scene;
+const batchMove = Engine.respondRulePrompt(structuredClone(batchFodderWindow), data, { choice: "custom", assignments: { "fodder-a-1": "2,2", "fodder-a-2": "4,3" } });
+assert.equal(batchMove.ok, true, batchMove.errors?.join(" ")); batchFodderWindow = Engine.dispatchMany(batchFodderWindow, batchMove.events).scene;
+assert.equal(JSON.stringify(batchFodderWindow.actors.filter(actor => actor.crowdGroupId === "fodder-a").map(actor => [actor.id, actor.x, actor.y])), JSON.stringify([["fodder-a-1",2,2],["fodder-a-2",4,3]]), "Narrator moves many Fodder Zones in one editable authoritative batch");
+const walledFodderWindow = structuredClone(promptedFodderWindow); walledFodderWindow.walls ||= []; walledFodderWindow.walls.push({ id: "fodder-wall", space: "main", a: "1,2", b: "2,2", hp: 5, maxHp: 5 });
+assert.equal(Engine.fodderMoveDestinations(walledFodderWindow, "fodder-a-1").some(destination => destination.x === 2 && destination.y === 2), false, "Fodder batch destinations do not teleport through a newly placed wall");
+assert.equal(Engine.respondRulePrompt(walledFodderWindow, data, { choice: "custom", assignments: { "fodder-a-1": "2,2" } }).ok, false, "A stale batch is revalidated after battlefield geometry changes");
 promptedFodderWindow = Engine.dispatchMany(promptedFodderWindow, Engine.respondRulePrompt(structuredClone(promptedFodderWindow), data, { choice: "target:fodder-a-1" }).events).scene;
 assert.equal(promptedFodderWindow.pendingPrompt?.kind, "fodder-move-cell", "The movement chain persists the selected Fodder zone across reconnect");
 assert.equal(Engine.preparePromptPlacement(promptedFodderWindow, { destination: { x: 6, y: 6 } }).ok, false, "Automatic Fodder movement rejects an over-range destination");
@@ -185,6 +193,11 @@ const seekerWindow = structuredClone(houndWindow), seeker = seekerWindow.actors.
 const seekerBoundary = Engine.fodderMoveStatus(seekerWindow, seeker.id).boundaryEventId, heroHpBeforeSeeker = seekerWindow.actors.find(actor => actor.id === "hero").hp, explodedSeeker = Engine.dispatchMany(seekerWindow, [{ type: "actor.move", actorId: seeker.id, payload: { space: "main", x: 2, y: 1, placement: true, fodderMove: true, boundaryEventId: seekerBoundary } }]).scene;
 assert.equal(explodedSeeker.actors.some(actor => actor.id === seeker.id), false, "A Seeker disappears atomically after moving adjacent to its chosen target");
 assert.equal(explodedSeeker.actors.find(actor => actor.id === "hero").hp, heroHpBeforeSeeker - 7, "The Seeker explosion damages every adjacent character with its canonical tier formula");
+const seekerBatchSource = structuredClone(houndFodderScene), seekerBatchActor = seekerBatchSource.actors.find(actor => actor.id === "fodder-a-1"); seekerBatchActor.crowdSubtype = "seeker"; seekerBatchActor.seekerTargetId = "hero"; seekerBatchActor.seekerOwnerId = "enemy"; seekerBatchActor.seekerDamage = 7; seekerBatchActor.x = 3; seekerBatchActor.y = 1;
+let seekerBatchWindow = Engine.dispatchMany(seekerBatchSource, [{ id: "hound-turn-seeker-batch", type: "turn.end", actorId: "enemy", payload: {} }]).scene; const seekerBatchHp = seekerBatchWindow.actors.find(actor => actor.id === "hero").hp;
+const seekerBatchMove = Engine.respondRulePrompt(seekerBatchWindow, data, { choice: "custom", assignments: { "fodder-a-1": "1,0" } }); assert.equal(seekerBatchMove.ok, true, seekerBatchMove.errors?.join(" ")); seekerBatchWindow = Engine.dispatchMany(seekerBatchWindow, seekerBatchMove.events).scene;
+assert.equal(seekerBatchWindow.actors.some(actor => actor.id === "fodder-a-1"), false, "A Seeker moved through the batch console still resolves its canonical explosion");
+assert.equal(seekerBatchWindow.actors.find(actor => actor.id === "hero").hp, seekerBatchHp - 7, "Batch movement cannot bypass Seeker damage provenance");
 const fodderBoundary = Engine.fodderMoveStatus(fodderWindow, "fodder-a-1").boundaryEventId;
 const fodderMoved = Engine.dispatch(fodderWindow, { type: "actor.move", actorId: "fodder-a-1", payload: { space: "main", x: 2, y: 2, placement: true, fodderMove: true, boundaryEventId: fodderBoundary } }).scene;
 assert.equal(Engine.fodderMoveStatus(fodderMoved, "fodder-a-1").remaining, 1, "Fodder movement allowance is journal-derived and decreases by distance");

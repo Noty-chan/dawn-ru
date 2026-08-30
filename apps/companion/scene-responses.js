@@ -274,7 +274,17 @@ function respondRulePrompt(scene, data, request = {}) {
     }
   }
   if (prompt.kind === "fodder-move-select") {
-    if (choice !== "finish") {
+    if (choice === "custom") {
+      const crowdIds = [...new Set(prompt.context?.remainingTargetIds || [])], assignments = request.assignments && typeof request.assignments === "object" ? request.assignments : {};
+      for (const crowdId of crowdIds) {
+        const crowd = actorById(scene, crowdId), status = fodderMoveStatus(scene, crowdId), raw = typeof assignments[crowdId] === "string" ? assignments[crowdId] : "", match = raw.match(/^(\d{1,2}),(\d{1,2})$/);
+        if (!crowd || crowd.knockedOut || crowd.kind !== "crowd" || crowd.team !== actor.team || !status.available || !match) return { ok: false, errors: [status.reason || "Состав или настройка массовки изменились — откройте пакет заново."], events: [] };
+        const destination = fodderMoveDestinations(scene, crowdId).find(item => item.x === Number(match[1]) && item.y === Number(match[2]));
+        if (!destination) return { ok: false, errors: [`Клетка для зоны «${crowd.name}» больше недоступна.`], events: [] };
+        if (destination.distance) events.push({ type: "actor.move", actorId: crowd.id, payload: { space: crowd.space, x: destination.x, y: destination.y, path: destination.path, placement: true, fodderMove: true, boundaryEventId: status.boundaryEventId, movement: "Массовка · пакет", participantIds: [actor.id, crowd.id] } });
+      }
+      events[0].payload.assignments = Object.fromEntries(crowdIds.map(id => [id, assignments[id]]));
+    } else if (choice !== "finish") {
       const crowdId = choice.startsWith("target:") ? choice.slice(7) : "", crowd = actorById(scene, crowdId), status = fodderMoveStatus(scene, crowdId), remaining = [...new Set(prompt.context?.remainingTargetIds || [])].filter(id => id !== crowdId && actorById(scene, id));
       if (!crowd || crowd.knockedOut || crowd.kind !== "crowd" || crowd.team !== actor.team || !(prompt.context?.remainingTargetIds || []).includes(crowdId) || !status.available) return { ok: false, errors: [status.reason || "Выбранная Зона массовки больше недоступна."], events: [] };
       events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${prompt.id}-${crowd.id}`, kind: "fodder-move-cell", sourceActorId: actor.id, targetId: crowd.id, controller: "narrator", title: `Движение массовки: ${crowd.name}`, text: `Выберите достижимую клетку в пределах ${status.remaining} или оставьте Зону на месте.`, options: ["cancel"], context: { remainingTargetIds: remaining, maxDistance: status.remaining, boundaryEventId: status.boundaryEventId }, participantIds: [actor.id, crowd.id, ...remaining] } });
@@ -912,7 +922,7 @@ function preparePromptPlacement(scene, request = {}) {
   if (["enemy-move-cell", "enemy-crowd-move-cell", "fodder-move-cell"].includes(prompt?.kind)) {
     const mover = movingActor, unchanged = mover.x === destination?.x && mover.y === destination?.y;
     const crowdPrompt = ["enemy-crowd-move-cell", "fodder-move-cell"].includes(prompt.kind), forced = Boolean(prompt.kind === "enemy-crowd-move-cell" || prompt.context?.moveTarget), maximum = crowdPrompt ? Number(prompt.context?.maxDistance || 1) : effectMovementStatus(scene, mover.id, { forced, distance: Number(prompt.context?.maxDistance || 1) }).distance;
-    enemyMovePath = unchanged ? [] : crowdPrompt && distance(mover, { ...destination, space: mover.space }) <= maximum ? [{ ...destination }] : movementPath(scene, mover.id, destination, { maxDistance: maximum, forced });
+    enemyMovePath = unchanged ? [] : prompt.kind === "fodder-move-cell" ? (fodderMoveDestinations(scene, mover.id).find(item => item.x === destination.x && item.y === destination.y)?.path || []).map(cell => { const [x,y]=cell.split(",").map(Number);return{x,y} }) : crowdPrompt && distance(mover, { ...destination, space: mover.space }) <= maximum ? [{ ...destination }] : movementPath(scene, mover.id, destination, { maxDistance: maximum, forced });
     if (!unchanged && !enemyMovePath.length) errors.push(`Выберите достижимую клетку в пределах ${maximum}.`);
   }
   let wavePath = [];
