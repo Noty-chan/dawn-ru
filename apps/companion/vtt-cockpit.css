@@ -1,12 +1,14 @@
 /* DAWN VTT cockpit ---------------------------------------------------------
    A field-first presentation layer. Rules and networking stay in app.js. */
 
+html:has(> body.scene-mode){overflow:clip}
+
 .scene-mode{
   --cockpit-glow:color-mix(in srgb,var(--red) 34%,transparent);
   --cockpit-gold:color-mix(in srgb,var(--gold) 18%,transparent);
   --cockpit-glass:color-mix(in srgb,var(--surface) 91%,transparent);
   height:100dvh;
-  overflow:hidden;
+  overflow:clip;
 }
 
 .scene-mode .topbar{
@@ -530,8 +532,9 @@ body[data-scene-control-mode="manual"] .scene-dock [data-scene-panel="director"]
 .gm-preset-section{display:grid;gap:8px}.gm-preset-section+.gm-preset-section{margin-top:14px;padding-top:14px;border-top:1px solid rgba(255,255,255,.12)}.gm-preset-section h4{margin:0;color:var(--gold,#e2b54a)}.gm-preset-badge{display:inline-block;margin:0 7px 3px 0;padding:2px 6px;border:1px solid rgba(226,181,74,.34);border-radius:999px;color:var(--gold,#e2b54a);font-size:.62rem;font-weight:900;text-transform:uppercase;letter-spacing:.04em}
 .scene-backup-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.scene-backup-actions .file-button{display:grid;place-items:center;text-align:center}@media(max-width:560px){.scene-backup-actions{grid-template-columns:1fr}}
 
-/* Desktop Scene shell: stage | embedded panel | permanent right-hand tool rail. */
-@media(min-width:1000px){
+/* Desktop Scene shell: the top controls span the table; below them the rail is
+   the right wall of the field and the active panel opens beyond that wall. */
+@media (min-width:721px) and (min-height:501px), (min-width:1000px){
   .scene-mode main,
   .scene-panel-open.scene-mode main,
   .focus-mode.scene-mode main{
@@ -542,45 +545,79 @@ body[data-scene-control-mode="manual"] .scene-dock [data-scene-panel="director"]
   .scene-mode .scene-workbench,
   .scene-mode .scene-workbench.player-view,
   .focus-mode.scene-mode .scene-workbench{
+    --scene-side-panel:0px;
     display:grid;
     grid-template-columns:minmax(0,1fr) 68px;
-    grid-template-rows:minmax(0,1fr);
-    gap:.55rem;
-    align-items:start;
+    grid-template-rows:auto auto auto auto minmax(0,1fr) auto;
+    gap:0 .55rem;
+    height:calc(100dvh - 75px);
+    min-height:560px;
+    padding:.65rem;
+    overflow:clip;
+    border:1px solid color-mix(in srgb,var(--red) 28%,var(--line));
+    border-radius:20px;
+    background:
+      radial-gradient(circle at 50% 60%,color-mix(in srgb,var(--cyan) 7%,transparent),transparent 40%),
+      linear-gradient(145deg,color-mix(in srgb,var(--surface) 96%,transparent),color-mix(in srgb,var(--bg) 94%,transparent));
+    box-shadow:0 24px 70px #0008,inset 0 1px 0 color-mix(in srgb,var(--ink) 6%,transparent);
   }
 
   .scene-panel-open.scene-mode .scene-workbench,
   .scene-panel-open.scene-mode .scene-workbench.player-view,
   .scene-panel-open.focus-mode.scene-mode .scene-workbench{
-    grid-template-columns:minmax(0,1fr) minmax(320px,404px) 68px;
+    --scene-side-panel:clamp(300px,34vw,404px);
+    grid-template-columns:minmax(0,1fr) 68px var(--scene-side-panel);
   }
 
   .scene-mode .scene-stage{
-    grid-column:1;
-    grid-row:1;
-    min-width:0;
+    display:contents;
+  }
+
+  .scene-mode .scene-stage-head,
+  .scene-mode .scene-turn-strip,
+  .scene-mode .scene-flow{
+    grid-column:1/-1;
+  }
+
+  .scene-mode .scene-stage-head{grid-row:1}
+  .scene-mode .scene-turn-strip{grid-row:2}
+  .scene-mode .scene-flow{grid-row:3}
+  .scene-mode .scene-toolbar{grid-column:1;grid-row:4}
+  .scene-mode .scene-board-wrap{grid-column:1;grid-row:5;min-width:0}
+  .scene-mode .scene-legend{grid-column:1;grid-row:6}
+
+  .scene-mode .scene-action-tray{
+    right:calc(68px + var(--scene-side-panel) + 1.2rem);
+    left:.65rem;
+    width:max-content;
+    margin-inline:auto;
+    transform:none;
   }
 
   .scene-mode .scene-dock,
   .scene-panel-open.scene-mode .scene-dock,
   .focus-mode.scene-mode .scene-dock{
-    position:sticky;
-    top:70px;
+    position:static;
     right:auto;
     bottom:auto;
     grid-column:2;
-    grid-row:1;
-    align-self:start;
+    grid-row:4/7;
+    align-self:stretch;
     width:68px;
-    max-height:calc(100dvh - 80px);
-    overflow-y:auto;
+    max-height:none;
+    grid-auto-rows:minmax(40px,1fr);
+    overflow:hidden;
     transform:none;
     transition:none;
   }
 
+  .scene-mode .scene-dock button{
+    min-height:0;
+  }
+
   .scene-panel-open.scene-mode .scene-dock,
   .scene-panel-open.focus-mode.scene-mode .scene-dock{
-    grid-column:3;
+    grid-column:2;
     right:auto;
   }
 
@@ -590,17 +627,16 @@ body[data-scene-control-mode="manual"] .scene-dock [data-scene-panel="director"]
 
   .scene-panel-open.scene-mode .scene-rail,
   .scene-panel-open.focus-mode.scene-mode .scene-rail{
-    position:sticky;
-    top:70px;
+    position:static;
     right:auto;
     bottom:auto;
     display:block;
-    grid-column:2;
-    grid-row:1;
-    align-self:start;
+    grid-column:3;
+    grid-row:4/7;
+    align-self:stretch;
     width:auto;
-    height:calc(100dvh - 80px);
-    max-height:calc(100dvh - 80px);
+    height:auto;
+    max-height:none;
     padding:0;
     overflow:hidden;
     pointer-events:auto;

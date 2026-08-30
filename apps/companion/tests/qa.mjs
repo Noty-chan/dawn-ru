@@ -409,10 +409,12 @@ const liveCharacterSql = fs.readFileSync(path.resolve(root, "../../supabase/migr
 const eventRepairSql = fs.readFileSync(path.resolve(root, "../../supabase/migrations/202607230002_fix_append_scene_events.sql"), "utf8");
 assert.match(html, /data-scene-tool="place"/, "The GM table exposes an explicit manual placement tool");
 assert.match(app, /movement:"Ручная перестановка",placement:true,trace:false/, "Manual GM placement is journaled without invoking a Turn movement action or drawing a route");
+assert.match(app, /focus\(\{preventScroll:true\}\)/, "Opening or closing an embedded Scene panel must not scroll the table to focused controls");
 assert.match(cockpitCss, /\.scene-mode \.scene-action-tray\{\s*position:absolute/, "The desktop action tray is anchored to the visible Scene stage");
-assert.match(cockpitCss, /grid-template-columns:minmax\(0,1fr\) minmax\(320px,404px\) 68px/, "An open desktop Scene panel occupies an embedded column between the stage and tool rail");
-assert.match(cockpitCss, /\.scene-panel-open\.scene-mode \.scene-dock,[\s\S]*?grid-column:3;[\s\S]*?right:auto/, "The right-hand Scene tool rail remains in the final grid column instead of sliding left");
-assert.match(cockpitCss, /\.scene-panel-open\.scene-mode \.scene-rail,[\s\S]*?display:block;[\s\S]*?grid-column:2/, "Desktop Scene panel content is rendered in the page grid rather than as an overlay");
+assert.match(cockpitCss, /grid-template-columns:minmax\(0,1fr\) 68px var\(--scene-side-panel\)/, "An open desktop Scene panel occupies an embedded column beyond the field's right-hand tool wall");
+assert.match(cockpitCss, /\.scene-panel-open\.scene-mode \.scene-dock,[\s\S]*?grid-column:2;[\s\S]*?right:auto/, "The Scene tool rail remains the second-column wall between the field and panel");
+assert.match(cockpitCss, /\.scene-panel-open\.scene-mode \.scene-rail,[\s\S]*?display:block;[\s\S]*?grid-column:3;[\s\S]*?grid-row:4\/7/, "Desktop Scene panel content is embedded beyond the rail and below persistent top controls");
+assert.match(cockpitCss, /\.scene-mode \.scene-workbench,[\s\S]*?overflow:clip/, "The embedded desktop shell cannot be scrolled sideways or vertically by focus management");
 assert.match(cockpitCss, /calc\(44px \* var\(--scene-zoom,1\)\)/, "Tactical tokens scale with the board instead of stopping at the old small cap");
 assert.match(cockpitCss, /\.scene-mode \.scene-cell-rules\{[^}]*clip-path:inset\(50%\)/, "Area names remain accessible without rendering letter badges over the board");
 assert.doesNotMatch(cockpitCss, /keyboard-target-ready::before\{content:"T"/, "Token hover no longer draws the legacy blue T badge");
