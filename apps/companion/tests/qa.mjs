@@ -424,6 +424,14 @@ assert.match(app, /function mountSceneMapTools\(\)[\s\S]+scene-area-controls[\s\
 assert.match(app, /\["area","wall","marker","topology"\]\.includes\(requested\)\)setScenePanel\("map"\)/, "Choosing a map editing tool opens its embedded controls");
 assert.match(app, /activeSceneView\(\)==="player"[\s\S]{0,180}classList\.contains\("gm-only"\)/, "Switching to player view cannot reserve space for a hidden Narrator panel");
 assert.match(cockpitCss, /\.scene-map-tools \.scene-area-controls\{[^}]*position:static[^}]*grid-template-columns:minmax\(0,1fr\)/, "Map tool controls are contained by the sidebar instead of floating over the board");
+assert.match(html, /id="scene-rail-left"[\s\S]+id="scene-dock"[\s\S]+id="scene-rail-right"/, "The desktop Scene shell provides independent left and right workspaces around the permanent dock");
+assert.match(app, /activeScenePanels=\{left:null,right:null\}/, "Scene panels track one independently open workspace on each side");
+assert.match(app, /function syncScenePanels[\s\S]+scene-panel-open-both/, "Opening a second-side panel preserves the first workspace and exposes an explicit dual-panel state");
+assert.match(app, /DEFAULT_SCENE_PANEL_SIDES=\{director:"left"[\s\S]+reference:"right"[\s\S]+roster:"right"/, "The default Narrator layout keeps the console beside combat reference panels");
+assert.match(html, /class="round"[^>]+aria-label="Раунд"[\s\S]+class="tension"[^>]+aria-label="Напряжение"/, "Round and Tension remain accessible while using compact symbolic status chips");
+assert.match(html, /scene-stage-head[\s\S]+id="scene-flow"[\s\S]+scene-chrome-menu/, "The current action and infrequent view controls share one compact top strip");
+assert.match(app, /scene-map-tool-picker[\s\S]+data-tool-cluster="create"/, "Narrator-only creation tools move out of the persistent play toolbar and into the Map panel");
+assert.match(cockpitCss, /\.scene-mode \.scene-tool-group button\{display:grid;place-items:center;width:32px[^}]*font-size:0\}/, "The persistent field tools render as a compact icon palette");
 assert.match(html, /data-scene-panel="table"[^>]*>Стол</, "Table management and interface settings have a dedicated permanent-rail entry");
 assert.match(app, /DEFAULT_SCENE_PANEL_SIDES/);
 assert.match(app, /panelLayout:scenePanelLayoutMode/);

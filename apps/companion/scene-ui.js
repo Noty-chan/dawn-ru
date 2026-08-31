@@ -298,7 +298,52 @@ function renderSceneMedia(){
   applySceneBackground();
 }
 function scenePanelSide(panel){if(activeSceneView()==="player")return"right";if(scenePanelLayoutMode==="right")return"right";if(scenePanelLayoutMode==="left")return"left";return scenePanelLayoutMode==="custom"?(scenePanelSides[panel]||"right"):(DEFAULT_SCENE_PANEL_SIDES[panel]||"right")}
-function setScenePanel(panel,toggle=false){if(panel&&activeSceneView()==="player"&&document.querySelector(`[data-scene-panel-content="${panel}"]`)?.classList.contains("gm-only"))panel=null;const previous=activeScenePanel,next=toggle&&previous===panel?null:panel;if(next&&!previous&&document.activeElement instanceof HTMLElement)scenePanelTrigger=document.activeElement;activeScenePanel=next;document.body.classList.toggle("scene-panel-open",Boolean(activeScenePanel));document.body.classList.toggle("scene-panel-left",Boolean(activeScenePanel&&scenePanelSide(activeScenePanel)==="left"));$$('[data-scene-panel]').forEach(button=>button.setAttribute("aria-pressed",String(button.dataset.scenePanel===activeScenePanel)));$$('[data-scene-panel-content]').forEach(content=>{const active=content.dataset.scenePanelContent===activeScenePanel;content.classList.toggle("rail-active",active);if(content instanceof HTMLDetailsElement)content.open=active;if(active&&activeScenePanel!==previous)content.scrollTop=0});if(activeScenePanel&&activeScenePanel!==previous)requestAnimationFrame(()=>document.querySelector(`[data-scene-panel-content="${activeScenePanel}"] [data-close-scene-panel]`)?.focus({preventScroll:true}));else if(!activeScenePanel&&previous&&scenePanelTrigger?.isConnected){const trigger=scenePanelTrigger;scenePanelTrigger=null;requestAnimationFrame(()=>trigger.focus({preventScroll:true}))}}
+function isScenePanelOpen(panel){return activeScenePanels.left===panel||activeScenePanels.right===panel}
+function syncScenePanels(previous=null){
+  const workbench=$("scene-workbench"),player=activeSceneView()==="player",leftRail=$("scene-rail-left"),rightRail=$("scene-rail-right");
+  if(player)for(const side of ["left","right"]){const panel=activeScenePanels[side],content=panel&&document.querySelector(`[data-scene-panel-content="${panel}"]`);if(content?.classList.contains("gm-only"))activeScenePanels[side]=null}
+  if(player&&activeScenePanels.left){activeScenePanels.right=activeScenePanels.right||activeScenePanels.left;activeScenePanels.left=null}
+  if(!player)for(const [side,panel] of Object.entries({...activeScenePanels})){
+    if(!panel)continue;const desired=scenePanelSide(panel);if(desired===side)continue;
+    activeScenePanels[side]=null;if(!activeScenePanels[desired]||panel===activeScenePanel)activeScenePanels[desired]=panel;
+  }
+  for(const content of $$('[data-scene-panel-content]')){
+    const id=content.dataset.scenePanelContent,side=scenePanelSide(id),rail=side==="left"?leftRail:rightRail;
+    if(rail&&content.parentElement!==rail)rail.append(content);
+    const active=activeScenePanels[side]===id;
+    content.classList.toggle("rail-active",active);
+    if(content instanceof HTMLDetailsElement)content.open=active;
+    if(active&&id!==previous)content.scrollTop=0;
+  }
+  const leftOpen=Boolean(activeScenePanels.left),rightOpen=Boolean(activeScenePanels.right);
+  if(activeScenePanel&&!isScenePanelOpen(activeScenePanel))activeScenePanel=activeScenePanels.right||activeScenePanels.left||null;
+  document.body.classList.toggle("scene-panel-open",leftOpen||rightOpen);
+  document.body.classList.toggle("scene-panel-left",leftOpen&&!rightOpen);
+  document.body.classList.toggle("scene-panel-open-left",leftOpen);
+  document.body.classList.toggle("scene-panel-open-right",rightOpen);
+  document.body.classList.toggle("scene-panel-open-both",leftOpen&&rightOpen);
+  document.body.classList.toggle("scene-density-comfortable",sceneInterfaceDensity==="comfortable");
+  if(workbench){workbench.style.setProperty("--scene-left-panel",leftOpen?`${SCENE_PANEL_WIDTHS[scenePanelWidths.left]}px`:"0px");workbench.style.setProperty("--scene-right-panel",rightOpen?`${SCENE_PANEL_WIDTHS[scenePanelWidths.right]}px`:"0px")}
+  $$('[data-scene-panel]').forEach(button=>button.setAttribute("aria-pressed",String(isScenePanelOpen(button.dataset.scenePanel))));
+}
+function setScenePanel(panel,toggle=false){
+  if(panel&&activeSceneView()==="player"&&document.querySelector(`[data-scene-panel-content="${panel}"]`)?.classList.contains("gm-only"))panel=null;
+  const previous=activeScenePanel;
+  if(!panel){
+    const side=previous?Object.entries(activeScenePanels).find(([,open])=>open===previous)?.[0]:(activeScenePanels.right?"right":activeScenePanels.left?"left":null);
+    if(side)activeScenePanels[side]=null;
+    activeScenePanel=activeScenePanels.right||activeScenePanels.left||null;
+  }else{
+    const side=scenePanelSide(panel),other=side==="left"?"right":"left",already=activeScenePanels[side]===panel;
+    if(activeScenePanels[other]===panel)activeScenePanels[other]=null;
+    if(toggle&&already){activeScenePanels[side]=null;activeScenePanel=activeScenePanels[other]||null}
+    else{if(!isScenePanelOpen(panel)&&document.activeElement instanceof HTMLElement)scenePanelTrigger=document.activeElement;activeScenePanels[side]=panel;activeScenePanel=panel}
+  }
+  syncScenePanels(previous);
+  if(activeScenePanel&&activeScenePanel!==previous)requestAnimationFrame(()=>document.querySelector(`[data-scene-panel-content="${activeScenePanel}"] [data-close-scene-panel]`)?.focus({preventScroll:true}));
+  else if(!activeScenePanel&&previous&&scenePanelTrigger?.isConnected){const trigger=scenePanelTrigger;scenePanelTrigger=null;requestAnimationFrame(()=>trigger.focus({preventScroll:true}))}
+}
+function closeAllScenePanels(){activeScenePanels.left=null;activeScenePanels.right=null;activeScenePanel=null;syncScenePanels()}
 function renderSceneRoster(){
   const roster=$("scene-enemy-roster"),enemies=Scene.actors.filter(actor=>actor.kind==="enemy"||Boolean(actor.profileId)).sort((left,right)=>Number(right.id===Scene.activeActorId)-Number(left.id===Scene.activeActorId)||Number(left.knockedOut)-Number(right.knockedOut)||Number(left.acted)-Number(right.acted));
   const kindNames={action:"Действие",attack:"Атака",trump:"Козырь"};
@@ -431,6 +476,10 @@ function sceneTrayHeroActor(){
 function mountSceneMapTools(){
   const root=$("scene-map-tools"),tableRoot=$("scene-table-tools");
   if(!root||!tableRoot)return;
+  let picker=root.querySelector(".scene-map-tool-picker");
+  if(!picker){picker=document.createElement("div");picker.className="scene-map-tool-picker";root.prepend(picker)}
+  for(const cluster of $$('[data-tool-cluster="create"],[data-tool-cluster="edit"]'))if(cluster.parentElement!==picker)picker.append(cluster);
+  const suggestions=$("scene-rule-suggestions");if(suggestions&&suggestions.parentElement!==root)root.append(suggestions);
   for(const id of ["scene-area-controls","scene-wall-controls","scene-marker-controls","scene-topology-controls"]){const controls=$(id);if(controls&&controls.parentElement!==root)root.append(controls)}
   const management=document.querySelector(".scene-add-body > .scene-management");
   if(management){
@@ -443,7 +492,8 @@ function mountSceneMapTools(){
 function renderSceneLayoutSettings(){
   const root=$("scene-layout-settings");if(!root)return;
   const panels=[['director','Пульт'],['inspector','Цель'],['sheet','Герой'],['utility','Бросок'],['reference','Правила'],['roster','Враги'],['media','Арт'],['map','Карта'],['add','Добавить'],['table','Стол'],['network','Сеть'],['log','Журнал']];
-  root.innerHTML=`<section><span class="kind">КОМПОНОВКА</span><h3>Рабочие панели</h3><p>Колонка кнопок всегда остаётся у правого края. Настройка определяет, с какой стороны поля открывается содержимое.</p><label>Расположение<select id="scene-panel-layout"><option value="split" ${scenePanelLayoutMode==="split"?'selected':''}>Раздельно: создание слева, бой справа</option><option value="right" ${scenePanelLayoutMode==="right"?'selected':''}>Все панели справа</option><option value="left" ${scenePanelLayoutMode==="left"?'selected':''}>Все панели слева</option><option value="custom" ${scenePanelLayoutMode==="custom"?'selected':''}>Настроить каждую</option></select></label></section><div class="scene-layout-custom" ${scenePanelLayoutMode==="custom"?'':'hidden'}>${panels.map(([id,label])=>`<label><span>${label}</span><select data-scene-panel-side="${id}"><option value="left" ${scenePanelSides[id]==="left"?'selected':''}>Слева</option><option value="right" ${scenePanelSides[id]!=="left"?'selected':''}>Справа</option></select></label>`).join('')}</div>`;
+  const widthOptions=side=>Object.entries({compact:"Узкая · 300",normal:"Обычная · 380",wide:"Широкая · 480"}).map(([value,label])=>`<option value="${value}" ${scenePanelWidths[side]===value?'selected':''}>${label}</option>`).join('');
+  root.innerHTML=`<section><span class="kind">КОМПОНОВКА</span><h3>Рабочие панели</h3><p>Слева и справа можно держать по одной панели одновременно. Колонка кнопок всегда остаётся у правого края.</p><label>Расположение<select id="scene-panel-layout"><option value="split" ${scenePanelLayoutMode==="split"?'selected':''}>Пульт слева, рабочая панель справа</option><option value="right" ${scenePanelLayoutMode==="right"?'selected':''}>Все панели справа</option><option value="left" ${scenePanelLayoutMode==="left"?'selected':''}>Все панели слева</option><option value="custom" ${scenePanelLayoutMode==="custom"?'selected':''}>Настроить каждую</option></select></label><div class="scene-layout-widths"><label>Левая панель<select data-scene-panel-width="left">${widthOptions('left')}</select></label><label>Правая панель<select data-scene-panel-width="right">${widthOptions('right')}</select></label></div><label>Плотность<select id="scene-interface-density"><option value="compact" ${sceneInterfaceDensity==='compact'?'selected':''}>Компактно</option><option value="comfortable" ${sceneInterfaceDensity==='comfortable'?'selected':''}>Просторно</option></select></label><label class="switch"><input id="scene-turn-strip-visible" type="checkbox" ${sceneTurnStripVisible?'checked':''}><span>Показывать ленту участников игроку</span></label></section><div class="scene-layout-custom" ${scenePanelLayoutMode==="custom"?'':'hidden'}>${panels.map(([id,label])=>`<label><span>${label}</span><select data-scene-panel-side="${id}"><option value="left" ${scenePanelSides[id]==="left"?'selected':''}>Слева</option><option value="right" ${scenePanelSides[id]!=="left"?'selected':''}>Справа</option></select></label>`).join('')}</div>`;
 }
 function renderSceneChrome(){
   const feed=$("scene-roll-feed"),now=Date.now(),rolls=(Scene.rollFeed||[]).filter(roll=>activeSceneView()==="gm"||roll.visibility!=="gm").slice(0,3).map(roll=>({...roll,feedAge:Math.max(0,now-(Date.parse(roll.at)||now))})).filter(roll=>roll.feedAge<9000);feed.hidden=!rolls.length;feed.innerHTML=[...rolls].reverse().map(roll=>{const sources=roll.dice?.sources?.map(source=>source.label).join(" · "),redirect=roll.redirected?Scene.actors.find(actor=>actor.id===roll.redirectTargetId)?.name||"другую цель":"";return`<article style="--feed-delay:-${Math.min(roll.feedAge,8999)}ms"><strong>${esc(roll.actor)}</strong><span>${esc(roll.formula||"Бросок")} · ${roll.successes} усп.${roll.crits?` · ${roll.crits} крит.`:""}${sources?` · ${esc(sources)}`:""}${redirect?` · перенаправлен: ${esc(redirect)}`:""}</span><div>${roll.rolls.slice(0,14).map(value=>`<i class="${value>=(roll.dice?.criticalAt||6)?"crit":value>=(roll.dice?.threshold||4)?"success":""}">${value}</i>`).join("")}${roll.rolls.length>14?`<small>+${roll.rolls.length-14}</small>`:""}</div></article>`}).join("");
@@ -500,7 +550,10 @@ function renderScene(){
   reconcileLocalSceneFlow();
   mountSceneMapTools();
   renderSceneLayoutSettings();
+  document.body.classList.toggle("scene-turn-strip-hidden",!sceneTurnStripVisible);
+  document.body.classList.toggle("scene-density-comfortable",sceneInterfaceDensity==="comfortable");
   const workbench=$("scene-workbench"),view=activeSceneView(),forcedPlayer=Sync?.state().sceneId&&Sync.state().role==="player",tool=activeSceneTool();workbench.classList.toggle("player-view",view==="player");document.body.classList.toggle("scene-player-view",view==="player");$("scene-view").value=view;$("scene-view").disabled=Boolean(forcedPlayer);$("scene-name").textContent=Scene.name;$("scene-round-value").textContent=Scene.round;$("scene-tension-value").textContent=Scene.tension;const active=Scene.actors.find(actor=>actor.id===Scene.activeActorId);$("scene-active-turn").textContent=active?`Ход: ${active.name}`:"Ход не начат";$("scene-space-tabs").hidden=Scene.spaces.length<2;$("scene-space-tabs").innerHTML=Scene.spaces.map(space=>`<button type="button" class="${space.id===Scene.activeSpace?"on":""}" data-scene-space="${space.id}">${esc(space.name)} <small>${Scene.actors.filter(actor=>actor.space===space.id).length}</small></button>`).join("");$$('[data-scene-tool]').forEach(button=>{button.classList.toggle("on",button.dataset.sceneTool===tool);button.setAttribute("aria-pressed",button.dataset.sceneTool===tool)});$("scene-area-controls").hidden=tool!=="area";$("scene-marker-controls").hidden=tool!=="marker";$("scene-topology-controls").hidden=tool!=="topology";const selected=Scene.actors.find(actor=>actor.id===Scene.selectedActor),targets=Scene.actors.filter(actor=>Scene.targetIds.includes(actor.id)),templates=availableSceneTemplates(),promptMarker=canControlScenePrompt()?Scene.markers.find(marker=>marker.id===Scene.pendingPrompt?.context?.markerId):null;$("scene-selection-summary").textContent=promptMarker?`Перемещение: ${promptMarker.label} — выберите подсвеченную клетку`:tool==="place"?selected?`Ручная перестановка: ${selected.name} — выберите клетку`:"Ручная перестановка: выберите участника":tool==="topology"?`Разрыв поля: выбрано ${sceneTopologyCells.size} клеток`:sceneMeasureLabel||targets.length?sceneMeasureLabel||`Цели (${targets.length}): ${targets.map(actor=>actor.name).join(", ")}`:selected?`Выбран: ${selected.name}`:"Нет выбранных целей";$("scene-topology-apply").disabled=!sceneTopologyCells.size;$("scene-rule-suggestions").innerHTML=templates.length?`<strong>С листа:</strong>${templates.map((template,index)=>`<button type="button" data-scene-template="${index}">${esc(template.name)}</button>`).join("")}`:"";$("scene-undo").disabled=!(Scene.undo.length||(Scene.turnUndo||[]).length);renderSceneSources();renderEnemySelect();renderSceneManager();renderSceneBoard();renderSceneInspector();renderSceneMedia();$("scene-log").innerHTML=Scene.log.map(row=>`<li><time>${esc(row.at)}</time>${esc(row.text||eventText(row))}</li>`).join("")||`<li class="autosave">Изменения Сцены появятся здесь.</li>`;
+  $("scene-clear-targets").disabled=!targets.length&&!Scene.targetCells?.length;
   $("scene-wall-controls").hidden=tool!=="wall";appendTerrainRepairControls();appendSceneWallInspector();appendMarkerClockControls();if($("scene-redo"))$("scene-redo").disabled=!Scene.redo?.length;
   document.body.dataset.sceneControlMode=sceneControlMode;$("scene-control-mode").value=sceneControlMode;const ready=Scene.actors.filter(actor=>!actor.knockedOut&&!actor.acted).length,down=Scene.actors.filter(actor=>actor.knockedOut).length;$("scene-encounter-status").textContent=!Scene.actors.length?"Подготовка":`${ready} готовы${down?` · ${down} вне боя`:""}`;
   renderSceneTurnStrip();renderSceneFlow();renderSceneRoster();renderSceneDirector();renderSceneUtility();renderSceneReference();renderGmLibraries();renderCompoundBuilder();renderSceneChrome();refreshSceneControlStates();applySceneZoom();setScenePanel(activeScenePanel);setSheetTab(activeSheetTab);if(sceneNeedsInitialFit)requestAnimationFrame(()=>fitSceneZoom(true));
