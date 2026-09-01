@@ -68,6 +68,8 @@ assert.match(appSource, /data-crowd-add-group[\s\S]+data-crowd-remove-defeated[\
 assert.match(fs.readFileSync(path.join(root, "scene-triggers.js"), "utf8"), /fodder-move-select[\s\S]+fodder-round-batch/, "Canonical Fodder movement and Round-end damage are surfaced as typed prompts");
 assert.match(fs.readFileSync(path.join(root, "scene-effects.js"), "utf8"), /fodderMoveBatchEditorHtml[\s\S]+data-fodder-move-submit/, "Narrator has an editable batch movement console for Fodder");
 assert.match(appSource, /normalizeGmLibrary[\s\S]+crowdType:\["mob","swarm","guards","undead","hounds","civilians","custom"\]/, "Saved encounter presets preserve the visual type of ordinary Fodder groups");
+assert.match(companionMarkup, /id="scene-add-crowd-auto"[\s\S]+id="scene-add-crowd-brush"/, "Narrator enemy-add panel exposes automatic and manual Fodder creation");
+assert.match(appSource, /quickCrowdSettings[\s\S]+scene-add-crowd-auto[\s\S]+scene-add-crowd-brush/, "Visible Fodder creation controls are wired to typed placement and the field brush");
 assert.match(appSource, /fodder-batch-editor[\s\S]+data-fodder-batch-zone[\s\S]+data-fodder-batch-submit/, "Narrator resolves all eligible Fodder zones through one editable damage interface");
 assert.match(appSource, /compoundIds=new Map\(\)[\s\S]+compoundCells=new Map\(\)/, "Encounter deployment remaps Compound groups and keeps their parts in one cell");
 assert.match(appSource, /parts\.length<2[\s\S]+part\.compoundId=null/, "Removing Compound parts cannot leave an unusable one-part Compound identity");
