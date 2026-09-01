@@ -3027,6 +3027,7 @@ assert.equal(healerContractScene.pendingPrompt?.kind, "enemy-healer-guardian", "
 healerContractScene = Engine.dispatchMany(healerContractScene, Engine.respondRulePrompt(healerContractScene, data, { choice: "guard:healer-guard" }).events).scene;
 assert.equal(healerContractScene.actors[1].ruleState.healerGuardianId, "healer-guard", "Selected Guardian persists in Healer rule state");
 assert.equal(Engine.effectTargetingStatus(healerContractScene, "hero", "enemy").available, false, "An adjacent targetable Guardian protects the Healer from targeting");
+assert.equal(Engine.effectTargetingStatus(healerContractScene, "healer-guard", "enemy").available, true, "Guardian protection never blocks an ally from targeting the Healer with support");
 const healContract = profileRule("enemy.common.healer", "Heal"), saviorContract = profileRule("enemy.common.healer", "Savior"), exsanguinateContract = profileRule("enemy.common.healer", "Exsanguinate");
 healerContractScene.actors[1].usedActions = []; healerContractScene.actors[1].ap = 3;
 healerContractScene.actors[1].hp = 4;
@@ -3039,6 +3040,14 @@ healerContractScene = Engine.dispatchMany(healerContractScene, Engine.prepareEne
 assert.equal(healerContractScene.actors.find(actor => actor.id === "healer-guard").hp, 12, "Tier 2 Heal restores 4 Health, doubled to 8 for the Guardian");
 const distantHealScene = structuredClone(healerContractScene); distantHealScene.actors.find(actor => actor.id === "healer-guard").x = 6; distantHealScene.actors.find(actor => actor.id === "healer-guard").y = 6; distantHealScene.actors[1].usedActions = []; distantHealScene.actors[1].ap = 3;
 assert.equal(Engine.prepareEnemyRule(distantHealScene, data, { actorId: "enemy", ruleId: healContract.id, targetIds: ["healer-guard"] }).ok, false, "Heal rejects an ally outside its three-cell range");
+const koGuardianScene = structuredClone(healerContractScene); koGuardianScene.actors.find(actor => actor.id === "healer-guard").knockedOut = true;
+assert.equal(Engine.effectTargetingStatus(koGuardianScene, "hero", "enemy").available, true, "A knocked-out Guardian no longer protects the Healer");
+const movedGuardianScene = structuredClone(healerContractScene); movedGuardianScene.actors.find(actor => actor.id === "healer-guard").x = 5;
+assert.equal(Engine.effectTargetingStatus(movedGuardianScene, "hero", "enemy").available, true, "A non-adjacent Guardian no longer protects the Healer");
+const staleGuardianPrompt = structuredClone(healerContractScene); staleGuardianPrompt.activeActorId = null; staleGuardianPrompt.pendingPrompt = null;
+const staleTurn = Engine.dispatchMany(staleGuardianPrompt, [{ type: "turn.start", actorId: "enemy", payload: { narratorOverride: true } }], { narratorOverride: true }).scene;
+staleTurn.actors.find(actor => actor.id === "healer-guard").knockedOut = true;
+assert.equal(Engine.respondRulePrompt(staleTurn, data, { choice: "guard:healer-guard" }).ok, false, "Guardian selection revalidates a target knocked out after the prompt was created");
 healerContractScene.tension = 1; healerContractScene.actors[1].usedActions = []; healerContractScene.actors[1].usedTrump = false; healerContractScene.actors[1].ap = 3;
 healerContractScene = Engine.dispatchMany(healerContractScene, Engine.prepareEnemyRule(healerContractScene, data, { actorId: "enemy", ruleId: saviorContract.id }).events).scene;
 const savedGuardian = healerContractScene.actors.find(actor => actor.id === "healer-guard");
