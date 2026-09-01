@@ -3249,7 +3249,18 @@ witchExpel = resolveEnemyFamily(witchExpel, { expelFromArea: true, area: [3, 3] 
 assert.notDeepEqual({ x: witchExpel.actors[0].x, y: witchExpel.actors[0].y }, beforeExpel, "Expelling Force moves a hit target to the nearest reachable cell outside its area");
 
 for (const ruleId of ["enemy.common.assassin.trump.disappear", "enemy.common.pugilist.trump.martial-perfection", "enemy.common.ranger.trump.headshot", "enemy.common.cocoon.trump.quick-growth", "enemy.common.guardian.trump.imposing-presence", "enemy.common.berserker.trump.last-stand", "enemy.common.executioner.trump.bifurcate", "enemy.common.revenant.trump.hollowed-eyes"]) assert.notEqual(Engine.enemyRuleAutomation(ruleId), "assisted", `${ruleId} must not leave a fully automated profile's Trump manual`);
-assert.equal(Engine.enemyRuleAutomation("enemy.common.cannoneer.trump.fire"), "assisted", "Cannoneer Fire stays assisted: the adapter multiplied one canonical roll's damage by three");
+assert.equal(Engine.enemyRuleAutomation("enemy.common.cannoneer.trump.fire"), "attack", "Cannoneer Fire uses the common Reaction pipeline with three distinct damage instances");
+let cannoneerFireScene = profileScene("enemy.common.cannoneer"); cannoneerFireScene.tension = 2;
+cannoneerFireScene = Engine.dispatchMany(cannoneerFireScene, [{ type: "rule-clock.configure", actorId: "enemy", payload: { clockId: "enemy.common.cannoneer.preparation", label: "Подготовка", size: 4, minimumSize: 4, initial: 0, resetScope: "scene", value: 4 } }]).scene;
+const cannoneerFire = Engine.prepareEnemyRule(cannoneerFireScene, data, { actorId: "enemy", ruleId: "enemy.common.cannoneer.trump.fire", targetIds: ["hero"], roll: { formula: "6D6 · Огонь", rolls: [6, 5, 4, 2, 1, 1], successes: 3, crits: 1 } });
+assert.equal(cannoneerFire.ok, true);
+assert.equal(cannoneerFire.events.find(event => event.type === "attack.pending")?.payload.damage, 5, "Fire keeps one canonical Hits plus Tension damage instance instead of multiplying before Armor");
+assert.equal(cannoneerFire.events.find(event => event.type === "attack.pending")?.payload.damageRepeats, 3, "Fire persists its three damage instances through save/load");
+cannoneerFireScene = Engine.dispatchMany(cannoneerFireScene, cannoneerFire.events).scene;
+assert.equal(Engine.clockStatus(cannoneerFireScene, "enemy", "enemy.common.cannoneer.preparation").value, 0, "Fire atomically clears Preparation when committed");
+cannoneerFireScene = Engine.dispatchMany(cannoneerFireScene, Engine.respondReaction(cannoneerFireScene, data, { actorId: "hero", choice: "pass" }).events).scene;
+const fireResolution = Engine.resolvePendingAction(structuredClone(cannoneerFireScene), data);
+assert.deepEqual(Array.from(fireResolution.events.filter(event => event.type === "damage.apply"), event => event.payload.amount), [5, 5, 5], "Fire resolves Armor and Evasion against each of three separate damage applications");
 let executionerScene = profileScene("enemy.common.executioner"); executionerScene.tension = 2;
 let executionerTrump = Engine.prepareEnemyRule(executionerScene, data, { actorId: "enemy", ruleId: "enemy.common.executioner.trump.bifurcate", targetIds: ["hero"] });
 assert.equal(executionerTrump.ok, true, "Executioner can arm Bifurcate against one opponent");

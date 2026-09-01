@@ -57,6 +57,7 @@ const ENEMY_AUTO_ATTACK_RULES = new Map([
   ["enemy.common.privateer.attack.spray-and-pray", 2],
   ["enemy.common.rifter.attack.emerge", 1],
   ["enemy.common.swarm.attack.tear", 1],
+  ["enemy.common.cannoneer.trump.fire", 1],
   ["enemy.named.leon-academy-spatial-mage.attack.emerge", 1],
   ["enemy.named.leon-s-vayu-spirit.attack.air-shove", 0],
   ["enemy.named.leon-s-agni-spirit.attack.fire-spark", 0],
@@ -978,7 +979,7 @@ function prepareEnemyRule(scene, data, request = {}) {
     hostileTargets.forEach(target => events.push({ type: "reaction.offer", actorId: target.id, payload: { sourceActorId: actor.id, actionId: rule.id } }));
     const tensionMultiplier = Number(ENEMY_AUTO_ATTACK_RULES.get(rule.id) || 0);
     const effectAttack = effectAttackStatus(scene, actor.id, hostileTargets.map(target => target.id));
-    const baseDamage = ((hasRoll ? Number(request.roll.successes || 0) + Number(scene.tension || 0) * tensionMultiplier : Number.isFinite(canonicalDirectDamage) ? canonicalDirectDamage : Number(request.damage)) + Number(effectAttack.damageModifier || 0)) * Math.max(1, Number(family.damageRepeats || 1));
+    const baseDamage = (hasRoll ? Number(request.roll.successes || 0) + Number(scene.tension || 0) * tensionMultiplier : Number.isFinite(canonicalDirectDamage) ? canonicalDirectDamage : Number(request.damage)) + Number(effectAttack.damageModifier || 0);
     const damageByTarget = Object.fromEntries(hostileTargets.map(target => {
       let amount = baseDamage + Number(effectAttack.damageByTarget?.[target.id] || 0);
       if (family.bonusTensionAtRange && distance(attackOrigin, target) >= Number(family.bonusTensionAtRange)) amount += Number(scene.tension || 0);
@@ -999,7 +1000,7 @@ function prepareEnemyRule(scene, data, request = {}) {
       allyEffectIds.forEach(effect => events.push({ type: "effect.apply", actorId: actor.id, payload: { targetId: target.id, effect, sourceActionId: rule.id, participantIds: [actor.id, target.id] } }));
     }
     const attackEffects = family.oniModes ? ((actor.effects || []).includes("positive.усилен") ? [effectIdByName(data, "Подброшен")] : []) : targetEffects;
-    if (hostileTargets.length) events.push({ type: "attack.pending", actorId: actor.id, payload: { actionId: rule.id, enemyRuleId: rule.id, name: rule.name, targetIds: hostileTargets.map(target => target.id), roll: hasRoll ? clone(request.roll) : null, damage: baseDamage, damageByTarget, effects: attackEffects, reward: rule.reward || "", attackModifierIds: attackModifiers.selectedIds, attackModifierAdvantage: attackModifiers.advantage, postDisplacements, postResourceLoss, postSelfHealMissingFraction: Number(family.postSelfHealMissingFraction || 0), enemyAttackFamily: clone(family), attackAnchor: anchor ? clone(anchor) : null } });
+    if (hostileTargets.length) events.push({ type: "attack.pending", actorId: actor.id, payload: { actionId: rule.id, enemyRuleId: rule.id, name: rule.name, targetIds: hostileTargets.map(target => target.id), roll: hasRoll ? clone(request.roll) : null, damage: baseDamage, damageByTarget, damageRepeats: Math.max(1, Number(family.damageRepeats || 1)), effects: attackEffects, reward: rule.reward || "", attackModifierIds: attackModifiers.selectedIds, attackModifierAdvantage: attackModifiers.advantage, postDisplacements, postResourceLoss, postSelfHealMissingFraction: Number(family.postSelfHealMissingFraction || 0), enemyAttackFamily: clone(family), attackAnchor: anchor ? clone(anchor) : null } });
     else events.push({ type: "enemy.action.resolve", actorId: actor.id, payload: { ...payload, targetIds } });
   } else {
     if (rule.kind !== "attack" && ["effect", "full"].includes(payload.automation)) targets.forEach(target => targetEffects.forEach(effect => events.push({ type: "effect.apply", actorId: actor.id, payload: { targetId: target.id, effect, sourceActionId: rule.id } })));

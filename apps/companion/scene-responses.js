@@ -1202,7 +1202,7 @@ function resolvePendingAction(scene, data) {
     const outcome = pendingTargetOutcome(scene, pending, targetId), target = outcome.target, resolvedTargetId = target?.id || targetId, traitReaction = outcome.reaction?.enemyTrait;
     if (!outcome.cancelled) {
       const { rawDamage, temporaryArmor, temporaryEvasion, expectedDamage } = outcome;
-      events.push({ type: "damage.apply", actorId: pending.actorId, payload: { targetId: resolvedTargetId, amount: rawDamage, temporaryArmor, temporaryEvasion, dodgeEvasion: actionIdIs(outcome.response,"dodge"), attackMiss: expectedDamage === 0, attackPendingId: pending.id, sourceActionId: pending.actionId, participantIds: [pending.actorId, resolvedTargetId] } });
+      for (let repeat = 0; repeat < Math.max(1, Number(pending.damageRepeats || 1)); repeat += 1) events.push({ type: "damage.apply", actorId: pending.actorId, payload: { targetId: resolvedTargetId, amount: rawDamage, temporaryArmor, temporaryEvasion, dodgeEvasion: actionIdIs(outcome.response,"dodge"), attackMiss: expectedDamage === 0, attackPendingId: pending.id, damageRepeat: repeat + 1, damageRepeatCount: Math.max(1, Number(pending.damageRepeats || 1)), sourceActionId: pending.actionId, participantIds: [pending.actorId, resolvedTargetId] } });
       const attackSucceeded = Number(pending.roll?.successes || 0) > 0 || !pending.roll && rawDamage > 0;
       const enemyFamily = pending.enemyAttackFamily || {};
       if (expectedDamage > 0) successfulEnemyTargets.push(resolvedTargetId);
