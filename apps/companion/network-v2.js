@@ -162,6 +162,8 @@
     if(modifiers)return{kind:"spell-modifiers",label:String(label).slice(0,160),actorId:modifiers.actorId,value:safeIds(modifiers.payload?.value)};
     const wound=raw.length===1&&raw[0].type==="damage.apply"&&raw[0].payload?.targetId?raw[0]:null;
     if(wound)return{kind:"take-wound",label:String(label).slice(0,160),actorId:wound.payload.targetId,external:!wound.actorId};
+    const turnStart=raw.length===1&&raw[0].type==="turn.start"?raw[0]:null;
+    if(turnStart)return{kind:"turn-start",label:String(label).slice(0,160),actorId:turnStart.actorId};
     const turnEnd=raw.length===1&&raw[0].type==="turn.end"?raw[0]:null;
     if(turnEnd)return{kind:"turn-end",label:String(label).slice(0,160),actorId:turnEnd.actorId};
     const planStart=raw.find(event=>event.type==="action.plan");
@@ -287,6 +289,13 @@
     }
     if(intent.kind==="take-wound"){
       return[{type:"damage.apply",actorId:intent.external?null:actor.id,payload:{targetId:actor.id,amount:Math.max(1,Number(actor.hp)||0),ignoreArmor:true}}];
+    }
+    if(intent.kind==="turn-start"){
+      if(scene.turnApprovalMode==="narrator")throw new Error("Ходы героев сейчас подтверждает Нарратор");
+      if(actor.team!=="hero"||!actor.heroId)throw new Error("Игрок может начать только Ход своего героя");
+      if(scene.activeActorId)throw new Error("Сначала должен завершиться текущий Ход");
+      const status=Engine.turnStartStatus(scene,actor.id);if(!status.available)throw new Error(status.reason||"Этот Ход сейчас недоступен");
+      return[{type:"turn.start",actorId:actor.id,payload:{}}];
     }
     if(intent.kind==="turn-end"){
       if(scene.activeActorId!==actor.id)throw new Error("Завершить можно только текущий Ход");

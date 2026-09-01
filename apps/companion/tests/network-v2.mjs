@@ -176,6 +176,15 @@ assert.equal(endedWispTurn.activeActorId,null,"the authoritative table ends the 
 assert.equal(endedWispTurn.pendingPrompt?.kind,"wisp-move-select","Will-O-Wisp receives its end-of-Turn flame movement choice online");
 assert.throws(()=>Network.materializeIntent({...wispTurn,activeActorId:"enemy"},data,turnEndIntent,"player-1",{sceneEngine:Engine}),/текущий Ход/i,"a player cannot end another participant's Turn");
 
+const selfStartScene=structuredClone(baseScene);
+selfStartScene.activeActorId=null;selfStartScene.turnApprovalMode="self";selfStartScene.actors.forEach(actor=>actor.acted=false);
+const turnStartIntent=Network.intentFromEvents(selfStartScene,[{type:"turn.start",actorId:"hero",payload:{}}],"Герой: начат Ход");
+assert.equal(turnStartIntent.kind,"turn-start","a player's self-start becomes a dedicated safe intent");
+const canonicalTurnStart=Network.materializeIntent(selfStartScene,data,turnStartIntent,"player-1",{sceneEngine:Engine});
+assert.equal(canonicalTurnStart[0].type,"turn.start","the authority rebuilds the owned hero's Turn start");
+assert.throws(()=>Network.materializeIntent({...selfStartScene,turnApprovalMode:"narrator"},data,turnStartIntent,"player-1",{sceneEngine:Engine}),/подтверждает Нарратор/i,"Narrator approval blocks remote player self-starts at the authority boundary");
+assert.throws(()=>Network.materializeIntent(selfStartScene,data,{...turnStartIntent,actorId:"enemy"},"player-1",{sceneEngine:Engine}),/не владеет/i,"a player cannot start a monster Turn");
+
 let reactionRequest=null;
 const reactionEvents=Network.materializeIntent(baseScene,data,{kind:"reaction",actorId:"hero",choice:"dodge",destination:{x:0,y:1}},"player-1",{sceneEngine:{respondReaction:(_scene,_data,request)=>{reactionRequest=request;return{ok:true,events:[{type:"reaction.respond",actorId:request.actorId,payload:{choice:request.choice}}]}}}});
 assert.equal(reactionRequest.choice,"dodge");
