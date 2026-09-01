@@ -2946,7 +2946,7 @@ assert.equal(ritualDrawings.requiresTarget, false, "Ritual Drawings selects empt
 assert.equal(ritualDrawings.maxTargets, 0);
 const declaredAttacks = enemyProfiles.flatMap(profile => (profile.rules || []).filter(rule => rule.kind === "attack").map(rule => ({ profile, rule })));
 assert.ok(declaredAttacks.length >= 40, "The enemy catalogue exposes the complete common Attack set");
-assert.deepEqual(declaredAttacks.filter(({ rule }) => Engine.enemyRuleAutomation(rule.id) === "assisted").map(({ rule }) => rule.id), ["enemy.common.coordinator.attack.fanaticize"], "Only an attack with an absent mandatory ally follow-up stays assisted");
+assert.deepEqual(declaredAttacks.filter(({ rule }) => Engine.enemyRuleAutomation(rule.id) === "assisted").map(({ rule }) => rule.id), [], "Every common enemy Attack has an executable resolution path");
 for (const profileId of ["enemy.common.assassin", "enemy.common.pugilist", "enemy.common.guardian", "enemy.common.berserker", "enemy.common.ranger"]) {
   const profile = enemyProfiles.find(item => item.id === profileId);
   assert.ok(profile, `${profileId} exists in the canonical enemy catalogue`);
@@ -2997,7 +2997,7 @@ duelistAttackFlow = Engine.dispatchMany(duelistAttackFlow, Engine.resolvePending
 assert.equal(duelistAttackFlow.pendingPrompt?.kind, "enemy-move-cell", "Resolved Fleche offers the required one-cell Duelist movement");
 assert.equal(Engine.enemyRuleAutomation(profileRule("enemy.common.duelist", "Disassemble").id), "assisted", "Disassemble stays assisted until bound weak-point placement and Trump reset share a UI contract");
 // Coordinator: allies in range receive the passive Empowered state for this
-// Turn, while Neutralize Them and Fanaticize use the audited effect/attack paths.
+// Turn, and Fanaticize grants a revalidated free move or Primary Attack.
 let coordinatorContractScene = profileScene("enemy.common.coordinator");
 coordinatorContractScene.actors.push({ ...structuredClone(coordinatorContractScene.actors[1]), id: "coordinator-ally", name: "Союзник Координатора", profileId: "enemy.common.guardian", team: "enemy", x: 3, y: 1, effects: [] });
 coordinatorContractScene.activeActorId = null;
@@ -3009,14 +3009,44 @@ coordinatorContractScene.actors[1].usedActions = []; coordinatorContractScene.ac
 coordinatorContractScene = Engine.dispatchMany(coordinatorContractScene, Engine.prepareEnemyRule(coordinatorContractScene, data, { actorId: "enemy", ruleId: neutralizeContract.id, targetIds: ["hero"] }).events).scene;
 assert.ok(coordinatorContractScene.actors[0].effects.includes("negative.помечен"), "Neutralize Them marks the selected character");
 coordinatorContractScene.actors[1].usedActions = []; coordinatorContractScene.actors[1].ap = 3;
-assert.equal(Engine.enemyRuleAutomation(fanaticizeContract.id), "assisted", "Fanaticize stays assisted until the required ally follow-up is executable");
+assert.equal(Engine.enemyRuleAutomation(fanaticizeContract.id), "attack", "Fanaticize and its mandatory ally follow-up use the attack pipeline");
 assert.equal(Engine.enemyRuleAutomation(profileRule("enemy.common.coordinator", "Coordinated Charge").id), "assisted", "Coordinated Charge remains assisted until its ally follow-up choices have a dedicated prompt contract");
-coordinatorContractScene = Engine.dispatchMany(coordinatorContractScene, [{ type: "actor.move", actorId: "coordinator-ally", payload: { space: "main", x: 6, y: 2, movement: "QA" } }]).scene;
-assert.ok(!coordinatorContractScene.actors.find(actor => actor.id === "coordinator-ally").effects.includes("positive.усилен"), "Coordinator stops empowering an ally that leaves its four-cell radius during the Turn");
-coordinatorContractScene = Engine.dispatchMany(coordinatorContractScene, [{ type: "actor.move", actorId: "coordinator-ally", payload: { space: "main", x: 3, y: 1, movement: "QA" } }]).scene;
-assert.ok(coordinatorContractScene.actors.find(actor => actor.id === "coordinator-ally").effects.includes("positive.усилен"), "Coordinator empowers an ally that enters its four-cell radius during the Turn");
-coordinatorContractScene = Engine.dispatchMany(coordinatorContractScene, [{ type: "turn.end", actorId: "enemy", payload: {} }]).scene;
-assert.ok(!coordinatorContractScene.actors.find(actor => actor.id === "coordinator-ally").effects.includes("positive.усилен"), "Coordinator removes only its passive Empowered source at Turn end");
+let coordinatorPassiveLifecycleScene = structuredClone(coordinatorContractScene);
+coordinatorContractScene.actors.push({ ...structuredClone(coordinatorContractScene.actors[0]), id: "coordinator-fresh-target", name: "Ещё не атакованная цель", x: 3, y: 2, hp: 20, maxHp: 20, effects: [] });
+const fanaticalPrepared = Engine.prepareEnemyRule(coordinatorContractScene, data, { actorId: "enemy", ruleId: fanaticizeContract.id, targetIds: ["hero"], roll: { formula: "6D6 · Фанатизировать", rolls: [6, 5, 4, 2, 1, 1], successes: 3, crits: 1 } });
+assert.equal(fanaticalPrepared.ok, true);
+coordinatorContractScene = Engine.dispatchMany(coordinatorContractScene, fanaticalPrepared.events).scene;
+coordinatorContractScene = Engine.dispatchMany(coordinatorContractScene, Engine.respondReaction(coordinatorContractScene, data, { actorId: "hero", choice: "pass" }).events).scene;
+coordinatorContractScene = Engine.dispatchMany(coordinatorContractScene, Engine.resolvePendingAction(coordinatorContractScene, data).events).scene;
+assert.equal(coordinatorContractScene.pendingPrompt?.kind, "enemy-coordinator-followup-ally", "A successful Fanaticize waits for the Narrator to choose the acting ally");
+const coordinatorFollowupPromptScene = structuredClone(coordinatorContractScene);
+coordinatorContractScene = Engine.dispatchMany(coordinatorContractScene, Engine.respondRulePrompt(coordinatorContractScene, data, { choice: "ally:coordinator-ally" }).events).scene;
+assert.equal(coordinatorContractScene.pendingPrompt?.kind, "enemy-coordinator-followup-action", "The chosen ally gets the canonical move-or-Primary-Attack choice");
+assert.ok(!coordinatorContractScene.pendingPrompt.options.includes("attack:hero"), "A character already attacked during this Turn cannot be selected again");
+assert.ok(coordinatorContractScene.pendingPrompt.options.includes("attack:coordinator-fresh-target"), "A fresh in-range character remains eligible for the ally Primary Attack");
+const forgedFollowup = Engine.respondRulePrompt(coordinatorContractScene, data, { choice: "attack:coordinator-fresh-target", roll: { rolls: [6], successes: 99, crits: 99 } });
+assert.equal(forgedFollowup.ok, false, "The authority rejects a forged follow-up roll and re-derives its exact dice count and successes");
+const allyApBeforeFollowup = coordinatorContractScene.actors.find(actor => actor.id === "coordinator-ally").ap;
+const validFollowup = Engine.respondRulePrompt(coordinatorContractScene, data, { choice: "attack:coordinator-fresh-target", roll: { formula: "5D6 · Толчок · реакция", rolls: [6, 5, 3, 2, 1], successes: 2, crits: 1 } });
+assert.equal(validFollowup.ok, true);
+coordinatorContractScene = Engine.dispatchMany(coordinatorContractScene, validFollowup.events).scene;
+assert.equal(coordinatorContractScene.pendingAction?.actorId, "coordinator-ally", "The selected ally owns the free follow-up Attack and its Reaction window");
+assert.equal(coordinatorContractScene.actors.find(actor => actor.id === "coordinator-ally").ap, allyApBeforeFollowup, "Fanaticize never spends the ally's AP");
+assert.equal(Engine.respondRulePrompt(coordinatorContractScene, data, { choice: "attack:coordinator-fresh-target", roll: { rolls: [6, 5, 3, 2, 1], successes: 2, crits: 1 } }).ok, false, "A duplicate follow-up response is idempotently rejected");
+let coordinatorMoveFlow = Engine.dispatchMany(coordinatorFollowupPromptScene, Engine.respondRulePrompt(coordinatorFollowupPromptScene, data, { choice: "ally:coordinator-ally" }).events).scene;
+coordinatorMoveFlow = Engine.dispatchMany(coordinatorMoveFlow, Engine.respondRulePrompt(coordinatorMoveFlow, data, { choice: "move" }).events).scene;
+assert.equal(coordinatorMoveFlow.pendingPrompt?.kind, "enemy-move-cell", "The movement branch opens the shared board-cell picker");
+assert.equal(Engine.preparePromptPlacement(coordinatorMoveFlow, { destination: { x: 6, y: 6 } }).ok, false, "The ally cannot exceed its current Speed or bypass path rules");
+const coordinatorMoveDestination = [{ x: 4, y: 1 }, { x: 3, y: 2 }, { x: 3, y: 0 }].map(destination => ({ destination, prepared: Engine.preparePromptPlacement(coordinatorMoveFlow, { destination }) })).find(candidate => candidate.prepared.ok);
+assert.ok(coordinatorMoveDestination, "At least one legal voluntary movement destination is exposed");
+coordinatorMoveFlow = Engine.dispatchMany(coordinatorMoveFlow, coordinatorMoveDestination.prepared.events).scene;
+assert.equal(coordinatorMoveFlow.pendingPrompt, null, "The persisted movement choice closes after one authoritative placement");
+coordinatorPassiveLifecycleScene = Engine.dispatchMany(coordinatorPassiveLifecycleScene, [{ type: "actor.move", actorId: "coordinator-ally", payload: { space: "main", x: 6, y: 2, movement: "QA" } }]).scene;
+assert.ok(!coordinatorPassiveLifecycleScene.actors.find(actor => actor.id === "coordinator-ally").effects.includes("positive.усилен"), "Coordinator stops empowering an ally that leaves its four-cell radius during the Turn");
+coordinatorPassiveLifecycleScene = Engine.dispatchMany(coordinatorPassiveLifecycleScene, [{ type: "actor.move", actorId: "coordinator-ally", payload: { space: "main", x: 3, y: 1, movement: "QA" } }]).scene;
+assert.ok(coordinatorPassiveLifecycleScene.actors.find(actor => actor.id === "coordinator-ally").effects.includes("positive.усилен"), "Coordinator empowers an ally that enters its four-cell radius during the Turn");
+coordinatorPassiveLifecycleScene = Engine.dispatchMany(coordinatorPassiveLifecycleScene, [{ type: "turn.end", actorId: "enemy", payload: {} }]).scene;
+assert.ok(!coordinatorPassiveLifecycleScene.actors.find(actor => actor.id === "coordinator-ally").effects.includes("positive.усилен"), "Coordinator removes only its passive Empowered source at Turn end");
 // Healer: Guardian selection controls targetability and doubles Heal; Savior
 // clears the Guardian, while Exsanguinate's sourced Mark heals its attacker.
 let healerContractScene = profileScene("enemy.common.healer"); healerContractScene.actors[1].tier = 2;

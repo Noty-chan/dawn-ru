@@ -265,6 +265,42 @@ function respondRulePrompt(scene, data, request = {}) {
     const state=modifierState(actor),status=modifierConfigurationStatus(scene,actor.id,state);
     if(!status.available||Number(state.configuredRound||0)!==Number(scene.round||1))return{ok:false,errors:[status.reason||"Сначала задайте новую настройку модификатора в его панели."],events:[]};
   }
+  if (prompt.kind === "enemy-coordinator-followup-ally" && choice.startsWith("ally:")) {
+    const ally = actorById(scene, choice.slice(5));
+    if (!ally || ally.knockedOut || ally.id === actor.id || ally.team !== actor.team || !effectPresenceStatus(scene, ally.id).onField) return { ok: false, errors: ["Выбранный союзник Координатора больше недоступен."], events: [] };
+    const primary = enemyProfileById(data, ally.profileId)?.rules?.find(rule => rule.kind === "attack"), coordinator = actorById(scene, prompt.context?.coordinatorId);
+    const attacked = new Set(currentTurnEvents(scene, coordinator?.id || actor.id).filter(event => event.type === "attack.pending").flatMap(event => event.payload?.targetIds || []));
+    const family = primary ? ENEMY_ATTACK_FAMILY_RULES.get(primary.id) || {} : {};
+    const candidates = primary ? (scene.actors || []).filter(candidate => {
+      if (candidate.knockedOut || candidate.team === ally.team || candidate.space !== ally.space || attacked.has(candidate.id) || !effectTargetingStatus(scene, ally.id, candidate.id).available || !wallTargetingStatus(scene, ally, candidate, { range: primary.range }).available) return false;
+      if ((primary.adjacent || family.adjacent) && distance(ally, candidate) > 1) return false;
+      if (primary.range && distance(ally, candidate) > Number(primary.range)) return false;
+      return true;
+    }) : [];
+    const options = ["move", ...candidates.map(candidate => `attack:${candidate.id}`), "pass"], optionLabels = { move: `Переместить на Скорость (${Number(ally.speed || 0)})`, pass: "Не использовать" };
+    for (const candidate of candidates) optionLabels[`attack:${candidate.id}`] = `${primary.name}: ${candidate.name}`;
+    events.push({ type: "rule.prompt", actorId: ally.id, payload: { id: `prompt-${prompt.id}-${ally.id}`, kind: "enemy-coordinator-followup-action", sourceActorId: ally.id, controller: "narrator", title: "Фанатизировать: действие союзника", text: `${ally.name} может переместиться на свою Скорость или бесплатно использовать основную Атаку по персонажу, которого ещё не атаковали в этот Ход.`, options, context: { coordinatorId: coordinator?.id || actor.id, ruleId: primary?.id || null, eligibleTargetIds: candidates.map(candidate => candidate.id), maxDistance: Number(ally.speed || 0), optionLabels }, participantIds: [actor.id, ally.id, ...candidates.map(candidate => candidate.id)] } });
+  }
+  if (prompt.kind === "enemy-coordinator-followup-action") {
+    if (choice === "move") {
+      const movement = effectMovementStatus(scene, actor.id, { distance: Number(actor.speed || prompt.context?.maxDistance || 0) });
+      if (!movement.available) return { ok: false, errors: [movement.reason], events: [] };
+      events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${prompt.id}-move`, kind: "enemy-move-cell", sourceActorId: actor.id, controller: "narrator", title: "Фанатизировать: перемещение союзника", text: `Переместите ${actor.name} на расстояние до ${movement.distance} клеток.`, options: ["cancel"], context: { maxDistance: movement.distance, coordinatorFollowup: true }, participantIds: [actor.id, prompt.context?.coordinatorId].filter(Boolean) } });
+    } else if (choice.startsWith("attack:")) {
+      const targetId = choice.slice(7), target = actorById(scene, targetId), coordinator = actorById(scene, prompt.context?.coordinatorId), rule = enemyProfileById(data, actor.profileId)?.rules?.find(item => item.id === prompt.context?.ruleId), family = rule ? ENEMY_ATTACK_FAMILY_RULES.get(rule.id) || {} : {};
+      const attacked = new Set(currentTurnEvents(scene, coordinator?.id || scene.activeActorId).filter(event => event.type === "attack.pending").flatMap(event => event.payload?.targetIds || []));
+      if (!target || target.knockedOut || target.team === actor.team || attacked.has(target.id) || !(prompt.context?.eligibleTargetIds || []).includes(target.id) || !rule || !effectTargetingStatus(scene, actor.id, target.id).available || !wallTargetingStatus(scene, actor, target, { range: rule.range }).available) return { ok: false, errors: ["Цель дополнительной Атаки больше недоступна или уже была атакована в этот Ход."], events: [] };
+      if ((rule.adjacent || family.adjacent) && distance(actor, target) > 1 || rule.range && distance(actor, target) > Number(rule.range)) return { ok: false, errors: ["Цель больше не находится в дальности основной Атаки союзника."], events: [] };
+      const baseDice = enemyTierFormula(rule.dice || "0", actor.tier), effectAttack = effectAttackStatus(scene, actor.id, [target.id]), expectedDice = Math.max(baseDice > 0 ? 1 : 0, baseDice - Number(effectAttack.hindrance || 0)), roll = request.roll;
+      const directDamage = rule.directDamage ? enemyTierFormula(rule.directDamage, actor.tier) : null;
+      if (expectedDice && (!roll || !Array.isArray(roll.rolls) || roll.rolls.length !== expectedDice || roll.rolls.some(value => !Number.isInteger(value) || value < 1 || value > 6) || Number(roll.successes) !== roll.rolls.filter(value => value >= 4).length || Number(roll.crits) !== roll.rolls.filter(value => value === 6).length)) return { ok: false, errors: ["Бросок дополнительной Атаки не соответствует текущему пулу костей."], events: [] };
+      if (!expectedDice && !Number.isFinite(directDamage)) return { ok: false, errors: ["Основная Атака союзника пока не имеет исполняемого броска или урона."], events: [] };
+      const tensionMultiplier = Number(ENEMY_AUTO_ATTACK_RULES.get(rule.id) || 0), damage = (expectedDice ? Number(roll.successes || 0) + Number(scene.tension || 0) * tensionMultiplier : directDamage) + Number(effectAttack.damageModifier || 0) + Number(effectAttack.damageByTarget?.[target.id] || 0), targetEffects = (Object.prototype.hasOwnProperty.call(family, "effects") ? family.effects : rule.targetEffects || rule.effects || []).map(name => effectIdByName(data, name));
+      events.push({ type: "enemy.action.prepare", actorId: actor.id, payload: { ruleId: rule.id, profileId: actor.profileId, name: `${rule.name} · Фанатизировать`, kind: "attack", targetIds: [target.id], automation: "attack", quickReaction: true, free: true, sourceActionId: "enemy.common.coordinator.attack.fanaticize", participantIds: [actor.id, target.id, coordinator?.id].filter(Boolean) } });
+      events.push({ type: "reaction.offer", actorId: target.id, payload: { sourceActorId: actor.id, actionId: rule.id, participantIds: [actor.id, target.id] } });
+      events.push({ type: "attack.pending", actorId: actor.id, payload: { actionId: rule.id, enemyRuleId: rule.id, name: `${rule.name} · Фанатизировать`, targetIds: [target.id], roll: expectedDice ? clone(roll) : null, damage, damageByTarget: { [target.id]: damage }, effects: targetEffects, reward: rule.reward || "", enemyAttackFamily: clone(family), quickReaction: true, sourceActionId: "enemy.common.coordinator.attack.fanaticize", participantIds: [actor.id, target.id, coordinator?.id].filter(Boolean) } });
+    }
+  }
   if (prompt.kind === "enemy-crowd-move-select") {
     if (choice === "finish") events.push({ type: "actor.state", actorId: actor.id, payload: { key: "enemyCrowdMovement", value: { ruleId: prompt.context?.ruleId, turnSerial: Number(scene.turnSerial || 0) }, sourceActionId: prompt.context?.ruleId, participantIds: [actor.id] } });
     else {
@@ -1243,6 +1279,10 @@ function resolvePendingAction(scene, data) {
     }
   }
   if (successfulEnemyTargets.length && enemyFamily.chooseOneEffect) events.push({ type: "rule.prompt", actorId: pending.actorId, payload: { id: `prompt-${pending.id}-enemy-choice-effect`, kind: "enemy-swarm-stun", sourceActorId: pending.actorId, controller: "narrator", title: `${pending.name}: ${enemyFamily.chooseOneEffect}`, text: "Выберите одну успешно поражённую цель для обязательного Эффекта.", options: successfulEnemyTargets.map(targetId => `target:${targetId}`), context: { ruleId: pending.actionId, eligibleTargetIds: successfulEnemyTargets, optionLabels: Object.fromEntries(successfulEnemyTargets.map(targetId => [`target:${targetId}`, actorById(scene, targetId)?.name || targetId])) }, participantIds: [pending.actorId, ...successfulEnemyTargets] } });
+  if (successfulEnemyTargets.length && enemyFamily.allyFollowup && source) {
+    const allies = (scene.actors || []).filter(ally => !ally.knockedOut && ally.id !== source.id && ally.team === source.team && effectPresenceStatus(scene, ally.id).onField);
+    if (allies.length) events.push({ type: "rule.prompt", actorId: source.id, payload: { id: `prompt-${pending.id}-coordinator-ally`, kind: "enemy-coordinator-followup-ally", sourceActorId: source.id, controller: "narrator", title: "Фанатизировать: союзник", text: "Выберите союзника для перемещения на Скорость или бесплатной основной Атаки.", options: [...allies.map(ally => `ally:${ally.id}`), "pass"], context: { coordinatorId: source.id, optionLabels: Object.fromEntries([...allies.map(ally => [`ally:${ally.id}`, ally.name]), ["pass", "Не использовать"]]) }, participantIds: [source.id, ...allies.map(ally => ally.id)] } });
+  }
   if (successfulEnemyTargets.length && enemyFamily.createTerrainAdjacent && source) {
     const space = (scene.spaces || []).find(item => item.id === source.space), occupied = new Set((scene.actors || []).filter(item => !item.knockedOut && item.kind !== "crowd" && item.space === source.space).map(cellKey));
     for (const targetId of successfulEnemyTargets) {

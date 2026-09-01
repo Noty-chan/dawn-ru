@@ -43,6 +43,7 @@ const ENEMY_AUTO_ATTACK_RULES = new Map([
   ["enemy.common.berserker.attack.thrash", 1],
   ["enemy.common.hound-master.attack.shove", 1],
   ["enemy.common.builder.attack.violent-construction", 0],
+  ["enemy.common.coordinator.attack.fanaticize", 1],
   ["enemy.common.bannerman.attack.swing", 1],
   ["enemy.common.baron.attack.suppress", 1],
   ["enemy.common.cultist.attack.swipe", 1],
