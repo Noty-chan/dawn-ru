@@ -155,6 +155,7 @@ const ENEMY_FULL_RULES = new Map([
   ["enemy.common.javelin.action.call", { type: "crowd-summon", formula: "2(+1)", range: 4, diminishEachRoundUse: true }],
   ["enemy.common.broodmother.action.call", { type: "crowd-summon", formula: "2(+1)", range: 4, diminishEachRoundUse: true }],
   ["enemy.common.glutton.action.call", { type: "crowd-summon", formula: "2(+1)", range: 4, diminishEachRoundUse: true }],
+  ["enemy.common.glutton.trump.regurgitate", { type: "crowd-summon", countState: "gluttonConsumed", knockUpOccupants: true }],
   ["enemy.common.swarm.action.call", { type: "crowd-summon", formula: "2(+1)", range: 4, oncePerRound: true }],
   ["enemy.common.bodyguards.trump.reinforcements", { type: "crowd-summon", formula: "2(+1)", edge: true, grantTurn: true }],
   ["enemy.common.swarm.trump.reinforcements", { type: "crowd-summon", formula: "5(+2)", edge: true, grantTurn: true }],
@@ -816,7 +817,7 @@ function prepareEnemyRule(scene, data, request = {}) {
   const summonCells = [];
   const crowdSummonCells = [];
   if (fullRule?.type === "crowd-summon" && actor && space) {
-    const count = Math.max(0, enemyTierFormula(fullRule.formula, actor.tier) - (fullRule.diminishEachRoundUse ? roundRuleUses : 0));
+    const count = Math.max(0, fullRule.countState ? Number(actor.ruleState?.[fullRule.countState] || 0) : enemyTierFormula(fullRule.formula, actor.tier) - (fullRule.diminishEachRoundUse ? roundRuleUses : 0));
     const requested = [...new Set((request.options?.cells || []).map(String))], removed = removedCellKeys(scene, actor.space), occupiedCrowd = new Set((scene.actors || []).filter(item => item.kind === "crowd" && !item.knockedOut && item.space === actor.space).map(cellKey));
     if (requested.length !== count) errors.push(`Выберите ровно ${count} клеток для Зон массовки.`);
     for (const key of requested) {
@@ -825,7 +826,7 @@ function prepareEnemyRule(scene, data, request = {}) {
       if (removed.has(key)) errors.push("Удалённая клетка не может содержать Зону массовки.");
       if (occupiedCrowd.has(key)) errors.push("В клетке уже находится Зона массовки.");
       if (fullRule.edge && x !== 0 && y !== 0 && x !== Number(space.width) - 1 && y !== Number(space.height) - 1) errors.push("Подкрепления размещаются только на краю Поля.");
-      if (!fullRule.edge && modifierRangeDistance(scene, actor, { space: actor.space, x, y }) > Number(fullRule.range || 4)) errors.push(`Зоны массовки должны быть в пределах ${fullRule.range || 4} клеток.`);
+      if (!fullRule.edge && fullRule.range != null && modifierRangeDistance(scene, actor, { space: actor.space, x, y }) > Number(fullRule.range)) errors.push(`Зоны массовки должны быть в пределах ${fullRule.range} клеток.`);
       crowdSummonCells.push({ x, y });
     }
   }
@@ -943,6 +944,7 @@ function prepareEnemyRule(scene, data, request = {}) {
   if (fullRule?.type === "crowd-summon") {
     const groupId = `crowd-${eventId()}`;
     for (const [index, point] of crowdSummonCells.entries()) events.push({ type: "actor.spawn", actorId: actor.id, payload: { crowdSummonToken: payload.crowdSummon.token, actor: { id: `crowd-${eventId()}-${index}`, kind: "crowd", crowdType: "mob", crowdGroupId: groupId, source: rule.id, sourceActionId: rule.id, team: actor.team, heroId: null, profileId: null, name: `${actor.name}: массовка`, tier: 0, space: actor.space, x: point.x, y: point.y, hp: 1, maxHp: 1, focus: 0, ap: 0, baseAp: 0, speed: 0, armor: 0, evasion: 0, effects: [], usedActions: [], acted: true, hidden: false, tokenSymbol: "♟", tokenColor: actor.tokenColor || "#7f3044", tokenImage: "", portraitImage: "", summonerId: actor.id }, participantIds: [actor.id] } });
+    if (fullRule.knockUpOccupants) for (const target of (scene.actors || []).filter(item => !item.knockedOut && item.kind !== "crowd" && item.space === actor.space && crowdSummonCells.some(point => point.x === Number(item.x) && point.y === Number(item.y)))) events.push({ type: "effect.apply", actorId: actor.id, payload: { targetId: target.id, effect: effectIdByName(data, "Подброшен"), sourceActionId: rule.id, participantIds: [actor.id, target.id] } });
     if (fullRule.grantTurn) events.push({ type: "turn.grant", actorId: actor.id, payload: { amount: 1, sourceActionId: rule.id, participantIds: [actor.id] } });
   }
   if (fullRule?.type === "hound-seekers") {

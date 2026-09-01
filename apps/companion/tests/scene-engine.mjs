@@ -193,6 +193,16 @@ assert.equal(Engine.prepareEnemyRule(removedCallScene, data, { actorId: "enemy",
 const secondCall = Engine.prepareEnemyRule(calledScene, data, { actorId: "enemy", ruleId: "enemy.common.javelin.action.call", options: { cells: ["2,1"] } });
 assert.equal(secondCall.ok, true, secondCall.errors?.join(" "));
 assert.equal(secondCall.events.filter(event => event.type === "actor.spawn").length, 1, "Repeated Call in one Round diminishes its placement count by one");
+const gluttonConsumeScene = structuredClone(callScene); gluttonConsumeScene.tension = 4; gluttonConsumeScene.actors[1].profileId = "enemy.common.glutton"; gluttonConsumeScene.actors[1].name = "Обжора"; gluttonConsumeScene.actors[1].hp = 5; gluttonConsumeScene.actors[1].maxHp = 20; gluttonConsumeScene.actors.push({ ...structuredClone(fodderActor), id: "hero-fodder", team: "hero", crowdGroupId: "hero-fodder-group", x: 1, y: 0 });
+const consumed = Engine.dispatchMany(gluttonConsumeScene, [{ id: "glutton-consume-boundary", type: "damage.apply", actorId: "enemy", payload: { targetId: "hero-fodder", amount: 1, ignoreArmor: true, ignoreEvasion: true, sourceActionId: "enemy.common.glutton.attack.slobber" } }]).scene;
+assert.equal(consumed.actors.find(actor => actor.id === "enemy").hp, 15, "Glutton heals by its canonical tier formula when it knocks out a Fodder Zone");
+assert.equal(consumed.actors.find(actor => actor.id === "enemy").ruleState?.gluttonConsumed, 1, "Glutton tracks each passive heal in persisted rule state");
+assert.throws(() => Engine.dispatch(gluttonConsumeScene, { type: "actor.state", actorId: "enemy", payload: { key: "gluttonConsumed", delta: 1, boundaryEventId: "forged" } }), /Счётчик Обжоры/, "A forged client cannot increase the Glutton tracker without a knockout boundary");
+const regurgitate = Engine.prepareEnemyRule(consumed, data, { actorId: "enemy", ruleId: "enemy.common.glutton.trump.regurgitate", options: { cells: ["1,1"] } });
+assert.equal(regurgitate.ok, true, regurgitate.errors?.join(" "));
+assert.equal(regurgitate.events.filter(event => event.type === "actor.spawn").length, 1, "Regurgitate places exactly as many Fodder Zones as Glutton tracked");
+assert.ok(regurgitate.events.some(event => event.type === "effect.apply" && event.payload.targetId === "hero" && event.payload.effect === "negative.подброшен"), "Regurgitate knocks up a character occupying a chosen cell");
+assert.equal(Engine.prepareEnemyRule(consumed, data, { actorId: "enemy", ruleId: "enemy.common.glutton.trump.regurgitate", options: { cells: ["1,1", "2,2"] } }).ok, false, "Regurgitate rejects a forged placement count");
 const swarmCallScene = structuredClone(callScene); swarmCallScene.actors[1].profileId = "enemy.common.swarm";
 const swarmCall = Engine.prepareEnemyRule(swarmCallScene, data, { actorId: "enemy", ruleId: "enemy.common.swarm.action.call", options: { cells: ["1,1", "1,2"] } });
 const usedSwarmCallScene = Engine.dispatchMany(swarmCallScene, swarmCall.events).scene;

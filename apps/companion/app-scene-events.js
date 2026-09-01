@@ -120,7 +120,7 @@ $("scene-board").addEventListener("click",event=>{if(performance.now()<sceneSupp
     const pending=pendingEnemyRule,source=Scene.actors.find(item=>item.id===pending.actorId),space=activeSceneSpace(),key=`${x},${y}`;
     if(!source||source.knockedOut)return cancelSceneFlow();
     if(pending.edge&&x!==0&&y!==0&&x!==space.width-1&&y!==space.height-1)return toast("Подкрепления размещаются только на краю Поля");
-    if(!pending.edge&&Math.abs(source.x-x)+Math.abs(source.y-y)>pending.range)return toast(`Клетка должна быть в пределах ${pending.range} клеток`);
+    if(!pending.edge&&pending.range>0&&Math.abs(source.x-x)+Math.abs(source.y-y)>pending.range)return toast(`Клетка должна быть в пределах ${pending.range} клеток`);
     if((Scene.topology?.cuts||[]).some(cut=>cut.space===source.space&&(cut.cells||[]).includes(key)))return toast("Удалённая клетка недоступна");
     if(Scene.actors.some(item=>item.kind==="crowd"&&!item.knockedOut&&item.space===source.space&&item.x===x&&item.y===y))return toast("В клетке уже находится Зона массовки");
     const selected=new Set(Scene.targetCells||[]);if(selected.has(key))selected.delete(key);else if(selected.size<Number(pending.count||0))selected.add(key);else return toast(`Уже выбрано ${pending.count} клеток`);

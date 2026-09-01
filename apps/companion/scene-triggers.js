@@ -458,6 +458,13 @@ function effectRetainedAtBoundary(scene, target, effect, event) {
 
 function effectLifecycleEvents(scene, event) {
   const events = [], boundaryActorId = event.actorId || null;
+  if (event.type === "damage.apply" && event.payload?.applied) {
+    const glutton = actorById(scene, event.actorId), target = actorById(scene, event.payload.targetId);
+    if (glutton && !glutton.knockedOut && glutton.profileId === "enemy.common.glutton" && target?.kind === "crowd" && target.knockedOut) {
+      events.push({ type: "actor.heal", actorId: glutton.id, payload: { targetId: glutton.id, amount: enemyTierFormula("10(+5)", glutton.tier), sourceActionId: "enemy.common.glutton.passive", boundaryEventId: event.id, participantIds: [glutton.id, target.id] } });
+      events.push({ type: "actor.state", actorId: glutton.id, payload: { key: "gluttonConsumed", delta: 1, sourceActionId: "enemy.common.glutton.passive", boundaryEventId: event.id, participantIds: [glutton.id, target.id] } });
+    }
+  }
   if (["turn.start", "turn.end", "round.end", "action.prepare", "enemy.action.prepare"].includes(event.type)) {
     for (const target of scene.actors || []) for (const effect of target.effects || []) {
       const expiry = effectExpiryStatus(scene, target.id, effect, { type: event.type, actorId: boundaryActorId, turnSerial: event.payload?.endedTurnSerial });
