@@ -3128,6 +3128,28 @@ assert.equal(swarmContractScene.pendingPrompt.kind, "enemy-swarm-stun", "Tear wa
 assert.ok(!swarmContractScene.actors[0].effects.includes("negative.ошеломлен") && !swarmContractScene.actors.find(actor => actor.id === "swarm-target-2").effects.includes("negative.ошеломлен"), "Tear never auto-selects the first target");
 swarmContractScene = Engine.dispatchMany(swarmContractScene, Engine.respondRulePrompt(structuredClone(swarmContractScene), data, { choice: "target:swarm-target-2" }).events).scene;
 assert.ok(swarmContractScene.actors.find(actor => actor.id === "swarm-target-2").effects.includes("negative.ошеломлен"), "Tear applies Stunned only to the chosen successful target after reconnect");
+// Privateer Escort persists its exact source and follows each escorted move
+// through a revalidated voluntary path of exactly the same length.
+let privateerContractScene = profileScene("enemy.common.privateer"), escortContract = profileRule("enemy.common.privateer", "Escort");
+privateerContractScene.actors.push({ ...structuredClone(privateerContractScene.actors[1]), id: "privateer-escort", name: "Сопровождаемый", profileId: "enemy.common.guardian", team: "enemy", x: 3, y: 1, speed: 3, effects: [] });
+assert.equal(Engine.enemyRuleAutomation(escortContract.id), "effect", "Escort is an executable sourced Effect instead of an assisted note");
+privateerContractScene = Engine.dispatchMany(privateerContractScene, Engine.prepareEnemyRule(privateerContractScene, data, { actorId: "enemy", ruleId: escortContract.id, targetIds: ["privateer-escort"] }).events).scene;
+assert.ok(privateerContractScene.actors.find(actor => actor.id === "privateer-escort").effects.includes("positive.ускорен"), "Escort applies Accelerated to its chosen ally");
+privateerContractScene = Engine.dispatchMany(privateerContractScene, [{ type: "actor.move", actorId: "privateer-escort", payload: { space: "main", x: 5, y: 1, path: ["4,1", "5,1"], movement: "Проверка Эскорта" } }]).scene;
+assert.equal(privateerContractScene.pendingPrompt?.kind, "enemy-move-cell", "Moving the escorted ally offers the Privateer its board movement immediately");
+assert.equal(privateerContractScene.pendingPrompt.context?.exactDistance, 2, "Escort persists the triggering movement length across reconnect");
+assert.equal(Engine.preparePromptPlacement(privateerContractScene, { destination: { x: 3, y: 1 } }).ok, false, "Escort rejects a path shorter than the ally's movement");
+assert.equal(Engine.preparePromptPlacement(privateerContractScene, { destination: { x: 2, y: 3 } }).ok, false, "Escort rejects an equal path that ends farther from the ally");
+const privateerFollow = Engine.preparePromptPlacement(structuredClone(privateerContractScene), { destination: { x: 4, y: 1 } });
+assert.equal(privateerFollow.ok, true, "Escort accepts an equal path that keeps the Privateer no farther from the ally");
+privateerContractScene = Engine.dispatchMany(privateerContractScene, privateerFollow.events).scene;
+assert.deepEqual({ x: privateerContractScene.actors[1].x, y: privateerContractScene.actors[1].y }, { x: 4, y: 1 }, "The authoritative Escort placement moves the Privateer once");
+assert.equal(privateerContractScene.pendingPrompt, null);
+const persistedEscortPrompt = privateerContractScene.log.find(event => event.type === "rule.prompt" && event.payload?.context?.privateerEscort)?.payload;
+assert.ok(persistedEscortPrompt, "The complete typed Escort prompt remains in replay history");
+const staleEscortScene = profileScene("enemy.common.privateer"); staleEscortScene.actors.push({ ...structuredClone(staleEscortScene.actors[1]), id: "privateer-escort", team: "enemy", x: 5, y: 1, effects: ["positive.ускорен"], effectState: { "positive.ускорен": { sources: [{ actorId: "enemy", actionId: escortContract.id }] } } }); staleEscortScene.pendingPrompt = structuredClone(persistedEscortPrompt);
+staleEscortScene.actors.find(actor => actor.id === "privateer-escort").knockedOut = true;
+assert.equal(Engine.preparePromptPlacement(staleEscortScene, { destination: { x: 4, y: 1 } }).ok, false, "Escort revalidates a KO ally after import");
 let assassinFull = profileScene("enemy.common.assassin"), assassinMark = profileRule("enemy.common.assassin", "Neutralize Target");
 assassinFull = Engine.dispatchMany(assassinFull, Engine.prepareEnemyRule(assassinFull, data, { actorId: "enemy", ruleId: assassinMark.id, targetIds: ["hero"] }).events).scene;
 assert.ok(assassinFull.actors[0].effects.includes("negative.помечен"), "Assassin creates its durable Mark through the shared Effect state");

@@ -117,6 +117,7 @@ const ENEMY_AUTO_EFFECT_RULES = new Set([
   "enemy.common.paladin.action.gospel",
   "enemy.common.bannerman.action.in-position",
   "enemy.common.coordinator.action.neutralize-them",
+  "enemy.common.privateer.action.escort",
   "enemy.common.cannoneer.action.aim",
 ]);
 const ENEMY_FULL_RULES = new Map([

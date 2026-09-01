@@ -934,6 +934,17 @@ function triggeredEvents(scene, event, options = {}) {
     for (const ally of scene.actors || []) if (effectStateFor(ally, "positive.усилен")?.sources.some(source => source.actorId === actor.id && source.actionId === "enemy.common.coordinator.passive")) events.push({ type: "effect.remove", actorId: actor.id, payload: { targetId: ally.id, effect: "positive.усилен", sourceOnly: true, sourceActorId: actor.id, sourceActionId: "enemy.common.coordinator.passive", participantIds: [actor.id, ally.id] } });
   }
   if (event.type === "actor.move") {
+    const escorted = actorById(scene, event.actorId), from = payload.from;
+    if (escorted && from && !payload.privateerEscort) {
+      const escortSources = effectStateFor(escorted, "positive.ускорен")?.sources.filter(source => source.actionId === "enemy.common.privateer.action.escort") || [];
+      const movedDistance = Array.isArray(payload.path) && payload.path.length ? payload.path.length : Math.abs(Number(escorted.x) - Number(from.x)) + Math.abs(Number(escorted.y) - Number(from.y));
+      for (const sourceState of escortSources) {
+        const privateer = actorById(scene, sourceState.actorId);
+        if (!privateer || privateer.knockedOut || privateer.profileId !== "enemy.common.privateer" || privateer.space !== escorted.space || movedDistance < 1) continue;
+        const originalDistance = distance(privateer, { space: from.space || escorted.space, x: Number(from.x), y: Number(from.y) });
+        events.push({ type: "rule.prompt", actorId: privateer.id, payload: { id: `prompt-${event.id}-privateer-${privateer.id}`, kind: "enemy-move-cell", sourceActorId: privateer.id, targetId: escorted.id, controller: "narrator", title: "Эскорт: следование", text: `${privateer.name} может переместиться ровно на ${movedDistance} кл., не заканчивая дальше от ${escorted.name}.`, options: ["cancel"], context: { maxDistance: movedDistance, exactDistance: movedDistance, escortedActorId: escorted.id, maximumFinalDistance: originalDistance, privateerEscort: true }, participantIds: [privateer.id, escorted.id] } });
+      }
+    }
     const coordinator = actorById(scene, scene.activeActorId);
     if (coordinator?.profileId === "enemy.common.coordinator") {
       for (const ally of (scene.actors || []).filter(item => item.id !== coordinator.id && item.team === coordinator.team)) {
