@@ -151,6 +151,7 @@ const ENEMY_FULL_RULES = new Map([
   ["enemy.common.hound-master.action.fire-seeker", { type: "hound-seekers", count: 1, minimumTargetDistance: 4 }],
   ["enemy.common.hound-master.trump.wild-hunt", { type: "hound-seekers", count: 3, minimumTargetDistance: 0 }],
   ["enemy.common.privateer.trump.gear-change", { type: "privateer-gear-change" }],
+  ["enemy.common.ronin.action.sheath", { type: "ronin-sheath" }],
   ["enemy.named.leon-academy-spatial-mage.trump.elemental-breach", {
     type: "summon-profiles",
     profiles: ["enemy.named.leon-s-vayu-spirit", "enemy.named.leon-s-agni-spirit"],
@@ -689,7 +690,8 @@ function availableEnemyRules(scene, data, actorId) {
     else if (rule.kind === "trump" && actor.usedTrump) reason = "Козырь уже использован в этой Сцене";
     else if (rule.kind === "trump" && Number(scene.tension || 0) < Number(rule.tension || 0)) reason = `Нужно Напряжение ${rule.tension}`;
     else if (rule.id === "enemy.common.cannoneer.trump.fire" && !clockStatus(scene, actor.id, "enemy.common.cannoneer.preparation").full) reason = "Сначала заполните Подготовку 4/4";
-    return { ...clone(rule), ...family, maxTargets, automation, available: !reason, reason };
+    const roninSheathed = rule.id === "enemy.common.ronin.attack.dissect" && actor.ruleState?.roninSheathed;
+    return { ...clone(rule), ...family, ...(roninSheathed ? { adjacent: false, range: Number(actor.speed || 0) } : {}), maxTargets, automation, available: !reason, reason };
   });
 }
 
@@ -705,7 +707,8 @@ function prepareEnemyRule(scene, data, request = {}) {
   const profile = actor ? enemyProfileById(data, actor.profileId) : null;
   const sourceRule = profile?.rules?.find(item => item.id === request.ruleId);
   const available = actor && sourceRule ? availableEnemyRules(scene, data, actor.id).find(item => item.id === sourceRule.id) : null;
-  const rule = sourceRule ? { ...sourceRule, ...(ENEMY_ATTACK_FAMILY_RULES.get(sourceRule.id) || {}) } : null;
+  let rule = sourceRule ? { ...sourceRule, ...(ENEMY_ATTACK_FAMILY_RULES.get(sourceRule.id) || {}) } : null;
+  if (rule?.id === "enemy.common.ronin.attack.dissect" && actor?.ruleState?.roninSheathed) rule = { ...rule, adjacent: false, range: Number(actor.speed || 0) };
   const errors = [];
   if (!actor || !profile) errors.push("Не выбран профиль противника.");
   if (!rule) errors.push("Неизвестное действие противника.");
@@ -912,6 +915,7 @@ function prepareEnemyRule(scene, data, request = {}) {
     events.push({ type: "actor.state", actorId: actor.id, payload: { key: "privateerGearChange", value: true, sourceActionId: rule.id, participantIds: [actor.id] } });
     events.push({ type: "turn.grant", actorId: actor.id, payload: { amount: 1, sourceActionId: rule.id, participantIds: [actor.id] } });
   }
+  if (fullRule?.type === "ronin-sheath") events.push({ type: "actor.state", actorId: actor.id, payload: { key: "roninSheathed", value: true, sourceActionId: rule.id, participantIds: [actor.id] } });
   if (fullRule?.type === "hound-seekers") {
     const target = targets[0], damage = enemyTierFormula("7(+1)", actor.tier), groupId = `seekers-${eventId()}`;
     for (const [index, point] of seekerCells.entries()) events.push({ type: "actor.spawn", actorId: actor.id, payload: { actor: { id: `seeker-${eventId()}-${index}`, kind: "crowd", crowdSubtype: "seeker", crowdType: "hounds", crowdGroupId: groupId, seekerTargetId: target.id, seekerOwnerId: actor.id, seekerDamage: damage, source: rule.id, sourceActionId: rule.id, team: actor.team, heroId: null, profileId: null, name: "Ищейка", tier: 0, space: actor.space, x: point.x, y: point.y, hp: 1, maxHp: 1, focus: 0, ap: 0, baseAp: 0, speed: 0, armor: 0, evasion: 0, effects: [], usedActions: [], acted: true, hidden: false, tokenSymbol: "◆", tokenColor: "#72558f", tokenImage: "", portraitImage: "" }, participantIds: [actor.id, target.id] } });

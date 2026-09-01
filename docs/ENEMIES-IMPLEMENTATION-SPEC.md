@@ -85,7 +85,7 @@
 
 - **Заявленный кодовый статус:** `assisted` (помощь Нарратора).
 - **Входная конфигурация:** `{"kind":"action","apCost":1,"tension":0,"target":"targetIds: 0, range≤2","selfEffects":["Исчез","Подброшен"]}`.
-- **Текущий адаптер:** частичная конфигурация есть в `scene-actions.js:160`, но исполнимого статуса нет.
+- **Текущий адаптер:** частичная конфигурация есть в `scene-actions.js:161`, но исполнимого статуса нет.
 - **Нужно добавить / проверить:** Добавить named resolver/семейную конфигурацию, которая целиком покрывает trigger, выбор, effect/reward и срок. Базовая форма входа: `targetIds: 0, range≤2`.
 
 #### Вырвано из земли `enemy.common.behemoth.attack.tore-from-earth`
@@ -99,7 +99,7 @@
 
 - **Заявленный кодовый статус:** `assisted` (помощь Нарратора).
 - **Входная конфигурация:** `{"kind":"trump","apCost":2,"tension":5,"target":"targetIds: 0"}`.
-- **Текущий адаптер:** частичная конфигурация есть в `scene-actions.js:161`, но исполнимого статуса нет.
+- **Текущий адаптер:** частичная конфигурация есть в `scene-actions.js:162`, но исполнимого статуса нет.
 - **Нужно добавить / проверить:** Добавить named resolver/семейную конфигурацию, которая целиком покрывает trigger, выбор, effect/reward и срок. Базовая форма входа: `targetIds: 0`.
 
 ### Ловец (Captor) `enemy.common.captor`
@@ -122,7 +122,7 @@
 
 - **Заявленный кодовый статус:** `assisted` (помощь Нарратора).
 - **Входная конфигурация:** `{"kind":"trump","apCost":2,"tension":1,"target":"targetIds: 0, range≤5"}`.
-- **Текущий адаптер:** частичная конфигурация есть в `scene-actions.js:162`, но исполнимого статуса нет.
+- **Текущий адаптер:** частичная конфигурация есть в `scene-actions.js:163`, но исполнимого статуса нет.
 - **Нужно добавить / проверить:** Добавить named resolver/семейную конфигурацию, которая целиком покрывает trigger, выбор, effect/reward и срок. Базовая форма входа: `targetIds: 0, range≤5`.
 
 ### Палач (Executioner) `enemy.common.executioner`
@@ -138,7 +138,7 @@
 
 - **Заявленный кодовый статус:** `attack` (атака).
 - **Входная конфигурация:** `{"kind":"attack","apCost":1,"tension":0,"dice":"8(+2)","tensionMultiplier":2,"target":"targetIds: 1..1","targetEffects":["Разорван"]}`.
-- **Текущий адаптер:** статус `attack`; реестр: `scene-actions.js:25`, `scene-actions.js:73`, `scene-actions.js:799`.
+- **Текущий адаптер:** статус `attack`; реестр: `scene-actions.js:25`, `scene-actions.js:73`, `scene-actions.js:802`.
 - **Нужно добавить / проверить:** Кодовый пробел не выведен из статуса; нужны прямые pos/neg/boundary тесты и evidence для UI/сети/save-load.
 
 #### Рассечение `enemy.common.executioner.trump.bifurcate`
@@ -221,16 +221,16 @@
 
 #### В ножны `enemy.common.ronin.action.sheath`
 
-- **Заявленный кодовый статус:** `assisted` (помощь Нарратора).
+- **Заявленный кодовый статус:** `full` (полная).
 - **Входная конфигурация:** `{"kind":"action","apCost":1,"tension":0,"target":"targetIds: 0"}`.
-- **Текущий адаптер:** нет зарегистрированного исполняемого адаптера.
-- **Нужно добавить / проверить:** Добавить named resolver/семейную конфигурацию, которая целиком покрывает trigger, выбор, effect/reward и срок. Базовая форма входа: `targetIds: 0`.
+- **Текущий адаптер:** статус `full`; реестр: `scene-actions.js:154`.
+- **Нужно добавить / проверить:** Кодовый пробел не выведен из статуса; нужны прямые pos/neg/boundary тесты и evidence для UI/сети/save-load.
 
 #### Вскрытие `enemy.common.ronin.attack.dissect`
 
 - **Заявленный кодовый статус:** `attack` (атака).
 - **Входная конфигурация:** `{"kind":"attack","apCost":1,"tension":0,"dice":"5(+1)","tensionMultiplier":1,"target":"targetIds: 1..1, adjacent"}`.
-- **Текущий адаптер:** статус `attack`; реестр: `scene-actions.js:29`, `scene-actions.js:77`.
+- **Текущий адаптер:** статус `attack`; реестр: `scene-actions.js:29`, `scene-actions.js:77`, `scene-actions.js:693`, `scene-actions.js:711`.
 - **Нужно добавить / проверить:** Кодовый пробел не выведен из статуса; нужны прямые pos/neg/boundary тесты и evidence для UI/сети/save-load.
 
 #### Удар грома и вспышка `enemy.common.ronin.trump.thunderclap-and-flash`
@@ -276,7 +276,7 @@
 
 - **Заявленный кодовый статус:** `attack` (атака).
 - **Входная конфигурация:** `{"kind":"attack","apCost":1,"tension":0,"dice":"6(+1)","tensionMultiplier":2,"target":"targetIds: 0, range≤5, maxTargets:1"}`.
-- **Текущий адаптер:** статус `attack`; реестр: `scene-actions.js:31`, `scene-actions.js:79`, `scene-actions.js:163`.
+- **Текущий адаптер:** статус `attack`; реестр: `scene-actions.js:31`, `scene-actions.js:79`, `scene-actions.js:164`.
 - **Нужно добавить / проверить:** Кодовый пробел не выведен из статуса; нужны прямые pos/neg/boundary тесты и evidence для UI/сети/save-load.
 
 #### ВЗРЫВ `enemy.common.witch.trump.explosion`
@@ -299,7 +299,7 @@
 
 - **Заявленный кодовый статус:** `attack` (атака).
 - **Входная конфигурация:** `{"kind":"attack","apCost":1,"tension":0,"dice":"6(+1)","tensionMultiplier":1,"target":"targetIds: 1..3","targetEffects":["Укреплен"]}`.
-- **Текущий адаптер:** статус `attack`; реестр: `scene-actions.js:38`, `scene-actions.js:80`, `scene-actions.js:164`.
+- **Текущий адаптер:** статус `attack`; реестр: `scene-actions.js:38`, `scene-actions.js:80`, `scene-actions.js:165`.
 - **Нужно добавить / проверить:** Кодовый пробел не выведен из статуса; нужны прямые pos/neg/boundary тесты и evidence для UI/сети/save-load.
 
 #### Подкрепления `enemy.common.bodyguards.trump.reinforcements`
@@ -391,7 +391,7 @@
 
 - **Заявленный кодовый статус:** `attack` (атака).
 - **Входная конфигурация:** `{"kind":"attack","apCost":1,"tension":0,"dice":"6(+1)","tensionMultiplier":1,"target":"targetIds: 1..1","targetEffects":["Замедлен"]}`.
-- **Текущий адаптер:** статус `attack`; реестр: `scene-actions.js:36`, `scene-actions.js:72`, `scene-actions.js:165`.
+- **Текущий адаптер:** статус `attack`; реестр: `scene-actions.js:36`, `scene-actions.js:72`, `scene-actions.js:166`.
 - **Нужно добавить / проверить:** Кодовый пробел не выведен из статуса; нужны прямые pos/neg/boundary тесты и evidence для UI/сети/save-load.
 
 #### Отрыгнуть `enemy.common.glutton.trump.regurgitate`
@@ -437,7 +437,7 @@
 
 - **Заявленный кодовый статус:** `attack` (атака).
 - **Входная конфигурация:** `{"kind":"attack","apCost":1,"tension":0,"dice":"6(+1)","tensionMultiplier":1,"target":"targetIds: 1..1"}`.
-- **Текущий адаптер:** статус `attack`; реестр: `scene-actions.js:37`, `scene-actions.js:85`, `scene-actions.js:166`.
+- **Текущий адаптер:** статус `attack`; реестр: `scene-actions.js:37`, `scene-actions.js:85`, `scene-actions.js:167`.
 - **Нужно добавить / проверить:** Кодовый пробел не выведен из статуса; нужны прямые pos/neg/boundary тесты и evidence для UI/сети/save-load.
 
 #### "В АТАКУ!" `enemy.common.mount.trump.charge`
@@ -460,7 +460,7 @@
 
 - **Заявленный кодовый статус:** `attack` (атака).
 - **Входная конфигурация:** `{"kind":"attack","apCost":1,"tension":0,"dice":"6(+1)","tensionMultiplier":1,"target":"targetIds: 1..1","targetEffects":["Ускорен","Укреплен","Усилен","Подброшен"]}`.
-- **Текущий адаптер:** статус `attack`; реестр: `scene-actions.js:39`, `scene-actions.js:86`, `scene-actions.js:167`.
+- **Текущий адаптер:** статус `attack`; реестр: `scene-actions.js:39`, `scene-actions.js:86`, `scene-actions.js:168`.
 - **Нужно добавить / проверить:** Кодовый пробел не выведен из статуса; нужны прямые pos/neg/boundary тесты и evidence для UI/сети/save-load.
 
 #### Яркий ужас `enemy.common.oni.trump.vibrant-terror`
@@ -483,14 +483,14 @@
 
 - **Заявленный кодовый статус:** `attack` (атака).
 - **Входная конфигурация:** `{"kind":"attack","apCost":1,"tension":0,"dice":"5(+1)","tensionMultiplier":1,"target":"targetIds: 1..1","targetEffects":["Регенерирует","Ошеломлен"]}`.
-- **Текущий адаптер:** статус `attack`; реестр: `scene-actions.js:40`, `scene-actions.js:87`, `scene-actions.js:168`.
+- **Текущий адаптер:** статус `attack`; реестр: `scene-actions.js:40`, `scene-actions.js:87`, `scene-actions.js:169`.
 - **Нужно добавить / проверить:** Кодовый пробел не выведен из статуса; нужны прямые pos/neg/boundary тесты и evidence для UI/сети/save-load.
 
 #### Благо и горе `enemy.common.paladin.trump.weal-and-woe`
 
 - **Заявленный кодовый статус:** `attack` (атака).
 - **Входная конфигурация:** `{"kind":"trump","apCost":2,"tension":1,"target":"targetIds: 0, range≤2"}`.
-- **Текущий адаптер:** статус `attack`; реестр: `scene-actions.js:61`, `scene-actions.js:88`, `scene-actions.js:722`.
+- **Текущий адаптер:** статус `attack`; реестр: `scene-actions.js:61`, `scene-actions.js:88`, `scene-actions.js:725`.
 - **Нужно добавить / проверить:** Кодовый пробел не выведен из статуса; нужны прямые pos/neg/boundary тесты и evidence для UI/сети/save-load.
 
 ### Ревенант (Revenant) `enemy.common.revenant`
@@ -660,7 +660,7 @@
 
 - **Заявленный кодовый статус:** `attack` (атака).
 - **Входная конфигурация:** `{"kind":"attack","apCost":1,"tension":0,"dice":"5(+1)","tensionMultiplier":1,"target":"targetIds: 1..1"}`.
-- **Текущий адаптер:** статус `attack`; реестр: `scene-actions.js:51`, `scene-actions.js:95`, `scene-actions.js:169`.
+- **Текущий адаптер:** статус `attack`; реестр: `scene-actions.js:51`, `scene-actions.js:95`, `scene-actions.js:170`.
 - **Нужно добавить / проверить:** Кодовый пробел не выведен из статуса; нужны прямые pos/neg/boundary тесты и evidence для UI/сети/save-load.
 
 #### Разбитые небеса `enemy.common.illusionist.trump.shattered-skies`
@@ -782,7 +782,7 @@
 
 - **Заявленный кодовый статус:** `attack` (атака).
 - **Входная конфигурация:** `{"kind":"trump","apCost":2,"tension":0,"dice":"6(+1)","tensionMultiplier":1,"target":"targetIds: 1..1, range≤10"}`.
-- **Текущий адаптер:** статус `attack`; реестр: `scene-actions.js:60`, `scene-actions.js:99`, `scene-actions.js:691`, `scene-actions.js:984`.
+- **Текущий адаптер:** статус `attack`; реестр: `scene-actions.js:60`, `scene-actions.js:99`, `scene-actions.js:692`, `scene-actions.js:988`.
 - **Нужно добавить / проверить:** Конфигурация повторяет канонический урон три раза вместо одного броска 6(+1)D6.
 
 ### Культист (Cultist) `enemy.common.cultist`
@@ -821,7 +821,7 @@
 
 - **Заявленный кодовый статус:** `attack` (атака).
 - **Входная конфигурация:** `{"kind":"attack","apCost":1,"tension":0,"dice":"5(+1)","tensionMultiplier":1,"target":"targetIds: 1..1","targetEffects":["Подброшен"]}`.
-- **Текущий адаптер:** статус `attack`; реестр: `scene-actions.js:41`, `scene-actions.js:89`, `scene-actions.js:170`.
+- **Текущий адаптер:** статус `attack`; реестр: `scene-actions.js:41`, `scene-actions.js:89`, `scene-actions.js:171`.
 - **Нужно добавить / проверить:** Кодовый пробел не выведен из статуса; нужны прямые pos/neg/boundary тесты и evidence для UI/сети/save-load.
 
 #### Адреналиновый кайф `enemy.common.daredevil.trump.adrenaline-high`
@@ -913,7 +913,7 @@
 
 - **Заявленный кодовый статус:** `attack` (атака).
 - **Входная конфигурация:** `{"kind":"attack","apCost":1,"tension":0,"dice":"5(+1)","tensionMultiplier":2,"target":"targetIds: 0, range≤3"}`.
-- **Текущий адаптер:** статус `attack`; реестр: `scene-actions.js:57`, `scene-actions.js:101`, `scene-actions.js:171`.
+- **Текущий адаптер:** статус `attack`; реестр: `scene-actions.js:57`, `scene-actions.js:101`, `scene-actions.js:172`.
 - **Нужно добавить / проверить:** Кодовый пробел не выведен из статуса; нужны прямые pos/neg/boundary тесты и evidence для UI/сети/save-load.
 
 #### Смена снаряжения `enemy.common.privateer.trump.gear-change`
@@ -1048,7 +1048,7 @@
 
 - **Заявленный кодовый статус:** `full` (полная).
 - **Входная конфигурация:** `{"kind":"trump","apCost":2,"tension":3,"target":"targetIds: 0"}`.
-- **Текущий адаптер:** статус `full`; реестр: `scene-actions.js:154`.
+- **Текущий адаптер:** статус `full`; реестр: `scene-actions.js:155`.
 - **Нужно добавить / проверить:** Кодовый пробел не выведен из статуса; нужны прямые pos/neg/boundary тесты и evidence для UI/сети/save-load.
 
 ### Дух Вайю Леона (Leon's Vayu Spirit) `enemy.named.leon-s-vayu-spirit`

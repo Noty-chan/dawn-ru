@@ -3284,6 +3284,18 @@ assert.equal(Engine.clockStatus(cannoneerFireScene, "enemy", "enemy.common.canno
 cannoneerFireScene = Engine.dispatchMany(cannoneerFireScene, Engine.respondReaction(cannoneerFireScene, data, { actorId: "hero", choice: "pass" }).events).scene;
 const fireResolution = Engine.resolvePendingAction(structuredClone(cannoneerFireScene), data);
 assert.deepEqual(Array.from(fireResolution.events.filter(event => event.type === "damage.apply"), event => event.payload.amount), [5, 5, 5], "Fire resolves Armor and Evasion against each of three separate damage applications");
+let roninSheathScene = profileScene("enemy.common.ronin"), sheathContract = profileRule("enemy.common.ronin", "Sheath"), dissectContract = profileRule("enemy.common.ronin", "Dissect");
+roninSheathScene.actors[0].x = 6; roninSheathScene.actors[0].y = 1;
+const roninRoll = { formula: "5D6 · Вскрытие", rolls: [6, 5, 2, 1, 1], successes: 2, crits: 1 };
+assert.equal(Engine.prepareEnemyRule(roninSheathScene, data, { actorId: "enemy", ruleId: dissectContract.id, targetIds: ["hero"], roll: roninRoll }).ok, false, "Dissect is adjacent before Sheath");
+roninSheathScene = Engine.dispatchMany(roninSheathScene, Engine.prepareEnemyRule(roninSheathScene, data, { actorId: "enemy", ruleId: sheathContract.id }).events).scene;
+assert.equal(roninSheathScene.actors[1].ruleState.roninSheathed, true, "Sheath persists its Turn-scoped mode through reconnect");
+assert.deepEqual({ adjacent: Engine.availableEnemyRules(roninSheathScene, data, "enemy").find(rule => rule.id === dissectContract.id).adjacent, range: Engine.availableEnemyRules(roninSheathScene, data, "enemy").find(rule => rule.id === dissectContract.id).range }, { adjacent: false, range: 4 }, "The UI exposes Dissect's current Speed as its temporary range");
+assert.equal(Engine.prepareEnemyRule(roninSheathScene, data, { actorId: "enemy", ruleId: dissectContract.id, targetIds: ["hero"], roll: roninRoll }).ok, true, "Sheathed Dissect accepts a character exactly at current Speed");
+const overrangeRonin = structuredClone(roninSheathScene); overrangeRonin.actors[0].x = 2; overrangeRonin.actors[0].y = 6;
+assert.equal(Engine.prepareEnemyRule(overrangeRonin, data, { actorId: "enemy", ruleId: dissectContract.id, targetIds: ["hero"], roll: roninRoll }).ok, false, "Sheath still rejects a character beyond current Speed");
+roninSheathScene = Engine.dispatchMany(roninSheathScene, [{ type: "turn.end", actorId: "enemy", payload: {} }]).scene;
+assert.equal(roninSheathScene.actors[1].ruleState.roninSheathed, false, "Sheath expires exactly at the end of the Ronin's Turn");
 let executionerScene = profileScene("enemy.common.executioner"); executionerScene.tension = 2;
 let executionerTrump = Engine.prepareEnemyRule(executionerScene, data, { actorId: "enemy", ruleId: "enemy.common.executioner.trump.bifurcate", targetIds: ["hero"] });
 assert.equal(executionerTrump.ok, true, "Executioner can arm Bifurcate against one opponent");

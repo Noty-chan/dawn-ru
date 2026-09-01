@@ -982,6 +982,7 @@ function triggeredEvents(scene, event, options = {}) {
       events.push({ type: "actor.despawn", actorId: actor.id, payload: { reason: `Ищейка достигла цели ${target.name}`, sourceActionId: "enemy.common.hound-master.seeker.explode", participantIds: [target.id, ...victims.map(item => item.id)] } });
     }
   }
+  if (event.type === "turn.end" && actor?.ruleState?.roninSheathed) events.push({ type: "actor.state", actorId: actor.id, payload: { key: "roninSheathed", value: false, sourceActionId: "enemy.common.ronin.action.sheath", participantIds: [actor.id] } });
   if (event.type === "turn.end") {
     for (const privateer of (scene.actors || []).filter(item => !item.knockedOut && item.profileId === "enemy.common.privateer" && item.ruleState?.privateerGearChange && effectPresenceStatus(scene, item.id).onField)) {
       events.push({ type: "rule.prompt", actorId: privateer.id, payload: { id: `prompt-${event.id}-privateer-gear-${privateer.id}`, kind: "enemy-move-cell", sourceActorId: privateer.id, controller: "narrator", title: "Смена снаряжения", text: `${privateer.name} может переместиться на 1 клетку в конце Хода ${actor?.name || "персонажа"}.`, options: ["cancel"], context: { maxDistance: 1, privateerGearChange: true, endedTurnActorId: event.actorId || null }, participantIds: [privateer.id, event.actorId].filter(Boolean) } });
