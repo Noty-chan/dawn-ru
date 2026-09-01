@@ -152,6 +152,12 @@ const ENEMY_FULL_RULES = new Map([
   ["enemy.common.hound-master.trump.wild-hunt", { type: "hound-seekers", count: 3, minimumTargetDistance: 0 }],
   ["enemy.common.privateer.trump.gear-change", { type: "privateer-gear-change" }],
   ["enemy.common.ronin.action.sheath", { type: "ronin-sheath" }],
+  ["enemy.common.javelin.action.call", { type: "crowd-summon", formula: "2(+1)", range: 4, diminishEachRoundUse: true }],
+  ["enemy.common.broodmother.action.call", { type: "crowd-summon", formula: "2(+1)", range: 4, diminishEachRoundUse: true }],
+  ["enemy.common.glutton.action.call", { type: "crowd-summon", formula: "2(+1)", range: 4, diminishEachRoundUse: true }],
+  ["enemy.common.swarm.action.call", { type: "crowd-summon", formula: "2(+1)", range: 4, oncePerRound: true }],
+  ["enemy.common.bodyguards.trump.reinforcements", { type: "crowd-summon", formula: "2(+1)", edge: true, grantTurn: true }],
+  ["enemy.common.swarm.trump.reinforcements", { type: "crowd-summon", formula: "5(+2)", edge: true, grantTurn: true }],
   ["enemy.named.leon-academy-spatial-mage.trump.elemental-breach", {
     type: "summon-profiles",
     profiles: ["enemy.named.leon-s-vayu-spirit", "enemy.named.leon-s-agni-spirit"],
@@ -686,7 +692,7 @@ function availableEnemyRules(scene, data, actorId) {
     else if (scene.activeActorId !== actor.id) reason = "Сейчас Ход другого участника";
     else if (actor.acted) reason = "Ход противника уже завершён";
     else if (Number(actor.ap || 0) < Number(rule.apCost || 1)) reason = `Нужно ${rule.apCost || 1} ОД`;
-    else if ((actor.usedActions || []).includes(rule.id)) reason = "Это действие уже использовано в Раунде";
+    else if ((actor.usedActions || []).includes(rule.id) && !fullRule?.diminishEachRoundUse) reason = "Это действие уже использовано в Раунде";
     else if (rule.kind === "trump" && actor.usedTrump) reason = "Козырь уже использован в этой Сцене";
     else if (rule.kind === "trump" && Number(scene.tension || 0) < Number(rule.tension || 0)) reason = `Нужно Напряжение ${rule.tension}`;
     else if (rule.id === "enemy.common.cannoneer.trump.fire" && !clockStatus(scene, actor.id, "enemy.common.cannoneer.preparation").full) reason = "Сначала заполните Подготовку 4/4";
@@ -714,6 +720,8 @@ function prepareEnemyRule(scene, data, request = {}) {
   if (!rule) errors.push("Неизвестное действие противника.");
   if (available && !available.available) errors.push(available.reason);
   const fullRule = rule ? ENEMY_FULL_RULES.get(rule.id) : null, family = rule ? ENEMY_ATTACK_FAMILY_RULES.get(rule.id) || {} : {};
+  const roundRuleUses = actor && rule ? currentRoundEvents(scene).filter(event => event.actorId === actor.id && event.type === "enemy.action.prepare" && event.payload?.ruleId === rule.id).length : 0;
+  if (fullRule?.oncePerRound && roundRuleUses) errors.push("Это действие можно использовать только один раз за Раунд.");
   const isAttackRule = Boolean(rule && (rule.kind === "attack" || family.attack));
   const crowdMovementReady = Boolean(actor?.ruleState?.enemyCrowdMovement?.ruleId === rule?.id && Number(actor.ruleState.enemyCrowdMovement.turnSerial) === Number(scene.turnSerial || 0));
   if (actor && rule && family.crowdAdvance && request.options?.beginCrowdMovement && !crowdMovementReady) {
@@ -806,6 +814,21 @@ function prepareEnemyRule(scene, data, request = {}) {
   if (attackOrigin && rule?.range && targets.some(target => modifierRangeDistance(scene, attackOrigin, target) > Number(rule.range))) errors.push(`Цель должна быть в пределах ${rule.range} клеток (включая местность Громадины).`);
   if (fullRule?.type === "pugilist-stance" && (!Number.isInteger(Number(request.options?.stanceStep)) || Number(request.options.stanceStep) < 1 || Number(request.options.stanceStep) > 4)) errors.push("Выберите шаг Пассивa от 1 до 4.");
   const summonCells = [];
+  const crowdSummonCells = [];
+  if (fullRule?.type === "crowd-summon" && actor && space) {
+    const count = Math.max(0, enemyTierFormula(fullRule.formula, actor.tier) - (fullRule.diminishEachRoundUse ? roundRuleUses : 0));
+    const requested = [...new Set((request.options?.cells || []).map(String))], removed = removedCellKeys(scene, actor.space), occupiedCrowd = new Set((scene.actors || []).filter(item => item.kind === "crowd" && !item.knockedOut && item.space === actor.space).map(cellKey));
+    if (requested.length !== count) errors.push(`Выберите ровно ${count} клеток для Зон массовки.`);
+    for (const key of requested) {
+      const match = key.match(/^(\d{1,2}),(\d{1,2})$/), x = match ? Number(match[1]) : -1, y = match ? Number(match[2]) : -1;
+      if (!match || x < 0 || y < 0 || x >= Number(space.width) || y >= Number(space.height)) { errors.push("Одна из клеток Призыва находится за пределами Поля."); continue; }
+      if (removed.has(key)) errors.push("Удалённая клетка не может содержать Зону массовки.");
+      if (occupiedCrowd.has(key)) errors.push("В клетке уже находится Зона массовки.");
+      if (fullRule.edge && x !== 0 && y !== 0 && x !== Number(space.width) - 1 && y !== Number(space.height) - 1) errors.push("Подкрепления размещаются только на краю Поля.");
+      if (!fullRule.edge && modifierRangeDistance(scene, actor, { space: actor.space, x, y }) > Number(fullRule.range || 4)) errors.push(`Зоны массовки должны быть в пределах ${fullRule.range || 4} клеток.`);
+      crowdSummonCells.push({ x, y });
+    }
+  }
   if (fullRule?.type === "summon-profiles" && actor && space) {
     const occupied = new Set((scene.actors || []).filter(item => item.kind !== "crowd" && !item.knockedOut && item.space === actor.space).map(item => `${item.x},${item.y}`));
     for (const [dx, dy] of [[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,-1],[1,-1],[-1,1]]) {
@@ -829,6 +852,7 @@ function prepareEnemyRule(scene, data, request = {}) {
   const targetEffects = targetEffectNames.map(name => effectIdByName(data, name));
   const selfEffects = (rule.selfEffects || []).map(name => effectIdByName(data, name));
   const payload = { ruleId: rule.id, profileId: profile.id, name: rule.name, kind: rule.kind, targetIds, text: rule.text, reward: rule.reward, automation: available?.automation || (targetEffects.length || selfEffects.length ? "effect" : "assisted") };
+  if (fullRule?.type === "crowd-summon") payload.crowdSummon = { token: `crowd-summon-${eventId()}`, cells: crowdSummonCells.map(cellKey) };
   const events = [{ type: "enemy.action.prepare", actorId: actor.id, payload }, { type: "resource.spend", actorId: actor.id, payload: { resource: "ap", amount: Number(rule.apCost || 1) } }];
   if (attackDestination) {
     const movement = family.teleportAttack ? `${rule.name}: телепортация` : `${rule.name}: перемещение`, placement = Boolean(family.teleportAttack || family.preMoveIgnoreRestrictions);
@@ -916,6 +940,11 @@ function prepareEnemyRule(scene, data, request = {}) {
     events.push({ type: "turn.grant", actorId: actor.id, payload: { amount: 1, sourceActionId: rule.id, participantIds: [actor.id] } });
   }
   if (fullRule?.type === "ronin-sheath") events.push({ type: "actor.state", actorId: actor.id, payload: { key: "roninSheathed", value: true, sourceActionId: rule.id, participantIds: [actor.id] } });
+  if (fullRule?.type === "crowd-summon") {
+    const groupId = `crowd-${eventId()}`;
+    for (const [index, point] of crowdSummonCells.entries()) events.push({ type: "actor.spawn", actorId: actor.id, payload: { crowdSummonToken: payload.crowdSummon.token, actor: { id: `crowd-${eventId()}-${index}`, kind: "crowd", crowdType: "mob", crowdGroupId: groupId, source: rule.id, sourceActionId: rule.id, team: actor.team, heroId: null, profileId: null, name: `${actor.name}: массовка`, tier: 0, space: actor.space, x: point.x, y: point.y, hp: 1, maxHp: 1, focus: 0, ap: 0, baseAp: 0, speed: 0, armor: 0, evasion: 0, effects: [], usedActions: [], acted: true, hidden: false, tokenSymbol: "♟", tokenColor: actor.tokenColor || "#7f3044", tokenImage: "", portraitImage: "", summonerId: actor.id }, participantIds: [actor.id] } });
+    if (fullRule.grantTurn) events.push({ type: "turn.grant", actorId: actor.id, payload: { amount: 1, sourceActionId: rule.id, participantIds: [actor.id] } });
+  }
   if (fullRule?.type === "hound-seekers") {
     const target = targets[0], damage = enemyTierFormula("7(+1)", actor.tier), groupId = `seekers-${eventId()}`;
     for (const [index, point] of seekerCells.entries()) events.push({ type: "actor.spawn", actorId: actor.id, payload: { actor: { id: `seeker-${eventId()}-${index}`, kind: "crowd", crowdSubtype: "seeker", crowdType: "hounds", crowdGroupId: groupId, seekerTargetId: target.id, seekerOwnerId: actor.id, seekerDamage: damage, source: rule.id, sourceActionId: rule.id, team: actor.team, heroId: null, profileId: null, name: "Ищейка", tier: 0, space: actor.space, x: point.x, y: point.y, hp: 1, maxHp: 1, focus: 0, ap: 0, baseAp: 0, speed: 0, armor: 0, evasion: 0, effects: [], usedActions: [], acted: true, hidden: false, tokenSymbol: "◆", tokenColor: "#72558f", tokenImage: "", portraitImage: "" }, participantIds: [actor.id, target.id] } });
