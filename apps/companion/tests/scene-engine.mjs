@@ -2966,6 +2966,14 @@ paladinContractScene.tension = 3; paladinContractScene.actors.push({ ...structur
 const giftContract = Engine.prepareEnemyRule(paladinContractScene, data, { actorId: "enemy", ruleId: profileRule("enemy.common.paladin", "Gift From God").id, targetIds: ["paladin-ally"], roll: { formula: "6D6", rolls: [6, 4, 1, 1, 1, 1], successes: 2, crits: 1 } });
 assert.equal(giftContract.events.find(event => event.type === "actor.heal")?.payload.amount, 5, "Paladin passive replaces allied Gift damage with Hits plus Tension healing");
 assert.ok(giftContract.events.some(event => event.type === "effect.apply" && event.payload.effect === "positive.регенерирует"), "Gift also grants Regenerate to an ally");
+let wealContractScene = profileScene("enemy.common.paladin"); wealContractScene.tension = 1; wealContractScene.actors.push({ ...structuredClone(wealContractScene.actors[1]), id: "weal-ally", profileId: "enemy.common.guardian", team: "enemy", x: 2, y: 2, hp: 1, maxHp: 20, effects: [] });
+const wealContract = profileRule("enemy.common.paladin", "Weal and Woe"), wealPrepared = Engine.prepareEnemyRule(wealContractScene, data, { actorId: "enemy", ruleId: wealContract.id, targetIds: [], roll: { formula: "5D6 · Благо и горе", rolls: [6, 5, 2, 1, 1], successes: 2, crits: 1 } });
+assert.equal(Engine.enemyRuleAutomation(wealContract.id), "attack", "Weal and Woe reuses the complete Gift From God attack family");
+assert.equal(wealPrepared.ok, true);
+assert.deepEqual(Array.from(wealPrepared.events.find(event => event.type === "attack.pending")?.payload.targetIds || []), ["hero"], "Weal and Woe authoritatively derives every hostile character within two spaces");
+assert.equal(wealPrepared.events.find(event => event.type === "actor.heal" && event.payload.targetId === "weal-ally")?.payload.amount, 3, "Weal and Woe heals each allied character by Hits plus Tension");
+assert.ok(wealPrepared.events.some(event => event.type === "effect.apply" && event.payload.targetId === "weal-ally" && event.payload.effect === "positive.регенерирует"), "Weal and Woe grants Regenerate to every ally in the radius");
+assert.ok(!wealPrepared.events.some(event => event.payload?.targetId === "enemy"), "Weal and Woe does not make the Paladin attack itself");
 let builderContractScene = profileScene("enemy.common.builder"); builderContractScene.actors[1].tier = 3; builderContractScene.actors[0].x = 5;
 const constructionContract = Engine.prepareEnemyRule(builderContractScene, data, { actorId: "enemy", ruleId: profileRule("enemy.common.builder", "Violent Construction").id, targetIds: ["hero"], damage: 999 });
 assert.equal(constructionContract.events.find(event => event.type === "attack.pending")?.payload.damage, 5, "Violent Construction re-derives 3(+1) damage from the actor Tier and ignores forged input");

@@ -58,6 +58,7 @@ const ENEMY_AUTO_ATTACK_RULES = new Map([
   ["enemy.common.rifter.attack.emerge", 1],
   ["enemy.common.swarm.attack.tear", 1],
   ["enemy.common.cannoneer.trump.fire", 1],
+  ["enemy.common.paladin.trump.weal-and-woe", 1],
   ["enemy.named.leon-academy-spatial-mage.attack.emerge", 1],
   ["enemy.named.leon-s-vayu-spirit.attack.air-shove", 0],
   ["enemy.named.leon-s-agni-spirit.attack.fire-spark", 0],
@@ -84,6 +85,7 @@ const ENEMY_ATTACK_FAMILY_RULES = new Map([
   ["enemy.common.mount.attack.thrash", { maxTargets: 2, adjacent: true }],
   ["enemy.common.oni.attack.polaris", { effects: [], maxTargets: 40, audience: "any", oniModes: true, preMoveMaximum: 2, preMoveStraight: true, targetsAdjacentAfterMove: true }],
   ["enemy.common.paladin.attack.gift-from-god", { effects: [], maxTargets: 2, adjacent: true, audience: "any", allyHeal: true, allyEffects: ["Регенерирует"], enemyEffects: ["Ошеломлен"] }],
+  ["enemy.common.paladin.trump.weal-and-woe", { effects: [], attack: true, range: 2, maxTargets: 40, audience: "any", allyHeal: true, allyEffects: ["Регенерирует"], enemyEffects: ["Ошеломлен"] }],
   ["enemy.common.daredevil.attack.dance", { maxTargets: 2, adjacent: true }],
   ["enemy.common.berserker.attack.thrash", { postPush: 1 }],
   ["enemy.common.hound-master.attack.shove", { postPush: 2 }],
@@ -717,6 +719,7 @@ function prepareEnemyRule(scene, data, request = {}) {
   }
   if (actor && rule && family.crowdAdvance && !crowdMovementReady) errors.push("Сначала разрешите движение всех союзных Зон массовки.");
   let targetIds = [...new Set(request.targetIds || [])];
+  if (rule?.id === "enemy.common.paladin.trump.weal-and-woe" && actor) targetIds = (scene.actors || []).filter(target => target.id !== actor.id && !target.knockedOut && target.space === actor.space && distance(actor, target) <= 2).map(target => target.id);
   if (fullRule?.type === "regenerating-allies" && actor) targetIds = (scene.actors || []).filter(target => !target.knockedOut && target.team === actor.team && (target.effects || []).some(effect => String(effect).includes("регенер"))).map(target => target.id);
   if (fullRule?.type === "corrupted-damage" && actor) targetIds = (scene.actors || []).filter(target => !target.knockedOut && target.team !== actor.team && (target.effects || []).some(effect => String(effect).includes("порчен"))).map(target => target.id);
   if (fullRule?.type === "guardian-shield" && actor) targetIds = (scene.actors || []).filter(target => !target.knockedOut && target.team !== actor.team && target.space === actor.space && distance(actor, target) <= 4).map(target => target.id);
