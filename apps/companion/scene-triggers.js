@@ -982,6 +982,11 @@ function triggeredEvents(scene, event, options = {}) {
       events.push({ type: "actor.despawn", actorId: actor.id, payload: { reason: `Ищейка достигла цели ${target.name}`, sourceActionId: "enemy.common.hound-master.seeker.explode", participantIds: [target.id, ...victims.map(item => item.id)] } });
     }
   }
+  if (event.type === "turn.end") {
+    for (const privateer of (scene.actors || []).filter(item => !item.knockedOut && item.profileId === "enemy.common.privateer" && item.ruleState?.privateerGearChange && effectPresenceStatus(scene, item.id).onField)) {
+      events.push({ type: "rule.prompt", actorId: privateer.id, payload: { id: `prompt-${event.id}-privateer-gear-${privateer.id}`, kind: "enemy-move-cell", sourceActorId: privateer.id, controller: "narrator", title: "Смена снаряжения", text: `${privateer.name} может переместиться на 1 клетку в конце Хода ${actor?.name || "персонажа"}.`, options: ["cancel"], context: { maxDistance: 1, privateerGearChange: true, endedTurnActorId: event.actorId || null }, participantIds: [privateer.id, event.actorId].filter(Boolean) } });
+    }
+  }
   if (event.type === "turn.end" && actor?.team === "enemy" && actor.kind !== "crowd") {
     const crowdIds = (scene.actors || []).filter(item => item.kind === "crowd" && !item.knockedOut && item.team === actor.team && item.space === actor.space).map(item => item.id);
     if (crowdIds.length) events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${event.id}-fodder-move`, kind: "fodder-move-select", sourceActorId: actor.id, controller: "narrator", title: "Движение массовки", text: "Настройте все перемещения одним пакетом или откройте отдельную Зону на поле.", options: [...crowdIds.map(id => `target:${id}`), "custom", "finish"], context: { remainingTargetIds: crowdIds, optionLabels: { custom: "Применить пакет", finish: "Оставить остальные на месте" } }, participantIds: [actor.id, ...crowdIds] } });

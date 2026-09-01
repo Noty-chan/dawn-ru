@@ -148,6 +148,7 @@ const ENEMY_FULL_RULES = new Map([
   ["enemy.common.broodmother.trump.roar", { type: "broodmother-roar" }],
   ["enemy.common.hound-master.action.fire-seeker", { type: "hound-seekers", count: 1, minimumTargetDistance: 4 }],
   ["enemy.common.hound-master.trump.wild-hunt", { type: "hound-seekers", count: 3, minimumTargetDistance: 0 }],
+  ["enemy.common.privateer.trump.gear-change", { type: "privateer-gear-change" }],
   ["enemy.named.leon-academy-spatial-mage.trump.elemental-breach", {
     type: "summon-profiles",
     profiles: ["enemy.named.leon-s-vayu-spirit", "enemy.named.leon-s-agni-spirit"],
@@ -903,6 +904,10 @@ function prepareEnemyRule(scene, data, request = {}) {
     const provoked = (scene.actors || []).filter(target => !target.knockedOut && target.team !== actor.team && target.space === actor.space && Math.abs(target.x - actor.x) <= 2 && Math.abs(target.y - actor.y) <= 2);
     for (const target of provoked) events.push({ type: "effect.apply", actorId: actor.id, payload: { targetId: target.id, effect: "negative.спровоцирован", sourceActionId: rule.id, participantIds: [actor.id, target.id] } });
     events.push({ type: "turn.grant", actorId: actor.id, payload: { amount: 1, sourceActionId: rule.id } });
+  }
+  if (fullRule?.type === "privateer-gear-change") {
+    events.push({ type: "actor.state", actorId: actor.id, payload: { key: "privateerGearChange", value: true, sourceActionId: rule.id, participantIds: [actor.id] } });
+    events.push({ type: "turn.grant", actorId: actor.id, payload: { amount: 1, sourceActionId: rule.id, participantIds: [actor.id] } });
   }
   if (fullRule?.type === "hound-seekers") {
     const target = targets[0], damage = enemyTierFormula("7(+1)", actor.tier), groupId = `seekers-${eventId()}`;
