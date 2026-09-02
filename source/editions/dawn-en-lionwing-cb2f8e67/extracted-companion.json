@@ -39,6 +39,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 69
           },
           "id": "powerhouse.berserker",
@@ -71,6 +72,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 69
           },
           "id": "powerhouse.dragonslayer",
@@ -103,6 +105,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 69
           },
           "id": "powerhouse.duelist",
@@ -135,6 +138,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 69
           },
           "id": "powerhouse.flagellant",
@@ -167,6 +171,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 69
           },
           "id": "powerhouse.gunslinger",
@@ -199,6 +204,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 70
           },
           "id": "powerhouse.struggler",
@@ -231,6 +237,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 70
           },
           "id": "powerhouse.spellsword",
@@ -263,6 +270,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 70
           },
           "id": "powerhouse.technician",
@@ -295,6 +303,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 70
           },
           "id": "powerhouse.unbroken",
@@ -327,6 +336,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 71
           },
           "id": "powerhouse.braggart",
@@ -359,6 +369,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 71
           },
           "id": "powerhouse.breacher",
@@ -391,6 +402,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 71
           },
           "id": "powerhouse.dual-wielder",
@@ -423,6 +435,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 71
           },
           "id": "powerhouse.intimidator",
@@ -454,6 +467,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 72
           },
           "id": "powerhouse.martial-artist",
@@ -486,6 +500,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 72
           },
           "id": "powerhouse.monastic-sage",
@@ -518,6 +533,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 72
           },
           "id": "powerhouse.lancer",
@@ -550,6 +566,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 72
           },
           "id": "powerhouse.predator",
@@ -582,6 +599,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 73
           },
           "id": "powerhouse.improvisational-fighter",
@@ -614,6 +632,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 73
           },
           "id": "powerhouse.warring-ascendant",
@@ -646,6 +665,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 73
           },
           "id": "powerhouse.heroic-ascendant",
@@ -683,6 +703,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 75
           },
           "id": "vagabond.aerial-master",
@@ -715,6 +736,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 75
           },
           "id": "vagabond.assassin",
@@ -747,6 +769,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 75
           },
           "id": "vagabond.sniper",
@@ -779,6 +802,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 75
           },
           "id": "vagabond.skirmisher",
@@ -811,6 +835,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 75
           },
           "id": "vagabond.speed-demon",
@@ -843,6 +868,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 75
           },
           "id": "vagabond.untouchable",
@@ -875,6 +901,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 76
           },
           "id": "vagabond.acrobat",
@@ -907,6 +934,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 76
           },
           "id": "vagabond.blade-master",
@@ -939,6 +967,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 76
           },
           "id": "vagabond.cunning-fighter",
@@ -971,6 +1000,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 76
           },
           "id": "vagabond.egomaniac",
@@ -1003,6 +1033,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 77
           },
           "id": "vagabond.enchained",
@@ -1035,6 +1066,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 77
           },
           "id": "vagabond.knife-juggler",
@@ -1067,6 +1099,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 77
           },
           "id": "vagabond.malicious-mimic",
@@ -1099,6 +1132,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 78
           },
           "id": "vagabond.weaponsmith",
@@ -1130,6 +1164,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 78
           },
           "id": "vagabond.modified-meister",
@@ -1162,6 +1197,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 78
           },
           "id": "vagabond.opportunist",
@@ -1194,6 +1230,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 78
           },
           "id": "vagabond.reflector",
@@ -1226,6 +1263,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 79
           },
           "id": "vagabond.dim-mak",
@@ -1258,6 +1296,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 79
           },
           "id": "vagabond.drunkard",
@@ -1290,6 +1329,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 79
           },
           "id": "vagabond.master-at-arms",
@@ -1328,6 +1368,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 81
           },
           "id": "bulwark.crusher",
@@ -1360,6 +1401,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 81
           },
           "id": "bulwark.giant-frame",
@@ -1392,6 +1434,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 81
           },
           "id": "bulwark.iron-bodied",
@@ -1424,6 +1467,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 81
           },
           "id": "bulwark.vanguard-defender",
@@ -1456,6 +1500,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 82
           },
           "id": "bulwark.absolute-bastard",
@@ -1488,6 +1533,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 82
           },
           "id": "bulwark.battle-jockey",
@@ -1520,6 +1566,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 82
           },
           "id": "bulwark.grappler",
@@ -1552,6 +1599,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 82
           },
           "id": "bulwark.juggernaut",
@@ -1584,6 +1632,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 82
           },
           "id": "bulwark.runic-retribution",
@@ -1616,6 +1665,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 83
           },
           "id": "bulwark.mundane",
@@ -1648,6 +1698,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 83
           },
           "id": "bulwark.rising-challenger",
@@ -1680,6 +1731,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 83
           },
           "id": "bulwark.shield-bearer",
@@ -1712,6 +1764,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 83
           },
           "id": "bulwark.stalwart-sentry",
@@ -1744,6 +1797,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 84
           },
           "id": "bulwark.beastial-ascendant",
@@ -1776,6 +1830,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 84
           },
           "id": "bulwark.guardian-angel",
@@ -1808,6 +1863,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 84
           },
           "id": "bulwark.mecha-pilot",
@@ -1846,6 +1902,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 86
           },
           "id": "altruist.precognizant",
@@ -1878,6 +1935,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 86
           },
           "id": "altruist.battle-instructor",
@@ -1910,6 +1968,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 86
           },
           "id": "altruist.empath",
@@ -1942,6 +2001,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 86
           },
           "id": "altruist.heavenly-saint",
@@ -1974,6 +2034,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 86
           },
           "id": "altruist.gourmand",
@@ -2006,6 +2067,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 87
           },
           "id": "altruist.surgeon",
@@ -2038,6 +2100,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 87
           },
           "id": "disruptor.tactical-master",
@@ -2070,6 +2133,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 87
           },
           "id": "altruist.talisman-caster",
@@ -2102,6 +2166,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 88
           },
           "id": "altruist.abjuring-sage",
@@ -2133,6 +2198,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 88
           },
           "id": "altruist.alchemist",
@@ -2165,6 +2231,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 88
           },
           "id": "altruist.dancer",
@@ -2197,6 +2264,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 88
           },
           "id": "altruist.fog-walker",
@@ -2229,6 +2297,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 89
           },
           "id": "altruist.last-hope",
@@ -2261,6 +2330,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 89
           },
           "id": "altruist.replicator",
@@ -2293,6 +2363,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 89
           },
           "id": "altruist.chronomancer",
@@ -2325,6 +2396,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 89
           },
           "id": "altruist.bardic-savant",
@@ -2357,6 +2429,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 90
           },
           "id": "altruist.artist",
@@ -2389,6 +2462,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 90
           },
           "id": "altruist.deckbuilder",
@@ -2421,6 +2495,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 90
           },
           "id": "altruist.will-o-wisp",
@@ -2459,6 +2534,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 92
           },
           "id": "disruptor.bloodletter",
@@ -2491,6 +2567,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 92
           },
           "id": "disruptor.chemist",
@@ -2523,6 +2600,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 92
           },
           "id": "disruptor.constrictor",
@@ -2555,6 +2633,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 93
           },
           "id": "disruptor.cutpurse",
@@ -2587,6 +2666,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 93
           },
           "id": "disruptor.light-bender",
@@ -2618,6 +2698,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 93
           },
           "id": "disruptor.reaper",
@@ -2650,6 +2731,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 93
           },
           "id": "disruptor.street-fighter",
@@ -2682,6 +2764,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 94
           },
           "id": "disruptor.autophage",
@@ -2714,6 +2797,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 94
           },
           "id": "disruptor.earth-speaker",
@@ -2746,6 +2830,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 94
           },
           "id": "disruptor.inhuman-strength",
@@ -2778,6 +2863,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 94
           },
           "id": "disruptor.swarm-body",
@@ -2810,6 +2896,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 95
           },
           "id": "disruptor.siren",
@@ -2842,6 +2929,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 95
           },
           "id": "disruptor.wave-rider",
@@ -2874,6 +2962,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 95
           },
           "id": "disruptor.mind-breaker",
@@ -2906,6 +2995,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 96
           },
           "id": "disruptor.gale-strider",
@@ -2938,6 +3028,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 96
           },
           "id": "disruptor.hunter",
@@ -2970,6 +3061,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 96
           },
           "id": "disruptor.mage-s-array",
@@ -3002,6 +3094,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 96
           },
           "id": "disruptor.inner-world",
@@ -3040,6 +3133,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 98
           },
           "id": "ruiner.bombardier",
@@ -3072,6 +3166,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 98
           },
           "id": "ruiner.rapid-fire-sorcery",
@@ -3104,6 +3199,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 98
           },
           "id": "ruiner.ritualist",
@@ -3136,6 +3232,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 98
           },
           "id": "ruiner.spellcrafter",
@@ -3168,6 +3265,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 98
           },
           "id": "ruiner.student-of-stars",
@@ -3200,6 +3298,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 99
           },
           "id": "ruiner.mana-blades",
@@ -3232,6 +3331,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 99
           },
           "id": "ruiner.dramaturge",
@@ -3264,6 +3364,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 99
           },
           "id": "ruiner.feral-arcana",
@@ -3296,6 +3397,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 99
           },
           "id": "ruiner.flame-heart",
@@ -3328,6 +3430,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 100
           },
           "id": "ruiner.cryomancer",
@@ -3360,6 +3463,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 100
           },
           "id": "ruiner.grim-ascendant",
@@ -3392,6 +3496,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 100
           },
           "id": "ruiner.long-draw",
@@ -3424,6 +3529,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 100
           },
           "id": "ruiner.sellsword-s-call",
@@ -3456,6 +3562,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 101
           },
           "id": "ruiner.void-soul",
@@ -3488,6 +3595,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 101
           },
           "id": "ruiner.thunder-blood",
@@ -3520,6 +3628,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 101
           },
           "id": "ruiner.zealot",
@@ -3552,6 +3661,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 102
           },
           "id": "ruiner.creation-ascetic",
@@ -3584,6 +3694,7 @@
           ],
           "source": {
             "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
             "pdfPage": 102
           },
           "id": "ruiner.ego-arm",
@@ -3652,6 +3763,7 @@
       ],
       "source": {
         "editionId": "dawn-en-lionwing-cb2f8e67",
+        "locale": "en",
         "pdfPage": 50
       }
     },
@@ -3705,6 +3817,7 @@
       ],
       "source": {
         "editionId": "dawn-en-lionwing-cb2f8e67",
+        "locale": "en",
         "pdfPage": 50
       }
     },
@@ -3766,6 +3879,7 @@
       ],
       "source": {
         "editionId": "dawn-en-lionwing-cb2f8e67",
+        "locale": "en",
         "pdfPage": 51
       }
     },
@@ -3826,6 +3940,7 @@
       ],
       "source": {
         "editionId": "dawn-en-lionwing-cb2f8e67",
+        "locale": "en",
         "pdfPage": 51
       }
     },
@@ -3873,6 +3988,7 @@
       ],
       "source": {
         "editionId": "dawn-en-lionwing-cb2f8e67",
+        "locale": "en",
         "pdfPage": 52
       }
     },
@@ -3927,6 +4043,7 @@
       ],
       "source": {
         "editionId": "dawn-en-lionwing-cb2f8e67",
+        "locale": "en",
         "pdfPage": 52
       }
     },
@@ -3981,6 +4098,7 @@
       ],
       "source": {
         "editionId": "dawn-en-lionwing-cb2f8e67",
+        "locale": "en",
         "pdfPage": 53
       }
     },
@@ -4028,6 +4146,7 @@
       ],
       "source": {
         "editionId": "dawn-en-lionwing-cb2f8e67",
+        "locale": "en",
         "pdfPage": 53
       }
     },
@@ -4082,6 +4201,7 @@
       ],
       "source": {
         "editionId": "dawn-en-lionwing-cb2f8e67",
+        "locale": "en",
         "pdfPage": 54
       }
     },
@@ -4129,6 +4249,7 @@
       ],
       "source": {
         "editionId": "dawn-en-lionwing-cb2f8e67",
+        "locale": "en",
         "pdfPage": 54
       }
     }
@@ -4143,6 +4264,7 @@
         "marks": "✢",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       },
@@ -4154,6 +4276,7 @@
         "marks": "✢",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       },
@@ -4165,6 +4288,7 @@
         "marks": "✢",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       },
@@ -4176,6 +4300,7 @@
         "marks": "✢",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       },
@@ -4187,6 +4312,7 @@
         "marks": "✢",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       },
@@ -4198,6 +4324,7 @@
         "marks": "✢",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       },
@@ -4209,6 +4336,7 @@
         "marks": "✢",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       },
@@ -4220,6 +4348,7 @@
         "marks": "✢",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       },
@@ -4231,6 +4360,7 @@
         "marks": "",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       },
@@ -4242,6 +4372,7 @@
         "marks": "",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       },
@@ -4253,6 +4384,7 @@
         "marks": "",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       },
@@ -4264,6 +4396,7 @@
         "marks": "",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       },
@@ -4275,6 +4408,7 @@
         "marks": "",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       },
@@ -4286,6 +4420,7 @@
         "marks": "",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       },
@@ -4297,6 +4432,7 @@
         "marks": "",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       },
@@ -4308,6 +4444,7 @@
         "marks": "",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       },
@@ -4319,6 +4456,7 @@
         "marks": "",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       },
@@ -4330,6 +4468,7 @@
         "marks": "",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       },
@@ -4341,6 +4480,7 @@
         "marks": "",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       },
@@ -4352,6 +4492,7 @@
         "marks": "",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       },
@@ -4363,6 +4504,7 @@
         "marks": "",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       },
@@ -4374,6 +4516,7 @@
         "marks": "",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       },
@@ -4385,6 +4528,7 @@
         "marks": "",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       },
@@ -4396,6 +4540,7 @@
         "marks": "",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       },
@@ -4407,6 +4552,7 @@
         "marks": "",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       },
@@ -4418,6 +4564,7 @@
         "marks": "",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       },
@@ -4429,6 +4576,7 @@
         "marks": "",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       },
@@ -4440,6 +4588,7 @@
         "marks": "",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       },
@@ -4451,6 +4600,7 @@
         "marks": "",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       },
@@ -4462,6 +4612,7 @@
         "marks": "",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       },
@@ -4473,6 +4624,7 @@
         "marks": "",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       },
@@ -4484,6 +4636,7 @@
         "marks": "",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       },
@@ -4495,6 +4648,7 @@
         "marks": "",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       },
@@ -4506,6 +4660,7 @@
         "marks": "",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       },
@@ -4517,6 +4672,7 @@
         "marks": "✢",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       },
@@ -4528,6 +4684,7 @@
         "marks": "✢",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       },
@@ -4539,6 +4696,7 @@
         "marks": "",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       },
@@ -4550,6 +4708,7 @@
         "marks": "",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       },
@@ -4561,6 +4720,7 @@
         "marks": "☾",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       },
@@ -4572,6 +4732,7 @@
         "marks": "☾",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       },
@@ -4583,6 +4744,7 @@
         "marks": "☾",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       }
@@ -4596,6 +4758,7 @@
         "marks": "",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       },
@@ -4607,6 +4770,7 @@
         "marks": "",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       },
@@ -4618,6 +4782,7 @@
         "marks": "✢",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       },
@@ -4629,6 +4794,7 @@
         "marks": "✢",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       },
@@ -4640,6 +4806,7 @@
         "marks": "",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       },
@@ -4651,6 +4818,7 @@
         "marks": "",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       },
@@ -4662,6 +4830,7 @@
         "marks": "",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       },
@@ -4673,6 +4842,7 @@
         "marks": "",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       },
@@ -4684,6 +4854,7 @@
         "marks": "",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       },
@@ -4695,6 +4866,7 @@
         "marks": "✝",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       },
@@ -4706,6 +4878,7 @@
         "marks": "✝",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       },
@@ -4717,6 +4890,7 @@
         "marks": "✝",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       },
@@ -4728,6 +4902,7 @@
         "marks": "",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       },
@@ -4739,6 +4914,7 @@
         "marks": "",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       },
@@ -4750,6 +4926,7 @@
         "marks": "",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       },
@@ -4761,6 +4938,7 @@
         "marks": "",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       },
@@ -4772,6 +4950,7 @@
         "marks": "",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       },
@@ -4783,6 +4962,7 @@
         "marks": "✝",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       },
@@ -4794,6 +4974,7 @@
         "marks": "✝",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       },
@@ -4805,6 +4986,7 @@
         "marks": "",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       },
@@ -4816,6 +4998,7 @@
         "marks": "",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       },
@@ -4827,6 +5010,7 @@
         "marks": "✝",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       },
@@ -4838,6 +5022,7 @@
         "marks": "✝",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       },
@@ -4849,6 +5034,7 @@
         "marks": "✝",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       },
@@ -4860,6 +5046,7 @@
         "marks": "✝",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       },
@@ -4871,6 +5058,7 @@
         "marks": "✝",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       },
@@ -4882,6 +5070,7 @@
         "marks": "✢",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       },
@@ -4893,6 +5082,7 @@
         "marks": "",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       },
@@ -4904,6 +5094,7 @@
         "marks": "",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       },
@@ -4915,6 +5106,7 @@
         "marks": "",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       },
@@ -4926,6 +5118,7 @@
         "marks": "✝",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       },
@@ -4937,6 +5130,7 @@
         "marks": "✢✝",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       },
@@ -4948,6 +5142,7 @@
         "marks": "✢✝",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       },
@@ -4959,6 +5154,7 @@
         "marks": "",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       },
@@ -4970,6 +5166,7 @@
         "marks": "",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       },
@@ -4981,6 +5178,7 @@
         "marks": "",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       },
@@ -4992,6 +5190,7 @@
         "marks": "",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       },
@@ -5003,6 +5202,7 @@
         "marks": "",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       },
@@ -5014,6 +5214,7 @@
         "marks": "",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       },
@@ -5025,6 +5226,7 @@
         "marks": "",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       },
@@ -5036,6 +5238,7 @@
         "marks": "",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       }
@@ -5049,6 +5252,7 @@
         "marks": "✝",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       },
@@ -5060,6 +5264,7 @@
         "marks": "",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       },
@@ -5071,6 +5276,7 @@
         "marks": "",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       },
@@ -5082,6 +5288,7 @@
         "marks": "☾",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       },
@@ -5093,6 +5300,7 @@
         "marks": "☾",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       },
@@ -5104,6 +5312,7 @@
         "marks": "",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       },
@@ -5115,6 +5324,7 @@
         "marks": "",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       },
@@ -5126,6 +5336,7 @@
         "marks": "",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       },
@@ -5137,6 +5348,7 @@
         "marks": "",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       },
@@ -5148,6 +5360,7 @@
         "marks": "",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       },
@@ -5159,6 +5372,7 @@
         "marks": "",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       },
@@ -5170,6 +5384,7 @@
         "marks": "",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       },
@@ -5181,6 +5396,7 @@
         "marks": "",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       },
@@ -5192,6 +5408,7 @@
         "marks": "",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       },
@@ -5203,6 +5420,7 @@
         "marks": "",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       },
@@ -5214,6 +5432,7 @@
         "marks": "",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       },
@@ -5225,6 +5444,7 @@
         "marks": "",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       },
@@ -5236,6 +5456,7 @@
         "marks": "",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       },
@@ -5247,6 +5468,7 @@
         "marks": "",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       },
@@ -5258,6 +5480,7 @@
         "marks": "",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       },
@@ -5269,6 +5492,7 @@
         "marks": "",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       },
@@ -5280,6 +5504,7 @@
         "marks": "",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
           "pdfPage": 46
         }
       }

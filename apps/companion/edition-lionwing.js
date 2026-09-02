@@ -40,6 +40,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 69
      },
      "id": "powerhouse.berserker",
@@ -72,6 +73,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 69
      },
      "id": "powerhouse.dragonslayer",
@@ -104,6 +106,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 69
      },
      "id": "powerhouse.duelist",
@@ -136,6 +139,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 69
      },
      "id": "powerhouse.flagellant",
@@ -168,6 +172,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 69
      },
      "id": "powerhouse.gunslinger",
@@ -200,6 +205,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 70
      },
      "id": "powerhouse.struggler",
@@ -232,6 +238,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 70
      },
      "id": "powerhouse.spellsword",
@@ -264,6 +271,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 70
      },
      "id": "powerhouse.technician",
@@ -296,6 +304,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 70
      },
      "id": "powerhouse.unbroken",
@@ -328,6 +337,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 71
      },
      "id": "powerhouse.braggart",
@@ -360,6 +370,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 71
      },
      "id": "powerhouse.breacher",
@@ -392,6 +403,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 71
      },
      "id": "powerhouse.dual-wielder",
@@ -424,6 +436,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 71
      },
      "id": "powerhouse.intimidator",
@@ -455,6 +468,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 72
      },
      "id": "powerhouse.martial-artist",
@@ -487,6 +501,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 72
      },
      "id": "powerhouse.monastic-sage",
@@ -519,6 +534,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 72
      },
      "id": "powerhouse.lancer",
@@ -551,6 +567,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 72
      },
      "id": "powerhouse.predator",
@@ -583,6 +600,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 73
      },
      "id": "powerhouse.improvisational-fighter",
@@ -615,6 +633,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 73
      },
      "id": "powerhouse.warring-ascendant",
@@ -647,6 +666,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 73
      },
      "id": "powerhouse.heroic-ascendant",
@@ -684,6 +704,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 75
      },
      "id": "vagabond.aerial-master",
@@ -716,6 +737,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 75
      },
      "id": "vagabond.assassin",
@@ -748,6 +770,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 75
      },
      "id": "vagabond.sniper",
@@ -780,6 +803,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 75
      },
      "id": "vagabond.skirmisher",
@@ -812,6 +836,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 75
      },
      "id": "vagabond.speed-demon",
@@ -844,6 +869,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 75
      },
      "id": "vagabond.untouchable",
@@ -876,6 +902,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 76
      },
      "id": "vagabond.acrobat",
@@ -908,6 +935,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 76
      },
      "id": "vagabond.blade-master",
@@ -940,6 +968,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 76
      },
      "id": "vagabond.cunning-fighter",
@@ -972,6 +1001,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 76
      },
      "id": "vagabond.egomaniac",
@@ -1004,6 +1034,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 77
      },
      "id": "vagabond.enchained",
@@ -1036,6 +1067,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 77
      },
      "id": "vagabond.knife-juggler",
@@ -1068,6 +1100,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 77
      },
      "id": "vagabond.malicious-mimic",
@@ -1100,6 +1133,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 78
      },
      "id": "vagabond.weaponsmith",
@@ -1131,6 +1165,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 78
      },
      "id": "vagabond.modified-meister",
@@ -1163,6 +1198,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 78
      },
      "id": "vagabond.opportunist",
@@ -1195,6 +1231,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 78
      },
      "id": "vagabond.reflector",
@@ -1227,6 +1264,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 79
      },
      "id": "vagabond.dim-mak",
@@ -1259,6 +1297,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 79
      },
      "id": "vagabond.drunkard",
@@ -1291,6 +1330,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 79
      },
      "id": "vagabond.master-at-arms",
@@ -1329,6 +1369,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 81
      },
      "id": "bulwark.crusher",
@@ -1361,6 +1402,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 81
      },
      "id": "bulwark.giant-frame",
@@ -1393,6 +1435,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 81
      },
      "id": "bulwark.iron-bodied",
@@ -1425,6 +1468,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 81
      },
      "id": "bulwark.vanguard-defender",
@@ -1457,6 +1501,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 82
      },
      "id": "bulwark.absolute-bastard",
@@ -1489,6 +1534,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 82
      },
      "id": "bulwark.battle-jockey",
@@ -1521,6 +1567,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 82
      },
      "id": "bulwark.grappler",
@@ -1553,6 +1600,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 82
      },
      "id": "bulwark.juggernaut",
@@ -1585,6 +1633,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 82
      },
      "id": "bulwark.runic-retribution",
@@ -1617,6 +1666,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 83
      },
      "id": "bulwark.mundane",
@@ -1649,6 +1699,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 83
      },
      "id": "bulwark.rising-challenger",
@@ -1681,6 +1732,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 83
      },
      "id": "bulwark.shield-bearer",
@@ -1713,6 +1765,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 83
      },
      "id": "bulwark.stalwart-sentry",
@@ -1745,6 +1798,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 84
      },
      "id": "bulwark.beastial-ascendant",
@@ -1777,6 +1831,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 84
      },
      "id": "bulwark.guardian-angel",
@@ -1809,6 +1864,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 84
      },
      "id": "bulwark.mecha-pilot",
@@ -1847,6 +1903,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 86
      },
      "id": "altruist.precognizant",
@@ -1879,6 +1936,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 86
      },
      "id": "altruist.battle-instructor",
@@ -1911,6 +1969,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 86
      },
      "id": "altruist.empath",
@@ -1943,6 +2002,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 86
      },
      "id": "altruist.heavenly-saint",
@@ -1975,6 +2035,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 86
      },
      "id": "altruist.gourmand",
@@ -2007,6 +2068,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 87
      },
      "id": "altruist.surgeon",
@@ -2039,6 +2101,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 87
      },
      "id": "disruptor.tactical-master",
@@ -2071,6 +2134,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 87
      },
      "id": "altruist.talisman-caster",
@@ -2103,6 +2167,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 88
      },
      "id": "altruist.abjuring-sage",
@@ -2134,6 +2199,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 88
      },
      "id": "altruist.alchemist",
@@ -2166,6 +2232,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 88
      },
      "id": "altruist.dancer",
@@ -2198,6 +2265,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 88
      },
      "id": "altruist.fog-walker",
@@ -2230,6 +2298,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 89
      },
      "id": "altruist.last-hope",
@@ -2262,6 +2331,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 89
      },
      "id": "altruist.replicator",
@@ -2294,6 +2364,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 89
      },
      "id": "altruist.chronomancer",
@@ -2326,6 +2397,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 89
      },
      "id": "altruist.bardic-savant",
@@ -2358,6 +2430,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 90
      },
      "id": "altruist.artist",
@@ -2390,6 +2463,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 90
      },
      "id": "altruist.deckbuilder",
@@ -2422,6 +2496,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 90
      },
      "id": "altruist.will-o-wisp",
@@ -2460,6 +2535,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 92
      },
      "id": "disruptor.bloodletter",
@@ -2492,6 +2568,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 92
      },
      "id": "disruptor.chemist",
@@ -2524,6 +2601,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 92
      },
      "id": "disruptor.constrictor",
@@ -2556,6 +2634,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 93
      },
      "id": "disruptor.cutpurse",
@@ -2588,6 +2667,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 93
      },
      "id": "disruptor.light-bender",
@@ -2619,6 +2699,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 93
      },
      "id": "disruptor.reaper",
@@ -2651,6 +2732,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 93
      },
      "id": "disruptor.street-fighter",
@@ -2683,6 +2765,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 94
      },
      "id": "disruptor.autophage",
@@ -2715,6 +2798,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 94
      },
      "id": "disruptor.earth-speaker",
@@ -2747,6 +2831,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 94
      },
      "id": "disruptor.inhuman-strength",
@@ -2779,6 +2864,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 94
      },
      "id": "disruptor.swarm-body",
@@ -2811,6 +2897,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 95
      },
      "id": "disruptor.siren",
@@ -2843,6 +2930,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 95
      },
      "id": "disruptor.wave-rider",
@@ -2875,6 +2963,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 95
      },
      "id": "disruptor.mind-breaker",
@@ -2907,6 +2996,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 96
      },
      "id": "disruptor.gale-strider",
@@ -2939,6 +3029,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 96
      },
      "id": "disruptor.hunter",
@@ -2971,6 +3062,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 96
      },
      "id": "disruptor.mage-s-array",
@@ -3003,6 +3095,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 96
      },
      "id": "disruptor.inner-world",
@@ -3041,6 +3134,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 98
      },
      "id": "ruiner.bombardier",
@@ -3073,6 +3167,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 98
      },
      "id": "ruiner.rapid-fire-sorcery",
@@ -3105,6 +3200,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 98
      },
      "id": "ruiner.ritualist",
@@ -3137,6 +3233,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 98
      },
      "id": "ruiner.spellcrafter",
@@ -3169,6 +3266,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 98
      },
      "id": "ruiner.student-of-stars",
@@ -3201,6 +3299,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 99
      },
      "id": "ruiner.mana-blades",
@@ -3233,6 +3332,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 99
      },
      "id": "ruiner.dramaturge",
@@ -3265,6 +3365,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 99
      },
      "id": "ruiner.feral-arcana",
@@ -3297,6 +3398,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 99
      },
      "id": "ruiner.flame-heart",
@@ -3329,6 +3431,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 100
      },
      "id": "ruiner.cryomancer",
@@ -3361,6 +3464,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 100
      },
      "id": "ruiner.grim-ascendant",
@@ -3393,6 +3497,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 100
      },
      "id": "ruiner.long-draw",
@@ -3425,6 +3530,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 100
      },
      "id": "ruiner.sellsword-s-call",
@@ -3457,6 +3563,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 101
      },
      "id": "ruiner.void-soul",
@@ -3489,6 +3596,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 101
      },
      "id": "ruiner.thunder-blood",
@@ -3521,6 +3629,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 101
      },
      "id": "ruiner.zealot",
@@ -3553,6 +3662,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 102
      },
      "id": "ruiner.creation-ascetic",
@@ -3585,6 +3695,7 @@ window.DAWN_LIONWING_DATA = {
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
       "pdfPage": 102
      },
      "id": "ruiner.ego-arm",
@@ -3653,6 +3764,7 @@ window.DAWN_LIONWING_DATA = {
    ],
    "source": {
     "editionId": "dawn-en-lionwing-cb2f8e67",
+    "locale": "en",
     "pdfPage": 50
    }
   },
@@ -3706,6 +3818,7 @@ window.DAWN_LIONWING_DATA = {
    ],
    "source": {
     "editionId": "dawn-en-lionwing-cb2f8e67",
+    "locale": "en",
     "pdfPage": 50
    }
   },
@@ -3767,6 +3880,7 @@ window.DAWN_LIONWING_DATA = {
    ],
    "source": {
     "editionId": "dawn-en-lionwing-cb2f8e67",
+    "locale": "en",
     "pdfPage": 51
    }
   },
@@ -3827,6 +3941,7 @@ window.DAWN_LIONWING_DATA = {
    ],
    "source": {
     "editionId": "dawn-en-lionwing-cb2f8e67",
+    "locale": "en",
     "pdfPage": 51
    }
   },
@@ -3874,6 +3989,7 @@ window.DAWN_LIONWING_DATA = {
    ],
    "source": {
     "editionId": "dawn-en-lionwing-cb2f8e67",
+    "locale": "en",
     "pdfPage": 52
    }
   },
@@ -3928,6 +4044,7 @@ window.DAWN_LIONWING_DATA = {
    ],
    "source": {
     "editionId": "dawn-en-lionwing-cb2f8e67",
+    "locale": "en",
     "pdfPage": 52
    }
   },
@@ -3982,6 +4099,7 @@ window.DAWN_LIONWING_DATA = {
    ],
    "source": {
     "editionId": "dawn-en-lionwing-cb2f8e67",
+    "locale": "en",
     "pdfPage": 53
    }
   },
@@ -4029,6 +4147,7 @@ window.DAWN_LIONWING_DATA = {
    ],
    "source": {
     "editionId": "dawn-en-lionwing-cb2f8e67",
+    "locale": "en",
     "pdfPage": 53
    }
   },
@@ -4083,6 +4202,7 @@ window.DAWN_LIONWING_DATA = {
    ],
    "source": {
     "editionId": "dawn-en-lionwing-cb2f8e67",
+    "locale": "en",
     "pdfPage": 54
    }
   },
@@ -4130,6 +4250,7 @@ window.DAWN_LIONWING_DATA = {
    ],
    "source": {
     "editionId": "dawn-en-lionwing-cb2f8e67",
+    "locale": "en",
     "pdfPage": 54
    }
   }
@@ -4144,6 +4265,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "✢",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    },
@@ -4155,6 +4277,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "✢",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    },
@@ -4166,6 +4289,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "✢",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    },
@@ -4177,6 +4301,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "✢",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    },
@@ -4188,6 +4313,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "✢",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    },
@@ -4199,6 +4325,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "✢",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    },
@@ -4210,6 +4337,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "✢",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    },
@@ -4221,6 +4349,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "✢",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    },
@@ -4232,6 +4361,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    },
@@ -4243,6 +4373,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    },
@@ -4254,6 +4385,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    },
@@ -4265,6 +4397,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    },
@@ -4276,6 +4409,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    },
@@ -4287,6 +4421,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    },
@@ -4298,6 +4433,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    },
@@ -4309,6 +4445,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    },
@@ -4320,6 +4457,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    },
@@ -4331,6 +4469,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    },
@@ -4342,6 +4481,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    },
@@ -4353,6 +4493,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    },
@@ -4364,6 +4505,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    },
@@ -4375,6 +4517,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    },
@@ -4386,6 +4529,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    },
@@ -4397,6 +4541,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    },
@@ -4408,6 +4553,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    },
@@ -4419,6 +4565,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    },
@@ -4430,6 +4577,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    },
@@ -4441,6 +4589,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    },
@@ -4452,6 +4601,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    },
@@ -4463,6 +4613,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    },
@@ -4474,6 +4625,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    },
@@ -4485,6 +4637,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    },
@@ -4496,6 +4649,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    },
@@ -4507,6 +4661,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    },
@@ -4518,6 +4673,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "✢",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    },
@@ -4529,6 +4685,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "✢",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    },
@@ -4540,6 +4697,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    },
@@ -4551,6 +4709,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    },
@@ -4562,6 +4721,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "☾",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    },
@@ -4573,6 +4733,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "☾",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    },
@@ -4584,6 +4745,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "☾",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    }
@@ -4597,6 +4759,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    },
@@ -4608,6 +4771,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    },
@@ -4619,6 +4783,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "✢",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    },
@@ -4630,6 +4795,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "✢",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    },
@@ -4641,6 +4807,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    },
@@ -4652,6 +4819,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    },
@@ -4663,6 +4831,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    },
@@ -4674,6 +4843,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    },
@@ -4685,6 +4855,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    },
@@ -4696,6 +4867,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "✝",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    },
@@ -4707,6 +4879,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "✝",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    },
@@ -4718,6 +4891,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "✝",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    },
@@ -4729,6 +4903,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    },
@@ -4740,6 +4915,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    },
@@ -4751,6 +4927,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    },
@@ -4762,6 +4939,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    },
@@ -4773,6 +4951,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    },
@@ -4784,6 +4963,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "✝",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    },
@@ -4795,6 +4975,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "✝",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    },
@@ -4806,6 +4987,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    },
@@ -4817,6 +4999,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    },
@@ -4828,6 +5011,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "✝",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    },
@@ -4839,6 +5023,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "✝",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    },
@@ -4850,6 +5035,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "✝",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    },
@@ -4861,6 +5047,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "✝",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    },
@@ -4872,6 +5059,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "✝",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    },
@@ -4883,6 +5071,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "✢",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    },
@@ -4894,6 +5083,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    },
@@ -4905,6 +5095,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    },
@@ -4916,6 +5107,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    },
@@ -4927,6 +5119,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "✝",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    },
@@ -4938,6 +5131,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "✢✝",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    },
@@ -4949,6 +5143,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "✢✝",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    },
@@ -4960,6 +5155,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    },
@@ -4971,6 +5167,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    },
@@ -4982,6 +5179,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    },
@@ -4993,6 +5191,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    },
@@ -5004,6 +5203,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    },
@@ -5015,6 +5215,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    },
@@ -5026,6 +5227,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    },
@@ -5037,6 +5239,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    }
@@ -5050,6 +5253,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "✝",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    },
@@ -5061,6 +5265,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    },
@@ -5072,6 +5277,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    },
@@ -5083,6 +5289,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "☾",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    },
@@ -5094,6 +5301,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "☾",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    },
@@ -5105,6 +5313,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    },
@@ -5116,6 +5325,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    },
@@ -5127,6 +5337,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    },
@@ -5138,6 +5349,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    },
@@ -5149,6 +5361,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    },
@@ -5160,6 +5373,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    },
@@ -5171,6 +5385,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    },
@@ -5182,6 +5397,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    },
@@ -5193,6 +5409,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    },
@@ -5204,6 +5421,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    },
@@ -5215,6 +5433,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    },
@@ -5226,6 +5445,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    },
@@ -5237,6 +5457,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    },
@@ -5248,6 +5469,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    },
@@ -5259,6 +5481,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    },
@@ -5270,6 +5493,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    },
@@ -5281,6 +5505,7 @@ window.DAWN_LIONWING_DATA = {
     "marks": "",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
      "pdfPage": 46
     }
    }

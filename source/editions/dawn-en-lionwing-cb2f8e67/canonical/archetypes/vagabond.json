@@ -28,6 +28,7 @@
       ],
       "source": {
         "editionId": "dawn-en-lionwing-cb2f8e67",
+        "locale": "en",
         "pdfPage": 75
       },
       "id": "vagabond.aerial-master",
@@ -60,6 +61,7 @@
       ],
       "source": {
         "editionId": "dawn-en-lionwing-cb2f8e67",
+        "locale": "en",
         "pdfPage": 75
       },
       "id": "vagabond.assassin",
@@ -92,6 +94,7 @@
       ],
       "source": {
         "editionId": "dawn-en-lionwing-cb2f8e67",
+        "locale": "en",
         "pdfPage": 75
       },
       "id": "vagabond.sniper",
@@ -124,6 +127,7 @@
       ],
       "source": {
         "editionId": "dawn-en-lionwing-cb2f8e67",
+        "locale": "en",
         "pdfPage": 75
       },
       "id": "vagabond.skirmisher",
@@ -156,6 +160,7 @@
       ],
       "source": {
         "editionId": "dawn-en-lionwing-cb2f8e67",
+        "locale": "en",
         "pdfPage": 75
       },
       "id": "vagabond.speed-demon",
@@ -188,6 +193,7 @@
       ],
       "source": {
         "editionId": "dawn-en-lionwing-cb2f8e67",
+        "locale": "en",
         "pdfPage": 75
       },
       "id": "vagabond.untouchable",
@@ -220,6 +226,7 @@
       ],
       "source": {
         "editionId": "dawn-en-lionwing-cb2f8e67",
+        "locale": "en",
         "pdfPage": 76
       },
       "id": "vagabond.acrobat",
@@ -252,6 +259,7 @@
       ],
       "source": {
         "editionId": "dawn-en-lionwing-cb2f8e67",
+        "locale": "en",
         "pdfPage": 76
       },
       "id": "vagabond.blade-master",
@@ -284,6 +292,7 @@
       ],
       "source": {
         "editionId": "dawn-en-lionwing-cb2f8e67",
+        "locale": "en",
         "pdfPage": 76
       },
       "id": "vagabond.cunning-fighter",
@@ -316,6 +325,7 @@
       ],
       "source": {
         "editionId": "dawn-en-lionwing-cb2f8e67",
+        "locale": "en",
         "pdfPage": 76
       },
       "id": "vagabond.egomaniac",
@@ -348,6 +358,7 @@
       ],
       "source": {
         "editionId": "dawn-en-lionwing-cb2f8e67",
+        "locale": "en",
         "pdfPage": 77
       },
       "id": "vagabond.enchained",
@@ -380,6 +391,7 @@
       ],
       "source": {
         "editionId": "dawn-en-lionwing-cb2f8e67",
+        "locale": "en",
         "pdfPage": 77
       },
       "id": "vagabond.knife-juggler",
@@ -412,6 +424,7 @@
       ],
       "source": {
         "editionId": "dawn-en-lionwing-cb2f8e67",
+        "locale": "en",
         "pdfPage": 77
       },
       "id": "vagabond.malicious-mimic",
@@ -444,6 +457,7 @@
       ],
       "source": {
         "editionId": "dawn-en-lionwing-cb2f8e67",
+        "locale": "en",
         "pdfPage": 78
       },
       "id": "vagabond.weaponsmith",
@@ -475,6 +489,7 @@
       ],
       "source": {
         "editionId": "dawn-en-lionwing-cb2f8e67",
+        "locale": "en",
         "pdfPage": 78
       },
       "id": "vagabond.modified-meister",
@@ -507,6 +522,7 @@
       ],
       "source": {
         "editionId": "dawn-en-lionwing-cb2f8e67",
+        "locale": "en",
         "pdfPage": 78
       },
       "id": "vagabond.opportunist",
@@ -539,6 +555,7 @@
       ],
       "source": {
         "editionId": "dawn-en-lionwing-cb2f8e67",
+        "locale": "en",
         "pdfPage": 78
       },
       "id": "vagabond.reflector",
@@ -571,6 +588,7 @@
       ],
       "source": {
         "editionId": "dawn-en-lionwing-cb2f8e67",
+        "locale": "en",
         "pdfPage": 79
       },
       "id": "vagabond.dim-mak",
@@ -603,6 +621,7 @@
       ],
       "source": {
         "editionId": "dawn-en-lionwing-cb2f8e67",
+        "locale": "en",
         "pdfPage": 79
       },
       "id": "vagabond.drunkard",
@@ -635,6 +654,7 @@
       ],
       "source": {
         "editionId": "dawn-en-lionwing-cb2f8e67",
+        "locale": "en",
         "pdfPage": 79
       },
       "id": "vagabond.master-at-arms",

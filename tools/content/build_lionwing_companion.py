@@ -20,6 +20,7 @@ import pdfplumber
 ROOT = Path(__file__).resolve().parents[2]
 APP = ROOT / "apps" / "companion"
 EDITION = ROOT / "source" / "editions" / "dawn-en-lionwing-cb2f8e67"
+OLD_EDITION = ROOT / "source" / "editions" / "dawn-en-9ce6d8d6"
 NEW_PDF = ROOT / "source" / "original" / "DAWN_ The RPG (LionWing Edition) w Bookmarks.pdf"
 OLD_PDF = ROOT / "source" / "original" / "Dawn - A Diceless Fantasy TTRPG.pdf"
 NEW_ID = "dawn-en-lionwing-cb2f8e67"
@@ -34,12 +35,29 @@ ARCHETYPE_RANGES = {
     "ruiner": (98, 103),
 }
 
+OLD_ARCHETYPE_RANGES = {
+    "powerhouse": (67, 71),
+    "vagabond": (73, 77),
+    "bulwark": (79, 82),
+    "altruist": (84, 88),
+    "disruptor": (90, 94),
+    "ruiner": (96, 100),
+}
+
 OUTLOOK_COLUMNS = [
     (50, "rebel", "The Rebel"), (50, "loyalist", "The Loyal"),
     (51, "beacon", "The Light"), (51, "wolf", "The Wolf"),
     (52, "mentor", "The Mentor"), (52, "student", "The Apprentice"),
     (53, "cursed", "The Accursed"), (53, "blessed", "The Blessed"),
     (54, "quiet", "The Quiet"), (54, "confident", "The Confident"),
+]
+
+OLD_OUTLOOK_COLUMNS = [
+    (48, "rebel", "The Rebel"), (48, "loyalist", "The Loyal"),
+    (49, "beacon", "The Light"), (49, "wolf", "The Wolf"),
+    (50, "mentor", "The Mentor"), (50, "student", "The Apprentice"),
+    (51, "cursed", "The Accursed"), (51, "blessed", "The Blessed"),
+    (52, "quiet", "The Quiet"), (52, "confident", "The Confident"),
 ]
 
 # Explicit stable-ID migrations. Some are simple renames; others retain two or
@@ -71,7 +89,7 @@ NAME_MIGRATIONS = {
     "Sword Caller": ("Sellsword's Call", "medium", "levels-1-and-3-retained"),
 }
 
-HEADER = re.compile(r"^(.+?)\s*\|\s*((?:★\s*)+)\|\s*(.*)$")
+HEADER = re.compile(r"^(.+?)\s*\|\s*((?:★\s*)*)\|\s*(.*)$")
 LEVEL = re.compile(r"(?ms)^([123])(?::\s*|\s+)(?!-)([^:\n]+):\s*(.*?)(?=^[123](?::|\s)|\Z)")
 
 
@@ -88,58 +106,6 @@ def slugify(value: str) -> str:
 def read_current_data() -> dict:
     raw = (APP / "data.js").read_text(encoding="utf-8")
     return json.loads(raw.split("=", 1)[1].rsplit(";", 1)[0])
-
-
-def legacy_techniques(current: dict) -> list[dict]:
-    """Use the shipped 0.9 Russian catalogue as the frozen playable baseline."""
-    return [
-        {
-            "id": technique["id"],
-            "archetypeId": archetype["id"],
-            "name": technique.get("en") or technique["name"],
-            "localizedName": technique["name"],
-            "stars": technique["stars"],
-            "tags": technique.get("tags", ""),
-            "flavor": technique.get("flavor", ""),
-            "notes": "",
-            "levels": [
-                {"n": level["n"], "name": level["name"], "text": level["text"]}
-                for level in technique["levels"]
-            ],
-            "source": {"editionId": OLD_ID, "locale": "ru", "pdfPage": None},
-        }
-        for archetype in current["archetypes"]
-        for technique in archetype["techniques"]
-    ]
-
-
-def legacy_outlooks(current: dict) -> list[dict]:
-    def boon(item: dict | None) -> dict | None:
-        if item is None:
-            return None
-        return {**item, "name": item.get("en") or item["name"], "localizedName": item["name"]}
-
-    return [
-        {
-            "id": outlook["id"],
-            "name": outlook["name"],
-            "description": outlook["desc"],
-            "builtin": boon(outlook.get("builtin")),
-            "gifts": [boon(item) for item in outlook["gifts"]],
-            "source": {"editionId": OLD_ID, "locale": "ru", "pdfPage": None},
-        }
-        for outlook in current["outlooks"]
-    ]
-
-
-def legacy_ability_words(current: dict) -> dict:
-    return {
-        group: [
-            {**item, "source": {"editionId": OLD_ID, "locale": "ru", "pdfPage": None}}
-            for item in current["abilityWords"][group]
-        ]
-        for group in ("verbs", "nouns", "conditions")
-    }
 
 
 def pdf_sha256(path: Path) -> str:
@@ -164,7 +130,16 @@ def parse_technique_column(text: str, archetype_id: str, page_number: int, sourc
     techniques = []
     for position, (start, match) in enumerate(starts):
         end = starts[position + 1][0] if position + 1 < len(starts) else len(lines)
-        body = "\n".join(lines[start + 1 : end]).strip()
+        body_lines = lines[start + 1 : end]
+        stars = match.group(2).count("★")
+        tags = normalize(match.group(3))
+        if not stars and body_lines:
+            continuation = re.match(r"^\s*((?:★\s*)+)\s*(.*)$", body_lines[0])
+            if continuation:
+                stars = continuation.group(1).count("★")
+                tags = normalize(continuation.group(2))
+                body_lines = body_lines[1:]
+        body = "\n".join(body_lines).strip()
         # Some older-layout columns place the next numbered Level after the end
         # of a wrapped sentence instead of at the start of a physical text line.
         body = re.sub(r"(?<=[.!?])\s+(?=[123]:\s*[A-Z])", "\n", body)
@@ -188,8 +163,8 @@ def parse_technique_column(text: str, archetype_id: str, page_number: int, sourc
         techniques.append({
             "archetypeId": archetype_id,
             "name": normalize(match.group(1)),
-            "stars": match.group(2).count("★"),
-            "tags": normalize(match.group(3)),
+            "stars": stars,
+            "tags": tags,
             "flavor": normalize(" ".join(flavor_lines)).strip('"'),
             "notes": " ".join(notes),
             "levels": [
@@ -200,7 +175,7 @@ def parse_technique_column(text: str, archetype_id: str, page_number: int, sourc
                 }
                 for index, level in enumerate(level_matches)
             ],
-            "source": {"editionId": source_id, "pdfPage": page_number},
+            "source": {"editionId": source_id, "locale": "en", "pdfPage": page_number},
         })
     return techniques
 
@@ -221,6 +196,22 @@ def extract_new_techniques() -> list[dict]:
     return extract_techniques(NEW_PDF, ARCHETYPE_RANGES, NEW_ID, 111)
 
 
+def extract_old_techniques(current: dict) -> list[dict]:
+    techniques = extract_techniques(OLD_PDF, OLD_ARCHETYPE_RANGES, OLD_ID, 107)
+    current_by_name = {
+        normalize(technique["en"]).lower(): technique["id"]
+        for archetype in current["archetypes"]
+        for technique in archetype["techniques"]
+    }
+    for technique in techniques:
+        stable_id = current_by_name.get(normalize(technique["name"]).lower())
+        if stable_id is None:
+            raise ValueError(f'Old English Technique has no stable ID: {technique["name"]}')
+        technique["id"] = stable_id
+        technique["source"]["locale"] = "en"
+    return techniques
+
+
 def parse_outlooks(current: dict, path: Path = NEW_PDF, columns: list[tuple] = OUTLOOK_COLUMNS, source_id: str = NEW_ID) -> list[dict]:
     old = {item["id"]: item for item in current["outlooks"]}
     result = []
@@ -233,7 +224,10 @@ def parse_outlooks(current: dict, path: Path = NEW_PDF, columns: list[tuple] = O
                 title_at = lines.index(name)
             except ValueError as error:
                 raise ValueError(f"{name} not found on PDF page {page_number}") from error
-            question_at = next((i for i in range(title_at + 1, len(lines)) if lines[i].startswith("If this is your Primary")), len(lines))
+            question_at = next((
+                i for i in range(title_at + 1, len(lines))
+                if lines[i].startswith("If this is your Primary") or lines[i] == "Favored Bond Actions"
+            ), len(lines))
             description = normalize(" ".join(lines[title_at + 1 : question_at]))
             section_at = next((i for i, line in enumerate(lines) if line in {"Boons", "Inherent Boon"}), None)
             if section_at is None:
@@ -284,21 +278,57 @@ def parse_outlooks(current: dict, path: Path = NEW_PDF, columns: list[tuple] = O
                 "description": description,
                 "builtin": builtin,
                 "gifts": gifts,
-                "source": {"editionId": source_id, "pdfPage": page_number},
+                "source": {"editionId": source_id, "locale": "en", "pdfPage": page_number},
             })
     return result
+
+
+OLD_ABILITY_TEXT_REPAIRS = {
+    "It'sA S pecificT ime": "It's A Specific Time",
+    "You'reC arryingI t": "You're Carrying It",
+    "Light/ S hadow": "Light / Shadow",
+    "YouH ear/ S mellI t": "You Hear / Smell It",
+    "Animals/ M onsters": "Animals / Monsters",
+    "YouD ance": "You Dance",
+    "YouA ren'tS een": "You Aren't Seen",
+    "You UnderstandI t": "You Understand It",
+    "RangedW eapons✝": "Ranged Weapons✝",
+    "YouE xplainI t": "You Explain It",
+    "Negate/ R everse": "Negate / Reverse",
+    "ItC anH earY ou": "It Can Hear You",
+}
+
+
+def parse_old_ability_rows(page) -> list[list[str]]:
+    words = [word for word in page.extract_words() if 135 <= word["top"] <= 585]
+    tops = []
+    for word in words:
+        if not any(abs(top - word["top"]) < 2 for top in tops):
+            tops.append(word["top"])
+    rows = []
+    bounds = ((0, 165), (165, 210), (210, 345), (345, 395), (395, 520), (520, 595))
+    for top in tops:
+        row_words = [word for word in words if abs(top - word["top"]) < 2]
+        cells = [normalize(" ".join(word["text"] for word in row_words if low <= word["x0"] < high)) for low, high in bounds]
+        if re.fullmatch(r"-?\d+|X", cells[1]) and re.fullmatch(r"-?\d+|X", cells[3]) and re.fullmatch(r"-?\d+|X", cells[5]):
+            rows.append([OLD_ABILITY_TEXT_REPAIRS.get(cell, cell) for cell in cells])
+    if len(rows) != 20:
+        raise ValueError(f"Expected 20 old Ability Glossary rows, extracted {len(rows)}")
+    return rows
 
 
 def parse_ability_words(path: Path = NEW_PDF, pdf_page: int = 46, source_id: str = NEW_ID) -> dict:
     groups = {"verbs": [], "nouns": [], "conditions": []}
     with pdfplumber.open(path) as pdf:
-        tables = pdf.pages[pdf_page - 1].extract_tables()
-    if not tables or len(tables[0]) != 22:
-        raise ValueError("LionWing Ability Glossary table was not extracted as expected")
-    for row in tables[0][1:]:
-        for group, label, raw_cost in (("verbs", row[0], row[1]), ("nouns", row[3], row[4]), ("conditions", row[6], row[7])):
-            marks = "".join(mark for mark in "✢✧☾" if mark in label)
-            clean = normalize(re.sub(r"[✢✧☾]", "", label))
+        page = pdf.pages[pdf_page - 1]
+        tables = page.extract_tables()
+        rows = tables[0][1:] if tables and len(tables[0]) == 22 else parse_old_ability_rows(page)
+    columns = (("verbs", 0, 1), ("nouns", 3, 4), ("conditions", 6, 7)) if len(rows[0]) >= 8 else (("verbs", 0, 1), ("nouns", 2, 3), ("conditions", 4, 5))
+    for row in rows:
+        for group, label_index, cost_index in columns:
+            label, raw_cost = row[label_index], row[cost_index]
+            marks = "".join(mark for mark in "✢✧✝☾" if mark in label)
+            clean = normalize(re.sub(r"[✢✧✝☾]", "", label))
             for variant in [part.strip() for part in clean.split(" / ") if part.strip()]:
                 groups[group].append({
                     "id": f'ability.en.{group}.{slugify(variant)}',
@@ -306,7 +336,7 @@ def parse_ability_words(path: Path = NEW_PDF, pdf_page: int = 46, source_id: str
                     "cost": int(raw_cost) if re.fullmatch(r"-?\d+", raw_cost) else None,
                     "costLabel": raw_cost,
                     "marks": marks.replace("✧", "✝"),
-                    "source": {"editionId": source_id, "pdfPage": pdf_page},
+                    "source": {"editionId": source_id, "locale": "en", "pdfPage": pdf_page},
                 })
     return groups
 
@@ -523,19 +553,16 @@ def technique_comparison(old_techniques: list[dict], new_techniques: list[dict])
     for stable_id in sorted(old.keys() | new.keys()):
         before, after = old.get(stable_id), new.get(stable_id)
         if before is None:
-            result.append({"stableId": stable_id, "classification": "added", "old": None, "new": after})
+            result.append({"stableId": stable_id, "classification": "added", "translationAction": "translate-new", "oldEnglishHash": None, "newEnglishHash": source_hash(after), "old": None, "new": after})
             continue
         if after is None:
-            result.append({"stableId": stable_id, "classification": "removed", "old": before, "new": None})
+            result.append({"stableId": stable_id, "classification": "removed", "translationAction": "retire", "oldEnglishHash": source_hash(before), "newEnglishHash": None, "old": before, "new": None})
             continue
         fields = []
         for field in ("name", "archetypeId", "stars", "tags", "notes", "flavor"):
             old_value, new_value = before.get(field, ""), after.get(field, "")
             if normalize(str(old_value)) != normalize(str(new_value)):
-                change = {"field": field, "old": old_value, "new": new_value}
-                if field in {"tags", "notes", "flavor"}:
-                    change["reviewType"] = "cross-language-source-review"
-                fields.append(change)
+                fields.append({"field": field, "old": old_value, "new": new_value})
         for number in (1, 2, 3):
             old_level, new_level = before["levels"][number - 1], after["levels"][number - 1]
             for field in ("name", "text"):
@@ -545,14 +572,15 @@ def technique_comparison(old_techniques: list[dict], new_techniques: list[dict])
                         "field": f"levels.{number}.{field}",
                         "old": old_value,
                         "new": new_value,
-                        "reviewType": "cross-language-source-review",
                     })
-        mechanical = any(item["field"] == "stars" for item in fields)
-        needs_source_review = any(item.get("reviewType") == "cross-language-source-review" for item in fields)
-        classification = "likely-mechanics" if mechanical else "source-review-required" if needs_source_review else "editorial-or-taxonomy" if fields else "unchanged"
+        classification = "changed" if fields else "unchanged"
         result.append({
             "stableId": stable_id,
             "classification": classification,
+            "translationAction": "retranslate" if fields else "reuse-existing-ru",
+            "mechanicsReviewRequired": any(item["field"] == "stars" or item["field"] == "notes" or item["field"].endswith(".text") for item in fields),
+            "oldEnglishHash": source_hash(before),
+            "newEnglishHash": source_hash(after),
             "oldPage": before["source"].get("pdfPage"),
             "newPage": after["source"]["pdfPage"],
             "oldName": before["name"],
@@ -565,15 +593,16 @@ def technique_comparison(old_techniques: list[dict], new_techniques: list[dict])
 def ability_word_comparison(old_words: dict, new_words: dict) -> list[dict]:
     result = []
     for group in ("verbs", "nouns", "conditions"):
-        count = max(len(old_words[group]), len(new_words[group]))
-        for index in range(count):
-            before = old_words[group][index] if index < len(old_words[group]) else None
-            after = new_words[group][index] if index < len(new_words[group]) else None
+        old = {normalize(item["name"]).lower(): item for item in old_words[group]}
+        new = {normalize(item["name"]).lower(): item for item in new_words[group]}
+        for key in sorted(old.keys() | new.keys()):
+            before, after = old.get(key), new.get(key)
             mechanic_fields = [] if before is None or after is None else [field for field in ("costLabel", "marks") if before.get(field) != after.get(field)]
             result.append({
                 "group": group,
-                "position": index + 1,
-                "classification": "added" if before is None else "removed" if after is None else "mechanics-review" if mechanic_fields else "translation-pair",
+                "key": key,
+                "classification": "added" if before is None else "removed" if after is None else "mechanics-changed" if mechanic_fields else "unchanged",
+                "translationAction": "translate-new" if before is None else "retire" if after is None else "reuse-existing-ru",
                 "old": before,
                 "new": after,
                 "changedFields": mechanic_fields,
@@ -594,17 +623,23 @@ def outlook_comparison(old_outlooks: list[dict], new_outlooks: list[dict]) -> li
             fields = [] if old_boon is None or new_boon is None else [field for field in ("name", "text", "inherent") if old_boon.get(field) != new_boon.get(field)]
             boons.append({
                 "stableId": stable_id,
-                "classification": "added" if old_boon is None else "removed" if new_boon is None else "source-review-required" if fields else "unchanged",
+                "classification": "added" if old_boon is None else "removed" if new_boon is None else "changed" if fields else "unchanged",
+                "translationAction": "translate-new" if old_boon is None else "retire" if new_boon is None else "retranslate" if fields else "reuse-existing-ru",
                 "changedFields": fields,
-                "reviewType": "cross-language-source-review" if fields else None,
                 "old": old_boon,
                 "new": new_boon,
             })
+        description_changed = normalize(before["description"]) != normalize(after["description"])
         result.append({
             "stableId": after["id"],
             "oldPage": before["source"].get("pdfPage"),
             "newPage": after["source"]["pdfPage"],
-            "descriptionReviewType": "cross-language-source-review",
+            "description": {
+                "classification": "changed" if description_changed else "unchanged",
+                "translationAction": "retranslate" if description_changed else "reuse-existing-ru",
+                "old": before["description"],
+                "new": after["description"],
+            },
             "boons": boons,
         })
     return result
@@ -645,8 +680,9 @@ def build_edition_comparison(old_techniques: list[dict], new_techniques: list[di
         "baseEditionId": OLD_ID,
         "targetEditionId": NEW_ID,
         "policy": {
-            "base": "frozen-playable-implementation-snapshot",
-            "baseTextAuthority": False,
+            "base": "frozen-playable-edition",
+            "baseEnglishTextAuthority": True,
+            "baseRussianTranslationAuthority": False,
             "target": "active-development-canonical-source",
             "targetTextAuthority": True,
             "crossEditionFallback": "display-only-explicit",
@@ -655,6 +691,7 @@ def build_edition_comparison(old_techniques: list[dict], new_techniques: list[di
         "summary": {
             "techniques": dict(Counter(item["classification"] for item in techniques)),
             "abilityWords": dict(Counter(item["classification"] for item in ability_words)),
+            "outlookDescriptions": dict(Counter(item["description"]["classification"] for item in outlooks)),
             "boons": dict(Counter(boon["classification"] for outlook in outlooks for boon in outlook["boons"])),
         },
         "migrationOrder": [
@@ -668,6 +705,127 @@ def build_edition_comparison(old_techniques: list[dict], new_techniques: list[di
         "techniques": techniques,
         "abilityWords": ability_words,
         "outlooks": outlooks,
+    }
+
+
+def source_hash(value) -> str:
+    def content_only(item):
+        if isinstance(item, dict):
+            ignored = {"source", "introducedIn", "previousName", "previousArchetypeId"}
+            return {key: content_only(inner) for key, inner in item.items() if key not in ignored}
+        if isinstance(item, list):
+            return [content_only(inner) for inner in item]
+        return item
+    payload = normalize(json.dumps(content_only(value), ensure_ascii=False, sort_keys=True))
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def build_translation_worklist(comparison: dict) -> dict:
+    units = []
+    for item in comparison["techniques"]:
+        units.append({
+            "id": f'technique:{item["stableId"]}', "domain": "technique", "stableId": item["stableId"],
+            "action": item["translationAction"], "status": "pending" if item["translationAction"] in {"retranslate", "translate-new"} else "reusable" if item["translationAction"] == "reuse-existing-ru" else "retired",
+            "changedFields": [field["field"] for field in item.get("fields", [])],
+            "oldEnglishHash": item["oldEnglishHash"],
+            "newEnglishHash": item["newEnglishHash"],
+        })
+    for outlook in comparison["outlooks"]:
+        description = outlook["description"]
+        units.append({
+            "id": f'outlook:{outlook["stableId"]}:description', "domain": "outlook", "stableId": outlook["stableId"],
+            "action": description["translationAction"], "status": "pending" if description["translationAction"] == "retranslate" else "reusable",
+            "changedFields": ["description"] if description["classification"] == "changed" else [],
+            "oldEnglishHash": source_hash(description["old"]), "newEnglishHash": source_hash(description["new"]),
+        })
+        for boon in outlook["boons"]:
+            units.append({
+                "id": f'boon:{boon["stableId"]}', "domain": "boon", "stableId": boon["stableId"],
+                "action": boon["translationAction"], "status": "pending" if boon["translationAction"] in {"retranslate", "translate-new"} else "reusable" if boon["translationAction"] == "reuse-existing-ru" else "retired",
+                "changedFields": boon["changedFields"],
+                "oldEnglishHash": source_hash(boon["old"]) if boon["old"] else None,
+                "newEnglishHash": source_hash(boon["new"]) if boon["new"] else None,
+            })
+    for word in comparison["abilityWords"]:
+        units.append({
+            "id": f'ability-word:{word["group"]}:{word["key"]}', "domain": "ability-word", "stableId": word["new"]["id"] if word["new"] else word["old"]["id"],
+            "action": word["translationAction"], "status": "pending" if word["translationAction"] == "translate-new" else "reusable" if word["translationAction"] == "reuse-existing-ru" else "retired",
+            "changedFields": word["changedFields"],
+            "oldEnglishHash": source_hash(word["old"]) if word["old"] else None,
+            "newEnglishHash": source_hash(word["new"]) if word["new"] else None,
+        })
+    return {
+        "schemaVersion": 1,
+        "sourceEditionId": OLD_ID,
+        "targetEditionId": NEW_ID,
+        "rule": "Reuse the existing Russian translation only when normalized old and new English source text is unchanged.",
+        "summary": {domain: dict(Counter(item["action"] for item in units if item["domain"] == domain)) for domain in ("technique", "outlook", "boon", "ability-word")},
+        "units": units,
+    }
+
+
+def write_translation_worklist(worklist: dict) -> None:
+    (EDITION / "translation-worklist.json").write_text(json.dumps(worklist, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    rows = [
+        "# Очередь нового русского перевода LionWing", "",
+        "> Старый русский текст разрешено переносить только для записей `reuse-existing-ru`.",
+        "> `retranslate` и `translate-new` всегда переводятся с английского LionWing.", "",
+        "## Сводка", "",
+    ]
+    labels = {"technique": "Техники", "outlook": "Мировоззрения", "boon": "Дары", "ability-word": "Слова Способностей"}
+    for domain, counts in worklist["summary"].items():
+        rows.append(f'- **{labels[domain]}:** {counts}.')
+    rows += ["", "## Требуют перевода", "", "| Область | Stable ID | Действие | Изменённые поля |", "|---|---|---|---|"]
+    for item in worklist["units"]:
+        if item["action"] not in {"retranslate", "translate-new"}:
+            continue
+        rows.append(f'| {labels[item["domain"]]} | `{item["stableId"]}` | `{item["action"]}` | {", ".join(item["changedFields"]) or "вся новая запись"} |')
+    rows.append("")
+    (EDITION / "TRANSLATION-WORKLIST.md").write_text("\n".join(rows), encoding="utf-8")
+
+
+def build_translation_scaffold(current: dict, worklist: dict, old_ability_words: dict) -> dict:
+    techniques = {item["id"]: item for archetype in current["archetypes"] for item in archetype["techniques"]}
+    outlooks = {item["id"]: item for item in current["outlooks"]}
+    boons = {
+        item["id"]: item
+        for outlook in current["outlooks"]
+        for item in ([outlook.get("builtin")] if outlook.get("builtin") else []) + outlook["gifts"]
+        if item
+    }
+    ability_candidates = {}
+    for group in ("verbs", "nouns", "conditions"):
+        for english, russian in zip(old_ability_words[group], current["abilityWords"][group], strict=True):
+            ability_candidates[english["id"]] = russian["name"]
+
+    entries = []
+    for unit in worklist["units"]:
+        action, domain, stable_id = unit["action"], unit["domain"], unit["stableId"]
+        candidate = None
+        if action == "reuse-existing-ru":
+            if domain == "technique":
+                source = techniques[stable_id]
+                candidate = {"name": source["name"], "flavor": source.get("flavor", ""), "levels": [{"n": level["n"], "name": level["name"], "text": level["text"]} for level in source["levels"]]}
+            elif domain == "outlook":
+                candidate = outlooks[stable_id]["desc"]
+            elif domain == "boon":
+                source = boons[stable_id]
+                candidate = {"name": source["name"], "text": source["text"]}
+            elif domain == "ability-word":
+                candidate = ability_candidates[stable_id]
+        entries.append({
+            "id": unit["id"], "domain": domain, "stableId": stable_id,
+            "sourceHash": unit["newEnglishHash"],
+            "status": "reused-needs-review" if candidate is not None else "retired" if action == "retire" else "untranslated",
+            "ru": candidate,
+        })
+    return {
+        "schemaVersion": 1,
+        "editionId": NEW_ID,
+        "locale": "ru",
+        "status": "generated-scaffold-not-runtime-data",
+        "policy": "Reused Russian strings still require review; untranslated slots must be translated from the canonical LionWing English source.",
+        "entries": entries,
     }
 
 
@@ -688,9 +846,9 @@ def write_migration_report(comparison: dict) -> None:
     rows += ["", "## Крупные разделы", "", "| Приоритет | Раздел | Старые страницы | LionWing | Сходство |", "|---|---|---:|---:|---:|"]
     for item in comparison["sections"]:
         rows.append(f"| {item['priority']} | {item['name']} | {item['oldPages'][0]}-{item['oldPages'][1]} | {item['newPages'][0]}-{item['newPages'][1]} | {item['similarity']:.3f} |")
-    rows += ["", "## Техники с вероятным изменением механики", "", "| Stable ID | Было -> стало | Страницы | Изменённые поля |", "|---|---|---:|---|"]
+    rows += ["", "## Техники, которые переводятся заново", "", "| Stable ID | Было -> стало | Страницы | Изменённые поля |", "|---|---|---:|---|"]
     for item in comparison["techniques"]:
-        if item["classification"] != "likely-mechanics":
+        if item["translationAction"] != "retranslate":
             continue
         fields = ", ".join(change["field"] for change in item["fields"])
         rows.append(f"| `{item['stableId']}` | {item['oldName']} -> {item['newName']} | {item['oldPage']} -> {item['newPage']} | {fields} |")
@@ -740,10 +898,12 @@ def main() -> None:
     if pdf_sha256(NEW_PDF) != "cb2f8e675dc90152b5d70780262622a42be679853bf289b4c6e80d1ed0ea747d":
         raise ValueError("LionWing PDF fingerprint does not match source/text-sources.json")
     current = read_current_data()
-    old_techniques = legacy_techniques(current)
+    old_techniques = extract_old_techniques(current)
     techniques, mapping = assign_ids(extract_new_techniques(), current)
-    old_outlooks, new_outlooks = legacy_outlooks(current), parse_outlooks(current)
-    old_ability_words, new_ability_words = legacy_ability_words(current), parse_ability_words()
+    old_outlooks = parse_outlooks(current, OLD_PDF, OLD_OUTLOOK_COLUMNS, OLD_ID)
+    new_outlooks = parse_outlooks(current)
+    old_ability_words = parse_ability_words(OLD_PDF, 44, OLD_ID)
+    new_ability_words = parse_ability_words()
     archetype_names = {
         "powerhouse": "Powerhouse", "vagabond": "Vagabond", "bulwark": "Bulwark",
         "altruist": "Altruist", "disruptor": "Disruptor", "ruiner": "Ruiner",
@@ -773,13 +933,25 @@ def main() -> None:
         encoding="utf-8",
     )
     write_canonical_corpus(overlay)
+    OLD_EDITION.mkdir(parents=True, exist_ok=True)
+    (OLD_EDITION / "extracted-comparison-source.json").write_text(json.dumps({
+        "schemaVersion": 1, "editionId": OLD_ID, "locale": "en",
+        "purpose": "Complete old-English comparison source; not the LionWing translation authority.",
+        "techniques": old_techniques, "outlooks": old_outlooks, "abilityWords": old_ability_words,
+    }, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     detected = build_detected_changes(current, techniques, mapping, page_change_candidates())
     (EDITION / "detected-changes.json").write_text(json.dumps(detected, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     comparison = build_edition_comparison(old_techniques, techniques, old_outlooks, new_outlooks, old_ability_words, new_ability_words)
     (EDITION / "edition-comparison.json").write_text(json.dumps(comparison, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    worklist = build_translation_worklist(comparison)
+    write_translation_worklist(worklist)
+    (EDITION / "translation-ru.scaffold.json").write_text(
+        json.dumps(build_translation_scaffold(current, worklist, old_ability_words), ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
     write_report(detected)
     write_migration_report(comparison)
-    print(f"OK: {len(techniques)} LionWing techniques; {detected['counts']['mapped']} mapped ids; detailed comparison generated")
+    print(f"OK: {len(old_techniques)} old and {len(techniques)} LionWing techniques; {detected['counts']['mapped']} mapped ids; translation worklist generated")
 
 
 if __name__ == "__main__":
