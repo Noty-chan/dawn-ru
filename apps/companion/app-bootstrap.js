@@ -40,10 +40,16 @@ const allArchetypes=()=>Lionwing?[...D.archetypes,...Lionwing.archetypes]:D.arch
 const activeOutlooks=()=>isLionwingEdition()?Lionwing.outlooks:D.outlooks;
 const activeAbilityWords=()=>isLionwingEdition()?Lionwing.abilityWords:D.abilityWords;
 const activeReferenceSections=()=>isLionwingEdition()?Lionwing.reference:[];
+const activeBuilderRules=()=>isLionwingEdition()?Lionwing.builderRules:null;
 const activeAttrs=()=>isEnglishPreview()?[
   ["body","Body","Health, resilience, and physical power"],
   ["talent","Talent","Speed, movement, and stunts"],
   ["spirit","Spirit","Focus, magic, and intuition"],
   ["mind","Mind","Knowledge and utility actions"],
+]:isLionwingEdition()?[
+  ["body","Тело","Здоровье и физическая мощь"],
+  ["talent","Талант","Скорость, движение и трюки"],
+  ["spirit","Дух","Фокус, магия и интуиция"],
+  ["mind","Разум","Знания и вспомогательные действия"],
 ]:ATTRS;
 function saveContentPreferences(){localStorage.setItem(CONTENT_PREFERENCES_KEY,JSON.stringify(contentPreferences))}

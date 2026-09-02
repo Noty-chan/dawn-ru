@@ -19,8 +19,10 @@ const translationWorklist = JSON.parse(fs.readFileSync(new URL("../../../source/
 assert.equal(russianAfter, russianBefore, "loading LionWing must not mutate the Russian catalogue");
 assert.deepEqual(JSON.parse(JSON.stringify(lionwing)), extracted, "browser overlay must match the reviewable extracted data");
 assert.equal(lionwing.editionId, "dawn-en-lionwing-cb2f8e67");
-assert.equal(lionwing.mechanicsLocale, "ru");
+assert.equal(lionwing.tableMechanicsStatus, "not-ported");
 assert.deepEqual(Array.from(lionwing.scope), ["builder", "reference", "techniques"]);
+assert.equal(lionwing.builderRules.editionId, lionwing.editionId);
+assert.deepEqual(JSON.parse(JSON.stringify(lionwing.builderRules.derivedStatistics)), { health: "10 + Body + Tier * 2", speed: "2 + ceil(Talent / 2)", focus: "1 + ceil(Spirit / 2)", guts: null });
 assert.equal(manifest.editionId, lionwing.editionId);
 assert.equal(manifest.counts.techniques, 111);
 assert.equal(oldEnglish.techniques.length, 107);
@@ -48,12 +50,14 @@ const canonicalTechniques = lionwing.archetypes.flatMap(archetype => {
   return canonical.techniques;
 });
 assert.deepEqual(canonicalTechniques.map(item => item.id), techniques.map(item => item.id), "canonical corpus must match runtime technique ids");
-for (const [file, value] of [["outlooks.json", lionwing.outlooks], ["ability-words.json", lionwing.abilityWords], ["builder-reference.json", lionwing.reference]]) {
+for (const [file, value] of [["outlooks.json", lionwing.outlooks], ["ability-words.json", lionwing.abilityWords], ["builder-reference.json", lionwing.reference], ["builder-rules.json", lionwing.builderRules]]) {
   assert.deepEqual(JSON.parse(fs.readFileSync(new URL(file, canonicalRoot), "utf8")), JSON.parse(JSON.stringify(value)), `${file} must match runtime data`);
 }
 
 const bootstrap = read("app-bootstrap.js"), app = read("app.js"), events = read("app-builder-events.js");
 assert.match(bootstrap, /dawn-companion-content-preferences-v1/);
 assert.match(app, /syncContentUrl/);
-assert.match(events, /content:\{locale:contentPreferences\.locale,edition:contentPreferences\.edition/);
+assert.match(events, /content:\{locale:contentPreferences\.locale,edition:S\.rulesEdition/);
+assert.match(bootstrap + read("app-core.js"), /rulesEdition[\s\S]+activateHeroEdition/, "heroes must be isolated by rules edition");
+assert.match(app, /demo-no-table",isLionwingEdition\(\)/, "the unported LionWing table must not silently use 0.9 mechanics");
 console.log("Edition isolation QA passed: RU catalogue immutable, LionWing provenance complete, preview routes shareable");

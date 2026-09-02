@@ -21,9 +21,9 @@ function friendlySyncError(error,fallback="временная ошибка со�
 
 function blankAbility(){return {enabled:false,name:"",desc:"",rank:1,words:{verbs:[],nouns:[],conditions:[]},xNoun:null,specializations:{},customWordCosts:{}}}
 
-function blankHero(){
+function blankHero(rulesEdition=contentPreferences?.edition||"ru-v0.9"){
   return {
-    schema:APP_SCHEMA,id:uid(),name:"",player:"",concept:"",tier:1,media:{portrait:"",token:"",portraitStored:false,tokenStored:false},
+    schema:APP_SCHEMA,rulesEdition:["ru-v0.9","lionwing"].includes(rulesEdition)?rulesEdition:"ru-v0.9",id:uid(),name:"",player:"",concept:"",tier:1,media:{portrait:"",token:"",portraitStored:false,tokenStored:false},
     attrs:{body:4,talent:3,spirit:2,mind:2},attrBonus:{body:0,talent:0,spirit:0,mind:0},
     techConversions:0,conversionAttr:"body",primaryOutlook:null,outlooks:[],gifts:[],bonds:[],
     skills:[{id:uid(),name:"",rank:1}],
@@ -207,6 +207,7 @@ function normalizeAbility(raw){
 function normalizeHero(raw){
   const base=blankHero(), h=raw && typeof raw==="object" ? raw : {};
   base.id=typeof h.id==="string"?h.id:base.id;
+  base.rulesEdition=["ru-v0.9","lionwing"].includes(h.rulesEdition)?h.rulesEdition:"ru-v0.9";
   for(const key of ["name","player","concept"]) base[key]=typeof h[key]==="string"?h[key].slice(0,500):"";
   base.media={portrait:safeImage(h.media?.portrait),token:safeTokenImage(h.media?.token),portraitStored:Boolean(h.media?.portraitStored),tokenStored:Boolean(h.media?.tokenStored)};
   base.tier=clamp(h.tier,1,6);
@@ -352,6 +353,13 @@ function consumePresetDraft(targetStore){
 }
 function sceneViewportProfile(){if(matchMedia("(max-width: 950px) and (max-height: 500px) and (orientation: landscape)").matches)return"phone-landscape";if(matchMedia("(max-width: 720px)").matches)return"phone";return"desktop"}
 let store=loadStore(); const importedPresetName=consumePresetDraft(store),requestedMode=new URLSearchParams(location.search).get("mode");if(["build","play","tools","rules","reference"].includes(requestedMode))store.mode=requestedMode;let S=store.heroes[store.current]||store.heroes[0]; let Scene=store.scene||blankScene();let activeArch=activeArchetypes()[0]?.id; let techTag="all",techSort="source",refKind="all",refTag="all",refSort="source",rulesAudience="all";let activeScenePanel=null,scenePanelTrigger=null,activeSheetTab="combat",activeUtilityPreset={skillId:"",abilityKey:""},activeUtilityActorId=null;let sceneViewportMode=sceneViewportProfile(),sceneZoom=clamp(store.sceneUi?.zoom||70,30,180),sceneControlMode=["auto","guided","manual"].includes(store.sceneUi?.controlMode)?store.sceneUi.controlMode:"guided",sceneNeedsInitialFit=store.sceneUi?.fitVersion!==8||store.sceneUi?.viewport!==sceneViewportMode,sceneResizeTimer=null;let sceneDragActorId=null,sceneSuppressBoardClickUntil=0,sceneMeasureStart=null,sceneMeasureCells=new Set(),sceneMeasureLabel="",scenePanState=null,sceneSpaceHeld=false,sceneTokenTipTimer=null,hoveredSceneActorId=null,sceneContextTarget=null,lastAutoOpenedSceneResultsId="",activeModifierPickerId=null,activeModifierActionId=null,activeModifierShapePreset=null,showAllModifierOverlays=false,modifierModeDrafts=new Map();
+function activateHeroEdition(edition,{saveCurrent=true}={}){
+  const target=["ru-v0.9","lionwing"].includes(edition)?edition:"ru-v0.9";
+  if(saveCurrent)store.heroes[store.current]=S;
+  let index=store.heroes.findIndex(hero=>(hero.rulesEdition||"ru-v0.9")===target);
+  if(index<0){store.heroes.push(blankHero(target));index=store.heroes.length-1}
+  store.current=index;S=normalizeHero(store.heroes[index]);store.heroes[index]=S;
+}
 function persistableStore(){
   const heroes=persistableHeroes(),scene=sceneCore(Scene),sourceById=new Map(store.heroes.map(hero=>[hero.id,hero]));
   scene.undo=[];
@@ -405,7 +413,7 @@ function enemyProfileAutomation(profile){const statuses=(profile?.rules||[]).map
 const wordById=(id,ability=null)=>{const known=Object.values(activeAbilityWords()).flat().find(w=>w.id===id)||Object.values(D.abilityWords).flat().find(w=>w.id===id);if(known)return known;if(typeof id==="string"&&id.startsWith("custom:")){const [,group,...parts]=id.split(":"),stored=ability?.customWordCosts?.[id],variable=stored==="X",cost=variable?null:Number.isFinite(Number(stored))?clamp(stored,-1,4):0;return{id,name:decodeURIComponent(parts.join(":")),cost,costLabel:variable?"X":String(cost),marks:variable?"☾":"",group}}};
 function attrValueFor(hero,key,includeConversion=true){return hero.attrs[key]+hero.attrBonus[key]+(includeConversion&&hero.conversionAttr===key?hero.techConversions:0)}
 function attrValue(key,includeConversion=true){return attrValueFor(S,key,includeConversion)}
-function derivedFor(hero){return {hp:attrValueFor(hero,"body")*2+hero.tier*2,guts:1+attrValueFor(hero,"body"),speed:2+Math.ceil(attrValueFor(hero,"talent")/2),focus:1+Math.ceil(attrValueFor(hero,"spirit")/2)}}
+function derivedFor(hero,edition=hero.rulesEdition||"ru-v0.9"){return Logic.calculateDerivedStatistics({edition,tier:hero.tier,body:attrValueFor(hero,"body"),talent:attrValueFor(hero,"talent"),spirit:attrValueFor(hero,"spirit")})}
 function derived(){return derivedFor(S)}
 function sceneCombatStarted(scene=Scene){return Boolean(scene.activeActorId||Number(scene.round||1)>1||(scene.actors||[]).some(actor=>actor.kind!=="crowd"&&!String(actor.profileId||"").startsWith("enemy.modifier.")&&actor.acted))}
 function ensureRuntime(){const d=derived(),health=Logic.reconcileHealthRuntime({current:S.runtime.hp,previousMax:S.runtime.maxHp,nextMax:d.hp});S.runtime.hp=health.current;S.runtime.maxHp=health.maximum;if(S.runtime.focus===null)S.runtime.focus=d.focus;if(hasGift("Trust Fund")){if(S.runtime.funding===null){S.runtime.funding=10+5*(S.tier-1);S.runtime.fundingTier=S.tier}else if(S.runtime.fundingTier<S.tier){S.runtime.funding+=5*(S.tier-S.runtime.fundingTier);S.runtime.fundingTier=S.tier}}}
@@ -415,42 +423,45 @@ function abilityCost(ability=S.ability){
   return Logic.calculateAbilityCost({enabled:ability.enabled,rank:ability.rank,words,xWord:wordById(ability.xNoun,ability),specializations:ability.specializations,forceCondition:ability===S.ability&&hasGift("Uncontrollable Power")});
 }
 function budgets(){
-  const t=S.tier,aCost=abilityCost(),taintedCost=abilityCost(S.taintedAbility),performanceSkill=S.skills.find(s=>s.id===S.mods.performanceSkill);
+  const t=S.tier,rules=activeBuilderRules(),aCost=abilityCost(),taintedCost=abilityCost(S.taintedAbility),performanceSkill=S.skills.find(s=>s.id===S.mods.performanceSkill);
   const rankAccounting=Logic.calculateCreationBudgets({tier:t,gifts:selectedGiftNames(),skillRanks:S.skills.map(s=>s.rank),performanceTargetRank:performanceSkill?.rank||0,abilityCost:aCost,taintedBodyUsed:S.mods.taintedBody,taintedAbilityCost:taintedCost,gadgetSpent:S.mods.gadgetSpent});
-  const giftPool=t+1,activeGiftIds=new Set(allGifts().map(gift=>gift.id)),giftSpent=S.gifts.filter(id=>activeGiftIds.has(id)).length;
+  const giftPool=rules?rules.boons.startingChoices+rules.boons.perTier*(t-1):t+1,activeGiftIds=new Set(allGifts().map(gift=>gift.id)),giftSpent=S.gifts.filter(id=>activeGiftIds.has(id)).length;
   const activeTechniqueIds=new Set(activeArchetypes().flatMap(archetype=>archetype.techniques.map(technique=>technique.id)));
-  const techPool=5+2*(t-1)-2*S.techConversions,techSpent=Object.entries(S.techniques).filter(([id])=>activeTechniqueIds.has(id)).reduce((n,[,v])=>n+v,0);
+  const techPool=(rules?rules.techniques.startingLevels+rules.techniques.levelsPerTier*(t-1):5+2*(t-1))-(rules?.techniques.levelsPerAttributeConversion||2)*S.techConversions,techSpent=Object.entries(S.techniques).filter(([id])=>activeTechniqueIds.has(id)).reduce((n,[,v])=>n+v,0);
   const archUsed=activeArchetypes().filter(a=>a.techniques.some(tech=>(S.techniques[tech.id]||0)>0)).length;
-  const attrPool=2*(t-1),attrSpent=Object.values(S.attrBonus).reduce((n,v)=>n+v,0);
+  const attrPool=(rules?.attributes.growthPerTier||2)*(t-1),attrSpent=Object.values(S.attrBonus).reduce((n,v)=>n+v,0);
   return {aCost,taintedCost,giftPool,giftSpent,techPool,techSpent,archUsed,attrPool,attrSpent,...rankAccounting};
 }
 function effectiveSkillRank(skill){return Math.min(3,skill.rank+(hasGift("Performance Artist")&&S.mods.performanceSkill===skill.id?1:0))}
 function abilityNeedsX(ability=S.ability){return Object.values(ability.words).flat().some(id=>wordById(id,ability)?.marks.includes("☾"))}
 function issues(){
-  const b=budgets(),t=S.tier,problems=[]; const bases=Object.values(S.attrs).sort().join(",");
-  if(bases!=="2,2,3,4")problems.push(["bad","Стартовые Атрибуты должны образовывать набор 4 / 3 / 2 / 2."]);
-  if(b.attrSpent!==b.attrPool)problems.push(["",`Распределите ровно ${b.attrPool} бонусов Атрибутов за Ступени (сейчас ${b.attrSpent}).`]);
-  if(Object.values(S.attrBonus).some(v=>v>t-1))problems.push(["bad","Один Атрибут не может получать оба обычных бонуса одной Ступени."]);
-  const highest=Math.max(...ATTRS.map(([k])=>attrValue(k,false)));if(S.techConversions&&attrValue(S.conversionAttr,false)<highest)problems.push(["bad","Обмен Уровней должен повышать один из текущих высших Атрибутов."]);
-  if(!S.primaryOutlook)problems.push(["","Выберите Основное Мировоззрение."]);
-  if(S.outlooks.length>Math.min(3,t))problems.push(["bad",`На ${t}-й Ступени доступно не более ${Math.min(3,t)} Мировоззрений.`]);
-  if(b.giftSpent>b.giftPool)problems.push(["bad","Перерасход Даров."]);
-  if(b.skillSpent<b.skillMin)problems.push(["bad",`В Навыки нужно вложить минимум ${b.skillMin} Рангов.`]);
-  if(b.rankOver)problems.push(["bad",`Перерасход основного бюджета Рангов персонажа на ${b.rankOver}. Целевые Ранги Даров можно тратить только на указанные ими Способности или гаджеты.`]);
-  if(S.skills.some(s=>!s.name.trim()))problems.push(["","У одного из Навыков нет названия."]);
-  if(S.ability.enabled&&(!S.ability.words.verbs.length||!S.ability.words.nouns.length))problems.push(["","Для формулы Способности выберите хотя бы Глагол и Существительное."]);
-  if(hasGift("Uncontrollable Power")&&S.ability.enabled&&!S.ability.words.conditions.length)problems.push(["bad","«Неконтролируемая сила» требует Условие в формуле Способности."]);
-  if(S.ability.enabled&&abilityNeedsX(S.ability)&&!wordById(S.ability.xNoun))problems.push(["bad","Для слова с меткой ☾ выберите отдельное Существительное X; если цена слова равна X, она подставится автоматически."]);
-  if(hasGift("Tainted Body")&&S.mods.taintedBody&&(!S.taintedAbility.words.verbs.length||!S.taintedAbility.words.nouns.length))problems.push(["","«Порченое тело» раскрыто: соберите новую отдельную Способность из Глагола и Существительного."]);
-  if(hasGift("Tainted Body")&&S.mods.taintedBody&&abilityNeedsX(S.taintedAbility)&&!wordById(S.taintedAbility.xNoun))problems.push(["bad","В новой Способности «Порченого тела» слово с ☾ требует отдельное Существительное X."]);
-  if(b.taintedAbilityOver)problems.push(["bad",`Новая Способность «Порченого тела» превышает особый резерв на ${b.taintedAbilityOver} Ранг.`]);
-  if(hasGift("Supernatural Deafness")&&S.ability.enabled)problems.push(["bad","«Глухота к сверхъестественному» запрещает Способность."]);
-  if(b.rankBudgetConflict)problems.push(["bad","«Лучшие годы позади» и «Невероятный потенциал» задают несовместимые стартовые бюджеты."]);
+  const b=budgets(),t=S.tier,problems=[],problem=(kind,ru,en)=>problems.push([kind,isEnglishPreview()?en:ru]); const bases=Object.values(S.attrs).sort().join(",");
+  if(bases!=="2,2,3,4")problem("bad","Стартовые Атрибуты должны образовывать набор 4 / 3 / 2 / 2.","Starting Attributes must be assigned as 4 / 3 / 2 / 2.");
+  if(b.attrSpent!==b.attrPool)problem("",`Распределите ровно ${b.attrPool} бонусов Атрибутов за Ступени (сейчас ${b.attrSpent}).`,`Assign exactly ${b.attrPool} Attribute increases from Tiers (${b.attrSpent} assigned).`);
+  if(Object.values(S.attrBonus).some(v=>v>t-1))problem("bad","Один Атрибут не может получать оба обычных бонуса одной Ступени.","The same Attribute cannot receive both regular increases from one Tier.");
+  const highest=Math.max(...ATTRS.map(([k])=>attrValue(k,false)));if(S.techConversions&&attrValue(S.conversionAttr,false)<highest)problem("bad","Обмен Уровней должен повышать один из текущих высших Атрибутов.","Technique Level conversion must raise one of your current highest Attributes.");
+  if(!S.primaryOutlook)problem("","Выберите Основное Мировоззрение.","Choose a Primary Outlook.");
+  if(S.outlooks.length>Math.min(3,t))problem("bad",`На ${t}-й Ступени доступно не более ${Math.min(3,t)} Мировоззрений.`,`A Tier ${t} hero may have no more than ${Math.min(3,t)} Outlooks.`);
+  if(b.giftSpent>b.giftPool)problem("bad","Перерасход Даров.","Too many Boons selected.");
+  if(b.giftSpent<b.giftPool)problem("",`Выберите ещё ${b.giftPool-b.giftSpent} Дар(а).`,`Choose ${b.giftPool-b.giftSpent} more Boon(s).`);
+  if(b.skillSpent<b.skillMin)problem("bad",`В Навыки нужно вложить минимум ${b.skillMin} Рангов.`,`Spend at least ${b.skillMin} Ranks on Skills.`);
+  if(b.rankOver)problem("bad",`Перерасход основного бюджета Рангов персонажа на ${b.rankOver}. Целевые Ранги Даров можно тратить только на указанные ими Способности или гаджеты.`,`Core Character Rank budget exceeded by ${b.rankOver}. Restricted Boon Ranks may only fund their specified Ability or gadgets.`);
+  if(!b.rankOver&&b.coreRankSpent<b.coreRankPool)problem("",`Распределите ещё ${b.coreRankPool-b.coreRankSpent} Ранг(а) основного бюджета.`,`Spend the remaining ${b.coreRankPool-b.coreRankSpent} core Character Rank(s).`);
+  if(S.skills.some(s=>!s.name.trim()))problem("","У одного из Навыков нет названия.","One of the Skills has no name.");
+  if(S.ability.enabled&&(!S.ability.words.verbs.length||!S.ability.words.nouns.length))problem("","Для формулы Способности выберите хотя бы Глагол и Существительное.","Choose at least a Verb and a Noun for the Ability formula.");
+  if(hasGift("Uncontrollable Power")&&S.ability.enabled&&!S.ability.words.conditions.length)problem("bad","«Неконтролируемая сила» требует Условие в формуле Способности.","Uncontrollable Power requires a Condition in the Ability formula.");
+  if(S.ability.enabled&&abilityNeedsX(S.ability)&&!wordById(S.ability.xNoun))problem("bad","Для слова с меткой ☾ выберите отдельное Существительное X; если цена слова равна X, она подставится автоматически.","A ☾ word requires a separate X Noun; its cost is substituted automatically when needed.");
+  if(hasGift("Tainted Body")&&S.mods.taintedBody&&(!S.taintedAbility.words.verbs.length||!S.taintedAbility.words.nouns.length))problem("","«Порченое тело» раскрыто: соберите новую отдельную Способность из Глагола и Существительного.","Tainted Body has manifested: build its separate new Ability from a Verb and a Noun.");
+  if(hasGift("Tainted Body")&&S.mods.taintedBody&&abilityNeedsX(S.taintedAbility)&&!wordById(S.taintedAbility.xNoun))problem("bad","В новой Способности «Порченого тела» слово с ☾ требует отдельное Существительное X.","The Tainted Body Ability has a ☾ word and requires a separate X Noun.");
+  if(b.taintedAbilityOver)problem("bad",`Новая Способность «Порченого тела» превышает особый резерв на ${b.taintedAbilityOver} Ранг.`,`The Tainted Body Ability exceeds its special reserve by ${b.taintedAbilityOver} Rank.`);
+  if(hasGift("Supernatural Deafness")&&S.ability.enabled)problem("bad","«Глухота к сверхъестественному» запрещает Способность.","Supernatural Deafness prevents the hero from having an Ability.");
+  if(b.rankBudgetConflict)problem("bad","«Лучшие годы позади» и «Невероятный потенциал» задают несовместимые стартовые бюджеты.","Past Your Prime and Amazing Potential create incompatible starting budgets.");
   const performanceSkill=S.skills.find(s=>s.id===S.mods.performanceSkill);
-  if(hasGift("Performance Artist")&&!performanceSkill)problems.push(["","Выберите Навык, который получает дополнительный Ранг от Дара «Артист»."]);
-  if(hasGift("Performance Artist")&&performanceSkill?.rank>=3)problems.push(["bad","«Артист» не может повысить выбранный Навык выше максимального Ранга 3. Выберите Навык с купленным Рангом 1 или 2."]);
-  if(b.techSpent>b.techPool)problems.push(["bad","Перерасход Уровней Техник."]);
-  if(b.archUsed>3)problems.push(["bad","Техники взяты более чем из трёх Архетипов."]);
+  if(hasGift("Performance Artist")&&!performanceSkill)problem("","Выберите Навык, который получает дополнительный Ранг от Дара «Артист».","Choose the Skill that gains the extra Performance Artist Rank.");
+  if(hasGift("Performance Artist")&&performanceSkill?.rank>=3)problem("bad","«Артист» не может повысить выбранный Навык выше максимального Ранга 3. Выберите Навык с купленным Рангом 1 или 2.","Performance Artist cannot raise a Skill above Rank 3. Choose a Skill with 1 or 2 bought Ranks.");
+  if(b.techSpent>b.techPool)problem("bad","Перерасход Уровней Техник.","Technique Level budget exceeded.");
+  if(b.techSpent<b.techPool)problem("",`Распределите ещё ${b.techPool-b.techSpent} Уровней Техник.`,`Spend the remaining ${b.techPool-b.techSpent} Technique Level(s).`);
+  if(b.archUsed>(activeBuilderRules()?.techniques.maximumArchetypes||3))problem("bad","Техники взяты более чем из трёх Архетипов.","Techniques may come from no more than three Archetypes.");
   return problems;
 }
 

@@ -7,7 +7,62 @@
     "reference",
     "techniques"
   ],
-  "mechanicsLocale": "ru",
+  "tableMechanicsStatus": "not-ported",
+  "builderRules": {
+    "schemaVersion": 1,
+    "editionId": "dawn-en-lionwing-cb2f8e67",
+    "sourceLocale": "en",
+    "tier": {
+      "minimum": 1,
+      "maximum": 6
+    },
+    "attributes": {
+      "startingValues": [
+        4,
+        3,
+        2,
+        2
+      ],
+      "growthPerTier": 2,
+      "sameAttributeGrowthPerTier": 1
+    },
+    "ranks": {
+      "starting": 8,
+      "perTier": 2,
+      "minimumStartingSkillRanks": 4
+    },
+    "outlooks": {
+      "starting": 1,
+      "maximum": 3
+    },
+    "boons": {
+      "startingChoices": 2,
+      "perTier": 1,
+      "primaryInherentBoonIsFree": true
+    },
+    "techniques": {
+      "startingLevels": 5,
+      "levelsPerTier": 2,
+      "maximumArchetypes": 3,
+      "levelsPerAttributeConversion": 2
+    },
+    "derivedStatistics": {
+      "health": "10 + Body + Tier * 2",
+      "speed": "2 + ceil(Talent / 2)",
+      "focus": "1 + ceil(Spirit / 2)",
+      "guts": null
+    },
+    "source": {
+      "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
+      "pdfPages": [
+        22,
+        23,
+        24,
+        32
+      ]
+    }
+  },
   "archetypes": [
     {
       "id": "powerhouse",
@@ -5582,7 +5637,7 @@
       "name": "Derived Statistics",
       "kind": "Builder Reference",
       "tags": "Creation, Statistics",
-      "text": "Health, Guts, Speed, and Focus are calculated automatically from the hero's Tier and Attributes. The summary and character sheet always show the current result.",
+      "text": "Health equals 10 + Body + twice Tier. Speed equals 2 + half Talent, rounded up; Focus equals 1 + half Spirit, rounded up. LionWing has no Guts statistic.",
       "source": {
         "editionId": "dawn-en-lionwing-cb2f8e67",
         "pdfPage": 24

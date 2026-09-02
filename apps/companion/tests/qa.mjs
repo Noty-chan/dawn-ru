@@ -13,6 +13,9 @@ vm.runInNewContext(fs.readFileSync(path.join(root, "logic.js"), "utf8"), context
 vm.runInNewContext(fs.readFileSync(path.join(root, "data.js"), "utf8"), context);
 const data = context.window.DAWN_DATA;
 const logic = context.window.DAWN_LOGIC;
+assert.deepEqual(JSON.parse(JSON.stringify(logic.calculateDerivedStatistics({ edition: "ru-v0.9", tier: 1, body: 4, talent: 3, spirit: 2 }))), { hp: 10, guts: 5, speed: 4, focus: 2 }, "0.9 derived statistics must remain unchanged");
+assert.deepEqual(JSON.parse(JSON.stringify(logic.calculateDerivedStatistics({ edition: "lionwing", tier: 1, body: 4, talent: 3, spirit: 2 }))), { hp: 16, guts: null, speed: 4, focus: 2 }, "LionWing creation must use its own Health formula and omit Guts");
+assert.deepEqual(JSON.parse(JSON.stringify(logic.calculateDerivedStatistics({ edition: "lionwing", tier: 3, body: 5, talent: 4, spirit: 5 }))), { hp: 21, guts: null, speed: 4, focus: 4 }, "LionWing Tier and odd-Attribute increases must update derived statistics independently");
 assert.deepEqual(JSON.parse(JSON.stringify(logic.reconcileHealthRuntime({ current: null, nextMax: 6 }))), { current: 6, maximum: 6 }, "A fresh hero starts at the rules-derived maximum Health");
 assert.deepEqual(JSON.parse(JSON.stringify(logic.reconcileHealthRuntime({ current: 10, previousMax: 10, nextMax: 6 }))), { current: 6, maximum: 6 }, "Changing Body cannot leave current Health above the new maximum");
 assert.deepEqual(JSON.parse(JSON.stringify(logic.reconcileHealthRuntime({ current: 7, previousMax: 10, nextMax: 12 }))), { current: 9, maximum: 12 }, "Changing maximum Health preserves missing Health instead of granting a free heal");
@@ -445,7 +448,7 @@ assert.match(app, /Итоги боя открыты для всего стола
 assert.match(app, /Scene\.results\?`<button[^`]+data-scene-session-action="results">К итогам/, "Every participant receives a persistent reopen button while shared results exist");
 assert.match(app, /sceneBattleComplete\(\)[\s\S]+Завершить бой/, "The Narrator receives a finish-battle action when either side is knocked out");
 assert.match(app, /reconcileSceneResultsDialog\(\)/, "A newly synchronized results token opens the post-battle dialog on every client");
-assert.match(app, /Math\.ceil\(attrValueFor\(hero,"talent"\)\/2\)/);
+assert.match(app, /Logic\.calculateDerivedStatistics\(\{edition,tier:hero\.tier/);
 assert.match(app, /takeWound\(external\)/);
 assert.match(app, /setToolsResource\("influence"/, "Free-play Influence changes must update the local sheet or canonical shared actor");
 assert.match(app, /Logic\.calculateCreationBudgets/);

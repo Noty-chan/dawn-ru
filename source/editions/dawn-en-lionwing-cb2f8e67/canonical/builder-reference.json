@@ -70,7 +70,7 @@
     "name": "Derived Statistics",
     "kind": "Builder Reference",
     "tags": "Creation, Statistics",
-    "text": "Health, Guts, Speed, and Focus are calculated automatically from the hero's Tier and Attributes. The summary and character sheet always show the current result.",
+    "text": "Health equals 10 + Body + twice Tier. Speed equals 2 + half Talent, rounded up; Focus equals 1 + half Spirit, rounded up. LionWing has no Guts statistic.",
     "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
       "pdfPage": 24

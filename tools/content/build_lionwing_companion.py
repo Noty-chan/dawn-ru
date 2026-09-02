@@ -358,7 +358,7 @@ def parse_reference_sections() -> list[dict]:
         ("ability-formula", "Ability Formula", "Creation, Ability",
          "Build an Ability from Verbs, Nouns, and Conditions. Its cost is calculated from the selected words and Rank. Symbol-specific exceptions are shown beside the Ability editor.", 45),
         ("derived-statistics", "Derived Statistics", "Creation, Statistics",
-         "Health, Guts, Speed, and Focus are calculated automatically from the hero's Tier and Attributes. The summary and character sheet always show the current result.", 24),
+         "Health equals 10 + Body + twice Tier. Speed equals 2 + half Talent, rounded up; Focus equals 1 + half Spirit, rounded up. LionWing has no Guts statistic.", 24),
     ]
     return [{
         "id": f"lionwing.reference.{card_id}",
@@ -368,6 +368,22 @@ def parse_reference_sections() -> list[dict]:
         "text": text,
         "source": {"editionId": NEW_ID, "pdfPage": page_number},
     } for card_id, name, tags, text, page_number in cards]
+
+
+def builder_rules() -> dict:
+    return {
+        "schemaVersion": 1,
+        "editionId": NEW_ID,
+        "sourceLocale": "en",
+        "tier": {"minimum": 1, "maximum": 6},
+        "attributes": {"startingValues": [4, 3, 2, 2], "growthPerTier": 2, "sameAttributeGrowthPerTier": 1},
+        "ranks": {"starting": 8, "perTier": 2, "minimumStartingSkillRanks": 4},
+        "outlooks": {"starting": 1, "maximum": 3},
+        "boons": {"startingChoices": 2, "perTier": 1, "primaryInherentBoonIsFree": True},
+        "techniques": {"startingLevels": 5, "levelsPerTier": 2, "maximumArchetypes": 3, "levelsPerAttributeConversion": 2},
+        "derivedStatistics": {"health": "10 + Body + Tier * 2", "speed": "2 + ceil(Talent / 2)", "focus": "1 + ceil(Spirit / 2)", "guts": None},
+        "source": {"editionId": NEW_ID, "locale": "en", "pdfPages": [22, 23, 24, 32]},
+    }
 
 
 def assign_ids(techniques: list[dict], current: dict) -> tuple[list[dict], dict]:
@@ -869,6 +885,7 @@ def write_canonical_corpus(overlay: dict) -> None:
         ("outlooks.json", overlay["outlooks"]),
         ("ability-words.json", overlay["abilityWords"]),
         ("builder-reference.json", overlay["reference"]),
+        ("builder-rules.json", overlay["builderRules"]),
         ("id-map.json", {"mappedIds": overlay["mappedIds"], "migrationEvidence": overlay["migrationEvidence"], "removedIds": overlay["removedIds"]}),
     ):
         (canonical / name).write_text(json.dumps(value, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
@@ -877,7 +894,7 @@ def write_canonical_corpus(overlay: dict) -> None:
         "schemaVersion": 1,
         "editionId": overlay["editionId"],
         "locale": overlay["locale"],
-        "mechanicsLocale": overlay["mechanicsLocale"],
+        "tableMechanicsStatus": overlay["tableMechanicsStatus"],
         "status": "active-development",
         "purpose": "Canonical English translation and companion source; generated from the local licensed PDF.",
         "authority": {"englishText": "LionWing", "russian09": "compatibility-snapshot-only"},
@@ -913,7 +930,8 @@ def main() -> None:
         "editionId": NEW_ID,
         "locale": "en",
         "scope": ["builder", "reference", "techniques"],
-        "mechanicsLocale": "ru",
+        "tableMechanicsStatus": "not-ported",
+        "builderRules": builder_rules(),
         "archetypes": [
             {"id": archetype_id, "name": name, "techniques": [item for item in techniques if item["archetypeId"] == archetype_id]}
             for archetype_id, name in archetype_names.items()

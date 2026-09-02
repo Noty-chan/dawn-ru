@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "editionId": "dawn-en-lionwing-cb2f8e67",
   "locale": "en",
-  "mechanicsLocale": "ru",
+  "tableMechanicsStatus": "not-ported",
   "status": "active-development",
   "purpose": "Canonical English translation and companion source; generated from the local licensed PDF.",
   "authority": {
@@ -31,6 +31,7 @@
     "outlooks.json",
     "ability-words.json",
     "builder-reference.json",
+    "builder-rules.json",
     "id-map.json"
   ]
 }
