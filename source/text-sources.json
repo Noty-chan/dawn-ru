@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "sources": {
+    "ru": {
+      "id": "dawn-ru-v0.9",
+      "locale": "ru",
+      "kind": "translation",
+      "version": "0.9.0",
+      "path": "source/translation",
+      "status": "canonical"
+    },
+    "en-legacy": {
+      "id": "dawn-en-9ce6d8d6",
+      "locale": "en",
+      "kind": "original-pdf",
+      "version": null,
+      "path": "source/original/Dawn - A Diceless Fantasy TTRPG.pdf",
+      "sha256": "9ce6d8d6b79807bdaeb33b8d32874d5811744cd0aeae15d07352088d0f5b3ce2",
+      "pages": 126,
+      "status": "obsolete-reference"
+    },
+    "en": {
+      "id": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
+      "kind": "original-pdf",
+      "version": null,
+      "editionLabel": "LionWing Edition (Print Beta)",
+      "localPath": "source/original/DAWN_ The RPG (LionWing Edition) w Bookmarks.pdf",
+      "distribution": "local-only-not-committed",
+      "sha256": "cb2f8e675dc90152b5d70780262622a42be679853bf289b4c6e80d1ed0ea747d",
+      "pages": 134,
+      "status": "canonical",
+      "supersedes": "dawn-en-9ce6d8d6"
+    }
+  }
+}

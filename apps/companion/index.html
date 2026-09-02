@@ -12,120 +12,126 @@
   <link rel="stylesheet" href="vtt-cockpit.css?v=__BUILD_VERSION__">
 </head>
 <body>
-  <a class="skip" href="#main">К содержимому</a>
+  <a class="skip" href="#main" data-i18n="app.skip">К содержимому</a>
   <header class="topbar">
-    <div class="brand" aria-label="DAWN RU">
+    <div class="brand" aria-label="DAWN" data-i18n-aria-label="app.brand">
       <span class="brand-mark">D</span>
-      <span><strong>DAWN</strong><small>RU · КОМПАНЬОН 2</small></span>
+      <span><strong>DAWN</strong><small data-i18n="app.subtitle">RU · КОМПАНЬОН 2</small></span>
     </div>
-    <nav class="mode-tabs" aria-label="Режим компаньона">
-      <button type="button" data-mode="build" aria-current="page">Герой</button>
-      <button type="button" data-mode="play">Стол</button>
-      <button type="button" data-mode="tools">Инструменты</button>
-      <button type="button" data-mode="rules">Правила</button>
-      <button type="button" data-mode="reference">Справочник</button>
+    <nav class="mode-tabs" aria-label="Режим компаньона" data-i18n-aria-label="app.modes">
+      <button type="button" data-mode="build" data-i18n="nav.builder" aria-current="page">Герой</button>
+      <button type="button" data-mode="play" data-i18n="nav.table">Стол</button>
+      <button type="button" data-mode="tools" data-i18n="nav.tools">Инструменты</button>
+      <button type="button" data-mode="rules" data-i18n="nav.rules">Правила</button>
+      <button type="button" data-mode="reference" data-i18n="nav.reference">Справочник</button>
     </nav>
-    <button type="button" class="icon-button" id="theme-toggle" aria-label="Сменить тему">◐</button>
+    <div class="content-switchers" aria-label="Язык и редакция правил" data-i18n-aria-label="settings.content">
+      <label><span data-i18n="settings.language">Язык</span><select id="locale-select"><option value="ru">Русский</option><option value="en">English</option></select></label>
+      <label><span data-i18n="settings.edition">Редакция</span><select id="edition-select"><option value="ru-v0.9">RU v0.9</option><option value="lionwing">LionWing</option></select></label>
+    </div>
+    <button type="button" class="icon-button" id="theme-toggle" aria-label="Сменить тему" data-i18n-aria-label="app.theme">◐</button>
   </header>
 
   <div class="app-shell">
-    <aside class="sidebar" aria-label="Персонажи и состояние сборки">
+    <aside class="sidebar" aria-label="Персонажи и состояние сборки" data-i18n-aria-label="sidebar.label">
       <div class="hero-switcher">
-        <label for="hero-select">Персонаж</label>
+        <label for="hero-select" data-i18n="sidebar.hero">Персонаж</label>
         <select id="hero-select"></select>
         <div class="button-row compact">
-          <button type="button" id="hero-new">Новый</button>
-          <button type="button" id="hero-copy">Копия</button>
-          <button type="button" id="hero-delete" class="danger">Удалить</button>
+          <button type="button" id="hero-new" data-i18n="sidebar.new">Новый</button>
+          <button type="button" id="hero-copy" data-i18n="sidebar.copy">Копия</button>
+          <button type="button" id="hero-delete" class="danger" data-i18n="sidebar.delete">Удалить</button>
         </div>
       </div>
       <section class="summary" aria-labelledby="summary-title">
-        <h2 id="summary-title">Сводка</h2>
+        <h2 id="summary-title" data-i18n="sidebar.summary">Сводка</h2>
         <div id="derived" class="derived-grid"></div>
         <div id="budgets" class="budget-list"></div>
         <div id="warnings" class="warnings" aria-live="polite"></div>
       </section>
       <div class="button-stack">
-        <button type="button" id="export-hero">Экспорт героя</button>
-        <label class="file-button">Импорт героя<input id="import-hero" type="file" accept="application/json,.json"></label>
-        <button type="button" id="print-sheet">Печать листа</button>
+        <button type="button" id="export-hero" data-i18n="sidebar.export">Экспорт героя</button>
+        <label class="file-button"><span data-i18n="sidebar.import">Импорт героя</span><input id="import-hero" type="file" accept="application/json,.json"></label>
+        <button type="button" id="print-sheet" data-i18n="sidebar.print">Печать листа</button>
       </div>
-      <p class="autosave">Сохраняется автоматически на этом устройстве.</p>
+      <p class="autosave" data-i18n="sidebar.autosave">Сохраняется автоматически на этом устройстве.</p>
     </aside>
 
     <main id="main">
       <section class="mode-page active" data-page="build" aria-labelledby="build-title">
+        <aside id="content-preview-banner" class="content-preview-banner" role="status" hidden></aside>
         <div class="page-heading">
-          <div><p class="eyebrow">СБОРКА ПЕРСОНАЖА</p><h1 id="build-title" class="sr-only">Сборка персонажа</h1></div>
+          <div><p class="eyebrow" data-i18n="builder.eyebrow">СБОРКА ПЕРСОНАЖА</p><h1 id="build-title" class="sr-only" data-i18n="builder.title">Сборка персонажа</h1></div>
           <div id="build-progress" class="progress-label"></div>
         </div>
 
         <section class="panel" aria-labelledby="profile-title">
-          <div class="section-title"><span>01</span><div><h2 id="profile-title">Профиль</h2><p>Имя, концепция и текущая Ступень.</p></div></div>
+          <div class="section-title"><span>01</span><div><h2 id="profile-title" data-i18n="builder.profile.title">Профиль</h2><p data-i18n="builder.profile.description">Имя, концепция и текущая Ступень.</p></div></div>
           <div class="field-grid three">
-            <label>Имя<input id="f-name" autocomplete="off" placeholder="Имя героя"></label>
-            <label>Игрок<input id="f-player" autocomplete="off" placeholder="Имя игрока"></label>
-            <label>Ступень<select id="f-tier"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select></label>
-            <label class="wide">Концепция<textarea id="f-concept" rows="2" placeholder="Кто этот герой и чего он хочет?"></textarea></label>
+            <label><span data-i18n="builder.profile.name">Имя</span><input id="f-name" autocomplete="off" placeholder="Имя героя" data-i18n-placeholder="builder.profile.namePlaceholder"></label>
+            <label><span data-i18n="builder.profile.player">Игрок</span><input id="f-player" autocomplete="off" placeholder="Имя игрока" data-i18n-placeholder="builder.profile.playerPlaceholder"></label>
+            <label><span data-i18n="builder.profile.tier">Ступень</span><select id="f-tier"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select></label>
+            <label class="wide"><span data-i18n="builder.profile.concept">Концепция</span><textarea id="f-concept" rows="2" placeholder="Кто этот герой и чего он хочет?" data-i18n-placeholder="builder.profile.conceptPlaceholder"></textarea></label>
           </div>
           <div class="profile-media">
-            <article><div id="hero-portrait-preview" class="media-preview portrait-preview"><span>Портрет</span></div><label class="file-button">Загрузить портрет<input id="hero-portrait-upload" type="file" accept="image/png,image/jpeg,image/webp,image/gif"></label><button type="button" id="hero-portrait-clear">Убрать</button></article>
-            <article><div id="hero-token-preview" class="media-preview token-preview"><span>Токен</span></div><label class="file-button">Загрузить токен<input id="hero-token-upload" type="file" accept="image/png,image/jpeg,image/webp,image/gif"></label><button type="button" id="hero-token-clear">Убрать</button></article>
-            <p>Портрет появится в галерее активных персонажей, токен — на поле. Изображения входят в экспорт героя.</p>
+            <article><div id="hero-portrait-preview" class="media-preview portrait-preview"><span data-i18n="builder.media.portrait">Портрет</span></div><label class="file-button"><span data-i18n="builder.media.uploadPortrait">Загрузить портрет</span><input id="hero-portrait-upload" type="file" accept="image/png,image/jpeg,image/webp,image/gif"></label><button type="button" id="hero-portrait-clear" data-i18n="builder.media.remove">Убрать</button></article>
+            <article><div id="hero-token-preview" class="media-preview token-preview"><span data-i18n="builder.media.token">Токен</span></div><label class="file-button"><span data-i18n="builder.media.uploadToken">Загрузить токен</span><input id="hero-token-upload" type="file" accept="image/png,image/jpeg,image/webp,image/gif"></label><button type="button" id="hero-token-clear" data-i18n="builder.media.remove">Убрать</button></article>
+            <p data-i18n="builder.media.help">Портрет появится в галерее активных персонажей, токен — на поле. Изображения входят в экспорт героя.</p>
           </div>
         </section>
 
         <section class="panel" aria-labelledby="attrs-title">
-          <div class="section-title"><span>02</span><div><h2 id="attrs-title">Атрибуты</h2><p>Разложите 4 / 3 / 2 / 2 и распределите рост Ступеней.</p></div></div>
+          <div class="section-title"><span>02</span><div><h2 id="attrs-title" data-i18n="builder.attributes.title">Атрибуты</h2><p data-i18n="builder.attributes.description">Разложите 4 / 3 / 2 / 2 и распределите рост Ступеней.</p></div></div>
           <div id="attrs" class="attribute-grid"></div>
           <div class="subpanel inline-fields">
-            <label>Обмен двух Уровней Техник на +1 к высшему Атрибуту
+            <label><span data-i18n="builder.attributes.conversion">Обмен двух Уровней Техник на +1 к высшему Атрибуту</span>
               <select id="tech-conversions"></select>
             </label>
-            <label>Получает бонус<select id="conversion-attr"></select></label>
+            <label><span data-i18n="builder.attributes.bonusTarget">Получает бонус</span><select id="conversion-attr"></select></label>
           </div>
         </section>
 
         <section class="panel" aria-labelledby="outlook-title">
-          <div class="section-title"><span>03</span><div><h2 id="outlook-title">Мировоззрения и Дары</h2><p>Одно Основное, до двух Вторичных; 2 Дара + 1 за каждую новую Ступень.</p></div></div>
+          <div class="section-title"><span>03</span><div><h2 id="outlook-title" data-i18n="builder.outlooks.title">Мировоззрения и Дары</h2><p data-i18n="builder.outlooks.description">Одно Основное, до двух Вторичных; 2 Дара + 1 за каждую новую Ступень.</p></div></div>
           <div id="outlooks" class="choice-grid"></div>
           <div id="builtin-gifts" class="builtin-gifts" hidden></div>
           <div id="gifts" class="catalog-grid"></div>
         </section>
 
         <section id="bond-training" class="panel bond-training bond-builder-hint" aria-labelledby="bond-training-title">
-          <div class="section-title"><span>СВ</span><div><h2 id="bond-training-title">Связи героя</h2><p>Избранные действия выбранных Мировоззрений.</p></div></div>
+          <div class="section-title"><span data-i18n="builder.bonds.mark">СВ</span><div><h2 id="bond-training-title" data-i18n="builder.bonds.title">Связи героя</h2><p data-i18n="builder.bonds.description">Избранные действия выбранных Мировоззрений.</p></div></div>
           <div id="bond-training-content"></div>
         </section>
 
         <section id="ranks-panel" class="panel" aria-labelledby="ranks-title">
-          <div class="section-title"><span>04</span><div><h2 id="ranks-title">Навыки и Способность</h2><p>Ранги 1–3. Стоимость Способности складывается из слов и повышения Ранга.</p></div></div>
-          <aside class="ability-mark-legend" aria-label="Объяснение меток слов Способности"><strong>Метки слов:</strong><span><b>✢</b> формула заканчивается после Существительного, без Условия</span><span><b>✝</b> категорию можно сузить до одной вещи и снизить стоимость на 1</span><span><b>☾</b> выберите другое Существительное для X; цена X равна его стоимости</span></aside>
+          <div class="section-title"><span>04</span><div><h2 id="ranks-title" data-i18n="builder.ranks.title">Навыки и Способность</h2><p data-i18n="builder.ranks.description">Ранги 1–3. Стоимость Способности складывается из слов и повышения Ранга.</p></div></div>
+          <aside class="ability-mark-legend" aria-label="Объяснение меток слов Способности" data-i18n-aria-label="builder.ability.marksLabel"><strong data-i18n="builder.ability.marks">Метки слов:</strong><span><b>✢</b> <i data-i18n="builder.ability.markStop">формула заканчивается после Существительного, без Условия</i></span><span><b>✝</b> <i data-i18n="builder.ability.markNarrow">категорию можно сузить до одной вещи и снизить стоимость на 1</i></span><span><b>☾</b> <i data-i18n="builder.ability.markX">выберите другое Существительное для X; цена X равна его стоимости</i></span></aside>
           <div class="split-grid">
             <div class="subpanel">
-              <div class="subpanel-head"><h3>Навыки</h3><button type="button" id="skill-add">Добавить</button></div>
+              <div class="subpanel-head"><h3 data-i18n="builder.skills.title">Навыки</h3><button type="button" id="skill-add" data-i18n="builder.skills.add">Добавить</button></div>
               <div id="skills" class="stack"></div>
             </div>
             <div class="subpanel">
-              <div class="subpanel-head"><h3>Способность</h3><label class="switch"><input id="ability-enabled" type="checkbox"><span>есть</span></label></div>
+              <div class="subpanel-head"><h3 data-i18n="builder.ability.title">Способность</h3><label class="switch"><input id="ability-enabled" type="checkbox"><span data-i18n="builder.ability.enabled">есть</span></label></div>
               <div id="ability-builder"></div>
             </div>
           </div>
-          <div id="tainted-ability-section" class="subpanel tainted-ability" hidden><div class="subpanel-head"><div><h3>Новая Способность «Порченого тела»</h3><small>Отдельна от исходной Способности и оплачивается только особым резервом Дара.</small></div></div><div id="tainted-ability-builder"></div></div>
-          <details class="rules-details"><summary>Особые источники Рангов</summary><div id="rank-modifiers"></div></details>
+          <div id="tainted-ability-section" class="subpanel tainted-ability" hidden><div class="subpanel-head"><div><h3 data-i18n="builder.ability.tainted">Новая Способность «Порченого тела»</h3><small data-i18n="builder.ability.taintedHelp">Отдельна от исходной Способности и оплачивается только особым резервом Дара.</small></div></div><div id="tainted-ability-builder"></div></div>
+          <details class="rules-details"><summary data-i18n="builder.ranks.sources">Особые источники Рангов</summary><div id="rank-modifiers"></div></details>
         </section>
 
         <section class="panel" aria-labelledby="tech-title">
-          <div class="section-title"><span>05</span><div><h2 id="tech-title">Техники</h2><p>Покупайте Уровни последовательно; не более трёх Архетипов.</p></div></div>
+          <div class="section-title"><span>05</span><div><h2 id="tech-title" data-i18n="builder.techniques.title">Техники</h2><p data-i18n="builder.techniques.description">Покупайте Уровни последовательно; не более трёх Архетипов.</p></div></div>
           <div class="catalog-tools">
-            <input id="tech-search" type="search" placeholder="Название, тег или текст Техники">
+            <input id="tech-search" type="search" placeholder="Название, тег или текст Техники" data-i18n-placeholder="builder.techniques.search">
             <div id="arch-tabs" class="chip-row"></div>
+            <div class="catalog-filter-row"><div id="tech-tag-filters" class="chip-row" aria-label="Technique tags" data-i18n-aria-label="builder.techniques.tags"></div><label><span data-i18n="catalog.sort">Порядок</span><select id="tech-sort"><option value="source" data-i18n="catalog.sort.source">Как в книге</option><option value="name" data-i18n="catalog.sort.name">По названию</option><option value="stars" data-i18n="catalog.sort.stars">По стоимости</option></select></label></div>
           </div>
           <div id="tech-list" class="catalog-grid techniques"></div>
         </section>
 
         <section class="panel sheet-panel" aria-labelledby="sheet-title">
-          <div class="section-title"><span>06</span><div><h2 id="sheet-title">Лист персонажа</h2><p>Полная переносимая версия выбранной сборки.</p></div></div>
+          <div class="section-title"><span>06</span><div><h2 id="sheet-title" data-i18n="builder.sheet.title">Лист персонажа</h2><p data-i18n="builder.sheet.description">Полная переносимая версия выбранной сборки.</p></div></div>
           <article id="sheet" class="character-sheet"></article>
         </section>
       </section>
@@ -320,11 +326,12 @@
       </section>
 
       <section class="mode-page" data-page="reference" aria-labelledby="reference-title">
-        <div class="page-heading"><div><p class="eyebrow">ТЕРМИНЫ БЕЗ ЛИСТАНИЯ</p><h1 id="reference-title">Справочник</h1></div></div>
+        <div class="page-heading"><div><p class="eyebrow" data-i18n="reference.eyebrow">ТЕРМИНЫ БЕЗ ЛИСТАНИЯ</p><h1 id="reference-title" data-i18n="reference.title">Справочник</h1></div></div>
         <aside class="panel reference-rules-link"><div><span>Нужно понять механику целиком?</span><strong>Последовательные объяснения перенесены в «Правила».</strong></div><a class="file-button" href="?mode=rules">Открыть Правила</a></aside>
         <div class="catalog-tools sticky-tools">
-          <input id="ref-search" type="search" placeholder="Искать Стресс, термины, действия, Эффекты, Техники…">
+          <input id="ref-search" type="search" placeholder="Искать Стресс, термины, действия, Эффекты, Техники…" data-i18n-placeholder="reference.search">
           <div class="chip-row" id="ref-filters"></div>
+          <div class="catalog-filter-row"><div class="chip-row" id="ref-tag-filters" aria-label="Reference tags" data-i18n-aria-label="reference.tags"></div><label><span data-i18n="catalog.sort">Порядок</span><select id="ref-sort"><option value="source" data-i18n="catalog.sort.source">Как в книге</option><option value="name" data-i18n="catalog.sort.name">По названию</option></select></label></div>
         </div>
         <div id="reference-list" class="catalog-grid reference-grid"></div>
       </section>
@@ -342,7 +349,9 @@
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
   <script src="localization.js?v=__BUILD_VERSION__"></script>
   <script src="locale-ru.js?v=__BUILD_VERSION__"></script>
+  <script src="locale-en-builder.js?v=__BUILD_VERSION__"></script>
   <script src="data.js?v=__BUILD_VERSION__"></script>
+  <script src="edition-lionwing.js?v=__BUILD_VERSION__"></script>
   <script src="logic.js?v=__BUILD_VERSION__"></script>
   <script src="scene-engine-core.js?v=__BUILD_VERSION__"></script>
   <script src="scene-query.js?v=__BUILD_VERSION__"></script>

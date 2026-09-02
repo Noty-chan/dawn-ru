@@ -44,8 +44,27 @@
     if (!catalogs.has(next)) return false;
     activeLocale = next;
     if (typeof document === "object") document.documentElement.lang = next;
+    if (typeof document === "object") localizeDocument(document, { locale: next });
     if (typeof window === "object" && typeof window.dispatchEvent === "function" && typeof CustomEvent === "function") window.dispatchEvent(new CustomEvent("dawn:locale-change", { detail: { locale: next } }));
     return true;
+  }
+
+  function localizeDocument(root = document, options = {}) {
+    if (!root?.querySelectorAll) return 0;
+    let count = 0;
+    root.querySelectorAll("[data-i18n]").forEach(element => {
+      element.textContent = translate(element.dataset.i18n, {}, options);
+      count += 1;
+    });
+    root.querySelectorAll("[data-i18n-placeholder]").forEach(element => {
+      element.setAttribute("placeholder", translate(element.dataset.i18nPlaceholder, {}, options));
+      count += 1;
+    });
+    root.querySelectorAll("[data-i18n-aria-label]").forEach(element => {
+      element.setAttribute("aria-label", translate(element.dataset.i18nAriaLabel, {}, options));
+      count += 1;
+    });
+    return count;
   }
 
   const api = Object.freeze({
@@ -54,6 +73,7 @@
     t: translate,
     field: localizedField,
     eventText: localizeEvent,
+    localizeDocument,
     setLocale,
     getLocale: () => activeLocale,
     availableLocales: () => [...catalogs.keys()],

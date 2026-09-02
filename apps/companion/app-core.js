@@ -340,7 +340,7 @@ function consumePresetDraft(targetStore){
   try{const url=new URL(window.location.href),raw=url.searchParams.get("preset");if(!raw)return null;url.searchParams.delete("preset");history.replaceState(null,"",`${url.pathname}${url.search}${url.hash}`);draft=JSON.parse(raw);}catch{return null}
   const createdAt=Number(draft?.createdAt);
   if(!draft||draft.schema!==1||draft.kind!=="dawn-combat-preset"||!Number.isFinite(createdAt)||Math.abs(Date.now()-createdAt)>15*60*1000)return null;
-  const knownTechniques=new Set(D.archetypes.flatMap(archetype=>archetype.techniques.map(technique=>technique.id))),techniques={};
+  const knownTechniques=new Set(allArchetypes().flatMap(archetype=>archetype.techniques.map(technique=>technique.id))),techniques={};
   for(const [id,level] of Object.entries(draft.techniques||{}))if(knownTechniques.has(id)&&[1,2,3].includes(Number(level)))techniques[id]=Number(level);
   if(Object.values(techniques).reduce((total,level)=>total+level,0)!==5)return null;
   const attrs={};for(const [key] of ATTRS)attrs[key]=clamp(draft.attrs?.[key],2,4);
@@ -351,7 +351,7 @@ function consumePresetDraft(targetStore){
   return hero.name||"Новый персонаж";
 }
 function sceneViewportProfile(){if(matchMedia("(max-width: 950px) and (max-height: 500px) and (orientation: landscape)").matches)return"phone-landscape";if(matchMedia("(max-width: 720px)").matches)return"phone";return"desktop"}
-let store=loadStore(); const importedPresetName=consumePresetDraft(store),requestedMode=new URLSearchParams(location.search).get("mode");if(["build","play","tools","rules","reference"].includes(requestedMode))store.mode=requestedMode;let S=store.heroes[store.current]||store.heroes[0]; let Scene=store.scene||blankScene();let activeArch=D.archetypes[0]?.id; let refKind="all",rulesAudience="all";let activeScenePanel=null,scenePanelTrigger=null,activeSheetTab="combat",activeUtilityPreset={skillId:"",abilityKey:""},activeUtilityActorId=null;let sceneViewportMode=sceneViewportProfile(),sceneZoom=clamp(store.sceneUi?.zoom||70,30,180),sceneControlMode=["auto","guided","manual"].includes(store.sceneUi?.controlMode)?store.sceneUi.controlMode:"guided",sceneNeedsInitialFit=store.sceneUi?.fitVersion!==8||store.sceneUi?.viewport!==sceneViewportMode,sceneResizeTimer=null;let sceneDragActorId=null,sceneSuppressBoardClickUntil=0,sceneMeasureStart=null,sceneMeasureCells=new Set(),sceneMeasureLabel="",scenePanState=null,sceneSpaceHeld=false,sceneTokenTipTimer=null,hoveredSceneActorId=null,sceneContextTarget=null,lastAutoOpenedSceneResultsId="",activeModifierPickerId=null,activeModifierActionId=null,activeModifierShapePreset=null,showAllModifierOverlays=false,modifierModeDrafts=new Map();
+let store=loadStore(); const importedPresetName=consumePresetDraft(store),requestedMode=new URLSearchParams(location.search).get("mode");if(["build","play","tools","rules","reference"].includes(requestedMode))store.mode=requestedMode;let S=store.heroes[store.current]||store.heroes[0]; let Scene=store.scene||blankScene();let activeArch=activeArchetypes()[0]?.id; let techTag="all",techSort="source",refKind="all",refTag="all",refSort="source",rulesAudience="all";let activeScenePanel=null,scenePanelTrigger=null,activeSheetTab="combat",activeUtilityPreset={skillId:"",abilityKey:""},activeUtilityActorId=null;let sceneViewportMode=sceneViewportProfile(),sceneZoom=clamp(store.sceneUi?.zoom||70,30,180),sceneControlMode=["auto","guided","manual"].includes(store.sceneUi?.controlMode)?store.sceneUi.controlMode:"guided",sceneNeedsInitialFit=store.sceneUi?.fitVersion!==8||store.sceneUi?.viewport!==sceneViewportMode,sceneResizeTimer=null;let sceneDragActorId=null,sceneSuppressBoardClickUntil=0,sceneMeasureStart=null,sceneMeasureCells=new Set(),sceneMeasureLabel="",scenePanState=null,sceneSpaceHeld=false,sceneTokenTipTimer=null,hoveredSceneActorId=null,sceneContextTarget=null,lastAutoOpenedSceneResultsId="",activeModifierPickerId=null,activeModifierActionId=null,activeModifierShapePreset=null,showAllModifierOverlays=false,modifierModeDrafts=new Map();
 function persistableStore(){
   const heroes=persistableHeroes(),scene=sceneCore(Scene),sourceById=new Map(store.heroes.map(hero=>[hero.id,hero]));
   scene.undo=[];
@@ -389,20 +389,20 @@ function persistAfterPaint(){
 }
 addEventListener("pagehide",()=>{if(!paintPersistPending)return;paintPersistPending=false;if(paintPersistTimer!=null)clearTimeout(paintPersistTimer);paintPersistTimer=null;persist()});
 
-const allGifts=()=>D.outlooks.flatMap(o=>(o.builtin?[o.builtin]:[]).concat(o.gifts));
+const allGifts=()=>activeOutlooks().flatMap(o=>(o.builtin?[o.builtin]:[]).concat(o.gifts));
 const giftById=id=>allGifts().find(g=>g.id===id);
-const selectedGifts=()=>Logic.resolveSelectedGifts({outlooks:D.outlooks,selectedOutlookIds:S.outlooks,primaryOutlookId:S.primaryOutlook,selectedGiftIds:S.gifts});
+const selectedGifts=()=>Logic.resolveSelectedGifts({outlooks:activeOutlooks(),selectedOutlookIds:S.outlooks,primaryOutlookId:S.primaryOutlook,selectedGiftIds:S.gifts});
 const hasGift=(enOrName)=>selectedGifts().some(g=>g.en===enOrName||g.name===enOrName);
 const selectedGiftNames=()=>selectedGifts().map(g=>g.en||g.name);
-const outlookById=id=>D.outlooks.find(o=>o.id===id);
-const techById=id=>D.archetypes.flatMap(a=>a.techniques).find(t=>t.id===id);
+const outlookById=id=>activeOutlooks().find(o=>o.id===id);
+const techById=id=>activeArchetypes().flatMap(a=>a.techniques).find(t=>t.id===id)||D.archetypes.flatMap(a=>a.techniques).find(t=>t.id===id);
 function automationBadge(status){
   const labels={full:"Автоматизировано",attack:"Автоматизированная Атака",effect:"Автоматизированный Эффект",state:"Автоматизированное состояние",decision:"Автоматизировано с выбором",partial:"Частично автоматизировано"},label=labels[status];
   return label?`<span class="automation-badge automation-${esc(status)}" title="${esc(label)}" aria-label="${esc(label)}">${status==="partial"?"◐":"⚙"}</span>`:"";
 }
 function techniqueLevelAutomation(techniqueId,level){return TechniqueEngine?.techniqueCoverage(D,{[techniqueId]:Number(level)}).find(entry=>entry.techniqueId===techniqueId&&Number(entry.level)===Number(level))?.automation||"manual"}
 function enemyProfileAutomation(profile){const statuses=(profile?.rules||[]).map(rule=>SceneEngine?.enemyRuleAutomation?.(rule.id)||"assisted"),automated=statuses.filter(status=>status!=="assisted").length;return automated===statuses.length&&automated?"full":automated?"partial":"assisted"}
-const wordById=(id,ability=null)=>{const known=Object.values(D.abilityWords).flat().find(w=>w.id===id);if(known)return known;if(typeof id==="string"&&id.startsWith("custom:")){const [,group,...parts]=id.split(":"),stored=ability?.customWordCosts?.[id],variable=stored==="X",cost=variable?null:Number.isFinite(Number(stored))?clamp(stored,-1,4):0;return{id,name:decodeURIComponent(parts.join(":")),cost,costLabel:variable?"X":String(cost),marks:variable?"☾":"",group}}};
+const wordById=(id,ability=null)=>{const known=Object.values(activeAbilityWords()).flat().find(w=>w.id===id)||Object.values(D.abilityWords).flat().find(w=>w.id===id);if(known)return known;if(typeof id==="string"&&id.startsWith("custom:")){const [,group,...parts]=id.split(":"),stored=ability?.customWordCosts?.[id],variable=stored==="X",cost=variable?null:Number.isFinite(Number(stored))?clamp(stored,-1,4):0;return{id,name:decodeURIComponent(parts.join(":")),cost,costLabel:variable?"X":String(cost),marks:variable?"☾":"",group}}};
 function attrValueFor(hero,key,includeConversion=true){return hero.attrs[key]+hero.attrBonus[key]+(includeConversion&&hero.conversionAttr===key?hero.techConversions:0)}
 function attrValue(key,includeConversion=true){return attrValueFor(S,key,includeConversion)}
 function derivedFor(hero){return {hp:attrValueFor(hero,"body")*2+hero.tier*2,guts:1+attrValueFor(hero,"body"),speed:2+Math.ceil(attrValueFor(hero,"talent")/2),focus:1+Math.ceil(attrValueFor(hero,"spirit")/2)}}
@@ -417,9 +417,10 @@ function abilityCost(ability=S.ability){
 function budgets(){
   const t=S.tier,aCost=abilityCost(),taintedCost=abilityCost(S.taintedAbility),performanceSkill=S.skills.find(s=>s.id===S.mods.performanceSkill);
   const rankAccounting=Logic.calculateCreationBudgets({tier:t,gifts:selectedGiftNames(),skillRanks:S.skills.map(s=>s.rank),performanceTargetRank:performanceSkill?.rank||0,abilityCost:aCost,taintedBodyUsed:S.mods.taintedBody,taintedAbilityCost:taintedCost,gadgetSpent:S.mods.gadgetSpent});
-  const giftPool=t+1,giftSpent=S.gifts.length;
-  const techPool=5+2*(t-1)-2*S.techConversions,techSpent=Object.values(S.techniques).reduce((n,v)=>n+v,0);
-  const archUsed=D.archetypes.filter(a=>a.techniques.some(tech=>(S.techniques[tech.id]||0)>0)).length;
+  const giftPool=t+1,activeGiftIds=new Set(allGifts().map(gift=>gift.id)),giftSpent=S.gifts.filter(id=>activeGiftIds.has(id)).length;
+  const activeTechniqueIds=new Set(activeArchetypes().flatMap(archetype=>archetype.techniques.map(technique=>technique.id)));
+  const techPool=5+2*(t-1)-2*S.techConversions,techSpent=Object.entries(S.techniques).filter(([id])=>activeTechniqueIds.has(id)).reduce((n,[,v])=>n+v,0);
+  const archUsed=activeArchetypes().filter(a=>a.techniques.some(tech=>(S.techniques[tech.id]||0)>0)).length;
   const attrPool=2*(t-1),attrSpent=Object.values(S.attrBonus).reduce((n,v)=>n+v,0);
   return {aCost,taintedCost,giftPool,giftSpent,techPool,techSpent,archUsed,attrPool,attrSpent,...rankAccounting};
 }

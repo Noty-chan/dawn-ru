@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "editionId": "dawn-en-lionwing-cb2f8e67",
+  "purpose": "Companion integration issues; source-rule changes remain in detected-changes.json and changes.json.",
+  "issues": [
+    {
+      "id": "preview-reference-compact-cards",
+      "area": "reference",
+      "status": "fixed",
+      "summary": "Keep full chapters out of Reference and expose compact builder cards instead."
+    },
+    {
+      "id": "preview-reference-filters",
+      "area": "reference",
+      "status": "fixed",
+      "summary": "Reference type, tag, search, and order controls update the visible catalogue independently."
+    },
+    {
+      "id": "preview-technique-tags",
+      "area": "techniques",
+      "status": "fixed",
+      "summary": "Technique catalogue supports tag filtering and source/name/cost ordering."
+    },
+    {
+      "id": "preview-builder-english-ui",
+      "area": "localization",
+      "status": "fixed",
+      "summary": "English preview localizes builder chrome, Ability editor, validation shell, and generated character sheet while preserving user-entered text."
+    }
+  ]
+}

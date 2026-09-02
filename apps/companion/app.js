@@ -1,7 +1,30 @@
 "use strict";
 
 const syncPanel=$("scene-sync-panel"),sceneRail=document.querySelector(".scene-rail");if(syncPanel&&sceneRail)sceneRail.prepend(syncPanel);
-const launchParams=new URLSearchParams(location.search),invitedToken=launchParams.get("invite"),sharedRuleQuery=launchParams.get("q");if(invitedToken){store.mode="play";Scene.view="player";document.body.classList.add("invited-player");$("sync-invite-token").value=invitedToken;activeScenePanel="network"}if(sharedRuleQuery){store.mode="reference";$("ref-search").value=sharedRuleQuery.slice(0,180)}
+const launchParams=new URLSearchParams(location.search),invitedToken=launchParams.get("invite"),sharedRuleQuery=launchParams.get("q"),requestedLocale=launchParams.get("lang"),requestedEdition=launchParams.get("edition");
+if(["ru","en"].includes(requestedLocale))contentPreferences.locale=requestedLocale;
+if(["ru-v0.9","lionwing"].includes(requestedEdition))contentPreferences.edition=requestedEdition;
+if(invitedToken){store.mode="play";Scene.view="player";document.body.classList.add("invited-player");$("sync-invite-token").value=invitedToken;activeScenePanel="network"}if(sharedRuleQuery){store.mode="reference";$("ref-search").value=sharedRuleQuery.slice(0,180)}
+function syncContentUrl(){
+  if(!history?.replaceState)return;
+  const url=new URL(location.href);url.searchParams.set("lang",contentPreferences.locale);url.searchParams.set("edition",contentPreferences.edition);url.searchParams.set("mode",store.mode||"build");history.replaceState(null,"",`${url.pathname}?${url.searchParams}${url.hash}`);
+}
+function applyContentPreferences({render=false}={}){
+  saveContentPreferences();
+  I18n?.setLocale(contentPreferences.locale);
+  $("locale-select").value=contentPreferences.locale;
+  $("edition-select").value=contentPreferences.edition;
+  document.body.classList.toggle("demo-no-table",isEnglishPreview());
+  document.body.dataset.contentEdition=contentPreferences.edition;
+  const banner=$("content-preview-banner");banner.hidden=!isLionwingEdition();if(!banner.hidden)banner.textContent=t(`preview.lionwing.${contentPreferences.locale}`);
+  if(isEnglishPreview()&&["play","tools","rules"].includes(store.mode))store.mode="build";
+  if(!activeArchetypes().some(archetype=>archetype.id===activeArch))activeArch=activeArchetypes()[0]?.id;
+  syncContentUrl();
+  if(render){setMode(store.mode||"build");renderAll()}
+}
+$("locale-select").addEventListener("change",event=>{contentPreferences.locale=event.target.value;if(event.target.value==="en")contentPreferences.edition="lionwing";applyContentPreferences({render:true})});
+$("edition-select").addEventListener("change",event=>{contentPreferences.edition=event.target.value;applyContentPreferences({render:true})});
+applyContentPreferences();
 document.documentElement.classList.toggle("light",store.theme==="light");initCollapsibleBuildPanels();setMode(store.mode||"build");renderAll();renderSync();if(importedPresetName)toast(`Создан персонаж «${importedPresetName}»`);
 initializeHeroMediaStorage().catch(error=>console.warn("DAWN extended media storage unavailable",error));
 if(Sync?.hasConfig())window.addEventListener("load",()=>setTimeout(()=>Sync.connect().catch(()=>renderSync()),250),{once:true});

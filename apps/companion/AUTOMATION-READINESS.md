@@ -20,7 +20,7 @@
 
 | Evidence id | Исходник | Зафиксированный digest | Текущий digest |
 | --- | --- | --- | --- |
-| `technique.disruptor.inner-world.2.domain-of-control.core-20260825` | `data.js` | `sha256:51a5735632f72c02ce775a41bf0f11df28bc982eeb2c98f3fe1f1b2ae2b9bbb7` | `sha256:73ba9392e5278649ae74f01b58e721cc17a156fc694c570544f6c44eb27de24d` |
+| `technique.disruptor.inner-world.2.domain-of-control.core-20260825` | `data.js` | `sha256:51a5735632f72c02ce775a41bf0f11df28bc982eeb2c98f3fe1f1b2ae2b9bbb7` | `sha256:17aabda97a27e25c3268e887a3e09dcfdc9aac280a0647517114b6fd216020f4` |
 
 ## Модель доверия
 

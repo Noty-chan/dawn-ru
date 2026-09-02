@@ -1,6 +1,6 @@
 # DAWN: каталог Техник RU/EN
 
-> Сгенерировано `npm run docs:rules` из канонического `apps/companion/data.js` (SHA-256 `73ba9392e5278649ae74f01b58e721cc17a156fc694c570544f6c44eb27de24d`).
+> Сгенерировано `npm run docs:rules` из канонического `apps/companion/data.js` (SHA-256 `17aabda97a27e25c3268e887a3e09dcfdc9aac280a0647517114b6fd216020f4`).
 > Русский текст - канонический перевод из `source/translation/`; локальные профили Леона взяты из `source/companion/named-enemies.md`. Английские названия сверяются с `source/translation/adapted-names-index.md` и, для Черточек Антагониста, с `source/original/Dawn - A Diceless Fantasy TTRPG.pdf`.
 
 ## Как читать каталог
