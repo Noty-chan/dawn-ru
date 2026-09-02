@@ -1,0 +1,79 @@
+[
+  {
+    "id": "lionwing.reference.creation-order",
+    "name": "Character Creation Checklist",
+    "kind": "Builder Reference",
+    "tags": "Creation, Checklist",
+    "text": "Choose a concept and Tier. Assign Attributes, choose Outlooks and Boons, spend Ranks on Skills and an Ability, then buy Technique Levels. Finish by recording your derived statistics.",
+    "source": {
+      "editionId": "dawn-en-lionwing-cb2f8e67",
+      "pdfPage": 24
+    }
+  },
+  {
+    "id": "lionwing.reference.starting-attributes",
+    "name": "Starting Attributes",
+    "kind": "Builder Reference",
+    "tags": "Creation, Attributes",
+    "text": "Assign 4, 3, 2, and 2 among Body, Talent, Spirit, and Mind. Attribute growth and the Technique-Level conversion are handled by the builder.",
+    "source": {
+      "editionId": "dawn-en-lionwing-cb2f8e67",
+      "pdfPage": 22
+    }
+  },
+  {
+    "id": "lionwing.reference.starting-ranks",
+    "name": "Starting Ranks",
+    "kind": "Builder Reference",
+    "tags": "Creation, Skills, Ability",
+    "text": "A new hero starts with 8 Character Ranks. Spend at least 4 on Skills; the rest may be spent on Skills or an Ability. Ranks range from 1 to 3.",
+    "source": {
+      "editionId": "dawn-en-lionwing-cb2f8e67",
+      "pdfPage": 24
+    }
+  },
+  {
+    "id": "lionwing.reference.outlooks-boons",
+    "name": "Outlooks and Boons",
+    "kind": "Builder Reference",
+    "tags": "Creation, Outlooks, Boons",
+    "text": "Choose a Primary Outlook and its inherent Boon, then choose two additional Boons from your selected Outlooks. Higher-Tier heroes gain more options in the builder.",
+    "source": {
+      "editionId": "dawn-en-lionwing-cb2f8e67",
+      "pdfPage": 23
+    }
+  },
+  {
+    "id": "lionwing.reference.technique-levels",
+    "name": "Technique Levels",
+    "kind": "Builder Reference",
+    "tags": "Creation, Techniques",
+    "text": "A new hero has 5 Technique Levels. Buy Levels in order within a Technique. The searchable Technique catalogue contains the complete LionWing text for every Level.",
+    "source": {
+      "editionId": "dawn-en-lionwing-cb2f8e67",
+      "pdfPage": 24
+    }
+  },
+  {
+    "id": "lionwing.reference.ability-formula",
+    "name": "Ability Formula",
+    "kind": "Builder Reference",
+    "tags": "Creation, Ability",
+    "text": "Build an Ability from Verbs, Nouns, and Conditions. Its cost is calculated from the selected words and Rank. Symbol-specific exceptions are shown beside the Ability editor.",
+    "source": {
+      "editionId": "dawn-en-lionwing-cb2f8e67",
+      "pdfPage": 45
+    }
+  },
+  {
+    "id": "lionwing.reference.derived-statistics",
+    "name": "Derived Statistics",
+    "kind": "Builder Reference",
+    "tags": "Creation, Statistics",
+    "text": "Health, Guts, Speed, and Focus are calculated automatically from the hero's Tier and Attributes. The summary and character sheet always show the current result.",
+    "source": {
+      "editionId": "dawn-en-lionwing-cb2f8e67",
+      "pdfPage": 24
+    }
+  }
+]

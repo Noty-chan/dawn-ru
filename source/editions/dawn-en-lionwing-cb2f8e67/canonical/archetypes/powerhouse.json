@@ -1,0 +1,644 @@
+{
+  "id": "powerhouse",
+  "name": "Powerhouse",
+  "techniques": [
+    {
+      "archetypeId": "powerhouse",
+      "name": "Berserker",
+      "stars": 1,
+      "tags": "Revenge, Wounds, Tanking",
+      "flavor": "I don't respect people who wait for an opponent to act. Every breath they take is energy that could be spent fighting, living! They stall my potential, take the joy out of my violence! So I ask: Can we be friends?",
+      "notes": "",
+      "levels": [
+        {
+          "n": 1,
+          "name": "Revenge",
+          "text": "After you take a Wound, you may spend up to 2 AP as if it was your Turn, all Actions you take when doing this count as Reactions."
+        },
+        {
+          "n": 2,
+          "name": "Cornered Dog",
+          "text": "If you receive an Effect, you may take 2 damage instead."
+        },
+        {
+          "n": 3,
+          "name": "Take A Beating",
+          "text": "The first time you take damage each Turn, gain 1 Focus. If that damage would deal a Wound to you, Charge at no Cost as a Reaction."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 69
+      },
+      "id": "powerhouse.berserker",
+      "previousName": null,
+      "previousArchetypeId": null
+    },
+    {
+      "archetypeId": "powerhouse",
+      "name": "Dragonslayer",
+      "stars": 1,
+      "tags": "Weapon, Body, Anti-Armor",
+      "flavor": "I felt stupid for for staring. With the size of our quarry I should have expected my hunt-mates bringing comparable arms, but that… club? It was ridiculous, even more so with how he carried it. I wanted to make a comment, but with how the others greeted him it seems like I'm the only one who would think it's strange.",
+      "notes": "",
+      "levels": [
+        {
+          "n": 1,
+          "name": "Speed Is Weight",
+          "text": "If your Body Finisher is the first attack on your Turn, you gain 2 Focus and Shred your target before dealing damage."
+        },
+        {
+          "n": 2,
+          "name": "Wide Arc",
+          "text": "When spending 3 or more Focus on a Body Finisher, you can have it target enemies in a 2x2 Zone placed on yourself."
+        },
+        {
+          "n": 3,
+          "name": "Titanic Heave [ Breathe → Body Finisher ]",
+          "text": "The Finisher counts all dice rolled as Hits, pushes enemies it hits 2 spaces back, and Weakens you after it resolves."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 69
+      },
+      "id": "powerhouse.dragonslayer",
+      "previousName": null,
+      "previousArchetypeId": null
+    },
+    {
+      "archetypeId": "powerhouse",
+      "name": "Duelist",
+      "stars": 1,
+      "tags": "Skirmishes, Tanking, Effects",
+      "flavor": "What's wrong, out of breath? I recall you were talking real big with all that \"I'll only need one strike\" garbage. So go on. Hit me.",
+      "notes": "",
+      "levels": [
+        {
+          "n": 1,
+          "name": "Riposte [ Block → Skirmish ]",
+          "text": "The Skirmish lets you move 3 spaces before targeting and Taunts your target."
+        },
+        {
+          "n": 2,
+          "name": "Parry",
+          "text": "Your Blocks give [Tension] additional Armor. Using Block against an adjacent character Dazes your Attacker and pushes them instead of you."
+        },
+        {
+          "n": 3,
+          "name": "Deflecting Blow",
+          "text": "After you Block an Attack and reduce its damage to 1 or less, you may spend 1 Focus to Strengthen yourself and Skirmish."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 69
+      },
+      "id": "powerhouse.duelist",
+      "previousName": null,
+      "previousArchetypeId": null
+    },
+    {
+      "archetypeId": "powerhouse",
+      "name": "Flagellant",
+      "stars": 1,
+      "tags": "Revenge, Self-Effects, Attacks",
+      "flavor": "I was in the later waves the Watchers sent, and at that point the fog was coming in heavy. I didn't see much, but what I saw I won't soon forget. The violet light of their eyes pierced through the fog, and the pain fey trailing off their wounds like a commander's ribbons.",
+      "notes": "",
+      "levels": [
+        {
+          "n": 1,
+          "name": "Thrill",
+          "text": "After you receive a Negative Effect, you may also Strengthen yourself."
+        },
+        {
+          "n": 2,
+          "name": "Wild Rush",
+          "text": "The first time you Skirmish each Turn, before targeting, you may Blight yourself to move up to 2 spaces in a Line. If you're already Blighted, Mark yourself instead and move up to 3 spaces. If the target's Adjacent, you gain 1 Advantage for each space moved."
+        },
+        {
+          "n": 3,
+          "name": "Bled Dry",
+          "text": "The first attack you make each Turn deals additional damage equal to the number of different effects you have, and after it resolves you may clear a number of negative effects equal to the crits you rolled."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 69
+      },
+      "id": "powerhouse.flagellant",
+      "previousName": null,
+      "previousArchetypeId": null
+    },
+    {
+      "archetypeId": "powerhouse",
+      "name": "Gunslinger",
+      "stars": 1,
+      "tags": "Weapon, AOE, Range",
+      "flavor": "Adept knights know their guns as well as they know themselves; each part maintained and accounted for. Famous knights just need to let shots fly.",
+      "notes": "Alt Resource. Can't take with other alt resources.",
+      "levels": [
+        {
+          "n": 1,
+          "name": "Big Iron",
+          "text": "You now use ‘Bullets' instead of Focus. You start all Scenes with 6 Bullets. After you spend Bullets, you may deal 1 damage to an enemy within 4 range once per bullet spent. Before you Skirmish, you may spend any number of Bullets, if you spent any, the Skirmish targets all the characters the Bullets damaged instead of its normal targeting."
+        },
+        {
+          "n": 2,
+          "name": "Lock And Load",
+          "text": "Your Skirmishes gain 1 Advantage. If you end your Turn without spending a Bullet, you can set your Bullets to 6."
+        },
+        {
+          "n": 3,
+          "name": "Bullet Juggle",
+          "text": "Your attacks that roll 2 or more Crits Launch a target of your choice. Your bonus damage from \"Big Iron\" is doubled against Launched characters."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 69
+      },
+      "id": "powerhouse.gunslinger",
+      "previousName": null,
+      "previousArchetypeId": null
+    },
+    {
+      "archetypeId": "powerhouse",
+      "name": "Struggler",
+      "stars": 1,
+      "tags": "Revenge, Reliability",
+      "flavor": "You must be new here bub. We don't really do draws, and we sure as hell aren't gonna let you give up either. This Battalion's for the discarded, and if you can't pick yourself off your sorry ass, no one else will.",
+      "notes": "",
+      "levels": [
+        {
+          "n": 1,
+          "name": "Effort",
+          "text": "If you roll a 1 in any Challenge roll, you may reduce your Speed by 1 for the duration of the Scene (to a minimum of 1) to treat it as a 6 instead, converting it to a Critical Hit. If you cannot lower your Speed, you receive [Tier] damage instead."
+        },
+        {
+          "n": 2,
+          "name": "Adrenaline",
+          "text": "After you take damage on your Turn, you may move up to 3 spaces towards an enemy of your choice. If this brings you adjacent to the enemy, you may Mark them."
+        },
+        {
+          "n": 3,
+          "name": "Defy Reason",
+          "text": "You may use the effect of \"Effort\" on any roll that comes from a Finisher, regardless of value."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 70
+      },
+      "id": "powerhouse.struggler",
+      "previousName": null,
+      "previousArchetypeId": null
+    },
+    {
+      "archetypeId": "powerhouse",
+      "name": "SpellSword",
+      "stars": 1,
+      "tags": "Skirmishes, Casts, Combos",
+      "flavor": "Versatility is a power you can't buy. It must be learned through a complete mastery of all its parts.",
+      "notes": "",
+      "levels": [
+        {
+          "n": 1,
+          "name": "Twin Suns [ Cast → Skirmish ]",
+          "text": "The Skirmish is Swift, costs Focus instead of AP, and you can Teleport to a space in 4 range before targeting with it."
+        },
+        {
+          "n": 2,
+          "name": "Infused Edge",
+          "text": "If you end a Combo in a non-Cast Attack, it becomes ‘Infused'. Infused attacks count as a Cast and let you Teleport to a space adjacent to your target after dealing damage, dealing additional damage equal to the Crits you rolled if you do."
+        },
+        {
+          "n": 3,
+          "name": "Witch Hunter [ Cast → Body/Talent Finisher ]",
+          "text": "If the Finisher targets the same character as the Cast, it deals [Spirit] additional damage."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 70
+      },
+      "id": "powerhouse.spellsword",
+      "previousName": null,
+      "previousArchetypeId": null
+    },
+    {
+      "archetypeId": "powerhouse",
+      "name": "Technician",
+      "stars": 1,
+      "tags": "Combos, Charge",
+      "flavor": "Oh yeah, just try taking me on with that slapdash, amateurish style! That could never beat a REAL fighter with REAL experience.",
+      "notes": "",
+      "levels": [
+        {
+          "n": 1,
+          "name": "Stretch",
+          "text": "After you Charge, you ‘Stretch'. After Stretching, until the end of your next Turn, completing a Combo gives you 1 AP."
+        },
+        {
+          "n": 2,
+          "name": "Perfect Form",
+          "text": "After you complete a Combo, you gain [Tier/2] Armor until the start of your next Turn."
+        },
+        {
+          "n": 3,
+          "name": "Final Blow [ Skirmish → Finisher ]",
+          "text": "The Finisher costs 1 AP and pushes its target 3 spaces away."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 70
+      },
+      "id": "powerhouse.technician",
+      "previousName": null,
+      "previousArchetypeId": null
+    },
+    {
+      "archetypeId": "powerhouse",
+      "name": "Unbroken",
+      "stars": 1,
+      "tags": "Revenge, Wounds, Influence",
+      "flavor": "You must not give in. You cannot! Claw and bite like a cornered rat. It's the only option you have left.",
+      "notes": "",
+      "levels": [
+        {
+          "n": 1,
+          "name": "Get Back Up",
+          "text": "Once per Chapter, you may spend an Influence to Resist a Knock Out without becoming Vulnerable. Doing this makes you lose the ability to gain Influence for the remainder of the Scene."
+        },
+        {
+          "n": 2,
+          "name": "Furious Revival",
+          "text": "After you spend an Influence in a combat Scene, you may take an Action with a cost of 1 for no cost with Swift."
+        },
+        {
+          "n": 3,
+          "name": "Phoenix",
+          "text": "After you Resist using \"Get Back Up\" you may set your Wounds to 1."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 70
+      },
+      "id": "powerhouse.unbroken",
+      "previousName": null,
+      "previousArchetypeId": null
+    },
+    {
+      "archetypeId": "powerhouse",
+      "name": "Braggart",
+      "stars": 2,
+      "tags": "Delayed, Attacks",
+      "flavor": "You weren't even worth wiping off the stains…",
+      "notes": "",
+      "levels": [
+        {
+          "n": 1,
+          "name": "Hubris",
+          "text": "Begin tracking ‘Pride', a 6 Segment Clock that's emptied after every Scene. While your Pride Clock is full, you gain 1 Advantage on all Rolls for the remainder of the Scene. After you do one of the following, fill one Segment of this Clock: ‣ Get hit by an enemy's Attack without using a Defensive Reaction. ‣ Attack rolling one of your two lowest Attributes."
+        },
+        {
+          "n": 2,
+          "name": "Prove Yourself",
+          "text": "If your Pride Clock fills, you may ‘Hold Back', emptying the Clock and reducing its total Segments by 2 (to a min of 2). If your Pride Clock has less than 6 Segments, \"Hubris\" grants one additional Advantage for every two Segments it is less than 6."
+        },
+        {
+          "n": 3,
+          "name": "A Worthy Opponent",
+          "text": "When an enemy attacks you, you may fill a Pride Segment."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 71
+      },
+      "id": "powerhouse.braggart",
+      "previousName": null,
+      "previousArchetypeId": null
+    },
+    {
+      "archetypeId": "powerhouse",
+      "name": "Breacher",
+      "stars": 2,
+      "tags": "Weapon, Body, Displacement",
+      "flavor": "A hundred pellets at 1600 feet per second hurts about as much as you would expect.",
+      "notes": "",
+      "levels": [
+        {
+          "n": 1,
+          "name": "Buck Shot",
+          "text": "Your Skirmishes can Choose a target in 4 range instead of its normal targeting. Your Skirmishes Against targets in 2 range push the target 1 space away."
+        },
+        {
+          "n": 2,
+          "name": "Both Barrels",
+          "text": "Before you Skirmish, so long as you're not Weakened, you can use ‘Both Barrels'. Doing this gives the Attack [Body/2] Advantage, doubles any push it deals, and Weakens you after it resolves."
+        },
+        {
+          "n": 3,
+          "name": "Annihilate",
+          "text": "Your Body Finisher can now target characters up to 3 spaces away and can use the effect of \"Both Barrels\". If you use \"Both Barrels\" with a Skirmish or Body Finisher, have it affect all targets in a 2x2 Zone adjacent to you."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 71
+      },
+      "id": "powerhouse.breacher",
+      "previousName": null,
+      "previousArchetypeId": null
+    },
+    {
+      "archetypeId": "powerhouse",
+      "name": "Dual Wielder",
+      "stars": 2,
+      "tags": "Weapon, On-Skirmish Triggers",
+      "flavor": "My lord used to beat me for my left-handedness. When I killed him, I used both hands. Out of respect.",
+      "notes": "",
+      "levels": [
+        {
+          "n": 1,
+          "name": "Twinned blow",
+          "text": "If you Skirmish targeting a single character, you may give it [Tier] disadvantage. If you do, you may ‘Flurry', Dealing [Body / 2] or [Talent / 2] damage to the same target afterwards. Flurrying counts as a Swift Skirmish at 0 cost. Other techniques cannot change Flurry's targeting."
+        },
+        {
+          "n": 2,
+          "name": "Frenzied Barrage",
+          "text": "If you spend 2 or more Focus on a finisher, you may give it [Tier] Disadvantage. If you do, you may ‘Flurry' twice, each of them targeting a target of the Finisher."
+        },
+        {
+          "n": 3,
+          "name": "Varied Blades",
+          "text": "Your Skirmishes have an additional two effects that alternate every time you Skirmish, resetting at the start of your Turn (first Skirmish uses effect A, second uses effect B, third uses effect A again). Choose two of the options below as effects: ‣ Astral: Gain [Tier / 2] Focus. ‣ Blazing: Deal [Tier / 2] damage to your target. ‣ Umbral: Teleport to a space within [Tier] spaces. ‣ Vorpal: Restore [Tier / 2] Health. ‣ Phasing: This attack ignores its target's Armor. ‣ Whirling: Move your target [Tier] spaces."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 71
+      },
+      "id": "powerhouse.dual-wielder",
+      "previousName": null,
+      "previousArchetypeId": null
+    },
+    {
+      "archetypeId": "powerhouse",
+      "name": "Intimidator",
+      "stars": 2,
+      "tags": "AOE, Body, Displacement",
+      "flavor": "You choose: Live on your knees or die on your feet.",
+      "notes": "",
+      "levels": [
+        {
+          "n": 1,
+          "name": "\"Pathetic\"",
+          "text": "After you increase Tension on your Turn or KO Fodder, you may \"Impose\"; both Fearing enemies in a 3x3 Zone centered on yourself, and dealing [Tier] damage to them if they weren't already Feared."
+        },
+        {
+          "n": 2,
+          "name": "\"Out Of My Way\"",
+          "text": "Before you move with Stride or Jump, you may change the distance you're moving to [Body]. If you do, you may choose any characters you would move into the space of, and move them 1 space each and Impose after you end your movement."
+        },
+        {
+          "n": 3,
+          "name": "\"Fools And Dead Men\"",
+          "text": "After you Knock Out an enemy, gain 2 Focus and 1 AP. After you Knock Out a non-fodder NPC due to the damage dealt through Impose, place a Fodder Zone in their space."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 71
+      },
+      "id": "powerhouse.intimidator",
+      "introducedIn": "dawn-en-lionwing-cb2f8e67"
+    },
+    {
+      "archetypeId": "powerhouse",
+      "name": "Martial Artist",
+      "stars": 2,
+      "tags": "Skirmishes, Versatile, Effects",
+      "flavor": "I'm pretty experienced myself y'know. 15 years of Baji Quan, 11 years of Aikido, and a semester of Capoeira. Oh, sorry. We should be dueling about now! I've got a bad habit of bragging when I don't think I'll be seeing someone again.",
+      "notes": "",
+      "levels": [
+        {
+          "n": 1,
+          "name": "Art Of The 8 Hammers",
+          "text": "You can't use any part of this Technique if you use Techniques with the \"weapon\" tag. After you Skirmish or Body / Talent Finisher, you can use one of the following ‘follow ups' on one of your targets. Each can be used once per Round. ‣ Quick Step: Move up to 3 spaces. Gain [Tier] Evasion. ‣ Binding Blow: Snare your target. ‣ Rising Knee: Launch your target. ‣ Iron Shoulder: Push your target 3 spaces."
+        },
+        {
+          "n": 2,
+          "name": "Flow-State",
+          "text": "Your first Skirmish each Turn is Swift. After you trigger an effect of \"Art Of The 8 Hammers\", you may deal [Body / 2] or [Talent / 2] damage to a character you've attacked this Turn."
+        },
+        {
+          "n": 3,
+          "name": "Unlimited Blows",
+          "text": "Your attacks gain 1 Advantage. If you roll at least one Crit on a Skirmish or Finisher, \"Art Of The 8 Hammers\" triggers an additional time."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 72
+      },
+      "id": "powerhouse.martial-artist",
+      "previousName": null,
+      "previousArchetypeId": null
+    },
+    {
+      "archetypeId": "powerhouse",
+      "name": "Monastic Warrior",
+      "stars": 2,
+      "tags": "Effects, Tanking, Versatile",
+      "flavor": "Born under the twin stars, Qayid Āl-Rashid existed in a state of extremes; his life oscillating between terrible misfortune and unforgettable opulence. It was only after he came of age that he learned to balance these chaotic forces, and channel them in battle.",
+      "notes": "",
+      "levels": [
+        {
+          "n": 1,
+          "name": "Mind Made Manifest",
+          "text": "While you're Strengthened, gain 2 Armor. While you're Hastened, gain 2 Evasion at the end of your Turn."
+        },
+        {
+          "n": 2,
+          "name": "Calm Within Chaos",
+          "text": "Begin tracking \"Balance\", an 8 segment Clock that's emptied after every scene. Fill 1 segment each time you perform a Utility Action after an Attack Action, or an Attack Action after a Utility Action on the same Turn. At the start of your Turn, you may empty 1 segment to Strengthen or Hasten yourself."
+        },
+        {
+          "n": 3,
+          "name": "Sublime Equanimity",
+          "text": "After you Charge or Awaken this, you may ‘Meditate'. If you Meditate, instead of rolling, gain Evasion equal to the filled Balance segments, then empty your Balance. If your Balance was full, gain [Tier + 1] focus, teleport to any empty space, and perform a swift spirit or mind finisher on an adjacent enemy at no cost. After Meditating you cannot fill balance segments on the same Turn."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 72
+      },
+      "id": "powerhouse.monastic-sage",
+      "previousName": "Monastic Sage",
+      "previousArchetypeId": null
+    },
+    {
+      "archetypeId": "powerhouse",
+      "name": "Lancer",
+      "stars": 2,
+      "tags": "Weapon, Body, Range",
+      "flavor": "Mankind is a friend to the spear. We grew in wisdom and technique alongside our oldest defender. Know this, vile foe: this thrust carries the weight of all human history behind it!",
+      "notes": "",
+      "levels": [
+        {
+          "n": 1,
+          "name": "Pierce",
+          "text": "Your Skirmish and Body Finisher can target one enemy within 2 range instead of its normal targeting. Your Skirmishes gain Advantage equal to your target's distance from you (up to a maximum of 3)."
+        },
+        {
+          "n": 2,
+          "name": "Phalanx",
+          "text": "Your Skirmish and Body Finishers can target an enemy within 3 range instead of its normal targeting. Skirmish affects all opposing targets between yourself and your original target(s), dealing half damage to each."
+        },
+        {
+          "n": 3,
+          "name": "Cannon-Arm [ Breathe → Skirmish ]",
+          "text": "The Skirmish can choose targets up to 4 spaces away and raises the maximum Advantage from \"Pierce\" to 4. If the attack had 4 or more total Advantage, it additionally affects all targets adjacent to the original, dealing half its damage to said targets. Each affected space becomes Difficult Terrain."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 72
+      },
+      "id": "powerhouse.lancer",
+      "previousName": null,
+      "previousArchetypeId": null
+    },
+    {
+      "archetypeId": "powerhouse",
+      "name": "Predator",
+      "stars": 2,
+      "tags": "Sustain, Wounds, Movement",
+      "flavor": "I see you. I see you. I see you. I see you. I see you. I see you. I see you. I see you. I see you. I see you. I see you. I see you. I see you. I'm hungry. I see you. I see you. I see you. I see you. I see you. I see you. I see you.",
+      "notes": "",
+      "levels": [
+        {
+          "n": 1,
+          "name": "Yearn",
+          "text": "The first time you Investigate each Turn, it becomes Swift, has its Cost Reduced to 0, and has a range of [Body]. However, it can only be used to ask what your target's current and maximum Health is. When any opponent is Knocked Out while adjacent to you, you heal [Body] Health."
+        },
+        {
+          "n": 2,
+          "name": "Obsess",
+          "text": "If you know an opponent has half their maximum Health remaining or less, your Speed is increased by 3, and you ignore Difficult Terrain, but you cannot move unless you're moving closer to at least one of said opponents."
+        },
+        {
+          "n": 3,
+          "name": "Envelop",
+          "text": "Once per Scene, after you heal using \"Yearn\" you may ‘Siphon', Immobilizing and Dazing yourself. While you're under these Effects, the Focus gained through Breathe and Charge are replaced with health, with it healing a wound and setting your health to 1 if the Health would go past your maximum."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 72
+      },
+      "id": "powerhouse.predator",
+      "previousName": null,
+      "previousArchetypeId": null
+    },
+    {
+      "archetypeId": "powerhouse",
+      "name": "Improvisational Fighter",
+      "stars": 3,
+      "tags": "Interact, Terrain",
+      "flavor": "I'll take all you bastards on! I'll flatten your whole damned Pavilion. You'll rue the day you slighted me, and the record will be written in your scars. Well… if I still had my sword. Until then, a concussion and some splinters will do.",
+      "notes": "",
+      "levels": [
+        {
+          "n": 1,
+          "name": "\"This'll Do\"",
+          "text": "You can Interact to ‘Notice Something', creating an Obstacle in 5 range, or to remove an adjacent Obstacle to make a Swift Skirmish or Cast using any Attribute for its Roll."
+        },
+        {
+          "n": 2,
+          "name": "\"That One Hurts!\"",
+          "text": "You may Interact at no cost and with Swift once per Round, so long as it doesn't result in an Attack. Attacks from Interact have 3 Advantage."
+        },
+        {
+          "n": 3,
+          "name": "Last Resort",
+          "text": "Once per scene, you may Attack using \"This'll Do\", even if there isn't an Obstacle to remove. This use gives the Attack from it [Tension] Advantage."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 73
+      },
+      "id": "powerhouse.improvisational-fighter",
+      "previousName": null,
+      "previousArchetypeId": null
+    },
+    {
+      "archetypeId": "powerhouse",
+      "name": "Warring Ascendant",
+      "stars": 3,
+      "tags": "Delayed, Versatile",
+      "flavor": "My dearest brother, born on the battlefield. I know you expect more, but I implore you: Lend me your strength, and feel the air on your skin. I call upon you in my time of greatest need, heed, o' Durandal!",
+      "notes": "Transformation. Can't take with other transformations.",
+      "levels": [
+        {
+          "n": 1,
+          "name": "Heavenly Arm",
+          "text": "Choose a Technique with the \"Weapon\" Tag. Once per Scene, After you Charge or Awaken this with at least 2 Tension, you may ‘Transform', pushing all enemies within 2 range 3 spaces away and trigger any of its Deploy effects. While Transformed you count as having all three Levels of the Technique you chose, if it has an alternate Foci, track it separately and use it as your Focus while Transformed. If you're reduced to 0 Health while Transformed, it ends, and you're Dazed."
+        },
+        {
+          "n": 2,
+          "name": "Esoteric Blades",
+          "text": "Choose one other Technique of any kind. While you are transformed, you count as having the first two Levels of that Technique."
+        },
+        {
+          "n": 3,
+          "name": "Saintly Sword, Heaven Piercer",
+          "text": "You may lose your Transformation before you use a finisher. If you do so, that Finisher affects all targets along an infinitely long Line placed adjacent to you, dealing one additional damage for every targeted character. If you're Tier 3 or higher, you may Daze yourself and spend 2 Focus to transform as soon as you deploy regardless of Tension."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 73
+      },
+      "id": "powerhouse.warring-ascendant",
+      "previousName": null,
+      "previousArchetypeId": null
+    },
+    {
+      "archetypeId": "powerhouse",
+      "name": "Heroic Ascendant",
+      "stars": 3,
+      "tags": "Delayed, Versatile",
+      "flavor": "I will not let you destroy my world!",
+      "notes": "Transformation. Can't take with other transformations.",
+      "levels": [
+        {
+          "n": 1,
+          "name": "Warrior Of Legend",
+          "text": "Once per Scene, After you Charge or Awaken this with at least 2 Tension, you may ‘Transform', pushing all enemies within 2 range 3 spaces away. While Transformed you are Strengthened and Reinforced at all times. If you're reduced to 0 Health while Transformed, it ends, and you're Dazed."
+        },
+        {
+          "n": 2,
+          "name": "Hero's Feat",
+          "text": "Your Transformation has an additional effect for its duration chosen from the list below. ‣ Feat Of Strength: All your push effects can have their distance doubled, and characters you push adjacent to another character both take [Tier] damage. ‣ Feat Of Speed: Before you take an Action, move up to double its Cost in spaces. If this makes you leave adjacency with enemies, deal [Tier] damage to them. ‣ Feat Of Sturdiness: Reinforced grants you 1 additional Armor. After you reduce incoming damage to 1 or less, deal [Tier] damage to the attacker."
+        },
+        {
+          "n": 3,
+          "name": "Mastered Strength",
+          "text": ".You may Daze yourself and spend 1 Focus to transform as soon as you deploy regardless of Tension."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 73
+      },
+      "id": "powerhouse.heroic-ascendant",
+      "introducedIn": "dawn-en-lionwing-cb2f8e67"
+    }
+  ]
+}

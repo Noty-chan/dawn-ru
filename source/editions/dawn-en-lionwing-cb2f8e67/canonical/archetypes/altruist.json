@@ -1,0 +1,613 @@
+{
+  "id": "altruist",
+  "name": "Altruist",
+  "techniques": [
+    {
+      "archetypeId": "altruist",
+      "name": "Analyst",
+      "stars": 1,
+      "tags": "Expensive, Mind, Buffing",
+      "flavor": "What's my game? You seem confused. Why play games with you when I've already won?",
+      "notes": "",
+      "levels": [
+        {
+          "n": 1,
+          "name": "Flash Of Insight",
+          "text": "Once per Round, after any Roll from an enemy or willing ally, you may spend 1 Focus to force its initiator to redo it."
+        },
+        {
+          "n": 2,
+          "name": "Take Advantage",
+          "text": "When using \"Flash Of Insight\" against an enemy's Attack, the attack's target gains [Mind/2] Evasion."
+        },
+        {
+          "n": 3,
+          "name": "Watch And Wait",
+          "text": "After you investigate an enemy, you may spend 2 additional Focus to ‘Predict' them. The GM must tell you what actions they plan to use and the targets, if applicable. If that enemy does not take the action(s) described on their Turn, they are Dazed and Weakened at the end of their Turn."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 86
+      },
+      "id": "altruist.precognizant",
+      "previousName": "Precognizant",
+      "previousArchetypeId": null
+    },
+    {
+      "archetypeId": "altruist",
+      "name": "Battle Instructor",
+      "stars": 1,
+      "tags": "Movement, Mind, Buffing",
+      "flavor": "Keep your back straight!\" \"Strengthen your footing!\" \"Remember the plan!\" \"...\" \"That was good, keep at it, kid.",
+      "notes": "",
+      "levels": [
+        {
+          "n": 1,
+          "name": "Strike Order",
+          "text": "After you mark a character, an ally of your choosing may move up to 3 spaces towards the character. Your Investigates are Swift."
+        },
+        {
+          "n": 2,
+          "name": "Teaching Moment",
+          "text": "When an ally is dealt a Wound, you may Investigate the character who Wounded them at no Cost as a Reaction."
+        },
+        {
+          "n": 3,
+          "name": "Remember Your Training",
+          "text": "Once per Turn per ally, when an ally moves adjacent to an enemy through the movement given by \"Strike Order\", you may have them deal their [Body/2] or [Talent/2] Damage to said enemy."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 86
+      },
+      "id": "altruist.battle-instructor",
+      "previousName": null,
+      "previousArchetypeId": null
+    },
+    {
+      "archetypeId": "altruist",
+      "name": "Empath",
+      "stars": 1,
+      "tags": "Movement, Talent, Anti-Effects",
+      "flavor": "Don't worry buddy, everything'll be okay!",
+      "notes": "",
+      "levels": [
+        {
+          "n": 1,
+          "name": "Calming Aura",
+          "text": "Allies who start their Turn adjacent to you may lose any one of their Effects and become Strengthened."
+        },
+        {
+          "n": 2,
+          "name": "Protective Response",
+          "text": "When an ally within [Talent] spaces takes a Wound or Effect from a source other than themself, you may Break Out at no Influence cost so long as it moves you adjacent to them."
+        },
+        {
+          "n": 3,
+          "name": "\"Are You Ok?\"",
+          "text": "Allies who start their Turn next to you gain 3 Focus and restore [Tier] Health."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 86
+      },
+      "id": "altruist.empath",
+      "previousName": null,
+      "previousArchetypeId": null
+    },
+    {
+      "archetypeId": "altruist",
+      "name": "Compassionate Sage",
+      "stars": 1,
+      "tags": "Casts, Spirit, Sustain",
+      "flavor": "When allies falter, your presence is the whispered promise of safety.",
+      "notes": "Alt Resource. Can't take with other alt resources.",
+      "levels": [
+        {
+          "n": 1,
+          "name": "Strength Of Prayer",
+          "text": "You now use ‘Compassion' instead of Focus. You start all Scenes with [Spirit] Compassion. You can't gain Compassion using Breathe or Charge. You gain 1 Compassion after you target an ally with an action or the effect of a Technique."
+        },
+        {
+          "n": 2,
+          "name": "Cleansing Light",
+          "text": "If you Cast targeting an ally, you don't deal damage or Negative Effects. Instead, heal [Hits] Health to your target(s), and have all Effects of their choice removed from them."
+        },
+        {
+          "n": 3,
+          "name": "Grand Restoration",
+          "text": "Your Spirit Finisher gains the effects of \"Cleansing Light\", and can target characters within 5 range. When using a Spirit Finisher on an ally, they begin Regenerating and lose a Wound (Wounds can only be healed once per character per Scene)."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 86
+      },
+      "id": "altruist.heavenly-saint",
+      "previousName": "Heavenly Saint",
+      "previousArchetypeId": null
+    },
+    {
+      "archetypeId": "altruist",
+      "name": "Gourmand",
+      "stars": 1,
+      "tags": "Interact, Mind, Sustain",
+      "flavor": "Cooking is like painting or writing a song. Just as there are only so many notes or colors, there are only so many flavors—it's how you combine them that sets you apart.",
+      "notes": "",
+      "levels": [
+        {
+          "n": 1,
+          "name": "Healthy Meal",
+          "text": "You have [Mind / 2] ‘Meals' that refresh each Intermission. You may Interact to hand an adjacent ally a Meal, and Reinforce or Hasten them. When this Effect expires, the character finishes their meal, and restores 4 + [Mind] Health."
+        },
+        {
+          "n": 2,
+          "name": "Fast Food",
+          "text": "After you move out of adjacency with an ally, you may give them a Meal without Interacting."
+        },
+        {
+          "n": 3,
+          "name": "Shared Experiences",
+          "text": "When someone you're Bonded with eats one of your Meals, you both gain [Mind] Focus."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 86
+      },
+      "id": "altruist.gourmand",
+      "previousName": null,
+      "previousArchetypeId": null
+    },
+    {
+      "archetypeId": "altruist",
+      "name": "Surgeon",
+      "stars": 1,
+      "tags": "Skirmish, Mind, Sustain",
+      "flavor": "To blessed Hippocrates, I grant an offering. Let my hands remain steady and true. Let not guide this soul to Thanatos' waiting grip. This I swear. This is my Virtue.",
+      "notes": "",
+      "levels": [
+        {
+          "n": 1,
+          "name": "Do No Harm",
+          "text": "If you Skirmish an ally, you may ‘Operate' on them. When you Operate you must roll Mind instead of Talent or Body, and your target restores [Hits / 2] Health rather than taking Damage."
+        },
+        {
+          "n": 2,
+          "name": "Operational Procedure",
+          "text": "After you take this feature or after you take an Intermission, lose any ‘Bandages' or ‘Disinfectant', then roll [Mind / 2]. For every odd number rolled, gain one Bandage. For every even number rolled, gain one Disinfectant. After you Operate you may expend a Bandage to heal a Wound, and/or a Disinfectant to remove any number of Effects."
+        },
+        {
+          "n": 3,
+          "name": "Miracle Worker",
+          "text": "Gain 3 Advantage on your \"Do No Harm\" Skirmishes. If you roll two or more 1s or two or more 6s with \"Operational Procedure\", you may replace the resources gained by those dice with a ‘Miracle'. When an ally is Knocked Out, place a marker where they were. After you Skirmish targeting this Marker, you may expend a Miracle to bring the Knocked Out character back to that space, or an adjacent one if it's occupied, with full Health and 2 Wounds."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 87
+      },
+      "id": "altruist.surgeon",
+      "previousName": null,
+      "previousArchetypeId": null
+    },
+    {
+      "archetypeId": "altruist",
+      "name": "Tactical Master",
+      "stars": 1,
+      "tags": "Self-Effect, Mind, Stance",
+      "flavor": "Your ideas of combat are so limited. Here, let me paint you a picture of how far this canvas reaches.",
+      "notes": "",
+      "levels": [
+        {
+          "n": 1,
+          "name": "Stop And Think",
+          "text": "Anytime you are Weakened you enter the ‘Tactician Stance', removing any other Stances you had. While in the Tactician Stance, when your non-Attack Actions and Effects you apply deal damage, gain 1 Focus, up to [Mind] times per Turn."
+        },
+        {
+          "n": 2,
+          "name": "Study",
+          "text": "After you Breathe, you may Weaken yourself to gain 2 additional Focus."
+        },
+        {
+          "n": 3,
+          "name": "Eureka!",
+          "text": "After you start your Turn in Tactician Stance, you gain 1 additional AP, and your first attack on this Turn costs 1 more AP."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 87
+      },
+      "id": "disruptor.tactical-master",
+      "previousName": null,
+      "previousArchetypeId": "disruptor"
+    },
+    {
+      "archetypeId": "altruist",
+      "name": "Talisman Exorcist",
+      "stars": 1,
+      "tags": "Casts, Spirit, Versatile",
+      "flavor": "Every surface is covered in small, intricately detailed papers. This sort of obsessive protection seemed silly to her, but when removing one of these seals resulted in voices echoing around the room, she reconsidered.",
+      "notes": "",
+      "levels": [
+        {
+          "n": 1,
+          "name": "Sacred Seal",
+          "text": "If you Breathe, you may replace its effect with placing a ‘Talisman' on an adjacent target. Spaces and characters with Talismans are always valid targets for your Casts, and after you Cast targeting them, you gain 1 Focus."
+        },
+        {
+          "n": 2,
+          "name": "Tossed Talisman",
+          "text": "When using \"Sacred Seal\" you may place Talismans on targets within 5 spaces. After you Charge or Awaken this, you may activate \"Sacred Seal\" and repeat the effect once for each Focus you would have gained."
+        },
+        {
+          "n": 3,
+          "name": "Exorcize",
+          "text": "Your Spirit Finisher can affect all targets with Talismans at once. Doing this destroys your Talismans and gives you 2 Focus for each."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 87
+      },
+      "id": "altruist.talisman-caster",
+      "previousName": "Talisman Caster",
+      "previousArchetypeId": null
+    },
+    {
+      "archetypeId": "altruist",
+      "name": "Abjuring Sage",
+      "stars": 2,
+      "tags": "Tanking, Casts, Sustain",
+      "flavor": "A battle won unharmed is a flawless one.",
+      "notes": "",
+      "levels": [
+        {
+          "n": 1,
+          "name": "Barrier",
+          "text": "If you Cast targeting one or more allies, you don't deal damage or Negative Effects. Instead, Reinforce them and create a ‘Barrier' between one of them and a space adjacent. Barriers are 5 + [Tier x 5] Health walls that move to match allies they were created for, and do not affect the targeting or movement of allies. After you create a Barrier it replaces all other Barriers."
+        },
+        {
+          "n": 2,
+          "name": "Impenetrable",
+          "text": "After you create a Barrier, extend it one space in both directions and give [Spirit / 2] Evasion to all allies adjacent to it."
+        },
+        {
+          "n": 3,
+          "name": "Block Beam",
+          "text": "After your Barrier would be removed or replaced for any reason, it ‘Fires' away from the character it was created for, dealing [Spirit] damage to all enemies in an infinitely long orthogonal Line."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 88
+      },
+      "id": "altruist.abjuring-sage",
+      "introducedIn": "dawn-en-lionwing-cb2f8e67"
+    },
+    {
+      "archetypeId": "altruist",
+      "name": "Alchemist",
+      "stars": 2,
+      "tags": "Breathing, Interact, Effects",
+      "flavor": "Eye of newt and toe of frog. Wool of bat, and tongue of dog. Adder's fork and blind-worm's sting. Lizard's leg and owlet's wing. For a charm of powerful trouble. Like a hell-broth: Boil and bubble.",
+      "notes": "",
+      "levels": [
+        {
+          "n": 1,
+          "name": "Quick Mix",
+          "text": "After you Breathe, you can make one of the following ‘Potions'. You can Interact to use one of these Potions on yourself or a character within 4 range. 1: Pure Water: Remove any Effect(s) from the target. 2: Fury Vapors: Strengthen the target. 3: Growth Serum: Begin Regenerating the target. 4: Adrenaline Stim: Hasten the target. 5: Stoneskin Balm: Reinforce the target. 6: Vilethorn Poison: Blight the target."
+        },
+        {
+          "n": 2,
+          "name": "Powerful Mix",
+          "text": "The first Interact you use on your Turn has its Cost reduced to 0. After you use a potion on an ally, they gain [Mind / 2] Focus. After you use a potion on an enemy, you may deal [Mind] damage to them."
+        },
+        {
+          "n": 3,
+          "name": "High Intensity Mix",
+          "text": "If you Breathe, you may replace its effects by triggering \"Quick Mix\" two more times, randomly determining each potion by rolling a D6, rather than choosing."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 88
+      },
+      "id": "altruist.alchemist",
+      "previousName": null,
+      "previousArchetypeId": null
+    },
+    {
+      "archetypeId": "altruist",
+      "name": "Dancer",
+      "stars": 2,
+      "tags": "Movement, Utility, Buffing",
+      "flavor": "The intimacy of combat is something that's difficult to recreate. That intoxicating passion has drawn more people together than you can possibly know.",
+      "notes": "",
+      "levels": [
+        {
+          "n": 1,
+          "name": "Dance Partner",
+          "text": "You can Interact with a willing character to set them as your ‘Partner'. You may only have one Partner and lose them if you end your Turn outside of adjacency. When one Partner moves willingly, the other may move to a space adjacent to them and gain Haste."
+        },
+        {
+          "n": 2,
+          "name": "Hearts In Tandem",
+          "text": "The first time a Partner Hides, or gains Focus each Turn, their partner gains any positive Effects or Focus they gained."
+        },
+        {
+          "n": 3,
+          "name": "The Prestige",
+          "text": "When a Partner uses a Finisher, their Partner may Daze themselves to have the finisher crit on rolls of 5 or 6, Teleport adjacent to the target, and use a Skirmish / Cast on the target. Using this effect makes the user lose their Partner status."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 88
+      },
+      "id": "altruist.dancer",
+      "previousName": null,
+      "previousArchetypeId": null
+    },
+    {
+      "archetypeId": "altruist",
+      "name": "Fog Walker",
+      "stars": 2,
+      "tags": "Breathing, Avoidance, Buffing",
+      "flavor": "When the fog rolls off the river Undine, the city streets are empty. For the darkened hunts would find those who do not flee, meeting those who carry a smile as easily as a blade.",
+      "notes": "",
+      "levels": [
+        {
+          "n": 1,
+          "name": "Blowing Smoke",
+          "text": "After you Breathe on your Turn, you may replace its effect with creating ‘Fog' in a space adjacent to you. At the end of your Turn, move your Fog up to 2 spaces in any direction. If you or an ally starts their Turn in Fog, they may Disappear. When a character Disappeared through this level reappears, they must do so in Fog, or as close as possible."
+        },
+        {
+          "n": 2,
+          "name": "Mystic Mist",
+          "text": "When a character reappears in Fog, they gain [Mind] Evasion and move up to 3 spaces."
+        },
+        {
+          "n": 3,
+          "name": "Stinging Steam",
+          "text": "Your Breaths are Swift. If you Stride you may replace its effect with moving your Fog Clouds up to 2 spaces and deal 2 damage to enemies every time a Fog Cloud passes through them."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 88
+      },
+      "id": "altruist.fog-walker",
+      "previousName": null,
+      "previousArchetypeId": null
+    },
+    {
+      "archetypeId": "altruist",
+      "name": "Last Hope",
+      "stars": 2,
+      "tags": "Avoidance, Spirit, Buffing",
+      "flavor": "He felt stupid. There it was, his face plastered on the gray brick in front of him. A blurry picture, but his face nonetheless. These posters must have been put up by someone he's helped, claiming he was some mythic savior. A reputation that would only make his life harder. What annoyed him most, though, was a certain someone now knew he wasn't going to stop.",
+      "notes": "",
+      "levels": [
+        {
+          "n": 1,
+          "name": "Notably Absent",
+          "text": "You may Assist at the start of any combat Scene regardless of your character's condition. If you Break Out while Assisting allies, you may give them an Effect based on the Action taken. The actions and effects are as follows: ‣ Stride: Hasten. ‣ Breathe: Reinforce. ‣ Investigate: Strengthened."
+        },
+        {
+          "n": 2,
+          "name": "Heroic Return",
+          "text": "At the start or end of any Turn where the Tension is 4 or higher, you may return to the board from your Assisting on any border space. After you return to the board, you gain all Positive Effects your allies have. These Effects can't be removed until combat ends."
+        },
+        {
+          "n": 3,
+          "name": "Explosive Return",
+          "text": "As soon as you return to the board, you may take a Turn, even if it would interrupt the Turn of an enemy. If this interrupted an ally's Turn, you must wait for them to finish."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 89
+      },
+      "id": "altruist.last-hope",
+      "previousName": null,
+      "previousArchetypeId": null
+    },
+    {
+      "archetypeId": "altruist",
+      "name": "Replicator",
+      "stars": 2,
+      "tags": "Attacks, Casts, Buffing",
+      "flavor": "An infinite barrage of bullets and blades. A force that resembles an army but was born from a single hunter with a mage at their side.",
+      "notes": "",
+      "levels": [
+        {
+          "n": 1,
+          "name": "Echo Form",
+          "text": "If you Cast targeting only an ally or yourself, you don't deal damage or negative Effects. Instead, create an ‘Echo' adjacent to them. Echos are targetable pieces of Difficult Terrain with 1 Health. A character with an Echo may draw range from their Echos. You can only make 1 + [Tier] Echos at a time."
+        },
+        {
+          "n": 2,
+          "name": "Symmetry",
+          "text": "When a character with an Echo moves, they may move their Echo an equal number of spaces."
+        },
+        {
+          "n": 3,
+          "name": "Full Sync",
+          "text": "Characters with an Echo start the Round with 1 additional AP per Echo they have. Characters benefiting from this give Swift to their Attacks, so long as each draws its range from a different Echo."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 89
+      },
+      "id": "altruist.replicator",
+      "previousName": null,
+      "previousArchetypeId": null
+    },
+    {
+      "archetypeId": "altruist",
+      "name": "Temporal Sage",
+      "stars": 2,
+      "tags": "Casts, Movement, Buffing",
+      "flavor": "Time until death: T- 2 minutes 4 days 10 days 2 weeks 1month 1.5 months 3 months 5 months 1year 5 years 6 years 6.5 years 10 years 25 years",
+      "notes": "",
+      "levels": [
+        {
+          "n": 1,
+          "name": "Accelerate",
+          "text": "If you Cast targeting an ally, you don't deal damage or Negative Effects. Instead, they may move spaces equal to the damage you would have dealt, and then Hasten them."
+        },
+        {
+          "n": 2,
+          "name": "Decelerate",
+          "text": "Your Casts gain 1 Advantage. After you or an ally lose an Effect, you may spend 1 Focus to apply the same effect again."
+        },
+        {
+          "n": 3,
+          "name": "Time Stop",
+          "text": "Begin tracking ‘Flux', an 8 Segment Clock that's emptied after every Scene. After you apply an Effect to an ally, fill one Flux Segment. Once per Scene, after you start your Turn with a full Flux Clock, you may spend all your AP to empty it and Cast, targeting all characters in the Scene. If there are two or fewer enemies, you may take a Wound to go All Out and turn your roll against them into a Finisher."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 89
+      },
+      "id": "altruist.chronomancer",
+      "previousName": "Chronomancer",
+      "previousArchetypeId": null
+    },
+    {
+      "archetypeId": "altruist",
+      "name": "Virtuoso",
+      "stars": 2,
+      "tags": "Breathing, Mind, Versatile",
+      "flavor": "Doesn't it all seem to have a rhythm to it? When the bullets are flying and everyone else is in chaos, that rhythm guides me.",
+      "notes": "",
+      "levels": [
+        {
+          "n": 1,
+          "name": "Musician",
+          "text": "After you Breathe, gain a ‘Verse' of your choice from the list below. You can hold up to 4 Verses at a time (Including repeated verses). After you use Charge, you may expend all the Verses you are holding and grant the effects listed on them to characters in a 3x3 Zone placed adjacent to you. ‣ Harsh: Allies Strengthen and may move 1 space. ‣ Soothing: Allies gain [Mind / 2] Health. ‣ Inspiring: Hasten and give 1 Focus to allies. ‣ Raucous: Shred and deal 1 damage to enemies. ‣ Frantic: Allies may use a 1 Cost Utility action for free."
+        },
+        {
+          "n": 2,
+          "name": "Reverb",
+          "text": "Your Breaths are Swift. After you gain a Verse, you may immediately perform its effect on adjacent characters without spending it."
+        },
+        {
+          "n": 3,
+          "name": "Encore",
+          "text": "If you Charge with 3 or more Verses, you may forgo the Focus given to reduce its cost to 1."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 89
+      },
+      "id": "altruist.bardic-savant",
+      "previousName": "Bardic Savant",
+      "previousArchetypeId": null
+    },
+    {
+      "archetypeId": "altruist",
+      "name": "Artist",
+      "stars": 3,
+      "tags": "Interact, Versatile, Buffing",
+      "flavor": "The Ishtar Battalion has been described as \"Avant-garde.\" Both meanings are equally accurate.",
+      "notes": "",
+      "levels": [
+        {
+          "n": 1,
+          "name": "Stroke Of The Brush",
+          "text": "You can Interact to ‘Paint' on an adjacent space in a ‘Color' of your choice. Each Color has a specific effect that triggers after you or an ally enters its space or starts their Turn in it for the first time in a Round. The Colors are as follows. ‣ Red: Strengthen yourself. ‣ Yellow: Teleport to another Colored space. ‣ Blue: Gain 2 Focus. ‣ White: Push any enemies in 3 spaces 3 spaces. ‣ Black: Pull any enemies in 5 spaces adjacent to you."
+        },
+        {
+          "n": 2,
+          "name": "Canvas Of Flesh",
+          "text": "The first Interact you use on your Turn has its Cost reduced to 0. After you Interact with an ally, you may spend 3 Focus to create a ‘Seal' on them, letting them gain the effect of one of your Colors every time they end their Turn."
+        },
+        {
+          "n": 3,
+          "name": "Brush-Brand",
+          "text": "After you Skirmish a character, you may ‘Brand' them with a Color of your choice. After you or an ally Attack a Branded character, consume the Brand and the attacker triggers the effect of the Color."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 90
+      },
+      "id": "altruist.artist",
+      "previousName": null,
+      "previousArchetypeId": null
+    },
+    {
+      "archetypeId": "altruist",
+      "name": "Deckbuilder",
+      "stars": 3,
+      "tags": "Casts, Mind, Versatile",
+      "flavor": "My father's deck has no pathetic cards!",
+      "notes": "",
+      "levels": [
+        {
+          "n": 1,
+          "name": "Draw",
+          "text": "After deploying, roll a die and set it aside. These dice are your ‘Cards'. After you Breathe with three or fewer Cards, roll a new Card. Before you Cast, you may spend any of your Cards to roll [Mind] instead of [Spirit], have it deal no damage to allies, and gain the Card's bonus. The bonuses for each are as follows: 1: Illness: Blights and permanently Slows the Target. 2: Star: Restore Focus equal to the damage dealt. 3: Night: The target Disappears and becomes Invisible. 4: Protection: Permanently Reinforces the target. 5: Union: Snare the target, Teleport adjacent to them. 6: Folly: Dazes, Immobilizes, and Launches the target."
+        },
+        {
+          "n": 2,
+          "name": "Card Capture",
+          "text": "Once per Scene, after you Investigate an NPC's Attack, you can roll a Card with all of that attack's non-damage effects. At the end of the scene, you can replace a Card in your deck with that Card. You can only replace up to 3 of your Cards like this at a time, and can return your default Cards at any time."
+        },
+        {
+          "n": 3,
+          "name": "Greed",
+          "text": "\"Draw\" has you roll double the Cards in all scenarios, and you may gain Cards by Breathing when at or below 5 cards instead of 3."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 90
+      },
+      "id": "altruist.deckbuilder",
+      "previousName": null,
+      "previousArchetypeId": null
+    },
+    {
+      "archetypeId": "altruist",
+      "name": "Will-O-Wisp",
+      "stars": 3,
+      "tags": "Buffing, Spirit, Versatile",
+      "flavor": "To most, a foul heresy. Artificial faeries, exploited by the non-keeper guards under Oberon. Yet despite the censoring of this practice, the number of \"Royal Keepers\" has recently been increasing far quicker than any Faerie population could possibly sustain.",
+      "notes": "",
+      "levels": [
+        {
+          "n": 1,
+          "name": "Spirit Weaving Flame",
+          "text": "After you Charge for the first time in a scene, you may create a \"Spirit Flame\" within 1 space of you, a marker that you can move up to 4 spaces after you Stride or end your Turn. It's pushed 1 space when its space, or a character in its space, is the target of an attack. When a character is standing on, or adjacent to your Spirit Flame, they count as having an effect. Choose an option from the list below to determine the effect: ‣ Dreamy Spirit: Enemies are Slowed. ‣ Angry Spirit: Enemies are Blighted. ‣ Insightful Spirit: Enemies are Marked. ‣ Intense Spirit: Allies are Hasted. ‣ Kind Spirit: Allies are Regenerating. ‣ Violent Spirit: Allies are Strengthened."
+        },
+        {
+          "n": 2,
+          "name": "Friendly Spirits",
+          "text": "When an ally moves out of your Spirit Flame, you may have it move to a space adjacent to their new position. When an enemy attempts to move out of your Spirit Flame, you may spend 1 Focus to stop their movement after they move out of that space, leaving them adjacent to the Spirit Flame."
+        },
+        {
+          "n": 3,
+          "name": "Twinned Spirits",
+          "text": "You may choose an additional option from \"Spirit Weaving Flame\". If you create a Spirit Flame you may create two, one of each type, or create one with the properties of both."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 90
+      },
+      "id": "altruist.will-o-wisp",
+      "previousName": null,
+      "previousArchetypeId": null
+    }
+  ]
+}

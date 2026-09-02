@@ -1,0 +1,540 @@
+[
+  {
+    "id": "rebel",
+    "name": "Rebel",
+    "description": "Those who've lost their belief in, and respect for, the authority above them. Be it The Rebel's immediate superiors or those completely out of reach.",
+    "builtin": null,
+    "gifts": [
+      {
+        "id": "rebel.until-my-last-breath",
+        "name": "Until My Last Breath",
+        "en": "Until My Last Breath",
+        "text": "Whenever you gain Stress, you gain 3 Advantage on the next Body or Talent Roll you make in that Scene.",
+        "introducedIn": null
+      },
+      {
+        "id": "rebel.i-ll-carry-my-weight",
+        "name": "I'll Carry My Weight",
+        "en": "I'll Carry My Weight",
+        "text": "You may use the Help and Protect Bond Actions targeting yourself, when you do you can't spend Stress and count as your own Rival.",
+        "introducedIn": "dawn-en-lionwing-cb2f8e67"
+      },
+      {
+        "id": "rebel.supernatural-deafness",
+        "name": "Supernatural Deafness",
+        "en": "Supernatural Deafness",
+        "text": "You don't have an Ability, can't Cast in combat, and can't use supernatural equipment. You gain double the Advantage from any Bonds you use in Rolls and your max Stress is now 4.",
+        "introducedIn": null
+      },
+      {
+        "id": "rebel.not-today",
+        "name": "Not Today",
+        "en": "Not Today",
+        "text": "When you or one of your Bonds would take Stress from physical damage, you may become the target and nullify the Stress. Roll a die for each of the following questions that are answered with \"yes\" and take 1 Stress for each that doesn't Hit. ‣ Was the attacker a named character. ‣ Do you not have a bond with the attacker. ‣ Does the Narrator think the attack could KO you.",
+        "introducedIn": null
+      },
+      {
+        "id": "rebel.overexertion",
+        "name": "Overexertion",
+        "en": "Overexertion",
+        "text": "When you make a roll, you may go All Out by taking a Stress instead of spending Influence.",
+        "introducedIn": null
+      },
+      {
+        "id": "rebel.leave-this-to-me",
+        "name": "Leave This To Me...",
+        "en": "Leave This To Me...",
+        "text": "When an ally is Knocked Out by another non player character, you lose all of your Stress and may Duel by taking 1 Stress instead of spending Influence until the end of the Scene.",
+        "introducedIn": null
+      },
+      {
+        "id": "rebel.aggressive-to-a-fault",
+        "name": "Aggressive To A Fault",
+        "en": "Aggressive To A Fault",
+        "text": "You may create any number of Quick Bonds in a Chapter, so long as all of them are immediately set as Rivals or Enemies.",
+        "introducedIn": "dawn-en-lionwing-cb2f8e67"
+      }
+    ],
+    "source": {
+      "editionId": "dawn-en-lionwing-cb2f8e67",
+      "pdfPage": 50
+    }
+  },
+  {
+    "id": "loyalist",
+    "name": "Loyal",
+    "description": "A person dedicated to, and participating in, the systems and authority of those in power. The Loyal's oath to this cause reaps benefits others could only dream of.",
+    "builtin": {
+      "id": "loyalist.the-oath",
+      "name": "The Oath",
+      "en": "The Oath",
+      "text": "This must be taken in addition to your two starting Boons if you choose \"The Loyal\" as your Primary Outlook. This Boon can't be taken after Tier one. You have an Oath, a single word that you embody. At any point the Narrator can invoke your Oath to ask you to act in a specific way. If you do so you gain 1 Influence.",
+      "introducedIn": null
+    },
+    "gifts": [
+      {
+        "id": "loyalist.fish-out-of-water",
+        "name": "Fish Out Of Water",
+        "en": "Fish Out Of Water",
+        "text": "Once Per Chapter, When you use Study while the target is doing something normally considered mundane or pedestrian, you may give the recipient one extra Influence.",
+        "introducedIn": null
+      },
+      {
+        "id": "loyalist.durandal",
+        "name": "Durandal",
+        "en": "Durandal",
+        "text": "You've been entrusted with a massively important weapon or tool. Note what it is and what it excels in as if you were making a custom Skill. When your tool is applicable in a Challenge Roll, gain 2 Advantage and you may go \"All Out\" by gaining 1 Stress instead of using Influence.",
+        "introducedIn": null
+      },
+      {
+        "id": "loyalist.my-master-s-teachings",
+        "name": "My Master's Teachings",
+        "en": "My Master's Teachings",
+        "text": "An NPC you've met or of your creation gains a Rank [Tier/2] Student Bond with you. Once per Chapter you may have them use the Teach Bond Action on you even if they are not in the Scene (you choose the Skill they offer you).",
+        "introducedIn": null
+      },
+      {
+        "id": "loyalist.law-and-order",
+        "name": "Law And Order",
+        "en": "Law And Order",
+        "text": "Once per Chapter, you may choose a character. The Narrator must then tell you the most notable crime they've committed (if any). You may also freely Quick Bond with them.",
+        "introducedIn": "dawn-en-lionwing-cb2f8e67"
+      },
+      {
+        "id": "loyalist.secret-technique",
+        "name": "Secret Technique",
+        "en": "Secret Technique",
+        "text": "When you use your Ability in a Roll you may spend 1 Influence to claim to use a \"Secret Technique\" taught by the people you swore your Oath to. When you do, you may force any NPC related to your Oath to use the \"Help\" Bond Action on you, even if they're not in the Scene.",
+        "introducedIn": "dawn-en-lionwing-cb2f8e67"
+      }
+    ],
+    "source": {
+      "editionId": "dawn-en-lionwing-cb2f8e67",
+      "pdfPage": 50
+    }
+  },
+  {
+    "id": "beacon",
+    "name": "Light",
+    "description": "A provider, protector, or pacifist, and more importantly than any of that, a person to be depended upon. The Light naturally draws those in their darkest hour.",
+    "builtin": null,
+    "gifts": [
+      {
+        "id": "beacon.saint",
+        "name": "Saint",
+        "en": "Saint",
+        "text": "You have 2 Advantage on Rolls that relate to characters with no negative feelings towards you.",
+        "introducedIn": null
+      },
+      {
+        "id": "beacon.friendly-and-approachable",
+        "name": "Friendly And Approachable",
+        "en": "Friendly And Approachable",
+        "text": "Your Quick Bonds with non-player characters start at Rank 2. You may also form more than one Quick Bond in a Chapter by taking one Stress when doing so.",
+        "introducedIn": null
+      },
+      {
+        "id": "beacon.performance-artist",
+        "name": "Performance Artist",
+        "en": "Performance Artist",
+        "text": "Choose one of your Skills, it gains an additional Rank. When you first get an Extreme Success with your chosen Skill in a Scene, anyone Bonded with you can remove 1 Stress.",
+        "introducedIn": null
+      },
+      {
+        "id": "beacon.north-star",
+        "name": "North Star",
+        "en": "North Star",
+        "text": "Your \"Help\" Bond Actions give additional Advantage equal to your Bond Rank with the target.",
+        "introducedIn": "dawn-en-lionwing-cb2f8e67"
+      },
+      {
+        "id": "beacon.books-and-their-covers",
+        "name": "Books And Their Covers",
+        "en": "Books And Their Covers",
+        "text": "When you offer to befriend someone who's tried to hurt you before, you may spend 1 Influence to force the Narrator to either have them accept the offer or give you 2 Influence. If this is attempted on the same character more than once, the Narrator can deny it without giving you Influence.",
+        "introducedIn": null
+      },
+      {
+        "id": "beacon.looking-our-best",
+        "name": "Looking Our Best",
+        "en": "Looking Our Best",
+        "text": "Once per Chapter, you may spend 1 Influence to change to any new outfit you describe between Scenes, regardless of context. Willing allies who were with you can also do this at no cost. Characters in outfits that match their environment (eg. suits at luxury events) have all their Skill Ranks raised to a minimum of [Tier/2] for the duration of the Scene.",
+        "introducedIn": "dawn-en-lionwing-cb2f8e67"
+      },
+      {
+        "id": "beacon.perspective-of-a-friend",
+        "name": "Perspective Of A Friend",
+        "en": "Perspective Of A Friend",
+        "text": "Your Bonds with Partners always count as being 1 Rank higher when used in a Roll (this can surpass the Rank 3 maximum). When you only have one Partner and you use Influence with them present for the first time in a Scene, they gain an Influence.",
+        "introducedIn": "dawn-en-lionwing-cb2f8e67"
+      }
+    ],
+    "source": {
+      "editionId": "dawn-en-lionwing-cb2f8e67",
+      "pdfPage": 51
+    }
+  },
+  {
+    "id": "wolf",
+    "name": "Wolf",
+    "description": "A person scarred and scared, left behind by or who has left behind those they depended on most. The Wolf is a loner, though they're unlikely to stay that way.",
+    "builtin": {
+      "id": "wolf.lone-wolf",
+      "name": "Lone Wolf",
+      "en": "Lone Wolf",
+      "text": "This must be taken in addition to your two starting Boons if you choose \"The Wolf\" as your Primary Outlook. This Boon can't be taken after Tier one. You can only have 3 Bonded characters at a time, you always know where someone you're Bonded with is.",
+      "introducedIn": null
+    },
+    "gifts": [
+      {
+        "id": "wolf.the-one-thing-you-can-rely-on",
+        "name": "The One Thing You Can Rely On",
+        "en": "The One Thing You Can Rely On",
+        "text": "You may form Bonds with weapons as if they're characters. When you do so they're Rank 1 and Partners. Weapons made via an Ability all count as the same weapon.",
+        "introducedIn": null
+      },
+      {
+        "id": "wolf.dark-urge",
+        "name": "Dark Urge",
+        "en": "Dark Urge",
+        "text": "When you attempt to use your Ability in a Challenge Roll, you may gain 2 Advantage. If you roll an odd number of Hits, your Narrator can have you use a Skill or Ability on a character you weren't targeting, you can resist this by taking 1 Stress. Gain 2 Character Ranks that can be spent on your Ability.",
+        "introducedIn": null
+      },
+      {
+        "id": "wolf.outgunned",
+        "name": "Outgunned",
+        "en": "Outgunned",
+        "text": "When you're working against more enemies than you have allies, you gain 2 Advantage on all Rolls.",
+        "introducedIn": null
+      },
+      {
+        "id": "wolf.loyal",
+        "name": "Loyal",
+        "en": "Loyal",
+        "text": "When you only have 1 Bond, the Rank of that Bond is treated as being 2 Ranks higher when used in a Roll (this can surpass the Rank 3 maximum).",
+        "introducedIn": "dawn-en-lionwing-cb2f8e67"
+      },
+      {
+        "id": "wolf.brood",
+        "name": "Brood",
+        "en": "Brood",
+        "text": "When you take Intermission and don't form or Rank Up any Bonds, You may also leave (if there is one central site) and tell the Narrator that you want to do something alone to gain 1 Influence. They can either describe how you succeed or force you to roll for it or play it out as a Scene.",
+        "introducedIn": "dawn-en-lionwing-cb2f8e67"
+      },
+      {
+        "id": "wolf.better-off-alone",
+        "name": "Better Off Alone",
+        "en": "Better Off Alone",
+        "text": "When you Abandon a Bond of Rank 2 or higher, you may restore all of your Stress.",
+        "introducedIn": "dawn-en-lionwing-cb2f8e67"
+      }
+    ],
+    "source": {
+      "editionId": "dawn-en-lionwing-cb2f8e67",
+      "pdfPage": 51
+    }
+  },
+  {
+    "id": "mentor",
+    "name": "Mentor",
+    "description": "Wise for your years, no matter how many, a towering beacon of experience and strength. Though maybe this isn't The Mentor's story to use this.",
+    "builtin": null,
+    "gifts": [
+      {
+        "id": "mentor.old-calloused-hand",
+        "name": "Old, Calloused Hand",
+        "en": "Old, Calloused Hand",
+        "text": "Write two ‘Calluses', negative events that you've dealt with before, leaving you stronger. When you're presented with a Threat related to your Callus, you may lose 1 Stress.",
+        "introducedIn": null
+      },
+      {
+        "id": "mentor.casual-excellence",
+        "name": "Casual Excellence",
+        "en": "Casual Excellence",
+        "text": "Choose two of your Skills or a Skill and Ability. When you would Roll using one of these features to gain Advantage, you may roll a single die instead, getting a Failure on a roll of 1, a Minimum Success on a 2-5, and an Extreme Success on a 6. A Narrator may make you roll 2 dice and take the lower if the challenge would be exceptionally high.",
+        "introducedIn": "dawn-en-lionwing-cb2f8e67"
+      },
+      {
+        "id": "mentor.an-organized-style",
+        "name": "An Organized Style",
+        "en": "An Organized Style",
+        "text": "When you use your Ability in a way you've never used it before, you can give that specific usage a name to gain 3 Advantage.",
+        "introducedIn": null
+      },
+      {
+        "id": "mentor.a-power-that-must-never-be-used-again",
+        "name": "A Power That Must Never Be Used Again",
+        "en": "A Power That Must Never Be Used Again",
+        "text": "Once per Chapter, your Ability can instantly kill any unnamed NPC standing in front of you regardless of context. If you ever use the effect of this Boon, you lose two Bond Ranks with a character of your choice. If you lose all of your Bonds, you lose control of your character permanently.",
+        "introducedIn": null
+      },
+      {
+        "id": "mentor.perspective-of-a-teacher",
+        "name": "Perspective Of A Teacher",
+        "en": "Perspective Of A Teacher",
+        "text": "Your Bonds with Students always count as being 1 Rank higher when used in a Roll (this can surpass the Rank 3 maximum). When you only have one Student and you use Influence with them present for the first time in a Scene, they gain an Influence.",
+        "introducedIn": null
+      }
+    ],
+    "source": {
+      "editionId": "dawn-en-lionwing-cb2f8e67",
+      "pdfPage": 52
+    }
+  },
+  {
+    "id": "student",
+    "name": "Apprentice",
+    "description": "Bright-eyed greenhorns looking to make up for the experience they lack and make a name for themselves. The Apprentice starts small, but holds big ambitions.",
+    "builtin": null,
+    "gifts": [
+      {
+        "id": "student.never-give-up",
+        "name": "Never Give Up!",
+        "en": "Never Give Up!",
+        "text": "Once per Chapter, when you fail a Roll with immediate consequences, you may hold it back, drawing a 2 segment Clock instead. This Clock fills a segment when you Roll against something other than that Threat, or at the Narrator's discretion. The Threat resumes when the Clock fills, and you take 1 Stress (this is not self-inflicted Stress).",
+        "introducedIn": null
+      },
+      {
+        "id": "student.amazing-potential",
+        "name": "Amazing Potential",
+        "en": "Amazing Potential",
+        "text": "When you Roll for a Test with one or fewer sources of Advantage, roll an additional die. This is your \"Star Die\". If your main roll is a Failure, but your Die is a 5, it becomes a Minimum Success at the cost of 1 Stress. If it's a 6 the roll becomes an Extreme Success.",
+        "introducedIn": null
+      },
+      {
+        "id": "student.still-getting-used-to-it",
+        "name": "Still Getting Used To It",
+        "en": "Still Getting Used To It",
+        "text": "When you use your Ability to gain Advantage in a roll, roll a die. If it's even gain [Tier] additional Advantage from it. If it's odd, gain no Advantage from it. Gain 3 Character Ranks to spend on your Ability. When you would Awaken a Boon you may remove this one instead, and gain another 2 Character Ranks to spend on your Ability.",
+        "introducedIn": "dawn-en-lionwing-cb2f8e67"
+      },
+      {
+        "id": "student.plenty-to-learn",
+        "name": "Plenty To Learn",
+        "en": "Plenty To Learn",
+        "text": "Once per Scene, If a player you Study uses Influence in that Scene, gain 1 Influence.",
+        "introducedIn": null
+      },
+      {
+        "id": "student.a-step-behind-but-still-running",
+        "name": "A Step Behind, But Still Running",
+        "en": "A Step Behind, But Still Running",
+        "text": "When you Awaken in an unstructured Scene, you gain 3 Advantage on the next roll you make. Gain 2 Character Ranks that can only be used to Awaken.",
+        "introducedIn": null
+      },
+      {
+        "id": "student.order-and-out",
+        "name": "Order And Out",
+        "en": "Order And Out",
+        "text": "While you're following any kind of order given by one of your Bonds, they may \"Help\" you, even if they're not in the same Scene.",
+        "introducedIn": "dawn-en-lionwing-cb2f8e67"
+      }
+    ],
+    "source": {
+      "editionId": "dawn-en-lionwing-cb2f8e67",
+      "pdfPage": 52
+    }
+  },
+  {
+    "id": "cursed",
+    "name": "Accursed",
+    "description": "Doomed from the beginning, a being of ill fortune, granted power they never asked for. What is the power? How can they get rid of it? The Accursed rarely knows.",
+    "builtin": null,
+    "gifts": [
+      {
+        "id": "cursed.volatile-blood",
+        "name": "Volatile Blood",
+        "en": "Volatile Blood",
+        "text": "Your Ability ignores the \"keeps one of the words contained in the original\" restriction when swapping out its original words with new ones. Gain 3 Character Ranks that can be spent on your Ability.",
+        "introducedIn": null
+      },
+      {
+        "id": "cursed.uncontrollable-power",
+        "name": "Uncontrollable Power",
+        "en": "Uncontrollable Power",
+        "text": "Your Ability is now \"You [Verb] [Noun] When You [Condition]\", meaning it's always applied while the condition is fulfilled (or just always if there's no condition). When you expand your Ability choose if those new words are your \"default\". If so they can trigger your Ability. Gain 3 Character Ranks that can be spent on your Ability.",
+        "introducedIn": null
+      },
+      {
+        "id": "cursed.sacrifice",
+        "name": "Sacrifice",
+        "en": "Sacrifice",
+        "text": "You may use this Boon after any Roll to make it an Extreme Success by sacrificing one of the following (It can't be restored, only replaced). ‣ Your eye. ‣ Your arm. ‣ Your leg. ‣ Your tongue. ‣ Your life.",
+        "introducedIn": null
+      },
+      {
+        "id": "cursed.self-destructive-strength",
+        "name": "Self Destructive Strength",
+        "en": "Self Destructive Strength",
+        "text": "When you use an Ability to gain Advantage on a Roll, but don't use either a Bond or a Skill, you may take 1 Stress to \"Overload\" your Ability and gain double the Advantage from it.",
+        "introducedIn": "dawn-en-lionwing-cb2f8e67"
+      },
+      {
+        "id": "cursed.tainted-body",
+        "name": "Tainted Body",
+        "en": "Tainted Body",
+        "text": "One or more of your limbs or eyes are concealed from other people. Once per Series, when you spend Influence, you may reveal this part to gain 3 + [Tier] Character Ranks to spend on your Ability.",
+        "introducedIn": null
+      },
+      {
+        "id": "cursed.the-voice",
+        "name": "The Voice",
+        "en": "The Voice",
+        "text": "Your Ability is sentient and speaks to you. It also counts as a Bond and can be used in rolls (unless you're using it as an Ability). When you only use your Ability in a roll you may ask the Narrator if it's compliant in the action you're taking. If they are, gain 2 Advantage, if they aren't, take 2 Disadvantage.",
+        "introducedIn": "dawn-en-lionwing-cb2f8e67"
+      }
+    ],
+    "source": {
+      "editionId": "dawn-en-lionwing-cb2f8e67",
+      "pdfPage": 53
+    }
+  },
+  {
+    "id": "blessed",
+    "name": "Blessed",
+    "description": "Living in near-edenic plenty, a person granted fortune beyond imagination. Some combination of pride and ignorance is almost necessary for The Blessed.",
+    "builtin": null,
+    "gifts": [
+      {
+        "id": "blessed.a-web-of-connections",
+        "name": "A Web Of Connections",
+        "en": "A Web Of Connections",
+        "text": "When you use Influence, you can identify an unnamed NPC in the Scene. You gain 2 Advantage on Rolls where that NPC is relevant.",
+        "introducedIn": null
+      },
+      {
+        "id": "blessed.trust-fund",
+        "name": "Trust Fund",
+        "en": "Trust Fund",
+        "text": "You have 10 ‘Funding Tokens'. When you make a Roll, you may spend any number of Funding Tokens to explain how you use your wealth to help you, gaining equal Advantage on the roll. Gain 5 more Funding Tokens when you Tier up.",
+        "introducedIn": null
+      },
+      {
+        "id": "blessed.sick-ride",
+        "name": "Sick Ride",
+        "en": "Sick Ride",
+        "text": "You have a 1-2 seating ground or water vehicle that you can create or call to you by taking 1 Stress or spending 1 Influence. When you do, choose a willing character to drive and answer the 3 following questions. The driver gets Advantage equal to the number of \"yes\" answers on all rolls that could use the vehicle for the duration of the scene. ‣ Are you in a large open area. ‣ Does the driver have experience with it. ‣ Is it the first time you used this in this chapter.",
+        "introducedIn": "dawn-en-lionwing-cb2f8e67"
+      },
+      {
+        "id": "blessed.social-setup",
+        "name": "Social Setup",
+        "en": "Social Setup",
+        "text": "Once per Chapter, you can spend 1 Influence to claim you have connections in the place you're in or relating to what you're doing. When you do this, Roll Mind with Advantage equal to your Tier and set all Hits aside. Any time you're in a Scene with an unnamed character, you may claim that that person is part of this connection and gain Advantage on all rolls relating to them equal to the Hits you set aside.",
+        "introducedIn": null
+      },
+      {
+        "id": "blessed.beck-and-call",
+        "name": "Beck And Call",
+        "en": "Beck And Call",
+        "text": "Gain a Rank [Tier/2] \"Servant\" Bond with an unnamed NPC you've met or one of your creation. Once per Chapter, you can call them into any non-combat Scene at will, and if they cannot show up; the Narrator must give you 1 Influence.",
+        "introducedIn": "dawn-en-lionwing-cb2f8e67"
+      }
+    ],
+    "source": {
+      "editionId": "dawn-en-lionwing-cb2f8e67",
+      "pdfPage": 53
+    }
+  },
+  {
+    "id": "quiet",
+    "name": "Quiet",
+    "description": "Modest and unassuming people, with a life on the fringes, not concerned with image. Though it's hard to say how many of The Quiet would like a story of their own.",
+    "builtin": null,
+    "gifts": [
+      {
+        "id": "quiet.the-talent",
+        "name": "The Talent",
+        "en": "The Talent",
+        "text": "Your once per Chapter Boons are now twice per Chapter.",
+        "introducedIn": null
+      },
+      {
+        "id": "quiet.right-place-right-time",
+        "name": "Right Place, Right Time",
+        "en": "Right Place, Right Time",
+        "text": "Once per Chapter, when an ally is in a different Scene and you are not occupied, you may appear in that Scene. If said ally was making a Roll, they may go All Out once at no cost.",
+        "introducedIn": "dawn-en-lionwing-cb2f8e67"
+      },
+      {
+        "id": "quiet.eagle-eyed",
+        "name": "Eagle Eyed",
+        "en": "Eagle Eyed",
+        "text": "Once per Chapter, when you speak to a character you were not with the Scene before, you may ask the Narrator one of these questions. ‣ Where did they come from. ‣ Were / Are they being followed.",
+        "introducedIn": "dawn-en-lionwing-cb2f8e67"
+      },
+      {
+        "id": "quiet.gearhead",
+        "name": "Gearhead",
+        "en": "Gearhead",
+        "text": "You can make ‘Gadgets', using Character Ranks. They're treated as Abilities for their creation and usage in Rolls. Unlike Abilities, Gadgets are physical objects that can be given to, and used by other characters, though others can only gain up to 2 Advantage from using them. Your Gadgets can be permanently destroyed through the Risks you receive or by doing so yourself. Doing either refunds you any Character Ranks you spent on them. Gain 3 Character Ranks to spend on Gadgets.",
+        "introducedIn": null
+      },
+      {
+        "id": "quiet.knacks-and-hobbies",
+        "name": "Knacks And Hobbies",
+        "en": "Knacks And Hobbies",
+        "text": "You gain 3 Advantage on all rolls that don't oppose or relate to another character.",
+        "introducedIn": null
+      },
+      {
+        "id": "quiet.technobabble",
+        "name": "Technobabble",
+        "en": "Technobabble",
+        "text": "Once per Chapter, when you see a supernatural item, you may ask the Narrator one of the following questions. Once in that Scene you can go All Out on a Roll relating to it at no cost. ‣ What does it usually do. ‣ How could it be disabled. ‣ Could I recreate its effects.",
+        "introducedIn": null
+      }
+    ],
+    "source": {
+      "editionId": "dawn-en-lionwing-cb2f8e67",
+      "pdfPage": 54
+    }
+  },
+  {
+    "id": "confident",
+    "name": "Confident",
+    "description": "A person who must make themselves known, who fears a decline in image more than their death. Who wouldn't agree with The Confident when your life has eyes on it.",
+    "builtin": null,
+    "gifts": [
+      {
+        "id": "confident.spite",
+        "name": "Spite",
+        "en": "Spite",
+        "text": "When you lose, either in the narrative or in an Opposed Roll, to a character you're Bonded with you may assign them as the target of your ‘Spite'. When you use that Bond to gain Advantage in any sort of competition, you may also Crit on rolls of 5. If the roll is an Extreme Success, that character is no longer the target of your Spite.",
+        "introducedIn": null
+      },
+      {
+        "id": "confident.you-re-strong",
+        "name": "You're Strong…",
+        "en": "You're Strong…",
+        "text": "When you lose to an Antagonist, either in the narrative or in an Opposed Roll, you may \"put them over\", showing how badly you lost and stating that they're your superior. Doing this lets you and any allies in the same scene from an Rival Bond with the Antagonist or upgrade an existing bond with them by one Rank.",
+        "introducedIn": "dawn-en-lionwing-cb2f8e67"
+      },
+      {
+        "id": "confident.chatty",
+        "name": "Chatty",
+        "en": "Chatty",
+        "text": "When you perform an Opposed Roll, you can begin talking, be it monologuing, quipping, taunting or ranting, gaining Advantage equal to your Bond ranks with your opponent. If you fail this roll, the opponent deals 1 additional Stress to you.",
+        "introducedIn": null
+      },
+      {
+        "id": "confident.do-you-know-who-i-am",
+        "name": "Do You Know Who I Am?",
+        "en": "Do You Know Who I Am?",
+        "text": "When you dramatically introduce yourself around unnamed characters, you may use this Boon to prompt them to: gasp, become interested in you, or make fun of you (Narrator's choice). When you get a reaction you haven't before, gain an Influence.",
+        "introducedIn": "dawn-en-lionwing-cb2f8e67"
+      },
+      {
+        "id": "confident.perspective-of-a-lancer",
+        "name": "Perspective Of A Lancer",
+        "en": "Perspective Of A Lancer",
+        "text": "Your Bonds with Rivals always count as being 1 Rank higher when used in a Roll (this can surpass the Rank 3 maximum). When you only have one Rival and you use Influence with them present for the first time in a Scene, they gain an Influence.",
+        "introducedIn": null
+      }
+    ],
+    "source": {
+      "editionId": "dawn-en-lionwing-cb2f8e67",
+      "pdfPage": 54
+    }
+  }
+]

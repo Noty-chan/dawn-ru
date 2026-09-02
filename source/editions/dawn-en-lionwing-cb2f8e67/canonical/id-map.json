@@ -1,0 +1,247 @@
+{
+  "mappedIds": {
+    "powerhouse.berserker": "Berserker",
+    "powerhouse.dragonslayer": "Dragonslayer",
+    "powerhouse.duelist": "Duelist",
+    "powerhouse.flagellant": "Flagellant",
+    "powerhouse.gunslinger": "Gunslinger",
+    "powerhouse.struggler": "Struggler",
+    "powerhouse.spellsword": "SpellSword",
+    "powerhouse.technician": "Technician",
+    "powerhouse.unbroken": "Unbroken",
+    "powerhouse.braggart": "Braggart",
+    "powerhouse.breacher": "Breacher",
+    "powerhouse.dual-wielder": "Dual Wielder",
+    "powerhouse.martial-artist": "Martial Artist",
+    "powerhouse.monastic-sage": "Monastic Warrior",
+    "powerhouse.lancer": "Lancer",
+    "powerhouse.predator": "Predator",
+    "powerhouse.improvisational-fighter": "Improvisational Fighter",
+    "powerhouse.warring-ascendant": "Warring Ascendant",
+    "vagabond.aerial-master": "Aerial Master",
+    "vagabond.assassin": "Assassin",
+    "vagabond.sniper": "Sniper",
+    "vagabond.skirmisher": "Skirmisher",
+    "vagabond.speed-demon": "Speed Demon",
+    "vagabond.untouchable": "Untouchable",
+    "vagabond.acrobat": "Acrobat",
+    "vagabond.blade-master": "Blade Master",
+    "vagabond.cunning-fighter": "Cunning Fighter",
+    "vagabond.egomaniac": "Egomaniac",
+    "vagabond.enchained": "Enchained",
+    "vagabond.knife-juggler": "Knife Juggler",
+    "vagabond.malicious-mimic": "Malicious Mimic",
+    "vagabond.modified-meister": "Modified Meister",
+    "vagabond.opportunist": "Opportunist",
+    "vagabond.reflector": "Reflector",
+    "vagabond.dim-mak": "Detective",
+    "vagabond.drunkard": "Drunkard",
+    "vagabond.master-at-arms": "Master-At-Arms",
+    "bulwark.crusher": "Crusher",
+    "bulwark.giant-frame": "Giant Frame",
+    "bulwark.iron-bodied": "Iron Bodied",
+    "bulwark.vanguard-defender": "Vanguard Defender",
+    "bulwark.absolute-bastard": "Absolute Bastard",
+    "bulwark.battle-jockey": "Battle Jockey",
+    "bulwark.grappler": "Grappler",
+    "bulwark.juggernaut": "Juggernaut",
+    "bulwark.runic-retribution": "Mollycoddler",
+    "bulwark.mundane": "Mundane",
+    "bulwark.rising-challenger": "Rising Challenger",
+    "bulwark.shield-bearer": "Shield Bearer",
+    "bulwark.stalwart-sentry": "Stalwart Sentry",
+    "bulwark.beastial-ascendant": "Bestial Ascendant",
+    "bulwark.guardian-angel": "Guard Caller",
+    "bulwark.mecha-pilot": "Mecha Pilot",
+    "altruist.precognizant": "Analyst",
+    "altruist.battle-instructor": "Battle Instructor",
+    "altruist.empath": "Empath",
+    "altruist.heavenly-saint": "Compassionate Sage",
+    "altruist.gourmand": "Gourmand",
+    "altruist.surgeon": "Surgeon",
+    "disruptor.tactical-master": "Tactical Master",
+    "altruist.talisman-caster": "Talisman Exorcist",
+    "altruist.alchemist": "Alchemist",
+    "altruist.dancer": "Dancer",
+    "altruist.fog-walker": "Fog Walker",
+    "altruist.last-hope": "Last Hope",
+    "altruist.replicator": "Replicator",
+    "altruist.chronomancer": "Temporal Sage",
+    "altruist.bardic-savant": "Virtuoso",
+    "altruist.artist": "Artist",
+    "altruist.deckbuilder": "Deckbuilder",
+    "altruist.will-o-wisp": "Will-O-Wisp",
+    "disruptor.bloodletter": "Bloodletter",
+    "disruptor.chemist": "Chemist",
+    "disruptor.constrictor": "Constrictor",
+    "disruptor.cutpurse": "Cutpurse",
+    "disruptor.reaper": "Reaper",
+    "disruptor.street-fighter": "Street Fighter",
+    "disruptor.autophage": "Autophage",
+    "disruptor.earth-speaker": "Earth Speaker",
+    "disruptor.inhuman-strength": "Strongman",
+    "disruptor.swarm-body": "SwarmKin",
+    "disruptor.siren": "Siren",
+    "disruptor.wave-rider": "Wave Rider",
+    "disruptor.mind-breaker": "Mind Breaker",
+    "disruptor.gale-strider": "Gale Strider",
+    "disruptor.hunter": "Poacher",
+    "disruptor.mage-s-array": "Jailor",
+    "disruptor.inner-world": "Worldsmith",
+    "ruiner.bombardier": "Bombardier",
+    "ruiner.rapid-fire-sorcery": "Eradicator",
+    "ruiner.ritualist": "Ritualist",
+    "ruiner.spellcrafter": "Spellcrafter",
+    "ruiner.student-of-stars": "Student Of Stars",
+    "ruiner.mana-blades": "Blade Smith",
+    "ruiner.dramaturge": "Dramaturge",
+    "ruiner.feral-arcana": "Feral Arcanist",
+    "ruiner.flame-heart": "Flame Heart",
+    "ruiner.cryomancer": "Frost Veiler",
+    "ruiner.grim-ascendant": "Grim Ascendant",
+    "ruiner.long-draw": "Ranger",
+    "ruiner.sellsword-s-call": "Sword Caller",
+    "ruiner.void-soul": "Void Soul",
+    "ruiner.thunder-blood": "Thunder Blood",
+    "ruiner.zealot": "Zealot",
+    "ruiner.creation-ascetic": "Creator",
+    "ruiner.ego-arm": "Ego Arm"
+  },
+  "migrationEvidence": {
+    "powerhouse.monastic-sage": {
+      "oldName": "Monastic Sage",
+      "newName": "Monastic Warrior",
+      "confidence": "high",
+      "basis": "explicit-name-migration"
+    },
+    "vagabond.dim-mak": {
+      "oldName": "Dim Mak",
+      "newName": "Detective",
+      "confidence": "medium",
+      "basis": "levels-1-and-3-retained"
+    },
+    "bulwark.runic-retribution": {
+      "oldName": "Runic Retribution",
+      "newName": "Mollycoddler",
+      "confidence": "high",
+      "basis": "all-level-names-retained"
+    },
+    "bulwark.beastial-ascendant": {
+      "oldName": "Beastial Ascendant",
+      "newName": "Bestial Ascendant",
+      "confidence": "high",
+      "basis": "explicit-name-migration"
+    },
+    "bulwark.guardian-angel": {
+      "oldName": "Guardian Angel",
+      "newName": "Guard Caller",
+      "confidence": "high",
+      "basis": "all-level-names-retained"
+    },
+    "altruist.precognizant": {
+      "oldName": "Precognizant",
+      "newName": "Analyst",
+      "confidence": "medium",
+      "basis": "levels-1-and-2-retained"
+    },
+    "altruist.heavenly-saint": {
+      "oldName": "Heavenly Saint",
+      "newName": "Compassionate Sage",
+      "confidence": "high",
+      "basis": "all-level-names-retained"
+    },
+    "altruist.talisman-caster": {
+      "oldName": "Talisman Caster",
+      "newName": "Talisman Exorcist",
+      "confidence": "high",
+      "basis": "explicit-name-migration"
+    },
+    "altruist.chronomancer": {
+      "oldName": "Chronomancer",
+      "newName": "Temporal Sage",
+      "confidence": "high",
+      "basis": "explicit-name-migration"
+    },
+    "altruist.bardic-savant": {
+      "oldName": "Bardic Savant",
+      "newName": "Virtuoso",
+      "confidence": "high",
+      "basis": "explicit-name-migration"
+    },
+    "disruptor.inhuman-strength": {
+      "oldName": "Inhuman Strength",
+      "newName": "Strongman",
+      "confidence": "high",
+      "basis": "explicit-name-migration"
+    },
+    "disruptor.swarm-body": {
+      "oldName": "Swarm Body",
+      "newName": "SwarmKin",
+      "confidence": "high",
+      "basis": "explicit-name-migration"
+    },
+    "disruptor.hunter": {
+      "oldName": "Hunter",
+      "newName": "Poacher",
+      "confidence": "high",
+      "basis": "explicit-name-migration"
+    },
+    "disruptor.mage-s-array": {
+      "oldName": "Mage's Array",
+      "newName": "Jailor",
+      "confidence": "medium",
+      "basis": "levels-2-and-3-retained"
+    },
+    "disruptor.inner-world": {
+      "oldName": "Inner World",
+      "newName": "Worldsmith",
+      "confidence": "high",
+      "basis": "all-level-names-retained"
+    },
+    "ruiner.rapid-fire-sorcery": {
+      "oldName": "Rapid-Fire Sorcery",
+      "newName": "Eradicator",
+      "confidence": "high",
+      "basis": "all-level-names-retained"
+    },
+    "ruiner.mana-blades": {
+      "oldName": "Mana Blades",
+      "newName": "Blade Smith",
+      "confidence": "medium",
+      "basis": "levels-1-and-3-retained"
+    },
+    "ruiner.feral-arcana": {
+      "oldName": "Feral Arcana",
+      "newName": "Feral Arcanist",
+      "confidence": "high",
+      "basis": "explicit-name-migration"
+    },
+    "ruiner.cryomancer": {
+      "oldName": "Cryomancer",
+      "newName": "Frost Veiler",
+      "confidence": "high",
+      "basis": "explicit-name-migration"
+    },
+    "ruiner.long-draw": {
+      "oldName": "Long Draw",
+      "newName": "Ranger",
+      "confidence": "high",
+      "basis": "explicit-name-migration"
+    },
+    "ruiner.sellsword-s-call": {
+      "oldName": "Sellsword's Call",
+      "newName": "Sword Caller",
+      "confidence": "medium",
+      "basis": "levels-1-and-3-retained"
+    },
+    "ruiner.creation-ascetic": {
+      "oldName": "Creation Ascetic",
+      "newName": "Creator",
+      "confidence": "high",
+      "basis": "explicit-name-migration"
+    }
+  },
+  "removedIds": [
+    "bulwark.servant-s-call"
+  ]
+}

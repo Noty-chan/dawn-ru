@@ -1,0 +1,518 @@
+{
+  "id": "bulwark",
+  "name": "Bulwark",
+  "techniques": [
+    {
+      "archetypeId": "bulwark",
+      "name": "Crusher",
+      "stars": 1,
+      "tags": "Weapon, Body, Revenge",
+      "flavor": "It's said that to effectively counter an incoming blow, one would need five times the force to stop it. I assure you… I have that.",
+      "notes": "",
+      "levels": [
+        {
+          "n": 1,
+          "name": "30,000 Tons",
+          "text": "Before you Skirmish, you may ‘Brace', making the Skirmish target no characters, Reinforcing yourself, and Taunting all adjacent enemies. If you Skirmish while Reinforced, you ‘Slam', dealing [Tension] additional damage and losing Reinforced."
+        },
+        {
+          "n": 2,
+          "name": "Hammerfall",
+          "text": "If you Slam after taking at least 5 damage before reductions since the end of your last Turn, you target all spaces adjacent to you instead of your normal targeting and Weaken all targets."
+        },
+        {
+          "n": 3,
+          "name": "\"You Look Like A Nail\"",
+          "text": "If you Slam after taking at least 10 damage (before reductions) since the end of your last Turn, you deal an additional [Body] damage."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 81
+      },
+      "id": "bulwark.crusher",
+      "previousName": null,
+      "previousArchetypeId": null
+    },
+    {
+      "archetypeId": "bulwark",
+      "name": "Giant Frame",
+      "stars": 1,
+      "tags": "Body, Finishers, AOE",
+      "flavor": "Woah. You're bigger in person. Like. Way bigger. Oh right, the armor. Right away sir!",
+      "notes": "",
+      "levels": [
+        {
+          "n": 1,
+          "name": "Big Arms",
+          "text": "Before you use a Body Finisher, you may spend 1 Focus to have it target each character in a 2x2 Zone adjacent to you."
+        },
+        {
+          "n": 2,
+          "name": "Immense",
+          "text": "Gain [Body] additional maximum Health. You may take up a 2x2 section of spaces rather than one space when you Deploy. If you do so, you may freely move through 1x1 enemies and Obstacles."
+        },
+        {
+          "n": 3,
+          "name": "Shockwave",
+          "text": "Before you use a Body Finisher, you may spend 1 Focus to have it target all spaces adjacent to you, deal half damage, and have it Launch its targets."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 81
+      },
+      "id": "bulwark.giant-frame",
+      "previousName": null,
+      "previousArchetypeId": null
+    },
+    {
+      "archetypeId": "bulwark",
+      "name": "Iron Bodied",
+      "stars": 1,
+      "tags": "Tanking, Body",
+      "flavor": "Mushir Ahmed has a reputation for his displays of confidence. Most famous is his armor: It covers his legs and arms, but leaves his chest bare. It baffles advisors and opponents alike.",
+      "notes": "",
+      "levels": [
+        {
+          "n": 1,
+          "name": "Tough As Stone",
+          "text": "You can never have a Speed lower than 3 and can always move using your own Actions, ignoring all other rules to the contrary."
+        },
+        {
+          "n": 2,
+          "name": "Resilience",
+          "text": "Gain [Body/2] Armor."
+        },
+        {
+          "n": 3,
+          "name": "Stainless Stride",
+          "text": "At the beginning of your Turn, you may Immobilize yourself. While Immobilized, you can never take more damage than 4 + [Tier/2] in one instance (after all forms of damage reduction)."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 81
+      },
+      "id": "bulwark.iron-bodied",
+      "previousName": null,
+      "previousArchetypeId": null
+    },
+    {
+      "archetypeId": "bulwark",
+      "name": "Vanguard Defender",
+      "stars": 1,
+      "tags": "Tanking, Body, Sustain",
+      "flavor": "If I get hurt, don't stop running.",
+      "notes": "",
+      "levels": [
+        {
+          "n": 1,
+          "name": "White Knight",
+          "text": "You may Block Attacks that target allies within [Body] spaces. When you do so, you Teleport to a space adjacent to the target and become the target instead."
+        },
+        {
+          "n": 2,
+          "name": "Steel Angel",
+          "text": "The first Block you use each Round has no Focus cost and gives you [Tier] Armor after the Attack resolves until the start of your next Turn, if you're Blocking for your allies."
+        },
+        {
+          "n": 3,
+          "name": "Inspire Courage",
+          "text": "After you start movement by moving out of adjacency with an ally, they may move to a space adjacent to your new location and Reinforce."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 81
+      },
+      "id": "bulwark.vanguard-defender",
+      "previousName": null,
+      "previousArchetypeId": null
+    },
+    {
+      "archetypeId": "bulwark",
+      "name": "Absolute Bastard",
+      "stars": 2,
+      "tags": "Investigate, Tanking",
+      "flavor": "You're an expert at making strangers hate you, huh?",
+      "notes": "",
+      "levels": [
+        {
+          "n": 1,
+          "name": "Easy To Hate",
+          "text": "Gain 3 Focus at the start of each Scene. After you Investigate an enemy, you may spend 1 Focus to Taunt them."
+        },
+        {
+          "n": 2,
+          "name": "Bully",
+          "text": "Once per Turn, after you Taunt a character, you may move up to 3 spaces towards them. If you move into adjacency with them, Snare them and gain 1 AP."
+        },
+        {
+          "n": 3,
+          "name": "Add Injury To Insult",
+          "text": "Your Attacks against characters you've Taunted gain [Tier/2] Advantage."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 82
+      },
+      "id": "bulwark.absolute-bastard",
+      "previousName": null,
+      "previousArchetypeId": null
+    },
+    {
+      "archetypeId": "bulwark",
+      "name": "Battle Jockey",
+      "stars": 2,
+      "tags": "Tanking, Displacement",
+      "flavor": "One of the most fearsome gangs in Pantomime are the \"Cavalry\". Riding diesel guzzling steeds, they're known across the city for their \"Night Rides\", running down anyone in their way. Visitors be advised, the directors hold no responsibility for any Cavalry related injuries.",
+      "notes": "",
+      "levels": [
+        {
+          "n": 1,
+          "name": "Trusty Steed",
+          "text": "After Deploying, you may Summon a Mount NPC with a Tier equal to yours adjacent to you."
+        },
+        {
+          "n": 2,
+          "name": "Grasping Jaws",
+          "text": "After your Mount attacks an enemy, you may have it Taunt them."
+        },
+        {
+          "n": 3,
+          "name": "Roaring Entry",
+          "text": "Once per Scene for 1 AP, you may have your Mount \"Roar\". When it Roars, it Dazes enemies in 3 spaces of it, pushing them 2 spaces."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 82
+      },
+      "id": "bulwark.battle-jockey",
+      "previousName": null,
+      "previousArchetypeId": null
+    },
+    {
+      "archetypeId": "bulwark",
+      "name": "Grappler",
+      "stars": 2,
+      "tags": "Finishers, Body, Restricting",
+      "flavor": "Make way for Pantomime's blazing star! The killer king with the inescapable pin! The one, the only… Raphaël Blasé!",
+      "notes": "",
+      "levels": [
+        {
+          "n": 1,
+          "name": "Restrain",
+          "text": "After you Body Finisher, Snare your target. Characters you have Snared also count as being Taunted by you."
+        },
+        {
+          "n": 2,
+          "name": "Spine Breaker",
+          "text": "Your Skirmishes gain 1 Advantage. If you would Spike a single Launched character, you may teleport to a space adjacent to your target and change the attack you are using into a Body Finisher at no Cost."
+        },
+        {
+          "n": 3,
+          "name": "Finishing Move [ Body Finisher → Jump ]",
+          "text": "Instead of moving with this Jump, you and a target of the Finisher Disappear. At the start of the next round or when either of you're able to take another Action (whatever comes first) you both return to the board in the same spaces, Launching all other enemies in 2 range, and letting you Swiftly Body Finisher the initial target at no cost."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 82
+      },
+      "id": "bulwark.grappler",
+      "previousName": null,
+      "previousArchetypeId": null
+    },
+    {
+      "archetypeId": "bulwark",
+      "name": "Juggernaut",
+      "stars": 2,
+      "tags": "Displacement, Body, Movement",
+      "flavor": "His physique spoke to me. It said, ‘Get the fuck out of my way.'",
+      "notes": "",
+      "levels": [
+        {
+          "n": 1,
+          "name": "Wild Charge",
+          "text": "Before you Jump, you may move [Body] spaces instead of [Talent], may deal 30 damage to any Obstacles you move adjacent to, and move any number of characters you passed through or moved into adjacency with to a space adjacent to you."
+        },
+        {
+          "n": 2,
+          "name": "Violence",
+          "text": "Once per Round, after you move through characters using \"Wild Charge\", you may deal [Body / 2] damage to them and Launch one of them."
+        },
+        {
+          "n": 3,
+          "name": "\"Eat Dirt!\"",
+          "text": "After you Launch an adjacent character without Attacking, you may ‘Throw' them, moving them 5 spaces in any direction. If they end their movement adjacent to another character or Obstacle, deal [Body] damage to both and remove Launched from them."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 82
+      },
+      "id": "bulwark.juggernaut",
+      "previousName": null,
+      "previousArchetypeId": null
+    },
+    {
+      "archetypeId": "bulwark",
+      "name": "Mollycoddler",
+      "stars": 2,
+      "tags": "Revenge, Casts, Tanking",
+      "flavor": "Y'know, you should be thanking me. True love isn't just given, it's PROVEN through trials of character and moments of doubt. And this, this is the greatest trial you could face! You'll never get another chance like it~",
+      "notes": "",
+      "levels": [
+        {
+          "n": 1,
+          "name": "Lash",
+          "text": "When an ally is hit by an Attack, you may spend 1 Focus to Swiftly Cast, targeting the attacker regardless of range at no AP Cost (this cannot trigger Lash or have you Cast targeting yourself)."
+        },
+        {
+          "n": 2,
+          "name": "Loving Rite",
+          "text": "When an ally is damaged, you may take [Tier] damage to reduce the amount they took by [Tier]. After you trigger this because an ally was attacked, you may Fear the Attacker."
+        },
+        {
+          "n": 3,
+          "name": "Devotion",
+          "text": "When you trigger \"Loving Rite\" and no other allies are Marked by you, you may Mark them. When you trigger \"Lash\" with an ally you've Marked, you may use a Finisher instead of Cast. Joel's Notes: Using Summons If you're creating a character who can use Summons or NPC actions it's important to familiarize yourself with the Narrator-side NPC rules on page 108."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 82
+      },
+      "id": "bulwark.runic-retribution",
+      "previousName": "Runic Retribution",
+      "previousArchetypeId": null
+    },
+    {
+      "archetypeId": "bulwark",
+      "name": "Mundane",
+      "stars": 2,
+      "tags": "Tanking, Body",
+      "flavor": "No tricks, no frills, no bullshit. Just sit ups, squats, and plenty of juice",
+      "notes": "Alt Resource. Can't take with other alt resources.",
+      "levels": [
+        {
+          "n": 1,
+          "name": "For What The Spirit Lacks",
+          "text": "You now use ‘Tenacity' instead of Focus or AP, spending it in place of both. You start each Round of combat with 2 Tenacity + [Body / 2]. You can't gain Tenacity from anything other than this Technique. You can't use Cast or Spirit Finishers."
+        },
+        {
+          "n": 2,
+          "name": "Dig Deep, Stand Firm",
+          "text": "After you're the target of an Attack, gain 1 Tenacity. When you would gain Focus, you reduce the cost of your first Finisher that Round by the same amount (this includes the initial AP cost as well as any additional cost added that would normally be paid with Focus)."
+        },
+        {
+          "n": 3,
+          "name": "In The Face Of The Beyond",
+          "text": "Once per Scene, after you target an adjacent enemy, you may spend 2 Tenacity to ‘Silence' them. Silenced characters can only move or Attack on their Turn, and their Attacks cannot apply or trigger any feature or effect other than damage. Enemies you Silence remain Silenced until they end their Turn outside of adjacency with you, or until the end of the Round (whatever happens first)."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 83
+      },
+      "id": "bulwark.mundane",
+      "previousName": null,
+      "previousArchetypeId": null
+    },
+    {
+      "archetypeId": "bulwark",
+      "name": "Rising Challenger",
+      "stars": 2,
+      "tags": "Tanking, Spirit, Attacks",
+      "flavor": "Two swordsmen lock blades, silhouetted by moonlight. The impact reverberates throughout the streets, blowing out a nearby streetlamp. One survivor lives on, regretting every second of it.",
+      "notes": "",
+      "levels": [
+        {
+          "n": 1,
+          "name": "Perfect Deflection",
+          "text": "After you perform a successful Clash, you gain 1 Focus and can move [Tier] spaces."
+        },
+        {
+          "n": 2,
+          "name": "\"You'll Have To Get Through Me!\"",
+          "text": "You may Clash with Attacks that target allies within [Spirit] spaces. Before you Clash, you may Teleport to a space adjacent to the character who initiated the attack."
+        },
+        {
+          "n": 3,
+          "name": "Drama And Spite",
+          "text": "Gain 2 Advantage in Clashes. Your Spirit counts as being 2 higher while in Clashes"
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 83
+      },
+      "id": "bulwark.rising-challenger",
+      "previousName": null,
+      "previousArchetypeId": null
+    },
+    {
+      "archetypeId": "bulwark",
+      "name": "Shield Bearer",
+      "stars": 2,
+      "tags": "Tanking, Body, Movement",
+      "flavor": "They stood their ground. A breathing, bleeding wall between the people they had sworn to protect, and the coming darkness.",
+      "notes": "",
+      "levels": [
+        {
+          "n": 1,
+          "name": "Wall",
+          "text": "Before you Block, you may spend 1 Focus to gain [Tier / 2] additional Armor, and retain the Armor until you take another reaction, or you start your Turn."
+        },
+        {
+          "n": 2,
+          "name": "Shield Charge",
+          "text": "After you Block, place a ‘Shield Marker' in a space adjacent to you until you create another one. The Shield Marker moves to match your movement. If your movement would move your Shield Marker into an opponent's space, you may remove the Marker to deal [Body] damage to them and push them 2 spaces."
+        },
+        {
+          "n": 3,
+          "name": "Focused Defense",
+          "text": "While you have a Shield Marker, indicate a 3×3 Zone centered on it. If an attack would resolve against you while the attacker is inside that Zone, they're Weakened for the duration of the Attack."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 83
+      },
+      "id": "bulwark.shield-bearer",
+      "previousName": null,
+      "previousArchetypeId": null
+    },
+    {
+      "archetypeId": "bulwark",
+      "name": "Stalwart Sentry",
+      "stars": 2,
+      "tags": "Skirmishes, Displacement",
+      "flavor": "Nothing gets past me, at least not in one piece.",
+      "notes": "",
+      "levels": [
+        {
+          "n": 1,
+          "name": "Guardian",
+          "text": "So long as you haven't moved during your Turn, the spaces diagonally surrounding you count as being adjacent when it would benefit you."
+        },
+        {
+          "n": 2,
+          "name": "On Watch",
+          "text": "Begin tracking ‘Vigilance', a 4 Segment Clock that's filled at the start of every Scene. You may empty one Segment of this Clock when using Punish to have it not cost Focus. After you Charge, you refill the Vigilance Clock."
+        },
+        {
+          "n": 3,
+          "name": "Zone Of Influence",
+          "text": "After you Investigate, you may place up to 4 ‘Spotlights' in unoccupied spaces on the board. A Spotlight is a unique piece of Difficult Terrain that only affects enemies. When an enemy enters a Spotlight, you may teleport to an adjacent space and Punish them as if they left adjacency with you."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 83
+      },
+      "id": "bulwark.stalwart-sentry",
+      "previousName": null,
+      "previousArchetypeId": null
+    },
+    {
+      "archetypeId": "bulwark",
+      "name": "Bestial Ascendant",
+      "stars": 3,
+      "tags": "Delayed, Sustain",
+      "flavor": "Don't worry, this happens to everyone your age.",
+      "notes": "Transformation. Can't take with other transformations.",
+      "levels": [
+        {
+          "n": 1,
+          "name": "Beastly",
+          "text": "Choose two NPC Types. Once per Scene, after you Charge or Awaken this with at least 2 Tension, you may ‘Transform', pushing all enemies within 2 range 3 spaces away and restoring [Body x 2] Health. While Transformed you can use your NPCs' Attacks, said Attacks lose any additional damage from Tension. After you're reduced to 0 Health while Transformed, it ends, and you're Dazed."
+        },
+        {
+          "n": 2,
+          "name": "Inheritance",
+          "text": "Choose one of the two NPCs you chose when gaining \"Beastly\". You gain that NPC's Passive while Transformed, and use their on Deploy effects when you Transform. If the Passive triggers when the user is Knocked Out, it triggers after you end your Transformation instead."
+        },
+        {
+          "n": 3,
+          "name": "Apex",
+          "text": "While you're Transformed you can use your NPCs' Actions by spending 1 AP. If you're Tier 3 or higher, you may Daze yourself and spend 2 Focus to transform as soon as you deploy regardless of Tension."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 84
+      },
+      "id": "bulwark.beastial-ascendant",
+      "previousName": "Beastial Ascendant",
+      "previousArchetypeId": null
+    },
+    {
+      "archetypeId": "bulwark",
+      "name": "Guard Caller",
+      "stars": 3,
+      "tags": "Tanking, Spirit",
+      "flavor": "Tybalt's Faerie is a strange thing, stays hidden whenever it can. Its ability to shield and mend is invaluable for a guard, but he worries something's wrong with it, with every beast they fend off it stares at the body longer, and when tensions rise he swears he hears sobbing.",
+      "notes": "",
+      "levels": [
+        {
+          "n": 1,
+          "name": "Two Bodies",
+          "text": "You can Block when other characters are attacked, granting that character any Armor you would gain and preventing any forced movement they'd receive. When you would Block for an ally without a ‘Guardian' marker, first create one in a space within [Spirit] range. Unless the Guardian is adjacent to the attacker or the target when you Block, the Block is canceled. If you move while you have a Guardian you may move them the same distance."
+        },
+        {
+          "n": 2,
+          "name": "Together In Life",
+          "text": "Allies who start their Turn adjacent to or in the Guardian's space are Reinforced, enemies who do the same are Marked."
+        },
+        {
+          "n": 3,
+          "name": "Together In Death",
+          "text": "Your Blocks for allies have their focus cost reduced to 1 and gives [spirit] armor instead of [body]."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 84
+      },
+      "id": "bulwark.guardian-angel",
+      "previousName": "Guardian Angel",
+      "previousArchetypeId": null
+    },
+    {
+      "archetypeId": "bulwark",
+      "name": "Mecha Pilot",
+      "stars": 3,
+      "tags": "Tanking, Versatile",
+      "flavor": "Runic alignment complete. Aether levels nominal. We got this partner. For Oberooooon!",
+      "notes": "",
+      "levels": [
+        {
+          "n": 1,
+          "name": "Rune Core Engine",
+          "text": "Once per scene, when you attack an enemy you may Summon your ‘Mech' to assist you, making the attack deal [Tier] additional damage and placing it adjacent to the target, with it pushing any characters in its space adjacent to it or as close as possible. The Mech is a 2x2 NPC with no Type, 15 Health, and [Tier/2] Armor that cannot take Turns. By Interacting with it, you ‘Pilot' it. This removes the NPC, grants you [Tier/2] Armor, and makes your character 2x2 in size. You may use Interact again to leave, losing these benefits and placing the Obstacle adjacent to you in sufficient empty spaces."
+        },
+        {
+          "n": 2,
+          "name": "Autonomous",
+          "text": "The Mech can now take Turns and is changed to a non- Modifier NPC of your choice with a Tier equal to yours and a minimum of [Tier/2] armor. While your Summon takes its Turn, you may Skirmish a character adjacent to it (regardless of range) in place of one of its Attacks."
+        },
+        {
+          "n": 3,
+          "name": "Perfect Sync",
+          "text": "You may start scenes Piloting. Even while you are in the Suit, it may still take Turns as a Summon, sharing your space and moving you when it moves. While you are in the Suit, the Summon is Dazed."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 84
+      },
+      "id": "bulwark.mecha-pilot",
+      "previousName": null,
+      "previousArchetypeId": null
+    }
+  ]
+}

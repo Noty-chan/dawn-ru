@@ -163,7 +163,7 @@ window.DAWN_LIONWING_DATA = {
       {
        "n": 3,
        "name": "Bullet Juggle",
-       "text": "Your attacks that roll 2 or more Crits Launch a target of your choice. Your bonus damage from \"Big Iron\" is doubled against Launched characters. 68"
+       "text": "Your attacks that roll 2 or more Crits Launch a target of your choice. Your bonus damage from \"Big Iron\" is doubled against Launched characters."
       }
      ],
      "source": {
@@ -259,7 +259,7 @@ window.DAWN_LIONWING_DATA = {
       {
        "n": 3,
        "name": "Final Blow [ Skirmish → Finisher ]",
-       "text": "The Finisher costs 1 AP and pushes its target 3 spaces away. 69"
+       "text": "The Finisher costs 1 AP and pushes its target 3 spaces away."
       }
      ],
      "source": {
@@ -419,7 +419,7 @@ window.DAWN_LIONWING_DATA = {
       {
        "n": 3,
        "name": "\"Fools And Dead Men\"",
-       "text": "After you Knock Out an enemy, gain 2 Focus and 1 AP. After you Knock Out a non-fodder NPC due to the damage dealt through Impose, place a Fodder Zone in their space. 70"
+       "text": "After you Knock Out an enemy, gain 2 Focus and 1 AP. After you Knock Out a non-fodder NPC due to the damage dealt through Impose, place a Fodder Zone in their space."
       }
      ],
      "source": {
@@ -482,7 +482,7 @@ window.DAWN_LIONWING_DATA = {
       {
        "n": 3,
        "name": "Sublime Equanimity",
-       "text": "After you Charge or Awaken this, you may ‘Meditate'. If you Meditate, instead of rolling, gain Evasion equal to the filled Balance segments, then empty your Balance. If your Balance was full, gain [Tier + 1] focus, teleport to any empty space, and perform a swift spirit or mind finisher on an adjacent enemy at no cost. After Meditating you cannot fill balance segments on the same Turn. 71"
+       "text": "After you Charge or Awaken this, you may ‘Meditate'. If you Meditate, instead of rolling, gain Evasion equal to the filled Balance segments, then empty your Balance. If your Balance was full, gain [Tier + 1] focus, teleport to any empty space, and perform a swift spirit or mind finisher on an adjacent enemy at no cost. After Meditating you cannot fill balance segments on the same Turn."
       }
      ],
      "source": {
@@ -642,7 +642,7 @@ window.DAWN_LIONWING_DATA = {
       {
        "n": 3,
        "name": "Mastered Strength",
-       "text": ".You may Daze yourself and spend 1 Focus to transform as soon as you deploy regardless of Tension. 72"
+       "text": ".You may Daze yourself and spend 1 Focus to transform as soon as you deploy regardless of Tension."
       }
      ],
      "source": {
@@ -839,7 +839,7 @@ window.DAWN_LIONWING_DATA = {
       {
        "n": 3,
        "name": "Fighter's Instinct [ Dodge → Skirmish ]",
-       "text": "The Skirmish lets you move 3 spaces before targeting and lets you Crit on rolls of 5 or 6. 74"
+       "text": "The Skirmish lets you move 3 spaces before targeting and lets you Crit on rolls of 5 or 6."
       }
      ],
      "source": {
@@ -903,7 +903,7 @@ window.DAWN_LIONWING_DATA = {
       {
        "n": 3,
        "name": "Leaping Koi",
-       "text": "If you use \"Divide In One Motion\", roll the Finisher before using your Jump's Movement. For every Critical Hit rolled in the Finisher, you may move an additional 3 spaces in a straight line. This additional movement is considered part of the Jump's total movement. 75"
+       "text": "If you use \"Divide In One Motion\", roll the Finisher before using your Jump's Movement. For every Critical Hit rolled in the Finisher, you may move an additional 3 spaces in a straight line. This additional movement is considered part of the Jump's total movement."
       }
      ],
      "source": {
@@ -1063,7 +1063,7 @@ window.DAWN_LIONWING_DATA = {
       {
        "n": 3,
        "name": "\"…I Can Do Better\"",
-       "text": "After you gain an Impression, you may spend 1 Focus to gain that NPCs Passive effect until you spend the Impression. 76"
+       "text": "After you gain an Impression, you may spend 1 Focus to gain that NPCs Passive effect until you spend the Impression."
       }
      ],
      "source": {
@@ -1126,7 +1126,7 @@ window.DAWN_LIONWING_DATA = {
       {
        "n": 3,
        "name": "Overclock",
-       "text": "After you Breathe with at least 2 Tension, you may ‘Overclock' until the end of your next Turn. While Overclocked, dealing or taking any amount of damage generates 1 Heat. Whenever you would explode while Overclocked, you may instead set your Heat to 3 to take [Mind / 2] damage, move up to 3 spaces, and gain 1 AP. 77"
+       "text": "After you Breathe with at least 2 Tension, you may ‘Overclock' until the end of your next Turn. While Overclocked, dealing or taking any amount of damage generates 1 Heat. Whenever you would explode while Overclocked, you may instead set your Heat to 3 to take [Mind / 2] damage, move up to 3 spaces, and gain 1 AP."
       }
      ],
      "source": {
@@ -1229,8 +1229,9 @@ window.DAWN_LIONWING_DATA = {
       "editionId": "dawn-en-lionwing-cb2f8e67",
       "pdfPage": 79
      },
-     "id": "vagabond.detective",
-     "introducedIn": "dawn-en-lionwing-cb2f8e67"
+     "id": "vagabond.dim-mak",
+     "previousName": "Dim Mak",
+     "previousArchetypeId": null
     },
     {
      "archetypeId": "vagabond",
@@ -1285,7 +1286,7 @@ window.DAWN_LIONWING_DATA = {
       {
        "n": 3,
        "name": "Master At Work",
-       "text": "If you use a Talent Finisher while you have an Armament Equipped, you gain a bonus based on the Armament. ‣ Blade: Move two spaces ignoring characters. If you passed through the Finisher's Target, Mark and Launch them. ‣ Pole: This Finisher targets a 2 space Line drawn from your space. If this Finisher Spikes a Launched character, it gains an additional [Tier] Advantage and the spaces you targeted become Difficult Terrain. ‣ Chain: This Finisher targets all enemies in a 1x1 Zone centered on a space adjacent to you. For each Critical Hit you roll, that Zone expands by 1 space in every direction (1x1 > 3x3 > 5x5...) and deals one additional damage. 78"
+       "text": "If you use a Talent Finisher while you have an Armament Equipped, you gain a bonus based on the Armament. ‣ Blade: Move two spaces ignoring characters. If you passed through the Finisher's Target, Mark and Launch them. ‣ Pole: This Finisher targets a 2 space Line drawn from your space. If this Finisher Spikes a Launched character, it gains an additional [Tier] Advantage and the spaces you targeted become Difficult Terrain. ‣ Chain: This Finisher targets all enemies in a 1x1 Zone centered on a space adjacent to you. For each Critical Hit you roll, that Zone expands by 1 space in every direction (1x1 > 3x3 > 5x5...) and deals one additional damage."
       }
      ],
      "source": {
@@ -1419,7 +1420,7 @@ window.DAWN_LIONWING_DATA = {
       {
        "n": 3,
        "name": "Inspire Courage",
-       "text": "After you start movement by moving out of adjacency with an ally, they may move to a space adjacent to your new location and Reinforce. 80"
+       "text": "After you start movement by moving out of adjacency with an ally, they may move to a space adjacent to your new location and Reinforce."
       }
      ],
      "source": {
@@ -1515,7 +1516,7 @@ window.DAWN_LIONWING_DATA = {
       {
        "n": 3,
        "name": "Finishing Move [ Body Finisher → Jump ]",
-       "text": "Instead of moving with this Jump, you and a target of the Finisher Disappear. At the start of the next round or when either of you're able to take another Action (whatever comes first) you both return to the board in the same spaces, Launching all other enemies in 2 range, and letting you Swiftly Body Finisher the initial target at no cost. 81"
+       "text": "Instead of moving with this Jump, you and a target of the Finisher Disappear. At the start of the next round or when either of you're able to take another Action (whatever comes first) you both return to the board in the same spaces, Launching all other enemies in 2 range, and letting you Swiftly Body Finisher the initial target at no cost."
       }
      ],
      "source": {
@@ -1586,8 +1587,9 @@ window.DAWN_LIONWING_DATA = {
       "editionId": "dawn-en-lionwing-cb2f8e67",
       "pdfPage": 82
      },
-     "id": "bulwark.mollycoddler",
-     "introducedIn": "dawn-en-lionwing-cb2f8e67"
+     "id": "bulwark.runic-retribution",
+     "previousName": "Runic Retribution",
+     "previousArchetypeId": null
     },
     {
      "archetypeId": "bulwark",
@@ -1706,7 +1708,7 @@ window.DAWN_LIONWING_DATA = {
       {
        "n": 3,
        "name": "Zone Of Influence",
-       "text": "After you Investigate, you may place up to 4 ‘Spotlights' in unoccupied spaces on the board. A Spotlight is a unique piece of Difficult Terrain that only affects enemies. When an enemy enters a Spotlight, you may teleport to an adjacent space and Punish them as if they left adjacency with you. 82"
+       "text": "After you Investigate, you may place up to 4 ‘Spotlights' in unoccupied spaces on the board. A Spotlight is a unique piece of Difficult Terrain that only affects enemies. When an enemy enters a Spotlight, you may teleport to an adjacent space and Punish them as if they left adjacency with you."
       }
      ],
      "source": {
@@ -1770,15 +1772,16 @@ window.DAWN_LIONWING_DATA = {
       {
        "n": 3,
        "name": "Together In Death",
-       "text": "Your Blocks for allies have their focus cost reduced to 1 and gives [spirit] armor instead of [body]. 83"
+       "text": "Your Blocks for allies have their focus cost reduced to 1 and gives [spirit] armor instead of [body]."
       }
      ],
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
       "pdfPage": 84
      },
-     "id": "bulwark.guard-caller",
-     "introducedIn": "dawn-en-lionwing-cb2f8e67"
+     "id": "bulwark.guardian-angel",
+     "previousName": "Guardian Angel",
+     "previousArchetypeId": null
     },
     {
      "archetypeId": "bulwark",
@@ -1846,8 +1849,9 @@ window.DAWN_LIONWING_DATA = {
       "editionId": "dawn-en-lionwing-cb2f8e67",
       "pdfPage": 86
      },
-     "id": "altruist.analyst",
-     "introducedIn": "dawn-en-lionwing-cb2f8e67"
+     "id": "altruist.precognizant",
+     "previousName": "Precognizant",
+     "previousArchetypeId": null
     },
     {
      "archetypeId": "altruist",
@@ -1902,7 +1906,7 @@ window.DAWN_LIONWING_DATA = {
       {
        "n": 3,
        "name": "\"Are You Ok?\"",
-       "text": "Allies who start their Turn next to you gain 3 Focus and restore [Tier] Health. 85"
+       "text": "Allies who start their Turn next to you gain 3 Focus and restore [Tier] Health."
       }
      ],
      "source": {
@@ -1941,8 +1945,9 @@ window.DAWN_LIONWING_DATA = {
       "editionId": "dawn-en-lionwing-cb2f8e67",
       "pdfPage": 86
      },
-     "id": "altruist.compassionate-sage",
-     "introducedIn": "dawn-en-lionwing-cb2f8e67"
+     "id": "altruist.heavenly-saint",
+     "previousName": "Heavenly Saint",
+     "previousArchetypeId": null
     },
     {
      "archetypeId": "altruist",
@@ -2061,7 +2066,7 @@ window.DAWN_LIONWING_DATA = {
       {
        "n": 3,
        "name": "Exorcize",
-       "text": "Your Spirit Finisher can affect all targets with Talismans at once. Doing this destroys your Talismans and gives you 2 Focus for each. 86"
+       "text": "Your Spirit Finisher can affect all targets with Talismans at once. Doing this destroys your Talismans and gives you 2 Focus for each."
       }
      ],
      "source": {
@@ -2114,17 +2119,17 @@ window.DAWN_LIONWING_DATA = {
       {
        "n": 1,
        "name": "Quick Mix",
-       "text": "After you Breathe, you can make one of the following ‘Potions'. You can Interact to use one of these Potions on yourself or a character within 4 range. 1: Pure Water: Remove any Effect(s) from the target."
+       "text": "After you Breathe, you can make one of the following ‘Potions'. You can Interact to use one of these Potions on yourself or a character within 4 range. 1: Pure Water: Remove any Effect(s) from the target. 2: Fury Vapors: Strengthen the target. 3: Growth Serum: Begin Regenerating the target. 4: Adrenaline Stim: Hasten the target. 5: Stoneskin Balm: Reinforce the target. 6: Vilethorn Poison: Blight the target."
       },
       {
        "n": 2,
-       "name": "Fury Vapors",
-       "text": "Strengthen the target."
+       "name": "Powerful Mix",
+       "text": "The first Interact you use on your Turn has its Cost reduced to 0. After you use a potion on an ally, they gain [Mind / 2] Focus. After you use a potion on an enemy, you may deal [Mind] damage to them."
       },
       {
        "n": 3,
-       "name": "Growth Serum",
-       "text": "Begin Regenerating the target. 4: Adrenaline Stim: Hasten the target. 5: Stoneskin Balm: Reinforce the target. 6: Vilethorn Poison: Blight the target. 2: Powerful Mix: The first Interact you use on your Turn has its Cost reduced to 0. After you use a potion on an ally, they gain [Mind / 2] Focus. After you use a potion on an enemy, you may deal [Mind] damage to them. 3: High Intensity Mix: If you Breathe, you may replace its effects by triggering \"Quick Mix\" two more times, randomly determining each potion by rolling a D6, rather than choosing. 87"
+       "name": "High Intensity Mix",
+       "text": "If you Breathe, you may replace its effects by triggering \"Quick Mix\" two more times, randomly determining each potion by rolling a D6, rather than choosing."
       }
      ],
      "source": {
@@ -2316,7 +2321,7 @@ window.DAWN_LIONWING_DATA = {
       {
        "n": 3,
        "name": "Encore",
-       "text": "If you Charge with 3 or more Verses, you may forgo the Focus given to reduce its cost to 1. 88"
+       "text": "If you Charge with 3 or more Verses, you may forgo the Focus given to reduce its cost to 1."
       }
      ],
      "source": {
@@ -2370,17 +2375,17 @@ window.DAWN_LIONWING_DATA = {
       {
        "n": 1,
        "name": "Draw",
-       "text": "After deploying, roll a die and set it aside. These dice are your ‘Cards'. After you Breathe with three or fewer Cards, roll a new Card. Before you Cast, you may spend any of your Cards to roll [Mind] instead of [Spirit], have it deal no damage to allies, and gain the Card's bonus. The bonuses for each are as follows: 1: Illness: Blights and permanently Slows the Target."
+       "text": "After deploying, roll a die and set it aside. These dice are your ‘Cards'. After you Breathe with three or fewer Cards, roll a new Card. Before you Cast, you may spend any of your Cards to roll [Mind] instead of [Spirit], have it deal no damage to allies, and gain the Card's bonus. The bonuses for each are as follows: 1: Illness: Blights and permanently Slows the Target. 2: Star: Restore Focus equal to the damage dealt. 3: Night: The target Disappears and becomes Invisible. 4: Protection: Permanently Reinforces the target. 5: Union: Snare the target, Teleport adjacent to them. 6: Folly: Dazes, Immobilizes, and Launches the target."
       },
       {
        "n": 2,
-       "name": "Star",
-       "text": "Restore Focus equal to the damage dealt."
+       "name": "Card Capture",
+       "text": "Once per Scene, after you Investigate an NPC's Attack, you can roll a Card with all of that attack's non-damage effects. At the end of the scene, you can replace a Card in your deck with that Card. You can only replace up to 3 of your Cards like this at a time, and can return your default Cards at any time."
       },
       {
        "n": 3,
-       "name": "Night",
-       "text": "The target Disappears and becomes Invisible. 4: Protection: Permanently Reinforces the target. 5: Union: Snare the target, Teleport adjacent to them. 6: Folly: Dazes, Immobilizes, and Launches the target. 2: Card Capture: Once per Scene, after you Investigate an NPC's Attack, you can roll a Card with all of that attack's non-damage effects. At the end of the scene, you can replace a Card in your deck with that Card. You can only replace up to 3 of your Cards like this at a time, and can return your default Cards at any time. 3: Greed: \"Draw\" has you roll double the Cards in all scenarios, and you may gain Cards by Breathing when at or below 5 cards instead of 3. 89"
+       "name": "Greed",
+       "text": "\"Draw\" has you roll double the Cards in all scenarios, and you may gain Cards by Breathing when at or below 5 cards instead of 3."
       }
      ],
      "source": {
@@ -2514,7 +2519,7 @@ window.DAWN_LIONWING_DATA = {
       {
        "n": 3,
        "name": "Twisting Impact",
-       "text": "Your Skirmishes gain 1 Advantage. When \"Wrap\" moves a character into adjacency with other characters, they each receive [Talent/2] damage. 91"
+       "text": "Your Skirmishes gain 1 Advantage. When \"Wrap\" moves a character into adjacency with other characters, they each receive [Talent/2] damage."
       }
      ],
      "source": {
@@ -2641,7 +2646,7 @@ window.DAWN_LIONWING_DATA = {
       {
        "n": 3,
        "name": "Brutalize",
-       "text": "You may now trigger \"Break And Bruise\" when targeting Dazed enemies with Body Finishers. The Finishers convert all Advantage from it into additional damage, in addition to Immobilizing and Snaring their target(s) after damage is dealt. 92"
+       "text": "You may now trigger \"Break And Bruise\" when targeting Dazed enemies with Body Finishers. The Finishers convert all Advantage from it into additional damage, in addition to Immobilizing and Snaring their target(s) after damage is dealt."
       }
      ],
      "source": {
@@ -2668,12 +2673,12 @@ window.DAWN_LIONWING_DATA = {
       {
        "n": 2,
        "name": "Overexert",
-       "text": "After you Attack, you may take 5 damage to roll a D6. Apply an Effect to your target based on the result of the roll. If you have 5 or less Health, you may use this without taking damage. 1-2: Blight"
+       "text": "After you Attack, you may take 5 damage to roll a D6. Apply an Effect to your target based on the result of the roll. If you have 5 or less Health, you may use this without taking damage. 1-2: Blight 3-4: Daze. 5-6: Immobilize."
       },
       {
        "n": 3,
-       "name": "-4",
-       "text": "Daze. 5-6: Immobilize. 3: Born Of Mutable Flesh: Once per Scene, after you use a Spirit / Body Finisher, you may trigger \"Overexert\" twice and change the Finisher's targeting to all enemies with more Health than you."
+       "name": "Born Of Mutable Flesh",
+       "text": "Once per Scene, after you use a Spirit / Body Finisher, you may trigger \"Overexert\" twice and change the Finisher's targeting to all enemies with more Health than you."
       }
      ],
      "source": {
@@ -2705,7 +2710,7 @@ window.DAWN_LIONWING_DATA = {
       {
        "n": 3,
        "name": "Earthen Shards",
-       "text": "After you destroy or move an Obstacle, you may deal [Spirit] damage to an enemy adjacent to its new or previous position. Each enemy can only be damaged by this effect once per Turn. 93"
+       "text": "After you destroy or move an Obstacle, you may deal [Spirit] damage to an enemy adjacent to its new or previous position. Each enemy can only be damaged by this effect once per Turn."
       }
      ],
      "source": {
@@ -2865,7 +2870,7 @@ window.DAWN_LIONWING_DATA = {
       {
        "n": 3,
        "name": "\"Who Are They?\"",
-       "text": "If an enemy starts their Turn and all enemies are Banished or think they're Banished, create two ‘Dark Illusions'. Dark Illusions are NPCS that are always Banished, cannot be targets, and cannot be damaged, cannot take Turns, and are at your Tier. They count as enemies for using \"Where Am I?\". 94"
+       "text": "If an enemy starts their Turn and all enemies are Banished or think they're Banished, create two ‘Dark Illusions'. Dark Illusions are NPCS that are always Banished, cannot be targets, and cannot be damaged, cannot take Turns, and are at your Tier. They count as enemies for using \"Where Am I?\"."
       }
      ],
      "source": {
@@ -2929,7 +2934,7 @@ window.DAWN_LIONWING_DATA = {
       {
        "n": 3,
        "name": "Pit Trap",
-       "text": "If you set a 2x2 area of Small Traps, you may convert them into a \"Pit Trap\", changing the area into Low Terrain and combining the 4 traps into one \"Giant Trap\". Giant Traps function identically to Small Traps except they let you use a Mind Finisher on the target instead of a Skirmish. 95"
+       "text": "If you set a 2x2 area of Small Traps, you may convert them into a \"Pit Trap\", changing the area into Low Terrain and combining the 4 traps into one \"Giant Trap\". Giant Traps function identically to Small Traps except they let you use a Mind Finisher on the target instead of a Skirmish."
       }
      ],
      "source": {
@@ -2968,8 +2973,9 @@ window.DAWN_LIONWING_DATA = {
       "editionId": "dawn-en-lionwing-cb2f8e67",
       "pdfPage": 96
      },
-     "id": "disruptor.jailor",
-     "introducedIn": "dawn-en-lionwing-cb2f8e67"
+     "id": "disruptor.mage-s-array",
+     "previousName": "Mage's Array",
+     "previousArchetypeId": null
     },
     {
      "archetypeId": "disruptor",
@@ -2999,8 +3005,9 @@ window.DAWN_LIONWING_DATA = {
       "editionId": "dawn-en-lionwing-cb2f8e67",
       "pdfPage": 96
      },
-     "id": "disruptor.worldsmith",
-     "introducedIn": "dawn-en-lionwing-cb2f8e67"
+     "id": "disruptor.inner-world",
+     "previousName": "Inner World",
+     "previousArchetypeId": null
     }
    ]
   },
@@ -3068,8 +3075,9 @@ window.DAWN_LIONWING_DATA = {
       "editionId": "dawn-en-lionwing-cb2f8e67",
       "pdfPage": 98
      },
-     "id": "ruiner.eradicator",
-     "introducedIn": "dawn-en-lionwing-cb2f8e67"
+     "id": "ruiner.rapid-fire-sorcery",
+     "previousName": "Rapid-Fire Sorcery",
+     "previousArchetypeId": null
     },
     {
      "archetypeId": "ruiner",
@@ -3092,7 +3100,7 @@ window.DAWN_LIONWING_DATA = {
       {
        "n": 3,
        "name": "Fractal Etchings",
-       "text": "If you Charge while on a Spell Circle, you may enhance it for the Scene, doubling the effects of \"Arcane Artillery\". A Spell Circle can't be enhanced multiple times. 97"
+       "text": "If you Charge while on a Spell Circle, you may enhance it for the Scene, doubling the effects of \"Arcane Artillery\". A Spell Circle can't be enhanced multiple times."
       }
      ],
      "source": {
@@ -3195,8 +3203,9 @@ window.DAWN_LIONWING_DATA = {
       "editionId": "dawn-en-lionwing-cb2f8e67",
       "pdfPage": 99
      },
-     "id": "ruiner.blade-smith",
-     "introducedIn": "dawn-en-lionwing-cb2f8e67"
+     "id": "ruiner.mana-blades",
+     "previousName": "Mana Blades",
+     "previousArchetypeId": null
     },
     {
      "archetypeId": "ruiner",
@@ -3283,7 +3292,7 @@ window.DAWN_LIONWING_DATA = {
       {
        "n": 3,
        "name": "Ashes To Ashes",
-       "text": "Your Casts gain 1 Advantage. Your Spirit Finisher has a range of 5 and removes Blight from its target and yourself after targeting. If it removes any Blight, it additionally targets enemies in two crossing, diagonal 5 space Lines centered on the target in the shape of an \"X\". 98"
+       "text": "Your Casts gain 1 Advantage. Your Spirit Finisher has a range of 5 and removes Blight from its target and yourself after targeting. If it removes any Blight, it additionally targets enemies in two crossing, diagonal 5 space Lines centered on the target in the shape of an \"X\"."
       }
      ],
      "source": {
@@ -3347,7 +3356,7 @@ window.DAWN_LIONWING_DATA = {
       {
        "n": 3,
        "name": "Umbra",
-       "text": "After you lose your Transformation, you may use a Spirit Finisher targeting yourself and enemies in a 3x3 Zone centered on yourself. If you're Tier 3 or higher, you may Daze yourself and spend 2 Focus to transform as soon as you deploy regardless of Tension. 99"
+       "text": "After you lose your Transformation, you may use a Spirit Finisher targeting yourself and enemies in a 3x3 Zone centered on yourself. If you're Tier 3 or higher, you may Daze yourself and spend 2 Focus to transform as soon as you deploy regardless of Tension."
       }
      ],
      "source": {
@@ -3418,8 +3427,9 @@ window.DAWN_LIONWING_DATA = {
       "editionId": "dawn-en-lionwing-cb2f8e67",
       "pdfPage": 100
      },
-     "id": "ruiner.sword-caller",
-     "introducedIn": "dawn-en-lionwing-cb2f8e67"
+     "id": "ruiner.sellsword-s-call",
+     "previousName": "Sellsword's Call",
+     "previousArchetypeId": null
     },
     {
      "archetypeId": "ruiner",
@@ -3506,7 +3516,7 @@ window.DAWN_LIONWING_DATA = {
       {
        "n": 3,
        "name": "Never Meant To Be",
-       "text": "If you use a Spirit Finisher with a full Insight Clock, you may empty all the Segments to have it target two intersecting ∞ length lines anywhere on the board. All targets are moved one space off of the line in a direction of your choice and all spaces on the line are removed from the game, destroying any Obstacle on them or connected to them. If a character would enter one of these spaces, they are instead Teleported to the closest space on the opposite side of the Line. 100"
+       "text": "If you use a Spirit Finisher with a full Insight Clock, you may empty all the Segments to have it target two intersecting ∞ length lines anywhere on the board. All targets are moved one space off of the line in a direction of your choice and all spaces on the line are removed from the game, destroying any Obstacle on them or connected to them. If a character would enter one of these spaces, they are instead Teleported to the closest space on the opposite side of the Line."
       }
      ],
      "source": {
@@ -3538,7 +3548,7 @@ window.DAWN_LIONWING_DATA = {
       {
        "n": 3,
        "name": "Labor Of The Devout [ Cast → Finisher ]",
-       "text": "This Finisher counts as having spent an equal amount of Material as the Cast used before it. 101"
+       "text": "This Finisher counts as having spent an equal amount of Material as the Cast used before it."
       }
      ],
      "source": {
@@ -5390,6 +5400,7 @@ window.DAWN_LIONWING_DATA = {
   "vagabond.modified-meister": "Modified Meister",
   "vagabond.opportunist": "Opportunist",
   "vagabond.reflector": "Reflector",
+  "vagabond.dim-mak": "Detective",
   "vagabond.drunkard": "Drunkard",
   "vagabond.master-at-arms": "Master-At-Arms",
   "bulwark.crusher": "Crusher",
@@ -5400,14 +5411,18 @@ window.DAWN_LIONWING_DATA = {
   "bulwark.battle-jockey": "Battle Jockey",
   "bulwark.grappler": "Grappler",
   "bulwark.juggernaut": "Juggernaut",
+  "bulwark.runic-retribution": "Mollycoddler",
   "bulwark.mundane": "Mundane",
   "bulwark.rising-challenger": "Rising Challenger",
   "bulwark.shield-bearer": "Shield Bearer",
   "bulwark.stalwart-sentry": "Stalwart Sentry",
   "bulwark.beastial-ascendant": "Bestial Ascendant",
+  "bulwark.guardian-angel": "Guard Caller",
   "bulwark.mecha-pilot": "Mecha Pilot",
+  "altruist.precognizant": "Analyst",
   "altruist.battle-instructor": "Battle Instructor",
   "altruist.empath": "Empath",
+  "altruist.heavenly-saint": "Compassionate Sage",
   "altruist.gourmand": "Gourmand",
   "altruist.surgeon": "Surgeon",
   "disruptor.tactical-master": "Tactical Master",
@@ -5437,33 +5452,162 @@ window.DAWN_LIONWING_DATA = {
   "disruptor.mind-breaker": "Mind Breaker",
   "disruptor.gale-strider": "Gale Strider",
   "disruptor.hunter": "Poacher",
+  "disruptor.mage-s-array": "Jailor",
+  "disruptor.inner-world": "Worldsmith",
   "ruiner.bombardier": "Bombardier",
+  "ruiner.rapid-fire-sorcery": "Eradicator",
   "ruiner.ritualist": "Ritualist",
   "ruiner.spellcrafter": "Spellcrafter",
   "ruiner.student-of-stars": "Student Of Stars",
+  "ruiner.mana-blades": "Blade Smith",
   "ruiner.dramaturge": "Dramaturge",
   "ruiner.feral-arcana": "Feral Arcanist",
   "ruiner.flame-heart": "Flame Heart",
   "ruiner.cryomancer": "Frost Veiler",
   "ruiner.grim-ascendant": "Grim Ascendant",
   "ruiner.long-draw": "Ranger",
+  "ruiner.sellsword-s-call": "Sword Caller",
   "ruiner.void-soul": "Void Soul",
   "ruiner.thunder-blood": "Thunder Blood",
   "ruiner.zealot": "Zealot",
   "ruiner.creation-ascetic": "Creator",
   "ruiner.ego-arm": "Ego Arm"
  },
+ "migrationEvidence": {
+  "powerhouse.monastic-sage": {
+   "oldName": "Monastic Sage",
+   "newName": "Monastic Warrior",
+   "confidence": "high",
+   "basis": "explicit-name-migration"
+  },
+  "vagabond.dim-mak": {
+   "oldName": "Dim Mak",
+   "newName": "Detective",
+   "confidence": "medium",
+   "basis": "levels-1-and-3-retained"
+  },
+  "bulwark.runic-retribution": {
+   "oldName": "Runic Retribution",
+   "newName": "Mollycoddler",
+   "confidence": "high",
+   "basis": "all-level-names-retained"
+  },
+  "bulwark.beastial-ascendant": {
+   "oldName": "Beastial Ascendant",
+   "newName": "Bestial Ascendant",
+   "confidence": "high",
+   "basis": "explicit-name-migration"
+  },
+  "bulwark.guardian-angel": {
+   "oldName": "Guardian Angel",
+   "newName": "Guard Caller",
+   "confidence": "high",
+   "basis": "all-level-names-retained"
+  },
+  "altruist.precognizant": {
+   "oldName": "Precognizant",
+   "newName": "Analyst",
+   "confidence": "medium",
+   "basis": "levels-1-and-2-retained"
+  },
+  "altruist.heavenly-saint": {
+   "oldName": "Heavenly Saint",
+   "newName": "Compassionate Sage",
+   "confidence": "high",
+   "basis": "all-level-names-retained"
+  },
+  "altruist.talisman-caster": {
+   "oldName": "Talisman Caster",
+   "newName": "Talisman Exorcist",
+   "confidence": "high",
+   "basis": "explicit-name-migration"
+  },
+  "altruist.chronomancer": {
+   "oldName": "Chronomancer",
+   "newName": "Temporal Sage",
+   "confidence": "high",
+   "basis": "explicit-name-migration"
+  },
+  "altruist.bardic-savant": {
+   "oldName": "Bardic Savant",
+   "newName": "Virtuoso",
+   "confidence": "high",
+   "basis": "explicit-name-migration"
+  },
+  "disruptor.inhuman-strength": {
+   "oldName": "Inhuman Strength",
+   "newName": "Strongman",
+   "confidence": "high",
+   "basis": "explicit-name-migration"
+  },
+  "disruptor.swarm-body": {
+   "oldName": "Swarm Body",
+   "newName": "SwarmKin",
+   "confidence": "high",
+   "basis": "explicit-name-migration"
+  },
+  "disruptor.hunter": {
+   "oldName": "Hunter",
+   "newName": "Poacher",
+   "confidence": "high",
+   "basis": "explicit-name-migration"
+  },
+  "disruptor.mage-s-array": {
+   "oldName": "Mage's Array",
+   "newName": "Jailor",
+   "confidence": "medium",
+   "basis": "levels-2-and-3-retained"
+  },
+  "disruptor.inner-world": {
+   "oldName": "Inner World",
+   "newName": "Worldsmith",
+   "confidence": "high",
+   "basis": "all-level-names-retained"
+  },
+  "ruiner.rapid-fire-sorcery": {
+   "oldName": "Rapid-Fire Sorcery",
+   "newName": "Eradicator",
+   "confidence": "high",
+   "basis": "all-level-names-retained"
+  },
+  "ruiner.mana-blades": {
+   "oldName": "Mana Blades",
+   "newName": "Blade Smith",
+   "confidence": "medium",
+   "basis": "levels-1-and-3-retained"
+  },
+  "ruiner.feral-arcana": {
+   "oldName": "Feral Arcana",
+   "newName": "Feral Arcanist",
+   "confidence": "high",
+   "basis": "explicit-name-migration"
+  },
+  "ruiner.cryomancer": {
+   "oldName": "Cryomancer",
+   "newName": "Frost Veiler",
+   "confidence": "high",
+   "basis": "explicit-name-migration"
+  },
+  "ruiner.long-draw": {
+   "oldName": "Long Draw",
+   "newName": "Ranger",
+   "confidence": "high",
+   "basis": "explicit-name-migration"
+  },
+  "ruiner.sellsword-s-call": {
+   "oldName": "Sellsword's Call",
+   "newName": "Sword Caller",
+   "confidence": "medium",
+   "basis": "levels-1-and-3-retained"
+  },
+  "ruiner.creation-ascetic": {
+   "oldName": "Creation Ascetic",
+   "newName": "Creator",
+   "confidence": "high",
+   "basis": "explicit-name-migration"
+  }
+ },
  "removedIds": [
-  "altruist.heavenly-saint",
-  "altruist.precognizant",
-  "bulwark.guardian-angel",
-  "bulwark.runic-retribution",
-  "bulwark.servant-s-call",
-  "disruptor.inner-world",
-  "disruptor.mage-s-array",
-  "ruiner.mana-blades",
-  "ruiner.rapid-fire-sorcery",
-  "ruiner.sellsword-s-call",
-  "vagabond.dim-mak"
+  "bulwark.servant-s-call"
  ]
 };

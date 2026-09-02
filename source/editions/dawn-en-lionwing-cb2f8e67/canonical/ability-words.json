@@ -1,0 +1,1152 @@
+{
+  "verbs": [
+    {
+      "id": "ability.en.verbs.breathe",
+      "name": "Breathe",
+      "cost": 0,
+      "costLabel": "0",
+      "marks": "✢",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    },
+    {
+      "id": "ability.en.verbs.blow",
+      "name": "Blow",
+      "cost": 0,
+      "costLabel": "0",
+      "marks": "✢",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    },
+    {
+      "id": "ability.en.verbs.eat",
+      "name": "Eat",
+      "cost": 0,
+      "costLabel": "0",
+      "marks": "✢",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    },
+    {
+      "id": "ability.en.verbs.absorb",
+      "name": "Absorb",
+      "cost": 0,
+      "costLabel": "0",
+      "marks": "✢",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    },
+    {
+      "id": "ability.en.verbs.perceive",
+      "name": "Perceive",
+      "cost": 0,
+      "costLabel": "0",
+      "marks": "✢",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    },
+    {
+      "id": "ability.en.verbs.talk-to",
+      "name": "Talk To",
+      "cost": 0,
+      "costLabel": "0",
+      "marks": "✢",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    },
+    {
+      "id": "ability.en.verbs.become",
+      "name": "Become",
+      "cost": 1,
+      "costLabel": "1",
+      "marks": "✢",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    },
+    {
+      "id": "ability.en.verbs.embody",
+      "name": "Embody",
+      "cost": 1,
+      "costLabel": "1",
+      "marks": "✢",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    },
+    {
+      "id": "ability.en.verbs.empower",
+      "name": "Empower",
+      "cost": 1,
+      "costLabel": "1",
+      "marks": "",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    },
+    {
+      "id": "ability.en.verbs.weaken",
+      "name": "Weaken",
+      "cost": 1,
+      "costLabel": "1",
+      "marks": "",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    },
+    {
+      "id": "ability.en.verbs.launch",
+      "name": "Launch",
+      "cost": 1,
+      "costLabel": "1",
+      "marks": "",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    },
+    {
+      "id": "ability.en.verbs.attract",
+      "name": "Attract",
+      "cost": 1,
+      "costLabel": "1",
+      "marks": "",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    },
+    {
+      "id": "ability.en.verbs.repair",
+      "name": "Repair",
+      "cost": 1,
+      "costLabel": "1",
+      "marks": "",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    },
+    {
+      "id": "ability.en.verbs.heal",
+      "name": "Heal",
+      "cost": 1,
+      "costLabel": "1",
+      "marks": "",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    },
+    {
+      "id": "ability.en.verbs.toughen",
+      "name": "Toughen",
+      "cost": 1,
+      "costLabel": "1",
+      "marks": "",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    },
+    {
+      "id": "ability.en.verbs.rotate",
+      "name": "Rotate",
+      "cost": 1,
+      "costLabel": "1",
+      "marks": "",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    },
+    {
+      "id": "ability.en.verbs.vibrate",
+      "name": "Vibrate",
+      "cost": 1,
+      "costLabel": "1",
+      "marks": "",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    },
+    {
+      "id": "ability.en.verbs.shape",
+      "name": "Shape",
+      "cost": 1,
+      "costLabel": "1",
+      "marks": "",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    },
+    {
+      "id": "ability.en.verbs.solidify",
+      "name": "Solidify",
+      "cost": 1,
+      "costLabel": "1",
+      "marks": "",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    },
+    {
+      "id": "ability.en.verbs.stop",
+      "name": "Stop",
+      "cost": 2,
+      "costLabel": "2",
+      "marks": "",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    },
+    {
+      "id": "ability.en.verbs.immobilize",
+      "name": "Immobilize",
+      "cost": 2,
+      "costLabel": "2",
+      "marks": "",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    },
+    {
+      "id": "ability.en.verbs.duplicate",
+      "name": "Duplicate",
+      "cost": 2,
+      "costLabel": "2",
+      "marks": "",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    },
+    {
+      "id": "ability.en.verbs.recreate",
+      "name": "Recreate",
+      "cost": 2,
+      "costLabel": "2",
+      "marks": "",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    },
+    {
+      "id": "ability.en.verbs.cut",
+      "name": "Cut",
+      "cost": 2,
+      "costLabel": "2",
+      "marks": "",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    },
+    {
+      "id": "ability.en.verbs.break",
+      "name": "Break",
+      "cost": 2,
+      "costLabel": "2",
+      "marks": "",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    },
+    {
+      "id": "ability.en.verbs.melt",
+      "name": "Melt",
+      "cost": 2,
+      "costLabel": "2",
+      "marks": "",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    },
+    {
+      "id": "ability.en.verbs.conceal",
+      "name": "Conceal",
+      "cost": 2,
+      "costLabel": "2",
+      "marks": "",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    },
+    {
+      "id": "ability.en.verbs.locate",
+      "name": "Locate",
+      "cost": 2,
+      "costLabel": "2",
+      "marks": "",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    },
+    {
+      "id": "ability.en.verbs.control",
+      "name": "Control",
+      "cost": 2,
+      "costLabel": "2",
+      "marks": "",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    },
+    {
+      "id": "ability.en.verbs.manipulate",
+      "name": "Manipulate",
+      "cost": 2,
+      "costLabel": "2",
+      "marks": "",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    },
+    {
+      "id": "ability.en.verbs.enlarge",
+      "name": "Enlarge",
+      "cost": 2,
+      "costLabel": "2",
+      "marks": "",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    },
+    {
+      "id": "ability.en.verbs.shrink",
+      "name": "Shrink",
+      "cost": 2,
+      "costLabel": "2",
+      "marks": "",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    },
+    {
+      "id": "ability.en.verbs.teleport",
+      "name": "Teleport",
+      "cost": 2,
+      "costLabel": "2",
+      "marks": "",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    },
+    {
+      "id": "ability.en.verbs.swap",
+      "name": "Swap",
+      "cost": 2,
+      "costLabel": "2",
+      "marks": "",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    },
+    {
+      "id": "ability.en.verbs.create",
+      "name": "Create",
+      "cost": 2,
+      "costLabel": "2",
+      "marks": "✢",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    },
+    {
+      "id": "ability.en.verbs.secrete",
+      "name": "Secrete",
+      "cost": 2,
+      "costLabel": "2",
+      "marks": "✢",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    },
+    {
+      "id": "ability.en.verbs.negate",
+      "name": "Negate",
+      "cost": 4,
+      "costLabel": "4",
+      "marks": "",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    },
+    {
+      "id": "ability.en.verbs.reverse",
+      "name": "Reverse",
+      "cost": 4,
+      "costLabel": "4",
+      "marks": "",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    },
+    {
+      "id": "ability.en.verbs.fuse-x-and",
+      "name": "Fuse X and",
+      "cost": 4,
+      "costLabel": "4",
+      "marks": "☾",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    },
+    {
+      "id": "ability.en.verbs.store-x-in",
+      "name": "Store X in",
+      "cost": null,
+      "costLabel": "X",
+      "marks": "☾",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    },
+    {
+      "id": "ability.en.verbs.transform-x-into",
+      "name": "Transform X Into",
+      "cost": null,
+      "costLabel": "X",
+      "marks": "☾",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    }
+  ],
+  "nouns": [
+    {
+      "id": "ability.en.nouns.ghosts",
+      "name": "Ghosts",
+      "cost": 0,
+      "costLabel": "0",
+      "marks": "",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    },
+    {
+      "id": "ability.en.nouns.illusions",
+      "name": "Illusions",
+      "cost": 0,
+      "costLabel": "0",
+      "marks": "",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    },
+    {
+      "id": "ability.en.nouns.weather",
+      "name": "Weather",
+      "cost": 0,
+      "costLabel": "0",
+      "marks": "✢",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    },
+    {
+      "id": "ability.en.nouns.clouds",
+      "name": "Clouds",
+      "cost": 0,
+      "costLabel": "0",
+      "marks": "✢",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    },
+    {
+      "id": "ability.en.nouns.food",
+      "name": "Food",
+      "cost": 0,
+      "costLabel": "0",
+      "marks": "",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    },
+    {
+      "id": "ability.en.nouns.bubbles",
+      "name": "Bubbles",
+      "cost": 0,
+      "costLabel": "0",
+      "marks": "",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    },
+    {
+      "id": "ability.en.nouns.toys",
+      "name": "Toys",
+      "cost": 0,
+      "costLabel": "0",
+      "marks": "",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    },
+    {
+      "id": "ability.en.nouns.barriers",
+      "name": "Barriers",
+      "cost": 0,
+      "costLabel": "0",
+      "marks": "",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    },
+    {
+      "id": "ability.en.nouns.traps",
+      "name": "Traps",
+      "cost": 0,
+      "costLabel": "0",
+      "marks": "",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    },
+    {
+      "id": "ability.en.nouns.plants",
+      "name": "Plants",
+      "cost": 1,
+      "costLabel": "1",
+      "marks": "✝",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    },
+    {
+      "id": "ability.en.nouns.beasts",
+      "name": "Beasts",
+      "cost": 1,
+      "costLabel": "1",
+      "marks": "✝",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    },
+    {
+      "id": "ability.en.nouns.simple-weapons",
+      "name": "Simple Weapons",
+      "cost": 1,
+      "costLabel": "1",
+      "marks": "✝",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    },
+    {
+      "id": "ability.en.nouns.sound",
+      "name": "Sound",
+      "cost": 1,
+      "costLabel": "1",
+      "marks": "",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    },
+    {
+      "id": "ability.en.nouns.dust",
+      "name": "Dust",
+      "cost": 1,
+      "costLabel": "1",
+      "marks": "",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    },
+    {
+      "id": "ability.en.nouns.smoke",
+      "name": "Smoke",
+      "cost": 1,
+      "costLabel": "1",
+      "marks": "",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    },
+    {
+      "id": "ability.en.nouns.light",
+      "name": "Light",
+      "cost": 1,
+      "costLabel": "1",
+      "marks": "",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    },
+    {
+      "id": "ability.en.nouns.shadow",
+      "name": "Shadow",
+      "cost": 1,
+      "costLabel": "1",
+      "marks": "",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    },
+    {
+      "id": "ability.en.nouns.animals",
+      "name": "Animals",
+      "cost": 1,
+      "costLabel": "1",
+      "marks": "✝",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    },
+    {
+      "id": "ability.en.nouns.monsters",
+      "name": "Monsters",
+      "cost": 1,
+      "costLabel": "1",
+      "marks": "✝",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    },
+    {
+      "id": "ability.en.nouns.magic",
+      "name": "Magic",
+      "cost": 1,
+      "costLabel": "1",
+      "marks": "",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    },
+    {
+      "id": "ability.en.nouns.electricity",
+      "name": "Electricity",
+      "cost": 1,
+      "costLabel": "1",
+      "marks": "",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    },
+    {
+      "id": "ability.en.nouns.people",
+      "name": "People",
+      "cost": 2,
+      "costLabel": "2",
+      "marks": "✝",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    },
+    {
+      "id": "ability.en.nouns.others",
+      "name": "Others",
+      "cost": 2,
+      "costLabel": "2",
+      "marks": "✝",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    },
+    {
+      "id": "ability.en.nouns.machines",
+      "name": "Machines",
+      "cost": 2,
+      "costLabel": "2",
+      "marks": "✝",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    },
+    {
+      "id": "ability.en.nouns.devices",
+      "name": "Devices",
+      "cost": 2,
+      "costLabel": "2",
+      "marks": "✝",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    },
+    {
+      "id": "ability.en.nouns.the-classical-elements",
+      "name": "The Classical Elements",
+      "cost": 2,
+      "costLabel": "2",
+      "marks": "✝",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    },
+    {
+      "id": "ability.en.nouns.heat",
+      "name": "Heat",
+      "cost": 2,
+      "costLabel": "2",
+      "marks": "✢",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    },
+    {
+      "id": "ability.en.nouns.meat",
+      "name": "Meat",
+      "cost": 2,
+      "costLabel": "2",
+      "marks": "",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    },
+    {
+      "id": "ability.en.nouns.bones",
+      "name": "Bones",
+      "cost": 2,
+      "costLabel": "2",
+      "marks": "",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    },
+    {
+      "id": "ability.en.nouns.blood",
+      "name": "Blood",
+      "cost": 2,
+      "costLabel": "2",
+      "marks": "",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    },
+    {
+      "id": "ability.en.nouns.explosives",
+      "name": "Explosives",
+      "cost": 2,
+      "costLabel": "2",
+      "marks": "✝",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    },
+    {
+      "id": "ability.en.nouns.yourself",
+      "name": "Yourself",
+      "cost": 2,
+      "costLabel": "2",
+      "marks": "✢✝",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    },
+    {
+      "id": "ability.en.nouns.your-body",
+      "name": "Your Body",
+      "cost": 2,
+      "costLabel": "2",
+      "marks": "✢✝",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    },
+    {
+      "id": "ability.en.nouns.abilities",
+      "name": "Abilities",
+      "cost": 3,
+      "costLabel": "3",
+      "marks": "",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    },
+    {
+      "id": "ability.en.nouns.knowledge",
+      "name": "Knowledge",
+      "cost": 3,
+      "costLabel": "3",
+      "marks": "",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    },
+    {
+      "id": "ability.en.nouns.gravity",
+      "name": "Gravity",
+      "cost": 3,
+      "costLabel": "3",
+      "marks": "",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    },
+    {
+      "id": "ability.en.nouns.fluids",
+      "name": "Fluids",
+      "cost": 4,
+      "costLabel": "4",
+      "marks": "",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    },
+    {
+      "id": "ability.en.nouns.solids",
+      "name": "Solids",
+      "cost": 4,
+      "costLabel": "4",
+      "marks": "",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    },
+    {
+      "id": "ability.en.nouns.gasses",
+      "name": "Gasses",
+      "cost": 4,
+      "costLabel": "4",
+      "marks": "",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    },
+    {
+      "id": "ability.en.nouns.distance",
+      "name": "Distance",
+      "cost": 4,
+      "costLabel": "4",
+      "marks": "",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    },
+    {
+      "id": "ability.en.nouns.velocity",
+      "name": "Velocity",
+      "cost": 4,
+      "costLabel": "4",
+      "marks": "",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    }
+  ],
+  "conditions": [
+    {
+      "id": "ability.en.conditions.you-win-in-a-game",
+      "name": "You Win In A Game",
+      "cost": -1,
+      "costLabel": "-1",
+      "marks": "✝",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    },
+    {
+      "id": "ability.en.conditions.you-are-sweating",
+      "name": "You Are Sweating",
+      "cost": -1,
+      "costLabel": "-1",
+      "marks": "",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    },
+    {
+      "id": "ability.en.conditions.it-s-a-specific-time",
+      "name": "It's A Specific Time",
+      "cost": -1,
+      "costLabel": "-1",
+      "marks": "",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    },
+    {
+      "id": "ability.en.conditions.you-consume-x",
+      "name": "You consume X",
+      "cost": -1,
+      "costLabel": "-1",
+      "marks": "☾",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    },
+    {
+      "id": "ability.en.conditions.you-re-wearing-x",
+      "name": "You're Wearing X",
+      "cost": 0,
+      "costLabel": "0",
+      "marks": "☾",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    },
+    {
+      "id": "ability.en.conditions.you-ve-built-the-target",
+      "name": "You've Built The Target",
+      "cost": 0,
+      "costLabel": "0",
+      "marks": "",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    },
+    {
+      "id": "ability.en.conditions.you-re-carrying-it",
+      "name": "You're Carrying It",
+      "cost": 0,
+      "costLabel": "0",
+      "marks": "",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    },
+    {
+      "id": "ability.en.conditions.you-write-on-the-target",
+      "name": "You Write On The Target",
+      "cost": 0,
+      "costLabel": "0",
+      "marks": "",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    },
+    {
+      "id": "ability.en.conditions.you-aren-t-seen",
+      "name": "You Aren't Seen",
+      "cost": 0,
+      "costLabel": "0",
+      "marks": "",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    },
+    {
+      "id": "ability.en.conditions.you-touch-the-target",
+      "name": "You Touch The Target",
+      "cost": 0,
+      "costLabel": "0",
+      "marks": "",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    },
+    {
+      "id": "ability.en.conditions.you-hear",
+      "name": "You Hear",
+      "cost": 1,
+      "costLabel": "1",
+      "marks": "",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    },
+    {
+      "id": "ability.en.conditions.smell-it",
+      "name": "Smell It",
+      "cost": 1,
+      "costLabel": "1",
+      "marks": "",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    },
+    {
+      "id": "ability.en.conditions.you-dance",
+      "name": "You Dance",
+      "cost": 1,
+      "costLabel": "1",
+      "marks": "",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    },
+    {
+      "id": "ability.en.conditions.you-speak-to-the-target",
+      "name": "You Speak To The Target",
+      "cost": 1,
+      "costLabel": "1",
+      "marks": "",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    },
+    {
+      "id": "ability.en.conditions.you-understand-it",
+      "name": "You Understand It",
+      "cost": 1,
+      "costLabel": "1",
+      "marks": "",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    },
+    {
+      "id": "ability.en.conditions.you-draw-the-target",
+      "name": "You Draw The Target",
+      "cost": 1,
+      "costLabel": "1",
+      "marks": "",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    },
+    {
+      "id": "ability.en.conditions.you-explain-it",
+      "name": "You Explain It",
+      "cost": 1,
+      "costLabel": "1",
+      "marks": "",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    },
+    {
+      "id": "ability.en.conditions.you-hold-your-breath",
+      "name": "You Hold Your Breath",
+      "cost": 1,
+      "costLabel": "1",
+      "marks": "",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    },
+    {
+      "id": "ability.en.conditions.it-can-hear-you",
+      "name": "It Can Hear You",
+      "cost": 1,
+      "costLabel": "1",
+      "marks": "",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    },
+    {
+      "id": "ability.en.conditions.you-see-the-target",
+      "name": "You See The Target",
+      "cost": 2,
+      "costLabel": "2",
+      "marks": "",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    },
+    {
+      "id": "ability.en.conditions.you-remember-the-target",
+      "name": "You Remember The Target",
+      "cost": 3,
+      "costLabel": "3",
+      "marks": "",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    },
+    {
+      "id": "ability.en.conditions.you-ve-touched-it",
+      "name": "You've Touched It",
+      "cost": 3,
+      "costLabel": "3",
+      "marks": "",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 46
+      }
+    }
+  ]
+}

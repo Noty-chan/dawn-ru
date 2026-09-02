@@ -6,10 +6,10 @@
   "counts": {
     "oldTechniques": 107,
     "newTechniques": 111,
-    "mapped": 96,
-    "additions": 15,
-    "removals": 11,
-    "renamesOrMoves": 13,
+    "mapped": 106,
+    "additions": 5,
+    "removals": 1,
+    "renamesOrMoves": 23,
     "changedPages": 107
   },
   "pageChanges": [
@@ -1435,12 +1435,12 @@
       "requiresReview": true
     },
     {
-      "id": "technique-vagabond-detective",
-      "stableId": "vagabond.detective",
-      "kind": "addition",
-      "oldName": null,
+      "id": "technique-vagabond-dim-mak",
+      "stableId": "vagabond.dim-mak",
+      "kind": "terminology",
+      "oldName": "Dim Mak",
       "newName": "Detective",
-      "oldArchetypeId": null,
+      "oldArchetypeId": "vagabond",
       "newArchetypeId": "vagabond",
       "newPages": [
         79
@@ -1578,12 +1578,12 @@
       "requiresReview": true
     },
     {
-      "id": "technique-bulwark-mollycoddler",
-      "stableId": "bulwark.mollycoddler",
-      "kind": "addition",
-      "oldName": null,
+      "id": "technique-bulwark-runic-retribution",
+      "stableId": "bulwark.runic-retribution",
+      "kind": "terminology",
+      "oldName": "Runic Retribution",
       "newName": "Mollycoddler",
-      "oldArchetypeId": null,
+      "oldArchetypeId": "bulwark",
       "newArchetypeId": "bulwark",
       "newPages": [
         82
@@ -1656,12 +1656,12 @@
       "requiresReview": true
     },
     {
-      "id": "technique-bulwark-guard-caller",
-      "stableId": "bulwark.guard-caller",
-      "kind": "addition",
-      "oldName": null,
+      "id": "technique-bulwark-guardian-angel",
+      "stableId": "bulwark.guardian-angel",
+      "kind": "terminology",
+      "oldName": "Guardian Angel",
       "newName": "Guard Caller",
-      "oldArchetypeId": null,
+      "oldArchetypeId": "bulwark",
       "newArchetypeId": "bulwark",
       "newPages": [
         84
@@ -1682,12 +1682,12 @@
       "requiresReview": true
     },
     {
-      "id": "technique-altruist-analyst",
-      "stableId": "altruist.analyst",
-      "kind": "addition",
-      "oldName": null,
+      "id": "technique-altruist-precognizant",
+      "stableId": "altruist.precognizant",
+      "kind": "terminology",
+      "oldName": "Precognizant",
       "newName": "Analyst",
-      "oldArchetypeId": null,
+      "oldArchetypeId": "altruist",
       "newArchetypeId": "altruist",
       "newPages": [
         86
@@ -1721,12 +1721,12 @@
       "requiresReview": true
     },
     {
-      "id": "technique-altruist-compassionate-sage",
-      "stableId": "altruist.compassionate-sage",
-      "kind": "addition",
-      "oldName": null,
+      "id": "technique-altruist-heavenly-saint",
+      "stableId": "altruist.heavenly-saint",
+      "kind": "terminology",
+      "oldName": "Heavenly Saint",
       "newName": "Compassionate Sage",
-      "oldArchetypeId": null,
+      "oldArchetypeId": "altruist",
       "newArchetypeId": "altruist",
       "newPages": [
         86
@@ -2137,12 +2137,12 @@
       "requiresReview": true
     },
     {
-      "id": "technique-disruptor-jailor",
-      "stableId": "disruptor.jailor",
-      "kind": "addition",
-      "oldName": null,
+      "id": "technique-disruptor-mage-s-array",
+      "stableId": "disruptor.mage-s-array",
+      "kind": "terminology",
+      "oldName": "Mage's Array",
       "newName": "Jailor",
-      "oldArchetypeId": null,
+      "oldArchetypeId": "disruptor",
       "newArchetypeId": "disruptor",
       "newPages": [
         96
@@ -2150,12 +2150,12 @@
       "requiresReview": true
     },
     {
-      "id": "technique-disruptor-worldsmith",
-      "stableId": "disruptor.worldsmith",
-      "kind": "addition",
-      "oldName": null,
+      "id": "technique-disruptor-inner-world",
+      "stableId": "disruptor.inner-world",
+      "kind": "terminology",
+      "oldName": "Inner World",
       "newName": "Worldsmith",
-      "oldArchetypeId": null,
+      "oldArchetypeId": "disruptor",
       "newArchetypeId": "disruptor",
       "newPages": [
         96
@@ -2176,12 +2176,12 @@
       "requiresReview": true
     },
     {
-      "id": "technique-ruiner-eradicator",
-      "stableId": "ruiner.eradicator",
-      "kind": "addition",
-      "oldName": null,
+      "id": "technique-ruiner-rapid-fire-sorcery",
+      "stableId": "ruiner.rapid-fire-sorcery",
+      "kind": "terminology",
+      "oldName": "Rapid-Fire Sorcery",
       "newName": "Eradicator",
-      "oldArchetypeId": null,
+      "oldArchetypeId": "ruiner",
       "newArchetypeId": "ruiner",
       "newPages": [
         98
@@ -2228,12 +2228,12 @@
       "requiresReview": true
     },
     {
-      "id": "technique-ruiner-blade-smith",
-      "stableId": "ruiner.blade-smith",
-      "kind": "addition",
-      "oldName": null,
+      "id": "technique-ruiner-mana-blades",
+      "stableId": "ruiner.mana-blades",
+      "kind": "terminology",
+      "oldName": "Mana Blades",
       "newName": "Blade Smith",
-      "oldArchetypeId": null,
+      "oldArchetypeId": "ruiner",
       "newArchetypeId": "ruiner",
       "newPages": [
         99
@@ -2319,12 +2319,12 @@
       "requiresReview": true
     },
     {
-      "id": "technique-ruiner-sword-caller",
-      "stableId": "ruiner.sword-caller",
-      "kind": "addition",
-      "oldName": null,
+      "id": "technique-ruiner-sellsword-s-call",
+      "stableId": "ruiner.sellsword-s-call",
+      "kind": "terminology",
+      "oldName": "Sellsword's Call",
       "newName": "Sword Caller",
-      "oldArchetypeId": null,
+      "oldArchetypeId": "ruiner",
       "newArchetypeId": "ruiner",
       "newPages": [
         100
@@ -2397,122 +2397,12 @@
       "requiresReview": true
     },
     {
-      "id": "technique-altruist-heavenly-saint-removed",
-      "stableId": "altruist.heavenly-saint",
-      "kind": "removal",
-      "oldName": "Heavenly Saint",
-      "newName": null,
-      "oldArchetypeId": "altruist",
-      "newArchetypeId": null,
-      "newPages": [],
-      "requiresReview": true
-    },
-    {
-      "id": "technique-altruist-precognizant-removed",
-      "stableId": "altruist.precognizant",
-      "kind": "removal",
-      "oldName": "Precognizant",
-      "newName": null,
-      "oldArchetypeId": "altruist",
-      "newArchetypeId": null,
-      "newPages": [],
-      "requiresReview": true
-    },
-    {
-      "id": "technique-bulwark-guardian-angel-removed",
-      "stableId": "bulwark.guardian-angel",
-      "kind": "removal",
-      "oldName": "Guardian Angel",
-      "newName": null,
-      "oldArchetypeId": "bulwark",
-      "newArchetypeId": null,
-      "newPages": [],
-      "requiresReview": true
-    },
-    {
-      "id": "technique-bulwark-runic-retribution-removed",
-      "stableId": "bulwark.runic-retribution",
-      "kind": "removal",
-      "oldName": "Runic Retribution",
-      "newName": null,
-      "oldArchetypeId": "bulwark",
-      "newArchetypeId": null,
-      "newPages": [],
-      "requiresReview": true
-    },
-    {
       "id": "technique-bulwark-servant-s-call-removed",
       "stableId": "bulwark.servant-s-call",
       "kind": "removal",
       "oldName": "Servant's Call",
       "newName": null,
       "oldArchetypeId": "bulwark",
-      "newArchetypeId": null,
-      "newPages": [],
-      "requiresReview": true
-    },
-    {
-      "id": "technique-disruptor-inner-world-removed",
-      "stableId": "disruptor.inner-world",
-      "kind": "removal",
-      "oldName": "Inner World",
-      "newName": null,
-      "oldArchetypeId": "disruptor",
-      "newArchetypeId": null,
-      "newPages": [],
-      "requiresReview": true
-    },
-    {
-      "id": "technique-disruptor-mage-s-array-removed",
-      "stableId": "disruptor.mage-s-array",
-      "kind": "removal",
-      "oldName": "Mage's Array",
-      "newName": null,
-      "oldArchetypeId": "disruptor",
-      "newArchetypeId": null,
-      "newPages": [],
-      "requiresReview": true
-    },
-    {
-      "id": "technique-ruiner-mana-blades-removed",
-      "stableId": "ruiner.mana-blades",
-      "kind": "removal",
-      "oldName": "Mana Blades",
-      "newName": null,
-      "oldArchetypeId": "ruiner",
-      "newArchetypeId": null,
-      "newPages": [],
-      "requiresReview": true
-    },
-    {
-      "id": "technique-ruiner-rapid-fire-sorcery-removed",
-      "stableId": "ruiner.rapid-fire-sorcery",
-      "kind": "removal",
-      "oldName": "Rapid-Fire Sorcery",
-      "newName": null,
-      "oldArchetypeId": "ruiner",
-      "newArchetypeId": null,
-      "newPages": [],
-      "requiresReview": true
-    },
-    {
-      "id": "technique-ruiner-sellsword-s-call-removed",
-      "stableId": "ruiner.sellsword-s-call",
-      "kind": "removal",
-      "oldName": "Sellsword's Call",
-      "newName": null,
-      "oldArchetypeId": "ruiner",
-      "newArchetypeId": null,
-      "newPages": [],
-      "requiresReview": true
-    },
-    {
-      "id": "technique-vagabond-dim-mak-removed",
-      "stableId": "vagabond.dim-mak",
-      "kind": "removal",
-      "oldName": "Dim Mak",
-      "newName": null,
-      "oldArchetypeId": "vagabond",
       "newArchetypeId": null,
       "newPages": [],
       "requiresReview": true

@@ -1,0 +1,582 @@
+{
+  "id": "ruiner",
+  "name": "Ruiner",
+  "techniques": [
+    {
+      "archetypeId": "ruiner",
+      "name": "Bombardier",
+      "stars": 1,
+      "tags": "Finishers, Spirit, AOE, Expensive",
+      "flavor": "Explosion!",
+      "notes": "",
+      "levels": [
+        {
+          "n": 1,
+          "name": "Explosion!!",
+          "text": "Your Spirit Finisher can now choose a target in 4 Range and all targets adjacent to it instead of its normal targeting."
+        },
+        {
+          "n": 2,
+          "name": "Explosion!!!",
+          "text": "If you spend 2 or more Focus on a Spirit Finisher, you may have it choose all targets in a 3x3 Zone centered on a space within 5 range. Your Spirit Finishers gain 1 advantage per empty space it targets (to a maximum of [Tier +2] Advantage)."
+        },
+        {
+          "n": 3,
+          "name": "EXPLOSION!!!!",
+          "text": "If you spend 4 or more Focus on a Spirit Finisher, you may have it affect all targets in a 5x5 Zone centered on a space within 6 range."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 98
+      },
+      "id": "ruiner.bombardier",
+      "previousName": null,
+      "previousArchetypeId": null
+    },
+    {
+      "archetypeId": "ruiner",
+      "name": "Eradicator",
+      "stars": 1,
+      "tags": "Casts, AOE, Terrain",
+      "flavor": "No, No, NO! Try showing me up when reduced to ash!",
+      "notes": "",
+      "levels": [
+        {
+          "n": 1,
+          "name": "Proliferate",
+          "text": "Before you Cast or Spirit Finisher, you may spend 1 Focus to ‘Rapid Fire' instead. While Rapid Firing, you roll damage before targeting (meaning you cannot be affected by things that apply advantage / disadvantage when targeting) and may divide all damage dealt between any targets within 5 range. You don't need to divide this damage equally."
+        },
+        {
+          "n": 2,
+          "name": "Scorched Earth",
+          "text": "After you deal damage to an empty space, you may turn it into Difficult Terrain. The first time enemies move into or start their Turn in Terrain you created each Turn, they receive [Tier] damage."
+        },
+        {
+          "n": 3,
+          "name": "Endless Fire [ Charge → Cast ]",
+          "text": "The Cast gains Advantage equal to the number of different enemies within 5 spaces of you + [Tension]."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 98
+      },
+      "id": "ruiner.rapid-fire-sorcery",
+      "previousName": "Rapid-Fire Sorcery",
+      "previousArchetypeId": null
+    },
+    {
+      "archetypeId": "ruiner",
+      "name": "Ritualist",
+      "stars": 1,
+      "tags": "Finishers, Breathing, Spirit",
+      "flavor": "Glyphs intertwine, paths converge—within this mesmerizing dance of foci, magic finds purpose.",
+      "notes": "",
+      "levels": [
+        {
+          "n": 1,
+          "name": "Ley Lines",
+          "text": "After you Charge, you may place a ‘Spell Circle' in your current space, removing any you've already created. When in a Spell Circle space, your Spirit Finishers can target enemies in 5 range."
+        },
+        {
+          "n": 2,
+          "name": "Arcane Artillery",
+          "text": "When affected by a Spell Circle, your first Spirit Finisher each Turn has 3 additional range and gains [Tension] Advantage."
+        },
+        {
+          "n": 3,
+          "name": "Fractal Etchings",
+          "text": "If you Charge while on a Spell Circle, you may enhance it for the Scene, doubling the effects of \"Arcane Artillery\". A Spell Circle can't be enhanced multiple times."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 98
+      },
+      "id": "ruiner.ritualist",
+      "previousName": null,
+      "previousArchetypeId": null
+    },
+    {
+      "archetypeId": "ruiner",
+      "name": "Spellcrafter",
+      "stars": 1,
+      "tags": "Casts, Mind, Versatile",
+      "flavor": "Everyone thinks an idiot of an innovator.",
+      "notes": "",
+      "levels": [
+        {
+          "n": 1,
+          "name": "Experimentation",
+          "text": "Gain one of the ‘Augments' listed below. You start every Scene with [Mind] ‘Innovation' charges, and may spend one of those charges before you Cast or use a Spirit Finisher to apply an Augment you have. These bonuses are as follows: ‣ Dire Augment: Damage dealt by this attack is increased by [Mind]. ‣ Focused Augment: This attack now affects all targets in a 5 space Line adjacent to you. ‣ Wild Augment: This attack now affects all targets in a 2x2 Zone within 3 range. ‣ Salient Augment: The range, and the length of lines created by this attack, are increased by [Mind]."
+        },
+        {
+          "n": 2,
+          "name": "Solidification",
+          "text": "Gain an additional Augment. You no longer have Innovation charges and may use Experimentation by spending 1 Focus. Your starting Focus is increased by [Mind]."
+        },
+        {
+          "n": 3,
+          "name": "Finalization",
+          "text": "Gain an additional Augment. You may apply two different Augments to any Cast or Finisher so long as you pay for both."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 98
+      },
+      "id": "ruiner.spellcrafter",
+      "previousName": null,
+      "previousArchetypeId": null
+    },
+    {
+      "archetypeId": "ruiner",
+      "name": "Student Of Stars",
+      "stars": 1,
+      "tags": "Finishers, Spirit, Expensive",
+      "flavor": "Feel the power flow into you, the ears ring with pops and snaps, the forearms go numb and the feet are rooted, with the earth below being your last resort in case everything else goes wrong. Remember your teachings and chants, only when every single one fails will you really know what you're capable of.",
+      "notes": "",
+      "levels": [
+        {
+          "n": 1,
+          "name": "Power Unleashed [ Charge → Finisher ]",
+          "text": "The Finisher has its Cost reduced to 1. While you use this Finisher, you may spend up to [3 x Tension] Focus."
+        },
+        {
+          "n": 2,
+          "name": "Formless Strength",
+          "text": "If you use \"Power Unleashed\", you may have it affect all targets in an ∞ length Line or a 2x2 space Zone adjacent to you."
+        },
+        {
+          "n": 3,
+          "name": "Moment Of Truth",
+          "text": "If you enter a Duel with 6 or more Focus, you may expend all of it to gain Advantage in that Duel, equal to half the Focus you spent."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 98
+      },
+      "id": "ruiner.student-of-stars",
+      "previousName": null,
+      "previousArchetypeId": null
+    },
+    {
+      "archetypeId": "ruiner",
+      "name": "Blade Smith",
+      "stars": 2,
+      "tags": "Casts, Skirmishes",
+      "flavor": "My spirit was focused, ready. I have honed it into a sharpness few things have ever known. It is almost disappointing that most will only see it once.",
+      "notes": "",
+      "levels": [
+        {
+          "n": 1,
+          "name": "Call Arms",
+          "text": "Choose a Technique with the \"Weapon\" Tag that you don't have, it's added to your ‘Arsenal'. After you Breathe or Charge, you may ‘Forge' a number of Techniques from your ‘Arsenal' equal to the focus gained. Before you Cast, you may spend a Forge to gain the 1st level of its Technique during the Cast, and make the Cast count as a Skirmish as well."
+        },
+        {
+          "n": 2,
+          "name": "Blade Storm",
+          "text": "Add another Weapon Technique to your Arsenal. After you start your Turn with 2 or more Forged Techniques, Strengthen yourself and make your first Cast of that Turn Swift."
+        },
+        {
+          "n": 3,
+          "name": "Saintly Sword, Excalibur",
+          "text": "Add a Weapon Technique to your Arsenal. If you Finisher while Strengthened, it targets an enemy within 5 spaces, can use \"Call Arms\", provides all three levels of the Technique(s) chosen, and counts as a Body / Talent AND Spirit Finisher."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 99
+      },
+      "id": "ruiner.mana-blades",
+      "previousName": "Mana Blades",
+      "previousArchetypeId": null
+    },
+    {
+      "archetypeId": "ruiner",
+      "name": "Dramaturge",
+      "stars": 2,
+      "tags": "Spirit/Mind, Finishers",
+      "flavor": "Why so glum, you're living in hallowed times! I've even graced you with my presence! Enjoy it while you can!",
+      "notes": "",
+      "levels": [
+        {
+          "n": 1,
+          "name": "All Eyes On Me",
+          "text": "Once per Action, after you roll a Crit for any reason, you may spend 1 AP or 3 Focus to ‘Elevate' the roll. If you Elevate, describe how your character adds some dramatic flair or additional detail to the roll they're taking and increase the Tension by 1."
+        },
+        {
+          "n": 2,
+          "name": "Snatch Their Fire",
+          "text": "If you increase Tension, create ‘Drama' instead. Drama counts as Tension on player Turns, but does not increase Tension on enemy Turns."
+        },
+        {
+          "n": 3,
+          "name": "Power In Presentation",
+          "text": "After you Elevate specific actions, they receive a bonus: ‣ Finisher: Deal [Tension] additional damage (counting the Tension added via Elevate). ‣ Charge: Gain AP equal to the AP spent on this Action (not including AP spent on Elevate). ‣ Cast: You may Mark, Immobilize, Taunt, or Fear your target. If multiple Crits were rolled, choose one additional option for each Crit."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 99
+      },
+      "id": "ruiner.dramaturge",
+      "previousName": null,
+      "previousArchetypeId": null
+    },
+    {
+      "archetypeId": "ruiner",
+      "name": "Feral Arcanist",
+      "stars": 2,
+      "tags": "Body, Casts, Finishers",
+      "flavor": "Magic isn't a thing you own, you don't create it and you aren't its master. The magi borrow from something greater than themselves, it's only natural that I return the favor once in a while.",
+      "notes": "",
+      "levels": [
+        {
+          "n": 1,
+          "name": "Vorpal Claw",
+          "text": "Your Cast can now only target one character within 2 range and Snares the target. This overrides any range or targeting modifiers or replacements outside this Technique. You may Roll Body instead of Spirit for Cast's Roll."
+        },
+        {
+          "n": 2,
+          "name": "Unchain [ Charge → Interact]",
+          "text": "If Interact targets you, begin tracking ‘Fury', a 6 Segment Clock, and fill one Segment for each adjacent enemy + [Tension]. If you have Fury Segments, you can only spend AP on Jumps & Finishers, and doing either empties one. In Fury, Jumps are Swift, and after you Jump, Swiftly Cast at no Cost, targeting ALL adjacent targets. When Fury empties, remove it, and you're Dazed."
+        },
+        {
+          "n": 3,
+          "name": "Grasp",
+          "text": "Your Casts gain 1 Advantage. If you have at least 1 Fury Segment and you use a Body Finisher, you may spend all your Fury Segments to gain [Tension] Advantage and move up to 3 spaces before targeting."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 99
+      },
+      "id": "ruiner.feral-arcana",
+      "previousName": "Feral Arcana",
+      "previousArchetypeId": null
+    },
+    {
+      "archetypeId": "ruiner",
+      "name": "Flame Heart",
+      "stars": 2,
+      "tags": "Spirit, Casts, Effects",
+      "flavor": "What approached me in that moon-lit pavilion was no elf, the way their eyes glowed was unnatural, the flames that licked from the ground to their legs, it felt too practiced, and the way they bled looked almost like they wanted this to happen.",
+      "notes": "",
+      "levels": [
+        {
+          "n": 1,
+          "name": "Rev Up",
+          "text": "After you Breathe you may ‘Ignite', receiving up to 6 damage and Blighting yourself to receive an additional Focus for every 2 damage taken. You receive half the damage from Blight."
+        },
+        {
+          "n": 2,
+          "name": "Damning Impact",
+          "text": "If you Cast or use a Spirit Finisher while Blighted, you gain [Tension] Advantage, and Blight your target. If you would Blight an enemy who's already Blighted, you deal [Tier] damage."
+        },
+        {
+          "n": 3,
+          "name": "Ashes To Ashes",
+          "text": "Your Casts gain 1 Advantage. Your Spirit Finisher has a range of 5 and removes Blight from its target and yourself after targeting. If it removes any Blight, it additionally targets enemies in two crossing, diagonal 5 space Lines centered on the target in the shape of an \"X\"."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 99
+      },
+      "id": "ruiner.flame-heart",
+      "previousName": null,
+      "previousArchetypeId": null
+    },
+    {
+      "archetypeId": "ruiner",
+      "name": "Frost Veiler",
+      "stars": 2,
+      "tags": "Casts, Spirit, Restricting",
+      "flavor": "Each incantation is a flurry of frozen elegance, conjuring storms of ice and swirls of snow.",
+      "notes": "",
+      "levels": [
+        {
+          "n": 1,
+          "name": "Chill",
+          "text": "Your successful Casts Slow your target(s)."
+        },
+        {
+          "n": 2,
+          "name": "Icicle Halo",
+          "text": "Your Casts gain 1 Advantage. Begin tracking \"Icicle\", a 4 Segment Clock that empties after each Scene. Once per Action, after you gain Focus, fill one Segment. Before you Breathe, you may replace its effect with emptying the Clock, dealing [Spirit/2] damage to a character within 5 range for each Segment emptied. If this damage targets a Slow character, Immobilize them."
+        },
+        {
+          "n": 3,
+          "name": "Shatter",
+          "text": "Your Spirit Finishers can target enemies in 5 range. After you use a Finisher on an Immobilized character, the Narrator must tell you their Health, if their Health is equal to or lower than [Spirit], you knock them out. After you KO a character using \"Shatter\", Slow enemies within 3 spaces of the target."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 100
+      },
+      "id": "ruiner.cryomancer",
+      "previousName": "Cryomancer",
+      "previousArchetypeId": null
+    },
+    {
+      "archetypeId": "ruiner",
+      "name": "Grim Ascendant",
+      "stars": 2,
+      "tags": "Delayed, Spirit, Casts",
+      "flavor": "It started from the extremities furthest from his heart. Beat by beat, Otes lost feeling in his fingers and toes. After legs came his sight, he must rely on his instinct. And finally it enveloped him, a dark blessing, perversion of the natural world, an exploitation of his masters' teachings, and the only chance he had left.",
+      "notes": "Transformation. Can't take with other transformations.",
+      "levels": [
+        {
+          "n": 1,
+          "name": "Impermanent Power",
+          "text": "Once per Scene, after you Charge or Awaken this with at least 2 Tension, you may ‘Transform', gaining 1 AP, pushing all enemies within 2 range 3 spaces away, and losing your Focus and all but 1 Health, converting both into ‘Corruption'. Corruption is an alt Focus that goes \"over\" Focus and Health, being lost and gained in place of both, but can't be reset by other Techniques. While Transformed, your first Cast each Turn is Swift. After you're reduced to 0 Corruption, you lose the Transformation and become Dazed."
+        },
+        {
+          "n": 2,
+          "name": "Drain Life",
+          "text": "After you use a Spirit Finisher while transformed, you may begin ‘Draining' your target, Immobilizing yourself and the target until the start of either of your next Turns. If neither of you take damage before the effect is lost, you gain [Spirit] Focus."
+        },
+        {
+          "n": 3,
+          "name": "Umbra",
+          "text": "After you lose your Transformation, you may use a Spirit Finisher targeting yourself and enemies in a 3x3 Zone centered on yourself. If you're Tier 3 or higher, you may Daze yourself and spend 2 Focus to transform as soon as you deploy regardless of Tension."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 100
+      },
+      "id": "ruiner.grim-ascendant",
+      "previousName": null,
+      "previousArchetypeId": null
+    },
+    {
+      "archetypeId": "ruiner",
+      "name": "Ranger",
+      "stars": 2,
+      "tags": "Weapon, Talent, Movement",
+      "flavor": "Eros, a $20k compound bow custom-made for easy disassembly and shots from a distance upwards of 2000 meters. It boasts a draw of 200 lbs and the ability to pierce military grade armor. It's Mayflower's calling card, and one of the few things that proves they ever existed.",
+      "notes": "",
+      "levels": [
+        {
+          "n": 1,
+          "name": "Nock The Arrow",
+          "text": "Gain a new Action, ‘Prepare'. Prepare costs 1 AP, is Swift, and gives you one ‘Prep'. Once per Turn, Before you Skirmish or Talent Finisher, spend your Prep to gain 2 additional range & Advantage for each Prep spent, up to a maximum of 6 Prep."
+        },
+        {
+          "n": 2,
+          "name": "Feather Step",
+          "text": "After you Prepare, you may move one space so long as you don't move adjacent to an enemy."
+        },
+        {
+          "n": 3,
+          "name": "Lord Piercer [ Prepare × 3 ]",
+          "text": "Gain 1 AP, and your next Skirmish or Finisher this Scene (can't stack) affects all targets in an adjacent Line with a length equal to its range. If said Attack targets a character at the attack's maximum Range or the edge of the board, the attack deals additional damage equal to the Prep spent."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 100
+      },
+      "id": "ruiner.long-draw",
+      "previousName": "Long Draw",
+      "previousArchetypeId": null
+    },
+    {
+      "archetypeId": "ruiner",
+      "name": "Sword Caller",
+      "stars": 2,
+      "tags": "Casts, Spirit, Expensive",
+      "flavor": "The Keepers of Lear had some of the strangest partners. The Faeries rarely take the shape of elves, seeming to prefer hounds and rodents. Their reputation for violence is worse than those animals they imitate.",
+      "notes": "",
+      "levels": [
+        {
+          "n": 1,
+          "name": "A Warrior's Reprise",
+          "text": "Your Casts gain 2 Advantage. Before you Cast without a ‘Sellsword' marker, first create one in a space within [Spirit] range. Your Casts only treat spaces adjacent to your Sellsword as being within range. If you move while you have a Sellsword, you may move them the same distance."
+        },
+        {
+          "n": 2,
+          "name": "Warrior's Fury",
+          "text": "Once per Round, after you gain Focus while you have a Sellsword, you may use move it [Spirit] spaces and ‘Spark' a character adjacent to it 1/2/3/4 times, based on if you gained at least 1/3/6/10 Focus. Sparks deals [Spirit / 2] damage to its target and count as a Swift Cast; other features cannot change a Spark's targeting or damage."
+        },
+        {
+          "n": 3,
+          "name": "Supreme Sellsword",
+          "text": "As you end your Turn, you may spend 6 Focus to replace your Sellsword with a Summoned DPS NPC of your choice at the same Tier as you, placed in the closest unoccupied space. At the start of your next Turn, it returns to being a Sellsword in the same space."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 100
+      },
+      "id": "ruiner.sellsword-s-call",
+      "previousName": "Sellsword's Call",
+      "previousArchetypeId": null
+    },
+    {
+      "archetypeId": "ruiner",
+      "name": "Void Soul",
+      "stars": 2,
+      "tags": "Avoidance, Spirit, Movement",
+      "flavor": "You've been told you're hard to notice, easy to ignore. If only they knew how right they were.",
+      "notes": "",
+      "levels": [
+        {
+          "n": 1,
+          "name": "Return To Nothing",
+          "text": "The first time you Dodge, are Banished, or move to the edge of the board each Round, you can spend 1 Focus to Teleport to another space on the edge of the board."
+        },
+        {
+          "n": 2,
+          "name": "Fade Away",
+          "text": "The spaces on the edge of the board and adjacent to enemies are always valid places to Teleport to or return to from being Disappeared."
+        },
+        {
+          "n": 3,
+          "name": "Hollow Heart",
+          "text": "Begin tracking ‘Void', a 4 Segment Clock that's emptied after every Scene. After you Teleport, become Banished, or Disappear, fill one Void Segment. After you Teleport adjacent to an enemy while the Void Clock is filled, you may empty the clock to ‘Drown' a character adjacent to you, Banishing both of you and letting you Spirit Finisher them at no Cost. You cannot fill the Void Clock on the same Turn you Drown a character."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 101
+      },
+      "id": "ruiner.void-soul",
+      "previousName": null,
+      "previousArchetypeId": null
+    },
+    {
+      "archetypeId": "ruiner",
+      "name": "Thunder Blood",
+      "stars": 2,
+      "tags": "Casts, Movement, Self-Effects",
+      "flavor": "Plenty of kids in this country have spent sleepless nights watching the White Hounds, sparks flying down mountains and trees, descending from the clouds. Inevitably they'll be told by those older and wiser that there's no such thing, and when I was that age I almost listened. Thank god I didn't, the wind against my face is so exhilarating at this height.",
+      "notes": "",
+      "levels": [
+        {
+          "n": 1,
+          "name": "Raiden",
+          "text": "Begin tracking ‘Static', a 6 Segment Clock that's emptied after each Scene. If you roll more Hits on any roll than you have Static Segments, Hasten yourself and fill a Static Segment, or two segments if at least one of those rolls were a Crit. After you fill this clock, empty it, Daze yourself, and Swiftly Cast targeting all enemies within 4 range."
+        },
+        {
+          "n": 2,
+          "name": "Energized Incantation",
+          "text": "After you Cast, you can empty a Static Segment to do one of the following: ‣ Blink: Teleport to a space adjacent to your target. ‣ Shock: Inflict Daze. ‣ Chain: Swiftly Cast a different enemy in 5 range of initial target at no cost (this cannot spend static)."
+        },
+        {
+          "n": 3,
+          "name": "Tactical Discharge",
+          "text": "While you have at least 3 Static, Your Casts Crit on 5s or 6s. If you fill your Static Clock by casting or using a Spirit Finisher, you may Teleport to a space within 4 range before emptying it."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 101
+      },
+      "id": "ruiner.thunder-blood",
+      "previousName": null,
+      "previousArchetypeId": null
+    },
+    {
+      "archetypeId": "ruiner",
+      "name": "Zealot",
+      "stars": 2,
+      "tags": "Cast, Spirit, Self-Effects",
+      "flavor": "The brass has sullied all we hold sacred! The machine is in the garden, and nectar coats its teeth!",
+      "notes": "",
+      "levels": [
+        {
+          "n": 1,
+          "name": "Heretical Devotion",
+          "text": "Begin tracking ‘Insight', a 6 Segment Clock that's emptied after each Scene. Once per Action, after you roll a 1 for any reason, you may spend 1 Focus to fill an Insight Segment. If you Charge, Cast, or Spirit Finisher, you may empty an Insight Segment to have your final Hit count treated as [Spirit + Tier] x 2 minus the number of Hits rolled."
+        },
+        {
+          "n": 2,
+          "name": "Freak",
+          "text": "After you start your Turn with 4 or more Insight Segments filled, you may Strengthen yourself and have every character inflict Fear on you."
+        },
+        {
+          "n": 3,
+          "name": "Never Meant To Be",
+          "text": "If you use a Spirit Finisher with a full Insight Clock, you may empty all the Segments to have it target two intersecting ∞ length lines anywhere on the board. All targets are moved one space off of the line in a direction of your choice and all spaces on the line are removed from the game, destroying any Obstacle on them or connected to them. If a character would enter one of these spaces, they are instead Teleported to the closest space on the opposite side of the Line."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 101
+      },
+      "id": "ruiner.zealot",
+      "previousName": null,
+      "previousArchetypeId": null
+    },
+    {
+      "archetypeId": "ruiner",
+      "name": "Creator",
+      "stars": 3,
+      "tags": "Breathing, Spirit, Attacks",
+      "flavor": "This city is a heretical idol, incomplete, unstable, and fallen to vice. My men and I have tried to negotiate its salvation, but these creatures seem unable to save themselves. Be thankful we are so graceful.",
+      "notes": "Alt Resource. Can't take with other alt resources.",
+      "levels": [
+        {
+          "n": 1,
+          "name": "Forming Signs",
+          "text": "You now use ‘Material' instead of Focus. You start all Scenes with no Material. You can only gain Material using Breathe and Charge. If you make an attack with any amount of Material, you must spend all of them and gain an effect based on the number spent and the Attack used. 1-2 & Cast: Crossing Nails: Target two adjacent 3 space Lines where at least 1 space of each overlaps. 3+ & Cast: Impossible Mallet: Target every enemy exactly 1, 2, 3, 4, or 5 spaces away from you (choose one), dealing additional damage equal to this number and making the spaces low ground. 1-2 & Finisher: Celestial Pile-Arm: Gain 2 Advantage. Your target is pushed as far as possible, and receives one damage for every space pushed 3+ & Finisher: Living Idol Gain 4 Advantage. Target up to 6 spaces adjacent to each other where one is adjacent to you, these spaces become high ground."
+        },
+        {
+          "n": 2,
+          "name": "One True World",
+          "text": "Your first Breath you use on your turn is Swift. Your Charge has its cost reduced to 1. After you deal damage to or destroy an Obstacle you gain a Material."
+        },
+        {
+          "n": 3,
+          "name": "Labor Of The Devout [ Cast → Finisher ]",
+          "text": "This Finisher counts as having spent an equal amount of Material as the Cast used before it."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 102
+      },
+      "id": "ruiner.creation-ascetic",
+      "previousName": "Creation Ascetic",
+      "previousArchetypeId": null
+    },
+    {
+      "archetypeId": "ruiner",
+      "name": "Ego Arm",
+      "stars": 3,
+      "tags": "Spirit, Finishers, AOE",
+      "flavor": "Two minds as one, united in a pursuit of glory.",
+      "notes": "",
+      "levels": [
+        {
+          "n": 1,
+          "name": "I Am Your Sword",
+          "text": "After Deploying or Breathing you may target an adjacent willing ally and ‘Equip' to them, making them your ‘Wielder'. While Transformed you take up your Wielder's space, you can use their attributes for rolls, you don't count as a target, and you can't move. If your Wielder takes a Wound you do too. Either of you can split at the start of your Turns, placing you in an unoccupied adjacent space."
+        },
+        {
+          "n": 2,
+          "name": "Show Your Targets",
+          "text": "You may move on your Turn while Equipped, moving your Wielder with you."
+        },
+        {
+          "n": 3,
+          "name": "And I'll Become Irreplaceable",
+          "text": "After you Equip, determine you and your wielder's highest combined Attribute (choosing between ties), and give both of you a feature based on what it is; Body: Heavy Arm: Before targeting with Finishers, move up to 3 spaces in a Line, dealing [Partner's Body] damage to enemies you move adjacent to. Talent: Bladed Arm: When moving, you ignore enemies and gain [Partner's Talent] Evasion if you moved through at least one enemy. Spirit: Ranged Arm: Your Finishers can target characters up to [Partner's Spirit] spaces away. When they target one character at that range exactly, they also deal [Your Spirit] additional damage. Mind: Complex Arm: At the end of your Turn Mark all enemies you attacked. After you attack a Marked enemy, gain [Partner's Mind] Focus."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 102
+      },
+      "id": "ruiner.ego-arm",
+      "previousName": null,
+      "previousArchetypeId": null
+    }
+  ]
+}

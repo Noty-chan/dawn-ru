@@ -5,15 +5,20 @@
 
 - Старая редакция: `dawn-en-9ce6d8d6` (107 Техник).
 - Новая редакция: `dawn-en-lionwing-cb2f8e67` (111 Техник).
-- Сопоставлено по стабильным ID: 96.
-- Кандидаты добавлений: 15; удалений: 11; переименований/переносов: 13.
+- Сопоставлено по стабильным ID: 106.
+- Кандидаты добавлений: 5; удалений: 1; переименований/переносов: 23.
 
 ## Переименования и переносы
 
 | Stable ID | Было | Стало | Архетип | Страница новой PDF |
 |---|---|---|---|---:|
 | `powerhouse.monastic-sage` | Monastic Sage | Monastic Warrior | powerhouse → powerhouse | 72 |
+| `vagabond.dim-mak` | Dim Mak | Detective | vagabond → vagabond | 79 |
+| `bulwark.runic-retribution` | Runic Retribution | Mollycoddler | bulwark → bulwark | 82 |
 | `bulwark.beastial-ascendant` | Beastial Ascendant | Bestial Ascendant | bulwark → bulwark | 84 |
+| `bulwark.guardian-angel` | Guardian Angel | Guard Caller | bulwark → bulwark | 84 |
+| `altruist.precognizant` | Precognizant | Analyst | altruist → altruist | 86 |
+| `altruist.heavenly-saint` | Heavenly Saint | Compassionate Sage | altruist → altruist | 86 |
 | `disruptor.tactical-master` | Tactical Master | Tactical Master | disruptor → altruist | 87 |
 | `altruist.talisman-caster` | Talisman Caster | Talisman Exorcist | altruist → altruist | 87 |
 | `altruist.chronomancer` | Chronomancer | Temporal Sage | altruist → altruist | 89 |
@@ -21,9 +26,14 @@
 | `disruptor.inhuman-strength` | Inhuman Strength | Strongman | disruptor → disruptor | 94 |
 | `disruptor.swarm-body` | Swarm Body | SwarmKin | disruptor → disruptor | 94 |
 | `disruptor.hunter` | Hunter | Poacher | disruptor → disruptor | 96 |
+| `disruptor.mage-s-array` | Mage's Array | Jailor | disruptor → disruptor | 96 |
+| `disruptor.inner-world` | Inner World | Worldsmith | disruptor → disruptor | 96 |
+| `ruiner.rapid-fire-sorcery` | Rapid-Fire Sorcery | Eradicator | ruiner → ruiner | 98 |
+| `ruiner.mana-blades` | Mana Blades | Blade Smith | ruiner → ruiner | 99 |
 | `ruiner.feral-arcana` | Feral Arcana | Feral Arcanist | ruiner → ruiner | 99 |
 | `ruiner.cryomancer` | Cryomancer | Frost Veiler | ruiner → ruiner | 100 |
 | `ruiner.long-draw` | Long Draw | Ranger | ruiner → ruiner | 100 |
+| `ruiner.sellsword-s-call` | Sellsword's Call | Sword Caller | ruiner → ruiner | 100 |
 | `ruiner.creation-ascetic` | Creation Ascetic | Creator | ruiner → ruiner | 102 |
 
 ## Новые Техники-кандидаты
@@ -33,34 +43,14 @@
 | `powerhouse.intimidator` | Intimidator | powerhouse | 71 |
 | `powerhouse.heroic-ascendant` | Heroic Ascendant | powerhouse | 73 |
 | `vagabond.weaponsmith` | Weaponsmith | vagabond | 78 |
-| `vagabond.detective` | Detective | vagabond | 79 |
-| `bulwark.mollycoddler` | Mollycoddler | bulwark | 82 |
-| `bulwark.guard-caller` | Guard Caller | bulwark | 84 |
-| `altruist.analyst` | Analyst | altruist | 86 |
-| `altruist.compassionate-sage` | Compassionate Sage | altruist | 86 |
 | `altruist.abjuring-sage` | Abjuring Sage | altruist | 88 |
 | `disruptor.light-bender` | Light Bender | disruptor | 93 |
-| `disruptor.jailor` | Jailor | disruptor | 96 |
-| `disruptor.worldsmith` | Worldsmith | disruptor | 96 |
-| `ruiner.eradicator` | Eradicator | ruiner | 98 |
-| `ruiner.blade-smith` | Blade Smith | ruiner | 99 |
-| `ruiner.sword-caller` | Sword Caller | ruiner | 100 |
 
 ## Отсутствующие в LionWing кандидаты
 
 | Stable ID | Старое название | Архетип |
 |---|---|---|
-| `altruist.heavenly-saint` | Heavenly Saint | altruist |
-| `altruist.precognizant` | Precognizant | altruist |
-| `bulwark.guardian-angel` | Guardian Angel | bulwark |
-| `bulwark.runic-retribution` | Runic Retribution | bulwark |
 | `bulwark.servant-s-call` | Servant's Call | bulwark |
-| `disruptor.inner-world` | Inner World | disruptor |
-| `disruptor.mage-s-array` | Mage's Array | disruptor |
-| `ruiner.mana-blades` | Mana Blades | ruiner |
-| `ruiner.rapid-fire-sorcery` | Rapid-Fire Sorcery | ruiner |
-| `ruiner.sellsword-s-call` | Sellsword's Call | ruiner |
-| `vagabond.dim-mak` | Dim Mak | vagabond |
 
 ## Механическая карта страниц всей книги
 
