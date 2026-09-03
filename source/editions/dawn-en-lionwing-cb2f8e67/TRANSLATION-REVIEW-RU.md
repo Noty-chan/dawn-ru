@@ -35,6 +35,11 @@
 | `altruist.talisman-caster` | Talisman Caster | Talisman Exorcist | Заклинатель талисманов |
 | `altruist.chronomancer` | Chronomancer | Temporal Sage | Хрономант |
 | `altruist.bardic-savant` | Bardic Savant | Virtuoso | Виртуоз |
+| `disruptor.inhuman-strength` | Inhuman Strength | Strongman | Здоровяк |
+| `disruptor.swarm-body` | Swarm Body | SwarmKin | Родич роя |
+| `disruptor.hunter` | Hunter | Poacher | Браконьер |
+| `disruptor.mage-s-array` | Mage's Array | Jailor | Тюремщик |
+| `disruptor.inner-world` | Inner World | Worldsmith | Кузнец миров |
 
 ## Требует следующего редакторского решения
 
@@ -48,4 +53,4 @@
 
 ## Ещё не перенесено
 
-Криомант / `Frost Veiler`, Сирена, Мрачный Вознесённый и Охотник / `Poacher` уже отмечены как изменённые каноном, но их новый русский текст появится в пакетах Подрывника и Разрушителя.
+Криомант / `Frost Veiler` и Мрачный Вознесённый уже отмечены как изменённые каноном, но их новый русский текст появится в пакете Разрушителя. Сирена и Браконьер перенесены в пакете Подрывника.
