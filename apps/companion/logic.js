@@ -19,6 +19,15 @@
     };
   }
 
+  function calculateDerivedStatistics({ edition = "ru-v0.9", tier = 1, body = 2, talent = 2, spirit = 2 } = {}) {
+    const currentTier = clamp(tier, 1, 6);
+    const currentBody = clamp(body, 0, 99);
+    const currentTalent = clamp(talent, 0, 99);
+    const currentSpirit = clamp(spirit, 0, 99);
+    if (edition === "lionwing") return { hp: 10 + currentBody + currentTier * 2, guts: null, speed: 2 + Math.ceil(currentTalent / 2), focus: 1 + Math.ceil(currentSpirit / 2) };
+    return { hp: currentBody * 2 + currentTier * 2, guts: 1 + currentBody, speed: 2 + Math.ceil(currentTalent / 2), focus: 1 + Math.ceil(currentSpirit / 2) };
+  }
+
   function calculateCreationBudgets({
     tier = 1,
     gifts = [],
@@ -249,5 +258,5 @@
     };
   }
 
-  global.DAWN_LOGIC = { areaCells, calculateAbilityCost, calculateCreationBudgets, calculateRankSpend, challengeOutcome, clamp, freeplayBondAdvantage, normalizeAttributeBases, normalizeAttributeGrowth, reconcileHealthRuntime, reconcileSceneActorHealth, resolveSelectedGifts, rollXd6, scaleTierFormula, swapAttributeBase };
+  global.DAWN_LOGIC = { areaCells, calculateAbilityCost, calculateCreationBudgets, calculateDerivedStatistics, calculateRankSpend, challengeOutcome, clamp, freeplayBondAdvantage, normalizeAttributeBases, normalizeAttributeGrowth, reconcileHealthRuntime, reconcileSceneActorHealth, resolveSelectedGifts, rollXd6, scaleTierFormula, swapAttributeBase };
 })(typeof window === "object" ? window : globalThis);

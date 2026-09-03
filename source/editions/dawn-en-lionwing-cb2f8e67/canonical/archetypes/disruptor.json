@@ -1,0 +1,599 @@
+{
+  "id": "disruptor",
+  "name": "Disruptor",
+  "techniques": [
+    {
+      "archetypeId": "disruptor",
+      "name": "Bloodletter",
+      "stars": 1,
+      "tags": "Weapon, Talent, Effects",
+      "flavor": "I don't kill people, doctor. What I do is much worse.",
+      "notes": "",
+      "levels": [
+        {
+          "n": 1,
+          "name": "Bleeding Edge",
+          "text": "Your successful Skirmishes and Talent Finishers Blight the target(s)."
+        },
+        {
+          "n": 2,
+          "name": "Bloodhound",
+          "text": "Your Skirmishes gain 1 Advantage. When a non-adjacent enemy takes damage from Blight, move up to 3 spaces. If it brings you adjacent, you may remove the Blight to Swift Skirmish them at no cost."
+        },
+        {
+          "n": 3,
+          "name": "Rupture [ Skirmish → Breathe ]",
+          "text": "If the Skirmish's target was Blighted, roll Talent and trigger the effect of Blight [Hits] times."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "locale": "en",
+        "pdfPage": 92
+      },
+      "id": "disruptor.bloodletter",
+      "previousName": null,
+      "previousArchetypeId": null
+    },
+    {
+      "archetypeId": "disruptor",
+      "name": "Chemist",
+      "stars": 1,
+      "tags": "Terrain, Mind, Effects",
+      "flavor": "Now there's a smell you can feel!",
+      "notes": "",
+      "levels": [
+        {
+          "n": 1,
+          "name": "Sublimation",
+          "text": "Your Improvises have their Cost set to 1 and can create an Obstacle up to 4 spaces away. When resolving an action targeting an Obstacle, you may destroy it to create a 3×3 Zone of ‘Gas' centered on its space that disappears at the start of your next Turn. When an enemy enters Gas, they are Weakened. Allies in the Gas gain 3 Evasion when they're the target of an Attack coming from outside the Gas."
+        },
+        {
+          "n": 2,
+          "name": "Experimental Mixture",
+          "text": "After you Weaken a character, you may ask the Narrator what its current Health is. If its at or below [Mind], that character is Knocked Out and you gain 2 Focus."
+        },
+        {
+          "n": 3,
+          "name": "Deposition",
+          "text": "After you create a Gas Zone, deal [Mind] damage to all enemies in the spaces it covers. After you Knock Out an enemy with \"Experimental Mixture\", create a 3x3 Gas Zone centered on them."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "locale": "en",
+        "pdfPage": 92
+      },
+      "id": "disruptor.chemist",
+      "previousName": null,
+      "previousArchetypeId": null
+    },
+    {
+      "archetypeId": "disruptor",
+      "name": "Constrictor",
+      "stars": 1,
+      "tags": "Weapon, Body/Talent, Restricting",
+      "flavor": "Whips, garrotes, nooses, you'd be surprised how many people are killed with glorified string.",
+      "notes": "",
+      "levels": [
+        {
+          "n": 1,
+          "name": "Wrap",
+          "text": "Your Successful Skirmishes with 1 target Snare the target. At the end of your Turn, you can move all characters you've Snared up to 5 spaces. You do not need to pull characters you've Snared after you move."
+        },
+        {
+          "n": 2,
+          "name": "Choke",
+          "text": "Your Body and Talent finishers can always target characters you've snared. Your Finishers deal [Tier] additional damage to Snared characters."
+        },
+        {
+          "n": 3,
+          "name": "Twisting Impact",
+          "text": "Your Skirmishes gain 1 Advantage. When \"Wrap\" moves a character into adjacency with other characters, they each receive [Talent/2] damage."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "locale": "en",
+        "pdfPage": 92
+      },
+      "id": "disruptor.constrictor",
+      "previousName": null,
+      "previousArchetypeId": null
+    },
+    {
+      "archetypeId": "disruptor",
+      "name": "Cutpurse",
+      "stars": 1,
+      "tags": "Movement, Talent, Effects",
+      "flavor": "It's an easy job. In and out. Bump into Āl-Amir just after sunset and slip your hand into his pouch. Be sure to apologize when he takes notice, and offer something by way of apology. Be polite, and he might not notice a missing satchel bag, or a knife in the back.",
+      "notes": "",
+      "levels": [
+        {
+          "n": 1,
+          "name": "Fast Hands",
+          "text": "Once per character per turn, after you leave adjacency with an enemy on your Turn, you may end your movement to do one of the following that you haven't already used this Turn. ‣ Disarm: Weaken them. ‣ Trip: Slow them. ‣ Steal: Gain 2 Focus."
+        },
+        {
+          "n": 2,
+          "name": "Snatch",
+          "text": "After you inflict certain Negative Effects on an enemy, you may gain its positive version. The Effects this applies to are as follows. ‣ Blight: Regenerate. ‣ Slow / Snare: Hasten. ‣ Shred: Reinforce. ‣ Weaken: Strengthen."
+        },
+        {
+          "n": 3,
+          "name": "Rob Them Blind",
+          "text": "If you used Hide on your Turn, you can use \"Fast Hands\" without ending your movement. Once per Scene, if you leave all spaces adjacent to the same character, you may Blight, Slow, Shed, Weaken, and deal [Tension] damage to them."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "locale": "en",
+        "pdfPage": 93
+      },
+      "id": "disruptor.cutpurse",
+      "previousName": null,
+      "previousArchetypeId": null
+    },
+    {
+      "archetypeId": "disruptor",
+      "name": "Light Bender",
+      "stars": 1,
+      "tags": "Casts, Spirit, Effects",
+      "flavor": "For hundreds of years the idea of keeping a ‘light' or ‘solar' faerie was seen as a fruitless pursuit. Not only was it not known if they truly existed, all theories came to the conclusion that such an elusive being could not be tamed by someone who had not made a faerie pact already. It's no wonder the first known keeper to achieve such a feat has performed so well among their peers.",
+      "notes": "",
+      "levels": [
+        {
+          "n": 1,
+          "name": "Blendendes Licht",
+          "text": "Your Casts and Spirit Finishers that Crit weaken one of their targets for each Crit rolled."
+        },
+        {
+          "n": 2,
+          "name": "Sonneneruption",
+          "text": "Your Spirit Finishers affect all targets in a 2x3 Zone centered on you, without targeting you (I.e. in the shape of a \"C\" around you), and Crit on rolls of 5 or 6 if at least one of the targets has a Negative Effect."
+        },
+        {
+          "n": 3,
+          "name": "Falscher Stern",
+          "text": "Once per Scene after you charge with at least 2 Tension, you may replace its effect with drawing a full 4 Segment ‘Solar' Clock, and placing a ‘Falscher Stern' marker within 4 range. At the end of your Turn or when an enemy moves out of adjacency with the marker, if you have a Solar Clock, empty one segment and Swiftly Cast at no Cost, targeting all enemies in a 3x3 Zone centered on the Falscher Stern. If it was the last segment use a Spirit Finisher instead, removing the marker and the Clock."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "locale": "en",
+        "pdfPage": 93
+      },
+      "id": "disruptor.light-bender",
+      "introducedIn": "dawn-en-lionwing-cb2f8e67"
+    },
+    {
+      "archetypeId": "disruptor",
+      "name": "Reaper",
+      "stars": 1,
+      "tags": "Weapon, Effects, Displacement",
+      "flavor": "The people of the Gardens knew well to put out their offerings at solstice. For as the days grew long, the Harvesters of Krouses would make pilgrimage, seeking homes lacking piety to become their bloody crop.",
+      "notes": "",
+      "levels": [
+        {
+          "n": 1,
+          "name": "Sow",
+          "text": "After you Skirmish one Character, you may Teleport them to another space adjacent to you. The first time you use this each Turn, you Mark your target."
+        },
+        {
+          "n": 2,
+          "name": "Tend",
+          "text": "Enemies in 3 range don't lose Marked when they're hit (they still only trigger once per Turn)."
+        },
+        {
+          "n": 3,
+          "name": "Reap",
+          "text": "If you start your Turn in 5 range of a Marked enemy, you may spend 2 Focus to Teleport to a space adjacent to them and use a Finisher on them at no cost. If you are then in 5 spaces of another Marked enemy, you may repeat this effect at a Focus cost of 1, using a Swift Skirmish instead of a Finisher. This cannot target the same enemy more than once per Turn."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "locale": "en",
+        "pdfPage": 93
+      },
+      "id": "disruptor.reaper",
+      "previousName": null,
+      "previousArchetypeId": null
+    },
+    {
+      "archetypeId": "disruptor",
+      "name": "Street Fighter",
+      "stars": 1,
+      "tags": "Skirmishes, Body, Effects",
+      "flavor": "Who's lookin' to scrap?!",
+      "notes": "",
+      "levels": [
+        {
+          "n": 1,
+          "name": "Bloody Brass",
+          "text": "After you Shove a character, Daze them."
+        },
+        {
+          "n": 2,
+          "name": "Break And Bruise",
+          "text": "If you Skirmish a Dazed character without using a Technique with the Weapon Tag, it has Advantage equal to the number of different Effects on your target."
+        },
+        {
+          "n": 3,
+          "name": "Brutalize",
+          "text": "You may now trigger \"Break And Bruise\" when targeting Dazed enemies with Body Finishers. The Finishers convert all Advantage from it into additional damage, in addition to Immobilizing and Snaring their target(s) after damage is dealt."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "locale": "en",
+        "pdfPage": 93
+      },
+      "id": "disruptor.street-fighter",
+      "previousName": null,
+      "previousArchetypeId": null
+    },
+    {
+      "archetypeId": "disruptor",
+      "name": "Autophage",
+      "stars": 2,
+      "tags": "Attacks, Body/Spirit, Effects",
+      "flavor": "The Students of Mardrus were widely renowned in their day, creating the doctoring profession as we know it. Such a shame their achievements were overshadowed by the human cost of their work.",
+      "notes": "Alt Resource. Can't take with other alt resources.",
+      "levels": [
+        {
+          "n": 1,
+          "name": "Transfusion",
+          "text": "You no longer use Focus. Any increases to your starting Focus increases your max Health instead. If you would spend, or lose Focus, use 2 Health per Focus instead, if you would gain Focus gain an equal amount of Health instead, any of this healing that would be prevented reduces the Focus cost of your next Finisher by the same amount. After you Attack a character with two or more different Effects, begin Regenerating."
+        },
+        {
+          "n": 2,
+          "name": "Overexert",
+          "text": "After you Attack, you may take 5 damage to roll a D6. Apply an Effect to your target based on the result of the roll. If you have 5 or less Health, you may use this without taking damage. 1-2: Blight 3-4: Daze. 5-6: Immobilize."
+        },
+        {
+          "n": 3,
+          "name": "Born Of Mutable Flesh",
+          "text": "Once per Scene, after you use a Spirit / Body Finisher, you may trigger \"Overexert\" twice and change the Finisher's targeting to all enemies with more Health than you."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "locale": "en",
+        "pdfPage": 94
+      },
+      "id": "disruptor.autophage",
+      "previousName": null,
+      "previousArchetypeId": null
+    },
+    {
+      "archetypeId": "disruptor",
+      "name": "Earth Speaker",
+      "stars": 2,
+      "tags": "Casts, Spirit, Terrain",
+      "flavor": "I don't think you understand the gravity of that move. You lost the moment you touched the ground.",
+      "notes": "",
+      "levels": [
+        {
+          "n": 1,
+          "name": "Stone Soldiers",
+          "text": "As you Cast or use a Spirit Finisher, you may move an Obstacle adjacent to you into a space adjacent to your target. Doing so destroys the Obstacle after the Attack. If there are no Obstacles within 3 spaces of you when you deploy you may create up to 2 of them with 10 health adjacent to you."
+        },
+        {
+          "n": 2,
+          "name": "Tectonic Shift",
+          "text": "After you move another character or an Obstacle you didn't create, you create an Obstacle with 10 Health in the space it left. Using Stone soldiers gives the triggering attack 3 Advantage."
+        },
+        {
+          "n": 3,
+          "name": "Earthen Shards",
+          "text": "After you destroy or move an Obstacle, you may deal [Spirit] damage to an enemy adjacent to its new or previous position. Each enemy can only be damaged by this effect once per Turn."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "locale": "en",
+        "pdfPage": 94
+      },
+      "id": "disruptor.earth-speaker",
+      "previousName": null,
+      "previousArchetypeId": null
+    },
+    {
+      "archetypeId": "disruptor",
+      "name": "Strongman",
+      "stars": 2,
+      "tags": "Body, Displacement, Terrain",
+      "flavor": "Mom always said the best way to move people is with words, but picking up that bus seemed much faster.",
+      "notes": "",
+      "levels": [
+        {
+          "n": 1,
+          "name": "Strong-Arm",
+          "text": "If you Shove, you may move your target up to 5 spaces in a Line instead of 1 space, pushing any characters it would move through to the nearest possible unoccupied space. If you push them adjacent to an opponent, you may Launch all characters involved. You may target Obstacles with your Shoves."
+        },
+        {
+          "n": 2,
+          "name": "Piston Fist",
+          "text": "After you Skirmish or Body Finisher a character, you may push them [Body - Target's Armor] spaces."
+        },
+        {
+          "n": 3,
+          "name": "Smash Through",
+          "text": "After you move a character into adjacency with an Obstacle, both take [Body] damage. If the Obstacle is destroyed, the character is pushed for another 3 spaces. This additional movement can only be triggered once per move."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "locale": "en",
+        "pdfPage": 94
+      },
+      "id": "disruptor.inhuman-strength",
+      "previousName": "Inhuman Strength",
+      "previousArchetypeId": null
+    },
+    {
+      "archetypeId": "disruptor",
+      "name": "SwarmKin",
+      "stars": 2,
+      "tags": "Restricting, Tanking",
+      "flavor": "I could see them wriggling under his coat, and the glare through his glasses didn't help me feel safer. They tried to explain the mission to me but I could barely pay attention. There were times where… something crawled across the ground out of sight, and the conversation would suddenly stop. Getting shivers thinking about it...",
+      "notes": "",
+      "levels": [
+        {
+          "n": 1,
+          "name": "Fluttering Form",
+          "text": "After you end your Turn or are the target of an Attack, you may spend 1 Focus to release a \"Swarm\" in either your space or the attacker's. Swarms are a unique Field. They stop enemies who move into them like Difficult Terrain, deal [Tier] damage to enemies who move into or start their Turn in the Field, and can be attacked and destroyed as if they were Obstacles with 1 Health. After you start your Turn, you may move each of your Swarms up to 3 spaces."
+        },
+        {
+          "n": 2,
+          "name": "Vanish Into Flies",
+          "text": "After you Disappear you may also create 3 Swarms within 2 spaces of the space you left."
+        },
+        {
+          "n": 3,
+          "name": "Devour",
+          "text": "When an enemy would take damage from a Swarm while two or more other Swarms are within 2 spaces of the enemy, you may remove those additional Swarms from the board to Blight the enemy who took damage and deal [Tier x 2] damage to them."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "locale": "en",
+        "pdfPage": 94
+      },
+      "id": "disruptor.swarm-body",
+      "previousName": "Swarm Body",
+      "previousArchetypeId": null
+    },
+    {
+      "archetypeId": "disruptor",
+      "name": "Siren",
+      "stars": 2,
+      "tags": "Investigate, Effects, Avoidance",
+      "flavor": "Lure and tempt. Free them all of their inhibitions. Show them that the world holds better things for both you and them, before you rip it all away.",
+      "notes": "",
+      "levels": [
+        {
+          "n": 1,
+          "name": "\"You wouldn't hurt ME, would you?\"",
+          "text": "Gain 3 Focus at the start of each Scene. After you Investigate an enemy, you may spend 1 Focus to Fear them."
+        },
+        {
+          "n": 2,
+          "name": "\"I'm Irresistible!\"",
+          "text": "Once per Turn, after you Fear a character, you may force them to move up to 3 spaces towards you. If they move into adjacency with you, you may Daze them and gain 1 Focus."
+        },
+        {
+          "n": 3,
+          "name": "\"A little help over here?\"",
+          "text": "After you Spirit or Mind Finisher a character, you may have all enemies affected by Fear move their Speed towards your target and deal [Tier] damage to them if they're adjacent."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "locale": "en",
+        "pdfPage": 95
+      },
+      "id": "disruptor.siren",
+      "previousName": null,
+      "previousArchetypeId": null
+    },
+    {
+      "archetypeId": "disruptor",
+      "name": "Wave Rider",
+      "stars": 2,
+      "tags": "Casts, Displacement, Movement",
+      "flavor": "Yvon was never known for much. Didn't make a fuss, didn't make enemies, and didn't make a name for himself. Yet there were places where his name was whispered in reverence. Old knights told tales of the boy most free. Never lingering, he appeared silently and passed through crowds like flowing water. Never chained down. No kings, no clients, no masters. Sometimes this reputation bothered him, he felt life could do with a little more attachment.",
+      "notes": "",
+      "levels": [
+        {
+          "n": 1,
+          "name": "Gentle Waves",
+          "text": "Your Casts that target one empty space are always Swift, and the first Cast you use on your Turn that fits this condition has no Cost. After you target an empty space with a Cast or Spirit Finisher, you may place a ‘Wave Seal' in that space, up to a maximum of 4 + [Tier] Wave Seals placed at a time. When a character (allies must be willing) start their Turn in or move into a space with a Wave Seal, you may remove it to do one of the following: ‣ Move them up to 2 spaces in a Line. ‣ Launch them."
+        },
+        {
+          "n": 2,
+          "name": "Momentous Waves",
+          "text": "After you move yourself or an ally with the effect of a Technique, the character who was moved deals 1 additional damage on their next Attack on their Turn, up to a max of [Spirit]."
+        },
+        {
+          "n": 3,
+          "name": "Aqua Cage",
+          "text": "If an enemy has a Wave Seal in each of their adjacent spaces, you may remove those Seals to Launch, Daze, and Immobilize them. Each enemy can only be affected by this once per Scene."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "locale": "en",
+        "pdfPage": 95
+      },
+      "id": "disruptor.wave-rider",
+      "previousName": null,
+      "previousArchetypeId": null
+    },
+    {
+      "archetypeId": "disruptor",
+      "name": "Mind Breaker",
+      "stars": 2,
+      "tags": "Cast, Mind, Restricting",
+      "flavor": "Day Four: I still haven't seen any of my fellow keepers. It seems we've all fallen to the same curse. This fog goes on forever, and strange beasts accost me at every turn. My supplies are running low. I can only hope they're edible.",
+      "notes": "",
+      "levels": [
+        {
+          "n": 1,
+          "name": "\"Where Are You?\"",
+          "text": "When you Cast on your turn, you may have it deal no damage to one target, making them ‘think' they're Banished instead. Characters who think they're banished treat themselves as Banished on their turn until they take damage from a player."
+        },
+        {
+          "n": 2,
+          "name": "\"Where Am I?\"",
+          "text": "Your first Cast each Turn that uses \"Where Are You?\" is Swift. If you have two or more enemies Banished or who think they're Banished at the end of your Turn, you may move each of them [Mind] spaces. If two or more of them move adjacent to each other, you may force each of them to attack another adjacent enemy, dealing 2 + [their Tier] damage."
+        },
+        {
+          "n": 3,
+          "name": "\"Who Are They?\"",
+          "text": "If an enemy starts their Turn and all enemies are Banished or think they're Banished, create two ‘Dark Illusions'. Dark Illusions are NPCS that are always Banished, cannot be targets, and cannot be damaged, cannot take Turns, and are at your Tier. They count as enemies for using \"Where Am I?\"."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "locale": "en",
+        "pdfPage": 95
+      },
+      "id": "disruptor.mind-breaker",
+      "previousName": null,
+      "previousArchetypeId": null
+    },
+    {
+      "archetypeId": "disruptor",
+      "name": "Gale Strider",
+      "stars": 3,
+      "tags": "Casts, Spirit, Displacement",
+      "flavor": "Feel my bite, my roar, and my racing heart.",
+      "notes": "",
+      "levels": [
+        {
+          "n": 1,
+          "name": "Growing Winds",
+          "text": "After you Cast targeting an unoccupied space or Jump, you may place a ‘Typhoon' that covers the target space / space you left, and all spaces adjacent to it, replacing all other Typhoons you've created. When a character ends their Turn in a Typhoon, you may push all characters in the Typhoon 1 space in the same direction."
+        },
+        {
+          "n": 2,
+          "name": "Updraft",
+          "text": "After you end your Turn you may move any Typhoons 3 spaces in a Line. Any characters who enter the Typhoon through this movement are pushed 1 space in the direction it is moving and are Launched if they are an enemy."
+        },
+        {
+          "n": 3,
+          "name": "Mountain Carver",
+          "text": "\"Growing Winds\" and \"Updraft\" can now move Obstacles as well as characters. If you move an Obstacle outside of a Typhoon, you may have it continue its movement until it moves adjacent to a character, dealing [Tier] damage to that character. If an Obstacle is moved to the edge of the board through this feature, it is destroyed."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "locale": "en",
+        "pdfPage": 96
+      },
+      "id": "disruptor.gale-strider",
+      "previousName": null,
+      "previousArchetypeId": null
+    },
+    {
+      "archetypeId": "disruptor",
+      "name": "Poacher",
+      "stars": 3,
+      "tags": "Skirmish, Mind, Displacement",
+      "flavor": "Just… one… more… step…",
+      "notes": "",
+      "levels": [
+        {
+          "n": 1,
+          "name": "Steel Jaws",
+          "text": "Your Skirmishes that target only empty spaces, are Swift. After you target only an empty space with a Skirmish or Mind Finisher, you may place a ‘Small Trap' in that space. When an enemy moves over a Small Trap, their movement is stopped, they're Slowed, and you may swiftly Skirmish them regardless of range at no Cost. Doing this removes the Trap."
+        },
+        {
+          "n": 2,
+          "name": "Far Setting",
+          "text": "Your Skirmishes that do not target characters have an additional 3 range. Your Skirmishes that come from \"Steel Jaws\" Immobilize your target."
+        },
+        {
+          "n": 3,
+          "name": "Pit Trap",
+          "text": "If you set a 2x2 area of Small Traps, you may convert them into a \"Pit Trap\", changing the area into Low Terrain and combining the 4 traps into one \"Giant Trap\". Giant Traps function identically to Small Traps except they let you use a Mind Finisher on the target instead of a Skirmish."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "locale": "en",
+        "pdfPage": 96
+      },
+      "id": "disruptor.hunter",
+      "previousName": "Hunter",
+      "previousArchetypeId": null
+    },
+    {
+      "archetypeId": "disruptor",
+      "name": "Jailor",
+      "stars": 3,
+      "tags": "Breathing, Spirit, Restricting",
+      "flavor": "Look at where you're standing. Perhaps it's more accurate to say you \"were\" winning. In the afterlife, practice your situational awareness.",
+      "notes": "",
+      "levels": [
+        {
+          "n": 1,
+          "name": "Erect",
+          "text": "After you Breathe, you may place a ‘Pillar', a unique kind of \"High Ground\", on a space within 4 range. After you Charge, you may attempt to connect 3 or more Pillars you've placed with Lines to form a polygon, and then Spirit or Mind Finisher targeting all enemies in this polygon (including those on its lines) at no cost. This removes the Pillars."
+        },
+        {
+          "n": 2,
+          "name": "Readjust",
+          "text": "Before connecting the lines when using \"Erect\", you may Teleport any/all of your Pillars up to 3 spaces in any direction."
+        },
+        {
+          "n": 3,
+          "name": "Prison Of Your Own Design",
+          "text": "After you use the Charge portion of \"Erect\", you may leave the lines on the board until you next use it. The spaces these Lines cover are Difficult Terrain for opponents."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "locale": "en",
+        "pdfPage": 96
+      },
+      "id": "disruptor.mage-s-array",
+      "previousName": "Mage's Array",
+      "previousArchetypeId": null
+    },
+    {
+      "archetypeId": "disruptor",
+      "name": "Worldsmith",
+      "stars": 3,
+      "tags": "Effects, Spirit, Restricting",
+      "flavor": "It's a bit dirty out here for a fight don't you think? Let's take this somewhere a little more… orderly.",
+      "notes": "",
+      "levels": [
+        {
+          "n": 1,
+          "name": "Gaze Deeply",
+          "text": "Before you Charge, you may forgo the Focus you would gain to Immobilize an enemy in a range equal to the Focus you would have gained."
+        },
+        {
+          "n": 2,
+          "name": "Domain Of Control",
+          "text": "Once per Scene, after you inflict an Effect, to a character you may Teleport them and yourself to any space in your ‘Inner World', a separate 3x3 board that no other characters have access to. Once you K.O. them or they deal a Wound to you, you Teleport all living characters in your Inner World to a space on the edge of the normal board."
+        },
+        {
+          "n": 3,
+          "name": "Home Turf",
+          "text": "While in your Inner World, you gain [Tier] Advantage on all attacks and Duels (this feature carries over to the Duel despite it not being combat). \"Domain Of Control\" is now [Spirit] times per Scene instead of once per Scene."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "locale": "en",
+        "pdfPage": 96
+      },
+      "id": "disruptor.inner-world",
+      "previousName": "Inner World",
+      "previousArchetypeId": null
+    }
+  ]
+}

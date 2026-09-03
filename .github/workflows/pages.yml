@@ -10,6 +10,10 @@ on:
       - "media/tutorials/**"
       - "media/tokens/**"
       - "source/translation/**"
+      - "source/original/**"
+      - "source/editions/**"
+      - "source/text-sources.json"
+      - "tools/content/**"
       - "requirements.txt"
       - "VERSION"
   workflow_dispatch:
@@ -49,8 +53,11 @@ jobs:
           set -euo pipefail
           python -m pip install -r requirements.txt
           python apps/companion/build_data.py
+          test ! -f "source/original/DAWN_ The RPG (LionWing Edition) w Bookmarks.pdf"
           git diff --exit-code -- apps/companion/data.js
           cd apps/companion
+          npm run readiness
+          npm run docs:rules
           npm test
 
       - name: Assemble static site

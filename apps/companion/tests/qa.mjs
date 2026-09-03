@@ -13,6 +13,9 @@ vm.runInNewContext(fs.readFileSync(path.join(root, "logic.js"), "utf8"), context
 vm.runInNewContext(fs.readFileSync(path.join(root, "data.js"), "utf8"), context);
 const data = context.window.DAWN_DATA;
 const logic = context.window.DAWN_LOGIC;
+assert.deepEqual(JSON.parse(JSON.stringify(logic.calculateDerivedStatistics({ edition: "ru-v0.9", tier: 1, body: 4, talent: 3, spirit: 2 }))), { hp: 10, guts: 5, speed: 4, focus: 2 }, "0.9 derived statistics must remain unchanged");
+assert.deepEqual(JSON.parse(JSON.stringify(logic.calculateDerivedStatistics({ edition: "lionwing", tier: 1, body: 4, talent: 3, spirit: 2 }))), { hp: 16, guts: null, speed: 4, focus: 2 }, "LionWing creation must use its own Health formula and omit Guts");
+assert.deepEqual(JSON.parse(JSON.stringify(logic.calculateDerivedStatistics({ edition: "lionwing", tier: 3, body: 5, talent: 4, spirit: 5 }))), { hp: 21, guts: null, speed: 4, focus: 4 }, "LionWing Tier and odd-Attribute increases must update derived statistics independently");
 assert.deepEqual(JSON.parse(JSON.stringify(logic.reconcileHealthRuntime({ current: null, nextMax: 6 }))), { current: 6, maximum: 6 }, "A fresh hero starts at the rules-derived maximum Health");
 assert.deepEqual(JSON.parse(JSON.stringify(logic.reconcileHealthRuntime({ current: 10, previousMax: 10, nextMax: 6 }))), { current: 6, maximum: 6 }, "Changing Body cannot leave current Health above the new maximum");
 assert.deepEqual(JSON.parse(JSON.stringify(logic.reconcileHealthRuntime({ current: 7, previousMax: 10, nextMax: 12 }))), { current: 9, maximum: 12 }, "Changing maximum Health preserves missing Health instead of granting a free heal");
@@ -20,7 +23,7 @@ assert.deepEqual(JSON.parse(JSON.stringify(logic.reconcileHealthRuntime({ curren
 assert.deepEqual(JSON.parse(JSON.stringify(logic.reconcileHealthRuntime({ current: 0, previousMax: 0, nextMax: 10 }))), { current: 10, maximum: 10 }, "A legacy 0/0 Health placeholder initializes the hero at full Health");
 assert.deepEqual(JSON.parse(JSON.stringify(logic.reconcileSceneActorHealth({ current: 0, previousMax: 6, nextMax: 6, existing: false }))), { current: 6, maximum: 6 }, "A newly spawned table actor starts at full Health even when the saved character sheet was at zero");
 assert.deepEqual(JSON.parse(JSON.stringify(logic.reconcileSceneActorHealth({ current: 2, previousMax: 6, nextMax: 8, existing: true }))), { current: 4, maximum: 8 }, "Refreshing an existing table actor preserves its missing Health");
-const appFiles = ["localization.js", "locale-ru.js", "app-bootstrap.js", "app-reference-data.js", "app-core.js", "hero-ui.js", "scene-ui.js", "gm-library.js", "scene-effects.js", "scene-actions-ui.js", "scene-sync-ui.js", "play-ui.js", "app-builder-events.js", "app-sync-events.js", "app-scene-events.js", "app-play-events.js", "app.js"];
+const appFiles = ["localization.js", "locale-ru.js", "locale-en-builder.js", "edition-lionwing.js", "app-bootstrap.js", "app-reference-data.js", "app-core.js", "hero-ui.js", "scene-ui.js", "gm-library.js", "scene-effects.js", "scene-actions-ui.js", "scene-sync-ui.js", "play-ui.js", "app-builder-events.js", "app-sync-events.js", "app-scene-events.js", "app-play-events.js", "app.js"];
 const appSource = appFiles.map(file => fs.readFileSync(path.join(root, file), "utf8")).join("\n");
 const companionMarkup = fs.readFileSync(path.join(root, "index.html"), "utf8");
 const companionCss = fs.readFileSync(path.join(root, "app.css"), "utf8");
@@ -29,6 +32,10 @@ assert.match(companionMarkup, /id="app-update-banner"/, "An open table must expo
 assert.match(appSource, /APP_BUILD_VERSION[\s\S]+update-check=[^)]*Date\.now\(\)[\s\S]+cache:"no-store"/, "The companion must compare its running build with uncached deployed markup");
 assert.match(appSource, /visibilitychange[\s\S]+document\.hidden[\s\S]+check\(\)/, "Returning to a stale table tab must trigger an update check");
 assert.match(companionMarkup, /data-scene-panel="network"/, "The immersive table must expose network controls in its dock");
+assert.match(companionMarkup, /id="scene-interface-next-styles"[^>]+disabled/, "The redesigned table stylesheet must stay opt-in by default");
+assert.match(appSource, /interfaceVersion:sceneInterfaceVersion/, "The selected table interface version must persist locally");
+assert.match(appSource, /id="scene-interface-next"/, "Table settings must expose the local redesigned-interface switch");
+assert.match(appSource, /if\(!usingNextSceneInterface\(\)\)[\s\S]+activeScenePanel/, "Classic mode must retain the stable single-panel behavior");
 assert.match(companionMarkup, /data-scene-panel="network"[^>]*>Сеть<\/button>\s*<button[^>]+data-scene-panel="log"/, "The network button must sit directly above the Scene log");
 assert.match(companionMarkup, /id="scene-sync-panel"[^>]+data-scene-panel-content="network"/, "The network controls must open as a table rail panel");
 assert.match(companionMarkup, /id="sync-leave-table"[^>]+title="Выйти из общего стола"/, "A connected table must expose a quick leave action in the visible header");
@@ -66,9 +73,21 @@ assert.match(appSource, /feed\.innerHTML=\[\.\.\.rolls\]\.reverse\(\)\.map/, "Th
 assert.match(appSource, /function sceneTrayHeroActor\(\)[\s\S]+selected\.team==="hero"[\s\S]+active\.team==="hero"/, "The Narrator tray follows selected or active heroes and never exposes hero actions for enemies");
 assert.match(companionMarkup, /option value="crowd">Зона массовки/, "The terrain painter exposes canonical Fodder Zones");
 assert.match(appSource, /source\.kind==="crowd"[\s\S]+actor\.crowdGroupId/, "Scene normalization preserves Fodder identity and its shared visual type");
+assert.match(appSource, /actor\.crowdSubtype=\["seeker","vortex"\][\s\S]+actor\.seekerTargetId[\s\S]+actor\.seekerDamage[\s\S]+actor\.vortexOwnerId/, "Scene import preserves special Fodder provenance for Hound Master Seekers and Vortex flows");
 assert.match(appSource, /editTargets=actor\.kind==="crowd"[\s\S]+targets\.forEach\(item=>item\.tokenImage=image\)/, "Renaming or uploading a token updates every zone of that Fodder type");
 assert.match(companionCss, /\.scene-token\.crowd\{[^}]*border-radius:7px[^}]*repeating-linear-gradient/, "Fodder Zones are visually distinct from circular character tokens");
+assert.match(companionCss, /modifier-carrier-pulse[\s\S]+modifier-artillery-cell[\s\S]+modifier-gargantuan-body-cell[\s\S]+modifier-vortex-edge/, "Rule-critical Enemy Modifiers have distinct carrier, danger-area, body-edge, and spawn-edge visuals");
+assert.match(appSource, /gargantuan-edge-segment[\s\S]+data-scene-actor=[^\n]+Тело Громадины/, "Gargantuan replaces the carrier token with a clickable full-edge body that selects the shared target");
+assert.match(appSource, /isEnemyModifier\?\.\(actor\)[\s\S]+scene-turn-strip/, "Enemy Modifiers are excluded from the ordinary Turn strip");
 assert.match(appSource, /compoundId:typeof enemy\?\.compoundId[\s\S]+crowdGroupId:/, "Encounter normalization preserves Compound Enemy and Fodder identities");
+assert.match(fs.readFileSync(path.join(root, "index.html"), "utf8"), /id="scene-crowd-style"[\s\S]+id="scene-crowd-team"[\s\S]+id="scene-crowd-symbol"[\s\S]+id="scene-crowd-color"/, "Narrator can create visually distinct allied or hostile Fodder groups");
+assert.match(appSource, /data-crowd-add-group[\s\S]+data-crowd-remove-defeated[\s\S]+data-crowd-remove-group/, "Narrator has group-level Fodder add and cleanup controls");
+assert.match(fs.readFileSync(path.join(root, "scene-triggers.js"), "utf8"), /fodder-move-select[\s\S]+fodder-round-batch/, "Canonical Fodder movement and Round-end damage are surfaced as typed prompts");
+assert.match(fs.readFileSync(path.join(root, "scene-effects.js"), "utf8"), /fodderMoveBatchEditorHtml[\s\S]+data-fodder-move-submit/, "Narrator has an editable batch movement console for Fodder");
+assert.match(appSource, /normalizeGmLibrary[\s\S]+crowdType:\["mob","swarm","guards","undead","hounds","civilians","custom"\]/, "Saved encounter presets preserve the visual type of ordinary Fodder groups");
+assert.match(companionMarkup, /id="scene-add-crowd-auto"[\s\S]+id="scene-add-crowd-brush"/, "Narrator enemy-add panel exposes automatic and manual Fodder creation");
+assert.match(appSource, /quickCrowdSettings[\s\S]+scene-add-crowd-auto[\s\S]+scene-add-crowd-brush/, "Visible Fodder creation controls are wired to typed placement and the field brush");
+assert.match(appSource, /fodder-batch-editor[\s\S]+data-fodder-batch-zone[\s\S]+data-fodder-batch-submit/, "Narrator resolves all eligible Fodder zones through one editable damage interface");
 assert.match(appSource, /compoundIds=new Map\(\)[\s\S]+compoundCells=new Map\(\)/, "Encounter deployment remaps Compound groups and keeps their parts in one cell");
 assert.match(appSource, /parts\.length<2[\s\S]+part\.compoundId=null/, "Removing Compound parts cannot leave an unusable one-part Compound identity");
 assert.match(appSource, /sceneActorSpace[\s\S]+compound\.active\?compound\.parts:\[actor\][\s\S]+moving\.forEach/, "Moving a Compound part between spaces must move the complete enemy");
@@ -407,7 +426,7 @@ assert.deepEqual(
   "each gained tier grants two different ordinary Attribute increases",
 );
 
-for (const file of ["index.html", "app.css", "vtt-cockpit.css", ...appFiles, "logic.js", "config.js", "sync.js", "data.js", "manifest.webmanifest", "sw.js", "icon.svg"]) assert.ok(fs.existsSync(path.join(root, file)), file);
+for (const file of ["index.html", "app.css", "vtt-interface-classic.css", "vtt-cockpit.css", ...appFiles, "logic.js", "config.js", "sync.js", "data.js", "manifest.webmanifest", "sw.js", "icon.svg"]) assert.ok(fs.existsSync(path.join(root, file)), file);
 const app = appSource;
 const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
 const css = fs.readFileSync(path.join(root, "app.css"), "utf8");
@@ -416,6 +435,7 @@ const sceneResponsesSource = fs.readFileSync(path.join(root, "scene-responses.js
 const sync = fs.readFileSync(path.join(root, "sync.js"), "utf8");
 const serviceWorker = fs.readFileSync(path.join(root, "sw.js"), "utf8");
 assert.match(serviceWorker, /["']\.\/network-v2\.js["']/, "the offline app shell must cache the network v2 runtime");
+assert.match(serviceWorker, /["']\.\/vtt-interface-classic\.css["']/, "the offline app shell must cache the classic table stylesheet");
 const sql = fs.readFileSync(path.resolve(root, "../../supabase/migrations/202607130001_dawn_multiplayer.sql"), "utf8");
 const eventSql = fs.readFileSync(path.resolve(root, "../../supabase/migrations/202607210001_dawn_event_stream.sql"), "utf8");
 const liveCharacterSql = fs.readFileSync(path.resolve(root, "../../supabase/migrations/202607230001_dawn_live_characters.sql"), "utf8");
@@ -475,7 +495,15 @@ assert.match(app, /sourceActionId:"manual\.adjudication"/, "Manual health, resou
 assert.match(html, /id="scene-space-manager"/, "The Narrator can inspect and remove created spaces");
 assert.match(html, /id="scene-clear-field"/, "The Narrator has an explicit reversible field cleanup command");
 assert.match(html, /id="scene-reset-table"/, "The Narrator has an explicit full table reset command");
-assert.match(app, /Math\.ceil\(attrValueFor\(hero,"talent"\)\/2\)/);
+assert.match(app, /S\.runtime\.hp=d\.maxHp[\s\S]+S\.runtime\.tension=1/, "Ending a Scene restores the sheet Health and applies the canonical Tension reset");
+assert.match(app, /scene\.tension=1[\s\S]+actor\.hp=Math\.max\(0,Number\(actor\.maxHp[\s\S]+actor\.knockedOut=false/, "Starting the next Scene restores combatant Health and returns knocked-out participants");
+assert.doesNotMatch(app, /rollKeys/, "Post-battle replay preserves separate public rolls even when their dice match");
+assert.match(app, /base\.results=scene\.results[\s\S]+openedAt[\s\S]+openedBy/, "The open battle-results state survives normalization, sync, export, and reconnect");
+assert.match(app, /Итоги боя открыты для всего стола[\s\S]+scene\.results=\{id:uid\(\)/, "The Narrator publishes one shared battle-results token instead of opening a local-only dialog");
+assert.match(app, /Scene\.results\?`<button[^`]+data-scene-session-action="results">К итогам/, "Every participant receives a persistent reopen button while shared results exist");
+assert.match(app, /sceneBattleComplete\(\)[\s\S]+Завершить бой/, "The Narrator receives a finish-battle action when either side is knocked out");
+assert.match(app, /reconcileSceneResultsDialog\(\)/, "A newly synchronized results token opens the post-battle dialog on every client");
+assert.match(app, /Logic\.calculateDerivedStatistics\(\{edition,tier:hero\.tier/);
 assert.match(app, /takeWound\(external\)/);
 assert.match(app, /setToolsResource\("influence"/, "Free-play Influence changes must update the local sheet or canonical shared actor");
 assert.match(app, /Logic\.calculateCreationBudgets/);
@@ -691,6 +719,14 @@ assert.match(cockpitCss, /scene-toolbar[^}]+right:calc\(var\(--scene-right-used\
 assert.match(app, /behavior:store\.mode==="play"\?"auto":"smooth"/, "Entering the table must not compete with a smooth page scroll");
 assert.match(app, /Panel headers sit inside scrollable rails[\s\S]+data-close-scene-panel[\s\S]+stopPropagation/, "Panel close controls must be handled before nested panel interactions");
 assert.match(app, /function measurementPath/);
+assert.match(app, /data-modifier-cell-picker/);
+assert.match(app, /data-modifier-cell-clear/);
+assert.match(app, /data-modifier-target/);
+assert.match(app, /activeModifierPickerId.*Scene\.targetCells/);
+assert.match(app, /activeSceneView\(\)===\"player\"\?currentHeroActor\(\)/);
+assert.match(app, /modifierModeDrafts/);
+assert.match(app, /data-modifier-action-picker/);
+assert.doesNotMatch(app, /Shift\+клик по занятой/);
 assert.match(app, /taintedAbility:hero\.mods\.taintedBody/);
 assert.match(sql, /enable row level security/);
 assert.match(sql, /redeem_campaign_invite/);

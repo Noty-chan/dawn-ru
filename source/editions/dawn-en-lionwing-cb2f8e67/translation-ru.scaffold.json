@@ -1,0 +1,2531 @@
+{
+  "schemaVersion": 1,
+  "editionId": "dawn-en-lionwing-cb2f8e67",
+  "locale": "ru",
+  "status": "generated-scaffold-not-runtime-data",
+  "policy": "Reused Russian strings still require review; untranslated slots must be translated from the canonical LionWing English source.",
+  "entries": [
+    {
+      "id": "technique:altruist.abjuring-sage",
+      "domain": "technique",
+      "stableId": "altruist.abjuring-sage",
+      "sourceHash": "afe658ee789de9a216c6f2d7cd450c40f3ee759d494b6fbb9f1203772370ee19",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:altruist.alchemist",
+      "domain": "technique",
+      "stableId": "altruist.alchemist",
+      "sourceHash": "abb8175871382e20ba01bb73afeb1c8479141e9c472ac567f6ead2cbbfe97532",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:altruist.artist",
+      "domain": "technique",
+      "stableId": "altruist.artist",
+      "sourceHash": "68286f98986fc835f2f06a4c6b04c5445df221fa75fff0eb236b093b6a831168",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:altruist.bardic-savant",
+      "domain": "technique",
+      "stableId": "altruist.bardic-savant",
+      "sourceHash": "6e82048decbfeda6538682ef86b1ffaa7ac3bf68fa021684e0c770d1ad979ca8",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:altruist.battle-instructor",
+      "domain": "technique",
+      "stableId": "altruist.battle-instructor",
+      "sourceHash": "b7602e7f738d44cd14a68346ff132fed79b25973097ae8a7bf2d10cab2aae128",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:altruist.chronomancer",
+      "domain": "technique",
+      "stableId": "altruist.chronomancer",
+      "sourceHash": "00edf05e7006ff25645fae9e3141652913b4ada7a24ec8da479ee07c50cd40b7",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:altruist.dancer",
+      "domain": "technique",
+      "stableId": "altruist.dancer",
+      "sourceHash": "15b5289fdb43fbba68c31d83ea62d23fcfe1b10fde2b1adc7a01052e08efc872",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:altruist.deckbuilder",
+      "domain": "technique",
+      "stableId": "altruist.deckbuilder",
+      "sourceHash": "b7818249bf16925769f89d71896558c7bdb7c46c4a2c1962dc2abecb91135c51",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:altruist.empath",
+      "domain": "technique",
+      "stableId": "altruist.empath",
+      "sourceHash": "a5f20fc621d970afa050390be430d4ae1a01f5c138041f178efbbe8f216a349b",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:altruist.fog-walker",
+      "domain": "technique",
+      "stableId": "altruist.fog-walker",
+      "sourceHash": "b8bf6a581fd2c1117a24d35026d6923ad3b1dd6059f58e0beccd46774304c97f",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:altruist.gourmand",
+      "domain": "technique",
+      "stableId": "altruist.gourmand",
+      "sourceHash": "b66edefa9c21a487b8c5db843259cfb9eb9ac64c01db8afc914782a327432ac8",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:altruist.heavenly-saint",
+      "domain": "technique",
+      "stableId": "altruist.heavenly-saint",
+      "sourceHash": "b7a960d8c95fe7e6e71cb381b847d08376bf7bba8f44330ec314b3283f7b5ad8",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:altruist.last-hope",
+      "domain": "technique",
+      "stableId": "altruist.last-hope",
+      "sourceHash": "e6be8e666e09e106ca5927a631f3118264076ececff8b248ae3afb74acef3bc7",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:altruist.precognizant",
+      "domain": "technique",
+      "stableId": "altruist.precognizant",
+      "sourceHash": "c786c25e801c89c7fad04dfb83a1a07f33b2e585fffec9a52ea56f34654276e6",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:altruist.replicator",
+      "domain": "technique",
+      "stableId": "altruist.replicator",
+      "sourceHash": "dc91137194dcef6ba1df4260ea1d5e72a386741a8218ecd0105445bc2b4c67af",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:altruist.surgeon",
+      "domain": "technique",
+      "stableId": "altruist.surgeon",
+      "sourceHash": "53864ba11537ca614c28157ddf78851f4d2d9a8640a4d56cfa75f1d113602126",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:altruist.talisman-caster",
+      "domain": "technique",
+      "stableId": "altruist.talisman-caster",
+      "sourceHash": "c00c5b450054407b3a3b775793ee1ab129d24d554d48309daa5169819850d242",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:altruist.will-o-wisp",
+      "domain": "technique",
+      "stableId": "altruist.will-o-wisp",
+      "sourceHash": "051b778343ce95c10fb5f7f9706169e9f1de43d763d61b360783165d7b5269e8",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:bulwark.absolute-bastard",
+      "domain": "technique",
+      "stableId": "bulwark.absolute-bastard",
+      "sourceHash": "c415008204d111b5741753c0e20d955b6ac9597020ae533bd626a32da66d9459",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:bulwark.battle-jockey",
+      "domain": "technique",
+      "stableId": "bulwark.battle-jockey",
+      "sourceHash": "04c04aabb95b0509d617b02fd67eacc235129aa264fe1f115b29eeae78887b17",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:bulwark.beastial-ascendant",
+      "domain": "technique",
+      "stableId": "bulwark.beastial-ascendant",
+      "sourceHash": "3a799d03a60cfee8232cfc46d11f23671396868771aac012120d1ebfb23f8c63",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:bulwark.crusher",
+      "domain": "technique",
+      "stableId": "bulwark.crusher",
+      "sourceHash": "051c647d18a89250454fcf84ec7f422c9beb03104d455c63ce193c72eea48d58",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:bulwark.giant-frame",
+      "domain": "technique",
+      "stableId": "bulwark.giant-frame",
+      "sourceHash": "a6a5d0b67a8e806672d4e09881bf68b0d4c8fdd692e7184977b1950de1ddf217",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:bulwark.grappler",
+      "domain": "technique",
+      "stableId": "bulwark.grappler",
+      "sourceHash": "01f78edb30f66ab69194ce4770e8b43829e407403539e7bfcf9bb25677a0a281",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:bulwark.guardian-angel",
+      "domain": "technique",
+      "stableId": "bulwark.guardian-angel",
+      "sourceHash": "478e62bc935698633b9a4a586d7e0904b43132e1878e00da9282170c776e98c9",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:bulwark.iron-bodied",
+      "domain": "technique",
+      "stableId": "bulwark.iron-bodied",
+      "sourceHash": "5c3996c15cd9ca1b7821bb883b863e6b0531e9bfea9c1f9e88c577dcf7626fb7",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:bulwark.juggernaut",
+      "domain": "technique",
+      "stableId": "bulwark.juggernaut",
+      "sourceHash": "828d7eddf1cf6bdfca379591e62ad783b4e4a53b4457dbfd99770d8486477d2b",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:bulwark.mecha-pilot",
+      "domain": "technique",
+      "stableId": "bulwark.mecha-pilot",
+      "sourceHash": "9ebc3d4692032b2ba7f7d24c14e9fef96e7568ec1707820ef108ac707bbf66f4",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:bulwark.mundane",
+      "domain": "technique",
+      "stableId": "bulwark.mundane",
+      "sourceHash": "e6be61fcd0c16ee512240fde2a4cde1d021c2dc6684795bf604df7e134445a09",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:bulwark.rising-challenger",
+      "domain": "technique",
+      "stableId": "bulwark.rising-challenger",
+      "sourceHash": "c6693977defe03730e68f4e058072147726ef0eabfebb9db970dee7e8a8f67e2",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:bulwark.runic-retribution",
+      "domain": "technique",
+      "stableId": "bulwark.runic-retribution",
+      "sourceHash": "a9db63958fc02572aab2f7b3d3e586b3333ab92d4c836afb30047e55bab96055",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:bulwark.servant-s-call",
+      "domain": "technique",
+      "stableId": "bulwark.servant-s-call",
+      "sourceHash": null,
+      "status": "retired",
+      "ru": null
+    },
+    {
+      "id": "technique:bulwark.shield-bearer",
+      "domain": "technique",
+      "stableId": "bulwark.shield-bearer",
+      "sourceHash": "4a06661493e5dad15a6c70725184a1e88a68166079c7149e5ed474dbb4e85fbd",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:bulwark.stalwart-sentry",
+      "domain": "technique",
+      "stableId": "bulwark.stalwart-sentry",
+      "sourceHash": "3559e9c1bc2874c7bdad3e001b110f4a445bed695e3990778e05abacbb0f9398",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:bulwark.vanguard-defender",
+      "domain": "technique",
+      "stableId": "bulwark.vanguard-defender",
+      "sourceHash": "eb74c784175e1e527bf7651b509d7886a07235bce3bd1cc40ae6d13921f66dcd",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:disruptor.autophage",
+      "domain": "technique",
+      "stableId": "disruptor.autophage",
+      "sourceHash": "bd5655a637252eb6a85af10524150c591d4cb400c923980c810538cfe8c5f72a",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:disruptor.bloodletter",
+      "domain": "technique",
+      "stableId": "disruptor.bloodletter",
+      "sourceHash": "bbe1476ec01524a2918d4a6364893f0cf5784d1ae09b6ef4915fd1f193bf34e6",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:disruptor.chemist",
+      "domain": "technique",
+      "stableId": "disruptor.chemist",
+      "sourceHash": "4833402dacb5f95a3751e6711fb0f7c3ea886ffb01adf3d6fcc5325f7e05f843",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:disruptor.constrictor",
+      "domain": "technique",
+      "stableId": "disruptor.constrictor",
+      "sourceHash": "480514ab62214d6e0f4ee0b4a89fe1ae3b62fd1f5f56d8d1e37f4101fe8f8a88",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:disruptor.cutpurse",
+      "domain": "technique",
+      "stableId": "disruptor.cutpurse",
+      "sourceHash": "871f86489817f85a60e1b05d7eea8aec35ed85f2b1d052fdcf07ad3b8be6953b",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:disruptor.earth-speaker",
+      "domain": "technique",
+      "stableId": "disruptor.earth-speaker",
+      "sourceHash": "770f44a171ea5866e80b31cf5a32bd4f67941df525167520f66794631a30731f",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:disruptor.gale-strider",
+      "domain": "technique",
+      "stableId": "disruptor.gale-strider",
+      "sourceHash": "8580d6bffd86a15fd6fda6ee46c75f3017623eb39579254350233e4298e88428",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:disruptor.hunter",
+      "domain": "technique",
+      "stableId": "disruptor.hunter",
+      "sourceHash": "91f0c2ce74585829697816c7610b0d4d8ba793f094e3e0708b39644df91652ff",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:disruptor.inhuman-strength",
+      "domain": "technique",
+      "stableId": "disruptor.inhuman-strength",
+      "sourceHash": "fd65c5913dccbd657616729e713651298a60522df0a5632a69677bb7becdf7e5",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:disruptor.inner-world",
+      "domain": "technique",
+      "stableId": "disruptor.inner-world",
+      "sourceHash": "f4def7b8347e03639bd6807ae648fcb4158e266efa83ea4402e894deeb8a54b3",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:disruptor.light-bender",
+      "domain": "technique",
+      "stableId": "disruptor.light-bender",
+      "sourceHash": "2afc061550261ac7719c36257479147df22d5d454ec498cb82cef3c906cf22a5",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:disruptor.mage-s-array",
+      "domain": "technique",
+      "stableId": "disruptor.mage-s-array",
+      "sourceHash": "5b8725f2db08c6602d08b82d4c495cf094dd25d1214a0db69f6c421597e9ab7e",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:disruptor.mind-breaker",
+      "domain": "technique",
+      "stableId": "disruptor.mind-breaker",
+      "sourceHash": "b9aa918f096a412a6c43771a5efcfdc0e17219a18f4da21d6a7f0f234eac2452",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:disruptor.reaper",
+      "domain": "technique",
+      "stableId": "disruptor.reaper",
+      "sourceHash": "e7b1baafb25508d693c557c4424b00d886910d276b599ee5d945b6ca2afd2513",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:disruptor.siren",
+      "domain": "technique",
+      "stableId": "disruptor.siren",
+      "sourceHash": "78fb55063caae97ee8e63f2f91029461ee78c9ba47be7cc0646fd3b3a6237197",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:disruptor.street-fighter",
+      "domain": "technique",
+      "stableId": "disruptor.street-fighter",
+      "sourceHash": "17ad9de0d9fdcfff2b52404ae5dec0f43a7116c6bd95eb4ce917975ba2606d9b",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:disruptor.swarm-body",
+      "domain": "technique",
+      "stableId": "disruptor.swarm-body",
+      "sourceHash": "061c5b3a1f9e7fb46b4335b2dea3763f4197d2c83b7713cf927494f97def63b9",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:disruptor.tactical-master",
+      "domain": "technique",
+      "stableId": "disruptor.tactical-master",
+      "sourceHash": "a565165381a98b637ff66d401dbfd875ed99caa06d8472024f57b3a12fcc64d1",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:disruptor.wave-rider",
+      "domain": "technique",
+      "stableId": "disruptor.wave-rider",
+      "sourceHash": "2ceb37c9e1fcc8d8dc778b4c4786819582ace541426ae3eb3a71c7eac8bba3d0",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:powerhouse.berserker",
+      "domain": "technique",
+      "stableId": "powerhouse.berserker",
+      "sourceHash": "5c4e29d6dac6e0bf53b5e40c8bf0786155bebc6d3b24ee44cc13bf57970e4375",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:powerhouse.braggart",
+      "domain": "technique",
+      "stableId": "powerhouse.braggart",
+      "sourceHash": "cc0372c3eee573987d4cd306bd0823f006240800bdaf53150363a2c7c4145797",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:powerhouse.breacher",
+      "domain": "technique",
+      "stableId": "powerhouse.breacher",
+      "sourceHash": "23d1f78bbbc00ee77c7937f3023521873c67548445df9d771871f5f729617979",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:powerhouse.dragonslayer",
+      "domain": "technique",
+      "stableId": "powerhouse.dragonslayer",
+      "sourceHash": "09c41af876f3dd0e1708d4b378a8abc580e8e1cf1c38f1644b83f0bad3c7ee23",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:powerhouse.dual-wielder",
+      "domain": "technique",
+      "stableId": "powerhouse.dual-wielder",
+      "sourceHash": "fe418af71f5f528b89f71c8f20fa70e594382985fb5c65f4497296d6bafcf61d",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:powerhouse.duelist",
+      "domain": "technique",
+      "stableId": "powerhouse.duelist",
+      "sourceHash": "0b2c65ff7bc9b54abf80436ab62ac894dac0b131d46629e553202660ffbd513c",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:powerhouse.flagellant",
+      "domain": "technique",
+      "stableId": "powerhouse.flagellant",
+      "sourceHash": "51337e1efa8c00ca607a47f00919d03c77bfa1fe0be11416676ca697aa8056d5",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:powerhouse.gunslinger",
+      "domain": "technique",
+      "stableId": "powerhouse.gunslinger",
+      "sourceHash": "f3445495d3e8b1a447ffb5273cd859e724916bb29880ca7dfd940d29e52e9bb2",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:powerhouse.heroic-ascendant",
+      "domain": "technique",
+      "stableId": "powerhouse.heroic-ascendant",
+      "sourceHash": "984b7f9b7c1e0dd063daceda0abbf711fb29f13e79599dc97425c9fc7fc59fb5",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:powerhouse.improvisational-fighter",
+      "domain": "technique",
+      "stableId": "powerhouse.improvisational-fighter",
+      "sourceHash": "c5d58241b6b1595438b12c438144644c743f3d6be72999b7a6d35bcb9edd2411",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:powerhouse.intimidator",
+      "domain": "technique",
+      "stableId": "powerhouse.intimidator",
+      "sourceHash": "bf0266d0014f26c24a4d78674d2caf73f03d9fb2002e455e4b734e97acf19320",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:powerhouse.lancer",
+      "domain": "technique",
+      "stableId": "powerhouse.lancer",
+      "sourceHash": "7e425b49581da55876536cd9ea533b111b8a1fac7be0c8081257659da7733722",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:powerhouse.martial-artist",
+      "domain": "technique",
+      "stableId": "powerhouse.martial-artist",
+      "sourceHash": "a625234b1cc4cca411b47fc66ace7ac7b073590fcd0d741712351d9f6a43ca55",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:powerhouse.monastic-sage",
+      "domain": "technique",
+      "stableId": "powerhouse.monastic-sage",
+      "sourceHash": "6c864669ab03cf331a2b501a93fe6ae9bef441649169993dfe73db1050d8cfee",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:powerhouse.predator",
+      "domain": "technique",
+      "stableId": "powerhouse.predator",
+      "sourceHash": "e6e33e9519d7ed0109422e043a2339d7dba83c6661e59cb82d182bd976da4498",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:powerhouse.spellsword",
+      "domain": "technique",
+      "stableId": "powerhouse.spellsword",
+      "sourceHash": "cc1a3a87a841c2cf87db200f6da681f347d84b6b29ac7caa42a91cf802fd6033",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:powerhouse.struggler",
+      "domain": "technique",
+      "stableId": "powerhouse.struggler",
+      "sourceHash": "05066bb49f2fd6a7137f2a1d6adf586d6ce01ed3087426e099cffceb1a3fcabb",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:powerhouse.technician",
+      "domain": "technique",
+      "stableId": "powerhouse.technician",
+      "sourceHash": "4495aa8627ea456784f5ae3b0e219db11cd221f2df34845c777454350b6740d5",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:powerhouse.unbroken",
+      "domain": "technique",
+      "stableId": "powerhouse.unbroken",
+      "sourceHash": "341d30c9706ac7a9de5f954f74c83f1b478f11750925969baf596bd9866012ee",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:powerhouse.warring-ascendant",
+      "domain": "technique",
+      "stableId": "powerhouse.warring-ascendant",
+      "sourceHash": "8f7af0b7679dc68f3b393d79c3617725976496dba7057e6ed15e3385842e8213",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:ruiner.bombardier",
+      "domain": "technique",
+      "stableId": "ruiner.bombardier",
+      "sourceHash": "33cd525092b2d9e9366cd65b9580c56c2127781b8010e0f927ad0efb7005a958",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:ruiner.creation-ascetic",
+      "domain": "technique",
+      "stableId": "ruiner.creation-ascetic",
+      "sourceHash": "6785be6f032330e3dd46b4ead804d39bb83291da01af6931ca72217c31ea41f5",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:ruiner.cryomancer",
+      "domain": "technique",
+      "stableId": "ruiner.cryomancer",
+      "sourceHash": "48e2b6710c63a020874cc9e6f7c57c83c1a69cc24e82a17fc20be92a5d481a67",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:ruiner.dramaturge",
+      "domain": "technique",
+      "stableId": "ruiner.dramaturge",
+      "sourceHash": "7c043a694337ab9f26152dd625f5ea1f8d349334fde0cb20efabc25ff227c070",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:ruiner.ego-arm",
+      "domain": "technique",
+      "stableId": "ruiner.ego-arm",
+      "sourceHash": "ec8455da4ecd70a3add9bb4348f4540c9e7ffc37f7da3d886ad5df01b54fc313",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:ruiner.feral-arcana",
+      "domain": "technique",
+      "stableId": "ruiner.feral-arcana",
+      "sourceHash": "3df2274182b1ef6c57cef9195fc76eca64bd8d652a8a8f85975980b860651fa6",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:ruiner.flame-heart",
+      "domain": "technique",
+      "stableId": "ruiner.flame-heart",
+      "sourceHash": "631659e8b51d2a46d2eaf2e9ab959593ccadae99f689268dfaea0b8e25851a00",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:ruiner.grim-ascendant",
+      "domain": "technique",
+      "stableId": "ruiner.grim-ascendant",
+      "sourceHash": "cb14e1f9820b073ac8829a718d2b995f2df61917cdcaf8b9b84c181c165ab797",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:ruiner.long-draw",
+      "domain": "technique",
+      "stableId": "ruiner.long-draw",
+      "sourceHash": "88073ed1d0223a682e491b8d73cdae89b7bf2ee1fab0ec481a33fb789ce5b065",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:ruiner.mana-blades",
+      "domain": "technique",
+      "stableId": "ruiner.mana-blades",
+      "sourceHash": "e14acbc6916c0d920b5679b33adf6972302c445cf7f70fc0dd8052a243604d16",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:ruiner.rapid-fire-sorcery",
+      "domain": "technique",
+      "stableId": "ruiner.rapid-fire-sorcery",
+      "sourceHash": "ec912e4466adbb5c1152680a42e0e6678e5f106d54e49403526ee777e8e63dd5",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:ruiner.ritualist",
+      "domain": "technique",
+      "stableId": "ruiner.ritualist",
+      "sourceHash": "25e47bb880efe93bd333367f259b79f91b442af6ace44a3f89906c2e381eaa9a",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:ruiner.sellsword-s-call",
+      "domain": "technique",
+      "stableId": "ruiner.sellsword-s-call",
+      "sourceHash": "906f90e13d0cb5fa89e910093e3c169a0e33f54a72edc185d10d479da72bb00d",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:ruiner.spellcrafter",
+      "domain": "technique",
+      "stableId": "ruiner.spellcrafter",
+      "sourceHash": "7f43234f3018bae14e8bcd6d1f0f138702f14b4d40fd1205bcea37aea3201ea0",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:ruiner.student-of-stars",
+      "domain": "technique",
+      "stableId": "ruiner.student-of-stars",
+      "sourceHash": "060c73fc7020c19863b3858d7ecfb3c3cab1cd2a9b4db8ce7533e32e6270bbad",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:ruiner.thunder-blood",
+      "domain": "technique",
+      "stableId": "ruiner.thunder-blood",
+      "sourceHash": "76a5815ef5eae35ce19e8c32d7a24fa76e469275d506a50a98a072728713a4da",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:ruiner.void-soul",
+      "domain": "technique",
+      "stableId": "ruiner.void-soul",
+      "sourceHash": "3fdb64a42b4d09c2695dc812d044d69bccc5f00dd2314c394243c3b2434b0791",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:ruiner.zealot",
+      "domain": "technique",
+      "stableId": "ruiner.zealot",
+      "sourceHash": "1217d9ab426dec96e93e9a341e443054ba0bf157b89fd38bff423f90c66c756d",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:vagabond.acrobat",
+      "domain": "technique",
+      "stableId": "vagabond.acrobat",
+      "sourceHash": "ba0b2976fa69166fa471d782b544334d9ce02a5e8798de7d89fe3550db768494",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:vagabond.aerial-master",
+      "domain": "technique",
+      "stableId": "vagabond.aerial-master",
+      "sourceHash": "534878ce1c5613a58b9392422cfda4428f638d72d5d7fbc706240b4bd2f8ebb1",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:vagabond.assassin",
+      "domain": "technique",
+      "stableId": "vagabond.assassin",
+      "sourceHash": "57f8197ec657619a6754a4cd6a88403708e789821893fc1acd4aadac72daeffd",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:vagabond.blade-master",
+      "domain": "technique",
+      "stableId": "vagabond.blade-master",
+      "sourceHash": "4e61b4b1154d452ea0496dcaa5162e706e2cf6eddec7ab3141aa8ac066c30b52",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:vagabond.cunning-fighter",
+      "domain": "technique",
+      "stableId": "vagabond.cunning-fighter",
+      "sourceHash": "c9174ef5976c3384af3bddccfe7b3120852ab521d04d897d7847314b1efded17",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:vagabond.dim-mak",
+      "domain": "technique",
+      "stableId": "vagabond.dim-mak",
+      "sourceHash": "233d76ca924f5165a903702b721a163e7c8fe1547cf2618c2475a08e1c46ac7c",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:vagabond.drunkard",
+      "domain": "technique",
+      "stableId": "vagabond.drunkard",
+      "sourceHash": "38f2815727264c2742078c0ac8610bdc32568c6e9abaa4ce4bb77a945d1682ec",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:vagabond.egomaniac",
+      "domain": "technique",
+      "stableId": "vagabond.egomaniac",
+      "sourceHash": "2e81ea56ab27c1e0e2e422c6243f3aeb169462c40e861e60a48fd0f4e74e2018",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:vagabond.enchained",
+      "domain": "technique",
+      "stableId": "vagabond.enchained",
+      "sourceHash": "c88b047fddadabf58e4d773f050f3e9d0d02f786c4a15a3945cc0003df7647d3",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:vagabond.knife-juggler",
+      "domain": "technique",
+      "stableId": "vagabond.knife-juggler",
+      "sourceHash": "9ded7b5391f7961254f5e7df7dd047ea470233835e5d9eb4566a2385dbdc0eeb",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:vagabond.malicious-mimic",
+      "domain": "technique",
+      "stableId": "vagabond.malicious-mimic",
+      "sourceHash": "ef3739a1b060bd31764849e433eb81b138cbc1e1729f737aeee82eaac8b7a890",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:vagabond.master-at-arms",
+      "domain": "technique",
+      "stableId": "vagabond.master-at-arms",
+      "sourceHash": "f680b7b329e23f9390f3928e872d22c82e25457a03f8de57f297abce33caefc2",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:vagabond.modified-meister",
+      "domain": "technique",
+      "stableId": "vagabond.modified-meister",
+      "sourceHash": "ebfa4dade6b0eef29b1847ac5f7dfdae753b8c9470c2ea84a6a6ec460184c17e",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:vagabond.opportunist",
+      "domain": "technique",
+      "stableId": "vagabond.opportunist",
+      "sourceHash": "208d649a4cf22298f7528a7740367f451481aaa59a39c2819e2e9e57ff689e70",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:vagabond.reflector",
+      "domain": "technique",
+      "stableId": "vagabond.reflector",
+      "sourceHash": "dbec384697687632c8e8d0237c049f3038ca158e908ad1ac26cd13143b51fcd7",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:vagabond.skirmisher",
+      "domain": "technique",
+      "stableId": "vagabond.skirmisher",
+      "sourceHash": "5c0350570a7ca733b6ccf096f57c8f4f8ade4f92f7221e37f785c8d1db285e93",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:vagabond.sniper",
+      "domain": "technique",
+      "stableId": "vagabond.sniper",
+      "sourceHash": "81e0a0b3addd420f0cb3509cd4e34d1a90d8fe0e6ce389996ec2bbcd4fcf47c9",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:vagabond.speed-demon",
+      "domain": "technique",
+      "stableId": "vagabond.speed-demon",
+      "sourceHash": "9f231881d583bae6ad79657e5eb8fbde4a07f3a99d2c086b7df4ef8b5c74b63f",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:vagabond.untouchable",
+      "domain": "technique",
+      "stableId": "vagabond.untouchable",
+      "sourceHash": "b07a75cd0bf90ba85481a5dfdcdcf3698ff741152fcfb2581130956d21336ff3",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "technique:vagabond.weaponsmith",
+      "domain": "technique",
+      "stableId": "vagabond.weaponsmith",
+      "sourceHash": "1dc6d8a215505a7143bc4dbcfbeb339680a353b41e213a465dc711a77ed64b0c",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "outlook:rebel:description",
+      "domain": "outlook",
+      "stableId": "rebel",
+      "sourceHash": "85492fd724a7d7f50c90d9ed11f24271641d1e5affd99dc93c46b7fab1b12bc0",
+      "status": "reused-needs-review",
+      "ru": "Те, кто утратил веру и уважение к власти над ними. Это могут быть непосредственные начальники Мятежника или те, кто совершенно вне досягаемости."
+    },
+    {
+      "id": "boon:rebel.aggressive-to-a-fault",
+      "domain": "boon",
+      "stableId": "rebel.aggressive-to-a-fault",
+      "sourceHash": "4df195f9bfd66fcf5ecef798f45684a5cb25a4e35cb646ca4cd0faa6a5057b47",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "boon:rebel.i-ll-carry-my-weight",
+      "domain": "boon",
+      "stableId": "rebel.i-ll-carry-my-weight",
+      "sourceHash": "1dbc4b3e1d9cd6d7ca59354fa7759d542e66ed8d6f7a19bdff3aba9422b75064",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "boon:rebel.insolent-dissident",
+      "domain": "boon",
+      "stableId": "rebel.insolent-dissident",
+      "sourceHash": null,
+      "status": "retired",
+      "ru": null
+    },
+    {
+      "id": "boon:rebel.leave-this-to-me",
+      "domain": "boon",
+      "stableId": "rebel.leave-this-to-me",
+      "sourceHash": "13976e587d5cb06d705b1acaae581ca54d0f81e1c5dec53f36cacb3033ede04f",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "boon:rebel.not-today",
+      "domain": "boon",
+      "stableId": "rebel.not-today",
+      "sourceHash": "af1ee4927364856b707329425963dc4105cde2d58fc9b2d146aae8fe789b5fc2",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "boon:rebel.overexertion",
+      "domain": "boon",
+      "stableId": "rebel.overexertion",
+      "sourceHash": "b41d445b23f77e0fd313bf583f7bc0b140db2d1d87b0350805066e5562abcc03",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "boon:rebel.supernatural-deafness",
+      "domain": "boon",
+      "stableId": "rebel.supernatural-deafness",
+      "sourceHash": "f8de23002ada351ecc4cfa40c1cbe8be05a58993d587a4f0a572f5198516f879",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "boon:rebel.until-my-last-breath",
+      "domain": "boon",
+      "stableId": "rebel.until-my-last-breath",
+      "sourceHash": "152451b9b5700ae281e8056d140ded098d54275207bb783029f04e68d65f532c",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "outlook:loyalist:description",
+      "domain": "outlook",
+      "stableId": "loyalist",
+      "sourceHash": "67d12973f4b547e584f489830899001cc6c67e8d68e50b98793e3052583c7c3c",
+      "status": "reused-needs-review",
+      "ru": "Человек, преданный системам и власти тех, кто стоит наверху, и участвующий в них. Клятва Верного этому делу приносит плоды, о которых другие могут только мечтать."
+    },
+    {
+      "id": "boon:loyalist.durandal",
+      "domain": "boon",
+      "stableId": "loyalist.durandal",
+      "sourceHash": "355a73d47ec9ad46378398345d7c51f6db64d450068ce71048967a93c1bcdbd4",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "boon:loyalist.fish-out-of-water",
+      "domain": "boon",
+      "stableId": "loyalist.fish-out-of-water",
+      "sourceHash": "eab0bfa33e7ab7b314842780469829d00b4853d6b19479a64a5621196a27c45a",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "boon:loyalist.law-and-order",
+      "domain": "boon",
+      "stableId": "loyalist.law-and-order",
+      "sourceHash": "d211a4d2e52f6cd52b4f6ec4fe197579d14dc103302a5505f17dbd81ec2d7a4c",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "boon:loyalist.lord-s-rite",
+      "domain": "boon",
+      "stableId": "loyalist.lord-s-rite",
+      "sourceHash": null,
+      "status": "retired",
+      "ru": null
+    },
+    {
+      "id": "boon:loyalist.my-master-s-teachings",
+      "domain": "boon",
+      "stableId": "loyalist.my-master-s-teachings",
+      "sourceHash": "adca3cd2aa1fc991e19db1e26ccf4fcd44c32d1aa219e116ca5eedf9ae6fb6a4",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "boon:loyalist.secret-technique",
+      "domain": "boon",
+      "stableId": "loyalist.secret-technique",
+      "sourceHash": "cfe89278b36610b098b24e55f76ae7a45dda235f9e5c36ed8929de5324e00a97",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "boon:loyalist.the-oath",
+      "domain": "boon",
+      "stableId": "loyalist.the-oath",
+      "sourceHash": "0bacdf9018d765f36a85ab097cdf4c836f492b5f2b4b1364c2e8e7ee3fd8aa24",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "outlook:beacon:description",
+      "domain": "outlook",
+      "stableId": "beacon",
+      "sourceHash": "7300f046855c65a830264e93df94a6a9adfb98890622a880e18b14717efe9d69",
+      "status": "reused-needs-review",
+      "ru": "Кормилец, защитник или пацифист, а важнее всего - человек, на которого можно положиться. Светоч естественно притягивает тех, кто переживает самый темный час."
+    },
+    {
+      "id": "boon:beacon.books-and-their-covers",
+      "domain": "boon",
+      "stableId": "beacon.books-and-their-covers",
+      "sourceHash": "9d021dde31533a9ed1f89c79bfd1a1f0021a942aacaf649331aa881ae75c30de",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "boon:beacon.friendly-and-approachable",
+      "domain": "boon",
+      "stableId": "beacon.friendly-and-approachable",
+      "sourceHash": "06636760074c621e147b30f07cba8e6786306ae26a219bde4946d9579c24cf30",
+      "status": "reused-needs-review",
+      "ru": {
+        "name": "Дружелюбный и открытый",
+        "text": "ваши **быстрые Связи** с неигровыми персонажами начинаются с **Ранга** 2. Вы также можете создать больше одной **быстрой Связи** в **Главе**, получая при этом один **Стресс**."
+      }
+    },
+    {
+      "id": "boon:beacon.looking-our-best",
+      "domain": "boon",
+      "stableId": "beacon.looking-our-best",
+      "sourceHash": "d384bdcf41d56c5296be5e996d3b8d5355de3b3c2a9ecaf3f0afab685872dc21",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "boon:beacon.north-star",
+      "domain": "boon",
+      "stableId": "beacon.north-star",
+      "sourceHash": "eec0e15208f8df39d11a521a33d3353f839c67533f53457ad35fdaa58f99a8e9",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "boon:beacon.performance-artist",
+      "domain": "boon",
+      "stableId": "beacon.performance-artist",
+      "sourceHash": "ba36ec4f792ba2f1fdeca05543c452e9ca2a7112c7bac0b13fdd05938ec5ce14",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "boon:beacon.perspective-of-a-friend",
+      "domain": "boon",
+      "stableId": "beacon.perspective-of-a-friend",
+      "sourceHash": "3cec4393ec3b11ed7fb90b8881b2a29931b9a83d2f2a0b3a95c1de910234d8fb",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "boon:beacon.saint",
+      "domain": "boon",
+      "stableId": "beacon.saint",
+      "sourceHash": "bbdb03790ba7083fa0d93b8d64307df19e172815755648d02e82b21145b558bd",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "boon:beacon.true-hero",
+      "domain": "boon",
+      "stableId": "beacon.true-hero",
+      "sourceHash": null,
+      "status": "retired",
+      "ru": null
+    },
+    {
+      "id": "outlook:wolf:description",
+      "domain": "outlook",
+      "stableId": "wolf",
+      "sourceHash": "560faf8574d53c7e79a527f4ec4584124503e5f448e18c278559d25439005469",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "boon:wolf.better-off-alone",
+      "domain": "boon",
+      "stableId": "wolf.better-off-alone",
+      "sourceHash": "0fc12e602afc6986514dc3d3179ea48af7973d7d191c7bee1147e9ac6c5bd00b",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "boon:wolf.brood",
+      "domain": "boon",
+      "stableId": "wolf.brood",
+      "sourceHash": "e0e127441a5a651aac5bdcf24be963f8f3e19faee2cbf3d9e11de71598f6cedb",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "boon:wolf.dark-urge",
+      "domain": "boon",
+      "stableId": "wolf.dark-urge",
+      "sourceHash": "2997eb10074673f9f4f11d142a76e26f1c4af6c52137b73e208f94bfc20c9d0a",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "boon:wolf.guard-dog",
+      "domain": "boon",
+      "stableId": "wolf.guard-dog",
+      "sourceHash": null,
+      "status": "retired",
+      "ru": null
+    },
+    {
+      "id": "boon:wolf.lone-wolf",
+      "domain": "boon",
+      "stableId": "wolf.lone-wolf",
+      "sourceHash": "3aa16916b291fb8a1083dd7d46069a7607fcef35da6878374129510351139d98",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "boon:wolf.loyal",
+      "domain": "boon",
+      "stableId": "wolf.loyal",
+      "sourceHash": "fab6885251c3ee195c0fbebea5dca9b08f5f0327f6cd879a301ed5ecdd218386",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "boon:wolf.outgunned",
+      "domain": "boon",
+      "stableId": "wolf.outgunned",
+      "sourceHash": "c3f387106f1fff5757df245651122e70941c566a0167ca530a5e1bd438e90f83",
+      "status": "reused-needs-review",
+      "ru": {
+        "name": "В меньшинстве",
+        "text": "когда вы действуете против большего числа врагов, чем у вас союзников, вы получаете 2 **Преимущества** ко всем **броскам**."
+      }
+    },
+    {
+      "id": "boon:wolf.the-one-thing-you-can-rely-on",
+      "domain": "boon",
+      "stableId": "wolf.the-one-thing-you-can-rely-on",
+      "sourceHash": "91933c6e5c1cf97e1ed565cc759c1c090c3ac8c2e3198f5c228481d60d98a535",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "outlook:mentor:description",
+      "domain": "outlook",
+      "stableId": "mentor",
+      "sourceHash": "cc4f7b87576efe403b662bc4b60917fe264befa4655bc29344e5891a5054b2e7",
+      "status": "reused-needs-review",
+      "ru": "Мудрый не по годам, сколько бы этих лет ни было; возвышающийся маяк опыта и силы. Хотя, возможно, это не история Наставника, чтобы использовать все это."
+    },
+    {
+      "id": "boon:mentor.a-power-that-must-never-be-used-again",
+      "domain": "boon",
+      "stableId": "mentor.a-power-that-must-never-be-used-again",
+      "sourceHash": "411a2ac298154e519b4ee8ce2ee785852048789fa814f7ca012e993d5882bb51",
+      "status": "reused-needs-review",
+      "ru": {
+        "name": "Сила, которую нельзя применять снова",
+        "text": "один раз за **Главу** ваша **Способность** может мгновенно убить любого безымянного NPC, стоящего перед вами, независимо от контекста. Если вы когда-либо используете эффект этого **Дара**, вы теряете два **Ранга Связи** с персонажем по вашему выбору. Если вы теряете все свои **Связи**, вы навсегда теряете контроль над персонажем."
+      }
+    },
+    {
+      "id": "boon:mentor.an-organized-style",
+      "domain": "boon",
+      "stableId": "mentor.an-organized-style",
+      "sourceHash": "c05031a1bc2777eded7ebfdf48af26513a0c9f08b7b6343be117caea7761df98",
+      "status": "reused-needs-review",
+      "ru": {
+        "name": "Упорядоченный стиль",
+        "text": "когда вы используете свою **Способность** способом, которым никогда не пользовались раньше, вы можете дать этому конкретному применению название, чтобы получить 3 **Преимущества**."
+      }
+    },
+    {
+      "id": "boon:mentor.casual-excellence",
+      "domain": "boon",
+      "stableId": "mentor.casual-excellence",
+      "sourceHash": "f0ed27fe0e6d99046be3967096a4b30603b877d1d14724f18c58f00ad4805e45",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "boon:mentor.old-calloused-hand",
+      "domain": "boon",
+      "stableId": "mentor.old-calloused-hand",
+      "sourceHash": "a00a97b533e4e4a516937de810f8ecee0c379f5f3cad00938c20e0ad049eda8a",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "boon:mentor.past-your-prime",
+      "domain": "boon",
+      "stableId": "mentor.past-your-prime",
+      "sourceHash": null,
+      "status": "retired",
+      "ru": null
+    },
+    {
+      "id": "boon:mentor.perspective-of-a-teacher",
+      "domain": "boon",
+      "stableId": "mentor.perspective-of-a-teacher",
+      "sourceHash": "c6d836e62fbf543f63c7d016385952baa5bde255a3d21a2db42fd3e871557af1",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "outlook:student:description",
+      "domain": "outlook",
+      "stableId": "student",
+      "sourceHash": "de3fd67d7c2564af75ae75adeb44c5b23544bbd31051894e2c81d107de6066d5",
+      "status": "reused-needs-review",
+      "ru": "Широко раскрытые глаза новичков, которые хотят компенсировать недостающий опыт и сделать себе имя. Ученик начинает с малого, но несет большие амбиции."
+    },
+    {
+      "id": "boon:student.a-step-behind-but-still-running",
+      "domain": "boon",
+      "stableId": "student.a-step-behind-but-still-running",
+      "sourceHash": "45176a68d4444c2c3e8376b283e6f8d8bb19edec106bf33e7b9f596b11bd5775",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "boon:student.amazing-potential",
+      "domain": "boon",
+      "stableId": "student.amazing-potential",
+      "sourceHash": "261df2a29c54f2d1658cda2107d9a607504d1d576c43facf0630058669448204",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "boon:student.land-among-the-stars",
+      "domain": "boon",
+      "stableId": "student.land-among-the-stars",
+      "sourceHash": null,
+      "status": "retired",
+      "ru": null
+    },
+    {
+      "id": "boon:student.never-give-up",
+      "domain": "boon",
+      "stableId": "student.never-give-up",
+      "sourceHash": "508ac921a7e081ae8d94d438b3ca784c298a1dc0813630c48e913fa6c15fb08a",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "boon:student.order-and-out",
+      "domain": "boon",
+      "stableId": "student.order-and-out",
+      "sourceHash": "31504f4c287450790921b7a16e096e931725d47f940b73f8108b9e9befe8dc02",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "boon:student.plenty-to-learn",
+      "domain": "boon",
+      "stableId": "student.plenty-to-learn",
+      "sourceHash": "173db602a1f6f16edde99a00a7873f5417888833089111d189aac7c25b266691",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "boon:student.still-getting-used-to-it",
+      "domain": "boon",
+      "stableId": "student.still-getting-used-to-it",
+      "sourceHash": "9fe194de0daac4906e90e851d9087692d2f2e4aa8f74554606bc7f28b733f7b0",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "outlook:cursed:description",
+      "domain": "outlook",
+      "stableId": "cursed",
+      "sourceHash": "1f01f591edd06ac3a25ec5856c2091a43159f2d5ac1f0fc0d61b4965eee67372",
+      "status": "reused-needs-review",
+      "ru": "Обреченный с самого начала, существо дурной удачи, получившее силу, о которой никогда не просило. Что это за сила? Как от нее избавиться? Проклятый редко знает."
+    },
+    {
+      "id": "boon:cursed.sacrifice",
+      "domain": "boon",
+      "stableId": "cursed.sacrifice",
+      "sourceHash": "d7c3d45cb659f945a582b38ce7a9e9b61de8d4429b17fcdd5df4c55919860582",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "boon:cursed.self-destructive-strength",
+      "domain": "boon",
+      "stableId": "cursed.self-destructive-strength",
+      "sourceHash": "12d546cf8aa78f4316d82d064d3b864ab7452a999203d5da9e4dc1428a72924a",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "boon:cursed.tainted-body",
+      "domain": "boon",
+      "stableId": "cursed.tainted-body",
+      "sourceHash": "258948851c21d0fa095b94e2a9e5fb08565bebe5f4b4d34f2e45524aa9100669",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "boon:cursed.the-voice",
+      "domain": "boon",
+      "stableId": "cursed.the-voice",
+      "sourceHash": "517694335fa7a2eb1e26a4efff9fc344c2b8009fa57e33674db0fd36a9ba73b5",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "boon:cursed.turning-over-a-new-leaf",
+      "domain": "boon",
+      "stableId": "cursed.turning-over-a-new-leaf",
+      "sourceHash": null,
+      "status": "retired",
+      "ru": null
+    },
+    {
+      "id": "boon:cursed.uncontrollable-power",
+      "domain": "boon",
+      "stableId": "cursed.uncontrollable-power",
+      "sourceHash": "57c093dd13f2f30ecda8793b69f5e424cf6e5400d524fd9ad8f787eaf4298c8d",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "boon:cursed.volatile-blood",
+      "domain": "boon",
+      "stableId": "cursed.volatile-blood",
+      "sourceHash": "98e803676efa6bf70ce60080917463e5f3cadce0f36a5457f1a181a50fc1167f",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "outlook:blessed:description",
+      "domain": "outlook",
+      "stableId": "blessed",
+      "sourceHash": "da923e8ed0d29246674ca8daebd1e3a86a7ef8b4c6099c7db689e136eaf4cbcb",
+      "status": "reused-needs-review",
+      "ru": "Живущий в почти райском изобилии, человек, получивший удачу за пределами воображения. Для Благословенного почти необходима смесь гордости и невежества."
+    },
+    {
+      "id": "boon:blessed.a-web-of-connections",
+      "domain": "boon",
+      "stableId": "blessed.a-web-of-connections",
+      "sourceHash": "580821d42604423393ce72b947bf20ad35041b1101c8b2b897bedd02848be088",
+      "status": "reused-needs-review",
+      "ru": {
+        "name": "Сеть связей",
+        "text": "когда вы используете **Влияние**, вы можете определить безымянного NPC в **Сцене**. Вы получаете 2 **Преимущества** к **броскам**, где этот NPC важен."
+      }
+    },
+    {
+      "id": "boon:blessed.beck-and-call",
+      "domain": "boon",
+      "stableId": "blessed.beck-and-call",
+      "sourceHash": "7fa1d52cf29ae1868bc0427911757956c5cfff94a1d61b68e26ec75897e33f39",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "boon:blessed.convenient-transport",
+      "domain": "boon",
+      "stableId": "blessed.convenient-transport",
+      "sourceHash": null,
+      "status": "retired",
+      "ru": null
+    },
+    {
+      "id": "boon:blessed.do-you-know-who-i-am",
+      "domain": "boon",
+      "stableId": "blessed.do-you-know-who-i-am",
+      "sourceHash": null,
+      "status": "retired",
+      "ru": null
+    },
+    {
+      "id": "boon:blessed.sick-ride",
+      "domain": "boon",
+      "stableId": "blessed.sick-ride",
+      "sourceHash": "727f376abb574dabb13233a3fa9900c1aa407e0048b8c1ac2af7674f66eb14b4",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "boon:blessed.social-setup",
+      "domain": "boon",
+      "stableId": "blessed.social-setup",
+      "sourceHash": "352ff35148e11291f0b6b22a57e1aa1d811ae0b4119fec5037b250ea2f935a27",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "boon:blessed.trust-fund",
+      "domain": "boon",
+      "stableId": "blessed.trust-fund",
+      "sourceHash": "e44251eda37e505582995b9cce40f4bdcda85a3c8e1d96885e813f85dd8b4453",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "outlook:quiet:description",
+      "domain": "outlook",
+      "stableId": "quiet",
+      "sourceHash": "90c60dbd9e5e0bc9d5b193cd64236e1db0620c07264ec223fb9973da99c45899",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "boon:quiet.eagle-eyed",
+      "domain": "boon",
+      "stableId": "quiet.eagle-eyed",
+      "sourceHash": "353196c81179c7d1670f79dd8668e31a37b30535b2ffb02df7e7d53bd1cf8641",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "boon:quiet.gearhead",
+      "domain": "boon",
+      "stableId": "quiet.gearhead",
+      "sourceHash": "6483e4655ee897ed1bc85f6e139b478e1be49041bb4b2361eb8572ca2c70a6b7",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "boon:quiet.knacks-and-hobbies",
+      "domain": "boon",
+      "stableId": "quiet.knacks-and-hobbies",
+      "sourceHash": "9dbe10b6cae12dfb715f58e516181a247efcade08f118eea4443308f82631685",
+      "status": "reused-needs-review",
+      "ru": {
+        "name": "Умения и увлечения",
+        "text": "вы получаете 3 **Преимущества** ко всем броскам, которые не противостоят другому персонажу и не связаны с ним."
+      }
+    },
+    {
+      "id": "boon:quiet.reversal-of-fortune",
+      "domain": "boon",
+      "stableId": "quiet.reversal-of-fortune",
+      "sourceHash": null,
+      "status": "retired",
+      "ru": null
+    },
+    {
+      "id": "boon:quiet.right-place-right-time",
+      "domain": "boon",
+      "stableId": "quiet.right-place-right-time",
+      "sourceHash": "e11b95e250a0ccc23becf91c87432a5b68046eacf873ac73e164b1fcc6c0d98d",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "boon:quiet.technobabble",
+      "domain": "boon",
+      "stableId": "quiet.technobabble",
+      "sourceHash": "e5f52d571e715c0344cef7d1673bbdd1664b8f9402f8c62db23c6d8db6081edb",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "boon:quiet.the-sneaky-superposition",
+      "domain": "boon",
+      "stableId": "quiet.the-sneaky-superposition",
+      "sourceHash": null,
+      "status": "retired",
+      "ru": null
+    },
+    {
+      "id": "boon:quiet.the-talent",
+      "domain": "boon",
+      "stableId": "quiet.the-talent",
+      "sourceHash": "387329c57f6e61c5eef78fdf193d344c62bc90610b08eb00784d3fa5002b76be",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "outlook:confident:description",
+      "domain": "outlook",
+      "stableId": "confident",
+      "sourceHash": "90e426744ce928a981e781a31f6286b4a2111ab60b16f446717eac2303941eab",
+      "status": "reused-needs-review",
+      "ru": "Человек, который должен заявить о себе и боится падения своего образа больше, чем смерти. Кто бы не согласился с Уверенным, когда за твоей жизнью следят?"
+    },
+    {
+      "id": "boon:confident.and-i-ll-only-use-one-hand",
+      "domain": "boon",
+      "stableId": "confident.and-i-ll-only-use-one-hand",
+      "sourceHash": null,
+      "status": "retired",
+      "ru": null
+    },
+    {
+      "id": "boon:confident.chatty",
+      "domain": "boon",
+      "stableId": "confident.chatty",
+      "sourceHash": "23e8d6b7b7fbb84c6dfd8d68e125ebc8b0f1888b24620131725c4fed291689b5",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "boon:confident.do-you-know-who-i-am",
+      "domain": "boon",
+      "stableId": "confident.do-you-know-who-i-am",
+      "sourceHash": "e80d52d3adff36b1624d3c8558fa11f8194a45c3d7a2ccb9e30d8e7e834951de",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "boon:confident.perspective-of-a-lancer",
+      "domain": "boon",
+      "stableId": "confident.perspective-of-a-lancer",
+      "sourceHash": "555772e1c7ee2a147248e35368b0241a223f4af4f16f8c7884b75429b39d2b3d",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "boon:confident.spite",
+      "domain": "boon",
+      "stableId": "confident.spite",
+      "sourceHash": "9c97be4886f4f44285eeb2d53c77145f4516a60efa8b510cfb986da84a5c3d35",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "boon:confident.spotlight",
+      "domain": "boon",
+      "stableId": "confident.spotlight",
+      "sourceHash": null,
+      "status": "retired",
+      "ru": null
+    },
+    {
+      "id": "boon:confident.you-re-strong",
+      "domain": "boon",
+      "stableId": "confident.you-re-strong",
+      "sourceHash": "2333c0c64288876d3f24700621c72b6f94daf5f233df0cd9a13cdfe90eb351ec",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "ability-word:verbs:absorb",
+      "domain": "ability-word",
+      "stableId": "ability.en.verbs.absorb",
+      "sourceHash": "979804ca8ebe140273e7e0f64cc1447047bac3de222bee0907a12c588ef083d3",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "ability-word:verbs:attract",
+      "domain": "ability-word",
+      "stableId": "ability.en.verbs.attract",
+      "sourceHash": "40332038b9574d95e1f77abdbd2039199c8a79332cf10b50e432d531773484fd",
+      "status": "reused-needs-review",
+      "ru": "Притянуть"
+    },
+    {
+      "id": "ability-word:verbs:become",
+      "domain": "ability-word",
+      "stableId": "ability.en.verbs.become",
+      "sourceHash": "9f07978937dcd6e263f41d7edc05533401ff2aec3690de9b1dec59c968682379",
+      "status": "reused-needs-review",
+      "ru": "Стать"
+    },
+    {
+      "id": "ability-word:verbs:blow",
+      "domain": "ability-word",
+      "stableId": "ability.en.verbs.blow",
+      "sourceHash": "9f2be4795b491d89525ecfffebeb8f837aa23afbc48bdeedf2df0f20e4f923c2",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "ability-word:verbs:break",
+      "domain": "ability-word",
+      "stableId": "ability.en.verbs.break",
+      "sourceHash": "9a0deaee5004c2b80d9229ff1ee233b9b01d2ba3d706aace8759bc42c287a348",
+      "status": "reused-needs-review",
+      "ru": "Сломать"
+    },
+    {
+      "id": "ability-word:verbs:breathe",
+      "domain": "ability-word",
+      "stableId": "ability.en.verbs.breathe",
+      "sourceHash": "1f09ca422c7ba6883a52f81ccf167c88959939373199610bc15e07d6166c11d0",
+      "status": "reused-needs-review",
+      "ru": "Дышать"
+    },
+    {
+      "id": "ability-word:verbs:bruise",
+      "domain": "ability-word",
+      "stableId": "ability.en.verbs.bruise",
+      "sourceHash": null,
+      "status": "retired",
+      "ru": null
+    },
+    {
+      "id": "ability-word:verbs:conceal",
+      "domain": "ability-word",
+      "stableId": "ability.en.verbs.conceal",
+      "sourceHash": "f510c40dd50a8b448adb64f9776b2e54573ccf7bf37d6a40dc24f0891d5b8b1d",
+      "status": "reused-needs-review",
+      "ru": "Скрыть"
+    },
+    {
+      "id": "ability-word:verbs:control",
+      "domain": "ability-word",
+      "stableId": "ability.en.verbs.control",
+      "sourceHash": "67401a168047fcc748234e1122d0c640555fa048bdd38b9447e1d574a2f938d3",
+      "status": "reused-needs-review",
+      "ru": "Контролировать"
+    },
+    {
+      "id": "ability-word:verbs:create",
+      "domain": "ability-word",
+      "stableId": "ability.en.verbs.create",
+      "sourceHash": "7674ac57f9722c3f2ba7a57eacc69226fe575209dbf513c5d0ae978f4a24c25d",
+      "status": "reused-needs-review",
+      "ru": "Создать"
+    },
+    {
+      "id": "ability-word:verbs:cut",
+      "domain": "ability-word",
+      "stableId": "ability.en.verbs.cut",
+      "sourceHash": "fe989fe504188d84d152b5cdaa25c27c79a9f17665c8c2885a7b1e4bc369448a",
+      "status": "reused-needs-review",
+      "ru": "Разрезать"
+    },
+    {
+      "id": "ability-word:verbs:damage",
+      "domain": "ability-word",
+      "stableId": "ability.en.verbs.damage",
+      "sourceHash": null,
+      "status": "retired",
+      "ru": null
+    },
+    {
+      "id": "ability-word:verbs:duplicate",
+      "domain": "ability-word",
+      "stableId": "ability.en.verbs.duplicate",
+      "sourceHash": "887187facfb78c3bcf48e0879bb59641c01df35a87dcf21d70c1d3dd74acb901",
+      "status": "reused-needs-review",
+      "ru": "Дублировать"
+    },
+    {
+      "id": "ability-word:verbs:eat",
+      "domain": "ability-word",
+      "stableId": "ability.en.verbs.eat",
+      "sourceHash": "d9fae51c27c509d76c593633e7b35b71fd4158b6f5b5c6b0de5a3e98da3e8e9d",
+      "status": "reused-needs-review",
+      "ru": "Есть"
+    },
+    {
+      "id": "ability-word:verbs:embody",
+      "domain": "ability-word",
+      "stableId": "ability.en.verbs.embody",
+      "sourceHash": "09f13b1eacae8246fbdc641dd7b88b282cf07ddc2485a28a53e7f95e04f31e7f",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "ability-word:verbs:empower",
+      "domain": "ability-word",
+      "stableId": "ability.en.verbs.empower",
+      "sourceHash": "828be7c2feb228c6bc00a0beaa3cc58f49581d37dbc3f5bedd98abbd6e5cba92",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "ability-word:verbs:enhance",
+      "domain": "ability-word",
+      "stableId": "ability.en.verbs.enhance",
+      "sourceHash": null,
+      "status": "retired",
+      "ru": null
+    },
+    {
+      "id": "ability-word:verbs:enlarge",
+      "domain": "ability-word",
+      "stableId": "ability.en.verbs.enlarge",
+      "sourceHash": "52a3be0e334e48af96d5c45d2343525792f75aab357271ce2b6fabca5b35e5a5",
+      "status": "reused-needs-review",
+      "ru": "Увеличить"
+    },
+    {
+      "id": "ability-word:verbs:fuse x and",
+      "domain": "ability-word",
+      "stableId": "ability.en.verbs.fuse-x-and",
+      "sourceHash": "3a4d91cedd6bea99f2015b181302655c7e77b82c8dec41d12a10ffd1c90f11e9",
+      "status": "reused-needs-review",
+      "ru": "Слить X с"
+    },
+    {
+      "id": "ability-word:verbs:heal",
+      "domain": "ability-word",
+      "stableId": "ability.en.verbs.heal",
+      "sourceHash": "a857f98c76f8f46dbd1411c0efeea3fc144196d4c66847fb3e1c4e267ea53fc0",
+      "status": "reused-needs-review",
+      "ru": "Исцелить"
+    },
+    {
+      "id": "ability-word:verbs:immobilize",
+      "domain": "ability-word",
+      "stableId": "ability.en.verbs.immobilize",
+      "sourceHash": "13edf21d5201c9c0c986467f562aceced8e16c7a196d7c78b727392afd8d1e6a",
+      "status": "reused-needs-review",
+      "ru": "Обездвижить"
+    },
+    {
+      "id": "ability-word:verbs:launch",
+      "domain": "ability-word",
+      "stableId": "ability.en.verbs.launch",
+      "sourceHash": "2c67c48c3615423c203b7c0a7ba1af62ee714939209f34d4b14efccdad94f20b",
+      "status": "reused-needs-review",
+      "ru": "Запустить"
+    },
+    {
+      "id": "ability-word:verbs:locate",
+      "domain": "ability-word",
+      "stableId": "ability.en.verbs.locate",
+      "sourceHash": "7ab3960ba18ef697fc562cfe9c6b81ea6e90455f1f6b907f2f983e07cbe4f523",
+      "status": "reused-needs-review",
+      "ru": "Найти"
+    },
+    {
+      "id": "ability-word:verbs:manipulate",
+      "domain": "ability-word",
+      "stableId": "ability.en.verbs.manipulate",
+      "sourceHash": "0af7a657130e313fae125b898d5a33c5724517317f82401b7cad5f1836c28700",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "ability-word:verbs:melt",
+      "domain": "ability-word",
+      "stableId": "ability.en.verbs.melt",
+      "sourceHash": "27f8c1c918e84f52ebb4edc1d7235b932361648bc4822ca3898da3a824226f05",
+      "status": "reused-needs-review",
+      "ru": "Расплавить"
+    },
+    {
+      "id": "ability-word:verbs:negate",
+      "domain": "ability-word",
+      "stableId": "ability.en.verbs.negate",
+      "sourceHash": "47c3754c6fc7883073e3aa3201300def28718014b4a1d6383bfb47d72e9b4b76",
+      "status": "reused-needs-review",
+      "ru": "Отменить"
+    },
+    {
+      "id": "ability-word:verbs:perceive",
+      "domain": "ability-word",
+      "stableId": "ability.en.verbs.perceive",
+      "sourceHash": "00c8f5226eead9e8c74a5b4b8e2fd913f5d06e5fb462fe5bb3857d8bc1fbc314",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "ability-word:verbs:puppet",
+      "domain": "ability-word",
+      "stableId": "ability.en.verbs.puppet",
+      "sourceHash": null,
+      "status": "retired",
+      "ru": null
+    },
+    {
+      "id": "ability-word:verbs:recreate",
+      "domain": "ability-word",
+      "stableId": "ability.en.verbs.recreate",
+      "sourceHash": "499d7711250cdd983af1583296cb39e55ad4f2d28a35f50bc5fec3bdf9defdd5",
+      "status": "reused-needs-review",
+      "ru": "Воссоздать"
+    },
+    {
+      "id": "ability-word:verbs:repair",
+      "domain": "ability-word",
+      "stableId": "ability.en.verbs.repair",
+      "sourceHash": "ed8f2f9307309533b28e206484204394f5198b5cde87b8b581f36c1e95175170",
+      "status": "reused-needs-review",
+      "ru": "Починить"
+    },
+    {
+      "id": "ability-word:verbs:reveal",
+      "domain": "ability-word",
+      "stableId": "ability.en.verbs.reveal",
+      "sourceHash": null,
+      "status": "retired",
+      "ru": null
+    },
+    {
+      "id": "ability-word:verbs:reverse",
+      "domain": "ability-word",
+      "stableId": "ability.en.verbs.reverse",
+      "sourceHash": "60c615663889057f50c2256c66caf3ae7637770325a36976ddb1c06983976977",
+      "status": "reused-needs-review",
+      "ru": "Обратить"
+    },
+    {
+      "id": "ability-word:verbs:rotate",
+      "domain": "ability-word",
+      "stableId": "ability.en.verbs.rotate",
+      "sourceHash": "8aef3c636ae5f79fd37d1585ab5943fd21ba51569c0a925bfb160e428b9bde43",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "ability-word:verbs:secrete",
+      "domain": "ability-word",
+      "stableId": "ability.en.verbs.secrete",
+      "sourceHash": "99c9e20261b9297459ae53f51bd5f182f6b4955f36ced1ba2e29a60740cfc7dc",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "ability-word:verbs:see",
+      "domain": "ability-word",
+      "stableId": "ability.en.verbs.see",
+      "sourceHash": null,
+      "status": "retired",
+      "ru": null
+    },
+    {
+      "id": "ability-word:verbs:shape",
+      "domain": "ability-word",
+      "stableId": "ability.en.verbs.shape",
+      "sourceHash": "6a1683cadc27297749f9aa9ad87df6a6674ecf9b326cae22797788c014887021",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "ability-word:verbs:shrink",
+      "domain": "ability-word",
+      "stableId": "ability.en.verbs.shrink",
+      "sourceHash": "dc58cd7ae1e5580d7e7fa2c338158b7107ccb6690145004def67e42183d4af55",
+      "status": "reused-needs-review",
+      "ru": "Уменьшить"
+    },
+    {
+      "id": "ability-word:verbs:solidify",
+      "domain": "ability-word",
+      "stableId": "ability.en.verbs.solidify",
+      "sourceHash": "e74cf669b91cfaee7ee4ffb3995421dc03069332e61339151a70f25b71be0722",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "ability-word:verbs:stop",
+      "domain": "ability-word",
+      "stableId": "ability.en.verbs.stop",
+      "sourceHash": "a1c9e135813d5fa0ac8e8068b63c6d5a4f3b73eafefd0f7a48582ca625be4f26",
+      "status": "reused-needs-review",
+      "ru": "Остановить"
+    },
+    {
+      "id": "ability-word:verbs:store x in",
+      "domain": "ability-word",
+      "stableId": "ability.en.verbs.store-x-in",
+      "sourceHash": "848ac7dfa9fe7d0372818f1b9105057a7f02ac36400ee54bfe933bf61595936a",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "ability-word:verbs:swap",
+      "domain": "ability-word",
+      "stableId": "ability.en.verbs.swap",
+      "sourceHash": "b158dc9f7c6e8964eb57c3aa806466e0536b1d8afe79f927b5c8b545be22d8b9",
+      "status": "reused-needs-review",
+      "ru": "Поменять местами"
+    },
+    {
+      "id": "ability-word:verbs:talk to",
+      "domain": "ability-word",
+      "stableId": "ability.en.verbs.talk-to",
+      "sourceHash": "41abadc668241f26c06ca87cb369acda48452015e9b784969243e8e765b1bd15",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "ability-word:verbs:teleport",
+      "domain": "ability-word",
+      "stableId": "ability.en.verbs.teleport",
+      "sourceHash": "d8744779a0795df8b78c68d3f6a48af27ee99bf163e2386e27832e7b5dd55cde",
+      "status": "reused-needs-review",
+      "ru": "Телепортировать"
+    },
+    {
+      "id": "ability-word:verbs:toughen",
+      "domain": "ability-word",
+      "stableId": "ability.en.verbs.toughen",
+      "sourceHash": "66c9c2f41156e9cd66d3c870924a59909c8bc98556f101b169685c0b769816b0",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "ability-word:verbs:transform x into",
+      "domain": "ability-word",
+      "stableId": "ability.en.verbs.transform-x-into",
+      "sourceHash": "a934d2d9f88057e59a2496c3d96dbd3c7785801f1632cab7eb569a758e0fcd3b",
+      "status": "reused-needs-review",
+      "ru": "Превратить X в"
+    },
+    {
+      "id": "ability-word:verbs:vibrate",
+      "domain": "ability-word",
+      "stableId": "ability.en.verbs.vibrate",
+      "sourceHash": "548e9d5c840dc2518aa87438d9260a07b24df1b1ffcf8a9054354a447dee4df5",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "ability-word:verbs:weaken",
+      "domain": "ability-word",
+      "stableId": "ability.en.verbs.weaken",
+      "sourceHash": "ddecac8109b9c971060a741037e2b83faa6fa139c634f3430b78410a3ded3b11",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "ability-word:nouns:abilities",
+      "domain": "ability-word",
+      "stableId": "ability.en.nouns.abilities",
+      "sourceHash": "11267c2d0407518a6fb384ea32c4496e2f093367eecc109e6f5c151012ab42ed",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "ability-word:nouns:animals",
+      "domain": "ability-word",
+      "stableId": "ability.en.nouns.animals",
+      "sourceHash": "5354db22a5707f592e40d439c74e6b9b4154c808a861c640ba6d589da9f355c3",
+      "status": "reused-needs-review",
+      "ru": "Животные"
+    },
+    {
+      "id": "ability-word:nouns:barriers",
+      "domain": "ability-word",
+      "stableId": "ability.en.nouns.barriers",
+      "sourceHash": "fb8f29b52ff989d18610303961e86cd937ae55a27da170c2fd42d88f65cde3c9",
+      "status": "reused-needs-review",
+      "ru": "Барьеры"
+    },
+    {
+      "id": "ability-word:nouns:beasts",
+      "domain": "ability-word",
+      "stableId": "ability.en.nouns.beasts",
+      "sourceHash": "670a16a44815a73e4d69446a0183127abb4276aaf1c3834af2f5be9d643a792f",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "ability-word:nouns:blood",
+      "domain": "ability-word",
+      "stableId": "ability.en.nouns.blood",
+      "sourceHash": "d1b611c0202cd46bbb555403e8f174461603e619ea8dd938cff912c5c7a29fdf",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "ability-word:nouns:bones",
+      "domain": "ability-word",
+      "stableId": "ability.en.nouns.bones",
+      "sourceHash": "0f134212ae156cb35c9ba34ec7a4ae4357b006f93741387fb2a4257f6deb6351",
+      "status": "reused-needs-review",
+      "ru": "Кости"
+    },
+    {
+      "id": "ability-word:nouns:bubbles",
+      "domain": "ability-word",
+      "stableId": "ability.en.nouns.bubbles",
+      "sourceHash": "346ca5dac2770cb097a35e1e5a5b2a5db073557ff667765dccc1b1e78d010343",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "ability-word:nouns:clouds",
+      "domain": "ability-word",
+      "stableId": "ability.en.nouns.clouds",
+      "sourceHash": "85d75d0cc121192faac782fa608d30059da1e01a815a0a700e7b690f04494180",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "ability-word:nouns:devices",
+      "domain": "ability-word",
+      "stableId": "ability.en.nouns.devices",
+      "sourceHash": "354594bcfef218c5f64ae31dc47c749a7460f021a2bdcb010094d82a5824ab5c",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "ability-word:nouns:distance",
+      "domain": "ability-word",
+      "stableId": "ability.en.nouns.distance",
+      "sourceHash": "cdb567f8831a4d5c53106903a2a4efb88d88b6b3bd4278f1fc666eb142ee1319",
+      "status": "reused-needs-review",
+      "ru": "Дистанция"
+    },
+    {
+      "id": "ability-word:nouns:dust",
+      "domain": "ability-word",
+      "stableId": "ability.en.nouns.dust",
+      "sourceHash": "376f038f667259aedc4b51a2301f92cd493f446bc89ea75caf091421bcb9f877",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "ability-word:nouns:electricity",
+      "domain": "ability-word",
+      "stableId": "ability.en.nouns.electricity",
+      "sourceHash": "19a97087d029d9674be08901015b5f3465831c2a0eee39aa80900f7f9de7a9c2",
+      "status": "reused-needs-review",
+      "ru": "Электричество"
+    },
+    {
+      "id": "ability-word:nouns:explosives",
+      "domain": "ability-word",
+      "stableId": "ability.en.nouns.explosives",
+      "sourceHash": "ebeff5bc5530a65689e4ea38e75f9238d4945139e7eb45db8b983f10ad09b393",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "ability-word:nouns:fluids",
+      "domain": "ability-word",
+      "stableId": "ability.en.nouns.fluids",
+      "sourceHash": "41391f136bff62706f90a1a977354a575a8e821cc950aff0f68f015d08c6340c",
+      "status": "reused-needs-review",
+      "ru": "Жидкости"
+    },
+    {
+      "id": "ability-word:nouns:food",
+      "domain": "ability-word",
+      "stableId": "ability.en.nouns.food",
+      "sourceHash": "1c4502ce53306413823f9b2d781e5b6a11ee40040cda772e75f84dea37a1ee6b",
+      "status": "reused-needs-review",
+      "ru": "Еда"
+    },
+    {
+      "id": "ability-word:nouns:gasses",
+      "domain": "ability-word",
+      "stableId": "ability.en.nouns.gasses",
+      "sourceHash": "5bdd3a46a7eb32f601ceeb74a714851bb4c089bb6d93e4e222daf35c621abe60",
+      "status": "reused-needs-review",
+      "ru": "Газы"
+    },
+    {
+      "id": "ability-word:nouns:ghosts",
+      "domain": "ability-word",
+      "stableId": "ability.en.nouns.ghosts",
+      "sourceHash": "1366ca98f942e233d10744ea1ed3679c56990bbc82dd47a067191be5c784f19c",
+      "status": "reused-needs-review",
+      "ru": "Призраки"
+    },
+    {
+      "id": "ability-word:nouns:gravity",
+      "domain": "ability-word",
+      "stableId": "ability.en.nouns.gravity",
+      "sourceHash": "4b5377cb223c60f8dae765b36b035fd65d116c1a1cd1c7e8d8fa3c46a0f67a12",
+      "status": "reused-needs-review",
+      "ru": "Гравитация"
+    },
+    {
+      "id": "ability-word:nouns:heat",
+      "domain": "ability-word",
+      "stableId": "ability.en.nouns.heat",
+      "sourceHash": "0004bbb3447beaaa5186dc265b65f0aa7920c0e7a1597472fabcb3274c560f50",
+      "status": "reused-needs-review",
+      "ru": "Жар"
+    },
+    {
+      "id": "ability-word:nouns:illusions",
+      "domain": "ability-word",
+      "stableId": "ability.en.nouns.illusions",
+      "sourceHash": "40bed083cfe3da1880b650caea7828f3f66a26dc37bacd5713dc47e0ba8f04df",
+      "status": "reused-needs-review",
+      "ru": "Иллюзии"
+    },
+    {
+      "id": "ability-word:nouns:knowledge",
+      "domain": "ability-word",
+      "stableId": "ability.en.nouns.knowledge",
+      "sourceHash": "551d5c4b70bdfc77e19765afbac8c291584e02cc0b66de4a4d3aced9437562f8",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "ability-word:nouns:light",
+      "domain": "ability-word",
+      "stableId": "ability.en.nouns.light",
+      "sourceHash": "bc90e9dc47f4aabcc1cfc4fc3ca36122f50f30d1bc18b66a1515b08fcc1a59f1",
+      "status": "reused-needs-review",
+      "ru": "Свет"
+    },
+    {
+      "id": "ability-word:nouns:machines",
+      "domain": "ability-word",
+      "stableId": "ability.en.nouns.machines",
+      "sourceHash": "648e298774870ecbe6cd244bec42c5473b71a87a822ff9ddc80aa0d57406e2f7",
+      "status": "reused-needs-review",
+      "ru": "Машины"
+    },
+    {
+      "id": "ability-word:nouns:magic",
+      "domain": "ability-word",
+      "stableId": "ability.en.nouns.magic",
+      "sourceHash": "677d2f3d77b0ec470716bd7305ad48283762036da185d6cf27dd27e272c50756",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "ability-word:nouns:mana",
+      "domain": "ability-word",
+      "stableId": "ability.en.nouns.mana",
+      "sourceHash": null,
+      "status": "retired",
+      "ru": null
+    },
+    {
+      "id": "ability-word:nouns:meat",
+      "domain": "ability-word",
+      "stableId": "ability.en.nouns.meat",
+      "sourceHash": "a4cf091e60fbd23e22844d17e6abb57f24fb64867155d72b7e3041a06edff65f",
+      "status": "reused-needs-review",
+      "ru": "Плоть"
+    },
+    {
+      "id": "ability-word:nouns:melee weapons",
+      "domain": "ability-word",
+      "stableId": "ability.en.nouns.melee-weapons",
+      "sourceHash": null,
+      "status": "retired",
+      "ru": null
+    },
+    {
+      "id": "ability-word:nouns:monsters",
+      "domain": "ability-word",
+      "stableId": "ability.en.nouns.monsters",
+      "sourceHash": "5f14703b0599688065d75057fd98b5c70ccca7fb6998adb33ee54ce5224eff69",
+      "status": "reused-needs-review",
+      "ru": "Чудовища"
+    },
+    {
+      "id": "ability-word:nouns:others",
+      "domain": "ability-word",
+      "stableId": "ability.en.nouns.others",
+      "sourceHash": "ee67532f91da069c6a96375e450c9b4565355d4d43add2ec385468f48238fcae",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "ability-word:nouns:people",
+      "domain": "ability-word",
+      "stableId": "ability.en.nouns.people",
+      "sourceHash": "06ad9a9ad48986b59e7ca55d4262cedb4f8a0ff412852d04275d65d0a9e0fcaa",
+      "status": "reused-needs-review",
+      "ru": "Люди"
+    },
+    {
+      "id": "ability-word:nouns:plants",
+      "domain": "ability-word",
+      "stableId": "ability.en.nouns.plants",
+      "sourceHash": "7d141a766919cfeccc782b58db4fa38072973db274560ec871ec29c2f69cfd9f",
+      "status": "reused-needs-review",
+      "ru": "Растения"
+    },
+    {
+      "id": "ability-word:nouns:ranged weapons",
+      "domain": "ability-word",
+      "stableId": "ability.en.nouns.ranged-weapons",
+      "sourceHash": null,
+      "status": "retired",
+      "ru": null
+    },
+    {
+      "id": "ability-word:nouns:shadow",
+      "domain": "ability-word",
+      "stableId": "ability.en.nouns.shadow",
+      "sourceHash": "e7b18daf7c3453740005a19ab99321651f58a7c002a50fa442f8430c6b5e1d86",
+      "status": "reused-needs-review",
+      "ru": "Тень"
+    },
+    {
+      "id": "ability-word:nouns:simple weapons",
+      "domain": "ability-word",
+      "stableId": "ability.en.nouns.simple-weapons",
+      "sourceHash": "cfc1b0a9b1b45cfbc23f5a826f8d152a3a9ff2da3ef7e6eb2bc6579ae1f16f84",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "ability-word:nouns:smoke",
+      "domain": "ability-word",
+      "stableId": "ability.en.nouns.smoke",
+      "sourceHash": "8c516c4d4903ebf611991b1b41dfaf0f586fdf16df92bc77f02e11d1c6108d22",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "ability-word:nouns:solids",
+      "domain": "ability-word",
+      "stableId": "ability.en.nouns.solids",
+      "sourceHash": "496aac3b3e8da3ccf7b429a74b013a525cd8843671f42e68567d55e9ff902928",
+      "status": "reused-needs-review",
+      "ru": "Твердые тела"
+    },
+    {
+      "id": "ability-word:nouns:souls",
+      "domain": "ability-word",
+      "stableId": "ability.en.nouns.souls",
+      "sourceHash": null,
+      "status": "retired",
+      "ru": null
+    },
+    {
+      "id": "ability-word:nouns:sound",
+      "domain": "ability-word",
+      "stableId": "ability.en.nouns.sound",
+      "sourceHash": "61eaac0bf4c915ab9d333ff280cd2ebc16baa06cf8931afee4080b225abbb5a3",
+      "status": "reused-needs-review",
+      "ru": "Звук"
+    },
+    {
+      "id": "ability-word:nouns:the classical elements",
+      "domain": "ability-word",
+      "stableId": "ability.en.nouns.the-classical-elements",
+      "sourceHash": "21f99ea191b077e86784271c7f2e7b880ea2317ae3197322958faa89dff418e9",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "ability-word:nouns:the four elements",
+      "domain": "ability-word",
+      "stableId": "ability.en.nouns.the-four-elements",
+      "sourceHash": null,
+      "status": "retired",
+      "ru": null
+    },
+    {
+      "id": "ability-word:nouns:toys",
+      "domain": "ability-word",
+      "stableId": "ability.en.nouns.toys",
+      "sourceHash": "56e4c2eef522f77e53aa5ecaf21d0a3bddc80494180285b6d5bfc5e0316cf642",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "ability-word:nouns:traps",
+      "domain": "ability-word",
+      "stableId": "ability.en.nouns.traps",
+      "sourceHash": "b47e53f68164b53624857f52bd65655a0f195166a61ad1dd74c6abc2cbfdde46",
+      "status": "reused-needs-review",
+      "ru": "Ловушки"
+    },
+    {
+      "id": "ability-word:nouns:velocity",
+      "domain": "ability-word",
+      "stableId": "ability.en.nouns.velocity",
+      "sourceHash": "89574cfdf072850a6e68825c2e1928337f1d362286a84c93fb085d3b26d4622c",
+      "status": "reused-needs-review",
+      "ru": "Скорость"
+    },
+    {
+      "id": "ability-word:nouns:weather",
+      "domain": "ability-word",
+      "stableId": "ability.en.nouns.weather",
+      "sourceHash": "ad503c098fbf2e141aa8852ea112bd9e6d45cfa0917cd10ae99d80c19552e0a6",
+      "status": "reused-needs-review",
+      "ru": "Погода"
+    },
+    {
+      "id": "ability-word:nouns:your body",
+      "domain": "ability-word",
+      "stableId": "ability.en.nouns.your-body",
+      "sourceHash": "b4be34219005b6ad50c239c6ae778b95d8bec4854f5bb9155723f11f1175ac99",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "ability-word:nouns:yourself",
+      "domain": "ability-word",
+      "stableId": "ability.en.nouns.yourself",
+      "sourceHash": "9b81ddc399d4b8671cd25e2ca69ec05fae55e2867748405e6be57e2f07c0799d",
+      "status": "reused-needs-review",
+      "ru": "Себя"
+    },
+    {
+      "id": "ability-word:conditions:it can hear you",
+      "domain": "ability-word",
+      "stableId": "ability.en.conditions.it-can-hear-you",
+      "sourceHash": "919379468ea8eb25cce01e9b92d27e5e43af4ecb5ca8faaedf4b991ebbcab691",
+      "status": "reused-needs-review",
+      "ru": "Цель слышит вас"
+    },
+    {
+      "id": "ability-word:conditions:it's a specific time",
+      "domain": "ability-word",
+      "stableId": "ability.en.conditions.it-s-a-specific-time",
+      "sourceHash": "05271b8f6806a7d4eff6f7219293e3f49b6989ff8823e97140cb7a76d32f15f5",
+      "status": "reused-needs-review",
+      "ru": "Настает конкретное время"
+    },
+    {
+      "id": "ability-word:conditions:smell it",
+      "domain": "ability-word",
+      "stableId": "ability.en.conditions.smell-it",
+      "sourceHash": "75211ac046b33c0ba7030ab6d39ffee0df6d4255850f2d7c95fc090fcc741e00",
+      "status": "reused-needs-review",
+      "ru": "чуете это"
+    },
+    {
+      "id": "ability-word:conditions:you are sweating",
+      "domain": "ability-word",
+      "stableId": "ability.en.conditions.you-are-sweating",
+      "sourceHash": "b7ae0c18dc8cb932bf32efff4b902f4661b339310fb2c2706e5eff7aa3fd38f9",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "ability-word:conditions:you aren't seen",
+      "domain": "ability-word",
+      "stableId": "ability.en.conditions.you-aren-t-seen",
+      "sourceHash": "364869b93bdeefdeb58cf8efc1b6c8ccedfb1e7fd60436caa99119d0d603a58a",
+      "status": "reused-needs-review",
+      "ru": "Вас не видят"
+    },
+    {
+      "id": "ability-word:conditions:you build the target",
+      "domain": "ability-word",
+      "stableId": "ability.en.conditions.you-build-the-target",
+      "sourceHash": null,
+      "status": "retired",
+      "ru": null
+    },
+    {
+      "id": "ability-word:conditions:you consume x",
+      "domain": "ability-word",
+      "stableId": "ability.en.conditions.you-consume-x",
+      "sourceHash": "ccd2a131be8be4b0eaef76c569bb888e8f58e5ebe0d9d8702484c03533214afe",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "ability-word:conditions:you dance",
+      "domain": "ability-word",
+      "stableId": "ability.en.conditions.you-dance",
+      "sourceHash": "018d140d811ed58796db980a17eb025f866cdfab6886cc359def26523c3cc013",
+      "status": "reused-needs-review",
+      "ru": "Вы танцуете"
+    },
+    {
+      "id": "ability-word:conditions:you draw the target",
+      "domain": "ability-word",
+      "stableId": "ability.en.conditions.you-draw-the-target",
+      "sourceHash": "e87bba1d603bb910e49dc42b9cf485b214540783bf71c4d3f51bebe672e22e07",
+      "status": "reused-needs-review",
+      "ru": "Вы рисуете цель"
+    },
+    {
+      "id": "ability-word:conditions:you explain it",
+      "domain": "ability-word",
+      "stableId": "ability.en.conditions.you-explain-it",
+      "sourceHash": "020497075b226ec90aaf15480d17c085ec71229a1e79dc758f94010cbb92928c",
+      "status": "reused-needs-review",
+      "ru": "Вы объясняете это"
+    },
+    {
+      "id": "ability-word:conditions:you hear",
+      "domain": "ability-word",
+      "stableId": "ability.en.conditions.you-hear",
+      "sourceHash": "99b56d2ee25da79410e4a7ab904ee321eaeb46d738a35d61e3a300319de3a0c2",
+      "status": "reused-needs-review",
+      "ru": "Вы слышите"
+    },
+    {
+      "id": "ability-word:conditions:you hold your breath",
+      "domain": "ability-word",
+      "stableId": "ability.en.conditions.you-hold-your-breath",
+      "sourceHash": "e3360b65051631eaaaef6ab591a51c66c642dd07fc449e3002c6ead6c3465b65",
+      "status": "reused-needs-review",
+      "ru": "Вы задерживаете дыхание"
+    },
+    {
+      "id": "ability-word:conditions:you remember the target",
+      "domain": "ability-word",
+      "stableId": "ability.en.conditions.you-remember-the-target",
+      "sourceHash": "b9ee2dc64f03df4bfad6fe982380c41a552e0f1d93d1552e036377c4328f3d8d",
+      "status": "reused-needs-review",
+      "ru": "Вы помните цель"
+    },
+    {
+      "id": "ability-word:conditions:you sacrifice x",
+      "domain": "ability-word",
+      "stableId": "ability.en.conditions.you-sacrifice-x",
+      "sourceHash": null,
+      "status": "retired",
+      "ru": null
+    },
+    {
+      "id": "ability-word:conditions:you see the target",
+      "domain": "ability-word",
+      "stableId": "ability.en.conditions.you-see-the-target",
+      "sourceHash": "435bc615582cfcba789ee9ada1bdd772e0ae6e0282dcb924280917bf2ee8021b",
+      "status": "reused-needs-review",
+      "ru": "Вы видите цель"
+    },
+    {
+      "id": "ability-word:conditions:you speak to the target",
+      "domain": "ability-word",
+      "stableId": "ability.en.conditions.you-speak-to-the-target",
+      "sourceHash": "d79c00886b99179ccdcc843298632fdeb2e18547bef444297e7f7f353d02f6b4",
+      "status": "reused-needs-review",
+      "ru": "Вы говорите с целью"
+    },
+    {
+      "id": "ability-word:conditions:you touch the target",
+      "domain": "ability-word",
+      "stableId": "ability.en.conditions.you-touch-the-target",
+      "sourceHash": "cf6ca919dc68d68d0ffaaf64bd6f4023f9843c3bb22fb24ec1a85865cffbfaa2",
+      "status": "reused-needs-review",
+      "ru": "Вы касаетесь цели"
+    },
+    {
+      "id": "ability-word:conditions:you understand it",
+      "domain": "ability-word",
+      "stableId": "ability.en.conditions.you-understand-it",
+      "sourceHash": "cd75a637ce441befc10b69f6c377c643c4bd29e55330758c1c773c04ffcd6cfb",
+      "status": "reused-needs-review",
+      "ru": "Вы понимаете это"
+    },
+    {
+      "id": "ability-word:conditions:you win in a game",
+      "domain": "ability-word",
+      "stableId": "ability.en.conditions.you-win-in-a-game",
+      "sourceHash": "7469f5573a892657b3c82943b8b05f0ec69f44aa27cefc9bfb0d6ff65daa1e4f",
+      "status": "reused-needs-review",
+      "ru": "Вы выигрываете игру"
+    },
+    {
+      "id": "ability-word:conditions:you write on the target",
+      "domain": "ability-word",
+      "stableId": "ability.en.conditions.you-write-on-the-target",
+      "sourceHash": "78cfd3ea8abee53114228efe7b4b1045707cbc7d73afa1ccc446b4a850487c0f",
+      "status": "reused-needs-review",
+      "ru": "Вы пишете на цели"
+    },
+    {
+      "id": "ability-word:conditions:you're carrying it",
+      "domain": "ability-word",
+      "stableId": "ability.en.conditions.you-re-carrying-it",
+      "sourceHash": "6012a4bc4b8e93dec740c0789f0abed52d55e0270b02fbdbd2cf3392318cc7ff",
+      "status": "reused-needs-review",
+      "ru": "Вы несете это"
+    },
+    {
+      "id": "ability-word:conditions:you're wearing x",
+      "domain": "ability-word",
+      "stableId": "ability.en.conditions.you-re-wearing-x",
+      "sourceHash": "9d583eac5b89aa1852c4e0957a4c5fa0552368f71757466062d5e2b40883189e",
+      "status": "reused-needs-review",
+      "ru": "На вас надето X"
+    },
+    {
+      "id": "ability-word:conditions:you've built the target",
+      "domain": "ability-word",
+      "stableId": "ability.en.conditions.you-ve-built-the-target",
+      "sourceHash": "8d4844d6c6276c78003f10260dba205654d8fc35e5dec827a2cd6d8f4b60f144",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "ability-word:conditions:you've touched it",
+      "domain": "ability-word",
+      "stableId": "ability.en.conditions.you-ve-touched-it",
+      "sourceHash": "28bac42dd7c1fe7ceb3003df3a79733157fb08d19fc3ab255d5dc04009ffb7c1",
+      "status": "untranslated",
+      "ru": null
+    },
+    {
+      "id": "ability-word:conditions:your life is in danger",
+      "domain": "ability-word",
+      "stableId": "ability.en.conditions.your-life-is-in-danger",
+      "sourceHash": null,
+      "status": "retired",
+      "ru": null
+    }
+  ]
+}

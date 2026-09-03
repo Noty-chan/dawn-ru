@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "editionId": "dawn-en-lionwing-cb2f8e67",
+  "locale": "en",
+  "tableMechanicsStatus": "not-ported",
+  "status": "active-development",
+  "purpose": "Canonical English translation and companion source; generated from the local licensed PDF.",
+  "authority": {
+    "englishText": "LionWing",
+    "russian09": "compatibility-snapshot-only"
+  },
+  "generatedBy": "tools/content/build_lionwing_companion.py",
+  "counts": {
+    "archetypes": 6,
+    "techniques": 111,
+    "outlooks": 10,
+    "abilityWords": {
+      "verbs": 41,
+      "nouns": 41,
+      "conditions": 22
+    },
+    "referenceCards": 7
+  },
+  "files": [
+    "archetypes/powerhouse.json",
+    "archetypes/vagabond.json",
+    "archetypes/bulwark.json",
+    "archetypes/altruist.json",
+    "archetypes/disruptor.json",
+    "archetypes/ruiner.json",
+    "outlooks.json",
+    "ability-words.json",
+    "builder-reference.json",
+    "builder-rules.json",
+    "id-map.json"
+  ]
+}

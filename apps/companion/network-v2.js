@@ -181,12 +181,12 @@
     const response=raw.find(event=>event.type==="rule.respond");
     if(response){
       const move=raw.find(event=>event.type==="marker.move")||raw.find(event=>event.type==="actor.move");
-      return {kind:"rule-response",label:String(label).slice(0,160),actorId:response.actorId,promptId:response.payload?.promptId,choice:response.payload?.choice,destination:clone(response.payload?.destination||move?.payload||null),roll:clone(raw.find(event=>event.type==="roll.public")?.payload||raw.find(event=>event.type==="attack.pending")?.payload?.roll||null)};
+      return {kind:"rule-response",label:String(label).slice(0,160),actorId:response.actorId,promptId:response.payload?.promptId,choice:response.payload?.choice,assignments:safeObject(response.payload?.assignments),destination:clone(response.payload?.destination||move?.payload||null),roll:clone(raw.find(event=>event.type==="roll.public")?.payload||raw.find(event=>event.type==="attack.pending")?.payload?.roll||null)};
     }
     const technique=raw.find(event=>event.type==="technique.prepare");
     if(technique?.payload?.ruleId==="altruist.alchemist.1"){
       const potionAction=raw.find(event=>event.type==="action.prepare"&&event.actorId===technique.actorId);
-      const potion=String(potionAction?.payload?.name||"").replace(/^Зелье:\s*/u,"");
+      const potion=String(technique.payload?.potion||potionAction?.payload?.name||"").replace(/^Зелье:\s*/u,"");
       return{kind:"potion",label:String(label).slice(0,160),actorId:technique.actorId,targetId:safeIds(technique.payload?.targetIds)[0]||null,potion};
     }
     if(technique)return {kind:"technique",label:String(label).slice(0,160),actorId:technique.actorId,ruleId:technique.payload?.ruleId||null,request:safeObject(technique.payload?.request)};
@@ -283,8 +283,8 @@
       return[{type:delta>0?"resource.gain":"resource.spend",actorId:actor.id,payload:{resource:"meals",amount:1}}];
     }
     if(intent.kind==="spell-modifiers"){
-      const level=Number(actor.techniques?.["ruiner.spellcrafter"]||0),allowed=new Set(["fierce","focused","wild","outstanding"]),value=[...new Set(safeIds(intent.value))],limit=level>=3?2:1;
-      if(level<1||value.length>limit||value.some(id=>!allowed.has(id)))throw new Error("Некорректный выбор Модификаций");
+      const level=Number(actor.techniques?.["ruiner.spellcrafter"]||0),learned=new Set(actor.techniqueState?.spellcrafterLearnedModifiers||[]),value=[...new Set(safeIds(intent.value))],limit=level>=3?2:1;
+      if(level<1||value.length>limit||value.some(id=>!learned.has(id)))throw new Error("Можно выбрать только изученные Модификации");
       return[{type:"technique.state",actorId:actor.id,payload:{key:"spellModifiers",value,ruleId:"ruiner.spellcrafter",name:"Творец заклинаний"}}];
     }
     if(intent.kind==="take-wound"){
@@ -336,7 +336,7 @@
       if(!prompt||prompt.id!==intent.promptId||prompt.sourceActorId!==actor.id)throw new Error("Этот вопрос правила уже завершён");
       const result=intent.choice==="cell"&&intent.destination
         ?Engine.preparePromptPlacement(scene,{destination:{x:Number(intent.destination.x),y:Number(intent.destination.y)}})
-        :Engine.respondRulePrompt(scene,data,{choice:intent.choice,roll:intent.roll||null});
+        :Engine.respondRulePrompt(scene,data,{choice:intent.choice,assignments:safeObject(intent.assignments),roll:intent.roll||null});
       if(!result.ok)throw new Error(result.errors.join(" "));
       return result.events;
     }

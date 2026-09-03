@@ -15,6 +15,7 @@ __pycache__/
 *.pyc
 *.tmp.pdf
 *.links.tmp.pdf
+/source/original/DAWN_ The RPG (LionWing Edition) w Bookmarks.pdf
 .DS_Store
 Thumbs.db
 *.stackdump

@@ -18,6 +18,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent
 PROJECT_ROOT = ROOT.parents[1]
 TR = PROJECT_ROOT / "source" / "translation"
+TEXT_SOURCES_FILE = PROJECT_ROOT / "source" / "text-sources.json"
 
 TECH_FILES = [
     ("powerhouse", "pages-065-070-powerhouse-techniques.md"),
@@ -769,10 +770,17 @@ def parse_antagonist_traits() -> list:
 
 
 def main():
+    text_sources = json.loads(TEXT_SOURCES_FILE.read_text(encoding="utf-8"))
+    if text_sources.get("schemaVersion") != 1:
+        raise ValueError("Неподдерживаемая версия реестра текстовых источников")
+    sources = text_sources.get("sources", {})
+    if sources.get("ru", {}).get("status") != "canonical":
+        raise ValueError("Русский канонический источник не объявлен")
     data = {
         "schemaVersion": 2,
         "sourceLocale": "ru",
         "availableLocales": ["ru"],
+        "contentSources": sources,
         "archetypes": [parse_techniques(slug, fname) for slug, fname in TECH_FILES],
         "outlooks": parse_outlooks(),
         "bonds": parse_bonds(),

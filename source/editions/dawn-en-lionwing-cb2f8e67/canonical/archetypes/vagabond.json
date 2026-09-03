@@ -1,0 +1,665 @@
+{
+  "id": "vagabond",
+  "name": "Vagabond",
+  "techniques": [
+    {
+      "archetypeId": "vagabond",
+      "name": "Aerial Master",
+      "stars": 1,
+      "tags": "Movement, Versatile, Stance",
+      "flavor": "I've been looking my entire life. The way she carried me, we must have been miles off the ground. Doesn't matter who she was, or where she was taking me. Don't think I'll be able to sleep until I can ask her…",
+      "notes": "",
+      "levels": [
+        {
+          "n": 1,
+          "name": "Soar",
+          "text": "After you Jump, you may Hasten yourself rather than moving. After you're Hastened, you enter ‘Flight Stance', removing other Stances you had. While in Flight, incoming Attacks have [Tier] Disadvantage, and you ignore Terrain and enemies while moving. Attacking removes Flight Stance."
+        },
+        {
+          "n": 2,
+          "name": "Hunt",
+          "text": "After you Attack a Launched character in Flight (and don't Spike), you may end your Turn to Disappear with them. When either of you reappear, the other appears in an adjacent space of their choice, and you deal [Speed/2] damage to all adjacent enemies."
+        },
+        {
+          "n": 3,
+          "name": "Falling Ax Strike",
+          "text": "The Attacks you use while in the Flight Stance can roll [Speed] rather than an Attribute. Doing so removes Hastened and Launches your target."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "locale": "en",
+        "pdfPage": 75
+      },
+      "id": "vagabond.aerial-master",
+      "previousName": null,
+      "previousArchetypeId": null
+    },
+    {
+      "archetypeId": "vagabond",
+      "name": "Assassin",
+      "stars": 1,
+      "tags": "Attacks, Movement, Avoidance",
+      "flavor": "A bloodied coin spends just as well as any other.",
+      "notes": "",
+      "levels": [
+        {
+          "n": 1,
+          "name": "Ambush",
+          "text": "If the first Action you take after Deploying is Hide, it has no Cost and ignores its requirements."
+        },
+        {
+          "n": 2,
+          "name": "Assassinate",
+          "text": "Attacks you make while Disappeared gain [Tier] Advantage, let you reappear adjacent to characters, and the dice rolled Crit on rolls of 5 or 6."
+        },
+        {
+          "n": 3,
+          "name": "Speed of Dark [ Hide → Stride ]",
+          "text": "The Stride has no cost, turns you Invisible when used, and gives your next Finisher on that Turn [Speed / 2] Advantage."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "locale": "en",
+        "pdfPage": 75
+      },
+      "id": "vagabond.assassin",
+      "previousName": null,
+      "previousArchetypeId": null
+    },
+    {
+      "archetypeId": "vagabond",
+      "name": "Sniper",
+      "stars": 1,
+      "tags": "Weapon, Talent, Range",
+      "flavor": "A shot that must factor in the curvature of the planet is one worth taking",
+      "notes": "",
+      "levels": [
+        {
+          "n": 1,
+          "name": "Long Shot",
+          "text": "Your Talent Finisher can target characters within 5 range instead of its normal targeting."
+        },
+        {
+          "n": 2,
+          "name": "Bunker Down",
+          "text": "At the start of the Scene, or If you end your Turn without Attacking, you may ‘Bunker Down', gaining Immobilized. While you're Immobilized, your Talent Finishers gain 5 additional range and Crit on rolls of 5 or 6."
+        },
+        {
+          "n": 3,
+          "name": "Deadeye [ Hide → Talent Finisher ]",
+          "text": "The Finisher deals [Crits rolled] + [Distance from target] additional damage, and affects opposing targets between yourself and your original target (as per any shortest path)."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "locale": "en",
+        "pdfPage": 75
+      },
+      "id": "vagabond.sniper",
+      "previousName": null,
+      "previousArchetypeId": null
+    },
+    {
+      "archetypeId": "vagabond",
+      "name": "Skirmisher",
+      "stars": 1,
+      "tags": "Skirmishes, Movement",
+      "flavor": "Float like a butterfly…",
+      "notes": "",
+      "levels": [
+        {
+          "n": 1,
+          "name": "Sting",
+          "text": "Once per Turn, if you've moved with Stride on the same Turn, you may ‘Jab' an adjacent target at no Cost. A Jab deals [Talent/2] damage to its target and counts as a Swift Skirmish; features other than this Technique cannot change a Jab's damage or targeting."
+        },
+        {
+          "n": 2,
+          "name": "Shifting Blows",
+          "text": "You may move up to two spaces in a straight line after Skirmishing."
+        },
+        {
+          "n": 3,
+          "name": "Rebound",
+          "text": "Your Skirmishes gain 1 Advantage. If movement provided by Skirmish moves you into adjacency with a character who hasn't been attacked this Turn, you may Jab them."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "locale": "en",
+        "pdfPage": 75
+      },
+      "id": "vagabond.skirmisher",
+      "previousName": null,
+      "previousArchetypeId": null
+    },
+    {
+      "archetypeId": "vagabond",
+      "name": "Speed Demon",
+      "stars": 1,
+      "tags": "Movement, AOE",
+      "flavor": "It was over before it even started. I don't know who you pissed off, but they moved like nothing I've ever seen.",
+      "notes": "",
+      "levels": [
+        {
+          "n": 1,
+          "name": "Fade",
+          "text": "You can move through enemies. You must end your movement in an empty space."
+        },
+        {
+          "n": 2,
+          "name": "Flash Strike",
+          "text": "After you move out of a character's space using \"Fade\", you may deal [Talent / 2] damage to them (this is not an Attack). You can't use this on the same target more than once each Round."
+        },
+        {
+          "n": 3,
+          "name": "Flash Step [ Breathe → Stride ]",
+          "text": "The Stride lets you move triple its normal distance. If you trigger \"Flash Strike\" while using this, you may Launch any characters you damage."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "locale": "en",
+        "pdfPage": 75
+      },
+      "id": "vagabond.speed-demon",
+      "previousName": null,
+      "previousArchetypeId": null
+    },
+    {
+      "archetypeId": "vagabond",
+      "name": "Untouchable",
+      "stars": 1,
+      "tags": "Avoidance, Talent, Dodge",
+      "flavor": "And what's this?! It looks like she can't be hit! They're moving at speeds I can't even keep up with! The champ looks like she's boxing ghosts!",
+      "notes": "",
+      "levels": [
+        {
+          "n": 1,
+          "name": "Duck",
+          "text": "The first time you Dodge each Round, gain [Talent] additional Evasion."
+        },
+        {
+          "n": 2,
+          "name": "Weave",
+          "text": "You can move one additional space when using Dodge. Any time your Evasion reduces damage to 0, you may move as if you Dodged."
+        },
+        {
+          "n": 3,
+          "name": "Fighter's Instinct [ Dodge → Skirmish ]",
+          "text": "The Skirmish lets you move 3 spaces before targeting and lets you Crit on rolls of 5 or 6."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "locale": "en",
+        "pdfPage": 75
+      },
+      "id": "vagabond.untouchable",
+      "previousName": null,
+      "previousArchetypeId": null
+    },
+    {
+      "archetypeId": "vagabond",
+      "name": "Acrobat",
+      "stars": 2,
+      "tags": "Movement, Talent, Skirmishes",
+      "flavor": "Obstacles are found everywhere. In overcoming them, we nourish ourselves.",
+      "notes": "",
+      "levels": [
+        {
+          "n": 1,
+          "name": "Flying Kick [ Jump → Skirmish ]",
+          "text": "If the Skirmish is against one adjacent target, it gains Advantage equal to the number of spaces you moved during your Jump, up to a max of [Talent]."
+        },
+        {
+          "n": 2,
+          "name": "Wall Jump",
+          "text": "After you end a Jump's movement adjacent to an Obstacle or board edge, you may move an additional 3 spaces in a straight line and gain 1 Evasion. This additional movement is considered part of the Jump's total movement. You can only \"Wall Jump\" once per Turn."
+        },
+        {
+          "n": 3,
+          "name": "Weightless Body",
+          "text": "You may \"Wall Jump\" any number of times in a Jump. You can't use the effect of \"Wall Jump\" on the same Obstacle or board edge more than once per Jump."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "locale": "en",
+        "pdfPage": 76
+      },
+      "id": "vagabond.acrobat",
+      "previousName": null,
+      "previousArchetypeId": null
+    },
+    {
+      "archetypeId": "vagabond",
+      "name": "Blade Master",
+      "stars": 2,
+      "tags": "Weapon, Breathing, Stance",
+      "flavor": "A weapon's strength is secondary to the strength of those who wield it.",
+      "notes": "",
+      "levels": [
+        {
+          "n": 1,
+          "name": "Draw Stance",
+          "text": "After you Breathe or Charge, you may enter ‘Draw Stance', removing any other Stances you had. This effect ends after you Attack, Stride, or Jump. If you use a Talent Finisher or Skirmish in Draw Stance, you can Crit on rolls of 5 or 6."
+        },
+        {
+          "n": 2,
+          "name": "Divide In One Motion [ Breathe → Jump ]",
+          "text": "The Jump does not end Draw Stance. After using the Jump, you may use a Talent Finisher at no AP Cost. The Finisher affects all opposing targets you moved into adjacency with or through during your Jump."
+        },
+        {
+          "n": 3,
+          "name": "Leaping Koi",
+          "text": "If you use \"Divide In One Motion\", roll the Finisher before using your Jump's Movement. For every Critical Hit rolled in the Finisher, you may move an additional 3 spaces in a straight line. This additional movement is considered part of the Jump's total movement."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "locale": "en",
+        "pdfPage": 76
+      },
+      "id": "vagabond.blade-master",
+      "previousName": null,
+      "previousArchetypeId": null
+    },
+    {
+      "archetypeId": "vagabond",
+      "name": "Cunning Fighter",
+      "stars": 2,
+      "tags": "Investigate, Mind, Utility",
+      "flavor": "Heavy Build. Tall. Reach advantage. Confident, capable. Trained in the four forms of Cavalcabo. Their salute will transfer into a sudden flèche. This has served them well against inexperienced opponents. Bind the attack, then transfer to a quick glide. During their shock, apply knee to groin. Begin gloating.",
+      "notes": "",
+      "levels": [
+        {
+          "n": 1,
+          "name": "Plan and Execute",
+          "text": "Begin tracking ‘Cunning Plan', a 4 Segment Clock that's emptied after every Scene. If you Investigate a character who you haven't Investigated this Turn, fill one Cunning Plan Segment. Once per Turn, you may empty a Segment to take any non-Attack Action, reducing its Cost by 1 and gaining Swift."
+        },
+        {
+          "n": 2,
+          "name": "Plans Within Plans",
+          "text": "\"Plan and Execute\"s spending portion is no longer once per Turn."
+        },
+        {
+          "n": 3,
+          "name": "At a Glance",
+          "text": "The first time you Investigate each Turn, you may spend 1 Focus to Swifty Investigate another enemy within [Mind] spaces of the target at no Cost."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "locale": "en",
+        "pdfPage": 76
+      },
+      "id": "vagabond.cunning-fighter",
+      "previousName": null,
+      "previousArchetypeId": null
+    },
+    {
+      "archetypeId": "vagabond",
+      "name": "Egomaniac",
+      "stars": 2,
+      "tags": "Attacks, Movement",
+      "flavor": "Only the most conceited, self-important, piece of sho'vah grit could do what you do. No,that's not a damn compliment!",
+      "notes": "",
+      "levels": [
+        {
+          "n": 1,
+          "name": "Peak Condition",
+          "text": "Begin tracking ‘Style', a 4 Segment Clock that's emptied after every Scene. Whenever you Attack, fill one Style Segment for each of the following conditions that it fulfilled. After you take damage from an Attack, empty one. After you fill the Clock, empty it, move up to 2 spaces in a Line, and gain 1 AP. ‣ Drama: Attack rolled 2 or more Critical Hits. ‣ Dance: Previous action moved you Adjacent to target. ‣ Diversify: You didn't use the Attack on your last Turn. ‣ Denouement: Attack brought you to 0 AP."
+        },
+        {
+          "n": 2,
+          "name": "Dance With Me",
+          "text": "The first time you move each Turn without spending AP, fill one Style Segment."
+        },
+        {
+          "n": 3,
+          "name": "Finale",
+          "text": "Your attacks that fill at least 2 Style Segments before dice are rolled Crit on a roll of 5 or 6. Once per Scene, when a single Attack fills 4 Style Segments, you may lose the movement and AP gained from \"Peak Condition\" to deal [Tension + Tier] Damage to the target of the attack instead."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "locale": "en",
+        "pdfPage": 76
+      },
+      "id": "vagabond.egomaniac",
+      "previousName": null,
+      "previousArchetypeId": null
+    },
+    {
+      "archetypeId": "vagabond",
+      "name": "Enchained",
+      "stars": 2,
+      "tags": "Casts, Movement, Skirmishes",
+      "flavor": "These scars and bindings are a reminder of what I was. And in keeping them, I remind myself of what I can be.",
+      "notes": "",
+      "levels": [
+        {
+          "n": 1,
+          "name": "Hook Shot",
+          "text": "After you Cast targeting a non-adjacent unoccupied space, you may ‘Swing'. When you do, track your distance from the target, and Teleport to any space an equal distance away from the target."
+        },
+        {
+          "n": 2,
+          "name": "Draw In",
+          "text": "Before you Cast targeting an opponent, you may choose to have the Cast not deal damage. If you do, the Cast has its Cost reduced to 0, move one space towards them, and pull them one space towards you, repeating until you both can't move any more."
+        },
+        {
+          "n": 3,
+          "name": "Momentum [ Cast → Skirmish ]",
+          "text": "If movement provided by your Cast moved you adjacent to the target of your Skirmish, you gain [Tier x 2] Advantage on that Skirmish and you push them 4 spaces."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "locale": "en",
+        "pdfPage": 77
+      },
+      "id": "vagabond.enchained",
+      "previousName": null,
+      "previousArchetypeId": null
+    },
+    {
+      "archetypeId": "vagabond",
+      "name": "Knife Juggler",
+      "stars": 2,
+      "tags": "Weapon, Movement",
+      "flavor": "Though it's fallen slightly out of favor, thrown weapons have been a part of our culture for hundreds of years, and it's time people start respecting that.",
+      "notes": "Alt Resource. Can't take with other alt resources.",
+      "levels": [
+        {
+          "n": 1,
+          "name": "Throw",
+          "text": "You now use ‘Weapons' instead of Focus. You start all Scenes with 4 Weapons. Before you Skirmish, you can ‘Throw', spending 1 Weapon, reducing the Skirmish's cost to 0, and letting the Skirmish target one character within 4 range instead of its normal targeting."
+        },
+        {
+          "n": 2,
+          "name": "Resupply",
+          "text": "Your Skirmishes gain 1 Advantage. After you resolve a Skirmish with Throw, place a ‘Weapon Marker' in the space of your target or an unoccupied space adjacent to it. After you move into a Weapon Marker's space, you may remove it to move 1 space and gain 1 Weapon."
+        },
+        {
+          "n": 3,
+          "name": "Chaser",
+          "text": "When an enemy leaves the space of a Weapon Marker, you may Teleport to the marker and Punish them at no Focus cost. The Skirmish from this Punish can't use Throw."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "locale": "en",
+        "pdfPage": 77
+      },
+      "id": "vagabond.knife-juggler",
+      "previousName": null,
+      "previousArchetypeId": null
+    },
+    {
+      "archetypeId": "vagabond",
+      "name": "Malicious Mimic",
+      "stars": 2,
+      "tags": "Dodge, Attacks",
+      "flavor": "Impossible… she only saw that technique once!",
+      "notes": "",
+      "levels": [
+        {
+          "n": 1,
+          "name": "\"Anything You Can Do…\"",
+          "text": "Once per Round, after you Dodge or Clash, you gain an ‘Impression' with the same name as the attacker. As an Action with no Cost, you may spend any of your Impressions to use the indicated NPC's Attack as if you were an NPC. All Impressions are lost at the end of a Scene."
+        },
+        {
+          "n": 2,
+          "name": "Rehearsed Movements",
+          "text": "After you Dodge an NPC while you hold an Impression matching their name, you gain 2 additional Evasion."
+        },
+        {
+          "n": 3,
+          "name": "\"…I Can Do Better\"",
+          "text": "After you gain an Impression, you may spend 1 Focus to gain that NPCs Passive effect until you spend the Impression."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "locale": "en",
+        "pdfPage": 77
+      },
+      "id": "vagabond.malicious-mimic",
+      "previousName": null,
+      "previousArchetypeId": null
+    },
+    {
+      "archetypeId": "vagabond",
+      "name": "Weaponsmith",
+      "stars": 2,
+      "tags": "Versatile, Weapon, Stance",
+      "flavor": "I get nostalgic for the shop, y'know..The smell of oil, the sound of motors and dad's music box. I was always asking where he got that junk, or why our customers wore uniforms. But I never got a straight answer…",
+      "notes": "",
+      "levels": [
+        {
+          "n": 1,
+          "name": "Trick Weapon",
+          "text": "Choose an acquired Weapon Technique to become your ‘Primary Form'. Choose a Weapon Technique you don't have to make its first 2 Levels into your ‘Secondary Form'. If it has an alternate Foci, track it separately and use it as your Focus in that Form. Start combat in your Primary Form. Before your first Breathe or Charge each Turn, swap Forms, losing any Techniques from your current Form, and gaining the ones attached to the other, triggering any of their new start of Turn / Scene effects. You cannot unlock your Secondary Form's Levels through Tier increases."
+        },
+        {
+          "n": 2,
+          "name": "Adaptive Edge",
+          "text": "Upgrade your secondary form to level 3. You may Charge at 1 Cost so long as you haven't swapped forms this Turn."
+        },
+        {
+          "n": 3,
+          "name": "Metalurgy",
+          "text": "Gain a benefit after you swap for the first time each Turn, based on the Archetype of that Form. ‣ Powerhouse: Strengthen and Reinforce yourself. ‣ Vagabond: Strengthen and Hasten yourself. ‣ Bulwark: Reinforce yourself and gain [Body] Evasion. ‣ Altruist: Strengthen allies within [Tier] spaces. ‣ Disruptor: Snare an enemy within [Tier] spaces. ‣ Ruiner: Gain [Spirit] Focus and Steady yourself."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "locale": "en",
+        "pdfPage": 78
+      },
+      "id": "vagabond.weaponsmith",
+      "introducedIn": "dawn-en-lionwing-cb2f8e67"
+    },
+    {
+      "archetypeId": "vagabond",
+      "name": "Modified Meister",
+      "stars": 2,
+      "tags": "Skirmishes, Mind",
+      "flavor": "The vibration of whirring chains, the sound of spinning gears, the buckling of mismatched plating and loose screws. It almost feels like it's alive.",
+      "notes": "Alt Resource. Can't take with other alt resources.",
+      "levels": [
+        {
+          "n": 1,
+          "name": "Running Hot",
+          "text": "You now use ‘Heat' instead of Focus. You start all Scenes with 0 Heat. Substitute all Focus costs with gaining Heat instead. Effects that would give Focus reduce Heat instead. If your Heat increases to 6 or more, it is reset to 3 and you deal [Mind] damage to yourself and all adjacent enemies."
+        },
+        {
+          "n": 2,
+          "name": "Overload",
+          "text": "Before you Skirmish or Finisher, you may \"Overload\", giving it [Mind / 2] Advantage and Blighting the target(s). You receive 1 Heat for every Crit rolled."
+        },
+        {
+          "n": 3,
+          "name": "Overclock",
+          "text": "After you Breathe with at least 2 Tension, you may ‘Overclock' until the end of your next Turn. While Overclocked, dealing or taking any amount of damage generates 1 Heat. Whenever you would explode while Overclocked, you may instead set your Heat to 3 to take [Mind / 2] damage, move up to 3 spaces, and gain 1 AP."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "locale": "en",
+        "pdfPage": 78
+      },
+      "id": "vagabond.modified-meister",
+      "previousName": null,
+      "previousArchetypeId": null
+    },
+    {
+      "archetypeId": "vagabond",
+      "name": "Opportunist",
+      "stars": 2,
+      "tags": "Skirmishes, Talent, Buffing",
+      "flavor": "You were really expecting a fair fight?",
+      "notes": "",
+      "levels": [
+        {
+          "n": 1,
+          "name": "Pack Tactics",
+          "text": "Once per Round, when an ally resolves an Attack on a character within [Talent] spaces, you may Swiftly Skirmish at no Cost, targeting them. If you are outside Skirmish's range, you may Teleport to a space adjacent to the target before drawing range."
+        },
+        {
+          "n": 2,
+          "name": "Hungry Eyes",
+          "text": "When an ally within [Talent] spaces targets a character with an attack, you may spend 1 Focus to Mark the target."
+        },
+        {
+          "n": 3,
+          "name": "Launcher Combo",
+          "text": "Once per Round, when an ally inflicts an Effect to an enemy within [Talent] spaces, you may use the effect \"Pack Tactics\" on the same target. This level has a separate once per Round limitation from the one in \"Pack Tactics\"."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "locale": "en",
+        "pdfPage": 78
+      },
+      "id": "vagabond.opportunist",
+      "previousName": null,
+      "previousArchetypeId": null
+    },
+    {
+      "archetypeId": "vagabond",
+      "name": "Reflector",
+      "stars": 2,
+      "tags": "Dodge, Mind, Attacks",
+      "flavor": "Strike me if you dare.",
+      "notes": "",
+      "levels": [
+        {
+          "n": 1,
+          "name": "Catch The Blade",
+          "text": "At the beginning of your Turn, you may name any number and note it down until the end of the Scene. If an enemy's attack would deal damage to you equal to a number noted (this includes 0), gain [Mind] Evasion before the damage is dealt."
+        },
+        {
+          "n": 2,
+          "name": "Watch And Wait",
+          "text": "Whenever you take damage from an enemy, you may note another number with \"Catch The Blade\". Enemies who attack you cannot roll additional dice with their Critical Hits."
+        },
+        {
+          "n": 3,
+          "name": "To Carry Their Fury",
+          "text": "After you reduce an attack's damage to 0 with Evasion, you may teleport adjacent to the attacker and Swiftly Skirmish them at no cost. After you make an attack and deal damage equal to a number you noted, you may remove any of your noted numbers to deal two additional damage for each removed."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "locale": "en",
+        "pdfPage": 78
+      },
+      "id": "vagabond.reflector",
+      "previousName": null,
+      "previousArchetypeId": null
+    },
+    {
+      "archetypeId": "vagabond",
+      "name": "Detective",
+      "stars": 3,
+      "tags": "Investigate, Mind, Attacks",
+      "flavor": "Strong people like you tend to think that others will meet you with strength. But I've been taught differently. To topple a goliath, afford them no such luxury. Strike the vitals. Break their idiot stances. Research their flaws. Plan their death before they even know your name. ",
+      "notes": "",
+      "levels": [
+        {
+          "n": 1,
+          "name": "Study Weakness",
+          "text": "After you Investigate a character, place a ‘Weak Point' in a space adjacent to them that doesn't have one. Your Investigations that target the same character are Swift this Turn. Weak Points move to match their host's movement. After you move into a Weak Point, you may remove it to ‘Jab', dealing [Mind/2] damage to its host. This counts as a Swift Skirmish, but cannot have its damage or targeting altered."
+        },
+        {
+          "n": 2,
+          "name": "Dissect [ Investigate x 3 ]",
+          "text": "The third Investigate has no Cost, and Slows all Marked Enemies."
+        },
+        {
+          "n": 3,
+          "name": "4-Point Execution",
+          "text": "Whenever you move, you may teleport to a space an equal number of spaces away, so long as the teleport targets a Weak Point. After you remove 3 Weak Points from one target in a single Turn, you may teleport to any space adjacent to them and perform a Mind Finisher at no cost."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "locale": "en",
+        "pdfPage": 79
+      },
+      "id": "vagabond.dim-mak",
+      "previousName": "Dim Mak",
+      "previousArchetypeId": null
+    },
+    {
+      "archetypeId": "vagabond",
+      "name": "Drunkard",
+      "stars": 3,
+      "tags": "Self-Effects, Movement, Avoidance",
+      "flavor": "A little something to take the edge off~",
+      "notes": "",
+      "levels": [
+        {
+          "n": 1,
+          "name": "Down The Hatch",
+          "text": "Establish which direction is \"up\" after Deploying. After you Breathe, you may ‘Drink', Slowing yourself. Once per Turn, if you start or end your Turn while Slowed you must roll a d6, and move one space in a Line based on the result: 1: Up, 2: Right, 3: Down, 4: Left, 5/6: Any direction. When involuntary movement moves you adjacent to, out of adjacency with, or have your movement prevented by an enemy, you may deal [Tier] damage to them, up to once per type of trigger per enemy per Turn."
+        },
+        {
+          "n": 2,
+          "name": "Fool's Dance",
+          "text": "If you end your Turn while Slowed, gain Evasion equal to [Tier/2] + the number of Negative Effects on you."
+        },
+        {
+          "n": 3,
+          "name": "Chug",
+          "text": "The first Breathe on your Turn is Swift. After you Drink while Slowed,you Shred, Weaken, and Blight yourself. If you have 3 or more Negative Effects at once, you may ignore the effects of each. The movement from \"Down The Hatch\" can now trigger with any Negative Effect, and when triggered with two or more Effects it changes to \"twice per Turn\"."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "locale": "en",
+        "pdfPage": 79
+      },
+      "id": "vagabond.drunkard",
+      "previousName": null,
+      "previousArchetypeId": null
+    },
+    {
+      "archetypeId": "vagabond",
+      "name": "Master-At-Arms",
+      "stars": 3,
+      "tags": "Weapon, Movement,Effects",
+      "flavor": "You thought that was the last one?",
+      "notes": "",
+      "levels": [
+        {
+          "n": 1,
+          "name": "Multi-Faceted",
+          "text": "Gain the three following ‘Armaments'. Each one has a condition, and if you Skirmish while that condition is fulfilled you ‘Equip' it, replacing any Armament you had Equipped before. Each Armament can only be Equipped once per Turn. ‣ Blade: Skirmish while exactly 2 spaces away from an enemy and adjacent to none. This Skirmish is Swift. Before targeting, move one space. After resolving the Skirmish, Strengthen yourself. ‣ Pole: Skirmish 2 adjacent enemies. This Skirmish is Swift, and pushes your targets 3 spaces away from you. After resolving the Skirmish, Launch your targets. ‣ Chain: Skirmish while exactly 4 spaces from your intended Target. This Skirmish is Swift and can choose a target 4 spaces away from you. After resolving the Skirmish, Shred your target ."
+        },
+        {
+          "n": 2,
+          "name": "Like Water",
+          "text": "The 2nd time you Equip an Armament each Turn, you gain 1 AP and Hasten yourself."
+        },
+        {
+          "n": 3,
+          "name": "Master At Work",
+          "text": "If you use a Talent Finisher while you have an Armament Equipped, you gain a bonus based on the Armament. ‣ Blade: Move two spaces ignoring characters. If you passed through the Finisher's Target, Mark and Launch them. ‣ Pole: This Finisher targets a 2 space Line drawn from your space. If this Finisher Spikes a Launched character, it gains an additional [Tier] Advantage and the spaces you targeted become Difficult Terrain. ‣ Chain: This Finisher targets all enemies in a 1x1 Zone centered on a space adjacent to you. For each Critical Hit you roll, that Zone expands by 1 space in every direction (1x1 > 3x3 > 5x5...) and deals one additional damage."
+        }
+      ],
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "locale": "en",
+        "pdfPage": 79
+      },
+      "id": "vagabond.master-at-arms",
+      "previousName": null,
+      "previousArchetypeId": null
+    }
+  ]
+}

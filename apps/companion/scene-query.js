@@ -14,7 +14,7 @@ function actorIdsInCells(scene, spaceId, cells = [], options = {}) {
   const source = actorById(scene, options.sourceActorId);
   const wanted = new Set((Array.isArray(cells) ? cells : []).map(String));
   return (scene?.actors || [])
-    .filter(actor => actor.space === spaceId && wanted.has(cellKey(actor)) && actorMatchesQuery(actor, source, options))
+    .filter(actor => {if(actor.space!==spaceId||!actorMatchesQuery(actor,source,options))return false;for(let oy=0;oy<Math.max(1,Number(actor.occupiedHeight||1));oy++)for(let ox=0;ox<Math.max(1,Number(actor.occupiedWidth||1));ox++)if(wanted.has(`${Number(actor.x)+ox},${Number(actor.y)+oy}`))return true;return false})
     .filter(actor => options.ignoreEffectTargeting || effectTargetingStatus(scene, source?.id, actor.id, options).available)
     .map(actor => actor.id);
 }
@@ -24,7 +24,7 @@ function actorIdsInRange(scene, sourceActorId, range, options = {}) {
   const maximum = Number(range);
   if (!source || Number.isNaN(maximum) || maximum < 0) return [];
   return (scene?.actors || [])
-    .filter(actor => distance(source, actor) <= maximum && actorMatchesQuery(actor, source, options))
+    .filter(actor => modifierRangeDistance(scene, source, actor) <= maximum && actorMatchesQuery(actor, source, options))
     .filter(actor => options.ignoreEffectTargeting || effectTargetingStatus(scene, source.id, actor.id, options).available)
     .map(actor => actor.id);
 }
@@ -34,12 +34,13 @@ function wallTargetingStatus(scene, sourceActorId, targetActorId, request = {}) 
   const target = typeof targetActorId === "string" ? actorById(scene, targetActorId) : targetActorId;
   const space = (scene.spaces || []).find(item => item.id === source?.space);
   if (!source || !target || !space || source.space !== target.space) return { available: false, reason: "Цель находится на другом поле.", walls: [] };
-  if (source.x === target.x && source.y === target.y) return { available: true, reason: "", walls: [] };
-  const maximum = distance(source, target);
-  const queue = [{ x: Number(source.x), y: Number(source.y), steps: 0 }], seen = new Set([cellKey(source)]), blocking = new Set();
+  const targetCells=new Set(modifierTargetCells(scene,target)),sourceCells=modifierTargetCells(scene,source);
+  if(sourceCells.some(key=>targetCells.has(key)))return {available:true,reason:"",walls:[]};
+  const maximum = modifierRangeDistance(scene,source,target);
+  const queue = sourceCells.map(key=>{const[x,y]=key.split(",").map(Number);return{x,y,steps:0}}), seen = new Set(sourceCells), blocking = new Set();
   while (queue.length) {
     const current = queue.shift();
-    if (current.x === Number(target.x) && current.y === Number(target.y)) return { available: true, reason: "", walls: [...blocking] };
+    if (targetCells.has(cellKey(current))) return { available: true, reason: "", walls: [...blocking] };
     if (current.steps >= maximum) continue;
     [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(([dx, dy]) => {
       const next = { x: current.x + dx, y: current.y + dy }, key = cellKey(next);
@@ -248,9 +249,16 @@ function effectTargetingStatus(scene, sourceActorId, targetActorId, options = {}
   if (!options.ignoreBanished && sourcePresence.banished !== targetPresence.banished) {
     return { available: false, reason: sourcePresence.banished ? "Изгнанный персонаж может выбирать целью только Изгнанных." : "Неизгнанный персонаж не может выбирать целью Изгнанного.", source, target };
   }
-  if (!options.ignoreHealerGuardian && target.profileId === "enemy.common.healer" && target.ruleState?.healerGuardianId) {
+  // The Guardian prevents opponents from targeting the Healer.  It is not a
+  // blanket untargetable flag: the Healer and its allies must still be able to
+  // heal or otherwise help it while the passive is active.
+  if (!options.ignoreHealerGuardian && source.team !== target.team && target.profileId === "enemy.common.healer" && target.ruleState?.healerGuardianId) {
     const guardian = actorById(scene, target.ruleState.healerGuardianId);
     if (guardian && !guardian.knockedOut && guardian.id !== target.id && guardian.space === target.space && distance(target, guardian) <= 1 && effectTargetingStatus(scene, sourceActorId, guardian.id, { ...options, ignoreHealerGuardian: true }).available) return { available: false, reason: `${target.name} защищён смежным Стражем ${guardian.name}.`, source, target, guardian };
+  }
+  if(source.team===target.team&&[ENEMY_MODIFIER_IDS.collateral,ENEMY_MODIFIER_IDS.vip].includes(target.profileId)){
+    const protectedBy=(scene.actors||[]).find(item=>item.team!==target.team&&!item.knockedOut&&item.id!==target.id&&item.space===target.space&&distance(item,target)<=1&&(item.kind==="hero"||item.heroId));
+    if(protectedBy)return{available:false,reason:`${target.name} нельзя ранить врагом рядом с ${protectedBy.name}.`,source,target,guardian:protectedBy};
   }
   return { available: true, reason: "", source, target };
 }
@@ -285,13 +293,15 @@ function effectCellOccupancyStatus(scene, actorId, request = {}) {
   if (battlefield?.mode === "cinematic") return { available: true, reason: "", actor, blockers: [] };
   const banished = hasEffect(scene, actor, "positive.изгнан");
   const compoundId = (actor.kind === "enemy" || actor.profileId) && typeof actor.compoundId === "string" && actor.compoundId.trim() ? actor.compoundId.trim() : null;
-  const blockers = (scene.actors || []).filter(other => other.id !== actor.id && other.space === space && Number(other.x) === x && Number(other.y) === y)
+  const width=Math.max(1,Number(actor.occupiedWidth||1)),height=Math.max(1,Number(actor.occupiedHeight||1));if(x+width>Number(battlefield?.width||0)||y+height>Number(battlefield?.height||0))return{available:false,reason:"Фигура целиком не помещается на поле.",actor,blockers:[]};
+  const overlaps=other=>x<Number(other.x)+Math.max(1,Number(other.occupiedWidth||1))&&x+width>Number(other.x)&&y<Number(other.y)+Math.max(1,Number(other.occupiedHeight||1))&&y+height>Number(other.y);
+  const blockers = (scene.actors || []).filter(other => other.id !== actor.id && other.space === space && overlaps(other))
     .filter(other => effectPresenceStatus(scene, other.id).onField)
     .filter(other => !other.knockedOut)
     .filter(other => actor.kind !== "crowd" && other.kind !== "crowd")
     .filter(other => !compoundId || other.team !== actor.team || String(other.compoundId || "").trim() !== compoundId)
     .filter(other => !banished && !hasEffect(scene, other, "positive.изгнан"));
-  const terrain = !banished && (scene.objects || []).find(object => object.space === space && object.type === "terrain" && (object.cells || []).includes(`${x},${y}`));
+  const footprint=[];for(let oy=0;oy<height;oy++)for(let ox=0;ox<width;ox++)footprint.push(`${x+ox},${y+oy}`);const terrain = !banished && (scene.objects || []).find(object => object.space === space && object.type === "terrain" && (object.cells || []).some(cell=>footprint.includes(cell)));
   return { available: blockers.length === 0 && !terrain, reason: blockers.length ? "Клетка назначения уже занята." : terrain ? "Клетка занята непроходимой местностью." : "", actor, blockers: terrain ? blockers.concat(terrain) : blockers };
 }
 

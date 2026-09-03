@@ -116,7 +116,20 @@ const genericRequest = rule => ({
 for (const rule of TechniqueEngine.RULES) {
   const scene = sceneFor({ [rule.techniqueId]: Number(rule.level) });
   try {
-    const preview = TechniqueEngine.preview(scene, genericRequest(rule));
+    const request = genericRequest(rule);
+    if (rule.id.startsWith("ruiner.bombardier.")) {
+      request.options.focusSpent = rule.level >= 3 ? 4 : rule.level >= 2 ? 2 : 0;
+      request.roll = SceneEngine.diceRollPayload(scene, "hero", {
+        scope: "action",
+        baseCount: 4,
+        advantage: request.options.focusSpent,
+        hindrance: 0,
+        attribute: "spirit",
+        actionId: data.actions.list.find(action => action.name === "Завершение").id,
+        targetIds: request.targetIds,
+      }, { rolls: [6, 5, 4, 3, 2, 1, 1, 1].slice(0, 4 + request.options.focusSpent) }).payload;
+    }
+    const preview = TechniqueEngine.preview(scene, request);
     assert.equal(typeof preview.ok, "boolean", `${rule.id}: preview returns a verdict`);
     assert.ok(Array.isArray(preview.errors), `${rule.id}: preview returns errors`);
     assert.ok(Array.isArray(preview.warnings), `${rule.id}: preview returns warnings`);

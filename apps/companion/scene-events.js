@@ -64,19 +64,24 @@ function validateEvent(scene, event, options = {}) {
   }
   if (event.type === "actor.move") {
     const space = (scene.spaces || []).find(item => item.id === payload.space);
+    let validCrowdRuleMove = false, validFodderMove = false;
     if (!space || !Number.isInteger(Number(payload.x)) || !Number.isInteger(Number(payload.y)) || Number(payload.x) < 0 || Number(payload.y) < 0 || Number(payload.x) >= space.width || Number(payload.y) >= space.height) throw new Error("Некорректная клетка перемещения.");
     if (removedCellKeys(scene, payload.space).has(`${Number(payload.x)},${Number(payload.y)}`)) throw new Error("Нельзя переместиться в удалённую клетку.");
     if (actor?.knockedOut && !payload.allowKnockedOut && !payload.displacement?.allowKnockedOut) throw new Error("Выведенный из строя участник не может перемещаться.");
     if (actor?.kind === "crowd") {
-      const status = fodderMoveStatus(scene, actor.id), moveDistance = Math.abs(Number(payload.x) - Number(actor.x)) + Math.abs(Number(payload.y) - Number(actor.y));
-      if (!payload.fodderMove || !status.available || payload.boundaryEventId !== status.boundaryEventId || moveDistance < 1 || moveDistance > status.remaining || (payload.space || actor.space) !== actor.space) throw new Error(status.reason || "Некорректное перемещение зоны массовки.");
+      const status = fodderMoveStatus(scene, actor.id), canonicalPath = movementPath(scene, actor.id, { x: Number(payload.x), y: Number(payload.y) }, { maxDistance: payload.fodderMove ? status.remaining : Number(payload.maximum || 1), placement: true, ignoreEnemies: true, ignoreDifficult: true }), moveDistance = canonicalPath.length;
+      const ruleMover = payload.enemyRuleMove && actorById(scene, payload.sourceActorId); validCrowdRuleMove = Boolean(ruleMover && !ruleMover.knockedOut && scene.activeActorId === ruleMover.id && ruleMover.team === actor.team && ["enemy.common.bodyguards.attack.behind-me", "enemy.common.swarm.attack.tear"].includes(payload.enemyRuleMove) && moveDistance >= 1 && moveDistance <= Number(payload.maximum || 1) && (payload.space || actor.space) === actor.space);
+      validFodderMove = Boolean(payload.fodderMove && status.available && payload.boundaryEventId === status.boundaryEventId && moveDistance >= 1 && moveDistance <= status.remaining && (payload.space || actor.space) === actor.space);
+      if (!validCrowdRuleMove && !validFodderMove) throw new Error(status.reason || "Некорректное перемещение зоны массовки.");
       payload.distance = moveDistance;
+      payload.path = canonicalPath.map(cellKey);
     }
     const movement = effectMovementStatus(scene, event.actorId, { forced: Boolean(payload.forced || payload.displacement), placement: Boolean(payload.placement), ignoreResistance: Boolean(payload.displacement?.ignoreResistance), ignoreVoluntaryRestrictions: Boolean(payload.ignoreVoluntaryRestrictions) });
-    if (!movement.available) throw new Error(movement.reason);
+    if (!movement.available && !validCrowdRuleMove && !validFodderMove) throw new Error(movement.reason);
     const occupancy = effectCellOccupancyStatus(scene, event.actorId, { space: payload.space, x: payload.x, y: payload.y });
     if (!occupancy.available) throw new Error(occupancy.reason);
     if (payload.from && (payload.from.space !== actor?.space || Number(payload.from.x) !== Number(actor?.x) || Number(payload.from.y) !== Number(actor?.y))) throw new Error("Исходная клетка перемещения устарела.");
+    if(actor?.crowdSubtype==="vortex"&&payload.fodderMove){const owner=actorById(scene,actor.vortexOwnerId),carrier=actorById(scene,modifierState(owner).targetId),destination={space:payload.space,x:Number(payload.x),y:Number(payload.y)};if(!carrier||carrier.knockedOut||modifierRangeDistance(scene,destination,carrier)>=modifierRangeDistance(scene,actor,carrier))throw new Error("Массовка Вихря может двигаться только ближе к выбранному персонажу игрока.");}
     if (payload.path != null) {
       if (!Array.isArray(payload.path) || payload.path.length > 144) throw new Error("Некорректный путь перемещения.");
       const pathCells = payload.path.map(String), invalidPath = pathCells.some(cell => {
@@ -93,9 +98,35 @@ function validateEvent(scene, event, options = {}) {
   if (event.type === "actor.spawn") {
     const spawned = payload.actor, space = (scene.spaces || []).find(item => item.id === spawned?.space);
     if (!spawned || typeof spawned.id !== "string" || !spawned.id || actorById(scene, spawned.id) || !space || !Number.isInteger(Number(spawned.x)) || !Number.isInteger(Number(spawned.y)) || Number(spawned.x) < 0 || Number(spawned.y) < 0 || Number(spawned.x) >= Number(space.width) || Number(spawned.y) >= Number(space.height) || spawned.compoundId != null && (typeof spawned.compoundId !== "string" || !spawned.compoundId.trim() || spawned.compoundId.length > 120)) throw new Error("Некорректный призыв участника.");
+    if (spawned.crowdSubtype === "seeker") {
+      const owner = actorById(scene, spawned.seekerOwnerId), target = actorById(scene, spawned.seekerTargetId), ruleId = spawned.sourceActionId || spawned.source;
+      if (!owner || event.actorId !== owner.id || owner.profileId !== "enemy.common.hound-master" || owner.knockedOut || !target || target.knockedOut || target.kind === "crowd" || target.team === owner.team || spawned.kind !== "crowd" || spawned.team !== owner.team || spawned.space !== owner.space || distance(owner, spawned) !== 1 || !["enemy.common.hound-master.action.fire-seeker", "enemy.common.hound-master.trump.wild-hunt"].includes(ruleId) || Number(spawned.seekerDamage) !== enemyTierFormula("7(+1)", owner.tier)) throw new Error("Ищейка не соответствует авторитетному правилу Псаря.");
+    }
+    if (spawned?.sourceActionId && ENEMY_FULL_RULES.get(spawned.sourceActionId)?.type === "crowd-summon") {
+      const owner = actorById(scene, event.actorId), token = payload.crowdSummonToken, prepared = [...(scene.log || [])].reverse().find(item => item.type === "enemy.action.prepare" && item.actorId === owner?.id && item.payload?.ruleId === spawned.sourceActionId && item.payload?.crowdSummon?.token === token), cells = prepared?.payload?.crowdSummon?.cells || [], prior = (scene.log || []).filter(item => item.type === "actor.spawn" && item.actorId === owner?.id && item.payload?.crowdSummonToken === token).length;
+      if (!owner || !prepared || prior >= cells.length || !cells.includes(`${spawned.x},${spawned.y}`) || spawned.kind !== "crowd" || spawned.team !== owner.team || spawned.space !== owner.space || spawned.summonerId !== owner.id || Number(spawned.hp) !== 1 || Number(spawned.maxHp) !== 1 || Number(spawned.ap) !== 0 || Number(spawned.speed) !== 0) throw new Error("Зона массовки не соответствует авторитетному Призыву.");
+    }
+    if(spawned.crowdSubtype==="vortex"){
+      const owner=actorById(scene,spawned.vortexOwnerId),anchor=actorById(scene,modifierState(owner).targetId),carrier=anchor,boundary=(scene.log||[]).find(item=>item.id===payload.boundaryEventId),space=(scene.spaces||[]).find(item=>item.id===spawned.space);
+      const distances=anchor&&space?[(spawned.x===0?anchor.x:-1),(spawned.x===space.width-1?space.width-1-anchor.x:-1),(spawned.y===0?anchor.y:-1),(spawned.y===space.height-1?space.height-1-anchor.y:-1)]:[],farthest=anchor&&space?Math.max(anchor.x,space.width-1-anchor.x,anchor.y,space.height-1-anchor.y):-1;
+      if(!owner||owner.profileId!==ENEMY_MODIFIER_IDS.vortex||owner.knockedOut||event.actorId!==owner.id||!carrier||!anchor||anchor.knockedOut||spawned.kind!=="crowd"||spawned.team!==owner.team||boundary?.type!=="round.end"||Math.max(...distances)!==farthest)throw new Error("Зона Вихря не соответствует дальней границе указанного игрока и актуальному носителю.");
+    }
     const occupancy = effectCellOccupancyStatus(scene, null, { actor: spawned, space: spawned.space, x: spawned.x, y: spawned.y });
     if (!occupancy.available) throw new Error(occupancy.reason || "Клетка призыва занята.");
   }
+  if(event.type==="actor.despawn"){
+    const collateralRescue=actor?.profileId===ENEMY_MODIFIER_IDS.collateral&&payload.sourceActionId==="enemy.modifier.collateral.rescue",rescuer=actorById(scene,payload.rescuerId),roll=(scene.log||[]).find(item=>item.id===payload.rollEventId);
+    if(!actor||typeof payload.reason!=="string"||!payload.reason.trim()||payload.reason.length>160||actor.kind!=="crowd"&&!collateralRescue)throw new Error("Некорректное удаление участника.");
+    if(collateralRescue&&(!rescuer||rescuer.team===actor.team||rescuer.knockedOut||rescuer.space!==actor.space||distance(rescuer,actor)>1||roll?.type!=="roll.public"||roll.actorId!==rescuer.id||Number(roll.payload?.successes)<modifierTierValue("2(+1)",actor.tier)||Number(payload.threshold)!==modifierTierValue("2(+1)",actor.tier)))throw new Error("Спасение Случайной жертвы не подтверждено актуальным Взаимодействием.");
+  }
+  if(event.type==="modifier.configure"){
+    if(!actor||payload.profileId!==actor.profileId||!isEnemyModifier(actor)||!payload.state||typeof payload.state!=="object")throw new Error("Некорректная настройка врага-модификатора.");
+    const status=modifierConfigurationStatus(scene,actor.id,payload.state);if(!status.available)throw new Error(status.reason);
+    const collateral=actor.profileId===ENEMY_MODIFIER_IDS.collateral,legion=actor.profileId===ENEMY_MODIFIER_IDS.legion,gargantuan=actor.profileId===ENEMY_MODIFIER_IDS.gargantuan,canonical={carrierId:isAttachedModifier(actor)?status.carrier.id:null,targetId:PLAYER_ANCHOR_MODIFIER_IDS.has(actor.profileId)?status.target.id:null,cells:AREA_MODIFIER_IDS.has(actor.profileId)||collateral?status.cells:[],mode:status.mode||null,configuredRound:Number(scene.round||1),...(collateral?{groupId:`collateral-${actor.id}`,clockId:`collateral-clock-${actor.id}`,deployed:true}:legion?{deployed:true,legionHp:livePlayers(scene).length*10}:gargantuan?{expanded:true}:{})};
+    if(JSON.stringify(canonical)!==JSON.stringify(payload.state))throw new Error("Настройка модификатора не совпадает с актуальной Сценой.");
+  }
+  if(event.type==="modifier.action"){const status=modifierActionStatus(scene,{actorId:event.actorId,...payload});if(payload.profileId!==actor?.profileId||!status.available)throw new Error(status.reason||"Некорректное действие модификатора.");if(payload.action==="gargantuan-strike"&&!modifierTwoSquareCover(payload.cells))throw new Error("Области Громадины должны быть одной или двумя точными зонами 2×2.");}
+  if(event.type==="modifier.used"&&(!isEnemyModifier(actor)||!['gargantuan-strike','giant-charge','legion-return'].includes(payload.action)||Number(payload.round)!==Number(scene.round||1)||(['gargantuan-strike','giant-charge'].includes(payload.action)&&modifierCarrier(scene,actor)?.id!==payload.carrierId)))throw new Error("Некорректная отметка дополнительной Атаки модификатора.");
   if (event.type === "marker.move") {
     const marker = markerById(scene, payload.markerId), space = (scene.spaces || []).find(item => item.id === (payload.space || marker?.space));
     if (!marker || !space || !Number.isInteger(Number(payload.x)) || !Number.isInteger(Number(payload.y)) || Number(payload.x) < 0 || Number(payload.y) < 0 || Number(payload.x) >= space.width || Number(payload.y) >= space.height) throw new Error("Некорректное перемещение маркера.");
@@ -106,8 +137,8 @@ function validateEvent(scene, event, options = {}) {
     if (!(scene.objects || []).some(object => object.id === payload.id) || !["instant", "endTurn", "nextTurn", "round", "scene", "persistent"].includes(payload.duration)) throw new Error("Некорректная длительность области.");
   }
   if (event.type === "damage.apply" && payload.sourceActionId === "fodder.round-end") {
-    const target = actorById(scene, payload.targetId), alreadyUsed = currentRoundEvents(scene).some(item => item.type === "damage.apply" && item.actorId === actor?.id && item.payload?.sourceActionId === "fodder.round-end");
-    if (actor?.kind !== "crowd" || actor.knockedOut || !target || target.team === actor.team || target.knockedOut || target.space !== actor.space || distance(actor, target) > 1 || Number(payload.amount) !== 2 || !roundEndStatus(scene).available || alreadyUsed) throw new Error("Урон массовки доступен один раз для каждой зоны в конце Раунда по герою в пределах 1 клетки.");
+    const target = actorById(scene, payload.targetId), alreadyUsed = currentRoundEvents(scene).some(item => item.type === "damage.apply" && item.actorId === actor?.id && item.payload?.sourceActionId === "fodder.round-end"), decision = payload.fodderDecisionPromptId && (scene.log || []).some(item => item.type === "rule.respond" && item.payload?.promptId === payload.fodderDecisionPromptId && (item.payload?.kind === "fodder-round-damage" && item.actorId === actor?.id && item.payload?.choice === `target:${target?.id}` || item.payload?.kind === "fodder-round-batch" && item.payload?.choice === "custom" && item.payload?.assignments?.[actor?.id] === target?.id));
+    if (actor?.kind !== "crowd" || actor.knockedOut || !target || target.team === actor.team || target.knockedOut || target.space !== actor.space || distance(actor, target) > 1 || Number(payload.amount) !== 2 || !decision && !roundEndStatus(scene).available || alreadyUsed) throw new Error("Урон массовки доступен один раз для каждой зоны в конце Раунда по герою в пределах 1 клетки.");
   }
   if (event.type === "marker.duration") {
     if (!markerById(scene, payload.markerId) || !["endTurn", "nextTurn", "round", "scene", "persistent"].includes(payload.duration)) throw new Error("Некорректная длительность маркера.");
@@ -164,11 +195,22 @@ function validateEvent(scene, event, options = {}) {
       if (!opposed || payload.opposedRequestId !== opposed.id || Number(payload.opposedAttempt) !== Number(opposed.attempt) || !participant || event.actorId !== (participant.actorId || null) || opposed.resolution === "both" || previous && !payload.payment) throw new Error("Бросок не соответствует активному встречному броску.");
     }
     if (payload.challengeRequestId != null && payload.opposedRequestId != null) throw new Error("Бросок не может одновременно быть обычным и встречным.");
+    const techniqueRuleId = String(scene.pendingAction?.techniqueRuleId || ""), techniqueAttackRoll = scene.pendingAction?.actorId === actor?.id && (techniqueRuleId.startsWith("ruiner.bombardier.") || techniqueRuleId === "disruptor.hunter.1" || techniqueRuleId === "vagabond.assassin.2");
+    if (techniqueAttackRoll && payload.dice == null) throw new Error(techniqueRuleId === "disruptor.hunter.1" ? "«Стальные челюсти» требуют проверяемый снимок пула Стычки." : techniqueRuleId === "vagabond.assassin.2" ? "«Ликвидация» требует проверяемый снимок пула Атаки." : "«Бомбардир» требует проверяемый снимок пула Завершения Духом.");
     if (payload.dice != null) {
       const dice = payload.dice;
-      if (!actor || !dice || typeof dice !== "object" || dice.sceneContext != null && typeof dice.sceneContext !== "boolean" || !Number.isInteger(Number(dice.baseCount)) || Number(dice.baseCount) < 1 || Number(dice.baseCount) > 300 || !Number.isInteger(Number(dice.count)) || Number(dice.count) < 1 || Number(dice.count) > 300 || !Array.isArray(dice.selectedHookIds) || dice.selectedHookIds.length > 30 || dice.selectedHookIds.some(id => typeof id !== "string" || id.length > 180) || !Array.isArray(dice.targetIds) || dice.targetIds.length > 40 || dice.targetIds.some(id => !actorById(scene, id))) throw new Error("Некорректный снимок правил броска.");
-      const preparedActionRoll = scene.pendingAction?.actorId === actor.id && JSON.stringify(scene.pendingAction.roll) === JSON.stringify(payload);
-      const status = diceHookStatus(scene, actor.id, { scope: dice.scope, sceneContext: dice.sceneContext, baseCount: dice.baseCount, advantage: dice.manualAdvantage, hindrance: dice.manualHindrance, attribute: dice.attribute, threshold: dice.threshold, criticalAt: dice.criticalAt, usesAbility: dice.usesAbility, abilityKey: dice.abilityKey, selectedHookIds: dice.selectedHookIds, targetIds: dice.targetIds, hooks: dice.explicitHooks || [] });
+      if (!actor || !dice || typeof dice !== "object" || dice.actionId != null && (typeof dice.actionId !== "string" || dice.actionId.length > 180) || dice.sceneContext != null && typeof dice.sceneContext !== "boolean" || !Number.isInteger(Number(dice.baseCount)) || Number(dice.baseCount) < 1 || Number(dice.baseCount) > 300 || !Number.isInteger(Number(dice.count)) || Number(dice.count) < 1 || Number(dice.count) > 300 || !Array.isArray(dice.selectedHookIds) || dice.selectedHookIds.length > 30 || dice.selectedHookIds.some(id => typeof id !== "string" || id.length > 180) || !Array.isArray(dice.targetIds) || dice.targetIds.length > 40 || dice.targetIds.some(id => !actorById(scene, id))) throw new Error("Некорректный снимок правил броска.");
+      if (techniqueRuleId.startsWith("ruiner.bombardier.")) {
+        const targetIds = [...new Set(scene.pendingAction?.targetIds || [])], modifiers = attackModifierStatus(scene, actor.id, targetIds, scene.pendingAction?.attackModifierIds || [], { actionId: scene.pendingAction?.actionId }), expectedAdvantage = Number(scene.pendingAction?.finisherFocus || 0) + Number(modifiers.advantage || 0), expectedHindrance = Number(effectAttackStatus(scene, actor.id, targetIds).hindrance || 0);
+        if (dice.scope !== "action" || !actionIdIs(dice.actionId, "finish") || dice.attribute !== "spirit" || Number(dice.baseCount) !== Number(actor.attrs?.spirit || 0) || Number(dice.manualAdvantage || 0) !== expectedAdvantage || Number(dice.manualHindrance || 0) !== expectedHindrance || JSON.stringify([...new Set(dice.targetIds || [])].sort()) !== JSON.stringify(targetIds.sort())) throw new Error("Бросок Бомбардира не соответствует авторитетному Завершению Духом.");
+      }
+      if (techniqueRuleId === "disruptor.hunter.1" && (dice.scope !== "action" || !actionIdIs(dice.actionId, "skirmish") || !["body", "talent"].includes(dice.attribute) || Number(dice.baseCount) !== Number(actor.attrs?.[dice.attribute] || 0))) throw new Error("Бросок Стальных челюстей не соответствует авторитетной Стычке.");
+      if (techniqueRuleId === "vagabond.assassin.2") {
+        const targetIds = [...new Set(scene.pendingAction?.targetIds || [])];
+        if (dice.scope !== "action" || dice.actionId !== scene.pendingAction?.actionId || !["skirmish", "spell", "finish"].some(key => actionIdIs(dice.actionId, key)) || !["body", "talent", "spirit", "mind"].includes(dice.attribute) || actionIdIs(dice.actionId, "skirmish") && !["body", "talent"].includes(dice.attribute) || actionIdIs(dice.actionId, "spell") && dice.attribute !== "spirit" || Number(dice.baseCount) !== Number(actor.attrs?.[dice.attribute] || 0) || Number(dice.criticalAt) !== 5 || Number(dice.manualAdvantage || 0) !== Number(scene.pendingAction?.expectedManualAdvantage || 0) || Number(dice.manualHindrance || 0) !== Number(scene.pendingAction?.expectedManualHindrance || 0) || JSON.stringify([...new Set(dice.targetIds || [])].sort()) !== JSON.stringify(targetIds.sort())) throw new Error("Бросок Ликвидации не соответствует авторитетной Атаке из Исчезновения.");
+      }
+      const preparedActionRoll = !techniqueAttackRoll && scene.pendingAction?.actorId === actor.id && JSON.stringify(scene.pendingAction.roll) === JSON.stringify(payload);
+      const status = diceHookStatus(scene, actor.id, { scope: dice.scope, actionId: dice.actionId, sceneContext: dice.sceneContext, baseCount: dice.baseCount, advantage: dice.manualAdvantage, hindrance: dice.manualHindrance, attribute: dice.attribute, threshold: dice.threshold, criticalAt: dice.criticalAt, usesAbility: dice.usesAbility, abilityKey: dice.abilityKey, selectedHookIds: dice.selectedHookIds, targetIds: dice.targetIds, hooks: dice.explicitHooks || [] });
       const evaluated = evaluateDiceRoll(status, payload);
       if (!preparedActionRoll && (!status.available || !evaluated.available || payload.rolls.length < status.count || status.count !== Number(dice.count) || status.advantage !== Number(dice.advantage) || status.hindrance !== Number(dice.hindrance) || status.threshold !== Number(dice.threshold) || status.criticalAt !== Number(dice.criticalAt) || evaluated.successes !== Number(payload.successes) || evaluated.crits !== Number(payload.crits) || JSON.stringify(status.hooks) !== JSON.stringify(dice.hooks || []))) throw new Error("Результат броска не соответствует активным правилам.");
     }
@@ -209,6 +251,10 @@ function validateEvent(scene, event, options = {}) {
   }
   if (event.type === "effect.remove" && (!actorById(scene, payload.targetId) || typeof payload.effect !== "string" || !payload.effect.trim() || payload.effect.length > 80 || payload.sourceOnly != null && typeof payload.sourceOnly !== "boolean" || payload.sourceActorId != null && !actorById(scene, payload.sourceActorId))) throw new Error("Некорректное удаление Эффекта.");
   if (event.type === "actor.heal" && (!actorById(scene, payload.targetId) || !finite(payload.amount) || Number(payload.amount) < 0 || Number(payload.amount) > 9999)) throw new Error("Некорректное исцеление.");
+  if (event.type === "actor.heal" && payload.sourceActionId === "enemy.common.glutton.passive") {
+    const boundary = (scene.log || []).find(item => item.id === payload.boundaryEventId), victim = actorById(scene, boundary?.payload?.targetId), duplicate = (scene.log || []).some(item => item.type === "actor.heal" && item.actorId === actor?.id && item.payload?.sourceActionId === payload.sourceActionId && item.payload?.boundaryEventId === payload.boundaryEventId);
+    if (actor?.profileId !== "enemy.common.glutton" || payload.targetId !== actor.id || !boundary || boundary.type !== "damage.apply" || boundary.actorId !== actor.id || !boundary.payload?.applied || victim?.kind !== "crowd" || !victim.knockedOut || Number(payload.amount) !== enemyTierFormula("10(+5)", actor.tier) || duplicate) throw new Error("Исцеление Обжоры не соответствует выведенной из строя массовке.");
+  }
   if (event.type === "actor.wound" && (!actorById(scene, payload.targetId) || !Number.isInteger(Number(payload.delta)) || Math.abs(Number(payload.delta)) !== 1)) throw new Error("Некорректное изменение Ран.");
   if (event.type === "actor.knockout" && !actorById(scene, payload.targetId)) throw new Error("Некорректное выведение из строя.");
   if (event.type === "inventory.change" && (typeof payload.item !== "string" || payload.item.length > 80 || !Number.isInteger(Number(payload.delta)) || Math.abs(Number(payload.delta)) > 99)) throw new Error("Некорректное изменение инвентаря.");
@@ -240,13 +286,20 @@ function validateEvent(scene, event, options = {}) {
     if (!actorById(scene, event.actorId) || !["cunningPlan", "study", "spellModifiers"].includes(payload.key)) throw new Error("Некорректное состояние Техники.");
     if (payload.key === "cunningPlan" && (!Number.isInteger(Number(payload.delta)) || Math.abs(Number(payload.delta)) > 4)) throw new Error("Некорректное изменение часов Хитрого плана.");
     if (payload.key === "study" && (!actorById(scene, payload.targetId) || typeof payload.targetId !== "string")) throw new Error("Некорректная цель Хитрого плана.");
-    if (payload.key === "spellModifiers" && (!Array.isArray(payload.value) || payload.value.length > 2 || payload.value.some(value => !["fierce", "focused", "wild", "outstanding"].includes(value)))) throw new Error("Некорректный выбор Модификаций.");
+    if (payload.key === "spellModifiers") {
+      const learned = new Set(actorById(scene, event.actorId)?.techniqueState?.spellcrafterLearnedModifiers || []), level = Number(actorById(scene, event.actorId)?.techniques?.["ruiner.spellcrafter"] || 0);
+      if (!Array.isArray(payload.value) || new Set(payload.value).size !== payload.value.length || payload.value.length > (level >= 3 ? 2 : 1) || payload.value.some(value => !learned.has(value))) throw new Error("Можно подготовить только разные изученные Модификации.");
+    }
   }
   if (event.type === "actor.state") {
     if (!actorById(scene, event.actorId) || !ACTOR_STATE_KEYS.has(payload.key)) throw new Error("Некорректное состояние персонажа.");
     if (payload.key === "pugilistStance" && (!Number.isInteger(Number(payload.value)) || Number(payload.value) < 1 || Number(payload.value) > 4)) throw new Error("Шаг стойки должен быть от 1 до 4.");
-    if (payload.key === "growth" && (!Number.isInteger(Number(payload.delta)) || Math.abs(Number(payload.delta)) > 20)) throw new Error("Некорректное изменение Роста.");
-    if (payload.key === "evasion" && (!Number.isInteger(Number(payload.delta)) || Math.abs(Number(payload.delta)) > 20)) throw new Error("Некорректное изменение Уклонения.");
+    if (["growth", "gluttonConsumed"].includes(payload.key) && (!Number.isInteger(Number(payload.delta)) || Number(payload.delta) < 0 || Number(payload.delta) > 20)) throw new Error("Некорректное изменение счётчика врага.");
+    if (payload.key === "gluttonConsumed") {
+      const boundary = (scene.log || []).find(item => item.id === payload.boundaryEventId), victim = actorById(scene, boundary?.payload?.targetId), duplicate = (scene.log || []).some(item => item.type === "actor.state" && item.actorId === actor?.id && item.payload?.key === payload.key && item.payload?.boundaryEventId === payload.boundaryEventId);
+      if (actor?.profileId !== "enemy.common.glutton" || Number(payload.delta) !== 1 || !boundary || boundary.type !== "damage.apply" || boundary.actorId !== actor.id || !boundary.payload?.applied || victim?.kind !== "crowd" || !victim.knockedOut || duplicate) throw new Error("Счётчик Обжоры не соответствует выведенной из строя массовке.");
+    }
+    if (["evasion","armor"].includes(payload.key) && (!Number.isInteger(Number(payload.delta)) || Math.abs(Number(payload.delta)) > 20)) throw new Error("Некорректное изменение защиты.");
     if (["martialPerfection", "imposingPresence", "berserkerLastStand"].includes(payload.key) && typeof payload.value !== "boolean") throw new Error("Некорректный переключатель состояния.");
     if (["executionerBifurcate", "revenantHollowedEyes"].includes(payload.key) && payload.value !== null && (typeof payload.value !== "object" || !actorById(scene, payload.value.targetId) || !Number.isInteger(Number(payload.value.dueTurnSerial)))) throw new Error("Некорректное отложенное действие врага.");
     if (payload.key === "enemyAim" && (!Number.isInteger(Number(payload.value)) || Number(payload.value) < 0 || Number(payload.value) > 1)) throw new Error("Некорректное значение Прицела.");
@@ -255,13 +308,19 @@ function validateEvent(scene, event, options = {}) {
     if (["grimTransformed", "grimUsed", "warringTransformed", "warringUsed", "drainLife", "wispCreationUsed"].includes(payload.key) && typeof payload.value !== "boolean") throw new Error("Некорректный переключатель Техники.");
     if (payload.key === "lastCreationSpellMarks" && (!Number.isInteger(Number(payload.value)) || Number(payload.value) < 0 || Number(payload.value) > 99)) throw new Error("Некорректное число Меток творения.");
     if (payload.key === "empathSupport" && (!Number.isInteger(Number(payload.value)) || Number(payload.value) < 0 || Number(payload.value) > 99)) throw new Error("Некорректная Поддержка Эмпата.");
-    if(payload.key==="masterArmament"&&!["blade","pole","chain"].includes(payload.value))throw new Error("Некорректное Вооружение.");
+    if(payload.key==="masterArmament"&&!["blade","polearm","chain"].includes(payload.value))throw new Error("Некорректное Вооружение.");
     if (payload.key === "modifiedOverclockTurns" && (!Number.isInteger(Number(payload.value)) || Number(payload.value) < 0 || Number(payload.value) > 2)) throw new Error("Некорректная длительность Разгона.");
   }
   if (event.type === "turn.grant" && (!actorById(scene, event.actorId) || !Number.isInteger(Number(payload.amount)) || Number(payload.amount) < 1 || Number(payload.amount) > 4)) throw new Error("Некорректный дополнительный Ход.");
   if (["enemy.action.prepare", "enemy.action.resolve"].includes(event.type) && (typeof payload.ruleId !== "string" || typeof payload.name !== "string" || payload.ruleId.length > 180 || payload.name.length > 120)) throw new Error("Некорректное действие врага.");
+  if (event.type === "enemy.action.prepare" && payload.crowdSummon) {
+    const rule = ENEMY_FULL_RULES.get(payload.ruleId), space = (scene.spaces || []).find(item => item.id === actor?.space), cells = payload.crowdSummon.cells, uses = currentRoundEvents(scene).filter(item => item.type === "enemy.action.prepare" && item.actorId === actor?.id && item.payload?.ruleId === payload.ruleId).length, expected = rule?.type === "crowd-summon" ? Math.max(0, rule.countState ? Number(actor?.ruleState?.[rule.countState] || 0) : enemyTierFormula(rule.formula, actor?.tier) - (rule.diminishEachRoundUse ? uses : 0)) : -1, occupied = new Set((scene.actors || []).filter(item => item.kind === "crowd" && !item.knockedOut && item.space === actor?.space).map(cellKey));
+    if (!actor || actor.profileId !== payload.profileId || !space || typeof payload.crowdSummon.token !== "string" || !payload.crowdSummon.token || !Array.isArray(cells) || new Set(cells).size !== cells.length || cells.length !== expected || rule.oncePerRound && uses || cells.some(key => { const match = String(key).match(/^(\d{1,2}),(\d{1,2})$/), x = match ? Number(match[1]) : -1, y = match ? Number(match[2]) : -1, invalid = !match || x < 0 || y < 0 || x >= Number(space.width) || y >= Number(space.height) || removedCellKeys(scene, actor.space).has(String(key)) || occupied.has(String(key)); if (invalid) return true; return rule.edge ? !(x === 0 || y === 0 || x === Number(space.width) - 1 || y === Number(space.height) - 1) : rule.range != null && modifierRangeDistance(scene, actor, { space: actor.space, x, y }) > Number(rule.range); })) throw new Error("Некорректная авторитетная настройка Призыва массовки.");
+  }
   if (event.type === "damage.apply") {
     if (!actorById(scene, payload.targetId) || !finite(payload.amount) || Number(payload.amount) < 0 || Number(payload.amount) > 9999) throw new Error("Некорректный урон.");
+    if(actorById(scene,payload.targetId)?.profileId===ENEMY_MODIFIER_IDS.legion&&payload.sourceActionId!=="enemy.modifier.legion.passive")throw new Error("Легион получает урон только от своего Пассивa при поражении другого врага.");
+    if(actor&&actor.team===actorById(scene,payload.targetId)?.team&&[ENEMY_MODIFIER_IDS.collateral,ENEMY_MODIFIER_IDS.vip].includes(actorById(scene,payload.targetId)?.profileId)&&!effectTargetingStatus(scene,actor.id,payload.targetId).available)throw new Error(effectTargetingStatus(scene,actor.id,payload.targetId).reason);
   }
   if (event.type === "area.create") {
     const space = (scene.spaces || []).find(item => item.id === payload.space);
@@ -406,6 +465,9 @@ function setCompoundHealth(scene, status, total) {
 function reduceEvent(scene, event) {
   const actor = event.actorId ? actorById(scene, event.actorId) : null;
   const payload = event.payload;
+  const target = payload?.targetId ? actorById(scene, payload.targetId) : null;
+  if(actor&&!payload.actorName)payload.actorName=actor.name;
+  if(target&&!payload.targetName)payload.targetName=target.name;
   if (event.type === "action.plan" && actor) {
     scene.pendingActionPlan = { id: payload.id, actorId: actor.id, actionId: payload.actionId, actionName: payload.actionName || payload.name || "Действие", phase: payload.phase, context: clone(payload.context), createdVersion: Number(scene.version || 0), createdEventId: event.id };
   } else if (event.type === "action.plan.update" && actor) {
@@ -512,6 +574,10 @@ function reduceEvent(scene, event) {
   } else if (event.type === "actor.spawn") {
     scene.actors ||= [];
     scene.actors.push(clone(payload.actor));
+  } else if (event.type === "actor.despawn" && actor) {
+    scene.actors = (scene.actors || []).filter(item => item.id !== actor.id);
+    scene.targetIds = (scene.targetIds || []).filter(id => id !== actor.id);
+    if (scene.selectedActor === actor.id) scene.selectedActor = null;
   } else if (event.type === "actor.move" && actor) {
     payload.from ||= { space: actor.space, x: Number(actor.x), y: Number(actor.y) };
     const compoundId = (actor.kind === "enemy" || actor.profileId) && typeof actor.compoundId === "string" && actor.compoundId.trim() ? actor.compoundId.trim() : null;
@@ -525,7 +591,7 @@ function reduceEvent(scene, event) {
       scene.objects = scene.objects.map(object => object.space === payload.space && object.type === opposite ? { ...object, cells: (object.cells || []).filter(cell => !cells.has(cell)) } : object).filter(object => object.type !== opposite || object.cells.length);
     }
     const destructible = payload.areaType === "terrain", defaultHp = destructible ? payload.cells.length * 10 : 0;
-    scene.objects.push({ id: payload.id, space: payload.space, type: payload.areaType, label: payload.label, source: payload.source, ruleId: payload.ruleId || payload.source || "", duration: payload.duration, ownerActorId: payload.ownerActorId || event.actorId, cells: [...payload.cells], hp: destructible ? Number(payload.hp ?? payload.metadata?.hp ?? defaultHp) : null, maxHp: destructible ? Number(payload.maxHp ?? payload.metadata?.maxHp ?? payload.hp ?? defaultHp) : null, createdRound: Number(scene.round || 1), metadata: clone(payload.metadata || {}) });
+    scene.objects.push({ id: payload.id, space: payload.space, type: payload.areaType, label: payload.label, source: payload.source, ruleId: payload.ruleId || payload.source || "", duration: payload.duration, ownerActorId: payload.ownerActorId || event.actorId, cells: [...payload.cells], hp: destructible ? Number(payload.hp ?? payload.metadata?.hp ?? defaultHp) : null, maxHp: destructible ? Number(payload.maxHp ?? payload.metadata?.maxHp ?? payload.hp ?? defaultHp) : null, createdRound: Number(scene.round || 1), metadata: {...clone(payload.metadata || {}),...(payload.metadata?.enemyModifier==="gargantuan"?{redirectTargetId:payload.ownerActorId||event.actorId}:{})} });
   } else if (event.type === "area.remove") {
     const removed = (scene.objects || []).find(object => object.id === payload.id);
     payload.label = removed?.label || payload.label || "местность";
@@ -538,6 +604,8 @@ function reduceEvent(scene, event) {
   } else if (event.type === "object.damage") {
     const object = (scene.objects || []).find(item => item.id === payload.objectId);
     if (object) {
+      if(object.metadata?.redirectTargetId){payload.redirectedTargetId=object.metadata.redirectTargetId;payload.dealt=0;payload.destroyed=false;payload.label=object.label;}
+      else {
       const fallback = Math.max(1, Number(object.cells?.length || 1) * 10), before = Number(object.hp || object.maxHp || fallback);
       object.maxHp = Math.max(before, Number(object.maxHp || before));
       object.hp = Math.max(0, before - Number(payload.amount || 0));
@@ -545,6 +613,7 @@ function reduceEvent(scene, event) {
       payload.destroyed = object.hp === 0;
       payload.label = object.label;
       if (payload.destroyed) scene.objects = (scene.objects || []).filter(item => item.id !== object.id);
+      }
     }
   } else if (event.type === "object.restore") {
     const object=(scene.objects||[]).find(item=>item.id===payload.objectId);if(object){const before=Number(object.hp||0);object.hp=Math.min(Number(object.maxHp||before),before+Number(payload.amount||0));payload.restored=object.hp-before;payload.label=object.label}
@@ -569,6 +638,9 @@ function reduceEvent(scene, event) {
   } else if (event.type === "marker.remove") {
     const marker = markerById(scene, payload.markerId);
     payload.label = marker?.label || payload.label || "маркер";
+    payload.ruleId = marker?.ruleId || null;
+    payload.ownerActorId = marker?.ownerActorId || null;
+    payload.carrierActorId = marker?.metadata?.carrierActorId || null;
     scene.markers = (scene.markers || []).filter(item => item.id !== payload.markerId);
   } else if (event.type === "marker.duration") {
     const marker = markerById(scene, payload.markerId);
@@ -891,7 +963,7 @@ function reduceEvent(scene, event) {
   } else if (event.type === "rule.prompt") {
     const options = PLACEMENT_PROMPT_KINDS.has(payload.kind) && !payload.options.includes("cell") ? ["cell", ...payload.options] : payload.options;
     const requiredActorIds = [event.actorId, payload.sourceActorId, payload.targetId].filter(Boolean);
-    if (!requiredActorIds.some(id => actorById(scene, id)?.knockedOut)) scene.pendingPrompt = { id: payload.id, kind: payload.kind, actorId: event.actorId, sourceActorId: payload.sourceActorId || event.actorId, controller: payload.controller === "narrator" ? "narrator" : "source", targetId: payload.targetId || null, markerId: payload.markerId || null, title: payload.title || "Решение правила", text: payload.text || "", options: clone(options || []), context: clone(payload.context || {}) };
+    if (!requiredActorIds.some(id => actorById(scene, id)?.knockedOut)) scene.pendingPrompt = { id: payload.id, kind: payload.kind, actorId: event.actorId, sourceActorId: payload.sourceActorId || event.actorId, controller: payload.controller === "narrator" ? "narrator" : "source", targetId: payload.targetId || null, markerId: payload.markerId || null, title: payload.title || "Решение правила", text: payload.text || "", options: clone(options || []), context: clone(payload.context || {}), createdAt: event.at || new Date().toISOString(), expiresAt: Date.now() + 120000 };
   } else if (event.type === "rule.respond") {
     payload.kind = scene.pendingPrompt?.kind || payload.kind;
     payload.sourceActorId = scene.pendingPrompt?.sourceActorId || null;
@@ -906,14 +978,24 @@ function reduceEvent(scene, event) {
       if (payload.newTarget) actor.techniqueState.studiedActorIds.push(payload.targetId);
     }
     if (payload.key === "spellModifiers") actor.techniqueState.spellModifiers = [...new Set(payload.value || [])].slice(0, 2);
+  } else if(event.type==="modifier.used"&&actor){
+    actor.modifierState||={};actor.modifierState.lastActionRound=Number(scene.round||1);
+  } else if(event.type==="modifier.configure"&&actor){
+    const firstCollateralDeploy=actor.profileId===ENEMY_MODIFIER_IDS.collateral&&!actor.modifierState?.deployed;
+    if(actor.profileId===ENEMY_MODIFIER_IDS.gargantuan&&!actor.modifierState?.expanded){actor.modifierState=clone(payload.state);applyGargantuanExpansion(scene,actor,payload.state.mode)}
+    actor.modifierState=clone(payload.state);
+    if(actor.profileId===ENEMY_MODIFIER_IDS.legion){actor.maxHp=Number(payload.state.legionHp||0);actor.hp=actor.maxHp}
+    if(actor.profileId===ENEMY_MODIFIER_IDS.giant){const carrier=actorById(scene,payload.state.carrierId);carrier.occupiedWidth=2;carrier.occupiedHeight=2;actor.occupiedWidth=2;actor.occupiedHeight=2}
+    if(firstCollateralDeploy){const cells=payload.state.cells.map(cell=>cell.split(",").map(Number)),[firstX,firstY]=cells[0];actor.x=firstX;actor.y=firstY;actor.hidden=false;actor.modifierState.instanceRootId=actor.id;for(let index=1;index<cells.length;index++){const[x,y]=cells[index],copy=clone(actor);copy.id=`collateral-${actor.id}-${index}`;copy.x=x;copy.y=y;copy.hidden=false;copy.name=`${actor.name} ${index+1}`;copy.modifierState={...clone(actor.modifierState),instanceRootId:actor.id};scene.actors.push(copy)}scene.sessionClocks||=[];scene.sessionClocks.push({id:payload.state.clockId,name:`Случайные жертвы · ${actor.name}`,kind:"danger",size:livePlayers(scene).length,value:0})}
+    if(isAttachedModifier(actor)){const carrier=actorById(scene,payload.state.carrierId),compoundId=carrier.compoundId||`modifier-carrier-${carrier.id}`;carrier.compoundId=compoundId;actor.compoundId=compoundId;actor.space=carrier.space;actor.x=carrier.x;actor.y=carrier.y;actor.hidden=true;actor.acted=true;actor.ap=0}
   } else if (event.type === "actor.state" && actor) {
     actor.ruleState ||= {};
-    if (payload.key === "growth") actor.ruleState.growth = Math.max(0, Number(actor.ruleState.growth || 0) + Number(payload.delta || 0));
-    else if (payload.key === "evasion") {
-      payload.before = Number(actor.evasion || 0);
-      actor.evasion = Math.max(0, payload.before + Number(payload.delta || 0));
-      payload.value = actor.evasion;
-      payload.appliedDelta = actor.evasion - payload.before;
+    if (["growth", "gluttonConsumed"].includes(payload.key)) actor.ruleState[payload.key] = Math.max(0, Number(actor.ruleState[payload.key] || 0) + Number(payload.delta || 0));
+    else if (["evasion","armor"].includes(payload.key)) {
+      payload.before = Number(actor[payload.key] || 0);
+      actor[payload.key] = Math.max(0, payload.before + Number(payload.delta || 0));
+      payload.value = actor[payload.key];
+      payload.appliedDelta = actor[payload.key] - payload.before;
     }
     else {
       actor.ruleState[payload.key] = payload.value;
@@ -981,14 +1063,15 @@ function reduceEvent(scene, event) {
       if (scene.activeActorId === actor.id) scene.activeActorId = null;
     }
   } else if (event.type === "round.end") {
+    payload.endedTension = Number(scene.tension || 0);
     scene.round = Number(scene.round || 0) + 1;
     scene.tension = Number(scene.tension || 0) + 1;
     scene.activeActorId = null;
     payload.ruleResourceResets = [];
     payload.ruleClockResets = [];
     (scene.actors || []).forEach(item => {
-      item.acted = item.kind === "crowd";
-      item.ap = item.kind === "crowd" ? 0 : Number(item.baseAp || 3);
+      item.acted = item.kind === "crowd" || isEnemyModifier(item);
+      item.ap = item.kind === "crowd" || isEnemyModifier(item) ? 0 : Number(item.baseAp || 3);
       item.usedActions = [];
       item.stepRemaining = 0;
       item.speedZeroUntilTurnEnd = false;

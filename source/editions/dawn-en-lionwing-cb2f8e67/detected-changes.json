@@ -1,0 +1,2411 @@
+{
+  "schemaVersion": 1,
+  "baseEditionId": "dawn-en-9ce6d8d6",
+  "editionId": "dawn-en-lionwing-cb2f8e67",
+  "generator": "tools/content/build_lionwing_companion.py",
+  "counts": {
+    "oldTechniques": 107,
+    "newTechniques": 111,
+    "mapped": 106,
+    "additions": 5,
+    "removals": 1,
+    "renamesOrMoves": 23,
+    "changedPages": 107
+  },
+  "pageChanges": [
+    {
+      "newPdfPage": 1,
+      "bestOldPdfPage": 1,
+      "similarity": 1.0,
+      "classification": "minor-or-layout",
+      "headingSample": "DAWN A Diceless High Fantasy resource management TTRPG"
+    },
+    {
+      "newPdfPage": 2,
+      "bestOldPdfPage": 2,
+      "similarity": 0.517,
+      "classification": "changed",
+      "headingSample": "A Game Written by Joel Vreugdenhil. This work was made by humans. DAWN: The RPG © 2024 by "
+    },
+    {
+      "newPdfPage": 3,
+      "bestOldPdfPage": 3,
+      "similarity": 0.5,
+      "classification": "changed",
+      "headingSample": "Table Of Contents Table Of Contents ......................................................"
+    },
+    {
+      "newPdfPage": 4,
+      "bestOldPdfPage": 5,
+      "similarity": 0.519,
+      "classification": "changed",
+      "headingSample": "Tension .................................................................. 57 ★ ★ ★ Comple"
+    },
+    {
+      "newPdfPage": 5,
+      "bestOldPdfPage": 6,
+      "similarity": 0.6,
+      "classification": "changed",
+      "headingSample": "Introduction The journey begins, no going back now. 4"
+    },
+    {
+      "newPdfPage": 6,
+      "bestOldPdfPage": 7,
+      "similarity": 0.527,
+      "classification": "changed",
+      "headingSample": "Introduction There's something different about you. You might hit harder than others, know"
+    },
+    {
+      "newPdfPage": 7,
+      "bestOldPdfPage": 8,
+      "similarity": 0.664,
+      "classification": "changed",
+      "headingSample": "Inspirations and Assumptions Assumptions There are many assumptions made while writing thi"
+    },
+    {
+      "newPdfPage": 8,
+      "bestOldPdfPage": 8,
+      "similarity": 0.156,
+      "classification": "new-or-restructured",
+      "headingSample": "What DAWN Doesn't Do DAWN Does Not… On reading the past two pages of the book you may ‣ En"
+    },
+    {
+      "newPdfPage": 9,
+      "bestOldPdfPage": 10,
+      "similarity": 1.0,
+      "classification": "minor-or-layout",
+      "headingSample": "Worlds of Dawn The land stretches out before you. One of mystery and wonder. One of your o"
+    },
+    {
+      "newPdfPage": 10,
+      "bestOldPdfPage": 11,
+      "similarity": 0.479,
+      "classification": "changed",
+      "headingSample": "Worlds of Dawn As stated in the introduction, DAWN can be played in a number of settings, "
+    },
+    {
+      "newPdfPage": 11,
+      "bestOldPdfPage": 12,
+      "similarity": 0.707,
+      "classification": "changed",
+      "headingSample": "The World Of Sand And Stars Beneath a star strewn sky, gliding over the sand, the dune run"
+    },
+    {
+      "newPdfPage": 12,
+      "bestOldPdfPage": 13,
+      "similarity": 0.862,
+      "classification": "minor-or-layout",
+      "headingSample": "The Search For Power The Dune Runners An organization of ambitious nomads, each hoping to "
+    },
+    {
+      "newPdfPage": 13,
+      "bestOldPdfPage": 14,
+      "similarity": 0.902,
+      "classification": "minor-or-layout",
+      "headingSample": "The Empire The Imperial battalions Along with its many disparate squadrons and political T"
+    },
+    {
+      "newPdfPage": 14,
+      "bestOldPdfPage": 15,
+      "similarity": 0.572,
+      "classification": "changed",
+      "headingSample": "The World Of Daggers And Dusk Pantomime is the world capital of an alternate Earth. It's k"
+    },
+    {
+      "newPdfPage": 15,
+      "bestOldPdfPage": 16,
+      "similarity": 0.794,
+      "classification": "changed",
+      "headingSample": "The Mundane Past Independent Groups In the 1990s, scientists discovered a secret in the de"
+    },
+    {
+      "newPdfPage": 16,
+      "bestOldPdfPage": 17,
+      "similarity": 0.947,
+      "classification": "minor-or-layout",
+      "headingSample": "The Knightly Syndicates Pantomime's Structure Some are seen as royalty, effectively owning"
+    },
+    {
+      "newPdfPage": 17,
+      "bestOldPdfPage": 18,
+      "similarity": 0.665,
+      "classification": "changed",
+      "headingSample": "The World Of Faeries And Frost A deadly cold blankets the world. Despite this, the kingdom"
+    },
+    {
+      "newPdfPage": 18,
+      "bestOldPdfPage": 19,
+      "similarity": 0.611,
+      "classification": "changed",
+      "headingSample": "The Fey Keepers The Faeries An officially recognized order of mages using Faerie Though th"
+    },
+    {
+      "newPdfPage": 19,
+      "bestOldPdfPage": 20,
+      "similarity": 0.5,
+      "classification": "changed",
+      "headingSample": "Inside The Walls Oberon Narcissistic, influential, and completely beyond the The Pavilions"
+    },
+    {
+      "newPdfPage": 20,
+      "bestOldPdfPage": 106,
+      "similarity": 0.14,
+      "classification": "new-or-restructured",
+      "headingSample": "World Creation As stated in the beginning, DAWN can be played in any world, so long as pla"
+    },
+    {
+      "newPdfPage": 21,
+      "bestOldPdfPage": 30,
+      "similarity": 0.125,
+      "classification": "new-or-restructured",
+      "headingSample": "Character Creation Step out into the fray, and show us all who you really are. 20"
+    },
+    {
+      "newPdfPage": 22,
+      "bestOldPdfPage": 22,
+      "similarity": 0.42,
+      "classification": "new-or-restructured",
+      "headingSample": "Character Creation The following is a guide on creating a character for DAWN, placed front"
+    },
+    {
+      "newPdfPage": 23,
+      "bestOldPdfPage": 47,
+      "similarity": 0.388,
+      "classification": "new-or-restructured",
+      "headingSample": "Outlooks And Archetypes Most of a character's unique features come from their ‘Outlook' an"
+    },
+    {
+      "newPdfPage": 24,
+      "bestOldPdfPage": 32,
+      "similarity": 0.624,
+      "classification": "changed",
+      "headingSample": "Summarized Character creation Universal Checklist The first two steps of making a characte"
+    },
+    {
+      "newPdfPage": 25,
+      "bestOldPdfPage": 31,
+      "similarity": 0.324,
+      "classification": "new-or-restructured",
+      "headingSample": "Your Story Ambition No matter how much people act, everyone dreams. Player characters are "
+    },
+    {
+      "newPdfPage": 26,
+      "bestOldPdfPage": 31,
+      "similarity": 0.221,
+      "classification": "new-or-restructured",
+      "headingSample": "The Adventure Opportunity Before answering the following set of questions, be sure Most st"
+    },
+    {
+      "newPdfPage": 27,
+      "bestOldPdfPage": 33,
+      "similarity": 0.575,
+      "classification": "changed",
+      "headingSample": "Example Unstructured Characters Here are a few Tier 1 character builds for unstructured pl"
+    },
+    {
+      "newPdfPage": 28,
+      "bestOldPdfPage": 34,
+      "similarity": 0.22,
+      "classification": "new-or-restructured",
+      "headingSample": "Combat Recipes Correctly choosing what Techniques your character will use can be a difficu"
+    },
+    {
+      "newPdfPage": 29,
+      "bestOldPdfPage": 35,
+      "similarity": 0.159,
+      "classification": "new-or-restructured",
+      "headingSample": "Talent Recipes Tricksy Shinobi Death-Dealing Assassin Recommended Attributes: Recommended "
+    },
+    {
+      "newPdfPage": 30,
+      "bestOldPdfPage": 36,
+      "similarity": 0.132,
+      "classification": "new-or-restructured",
+      "headingSample": "Spirit Recipes Keen Caster Supportive Mage Recommended Attributes: Recommended Attributes:"
+    },
+    {
+      "newPdfPage": 31,
+      "bestOldPdfPage": 34,
+      "similarity": 0.151,
+      "classification": "new-or-restructured",
+      "headingSample": "Mind Recipes Battlefield Maven Helpful Savant Recommended Attributes: Recommended Attribut"
+    },
+    {
+      "newPdfPage": 32,
+      "bestOldPdfPage": 23,
+      "similarity": 0.54,
+      "classification": "changed",
+      "headingSample": "Tiers Optional Rule: Faster or slower Tiers Like most RPGs, characters in DAWN will grow i"
+    },
+    {
+      "newPdfPage": 33,
+      "bestOldPdfPage": 24,
+      "similarity": 0.633,
+      "classification": "changed",
+      "headingSample": "Campaign Scale 4: Established Elite E.g. Kagurabachi, Gokurakugai, Burn The Witch This gam"
+    },
+    {
+      "newPdfPage": 34,
+      "bestOldPdfPage": 21,
+      "similarity": 1.0,
+      "classification": "minor-or-layout",
+      "headingSample": "Universal Rules The following rules apply to every section of the game, be sure to pay att"
+    },
+    {
+      "newPdfPage": 35,
+      "bestOldPdfPage": 9,
+      "similarity": 0.342,
+      "classification": "new-or-restructured",
+      "headingSample": "Universal Rules A few rules apply to both structured combat and unstructured play. These u"
+    },
+    {
+      "newPdfPage": 36,
+      "bestOldPdfPage": 25,
+      "similarity": 0.753,
+      "classification": "changed",
+      "headingSample": "Challenge Rolls Unique Roll Types When a player does something that'd be interesting to In"
+    },
+    {
+      "newPdfPage": 37,
+      "bestOldPdfPage": 29,
+      "similarity": 0.346,
+      "classification": "new-or-restructured",
+      "headingSample": "Scenes, Chapters, Series Clocks Though it's in fairly general terms, DAWN cares a lot Cloc"
+    },
+    {
+      "newPdfPage": 38,
+      "bestOldPdfPage": 27,
+      "similarity": 0.584,
+      "classification": "changed",
+      "headingSample": "Influence Knockouts In structured combat and unstructured play, there are In both unstruct"
+    },
+    {
+      "newPdfPage": 39,
+      "bestOldPdfPage": 28,
+      "similarity": 0.441,
+      "classification": "changed",
+      "headingSample": "Dueling ❂ Failing A Duel When the initiator fails a Duel they do not always need Almost an"
+    },
+    {
+      "newPdfPage": 40,
+      "bestOldPdfPage": 38,
+      "similarity": 1.0,
+      "classification": "minor-or-layout",
+      "headingSample": "Unstructured Play The rules that dictate the non-tactical elements of DAWN, use these to g"
+    },
+    {
+      "newPdfPage": 41,
+      "bestOldPdfPage": 39,
+      "similarity": 0.783,
+      "classification": "changed",
+      "headingSample": "Unstructured Play The purely narrative portion of a Series. The Rules of unstructured play"
+    },
+    {
+      "newPdfPage": 42,
+      "bestOldPdfPage": 40,
+      "similarity": 0.726,
+      "classification": "changed",
+      "headingSample": "Failing Challenge Rolls * Joel's Notes: Putting Players on the spot Functionally, the only"
+    },
+    {
+      "newPdfPage": 43,
+      "bestOldPdfPage": 41,
+      "similarity": 0.646,
+      "classification": "changed",
+      "headingSample": "Threats Responding To Threats A ‘Threat' describes the times when Narrators describe Respo"
+    },
+    {
+      "newPdfPage": 44,
+      "bestOldPdfPage": 42,
+      "similarity": 0.295,
+      "classification": "new-or-restructured",
+      "headingSample": "Ranked Features Body Skills The primary three features used in unstructured Break: Destroy"
+    },
+    {
+      "newPdfPage": 45,
+      "bestOldPdfPage": 43,
+      "similarity": 0.639,
+      "classification": "changed",
+      "headingSample": "Abilities Optional Rule: Tight / Universal Ability Systems Most player characters are also"
+    },
+    {
+      "newPdfPage": 46,
+      "bestOldPdfPage": 44,
+      "similarity": 0.488,
+      "classification": "changed",
+      "headingSample": "Ability Glossary You can [Verb] [Noun], so long as [Condition]. Verb Cost Noun Cost Condit"
+    },
+    {
+      "newPdfPage": 47,
+      "bestOldPdfPage": 45,
+      "similarity": 0.68,
+      "classification": "changed",
+      "headingSample": "Bonds Quick BOnds ❂ ‘Bonds'—like Skills and Abilities—are Ranked features In addition to f"
+    },
+    {
+      "newPdfPage": 48,
+      "bestOldPdfPage": 46,
+      "similarity": 0.325,
+      "classification": "new-or-restructured",
+      "headingSample": "Bond Actions ❂ Along with the normal bonus Advantage given through a Bond, characters with"
+    },
+    {
+      "newPdfPage": 49,
+      "bestOldPdfPage": 47,
+      "similarity": 0.861,
+      "classification": "minor-or-layout",
+      "headingSample": "Outlooks Each player character is created with one of the following ‘Outlooks', the one th"
+    },
+    {
+      "newPdfPage": 50,
+      "bestOldPdfPage": 48,
+      "similarity": 0.521,
+      "classification": "changed",
+      "headingSample": "The Outlooks Of Authority The Rebel The Loyal Those who've lost their belief in, and respe"
+    },
+    {
+      "newPdfPage": 51,
+      "bestOldPdfPage": 49,
+      "similarity": 0.536,
+      "classification": "changed",
+      "headingSample": "The Outlooks Of Dependence The Light The Wolf A provider, protector, or pacifist, and more"
+    },
+    {
+      "newPdfPage": 52,
+      "bestOldPdfPage": 50,
+      "similarity": 0.452,
+      "classification": "changed",
+      "headingSample": "The Outlooks Of Experience The Mentor The Apprentice Wise for your years, no matter how ma"
+    },
+    {
+      "newPdfPage": 53,
+      "bestOldPdfPage": 51,
+      "similarity": 0.416,
+      "classification": "new-or-restructured",
+      "headingSample": "The Outlooks Of Fortune The Accursed The Blessed Doomed from the beginning, a being of ill"
+    },
+    {
+      "newPdfPage": 54,
+      "bestOldPdfPage": 52,
+      "similarity": 0.371,
+      "classification": "new-or-restructured",
+      "headingSample": "The Outlooks Of Image The Quiet The Confident Modest and unassuming people, with a life on"
+    },
+    {
+      "newPdfPage": 55,
+      "bestOldPdfPage": 53,
+      "similarity": 0.35,
+      "classification": "new-or-restructured",
+      "headingSample": "Structured Combat The tactical layer of DAWN, build up your character and show their flair"
+    },
+    {
+      "newPdfPage": 56,
+      "bestOldPdfPage": 54,
+      "similarity": 0.815,
+      "classification": "changed",
+      "headingSample": "Structured Combat The tactical element, the most game-like part of DAWN, meant to be used "
+    },
+    {
+      "newPdfPage": 57,
+      "bestOldPdfPage": 55,
+      "similarity": 0.543,
+      "classification": "changed",
+      "headingSample": "Character statistics All player characters in DAWN share a set of standard statistics, inc"
+    },
+    {
+      "newPdfPage": 58,
+      "bestOldPdfPage": 56,
+      "similarity": 0.815,
+      "classification": "changed",
+      "headingSample": "Focus Spaces, Movement, and Targeting ‘Focus' is a resource used for powerful Attacks and "
+    },
+    {
+      "newPdfPage": 59,
+      "bestOldPdfPage": 57,
+      "similarity": 0.935,
+      "classification": "minor-or-layout",
+      "headingSample": "Special Targeting Centered Zones There are some effects that will target something other S"
+    },
+    {
+      "newPdfPage": 60,
+      "bestOldPdfPage": 58,
+      "similarity": 0.57,
+      "classification": "changed",
+      "headingSample": "Terrain Alternate Mode: Cinematic Combat Terrain is an object or area on the battlefield t"
+    },
+    {
+      "newPdfPage": 61,
+      "bestOldPdfPage": 59,
+      "similarity": 0.631,
+      "classification": "changed",
+      "headingSample": "Effect Listing ‘Effects' represent a variety of ongoing benefits and statuses. Characters "
+    },
+    {
+      "newPdfPage": 62,
+      "bestOldPdfPage": 60,
+      "similarity": 0.865,
+      "classification": "minor-or-layout",
+      "headingSample": "Basic Actions Movement The following are a set of basic Actions and Reactions The followin"
+    },
+    {
+      "newPdfPage": 63,
+      "bestOldPdfPage": 61,
+      "similarity": 0.392,
+      "classification": "new-or-restructured",
+      "headingSample": "Attacks The damage dealing Actions, each with slightly different functions and requiring d"
+    },
+    {
+      "newPdfPage": 64,
+      "bestOldPdfPage": 62,
+      "similarity": 0.697,
+      "classification": "changed",
+      "headingSample": "Defense When a player is the target of an Attack (other than Duel) they can respond using "
+    },
+    {
+      "newPdfPage": 65,
+      "bestOldPdfPage": 63,
+      "similarity": 0.693,
+      "classification": "changed",
+      "headingSample": "Utility Actions that don't directly affect the damage being dealt Interact or taken. This "
+    },
+    {
+      "newPdfPage": 66,
+      "bestOldPdfPage": 64,
+      "similarity": 1.0,
+      "classification": "minor-or-layout",
+      "headingSample": "Techniques A glossary that lists each Technique, separated from the rest of the book for e"
+    },
+    {
+      "newPdfPage": 67,
+      "bestOldPdfPage": 65,
+      "similarity": 0.549,
+      "classification": "changed",
+      "headingSample": "Techniques Archetypes When a character chooses their Techniques they can In structured com"
+    },
+    {
+      "newPdfPage": 68,
+      "bestOldPdfPage": 66,
+      "similarity": 1.0,
+      "classification": "minor-or-layout",
+      "headingSample": "Powerhouse Fiery and violent, dive into battle like a meteor. Techniques effective in sust"
+    },
+    {
+      "newPdfPage": 69,
+      "bestOldPdfPage": 67,
+      "similarity": 0.5,
+      "classification": "changed",
+      "headingSample": "★ Complexity Techniques Berserker |★| Revenge, Wounds, Tanking Flagellant |★| Revenge, Sel"
+    },
+    {
+      "newPdfPage": 70,
+      "bestOldPdfPage": 68,
+      "similarity": 0.624,
+      "classification": "changed",
+      "headingSample": "Struggler |★| Revenge, Reliability Unbroken |★| Revenge, Wounds, Influence \"You must be ne"
+    },
+    {
+      "newPdfPage": 71,
+      "bestOldPdfPage": 69,
+      "similarity": 0.663,
+      "classification": "changed",
+      "headingSample": "★ ★ Complexity Techniques Braggart | ★ ★ | Delayed, Attacks Dual Wielder | ★ ★ | Weapon, O"
+    },
+    {
+      "newPdfPage": 72,
+      "bestOldPdfPage": 70,
+      "similarity": 0.571,
+      "classification": "changed",
+      "headingSample": "Martial Artist | ★ ★ | Skirmishes, Versatile, Effects Lancer | ★ ★ | Weapon, Body, Range \""
+    },
+    {
+      "newPdfPage": 73,
+      "bestOldPdfPage": 71,
+      "similarity": 0.563,
+      "classification": "changed",
+      "headingSample": "★ ★ ★ Complexity Techniques Improvisational Fighter | ★ ★ ★ | Interact, Terrain Heroic Asc"
+    },
+    {
+      "newPdfPage": 74,
+      "bestOldPdfPage": 72,
+      "similarity": 0.692,
+      "classification": "changed",
+      "headingSample": "Vagabond Quick and precise, eliminate your targets at breakneck speed. Techniques effectiv"
+    },
+    {
+      "newPdfPage": 75,
+      "bestOldPdfPage": 73,
+      "similarity": 0.634,
+      "classification": "changed",
+      "headingSample": "★ Complexity Techniques Aerial Master |★| Movement, Versatile, Stance Skirmisher |★| Skirm"
+    },
+    {
+      "newPdfPage": 76,
+      "bestOldPdfPage": 74,
+      "similarity": 0.836,
+      "classification": "minor-or-layout",
+      "headingSample": "★ ★ Complexity Techniques Acrobat | ★ ★ | Movement, Talent, Skirmishes Cunning Fighter | ★"
+    },
+    {
+      "newPdfPage": 77,
+      "bestOldPdfPage": 75,
+      "similarity": 0.834,
+      "classification": "minor-or-layout",
+      "headingSample": "Enchained | ★ ★ | Casts, Movement, Skirmishes Malicious Mimic | ★ ★ | Dodge, Attacks \"Thes"
+    },
+    {
+      "newPdfPage": 78,
+      "bestOldPdfPage": 76,
+      "similarity": 0.62,
+      "classification": "changed",
+      "headingSample": "Weaponsmith | ★ ★ | Versatile, Weapon, Stance Opportunist | ★ ★ | Skirmishes, Talent, Buff"
+    },
+    {
+      "newPdfPage": 79,
+      "bestOldPdfPage": 77,
+      "similarity": 0.682,
+      "classification": "changed",
+      "headingSample": "★ ★ ★ Complexity Techniques Detective | ★ ★ ★ | Investigate, Mind, Attacks Master-At-Arms "
+    },
+    {
+      "newPdfPage": 80,
+      "bestOldPdfPage": 78,
+      "similarity": 0.667,
+      "classification": "changed",
+      "headingSample": "Bulwark Stoic and resolute, mitigate incoming damage to defend others. Techniques effectiv"
+    },
+    {
+      "newPdfPage": 81,
+      "bestOldPdfPage": 79,
+      "similarity": 0.801,
+      "classification": "changed",
+      "headingSample": "★ Complexity Techniques Crusher |★| Weapon, Body, Revenge Giant Frame |★| Body, Finishers,"
+    },
+    {
+      "newPdfPage": 82,
+      "bestOldPdfPage": 80,
+      "similarity": 0.609,
+      "classification": "changed",
+      "headingSample": "★ ★ Complexity Techniques Absolute Bastard | ★ ★ | Investigate, Tanking Juggernaut | ★ ★ |"
+    },
+    {
+      "newPdfPage": 83,
+      "bestOldPdfPage": 81,
+      "similarity": 0.642,
+      "classification": "changed",
+      "headingSample": "Mundane | ★ ★ | Tanking, Body Shield Bearer | ★ ★ | Tanking, Body, Movement Alt Resource. "
+    },
+    {
+      "newPdfPage": 84,
+      "bestOldPdfPage": 82,
+      "similarity": 0.555,
+      "classification": "changed",
+      "headingSample": "★ ★ ★ Complexity Techniques Bestial Ascendant | ★ ★ ★ | Delayed, Sustain Mecha Pilot | ★ ★"
+    },
+    {
+      "newPdfPage": 85,
+      "bestOldPdfPage": 83,
+      "similarity": 0.952,
+      "classification": "minor-or-layout",
+      "headingSample": "Altruist Friendly and versatile, enable your allies to overrun the enemy. Techniques that "
+    },
+    {
+      "newPdfPage": 86,
+      "bestOldPdfPage": 84,
+      "similarity": 0.646,
+      "classification": "changed",
+      "headingSample": "★ Complexity Techniques Analyst |★| Expensive, Mind, Buffing Compassionate Sage |★| Casts,"
+    },
+    {
+      "newPdfPage": 87,
+      "bestOldPdfPage": 85,
+      "similarity": 0.652,
+      "classification": "changed",
+      "headingSample": "Surgeon |★| Skirmish, Mind, Sustain Talisman Exorcist |★| Casts, Spirit, Versatile \"To ble"
+    },
+    {
+      "newPdfPage": 88,
+      "bestOldPdfPage": 86,
+      "similarity": 0.646,
+      "classification": "changed",
+      "headingSample": "★ ★ Complexity Techniques Abjuring Sage | ★ ★ | Tanking, Casts, Sustain Dancer | ★ ★ | Mov"
+    },
+    {
+      "newPdfPage": 89,
+      "bestOldPdfPage": 87,
+      "similarity": 0.542,
+      "classification": "changed",
+      "headingSample": "Last Hope | ★ ★ | Avoidance, Spirit, Buffing Temporal Sage | ★ ★ | Casts, Movement, Buffin"
+    },
+    {
+      "newPdfPage": 90,
+      "bestOldPdfPage": 88,
+      "similarity": 0.463,
+      "classification": "changed",
+      "headingSample": "★ ★ ★ Complexity Techniques Artist | ★ ★ ★ | Interact, Versatile, Buffing Will-O-Wisp | ★ "
+    },
+    {
+      "newPdfPage": 91,
+      "bestOldPdfPage": 89,
+      "similarity": 0.885,
+      "classification": "minor-or-layout",
+      "headingSample": "Disruptor Sadistic and calculated, chain down the enemy's options. Techniques that restric"
+    },
+    {
+      "newPdfPage": 92,
+      "bestOldPdfPage": 90,
+      "similarity": 0.854,
+      "classification": "minor-or-layout",
+      "headingSample": "★ Complexity Techniques Bloodletter |★| Weapon, Talent, Effects \"I don't kill people, doct"
+    },
+    {
+      "newPdfPage": 93,
+      "bestOldPdfPage": 91,
+      "similarity": 0.414,
+      "classification": "new-or-restructured",
+      "headingSample": "Cutpurse |★| Movement, Talent, Effects Reaper |★| Weapon, Effects, Displacement \"It's an e"
+    },
+    {
+      "newPdfPage": 94,
+      "bestOldPdfPage": 92,
+      "similarity": 0.588,
+      "classification": "changed",
+      "headingSample": "★ ★ Complexity Techniques Autophage | ★ ★ | Attacks, Body/Spirit, Effects Strongman | ★ ★ "
+    },
+    {
+      "newPdfPage": 95,
+      "bestOldPdfPage": 93,
+      "similarity": 0.572,
+      "classification": "changed",
+      "headingSample": "Siren | ★ ★ | Investigate, Effects, Avoidance Mind Breaker | ★ ★ | Cast, Mind, Restricting"
+    },
+    {
+      "newPdfPage": 96,
+      "bestOldPdfPage": 94,
+      "similarity": 0.757,
+      "classification": "changed",
+      "headingSample": "★ ★ ★ Complexity Techniques Gale Strider | ★ ★ ★ | Casts, Spirit, Displacement Jailor | ★ "
+    },
+    {
+      "newPdfPage": 97,
+      "bestOldPdfPage": 95,
+      "similarity": 0.905,
+      "classification": "minor-or-layout",
+      "headingSample": "Ruiner Ambitious and impactful, build up your ultimate spell and obliterate. Techniques wi"
+    },
+    {
+      "newPdfPage": 98,
+      "bestOldPdfPage": 96,
+      "similarity": 0.872,
+      "classification": "minor-or-layout",
+      "headingSample": "★ Complexity Techniques Bombardier |★| Finishers, Spirit, AOE, Expensive Spellcrafter |★| "
+    },
+    {
+      "newPdfPage": 99,
+      "bestOldPdfPage": 97,
+      "similarity": 0.586,
+      "classification": "changed",
+      "headingSample": "★ ★ Complexity Techniques Blade Smith | ★ ★ | Casts, Skirmishes Feral Arcanist | ★ ★ | Bod"
+    },
+    {
+      "newPdfPage": 100,
+      "bestOldPdfPage": 98,
+      "similarity": 0.47,
+      "classification": "changed",
+      "headingSample": "Frost Veiler | ★ ★ | Casts, Spirit, Restricting Ranger | ★ ★ | Weapon, Talent, Movement \"E"
+    },
+    {
+      "newPdfPage": 101,
+      "bestOldPdfPage": 99,
+      "similarity": 0.639,
+      "classification": "changed",
+      "headingSample": "Void Soul | ★ ★ | Avoidance, Spirit, Movement Zealot | ★ ★ | Cast, Spirit, Self-Effects \"Y"
+    },
+    {
+      "newPdfPage": 102,
+      "bestOldPdfPage": 100,
+      "similarity": 0.512,
+      "classification": "changed",
+      "headingSample": "★ ★ ★ Complexity Techniques Creator | ★ ★ ★ | Breathing, Spirit, Attacks Ego Arm | ★ ★ ★ |"
+    },
+    {
+      "newPdfPage": 103,
+      "bestOldPdfPage": 101,
+      "similarity": 1.0,
+      "classification": "minor-or-layout",
+      "headingSample": "Narrator Tools This section is for those who want to run an Adventure themselves. good luc"
+    },
+    {
+      "newPdfPage": 104,
+      "bestOldPdfPage": 102,
+      "similarity": 0.229,
+      "classification": "new-or-restructured",
+      "headingSample": "Narrator Tools Unlike many of the sections prior, this section is meant to give suggestion"
+    },
+    {
+      "newPdfPage": 105,
+      "bestOldPdfPage": 104,
+      "similarity": 0.201,
+      "classification": "new-or-restructured",
+      "headingSample": "Creating Antagonists The Method Most major conflicts in a Series will be caused by an For "
+    },
+    {
+      "newPdfPage": 106,
+      "bestOldPdfPage": 104,
+      "similarity": 0.721,
+      "classification": "changed",
+      "headingSample": "Antagonism Antagonist Actions When a Series starts the Narrator should begin tracking Thes"
+    },
+    {
+      "newPdfPage": 107,
+      "bestOldPdfPage": 121,
+      "similarity": 0.159,
+      "classification": "new-or-restructured",
+      "headingSample": "Introducing Threats The Fall / Rise The results are in, the players you pushed, or who Out"
+    },
+    {
+      "newPdfPage": 108,
+      "bestOldPdfPage": 103,
+      "similarity": 0.248,
+      "classification": "new-or-restructured",
+      "headingSample": "Resolving Conflicts Moving Into Struggle Throughout all parts of DAWN, players are likely "
+    },
+    {
+      "newPdfPage": 109,
+      "bestOldPdfPage": 105,
+      "similarity": 0.792,
+      "classification": "changed",
+      "headingSample": "Building Structured Combat NPC Rules NPC Tiers All NPCs have a Tier, and are generally bal"
+    },
+    {
+      "newPdfPage": 110,
+      "bestOldPdfPage": 106,
+      "similarity": 0.752,
+      "classification": "changed",
+      "headingSample": "Encounter Design Compound NPCs There are no hard-and-fast rules when it comes to how DAWN "
+    },
+    {
+      "newPdfPage": 111,
+      "bestOldPdfPage": 107,
+      "similarity": 0.65,
+      "classification": "changed",
+      "headingSample": "Antagonist NPCs Back-stabbing | Sacrifices allies for their own survival. There are times "
+    },
+    {
+      "newPdfPage": 112,
+      "bestOldPdfPage": 108,
+      "similarity": 0.635,
+      "classification": "changed",
+      "headingSample": "God-Like | All-Rounder with tools to move players. Swift-Stepping | Assassin eliminating s"
+    },
+    {
+      "newPdfPage": 113,
+      "bestOldPdfPage": 109,
+      "similarity": 0.144,
+      "classification": "new-or-restructured",
+      "headingSample": "Deployment Recipes The following page lists a number of different NPC Deployments you coul"
+    },
+    {
+      "newPdfPage": 114,
+      "bestOldPdfPage": 110,
+      "similarity": 0.723,
+      "classification": "changed",
+      "headingSample": "General NPC Types A listing of all NPC Types categorized based on their role in the averag"
+    },
+    {
+      "newPdfPage": 115,
+      "bestOldPdfPage": 111,
+      "similarity": 0.839,
+      "classification": "minor-or-layout",
+      "headingSample": "Executioner | Debilitating anti-tank attacks at slow pace. Pugilist | All-rounder with rot"
+    },
+    {
+      "newPdfPage": 116,
+      "bestOldPdfPage": 112,
+      "similarity": 0.702,
+      "classification": "changed",
+      "headingSample": "Ronin | Fast and versatile attacker with on-Crit effects. Witch | Aoe ranged attacker with"
+    },
+    {
+      "newPdfPage": 117,
+      "bestOldPdfPage": 113,
+      "similarity": 0.838,
+      "classification": "minor-or-layout",
+      "headingSample": "Tank NPCs Cocoon | Endgame threat that absorbs attacks early. E.g. Slumbering Giant, Patie"
+    },
+    {
+      "newPdfPage": 118,
+      "bestOldPdfPage": 114,
+      "similarity": 0.706,
+      "classification": "changed",
+      "headingSample": "Glutton | Eats Fodder to heal and spits them out Guardian | Protects allies from a specifi"
+    },
+    {
+      "newPdfPage": 119,
+      "bestOldPdfPage": 115,
+      "similarity": 0.649,
+      "classification": "changed",
+      "headingSample": "Oni | Swaps between a healing and tanking stance. Revenant | Immortal NPC that drains Focu"
+    },
+    {
+      "newPdfPage": 120,
+      "bestOldPdfPage": 116,
+      "similarity": 0.866,
+      "classification": "minor-or-layout",
+      "headingSample": "Support NPCs Coordinator | Has allies make extra attacks on its turn. E.g. Squad Captain, "
+    },
+    {
+      "newPdfPage": 121,
+      "bestOldPdfPage": 117,
+      "similarity": 0.79,
+      "classification": "changed",
+      "headingSample": "Healer | Chooses a favorite ally and heals them. Matriarch | Creates safe zones where alli"
+    },
+    {
+      "newPdfPage": 122,
+      "bestOldPdfPage": 118,
+      "similarity": 0.727,
+      "classification": "changed",
+      "headingSample": "Engine NPCs Baron | Bans specific attacks and attacks its users. E.g. Imperial Justicar, L"
+    },
+    {
+      "newPdfPage": 123,
+      "bestOldPdfPage": 119,
+      "similarity": 0.828,
+      "classification": "minor-or-layout",
+      "headingSample": "Cultist | Increases Tension to summon stronger allies. Enchanter | Disrupts with debuffs a"
+    },
+    {
+      "newPdfPage": 124,
+      "bestOldPdfPage": 120,
+      "similarity": 0.803,
+      "classification": "changed",
+      "headingSample": "Necromancer | Revives dead allies and fears enemies. Rifter | Creates portals that anyone "
+    },
+    {
+      "newPdfPage": 125,
+      "bestOldPdfPage": 121,
+      "similarity": 0.255,
+      "classification": "new-or-restructured",
+      "headingSample": "Adding Modifiers Deploying Modifiers The previous list of enemy types is what DAWN The way"
+    },
+    {
+      "newPdfPage": 126,
+      "bestOldPdfPage": 122,
+      "similarity": 0.607,
+      "classification": "changed",
+      "headingSample": "Artillery | Creates delayed flat damage zones randomly. Contagion | Punishes players who'r"
+    },
+    {
+      "newPdfPage": 127,
+      "bestOldPdfPage": 123,
+      "similarity": 0.578,
+      "classification": "changed",
+      "headingSample": "Giant | Makes the host really large and tanky. Legion | Constantly summons weakened enemie"
+    },
+    {
+      "newPdfPage": 128,
+      "bestOldPdfPage": 106,
+      "similarity": 0.186,
+      "classification": "new-or-restructured",
+      "headingSample": "Creating Enemies The Numbers Some Narrators will want to create their own NPC Types Now th"
+    },
+    {
+      "newPdfPage": 129,
+      "bestOldPdfPage": 124,
+      "similarity": 0.702,
+      "classification": "changed",
+      "headingSample": "Sample Combat Scenarios Defense There's an area that the players must defend at all The st"
+    },
+    {
+      "newPdfPage": 130,
+      "bestOldPdfPage": 58,
+      "similarity": 0.155,
+      "classification": "new-or-restructured",
+      "headingSample": "Secure Collateral In order to succeed the players must capture a target on In this mission"
+    },
+    {
+      "newPdfPage": 131,
+      "bestOldPdfPage": 125,
+      "similarity": 0.722,
+      "classification": "changed",
+      "headingSample": "Credits Formatting: Joel V. Writing: Joel V. Wolfgang Eastman (Some technique fluff text) "
+    },
+    {
+      "newPdfPage": 132,
+      "bestOldPdfPage": 126,
+      "similarity": 1.0,
+      "classification": "minor-or-layout",
+      "headingSample": "131"
+    },
+    {
+      "newPdfPage": 133,
+      "bestOldPdfPage": 126,
+      "similarity": 1.0,
+      "classification": "minor-or-layout",
+      "headingSample": "132"
+    },
+    {
+      "newPdfPage": 134,
+      "bestOldPdfPage": 126,
+      "similarity": 1.0,
+      "classification": "minor-or-layout",
+      "headingSample": "133"
+    }
+  ],
+  "changes": [
+    {
+      "id": "technique-powerhouse-berserker",
+      "stableId": "powerhouse.berserker",
+      "kind": "mechanics",
+      "oldName": "Berserker",
+      "newName": "Berserker",
+      "oldArchetypeId": "powerhouse",
+      "newArchetypeId": "powerhouse",
+      "newPages": [
+        69
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-powerhouse-dragonslayer",
+      "stableId": "powerhouse.dragonslayer",
+      "kind": "mechanics",
+      "oldName": "Dragonslayer",
+      "newName": "Dragonslayer",
+      "oldArchetypeId": "powerhouse",
+      "newArchetypeId": "powerhouse",
+      "newPages": [
+        69
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-powerhouse-duelist",
+      "stableId": "powerhouse.duelist",
+      "kind": "mechanics",
+      "oldName": "Duelist",
+      "newName": "Duelist",
+      "oldArchetypeId": "powerhouse",
+      "newArchetypeId": "powerhouse",
+      "newPages": [
+        69
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-powerhouse-flagellant",
+      "stableId": "powerhouse.flagellant",
+      "kind": "mechanics",
+      "oldName": "Flagellant",
+      "newName": "Flagellant",
+      "oldArchetypeId": "powerhouse",
+      "newArchetypeId": "powerhouse",
+      "newPages": [
+        69
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-powerhouse-gunslinger",
+      "stableId": "powerhouse.gunslinger",
+      "kind": "mechanics",
+      "oldName": "Gunslinger",
+      "newName": "Gunslinger",
+      "oldArchetypeId": "powerhouse",
+      "newArchetypeId": "powerhouse",
+      "newPages": [
+        69
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-powerhouse-struggler",
+      "stableId": "powerhouse.struggler",
+      "kind": "mechanics",
+      "oldName": "Struggler",
+      "newName": "Struggler",
+      "oldArchetypeId": "powerhouse",
+      "newArchetypeId": "powerhouse",
+      "newPages": [
+        70
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-powerhouse-spellsword",
+      "stableId": "powerhouse.spellsword",
+      "kind": "mechanics",
+      "oldName": "SpellSword",
+      "newName": "SpellSword",
+      "oldArchetypeId": "powerhouse",
+      "newArchetypeId": "powerhouse",
+      "newPages": [
+        70
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-powerhouse-technician",
+      "stableId": "powerhouse.technician",
+      "kind": "mechanics",
+      "oldName": "Technician",
+      "newName": "Technician",
+      "oldArchetypeId": "powerhouse",
+      "newArchetypeId": "powerhouse",
+      "newPages": [
+        70
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-powerhouse-unbroken",
+      "stableId": "powerhouse.unbroken",
+      "kind": "mechanics",
+      "oldName": "Unbroken",
+      "newName": "Unbroken",
+      "oldArchetypeId": "powerhouse",
+      "newArchetypeId": "powerhouse",
+      "newPages": [
+        70
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-powerhouse-braggart",
+      "stableId": "powerhouse.braggart",
+      "kind": "mechanics",
+      "oldName": "Braggart",
+      "newName": "Braggart",
+      "oldArchetypeId": "powerhouse",
+      "newArchetypeId": "powerhouse",
+      "newPages": [
+        71
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-powerhouse-breacher",
+      "stableId": "powerhouse.breacher",
+      "kind": "mechanics",
+      "oldName": "Breacher",
+      "newName": "Breacher",
+      "oldArchetypeId": "powerhouse",
+      "newArchetypeId": "powerhouse",
+      "newPages": [
+        71
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-powerhouse-dual-wielder",
+      "stableId": "powerhouse.dual-wielder",
+      "kind": "mechanics",
+      "oldName": "Dual Wielder",
+      "newName": "Dual Wielder",
+      "oldArchetypeId": "powerhouse",
+      "newArchetypeId": "powerhouse",
+      "newPages": [
+        71
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-powerhouse-intimidator",
+      "stableId": "powerhouse.intimidator",
+      "kind": "addition",
+      "oldName": null,
+      "newName": "Intimidator",
+      "oldArchetypeId": null,
+      "newArchetypeId": "powerhouse",
+      "newPages": [
+        71
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-powerhouse-martial-artist",
+      "stableId": "powerhouse.martial-artist",
+      "kind": "mechanics",
+      "oldName": "Martial Artist",
+      "newName": "Martial Artist",
+      "oldArchetypeId": "powerhouse",
+      "newArchetypeId": "powerhouse",
+      "newPages": [
+        72
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-powerhouse-monastic-sage",
+      "stableId": "powerhouse.monastic-sage",
+      "kind": "terminology",
+      "oldName": "Monastic Sage",
+      "newName": "Monastic Warrior",
+      "oldArchetypeId": "powerhouse",
+      "newArchetypeId": "powerhouse",
+      "newPages": [
+        72
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-powerhouse-lancer",
+      "stableId": "powerhouse.lancer",
+      "kind": "mechanics",
+      "oldName": "Lancer",
+      "newName": "Lancer",
+      "oldArchetypeId": "powerhouse",
+      "newArchetypeId": "powerhouse",
+      "newPages": [
+        72
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-powerhouse-predator",
+      "stableId": "powerhouse.predator",
+      "kind": "mechanics",
+      "oldName": "Predator",
+      "newName": "Predator",
+      "oldArchetypeId": "powerhouse",
+      "newArchetypeId": "powerhouse",
+      "newPages": [
+        72
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-powerhouse-improvisational-fighter",
+      "stableId": "powerhouse.improvisational-fighter",
+      "kind": "mechanics",
+      "oldName": "Improvisational Fighter",
+      "newName": "Improvisational Fighter",
+      "oldArchetypeId": "powerhouse",
+      "newArchetypeId": "powerhouse",
+      "newPages": [
+        73
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-powerhouse-warring-ascendant",
+      "stableId": "powerhouse.warring-ascendant",
+      "kind": "mechanics",
+      "oldName": "Warring Ascendant",
+      "newName": "Warring Ascendant",
+      "oldArchetypeId": "powerhouse",
+      "newArchetypeId": "powerhouse",
+      "newPages": [
+        73
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-powerhouse-heroic-ascendant",
+      "stableId": "powerhouse.heroic-ascendant",
+      "kind": "addition",
+      "oldName": null,
+      "newName": "Heroic Ascendant",
+      "oldArchetypeId": null,
+      "newArchetypeId": "powerhouse",
+      "newPages": [
+        73
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-vagabond-aerial-master",
+      "stableId": "vagabond.aerial-master",
+      "kind": "mechanics",
+      "oldName": "Aerial Master",
+      "newName": "Aerial Master",
+      "oldArchetypeId": "vagabond",
+      "newArchetypeId": "vagabond",
+      "newPages": [
+        75
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-vagabond-assassin",
+      "stableId": "vagabond.assassin",
+      "kind": "mechanics",
+      "oldName": "Assassin",
+      "newName": "Assassin",
+      "oldArchetypeId": "vagabond",
+      "newArchetypeId": "vagabond",
+      "newPages": [
+        75
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-vagabond-sniper",
+      "stableId": "vagabond.sniper",
+      "kind": "mechanics",
+      "oldName": "Sniper",
+      "newName": "Sniper",
+      "oldArchetypeId": "vagabond",
+      "newArchetypeId": "vagabond",
+      "newPages": [
+        75
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-vagabond-skirmisher",
+      "stableId": "vagabond.skirmisher",
+      "kind": "mechanics",
+      "oldName": "Skirmisher",
+      "newName": "Skirmisher",
+      "oldArchetypeId": "vagabond",
+      "newArchetypeId": "vagabond",
+      "newPages": [
+        75
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-vagabond-speed-demon",
+      "stableId": "vagabond.speed-demon",
+      "kind": "mechanics",
+      "oldName": "Speed Demon",
+      "newName": "Speed Demon",
+      "oldArchetypeId": "vagabond",
+      "newArchetypeId": "vagabond",
+      "newPages": [
+        75
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-vagabond-untouchable",
+      "stableId": "vagabond.untouchable",
+      "kind": "mechanics",
+      "oldName": "Untouchable",
+      "newName": "Untouchable",
+      "oldArchetypeId": "vagabond",
+      "newArchetypeId": "vagabond",
+      "newPages": [
+        75
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-vagabond-acrobat",
+      "stableId": "vagabond.acrobat",
+      "kind": "mechanics",
+      "oldName": "Acrobat",
+      "newName": "Acrobat",
+      "oldArchetypeId": "vagabond",
+      "newArchetypeId": "vagabond",
+      "newPages": [
+        76
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-vagabond-blade-master",
+      "stableId": "vagabond.blade-master",
+      "kind": "mechanics",
+      "oldName": "Blade Master",
+      "newName": "Blade Master",
+      "oldArchetypeId": "vagabond",
+      "newArchetypeId": "vagabond",
+      "newPages": [
+        76
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-vagabond-cunning-fighter",
+      "stableId": "vagabond.cunning-fighter",
+      "kind": "mechanics",
+      "oldName": "Cunning Fighter",
+      "newName": "Cunning Fighter",
+      "oldArchetypeId": "vagabond",
+      "newArchetypeId": "vagabond",
+      "newPages": [
+        76
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-vagabond-egomaniac",
+      "stableId": "vagabond.egomaniac",
+      "kind": "mechanics",
+      "oldName": "Egomaniac",
+      "newName": "Egomaniac",
+      "oldArchetypeId": "vagabond",
+      "newArchetypeId": "vagabond",
+      "newPages": [
+        76
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-vagabond-enchained",
+      "stableId": "vagabond.enchained",
+      "kind": "mechanics",
+      "oldName": "Enchained",
+      "newName": "Enchained",
+      "oldArchetypeId": "vagabond",
+      "newArchetypeId": "vagabond",
+      "newPages": [
+        77
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-vagabond-knife-juggler",
+      "stableId": "vagabond.knife-juggler",
+      "kind": "mechanics",
+      "oldName": "Knife Juggler",
+      "newName": "Knife Juggler",
+      "oldArchetypeId": "vagabond",
+      "newArchetypeId": "vagabond",
+      "newPages": [
+        77
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-vagabond-malicious-mimic",
+      "stableId": "vagabond.malicious-mimic",
+      "kind": "mechanics",
+      "oldName": "Malicious Mimic",
+      "newName": "Malicious Mimic",
+      "oldArchetypeId": "vagabond",
+      "newArchetypeId": "vagabond",
+      "newPages": [
+        77
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-vagabond-weaponsmith",
+      "stableId": "vagabond.weaponsmith",
+      "kind": "addition",
+      "oldName": null,
+      "newName": "Weaponsmith",
+      "oldArchetypeId": null,
+      "newArchetypeId": "vagabond",
+      "newPages": [
+        78
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-vagabond-modified-meister",
+      "stableId": "vagabond.modified-meister",
+      "kind": "mechanics",
+      "oldName": "Modified Meister",
+      "newName": "Modified Meister",
+      "oldArchetypeId": "vagabond",
+      "newArchetypeId": "vagabond",
+      "newPages": [
+        78
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-vagabond-opportunist",
+      "stableId": "vagabond.opportunist",
+      "kind": "mechanics",
+      "oldName": "Opportunist",
+      "newName": "Opportunist",
+      "oldArchetypeId": "vagabond",
+      "newArchetypeId": "vagabond",
+      "newPages": [
+        78
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-vagabond-reflector",
+      "stableId": "vagabond.reflector",
+      "kind": "mechanics",
+      "oldName": "Reflector",
+      "newName": "Reflector",
+      "oldArchetypeId": "vagabond",
+      "newArchetypeId": "vagabond",
+      "newPages": [
+        78
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-vagabond-dim-mak",
+      "stableId": "vagabond.dim-mak",
+      "kind": "terminology",
+      "oldName": "Dim Mak",
+      "newName": "Detective",
+      "oldArchetypeId": "vagabond",
+      "newArchetypeId": "vagabond",
+      "newPages": [
+        79
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-vagabond-drunkard",
+      "stableId": "vagabond.drunkard",
+      "kind": "mechanics",
+      "oldName": "Drunkard",
+      "newName": "Drunkard",
+      "oldArchetypeId": "vagabond",
+      "newArchetypeId": "vagabond",
+      "newPages": [
+        79
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-vagabond-master-at-arms",
+      "stableId": "vagabond.master-at-arms",
+      "kind": "mechanics",
+      "oldName": "Master-At-Arms",
+      "newName": "Master-At-Arms",
+      "oldArchetypeId": "vagabond",
+      "newArchetypeId": "vagabond",
+      "newPages": [
+        79
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-bulwark-crusher",
+      "stableId": "bulwark.crusher",
+      "kind": "mechanics",
+      "oldName": "Crusher",
+      "newName": "Crusher",
+      "oldArchetypeId": "bulwark",
+      "newArchetypeId": "bulwark",
+      "newPages": [
+        81
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-bulwark-giant-frame",
+      "stableId": "bulwark.giant-frame",
+      "kind": "mechanics",
+      "oldName": "Giant Frame",
+      "newName": "Giant Frame",
+      "oldArchetypeId": "bulwark",
+      "newArchetypeId": "bulwark",
+      "newPages": [
+        81
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-bulwark-iron-bodied",
+      "stableId": "bulwark.iron-bodied",
+      "kind": "mechanics",
+      "oldName": "Iron Bodied",
+      "newName": "Iron Bodied",
+      "oldArchetypeId": "bulwark",
+      "newArchetypeId": "bulwark",
+      "newPages": [
+        81
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-bulwark-vanguard-defender",
+      "stableId": "bulwark.vanguard-defender",
+      "kind": "mechanics",
+      "oldName": "Vanguard Defender",
+      "newName": "Vanguard Defender",
+      "oldArchetypeId": "bulwark",
+      "newArchetypeId": "bulwark",
+      "newPages": [
+        81
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-bulwark-absolute-bastard",
+      "stableId": "bulwark.absolute-bastard",
+      "kind": "mechanics",
+      "oldName": "Absolute Bastard",
+      "newName": "Absolute Bastard",
+      "oldArchetypeId": "bulwark",
+      "newArchetypeId": "bulwark",
+      "newPages": [
+        82
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-bulwark-battle-jockey",
+      "stableId": "bulwark.battle-jockey",
+      "kind": "mechanics",
+      "oldName": "Battle Jockey",
+      "newName": "Battle Jockey",
+      "oldArchetypeId": "bulwark",
+      "newArchetypeId": "bulwark",
+      "newPages": [
+        82
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-bulwark-grappler",
+      "stableId": "bulwark.grappler",
+      "kind": "mechanics",
+      "oldName": "Grappler",
+      "newName": "Grappler",
+      "oldArchetypeId": "bulwark",
+      "newArchetypeId": "bulwark",
+      "newPages": [
+        82
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-bulwark-juggernaut",
+      "stableId": "bulwark.juggernaut",
+      "kind": "mechanics",
+      "oldName": "Juggernaut",
+      "newName": "Juggernaut",
+      "oldArchetypeId": "bulwark",
+      "newArchetypeId": "bulwark",
+      "newPages": [
+        82
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-bulwark-runic-retribution",
+      "stableId": "bulwark.runic-retribution",
+      "kind": "terminology",
+      "oldName": "Runic Retribution",
+      "newName": "Mollycoddler",
+      "oldArchetypeId": "bulwark",
+      "newArchetypeId": "bulwark",
+      "newPages": [
+        82
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-bulwark-mundane",
+      "stableId": "bulwark.mundane",
+      "kind": "mechanics",
+      "oldName": "Mundane",
+      "newName": "Mundane",
+      "oldArchetypeId": "bulwark",
+      "newArchetypeId": "bulwark",
+      "newPages": [
+        83
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-bulwark-rising-challenger",
+      "stableId": "bulwark.rising-challenger",
+      "kind": "mechanics",
+      "oldName": "Rising Challenger",
+      "newName": "Rising Challenger",
+      "oldArchetypeId": "bulwark",
+      "newArchetypeId": "bulwark",
+      "newPages": [
+        83
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-bulwark-shield-bearer",
+      "stableId": "bulwark.shield-bearer",
+      "kind": "mechanics",
+      "oldName": "Shield Bearer",
+      "newName": "Shield Bearer",
+      "oldArchetypeId": "bulwark",
+      "newArchetypeId": "bulwark",
+      "newPages": [
+        83
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-bulwark-stalwart-sentry",
+      "stableId": "bulwark.stalwart-sentry",
+      "kind": "mechanics",
+      "oldName": "Stalwart Sentry",
+      "newName": "Stalwart Sentry",
+      "oldArchetypeId": "bulwark",
+      "newArchetypeId": "bulwark",
+      "newPages": [
+        83
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-bulwark-beastial-ascendant",
+      "stableId": "bulwark.beastial-ascendant",
+      "kind": "terminology",
+      "oldName": "Beastial Ascendant",
+      "newName": "Bestial Ascendant",
+      "oldArchetypeId": "bulwark",
+      "newArchetypeId": "bulwark",
+      "newPages": [
+        84
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-bulwark-guardian-angel",
+      "stableId": "bulwark.guardian-angel",
+      "kind": "terminology",
+      "oldName": "Guardian Angel",
+      "newName": "Guard Caller",
+      "oldArchetypeId": "bulwark",
+      "newArchetypeId": "bulwark",
+      "newPages": [
+        84
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-bulwark-mecha-pilot",
+      "stableId": "bulwark.mecha-pilot",
+      "kind": "mechanics",
+      "oldName": "Mecha Pilot",
+      "newName": "Mecha Pilot",
+      "oldArchetypeId": "bulwark",
+      "newArchetypeId": "bulwark",
+      "newPages": [
+        84
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-altruist-precognizant",
+      "stableId": "altruist.precognizant",
+      "kind": "terminology",
+      "oldName": "Precognizant",
+      "newName": "Analyst",
+      "oldArchetypeId": "altruist",
+      "newArchetypeId": "altruist",
+      "newPages": [
+        86
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-altruist-battle-instructor",
+      "stableId": "altruist.battle-instructor",
+      "kind": "mechanics",
+      "oldName": "Battle Instructor",
+      "newName": "Battle Instructor",
+      "oldArchetypeId": "altruist",
+      "newArchetypeId": "altruist",
+      "newPages": [
+        86
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-altruist-empath",
+      "stableId": "altruist.empath",
+      "kind": "mechanics",
+      "oldName": "Empath",
+      "newName": "Empath",
+      "oldArchetypeId": "altruist",
+      "newArchetypeId": "altruist",
+      "newPages": [
+        86
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-altruist-heavenly-saint",
+      "stableId": "altruist.heavenly-saint",
+      "kind": "terminology",
+      "oldName": "Heavenly Saint",
+      "newName": "Compassionate Sage",
+      "oldArchetypeId": "altruist",
+      "newArchetypeId": "altruist",
+      "newPages": [
+        86
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-altruist-gourmand",
+      "stableId": "altruist.gourmand",
+      "kind": "mechanics",
+      "oldName": "Gourmand",
+      "newName": "Gourmand",
+      "oldArchetypeId": "altruist",
+      "newArchetypeId": "altruist",
+      "newPages": [
+        86
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-altruist-surgeon",
+      "stableId": "altruist.surgeon",
+      "kind": "mechanics",
+      "oldName": "Surgeon",
+      "newName": "Surgeon",
+      "oldArchetypeId": "altruist",
+      "newArchetypeId": "altruist",
+      "newPages": [
+        87
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-disruptor-tactical-master",
+      "stableId": "disruptor.tactical-master",
+      "kind": "terminology",
+      "oldName": "Tactical Master",
+      "newName": "Tactical Master",
+      "oldArchetypeId": "disruptor",
+      "newArchetypeId": "altruist",
+      "newPages": [
+        87
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-altruist-talisman-caster",
+      "stableId": "altruist.talisman-caster",
+      "kind": "terminology",
+      "oldName": "Talisman Caster",
+      "newName": "Talisman Exorcist",
+      "oldArchetypeId": "altruist",
+      "newArchetypeId": "altruist",
+      "newPages": [
+        87
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-altruist-abjuring-sage",
+      "stableId": "altruist.abjuring-sage",
+      "kind": "addition",
+      "oldName": null,
+      "newName": "Abjuring Sage",
+      "oldArchetypeId": null,
+      "newArchetypeId": "altruist",
+      "newPages": [
+        88
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-altruist-alchemist",
+      "stableId": "altruist.alchemist",
+      "kind": "mechanics",
+      "oldName": "Alchemist",
+      "newName": "Alchemist",
+      "oldArchetypeId": "altruist",
+      "newArchetypeId": "altruist",
+      "newPages": [
+        88
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-altruist-dancer",
+      "stableId": "altruist.dancer",
+      "kind": "mechanics",
+      "oldName": "Dancer",
+      "newName": "Dancer",
+      "oldArchetypeId": "altruist",
+      "newArchetypeId": "altruist",
+      "newPages": [
+        88
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-altruist-fog-walker",
+      "stableId": "altruist.fog-walker",
+      "kind": "mechanics",
+      "oldName": "Fog Walker",
+      "newName": "Fog Walker",
+      "oldArchetypeId": "altruist",
+      "newArchetypeId": "altruist",
+      "newPages": [
+        88
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-altruist-last-hope",
+      "stableId": "altruist.last-hope",
+      "kind": "mechanics",
+      "oldName": "Last Hope",
+      "newName": "Last Hope",
+      "oldArchetypeId": "altruist",
+      "newArchetypeId": "altruist",
+      "newPages": [
+        89
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-altruist-replicator",
+      "stableId": "altruist.replicator",
+      "kind": "mechanics",
+      "oldName": "Replicator",
+      "newName": "Replicator",
+      "oldArchetypeId": "altruist",
+      "newArchetypeId": "altruist",
+      "newPages": [
+        89
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-altruist-chronomancer",
+      "stableId": "altruist.chronomancer",
+      "kind": "terminology",
+      "oldName": "Chronomancer",
+      "newName": "Temporal Sage",
+      "oldArchetypeId": "altruist",
+      "newArchetypeId": "altruist",
+      "newPages": [
+        89
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-altruist-bardic-savant",
+      "stableId": "altruist.bardic-savant",
+      "kind": "terminology",
+      "oldName": "Bardic Savant",
+      "newName": "Virtuoso",
+      "oldArchetypeId": "altruist",
+      "newArchetypeId": "altruist",
+      "newPages": [
+        89
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-altruist-artist",
+      "stableId": "altruist.artist",
+      "kind": "mechanics",
+      "oldName": "Artist",
+      "newName": "Artist",
+      "oldArchetypeId": "altruist",
+      "newArchetypeId": "altruist",
+      "newPages": [
+        90
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-altruist-deckbuilder",
+      "stableId": "altruist.deckbuilder",
+      "kind": "mechanics",
+      "oldName": "Deckbuilder",
+      "newName": "Deckbuilder",
+      "oldArchetypeId": "altruist",
+      "newArchetypeId": "altruist",
+      "newPages": [
+        90
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-altruist-will-o-wisp",
+      "stableId": "altruist.will-o-wisp",
+      "kind": "mechanics",
+      "oldName": "Will-O-Wisp",
+      "newName": "Will-O-Wisp",
+      "oldArchetypeId": "altruist",
+      "newArchetypeId": "altruist",
+      "newPages": [
+        90
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-disruptor-bloodletter",
+      "stableId": "disruptor.bloodletter",
+      "kind": "mechanics",
+      "oldName": "Bloodletter",
+      "newName": "Bloodletter",
+      "oldArchetypeId": "disruptor",
+      "newArchetypeId": "disruptor",
+      "newPages": [
+        92
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-disruptor-chemist",
+      "stableId": "disruptor.chemist",
+      "kind": "mechanics",
+      "oldName": "Chemist",
+      "newName": "Chemist",
+      "oldArchetypeId": "disruptor",
+      "newArchetypeId": "disruptor",
+      "newPages": [
+        92
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-disruptor-constrictor",
+      "stableId": "disruptor.constrictor",
+      "kind": "mechanics",
+      "oldName": "Constrictor",
+      "newName": "Constrictor",
+      "oldArchetypeId": "disruptor",
+      "newArchetypeId": "disruptor",
+      "newPages": [
+        92
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-disruptor-cutpurse",
+      "stableId": "disruptor.cutpurse",
+      "kind": "mechanics",
+      "oldName": "Cutpurse",
+      "newName": "Cutpurse",
+      "oldArchetypeId": "disruptor",
+      "newArchetypeId": "disruptor",
+      "newPages": [
+        93
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-disruptor-light-bender",
+      "stableId": "disruptor.light-bender",
+      "kind": "addition",
+      "oldName": null,
+      "newName": "Light Bender",
+      "oldArchetypeId": null,
+      "newArchetypeId": "disruptor",
+      "newPages": [
+        93
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-disruptor-reaper",
+      "stableId": "disruptor.reaper",
+      "kind": "mechanics",
+      "oldName": "Reaper",
+      "newName": "Reaper",
+      "oldArchetypeId": "disruptor",
+      "newArchetypeId": "disruptor",
+      "newPages": [
+        93
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-disruptor-street-fighter",
+      "stableId": "disruptor.street-fighter",
+      "kind": "mechanics",
+      "oldName": "Street Fighter",
+      "newName": "Street Fighter",
+      "oldArchetypeId": "disruptor",
+      "newArchetypeId": "disruptor",
+      "newPages": [
+        93
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-disruptor-autophage",
+      "stableId": "disruptor.autophage",
+      "kind": "mechanics",
+      "oldName": "Autophage",
+      "newName": "Autophage",
+      "oldArchetypeId": "disruptor",
+      "newArchetypeId": "disruptor",
+      "newPages": [
+        94
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-disruptor-earth-speaker",
+      "stableId": "disruptor.earth-speaker",
+      "kind": "mechanics",
+      "oldName": "Earth Speaker",
+      "newName": "Earth Speaker",
+      "oldArchetypeId": "disruptor",
+      "newArchetypeId": "disruptor",
+      "newPages": [
+        94
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-disruptor-inhuman-strength",
+      "stableId": "disruptor.inhuman-strength",
+      "kind": "terminology",
+      "oldName": "Inhuman Strength",
+      "newName": "Strongman",
+      "oldArchetypeId": "disruptor",
+      "newArchetypeId": "disruptor",
+      "newPages": [
+        94
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-disruptor-swarm-body",
+      "stableId": "disruptor.swarm-body",
+      "kind": "terminology",
+      "oldName": "Swarm Body",
+      "newName": "SwarmKin",
+      "oldArchetypeId": "disruptor",
+      "newArchetypeId": "disruptor",
+      "newPages": [
+        94
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-disruptor-siren",
+      "stableId": "disruptor.siren",
+      "kind": "mechanics",
+      "oldName": "Siren",
+      "newName": "Siren",
+      "oldArchetypeId": "disruptor",
+      "newArchetypeId": "disruptor",
+      "newPages": [
+        95
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-disruptor-wave-rider",
+      "stableId": "disruptor.wave-rider",
+      "kind": "mechanics",
+      "oldName": "Wave Rider",
+      "newName": "Wave Rider",
+      "oldArchetypeId": "disruptor",
+      "newArchetypeId": "disruptor",
+      "newPages": [
+        95
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-disruptor-mind-breaker",
+      "stableId": "disruptor.mind-breaker",
+      "kind": "mechanics",
+      "oldName": "Mind Breaker",
+      "newName": "Mind Breaker",
+      "oldArchetypeId": "disruptor",
+      "newArchetypeId": "disruptor",
+      "newPages": [
+        95
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-disruptor-gale-strider",
+      "stableId": "disruptor.gale-strider",
+      "kind": "mechanics",
+      "oldName": "Gale Strider",
+      "newName": "Gale Strider",
+      "oldArchetypeId": "disruptor",
+      "newArchetypeId": "disruptor",
+      "newPages": [
+        96
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-disruptor-hunter",
+      "stableId": "disruptor.hunter",
+      "kind": "terminology",
+      "oldName": "Hunter",
+      "newName": "Poacher",
+      "oldArchetypeId": "disruptor",
+      "newArchetypeId": "disruptor",
+      "newPages": [
+        96
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-disruptor-mage-s-array",
+      "stableId": "disruptor.mage-s-array",
+      "kind": "terminology",
+      "oldName": "Mage's Array",
+      "newName": "Jailor",
+      "oldArchetypeId": "disruptor",
+      "newArchetypeId": "disruptor",
+      "newPages": [
+        96
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-disruptor-inner-world",
+      "stableId": "disruptor.inner-world",
+      "kind": "terminology",
+      "oldName": "Inner World",
+      "newName": "Worldsmith",
+      "oldArchetypeId": "disruptor",
+      "newArchetypeId": "disruptor",
+      "newPages": [
+        96
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-ruiner-bombardier",
+      "stableId": "ruiner.bombardier",
+      "kind": "mechanics",
+      "oldName": "Bombardier",
+      "newName": "Bombardier",
+      "oldArchetypeId": "ruiner",
+      "newArchetypeId": "ruiner",
+      "newPages": [
+        98
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-ruiner-rapid-fire-sorcery",
+      "stableId": "ruiner.rapid-fire-sorcery",
+      "kind": "terminology",
+      "oldName": "Rapid-Fire Sorcery",
+      "newName": "Eradicator",
+      "oldArchetypeId": "ruiner",
+      "newArchetypeId": "ruiner",
+      "newPages": [
+        98
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-ruiner-ritualist",
+      "stableId": "ruiner.ritualist",
+      "kind": "mechanics",
+      "oldName": "Ritualist",
+      "newName": "Ritualist",
+      "oldArchetypeId": "ruiner",
+      "newArchetypeId": "ruiner",
+      "newPages": [
+        98
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-ruiner-spellcrafter",
+      "stableId": "ruiner.spellcrafter",
+      "kind": "mechanics",
+      "oldName": "Spellcrafter",
+      "newName": "Spellcrafter",
+      "oldArchetypeId": "ruiner",
+      "newArchetypeId": "ruiner",
+      "newPages": [
+        98
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-ruiner-student-of-stars",
+      "stableId": "ruiner.student-of-stars",
+      "kind": "mechanics",
+      "oldName": "Student Of Stars",
+      "newName": "Student Of Stars",
+      "oldArchetypeId": "ruiner",
+      "newArchetypeId": "ruiner",
+      "newPages": [
+        98
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-ruiner-mana-blades",
+      "stableId": "ruiner.mana-blades",
+      "kind": "terminology",
+      "oldName": "Mana Blades",
+      "newName": "Blade Smith",
+      "oldArchetypeId": "ruiner",
+      "newArchetypeId": "ruiner",
+      "newPages": [
+        99
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-ruiner-dramaturge",
+      "stableId": "ruiner.dramaturge",
+      "kind": "mechanics",
+      "oldName": "Dramaturge",
+      "newName": "Dramaturge",
+      "oldArchetypeId": "ruiner",
+      "newArchetypeId": "ruiner",
+      "newPages": [
+        99
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-ruiner-feral-arcana",
+      "stableId": "ruiner.feral-arcana",
+      "kind": "terminology",
+      "oldName": "Feral Arcana",
+      "newName": "Feral Arcanist",
+      "oldArchetypeId": "ruiner",
+      "newArchetypeId": "ruiner",
+      "newPages": [
+        99
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-ruiner-flame-heart",
+      "stableId": "ruiner.flame-heart",
+      "kind": "mechanics",
+      "oldName": "Flame Heart",
+      "newName": "Flame Heart",
+      "oldArchetypeId": "ruiner",
+      "newArchetypeId": "ruiner",
+      "newPages": [
+        99
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-ruiner-cryomancer",
+      "stableId": "ruiner.cryomancer",
+      "kind": "terminology",
+      "oldName": "Cryomancer",
+      "newName": "Frost Veiler",
+      "oldArchetypeId": "ruiner",
+      "newArchetypeId": "ruiner",
+      "newPages": [
+        100
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-ruiner-grim-ascendant",
+      "stableId": "ruiner.grim-ascendant",
+      "kind": "mechanics",
+      "oldName": "Grim Ascendant",
+      "newName": "Grim Ascendant",
+      "oldArchetypeId": "ruiner",
+      "newArchetypeId": "ruiner",
+      "newPages": [
+        100
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-ruiner-long-draw",
+      "stableId": "ruiner.long-draw",
+      "kind": "terminology",
+      "oldName": "Long Draw",
+      "newName": "Ranger",
+      "oldArchetypeId": "ruiner",
+      "newArchetypeId": "ruiner",
+      "newPages": [
+        100
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-ruiner-sellsword-s-call",
+      "stableId": "ruiner.sellsword-s-call",
+      "kind": "terminology",
+      "oldName": "Sellsword's Call",
+      "newName": "Sword Caller",
+      "oldArchetypeId": "ruiner",
+      "newArchetypeId": "ruiner",
+      "newPages": [
+        100
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-ruiner-void-soul",
+      "stableId": "ruiner.void-soul",
+      "kind": "mechanics",
+      "oldName": "Void Soul",
+      "newName": "Void Soul",
+      "oldArchetypeId": "ruiner",
+      "newArchetypeId": "ruiner",
+      "newPages": [
+        101
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-ruiner-thunder-blood",
+      "stableId": "ruiner.thunder-blood",
+      "kind": "mechanics",
+      "oldName": "Thunder Blood",
+      "newName": "Thunder Blood",
+      "oldArchetypeId": "ruiner",
+      "newArchetypeId": "ruiner",
+      "newPages": [
+        101
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-ruiner-zealot",
+      "stableId": "ruiner.zealot",
+      "kind": "mechanics",
+      "oldName": "Zealot",
+      "newName": "Zealot",
+      "oldArchetypeId": "ruiner",
+      "newArchetypeId": "ruiner",
+      "newPages": [
+        101
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-ruiner-creation-ascetic",
+      "stableId": "ruiner.creation-ascetic",
+      "kind": "terminology",
+      "oldName": "Creation Ascetic",
+      "newName": "Creator",
+      "oldArchetypeId": "ruiner",
+      "newArchetypeId": "ruiner",
+      "newPages": [
+        102
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-ruiner-ego-arm",
+      "stableId": "ruiner.ego-arm",
+      "kind": "mechanics",
+      "oldName": "Ego Arm",
+      "newName": "Ego Arm",
+      "oldArchetypeId": "ruiner",
+      "newArchetypeId": "ruiner",
+      "newPages": [
+        102
+      ],
+      "requiresReview": true
+    },
+    {
+      "id": "technique-bulwark-servant-s-call-removed",
+      "stableId": "bulwark.servant-s-call",
+      "kind": "removal",
+      "oldName": "Servant's Call",
+      "newName": null,
+      "oldArchetypeId": "bulwark",
+      "newArchetypeId": null,
+      "newPages": [],
+      "requiresReview": true
+    }
+  ]
+}

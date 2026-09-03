@@ -211,6 +211,10 @@ function prepareDisplacements(scene, requests = [], options = {}) {
     for (const request of requests) {
       if (moved.has(request.actorId) && !options.allowRepeatedActors) throw new Error("Один персонаж не может быть перемещён дважды в одном плане.");
       const status = displacementStatus(working, request);
+      if (!status.available && request.allowBlocked) {
+        statuses.push({ ...status, mandatory: true, blocked: true });
+        continue;
+      }
       if (!status.available && request.optional) {
         statuses.push(status);
         continue;
@@ -242,9 +246,10 @@ function prepareDisplacements(scene, requests = [], options = {}) {
   }
 }
 function turnStartStatus(scene, actorId) {
-  const actor = actorById(scene, actorId), heroes = (scene.actors || []).filter(item => item.team === "hero" && item.kind !== "crowd" && !item.knockedOut), enemies = (scene.actors || []).filter(item => item.team === "enemy" && item.kind !== "crowd" && !item.knockedOut);
+  const actor = actorById(scene, actorId), heroes = (scene.actors || []).filter(item => item.team === "hero" && item.kind !== "crowd" && !isEnemyModifier(item) && !item.knockedOut), enemies = (scene.actors || []).filter(item => item.team === "enemy" && item.kind !== "crowd" && !isEnemyModifier(item) && !item.knockedOut);
   if (!actor) return { available: false, reason: "Участник не найден." };
   if (actor.kind === "crowd") return { available: false, reason: "Зоны массовки не совершают Ходы." };
+  if (isEnemyModifier(actor)) return { available: false, reason: "Враги-Модификаторы не совершают отдельных Ходов." };
   if (scene.pendingAction) return { available: false, reason: "Сначала завершите текущую цепочку Реакций." };
   if (scene.pendingPrompt) return { available: false, reason: "Сначала ответьте на сработавшее правило." };
   if (scene.activeActorId) return { available: false, reason: "Сначала завершите текущий Ход." };
@@ -269,7 +274,7 @@ function roundEndStatus(scene) {
   if (scene.activeActorId) return { available: false, reason: "Сначала завершите текущий Ход." };
   const completedTurns = currentRoundEvents(scene).filter(event => closedTurnActorId(event));
   if (!completedTurns.length) return { available: false, reason: "Раунд ещё не начат." };
-  const readyActors = (scene.actors || []).filter(item => !item.knockedOut && item.kind !== "crowd");
+  const readyActors = (scene.actors || []).filter(item => !item.knockedOut && item.kind !== "crowd" && !isEnemyModifier(item));
   const remaining = readyActors.filter(actor => !actor.acted);
   if (remaining.length) return { available: false, reason: `Не завершили Ход: ${remaining.map(actor => actor.name).join(", ")}.` };
   return { available: true, reason: "" };
@@ -279,8 +284,25 @@ function fodderMoveStatus(scene, actorId) {
   if (!actor || actor.kind !== "crowd" || actor.knockedOut) return { available: false, reason: "Зона массовки недоступна.", remaining: 0, boundaryEventId: null };
   const events = currentRoundEvents(scene), boundaryIndex = events.findIndex(event => event.type === "turn.end" && actorById(scene, event.actorId)?.team === "enemy" && actorById(scene, event.actorId)?.kind !== "crowd");
   if (boundaryIndex < 0) return { available: false, reason: "Массовка перемещается после завершения Хода врага.", remaining: 0, boundaryEventId: null };
-  const boundary = events[boundaryIndex], used = events.slice(0, boundaryIndex).filter(event => event.type === "actor.move" && event.actorId === actor.id && event.payload?.fodderMove && event.payload?.boundaryEventId === boundary.id).reduce((sum, event) => sum + Math.max(0, Number(event.payload?.distance || 0)), 0), remaining = Math.max(0, 2 - used);
-  return { available: remaining > 0, reason: remaining > 0 ? "" : "Эта зона уже переместилась на 2 клетки после последнего Хода врага.", remaining, used, boundaryEventId: boundary.id };
+  const boundary = events[boundaryIndex], boundaryActor = actorById(scene, boundary.actorId), maximum = boundaryActor?.profileId === "enemy.common.hound-master" ? 4 : 2, used = events.slice(0, boundaryIndex).filter(event => event.type === "actor.move" && event.actorId === actor.id && event.payload?.fodderMove && event.payload?.boundaryEventId === boundary.id).reduce((sum, event) => sum + Math.max(0, Number(event.payload?.distance || 0)), 0), remaining = Math.max(0, maximum - used);
+  return { available: remaining > 0, reason: remaining > 0 ? "" : `Эта зона уже переместилась на ${maximum} клетки после последнего Хода врага.`, remaining, maximum, used, boundaryEventId: boundary.id };
+}
+function fodderMoveDestinations(scene, actorId) {
+  const actor = actorById(scene, actorId), status = fodderMoveStatus(scene, actorId), space = (scene.spaces || []).find(item => item.id === actor?.space);
+  if (!actor || !space || !status.available) return [];
+  const destinations = [{ x: Number(actor.x), y: Number(actor.y), path: [], distance: 0 }];
+  for (let y = 0; y < Number(space.height || 0); y += 1) for (let x = 0; x < Number(space.width || 0); x += 1) {
+    if (x === Number(actor.x) && y === Number(actor.y)) continue;
+    if (!effectCellOccupancyStatus(scene, actor.id, { space: actor.space, x, y }).available) continue;
+    const path = movementPath(scene, actor.id, { x, y }, { maxDistance: status.remaining, placement: true, ignoreEnemies: true, ignoreDifficult: true });
+    if (!path.length) continue;
+    if (actor.crowdSubtype === "vortex") {
+      const owner = actorById(scene, actor.vortexOwnerId), carrier = actorById(scene, modifierState(owner).targetId), destination = { space: actor.space, x, y };
+      if (!carrier || carrier.knockedOut || modifierRangeDistance(scene, destination, carrier) >= modifierRangeDistance(scene, actor, carrier)) continue;
+    }
+    destinations.push({ x, y, path: path.map(cellKey), distance: path.length });
+  }
+  return destinations.sort((left, right) => left.distance - right.distance || left.y - right.y || left.x - right.x);
 }
 const areaCells = (space, anchor, area) => {
   const width = Number(area?.[0] || 0), height = Number(area?.[1] || 0), cells = [];

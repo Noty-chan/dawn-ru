@@ -1,6 +1,6 @@
 "use strict";
 
-const VERSION = 45;
+const VERSION = 46;
 // Persisted ids are the rules contract. Display names may be translated and must
 // never be used as the only way to identify an action.
 const ACTION_IDS = Object.freeze({
@@ -28,12 +28,14 @@ const actionIs = (action, key) => Boolean(action && ACTION_IDS[key] && action.id
 const actionIsAny = (action, keys) => Array.isArray(keys) && keys.some(key => actionIs(action, key));
 const actionIdIs = (actionId, key) => Boolean(ACTION_IDS[key] && canonicalActionId(actionId) === ACTION_IDS[key]);
 const actionByKey = (data, key) => data?.actions?.list?.find(action => actionIs(action, key)) || null;
-const EVENT_TYPES = new Set(["action.plan", "action.plan.update", "action.plan.cancel", "action.prepare", "action.resolve", "enemy.action.prepare", "enemy.action.resolve", "reaction.offer", "reaction.respond", "roll.public", "roll.redirect", "gift.sacrifice", "challenge.request", "challenge.clear", "opposed.request", "opposed.reroll", "opposed.tie.resolve", "opposed.clear", "rule.share", "session-clock.create", "session-clock.set", "session-clock.rename", "session-clock.kind", "session-clock.size", "session-clock.remove", "reminder.create", "reminder.due", "reminder.resolve", "reminder.remove", "resource.spend", "resource.gain", "actor.runtime.set", "rule-mode.set", "rule-resource.configure", "rule-resource.spend", "rule-resource.gain", "rule-resource.set", "rule-resource.reset", "rule-clock.configure", "rule-clock.tick", "rule-clock.set", "rule-clock.reset", "rule.trigger", "actor.spawn", "actor.move", "actor.enter", "actor.heal", "actor.wound", "actor.knockout", "turn.start", "turn.end", "turn.grant", "round.end", "attack.pending", "attack.clear", "damage.apply", "effect.apply", "effect.remove", "inventory.change", "rule.prompt", "rule.respond", "technique.prepare", "technique.resolve", "technique.manual", "technique.state", "actor.state", "area.create", "area.remove", "area.duration", "object.damage", "object.restore", "wall.create", "wall.damage", "wall.restore", "wall.remove", "marker.create", "marker.move", "marker.remove", "marker.duration", "topology.cells.remove", "topology.cells.restore", "targets.set", "space.ensure", "space.remove"]);
+const EVENT_TYPES = new Set(["action.plan", "action.plan.update", "action.plan.cancel", "action.prepare", "action.resolve", "enemy.action.prepare", "enemy.action.resolve", "reaction.offer", "reaction.respond", "roll.public", "roll.redirect", "gift.sacrifice", "challenge.request", "challenge.clear", "opposed.request", "opposed.reroll", "opposed.tie.resolve", "opposed.clear", "rule.share", "session-clock.create", "session-clock.set", "session-clock.rename", "session-clock.kind", "session-clock.size", "session-clock.remove", "reminder.create", "reminder.due", "reminder.resolve", "reminder.remove", "resource.spend", "resource.gain", "actor.runtime.set", "rule-mode.set", "rule-resource.configure", "rule-resource.spend", "rule-resource.gain", "rule-resource.set", "rule-resource.reset", "rule-clock.configure", "rule-clock.tick", "rule-clock.set", "rule-clock.reset", "rule.trigger", "modifier.configure", "actor.spawn", "actor.despawn", "actor.move", "actor.enter", "actor.heal", "actor.wound", "actor.knockout", "turn.start", "turn.end", "turn.grant", "round.end", "attack.pending", "attack.clear", "damage.apply", "effect.apply", "effect.remove", "inventory.change", "rule.prompt", "rule.respond", "technique.prepare", "technique.resolve", "technique.manual", "technique.state", "actor.state", "area.create", "area.remove", "area.duration", "object.damage", "object.restore", "wall.create", "wall.damage", "wall.restore", "wall.remove", "marker.create", "marker.move", "marker.remove", "marker.duration", "topology.cells.remove", "topology.cells.restore", "targets.set", "space.ensure", "space.remove"]);
+EVENT_TYPES.add("modifier.action");
+EVENT_TYPES.add("modifier.used");
 const RESOURCES = new Set(["ap", "focus", "influence", "meals", "creationMarks", "innovationCharges"]);
 // Every prompt whose answer is a board placement must expose the typed `cell`
 // option at the event boundary. Keep this registry wider than the current UI
 // lists: prompts can be restored from a save or answered by a remote client.
-const PLACEMENT_PROMPT_KINDS = new Set(["marker-move-cell", "dim-mak-weak-point-cell", "empath-rush-cell", "reappear-cell", "thunder-surge-cell", "siren-irresistible-cell", "untouchable-weave-cell", "knife-pickup-step", "meister-overclock-move", "egomaniac-style-move", "constrictor-move-cell", "enemy-move-cell", "wave-rider-move-cell"]);
+const PLACEMENT_PROMPT_KINDS = new Set(["marker-move-cell", "dim-mak-weak-point-cell", "empath-rush-cell", "reappear-cell", "thunder-surge-cell", "siren-irresistible-cell", "untouchable-weave-cell", "knife-pickup-step", "meister-overclock-move", "egomaniac-style-move", "constrictor-move-cell", "enemy-move-cell", "enemy-crowd-move-cell", "fodder-move-cell", "wave-rider-move-cell"]);
 const EFFECT_DURATIONS = new Set(["default", "persistent", "scene", "startTurn", "actionOrStartTurn", "roundEnd"]);
 const ACTION_PLAN_PHASES = new Set(["reappear", "targets", "destination", "modifiers", "confirm"]);
 const EFFECT_LIFECYCLE = Object.freeze({
@@ -46,14 +48,15 @@ const EFFECT_LIFECYCLE = Object.freeze({
   "negative.пойман": Object.freeze({ duration: "default", sourceBound: true, removeWithSource: true }),
   "negative.спровоцирован": Object.freeze({ duration: "default", sourceBound: true, removeWithSource: true }),
 });
-const ACTOR_STATE_KEYS = new Set(["pugilistStance", "martialPerfection", "growth", "evasion", "imposingPresence", "enemyAim", "rangerHeadshotTargetId", "berserkerLastStand", "berserkerReactionTurnSerial", "executionerBifurcate", "revenantHollowedEyes", "healerGuardianId", "grimTransformed", "grimUsed", "warringTransformed", "warringUsed", "drainLife", "lastCreationSpellMarks", "modifiedOverclockTurns", "icicleSpellsRemaining", "styleCarryRemaining", "timeStopUsed", "empathSupport", "masterArmament", "wispCreationUsed"]);
+const ACTOR_STATE_KEYS = new Set(["pugilistStance", "martialPerfection", "growth", "gluttonConsumed", "evasion", "armor", "imposingPresence", "enemyAim", "rangerHeadshotTargetId", "berserkerLastStand", "berserkerReactionTurnSerial", "executionerBifurcate", "revenantHollowedEyes", "healerGuardianId", "enemyCrowdMovement", "privateerGearChange", "roninSheathed", "grimTransformed", "grimUsed", "warringTransformed", "warringUsed", "drainLife", "lastCreationSpellMarks", "modifiedOverclockTurns", "icicleSpellsRemaining", "styleCarryRemaining", "timeStopUsed", "empathSupport", "masterArmament", "wispCreationUsed"]);
 const clone = value => JSON.parse(JSON.stringify(value));
 const actorById = (scene, id) => (scene.actors || []).find(actor => actor.id === id) || null;
 const compoundParts = (scene, actorOrId, options = {}) => {
   const actor = typeof actorOrId === "string" ? actorById(scene, actorOrId) : actorOrId;
+  if (actor?.profileId === "enemy.modifier.collateral") return [actor];
   const compoundId = (actor?.kind === "enemy" || actor?.profileId) && typeof actor.compoundId === "string" ? actor.compoundId.trim() : "";
   if (!actor || !compoundId) return actor ? [actor] : [];
-  return (scene.actors || []).filter(part => part.team === actor.team && (part.kind === "enemy" || part.profileId) && String(part.compoundId || "").trim() === compoundId && (options.includeKnockedOut || !part.knockedOut));
+  return (scene.actors || []).filter(part => part.profileId !== "enemy.modifier.collateral" && part.team === actor.team && (part.kind === "enemy" || part.profileId) && String(part.compoundId || "").trim() === compoundId && (options.includeKnockedOut || !part.knockedOut));
 };
 function compoundEnemyStatus(scene, actorOrId) {
   const actor = typeof actorOrId === "string" ? actorById(scene, actorOrId) : actorOrId, parts = compoundParts(scene, actor, { includeKnockedOut: true });
@@ -66,13 +69,14 @@ function compoundEnemyStatus(scene, actorOrId) {
 const canonicalTargetId = (scene, actorId) => compoundEnemyStatus(scene, actorId).representativeId || actorId;
 const effectiveActorSpeed = (scene, actorId) => {
   const actor = actorById(scene, actorId), compound = compoundEnemyStatus(scene, actor);
+  if(compound.parts?.some(part=>part.profileId===ENEMY_MODIFIER_IDS.gargantuan&&!part.knockedOut))return 0;
   if (actor?.profileId === "enemy.common.executioner" && (actor.effects || []).includes("positive.заряжен")) return 1;
   return compound.active ? compound.speed : Math.max(0, Number(actor?.speed || 0));
 };
 const actionById = (data, id) => data?.actions?.list?.find(action => action.id === id) || null;
 const enemyProfileById = (data, id) => Object.values(data?.enemies || {}).flat().find(profile => profile.id === id) || null;
 const effectIdByName = (data, name) => [...(data?.effects?.positive || []), ...(data?.effects?.negative || [])].find(effect => effect.id === name || effect.name === name)?.id || name;
-const distance = (a, b) => a.space === b.space ? Math.abs(a.x - b.x) + Math.abs(a.y - b.y) : Infinity;
+const distance = (a, b) => {if(a.space!==b.space)return Infinity;const aw=Math.max(1,Number(a.occupiedWidth||1)),ah=Math.max(1,Number(a.occupiedHeight||1)),bw=Math.max(1,Number(b.occupiedWidth||1)),bh=Math.max(1,Number(b.occupiedHeight||1)),dx=Math.max(0,Number(a.x)-Number(b.x)-bw+1,Number(b.x)-Number(a.x)-aw+1),dy=Math.max(0,Number(a.y)-Number(b.y)-bh+1,Number(b.y)-Number(a.y)-ah+1);return dx+dy};
 const cellKey = point => `${point.x},${point.y}`;
 const wallEdgeKey = (left,right) => [typeof left==="string"?left:cellKey(left),typeof right==="string"?right:cellKey(right)].sort().join("|");
 const wallAt = (scene,space,from,to) => (scene.walls||[]).find(wall=>wall.space===space&&wallEdgeKey(wall.a,wall.b)===wallEdgeKey(from,to))||null;
