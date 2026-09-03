@@ -16,6 +16,9 @@ __pycache__/
 *.tmp.pdf
 *.links.tmp.pdf
 /source/original/DAWN_ The RPG (LionWing Edition) w Bookmarks.pdf
+/source/supplements/**/original/
+/source/supplements/**/translation-ru/
+/.obsidian/
 .DS_Store
 Thumbs.db
 *.stackdump

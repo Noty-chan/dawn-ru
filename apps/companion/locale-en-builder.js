@@ -50,6 +50,7 @@ window.DAWN_I18N?.registerLocale("en", {
   "settings.language": "Language",
   "settings.edition": "Edition",
   "settings.content": "Language and rules edition",
+  "supplements.title": "Supplements",
   "preview.lionwing.ru": "The LionWing edition is selected. English source text is connected while the Russian translation and mechanical adapters are upgraded gradually.",
   "preview.lionwing.en": "LionWing preview: character creation uses the new edition's budgets and derived statistics. Reference and Techniques use the new English text. The LionWing table is hidden until its separate mechanics are ported.",
   "app.skip": "Skip to content",

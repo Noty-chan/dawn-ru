@@ -5,6 +5,8 @@ const I18n = window.DAWN_I18N;
 const t = (key, params, fallback) => I18n?.t(key, params, { fallback }) ?? fallback ?? key;
 const D = window.DAWN_DATA;
 const Lionwing = window.DAWN_LIONWING_DATA;
+const LionwingRu = window.DAWN_LIONWING_RU;
+const Supplements = window.DAWN_SUPPLEMENTS;
 if (!D || D.schemaVersion !== 2) document.body.innerHTML = `<p style='padding:2rem'>${t("app.error.data")}</p>`;
 const Logic = window.DAWN_LOGIC;
 if (!Logic) throw new Error(t("app.error.logic"));
@@ -35,11 +37,17 @@ function loadContentPreferences(){
 let contentPreferences=loadContentPreferences();
 const isLionwingEdition=()=>contentPreferences.edition==="lionwing"&&Boolean(Lionwing);
 const isEnglishPreview=()=>contentPreferences.locale==="en";
-const activeArchetypes=()=>isLionwingEdition()?Lionwing.archetypes:D.archetypes;
+const activeSupplementPackages=()=>Supplements?Supplements.list().filter(item=>S?.supplementIds?.includes(item.id)&&Supplements.compatible(item,{edition:contentPreferences.edition,locale:contentPreferences.locale})):[];
+const supplementItems=key=>activeSupplementPackages().flatMap(item=>item.content?.[key]||[]);
+const activeArchetypes=()=>[...(isLionwingEdition()?Lionwing.archetypes:D.archetypes),...supplementItems("archetypes")];
 const allArchetypes=()=>Lionwing?[...D.archetypes,...Lionwing.archetypes]:D.archetypes;
-const activeOutlooks=()=>isLionwingEdition()?Lionwing.outlooks:D.outlooks;
-const activeAbilityWords=()=>isLionwingEdition()?Lionwing.abilityWords:D.abilityWords;
-const activeReferenceSections=()=>isLionwingEdition()?Lionwing.reference:[];
+function localizedLionwingOutlooks(){
+  if(contentPreferences.locale!=="ru"||!LionwingRu)return Lionwing.outlooks;
+  return Lionwing.outlooks.map(outlook=>{const translation=LionwingRu.outlooks?.[outlook.id];if(!translation)return outlook;return{...outlook,name:translation.name||outlook.name,description:translation.description||outlook.description,gifts:outlook.gifts.map(gift=>({...gift,...(translation.gifts?.[gift.id]||{})}))}});
+}
+const activeOutlooks=()=>[...(isLionwingEdition()?localizedLionwingOutlooks():D.outlooks),...supplementItems("outlooks")];
+const activeAbilityWords=()=>{const base=isLionwingEdition()?Lionwing.abilityWords:D.abilityWords;return Object.fromEntries(["verbs","nouns","conditions"].map(group=>[group,[...(base[group]||[]),...activeSupplementPackages().flatMap(item=>item.content?.abilityWords?.[group]||[])]]))};
+const activeReferenceSections=()=>[...(isLionwingEdition()?Lionwing.reference:[]),...supplementItems("reference")];
 const activeBuilderRules=()=>isLionwingEdition()?Lionwing.builderRules:null;
 const activeAttrs=()=>isEnglishPreview()?[
   ["body","Body","Health, resilience, and physical power"],

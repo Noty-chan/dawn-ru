@@ -25,7 +25,7 @@ function blankHero(rulesEdition=contentPreferences?.edition||"ru-v0.9"){
   return {
     schema:APP_SCHEMA,rulesEdition:["ru-v0.9","lionwing"].includes(rulesEdition)?rulesEdition:"ru-v0.9",id:uid(),name:"",player:"",concept:"",tier:1,media:{portrait:"",token:"",portraitStored:false,tokenStored:false},
     attrs:{body:4,talent:3,spirit:2,mind:2},attrBonus:{body:0,talent:0,spirit:0,mind:0},
-    techConversions:0,conversionAttr:"body",primaryOutlook:null,outlooks:[],gifts:[],bonds:[],
+    techConversions:0,conversionAttr:"body",primaryOutlook:null,outlooks:[],gifts:[],bonds:[],supplementIds:[],
     skills:[{id:uid(),name:"",rank:1}],
     ability:blankAbility(),taintedAbility:blankAbility(),
     techniques:{},mods:{taintedBody:false,gadgetSpent:0,performanceSkill:null,spellcrafterAugments:[],wispSpiritTypes:[]},
@@ -105,6 +105,8 @@ function sceneCore(raw){
   const persistedActorIds=new Set(base.actors.map(actor=>actor.id));base.spaces.forEach(space=>{if(space.ownerActorId&&!persistedActorIds.has(space.ownerActorId))delete space.ownerActorId});
   base.actors.forEach((actor,index)=>{
     const source=scene.actors?.[index]||{};
+    actor.rulesEdition=["ru-v0.9","lionwing"].includes(source.rulesEdition)?source.rulesEdition:"ru-v0.9";
+    actor.knownTechniques=source.knownTechniques&&typeof source.knownTechniques==="object"?{...source.knownTechniques}:{...actor.techniques};
     actor.bonds=Array.isArray(source.bonds)?source.bonds.slice(0,30).filter(bond=>bond&&typeof bond.name==="string").map(bond=>({id:typeof bond.id==="string"?bond.id.slice(0,120):"",name:bond.name.slice(0,120)})):[];
     actor.sacrifices=cleanArray(source.sacrifices).filter(item=>["eye","arm","leg","tongue","life"].includes(item));
     actor.compoundId=(actor.kind==="enemy"||Boolean(actor.profileId))&&typeof source.compoundId==="string"&&source.compoundId.trim()?source.compoundId.trim().slice(0,120):null;
@@ -208,6 +210,7 @@ function normalizeHero(raw){
   const base=blankHero(), h=raw && typeof raw==="object" ? raw : {};
   base.id=typeof h.id==="string"?h.id:base.id;
   base.rulesEdition=["ru-v0.9","lionwing"].includes(h.rulesEdition)?h.rulesEdition:"ru-v0.9";
+  base.supplementIds=[...new Set(cleanArray(h.supplementIds))].slice(0,30);
   for(const key of ["name","player","concept"]) base[key]=typeof h[key]==="string"?h[key].slice(0,500):"";
   base.media={portrait:safeImage(h.media?.portrait),token:safeTokenImage(h.media?.token),portraitStored:Boolean(h.media?.portraitStored),tokenStored:Boolean(h.media?.tokenStored)};
   base.tier=clamp(h.tier,1,6);
@@ -413,7 +416,7 @@ function automationBadge(status){
   const labels={full:"Автоматизировано",attack:"Автоматизированная Атака",effect:"Автоматизированный Эффект",state:"Автоматизированное состояние",decision:"Автоматизировано с выбором",partial:"Частично автоматизировано"},label=labels[status];
   return label?`<span class="automation-badge automation-${esc(status)}" title="${esc(label)}" aria-label="${esc(label)}">${status==="partial"?"◐":"⚙"}</span>`:"";
 }
-function techniqueLevelAutomation(techniqueId,level){return TechniqueEngine?.techniqueCoverage(D,{[techniqueId]:Number(level)}).find(entry=>entry.techniqueId===techniqueId&&Number(entry.level)===Number(level))?.automation||"manual"}
+function techniqueLevelAutomation(techniqueId,level){if(isLionwingEdition())return"manual";return TechniqueEngine?.techniqueCoverage(D,{[techniqueId]:Number(level)}).find(entry=>entry.techniqueId===techniqueId&&Number(entry.level)===Number(level))?.automation||"manual"}
 function enemyProfileAutomation(profile){const statuses=(profile?.rules||[]).map(rule=>SceneEngine?.enemyRuleAutomation?.(rule.id)||"assisted"),automated=statuses.filter(status=>status!=="assisted").length;return automated===statuses.length&&automated?"full":automated?"partial":"assisted"}
 const wordById=(id,ability=null)=>{const known=Object.values(activeAbilityWords()).flat().find(w=>w.id===id)||Object.values(D.abilityWords).flat().find(w=>w.id===id);if(known)return known;if(typeof id==="string"&&id.startsWith("custom:")){const [,group,...parts]=id.split(":"),stored=ability?.customWordCosts?.[id],variable=stored==="X",cost=variable?null:Number.isFinite(Number(stored))?clamp(stored,-1,4):0;return{id,name:decodeURIComponent(parts.join(":")),cost,costLabel:variable?"X":String(cost),marks:variable?"☾":"",group}}};
 function attrValueFor(hero,key,includeConversion=true){return hero.attrs[key]+hero.attrBonus[key]+(includeConversion&&hero.conversionAttr===key?hero.techConversions:0)}
