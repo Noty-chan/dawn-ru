@@ -37,6 +37,6 @@ for (const id of newTechniqueIds) assert.ok(translatedTechniqueIds.has(id), `mis
 const changedTechniqueIds = worklist.units.filter(item => item.domain === "technique" && item.action === "retranslate").map(item => item.stableId);
 const translatedChangedTechniqueIds = changedTechniqueIds.filter(id => translatedTechniqueIds.has(id));
 assert.equal(changedTechniqueIds.length, 106);
-assert.ok(translatedChangedTechniqueIds.length >= 37, "the changed Technique translation pass must keep moving forward");
+assert.ok(translatedChangedTechniqueIds.length >= 70, "the changed Technique translation pass must keep moving forward");
 
 console.log(`LionWing RU overlay QA passed: 10 Outlooks, ${translatedNewBoons} new and ${changedBoonIds.length} changed Boons, ${newTechniqueIds.length} new and ${translatedChangedTechniqueIds.length}/${changedTechniqueIds.length} changed Techniques`);
