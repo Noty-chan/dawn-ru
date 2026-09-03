@@ -40,6 +40,13 @@
 | `disruptor.hunter` | Hunter | Poacher | Браконьер |
 | `disruptor.mage-s-array` | Mage's Array | Jailor | Тюремщик |
 | `disruptor.inner-world` | Inner World | Worldsmith | Кузнец миров |
+| `ruiner.cryomancer` | Cryomancer | Frost Veiler | Криомант |
+| `ruiner.rapid-fire-sorcery` | Rapid-Fire Sorcery | Eradicator | Искоренитель |
+| `ruiner.mana-blades` | Mana Blades | Blade Smith | Кузнец клинков |
+| `ruiner.feral-arcana` | Feral Arcana | Feral Arcanist | Дикий арканист |
+| `ruiner.long-draw` | Long Draw | Ranger | Рейнджер |
+| `ruiner.sellsword-s-call` | Sellsword's Call | Sword Caller | Призыватель меча |
+| `ruiner.creation-ascetic` | Creation Ascetic | Creator | Творец |
 
 ## Требует следующего редакторского решения
 
@@ -53,4 +60,4 @@
 
 ## Ещё не перенесено
 
-Криомант / `Frost Veiler` и Мрачный Вознесённый уже отмечены как изменённые каноном, но их новый русский текст появится в пакете Разрушителя. Сирена и Браконьер перенесены в пакете Подрывника.
+Все изменённые техники перенесены. Следующая сверка относится к способностям, общим правилам и редактуре уже собранного русского текста.
