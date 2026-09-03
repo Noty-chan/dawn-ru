@@ -52,6 +52,7 @@ window.DAWN_I18N?.registerLocale("ru", {
   "settings.language": "Язык",
   "settings.edition": "Редакция",
   "settings.content": "Язык и редакция правил",
+  "supplements.title": "Дополнения",
   "preview.lionwing.ru": "Включена редакция LionWing: создание персонажа использует её бюджеты и производные характеристики. Тексты пока английские; отдельный стол LionWing скрыт до переноса его механики.",
   "preview.lionwing.en": "LionWing preview: character creation uses the new edition's budgets and derived statistics. Reference and Techniques use the new English text. The LionWing table is hidden until its separate mechanics are ported.",
   "app.skip": "К содержимому",

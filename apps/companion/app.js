@@ -9,16 +9,24 @@ function syncContentUrl(){
   if(!history?.replaceState)return;
   const url=new URL(location.href);url.searchParams.set("lang",contentPreferences.locale);url.searchParams.set("edition",contentPreferences.edition);url.searchParams.set("mode",store.mode||"build");history.replaceState(null,"",`${url.pathname}?${url.searchParams}${url.hash}`);
 }
+function renderSupplementPicker(){
+  const root=$("supplement-picker"),options=$("supplement-options"),items=Supplements?.list?.()||[],en=isEnglishPreview();
+  if(!root||!options)return;
+  root.hidden=!items.length;
+  const compatible=items.filter(item=>Supplements.compatible(item,{edition:contentPreferences.edition,locale:contentPreferences.locale}));
+  const active=new Set(S.supplementIds||[]);$("supplement-count").textContent=en?`${compatible.filter(item=>active.has(item.id)).length} enabled`:`Включено: ${compatible.filter(item=>active.has(item.id)).length}`;
+  options.innerHTML=compatible.map(item=>`<label class="supplement-option"><input type="checkbox" data-supplement-id="${esc(item.id)}" ${active.has(item.id)?"checked":""}><span><strong>${esc(en?item.titleEn:item.title)}</strong><small>${esc(en?item.descriptionEn:item.description)}</small><em>${item.status==="draft"?(en?"Draft translation":"Черновой перевод"):item.status}</em></span></label>`).join("")||`<p>${en?"No localized supplements are available for this edition yet.":"Для этой редакции и языка пока нет доступных дополнений."}</p>`;
+}
+$("supplement-options").addEventListener("change",event=>{const id=event.target.dataset.supplementId;if(!id)return;S.supplementIds=event.target.checked?[...new Set([...(S.supplementIds||[]),id])]:(S.supplementIds||[]).filter(value=>value!==id);renderAll()});
 function applyContentPreferences({render=false}={}){
   saveContentPreferences();
   if(S.rulesEdition!==contentPreferences.edition)activateHeroEdition(contentPreferences.edition);
   I18n?.setLocale(contentPreferences.locale);
   $("locale-select").value=contentPreferences.locale;
   $("edition-select").value=contentPreferences.edition;
-  document.body.classList.toggle("demo-no-table",isLionwingEdition());
   document.body.dataset.contentEdition=contentPreferences.edition;
   const banner=$("content-preview-banner");banner.hidden=!isLionwingEdition();if(!banner.hidden)banner.textContent=t(`preview.lionwing.${contentPreferences.locale}`);
-  if(isLionwingEdition()&&["play","tools","rules"].includes(store.mode))store.mode="build";
+  if(isLionwingEdition()&&sceneControlMode!=="manual")sceneControlMode="manual";
   if(!activeArchetypes().some(archetype=>archetype.id===activeArch))activeArch=activeArchetypes()[0]?.id;
   syncContentUrl();
   if(render){setMode(store.mode||"build");renderAll();persistHeroStore()}
