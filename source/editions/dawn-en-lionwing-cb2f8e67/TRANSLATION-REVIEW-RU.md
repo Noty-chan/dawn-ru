@@ -25,16 +25,16 @@
 
 ## Канонические переименования LionWing
 
-| Стабильный ID | 0.9 | LionWing RU |
-| --- | --- | --- |
-| `vagabond.dim-mak` | Дим Мак | Детектив |
-| `bulwark.runic-retribution` | Рунное возмездие | Нянька |
-| `bulwark.guardian-angel` | Ангел-хранитель | Призыватель стража |
-| `altruist.precognizant` | Предвидящий | Аналитик |
-| `altruist.heavenly-saint` | Небесный святой | Сострадательный мудрец |
-| `altruist.talisman-caster` | Заклинатель талисманов | Экзорцист талисманов |
-| `altruist.chronomancer` | Хрономант | Мудрец времени |
-| `altruist.bardic-savant` | Учёный бард | Виртуоз |
+| Стабильный ID | English 0.9 | English LionWing | Русское отображение LionWing |
+| --- | --- | --- | --- |
+| `vagabond.dim-mak` | Dim Mak | Detective | Детектив |
+| `bulwark.runic-retribution` | Runic Retribution | Mollycoddler | Нянька |
+| `bulwark.guardian-angel` | Guardian Angel | Guard Caller | Ангел-хранитель |
+| `altruist.precognizant` | Precognizant | Analyst | Предвидящий |
+| `altruist.heavenly-saint` | Heavenly Saint | Compassionate Sage | Небесный святой |
+| `altruist.talisman-caster` | Talisman Caster | Talisman Exorcist | Заклинатель талисманов |
+| `altruist.chronomancer` | Chronomancer | Temporal Sage | Хрономант |
+| `altruist.bardic-savant` | Bardic Savant | Virtuoso | Виртуоз |
 
 ## Требует следующего редакторского решения
 
@@ -42,7 +42,7 @@
 | --- | --- | --- |
 | `bulwark.runic-retribution` / `Mollycoddler` | Нянька | «Наседка» точнее передаёт чрезмерную, удушающую опеку, но заметно меняет тон |
 | `bulwark.stalwart-sentry` / `Spotlight` | софит | Возможно, «световое пятно» яснее обозначает клетку, а не прибор |
-| `altruist.heavenly-saint` / `Compassion` | Сострадание | Проверить согласование названия ресурса со «Сострадательным мудрецом» во всём интерфейсе |
+| `altruist.heavenly-saint` / `Compassion` | Сострадание | Утверждённое название техники «Небесный святой» сохраняется независимо от нового английского имени |
 | `vagabond.cunning-fighter` / `Cavalcabo` | Cavalcabo | Уточнить, является ли это именем школы и нужна ли транслитерация «Кавалькабо» |
 | `vagabond.egomaniac` / `sho'vah` | шо'ва | Сверить официальную передачу внутриигрового термина |
 
