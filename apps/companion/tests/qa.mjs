@@ -365,6 +365,13 @@ assert.equal(conflictingRankGifts.rankBudgetConflict, true);
 assert.equal(conflictingRankGifts.rankPool, 8, "An invalid pair must not arbitrarily let one starting budget overwrite the other");
 assert.equal(conflictingRankGifts.skillMin, 4);
 assert.equal(logic.calculateCreationBudgets({ gifts: [], skillRanks: [], gadgetSpent: 9 }).rankSpent, 0, "Gadget spend is ignored without Gearhead");
+const editionDrivenBudget = logic.calculateCreationBudgets({
+  tier: 2,
+  builderRules: { ranks: { starting: 10, perTier: 3, minimumStartingSkillRanks: 6 } },
+  skillRanks: [3, 3],
+});
+assert.equal(editionDrivenBudget.rankBase, 13, "Creation ranks must come from the selected edition instead of 0.9 constants");
+assert.equal(editionDrivenBudget.skillMin, 6, "The selected edition must control the minimum starting Skill investment");
 const forcedConditionWords = [{ id: "verb", group: "verbs", cost: 1, marks: "✢" }, { id: "noun", group: "nouns", cost: 1, marks: "" }, { id: "condition", group: "conditions", cost: 2, marks: "" }];
 assert.equal(logic.calculateAbilityCost({ enabled: true, words: forcedConditionWords }), 2, "A terminating word normally omits the Condition cost");
 assert.equal(logic.calculateAbilityCost({ enabled: true, words: forcedConditionWords, forceCondition: true }), 4, "Uncontrollable Power must retain and pay for its required Condition");

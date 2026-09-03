@@ -30,6 +30,7 @@
 
   function calculateCreationBudgets({
     tier = 1,
+    builderRules = null,
     gifts = [],
     skillRanks = [],
     performanceTargetRank = 0,
@@ -40,8 +41,9 @@
   }) {
     const currentTier = clamp(tier, 1, 6);
     const selected = new Set(Array.isArray(gifts) ? gifts : []);
-    let rankBase = 8 + 2 * (currentTier - 1);
-    let skillMin = 4;
+    const rankRules = builderRules?.ranks || {};
+    let rankBase = clamp(rankRules.starting ?? 8, 0, 999) + clamp(rankRules.perTier ?? 2, 0, 99) * (currentTier - 1);
+    let skillMin = clamp(rankRules.minimumStartingSkillRanks ?? 4, 0, 999);
     const rankBudgetConflict = selected.has("Past Your Prime") && selected.has("Amazing Potential");
     if (selected.has("Past Your Prime") && !rankBudgetConflict) {
       rankBase = 12 + (currentTier - 1);

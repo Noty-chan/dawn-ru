@@ -432,7 +432,7 @@ function abilityCost(ability=S.ability){
 }
 function budgets(){
   const t=S.tier,rules=activeBuilderRules(),aCost=abilityCost(),taintedCost=abilityCost(S.taintedAbility),performanceSkill=S.skills.find(s=>s.id===S.mods.performanceSkill);
-  const rankAccounting=Logic.calculateCreationBudgets({tier:t,gifts:selectedGiftNames(),skillRanks:S.skills.map(s=>s.rank),performanceTargetRank:performanceSkill?.rank||0,abilityCost:aCost,taintedBodyUsed:S.mods.taintedBody,taintedAbilityCost:taintedCost,gadgetSpent:S.mods.gadgetSpent});
+  const rankAccounting=Logic.calculateCreationBudgets({tier:t,builderRules:rules,gifts:selectedGiftNames(),skillRanks:S.skills.map(s=>s.rank),performanceTargetRank:performanceSkill?.rank||0,abilityCost:aCost,taintedBodyUsed:S.mods.taintedBody,taintedAbilityCost:taintedCost,gadgetSpent:S.mods.gadgetSpent});
   const giftPool=rules?rules.boons.startingChoices+rules.boons.perTier*(t-1):t+1,activeGiftIds=new Set(allGifts().map(gift=>gift.id)),giftSpent=S.gifts.filter(id=>activeGiftIds.has(id)).length;
   const activeTechniqueIds=new Set(activeArchetypes().flatMap(archetype=>archetype.techniques.map(technique=>technique.id)));
   const techPool=(rules?rules.techniques.startingLevels+rules.techniques.levelsPerTier*(t-1):5+2*(t-1))-(rules?.techniques.levelsPerAttributeConversion||2)*S.techConversions,techSpent=Object.entries(S.techniques).filter(([id])=>activeTechniqueIds.has(id)).reduce((n,[,v])=>n+v,0);
@@ -443,13 +443,14 @@ function budgets(){
 function effectiveSkillRank(skill){return Math.min(3,skill.rank+(hasGift("Performance Artist")&&S.mods.performanceSkill===skill.id?1:0))}
 function abilityNeedsX(ability=S.ability){return Object.values(ability.words).flat().some(id=>wordById(id,ability)?.marks.includes("☾"))}
 function issues(){
-  const b=budgets(),t=S.tier,problems=[],problem=(kind,ru,en)=>problems.push([kind,isEnglishPreview()?en:ru]); const bases=Object.values(S.attrs).sort().join(",");
-  if(bases!=="2,2,3,4")problem("bad","Стартовые Атрибуты должны образовывать набор 4 / 3 / 2 / 2.","Starting Attributes must be assigned as 4 / 3 / 2 / 2.");
+  const b=budgets(),t=S.tier,rules=activeBuilderRules(),problems=[],problem=(kind,ru,en)=>problems.push([kind,isEnglishPreview()?en:ru]); const bases=Object.values(S.attrs).sort((a,b)=>a-b).join(","),requiredBases=[...(rules?.attributes.startingValues||[4,3,2,2])].sort((a,b)=>a-b).join(",");
+  if(bases!==requiredBases)problem("bad","Стартовые Атрибуты должны образовывать набор 4 / 3 / 2 / 2.","Starting Attributes must be assigned as 4 / 3 / 2 / 2.");
   if(b.attrSpent!==b.attrPool)problem("",`Распределите ровно ${b.attrPool} бонусов Атрибутов за Ступени (сейчас ${b.attrSpent}).`,`Assign exactly ${b.attrPool} Attribute increases from Tiers (${b.attrSpent} assigned).`);
-  if(Object.values(S.attrBonus).some(v=>v>t-1))problem("bad","Один Атрибут не может получать оба обычных бонуса одной Ступени.","The same Attribute cannot receive both regular increases from one Tier.");
+  if(Object.values(S.attrBonus).some(v=>v>(rules?.attributes.sameAttributeGrowthPerTier||1)*(t-1)))problem("bad","Один Атрибут не может получать оба обычных бонуса одной Ступени.","The same Attribute cannot receive both regular increases from one Tier.");
   const highest=Math.max(...ATTRS.map(([k])=>attrValue(k,false)));if(S.techConversions&&attrValue(S.conversionAttr,false)<highest)problem("bad","Обмен Уровней должен повышать один из текущих высших Атрибутов.","Technique Level conversion must raise one of your current highest Attributes.");
   if(!S.primaryOutlook)problem("","Выберите Основное Мировоззрение.","Choose a Primary Outlook.");
-  if(S.outlooks.length>Math.min(3,t))problem("bad",`На ${t}-й Ступени доступно не более ${Math.min(3,t)} Мировоззрений.`,`A Tier ${t} hero may have no more than ${Math.min(3,t)} Outlooks.`);
+  const outlookLimit=Math.min(rules?.outlooks.maximum||3,(rules?.outlooks.starting||1)+t-1);
+  if(S.outlooks.length>outlookLimit)problem("bad",`На ${t}-й Ступени доступно не более ${outlookLimit} Мировоззрений.`,`A Tier ${t} hero may have no more than ${outlookLimit} Outlooks.`);
   if(b.giftSpent>b.giftPool)problem("bad","Перерасход Даров.","Too many Boons selected.");
   if(b.giftSpent<b.giftPool)problem("",`Выберите ещё ${b.giftPool-b.giftSpent} Дар(а).`,`Choose ${b.giftPool-b.giftSpent} more Boon(s).`);
   if(b.skillSpent<b.skillMin)problem("bad",`В Навыки нужно вложить минимум ${b.skillMin} Рангов.`,`Spend at least ${b.skillMin} Ranks on Skills.`);

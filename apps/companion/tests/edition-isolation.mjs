@@ -56,8 +56,12 @@ for (const [file, value] of [["outlooks.json", lionwing.outlooks], ["ability-wor
 
 const bootstrap = read("app-bootstrap.js"), app = read("app.js"), events = read("app-builder-events.js");
 assert.match(bootstrap, /dawn-companion-content-preferences-v1/);
+assert.match(bootstrap, /localizedLionwingAbilityWords/, "LionWing RU must localize Ability words without mutating English canonical data");
 assert.match(app, /syncContentUrl/);
 assert.match(events, /content:\{locale:contentPreferences\.locale,edition:S\.rulesEdition/);
+assert.match(events, /supplements:\[\.\.\.\(S\.supplementIds\|\|\[\]\)\]/, "portable heroes must declare their enabled supplement packages");
+assert.match(events, /supplementIds:data\.hero\?\.supplementIds\|\|data\.content\?\.supplements/, "hero import must restore supplement package identity");
+assert.match(events, /\["ru","en"\]\.includes\(data\.content\?\.locale\)/, "hero import must restore the exported display language");
 assert.match(bootstrap + read("app-core.js"), /rulesEdition[\s\S]+activateHeroEdition/, "heroes must be isolated by rules edition");
 assert.doesNotMatch(app, /demo-no-table",isLionwingEdition\(\)/, "LionWing must remain playable through the manual table");
 assert.match(app, /isLionwingEdition\(\)&&sceneControlMode!=="manual"/, "LionWing must enter the table with Technique automation disabled");

@@ -58,7 +58,11 @@ function localizedLionwingOutlooks(){
   return Lionwing.outlooks.map(outlook=>{const translation=LionwingRu.outlooks?.[outlook.id];if(!translation)return outlook;return{...outlook,name:translation.name||outlook.name,description:translation.description||outlook.description,gifts:outlook.gifts.map(gift=>({...gift,...(translation.gifts?.[gift.id]||{})}))}});
 }
 const activeOutlooks=()=>[...(isLionwingEdition()?localizedLionwingOutlooks():D.outlooks),...supplementItems("outlooks")];
-const activeAbilityWords=()=>{const base=isLionwingEdition()?Lionwing.abilityWords:D.abilityWords;return Object.fromEntries(["verbs","nouns","conditions"].map(group=>[group,[...(base[group]||[]),...activeSupplementPackages().flatMap(item=>item.content?.abilityWords?.[group]||[])]]))};
+function localizedLionwingAbilityWords(){
+  if(contentPreferences.locale!=="ru"||!LionwingRu?.abilityWords)return Lionwing.abilityWords;
+  return Object.fromEntries(["verbs","nouns","conditions"].map(group=>[group,(Lionwing.abilityWords[group]||[]).map(word=>({...word,name:LionwingRu.abilityWords[word.id]||word.name}))]));
+}
+const activeAbilityWords=()=>{const base=isLionwingEdition()?localizedLionwingAbilityWords():D.abilityWords;return Object.fromEntries(["verbs","nouns","conditions"].map(group=>[group,[...(base[group]||[]),...activeSupplementPackages().flatMap(item=>item.content?.abilityWords?.[group]||[])]]))};
 const activeReferenceSections=()=>[...(isLionwingEdition()?Lionwing.reference:[]),...supplementItems("reference")];
 const activeBuilderRules=()=>isLionwingEdition()?Lionwing.builderRules:null;
 const activeAttrs=()=>isEnglishPreview()?[
