@@ -39,7 +39,19 @@ const isLionwingEdition=()=>contentPreferences.edition==="lionwing"&&Boolean(Lio
 const isEnglishPreview=()=>contentPreferences.locale==="en";
 const activeSupplementPackages=()=>Supplements?Supplements.list().filter(item=>S?.supplementIds?.includes(item.id)&&Supplements.compatible(item,{edition:contentPreferences.edition,locale:contentPreferences.locale})):[];
 const supplementItems=key=>activeSupplementPackages().flatMap(item=>item.content?.[key]||[]);
-const activeArchetypes=()=>[...(isLionwingEdition()?Lionwing.archetypes:D.archetypes),...supplementItems("archetypes")];
+function localizedLionwingArchetypes(){
+  if(contentPreferences.locale!=="ru"||!LionwingRu)return Lionwing.archetypes;
+  return Lionwing.archetypes.map(archetype=>{
+    const translation=LionwingRu.archetypes?.[archetype.id];
+    if(!translation)return archetype;
+    return{...archetype,name:translation.name||archetype.name,techniques:archetype.techniques.map(technique=>{
+      const translated=translation.techniques?.[technique.id];
+      if(!translated)return technique;
+      return{...technique,...translated,levels:technique.levels.map(level=>({...level,...(translated.levels?.[level.n]||{})}))};
+    })};
+  });
+}
+const activeArchetypes=()=>[...(isLionwingEdition()?localizedLionwingArchetypes():D.archetypes),...supplementItems("archetypes")];
 const allArchetypes=()=>Lionwing?[...D.archetypes,...Lionwing.archetypes]:D.archetypes;
 function localizedLionwingOutlooks(){
   if(contentPreferences.locale!=="ru"||!LionwingRu)return Lionwing.outlooks;
