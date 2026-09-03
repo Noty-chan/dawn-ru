@@ -443,34 +443,34 @@ function budgets(){
 function effectiveSkillRank(skill){return Math.min(3,skill.rank+(hasGift("Performance Artist")&&S.mods.performanceSkill===skill.id?1:0))}
 function abilityNeedsX(ability=S.ability){return Object.values(ability.words).flat().some(id=>wordById(id,ability)?.marks.includes("☾"))}
 function issues(){
-  const b=budgets(),t=S.tier,rules=activeBuilderRules(),problems=[],problem=(kind,ru,en)=>problems.push([kind,isEnglishPreview()?en:ru]); const bases=Object.values(S.attrs).sort((a,b)=>a-b).join(","),requiredBases=[...(rules?.attributes.startingValues||[4,3,2,2])].sort((a,b)=>a-b).join(",");
-  if(bases!==requiredBases)problem("bad","Стартовые Атрибуты должны образовывать набор 4 / 3 / 2 / 2.","Starting Attributes must be assigned as 4 / 3 / 2 / 2.");
-  if(b.attrSpent!==b.attrPool)problem("",`Распределите ровно ${b.attrPool} бонусов Атрибутов за Ступени (сейчас ${b.attrSpent}).`,`Assign exactly ${b.attrPool} Attribute increases from Tiers (${b.attrSpent} assigned).`);
-  if(Object.values(S.attrBonus).some(v=>v>(rules?.attributes.sameAttributeGrowthPerTier||1)*(t-1)))problem("bad","Один Атрибут не может получать оба обычных бонуса одной Ступени.","The same Attribute cannot receive both regular increases from one Tier.");
-  const highest=Math.max(...ATTRS.map(([k])=>attrValue(k,false)));if(S.techConversions&&attrValue(S.conversionAttr,false)<highest)problem("bad","Обмен Уровней должен повышать один из текущих высших Атрибутов.","Technique Level conversion must raise one of your current highest Attributes.");
-  if(!S.primaryOutlook)problem("","Выберите Основное Мировоззрение.","Choose a Primary Outlook.");
-  const outlookLimit=Math.min(rules?.outlooks.maximum||3,(rules?.outlooks.starting||1)+t-1);
-  if(S.outlooks.length>outlookLimit)problem("bad",`На ${t}-й Ступени доступно не более ${outlookLimit} Мировоззрений.`,`A Tier ${t} hero may have no more than ${outlookLimit} Outlooks.`);
-  if(b.giftSpent>b.giftPool)problem("bad","Перерасход Даров.","Too many Boons selected.");
-  if(b.giftSpent<b.giftPool)problem("",`Выберите ещё ${b.giftPool-b.giftSpent} Дар(а).`,`Choose ${b.giftPool-b.giftSpent} more Boon(s).`);
-  if(b.skillSpent<b.skillMin)problem("bad",`В Навыки нужно вложить минимум ${b.skillMin} Рангов.`,`Spend at least ${b.skillMin} Ranks on Skills.`);
-  if(b.rankOver)problem("bad",`Перерасход основного бюджета Рангов персонажа на ${b.rankOver}. Целевые Ранги Даров можно тратить только на указанные ими Способности или гаджеты.`,`Core Character Rank budget exceeded by ${b.rankOver}. Restricted Boon Ranks may only fund their specified Ability or gadgets.`);
-  if(!b.rankOver&&b.coreRankSpent<b.coreRankPool)problem("",`Распределите ещё ${b.coreRankPool-b.coreRankSpent} Ранг(а) основного бюджета.`,`Spend the remaining ${b.coreRankPool-b.coreRankSpent} core Character Rank(s).`);
-  if(S.skills.some(s=>!s.name.trim()))problem("","У одного из Навыков нет названия.","One of the Skills has no name.");
-  if(S.ability.enabled&&(!S.ability.words.verbs.length||!S.ability.words.nouns.length))problem("","Для формулы Способности выберите хотя бы Глагол и Существительное.","Choose at least a Verb and a Noun for the Ability formula.");
-  if(hasGift("Uncontrollable Power")&&S.ability.enabled&&!S.ability.words.conditions.length)problem("bad","«Неконтролируемая сила» требует Условие в формуле Способности.","Uncontrollable Power requires a Condition in the Ability formula.");
-  if(S.ability.enabled&&abilityNeedsX(S.ability)&&!wordById(S.ability.xNoun))problem("bad","Для слова с меткой ☾ выберите отдельное Существительное X; если цена слова равна X, она подставится автоматически.","A ☾ word requires a separate X Noun; its cost is substituted automatically when needed.");
-  if(hasGift("Tainted Body")&&S.mods.taintedBody&&(!S.taintedAbility.words.verbs.length||!S.taintedAbility.words.nouns.length))problem("","«Порченое тело» раскрыто: соберите новую отдельную Способность из Глагола и Существительного.","Tainted Body has manifested: build its separate new Ability from a Verb and a Noun.");
-  if(hasGift("Tainted Body")&&S.mods.taintedBody&&abilityNeedsX(S.taintedAbility)&&!wordById(S.taintedAbility.xNoun))problem("bad","В новой Способности «Порченого тела» слово с ☾ требует отдельное Существительное X.","The Tainted Body Ability has a ☾ word and requires a separate X Noun.");
-  if(b.taintedAbilityOver)problem("bad",`Новая Способность «Порченого тела» превышает особый резерв на ${b.taintedAbilityOver} Ранг.`,`The Tainted Body Ability exceeds its special reserve by ${b.taintedAbilityOver} Rank.`);
-  if(hasGift("Supernatural Deafness")&&S.ability.enabled)problem("bad","«Глухота к сверхъестественному» запрещает Способность.","Supernatural Deafness prevents the hero from having an Ability.");
-  if(b.rankBudgetConflict)problem("bad","«Лучшие годы позади» и «Невероятный потенциал» задают несовместимые стартовые бюджеты.","Past Your Prime and Amazing Potential create incompatible starting budgets.");
+  const b=budgets(),tier=S.tier,rules=activeBuilderRules(),problems=[],problem=(kind,key,params={})=>problems.push([kind,t(key,params)]); const bases=Object.values(S.attrs).sort((a,b)=>a-b).join(","),requiredBases=[...(rules?.attributes.startingValues||[4,3,2,2])].sort((a,b)=>a-b).join(",");
+  if(bases!==requiredBases)problem("bad","builder.issue.attributeBases");
+  if(b.attrSpent!==b.attrPool)problem("","builder.issue.attributePool",{pool:b.attrPool,spent:b.attrSpent});
+  if(Object.values(S.attrBonus).some(v=>v>(rules?.attributes.sameAttributeGrowthPerTier||1)*(tier-1)))problem("bad","builder.issue.attributeGrowth");
+  const highest=Math.max(...ATTRS.map(([k])=>attrValue(k,false)));if(S.techConversions&&attrValue(S.conversionAttr,false)<highest)problem("bad","builder.issue.attributeConversion");
+  if(!S.primaryOutlook)problem("","builder.issue.primaryOutlook");
+  const outlookLimit=Math.min(rules?.outlooks.maximum||3,(rules?.outlooks.starting||1)+tier-1);
+  if(S.outlooks.length>outlookLimit)problem("bad","builder.issue.outlookLimit",{tier,limit:outlookLimit});
+  if(b.giftSpent>b.giftPool)problem("bad","builder.issue.boonsOver");
+  if(b.giftSpent<b.giftPool)problem("","builder.issue.boonsRemaining",{count:b.giftPool-b.giftSpent});
+  if(b.skillSpent<b.skillMin)problem("bad","builder.issue.skillsMinimum",{count:b.skillMin});
+  if(b.rankOver)problem("bad","builder.issue.ranksOver",{count:b.rankOver});
+  if(!b.rankOver&&b.coreRankSpent<b.coreRankPool)problem("","builder.issue.ranksRemaining",{count:b.coreRankPool-b.coreRankSpent});
+  if(S.skills.some(s=>!s.name.trim()))problem("","builder.issue.skillUnnamed");
+  if(S.ability.enabled&&(!S.ability.words.verbs.length||!S.ability.words.nouns.length))problem("","builder.issue.abilityWords");
+  if(hasGift("Uncontrollable Power")&&S.ability.enabled&&!S.ability.words.conditions.length)problem("bad","builder.issue.uncontrollableCondition");
+  if(S.ability.enabled&&abilityNeedsX(S.ability)&&!wordById(S.ability.xNoun))problem("bad","builder.issue.abilityX");
+  if(hasGift("Tainted Body")&&S.mods.taintedBody&&(!S.taintedAbility.words.verbs.length||!S.taintedAbility.words.nouns.length))problem("","builder.issue.taintedWords");
+  if(hasGift("Tainted Body")&&S.mods.taintedBody&&abilityNeedsX(S.taintedAbility)&&!wordById(S.taintedAbility.xNoun))problem("bad","builder.issue.taintedX");
+  if(b.taintedAbilityOver)problem("bad","builder.issue.taintedOver",{count:b.taintedAbilityOver});
+  if(hasGift("Supernatural Deafness")&&S.ability.enabled)problem("bad","builder.issue.supernaturalDeafness");
+  if(b.rankBudgetConflict)problem("bad","builder.issue.rankConflict");
   const performanceSkill=S.skills.find(s=>s.id===S.mods.performanceSkill);
-  if(hasGift("Performance Artist")&&!performanceSkill)problem("","Выберите Навык, который получает дополнительный Ранг от Дара «Артист».","Choose the Skill that gains the extra Performance Artist Rank.");
-  if(hasGift("Performance Artist")&&performanceSkill?.rank>=3)problem("bad","«Артист» не может повысить выбранный Навык выше максимального Ранга 3. Выберите Навык с купленным Рангом 1 или 2.","Performance Artist cannot raise a Skill above Rank 3. Choose a Skill with 1 or 2 bought Ranks.");
-  if(b.techSpent>b.techPool)problem("bad","Перерасход Уровней Техник.","Technique Level budget exceeded.");
-  if(b.techSpent<b.techPool)problem("",`Распределите ещё ${b.techPool-b.techSpent} Уровней Техник.`,`Spend the remaining ${b.techPool-b.techSpent} Technique Level(s).`);
-  if(b.archUsed>(activeBuilderRules()?.techniques.maximumArchetypes||3))problem("bad","Техники взяты более чем из трёх Архетипов.","Techniques may come from no more than three Archetypes.");
+  if(hasGift("Performance Artist")&&!performanceSkill)problem("","builder.issue.performanceTarget");
+  if(hasGift("Performance Artist")&&performanceSkill?.rank>=3)problem("bad","builder.issue.performanceMaximum");
+  if(b.techSpent>b.techPool)problem("bad","builder.issue.techniquesOver");
+  if(b.techSpent<b.techPool)problem("","builder.issue.techniquesRemaining",{count:b.techPool-b.techSpent});
+  if(b.archUsed>(activeBuilderRules()?.techniques.maximumArchetypes||3))problem("bad","builder.issue.archetypeLimit");
   return problems;
 }
 

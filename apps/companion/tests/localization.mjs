@@ -21,6 +21,10 @@ assert.equal(i18n.t("builder.profile.title"), "Profile");
 assert.equal(i18n.t("scene.error.missingActor"), "Участник не найден.", "missing English strings must fall back to Russian");
 assert.equal(i18n.field({ name: "Русское имя", i18n: { en: { name: "English name" } } }, "name"), "English name");
 assert.equal(i18n.eventText({ type: "rule.prompt", payload: { messageKey: "scene.prompt.cancel", messageFallback: "Отмена" } }), "Cancel");
+for (const key of ["builder.status.valid", "builder.ability.xHelp", "builder.ability.formulaUncontrollable", "builder.issue.abilityX", "builder.ranks.abilityReserve", "builder.hero.importUnsupported"]) {
+  assert.notEqual(i18n.t(key, {}, { locale: "ru" }), key, `missing Russian builder message: ${key}`);
+  assert.notEqual(i18n.t(key, {}, { locale: "en" }), key, `missing English builder message: ${key}`);
+}
 
 assert.equal(context.DAWN_DATA.sourceLocale, "ru");
 assert.deepEqual(Array.from(context.DAWN_DATA.availableLocales), ["ru"]);

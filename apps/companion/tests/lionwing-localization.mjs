@@ -4,6 +4,7 @@ import fs from "node:fs";
 globalThis.window = {};
 await import("../edition-lionwing.js");
 await import("../edition-lionwing-ru.js");
+await import("../logic.js");
 
 const english = window.DAWN_LIONWING_DATA;
 const russian = window.DAWN_LIONWING_RU;
@@ -50,4 +51,40 @@ const translatedChangedTechniqueIds = changedTechniqueIds.filter(id => translate
 assert.equal(changedTechniqueIds.length, 106);
 assert.equal(translatedChangedTechniqueIds.length, changedTechniqueIds.length, "every changed LionWing Technique must have a reviewed Russian overlay");
 
-console.log(`LionWing RU overlay QA passed: ${activeAbilityWordIds.length} Ability words (${newAbilityWordIds.length} new), 10 Outlooks, ${translatedNewBoons} new and ${changedBoonIds.length} changed Boons, ${newTechniqueIds.length} new and ${translatedChangedTechniqueIds.length}/${changedTechniqueIds.length} changed Techniques`);
+const localizedOutlooks = english.outlooks.map(outlook => {
+  const overlay = russian.outlooks[outlook.id];
+  return { ...outlook, ...overlay, gifts: outlook.gifts.map(gift => ({ ...gift, ...(overlay.gifts?.[gift.id] || {}) })) };
+});
+const localizedArchetypes = english.archetypes.map(archetype => {
+  const overlay = russian.archetypes[archetype.id];
+  return { ...archetype, ...overlay, techniques: archetype.techniques.map(technique => {
+    const translated = overlay.techniques?.[technique.id];
+    return { ...technique, ...translated, levels: technique.levels.map(level => ({ ...level, ...(translated?.levels?.[level.n] || {}) })) };
+  }) };
+});
+const localizedAbilityWords = Object.fromEntries(Object.entries(english.abilityWords).map(([group, words]) => [group, words.map(word => ({ ...word, name: russian.abilityWords[word.id] }))]));
+assert.deepEqual(localizedOutlooks.map(item => item.id), english.outlooks.map(item => item.id), "switching LionWing to RU must preserve Outlook ids");
+assert.deepEqual(localizedArchetypes.flatMap(item => item.techniques.map(technique => technique.id)), english.archetypes.flatMap(item => item.techniques.map(technique => technique.id)), "switching LionWing to RU must preserve Technique ids");
+for (const group of ["verbs", "nouns", "conditions"]) {
+  assert.deepEqual(localizedAbilityWords[group].map(item => item.id), english.abilityWords[group].map(item => item.id), `switching LionWing to RU must preserve ${group} ids`);
+  assert.deepEqual(localizedAbilityWords[group].map(({ cost, costLabel, marks }) => ({ cost, costLabel, marks })), english.abilityWords[group].map(({ cost, costLabel, marks }) => ({ cost, costLabel, marks })), `switching LionWing to RU must preserve ${group} mechanics`);
+}
+
+const word = id => Object.values(english.abilityWords).flat().find(item => item.id === id);
+const withGroup = (id, group) => ({ ...word(id), group });
+const variableAbility = [withGroup("ability.en.verbs.store-x-in", "verbs"), withGroup("ability.en.nouns.plants", "nouns"), withGroup("ability.en.conditions.you-ve-built-the-target", "conditions")];
+assert.equal(window.DAWN_LOGIC.calculateAbilityCost({ enabled: true, rank: 2, words: variableAbility, xWord: word("ability.en.nouns.machines") }), 4, "X must use the selected Noun cost and include the Rank increase");
+assert.equal(window.DAWN_LOGIC.calculateAbilityCost({ enabled: true, rank: 2, words: variableAbility, xWord: word("ability.en.nouns.machines"), specializations: { "ability.en.nouns.plants": "roses", "ability.en.nouns.machines": "trains" } }), 2, "✝ specializations must reduce both direct and X Noun costs");
+const stoppingAbility = [withGroup("ability.en.verbs.breathe", "verbs"), withGroup("ability.en.nouns.machines", "nouns"), withGroup("ability.en.conditions.you-are-sweating", "conditions")];
+assert.equal(window.DAWN_LOGIC.calculateAbilityCost({ enabled: true, rank: 1, words: stoppingAbility }), 2, "✢ must omit the Condition from an ordinary Ability");
+assert.equal(window.DAWN_LOGIC.calculateAbilityCost({ enabled: true, rank: 1, words: stoppingAbility, forceCondition: true }), 1, "a mandatory Condition must override ✢ and remain in the cost");
+
+const selectedOutlookIds = english.outlooks.slice(0, 2).map(item => item.id), primaryOutlookId = selectedOutlookIds[0];
+const selectedGiftIds = english.outlooks.filter(item => selectedOutlookIds.includes(item.id)).flatMap(item => item.gifts.slice(0, 1).map(gift => gift.id));
+const budgetFor = outlooks => {
+  const gifts = window.DAWN_LOGIC.resolveSelectedGifts({ outlooks, selectedOutlookIds, primaryOutlookId, selectedGiftIds });
+  return window.DAWN_LOGIC.calculateCreationBudgets({ tier: 2, builderRules: english.builderRules, gifts: gifts.map(gift => gift.en || gift.name), skillRanks: [2, 2], abilityCost: 3 });
+};
+assert.deepEqual(budgetFor(localizedOutlooks), budgetFor(english.outlooks), "switching LionWing RU/EN must not change character budgets");
+
+console.log(`LionWing RU/EN QA passed: stable ids and budgets; ${activeAbilityWordIds.length} Ability words (${newAbilityWordIds.length} new); ✢/✝/☾ and X cost verified; 10 Outlooks, ${translatedNewBoons} new and ${changedBoonIds.length} changed Boons, ${newTechniqueIds.length} new and ${translatedChangedTechniqueIds.length}/${changedTechniqueIds.length} changed Techniques`);
