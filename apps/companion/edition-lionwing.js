@@ -6455,6 +6455,162 @@ window.DAWN_LIONWING_DATA = {
      "locale": "en",
      "pdfPage": 58
     }
+   },
+   {
+    "id": "lionwing.core.spatial.special-targeting",
+    "category": "Spaces, Movement, and Targeting",
+    "name": "Special Targeting",
+    "kind": "rule",
+    "text": "Some effects target something other than one target in a range. With this and any other multi-character targeting, an Attack is rolled once and that roll is shared by all targets. If a source of Advantage or Disadvantage applies to some but not all targets, first roll the lowest number of dice and apply it to all targets, then roll the additional dice separately for each affected target and add those Hits to the Hits that target takes.",
+    "source": {
+     "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
+     "pdfPage": 59
+    }
+   },
+   {
+    "id": "lionwing.core.spatial.zones",
+    "category": "Spaces, Movement, and Targeting",
+    "name": "Zones",
+    "kind": "rule",
+    "text": "A Zone is a shape written as X × Y, with X and Y showing how many spaces wide or tall it can be; width and height may be swapped freely. When creating a Zone in a targeted space, the user may place any part of the Zone within that space.",
+    "source": {
+     "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
+     "pdfPage": 59
+    }
+   },
+   {
+    "id": "lionwing.core.spatial.centered-zones",
+    "category": "Spaces, Movement, and Targeting",
+    "name": "Centered Zones",
+    "kind": "rule",
+    "text": "When a Zone must be centered on a character or space, as many spaces of the Zone as possible must be adjacent to the centered space and, if possible, the centered space must be at the exact center of the Zone. If several placements are valid, the creator chooses.",
+    "source": {
+     "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
+     "pdfPage": 59
+    }
+   },
+   {
+    "id": "lionwing.core.spatial.lines",
+    "category": "Spaces, Movement, and Targeting",
+    "name": "Lines",
+    "kind": "rule",
+    "text": "A Line extends from its user in an orthogonal or diagonal direction. Unlike normal range, Lines count diagonal spaces as one space apart.",
+    "source": {
+     "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
+     "pdfPage": 59
+    }
+   },
+   {
+    "id": "lionwing.core.spatial.straight-lines",
+    "category": "Spaces, Movement, and Targeting",
+    "name": "Moving in Straight Lines",
+    "kind": "rule",
+    "text": "Straight Lines may be drawn orthogonally or diagonally, counting diagonal spaces as one space apart. Movement that must follow a straight Line uses the same rule.",
+    "source": {
+     "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
+     "pdfPage": 59
+    }
+   },
+   {
+    "id": "lionwing.core.terrain.overview",
+    "category": "Terrain",
+    "name": "Terrain",
+    "kind": "rule",
+    "text": "Terrain is an object or area on the battlefield that changes how characters act when moving to it. Obstacles can't be moved through unless stated otherwise, have Health (10 Health per space by default), and are destroyed at 0 Health. Fields affect characters according to their type.",
+    "source": {
+     "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
+     "pdfPage": 60
+    }
+   },
+   {
+    "id": "lionwing.core.terrain.curios",
+    "category": "Terrain",
+    "name": "Curios",
+    "kind": "rule",
+    "text": "A Curio is an Obstacle that can be used in a unique way. A player or Antagonist enemy may use Improvise and remove the Curio from the board. A Curio can have any Scene-specific effect assigned by the Narrator. A simple option is to let its user apply a bonus to one Action, such as a Hastened Jump, a Strengthened Attack, or an Investigate with 2 targets.",
+    "source": {
+     "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
+     "pdfPage": 60
+    }
+   },
+   {
+    "id": "lionwing.core.terrain.walls",
+    "category": "Terrain",
+    "name": "Walls",
+    "kind": "rule",
+    "text": "Walls are Obstacles placed on the borders between spaces rather than in spaces. Movement and targeting can't be drawn between spaces separated by a Wall.",
+    "source": {
+     "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
+     "pdfPage": 60
+    }
+   },
+   {
+    "id": "lionwing.core.terrain.difficult",
+    "category": "Terrain",
+    "name": "Difficult Terrain",
+    "kind": "rule",
+    "text": "Difficult Terrain is a Field. When a character enters it, their Speed becomes 0 until the end of the Turn and their current movement ends immediately. A character who started their Turn in Difficult Terrain is unaffected by all connected pieces of it until the end of that Turn.",
+    "source": {
+     "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
+     "pdfPage": 60
+    }
+   },
+   {
+    "id": "lionwing.core.terrain.height",
+    "category": "Terrain",
+    "name": "High and Low Ground",
+    "kind": "rule",
+    "text": "When height matters, use High, Standard, and Low Terrain. Moving from one height level to the next higher level ends all movement and reduces Speed to 0 until the end of the user's Turn. Moving from Low to High is possible only if the user started the movement on the edge of the High Ground. Attacks have [Tier / 2] Advantage against lower targets and [Tier / 2] Disadvantage against higher targets.",
+    "source": {
+     "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
+     "pdfPage": 60
+    }
+   },
+   {
+    "id": "lionwing.core.combat.cinematic",
+    "category": "Combat",
+    "name": "Cinematic Combat",
+    "kind": "alternate-rule",
+    "text": "Cinematic Combat is recommended for smaller groups or shorter fights. All characters are placed on a 7-space line; allies Deploy in the 2 leftmost spaces and enemies in the opposite 2 spaces. Any number of characters may occupy one space, and characters may move through opponents, but entering an enemy's space counts as Difficult Terrain unless that movement could normally pass through enemies. Standard and Line targeting can target only one character in each targeted space; other multi-space targeting affects every target in its area.",
+    "source": {
+     "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
+     "pdfPage": 60
+    }
+   },
+   {
+    "id": "lionwing.core.spatial.choosing-targets",
+    "category": "Spaces, Movement, and Targeting",
+    "name": "Choosing Targets",
+    "kind": "note",
+    "text": "When instructed to choose a target, you may target characters, Obstacles, or empty spaces within the allowed range.",
+    "source": {
+     "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
+     "pdfPage": 63
+    }
+   },
+   {
+    "id": "lionwing.core.combat.contextual-actions",
+    "category": "Combat",
+    "name": "Contextual Actions",
+    "kind": "note",
+    "text": "Structured combat describes an average fight, but contextually sensible actions aren't forbidden just because the standard rules don't define them. Duel moves play into unstructured rules and can justify such attempts. Narrators may also prepare custom Terrain or NPCs that players can affect with Interact.",
+    "source": {
+     "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
+     "pdfPage": 65
+    }
    }
   ],
   "source": {

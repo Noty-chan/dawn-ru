@@ -50,7 +50,7 @@ assert.match(russianActions["action.утилитарные-действия.из
 
 const englishCoreRules = english.coreRules.rules;
 const russianCoreRules = russian.coreRules.rules.entries;
-assert.equal(englishCoreRules.length, 23);
+assert.equal(englishCoreRules.length, 36);
 assert.equal(Object.keys(russianCoreRules).length, englishCoreRules.length, "every LionWing core rule card needs a Russian overlay");
 const localizedCoreRules = englishCoreRules.map(item => ({ ...item, ...(russianCoreRules[item.id] || {}) }));
 for (const item of englishCoreRules) assert.ok(russianCoreRules[item.id]?.text, `missing Russian core rule: ${item.id}`);
@@ -59,6 +59,8 @@ assert.deepEqual(localizedCoreRules.map(item => item.kind), englishCoreRules.map
 assert.deepEqual(localizedCoreRules.map(item => item.source), englishCoreRules.map(item => item.source), "switching LionWing core rules to RU must preserve sources");
 assert.match(russianCoreRules["lionwing.core.combat.assisting"].text, /самым высоким Атрибутом/, "LionWing Assisting must not reuse the 0.9 secondary-Attribute rule");
 assert.match(russianCoreRules["lionwing.core.statistics.health"].text, /10 \+ \[Тело\] \+ \[Ступень × 2\]/, "LionWing maximum Health formula must be preserved");
+assert.match(russianCoreRules["lionwing.core.spatial.special-targeting"].text, /сначала бросьте наименьшее число костей/, "LionWing multi-target rolls must preserve their staged dice rule");
+assert.match(russianCoreRules["lionwing.core.combat.cinematic"].text, /Линии из 7 клеток/, "LionWing Cinematic Combat must preserve its board size");
 
 const activeAbilityWordIds = Object.values(english.abilityWords).flat().map(item => item.id);
 const retiredAbilityWordIds = worklist.units.filter(item => item.domain === "ability-word" && item.action === "retire").map(item => item.stableId);

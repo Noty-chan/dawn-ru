@@ -27,7 +27,7 @@ assert.equal(manifest.editionId, lionwing.editionId);
 assert.equal(manifest.counts.techniques, 111);
 assert.equal(manifest.counts.coreEffects, 19);
 assert.equal(manifest.counts.coreActions, 17);
-assert.equal(manifest.counts.coreRuleCards, 23);
+assert.equal(manifest.counts.coreRuleCards, 36);
 assert.equal(oldEnglish.techniques.length, 107);
 assert.deepEqual(Object.fromEntries(Object.entries(oldEnglish.abilityWords).map(([group, words]) => [group, words.length])), { verbs: 32, nouns: 30, conditions: 21 });
 assert.ok(oldEnglish.outlooks.every(outlook => !outlook.description.includes("Favored Bond Actions")), "old Outlook descriptions must not absorb rules and Boons");
