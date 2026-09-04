@@ -915,6 +915,10 @@ def core_rules() -> dict:
         },
     ]
     rule_rows = [
+        ("lionwing.narrator.modifiers.overview", "Modifiers", "Adding Modifiers", "rule", "Standard NPC types are characters with strengths and weaknesses meant to contest player characters. Modifiers instead add specialized threats to combat without representing another character: NPC Modifiers attach new threats to an NPC, while Scene Modifiers create harmful environmental effects across the board. Each is intended to affect a player about as much as a standard NPC of equal Tier, but their specialized nature makes matchups especially important.", 125),
+        ("lionwing.narrator.modifiers.stakes", "Modifiers", "Modifiers As Stakes", "narrator-guidance", "A Narrator may Deploy a Modifier in response to player actions during Unstructured Play rather than using one in every combat. Failed evacuation might add Collateral to an already planned fight; ignoring an Antagonist gathering a powerful relic might give that Antagonist an NPC Modifier. Most Modifiers can be added to an existing Deployment without disrupting it.", 125),
+        ("lionwing.narrator.modifiers.npc-deployment", "Modifiers", "Deploying NPC Modifiers", "rule", "To Deploy an NPC Modifier, Attach it to an NPC already Deployed, adding the Modifier's statistics and Passive to that NPC. An NPC benefits only once from the same statistic across Modifiers: if two increase Armor, apply only the higher value; if one increases Armor and another Speed, apply both.", 125),
+        ("lionwing.narrator.modifiers.scene-deployment", "Modifiers", "Deploying Scene Modifiers", "rule", "A Scene Modifier may be Deployed alongside the Scene, applying its Passive continuously while enemies remain alive, or stored within an enemy, applying its Passive only while that enemy is on the board. Neither kind of Modifier can be targeted or take Turns.", 125),
         ("lionwing.narrator.deployments.overview", "Deployment Recipes", "Using Deployment Recipes", "narrator-guidance", "Each listed recipe is balanced as Tough Combat for 4 players. To make it Standard, halve half of the enemy Tiers; to make it Brutal, double half of the enemy Tiers.", 113),
         ("lionwing.narrator.deployments.king-and-men", "Deployment Recipes", "The King And All His Men", "deployment-recipe", "Deploy a Tier [Average Tier × 1.5] leader: Proud Leader (Duelist), Cruel Overlord (Glutton), Staunch Lord (Coordinator), or Naive Captain (Bannerman). Then Deploy 4 Tier [Average Tier] enemies split among Rouges (Viper), Bastards (Bruiser), Knights (Guardian), and Clerics (Healer).", 113),
         ("lionwing.narrator.deployments.opposing-team", "Deployment Recipes", "The Opposing Team", "deployment-recipe", "Deploy a Tier [Average Tier × 1.5] leader: Martial Artist (Pugilist), Sword Master (Ronin), Shield Fighter (Oni), or Arcane Assassin (Rifter). Then Deploy 3 Tier [Average Tier × 1.5] enemies split among Sadists (Captor), Bullies (Bruiser), Cutthroats (Assassin), and Brainiacs (Witch).", 113),
@@ -1071,7 +1075,7 @@ def core_rules() -> dict:
         },
         "npcs": {"list": npc_rows},
         "rules": rules,
-        "source": {"editionId": NEW_ID, "locale": "en", "pdfPages": list(range(22, 66)) + list(range(104, 125))},
+        "source": {"editionId": NEW_ID, "locale": "en", "pdfPages": list(range(22, 66)) + list(range(104, 126))},
     }
 
 

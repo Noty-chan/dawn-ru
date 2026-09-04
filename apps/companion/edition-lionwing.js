@@ -8130,6 +8130,54 @@ window.DAWN_LIONWING_DATA = {
   },
   "rules": [
    {
+    "id": "lionwing.narrator.modifiers.overview",
+    "category": "Modifiers",
+    "name": "Adding Modifiers",
+    "kind": "rule",
+    "text": "Standard NPC types are characters with strengths and weaknesses meant to contest player characters. Modifiers instead add specialized threats to combat without representing another character: NPC Modifiers attach new threats to an NPC, while Scene Modifiers create harmful environmental effects across the board. Each is intended to affect a player about as much as a standard NPC of equal Tier, but their specialized nature makes matchups especially important.",
+    "source": {
+     "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
+     "pdfPage": 125
+    }
+   },
+   {
+    "id": "lionwing.narrator.modifiers.stakes",
+    "category": "Modifiers",
+    "name": "Modifiers As Stakes",
+    "kind": "narrator-guidance",
+    "text": "A Narrator may Deploy a Modifier in response to player actions during Unstructured Play rather than using one in every combat. Failed evacuation might add Collateral to an already planned fight; ignoring an Antagonist gathering a powerful relic might give that Antagonist an NPC Modifier. Most Modifiers can be added to an existing Deployment without disrupting it.",
+    "source": {
+     "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
+     "pdfPage": 125
+    }
+   },
+   {
+    "id": "lionwing.narrator.modifiers.npc-deployment",
+    "category": "Modifiers",
+    "name": "Deploying NPC Modifiers",
+    "kind": "rule",
+    "text": "To Deploy an NPC Modifier, Attach it to an NPC already Deployed, adding the Modifier's statistics and Passive to that NPC. An NPC benefits only once from the same statistic across Modifiers: if two increase Armor, apply only the higher value; if one increases Armor and another Speed, apply both.",
+    "source": {
+     "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
+     "pdfPage": 125
+    }
+   },
+   {
+    "id": "lionwing.narrator.modifiers.scene-deployment",
+    "category": "Modifiers",
+    "name": "Deploying Scene Modifiers",
+    "kind": "rule",
+    "text": "A Scene Modifier may be Deployed alongside the Scene, applying its Passive continuously while enemies remain alive, or stored within an enemy, applying its Passive only while that enemy is on the board. Neither kind of Modifier can be targeted or take Turns.",
+    "source": {
+     "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
+     "pdfPage": 125
+    }
+   },
+   {
     "id": "lionwing.narrator.deployments.overview",
     "category": "Deployment Recipes",
     "name": "Using Deployment Recipes",
@@ -9830,7 +9878,8 @@ window.DAWN_LIONWING_DATA = {
     121,
     122,
     123,
-    124
+    124,
+    125
    ]
   }
  },

@@ -50,7 +50,7 @@ assert.match(russianActions["action.утилитарные-действия.из
 
 const englishCoreRules = english.coreRules.rules;
 const russianCoreRules = russian.coreRules.rules.entries;
-assert.equal(englishCoreRules.length, 136);
+assert.equal(englishCoreRules.length, 140);
 assert.equal(Object.keys(russianCoreRules).length, englishCoreRules.length, "every LionWing core rule card needs a Russian overlay");
 const localizedCoreRules = englishCoreRules.map(item => ({ ...item, ...(russianCoreRules[item.id] || {}) }));
 for (const item of englishCoreRules) assert.ok(russianCoreRules[item.id]?.text, `missing Russian core rule: ${item.id}`);
@@ -78,6 +78,8 @@ assert.match(russianCoreRules["lionwing.narrator.edges.overview"].text, /3 бе�
 assert.match(russianCoreRules["lionwing.narrator.edges.wild-eyed"].text, /Столкновение/, "Wild-Eyed interception must use LionWing Clash");
 assert.match(russianCoreRules["lionwing.narrator.deployments.overview"].text, /Трудный бой для 4 игроков/, "Deployment Recipes must retain their target difficulty and party size");
 assert.match(russianCoreRules["lionwing.narrator.deployments.taking-on-a-god"].text, /4 Частей/, "Taking On A God must retain the Compound part count");
+assert.match(russianCoreRules["lionwing.narrator.modifiers.npc-deployment"].text, /лишь большее значение/, "NPC Modifier statistics must not stack twice");
+assert.match(russianCoreRules["lionwing.narrator.modifiers.scene-deployment"].text, /нельзя выбирать целью.+не совершают Ходов/, "Modifiers must not become targetable turn-taking characters");
 
 const englishNpcs = english.coreRules.npcs.list;
 const russianNpcs = russian.coreRules.npcs.entries;

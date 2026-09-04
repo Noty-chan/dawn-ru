@@ -289,6 +289,16 @@
       "requires": ["запрет выбранных Действий с перехватом цели", "обязательная клетка к концу следующего Хода", "порог урона одним случаем", "изменяемый Пассив", "Часы Подготовки", "Козырь Н0 с повторным применением и тремя случаями урона", "счетчики Рока и виртуальное Напряжение", "замена Культиста усиленным NPC", "движение при росте Напряжения", "принудительный Ход против союзника", "Ищейки с целью и взрывом", "Трупы и оживление как NPC меньшей Ступени", "движение сопровождения вслед за союзником", "сеть Разломов с удалением и лимитом раз за Ход", "распределенный NPC из Зон Приспешников"]
     },
     {
+      "id": "lionwing.modifiers.foundation",
+      "name": "Основа Модификаторов LionWing",
+      "strategy": "extend-shared-core",
+      "status": "rules-data-ready",
+      "sourcePages": [125],
+      "ruleIds": ["lionwing.narrator.modifiers.overview", "lionwing.narrator.modifiers.stakes", "lionwing.narrator.modifiers.npc-deployment", "lionwing.narrator.modifiers.scene-deployment"],
+      "reuseFrom09": ["enemy-modifier-attachment", "profile-stat-bonuses", "scene-effects"],
+      "requires": ["прикрепление Модификатора к стабильному ID NPC", "разрешение конфликтов прибавок одного показателя по максимуму", "одновременное применение прибавок разных показателей", "Модификатор Сцены без цели и Хода", "режим действия вместе со Сценой или пока хранитель на поле"]
+    },
+    {
       "id": "lionwing.techniques.separate-review-map",
       "name": "Отдельная карта автоматизации 333 Уровней LionWing",
       "strategy": "new-lionwing-foundation",
