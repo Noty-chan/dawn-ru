@@ -68,6 +68,27 @@ function localizedLionwingReference(){
   return Lionwing.reference.map(item=>({...item,...(LionwingRu.reference[item.id]||{})}));
 }
 const activeReferenceSections=()=>[...(isLionwingEdition()?localizedLionwingReference():[]),...supplementItems("reference")];
+function localizedLionwingCoreRules(){
+  if(contentPreferences.locale!=="ru"||!LionwingRu?.coreRules)return Lionwing.coreRules;
+  const translation=LionwingRu.coreRules,effectEntries=translation.effects?.entries||{},actionEntries=translation.actions?.entries||{},ruleEntries=translation.rules?.entries||{};
+  return{
+    ...Lionwing.coreRules,
+    effects:{
+      ...Lionwing.coreRules.effects,
+      intro:translation.effects?.intro||Lionwing.coreRules.effects.intro,
+      positive:Lionwing.coreRules.effects.positive.map(item=>({...item,...(effectEntries[item.id]||{})})),
+      negative:Lionwing.coreRules.effects.negative.map(item=>({...item,...(effectEntries[item.id]||{})})),
+    },
+    actions:{
+      ...Lionwing.coreRules.actions,
+      intro:translation.actions?.intro||Lionwing.coreRules.actions.intro,
+      combos:translation.actions?.combos||Lionwing.coreRules.actions.combos,
+      list:Lionwing.coreRules.actions.list.map(item=>({...item,...(actionEntries[item.id]||{})})),
+    },
+    rules:Lionwing.coreRules.rules.map(item=>({...item,...(ruleEntries[item.id]||{})})),
+  };
+}
+const activeCoreRules=()=>isLionwingEdition()?localizedLionwingCoreRules():null;
 const activeBuilderRules=()=>isLionwingEdition()?Lionwing.builderRules:null;
 const activeAttrs=()=>isEnglishPreview()?[
   ["body","Body","Health, resilience, and physical power"],
