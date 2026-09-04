@@ -81,7 +81,7 @@ assert.match(russianCoreRules["lionwing.narrator.deployments.taking-on-a-god"].t
 
 const englishNpcs = english.coreRules.npcs.list;
 const russianNpcs = russian.coreRules.npcs.entries;
-assert.equal(englishNpcs.length, 11);
+assert.equal(englishNpcs.length, 15);
 assert.equal(Object.keys(russianNpcs).length, englishNpcs.length, "every imported LionWing NPC needs a Russian overlay");
 const localizedNpcs = englishNpcs.map(item => {
   const overlay = russianNpcs[item.id];
@@ -98,6 +98,9 @@ assert.match(localizedNpcs.find(item => item.id === "lionwing.npc.executioner").
 assert.match(localizedNpcs.find(item => item.id === "lionwing.npc.pugilist").ace.text, /дважды/, "Martial Perfection must retain its double Passive trigger");
 assert.match(localizedNpcs.find(item => item.id === "lionwing.npc.ronin").actions.find(item => item.id.endsWith("dissect")).text, /2 Крита/, "Dissect must retain its Crit threshold");
 assert.match(localizedNpcs.find(item => item.id === "lionwing.npc.witch").actions.find(item => item.id.endsWith("drawing-runes")).text, /каждая.+кость.+Успехом/, "Drawing Runes must retain automatic Hits");
+assert.equal(englishNpcs.find(item => item.id === "lionwing.npc.bodyguards").statistics.health, "1*", "Bodyguards must retain their special Health");
+assert.match(localizedNpcs.find(item => item.id === "lionwing.npc.cocoon").passive, /3 Ростом/, "Cocoon must retain its Growth threshold");
+assert.match(localizedNpcs.find(item => item.id === "lionwing.npc.duelist").ace.text, /можете немедленно снова/, "Disassemble must retain immediate Ace reuse");
 
 const englishSkills = english.builderRules.skills.canonical;
 const russianSkillNames = russian.builderRules.skills.entries;

@@ -240,6 +240,16 @@
       "requires": ["расчет средней Ступени группы", "ручной выбор Обычного, Тяжелого или Жестокого боя", "проверка доступности всех указанных профилей", "Составной враг из четырех Частей"]
     },
     {
+      "id": "lionwing.npcs.tank-profiles",
+      "name": "Профили Tank NPC LionWing",
+      "strategy": "new-lionwing-foundation",
+      "status": "4-profiles-data-ready",
+      "sourcePages": [117],
+      "ruleIds": ["lionwing.npc.bodyguards", "lionwing.npc.broodmother", "lionwing.npc.cocoon", "lionwing.npc.duelist"],
+      "reuseFrom09": ["profile-rendering", "tier-scaling", "profile-actions", "ace-cards"],
+      "requires": ["NPC из нескольких Зон Приспешников", "предел числа Зон", "счетчики Роста и Покорность", "повтор Атаки по новым целям", "следующая за хозяином уязвимая точка", "повторное применение Козыря"]
+    },
+    {
       "id": "lionwing.core.antagonist-edges",
       "name": "Грани Антагониста и Смена фазы",
       "strategy": "extend-shared-core",

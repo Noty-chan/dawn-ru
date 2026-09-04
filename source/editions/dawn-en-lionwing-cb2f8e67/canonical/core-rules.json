@@ -1005,6 +1005,178 @@
           "locale": "en",
           "pdfPage": 116
         }
+      },
+      {
+        "id": "lionwing.npc.bodyguards",
+        "role": "Tank",
+        "name": "Bodyguards",
+        "description": "Enhanced Fodder that can buff allies.",
+        "examples": [
+          "Soldier Squad",
+          "Churning Mass",
+          "Wolf Pack"
+        ],
+        "statistics": {
+          "health": "1*",
+          "speed": "0*",
+          "armor": 0,
+          "evasion": 0
+        },
+        "passive": "When this NPC would Deploy, Deploy 4 + [Tier] unique Fodder Zones instead. It cannot be Knocked Out until all of its Fodder Zones, or all non-Fodder characters, are Knocked Out; when either happens, this NPC takes 1 damage.",
+        "actions": [
+          {
+            "id": "lionwing.npc.bodyguards.brace",
+            "kind": "action",
+            "name": "Brace",
+            "text": "If at least 3 Fodder Zones are in a Line, they all become impassable until the Line is broken."
+          },
+          {
+            "id": "lionwing.npc.bodyguards.behind-me",
+            "kind": "attack",
+            "name": "Behind Me",
+            "text": "Move every Fodder Zone up to 1 space. Choose up to 3 characters adjacent to a Fodder Zone. Reinforce allied targets. Against opponents, roll 5 + [Tier]. Reward: Deal [Hits] + [Tension] damage and Daze targets enemies have not Attacked this Round."
+          }
+        ],
+        "ace": {
+          "id": "lionwing.npc.bodyguards.reinforcements",
+          "tension": 2,
+          "name": "Reinforcements",
+          "text": "Create 3 + [Tier] Fodder Zones in spaces on the edge of the board. This NPC immediately takes another Turn."
+        },
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 117
+        }
+      },
+      {
+        "id": "lionwing.npc.broodmother",
+        "role": "Tank",
+        "name": "Broodmother",
+        "description": "Creates Fodder when hit and Taunts.",
+        "examples": [
+          "Scarab Lord",
+          "Transport Vehicle",
+          "Tough Summoner"
+        ],
+        "statistics": {
+          "health": "15 + [Tier × 5]",
+          "speed": 3,
+          "armor": "[Tier]",
+          "evasion": 0
+        },
+        "passive": "When this NPC takes damage while there are 5 + [Tier × 2] or fewer Fodder Zones on the board, it may place a Fodder Zone within 2 spaces.",
+        "actions": [
+          {
+            "id": "lionwing.npc.broodmother.call",
+            "kind": "action",
+            "name": "Call",
+            "text": "Create 1 + [Tier] Fodder within 4 spaces. The amount created decreases by 1 each time this is used in the same Round."
+          },
+          {
+            "id": "lionwing.npc.broodmother.swarming-chase",
+            "kind": "attack",
+            "name": "Swarming Chase",
+            "text": "Move this NPC and all adjacent allies 1 space. Roll 4 + [Tier] against opponents this NPC moves adjacent to. Reward: Deal [Hits] + [Tension] damage, plus 1 for each Fodder Zone adjacent to the Broodmother."
+          }
+        ],
+        "ace": {
+          "id": "lionwing.npc.broodmother.roar",
+          "tension": 2,
+          "name": "Roar",
+          "text": "Taunt all opponents in a 5 × 5 Zone centered on this NPC. It immediately takes another Turn."
+        },
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 117
+        }
+      },
+      {
+        "id": "lionwing.npc.cocoon",
+        "role": "Tank",
+        "name": "Cocoon",
+        "description": "Endgame threat that absorbs Attacks early.",
+        "examples": [
+          "Slumbering Giant",
+          "Patience",
+          "Half-Built Machine"
+        ],
+        "statistics": {
+          "health": "18 + [Tier × 5]",
+          "speed": 4,
+          "armor": "[Tier]",
+          "evasion": 0
+        },
+        "passive": "Start combat Scenes Docile. While Docile, this NPC cannot move or Attack and gains 1 Growth when it ends its Turn. On starting a Turn with at least 3 Growth, lose Docile and restore 10 + [Tier × 2] Health if any is missing.",
+        "actions": [
+          {
+            "id": "lionwing.npc.cocoon.menace",
+            "kind": "action",
+            "name": "Menace",
+            "text": "Fear all opponents within 3 spaces. If this NPC is Docile, an ally may move or Attack."
+          },
+          {
+            "id": "lionwing.npc.cocoon.rampage",
+            "kind": "attack",
+            "name": "Rampage",
+            "text": "Move up to 3 spaces in a straight Line, ignoring every form of restriction. Roll 4 + [Tier] against an adjacent target. Reward: Deal [Hits] + [Tension] damage and repeat this Attack, targeting only characters not Attacked this Turn."
+          }
+        ],
+        "ace": {
+          "id": "lionwing.npc.cocoon.quick-growth",
+          "tension": 3,
+          "name": "Quick Growth",
+          "text": "Gain 1 Growth. This NPC immediately takes another Turn."
+        },
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 117
+        }
+      },
+      {
+        "id": "lionwing.npc.duelist",
+        "role": "Tank",
+        "name": "Duelist",
+        "description": "Forces single targets to Attack this NPC in duels.",
+        "examples": [
+          "Royal Fencer",
+          "Imperial Annoyance",
+          "Latching Insect"
+        ],
+        "statistics": {
+          "health": "13 + [Tier × 5]",
+          "speed": 4,
+          "armor": 0,
+          "evasion": 0
+        },
+        "passive": "Characters who Attack or are Attacked by this NPC are Taunted by it.",
+        "actions": [
+          {
+            "id": "lionwing.npc.duelist.goad",
+            "kind": "action",
+            "name": "Goad",
+            "text": "Taunt a character. If already Taunted by this NPC, force them to spend 2 Focus or move 3 spaces directly toward it, becoming Dazed if they move adjacent."
+          },
+          {
+            "id": "lionwing.npc.duelist.fleche",
+            "kind": "attack",
+            "name": "Flèche",
+            "text": "Choose a target within 2 spaces. Roll 5 + [Tier]. If the target is Taunted, deal [Tier] additional damage. Reward: Deal [Hits] + [Tension] damage and move 1 space."
+          }
+        ],
+        "ace": {
+          "id": "lionwing.npc.duelist.disassemble",
+          "tension": 2,
+          "name": "Disassemble",
+          "text": "Place a weak point in an unoccupied space adjacent to a character; it follows its host's movement. When this NPC Attacks the host while standing in the weak point, deal [Tension] additional damage, consume the weak point, and this Ace may be used again immediately."
+        },
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 117
+        }
       }
     ]
   },
@@ -2702,7 +2874,8 @@
       113,
       114,
       115,
-      116
+      116,
+      117
     ]
   }
 }
