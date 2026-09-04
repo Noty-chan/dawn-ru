@@ -420,7 +420,63 @@ def core_rules() -> dict:
         "cost": {"resource": item[4], "amount": item[5]}, "text": item[6],
         "source": {"editionId": NEW_ID, "locale": "en", "pdfPage": item[7]},
     } for item in action_rows]
+    npc_source = lambda page: {"editionId": NEW_ID, "locale": "en", "pdfPage": page}
+    npc_rows = [
+        {
+            "id": "lionwing.npc.assassin", "role": "DPS", "name": "Assassin",
+            "description": "Burst damage from stealth using Mark.", "examples": ["Imperial Assassins", "Wild Panthers", "Lurking Ghosts"],
+            "statistics": {"health": "13 + [Tier × 5]", "speed": 3, "armor": 0, "evasion": 0},
+            "passive": "Disappear after Deployment. When Attacking a Marked character, Disappear after the Attack if not already Disappeared when it began.",
+            "actions": [
+                {"id": "lionwing.npc.assassin.neutralize-target", "kind": "action", "name": "Neutralize Target", "text": "Target any character and Mark them. This NPC's Attacks do not remove Mark."},
+                {"id": "lionwing.npc.assassin.slice", "kind": "attack", "name": "Slice", "text": "Roll 3 + [Tier] against an adjacent target. If Disappeared, this NPC may reappear adjacent to the target and gain 2 + [Tier] Advantage. Reward: Deal [Hits] + [Tension] damage; if the target has no adjacent characters, add [Tier] damage."},
+            ],
+            "ace": {"id": "lionwing.npc.assassin.hidden-blades", "tension": 2, "name": "Hidden Blades", "text": "For the rest of the Scene, whenever this NPC Disappears, leave a Hidden Blade in the space it left. It is Difficult Terrain that deals [Tier] damage to a character entering it, then removes itself."},
+            "source": npc_source(114),
+        },
+        {
+            "id": "lionwing.npc.bruiser", "role": "DPS", "name": "Bruiser",
+            "description": "Attacks to Daze, then deals extra damage.", "examples": ["Professional Boxer", "Dire Gorilla", "Police Officer"],
+            "statistics": {"health": "15 + [Tier × 5]", "speed": 3, "armor": "[Tier]", "evasion": 0},
+            "passive": "If this NPC's Attack cannot push its target the full distance, the target is Dazed.",
+            "actions": [
+                {"id": "lionwing.npc.bruiser.beatdown", "kind": "action", "name": "Beatdown", "text": "Choose an adjacent Dazed target. Deal 2 damage to them 1 + [Tier] times."},
+                {"id": "lionwing.npc.bruiser.skulduggery", "kind": "attack", "name": "Skulduggery", "text": "Choose all other targets in a 2 × 2 Zone placed on this NPC. Roll 4 + [Tier]. Reward: Deal [Hits] + [Tension] damage and push each target [Tier × 2] spaces."},
+            ],
+            "ace": {"id": "lionwing.npc.bruiser.decimate", "tension": 1, "name": "Decimate", "text": "Indicate a 3 × 3 Zone centered on a space 2 spaces away and become Steady. At the end of the next Turn, use Skulduggery against every opponent in that Zone with 2 + [Tier] Advantage."},
+            "source": npc_source(114),
+        },
+        {
+            "id": "lionwing.npc.behemoth", "role": "DPS", "name": "Behemoth",
+            "description": "Endgame checkmate that creates Obstacles.", "examples": ["Terra Magi", "Gigantic Drake", "Wandering Undertaker"],
+            "statistics": {"health": "13 + [Tier × 5]", "speed": 3, "armor": 0, "evasion": 0},
+            "passive": "",
+            "actions": [
+                {"id": "lionwing.npc.behemoth.leap", "kind": "action", "name": "Leap", "text": "Disappear if this NPC has not Attacked this Turn. When it reappears, Launch and push every character within 2 spaces by 2 spaces unless they Dodge as if this were an Attack."},
+                {"id": "lionwing.npc.behemoth.tore-from-earth", "kind": "attack", "name": "Tore From Earth", "text": "Choose up to 2 targets within 6 spaces. Roll 5 + [Tier]. Reward: Deal [Hits] + [Tension] damage and place a 15 + [Tier × 5] Health, 0 Armor Obstacle adjacent to them."},
+            ],
+            "ace": {"id": "lionwing.npc.behemoth.meteor", "tension": 5, "name": "Meteor", "text": "Teleport to the middle of the board and become Steady. At the start of the next Turn, Attack every character without an Obstacle between them and this NPC, instantly dealing 2 Wounds."},
+            "source": npc_source(114),
+        },
+        {
+            "id": "lionwing.npc.captor", "role": "DPS", "name": "Captor",
+            "description": "Disrupts fragile targets at long range.", "examples": ["Retiarius", "Bounty Hunter", "Wolf-Hunting Spider"],
+            "statistics": {"health": "13 + [Tier × 5]", "speed": 3, "armor": 0, "evasion": 0},
+            "passive": "",
+            "actions": [
+                {"id": "lionwing.npc.captor.watch-and-wait", "kind": "action", "name": "Watch And Wait", "text": "Place unique Difficult Terrain in an unoccupied space within 4 spaces. When a character enters it, remove it and this NPC may use Catch And Release against them."},
+                {"id": "lionwing.npc.captor.catch-and-release", "kind": "attack", "name": "Catch And Release", "text": "Choose a target within 4 spaces. Roll 5 + [Tier]. Reward: Deal [Hits] + [Tension] damage; Weaken and Snare the target if enemies have not Attacked them this Round."},
+            ],
+            "ace": {"id": "lionwing.npc.captor.sticky-bomb", "tension": 1, "name": "Sticky Bomb", "text": "Indicate an opponent within 5 spaces. At the end of the next Turn, use Catch And Release against every character within 3 spaces of them. Hit characters are pulled adjacent to and Snared by the indicated character instead of this NPC."},
+            "source": npc_source(114),
+        },
+    ]
     rule_rows = [
+        ("lionwing.narrator.deployments.overview", "Deployment Recipes", "Using Deployment Recipes", "narrator-guidance", "Each listed recipe is balanced as Tough Combat for 4 players. To make it Standard, halve half of the enemy Tiers; to make it Brutal, double half of the enemy Tiers.", 113),
+        ("lionwing.narrator.deployments.king-and-men", "Deployment Recipes", "The King And All His Men", "deployment-recipe", "Deploy a Tier [Average Tier × 1.5] leader: Proud Leader (Duelist), Cruel Overlord (Glutton), Staunch Lord (Coordinator), or Naive Captain (Bannerman). Then Deploy 4 Tier [Average Tier] enemies split among Rouges (Viper), Bastards (Bruiser), Knights (Guardian), and Clerics (Healer).", 113),
+        ("lionwing.narrator.deployments.opposing-team", "Deployment Recipes", "The Opposing Team", "deployment-recipe", "Deploy a Tier [Average Tier × 1.5] leader: Martial Artist (Pugilist), Sword Master (Ronin), Shield Fighter (Oni), or Arcane Assassin (Rifter). Then Deploy 3 Tier [Average Tier × 1.5] enemies split among Sadists (Captor), Bullies (Bruiser), Cutthroats (Assassin), and Brainiacs (Witch).", 113),
+        ("lionwing.narrator.deployments.hornets-nest", "Deployment Recipes", "Kicking The Hornet's Nest", "deployment-recipe", "Deploy 5 Tier [Average Tier] enemies split among Fighter Squads (Swarm), Guard Squads (Bodyguards), Zombies (Revenant), Deployers (Hound Master), and Litches (Necromancer). Deploy 4 Fodder Zones with them.", 113),
+        ("lionwing.narrator.deployments.taking-on-a-god", "Deployment Recipes", "Taking On A God", "deployment-recipe", "Deploy one Compound enemy with 4 Parts. Each Part is Tier [Average Tier × 1.5], counts as an Antagonist, and is chosen from Strong Body (Bruiser), Ultimate Technique (Behemoth), Deadly Weapon (Executioner), Slow Start (Cocoon), Lighting Swiftness (Spright), Violent Temper (Berserker), or Accurate Sidearm (Cannoneer).", 113),
         ("lionwing.narrator.edges.overview", "Antagonist Edges", "Antagonist NPCs", "rule", "An Antagonist NPC may use Improvise for 2 AP to give an adjacent character any non-Banish Effect and has one Antagonist Edge. An Edge's three abilities share 3 free uses per Scene; each additional use costs 1 Antagonism. The Narrator may change an Antagonist's Edge as the story or gameplay changes.", 111),
         ("lionwing.narrator.edges.all-seeing", "Antagonist Edges", "All-Seeing", "antagonist-edge", "Predictable (Defense Reaction): gain [Tier × 2] Evasion when Attacked; on a miss, move up to 3 spaces. Piercing Vision (Misc Reaction): when at least 4 spaces from an Attacked player, Mark them before the roll. Phase Change: spend 2 Antagonism, give all players 1 Influence, Deploy 2 equal-Tier Artillery NPCs, and restore [Tier × 5] Health.", 111),
         ("lionwing.narrator.edges.back-stabbing", "Antagonist Edges", "Back-Stabbing", "antagonist-edge", "Honorable Sacrifice (Defense Reaction): when any NPC is Attacked, teleport an ally adjacent and make it the target. Shirk the Blame (Turn Start): if another NPC is adjacent to a player, have it Taunt them. Phase Change: spend 2 Antagonism, give all players 1 Influence, Deploy 2 equal-Tier Bodyguards, restore [Tier × 5] Health, and gain [Tier × 3] Evasion.", 111),
@@ -570,8 +626,9 @@ def core_rules() -> dict:
             "combos": "A Combo is a string of two or more Actions formatted as [X → Y] that grants a bonus when performed with no other Actions in between. Only one Combo can be executed per Action. If a Technique Level starts with a Combo, its effects only happen if that Combo is used. Combos can start off your Turn as long as you don't take an Action that would break them. After use, a Combo is on Cooldown until the end of your next Turn and can't be used while on Cooldown.",
             "list": actions,
         },
+        "npcs": {"list": npc_rows},
         "rules": rules,
-        "source": {"editionId": NEW_ID, "locale": "en", "pdfPages": list(range(22, 66)) + list(range(104, 111))},
+        "source": {"editionId": NEW_ID, "locale": "en", "pdfPages": list(range(22, 66)) + list(range(104, 115))},
     }
 
 
@@ -1129,6 +1186,7 @@ def write_canonical_corpus(overlay: dict) -> None:
             "referenceCards": len(overlay["reference"]),
             "coreEffects": sum(len(items) for items in overlay["coreRules"]["effects"].values() if isinstance(items, list)),
             "coreActions": len(overlay["coreRules"]["actions"]["list"]),
+            "coreNpcs": len(overlay["coreRules"].get("npcs", {}).get("list", [])),
             "coreRuleCards": len(overlay["coreRules"]["rules"]),
         },
         "files": files,

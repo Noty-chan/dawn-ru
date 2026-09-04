@@ -50,7 +50,7 @@ assert.match(russianActions["action.утилитарные-действия.из
 
 const englishCoreRules = english.coreRules.rules;
 const russianCoreRules = russian.coreRules.rules.entries;
-assert.equal(englishCoreRules.length, 131);
+assert.equal(englishCoreRules.length, 136);
 assert.equal(Object.keys(russianCoreRules).length, englishCoreRules.length, "every LionWing core rule card needs a Russian overlay");
 const localizedCoreRules = englishCoreRules.map(item => ({ ...item, ...(russianCoreRules[item.id] || {}) }));
 for (const item of englishCoreRules) assert.ok(russianCoreRules[item.id]?.text, `missing Russian core rule: ${item.id}`);
@@ -76,6 +76,24 @@ assert.match(russianCoreRules["lionwing.narrator.npcs.wounds"].text, /10 уро�
 assert.match(russianCoreRules["lionwing.narrator.compound.gates"].text, /избыток становится равен 0/, "Compound Health Gates must stop excess damage");
 assert.match(russianCoreRules["lionwing.narrator.edges.overview"].text, /3 бесплатных применения за Сцену/, "Antagonist Edges must share their free-use pool");
 assert.match(russianCoreRules["lionwing.narrator.edges.wild-eyed"].text, /Столкновение/, "Wild-Eyed interception must use LionWing Clash");
+assert.match(russianCoreRules["lionwing.narrator.deployments.overview"].text, /Трудный бой для 4 игроков/, "Deployment Recipes must retain their target difficulty and party size");
+assert.match(russianCoreRules["lionwing.narrator.deployments.taking-on-a-god"].text, /4 Частей/, "Taking On A God must retain the Compound part count");
+
+const englishNpcs = english.coreRules.npcs.list;
+const russianNpcs = russian.coreRules.npcs.entries;
+assert.equal(englishNpcs.length, 4);
+assert.equal(Object.keys(russianNpcs).length, englishNpcs.length, "every imported LionWing NPC needs a Russian overlay");
+const localizedNpcs = englishNpcs.map(item => {
+  const overlay = russianNpcs[item.id];
+  assert.ok(overlay?.name && overlay?.description, `missing Russian NPC profile: ${item.id}`);
+  assert.equal(Object.keys(overlay.actions || {}).length, item.actions.length, `missing Russian NPC action: ${item.id}`);
+  return { ...item, ...overlay, actions: item.actions.map(action => ({ ...action, ...(overlay.actions[action.id] || {}) })), ace: { ...item.ace, ...(overlay.ace || {}) } };
+});
+assert.deepEqual(localizedNpcs.map(item => item.id), englishNpcs.map(item => item.id), "switching NPC profiles to RU must preserve ids");
+assert.deepEqual(localizedNpcs.map(item => item.statistics), englishNpcs.map(item => item.statistics), "switching NPC profiles to RU must preserve statistics");
+assert.deepEqual(localizedNpcs.map(item => item.source), englishNpcs.map(item => item.source), "switching NPC profiles to RU must preserve sources");
+assert.match(localizedNpcs.find(item => item.id === "lionwing.npc.behemoth").ace.text, /2 Раны/, "Meteor must retain its Wound count");
+assert.match(localizedNpcs.find(item => item.id === "lionwing.npc.captor").actions.find(item => item.id.endsWith("catch-and-release")).text, /не Атаковали/, "Catch And Release must retain its conditional Effects");
 
 const englishSkills = english.builderRules.skills.canonical;
 const russianSkillNames = russian.builderRules.skills.entries;

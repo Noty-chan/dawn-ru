@@ -15,6 +15,7 @@ const knownRuleIds = new Set([
   ...canonical.coreRules.actions.list.map(item => item.id),
   ...canonical.coreRules.effects.positive.map(item => item.id),
   ...canonical.coreRules.effects.negative.map(item => item.id),
+  ...(canonical.coreRules.npcs?.list || []).flatMap(item => [item.id, ...item.actions.map(action => action.id), item.ace.id]),
 ]);
 for (const entry of migration.entries) {
   if (!migration.strategies[entry.strategy]) throw new Error(`Unknown LionWing migration strategy: ${entry.strategy}`);

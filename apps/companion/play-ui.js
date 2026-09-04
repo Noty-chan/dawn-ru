@@ -337,6 +337,7 @@ function referenceItems(){
     ...core.actions.list.map(action=>({...action,cost:costText(action),kind:en?`Action · ${action.group}`:`Действие · ${action.group}`})),
     ...core.effects.positive.map(effect=>({...effect,kind:en?"Effect · Positive":"Эффект · Положительный"})),
     ...core.effects.negative.map(effect=>({...effect,kind:en?"Effect · Negative":"Эффект · Отрицательный"})),
+    ...(core.npcs?.list||[]).map(npc=>({...npc,kind:`NPC · ${npc.role}`,text:[npc.description,`${en?"Health":"Здоровье"}: ${npc.statistics.health}; ${en?"Speed":"Скорость"}: ${npc.statistics.speed}; ${en?"Armor":"Броня"}: ${npc.statistics.armor}`,npc.passive?`${en?"Passive":"Пассив"}: ${npc.passive}`:"",...npc.actions.map(action=>`${action.kind==="attack"?(en?"Attack":"Атака"):(en?"Action":"Действие")} — ${action.name}: ${action.text}`),`${en?"Ace":"Козырь"} T${npc.ace.tension} — ${npc.ace.name}: ${npc.ace.text}`].filter(Boolean).join("\n\n")})),
     ...activeArchetypes().flatMap(archetype=>archetype.techniques.map(technique=>({...technique,kind:`${en?"Technique":"Техника"} · ${archetype.name}`,text:[technique.flavor,...technique.levels.map(level=>`${level.n}: ${level.name} — ${level.text}`)].join("\n")}))),
     ...activeOutlooks().flatMap(outlook=>(outlook.builtin?[outlook.builtin]:[]).concat(outlook.gifts).map(gift=>({...gift,kind:`${en?"Boon":"Дар"} · ${outlook.name}`}))),
   ]}
@@ -344,7 +345,7 @@ function referenceItems(){
   return items;
 }
 function renderReference(){
-  const lionwing=isLionwingEdition(),en=isEnglishPreview()&&lionwing,q=$("ref-search").value.trim().toLowerCase(),filters=lionwing?(en?["all","Builder Reference","Skill","Rule","Action","Effect","Technique","Boon"]:["all","Справка","Навык","Правило","Действие","Эффект","Техника","Дар"]):["all","Термин","Памятка","Связь","Действие","Эффект","Техника","Дар","Враг"],tagList=item=>String(item.tags||"").split(",").map(tag=>tag.trim()).filter(Boolean);
+  const lionwing=isLionwingEdition(),en=isEnglishPreview()&&lionwing,q=$("ref-search").value.trim().toLowerCase(),filters=lionwing?(en?["all","Builder Reference","Skill","Rule","Action","Effect","NPC","Technique","Boon"]:["all","Справка","Навык","Правило","Действие","Эффект","NPC","Техника","Дар"]):["all","Термин","Памятка","Связь","Действие","Эффект","Техника","Дар","Враг"],tagList=item=>String(item.tags||"").split(",").map(tag=>tag.trim()).filter(Boolean);
   if(!filters.includes(refKind))refKind="all";
   $("ref-filters").innerHTML=filters.map(f=>`<button type="button" class="${refKind===f?"on":""}" data-ref-kind="${f}">${f==="all"?(en?"All":"Всё"):f}</button>`).join("");
   const matchKind=item=>refKind==="all"||item.kind.toLowerCase().includes(refKind.toLowerCase()),kindItems=referenceItems().filter(matchKind),tags=[...new Set(kindItems.flatMap(tagList))].sort((a,b)=>a.localeCompare(b,en?"en":"ru"));

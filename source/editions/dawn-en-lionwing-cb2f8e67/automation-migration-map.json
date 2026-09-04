@@ -213,11 +213,31 @@
       "id": "lionwing.core.npc-profile-runtime",
       "name": "Базовый runtime профилей NPC LionWing",
       "strategy": "parameterize-old-core",
-      "status": "data-ready-rules-profiles-pending",
-      "sourcePages": [109, 110],
+      "status": "profiles-in-progress",
+      "sourcePages": [109, 114],
       "ruleIds": ["lionwing.narrator.npcs.turns", "lionwing.narrator.npcs.aces", "lionwing.narrator.npcs.tiers", "lionwing.narrator.npcs.summons", "lionwing.narrator.npcs.wounds"],
       "reuseFrom09": ["actor-state", "turn-lifecycle", "profile-actions", "tier-scaling"],
-      "requires": ["отдельные профили NPC LionWing", "Козырь за 2 ОД и завершение Хода", "Призывы после Призывателя", "Рана как 10 неуменьшаемого урона"]
+      "requires": ["отдельный каталог профилей NPC LionWing", "Козырь за 2 ОД и завершение Хода", "Призывы после Призывателя", "Рана как 10 неуменьшаемого урона"]
+    },
+    {
+      "id": "lionwing.npcs.dps-profiles",
+      "name": "Первые профили DPS NPC LionWing",
+      "strategy": "parameterize-old-core",
+      "status": "4-profiles-data-ready",
+      "sourcePages": [114],
+      "ruleIds": ["lionwing.npc.assassin", "lionwing.npc.bruiser", "lionwing.npc.behemoth", "lionwing.npc.captor"],
+      "reuseFrom09": ["profile-rendering", "tier-scaling", "profile-actions", "ace-cards"],
+      "requires": ["ловушки Трудной местности", "отложенные предупрежденные Козыри", "условное сохранение Метки", "Атаки по нескольким целям с общей зоной"]
+    },
+    {
+      "id": "lionwing.narrator.deployment-recipes",
+      "name": "Рецепты расстановки NPC LionWing",
+      "strategy": "narrator-ruling",
+      "status": "data-ready",
+      "sourcePages": [113],
+      "ruleIds": ["lionwing.narrator.deployments.overview", "lionwing.narrator.deployments.king-and-men", "lionwing.narrator.deployments.opposing-team", "lionwing.narrator.deployments.hornets-nest", "lionwing.narrator.deployments.taking-on-a-god"],
+      "reuseFrom09": ["npc-catalogue", "tier-scaling", "deployment-tools"],
+      "requires": ["расчет средней Ступени группы", "ручной выбор Обычного, Тяжелого или Жестокого боя", "проверка доступности всех указанных профилей", "Составной враг из четырех Частей"]
     },
     {
       "id": "lionwing.core.antagonist-edges",

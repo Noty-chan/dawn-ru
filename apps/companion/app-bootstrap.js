@@ -70,7 +70,7 @@ function localizedLionwingReference(){
 const activeReferenceSections=()=>[...(isLionwingEdition()?localizedLionwingReference():[]),...supplementItems("reference")];
 function localizedLionwingCoreRules(){
   if(contentPreferences.locale!=="ru"||!LionwingRu?.coreRules)return Lionwing.coreRules;
-  const translation=LionwingRu.coreRules,effectEntries=translation.effects?.entries||{},actionEntries=translation.actions?.entries||{},ruleEntries=translation.rules?.entries||{};
+  const translation=LionwingRu.coreRules,effectEntries=translation.effects?.entries||{},actionEntries=translation.actions?.entries||{},ruleEntries=translation.rules?.entries||{},npcEntries=translation.npcs?.entries||{};
   return{
     ...Lionwing.coreRules,
     effects:{
@@ -85,6 +85,7 @@ function localizedLionwingCoreRules(){
       combos:translation.actions?.combos||Lionwing.coreRules.actions.combos,
       list:Lionwing.coreRules.actions.list.map(item=>({...item,...(actionEntries[item.id]||{})})),
     },
+    npcs:{list:(Lionwing.coreRules.npcs?.list||[]).map(item=>{const localized=npcEntries[item.id]||{},actions=localized.actions||{};return{...item,...localized,actions:item.actions.map(action=>({...action,...(actions[action.id]||{})})),ace:{...item.ace,...(localized.ace||{})}}})},
     rules:Lionwing.coreRules.rules.map(item=>({...item,...(ruleEntries[item.id]||{})})),
   };
 }

@@ -27,7 +27,8 @@ assert.equal(manifest.editionId, lionwing.editionId);
 assert.equal(manifest.counts.techniques, 111);
 assert.equal(manifest.counts.coreEffects, 19);
 assert.equal(manifest.counts.coreActions, 17);
-assert.equal(manifest.counts.coreRuleCards, 131);
+assert.equal(manifest.counts.coreNpcs, 4);
+assert.equal(manifest.counts.coreRuleCards, 136);
 assert.deepEqual(JSON.parse(JSON.stringify(lionwing.builderRules.progression)), { experienceToTier: 15, chapterBaseExperience: 2, chapterMaximumExperience: 4, rewardsMayBeSavedForAwakening: true });
 assert.deepEqual(JSON.parse(JSON.stringify(lionwing.builderRules.abilities)), { maximum: 1, minimumCost: 1, maximumRank: 3, customWordsRequireNarratorApproval: true, expandedUsesRequireOriginalWord: true });
 assert.deepEqual(JSON.parse(JSON.stringify(lionwing.builderRules.bonds)), { maximumRank: 3, quickPerChapter: 1, quickRank: 1, quickSustainInfluenceCost: 1, actionInfluenceCost: 1, actionStressCost: 1 });
@@ -80,6 +81,6 @@ assert.match(read("app-core.js"), /if\(isLionwingEdition\(\)\)return"manual"/, "
 assert.match(read("scene-actions-ui.js"), /sceneControlMode!=="manual"&&hero\.rulesEdition==="ru-v0\.9"/, "manual and LionWing actors must not expose Techniques to the 0.9 engine");
 assert.match(playUi + read("scene-ui.js"), /activeOutlooks\(\)[\s\S]+activeArchetypes\(\)/, "table and reference views must consume the selected edition");
 assert.match(playUi, /function activeRuleChapters\(\)[\s\S]+activeCoreRules\(\)/, "LionWing rules view must consume selected-edition core rules");
-assert.match(playUi, /if\(isLionwingEdition\(\)\)\{[\s\S]+core\.rules\.map[\s\S]+core\.actions\.list\.map[\s\S]+core\.effects\.positive\.map/, "both LionWing locales must build reference items from LionWing rules, actions, and effects");
-assert.match(playUi, /filters=lionwing\?\(en\?\["all","Builder Reference","Skill","Rule","Action","Effect","Technique","Boon"\]:\["all","Справка","Навык","Правило","Действие","Эффект","Техника","Дар"\]\)/, "LionWing reference filters must be complete in RU and EN");
+assert.match(playUi, /if\(isLionwingEdition\(\)\)\{[\s\S]+core\.rules\.map[\s\S]+core\.actions\.list\.map[\s\S]+core\.effects\.positive\.map[\s\S]+core\.npcs/, "both LionWing locales must build reference items from LionWing rules, actions, effects, and NPCs");
+assert.match(playUi, /filters=lionwing\?\(en\?\["all","Builder Reference","Skill","Rule","Action","Effect","NPC","Technique","Boon"\]:\["all","Справка","Навык","Правило","Действие","Эффект","NPC","Техника","Дар"\]\)/, "LionWing reference filters must be complete in RU and EN");
 console.log("Edition isolation QA passed: RU catalogue immutable, LionWing provenance complete, manual table isolated");

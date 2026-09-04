@@ -22,7 +22,8 @@
     "referenceCards": 7,
     "coreEffects": 19,
     "coreActions": 17,
-    "coreRuleCards": 131
+    "coreNpcs": 4,
+    "coreRuleCards": 136
   },
   "files": [
     "archetypes/powerhouse.json",
