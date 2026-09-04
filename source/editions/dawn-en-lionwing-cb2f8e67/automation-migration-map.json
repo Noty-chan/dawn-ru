@@ -183,6 +183,43 @@
       "requires": ["таблица из 4 обычных и 2 антагонистических Действий", "цена 1 Влияние или 1 Стресс", "одна Быстрая Связь за Главу", "одноразовое Влияние от Отречения"]
     },
     {
+      "id": "lionwing.foundation.antagonism-actions",
+      "name": "Антагонизм и Действия Антагониста",
+      "strategy": "new-lionwing-foundation",
+      "status": "data-ready",
+      "sourcePages": [106],
+      "ruleIds": ["lionwing.narrator.antagonism.pool", "lionwing.narrator.antagonism.foil", "lionwing.narrator.antagonism.bargain", "lionwing.narrator.antagonism.all-out", "lionwing.narrator.antagonism.break-out", "lionwing.narrator.antagonism.escape", "lionwing.narrator.antagonism.awaken", "lionwing.narrator.antagonism.duel"],
+      "requires": ["общий ресурс Нарратора", "начальное значение по числу игроков", "пополнение при расходовании Влияния", "окна Действий в двух режимах", "ограничение Пробуждения раз за Серию"]
+    },
+    {
+      "id": "lionwing.foundation.fodder-zones",
+      "name": "Зоны Приспешников без Ходов",
+      "strategy": "new-lionwing-foundation",
+      "status": "data-ready",
+      "sourcePages": [109],
+      "ruleIds": ["lionwing.narrator.npcs.fodder"],
+      "requires": ["цель с 1 Здоровья и без Хода", "пересечение с персонажами", "разный владелец и момент движения", "урон в конце Раунда"]
+    },
+    {
+      "id": "lionwing.foundation.compound-npcs",
+      "name": "Составные NPC и Пороги Здоровья",
+      "strategy": "new-lionwing-foundation",
+      "status": "data-ready",
+      "sourcePages": [110],
+      "ruleIds": ["lionwing.narrator.compound.overview", "lionwing.narrator.compound.gates", "lionwing.narrator.compound.statistics", "lionwing.narrator.compound.effects"],
+      "requires": ["несколько Частей в одной цели", "отдельные Ходы Частей", "общие Здоровье, движение и Эффекты", "отсечение урона на Пороге", "снятие Эффектов в конце Раунда"]
+    },
+    {
+      "id": "lionwing.core.npc-profile-runtime",
+      "name": "Базовый runtime профилей NPC LionWing",
+      "strategy": "parameterize-old-core",
+      "status": "data-ready-rules-profiles-pending",
+      "sourcePages": [109, 110],
+      "ruleIds": ["lionwing.narrator.npcs.turns", "lionwing.narrator.npcs.aces", "lionwing.narrator.npcs.tiers", "lionwing.narrator.npcs.summons", "lionwing.narrator.npcs.wounds"],
+      "reuseFrom09": ["actor-state", "turn-lifecycle", "profile-actions", "tier-scaling"],
+      "requires": ["отдельные профили NPC LionWing", "Козырь за 2 ОД и завершение Хода", "Призывы после Призывателя", "Рана как 10 неуменьшаемого урона"]
+    },
+    {
       "id": "lionwing.narrator.manual-ledger",
       "name": "Ручное применение изменений Нарратором",
       "strategy": "extend-shared-core",

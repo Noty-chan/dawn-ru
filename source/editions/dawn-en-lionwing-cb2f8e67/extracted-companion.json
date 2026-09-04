@@ -6368,6 +6368,330 @@
     },
     "rules": [
       {
+        "id": "lionwing.narrator.chapters.hook",
+        "category": "Narrator Tools",
+        "name": "Preparing the Hook",
+        "kind": "narrator-guidance",
+        "text": "A Chapter hook should establish where and when play begins, why the player characters are together, what local NPCs want from them, and how the situation connects to at least one character's ambition. The answers may remain implicit, but the Narrator should have them ready.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 104
+        }
+      },
+      {
+        "id": "lionwing.narrator.chapters.goals-drama",
+        "category": "Narrator Tools",
+        "name": "Goals and Drama",
+        "kind": "narrator-guidance",
+        "text": "Give the group a larger goal beyond individual motivations, then prepare at least one meaningful obstacle on the path of least resistance. In DAWN, some obstacles should lead to physical conflict with named, important characters.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 104
+        }
+      },
+      {
+        "id": "lionwing.narrator.antagonists.creation",
+        "category": "Antagonists",
+        "name": "Creating Antagonists",
+        "kind": "narrator-guidance",
+        "text": "An Antagonist is always a named NPC who creates Threats as the Narrator's proxy and serves as a target for Bond-based play. Build one from an Ambition grand enough to drive the Series, a Rejection that made ordinary progress impossible, and a Method that gives them unusual authority over the world.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 105
+        }
+      },
+      {
+        "id": "lionwing.narrator.antagonism.pool",
+        "category": "Antagonism",
+        "name": "Antagonism",
+        "kind": "rule",
+        "text": "At the start of a Series, the Narrator gains Antagonism equal to the number of players and gains 1 more whenever players spend Influence. Antagonism is spent on Antagonist Actions.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 106
+        }
+      },
+      {
+        "id": "lionwing.narrator.antagonism.foil",
+        "category": "Antagonist Actions",
+        "name": "Foil",
+        "kind": "antagonist-action",
+        "text": "Cost: 1 Antagonism. When a player's reward would directly prevent or hinder an Antagonist's action, give that player 1 Influence and delay the reward behind a 4-segment Clock that lasts until the end of the Scene. The reward occurs if the players fill the Clock.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 106
+        }
+      },
+      {
+        "id": "lionwing.narrator.antagonism.bargain",
+        "category": "Antagonist Actions",
+        "name": "Bargain",
+        "kind": "antagonist-action",
+        "text": "Cost: 1 Antagonism. When a player would receive a reward affecting an Antagonist, present an additional Threat that will affect that player if they accept it. They may give up the reward and gain 1 Influence, or take the reward and the Threat.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 106
+        }
+      },
+      {
+        "id": "lionwing.narrator.antagonism.all-out",
+        "category": "Antagonist Actions",
+        "name": "All Out",
+        "kind": "antagonist-action",
+        "text": "Cost: 1 Antagonism. In structured combat, reroll an enemy's Roll; it produces Hits on 3 or higher. The Roll's targets gain 1 Influence.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 106
+        }
+      },
+      {
+        "id": "lionwing.narrator.antagonism.break-out",
+        "category": "Antagonist Actions",
+        "name": "Break Out",
+        "kind": "antagonist-action",
+        "text": "Cost: 1 Antagonism. In structured combat, have an enemy move or Attack outside the normal Turn order. Any player who is Attacked gains 1 Influence.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 106
+        }
+      },
+      {
+        "id": "lionwing.narrator.antagonism.escape",
+        "category": "Antagonist Actions",
+        "name": "Escape",
+        "kind": "antagonist-action",
+        "text": "Cost: 1 Antagonism. In any mode, an NPC leaves the Scene with one of the following: a new plan, a permanent injury, or a new power.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 106
+        }
+      },
+      {
+        "id": "lionwing.narrator.antagonism.awaken",
+        "category": "Antagonist Actions",
+        "name": "Awaken",
+        "kind": "antagonist-action",
+        "text": "Cost: 1 Antagonism. Reveal a previously unknown plan or element of an Antagonist. An Antagonist may use this only once per Series; after doing so, they gain [Tier × 2] Antagonism.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 106
+        }
+      },
+      {
+        "id": "lionwing.narrator.antagonism.duel",
+        "category": "Antagonist Actions",
+        "name": "Duel",
+        "kind": "antagonist-action",
+        "text": "Cost: 1 Antagonism. Instead of an Attack on their Turn in combat, or at any time in unstructured play, an Antagonist forces an adjacent player character into a Duel and has [Tier] additional Advantage in it.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 106
+        }
+      },
+      {
+        "id": "lionwing.narrator.threats.procedure",
+        "category": "Narrator Tools",
+        "name": "Introducing Threats",
+        "kind": "narrator-guidance",
+        "text": "Present a Threat in four beats: First Look, describing it before mechanics; Push, naming the targeted characters, asking how they respond, and stating the consequence of failure; Fall or Rise, resolving consequences and showing what changes; Take Inventory, checking Stress, pacing, purpose, and player comfort before moving on.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 107
+        }
+      },
+      {
+        "id": "lionwing.narrator.threats.difficulty",
+        "category": "Narrator Tools",
+        "name": "Threat Difficulty",
+        "kind": "narrator-guidance",
+        "text": "After a player chooses their response, state what failure will cause—usually 1 Stress, or 2 Stress in extreme danger. Use standard difficulty above [Tier] Hits, adjusted 1 or 2 higher or lower when the situation calls for it.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 107
+        }
+      },
+      {
+        "id": "lionwing.narrator.conflicts.escalation",
+        "category": "Conflicts",
+        "name": "Conflict Escalation",
+        "kind": "narrator-guidance",
+        "text": "Begin physical conflict in unstructured play by establishing stakes and using Duels or other contested Rolls. If the sides are not drastically unequal and the struggle deserves a tactical back-and-forth, move into structured combat. A Clock or unstructured puzzle may extend the conflict instead when more suitable.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 108
+        }
+      },
+      {
+        "id": "lionwing.narrator.conflicts.pvp",
+        "category": "Conflicts",
+        "name": "Player versus Player",
+        "kind": "safety-rule",
+        "text": "Do not resolve player-character conflict with mechanics that bypass either player's consent. The acting player states a Threat; the defending player answers 'No' (it does not happen), 'Yes' (it happens as stated), or 'Yes, but...' (it happens with an amendment).",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 108
+        }
+      },
+      {
+        "id": "lionwing.narrator.npcs.turns",
+        "category": "NPC Rules",
+        "name": "NPC Turns",
+        "kind": "rule",
+        "text": "NPCs alternate with players under the normal Turn order. An NPC starts its Turn with 3 AP, may spend AP on its Actions or to Swiftly Stride, and cannot use the same Action multiple times in one Turn.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 109
+        }
+      },
+      {
+        "id": "lionwing.narrator.npcs.aces",
+        "category": "NPC Rules",
+        "name": "NPC Aces",
+        "kind": "rule",
+        "text": "An Ace is formatted '[Ace:TX] Name: Effect', where X is the required Tension. Once per Scene while Tension meets that value, the NPC may use the Ace for 2 AP. An Ace always ends its user's Turn.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 109
+        }
+      },
+      {
+        "id": "lionwing.narrator.npcs.tiers",
+        "category": "NPC Rules",
+        "name": "NPC Tiers",
+        "kind": "rule",
+        "text": "An NPC is roughly as strong as a player character of the same Tier before Technique synergies. NPC profiles list Tier 0 values followed by scaling bonuses in square brackets; add those bonuses once for each Tier assigned to the NPC.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 109
+        }
+      },
+      {
+        "id": "lionwing.narrator.npcs.summons",
+        "category": "NPC Rules",
+        "name": "Summons",
+        "kind": "rule",
+        "text": "A Summon acts immediately after its Summoner with no intervening Turns, cannot take Turns otherwise, cannot use Aces, grants no Tension when Knocked Out, and is Knocked Out with its Summoner. For player-controlled Summons, swap profile references to players and enemies as appropriate.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 109
+        }
+      },
+      {
+        "id": "lionwing.narrator.npcs.wounds",
+        "category": "NPC Rules",
+        "name": "NPC Wounds",
+        "kind": "rule",
+        "text": "NPCs normally do not take Wounds. If an effect makes an NPC take a Wound, it takes 10 damage that cannot be reduced instead.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 109
+        }
+      },
+      {
+        "id": "lionwing.narrator.npcs.fodder",
+        "category": "NPC Rules",
+        "name": "Fodder Zones",
+        "kind": "rule",
+        "text": "A Fodder Zone is Difficult Terrain for enemies, has 1 Health, is a valid target, takes no Turns, and may overlap characters. After NPC Turns, move each Narrator-controlled Zone up to 2 spaces; at Round end it may deal 2 damage to one player within 1 space. Player-created Zones instead move after each player Turn and damage enemies.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 109
+        }
+      },
+      {
+        "id": "lionwing.narrator.encounters.basic",
+        "category": "Encounter Design",
+        "name": "Basic Encounter Budget",
+        "kind": "guidance",
+        "text": "For a basic encounter, Deploy NPCs whose total Tiers equal the player characters' total Tiers. A tough encounter uses about 1.5 times that total plus one equal-Tier Modifier NPC; a brutal encounter uses about twice the total plus two equal-Tier Modifier NPCs.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 110
+        }
+      },
+      {
+        "id": "lionwing.narrator.encounters.fodder",
+        "category": "Encounter Design",
+        "name": "Using Fodder",
+        "kind": "guidance",
+        "text": "As a rough budget, one NPC is worth a number of Fodder Zones equal to 3 plus that NPC's Tier.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 110
+        }
+      },
+      {
+        "id": "lionwing.narrator.compound.overview",
+        "category": "Compound NPCs",
+        "name": "Compound NPCs",
+        "kind": "rule",
+        "text": "A Compound NPC represents one character using two or more NPC profiles as Parts in one shared space. Each Part takes a separate Turn, while all Parts share Tier, NPC Techniques, Effects, movement, and a single Health total equal to the sum of their Health.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 110
+        }
+      },
+      {
+        "id": "lionwing.narrator.compound.gates",
+        "category": "Compound NPCs",
+        "name": "Health Gates",
+        "kind": "rule",
+        "text": "Divide a Compound NPC's maximum Health by its number of Parts. That value and its multiples are Health Gates. Damage cannot carry past a crossed Gate; excess becomes 0 and Tension rises by 1. Healing cannot raise Health back past a Gate.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 110
+        }
+      },
+      {
+        "id": "lionwing.narrator.compound.statistics",
+        "category": "Compound NPCs",
+        "name": "Compound Statistics",
+        "kind": "rule",
+        "text": "A Compound NPC uses the most common Speed among its Parts, taking the higher value if tied, and inherits the highest Armor or Evasion, choosing one if equal. It inherits all Passives, but a Passive that changes statistics applies only to its Part and cannot remove that Part from Deployment.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 110
+        }
+      },
+      {
+        "id": "lionwing.narrator.compound.effects",
+        "category": "Compound NPCs",
+        "name": "Compound Movement and Effects",
+        "kind": "rule",
+        "text": "When any Part moves, all Parts move and remain in the same space. Effects that would clear at the end of a Compound NPC's Turn instead clear at the end of the Round.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 110
+        }
+      },
+      {
         "id": "lionwing.core.abilities.overview",
         "category": "Abilities",
         "name": "Abilities",
@@ -7500,6 +7824,19 @@
       "editionId": "dawn-en-lionwing-cb2f8e67",
       "locale": "en",
       "pdfPages": [
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
         35,
         36,
         37,
@@ -7530,7 +7867,14 @@
         62,
         63,
         64,
-        65
+        65,
+        104,
+        105,
+        106,
+        107,
+        108,
+        109,
+        110
       ]
     }
   },

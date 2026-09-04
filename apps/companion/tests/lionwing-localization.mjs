@@ -50,7 +50,7 @@ assert.match(russianActions["action.утилитарные-действия.из
 
 const englishCoreRules = english.coreRules.rules;
 const russianCoreRules = russian.coreRules.rules.entries;
-assert.equal(englishCoreRules.length, 94);
+assert.equal(englishCoreRules.length, 121);
 assert.equal(Object.keys(russianCoreRules).length, englishCoreRules.length, "every LionWing core rule card needs a Russian overlay");
 const localizedCoreRules = englishCoreRules.map(item => ({ ...item, ...(russianCoreRules[item.id] || {}) }));
 for (const item of englishCoreRules) assert.ok(russianCoreRules[item.id]?.text, `missing Russian core rule: ${item.id}`);
@@ -70,6 +70,10 @@ assert.match(russianCoreRules["lionwing.core.abilities.expansion"].text, /хот
 assert.match(russianCoreRules["lionwing.core.bonds.quick"].text, /Один раз за Главу/, "LionWing must limit Quick Bonds per Chapter");
 assert.match(russianCoreRules["lionwing.core.bond-actions.study"].text, /нельзя оплатить Стрессом/, "Study must keep its Stress payment exception");
 assert.match(russianCoreRules["lionwing.core.bond-actions.abandon"].text, /только один раз/, "Abandon Influence must remain once per target character");
+assert.match(russianCoreRules["lionwing.narrator.antagonism.pool"].text, /числа игроков/, "Antagonism must start from the player count");
+assert.match(russianCoreRules["lionwing.narrator.antagonism.all-out"].text, /3 или выше/, "Narrator All Out must preserve its changed Hit threshold");
+assert.match(russianCoreRules["lionwing.narrator.npcs.wounds"].text, /10 урона, который нельзя уменьшить/, "NPC Wounds must convert to irreducible damage");
+assert.match(russianCoreRules["lionwing.narrator.compound.gates"].text, /избыток становится равен 0/, "Compound Health Gates must stop excess damage");
 
 const englishSkills = english.builderRules.skills.canonical;
 const russianSkillNames = russian.builderRules.skills.entries;
