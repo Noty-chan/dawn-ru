@@ -133,11 +133,11 @@ function renderFreeplayDirector(){
   document.querySelector(".freeplay-hero-tool").hidden=role==="network-narrator";
   document.querySelector(".dice-tool").hidden=false;
   document.querySelector(".freeplay-bonds-tool").hidden=role==="network-narrator";
-  localHeroWrap.hidden=role!=="local-table";requestActorWrap.hidden=role!=="network-narrator";actions.hidden=role==="network-player"||role==="local-table"&&kind!=="opposed";defaultButton.hidden=false;target.disabled=false;
+  localHeroWrap.hidden=role==="network-player";requestActorWrap.hidden=role!=="network-narrator";actions.hidden=role==="network-player"||role==="local-table"&&kind!=="opposed";defaultButton.hidden=false;target.disabled=false;
   if(role!=="network-player")$("roll-dice").disabled=false;
+  if(role!=="network-player")localSelect.innerHTML=store.heroes.map((hero,index)=>`<option value="${index}" ${index===store.current?"selected":""}>${esc(hero.name||"Безымянный герой")} · Ст.${hero.tier}</option>`).join("");
   if(role==="local-table"){
     $("freeplay-director-kind").textContent="ЛОКАЛЬНЫЙ СТОЛ";$("freeplay-director-title").textContent=kind==="opposed"?"Встречный бросок за одним устройством":"Испытание за одним устройством";$("freeplay-director-help").textContent=kind==="opposed"?"Выберите две стороны. Герои используют свои листы, за NPC Нарратор может бросить вручную.":"Нарратор выбирает героя и сложность, затем игрок собирает пул и бросает.";
-    localSelect.innerHTML=store.heroes.map((hero,index)=>`<option value="${index}" ${index===store.current?"selected":""}>${esc(hero.name||"Безымянный герой")} · Ст.${hero.tier}</option>`).join("");
     if(kind==="opposed"){const selected=opponent.value,choices=opposedActorChoices(role).filter(choice=>choice.value!==`hero:${S.id}`);opponent.innerHTML=choices.map(choice=>`<option value="${esc(choice.value)}">${esc(choice.name)}</option>`).join("");if(choices.some(choice=>choice.value===selected))opponent.value=selected;opponentNameWrap.hidden=opponent.value!=="custom";}
     if(document.activeElement!==target)target.value=freeplayState().target||S.tier+1;
     state.innerHTML=kind==="opposed"?opposed?`<strong>${esc(opposed.participants.map(item=>item.name).join(" против "))}</strong><span>Результаты сохраняются по сторонам; при ничьей нужен новый совместный переброс.</span>`:"<strong>Подготовьте две стороны</strong><span>У встречного броска нет Цели Успехов: побеждает сторона с большим числом Успехов.</span>":"<strong>Локальная игра</strong><span>Все герои и броски остаются на этом устройстве; переключение героя использует его настоящий лист.</span>";
@@ -213,7 +213,7 @@ function updateAllInAvailability(){
   if(!pendingAllIn)$("all-in-flashback").checked=false;
   $("all-in-hint").textContent=!pendingAllIn?"Сначала совершите обычный бросок.":influence>0?"Можно перебросить этот результат, потратив 1 Влияние.":stressPayment&&stress<3?"Влияния нет, но Дар позволяет получить Стресс вместо оплаты.":"Для Ва-банк недостаточно Влияния.";
 }
-function renderToolsWorkspace(){renderFreeplayDirector();renderClocks();renderStressTrackers();renderDiceHistory();if(toolsRole()!=="network-narrator")renderAllInControls();renderChallengeRequestDock()}
+function renderToolsWorkspace(){renderFreeplayDirector();renderClocks();renderStressTrackers();renderDiceHistory();if(toolsRole()==="network-narrator")renderDiceComposer();else renderAllInControls();renderChallengeRequestDock()}
 function applyOptimisticToolsEvents(events){
   try{Scene=normalizeScene(SceneEngine.dispatchMany(Scene,events,{expectedVersion:Number(Scene.version||0)}).scene);syncHeroFromScene();persistAfterPaint();return true}catch{return false}
 }

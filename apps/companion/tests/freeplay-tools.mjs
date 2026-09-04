@@ -41,6 +41,9 @@ assert.match(source, /ruleId:`freeplay\.skill:/, "A Skill must enter a challenge
 assert.match(source, /ruleId:`freeplay\.ability:/, "An Ability must enter a challenge roll through the reusable Advantage hook");
 assert.match(source, /ruleId:`freeplay\.bond:/, "A Bond must enter a challenge roll through the reusable Advantage hook");
 assert.match(source, /S\.skills\.filter\(item=>skillDisplayName\(item\)\.trim\(\)\)/, "LionWing canonical Skills must remain available in the Tools dice composer");
+assert.match(source, /localHeroWrap\.hidden=role==="network-player"/, "Narrators must be able to choose a local hero independently of the shared table");
+assert.match(source, /if\(role!=="network-player"\)localSelect\.innerHTML=store\.heroes\.map/, "Narrator Tools must populate the local hero selector");
+assert.match(source, /if\(toolsRole\(\)==="network-narrator"\)renderDiceComposer\(\)/, "Narrator Tools must render the selected local hero's dice options");
 assert.match(source, /definitionId:skill\.definitionId\|\|null/, "Published scene heroes must retain canonical LionWing Skill ids");
 assert.match(source, /skillDisplayName\(skill,actor\)/, "Scene tools must resolve LionWing Skill names from their stable ids");
 assert.match(source, /challengeRequestId:challenge\.id/, "A requested network roll must retain the Narrator request id");
