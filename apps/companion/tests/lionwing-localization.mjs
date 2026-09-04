@@ -81,7 +81,7 @@ assert.match(russianCoreRules["lionwing.narrator.deployments.taking-on-a-god"].t
 
 const englishNpcs = english.coreRules.npcs.list;
 const russianNpcs = russian.coreRules.npcs.entries;
-assert.equal(englishNpcs.length, 18);
+assert.equal(englishNpcs.length, 22);
 assert.equal(Object.keys(russianNpcs).length, englishNpcs.length, "every imported LionWing NPC needs a Russian overlay");
 const localizedNpcs = englishNpcs.map(item => {
   const overlay = russianNpcs[item.id];
@@ -103,6 +103,9 @@ assert.match(localizedNpcs.find(item => item.id === "lionwing.npc.cocoon").passi
 assert.match(localizedNpcs.find(item => item.id === "lionwing.npc.duelist").ace.text, /можете немедленно снова/, "Disassemble must retain immediate Ace reuse");
 assert.match(localizedNpcs.find(item => item.id === "lionwing.npc.glutton").ace.text, /сколько NPC уничтожил/, "Regurgitate must retain its tracked Fodder count");
 assert.match(localizedNpcs.find(item => item.id === "lionwing.npc.mount").passive, /одной клетке/, "Mount and rider must retain shared-space movement");
+assert.match(localizedNpcs.find(item => item.id === "lionwing.npc.oni").ace.text, /удвоенную пользу/, "Vibrant Terror must retain doubled positive Effects");
+assert.match(localizedNpcs.find(item => item.id === "lionwing.npc.revenant").actions.find(item => item.id.endsWith("tear-from-the-soul")).text, /1 \+ \[Ступень\].+Фокуса/, "Tear From The Soul must retain Focus drain");
+assert.match(localizedNpcs.find(item => item.id === "lionwing.npc.spright").ace.text, /один раз за Ход/, "Thunderous Ascension must retain its per-Turn limit");
 
 const englishSkills = english.builderRules.skills.canonical;
 const russianSkillNames = russian.builderRules.skills.entries;

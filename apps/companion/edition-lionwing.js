@@ -7142,6 +7142,178 @@ window.DAWN_LIONWING_DATA = {
       "locale": "en",
       "pdfPage": 118
      }
+    },
+    {
+     "id": "lionwing.npc.oni",
+     "role": "Tank",
+     "name": "Oni",
+     "description": "Switches between healing and tanking stances.",
+     "examples": [
+      "Red & Blue Oni",
+      "Stance Dancer",
+      "Eclipse Magi"
+     ],
+     "statistics": {
+      "health": "15 + [Tier × 5]",
+      "speed": 3,
+      "armor": 0,
+      "evasion": 0
+     },
+     "passive": "Deploy Strengthened. When Attacked, lose all positive Effects. On losing Strengthened, become Reinforced; on losing Reinforced, become Strengthened.",
+     "actions": [
+      {
+       "id": "lionwing.npc.oni.stabilize",
+       "kind": "action",
+       "name": "Stabilize",
+       "text": "Lose this NPC's Effects and Hasten it."
+      },
+      {
+       "id": "lionwing.npc.oni.polaris",
+       "kind": "attack",
+       "name": "Polaris",
+       "text": "If Strengthened, move up to 2 spaces in a straight Line and target all characters entered adjacency with. If Reinforced, affect all allies in a centered 3 × 3 Zone except this NPC. Roll 5 + [Tier]; if both Effects apply, choose one mode. Reward: if Strengthened, deal [Hits] + [Tension] damage and Launch; if Reinforced, restore [Hits] Health and Hasten."
+      }
+     ],
+     "ace": {
+      "id": "lionwing.npc.oni.vibrant-terror",
+      "tension": 4,
+      "name": "Vibrant Terror",
+      "text": "For the rest of the Scene, this NPC gains double the benefits from positive Effects. It immediately takes another Turn."
+     },
+     "source": {
+      "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
+      "pdfPage": 119
+     }
+    },
+    {
+     "id": "lionwing.npc.paladin",
+     "role": "Tank",
+     "name": "Paladin",
+     "description": "Can both Daze enemies and heal allies.",
+     "examples": [
+      "Holy Warrior",
+      "Reassuring Comrade",
+      "Pack Guardian"
+     ],
+     "statistics": {
+      "health": "18 + [Tier × 5]",
+      "speed": 3,
+      "armor": "[Tier]",
+      "evasion": 0
+     },
+     "passive": "When this NPC Attacks allies, it deals no damage and restores the same amount of Health instead.",
+     "actions": [
+      {
+       "id": "lionwing.npc.paladin.gospel",
+       "kind": "action",
+       "name": "Gospel",
+       "text": "Reinforce Regenerating allies."
+      },
+      {
+       "id": "lionwing.npc.paladin.gift-from-god",
+       "kind": "attack",
+       "name": "Gift From God",
+       "text": "Choose up to 2 adjacent targets. Roll 4 + [Tier]. Reward: Deal [Hits] + [Tension] damage and Daze an opposing target enemies have not Attacked this Round, or give an allied target Regenerating."
+      }
+     ],
+     "ace": {
+      "id": "lionwing.npc.paladin.weal-and-woe",
+      "tension": 1,
+      "name": "Weal And Woe",
+      "text": "Use Gift From God against all characters within 2 spaces."
+     },
+     "source": {
+      "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
+      "pdfPage": 119
+     }
+    },
+    {
+     "id": "lionwing.npc.revenant",
+     "role": "Tank",
+     "name": "Revenant",
+     "description": "Immortal NPC that drains Focus on Attack.",
+     "examples": [
+      "Chilling Spirit",
+      "Reassembling Skeleton",
+      "Grey Mage"
+     ],
+     "statistics": {
+      "health": "10 + [Tier × 5]",
+      "speed": 3,
+      "armor": 0,
+      "evasion": 0
+     },
+     "passive": "This NPC grants no Tension when Knocked Out. If Knocked Out at the start of a Round, return it to the board at full Health in an unoccupied space of your choice.",
+     "actions": [
+      {
+       "id": "lionwing.npc.revenant.lurk",
+       "kind": "action",
+       "name": "Lurk",
+       "text": "All opponents with at most 1 Focus are Feared by non-Revenant characters within 2 spaces."
+      },
+      {
+       "id": "lionwing.npc.revenant.tear-from-the-soul",
+       "kind": "attack",
+       "name": "Tear From The Soul",
+       "text": "Choose a target within 3 spaces. Roll 5 + [Tier]. Reward: Deal [Hits] + [Tension] damage and make the target lose 1 + [Tier] Focus."
+      }
+     ],
+     "ace": {
+      "id": "lionwing.npc.revenant.hollowed-eyes",
+      "tension": 2,
+      "name": "Hollowed Eyes",
+      "text": "Indicate the player with the least Focus. At the end of the next Turn, use Tear From The Soul, Teleport adjacent to that player, and gain 6 + [Tier] Advantage minus the target's current Focus."
+     },
+     "source": {
+      "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
+      "pdfPage": 119
+     }
+    },
+    {
+     "id": "lionwing.npc.spright",
+     "role": "Tank",
+     "name": "Spright",
+     "description": "Dodge tank that benefits from movement.",
+     "examples": [
+      "Old Sensei",
+      "Excitable Newbie",
+      "Thunder Fey"
+     ],
+     "statistics": {
+      "health": "13 + [Tier × 5]",
+      "speed": 5,
+      "armor": 0,
+      "evasion": 0
+     },
+     "passive": "When this NPC ends movement, gain Evasion equal to the distance from its original position.",
+     "actions": [
+      {
+       "id": "lionwing.npc.spright.discombobulate",
+       "kind": "action",
+       "name": "Discombobulate",
+       "text": "Choose an adjacent target. If it has more Evasion than Armor, Slow it; if more Armor than Evasion, Shred it; if it has neither, Mark it."
+      },
+      {
+       "id": "lionwing.npc.spright.incision",
+       "kind": "attack",
+       "name": "Incision",
+       "text": "Roll 5 + [Tier] against an adjacent target. Reward: Deal [Hits] + [Tension] damage and Teleport to the space adjacent to the target that is farthest from the NPC's current space."
+      }
+     ],
+     "ace": {
+      "id": "lionwing.npc.spright.thunderous-ascension",
+      "tension": 2,
+      "name": "Thunderous Ascension",
+      "text": "Increase this NPC's Speed by [Tier × 2]. For the rest of the Scene, once per Turn, when it moves into every space adjacent to an opponent, Slow and Daze that opponent. This NPC immediately takes another Turn."
+     },
+     "source": {
+      "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
+      "pdfPage": 119
+     }
     }
    ]
   },
@@ -8841,7 +9013,8 @@ window.DAWN_LIONWING_DATA = {
     115,
     116,
     117,
-    118
+    118,
+    119
    ]
   }
  },

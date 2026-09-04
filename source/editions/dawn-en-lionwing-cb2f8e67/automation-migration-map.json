@@ -243,11 +243,11 @@
       "id": "lionwing.npcs.tank-profiles",
       "name": "Профили Tank NPC LionWing",
       "strategy": "new-lionwing-foundation",
-      "status": "7-profiles-data-ready",
-      "sourcePages": [117, 118],
-      "ruleIds": ["lionwing.npc.bodyguards", "lionwing.npc.broodmother", "lionwing.npc.cocoon", "lionwing.npc.duelist", "lionwing.npc.glutton", "lionwing.npc.guardian", "lionwing.npc.mount"],
+      "status": "11-profiles-data-ready",
+      "sourcePages": [117, 119],
+      "ruleIds": ["lionwing.npc.bodyguards", "lionwing.npc.broodmother", "lionwing.npc.cocoon", "lionwing.npc.duelist", "lionwing.npc.glutton", "lionwing.npc.guardian", "lionwing.npc.mount", "lionwing.npc.oni", "lionwing.npc.paladin", "lionwing.npc.revenant", "lionwing.npc.spright"],
       "reuseFrom09": ["profile-rendering", "tier-scaling", "profile-actions", "ace-cards"],
-      "requires": ["NPC из нескольких Зон Приспешников", "предел и счетчик уничтожения Зон", "счетчики Роста и Покорность", "повтор Атаки по новым целям", "следующая за хозяином уязвимая точка", "движущийся щит", "всадник и перенаправление цели"]
+      "requires": ["NPC из нескольких Зон Приспешников", "предел и счетчик уничтожения Зон", "счетчики Роста и Покорность", "повтор Атаки по новым целям", "следующая за хозяином уязвимая точка", "движущийся щит", "всадник и перенаправление цели", "переключение парных Эффектов", "Атака как лечение союзника", "возвращение после Выведения", "Уклонение от пройденного расстояния"]
     },
     {
       "id": "lionwing.core.antagonist-edges",

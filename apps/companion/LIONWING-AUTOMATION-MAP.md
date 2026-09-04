@@ -26,7 +26,7 @@
 | Антагонизм и Действия Антагониста (`lionwing.foundation.antagonism-actions`) | `data-ready` | общий ресурс Нарратора; начальное значение по числу игроков; пополнение при расходовании Влияния; окна Действий в двух режимах; ограничение Пробуждения раз за Серию |
 | Зоны Приспешников без Ходов (`lionwing.foundation.fodder-zones`) | `data-ready` | цель с 1 Здоровья и без Хода; пересечение с персонажами; разный владелец и момент движения; урон в конце Раунда |
 | Составные NPC и Пороги Здоровья (`lionwing.foundation.compound-npcs`) | `data-ready` | несколько Частей в одной цели; отдельные Ходы Частей; общие Здоровье, движение и Эффекты; отсечение урона на Пороге; снятие Эффектов в конце Раунда |
-| Профили Tank NPC LionWing (`lionwing.npcs.tank-profiles`) | `7-profiles-data-ready` | NPC из нескольких Зон Приспешников; предел и счетчик уничтожения Зон; счетчики Роста и Покорность; повтор Атаки по новым целям; следующая за хозяином уязвимая точка; движущийся щит; всадник и перенаправление цели |
+| Профили Tank NPC LionWing (`lionwing.npcs.tank-profiles`) | `11-profiles-data-ready` | NPC из нескольких Зон Приспешников; предел и счетчик уничтожения Зон; счетчики Роста и Покорность; повтор Атаки по новым целям; следующая за хозяином уязвимая точка; движущийся щит; всадник и перенаправление цели; переключение парных Эффектов; Атака как лечение союзника; возвращение после Выведения; Уклонение от пройденного расстояния |
 | Отдельная карта автоматизации 333 Уровней LionWing (`lionwing.techniques.separate-review-map`) | `map-ready` | ручная классификация нового текста; тонкие адаптеры поверх общего ядра; evidence для каждого повышенного статуса; никаких статусов из карты 0.9 по умолчанию |
 
 ## Полная карта системных возможностей
@@ -57,7 +57,7 @@
 | `lionwing.core.npc-profile-runtime` | Базовый runtime профилей NPC LionWing | параметризовать общее ядро | `profiles-in-progress` | 109–114 |
 | `lionwing.npcs.dps-profiles` | Профили DPS NPC LionWing | параметризовать общее ядро | `11-profiles-data-ready` | 114–116 |
 | `lionwing.narrator.deployment-recipes` | Рецепты расстановки NPC LionWing | ручное решение Нарратора | `data-ready` | 113 |
-| `lionwing.npcs.tank-profiles` | Профили Tank NPC LionWing | новый фундамент LionWing | `7-profiles-data-ready` | 117–118 |
+| `lionwing.npcs.tank-profiles` | Профили Tank NPC LionWing | новый фундамент LionWing | `11-profiles-data-ready` | 117–119 |
 | `lionwing.core.antagonist-edges` | Грани Антагониста и Смена фазы | расширить общее ядро | `data-ready` | 111–112 |
 | `lionwing.narrator.manual-ledger` | Ручное применение изменений Нарратором | расширить общее ядро | `planned-outside-current-scope` | 34–65 |
 | `lionwing.techniques.separate-review-map` | Отдельная карта автоматизации 333 Уровней LionWing | новый фундамент LionWing | `map-ready` | 69–103 |
