@@ -206,6 +206,21 @@ window.DAWN_LIONWING_DATA = {
     }
    ]
   },
+  "abilities": {
+   "maximum": 1,
+   "minimumCost": 1,
+   "maximumRank": 3,
+   "customWordsRequireNarratorApproval": true,
+   "expandedUsesRequireOriginalWord": true
+  },
+  "bonds": {
+   "maximumRank": 3,
+   "quickPerChapter": 1,
+   "quickRank": 1,
+   "quickSustainInfluenceCost": 1,
+   "actionInfluenceCost": 1,
+   "actionStressCost": 1
+  },
   "outlooks": {
    "starting": 1,
    "maximum": 3
@@ -6353,6 +6368,246 @@ window.DAWN_LIONWING_DATA = {
    ]
   },
   "rules": [
+   {
+    "id": "lionwing.core.abilities.overview",
+    "category": "Abilities",
+    "name": "Abilities",
+    "kind": "rule",
+    "text": "An Ability is a supernatural thing a character can always do that would be impossible for a mundane person. Its explanation should use the setting's supernatural element. A character can only ever have one Ability.",
+    "source": {
+     "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
+     "pdfPage": 45
+    }
+   },
+   {
+    "id": "lionwing.core.abilities.creation",
+    "category": "Abilities",
+    "name": "Creating an Ability",
+    "kind": "rule",
+    "text": "An Ability follows the form: 'You can [Verb] [Noun], so long as [Condition].' Add the costs of the three chosen words and spend that many Character Ranks, to a minimum of 1; the Ability then begins at Rank 1.",
+    "source": {
+     "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
+     "pdfPage": 45
+    }
+   },
+   {
+    "id": "lionwing.core.abilities.progression",
+    "category": "Abilities",
+    "name": "Progressing Abilities",
+    "kind": "rule",
+    "text": "Spend 1 Character Rank to increase an Ability's Rank, to a maximum of 3. An Ability can also be expanded by adding a new Verb, Noun, and/or Condition and paying the added words' total cost in Character Ranks, to a minimum of 1.",
+    "source": {
+     "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
+     "pdfPage": 45
+    }
+   },
+   {
+    "id": "lionwing.core.abilities.expansion",
+    "category": "Abilities",
+    "name": "Using an Expanded Ability",
+    "kind": "rule",
+    "text": "When using an expanded Ability, choose any purchased words that still form 'You can [Verb] [Noun], so long as [Condition].' The use must contain at least one word from the Ability's original form.",
+    "source": {
+     "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
+     "pdfPage": 45
+    }
+   },
+   {
+    "id": "lionwing.core.abilities.opposition",
+    "category": "Abilities",
+    "name": "Not Always Effortless",
+    "kind": "rule",
+    "text": "Abilities normally work at will without a roll, but the Narrator may oppose an action that would dramatically change the story or seems far-fetched under their understanding of the Ability, usually by requiring a Roll.",
+    "source": {
+     "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
+     "pdfPage": 45
+    }
+   },
+   {
+    "id": "lionwing.core.abilities.custom-words",
+    "category": "Abilities",
+    "name": "Creating Unique Words",
+    "kind": "rule",
+    "text": "Players may propose words outside the glossary, but must explain them to the Narrator and receive approval. Set each custom word's cost by comparing its Impact at its most extreme and its Access: how many and how important the things it can affect are.",
+    "source": {
+     "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
+     "pdfPage": 45
+    }
+   },
+   {
+    "id": "lionwing.core.abilities.setting-options",
+    "category": "Abilities",
+    "name": "Tight and Universal Ability Systems",
+    "kind": "optional-rule",
+    "text": "For a setting with only a few available effects, the Narrator may limit Nouns to 1–4 options and reduce each one's cost by 1. If some supernatural capabilities are available to anyone willing to learn them, the Narrator may define them as Skills instead.",
+    "source": {
+     "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
+     "pdfPage": 45
+    }
+   },
+   {
+    "id": "lionwing.core.bonds.overview",
+    "category": "Bonds",
+    "name": "Bonds",
+    "kind": "rule",
+    "text": "Bonds are Ranked features that represent one character's feelings and connection toward another and can grant Advantage on Rolls. They are one-way relationships, are not bought with Character Ranks, and emerge as the Series progresses.",
+    "source": {
+     "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
+     "pdfPage": 47
+    }
+   },
+   {
+    "id": "lionwing.core.bonds.forming",
+    "category": "Bonds",
+    "name": "Forming Bonds",
+    "kind": "rule",
+    "text": "During an Intermission, a player character may form any number of Rank 1 Bonds with named characters they can speak to or have spoken to since the last Intermission.",
+    "source": {
+     "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
+     "pdfPage": 47
+    }
+   },
+   {
+    "id": "lionwing.core.bonds.tags",
+    "category": "Bonds",
+    "name": "Bond Tags",
+    "kind": "rule",
+    "text": "As the relationship develops, add one-word Bond Tags that describe it. A Bond can have no more Tags than its Rank. Its first Tag must be Partner, Rival, Student, Teacher, or Enemy. Player characters may only be Enemy Bonds with explicit permission from both players.",
+    "source": {
+     "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
+     "pdfPage": 47
+    }
+   },
+   {
+    "id": "lionwing.core.bonds.quick",
+    "category": "Bonds",
+    "name": "Quick Bonds",
+    "kind": "rule",
+    "text": "Once during a Chapter, a player may form one Quick Bond at will. It is Rank 1, cannot be used to gain Influence, and disappears at the end of the Chapter unless the player spends 1 Influence to sustain it as a normal Bond.",
+    "source": {
+     "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
+     "pdfPage": 47
+    }
+   },
+   {
+    "id": "lionwing.core.bonds.ranking",
+    "category": "Bonds",
+    "name": "Ranking Up Bonds",
+    "kind": "rule",
+    "text": "During an Intermission, a Bond may increase Rank if its user can speak to or has spoken to that character since the last Intermission and it has a number of Tags equal to its current Rank. A Bond cannot increase Rank in the same Intermission in which it was formed or already increased Rank.",
+    "source": {
+     "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
+     "pdfPage": 47
+    }
+   },
+   {
+    "id": "lionwing.core.bonds.returning",
+    "category": "Bonds",
+    "name": "Returning Characters",
+    "kind": "narrator-guidance",
+    "text": "Once a player forms a Bond with an NPC, the Narrator should treat that NPC as an important recurring part of the story and look for natural reasons to bring them back, seed hooks, and reveal setting details.",
+    "source": {
+     "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
+     "pdfPage": 47
+    }
+   },
+   {
+    "id": "lionwing.core.bond-actions.cost",
+    "category": "Bond Actions",
+    "name": "Using Bond Actions",
+    "kind": "rule",
+    "text": "A character with a Bond may use Bond Actions in addition to gaining normal Advantage from the Bond. Each Bond Action costs either 1 Influence or 1 Stress unless that Action says otherwise.",
+    "source": {
+     "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
+     "pdfPage": 48
+    }
+   },
+   {
+    "id": "lionwing.core.bond-actions.help",
+    "category": "Bond Actions",
+    "name": "Help",
+    "kind": "bond-action",
+    "text": "Give the Bond [Tier] Advantage on their current or next Roll; a Roll can benefit from Help only once. Partner: push forward through a challenge together. Rival: challenge them to do better. Student: begin a task with them following. Teacher: express trust that they will succeed.",
+    "source": {
+     "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
+     "pdfPage": 48
+    }
+   },
+   {
+    "id": "lionwing.core.bond-actions.protect",
+    "category": "Bond Actions",
+    "name": "Protect",
+    "kind": "bond-action",
+    "text": "Remove 1 Stress from the Bond. Partner: defend or console them while vulnerable. Rival: push against what is harming them. Student: call out to inspire self-defense. Teacher: do something risky to ensure they are safe.",
+    "source": {
+     "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
+     "pdfPage": 48
+    }
+   },
+   {
+    "id": "lionwing.core.bond-actions.study",
+    "category": "Bond Actions",
+    "name": "Study",
+    "kind": "bond-action",
+    "text": "This Action cannot be paid for with Stress. Explain the Bond's actions aloud. If they are a player, they gain 1 Influence; otherwise a listening player gains it. Partner: tell a glowing relevant story. Rival: begrudgingly acknowledge their skill. Student: explain how you would do what they are doing, or admit you could not. Teacher: explain how you could never do what they are doing, even if you could.",
+    "source": {
+     "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
+     "pdfPage": 48
+    }
+   },
+   {
+    "id": "lionwing.core.bond-actions.teach",
+    "category": "Bond Actions",
+    "name": "Teach",
+    "kind": "bond-action",
+    "text": "Choose a Skill in which you have at least 1 Rank. The Bond increases that Skill's Rank by 1 for the rest of the Chapter. Partner: reinforce something good about them. Rival: challenge a perceived flaw. Student: explain something they lack experience with. Teacher: make them think in a different way.",
+    "source": {
+     "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
+     "pdfPage": 48
+    }
+   },
+   {
+    "id": "lionwing.core.bond-actions.hate",
+    "category": "Bond Actions",
+    "name": "Hate",
+    "kind": "antagonistic-bond-action",
+    "text": "Requires an Enemy Bond and permission for player-to-player use. When the user decides they will no longer stand for their Enemy, gain [Tier] Advantage on the current Roll. If the Enemy Bond is Rank 2 or higher, this also provides 1 Influence.",
+    "source": {
+     "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
+     "pdfPage": 48
+    }
+   },
+   {
+    "id": "lionwing.core.bond-actions.abandon",
+    "category": "Bond Actions",
+    "name": "Abandon",
+    "kind": "antagonistic-bond-action",
+    "text": "Requires permission for player-to-player use. When the user's perception of their Bond changes, remove that Bond and give the user Influence equal to its Rank. A player character can gain Influence by Abandoning a given character only once.",
+    "source": {
+     "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
+     "pdfPage": 48
+    }
+   },
    {
     "id": "lionwing.core.creation.modes",
     "category": "Character Creation",

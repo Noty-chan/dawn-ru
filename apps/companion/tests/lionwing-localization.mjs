@@ -50,7 +50,7 @@ assert.match(russianActions["action.утилитарные-действия.из
 
 const englishCoreRules = english.coreRules.rules;
 const russianCoreRules = russian.coreRules.rules.entries;
-assert.equal(englishCoreRules.length, 74);
+assert.equal(englishCoreRules.length, 94);
 assert.equal(Object.keys(russianCoreRules).length, englishCoreRules.length, "every LionWing core rule card needs a Russian overlay");
 const localizedCoreRules = englishCoreRules.map(item => ({ ...item, ...(russianCoreRules[item.id] || {}) }));
 for (const item of englishCoreRules) assert.ok(russianCoreRules[item.id]?.text, `missing Russian core rule: ${item.id}`);
@@ -66,6 +66,10 @@ assert.match(russianCoreRules["lionwing.core.duels.roll"].text, /\[Напряж�
 assert.match(russianCoreRules["lionwing.core.knockouts.consequences"].text, /Каждое последствие.+только один раз/, "irreversible Knockout consequences must retain their one-time restriction");
 assert.match(russianCoreRules["lionwing.core.progression.experience"].text, /15 Опыта/, "LionWing Tier progression must retain its Experience threshold");
 assert.match(russianCoreRules["lionwing.core.progression.awakening"].text, /сохранить/, "LionWing Awakening must retain deferred rewards");
+assert.match(russianCoreRules["lionwing.core.abilities.expansion"].text, /хотя бы одно слово из исходной формы/, "expanded Abilities must retain an original word");
+assert.match(russianCoreRules["lionwing.core.bonds.quick"].text, /Один раз за Главу/, "LionWing must limit Quick Bonds per Chapter");
+assert.match(russianCoreRules["lionwing.core.bond-actions.study"].text, /нельзя оплатить Стрессом/, "Study must keep its Stress payment exception");
+assert.match(russianCoreRules["lionwing.core.bond-actions.abandon"].text, /только один раз/, "Abandon Influence must remain once per target character");
 
 const englishSkills = english.builderRules.skills.canonical;
 const russianSkillNames = russian.builderRules.skills.entries;

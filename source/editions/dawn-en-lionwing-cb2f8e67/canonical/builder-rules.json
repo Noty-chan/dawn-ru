@@ -194,6 +194,21 @@
       }
     ]
   },
+  "abilities": {
+    "maximum": 1,
+    "minimumCost": 1,
+    "maximumRank": 3,
+    "customWordsRequireNarratorApproval": true,
+    "expandedUsesRequireOriginalWord": true
+  },
+  "bonds": {
+    "maximumRank": 3,
+    "quickPerChapter": 1,
+    "quickRank": 1,
+    "quickSustainInfluenceCost": 1,
+    "actionInfluenceCost": 1,
+    "actionStressCost": 1
+  },
   "outlooks": {
     "starting": 1,
     "maximum": 3

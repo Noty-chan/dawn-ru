@@ -164,6 +164,25 @@
       "requires": ["Опыт за уникальные способы расходования Влияния", "порог 15", "отложенные Ранги, Дары и Уровни Техник", "журнал выбора при Пробуждении"]
     },
     {
+      "id": "lionwing.builder.ability-expansion",
+      "name": "Расширение одной Способности новыми словами",
+      "strategy": "extend-shared-core",
+      "status": "data-ready",
+      "sourcePages": [45],
+      "ruleIds": ["lionwing.core.abilities.creation", "lionwing.core.abilities.progression", "lionwing.core.abilities.expansion", "lionwing.core.abilities.custom-words"],
+      "requires": ["несколько слов каждой группы в одной Способности", "оплата добавленных слов", "хотя бы одно исходное слово при использовании", "одобрение собственных слов Нарратором"]
+    },
+    {
+      "id": "lionwing.core.bonds",
+      "name": "Жизненный цикл и Действия Связей LionWing",
+      "strategy": "parameterize-old-core",
+      "status": "data-ready",
+      "sourcePages": [47, 48],
+      "ruleIds": ["lionwing.core.bonds.forming", "lionwing.core.bonds.quick", "lionwing.core.bonds.ranking", "lionwing.core.bond-actions.cost", "lionwing.core.bond-actions.help", "lionwing.core.bond-actions.protect", "lionwing.core.bond-actions.study", "lionwing.core.bond-actions.teach", "lionwing.core.bond-actions.hate", "lionwing.core.bond-actions.abandon"],
+      "reuseFrom09": ["bond-state", "rank-and-tags", "resource-adjustment", "chapter-lifecycle"],
+      "requires": ["таблица из 4 обычных и 2 антагонистических Действий", "цена 1 Влияние или 1 Стресс", "одна Быстрая Связь за Главу", "одноразовое Влияние от Отречения"]
+    },
+    {
       "id": "lionwing.narrator.manual-ledger",
       "name": "Ручное применение изменений Нарратором",
       "strategy": "extend-shared-core",
