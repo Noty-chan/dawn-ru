@@ -332,21 +332,21 @@
       "id": "lionwing.reference.system-onboarding",
       "name": "Введение в систему, создание мира и роли за столом",
       "strategy": "parameterize-old-core",
-      "status": "7-cards-data-ready",
-      "sourcePages": [6, 7, 8, 20, 35],
-      "ruleIds": ["lionwing.reference.system-cliff-notes", "lionwing.reference.system-assumptions", "lionwing.reference.system-limits", "lionwing.reference.world-creation", "lionwing.core.general.materials", "lionwing.core.general.roles", "lionwing.core.general.specific-overrides"],
+      "status": "8-cards-data-ready",
+      "sourcePages": [6, 7, 8, 20, 35, 66],
+      "ruleIds": ["lionwing.reference.system-cliff-notes", "lionwing.reference.system-assumptions", "lionwing.reference.system-limits", "lionwing.reference.world-creation", "lionwing.reference.technique-catalogue", "lionwing.core.general.materials", "lionwing.core.general.roles", "lionwing.core.general.specific-overrides"],
       "reuseFrom09": ["builder-reference-cards", "reference-search", "locale-overlay"],
-      "requires": ["информационные карточки без изменения параметров и бюджетов героя", "двуязычный поиск по справочнику", "сменяющийся ведущий вопросов создания мира и право любого участника отклонить предложение", "обе поддерживаемые раскладки поля", "разделение обязанностей Нарратора и игроков", "выбор пользователя при конфликте двух одинаково частных правил"]
+      "requires": ["информационные карточки без изменения параметров и бюджетов героя", "двуязычный поиск по справочнику", "сменяющийся ведущий вопросов создания мира и право любого участника отклонить предложение", "обе поддерживаемые раскладки поля", "разделение обязанностей Нарратора и игроков", "выбор пользователя при конфликте двух одинаково частных правил", "до трёх Архетипов при сохранении первого как Основного", "звёзды, теги и художественный текст без механического эффекта"]
     },
     {
       "id": "lionwing.builder.story-guidance",
       "name": "Вопросы истории и примеры героев LionWing",
       "strategy": "parameterize-old-core",
-      "status": "12-reference-cards-data-ready",
-      "sourcePages": [25, 27],
-      "ruleIds": ["lionwing.reference.story-birth", "lionwing.reference.story-family", "lionwing.reference.story-ambition", "lionwing.reference.story-violence", "lionwing.reference.story-ability", "lionwing.reference.story-change", "lionwing.reference.story-settling-down", "lionwing.reference.story-opportunity", "lionwing.reference.example-qayid", "lionwing.reference.example-yvon", "lionwing.reference.example-titania", "lionwing.reference.example-anseis"],
+      "status": "22-reference-cards-data-ready",
+      "sourcePages": [25, 27, 49, 53],
+      "ruleIds": ["lionwing.reference.story-birth", "lionwing.reference.story-family", "lionwing.reference.story-ambition", "lionwing.reference.story-violence", "lionwing.reference.story-ability", "lionwing.reference.story-change", "lionwing.reference.story-settling-down", "lionwing.reference.story-opportunity", "lionwing.reference.example-qayid", "lionwing.reference.example-yvon", "lionwing.reference.example-titania", "lionwing.reference.example-anseis", "lionwing.reference.outlook-story-rebellion", "lionwing.reference.outlook-story-oath", "lionwing.reference.outlook-story-community", "lionwing.reference.outlook-story-disappearance", "lionwing.reference.outlook-story-past", "lionwing.reference.outlook-story-future", "lionwing.reference.outlook-story-fall", "lionwing.reference.outlook-story-rise", "lionwing.reference.outlook-story-comfort", "lionwing.reference.outlook-story-weakness"],
       "reuseFrom09": ["builder-reference-cards", "reference-search", "locale-overlay"],
-      "requires": ["необязательное отображение без влияния на бюджет героя", "сохранение рекомендаций как советов, а не ограничений", "отдельная локализация примеров", "запрет автоматического применения примера с неразрешенным Даром Stalking Beast"]
+      "requires": ["необязательное отображение без влияния на бюджет героя", "сохранение рекомендаций как советов, а не ограничений", "показ отдельного вопроса выбранного Основного Мировоззрения", "вопрос Наставника дополнительно открывает вопрос другого Мировоззрения", "отдельная локализация примеров", "запрет автоматического применения примера с неразрешенным Даром Stalking Beast"]
     },
     {
       "id": "lionwing.builder.combat-recipes",

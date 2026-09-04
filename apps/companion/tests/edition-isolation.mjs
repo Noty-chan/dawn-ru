@@ -28,6 +28,7 @@ assert.equal(lionwing.builderRules.editionId, lionwing.editionId);
 assert.deepEqual(JSON.parse(JSON.stringify(lionwing.builderRules.derivedStatistics)), { health: "10 + Body + Tier * 2", speed: "2 + ceil(Talent / 2)", focus: "1 + ceil(Spirit / 2)", guts: null });
 assert.equal(manifest.editionId, lionwing.editionId);
 assert.equal(manifest.counts.techniques, 111);
+assert.equal(manifest.counts.referenceCards, 42);
 assert.equal(manifest.counts.coreEffects, 19);
 assert.equal(manifest.counts.coreActions, 17);
 assert.equal(manifest.counts.coreNpcs, 41);

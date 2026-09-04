@@ -5807,6 +5807,116 @@
       }
     },
     {
+      "id": "lionwing.reference.outlook-story-rebellion",
+      "name": "Primary Outlook Question: Your Rebellion",
+      "kind": "Builder Reference",
+      "tags": "Creation, Story, Outlook, Rebel",
+      "text": "Show them what they did to you; make them pay. The world has rules, organizations, and traditions that preserve its status quo, but your existence breaks those rules. Why? Also ask whether and how the Change affected your rule-breaking nature.",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 49
+      }
+    },
+    {
+      "id": "lionwing.reference.outlook-story-oath",
+      "name": "Primary Outlook Question: Your Oath",
+      "kind": "Builder Reference",
+      "tags": "Creation, Story, Outlook, Loyal",
+      "text": "Power requires discipline, and discipline requires focus. Something that happened to you made you take an Oath toward someone or something. What is it? Also ask to whom or what you made this Oath, and why.",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 49
+      }
+    },
+    {
+      "id": "lionwing.reference.outlook-story-community",
+      "name": "Primary Outlook Question: Your Community",
+      "kind": "Builder Reference",
+      "tags": "Creation, Story, Outlook, Light",
+      "text": "Not family and not coworkers, but something more special. After moving away from your family, you became deeply integrated into a second group. Who are they? Also ask whether this community is connected to the other player characters.",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 50
+      }
+    },
+    {
+      "id": "lionwing.reference.outlook-story-disappearance",
+      "name": "Primary Outlook Question: Your Disappearance",
+      "kind": "Builder Reference",
+      "tags": "Creation, Story, Outlook, Wolf",
+      "text": "Something inside you is dead, and you have to move on. You once belonged to a rich community whose peers respected you and had your respect, but you can never go back. Why? Also ask whether that community still exists and how it fares without you.",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 50
+      }
+    },
+    {
+      "id": "lionwing.reference.outlook-story-past",
+      "name": "Primary Outlook Question: Your Past",
+      "kind": "Builder Reference",
+      "tags": "Creation, Story, Outlook, Mentor",
+      "text": "You used to be like them; how the years fly. Choose the Your Story question of any other Outlook and answer it in addition to this one. Also ask what has happened to you since then and how often you still think about those days.",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 51
+      }
+    },
+    {
+      "id": "lionwing.reference.outlook-story-future",
+      "name": "Primary Outlook Question: Your Future",
+      "kind": "Builder Reference",
+      "tags": "Creation, Story, Outlook, Apprentice",
+      "text": "Everyone else is doing so well; begin the climb. Once, and only once before the adventure begins, you meet a legendary person whom you have heard about and idolized all your life. Who are they? Also ask how you resemble them and how you differ.",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 51
+      }
+    },
+    {
+      "id": "lionwing.reference.outlook-story-fall",
+      "name": "Primary Outlook Question: Your Fall",
+      "kind": "Builder Reference",
+      "tags": "Creation, Story, Outlook, Accursed",
+      "text": "Everyone knows a fall can happen but never expects their own. Something supernatural implanted itself in you. What is it? Also ask how much you know about what happened and whether it relates to the Change that began this Series.",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 52
+      }
+    },
+    {
+      "id": "lionwing.reference.outlook-story-rise",
+      "name": "Primary Outlook Question: Your Rise",
+      "kind": "Builder Reference",
+      "tags": "Creation, Story, Outlook, Blessed",
+      "text": "Imagine that some people live without luxury. Through extraordinary coincidence or fortune, you received a life-changing windfall. What was it? Also ask why you pursued the Opportunity instead of spending the rest of your days in opulence.",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 52
+      }
+    },
+    {
+      "id": "lionwing.reference.outlook-story-comfort",
+      "name": "Primary Outlook Question: Your Comfort",
+      "kind": "Builder Reference",
+      "tags": "Creation, Story, Outlook, Quiet",
+      "text": "Heroism is admirable, but small things keep us human. Choose a hobby or activity, unrelated to the adventure's main Change or Opportunity, in which you are deeply invested. Also ask whether going on the adventure helps you pursue it.",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 53
+      }
+    },
+    {
+      "id": "lionwing.reference.outlook-story-weakness",
+      "name": "Primary Outlook Question: Your Weakness",
+      "kind": "Builder Reference",
+      "tags": "Creation, Story, Outlook, Confident",
+      "text": "If it is not true—if you are not the best—are you even yourself? Your life is full of people and achievements affirming your unmatched status, but once you faltered in that belief. Why? Also ask how many people know it happened and who they are.",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 53
+      }
+    },
+    {
       "id": "lionwing.reference.creation-order",
       "name": "Character Creation Checklist",
       "kind": "Builder Reference",
@@ -5859,6 +5969,17 @@
       "source": {
         "editionId": "dawn-en-lionwing-cb2f8e67",
         "pdfPage": 24
+      }
+    },
+    {
+      "id": "lionwing.reference.technique-catalogue",
+      "name": "Reading The Technique Catalogue",
+      "kind": "Builder Reference",
+      "tags": "Creation, Techniques, Archetypes",
+      "text": "Every Technique has three Levels that must be taken in order. A hero may take Techniques from at most three Archetypes: the first is their Primary Archetype and the others are Secondary Archetypes. Complexity stars and tags describe intricacy and broad themes but have no mechanical effect. Flavor text is fiction and also has no mechanical effect. The six Archetypes are Powerhouse for sustained fights, Vagabond for defeating single targets, Bulwark for team defense, Altruist for helping allies, Disruptor for restriction and control, and Ruiner for high-impact, high-cost effects.",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 66
       }
     },
     {

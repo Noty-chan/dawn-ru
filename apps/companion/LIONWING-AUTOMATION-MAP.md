@@ -69,8 +69,8 @@
 | `lionwing.modifiers.profiles` | Профили Модификаторов LionWing | новый фундамент LionWing | `12-profiles-data-ready` | 126–127 |
 | `lionwing.npcs.custom-authoring` | Конструктор пользовательских NPC LionWing | расширить общее ядро | `guidance-data-ready` | 128 |
 | `lionwing.scenarios.alternative-objectives` | Альтернативные цели боя LionWing | расширить общее ядро | `6-scenarios-data-ready` | 129–130 |
-| `lionwing.reference.system-onboarding` | Введение в систему, создание мира и роли за столом | параметризовать общее ядро | `7-cards-data-ready` | 6–7–8–20–35 |
-| `lionwing.builder.story-guidance` | Вопросы истории и примеры героев LionWing | параметризовать общее ядро | `12-reference-cards-data-ready` | 25–27 |
+| `lionwing.reference.system-onboarding` | Введение в систему, создание мира и роли за столом | параметризовать общее ядро | `8-cards-data-ready` | 6–7–8–20–35–66 |
+| `lionwing.builder.story-guidance` | Вопросы истории и примеры героев LionWing | параметризовать общее ядро | `22-reference-cards-data-ready` | 25–27–49–53 |
 | `lionwing.builder.combat-recipes` | Боевые рецепты персонажей LionWing | параметризовать общее ядро | `8-recipes-data-ready` | 28–31 |
 | `lionwing.techniques.separate-review-map` | Отдельная карта автоматизации 333 Уровней LionWing | новый фундамент LionWing | `map-ready` | 69–103 |
 

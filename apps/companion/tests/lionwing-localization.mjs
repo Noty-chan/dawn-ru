@@ -42,6 +42,10 @@ assert.match(localizedReference.find(item => item.id === "lionwing.reference.exa
 assert.match(localizedReference.find(item => item.id === "lionwing.reference.example-yvon").text, /Крадущийся зверь/, "Yvon example must preserve the source-only Stalking Beast name for review");
 assert.match(localizedReference.find(item => item.id === "lionwing.reference.system-cliff-notes").text, /4\+ дает Успех.+Крит.+добавляет еще одну кость/, "the system overview must retain its core dice summary");
 assert.match(localizedReference.find(item => item.id === "lionwing.reference.world-creation").text, /сменяющегося ведущего.+твердое возражение.+второй вариант/, "world creation must retain its collaborative answer procedure");
+const outlookStoryQuestions = localizedReference.filter(item => item.id.startsWith("lionwing.reference.outlook-story-"));
+assert.equal(outlookStoryQuestions.length, 10, "every Primary Outlook must retain its bilingual story question");
+assert.match(localizedReference.find(item => item.id === "lionwing.reference.outlook-story-past").text, /вопрос «Твоей истории» любого другого Мировоззрения/, "the Mentor question must retain its extra Outlook question");
+assert.match(localizedReference.find(item => item.id === "lionwing.reference.technique-catalogue").text, /не более чем из трёх Архетипов.+Звёзды сложности и теги.+не имеют механического эффекта/, "the Technique guide must retain Archetype and non-mechanical catalogue guidance");
 const localizedRecipes = localizedReference.filter(item => item.id.startsWith("lionwing.reference.recipe-"));
 assert.equal(localizedRecipes.length, 8, "all eight LionWing combat recipes need bilingual reference cards");
 assert.ok(localizedRecipes.every(item => /Атрибуты: Тело [234], Талант [234], Дух [234], Разум [234]/.test(item.text)), "every combat recipe must retain recommended Attributes");
