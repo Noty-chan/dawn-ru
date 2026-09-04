@@ -9,10 +9,10 @@
   <title>DAWN RU · Компаньон</title>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="stylesheet" href="app.css?v=__BUILD_VERSION__">
-  <script>try{if(JSON.parse(localStorage.getItem("dawn-ru-companion-v2")||"null")?.sceneUi?.interfaceVersion==="next")document.documentElement.classList.add("scene-interface-next")}catch{}</script>
-  <link rel="stylesheet" href="vtt-interface-classic.css?v=__BUILD_VERSION__">
+  <script>try{const sceneUi=JSON.parse(localStorage.getItem("dawn-ru-companion-v2")||"null")?.sceneUi||{};if(Number(sceneUi.interfaceRolloutVersion||0)<3||sceneUi.interfaceVersion==="next")document.documentElement.classList.add("scene-interface-next")}catch{document.documentElement.classList.add("scene-interface-next")}</script>
+  <link id="scene-interface-classic-styles" rel="stylesheet" href="vtt-interface-classic.css?v=__BUILD_VERSION__">
   <link id="scene-interface-next-styles" rel="stylesheet" href="vtt-cockpit.css?v=__BUILD_VERSION__" disabled>
-  <script>if(document.documentElement.classList.contains("scene-interface-next"))document.getElementById("scene-interface-next-styles").disabled=false</script>
+  <script>{const next=document.documentElement.classList.contains("scene-interface-next");document.getElementById("scene-interface-classic-styles").disabled=next;document.getElementById("scene-interface-next-styles").disabled=!next}</script>
 </head>
 <body>
   <a class="skip" href="#main" data-i18n="app.skip">К содержимому</a>

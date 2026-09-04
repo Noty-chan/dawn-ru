@@ -786,3 +786,30 @@ body[data-scene-control-mode="manual"] .scene-dock [data-scene-panel="director"]
   .scene-mode .scene-tool-group{display:flex;gap:.1rem;overflow:visible;padding:0}.scene-mode .scene-tool-cluster{gap:.06rem;padding:.08rem;border:0;background:transparent}.scene-mode .scene-tool-cluster>small{display:none}.scene-mode .scene-tool-group button{display:grid;place-items:center;width:32px;min-width:32px;min-height:32px;padding:0;font-size:0}.scene-mode .scene-tool-group button::before{width:24px;height:24px;font-size:.7rem}
   .scene-mode .scene-tool-actions{display:flex;gap:.08rem;width:auto}.scene-mode .scene-tool-actions>span{display:none}.scene-mode .scene-tool-actions button{display:grid;place-items:center;width:30px;min-width:30px;min-height:30px;padding:0;font-size:0}.scene-mode .scene-tool-actions button:disabled{display:none}.scene-mode .scene-tool-actions button::before{content:attr(data-action-icon);display:grid;place-items:center;font-size:.68rem;line-height:1}.scene-mode #scene-undo:disabled,.scene-mode #scene-redo:disabled{display:grid;opacity:.35}
 }
+
+/* Layout invariants: zoom changes the board inside its viewport, never the
+   rails, dock, header, or action tray. Keep these last so older responsive
+   rules cannot stretch or detach the controls when a side rail opens. */
+@media (min-width:721px) and (min-height:501px), (min-width:1000px){
+  .scene-mode .scene-board-wrap,.scene-player-view .scene-board-wrap{
+    align-content:safe center;
+    justify-content:safe center;
+    contain:layout paint;
+  }
+  .scene-mode .scene-rail{isolation:isolate;background:color-mix(in srgb,var(--surface) 98%,black)}
+  .scene-mode .scene-rail>[data-scene-panel-content].rail-active{position:relative;z-index:1;visibility:visible;opacity:1}
+  .scene-mode .scene-action-tray,.scene-panel-open.scene-mode .scene-action-tray,.scene-panel-open.scene-panel-left.scene-mode:not(.scene-player-view) .scene-action-tray{
+    top:auto;
+    bottom:.55rem;
+    align-self:auto;
+    justify-self:auto;
+    width:max-content;
+    height:max-content;
+    min-height:0;
+    max-height:52px;
+    flex-flow:row nowrap;
+    overflow-x:auto;
+    overflow-y:hidden;
+  }
+  .scene-action-tray .scene-tray-gm{flex:0 0 auto;align-items:center}
+}

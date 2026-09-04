@@ -94,13 +94,13 @@ $("scene-director").addEventListener("click",event=>{
   if(event.target.closest("[data-director-note]")){const note=$("scene-director-note")?.value.trim();if(!note)return toast("Запишите решение Нарратора");commitScene(`Ручное решение · ${actor.name}: ${note.slice(0,320)}`,()=>{});return}
   if(event.target.closest("[data-director-round]")){forceNarratorRound();return}
 });
-$("scene-workbench").addEventListener("change",event=>{
+$("scene-layout-settings").addEventListener("change",event=>{
   if(event.target.id==="scene-interface-next"){sceneInterfaceVersion=event.target.checked?"next":"classic";persist();location.reload();return}
-  if(event.target.id==="scene-panel-layout"){scenePanelLayoutMode=["split","right","left","custom"].includes(event.target.value)?event.target.value:"split";persist();renderScene();setScenePanel("table");return}
-  const side=event.target.closest("[data-scene-panel-side]");if(side){scenePanelSides[side.dataset.scenePanelSide]=side.value==="left"?"left":"right";persist();renderScene();setScenePanel("table");return}
+  if(event.target.id==="scene-panel-layout"){scenePanelLayoutMode=["split","right","left","custom"].includes(event.target.value)?event.target.value:"split";persist();renderScene();return}
+  const side=event.target.closest("[data-scene-panel-side]");if(side){scenePanelSides[side.dataset.scenePanelSide]=side.value==="left"?"left":"right";persist();renderScene();return}
   const width=event.target.closest("[data-scene-panel-width]");if(width){scenePanelWidths[width.dataset.scenePanelWidth]=SCENE_PANEL_WIDTHS[width.value]?width.value:"normal";persist();syncScenePanels();requestAnimationFrame(()=>fitSceneZoom(false));return}
-  if(event.target.id==="scene-turn-strip-visible"){sceneTurnStripVisible=event.target.checked;persist();renderScene();setScenePanel("table");return}
-  if(event.target.id==="scene-interface-density"){sceneInterfaceDensity=event.target.value==="comfortable"?"comfortable":"compact";persist();renderScene();setScenePanel("table")}
+  if(event.target.id==="scene-turn-strip-visible"){sceneTurnStripVisible=event.target.checked;persist();renderScene();return}
+  if(event.target.id==="scene-interface-density"){sceneInterfaceDensity=event.target.value==="comfortable"?"comfortable":"compact";persist();renderScene()}
 });
 $("scene-enemy-roster").addEventListener("click",event=>{
   const ruleButton=event.target.closest("[data-enemy-rule]"),stepButton=event.target.closest("[data-enemy-step]"),turnButton=event.target.closest("[data-enemy-turn]"),actorButton=event.target.closest("[data-scene-roster-actor]");

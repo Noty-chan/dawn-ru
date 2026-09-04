@@ -360,8 +360,8 @@ let store=loadStore(); const importedPresetName=consumePresetDraft(store),reques
 const DEFAULT_SCENE_PANEL_SIDES={director:"left",inspector:"right",sheet:"right",utility:"right",reference:"right",roster:"right",media:"right",map:"right",add:"right",table:"left",network:"right",log:"right"};
 const SCENE_PANEL_WIDTHS={compact:300,normal:380,wide:480};
 const sceneLayoutV2=store.sceneUi?.layoutVersion===2;
-let sceneInterfaceVersion=store.sceneUi?.interfaceVersion==="next"?"next":"classic",activeDirectorTab="turn",scenePanelLayoutMode=["split","right","left","custom"].includes(store.sceneUi?.panelLayout)?store.sceneUi.panelLayout:"split",scenePanelSides={...DEFAULT_SCENE_PANEL_SIDES,...(sceneLayoutV2?store.sceneUi?.panelSides:{})},scenePanelWidths={left:sceneLayoutV2&&SCENE_PANEL_WIDTHS[store.sceneUi?.panelWidths?.left]?store.sceneUi.panelWidths.left:"wide",right:sceneLayoutV2&&SCENE_PANEL_WIDTHS[store.sceneUi?.panelWidths?.right]?store.sceneUi.panelWidths.right:"normal"},sceneTurnStripVisible=store.sceneUi?.turnStripVisible!==false,sceneInterfaceDensity=["compact","comfortable"].includes(store.sceneUi?.density)?store.sceneUi.density:"compact";
-document.body.classList.toggle("scene-interface-next",sceneInterfaceVersion==="next");const sceneNextStyles=$("scene-interface-next-styles");if(sceneNextStyles)sceneNextStyles.disabled=sceneInterfaceVersion!=="next";
+const SCENE_INTERFACE_ROLLOUT_VERSION=3,sceneInterfaceRolloutVersion=Number(store.sceneUi?.interfaceRolloutVersion||0);let sceneInterfaceVersion=sceneInterfaceRolloutVersion<SCENE_INTERFACE_ROLLOUT_VERSION?"next":store.sceneUi?.interfaceVersion==="classic"?"classic":"next",activeDirectorTab="turn",scenePanelLayoutMode=["split","right","left","custom"].includes(store.sceneUi?.panelLayout)?store.sceneUi.panelLayout:"split",scenePanelSides={...DEFAULT_SCENE_PANEL_SIDES,...(sceneLayoutV2?store.sceneUi?.panelSides:{})},scenePanelWidths={left:sceneLayoutV2&&SCENE_PANEL_WIDTHS[store.sceneUi?.panelWidths?.left]?store.sceneUi.panelWidths.left:"wide",right:sceneLayoutV2&&SCENE_PANEL_WIDTHS[store.sceneUi?.panelWidths?.right]?store.sceneUi.panelWidths.right:"normal"},sceneTurnStripVisible=store.sceneUi?.turnStripVisible!==false,sceneInterfaceDensity=["compact","comfortable"].includes(store.sceneUi?.density)?store.sceneUi.density:"compact";
+document.body.classList.toggle("scene-interface-next",sceneInterfaceVersion==="next");const sceneNextStyles=$("scene-interface-next-styles"),sceneClassicStyles=$("scene-interface-classic-styles");if(sceneNextStyles)sceneNextStyles.disabled=sceneInterfaceVersion!=="next";if(sceneClassicStyles)sceneClassicStyles.disabled=sceneInterfaceVersion==="next";
 function activateHeroEdition(edition,{saveCurrent=true}={}){
   const target=["ru-v0.9","lionwing"].includes(edition)?edition:"ru-v0.9";
   if(saveCurrent)store.heroes[store.current]=S;
@@ -373,7 +373,7 @@ function persistableStore(){
   const heroes=persistableHeroes(),scene=sceneCore(Scene),sourceById=new Map(store.heroes.map(hero=>[hero.id,hero]));
   scene.undo=[];
   for(const actor of scene.actors){const hero=sourceById.get(actor.heroId);if(!hero)continue;if(actor.tokenImage&&actor.tokenImage===hero.media?.token)actor.tokenImage="";if(actor.portraitImage&&actor.portraitImage===hero.media?.portrait)actor.portraitImage=""}
-  return {...store,heroes,scene,gmLibrary:normalizeGmLibrary(store.gmLibrary),sceneUi:{zoom:sceneZoom,controlMode:sceneControlMode,interfaceVersion:sceneInterfaceVersion,panelLayout:scenePanelLayoutMode,panelSides:scenePanelSides,panelWidths:scenePanelWidths,turnStripVisible:sceneTurnStripVisible,density:sceneInterfaceDensity,layoutVersion:2,fitVersion:9,viewport:sceneViewportMode}};
+  return {...store,heroes,scene,gmLibrary:normalizeGmLibrary(store.gmLibrary),sceneUi:{zoom:sceneZoom,controlMode:sceneControlMode,interfaceVersion:sceneInterfaceVersion,interfaceRolloutVersion:SCENE_INTERFACE_ROLLOUT_VERSION,panelLayout:scenePanelLayoutMode,panelSides:scenePanelSides,panelWidths:scenePanelWidths,turnStripVisible:sceneTurnStripVisible,density:sceneInterfaceDensity,layoutVersion:2,fitVersion:9,viewport:sceneViewportMode}};
 }
 function persistableHeroes(){
   const heroes=store.heroes.map(normalizeHero);
@@ -393,7 +393,7 @@ function persistHeroStore(){
   }
 }
 function persist(){
-  store.heroes[store.current]=S;store.scene=Scene;store.gmLibrary=normalizeGmLibrary(store.gmLibrary);store.sceneUi={zoom:sceneZoom,controlMode:sceneControlMode,interfaceVersion:sceneInterfaceVersion,panelLayout:scenePanelLayoutMode,panelSides:scenePanelSides,panelWidths:scenePanelWidths,turnStripVisible:sceneTurnStripVisible,density:sceneInterfaceDensity,layoutVersion:2,fitVersion:9,viewport:sceneViewportMode};scheduleHeroMediaPersistence();
+  store.heroes[store.current]=S;store.scene=Scene;store.gmLibrary=normalizeGmLibrary(store.gmLibrary);store.sceneUi={zoom:sceneZoom,controlMode:sceneControlMode,interfaceVersion:sceneInterfaceVersion,interfaceRolloutVersion:SCENE_INTERFACE_ROLLOUT_VERSION,panelLayout:scenePanelLayoutMode,panelSides:scenePanelSides,panelWidths:scenePanelWidths,turnStripVisible:sceneTurnStripVisible,density:sceneInterfaceDensity,layoutVersion:2,fitVersion:9,viewport:sceneViewportMode};scheduleHeroMediaPersistence();
   persistHeroStore();
   try{localStorage.setItem(STORAGE_KEY,JSON.stringify(persistableStore()))}
   catch(error){console.warn("DAWN local state persistence failed",error);if(Date.now()-lastStorageWarningAt>5000){lastStorageWarningAt=Date.now();toast(heroMediaStorageReady?"Не удалось сохранить локально; удалите лишний арт Сцены":"Переношу изображения из тесного хранилища браузера…")}}
