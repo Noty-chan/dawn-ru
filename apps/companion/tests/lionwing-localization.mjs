@@ -50,7 +50,7 @@ assert.match(russianActions["action.утилитарные-действия.из
 
 const englishCoreRules = english.coreRules.rules;
 const russianCoreRules = russian.coreRules.rules.entries;
-assert.equal(englishCoreRules.length, 69);
+assert.equal(englishCoreRules.length, 74);
 assert.equal(Object.keys(russianCoreRules).length, englishCoreRules.length, "every LionWing core rule card needs a Russian overlay");
 const localizedCoreRules = englishCoreRules.map(item => ({ ...item, ...(russianCoreRules[item.id] || {}) }));
 for (const item of englishCoreRules) assert.ok(russianCoreRules[item.id]?.text, `missing Russian core rule: ${item.id}`);
@@ -64,6 +64,8 @@ assert.match(russianCoreRules["lionwing.core.combat.cinematic"].text, /Лини�
 assert.match(russianCoreRules["lionwing.core.rolls.quick"].text, /3 или больше костей/, "LionWing Quick Rolls must use the new three-die compression threshold");
 assert.match(russianCoreRules["lionwing.core.duels.roll"].text, /\[Напряжение \+ Ступень\]/, "LionWing Duels must use the new NPC dice pool");
 assert.match(russianCoreRules["lionwing.core.knockouts.consequences"].text, /Каждое последствие.+только один раз/, "irreversible Knockout consequences must retain their one-time restriction");
+assert.match(russianCoreRules["lionwing.core.progression.experience"].text, /15 Опыта/, "LionWing Tier progression must retain its Experience threshold");
+assert.match(russianCoreRules["lionwing.core.progression.awakening"].text, /сохранить/, "LionWing Awakening must retain deferred rewards");
 
 const englishSkills = english.builderRules.skills.canonical;
 const russianSkillNames = russian.builderRules.skills.entries;

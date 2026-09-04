@@ -421,6 +421,11 @@ def core_rules() -> dict:
         "source": {"editionId": NEW_ID, "locale": "en", "pdfPage": item[7]},
     } for item in action_rows]
     rule_rows = [
+        ("lionwing.core.creation.modes", "Character Creation", "Modes of Play", "rule", "DAWN alternates between unstructured play and structured combat. Skills, Abilities, Outlooks, and Boons primarily support unstructured play; Action Points, Techniques, and combat statistics primarily support structured combat. A feature does not automatically carry its effect between modes unless a rule explicitly connects them.", 22),
+        ("lionwing.core.progression.tier", "Progression", "Increasing Tier", "rule", "Characters start at Tier 1 and can advance to Tier 6. On a Tier increase, add 1 to two different Attributes; gain 2 Character Ranks; gain one Boon from the starting Outlook or branch into up to two other Outlooks; and gain 2 Technique Levels. Instead of the Technique Levels, the character may add 1 to their highest Attribute.", 32),
+        ("lionwing.core.progression.experience", "Progression", "Experience", "rule", "At the end of each Chapter, every player character gains 2 Experience plus 1 Experience for each unique way the party spent Influence during that Chapter, to a maximum of 4 Experience per Chapter. At 15 Experience, the character increases their Tier.", 32),
+        ("lionwing.core.progression.awakening", "Progression", "Awakening", "rule", "A character does not have to take new Techniques, Character Ranks, or Boons immediately when Tiering up. They may save those rewards and Awaken while acting in a Scene, gaining any saved feature immediately and explaining the transformation in the fiction.", 32),
+        ("lionwing.core.progression.scale", "Progression", "Campaign Scale", "guidance", "Tier suggests a campaign's fictional scale but does not mechanically force it. Tiers 1–2 suit underdog stories, Tier 3 emerging heroes, Tier 4 established elites, Tier 5 the best in the setting, and Tier 6 legendary characters. The table may change scale whenever the story calls for it.", 33),
         ("lionwing.core.general.rule-zero", "Universal Rules", "Rule Zero", "rule", "Everyone at the table should feel safe and comfortable. Before play, discuss boundaries and use consent and safety tools that suit the group. Any participant may pause or redirect play when needed; the game's other rules never override this responsibility.", 35),
         ("lionwing.core.general.rounding", "Universal Rules", "Rounding", "rule", "Whenever a rule divides a number, round the result up unless that rule says otherwise.", 35),
         ("lionwing.core.general.specific-overrides", "Universal Rules", "Specific Overrides General", "rule", "When a specific rule contradicts a general rule, follow the specific rule.", 35),
@@ -525,6 +530,7 @@ def builder_rules() -> dict:
         "editionId": NEW_ID,
         "sourceLocale": "en",
         "tier": {"minimum": 1, "maximum": 6},
+        "progression": {"experienceToTier": 15, "chapterBaseExperience": 2, "chapterMaximumExperience": 4, "rewardsMayBeSavedForAwakening": True},
         "attributes": {"startingValues": [4, 3, 2, 2], "growthPerTier": 2, "sameAttributeGrowthPerTier": 1},
         "ranks": {"starting": 8, "perTier": 2, "minimumStartingSkillRanks": 4},
         "skills": {

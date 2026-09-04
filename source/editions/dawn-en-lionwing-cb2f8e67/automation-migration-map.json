@@ -155,6 +155,15 @@
       "requires": ["явное подтверждение игрока", "аудит необратимого изменения героя", "одноразовость последствия", "согласие второго игрока для Trip Up"]
     },
     {
+      "id": "lionwing.builder.progression-awakening",
+      "name": "Опыт, повышение Ступени и отложенное Пробуждение",
+      "strategy": "extend-shared-core",
+      "status": "data-ready",
+      "sourcePages": [32],
+      "ruleIds": ["lionwing.core.progression.tier", "lionwing.core.progression.experience", "lionwing.core.progression.awakening"],
+      "requires": ["Опыт за уникальные способы расходования Влияния", "порог 15", "отложенные Ранги, Дары и Уровни Техник", "журнал выбора при Пробуждении"]
+    },
+    {
       "id": "lionwing.narrator.manual-ledger",
       "name": "Ручное применение изменений Нарратором",
       "strategy": "extend-shared-core",

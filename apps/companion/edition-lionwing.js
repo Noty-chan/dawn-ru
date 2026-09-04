@@ -18,6 +18,12 @@ window.DAWN_LIONWING_DATA = {
    "minimum": 1,
    "maximum": 6
   },
+  "progression": {
+   "experienceToTier": 15,
+   "chapterBaseExperience": 2,
+   "chapterMaximumExperience": 4,
+   "rewardsMayBeSavedForAwakening": true
+  },
   "attributes": {
    "startingValues": [
     4,
@@ -6347,6 +6353,66 @@ window.DAWN_LIONWING_DATA = {
    ]
   },
   "rules": [
+   {
+    "id": "lionwing.core.creation.modes",
+    "category": "Character Creation",
+    "name": "Modes of Play",
+    "kind": "rule",
+    "text": "DAWN alternates between unstructured play and structured combat. Skills, Abilities, Outlooks, and Boons primarily support unstructured play; Action Points, Techniques, and combat statistics primarily support structured combat. A feature does not automatically carry its effect between modes unless a rule explicitly connects them.",
+    "source": {
+     "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
+     "pdfPage": 22
+    }
+   },
+   {
+    "id": "lionwing.core.progression.tier",
+    "category": "Progression",
+    "name": "Increasing Tier",
+    "kind": "rule",
+    "text": "Characters start at Tier 1 and can advance to Tier 6. On a Tier increase, add 1 to two different Attributes; gain 2 Character Ranks; gain one Boon from the starting Outlook or branch into up to two other Outlooks; and gain 2 Technique Levels. Instead of the Technique Levels, the character may add 1 to their highest Attribute.",
+    "source": {
+     "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
+     "pdfPage": 32
+    }
+   },
+   {
+    "id": "lionwing.core.progression.experience",
+    "category": "Progression",
+    "name": "Experience",
+    "kind": "rule",
+    "text": "At the end of each Chapter, every player character gains 2 Experience plus 1 Experience for each unique way the party spent Influence during that Chapter, to a maximum of 4 Experience per Chapter. At 15 Experience, the character increases their Tier.",
+    "source": {
+     "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
+     "pdfPage": 32
+    }
+   },
+   {
+    "id": "lionwing.core.progression.awakening",
+    "category": "Progression",
+    "name": "Awakening",
+    "kind": "rule",
+    "text": "A character does not have to take new Techniques, Character Ranks, or Boons immediately when Tiering up. They may save those rewards and Awaken while acting in a Scene, gaining any saved feature immediately and explaining the transformation in the fiction.",
+    "source": {
+     "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
+     "pdfPage": 32
+    }
+   },
+   {
+    "id": "lionwing.core.progression.scale",
+    "category": "Progression",
+    "name": "Campaign Scale",
+    "kind": "guidance",
+    "text": "Tier suggests a campaign's fictional scale but does not mechanically force it. Tiers 1–2 suit underdog stories, Tier 3 emerging heroes, Tier 4 established elites, Tier 5 the best in the setting, and Tier 6 legendary characters. The table may change scale whenever the story calls for it.",
+    "source": {
+     "editionId": "dawn-en-lionwing-cb2f8e67",
+     "locale": "en",
+     "pdfPage": 33
+    }
+   },
    {
     "id": "lionwing.core.general.rule-zero",
     "category": "Universal Rules",

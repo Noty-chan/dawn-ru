@@ -6,6 +6,12 @@
     "minimum": 1,
     "maximum": 6
   },
+  "progression": {
+    "experienceToTier": 15,
+    "chapterBaseExperience": 2,
+    "chapterMaximumExperience": 4,
+    "rewardsMayBeSavedForAwakening": true
+  },
   "attributes": {
     "startingValues": [
       4,
