@@ -50,7 +50,7 @@ assert.match(russianActions["action.утилитарные-действия.из
 
 const englishCoreRules = english.coreRules.rules;
 const russianCoreRules = russian.coreRules.rules.entries;
-assert.equal(englishCoreRules.length, 36);
+assert.equal(englishCoreRules.length, 69);
 assert.equal(Object.keys(russianCoreRules).length, englishCoreRules.length, "every LionWing core rule card needs a Russian overlay");
 const localizedCoreRules = englishCoreRules.map(item => ({ ...item, ...(russianCoreRules[item.id] || {}) }));
 for (const item of englishCoreRules) assert.ok(russianCoreRules[item.id]?.text, `missing Russian core rule: ${item.id}`);
@@ -61,6 +61,16 @@ assert.match(russianCoreRules["lionwing.core.combat.assisting"].text, /самы�
 assert.match(russianCoreRules["lionwing.core.statistics.health"].text, /10 \+ \[Тело\] \+ \[Ступень × 2\]/, "LionWing maximum Health formula must be preserved");
 assert.match(russianCoreRules["lionwing.core.spatial.special-targeting"].text, /сначала бросьте наименьшее число костей/, "LionWing multi-target rolls must preserve their staged dice rule");
 assert.match(russianCoreRules["lionwing.core.combat.cinematic"].text, /Линии из 7 клеток/, "LionWing Cinematic Combat must preserve its board size");
+assert.match(russianCoreRules["lionwing.core.rolls.quick"].text, /3 или больше костей/, "LionWing Quick Rolls must use the new three-die compression threshold");
+assert.match(russianCoreRules["lionwing.core.duels.roll"].text, /\[Напряжение \+ Ступень\]/, "LionWing Duels must use the new NPC dice pool");
+assert.match(russianCoreRules["lionwing.core.knockouts.consequences"].text, /Каждое последствие.+только один раз/, "irreversible Knockout consequences must retain their one-time restriction");
+
+const englishSkills = english.builderRules.skills.canonical;
+const russianSkillNames = russian.builderRules.skills.entries;
+assert.equal(englishSkills.length, 16);
+assert.equal(Object.keys(russianSkillNames).length, englishSkills.length, "every canonical LionWing Skill needs a Russian display name");
+for (const skill of englishSkills) assert.ok(russianSkillNames[skill.id], `missing Russian Skill: ${skill.id}`);
+assert.deepEqual(englishSkills.map(skill => skill.id), englishSkills.map(skill => ({ ...skill, name: russianSkillNames[skill.id] })).map(skill => skill.id), "switching canonical Skills to RU must preserve ids");
 
 const activeAbilityWordIds = Object.values(english.abilityWords).flat().map(item => item.id);
 const retiredAbilityWordIds = worklist.units.filter(item => item.domain === "ability-word" && item.action === "retire").map(item => item.stableId);

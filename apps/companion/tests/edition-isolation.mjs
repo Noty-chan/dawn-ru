@@ -27,7 +27,9 @@ assert.equal(manifest.editionId, lionwing.editionId);
 assert.equal(manifest.counts.techniques, 111);
 assert.equal(manifest.counts.coreEffects, 19);
 assert.equal(manifest.counts.coreActions, 17);
-assert.equal(manifest.counts.coreRuleCards, 36);
+assert.equal(manifest.counts.coreRuleCards, 69);
+assert.equal(lionwing.builderRules.skills.canonical.length, 16);
+assert.equal(new Set(lionwing.builderRules.skills.canonical.map(item => item.id)).size, 16, "canonical LionWing Skill ids must be unique");
 assert.equal(oldEnglish.techniques.length, 107);
 assert.deepEqual(Object.fromEntries(Object.entries(oldEnglish.abilityWords).map(([group, words]) => [group, words.length])), { verbs: 32, nouns: 30, conditions: 21 });
 assert.ok(oldEnglish.outlooks.every(outlook => !outlook.description.includes("Favored Bond Actions")), "old Outlook descriptions must not absorb rules and Boons");
@@ -76,5 +78,5 @@ assert.match(read("scene-actions-ui.js"), /sceneControlMode!=="manual"&&hero\.ru
 assert.match(playUi + read("scene-ui.js"), /activeOutlooks\(\)[\s\S]+activeArchetypes\(\)/, "table and reference views must consume the selected edition");
 assert.match(playUi, /function activeRuleChapters\(\)[\s\S]+activeCoreRules\(\)/, "LionWing rules view must consume selected-edition core rules");
 assert.match(playUi, /if\(isLionwingEdition\(\)\)\{[\s\S]+core\.rules\.map[\s\S]+core\.actions\.list\.map[\s\S]+core\.effects\.positive\.map/, "both LionWing locales must build reference items from LionWing rules, actions, and effects");
-assert.match(playUi, /filters=lionwing\?\(en\?\["all","Builder Reference","Rule","Action","Effect","Technique","Boon"\]:\["all","Справка","Правило","Действие","Эффект","Техника","Дар"\]\)/, "LionWing reference filters must be complete in RU and EN");
+assert.match(playUi, /filters=lionwing\?\(en\?\["all","Builder Reference","Skill","Rule","Action","Effect","Technique","Boon"\]:\["all","Справка","Навык","Правило","Действие","Эффект","Техника","Дар"\]\)/, "LionWing reference filters must be complete in RU and EN");
 console.log("Edition isolation QA passed: RU catalogue immutable, LionWing provenance complete, manual table isolated");

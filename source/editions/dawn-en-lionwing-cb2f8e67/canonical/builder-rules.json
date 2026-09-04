@@ -21,6 +21,173 @@
     "perTier": 2,
     "minimumStartingSkillRanks": 4
   },
+  "skills": {
+    "minimumRank": 1,
+    "maximumRank": 3,
+    "customAllowed": true,
+    "canonical": [
+      {
+        "id": "lionwing.skill.body.break",
+        "attribute": "body",
+        "name": "Break",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 44
+        }
+      },
+      {
+        "id": "lionwing.skill.body.endure",
+        "attribute": "body",
+        "name": "Endure",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 44
+        }
+      },
+      {
+        "id": "lionwing.skill.body.menace",
+        "attribute": "body",
+        "name": "Menace",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 44
+        }
+      },
+      {
+        "id": "lionwing.skill.body.defend",
+        "attribute": "body",
+        "name": "Defend",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 44
+        }
+      },
+      {
+        "id": "lionwing.skill.talent.finesse",
+        "attribute": "talent",
+        "name": "Finesse",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 44
+        }
+      },
+      {
+        "id": "lionwing.skill.talent.lurk",
+        "attribute": "talent",
+        "name": "Lurk",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 44
+        }
+      },
+      {
+        "id": "lionwing.skill.talent.move",
+        "attribute": "talent",
+        "name": "Move",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 44
+        }
+      },
+      {
+        "id": "lionwing.skill.talent.react",
+        "attribute": "talent",
+        "name": "React",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 44
+        }
+      },
+      {
+        "id": "lionwing.skill.spirit.absorb",
+        "attribute": "spirit",
+        "name": "Absorb",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 44
+        }
+      },
+      {
+        "id": "lionwing.skill.spirit.intuit",
+        "attribute": "spirit",
+        "name": "Intuit",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 44
+        }
+      },
+      {
+        "id": "lionwing.skill.spirit.connect",
+        "attribute": "spirit",
+        "name": "Connect",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 44
+        }
+      },
+      {
+        "id": "lionwing.skill.spirit.luck",
+        "attribute": "spirit",
+        "name": "Luck",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 44
+        }
+      },
+      {
+        "id": "lionwing.skill.mind.deceive",
+        "attribute": "mind",
+        "name": "Deceive",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 44
+        }
+      },
+      {
+        "id": "lionwing.skill.mind.command",
+        "attribute": "mind",
+        "name": "Command",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 44
+        }
+      },
+      {
+        "id": "lionwing.skill.mind.unveil",
+        "attribute": "mind",
+        "name": "Unveil",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 44
+        }
+      },
+      {
+        "id": "lionwing.skill.mind.tinker",
+        "attribute": "mind",
+        "name": "Tinker",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 44
+        }
+      }
+    ]
+  },
   "outlooks": {
     "starting": 1,
     "maximum": 3

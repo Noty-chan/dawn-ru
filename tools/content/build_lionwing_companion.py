@@ -421,6 +421,39 @@ def core_rules() -> dict:
         "source": {"editionId": NEW_ID, "locale": "en", "pdfPage": item[7]},
     } for item in action_rows]
     rule_rows = [
+        ("lionwing.core.general.rule-zero", "Universal Rules", "Rule Zero", "rule", "Everyone at the table should feel safe and comfortable. Before play, discuss boundaries and use consent and safety tools that suit the group. Any participant may pause or redirect play when needed; the game's other rules never override this responsibility.", 35),
+        ("lionwing.core.general.rounding", "Universal Rules", "Rounding", "rule", "Whenever a rule divides a number, round the result up unless that rule says otherwise.", 35),
+        ("lionwing.core.general.specific-overrides", "Universal Rules", "Specific Overrides General", "rule", "When a specific rule contradicts a general rule, follow the specific rule.", 35),
+        ("lionwing.core.rolls.challenge", "Rolls", "Challenge Rolls", "rule", "When an outcome is uncertain and meaningful, roll a number of d6 equal to the relevant Attribute. Each die showing 4 or higher is a Hit. The Narrator sets the number of Hits needed for success according to the challenge and the group's Tier.", 36),
+        ("lionwing.core.rolls.difficulty", "Rolls", "Difficulty", "rule", "A roll that needs no more Hits than the group's Tier is a low difficulty. A minimum difficulty needs more Hits than Tier, while an extreme difficulty needs at least twice Tier. The Narrator should state the required Hits before the roll.", 36),
+        ("lionwing.core.rolls.critical", "Rolls", "Critical Hits", "rule", "Each die showing 6 is a Critical Hit: count it as a Hit, then roll one additional die. Additional dice can also produce Critical Hits.", 36),
+        ("lionwing.core.rolls.advantage", "Rolls", "Advantage and Disadvantage", "rule", "Advantage adds dice to a roll and Disadvantage removes dice. Add all sources of each, then cancel them one for one before rolling.", 36),
+        ("lionwing.core.rolls.opposed", "Rolls", "Opposed Rolls", "rule", "For an Opposed Roll, both sides roll their stated dice. The side with more Hits wins; resolve a tie according to the rule that started the Opposed Roll or by the Narrator's ruling when none is given.", 36),
+        ("lionwing.core.rolls.group", "Rolls", "Group Rolls", "rule", "When characters act as a group, each participating character rolls and the group combines its result as the rule or Narrator directs. The Narrator decides who can contribute before dice are rolled.", 36),
+        ("lionwing.core.rolls.quick", "Rolls", "Quick Rolls", "rule", "For a Quick Roll, roll one die for each relevant source of dice. A source that would provide 3 or more dice provides two dice instead. Quick Rolls do not generate additional dice from Critical Hits.", 36),
+        ("lionwing.core.story.scenes", "Story Structure", "Scenes", "rule", "A Scene is a continuous stretch of play focused on one situation. Effects that last for a Scene end with it, and Tension resets to 0 when a Scene ends.", 37),
+        ("lionwing.core.story.chapters-series", "Story Structure", "Chapters and Series", "rule", "A Chapter is a complete play session or comparable story unit made of Scenes. A Series is the continuing story formed by multiple Chapters.", 37),
+        ("lionwing.core.story.intermissions", "Story Structure", "Intermissions", "rule", "Intermissions are periods of safety and downtime between adventures. During an Intermission, characters remove their Wounds and Stress and may develop their Bonds.", 37),
+        ("lionwing.core.story.clocks", "Clocks", "Set and Story Clocks", "rule", "Clocks track approaching events with an even number of segments and should be visible to the players. A Set Clock advances through a prepared situation. A Story Clock records progress toward or delay before a continuing consequence and remains relevant across Scenes as fiction requires.", 37),
+        ("lionwing.core.influence.overview", "Influence", "Influence", "rule", "Influence is a shared player resource used in structured and unstructured play. It has no maximum. Players begin a Chapter with no Influence unless a rule says otherwise.", 38),
+        ("lionwing.core.influence.gaining", "Influence", "Gaining Influence", "rule", "Players gain Influence when a player character receives non-self-inflicted Stress or a Wound, when Studied grants it, and when an Antagonist targets them as described by that enemy's rules.", 38),
+        ("lionwing.core.influence.spending", "Influence", "Spending Influence", "rule", "Influence powers All Out after a failed Challenge Roll, Break Out in structured combat, and player-initiated Duels. Pay the Cost when the option is declared unless its rule refunds it.", 38),
+        ("lionwing.core.knockouts.resisting", "Knockouts", "Resisting a Knockout", "rule", "When a player character would be Knocked Out, their player may Resist. The character remains in the Scene with 1 Stress or 1 Wound, according to which track caused the Knockout; in structured combat they also restore all Health. They become Vulnerable until the Scene ends.", 38),
+        ("lionwing.core.knockouts.vulnerable", "Knockouts", "Vulnerable", "rule", "A Vulnerable character can't Resist another Knockout and their player gains no Influence when that character receives Stress or Wounds. Vulnerable lasts until the Scene ends.", 38),
+        ("lionwing.core.knockouts.consequences", "Knockouts", "Knockout Consequences", "rule", "If a Vulnerable player character is Knocked Out, the players gain 3 Influence and that character chooses one lasting consequence: lose Ranks from a Skill of Rank 2 or higher; lose part of their Ability; lose a Boon; lose two Technique Levels; or die and create a new character. Each consequence may be chosen only once for that character.", 38),
+        ("lionwing.core.duels.initiating", "Duels", "Initiating a Duel", "rule", "A player may spend 1 Influence to Duel a named NPC; an Antagonist may spend 1 Antagonism to Duel a player character. The participants leave the current situation for a new unstructured Scene that carries over the current Tension.", 39),
+        ("lionwing.core.duels.roll", "Duels", "Resolving a Duel", "rule", "Resolve a Duel as an Opposed Roll. The player uses the relevant Attribute and the NPC rolls [Tension + Tier] dice. In unstructured play, a losing player receives 2 Stress; a losing NPC is Knocked Out or Resists by creating an 8-segment Story Clock with [Tension] segments filled.", 39),
+        ("lionwing.core.duels.combat", "Duels", "Duels in Structured Combat", "rule", "In structured combat a Duel costs 4 Influence minus Tension, to a minimum of 1, removes both participants from the board, and resolves when either participant would start their next Turn. The printed combat consequences conflict between pages 39 and 63, so automation must leave that result to the Narrator until the source is clarified.", 39),
+        ("lionwing.core.duels.failure", "Duels", "Failed Duel Choices", "rule", "After losing a Duel roll, the initiating player may Bail and accept the loss; Take It and regain the spent Influence; or Double Down to reroll, increase Tension by 2, and be forced to Take It if the reroll loses. A Duel's target cannot choose these options.", 39),
+        ("lionwing.core.unstructured.challenge", "Unstructured Play", "Unstructured Challenges", "rule", "In unstructured play, the Narrator presents a Challenge and states its Risk and required Hits before the roll. A character may normally draw Advantage from at most one relevant Skill, one relevant Ability, and one relevant Bond.", 41),
+        ("lionwing.core.unstructured.tier-difficulty", "Unstructured Play", "Tier Difficulty Benchmarks", "rule", "The standard success thresholds by Tier are: Tier 1 needs 2 Hits; Tier 2 needs 3; Tier 3 needs 5; Tier 4 needs 6; Tier 5 needs 8; and Tier 6 needs 9. The Narrator may modify a threshold to fit the fiction.", 41),
+        ("lionwing.core.risks.stress", "Risks", "Stress", "rule", "Stress measures mounting pressure in unstructured play. A character who receives non-self-inflicted Stress grants the players Influence. Reaching the track's limit can Knock the character Out, subject to Resisting and Vulnerable.", 42),
+        ("lionwing.core.risks.alternatives", "Risks", "Alternative Risks", "rule", "Instead of Stress, a failed Challenge can Escalate (+1 Tension and +1 difficulty on this character's next roll), create Strange Ties (a Rank [Tier / 2] Bond for 1 Influence), cause a Compromise, make the character Falter, take a consent-sensitive Memento, Change the Scene and increase Tension by 1, or Trip Up a consenting player character and grant 1 Influence. The Narrator chooses only consequences appropriate to the fiction and table boundaries.", 42),
+        ("lionwing.core.risks.all-out", "Risks", "All Out", "rule", "Immediately after failing a Challenge Roll, a player may spend 1 Influence to go All Out. The attempt succeeds if its final result has at least 3 Hits, subject to the option's stated consequences.", 42),
+        ("lionwing.core.threats.overview", "Threats", "Threats", "rule", "A Threat tells the players what will happen if they don't respond. When a character answers it with a Challenge Roll, the Threat itself becomes that roll's Risk. Any character may respond unless the Threat explicitly restricts who can act.", 43),
+        ("lionwing.core.threats.delay", "Threats", "Delaying Threats", "rule", "If the characters block or delay rather than resolve a Threat, create a Story Clock that brings the Threat back when it fills. Keep the consequence public so players can make informed choices.", 43),
+        ("lionwing.core.ranks.overview", "Character Ranks", "Skills, Abilities, and Bonds", "rule", "Skills, Abilities, and Bonds have Ranks from 1 to 3. A new character receives 8 Character Ranks and must spend at least 4 on Skills. Unspent starting Ranks are lost; the 2 Ranks gained at each Tier increase may be saved.", 44),
+        ("lionwing.core.ranks.custom-skills", "Character Ranks", "Custom Skills", "rule", "A custom Skill should be a mundane specialty described in 2 to 5 words. It must not be so broad that it replaces several standard Skills and cannot grant supernatural capability by itself.", 44),
         ("lionwing.core.combat.structured", "Combat", "Structured Combat", "rule", "The tactical, most game-like element of DAWN is used when two evenly or almost evenly matched groups face each other in battle. Its risks create tension, but it is mostly played for fun and to reinforce player-character aesthetics that can only be shown in combat. Players optimize builds, handle threats, and control variables to defeat enemies efficiently. Their Actions and Techniques determine whether they live or die while enforcing character themes and aesthetics.", 56),
         ("lionwing.core.combat.action-points", "Combat", "Actions and Action Points", "rule", "When a character's Turn starts, they receive 3 Action Points (AP). Players spend AP on Basic Actions, each of which has a listed AP Cost. Each NPC has a unique set of Actions based on their Type, all with a Cost of 1. Both lose all Action Points at the end of their Turn.", 56),
         ("lionwing.core.combat.action-limit", "Combat", "Action Limit and Swift Actions", "rule", "A character can't use the same Basic Action more than once each Round unless all but one use of that Action was Swift. Swift use is often granted by Techniques.", 56),
@@ -476,11 +509,17 @@ def core_rules() -> dict:
             "list": actions,
         },
         "rules": rules,
-        "source": {"editionId": NEW_ID, "locale": "en", "pdfPages": [56, 57, 58, 61, 62, 63, 64, 65]},
+        "source": {"editionId": NEW_ID, "locale": "en", "pdfPages": list(range(35, 66))},
     }
 
 
 def builder_rules() -> dict:
+    skill_rows = [
+        ("body", "Break"), ("body", "Endure"), ("body", "Menace"), ("body", "Defend"),
+        ("talent", "Finesse"), ("talent", "Lurk"), ("talent", "Move"), ("talent", "React"),
+        ("spirit", "Absorb"), ("spirit", "Intuit"), ("spirit", "Connect"), ("spirit", "Luck"),
+        ("mind", "Deceive"), ("mind", "Command"), ("mind", "Unveil"), ("mind", "Tinker"),
+    ]
     return {
         "schemaVersion": 1,
         "editionId": NEW_ID,
@@ -488,6 +527,13 @@ def builder_rules() -> dict:
         "tier": {"minimum": 1, "maximum": 6},
         "attributes": {"startingValues": [4, 3, 2, 2], "growthPerTier": 2, "sameAttributeGrowthPerTier": 1},
         "ranks": {"starting": 8, "perTier": 2, "minimumStartingSkillRanks": 4},
+        "skills": {
+            "minimumRank": 1, "maximumRank": 3, "customAllowed": True,
+            "canonical": [{
+                "id": f"lionwing.skill.{attribute}.{slugify(name)}", "attribute": attribute, "name": name,
+                "source": {"editionId": NEW_ID, "locale": "en", "pdfPage": 44},
+            } for attribute, name in skill_rows],
+        },
         "outlooks": {"starting": 1, "maximum": 3},
         "boons": {"startingChoices": 2, "perTier": 1, "primaryInherentBoonIsFree": True},
         "techniques": {"startingLevels": 5, "levelsPerTier": 2, "maximumArchetypes": 3, "levelsPerAttributeConversion": 2},

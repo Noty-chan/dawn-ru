@@ -32,6 +32,173 @@
       "perTier": 2,
       "minimumStartingSkillRanks": 4
     },
+    "skills": {
+      "minimumRank": 1,
+      "maximumRank": 3,
+      "customAllowed": true,
+      "canonical": [
+        {
+          "id": "lionwing.skill.body.break",
+          "attribute": "body",
+          "name": "Break",
+          "source": {
+            "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
+            "pdfPage": 44
+          }
+        },
+        {
+          "id": "lionwing.skill.body.endure",
+          "attribute": "body",
+          "name": "Endure",
+          "source": {
+            "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
+            "pdfPage": 44
+          }
+        },
+        {
+          "id": "lionwing.skill.body.menace",
+          "attribute": "body",
+          "name": "Menace",
+          "source": {
+            "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
+            "pdfPage": 44
+          }
+        },
+        {
+          "id": "lionwing.skill.body.defend",
+          "attribute": "body",
+          "name": "Defend",
+          "source": {
+            "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
+            "pdfPage": 44
+          }
+        },
+        {
+          "id": "lionwing.skill.talent.finesse",
+          "attribute": "talent",
+          "name": "Finesse",
+          "source": {
+            "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
+            "pdfPage": 44
+          }
+        },
+        {
+          "id": "lionwing.skill.talent.lurk",
+          "attribute": "talent",
+          "name": "Lurk",
+          "source": {
+            "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
+            "pdfPage": 44
+          }
+        },
+        {
+          "id": "lionwing.skill.talent.move",
+          "attribute": "talent",
+          "name": "Move",
+          "source": {
+            "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
+            "pdfPage": 44
+          }
+        },
+        {
+          "id": "lionwing.skill.talent.react",
+          "attribute": "talent",
+          "name": "React",
+          "source": {
+            "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
+            "pdfPage": 44
+          }
+        },
+        {
+          "id": "lionwing.skill.spirit.absorb",
+          "attribute": "spirit",
+          "name": "Absorb",
+          "source": {
+            "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
+            "pdfPage": 44
+          }
+        },
+        {
+          "id": "lionwing.skill.spirit.intuit",
+          "attribute": "spirit",
+          "name": "Intuit",
+          "source": {
+            "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
+            "pdfPage": 44
+          }
+        },
+        {
+          "id": "lionwing.skill.spirit.connect",
+          "attribute": "spirit",
+          "name": "Connect",
+          "source": {
+            "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
+            "pdfPage": 44
+          }
+        },
+        {
+          "id": "lionwing.skill.spirit.luck",
+          "attribute": "spirit",
+          "name": "Luck",
+          "source": {
+            "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
+            "pdfPage": 44
+          }
+        },
+        {
+          "id": "lionwing.skill.mind.deceive",
+          "attribute": "mind",
+          "name": "Deceive",
+          "source": {
+            "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
+            "pdfPage": 44
+          }
+        },
+        {
+          "id": "lionwing.skill.mind.command",
+          "attribute": "mind",
+          "name": "Command",
+          "source": {
+            "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
+            "pdfPage": 44
+          }
+        },
+        {
+          "id": "lionwing.skill.mind.unveil",
+          "attribute": "mind",
+          "name": "Unveil",
+          "source": {
+            "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
+            "pdfPage": 44
+          }
+        },
+        {
+          "id": "lionwing.skill.mind.tinker",
+          "attribute": "mind",
+          "name": "Tinker",
+          "source": {
+            "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
+            "pdfPage": 44
+          }
+        }
+      ]
+    },
     "outlooks": {
       "starting": 1,
       "maximum": 3
@@ -6180,6 +6347,402 @@
     },
     "rules": [
       {
+        "id": "lionwing.core.general.rule-zero",
+        "category": "Universal Rules",
+        "name": "Rule Zero",
+        "kind": "rule",
+        "text": "Everyone at the table should feel safe and comfortable. Before play, discuss boundaries and use consent and safety tools that suit the group. Any participant may pause or redirect play when needed; the game's other rules never override this responsibility.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 35
+        }
+      },
+      {
+        "id": "lionwing.core.general.rounding",
+        "category": "Universal Rules",
+        "name": "Rounding",
+        "kind": "rule",
+        "text": "Whenever a rule divides a number, round the result up unless that rule says otherwise.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 35
+        }
+      },
+      {
+        "id": "lionwing.core.general.specific-overrides",
+        "category": "Universal Rules",
+        "name": "Specific Overrides General",
+        "kind": "rule",
+        "text": "When a specific rule contradicts a general rule, follow the specific rule.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 35
+        }
+      },
+      {
+        "id": "lionwing.core.rolls.challenge",
+        "category": "Rolls",
+        "name": "Challenge Rolls",
+        "kind": "rule",
+        "text": "When an outcome is uncertain and meaningful, roll a number of d6 equal to the relevant Attribute. Each die showing 4 or higher is a Hit. The Narrator sets the number of Hits needed for success according to the challenge and the group's Tier.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 36
+        }
+      },
+      {
+        "id": "lionwing.core.rolls.difficulty",
+        "category": "Rolls",
+        "name": "Difficulty",
+        "kind": "rule",
+        "text": "A roll that needs no more Hits than the group's Tier is a low difficulty. A minimum difficulty needs more Hits than Tier, while an extreme difficulty needs at least twice Tier. The Narrator should state the required Hits before the roll.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 36
+        }
+      },
+      {
+        "id": "lionwing.core.rolls.critical",
+        "category": "Rolls",
+        "name": "Critical Hits",
+        "kind": "rule",
+        "text": "Each die showing 6 is a Critical Hit: count it as a Hit, then roll one additional die. Additional dice can also produce Critical Hits.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 36
+        }
+      },
+      {
+        "id": "lionwing.core.rolls.advantage",
+        "category": "Rolls",
+        "name": "Advantage and Disadvantage",
+        "kind": "rule",
+        "text": "Advantage adds dice to a roll and Disadvantage removes dice. Add all sources of each, then cancel them one for one before rolling.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 36
+        }
+      },
+      {
+        "id": "lionwing.core.rolls.opposed",
+        "category": "Rolls",
+        "name": "Opposed Rolls",
+        "kind": "rule",
+        "text": "For an Opposed Roll, both sides roll their stated dice. The side with more Hits wins; resolve a tie according to the rule that started the Opposed Roll or by the Narrator's ruling when none is given.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 36
+        }
+      },
+      {
+        "id": "lionwing.core.rolls.group",
+        "category": "Rolls",
+        "name": "Group Rolls",
+        "kind": "rule",
+        "text": "When characters act as a group, each participating character rolls and the group combines its result as the rule or Narrator directs. The Narrator decides who can contribute before dice are rolled.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 36
+        }
+      },
+      {
+        "id": "lionwing.core.rolls.quick",
+        "category": "Rolls",
+        "name": "Quick Rolls",
+        "kind": "rule",
+        "text": "For a Quick Roll, roll one die for each relevant source of dice. A source that would provide 3 or more dice provides two dice instead. Quick Rolls do not generate additional dice from Critical Hits.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 36
+        }
+      },
+      {
+        "id": "lionwing.core.story.scenes",
+        "category": "Story Structure",
+        "name": "Scenes",
+        "kind": "rule",
+        "text": "A Scene is a continuous stretch of play focused on one situation. Effects that last for a Scene end with it, and Tension resets to 0 when a Scene ends.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 37
+        }
+      },
+      {
+        "id": "lionwing.core.story.chapters-series",
+        "category": "Story Structure",
+        "name": "Chapters and Series",
+        "kind": "rule",
+        "text": "A Chapter is a complete play session or comparable story unit made of Scenes. A Series is the continuing story formed by multiple Chapters.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 37
+        }
+      },
+      {
+        "id": "lionwing.core.story.intermissions",
+        "category": "Story Structure",
+        "name": "Intermissions",
+        "kind": "rule",
+        "text": "Intermissions are periods of safety and downtime between adventures. During an Intermission, characters remove their Wounds and Stress and may develop their Bonds.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 37
+        }
+      },
+      {
+        "id": "lionwing.core.story.clocks",
+        "category": "Clocks",
+        "name": "Set and Story Clocks",
+        "kind": "rule",
+        "text": "Clocks track approaching events with an even number of segments and should be visible to the players. A Set Clock advances through a prepared situation. A Story Clock records progress toward or delay before a continuing consequence and remains relevant across Scenes as fiction requires.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 37
+        }
+      },
+      {
+        "id": "lionwing.core.influence.overview",
+        "category": "Influence",
+        "name": "Influence",
+        "kind": "rule",
+        "text": "Influence is a shared player resource used in structured and unstructured play. It has no maximum. Players begin a Chapter with no Influence unless a rule says otherwise.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 38
+        }
+      },
+      {
+        "id": "lionwing.core.influence.gaining",
+        "category": "Influence",
+        "name": "Gaining Influence",
+        "kind": "rule",
+        "text": "Players gain Influence when a player character receives non-self-inflicted Stress or a Wound, when Studied grants it, and when an Antagonist targets them as described by that enemy's rules.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 38
+        }
+      },
+      {
+        "id": "lionwing.core.influence.spending",
+        "category": "Influence",
+        "name": "Spending Influence",
+        "kind": "rule",
+        "text": "Influence powers All Out after a failed Challenge Roll, Break Out in structured combat, and player-initiated Duels. Pay the Cost when the option is declared unless its rule refunds it.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 38
+        }
+      },
+      {
+        "id": "lionwing.core.knockouts.resisting",
+        "category": "Knockouts",
+        "name": "Resisting a Knockout",
+        "kind": "rule",
+        "text": "When a player character would be Knocked Out, their player may Resist. The character remains in the Scene with 1 Stress or 1 Wound, according to which track caused the Knockout; in structured combat they also restore all Health. They become Vulnerable until the Scene ends.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 38
+        }
+      },
+      {
+        "id": "lionwing.core.knockouts.vulnerable",
+        "category": "Knockouts",
+        "name": "Vulnerable",
+        "kind": "rule",
+        "text": "A Vulnerable character can't Resist another Knockout and their player gains no Influence when that character receives Stress or Wounds. Vulnerable lasts until the Scene ends.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 38
+        }
+      },
+      {
+        "id": "lionwing.core.knockouts.consequences",
+        "category": "Knockouts",
+        "name": "Knockout Consequences",
+        "kind": "rule",
+        "text": "If a Vulnerable player character is Knocked Out, the players gain 3 Influence and that character chooses one lasting consequence: lose Ranks from a Skill of Rank 2 or higher; lose part of their Ability; lose a Boon; lose two Technique Levels; or die and create a new character. Each consequence may be chosen only once for that character.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 38
+        }
+      },
+      {
+        "id": "lionwing.core.duels.initiating",
+        "category": "Duels",
+        "name": "Initiating a Duel",
+        "kind": "rule",
+        "text": "A player may spend 1 Influence to Duel a named NPC; an Antagonist may spend 1 Antagonism to Duel a player character. The participants leave the current situation for a new unstructured Scene that carries over the current Tension.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 39
+        }
+      },
+      {
+        "id": "lionwing.core.duels.roll",
+        "category": "Duels",
+        "name": "Resolving a Duel",
+        "kind": "rule",
+        "text": "Resolve a Duel as an Opposed Roll. The player uses the relevant Attribute and the NPC rolls [Tension + Tier] dice. In unstructured play, a losing player receives 2 Stress; a losing NPC is Knocked Out or Resists by creating an 8-segment Story Clock with [Tension] segments filled.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 39
+        }
+      },
+      {
+        "id": "lionwing.core.duels.combat",
+        "category": "Duels",
+        "name": "Duels in Structured Combat",
+        "kind": "rule",
+        "text": "In structured combat a Duel costs 4 Influence minus Tension, to a minimum of 1, removes both participants from the board, and resolves when either participant would start their next Turn. The printed combat consequences conflict between pages 39 and 63, so automation must leave that result to the Narrator until the source is clarified.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 39
+        }
+      },
+      {
+        "id": "lionwing.core.duels.failure",
+        "category": "Duels",
+        "name": "Failed Duel Choices",
+        "kind": "rule",
+        "text": "After losing a Duel roll, the initiating player may Bail and accept the loss; Take It and regain the spent Influence; or Double Down to reroll, increase Tension by 2, and be forced to Take It if the reroll loses. A Duel's target cannot choose these options.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 39
+        }
+      },
+      {
+        "id": "lionwing.core.unstructured.challenge",
+        "category": "Unstructured Play",
+        "name": "Unstructured Challenges",
+        "kind": "rule",
+        "text": "In unstructured play, the Narrator presents a Challenge and states its Risk and required Hits before the roll. A character may normally draw Advantage from at most one relevant Skill, one relevant Ability, and one relevant Bond.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 41
+        }
+      },
+      {
+        "id": "lionwing.core.unstructured.tier-difficulty",
+        "category": "Unstructured Play",
+        "name": "Tier Difficulty Benchmarks",
+        "kind": "rule",
+        "text": "The standard success thresholds by Tier are: Tier 1 needs 2 Hits; Tier 2 needs 3; Tier 3 needs 5; Tier 4 needs 6; Tier 5 needs 8; and Tier 6 needs 9. The Narrator may modify a threshold to fit the fiction.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 41
+        }
+      },
+      {
+        "id": "lionwing.core.risks.stress",
+        "category": "Risks",
+        "name": "Stress",
+        "kind": "rule",
+        "text": "Stress measures mounting pressure in unstructured play. A character who receives non-self-inflicted Stress grants the players Influence. Reaching the track's limit can Knock the character Out, subject to Resisting and Vulnerable.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 42
+        }
+      },
+      {
+        "id": "lionwing.core.risks.alternatives",
+        "category": "Risks",
+        "name": "Alternative Risks",
+        "kind": "rule",
+        "text": "Instead of Stress, a failed Challenge can Escalate (+1 Tension and +1 difficulty on this character's next roll), create Strange Ties (a Rank [Tier / 2] Bond for 1 Influence), cause a Compromise, make the character Falter, take a consent-sensitive Memento, Change the Scene and increase Tension by 1, or Trip Up a consenting player character and grant 1 Influence. The Narrator chooses only consequences appropriate to the fiction and table boundaries.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 42
+        }
+      },
+      {
+        "id": "lionwing.core.risks.all-out",
+        "category": "Risks",
+        "name": "All Out",
+        "kind": "rule",
+        "text": "Immediately after failing a Challenge Roll, a player may spend 1 Influence to go All Out. The attempt succeeds if its final result has at least 3 Hits, subject to the option's stated consequences.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 42
+        }
+      },
+      {
+        "id": "lionwing.core.threats.overview",
+        "category": "Threats",
+        "name": "Threats",
+        "kind": "rule",
+        "text": "A Threat tells the players what will happen if they don't respond. When a character answers it with a Challenge Roll, the Threat itself becomes that roll's Risk. Any character may respond unless the Threat explicitly restricts who can act.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 43
+        }
+      },
+      {
+        "id": "lionwing.core.threats.delay",
+        "category": "Threats",
+        "name": "Delaying Threats",
+        "kind": "rule",
+        "text": "If the characters block or delay rather than resolve a Threat, create a Story Clock that brings the Threat back when it fills. Keep the consequence public so players can make informed choices.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 43
+        }
+      },
+      {
+        "id": "lionwing.core.ranks.overview",
+        "category": "Character Ranks",
+        "name": "Skills, Abilities, and Bonds",
+        "kind": "rule",
+        "text": "Skills, Abilities, and Bonds have Ranks from 1 to 3. A new character receives 8 Character Ranks and must spend at least 4 on Skills. Unspent starting Ranks are lost; the 2 Ranks gained at each Tier increase may be saved.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 44
+        }
+      },
+      {
+        "id": "lionwing.core.ranks.custom-skills",
+        "category": "Character Ranks",
+        "name": "Custom Skills",
+        "kind": "rule",
+        "text": "A custom Skill should be a mundane specialty described in 2 to 5 words. It must not be so broad that it replaces several standard Skills and cannot grant supernatural capability by itself.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 44
+        }
+      },
+      {
         "id": "lionwing.core.combat.structured",
         "category": "Combat",
         "name": "Structured Combat",
@@ -6616,9 +7179,32 @@
       "editionId": "dawn-en-lionwing-cb2f8e67",
       "locale": "en",
       "pdfPages": [
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47,
+        48,
+        49,
+        50,
+        51,
+        52,
+        53,
+        54,
+        55,
         56,
         57,
         58,
+        59,
+        60,
         61,
         62,
         63,

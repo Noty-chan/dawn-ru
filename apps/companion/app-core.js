@@ -221,7 +221,7 @@ function normalizeHero(raw){
   base.primaryOutlook=typeof h.primaryOutlook==="string"?h.primaryOutlook:null; base.outlooks=cleanArray(h.outlooks).slice(0,3); base.gifts=cleanArray(h.gifts);
   if(base.primaryOutlook&&!base.outlooks.includes(base.primaryOutlook)) base.outlooks.unshift(base.primaryOutlook);
   base.bonds=Array.isArray(h.bonds)?h.bonds.slice(0,30).filter(bond=>bond&&typeof bond==="object").map(bond=>({id:typeof bond.id==="string"?bond.id:uid(),name:typeof bond.name==="string"?bond.name.trim().slice(0,120):"",rank:clamp(bond.rank||1,1,3),tags:cleanArray(bond.tags).map(tag=>tag.trim().slice(0,40)).filter(Boolean).slice(0,6),quick:Boolean(bond.quick)})).filter(bond=>bond.name):[];
-  base.skills=Array.isArray(h.skills)?h.skills.slice(0,30).map(s=>({id:typeof s.id==="string"?s.id:uid(),name:typeof s.name==="string"?s.name.slice(0,180):"",rank:clamp(s.rank,1,3)})):base.skills;
+  base.skills=Array.isArray(h.skills)?h.skills.slice(0,30).map(s=>({id:typeof s.id==="string"?s.id:uid(),name:typeof s.name==="string"?s.name.slice(0,180):"",definitionId:typeof s.definitionId==="string"?s.definitionId.slice(0,180):null,rank:clamp(s.rank,1,3)})):base.skills;
   base.ability=normalizeAbility(h.ability);base.taintedAbility=normalizeAbility(h.taintedAbility);
   base.techniques={}; if(h.techniques&&typeof h.techniques==="object") for(const [id,level] of Object.entries(h.techniques)) base.techniques[id]=clamp(level,0,3);
   const spellcrafterLevel=Number(base.techniques["ruiner.spellcrafter"]||0),spellcrafterLearnedLimit=spellcrafterLevel>=3?2:spellcrafterLevel>=1?1:0,spellcrafterIds=new Set(["fierce","focused","wild","outstanding"]);
@@ -240,7 +240,7 @@ function migrateLegacy(raw){
     h.attrs=old.attrs||h.attrs; h.attrBonus=old.bonus||old.attrBonus||h.attrBonus;
     const ol=outlookByName.get(old.outlook); if(ol){h.primaryOutlook=ol;h.outlooks=[ol];}
     h.gifts=(old.gifts||[]).map(name=>giftByName.get(name)).filter(Boolean);
-    h.skills=(old.skills||[]).map(s=>({id:uid(),name:s.name||"",rank:s.rank||1}));
+    h.skills=(old.skills||[]).map(s=>({id:uid(),name:s.name||"",definitionId:null,rank:s.rank||1}));
     h.ability={...h.ability,enabled:Boolean(old.ability?.name||old.ability?.rank),name:old.ability?.name||"",desc:old.ability?.desc||"",rank:clamp(old.ability?.rank||1,1,3)};
     for(const [name,level] of Object.entries(old.techniques||old.techs||{})){const id=techByName.get(name)||name;if(id)h.techniques[id]=level;}
     h.runtime={...h.runtime,...(old.rt||{})}; return normalizeHero(h);
@@ -456,7 +456,7 @@ function issues(){
   if(b.skillSpent<b.skillMin)problem("bad","builder.issue.skillsMinimum",{count:b.skillMin});
   if(b.rankOver)problem("bad","builder.issue.ranksOver",{count:b.rankOver});
   if(!b.rankOver&&b.coreRankSpent<b.coreRankPool)problem("","builder.issue.ranksRemaining",{count:b.coreRankPool-b.coreRankSpent});
-  if(S.skills.some(s=>!s.name.trim()))problem("","builder.issue.skillUnnamed");
+  if(S.skills.some(s=>!skillDisplayName(s).trim()))problem("","builder.issue.skillUnnamed");
   if(S.ability.enabled&&(!S.ability.words.verbs.length||!S.ability.words.nouns.length))problem("","builder.issue.abilityWords");
   if(hasGift("Uncontrollable Power")&&S.ability.enabled&&!S.ability.words.conditions.length)problem("bad","builder.issue.uncontrollableCondition");
   if(S.ability.enabled&&abilityNeedsX(S.ability)&&!wordById(S.ability.xNoun))problem("bad","builder.issue.abilityX");

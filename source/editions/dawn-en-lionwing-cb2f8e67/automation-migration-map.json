@@ -19,7 +19,7 @@
       "id": "lionwing.rules.bilingual-source",
       "name": "Двуязычный источник Правил и Справочника",
       "strategy": "extend-shared-core",
-      "status": "in-progress",
+      "status": "data-ready",
       "sourcePages": [34, 65],
       "reuseFrom09": ["поиск", "фильтры", "группировка по главам", "постоянные ссылки"],
       "requires": ["activeCoreRules", "локализация по стабильному ID", "запрет fallback на D для LionWing"]
@@ -88,22 +88,24 @@
       "status": "planned",
       "sourcePages": [39, 63],
       "ruleIds": ["action.атаки.дуэль"],
-      "requires": ["дочерняя Сцена", "синхронное продолжение основной Сцены", "ставка", "возврат участников", "отдельное Напряжение"]
+      "requires": ["дочерняя Сцена", "синхронное продолжение основной Сцены", "ставка", "возврат участников", "перенос текущего Напряжения"]
     },
     {
       "id": "lionwing.foundation.resisting-vulnerable",
       "name": "Сопротивление Выведению и Уязвимость",
       "strategy": "new-lionwing-foundation",
-      "status": "source-ready-data-pending",
+      "status": "data-ready",
       "sourcePages": [38],
+      "ruleIds": ["lionwing.core.knockouts.resisting", "lionwing.core.knockouts.vulnerable", "lionwing.core.knockouts.consequences"],
       "requires": ["состояние Уязвимости до конца Сцены", "запрет повторного Сопротивления", "запрет Влияния", "одноразовые необратимые последствия"]
     },
     {
       "id": "lionwing.core.quick-roll",
       "name": "Быстрый бросок",
       "strategy": "parameterize-old-core",
-      "status": "source-ready-data-pending",
+      "status": "data-ready",
       "sourcePages": [36],
+      "ruleIds": ["lionwing.core.rolls.quick"],
       "reuseFrom09": ["dice-hooks", "challenge-outcome"],
       "requires": ["две кости за источник от 3 костей", "отсутствие Критов", "исход по числу попавших костей"]
     },
@@ -128,9 +130,38 @@
       "id": "lionwing.builder.fixed-skills",
       "name": "Канонический список Навыков и произвольные Навыки",
       "strategy": "extend-shared-core",
-      "status": "source-ready-data-pending",
+      "status": "data-ready",
       "sourcePages": [44],
+      "ruleIds": ["lionwing.core.ranks.overview", "lionwing.core.ranks.custom-skills"],
       "requires": ["16 канонических Навыков", "привязка к Атрибутам", "опциональный режим произвольных Навыков", "стабильные ID в JSON героя"]
+    },
+    {
+      "id": "lionwing.core.unstructured-thresholds",
+      "name": "Пороги Проверок по Ступеням",
+      "strategy": "parameterize-old-core",
+      "status": "data-ready",
+      "sourcePages": [41],
+      "ruleIds": ["lionwing.core.unstructured.challenge", "lionwing.core.unstructured.tier-difficulty"],
+      "reuseFrom09": ["challenge-request", "dice-hooks", "outcome-log"],
+      "requires": ["таблица порогов 2/3/5/6/8/9", "не больше одного Навыка, Способности и Связи", "объявленный до броска Риск"]
+    },
+    {
+      "id": "lionwing.foundation.consent-checkpoints",
+      "name": "Согласие на необратимые и межперсонажные последствия",
+      "strategy": "new-lionwing-foundation",
+      "status": "planned",
+      "sourcePages": [38, 42],
+      "ruleIds": ["lionwing.core.knockouts.consequences", "lionwing.core.risks.alternatives"],
+      "requires": ["явное подтверждение игрока", "аудит необратимого изменения героя", "одноразовость последствия", "согласие второго игрока для Trip Up"]
+    },
+    {
+      "id": "lionwing.narrator.manual-ledger",
+      "name": "Ручное применение изменений Нарратором",
+      "strategy": "extend-shared-core",
+      "status": "planned-outside-current-scope",
+      "sourcePages": [34, 65],
+      "reuseFrom09": ["event-log", "resource-adjustment", "effect-state", "clock-state"],
+      "requires": ["прямое изменение ресурсов без промежуточного исхода", "добавление и снятие Эффектов", "Раны, Стресс и Уязвимость", "Счётчики и Напряжение", "отмена журналируемого изменения"]
     },
     {
       "id": "lionwing.techniques.separate-review-map",

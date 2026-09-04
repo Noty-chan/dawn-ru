@@ -89,7 +89,19 @@ function localizedLionwingCoreRules(){
   };
 }
 const activeCoreRules=()=>isLionwingEdition()?localizedLionwingCoreRules():null;
-const activeBuilderRules=()=>isLionwingEdition()?Lionwing.builderRules:null;
+function localizedLionwingBuilderRules(){
+  if(contentPreferences.locale!=="ru"||!LionwingRu?.builderRules)return Lionwing.builderRules;
+  const names=LionwingRu.builderRules.skills?.entries||{};
+  return{...Lionwing.builderRules,skills:{...Lionwing.builderRules.skills,canonical:Lionwing.builderRules.skills.canonical.map(item=>({...item,name:names[item.id]||item.name}))}};
+}
+const activeBuilderRules=()=>isLionwingEdition()?localizedLionwingBuilderRules():null;
+const activeCanonicalSkills=()=>activeBuilderRules()?.skills?.canonical||[];
+function skillDisplayName(skill){return activeCanonicalSkills().find(item=>item.id===skill.definitionId)?.name||skill.name||""}
+function canonicalSkillByName(name){
+  if(!isLionwingEdition())return null;
+  const key=String(name||"").trim().toLocaleLowerCase(),localized=activeCanonicalSkills(),english=Lionwing.builderRules.skills?.canonical||[];
+  return localized.find(item=>item.name.toLocaleLowerCase()===key)||english.find(item=>item.name.toLocaleLowerCase()===key)||null;
+}
 const activeAttrs=()=>isEnglishPreview()?[
   ["body","Body","Health, resilience, and physical power"],
   ["talent","Talent","Speed, movement, and stunts"],
