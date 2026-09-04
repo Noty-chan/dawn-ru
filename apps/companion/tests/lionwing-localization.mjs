@@ -81,7 +81,7 @@ assert.match(russianCoreRules["lionwing.narrator.deployments.taking-on-a-god"].t
 
 const englishNpcs = english.coreRules.npcs.list;
 const russianNpcs = russian.coreRules.npcs.entries;
-assert.equal(englishNpcs.length, 26);
+assert.equal(englishNpcs.length, 30);
 assert.equal(Object.keys(russianNpcs).length, englishNpcs.length, "every imported LionWing NPC needs a Russian overlay");
 const localizedNpcs = englishNpcs.map(item => {
   const overlay = russianNpcs[item.id];
@@ -109,6 +109,10 @@ assert.match(localizedNpcs.find(item => item.id === "lionwing.npc.spright").ace.
 assert.equal(englishNpcs.find(item => item.id === "lionwing.npc.bannerman").statistics.speed, 4, "Bannerman must use its changed LionWing Speed");
 assert.match(localizedNpcs.find(item => item.id === "lionwing.npc.builder").actions.find(item => item.id.endsWith("violent-construction")).text, /2 \+ \[Ступень\]/, "Violent Construction must retain direct damage");
 assert.match(localizedNpcs.find(item => item.id === "lionwing.npc.doppelganger").passive, /Атаковать дважды/, "Doppelganger must retain its double-Attack condition");
+assert.equal(englishNpcs.find(item => item.id === "lionwing.npc.healer").statistics.speed, 4, "Healer must use its changed LionWing Speed");
+assert.match(localizedNpcs.find(item => item.id === "lionwing.npc.illusionist").actions.find(item => item.id.endsWith("spatial-rift")).text, /3 Стены/, "Spatial Rift must retain its changed Wall count");
+assert.equal(localizedNpcs.find(item => item.id === "lionwing.npc.matriarch").name, "Матриарх", "renamed Matriarch must not reuse the old Shade name");
+assert.match(localizedNpcs.find(item => item.id === "lionwing.npc.martyr").ace.text, /автоматически/, "Sacrifice must retain its automatic trigger");
 
 const englishSkills = english.builderRules.skills.canonical;
 const russianSkillNames = russian.builderRules.skills.entries;

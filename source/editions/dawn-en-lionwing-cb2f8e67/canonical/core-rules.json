@@ -1644,6 +1644,178 @@
           "locale": "en",
           "pdfPage": 120
         }
+      },
+      {
+        "id": "lionwing.npc.healer",
+        "role": "Support",
+        "name": "Healer",
+        "description": "Chooses a favorite ally and heals them.",
+        "examples": [
+          "Imperial Cleric",
+          "Battle Medic",
+          "Partner Faerie"
+        ],
+        "statistics": {
+          "health": "13 + [Tier × 5]",
+          "speed": 4,
+          "armor": 0,
+          "evasion": 0
+        },
+        "passive": "At the start of this NPC's Turn, it may choose an ally as its Guardian. While adjacent to its Guardian, this NPC does not count as a target if the Guardian is closer to an Attack when targets are chosen.",
+        "actions": [
+          {
+            "id": "lionwing.npc.healer.heal",
+            "kind": "action",
+            "name": "Heal",
+            "text": "Restore 2 + [Tier] Health to an ally within 3 spaces. Double this healing for this NPC's Guardian."
+          },
+          {
+            "id": "lionwing.npc.healer.exsanguinate",
+            "kind": "attack",
+            "name": "Exsanguinate",
+            "text": "Choose a target within 5 spaces. Roll 5 + [Tier]. Reward: Deal [Hits] + [Tension] damage and Mark the target. Whenever any Marked opponent is Attacked, the attacker restores 5 + [Tier] Health."
+          }
+        ],
+        "ace": {
+          "id": "lionwing.npc.healer.savior",
+          "tension": 1,
+          "name": "Savior",
+          "text": "Remove all Effects from this NPC's Guardian; the Guardian begins Regenerating."
+        },
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 121
+        }
+      },
+      {
+        "id": "lionwing.npc.illusionist",
+        "role": "Support",
+        "name": "Illusionist",
+        "description": "Swaps the positions of characters freely.",
+        "examples": [
+          "Mirror Magi",
+          "Smoke Elemental",
+          "Destabilizer"
+        ],
+        "statistics": {
+          "health": "15 + [Tier × 5]",
+          "speed": 4,
+          "armor": 0,
+          "evasion": 0
+        },
+        "passive": "At the start of this NPC's Turn, it may swap the positions of any 2 NPCs. This counts as Teleporting for both.",
+        "actions": [
+          {
+            "id": "lionwing.npc.illusionist.spatial-rift",
+            "kind": "action",
+            "name": "Spatial Rift",
+            "text": "Create 3 Walls with 10 + [Tier × 3] Health anywhere on the board."
+          },
+          {
+            "id": "lionwing.npc.illusionist.distort-reality",
+            "kind": "attack",
+            "name": "Distort Reality",
+            "text": "Choose any number of adjacent targets. Roll 4 + [Tier]. Reward: Deal [Hits] + [Tension] damage and put each target in Flux. When a character in Flux starts their Turn, this NPC may apply its Passive to them as if they were an NPC, removing Flux."
+          }
+        ],
+        "ace": {
+          "id": "lionwing.npc.illusionist.shattered-skies",
+          "tension": 1,
+          "name": "Shattered Skies",
+          "text": "Immobilize this NPC. At the start of its next Turn, use Distort Reality against all opponents."
+        },
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 121
+        }
+      },
+      {
+        "id": "lionwing.npc.matriarch",
+        "role": "Support",
+        "name": "Matriarch",
+        "description": "Creates safe spaces where allies are immune.",
+        "examples": [
+          "Shield Magi",
+          "Mysterious Fey",
+          "ER Responder"
+        ],
+        "statistics": {
+          "health": "15 + [Tier × 5]",
+          "speed": 3,
+          "armor": 0,
+          "evasion": 0
+        },
+        "passive": "At the start of each Round, designate a space. For the rest of the Round, non-Matriarch enemies in that space are not targets unless a Matriarch is trying to target them.",
+        "actions": [
+          {
+            "id": "lionwing.npc.matriarch.caress",
+            "kind": "action",
+            "name": "Caress",
+            "text": "Choose any character and Teleport them to the designated space, or Teleport a character from the designated space elsewhere."
+          },
+          {
+            "id": "lionwing.npc.matriarch.destroy-the-interloper",
+            "kind": "attack",
+            "name": "Destroy The Interloper",
+            "text": "Choose a target in the designated space. Roll 5 + [Tier]. Reward: Deal [Hits] + [Tension] damage, Banish the target, and move them up to 4 spaces."
+          }
+        ],
+        "ace": {
+          "id": "lionwing.npc.matriarch.mother-of-the-void",
+          "tension": 3,
+          "name": "Mother Of The Void",
+          "text": "For the rest of the Scene, this NPC may designate 2 spaces with its Passive. It immediately takes another Turn."
+        },
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 121
+        }
+      },
+      {
+        "id": "lionwing.npc.martyr",
+        "role": "Support",
+        "name": "Martyr",
+        "description": "Takes damage to protect and heal allies.",
+        "examples": [
+          "Sacrifice",
+          "Shield Generator",
+          "Dedicated Leader"
+        ],
+        "statistics": {
+          "health": "13 + [Tier × 5]",
+          "speed": 4,
+          "armor": 0,
+          "evasion": 0
+        },
+        "passive": "At the end of each Round, restore 5 + [Tier] Health to this NPC.",
+        "actions": [
+          {
+            "id": "lionwing.npc.martyr.gorge-on-my-flesh",
+            "kind": "action",
+            "name": "Gorge On My Flesh",
+            "text": "Deal 1 + [Tier] damage to this NPC. Until the end of its next Turn, all allies within 4 spaces gain 2 + [Tier] Armor."
+          },
+          {
+            "id": "lionwing.npc.martyr.savor-my-blood",
+            "kind": "attack",
+            "name": "Savor My Blood",
+            "text": "Choose a target within 5 spaces. Roll 5 + [Tier]. Reward: Deal [Hits] + [Tension] damage and restore Health to this NPC equal to half its missing Health."
+          }
+        ],
+        "ace": {
+          "id": "lionwing.npc.martyr.sacrifice",
+          "tension": 3,
+          "name": "Sacrifice",
+          "text": "Knock Out this NPC and restore Health to all allies equal to twice each ally's Armor. Trigger this automatically if this NPC is Knocked Out while Tension is at least 4."
+        },
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 121
+        }
       }
     ]
   },
@@ -3345,7 +3517,8 @@
       117,
       118,
       119,
-      120
+      120,
+      121
     ]
   }
 }

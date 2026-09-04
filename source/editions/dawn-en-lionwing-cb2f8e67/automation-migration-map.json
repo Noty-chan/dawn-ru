@@ -263,11 +263,11 @@
       "id": "lionwing.npcs.support-profiles",
       "name": "Профили Support NPC LionWing",
       "strategy": "new-lionwing-foundation",
-      "status": "4-profiles-data-ready",
-      "sourcePages": [120],
-      "ruleIds": ["lionwing.npc.bannerman", "lionwing.npc.builder", "lionwing.npc.coordinator", "lionwing.npc.doppelganger"],
+      "status": "8-profiles-data-ready",
+      "sourcePages": [120, 121],
+      "ruleIds": ["lionwing.npc.bannerman", "lionwing.npc.builder", "lionwing.npc.coordinator", "lionwing.npc.doppelganger", "lionwing.npc.healer", "lionwing.npc.illusionist", "lionwing.npc.matriarch", "lionwing.npc.martyr"],
       "reuseFrom09": ["profile-rendering", "tier-scaling", "profile-actions", "ace-cards"],
-      "requires": ["цепное перемещение союзников с лимитом на цель", "сменная Атака от другого NPC", "превращение Местности в Приспешников", "Действия союзника в Ход Координатора", "динамическое копирование профиля", "копии с общими начальными параметрами"]
+      "requires": ["цепное перемещение союзников с лимитом на цель", "сменная Атака от другого NPC", "превращение Местности в Приспешников", "Действия союзника в Ход Координатора", "динамическое копирование профиля", "копии с общими начальными параметрами", "Страж и геометрия выбора цели", "Поток для временного обмена персонажей", "безопасные назначенные клетки", "автоматическая Жертва"]
     },
     {
       "id": "lionwing.narrator.manual-ledger",
