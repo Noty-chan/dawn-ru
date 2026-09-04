@@ -81,7 +81,7 @@ assert.match(russianCoreRules["lionwing.narrator.deployments.taking-on-a-god"].t
 
 const englishNpcs = english.coreRules.npcs.list;
 const russianNpcs = russian.coreRules.npcs.entries;
-assert.equal(englishNpcs.length, 33);
+assert.equal(englishNpcs.length, 37);
 assert.equal(Object.keys(russianNpcs).length, englishNpcs.length, "every imported LionWing NPC needs a Russian overlay");
 const localizedNpcs = englishNpcs.map(item => {
   const overlay = russianNpcs[item.id];
@@ -116,6 +116,9 @@ assert.match(localizedNpcs.find(item => item.id === "lionwing.npc.martyr").ace.t
 assert.match(localizedNpcs.find(item => item.id === "lionwing.npc.baron").actions.find(item => item.id.endsWith("prescript")).text, /получает Рану/, "Prescript must retain its Wound consequence");
 assert.match(localizedNpcs.find(item => item.id === "lionwing.npc.berserker").passive, /хотя бы 4 урона/, "Berserker must retain its single-instance threshold");
 assert.equal(englishNpcs.find(item => item.id === "lionwing.npc.cannoneer").ace.tension, 0, "Fire must remain a Tension 0 Ace gated by Preparation");
+assert.match(localizedNpcs.find(item => item.id === "lionwing.npc.cultist").ace.text, /Модификатор Гигант/, "Grand Calling must use the new Giant Modifier model");
+assert.match(localizedNpcs.find(item => item.id === "lionwing.npc.enchanter").ace.text, /1 Рану/, "By My Command must use the changed one-Wound consequence");
+assert.match(localizedNpcs.find(item => item.id === "lionwing.npc.hound-master").passive, /3 клетки вместо 2/, "Hound Master must use the changed Fodder movement");
 
 const englishSkills = english.builderRules.skills.canonical;
 const russianSkillNames = russian.builderRules.skills.entries;

@@ -7780,6 +7780,178 @@
             "locale": "en",
             "pdfPage": 122
           }
+        },
+        {
+          "id": "lionwing.npc.cultist",
+          "role": "Engine",
+          "name": "Cultist",
+          "description": "Raises Tension to summon stronger allies.",
+          "examples": [
+            "Spirit Caller",
+            "Assembly Line",
+            "Sentai Squad"
+          ],
+          "statistics": {
+            "health": "13 + [Tier × 5]",
+            "speed": 2,
+            "armor": 0,
+            "evasion": 0
+          },
+          "passive": "Whenever this NPC increases Tension, add 1 Doom counter to the Scene. During players' Turns, they treat Tension as 1 lower per Doom counter.",
+          "actions": [
+            {
+              "id": "lionwing.npc.cultist.ritual-drawings",
+              "kind": "action",
+              "name": "Ritual Drawings",
+              "text": "Increase Tension by 1 and place Ritual tokens in 3 empty spaces. When an opponent enters one, remove it, deal [Tension] damage, and Daze them."
+            },
+            {
+              "id": "lionwing.npc.cultist.swipe",
+              "kind": "attack",
+              "name": "Swipe",
+              "text": "Roll 4 + [Tier] against an adjacent target. Reward: Deal [Hits] + [Tension] damage."
+            }
+          ],
+          "ace": {
+            "id": "lionwing.npc.cultist.grand-calling",
+            "tension": 8,
+            "name": "Grand Calling",
+            "text": "Knock Out this NPC and create a non-Cultist NPC of a chosen type in its former space. Apply the Giant NPC Modifier to it and set its Tier to twice the Cultist's Tier."
+          },
+          "source": {
+            "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
+            "pdfPage": 123
+          }
+        },
+        {
+          "id": "lionwing.npc.daredevil",
+          "role": "Engine",
+          "name": "Daredevil",
+          "description": "Moves and Attacks as Tension rises.",
+          "examples": [
+            "Local Hero",
+            "Chaotic Imp",
+            "Sparkling Performer"
+          ],
+          "statistics": {
+            "health": "15 + [Tier × 5]",
+            "speed": 4,
+            "armor": 0,
+            "evasion": 0
+          },
+          "passive": "When Tension increases, move up to 3 spaces in a straight Line. If this ends adjacent to a character, deal 2 + [Tier] damage to that character, at most once per movement.",
+          "actions": [
+            {
+              "id": "lionwing.npc.daredevil.gloat",
+              "kind": "action",
+              "name": "Gloat",
+              "text": "Increase Tension by 1."
+            },
+            {
+              "id": "lionwing.npc.daredevil.dance",
+              "kind": "attack",
+              "name": "Dance",
+              "text": "Choose up to 2 adjacent targets. Roll 4 + [Tier]. Reward: Deal [Hits] + [Tension] damage and Launch the targets."
+            }
+          ],
+          "ace": {
+            "id": "lionwing.npc.daredevil.adrenaline-high",
+            "tension": 4,
+            "name": "Adrenaline High",
+            "text": "For the rest of the Scene, this NPC's primary Attack deals [Tier] additional damage and its Passive movement may move up to 6 spaces. This NPC immediately takes another Turn."
+          },
+          "source": {
+            "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
+            "pdfPage": 123
+          }
+        },
+        {
+          "id": "lionwing.npc.enchanter",
+          "role": "Engine",
+          "name": "Enchanter",
+          "description": "Disrupts with debuffs and controls Actions.",
+          "examples": [
+            "Luring Fey",
+            "Puppet Master",
+            "Neuro Toxician"
+          ],
+          "statistics": {
+            "health": "13 + [Tier × 5]",
+            "speed": 3,
+            "armor": 0,
+            "evasion": 0
+          },
+          "passive": "",
+          "actions": [
+            {
+              "id": "lionwing.npc.enchanter.charm",
+              "kind": "action",
+              "name": "Charm",
+              "text": "Choose a target within 5 spaces. Fear or Taunt them, then move them 3 spaces."
+            },
+            {
+              "id": "lionwing.npc.enchanter.heartbreaker",
+              "kind": "attack",
+              "name": "Heartbreaker",
+              "text": "Choose a target within 5 spaces. Roll 5 + [Tier]. Reward: Deal [Hits] + [Tension] damage; if the target was Feared or Taunted, Weaken and Slow them."
+            }
+          ],
+          "ace": {
+            "id": "lionwing.npc.enchanter.by-my-command",
+            "tension": 2,
+            "name": "By My Command",
+            "text": "Choose a Taunted or Feared character. They gain 2 AP and must take a Turn in which they Attack an ally, or receive 1 Wound."
+          },
+          "source": {
+            "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
+            "pdfPage": 123
+          }
+        },
+        {
+          "id": "lionwing.npc.hound-master",
+          "role": "Engine",
+          "name": "Hound Master",
+          "description": "Creates seeking Fodder that explodes.",
+          "examples": [
+            "Dog Tamer",
+            "Rocket Platform",
+            "Mystic Ranger"
+          ],
+          "statistics": {
+            "health": "15 + [Tier × 5]",
+            "speed": 2,
+            "armor": 0,
+            "evasion": 0
+          },
+          "passive": "Fodder Zones may move 3 spaces instead of 2 at the end of this NPC's Turn.",
+          "actions": [
+            {
+              "id": "lionwing.npc.hound-master.fire-seeker",
+              "kind": "action",
+              "name": "Fire Seeker",
+              "text": "Choose a target at least 4 spaces away and create a Seeker adjacent to this NPC. A Seeker is special Fodder; on moving adjacent to its target, it disappears and deals 6 + [Tier] damage to all adjacent opponents."
+            },
+            {
+              "id": "lionwing.npc.hound-master.shove",
+              "kind": "attack",
+              "name": "Shove",
+              "text": "Choose a target within 3 spaces. Roll 5 + [Tier]. Reward: Deal [Hits] + [Tension] damage and push the target 2 spaces away."
+            }
+          ],
+          "ace": {
+            "id": "lionwing.npc.hound-master.wild-hunt",
+            "tension": 2,
+            "name": "Wild Hunt",
+            "text": "Create 3 Seekers targeting the same character."
+          },
+          "source": {
+            "editionId": "dawn-en-lionwing-cb2f8e67",
+            "locale": "en",
+            "pdfPage": 123
+          }
         }
       ]
     },
@@ -9483,7 +9655,8 @@
         119,
         120,
         121,
-        122
+        122,
+        123
       ]
     }
   },
