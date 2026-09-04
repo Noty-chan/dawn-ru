@@ -50,7 +50,7 @@ assert.match(russianActions["action.утилитарные-действия.из
 
 const englishCoreRules = english.coreRules.rules;
 const russianCoreRules = russian.coreRules.rules.entries;
-assert.equal(englishCoreRules.length, 121);
+assert.equal(englishCoreRules.length, 131);
 assert.equal(Object.keys(russianCoreRules).length, englishCoreRules.length, "every LionWing core rule card needs a Russian overlay");
 const localizedCoreRules = englishCoreRules.map(item => ({ ...item, ...(russianCoreRules[item.id] || {}) }));
 for (const item of englishCoreRules) assert.ok(russianCoreRules[item.id]?.text, `missing Russian core rule: ${item.id}`);
@@ -74,6 +74,8 @@ assert.match(russianCoreRules["lionwing.narrator.antagonism.pool"].text, /чис
 assert.match(russianCoreRules["lionwing.narrator.antagonism.all-out"].text, /3 или выше/, "Narrator All Out must preserve its changed Hit threshold");
 assert.match(russianCoreRules["lionwing.narrator.npcs.wounds"].text, /10 урона, который нельзя уменьшить/, "NPC Wounds must convert to irreducible damage");
 assert.match(russianCoreRules["lionwing.narrator.compound.gates"].text, /избыток становится равен 0/, "Compound Health Gates must stop excess damage");
+assert.match(russianCoreRules["lionwing.narrator.edges.overview"].text, /3 бесплатных применения за Сцену/, "Antagonist Edges must share their free-use pool");
+assert.match(russianCoreRules["lionwing.narrator.edges.wild-eyed"].text, /Столкновение/, "Wild-Eyed interception must use LionWing Clash");
 
 const englishSkills = english.builderRules.skills.canonical;
 const russianSkillNames = russian.builderRules.skills.entries;

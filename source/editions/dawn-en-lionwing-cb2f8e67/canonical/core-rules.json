@@ -533,6 +533,126 @@
   },
   "rules": [
     {
+      "id": "lionwing.narrator.edges.overview",
+      "category": "Antagonist Edges",
+      "name": "Antagonist NPCs",
+      "kind": "rule",
+      "text": "An Antagonist NPC may use Improvise for 2 AP to give an adjacent character any non-Banish Effect and has one Antagonist Edge. An Edge's three abilities share 3 free uses per Scene; each additional use costs 1 Antagonism. The Narrator may change an Antagonist's Edge as the story or gameplay changes.",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "locale": "en",
+        "pdfPage": 111
+      }
+    },
+    {
+      "id": "lionwing.narrator.edges.all-seeing",
+      "category": "Antagonist Edges",
+      "name": "All-Seeing",
+      "kind": "antagonist-edge",
+      "text": "Predictable (Defense Reaction): gain [Tier × 2] Evasion when Attacked; on a miss, move up to 3 spaces. Piercing Vision (Misc Reaction): when at least 4 spaces from an Attacked player, Mark them before the roll. Phase Change: spend 2 Antagonism, give all players 1 Influence, Deploy 2 equal-Tier Artillery NPCs, and restore [Tier × 5] Health.",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "locale": "en",
+        "pdfPage": 111
+      }
+    },
+    {
+      "id": "lionwing.narrator.edges.back-stabbing",
+      "category": "Antagonist Edges",
+      "name": "Back-Stabbing",
+      "kind": "antagonist-edge",
+      "text": "Honorable Sacrifice (Defense Reaction): when any NPC is Attacked, teleport an ally adjacent and make it the target. Shirk the Blame (Turn Start): if another NPC is adjacent to a player, have it Taunt them. Phase Change: spend 2 Antagonism, give all players 1 Influence, Deploy 2 equal-Tier Bodyguards, restore [Tier × 5] Health, and gain [Tier × 3] Evasion.",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "locale": "en",
+        "pdfPage": 111
+      }
+    },
+    {
+      "id": "lionwing.narrator.edges.cruel-hearted",
+      "category": "Antagonist Edges",
+      "name": "Cruel-Hearted",
+      "kind": "antagonist-edge",
+      "text": "Body of Thorns (Defense Reaction): gain [Tier × 2] Armor when Attacked; if damage falls to 1, Blight the attacker. Sadist (Turn Start): clear Blight from any number of characters, Strengthen this NPC, and deal [Tier × 2] damage to each affected character. Phase Change: spend 2 Antagonism, give all players 1 Influence, attach equal-Tier Contagion and Isolation Modifiers, and restore [Tier × 5] Health.",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "locale": "en",
+        "pdfPage": 111
+      }
+    },
+    {
+      "id": "lionwing.narrator.edges.god-like",
+      "category": "Antagonist Edges",
+      "name": "God-Like",
+      "kind": "antagonist-edge",
+      "text": "BREAK (Defense Reaction): gain [Tier × 2] Armor when Attacked; if damage falls to 1, push the attacker 3 spaces and Slow them. BEHOLD (Turn Start): pull a non-adjacent player 2 spaces; Daze them if they become adjacent. Phase Change: spend 2 Antagonism, give all players 1 Influence, Deploy 2 equal-Tier Paladins, and restore [Tier × 5] Health.",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "locale": "en",
+        "pdfPage": 112
+      }
+    },
+    {
+      "id": "lionwing.narrator.edges.iron-willed",
+      "category": "Antagonist Edges",
+      "name": "Iron-Willed",
+      "kind": "antagonist-edge",
+      "text": "Guardian (Defense Reaction): when any NPC is Attacked, teleport adjacent to the attacker, gain [Tier × 2] Armor, and become the target. Jabbing Insults (Turn Start): Taunt an adjacent player. Phase Change: spend 2 Antagonism, give all players 1 Influence, Deploy 2 equal-Tier Swarms, restore [Tier × 5] Health, and gain [Tier] Armor.",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "locale": "en",
+        "pdfPage": 112
+      }
+    },
+    {
+      "id": "lionwing.narrator.edges.over-confident",
+      "category": "Antagonist Edges",
+      "name": "Over-Confident",
+      "kind": "antagonist-edge",
+      "text": "Go On and Try (Defense Reaction): Mark yourself when Attacked to gain [Tier × 2] Evasion after the Attack. Drop the Weight (Turn Start): lose any Evasion to move 4 spaces through characters; each opponent crossed takes damage equal to the Evasion spent. Phase Change: spend 2 Antagonism, give all players 1 Influence, clear all negative Effects, become immune to them for the Scene, and restore [Tier × 5] Health.",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "locale": "en",
+        "pdfPage": 112
+      }
+    },
+    {
+      "id": "lionwing.narrator.edges.swift-stepping",
+      "category": "Antagonist Edges",
+      "name": "Swift-Stepping",
+      "kind": "antagonist-edge",
+      "text": "Enter Shadow (Defense Reaction): gain [Tier × 2] Evasion when Attacked; on a miss, Teleport to the board edge and Disappear. Dominate (Turn Start): choose someone not Attacked since this NPC's last Turn and Mark them for Death; Attacks against them deal [Tier × 2] extra damage and remove it. Phase Change: spend 2 Antagonism, give all players 1 Influence, Disappear, Strengthen, restore [Tier × 5] Health, and gain [Tier × 3] Evasion.",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "locale": "en",
+        "pdfPage": 112
+      }
+    },
+    {
+      "id": "lionwing.narrator.edges.wild-eyed",
+      "category": "Antagonist Edges",
+      "name": "Wild-Eyed",
+      "kind": "antagonist-edge",
+      "text": "Vicious Interception (Defense Reaction): Clash with the attacker as a player would. Beastly Roar (Turn Start): clear all Effects on this NPC, Daze opponents within 3 spaces, and push them to the nearest space 4 spaces away. Phase Change: spend 2 Antagonism, give all players 1 Influence, attach equal-Tier Giant and Earthquake Modifiers, and restore [Tier × 5] Health.",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "locale": "en",
+        "pdfPage": 112
+      }
+    },
+    {
+      "id": "lionwing.narrator.edges.world-renowned",
+      "category": "Antagonist Edges",
+      "name": "World-Renowned",
+      "kind": "antagonist-edge",
+      "text": "Hero's Interception (Defense Reaction): when any NPC is Attacked, Clash with the attacker as a player would. Inspiring Presence (Ally Turn Start): when another NPC starts its Turn, have it Attack or move one additional time. Phase Change: spend 2 Antagonism, give all players 1 Influence, force a player into a Duel, restore [Tier × 5] Health, and gain [Tier × 3] Evasion.",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "locale": "en",
+        "pdfPage": 112
+      }
+    },
+    {
       "id": "lionwing.narrator.chapters.hook",
       "category": "Narrator Tools",
       "name": "Preparing the Hook",

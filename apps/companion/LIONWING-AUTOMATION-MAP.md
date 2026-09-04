@@ -8,7 +8,7 @@
 | Стратегия | Количество | Назначение |
 | --- | ---: | --- |
 | `parameterize-old-core` | 6 | Существующий общий контракт подходит после явного выбора редакции и новых параметров. |
-| `extend-shared-core` | 6 | Нужен новый общий контракт, который не меняет поведение 0.9. |
+| `extend-shared-core` | 7 | Нужен новый общий контракт, который не меняет поведение 0.9. |
 | `new-lionwing-foundation` | 10 | Простой патч старой автоматики недостаточен; нужен отдельный типизированный фундамент LionWing. |
 | `narrator-ruling` | 1 | Механика по природе требует решения Нарратора и не должна автоматически угадываться по тексту. |
 | `source-review` | 1 | Автоматизацию нельзя начинать до разрешения противоречия или редакторского вопроса в каноне. |
@@ -54,6 +54,7 @@
 | `lionwing.foundation.fodder-zones` | Зоны Приспешников без Ходов | новый фундамент LionWing | `data-ready` | 109 |
 | `lionwing.foundation.compound-npcs` | Составные NPC и Пороги Здоровья | новый фундамент LionWing | `data-ready` | 110 |
 | `lionwing.core.npc-profile-runtime` | Базовый runtime профилей NPC LionWing | параметризовать общее ядро | `data-ready-rules-profiles-pending` | 109–110 |
+| `lionwing.core.antagonist-edges` | Грани Антагониста и Смена фазы | расширить общее ядро | `data-ready` | 111–112 |
 | `lionwing.narrator.manual-ledger` | Ручное применение изменений Нарратором | расширить общее ядро | `planned-outside-current-scope` | 34–65 |
 | `lionwing.techniques.separate-review-map` | Отдельная карта автоматизации 333 Уровней LionWing | новый фундамент LionWing | `map-ready` | 69–103 |
 

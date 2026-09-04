@@ -220,6 +220,16 @@
       "requires": ["отдельные профили NPC LionWing", "Козырь за 2 ОД и завершение Хода", "Призывы после Призывателя", "Рана как 10 неуменьшаемого урона"]
     },
     {
+      "id": "lionwing.core.antagonist-edges",
+      "name": "Грани Антагониста и Смена фазы",
+      "strategy": "extend-shared-core",
+      "status": "data-ready",
+      "sourcePages": [111, 112],
+      "ruleIds": ["lionwing.narrator.edges.overview", "lionwing.narrator.edges.all-seeing", "lionwing.narrator.edges.back-stabbing", "lionwing.narrator.edges.cruel-hearted", "lionwing.narrator.edges.god-like", "lionwing.narrator.edges.iron-willed", "lionwing.narrator.edges.over-confident", "lionwing.narrator.edges.swift-stepping", "lionwing.narrator.edges.wild-eyed", "lionwing.narrator.edges.world-renowned"],
+      "reuseFrom09": ["trait-trigger", "reaction-window", "phase-gate", "spawn-events"],
+      "requires": ["общий пул 3 применений на Грань", "доплата Антагонизмом", "сменяемая Грань", "Смена фазы при Выведении или Пороге", "новые профили и Модификаторы LionWing"]
+    },
+    {
       "id": "lionwing.narrator.manual-ledger",
       "name": "Ручное применение изменений Нарратором",
       "strategy": "extend-shared-core",
