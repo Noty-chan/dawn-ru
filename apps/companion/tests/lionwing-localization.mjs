@@ -24,6 +24,30 @@ assert.deepEqual(localizedReference.map(item => item.id), english.reference.map(
 assert.deepEqual(localizedReference.map(item => item.source), english.reference.map(item => item.source), "switching LionWing reference to RU must preserve canonical sources");
 assert.match(appBootstrapSource, /localizedLionwingReference\(\)/, "the companion must project LionWing reference cards through the locale overlay");
 
+const englishEffects = [...english.coreRules.effects.positive, ...english.coreRules.effects.negative];
+const russianEffects = russian.coreRules.effects.entries;
+assert.equal(englishEffects.length, 19);
+assert.equal(Object.keys(russianEffects).length, englishEffects.length, "every LionWing core Effect needs a Russian overlay");
+const localizedEffects = englishEffects.map(item => ({ ...item, ...(russianEffects[item.id] || {}) }));
+for (const item of englishEffects) assert.ok(russianEffects[item.id]?.text, `missing Russian core Effect: ${item.id}`);
+assert.deepEqual(localizedEffects.map(item => item.id), englishEffects.map(item => item.id), "switching LionWing Effects to RU must preserve ids");
+assert.deepEqual(localizedEffects.map(item => item.source), englishEffects.map(item => item.source), "switching LionWing Effects to RU must preserve sources");
+assert.match(russianEffects["positive.регенерирует"].text, /4 \+ \[Ступень\]/, "LionWing Regenerating must not reuse the 0.9 formula");
+assert.match(russianEffects["positive.усилен"].text, /Ступень \/ 2/, "LionWing Strengthened must use half Tier");
+assert.match(russianEffects["negative.помечен"].text, /Первая Атака/, "LionWing Marked must describe its one-Attack consumption");
+
+const englishActions = english.coreRules.actions.list;
+const russianActions = russian.coreRules.actions.entries;
+assert.equal(englishActions.length, 17);
+assert.equal(Object.keys(russianActions).length, englishActions.length, "every LionWing Basic Action needs a Russian overlay");
+const localizedActions = englishActions.map(item => ({ ...item, ...(russianActions[item.id] || {}) }));
+for (const item of englishActions) assert.ok(russianActions[item.id]?.text, `missing Russian core Action: ${item.id}`);
+assert.deepEqual(localizedActions.map(item => item.id), englishActions.map(item => item.id), "switching LionWing Actions to RU must preserve ids");
+assert.deepEqual(localizedActions.map(item => item.cost), englishActions.map(item => item.cost), "switching LionWing Actions to RU must preserve costs");
+assert.deepEqual(localizedActions.map(item => item.source), englishActions.map(item => item.source), "switching LionWing Actions to RU must preserve sources");
+assert.match(russianActions["action.защита.столкновение"].text, /5 урона/, "LionWing Clash must not reuse the 0.9 reaction");
+assert.match(russianActions["action.утилитарные-действия.изучение"].text, /одного из следующих/, "LionWing Investigate must reveal one category");
+
 const activeAbilityWordIds = Object.values(english.abilityWords).flat().map(item => item.id);
 const retiredAbilityWordIds = worklist.units.filter(item => item.domain === "ability-word" && item.action === "retire").map(item => item.stableId);
 const newAbilityWordIds = worklist.units.filter(item => item.domain === "ability-word" && item.action === "translate-new").map(item => item.stableId);

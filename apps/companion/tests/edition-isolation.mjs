@@ -20,11 +20,13 @@ assert.equal(russianAfter, russianBefore, "loading LionWing must not mutate the 
 assert.deepEqual(JSON.parse(JSON.stringify(lionwing)), extracted, "browser overlay must match the reviewable extracted data");
 assert.equal(lionwing.editionId, "dawn-en-lionwing-cb2f8e67");
 assert.equal(lionwing.tableMechanicsStatus, "not-ported");
-assert.deepEqual(Array.from(lionwing.scope), ["builder", "reference", "techniques"]);
+assert.deepEqual(Array.from(lionwing.scope), ["builder", "reference", "techniques", "core-rules"]);
 assert.equal(lionwing.builderRules.editionId, lionwing.editionId);
 assert.deepEqual(JSON.parse(JSON.stringify(lionwing.builderRules.derivedStatistics)), { health: "10 + Body + Tier * 2", speed: "2 + ceil(Talent / 2)", focus: "1 + ceil(Spirit / 2)", guts: null });
 assert.equal(manifest.editionId, lionwing.editionId);
 assert.equal(manifest.counts.techniques, 111);
+assert.equal(manifest.counts.coreEffects, 19);
+assert.equal(manifest.counts.coreActions, 17);
 assert.equal(oldEnglish.techniques.length, 107);
 assert.deepEqual(Object.fromEntries(Object.entries(oldEnglish.abilityWords).map(([group, words]) => [group, words.length])), { verbs: 32, nouns: 30, conditions: 21 });
 assert.ok(oldEnglish.outlooks.every(outlook => !outlook.description.includes("Favored Bond Actions")), "old Outlook descriptions must not absorb rules and Boons");
@@ -50,7 +52,7 @@ const canonicalTechniques = lionwing.archetypes.flatMap(archetype => {
   return canonical.techniques;
 });
 assert.deepEqual(canonicalTechniques.map(item => item.id), techniques.map(item => item.id), "canonical corpus must match runtime technique ids");
-for (const [file, value] of [["outlooks.json", lionwing.outlooks], ["ability-words.json", lionwing.abilityWords], ["builder-reference.json", lionwing.reference], ["builder-rules.json", lionwing.builderRules]]) {
+for (const [file, value] of [["outlooks.json", lionwing.outlooks], ["ability-words.json", lionwing.abilityWords], ["builder-reference.json", lionwing.reference], ["builder-rules.json", lionwing.builderRules], ["core-rules.json", lionwing.coreRules]]) {
   assert.deepEqual(JSON.parse(fs.readFileSync(new URL(file, canonicalRoot), "utf8")), JSON.parse(JSON.stringify(value)), `${file} must match runtime data`);
 }
 

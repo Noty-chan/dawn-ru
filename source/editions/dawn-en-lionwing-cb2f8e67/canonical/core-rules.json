@@ -1,0 +1,545 @@
+{
+  "schemaVersion": 1,
+  "editionId": "dawn-en-lionwing-cb2f8e67",
+  "effects": {
+    "intro": "Effects represent ongoing benefits and statuses. Characters lose their Effects when they end their Turn unless stated otherwise. Effects can't be removed this way on the Turn they're applied. Applying an Effect a character already has counts as applying it on that Turn.",
+    "positive": [
+      {
+        "id": "positive.изгнан",
+        "name": "Banished",
+        "aliases": [
+          "Banish"
+        ],
+        "text": "Non-Banished characters don't count as a target to you, you don't count as a target to them, and you can take up the same space as another object. Lose this Effect at the beginning of your Turn. When a character applies Banished, all other characters that have been Banished by them lose it.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 61
+        }
+      },
+      {
+        "id": "positive.ускорен",
+        "name": "Hastened",
+        "aliases": [
+          "Hasten"
+        ],
+        "text": "Your Speed is doubled. When moving in a way that doesn't rely on Speed, you may move twice as far.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 61
+        }
+      },
+      {
+        "id": "positive.исчез",
+        "name": "Disappeared",
+        "aliases": [
+          "Disappear"
+        ],
+        "text": "You're removed from the board. You lose this Effect as you take any Action, start your Turn, or if an enemy spends 2 AP to search for you. After you lose this Effect, reappear on any space that isn't adjacent to a character. This does not count as movement.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 61
+        }
+      },
+      {
+        "id": "positive.невидим",
+        "name": "Invisible",
+        "aliases": [
+          "Invisibility"
+        ],
+        "text": "You may lose this to Disappear as a free Action or Reaction. This is not removed at the end of your Turn.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 61
+        }
+      },
+      {
+        "id": "positive.регенерирует",
+        "name": "Regenerating",
+        "aliases": [
+          "Regenerate"
+        ],
+        "text": "Restore 4 + [Tier] Health as you end your Turn. This is not removed at the end of your Turn.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 61
+        }
+      },
+      {
+        "id": "positive.укреплен",
+        "name": "Reinforced",
+        "aliases": [
+          "Reinforce"
+        ],
+        "text": "You gain [Tier] Armor.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 61
+        }
+      },
+      {
+        "id": "positive.устойчив",
+        "name": "Steady",
+        "aliases": [],
+        "text": "You can't be moved unwillingly.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 61
+        }
+      },
+      {
+        "id": "positive.усилен",
+        "name": "Strengthened",
+        "aliases": [
+          "Strengthen"
+        ],
+        "text": "Your Attacks deal [Tier / 2] additional damage.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 61
+        }
+      }
+    ],
+    "negative": [
+      {
+        "id": "negative.порчен",
+        "name": "Blighted",
+        "aliases": [
+          "Blight"
+        ],
+        "text": "Lose [Tier] Health after you use an Attack. This is not removed at the end of your Turn.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 61
+        }
+      },
+      {
+        "id": "negative.ошеломлен",
+        "name": "Dazed",
+        "aliases": [
+          "Daze"
+        ],
+        "text": "You start your Turn with 1 less AP.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 61
+        }
+      },
+      {
+        "id": "negative.испуган",
+        "name": "Feared",
+        "aliases": [
+          "Fear"
+        ],
+        "text": "Your Attacks that target the character who applied Fear to you have [Tier] Disadvantage. This is also removed when the Fearing character is Knocked Out.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 61
+        }
+      },
+      {
+        "id": "negative.обездвижен",
+        "name": "Immobilized",
+        "aliases": [
+          "Immobilize"
+        ],
+        "text": "You can't willingly move. You can't benefit from Evasion.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 61
+        }
+      },
+      {
+        "id": "negative.подброшен",
+        "name": "Launched",
+        "aliases": [
+          "Launch"
+        ],
+        "text": "You can't take your Turn immediately after being Launched if an ally could take one instead, and you can't willingly move. When a Launched character is an Attack's target, the Attacker may Spike them, giving them [Tier] Advantage and removing Launched. This is removed after you start your Turn.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 61
+        }
+      },
+      {
+        "id": "negative.помечен",
+        "name": "Marked",
+        "aliases": [
+          "Mark"
+        ],
+        "text": "The first Attack that deals damage to you and can have its damage increased deals [Tier] additional damage and removes this. This is not removed at the end of your Turn.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 61
+        }
+      },
+      {
+        "id": "negative.замедлен",
+        "name": "Slowed",
+        "aliases": [
+          "Slow"
+        ],
+        "text": "Your Speed is halved. When moving in a way that doesn't rely on Speed, you may move half as far.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 61
+        }
+      },
+      {
+        "id": "negative.разорван",
+        "name": "Shredded",
+        "aliases": [
+          "Shred"
+        ],
+        "text": "You can't benefit from Armor.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 61
+        }
+      },
+      {
+        "id": "negative.пойман",
+        "name": "Snared",
+        "aliases": [
+          "Snare"
+        ],
+        "text": "When a character applies this, you're pulled adjacent to them. While your ensnarer is on the board, you can't willingly move; when they move, you are moved adjacent. You can't benefit from Evasion.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 61
+        }
+      },
+      {
+        "id": "negative.спровоцирован",
+        "name": "Taunted",
+        "aliases": [
+          "Taunt"
+        ],
+        "text": "Your Attacks that don't target a character who applied Taunt to you have [Tier] Disadvantage. This is removed when the Taunting character is Knocked Out.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 61
+        }
+      },
+      {
+        "id": "negative.ослаблен",
+        "name": "Weakened",
+        "aliases": [
+          "Weaken"
+        ],
+        "text": "Your Attacks deal [Tier / 2] less damage.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 61
+        }
+      }
+    ]
+  },
+  "actions": {
+    "intro": "These Basic Actions and Reactions are used in structured combat. Actions can only be used on your Turn; Reactions can be triggered when specified.",
+    "combos": "A Combo is a string of two or more Actions formatted as [X → Y] that grants a bonus when performed with no other Actions in between. Only one Combo can be executed per Action. If a Technique Level starts with a Combo, its effects only happen if that Combo is used. Combos can start off your Turn as long as you don't take an Action that would break them. After use, a Combo is on Cooldown until the end of your next Turn and can't be used while on Cooldown.",
+    "list": [
+      {
+        "id": "action.движение.прыжок",
+        "group": "Movement",
+        "name": "Jump",
+        "type": "action",
+        "cost": {
+          "resource": "ap",
+          "amount": 1
+        },
+        "text": "Move up to [Talent] spaces in a Line. This ignores opponents and Difficult Terrain.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 62
+        }
+      },
+      {
+        "id": "action.движение.шаг",
+        "group": "Movement",
+        "name": "Stride",
+        "type": "action",
+        "cost": {
+          "resource": "ap",
+          "amount": 1
+        },
+        "text": "Move up to [Speed] spaces. This movement can be saved and used after taking other Actions.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 62
+        }
+      },
+      {
+        "id": "action.атаки.заклинание",
+        "group": "Attacks",
+        "name": "Cast",
+        "type": "action",
+        "cost": {
+          "resource": "ap",
+          "amount": 1
+        },
+        "text": "Choose a target within 5 range. Roll Spirit. Reward: Deal [Hits] damage.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 63
+        }
+      },
+      {
+        "id": "action.атаки.стычка",
+        "group": "Attacks",
+        "name": "Skirmish",
+        "type": "action",
+        "cost": {
+          "resource": "ap",
+          "amount": 1
+        },
+        "text": "Choose up to 2 adjacent targets. Roll Body or Talent. Reward: Deal [Hits] damage.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 63
+        }
+      },
+      {
+        "id": "action.атаки.завершение",
+        "group": "Attacks",
+        "name": "Finisher",
+        "type": "action",
+        "cost": {
+          "resource": "ap",
+          "amount": 2
+        },
+        "text": "Choose an adjacent target, spend up to [Tension] Focus, and roll any Attribute at that much Advantage. Reward: Deal [Hits] + [Tension] damage.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 63
+        }
+      },
+      {
+        "id": "action.атаки.дуэль",
+        "group": "Attacks",
+        "name": "Duel",
+        "type": "action",
+        "cost": {
+          "resource": "influence",
+          "amount": 4
+        },
+        "text": "The Cost is reduced by [Tension], to a minimum of 1. Remove yourself and an adjacent enemy from the board; resolve the Duel (as described on page 38) when a participant starts their next Turn. Reward: The loser takes 2 Wounds if they're a player, or [Tension × 2] + [Tier × 5] damage if they're an NPC. The initiator Teleports both participants to spaces on the board's edge.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 63
+        }
+      },
+      {
+        "id": "action.защита.блок",
+        "group": "Defense",
+        "name": "Block",
+        "type": "reaction",
+        "cost": {
+          "resource": "focus",
+          "amount": 2
+        },
+        "text": "As a Reaction to being Attacked, gain [Body] Armor for the duration of the Attack and get pushed one space away from the attacker.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 64
+        }
+      },
+      {
+        "id": "action.защита.уворот",
+        "group": "Defense",
+        "name": "Dodge",
+        "type": "reaction",
+        "cost": {
+          "resource": "focus",
+          "amount": 2
+        },
+        "text": "As a Reaction to being Attacked, gain [Talent / 2] or [Mind / 2] Evasion, move 1 or 2 spaces, and stop all forced movement from that Attack. You're still the target of that Attack if you move out of its range.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 64
+        }
+      },
+      {
+        "id": "action.защита.столкновение",
+        "group": "Defense",
+        "name": "Clash",
+        "type": "reaction",
+        "cost": {
+          "resource": "focus",
+          "amount": 2
+        },
+        "text": "As a Reaction to being Attacked, start an Opposed Roll with the attacker, with both rolling 3 + [Tier]. If the player loses, they may take 5 damage to redo the roll, or take the Attack. If the player wins, they deal [Spirit] damage to the attacker and reduce the incoming Attack's damage by the same amount.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 64
+        }
+      },
+      {
+        "id": "action.защита.наказание",
+        "group": "Defense",
+        "name": "Punish",
+        "type": "reaction",
+        "cost": {
+          "resource": "ap",
+          "amount": 0
+        },
+        "text": "As a Reaction to a target leaving adjacency with you, you may Swiftly Skirmish that target at no Cost.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 64
+        }
+      },
+      {
+        "id": "action.утилитарные-действия.передышка",
+        "group": "Utility",
+        "name": "Breathe",
+        "type": "action",
+        "cost": {
+          "resource": "ap",
+          "amount": 1
+        },
+        "text": "Gain one Focus.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 65
+        }
+      },
+      {
+        "id": "action.утилитарные-действия.зарядка",
+        "group": "Utility",
+        "name": "Charge",
+        "type": "action",
+        "cost": {
+          "resource": "ap",
+          "amount": 2
+        },
+        "text": "Roll Spirit with [Tension] Advantage. Reward: Gain [Hits] Focus (minimum 2).",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 65
+        }
+      },
+      {
+        "id": "action.утилитарные-действия.скрыться",
+        "group": "Utility",
+        "name": "Hide",
+        "type": "action",
+        "cost": {
+          "resource": "ap",
+          "amount": 1
+        },
+        "text": "If you are on the board's edge and didn't start this Turn already Disappeared, you Disappear.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 65
+        }
+      },
+      {
+        "id": "action.утилитарные-действия.толчок",
+        "group": "Utility",
+        "name": "Shove",
+        "type": "action",
+        "cost": {
+          "resource": "ap",
+          "amount": 1
+        },
+        "text": "Move an adjacent character 1 space.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 65
+        }
+      },
+      {
+        "id": "action.утилитарные-действия.изучение",
+        "group": "Utility",
+        "name": "Investigate",
+        "type": "action",
+        "cost": {
+          "resource": "ap",
+          "amount": 1
+        },
+        "text": "Mark an NPC in [Mind] range. The Narrator must tell you the effects or value of one of the following: their Health; their Armor and/or Evasion; their Speed; their Passive(s); their Actions; or their Ace(s).",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 65
+        }
+      },
+      {
+        "id": "action.утилитарные-действия.взаимодействие",
+        "group": "Utility",
+        "name": "Interact",
+        "type": "action",
+        "cost": {
+          "resource": "ap",
+          "amount": 1
+        },
+        "text": "Use an adjacent object or objective.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 65
+        }
+      },
+      {
+        "id": "action.утилитарные-действия.импровизация",
+        "group": "Utility",
+        "name": "Improvise",
+        "type": "action",
+        "cost": {
+          "resource": "ap",
+          "amount": 2
+        },
+        "text": "Create a 10 Health Obstacle adjacent to you or apply any non-Banish Effect to a character adjacent to you. Before using this Action, you may remove an Obstacle adjacent to you to reduce its Cost to 1.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 65
+        }
+      }
+    ]
+  },
+  "source": {
+    "editionId": "dawn-en-lionwing-cb2f8e67",
+    "locale": "en",
+    "pdfPages": [
+      61,
+      62,
+      63,
+      64,
+      65
+    ]
+  }
+}

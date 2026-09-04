@@ -19,7 +19,9 @@
       "nouns": 41,
       "conditions": 22
     },
-    "referenceCards": 7
+    "referenceCards": 7,
+    "coreEffects": 19,
+    "coreActions": 17
   },
   "files": [
     "archetypes/powerhouse.json",
@@ -32,6 +34,7 @@
     "ability-words.json",
     "builder-reference.json",
     "builder-rules.json",
+    "core-rules.json",
     "id-map.json"
   ]
 }

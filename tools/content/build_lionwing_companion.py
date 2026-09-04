@@ -370,6 +370,73 @@ def parse_reference_sections() -> list[dict]:
     } for card_id, name, tags, text, page_number in cards]
 
 
+def core_rules() -> dict:
+    effect_source = {"editionId": NEW_ID, "locale": "en", "pdfPage": 61}
+    positive_effects = [
+        ("positive.изгнан", "Banished", ["Banish"], "Non-Banished characters don't count as a target to you, you don't count as a target to them, and you can take up the same space as another object. Lose this Effect at the beginning of your Turn. When a character applies Banished, all other characters that have been Banished by them lose it."),
+        ("positive.ускорен", "Hastened", ["Hasten"], "Your Speed is doubled. When moving in a way that doesn't rely on Speed, you may move twice as far."),
+        ("positive.исчез", "Disappeared", ["Disappear"], "You're removed from the board. You lose this Effect as you take any Action, start your Turn, or if an enemy spends 2 AP to search for you. After you lose this Effect, reappear on any space that isn't adjacent to a character. This does not count as movement."),
+        ("positive.невидим", "Invisible", ["Invisibility"], "You may lose this to Disappear as a free Action or Reaction. This is not removed at the end of your Turn."),
+        ("positive.регенерирует", "Regenerating", ["Regenerate"], "Restore 4 + [Tier] Health as you end your Turn. This is not removed at the end of your Turn."),
+        ("positive.укреплен", "Reinforced", ["Reinforce"], "You gain [Tier] Armor."),
+        ("positive.устойчив", "Steady", [], "You can't be moved unwillingly."),
+        ("positive.усилен", "Strengthened", ["Strengthen"], "Your Attacks deal [Tier / 2] additional damage."),
+    ]
+    negative_effects = [
+        ("negative.порчен", "Blighted", ["Blight"], "Lose [Tier] Health after you use an Attack. This is not removed at the end of your Turn."),
+        ("negative.ошеломлен", "Dazed", ["Daze"], "You start your Turn with 1 less AP."),
+        ("negative.испуган", "Feared", ["Fear"], "Your Attacks that target the character who applied Fear to you have [Tier] Disadvantage. This is also removed when the Fearing character is Knocked Out."),
+        ("negative.обездвижен", "Immobilized", ["Immobilize"], "You can't willingly move. You can't benefit from Evasion."),
+        ("negative.подброшен", "Launched", ["Launch"], "You can't take your Turn immediately after being Launched if an ally could take one instead, and you can't willingly move. When a Launched character is an Attack's target, the Attacker may Spike them, giving them [Tier] Advantage and removing Launched. This is removed after you start your Turn."),
+        ("negative.помечен", "Marked", ["Mark"], "The first Attack that deals damage to you and can have its damage increased deals [Tier] additional damage and removes this. This is not removed at the end of your Turn."),
+        ("negative.замедлен", "Slowed", ["Slow"], "Your Speed is halved. When moving in a way that doesn't rely on Speed, you may move half as far."),
+        ("negative.разорван", "Shredded", ["Shred"], "You can't benefit from Armor."),
+        ("negative.пойман", "Snared", ["Snare"], "When a character applies this, you're pulled adjacent to them. While your ensnarer is on the board, you can't willingly move; when they move, you are moved adjacent. You can't benefit from Evasion."),
+        ("negative.спровоцирован", "Taunted", ["Taunt"], "Your Attacks that don't target a character who applied Taunt to you have [Tier] Disadvantage. This is removed when the Taunting character is Knocked Out."),
+        ("negative.ослаблен", "Weakened", ["Weaken"], "Your Attacks deal [Tier / 2] less damage."),
+    ]
+    effect = lambda item: {"id": item[0], "name": item[1], "aliases": item[2], "text": item[3], "source": effect_source}
+    action_rows = [
+        ("action.движение.прыжок", "Movement", "Jump", "action", "ap", 1, "Move up to [Talent] spaces in a Line. This ignores opponents and Difficult Terrain.", 62),
+        ("action.движение.шаг", "Movement", "Stride", "action", "ap", 1, "Move up to [Speed] spaces. This movement can be saved and used after taking other Actions.", 62),
+        ("action.атаки.заклинание", "Attacks", "Cast", "action", "ap", 1, "Choose a target within 5 range. Roll Spirit. Reward: Deal [Hits] damage.", 63),
+        ("action.атаки.стычка", "Attacks", "Skirmish", "action", "ap", 1, "Choose up to 2 adjacent targets. Roll Body or Talent. Reward: Deal [Hits] damage.", 63),
+        ("action.атаки.завершение", "Attacks", "Finisher", "action", "ap", 2, "Choose an adjacent target, spend up to [Tension] Focus, and roll any Attribute at that much Advantage. Reward: Deal [Hits] + [Tension] damage.", 63),
+        ("action.атаки.дуэль", "Attacks", "Duel", "action", "influence", 4, "The Cost is reduced by [Tension], to a minimum of 1. Remove yourself and an adjacent enemy from the board; resolve the Duel (as described on page 38) when a participant starts their next Turn. Reward: The loser takes 2 Wounds if they're a player, or [Tension × 2] + [Tier × 5] damage if they're an NPC. The initiator Teleports both participants to spaces on the board's edge.", 63),
+        ("action.защита.блок", "Defense", "Block", "reaction", "focus", 2, "As a Reaction to being Attacked, gain [Body] Armor for the duration of the Attack and get pushed one space away from the attacker.", 64),
+        ("action.защита.уворот", "Defense", "Dodge", "reaction", "focus", 2, "As a Reaction to being Attacked, gain [Talent / 2] or [Mind / 2] Evasion, move 1 or 2 spaces, and stop all forced movement from that Attack. You're still the target of that Attack if you move out of its range.", 64),
+        ("action.защита.столкновение", "Defense", "Clash", "reaction", "focus", 2, "As a Reaction to being Attacked, start an Opposed Roll with the attacker, with both rolling 3 + [Tier]. If the player loses, they may take 5 damage to redo the roll, or take the Attack. If the player wins, they deal [Spirit] damage to the attacker and reduce the incoming Attack's damage by the same amount.", 64),
+        ("action.защита.наказание", "Defense", "Punish", "reaction", "ap", 0, "As a Reaction to a target leaving adjacency with you, you may Swiftly Skirmish that target at no Cost.", 64),
+        ("action.утилитарные-действия.передышка", "Utility", "Breathe", "action", "ap", 1, "Gain one Focus.", 65),
+        ("action.утилитарные-действия.зарядка", "Utility", "Charge", "action", "ap", 2, "Roll Spirit with [Tension] Advantage. Reward: Gain [Hits] Focus (minimum 2).", 65),
+        ("action.утилитарные-действия.скрыться", "Utility", "Hide", "action", "ap", 1, "If you are on the board's edge and didn't start this Turn already Disappeared, you Disappear.", 65),
+        ("action.утилитарные-действия.толчок", "Utility", "Shove", "action", "ap", 1, "Move an adjacent character 1 space.", 65),
+        ("action.утилитарные-действия.изучение", "Utility", "Investigate", "action", "ap", 1, "Mark an NPC in [Mind] range. The Narrator must tell you the effects or value of one of the following: their Health; their Armor and/or Evasion; their Speed; their Passive(s); their Actions; or their Ace(s).", 65),
+        ("action.утилитарные-действия.взаимодействие", "Utility", "Interact", "action", "ap", 1, "Use an adjacent object or objective.", 65),
+        ("action.утилитарные-действия.импровизация", "Utility", "Improvise", "action", "ap", 2, "Create a 10 Health Obstacle adjacent to you or apply any non-Banish Effect to a character adjacent to you. Before using this Action, you may remove an Obstacle adjacent to you to reduce its Cost to 1.", 65),
+    ]
+    actions = [{
+        "id": item[0], "group": item[1], "name": item[2], "type": item[3],
+        "cost": {"resource": item[4], "amount": item[5]}, "text": item[6],
+        "source": {"editionId": NEW_ID, "locale": "en", "pdfPage": item[7]},
+    } for item in action_rows]
+    return {
+        "schemaVersion": 1,
+        "editionId": NEW_ID,
+        "effects": {
+            "intro": "Effects represent ongoing benefits and statuses. Characters lose their Effects when they end their Turn unless stated otherwise. Effects can't be removed this way on the Turn they're applied. Applying an Effect a character already has counts as applying it on that Turn.",
+            "positive": [effect(item) for item in positive_effects],
+            "negative": [effect(item) for item in negative_effects],
+        },
+        "actions": {
+            "intro": "These Basic Actions and Reactions are used in structured combat. Actions can only be used on your Turn; Reactions can be triggered when specified.",
+            "combos": "A Combo is a string of two or more Actions formatted as [X → Y] that grants a bonus when performed with no other Actions in between. Only one Combo can be executed per Action. If a Technique Level starts with a Combo, its effects only happen if that Combo is used. Combos can start off your Turn as long as you don't take an Action that would break them. After use, a Combo is on Cooldown until the end of your next Turn and can't be used while on Cooldown.",
+            "list": actions,
+        },
+        "source": {"editionId": NEW_ID, "locale": "en", "pdfPages": [61, 62, 63, 64, 65]},
+    }
+
+
 def builder_rules() -> dict:
     return {
         "schemaVersion": 1,
@@ -886,6 +953,7 @@ def write_canonical_corpus(overlay: dict) -> None:
         ("ability-words.json", overlay["abilityWords"]),
         ("builder-reference.json", overlay["reference"]),
         ("builder-rules.json", overlay["builderRules"]),
+        ("core-rules.json", overlay["coreRules"]),
         ("id-map.json", {"mappedIds": overlay["mappedIds"], "migrationEvidence": overlay["migrationEvidence"], "removedIds": overlay["removedIds"]}),
     ):
         (canonical / name).write_text(json.dumps(value, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
@@ -905,6 +973,8 @@ def write_canonical_corpus(overlay: dict) -> None:
             "outlooks": len(overlay["outlooks"]),
             "abilityWords": {group: len(items) for group, items in overlay["abilityWords"].items()},
             "referenceCards": len(overlay["reference"]),
+            "coreEffects": sum(len(items) for items in overlay["coreRules"]["effects"].values() if isinstance(items, list)),
+            "coreActions": len(overlay["coreRules"]["actions"]["list"]),
         },
         "files": files,
     }
@@ -929,7 +999,7 @@ def main() -> None:
         "schemaVersion": 1,
         "editionId": NEW_ID,
         "locale": "en",
-        "scope": ["builder", "reference", "techniques"],
+        "scope": ["builder", "reference", "techniques", "core-rules"],
         "tableMechanicsStatus": "not-ported",
         "builderRules": builder_rules(),
         "archetypes": [
@@ -939,6 +1009,7 @@ def main() -> None:
         "outlooks": new_outlooks,
         "abilityWords": new_ability_words,
         "reference": parse_reference_sections(),
+        "coreRules": core_rules(),
         **mapping,
     }
     (EDITION / "extracted-companion.json").write_text(
