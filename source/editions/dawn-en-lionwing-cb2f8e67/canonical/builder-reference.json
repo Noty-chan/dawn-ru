@@ -169,7 +169,7 @@
     "name": "Starting Attributes",
     "kind": "Builder Reference",
     "tags": "Creation, Attributes",
-    "text": "Assign 4, 3, 2, and 2 among Body, Talent, Spirit, and Mind. Attribute growth and the Technique-Level conversion are handled by the builder.",
+    "text": "Assign 4, 3, 2, and 2 among the Attributes. Body represents physical health and strength and affects Health and physical power. Talent covers speed and stunts and affects Speed and physical power. Spirit covers supernatural instinct and affects Focus and magic. Mind covers mundane knowledge and rational thought and affects utility actions. A high Primary Attribute is usually more effective than spreading increases thinly. Attribute growth and the Technique-Level conversion are handled by the builder.",
     "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
       "pdfPage": 22
@@ -191,7 +191,7 @@
     "name": "Outlooks and Boons",
     "kind": "Builder Reference",
     "tags": "Creation, Outlooks, Boons",
-    "text": "Choose a Primary Outlook and its inherent Boon, then choose two additional Boons from your selected Outlooks. Higher-Tier heroes gain more options in the builder.",
+    "text": "Choose one Primary Outlook and two of its Boons. If that Outlook specifies an inherent Boon, take it in addition to those two. Boons apply only in unstructured play. As Tier increases, a hero may advance the Primary Outlook or branch into Secondary Outlooks, to a maximum of three total Outlooks: one Primary and up to two Secondary.",
     "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
       "pdfPage": 23

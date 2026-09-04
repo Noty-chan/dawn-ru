@@ -46,6 +46,8 @@ const outlookStoryQuestions = localizedReference.filter(item => item.id.startsWi
 assert.equal(outlookStoryQuestions.length, 10, "every Primary Outlook must retain its bilingual story question");
 assert.match(localizedReference.find(item => item.id === "lionwing.reference.outlook-story-past").text, /вопрос «Твоей истории» любого другого Мировоззрения/, "the Mentor question must retain its extra Outlook question");
 assert.match(localizedReference.find(item => item.id === "lionwing.reference.technique-catalogue").text, /не более чем из трёх Архетипов.+Звёзды сложности и теги.+не имеют механического эффекта/, "the Technique guide must retain Archetype and non-mechanical catalogue guidance");
+assert.match(localizedReference.find(item => item.id === "lionwing.reference.starting-attributes").text, /Тело.+Здоровье.+Талант.+Скорость.+Дух.+Фокус.+Разум.+утилитарные действия/, "the Attribute guide must retain the purpose of all four Attributes");
+assert.match(localizedReference.find(item => item.id === "lionwing.reference.outlooks-boons").text, /два его Дара.+обязательный Дар.+дополнительно.+только в неструктурированной игре.+не более трёх Мировоззрений/, "Outlook guidance must not imply that every Outlook has an inherent Boon");
 const localizedRecipes = localizedReference.filter(item => item.id.startsWith("lionwing.reference.recipe-"));
 assert.equal(localizedRecipes.length, 8, "all eight LionWing combat recipes need bilingual reference cards");
 assert.ok(localizedRecipes.every(item => /Атрибуты: Тело [234], Талант [234], Дух [234], Разум [234]/.test(item.text)), "every combat recipe must retain recommended Attributes");
