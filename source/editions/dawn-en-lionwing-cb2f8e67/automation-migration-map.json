@@ -339,6 +339,16 @@
       "requires": ["необязательное отображение без влияния на бюджет героя", "сохранение рекомендаций как советов, а не ограничений", "отдельная локализация примеров", "запрет автоматического применения примера с неразрешенным Даром Stalking Beast"]
     },
     {
+      "id": "lionwing.builder.combat-recipes",
+      "name": "Боевые рецепты персонажей LionWing",
+      "strategy": "parameterize-old-core",
+      "status": "8-recipes-data-ready",
+      "sourcePages": [28, 31],
+      "ruleIds": ["lionwing.reference.recipe-magical-brawler", "lionwing.reference.recipe-scarred-warrior", "lionwing.reference.recipe-tricksy-shinobi", "lionwing.reference.recipe-death-dealing-assassin", "lionwing.reference.recipe-keen-caster", "lionwing.reference.recipe-supportive-mage", "lionwing.reference.recipe-battlefield-maven", "lionwing.reference.recipe-helpful-savant"],
+      "reuseFrom09": ["builder-reference-cards", "technique-selection", "attribute-presets", "stable-technique-ids"],
+      "requires": ["предпросмотр рекомендуемых Атрибутов без скрытой перезаписи", "набор ровно 5 стартовых Уровней Техник", "разрешение старых названий рецепта через стабильные ID", "варианты развития как рекомендации, а не автоматические покупки", "атомарное применение рецепта только после отдельного подтверждения пользователя"]
+    },
+    {
       "id": "lionwing.techniques.separate-review-map",
       "name": "Отдельная карта автоматизации 333 Уровней LionWing",
       "strategy": "new-lionwing-foundation",

@@ -25,6 +25,10 @@ assert.deepEqual(localizedReference.map(item => item.source), english.reference.
 assert.match(localizedReference.find(item => item.id === "lionwing.reference.story-change").text, /хотя бы с Нарратором/, "Change must retain required Narrator discussion");
 assert.match(localizedReference.find(item => item.id === "lionwing.reference.example-qayid").text, /Тело 4.+Талант 3.+Дух 2.+Разум 2/, "Qayid example must retain its Attributes");
 assert.match(localizedReference.find(item => item.id === "lionwing.reference.example-yvon").text, /Крадущийся зверь/, "Yvon example must preserve the source-only Stalking Beast name for review");
+const localizedRecipes = localizedReference.filter(item => item.id.startsWith("lionwing.reference.recipe-"));
+assert.equal(localizedRecipes.length, 8, "all eight LionWing combat recipes need bilingual reference cards");
+assert.ok(localizedRecipes.every(item => /Атрибуты: Тело [234], Талант [234], Дух [234], Разум [234]/.test(item.text)), "every combat recipe must retain recommended Attributes");
+assert.match(localizedReference.find(item => item.id === "lionwing.reference.recipe-death-dealing-assassin").text, /Рейнджер \(в рецепте назван Long Draw\)/, "the outdated Long Draw recipe reference must resolve to Ranger without changing its stable identity");
 assert.match(appBootstrapSource, /localizedLionwingReference\(\)/, "the companion must project LionWing reference cards through the locale overlay");
 
 const englishEffects = [...english.coreRules.effects.positive, ...english.coreRules.effects.negative];

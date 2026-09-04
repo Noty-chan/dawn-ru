@@ -207,5 +207,93 @@
       "editionId": "dawn-en-lionwing-cb2f8e67",
       "pdfPage": 27
     }
+  },
+  {
+    "id": "lionwing.reference.recipe-magical-brawler",
+    "name": "Combat Recipe: Magical Brawler",
+    "kind": "Builder Reference",
+    "tags": "Creation, Recipe, Body",
+    "text": "Attributes: Body 4, Talent 2, Spirit 3, Mind 2. Start with SpellSword II. Choose an Elemental Affinity II: Flame Heart, Frost Veiler, Thunder Blood, or Wave Rider. Choose a Martial Art I: Martial Artist, Street Fighter, Technician, or Skirmisher. Tier-up paths: another Affinity; +2 Martial Art; +2 Rising Challenger; +2 Technician; or +1 SpellSword and +1 Berserker.",
+    "source": {
+      "editionId": "dawn-en-lionwing-cb2f8e67",
+      "pdfPage": 28
+    }
+  },
+  {
+    "id": "lionwing.reference.recipe-scarred-warrior",
+    "name": "Combat Recipe: Scarred Warrior",
+    "kind": "Builder Reference",
+    "tags": "Creation, Recipe, Body",
+    "text": "Attributes: Body 4, Talent 3, Spirit 2, Mind 2. Choose a Fighting Style III: Dragonslayer, Street Fighter, Breacher, or Dual Wielder. Choose a Physical Build II: Speed Demon, Duelist, Vanguard Defender, Flagellant, or Mundane. Tier-up paths: +2 another Fighting Style; another Physical Build; +2 Skirmisher; +2 Feral Arcanist; or +2 Iron Bodied.",
+    "source": {
+      "editionId": "dawn-en-lionwing-cb2f8e67",
+      "pdfPage": 28
+    }
+  },
+  {
+    "id": "lionwing.reference.recipe-tricksy-shinobi",
+    "name": "Combat Recipe: Tricksy Shinobi",
+    "kind": "Builder Reference",
+    "tags": "Creation, Recipe, Talent",
+    "text": "Attributes: Body 2, Talent 4, Spirit 2, Mind 3. Choose a Signature Technique III: Chemist, Mind Breaker, Surgeon, Enchained, or SwarmKin. Choose a Subtle Weapon II: Martial Artist, Knife Juggler, Gunslinger, Dual Wielder, or Bloodletter. Tier-up paths: +2 another Signature Technique; another Subtle Weapon; +2 Street Fighter; +2 Cutpurse; or +2 Spellcrafter.",
+    "source": {
+      "editionId": "dawn-en-lionwing-cb2f8e67",
+      "pdfPage": 29
+    }
+  },
+  {
+    "id": "lionwing.reference.recipe-death-dealing-assassin",
+    "name": "Combat Recipe: Death-Dealing Assassin",
+    "kind": "Builder Reference",
+    "tags": "Creation, Recipe, Talent",
+    "text": "Attributes: Body 3, Talent 4, Spirit 2, Mind 2. Choose a Main Weapon III: Blade Master, Reaper, Sniper, Ranger (called Long Draw in this recipe), or Assassin. Choose a Method II: Intimidator, Untouchable, Cunning Fighter, Predator, or Analyst. Tier-up paths: +2 another Main Weapon; another Method; +2 Skirmisher; +2 Void Soul; or +2 Autophage.",
+    "source": {
+      "editionId": "dawn-en-lionwing-cb2f8e67",
+      "pdfPage": 29
+    }
+  },
+  {
+    "id": "lionwing.reference.recipe-keen-caster",
+    "name": "Combat Recipe: Keen Caster",
+    "kind": "Builder Reference",
+    "tags": "Creation, Recipe, Spirit",
+    "text": "Attributes: Body 2, Talent 2, Spirit 4, Mind 3. Choose an Ability Type III: Flame Heart, Frost Veiler, Thunder Blood, Wave Rider, or Light Bender. Choose a Casting Type II: Spellcrafter, Bombardier, Eradicator, Ritualist, or Grim Ascendant. Tier-up paths: +2 another Ability Type; another Casting Type; +2 Dramaturge; +2 Zealot; or +2 Compassionate Sage.",
+    "source": {
+      "editionId": "dawn-en-lionwing-cb2f8e67",
+      "pdfPage": 30
+    }
+  },
+  {
+    "id": "lionwing.reference.recipe-supportive-mage",
+    "name": "Combat Recipe: Supportive Mage",
+    "kind": "Builder Reference",
+    "tags": "Creation, Recipe, Spirit",
+    "text": "Attributes: Body 2, Talent 3, Spirit 4, Mind 2. Choose an Arcane Blessing III: Compassionate Sage, Temporal Sage, Replicator, Deckbuilder, or Abjuring Sage. Choose a Bent II: Talisman Exorcist, Eradicator, Analyst, or Empath. Tier-up paths: +2 another Arcane Blessing; another Bent; +2 Will-O-Wisp; +2 Guard Caller; or +2 Spellcrafter.",
+    "source": {
+      "editionId": "dawn-en-lionwing-cb2f8e67",
+      "pdfPage": 30
+    }
+  },
+  {
+    "id": "lionwing.reference.recipe-battlefield-maven",
+    "name": "Combat Recipe: Battlefield Maven",
+    "kind": "Builder Reference",
+    "tags": "Creation, Recipe, Mind",
+    "text": "Attributes: Body 2, Talent 3, Spirit 2, Mind 4. Start with Cunning Fighter I. Choose Secret Knowledge II: Detective, Modified Meister, Battle Instructor, or Siren. Choose a Last Resort II: Martial Artist, Gunslinger, Dual Wielder, or Bloodletter. Tier-up paths: another Secret Knowledge; another Last Resort; +2 Skirmisher; +2 Cunning Fighter; or +2 Reflector.",
+    "source": {
+      "editionId": "dawn-en-lionwing-cb2f8e67",
+      "pdfPage": 31
+    }
+  },
+  {
+    "id": "lionwing.reference.recipe-helpful-savant",
+    "name": "Combat Recipe: Helpful Savant",
+    "kind": "Builder Reference",
+    "tags": "Creation, Recipe, Mind",
+    "text": "Attributes: Body 2, Talent 2, Spirit 3, Mind 4. Choose a Special Interest III: Virtuoso, Fog Walker, Gourmand, Alchemist, or Will-O-Wisp. Choose a Personal Style II: Analyst, Dancer, Dramaturge, Empath, or Cutpurse. Tier-up paths: +2 another Special Interest; another Personal Style; +2 Skirmisher; +2 Iron Bodied; or +2 Tactical Master.",
+    "source": {
+      "editionId": "dawn-en-lionwing-cb2f8e67",
+      "pdfPage": 31
+    }
   }
 ]
