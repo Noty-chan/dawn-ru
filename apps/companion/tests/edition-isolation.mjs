@@ -16,6 +16,9 @@ const canonicalRoot = new URL("../../../source/editions/dawn-en-lionwing-cb2f8e6
 const manifest = JSON.parse(fs.readFileSync(new URL("manifest.json", canonicalRoot), "utf8"));
 const oldEnglish = JSON.parse(fs.readFileSync(new URL("../../../source/editions/dawn-en-9ce6d8d6/extracted-comparison-source.json", import.meta.url), "utf8"));
 const translationWorklist = JSON.parse(fs.readFileSync(new URL("../../../source/editions/dawn-en-lionwing-cb2f8e67/translation-worklist.json", import.meta.url), "utf8"));
+assert.equal(translationWorklist.schemaVersion, 2);
+assert.equal(translationWorklist.translationCompletion.status, "reviewed");
+assert.ok(translationWorklist.units.every(item => item.sourceDisposition !== "pending"), "the immutable source-diff inventory must not masquerade as pending translation work");
 assert.equal(russianAfter, russianBefore, "loading LionWing must not mutate the Russian catalogue");
 assert.deepEqual(JSON.parse(JSON.stringify(lionwing)), extracted, "browser overlay must match the reviewable extracted data");
 assert.equal(lionwing.editionId, "dawn-en-lionwing-cb2f8e67");

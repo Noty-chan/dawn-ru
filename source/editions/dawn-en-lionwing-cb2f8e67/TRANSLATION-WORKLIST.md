@@ -1,7 +1,9 @@
-# Очередь нового русского перевода LionWing
+# Инвентаризация различий для русского LionWing
 
 > Старый русский текст разрешено переносить только для записей `reuse-existing-ru`.
 > `retranslate` и `translate-new` всегда переводятся с английского LionWing.
+> Это неизменяемая классификация исходных различий, а не очередь незавершённой работы.
+> Фактический RU-overlay имеет статус `reviewed`; полноту проверяет `apps/companion/tests/lionwing-localization.mjs`.
 
 ## Сводка
 
@@ -10,9 +12,9 @@
 - **Дары:** {'translate-new': 21, 'retire': 13, 'retranslate': 33, 'reuse-existing-ru': 6}.
 - **Слова Способностей:** {'translate-new': 35, 'reuse-existing-ru': 69, 'retire': 14}.
 
-## Требуют перевода
+## Переведены заново для LionWing
 
-| Область | Stable ID | Действие | Изменённые поля |
+| Область | Stable ID | Исходное требование | Изменённые поля |
 |---|---|---|---|
 | Техники | `altruist.abjuring-sage` | `translate-new` | вся новая запись |
 | Техники | `altruist.alchemist` | `retranslate` | flavor, levels.1.text, levels.2.text, levels.3.text |

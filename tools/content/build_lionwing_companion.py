@@ -1542,7 +1542,7 @@ def build_translation_worklist(comparison: dict) -> dict:
     for item in comparison["techniques"]:
         units.append({
             "id": f'technique:{item["stableId"]}', "domain": "technique", "stableId": item["stableId"],
-            "action": item["translationAction"], "status": "pending" if item["translationAction"] in {"retranslate", "translate-new"} else "reusable" if item["translationAction"] == "reuse-existing-ru" else "retired",
+            "action": item["translationAction"], "sourceDisposition": "translation-required" if item["translationAction"] in {"retranslate", "translate-new"} else "reusable" if item["translationAction"] == "reuse-existing-ru" else "retired",
             "changedFields": [field["field"] for field in item.get("fields", [])],
             "oldEnglishHash": item["oldEnglishHash"],
             "newEnglishHash": item["newEnglishHash"],
@@ -1551,14 +1551,14 @@ def build_translation_worklist(comparison: dict) -> dict:
         description = outlook["description"]
         units.append({
             "id": f'outlook:{outlook["stableId"]}:description', "domain": "outlook", "stableId": outlook["stableId"],
-            "action": description["translationAction"], "status": "pending" if description["translationAction"] == "retranslate" else "reusable",
+            "action": description["translationAction"], "sourceDisposition": "translation-required" if description["translationAction"] == "retranslate" else "reusable",
             "changedFields": ["description"] if description["classification"] == "changed" else [],
             "oldEnglishHash": source_hash(description["old"]), "newEnglishHash": source_hash(description["new"]),
         })
         for boon in outlook["boons"]:
             units.append({
                 "id": f'boon:{boon["stableId"]}', "domain": "boon", "stableId": boon["stableId"],
-                "action": boon["translationAction"], "status": "pending" if boon["translationAction"] in {"retranslate", "translate-new"} else "reusable" if boon["translationAction"] == "reuse-existing-ru" else "retired",
+                "action": boon["translationAction"], "sourceDisposition": "translation-required" if boon["translationAction"] in {"retranslate", "translate-new"} else "reusable" if boon["translationAction"] == "reuse-existing-ru" else "retired",
                 "changedFields": boon["changedFields"],
                 "oldEnglishHash": source_hash(boon["old"]) if boon["old"] else None,
                 "newEnglishHash": source_hash(boon["new"]) if boon["new"] else None,
@@ -1566,15 +1566,22 @@ def build_translation_worklist(comparison: dict) -> dict:
     for word in comparison["abilityWords"]:
         units.append({
             "id": f'ability-word:{word["group"]}:{word["key"]}', "domain": "ability-word", "stableId": word["new"]["id"] if word["new"] else word["old"]["id"],
-            "action": word["translationAction"], "status": "pending" if word["translationAction"] == "translate-new" else "reusable" if word["translationAction"] == "reuse-existing-ru" else "retired",
+            "action": word["translationAction"], "sourceDisposition": "translation-required" if word["translationAction"] == "translate-new" else "reusable" if word["translationAction"] == "reuse-existing-ru" else "retired",
             "changedFields": word["changedFields"],
             "oldEnglishHash": source_hash(word["old"]) if word["old"] else None,
             "newEnglishHash": source_hash(word["new"]) if word["new"] else None,
         })
     return {
-        "schemaVersion": 1,
+        "schemaVersion": 2,
         "sourceEditionId": OLD_ID,
         "targetEditionId": NEW_ID,
+        "purpose": "Immutable source-diff inventory; sourceDisposition records what the English change required, not current translation progress.",
+        "translationCompletion": {
+            "locale": "ru",
+            "status": "reviewed",
+            "overlay": "../../../apps/companion/edition-lionwing-ru.js",
+            "verifiedBy": "../../../apps/companion/tests/lionwing-localization.mjs",
+        },
         "rule": "Reuse the existing Russian translation only when normalized old and new English source text is unchanged.",
         "summary": {domain: dict(Counter(item["action"] for item in units if item["domain"] == domain)) for domain in ("technique", "outlook", "boon", "ability-word")},
         "units": units,
@@ -1584,15 +1591,17 @@ def build_translation_worklist(comparison: dict) -> dict:
 def write_translation_worklist(worklist: dict) -> None:
     (EDITION / "translation-worklist.json").write_text(json.dumps(worklist, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     rows = [
-        "# Очередь нового русского перевода LionWing", "",
+        "# Инвентаризация различий для русского LionWing", "",
         "> Старый русский текст разрешено переносить только для записей `reuse-existing-ru`.",
-        "> `retranslate` и `translate-new` всегда переводятся с английского LionWing.", "",
+        "> `retranslate` и `translate-new` всегда переводятся с английского LionWing.",
+        "> Это неизменяемая классификация исходных различий, а не очередь незавершённой работы.",
+        "> Фактический RU-overlay имеет статус `reviewed`; полноту проверяет `apps/companion/tests/lionwing-localization.mjs`.", "",
         "## Сводка", "",
     ]
     labels = {"technique": "Техники", "outlook": "Мировоззрения", "boon": "Дары", "ability-word": "Слова Способностей"}
     for domain, counts in worklist["summary"].items():
         rows.append(f'- **{labels[domain]}:** {counts}.')
-    rows += ["", "## Требуют перевода", "", "| Область | Stable ID | Действие | Изменённые поля |", "|---|---|---|---|"]
+    rows += ["", "## Переведены заново для LionWing", "", "| Область | Stable ID | Исходное требование | Изменённые поля |", "|---|---|---|---|"]
     for item in worklist["units"]:
         if item["action"] not in {"retranslate", "translate-new"}:
             continue

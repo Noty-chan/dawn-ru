@@ -1,7 +1,14 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "sourceEditionId": "dawn-en-9ce6d8d6",
   "targetEditionId": "dawn-en-lionwing-cb2f8e67",
+  "purpose": "Immutable source-diff inventory; sourceDisposition records what the English change required, not current translation progress.",
+  "translationCompletion": {
+    "locale": "ru",
+    "status": "reviewed",
+    "overlay": "../../../apps/companion/edition-lionwing-ru.js",
+    "verifiedBy": "../../../apps/companion/tests/lionwing-localization.mjs"
+  },
   "rule": "Reuse the existing Russian translation only when normalized old and new English source text is unchanged.",
   "summary": {
     "technique": {
@@ -31,7 +38,7 @@
       "domain": "technique",
       "stableId": "altruist.abjuring-sage",
       "action": "translate-new",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [],
       "oldEnglishHash": null,
       "newEnglishHash": "afe658ee789de9a216c6f2d7cd450c40f3ee759d494b6fbb9f1203772370ee19"
@@ -41,7 +48,7 @@
       "domain": "technique",
       "stableId": "altruist.alchemist",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "flavor",
         "levels.1.text",
@@ -56,7 +63,7 @@
       "domain": "technique",
       "stableId": "altruist.artist",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "tags",
         "flavor",
@@ -72,7 +79,7 @@
       "domain": "technique",
       "stableId": "altruist.bardic-savant",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "name",
         "stars",
@@ -90,7 +97,7 @@
       "domain": "technique",
       "stableId": "altruist.battle-instructor",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "tags",
         "levels.1.text",
@@ -105,7 +112,7 @@
       "domain": "technique",
       "stableId": "altruist.chronomancer",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "name",
         "tags",
@@ -122,7 +129,7 @@
       "domain": "technique",
       "stableId": "altruist.dancer",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "tags",
         "levels.1.text",
@@ -137,7 +144,7 @@
       "domain": "technique",
       "stableId": "altruist.deckbuilder",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "levels.1.text",
         "levels.2.name",
@@ -151,7 +158,7 @@
       "domain": "technique",
       "stableId": "altruist.empath",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "tags",
         "flavor",
@@ -167,7 +174,7 @@
       "domain": "technique",
       "stableId": "altruist.fog-walker",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "tags",
         "levels.1.text",
@@ -181,7 +188,7 @@
       "domain": "technique",
       "stableId": "altruist.gourmand",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "tags",
         "levels.1.text",
@@ -197,7 +204,7 @@
       "domain": "technique",
       "stableId": "altruist.heavenly-saint",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "name",
         "tags",
@@ -213,7 +220,7 @@
       "domain": "technique",
       "stableId": "altruist.last-hope",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "tags",
         "flavor",
@@ -229,7 +236,7 @@
       "domain": "technique",
       "stableId": "altruist.precognizant",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "name",
         "tags",
@@ -247,7 +254,7 @@
       "domain": "technique",
       "stableId": "altruist.replicator",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "tags",
         "levels.1.text"
@@ -260,7 +267,7 @@
       "domain": "technique",
       "stableId": "altruist.surgeon",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "tags",
         "levels.1.text",
@@ -275,7 +282,7 @@
       "domain": "technique",
       "stableId": "altruist.talisman-caster",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "name",
         "levels.1.text",
@@ -290,7 +297,7 @@
       "domain": "technique",
       "stableId": "altruist.will-o-wisp",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "stars",
         "tags",
@@ -307,7 +314,7 @@
       "domain": "technique",
       "stableId": "bulwark.absolute-bastard",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "levels.1.text",
         "levels.2.text",
@@ -321,7 +328,7 @@
       "domain": "technique",
       "stableId": "bulwark.battle-jockey",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "flavor",
         "levels.1.text",
@@ -336,7 +343,7 @@
       "domain": "technique",
       "stableId": "bulwark.beastial-ascendant",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "name",
         "tags",
@@ -352,7 +359,7 @@
       "domain": "technique",
       "stableId": "bulwark.crusher",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "tags",
         "flavor",
@@ -369,7 +376,7 @@
       "domain": "technique",
       "stableId": "bulwark.giant-frame",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "flavor",
         "levels.1.text",
@@ -384,7 +391,7 @@
       "domain": "technique",
       "stableId": "bulwark.grappler",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "flavor",
         "levels.1.text",
@@ -400,7 +407,7 @@
       "domain": "technique",
       "stableId": "bulwark.guardian-angel",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "name",
         "flavor",
@@ -416,7 +423,7 @@
       "domain": "technique",
       "stableId": "bulwark.iron-bodied",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "flavor",
         "levels.2.text"
@@ -429,7 +436,7 @@
       "domain": "technique",
       "stableId": "bulwark.juggernaut",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "flavor",
         "levels.1.text",
@@ -445,7 +452,7 @@
       "domain": "technique",
       "stableId": "bulwark.mecha-pilot",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "levels.1.text",
         "levels.2.text",
@@ -459,7 +466,7 @@
       "domain": "technique",
       "stableId": "bulwark.mundane",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "tags",
         "levels.1.text",
@@ -474,7 +481,7 @@
       "domain": "technique",
       "stableId": "bulwark.rising-challenger",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "tags",
         "flavor",
@@ -490,7 +497,7 @@
       "domain": "technique",
       "stableId": "bulwark.runic-retribution",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "name",
         "tags",
@@ -507,7 +514,7 @@
       "domain": "technique",
       "stableId": "bulwark.servant-s-call",
       "action": "retire",
-      "status": "retired",
+      "sourceDisposition": "retired",
       "changedFields": [],
       "oldEnglishHash": "7a780e25186ffc39ecd4cdac5e4c9a308d13f858b86cc4eb1257fb699aad4cd7",
       "newEnglishHash": null
@@ -517,7 +524,7 @@
       "domain": "technique",
       "stableId": "bulwark.shield-bearer",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "tags",
         "levels.1.text",
@@ -532,7 +539,7 @@
       "domain": "technique",
       "stableId": "bulwark.stalwart-sentry",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "levels.1.text",
         "levels.2.text",
@@ -546,7 +553,7 @@
       "domain": "technique",
       "stableId": "bulwark.vanguard-defender",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "tags",
         "levels.1.text",
@@ -561,7 +568,7 @@
       "domain": "technique",
       "stableId": "disruptor.autophage",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "flavor",
         "levels.1.text",
@@ -576,7 +583,7 @@
       "domain": "technique",
       "stableId": "disruptor.bloodletter",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "levels.1.text",
         "levels.3.name",
@@ -590,7 +597,7 @@
       "domain": "technique",
       "stableId": "disruptor.chemist",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "levels.1.text",
         "levels.2.text",
@@ -604,7 +611,7 @@
       "domain": "technique",
       "stableId": "disruptor.constrictor",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "levels.1.text",
         "levels.3.text"
@@ -617,7 +624,7 @@
       "domain": "technique",
       "stableId": "disruptor.cutpurse",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "tags",
         "flavor",
@@ -634,7 +641,7 @@
       "domain": "technique",
       "stableId": "disruptor.earth-speaker",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "flavor",
         "levels.1.name",
@@ -652,7 +659,7 @@
       "domain": "technique",
       "stableId": "disruptor.gale-strider",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "flavor",
         "levels.1.text",
@@ -667,7 +674,7 @@
       "domain": "technique",
       "stableId": "disruptor.hunter",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "name",
         "levels.1.text",
@@ -681,7 +688,7 @@
       "domain": "technique",
       "stableId": "disruptor.inhuman-strength",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "name",
         "levels.1.text",
@@ -696,7 +703,7 @@
       "domain": "technique",
       "stableId": "disruptor.inner-world",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "name",
         "tags",
@@ -712,7 +719,7 @@
       "domain": "technique",
       "stableId": "disruptor.light-bender",
       "action": "translate-new",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [],
       "oldEnglishHash": null,
       "newEnglishHash": "2afc061550261ac7719c36257479147df22d5d454ec498cb82cef3c906cf22a5"
@@ -722,7 +729,7 @@
       "domain": "technique",
       "stableId": "disruptor.mage-s-array",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "name",
         "flavor",
@@ -739,7 +746,7 @@
       "domain": "technique",
       "stableId": "disruptor.mind-breaker",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "stars",
         "flavor",
@@ -756,7 +763,7 @@
       "domain": "technique",
       "stableId": "disruptor.reaper",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "levels.1.text",
         "levels.2.text",
@@ -770,7 +777,7 @@
       "domain": "technique",
       "stableId": "disruptor.siren",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "flavor",
         "levels.1.name",
@@ -788,7 +795,7 @@
       "domain": "technique",
       "stableId": "disruptor.street-fighter",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "stars",
         "flavor",
@@ -804,7 +811,7 @@
       "domain": "technique",
       "stableId": "disruptor.swarm-body",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "name",
         "flavor",
@@ -820,7 +827,7 @@
       "domain": "technique",
       "stableId": "disruptor.tactical-master",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "archetypeId",
         "tags",
@@ -837,7 +844,7 @@
       "domain": "technique",
       "stableId": "disruptor.wave-rider",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "tags",
         "flavor",
@@ -853,7 +860,7 @@
       "domain": "technique",
       "stableId": "powerhouse.berserker",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "flavor",
         "levels.1.text",
@@ -870,7 +877,7 @@
       "domain": "technique",
       "stableId": "powerhouse.braggart",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "flavor",
         "levels.1.text",
@@ -885,7 +892,7 @@
       "domain": "technique",
       "stableId": "powerhouse.breacher",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "levels.1.text",
         "levels.2.text",
@@ -899,7 +906,7 @@
       "domain": "technique",
       "stableId": "powerhouse.dragonslayer",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "flavor",
         "levels.1.text",
@@ -915,7 +922,7 @@
       "domain": "technique",
       "stableId": "powerhouse.dual-wielder",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "levels.1.text",
         "levels.2.text",
@@ -929,7 +936,7 @@
       "domain": "technique",
       "stableId": "powerhouse.duelist",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "flavor",
         "levels.1.name",
@@ -945,7 +952,7 @@
       "domain": "technique",
       "stableId": "powerhouse.flagellant",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "flavor",
         "levels.1.text",
@@ -961,7 +968,7 @@
       "domain": "technique",
       "stableId": "powerhouse.gunslinger",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "flavor",
         "levels.1.text",
@@ -976,7 +983,7 @@
       "domain": "technique",
       "stableId": "powerhouse.heroic-ascendant",
       "action": "translate-new",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [],
       "oldEnglishHash": null,
       "newEnglishHash": "984b7f9b7c1e0dd063daceda0abbf711fb29f13e79599dc97425c9fc7fc59fb5"
@@ -986,7 +993,7 @@
       "domain": "technique",
       "stableId": "powerhouse.improvisational-fighter",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "flavor",
         "levels.1.name",
@@ -1002,7 +1009,7 @@
       "domain": "technique",
       "stableId": "powerhouse.intimidator",
       "action": "translate-new",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [],
       "oldEnglishHash": null,
       "newEnglishHash": "bf0266d0014f26c24a4d78674d2caf73f03d9fb2002e455e4b734e97acf19320"
@@ -1012,7 +1019,7 @@
       "domain": "technique",
       "stableId": "powerhouse.lancer",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "levels.1.text",
         "levels.2.text",
@@ -1027,7 +1034,7 @@
       "domain": "technique",
       "stableId": "powerhouse.martial-artist",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "flavor",
         "levels.1.text",
@@ -1042,7 +1049,7 @@
       "domain": "technique",
       "stableId": "powerhouse.monastic-sage",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "name",
         "flavor",
@@ -1059,7 +1066,7 @@
       "domain": "technique",
       "stableId": "powerhouse.predator",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "flavor",
         "levels.1.text",
@@ -1075,7 +1082,7 @@
       "domain": "technique",
       "stableId": "powerhouse.spellsword",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "tags",
         "flavor",
@@ -1094,7 +1101,7 @@
       "domain": "technique",
       "stableId": "powerhouse.struggler",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "flavor",
         "levels.1.text",
@@ -1108,7 +1115,7 @@
       "domain": "technique",
       "stableId": "powerhouse.technician",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "flavor",
         "levels.1.text",
@@ -1124,7 +1131,7 @@
       "domain": "technique",
       "stableId": "powerhouse.unbroken",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "flavor",
         "levels.1.text",
@@ -1139,7 +1146,7 @@
       "domain": "technique",
       "stableId": "powerhouse.warring-ascendant",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "flavor",
         "levels.1.text",
@@ -1155,7 +1162,7 @@
       "domain": "technique",
       "stableId": "ruiner.bombardier",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "tags",
         "levels.1.text",
@@ -1170,7 +1177,7 @@
       "domain": "technique",
       "stableId": "ruiner.creation-ascetic",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "name",
         "levels.1.text",
@@ -1186,7 +1193,7 @@
       "domain": "technique",
       "stableId": "ruiner.cryomancer",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "name",
         "levels.2.text",
@@ -1200,7 +1207,7 @@
       "domain": "technique",
       "stableId": "ruiner.dramaturge",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "levels.1.text",
         "levels.2.text",
@@ -1214,7 +1221,7 @@
       "domain": "technique",
       "stableId": "ruiner.ego-arm",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "levels.1.text",
         "levels.2.text",
@@ -1228,7 +1235,7 @@
       "domain": "technique",
       "stableId": "ruiner.feral-arcana",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "name",
         "levels.1.text",
@@ -1243,7 +1250,7 @@
       "domain": "technique",
       "stableId": "ruiner.flame-heart",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "flavor",
         "levels.1.text",
@@ -1258,7 +1265,7 @@
       "domain": "technique",
       "stableId": "ruiner.grim-ascendant",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "flavor",
         "levels.1.text",
@@ -1273,7 +1280,7 @@
       "domain": "technique",
       "stableId": "ruiner.long-draw",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "name",
         "flavor",
@@ -1289,7 +1296,7 @@
       "domain": "technique",
       "stableId": "ruiner.mana-blades",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "name",
         "levels.1.text",
@@ -1305,7 +1312,7 @@
       "domain": "technique",
       "stableId": "ruiner.rapid-fire-sorcery",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "name",
         "tags",
@@ -1323,7 +1330,7 @@
       "domain": "technique",
       "stableId": "ruiner.ritualist",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "tags",
         "levels.1.text"
@@ -1336,7 +1343,7 @@
       "domain": "technique",
       "stableId": "ruiner.sellsword-s-call",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "name",
         "stars",
@@ -1354,7 +1361,7 @@
       "domain": "technique",
       "stableId": "ruiner.spellcrafter",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "levels.1.text",
         "levels.2.text",
@@ -1368,7 +1375,7 @@
       "domain": "technique",
       "stableId": "ruiner.student-of-stars",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "tags",
         "levels.1.name",
@@ -1384,7 +1391,7 @@
       "domain": "technique",
       "stableId": "ruiner.thunder-blood",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "tags",
         "levels.1.text",
@@ -1400,7 +1407,7 @@
       "domain": "technique",
       "stableId": "ruiner.void-soul",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "levels.1.text",
         "levels.2.text",
@@ -1414,7 +1421,7 @@
       "domain": "technique",
       "stableId": "ruiner.zealot",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "levels.1.text",
         "levels.2.name",
@@ -1429,7 +1436,7 @@
       "domain": "technique",
       "stableId": "vagabond.acrobat",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "tags",
         "levels.1.name",
@@ -1445,7 +1452,7 @@
       "domain": "technique",
       "stableId": "vagabond.aerial-master",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "tags",
         "flavor",
@@ -1463,7 +1470,7 @@
       "domain": "technique",
       "stableId": "vagabond.assassin",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "tags",
         "levels.1.text",
@@ -1478,7 +1485,7 @@
       "domain": "technique",
       "stableId": "vagabond.blade-master",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "tags",
         "levels.1.text",
@@ -1494,7 +1501,7 @@
       "domain": "technique",
       "stableId": "vagabond.cunning-fighter",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "levels.1.text",
         "levels.2.text",
@@ -1508,7 +1515,7 @@
       "domain": "technique",
       "stableId": "vagabond.dim-mak",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "name",
         "flavor",
@@ -1525,7 +1532,7 @@
       "domain": "technique",
       "stableId": "vagabond.drunkard",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "tags",
         "flavor",
@@ -1541,7 +1548,7 @@
       "domain": "technique",
       "stableId": "vagabond.egomaniac",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "tags",
         "flavor",
@@ -1558,7 +1565,7 @@
       "domain": "technique",
       "stableId": "vagabond.enchained",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "levels.1.text",
         "levels.2.text",
@@ -1573,7 +1580,7 @@
       "domain": "technique",
       "stableId": "vagabond.knife-juggler",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "levels.1.text",
         "levels.2.text",
@@ -1587,7 +1594,7 @@
       "domain": "technique",
       "stableId": "vagabond.malicious-mimic",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "levels.1.text",
         "levels.2.text",
@@ -1601,7 +1608,7 @@
       "domain": "technique",
       "stableId": "vagabond.master-at-arms",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "tags",
         "flavor",
@@ -1617,7 +1624,7 @@
       "domain": "technique",
       "stableId": "vagabond.modified-meister",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "tags",
         "flavor",
@@ -1633,7 +1640,7 @@
       "domain": "technique",
       "stableId": "vagabond.opportunist",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "tags",
         "levels.1.text"
@@ -1646,7 +1653,7 @@
       "domain": "technique",
       "stableId": "vagabond.reflector",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "tags",
         "levels.1.text",
@@ -1661,7 +1668,7 @@
       "domain": "technique",
       "stableId": "vagabond.skirmisher",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "levels.1.text",
         "levels.2.text",
@@ -1675,7 +1682,7 @@
       "domain": "technique",
       "stableId": "vagabond.sniper",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "flavor",
         "levels.1.text",
@@ -1691,7 +1698,7 @@
       "domain": "technique",
       "stableId": "vagabond.speed-demon",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "flavor",
         "levels.1.text",
@@ -1708,7 +1715,7 @@
       "domain": "technique",
       "stableId": "vagabond.untouchable",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "tags",
         "flavor",
@@ -1725,7 +1732,7 @@
       "domain": "technique",
       "stableId": "vagabond.weaponsmith",
       "action": "translate-new",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [],
       "oldEnglishHash": null,
       "newEnglishHash": "1dc6d8a215505a7143bc4dbcfbeb339680a353b41e213a465dc711a77ed64b0c"
@@ -1735,7 +1742,7 @@
       "domain": "outlook",
       "stableId": "rebel",
       "action": "reuse-existing-ru",
-      "status": "reusable",
+      "sourceDisposition": "reusable",
       "changedFields": [],
       "oldEnglishHash": "85492fd724a7d7f50c90d9ed11f24271641d1e5affd99dc93c46b7fab1b12bc0",
       "newEnglishHash": "85492fd724a7d7f50c90d9ed11f24271641d1e5affd99dc93c46b7fab1b12bc0"
@@ -1745,7 +1752,7 @@
       "domain": "boon",
       "stableId": "rebel.aggressive-to-a-fault",
       "action": "translate-new",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [],
       "oldEnglishHash": null,
       "newEnglishHash": "4df195f9bfd66fcf5ecef798f45684a5cb25a4e35cb646ca4cd0faa6a5057b47"
@@ -1755,7 +1762,7 @@
       "domain": "boon",
       "stableId": "rebel.i-ll-carry-my-weight",
       "action": "translate-new",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [],
       "oldEnglishHash": null,
       "newEnglishHash": "1dbc4b3e1d9cd6d7ca59354fa7759d542e66ed8d6f7a19bdff3aba9422b75064"
@@ -1765,7 +1772,7 @@
       "domain": "boon",
       "stableId": "rebel.insolent-dissident",
       "action": "retire",
-      "status": "retired",
+      "sourceDisposition": "retired",
       "changedFields": [],
       "oldEnglishHash": "a8a6d54025e76807ca037b676e0a58799d2aab571fd1ca797290e3e41a7c339d",
       "newEnglishHash": null
@@ -1775,7 +1782,7 @@
       "domain": "boon",
       "stableId": "rebel.leave-this-to-me",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "text"
       ],
@@ -1787,7 +1794,7 @@
       "domain": "boon",
       "stableId": "rebel.not-today",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "text"
       ],
@@ -1799,7 +1806,7 @@
       "domain": "boon",
       "stableId": "rebel.overexertion",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "text"
       ],
@@ -1811,7 +1818,7 @@
       "domain": "boon",
       "stableId": "rebel.supernatural-deafness",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "text"
       ],
@@ -1823,7 +1830,7 @@
       "domain": "boon",
       "stableId": "rebel.until-my-last-breath",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "text"
       ],
@@ -1835,7 +1842,7 @@
       "domain": "outlook",
       "stableId": "loyalist",
       "action": "reuse-existing-ru",
-      "status": "reusable",
+      "sourceDisposition": "reusable",
       "changedFields": [],
       "oldEnglishHash": "67d12973f4b547e584f489830899001cc6c67e8d68e50b98793e3052583c7c3c",
       "newEnglishHash": "67d12973f4b547e584f489830899001cc6c67e8d68e50b98793e3052583c7c3c"
@@ -1845,7 +1852,7 @@
       "domain": "boon",
       "stableId": "loyalist.durandal",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "text"
       ],
@@ -1857,7 +1864,7 @@
       "domain": "boon",
       "stableId": "loyalist.fish-out-of-water",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "text"
       ],
@@ -1869,7 +1876,7 @@
       "domain": "boon",
       "stableId": "loyalist.law-and-order",
       "action": "translate-new",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [],
       "oldEnglishHash": null,
       "newEnglishHash": "d211a4d2e52f6cd52b4f6ec4fe197579d14dc103302a5505f17dbd81ec2d7a4c"
@@ -1879,7 +1886,7 @@
       "domain": "boon",
       "stableId": "loyalist.lord-s-rite",
       "action": "retire",
-      "status": "retired",
+      "sourceDisposition": "retired",
       "changedFields": [],
       "oldEnglishHash": "52231f5c1703ecdc6c329d30de45a889b4637f8803d50388752d4f16814ff02e",
       "newEnglishHash": null
@@ -1889,7 +1896,7 @@
       "domain": "boon",
       "stableId": "loyalist.my-master-s-teachings",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "text"
       ],
@@ -1901,7 +1908,7 @@
       "domain": "boon",
       "stableId": "loyalist.secret-technique",
       "action": "translate-new",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [],
       "oldEnglishHash": null,
       "newEnglishHash": "cfe89278b36610b098b24e55f76ae7a45dda235f9e5c36ed8929de5324e00a97"
@@ -1911,7 +1918,7 @@
       "domain": "boon",
       "stableId": "loyalist.the-oath",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "text"
       ],
@@ -1923,7 +1930,7 @@
       "domain": "outlook",
       "stableId": "beacon",
       "action": "reuse-existing-ru",
-      "status": "reusable",
+      "sourceDisposition": "reusable",
       "changedFields": [],
       "oldEnglishHash": "7300f046855c65a830264e93df94a6a9adfb98890622a880e18b14717efe9d69",
       "newEnglishHash": "7300f046855c65a830264e93df94a6a9adfb98890622a880e18b14717efe9d69"
@@ -1933,7 +1940,7 @@
       "domain": "boon",
       "stableId": "beacon.books-and-their-covers",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "text"
       ],
@@ -1945,7 +1952,7 @@
       "domain": "boon",
       "stableId": "beacon.friendly-and-approachable",
       "action": "reuse-existing-ru",
-      "status": "reusable",
+      "sourceDisposition": "reusable",
       "changedFields": [],
       "oldEnglishHash": "06636760074c621e147b30f07cba8e6786306ae26a219bde4946d9579c24cf30",
       "newEnglishHash": "06636760074c621e147b30f07cba8e6786306ae26a219bde4946d9579c24cf30"
@@ -1955,7 +1962,7 @@
       "domain": "boon",
       "stableId": "beacon.looking-our-best",
       "action": "translate-new",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [],
       "oldEnglishHash": null,
       "newEnglishHash": "d384bdcf41d56c5296be5e996d3b8d5355de3b3c2a9ecaf3f0afab685872dc21"
@@ -1965,7 +1972,7 @@
       "domain": "boon",
       "stableId": "beacon.north-star",
       "action": "translate-new",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [],
       "oldEnglishHash": null,
       "newEnglishHash": "eec0e15208f8df39d11a521a33d3353f839c67533f53457ad35fdaa58f99a8e9"
@@ -1975,7 +1982,7 @@
       "domain": "boon",
       "stableId": "beacon.performance-artist",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "text"
       ],
@@ -1987,7 +1994,7 @@
       "domain": "boon",
       "stableId": "beacon.perspective-of-a-friend",
       "action": "translate-new",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [],
       "oldEnglishHash": null,
       "newEnglishHash": "3cec4393ec3b11ed7fb90b8881b2a29931b9a83d2f2a0b3a95c1de910234d8fb"
@@ -1997,7 +2004,7 @@
       "domain": "boon",
       "stableId": "beacon.saint",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "text"
       ],
@@ -2009,7 +2016,7 @@
       "domain": "boon",
       "stableId": "beacon.true-hero",
       "action": "retire",
-      "status": "retired",
+      "sourceDisposition": "retired",
       "changedFields": [],
       "oldEnglishHash": "abb48a79bd6a385ffc417dab00f86d0b0df72905360add669cbbaf3fcc148343",
       "newEnglishHash": null
@@ -2019,7 +2026,7 @@
       "domain": "outlook",
       "stableId": "wolf",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "description"
       ],
@@ -2031,7 +2038,7 @@
       "domain": "boon",
       "stableId": "wolf.better-off-alone",
       "action": "translate-new",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [],
       "oldEnglishHash": null,
       "newEnglishHash": "0fc12e602afc6986514dc3d3179ea48af7973d7d191c7bee1147e9ac6c5bd00b"
@@ -2041,7 +2048,7 @@
       "domain": "boon",
       "stableId": "wolf.brood",
       "action": "translate-new",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [],
       "oldEnglishHash": null,
       "newEnglishHash": "e0e127441a5a651aac5bdcf24be963f8f3e19faee2cbf3d9e11de71598f6cedb"
@@ -2051,7 +2058,7 @@
       "domain": "boon",
       "stableId": "wolf.dark-urge",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "text"
       ],
@@ -2063,7 +2070,7 @@
       "domain": "boon",
       "stableId": "wolf.guard-dog",
       "action": "retire",
-      "status": "retired",
+      "sourceDisposition": "retired",
       "changedFields": [],
       "oldEnglishHash": "36ddc0047807b7075c22b02b6b3407188e6fc854a775efe0213dea0d87a6a4f0",
       "newEnglishHash": null
@@ -2073,7 +2080,7 @@
       "domain": "boon",
       "stableId": "wolf.lone-wolf",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "text"
       ],
@@ -2085,7 +2092,7 @@
       "domain": "boon",
       "stableId": "wolf.loyal",
       "action": "translate-new",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [],
       "oldEnglishHash": null,
       "newEnglishHash": "fab6885251c3ee195c0fbebea5dca9b08f5f0327f6cd879a301ed5ecdd218386"
@@ -2095,7 +2102,7 @@
       "domain": "boon",
       "stableId": "wolf.outgunned",
       "action": "reuse-existing-ru",
-      "status": "reusable",
+      "sourceDisposition": "reusable",
       "changedFields": [],
       "oldEnglishHash": "c3f387106f1fff5757df245651122e70941c566a0167ca530a5e1bd438e90f83",
       "newEnglishHash": "c3f387106f1fff5757df245651122e70941c566a0167ca530a5e1bd438e90f83"
@@ -2105,7 +2112,7 @@
       "domain": "boon",
       "stableId": "wolf.the-one-thing-you-can-rely-on",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "text"
       ],
@@ -2117,7 +2124,7 @@
       "domain": "outlook",
       "stableId": "mentor",
       "action": "reuse-existing-ru",
-      "status": "reusable",
+      "sourceDisposition": "reusable",
       "changedFields": [],
       "oldEnglishHash": "cc4f7b87576efe403b662bc4b60917fe264befa4655bc29344e5891a5054b2e7",
       "newEnglishHash": "cc4f7b87576efe403b662bc4b60917fe264befa4655bc29344e5891a5054b2e7"
@@ -2127,7 +2134,7 @@
       "domain": "boon",
       "stableId": "mentor.a-power-that-must-never-be-used-again",
       "action": "reuse-existing-ru",
-      "status": "reusable",
+      "sourceDisposition": "reusable",
       "changedFields": [],
       "oldEnglishHash": "411a2ac298154e519b4ee8ce2ee785852048789fa814f7ca012e993d5882bb51",
       "newEnglishHash": "411a2ac298154e519b4ee8ce2ee785852048789fa814f7ca012e993d5882bb51"
@@ -2137,7 +2144,7 @@
       "domain": "boon",
       "stableId": "mentor.an-organized-style",
       "action": "reuse-existing-ru",
-      "status": "reusable",
+      "sourceDisposition": "reusable",
       "changedFields": [],
       "oldEnglishHash": "c05031a1bc2777eded7ebfdf48af26513a0c9f08b7b6343be117caea7761df98",
       "newEnglishHash": "c05031a1bc2777eded7ebfdf48af26513a0c9f08b7b6343be117caea7761df98"
@@ -2147,7 +2154,7 @@
       "domain": "boon",
       "stableId": "mentor.casual-excellence",
       "action": "translate-new",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [],
       "oldEnglishHash": null,
       "newEnglishHash": "f0ed27fe0e6d99046be3967096a4b30603b877d1d14724f18c58f00ad4805e45"
@@ -2157,7 +2164,7 @@
       "domain": "boon",
       "stableId": "mentor.old-calloused-hand",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "text"
       ],
@@ -2169,7 +2176,7 @@
       "domain": "boon",
       "stableId": "mentor.past-your-prime",
       "action": "retire",
-      "status": "retired",
+      "sourceDisposition": "retired",
       "changedFields": [],
       "oldEnglishHash": "b819ededb57e2a7002596dfe5e7de64aa79c53576f7a4743e116ef1386e15b60",
       "newEnglishHash": null
@@ -2179,7 +2186,7 @@
       "domain": "boon",
       "stableId": "mentor.perspective-of-a-teacher",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "text"
       ],
@@ -2191,7 +2198,7 @@
       "domain": "outlook",
       "stableId": "student",
       "action": "reuse-existing-ru",
-      "status": "reusable",
+      "sourceDisposition": "reusable",
       "changedFields": [],
       "oldEnglishHash": "de3fd67d7c2564af75ae75adeb44c5b23544bbd31051894e2c81d107de6066d5",
       "newEnglishHash": "de3fd67d7c2564af75ae75adeb44c5b23544bbd31051894e2c81d107de6066d5"
@@ -2201,7 +2208,7 @@
       "domain": "boon",
       "stableId": "student.a-step-behind-but-still-running",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "text"
       ],
@@ -2213,7 +2220,7 @@
       "domain": "boon",
       "stableId": "student.amazing-potential",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "text"
       ],
@@ -2225,7 +2232,7 @@
       "domain": "boon",
       "stableId": "student.land-among-the-stars",
       "action": "retire",
-      "status": "retired",
+      "sourceDisposition": "retired",
       "changedFields": [],
       "oldEnglishHash": "5ce0db6222018918c876716e2ced7c5b41e1982531f4f51b3f2e2eb85a0547e9",
       "newEnglishHash": null
@@ -2235,7 +2242,7 @@
       "domain": "boon",
       "stableId": "student.never-give-up",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "text"
       ],
@@ -2247,7 +2254,7 @@
       "domain": "boon",
       "stableId": "student.order-and-out",
       "action": "translate-new",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [],
       "oldEnglishHash": null,
       "newEnglishHash": "31504f4c287450790921b7a16e096e931725d47f940b73f8108b9e9befe8dc02"
@@ -2257,7 +2264,7 @@
       "domain": "boon",
       "stableId": "student.plenty-to-learn",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "text"
       ],
@@ -2269,7 +2276,7 @@
       "domain": "boon",
       "stableId": "student.still-getting-used-to-it",
       "action": "translate-new",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [],
       "oldEnglishHash": null,
       "newEnglishHash": "9fe194de0daac4906e90e851d9087692d2f2e4aa8f74554606bc7f28b733f7b0"
@@ -2279,7 +2286,7 @@
       "domain": "outlook",
       "stableId": "cursed",
       "action": "reuse-existing-ru",
-      "status": "reusable",
+      "sourceDisposition": "reusable",
       "changedFields": [],
       "oldEnglishHash": "1f01f591edd06ac3a25ec5856c2091a43159f2d5ac1f0fc0d61b4965eee67372",
       "newEnglishHash": "1f01f591edd06ac3a25ec5856c2091a43159f2d5ac1f0fc0d61b4965eee67372"
@@ -2289,7 +2296,7 @@
       "domain": "boon",
       "stableId": "cursed.sacrifice",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "text"
       ],
@@ -2301,7 +2308,7 @@
       "domain": "boon",
       "stableId": "cursed.self-destructive-strength",
       "action": "translate-new",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [],
       "oldEnglishHash": null,
       "newEnglishHash": "12d546cf8aa78f4316d82d064d3b864ab7452a999203d5da9e4dc1428a72924a"
@@ -2311,7 +2318,7 @@
       "domain": "boon",
       "stableId": "cursed.tainted-body",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "text"
       ],
@@ -2323,7 +2330,7 @@
       "domain": "boon",
       "stableId": "cursed.the-voice",
       "action": "translate-new",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [],
       "oldEnglishHash": null,
       "newEnglishHash": "517694335fa7a2eb1e26a4efff9fc344c2b8009fa57e33674db0fd36a9ba73b5"
@@ -2333,7 +2340,7 @@
       "domain": "boon",
       "stableId": "cursed.turning-over-a-new-leaf",
       "action": "retire",
-      "status": "retired",
+      "sourceDisposition": "retired",
       "changedFields": [],
       "oldEnglishHash": "a66a1bd3d2b85385e0da247006872f3cf8faee65ffd35f35892037feb064b103",
       "newEnglishHash": null
@@ -2343,7 +2350,7 @@
       "domain": "boon",
       "stableId": "cursed.uncontrollable-power",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "text"
       ],
@@ -2355,7 +2362,7 @@
       "domain": "boon",
       "stableId": "cursed.volatile-blood",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "text"
       ],
@@ -2367,7 +2374,7 @@
       "domain": "outlook",
       "stableId": "blessed",
       "action": "reuse-existing-ru",
-      "status": "reusable",
+      "sourceDisposition": "reusable",
       "changedFields": [],
       "oldEnglishHash": "da923e8ed0d29246674ca8daebd1e3a86a7ef8b4c6099c7db689e136eaf4cbcb",
       "newEnglishHash": "da923e8ed0d29246674ca8daebd1e3a86a7ef8b4c6099c7db689e136eaf4cbcb"
@@ -2377,7 +2384,7 @@
       "domain": "boon",
       "stableId": "blessed.a-web-of-connections",
       "action": "reuse-existing-ru",
-      "status": "reusable",
+      "sourceDisposition": "reusable",
       "changedFields": [],
       "oldEnglishHash": "580821d42604423393ce72b947bf20ad35041b1101c8b2b897bedd02848be088",
       "newEnglishHash": "580821d42604423393ce72b947bf20ad35041b1101c8b2b897bedd02848be088"
@@ -2387,7 +2394,7 @@
       "domain": "boon",
       "stableId": "blessed.beck-and-call",
       "action": "translate-new",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [],
       "oldEnglishHash": null,
       "newEnglishHash": "7fa1d52cf29ae1868bc0427911757956c5cfff94a1d61b68e26ec75897e33f39"
@@ -2397,7 +2404,7 @@
       "domain": "boon",
       "stableId": "blessed.convenient-transport",
       "action": "retire",
-      "status": "retired",
+      "sourceDisposition": "retired",
       "changedFields": [],
       "oldEnglishHash": "c2fbb4cedd1fdbd5caf83792cbbeec4194e46b49df8786d5593086e7f69aea91",
       "newEnglishHash": null
@@ -2407,7 +2414,7 @@
       "domain": "boon",
       "stableId": "blessed.do-you-know-who-i-am",
       "action": "retire",
-      "status": "retired",
+      "sourceDisposition": "retired",
       "changedFields": [],
       "oldEnglishHash": "3d034384462f5837b502d432283503818edd43126ccc75f7ea3c432ba1825070",
       "newEnglishHash": null
@@ -2417,7 +2424,7 @@
       "domain": "boon",
       "stableId": "blessed.sick-ride",
       "action": "translate-new",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [],
       "oldEnglishHash": null,
       "newEnglishHash": "727f376abb574dabb13233a3fa9900c1aa407e0048b8c1ac2af7674f66eb14b4"
@@ -2427,7 +2434,7 @@
       "domain": "boon",
       "stableId": "blessed.social-setup",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "text"
       ],
@@ -2439,7 +2446,7 @@
       "domain": "boon",
       "stableId": "blessed.trust-fund",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "text"
       ],
@@ -2451,7 +2458,7 @@
       "domain": "outlook",
       "stableId": "quiet",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "description"
       ],
@@ -2463,7 +2470,7 @@
       "domain": "boon",
       "stableId": "quiet.eagle-eyed",
       "action": "translate-new",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [],
       "oldEnglishHash": null,
       "newEnglishHash": "353196c81179c7d1670f79dd8668e31a37b30535b2ffb02df7e7d53bd1cf8641"
@@ -2473,7 +2480,7 @@
       "domain": "boon",
       "stableId": "quiet.gearhead",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "text"
       ],
@@ -2485,7 +2492,7 @@
       "domain": "boon",
       "stableId": "quiet.knacks-and-hobbies",
       "action": "reuse-existing-ru",
-      "status": "reusable",
+      "sourceDisposition": "reusable",
       "changedFields": [],
       "oldEnglishHash": "9dbe10b6cae12dfb715f58e516181a247efcade08f118eea4443308f82631685",
       "newEnglishHash": "9dbe10b6cae12dfb715f58e516181a247efcade08f118eea4443308f82631685"
@@ -2495,7 +2502,7 @@
       "domain": "boon",
       "stableId": "quiet.reversal-of-fortune",
       "action": "retire",
-      "status": "retired",
+      "sourceDisposition": "retired",
       "changedFields": [],
       "oldEnglishHash": "3e19777b55970285ff8c597de5a0ade71e89751d9b115427b51685f9636e8b43",
       "newEnglishHash": null
@@ -2505,7 +2512,7 @@
       "domain": "boon",
       "stableId": "quiet.right-place-right-time",
       "action": "translate-new",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [],
       "oldEnglishHash": null,
       "newEnglishHash": "e11b95e250a0ccc23becf91c87432a5b68046eacf873ac73e164b1fcc6c0d98d"
@@ -2515,7 +2522,7 @@
       "domain": "boon",
       "stableId": "quiet.technobabble",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "text"
       ],
@@ -2527,7 +2534,7 @@
       "domain": "boon",
       "stableId": "quiet.the-sneaky-superposition",
       "action": "retire",
-      "status": "retired",
+      "sourceDisposition": "retired",
       "changedFields": [],
       "oldEnglishHash": "d132a4c27907ef372c2f0998a7b5ec76ef4ca699543ec24f9d8c7e507dba8518",
       "newEnglishHash": null
@@ -2537,7 +2544,7 @@
       "domain": "boon",
       "stableId": "quiet.the-talent",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "text"
       ],
@@ -2549,7 +2556,7 @@
       "domain": "outlook",
       "stableId": "confident",
       "action": "reuse-existing-ru",
-      "status": "reusable",
+      "sourceDisposition": "reusable",
       "changedFields": [],
       "oldEnglishHash": "90e426744ce928a981e781a31f6286b4a2111ab60b16f446717eac2303941eab",
       "newEnglishHash": "90e426744ce928a981e781a31f6286b4a2111ab60b16f446717eac2303941eab"
@@ -2559,7 +2566,7 @@
       "domain": "boon",
       "stableId": "confident.and-i-ll-only-use-one-hand",
       "action": "retire",
-      "status": "retired",
+      "sourceDisposition": "retired",
       "changedFields": [],
       "oldEnglishHash": "33494589657d88485b322de866e4b18c3dc9c2e362de9ac0f267b918a5fddcda",
       "newEnglishHash": null
@@ -2569,7 +2576,7 @@
       "domain": "boon",
       "stableId": "confident.chatty",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "text"
       ],
@@ -2581,7 +2588,7 @@
       "domain": "boon",
       "stableId": "confident.do-you-know-who-i-am",
       "action": "translate-new",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [],
       "oldEnglishHash": null,
       "newEnglishHash": "e80d52d3adff36b1624d3c8558fa11f8194a45c3d7a2ccb9e30d8e7e834951de"
@@ -2591,7 +2598,7 @@
       "domain": "boon",
       "stableId": "confident.perspective-of-a-lancer",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "text"
       ],
@@ -2603,7 +2610,7 @@
       "domain": "boon",
       "stableId": "confident.spite",
       "action": "retranslate",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [
         "text"
       ],
@@ -2615,7 +2622,7 @@
       "domain": "boon",
       "stableId": "confident.spotlight",
       "action": "retire",
-      "status": "retired",
+      "sourceDisposition": "retired",
       "changedFields": [],
       "oldEnglishHash": "8762cc28af81cd2ac7ca4a09f72de6bc37bb9b491d27221fdb3481685f54e212",
       "newEnglishHash": null
@@ -2625,7 +2632,7 @@
       "domain": "boon",
       "stableId": "confident.you-re-strong",
       "action": "translate-new",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [],
       "oldEnglishHash": null,
       "newEnglishHash": "2333c0c64288876d3f24700621c72b6f94daf5f233df0cd9a13cdfe90eb351ec"
@@ -2635,7 +2642,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.verbs.absorb",
       "action": "translate-new",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [],
       "oldEnglishHash": null,
       "newEnglishHash": "979804ca8ebe140273e7e0f64cc1447047bac3de222bee0907a12c588ef083d3"
@@ -2645,7 +2652,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.verbs.attract",
       "action": "reuse-existing-ru",
-      "status": "reusable",
+      "sourceDisposition": "reusable",
       "changedFields": [],
       "oldEnglishHash": "40332038b9574d95e1f77abdbd2039199c8a79332cf10b50e432d531773484fd",
       "newEnglishHash": "40332038b9574d95e1f77abdbd2039199c8a79332cf10b50e432d531773484fd"
@@ -2655,7 +2662,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.verbs.become",
       "action": "reuse-existing-ru",
-      "status": "reusable",
+      "sourceDisposition": "reusable",
       "changedFields": [],
       "oldEnglishHash": "9f07978937dcd6e263f41d7edc05533401ff2aec3690de9b1dec59c968682379",
       "newEnglishHash": "9f07978937dcd6e263f41d7edc05533401ff2aec3690de9b1dec59c968682379"
@@ -2665,7 +2672,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.verbs.blow",
       "action": "translate-new",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [],
       "oldEnglishHash": null,
       "newEnglishHash": "9f2be4795b491d89525ecfffebeb8f837aa23afbc48bdeedf2df0f20e4f923c2"
@@ -2675,7 +2682,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.verbs.break",
       "action": "reuse-existing-ru",
-      "status": "reusable",
+      "sourceDisposition": "reusable",
       "changedFields": [],
       "oldEnglishHash": "9a0deaee5004c2b80d9229ff1ee233b9b01d2ba3d706aace8759bc42c287a348",
       "newEnglishHash": "9a0deaee5004c2b80d9229ff1ee233b9b01d2ba3d706aace8759bc42c287a348"
@@ -2685,7 +2692,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.verbs.breathe",
       "action": "reuse-existing-ru",
-      "status": "reusable",
+      "sourceDisposition": "reusable",
       "changedFields": [],
       "oldEnglishHash": "1f09ca422c7ba6883a52f81ccf167c88959939373199610bc15e07d6166c11d0",
       "newEnglishHash": "1f09ca422c7ba6883a52f81ccf167c88959939373199610bc15e07d6166c11d0"
@@ -2695,7 +2702,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.verbs.bruise",
       "action": "retire",
-      "status": "retired",
+      "sourceDisposition": "retired",
       "changedFields": [],
       "oldEnglishHash": "5fa7b55595c667d3e6e1edb330487f673c009db5580ed238c9dd4169910098b7",
       "newEnglishHash": null
@@ -2705,7 +2712,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.verbs.conceal",
       "action": "reuse-existing-ru",
-      "status": "reusable",
+      "sourceDisposition": "reusable",
       "changedFields": [],
       "oldEnglishHash": "f510c40dd50a8b448adb64f9776b2e54573ccf7bf37d6a40dc24f0891d5b8b1d",
       "newEnglishHash": "f510c40dd50a8b448adb64f9776b2e54573ccf7bf37d6a40dc24f0891d5b8b1d"
@@ -2715,7 +2722,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.verbs.control",
       "action": "reuse-existing-ru",
-      "status": "reusable",
+      "sourceDisposition": "reusable",
       "changedFields": [],
       "oldEnglishHash": "67401a168047fcc748234e1122d0c640555fa048bdd38b9447e1d574a2f938d3",
       "newEnglishHash": "67401a168047fcc748234e1122d0c640555fa048bdd38b9447e1d574a2f938d3"
@@ -2725,7 +2732,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.verbs.create",
       "action": "reuse-existing-ru",
-      "status": "reusable",
+      "sourceDisposition": "reusable",
       "changedFields": [
         "costLabel"
       ],
@@ -2737,7 +2744,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.verbs.cut",
       "action": "reuse-existing-ru",
-      "status": "reusable",
+      "sourceDisposition": "reusable",
       "changedFields": [],
       "oldEnglishHash": "fe989fe504188d84d152b5cdaa25c27c79a9f17665c8c2885a7b1e4bc369448a",
       "newEnglishHash": "fe989fe504188d84d152b5cdaa25c27c79a9f17665c8c2885a7b1e4bc369448a"
@@ -2747,7 +2754,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.verbs.damage",
       "action": "retire",
-      "status": "retired",
+      "sourceDisposition": "retired",
       "changedFields": [],
       "oldEnglishHash": "2a34c9457984f6bd66b56ff539fe46c282b8f87f00ea2cabce0b9a36de37b9cf",
       "newEnglishHash": null
@@ -2757,7 +2764,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.verbs.duplicate",
       "action": "reuse-existing-ru",
-      "status": "reusable",
+      "sourceDisposition": "reusable",
       "changedFields": [],
       "oldEnglishHash": "887187facfb78c3bcf48e0879bb59641c01df35a87dcf21d70c1d3dd74acb901",
       "newEnglishHash": "887187facfb78c3bcf48e0879bb59641c01df35a87dcf21d70c1d3dd74acb901"
@@ -2767,7 +2774,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.verbs.eat",
       "action": "reuse-existing-ru",
-      "status": "reusable",
+      "sourceDisposition": "reusable",
       "changedFields": [],
       "oldEnglishHash": "d9fae51c27c509d76c593633e7b35b71fd4158b6f5b5c6b0de5a3e98da3e8e9d",
       "newEnglishHash": "d9fae51c27c509d76c593633e7b35b71fd4158b6f5b5c6b0de5a3e98da3e8e9d"
@@ -2777,7 +2784,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.verbs.embody",
       "action": "translate-new",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [],
       "oldEnglishHash": null,
       "newEnglishHash": "09f13b1eacae8246fbdc641dd7b88b282cf07ddc2485a28a53e7f95e04f31e7f"
@@ -2787,7 +2794,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.verbs.empower",
       "action": "translate-new",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [],
       "oldEnglishHash": null,
       "newEnglishHash": "828be7c2feb228c6bc00a0beaa3cc58f49581d37dbc3f5bedd98abbd6e5cba92"
@@ -2797,7 +2804,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.verbs.enhance",
       "action": "retire",
-      "status": "retired",
+      "sourceDisposition": "retired",
       "changedFields": [],
       "oldEnglishHash": "a0534328bd5b2008358e12787e14f8c712ee2ccfd0649936d62a9544f451fa3c",
       "newEnglishHash": null
@@ -2807,7 +2814,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.verbs.enlarge",
       "action": "reuse-existing-ru",
-      "status": "reusable",
+      "sourceDisposition": "reusable",
       "changedFields": [],
       "oldEnglishHash": "52a3be0e334e48af96d5c45d2343525792f75aab357271ce2b6fabca5b35e5a5",
       "newEnglishHash": "52a3be0e334e48af96d5c45d2343525792f75aab357271ce2b6fabca5b35e5a5"
@@ -2817,7 +2824,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.verbs.fuse-x-and",
       "action": "reuse-existing-ru",
-      "status": "reusable",
+      "sourceDisposition": "reusable",
       "changedFields": [
         "costLabel"
       ],
@@ -2829,7 +2836,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.verbs.heal",
       "action": "reuse-existing-ru",
-      "status": "reusable",
+      "sourceDisposition": "reusable",
       "changedFields": [],
       "oldEnglishHash": "a857f98c76f8f46dbd1411c0efeea3fc144196d4c66847fb3e1c4e267ea53fc0",
       "newEnglishHash": "a857f98c76f8f46dbd1411c0efeea3fc144196d4c66847fb3e1c4e267ea53fc0"
@@ -2839,7 +2846,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.verbs.immobilize",
       "action": "reuse-existing-ru",
-      "status": "reusable",
+      "sourceDisposition": "reusable",
       "changedFields": [],
       "oldEnglishHash": "13edf21d5201c9c0c986467f562aceced8e16c7a196d7c78b727392afd8d1e6a",
       "newEnglishHash": "13edf21d5201c9c0c986467f562aceced8e16c7a196d7c78b727392afd8d1e6a"
@@ -2849,7 +2856,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.verbs.launch",
       "action": "reuse-existing-ru",
-      "status": "reusable",
+      "sourceDisposition": "reusable",
       "changedFields": [],
       "oldEnglishHash": "2c67c48c3615423c203b7c0a7ba1af62ee714939209f34d4b14efccdad94f20b",
       "newEnglishHash": "2c67c48c3615423c203b7c0a7ba1af62ee714939209f34d4b14efccdad94f20b"
@@ -2859,7 +2866,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.verbs.locate",
       "action": "reuse-existing-ru",
-      "status": "reusable",
+      "sourceDisposition": "reusable",
       "changedFields": [],
       "oldEnglishHash": "7ab3960ba18ef697fc562cfe9c6b81ea6e90455f1f6b907f2f983e07cbe4f523",
       "newEnglishHash": "7ab3960ba18ef697fc562cfe9c6b81ea6e90455f1f6b907f2f983e07cbe4f523"
@@ -2869,7 +2876,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.verbs.manipulate",
       "action": "translate-new",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [],
       "oldEnglishHash": null,
       "newEnglishHash": "0af7a657130e313fae125b898d5a33c5724517317f82401b7cad5f1836c28700"
@@ -2879,7 +2886,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.verbs.melt",
       "action": "reuse-existing-ru",
-      "status": "reusable",
+      "sourceDisposition": "reusable",
       "changedFields": [],
       "oldEnglishHash": "27f8c1c918e84f52ebb4edc1d7235b932361648bc4822ca3898da3a824226f05",
       "newEnglishHash": "27f8c1c918e84f52ebb4edc1d7235b932361648bc4822ca3898da3a824226f05"
@@ -2889,7 +2896,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.verbs.negate",
       "action": "reuse-existing-ru",
-      "status": "reusable",
+      "sourceDisposition": "reusable",
       "changedFields": [],
       "oldEnglishHash": "47c3754c6fc7883073e3aa3201300def28718014b4a1d6383bfb47d72e9b4b76",
       "newEnglishHash": "47c3754c6fc7883073e3aa3201300def28718014b4a1d6383bfb47d72e9b4b76"
@@ -2899,7 +2906,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.verbs.perceive",
       "action": "translate-new",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [],
       "oldEnglishHash": null,
       "newEnglishHash": "00c8f5226eead9e8c74a5b4b8e2fd913f5d06e5fb462fe5bb3857d8bc1fbc314"
@@ -2909,7 +2916,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.verbs.puppet",
       "action": "retire",
-      "status": "retired",
+      "sourceDisposition": "retired",
       "changedFields": [],
       "oldEnglishHash": "2d2bf983fa2c8a515ea9a83e86f8f4066c9afc9f218b9c227f78b220cec78c0c",
       "newEnglishHash": null
@@ -2919,7 +2926,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.verbs.recreate",
       "action": "reuse-existing-ru",
-      "status": "reusable",
+      "sourceDisposition": "reusable",
       "changedFields": [],
       "oldEnglishHash": "499d7711250cdd983af1583296cb39e55ad4f2d28a35f50bc5fec3bdf9defdd5",
       "newEnglishHash": "499d7711250cdd983af1583296cb39e55ad4f2d28a35f50bc5fec3bdf9defdd5"
@@ -2929,7 +2936,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.verbs.repair",
       "action": "reuse-existing-ru",
-      "status": "reusable",
+      "sourceDisposition": "reusable",
       "changedFields": [],
       "oldEnglishHash": "ed8f2f9307309533b28e206484204394f5198b5cde87b8b581f36c1e95175170",
       "newEnglishHash": "ed8f2f9307309533b28e206484204394f5198b5cde87b8b581f36c1e95175170"
@@ -2939,7 +2946,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.verbs.reveal",
       "action": "retire",
-      "status": "retired",
+      "sourceDisposition": "retired",
       "changedFields": [],
       "oldEnglishHash": "2325540d05891a770e2fe79813cf5198bb080f00d86b2e690a5a7dd51a30004b",
       "newEnglishHash": null
@@ -2949,7 +2956,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.verbs.reverse",
       "action": "reuse-existing-ru",
-      "status": "reusable",
+      "sourceDisposition": "reusable",
       "changedFields": [],
       "oldEnglishHash": "60c615663889057f50c2256c66caf3ae7637770325a36976ddb1c06983976977",
       "newEnglishHash": "60c615663889057f50c2256c66caf3ae7637770325a36976ddb1c06983976977"
@@ -2959,7 +2966,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.verbs.rotate",
       "action": "translate-new",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [],
       "oldEnglishHash": null,
       "newEnglishHash": "8aef3c636ae5f79fd37d1585ab5943fd21ba51569c0a925bfb160e428b9bde43"
@@ -2969,7 +2976,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.verbs.secrete",
       "action": "translate-new",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [],
       "oldEnglishHash": null,
       "newEnglishHash": "99c9e20261b9297459ae53f51bd5f182f6b4955f36ced1ba2e29a60740cfc7dc"
@@ -2979,7 +2986,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.verbs.see",
       "action": "retire",
-      "status": "retired",
+      "sourceDisposition": "retired",
       "changedFields": [],
       "oldEnglishHash": "8dc2edf4ce3da8911af46fa9dbbc0e0664ccea05724021fc657ab7ece23a4482",
       "newEnglishHash": null
@@ -2989,7 +2996,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.verbs.shape",
       "action": "translate-new",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [],
       "oldEnglishHash": null,
       "newEnglishHash": "6a1683cadc27297749f9aa9ad87df6a6674ecf9b326cae22797788c014887021"
@@ -2999,7 +3006,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.verbs.shrink",
       "action": "reuse-existing-ru",
-      "status": "reusable",
+      "sourceDisposition": "reusable",
       "changedFields": [],
       "oldEnglishHash": "dc58cd7ae1e5580d7e7fa2c338158b7107ccb6690145004def67e42183d4af55",
       "newEnglishHash": "dc58cd7ae1e5580d7e7fa2c338158b7107ccb6690145004def67e42183d4af55"
@@ -3009,7 +3016,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.verbs.solidify",
       "action": "translate-new",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [],
       "oldEnglishHash": null,
       "newEnglishHash": "e74cf669b91cfaee7ee4ffb3995421dc03069332e61339151a70f25b71be0722"
@@ -3019,7 +3026,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.verbs.stop",
       "action": "reuse-existing-ru",
-      "status": "reusable",
+      "sourceDisposition": "reusable",
       "changedFields": [],
       "oldEnglishHash": "a1c9e135813d5fa0ac8e8068b63c6d5a4f3b73eafefd0f7a48582ca625be4f26",
       "newEnglishHash": "a1c9e135813d5fa0ac8e8068b63c6d5a4f3b73eafefd0f7a48582ca625be4f26"
@@ -3029,7 +3036,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.verbs.store-x-in",
       "action": "translate-new",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [],
       "oldEnglishHash": null,
       "newEnglishHash": "848ac7dfa9fe7d0372818f1b9105057a7f02ac36400ee54bfe933bf61595936a"
@@ -3039,7 +3046,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.verbs.swap",
       "action": "reuse-existing-ru",
-      "status": "reusable",
+      "sourceDisposition": "reusable",
       "changedFields": [],
       "oldEnglishHash": "b158dc9f7c6e8964eb57c3aa806466e0536b1d8afe79f927b5c8b545be22d8b9",
       "newEnglishHash": "b158dc9f7c6e8964eb57c3aa806466e0536b1d8afe79f927b5c8b545be22d8b9"
@@ -3049,7 +3056,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.verbs.talk-to",
       "action": "translate-new",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [],
       "oldEnglishHash": null,
       "newEnglishHash": "41abadc668241f26c06ca87cb369acda48452015e9b784969243e8e765b1bd15"
@@ -3059,7 +3066,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.verbs.teleport",
       "action": "reuse-existing-ru",
-      "status": "reusable",
+      "sourceDisposition": "reusable",
       "changedFields": [],
       "oldEnglishHash": "d8744779a0795df8b78c68d3f6a48af27ee99bf163e2386e27832e7b5dd55cde",
       "newEnglishHash": "d8744779a0795df8b78c68d3f6a48af27ee99bf163e2386e27832e7b5dd55cde"
@@ -3069,7 +3076,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.verbs.toughen",
       "action": "translate-new",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [],
       "oldEnglishHash": null,
       "newEnglishHash": "66c9c2f41156e9cd66d3c870924a59909c8bc98556f101b169685c0b769816b0"
@@ -3079,7 +3086,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.verbs.transform-x-into",
       "action": "reuse-existing-ru",
-      "status": "reusable",
+      "sourceDisposition": "reusable",
       "changedFields": [],
       "oldEnglishHash": "a934d2d9f88057e59a2496c3d96dbd3c7785801f1632cab7eb569a758e0fcd3b",
       "newEnglishHash": "a934d2d9f88057e59a2496c3d96dbd3c7785801f1632cab7eb569a758e0fcd3b"
@@ -3089,7 +3096,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.verbs.vibrate",
       "action": "translate-new",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [],
       "oldEnglishHash": null,
       "newEnglishHash": "548e9d5c840dc2518aa87438d9260a07b24df1b1ffcf8a9054354a447dee4df5"
@@ -3099,7 +3106,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.verbs.weaken",
       "action": "translate-new",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [],
       "oldEnglishHash": null,
       "newEnglishHash": "ddecac8109b9c971060a741037e2b83faa6fa139c634f3430b78410a3ded3b11"
@@ -3109,7 +3116,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.nouns.abilities",
       "action": "translate-new",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [],
       "oldEnglishHash": null,
       "newEnglishHash": "11267c2d0407518a6fb384ea32c4496e2f093367eecc109e6f5c151012ab42ed"
@@ -3119,7 +3126,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.nouns.animals",
       "action": "reuse-existing-ru",
-      "status": "reusable",
+      "sourceDisposition": "reusable",
       "changedFields": [
         "marks"
       ],
@@ -3131,7 +3138,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.nouns.barriers",
       "action": "reuse-existing-ru",
-      "status": "reusable",
+      "sourceDisposition": "reusable",
       "changedFields": [],
       "oldEnglishHash": "fb8f29b52ff989d18610303961e86cd937ae55a27da170c2fd42d88f65cde3c9",
       "newEnglishHash": "fb8f29b52ff989d18610303961e86cd937ae55a27da170c2fd42d88f65cde3c9"
@@ -3141,7 +3148,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.nouns.beasts",
       "action": "translate-new",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [],
       "oldEnglishHash": null,
       "newEnglishHash": "670a16a44815a73e4d69446a0183127abb4276aaf1c3834af2f5be9d643a792f"
@@ -3151,7 +3158,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.nouns.blood",
       "action": "translate-new",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [],
       "oldEnglishHash": null,
       "newEnglishHash": "d1b611c0202cd46bbb555403e8f174461603e619ea8dd938cff912c5c7a29fdf"
@@ -3161,7 +3168,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.nouns.bones",
       "action": "reuse-existing-ru",
-      "status": "reusable",
+      "sourceDisposition": "reusable",
       "changedFields": [],
       "oldEnglishHash": "0f134212ae156cb35c9ba34ec7a4ae4357b006f93741387fb2a4257f6deb6351",
       "newEnglishHash": "0f134212ae156cb35c9ba34ec7a4ae4357b006f93741387fb2a4257f6deb6351"
@@ -3171,7 +3178,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.nouns.bubbles",
       "action": "translate-new",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [],
       "oldEnglishHash": null,
       "newEnglishHash": "346ca5dac2770cb097a35e1e5a5b2a5db073557ff667765dccc1b1e78d010343"
@@ -3181,7 +3188,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.nouns.clouds",
       "action": "translate-new",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [],
       "oldEnglishHash": null,
       "newEnglishHash": "85d75d0cc121192faac782fa608d30059da1e01a815a0a700e7b690f04494180"
@@ -3191,7 +3198,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.nouns.devices",
       "action": "translate-new",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [],
       "oldEnglishHash": null,
       "newEnglishHash": "354594bcfef218c5f64ae31dc47c749a7460f021a2bdcb010094d82a5824ab5c"
@@ -3201,7 +3208,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.nouns.distance",
       "action": "reuse-existing-ru",
-      "status": "reusable",
+      "sourceDisposition": "reusable",
       "changedFields": [],
       "oldEnglishHash": "cdb567f8831a4d5c53106903a2a4efb88d88b6b3bd4278f1fc666eb142ee1319",
       "newEnglishHash": "cdb567f8831a4d5c53106903a2a4efb88d88b6b3bd4278f1fc666eb142ee1319"
@@ -3211,7 +3218,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.nouns.dust",
       "action": "translate-new",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [],
       "oldEnglishHash": null,
       "newEnglishHash": "376f038f667259aedc4b51a2301f92cd493f446bc89ea75caf091421bcb9f877"
@@ -3221,7 +3228,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.nouns.electricity",
       "action": "reuse-existing-ru",
-      "status": "reusable",
+      "sourceDisposition": "reusable",
       "changedFields": [],
       "oldEnglishHash": "19a97087d029d9674be08901015b5f3465831c2a0eee39aa80900f7f9de7a9c2",
       "newEnglishHash": "19a97087d029d9674be08901015b5f3465831c2a0eee39aa80900f7f9de7a9c2"
@@ -3231,7 +3238,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.nouns.explosives",
       "action": "translate-new",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [],
       "oldEnglishHash": null,
       "newEnglishHash": "ebeff5bc5530a65689e4ea38e75f9238d4945139e7eb45db8b983f10ad09b393"
@@ -3241,7 +3248,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.nouns.fluids",
       "action": "reuse-existing-ru",
-      "status": "reusable",
+      "sourceDisposition": "reusable",
       "changedFields": [],
       "oldEnglishHash": "41391f136bff62706f90a1a977354a575a8e821cc950aff0f68f015d08c6340c",
       "newEnglishHash": "41391f136bff62706f90a1a977354a575a8e821cc950aff0f68f015d08c6340c"
@@ -3251,7 +3258,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.nouns.food",
       "action": "reuse-existing-ru",
-      "status": "reusable",
+      "sourceDisposition": "reusable",
       "changedFields": [],
       "oldEnglishHash": "1c4502ce53306413823f9b2d781e5b6a11ee40040cda772e75f84dea37a1ee6b",
       "newEnglishHash": "1c4502ce53306413823f9b2d781e5b6a11ee40040cda772e75f84dea37a1ee6b"
@@ -3261,7 +3268,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.nouns.gasses",
       "action": "reuse-existing-ru",
-      "status": "reusable",
+      "sourceDisposition": "reusable",
       "changedFields": [],
       "oldEnglishHash": "5bdd3a46a7eb32f601ceeb74a714851bb4c089bb6d93e4e222daf35c621abe60",
       "newEnglishHash": "5bdd3a46a7eb32f601ceeb74a714851bb4c089bb6d93e4e222daf35c621abe60"
@@ -3271,7 +3278,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.nouns.ghosts",
       "action": "reuse-existing-ru",
-      "status": "reusable",
+      "sourceDisposition": "reusable",
       "changedFields": [],
       "oldEnglishHash": "1366ca98f942e233d10744ea1ed3679c56990bbc82dd47a067191be5c784f19c",
       "newEnglishHash": "1366ca98f942e233d10744ea1ed3679c56990bbc82dd47a067191be5c784f19c"
@@ -3281,7 +3288,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.nouns.gravity",
       "action": "reuse-existing-ru",
-      "status": "reusable",
+      "sourceDisposition": "reusable",
       "changedFields": [],
       "oldEnglishHash": "4b5377cb223c60f8dae765b36b035fd65d116c1a1cd1c7e8d8fa3c46a0f67a12",
       "newEnglishHash": "4b5377cb223c60f8dae765b36b035fd65d116c1a1cd1c7e8d8fa3c46a0f67a12"
@@ -3291,7 +3298,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.nouns.heat",
       "action": "reuse-existing-ru",
-      "status": "reusable",
+      "sourceDisposition": "reusable",
       "changedFields": [],
       "oldEnglishHash": "0004bbb3447beaaa5186dc265b65f0aa7920c0e7a1597472fabcb3274c560f50",
       "newEnglishHash": "0004bbb3447beaaa5186dc265b65f0aa7920c0e7a1597472fabcb3274c560f50"
@@ -3301,7 +3308,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.nouns.illusions",
       "action": "reuse-existing-ru",
-      "status": "reusable",
+      "sourceDisposition": "reusable",
       "changedFields": [],
       "oldEnglishHash": "40bed083cfe3da1880b650caea7828f3f66a26dc37bacd5713dc47e0ba8f04df",
       "newEnglishHash": "40bed083cfe3da1880b650caea7828f3f66a26dc37bacd5713dc47e0ba8f04df"
@@ -3311,7 +3318,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.nouns.knowledge",
       "action": "translate-new",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [],
       "oldEnglishHash": null,
       "newEnglishHash": "551d5c4b70bdfc77e19765afbac8c291584e02cc0b66de4a4d3aced9437562f8"
@@ -3321,7 +3328,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.nouns.light",
       "action": "reuse-existing-ru",
-      "status": "reusable",
+      "sourceDisposition": "reusable",
       "changedFields": [],
       "oldEnglishHash": "bc90e9dc47f4aabcc1cfc4fc3ca36122f50f30d1bc18b66a1515b08fcc1a59f1",
       "newEnglishHash": "bc90e9dc47f4aabcc1cfc4fc3ca36122f50f30d1bc18b66a1515b08fcc1a59f1"
@@ -3331,7 +3338,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.nouns.machines",
       "action": "reuse-existing-ru",
-      "status": "reusable",
+      "sourceDisposition": "reusable",
       "changedFields": [],
       "oldEnglishHash": "648e298774870ecbe6cd244bec42c5473b71a87a822ff9ddc80aa0d57406e2f7",
       "newEnglishHash": "648e298774870ecbe6cd244bec42c5473b71a87a822ff9ddc80aa0d57406e2f7"
@@ -3341,7 +3348,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.nouns.magic",
       "action": "translate-new",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [],
       "oldEnglishHash": null,
       "newEnglishHash": "677d2f3d77b0ec470716bd7305ad48283762036da185d6cf27dd27e272c50756"
@@ -3351,7 +3358,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.nouns.mana",
       "action": "retire",
-      "status": "retired",
+      "sourceDisposition": "retired",
       "changedFields": [],
       "oldEnglishHash": "f3e88ec55e9e0055440fa82b8698c00a1a06fcafb31bd5429c461a5f8b5b674b",
       "newEnglishHash": null
@@ -3361,7 +3368,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.nouns.meat",
       "action": "reuse-existing-ru",
-      "status": "reusable",
+      "sourceDisposition": "reusable",
       "changedFields": [],
       "oldEnglishHash": "a4cf091e60fbd23e22844d17e6abb57f24fb64867155d72b7e3041a06edff65f",
       "newEnglishHash": "a4cf091e60fbd23e22844d17e6abb57f24fb64867155d72b7e3041a06edff65f"
@@ -3371,7 +3378,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.nouns.melee-weapons",
       "action": "retire",
-      "status": "retired",
+      "sourceDisposition": "retired",
       "changedFields": [],
       "oldEnglishHash": "9cb5a76547d6f1b351410577b54155b43e73a7b778a19d6933a077b66d3a750f",
       "newEnglishHash": null
@@ -3381,7 +3388,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.nouns.monsters",
       "action": "reuse-existing-ru",
-      "status": "reusable",
+      "sourceDisposition": "reusable",
       "changedFields": [
         "marks"
       ],
@@ -3393,7 +3400,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.nouns.others",
       "action": "translate-new",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [],
       "oldEnglishHash": null,
       "newEnglishHash": "ee67532f91da069c6a96375e450c9b4565355d4d43add2ec385468f48238fcae"
@@ -3403,7 +3410,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.nouns.people",
       "action": "reuse-existing-ru",
-      "status": "reusable",
+      "sourceDisposition": "reusable",
       "changedFields": [],
       "oldEnglishHash": "06ad9a9ad48986b59e7ca55d4262cedb4f8a0ff412852d04275d65d0a9e0fcaa",
       "newEnglishHash": "06ad9a9ad48986b59e7ca55d4262cedb4f8a0ff412852d04275d65d0a9e0fcaa"
@@ -3413,7 +3420,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.nouns.plants",
       "action": "reuse-existing-ru",
-      "status": "reusable",
+      "sourceDisposition": "reusable",
       "changedFields": [],
       "oldEnglishHash": "7d141a766919cfeccc782b58db4fa38072973db274560ec871ec29c2f69cfd9f",
       "newEnglishHash": "7d141a766919cfeccc782b58db4fa38072973db274560ec871ec29c2f69cfd9f"
@@ -3423,7 +3430,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.nouns.ranged-weapons",
       "action": "retire",
-      "status": "retired",
+      "sourceDisposition": "retired",
       "changedFields": [],
       "oldEnglishHash": "24f971d9f1556210c0735baaa7d728805d31f2939b7a8168932dd9410fa87943",
       "newEnglishHash": null
@@ -3433,7 +3440,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.nouns.shadow",
       "action": "reuse-existing-ru",
-      "status": "reusable",
+      "sourceDisposition": "reusable",
       "changedFields": [],
       "oldEnglishHash": "e7b18daf7c3453740005a19ab99321651f58a7c002a50fa442f8430c6b5e1d86",
       "newEnglishHash": "e7b18daf7c3453740005a19ab99321651f58a7c002a50fa442f8430c6b5e1d86"
@@ -3443,7 +3450,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.nouns.simple-weapons",
       "action": "translate-new",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [],
       "oldEnglishHash": null,
       "newEnglishHash": "cfc1b0a9b1b45cfbc23f5a826f8d152a3a9ff2da3ef7e6eb2bc6579ae1f16f84"
@@ -3453,7 +3460,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.nouns.smoke",
       "action": "translate-new",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [],
       "oldEnglishHash": null,
       "newEnglishHash": "8c516c4d4903ebf611991b1b41dfaf0f586fdf16df92bc77f02e11d1c6108d22"
@@ -3463,7 +3470,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.nouns.solids",
       "action": "reuse-existing-ru",
-      "status": "reusable",
+      "sourceDisposition": "reusable",
       "changedFields": [],
       "oldEnglishHash": "496aac3b3e8da3ccf7b429a74b013a525cd8843671f42e68567d55e9ff902928",
       "newEnglishHash": "496aac3b3e8da3ccf7b429a74b013a525cd8843671f42e68567d55e9ff902928"
@@ -3473,7 +3480,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.nouns.souls",
       "action": "retire",
-      "status": "retired",
+      "sourceDisposition": "retired",
       "changedFields": [],
       "oldEnglishHash": "afe6c156435610c1e32581abc708d984aabc0ef90d94df6963b5e11d23e645dc",
       "newEnglishHash": null
@@ -3483,7 +3490,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.nouns.sound",
       "action": "reuse-existing-ru",
-      "status": "reusable",
+      "sourceDisposition": "reusable",
       "changedFields": [],
       "oldEnglishHash": "61eaac0bf4c915ab9d333ff280cd2ebc16baa06cf8931afee4080b225abbb5a3",
       "newEnglishHash": "61eaac0bf4c915ab9d333ff280cd2ebc16baa06cf8931afee4080b225abbb5a3"
@@ -3493,7 +3500,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.nouns.the-classical-elements",
       "action": "translate-new",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [],
       "oldEnglishHash": null,
       "newEnglishHash": "21f99ea191b077e86784271c7f2e7b880ea2317ae3197322958faa89dff418e9"
@@ -3503,7 +3510,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.nouns.the-four-elements",
       "action": "retire",
-      "status": "retired",
+      "sourceDisposition": "retired",
       "changedFields": [],
       "oldEnglishHash": "e2e810965d1ee0d3a1622bad6ca555a4fcb6d7b2342ee93747886b581ba02a3c",
       "newEnglishHash": null
@@ -3513,7 +3520,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.nouns.toys",
       "action": "translate-new",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [],
       "oldEnglishHash": null,
       "newEnglishHash": "56e4c2eef522f77e53aa5ecaf21d0a3bddc80494180285b6d5bfc5e0316cf642"
@@ -3523,7 +3530,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.nouns.traps",
       "action": "reuse-existing-ru",
-      "status": "reusable",
+      "sourceDisposition": "reusable",
       "changedFields": [],
       "oldEnglishHash": "b47e53f68164b53624857f52bd65655a0f195166a61ad1dd74c6abc2cbfdde46",
       "newEnglishHash": "b47e53f68164b53624857f52bd65655a0f195166a61ad1dd74c6abc2cbfdde46"
@@ -3533,7 +3540,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.nouns.velocity",
       "action": "reuse-existing-ru",
-      "status": "reusable",
+      "sourceDisposition": "reusable",
       "changedFields": [],
       "oldEnglishHash": "89574cfdf072850a6e68825c2e1928337f1d362286a84c93fb085d3b26d4622c",
       "newEnglishHash": "89574cfdf072850a6e68825c2e1928337f1d362286a84c93fb085d3b26d4622c"
@@ -3543,7 +3550,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.nouns.weather",
       "action": "reuse-existing-ru",
-      "status": "reusable",
+      "sourceDisposition": "reusable",
       "changedFields": [],
       "oldEnglishHash": "ad503c098fbf2e141aa8852ea112bd9e6d45cfa0917cd10ae99d80c19552e0a6",
       "newEnglishHash": "ad503c098fbf2e141aa8852ea112bd9e6d45cfa0917cd10ae99d80c19552e0a6"
@@ -3553,7 +3560,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.nouns.your-body",
       "action": "translate-new",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [],
       "oldEnglishHash": null,
       "newEnglishHash": "b4be34219005b6ad50c239c6ae778b95d8bec4854f5bb9155723f11f1175ac99"
@@ -3563,7 +3570,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.nouns.yourself",
       "action": "reuse-existing-ru",
-      "status": "reusable",
+      "sourceDisposition": "reusable",
       "changedFields": [
         "marks"
       ],
@@ -3575,7 +3582,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.conditions.it-can-hear-you",
       "action": "reuse-existing-ru",
-      "status": "reusable",
+      "sourceDisposition": "reusable",
       "changedFields": [],
       "oldEnglishHash": "919379468ea8eb25cce01e9b92d27e5e43af4ecb5ca8faaedf4b991ebbcab691",
       "newEnglishHash": "919379468ea8eb25cce01e9b92d27e5e43af4ecb5ca8faaedf4b991ebbcab691"
@@ -3585,7 +3592,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.conditions.it-s-a-specific-time",
       "action": "reuse-existing-ru",
-      "status": "reusable",
+      "sourceDisposition": "reusable",
       "changedFields": [],
       "oldEnglishHash": "05271b8f6806a7d4eff6f7219293e3f49b6989ff8823e97140cb7a76d32f15f5",
       "newEnglishHash": "05271b8f6806a7d4eff6f7219293e3f49b6989ff8823e97140cb7a76d32f15f5"
@@ -3595,7 +3602,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.conditions.smell-it",
       "action": "reuse-existing-ru",
-      "status": "reusable",
+      "sourceDisposition": "reusable",
       "changedFields": [],
       "oldEnglishHash": "75211ac046b33c0ba7030ab6d39ffee0df6d4255850f2d7c95fc090fcc741e00",
       "newEnglishHash": "75211ac046b33c0ba7030ab6d39ffee0df6d4255850f2d7c95fc090fcc741e00"
@@ -3605,7 +3612,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.conditions.you-are-sweating",
       "action": "translate-new",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [],
       "oldEnglishHash": null,
       "newEnglishHash": "b7ae0c18dc8cb932bf32efff4b902f4661b339310fb2c2706e5eff7aa3fd38f9"
@@ -3615,7 +3622,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.conditions.you-aren-t-seen",
       "action": "reuse-existing-ru",
-      "status": "reusable",
+      "sourceDisposition": "reusable",
       "changedFields": [],
       "oldEnglishHash": "364869b93bdeefdeb58cf8efc1b6c8ccedfb1e7fd60436caa99119d0d603a58a",
       "newEnglishHash": "364869b93bdeefdeb58cf8efc1b6c8ccedfb1e7fd60436caa99119d0d603a58a"
@@ -3625,7 +3632,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.conditions.you-build-the-target",
       "action": "retire",
-      "status": "retired",
+      "sourceDisposition": "retired",
       "changedFields": [],
       "oldEnglishHash": "030392a6d219f9b869f0190f16471846fb4482e1f374d212f03f3099c61cc5cd",
       "newEnglishHash": null
@@ -3635,7 +3642,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.conditions.you-consume-x",
       "action": "translate-new",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [],
       "oldEnglishHash": null,
       "newEnglishHash": "ccd2a131be8be4b0eaef76c569bb888e8f58e5ebe0d9d8702484c03533214afe"
@@ -3645,7 +3652,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.conditions.you-dance",
       "action": "reuse-existing-ru",
-      "status": "reusable",
+      "sourceDisposition": "reusable",
       "changedFields": [],
       "oldEnglishHash": "018d140d811ed58796db980a17eb025f866cdfab6886cc359def26523c3cc013",
       "newEnglishHash": "018d140d811ed58796db980a17eb025f866cdfab6886cc359def26523c3cc013"
@@ -3655,7 +3662,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.conditions.you-draw-the-target",
       "action": "reuse-existing-ru",
-      "status": "reusable",
+      "sourceDisposition": "reusable",
       "changedFields": [],
       "oldEnglishHash": "e87bba1d603bb910e49dc42b9cf485b214540783bf71c4d3f51bebe672e22e07",
       "newEnglishHash": "e87bba1d603bb910e49dc42b9cf485b214540783bf71c4d3f51bebe672e22e07"
@@ -3665,7 +3672,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.conditions.you-explain-it",
       "action": "reuse-existing-ru",
-      "status": "reusable",
+      "sourceDisposition": "reusable",
       "changedFields": [],
       "oldEnglishHash": "020497075b226ec90aaf15480d17c085ec71229a1e79dc758f94010cbb92928c",
       "newEnglishHash": "020497075b226ec90aaf15480d17c085ec71229a1e79dc758f94010cbb92928c"
@@ -3675,7 +3682,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.conditions.you-hear",
       "action": "reuse-existing-ru",
-      "status": "reusable",
+      "sourceDisposition": "reusable",
       "changedFields": [],
       "oldEnglishHash": "99b56d2ee25da79410e4a7ab904ee321eaeb46d738a35d61e3a300319de3a0c2",
       "newEnglishHash": "99b56d2ee25da79410e4a7ab904ee321eaeb46d738a35d61e3a300319de3a0c2"
@@ -3685,7 +3692,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.conditions.you-hold-your-breath",
       "action": "reuse-existing-ru",
-      "status": "reusable",
+      "sourceDisposition": "reusable",
       "changedFields": [],
       "oldEnglishHash": "e3360b65051631eaaaef6ab591a51c66c642dd07fc449e3002c6ead6c3465b65",
       "newEnglishHash": "e3360b65051631eaaaef6ab591a51c66c642dd07fc449e3002c6ead6c3465b65"
@@ -3695,7 +3702,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.conditions.you-remember-the-target",
       "action": "reuse-existing-ru",
-      "status": "reusable",
+      "sourceDisposition": "reusable",
       "changedFields": [],
       "oldEnglishHash": "b9ee2dc64f03df4bfad6fe982380c41a552e0f1d93d1552e036377c4328f3d8d",
       "newEnglishHash": "b9ee2dc64f03df4bfad6fe982380c41a552e0f1d93d1552e036377c4328f3d8d"
@@ -3705,7 +3712,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.conditions.you-sacrifice-x",
       "action": "retire",
-      "status": "retired",
+      "sourceDisposition": "retired",
       "changedFields": [],
       "oldEnglishHash": "f3515c9c9cb98bd84af89c25f053524a66e69022a6675d83fe6a5464b6fd1909",
       "newEnglishHash": null
@@ -3715,7 +3722,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.conditions.you-see-the-target",
       "action": "reuse-existing-ru",
-      "status": "reusable",
+      "sourceDisposition": "reusable",
       "changedFields": [],
       "oldEnglishHash": "435bc615582cfcba789ee9ada1bdd772e0ae6e0282dcb924280917bf2ee8021b",
       "newEnglishHash": "435bc615582cfcba789ee9ada1bdd772e0ae6e0282dcb924280917bf2ee8021b"
@@ -3725,7 +3732,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.conditions.you-speak-to-the-target",
       "action": "reuse-existing-ru",
-      "status": "reusable",
+      "sourceDisposition": "reusable",
       "changedFields": [],
       "oldEnglishHash": "d79c00886b99179ccdcc843298632fdeb2e18547bef444297e7f7f353d02f6b4",
       "newEnglishHash": "d79c00886b99179ccdcc843298632fdeb2e18547bef444297e7f7f353d02f6b4"
@@ -3735,7 +3742,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.conditions.you-touch-the-target",
       "action": "reuse-existing-ru",
-      "status": "reusable",
+      "sourceDisposition": "reusable",
       "changedFields": [],
       "oldEnglishHash": "cf6ca919dc68d68d0ffaaf64bd6f4023f9843c3bb22fb24ec1a85865cffbfaa2",
       "newEnglishHash": "cf6ca919dc68d68d0ffaaf64bd6f4023f9843c3bb22fb24ec1a85865cffbfaa2"
@@ -3745,7 +3752,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.conditions.you-understand-it",
       "action": "reuse-existing-ru",
-      "status": "reusable",
+      "sourceDisposition": "reusable",
       "changedFields": [],
       "oldEnglishHash": "cd75a637ce441befc10b69f6c377c643c4bd29e55330758c1c773c04ffcd6cfb",
       "newEnglishHash": "cd75a637ce441befc10b69f6c377c643c4bd29e55330758c1c773c04ffcd6cfb"
@@ -3755,7 +3762,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.conditions.you-win-in-a-game",
       "action": "reuse-existing-ru",
-      "status": "reusable",
+      "sourceDisposition": "reusable",
       "changedFields": [],
       "oldEnglishHash": "7469f5573a892657b3c82943b8b05f0ec69f44aa27cefc9bfb0d6ff65daa1e4f",
       "newEnglishHash": "7469f5573a892657b3c82943b8b05f0ec69f44aa27cefc9bfb0d6ff65daa1e4f"
@@ -3765,7 +3772,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.conditions.you-write-on-the-target",
       "action": "reuse-existing-ru",
-      "status": "reusable",
+      "sourceDisposition": "reusable",
       "changedFields": [],
       "oldEnglishHash": "78cfd3ea8abee53114228efe7b4b1045707cbc7d73afa1ccc446b4a850487c0f",
       "newEnglishHash": "78cfd3ea8abee53114228efe7b4b1045707cbc7d73afa1ccc446b4a850487c0f"
@@ -3775,7 +3782,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.conditions.you-re-carrying-it",
       "action": "reuse-existing-ru",
-      "status": "reusable",
+      "sourceDisposition": "reusable",
       "changedFields": [],
       "oldEnglishHash": "6012a4bc4b8e93dec740c0789f0abed52d55e0270b02fbdbd2cf3392318cc7ff",
       "newEnglishHash": "6012a4bc4b8e93dec740c0789f0abed52d55e0270b02fbdbd2cf3392318cc7ff"
@@ -3785,7 +3792,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.conditions.you-re-wearing-x",
       "action": "reuse-existing-ru",
-      "status": "reusable",
+      "sourceDisposition": "reusable",
       "changedFields": [],
       "oldEnglishHash": "9d583eac5b89aa1852c4e0957a4c5fa0552368f71757466062d5e2b40883189e",
       "newEnglishHash": "9d583eac5b89aa1852c4e0957a4c5fa0552368f71757466062d5e2b40883189e"
@@ -3795,7 +3802,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.conditions.you-ve-built-the-target",
       "action": "translate-new",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [],
       "oldEnglishHash": null,
       "newEnglishHash": "8d4844d6c6276c78003f10260dba205654d8fc35e5dec827a2cd6d8f4b60f144"
@@ -3805,7 +3812,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.conditions.you-ve-touched-it",
       "action": "translate-new",
-      "status": "pending",
+      "sourceDisposition": "translation-required",
       "changedFields": [],
       "oldEnglishHash": null,
       "newEnglishHash": "28bac42dd7c1fe7ceb3003df3a79733157fb08d19fc3ab255d5dc04009ffb7c1"
@@ -3815,7 +3822,7 @@
       "domain": "ability-word",
       "stableId": "ability.en.conditions.your-life-is-in-danger",
       "action": "retire",
-      "status": "retired",
+      "sourceDisposition": "retired",
       "changedFields": [],
       "oldEnglishHash": "a65865ac4eaa80fb04ad0698ff61c769bb5296858f28c21d94b39884685e818a",
       "newEnglishHash": null
