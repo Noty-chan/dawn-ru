@@ -48,6 +48,18 @@ assert.deepEqual(localizedActions.map(item => item.source), englishActions.map(i
 assert.match(russianActions["action.защита.столкновение"].text, /5 урона/, "LionWing Clash must not reuse the 0.9 reaction");
 assert.match(russianActions["action.утилитарные-действия.изучение"].text, /одного из следующих/, "LionWing Investigate must reveal one category");
 
+const englishCoreRules = english.coreRules.rules;
+const russianCoreRules = russian.coreRules.rules.entries;
+assert.equal(englishCoreRules.length, 23);
+assert.equal(Object.keys(russianCoreRules).length, englishCoreRules.length, "every LionWing core rule card needs a Russian overlay");
+const localizedCoreRules = englishCoreRules.map(item => ({ ...item, ...(russianCoreRules[item.id] || {}) }));
+for (const item of englishCoreRules) assert.ok(russianCoreRules[item.id]?.text, `missing Russian core rule: ${item.id}`);
+assert.deepEqual(localizedCoreRules.map(item => item.id), englishCoreRules.map(item => item.id), "switching LionWing core rules to RU must preserve ids");
+assert.deepEqual(localizedCoreRules.map(item => item.kind), englishCoreRules.map(item => item.kind), "switching LionWing core rules to RU must preserve rule kinds");
+assert.deepEqual(localizedCoreRules.map(item => item.source), englishCoreRules.map(item => item.source), "switching LionWing core rules to RU must preserve sources");
+assert.match(russianCoreRules["lionwing.core.combat.assisting"].text, /самым высоким Атрибутом/, "LionWing Assisting must not reuse the 0.9 secondary-Attribute rule");
+assert.match(russianCoreRules["lionwing.core.statistics.health"].text, /10 \+ \[Тело\] \+ \[Ступень × 2\]/, "LionWing maximum Health formula must be preserved");
+
 const activeAbilityWordIds = Object.values(english.abilityWords).flat().map(item => item.id);
 const retiredAbilityWordIds = worklist.units.filter(item => item.domain === "ability-word" && item.action === "retire").map(item => item.stableId);
 const newAbilityWordIds = worklist.units.filter(item => item.domain === "ability-word" && item.action === "translate-new").map(item => item.stableId);

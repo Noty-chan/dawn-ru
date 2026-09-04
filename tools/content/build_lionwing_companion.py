@@ -420,6 +420,35 @@ def core_rules() -> dict:
         "cost": {"resource": item[4], "amount": item[5]}, "text": item[6],
         "source": {"editionId": NEW_ID, "locale": "en", "pdfPage": item[7]},
     } for item in action_rows]
+    rule_rows = [
+        ("lionwing.core.combat.structured", "Combat", "Structured Combat", "rule", "The tactical, most game-like element of DAWN is used when two evenly or almost evenly matched groups face each other in battle. Its risks create tension, but it is mostly played for fun and to reinforce player-character aesthetics that can only be shown in combat. Players optimize builds, handle threats, and control variables to defeat enemies efficiently. Their Actions and Techniques determine whether they live or die while enforcing character themes and aesthetics.", 56),
+        ("lionwing.core.combat.action-points", "Combat", "Actions and Action Points", "rule", "When a character's Turn starts, they receive 3 Action Points (AP). Players spend AP on Basic Actions, each of which has a listed AP Cost. Each NPC has a unique set of Actions based on their Type, all with a Cost of 1. Both lose all Action Points at the end of their Turn.", 56),
+        ("lionwing.core.combat.action-limit", "Combat", "Action Limit and Swift Actions", "rule", "A character can't use the same Basic Action more than once each Round unless all but one use of that Action was Swift. Swift use is often granted by Techniques.", 56),
+        ("lionwing.core.combat.reactions", "Combat", "Reactions", "rule", "Reactions can be used outside a Turn when their conditions are met. Reactions are still Actions, but don't obey the once-per-Round limit; all Reactions count as Swift by default.", 56),
+        ("lionwing.core.combat.break-out", "Combat", "Break Out", "rule", "In addition to normal Reactions, all non-Attack Actions can be taken as a Reaction to another character ending their Turn by spending 1 Influence to Break Out. Actions from Break Out have no AP Cost.", 56),
+        ("lionwing.core.combat.turn-order", "Combat", "Taking Turns", "rule", "When a Round starts, the players decide who takes the first Turn. After that player ends their Turn, a Narrator-chosen enemy that hasn't acted this Round may take its Turn. If all enemies have acted, the Narrator may choose any enemy. After the enemy's Turn, the last player who acted chooses a player who hasn't acted this Round. This repeats until all players have acted. Once an enemy acts after the last player, a new Round starts, and the last acting player chooses who takes the first Turn.", 56),
+        ("lionwing.core.combat.assisting", "Combat", "Assisting", "rule", "If combat starts while a player is at the table but their character isn't in the Scene, that player may Assist. While Assisting, the player can use Break Out to take an Action while controlling a consenting ally. They may Break Out without spending Influence up to three times in each Combat Scene. Any statistic used during an Assisted Break Out is replaced with the assistant's highest Attribute, including roll Attributes and passive statistics such as Speed.", 56),
+        ("lionwing.core.statistics.health", "Statistics", "Health", "rule", "Characters have Health, which determines durability. As they take damage, they lose that much Health. A player character's maximum Health is 10 + [Body] + [Tier × 2]. Health resets at the end of each Scene.", 57),
+        ("lionwing.core.statistics.wounds", "Statistics", "Wounds and Knockouts", "rule", "A Wound is a lasting injury. When a character is reduced to or below 0 Health, they receive a Wound and reset Health to its maximum. Health resets even if the Wound wasn't caused by reaching 0 Health. At 3 Wounds, a character loses one Wound and is Knocked Out of the Scene. NPCs are Knocked Out as soon as their Health reaches 0. Characters lose Wounds during Intermissions. When a character takes a Wound that isn't self-inflicted, their controller receives 1 Influence.", 57),
+        ("lionwing.core.statistics.armor", "Statistics", "Armor", "rule", "If a character has Armor, damage they take from Attacks is reduced by that value, to a minimum of 1 damage. Armor applies after all other damage reduction.", 57),
+        ("lionwing.core.statistics.evasion", "Statistics", "Evasion", "rule", "If a character has Evasion, incoming damage reduces Evasion instead of Health; this doesn't count as taking damage. If this reduces an Attack's damage to 0, the defender ignores that Attack's secondary effects. Evasion is lost at the end of a Scene.", 57),
+        ("lionwing.core.statistics.focus", "Statistics", "Focus", "rule", "Focus is a resource used for powerful Attacks and other features. When combat starts, player characters set their Focus to 1 plus half their Spirit. They can regain Focus through specific Actions, and it has no upper maximum.", 58),
+        ("lionwing.core.statistics.alternative-foci", "Statistics", "Alternative Foci", "rule", "Some Techniques replace Focus with an alternate resource under a different name. These resources have unique effects and conditions, but unless stated otherwise they can be spent and gained as if they were Focus.", 58),
+        ("lionwing.core.statistics.speed", "Statistics", "Speed", "rule", "Speed determines how far a character can move with an Action. A player character's Speed is 2 + [Talent / 2].", 58),
+        ("lionwing.core.statistics.tension", "Statistics", "Tension", "rule", "Tension is a shared resource that starts at 0 at the beginning of every combat. As it rises, characters become more powerful and gain options. Tension increases by 1 when a Round ends, an NPC is Knocked Out, or a player character is Knocked Out.", 58),
+        ("lionwing.core.statistics.low-tension", "Statistics", "Low-Tension Combat", "optional-rule", "For longer combats, Narrators may remove the Tension increase caused by a character being Knocked Out, so Tension increases only at the end of a Round.", 58),
+        ("lionwing.core.spatial.setting-up", "Spaces, Movement, and Targeting", "Setting Up", "rule", "Combat takes place on a 7 × 7 space board, no smaller and no larger. Players Deploy on the outermost spaces opposite their enemies.", 58),
+        ("lionwing.core.spatial.scale", "Spaces, Movement, and Targeting", "Realizing Spaces", "note", "At Tier 1, a space can represent roughly 3 × 3 meters in the fiction. Spaces should become larger at higher Tiers. A Narrator may change the scale to fit the Scene.", 58),
+        ("lionwing.core.spatial.movement-range", "Spaces, Movement, and Targeting", "Movement and Drawing Range", "rule", "Movement and range are measured orthogonally using Manhattan distance. Characters can't move through opponents or Obstacles and can't end movement in a space occupied by another character.", 58),
+        ("lionwing.core.spatial.adjacency", "Spaces, Movement, and Targeting", "Adjacency", "rule", "The orthogonally closest spaces are adjacent. Entering those spaces means entering adjacency. A character can't be adjacent to themselves even if they occupy multiple spaces. Characters are always adjacent to other characters in the same space.", 58),
+        ("lionwing.core.spatial.push-pull", "Spaces, Movement, and Targeting", "Push and Pull", "rule", "A pulled target moves directly toward the puller in a Line. A pushed target moves directly away from the pusher in a Line. If the target isn't in a Line relative to the user, use the closest Line.", 58),
+        ("lionwing.core.spatial.teleporting", "Spaces, Movement, and Targeting", "Teleporting", "rule", "Teleporting moves a character from one space to another without passing through the spaces between. It still counts as movement. A character can't Teleport to an occupied space.", 58),
+        ("lionwing.core.spatial.targeting-allies", "Spaces, Movement, and Targeting", "Targeting Allies", "rule", "When an Action must target an ally, it means a player character or NPC working with the user, but not the user themselves.", 58),
+    ]
+    rules = [{
+        "id": item[0], "category": item[1], "name": item[2], "kind": item[3], "text": item[4],
+        "source": {"editionId": NEW_ID, "locale": "en", "pdfPage": item[5]},
+    } for item in rule_rows]
     return {
         "schemaVersion": 1,
         "editionId": NEW_ID,
@@ -433,7 +462,8 @@ def core_rules() -> dict:
             "combos": "A Combo is a string of two or more Actions formatted as [X → Y] that grants a bonus when performed with no other Actions in between. Only one Combo can be executed per Action. If a Technique Level starts with a Combo, its effects only happen if that Combo is used. Combos can start off your Turn as long as you don't take an Action that would break them. After use, a Combo is on Cooldown until the end of your next Turn and can't be used while on Cooldown.",
             "list": actions,
         },
-        "source": {"editionId": NEW_ID, "locale": "en", "pdfPages": [61, 62, 63, 64, 65]},
+        "rules": rules,
+        "source": {"editionId": NEW_ID, "locale": "en", "pdfPages": [56, 57, 58, 61, 62, 63, 64, 65]},
     }
 
 
@@ -975,6 +1005,7 @@ def write_canonical_corpus(overlay: dict) -> None:
             "referenceCards": len(overlay["reference"]),
             "coreEffects": sum(len(items) for items in overlay["coreRules"]["effects"].values() if isinstance(items, list)),
             "coreActions": len(overlay["coreRules"]["actions"]["list"]),
+            "coreRuleCards": len(overlay["coreRules"]["rules"]),
         },
         "files": files,
     }
