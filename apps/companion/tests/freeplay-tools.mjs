@@ -33,17 +33,18 @@ const source = ["app-bootstrap.js", "app-core.js", "play-ui.js", "app-play-event
 for (const id of ["freeplay-director-title", "freeplay-local-hero", "freeplay-request-kind", "freeplay-request-actor", "freeplay-opponent", "freeplay-request-roll", "freeplay-opposed-status", "challenge-request-dock", "dice-tool-kind", "dice-tool-title", "dice-target", "dice-bond", "freeplay-bonds", "freeplay-risk-actions"]) {
   assert.match(markup, new RegExp(`id="${id}"`), `Free-play tools must expose #${id}`);
 }
+assert.match(markup, /id="tools-view-switch"/, "Narrators must be able to switch explicitly between Player and Narrator workspaces");
 for (const id of ["freeplay-intent", "freeplay-threat", "freeplay-reward"]) {
   assert.doesNotMatch(markup, new RegExp(`id="${id}"`), `Spoken table context must not be duplicated in #${id}`);
 }
 assert.match(source, /base\.bonds=Array\.isArray\(h\.bonds\)/, "Bonds must survive character import and normalization");
-assert.match(source, /ruleId:`freeplay\.skill:/, "A Skill must enter a challenge roll through the reusable Advantage hook");
+assert.match(source, /ruleId:`freeplay\.skill:\$\{toolSkillId\(skill\)\}`/, "A Skill must enter a challenge roll through the reusable Advantage hook using its stable definition id");
 assert.match(source, /ruleId:`freeplay\.ability:/, "An Ability must enter a challenge roll through the reusable Advantage hook");
 assert.match(source, /ruleId:`freeplay\.bond:/, "A Bond must enter a challenge roll through the reusable Advantage hook");
 assert.match(source, /S\.skills\.filter\(item=>skillDisplayName\(item\)\.trim\(\)\)/, "LionWing canonical Skills must remain available in the Tools dice composer");
 assert.match(source, /localHeroWrap\.hidden=role==="network-player"/, "Narrators must be able to choose a local hero independently of the shared table");
 assert.match(source, /if\(role!=="network-player"\)localSelect\.innerHTML=store\.heroes\.map/, "Narrator Tools must populate the local hero selector");
-assert.match(source, /if\(toolsRole\(\)==="network-narrator"\)renderDiceComposer\(\)/, "Narrator Tools must render the selected local hero's dice options");
+assert.match(source, /function renderToolsWorkspace\(\).*renderAllInControls\(\)/, "Every role, including the Narrator, must render the selected local hero's complete dice options");
 assert.match(source, /definitionId:skill\.definitionId\|\|null/, "Published scene heroes must retain canonical LionWing Skill ids");
 assert.match(source, /skillDisplayName\(skill,actor\)/, "Scene tools must resolve LionWing Skill names from their stable ids");
 assert.match(source, /challengeRequestId:challenge\.id/, "A requested network roll must retain the Narrator request id");
@@ -55,10 +56,16 @@ assert.match(source, /opposedRequestId:opposed\.id/, "Each side's result must re
 assert.match(source, /opposed\.tie\.resolve/, "A Narrator must be able to resolve both compatible Rewards after a tie");
 assert.match(source, /Перебросить ничью/, "The UI must expose the canonical tie reroll");
 assert.match(source, /role==="network-narrator"/, "Network Narrators must receive a separate tools view");
+assert.match(source, /function toolsView\(\)/, "Workspace presentation must remain separate from network authority");
+assert.match(source, /freeplayState\(\)\.view=button\.dataset\.toolsView/, "The Player/Narrator workspace switch must persist without changing the table role");
 assert.match(source, /role==="local-table"/, "One-device offline play must retain a dedicated local-table view");
 assert.match(source, /document\.querySelector\("\.dice-tool"\)\.hidden=false/, "The dice composer must remain available in shared-table tools");
 assert.doesNotMatch(source, /!challenge&&!participant\)return toast/, "A network player must be able to roll without a Narrator request");
-assert.match(source, /renderStressTrackers\(\);renderDiceHistory\(\)/, "Shared-table tools must render the public roll history for every role");
+assert.match(source, /function renderToolsWorkspace\(\).*renderDiceHistory\(\).*renderAllInControls\(\)/, "Shared-table tools must render the public roll history and complete controls for every role");
+assert.match(markup, /class="history roll-feed"/, "Public rolls must have a dedicated shared visual feed");
+assert.match(source, /class="roll-feed-dice"/, "The shared feed must show every die, not only aggregate successes");
+assert.match(source, /pendingAllIn=\{count,diceRequest:request,scenario\};if\(!resolveDice/, "All In must become available before synchronous network rerenders can observe the first result");
+assert.match(source, /if\(result\?\.pending\)applyOptimisticToolsEvents\(\[sceneEvent\]\)/, "Narrator Stress changes must use the optimistic scene reducer path");
 assert.match(source, /data-gm-core-action/, "The Narrator must be able to invoke basic actions for the selected hero or enemy");
 assert.match(source, /sceneContext:false/, "Narrative rolls must explicitly opt out of structured-board spatial hooks");
 assert.match(source, /freeplay\.wolf\.outgunned/, "Outgunned must be an explicit narrative choice instead of reading the structured board");
