@@ -7652,6 +7652,135 @@ window.DAWN_LIONWING_DATA = {
       "locale": "en",
       "pdfPage": 121
      }
+    },
+    {
+     "id": "lionwing.npc.baron",
+     "role": "Engine",
+     "name": "Baron",
+     "description": "Bans specific Attacks and punishes their users.",
+     "examples": [
+      "Imperial Justicar",
+      "Law Faerie",
+      "Syndicate Head"
+     ],
+     "statistics": {
+      "health": "15 + [Tier × 5]",
+      "speed": 2,
+      "armor": "[Tier]",
+      "evasion": 0
+     },
+     "passive": "At the start of its Turn, name Skirmish, Cast, or Finisher, without repeating the previous choice. Once per Round when a player initiates the named Action, this NPC may Teleport to an empty adjacent space, become the target, and deal [Tier + 2] damage to that player.",
+     "actions": [
+      {
+       "id": "lionwing.npc.baron.prescript",
+       "kind": "action",
+       "name": "Prescript",
+       "text": "Choose up to 3 opponents. Each indicates a space; if they do not end their next Turn there, they receive a Wound."
+      },
+      {
+       "id": "lionwing.npc.baron.suppress",
+       "kind": "attack",
+       "name": "Suppress",
+       "text": "Roll 4 + [Tier] against an adjacent target. Reward: Deal [Hits] + [Tension] damage and Weaken the target if enemies have not Attacked them this Round."
+      }
+     ],
+     "ace": {
+      "id": "lionwing.npc.baron.absolute-sovereignty",
+      "tension": 3,
+      "name": "Absolute Sovereignty",
+      "text": "For the rest of the Scene, name 2 Actions with the Passive, remove the restriction against repeating the same Action, and deal the Passive's damage once per named word."
+     },
+     "source": {
+      "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
+      "pdfPage": 122
+     }
+    },
+    {
+     "id": "lionwing.npc.berserker",
+     "role": "Engine",
+     "name": "Berserker",
+     "description": "Gets into the fray and wants to take damage.",
+     "examples": [
+      "Outland Rager",
+      "Aggressive Bouncer",
+      "Wounded Rat"
+     ],
+     "statistics": {
+      "health": "18 + [Tier × 5]",
+      "speed": 3,
+      "armor": 0,
+      "evasion": 0
+     },
+     "passive": "Once per Turn, after taking at least 4 damage in one instance, this NPC may move up to 1 space in any direction and deal [Tier + 1] damage to an adjacent opponent.",
+     "actions": [
+      {
+       "id": "lionwing.npc.berserker.seethe",
+       "kind": "action",
+       "name": "Seethe",
+       "text": "Restore 2 + [Tier × 2] Health to this NPC."
+      },
+      {
+       "id": "lionwing.npc.berserker.thrash",
+       "kind": "attack",
+       "name": "Thrash",
+       "text": "Roll 5 + [Tier] against an adjacent target. Reward: Deal [Hits] + [Tension] damage and push the target 1 space away."
+      }
+     ],
+     "ace": {
+      "id": "lionwing.npc.berserker.last-stand",
+      "tension": 3,
+      "name": "Last Stand",
+      "text": "Set this NPC's Health to 13 + [Tier × 5]. For the rest of the Scene, its Passive moves it 2 spaces. This NPC immediately takes another Turn."
+     },
+     "source": {
+      "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
+      "pdfPage": 122
+     }
+    },
+    {
+     "id": "lionwing.npc.cannoneer",
+     "role": "Engine",
+     "name": "Cannoneer",
+     "description": "Slowly prepares a powerful ranged Attack.",
+     "examples": [
+      "Ship's Cannon",
+      "Dragon's Maw",
+      "Ritual Caster"
+     ],
+     "statistics": {
+      "health": "13 + [Tier × 5]",
+      "speed": 1,
+      "armor": 0,
+      "evasion": 0
+     },
+     "passive": "When Deployed, begin tracking Preparation as a 4-Segment Clock that is emptied at the start of every Scene.",
+     "actions": [
+      {
+       "id": "lionwing.npc.cannoneer.aim",
+       "kind": "action",
+       "name": "Aim",
+       "text": "Strengthen this NPC and make it Steady."
+      },
+      {
+       "id": "lionwing.npc.cannoneer.load",
+       "kind": "attack",
+       "name": "Load",
+       "text": "Fill Preparation by 1 Segment, or 2 Segments if this NPC did not move this Turn."
+      }
+     ],
+     "ace": {
+      "id": "lionwing.npc.cannoneer.fire",
+      "tension": 0,
+      "name": "Fire",
+      "text": "Use only when this NPC starts its Turn with full Preparation. Empty the Clock, choose a target within 10 spaces, and roll 5 + [Tier]. This Ace may be used more than once per Scene. Reward: Deal [Hits] + [Tension] damage 3 times."
+     },
+     "source": {
+      "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
+      "pdfPage": 122
+     }
     }
    ]
   },
@@ -9354,7 +9483,8 @@ window.DAWN_LIONWING_DATA = {
     118,
     119,
     120,
-    121
+    121,
+    122
    ]
   }
  },

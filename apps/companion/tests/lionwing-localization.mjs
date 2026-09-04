@@ -81,7 +81,7 @@ assert.match(russianCoreRules["lionwing.narrator.deployments.taking-on-a-god"].t
 
 const englishNpcs = english.coreRules.npcs.list;
 const russianNpcs = russian.coreRules.npcs.entries;
-assert.equal(englishNpcs.length, 30);
+assert.equal(englishNpcs.length, 33);
 assert.equal(Object.keys(russianNpcs).length, englishNpcs.length, "every imported LionWing NPC needs a Russian overlay");
 const localizedNpcs = englishNpcs.map(item => {
   const overlay = russianNpcs[item.id];
@@ -113,6 +113,9 @@ assert.equal(englishNpcs.find(item => item.id === "lionwing.npc.healer").statist
 assert.match(localizedNpcs.find(item => item.id === "lionwing.npc.illusionist").actions.find(item => item.id.endsWith("spatial-rift")).text, /3 Стены/, "Spatial Rift must retain its changed Wall count");
 assert.equal(localizedNpcs.find(item => item.id === "lionwing.npc.matriarch").name, "Матриарх", "renamed Matriarch must not reuse the old Shade name");
 assert.match(localizedNpcs.find(item => item.id === "lionwing.npc.martyr").ace.text, /автоматически/, "Sacrifice must retain its automatic trigger");
+assert.match(localizedNpcs.find(item => item.id === "lionwing.npc.baron").actions.find(item => item.id.endsWith("prescript")).text, /получает Рану/, "Prescript must retain its Wound consequence");
+assert.match(localizedNpcs.find(item => item.id === "lionwing.npc.berserker").passive, /хотя бы 4 урона/, "Berserker must retain its single-instance threshold");
+assert.equal(englishNpcs.find(item => item.id === "lionwing.npc.cannoneer").ace.tension, 0, "Fire must remain a Tension 0 Ace gated by Preparation");
 
 const englishSkills = english.builderRules.skills.canonical;
 const russianSkillNames = russian.builderRules.skills.entries;
