@@ -1,5 +1,49 @@
 [
   {
+    "id": "lionwing.reference.system-cliff-notes",
+    "name": "Mechanical Cliff Notes",
+    "kind": "Builder Reference",
+    "tags": "System, Introduction",
+    "text": "DAWN is a setting-agnostic, grid-based combat game using pools of d6s: 4+ is a Hit and each 6 is a Critical Hit that adds another die. Structured combat and unstructured play use mostly separate character features. Influence and Antagonism connect both modes. Characters build a custom Ability for unstructured play and combine individual Techniques rather than choosing a restrictive class. Ordinary equipment and inventory are handled through the fiction, not item accounting.",
+    "source": {
+      "editionId": "dawn-en-lionwing-cb2f8e67",
+      "pdfPage": 6
+    }
+  },
+  {
+    "id": "lionwing.reference.system-assumptions",
+    "name": "Inspirations And Assumptions",
+    "kind": "Builder Reference",
+    "tags": "System, Introduction, Safety",
+    "text": "DAWN draws on battle shōnen, tactical games, and narrative TTRPGs. It assumes the group enjoys fictional combat, uses a world where defeat need not mean death, and communicates respectfully while sharing dramatic spotlight. Groups that do not share these assumptions should discuss changes before play and choose another game if they cannot reconcile them.",
+    "source": {
+      "editionId": "dawn-en-lionwing-cb2f8e67",
+      "pdfPage": 7
+    }
+  },
+  {
+    "id": "lionwing.reference.system-limits",
+    "name": "What DAWN Does Not Do",
+    "kind": "Builder Reference",
+    "tags": "System, Introduction, Scope",
+    "text": "DAWN is not designed to evoke sustained horror, bypass major conflicts instead of confronting them, or model a fully fluid supernatural system where everyone freely learns the same broad powers. Its genre focus also does not attempt to reproduce every shōnen convention. These are design boundaries, not prohibitions, and groups may need substantial adaptation to work outside them.",
+    "source": {
+      "editionId": "dawn-en-lionwing-cb2f8e67",
+      "pdfPage": 8
+    }
+  },
+  {
+    "id": "lionwing.reference.world-creation",
+    "name": "World Creation Activity",
+    "kind": "Builder Reference",
+    "tags": "Creation, World, Group Activity",
+    "text": "Choose a rotating leader. They propose an answer; the group marks it Might Use or Won't Use, and any firm objection makes it Won't Use. Rotate left, repeating the prompt after a rejection or moving on after a possible acceptance. Decide: real-world period; source and publicity of the supernatural; public knowledge or concern; functional and aesthetic inspirations for empowered characters; their short name; how they help ordinary people; a natural enemy; the world's short name; and its factions and reasons to support or oppose them. A solo creator may instead try 3–4 ideas per prompt.",
+    "source": {
+      "editionId": "dawn-en-lionwing-cb2f8e67",
+      "pdfPage": 20
+    }
+  },
+  {
     "id": "lionwing.reference.creation-order",
     "name": "Character Creation Checklist",
     "kind": "Builder Reference",

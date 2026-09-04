@@ -21,7 +21,14 @@
       "experienceToTier": 15,
       "chapterBaseExperience": 2,
       "chapterMaximumExperience": 4,
-      "rewardsMayBeSavedForAwakening": true
+      "experiencePerUniqueInfluenceUse": 1,
+      "rewardsMayBeSavedForAwakening": true,
+      "optionalFast": {
+        "chapterBaseExperience": 3,
+        "chapterMaximumExperience": 6,
+        "experiencePerInfluenceSpent": 1
+      },
+      "partyTierAtNarratorPaceAllowed": true
     },
     "attributes": {
       "startingValues": [
@@ -5756,6 +5763,50 @@
   },
   "reference": [
     {
+      "id": "lionwing.reference.system-cliff-notes",
+      "name": "Mechanical Cliff Notes",
+      "kind": "Builder Reference",
+      "tags": "System, Introduction",
+      "text": "DAWN is a setting-agnostic, grid-based combat game using pools of d6s: 4+ is a Hit and each 6 is a Critical Hit that adds another die. Structured combat and unstructured play use mostly separate character features. Influence and Antagonism connect both modes. Characters build a custom Ability for unstructured play and combine individual Techniques rather than choosing a restrictive class. Ordinary equipment and inventory are handled through the fiction, not item accounting.",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 6
+      }
+    },
+    {
+      "id": "lionwing.reference.system-assumptions",
+      "name": "Inspirations And Assumptions",
+      "kind": "Builder Reference",
+      "tags": "System, Introduction, Safety",
+      "text": "DAWN draws on battle shōnen, tactical games, and narrative TTRPGs. It assumes the group enjoys fictional combat, uses a world where defeat need not mean death, and communicates respectfully while sharing dramatic spotlight. Groups that do not share these assumptions should discuss changes before play and choose another game if they cannot reconcile them.",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 7
+      }
+    },
+    {
+      "id": "lionwing.reference.system-limits",
+      "name": "What DAWN Does Not Do",
+      "kind": "Builder Reference",
+      "tags": "System, Introduction, Scope",
+      "text": "DAWN is not designed to evoke sustained horror, bypass major conflicts instead of confronting them, or model a fully fluid supernatural system where everyone freely learns the same broad powers. Its genre focus also does not attempt to reproduce every shōnen convention. These are design boundaries, not prohibitions, and groups may need substantial adaptation to work outside them.",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 8
+      }
+    },
+    {
+      "id": "lionwing.reference.world-creation",
+      "name": "World Creation Activity",
+      "kind": "Builder Reference",
+      "tags": "Creation, World, Group Activity",
+      "text": "Choose a rotating leader. They propose an answer; the group marks it Might Use or Won't Use, and any firm objection makes it Won't Use. Rotate left, repeating the prompt after a rejection or moving on after a possible acceptance. Decide: real-world period; source and publicity of the supernatural; public knowledge or concern; functional and aesthetic inspirations for empowered characters; their short name; how they help ordinary people; a natural enemy; the world's short name; and its factions and reasons to support or oppose them. A solo creator may instead try 3–4 ideas per prompt.",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 20
+      }
+    },
+    {
       "id": "lionwing.reference.creation-order",
       "name": "Character Creation Checklist",
       "kind": "Builder Reference",
@@ -9457,7 +9508,7 @@
         "category": "Progression",
         "name": "Increasing Tier",
         "kind": "rule",
-        "text": "Characters start at Tier 1 and can advance to Tier 6. On a Tier increase, add 1 to two different Attributes; gain 2 Character Ranks; gain one Boon from the starting Outlook or branch into up to two other Outlooks; and gain 2 Technique Levels. Instead of the Technique Levels, the character may add 1 to their highest Attribute.",
+        "text": "Characters start at Tier 1 and can advance to Tier 6. On a Tier increase, add 1 to two different Attributes: raising Body adds 1 Health, raising Talent or Spirit to an odd value adds 1 Speed or starting Focus respectively, and raising Mind changes no derived statistic. Gain 2 Character Ranks; gain one Boon from the starting Outlook or branch into up to two other Outlooks; and gain 2 Technique Levels. Instead of Technique Levels, add 1 to the highest Attribute.",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
           "locale": "en",
@@ -9489,6 +9540,18 @@
         }
       },
       {
+        "id": "lionwing.core.progression.pacing",
+        "category": "Progression",
+        "name": "Faster Or Slower Tiers",
+        "kind": "optional-rule",
+        "text": "For faster advancement, raise base Experience per Chapter to 3 and grant 1 additional Experience for each Influence spent rather than each distinct use, to a maximum of 6 Experience per Chapter. The Narrator may instead advance the whole party whenever desired without tracking Experience, speeding up or slowing down the Series as needed.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 32
+        }
+      },
+      {
         "id": "lionwing.core.progression.scale",
         "category": "Progression",
         "name": "Campaign Scale",
@@ -9513,6 +9576,30 @@
         }
       },
       {
+        "id": "lionwing.core.general.materials",
+        "category": "Universal Rules",
+        "name": "Play Materials",
+        "kind": "rule",
+        "text": "Playing DAWN requires this book or its rules reference, plenty of six-sided dice, character sheets, a group with players and a Narrator, and a 7 × 7 board. A 6 × 6 tile board may substitute if pieces stand on line intersections as in Go.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 35
+        }
+      },
+      {
+        "id": "lionwing.core.general.roles",
+        "category": "Universal Rules",
+        "name": "Playing The Game",
+        "kind": "rule",
+        "text": "The Narrator organizes the game, respects player needs, prepares any included visuals or audio, and presents the world. Other players create and portray one character, interact with that world, and share the spotlight. A complete game for one group is a Series made from separate play sessions called Chapters.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 35
+        }
+      },
+      {
         "id": "lionwing.core.general.rounding",
         "category": "Universal Rules",
         "name": "Rounding",
@@ -9529,7 +9616,7 @@
         "category": "Universal Rules",
         "name": "Specific Overrides General",
         "kind": "rule",
-        "text": "When a specific rule contradicts a general rule, follow the specific rule.",
+        "text": "When a specific rule contradicts a general rule, follow the specific rule. If two specific rules contradict each other, their user chooses which one to apply.",
         "source": {
           "editionId": "dawn-en-lionwing-cb2f8e67",
           "locale": "en",

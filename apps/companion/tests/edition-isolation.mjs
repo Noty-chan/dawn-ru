@@ -28,8 +28,16 @@ assert.equal(manifest.counts.techniques, 111);
 assert.equal(manifest.counts.coreEffects, 19);
 assert.equal(manifest.counts.coreActions, 17);
 assert.equal(manifest.counts.coreNpcs, 41);
-assert.equal(manifest.counts.coreRuleCards, 165);
-assert.deepEqual(JSON.parse(JSON.stringify(lionwing.builderRules.progression)), { experienceToTier: 15, chapterBaseExperience: 2, chapterMaximumExperience: 4, rewardsMayBeSavedForAwakening: true });
+assert.equal(manifest.counts.coreRuleCards, 168);
+assert.deepEqual(JSON.parse(JSON.stringify(lionwing.builderRules.progression)), {
+  experienceToTier: 15,
+  chapterBaseExperience: 2,
+  chapterMaximumExperience: 4,
+  experiencePerUniqueInfluenceUse: 1,
+  rewardsMayBeSavedForAwakening: true,
+  optionalFast: { chapterBaseExperience: 3, chapterMaximumExperience: 6, experiencePerInfluenceSpent: 1 },
+  partyTierAtNarratorPaceAllowed: true
+});
 assert.deepEqual(JSON.parse(JSON.stringify(lionwing.builderRules.abilities)), { maximum: 1, minimumCost: 1, maximumRank: 3, customWordsRequireNarratorApproval: true, expandedUsesRequireOriginalWord: true });
 assert.deepEqual(JSON.parse(JSON.stringify(lionwing.builderRules.bonds)), { maximumRank: 3, quickPerChapter: 1, quickRank: 1, quickSustainInfluenceCost: 1, actionInfluenceCost: 1, actionStressCost: 1 });
 assert.equal(lionwing.builderRules.skills.canonical.length, 16);

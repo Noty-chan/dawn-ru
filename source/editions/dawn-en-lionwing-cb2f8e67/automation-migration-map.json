@@ -160,8 +160,8 @@
       "strategy": "extend-shared-core",
       "status": "data-ready",
       "sourcePages": [32],
-      "ruleIds": ["lionwing.core.progression.tier", "lionwing.core.progression.experience", "lionwing.core.progression.awakening"],
-      "requires": ["Опыт за уникальные способы расходования Влияния", "порог 15", "отложенные Ранги, Дары и Уровни Техник", "журнал выбора при Пробуждении"]
+      "ruleIds": ["lionwing.core.progression.tier", "lionwing.core.progression.experience", "lionwing.core.progression.awakening", "lionwing.core.progression.pacing"],
+      "requires": ["Опыт за уникальные способы расходования Влияния", "порог 15", "изменения производных показателей от повышения Атрибутов", "опциональный быстрый темп: 3 базового Опыта, по 1 за каждое потраченное Влияние, максимум 6", "повышение Ступени всей группы по решению Нарратора без Опыта", "отложенные Ранги, Дары и Уровни Техник", "журнал выбора при Пробуждении"]
     },
     {
       "id": "lionwing.builder.ability-expansion",
@@ -327,6 +327,16 @@
       "ruleIds": ["lionwing.narrator.scenarios.overview", "lionwing.narrator.scenarios.legend", "lionwing.narrator.scenarios.defense", "lionwing.narrator.scenarios.assault", "lionwing.narrator.scenarios.secure", "lionwing.narrator.scenarios.destroy", "lionwing.narrator.scenarios.collateral", "lionwing.narrator.scenarios.vip"],
       "reuseFrom09": ["scene-objectives", "tension-state", "terrain-state", "rule-clocks", "effect-state", "enemy-modifier-attachment"],
       "requires": ["победа при Напряжении 6 с проверкой золотой области", "переносимый объект и проверка владельца в начале Хода", "Замедление владельца объекта", "Местность с ограничением урона за случай и числа повреждений за Ход", "поражение и победа от условий Модификаторов", "ручное размещение схем без копирования иллюстраций PDF"]
+    },
+    {
+      "id": "lionwing.reference.system-onboarding",
+      "name": "Введение в систему, создание мира и роли за столом",
+      "strategy": "parameterize-old-core",
+      "status": "7-cards-data-ready",
+      "sourcePages": [6, 7, 8, 20, 35],
+      "ruleIds": ["lionwing.reference.system-cliff-notes", "lionwing.reference.system-assumptions", "lionwing.reference.system-limits", "lionwing.reference.world-creation", "lionwing.core.general.materials", "lionwing.core.general.roles", "lionwing.core.general.specific-overrides"],
+      "reuseFrom09": ["builder-reference-cards", "reference-search", "locale-overlay"],
+      "requires": ["информационные карточки без изменения параметров и бюджетов героя", "двуязычный поиск по справочнику", "сменяющийся ведущий вопросов создания мира и право любого участника отклонить предложение", "обе поддерживаемые раскладки поля", "разделение обязанностей Нарратора и игроков", "выбор пользователя при конфликте двух одинаково частных правил"]
     },
     {
       "id": "lionwing.builder.story-guidance",

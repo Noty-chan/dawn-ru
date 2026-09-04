@@ -19,11 +19,11 @@
       "nouns": 41,
       "conditions": 22
     },
-    "referenceCards": 27,
+    "referenceCards": 31,
     "coreEffects": 19,
     "coreActions": 17,
     "coreNpcs": 41,
-    "coreRuleCards": 165
+    "coreRuleCards": 168
   },
   "files": [
     "archetypes/powerhouse.json",

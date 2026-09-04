@@ -10,7 +10,14 @@
     "experienceToTier": 15,
     "chapterBaseExperience": 2,
     "chapterMaximumExperience": 4,
-    "rewardsMayBeSavedForAwakening": true
+    "experiencePerUniqueInfluenceUse": 1,
+    "rewardsMayBeSavedForAwakening": true,
+    "optionalFast": {
+      "chapterBaseExperience": 3,
+      "chapterMaximumExperience": 6,
+      "experiencePerInfluenceSpent": 1
+    },
+    "partyTierAtNarratorPaceAllowed": true
   },
   "attributes": {
     "startingValues": [

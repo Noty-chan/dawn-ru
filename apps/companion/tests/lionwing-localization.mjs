@@ -25,6 +25,8 @@ assert.deepEqual(localizedReference.map(item => item.source), english.reference.
 assert.match(localizedReference.find(item => item.id === "lionwing.reference.story-change").text, /хотя бы с Нарратором/, "Change must retain required Narrator discussion");
 assert.match(localizedReference.find(item => item.id === "lionwing.reference.example-qayid").text, /Тело 4.+Талант 3.+Дух 2.+Разум 2/, "Qayid example must retain its Attributes");
 assert.match(localizedReference.find(item => item.id === "lionwing.reference.example-yvon").text, /Крадущийся зверь/, "Yvon example must preserve the source-only Stalking Beast name for review");
+assert.match(localizedReference.find(item => item.id === "lionwing.reference.system-cliff-notes").text, /4\+ дает Успех.+Крит.+добавляет еще одну кость/, "the system overview must retain its core dice summary");
+assert.match(localizedReference.find(item => item.id === "lionwing.reference.world-creation").text, /сменяющегося ведущего.+твердое возражение.+второй вариант/, "world creation must retain its collaborative answer procedure");
 const localizedRecipes = localizedReference.filter(item => item.id.startsWith("lionwing.reference.recipe-"));
 assert.equal(localizedRecipes.length, 8, "all eight LionWing combat recipes need bilingual reference cards");
 assert.ok(localizedRecipes.every(item => /Атрибуты: Тело [234], Талант [234], Дух [234], Разум [234]/.test(item.text)), "every combat recipe must retain recommended Attributes");
@@ -57,7 +59,7 @@ assert.match(russianActions["action.утилитарные-действия.из
 
 const englishCoreRules = english.coreRules.rules;
 const russianCoreRules = russian.coreRules.rules.entries;
-assert.equal(englishCoreRules.length, 165);
+assert.equal(englishCoreRules.length, 168);
 assert.equal(Object.keys(russianCoreRules).length, englishCoreRules.length, "every LionWing core rule card needs a Russian overlay");
 const localizedCoreRules = englishCoreRules.map(item => ({ ...item, ...(russianCoreRules[item.id] || {}) }));
 for (const item of englishCoreRules) assert.ok(russianCoreRules[item.id]?.text, `missing Russian core rule: ${item.id}`);
@@ -73,6 +75,10 @@ assert.match(russianCoreRules["lionwing.core.duels.roll"].text, /\[Напряж�
 assert.match(russianCoreRules["lionwing.core.knockouts.consequences"].text, /Каждое последствие.+только один раз/, "irreversible Knockout consequences must retain their one-time restriction");
 assert.match(russianCoreRules["lionwing.core.progression.experience"].text, /15 Опыта/, "LionWing Tier progression must retain its Experience threshold");
 assert.match(russianCoreRules["lionwing.core.progression.awakening"].text, /сохранить/, "LionWing Awakening must retain deferred rewards");
+assert.match(russianCoreRules["lionwing.core.progression.tier"].text, /нечётного значения.+Скорость.+стартовый Фокус/, "Tier advancement must retain derived-stat side effects");
+assert.match(russianCoreRules["lionwing.core.progression.pacing"].text, /3 Опыта.+каждое потраченное Влияние.+6 Опыта/, "optional fast advancement must retain its alternate Experience formula");
+assert.match(russianCoreRules["lionwing.core.general.materials"].text, /7 × 7.+6 × 6/, "play materials must retain both board layouts");
+assert.match(russianCoreRules["lionwing.core.general.specific-overrides"].text, /два одинаково частных правила.+пользователь выбирает/, "equally specific conflicting rules must leave the choice to the user");
 assert.match(russianCoreRules["lionwing.core.abilities.expansion"].text, /хотя бы одно слово из исходной формы/, "expanded Abilities must retain an original word");
 assert.match(russianCoreRules["lionwing.core.bonds.quick"].text, /Один раз за Главу/, "LionWing must limit Quick Bonds per Chapter");
 assert.match(russianCoreRules["lionwing.core.bond-actions.study"].text, /нельзя оплатить Стрессом/, "Study must keep its Stress payment exception");
