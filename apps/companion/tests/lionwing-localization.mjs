@@ -50,7 +50,7 @@ assert.match(russianActions["action.утилитарные-действия.из
 
 const englishCoreRules = english.coreRules.rules;
 const russianCoreRules = russian.coreRules.rules.entries;
-assert.equal(englishCoreRules.length, 152);
+assert.equal(englishCoreRules.length, 165);
 assert.equal(Object.keys(russianCoreRules).length, englishCoreRules.length, "every LionWing core rule card needs a Russian overlay");
 const localizedCoreRules = englishCoreRules.map(item => ({ ...item, ...(russianCoreRules[item.id] || {}) }));
 for (const item of englishCoreRules) assert.ok(russianCoreRules[item.id]?.text, `missing Russian core rule: ${item.id}`);
@@ -84,6 +84,10 @@ assert.match(russianCoreRules["lionwing.modifier.blaze"].text, /\[Ступень
 assert.match(russianCoreRules["lionwing.modifier.collateral"].text, /испытанием Духа.+1 \+ \[Ступень\]/, "Collateral rescue must retain its Spirit challenge");
 assert.match(russianCoreRules["lionwing.modifier.gargantuan"].text, /4 \+ \[Ступень\]/, "Gargantuan must retain its LionWing Attack roll");
 assert.match(russianCoreRules["lionwing.modifier.vortex"].text, /повысит его Броню на 3/, "Vortex must track Armor gained from its own effect");
+assert.match(russianCoreRules["lionwing.narrator.custom-npcs.averages"].text, /Танк 18 или 12.+Поддержка 13.+Движок 13/, "custom NPC guidance must retain role Health baselines");
+assert.match(russianCoreRules["lionwing.narrator.custom-npcs.limits"].text, /не должен Атаковать чаще одного раза за Ход/, "custom NPC guidance must retain its Attack limit");
+assert.match(russianCoreRules["lionwing.narrator.scenarios.defense"].text, /Напряжения 6.+не позволив NPC начать Ход/, "Defense must retain its victory condition");
+assert.match(russianCoreRules["lionwing.narrator.scenarios.destroy"].text, /20 \+ \[Ступень × 10\].+больше 5 урона/, "Destroy must retain Terrain Health and damage cap");
 
 const englishNpcs = english.coreRules.npcs.list;
 const russianNpcs = russian.coreRules.npcs.entries;

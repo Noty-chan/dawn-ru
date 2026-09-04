@@ -8321,6 +8321,162 @@
         }
       },
       {
+        "id": "lionwing.narrator.custom-npcs.overview",
+        "category": "Creating Enemies",
+        "name": "Creating Enemies",
+        "kind": "narrator-guidance",
+        "text": "Experienced Narrators may create NPC Types for combat niches missing from the standard profiles. Begin with a strong fictional concept, then realize it mechanically with these guidelines. Modifier enemies are excluded because they do not follow normal rules or expected play patterns.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 128
+        }
+      },
+      {
+        "id": "lionwing.narrator.custom-npcs.roles",
+        "category": "Creating Enemies",
+        "name": "Defining The Type",
+        "kind": "narrator-guidance",
+        "text": "Choose the NPC's combat role first. DPS threatens players into attacking it or dying. Tank prevents DPS allies from being focused down. Support helps DPS and Tanks succeed without being a major threat alone. Engine disrupts players, often unconventionally, when ignored.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 128
+        }
+      },
+      {
+        "id": "lionwing.narrator.custom-npcs.threats",
+        "category": "Creating Enemies",
+        "name": "Deciding The Primary Threat",
+        "kind": "narrator-guidance",
+        "text": "A DPS generally has a good-damage Attack that can hit more than one character and applies a negative Effect. A Tank has an Action that makes itself easier to hit and/or allies harder to hit. A Support has a Passive that makes it harder to kill and an Action that helps allies deal or avoid damage. An Engine has a Passive that grows stronger over time and/or an Attack that creates a threat players must answer with specific actions.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 128
+        }
+      },
+      {
+        "id": "lionwing.narrator.custom-npcs.averages",
+        "category": "Creating Enemies",
+        "name": "NPC Number Averages",
+        "kind": "narrator-guidance",
+        "text": "Use these baselines, adjusting for strength and specialization. Base Health: DPS 14; Tank 18, or 12 when armored; Support 13; Engine 13. Speed: DPS 3 and often moves through other Actions; Tank 3; Support 4; Engine 2. Base Attack dice: DPS 4 and can normally deal [Tier] extra damage with setup; Tank 5; Support 3; Engine 4 and can also deal reactive additional damage.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 128
+        }
+      },
+      {
+        "id": "lionwing.narrator.custom-npcs.limits",
+        "category": "Creating Enemies",
+        "name": "NPC Design Limits",
+        "kind": "narrator-guidance",
+        "text": "Conditional Advantage and damage bonuses should not exceed 2 + [Tier]. Reliable damage without a Roll should not exceed [Tier] per Turn per target. NPCs should not Attack more than once per Turn. Healing can be about 4 higher than comparable damage. Powerful negative Effects should work only on targets not yet Attacked that Round.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 128
+        }
+      },
+      {
+        "id": "lionwing.narrator.scenarios.overview",
+        "category": "Combat Scenarios",
+        "name": "Alternative Combat Objectives",
+        "kind": "narrator-guidance",
+        "text": "Knocking Out every enemy before all player characters are Knocked Out is the standard combat objective, not a requirement. The Narrator may change victory conditions for the fiction or simply for fun; the following scenarios are reusable examples.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 129
+        }
+      },
+      {
+        "id": "lionwing.narrator.scenarios.legend",
+        "category": "Combat Scenarios",
+        "name": "Scenario Map Legend",
+        "kind": "rule",
+        "text": "In scenario diagrams, blue spaces are the player Deployment Zone, red spaces are the NPC Deployment Zone, grey spaces are standard Obstacles, gold spaces are unique Terrain explained by the scenario, and white spaces are ordinary empty spaces.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 129
+        }
+      },
+      {
+        "id": "lionwing.narrator.scenarios.defense",
+        "category": "Combat Scenarios",
+        "name": "Defense",
+        "kind": "scenario",
+        "text": "The players win by reaching 6 Tension without an NPC starting its Turn in the gold area. Adding at least one Legion is highly recommended so defeating every enemy cannot bypass the objective.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 129
+        }
+      },
+      {
+        "id": "lionwing.narrator.scenarios.assault",
+        "category": "Combat Scenarios",
+        "name": "Assault",
+        "kind": "scenario",
+        "text": "The players win by reaching 6 Tension while no NPC occupies the gold area and at least one player occupies it. Adding at least one Legion is highly recommended so defeating every enemy cannot bypass the objective.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 129
+        }
+      },
+      {
+        "id": "lionwing.narrator.scenarios.secure",
+        "category": "Combat Scenarios",
+        "name": "Secure",
+        "kind": "scenario",
+        "text": "The players must capture an object across the field. A player standing in the gold area may pick it up with Improvise. They win by starting their Turn while holding it in their Deployment Zone. A holder is Slowed. Adding at least one Legion is highly recommended so defeating every enemy cannot bypass the objective.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 130
+        }
+      },
+      {
+        "id": "lionwing.narrator.scenarios.destroy",
+        "category": "Combat Scenarios",
+        "name": "Destroy",
+        "kind": "scenario",
+        "text": "The players win by destroying special Terrain in the gold space with 20 + [Tier × 10] Health. It cannot take more than 5 damage at once or take damage 3 or more times during the same Turn. Taunting and Snaring enemies can make bursting the target harder.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 130
+        }
+      },
+      {
+        "id": "lionwing.narrator.scenarios.collateral",
+        "category": "Combat Scenarios",
+        "name": "Collateral",
+        "kind": "scenario",
+        "text": "Deploy a Collateral Modifier into any gold spaces, then proceed with combat normally. Multi-target and high-Speed enemies are especially threatening when players must protect several people or objects.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 130
+        }
+      },
+      {
+        "id": "lionwing.narrator.scenarios.vip",
+        "category": "Combat Scenarios",
+        "name": "VIP",
+        "kind": "scenario",
+        "text": "Deploy a VIP Modifier into the gold space, then proceed with combat normally. High single-target-damage and high-Speed enemies are especially threatening when the players must keep one person or object safe.",
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 130
+        }
+      },
+      {
         "id": "lionwing.narrator.deployments.overview",
         "category": "Deployment Recipes",
         "name": "Using Deployment Recipes",
@@ -10024,7 +10180,10 @@
         124,
         125,
         126,
-        127
+        127,
+        128,
+        129,
+        130
       ]
     }
   },

@@ -309,6 +309,26 @@
       "requires": ["указанные Зоны с переносом в конце Раунда", "критический порог и выбранный вариант Пыла", "дружественные NPC без Ходов и условия поражения", "правила недоступности VIP и Случайных жертв для цели", "деление группового урона Изоляции", "поочередное переключение Внутрь и Наружу", "расширение поля и занимающий край Громадина", "дальность от созданной Местности", "занимающий область 2 × 2 Носитель", "возврат несоставных NPC с половиной Здоровья", "Зоны Приспешников с ограниченным направлением движения", "счетчик Брони только от конкретного эффекта"]
     },
     {
+      "id": "lionwing.npcs.custom-authoring",
+      "name": "Конструктор пользовательских NPC LionWing",
+      "strategy": "extend-shared-core",
+      "status": "guidance-data-ready",
+      "sourcePages": [128],
+      "ruleIds": ["lionwing.narrator.custom-npcs.overview", "lionwing.narrator.custom-npcs.roles", "lionwing.narrator.custom-npcs.threats", "lionwing.narrator.custom-npcs.averages", "lionwing.narrator.custom-npcs.limits"],
+      "reuseFrom09": ["custom-enemy-profile", "profile-stat-editor", "profile-actions"],
+      "requires": ["выбор роли DPS, Tank, Support или Engine", "подсказки средних Здоровья, Скорости и костей Атаки", "неблокирующая проверка рекомендуемых пределов", "явное предупреждение об Атаке чаще раза за Ход", "стабильные ID пользовательских профилей"]
+    },
+    {
+      "id": "lionwing.scenarios.alternative-objectives",
+      "name": "Альтернативные цели боя LionWing",
+      "strategy": "extend-shared-core",
+      "status": "6-scenarios-data-ready",
+      "sourcePages": [129, 130],
+      "ruleIds": ["lionwing.narrator.scenarios.overview", "lionwing.narrator.scenarios.legend", "lionwing.narrator.scenarios.defense", "lionwing.narrator.scenarios.assault", "lionwing.narrator.scenarios.secure", "lionwing.narrator.scenarios.destroy", "lionwing.narrator.scenarios.collateral", "lionwing.narrator.scenarios.vip"],
+      "reuseFrom09": ["scene-objectives", "tension-state", "terrain-state", "rule-clocks", "effect-state", "enemy-modifier-attachment"],
+      "requires": ["победа при Напряжении 6 с проверкой золотой области", "переносимый объект и проверка владельца в начале Хода", "Замедление владельца объекта", "Местность с ограничением урона за случай и числа повреждений за Ход", "поражение и победа от условий Модификаторов", "ручное размещение схем без копирования иллюстраций PDF"]
+    },
+    {
       "id": "lionwing.techniques.separate-review-map",
       "name": "Отдельная карта автоматизации 333 Уровней LionWing",
       "strategy": "new-lionwing-foundation",

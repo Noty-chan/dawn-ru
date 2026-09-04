@@ -8,7 +8,7 @@
 | Стратегия | Количество | Назначение |
 | --- | ---: | --- |
 | `parameterize-old-core` | 7 | Существующий общий контракт подходит после явного выбора редакции и новых параметров. |
-| `extend-shared-core` | 8 | Нужен новый общий контракт, который не меняет поведение 0.9. |
+| `extend-shared-core` | 10 | Нужен новый общий контракт, который не меняет поведение 0.9. |
 | `new-lionwing-foundation` | 14 | Простой патч старой автоматики недостаточен; нужен отдельный типизированный фундамент LionWing. |
 | `narrator-ruling` | 2 | Механика по природе требует решения Нарратора и не должна автоматически угадываться по тексту. |
 | `source-review` | 1 | Автоматизацию нельзя начинать до разрешения противоречия или редакторского вопроса в каноне. |
@@ -67,6 +67,8 @@
 | `lionwing.npcs.engine-profiles` | Профили Engine NPC LionWing | новый фундамент LionWing | `11-profiles-data-ready` | 122–124 |
 | `lionwing.modifiers.foundation` | Основа Модификаторов LionWing | расширить общее ядро | `rules-data-ready` | 125 |
 | `lionwing.modifiers.profiles` | Профили Модификаторов LionWing | новый фундамент LionWing | `12-profiles-data-ready` | 126–127 |
+| `lionwing.npcs.custom-authoring` | Конструктор пользовательских NPC LionWing | расширить общее ядро | `guidance-data-ready` | 128 |
+| `lionwing.scenarios.alternative-objectives` | Альтернативные цели боя LionWing | расширить общее ядро | `6-scenarios-data-ready` | 129–130 |
 | `lionwing.techniques.separate-review-map` | Отдельная карта автоматизации 333 Уровней LionWing | новый фундамент LionWing | `map-ready` | 69–103 |
 
 ## Карта 333 Уровней Техник LionWing
