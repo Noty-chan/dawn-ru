@@ -223,11 +223,11 @@
       "id": "lionwing.npcs.dps-profiles",
       "name": "Профили DPS NPC LionWing",
       "strategy": "parameterize-old-core",
-      "status": "8-profiles-data-ready",
-      "sourcePages": [114, 115],
-      "ruleIds": ["lionwing.npc.assassin", "lionwing.npc.bruiser", "lionwing.npc.behemoth", "lionwing.npc.captor", "lionwing.npc.executioner", "lionwing.npc.javelin", "lionwing.npc.pugilist", "lionwing.npc.ranger"],
+      "status": "11-profiles-data-ready",
+      "sourcePages": [114, 116],
+      "ruleIds": ["lionwing.npc.assassin", "lionwing.npc.bruiser", "lionwing.npc.behemoth", "lionwing.npc.captor", "lionwing.npc.executioner", "lionwing.npc.javelin", "lionwing.npc.pugilist", "lionwing.npc.ranger", "lionwing.npc.ronin", "lionwing.npc.viper", "lionwing.npc.witch"],
       "reuseFrom09": ["profile-rendering", "tier-scaling", "profile-actions", "ace-cards"],
-      "requires": ["ловушки Трудной местности", "отложенные предупрежденные Козыри", "условное сохранение Метки", "циклический Пассив", "расход Зон Приспешников", "Атаки по нескольким целям с общей зоной"]
+      "requires": ["ловушки Трудной местности", "отложенные предупрежденные Козыри", "условное сохранение Метки", "циклический Пассив", "расход Зон Приспешников", "Криты на 5", "перемещение сквозь цели", "автоматические Успехи в Зоне"]
     },
     {
       "id": "lionwing.narrator.deployment-recipes",

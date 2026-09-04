@@ -876,6 +876,135 @@
           "locale": "en",
           "pdfPage": 115
         }
+      },
+      {
+        "id": "lionwing.npc.ronin",
+        "role": "DPS",
+        "name": "Ronin",
+        "description": "Fast and versatile attacker with on-Crit Effects.",
+        "examples": [
+          "Wandering Duelist",
+          "Crazed Killer",
+          "Feral Hound"
+        ],
+        "statistics": {
+          "health": "13 + [Tier × 5]",
+          "speed": 4,
+          "armor": 0,
+          "evasion": 0
+        },
+        "passive": "Start each Turn with 1 additional AP, but this NPC can target the same character only once each Turn.",
+        "actions": [
+          {
+            "id": "lionwing.npc.ronin.sheath",
+            "kind": "action",
+            "name": "Sheath",
+            "text": "The next time this NPC moves, it must spend 3 AP, but may also use Dissect against every character it moves into or out of adjacency with."
+          },
+          {
+            "id": "lionwing.npc.ronin.dissect",
+            "kind": "attack",
+            "name": "Dissect",
+            "text": "This Attack is Swift. Choose an adjacent target and roll 4 + [Tier]. Reward: Deal [Hits] + [Tension] damage. If at least 2 Crits were rolled, Shred and Slow the target."
+          }
+        ],
+        "ace": {
+          "id": "lionwing.npc.ronin.thunderclap-and-flash",
+          "tension": 1,
+          "name": "Thunderclap And Flash",
+          "text": "Become Steady and indicate 4 Lines of any length connected end to end, with one connected to this NPC. At the end of the next Turn, move across every Line to the final end, ignoring characters and Terrain, then use Dissect against each opponent moved over or entered adjacency with. This Attack Crits on 5s."
+        },
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 116
+        }
+      },
+      {
+        "id": "lionwing.npc.viper",
+        "role": "DPS",
+        "name": "Viper",
+        "description": "Spreads Blight and deals burst damage if not stopped.",
+        "examples": [
+          "Bandit",
+          "Slinking Serpent",
+          "Malevolent Spirit"
+        ],
+        "statistics": {
+          "health": "15 + [Tier × 5]",
+          "speed": 4,
+          "armor": 0,
+          "evasion": 0
+        },
+        "passive": "After Attacking, move up to 3 spaces ignoring opponents. If this NPC passes through an opponent it has not Attacked this Turn, it may use Filet against them.",
+        "actions": [
+          {
+            "id": "lionwing.npc.viper.lick-the-knife",
+            "kind": "action",
+            "name": "Lick The Knife",
+            "text": "Deal damage to each Blighted player equal to the number of Blighted players + [Tier]."
+          },
+          {
+            "id": "lionwing.npc.viper.filet",
+            "kind": "attack",
+            "name": "Filet",
+            "text": "Choose an adjacent target, or do not activate the Passive to choose one within 5 spaces. Roll 4 + [Tier]. Reward: Deal [Hits] + [Tension] damage and Blight the target. If already Blighted, Mark them."
+          }
+        ],
+        "ace": {
+          "id": "lionwing.npc.viper.knife-in-the-dark",
+          "tension": 2,
+          "name": "Knife In The Dark",
+          "text": "Disappear. At the end of the next Turn, use Filet to Teleport adjacent to and Attack every player without an adjacent ally, then reappear in any space."
+        },
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 116
+        }
+      },
+      {
+        "id": "lionwing.npc.witch",
+        "role": "DPS",
+        "name": "Witch",
+        "description": "Area-of-effect ranged attacker with slow movement.",
+        "examples": [
+          "Dark Sorcerer",
+          "Reckless Bomber",
+          "Bile Spewer"
+        ],
+        "statistics": {
+          "health": "13 + [Tier × 5]",
+          "speed": 2,
+          "armor": 0,
+          "evasion": 0
+        },
+        "passive": "After Attacking, indicate a 3 × 3 Zone centered on the space Attacked. At the end of the next Turn, every player in that Zone takes [Tier] damage.",
+        "actions": [
+          {
+            "id": "lionwing.npc.witch.drawing-runes",
+            "kind": "action",
+            "name": "Drawing Runes",
+            "text": "This Action costs 2 AP. Create a 3 × 3 Zone centered on this NPC, replacing any other such Zone. While this NPC is in it, every die it rolls counts as a Hit."
+          },
+          {
+            "id": "lionwing.npc.witch.expelling-force",
+            "kind": "attack",
+            "name": "Expelling Force",
+            "text": "Choose a target within 5 spaces. Roll 5 + [Tier]. Reward: Deal [Hits] + [Tension] damage and push the target 2 spaces away."
+          }
+        ],
+        "ace": {
+          "id": "lionwing.npc.witch.explosion",
+          "tension": 1,
+          "name": "EXPLOSION",
+          "text": "Indicate a 4 × 4 Zone anywhere on the board and become Steady. At the end of the next Turn, this NPC may use Expelling Force against all opponents in the Zone with 1 + [Tier] Advantage, then remove the Zone."
+        },
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 116
+        }
       }
     ]
   },
@@ -2572,7 +2701,8 @@
       112,
       113,
       114,
-      115
+      115,
+      116
     ]
   }
 }
