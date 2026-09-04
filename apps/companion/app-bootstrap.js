@@ -63,7 +63,11 @@ function localizedLionwingAbilityWords(){
   return Object.fromEntries(["verbs","nouns","conditions"].map(group=>[group,(Lionwing.abilityWords[group]||[]).map(word=>({...word,name:LionwingRu.abilityWords[word.id]||word.name}))]));
 }
 const activeAbilityWords=()=>{const base=isLionwingEdition()?localizedLionwingAbilityWords():D.abilityWords;return Object.fromEntries(["verbs","nouns","conditions"].map(group=>[group,[...(base[group]||[]),...activeSupplementPackages().flatMap(item=>item.content?.abilityWords?.[group]||[])]]))};
-const activeReferenceSections=()=>[...(isLionwingEdition()?Lionwing.reference:[]),...supplementItems("reference")];
+function localizedLionwingReference(){
+  if(contentPreferences.locale!=="ru"||!LionwingRu?.reference)return Lionwing.reference;
+  return Lionwing.reference.map(item=>({...item,...(LionwingRu.reference[item.id]||{})}));
+}
+const activeReferenceSections=()=>[...(isLionwingEdition()?localizedLionwingReference():[]),...supplementItems("reference")];
 const activeBuilderRules=()=>isLionwingEdition()?Lionwing.builderRules:null;
 const activeAttrs=()=>isEnglishPreview()?[
   ["body","Body","Health, resilience, and physical power"],

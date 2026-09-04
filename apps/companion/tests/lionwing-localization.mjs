@@ -8,9 +8,21 @@ await import("../logic.js");
 
 const english = window.DAWN_LIONWING_DATA;
 const russian = window.DAWN_LIONWING_RU;
+const appBootstrapSource = fs.readFileSync(new URL("../app-bootstrap.js", import.meta.url), "utf8");
 const worklist = JSON.parse(fs.readFileSync(new URL("../../../source/editions/dawn-en-lionwing-cb2f8e67/translation-worklist.json", import.meta.url), "utf8"));
 assert.equal(russian.editionId, english.editionId);
 assert.equal(Object.keys(russian.outlooks).length, english.outlooks.length);
+
+assert.equal(Object.keys(russian.reference).length, english.reference.length, "every LionWing builder reference card needs a Russian overlay");
+const localizedReference = english.reference.map(item => ({ ...item, ...(russian.reference[item.id] || {}) }));
+for (const item of english.reference) {
+  const overlay = russian.reference[item.id];
+  assert.ok(overlay, `missing Russian reference card: ${item.id}`);
+  for (const field of ["name", "kind", "tags", "text"]) assert.ok(overlay[field]?.trim(), `missing ${field} in Russian reference card: ${item.id}`);
+}
+assert.deepEqual(localizedReference.map(item => item.id), english.reference.map(item => item.id), "switching LionWing reference to RU must preserve ids");
+assert.deepEqual(localizedReference.map(item => item.source), english.reference.map(item => item.source), "switching LionWing reference to RU must preserve canonical sources");
+assert.match(appBootstrapSource, /localizedLionwingReference\(\)/, "the companion must project LionWing reference cards through the locale overlay");
 
 const activeAbilityWordIds = Object.values(english.abilityWords).flat().map(item => item.id);
 const retiredAbilityWordIds = worklist.units.filter(item => item.domain === "ability-word" && item.action === "retire").map(item => item.stableId);
