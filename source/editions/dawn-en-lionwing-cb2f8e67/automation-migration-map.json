@@ -1,0 +1,144 @@
+{
+  "schemaVersion": 1,
+  "editionId": "dawn-en-lionwing-cb2f8e67",
+  "policy": {
+    "defaultTechniqueStatus": "manual-review-required",
+    "reuse09AutomationWithoutReview": false,
+    "textRecognitionAsAutomation": false,
+    "tableImplementationInCurrentScope": false
+  },
+  "strategies": {
+    "parameterize-old-core": "Существующий общий контракт подходит после явного выбора редакции и новых параметров.",
+    "extend-shared-core": "Нужен новый общий контракт, который не меняет поведение 0.9.",
+    "new-lionwing-foundation": "Простой патч старой автоматики недостаточен; нужен отдельный типизированный фундамент LionWing.",
+    "narrator-ruling": "Механика по природе требует решения Нарратора и не должна автоматически угадываться по тексту.",
+    "source-review": "Автоматизацию нельзя начинать до разрешения противоречия или редакторского вопроса в каноне."
+  },
+  "entries": [
+    {
+      "id": "lionwing.rules.bilingual-source",
+      "name": "Двуязычный источник Правил и Справочника",
+      "strategy": "extend-shared-core",
+      "status": "in-progress",
+      "sourcePages": [34, 65],
+      "reuseFrom09": ["поиск", "фильтры", "группировка по главам", "постоянные ссылки"],
+      "requires": ["activeCoreRules", "локализация по стабильному ID", "запрет fallback на D для LionWing"]
+    },
+    {
+      "id": "lionwing.core.effects",
+      "name": "Жизненный цикл Эффектов",
+      "strategy": "parameterize-old-core",
+      "status": "data-ready",
+      "sourcePages": [61],
+      "ruleIds": ["positive.регенерирует", "positive.усилен", "negative.помечен", "negative.ослаблен"],
+      "reuseFrom09": ["effect-state", "effect-lifecycle", "duration-scheduler"],
+      "requires": ["формулы по rulesEdition", "одноразовая Метка", "поиск Исчезнувшего за 2 ОД"]
+    },
+    {
+      "id": "lionwing.core.actions",
+      "name": "Базовые Действия и защитные Реакции",
+      "strategy": "parameterize-old-core",
+      "status": "data-ready",
+      "sourcePages": [62, 65],
+      "ruleIds": ["action.атаки.дуэль", "action.защита.столкновение", "action.защита.наказание", "action.утилитарные-действия.изучение", "action.утилитарные-действия.импровизация"],
+      "reuseFrom09": ["action-cost", "reaction-window", "target-validation", "damage-pipeline"],
+      "requires": ["таблица действий по rulesEdition", "новая Дуэль", "новое Столкновение", "отдельное Наказание"]
+    },
+    {
+      "id": "lionwing.core.turn-scheduling",
+      "name": "Чередование Ходов и выбор следующего игрока",
+      "strategy": "extend-shared-core",
+      "status": "data-ready",
+      "sourcePages": [56],
+      "ruleIds": ["lionwing.core.combat.turn-order", "lionwing.core.combat.action-points", "lionwing.core.combat.action-limit"],
+      "reuseFrom09": ["turn-lifecycle", "action-history"],
+      "requires": ["явный выбор следующего игрока", "ход врага после каждого игрока", "сброс ОД в конце Хода"]
+    },
+    {
+      "id": "lionwing.foundation.assisting-proxy",
+      "name": "Помощь через управление согласным союзником",
+      "strategy": "new-lionwing-foundation",
+      "status": "planned",
+      "sourcePages": [56],
+      "ruleIds": ["lionwing.core.combat.assisting"],
+      "requires": ["согласие контроллера", "временный proxy-controller", "замена всех показателей самым высоким Атрибутом", "лимит трех бесплатных Прорывов"]
+    },
+    {
+      "id": "lionwing.foundation.per-target-roll-branches",
+      "name": "Дополнительные кости для отдельных целей общего броска",
+      "strategy": "new-lionwing-foundation",
+      "status": "planned",
+      "sourcePages": [59],
+      "ruleIds": ["lionwing.core.spatial.special-targeting"],
+      "requires": ["общая база броска", "ветви костей по цели", "раздельные Успехи", "единое журналируемое событие"]
+    },
+    {
+      "id": "lionwing.foundation.cinematic-occupancy",
+      "name": "Совместное занятие клетки в кинематографичном бою",
+      "strategy": "new-lionwing-foundation",
+      "status": "planned",
+      "sourcePages": [60],
+      "ruleIds": ["lionwing.core.combat.cinematic"],
+      "requires": ["несколько персонажей в клетке", "проход сквозь противников", "выбор одной или всех целей по форме атаки"]
+    },
+    {
+      "id": "lionwing.foundation.detached-duel-scenes",
+      "name": "Параллельная Сцена Дуэли",
+      "strategy": "new-lionwing-foundation",
+      "status": "planned",
+      "sourcePages": [39, 63],
+      "ruleIds": ["action.атаки.дуэль"],
+      "requires": ["дочерняя Сцена", "синхронное продолжение основной Сцены", "ставка", "возврат участников", "отдельное Напряжение"]
+    },
+    {
+      "id": "lionwing.foundation.resisting-vulnerable",
+      "name": "Сопротивление Выведению и Уязвимость",
+      "strategy": "new-lionwing-foundation",
+      "status": "source-ready-data-pending",
+      "sourcePages": [38],
+      "requires": ["состояние Уязвимости до конца Сцены", "запрет повторного Сопротивления", "запрет Влияния", "одноразовые необратимые последствия"]
+    },
+    {
+      "id": "lionwing.core.quick-roll",
+      "name": "Быстрый бросок",
+      "strategy": "parameterize-old-core",
+      "status": "source-ready-data-pending",
+      "sourcePages": [36],
+      "reuseFrom09": ["dice-hooks", "challenge-outcome"],
+      "requires": ["две кости за источник от 3 костей", "отсутствие Критов", "исход по числу попавших костей"]
+    },
+    {
+      "id": "lionwing.narrator.threats-and-risks",
+      "name": "Угрозы и альтернативные Риски",
+      "strategy": "narrator-ruling",
+      "status": "manual-by-design",
+      "sourcePages": [42, 43],
+      "requires": ["открытая формулировка Угрозы", "выбор уместного Риска", "согласие игрока для Memento и Trip Up", "ручное описание последствий"]
+    },
+    {
+      "id": "lionwing.review.duel-wounds",
+      "name": "Число Ран при проигрыше боевой Дуэли",
+      "strategy": "source-review",
+      "status": "blocked-review",
+      "sourcePages": [39, 63],
+      "ruleIds": ["action.атаки.дуэль"],
+      "requires": ["страница 39 говорит об 1 Ране", "карточка Действия на странице 63 говорит о 2 Ранах", "до решения автоматизация остается ручной"]
+    },
+    {
+      "id": "lionwing.builder.fixed-skills",
+      "name": "Канонический список Навыков и произвольные Навыки",
+      "strategy": "extend-shared-core",
+      "status": "source-ready-data-pending",
+      "sourcePages": [44],
+      "requires": ["16 канонических Навыков", "привязка к Атрибутам", "опциональный режим произвольных Навыков", "стабильные ID в JSON героя"]
+    },
+    {
+      "id": "lionwing.techniques.separate-review-map",
+      "name": "Отдельная карта автоматизации 333 Уровней LionWing",
+      "strategy": "new-lionwing-foundation",
+      "status": "map-ready",
+      "sourcePages": [69, 103],
+      "requires": ["ручная классификация нового текста", "тонкие адаптеры поверх общего ядра", "evidence для каждого повышенного статуса", "никаких статусов из карты 0.9 по умолчанию"]
+    }
+  ]
+}

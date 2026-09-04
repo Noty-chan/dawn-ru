@@ -6,8 +6,9 @@
     "data": "python build_data.py",
     "docs:rules": "node build_rule_reference_docs.mjs",
     "edition": "python ../../tools/content/build_lionwing_companion.py",
+    "lionwing:map": "node build_lionwing_automation_map.mjs",
     "map": "node build_technique_foundation_map.mjs",
     "readiness": "node build_automation_readiness.mjs",
-    "test": "node build_technique_foundation_map.mjs --check && node build_automation_readiness.mjs --check && node build_rule_reference_docs.mjs --check && node tests/syntax.mjs && node tests/enemy-modifiers.mjs && node tests/edition-registry.mjs && node tests/edition-isolation.mjs && node tests/lionwing-localization.mjs && node tests/supplements.mjs && node tests/localization.mjs && node tests/network-mvp.mjs && node tests/network-v2.mjs && node tests/dim-mak-siren.mjs && node tests/raasha.mjs && node tests/svetozar-battle.mjs && node tests/freeplay-tools.mjs && node tests/scene-engine.mjs && node tests/technique-engine.mjs && node tests/hero-builds.mjs && node tests/catalog-smoke.mjs && node tests/qa.mjs"
+    "test": "node build_technique_foundation_map.mjs --check && node build_automation_readiness.mjs --check && node build_lionwing_automation_map.mjs --check && node build_rule_reference_docs.mjs --check && node tests/syntax.mjs && node tests/enemy-modifiers.mjs && node tests/edition-registry.mjs && node tests/edition-isolation.mjs && node tests/lionwing-localization.mjs && node tests/supplements.mjs && node tests/localization.mjs && node tests/network-mvp.mjs && node tests/network-v2.mjs && node tests/dim-mak-siren.mjs && node tests/raasha.mjs && node tests/svetozar-battle.mjs && node tests/freeplay-tools.mjs && node tests/scene-engine.mjs && node tests/technique-engine.mjs && node tests/hero-builds.mjs && node tests/catalog-smoke.mjs && node tests/qa.mjs"
   }
 }
