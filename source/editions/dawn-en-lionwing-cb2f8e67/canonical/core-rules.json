@@ -2342,6 +2342,150 @@
       }
     },
     {
+      "id": "lionwing.modifier.artillery",
+      "category": "Modifiers",
+      "name": "Artillery",
+      "kind": "scene-modifier",
+      "text": "Scene Modifier; Deploy alongside the Scene. After Deployment, choose one shape: two infinite Lines with no adjacent spaces between them, a 3 × 3 Zone, a 2 × 5 Zone, or every edge space. Indicate that shape anywhere on the board. At each Round's end, deal [Tension] damage to all opponents in the indicated spaces, then indicate a new area of the chosen shape.",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "locale": "en",
+        "pdfPage": 126
+      }
+    },
+    {
+      "id": "lionwing.modifier.blaze",
+      "category": "Modifiers",
+      "name": "Blaze",
+      "kind": "npc-modifier",
+      "text": "NPC Modifier; Attach instead of Deploying. Gives 2 Speed. When the Host rolls its primary Attack and scores at least [Tier / 2] Critical Hits, it Blazes. Choose one effect for this Modifier: Burn deals [Tier] additional damage and pushes the target 1 space; Freeze Slows the target, or Immobilizes it if already Slowed; Accelerate Hastens and Strengthens the Host; Toughen Reinforces and Strengthens the Host.",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "locale": "en",
+        "pdfPage": 126
+      }
+    },
+    {
+      "id": "lionwing.modifier.collateral",
+      "category": "Modifiers",
+      "name": "Collateral",
+      "kind": "scene-modifier",
+      "text": "Scene Modifier; Deploy alongside the Scene. Place friendly NPCs equal to 1.5 times the number of player characters in empty spaces. Each has 5 + [Tier] Health and cannot take Turns. Create a Peril Clock with one Segment per player character; fill a Segment when one of these NPCs is Knocked Out, and the players lose the combat when it fills. Enemies may target one as a player only if it is not adjacent to a non-VIP player or player-owned Summon, and otherwise cannot harm it. A player may remove one safely by Interacting and passing a 1 + [Tier] Spirit challenge Roll.",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "locale": "en",
+        "pdfPage": 126
+      }
+    },
+    {
+      "id": "lionwing.modifier.contagion",
+      "category": "Modifiers",
+      "name": "Contagion",
+      "kind": "npc-modifier",
+      "text": "NPC Modifier; Attach instead of Deploying. Gives 5 + [Tier × 5] Evasion. When Attached, indicate a player character. At each Round's end, deal [Tension] damage to all opponents within 3 spaces of that character, excluding the indicated character, then indicate a new player character.",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "locale": "en",
+        "pdfPage": 126
+      }
+    },
+    {
+      "id": "lionwing.modifier.earthquake",
+      "category": "Modifiers",
+      "name": "Earthquake",
+      "kind": "npc-modifier",
+      "text": "NPC Modifier; Attach instead of Deploying. Gives 5 + [Tier × 5] Evasion. When Attached, indicate In or Out. At each Round's end, deal [Tension] damage to all opponents farther than 2 spaces from the Host if In is indicated, or within 2 spaces if Out is indicated, then switch to the other option.",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "locale": "en",
+        "pdfPage": 126
+      }
+    },
+    {
+      "id": "lionwing.modifier.gargantuan",
+      "category": "Modifiers",
+      "name": "Gargantuan",
+      "kind": "npc-modifier",
+      "text": "NPC Modifier; Attach instead of Deploying. Gives [Tier] Armor and 5 + [Tier × 5] Evasion. All connected Parts have 0 Speed and cannot move. On Attachment, expand one edge of the board by one space to 7 × 8; this NPC occupies every added space. Its Host gains an Attack: target up to two 2 × 2 Zones anywhere, remove Terrain previously created by this Attack, destroy Terrain there, push all characters out, and place Terrain in those spaces. Targeting that Terrain targets this NPC instead, and this NPC and its Parts may draw range from it. Roll 4 + [Tier]. Reward: deal [Hits] + [Tension] damage to characters moved by the Attack.",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "locale": "en",
+        "pdfPage": 126
+      }
+    },
+    {
+      "id": "lionwing.modifier.giant",
+      "category": "Modifiers",
+      "name": "Giant",
+      "kind": "npc-modifier",
+      "text": "NPC Modifier; Attach instead of Deploying. Gives [Tier] Armor and 1 Speed. The Host occupies a 2 × 2 area and gains an Attack: move up to 4 spaces in a straight Line, ignoring opponents. Push each opponent moved through into an unoccupied space adjacent to the Host's new location and Launch them.",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "locale": "en",
+        "pdfPage": 127
+      }
+    },
+    {
+      "id": "lionwing.modifier.haven",
+      "category": "Modifiers",
+      "name": "Haven",
+      "kind": "scene-modifier",
+      "text": "Scene Modifier; Deploy alongside the Scene. On Deployment, indicate a 3 × 3 Zone. At each Round's end, deal [Tension] damage to all opponents outside the indicated Zone, then move the Zone anywhere on the board.",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "locale": "en",
+        "pdfPage": 127
+      }
+    },
+    {
+      "id": "lionwing.modifier.isolation",
+      "category": "Modifiers",
+      "name": "Isolation",
+      "kind": "scene-modifier",
+      "text": "Scene Modifier; Deploy alongside the Scene. When Attached, indicate a player character. At each Round's end, deal 2 + [Tier] damage multiplied by the number of player characters to all players within 3 spaces of the indicated character, excluding that character; divide this damage by the number of players receiving it. Then indicate another player.",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "locale": "en",
+        "pdfPage": 127
+      }
+    },
+    {
+      "id": "lionwing.modifier.legion",
+      "category": "Modifiers",
+      "name": "Legion",
+      "kind": "scene-modifier",
+      "text": "Scene Modifier; Deploy alongside the Scene. On Deployment, create a Legion Clock with Segments equal to the number of Deployed players plus [Tier]. Fill one Segment whenever a non-Fodder enemy is Knocked Out; when full, Knock Out all enemies and end combat. At each Round's start, return up to [Tension] Knocked-Out non-Compound enemies at half Health to board-edge spaces. If fewer can return, create edge Fodder Zones equal to the difference.",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "locale": "en",
+        "pdfPage": 127
+      }
+    },
+    {
+      "id": "lionwing.modifier.vip",
+      "category": "Modifiers",
+      "name": "VIP",
+      "kind": "scene-modifier",
+      "text": "Scene Modifier; Deploy alongside the Scene. Place one friendly NPC with 15 + [Tier] Health in an empty space; it cannot take Turns. Once per Turn when an ally leaves its adjacency, they may move it to their new position. If it is Knocked Out, all players are Knocked Out. Enemies may target it as a player Summon only if it is not adjacent to a non-VIP player or player-owned Summon, and otherwise cannot harm it.",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "locale": "en",
+        "pdfPage": 127
+      }
+    },
+    {
+      "id": "lionwing.modifier.vortex",
+      "category": "Modifiers",
+      "name": "Vortex",
+      "kind": "npc-modifier",
+      "text": "NPC Modifier; Attach instead of Deploying. Gives 1 + [Tier] Armor. At each Round's end after Attachment, create 5 Fodder Zones spread across the board edge or edges farthest from the Host. These Zones may move only closer to the Host. When one touches the Host, Knock it Out and give the Host 1 Armor for the rest of the Scene. When this effect has increased its Armor by 3, deal 20 + [Tier × 2] damage to all players.",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "locale": "en",
+        "pdfPage": 127
+      }
+    },
+    {
       "id": "lionwing.narrator.deployments.overview",
       "category": "Deployment Recipes",
       "name": "Using Deployment Recipes",
@@ -4043,7 +4187,9 @@
       122,
       123,
       124,
-      125
+      125,
+      126,
+      127
     ]
   }
 }

@@ -299,6 +299,16 @@
       "requires": ["прикрепление Модификатора к стабильному ID NPC", "разрешение конфликтов прибавок одного показателя по максимуму", "одновременное применение прибавок разных показателей", "Модификатор Сцены без цели и Хода", "режим действия вместе со Сценой или пока хранитель на поле"]
     },
     {
+      "id": "lionwing.modifiers.profiles",
+      "name": "Профили Модификаторов LionWing",
+      "strategy": "new-lionwing-foundation",
+      "status": "12-profiles-data-ready",
+      "sourcePages": [126, 127],
+      "ruleIds": ["lionwing.modifier.artillery", "lionwing.modifier.blaze", "lionwing.modifier.collateral", "lionwing.modifier.contagion", "lionwing.modifier.earthquake", "lionwing.modifier.gargantuan", "lionwing.modifier.giant", "lionwing.modifier.haven", "lionwing.modifier.isolation", "lionwing.modifier.legion", "lionwing.modifier.vip", "lionwing.modifier.vortex"],
+      "reuseFrom09": ["enemy-modifier-attachment", "scene-effects", "rule-clocks", "fodder-zones", "terrain-state", "tier-scaling"],
+      "requires": ["указанные Зоны с переносом в конце Раунда", "критический порог и выбранный вариант Пыла", "дружественные NPC без Ходов и условия поражения", "правила недоступности VIP и Случайных жертв для цели", "деление группового урона Изоляции", "поочередное переключение Внутрь и Наружу", "расширение поля и занимающий край Громадина", "дальность от созданной Местности", "занимающий область 2 × 2 Носитель", "возврат несоставных NPC с половиной Здоровья", "Зоны Приспешников с ограниченным направлением движения", "счетчик Брони только от конкретного эффекта"]
+    },
+    {
       "id": "lionwing.techniques.separate-review-map",
       "name": "Отдельная карта автоматизации 333 Уровней LionWing",
       "strategy": "new-lionwing-foundation",

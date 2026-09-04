@@ -50,7 +50,7 @@ assert.match(russianActions["action.утилитарные-действия.из
 
 const englishCoreRules = english.coreRules.rules;
 const russianCoreRules = russian.coreRules.rules.entries;
-assert.equal(englishCoreRules.length, 140);
+assert.equal(englishCoreRules.length, 152);
 assert.equal(Object.keys(russianCoreRules).length, englishCoreRules.length, "every LionWing core rule card needs a Russian overlay");
 const localizedCoreRules = englishCoreRules.map(item => ({ ...item, ...(russianCoreRules[item.id] || {}) }));
 for (const item of englishCoreRules) assert.ok(russianCoreRules[item.id]?.text, `missing Russian core rule: ${item.id}`);
@@ -80,6 +80,10 @@ assert.match(russianCoreRules["lionwing.narrator.deployments.overview"].text, /�
 assert.match(russianCoreRules["lionwing.narrator.deployments.taking-on-a-god"].text, /4 Частей/, "Taking On A God must retain the Compound part count");
 assert.match(russianCoreRules["lionwing.narrator.modifiers.npc-deployment"].text, /лишь большее значение/, "NPC Modifier statistics must not stack twice");
 assert.match(russianCoreRules["lionwing.narrator.modifiers.scene-deployment"].text, /нельзя выбирать целью.+не совершают Ходов/, "Modifiers must not become targetable turn-taking characters");
+assert.match(russianCoreRules["lionwing.modifier.blaze"].text, /\[Ступень \/ 2\].+Критов/, "Blaze must retain its critical threshold");
+assert.match(russianCoreRules["lionwing.modifier.collateral"].text, /испытанием Духа.+1 \+ \[Ступень\]/, "Collateral rescue must retain its Spirit challenge");
+assert.match(russianCoreRules["lionwing.modifier.gargantuan"].text, /4 \+ \[Ступень\]/, "Gargantuan must retain its LionWing Attack roll");
+assert.match(russianCoreRules["lionwing.modifier.vortex"].text, /повысит его Броню на 3/, "Vortex must track Armor gained from its own effect");
 
 const englishNpcs = english.coreRules.npcs.list;
 const russianNpcs = russian.coreRules.npcs.entries;
