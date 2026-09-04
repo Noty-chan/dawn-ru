@@ -106,6 +106,7 @@ function sceneCore(raw){
   base.actors.forEach((actor,index)=>{
     const source=scene.actors?.[index]||{};
     actor.rulesEdition=["ru-v0.9","lionwing"].includes(source.rulesEdition)?source.rulesEdition:"ru-v0.9";
+    if(actor.kind==="hero"&&actor.rulesEdition==="lionwing"){actor.guts=null;actor.wounds=0}
     actor.knownTechniques=source.knownTechniques&&typeof source.knownTechniques==="object"?{...source.knownTechniques}:{...actor.techniques};
     actor.bonds=Array.isArray(source.bonds)?source.bonds.slice(0,30).filter(bond=>bond&&typeof bond.name==="string").map(bond=>({id:typeof bond.id==="string"?bond.id.slice(0,120):"",name:bond.name.slice(0,120)})):[];
     actor.sacrifices=cleanArray(source.sacrifices).filter(item=>["eye","arm","leg","tongue","life"].includes(item));

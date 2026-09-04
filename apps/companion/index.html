@@ -28,12 +28,18 @@
       <button type="button" data-mode="rules" data-i18n="nav.rules">Правила</button>
       <button type="button" data-mode="reference" data-i18n="nav.reference">Справочник</button>
     </nav>
-    <button type="button" class="icon-button" id="theme-toggle" aria-label="Сменить тему" data-i18n-aria-label="app.theme">◐</button>
-    <div class="content-switchers" aria-label="Язык и редакция правил" data-i18n-aria-label="settings.content">
-      <label><span data-i18n="settings.language">Язык</span><select id="locale-select"><option value="ru">Русский</option><option value="en">English</option></select></label>
-      <label><span data-i18n="settings.edition">Редакция</span><select id="edition-select"><option value="ru-v0.9">RU v0.9</option><option value="lionwing">LionWing</option></select></label>
-    </div>
+    <button type="button" class="icon-button app-settings-open" id="app-settings-open" data-open-app-settings aria-label="Открыть настройки" title="Настройки">⚙</button>
   </header>
+
+  <dialog id="app-settings-dialog" class="app-settings-dialog" aria-labelledby="app-settings-title">
+    <header class="app-settings-head"><div><span class="eyebrow" data-i18n="settings.eyebrow">КОМПАНЬОН</span><h2 id="app-settings-title" data-i18n="settings.title">Настройки</h2></div><button type="button" class="icon-button" data-close-app-settings aria-label="Закрыть настройки">×</button></header>
+    <div class="app-settings-body">
+      <section class="app-settings-section"><div><h3 data-i18n="settings.contentTitle">Язык и правила</h3><p data-i18n="settings.contentHelp">Редакция определяет правила и отдельный лист героя.</p></div><div class="content-switchers" aria-label="Язык и редакция правил" data-i18n-aria-label="settings.content"><label><span data-i18n="settings.language">Язык</span><select id="locale-select"><option value="ru">Русский</option><option value="en">English</option></select></label><label><span data-i18n="settings.edition">Редакция</span><select id="edition-select"><option value="ru-v0.9">RU v0.9</option><option value="lionwing">LionWing</option></select></label></div></section>
+      <section class="app-settings-section"><div><h3 data-i18n="settings.appearance">Оформление</h3><p data-i18n="settings.appearanceHelp">Тема хранится только на этом устройстве.</p></div><button type="button" id="theme-toggle" data-i18n="settings.toggleTheme">Сменить светлую и тёмную тему</button></section>
+      <details id="supplement-picker" class="supplement-picker app-settings-section"><summary><span data-i18n="supplements.title">Дополнения</span><small id="supplement-count"></small></summary><div id="supplement-options" class="supplement-options"></div></details>
+      <section class="app-settings-section app-table-settings"><div><h3 data-i18n="settings.tableTitle">Интерфейс стола</h3><p data-i18n="settings.tableHelp">Компоновка, размеры панелей и вид ленты участников.</p></div><div id="scene-layout-settings" class="scene-layout-settings"></div></section>
+    </div>
+  </dialog>
 
   <div class="app-shell">
     <aside class="sidebar" aria-label="Персонажи и состояние сборки" data-i18n-aria-label="sidebar.label">
@@ -61,10 +67,6 @@
     </aside>
 
     <main id="main">
-      <details id="supplement-picker" class="supplement-picker">
-        <summary><span data-i18n="supplements.title">Дополнения</span><small id="supplement-count"></small></summary>
-        <div id="supplement-options" class="supplement-options"></div>
-      </details>
       <section class="mode-page active" data-page="build" aria-labelledby="build-title">
         <aside id="content-preview-banner" class="content-preview-banner" role="status" hidden></aside>
         <div class="page-heading">
@@ -248,7 +250,7 @@
             <section class="panel scene-roster-panel gm-only" data-scene-panel-content="roster"><header class="scene-panel-head"><div><span>НАРРАТОР</span><h2>Отряд противников</h2></div><button type="button" data-close-scene-panel aria-label="Закрыть панель">×</button></header><div id="scene-enemy-roster" class="scene-enemy-roster"></div></section>
             <section id="scene-media-menu" class="scene-media-menu panel" data-scene-panel-content="media"><header class="scene-panel-head"><div><span>СЦЕНА</span><h2>Персонажи и арт</h2></div><button type="button" data-close-scene-panel aria-label="Закрыть панель">×</button></header><section class="scene-media-section"><div class="subpanel-head"><span>Участники</span><small>Выберите портрет, чтобы найти токен</small></div><div id="scene-portrait-strip" class="scene-portrait-strip"></div></section><section class="scene-media-section"><div class="subpanel-head"><span>Показываемый арт</span><small>Один крупный кадр для всей группы</small></div><div id="scene-featured-art" class="scene-featured-art"></div></section><div id="scene-background-controls" class="scene-background-controls gm-only"></div><section class="scene-media-section gm-only"><div class="subpanel-head"><span>Библиотека</span><small>До 12 изображений в Сцене</small></div><div id="scene-art-library" class="scene-art-library"></div><div class="scene-art-upload"><label>Название<input id="scene-art-name" maxlength="120" placeholder="Локация, улика, противник…"></label><label>Назначение<select id="scene-art-kind"><option value="art">Показываемый арт</option><option value="background">Карта под сеткой</option></select></label><label class="file-button">Загрузить изображение<input id="scene-art-upload" type="file" accept="image/png,image/jpeg,image/webp,image/gif"></label></div></section></section>
             <section class="panel scene-map-panel gm-only" data-scene-panel-content="map"><header class="scene-panel-head"><div><span>ПОЛЕ СЦЕНЫ</span><h2>Карта и пространства</h2></div><button type="button" data-close-scene-panel aria-label="Закрыть панель">×</button></header><div id="scene-map-tools" class="scene-map-tools"><p class="autosave scene-map-hint">Выберите инструмент поля. Его параметры останутся здесь, а карта — полностью открытой.</p></div></section>
-            <section class="panel scene-table-panel" data-scene-panel-content="table"><header class="scene-panel-head"><div><span>РАБОЧЕЕ МЕСТО</span><h2>Интерфейс и стол</h2></div><button type="button" data-close-scene-panel aria-label="Закрыть панель">×</button></header><div id="scene-layout-settings" class="scene-layout-settings"></div><div id="scene-table-tools" class="scene-table-tools gm-only"></div></section>
+            <section class="panel scene-table-panel" data-scene-panel-content="table"><header class="scene-panel-head"><div><span>РАБОЧЕЕ МЕСТО</span><h2>Управление столом</h2></div><button type="button" data-close-scene-panel aria-label="Закрыть панель">×</button></header><aside class="scene-settings-shortcut"><div><strong>Настройки компаньона</strong><small>Язык, редакция, дополнения и интерфейс собраны в одном месте.</small></div><button type="button" data-open-app-settings>Открыть настройки</button></aside><div id="scene-table-tools" class="scene-table-tools gm-only"></div></section>
             <section class="panel scene-add gm-only" data-scene-panel-content="add">
               <header class="scene-panel-head"><div><span>ПОДГОТОВКА СЦЕНЫ</span><h2>Участники и столкновение</h2></div><button type="button" data-close-scene-panel aria-label="Закрыть панель">×</button></header>
               <div class="scene-add-body">

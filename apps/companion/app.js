@@ -18,6 +18,11 @@ function renderSupplementPicker(){
   options.innerHTML=compatible.map(item=>`<label class="supplement-option"><input type="checkbox" data-supplement-id="${esc(item.id)}" ${active.has(item.id)?"checked":""}><span><strong>${esc(en?item.titleEn:item.title)}</strong><small>${esc(en?item.descriptionEn:item.description)}</small><em>${item.status==="draft"?(en?"Draft translation":"Черновой перевод"):item.status}</em></span></label>`).join("")||`<p>${en?"No localized supplements are available for this edition yet.":"Для этой редакции и языка пока нет доступных дополнений."}</p>`;
 }
 $("supplement-options").addEventListener("change",event=>{const id=event.target.dataset.supplementId;if(!id)return;S.supplementIds=event.target.checked?[...new Set([...(S.supplementIds||[]),id])]:(S.supplementIds||[]).filter(value=>value!==id);renderAll()});
+const appSettingsDialog=$("app-settings-dialog");
+function openAppSettings(){renderSupplementPicker();renderSceneLayoutSettings();if(appSettingsDialog&&!appSettingsDialog.open)appSettingsDialog.showModal()}
+function closeAppSettings(){if(appSettingsDialog?.open)appSettingsDialog.close()}
+document.addEventListener("click",event=>{if(event.target.closest("[data-open-app-settings]")){openAppSettings();return}if(event.target.closest("[data-close-app-settings]"))closeAppSettings()});
+appSettingsDialog?.addEventListener("click",event=>{if(event.target===appSettingsDialog)closeAppSettings()});
 function applyContentPreferences({render=false}={}){
   saveContentPreferences();
   if(S.rulesEdition!==contentPreferences.edition)activateHeroEdition(contentPreferences.edition);

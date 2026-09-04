@@ -28,6 +28,12 @@ const appSource = appFiles.map(file => fs.readFileSync(path.join(root, file), "u
 const companionMarkup = fs.readFileSync(path.join(root, "index.html"), "utf8");
 const companionCss = fs.readFileSync(path.join(root, "app.css"), "utf8");
 const publicProjectionMigration = fs.readFileSync(path.resolve(root, "..", "..", "supabase", "migrations", "202608110001_harden_public_scene_projection.sql"), "utf8");
+assert.match(companionMarkup, /id="app-settings-open"[\s\S]+id="app-settings-dialog"/, "Global settings must be reachable from every companion mode");
+assert.match(companionMarkup, /id="app-settings-dialog"[\s\S]+id="locale-select"[\s\S]+id="edition-select"[\s\S]+id="theme-toggle"[\s\S]+id="supplement-picker"[\s\S]+id="scene-layout-settings"/, "Language, edition, theme, supplements, and table layout must share one settings menu");
+assert.doesNotMatch(companionMarkup, /<main id="main">\s*<details id="supplement-picker"/, "Supplements must not reserve permanent space above every workspace");
+assert.match(appSource, /usesWounds=d\.guts!=null[\s\S]+usesWounds&&rt\.wounds>=d\.guts/, "LionWing heroes without Guts must not trigger the RU 0.9 Wound knockout banner");
+assert.match(appSource, /usesWounds\?counter\("wounds"/, "LionWing play counters must omit the unsupported Wounds control");
+assert.match(appSource, /actor\.kind==="hero"&&actor\.rulesEdition==="lionwing"[^\n]+actor\.guts=null;actor\.wounds=0/, "LionWing scene normalization must not invent Guts or Wounds");
 assert.match(companionMarkup, /id="app-update-banner"/, "An open table must expose a visible path to the latest deployed build");
 assert.match(appSource, /APP_BUILD_VERSION[\s\S]+update-check=[^)]*Date\.now\(\)[\s\S]+cache:"no-store"/, "The companion must compare its running build with uncached deployed markup");
 assert.match(appSource, /visibilitychange[\s\S]+document\.hidden[\s\S]+check\(\)/, "Returning to a stale table tab must trigger an update check");
