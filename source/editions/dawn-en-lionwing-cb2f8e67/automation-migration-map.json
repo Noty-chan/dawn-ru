@@ -260,6 +260,16 @@
       "requires": ["общий пул 3 применений на Грань", "доплата Антагонизмом", "сменяемая Грань", "Смена фазы при Выведении или Пороге", "новые профили и Модификаторы LionWing"]
     },
     {
+      "id": "lionwing.npcs.support-profiles",
+      "name": "Профили Support NPC LionWing",
+      "strategy": "new-lionwing-foundation",
+      "status": "4-profiles-data-ready",
+      "sourcePages": [120],
+      "ruleIds": ["lionwing.npc.bannerman", "lionwing.npc.builder", "lionwing.npc.coordinator", "lionwing.npc.doppelganger"],
+      "reuseFrom09": ["profile-rendering", "tier-scaling", "profile-actions", "ace-cards"],
+      "requires": ["цепное перемещение союзников с лимитом на цель", "сменная Атака от другого NPC", "превращение Местности в Приспешников", "Действия союзника в Ход Координатора", "динамическое копирование профиля", "копии с общими начальными параметрами"]
+    },
+    {
       "id": "lionwing.narrator.manual-ledger",
       "name": "Ручное применение изменений Нарратором",
       "strategy": "extend-shared-core",

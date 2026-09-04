@@ -7314,6 +7314,172 @@ window.DAWN_LIONWING_DATA = {
       "locale": "en",
       "pdfPage": 119
      }
+    },
+    {
+     "id": "lionwing.npc.bannerman",
+     "role": "Support",
+     "name": "Bannerman",
+     "description": "Enhances and moves allies close to this NPC.",
+     "examples": [
+      "Battle Commander",
+      "Psychic Lord",
+      "Hivemind Minion"
+     ],
+     "statistics": {
+      "health": "18 + [Tier × 5]",
+      "speed": 4,
+      "armor": 0,
+      "evasion": 0
+     },
+     "passive": "When this NPC moves, any ally in a centered 3 × 3 Zone may move adjacent to its new position.",
+     "actions": [
+      {
+       "id": "lionwing.npc.bannerman.in-position",
+       "kind": "action",
+       "name": "In Position",
+       "text": "Choose an ally within 6 spaces and a direction. Strengthen and Reinforce them, then move them 1 space in that direction, pushing obstructing characters. Repeat on adjacent allies, including this repeat, at most once per target."
+      },
+      {
+       "id": "lionwing.npc.bannerman.swing",
+       "kind": "attack",
+       "name": "Swing",
+       "text": "Roll 4 + [Tier] against an adjacent target. Reward: Deal [Hits] + [Tension] damage and Weaken the target if enemies have not Attacked them this Round."
+      }
+     ],
+     "ace": {
+      "id": "lionwing.npc.bannerman.plant-the-flag",
+      "tension": 3,
+      "name": "Plant The Flag",
+      "text": "Place 15 + [Tier × 5] Health Terrain adjacent to this NPC. While it exists, use In Position at the start of each Round, and replace this NPC's Attack with another NPC's Attack from the board until the Terrain is destroyed."
+     },
+     "source": {
+      "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
+      "pdfPage": 120
+     }
+    },
+    {
+     "id": "lionwing.npc.builder",
+     "role": "Support",
+     "name": "Builder",
+     "description": "Creates Terrain to disrupt enemies.",
+     "examples": [
+      "Stone Tosser",
+      "Lava Fey",
+      "Construction Worker"
+     ],
+     "statistics": {
+      "health": "15 + [Tier × 5]",
+      "speed": 3,
+      "armor": "[Tier]",
+      "evasion": 0
+     },
+     "passive": "This NPC can move through Obstacles.",
+     "actions": [
+      {
+       "id": "lionwing.npc.builder.landscape",
+       "kind": "action",
+       "name": "Landscape",
+       "text": "Choose up to 3 unoccupied spaces within 4 spaces and make them High or Low Terrain."
+      },
+      {
+       "id": "lionwing.npc.builder.violent-construction",
+       "kind": "attack",
+       "name": "Violent Construction",
+       "text": "Choose a target within 6 spaces. Deal 2 + [Tier] damage and place a 15 + [Tier × 5] Health Obstacle adjacent to them."
+      }
+     ],
+     "ace": {
+      "id": "lionwing.npc.builder.army-of-stone",
+      "tension": 2,
+      "name": "Army Of Stone",
+      "text": "Turn every piece of Terrain on the board into an allied Fodder Zone. This NPC immediately takes another Turn."
+     },
+     "source": {
+      "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
+      "pdfPage": 120
+     }
+    },
+    {
+     "id": "lionwing.npc.coordinator",
+     "role": "Support",
+     "name": "Coordinator",
+     "description": "Has allies make extra Attacks on its Turn.",
+     "examples": [
+      "Squad Captain",
+      "Inspiring Bard",
+      "Pack Alpha"
+     ],
+     "statistics": {
+      "health": "13 + [Tier × 5]",
+      "speed": 3,
+      "armor": 0,
+      "evasion": 0
+     },
+     "passive": "Allies within 4 spaces count as Strengthened during this NPC's Turn.",
+     "actions": [
+      {
+       "id": "lionwing.npc.coordinator.neutralize-them",
+       "kind": "action",
+       "name": "Neutralize Them",
+       "text": "Choose and Mark a target within 4 spaces."
+      },
+      {
+       "id": "lionwing.npc.coordinator.fanaticize",
+       "kind": "attack",
+       "name": "Fanaticize",
+       "text": "Move up to 1 space and roll 5 + [Tier] against an adjacent target. Reward: Deal [Hits] + [Tension] damage and have an ally move up to its Speed or use its primary Attack against a character not Attacked this Turn. A player ally may Cast or Skirmish."
+      }
+     ],
+     "ace": {
+      "id": "lionwing.npc.coordinator.coordinated-charge",
+      "tension": 2,
+      "name": "Coordinated Charge",
+      "text": "Every other enemy within 5 spaces may move up to its Speed or use Fanaticize against a character not Attacked this Turn."
+     },
+     "source": {
+      "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
+      "pdfPage": 120
+     }
+    },
+    {
+     "id": "lionwing.npc.doppelganger",
+     "role": "Support",
+     "name": "Doppelgänger",
+     "description": "Transforms into allies and duplicates itself.",
+     "examples": [
+      "Fey Trickster",
+      "Mystic Chameleon",
+      "Impersonator"
+     ],
+     "statistics": {
+      "health": "15 + [Tier × 5]",
+      "speed": 5,
+      "armor": 0,
+      "evasion": 0
+     },
+     "passive": "If this NPC did not start its Turn Imitating another NPC, it may Attack twice during that Turn.",
+     "actions": [
+      {
+       "id": "lionwing.npc.doppelganger.imitate",
+       "kind": "action",
+       "name": "Imitate",
+       "text": "Imitate an allied NPC, replacing this NPC's non-Health statistics, Passive, Action, and Attack with the ally's. Imitation lasts until this NPC takes damage; it may then Teleport to a space within 6 spaces. It cannot Imitate the same NPC on consecutive Turns."
+      }
+     ],
+     "ace": {
+      "id": "lionwing.npc.doppelganger.diplopia",
+      "tension": 3,
+      "name": "Diplopia",
+      "text": "Create 2 copies of this NPC in unoccupied adjacent spaces with the same Tier and current Health. This NPC immediately takes another Turn."
+     },
+     "source": {
+      "editionId": "dawn-en-lionwing-cb2f8e67",
+      "locale": "en",
+      "pdfPage": 120
+     }
     }
    ]
   },
@@ -9014,7 +9180,8 @@ window.DAWN_LIONWING_DATA = {
     116,
     117,
     118,
-    119
+    119,
+    120
    ]
   }
  },

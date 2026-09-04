@@ -27,7 +27,7 @@ assert.equal(manifest.editionId, lionwing.editionId);
 assert.equal(manifest.counts.techniques, 111);
 assert.equal(manifest.counts.coreEffects, 19);
 assert.equal(manifest.counts.coreActions, 17);
-assert.equal(manifest.counts.coreNpcs, 22);
+assert.equal(manifest.counts.coreNpcs, 26);
 assert.equal(manifest.counts.coreRuleCards, 136);
 assert.deepEqual(JSON.parse(JSON.stringify(lionwing.builderRules.progression)), { experienceToTier: 15, chapterBaseExperience: 2, chapterMaximumExperience: 4, rewardsMayBeSavedForAwakening: true });
 assert.deepEqual(JSON.parse(JSON.stringify(lionwing.builderRules.abilities)), { maximum: 1, minimumCost: 1, maximumRank: 3, customWordsRequireNarratorApproval: true, expandedUsesRequireOriginalWord: true });
