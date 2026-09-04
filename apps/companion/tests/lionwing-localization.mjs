@@ -81,7 +81,7 @@ assert.match(russianCoreRules["lionwing.narrator.deployments.taking-on-a-god"].t
 
 const englishNpcs = english.coreRules.npcs.list;
 const russianNpcs = russian.coreRules.npcs.entries;
-assert.equal(englishNpcs.length, 4);
+assert.equal(englishNpcs.length, 8);
 assert.equal(Object.keys(russianNpcs).length, englishNpcs.length, "every imported LionWing NPC needs a Russian overlay");
 const localizedNpcs = englishNpcs.map(item => {
   const overlay = russianNpcs[item.id];
@@ -94,6 +94,8 @@ assert.deepEqual(localizedNpcs.map(item => item.statistics), englishNpcs.map(ite
 assert.deepEqual(localizedNpcs.map(item => item.source), englishNpcs.map(item => item.source), "switching NPC profiles to RU must preserve sources");
 assert.match(localizedNpcs.find(item => item.id === "lionwing.npc.behemoth").ace.text, /2 Раны/, "Meteor must retain its Wound count");
 assert.match(localizedNpcs.find(item => item.id === "lionwing.npc.captor").actions.find(item => item.id.endsWith("catch-and-release")).text, /не Атаковали/, "Catch And Release must retain its conditional Effects");
+assert.match(localizedNpcs.find(item => item.id === "lionwing.npc.executioner").actions.find(item => item.id.endsWith("cleave")).text, /6 \+ \[Ступень × 2\]/, "Cleave must retain its LionWing dice formula");
+assert.match(localizedNpcs.find(item => item.id === "lionwing.npc.pugilist").ace.text, /дважды/, "Martial Perfection must retain its double Passive trigger");
 
 const englishSkills = english.builderRules.skills.canonical;
 const russianSkillNames = russian.builderRules.skills.entries;

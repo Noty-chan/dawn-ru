@@ -54,7 +54,7 @@
 | `lionwing.foundation.fodder-zones` | Зоны Приспешников без Ходов | новый фундамент LionWing | `data-ready` | 109 |
 | `lionwing.foundation.compound-npcs` | Составные NPC и Пороги Здоровья | новый фундамент LionWing | `data-ready` | 110 |
 | `lionwing.core.npc-profile-runtime` | Базовый runtime профилей NPC LionWing | параметризовать общее ядро | `profiles-in-progress` | 109–114 |
-| `lionwing.npcs.dps-profiles` | Первые профили DPS NPC LionWing | параметризовать общее ядро | `4-profiles-data-ready` | 114 |
+| `lionwing.npcs.dps-profiles` | Профили DPS NPC LionWing | параметризовать общее ядро | `8-profiles-data-ready` | 114–115 |
 | `lionwing.narrator.deployment-recipes` | Рецепты расстановки NPC LionWing | ручное решение Нарратора | `data-ready` | 113 |
 | `lionwing.core.antagonist-edges` | Грани Антагониста и Смена фазы | расширить общее ядро | `data-ready` | 111–112 |
 | `lionwing.narrator.manual-ledger` | Ручное применение изменений Нарратором | расширить общее ядро | `planned-outside-current-scope` | 34–65 |

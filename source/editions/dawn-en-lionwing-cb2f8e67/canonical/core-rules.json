@@ -704,6 +704,178 @@
           "locale": "en",
           "pdfPage": 114
         }
+      },
+      {
+        "id": "lionwing.npc.executioner",
+        "role": "DPS",
+        "name": "Executioner",
+        "description": "Debilitating anti-tank attacks at a slow pace.",
+        "examples": [
+          "Axe Wielder",
+          "Elderly Master",
+          "Grim Reaper"
+        ],
+        "statistics": {
+          "health": "15 + [Tier × 5]",
+          "speed": 3,
+          "armor": 0,
+          "evasion": 0
+        },
+        "passive": "This NPC is unaffected by Effects that lower its Speed or prevent movement.",
+        "actions": [
+          {
+            "id": "lionwing.npc.executioner.focus",
+            "kind": "action",
+            "name": "Focus",
+            "text": "Strengthen and Reinforce this NPC."
+          },
+          {
+            "id": "lionwing.npc.executioner.cleave",
+            "kind": "attack",
+            "name": "Cleave",
+            "text": "When this NPC Attacks without being Charged, it becomes Charged instead. While Charged, its Speed is 1 and it gains 1 + [Tier] Armor. Choose all targets in an adjacent 2-space Line. Roll 6 + [Tier × 2], then lose Charged. Reward: Deal [Hits] + [Tension × 2] damage; Shred a target if enemies have not Attacked them this Round."
+          }
+        ],
+        "ace": {
+          "id": "lionwing.npc.executioner.bifurcate",
+          "tension": 2,
+          "name": "Bifurcate",
+          "text": "Indicate an opponent, become Charged, and become Steady. At the end of the next Turn, move adjacent to that opponent or as close as possible through as few spaces as possible, then use Cleave against opponents moved through or adjacent to."
+        },
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 115
+        }
+      },
+      {
+        "id": "lionwing.npc.javelin",
+        "role": "DPS",
+        "name": "Javelin",
+        "description": "Creates and uses Fodder to make attacks.",
+        "examples": [
+          "Violent Fey",
+          "Flame Summoner",
+          "Automated Cannon"
+        ],
+        "statistics": {
+          "health": "15 + [Tier × 5]",
+          "speed": 2,
+          "armor": 0,
+          "evasion": 0
+        },
+        "passive": "When this NPC Attacks, it may destroy a Fodder Zone in or adjacent to its space to extend its Attack range to 5 spaces.",
+        "actions": [
+          {
+            "id": "lionwing.npc.javelin.call",
+            "kind": "action",
+            "name": "Call",
+            "text": "Create 1 + [Tier] Fodder within 4 spaces. The amount created decreases by 1 each time this is used in the same Round."
+          },
+          {
+            "id": "lionwing.npc.javelin.crushing-impact",
+            "kind": "attack",
+            "name": "Crushing Impact",
+            "text": "Choose other targets in a 2 × 2 Zone placed on this NPC. Roll 4 + [Tier]. Reward: Deal [Hits] + [Tension] damage and Launch if there is only one target."
+          }
+        ],
+        "ace": {
+          "id": "lionwing.npc.javelin.shockwave",
+          "tension": 1,
+          "name": "Shockwave",
+          "text": "Indicate a 5 × 5 Zone centered on this NPC and become Steady. At the end of the next Turn, use Crushing Impact against opposing targets in that Zone with [Tier] Advantage."
+        },
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 115
+        }
+      },
+      {
+        "id": "lionwing.npc.pugilist",
+        "role": "DPS",
+        "name": "Pugilist",
+        "description": "All-rounder with rotating Effects on Attack.",
+        "examples": [
+          "Martial Artist",
+          "Varied Arsenal",
+          "4-Faced Demon"
+        ],
+        "statistics": {
+          "health": "15 + [Tier × 5]",
+          "speed": 4,
+          "armor": 0,
+          "evasion": 0
+        },
+        "passive": "Each time this NPC Attacks, apply the next step, resetting after step 4: 1 — push the target 3 spaces, then follow; 2 — Snare the target; 3 — Launch the target; 4 — if the target is Launched, gain double Advantage from Spiking them.",
+        "actions": [
+          {
+            "id": "lionwing.npc.pugilist.take-stance",
+            "kind": "action",
+            "name": "Take Stance",
+            "text": "Set this NPC's Passive to any step, then Strengthen it."
+          },
+          {
+            "id": "lionwing.npc.pugilist.flurry-of-strikes",
+            "kind": "attack",
+            "name": "Flurry Of Strikes",
+            "text": "Roll 5 + [Tier] against an adjacent target. Reward: Deal [Hits] + [Tension] damage; Slow the target if enemies have not Attacked them this Round."
+          }
+        ],
+        "ace": {
+          "id": "lionwing.npc.pugilist.martial-perfection",
+          "tension": 3,
+          "name": "Martial Perfection",
+          "text": "For the rest of combat, trigger this NPC's Passive twice on each Attack. This NPC immediately takes another Turn."
+        },
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 115
+        }
+      },
+      {
+        "id": "lionwing.npc.ranger",
+        "role": "DPS",
+        "name": "Ranger",
+        "description": "Ultra-long-ranged attacker with high damage.",
+        "examples": [
+          "Careful Sniper",
+          "Elven Archer",
+          "Turret Emplacement"
+        ],
+        "statistics": {
+          "health": "13 + [Tier × 5]",
+          "speed": 2,
+          "armor": 0,
+          "evasion": 0
+        },
+        "passive": "After this NPC is Attacked, it may move 1 space.",
+        "actions": [
+          {
+            "id": "lionwing.npc.ranger.nest",
+            "kind": "action",
+            "name": "Nest",
+            "text": "Become Steady and gain 1 Aim. Aim is lost when this NPC moves on its Turn and adds 1 damage to all of its successful Attacks."
+          },
+          {
+            "id": "lionwing.npc.ranger.take-the-shot",
+            "kind": "attack",
+            "name": "Take The Shot",
+            "text": "Choose a character within 8 spaces. Roll 5 + [Tier]. Deal [Tier + 2] additional damage if the target is at least 4 spaces away and enemies have not Attacked them this Round. Reward: Deal [Hits] + [Tension] damage."
+          }
+        ],
+        "ace": {
+          "id": "lionwing.npc.ranger.headshot",
+          "tension": 2,
+          "name": "Headshot",
+          "text": "Choose any target. The next time this NPC's Attack hits them, they receive an additional [Hits] damage."
+        },
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 115
+        }
       }
     ]
   },
@@ -2399,7 +2571,8 @@
       111,
       112,
       113,
-      114
+      114,
+      115
     ]
   }
 }
