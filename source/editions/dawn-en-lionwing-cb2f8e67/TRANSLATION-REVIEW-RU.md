@@ -48,7 +48,7 @@
 | `ruiner.sellsword-s-call` | Sellsword's Call | Sword Caller | Призыватель меча |
 | `ruiner.creation-ascetic` | Creation Ascetic | Creator | Творец |
 
-## Требует следующего редакторского решения
+## Отложенные решения, не блокирующие системный MVP
 
 | ID / термин | Текущий вариант | Что проверить |
 | --- | --- | --- |

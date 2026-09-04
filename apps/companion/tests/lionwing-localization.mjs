@@ -11,7 +11,22 @@ const russian = window.DAWN_LIONWING_RU;
 const appBootstrapSource = fs.readFileSync(new URL("../app-bootstrap.js", import.meta.url), "utf8");
 const worklist = JSON.parse(fs.readFileSync(new URL("../../../source/editions/dawn-en-lionwing-cb2f8e67/translation-worklist.json", import.meta.url), "utf8"));
 assert.equal(russian.editionId, english.editionId);
+assert.equal(russian.status, "reviewed", "the complete LionWing RU system overlay must stay marked as reviewed");
 assert.equal(Object.keys(russian.outlooks).length, english.outlooks.length);
+
+const latinWords = new Set();
+const localizedTextFields = new Set(["name", "flavor", "text", "category", "kind", "tags", "description"]);
+function collectUnexpectedLatin(value, path = "") {
+  if (!value) return;
+  const field = path.split(".").at(-1);
+  if (typeof value === "string" && localizedTextFields.has(field)) {
+    for (const match of value.matchAll(/[A-Za-z][A-Za-z-]{2,}/g)) latinWords.add(match[0]);
+    return;
+  }
+  if (typeof value === "object") for (const [key, child] of Object.entries(value)) collectUnexpectedLatin(child, path ? `${path}.${key}` : key);
+}
+collectUnexpectedLatin(russian);
+assert.deepEqual([...latinWords].sort(), ["Blendendes", "Cavalcabo", "DAWN", "Draw", "Falscher", "III", "Licht", "LionWing", "Long", "NPC", "NPC-", "Sonneneruption", "Stern", "VIP"].sort(), "Russian LionWing user-facing text must not acquire an unreviewed English fallback");
 
 assert.equal(Object.keys(russian.reference).length, english.reference.length, "every LionWing builder reference card needs a Russian overlay");
 const localizedReference = english.reference.map(item => ({ ...item, ...(russian.reference[item.id] || {}) }));

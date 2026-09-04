@@ -6,7 +6,7 @@ window.DAWN_LIONWING_RU = Object.freeze({
   schemaVersion: 1,
   editionId: "dawn-en-lionwing-cb2f8e67",
   locale: "ru",
-  status: "draft",
+  status: "reviewed",
   abilityWords: Object.freeze({
     "ability.en.verbs.absorb": "Поглотить",
     "ability.en.verbs.attract": "Притянуть",
