@@ -5831,6 +5831,138 @@
         "editionId": "dawn-en-lionwing-cb2f8e67",
         "pdfPage": 24
       }
+    },
+    {
+      "id": "lionwing.reference.story-birth",
+      "name": "Story Question: Birth",
+      "kind": "Builder Reference",
+      "tags": "Creation, Story, Prologue",
+      "text": "Where and in what condition was your character born? A loving, close-knit community suggests Light and more detail about Family. Becoming an outcast from a healthy community suggests Accursed and asking why. Abandonment at a young age suggests Wolf and may skip the Family question.",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 25
+      }
+    },
+    {
+      "id": "lionwing.reference.story-family",
+      "name": "Story Question: Family",
+      "kind": "Builder Reference",
+      "tags": "Creation, Story, Prologue",
+      "text": "Who shaped your character in childhood? Privilege, royalty, or a secret clan suggests Deceive or Command and Blessed or Loyal; ask whether they still belong. Hard-working or business family suggests Endure or Connect and Apprentice or Light; ask how the family is now and why the character left. Systemic or fundamental disadvantage suggests Move or Absorb and Rebel or Quiet; ask what the family could provide.",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 25
+      }
+    },
+    {
+      "id": "lionwing.reference.story-ambition",
+      "name": "Story Question: Ambition",
+      "kind": "Builder Reference",
+      "tags": "Creation, Story, Prologue",
+      "text": "Why did your character leave their family, and what does the family think? Being pushed toward a goal suggests Loyal and whether the character truly wants it. Leaving to pursue a dream suggests Confident and who supports it. Being forced from home suggests Wolf and asking what they know about why it happened.",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 25
+      }
+    },
+    {
+      "id": "lionwing.reference.story-violence",
+      "name": "Story Question: Violence",
+      "kind": "Builder Reference",
+      "tags": "Creation, Story, Prologue",
+      "text": "How was the character trained to face violence, and when did they first face real danger? Circumstances that forced them to fight suggest Break or Menace and whether it made them stronger. Family training suggests Finesse or React and defining the tradition. An ambition that made them a better fighter suggests Luck or Tinker and asking how far they will go for the dream.",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 25
+      }
+    },
+    {
+      "id": "lionwing.reference.story-ability",
+      "name": "Story Question: Ability",
+      "kind": "Builder Reference",
+      "tags": "Creation, Story, Prologue",
+      "text": "What is the character's Ability, if any, and how did they first encounter other Abilities? A useful Ability suggests Blessed or Confident and asking when it was discovered. An Ability seen as harmful suggests Quiet or Accursed and asking what made it seem negative. Having no Ability yet suggests Rebel or Apprentice and asking how the character feels about that.",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 25
+      }
+    },
+    {
+      "id": "lionwing.reference.story-change",
+      "name": "Story Question: Change",
+      "kind": "Builder Reference",
+      "tags": "Creation, Story, The Adventure",
+      "text": "Discuss with at least the Narrator—and preferably the group—what suddenly changed in the world. Secret movements invite asking what the character knows compared with most people. A great success or failure by a nobody invites their opinion of that person. A sweeping change beyond mortal influence invites asking how it affected their personal life.",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 26
+      }
+    },
+    {
+      "id": "lionwing.reference.story-settling-down",
+      "name": "Optional Story Step: Settling Down",
+      "kind": "Builder Reference",
+      "tags": "Creation, Story, The Adventure",
+      "text": "DAWN often begins during a character's rising action, but that is not required. If their personal journey has already peaked and entered a steady decline, record where they are now and let them follow the other characters as those characters rise.",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 26
+      }
+    },
+    {
+      "id": "lionwing.reference.story-opportunity",
+      "name": "Story Question: Opportunity",
+      "kind": "Builder Reference",
+      "tags": "Creation, Story, The Adventure",
+      "text": "What recent opportunity to solve a practical problem or advance an ambition will bring the character to the other players? Coordinate with the Narrator if this opportunity appears in the first session. A natural event invites asking who else it affected; personal stakes invite asking how prepared the character is; joining an organization invites asking what they thought of it beforehand.",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 26
+      }
+    },
+    {
+      "id": "lionwing.reference.example-qayid",
+      "name": "Example Hero: Qayid Āl-Rashid",
+      "kind": "Builder Reference",
+      "tags": "Creation, Example, Unstructured Play",
+      "text": "Tier 1 Rebel. Attributes: Body 4, Talent 3, Spirit 2, Mind 2. Skills: Break +2, Endure +1, React +1, one custom Skill +0. Boons: Until My Last Breath; Overexertion. Ability—Gravity Well [1]: You Can Enhance Gravity So Long As You Touch The Target; a direct tool for debilitating opponents.",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 27
+      }
+    },
+    {
+      "id": "lionwing.reference.example-yvon",
+      "name": "Example Hero: Yvon Chevalier",
+      "kind": "Builder Reference",
+      "tags": "Creation, Example, Unstructured Play",
+      "text": "Tier 1 Quiet. Attributes: Body 2, Talent 4, Spirit 3, Mind 2. Skills: Lurk +2, Move +2, Intuit +1, Unveil +1. Boons: The Talent; Stalking Beast. Ability—Virtue: The Imaginary Number [1]: You Can Become Shadow; a cheap, mostly aesthetic Ability used for shadowy movement and stealth.",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 27
+      }
+    },
+    {
+      "id": "lionwing.reference.example-titania",
+      "name": "Example Hero: Titania, The Prodigy",
+      "kind": "Builder Reference",
+      "tags": "Creation, Example, Unstructured Play",
+      "text": "Tier 1 Loyal. Attributes: Body 2, Talent 2, Spirit 3, Mind 4. Skills: Unveil +1, Tinker +1, Absorb +1, Luck +1. Boons: Fish Out Of Water; My Master's Teachings. Ability—Tonitru Companion [1]: You Can Launch Lightning If You See The Target; lightning stands in for electricity to keep the image magical.",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 27
+      }
+    },
+    {
+      "id": "lionwing.reference.example-anseis",
+      "name": "Example Hero: Anseis Garrison",
+      "kind": "Builder Reference",
+      "tags": "Creation, Example, Unstructured Play",
+      "text": "Tier 1 Confident. Attributes: Body 2, Talent 3, Spirit 2, Mind 4. Skills: Deceive +2, Move +1, Luck +1, one custom Skill +0. Boons: Chatty; Perspective Of A Lancer. Ability—Virtue: Insatiable Venus [1]: You Can Attract People So Long As You Hear It; a long-reaching pull with a very loose restriction.",
+      "source": {
+        "editionId": "dawn-en-lionwing-cb2f8e67",
+        "pdfPage": 27
+      }
     }
   ],
   "coreRules": {

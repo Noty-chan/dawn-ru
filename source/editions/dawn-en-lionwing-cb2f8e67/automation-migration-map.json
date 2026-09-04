@@ -329,6 +329,16 @@
       "requires": ["победа при Напряжении 6 с проверкой золотой области", "переносимый объект и проверка владельца в начале Хода", "Замедление владельца объекта", "Местность с ограничением урона за случай и числа повреждений за Ход", "поражение и победа от условий Модификаторов", "ручное размещение схем без копирования иллюстраций PDF"]
     },
     {
+      "id": "lionwing.builder.story-guidance",
+      "name": "Вопросы истории и примеры героев LionWing",
+      "strategy": "parameterize-old-core",
+      "status": "12-reference-cards-data-ready",
+      "sourcePages": [25, 27],
+      "ruleIds": ["lionwing.reference.story-birth", "lionwing.reference.story-family", "lionwing.reference.story-ambition", "lionwing.reference.story-violence", "lionwing.reference.story-ability", "lionwing.reference.story-change", "lionwing.reference.story-settling-down", "lionwing.reference.story-opportunity", "lionwing.reference.example-qayid", "lionwing.reference.example-yvon", "lionwing.reference.example-titania", "lionwing.reference.example-anseis"],
+      "reuseFrom09": ["builder-reference-cards", "reference-search", "locale-overlay"],
+      "requires": ["необязательное отображение без влияния на бюджет героя", "сохранение рекомендаций как советов, а не ограничений", "отдельная локализация примеров", "запрет автоматического применения примера с неразрешенным Даром Stalking Beast"]
+    },
+    {
       "id": "lionwing.techniques.separate-review-map",
       "name": "Отдельная карта автоматизации 333 Уровней LionWing",
       "strategy": "new-lionwing-foundation",

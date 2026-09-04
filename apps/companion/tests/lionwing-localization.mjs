@@ -22,6 +22,9 @@ for (const item of english.reference) {
 }
 assert.deepEqual(localizedReference.map(item => item.id), english.reference.map(item => item.id), "switching LionWing reference to RU must preserve ids");
 assert.deepEqual(localizedReference.map(item => item.source), english.reference.map(item => item.source), "switching LionWing reference to RU must preserve canonical sources");
+assert.match(localizedReference.find(item => item.id === "lionwing.reference.story-change").text, /хотя бы с Нарратором/, "Change must retain required Narrator discussion");
+assert.match(localizedReference.find(item => item.id === "lionwing.reference.example-qayid").text, /Тело 4.+Талант 3.+Дух 2.+Разум 2/, "Qayid example must retain its Attributes");
+assert.match(localizedReference.find(item => item.id === "lionwing.reference.example-yvon").text, /Крадущийся зверь/, "Yvon example must preserve the source-only Stalking Beast name for review");
 assert.match(appBootstrapSource, /localizedLionwingReference\(\)/, "the companion must project LionWing reference cards through the locale overlay");
 
 const englishEffects = [...english.coreRules.effects.positive, ...english.coreRules.effects.negative];

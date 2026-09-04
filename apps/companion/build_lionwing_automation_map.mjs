@@ -11,6 +11,7 @@ const worklist = JSON.parse(fs.readFileSync(path.join(editionRoot, "translation-
 
 if (migration.editionId !== canonical.editionId) throw new Error("LionWing automation map targets the wrong edition");
 const knownRuleIds = new Set([
+  ...(canonical.reference || []).map(item => item.id),
   ...canonical.coreRules.rules.map(item => item.id),
   ...canonical.coreRules.actions.list.map(item => item.id),
   ...canonical.coreRules.effects.positive.map(item => item.id),
