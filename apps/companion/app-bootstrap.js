@@ -97,7 +97,7 @@ function localizedLionwingBuilderRules(){
 }
 const activeBuilderRules=()=>isLionwingEdition()?localizedLionwingBuilderRules():null;
 const activeCanonicalSkills=()=>activeBuilderRules()?.skills?.canonical||[];
-function skillDisplayName(skill){return activeCanonicalSkills().find(item=>item.id===skill.definitionId)?.name||skill.name||""}
+function skillDisplayName(skill,owner=S){const canonical=owner?.rulesEdition==="lionwing"?(localizedLionwingBuilderRules()?.skills?.canonical||[]):[];return canonical.find(item=>item.id===skill.definitionId)?.name||skill.name||""}
 function canonicalSkillByName(name){
   if(!isLionwingEdition())return null;
   const key=String(name||"").trim().toLocaleLowerCase(),localized=activeCanonicalSkills(),english=Lionwing.builderRules.skills?.canonical||[];

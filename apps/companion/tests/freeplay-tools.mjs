@@ -26,7 +26,7 @@ assert.deepEqual(
 );
 
 const markup = fs.readFileSync(path.join(root, "index.html"), "utf8");
-const source = ["app-core.js", "play-ui.js", "app-play-events.js", "hero-ui.js", "scene-events.js", "scene-sync-ui.js", "app-sync-events.js", "scene-ui.js", "app-scene-events.js"]
+const source = ["app-bootstrap.js", "app-core.js", "play-ui.js", "app-play-events.js", "hero-ui.js", "scene-actions-ui.js", "scene-events.js", "scene-sync-ui.js", "app-sync-events.js", "scene-ui.js", "app-scene-events.js"]
   .map(file => fs.readFileSync(path.join(root, file), "utf8"))
   .join("\n");
 
@@ -40,6 +40,9 @@ assert.match(source, /base\.bonds=Array\.isArray\(h\.bonds\)/, "Bonds must survi
 assert.match(source, /ruleId:`freeplay\.skill:/, "A Skill must enter a challenge roll through the reusable Advantage hook");
 assert.match(source, /ruleId:`freeplay\.ability:/, "An Ability must enter a challenge roll through the reusable Advantage hook");
 assert.match(source, /ruleId:`freeplay\.bond:/, "A Bond must enter a challenge roll through the reusable Advantage hook");
+assert.match(source, /S\.skills\.filter\(item=>skillDisplayName\(item\)\.trim\(\)\)/, "LionWing canonical Skills must remain available in the Tools dice composer");
+assert.match(source, /definitionId:skill\.definitionId\|\|null/, "Published scene heroes must retain canonical LionWing Skill ids");
+assert.match(source, /skillDisplayName\(skill,actor\)/, "Scene tools must resolve LionWing Skill names from their stable ids");
 assert.match(source, /challengeRequestId:challenge\.id/, "A requested network roll must retain the Narrator request id");
 assert.match(source, /Получен результат:/, "The Narrator tools must visibly expose an accepted requested roll");
 assert.match(source, /Нарратор получил этот бросок/, "The player must receive explicit confirmation that the requested result was accepted");
