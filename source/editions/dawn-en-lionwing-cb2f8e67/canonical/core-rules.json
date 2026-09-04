@@ -2117,6 +2117,178 @@
           "locale": "en",
           "pdfPage": 123
         }
+      },
+      {
+        "id": "lionwing.npc.necromancer",
+        "role": "Engine",
+        "name": "Necromancer",
+        "description": "Revives dead allies and Fears enemies.",
+        "examples": [
+          "Lich",
+          "Scrap Reassembler",
+          "Recovering Cleric"
+        ],
+        "statistics": {
+          "health": "13 + [Tier × 5]",
+          "speed": 2,
+          "armor": 0,
+          "evasion": 0
+        },
+        "passive": "Enemies Knocked Out while this NPC is Deployed leave a Corpse in the space where they were Knocked Out.",
+        "actions": [
+          {
+            "id": "lionwing.npc.necromancer.call-the-dead",
+            "kind": "action",
+            "name": "Call The Dead",
+            "text": "Create 1 + [Tier] Fodder within 4 spaces. They count as Corpses while active. Reduce the number created by 1 each time this Action is reused in the same Round."
+          },
+          {
+            "id": "lionwing.npc.necromancer.terrifying-shot",
+            "kind": "attack",
+            "name": "Terrifying Shot",
+            "text": "Choose a target within 5 spaces. Roll 4 + [Tier]. Reward: Deal [Hits] + [Tension × 2] damage and Fear the target."
+          }
+        ],
+        "ace": {
+          "id": "lionwing.npc.necromancer.the-danse-macabre",
+          "tension": 2,
+          "name": "The Danse Macabre",
+          "text": "Revive 2 Corpses as Bruisers, Vipers, or Rangers with Tier equal to this NPC's Tier minus 1, minimum 1."
+        },
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 124
+        }
+      },
+      {
+        "id": "lionwing.npc.privateer",
+        "role": "Engine",
+        "name": "Privateer",
+        "description": "Attacks when allies Attack nearby enemies.",
+        "examples": [
+          "Running Gunman",
+          "Bird Of Prey",
+          "Mini Turret"
+        ],
+        "statistics": {
+          "health": "13 + [Tier × 5]",
+          "speed": 4,
+          "armor": 0,
+          "evasion": 0
+        },
+        "passive": "Once per Round, when an ally Attacks an opponent within this NPC's Attack range, deal [Tier + 2] damage to that opponent.",
+        "actions": [
+          {
+            "id": "lionwing.npc.privateer.escort",
+            "kind": "action",
+            "name": "Escort",
+            "text": "Hasten an ally. When that ally moves, this NPC may move the same number of spaces as long as it does not end farther away from them."
+          },
+          {
+            "id": "lionwing.npc.privateer.spray-and-pray",
+            "kind": "attack",
+            "name": "Spray And Pray",
+            "text": "Affect all targets in a 2-space Line adjacent to this NPC. Roll 4 + [Tier]. Reward: Deal [Hits] + [Tension × 2] damage."
+          }
+        ],
+        "ace": {
+          "id": "lionwing.npc.privateer.gear-change",
+          "tension": 3,
+          "name": "Gear Change",
+          "text": "For the rest of the Scene, this NPC may move 1 space at the end of every character's Turn. This NPC immediately takes another Turn."
+        },
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 124
+        }
+      },
+      {
+        "id": "lionwing.npc.rifter",
+        "role": "Engine",
+        "name": "Rifter",
+        "description": "Creates portals that anyone can use.",
+        "examples": [
+          "Spacial Magi",
+          "Tunnelling Mole",
+          "Explosive Jumper"
+        ],
+        "statistics": {
+          "health": "13 + [Tier × 5]",
+          "speed": 2,
+          "armor": 0,
+          "evasion": 0
+        },
+        "passive": "When this NPC begins any movement, including involuntary movement, create a Rift in the space it left and its destination. Once per Turn, when another character moves onto a Rift, they may remove it and Teleport to another Rift.",
+        "actions": [
+          {
+            "id": "lionwing.npc.rifter.wild-shifting",
+            "kind": "action",
+            "name": "Wild Shifting",
+            "text": "Teleport to a space within 3 spaces 3 times."
+          },
+          {
+            "id": "lionwing.npc.rifter.emerge",
+            "kind": "attack",
+            "name": "Emerge",
+            "text": "Teleport to a space within 5 spaces and choose all adjacent characters as targets. Roll 5 + [Tier]. Reward: Deal [Hits] + [Tension] damage."
+          }
+        ],
+        "ace": {
+          "id": "lionwing.npc.rifter.implode",
+          "tension": 3,
+          "name": "Implode",
+          "text": "Every Rift explodes, applying the damaging portion of this NPC's primary Attack to all characters adjacent to or within a Rift."
+        },
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 124
+        }
+      },
+      {
+        "id": "lionwing.npc.swarm",
+        "role": "Engine",
+        "name": "Swarm",
+        "description": "Enhanced Fodder that creates more Fodder.",
+        "examples": [
+          "Insect Swarm",
+          "Bandit Squad",
+          "Vestigial Limbs"
+        ],
+        "statistics": {
+          "health": "1*",
+          "speed": "0*",
+          "armor": 0,
+          "evasion": 0
+        },
+        "passive": "When this NPC would be Deployed, place 4 + [Tier] unique Fodder Zones instead. This NPC cannot be Knocked Out until all its Zones or all non-Fodder enemies are Knocked Out; when either happens, this NPC takes 1 damage.",
+        "actions": [
+          {
+            "id": "lionwing.npc.swarm.call",
+            "kind": "action",
+            "name": "Call",
+            "text": "Create 1 + [Tier] Fodder Zones in spaces on the edge of the board. Reduce the number created by 1 each time this Action is reused in the same Round."
+          },
+          {
+            "id": "lionwing.npc.swarm.tear",
+            "kind": "attack",
+            "name": "Tear",
+            "text": "Move every Fodder Zone up to 1 space. Choose up to 3 opponents adjacent to a Fodder Zone and roll 5 + [Tier]. Reward: Deal [Hits] + [Tension] damage and Daze one target."
+          }
+        ],
+        "ace": {
+          "id": "lionwing.npc.swarm.reinforcements",
+          "tension": 2,
+          "name": "Reinforcements",
+          "text": "Create 4 + [Tier] Fodder Zones in spaces on the edge of the board. This NPC immediately takes another Turn."
+        },
+        "source": {
+          "editionId": "dawn-en-lionwing-cb2f8e67",
+          "locale": "en",
+          "pdfPage": 124
+        }
       }
     ]
   },
@@ -3821,7 +3993,8 @@
       120,
       121,
       122,
-      123
+      123,
+      124
     ]
   }
 }

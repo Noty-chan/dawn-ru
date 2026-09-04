@@ -81,7 +81,7 @@ assert.match(russianCoreRules["lionwing.narrator.deployments.taking-on-a-god"].t
 
 const englishNpcs = english.coreRules.npcs.list;
 const russianNpcs = russian.coreRules.npcs.entries;
-assert.equal(englishNpcs.length, 37);
+assert.equal(englishNpcs.length, 41);
 assert.equal(Object.keys(russianNpcs).length, englishNpcs.length, "every imported LionWing NPC needs a Russian overlay");
 const localizedNpcs = englishNpcs.map(item => {
   const overlay = russianNpcs[item.id];
@@ -119,6 +119,9 @@ assert.equal(englishNpcs.find(item => item.id === "lionwing.npc.cannoneer").ace.
 assert.match(localizedNpcs.find(item => item.id === "lionwing.npc.cultist").ace.text, /Модификатор Гигант/, "Grand Calling must use the new Giant Modifier model");
 assert.match(localizedNpcs.find(item => item.id === "lionwing.npc.enchanter").ace.text, /1 Рану/, "By My Command must use the changed one-Wound consequence");
 assert.match(localizedNpcs.find(item => item.id === "lionwing.npc.hound-master").passive, /3 клетки вместо 2/, "Hound Master must use the changed Fodder movement");
+assert.match(localizedNpcs.find(item => item.id === "lionwing.npc.necromancer").actions.find(item => item.id.endsWith("call-the-dead")).text, /повторно в том же Раунде/, "Call The Dead must retain its diminishing reuse rule");
+assert.match(localizedNpcs.find(item => item.id === "lionwing.npc.rifter").passive, /Один раз за Ход/, "Rifter travel must retain its per-Turn limit");
+assert.equal(englishNpcs.find(item => item.id === "lionwing.npc.swarm").statistics.health, "1*", "Swarm must retain its special Health");
 
 const englishSkills = english.builderRules.skills.canonical;
 const russianSkillNames = russian.builderRules.skills.entries;

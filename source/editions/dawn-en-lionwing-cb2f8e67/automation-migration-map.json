@@ -282,11 +282,11 @@
       "id": "lionwing.npcs.engine-profiles",
       "name": "Профили Engine NPC LionWing",
       "strategy": "new-lionwing-foundation",
-      "status": "7-profiles-data-ready",
-      "sourcePages": [122, 123],
-      "ruleIds": ["lionwing.npc.baron", "lionwing.npc.berserker", "lionwing.npc.cannoneer", "lionwing.npc.cultist", "lionwing.npc.daredevil", "lionwing.npc.enchanter", "lionwing.npc.hound-master"],
+      "status": "11-profiles-data-ready",
+      "sourcePages": [122, 124],
+      "ruleIds": ["lionwing.npc.baron", "lionwing.npc.berserker", "lionwing.npc.cannoneer", "lionwing.npc.cultist", "lionwing.npc.daredevil", "lionwing.npc.enchanter", "lionwing.npc.hound-master", "lionwing.npc.necromancer", "lionwing.npc.privateer", "lionwing.npc.rifter", "lionwing.npc.swarm"],
       "reuseFrom09": ["profile-rendering", "tier-scaling", "profile-actions", "ace-cards", "rule-clocks"],
-      "requires": ["запрет выбранных Действий с перехватом цели", "обязательная клетка к концу следующего Хода", "порог урона одним случаем", "изменяемый Пассив", "Часы Подготовки", "Козырь Н0 с повторным применением и тремя случаями урона", "счетчики Рока и виртуальное Напряжение", "замена Культиста усиленным NPC", "движение при росте Напряжения", "принудительный Ход против союзника", "Ищейки с целью и взрывом"]
+      "requires": ["запрет выбранных Действий с перехватом цели", "обязательная клетка к концу следующего Хода", "порог урона одним случаем", "изменяемый Пассив", "Часы Подготовки", "Козырь Н0 с повторным применением и тремя случаями урона", "счетчики Рока и виртуальное Напряжение", "замена Культиста усиленным NPC", "движение при росте Напряжения", "принудительный Ход против союзника", "Ищейки с целью и взрывом", "Трупы и оживление как NPC меньшей Ступени", "движение сопровождения вслед за союзником", "сеть Разломов с удалением и лимитом раз за Ход", "распределенный NPC из Зон Приспешников"]
     },
     {
       "id": "lionwing.techniques.separate-review-map",
