@@ -602,6 +602,42 @@ def core_rules() -> dict:
             "ace": {"id": "lionwing.npc.duelist.disassemble", "tension": 2, "name": "Disassemble", "text": "Place a weak point in an unoccupied space adjacent to a character; it follows its host's movement. When this NPC Attacks the host while standing in the weak point, deal [Tension] additional damage, consume the weak point, and this Ace may be used again immediately."},
             "source": npc_source(117),
         },
+        {
+            "id": "lionwing.npc.glutton", "role": "Tank", "name": "Glutton",
+            "description": "Eats Fodder to heal and spits them out.", "examples": ["Ravenous Ogre", "Nanobot Swarm", "Splitting Slime"],
+            "statistics": {"health": "20 + [Tier × 5]", "speed": 2, "armor": 0, "evasion": 0},
+            "passive": "When this NPC Knocks Out a Fodder Zone, restore 3 + [Tier] Health and track how many times this healing triggers.",
+            "actions": [
+                {"id": "lionwing.npc.glutton.call", "kind": "action", "name": "Call", "text": "Create 1 + [Tier] Fodder within 4 spaces. The amount created decreases by 1 each time this is used in the same Round."},
+                {"id": "lionwing.npc.glutton.slobber", "kind": "attack", "name": "Slobber", "text": "Choose up to 2 adjacent targets. Roll 5 + [Tier]. Reward: Deal [Hits] + [Tension] damage and Slow targets enemies have not Attacked this Round."},
+            ],
+            "ace": {"id": "lionwing.npc.glutton.regurgitate", "tension": 4, "name": "Regurgitate", "text": "Place as many Fodder Zones as this NPC destroyed with its Passive in spaces of your choice. Characters under placed Zones are Launched."},
+            "source": npc_source(118),
+        },
+        {
+            "id": "lionwing.npc.guardian", "role": "Tank", "name": "Guardian",
+            "description": "Protects allies from a specific direction.", "examples": ["Honor-Bound Knight", "Big Body", "Stone Golem"],
+            "statistics": {"health": "20 + [Tier × 5]", "speed": 3, "armor": "[Tier]", "evasion": 0},
+            "passive": "Spaces adjacent to this NPC count as Difficult Terrain for its opponents.",
+            "actions": [
+                {"id": "lionwing.npc.guardian.guardian-shield", "kind": "action", "name": "Guardian Shield", "text": "Slow this NPC and place an adjacent 2 × 3 shield until the start of its next Turn; the Zone moves with it. Opponents Attacking in this area treat their targets as having 1 + [Tier] additional Armor."},
+                {"id": "lionwing.npc.guardian.shove", "kind": "attack", "name": "Shove", "text": "Roll 4 + [Tier] against an adjacent target. Reward: Deal [Hits] + [Tension] damage, push the target 2 spaces away, and Launch them."},
+            ],
+            "ace": {"id": "lionwing.npc.guardian.imposing-presence", "tension": 3, "name": "Imposing Presence", "text": "For the rest of the Scene, characters adjacent to this NPC or within its shield are Taunted."},
+            "source": npc_source(118),
+        },
+        {
+            "id": "lionwing.npc.mount", "role": "Tank", "name": "Mount",
+            "description": "Attaches to fragile allies to protect and enhance them.", "examples": ["Armored Horse", "Giant Salamander", "Dire Wolf"],
+            "statistics": {"health": "15 + [Tier × 5]", "speed": 4, "armor": 0, "evasion": 0},
+            "passive": "When Deployed, or as an Action, this NPC may let a willing adjacent character Mount it, replacing any previous rider. Rider and Mount stay in the same space when either moves. Attacks targeting only an NPC rider target this NPC instead.",
+            "actions": [
+                {"id": "lionwing.npc.mount.synergy", "kind": "action", "name": "Synergy", "text": "Use the rider's Action, or any 1-Cost Utility Action if the rider is a player."},
+                {"id": "lionwing.npc.mount.thrash", "kind": "attack", "name": "Thrash", "text": "Choose up to 2 adjacent targets. Roll 5 + [Tier]. Reward: Deal [Hits] + [Tension] damage."},
+            ],
+            "ace": {"id": "lionwing.npc.mount.charge", "tension": 2, "name": "CHARGE!", "text": "Move up to this NPC's Speed in a straight Line. When the movement ends, its rider may use their Attack or Skirmish with [Tier] Advantage. This NPC immediately takes another Turn."},
+            "source": npc_source(118),
+        },
     ]
     rule_rows = [
         ("lionwing.narrator.deployments.overview", "Deployment Recipes", "Using Deployment Recipes", "narrator-guidance", "Each listed recipe is balanced as Tough Combat for 4 players. To make it Standard, halve half of the enemy Tiers; to make it Brutal, double half of the enemy Tiers.", 113),
@@ -760,7 +796,7 @@ def core_rules() -> dict:
         },
         "npcs": {"list": npc_rows},
         "rules": rules,
-        "source": {"editionId": NEW_ID, "locale": "en", "pdfPages": list(range(22, 66)) + list(range(104, 118))},
+        "source": {"editionId": NEW_ID, "locale": "en", "pdfPages": list(range(22, 66)) + list(range(104, 119))},
     }
 
 
