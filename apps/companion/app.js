@@ -32,6 +32,7 @@ function applyContentPreferences({render=false}={}){
   document.body.dataset.contentEdition=contentPreferences.edition;
   const banner=$("content-preview-banner");banner.hidden=!isLionwingEdition();if(!banner.hidden)banner.textContent=t(`preview.lionwing.${contentPreferences.locale}`);
   if(isLionwingEdition()&&sceneControlMode!=="manual")sceneControlMode="manual";
+  if(typeof relocalizeSceneContent==="function")relocalizeSceneContent();
   if(!activeArchetypes().some(archetype=>archetype.id===activeArch))activeArch=activeArchetypes()[0]?.id;
   syncContentUrl();
   if(render){setMode(store.mode||"build");renderAll();persistHeroStore()}

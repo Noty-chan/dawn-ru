@@ -138,6 +138,8 @@
     if (match) return Number(match[1]) + (currentTier - 1) * Number(match[2]);
     match = value.match(/^(-?\d+(?:\.\d+)?)\(\+(\d+(?:\.\d+)?)\/2\)$/);
     if (match) return Number(match[1]) + Math.floor(currentTier / 2) * Number(match[2]);
+    match = value.match(/^(-?\d+(?:\.\d+)?)\s*\+\s*\[(?:Tier|Ступень)\s*[×x*]\s*(\d+(?:\.\d+)?)\]$/iu);
+    if (match) return Number(match[1]) + currentTier * Number(match[2]);
     return null;
   }
 

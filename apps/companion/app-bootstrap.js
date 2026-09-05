@@ -6,6 +6,7 @@ const t = (key, params, fallback) => I18n?.t(key, params, { fallback }) ?? fallb
 const D = window.DAWN_DATA;
 const Lionwing = window.DAWN_LIONWING_DATA;
 const LionwingRu = window.DAWN_LIONWING_RU;
+const LionwingTable = window.DAWN_LIONWING_TABLE_DATA;
 const Supplements = window.DAWN_SUPPLEMENTS;
 if (!D || D.schemaVersion !== 2) document.body.innerHTML = `<p style='padding:2rem'>${t("app.error.data")}</p>`;
 const Logic = window.DAWN_LOGIC;

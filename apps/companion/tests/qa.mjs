@@ -23,7 +23,7 @@ assert.deepEqual(JSON.parse(JSON.stringify(logic.reconcileHealthRuntime({ curren
 assert.deepEqual(JSON.parse(JSON.stringify(logic.reconcileHealthRuntime({ current: 0, previousMax: 0, nextMax: 10 }))), { current: 10, maximum: 10 }, "A legacy 0/0 Health placeholder initializes the hero at full Health");
 assert.deepEqual(JSON.parse(JSON.stringify(logic.reconcileSceneActorHealth({ current: 0, previousMax: 6, nextMax: 6, existing: false }))), { current: 6, maximum: 6 }, "A newly spawned table actor starts at full Health even when the saved character sheet was at zero");
 assert.deepEqual(JSON.parse(JSON.stringify(logic.reconcileSceneActorHealth({ current: 2, previousMax: 6, nextMax: 8, existing: true }))), { current: 4, maximum: 8 }, "Refreshing an existing table actor preserves its missing Health");
-const appFiles = ["localization.js", "locale-ru.js", "locale-en-builder.js", "edition-lionwing.js", "app-bootstrap.js", "app-reference-data.js", "app-core.js", "hero-ui.js", "scene-ui.js", "gm-library.js", "scene-effects.js", "scene-actions-ui.js", "scene-sync-ui.js", "play-ui.js", "app-builder-events.js", "app-sync-events.js", "app-scene-events.js", "app-play-events.js", "app.js"];
+const appFiles = ["localization.js", "locale-ru.js", "locale-en-builder.js", "edition-lionwing.js", "edition-lionwing-ru.js", "lionwing-table-data.js", "app-bootstrap.js", "app-reference-data.js", "app-core.js", "hero-ui.js", "scene-ui.js", "gm-library.js", "scene-effects.js", "scene-actions-ui.js", "scene-sync-ui.js", "play-ui.js", "app-builder-events.js", "app-sync-events.js", "app-scene-events.js", "app-play-events.js", "app.js"];
 const appSource = appFiles.map(file => fs.readFileSync(path.join(root, file), "utf8")).join("\n");
 const companionMarkup = fs.readFileSync(path.join(root, "index.html"), "utf8");
 const companionCss = fs.readFileSync(path.join(root, "app.css"), "utf8");
@@ -70,7 +70,7 @@ assert.match(appSource, /base\.turnApprovalMode=scene\.turnApprovalMode==="narra
 assert.match(appSource, /sceneTurnApprovalMode\(\)==="self"[\s\S]+data-scene-flow-turn/, "Players may start only their own eligible hero Turn when self-start is enabled");
 assert.match(appSource, /data-director-assign-turn[\s\S]+setActorTurn\(picked\)/, "The Narrator Turn handoff must use the canonical alternating Turn lifecycle");
 assert.doesNotMatch(appSource, /quickTurn[\s\S]{0,240}forceNarratorTurn\(picked\)/, "Ordinary quick Turn controls must not silently bypass alternation");
-assert.match(appSource, /sceneQuickEffectsHtml[\s\S]+group\(D\.effects\.positive,"positive","\+"[\s\S]+group\(D\.effects\.negative,"negative","−"/, "The target inspector must expose visually separated positive and negative quick Effects");
+assert.match(appSource, /sceneQuickEffectsHtml[\s\S]+sceneEffects\(\)[\s\S]+group\(effects\.positive,"positive","\+"[\s\S]+group\(effects\.negative,"negative","−"/, "The target inspector must expose visually separated positive and negative quick Effects");
 assert.match(appSource, /root\.querySelector\("\.gm-effect-console"\)\?\.remove\(\)/, "The duplicated select-based Effect console must be removed from the target inspector");
 assert.match(appSource, /sceneInspectorSpacesHtml[\s\S]+data-scene-inspector-space/, "The target inspector must expose compact switching between open fields");
 assert.match(appSource, /sceneReferenceMarkup!==markup[\s\S]+openRuleIds[\s\S]+details\.open=openRuleIds\.has/, "Unchanged rule cards must retain their open state across Scene renders");
@@ -682,6 +682,9 @@ assert.match(app, /profile\.deployEffects/);
 assert.match(html, /gm-library\.js\?v=__BUILD_VERSION__/);
 assert.match(app, /function normalizeGmLibrary/);
 assert.match(app, /function deployEncounter/);
+assert.match(app, /function localizedEncounter[\s\S]+nameI18n:\{ru:item\.name,en:english\}/, "The bilingual LionWing audit preset keeps both actor names");
+assert.match(app, /actor\.nameI18n=sceneI18n\(source\.nameI18n,120\)/, "Scene normalization must preserve localized actor names");
+assert.match(app, /function relocalizeSceneContent[\s\S]+actor\.name=choose\(actor\.nameI18n,actor\.name\)/, "Changing language relabels the deployed preset without replacing actor state");
 assert.match(app, /data-gm-variant-add/);
 assert.match(app, /data-gm-encounter-deploy/);
 assert.match(html, /scene-enemy-team/);
