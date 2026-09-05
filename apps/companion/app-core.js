@@ -97,6 +97,8 @@ function trimSceneHistory(entries,limit=20){return(Array.isArray(entries)?entrie
 function sceneI18n(value,limit=160){const source=value&&typeof value==="object"?value:{};return Object.fromEntries(["ru","en"].filter(locale=>typeof source[locale]==="string"&&source[locale]).map(locale=>[locale,source[locale].slice(0,limit)]))}
 function sceneCore(raw){
   const base=blankScene(),scene=raw&&typeof raw==="object"?raw:{};
+  base.rulesEdition=["lionwing","ru-v0.9"].includes(scene.rulesEdition)?scene.rulesEdition:(scene.actors||[]).some(actor=>actor.rulesEdition==="lionwing"||String(actor.profileId||"").startsWith("lionwing."))?"lionwing":(scene.actors||[]).length?"ru-v0.9":"ru-v0.9";
+  if(scene.lionwing&&typeof scene.lionwing==="object")base.lionwing=JSON.parse(JSON.stringify(scene.lionwing));
   base.version=clamp(scene.version,0,999999999);base.name=typeof scene.name==="string"?scene.name.slice(0,120):base.name;base.view=scene.view==="player"?"player":"gm";base.turnApprovalMode=scene.turnApprovalMode==="narrator"?"narrator":"self";base.round=clamp(scene.round||1,1,999);base.turnSerial=clamp(scene.turnSerial,0,999999999);base.tension=clamp(scene.tension,0,999);base.tool=["select","place","measure","target","area","wall","marker","topology","erase"].includes(scene.tool)?scene.tool:"select";
   base.results=scene.results&&typeof scene.results==="object"&&typeof scene.results.id==="string"&&scene.results.id?{id:scene.results.id.slice(0,120),openedAt:typeof scene.results.openedAt==="string"?scene.results.openedAt.slice(0,32):"",openedBy:typeof scene.results.openedBy==="string"?scene.results.openedBy.slice(0,120):"Нарратор"}:null;
   base.spaces=Array.isArray(scene.spaces)?scene.spaces.slice(0,12).map((space,index)=>{const rawWidth=clamp(space.width||7,1,12),rawHeight=clamp(space.height||7,1,12),mode=["standard","cinematic","custom"].includes(space.mode)?space.mode:(rawWidth===7&&rawHeight===1?"cinematic":rawWidth===7&&rawHeight===7?"standard":"custom");return{id:typeof space.id==="string"?space.id:uid(),name:typeof space.name==="string"?space.name.slice(0,60):`Пространство ${index+1}`,mode,width:mode==="cinematic"?7:mode==="standard"?7:rawWidth,height:mode==="cinematic"?1:mode==="standard"?7:rawHeight}}):base.spaces;
@@ -107,8 +109,9 @@ function sceneCore(raw){
   base.actors.forEach((actor,index)=>{
     const source=scene.actors?.[index]||{};
     actor.nameI18n=sceneI18n(source.nameI18n,120);
-    actor.rulesEdition=["ru-v0.9","lionwing"].includes(source.rulesEdition)?source.rulesEdition:"ru-v0.9";
-    if(actor.kind==="hero"&&actor.rulesEdition==="lionwing"){actor.guts=null;actor.wounds=0}
+    actor.rulesEdition=["ru-v0.9","lionwing"].includes(source.rulesEdition)?source.rulesEdition:String(source.profileId||"").startsWith("lionwing.")?"lionwing":"ru-v0.9";
+    if(actor.rulesEdition==="lionwing"){actor.guts=null;actor.wounds=clamp(source.wounds,0,3);actor.focus=Math.max(0,Number(source.focus)||0)}
+    if(source.lionwing&&typeof source.lionwing==="object")actor.lionwing=JSON.parse(JSON.stringify(source.lionwing));
     actor.knownTechniques=source.knownTechniques&&typeof source.knownTechniques==="object"?{...source.knownTechniques}:{...actor.techniques};
     actor.bonds=Array.isArray(source.bonds)?source.bonds.slice(0,30).filter(bond=>bond&&typeof bond.name==="string").map(bond=>({id:typeof bond.id==="string"?bond.id.slice(0,120):"",name:bond.name.slice(0,120)})):[];
     actor.sacrifices=cleanArray(source.sacrifices).filter(item=>["eye","arm","leg","tongue","life"].includes(item));

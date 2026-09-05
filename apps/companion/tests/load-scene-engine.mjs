@@ -16,6 +16,7 @@ export const sceneEngineFiles = [
   "scene-actions.js",
   "scene-responses.js",
   "scene-engine.js",
+  "lionwing-engine.js",
 ];
 
 export function loadSceneEngine(context) {
