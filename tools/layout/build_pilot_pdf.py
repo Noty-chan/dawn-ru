@@ -245,6 +245,27 @@ BOOK_FILES = [
     "pages-120-124-combat-stakes-modifiers-credits.md",
 ]
 
+# The LionWing proof intentionally contains only the translated system corpus.
+# Setting examples and front matter remain outside this artifact until their
+# LionWing pass is complete. It also avoids reusing page-specific art crops from
+# the obsolete 0.9 source PDF.
+LIONWING_SYSTEM_FILES = [
+    "pages-005-008-introduction.md",
+    "pages-020-028-universal-rules.md",
+    "pages-029-036-character-creation.md",
+    "pages-037-051-unstructured-play.md",
+    "pages-052-064-structured-combat-core.md",
+    "pages-065-070-powerhouse-techniques.md",
+    "pages-071-076-vagabond-techniques.md",
+    "pages-077-081-bulwark-techniques.md",
+    "pages-082-087-altruist-techniques.md",
+    "pages-088-093-disruptor-techniques.md",
+    "pages-094-099-ruiner-techniques.md",
+    "pages-100-108-narrator-tools.md",
+    "pages-109-119-general-enemy-types.md",
+    "pages-120-124-combat-stakes-modifiers-credits.md",
+]
+
 MAJOR_OPENERS = {
     "pages-005-008-introduction.md": {
         "source_page": 6,
@@ -3762,6 +3783,39 @@ def build_book() -> Path:
     return build_pdf(BOOK_FILES, "dawn-ru-layout-draft.pdf", DRAFT_TMP_DIR, separate_sections=False)
 
 
+def set_lionwing_proof_metadata(pdf_path: Path) -> None:
+    doc = fitz.open(pdf_path)
+    doc.set_metadata(
+        {
+            "title": "DAWN LionWing RU - system proof",
+            "author": "Joel Vreugdenhil",
+            "subject": "Рабочая русская верстка системных глав LionWing Edition (Print Beta)",
+            "keywords": "DAWN, LionWing, НРИ, TTRPG, русский перевод, proof",
+            "creator": "Проект DAWN RU",
+            "producer": f"DAWN RU LionWing proof pipeline / PyMuPDF {fitz.VersionBind}",
+        }
+    )
+    catalog = doc.pdf_catalog()
+    doc.xref_set_key(catalog, "Lang", "(ru-RU)")
+    tmp_path = pdf_path.with_name(f"{pdf_path.stem}.metadata.tmp.pdf")
+    doc.save(tmp_path, garbage=4, deflate=True)
+    doc.close()
+    tmp_path.replace(pdf_path)
+
+
+def build_lionwing_system_proof() -> Path:
+    preview_dir = TMP_ROOT / "lionwing-system-proof"
+    out = build_pdf(
+        LIONWING_SYSTEM_FILES,
+        "dawn-ru-lionwing-system-proof.pdf",
+        preview_dir,
+        separate_sections=True,
+    )
+    set_lionwing_proof_metadata(out)
+    render_pdf(out, preview_dir)
+    return out
+
+
 def build_beauty_book() -> Path:
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     BEAUTY_TMP_DIR.mkdir(parents=True, exist_ok=True)
@@ -4086,6 +4140,8 @@ if __name__ == "__main__":
     target = sys.argv[1] if len(sys.argv) > 1 else "pilot"
     if target == "book":
         print(build_book())
+    elif target == "lionwing-proof":
+        print(build_lionwing_system_proof())
     elif target == "beauty":
         print(build_beauty_book())
     elif target == "final":
