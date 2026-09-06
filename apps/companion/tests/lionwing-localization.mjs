@@ -98,10 +98,14 @@ assert.match(russianCoreRules["lionwing.core.progression.experience"].text, /15 
 assert.match(russianCoreRules["lionwing.core.progression.awakening"].text, /сохранить/, "LionWing Awakening must retain deferred rewards");
 assert.match(russianCoreRules["lionwing.core.progression.tier"].text, /нечётного значения.+Скорость.+стартовый Фокус/, "Tier advancement must retain derived-stat side effects");
 assert.match(russianCoreRules["lionwing.core.progression.pacing"].text, /3 Опыта.+каждое потраченное Влияние.+6 Опыта/, "optional fast advancement must retain its alternate Experience formula");
+assert.match(russianCoreRules["lionwing.core.progression.pacing"].text, /Вместо подсчёта Опыта.+ускоряя или замедляя/, "milestone advancement must support either pacing direction");
 assert.match(russianCoreRules["lionwing.core.general.materials"].text, /7 × 7.+6 × 6/, "play materials must retain both board layouts");
+assert.match(russianCoreRules["lionwing.core.general.materials"].text, /книга или справочник правил/, "play materials must retain the rules-reference alternative");
+assert.match(russianCoreRules["lionwing.core.general.roles"].text, /Нарратор организует игру.+одного персонажа/, "table roles must retain Narrator organization and one character per other player");
 assert.match(russianCoreRules["lionwing.core.general.specific-overrides"].text, /два одинаково частных правила.+пользователь выбирает/, "equally specific conflicting rules must leave the choice to the user");
 assert.match(russianCoreRules["lionwing.core.abilities.expansion"].text, /хотя бы одно слово из исходной формы/, "expanded Abilities must retain an original word");
 assert.match(russianCoreRules["lionwing.core.bonds.quick"].text, /Один раз за Главу/, "LionWing must limit Quick Bonds per Chapter");
+assert.match(russianCoreRules["lionwing.core.ranks.overview"].text, /Непотраченные стартовые Ранги пропадают/, "starting Character Ranks must be spent rather than merely marked as saved");
 assert.match(russianCoreRules["lionwing.core.bond-actions.study"].text, /нельзя оплатить Стрессом/, "Study must keep its Stress payment exception");
 assert.match(russianCoreRules["lionwing.core.bond-actions.abandon"].text, /только один раз/, "Abandon Influence must remain once per target character");
 assert.match(russianCoreRules["lionwing.narrator.antagonism.pool"].text, /числа игроков/, "Antagonism must start from the player count");
