@@ -3,7 +3,7 @@
 > Генерируется `node tools/content/build_lionwing_requirements.mjs`. Проверка: та же команда с `--check`.
 > Черновик требований не означает сверку всех неоднозначностей, реализацию контракта или автоматизацию Техники.
 
-Всего: 333 Уровня. Подробный ручной черновик: 44. Ещё не разобраны в этом реестре: 289.
+Всего: 333 Уровня. Подробный ручной черновик: 55. Ещё не разобраны в этом реестре: 278.
 
 Источники: `lionwing-technique-requirements.review.json` и `lionwing-rule-families.json` рядом с этим файлом. SHA-256 каждой разобранной строки фиксирует исходный текст, примечания и источник. Генератор не классифицирует Техники по ключевым словам.
 
@@ -13,15 +13,15 @@
 
 | ID | Контракт | Зависимости | Разобранных потребителей |
 | --- | --- | --- | ---: |
-| execution | Сохранённая машина исполнения: before/replace/apply/after, выборы, вложенная цепочка и точное продолжение. | — | 21 |
-| history | История, лимиты и накопление Уровней. | execution | 18 |
-| costs | Расход, получение, замена и резервирование цены. | execution, history | 20 |
-| health | Урон, потеря Здоровья, лечение, Раны и выбивание. | execution | 15 |
-| dice | Бросок и ограниченные изменения результата. | execution | 11 |
-| geometry | Общая геометрия целей, движения и тел. | execution | 18 |
-| effects | Наложенные, вычисляемые, подавленные и неснимаемые Эффекты. | execution, history | 27 |
-| actions | Составной план действия и композиция модификаторов. | execution, history, costs, dice, geometry | 27 |
-| turns | Дополнительные действия, Реакции и прерывание Хода. | execution, history | 8 |
+| execution | Сохранённая машина исполнения: before/replace/apply/after, выборы, вложенная цепочка и точное продолжение. | — | 25 |
+| history | История, лимиты и накопление Уровней. | execution | 28 |
+| costs | Расход, получение, замена и резервирование цены. | execution, history | 27 |
+| health | Урон, потеря Здоровья, лечение, Раны и выбивание. | execution | 21 |
+| dice | Бросок и ограниченные изменения результата. | execution | 14 |
+| geometry | Общая геометрия целей, движения и тел. | execution | 21 |
+| effects | Наложенные, вычисляемые, подавленные и неснимаемые Эффекты. | execution, history | 31 |
+| actions | Составной план действия и композиция модификаторов. | execution, history, costs, dice, geometry | 34 |
+| turns | Дополнительные действия, Реакции и прерывание Хода. | execution, history | 9 |
 | entities | Принадлежащие сущности, ауры, Призывы и пилотирование. | execution, geometry, effects, turns | 7 |
 
 ## Все Уровни
@@ -45,17 +45,17 @@
 | powerhouse.gunslinger.3 | Bullet Juggle | 69 | черновик | actions, dice, effects, health |
 | powerhouse.struggler.1 | Effort | 70 | черновик | execution, dice, costs, health, effects |
 | powerhouse.struggler.2 | Adrenaline | 70 | черновик | execution, history, health, geometry, effects |
-| powerhouse.struggler.3 | Defy Reason | 70 | ожидает разбора | — |
-| powerhouse.spellsword.1 | Twin Suns [ Cast → Skirmish ] | 70 | ожидает разбора | — |
-| powerhouse.spellsword.2 | Infused Edge | 70 | ожидает разбора | — |
-| powerhouse.spellsword.3 | Witch Hunter [ Cast → Body/Talent Finisher ] | 70 | ожидает разбора | — |
-| powerhouse.technician.1 | Stretch | 70 | ожидает разбора | — |
-| powerhouse.technician.2 | Perfect Form | 70 | ожидает разбора | — |
-| powerhouse.technician.3 | Final Blow [ Skirmish → Finisher ] | 70 | ожидает разбора | — |
-| powerhouse.unbroken.1 | Get Back Up | 70 | ожидает разбора | — |
-| powerhouse.unbroken.2 | Furious Revival | 70 | ожидает разбора | — |
-| powerhouse.unbroken.3 | Phoenix | 70 | ожидает разбора | — |
-| powerhouse.braggart.1 | Hubris | 71 | ожидает разбора | — |
+| powerhouse.struggler.3 | Defy Reason | 70 | черновик | dice, actions, costs, health |
+| powerhouse.spellsword.1 | Twin Suns [ Cast → Skirmish ] | 70 | черновик | history, actions, costs, geometry |
+| powerhouse.spellsword.2 | Infused Edge | 70 | черновик | history, actions, geometry, dice, health |
+| powerhouse.spellsword.3 | Witch Hunter [ Cast → Body/Talent Finisher ] | 70 | черновик | history, actions, health |
+| powerhouse.technician.1 | Stretch | 70 | черновик | history, costs, effects, execution |
+| powerhouse.technician.2 | Perfect Form | 70 | черновик | history, effects, health |
+| powerhouse.technician.3 | Final Blow [ Skirmish → Finisher ] | 70 | черновик | history, actions, costs, geometry |
+| powerhouse.unbroken.1 | Get Back Up | 70 | черновик | execution, history, costs, health, effects |
+| powerhouse.unbroken.2 | Furious Revival | 70 | черновик | execution, history, costs, actions, turns |
+| powerhouse.unbroken.3 | Phoenix | 70 | черновик | execution, health, history |
+| powerhouse.braggart.1 | Hubris | 71 | черновик | history, costs, actions, dice, effects |
 | powerhouse.braggart.2 | Prove Yourself | 71 | ожидает разбора | — |
 | powerhouse.braggart.3 | A Worthy Opponent | 71 | ожидает разбора | — |
 | powerhouse.breacher.1 | Buck Shot | 71 | ожидает разбора | — |
@@ -419,5 +419,31 @@
 - **powerhouse.struggler.1**: Включает ли Challenge roll атакующие и встречные броски по общей терминологии?
 - **powerhouse.struggler.2**: Должен ли каждый сегмент пути приближать к выбранному врагу или достаточно конечной клетки?
 - **powerhouse.struggler.2**: Можно ли при исходной смежности не двигаться и всё же наложить Помечен?
+- **powerhouse.struggler.3**: Any roll означает отдельную кость или весь бросок? Требуется общая терминология.
+- **powerhouse.struggler.3**: Допустимо ли повторно оплатить Усилие за уже критическую кость и получить новый Критический эффект? Не делать это автоматически.
+- **powerhouse.spellsword.1**: Как сочетаются замена ресурса и сторонняя замена стоимости этой Стычки? Нужен явный порядок модификаторов.
+- **powerhouse.spellsword.2**: При нескольких целях сколько Телепортаций и дополнительных нанесений разрешено?
+- **powerhouse.spellsword.2**: Если итоговый урон нулевой, считается ли условие after dealing damage выполненным?
+- **powerhouse.spellsword.2**: Какие Криты брать при отдельных пулах по целям?
+- **powerhouse.spellsword.3**: Для многоцелевых Атак бонус получают только общие цели или вся Атака при хотя бы одном совпадении?
+- **powerhouse.spellsword.3**: Когда фиксировать Дух при его изменении во время Реакции?
+- **powerhouse.technician.1**: Повторная Зарядка продлевает один срок или создаёт несколько источников прибавки ОД?
+- **powerhouse.technician.1**: Одно действие завершает несколько разных Комбо: сколько выдач ОД?
+- **powerhouse.technician.2**: Складываются ли бонусы разных завершений Комбо или обновляется один бонус?
+- **powerhouse.technician.2**: Несколько одновременно завершённых Комбо должны давать несколько бонусов или один?
+- **powerhouse.technician.3**: При нескольких целях толчок действует на каждую?
+- **powerhouse.technician.3**: Заменяет ли 3 клетки толчок из другого правила или добавляет отдельный толчок?
+- **powerhouse.unbroken.1**: Можно ли применять уже Уязвимому герою и снимается ли существующая Уязвимость?
+- **powerhouse.unbroken.1**: Когда относительно получения Влияния за Рану включается запрет?
+- **powerhouse.unbroken.1**: Что считается новой Главой в сохранении и кто вправе её начать?
+- **powerhouse.unbroken.2**: An Influence означает по одному окну на каждую единицу или одно окно на операцию расхода?
+- **powerhouse.unbroken.2**: Считать стоимость 1 до или после других скидок?
+- **powerhouse.unbroken.2**: Разрешены только базовые Действия или действия Техник с ценой 1 тоже?
+- **powerhouse.unbroken.3**: При Сопротивлении по Стрессу с нулём Ран буквальная установка повышает Раны до 1: подтвердить трактовку.
+- **powerhouse.unbroken.3**: Порядок этого выбора и действия II от оплаты I требует явного решения общих одновременных срабатываний.
+- **powerhouse.braggart.1**: While full и for remainder of Scene: исчезает ли бонус после очистки часов Уровнем II? Противоречие сохранено и видно в PDF.
+- **powerhouse.braggart.1**: При равных значениях какие Атрибуты считаются двумя низшими?
+- **powerhouse.braggart.1**: Продвигать за каждый отдельный бросок многоцелевой Атаки или один раз за Атаку?
+- **powerhouse.braggart.1**: В какой момент собственный бросок получает бонус от заполнения им последнего сегмента?
 
 Статусы автоматизации в `apps/companion/LIONWING-AUTOMATION-MAP.md` этот реестр не меняет.
