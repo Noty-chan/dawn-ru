@@ -3,7 +3,7 @@
 > Генерируется `node tools/content/build_lionwing_requirements.mjs`. Проверка: та же команда с `--check`.
 > Черновик требований не означает сверку всех неоднозначностей, реализацию контракта или автоматизацию Техники.
 
-Всего: 333 Уровня. Подробный ручной черновик: 33. Ещё не разобраны в этом реестре: 300.
+Всего: 333 Уровня. Подробный ручной черновик: 44. Ещё не разобраны в этом реестре: 289.
 
 Источники: `lionwing-technique-requirements.review.json` и `lionwing-rule-families.json` рядом с этим файлом. SHA-256 каждой разобранной строки фиксирует исходный текст, примечания и источник. Генератор не классифицирует Техники по ключевым словам.
 
@@ -13,14 +13,14 @@
 
 | ID | Контракт | Зависимости | Разобранных потребителей |
 | --- | --- | --- | ---: |
-| execution | Сохранённая машина исполнения: before/replace/apply/after, выборы, вложенная цепочка и точное продолжение. | — | 17 |
-| history | История, лимиты и накопление Уровней. | execution | 12 |
-| costs | Расход, получение, замена и резервирование цены. | execution, history | 14 |
-| health | Урон, потеря Здоровья, лечение, Раны и выбивание. | execution | 8 |
-| dice | Бросок и ограниченные изменения результата. | execution | 7 |
-| geometry | Общая геометрия целей, движения и тел. | execution | 12 |
-| effects | Наложенные, вычисляемые, подавленные и неснимаемые Эффекты. | execution, history | 19 |
-| actions | Составной план действия и композиция модификаторов. | execution, history, costs, dice, geometry | 18 |
+| execution | Сохранённая машина исполнения: before/replace/apply/after, выборы, вложенная цепочка и точное продолжение. | — | 21 |
+| history | История, лимиты и накопление Уровней. | execution | 18 |
+| costs | Расход, получение, замена и резервирование цены. | execution, history | 20 |
+| health | Урон, потеря Здоровья, лечение, Раны и выбивание. | execution | 15 |
+| dice | Бросок и ограниченные изменения результата. | execution | 11 |
+| geometry | Общая геометрия целей, движения и тел. | execution | 18 |
+| effects | Наложенные, вычисляемые, подавленные и неснимаемые Эффекты. | execution, history | 27 |
+| actions | Составной план действия и композиция модификаторов. | execution, history, costs, dice, geometry | 27 |
 | turns | Дополнительные действия, Реакции и прерывание Хода. | execution, history | 8 |
 | entities | Принадлежащие сущности, ауры, Призывы и пилотирование. | execution, geometry, effects, turns | 7 |
 
@@ -31,20 +31,20 @@
 | powerhouse.berserker.1 | Revenge | 69 | черновик | execution, turns, costs |
 | powerhouse.berserker.2 | Cornered Dog | 69 | черновик | execution, effects, health |
 | powerhouse.berserker.3 | Take A Beating | 69 | черновик | execution, history, costs, health |
-| powerhouse.dragonslayer.1 | Speed Is Weight | 69 | ожидает разбора | — |
-| powerhouse.dragonslayer.2 | Wide Arc | 69 | ожидает разбора | — |
-| powerhouse.dragonslayer.3 | Titanic Heave [ Breathe → Body Finisher ] | 69 | ожидает разбора | — |
-| powerhouse.duelist.1 | Riposte [ Block → Skirmish ] | 69 | ожидает разбора | — |
-| powerhouse.duelist.2 | Parry | 69 | ожидает разбора | — |
-| powerhouse.duelist.3 | Deflecting Blow | 69 | ожидает разбора | — |
+| powerhouse.dragonslayer.1 | Speed Is Weight | 69 | черновик | history, actions, costs, effects, health |
+| powerhouse.dragonslayer.2 | Wide Arc | 69 | черновик | actions, costs, geometry |
+| powerhouse.dragonslayer.3 | Titanic Heave [ Breathe → Body Finisher ] | 69 | черновик | history, actions, dice, geometry, effects |
+| powerhouse.duelist.1 | Riposte [ Block → Skirmish ] | 69 | черновик | history, actions, geometry, effects |
+| powerhouse.duelist.2 | Parry | 69 | черновик | actions, health, geometry, effects |
+| powerhouse.duelist.3 | Deflecting Blow | 69 | черновик | execution, actions, health, costs, effects |
 | powerhouse.flagellant.1 | Thrill | 69 | черновик | execution, effects |
 | powerhouse.flagellant.2 | Wild Rush | 69 | черновик | history, actions, effects, geometry, dice |
 | powerhouse.flagellant.3 | Bled Dry | 69 | черновик | history, actions, effects, dice |
-| powerhouse.gunslinger.1 | Big Iron | 69 | ожидает разбора | — |
-| powerhouse.gunslinger.2 | Lock And Load | 69 | ожидает разбора | — |
-| powerhouse.gunslinger.3 | Bullet Juggle | 69 | ожидает разбора | — |
-| powerhouse.struggler.1 | Effort | 70 | ожидает разбора | — |
-| powerhouse.struggler.2 | Adrenaline | 70 | ожидает разбора | — |
+| powerhouse.gunslinger.1 | Big Iron | 69 | черновик | execution, history, costs, health, actions, geometry |
+| powerhouse.gunslinger.2 | Lock And Load | 69 | черновик | history, costs, actions, dice |
+| powerhouse.gunslinger.3 | Bullet Juggle | 69 | черновик | actions, dice, effects, health |
+| powerhouse.struggler.1 | Effort | 70 | черновик | execution, dice, costs, health, effects |
+| powerhouse.struggler.2 | Adrenaline | 70 | черновик | execution, history, health, geometry, effects |
 | powerhouse.struggler.3 | Defy Reason | 70 | ожидает разбора | — |
 | powerhouse.spellsword.1 | Twin Suns [ Cast → Skirmish ] | 70 | ожидает разбора | — |
 | powerhouse.spellsword.2 | Infused Edge | 70 | ожидает разбора | — |
@@ -395,5 +395,29 @@
 - **powerhouse.flagellant.2**: Если другой механизм заменяет обязательное получение Эффекта, сохраняется ли право на движение? Не решать молча.
 - **powerhouse.flagellant.3**: Когда фиксировать число Эффектов, если оно меняется во время Реакций?
 - **powerhouse.flagellant.3**: При разных бросках по целям какие Криты задают предел снятия?
+- **powerhouse.dragonslayer.1**: При нескольких целях применяется ли Разорван ко всем?
+- **powerhouse.dragonslayer.1**: Можно ли потратить получаемые 2 Фокуса на это же Завершение или оплата уже завершена?
+- **powerhouse.dragonslayer.2**: Как правило взаимодействует с заменой Фокуса альтернативным ресурсом? Не подменять число оплаченных единиц автоматически.
+- **powerhouse.dragonslayer.3**: Сохраняются ли обычные Криты и дополнительные кости при подсчёте всех костей Успехами? Проверить общий раздел бросков.
+- **powerhouse.dragonslayer.3**: Точный порядок толчка относительно отдельных нанесений по цели требует общей нормы.
+- **powerhouse.duelist.1**: Текст не уточняет момент Провокации относительно урона и зависимость от попадания; сверить общее правило Эффектов Атаки.
+- **powerhouse.duelist.1**: Фраза move 3 spaces задаёт максимум или обязательную длину?
+- **powerhouse.duelist.2**: Когда фиксировать смежность и Напряжение при вложенных Реакциях?
+- **powerhouse.duelist.2**: Кто выбирает клетку перенаправленного толчка?
+- **powerhouse.duelist.3**: Стычка включена в цену 1 Фокус или оплачивается отдельно?
+- **powerhouse.duelist.3**: Порог проверяется после Блока или после всех защит, включая Уклонение?
+- **powerhouse.duelist.3**: При повторном уроне одной Атаки окно одно или на каждое нанесение?
+- **powerhouse.gunslinger.1**: Можно ли направить несколько Пуль в одну цель?
+- **powerhouse.gunslinger.1**: Что делать со Стычкой, если Пули потрачены, но никто не получил фактический урон?
+- **powerhouse.gunslinger.1**: В каком порядке выбрать цели Пуль и подтвердить оплату Стычки?
+- **powerhouse.gunslinger.2**: Установка Пуль в 6 считается получением ресурса для сторонних срабатываний или отдельной установкой?
+- **powerhouse.gunslinger.3**: Цель Подброса обязательно из целей Атаки или любой персонаж?
+- **powerhouse.gunslinger.3**: Момент Подброса относительно урона Атаки не указан.
+- **powerhouse.gunslinger.3**: Как считать порог при отдельных пулах разных целей?
+- **powerhouse.struggler.1**: Можно ли применять к нескольким костям одного броска?
+- **powerhouse.struggler.1**: Даёт ли созданный заменой Крит дополнительную кость?
+- **powerhouse.struggler.1**: Включает ли Challenge roll атакующие и встречные броски по общей терминологии?
+- **powerhouse.struggler.2**: Должен ли каждый сегмент пути приближать к выбранному врагу или достаточно конечной клетки?
+- **powerhouse.struggler.2**: Можно ли при исходной смежности не двигаться и всё же наложить Помечен?
 
 Статусы автоматизации в `apps/companion/LIONWING-AUTOMATION-MAP.md` этот реестр не меняет.
