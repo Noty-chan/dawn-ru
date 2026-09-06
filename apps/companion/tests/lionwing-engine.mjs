@@ -161,10 +161,14 @@ s=startImmediateDuel();s=run(s,"h",{kind:"choice",id:s.lionwing.choices[0].id,ch
 s=run(s,"h",{kind:"choice",id:s.lionwing.choices[0].id,choice:"double-down"});
 assert.equal(s.lionwing.duels[0].tension,2);assert.equal(s.tension,0,"Duel tracks its own Scene Tension");
 s=run(s,"h",{kind:"choice",id:s.lionwing.choices[0].id,choice:"lose"});
-assert.equal(s.actors[0].influence,5);assert.equal(s.lionwing.choices[0].kind,"duel-wounds");
-s=run(s,"h",{kind:"choice",id:s.lionwing.choices[0].id,choice:"two-wounds"});
-assert.equal(s.actors[0].wounds,2);assert.equal(s.lionwing.choices[0].kind,"placement");
-console.log("LionWing PDF Duel: immediate resolution, Bail, Double Down, Influence refund, explicit Wound ruling and edge return passed");
+assert.equal(s.actors[0].influence,6,"refund plus Influence from the opponent's Wound");
+assert.equal(s.actors[0].wounds,1);assert.equal(s.lionwing.choices[0].kind,"placement");
+// Old pending saves still resume, including a previously offered two-wound answer.
+let oldDuel=startImmediateDuel();oldDuel.lionwing.duels[0].loserId="h";
+oldDuel.lionwing.choices=[{id:"old-wounds",actorId:"h",kind:"duel-wounds",options:["one-wound","two-wounds"],context:{duelId:oldDuel.lionwing.duels[0].id}}];
+oldDuel=run(oldDuel,"h",{kind:"choice",id:"old-wounds",choice:"two-wounds"});
+assert.equal(oldDuel.actors[0].wounds,1);assert.equal(oldDuel.lionwing.choices[0].kind,"placement");
+console.log("LionWing Duel: author-confirmed one Wound, old saves, Bail, Double Down and edge return passed");
 
 // PDF page 64: Punish costs 2 Focus; only its Swift Skirmish has no Cost.
 s=fixture();s.actors[1].x=2;

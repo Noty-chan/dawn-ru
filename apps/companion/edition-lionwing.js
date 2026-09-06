@@ -6574,7 +6574,7 @@ window.DAWN_LIONWING_DATA = {
       "resource": "influence",
       "amount": 4
      },
-     "text": "The Cost is reduced by [Tension], to a minimum of 1. Remove yourself and an adjacent enemy from the board; resolve the Duel (as described on page 38) when a participant starts their next Turn. Reward: The loser takes 2 Wounds if they're a player, or [Tension × 2] + [Tier × 5] damage if they're an NPC. The initiator Teleports both participants to spaces on the board's edge.",
+     "text": "The Cost is reduced by [Tension], to a minimum of 1. Remove yourself and an adjacent enemy from the board; resolve the Duel (as described on page 38) when a participant starts their next Turn. Reward: The loser takes 1 Wound if they're a player, or [Tension × 2] + [Tier × 5] damage if they're an NPC. The initiator Teleports both participants to spaces on the board's edge.",
      "source": {
       "editionId": "dawn-en-lionwing-cb2f8e67",
       "locale": "en",
@@ -9978,7 +9978,7 @@ window.DAWN_LIONWING_DATA = {
     "category": "Duels",
     "name": "Duels in Structured Combat",
     "kind": "rule",
-    "text": "In structured combat a Duel costs 4 Influence minus Tension, to a minimum of 1, removes both participants from the board, and resolves when either participant would start their next Turn. Resolve immediately if no other enemies or no other allies remain in the original Scene. Printed page 38 (PDF page 39) gives a losing player 1 Wound; the Duel Action on printed page 62 (PDF page 63) gives 2 Wounds. Both give a losing NPC [Tension × 2] + [Tier × 5] damage and have the initiator Teleport both participants to spaces on the board's edge. The number of player Wounds requires an explicit table ruling; the other procedure is shared.",
+    "text": "In structured combat a Duel costs 4 Influence minus Tension, to a minimum of 1, removes both participants from the board, and resolves when either participant would start their next Turn. Resolve immediately if no other enemies or no other allies remain in the original Scene. Printed page 38 (PDF page 39) gives a losing player 1 Wound; the Duel Action on printed page 62 (PDF page 63) gives 2 Wounds. Both give a losing NPC [Tension × 2] + [Tier × 5] damage and have the initiator Teleport both participants to spaces on the board's edge. Author clarification supplied on 2026-09-06 resolves the discrepancy: a losing player takes 1 Wound.",
     "source": {
      "editionId": "dawn-en-lionwing-cb2f8e67",
      "locale": "en",

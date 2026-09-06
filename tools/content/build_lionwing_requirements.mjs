@@ -45,5 +45,5 @@ const lines=['# LionWing: реестр требований и семейств�
 ...review.levels.flatMap(r=>r.openQuestions.map(q=>`- **${r.id}**: ${q}`)),
 '','Статусы автоматизации в `apps/companion/LIONWING-AUTOMATION-MAP.md` этот реестр не меняет.',''];
 const output=path.join(root,'docs/tasks/LIONWING_TECHNIQUE_REQUIREMENTS.md'),text=lines.join('\n');
-if(process.argv.includes('--check')){if(!fs.existsSync(output)||fs.readFileSync(output,'utf8')!==text)fail('Requirements inventory is stale')}else fs.writeFileSync(output,text);
+if(process.argv.includes('--check')){if(!fs.existsSync(output)||fs.readFileSync(output,'utf8').replace(/\r\n/g,'\n')!==text)fail('Requirements inventory is stale')}else fs.writeFileSync(output,text);
 console.log(`LionWing requirements: ${levels.length} indexed, ${drafts.size} manual drafts, ${families.length} planned families; source digests and dependency graph valid`);

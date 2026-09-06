@@ -240,7 +240,7 @@
     };
     const duelStake = (duel,loserId) => {
       const loser=requiredActor(scene,loserId,false);duel.loserId=loserId;
-      if(isPlayer(loser))choice(requiredActor(scene,duel.actorId,false),"duel-wounds","Проигрыш боевой Дуэли: стр. 38 книги — 1 Рана; карточка на стр. 62 — 2 Раны. Нарратор выбирает принятую за столом трактовку.",["one-wound","two-wounds"],{duelId:duel.id});
+      if(isPlayer(loser))queue.unshift({p:{kind:"wound",targetId:loserId,sourceActorId:loserId===duel.actorId?duel.targetId:duel.actorId},sourceId:duel.actorId},{p:{kind:"duel-return",duelId:duel.id},sourceId:duel.actorId});
       else queue.unshift({p:{kind:"damage",targetId:loser.id,amount:duel.tension*2+loser.tier*5,sourceActorId:loserId===duel.actorId?duel.targetId:duel.actorId},sourceId:duel.actorId},{p:{kind:"duel-return",duelId:duel.id},sourceId:duel.actorId});
     };
     const knockout = a => {
@@ -573,7 +573,8 @@
           else if(pending.kind==="duel-wounds"){
             const duel=s.duels.find(item=>item.id===pending.context.duelId);if(!duel)fail("Дуэль уже завершена");
             const sourceId=duel.loserId===duel.actorId?duel.targetId:duel.actorId;
-            queue.unshift(...Array.from({length:p.choice==="two-wounds"?2:1},()=>({p:{kind:"wound",targetId:duel.loserId,sourceActorId:sourceId},sourceId})),{p:{kind:"duel-return",duelId:duel.id},sourceId:duel.actorId});
+            // Resume pre-clarification saves using the author's final ruling.
+            queue.unshift({p:{kind:"wound",targetId:duel.loserId,sourceActorId:sourceId},sourceId},{p:{kind:"duel-return",duelId:duel.id},sourceId:duel.actorId});
           }
           else if (pending.kind === "placement") {
             if(pending.context.edge){
