@@ -14,6 +14,10 @@
     return global.DAWN_SCENE_ENGINE || null;
   }
 
+  function lionwingEngine() {
+    return global.DAWN_LIONWING_ENGINE || null;
+  }
+
   function footprintCells(point, width, height) {
     const cells = [];
     for (let y = 0; y < height; y += 1) for (let x = 0; x < width; x += 1) cells.push({ x: point.x + x, y: point.y + y });
@@ -114,32 +118,56 @@
 
   function routePlan(scene, request = {}) {
     const runtime = engine();
+    const lionwing = lionwingEngine();
     const source = request.sourceActorId == null ? null : actorById(scene, request.sourceActorId);
     const mover = actorById(scene, request.actorId);
     const anchor = anchorStatus(scene, request);
     const destination = request.destination || {};
     const maximum = Number(request.maximum);
     if(![undefined,"move","forced"].includes(request.mode))return {available:false,reason:"Этот план поддерживает только движение и принудительное движение."};
-    if (!runtime?.movementPath || !runtime?.topologyStatus) return { available: false, reason: "Общие пространственные запросы недоступны." };
+    if (!runtime?.topologyStatus || !lionwing?.movement) return { available: false, reason: "Общие пространственные запросы недоступны." };
     if (!mover || mover.knockedOut || !source || !anchor.available) return { available: false, reason: !mover ? "Перемещаемый участник не найден." : mover.knockedOut ? "Перемещаемый участник выведен из боя." : !source ? "Автор геометрии не найден." : anchor.reason };
     if (!integer(destination.x) || !integer(destination.y) || destination.space && destination.space !== mover.space || !integer(maximum) || maximum < 0) return { available: false, reason: "Некорректная цель или дальность маршрута." };
     const space = spaceById(scene, mover.space);
     if (!space || destination.x < 0 || destination.y < 0 || destination.x >= Number(space.width) || destination.y >= Number(space.height)) return { available: false, reason: "Цель маршрута вне пространства." };
-    const options = { forced: request.mode === "forced", placement: request.mode === "placement", ignoreResistance: Boolean(request.ignoreResistance), ignoreVoluntaryRestrictions: Boolean(request.ignoreVoluntaryRestrictions), ignoreTerrain: Boolean(request.ignoreTerrain), ignoreEnemies: Boolean(request.ignoreEnemies), ignoreDifficult: Boolean(request.ignoreDifficult), straight: Boolean(request.straight), maxDistance: maximum };
+    const options = { forced: request.mode === "forced", ignoreTerrain: Boolean(request.ignoreTerrain), ignoreOpponents: Boolean(request.ignoreEnemies), line: Boolean(request.straight), maximum };
+    const width = Number(request.width ?? request.footprint?.width ?? mover.occupiedWidth ?? 1);
+    const height = Number(request.height ?? request.footprint?.height ?? mover.occupiedHeight ?? 1);
+    if (!integer(width) || !integer(height) || width < 1 || height < 1) return { available: false, reason: "Некорректные размеры перемещаемого тела." };
+    const bodyEdgesClear = path => {
+      let previous = { x: Number(mover.x), y: Number(mover.y) };
+      for (const segment of path) {
+        for (let oy = 0; oy < height; oy += 1) for (let ox = 0; ox < width; ox += 1) {
+          const probeScene = clone(scene);
+          const probe = actorById(probeScene, mover.id);
+          probe.x = previous.x + ox; probe.y = previous.y + oy;
+          probe.occupiedWidth = 1; probe.occupiedHeight = 1;
+          try {
+            const edge = lionwing.movement(probeScene, probe, { x: Number(segment.x) + ox, y: Number(segment.y) + oy }, { ...options, maximum: 2 });
+            if (edge.path.length !== 1 || Number(edge.path[0].x) !== Number(segment.x) + ox || Number(edge.path[0].y) !== Number(segment.y) + oy) return false;
+          } catch { return false; }
+        }
+        previous = segment;
+      }
+      return true;
+    };
     const validPath = point => {
-      const path = runtime.movementPath(scene, mover.id, point, options);
-      if (!path.length && (point.x !== mover.x || point.y !== mover.y)) return null;
+      let result;
+      try { result = lionwing.movement(scene, mover, point, options); }
+      catch { return null; }
+      const path = result.path || [];
       for (const segment of path) if (!footprintStatus(scene, { actorId: mover.id, destination: { ...segment, space: mover.space }, footprint: request.footprint, width: request.width, height: request.height }).available) return null;
-      return path;
+      if (!bodyEdgesClear(path)) return null;
+      return { path, cost: Number(result.cost || 0) };
     };
     const direct = validPath(destination);
-    let selected = direct ? { x: Number(destination.x), y: Number(destination.y), space: mover.space, path: direct, partial: false } : null;
+    let selected = direct ? { x: Number(destination.x), y: Number(destination.y), space: mover.space, ...direct, partial: false } : null;
     if (!selected && request.allowPartial === true) {
       const alternatives = [];
       for (let y = 0; y < Number(space.height); y += 1) for (let x = 0; x < Number(space.width); x += 1) {
-        const path = validPath({ x, y });
-        if (!path?.length) continue;
-        alternatives.push({ x, y, space: mover.space, path, partial: true, distance: Math.abs(x - Number(destination.x)) + Math.abs(y - Number(destination.y)) });
+        const result = validPath({ x, y });
+        if (!result || !result.path.length) continue;
+        alternatives.push({ x, y, space: mover.space, ...result, partial: true, distance: Math.abs(x - Number(destination.x)) + Math.abs(y - Number(destination.y)) });
       }
       alternatives.sort((left, right) => left.distance - right.distance || left.y - right.y || left.x - right.x);
       selected = alternatives[0] || null;
@@ -154,9 +182,9 @@
       mode: request.mode || "move",
       maximum,
       path: selected.path.map(point => ({ space: mover.space, x: Number(point.x), y: Number(point.y) })),
-      spent: selected.path.length,
+      spent: selected.cost,
       stoppedAt: { space: selected.space, x: selected.x, y: selected.y },
-      remaining: Math.max(0, maximum - selected.path.length),
+      remaining: Math.max(0, maximum - selected.cost),
       partial: selected.partial,
       sceneVersion: Number(scene.version || 0),
       geometryStamp: geometryStamp(scene),
@@ -167,9 +195,10 @@
 
   function revalidatePlan(scene, plan) {
     if (!plan || plan.schema !== 1 || plan.kind !== "lionwing.geometry.route" || !plan.route || !plan.request) return { available: false, stale: true, reason: "Некорректный геометрический план." };
-    if (Number(plan.route.sceneVersion) !== Number(scene?.version || 0) || plan.route.geometryStamp !== geometryStamp(scene)) return { available: false, stale: true, reason: "Геометрический план устарел." };
+    if (Number(plan.route.sceneVersion) !== Number(scene?.version || 0)) return { available: false, stale: true, reason: "Геометрический план устарел." };
     const fresh = routePlan(scene, plan.request);
-    if (!fresh.available || JSON.stringify(fresh.route) !== JSON.stringify(plan.route)) return { available: false, stale: true, reason: fresh.reason || "Геометрический план изменился." };
+    if (!fresh.available) return { available: false, stale: true, reason: fresh.reason || "Геометрический план изменился." };
+    if (plan.route.geometryStamp !== geometryStamp(scene) || JSON.stringify(fresh.route) !== JSON.stringify(plan.route)) return { available: false, stale: true, reason: "Геометрический план устарел." };
     return { available: true, stale: false, reason: "", plan: clone(plan), route: clone(plan.route) };
   }
 

@@ -38,7 +38,30 @@ route = geometry.routePlan(scene, { sourceActorId: "author", actorId: "mover", a
 assert.equal(route.available, true, route.reason); assert.equal(route.route.partial, true); assert.deepEqual(JSON.parse(JSON.stringify(route.route.stoppedAt)), { space: "main", x: 3, y: 1 }); assert.equal(route.route.remaining, 0);
 const reloaded = JSON.parse(JSON.stringify(route.plan));
 assert.equal(geometry.revalidatePlan(scene, reloaded).available, true, "JSON-reloaded plans revalidate unchanged geometry");
-scene.markers[0].x = 4;
-assert.deepEqual(JSON.parse(JSON.stringify(geometry.revalidatePlan(scene, reloaded))), { available: false, stale: true, reason: "Геометрический план устарел." }, "geometry changes invalidate a saved plan even before a version bump");
+scene.version += 1;
+assert.deepEqual(JSON.parse(JSON.stringify(geometry.revalidatePlan(scene, reloaded))), { available: false, stale: true, reason: "Геометрический план устарел." }, "a Scene version conflict invalidates the saved plan");
 
-console.log("LionWing geometry: anchors, footprints, deterministic candidates, query-backed routes, partial stops, immutability and stale reload passed");
+scene = fixture(); scene.objects.push({ id: "mud", type: "difficult", space: "main", cells: ["2,1"] });
+route = geometry.routePlan(scene, { sourceActorId: "author", actorId: "mover", anchor: { kind: "actor", actorId: "author" }, destination: { x: 3, y: 1 }, maximum: 3 });
+assert.equal(route.available, true, route.reason); assert.equal(route.route.path.length, 2); assert.equal(route.route.spent, 3, "route spending uses LionWing's weighted Difficult Terrain cost"); assert.equal(route.route.remaining, 0);
+assert.equal(geometry.routePlan(scene, { sourceActorId: "author", actorId: "mover", anchor: { kind: "actor", actorId: "author" }, destination: { x: 3, y: 1 }, maximum: 2 }).available, false, "weighted cost is enforced as the movement budget");
+
+scene = fixture(); scene.actors.find(item => item.id === "mover").occupiedWidth = 2; scene.actors.find(item => item.id === "mover").occupiedHeight = 2; scene.actors.find(item => item.id === "body").x = 5;
+scene.walls.push({ id: "lower-edge", space: "main", a: "2,2", b: "3,2" });
+assert.equal(geometry.routePlan(scene, { sourceActorId: "author", actorId: "mover", anchor: { kind: "actor", actorId: "author" }, destination: { x: 2, y: 1 }, maximum: 1 }).available, false, "every leading edge of a large body must clear Walls");
+assert.equal(geometry.routePlan(scene, { sourceActorId: "author", actorId: "mover", anchor: { kind: "actor", actorId: "author" }, destination: { x: 1, y: 1 }, maximum: 0, width: 0 }).available, false, "a zero-length route still validates body dimensions");
+
+scene = fixture();
+route = geometry.routePlan(scene, { sourceActorId: "author", actorId: "mover", anchor: { kind: "actor", actorId: "author" }, destination: { x: 3, y: 1 }, maximum: 3 });
+const invalidTargetPlan = JSON.parse(JSON.stringify(route.plan));
+scene.actors.find(item => item.id === "mover").knockedOut = true;
+const invalidTarget = geometry.revalidatePlan(scene, invalidTargetPlan);
+assert.equal(invalidTarget.available, false, "revalidation rejects a mover that became an invalid target"); assert.match(invalidTarget.reason, /выведен/, "revalidation reports the invalid target instead of masking it as generic staleness");
+
+scene = fixture();
+route = geometry.routePlan(scene, { sourceActorId: "author", actorId: "mover", anchor: { kind: "marker", markerId: "flame" }, destination: { x: 3, y: 1 }, maximum: 3 });
+const geometryChanged = JSON.parse(JSON.stringify(route.plan));
+scene.markers[0].x = 4;
+assert.deepEqual(JSON.parse(JSON.stringify(geometry.revalidatePlan(scene, geometryChanged))), { available: false, stale: true, reason: "Геометрический план устарел." }, "geometry changes invalidate a saved plan even before a version bump");
+
+console.log("LionWing geometry: anchors, footprints, weighted routes, large-body edges, partial stops, serialization and revalidation passed");
