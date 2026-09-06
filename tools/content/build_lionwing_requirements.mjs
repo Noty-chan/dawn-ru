@@ -12,6 +12,7 @@ const digest=value=>crypto.createHash('sha256').update(JSON.stringify(value)).di
 const levels=source.archetypes.flatMap(a=>a.techniques.flatMap(t=>t.levels.map(l=>({id:`${t.id}.${l.n}`,archetypeId:a.id,techniqueId:t.id,name:l.name,text:l.text,notes:t.notes,source:t.source}))));
 if(levels.length!==333||new Set(levels.map(l=>l.id)).size!==333)fail('Expected 333 distinct LionWing levels');
 if(review.editionId!==source.editionId)fail('Wrong review edition');
+if(review.schemaVersion!==2)fail('Expected review schema version 2');
 const byId=new Map(levels.map(l=>[l.id,l])),familyById=new Map(families.map(f=>[f.id,f]));
 if(familyById.size!==families.length)fail('Duplicate family');
 const visited=new Set(),visiting=new Set();
@@ -23,15 +24,20 @@ for(const row of review.levels){
  if(!byId.has(row.id)||row.sourceDigest!==digest(byId.get(row.id)))fail(`Stale or unknown source: ${row.id}`);
  if(row.status!=='requirements-draft')fail(`Unsupported readiness claim: ${row.id}`);
  for(const key of ['trigger','conditions','cost','lifetime','inheritance'])if(typeof row[key]!=='string'||!row[key].trim())fail(`Missing ${key}: ${row.id}`);
- for(const key of ['families','orderedSteps','tests'])if(!Array.isArray(row[key])||!row[key].length)fail(`Missing ${key}: ${row.id}`);
+ for(const key of ['families','orderedSteps','tests','implementationNotes'])if(!Array.isArray(row[key])||!row[key].length)fail(`Missing ${key}: ${row.id}`);
  if(!Array.isArray(row.openQuestions))fail(`Missing open questions: ${row.id}`);
+ if(row.openQuestions.length)fail(`Unresolved question: ${row.id}`);
+ if(!Array.isArray(row.resolvedRulings))fail(`Missing resolved rulings: ${row.id}`);
+ for(const ruling of row.resolvedRulings){
+  for(const key of ['question','decision','basis','authority'])if(typeof ruling[key]!=='string'||!ruling[key].trim())fail(`Incomplete ruling ${key}: ${row.id}`);
+ }
  row.families.forEach(id=>{if(!familyById.has(id))fail(`Unknown family ${id}: ${row.id}`)});
  drafts.set(row.id,row);
 }
 const esc=s=>String(s).replaceAll('|','\\|').replace(/\s+/g,' ').trim();
 const lines=['# LionWing: реестр требований и семейства','',
 '> Генерируется `node tools/content/build_lionwing_requirements.mjs`. Проверка: та же команда с `--check`.',
-'> Черновик требований не означает сверку всех неоднозначностей, реализацию контракта или автоматизацию Техники.','',
+'> Реестр фиксирует рабочие решения по неоднозначностям, но не означает готовую runtime-автоматизацию Техники.','',
 `Всего: ${levels.length} Уровня. Подробный ручной черновик: ${drafts.size}. Ещё не разобраны в этом реестре: ${levels.length-drafts.size}.`,
 '','Источники: `lionwing-technique-requirements.review.json` и `lionwing-rule-families.json` рядом с этим файлом. SHA-256 каждой разобранной строки фиксирует исходный текст, примечания и источник. Генератор не классифицирует Техники по ключевым словам.',
 '','## Семейства — предварительный план','',
@@ -41,8 +47,8 @@ const lines=['# LionWing: реестр требований и семейств�
 '','## Все Уровни','',
 '| Уровень | Название | PDF | Разбор требований | Семейства |','| --- | --- | ---: | --- | --- |',
 ...levels.map(l=>{const r=drafts.get(l.id);return `| ${l.id} | ${esc(l.name)} | ${l.source.pdfPage} | ${r?'черновик':'ожидает разбора'} | ${r?.families.join(', ')||'—'} |`}),
-'','## Неразрешённые вопросы черновика','',
-...review.levels.flatMap(r=>r.openQuestions.map(q=>`- **${r.id}**: ${q}`)),
+'','## Принятые решения по неоднозначностям','',
+...review.levels.flatMap(r=>r.resolvedRulings.map(x=>`- **${r.id}** — ${esc(x.question)} → ${esc(x.decision)} _Основание: ${esc(x.basis)}._`)),
 '','Статусы автоматизации в `apps/companion/LIONWING-AUTOMATION-MAP.md` этот реестр не меняет.',''];
 const output=path.join(root,'docs/tasks/LIONWING_TECHNIQUE_REQUIREMENTS.md'),text=lines.join('\n');
 if(process.argv.includes('--check')){if(!fs.existsSync(output)||fs.readFileSync(output,'utf8').replace(/\r\n/g,'\n')!==text)fail('Requirements inventory is stale')}else fs.writeFileSync(output,text);
