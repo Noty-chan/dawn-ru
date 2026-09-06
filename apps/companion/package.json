@@ -3,6 +3,8 @@
   "private": true,
   "version": "2.0.0",
   "scripts": {
+    "test:families": "node tests/lionwing-foundations.mjs && node tests/lionwing-geometry.mjs",
+    "pretest": "npm run test:families",
     "data": "python build_data.py",
     "docs:rules": "node build_rule_reference_docs.mjs",
     "edition": "python ../../tools/content/build_lionwing_companion.py",

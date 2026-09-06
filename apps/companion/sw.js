@@ -5,7 +5,7 @@ const versioned = path => `${path}?v=${BUILD}`;
 const SCRIPT_ASSETS = [
   "./localization.js", "./locale-ru.js", "./locale-en-builder.js", "./data.js", "./edition-lionwing.js", "./edition-lionwing-ru.js", "./lionwing-table-data.js", "./logic.js",
   "./scene-engine-core.js", "./scene-query.js", "./scene-movement.js", "./scene-foundations.js", "./scene-events.js", "./scene-triggers.js", "./scene-actions.js", "./scene-responses.js", "./scene-engine.js",
-  "./lionwing-execution.js", "./lionwing-adapters.js", "./lionwing-engine.js", "./lionwing-ui.js", "./technique-foundation-map.js", "./technique-engine.js", "./config.js", "./sync.js", "./network-v2.js",
+  "./lionwing-execution.js", "./lionwing-geometry.js", "./lionwing-adapters.js", "./lionwing-engine.js", "./lionwing-ui.js", "./technique-foundation-map.js", "./technique-engine.js", "./config.js", "./sync.js", "./network-v2.js",
   "./app-bootstrap.js", "./app-reference-data.js", "./app-core.js", "./hero-ui.js", "./scene-ui.js", "./scene-effects.js", "./scene-actions-ui.js", "./scene-sync-ui.js", "./play-ui.js",
   "./app-builder-events.js", "./app-sync-events.js", "./app-scene-events.js", "./app-play-events.js", "./app.js",
 ];

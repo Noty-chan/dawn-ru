@@ -17,6 +17,7 @@ export const sceneEngineFiles = [
   "scene-responses.js",
   "scene-engine.js",
   "lionwing-execution.js",
+  "lionwing-geometry.js",
   "lionwing-adapters.js",
   "lionwing-engine.js",
 ];

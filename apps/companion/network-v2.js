@@ -235,7 +235,7 @@
       if(!kernel?.isScene(scene)||!["action","reaction","choice","roll","punish","invisible","search"].includes(raw.kind))throw new Error("Эта операция LionWing доступна только Нарратору");
       const request={kind:raw.kind,actorId:actor.id};
       if(raw.kind==="choice"&&["clash-tie","duel-outcome","duel-wounds"].includes(scene.lionwing?.choices?.[0]?.kind))throw new Error("Исход ничьей определяет Нарратор");
-      const fields={action:["actionId","targetIds","destination","attribute","focusSpent","breakout","reappearance","spikeTargetIds","removeObstacleId","effect"],reaction:["choice","destination","attribute"],choice:["id","choice","destination","note"],roll:["count","label"],punish:["id"],invisible:[],search:["targetId"]}[raw.kind];
+      const fields={action:["actionId","targetIds","destination","attribute","focusSpent","breakout","reappearance","spikeTargetIds","removeObstacleId","effect"],reaction:["choice","destination","attribute"],choice:["id","choice","destination","note"],roll:["count","label","rollKind"],punish:["id"],invisible:[],search:["targetId"]}[raw.kind];
       for(const key of fields)if(raw[key]!==undefined)request[key]=clone(raw[key]);
       const result=kernel.prepare(scene,request);if(!result.ok)throw new Error(result.errors.join(" "));return result.events;
     }
