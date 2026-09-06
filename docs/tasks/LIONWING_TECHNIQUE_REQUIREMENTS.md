@@ -3,7 +3,7 @@
 > Генерируется `node tools/content/build_lionwing_requirements.mjs`. Проверка: та же команда с `--check`.
 > Черновик требований не означает сверку всех неоднозначностей, реализацию контракта или автоматизацию Техники.
 
-Всего: 333 Уровня. Подробный ручной черновик: 55. Ещё не разобраны в этом реестре: 278.
+Всего: 333 Уровня. Подробный ручной черновик: 66. Ещё не разобраны в этом реестре: 267.
 
 Источники: `lionwing-technique-requirements.review.json` и `lionwing-rule-families.json` рядом с этим файлом. SHA-256 каждой разобранной строки фиксирует исходный текст, примечания и источник. Генератор не классифицирует Техники по ключевым словам.
 
@@ -13,16 +13,16 @@
 
 | ID | Контракт | Зависимости | Разобранных потребителей |
 | --- | --- | --- | ---: |
-| execution | Сохранённая машина исполнения: before/replace/apply/after, выборы, вложенная цепочка и точное продолжение. | — | 25 |
-| history | История, лимиты и накопление Уровней. | execution | 28 |
-| costs | Расход, получение, замена и резервирование цены. | execution, history | 27 |
-| health | Урон, потеря Здоровья, лечение, Раны и выбивание. | execution | 21 |
-| dice | Бросок и ограниченные изменения результата. | execution | 14 |
-| geometry | Общая геометрия целей, движения и тел. | execution | 21 |
-| effects | Наложенные, вычисляемые, подавленные и неснимаемые Эффекты. | execution, history | 31 |
-| actions | Составной план действия и композиция модификаторов. | execution, history, costs, dice, geometry | 34 |
+| execution | Сохранённая машина исполнения: before/replace/apply/after, выборы, вложенная цепочка и точное продолжение. | — | 32 |
+| history | История, лимиты и накопление Уровней. | execution | 33 |
+| costs | Расход, получение, замена и резервирование цены. | execution, history | 32 |
+| health | Урон, потеря Здоровья, лечение, Раны и выбивание. | execution | 27 |
+| dice | Бросок и ограниченные изменения результата. | execution | 19 |
+| geometry | Общая геометрия целей, движения и тел. | execution | 30 |
+| effects | Наложенные, вычисляемые, подавленные и неснимаемые Эффекты. | execution, history | 37 |
+| actions | Составной план действия и композиция модификаторов. | execution, history, costs, dice, geometry | 42 |
 | turns | Дополнительные действия, Реакции и прерывание Хода. | execution, history | 9 |
-| entities | Принадлежащие сущности, ауры, Призывы и пилотирование. | execution, geometry, effects, turns | 7 |
+| entities | Принадлежащие сущности, ауры, Призывы и пилотирование. | execution, geometry, effects, turns | 8 |
 
 ## Все Уровни
 
@@ -56,17 +56,17 @@
 | powerhouse.unbroken.2 | Furious Revival | 70 | черновик | execution, history, costs, actions, turns |
 | powerhouse.unbroken.3 | Phoenix | 70 | черновик | execution, health, history |
 | powerhouse.braggart.1 | Hubris | 71 | черновик | history, costs, actions, dice, effects |
-| powerhouse.braggart.2 | Prove Yourself | 71 | ожидает разбора | — |
-| powerhouse.braggart.3 | A Worthy Opponent | 71 | ожидает разбора | — |
-| powerhouse.breacher.1 | Buck Shot | 71 | ожидает разбора | — |
-| powerhouse.breacher.2 | Both Barrels | 71 | ожидает разбора | — |
-| powerhouse.breacher.3 | Annihilate | 71 | ожидает разбора | — |
-| powerhouse.dual-wielder.1 | Twinned blow | 71 | ожидает разбора | — |
-| powerhouse.dual-wielder.2 | Frenzied Barrage | 71 | ожидает разбора | — |
-| powerhouse.dual-wielder.3 | Varied Blades | 71 | ожидает разбора | — |
-| powerhouse.intimidator.1 | "Pathetic" | 71 | ожидает разбора | — |
-| powerhouse.intimidator.2 | "Out Of My Way" | 71 | ожидает разбора | — |
-| powerhouse.intimidator.3 | "Fools And Dead Men" | 71 | ожидает разбора | — |
+| powerhouse.braggart.2 | Prove Yourself | 71 | черновик | execution, costs, dice, effects |
+| powerhouse.braggart.3 | A Worthy Opponent | 71 | черновик | execution, history, actions, costs |
+| powerhouse.breacher.1 | Buck Shot | 71 | черновик | actions, geometry |
+| powerhouse.breacher.2 | Both Barrels | 71 | черновик | actions, dice, geometry, effects |
+| powerhouse.breacher.3 | Annihilate | 71 | черновик | actions, geometry, dice, effects |
+| powerhouse.dual-wielder.1 | Twinned blow | 71 | черновик | execution, actions, dice, health, geometry, history |
+| powerhouse.dual-wielder.2 | Frenzied Barrage | 71 | черновик | execution, actions, costs, dice, health, geometry |
+| powerhouse.dual-wielder.3 | Varied Blades | 71 | черновик | history, actions, costs, health, geometry, effects |
+| powerhouse.intimidator.1 | "Pathetic" | 71 | черновик | execution, history, effects, health, geometry |
+| powerhouse.intimidator.2 | "Out Of My Way" | 71 | черновик | execution, actions, geometry, effects, health |
+| powerhouse.intimidator.3 | "Fools And Dead Men" | 71 | черновик | execution, history, costs, health, entities, geometry |
 | powerhouse.martial-artist.1 | Art Of The 8 Hammers | 72 | ожидает разбора | — |
 | powerhouse.martial-artist.2 | Flow-State | 72 | ожидает разбора | — |
 | powerhouse.martial-artist.3 | Unlimited Blows | 72 | ожидает разбора | — |
@@ -445,5 +445,40 @@
 - **powerhouse.braggart.1**: При равных значениях какие Атрибуты считаются двумя низшими?
 - **powerhouse.braggart.1**: Продвигать за каждый отдельный бросок многоцелевой Атаки или один раз за Атаку?
 - **powerhouse.braggart.1**: В какой момент собственный бросок получает бонус от заполнения им последнего сегмента?
+- **powerhouse.braggart.2**: После новой Сцены восстанавливается размер 6 или только очищаются сегменты?
+- **powerhouse.braggart.2**: Доступно ли Hold Back при размере 2, когда уменьшение уже невозможно?
+- **powerhouse.braggart.2**: Продолжается ли бонус I сразу после очистки и как с ним сочетается повышенный бонус?
+- **powerhouse.braggart.3**: Точный момент окна: выбор цели, объявление Атаки или фиксация броска?
+- **powerhouse.braggart.3**: Повторные нанесения одной Атаки считаются одним событием для III?
+- **powerhouse.breacher.1**: Когда фиксируется расстояние до 2 для толчка?
+- **powerhouse.breacher.1**: Толчок требует попадания или применяется к атакованной цели независимо от результата?
+- **powerhouse.breacher.2**: Когда фиксируется Тело для бонуса?
+- **powerhouse.breacher.2**: Складываются или перемножаются несколько правил удвоения толчка?
+- **powerhouse.breacher.2**: Отмена Атаки до разрешения не описывает, сохраняется ли само-Ослабление.
+- **powerhouse.breacher.3**: Как определяется смежность всей зоны 2×2 с владельцем?
+- **powerhouse.breacher.3**: All targets включает владельца, если выбранная зона его содержит?
+- **powerhouse.breacher.3**: Дальность 3 проверяется для каждой клетки зоны или зональная схема полностью её заменяет?
+- **powerhouse.dual-wielder.1**: Может ли Шквал сам снова запускать Twinned blow? Нужна каноническая граница цепочки, не бесконечная рекурсия.
+- **powerhouse.dual-wielder.1**: Проходит ли заданный урон Шквала новое окно защитных Реакций и обычную Броню?
+- **powerhouse.dual-wielder.1**: Допустим Шквал после промаха исходной Стычки?
+- **powerhouse.dual-wielder.2**: Можно ли отказаться только от второго Шквала после первого?
+- **powerhouse.dual-wielder.2**: Как порог 2 Фокуса трактуется при замене ресурса?
+- **powerhouse.dual-wielder.2**: Момент выбора целей обоих Шквалов: заранее или непосредственно перед каждым?
+- **powerhouse.dual-wielder.3**: Когда и как можно менять пару, можно ли выбрать один вариант дважды?
+- **powerhouse.dual-wielder.3**: В какой фазе исполняются варианты, кроме явно пред-уронного Phasing?
+- **powerhouse.dual-wielder.3**: С несколькими целями применяются Blazing/Whirling к одной или всем?
+- **powerhouse.dual-wielder.3**: Кто выбирает путь Whirling и является ли он принудительным движением?
+- **powerhouse.intimidator.1**: Ограничение on your Turn относится только к росту Напряжения или также к KO Fodder?
+- **powerhouse.intimidator.1**: Одно выведение повысило Напряжение: это одно или два основания Impose?
+- **powerhouse.intimidator.1**: Порядок наложения Страха и урона при нескольких целях прямо не задан.
+- **powerhouse.intimidator.1**: Если цель заменила получение Страха, остаётся ли предусмотренный урон?
+- **powerhouse.intimidator.2**: Меняется максимальная дальность или требуется пройти ровно [Тело] клеток?
+- **powerhouse.intimidator.2**: Перемещение встреченных персонажей происходит по сегментам или до начала всего пути?
+- **powerhouse.intimidator.2**: Если персонажа нельзя сдвинуть, движение останавливается или весь план отклоняется?
+- **powerhouse.intimidator.2**: Как применять к продолжающемуся Шагу с остатком движения?
+- **powerhouse.intimidator.3**: Кому принадлежит созданная Массовка, какие у неё параметры и размер зоны?
+- **powerhouse.intimidator.3**: KO части составного NPC или только всего тела запускает правило?
+- **powerhouse.intimidator.3**: Можно ли получать ОД этим правилом вне своего Хода и какой срок их хранения?
+- **powerhouse.intimidator.3**: Если KO заменён Сопротивлением, считается ли основание выполненным?
 
 Статусы автоматизации в `apps/companion/LIONWING-AUTOMATION-MAP.md` этот реестр не меняет.
