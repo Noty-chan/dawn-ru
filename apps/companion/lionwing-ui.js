@@ -232,7 +232,7 @@ document.addEventListener("click", event => {
     if (lwSubmit(draft.actorId,payload,draft.label)) { lwDestination=null; renderScene(); }
     return;
   }
-  const legacyAction=event.target.closest("[data-core-action], [data-core-resolve], [data-core-cancel-pending]");
+  const legacyAction=event.target.closest("[data-core-resolve], [data-core-cancel-pending]");
   if(legacyAction){event.preventDefault();event.stopImmediatePropagation();const a=currentHeroActor()||lwActor();if(!a)return;if(legacyAction.hasAttribute("data-core-action"))return lwSubmit(a.id,{kind:"action",actionId:legacyAction.dataset.coreAction,targetIds:[...Scene.targetIds]},"Базовое действие");if(!lwCanNarrate())return;return lwSubmit(Scene.pendingAction?.actorId||a.id,{kind:legacyAction.hasAttribute("data-core-resolve")?"resolve-attack":"cancel-attack"},"Разрешение Атаки");}
   const duelTension=event.target.closest("[data-lw-set-duel-tension]");
   if(duelTension){event.preventDefault();event.stopImmediatePropagation();if(!lwCanNarrate())return;return lwSubmit(duelTension.dataset.lwActor,{kind:"tension",duelId:duelTension.dataset.lwSetDuelTension,amount:Number(duelTension.closest(".lw-pending").querySelector("[data-lw-duel-tension]").value)},"Напряжение Дуэли");}
@@ -250,7 +250,7 @@ document.addEventListener("click", event => {
     if(kind==="move"){if(targets.length!==1)return toast("Для движения выберите одну цель");lwDestination={actorId:sourceId,payload:operations[0],label:"Движение правила"};renderScene();toast("Выберите клетку назначения");return;}
     return lwSubmit(sourceId,operations.length===1?operations[0]:{kind:"batch",operations:["note","prompt","usage"].includes(kind)?[operations[0]]:operations},"Общая операция правила");
   }
-  const button = event.target.closest("[data-lw-automation], [data-lw-action], [data-lw-reaction], [data-lw-choice], [data-lw-resolve], [data-lw-cancel], [data-lw-clear-destination], [data-lw-operation], [data-lw-correct], [data-lw-custom], [data-lw-modifier], [data-lw-punish], [data-lw-invisible]");
+  const button = event.target.closest("[data-core-action], [data-lw-automation], [data-lw-action], [data-lw-reaction], [data-lw-choice], [data-lw-resolve], [data-lw-cancel], [data-lw-clear-destination], [data-lw-operation], [data-lw-correct], [data-lw-custom], [data-lw-modifier], [data-lw-punish], [data-lw-invisible]");
   if (!button) {
     const oldControl=event.target.closest("[data-director-set-field], [data-director-knockout], [data-director-tension], [data-director-open-reactions], [data-director-set-rule-resource], [data-director-set-rule-clock]");
     if(oldControl){event.preventDefault();event.stopImmediatePropagation();const a=lwActor();if(!a||!lwCanNarrate())return;
@@ -267,7 +267,7 @@ document.addEventListener("click", event => {
     return;
   }
   event.preventDefault(); event.stopImmediatePropagation();
-  const root = button.closest("[data-lw-root]") || button.closest(".lw-console"), actorId = button.dataset.lwActor || root?.dataset.lwActor || lwActor()?.id;
+  const root = button.closest("[data-lw-root]") || button.closest(".lw-console"), actorId = button.dataset.lwActor || button.dataset.coreActor || root?.dataset.lwActor || lwActor()?.id;
   if (!actorId || !lwOwns(actorId)) return toast("Этим участником управляет другой игрок");
   const val = (selector, fallback="") => root?.querySelector(selector)?.value ?? fallback;
   const num = (selector, fallback=0) => Number(val(selector,fallback));
@@ -275,8 +275,8 @@ document.addEventListener("click", event => {
   if(button.hasAttribute("data-lw-punish"))return lwSubmit(actorId,{kind:"punish",id:button.dataset.lwPunish},"Наказание");
   if(button.hasAttribute("data-lw-invisible"))return lwSubmit(actorId,{kind:"invisible"},"Исчезновение");
   if (button.hasAttribute("data-lw-clear-destination")) { lwDestination=null; renderScene(); return; }
-  if (button.hasAttribute("data-lw-action")) {
-    const actionId=button.dataset.lwAction, payload={kind:"action",actionId,targetIds:[...Scene.targetIds],breakout:button.dataset.lwBreakout==="true",focusSpent:num("[data-lw-focus]"),advantage:num("[data-lw-advantage]"),disadvantage:num("[data-lw-disadvantage]")};
+  if (button.hasAttribute("data-lw-action") || button.hasAttribute("data-core-action")) {
+    const actionId=button.dataset.lwAction||button.dataset.coreAction, payload={kind:"action",actionId,targetIds:[...Scene.targetIds],breakout:button.dataset.lwBreakout==="true",focusSpent:num("[data-lw-focus]"),advantage:num("[data-lw-advantage]"),disadvantage:num("[data-lw-disadvantage]")};
     if(val("[data-lw-attribute]"))payload.attribute=val("[data-lw-attribute]");
     if(root?.querySelector("[data-lw-spike]")?.checked)payload.spikeTargetIds=[...Scene.targetIds];
     if(actionId===SceneEngine.ACTION_IDS.improvise){if(val("[data-lw-improvise-effect]"))payload.effect=val("[data-lw-improvise-effect]");if(val("[data-lw-remove-obstacle]"))payload.removeObstacleId=val("[data-lw-remove-obstacle]");}
