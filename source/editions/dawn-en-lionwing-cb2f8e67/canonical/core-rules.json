@@ -407,8 +407,8 @@
         "name": "Punish",
         "type": "reaction",
         "cost": {
-          "resource": "ap",
-          "amount": 0
+          "resource": "focus",
+          "amount": 2
         },
         "text": "As a Reaction to a target leaving adjacency with you, you may Swiftly Skirmish that target at no Cost.",
         "source": {
@@ -3738,7 +3738,7 @@
       "category": "Duels",
       "name": "Resolving a Duel",
       "kind": "rule",
-      "text": "Resolve a Duel as an Opposed Roll. The player uses the relevant Attribute and the NPC rolls [Tension + Tier] dice. In unstructured play, a losing player receives 2 Stress; a losing NPC is Knocked Out or Resists by creating an 8-segment Story Clock with [Tension] segments filled.",
+      "text": "Resolve a Duel as an Opposed Roll. The player and Narrator agree on the player's roll and the NPC rolls [Tension + Tier] dice, with Narrator adjustments permitted. Give both participants a chance to use resources and abilities before rolling. In unstructured play, the loser becomes Vulnerable; a losing player receives 2 Stress; a losing NPC is Knocked Out or Resists by creating an 8-segment Story Clock with [Tension] segments filled.",
       "source": {
         "editionId": "dawn-en-lionwing-cb2f8e67",
         "locale": "en",
@@ -3750,7 +3750,7 @@
       "category": "Duels",
       "name": "Duels in Structured Combat",
       "kind": "rule",
-      "text": "In structured combat a Duel costs 4 Influence minus Tension, to a minimum of 1, removes both participants from the board, and resolves when either participant would start their next Turn. The printed combat consequences conflict between pages 39 and 63, so automation must leave that result to the Narrator until the source is clarified.",
+      "text": "In structured combat a Duel costs 4 Influence minus Tension, to a minimum of 1, removes both participants from the board, and resolves when either participant would start their next Turn. Resolve immediately if no other enemies or no other allies remain in the original Scene. Printed page 38 (PDF page 39) gives a losing player 1 Wound; the Duel Action on printed page 62 (PDF page 63) gives 2 Wounds. Both give a losing NPC [Tension × 2] + [Tier × 5] damage and have the initiator Teleport both participants to spaces on the board's edge. The number of player Wounds requires an explicit table ruling; the other procedure is shared.",
       "source": {
         "editionId": "dawn-en-lionwing-cb2f8e67",
         "locale": "en",
@@ -3762,7 +3762,7 @@
       "category": "Duels",
       "name": "Failed Duel Choices",
       "kind": "rule",
-      "text": "After losing a Duel roll, the initiating player may Bail and accept the loss; Take It and regain the spent Influence; or Double Down to reroll, increase Tension by 2, and be forced to Take It if the reroll loses. A Duel's target cannot choose these options.",
+      "text": "After losing a Duel roll, the initiator may Bail so neither participant takes the stake; Take It, taking the stake and regaining the spent Influence; or Double Down to reroll, increase Tension by 2, and be forced to Take It if the reroll loses. A Duel's target cannot choose these options.",
       "source": {
         "editionId": "dawn-en-lionwing-cb2f8e67",
         "locale": "en",

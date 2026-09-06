@@ -22,6 +22,11 @@ assert.ok(translationWorklist.units.every(item => item.sourceDisposition !== "pe
 assert.equal(russianAfter, russianBefore, "loading LionWing must not mutate the Russian catalogue");
 assert.deepEqual(JSON.parse(JSON.stringify(lionwing)), extracted, "browser overlay must match the reviewable extracted data");
 assert.equal(lionwing.editionId, "dawn-en-lionwing-cb2f8e67");
+const duelRule=id=>lionwing.coreRules.rules.find(rule=>rule.id===`lionwing.core.duels.${id}`).text;
+assert.match(duelRule("failure"),/Bail so neither participant takes the stake/);
+assert.match(duelRule("combat"),/Resolve immediately if no other enemies or no other allies/);
+assert.match(duelRule("combat"),/Printed page 38 \(PDF page 39\).*1 Wound.*printed page 62 \(PDF page 63\).*2 Wounds/);
+assert.match(duelRule("roll"),/loser becomes Vulnerable/);
 assert.equal(lionwing.tableMechanicsStatus, "not-ported");
 assert.deepEqual(Array.from(lionwing.scope), ["builder", "reference", "techniques", "core-rules"]);
 assert.equal(lionwing.builderRules.editionId, lionwing.editionId);

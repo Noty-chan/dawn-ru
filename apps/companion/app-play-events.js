@@ -1,6 +1,7 @@
 "use strict";
 
 document.addEventListener("click",event=>{
+  if(window.DAWN_LIONWING_ENGINE?.isScene(Scene))return;
   if(event.target.closest("#new-scene")&&Scene.pendingActionPlan){event.preventDefault();event.stopImmediatePropagation();toast("Сначала завершите или отмените составное действие");return}
   const button=event.target.closest("[data-core-action],[data-core-action-plan]");if(!button)return;
   const actor=currentHeroActor(),actionId=button.dataset.coreActionPlan||button.dataset.coreAction,action=D.actions.list.find(item=>item.id===actionId);
@@ -24,6 +25,10 @@ document.addEventListener("change",event=>{
 });
 
 function setPlayCounter(key,value){
+  if(window.DAWN_LIONWING_ENGINE?.isScene(Scene)&&currentHeroActor()){
+    if(!lwCanNarrate())return toast("Точные исправления доступны Нарратору");
+    return lwSubmit(currentHeroActor().id,key==="tension"?{kind:"tension",amount:Number(value)}:{kind:"correct",resource:key,amount:Number(value)},"Исправление Нарратора");
+  }
   value=Math.max(0,Number(value)||0);if(key==="stress")value=Math.min(3,value);const actor=currentHeroActor(),sync=Sync?.state(),actorKeys=new Set(["hp","wounds","stress","focus","influence","ap"]);
   if(sync?.sceneId&&sync.role==="player"&&key==="tension")return toast("Общее Напряжение меняет Нарратор");
   if(actor&&actorKeys.has(key)){if(sync?.sceneId&&sync.role==="player"){if(submitNetworkV2Intent({kind:"runtime",label:`${actor.name}: ${key} → ${value}`,actorId:actor.id,key,value}))toast("Изменение ресурса отправлено за стол");return}commitScene(`${actor.name}: ${key} → ${value}`,()=>{actor[key]=value});renderPlay();return}
@@ -33,6 +38,10 @@ $("play-counters").addEventListener("click",event=>{const b=event.target.closest
 $("play-counters").addEventListener("change",event=>{const key=event.target.dataset.counterInput;if(key)setPlayCounter(key,event.target.value)});
 $("new-round").onclick=()=>{const committed=commitSceneEvents(`Завершён Раунд ${Scene.round}`,[{type:"round.end",actorId:null,payload:{}}]);if(committed)toast("Раунд завершён: Напряжение +1, ОД восстановлены")};
 function finishSceneResults(clearTable=false){
+  if(window.DAWN_LIONWING_ENGINE?.isScene(Scene)){
+    if(commitSceneEvents("Новая Сцена LionWing",[window.DAWN_LIONWING_ENGINE.command(null,{kind:"scene-reset",clearTable})]))$("scene-results")?.close();
+    return;
+  }
   const d=derived();S.runtime.hp=d.maxHp;S.runtime.focus=d.focus;S.runtime.ap=3;S.runtime.tension=1;S.runtime.effects=[];
   if(clearTable){commitScene("Начата новая пустая Сцена",scene=>{const view=scene.view,reset=blankScene();for(const key of Object.keys(scene))delete scene[key];Object.assign(scene,reset,{view})});$("scene-results")?.close();renderPlay();return}
   commitScene("Начата новая Сцена",scene=>{

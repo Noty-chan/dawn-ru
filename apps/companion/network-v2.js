@@ -232,13 +232,14 @@
     const actor=ownedActor(scene,intent.actorId,ownerId);
     if(intent.kind==="lionwing"){
       const kernel=global.DAWN_LIONWING_ENGINE,raw=safeObject(intent.request);
-      if(!kernel?.isScene(scene)||!["action","reaction","choice","roll","punish","invisible"].includes(raw.kind))throw new Error("Эта операция LionWing доступна только Нарратору");
+      if(!kernel?.isScene(scene)||!["action","reaction","choice","roll","punish","invisible","search"].includes(raw.kind))throw new Error("Эта операция LionWing доступна только Нарратору");
       const request={kind:raw.kind,actorId:actor.id};
-      if(raw.kind==="choice"&&scene.lionwing?.choices?.[0]?.kind==="clash-tie")throw new Error("Исход ничьей определяет Нарратор");
-      const fields={action:["actionId","targetIds","destination","attribute","focusSpent","breakout","reappearance","spikeTargetIds","removeObstacleId","effect"],reaction:["choice","destination","attribute"],choice:["id","choice","destination","note"],roll:["count","label"],punish:["id"],invisible:[]}[raw.kind];
+      if(raw.kind==="choice"&&["clash-tie","duel-outcome","duel-wounds"].includes(scene.lionwing?.choices?.[0]?.kind))throw new Error("Исход ничьей определяет Нарратор");
+      const fields={action:["actionId","targetIds","destination","attribute","focusSpent","breakout","reappearance","spikeTargetIds","removeObstacleId","effect"],reaction:["choice","destination","attribute"],choice:["id","choice","destination","note"],roll:["count","label"],punish:["id"],invisible:[],search:["targetId"]}[raw.kind];
       for(const key of fields)if(raw[key]!==undefined)request[key]=clone(raw[key]);
       const result=kernel.prepare(scene,request);if(!result.ok)throw new Error(result.errors.join(" "));return result.events;
     }
+    if(global.DAWN_LIONWING_ENGINE?.isScene(scene)&&!["deployment","turn-start","turn-end","public-roll"].includes(intent.kind))throw new Error("Для LionWing используйте намерение нового ядра; старые игровые команды недоступны");
     if(intent.kind==="deployment"){
       const destination=intent.destination||{},space=(scene.spaces||[]).find(item=>item.id===destination.space),combatStarted=Boolean(scene.activeActorId||Number(scene.round||1)>1||(scene.actors||[]).some(item=>item.kind!=="crowd"&&item.acted));
       if(combatStarted)throw new Error("Развертывание уже завершено");

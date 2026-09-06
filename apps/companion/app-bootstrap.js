@@ -32,8 +32,9 @@ const ATTRS = [
 function loadContentPreferences(){
   try{
     const raw=JSON.parse(localStorage.getItem(CONTENT_PREFERENCES_KEY)||"null");
-    return{locale:["ru","en"].includes(raw?.locale)?raw.locale:"ru",edition:["ru-v0.9","lionwing"].includes(raw?.edition)?raw.edition:"ru-v0.9"};
-  }catch{return{locale:"ru",edition:"ru-v0.9"}}
+    const saved=JSON.parse(localStorage.getItem(STORAGE_KEY)||"null"),fallback=saved?.scene?.actors?.length?(saved.scene.rulesEdition||"ru-v0.9"):"lionwing";
+    return{locale:["ru","en"].includes(raw?.locale)?raw.locale:"ru",edition:["ru-v0.9","lionwing"].includes(raw?.edition)?raw.edition:fallback};
+  }catch{return{locale:"ru",edition:"lionwing"}}
 }
 let contentPreferences=loadContentPreferences();
 const isLionwingEdition=()=>contentPreferences.edition==="lionwing"&&Boolean(Lionwing);

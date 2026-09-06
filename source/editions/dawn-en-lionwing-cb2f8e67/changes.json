@@ -4,10 +4,46 @@
   "baseEditionId": "dawn-en-9ce6d8d6",
   "status": "inventory",
   "summary": {
-    "detected": 0,
-    "translated": 0,
-    "mechanicsReviewed": 0,
+    "detected": 1,
+    "translated": 1,
+    "mechanicsReviewed": 1,
     "published": 0
   },
-  "changes": []
+  "changes": [
+    {
+      "id": "change-lionwing-duel-pdf-review-20260905",
+      "kind": "mechanics",
+      "summaryEn": "Correct Duel timing, withdrawal and stakes against the LionWing PDF; expose the conflicting player Wound counts as a Narrator ruling.",
+      "status": {
+        "sourceReviewed": true,
+        "translation": "reviewed",
+        "mechanics": "reviewed",
+        "companion": "draft"
+      },
+      "sourcePdfSha256": "cb2f8e675dc90152b5d70780262622a42be679853bf289b4c6e80d1ed0ea747d",
+      "pdfPages": [
+        39,
+        63,
+        64
+      ],
+      "printedPages": [
+        38,
+        62,
+        63
+      ],
+      "ruleIds": [
+        "lionwing.core.duels.roll",
+        "lionwing.core.duels.combat",
+        "lionwing.core.duels.failure"
+      ],
+      "corrections": [
+        "Bail: neither participant takes the stake; it is not accepting defeat.",
+        "Resolve combat Duel immediately when no other enemies or no other allies remain.",
+        "Unstructured loser becomes Vulnerable before the listed consequences.",
+        "Printed page 38 says 1 Wound; printed page 62 says 2 Wounds. This discrepancy is visible in the PDF, not an extraction error."
+      ],
+      "implementation": "tools/content/build_lionwing_companion.py and apps/companion/edition-lionwing-ru.js",
+      "published": false
+    }
+  ]
 }

@@ -130,7 +130,8 @@ function sceneCore(raw){
     const spellcrafterLevel=Number(actor.techniques?.["ruiner.spellcrafter"]||0),spellcrafterLearnedLimit=spellcrafterLevel>=3?2:spellcrafterLevel>=1?1:0,spellcrafterIds=new Set(["fierce","focused","wild","outstanding"]),learned=[...new Set(cleanArray(source.techniqueState?.spellcrafterLearnedModifiers).filter(value=>spellcrafterIds.has(value)))].slice(0,spellcrafterLearnedLimit);
     const wispLevel=Number(actor.techniques?.["altruist.will-o-wisp"]||0),wispIds=new Set(["dreamy","angry","insightful","bright","kind","fierce"]),wispLearned=[...new Set(cleanArray(source.techniqueState?.wispLearnedTypes).filter(value=>wispIds.has(value)))].slice(0,wispLevel>=3?2:wispLevel>=1?1:0);
     actor.techniqueState={cunningPlan:clamp(source.techniqueState?.cunningPlan,0,4),studiedActorIds:cleanArray(source.techniqueState?.studiedActorIds).slice(0,120),spellcrafterLearnedModifiers:learned,spellModifiers:[...new Set(cleanArray(source.techniqueState?.spellModifiers).filter(value=>learned.includes(value)))].slice(0,spellcrafterLevel>=3?2:1),wispLearnedTypes:wispLearned};
-    actor.ruleClocks=source.ruleClocks&&typeof source.ruleClocks==="object"?Object.fromEntries(Object.entries(source.ruleClocks).filter(([id])=>/^[a-z][a-z0-9.-]{0,79}$/.test(id)).slice(0,30).map(([id,clock])=>[id,clock&&typeof clock==="object"?{...clock,clockId:id,size:clamp(clock.size||6,1,24),minimumSize:clamp(clock.minimumSize||clock.size||6,1,24),initial:clamp(clock.initial,0,24),value:clamp(clock.value,0,24),active:clock.active!==false}:clamp(clock,0,24)])):{};
+    const clockLimit=actor.rulesEdition==="lionwing"?100:24;
+    actor.ruleClocks=source.ruleClocks&&typeof source.ruleClocks==="object"?Object.fromEntries(Object.entries(source.ruleClocks).filter(([id])=>/^[a-z][a-z0-9.-]{0,79}$/.test(id)).slice(0,30).map(([id,clock])=>[id,clock&&typeof clock==="object"?{...clock,clockId:id,size:clamp(clock.size||6,1,clockLimit),minimumSize:clamp(clock.minimumSize||clock.size||6,1,clockLimit),initial:clamp(clock.initial,0,clockLimit),value:clamp(clock.value,0,clockLimit),active:clock.active!==false}:clamp(clock,0,clockLimit)])):{};
     actor.creationMarks=clamp(source.creationMarks,0,99);
     actor.innovationCharges=clamp(source.innovationCharges,0,99);
     actor.inventory=source.inventory&&typeof source.inventory==="object"?Object.fromEntries(Object.entries(source.inventory).filter(([id,value])=>typeof id==="string"&&id.length<=80&&Number(value)>0).slice(0,60).map(([id,value])=>[id,clamp(value,1,99)])):{};
@@ -197,6 +198,20 @@ function normalizeScene(raw){
   const base=sceneCore(raw);base.undo=history(raw?.undo);base.redo=history(raw?.redo);base.turnUndo=history(raw?.turnUndo,120);return base;
 }
 
+function validateTableEdit(before,after){
+  const edition=before.rulesEdition||"ru-v0.9";
+  if(before.actors.length&&after.rulesEdition&&after.rulesEdition!==edition)throw new Error("Существующая Сцена сохраняет свою редакцию");
+  for(const actor of after.actors){
+    if(["token","crowd"].includes(actor.kind))continue;
+    const actorEdition=actor.rulesEdition||(String(actor.profileId||"").startsWith("lionwing.")?"lionwing":"ru-v0.9");
+    if(actorEdition!==edition)throw new Error("Нельзя смешивать редакции персонажей в одной Сцене");
+  }
+  if(edition!=="lionwing")return;
+  const fields=["hp","maxHp","ap","baseAp","focus","influence","wounds","stress","evasion","armor","speed","attrs","effects","effectStates","lionwing","ruleResources","ruleClocks","knockedOut"];
+  for(const actor of after.actors){const old=before.actors.find(item=>item.id===actor.id);if(old&&fields.some(key=>JSON.stringify(old[key])!==JSON.stringify(actor[key])))throw new Error("Для игровых изменений используйте операции LionWing, для точных значений — исправления Нарратора");}
+  if((before.pendingAction||before.lionwing?.choices?.length||before.lionwing?.pausedChains?.length)&&before.actors.some(actor=>!after.actors.some(item=>item.id===actor.id)))throw new Error("Сначала завершите действие, затем удаляйте участников");
+}
+
 const TABLE_BACKUP_FORMAT="dawn-ru-table-backup",TABLE_BACKUP_SCHEMA=1,TABLE_RECOVERY_KEY="dawn-ru-companion-table-recovery-v1",TABLE_RECOVERY_META_KEY="dawn-ru-companion-table-recovery-meta-v1";
 function tableBackupPayload(scene=Scene){return{format:TABLE_BACKUP_FORMAT,schema:TABLE_BACKUP_SCHEMA,appSchema:APP_SCHEMA,exportedAt:new Date().toISOString(),scene:sceneCore(scene),gmLibrary:normalizeGmLibrary(store?.gmLibrary)}}
 function normalizedTableBackup(raw){
@@ -205,6 +220,7 @@ function normalizedTableBackup(raw){
   const legacyStore=source.schema===APP_SCHEMA&&source.scene&&Array.isArray(source.heroes),sceneRaw=source.format===TABLE_BACKUP_FORMAT?source.scene:legacyStore?source.scene:Array.isArray(source.spaces)&&Array.isArray(source.actors)?source:null;
   if(!sceneRaw||!Array.isArray(sceneRaw.spaces)||!Array.isArray(sceneRaw.actors))throw new Error("Это не резервная копия Сцены DAWN.");
   const scene=normalizeScene(sceneRaw);if(!scene.spaces.length)throw new Error("В копии нет игрового пространства.");
+  validateTableEdit(scene,scene);
   return{scene,gmLibrary:source.format===TABLE_BACKUP_FORMAT||legacyStore?normalizeGmLibrary(source.gmLibrary):null,legacy:source.format!==TABLE_BACKUP_FORMAT};
 }
 
@@ -379,7 +395,10 @@ function activateHeroEdition(edition,{saveCurrent=true}={}){
 }
 function persistableStore(){
   const heroes=persistableHeroes(),scene=sceneCore(Scene),sourceById=new Map(store.heroes.map(hero=>[hero.id,hero]));
-  scene.undo=[];
+  if(scene.rulesEdition==="lionwing"){
+    const history=normalizeScene(Scene);
+    scene.undo=history.undo;scene.redo=history.redo;scene.turnUndo=history.turnUndo;
+  }else scene.undo=[];
   for(const actor of scene.actors){const hero=sourceById.get(actor.heroId);if(!hero)continue;if(actor.tokenImage&&actor.tokenImage===hero.media?.token)actor.tokenImage="";if(actor.portraitImage&&actor.portraitImage===hero.media?.portrait)actor.portraitImage=""}
   return {...store,heroes,scene,gmLibrary:normalizeGmLibrary(store.gmLibrary),sceneUi:{zoom:sceneZoom,controlMode:sceneControlMode,interfaceVersion:sceneInterfaceVersion,interfaceRolloutVersion:SCENE_INTERFACE_ROLLOUT_VERSION,panelLayout:scenePanelLayoutMode,panelSides:scenePanelSides,panelWidths:scenePanelWidths,turnStripVisible:sceneTurnStripVisible,density:sceneInterfaceDensity,layoutVersion:2,fitVersion:9,viewport:sceneViewportMode}};
 }

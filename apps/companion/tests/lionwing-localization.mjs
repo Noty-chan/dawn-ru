@@ -26,7 +26,7 @@ function collectUnexpectedLatin(value, path = "") {
   if (typeof value === "object") for (const [key, child] of Object.entries(value)) collectUnexpectedLatin(child, path ? `${path}.${key}` : key);
 }
 collectUnexpectedLatin(russian);
-assert.deepEqual([...latinWords].sort(), ["Blendendes", "Cavalcabo", "DAWN", "Draw", "Falscher", "III", "Licht", "LionWing", "Long", "NPC", "NPC-", "Sonneneruption", "Stern", "VIP"].sort(), "Russian LionWing user-facing text must not acquire an unreviewed English fallback");
+assert.deepEqual([...latinWords].sort(), ["Blendendes", "Cavalcabo", "DAWN", "Draw", "Falscher", "III", "Licht", "LionWing", "Long", "NPC", "NPC-", "PDF", "Sonneneruption", "Stern", "VIP"].sort(), "Russian LionWing user-facing text must not acquire an unreviewed English fallback");
 
 assert.equal(Object.keys(russian.reference).length, english.reference.length, "every LionWing builder reference card needs a Russian overlay");
 const localizedReference = english.reference.map(item => ({ ...item, ...(russian.reference[item.id] || {}) }));

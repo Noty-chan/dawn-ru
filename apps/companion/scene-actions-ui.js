@@ -17,6 +17,7 @@ function heroActorState(hero,base={}){
 function currentHeroActor(){
   const delegated=Scene.actors.find(item=>item.id===pendingCoreActorId);if(delegated&&(delegated.kind==="hero"||delegated.heroId))return delegated;
   const actor=Scene.actors.find(item=>item.heroId===S.id);if(!actor)return null;
+  if(window.DAWN_LIONWING_ENGINE?.isScene(Scene))return actor;
   const synced=heroActorState(S,actor),legacy=actor.sheetVersion<7,changed=legacy||actor.name!==synced.name||actor.tier!==synced.tier||actor.maxHp!==synced.maxHp||actor.speed!==synced.speed||actor.primaryOutlook!==synced.primaryOutlook||JSON.stringify(actor.outlooks)!==JSON.stringify(synced.outlooks)||JSON.stringify(actor.gifts)!==JSON.stringify(synced.gifts)||JSON.stringify(actor.bonds||[])!==JSON.stringify(synced.bonds||[])||JSON.stringify(actor.sacrifices||[])!==JSON.stringify(synced.sacrifices||[])||JSON.stringify(actor.attrs)!==JSON.stringify(synced.attrs)||JSON.stringify(actor.skills)!==JSON.stringify(synced.skills)||JSON.stringify(actor.techniques)!==JSON.stringify(synced.techniques)||JSON.stringify(actor.knownTechniques)!==JSON.stringify(synced.knownTechniques)||actor.tokenImage!==synced.tokenImage||actor.portraitImage!==synced.portraitImage;
   if(changed){Object.assign(actor,synced);if(legacy)Scene.tension=S.runtime.tension;persist()}
   return actor;

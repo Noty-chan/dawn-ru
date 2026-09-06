@@ -369,6 +369,7 @@ body[data-scene-control-mode="manual"] .scene-dock [data-scene-panel="director"]
 }
 
 @media(max-width:720px){
+  .scene-mode .scene-rail:not(:has(.rail-active)){visibility:hidden;pointer-events:none}
   .scene-mode .topbar{min-height:98px;padding:.48rem .65rem .38rem}
   .scene-mode .brand-mark{width:34px;height:34px;font-size:1.3rem}
   .scene-mode .brand strong{font-size:.95rem}

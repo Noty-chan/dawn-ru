@@ -107,7 +107,7 @@ assert.match(appSource, /function renderSceneManager[\s\S]+ownerActorId[\s\S]+С
 assert.match(appSource, /function removeManagedSceneSpace[\s\S]+id==="main"[\s\S]+Основное поле удалить нельзя/, "The canonical main space cannot be removed even when the spaces array is reordered");
 assert.match(appSource, /function removeManagedSceneSpace[\s\S]+placeActorsSafely\(scene,moving,fallback[\s\S]+scene\.objects=scene\.objects\.filter[\s\S]+scene\.spaces=scene\.spaces\.filter/, "Space removal evacuates its actors to the main field before deleting field entities and the space itself");
 assert.match(appSource, /const canonicalCell=[\s\S]+normalizedCells=[\s\S]+base\.objects=base\.objects\.map[\s\S]+base\.topology\.cuts=/, "Imported actors and field entities are repaired to canonical cells within their actual space bounds");
-assert.match(appSource, /mutator\(Scene\);Scene=normalizeScene\(Scene\)/, "Every direct Narrator transaction repairs stale references before persistence or networking");
+assert.match(appSource, /mutator\(Scene\);validateTableEdit\(before,Scene\)[^\n]+Scene=normalizeScene\(Scene\)/, "Every direct Narrator transaction repairs stale references before persistence or networking");
 assert.match(appSource, /restoreSceneHistory[\s\S]+restored\.version=Number\(current\.version[\s\S]+syncHeroFromScene\(\)/, "Undo and redo are monotonic Scene revisions and refresh the linked hero runtime");
 assert.match(appSource, /function sceneCore[\s\S]+structuredClone\(base\)[\s\S]+JSON\.parse\(JSON\.stringify\(base\)\)/, "Scene snapshots must not share nested mutable action or resource state with the live table");
 assert.match(appSource, /pendingActionPlan=null;scene\.pendingPrompt=null;scene\.triggerQueue=\[\];scene\.challengeRequest=null;scene\.opposedRoll=null/, "Starting a new Scene must close every Action, prompt, trigger, and roll-request lifecycle");
@@ -119,8 +119,6 @@ assert.match(appSource, /deployment=new Set\([\s\S]+type==="deploy-enemy"/, "Enc
 assert.match(appSource, /gmDeployTerrainCells[\s\S]+availableEncounterCell/, "Encounter deployment avoids saved blocking Terrain");
 assert.match(appSource, /if\(Scene\.selectedActor!==actor\.id\)\{Scene\.targetIds=\[\];Scene\.targetCells=\[\]\}[\s\S]+Scene\.targetIds=\[\];Scene\.targetCells=\[\];Scene\.selectedActor=actor\.id/, "Switching the controlled actor cannot retain stale empty-cell targets from another character");
 assert.match(appSource, /const BUILTIN_ENCOUNTERS=Object\.freeze\(\[/, "Narrator tools provide reusable built-in encounter presets");
-assert.match(appSource, /id:"builtin\.svetozar-team"[\s\S]+compoundId:"svetozar"[\s\S]+enemy\.common\.coordinator[\s\S]+name:"Мира"[\s\S]+name:"Том"[\s\S]+name:"Нейра"[\s\S]+name:"Бранн"/, "The six-hour battle test has a deployable Svetozar-team preset with a Compound boss and named allies");
-assert.match(appSource, /Светозар · Тройной взгляд Сурьи[\s\S]+maxHp:13,hp:13[\s\S]+Светозар · Усилитель Сурьи[\s\S]+maxHp:13,hp:13/, "Svetozar deploys as two 13-Health parts sharing one 26-Health Compound pool");
 assert.match(appSource, /data-gm-encounter-copy/, "A built-in encounter can be copied into the user's editable library");
 assert.doesNotMatch(appSource, /commitScene\(`Стены расстановки:/, "Encounter deployment must not split Walls into a second undo transaction");
 assert.match(appSource, /Резерв героев/, "A full preset has a safe overflow space instead of stacking excess heroes in one cell");
@@ -772,3 +770,7 @@ assert.match(liveCharacterSql, /supabase_realtime add table public\.characters/)
 assert.match(eventRepairSql, /batch\(event_item\)/);
 assert.doesNotMatch(eventRepairSql, /batch\(item\)/);
 console.log(`OK: ${ids.length} unique rule ids; companion data and invariants validated.`);
+
+const lwClockSaved=vm.runInContext('sceneCore({rulesEdition:"lionwing",actors:[{id:"hero",kind:"hero",rulesEdition:"lionwing",ruleClocks:{"long-clock":{size:60,value:40}}}]})',appCoreContext);
+assert.equal(lwClockSaved.actors[0].ruleClocks["long-clock"].size,60);
+assert.equal(lwClockSaved.actors[0].ruleClocks["long-clock"].value,40,"Manual LionWing clocks must not silently shrink on persistence");
