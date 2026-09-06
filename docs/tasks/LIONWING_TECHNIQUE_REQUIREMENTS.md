@@ -3,7 +3,7 @@
 > Генерируется `node tools/content/build_lionwing_requirements.mjs`. Проверка: та же команда с `--check`.
 > Черновик требований не означает сверку всех неоднозначностей, реализацию контракта или автоматизацию Техники.
 
-Всего: 333 Уровня. Подробный ручной черновик: 30. Ещё не разобраны в этом реестре: 303.
+Всего: 333 Уровня. Подробный ручной черновик: 33. Ещё не разобраны в этом реестре: 300.
 
 Источники: `lionwing-technique-requirements.review.json` и `lionwing-rule-families.json` рядом с этим файлом. SHA-256 каждой разобранной строки фиксирует исходный текст, примечания и источник. Генератор не классифицирует Техники по ключевым словам.
 
@@ -13,14 +13,14 @@
 
 | ID | Контракт | Зависимости | Разобранных потребителей |
 | --- | --- | --- | ---: |
-| execution | Сохранённая машина исполнения: before/replace/apply/after, выборы, вложенная цепочка и точное продолжение. | — | 16 |
-| history | История, лимиты и накопление Уровней. | execution | 10 |
+| execution | Сохранённая машина исполнения: before/replace/apply/after, выборы, вложенная цепочка и точное продолжение. | — | 17 |
+| history | История, лимиты и накопление Уровней. | execution | 12 |
 | costs | Расход, получение, замена и резервирование цены. | execution, history | 14 |
 | health | Урон, потеря Здоровья, лечение, Раны и выбивание. | execution | 8 |
-| dice | Бросок и ограниченные изменения результата. | execution | 5 |
-| geometry | Общая геометрия целей, движения и тел. | execution | 11 |
-| effects | Наложенные, вычисляемые, подавленные и неснимаемые Эффекты. | execution, history | 16 |
-| actions | Составной план действия и композиция модификаторов. | execution, history, costs, dice, geometry | 16 |
+| dice | Бросок и ограниченные изменения результата. | execution | 7 |
+| geometry | Общая геометрия целей, движения и тел. | execution | 12 |
+| effects | Наложенные, вычисляемые, подавленные и неснимаемые Эффекты. | execution, history | 19 |
+| actions | Составной план действия и композиция модификаторов. | execution, history, costs, dice, geometry | 18 |
 | turns | Дополнительные действия, Реакции и прерывание Хода. | execution, history | 8 |
 | entities | Принадлежащие сущности, ауры, Призывы и пилотирование. | execution, geometry, effects, turns | 7 |
 
@@ -37,9 +37,9 @@
 | powerhouse.duelist.1 | Riposte [ Block → Skirmish ] | 69 | ожидает разбора | — |
 | powerhouse.duelist.2 | Parry | 69 | ожидает разбора | — |
 | powerhouse.duelist.3 | Deflecting Blow | 69 | ожидает разбора | — |
-| powerhouse.flagellant.1 | Thrill | 69 | ожидает разбора | — |
-| powerhouse.flagellant.2 | Wild Rush | 69 | ожидает разбора | — |
-| powerhouse.flagellant.3 | Bled Dry | 69 | ожидает разбора | — |
+| powerhouse.flagellant.1 | Thrill | 69 | черновик | execution, effects |
+| powerhouse.flagellant.2 | Wild Rush | 69 | черновик | history, actions, effects, geometry, dice |
+| powerhouse.flagellant.3 | Bled Dry | 69 | черновик | history, actions, effects, dice |
 | powerhouse.gunslinger.1 | Big Iron | 69 | ожидает разбора | — |
 | powerhouse.gunslinger.2 | Lock And Load | 69 | ожидает разбора | — |
 | powerhouse.gunslinger.3 | Bullet Juggle | 69 | ожидает разбора | — |
@@ -392,5 +392,8 @@
 - **ruiner.zealot.1**: область лимита для броска вне Действия.
 - **ruiner.zealot.3**: Порядок урона Finisher и сдвига/удаления надо сверить
 - **ruiner.zealot.3**: порядок конкуренции с расходом одного сегмента из I.
+- **powerhouse.flagellant.2**: Если другой механизм заменяет обязательное получение Эффекта, сохраняется ли право на движение? Не решать молча.
+- **powerhouse.flagellant.3**: Когда фиксировать число Эффектов, если оно меняется во время Реакций?
+- **powerhouse.flagellant.3**: При разных бросках по целям какие Криты задают предел снятия?
 
 Статусы автоматизации в `apps/companion/LIONWING-AUTOMATION-MAP.md` этот реестр не меняет.

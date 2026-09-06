@@ -61,7 +61,7 @@ function lwSubmit(actorId, payload, label = "Действие LionWing") {
   }
   // A player's public snapshot intentionally has no authoritative continuation.
   // Send the selected option; the Narrator validates and resumes its saved frame.
-  if (!lwCanNarrate() && payload.kind === "choice" && Scene.lionwing?.choices?.[0]?.kind === "replacement") {
+  if (!lwCanNarrate() && payload.kind === "choice" && ["replacement","rule-trigger"].includes(Scene.lionwing?.choices?.[0]?.kind)) {
     const pending = Scene.lionwing.choices[0];
     if (!lwOwns(actorId) || pending.actorId !== actorId || pending.id !== payload.id || !pending.options.includes(payload.choice)) return false;
     return commitSceneEvents(label, [LionwingEngine.command(actorId, { kind: "choice", id: payload.id, choice: payload.choice })]);
@@ -95,7 +95,7 @@ function lwPendingHtml() {
 function lwAutomationHtml(a) {
   const rules = window.DAWN_LIONWING_ADAPTERS.list(a);
   if (!rules.length) return "";
-  return `<details><summary>Автоматизация Техник</summary><p>Пока подключён только Берсерк II. Остальные Уровни разыгрываются вручную.</p>${rules.map(rule => {
+  return `<details><summary>Автоматизация Техник</summary><p>Включайте только те правила, которые хотите разыгрывать автоматически. Остальные Уровни остаются ручными.</p>${rules.map(rule => {
     const enabled = a.lionwing?.automation?.[rule.id] === true;
     return `<p>${esc(rule.label)} · ${enabled ? "включено" : "вручную"}${lwCanNarrate() ? ` <button data-lw-automation="${esc(rule.id)}" data-lw-actor="${esc(a.id)}" data-lw-enabled="${!enabled}">${enabled ? "Выключить" : "Включить"}</button>` : ""}</p>`;
   }).join("")}</details>`;
@@ -168,7 +168,9 @@ eventText = function(event) {
   if(event.type==="movement.prevented")return `${who}: принудительное движение предотвращено (${p.reason})`;
   if(event.type==="reaction.respond")return `${who}: ${({take:"Принять Атаку",block:"Блок",dodge:"Уворот",clash:"Столкновение"})[p.choice]||p.choice}`;
   if (event.type === "actor.wound") return `${a?.name}: Раны ${p.total}/3, ЗД восстановлено до ${p.hp}`;
-  if (event.type === "automation.configure") return `${a?.name || "Участник"}: Берсерк II — ${p.enabled ? "автоматизация включена" : "ручное исполнение"}`;
+  if (event.type === "automation.configure") return `${a?.name || "Участник"}: ${window.DAWN_LIONWING_ADAPTERS.list(a).find(rule=>rule.id===p.ruleId)?.label||p.ruleId} — ${p.enabled ? "автоматизация включена" : "ручное исполнение"}`;
+  if (event.type === "rule.activated") return `${a?.name || "Участник"}: ${window.DAWN_LIONWING_ADAPTERS.list(a).find(rule=>rule.id===p.ruleId)?.label||p.ruleId}`;
+  if (event.type === "rule.completed") return p.outcome === "skipped" ? "Необязательное правило пропущено" : "Последствия правила завершены";
   if (event.type === "consequence.replaced") return `${a?.name || "Участник"}: Эффект заменён на 2 урона (Берсерк II)`;
   if (event.type === "consequence.completed") return p.outcome === "replaced" ? "Замена последствия завершена" : "Применение Эффекта завершено";
   if (event.type === "rule.respond") return `${a?.name || "Нарратор"}: ${p.note || p.title || choiceNames[p.choice] || p.choice || "решение"}`;

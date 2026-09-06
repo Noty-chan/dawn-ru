@@ -95,3 +95,36 @@ assert.throws(() => run(fixture(), "h", { kind: "execution-frame", frame: f }), 
 const low = fixture();low.actors[0].knownTechniques["powerhouse.berserker"] = 1;
 assert.throws(() => run(low, "h", { kind: "automation", ruleId, enabled: true }), /недоступна/);
 console.log("LionWing replacements: anonymous contracts, source digest, opt-in, ordered effects, Resistance, reload, undo snapshots, ownership and replay passed");
+
+const thrillId = "powerhouse.flagellant.1";
+const combined = () => {
+  let scene = enabled();scene.actors[0].knownTechniques["powerhouse.flagellant"] = 1;
+  return run(scene, "h", { kind: "automation", ruleId: thrillId, enabled: true });
+};
+const flagellant = source.archetypes.flatMap(a => a.techniques).find(t => t.id === "powerhouse.flagellant"), thrill = flagellant.levels[0];
+const thrillDigest = crypto.createHash("sha256").update(JSON.stringify({ id: thrillId, archetypeId: flagellant.archetypeId, techniqueId: flagellant.id, name: thrill.name, text: thrill.text, notes: flagellant.notes, source: flagellant.source })).digest("hex");
+assert.equal(context.window.DAWN_LIONWING_ADAPTERS.list(combined().actors[0]).find(rule => rule.id === thrillId).sourceDigest, thrillDigest);
+
+s = answer(receive(combined()), ruleId);
+assert.equal(s.lionwing.choices.length, 0, "replacing the negative effect must not offer an after-receive trigger");
+assert.equal(s.log.some(e => e.type === "rule.activated"), false);
+s = answer(receive(combined()), "keep");
+assert.ok(s.actors[0].effects.includes(effect));assert.equal(s.lionwing.choices[0].kind, "rule-trigger");
+const afterReceived = copy(s);
+s = answer(copy(s), "keep");assert.equal(s.actors[0].effects.includes("positive.усилен"), false);
+s = answer(copy(afterReceived), thrillId);
+assert.equal(s.lionwing.choices[0].kind, "replacement");assert.equal(s.lionwing.choices[0].context.effect, "positive.усилен");
+assert.equal(s.actors[0].effects.includes("positive.усилен"), false, "trigger consequences use the same replacement pipeline");
+s = answer(copy(s), "keep");assert.ok(s.actors[0].effects.includes("positive.усилен"));assert.equal(s.lionwing.choices.length, 0);
+assert.equal(s.log.filter(e => e.type === "rule.activated").length, 1);
+const rootAction = s.log.find(e => e.type === "rule.activated").execution.rootActionId;
+assert.equal(s.log.find(e => e.type === "effect.apply" && e.payload.effect === "positive.усилен").execution.rootActionId, rootAction);
+
+s = answer(answer(copy(afterReceived), thrillId), ruleId);
+assert.equal(s.actors[0].hp, 14);assert.equal(s.actors[0].effects.includes("positive.усилен"), false);assert.equal(s.lionwing.choices.length, 0);
+// Public player submission also works for the after-effect window.
+ui.Scene = engine.projectScene(afterReceived, { role: "player", actorIds: ["h"] });
+ui.lwSubmit("h", { kind: "choice", id: ui.Scene.lionwing.choices[0].id, choice: thrillId });
+const triggerEvents = network.materializeIntent(afterReceived, context.window.DAWN_DATA, network.intentFromEvents(ui.Scene, sent, "Усилить себя"), "h");
+assert.equal(lw.dispatchMany(afterReceived, triggerEvents).scene.lionwing.choices[0].context.effect, "positive.усилен");
+console.log("LionWing after-effect rules: Flagellant I, cancellation, nested replacement, optional pass, provenance and public player submission passed");

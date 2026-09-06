@@ -568,7 +568,7 @@
           const pending = s.choices[0];
           if (!pending || pending.id !== p.id || pending.actorId !== sourceId || !pending.options.includes(p.choice)) fail("Решение устарело или принадлежит другому участнику");
           s.choices.shift();
-          if (pending.kind === "replacement") {
+          if (pending.kind === "replacement" || pending.kind === "rule-trigger") {
             const item = queue.find(item => item.p.kind === "execution-frame" && item.p.frame.id === pending.context.frameId);
             if (!item || item.p.frame.ownerActorId !== sourceId) fail("Продолжение последствия отсутствует");
             item.p.frame = global.DAWN_LIONWING_EXECUTION.choose(item.p.frame, p.choice);
@@ -785,9 +785,10 @@
         const target = requiredActor(scene, frame.ownerActorId, false);
         provenance = { rootActionId: frame.rootActionId, causeEventId: frame.causeEventId, consequenceId: frame.id };
         if (frame.phase === "before") {
-          frame.replacements = global.DAWN_LIONWING_ADAPTERS.replacements(target, frame.original);
+          if (frame.purpose !== "trigger") frame.replacements = global.DAWN_LIONWING_ADAPTERS.replacements(target, frame.original);
           if (frame.replacements.length) {
-            choice(target, "replacement", "Получение Эффекта: применить его или заменить?", ["keep", ...frame.replacements.map(rule => rule.id)], { frameId: frame.id, effect: frame.original.effect, labels: Object.fromEntries(frame.replacements.map(rule => [rule.id, rule.label])) });
+            const isTrigger = frame.purpose === "trigger";
+            choice(target, isTrigger ? "rule-trigger" : "replacement", isTrigger ? "Эффект получен: применить доступное правило?" : "Получение Эффекта: применить его или заменить?", ["keep", ...frame.replacements.map(rule => rule.id)], { frameId: frame.id, effect: frame.original.effect, labels: { keep: isTrigger ? "Пропустить" : "Применить Эффект", ...Object.fromEntries(frame.replacements.map(rule => [rule.id, rule.label])) } });
             queue.unshift(item);
           } else frame = global.DAWN_LIONWING_EXECUTION.choose(frame, "keep");
         }
@@ -795,14 +796,18 @@
           const plan = global.DAWN_LIONWING_EXECUTION.plan(frame);
           const after = { p: { kind: "execution-frame", frame: { ...frame, phase: "after", outcome: plan.outcome } }, sourceId: item.sourceId };
           if (plan.outcome === "applied") {
-            commitEffect(target, frame.original, frame.original.sourceActorId);
+            if (frame.original.kind !== "noop") commitEffect(target, frame.original, frame.original.sourceActorId);
             queue.unshift(after);
           } else {
-            emit("consequence.replaced", target.id, { effect: frame.original.effect, ruleId: plan.ruleId, targetId: target.id });
+            emit(frame.purpose === "trigger" ? "rule.activated" : "consequence.replaced", target.id, { effect: frame.original.effect, ruleId: plan.ruleId, targetId: target.id });
             queue.unshift(...plan.operations.map(p => ({ p, sourceId: p.sourceActorId ?? target.id, provenance: { ...provenance, ruleId: plan.ruleId, causeEventId: frame.id } })), after);
           }
         } else if (frame.phase === "after") {
-          emit("consequence.completed", target.id, { targetId: target.id, outcome: frame.outcome, effect: frame.original.effect });
+          emit(frame.purpose === "trigger" ? "rule.completed" : "consequence.completed", target.id, { targetId: target.id, outcome: frame.purpose === "trigger" ? (frame.selected === "keep" ? "skipped" : "applied") : frame.outcome, effect: frame.original.effect });
+          if (frame.purpose !== "trigger" && frame.outcome === "applied") {
+            const triggers = global.DAWN_LIONWING_ADAPTERS.afterEffect(target, frame.original);
+            queue.unshift(...triggers.map(rule => ({ p: { kind: "execution-frame", frame: global.DAWN_LIONWING_EXECUTION.open({ kind: "noop", effect: frame.original.effect }, { id: `${rootId}:consequence:${frameSerial++}`, rootActionId: frame.rootActionId, causeEventId: frame.id, ownerActorId: target.id, purpose: "trigger" }, [rule]) }, sourceId: target.id })));
+          }
         }
       } else op(item.p, item.sourceId);
       if (scheduled.length) queue.unshift(...scheduled.splice(0));
