@@ -1,0 +1,212 @@
+{
+  "schemaVersion": 1,
+  "status": "planned-contracts",
+  "families": [
+    {
+      "id": "execution",
+      "dependsOn": [],
+      "contract": "Сохранённая машина исполнения: before/replace/apply/after, выборы, вложенная цепочка и точное продолжение.",
+      "requirements": [
+        "Идентификаторы rootAction, action, effectInstance, causeEvent и owner; граница отдельного нанесения урона.",
+        "Кадр хранит исходное последствие, выбранные замены, курсор, результаты и допустимого отвечающего; никаких функций в снимке.",
+        "Одна исходная операция заменяется до применения; отменённое последствие не порождает after-триггеры.",
+        "Необязательные конкурирующие правила выбирает уполномоченный участник; обязательный порядок задаётся каноном, неоднозначный — Нарратором.",
+        "Отказ до подтверждения не тратит ресурсы; после подтверждённого последствия отмена равна отдельному откату, а не выбору pass."
+      ],
+      "acceptanceCases": [
+        "replacement-no-original-event",
+        "nested-choice-reload",
+        "duplicate-response",
+        "two-competing-replacements"
+      ],
+      "implementationStatus": "requires-implementation-audit"
+    },
+    {
+      "id": "history",
+      "dependsOn": [
+        "execution"
+      ],
+      "contract": "История, лимиты и накопление Уровней.",
+      "requirements": [
+        "Раздельные области: rootAction, action, Turn владельца, любой Turn, Round, Scene и Chapter.",
+        "Различать попытку, применение, попадание, фактический урон, потерю Здоровья, получение Раны и KO.",
+        "Уровень явно добавляет правило, заменяет его или меняет параметры; не включать три отдельных адаптера вслепую.",
+        "Откат возвращает использованные лимиты вместе с последствиями."
+      ],
+      "acceptanceCases": [
+        "first-vs-repeated-hit",
+        "owner-vs-foreign-turn",
+        "cumulative-level-replacement",
+        "undo-restores-usage"
+      ],
+      "implementationStatus": "requires-implementation-audit"
+    },
+    {
+      "id": "costs",
+      "dependsOn": [
+        "execution",
+        "history"
+      ],
+      "contract": "Расход, получение, замена и резервирование цены.",
+      "requirements": [
+        "Хранить запрошенный ресурс и фактически использованный; отличать gain/spend/lose и preventedGain.",
+        "Резервировать полную составную цену после выбора целей; подтверждать вместе с действием и повторно проверять версию.",
+        "Расход Здоровьем не превращать автоматически в damage; связанный контракт health определяет последствия по канону.",
+        "Сохранять происхождение получения и область once-per-Action."
+      ],
+      "acceptanceCases": [
+        "atomic-composite-payment",
+        "alternate-resource",
+        "prevented-healing-discount",
+        "no-double-refund"
+      ],
+      "implementationStatus": "requires-implementation-audit"
+    },
+    {
+      "id": "health",
+      "dependsOn": [
+        "execution"
+      ],
+      "contract": "Урон, потеря Здоровья, лечение, Раны и выбивание.",
+      "requirements": [
+        "Планируемое значение и фактический итог — разные факты; would-deal доступно до применения.",
+        "После каждого отдельного нанесения остановиться на выборе Раны/Сопротивления до следующего.",
+        "Выведение фиксирует причину и источники; исключения не обходят общую обработку тела и Эффектов."
+      ],
+      "acceptanceCases": [
+        "wound-between-hits",
+        "zero-damage-vs-miss",
+        "compound-gate",
+        "health-payment-vs-damage"
+      ],
+      "implementationStatus": "requires-implementation-audit"
+    },
+    {
+      "id": "dice",
+      "dependsOn": [
+        "execution"
+      ],
+      "contract": "Бросок и ограниченные изменения результата.",
+      "requirements": [
+        "Фиксировать пул и правила крита на экземпляре броска; хранить исходные грани отдельно от итоговых Hits.",
+        "Различать Проверку, встречную Проверку, сырую D6-таблицу и замену результата.",
+        "Игрок присылает выбор и намерение, авторитетный обработчик выводит допустимые модификаторы из Сцены."
+      ],
+      "acceptanceCases": [
+        "crit-five",
+        "raw-d6-table",
+        "negative-derived-hits-ruling",
+        "forged-result"
+      ],
+      "implementationStatus": "requires-implementation-audit"
+    },
+    {
+      "id": "geometry",
+      "dependsOn": [
+        "execution"
+      ],
+      "contract": "Общая геометрия целей, движения и тел.",
+      "requirements": [
+        "Разделять источник Атаки и геометрический якорь: Призыв, маркер, прежняя клетка.",
+        "Проверять по сегментам, сохранять остановку и остаток пути; размещение не равно движению.",
+        "Форма тела входит в занятость; изменение размера и вытеснение проверяются пакетом.",
+        "Равные ближайшие клетки требуют устойчивого правила/выбора; удалённые клетки меняют топологию, а не только картинку."
+      ],
+      "acceptanceCases": [
+        "mid-path-stop",
+        "anchor-not-actor",
+        "two-by-two-occupancy",
+        "topology-reload"
+      ],
+      "implementationStatus": "requires-implementation-audit"
+    },
+    {
+      "id": "effects",
+      "dependsOn": [
+        "execution",
+        "history"
+      ],
+      "contract": "Наложенные, вычисляемые, подавленные и неснимаемые Эффекты.",
+      "requirements": [
+        "Один тип Эффекта может иметь несколько источников; снять источник не равно снять всё состояние.",
+        "Аура вычисляется из живых источников и положения без постоянного копирования в actor.effects.",
+        "Применение, потеря источника, фактическая потеря, подавление и восстановление — разные факты.",
+        "Срок содержит владельца границы, момент наложения и правило снятия; неснимаемость не реализуется вечным повторным наложением."
+      ],
+      "acceptanceCases": [
+        "aura-enter-exit",
+        "source-ko",
+        "suppression-vs-removal",
+        "unremovable-effect"
+      ],
+      "implementationStatus": "requires-implementation-audit"
+    },
+    {
+      "id": "actions",
+      "dependsOn": [
+        "execution",
+        "history",
+        "costs",
+        "dice",
+        "geometry"
+      ],
+      "contract": "Составной план действия и композиция модификаторов.",
+      "requirements": [
+        "До оплаты собрать форму, дальность, цели, атрибут, бросок, отдельные результаты и разрешённые исключения.",
+        "Конфликт двух замен формы не разрешать порядком регистрации; давать допустимый выбор.",
+        "Каждый модификатор имеет происхождение и потребление на actionId; позднее изменение требует отдельного разрешённого окна."
+      ],
+      "acceptanceCases": [
+        "two-shape-modifiers",
+        "cancel-before-payment",
+        "per-target-outcome",
+        "late-retargeting-ruling"
+      ],
+      "implementationStatus": "requires-implementation-audit"
+    },
+    {
+      "id": "turns",
+      "dependsOn": [
+        "execution",
+        "history"
+      ],
+      "contract": "Дополнительные действия, Реакции и прерывание Хода.",
+      "requirements": [
+        "Разделить собственный Ход, разрешённые действия вне Хода и полноценный дополнительный Ход.",
+        "При прерывании сохранить активного участника, ОД, остаток движения, очередь и локальные лимиты.",
+        "Возобновление не запускает turn-start и сбросы снова; KO участника меняет способ возврата.",
+        "Вражеский прерываемый Ход и союзный Ход, которого надо дождаться, различаются параметром допуска."
+      ],
+      "acceptanceCases": [
+        "interrupt-enemy",
+        "wait-for-ally",
+        "resume-without-reset",
+        "ko-during-interrupt"
+      ],
+      "implementationStatus": "requires-implementation-audit"
+    },
+    {
+      "id": "entities",
+      "dependsOn": [
+        "execution",
+        "geometry",
+        "effects",
+        "turns"
+      ],
+      "contract": "Принадлежащие сущности, ауры, Призывы и пилотирование.",
+      "requirements": [
+        "Стабильные ID сущности, владельца и связи; один персонаж не дублирует здоровье/сроки в двух не связанных объектах.",
+        "Создание, преобразование, вход/выход, уничтожение, смена владельца и очистка Сцены — общий жизненный цикл.",
+        "Связи движения и совместное положение не сливают разные Ходы и ресурсы.",
+        "Видимость скрытых сущностей и их продолжений проходит общую сетевую проекцию."
+      ],
+      "acceptanceCases": [
+        "two-independent-markers",
+        "pilot-enter-exit",
+        "linked-movement",
+        "hidden-entity-projection"
+      ],
+      "implementationStatus": "requires-implementation-audit"
+    }
+  ]
+}
