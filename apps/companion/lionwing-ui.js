@@ -59,6 +59,13 @@ function lwSubmit(actorId, payload, label = "Действие LionWing") {
     lwDraftBatch||={actorId,operations:[],labels:[]};lwDraftBatch.operations.push(...structuredClone(operations));
     lwDraftBatch.labels.push(`${label}: ${operations.length} операций`);renderScene();return true;
   }
+  // A player's public snapshot intentionally has no authoritative continuation.
+  // Send the selected option; the Narrator validates and resumes its saved frame.
+  if (!lwCanNarrate() && payload.kind === "choice" && Scene.lionwing?.choices?.[0]?.kind === "replacement") {
+    const pending = Scene.lionwing.choices[0];
+    if (!lwOwns(actorId) || pending.actorId !== actorId || pending.id !== payload.id || !pending.options.includes(payload.choice)) return false;
+    return commitSceneEvents(label, [LionwingEngine.command(actorId, { kind: "choice", id: payload.id, choice: payload.choice })]);
+  }
   const prepared = LionwingEngine.prepare(Scene, { ...payload, actorId });
   if (!prepared.ok) { toast(prepared.errors.join(" ")); return false; }
   if(payload.kind==="attack"||prepared.scene?.pendingAction||prepared.scene?.lionwing?.choices?.length)activeDirectorTab="turn";
@@ -76,13 +83,22 @@ function lwPendingHtml() {
     const owner = Scene.actors.find(a => a.id === choice.actorId), can = ["clash-tie","duel-outcome","duel-wounds"].includes(choice.kind)?lwCanNarrate():lwOwns(choice.actorId);
     const duel=choice.kind==="duel-outcome"?Scene.lionwing.duels.find(item=>item.id===choice.context.duelId):null;
     const duelControls=duel&&can?`<label>Напряжение Дуэли<input type="number" min="0" max="999" data-lw-duel-tension value="${duel.tension}"></label><button data-lw-set-duel-tension="${esc(duel.id)}" data-lw-actor="${esc(choice.actorId)}">Задать Напряжение Дуэли</button><p>Подходы и ресурсы разрешите до определения победителя. Используйте панель бросков и общие операции ресурсов; Напряжение исходного боя сохраняется.</p>`:"";
-    const labels = { "bail":"Отступить — без ставки", "take-it":"Принять удар — вернуть Влияние", "double-down":"Удвоить ставку — переброс", "one-wound":"1 Рана (стр. 38)", "two-wounds":"2 Раны (стр. 62)", resist: "Сопротивляться", accept: choice.kind==="clash-loss"?"Принять Атаку":"Принять выведение", reroll:"5 урона → перебросить", win:choice.kind==="duel-outcome"?"Инициатор победил":"Защитник победил",lose:choice.kind==="duel-outcome"?"Инициатор проиграл":"Атакующий победил",record: "Записать решение", place: "Выбрать клетку" };
-    return `<section class="lw-pending"><strong>${esc(owner?.name || "Участник")}: ${esc(choice.kind==="duel-wounds"?"Продолжить сохранённую Дуэль: 1 Рана по уточнению автора":choice.title)}</strong>${duelControls}${choice.context?.text ? `<p>${esc(choice.context.text)}</p>` : ""}${can ? `${choice.options.includes("record") ? '<input data-lw-choice-note placeholder="Принятое решение" aria-label="Принятое решение">' : ""}<div class="button-row">${(choice.kind==="duel-wounds"?["one-wound"]:choice.options).map(option => `<button data-lw-choice="${option}" data-lw-choice-id="${esc(choice.id)}" data-lw-actor="${esc(choice.actorId)}">${labels[option] || esc(option)}</button>`).join("")}</div>` : "<p>Ожидается решение владельца героя.</p>"}</section>`;
+    const labels = { keep:"Применить Эффект", "bail":"Отступить — без ставки", "take-it":"Принять удар — вернуть Влияние", "double-down":"Удвоить ставку — переброс", "one-wound":"1 Рана (стр. 38)", "two-wounds":"2 Раны (стр. 62)", resist: "Сопротивляться", accept: choice.kind==="clash-loss"?"Принять Атаку":"Принять выведение", reroll:"5 урона → перебросить", win:choice.kind==="duel-outcome"?"Инициатор победил":"Защитник победил",lose:choice.kind==="duel-outcome"?"Инициатор проиграл":"Атакующий победил",record: "Записать решение", place: "Выбрать клетку" };
+    return `<section class="lw-pending"><strong>${esc(owner?.name || "Участник")}: ${esc(choice.kind==="duel-wounds"?"Продолжить сохранённую Дуэль: 1 Рана по уточнению автора":choice.title)}</strong>${duelControls}${choice.kind==="replacement"?`<p>${esc([...lwRules().effects.positive,...lwRules().effects.negative].find(e=>e.id===choice.context.effect)?.name||choice.context.effect)}. Исходный Эффект ещё не наложен.</p>`:""}${choice.context?.text ? `<p>${esc(choice.context.text)}</p>` : ""}${can ? `${choice.options.includes("record") ? '<input data-lw-choice-note placeholder="Принятое решение" aria-label="Принятое решение">' : ""}<div class="button-row">${(choice.kind==="duel-wounds"?["one-wound"]:choice.options).map(option => `<button data-lw-choice="${option}" data-lw-choice-id="${esc(choice.id)}" data-lw-actor="${esc(choice.actorId)}">${esc(choice.context?.labels?.[option] || labels[option] || option)}</button>`).join("")}</div>` : "<p>Ожидается решение владельца героя.</p>"}</section>`;
   }
   const pending = Scene.pendingAction;
   if (!pending?.lionwing) return "";
   const waiting = SceneEngine.pendingActionStatus(Scene).waitingIds;
   return `<section class="lw-pending"><strong>${esc(pending.name)} · ${pending.damage} урона${pending.repeat > 1 ? ` × ${pending.repeat} отдельных нанесений` : ""}</strong>${waiting.map(id => { const a = Scene.actors.find(x => x.id === id); return `<div class="lw-reaction"><b>${esc(a.name)}</b>${lwOwns(id) ? `<div class="button-row">${[["take", "Принять", 0], ["block", "Блок", 2], ["dodge", "Уворот", 2], ["clash", "Столкновение", 2]].map(([key,label,cost]) => `<button data-lw-reaction="${key}" data-lw-actor="${esc(id)}" ${!LionwingEngine.canSpend(a,"focus",cost) ? 'disabled title="Недостаточно Фокуса"' : ""}>${label}${cost ? ` · ${cost} Фокуса` : ""}</button>`).join("")}</div>` : " · ожидается ответ"}</div>`; }).join("")}${!waiting.length && lwCanNarrate() ? `<button class="primary" data-lw-resolve data-lw-actor="${esc(pending.actorId)}">Применить урон</button>` : ""}${lwCanNarrate() ? `<button data-lw-cancel data-lw-actor="${esc(pending.actorId)}">Прервать</button>` : ""}</section>`;
+}
+
+function lwAutomationHtml(a) {
+  const rules = window.DAWN_LIONWING_ADAPTERS.list(a);
+  if (!rules.length) return "";
+  return `<details><summary>Автоматизация Техник</summary><p>Пока подключён только Берсерк II. Остальные Уровни разыгрываются вручную.</p>${rules.map(rule => {
+    const enabled = a.lionwing?.automation?.[rule.id] === true;
+    return `<p>${esc(rule.label)} · ${enabled ? "включено" : "вручную"}${lwCanNarrate() ? ` <button data-lw-automation="${esc(rule.id)}" data-lw-actor="${esc(a.id)}" data-lw-enabled="${!enabled}">${enabled ? "Выключить" : "Включить"}</button>` : ""}</p>`;
+  }).join("")}</details>`;
 }
 
 function lwActionsHtml(a) {
@@ -94,7 +110,7 @@ function lwActionsHtml(a) {
   }).join("");
   const opportunities=(Scene.lionwing?.opportunities||[]).filter(o=>o.actorId===a.id&&lwOwns(a.id)).map(o=>`<button data-lw-punish="${esc(o.id)}" data-lw-actor="${esc(a.id)}" ${!LionwingEngine.canSpend(a,"focus",2)?"disabled":""}>Наказать · 2 Фокуса: ${esc(Scene.actors.find(x=>x.id===o.targetId)?.name||"цель")}</button>`).join("");
   const effects=[...lwRules().effects.positive,...lwRules().effects.negative].filter(e=>e.id!=="positive.изгнан");
-  return `<section class="lw-actions" data-lw-root data-lw-actor="${esc(a.id)}">${lwStatusHtml(a)}${lwPendingHtml()}${lwChainHtml(a)}${opportunities}${(a.effects||[]).includes("positive.невидим")?`<button data-lw-invisible data-lw-actor="${esc(a.id)}">Потратить Невидимость → Исчезнуть</button>`:""}${lwDestination ? '<p class="lw-hint">Выберите клетку на поле. <button data-lw-clear-destination>Отменить выбор</button></p>' : ""}<div class="core-action-list">${buttons}</div><details><summary>Параметры действия</summary><div class="lw-fields"><label>Атрибут<select data-lw-attribute><option value="">Подобрать по действию</option><option value="body">Тело</option><option value="talent">Талант</option><option value="spirit">Дух</option><option value="mind">Разум</option></select></label><label>Фокус для Завершения<input data-lw-focus type="number" min="0" max="${Math.min(Object.values(a.ruleResources||{}).some(r=>r.replaces==="focus"&&r.inverted)?Scene.tension||0:LionwingEngine.balance(a,"focus"), Scene.tension || 0)}" value="0"></label><label>Преимущество<input data-lw-advantage type="number" min="0" max="50" value="0"></label><label>Помеха<input data-lw-disadvantage type="number" min="0" max="50" value="0"></label><label>Импровизация<select data-lw-improvise-effect><option value="">Создать препятствие</option>${effects.map(e=>`<option value="${esc(e.id)}">${esc(e.name)}</option>`).join("")}</select></label><label>Убрать соседнее препятствие<select data-lw-remove-obstacle><option value="">Не убирать</option>${Scene.objects.filter(o=>o.type==="terrain"&&o.space===a.space).map(o=>`<option value="${esc(o.id)}">${esc(o.label||"Препятствие")}</option>`).join("")}</select></label><label><input type="checkbox" data-lw-spike>Использовать бонус по Подброшенным целям</label></div></details></section>`;
+  return `<section class="lw-actions" data-lw-root data-lw-actor="${esc(a.id)}">${lwStatusHtml(a)}${lwAutomationHtml(a)}${lwPendingHtml()}${lwChainHtml(a)}${opportunities}${(a.effects||[]).includes("positive.невидим")?`<button data-lw-invisible data-lw-actor="${esc(a.id)}">Потратить Невидимость → Исчезнуть</button>`:""}${lwDestination ? '<p class="lw-hint">Выберите клетку на поле. <button data-lw-clear-destination>Отменить выбор</button></p>' : ""}<div class="core-action-list">${buttons}</div><details><summary>Параметры действия</summary><div class="lw-fields"><label>Атрибут<select data-lw-attribute><option value="">Подобрать по действию</option><option value="body">Тело</option><option value="talent">Талант</option><option value="spirit">Дух</option><option value="mind">Разум</option></select></label><label>Фокус для Завершения<input data-lw-focus type="number" min="0" max="${Math.min(Object.values(a.ruleResources||{}).some(r=>r.replaces==="focus"&&r.inverted)?Scene.tension||0:LionwingEngine.balance(a,"focus"), Scene.tension || 0)}" value="0"></label><label>Преимущество<input data-lw-advantage type="number" min="0" max="50" value="0"></label><label>Помеха<input data-lw-disadvantage type="number" min="0" max="50" value="0"></label><label>Импровизация<select data-lw-improvise-effect><option value="">Создать препятствие</option>${effects.map(e=>`<option value="${esc(e.id)}">${esc(e.name)}</option>`).join("")}</select></label><label>Убрать соседнее препятствие<select data-lw-remove-obstacle><option value="">Не убирать</option>${Scene.objects.filter(o=>o.type==="terrain"&&o.space===a.space).map(o=>`<option value="${esc(o.id)}">${esc(o.label||"Препятствие")}</option>`).join("")}</select></label><label><input type="checkbox" data-lw-spike>Использовать бонус по Подброшенным целям</label></div></details></section>`;
 }
 
 function lwDirectorHtml(a) {
@@ -152,6 +168,9 @@ eventText = function(event) {
   if(event.type==="movement.prevented")return `${who}: принудительное движение предотвращено (${p.reason})`;
   if(event.type==="reaction.respond")return `${who}: ${({take:"Принять Атаку",block:"Блок",dodge:"Уворот",clash:"Столкновение"})[p.choice]||p.choice}`;
   if (event.type === "actor.wound") return `${a?.name}: Раны ${p.total}/3, ЗД восстановлено до ${p.hp}`;
+  if (event.type === "automation.configure") return `${a?.name || "Участник"}: Берсерк II — ${p.enabled ? "автоматизация включена" : "ручное исполнение"}`;
+  if (event.type === "consequence.replaced") return `${a?.name || "Участник"}: Эффект заменён на 2 урона (Берсерк II)`;
+  if (event.type === "consequence.completed") return p.outcome === "replaced" ? "Замена последствия завершена" : "Применение Эффекта завершено";
   if (event.type === "rule.respond") return `${a?.name || "Нарратор"}: ${p.note || p.title || choiceNames[p.choice] || p.choice || "решение"}`;
   if (event.type === "action.resolve") return `${a?.name || "Участник"}: ${lwRules().actions.list.find(d => d.id === p.actionId)?.name || p.name}`;
   return lwOldEventText(event);
@@ -229,7 +248,7 @@ document.addEventListener("click", event => {
     if(kind==="move"){if(targets.length!==1)return toast("Для движения выберите одну цель");lwDestination={actorId:sourceId,payload:operations[0],label:"Движение правила"};renderScene();toast("Выберите клетку назначения");return;}
     return lwSubmit(sourceId,operations.length===1?operations[0]:{kind:"batch",operations:["note","prompt","usage"].includes(kind)?[operations[0]]:operations},"Общая операция правила");
   }
-  const button = event.target.closest("[data-lw-action], [data-lw-reaction], [data-lw-choice], [data-lw-resolve], [data-lw-cancel], [data-lw-clear-destination], [data-lw-operation], [data-lw-correct], [data-lw-custom], [data-lw-modifier], [data-lw-punish], [data-lw-invisible]");
+  const button = event.target.closest("[data-lw-automation], [data-lw-action], [data-lw-reaction], [data-lw-choice], [data-lw-resolve], [data-lw-cancel], [data-lw-clear-destination], [data-lw-operation], [data-lw-correct], [data-lw-custom], [data-lw-modifier], [data-lw-punish], [data-lw-invisible]");
   if (!button) {
     const oldControl=event.target.closest("[data-director-set-field], [data-director-knockout], [data-director-tension], [data-director-open-reactions], [data-director-set-rule-resource], [data-director-set-rule-clock]");
     if(oldControl){event.preventDefault();event.stopImmediatePropagation();const a=lwActor();if(!a||!lwCanNarrate())return;
@@ -250,6 +269,7 @@ document.addEventListener("click", event => {
   if (!actorId || !lwOwns(actorId)) return toast("Этим участником управляет другой игрок");
   const val = (selector, fallback="") => root?.querySelector(selector)?.value ?? fallback;
   const num = (selector, fallback=0) => Number(val(selector,fallback));
+  if(button.hasAttribute("data-lw-automation")){if(!lwCanNarrate())return;return lwSubmit(actorId,{kind:"automation",ruleId:button.dataset.lwAutomation,enabled:button.dataset.lwEnabled==="true"},"Настройка автоматизации");}
   if(button.hasAttribute("data-lw-punish"))return lwSubmit(actorId,{kind:"punish",id:button.dataset.lwPunish},"Наказание");
   if(button.hasAttribute("data-lw-invisible"))return lwSubmit(actorId,{kind:"invisible"},"Исчезновение");
   if (button.hasAttribute("data-lw-clear-destination")) { lwDestination=null; renderScene(); return; }

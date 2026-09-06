@@ -212,8 +212,11 @@
   // Techniques may compose these operations without registering imperative code.
   function execute(scene, event, output) {
     const s = state(scene), rootId = event.id, emitted = [];
+    const scheduled = [];
+    let frameSerial = 0, choiceSerial = 0, provenance = null;
     const emit = (type, actorId, payload = {}) => {
       const row = { id: `${rootId}:${emitted.length}`, at: event.at, type, actorId: actorId || null, payload: copy(payload), visibility: event.visibility || "public" };
+      if (provenance) row.execution = copy(provenance);
       emitted.push(row); scene.log.unshift(row); scene.log = scene.log.slice(0, 200); return row;
     };
     const removeEffect = (a, effect, options={}) => {
@@ -229,7 +232,7 @@
       }
       if(wasDisappeared&&options.reappear!==false)choice(a,"placement","Выберите клетку появления вне соседства с персонажами",["place"],{reappear:true});
     };
-    const choice = (a, kind, title, options, context = {}) => { s.choices.push({ id: `${rootId}:choice:${s.choices.length}`, actorId: a.id, kind, title, options, context }); };
+    const choice = (a, kind, title, options, context = {}) => { s.choices.push({ id: `${rootId}:choice:${choiceSerial++}`, actorId: a.id, kind, title, options, context }); };
     const duelOutcome = duel => choice(requiredActor(scene,duel.actorId,false),"duel-outcome","Дуэль: разыграйте встречную Проверку. NPC бросает [Напряжение Дуэли + Ступень]; бросок игрока согласуйте с Нарратором. Подходы и Напряжение определяет Нарратор.",["win","lose"],{duelId:duel.id});
     const duelReturn = duel => {
       scene.activeSpace=duel.returnSpaceId;
@@ -275,6 +278,14 @@
     };
     const applyEffect = (a, p, sourceId) => {
       if (!effectIds.has(p.effect)) fail("Неизвестный Эффект LionWing");
+      if (p.duration && p.duration !== "default" && !lifetimes.has(p.duration)) fail("Неизвестный срок Эффекта");
+      const original = { ...copy(p), kind: "effect", targetId: a.id, sourceActorId: sourceId };
+      const identity = { id: `${rootId}:consequence:${frameSerial++}`, rootActionId: provenance?.rootActionId || rootId, causeEventId: provenance?.causeEventId || rootId, ownerActorId: a.id };
+      // Gather eligibility when the frame reaches the head, after earlier choices.
+      scheduled.push({ p: { kind: "execution-frame", frame: global.DAWN_LIONWING_EXECUTION.open(original, identity) }, sourceId });
+    };
+    const commitEffect = (a, p, sourceId) => {
+      if (!effectIds.has(p.effect)) fail("Неизвестный Эффект LionWing");
       const duration = p.duration && p.duration!=="default" ? p.duration : (persistent.has(p.effect) ? "scene" : p.effect === "positive.изгнан" ? "startTurn" : a.compoundId?"roundEnd":"default");
       if (!lifetimes.has(duration)) fail("Неизвестный срок Эффекта");
       if (p.effect === "positive.изгнан") for (const other of scene.actors) if (other.id !== a.id && (!a.compoundId||other.compoundId!==a.compoundId) && (other.effectStates?.[p.effect]?.sources || []).some(source => source.actorId === sourceId)) removeEffect(other, p.effect);
@@ -285,7 +296,7 @@
       astate(a).effectLifetimes ||= {};
       astate(a).effectLifetimes[p.effect] = { ownerActorId: p.ownerActorId || a.id, duration, appliedSerial: Number(scene.turnSerial || 0), appliedRound: scene.round };
       emit("effect.apply", sourceId, { targetId: a.id, effect: p.effect, duration });
-      if(a.compoundId&&!p.compoundCopy)for(const part of scene.actors.filter(x=>x.id!==a.id&&x.compoundId===a.compoundId))applyEffect(part,{...p,compoundCopy:true,duration},sourceId);
+      if(a.compoundId&&!p.compoundCopy)for(const part of scene.actors.filter(x=>x.id!==a.id&&x.compoundId===a.compoundId))commitEffect(part,{...p,compoundCopy:true,duration},sourceId);
       if (p.effect === "negative.пойман" && !p.compoundCopy && !p.preventForcedMovement && !has(a,"positive.устойчив") && sourceId && distance(a, requiredActor(scene, sourceId)) > 1) choice(a, "placement", "Пойман: выберите клетку рядом с источником", ["place"], { adjacentTo: sourceId, forced: true });
     };
     const applyDamage = p => {
@@ -504,6 +515,12 @@
           else {target[p.resource] = amount;if(p.resource==="maxHp")target.hp=Math.min(target.hp,amount);}
           emit("actor.runtime.set", target.id, { resource: p.resource, value: amount, before, correction: true, note: p.note || "Ручное исправление" }); break;
         }
+        case "automation": {
+          const rule = global.DAWN_LIONWING_ADAPTERS.list(a).find(rule => rule.id === p.ruleId);
+          if (!rule || typeof p.enabled !== "boolean") fail("Автоматизация недоступна этому участнику");
+          astate(a).automation ||= {}; a.lionwing.automation[p.ruleId] = p.enabled;
+          emit("automation.configure", a.id, { ruleId: p.ruleId, enabled: p.enabled }); break;
+        }
         case "effect": { const target = requiredActor(scene, p.targetId || sourceId, false); if (p.remove) removeEffect(target, p.effect); else applyEffect(target, p, sourceId); break; }
         case "move": move(requiredActor(scene, p.targetId || sourceId), p); break;
         case "modifier": {
@@ -551,7 +568,12 @@
           const pending = s.choices[0];
           if (!pending || pending.id !== p.id || pending.actorId !== sourceId || !pending.options.includes(p.choice)) fail("Решение устарело или принадлежит другому участнику");
           s.choices.shift();
-          if (pending.kind === "knockout") { if (p.choice === "resist") { a[pending.context.track] = 1; a.hp = a.maxHp; astate(a).vulnerable = true; } else knockout(a); }
+          if (pending.kind === "replacement") {
+            const item = queue.find(item => item.p.kind === "execution-frame" && item.p.frame.id === pending.context.frameId);
+            if (!item || item.p.frame.ownerActorId !== sourceId) fail("Продолжение последствия отсутствует");
+            item.p.frame = global.DAWN_LIONWING_EXECUTION.choose(item.p.frame, p.choice);
+          }
+          else if (pending.kind === "knockout") { if (p.choice === "resist") { a[pending.context.track] = 1; a.hp = a.maxHp; astate(a).vulnerable = true; } else knockout(a); }
           else if(pending.kind==="clash-loss"||pending.kind==="clash-tie"){
             if(!scene.pendingAction||scene.pendingAction.id!==pending.context.attackId)fail("Атака больше не ожидает Столкновения");
             if(p.choice==="reroll")queue.unshift({p:{kind:"damage",targetId:a.id,amount:5,sourceActorId:a.id},sourceId:a.id},{p:{kind:"clash-roll",roll:p.roll,opponentRoll:p.opponentRoll},sourceId:a.id});
@@ -645,7 +667,7 @@
             if(tail.kind==="move"&&tail.forced&&pending.responses[tail.targetId||tail.sourceActorId]?.preventForcedMovement)emit("movement.prevented",pending.actorId,{targetId:tail.targetId||tail.sourceActorId,reason:"Уворот",attackId:pending.id});
             else operations.push(tail);
           } s.afterAttack = [];
-          queue.unshift(...operations.map(p => ({ p, sourceId: pending.actorId })));
+          queue.unshift(...operations.map(p => ({ p, sourceId: pending.actorId, provenance: { rootActionId: pending.id, causeEventId: rootId } })));
           emit("attack.clear", pending.actorId, { name: pending.name }); break;
         }
         case "amend-attack": {
@@ -754,8 +776,36 @@
     }
     const queue = operations.map(p => ({ p, sourceId: p.sourceActorId ?? event.actorId }));
     if (request.kind === "choice") queue.push(...s.deferred.splice(0));
+    let steps = 0;
     while (queue.length) {
-      const item = queue.shift(); op(item.p, item.sourceId);
+      if (++steps > 2048) fail("Цепочка слишком длинная: требуется решение Нарратора");
+      const item = queue.shift(); provenance = item.provenance || null;
+      if (item.p.kind === "execution-frame") {
+        let frame = item.p.frame;
+        const target = requiredActor(scene, frame.ownerActorId, false);
+        provenance = { rootActionId: frame.rootActionId, causeEventId: frame.causeEventId, consequenceId: frame.id };
+        if (frame.phase === "before") {
+          frame.replacements = global.DAWN_LIONWING_ADAPTERS.replacements(target, frame.original);
+          if (frame.replacements.length) {
+            choice(target, "replacement", "Получение Эффекта: применить его или заменить?", ["keep", ...frame.replacements.map(rule => rule.id)], { frameId: frame.id, effect: frame.original.effect, labels: Object.fromEntries(frame.replacements.map(rule => [rule.id, rule.label])) });
+            queue.unshift(item);
+          } else frame = global.DAWN_LIONWING_EXECUTION.choose(frame, "keep");
+        }
+        if (frame.phase === "apply" || frame.phase === "replace") {
+          const plan = global.DAWN_LIONWING_EXECUTION.plan(frame);
+          const after = { p: { kind: "execution-frame", frame: { ...frame, phase: "after", outcome: plan.outcome } }, sourceId: item.sourceId };
+          if (plan.outcome === "applied") {
+            commitEffect(target, frame.original, frame.original.sourceActorId);
+            queue.unshift(after);
+          } else {
+            emit("consequence.replaced", target.id, { effect: frame.original.effect, ruleId: plan.ruleId, targetId: target.id });
+            queue.unshift(...plan.operations.map(p => ({ p, sourceId: p.sourceActorId ?? target.id, provenance: { ...provenance, ruleId: plan.ruleId, causeEventId: frame.id } })), after);
+          }
+        } else if (frame.phase === "after") {
+          emit("consequence.completed", target.id, { targetId: target.id, outcome: frame.outcome, effect: frame.original.effect });
+        }
+      } else op(item.p, item.sourceId);
+      if (scheduled.length) queue.unshift(...scheduled.splice(0));
       if (s.choices.length) { s.deferred.push(...queue); break; }
       if(scene.pendingAction&&["attack","action","punish"].includes(item.p.kind)&&queue.length){s.afterAttack=[...(s.afterAttack||[]),...queue.map(item=>({...item.p,sourceActorId:item.sourceId}))];break;}
     }
@@ -794,7 +844,7 @@
     try { return { ok: true, ...dispatchMany(scene, events, options), errors: [] }; }
     catch (error) { return { ok: false, errors: [error.message], code: error.code || "LIONWING_RULE_BLOCKED" }; }
   }
-  const api = { schema: 1, isScene, prepare, command, dispatchMany, previewEvents, turnStartStatus, roundEndStatus, movement, roll, actionStatus, actionDef, speed, balance, canSpend, targetIds, operations: ["batch", "pause-chain", "resume-chain", "amend-attack", "recover-track", "record-action", "action", "attack", "damage", "heal", "wound", "stress", "knockout", "resource", "correct", "effect", "move", "modifier", "allow-action", "grant-turn", "usage", "punish", "invisible", "search", "configure-resource", "counter", "clock", "prompt", "choice", "roll", "reaction", "resolve-attack", "cancel-attack", "turn-start", "turn-end", "round-end", "scene-reset", "tension", "note"] };
+  const api = { schema: 1, isScene, prepare, command, dispatchMany, previewEvents, turnStartStatus, roundEndStatus, movement, roll, actionStatus, actionDef, speed, balance, canSpend, targetIds, operations: ["automation", "batch", "pause-chain", "resume-chain", "amend-attack", "recover-track", "record-action", "action", "attack", "damage", "heal", "wound", "stress", "knockout", "resource", "correct", "effect", "move", "modifier", "allow-action", "grant-turn", "usage", "punish", "invisible", "search", "configure-resource", "counter", "clock", "prompt", "choice", "roll", "reaction", "resolve-attack", "cancel-attack", "turn-start", "turn-end", "round-end", "scene-reset", "tension", "note"] };
   global.DAWN_LIONWING_ENGINE = api;
   const routed = global.DAWN_SCENE_ENGINE;
   const route = (name, handler) => { const previous = legacy[name]; routed[name] = (scene, ...args) => isScene(scene) ? handler(scene, ...args) : previous(scene, ...args); };
