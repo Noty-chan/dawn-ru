@@ -26,7 +26,7 @@ for(const row of review.levels){
  for(const key of ['trigger','conditions','cost','lifetime','inheritance'])if(typeof row[key]!=='string'||!row[key].trim())fail(`Missing ${key}: ${row.id}`);
  for(const key of ['families','orderedSteps','tests','implementationNotes'])if(!Array.isArray(row[key])||!row[key].length)fail(`Missing ${key}: ${row.id}`);
  if(!Array.isArray(row.openQuestions))fail(`Missing open questions: ${row.id}`);
- if(row.openQuestions.length)fail(`Unresolved question: ${row.id}`);
+ for(const question of row.openQuestions)if(typeof question!=='string'||!question.trim())fail(`Invalid open question: ${row.id}`);
  if(!Array.isArray(row.resolvedRulings))fail(`Missing resolved rulings: ${row.id}`);
  for(const ruling of row.resolvedRulings){
   for(const key of ['question','decision','basis','authority'])if(typeof ruling[key]!=='string'||!ruling[key].trim())fail(`Incomplete ruling ${key}: ${row.id}`);
@@ -47,7 +47,9 @@ const lines=['# LionWing: реестр требований и семейств�
 '','## Все Уровни','',
 '| Уровень | Название | PDF | Разбор требований | Семейства |','| --- | --- | ---: | --- | --- |',
 ...levels.map(l=>{const r=drafts.get(l.id);return `| ${l.id} | ${esc(l.name)} | ${l.source.pdfPage} | ${r?'черновик':'ожидает разбора'} | ${r?.families.join(', ')||'—'} |`}),
-'','## Принятые решения по неоднозначностям','',
+ '','## Открытые вопросы — блокируют готовность соответствующего адаптера','',
+ ...review.levels.flatMap(r=>r.openQuestions.map(q=>`- **${r.id}** — ${esc(q)}`)),
+ '','## Принятые решения по неоднозначностям','',
 ...review.levels.flatMap(r=>r.resolvedRulings.map(x=>`- **${r.id}** — ${esc(x.question)} → ${esc(x.decision)} _Основание: ${esc(x.basis)}._`)),
 '','Статусы автоматизации в `apps/companion/LIONWING-AUTOMATION-MAP.md` этот реестр не меняет.',''];
 const output=path.join(root,'docs/tasks/LIONWING_TECHNIQUE_REQUIREMENTS.md'),text=lines.join('\n');
