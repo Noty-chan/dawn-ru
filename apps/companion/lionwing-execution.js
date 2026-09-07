@@ -68,7 +68,7 @@
     const provenance = identity(context);
     const actorId=Object.hasOwn(context,"actorId")?context.actorId:provenance.ownerActorId;
     if(actorId!==null&&typeof actorId!=="string")reject("Некорректный субъект исторического факта");
-    return copy({ schema: 1, id: id(context.id, "history"), type, ...provenance, actorId, subjectKind:actorId===null?"scene":"actor", targetIds: [...new Set((context.targetIds || []).filter(value => typeof value === "string"))].slice(0, 40), round: serial(context.round ?? 0, "Раунд"), turnSerial: serial(context.turnSerial ?? 0, "Ход"), ownerTurnActorId: context.ownerTurnActorId || null, sceneSerial: serial(context.sceneSerial ?? 1, "Сцена"), chapterSerial: serial(context.chapterSerial ?? 1, "Глава"), details });
+    return copy({ schema: 1, id: id(context.id, "history"), type, ...provenance, actorId, subjectKind:actorId===null?"scene":"actor", targetIds: [...new Set((context.targetIds || []).filter(value => typeof value === "string"))].slice(0, 40), round: serial(context.round ?? 0, "Раунд"), turnSerial: serial(context.turnSerial ?? 0, "Ход"), turnInstanceId:context.turnInstanceId==null?null:id(context.turnInstanceId,"экземпляр Хода"), ownerTurnActorId: context.ownerTurnActorId || null, sceneSerial: serial(context.sceneSerial ?? 1, "Сцена"), chapterSerial: serial(context.chapterSerial ?? 1, "Глава"), details });
   }
 
   function inScope(item, query = {}) {
@@ -76,7 +76,7 @@
     if (query.type && item.type !== query.type || query.ruleId && item.ruleId !== query.ruleId || query.actorId && item.actorId !== query.actorId || query.targetId && !item.targetIds.includes(query.targetId)) return false;
     if (query.scope === "rootAction") return item.rootActionId === query.rootActionId;
     if (query.scope === "action") return query.actionInstanceId ? item.actionInstanceId === query.actionInstanceId : item.actionId === query.actionId && (!query.rootActionId || item.rootActionId === query.rootActionId);
-    if (query.scope === "ownerTurn") return item.sceneSerial === query.sceneSerial && item.turnSerial === query.turnSerial && item.ownerTurnActorId === query.ownerActorId;
+    if (query.scope === "ownerTurn") return item.sceneSerial === query.sceneSerial && item.ownerTurnActorId === query.ownerActorId && (query.turnInstanceId ? item.turnInstanceId === query.turnInstanceId : item.turnSerial === query.turnSerial);
     if (query.scope === "anyTurn") return item.sceneSerial === query.sceneSerial && item.turnSerial === query.turnSerial;
     if (query.scope === "round") return item.sceneSerial === query.sceneSerial && item.round === query.round;
     if (query.scope === "scene") return item.sceneSerial === query.sceneSerial;

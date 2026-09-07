@@ -31,6 +31,10 @@ s=fixture();s=run(s,"a",{kind:"usage",ruleId:"test.limit",scope:"scene",limit:1}
 s=run(s,"b",{kind:"usage",ruleId:"test.limit",scope:"scene",limit:1});
 rejected(s,"a",{kind:"usage",ruleId:"test.limit",scope:"scene",limit:1},/исчерпан/);
 s=run(s,"a",{kind:"scene-reset"});s=run(s,"a",{kind:"usage",ruleId:"test.limit",scope:"scene",limit:1});
+rejected(fixture(),"b",{kind:"usage",ruleId:"owner.only",scope:"ownerTurn",limit:1},/собственном Ходу/);
+s=run(fixture(),"a",{kind:"usage",ruleId:"owner.only",scope:"ownerTurn",limit:1});
+rejected(s,"a",{kind:"usage",ruleId:"owner.only",scope:"ownerTurn",limit:1},/исчерпан/);
+assert.equal(s.lionwing.history.find(f=>f.ruleId==="owner.only").turnInstanceId,"legacy-turn:1","an imported open Turn receives a stable instance id without embedding an actor id");
 s=fixture();s.actors[0].lionwing={history:[{ruleId:"old.limit",round:1,turnSerial:1,targetIds:[]}]};
 rejected(s,"a",{kind:"usage",ruleId:"old.limit",scope:"turn",limit:1},/исчерпан/);
 const raw=lw.roll(2,()=>0.99,{kind:"raw-d6"});assert.deepEqual(clone(raw.sourceFaces),[6,6]);assert.equal(raw.hits,null);

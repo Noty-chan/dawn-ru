@@ -34,6 +34,7 @@
     for(const key of ["choices","deferred","receipts","history"])if(!Array.isArray(s[key]))s[key]=[];
     s.sceneSerial=Number.isSafeInteger(s.sceneSerial)&&s.sceneSerial>0?s.sceneSerial:1;
     s.chapterSerial=Number.isSafeInteger(s.chapterSerial)&&s.chapterSerial>0?s.chapterSerial:1;
+    if(scene.activeActorId&&!s.activeTurnInstanceId)s.activeTurnInstanceId=`legacy-turn:${Number(scene.turnSerial||0)}`;
     if(migrateHistory)for(const a of scene.actors||[])for(const h of a.lionwing?.history||[]){
       if(!h.ruleId)continue;
       const legacyId=`legacy:history:${s.history.length}`;
@@ -285,6 +286,7 @@
         targetIds,
         round: Number(scene.round || 0),
         turnSerial: Number(scene.turnSerial || 0),
+        turnInstanceId:s.activeTurnInstanceId||null,
         ownerTurnActorId: scene.activeActorId || null,
         sceneSerial: s.sceneSerial,
         chapterSerial: s.chapterSerial,
@@ -692,7 +694,8 @@
         case "usage":{
           const scopeAliases={turn:"anyTurn",round:"round",scene:"scene"},scope=scopeAliases[p.scope]||p.scope;
           if(typeof p.ruleId!=="string"||!p.ruleId||p.ruleId.length>180||!["rootAction","action","ownerTurn","anyTurn","round","scene","chapter"].includes(scope))fail("Укажите правило и область лимита");
-          const query={scope,actorId:sourceId,ruleId:p.ruleId,rootActionId:provenance.rootActionId,actionId:p.actionId||provenance.actionId,actionInstanceId:provenance.actionInstanceId,ownerActorId:sourceId,turnSerial:scene.turnSerial,round:scene.round,sceneSerial:s.sceneSerial,chapterSerial:s.chapterSerial};
+          if(scope==="ownerTurn"&&scene.activeActorId!==sourceId)fail("Этот лимит доступен только на собственном Ходу владельца");
+          const query={scope,actorId:sourceId,ruleId:p.ruleId,rootActionId:provenance.rootActionId,actionId:p.actionId||provenance.actionId,actionInstanceId:provenance.actionInstanceId,ownerActorId:sourceId,turnSerial:scene.turnSerial,turnInstanceId:s.activeTurnInstanceId||null,round:scene.round,sceneSerial:s.sceneSerial,chapterSerial:s.chapterSerial};
           const used=(s.history||[]).filter(item=>foundations.inScope(item,query));
           if(used.length>=integer(p.limit??1,"лимит",999))fail("Лимит применения правила исчерпан");
           if(p.oncePerTarget&&(p.targetIds||[]).some(id=>used.some(item=>item.targetIds.includes(id))))fail("Эта цель уже использована правилом");
@@ -864,7 +867,7 @@
           const status = turnStartStatus(scene, sourceId); if (!status.available) fail(status.reason);
           if(s.grantedTurns?.length){s.grantedTurns.shift();astate(a).grantedTurn={lastTeam:s.lastTeam,lastActorId:s.lastActorId,acted:a.acted};}
           if (!s.started) { s.started = true; for (const hero of scene.actors.filter(isPlayer)) hero.focus = 1 + Math.ceil(Number(hero.attrs.spirit || 0) / 2); for (const other of scene.actors) other.ap = 0; }
-          scene.activeActorId = a.id; scene.turnSerial = Number(scene.turnSerial || 0) + 1; astate(a).turns = Number(astate(a).turns || 0) + 1; astate(a).turnActions = []; astate(a).startedDisappeared = has(a, "positive.исчез");
+          scene.activeActorId = a.id; scene.turnSerial = Number(scene.turnSerial || 0) + 1; s.activeTurnInstanceId=rootId; astate(a).turns = Number(astate(a).turns || 0) + 1; astate(a).turnActions = []; astate(a).startedDisappeared = has(a, "positive.исчез");
           const difficult=new Set(scene.objects.filter(o=>o.space===a.space&&o.type==="difficult").flatMap(o=>o.cells||[]));
           const start=[];for(let y=0;y<Number(a.occupiedHeight||1);y++)for(let x=0;x<Number(a.occupiedWidth||1);x++){const cell=`${a.x+x},${a.y+y}`;if(difficult.has(cell))start.push(cell);}
           if(start.length){const connected=new Set(start),queue=[...start];while(queue.length){const [x,y]=queue.shift().split(",").map(Number);for(const cell of [`${x+1},${y}`,`${x-1},${y}`,`${x},${y+1}`,`${x},${y-1}`])if(difficult.has(cell)&&!connected.has(cell)){connected.add(cell);queue.push(cell);}}astate(a).difficultTerrainIgnoreSerial=scene.turnSerial;astate(a).difficultTerrainIgnoreSpace=a.space;astate(a).difficultTerrainIgnoreCells=[...connected];}
@@ -885,7 +888,7 @@
           phase("endTurn", a); a.ap = 0; a.stepRemaining = 0; a.acted = true; scene.activeActorId = null; s.lastTeam = a.team; s.lastActorId = a.id; s.breakout = { actorId: a.id, turnSerial: scene.turnSerial }; s.opportunities = [];
           for(const other of scene.actors)if(Number(other.lionwing?.difficultTerrainStopSerial)===Number(scene.turnSerial))delete other.lionwing.difficultTerrainStopSerial;
           if(astate(a).grantedTurn){const resume=astate(a).grantedTurn;s.lastTeam=resume.lastTeam;s.lastActorId=resume.lastActorId;a.acted=resume.acted;delete astate(a).grantedTurn;}
-          emit("turn.end", a.id); break;
+          emit("turn.end", a.id);delete s.activeTurnInstanceId; break;
         }
         case "round-end": {
           const status = roundEndStatus(scene); if (!status.available) fail(status.reason);
