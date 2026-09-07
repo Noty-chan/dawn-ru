@@ -118,6 +118,19 @@ function lwActionsHtml(a) {
   return `<section class="lw-actions" data-lw-root data-lw-actor="${esc(a.id)}">${lwStatusHtml(a)}${lwAutomationHtml(a)}${lwPendingHtml()}${lwChainHtml(a)}${opportunities}${(a.effects||[]).includes("positive.невидим")?`<button data-lw-invisible data-lw-actor="${esc(a.id)}">Потратить Невидимость → Исчезнуть</button>`:""}${lwDestination ? '<p class="lw-hint">Выберите клетку на поле. <button data-lw-clear-destination>Отменить выбор</button></p>' : ""}<div class="core-action-list">${buttons}</div><details><summary>Параметры действия</summary><div class="lw-fields"><label>Атрибут<select data-lw-attribute><option value="">Подобрать по действию</option><option value="body">Тело</option><option value="talent">Талант</option><option value="spirit">Дух</option><option value="mind">Разум</option></select></label><label>Фокус для Завершения<input data-lw-focus type="number" min="0" max="${Math.min(Object.values(a.ruleResources||{}).some(r=>r.replaces==="focus"&&r.inverted)?Scene.tension||0:LionwingEngine.balance(a,"focus"), Scene.tension || 0)}" value="0"></label><label>Преимущество<input data-lw-advantage type="number" min="0" max="50" value="0"></label><label>Помеха<input data-lw-disadvantage type="number" min="0" max="50" value="0"></label><label>Импровизация<select data-lw-improvise-effect><option value="">Создать препятствие</option>${effects.map(e=>`<option value="${esc(e.id)}">${esc(e.name)}</option>`).join("")}</select></label><label>Убрать соседнее препятствие<select data-lw-remove-obstacle><option value="">Не убирать</option>${Scene.objects.filter(o=>o.type==="terrain"&&o.space===a.space).map(o=>`<option value="${esc(o.id)}">${esc(o.label||"Препятствие")}</option>`).join("")}</select></label><label><input type="checkbox" data-lw-spike>Использовать бонус по Подброшенным целям</label></div></details></section>`;
 }
 
+function lwEffectSourcesHtml(targets) {
+  const definitions=[...lwRules().effects.positive,...lwRules().effects.negative], names=new Map(definitions.map(effect=>[effect.id,effect.name]));
+  const durationNames={default:"по правилу",startTurn:"до начала следующего Хода владельца срока",endTurn:"до конца следующего Хода владельца срока",nextTurn:"до следующего Хода",roundEnd:"до конца Раунда",scene:"до конца Сцены",persistent:"постоянно",manual:"до ручного снятия"};
+  const rows=targets.flatMap(target=>Object.keys(target.effectStates||{}).flatMap(effect=>{
+    const status=LionwingEngine.effectInstanceStatus(Scene,target.id,effect), unsupported=Boolean(target.compoundId||["positive.исчез","positive.изгнан"].includes(effect));
+    return status.sources.map(source=>{
+      const sourceActor=Scene.actors.find(actor=>actor.id===source.actorId), suppressions=source.suppressedBy||[], duration=source.duration||"default";
+      return `<li data-lw-effect-source-row><b>${esc(target.name)}</b> · ${esc(names.get(effect)||effect)}<br><small>Источник: ${esc(sourceActor?.name||"правило Сцены")} · ${esc(durationNames[duration]||duration)}${suppressions.length?" · подавлен":""}</small><details><summary>Технические данные</summary><code>${esc(source.sourceId)}</code>${suppressions.length?`<br><code>${suppressions.map(esc).join(", ")}</code>`:""}</details><div class="button-row"><button data-lw-effect-source="remove" data-lw-target="${esc(target.id)}" data-lw-effect="${esc(effect)}" data-lw-source="${esc(source.sourceId)}" ${source.removable?"":'disabled title="Этот источник нельзя снять вручную"'}>Снять этот источник</button>${suppressions.map(suppressionId=>`<button data-lw-effect-source="restore" data-lw-target="${esc(target.id)}" data-lw-effect="${esc(effect)}" data-lw-source="${esc(source.sourceId)}" data-lw-suppression="${esc(suppressionId)}">Вернуть источник</button>`).join("")}${suppressions.length?"":`<label>Причина подавления<input data-lw-suppression-reason placeholder="Например: защитное поле"></label><button data-lw-effect-source="suppress" data-lw-target="${esc(target.id)}" data-lw-effect="${esc(effect)}" data-lw-source="${esc(source.sourceId)}" ${unsupported?'disabled title="Подавление составных участников, Исчезновения и Изгнания пока не поддерживается"':""}>Подавить этот источник</button>`}</div></li>`;
+    });
+  }));
+  return `<details class="lw-effect-sources" ${rows.length?"open":""}><summary>Источники Эффектов${rows.length?` · ${rows.length}`:""}</summary>${rows.length?`<p>Каждая кнопка меняет только указанный источник у указанной цели.</p><ul>${rows.join("")}</ul>`:"<p>У выбранных целей нет отдельных источников Эффектов.</p>"}</details>`;
+}
+
 function lwDirectorHtml(a) {
   if (!a) return "";
   const targets = Scene.targetIds.map(id => Scene.actors.find(x => x.id === id)).filter(Boolean);
@@ -137,6 +150,8 @@ renderSceneDirector = function() {
   holder.firstElementChild.insertAdjacentHTML("afterbegin",lwBatchHtml());
   holder.firstElementChild.insertAdjacentHTML("beforeend",lwGeneralHtml());
   const consoleNode=holder.firstElementChild,actions=consoleNode.querySelector(".lw-actions"),turnPane=root.querySelector('[data-director-pane="turn"]'),manualPane=root.querySelector('[data-director-pane="manual"]');
+  consoleNode.querySelector('[data-lw-operation="remove-effect"]')?.remove();
+  consoleNode.querySelector(".lw-operation")?.insertAdjacentHTML("beforeend",lwEffectSourcesHtml((Scene.targetIds.length?Scene.targetIds:[a.id]).map(id=>Scene.actors.find(actor=>actor.id===id)).filter(Boolean)));
   if(turnPane&&manualPane){turnPane.prepend(actions);manualPane.prepend(consoleNode);}
   else root.prepend(consoleNode);
   for(const input of root.querySelectorAll("[data-lw-root] input,[data-lw-root] select,[data-lw-root] textarea")){const key=lwDraftKey(input);if(key&&lwFormDraft.has(key)){if(input.type==="checkbox")input.checked=lwFormDraft.get(key);else input.value=lwFormDraft.get(key);}}
@@ -209,6 +224,8 @@ moveSceneActorFromBoard = function(a,x,y,options={}) {
 
 document.addEventListener("click", event => {
   if (!lwActive()) return;
+  const effectSource=event.target.closest("[data-lw-effect-source]");
+  if(effectSource){event.preventDefault();event.stopImmediatePropagation();if(!lwCanNarrate())return toast("Эта операция доступна Нарратору");const operation=effectSource.dataset.lwEffectSource,reason=effectSource.closest("[data-lw-effect-source-row]")?.querySelector("[data-lw-suppression-reason]")?.value?.trim(),suppressionId=effectSource.dataset.lwSuppression||`manual:${effectSource.closest(".lw-console")?.dataset.lwActor||"narrator"}:${Date.now()}`;if(operation==="suppress"&&!reason)return toast("Укажите причину подавления");return lwSubmit(effectSource.closest(".lw-console")?.dataset.lwActor||lwActor()?.id,{kind:"effect-source",operation,targetId:effectSource.dataset.lwTarget,effect:effectSource.dataset.lwEffect,sourceId:effectSource.dataset.lwSource,...(["suppress","restore"].includes(operation)?{suppressionId}:{})},reason||"Источник Эффекта");}
   const chainControl=event.target.closest("[data-lw-chain]");
   if(chainControl){event.preventDefault();event.stopImmediatePropagation();if(!lwCanNarrate())return;return lwSubmit(chainControl.dataset.lwActor,{kind:chainControl.dataset.lwChain},"Ручное прерывание цепочки");}
   const batchControl=event.target.closest("[data-lw-batch-apply],[data-lw-batch-clear]");
