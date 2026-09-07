@@ -57,6 +57,59 @@
   const balance = (a, key) => { const resolved=resourceKey(a,key);return Number(spendable.has(resolved)?a[resolved]||0:a.ruleResources?.[resolved]?.value||0); };
   const canSpend=(a,key,amount)=>{const resource=resourceKey(a,key),def=a.ruleResources?.[resource];return key==="focus"&&def?.inverted?def.maximum==null||balance(a,key)+amount<=def.maximum:balance(a,key)>=amount;};
   const lifetimes = new Set(["default", "startTurn", "endTurn", "nextTurn", "roundEnd", "scene", "persistent", "manual"]);
+  const counterIdPattern = /^[a-z][a-z0-9._:-]{0,119}$/i;
+  const counterRuleIdPattern = /^[a-z0-9][a-z0-9._:-]{0,179}$/i;
+  const counterScopes = new Set(["manual", "startTurn", "endTurn", "roundEnd", "scene", "turn", "round", "chapter", "session"]);
+  const counterLifetimes = new Set([...lifetimes, "turn", "round", "chapter", "session"]);
+  const strictCounterInteger = (value, label, minimum = 0, maximum = 9999) => {
+    if (typeof value !== "number" || !Number.isSafeInteger(value) || value < minimum || value > maximum) fail(`Некорректное значение: ${label}`);
+    return value;
+  };
+  const counterString = (value, label, maximum = 180) => {
+    if (typeof value !== "string" || !value.trim() || value.length > maximum) fail(`Некорректное значение: ${label}`);
+    return value.trim();
+  };
+  const counterEntityExists = (scene, id) => Boolean(actor(scene, id) || (scene.objects || []).some(item => item.id === id) || (scene.walls || []).some(item => item.id === id) || (scene.markers || []).some(item => item.id === id) || (scene.spaces || []).some(item => item.id === id));
+  const counterDefinition = (scene, a, type, id, payload = {}, previous = null, sourceId = null) => {
+    if (!a || !["clock", "resource"].includes(type) || !counterIdPattern.test(String(id || "")) || ["constructor", "prototype", "__proto__"].includes(id)) fail("Некорректный ID счётчика");
+    if (type === "clock" && !/^[a-z][a-z0-9.-]{0,79}$/.test(String(id))) fail("ID часов: строчные латинские буквы, цифры, точка и дефис");
+    if (type === "resource" && !/^[a-zA-Z][\w.-]{0,79}$/.test(String(id))) fail("Некорректный ID ресурса");
+    const old = previous && typeof previous === "object" ? previous : {};
+    const oldValue = previous && typeof previous !== "object" ? previous : old.current ?? old.value;
+    const oldMaximum = type === "clock" ? old.max ?? old.maximum ?? old.size : old.max ?? old.maximum;
+    const rawMaximum = payload.max !== undefined ? payload.max : payload.maximum !== undefined ? payload.maximum : payload.size !== undefined && type === "clock" ? payload.size : oldMaximum;
+    const maximum = rawMaximum == null ? null : strictCounterInteger(rawMaximum, type === "clock" ? "размер часов" : "максимум", type === "clock" ? 1 : 0, type === "clock" ? 100 : 9999);
+    if (type === "clock" && maximum == null) fail("Часам нужен конечный размер");
+    const minimum = strictCounterInteger(payload.min !== undefined ? payload.min : payload.minimum !== undefined ? payload.minimum : old.min ?? old.minimum ?? 0, "минимум", 0, maximum ?? 9999);
+    if (maximum != null && minimum > maximum) fail("Минимум превышает максимум");
+    const initial = strictCounterInteger(payload.initial !== undefined ? payload.initial : old.initial ?? minimum, "значение сброса", minimum, maximum ?? 9999);
+    let current = payload.current !== undefined ? payload.current : payload.value !== undefined ? payload.value : oldValue ?? initial;
+    current = strictCounterInteger(current, "текущее значение (максимум)", minimum, maximum ?? 9999);
+    const thresholdRaw = payload.threshold !== undefined ? payload.threshold : old.threshold !== undefined ? old.threshold : maximum;
+    const threshold = thresholdRaw == null ? null : strictCounterInteger(thresholdRaw, "порог", minimum, maximum ?? 9999);
+    const ownerActorId = old.ownerActorId ?? payload.ownerActorId ?? a.id;
+    if (ownerActorId !== a.id) fail("Счётчик принадлежит другому участнику");
+    const sourceActorId = payload.sourceActorId !== undefined ? payload.sourceActorId : old.sourceActorId ?? sourceId ?? a.id;
+    if (sourceActorId != null && (!counterIdPattern.test(String(sourceActorId)) || !actor(scene, sourceActorId))) fail("Источник счётчика отсутствует на Сцене");
+    const sourceEntityId = payload.sourceEntityId !== undefined ? payload.sourceEntityId : old.sourceEntityId ?? null;
+    if (sourceEntityId != null && (typeof sourceEntityId !== "string" || !sourceEntityId || !counterEntityExists(scene, sourceEntityId))) fail("Сущность-источник счётчика отсутствует на Сцене");
+    const ruleId = payload.ruleId !== undefined ? payload.ruleId : old.ruleId ?? null;
+    if (ruleId != null && (typeof ruleId !== "string" || !counterRuleIdPattern.test(ruleId))) fail("Некорректный ID правила счётчика");
+    const scope = payload.scope !== undefined ? payload.scope : old.scope ?? payload.resetAt ?? old.resetAt ?? "manual";
+    if (typeof scope !== "string" || !counterScopes.has(scope)) fail("Неизвестный срок/область сброса счётчика");
+    const lifetime = payload.lifetime !== undefined ? payload.lifetime : old.lifetime ?? scope;
+    if (typeof lifetime !== "string" || !counterLifetimes.has(lifetime)) fail("Неизвестный срок жизни счётчика");
+    const label = counterString(payload.label !== undefined ? payload.label : payload.name !== undefined ? payload.name : old.label ?? old.name ?? id, "название счётчика", 120);
+    const result = {
+      id, kind: type, label, name: label, ownerActorId: a.id, sourceActorId: sourceActorId ?? null, sourceEntityId: sourceEntityId ?? null, ruleId: ruleId ?? null,
+      scope, lifetime, resetAt: ["manual", "startTurn", "endTurn", "roundEnd", "scene"].includes(scope) ? scope : old.resetAt ?? "manual",
+      min: minimum, minimum, max: maximum, maximum, current, value: current, initial, threshold,
+      active: old.active !== false,
+    };
+    if (type === "clock") { result.clockId = id; result.size = maximum; }
+    else { result.resource = id; result.replaces = payload.replaces !== undefined ? payload.replaces : old.replaces ?? null; result.replacesAp = payload.replacesAp !== undefined ? payload.replacesAp : old.replacesAp ?? false; result.inverted = payload.inverted !== undefined ? payload.inverted : old.inverted ?? false; }
+    return result;
+  };
   const actionDef = id => core.actions.list.find(item => item.id === id);
   const nameOf = id => actionDef(id)?.name || id;
   const command = (actorId, payload) => ({ type: "lionwing.command", actorId, payload });
@@ -366,8 +419,64 @@
       else if (type === "resource.gain") saveFact(payload.prevented ? "preventedGain" : "gain", actorId, targets, { requestedResource: payload.requestedResource || payload.resource, resource: payload.resource, requested: payload.requestedAmount ?? payload.amount, actual: payload.amount });
       else if (type === "roll.public") saveFact("roll", actorId, targets, { kind: payload.kind, pool: payload.pool, hits: payload.hits, criticals: payload.criticals });
       else if (type === "rule.used") saveFact("apply", actorId, targets, { scope: payload.scope }, { ...provenance, ruleId: payload.ruleId, ownerActorId: actorId });
+      else if (type === "counter.threshold") saveFact("counter.threshold", actorId, targets, { counterId: payload.counterId || payload.id, kind: payload.kind || payload.type, before: payload.before, value: payload.value, threshold: payload.threshold });
       else if (type === "attack.clear" && payload.cancelled) saveFact("cancel", actorId, targets, { reason: payload.reason || "cancelled" });
       return row;
+    };
+    const mutateCounter = (p, sourceId, forcedType = null, forcedOperation = null) => {
+      const a = sourceId ? requiredActor(scene, sourceId, false) : null;
+      if (!a) fail("Счётчику нужен владелец-участник");
+      const type = forcedType || p.type;
+      if (!["clock", "resource"].includes(type)) fail("Укажите тип счётчика: clock или resource");
+      const collection = type === "clock" ? (a.ruleClocks ||= {}) : (a.ruleResources ||= {});
+      const id = String(p.id || "");
+      if (!counterIdPattern.test(id) || ["constructor", "prototype", "__proto__"].includes(id)) fail("Некорректный ID счётчика");
+      const previousRaw = Object.hasOwn(collection, id) ? collection[id] : null;
+      const exists = previousRaw !== null;
+      let operation = forcedOperation || p.operation;
+      if (!operation && forcedType === "clock") operation = p.delta !== undefined ? "add" : (exists ? "set" : "create");
+      if (!operation && forcedType === "resource") operation = exists ? "configure" : "create";
+      if (!["create", "configure", "set", "add", "reset", "rename", "remove", "size"].includes(operation)) fail("Неизвестная операция счётчика");
+      if (operation === "remove") {
+        if (!exists) fail("Счётчик не найден");
+        const before = copy(previousRaw);
+        delete collection[id];
+        emit(`rule-${type}.remove`, sourceId, { id, kind: type, ownerActorId: a.id, before });
+        return;
+      }
+      if (operation === "rename") {
+        if (!exists) fail("Счётчик не найден");
+        const label = counterString(p.label !== undefined ? p.label : p.name, "название счётчика", 120), before = previousRaw.label ?? previousRaw.name ?? id;
+        previousRaw.label = label; previousRaw.name = label;
+        emit(`rule-${type}.rename`, sourceId, { id, kind: type, ownerActorId: a.id, before, name: label });
+        return;
+      }
+      if (operation === "size" && type !== "clock") fail("Размер применим только к часам");
+      if (operation === "size" && p.size === undefined) fail("Укажите размер часов");
+      if (operation === "size" && p.size !== undefined) strictCounterInteger(p.size, "размер часов", 1, 100);
+      if (operation === "set" && p.current === undefined && p.value === undefined) fail("Укажите текущее значение счётчика");
+      if (operation === "add" && (typeof p.delta !== "number" || !Number.isSafeInteger(p.delta) || Math.abs(p.delta) > 9999)) fail("Некорректное изменение счётчика");
+      if (["set", "add", "reset", "size"].includes(operation) && !exists) fail("Счётчик не найден");
+      if (operation === "create" && exists) fail("Счётчик с таким ID уже существует");
+      if ((operation === "create" || operation === "configure") && type === "resource" && p.replaces !== undefined && p.replaces !== null && p.replaces !== "focus") fail("Можно заменить только Фокус");
+      if ((operation === "create" || operation === "configure") && type === "resource" && p.replacesAp !== undefined && typeof p.replacesAp !== "boolean" || (operation === "create" || operation === "configure") && type === "resource" && p.inverted !== undefined && typeof p.inverted !== "boolean") fail("Некорректный флаг ресурса");
+      const source = previousRaw;
+      const payload = operation === "add" ? { ...p, current: (source?.current ?? source?.value ?? 0) + p.delta } : operation === "reset" ? { ...p, current: source?.initial ?? 0 } : operation === "size" ? { ...p, max: p.size } : operation === "create" && p.delta !== undefined && p.current === undefined && p.value === undefined ? { ...p, current: (p.initial ?? 0) + p.delta } : p;
+      if (operation === "add" && (!Number.isSafeInteger(payload.current))) fail("Некорректное текущее значение счётчика");
+      if (operation === "size" && source && Number(source.current ?? source.value ?? 0) > p.size) fail("Новый размер меньше текущего значения");
+      const next = counterDefinition(scene, a, type, id, payload, previousRaw, sourceId);
+      const before = exists ? Number(previousRaw.current ?? previousRaw.value ?? 0) : null;
+      if (operation === "create") {
+        if (Object.keys(collection).length >= 30) fail(`У участника уже 30 ${type === "clock" ? "часов" : "ресурсов"}`);
+      }
+      if (type === "resource" && (operation === "create" || operation === "configure")) {
+        if (next.replacesAp && Object.entries(collection).some(([otherId, def]) => otherId !== id && def?.replacesAp)) fail("ОД уже заменены другим ресурсом");
+        if (next.replaces === "focus" && Object.entries(collection).some(([otherId, def]) => otherId !== id && def?.replaces === "focus")) fail("Фокус уже заменён другим ресурсом");
+      }
+      collection[id] = next;
+      const eventOperation = operation === "configure" ? "configure" : operation;
+      emit(`rule-${type}.${eventOperation}`, sourceId, { id, kind: type, ownerActorId: next.ownerActorId, sourceActorId: next.sourceActorId, sourceEntityId: next.sourceEntityId, ruleId: next.ruleId, before, value: next.current, current: next.current, initial: next.initial, min: next.min, max: next.max, scope: next.scope, lifetime: next.lifetime, ...(operation === "rename" ? { name: next.name } : {}) });
+      if (["set", "add"].includes(operation) && before != null && next.threshold != null && before < next.threshold && next.current >= next.threshold) emit("counter.threshold", sourceId, { counterId: id, id, kind: type, ownerActorId: next.ownerActorId, sourceActorId: next.sourceActorId, sourceEntityId: next.sourceEntityId, ruleId: next.ruleId, before, value: next.current, threshold: next.threshold });
     };
     const removeEffect = (a, effect, options={}) => {
       const wasDisappeared=effect==="positive.исчез"&&has(a,effect);
@@ -550,8 +659,9 @@
     const resetCounters = (a,boundary) => {
       for(const [collection,type] of [[a.ruleResources,"rule-resource.reset"],[a.ruleClocks,"rule-clock.reset"]])for(const [id,def] of Object.entries(collection||{})){
         if(def.resetAt!==boundary)continue;
-        const before=def.value;def.value=def.initial??0;
-        emit(type,a.id,{id,before,value:def.value,boundary});
+        const before=def.current ?? def.value ?? 0, next=def.initial ?? def.min ?? 0;
+        def.current=next;def.value=next;
+        emit(type,a.id,{id,kind:type.endsWith("clock.reset")?"clock":"resource",before,value:next,current:next,initial:def.initial??0,boundary,ownerActorId:def.ownerActorId??a.id,sourceActorId:def.sourceActorId??a.id,sourceEntityId:def.sourceEntityId??null,ruleId:def.ruleId??null});
       }
     };
     const phase = (boundary, owner) => {
@@ -768,31 +878,18 @@
         case "search": {const target=requiredActor(scene,p.targetId);if(scene.activeActorId!==a.id||target.team===a.team||!has(target,"positive.исчез"))fail("Поиск: на своём Ходу выберите Исчезнувшего противника");spend(a,"ap",2);removeEffect(target,"positive.исчез");break;}
         case "invisible":if(!has(a,"positive.невидим"))fail("Нет Невидимости");removeEffect(a,"positive.невидим");applyEffect(a,{effect:"positive.исчез",duration:"startTurn"},a.id);break;
         case "configure-resource": {
-          if (!/^[a-zA-Z][\w.-]{0,79}$/.test(p.id || "") || ["constructor", "prototype", "__proto__"].includes(p.id)) fail("Некорректный ID ресурса");
-          if(resources.has(p.id))fail("ID совпадает со встроенным показателем");
-          const previousDefinition=a.ruleResources?.[p.id],value=integer(p.value??previousDefinition?.value??0,"ресурс"),rawMaximum=p.maximum===undefined?previousDefinition?.maximum:p.maximum,maximum=rawMaximum==null?null:integer(rawMaximum,"максимум");
-          if(maximum!=null&&value>maximum)fail("Значение превышает максимум ресурса");
-          if(p.replaces!=null&&p.replaces!=="focus")fail("Можно заменить только Фокус");
-          if(p.replacesAp&&Object.entries(a.ruleResources||{}).some(([id,def])=>id!==p.id&&def.replacesAp))fail("ОД уже заменены другим ресурсом");
-          if(p.replaces==="focus"&&Object.entries(a.ruleResources||{}).some(([id,def])=>id!==p.id&&def.replaces==="focus"))fail("Фокус уже заменён другим ресурсом");
-          a.ruleResources ||= {}; const previous=a.ruleResources[p.id];
-          a.ruleResources[p.id] = { resource: p.id, label: String(p.label || previous?.label || p.id).slice(0,100), value, maximum, replaces:p.replaces===undefined?previous?.replaces||null:p.replaces, replacesAp:p.replacesAp??previous?.replacesAp??false, inverted:p.inverted??previous?.inverted??false, ...counterPolicy(p,previous,maximum) }; emit("rule-resource.configure", sourceId, p); break;
+          if (resources.has(p.id)) fail("ID совпадает со встроенным показателем");
+          mutateCounter(p, sourceId, "resource", Object.hasOwn(a.ruleResources || {}, p.id) ? "configure" : "create");
+          break;
         }
         case "counter": {
-          const collection=p.type==="clock"?a.ruleClocks:p.type==="resource"?a.ruleResources:null;
-          if(!collection||!Object.hasOwn(collection,p.id))fail("Счётчик не найден");
-          const before=copy(collection[p.id]);
-          if(p.operation==="remove")delete collection[p.id];
-          else if(p.operation==="reset")collection[p.id].value=collection[p.id].initial??0;
-          else fail("Неизвестная операция счётчика");
-          emit(`rule-${p.type}.${p.operation}`,sourceId,{id:p.id,before,value:collection[p.id]?.value});break;
+          if (p.type === "resource" && resources.has(p.id)) fail("ID совпадает со встроенным показателем");
+          mutateCounter(p, sourceId);
+          break;
         }
         case "clock": {
-          if (!/^[a-z][a-z0-9.-]{0,79}$/.test(p.id || "") || ["constructor", "prototype", "__proto__"].includes(p.id)) fail("ID часов: строчные латинские буквы, цифры, точка и дефис");
-          if(!Object.hasOwn(a.ruleClocks||{},p.id)&&Object.keys(a.ruleClocks||{}).length>=30)fail("У участника уже 30 часов");
-          a.ruleClocks ||= {}; const previous = a.ruleClocks[p.id], size = integer(p.size ?? previous?.size ?? 4, "размер часов", 100), value = integer(p.value ?? (Number(previous?.value || 0) + Number(p.delta || 0)), "сегменты", 100);
-          if (!size || value > size) fail("Число сегментов выходит за размер часов");
-          a.ruleClocks[p.id] = { clockId: p.id, label: String(p.label || previous?.label || p.id).slice(0,100), size, value, active: true, sourceActorId: sourceId, ...counterPolicy(p,previous,size) }; emit("rule-clock.set", sourceId, { ...p, size, value }); break;
+          mutateCounter(p, sourceId, "clock");
+          break;
         }
         case "roll": publishRoll(a, p.roll, p.label || "Бросок"); break;
         case "prompt": choice(requiredActor(scene,p.targetId||sourceId), "manual", String(p.title || "Решение правила").slice(0,240), ["record"], { ruleId: p.ruleId, text: String(p.text || "").slice(0,1200) }); break;
@@ -1083,7 +1180,7 @@
     output.push(...emitted);
   }
 
-  const sharedTypes = new Set(["movement-traces.clear", "topology.cells.remove", "topology.cells.restore", "roll.public", "challenge.request", "challenge.clear", "opposed.request", "opposed.reroll", "opposed.tie.resolve", "opposed.clear", "rule.share", "session-clock.create", "session-clock.set", "session-clock.rename", "session-clock.kind", "session-clock.size", "session-clock.remove", "reminder.create", "reminder.due", "reminder.resolve", "reminder.remove", "actor.spawn", "actor.despawn", "area.create", "area.remove", "area.duration", "object.damage", "object.restore", "wall.create", "wall.damage", "wall.restore", "wall.remove", "marker.create", "marker.move", "marker.remove", "marker.duration", "targets.set", "space.ensure", "space.remove"]);
+  const sharedTypes = new Set(["movement-traces.clear", "topology.cells.remove", "topology.cells.restore", "roll.public", "challenge.request", "challenge.clear", "opposed.request", "opposed.reroll", "opposed.tie.resolve", "opposed.clear", "rule.share", "session-clock.create", "session-clock.set", "session-clock.add", "session-clock.reset", "session-clock.rename", "session-clock.kind", "session-clock.size", "session-clock.remove", "reminder.create", "reminder.due", "reminder.resolve", "reminder.remove", "actor.spawn", "actor.despawn", "area.create", "area.remove", "area.duration", "object.damage", "object.restore", "wall.create", "wall.damage", "wall.restore", "wall.remove", "marker.create", "marker.move", "marker.remove", "marker.duration", "targets.set", "space.ensure", "space.remove"]);
   function dispatchMany(scene, events, options = {}) {
     if (!Array.isArray(events) || !events.length || events.length > 192) fail("Некорректный пакет событий");
     if (options.expectedVersion !== undefined && Number(options.expectedVersion) !== Number(scene.version || 0)) {

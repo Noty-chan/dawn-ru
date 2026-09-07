@@ -14,14 +14,32 @@ const RULE_CLOCK_ADAPTERS = [
 ];
 
 function normalizeRuleClockDefinition(definition = {}) {
-  const size = Math.max(1, Math.min(24, Number(definition.size ?? 6) || 6));
+  // Commands that resize an existing clock carry both the stored `max` and
+  // the newly requested `size`; the explicit command value must win.
+  const size = Math.max(1, Math.min(100, Number(definition.size ?? definition.max ?? 6) || 6));
+  const minimum = Math.max(0, Math.min(size, Number(definition.min ?? 0) || 0));
+  const initial = Math.max(minimum, Math.min(size, Number(definition.initial ?? minimum) || minimum));
+  const value = Math.max(minimum, Math.min(size, Number(definition.current ?? definition.value ?? initial) || initial));
   return {
     clockId: String(definition.clockId || ""),
+    id: String(definition.id || definition.clockId || ""),
+    kind: "clock",
     label: String(definition.label || definition.clockId || ""),
     size,
     minimumSize: Math.max(1, Math.min(size, Number(definition.minimumSize ?? size) || size)),
-    initial: Math.max(0, Math.min(size, Number(definition.initial ?? 0) || 0)),
+    initial,
+    value,
+    current: value,
+    min: minimum,
+    max: size,
+    threshold: definition.threshold == null ? size : Math.max(minimum, Math.min(size, Number(definition.threshold) || size)),
     resetScope: ["scene", "round", "turn"].includes(definition.resetScope) ? definition.resetScope : null,
+    scope: typeof definition.scope === "string" ? definition.scope : definition.resetScope || "manual",
+    lifetime: typeof definition.lifetime === "string" ? definition.lifetime : definition.resetScope || "manual",
+    ownerActorId: typeof definition.ownerActorId === "string" ? definition.ownerActorId : null,
+    sourceActorId: typeof definition.sourceActorId === "string" ? definition.sourceActorId : null,
+    sourceEntityId: typeof definition.sourceEntityId === "string" ? definition.sourceEntityId : null,
+    ruleId: typeof definition.ruleId === "string" ? definition.ruleId : null,
     active: definition.active !== false,
     removeWhenEmpty: Boolean(definition.removeWhenEmpty),
     legacyTechniqueState: typeof definition.legacyTechniqueState === "string" ? definition.legacyTechniqueState : null,
@@ -31,12 +49,13 @@ function normalizeRuleClockDefinition(definition = {}) {
 
 function ruleClockDefinitions(actor) {
   if (!actor) return [];
+  const owned = definition => ({ ...normalizeRuleClockDefinition(definition), ownerActorId: actor.id, sourceActorId: definition.sourceActorId || actor.id });
   const definitions = RULE_CLOCK_ADAPTERS
     .filter(definition => Number(actor.techniques?.[definition.techniqueId] || 0) >= Number(definition.minimumLevel || 1))
-    .map(normalizeRuleClockDefinition);
+    .map(owned);
   for (const [clockId, stored] of Object.entries(actor.ruleClocks || {})) {
     if (stored == null) continue;
-    const normalized = normalizeRuleClockDefinition(typeof stored === "object" ? { clockId, ...stored } : { clockId, label: clockId, size: 6, initial: 0 });
+    const normalized = owned(typeof stored === "object" ? { clockId, ...stored } : { clockId, label: clockId, size: 6, initial: 0 });
     const index = definitions.findIndex(definition => definition.clockId === clockId);
     if (index >= 0 && typeof stored === "object") definitions[index] = { ...definitions[index], ...normalized };
     else if (index < 0) definitions.push(normalized);
@@ -51,20 +70,20 @@ function ruleClockDefinition(actor, clockId) {
 function ruleClockValue(actor, definition) {
   const stored = actor?.ruleClocks?.[definition.clockId];
   const legacy = definition.legacyTechniqueState ? actor?.techniqueState?.[definition.legacyTechniqueState] : undefined;
-  const raw = typeof stored === "object" ? stored.value : stored ?? legacy ?? definition.initial;
-  return Math.max(0, Math.min(definition.size, Number(raw) || 0));
+  const raw = typeof stored === "object" ? stored.current ?? stored.value : stored ?? legacy ?? definition.initial;
+  return Math.max(definition.min ?? 0, Math.min(definition.max ?? definition.size, Number(raw) || 0));
 }
 
 function clockStatus(scene, actorId, clockId, options = {}) {
   const actor = actorById(scene, actorId);
   if (!actor) return { available: false, reason: "Исполнитель не найден.", id: clockId || "", size: 0, value: 0, nextValue: 0, remaining: 0, empty: true, full: false, active: false };
   let definition = ruleClockDefinition(actor, clockId);
-  if (!definition && options.size != null) definition = normalizeRuleClockDefinition({ clockId, label: options.label || clockId, size: options.size, initial: options.initial, active: options.active });
+  if (!definition && options.size != null) definition = { ...normalizeRuleClockDefinition({ clockId, label: options.label || clockId, size: options.size, initial: options.initial, active: options.active }), ownerActorId: actor.id, sourceActorId: actor.id };
   const delta = Number(options.delta ?? 0);
   if (!definition || !/^[a-z][a-z0-9.-]{0,79}$/.test(String(clockId || "")) || !Number.isFinite(delta)) return { available: false, reason: "Некорректные параметры часов.", id: String(clockId || ""), size: 0, value: 0, nextValue: 0, remaining: 0, empty: true, full: false, active: false };
   const stored = actor.ruleClocks?.[clockId], active = typeof stored === "object" && typeof stored.active === "boolean" ? stored.active : definition.active;
-  const value = ruleClockValue(actor, definition), nextValue = Math.max(0, Math.min(definition.size, value + delta));
-  return { available: true, reason: "", id: clockId, label: definition.label, size: definition.size, minimumSize: definition.minimumSize, value, nextValue, remaining: definition.size - nextValue, empty: nextValue === 0, full: nextValue === definition.size, active, definition: clone(definition) };
+  const value = ruleClockValue(actor, definition), nextValue = Math.max(definition.min ?? 0, Math.min(definition.max ?? definition.size, value + delta));
+  return { available: true, reason: "", id: clockId, kind: definition.kind, label: definition.label, size: definition.size, min: definition.min ?? 0, max: definition.max ?? definition.size, minimumSize: definition.minimumSize, value, current: value, nextValue, remaining: definition.size - nextValue, empty: nextValue === (definition.min ?? 0), full: nextValue === (definition.max ?? definition.size), active, definition: clone(definition) };
 }
 
 function resetRuleClocks(actor, scope) {
@@ -72,7 +91,7 @@ function resetRuleClocks(actor, scope) {
   const resets = [];
   for (const definition of ruleClockDefinitions(actor).filter(item => item.resetScope === scope)) {
     actor.ruleClocks ||= {};
-    actor.ruleClocks[definition.clockId] = { ...definition, value: definition.initial, active: definition.active };
+    actor.ruleClocks[definition.clockId] = { ...definition, value: definition.initial, current: definition.initial, initial: definition.initial, active: definition.active };
     if (definition.legacyTechniqueState) {
       actor.techniqueState ||= {};
       actor.techniqueState[definition.legacyTechniqueState] = definition.initial;
@@ -207,13 +226,29 @@ const RULE_RESOURCE_ADAPTERS = [
 
 function normalizeRuleResourceDefinition(actor, definition = {}) {
   const initial = typeof definition.initial === "function" ? definition.initial(actor) : Number(definition.initial ?? 0);
+  const minimum = Math.max(0, Number(definition.min ?? definition.minimum ?? 0) || 0), maximum = definition.max === null || definition.maximum === null ? null : definition.max != null || definition.maximum != null ? Math.max(minimum, Number(definition.max ?? definition.maximum) || 0) : null;
+  const current = Math.max(minimum, Math.min(maximum ?? 9999, Number(definition.current ?? definition.value ?? initial) || initial));
+  const replaces = Array.isArray(definition.replaces) ? definition.replaces : definition.replaces == null ? [] : [definition.replaces];
   return {
     resource: String(definition.resource || ""),
+    id: String(definition.id || definition.resource || ""),
+    kind: "resource",
     label: String(definition.label || definition.resource || ""),
     initial: Math.max(0, Number.isFinite(initial) ? initial : 0),
-    minimum: Math.max(0, Number(definition.minimum ?? 0) || 0),
-    maximum: definition.maximum == null ? null : Math.max(0, Number(definition.maximum) || 0),
-    replaces: [...new Set((definition.replaces || []).filter(resource => RESOURCES.has(resource)))],
+    minimum,
+    min: minimum,
+    maximum,
+    max: maximum,
+    value: current,
+    current,
+    threshold: definition.threshold == null ? maximum : Math.max(minimum, Math.min(maximum ?? 9999, Number(definition.threshold) || maximum || minimum)),
+    ownerActorId: typeof definition.ownerActorId === "string" ? definition.ownerActorId : actor?.id || null,
+    sourceActorId: typeof definition.sourceActorId === "string" ? definition.sourceActorId : actor?.id || null,
+    sourceEntityId: typeof definition.sourceEntityId === "string" ? definition.sourceEntityId : null,
+    ruleId: typeof definition.ruleId === "string" ? definition.ruleId : null,
+    scope: typeof definition.scope === "string" ? definition.scope : definition.resetScope || "manual",
+    lifetime: typeof definition.lifetime === "string" ? definition.lifetime : definition.resetScope || "manual",
+    replaces: [...new Set(replaces.filter(resource => RESOURCES.has(resource)))],
     spendDirection: Number(definition.spendDirection) === 1 ? 1 : -1,
     gainDirection: Number(definition.gainDirection) === -1 ? -1 : 1,
     resetScope: ["scene", "round", "turn"].includes(definition.resetScope) ? definition.resetScope : null,

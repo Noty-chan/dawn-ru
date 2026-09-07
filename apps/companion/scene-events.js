@@ -1,5 +1,42 @@
 "use strict";
 
+const SESSION_CLOCK_SIZES = new Set([4, 6, 8, 12]);
+const SESSION_COUNTER_SCOPES = new Set(["manual", "turn", "round", "scene", "chapter", "session"]);
+const SESSION_COUNTER_LIFETIMES = new Set(["manual", "turn", "round", "scene", "chapter", "session", "persistent"]);
+const SESSION_COUNTER_ID = /^[a-z0-9][a-z0-9._:-]{0,119}$/i;
+const SESSION_RULE_ID = /^[a-z0-9][a-z0-9._:-]{0,179}$/i;
+const strictSessionInteger = (value, label, minimum = 0, maximum = 9999) => {
+  if (typeof value !== "number" || !Number.isSafeInteger(value) || value < minimum || value > maximum) throw new Error(`Некорректное значение: ${label}.`);
+  return value;
+};
+function validateSessionCounterMetadata(scene, payload, clock = null, { create = false } = {}) {
+  const maxCandidate = payload.max !== undefined ? payload.max : payload.size !== undefined ? payload.size : clock?.max ?? clock?.size;
+  const max = strictSessionInteger(maxCandidate, "максимум часов", 1, 12);
+  const legacyExistingSize = clock && payload.size === undefined && max === Number(clock.max ?? clock.size) && max >= 1 && max <= 12;
+  if (!SESSION_CLOCK_SIZES.has(max) && !legacyExistingSize) throw new Error("Размер часов Сцены должен быть 4, 6, 8 или 12.");
+  const min = strictSessionInteger(payload.min !== undefined ? payload.min : clock?.min ?? 0, "минимум часов", 0, max);
+  if (min > max) throw new Error("Минимум часов превышает максимум.");
+  const initial = strictSessionInteger(payload.initial !== undefined ? payload.initial : clock?.initial ?? min, "начальное значение часов", min, max);
+  const currentValue = payload.current !== undefined ? payload.current : payload.value !== undefined ? payload.value : clock?.current ?? clock?.value ?? initial;
+  const current = strictSessionInteger(currentValue, "текущее значение часов", min, max);
+  const thresholdRaw = payload.threshold !== undefined ? payload.threshold : clock?.threshold ?? max;
+  const inheritedFullThreshold = payload.size !== undefined && payload.threshold === undefined && clock?.threshold === (clock?.max ?? clock?.size);
+  const threshold = thresholdRaw == null ? null : inheritedFullThreshold ? max : strictSessionInteger(thresholdRaw, "порог часов", min, max);
+  const ownerActorId = payload.ownerActorId !== undefined ? payload.ownerActorId : clock?.ownerActorId ?? null;
+  if (ownerActorId !== null) throw new Error("Общие часы Сцены не могут принадлежать участнику.");
+  const sourceActorId = payload.sourceActorId !== undefined ? payload.sourceActorId : clock?.sourceActorId ?? null;
+  if (sourceActorId !== null && (typeof sourceActorId !== "string" || !actorById(scene, sourceActorId))) throw new Error("Источник часов отсутствует на Сцене.");
+  const sourceEntityId = payload.sourceEntityId !== undefined ? payload.sourceEntityId : clock?.sourceEntityId ?? null;
+  if (sourceEntityId !== null && (typeof sourceEntityId !== "string" || ![...(scene.actors || []), ...(scene.objects || []), ...(scene.walls || []), ...(scene.markers || []), ...(scene.spaces || [])].some(item => item.id === sourceEntityId))) throw new Error("Сущность-источник часов отсутствует на Сцене.");
+  const ruleId = payload.ruleId !== undefined ? payload.ruleId : clock?.ruleId ?? null;
+  if (ruleId !== null && (typeof ruleId !== "string" || !SESSION_RULE_ID.test(ruleId))) throw new Error("Некорректный ID правила часов.");
+  const scope = payload.scope !== undefined ? payload.scope : clock?.scope ?? "scene";
+  if (typeof scope !== "string" || !SESSION_COUNTER_SCOPES.has(scope)) throw new Error("Неизвестная область сброса часов.");
+  const lifetime = payload.lifetime !== undefined ? payload.lifetime : clock?.lifetime ?? "scene";
+  if (typeof lifetime !== "string" || !SESSION_COUNTER_LIFETIMES.has(lifetime)) throw new Error("Неизвестный срок жизни часов.");
+  return { min, max, initial, current, threshold, ownerActorId: null, sourceActorId, sourceEntityId, ruleId, scope, lifetime };
+}
+
 function normalizeEvent(event, options = {}) {
   if (!event?.type) throw new Error("Событию Сцены нужен type.");
   return {
@@ -227,15 +264,23 @@ function validateEvent(scene, event, options = {}) {
     if (!/^[a-z0-9][a-z0-9._:-]{0,179}$/i.test(String(payload.ruleId || "")) || typeof payload.title !== "string" || !payload.title.trim() || payload.title.length > 180 || typeof payload.kind !== "string" || payload.kind.length > 80 || typeof payload.sharedBy !== "string" || payload.sharedBy.length > 120) throw new Error("Некорректная ссылка на правило.");
   }
   if (event.type === "session-clock.create") {
-    if (!/^[a-z0-9][a-z0-9-]{0,119}$/i.test(String(payload.id || "")) || (scene.sessionClocks || []).some(clock => clock.id === payload.id) || typeof payload.name !== "string" || !payload.name.trim() || payload.name.length > 120 || !["progress", "danger"].includes(payload.kind) || ![4, 6, 8, 12].includes(Number(payload.size))) throw new Error("Некорректные часы Сцены.");
+    if (!/^[a-z0-9][a-z0-9-]{0,119}$/i.test(String(payload.id || "")) || (scene.sessionClocks || []).some(clock => clock.id === payload.id) || typeof payload.name !== "string" || !payload.name.trim() || payload.name.length > 120 || !["progress", "danger"].includes(payload.kind)) throw new Error("Некорректные часы Сцены.");
+    validateSessionCounterMetadata(scene, payload, null, { create: true });
   }
-  if (["session-clock.set", "session-clock.rename", "session-clock.kind", "session-clock.size", "session-clock.remove"].includes(event.type)) {
+  if (["session-clock.set", "session-clock.add", "session-clock.reset", "session-clock.rename", "session-clock.kind", "session-clock.size", "session-clock.remove"].includes(event.type)) {
     const clock = (scene.sessionClocks || []).find(item => item.id === payload.id);
     if (!clock) throw new Error("Часы Сцены уже отсутствуют.");
-    if (event.type === "session-clock.set" && (!Number.isInteger(Number(payload.value)) || Number(payload.value) < 0 || Number(payload.value) > Number(clock.size))) throw new Error("Некорректное значение часов Сцены.");
+    const metadata = validateSessionCounterMetadata(scene, payload, clock);
+    if (event.type === "session-clock.set" && payload.value === undefined && payload.current === undefined) throw new Error("Укажите текущее значение часов Сцены.");
+    if (event.type === "session-clock.add" && (typeof payload.delta !== "number" || !Number.isSafeInteger(payload.delta) || Math.abs(payload.delta) > 9999)) throw new Error("Некорректное изменение часов Сцены.");
+    if (event.type === "session-clock.add") strictSessionInteger(metadata.current + payload.delta, "текущее значение часов", metadata.min, metadata.max);
+    if (event.type === "session-clock.reset" && (payload.value !== undefined || payload.current !== undefined || payload.delta !== undefined)) throw new Error("Сброс часов не принимает новое значение.");
     if (event.type === "session-clock.rename" && (typeof payload.name !== "string" || !payload.name.trim() || payload.name.length > 120)) throw new Error("Некорректное название часов Сцены.");
     if (event.type === "session-clock.kind" && !["progress", "danger"].includes(payload.kind)) throw new Error("Некорректный тип часов Сцены.");
-    if (event.type === "session-clock.size" && ![4, 6, 8, 12].includes(Number(payload.size))) throw new Error("Некорректный размер часов Сцены.");
+    if (event.type === "session-clock.size") {
+      if (typeof payload.size !== "number" || !SESSION_CLOCK_SIZES.has(payload.size)) throw new Error("Некорректный размер часов Сцены.");
+      if (metadata.current > payload.size || metadata.initial > payload.size || metadata.min > payload.size || metadata.threshold != null && metadata.threshold > payload.size) throw new Error("Новый размер часов меньше сохранённого значения.");
+    }
   }
   if (event.type === "attack.pending") {
     payload.targetIds = [...new Map((payload.targetIds || []).map(id => [canonicalTargetId(scene, id), canonicalTargetId(scene, id)])).values()];
@@ -518,18 +563,18 @@ function reduceEvent(scene, event) {
     const delta = Number(payload.amount || 0) * direction;
     const next = definition.maximum == null ? Math.max(definition.minimum, balance + delta) : Math.min(definition.maximum, Math.max(definition.minimum, balance + delta));
     actor.ruleResources ||= {};
-    actor.ruleResources[definition.resource] = { ...definition, value: next };
+    actor.ruleResources[definition.resource] = { ...definition, value: next, current: next };
     if (definition.legacyProperty) actor[definition.legacyProperty] = next;
     payload.resolvedDelta = next - balance;
   } else if (event.type === "rule-resource.set" && actor) {
     const definition = ruleResourceDefinition(actor, payload.resource);
     actor.ruleResources ||= {};
-    actor.ruleResources[definition.resource] = { ...definition, value: Number(payload.value) };
+    actor.ruleResources[definition.resource] = { ...definition, value: Number(payload.value), current: Number(payload.value) };
     if (definition.legacyProperty) actor[definition.legacyProperty] = Number(payload.value);
   } else if (event.type === "rule-resource.reset" && actor) {
     const definition = ruleResourceDefinition(actor, payload.resource);
     actor.ruleResources ||= {};
-    actor.ruleResources[definition.resource] = { ...definition, value: definition.initial };
+    actor.ruleResources[definition.resource] = { ...definition, value: definition.initial, current: definition.initial };
     if (definition.legacyProperty) actor[definition.legacyProperty] = definition.initial;
     payload.value = definition.initial;
   } else if (event.type === "rule-clock.configure" && actor) {
@@ -537,7 +582,7 @@ function reduceEvent(scene, event) {
     actor.ruleClocks ||= {};
     const value = payload.value == null ? Math.min(definition.size, previousValue) : Number(payload.value);
     const active = payload.active == null ? (previous ? clockStatus(scene, actor.id, definition.clockId).active : definition.active) : Boolean(payload.active);
-    actor.ruleClocks[definition.clockId] = { ...definition, value, active };
+    actor.ruleClocks[definition.clockId] = { ...definition, value, current: value, active };
     if (definition.legacyTechniqueState) {
       actor.techniqueState ||= {};
       actor.techniqueState[definition.legacyTechniqueState] = value;
@@ -547,7 +592,7 @@ function reduceEvent(scene, event) {
     const status = clockStatus(scene, actor.id, payload.clockId), definition = status.definition, before = status.value, value = Math.max(0, Math.min(status.size, before + Number(payload.delta)));
     const active = payload.activate === true ? true : status.active;
     actor.ruleClocks ||= {};
-    actor.ruleClocks[payload.clockId] = { ...definition, value, active: definition.removeWhenEmpty && value === 0 ? false : active };
+    actor.ruleClocks[payload.clockId] = { ...definition, value, current: value, active: definition.removeWhenEmpty && value === 0 ? false : active };
     if (definition.legacyTechniqueState) {
       actor.techniqueState ||= {};
       actor.techniqueState[definition.legacyTechniqueState] = value;
@@ -556,7 +601,7 @@ function reduceEvent(scene, event) {
   } else if (event.type === "rule-clock.set" && actor) {
     const status = clockStatus(scene, actor.id, payload.clockId), definition = status.definition, before = status.value, value = Number(payload.value), active = payload.active == null ? status.active : Boolean(payload.active);
     actor.ruleClocks ||= {};
-    actor.ruleClocks[payload.clockId] = { ...definition, value, active: definition.removeWhenEmpty && value === 0 ? false : active };
+    actor.ruleClocks[payload.clockId] = { ...definition, value, current: value, active: definition.removeWhenEmpty && value === 0 ? false : active };
     if (definition.legacyTechniqueState) {
       actor.techniqueState ||= {};
       actor.techniqueState[definition.legacyTechniqueState] = value;
@@ -565,7 +610,7 @@ function reduceEvent(scene, event) {
   } else if (event.type === "rule-clock.reset" && actor) {
     const status = clockStatus(scene, actor.id, payload.clockId), definition = status.definition, value = definition.initial;
     actor.ruleClocks ||= {};
-    actor.ruleClocks[payload.clockId] = { ...definition, value, active: definition.active };
+    actor.ruleClocks[payload.clockId] = { ...definition, value, current: value, active: definition.active };
     if (definition.legacyTechniqueState) {
       actor.techniqueState ||= {};
       actor.techniqueState[definition.legacyTechniqueState] = value;
@@ -758,12 +803,14 @@ function reduceEvent(scene, event) {
     scene.ruleHandouts = scene.ruleHandouts.slice(0, 12);
   } else if (event.type === "session-clock.create") {
     scene.sessionClocks ||= [];
-    scene.sessionClocks.push({ id: payload.id, name: payload.name.trim(), kind: payload.kind, size: Number(payload.size), value: 0 });
+    const metadata = validateSessionCounterMetadata(scene, payload, null, { create: true });
+    scene.sessionClocks.push({ id: payload.id, name: payload.name.trim(), kind: payload.kind, size: metadata.max, value: metadata.current, current: metadata.current, min: metadata.min, max: metadata.max, initial: metadata.initial, threshold: metadata.threshold, ownerActorId: null, sourceActorId: metadata.sourceActorId, sourceEntityId: metadata.sourceEntityId, ruleId: metadata.ruleId, scope: metadata.scope, lifetime: metadata.lifetime });
     scene.tools = { ...(scene.tools || {}), clocksMigrated: true };
   } else if (event.type === "session-clock.set") {
     const clock = (scene.sessionClocks || []).find(item => item.id === payload.id);
-    payload.before = clock.value;
-    clock.value = Number(payload.value);
+    const metadata = validateSessionCounterMetadata(scene, payload, clock), before = clock.current ?? clock.value, value = metadata.current;
+    payload.before = before; payload.value = value; payload.current = value; payload.thresholdCrossed = metadata.threshold != null && before < metadata.threshold && value >= metadata.threshold; payload.filled = payload.thresholdCrossed;
+    clock.value = value; clock.current = value;
   } else if (event.type === "session-clock.rename") {
     const clock = (scene.sessionClocks || []).find(item => item.id === payload.id);
     payload.before = clock.name;
@@ -774,13 +821,21 @@ function reduceEvent(scene, event) {
     clock.kind = payload.kind;
   } else if (event.type === "session-clock.size") {
     const clock = (scene.sessionClocks || []).find(item => item.id === payload.id);
+    const metadata = validateSessionCounterMetadata(scene, payload, clock);
     payload.before = clock.size;
-    clock.size = Number(payload.size);
-    clock.value = Math.min(clock.value, clock.size);
+    clock.size = metadata.max; clock.max = metadata.max; clock.threshold = metadata.threshold;
   } else if (event.type === "session-clock.remove") {
     const clock = (scene.sessionClocks || []).find(item => item.id === payload.id);
     payload.name = clock.name;
     scene.sessionClocks = (scene.sessionClocks || []).filter(item => item.id !== payload.id);
+  } else if (event.type === "session-clock.add") {
+    const clock = (scene.sessionClocks || []).find(item => item.id === payload.id), metadata = validateSessionCounterMetadata(scene, payload, clock), before = clock.current ?? clock.value, value = strictSessionInteger(before + payload.delta, "текущее значение часов", metadata.min, metadata.max);
+    payload.before = before; payload.value = value; payload.current = value; payload.thresholdCrossed = metadata.threshold != null && before < metadata.threshold && value >= metadata.threshold; payload.filled = payload.thresholdCrossed;
+    clock.value = value; clock.current = value;
+  } else if (event.type === "session-clock.reset") {
+    const clock = (scene.sessionClocks || []).find(item => item.id === payload.id), metadata = validateSessionCounterMetadata(scene, payload, clock), before = clock.current ?? clock.value, value = metadata.initial;
+    payload.before = before; payload.value = value; payload.current = value; payload.reset = true; payload.thresholdCrossed = false; payload.filled = false;
+    clock.value = value; clock.current = value;
   } else if (event.type === "attack.pending") {
     payload.targetIds = [...new Set(payload.targetIds || [])];
     const modifiers = effectAttackStatus(scene, event.actorId, payload.targetIds), originalDamage = Number(payload.damage || 0), originalByTarget = clone(payload.damageByTarget || {});
@@ -986,7 +1041,7 @@ function reduceEvent(scene, event) {
     actor.modifierState=clone(payload.state);
     if(actor.profileId===ENEMY_MODIFIER_IDS.legion){actor.maxHp=Number(payload.state.legionHp||0);actor.hp=actor.maxHp}
     if(actor.profileId===ENEMY_MODIFIER_IDS.giant){const carrier=actorById(scene,payload.state.carrierId);carrier.occupiedWidth=2;carrier.occupiedHeight=2;actor.occupiedWidth=2;actor.occupiedHeight=2}
-    if(firstCollateralDeploy){const cells=payload.state.cells.map(cell=>cell.split(",").map(Number)),[firstX,firstY]=cells[0];actor.x=firstX;actor.y=firstY;actor.hidden=false;actor.modifierState.instanceRootId=actor.id;for(let index=1;index<cells.length;index++){const[x,y]=cells[index],copy=clone(actor);copy.id=`collateral-${actor.id}-${index}`;copy.x=x;copy.y=y;copy.hidden=false;copy.name=`${actor.name} ${index+1}`;copy.modifierState={...clone(actor.modifierState),instanceRootId:actor.id};scene.actors.push(copy)}scene.sessionClocks||=[];scene.sessionClocks.push({id:payload.state.clockId,name:`Случайные жертвы · ${actor.name}`,kind:"danger",size:livePlayers(scene).length,value:0})}
+    if(firstCollateralDeploy){const cells=payload.state.cells.map(cell=>cell.split(",").map(Number)),[firstX,firstY]=cells[0];actor.x=firstX;actor.y=firstY;actor.hidden=false;actor.modifierState.instanceRootId=actor.id;for(let index=1;index<cells.length;index++){const[x,y]=cells[index],copy=clone(actor);copy.id=`collateral-${actor.id}-${index}`;copy.x=x;copy.y=y;copy.hidden=false;copy.name=`${actor.name} ${index+1}`;copy.modifierState={...clone(actor.modifierState),instanceRootId:actor.id};scene.actors.push(copy)}scene.sessionClocks||=[];const size=livePlayers(scene).length;scene.sessionClocks.push({id:payload.state.clockId,name:`Случайные жертвы · ${actor.name}`,kind:"danger",size,max:size,value:0,current:0,min:0,initial:0,threshold:size,ownerActorId:null,sourceActorId:actor.id,sourceEntityId:null,ruleId:"enemy.modifier.collateral",scope:"scene",lifetime:"scene"})}
     if(isAttachedModifier(actor)){const carrier=actorById(scene,payload.state.carrierId),compoundId=carrier.compoundId||`modifier-carrier-${carrier.id}`;carrier.compoundId=compoundId;actor.compoundId=compoundId;actor.space=carrier.space;actor.x=carrier.x;actor.y=carrier.y;actor.hidden=true;actor.acted=true;actor.ap=0}
   } else if (event.type === "actor.state" && actor) {
     actor.ruleState ||= {};
@@ -1081,6 +1136,10 @@ function reduceEvent(scene, event) {
   }
   scene.log ||= [];
   scene.log.unshift(event);
+  if (event.payload?.thresholdCrossed === true) {
+    const thresholdEvent = { id: `${event.id}:threshold`, at: event.at, type: "counter.threshold", actorId: event.actorId || null, payload: { counterId: event.payload.id, id: event.payload.id, kind: "clock", ownerActorId: null, sourceActorId: event.payload.sourceActorId ?? null, sourceEntityId: event.payload.sourceEntityId ?? null, ruleId: event.payload.ruleId ?? null, before: event.payload.before, value: event.payload.value, threshold: event.payload.threshold ?? (scene.sessionClocks || []).find(clock => clock.id === event.payload.id)?.threshold ?? null }, visibility: event.visibility || "public" };
+    scene.log.unshift(thresholdEvent);
+  }
   scene.log = scene.log.slice(0, 200);
 }
 

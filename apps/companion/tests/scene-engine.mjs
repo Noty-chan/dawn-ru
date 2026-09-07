@@ -457,7 +457,7 @@ assert.equal(Engine.movementTraceStatus(manuallyPlaced, { space: "main" }).avail
 const tracesCleared = Engine.dispatch(tracedMove, { type: "movement-traces.clear", payload: { space: "main" } }).scene;
 assert.equal(Engine.movementTraceStatus(tracesCleared, { space: "main" }).available, false, "The narrator can clear movement traces without deleting combat history");
 const clockCreated = Engine.dispatch(scene, { id: "clock-create", type: "session-clock.create", payload: { id: "scene-clock-threat", name: "Приближение угрозы", kind: "danger", size: 6 } }).scene;
-assert.deepEqual(JSON.parse(JSON.stringify(clockCreated.sessionClocks[0])), { id: "scene-clock-threat", name: "Приближение угрозы", kind: "danger", size: 6, value: 0 }, "Session clocks live in the canonical Scene state");
+assert.deepEqual(JSON.parse(JSON.stringify(clockCreated.sessionClocks[0])), { id: "scene-clock-threat", name: "Приближение угрозы", kind: "danger", size: 6, value: 0, current: 0, min: 0, max: 6, initial: 0, threshold: 6, ownerActorId: null, sourceActorId: null, sourceEntityId: null, ruleId: null, scope: "scene", lifetime: "scene" }, "Session clocks live in the canonical Scene state with an explicit counter contract");
 const clockSet = Engine.dispatch(clockCreated, { id: "clock-set", type: "session-clock.set", payload: { id: "scene-clock-threat", value: 4 } }).scene;
 assert.equal(clockSet.sessionClocks[0].value, 4, "Session clock progress is event-driven");
 const clockRenamed = Engine.dispatch(clockSet, { id: "clock-rename", type: "session-clock.rename", payload: { id: "scene-clock-threat", name: "Ритуал почти завершён" } }).scene;

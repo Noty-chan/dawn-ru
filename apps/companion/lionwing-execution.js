@@ -22,7 +22,7 @@
   };
   const cursorStatuses = new Set(["running", "waiting", "completed"]);
   const scopes = new Set(["rootAction", "action", "ownerTurn", "anyTurn", "round", "scene", "chapter"]);
-  const factTypes = new Set(["attempt", "apply", "hit", "damage", "healthLoss", "heal", "wound", "knockout", "spend", "gain", "preventedGain", "roll", "cancel"]);
+  const factTypes = new Set(["attempt", "apply", "hit", "damage", "healthLoss", "heal", "wound", "knockout", "spend", "gain", "preventedGain", "roll", "cancel", "counter.threshold"]);
   const rollKinds = new Set(["check", "opposed", "raw-d6"]);
 
   function identity(value = {}) {
