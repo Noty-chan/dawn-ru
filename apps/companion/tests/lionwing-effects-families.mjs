@@ -44,3 +44,10 @@ scene=run(scene,"reaper-a",{kind:"turn-end"},"enemy-end");
 scene=run(JSON.parse(JSON.stringify(scene)),"target",{kind:"round-end"},"round-end");
 assert.deepEqual(JSON.parse(JSON.stringify(Engine.effectInstanceStatus(scene,"target","negative.помечен").sources.map(x=>x.sourceId))),["long"],"suppressed short source expires independently of long source");
 console.log("LionWing effects families: source identity, suppression, protected removal, reload, independent expiry and atomic rejection passed");
+
+scene=fixture();
+scene=run(scene,"reaper-a",{kind:"effect",targetId:"target",effect:"negative.испуган",sourceId:"fear:a"},"fear-a");
+scene=run(scene,"reaper-b",{kind:"effect",targetId:"target",effect:"negative.испуган",sourceId:"fear:b"},"fear-b");
+scene=run(scene,"target",{kind:"effect-source",operation:"suppress",targetId:"target",effect:"negative.испуган",sourceId:"fear:b",suppressionId:"shield"},"fear-suppressed");
+scene=run(scene,"target",{kind:"knockout",targetId:"reaper-a"},"fear-source-ko");
+assert.equal(Engine.effectInstanceStatus(scene,"target","negative.испуган").present,false,"knockout removes last active fear source without activating a suppressed source");

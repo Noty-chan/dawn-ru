@@ -340,9 +340,8 @@
       for (const other of scene.actors) for (const e of ["negative.испуган", "negative.спровоцирован"]) {
         const saved=other.effectStates?.[e];
         if(!saved?.sources?.some(source=>source.actorId===a.id))continue;
-        saved.sources=saved.sources.filter(source=>source.actorId!==a.id);
-        if(!saved.sources.length)removeEffect(other,e);
-        else emit("effect.source.remove",other.id,{targetId:other.id,effect:e,sourceActorId:a.id});
+        for(const source of [...saved.sources].filter(source=>source.actorId===a.id))
+          removeEffect(other,e,{sourceId:source.sourceId||source.actorId,manual:false});
       }
       emit("actor.knockout", cause?.sourceActorId || a.id, { targetId: a.id, cause: cause ? { kind: cause.kind || "rule", sourceActorId: cause.sourceActorId || null, eventId: cause.eventId || rootId } : null });
       if (isPlayer(a) && astate(a).vulnerable) {
