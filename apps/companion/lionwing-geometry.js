@@ -134,6 +134,7 @@
     const width = Number(request.width ?? request.footprint?.width ?? mover.occupiedWidth ?? 1);
     const height = Number(request.height ?? request.footprint?.height ?? mover.occupiedHeight ?? 1);
     if (!integer(width) || !integer(height) || width < 1 || height < 1) return { available: false, reason: "Некорректные размеры перемещаемого тела." };
+    options.width=width;options.height=height;
     const bodyEdgesClear = path => {
       let previous = { x: Number(mover.x), y: Number(mover.y) };
       for (const segment of path) {
@@ -143,7 +144,7 @@
           probe.x = previous.x + ox; probe.y = previous.y + oy;
           probe.occupiedWidth = 1; probe.occupiedHeight = 1;
           try {
-            const edge = lionwing.movement(probeScene, probe, { x: Number(segment.x) + ox, y: Number(segment.y) + oy }, { ...options, maximum: 2 });
+            const edge = lionwing.movement(probeScene, probe, { x: Number(segment.x) + ox, y: Number(segment.y) + oy }, { ...options, width: 1, height: 1, maximum: 2 });
             if (edge.path.length !== 1 || Number(edge.path[0].x) !== Number(segment.x) + ox || Number(edge.path[0].y) !== Number(segment.y) + oy) return false;
           } catch { return false; }
         }
@@ -158,10 +159,11 @@
       const path = result.path || [];
       for (const segment of path) if (!footprintStatus(scene, { actorId: mover.id, destination: { ...segment, space: mover.space }, footprint: request.footprint, width: request.width, height: request.height }).available) return null;
       if (!bodyEdgesClear(path)) return null;
-      return { path, cost: Number(result.cost || 0) };
+      const endpoint=path[path.length-1]||{x:mover.x,y:mover.y};
+      return { path, cost: Number(result.cost || 0), endpoint, endedByDifficultTerrain:Boolean(result.endedByDifficultTerrain) };
     };
     const direct = validPath(destination);
-    let selected = direct ? { x: Number(destination.x), y: Number(destination.y), space: mover.space, ...direct, partial: false } : null;
+    let selected = direct ? { x: Number(direct.endpoint.x), y: Number(direct.endpoint.y), space: mover.space, ...direct, partial: Number(direct.endpoint.x)!==Number(destination.x)||Number(direct.endpoint.y)!==Number(destination.y) } : null;
     if (!selected && request.allowPartial === true) {
       const alternatives = [];
       for (let y = 0; y < Number(space.height); y += 1) for (let x = 0; x < Number(space.width); x += 1) {
@@ -184,7 +186,7 @@
       path: selected.path.map(point => ({ space: mover.space, x: Number(point.x), y: Number(point.y) })),
       spent: selected.cost,
       stoppedAt: { space: selected.space, x: selected.x, y: selected.y },
-      remaining: Math.max(0, maximum - selected.cost),
+      remaining: selected.endedByDifficultTerrain ? 0 : Math.max(0, maximum - selected.cost),
       partial: selected.partial,
       sceneVersion: Number(scene.version || 0),
       geometryStamp: geometryStamp(scene),

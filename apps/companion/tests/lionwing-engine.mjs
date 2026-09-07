@@ -42,6 +42,22 @@ s=prepare(s,"h",{kind:"action",actionId:ids.step,destination:{x:2,y:2}});assert.
 throws(s,"h",{kind:"move",destination:{x:3,y:1},maximum:5},/занята/);
 s=run(s,"e",{kind:"effect",targetId:"h",effect:"negative.обездвижен"});throws(s,"h",{kind:"move",destination:{x:1,y:2},maximum:3},/запрещает/);
 
+// Difficult Terrain ends any movement on entry and sets Speed to 0 for this Turn.
+s=fixture();s.objects=[{id:"mud",type:"difficult",space:"main",cells:["2,1","3,1"]}];s=run(s,"h",{kind:"turn-start"});
+s=run(s,"h",{kind:"move",destination:{x:2,y:1},maximum:1});assert.equal(s.actors[0].x,2);assert.equal(engine.effectiveActorSpeed(s,"h"),0);
+const terrainSave=JSON.parse(JSON.stringify(s));assert.equal(engine.effectiveActorSpeed(terrainSave,"h"),0,"terrain stop survives reload");
+s=run(s,"h",{kind:"turn-end"});s=run(s,"e",{kind:"turn-start"});assert.equal(engine.effectiveActorSpeed(s,"h"),4,"the Speed penalty ends at the Turn boundary");
+
+// Starting a Turn inside a connected patch ignores that patch for the whole Turn.
+s=fixture();s.actors[0].x=2;s.actors[1].x=5;s.objects=[{id:"mud",type:"difficult",space:"main",cells:["2,1","3,1"],}];s=run(s,"h",{kind:"turn-start"});
+s=run(JSON.parse(JSON.stringify(s)),"h",{kind:"move",destination:{x:3,y:1},maximum:1});assert.equal(s.actors[0].x,3);assert.equal(engine.effectiveActorSpeed(s,"h"),4);
+s=run(s,"h",{kind:"turn-end"});assert.equal(lw.movement(s,s.actors[0],{x:2,y:1},{maximum:1}).endedByDifficultTerrain,true,"the connected-patch exception ends before Breakout, without waiting for another Turn");
+let forced=fixture();forced.actors[1].x=5;forced.objects=[{id:"mud",type:"difficult",space:"main",cells:["2,1"]}];forced=run(forced,"h",{kind:"turn-start"});forced=run(forced,"e",{kind:"move",targetId:"h",forced:true,line:true,destination:{x:3,y:1},maximum:2});assert.equal(forced.actors[0].x,2,"forced movement stops at the first difficult cell");assert.equal(engine.effectiveActorSpeed(forced,"h"),0);
+let ignored=fixture();ignored.actors[1].x=5;ignored.objects=[{id:"mud",type:"difficult",space:"main",cells:["2,1"]}];ignored=run(ignored,"h",{kind:"move",destination:{x:3,y:1},maximum:2,ignoreTerrain:true});assert.equal(ignored.actors[0].x,3);assert.equal(engine.effectiveActorSpeed(ignored,"h"),4);
+let cinematic=fixture();cinematic.spaces[0].mode="cinematic";cinematic.actors[1].x=2;cinematic=run(cinematic,"h",{kind:"turn-start"});cinematic=run(cinematic,"h",{kind:"move",destination:{x:2,y:1},maximum:1});assert.equal(cinematic.actors[0].x,2);assert.equal(engine.effectiveActorSpeed(cinematic,"h"),0,"entering an enemy space is Difficult Terrain in cinematic movement");
+let jumper=fixture();jumper.actors[1].x=5;jumper.objects=[{id:"mud",type:"difficult",space:"main",cells:["2,1"]}];jumper=run(jumper,"h",{kind:"turn-start"});jumper=prepare(jumper,"h",{kind:"action",actionId:ids.jump,destination:{x:3,y:1}});assert.equal(jumper.actors[0].x,3,"Jump ignores Difficult Terrain");assert.equal(engine.effectiveActorSpeed(jumper,"h"),4);
+let blockedJump=fixture();blockedJump.actors[1].x=5;blockedJump.objects=[{id:"wall",type:"terrain",space:"main",cells:["2,1"]}];blockedJump=run(blockedJump,"h",{kind:"turn-start"});assert.equal(lw.prepare(blockedJump,{actorId:"h",kind:"action",actionId:ids.jump,destination:{x:3,y:1}}).ok,false,"Jump still respects blocking terrain");
+
 s=fixture();s.actors[1].x=2;s=run(s,"h",{kind:"turn-start"});s=prepare(s,"h",{kind:"action",actionId:ids.skirmish,targetIds:["e"]});assert.ok(s.pendingAction);assert.equal(s.actors[0].ap,2);
 throws(s,"h",{kind:"resolve-attack"},/Реакций/);
 s=run(s,"e",{kind:"reaction",choice:"take"});s=run(s,"h",{kind:"resolve-attack"});assert.equal(s.pendingAction,null);assert.equal(s.actors[1].hp,16);

@@ -42,14 +42,21 @@ scene.version += 1;
 assert.deepEqual(JSON.parse(JSON.stringify(geometry.revalidatePlan(scene, reloaded))), { available: false, stale: true, reason: "Геометрический план устарел." }, "a Scene version conflict invalidates the saved plan");
 
 scene = fixture(); scene.objects.push({ id: "mud", type: "difficult", space: "main", cells: ["2,1"] });
-route = geometry.routePlan(scene, { sourceActorId: "author", actorId: "mover", anchor: { kind: "actor", actorId: "author" }, destination: { x: 3, y: 1 }, maximum: 3 });
-assert.equal(route.available, true, route.reason); assert.equal(route.route.path.length, 2); assert.equal(route.route.spent, 3, "route spending uses LionWing's weighted Difficult Terrain cost"); assert.equal(route.route.remaining, 0);
-assert.equal(geometry.routePlan(scene, { sourceActorId: "author", actorId: "mover", anchor: { kind: "actor", actorId: "author" }, destination: { x: 3, y: 1 }, maximum: 2 }).available, false, "weighted cost is enforced as the movement budget");
+route = geometry.routePlan(scene, { sourceActorId: "author", actorId: "mover", anchor: { kind: "actor", actorId: "author" }, destination: { x: 2, y: 1 }, maximum: 1 });
+assert.equal(route.available, true, route.reason); assert.equal(route.route.spent, 1, "entering Difficult Terrain costs the ordinary distance");
+assert.equal(geometry.routePlan(scene, { sourceActorId: "author", actorId: "mover", anchor: { kind: "actor", actorId: "author" }, destination: { x: 3, y: 1 }, maximum: 3 }).available, false, "a route cannot continue through Difficult Terrain");
+route = geometry.routePlan(scene, { sourceActorId: "author", actorId: "mover", anchor: { kind: "actor", actorId: "author" }, destination: { x: 3, y: 1 }, maximum: 4 });
+assert.equal(route.available, true, route.reason); assert.equal(route.route.spent, 4); assert.ok(route.route.path.some(point => point.y !== 1), "pathfinding can route around Difficult Terrain");
+route = geometry.routePlan(scene, { sourceActorId: "author", actorId: "mover", anchor: { kind: "actor", actorId: "author" }, destination: { x: 3, y: 1 }, maximum: 2, ignoreTerrain: true });
+assert.equal(route.available, true, route.reason); assert.equal(route.route.spent, 2, "an explicit terrain exception permits passing through");
 
 scene = fixture(); scene.actors.find(item => item.id === "mover").occupiedWidth = 2; scene.actors.find(item => item.id === "mover").occupiedHeight = 2; scene.actors.find(item => item.id === "body").x = 5;
 scene.walls.push({ id: "lower-edge", space: "main", a: "2,2", b: "3,2" });
 assert.equal(geometry.routePlan(scene, { sourceActorId: "author", actorId: "mover", anchor: { kind: "actor", actorId: "author" }, destination: { x: 2, y: 1 }, maximum: 1 }).available, false, "every leading edge of a large body must clear Walls");
 assert.equal(geometry.routePlan(scene, { sourceActorId: "author", actorId: "mover", anchor: { kind: "actor", actorId: "author" }, destination: { x: 1, y: 1 }, maximum: 0, width: 0 }).available, false, "a zero-length route still validates body dimensions");
+scene.walls=[];scene.topology.cuts=[];scene.objects.push({id:"wide-mud",type:"difficult",space:"main",cells:["3,2"]});
+route=geometry.routePlan(scene,{sourceActorId:"author",actorId:"mover",anchor:{kind:"actor",actorId:"author"},destination:{x:2,y:1},maximum:1});
+assert.equal(route.available,true,route.reason);assert.equal(route.route.spent,1);assert.equal(route.route.remaining,0,"terrain under any part of a footprint ends its movement");
 
 scene = fixture();
 route = geometry.routePlan(scene, { sourceActorId: "author", actorId: "mover", anchor: { kind: "actor", actorId: "author" }, destination: { x: 3, y: 1 }, maximum: 3 });
@@ -64,4 +71,4 @@ const geometryChanged = JSON.parse(JSON.stringify(route.plan));
 scene.markers[0].x = 4;
 assert.deepEqual(JSON.parse(JSON.stringify(geometry.revalidatePlan(scene, geometryChanged))), { available: false, stale: true, reason: "Геометрический план устарел." }, "geometry changes invalidate a saved plan even before a version bump");
 
-console.log("LionWing geometry: anchors, footprints, weighted routes, large-body edges, partial stops, serialization and revalidation passed");
+console.log("LionWing geometry: anchors, footprints, terminal terrain, large-body edges, partial stops, serialization and revalidation passed");

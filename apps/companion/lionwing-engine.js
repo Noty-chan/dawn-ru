@@ -58,7 +58,7 @@
   const stat = (a, key) => Math.max(0, Number(a[key] || 0) + (a.lionwing?.modifiers || []).filter(m => m.stat === key).reduce((sum, m) => sum + (key==="evasion"?m.remaining??m.amount:m.amount), 0));
   const scaledMove = (a, amount) => Math.ceil(amount * (has(a, "positive.ускорен") ? 2 : 1) / (has(a, "negative.замедлен") ? 2 : 1));
   const speed = a => scaledMove(a, stat(a, "speed"));
-  const sceneSpeed = (scene,a) => { const group=legacy.compoundEnemyStatus(scene,a);return group.active?scaledMove(a,group.speed+(a.lionwing?.modifiers||[]).filter(m=>m.stat==="speed").reduce((sum,m)=>sum+m.amount,0)):speed(a); };
+  const sceneSpeed = (scene,a) => scene.activeActorId && Number(a.lionwing?.difficultTerrainStopSerial) === Number(scene.turnSerial) ? 0 : (() => { const group=legacy.compoundEnemyStatus(scene,a);return group.active?scaledMove(a,group.speed+(a.lionwing?.modifiers||[]).filter(m=>m.stat==="speed").reduce((sum,m)=>sum+m.amount,0)):speed(a); })();
   const targetIds = (scene,values=[]) => {const seen=new Set();return [...new Set(values)].filter(id=>{const key=actor(scene,id)?.compoundId||id;if(seen.has(key))return false;seen.add(key);return true;});};
   const unavailable = reason => ({ available: false, reason });
   const activeEffectSources = (a,effect) => (a?.effectStates?.[effect]?.sources||[]).filter(source=>!(source.suppressedBy||[]).length);
@@ -107,6 +107,15 @@
     const difficult = new Set(scene.objects.filter(o => o.space === board.id && o.type === "difficult").flatMap(o => o.cells || []));
     const occupied = scene.actors.filter(x => x.id !== a.id && (!a.compoundId||x.compoundId!==a.compoundId) && x.space === board.id && live(x) && !has(x, "positive.исчез") && has(a, "positive.изгнан") === has(x, "positive.изгнан"));
     const blocked = p => !options.ignoreTerrain && terrain.has(key(p));
+    const footprint = p => {
+      const cells=[];
+      for(let y=0;y<Number(options.height??a.occupiedHeight??1);y++)for(let x=0;x<Number(options.width??a.occupiedWidth??1);x++)cells.push({x:p.x+x,y:p.y+y});
+      return cells;
+    };
+    const ignoredDifficult = new Set(scene.activeActorId && Number(a.lionwing?.difficultTerrainIgnoreSerial) === Number(scene.turnSerial) && a.lionwing?.difficultTerrainIgnoreSpace === board.id ? a.lionwing.difficultTerrainIgnoreCells || [] : []);
+    const entersDifficult = p => !options.ignoreTerrain && !options.ignoreDifficultTerrain && footprint(p).some(cell => difficult.has(key(cell)) && !ignoredDifficult.has(key(cell)));
+    const entersEnemySpace = p => !options.ignoreOpponents && board.mode === "cinematic" && footprint(p).some(cell => occupied.some(x => x.team !== a.team && x.x === cell.x && x.y === cell.y));
+    const endsMovement = p => entersDifficult(p) || entersEnemySpace(p);
     if (blocked(destination) || board.mode !== "cinematic" && occupied.some(x => x.x === destination.x && x.y === destination.y)) fail("Клетка занята");
       if (options.placement || options.teleport) {if(options.teleport&&options.maximum!=null&&distance(a,{...destination,space:board.id})>options.maximum)fail("Телепортация выходит за дальность");return { cost: 0, path: [{ x: destination.x, y: destination.y }], space: board.id };}
     const maximum = integer(options.maximum ?? 99, "дальность", 999);
@@ -116,11 +125,14 @@
       if (dx && dy && Math.abs(dx) !== Math.abs(dy)) fail("Нужна прямая ортогональная или диагональная Линия");
       const steps = Math.max(Math.abs(dx), Math.abs(dy)), cost = Math.abs(dx) + Math.abs(dy), path = [];
       if (!cost || cost > maximum) fail("Клетка вне дальности движения");
-      let from = a;
+      let from = a, spent = 0;
       for (let i = 1; i <= steps; i++) {
         const point = { x: a.x + Math.sign(dx) * i, y: a.y + Math.sign(dy) * i };
         if (blocked(point) || crossesWall(from, point)) fail("Путь перекрыт препятствием");
+        spent += Math.abs(point.x-from.x)+Math.abs(point.y-from.y);
+        if(spent>maximum)fail("Клетка вне дальности движения");
         path.push(point); from = point;
+        if(endsMovement(point))return { cost:spent,path,space:board.id,endedByDifficultTerrain:true };
       }
       return { cost, path, space: board.id };
     }
@@ -128,10 +140,11 @@
     while (queue.length) {
       queue.sort((x, y) => x.cost - y.cost);
       const p = queue.shift();
-      if (p.x === destination.x && p.y === destination.y) return { cost: p.cost, path: p.path, space: board.id };
+      if (p.x === destination.x && p.y === destination.y) return { cost: p.cost, path: p.path, space: board.id, endedByDifficultTerrain: p.path.length > 0 && endsMovement(p) };
+      if (p.path.length && endsMovement(p)) continue;
       for (const [dx, dy] of [[1,0],[-1,0],[0,1],[0,-1]]) {
         const q = { x: p.x + dx, y: p.y + dy }, foe = occupied.some(x => x.team !== a.team && x.x === q.x && x.y === q.y);
-        const cost = p.cost + (!options.ignoreTerrain && difficult.has(key(q)) || foe && board.mode === "cinematic" ? 2 : 1);
+        const cost = p.cost + 1;
         if (q.x < 0 || q.y < 0 || q.x >= board.width || q.y >= board.height || blocked(q) || crossesWall(p, q) || foe && board.mode !== "cinematic" && !options.ignoreOpponents || cost > maximum || (best.get(key(q)) ?? Infinity) <= cost) continue;
         best.set(key(q), cost); queue.push({ ...q, cost, path: [...p.path, q] });
       }
@@ -419,7 +432,9 @@
     };
     const move = (a, p) => {
       const result = movement(scene, a, p.destination || p, p), from = { x: a.x, y: a.y, space: a.space };
-      a.x = (p.destination || p).x; a.y = (p.destination || p).y; a.space = result.space;
+      const endpoint=result.path[result.path.length-1]||p.destination||p;
+      a.x = endpoint.x; a.y = endpoint.y; a.space = result.space;
+      if(result.endedByDifficultTerrain){astate(a).difficultTerrainStopSerial=scene.turnSerial;a.stepRemaining=0;}
       if(a.compoundId)for(const part of scene.actors.filter(x=>x.compoundId===a.compoundId)){part.x=a.x;part.y=a.y;part.space=a.space;}
       emit("actor.move", a.id, { ...p, from, x: a.x, y: a.y, space: a.space, path: result.path, distance: result.cost });
       // A typed notification is also useful when the Technique itself is manual.
@@ -558,8 +573,8 @@
       }
       if ([ids.spell, ids.skirmish, ids.finish].includes(def.id)) beginAttack(a, { ...p, name: def.name, amount: result.successes + (def.id === ids.finish ? Number(scene.tension || 0) : 0) });
       else if (def.id === ids.charge || def.id === ids.breathe) { const amount = def.id === ids.charge ? Math.max(2, result.successes) : 1; gain(a,"focus",amount); }
-      else if (def.id === ids.step) { if (!status.continuation) a.stepRemaining = sceneSpeed(scene,a); if (p.destination) a.stepRemaining -= move(a, { destination: p.destination, maximum: a.stepRemaining }).cost; }
-      else if (def.id === ids.jump) move(a, { destination: p.destination, maximum: scaledMove(a, Number(a.attrs.talent || 0)), line: true, ignoreOpponents: true });
+      else if (def.id === ids.step) { if (!status.continuation) a.stepRemaining = sceneSpeed(scene,a); if (p.destination) {const moved=move(a, { destination: p.destination, maximum: a.stepRemaining });if(Number(astate(a).difficultTerrainStopSerial)!==Number(scene.turnSerial))a.stepRemaining-=moved.cost;} }
+      else if (def.id === ids.jump) move(a, { destination: p.destination, maximum: scaledMove(a, Number(a.attrs.talent || 0)), line: true, ignoreOpponents: true, ignoreDifficultTerrain:true });
       else if (def.id === ids.shove) move(targets[0], { destination: p.destination, maximum: 1, forced: true });
       else if (def.id === ids.disappear) applyEffect(a, { effect: "positive.исчез", duration: "startTurn" }, a.id);
       else if (def.id === ids.study) { applyEffect(targets[0], { effect: "negative.помечен" }, a.id); emit("rule.prompt", a.id, { targetId: targets[0].id, title: "Нарратор раскрывает выбранный параметр NPC", category: p.category || "health" }); }
@@ -850,6 +865,9 @@
           if(s.grantedTurns?.length){s.grantedTurns.shift();astate(a).grantedTurn={lastTeam:s.lastTeam,lastActorId:s.lastActorId,acted:a.acted};}
           if (!s.started) { s.started = true; for (const hero of scene.actors.filter(isPlayer)) hero.focus = 1 + Math.ceil(Number(hero.attrs.spirit || 0) / 2); for (const other of scene.actors) other.ap = 0; }
           scene.activeActorId = a.id; scene.turnSerial = Number(scene.turnSerial || 0) + 1; astate(a).turns = Number(astate(a).turns || 0) + 1; astate(a).turnActions = []; astate(a).startedDisappeared = has(a, "positive.исчез");
+          const difficult=new Set(scene.objects.filter(o=>o.space===a.space&&o.type==="difficult").flatMap(o=>o.cells||[]));
+          const start=[];for(let y=0;y<Number(a.occupiedHeight||1);y++)for(let x=0;x<Number(a.occupiedWidth||1);x++){const cell=`${a.x+x},${a.y+y}`;if(difficult.has(cell))start.push(cell);}
+          if(start.length){const connected=new Set(start),queue=[...start];while(queue.length){const [x,y]=queue.shift().split(",").map(Number);for(const cell of [`${x+1},${y}`,`${x-1},${y}`,`${x},${y+1}`,`${x},${y-1}`])if(difficult.has(cell)&&!connected.has(cell)){connected.add(cell);queue.push(cell);}}astate(a).difficultTerrainIgnoreSerial=scene.turnSerial;astate(a).difficultTerrainIgnoreSpace=a.space;astate(a).difficultTerrainIgnoreCells=[...connected];}
           a.ap = Math.max(0, Number(a.baseAp ?? 3) - (has(a, "negative.ошеломлен") ? 1 : 0)); a.stepRemaining = 0; s.breakout = null; s.opportunities = [];
           phase("startTurn", a);
           const duel=(s.duels||[]).find(item=>item.id===astate(a).duelId);
@@ -865,6 +883,7 @@
           if (scene.activeActorId !== sourceId || scene.pendingAction || s.choices.length || s.pausedChains?.length) fail("Нельзя завершить этот Ход: есть незавершённое действие");
           if (has(a, "positive.регенерирует")) applyHealing({targetId:a.id,amount:4+Number(a.tier||1)},a.id);
           phase("endTurn", a); a.ap = 0; a.stepRemaining = 0; a.acted = true; scene.activeActorId = null; s.lastTeam = a.team; s.lastActorId = a.id; s.breakout = { actorId: a.id, turnSerial: scene.turnSerial }; s.opportunities = [];
+          for(const other of scene.actors)if(Number(other.lionwing?.difficultTerrainStopSerial)===Number(scene.turnSerial))delete other.lionwing.difficultTerrainStopSerial;
           if(astate(a).grantedTurn){const resume=astate(a).grantedTurn;s.lastTeam=resume.lastTeam;s.lastActorId=resume.lastActorId;a.acted=resume.acted;delete astate(a).grantedTurn;}
           emit("turn.end", a.id); break;
         }
