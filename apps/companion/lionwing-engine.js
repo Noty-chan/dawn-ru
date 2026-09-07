@@ -61,6 +61,17 @@
   const sceneSpeed = (scene,a) => { const group=legacy.compoundEnemyStatus(scene,a);return group.active?scaledMove(a,group.speed+(a.lionwing?.modifiers||[]).filter(m=>m.stat==="speed").reduce((sum,m)=>sum+m.amount,0)):speed(a); };
   const targetIds = (scene,values=[]) => {const seen=new Set();return [...new Set(values)].filter(id=>{const key=actor(scene,id)?.compoundId||id;if(seen.has(key))return false;seen.add(key);return true;});};
   const unavailable = reason => ({ available: false, reason });
+  const activeEffectSources = (a,effect) => (a?.effectStates?.[effect]?.sources||[]).filter(source=>!(source.suppressedBy||[]).length);
+  function effectInstanceStatus(scene, actorId, effect) {
+    const target=actor(scene,actorId), saved=target?.effectStates?.[effect], sources=(saved?.sources||[]).map((source,index)=>({
+      sourceId:source.sourceId||source.actorId||`${effect}:legacy:${index}`,
+      actorId:source.actorId||null, actionId:source.actionId||null, eventId:source.eventId||saved?.appliedEventId||null,
+      appliedSerial:Number(source.appliedSerial??saved?.appliedTurnSerial??0), duration:source.duration||saved?.duration||"default",
+      boundaryOwnerId:source.ownerActorId||source.boundaryOwnerId||target?.id||null, removable:source.removable!==false, sourceBound:source.sourceBound!==false,
+      suppressedBy:[...(source.suppressedBy||[])]
+    }));
+    return { actorId, effect, present:Boolean(target?.effects?.includes(effect)), sources, activeSources:sources.filter(source=>!source.suppressedBy.length), suppressedBy:[...new Set(sources.flatMap(source=>source.suppressedBy))] };
+  }
 
   function turnStartStatus(scene, id) {
     const a = actor(scene, id), s = state(copy(scene));
@@ -89,7 +100,7 @@
     const board = scene.spaces.find(s => s.id === (destination?.space || a.space));
     if (!board || !Number.isInteger(destination?.x) || !Number.isInteger(destination?.y) || destination.x < 0 || destination.y < 0 || destination.x >= board.width || destination.y >= board.height) fail("Выберите клетку внутри поля");
     if (!options.placement && board.id !== a.space && !options.teleport) fail("Это движение не меняет пространство");
-    if (!options.placement && !options.forced && (has(a, "negative.обездвижен") || has(a, "negative.подброшен") || has(a, "negative.пойман") && (a.effectStates?.["negative.пойман"]?.sources || []).some(s => live(actor(scene, s.actorId))&&!has(actor(scene,s.actorId),"positive.исчез")))) fail("Эффект запрещает добровольное движение");
+    if (!options.placement && !options.forced && (has(a, "negative.обездвижен") || has(a, "negative.подброшен") || has(a, "negative.пойман") && activeEffectSources(a,"negative.пойман").some(s => live(actor(scene, s.actorId))&&!has(actor(scene,s.actorId),"positive.исчез")))) fail("Эффект запрещает добровольное движение");
     if (options.forced && has(a, "positive.устойчив")) fail("Устойчивость запрещает принудительное движение");
     const key = p => `${p.x},${p.y}`;
     const terrain = new Set([...scene.objects.filter(o => o.space === board.id && o.type === "terrain").flatMap(o => o.cells || []),...(scene.topology?.cuts||[]).filter(cut=>cut.space===board.id).flatMap(cut=>cut.cells||[])]);
@@ -212,7 +223,7 @@
   function attackPools(scene,a,def,p){
     const base=diceCount(scene,a,def,p),targets=p.targetIds||[];
     if(!attacks.has(def.id)||!targets.length)return{base,counts:{}};
-    const taunts=(a.effectStates?.["negative.спровоцирован"]?.sources||[]).map(x=>x.actorId),fears=(a.effectStates?.["negative.испуган"]?.sources||[]).map(x=>x.actorId);
+    const taunts=activeEffectSources(a,"negative.спровоцирован").map(x=>x.actorId),fears=activeEffectSources(a,"negative.испуган").map(x=>x.actorId);
     const counts=Object.fromEntries(targets.map(id=>[id,Math.max(0,base-(has(a,"negative.спровоцирован")&&!targets.some(t=>taunts.includes(t))?a.tier:0)-(has(a,"negative.испуган")&&fears.includes(id)?a.tier:0)+((p.spikeTargetIds||[]).includes(id)&&has(actor(scene,id),"negative.подброшен")?a.tier:0))]));
     return{base:Math.min(...Object.values(counts)),counts};
   }
@@ -293,13 +304,19 @@
       if (!effectIds.has(effect)) fail("Неизвестный Эффект LionWing");
       const parts=a.compoundId?scene.actors.filter(x=>x.compoundId===a.compoundId):[a];
       for(const part of parts){
-        if(!has(part,effect))continue;
+        const saved=part.effectStates?.[effect], sources=saved?.sources||[];
+        if(!has(part,effect)&&!sources.length)continue;
+        const selected=options.sourceId?sources.filter(source=>(source.sourceId||source.actorId)===options.sourceId):sources;
+        if(options.manual===true&&selected.some(source=>source.removable===false))fail("Этот источник Эффекта нельзя снять вручную");
+        const remaining=options.sourceId?sources.filter(source=>(source.sourceId||source.actorId)!==options.sourceId):[];
+        if(options.sourceId&&!selected.length)fail("Источник Эффекта не найден");
+        if(remaining.length){saved.sources=remaining;if(remaining.some(source=>!(source.suppressedBy||[]).length))part.effects=[...new Set([...(part.effects||[]),effect])];else part.effects=(part.effects||[]).filter(item=>item!==effect);emit("effect.source.remove",part.id,{targetId:part.id,effect,sourceId:options.sourceId});continue;}
         part.effects=part.effects.filter(e=>e!==effect);
         if(part.effectStates)delete part.effectStates[effect];
         if(part.lionwing?.effectLifetimes)delete part.lionwing.effectLifetimes[effect];
-        emit("effect.remove",part.id,{targetId:part.id,effect});
+        emit("effect.remove",part.id,{targetId:part.id,effect,sourceId:options.sourceId||null});
       }
-      if(wasDisappeared&&options.reappear!==false)choice(a,"placement","Выберите клетку появления вне соседства с персонажами",["place"],{reappear:true});
+      if(wasDisappeared&&!has(a,effect)&&options.reappear!==false)choice(a,"placement","Выберите клетку появления вне соседства с персонажами",["place"],{reappear:true});
     };
     const choice = (a, kind, title, options, context = {}) => { s.choices.push({ id: `${rootId}:choice:${choiceSerial++}`, actorId: a.id, kind, title, options, context }); };
     const duelOutcome = duel => choice(requiredActor(scene,duel.actorId,false),"duel-outcome","Дуэль: разыграйте встречную Проверку. NPC бросает [Напряжение Дуэли + Ступень]; бросок игрока согласуйте с Нарратором. Подходы и Напряжение определяет Нарратор.",["win","lose"],{duelId:duel.id});
@@ -361,11 +378,13 @@
       if (p.effect === "positive.изгнан") for (const other of scene.actors) if (other.id !== a.id && (!a.compoundId||other.compoundId!==a.compoundId) && (other.effectStates?.[p.effect]?.sources || []).some(source => source.actorId === sourceId)) removeEffect(other, p.effect);
       a.effects = [...new Set([...(a.effects || []), p.effect])];
       a.effectStates ||= {};
-      const previousSources=["negative.испуган","negative.спровоцирован","negative.пойман"].includes(p.effect)?(a.effectStates[p.effect]?.sources||[]).filter(item=>item.actorId!==sourceId):[];
-      a.effectStates[p.effect] = { duration, removable: true, appliedTurnSerial: Number(scene.turnSerial || 0), appliedRound: scene.round, appliedEventId: rootId, sources: sourceId ? [...previousSources,{ actorId: sourceId, actionId: p.sourceActionId || "", eventId: rootId }] : previousSources };
+      const sourceKey=p.sourceId||sourceId||`${rootId}:source`;
+      const previousSources=(a.effectStates[p.effect]?.sources||[]).filter(item=>(item.sourceId||item.actorId)!==sourceKey);
+      const source={sourceId:sourceKey,actorId:sourceId||null,actionId:p.sourceActionId||provenance?.actionId||null,eventId:rootId,appliedSerial:Number(scene.turnSerial||0),appliedRound:Number(scene.round||0),duration,ownerActorId:p.ownerActorId||p.boundaryOwnerId||a.id,removable:p.removable!==false,sourceBound:p.sourceBound!==false,suppressedBy:[]};
+      a.effectStates[p.effect] = { duration, removable: previousSources.concat(source).every(item=>item.removable!==false), appliedTurnSerial: Number(scene.turnSerial || 0), appliedRound: scene.round, appliedEventId: rootId, sources: [...previousSources,source] };
       astate(a).effectLifetimes ||= {};
       astate(a).effectLifetimes[p.effect] = { ownerActorId: p.ownerActorId || a.id, duration, appliedSerial: Number(scene.turnSerial || 0), appliedRound: scene.round };
-      emit("effect.apply", sourceId, { targetId: a.id, effect: p.effect, duration });
+      emit("effect.apply", sourceId, { targetId: a.id, effect: p.effect, duration, sourceId:sourceKey,removable:source.removable });
       if(a.compoundId&&!p.compoundCopy)for(const part of scene.actors.filter(x=>x.id!==a.id&&x.compoundId===a.compoundId))commitEffect(part,{...p,compoundCopy:true,duration},sourceId);
       if (p.effect === "negative.пойман" && !p.compoundCopy && !p.preventForcedMovement && !has(a,"positive.устойчив") && sourceId && distance(a, requiredActor(scene, sourceId)) > 1) choice(a, "placement", "Пойман: выберите клетку рядом с источником", ["place"], { adjacentTo: sourceId, forced: true });
     };
@@ -410,7 +429,7 @@
         s.opportunities ||= []; s.opportunities.push({ id: `${rootId}:punish:${foe.id}`, actorId: foe.id, targetId: a.id, turnSerial: scene.turnSerial });
         emit("reaction.offer", foe.id, { targetId: a.id, actionId: "action.защита.наказание", name: "Наказание" });
       }
-      if(!p.followSnare)for(const caught of scene.actors.filter(x=>live(x)&&x.id!==a.id&&has(x,"negative.пойман")&&(x.effectStates?.["negative.пойман"]?.sources||[]).some(source=>source.actorId===a.id))){
+      if(!p.followSnare)for(const caught of scene.actors.filter(x=>live(x)&&x.id!==a.id&&has(x,"negative.пойман")&&activeEffectSources(x,"negative.пойман").some(source=>source.actorId===a.id))){
         if(distance(caught,a)!==1&&!has(caught,"positive.устойчив"))choice(caught,"placement","Пойман: выберите клетку рядом с переместившимся источником",["place"],{adjacentTo:a.id,forced:true});
       }
       return result;
@@ -467,10 +486,20 @@
     const phase = (boundary, owner) => {
       for (const a of scene.actors) {
         if(boundary==="roundEnd"||a.id===owner?.id)resetCounters(a,boundary);
-        for (const effect of [...(a.effects || [])]) {
-          const saved = a.effectStates?.[effect], life = a.lionwing?.effectLifetimes?.[effect] || { duration: saved?.duration || (persistent.has(effect) ? "scene" : "default"), ownerActorId: a.id, appliedSerial: saved?.appliedTurnSerial ?? -1, appliedRound: saved?.appliedRound ?? 0 };
-          const due = boundary === "roundEnd" && life.duration === "roundEnd" || life.ownerActorId === owner?.id && (boundary === "startTurn" && ["startTurn", "nextTurn"].includes(life.duration) || boundary === "endTurn" && ["default", "endTurn"].includes(life.duration) && scene.turnSerial > life.appliedSerial);
-          if (due) removeEffect(a, effect);
+        for (const effect of new Set([...(a.effects||[]),...Object.keys(a.effectStates||{})])) {
+          const saved=a.effectStates?.[effect], sources=saved?.sources||[];
+          if(sources.length)for(const source of [...sources]){
+            const legacyLife=a.lionwing?.effectLifetimes?.[effect];
+            source.duration??=legacyLife?.duration||saved?.duration||(persistent.has(effect)?"scene":"default");
+            source.ownerActorId??=legacyLife?.ownerActorId||a.id;
+            source.appliedSerial??=legacyLife?.appliedSerial??saved?.appliedTurnSerial??-1;
+            const due=boundary==="roundEnd"&&source.duration==="roundEnd"||source.ownerActorId===owner?.id&&(boundary==="startTurn"&&["startTurn","nextTurn"].includes(source.duration)||boundary==="endTurn"&&["default","endTurn"].includes(source.duration)&&scene.turnSerial>Number(source.appliedSerial??-1));
+            if(due)removeEffect(a,effect,{sourceId:source.sourceId||source.actorId,manual:false});
+          } else {
+            const life=a.lionwing?.effectLifetimes?.[effect]||{duration:saved?.duration||(persistent.has(effect)?"scene":"default"),ownerActorId:a.id,appliedSerial:saved?.appliedTurnSerial??-1};
+            const due=boundary==="roundEnd"&&life.duration==="roundEnd"||life.ownerActorId===owner?.id&&(boundary==="startTurn"&&["startTurn","nextTurn"].includes(life.duration)||boundary==="endTurn"&&["default","endTurn"].includes(life.duration)&&scene.turnSerial>life.appliedSerial);
+            if(due)removeEffect(a,effect,{manual:false});
+          }
         }
         astate(a).modifiers = (astate(a).modifiers || []).filter(m => !(m.boundary === boundary && (boundary === "roundEnd" || m.ownerActorId === owner?.id) && (boundary === "roundEnd" || scene.turnSerial > m.appliedSerial)));
       }
@@ -619,7 +648,24 @@
           astate(a).automation ||= {}; a.lionwing.automation[p.ruleId] = p.enabled;
           emit("automation.configure", a.id, { ruleId: p.ruleId, enabled: p.enabled }); break;
         }
-        case "effect": { const target = requiredActor(scene, p.targetId || sourceId, false); if (p.remove) removeEffect(target, p.effect); else applyEffect(target, p, sourceId); break; }
+        case "effect": { const target = requiredActor(scene, p.targetId || sourceId, false); if (p.remove) removeEffect(target, p.effect,{sourceId:p.sourceId,manual:true}); else applyEffect(target, p, sourceId); break; }
+        case "effect-source": {
+          const target=requiredActor(scene,p.targetId||sourceId,false), saved=target.effectStates?.[p.effect], source=(saved?.sources||[]).find(item=>(item.sourceId||item.actorId)===p.sourceId);
+          if(!source)fail("Источник Эффекта не найден");
+          if(p.operation==="remove")removeEffect(target,p.effect,{sourceId:p.sourceId,manual:true});
+          else if(p.operation==="expire")removeEffect(target,p.effect,{sourceId:p.sourceId,manual:false,reappear:true});
+          else if(p.operation==="suppress"){
+            if(target.compoundId||["positive.исчез","positive.изгнан"].includes(p.effect))fail("Подавление этого Эффекта пока не поддерживается");
+            if(!p.suppressionId)fail("Укажите источник подавления");source.suppressedBy=[...new Set([...(source.suppressedBy||[]),p.suppressionId])];
+            if(!(saved.sources||[]).some(item=>!(item.suppressedBy||[]).length))target.effects=(target.effects||[]).filter(item=>item!==p.effect);
+            emit("effect.suppress",sourceId,{targetId:target.id,effect:p.effect,sourceId:p.sourceId,suppressionId:p.suppressionId});
+          } else if(p.operation==="restore"){
+            if(!p.suppressionId)fail("Укажите источник подавления");source.suppressedBy=(source.suppressedBy||[]).filter(id=>id!==p.suppressionId);
+            if(!(source.suppressedBy||[]).length)target.effects=[...new Set([...(target.effects||[]),p.effect])];
+            emit("effect.restore",sourceId,{targetId:target.id,effect:p.effect,sourceId:p.sourceId,suppressionId:p.suppressionId});
+          } else fail("Неизвестная операция источника Эффекта");
+          break;
+        }
         case "move": move(requiredActor(scene, p.targetId || sourceId), p); break;
         case "modifier": {
           const target = requiredActor(scene, p.targetId || sourceId, false);
@@ -886,7 +932,8 @@
       if(p.targetId)requiredActor(scene,p.targetId,false);
       if(["damage","heal","resource","correct","tension","spend-health","lose-health"].includes(p.kind))integer(p.amount,"количество");
       if(p.kind==="resource"&&!["spend","gain"].includes(p.operation))fail("Неизвестная операция ресурса");
-      if(p.kind==="effect"&&!effectIds.has(p.effect))fail("Неизвестный Эффект LionWing");
+      if(["effect","effect-source"].includes(p.kind)&&!effectIds.has(p.effect))fail("Неизвестный Эффект LionWing");
+      if(p.kind==="effect-source"&&!['remove','expire','suppress','restore'].includes(p.operation))fail("Неизвестная операция источника Эффекта");
     }
     const queue = operations.map(p => ({ p, sourceId: p.sourceActorId ?? event.actorId, provenance: copy(provenance) }));
     if (request.kind === "choice") queue.push(...s.deferred.splice(0));
@@ -963,7 +1010,7 @@
     try { return { ok: true, ...dispatchMany(scene, events, options), errors: [] }; }
     catch (error) { return { ok: false, errors: [error.message], code: error.code || "LIONWING_RULE_BLOCKED" }; }
   }
-  const api = { schema: 2, isScene, prepare, command, dispatchMany, previewEvents, turnStartStatus, roundEndStatus, movement, roll, actionStatus, actionDef, speed, balance, canSpend, targetIds, costQuote, historyStatus, operations: ["automation", "plan", "batch", "pause-chain", "resume-chain", "amend-attack", "recover-track", "record-action", "action", "attack", "damage", "spend-health", "lose-health", "heal", "wound", "stress", "knockout", "resource", "correct", "effect", "move", "modifier", "allow-action", "grant-turn", "usage", "punish", "invisible", "search", "configure-resource", "counter", "clock", "prompt", "choice", "roll", "reaction", "resolve-attack", "cancel-attack", "turn-start", "turn-end", "round-end", "scene-reset", "chapter-start", "tension", "note"] };
+  const api = { schema: 2, isScene, prepare, command, dispatchMany, previewEvents, turnStartStatus, roundEndStatus, movement, roll, actionStatus, actionDef, speed, balance, canSpend, targetIds, costQuote, historyStatus, effectInstanceStatus, operations: ["automation", "plan", "batch", "pause-chain", "resume-chain", "amend-attack", "recover-track", "record-action", "action", "attack", "damage", "spend-health", "lose-health", "heal", "wound", "stress", "knockout", "resource", "correct", "effect", "effect-source", "move", "modifier", "allow-action", "grant-turn", "usage", "punish", "invisible", "search", "configure-resource", "counter", "clock", "prompt", "choice", "roll", "reaction", "resolve-attack", "cancel-attack", "turn-start", "turn-end", "round-end", "scene-reset", "chapter-start", "tension", "note"] };
   global.DAWN_LIONWING_ENGINE = api;
   const routed = global.DAWN_SCENE_ENGINE;
   const route = (name, handler) => { const previous = legacy[name]; routed[name] = (scene, ...args) => isScene(scene) ? handler(scene, ...args) : previous(scene, ...args); };

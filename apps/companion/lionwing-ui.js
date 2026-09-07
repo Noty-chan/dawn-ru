@@ -315,7 +315,7 @@ document.addEventListener("click", event => {
     const operations=[];
     if(["effect","remove-effect"].includes(kind)&&!effect)return toast("Выберите Эффект");
     if(!Number.isInteger(repeat)||repeat<1||repeat>30)return toast("Повторы: от 1 до 30");
-    for(let i=0;i<(kind==="damage"?repeat:1);i++)for(const targetId of targets)operations.push(kind.includes("effect")?{kind:"effect",targetId,effect,remove:kind==="remove-effect",...(duration!=="default"?{duration}:{})}:{kind,targetId,amount,...damageOptions,...(effect?{effects:[{effect,...(duration!=="default"?{duration}:{})}]}:{})});
+    for(let i=0;i<(kind==="damage"?repeat:1);i++)for(const targetId of targets){const ownedSource=LionwingEngine.effectInstanceStatus(Scene,targetId,effect).sources.find(source=>source.actorId===actorId)?.sourceId;operations.push(kind.includes("effect")?{kind:"effect",targetId,effect,remove:kind==="remove-effect",sourceId:kind==="effect"?actorId:ownedSource,...(duration!=="default"?{duration}:{})}:{kind,targetId,amount,...damageOptions,...(effect?{effects:[{effect,...(duration!=="default"?{duration}:{})}]}:{})});}
     lwSubmit(actorId,costs.length?{kind:"plan",costs,operations,targetIds:targets,actionId:"manual.adjudication"}:{kind:"batch",operations},"Результат действия");
   }
 },true);
