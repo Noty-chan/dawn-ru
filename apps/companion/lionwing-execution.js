@@ -66,7 +66,9 @@
     if (!factTypes.has(type)) reject("Неизвестный тип исторического факта");
     if (!plain(details) || !serializable(details)) reject("Исторический факт должен быть сохраняемым JSON");
     const provenance = identity(context);
-    return copy({ schema: 1, id: id(context.id, "history"), type, ...provenance, actorId: context.actorId || provenance.ownerActorId, targetIds: [...new Set((context.targetIds || []).filter(value => typeof value === "string"))].slice(0, 40), round: serial(context.round ?? 0, "Раунд"), turnSerial: serial(context.turnSerial ?? 0, "Ход"), ownerTurnActorId: context.ownerTurnActorId || null, sceneSerial: serial(context.sceneSerial ?? 1, "Сцена"), chapterSerial: serial(context.chapterSerial ?? 1, "Глава"), details });
+    const actorId=Object.hasOwn(context,"actorId")?context.actorId:provenance.ownerActorId;
+    if(actorId!==null&&typeof actorId!=="string")reject("Некорректный субъект исторического факта");
+    return copy({ schema: 1, id: id(context.id, "history"), type, ...provenance, actorId, subjectKind:actorId===null?"scene":"actor", targetIds: [...new Set((context.targetIds || []).filter(value => typeof value === "string"))].slice(0, 40), round: serial(context.round ?? 0, "Раунд"), turnSerial: serial(context.turnSerial ?? 0, "Ход"), ownerTurnActorId: context.ownerTurnActorId || null, sceneSerial: serial(context.sceneSerial ?? 1, "Сцена"), chapterSerial: serial(context.chapterSerial ?? 1, "Глава"), details });
   }
 
   function inScope(item, query = {}) {

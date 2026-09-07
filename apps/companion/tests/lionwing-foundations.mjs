@@ -43,6 +43,9 @@ const secondAction=run(firstAction,"a",{kind:"record-action",actionId:actionDefi
 const actionFacts=secondAction.lionwing.history.filter(f=>f.type==="apply"&&f.details.actionId===actionDefinitionId);
 assert.equal(actionFacts.length,2);assert.equal(actionFacts[0].actionDefinitionId,actionFacts[1].actionDefinitionId);assert.notEqual(actionFacts[0].actionInstanceId,actionFacts[1].actionInstanceId,"two uses of one definition have distinct action instances");
 assert.equal(execution.historyCount(actionFacts,{scope:"action",actionInstanceId:actionFacts[0].actionInstanceId}),1,"action-instance scope selects one concrete use");
+const sceneDamage=lw.dispatchMany(fixture(),[{id:"scene-hazard",type:"lionwing.command",actorId:null,payload:{kind:"damage",targetId:"b",amount:2,irreducible:true}}]).scene;
+const sceneFact=sceneDamage.lionwing.history.find(f=>f.type==="damage");
+assert.equal(sceneFact.actorId,null);assert.equal(sceneFact.subjectKind,"scene");assert.equal(sceneFact.ownerActorId,"scene");assert.deepEqual(clone(sceneFact.targetIds),["b"]);assert.equal(lw.historyStatus(sceneDamage,{scope:"scene",sceneSerial:1,targetId:"b",type:"damage"}).count,1,"scene-authored damage remains queryable by target");
 assert.throws(()=>execution.normalizeRoll({initialCount:101,rolls:[]}),/100/);
 assert.throws(()=>execution.normalizeRoll({initialCount:1,rolls:[4]},{modifications:[{kind:"replace-face"}]}),/не поддерживаются/);
 s=run(fixture(),"a",{kind:"usage",ruleId:"private.history",scope:"scene",limit:1});

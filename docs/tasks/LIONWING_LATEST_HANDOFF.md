@@ -1,5 +1,12 @@
 # LionWing — последняя передача, 2026-09-06
 
+## History: события Сцены
+
+Факт теперь явно различает `subjectKind: actor|scene`; nullable actorId не
+подменяется владельцем или целью. Команда урона без участника-источника создаёт
+attempt/damage/healthLoss с владельцем `scene` и остаётся доступна по targetId.
+Старые факты без subjectKind читаются прежним способом.
+
 ## Execution/history: экземпляры действий
 
 К совместимому `actionId` добавлены явные `actionDefinitionId` и

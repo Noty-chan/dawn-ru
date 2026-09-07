@@ -276,12 +276,12 @@
     const scheduled = [];
     let frameSerial = 0, choiceSerial = 0, historySerial = 0, provenance = null;
     const saveFact = (type, actorId, targetIds, details = {}, context = provenance) => {
-      if (!context?.rootActionId || !actorId) return;
+      if (!context?.rootActionId) return;
       const fact = foundations.fact(type, {
         id: `${rootId}:history:${historySerial++}`,
         ...context,
         ownerActorId: context.ownerActorId || actorId,
-        actorId,
+        actorId:actorId??null,
         targetIds,
         round: Number(scene.round || 0),
         turnSerial: Number(scene.turnSerial || 0),
@@ -938,8 +938,8 @@
       if (!request) fail(`Событие ${event.type} не перенесено в LionWing`);
     }
     const pendingActionId = scene.pendingAction?.sourceActionId || null;
-    provenance = foundations.identity({ rootActionId: rootId, actionId: request.actionId || pendingActionId || `operation.${request.kind}`, actionDefinitionId:request.actionId||pendingActionId||`operation.${request.kind}`, actionInstanceId:rootId, causeEventId: rootId, ownerActorId: event.actorId || request.targetId || "scene" });
-    saveFact("attempt", event.actorId || request.targetId || "scene", request.targetIds || (request.targetId ? [request.targetId] : []), { kind: request.kind });
+    provenance = foundations.identity({ rootActionId: rootId, actionId: request.actionId || pendingActionId || `operation.${request.kind}`, actionDefinitionId:request.actionId||pendingActionId||`operation.${request.kind}`, actionInstanceId:rootId, causeEventId: rootId, ownerActorId: event.actorId || "scene" });
+    saveFact("attempt", event.actorId??null, request.targetIds || (request.targetId ? [request.targetId] : []), { kind: request.kind });
     const duelPreparation=s.choices[0]?.kind==="duel-outcome"&&["roll","resource"].includes(request.kind)&&(s.duels||[]).some(duel=>duel.id===s.choices[0].context.duelId&&[duel.actorId,duel.targetId].includes(request.targetId||event.actorId));
     if (s.choices.length && !duelPreparation && !["choice", "correct", "note", "tension", "pause-chain"].includes(request.kind)) fail("Сначала ответьте на ожидающее решение");
     if (scene.pendingAction && !["reaction", "resolve-attack", "cancel-attack", "correct", "note", "choice", "tension","invisible","pause-chain","amend-attack"].includes(request.kind)) fail("Сначала завершите Атаку");
