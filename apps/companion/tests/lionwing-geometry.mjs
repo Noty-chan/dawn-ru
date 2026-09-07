@@ -43,8 +43,12 @@ assert.deepEqual(JSON.parse(JSON.stringify(geometry.revalidatePlan(scene, reload
 
 scene = fixture(); scene.objects.push({ id: "mud", type: "difficult", space: "main", cells: ["2,1"] });
 route = geometry.routePlan(scene, { sourceActorId: "author", actorId: "mover", anchor: { kind: "actor", actorId: "author" }, destination: { x: 2, y: 1 }, maximum: 1 });
-assert.equal(route.available, true, route.reason); assert.equal(route.route.spent, 1, "entering Difficult Terrain costs the normal step");
+assert.equal(route.available, true, route.reason); assert.equal(route.route.spent, 1, "entering Difficult Terrain costs the normal step"); assert.equal(route.route.terminal,true); assert.equal(route.route.stopReason,"difficult-terrain"); assert.equal(route.route.remaining,0,"terminal terrain consumes the rest of this movement");
 assert.equal(geometry.routePlan(scene, { sourceActorId: "author", actorId: "mover", anchor: { kind: "actor", actorId: "author" }, destination: { x: 3, y: 1 }, maximum: 3 }).available, false, "a route cannot continue after entering Difficult Terrain");
+route = geometry.routePlan(scene, { sourceActorId: "author", actorId: "mover", anchor: { kind: "actor", actorId: "author" }, destination: { x: 3, y: 1 }, maximum: 2, straight: true });
+assert.equal(route.available,true,route.reason); assert.equal(route.route.partial,true,"a straight route reports the early stop"); assert.deepEqual(JSON.parse(JSON.stringify(route.route.stoppedAt)),{space:"main",x:2,y:1}); assert.equal(route.route.remaining,0);
+route = geometry.routePlan(scene, { sourceActorId: "author", actorId: "mover", anchor: { kind: "actor", actorId: "author" }, destination: { x: 3, y: 1 }, maximum: 2, ignoreTerrain: true });
+assert.equal(route.available,true,route.reason); assert.equal(route.route.terminal,false); assert.equal(route.route.spent,2,"an explicit terrain exception may cross the cell");
 
 scene = fixture(); scene.actors.find(item => item.id === "mover").occupiedWidth = 2; scene.actors.find(item => item.id === "mover").occupiedHeight = 2; scene.actors.find(item => item.id === "body").x = 5;
 scene.walls.push({ id: "lower-edge", space: "main", a: "2,2", b: "3,2" });

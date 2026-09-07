@@ -174,7 +174,7 @@
           const edge = edgeStatus(current, next);
           const nextCost = current.cost + Number(edge?.cost);
           if (!edge || nextCost > maximum || (reachable.get(pointKey(next))?.cost ?? Infinity) <= nextCost) continue;
-          const result = { path: [...current.path, next], cost: nextCost };
+          const result = { path: [...current.path, next], cost: nextCost, terminal: edge.stoppedByDifficult, stopReason: edge.stoppedByDifficult ? "difficult-terrain" : null };
           reachable.set(pointKey(next), result);
           if (!edge.stoppedByDifficult) queue.push({ ...next, ...result });
         }
@@ -195,19 +195,22 @@
           if (!edge || cost + edge.cost > maximum || edge.stoppedByDifficult && segment !== anchorRoute.path.at(-1)) return null;
           cost += edge.cost; previous = segment;
         }
-        return { path: anchorRoute.path || [], cost };
+        const terminal=Boolean(anchorRoute.endedByDifficultTerrain);
+        return { path: anchorRoute.path || [], cost, terminal, stopReason: terminal ? "difficult-terrain" : null };
       }
       return reachablePaths().get(pointKey(target)) || null;
     };
     const validPath = point => weightedPath(point);
     const direct = validPath(destination);
-    let selected = direct ? { x: Number(destination.x), y: Number(destination.y), space: mover.space, ...direct, partial: false } : null;
+    const endpoint = result => result?.path?.at(-1) || { x: Number(mover.x), y: Number(mover.y) };
+    let selected = direct ? { x: Number(endpoint(direct).x), y: Number(endpoint(direct).y), space: mover.space, ...direct, partial: Number(endpoint(direct).x) !== Number(destination.x) || Number(endpoint(direct).y) !== Number(destination.y) } : null;
     if (!selected && request.allowPartial === true) {
       const alternatives = [];
       for (let y = 0; y < Number(space.height); y += 1) for (let x = 0; x < Number(space.width); x += 1) {
         const result = validPath({ x, y });
         if (!result || !result.path.length) continue;
-        alternatives.push({ x, y, space: mover.space, ...result, partial: true, distance: Math.abs(x - Number(destination.x)) + Math.abs(y - Number(destination.y)) });
+        const reached=endpoint(result);
+        alternatives.push({ x:reached.x, y:reached.y, space: mover.space, ...result, partial: true, distance: Math.abs(reached.x - Number(destination.x)) + Math.abs(reached.y - Number(destination.y)) });
       }
       alternatives.sort((left, right) => left.distance - right.distance || left.y - right.y || left.x - right.x);
       selected = alternatives[0] || null;
@@ -224,7 +227,9 @@
       path: selected.path.map(point => ({ space: mover.space, x: Number(point.x), y: Number(point.y) })),
       spent: selected.cost,
       stoppedAt: { space: selected.space, x: selected.x, y: selected.y },
-      remaining: Math.max(0, maximum - selected.cost),
+      remaining: selected.terminal ? 0 : Math.max(0, maximum - selected.cost),
+      terminal: Boolean(selected.terminal),
+      stopReason: selected.stopReason || null,
       partial: selected.partial,
       sceneVersion: Number(scene.version || 0),
       geometryStamp: geometryStamp(scene),
