@@ -254,6 +254,12 @@
         if ([ids.charge, ids.spell, ids.skirmish, ids.finish].includes(def.id) && !payload.roll){const pools=attackPools(scene,a,def,payload);payload.roll=roll(pools.base,options.random);payload.targetRolls={};for(const[id,count]of Object.entries(pools.counts))if(count>pools.base)payload.targetRolls[id]=roll(count-pools.base,options.random);}
       }
       if (payload.kind === "plan" && !payload.reservation) payload.reservation = costQuote(scene, a.id, payload.costs, payload.targetIds || []);
+      if(payload.kind==="geometry-move"&&!payload.geometryPlan){
+        const targetId=payload.targetId||a?.id,geometry=global.DAWN_LIONWING_GEOMETRY;
+        if(!geometry?.routePlan)fail("Планировщик геометрии недоступен");
+        const planned=geometry.routePlan(scene,{sourceActorId:a?.id,actorId:targetId,anchor:payload.anchor||{kind:"actor",actorId:a?.id},destination:payload.destination,maximum:payload.maximum,mode:payload.mode||"move",straight:payload.straight===true,allowPartial:payload.allowPartial===true,ignoreTerrain:payload.ignoreTerrain===true,ignoreEnemies:payload.ignoreEnemies===true,width:payload.width,height:payload.height});
+        if(!planned.available)fail(planned.reason);payload.geometryPlan=planned.plan;
+      }
       if (payload.kind === "roll" && !payload.roll) payload.roll = roll(integer(payload.count, "число костей", 100), options.random, { ...payload, kind: payload.rollKind || "check" });
       if (payload.kind === "reaction" && payload.choice === "clash" && !payload.roll) {
         const source = requiredActor(scene, scene.pendingAction?.actorId);
@@ -433,7 +439,7 @@
       if (hit && !(attack && afterArmor > 0 && evaded === afterArmor) && !a.knockedOut) for (const e of p.effects || []) applyEffect(a, {...(typeof e === "string" ? { effect: e } : e),preventForcedMovement:p.preventForcedMovement}, p.sourceActorId);
     };
     const move = (a, p) => {
-      const result = movement(scene, a, p.destination || p, p), from = { x: a.x, y: a.y, space: a.space };
+      const result = p.__verifiedRoute ? {cost:p.__verifiedRoute.spent,path:p.__verifiedRoute.path.map(point=>({x:point.x,y:point.y})),space:p.__verifiedRoute.stoppedAt.space,endedByDifficultTerrain:p.__verifiedRoute.terminal&&p.__verifiedRoute.stopReason==="difficult-terrain"} : movement(scene, a, p.destination || p, p), from = { x: a.x, y: a.y, space: a.space };
       const endpoint=result.path[result.path.length-1]||p.destination||p;
       a.x = endpoint.x; a.y = endpoint.y; a.space = result.space;
       if(result.endedByDifficultTerrain){astate(a).difficultTerrainStopSerial=scene.turnSerial;a.stepRemaining=0;}
@@ -683,6 +689,13 @@
           break;
         }
         case "move": move(requiredActor(scene, p.targetId || sourceId), p); break;
+        case "geometry-move":{
+          const geometry=global.DAWN_LIONWING_GEOMETRY;if(!geometry?.revalidatePlan)fail("Планировщик геометрии недоступен");
+          const checked=geometry.revalidatePlan(scene,p.geometryPlan);if(!checked.available)fail(checked.reason);
+          if(checked.route.sourceActorId!==sourceId||checked.route.actorId!==(p.targetId||sourceId))fail("Геометрический план принадлежит другой операции");
+          move(requiredActor(scene,checked.route.actorId),{destination:checked.route.stoppedAt,forced:checked.route.mode==="forced",maximum:checked.route.maximum,__verifiedRoute:checked.route,movement:p.label||"Движение по плану"});
+          emit("geometry.route.commit",sourceId,{targetId:checked.route.actorId,requestedDestination:checked.route.destination,stoppedAt:checked.route.stoppedAt,spent:checked.route.spent,remaining:checked.route.remaining,terminal:checked.route.terminal,stopReason:checked.route.stopReason});break;
+        }
         case "modifier": {
           const target = requiredActor(scene, p.targetId || sourceId, false);
           if(p.remove){if(!["armor","evasion","speed"].includes(p.stat))fail("Неизвестный показатель");astate(target).modifiers=astate(target).modifiers.filter(m=>m.stat!==p.stat||(p.id&&m.id!==p.id));emit("modifier.remove",sourceId,p);break;}
@@ -1031,7 +1044,7 @@
     try { return { ok: true, ...dispatchMany(scene, events, options), errors: [] }; }
     catch (error) { return { ok: false, errors: [error.message], code: error.code || "LIONWING_RULE_BLOCKED" }; }
   }
-  const api = { schema: 2, isScene, prepare, command, dispatchMany, previewEvents, turnStartStatus, roundEndStatus, movement, roll, actionStatus, actionDef, speed, balance, canSpend, targetIds, costQuote, historyStatus, effectInstanceStatus, operations: ["automation", "plan", "batch", "pause-chain", "resume-chain", "amend-attack", "recover-track", "record-action", "action", "attack", "damage", "spend-health", "lose-health", "heal", "wound", "stress", "knockout", "resource", "correct", "effect", "effect-source", "move", "modifier", "allow-action", "grant-turn", "usage", "punish", "invisible", "search", "configure-resource", "counter", "clock", "prompt", "choice", "roll", "reaction", "resolve-attack", "cancel-attack", "turn-start", "turn-end", "round-end", "scene-reset", "chapter-start", "tension", "note"] };
+  const api = { schema: 2, isScene, prepare, command, dispatchMany, previewEvents, turnStartStatus, roundEndStatus, movement, roll, actionStatus, actionDef, speed, balance, canSpend, targetIds, costQuote, historyStatus, effectInstanceStatus, operations: ["automation", "plan", "batch", "pause-chain", "resume-chain", "amend-attack", "recover-track", "record-action", "action", "attack", "damage", "spend-health", "lose-health", "heal", "wound", "stress", "knockout", "resource", "correct", "effect", "effect-source", "move", "geometry-move", "modifier", "allow-action", "grant-turn", "usage", "punish", "invisible", "search", "configure-resource", "counter", "clock", "prompt", "choice", "roll", "reaction", "resolve-attack", "cancel-attack", "turn-start", "turn-end", "round-end", "scene-reset", "chapter-start", "tension", "note"] };
   global.DAWN_LIONWING_ENGINE = api;
   const routed = global.DAWN_SCENE_ENGINE;
   const route = (name, handler) => { const previous = legacy[name]; routed[name] = (scene, ...args) => isScene(scene) ? handler(scene, ...args) : previous(scene, ...args); };
