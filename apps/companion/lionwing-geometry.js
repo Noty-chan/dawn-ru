@@ -134,36 +134,74 @@
     const width = Number(request.width ?? request.footprint?.width ?? mover.occupiedWidth ?? 1);
     const height = Number(request.height ?? request.footprint?.height ?? mover.occupiedHeight ?? 1);
     if (!integer(width) || !integer(height) || width < 1 || height < 1) return { available: false, reason: "Некорректные размеры перемещаемого тела." };
-    options.width=width;options.height=height;
-    const bodyEdgesClear = path => {
-      let previous = { x: Number(mover.x), y: Number(mover.y) };
-      for (const segment of path) {
-        for (let oy = 0; oy < height; oy += 1) for (let ox = 0; ox < width; ox += 1) {
-          const probeScene = clone(scene);
-          const probe = actorById(probeScene, mover.id);
-          probe.x = previous.x + ox; probe.y = previous.y + oy;
-          probe.occupiedWidth = 1; probe.occupiedHeight = 1;
-          try {
-            const edge = lionwing.movement(probeScene, probe, { x: Number(segment.x) + ox, y: Number(segment.y) + oy }, { ...options, width: 1, height: 1, maximum: 2 });
-            if (edge.path.length !== 1 || Number(edge.path[0].x) !== Number(segment.x) + ox || Number(edge.path[0].y) !== Number(segment.y) + oy) return false;
-          } catch { return false; }
+    // movement() remains the source of truth for every crossed edge. A shallow
+    // probe Scene is enough because the validator is read-only, and avoids a
+    // full JSON clone for every node explored by the body-aware planner.
+    const probeActors = new Map();
+    const edgeStatus = (from, to) => {
+      let cost = 0, stoppedByDifficult = false;
+      for (let oy = 0; oy < height; oy += 1) for (let ox = 0; ox < width; ox += 1) {
+        const offset = `${ox},${oy}`;
+        let probe = probeActors.get(offset);
+        if (!probe) {
+          probe = { ...mover, occupiedWidth: 1, occupiedHeight: 1 };
+          probeActors.set(offset, probe);
         }
-        previous = segment;
+        probe.x = Number(from.x) + ox; probe.y = Number(from.y) + oy;
+        const probeScene = { ...scene, actors: (scene.actors || []).map(actor => actor.id === mover.id ? probe : actor) };
+        try {
+          const edge = lionwing.movement(probeScene, probe, { space: mover.space, x: Number(to.x) + ox, y: Number(to.y) + oy }, { ...options, maximum: 2 });
+          if (edge.path.length !== 1 || Number(edge.path[0].x) !== Number(to.x) + ox || Number(edge.path[0].y) !== Number(to.y) + oy) return null;
+          cost = Math.max(cost, Number(edge.cost || 0));
+          stoppedByDifficult ||= Boolean(edge.endedByDifficultTerrain);
+        } catch { return null; }
       }
-      return true;
+      return { cost, stoppedByDifficult };
     };
-    const validPath = point => {
-      let result;
-      try { result = lionwing.movement(scene, mover, point, options); }
-      catch { return null; }
-      const path = result.path || [];
-      for (const segment of path) if (!footprintStatus(scene, { actorId: mover.id, destination: { ...segment, space: mover.space }, footprint: request.footprint, width: request.width, height: request.height }).available) return null;
-      if (!bodyEdgesClear(path)) return null;
-      const endpoint=path[path.length-1]||{x:mover.x,y:mover.y};
-      return { path, cost: Number(result.cost || 0), endpoint, endedByDifficultTerrain:Boolean(result.endedByDifficultTerrain) };
+    const footprintAvailable = point => footprintStatus(scene, { actorId: mover.id, destination: { ...point, space: mover.space }, footprint: request.footprint, width: request.width, height: request.height }).available;
+    let reachable = null;
+    const reachablePaths = () => {
+      if (reachable) return reachable;
+      const start = { x: Number(mover.x), y: Number(mover.y) };
+      reachable = new Map([[pointKey(start), { path: [], cost: 0 }]]);
+      const queue = [{ ...start, cost: 0, path: [] }];
+      while (queue.length) {
+        queue.sort((left, right) => left.cost - right.cost || left.y - right.y || left.x - right.x);
+        const current = queue.shift();
+        for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+          const next = { x: current.x + dx, y: current.y + dy };
+          if (!footprintAvailable(next)) continue;
+          const edge = edgeStatus(current, next);
+          const nextCost = current.cost + Number(edge?.cost);
+          if (!edge || nextCost > maximum || (reachable.get(pointKey(next))?.cost ?? Infinity) <= nextCost) continue;
+          const result = { path: [...current.path, next], cost: nextCost };
+          reachable.set(pointKey(next), result);
+          if (!edge.stoppedByDifficult) queue.push({ ...next, ...result });
+        }
+      }
+      return reachable;
     };
+    const weightedPath = point => {
+      const start = { x: Number(mover.x), y: Number(mover.y) };
+      const target = { x: Number(point.x), y: Number(point.y) };
+      if (start.x === target.x && start.y === target.y) return footprintAvailable(start) ? { path: [], cost: 0 } : null;
+      if (options.line) {
+        let anchorRoute;
+        try { anchorRoute = lionwing.movement(scene, mover, target, options); } catch { return null; }
+        let previous = start, cost = 0;
+        for (const segment of anchorRoute.path || []) {
+          if (!footprintAvailable(segment)) return null;
+          const edge = edgeStatus(previous, segment);
+          if (!edge || cost + edge.cost > maximum || edge.stoppedByDifficult && segment !== anchorRoute.path.at(-1)) return null;
+          cost += edge.cost; previous = segment;
+        }
+        return { path: anchorRoute.path || [], cost };
+      }
+      return reachablePaths().get(pointKey(target)) || null;
+    };
+    const validPath = point => weightedPath(point);
     const direct = validPath(destination);
-    let selected = direct ? { x: Number(direct.endpoint.x), y: Number(direct.endpoint.y), space: mover.space, ...direct, partial: Number(direct.endpoint.x)!==Number(destination.x)||Number(direct.endpoint.y)!==Number(destination.y) } : null;
+    let selected = direct ? { x: Number(destination.x), y: Number(destination.y), space: mover.space, ...direct, partial: false } : null;
     if (!selected && request.allowPartial === true) {
       const alternatives = [];
       for (let y = 0; y < Number(space.height); y += 1) for (let x = 0; x < Number(space.width); x += 1) {
@@ -186,7 +224,7 @@
       path: selected.path.map(point => ({ space: mover.space, x: Number(point.x), y: Number(point.y) })),
       spent: selected.cost,
       stoppedAt: { space: selected.space, x: selected.x, y: selected.y },
-      remaining: selected.endedByDifficultTerrain ? 0 : Math.max(0, maximum - selected.cost),
+      remaining: Math.max(0, maximum - selected.cost),
       partial: selected.partial,
       sceneVersion: Number(scene.version || 0),
       geometryStamp: geometryStamp(scene),
