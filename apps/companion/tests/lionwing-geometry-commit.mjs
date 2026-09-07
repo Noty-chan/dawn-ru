@@ -25,4 +25,18 @@ assert.equal(moved.actors[1].lionwing.difficultTerrainStopSerial,scene.turnSeria
 
 const occupied=structuredClone(scene);occupied.actors.push(actor("blocker",2,1,{team:"enemy",kind:"enemy",heroId:null}));
 assert.throws(()=>lw.dispatchMany(occupied,prepared.events),/план|маршрут|занят|устарел/i,"a target occupied after preview invalidates commit");
+
+scene=fixture();scene.walls=[];
+const packageRequest={kind:"plan",actionId:"manual.adjudication",costs:[{kind:"resource",resource:"ap",amount:1}],targetIds:["mover","body"],operations:[
+  {kind:"geometry-move",targetId:"mover",destination:{space:"main",x:3,y:1},maximum:3},
+  {kind:"damage",targetId:"body",amount:2},
+]};
+before=JSON.stringify(scene);prepared=lw.prepare(scene,{actorId:"source",...packageRequest});
+assert.equal(prepared.ok,true,prepared.errors?.join(" "));assert.equal(JSON.stringify(scene),before,"previewing a manual package is side-effect free");
+assert.equal(prepared.events[0].payload.operations[0].geometryPlan.kind,"lionwing.geometry.route","nested movement receives a verified plan");
+const packaged=lw.dispatchMany(scene,prepared.events).scene;
+assert.deepEqual([packaged.actors[1].x,packaged.actors[1].y],[3,1]);assert.equal(packaged.actors[2].hp,14);assert.equal(packaged.actors[0].ap,2,"price and all consequences commit in one transaction");
+const stalePackage=structuredClone(scene);stalePackage.actors.push(actor("late-blocker",3,1,{team:"enemy",kind:"enemy",heroId:null}));
+assert.throws(()=>lw.dispatchMany(stalePackage,prepared.events),/план|маршрут|занят|устарел/i,"a stale nested route rejects the whole package");
+assert.equal(stalePackage.actors.find(item=>item.id==="source").ap,3,"rejection does not charge the package price");assert.equal(stalePackage.actors.find(item=>item.id==="body").hp,16,"rejection does not apply later consequences");
 console.log("LionWing geometry commit: preview, body route, terminal terrain, replay and stale target passed");

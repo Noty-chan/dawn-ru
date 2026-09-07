@@ -253,13 +253,15 @@
         if (!status.available) fail(status.reason);
         if ([ids.charge, ids.spell, ids.skirmish, ids.finish].includes(def.id) && !payload.roll){const pools=attackPools(scene,a,def,payload);payload.roll=roll(pools.base,options.random);payload.targetRolls={};for(const[id,count]of Object.entries(pools.counts))if(count>pools.base)payload.targetRolls[id]=roll(count-pools.base,options.random);}
       }
-      if (payload.kind === "plan" && !payload.reservation) payload.reservation = costQuote(scene, a.id, payload.costs, payload.targetIds || []);
-      if(payload.kind==="geometry-move"&&!payload.geometryPlan){
-        const targetId=payload.targetId||a?.id,geometry=global.DAWN_LIONWING_GEOMETRY;
+      const preparedOperations=["plan","batch"].includes(payload.kind)?payload.operations:[payload];
+      if(Array.isArray(preparedOperations))for(const operation of preparedOperations.filter(item=>item?.kind==="geometry-move"&&!item.geometryPlan)){
+        const targetId=operation.targetId||a?.id,geometry=global.DAWN_LIONWING_GEOMETRY;
         if(!geometry?.routePlan)fail("Планировщик геометрии недоступен");
-        const planned=geometry.routePlan(scene,{sourceActorId:a?.id,actorId:targetId,anchor:payload.anchor||{kind:"actor",actorId:a?.id},destination:payload.destination,maximum:payload.maximum,mode:payload.mode||"move",straight:payload.straight===true,allowPartial:payload.allowPartial===true,ignoreTerrain:payload.ignoreTerrain===true,ignoreEnemies:payload.ignoreEnemies===true,width:payload.width,height:payload.height});
-        if(!planned.available)fail(planned.reason);payload.geometryPlan=planned.plan;
+        const sourceActorId=operation.sourceActorId||a?.id;
+        const planned=geometry.routePlan(scene,{sourceActorId,actorId:targetId,anchor:operation.anchor||{kind:"actor",actorId:sourceActorId},destination:operation.destination,maximum:operation.maximum,mode:operation.mode||"move",straight:operation.straight===true,allowPartial:operation.allowPartial===true,ignoreTerrain:operation.ignoreTerrain===true,ignoreEnemies:operation.ignoreEnemies===true,width:operation.width,height:operation.height});
+        if(!planned.available)fail(planned.reason);operation.geometryPlan=planned.plan;
       }
+      if (payload.kind === "plan" && !payload.reservation) payload.reservation = costQuote(scene, a.id, payload.costs, payload.targetIds || []);
       if (payload.kind === "roll" && !payload.roll) payload.roll = roll(integer(payload.count, "число костей", 100), options.random, { ...payload, kind: payload.rollKind || "check" });
       if (payload.kind === "reaction" && payload.choice === "clash" && !payload.roll) {
         const source = requiredActor(scene, scene.pendingAction?.actorId);

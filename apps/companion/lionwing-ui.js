@@ -16,7 +16,8 @@ let lwDraftEnabled=false,lwDraftBatch=null;
 function lwOperationSummary(p){
   const names={attack:"Атака",damage:"Урон","spend-health":"Расход Здоровья","lose-health":"Потеря Здоровья",heal:"Лечение",effect:p.remove?"Снять Эффект":"Наложить Эффект",resource:p.operation==="spend"?"Расход":"Получение",move:"Движение","geometry-move":"Движение по плану",wound:"Рана",stress:"Стресс",modifier:"Модификатор",usage:"Учесть применение","record-action":"Базовое действие","recover-track":"Восстановление Ран/Стресса",prompt:"Решение",note:"Запись", "grant-turn":"Дополнительный Ход","allow-action":"Допуск действия"};
   const ids=p.targetIds||[p.targetId||lwDraftBatch?.actorId],targets=ids.map(id=>Scene.actors.find(a=>a.id===id)?.name||id).join(", ");
-  const detail=[p.amount!=null?String(p.amount):"",p.resource||"",p.effect?([...lwRules().effects.positive,...lwRules().effects.negative].find(e=>e.id===p.effect)?.name||p.effect):"",p.duration||"",p.destination?`${p.destination.x+1}, ${p.destination.y+1}`:"",p.note||p.title||""].filter(Boolean).join(" · ");
+  const destination=p.geometryPlan?.route?.stoppedAt||p.destination,cell=destination?`${String.fromCharCode(65+Number(destination.x))}${Number(destination.y)+1}`:"";
+  const detail=[p.amount!=null?String(p.amount):"",p.resource||"",p.effect?([...lwRules().effects.positive,...lwRules().effects.negative].find(e=>e.id===p.effect)?.name||p.effect):"",p.duration||"",cell,p.geometryPlan?.route?`${p.geometryPlan.route.spent} кл.`:"",p.note||p.title||""].filter(Boolean).join(" · ");
   return `${names[p.kind]||p.kind} → ${targets}${detail?": "+detail:""}`;
 }
 
@@ -33,7 +34,7 @@ function lwSetGeometryPreview(draft,payload){
   if(!prepared.ok){toast(prepared.errors.join(" "));return false;}
   const event=prepared.events.find(item=>item.type==="lionwing.command"&&item.payload?.kind==="geometry-move"),route=event?.payload?.geometryPlan?.route;
   if(!event||!route){toast("Планировщик не вернул маршрут");return false;}
-  lwGeometryPreview={actorId:draft.actorId,label:draft.label,intent:{...payload,geometryPlan:undefined},event};
+  lwGeometryPreview={actorId:draft.actorId,label:draft.label,intent:{...payload,geometryPlan:undefined},event,stage:draft.stage===true};
   lwDestination=null;
   scenePreviewCells=new Set(route.path.map(point=>`${point.x},${point.y}`));
   renderScene();
@@ -50,7 +51,7 @@ function lwBatchHtml(){
     <label><input type="checkbox" data-lw-stage ${lwDraftEnabled?"checked":""}>Собирать операции перед применением</label>
     <p>Добавляйте последствия кнопками ниже. Полная цена резервируется после выбора целей и списывается вместе с пакетом.</p>
     ${draft?`<div class="lw-fields"><label>Цена: ОД<input data-lw-cost-ap type="number" min="0" max="9999" value="0"></label><label>Фокус<input data-lw-cost-focus type="number" min="0" max="9999" value="0"></label><label>Влияние<input data-lw-cost-influence type="number" min="0" max="9999" value="0"></label><label>Здоровье<input data-lw-cost-health type="number" min="0" max="9999" value="0"></label></div>`:""}
-    ${draft?`<p>Источник: ${esc(actor?.name||draft.actorId)}</p><ol>${draft.operations.map(operation=>`<li>${esc(lwOperationSummary(operation))}</li>`).join("")}</ol><div class="button-row"><button data-lw-batch-apply>Применить пакет</button><button data-lw-batch-clear>Отменить пакет</button></div>`:""}</details>`;
+    ${draft?`<p>Источник: ${esc(actor?.name||draft.actorId)}</p><ol>${draft.operations.map((operation,index)=>`<li>${esc(lwOperationSummary(operation))} <button data-lw-batch-remove="${index}" aria-label="Убрать операцию ${index+1}">Убрать</button></li>`).join("")}</ol><div class="button-row"><button data-lw-batch-apply>Проверить и применить пакет</button><button data-lw-batch-clear>Отменить пакет</button></div>`:""}</details>`;
 }
 
 function lwChainHtml(a){return lwCanNarrate()?`<div class="button-row">${Scene.pendingAction||Scene.lionwing?.choices?.length?`<button data-lw-chain="pause-chain" data-lw-actor="${esc(a.id)}">Приостановить цепочку для ручного правила</button>`:""}${Scene.lionwing?.pausedChains?.length?`<button data-lw-chain="resume-chain" data-lw-actor="${esc(a.id)}">Возобновить цепочку (${Scene.lionwing.pausedChains.length})</button>`:""}</div>`:"";}
@@ -76,7 +77,7 @@ function lwGeneralHtml(){
 }
 
 function lwSubmit(actorId, payload, label = "Действие LionWing") {
-  if(lwDraftEnabled&&["plan","batch","attack","damage","heal","effect","move","resource","modifier","wound","stress","recover-track","record-action","allow-action","grant-turn","usage","note","prompt"].includes(payload.kind)){
+  if(lwDraftEnabled&&["plan","batch","attack","damage","heal","effect","move","geometry-move","resource","modifier","wound","stress","recover-track","record-action","allow-action","grant-turn","usage","note","prompt"].includes(payload.kind)){
     if(!lwCanNarrate())return false;
     if(lwDraftBatch&&lwDraftBatch.actorId!==actorId){toast("Сначала примените или отмените пакет прежнего источника");return false;}
     const operations=["batch","plan"].includes(payload.kind)?payload.operations:[payload];
@@ -248,10 +249,11 @@ document.addEventListener("click", event => {
   if(effectSource){event.preventDefault();event.stopImmediatePropagation();if(!lwCanNarrate())return toast("Эта операция доступна Нарратору");const operation=effectSource.dataset.lwEffectSource,reason=effectSource.closest("[data-lw-effect-source-row]")?.querySelector("[data-lw-suppression-reason]")?.value?.trim(),suppressionId=effectSource.dataset.lwSuppression||`manual:${effectSource.closest(".lw-console")?.dataset.lwActor||"narrator"}:${Date.now()}`;if(operation==="suppress"&&!reason)return toast("Укажите причину подавления");return lwSubmit(effectSource.closest(".lw-console")?.dataset.lwActor||lwActor()?.id,{kind:"effect-source",operation,targetId:effectSource.dataset.lwTarget,effect:effectSource.dataset.lwEffect,sourceId:effectSource.dataset.lwSource,...(["suppress","restore"].includes(operation)?{suppressionId}:{})},reason||"Источник Эффекта");}
   const chainControl=event.target.closest("[data-lw-chain]");
   if(chainControl){event.preventDefault();event.stopImmediatePropagation();if(!lwCanNarrate())return;return lwSubmit(chainControl.dataset.lwActor,{kind:chainControl.dataset.lwChain},"Ручное прерывание цепочки");}
-  const batchControl=event.target.closest("[data-lw-batch-apply],[data-lw-batch-clear]");
+  const batchControl=event.target.closest("[data-lw-batch-apply],[data-lw-batch-clear],[data-lw-batch-remove]");
   if(batchControl){event.preventDefault();event.stopImmediatePropagation();if(!lwCanNarrate())return;
     if(batchControl.hasAttribute("data-lw-batch-clear")){lwDraftBatch=null;lwDraftEnabled=false;renderScene();return;}
     if(!lwDraftBatch)return;
+    if(batchControl.hasAttribute("data-lw-batch-remove")){const index=Number(batchControl.dataset.lwBatchRemove);if(Number.isInteger(index)&&index>=0&&index<lwDraftBatch.operations.length)lwDraftBatch.operations.splice(index,1);if(!lwDraftBatch.operations.length)lwDraftBatch=null;renderScene();return;}
     const costs=lwCostsFrom(batchControl.closest(".lw-batch")),targetIds=LionwingEngine.targetIds(Scene,lwDraftBatch.operations.flatMap(operation=>operation.targetIds||[operation.targetId]).filter(Boolean));
     const payload=costs.length?{kind:"plan",costs,operations:lwDraftBatch.operations,targetIds}:{...lwDraftBatch,kind:"batch"};
     const prepared=LionwingEngine.prepare(Scene,{...payload,actorId:lwDraftBatch.actorId});
@@ -296,7 +298,7 @@ document.addEventListener("click", event => {
     let operations=targets.map(targetId=>({kind:kind==="move"?movementKind:kind,targetId,...(kind==="record-action"?{actionId:get("action"),resource:get("resource"),amount,swift:root.querySelector("[data-lw-general-swift]").checked,reaction:root.querySelector("[data-lw-general-reaction]").checked}:{}),...(kind==="recover-track"?{track:get("track"),amount}:{}),...(kind==="resource"?{resource:get("resource"),operation:get("direction"),amount}:{}),...(["note","prompt"].includes(kind)?{note:get("note"),title:get("note"),text:get("note")}:{}),...(kind==="allow-action"?{actionId:get("action"),cost:Number(get("cost")),uses:amount,swift:root.querySelector("[data-lw-general-swift]").checked,reaction:root.querySelector("[data-lw-general-reaction]").checked}:{}),...(kind==="usage"?{ruleId:get("id"),scope:get("scope"),limit:amount,targetIds:targets}:{}),...(kind==="move"?(movementMode==="teleport"?{maximum:amount,ignoreOpponents:root.querySelector("[data-lw-general-ignore-opponents]").checked,ignoreTerrain:root.querySelector("[data-lw-general-ignore-terrain]").checked,line:root.querySelector("[data-lw-general-line]").checked,teleport:true}:{maximum:amount,ignoreEnemies:root.querySelector("[data-lw-general-ignore-opponents]").checked,ignoreTerrain:root.querySelector("[data-lw-general-ignore-terrain]").checked,straight:root.querySelector("[data-lw-general-line]").checked,mode:geometryMode}):{})}));
     if(["spend-health","lose-health"].includes(kind))operations=operations.map(operation=>({...operation,amount}));
     if(["wound","stress"].includes(kind)){if(!Number.isInteger(amount)||amount<1||amount*targets.length>192)return toast("Укажите целое количество от 1 до 192 операций");operations=operations.flatMap(operation=>Array.from({length:amount},()=>({...operation})));}
-    if(kind==="move"){if(targets.length!==1)return toast("Для движения выберите одну цель");if(lwDraftEnabled&&movementKind==="geometry-move")return toast("Проверяемое движение примените отдельно от составного пакета");lwDestination={actorId:sourceId,payload:operations[0],label:"Движение правила"};renderScene();toast("Выберите клетку назначения");return;}
+    if(kind==="move"){if(targets.length!==1)return toast("Для движения выберите одну цель");lwDestination={actorId:sourceId,payload:operations[0],label:"Движение правила",stage:lwDraftEnabled&&movementKind==="geometry-move"};renderScene();toast(lwDestination.stage?"Выберите клетку: маршрут будет добавлен в пакет":"Выберите клетку назначения");return;}
     return lwSubmit(sourceId,operations.length===1?operations[0]:{kind:"batch",operations:["note","prompt","usage"].includes(kind)?[operations[0]]:operations},"Общая операция правила");
   }
   const button = event.target.closest("[data-core-action], [data-lw-automation], [data-lw-action], [data-lw-reaction], [data-lw-choice], [data-lw-resolve], [data-lw-cancel], [data-lw-clear-destination], [data-lw-geometry-confirm], [data-lw-geometry-cancel], [data-lw-operation], [data-lw-correct], [data-lw-custom], [data-lw-modifier], [data-lw-punish], [data-lw-invisible]");
@@ -323,6 +325,7 @@ document.addEventListener("click", event => {
   if(button.hasAttribute("data-lw-geometry-cancel")){lwGeometryPreview=null;scenePreviewCells.clear();renderScene();return;}
   if(button.hasAttribute("data-lw-geometry-confirm")){
     const preview=lwGeometryPreview;if(!preview||preview.actorId!==actorId)return toast("Маршрут больше не доступен");
+    if(preview.stage){lwDraftEnabled=true;const staged=lwSubmit(preview.actorId,preview.event.payload,preview.label);if(staged){lwGeometryPreview=null;scenePreviewCells.clear();renderScene();}return;}
     const committed=commitSceneEvents(preview.label,[preview.event]);
     if(committed){lwGeometryPreview=null;scenePreviewCells.clear();renderScene();return;}
     lwSetGeometryPreview(preview,preview.intent);return;
