@@ -34,6 +34,10 @@
     for(const key of ["choices","deferred","receipts","history"])if(!Array.isArray(s[key]))s[key]=[];
     s.sceneSerial=Number.isSafeInteger(s.sceneSerial)&&s.sceneSerial>0?s.sceneSerial:1;
     s.chapterSerial=Number.isSafeInteger(s.chapterSerial)&&s.chapterSerial>0?s.chapterSerial:1;
+    if(s.executionCursor!==undefined){
+      if(!s.executionCursor||typeof s.executionCursor!=="object"||Array.isArray(s.executionCursor))fail("Сохранённый курсор исполнения имеет неподдерживаемый формат");
+      try{s.executionCursor=foundations.openCursor(s.executionCursor)}catch{fail("Сохранённый курсор исполнения повреждён или имеет неподдерживаемый формат")}
+    }
     if(scene.activeActorId&&!s.activeTurnInstanceId)s.activeTurnInstanceId=`legacy-turn:${Number(scene.turnSerial||0)}`;
     if(migrateHistory)for(const a of scene.actors||[])for(const h of a.lionwing?.history||[]){
       if(!h.ruleId)continue;
@@ -284,6 +288,49 @@
     const s = state(scene), rootId = event.id, emitted = [];
     const scheduled = [];
     let frameSerial = 0, choiceSerial = 0, historySerial = 0, provenance = null;
+    let executionCursor = s.executionCursor ? foundations.openCursor(s.executionCursor) : null, completedSteps = 0, completedResults = [];
+    const cursorSource = items => {
+      const item = (items || []).find(entry => entry?.provenance?.rootActionId || entry?.__execution?.rootActionId || entry?.p?.__execution?.rootActionId || entry?.sourceId || entry?.p?.sourceActorId);
+      const source = item?.provenance || item?.__execution || item?.p?.__execution || {};
+      const ownerActorId = source.ownerActorId || item?.sourceId || item?.p?.sourceActorId || event.actorId || "scene";
+      if (typeof ownerActorId !== "string" || !ownerActorId) return null;
+      return { source, ownerActorId };
+    };
+    const setCursor = (items, processed, waitingChoiceId = null) => {
+      const pending = Array.isArray(items) ? items.length : 0;
+      const source = cursorSource(items) || cursorSource([{ provenance }]) || (executionCursor ? { source: executionCursor, ownerActorId: executionCursor.ownerActorId } : null);
+      if (!pending && executionCursor && waitingChoiceId == null) {
+        executionCursor = null;
+        delete s.executionCursor;
+        return;
+      }
+      if (!source && !executionCursor) fail("Невозможно сохранить продолжение без владельца");
+      const meta = {
+        id: `${source.source.rootActionId || rootId}:cursor`,
+        rootActionId: source.source.rootActionId || rootId,
+        actionId: source.source.actionId || null,
+        actionInstanceId: source.source.actionInstanceId || source.source.rootActionId || rootId,
+        ownerActorId: source.ownerActorId,
+        responderActorId: waitingChoiceId ? s.choices.find(choice => choice.id === waitingChoiceId)?.actorId || source.ownerActorId : source.ownerActorId,
+        cursor: processed,
+        total: processed + pending,
+        results: completedResults,
+        status: waitingChoiceId ? "waiting" : processed + pending ? "running" : "completed",
+        ...(waitingChoiceId ? { waitingChoiceId } : {}),
+      };
+      executionCursor = executionCursor
+        ? foundations.resizeCursor(executionCursor, Math.max(executionCursor.total, executionCursor.cursor + pending))
+        : foundations.openCursor(meta);
+      if (waitingChoiceId && executionCursor.status === "running") executionCursor = foundations.waitCursor(executionCursor, waitingChoiceId, meta.responderActorId);
+      else if (waitingChoiceId && executionCursor.status === "waiting" && executionCursor.waitingChoiceId === waitingChoiceId) executionCursor = foundations.openCursor({ ...executionCursor, responderActorId: meta.responderActorId });
+      s.executionCursor = executionCursor;
+    };
+    const completeStep = (item, status = "completed") => {
+      if (!executionCursor) { completedResults.push({ index: completedSteps, status, stepId: item?.stepId || null }); completedSteps++; return; }
+      executionCursor = foundations.resizeCursor(executionCursor, Math.max(executionCursor.total, executionCursor.cursor + 1));
+      executionCursor = foundations.advanceCursor(executionCursor, { status, stepId: item?.stepId || null });
+      s.executionCursor = executionCursor;
+    };
     const saveFact = (type, actorId, targetIds, details = {}, context = provenance) => {
       if (!context?.rootActionId) return;
       const fact = foundations.fact(type, {
@@ -752,6 +799,10 @@
         case "choice": {
           const pending = s.choices[0];
           if (!pending || pending.id !== p.id || pending.actorId !== sourceId || !pending.options.includes(p.choice)) fail("Решение устарело или принадлежит другому участнику");
+          if (executionCursor?.status === "waiting") {
+            executionCursor = foundations.resumeCursor(executionCursor, pending.id, sourceId);
+            s.executionCursor = executionCursor;
+          }
           s.choices.shift();
           if (pending.kind === "replacement" || pending.kind === "rule-trigger") {
             const item = queue.find(item => item.p.kind === "execution-frame" && item.p.frame.id === pending.context.frameId);
@@ -868,13 +919,14 @@
         case "pause-chain": {
           if(!scene.pendingAction&&!s.choices.length)fail("Нет ожидающей цепочки");
           s.pausedChains||=[];if(s.pausedChains.length>=8)fail("Слишком много вложенных цепочек");
-          s.pausedChains.push({pendingAction:scene.pendingAction,choices:s.choices,deferred:s.deferred,afterAttack:s.afterAttack||[]});
-          scene.pendingAction=null;s.choices=[];s.deferred=[];s.afterAttack=[];emit("chain.pause",sourceId,{depth:s.pausedChains.length});break;
+          s.pausedChains.push({pendingAction:scene.pendingAction,choices:s.choices,deferred:s.deferred,afterAttack:s.afterAttack||[],executionCursor:s.executionCursor||null});
+          scene.pendingAction=null;s.choices=[];s.deferred=[];s.afterAttack=[];delete s.executionCursor;executionCursor=null;emit("chain.pause",sourceId,{depth:s.pausedChains.length});break;
         }
         case "resume-chain": {
           if(scene.pendingAction||s.choices.length||s.deferred.length)fail("Сначала завершите вложенное решение");
           const previous=s.pausedChains?.pop();if(!previous)fail("Нет приостановленной цепочки");
           scene.pendingAction=previous.pendingAction;s.choices=previous.choices;s.deferred=previous.deferred;s.afterAttack=previous.afterAttack;
+          if(previous.executionCursor){executionCursor=foundations.openCursor(previous.executionCursor);s.executionCursor=executionCursor;}else{executionCursor=null;delete s.executionCursor;}
           emit("chain.resume",sourceId,{depth:s.pausedChains.length});break;
         }
         case "cancel-attack": scene.pendingAction = null; s.afterAttack = []; emit("attack.clear", sourceId, { cancelled: true }); break;
@@ -922,7 +974,7 @@
           }
           scene.lionwing={schema:2,started:false,choices:[],deferred:[],receipts:s.receipts,history:s.history,sceneSerial:s.sceneSerial+1,chapterSerial:s.chapterSerial};
           scene.round=1;scene.turnSerial=0;scene.tension=0;scene.activeActorId=null;scene.targetIds=[];scene.targetCells=[];scene.results=null;
-          scene.pendingAction=null;scene.pendingPrompt=null;scene.pendingActionPlan=null;scene.triggerQueue=[];scene.opposedRoll=null;scene.challengeRequest=null;scene.turnUndo=[];
+          scene.pendingAction=null;scene.pendingPrompt=null;scene.pendingActionPlan=null;scene.triggerQueue=[];scene.opposedRoll=null;scene.challengeRequest=null;scene.turnUndo=[];delete scene.lionwing.executionCursor;
           scene.objects=scene.objects.filter(item=>item.duration==="persistent");scene.markers=scene.markers.filter(item=>item.duration==="persistent");
           scene.reminders=[];
           if(p.clearTable){scene.actors=[];scene.selectedActor=null;}
@@ -971,12 +1023,14 @@
       if(["effect","effect-source"].includes(p.kind)&&!effectIds.has(p.effect))fail("Неизвестный Эффект LionWing");
       if(p.kind==="effect-source"&&!['remove','expire','suppress','restore'].includes(p.operation))fail("Неизвестная операция источника Эффекта");
     }
+    if (request.kind === "choice" && s.deferred.length && !executionCursor) setCursor(s.deferred, 0, s.choices[0]?.id);
     const queue = operations.map(p => ({ p, sourceId: p.sourceActorId ?? event.actorId, provenance: copy(provenance) }));
     if (request.kind === "choice") queue.push(...s.deferred.splice(0));
     let steps = 0;
     while (queue.length) {
       if (++steps > 2048) fail("Цепочка слишком длинная: требуется решение Нарратора");
       const item = queue.shift(); provenance = item.provenance || null;
+      let waitingFrame = false;
       if (item.p.kind === "execution-frame") {
         let frame = item.p.frame;
         const target = requiredActor(scene, frame.ownerActorId, false);
@@ -987,6 +1041,7 @@
             const isTrigger = frame.purpose === "trigger";
             choice(target, isTrigger ? "rule-trigger" : "replacement", isTrigger ? "Эффект получен: применить доступное правило?" : "Получение Эффекта: применить его или заменить?", ["keep", ...frame.replacements.map(rule => rule.id)], { frameId: frame.id, effect: frame.original.effect, labels: { keep: isTrigger ? "Пропустить" : "Применить Эффект", ...Object.fromEntries(frame.replacements.map(rule => [rule.id, rule.label])) } });
             queue.unshift(item);
+            waitingFrame = true;
           } else frame = global.DAWN_LIONWING_EXECUTION.choose(frame, "keep");
         }
         if (frame.phase === "apply" || frame.phase === "replace") {
@@ -1008,8 +1063,22 @@
         }
       } else op(item.p, item.sourceId);
       if (scheduled.length) queue.unshift(...scheduled.splice(0));
-      if (s.choices.length) { s.deferred.push(...queue); break; }
-      if(scene.pendingAction&&["attack","action","punish"].includes(item.p.kind)&&queue.length){s.afterAttack=[...(s.afterAttack||[]),...queue.map(queued=>({...queued.p,sourceActorId:queued.sourceId,__execution:queued.provenance||provenance}))];break;}
+      if (!waitingFrame && !["choice", "pause-chain", "resume-chain"].includes(item.p.kind)) completeStep(item);
+      if (s.choices.length) break;
+      if(scene.pendingAction&&["attack","action","punish"].includes(item.p.kind)&&queue.length){s.afterAttack=[...(s.afterAttack||[]),...queue.map(queued=>({...queued.p,sourceActorId:queued.sourceId,__execution:queued.provenance||provenance}))];if(executionCursor)executionCursor=foundations.resizeCursor(executionCursor,executionCursor.cursor+s.afterAttack.length),s.executionCursor=executionCursor;break;}
+    }
+    if (s.choices.length) {
+      const hasContinuation = queue.length || s.deferred.length || s.afterAttack?.length;
+      if (hasContinuation) {
+        const continuationItems = queue.length ? queue : s.deferred.length ? s.deferred : s.afterAttack;
+        setCursor(continuationItems, completedSteps, s.choices[0].id);
+        if (queue.length) s.deferred.push(...queue);
+      } else {
+        executionCursor = null;
+        delete s.executionCursor;
+      }
+    } else if (!s.deferred.length && !s.afterAttack?.length) {
+      delete s.executionCursor;
     }
     output.push(...emitted);
   }
@@ -1071,7 +1140,7 @@
       const refersToHidden=value=>typeof value==="string"?hidden.has(value):value&&typeof value==="object"?Object.entries(value).some(([key,item])=>hidden.has(key)||refersToHidden(item)):false;
       projected.log=(projected.log||[]).filter(row=>!refersToHidden(row));
       if(projected.lionwing){
-        delete projected.lionwing.history;delete projected.lionwing.pausedChains;delete projected.lionwing.receipts;delete projected.lionwing.deferred;delete projected.lionwing.afterAttack;
+        delete projected.lionwing.history;delete projected.lionwing.pausedChains;delete projected.lionwing.receipts;delete projected.lionwing.deferred;delete projected.lionwing.afterAttack;delete projected.lionwing.executionCursor;
         for(const key of ["choices","duels","opportunities","grantedTurns"])projected.lionwing[key]=(projected.lionwing[key]||[]).filter(item=>!refersToHidden(item));
       }
       if(projected.pendingAction?.targetDamage)projected.pendingAction.targetDamage=Object.fromEntries(Object.entries(projected.pendingAction.targetDamage).filter(([id])=>!hidden.has(id)));

@@ -20,6 +20,7 @@
   const serializable = value => {
     try { return JSON.stringify(value) !== undefined; } catch { return false; }
   };
+  const cursorStatuses = new Set(["running", "waiting", "completed"]);
   const scopes = new Set(["rootAction", "action", "ownerTurn", "anyTurn", "round", "scene", "chapter"]);
   const factTypes = new Set(["attempt", "apply", "hit", "damage", "healthLoss", "heal", "wound", "knockout", "spend", "gain", "preventedGain", "roll", "cancel"]);
   const rollKinds = new Set(["check", "opposed", "raw-d6"]);
@@ -60,6 +61,77 @@
     const rule = replaced ? frame.replacements.find(rule => rule.id === frame.selected) : null;
     if (replaced && !rule) reject("Замена отсутствует в сохранённом плане");
     return copy({ operations: replaced ? rule.operations : [frame.original], outcome: replaced ? "replaced" : "applied", ruleId: rule?.id || null });
+  }
+
+  // A cursor describes only progress through an already persisted queue. The
+  // queue remains owned by the kernel in `scene.lionwing.deferred`; keeping
+  // this small companion record lets a reload identify the exact waiting
+  // choice without copying executable functions or creating another queue.
+  function openCursor(metadata = {}) {
+    if (!plain(metadata)) reject("Курсор исполнения должен быть объектом");
+    if (metadata.schema != null && metadata.schema !== 1) reject("Версия курсора исполнения не поддерживается");
+    const total = amount(metadata.total ?? 0, "число операций курсора");
+    const cursor = amount(metadata.cursor ?? 0, "позиция курсора");
+    if (cursor > total) reject("Позиция курсора выходит за число операций");
+    const rootActionId = id(metadata.rootActionId, "rootAction курсора");
+    const ownerActorId = id(metadata.ownerActorId, "владелец курсора");
+    const responderActorId = id(metadata.responderActorId ?? ownerActorId, "отвечающий курсора");
+    const waitingChoiceId = metadata.waitingChoiceId == null ? null : id(metadata.waitingChoiceId, "choice курсора");
+    const status = metadata.status ?? (waitingChoiceId ? "waiting" : cursor >= total ? "completed" : "running");
+    if (!cursorStatuses.has(status)) reject("Неизвестный статус курсора");
+    if (status === "waiting" && !waitingChoiceId) reject("Ожидающему курсору нужен choice");
+    if (status !== "waiting" && waitingChoiceId) reject("Ожидающий choice есть только у курсора в ожидании");
+    if (status === "running" && cursor >= total) reject("Рабочий курсор не содержит незавершённых операций");
+    if (status === "waiting" && cursor >= total) reject("Ожидающий курсор не содержит незавершённых операций");
+    if (status === "completed" && cursor !== total) reject("Завершённый курсор содержит незавершённые операции");
+    const results = Array.isArray(metadata.results) ? metadata.results.slice(-192).map((result, index) => {
+      if (!plain(result)) reject("Результат курсора должен быть объектом");
+      return { index: Number.isSafeInteger(result.index) ? result.index : index, status: String(result.status || "completed").slice(0, 32), stepId: result.stepId == null ? null : id(result.stepId, "шага курсора") };
+    }) : [];
+    return copy({
+      schema: 1,
+      id: id(metadata.id, "курсора"),
+      rootActionId,
+      actionId: metadata.actionId == null ? null : id(metadata.actionId, "action курсора"),
+      actionInstanceId: metadata.actionInstanceId == null ? null : id(metadata.actionInstanceId, "экземпляр действия курсора"),
+      ownerActorId,
+      responderActorId,
+      phase: String(metadata.phase || "apply").slice(0, 32),
+      cursor,
+      total,
+      results,
+      waitingChoiceId,
+      status,
+    });
+  }
+
+  function advanceCursor(frame, result = {}) {
+    const current = openCursor(frame);
+    if (current.status !== "running") reject("Курсор не принимает следующий результат");
+    if (current.cursor >= current.total) reject("Курсор уже завершён");
+    const stepId = result?.stepId == null ? null : id(result.stepId, "шага курсора");
+    const status = String(result?.status || "completed").slice(0, 32);
+    const nextCursor = current.cursor + 1;
+    return copy({ ...current, cursor: nextCursor, results: [...current.results, { index: current.cursor, status, stepId }].slice(-192), status: nextCursor >= current.total ? "completed" : "running" });
+  }
+
+  function resizeCursor(frame, total) {
+    const current = openCursor(frame), nextTotal = amount(total, "число операций курсора");
+    if (nextTotal < current.cursor) reject("Число операций курсора меньше его позиции");
+    const status = current.status === "completed" && nextTotal > current.cursor ? "running" : current.status;
+    return copy({ ...current, total: nextTotal, status });
+  }
+
+  function waitCursor(frame, choiceId, responderActorId = frame?.responderActorId) {
+    const current = openCursor(frame), waitingChoiceId = id(choiceId, "choice курсора"), responder = id(responderActorId ?? current.responderActorId, "отвечающий курсора");
+    if (current.status !== "running") reject("Курсор не может перейти в ожидание");
+    return copy({ ...current, status: "waiting", waitingChoiceId, responderActorId: responder });
+  }
+
+  function resumeCursor(frame, choiceId, responderActorId = frame?.responderActorId) {
+    const current = openCursor(frame), responseId = id(choiceId, "choice ответа"), responder = id(responderActorId ?? current.responderActorId, "отвечающий ответа");
+    if (current.status !== "waiting" || current.waitingChoiceId !== responseId || current.responderActorId !== responder) reject("Ответ не соответствует ожидающему курсору");
+    return copy({ ...current, status: current.cursor >= current.total ? "completed" : "running", waitingChoiceId: null });
   }
 
   function fact(type, context, details = {}) {
@@ -122,5 +194,5 @@
     return { schema: 1, kind, pool, sourceFaces, finalFaces: copy(sourceFaces), rules: { successAt, criticalAt, explode }, modifications, hits, criticals, initialCount: pool, rolls: copy(sourceFaces), successes: hits, crits: criticals, formula: `${pool}D6`, ...(criticalAt !== 6 || !explode ? { critAt: criticalAt, explode } : {}) };
   }
 
-  global.DAWN_LIONWING_EXECUTION = Object.freeze({ open, choose, plan, identity, fact, inScope, historyCount, normalizeCosts, reserveCost, normalizeRoll });
+  global.DAWN_LIONWING_EXECUTION = Object.freeze({ open, choose, plan, openCursor, advanceCursor, resizeCursor, waitCursor, resumeCursor, identity, fact, inScope, historyCount, normalizeCosts, reserveCost, normalizeRoll });
 })(typeof window === "object" ? window : globalThis);
