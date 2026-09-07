@@ -3,7 +3,7 @@
   "private": true,
   "version": "2.0.0",
   "scripts": {
-    "test:families": "node tests/lionwing-foundations.mjs && node tests/lionwing-geometry.mjs && node tests/lionwing-effects-families.mjs && node tests/lionwing-effects-ui.mjs",
+    "test:families": "node tests/lionwing-foundations.mjs && node tests/lionwing-geometry.mjs && node tests/lionwing-effects-families.mjs && node tests/lionwing-effects-ui.mjs && node tests/lionwing-effects-persistence.mjs",
     "pretest": "npm run test:families",
     "data": "python build_data.py",
     "docs:rules": "node build_rule_reference_docs.mjs",

@@ -95,6 +95,30 @@ function normalizedChallengeResult(value){
 
 function trimSceneHistory(entries,limit=20){return(Array.isArray(entries)?entries:[]).slice(0,limit)}
 function sceneI18n(value,limit=160){const source=value&&typeof value==="object"?value:{};return Object.fromEntries(["ru","en"].filter(locale=>typeof source[locale]==="string"&&source[locale]).map(locale=>[locale,source[locale].slice(0,limit)]))}
+function normalizedEffectStates(source,actor,persistedActorIds){
+  if(!source.effectStates||typeof source.effectStates!=="object")return{};
+  const lionwing=actor.rulesEdition==="lionwing",durations=lionwing?["default","startTurn","endTurn","nextTurn","roundEnd","scene","persistent","manual","actionOrStartTurn"]:["default","persistent","scene","startTurn","actionOrStartTurn","roundEnd"];
+  const normalizeSource=item=>{
+    if(!lionwing)return{actorId:item.actorId,actionId:typeof item.actionId==="string"?item.actionId.slice(0,180):"",eventId:typeof item.eventId==="string"?item.eventId.slice(0,120):""};
+    const normalized={
+      sourceId:typeof item.sourceId==="string"?item.sourceId.slice(0,180):typeof item.actorId==="string"?item.actorId.slice(0,180):"",
+      actorId:persistedActorIds.has(item.actorId)?item.actorId:null,
+      actionId:typeof item.actionId==="string"?item.actionId.slice(0,180):"",
+      eventId:typeof item.eventId==="string"?item.eventId.slice(0,120):"",
+      removable:item.removable!==false,sourceBound:item.sourceBound!==false,
+      suppressedBy:Array.isArray(item.suppressedBy)?[...new Set(item.suppressedBy.filter(id=>typeof id==="string"&&id).map(id=>id.slice(0,180)))].slice(0,12):[],
+    };
+    if(durations.includes(item.duration))normalized.duration=item.duration;
+    if(item.appliedSerial!=null&&Number.isInteger(Number(item.appliedSerial)))normalized.appliedSerial=clamp(item.appliedSerial,0,999999999);
+    if(item.appliedRound!=null&&Number.isInteger(Number(item.appliedRound)))normalized.appliedRound=clamp(item.appliedRound,0,999);
+    if(persistedActorIds.has(item.ownerActorId))normalized.ownerActorId=item.ownerActorId;
+    return normalized;
+  };
+  return Object.fromEntries(Object.entries(source.effectStates)
+    .filter(([effect,state])=>state&&typeof state==="object"&&(actor.effects.includes(effect)||lionwing&&Array.isArray(state.sources)&&state.sources.length))
+    .slice(0,30)
+    .map(([effect,state])=>[effect,{duration:durations.includes(state.duration)?state.duration:"default",removable:state.removable!==false,appliedTurnSerial:state.appliedTurnSerial!=null&&Number.isInteger(Number(state.appliedTurnSerial))?clamp(state.appliedTurnSerial,0,999999999):null,appliedRound:state.appliedRound!=null&&Number.isInteger(Number(state.appliedRound))?clamp(state.appliedRound,1,999):null,appliedEventId:typeof state.appliedEventId==="string"?state.appliedEventId.slice(0,120):"",sourceBound:Boolean(state.sourceBound),exclusiveBySource:Boolean(state.exclusiveBySource),sources:Array.isArray(state.sources)?state.sources.filter(item=>item&&(lionwing?(item.actorId==null||persistedActorIds.has(item.actorId)||item.sourceBound===false):persistedActorIds.has(item.actorId))).slice(0,12).map(normalizeSource):[]}]))
+}
 function sceneCore(raw){
   const base=blankScene(),scene=raw&&typeof raw==="object"?raw:{};
   base.rulesEdition=["lionwing","ru-v0.9"].includes(scene.rulesEdition)?scene.rulesEdition:(scene.actors||[]).some(actor=>actor.rulesEdition==="lionwing"||String(actor.profileId||"").startsWith("lionwing."))?"lionwing":(scene.actors||[]).length?"ru-v0.9":"ru-v0.9";
@@ -150,7 +174,7 @@ actor.modifierState=modifierProfile?{carrierId:typeof rawModifier.carrierId==="s
     actor.clashAdvantage=clamp(source.clashAdvantage,0,30);
     actor.meals=clamp(source.meals,0,99);
     actor.maxMeals=clamp(source.maxMeals,0,99);
-    actor.effectStates=source.effectStates&&typeof source.effectStates==="object"?Object.fromEntries(Object.entries(source.effectStates).filter(([effect,state])=>actor.effects.includes(effect)&&state&&typeof state==="object").slice(0,30).map(([effect,state])=>[effect,{duration:["default","persistent","scene","startTurn","actionOrStartTurn","roundEnd"].includes(state.duration)?state.duration:"default",removable:state.removable!==false,appliedTurnSerial:state.appliedTurnSerial!=null&&Number.isInteger(Number(state.appliedTurnSerial))?clamp(state.appliedTurnSerial,0,999999999):null,appliedRound:state.appliedRound!=null&&Number.isInteger(Number(state.appliedRound))?clamp(state.appliedRound,1,999):null,appliedEventId:typeof state.appliedEventId==="string"?state.appliedEventId.slice(0,120):"",sourceBound:Boolean(state.sourceBound),exclusiveBySource:Boolean(state.exclusiveBySource),sources:Array.isArray(state.sources)?state.sources.filter(item=>item&&persistedActorIds.has(item.actorId)).slice(0,12).map(item=>({actorId:item.actorId,actionId:typeof item.actionId==="string"?item.actionId.slice(0,180):"",eventId:typeof item.eventId==="string"?item.eventId.slice(0,120):""})):[]}])):{};
+    actor.effectStates=normalizedEffectStates(source,actor,persistedActorIds);
   });
   for(const actor of base.actors){const field=base.spaces.find(space=>space.id===actor.space)||base.spaces[0];actor.x=clamp(actor.x,0,field.width-1);actor.y=clamp(actor.y,0,field.height-1)}
   const compoundGroups=new Map();for(const actor of base.actors.filter(item=>item.compoundId)){if(!compoundGroups.has(actor.compoundId))compoundGroups.set(actor.compoundId,[]);compoundGroups.get(actor.compoundId).push(actor)}for(const parts of compoundGroups.values()){if(parts.length<2){parts.forEach(part=>{part.compoundId=null;part.compoundDefense=null;part.speed=part.compoundBaseSpeed??part.speed;part.compoundBaseSpeed=null});continue}const anchor=parts[0],effects=[...new Set(parts.flatMap(part=>part.effects||[]))],effectStates=Object.assign({},...parts.map(part=>part.effectStates||{})),alive=parts.some(part=>Number(part.hp||0)>0),compoundDefense=parts.map(part=>part.compoundDefense).find(value=>value==="armor"||value==="evasion")||null;parts.forEach(part=>{part.space=anchor.space;part.x=anchor.x;part.y=anchor.y;part.compoundBaseSpeed=part.compoundBaseSpeed??part.speed;part.compoundDefense=compoundDefense;part.effects=[...effects];part.effectStates=Object.fromEntries(effects.filter(effect=>effectStates[effect]).map(effect=>[effect,effectStates[effect]]));part.knockedOut=!alive})}

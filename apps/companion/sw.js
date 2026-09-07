@@ -1,5 +1,5 @@
 const RAW_BUILD = "__BUILD_VERSION__";
-const BUILD = RAW_BUILD.startsWith("__") ? "dev-20260906-lionwing-core-translation-1" : RAW_BUILD;
+const BUILD = RAW_BUILD.startsWith("__") ? "dev-20260907-lionwing-source-persistence-1" : RAW_BUILD;
 const CACHE = `dawn-ru-companion-${BUILD}`;
 const versioned = path => `${path}?v=${BUILD}`;
 const SCRIPT_ASSETS = [
