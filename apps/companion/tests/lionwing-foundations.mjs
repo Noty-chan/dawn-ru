@@ -37,6 +37,12 @@ const raw=lw.roll(2,()=>0.99,{kind:"raw-d6"});assert.deepEqual(clone(raw.sourceF
 const normalized=execution.normalizeRoll({initialCount:2,rolls:[4,1],successes:999});assert.equal(normalized.hits,1);
 const damaged=run(fixture(),"a",{kind:"damage",targetId:"b",amount:30,irreducible:true});
 assert.equal(damaged.lionwing.history.find(f=>f.type==="healthLoss").details.actual,16,"overkill is not additional HP loss");
+const actionDefinitionId="action.утилитарные-действия.передышка";
+const firstAction=run(fixture(),"a",{kind:"record-action",actionId:actionDefinitionId,amount:0});
+const secondAction=run(firstAction,"a",{kind:"record-action",actionId:actionDefinitionId,amount:0,swift:true});
+const actionFacts=secondAction.lionwing.history.filter(f=>f.type==="apply"&&f.details.actionId===actionDefinitionId);
+assert.equal(actionFacts.length,2);assert.equal(actionFacts[0].actionDefinitionId,actionFacts[1].actionDefinitionId);assert.notEqual(actionFacts[0].actionInstanceId,actionFacts[1].actionInstanceId,"two uses of one definition have distinct action instances");
+assert.equal(execution.historyCount(actionFacts,{scope:"action",actionInstanceId:actionFacts[0].actionInstanceId}),1,"action-instance scope selects one concrete use");
 assert.throws(()=>execution.normalizeRoll({initialCount:101,rolls:[]}),/100/);
 assert.throws(()=>execution.normalizeRoll({initialCount:1,rolls:[4]},{modifications:[{kind:"replace-face"}]}),/не поддерживаются/);
 s=run(fixture(),"a",{kind:"usage",ruleId:"private.history",scope:"scene",limit:1});

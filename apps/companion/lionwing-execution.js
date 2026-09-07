@@ -28,6 +28,8 @@
     const result = {
       rootActionId: id(value.rootActionId, "rootAction"),
       actionId: value.actionId == null ? null : id(value.actionId, "action"),
+      actionDefinitionId: value.actionDefinitionId == null ? (value.actionId == null ? null : id(value.actionId, "action definition")) : id(value.actionDefinitionId, "action definition"),
+      actionInstanceId: value.actionInstanceId == null ? null : id(value.actionInstanceId, "action instance"),
       effectInstanceId: value.effectInstanceId == null ? null : id(value.effectInstanceId, "effectInstance"),
       causeEventId: value.causeEventId == null ? value.rootActionId : id(value.causeEventId, "causeEvent"),
       ownerActorId: id(value.ownerActorId, "owner"),
@@ -71,7 +73,7 @@
     if (!scopes.has(query.scope)) reject("Неизвестная область истории");
     if (query.type && item.type !== query.type || query.ruleId && item.ruleId !== query.ruleId || query.actorId && item.actorId !== query.actorId || query.targetId && !item.targetIds.includes(query.targetId)) return false;
     if (query.scope === "rootAction") return item.rootActionId === query.rootActionId;
-    if (query.scope === "action") return item.actionId === query.actionId && (!query.rootActionId || item.rootActionId === query.rootActionId);
+    if (query.scope === "action") return query.actionInstanceId ? item.actionInstanceId === query.actionInstanceId : item.actionId === query.actionId && (!query.rootActionId || item.rootActionId === query.rootActionId);
     if (query.scope === "ownerTurn") return item.sceneSerial === query.sceneSerial && item.turnSerial === query.turnSerial && item.ownerTurnActorId === query.ownerActorId;
     if (query.scope === "anyTurn") return item.sceneSerial === query.sceneSerial && item.turnSerial === query.turnSerial;
     if (query.scope === "round") return item.sceneSerial === query.sceneSerial && item.round === query.round;

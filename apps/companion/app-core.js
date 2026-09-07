@@ -104,6 +104,7 @@ function normalizedEffectStates(source,actor,persistedActorIds){
       sourceId:typeof item.sourceId==="string"?item.sourceId.slice(0,180):typeof item.actorId==="string"?item.actorId.slice(0,180):"",
       actorId:persistedActorIds.has(item.actorId)?item.actorId:null,
       actionId:typeof item.actionId==="string"?item.actionId.slice(0,180):"",
+      actionInstanceId:typeof item.actionInstanceId==="string"?item.actionInstanceId.slice(0,180):"",
       eventId:typeof item.eventId==="string"?item.eventId.slice(0,120):"",
       removable:item.removable!==false,sourceBound:item.sourceBound!==false,
       suppressedBy:Array.isArray(item.suppressedBy)?[...new Set(item.suppressedBy.filter(id=>typeof id==="string"&&id).map(id=>id.slice(0,180)))].slice(0,12):[],

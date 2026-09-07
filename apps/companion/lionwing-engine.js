@@ -65,7 +65,7 @@
   function effectInstanceStatus(scene, actorId, effect) {
     const target=actor(scene,actorId), saved=target?.effectStates?.[effect], sources=(saved?.sources||[]).map((source,index)=>({
       sourceId:source.sourceId||source.actorId||`${effect}:legacy:${index}`,
-      actorId:source.actorId||null, actionId:source.actionId||null, eventId:source.eventId||saved?.appliedEventId||null,
+      actorId:source.actorId||null, actionId:source.actionId||null, actionInstanceId:source.actionInstanceId||null, eventId:source.eventId||saved?.appliedEventId||null,
       appliedSerial:Number(source.appliedSerial??saved?.appliedTurnSerial??0), duration:source.duration||saved?.duration||"default",
       boundaryOwnerId:source.ownerActorId||source.boundaryOwnerId||target?.id||null, removable:source.removable!==false, sourceBound:source.sourceBound!==false,
       suppressedBy:[...(source.suppressedBy||[])]
@@ -379,7 +379,7 @@
       if (p.duration && p.duration !== "default" && !lifetimes.has(p.duration)) fail("Неизвестный срок Эффекта");
       const original = { ...copy(p), kind: "effect", targetId: a.id, sourceActorId: sourceId };
       const consequenceId = `${rootId}:consequence:${frameSerial++}`;
-      const identity = { id: consequenceId, rootActionId: provenance?.rootActionId || rootId, actionId: provenance?.actionId || p.sourceActionId || null, effectInstanceId: p.effectInstanceId || `${consequenceId}:effect`, causeEventId: provenance?.causeEventId || rootId, ownerActorId: a.id };
+      const identity = { id: consequenceId, rootActionId: provenance?.rootActionId || rootId, actionId: provenance?.actionId || p.sourceActionId || null, actionDefinitionId:provenance?.actionDefinitionId||provenance?.actionId||p.sourceActionId||null, actionInstanceId:provenance?.actionInstanceId||provenance?.rootActionId||rootId, effectInstanceId: p.effectInstanceId || `${consequenceId}:effect`, causeEventId: provenance?.causeEventId || rootId, ownerActorId: a.id };
       // Gather eligibility when the frame reaches the head, after earlier choices.
       scheduled.push({ p: { kind: "execution-frame", frame: global.DAWN_LIONWING_EXECUTION.open(original, identity) }, sourceId });
     };
@@ -392,7 +392,7 @@
       a.effectStates ||= {};
       const sourceKey=p.sourceId||sourceId||`${rootId}:source`;
       const previousSources=(a.effectStates[p.effect]?.sources||[]).filter(item=>(item.sourceId||item.actorId)!==sourceKey);
-      const source={sourceId:sourceKey,actorId:sourceId||null,actionId:p.sourceActionId||provenance?.actionId||null,eventId:rootId,appliedSerial:Number(scene.turnSerial||0),appliedRound:Number(scene.round||0),duration,ownerActorId:p.ownerActorId||p.boundaryOwnerId||a.id,removable:p.removable!==false,sourceBound:p.sourceBound!==false,suppressedBy:[]};
+      const source={sourceId:sourceKey,actorId:sourceId||null,actionId:p.sourceActionId||provenance?.actionId||null,actionInstanceId:provenance?.actionInstanceId||null,eventId:rootId,appliedSerial:Number(scene.turnSerial||0),appliedRound:Number(scene.round||0),duration,ownerActorId:p.ownerActorId||p.boundaryOwnerId||a.id,removable:p.removable!==false,sourceBound:p.sourceBound!==false,suppressedBy:[]};
       a.effectStates[p.effect] = { duration, removable: previousSources.concat(source).every(item=>item.removable!==false), appliedTurnSerial: Number(scene.turnSerial || 0), appliedRound: scene.round, appliedEventId: rootId, sources: [...previousSources,source] };
       astate(a).effectLifetimes ||= {};
       astate(a).effectLifetimes[p.effect] = { ownerActorId: p.ownerActorId || a.id, duration, appliedSerial: Number(scene.turnSerial || 0), appliedRound: scene.round };
@@ -533,7 +533,7 @@
         const target = requiredActor(scene, id);
         if (has(target, "positive.исчез") || has(a, "positive.изгнан") !== has(target, "positive.изгнан")) fail("Цель недоступна из-за Эффекта");
       }
-      scene.pendingAction = { id: rootId, lionwing: true, actorId: a.id, name: p.name || "Атака", targetIds: targets, damage: integer(p.amount, "урон"), repeat: integer(p.repeat ?? 1, "повторы", 30), effects: copy(p.effects || []), finalDamage: Boolean(p.finalDamage), ignoreArmor:p.ignoreArmor===true, ignoreEvasion:p.ignoreEvasion===true, irreducible:p.irreducible===true, responses: Object.fromEntries(targets.map(id => [id, { choice: "pending" }])), sourceActionId: p.actionId || "manual.attack" };
+      scene.pendingAction = { id: rootId, actionInstanceId:provenance?.actionInstanceId||rootId, lionwing: true, actorId: a.id, name: p.name || "Атака", targetIds: targets, damage: integer(p.amount, "урон"), repeat: integer(p.repeat ?? 1, "повторы", 30), effects: copy(p.effects || []), finalDamage: Boolean(p.finalDamage), ignoreArmor:p.ignoreArmor===true, ignoreEvasion:p.ignoreEvasion===true, irreducible:p.irreducible===true, responses: Object.fromEntries(targets.map(id => [id, { choice: "pending" }])), sourceActionId: p.actionId || "manual.attack" };
       if(p.targetDamage){if(typeof p.targetDamage!=="object"||Array.isArray(p.targetDamage))fail("Некорректный урон по целям");for(const[id,amount]of Object.entries(p.targetDamage)){if(!targets.includes(id))fail("Урон указан для посторонней цели");integer(amount,"урон цели");}scene.pendingAction.targetDamage=copy(p.targetDamage);}
       if (!scene.pendingAction.repeat) fail("Нужно хотя бы одно нанесение урона");
       emit("attack.pending", a.id, scene.pendingAction);
@@ -692,7 +692,7 @@
         case "usage":{
           const scopeAliases={turn:"anyTurn",round:"round",scene:"scene"},scope=scopeAliases[p.scope]||p.scope;
           if(typeof p.ruleId!=="string"||!p.ruleId||p.ruleId.length>180||!["rootAction","action","ownerTurn","anyTurn","round","scene","chapter"].includes(scope))fail("Укажите правило и область лимита");
-          const query={scope,actorId:sourceId,ruleId:p.ruleId,rootActionId:provenance.rootActionId,actionId:p.actionId||provenance.actionId,ownerActorId:sourceId,turnSerial:scene.turnSerial,round:scene.round,sceneSerial:s.sceneSerial,chapterSerial:s.chapterSerial};
+          const query={scope,actorId:sourceId,ruleId:p.ruleId,rootActionId:provenance.rootActionId,actionId:p.actionId||provenance.actionId,actionInstanceId:provenance.actionInstanceId,ownerActorId:sourceId,turnSerial:scene.turnSerial,round:scene.round,sceneSerial:s.sceneSerial,chapterSerial:s.chapterSerial};
           const used=(s.history||[]).filter(item=>foundations.inScope(item,query));
           if(used.length>=integer(p.limit??1,"лимит",999))fail("Лимит применения правила исчерпан");
           if(p.oncePerTarget&&(p.targetIds||[]).some(id=>used.some(item=>item.targetIds.includes(id))))fail("Эта цель уже использована правилом");
@@ -834,7 +834,7 @@
             if(tail.kind==="move"&&tail.forced&&pending.responses[tail.targetId||tail.sourceActorId]?.preventForcedMovement)emit("movement.prevented",pending.actorId,{targetId:tail.targetId||tail.sourceActorId,reason:"Уворот",attackId:pending.id});
             else operations.push(tail);
           } s.afterAttack = [];
-          queue.unshift(...operations.map(p => { const saved=p.__execution;const operation={...p};delete operation.__execution;return { p: operation, sourceId: p.sourceActorId ?? pending.actorId, provenance: saved || { rootActionId: pending.id, actionId: pending.sourceActionId, causeEventId: rootId, ownerActorId: pending.actorId } }; }));
+          queue.unshift(...operations.map(p => { const saved=p.__execution;const operation={...p};delete operation.__execution;return { p: operation, sourceId: p.sourceActorId ?? pending.actorId, provenance: saved || { rootActionId: pending.id, actionId: pending.sourceActionId, actionDefinitionId:pending.sourceActionId, actionInstanceId:pending.actionInstanceId||pending.id, causeEventId: rootId, ownerActorId: pending.actorId } }; }));
           emit("attack.clear", pending.actorId, { name: pending.name }); break;
         }
         case "amend-attack": {
@@ -938,7 +938,7 @@
       if (!request) fail(`Событие ${event.type} не перенесено в LionWing`);
     }
     const pendingActionId = scene.pendingAction?.sourceActionId || null;
-    provenance = foundations.identity({ rootActionId: rootId, actionId: request.actionId || pendingActionId || `operation.${request.kind}`, causeEventId: rootId, ownerActorId: event.actorId || request.targetId || "scene" });
+    provenance = foundations.identity({ rootActionId: rootId, actionId: request.actionId || pendingActionId || `operation.${request.kind}`, actionDefinitionId:request.actionId||pendingActionId||`operation.${request.kind}`, actionInstanceId:rootId, causeEventId: rootId, ownerActorId: event.actorId || request.targetId || "scene" });
     saveFact("attempt", event.actorId || request.targetId || "scene", request.targetIds || (request.targetId ? [request.targetId] : []), { kind: request.kind });
     const duelPreparation=s.choices[0]?.kind==="duel-outcome"&&["roll","resource"].includes(request.kind)&&(s.duels||[]).some(duel=>duel.id===s.choices[0].context.duelId&&[duel.actorId,duel.targetId].includes(request.targetId||event.actorId));
     if (s.choices.length && !duelPreparation && !["choice", "correct", "note", "tension", "pause-chain"].includes(request.kind)) fail("Сначала ответьте на ожидающее решение");
@@ -962,7 +962,7 @@
       if (item.p.kind === "execution-frame") {
         let frame = item.p.frame;
         const target = requiredActor(scene, frame.ownerActorId, false);
-        provenance = { rootActionId: frame.rootActionId, actionId: frame.actionId || null, effectInstanceId: frame.effectInstanceId || null, causeEventId: frame.causeEventId, consequenceId: frame.id, ownerActorId: frame.ownerActorId };
+        provenance = { rootActionId: frame.rootActionId, actionId: frame.actionId || null, actionDefinitionId:frame.actionDefinitionId||frame.actionId||null, actionInstanceId:frame.actionInstanceId||frame.rootActionId, effectInstanceId: frame.effectInstanceId || null, causeEventId: frame.causeEventId, consequenceId: frame.id, ownerActorId: frame.ownerActorId };
         if (frame.phase === "before") {
           if (frame.purpose !== "trigger") frame.replacements = global.DAWN_LIONWING_ADAPTERS.replacements(target, frame.original);
           if (frame.replacements.length) {
@@ -985,7 +985,7 @@
           emit(frame.purpose === "trigger" ? "rule.completed" : "consequence.completed", target.id, { targetId: target.id, outcome: frame.purpose === "trigger" ? (frame.selected === "keep" ? "skipped" : "applied") : frame.outcome, effect: frame.original.effect });
           if (frame.purpose !== "trigger" && frame.outcome === "applied") {
             const triggers = global.DAWN_LIONWING_ADAPTERS.afterEffect(target, frame.original);
-            queue.unshift(...triggers.map(rule => ({ p: { kind: "execution-frame", frame: global.DAWN_LIONWING_EXECUTION.open({ kind: "noop", effect: frame.original.effect }, { id: `${rootId}:consequence:${frameSerial++}`, rootActionId: frame.rootActionId, actionId: frame.actionId || null, effectInstanceId: frame.effectInstanceId || null, causeEventId: frame.id, ownerActorId: target.id, purpose: "trigger" }, [rule]) }, sourceId: target.id, provenance: copy(provenance) })));
+            queue.unshift(...triggers.map(rule => ({ p: { kind: "execution-frame", frame: global.DAWN_LIONWING_EXECUTION.open({ kind: "noop", effect: frame.original.effect }, { id: `${rootId}:consequence:${frameSerial++}`, rootActionId: frame.rootActionId, actionId: frame.actionId || null, actionDefinitionId:frame.actionDefinitionId||frame.actionId||null, actionInstanceId:frame.actionInstanceId||frame.rootActionId, effectInstanceId: frame.effectInstanceId || null, causeEventId: frame.id, ownerActorId: target.id, purpose: "trigger" }, [rule]) }, sourceId: target.id, provenance: copy(provenance) })));
           }
         }
       } else op(item.p, item.sourceId);

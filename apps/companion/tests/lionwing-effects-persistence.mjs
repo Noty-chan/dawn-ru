@@ -12,14 +12,14 @@ vm.runInContext(`${helper}\nthis.normalizeEffects=normalizedEffectStates;`,conte
 const ids=new Set(["target","caster"]),suppressed={
   effects:[],rulesEdition:"lionwing",
   effectStates:{"negative.помечен":{duration:"roundEnd",sources:[
-    {sourceId:"mark:a",actorId:"caster",actionId:"cast",eventId:"event-a",appliedSerial:4,appliedRound:2,duration:"endTurn",ownerActorId:"caster",removable:false,sourceBound:true,suppressedBy:["shield"]},
+    {sourceId:"mark:a",actorId:"caster",actionId:"cast",actionInstanceId:"cast:7",eventId:"event-a",appliedSerial:4,appliedRound:2,duration:"endTurn",ownerActorId:"caster",removable:false,sourceBound:true,suppressedBy:["shield"]},
     {sourceId:"scene:mark",actorId:"despawned",eventId:"event-b",duration:"roundEnd",removable:true,sourceBound:false,suppressedBy:[]},
   ]}},
 };
 const restored=JSON.parse(JSON.stringify(context.normalizeEffects(suppressed,{effects:[],rulesEdition:"lionwing"},ids)));
 assert.deepEqual(restored["negative.помечен"].sources,[
-  {sourceId:"mark:a",actorId:"caster",actionId:"cast",eventId:"event-a",appliedSerial:4,appliedRound:2,duration:"endTurn",ownerActorId:"caster",removable:false,sourceBound:true,suppressedBy:["shield"]},
-  {sourceId:"scene:mark",actorId:null,actionId:"",eventId:"event-b",duration:"roundEnd",removable:true,sourceBound:false,suppressedBy:[]},
+  {sourceId:"mark:a",actorId:"caster",actionId:"cast",actionInstanceId:"cast:7",eventId:"event-a",appliedSerial:4,appliedRound:2,duration:"endTurn",ownerActorId:"caster",removable:false,sourceBound:true,suppressedBy:["shield"]},
+  {sourceId:"scene:mark",actorId:null,actionId:"",actionInstanceId:"",eventId:"event-b",duration:"roundEnd",removable:true,sourceBound:false,suppressedBy:[]},
 ],"LionWing normalization preserves suppressed, independently expiring and unbound sources after their actor despawns");
 
 const legacy=context.normalizeEffects(suppressed,{effects:[],rulesEdition:"ru-v0.9"},ids);
