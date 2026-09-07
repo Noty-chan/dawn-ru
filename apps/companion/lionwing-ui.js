@@ -13,6 +13,119 @@ const lwFormDraft = new Map();
 const lwDraftKey=input=>{const attr=[...input.attributes].find(attr=>attr.name.startsWith("data-lw-"));return attr?attr.name+(attr.value?":"+attr.value:""):null;};
 let lwDraftEnabled=false,lwDraftBatch=null;
 
+const lwGeometryStopReasons=Object.freeze({
+  "difficult-terrain":"вход в Трудную местность завершает движение",
+  opponent:"вход в клетку противника завершает движение",
+  "opponent-space":"вход в клетку противника завершает движение",
+});
+function lwGeometryStopReason(reason){
+  const key=String(reason||"");
+  return lwGeometryStopReasons[key]|| (key ? "достигнуто ограничение маршрута" : "");
+}
+function lwGeometryRouteKeys(route){return (route?.path||[]).map(point=>`${point.x},${point.y}`)}
+function lwGeometrySceneIdentity(scene=Scene){
+  const explicit=scene?.sceneId||scene?.sceneIdentity||scene?.id;
+  const shared=Sync?.state?.()?.sceneId;
+  const spaces=(scene?.spaces||[]).map(space=>`${space.id}:${space.width}x${space.height}:${space.mode||""}`).sort().join("|");
+  const actors=(scene?.actors||[]).map(actor=>String(actor.id||"")).sort().join("|");
+  const shape=`${scene?.name||""}|${scene?.rulesEdition||""}|${spaces}|${actors}`;
+  if(explicit)return `scene:${String(explicit)}|${shape}`;
+  if(shared)return `shared:${String(shared)}|${shape}`;
+  return `local:${shape}`;
+}
+function lwApplyGeometryPreviewCells(){
+  if(typeof scenePreviewCells==="undefined")return;
+  scenePreviewCells.clear();
+  const route=lwGeometryPreview?.event?.payload?.geometryPlan?.route;
+  for(const key of lwGeometryRouteKeys(route))scenePreviewCells.add(key);
+  if(typeof $$!=="function")return;
+  const cells=$$('[data-scene-cell]');
+  for(const cell of cells)cell.classList.toggle("preview",scenePreviewCells.has(cell.dataset.sceneCell));
+}
+function lwClearGeometryPreview({render=true}={}){
+  lwGeometryPreview=null;lwDestination=null;
+  if(typeof scenePreviewCells!=="undefined")scenePreviewCells.clear();
+  if(render&&typeof renderScene==="function")renderScene();
+}
+function lwGeometryPreviewContext(draft,payload){return{
+  sceneIdentity:lwGeometrySceneIdentity(),
+  sceneVersion:Number(Scene.version||0),
+  activeSpace:Scene.activeSpace||"",
+  selectedActor:Scene.selectedActor||"",
+  targetIds:[...(Scene.targetIds||[])],
+  actorId:draft.actorId,
+  destination:payload?.destination?{space:payload.destination.space||Scene.activeSpace,x:Number(payload.destination.x),y:Number(payload.destination.y)}:null,
+}}
+function lwGeometrySelectionChanged(preview){
+  const context=preview?.context||{};
+  return context.sceneIdentity!==lwGeometrySceneIdentity()||
+    context.activeSpace!== (Scene.activeSpace||"")||
+    context.selectedActor!== (Scene.selectedActor||"")||
+    JSON.stringify(context.targetIds||[])!==JSON.stringify([...(Scene.targetIds||[])]);
+}
+function lwBuildGeometryPreview(draft,payload){
+  const prepared=LionwingEngine.prepare(Scene,{...payload,actorId:draft.actorId});
+  if(!prepared.ok)return {ok:false,prepared};
+  const event=prepared.events.find(item=>item.type==="lionwing.command"&&item.payload?.kind==="geometry-move"),route=event?.payload?.geometryPlan?.route;
+  if(!event||!route)return {ok:false,prepared,errors:["Планировщик не вернул маршрут"]};
+  const intent={...payload};delete intent.geometryPlan;
+  lwGeometryPreview={actorId:draft.actorId,label:draft.label,intent,event,stage:draft.stage===true,context:lwGeometryPreviewContext(draft,intent),notice:draft.notice||""};
+  lwDestination=null;
+  if(typeof scenePreviewCells!=="undefined"){
+    scenePreviewCells.clear();
+    for(const key of lwGeometryRouteKeys(route))scenePreviewCells.add(key);
+  }
+  return {ok:true,prepared,event,route};
+}
+function lwSetGeometryPreview(draft,payload,{render=true}={}){
+  const result=lwBuildGeometryPreview(draft,payload);
+  if(!result.ok){
+    const errors=result.prepared?.errors||result.errors||["Не удалось построить маршрут."];
+    toast(errors.join(" "));return false;
+  }
+  if(render)renderScene();
+  return true;
+}
+function lwRefreshGeometryPreview(preview,notice="Сцена изменилась: маршрут пересчитан. Проверьте и подтвердите обновлённый маршрут."){
+  const refreshed=lwSetGeometryPreview({...preview,notice},preview.intent,{render:true});
+  if(refreshed){toast(notice);return true;}
+  lwClearGeometryPreview();toast("Маршрут больше недоступен: выберите клетку заново.");return false;
+}
+function lwReconcileGeometryPreview(){
+  const preview=lwGeometryPreview;
+  if(!preview)return;
+  if(lwGeometrySelectionChanged(preview)){lwClearGeometryPreview({render:false});return;}
+  if(preview.context?.sceneVersion!==Number(Scene.version||0)){
+    const refreshed=lwSetGeometryPreview({...preview,notice:"Сцена изменилась: маршрут пересчитан. Проверьте и подтвердите обновлённый маршрут."},preview.intent,{render:false});
+    if(!refreshed){lwClearGeometryPreview({render:false});return;}
+    toast("Сцена изменилась: маршрут пересчитан. Проверьте и подтвердите обновлённый маршрут.");
+  }
+  lwApplyGeometryPreviewCells();
+}
+function lwCheckGeometryPreview(preview){
+  const context=preview?.context||{},currentIdentity=lwGeometrySceneIdentity();
+  if(lwGeometrySelectionChanged(preview))return{ok:false,clear:true,errors:["Выбор участника или сцена изменилась."]};
+  if(context.sceneIdentity&&context.sceneIdentity!==currentIdentity)return{ok:false,stale:true,errors:["Сцена изменилась."]};
+  if(Number(context.sceneVersion)!==Number(Scene.version||0))return{ok:false,stale:true,errors:["Геометрический план устарел."]};
+  const plan=preview?.event?.payload?.geometryPlan,geometry=window.DAWN_LIONWING_GEOMETRY;
+  if(plan&&geometry?.revalidatePlan){
+    const checked=geometry.revalidatePlan(Scene,plan);
+    if(!checked.available)return{ok:false,stale:Boolean(checked.stale),errors:[checked.reason||"Маршрут изменился."]};
+  }
+  const checked=LionwingEngine.previewEvents?.(Scene,[preview.event],{expectedVersion:Number(Scene.version||0)});
+  return checked||{ok:true};
+}
+function lwInstallGeometryPreviewGuard(){
+  const board=$("scene-board");
+  if(!board||board.__lwGeometryPreviewGuard)return;
+  board.__lwGeometryPreviewGuard=true;
+  board.addEventListener("mouseleave",()=>{
+    if(!lwGeometryPreview)return;
+    const restore=()=>{if(lwGeometryPreview)lwApplyGeometryPreviewCells()};
+    if(typeof queueMicrotask==="function")queueMicrotask(restore);else setTimeout(restore,0);
+  },true);
+}
+
 function lwOperationSummary(p){
   const names={attack:"Атака",damage:"Урон","spend-health":"Расход Здоровья","lose-health":"Потеря Здоровья",heal:"Лечение",effect:p.remove?"Снять Эффект":"Наложить Эффект",resource:p.operation==="spend"?"Расход":"Получение",move:"Движение","geometry-move":"Движение по плану",wound:"Рана",stress:"Стресс",modifier:"Модификатор",usage:"Учесть применение","record-action":"Базовое действие","recover-track":"Восстановление Ран/Стресса",prompt:"Решение",note:"Запись", "grant-turn":"Дополнительный Ход","allow-action":"Допуск действия"};
   const ids=p.targetIds||[p.targetId||lwDraftBatch?.actorId],targets=ids.map(id=>Scene.actors.find(a=>a.id===id)?.name||id).join(", ");
@@ -25,20 +138,10 @@ function lwGeometryPreviewHtml(){
   const route=lwGeometryPreview?.event?.payload?.geometryPlan?.route;
   if(!route)return "";
   const actor=Scene.actors.find(item=>item.id===route.actorId),cell=route.stoppedAt?`${String.fromCharCode(65+route.stoppedAt.x)}${route.stoppedAt.y+1}`:"—";
-  const stop=route.terminal?` · движение завершится${route.stopReason?`: ${route.stopReason}`:""}`:route.partial?" · цель недостижима, показана ближайшая клетка":"";
-  return `<section class="lw-pending"><strong>Маршрут: ${esc(actor?.name||route.actorId)} → ${esc(cell)}</strong><p>${route.spent} кл. движения · останется ${route.remaining}${esc(stop)}</p><div class="button-row"><button class="primary" data-lw-geometry-confirm data-lw-actor="${esc(lwGeometryPreview.actorId)}">Подтвердить движение</button><button data-lw-geometry-cancel data-lw-actor="${esc(lwGeometryPreview.actorId)}">Отменить</button></div></section>`;
-}
-
-function lwSetGeometryPreview(draft,payload){
-  const prepared=LionwingEngine.prepare(Scene,{...payload,actorId:draft.actorId});
-  if(!prepared.ok){toast(prepared.errors.join(" "));return false;}
-  const event=prepared.events.find(item=>item.type==="lionwing.command"&&item.payload?.kind==="geometry-move"),route=event?.payload?.geometryPlan?.route;
-  if(!event||!route){toast("Планировщик не вернул маршрут");return false;}
-  lwGeometryPreview={actorId:draft.actorId,label:draft.label,intent:{...payload,geometryPlan:undefined},event,stage:draft.stage===true};
-  lwDestination=null;
-  scenePreviewCells=new Set(route.path.map(point=>`${point.x},${point.y}`));
-  renderScene();
-  return true;
+  const stop=route.terminal?` · движение завершится${route.stopReason?`: ${lwGeometryStopReason(route.stopReason)}`:""}`:route.partial?" · цель недостижима, показана ближайшая клетка":"";
+  const notice=lwGeometryPreview.notice?`<p class="lw-preview-update" role="status">${esc(lwGeometryPreview.notice)}</p>`:"";
+  const action=lwGeometryPreview.stage?`<button class="primary" data-lw-geometry-add data-lw-actor="${esc(lwGeometryPreview.actorId)}">Добавить движение в пакет</button>`:`<button class="primary" data-lw-geometry-confirm data-lw-actor="${esc(lwGeometryPreview.actorId)}">Подтвердить движение</button>`;
+  return `<section class="lw-pending"><strong>Маршрут: ${esc(actor?.name||route.actorId)} → ${esc(cell)}</strong><p>${route.spent} кл. движения · останется ${route.remaining}${esc(stop)}</p>${notice}<div class="button-row">${action}<button data-lw-geometry-cancel data-lw-actor="${esc(lwGeometryPreview.actorId)}">Отменить выбор</button></div></section>`;
 }
 
 function lwCostsFrom(root){
@@ -163,8 +266,10 @@ const lwOldActionPanel = sceneActionPanel;
 sceneActionPanel = function(actorOverride = null) { return lwActive() ? lwActionsHtml(actorOverride || currentHeroActor()) : lwOldActionPanel(actorOverride); };
 const lwOldDirector = renderSceneDirector;
 renderSceneDirector = function() {
+  if (lwActive()) lwReconcileGeometryPreview();
   lwOldDirector();
   if (!lwActive()) return;
+  lwInstallGeometryPreviewGuard();
   const root = $("scene-director"), a = lwActor();
   if (!root || !a) return;
   const holder=document.createElement("div");holder.innerHTML=lwDirectorHtml(a);
@@ -209,6 +314,10 @@ eventText = function(event) {
   if(event.type==="modifier.configure"&&p.stat)return `${who}: временное изменение ${resourceNames[p.stat]||p.stat} ${p.amount>0?"+":""}${p.amount}`;
   if(event.type==="modifier.remove")return `${who}: сняты временные изменения ${resourceNames[p.stat]||p.stat}`;
   if(event.type==="movement.prevented")return `${who}: принудительное движение предотвращено (${p.reason})`;
+  if(event.type==="geometry.route.commit"){
+    const stopped=p.stoppedAt?`${String.fromCharCode(65+Number(p.stoppedAt.x))}${Number(p.stoppedAt.y)+1}`:"—",reason=p.terminal?lwGeometryStopReason(p.stopReason):p.partial?"цель недостижима, показана ближайшая клетка":"";
+    return `${who}: движение по маршруту до ${stopped}, потрачено ${p.spent??0} кл.${reason?` · ${reason}`:""}`;
+  }
   if(event.type==="reaction.respond")return `${who}: ${({take:"Принять Атаку",block:"Блок",dodge:"Уворот",clash:"Столкновение"})[p.choice]||p.choice}`;
   if (event.type === "actor.wound") return `${a?.name}: Раны ${p.total}/3, ЗД восстановлено до ${p.hp}`;
   if (event.type === "automation.configure") return `${a?.name || "Участник"}: ${window.DAWN_LIONWING_ADAPTERS.list(a).find(rule=>rule.id===p.ruleId)?.label||p.ruleId} — ${p.enabled ? "автоматизация включена" : "ручное исполнение"}`;
@@ -301,7 +410,7 @@ document.addEventListener("click", event => {
     if(kind==="move"){if(targets.length!==1)return toast("Для движения выберите одну цель");lwDestination={actorId:sourceId,payload:operations[0],label:"Движение правила",stage:lwDraftEnabled&&movementKind==="geometry-move"};renderScene();toast(lwDestination.stage?"Выберите клетку: маршрут будет добавлен в пакет":"Выберите клетку назначения");return;}
     return lwSubmit(sourceId,operations.length===1?operations[0]:{kind:"batch",operations:["note","prompt","usage"].includes(kind)?[operations[0]]:operations},"Общая операция правила");
   }
-  const button = event.target.closest("[data-core-action], [data-lw-automation], [data-lw-action], [data-lw-reaction], [data-lw-choice], [data-lw-resolve], [data-lw-cancel], [data-lw-clear-destination], [data-lw-geometry-confirm], [data-lw-geometry-cancel], [data-lw-operation], [data-lw-correct], [data-lw-custom], [data-lw-modifier], [data-lw-punish], [data-lw-invisible]");
+  const button = event.target.closest("[data-core-action], [data-lw-automation], [data-lw-action], [data-lw-reaction], [data-lw-choice], [data-lw-resolve], [data-lw-cancel], [data-lw-clear-destination], [data-lw-geometry-confirm], [data-lw-geometry-add], [data-lw-geometry-cancel], [data-lw-operation], [data-lw-correct], [data-lw-custom], [data-lw-modifier], [data-lw-punish], [data-lw-invisible]");
   if (!button) {
     const oldControl=event.target.closest("[data-director-set-field], [data-director-knockout], [data-director-tension], [data-director-open-reactions], [data-director-set-rule-resource], [data-director-set-rule-clock]");
     if(oldControl){event.preventDefault();event.stopImmediatePropagation();const a=lwActor();if(!a||!lwCanNarrate())return;
@@ -319,16 +428,31 @@ document.addEventListener("click", event => {
   }
   event.preventDefault(); event.stopImmediatePropagation();
   const root = button.closest("[data-lw-root]") || button.closest(".lw-console"), actorId = button.dataset.lwActor || button.dataset.coreActor || root?.dataset.lwActor || lwActor()?.id;
+  if(button.hasAttribute("data-lw-geometry-cancel")){lwClearGeometryPreview();return;}
+  if((button.hasAttribute("data-lw-geometry-confirm")||button.hasAttribute("data-lw-geometry-add"))&&!lwCanNarrate())return toast("Подтвердить движение или добавить его в пакет может только Нарратор");
   if (!actorId || !lwOwns(actorId)) return toast("Этим участником управляет другой игрок");
   const val = (selector, fallback="") => root?.querySelector(selector)?.value ?? fallback;
   const num = (selector, fallback=0) => Number(val(selector,fallback));
-  if(button.hasAttribute("data-lw-geometry-cancel")){lwGeometryPreview=null;scenePreviewCells.clear();renderScene();return;}
-  if(button.hasAttribute("data-lw-geometry-confirm")){
-    const preview=lwGeometryPreview;if(!preview||preview.actorId!==actorId)return toast("Маршрут больше не доступен");
-    if(preview.stage){lwDraftEnabled=true;const staged=lwSubmit(preview.actorId,preview.event.payload,preview.label);if(staged){lwGeometryPreview=null;scenePreviewCells.clear();renderScene();}return;}
+  if(button.hasAttribute("data-lw-geometry-confirm")||button.hasAttribute("data-lw-geometry-add")){
+    const preview=lwGeometryPreview;
+    if(!preview||preview.actorId!==actorId)return toast("Маршрут больше не доступен: выберите клетку заново.");
+    const check=lwCheckGeometryPreview(preview);
+    if(check&&!check.ok){
+      if(check.clear){lwClearGeometryPreview();return toast("Выбор участника или сцена изменилась: выберите клетку заново.");}
+      if(check.stale)return lwRefreshGeometryPreview(preview);
+      return toast((check.errors||[]).join(" ")||"Маршрут нельзя подтвердить в текущем состоянии.");
+    }
+    if(preview.stage||button.hasAttribute("data-lw-geometry-add")){
+      lwDraftEnabled=true;
+      const staged=lwSubmit(preview.actorId,preview.event.payload,preview.label);
+      if(staged)lwClearGeometryPreview();
+      return;
+    }
     const committed=commitSceneEvents(preview.label,[preview.event]);
-    if(committed){lwGeometryPreview=null;scenePreviewCells.clear();renderScene();return;}
-    lwSetGeometryPreview(preview,preview.intent);return;
+    if(committed){lwClearGeometryPreview();return;}
+    const after=lwCheckGeometryPreview(preview);
+    if(after&&!after.ok&&after.stale)return lwRefreshGeometryPreview(preview);
+    return;
   }
   if(button.hasAttribute("data-lw-automation")){if(!lwCanNarrate())return;return lwSubmit(actorId,{kind:"automation",ruleId:button.dataset.lwAutomation,enabled:button.dataset.lwEnabled==="true"},"Настройка автоматизации");}
   if(button.hasAttribute("data-lw-punish"))return lwSubmit(actorId,{kind:"punish",id:button.dataset.lwPunish},"Наказание");
