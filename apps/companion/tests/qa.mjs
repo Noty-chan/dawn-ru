@@ -29,7 +29,11 @@ appFiles.push("lionwing-engine.js");
 const appSource = appFiles.map(file => fs.readFileSync(path.join(root, file), "utf8")).join("\n");
 const companionMarkup = fs.readFileSync(path.join(root, "index.html"), "utf8");
 const companionCss = fs.readFileSync(path.join(root, "app.css"), "utf8");
-const publicProjectionMigration = fs.readFileSync(path.resolve(root, "..", "..", "supabase", "migrations", "202608110001_harden_public_scene_projection.sql"), "utf8");
+const publicProjectionMigration = fs.readFileSync(path.resolve(root, "..", "..", "supabase", "migrations", "202609080001_harden_lionwing_private_state.sql"), "utf8");
+for (const privateLionwingKey of ["history", "pausedChains", "receipts", "deferred", "executionCursor", "entities"]) {
+  assert.match(publicProjectionMigration, new RegExp(`- '${privateLionwingKey}'`), `The SQL public projection must remove private LionWing ${privateLionwingKey}`);
+}
+assert.match(publicProjectionMigration, /'entities',coalesce[\s\S]+visibility','public'[\s\S]+scene_metadata_visible/, "The SQL public projection must retain public entities while filtering hidden references");
 assert.match(companionMarkup, /id="app-settings-open"[\s\S]+id="app-settings-dialog"/, "Global settings must be reachable from every companion mode");
 assert.match(companionMarkup, /id="app-settings-dialog"[\s\S]+id="locale-select"[\s\S]+id="edition-select"[\s\S]+id="theme-toggle"[\s\S]+id="supplement-picker"[\s\S]+id="scene-layout-settings"/, "Language, edition, theme, supplements, and table layout must share one settings menu");
 assert.match(companionMarkup, /interfaceRolloutVersion\|\|0\)<3[\s\S]+scene-interface-classic-styles[\s\S]+disabled=next[\s\S]+scene-interface-next-styles[\s\S]+disabled=!next/, "Existing tables must roll forward once and load exactly one table stylesheet");
