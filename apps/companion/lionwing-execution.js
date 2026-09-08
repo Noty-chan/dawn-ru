@@ -17,6 +17,28 @@
     return value;
   };
   const plain = value => Boolean(value && typeof value === "object" && !Array.isArray(value));
+  function assertJson(value, path = "$", depth = 0, seen = new Set()) {
+    if (depth > 20) reject(`Слишком глубокий JSON: ${path}`);
+    if (value === null || typeof value === "string" || typeof value === "boolean") return value;
+    if (typeof value === "number") {
+      if (!Number.isFinite(value)) reject(`Число должно быть конечным: ${path}`);
+      return value;
+    }
+    if (typeof value !== "object") reject(`Значение не является JSON: ${path}`);
+    if (seen.has(value)) reject(`Циклический JSON: ${path}`);
+    seen.add(value);
+    if (Array.isArray(value)) value.forEach((item, index) => assertJson(item, `${path}[${index}]`, depth + 1, seen));
+    else {
+      const prototype = Object.getPrototypeOf(value);
+      if (prototype !== null && prototype !== Object.prototype && prototype?.constructor?.name !== "Object") reject(`Ожидался обычный JSON-объект: ${path}`);
+      for (const [key, item] of Object.entries(value)) {
+      if (["__proto__", "prototype", "constructor"].includes(key)) reject(`Запрещённое поле JSON: ${path}.${key}`);
+      assertJson(item, `${path}.${key}`, depth + 1, seen);
+      }
+    }
+    seen.delete(value);
+    return value;
+  }
   const serializable = value => {
     try { return JSON.stringify(value) !== undefined; } catch { return false; }
   };
@@ -319,6 +341,385 @@
     return { schema: 1, kind, pool, sourceFaces, finalFaces: copy(sourceFaces), rules: { successAt, criticalAt, explode }, modifications, hits, criticals, initialCount: pool, rolls: copy(sourceFaces), successes: hits, crits: criticals, formula: `${pool}D6`, ...(criticalAt !== 6 || !explode ? { critAt: criticalAt, explode } : {}) };
   }
 
+  // ActionPlan is the declaration layer; execution owns the serializable
+  // reservation and the ordered queue that a reducer may consume.  This
+  // bridge deliberately returns data only.  It never receives a Scene and
+  // therefore cannot spend a resource or apply an operation by accident.
+  const actionPlanOperationKinds = new Set([
+    "automation", "action", "attack", "damage", "spend-health", "lose-health", "heal", "wound", "stress", "knockout",
+    "resource", "correct", "effect", "effect-source", "aura", "aura-create", "aura-update", "aura-suppress", "aura-restore", "aura-remove",
+    "move", "geometry-move", "geometry-segment", "modifier", "allow-action", "grant-turn", "usage", "punish", "invisible", "search",
+    "configure-resource", "counter", "clock", "prompt", "choice", "roll", "reaction", "resolve-attack", "cancel-attack", "turn-start", "turn-end",
+    "round-end", "scene-reset", "chapter-start", "tension", "note", "plan", "batch", "pause-chain", "resume-chain", "record-action", "recover-track",
+    "amend-attack",
+  ]);
+  const ACTION_PLAN_PHASES = ["before", "replace", "apply", "after"];
+
+  function sameJson(left, right) { return JSON.stringify(left) === JSON.stringify(right); }
+
+  function actionPlanInput(value) {
+    let input = value;
+    if (typeof input === "string") {
+      try { input = JSON.parse(input); } catch { reject("JSON ActionPlan не разбирается"); }
+    }
+    if (!plain(input)) reject("ActionPlan исполнения должен быть JSON-объектом");
+    assertJson(input);
+    return input;
+  }
+
+  function actionPlanIdentity(input) {
+    const plan = plain(input.plan) && input.kind !== "lionwing.action-plan" ? input.plan : input;
+    const aliases = (object, names, label) => {
+      const values = names.filter(name => Object.hasOwn(object, name) && object[name] != null).map(name => object[name]);
+      if (values.length > 1 && values.some(value => !sameJson(value, values[0]))) reject(`Дублирующиеся ID расходятся: ${label}`);
+    };
+    for (const [names, label] of [[["planId", "id"], "плана действия"], [["rootActionId", "rootId"], "rootAction плана"], [["definitionId", "actionDefinitionId", "actionId"], "definition плана"], [["actionInstanceId", "instanceId"], "экземпляра действия"]]) aliases(plan, names, label);
+    if (plan !== input && plain(input.plan)) for (const [names, label] of [[["planId", "id"], "плана действия"], [["rootActionId", "rootId"], "rootAction плана"], [["definitionId", "actionDefinitionId", "actionId"], "definition плана"], [["actionInstanceId", "instanceId"], "экземпляра действия"]]) {
+      const nested = names.find(name => Object.hasOwn(plan, name) && plan[name] != null);
+      const outer = names.find(name => Object.hasOwn(input, name) && input[name] != null);
+      if (nested && outer && !sameJson(plan[nested], input[outer])) reject(`ID ${label} расходится с вложенным ActionPlan`);
+    }
+    const planId = id(plan.planId ?? plan.id, "плана действия");
+    const rootActionId = id(plan.rootActionId ?? plan.rootId, "rootAction плана");
+    const definitionId = id(plan.definitionId ?? plan.actionDefinitionId ?? plan.actionId, "definition плана");
+    const actionInstanceId = id(plan.actionInstanceId ?? plan.instanceId, "экземпляра действия");
+    const ownerActorId = id(plan.ownerActorId ?? plan.owner?.actorId ?? plan.owner?.id ?? plan.sourceActorId ?? plan.source?.actorId ?? "scene", "владельца плана");
+    const sourceActorId = plan.sourceActorId ?? plan.source?.actorId ?? (ownerActorId === "scene" ? null : ownerActorId);
+    if (sourceActorId != null) id(sourceActorId, "источника плана");
+    const causeEventId = plan.causeEventId ?? plan.source?.causeEventId ?? null;
+    if (causeEventId != null) id(causeEventId, "причины плана");
+    return { plan, planId, rootActionId, definitionId, actionInstanceId, ownerActorId, sourceActorId: sourceActorId ?? null, causeEventId: causeEventId ?? null };
+  }
+
+  function actionPlanTargets(plan, options = {}) {
+    const rows = Array.isArray(plan.targets)
+      ? plan.targets
+      : Array.isArray(plan.targetSnapshots)
+        ? plan.targetSnapshots
+        : Array.isArray(plan.targetIds)
+          ? plan.targetIds.map(targetId => ({ targetId, snapshot: {} }))
+          : [];
+    if (rows.length > 40) reject("ActionPlan содержит слишком много целей");
+    const seen = new Set();
+    const targets = rows.map((raw, index) => {
+      const row = typeof raw === "string" ? { targetId: raw, snapshot: {} } : raw;
+      if (!plain(row)) reject(`Цель исполнения ${index + 1} должна быть объектом`);
+      const targetId = id(row.targetId ?? row.id, `цели исполнения ${index + 1}`);
+      if (seen.has(targetId)) reject(`Повтор цели исполнения: ${targetId}`);
+      seen.add(targetId);
+      const snapshot = row.snapshot ?? row.values ?? {};
+      if (!plain(snapshot) || !serializable(snapshot)) reject(`Снимок цели ${targetId} должен быть JSON-объектом`);
+      return { targetId, snapshot: copy(snapshot), ...(row.role == null ? {} : { role: String(row.role) }) };
+    });
+    const targetIds = targets.map(target => target.targetId);
+    if (Array.isArray(plan.targetIds) && !sameJson(targetIds, plan.targetIds)) reject("targetIds расходятся со снимками целей исполнения");
+    for (const supplied of [plan.targetSnapshots, plan.snapshots?.targets]) if (supplied != null && (!Array.isArray(supplied) || !sameJson(supplied, targets))) reject("Снимок целей изменён после предпросмотра");
+    if (options.targetSnapshots != null) {
+      if (!Array.isArray(options.targetSnapshots) || !sameJson(options.targetSnapshots, targets)) reject("Снимок целей изменён после предпросмотра");
+    }
+    return { targets, targetIds };
+  }
+
+  function actionPlanCosts(plan) {
+    const raw = plan.costs ?? plan.snapshots?.costs ?? [];
+    if (raw == null) return [];
+    if (!Array.isArray(raw)) reject("Цена ActionPlan исполнения должна быть массивом");
+    if (plan.costs != null && plan.snapshots?.costs != null && !sameJson(plan.costs, plan.snapshots.costs)) reject("Снимки цены расходятся");
+    return raw.length ? normalizeCosts(raw) : [];
+  }
+
+  function actionPlanModifiers(plan, options = {}) {
+    const raw = plan.modifiers ?? plan.modifierSnapshots ?? plan.snapshots?.modifiers ?? [];
+    if (!Array.isArray(raw) || raw.length > 96) reject("Некорректный снимок модификаторов ActionPlan");
+    if (plan.modifiers != null && plan.modifierSnapshots != null && !sameJson(plan.modifiers, plan.modifierSnapshots) || plan.modifiers != null && plan.snapshots?.modifiers != null && !sameJson(plan.modifiers, plan.snapshots.modifiers)) reject("Снимки модификаторов расходятся");
+    const seen = new Set();
+    const modifiers = raw.map((modifier, index) => {
+      if (!plain(modifier)) reject(`Модификатор исполнения ${index + 1} должен быть объектом`);
+      const idValue = id(modifier.id, `модификатора исполнения ${index + 1}`);
+      if (seen.has(idValue)) reject(`Повтор ID модификатора исполнения: ${idValue}`);
+      seen.add(idValue);
+      if (modifier.sourceId != null) id(modifier.sourceId, `источника модификатора ${idValue}`);
+      if (modifier.ruleId != null) id(modifier.ruleId, `правила модификатора ${idValue}`);
+      if (modifier.consumedByActionId != null) id(modifier.consumedByActionId, `потребившего действия ${idValue}`);
+      return copy(modifier);
+    });
+    if (options.modifierSnapshots != null && !sameJson(options.modifierSnapshots, modifiers)) reject("Снимок модификаторов изменён после предпросмотра");
+    return modifiers;
+  }
+
+  function actionPlanPhases(plan, identity) {
+    const source = plain(plan.phases) ? plan.phases : {};
+    const sequence = [], phaseOperations = {}, operationIds = new Set();
+    for (const phase of ACTION_PLAN_PHASES) {
+      const values = source[phase] ?? [];
+      if (!Array.isArray(values) || values.length > 192) reject(`Операции фазы ${phase} должны быть массивом`);
+      phaseOperations[phase] = values.map((raw, index) => {
+        if (!plain(raw)) reject(`Операция ${phase}:${index + 1} должна быть объектом`);
+        if (raw.id != null && raw.operationId != null && raw.id !== raw.operationId) reject(`ID операции ${phase}:${index + 1} расходятся`);
+        for (const key of ["rootActionId", "rootId", "definitionId", "actionDefinitionId", "actionInstanceId", "instanceId"]) if (raw[key] != null) {
+          const expected = key === "rootId" ? identity.rootActionId : ["definitionId", "actionDefinitionId"].includes(key) ? identity.definitionId : ["actionInstanceId", "instanceId"].includes(key) ? identity.actionInstanceId : identity.rootActionId;
+          if (raw[key] !== expected) reject(`ID операции ${phase}:${index + 1} расходится с ActionPlan`);
+        }
+        for (const key of ["sourceActorId", "ownerActorId"]) if (raw[key] != null) id(raw[key], `${key} операции`);
+        if (Array.isArray(raw.targetIds)) for (const targetId of raw.targetIds) id(targetId, "цели операции");
+        const operationId = id(raw.id ?? raw.operationId ?? `${phase}:${index + 1}`, `операции ${phase}:${index + 1}`);
+        if (operationIds.has(operationId)) reject(`Повтор ID операции ActionPlan исполнения: ${operationId}`);
+        operationIds.add(operationId);
+        const kind = id(raw.kind ?? raw.type, `вида операции ${operationId}`);
+        if (raw.targetId != null) id(raw.targetId, `цели операции ${operationId}`);
+        const operation = {
+          ...copy(raw),
+          id: operationId,
+          operationId,
+          kind,
+          phase,
+          rootActionId: identity.rootActionId,
+          definitionId: identity.definitionId,
+          actionInstanceId: identity.actionInstanceId,
+          causeEventId: identity.causeEventId,
+          sourceActorId: raw.sourceActorId ?? identity.sourceActorId ?? identity.ownerActorId,
+          ownerActorId: raw.ownerActorId ?? identity.ownerActorId,
+        };
+        sequence.push(operation);
+        return operation;
+      });
+    }
+    // `operations` is the queue accepted by the current common reducer. The
+    // complete phase sequence remains available for adapters that handle the
+    // declarative before/replace/after markers themselves.
+    const controlKinds = new Set(["check", "choose-replacement", "history", "choice", "prompt"]);
+    const runtimeOperations = sequence.filter(operation => actionPlanOperationKinds.has(operation.kind) && !controlKinds.has(operation.kind));
+    for (const operation of sequence) if (!actionPlanOperationKinds.has(operation.kind) && !controlKinds.has(operation.kind)) {
+      // ActionPlan control markers are kept in the sequence and choices, but
+      // must never accidentally reach the generic reducer as an executable op.
+      reject(`Операция не поддерживается execution: ${operation.kind}`);
+    }
+    return { phaseOperations, sequence, runtimeOperations };
+  }
+
+  function actionPlanChoices(plan, identity, sequence) {
+    const source = plan.choices ?? plan.nestedChoices ?? [];
+    if (!Array.isArray(source) || source.length > 64) reject("Choices ActionPlan исполнения должны быть массивом");
+    const seenChoiceIds = new Set();
+    const choices = source.map((raw, index) => {
+      if (!plain(raw)) reject(`Choice исполнения ${index + 1} должен быть объектом`);
+      const choiceId = id(raw.id ?? raw.choiceId ?? `${identity.planId}:choice:${index + 1}`, `choice исполнения ${index + 1}`);
+      const rootActionId = id(raw.rootActionId ?? identity.rootActionId, `rootAction choice ${choiceId}`);
+      const actionInstanceId = id(raw.actionInstanceId ?? identity.actionInstanceId, `экземпляра choice ${choiceId}`);
+      if (rootActionId !== identity.rootActionId || actionInstanceId !== identity.actionInstanceId) reject(`Choice ${choiceId} принадлежит другому ActionPlan`);
+      const options = raw.options ?? raw.choices ?? raw.modifierIds ?? [];
+      if (!Array.isArray(options)) reject(`Варианты choice ${choiceId} должны быть массивом`);
+      if (seenChoiceIds.has(choiceId)) reject(`Повтор ID choice исполнения: ${choiceId}`);
+      seenChoiceIds.add(choiceId);
+      if (raw.definitionId != null && raw.definitionId !== identity.definitionId) reject(`Choice ${choiceId} принадлежит другому definition`);
+      for (const key of ["ownerActorId", "responderActorId", "actorId", "conflictId", "operationId"]) if (raw[key] != null) id(raw[key], `${key} choice ${choiceId}`);
+      const phase = raw.phase ?? "replace";
+      if (!ACTION_PLAN_PHASES.includes(phase)) reject(`Неизвестная фаза choice ${choiceId}`);
+      return {
+        schema: 1,
+        kind: String(raw.kind || "action-plan-choice"),
+        id: choiceId,
+        rootActionId,
+        definitionId: identity.definitionId,
+        actionInstanceId,
+        causeEventId: identity.causeEventId,
+        ownerActorId: raw.ownerActorId ?? identity.ownerActorId,
+        responderActorId: raw.responderActorId ?? raw.actorId ?? identity.ownerActorId,
+        phase,
+        options: copy(options),
+        selected: raw.selected ?? raw.choice ?? null,
+        conflictId: raw.conflictId ?? null,
+        operationId: raw.operationId ?? null,
+      };
+    });
+    // A replace operation with an explicit choice marker is automatically
+    // represented as a serializable nested choice when the caller did not
+    // provide a separate choices array.
+    for (const operation of sequence.filter(item => item.phase === "replace" && ["choose-replacement", "choice", "prompt"].includes(item.kind))) {
+      const operationOptions = operation.options ?? operation.choices ?? [];
+      if (choices.some(choice => choice.operationId === operation.id || choice.conflictId != null && sameJson(choice.options, operationOptions))) continue;
+      const choiceId = `${identity.planId}:choice:${choices.length + 1}`;
+      if (seenChoiceIds.has(choiceId)) continue;
+      seenChoiceIds.add(choiceId);
+      choices.push({
+        schema: 1,
+        kind: "action-plan-choice",
+        id: choiceId,
+        rootActionId: identity.rootActionId,
+        definitionId: identity.definitionId,
+        actionInstanceId: identity.actionInstanceId,
+        causeEventId: identity.causeEventId,
+        ownerActorId: identity.ownerActorId,
+        responderActorId: identity.ownerActorId,
+        phase: "replace",
+        options: copy(operationOptions),
+        selected: operation.selected ?? null,
+        conflictId: operation.conflictId ?? null,
+        operationId: operation.id,
+      });
+    }
+    return choices;
+  }
+
+  function assertQuoteIntegrity(quote, identity, targets) {
+    if (quote == null) return;
+    if (quote.kind !== "lionwing.action-plan.quote" || typeof quote.fingerprint !== "string") reject("Quote ActionPlan исполнения не является проверяемой цитатой");
+    for (const [key, expected] of [["planId", identity.planId], ["rootActionId", identity.rootActionId], ["definitionId", identity.definitionId], ["actionInstanceId", identity.actionInstanceId]]) if (quote[key] != null && quote[key] !== expected) reject(`Quote ActionPlan исполнения расходится с ${key}`);
+    if (quote.revision != null && Number(quote.revision) !== Number(identity.plan.revision ?? 0)) reject("Quote ActionPlan исполнения относится к другой ревизии");
+    if (!Array.isArray(quote.consumedModifierIds)) reject("Quote ActionPlan исполнения не содержит список потребления");
+    if (!plain(quote.outcomes)) reject("Quote ActionPlan исполнения не содержит итоги целей");
+    const targetIds = targets.map(target => target.targetId);
+    if (!sameJson(Object.keys(quote.outcomes).sort(), [...targetIds].sort())) reject("Quote ActionPlan исполнения содержит другие цели");
+    for (const target of targets) {
+      const outcome = quote.outcomes[target.targetId];
+      if (!plain(outcome) || !sameJson(outcome.snapshot ?? {}, target.snapshot)) reject(`Quote ActionPlan исполнения содержит другой снимок цели: ${target.targetId}`);
+    }
+    const fingerprint = { ...quote };
+    delete fingerprint.fingerprint;
+    if (quote.fingerprint !== JSON.stringify(fingerprint)) reject("Fingerprint Quote ActionPlan исполнения повреждён");
+  }
+
+  function recomputeQuote(plan, status) {
+    if (status === "cancelled" || status === "invalid") return null;
+    if (status !== "committed" && plan.quote == null && plan.result == null) return null;
+    const actionPlan = global.DAWN_LIONWING_ACTION_PLAN;
+    if (typeof actionPlan?.quote !== "function") {
+      if (status === "committed") reject("Проверка quote ActionPlan недоступна");
+      return null;
+    }
+    if (!Object.hasOwn(plan, "baseValues") && !plain(plan.snapshots?.base)) {
+      return null;
+    }
+    const candidate = copy(plan);
+    if (["draft", "targeting", "modifiers"].includes(status)) {
+      delete candidate.quote;
+      delete candidate.result;
+    }
+    try { return actionPlan.quote(candidate); } catch (error) { reject(`Quote ActionPlan исполнения не прошёл повторную проверку: ${error.message}`); }
+  }
+
+  function actionPlanExecution(value, options = {}) {
+    const input = actionPlanInput(value);
+    const identity = actionPlanIdentity(input);
+    const plan = identity.plan;
+    const status = plan.status ?? input.status ?? "draft";
+    if (!["draft", "targeting", "modifiers", "previewed", "committed", "cancelled", "invalid"].includes(status)) reject("Неизвестный статус ActionPlan исполнения");
+    const phase = plan.phase ?? (status === "committed" ? "after" : "before");
+    if (!ACTION_PLAN_PHASES.includes(phase)) reject("Неизвестная фаза ActionPlan исполнения");
+    const sceneVersion = plan.sceneVersion ?? input.sceneVersion ?? options.sceneVersion ?? 0;
+    const sceneVersionValue = serial(sceneVersion, "версии Сцены ActionPlan");
+    const { targets, targetIds } = actionPlanTargets(plan, options);
+    const costs = actionPlanCosts(plan);
+    const modifiers = actionPlanModifiers(plan, options);
+    const { phaseOperations, sequence, runtimeOperations } = actionPlanPhases(plan, identity);
+    const choices = actionPlanChoices(plan, identity, sequence);
+    if (input.quote != null && plan.quote != null && !sameJson(input.quote, plan.quote)) reject("Quote ActionPlan исполнения расходится с вложенным планом");
+    if (input.result != null && plan.result != null && !sameJson(input.result, plan.result)) reject("Result ActionPlan исполнения расходится с вложенным планом");
+    const quote = input.quote ?? plan.quote ?? null;
+    const result = input.result ?? plan.result ?? null;
+    if (status === "committed" && (!plain(quote) || !plain(result))) reject("Подтверждённый ActionPlan исполнения требует quote и result");
+    if (quote != null && !plain(quote)) reject("Quote ActionPlan исполнения должен быть объектом");
+    if (result != null && !plain(result)) reject("Result ActionPlan исполнения должен быть объектом");
+    if (result != null && quote == null) reject("Result ActionPlan исполнения требует quote");
+    if (quote != null && result != null && !sameJson(quote, result)) reject("Quote и result ActionPlan исполнения расходятся");
+    if (options.quote != null && (quote == null || !sameJson(options.quote, quote))) reject("Quote ActionPlan исполнения изменён");
+    if (options.result != null && (result == null || !sameJson(options.result, result))) reject("Result ActionPlan исполнения изменён");
+    assertQuoteIntegrity(quote, { ...identity, plan: plan }, targets);
+    const expectedQuote = recomputeQuote(plan, status);
+    if (expectedQuote != null && quote != null && !sameJson(expectedQuote, quote)) reject("Quote ActionPlan исполнения подделан или устарел");
+    if (expectedQuote != null && result != null && !sameJson(expectedQuote, result)) reject("Result ActionPlan исполнения подделан или устарел");
+    if (options.expectedRevision != null && Number(options.expectedRevision) !== Number(plan.revision ?? 0)) reject("Ревизия ActionPlan исполнения устарела");
+    const reservation = costs.length
+      ? reserveCost(sceneVersionValue, identity.ownerActorId, targetIds, costs)
+      : { schema: 1, sceneVersion: sceneVersionValue, actorId: identity.ownerActorId, targetIds: [...targetIds], costs: [] };
+    if (input.reservation != null && !sameJson(input.reservation, reservation)) reject("Резерв цены ActionPlan исполнения подделан или устарел");
+    const consumedModifierIds = Array.isArray(quote?.consumedModifierIds)
+      ? [...new Set(quote.consumedModifierIds.map(value => id(value, "потребляемого модификатора")))].sort()
+      : [];
+    const modifierById = new Map(modifiers.map(modifier => [modifier.id, modifier]));
+    for (const modifierId of consumedModifierIds) {
+      const modifier = modifierById.get(modifierId);
+      if (!modifier || modifier.consume !== true || modifier.consumedByActionId && modifier.consumedByActionId !== identity.actionInstanceId) reject(`Quote ссылается на непотребляемый модификатор: ${modifierId}`);
+    }
+    const alreadyConsumedModifierIds = modifiers.filter(modifier => modifier.consumedByActionId === identity.actionInstanceId).map(modifier => modifier.id).sort();
+    const receipts = consumedModifierIds.map(modifierId => ({ id: `modifier:${modifierId}:${identity.actionInstanceId}`, modifierId, actionInstanceId: identity.actionInstanceId, boundary: "commit" }));
+    const storedExecution = input.kind === "lionwing.execution-plan";
+    const replay = options.commitResult !== true && (options.replay === true || input.replay === true || !storedExecution && status === "committed");
+    const payment = {
+      boundary: "commit",
+      reservation: copy(reservation),
+      costs: copy(costs),
+      // This module only builds a descriptor.  The Scene reducer is the sole
+      // authority that may turn the reservation into an actual payment.
+      paid: false,
+      commitRequested: !replay && (options.commitResult === true || storedExecution && input.payment?.commitRequested === true),
+      replay,
+      atomic: true,
+    };
+    const execution = {
+      schema: 1,
+      kind: "lionwing.execution-plan",
+      planId: identity.planId,
+      rootActionId: identity.rootActionId,
+      definitionId: identity.definitionId,
+      actionDefinitionId: identity.definitionId,
+      actionInstanceId: identity.actionInstanceId,
+      causeEventId: identity.causeEventId,
+      ownerActorId: identity.ownerActorId,
+      sourceActorId: identity.sourceActorId,
+      sceneVersion: sceneVersionValue,
+      status,
+      phase,
+      reservation,
+      targetIds,
+      targets,
+      targetSnapshots: copy(targets),
+      modifierSnapshots: copy(modifiers),
+      costs: copy(costs),
+      phases: phaseOperations,
+      sequence,
+      operations: runtimeOperations,
+      runtimeOperations,
+      choices,
+      quote: quote == null ? null : copy(quote),
+      result: result == null ? null : copy(result),
+      consumption: {
+        boundary: "commit",
+        consumeOnce: true,
+        modifierIds: consumedModifierIds,
+        alreadyConsumedModifierIds,
+        receipts,
+      },
+      payment,
+      replay,
+    };
+    if (input.kind === "lionwing.execution-plan") {
+      const integrityKeys = ["planId", "rootActionId", "definitionId", "actionDefinitionId", "actionInstanceId", "causeEventId", "ownerActorId", "sourceActorId", "sceneVersion", "status", "phase", "targetIds", "targets", "targetSnapshots", "modifierSnapshots", "costs", "phases", "sequence", "operations", "runtimeOperations", "choices", "quote", "result", "reservation", "consumption"];
+      if (options.replay !== true) integrityKeys.push("payment", "replay");
+      for (const key of integrityKeys) {
+        if (input[key] != null && !sameJson(input[key], execution[key])) reject(`Execution plan повреждён: ${key}`);
+      }
+    }
+    return copy(execution);
+  }
+
+  function prepareActionPlan(value, options = {}) {
+    const execution = actionPlanExecution(value, { ...options, replay: false });
+    return { ok: true, execution, plan: copy(value), payment: copy(execution.payment), choices: copy(execution.choices), ready: execution.choices.length === 0 && !["cancelled", "invalid"].includes(execution.status) };
+  }
+
+  function commitActionPlan(value, options = {}) {
+    const input = actionPlanInput(value);
+    const status = input.status ?? "draft";
+    if (status !== "committed") reject("Execution bridge принимает только подтверждённый ActionPlan");
+    const execution = actionPlanExecution(input, { ...options, replay: Boolean(options.replay) });
+    return { ok: true, execution, payment: copy(execution.payment), choices: copy(execution.choices), replay: execution.replay };
+  }
+
+  function replayActionPlan(value, options = {}) {
+    return commitActionPlan(value, { ...options, replay: true });
+  }
+
   global.DAWN_LIONWING_EXECUTION = Object.freeze({
     open, choose, plan, openCursor, advanceCursor, resizeCursor, waitCursor, resumeCursor,
     identity, fact, inScope, historyCount,
@@ -328,5 +729,7 @@
     boundaryDescriptor: lifetimeBoundary,
     isLifetimeExpired: lifetimeExpired,
     normalizeCosts, reserveCost, normalizeRoll,
+    actionPlanExecution, normalizeActionPlan: actionPlanExecution, prepareActionPlan,
+    commitActionPlan, replayActionPlan, reloadActionPlan: actionPlanExecution,
   });
 })(typeof window === "object" ? window : globalThis);

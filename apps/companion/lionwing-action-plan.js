@@ -271,9 +271,13 @@
     return result;
   }
 
-  function normalizeCostParts(value) {
+  function normalizeCostParts(value, { allowEmpty = false } = {}) {
     if (value == null) return [];
     const parts = arrayValue(value, "цена", 16);
+    if (!parts.length) {
+      if (!allowEmpty) fail("Явная составная цена должна содержать хотя бы одну часть");
+      return [];
+    }
     const execution = global.DAWN_LIONWING_EXECUTION;
     if (typeof execution?.normalizeCosts === "function") return copy(execution.normalizeCosts(parts));
     if (!parts.length) fail("Явная составная цена должна содержать хотя бы одну часть");
@@ -387,6 +391,14 @@
     }
     if (raw.data != null) result.data = copy(raw.data);
     if (raw.label != null) result.label = stringValue(raw.label, `название операции ${id}`, { max: 240 });
+    // Keep the fields consumed by the existing common reducer alongside the
+    // strict operation envelope.  ActionPlan still never interprets these
+    // values as outcomes; it only carries them into the execution sequence.
+    for (const key of ["amount", "value", "resource", "operation", "mode", "track", "sourceActorId", "actorId", "targetIds", "effects", "effect", "actionId", "swift", "reaction", "destination", "maximum", "width", "height", "geometryPlan", "roll", "cost", "irreducible", "forced", "placement", "options"]) {
+      if (!own(raw, key)) continue;
+      assertJson(raw[key], `$.${phase}.${id}.${key}`);
+      result[key] = copy(raw[key]);
+    }
     if (raw.phase != null && raw.phase !== phase) fail(`Операция ${id} находится не в своей фазе`);
     return result;
   }
@@ -580,7 +592,7 @@
     const geometryInput = alias(["geometry"], "geometry", input.snapshots?.geometry ?? (input.anchor ? { anchor: input.anchor } : null));
     if (input.snapshots?.geometry != null && own(input, "geometry") && JSON.stringify(input.geometry) !== JSON.stringify(input.snapshots.geometry)) fail("Снимки геометрии расходятся");
     if (input.anchor != null && geometryInput?.anchor != null && JSON.stringify(normalizeAnchor(input.anchor)) !== JSON.stringify(normalizeAnchor(geometryInput.anchor))) fail("Снимки якоря расходятся");
-    const costs = normalizeCostParts(costsInput);
+    const costs = normalizeCostParts(costsInput, { allowEmpty: mode !== "request" });
     const dicePolicy = normalizeDicePolicy(diceInput);
     const geometry = normalizeGeometry(geometryInput);
     const rawModifiers = input.modifiers ?? input.snapshots?.modifiers ?? [];
@@ -610,7 +622,7 @@
       revision,
       status,
       phase,
-      snapshots: { base: baseValues, targets: copy(targets), costs: copy(costs), dicePolicy: dicePolicy ? copy(dicePolicy) : null, geometry: geometry ? copy(geometry) : null },
+      snapshots: { base: baseValues, targets: copy(targets), costs: copy(costs), dicePolicy: dicePolicy ? copy(dicePolicy) : null, geometry: geometry ? copy(geometry) : null, modifiers: copy(modifiers) },
       baseValues,
       targets: copy(targets),
       targetIds: targets.map(target => target.targetId),
@@ -885,14 +897,25 @@
     if (!plain(scene)) fail("Для перепроверки ActionPlan нужна Сцена");
     if (plan.sceneVersion != null && Number(scene.version ?? 0) !== plan.sceneVersion) fail("Сцена изменилась после предпросмотра ActionPlan");
     const actors = new Map((Array.isArray(scene.actors) ? scene.actors : []).filter(actor => plain(actor) && typeof actor.id === "string").map(actor => [actor.id, actor]));
+    const targets = new Map();
+    for (const collection of ["actors", "markers", "objects", "areas", "walls"]) {
+      for (const item of Array.isArray(scene[collection]) ? scene[collection] : []) if (plain(item) && typeof item.id === "string" && !targets.has(item.id)) targets.set(item.id, item);
+    }
     const sourceActorId = plan.source.actorId ?? (plan.source.kind === "actor" ? plan.source.id : null);
     if (sourceActorId && sourceActorId !== "scene") {
       const source = actors.get(sourceActorId);
       if (!source || source.knockedOut) fail("Источник ActionPlan больше недоступен");
     }
     for (const target of plan.targets) {
-      const actor = actors.get(target.targetId);
-      if (!actor || actor.knockedOut) fail(`Цель ActionPlan больше недоступна: ${target.targetId}`);
+      const item = targets.get(target.targetId), actor = actors.get(target.targetId);
+      if (!item || actor?.knockedOut) fail(`Цель ActionPlan больше недоступна: ${target.targetId}`);
+      // A target snapshot is an optimistic concurrency check.  Fields that
+      // the live collection does not expose are left to the owning family;
+      // fields present on both sides must still match before commit.
+      for (const [key, expected] of Object.entries(target.snapshot || {})) {
+        if (!own(item, key)) continue;
+        if (!sameJson(item[key], expected)) fail(`Снимок цели ActionPlan устарел: ${target.targetId}.${key}`);
+      }
     }
     if (plan.geometry?.route && global.DAWN_LIONWING_GEOMETRY?.revalidatePlan) {
       const routePlan = plan.geometry.route.kind === "lionwing.geometry.route" ? plan.geometry.route : plan.geometry.route.plan;
@@ -906,6 +929,172 @@
 
   function sameJson(left, right) {
     return JSON.stringify(left) === JSON.stringify(right);
+  }
+
+  function bridgeChoices(plan, conflicts) {
+    const choices = [];
+    const seen = new Set();
+    for (const conflict of conflicts.unresolved) {
+      const id = `${plan.id}:choice:${conflict.id}`;
+      choices.push({
+        id,
+        kind: "replacement",
+        conflictId: conflict.id,
+        phase: "replace",
+        rootActionId: plan.rootActionId,
+        definitionId: plan.definitionId,
+        actionInstanceId: plan.actionInstanceId,
+        causeEventId: plan.source.causeEventId ?? null,
+        ownerActorId: plan.ownerActorId,
+        responderActorId: plan.ownerActorId,
+        options: copy(conflict.modifierIds),
+        selected: null,
+      });
+      seen.add(id);
+    }
+    // Once a plan has reached preview/commit, the replace phase is already
+    // resolved and its declarative marker must not keep the execution bridge
+    // waiting for a second answer.
+    if (["draft", "targeting", "modifiers"].includes(plan.status) && conflicts.unresolved.length > 0) for (const operation of plan.phases.replace || []) {
+      if (!["choose-replacement", "choice", "prompt"].includes(operation.kind)) continue;
+      const id = operation.choiceId ?? `${plan.id}:choice:${operation.id}`;
+      if (seen.has(id)) continue;
+      choices.push({
+        id,
+        kind: operation.kind,
+        operationId: operation.id,
+        phase: "replace",
+        rootActionId: plan.rootActionId,
+        definitionId: plan.definitionId,
+        actionInstanceId: plan.actionInstanceId,
+        causeEventId: plan.source.causeEventId ?? null,
+        ownerActorId: plan.ownerActorId,
+        responderActorId: operation.responderActorId ?? plan.ownerActorId,
+        options: copy(operation.options ?? operation.choices ?? []),
+        selected: operation.selected ?? null,
+      });
+      seen.add(id);
+    }
+    return choices;
+  }
+
+  function bridgeTargetSnapshots(plan, options = {}) {
+    const targets = copy(plan.targets);
+    if (options.targetSnapshots != null && !sameJson(options.targetSnapshots, targets)) fail("Снимок целей ActionPlan изменён после предпросмотра");
+    return targets;
+  }
+
+  function bridgeModifierSnapshots(plan, options = {}) {
+    const modifiers = copy(plan.modifiers);
+    if (options.modifierSnapshots != null && !sameJson(options.modifierSnapshots, modifiers)) fail("Снимок модификаторов ActionPlan изменён после предпросмотра");
+    return modifiers;
+  }
+
+  // Convert a plan into the existing execution vocabulary.  This is a pure
+  // adapter: its result is a reservation plus a deterministic operation
+  // sequence.  The Scene reducer remains the only place that can actually
+  // spend the reservation or apply the sequence.
+  function toExecution(value, options = {}) {
+    const input = typeof value === "string" ? JSON.parse(value) : value;
+    const plan = normalizePlan(input, "plan");
+    if (options.expectedRevision != null && integerValue(options.expectedRevision, "ожидаемая ревизия") !== plan.revision) fail("Ревизия ActionPlan устарела");
+    if (options.scene != null) validateScene(plan, options.scene);
+    const targets = bridgeTargetSnapshots(plan, options);
+    const modifiers = bridgeModifierSnapshots(plan, options);
+    const conflicts = checkConflicts(plan);
+    let quoteResult = null;
+    if (!["cancelled", "invalid"].includes(plan.status) && !conflicts.unresolved.length && !conflicts.invalid.length) {
+      quoteResult = quote(plan, options.scene == null ? {} : { scene: options.scene });
+    }
+    const executionApi = global.DAWN_LIONWING_EXECUTION;
+    if (typeof executionApi?.actionPlanExecution !== "function") fail("Мост ActionPlan → execution недоступен");
+    const execution = executionApi.actionPlanExecution({
+      ...copy(plan),
+      targets,
+      targetIds: targets.map(target => target.targetId),
+      modifiers,
+      choices: bridgeChoices(plan, conflicts),
+      ...(quoteResult ? { quote: quoteResult, result: plan.status === "committed" ? quoteResult : null } : {}),
+    }, {
+      ...options,
+      targetSnapshots: targets,
+      modifierSnapshots: modifiers,
+      replay: options.replay === true,
+    });
+    return {
+      ok: true,
+      plan: copy(plan),
+      execution: copy(execution),
+      quote: quoteResult ? copy(quoteResult) : null,
+      choices: copy(execution.choices),
+      waiting: execution.choices.length > 0,
+      ready: !execution.choices.length && !["draft", "targeting", "modifiers", "cancelled", "invalid"].includes(plan.status),
+      replay: Boolean(execution.replay),
+    };
+  }
+
+  function prepareExecution(value, options = {}) {
+    const result = toExecution(value, { ...options, replay: false });
+    // A preparation is always an unpaid intent, including when its caller
+    // serializes the descriptor and reloads it before confirmation.
+    result.execution.payment.paid = false;
+    result.execution.payment.replay = false;
+    result.payment = copy(result.execution.payment);
+    return result;
+  }
+
+  function commitExecution(value, options = {}) {
+    const plan = normalizePlan(value, "plan");
+    if (plan.status === "committed") {
+      const replayed = toExecution(plan, { ...options, replay: true });
+      replayed.execution.payment.paid = false;
+      replayed.execution.payment.replay = true;
+      replayed.payment = copy(replayed.execution.payment);
+      replayed.replay = true;
+      return replayed;
+    }
+    if (plan.status !== "previewed") fail("Execution bridge подтверждает только предпросмотренный ActionPlan");
+    const prepared = toExecution(plan, { ...options, replay: false });
+    if (!prepared.ready) fail("ActionPlan нельзя подтвердить до разрешения вложенного выбора");
+    // `commit` recomputes the quote and marks consumables in one returned
+    // snapshot.  If the execution descriptor cannot be built, no snapshot
+    // escapes and no Scene has been touched.
+    const committed = commit(plan, {
+      ...options,
+      ...(prepared.quote ? { quote: prepared.quote, result: prepared.quote } : {}),
+    });
+    const execution = toExecution(committed.plan, { ...options, replay: false, commitResult: true });
+    execution.execution.payment.paid = false;
+    execution.execution.payment.commitRequested = true;
+    execution.execution.payment.replay = false;
+    execution.payment = copy(execution.execution.payment);
+    execution.replay = Boolean(committed.replay);
+    return { ...committed, ...execution, plan: copy(committed.plan), quote: copy(committed.quote), result: copy(committed.result) };
+  }
+
+  function resumeExecution(value, rawChoice, options = {}) {
+    const plan = normalizePlan(value, "plan");
+    const choice = typeof rawChoice === "string" ? { modifierId: rawChoice } : rawChoice;
+    if (!plain(choice)) fail("Ответ вложенного выбора ActionPlan должен быть объектом или ID");
+    const choiceRootActionId = choice.rootActionId ?? options.rootActionId;
+    const choiceActionInstanceId = choice.actionInstanceId ?? options.actionInstanceId;
+    if (choiceRootActionId != null && choiceRootActionId !== plan.rootActionId) fail("Ответ choice принадлежит другому rootAction");
+    if (choiceActionInstanceId != null && choiceActionInstanceId !== plan.actionInstanceId) fail("Ответ choice принадлежит другому экземпляру действия");
+    const conflicts = checkConflicts(plan);
+    const conflictId = choice.conflictId ?? options.conflictId ?? (conflicts.unresolved.length === 1 ? conflicts.unresolved[0].id : choice.id);
+    const selected = choice.modifierId ?? choice.selected ?? choice.choice;
+    if (typeof conflictId !== "string" || typeof selected !== "string") fail("Ответ choice должен содержать конфликт и выбранный модификатор");
+    const next = resolveConflict(plan, conflictId, selected, {
+      ...options,
+      operationId: choice.operationId ?? options.operationId,
+    });
+    const result = toExecution(next, options);
+    return { ...result, plan: copy(next), resumed: true, choice: copy({ ...choice, conflictId, modifierId: selected, rootActionId: plan.rootActionId, actionInstanceId: plan.actionInstanceId }) };
+  }
+
+  function reloadExecution(value, options = {}) {
+    const plan = reload(value);
+    return toExecution(plan, options);
   }
 
   function assertStoredQuote(plan, expected) {
@@ -979,7 +1168,7 @@
       const normalizedEventId = idValue(eventId, "ID подтверждения");
       if (!receipts.some(receipt => receipt.eventId === normalizedEventId)) receipts.push({ eventId: normalizedEventId, revision: plan.revision + 1, fingerprint: result.fingerprint });
     }
-    const next = copy({ ...plan, status: "committed", phase: "after", modifiers, outcomes: result.outcomes, quote: result, result, phaseHistory: ["before", "replace", "apply", "after"], receipts: receipts.slice(-64) });
+    const next = copy({ ...plan, status: "committed", phase: "after", modifiers, snapshots: { ...plan.snapshots, modifiers: copy(modifiers) }, outcomes: result.outcomes, quote: result, result, phaseHistory: ["before", "replace", "apply", "after"], receipts: receipts.slice(-64) });
     return { ok: true, replay: false, plan: next, quote: copy(result), result: copy(result) };
   }
 
@@ -1168,6 +1357,16 @@
     explain,
     reload,
     fromJSON: reload,
+    toExecution,
+    executionPlan: toExecution,
+    prepareExecution,
+    prepareExecutionPlan: prepareExecution,
+    commitExecution,
+    commitExecutionPlan: commitExecution,
+    resumeExecution,
+    continueExecution: resumeExecution,
+    reloadExecution,
+    replayExecution: value => toExecution(value, { replay: true }),
     serialize,
     validate,
     // Exposed for adapters and tests that need to inspect the canonical data
