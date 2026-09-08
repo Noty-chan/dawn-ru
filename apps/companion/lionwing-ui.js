@@ -9,6 +9,45 @@ const lwRules = () => localizedLionwingCoreRules();
 const lwActor = () => Scene.actors.find(a => a.id === Scene.selectedActor) || Scene.actors.find(a => a.id === Scene.activeActorId) || currentHeroActor();
 const lwCanNarrate = () => !Sync?.state?.().sceneId || Sync.state().canNarrate;
 const lwOwns = actorId => lwCanNarrate() || currentHeroActor()?.id === actorId;
+const lwEntities = () => window.DAWN_LIONWING_ENTITIES;
+const lwEntityViewer = () => {
+  const sync = Sync?.state?.() || {};
+  const view = typeof activeSceneView === "function" ? activeSceneView() : (sync.canNarrate ? "gm" : "player");
+  const actor = currentHeroActor?.() || Scene.actors.find(item => item.id === sync.actorId);
+  return { role: view === "gm" ? "narrator" : "player", actorId: actor?.id || sync.actorId || null, userId: sync.userId || null };
+};
+const lwEntityName = entity => {
+  const owner = Scene.actors.find(actor => actor.id === entity?.ownerActorId);
+  return owner?.name || "Участник Сцены";
+};
+const lwEntityBacking = entity => {
+  const backing = entity?.backing;
+  if (!backing) return entity?.backingHidden ? "Backing скрыт правами проекции" : "Без backing";
+  const type = backing.type || (backing.actorId ? "actor" : backing.markerId ? "marker" : backing.objectId ? "object" : backing.areaId ? "area" : backing.wallId ? "wall" : "");
+  const id = backing.id || backing[`${type}Id`];
+  const collections = { actor: Scene.actors, marker: Scene.markers, object: Scene.objects, area: [...(Scene.areas || []), ...(Scene.objects || []).filter(item => item.type === "area")], wall: Scene.walls };
+  const item = (collections[type] || []).find(candidate => candidate?.id === id);
+  const typeNames = { actor: "участник", marker: "маркер", object: "объект", area: "область", wall: "Стена" };
+  return `${typeNames[type] || "ссылка"}${item?.name || item?.label ? ` · ${item.name || item.label}` : ""}`;
+};
+const lwEntityTechnical = entity => {
+  const backing = entity?.backing || {};
+  const source = entity?.source || {};
+  const refs = [entity?.id, entity?.ownerActorId, source.actorId || source.markerId || source.objectId || source.areaId || source.sceneId, backing.id || backing.actorId || backing.markerId || backing.objectId || backing.areaId || backing.wallId].filter(Boolean);
+  return refs.length ? `<details class="scene-entity-technical"><summary>Технические данные</summary><code>${refs.map(esc).join(" · ")}</code></details>` : "";
+};
+function renderLionwingEntities() {
+  const root = $("scene-entities");
+  if (!root || !lwActive()) return;
+  const api = lwEntities();
+  if (!api?.project) { root.innerHTML = `<p class="autosave" role="status">Реестр сущностей не загружен.</p>`; return; }
+  let projection;
+  try { projection = api.project(Scene, lwEntityViewer()); }
+  catch (error) { root.innerHTML = `<p class="autosave" role="status">Реестр сущностей пока недоступен: ${esc(error.message || error)}</p>`; return; }
+  const records = Array.isArray(projection?.entities) ? projection.entities : [];
+  const cards = records.map(entity => `<article class="scene-entity-card"><header><div><strong>${esc(entity.kind || "Сущность")}</strong><small>${esc(entity.lifecycle || "active")} · ${esc(lwEntityBacking(entity))}</small></div></header><dl><div><dt>Владелец</dt><dd>${esc(lwEntityName(entity))}</dd></div><div><dt>Видимость</dt><dd>${esc(entity.visibility || "public")}</dd></div><div><dt>Источник</dt><dd>${entity.sourceHidden ? "скрыт" : "указан"}</dd></div></dl>${lwEntityTechnical(entity)}</article>`).join("");
+  root.innerHTML = `<div class="scene-entities" aria-live="polite"><p class="scene-entities-intro">Показана проекция реестра, доступная текущему участнику Сцены.</p>${records.length ? `<div class="scene-entity-list">${cards}</div>` : `<p class="autosave">Доступных сущностей пока нет.</p>`}</div>`;
+}
 const lwFormDraft = new Map();
 const lwDraftKey=input=>{const attr=[...input.attributes].find(attr=>attr.name.startsWith("data-lw-"));return attr?attr.name+(attr.value?":"+attr.value:""):null;};
 let lwDraftEnabled=false,lwDraftBatch=null;
@@ -274,6 +313,7 @@ renderSceneDirector = function() {
   if (lwActive()) lwReconcileGeometryPreview();
   lwOldDirector();
   if (!lwActive()) return;
+  renderLionwingEntities();
   lwInstallGeometryPreviewGuard();
   const root = $("scene-director"), a = lwActor();
   if (!root || !a) return;
