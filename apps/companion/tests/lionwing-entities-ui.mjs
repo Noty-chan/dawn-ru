@@ -22,12 +22,13 @@ assert.match(index.slice(index.lastIndexOf("<section", entitiesPanelStart), enti
 assert.match(index.slice(index.lastIndexOf("<section", entitiesPanelStart), entitiesPanelEnd + "</section>".length), /<button type="button"[^>]*data-close-scene-panel[^>]*aria-label="Закрыть панель"/, "entities panel has a keyboard-close button");
 assert.ok(serviceWorker.indexOf('"./lionwing-entities.js"') >= 0, "service worker precaches the entities module");
 assert.ok(serviceWorker.indexOf('"./lionwing-entities.js"') < serviceWorker.indexOf('"./app-core.js"') && serviceWorker.indexOf('"./lionwing-entities.js"') < serviceWorker.indexOf('"./lionwing-ui.js"'), "service worker keeps entities before its consumers");
-assert.match(serviceWorker, /dev-20260908-lionwing-entities-ui-1/, "service worker cache revision covers the entities UI package");
+assert.match(serviceWorker, /dev-20260908-lionwing-family-integration-1/, "service worker cache revision covers the family integration package");
 
 const moduleContext = { window: {}, console };
 vm.createContext(moduleContext);
 vm.runInContext(entitiesSource, moduleContext, { filename: "lionwing-entities.js" });
 assert.ok(moduleContext.window.DAWN_LIONWING_ENTITIES?.project, "entities module installs its browser API");
+const Entities = moduleContext.window.DAWN_LIONWING_ENTITIES;
 
 const helperStart = uiSource.indexOf("const lwEntities = () =>");
 const helperEnd = uiSource.indexOf("const lwFormDraft =", helperStart);
@@ -37,19 +38,28 @@ assert.match(css, /\.scene-entity-card header strong\{[^}]*overflow-wrap:anywher
 
 const domRoot = { innerHTML: "" };
 const scene = {
-  actors: [{ id: "owner", name: "<Ворон & \"х\">" }],
-  markers: [{ id: "marker-1", label: "<Костёр &>" }],
+  rulesEdition: "lionwing",
+  version: 0,
+  actors: [{ id: "owner", name: "<Ворон & \"х\">", ownerId: "player-1" }],
+  markers: [{ id: "marker-1", label: "<Костёр &>", ownerActorId: "owner" }],
   objects: [],
   areas: [],
   walls: [],
+  lionwing: { entities: {}, entityReceipts: {} },
 };
 let view = "gm";
 let projectionMode = "full";
 const projectionCalls = [];
+const commitLabels = [];
+let generatedId = 0;
+let confirmed = true;
 const context = {
   console,
   window: {
     DAWN_LIONWING_ENTITIES: {
+      create: Entities.create,
+      destroy: Entities.destroy,
+      resolve: Entities.resolve,
       project(_scene, viewer) {
         projectionCalls.push({ ...viewer });
         assert.equal(viewer.role, view === "gm" ? "narrator" : "player");
@@ -62,6 +72,7 @@ const context = {
         return { entities: view === "gm" ? [publicEntity, ownerEntity, hiddenEntity] : [publicEntity, ownerEntity] };
       },
     },
+    confirm: () => confirmed,
   },
   Scene: scene,
   Sync: { state: () => ({ userId: "player-1" }) },
@@ -69,10 +80,18 @@ const context = {
   activeSceneView: () => view,
   lwActive: () => true,
   $: () => domRoot,
+  uid: () => `entity-ui-${++generatedId}`,
+  toast: message => message,
+  commitScene: (label, mutator) => {
+    commitLabels.push(label);
+    mutator(scene);
+    scene.version += 1;
+    return { scene };
+  },
   esc: value => String(value).replace(/[&<>"']/g, character => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[character])),
 };
 vm.createContext(context);
-vm.runInContext(`${uiSource.slice(helperStart, helperEnd)}\nthis.renderLionwingEntities = renderLionwingEntities;`, context, { filename: "lionwing-entities-ui.helpers.js" });
+vm.runInContext(`${uiSource.slice(helperStart, helperEnd)}\nthis.renderLionwingEntities = renderLionwingEntities;this.lwCreateEntity=lwCreateEntity;this.lwDestroyEntity=lwDestroyEntity;`, context, { filename: "lionwing-entities-ui.helpers.js" });
 
 const beforeRender = JSON.stringify(scene);
 context.renderLionwingEntities();
@@ -93,4 +112,33 @@ assert.match(domRoot.innerHTML, /Доступных сущностей пока 
 assert.deepEqual(JSON.parse(JSON.stringify(scene)), JSON.parse(beforeRender), "read-only rendering does not mutate the scene");
 assert.equal(projectionCalls.length, 3, "render asks the projection API for each view");
 
-console.log("LionWing entities UI loading and read-only projection passed");
+const values = { kind: "summon", owner: "owner", backing: "marker:marker-1", visibility: "public" };
+const form = { querySelector(selector) {
+  if (selector === "[data-lw-entity-kind]") return { value: values.kind };
+  if (selector === "[data-lw-entity-owner]") return { value: values.owner };
+  if (selector === "[data-lw-entity-backing]") return { value: values.backing };
+  if (selector === "[data-lw-entity-visibility]") return { value: values.visibility };
+  return null;
+} };
+view = "gm";
+projectionMode = "empty";
+confirmed = false;
+assert.equal(context.lwCreateEntity(form), false, "cancel does not commit a create");
+assert.deepEqual(Object.keys(scene.lionwing.entities), []);
+confirmed = true;
+assert.ok(context.lwCreateEntity(form)?.scene, "Narrator create uses the common Scene commit boundary");
+assert.deepEqual(Object.keys(scene.lionwing.entities), ["entity-ui-1"]);
+assert.equal(scene.lionwing.entities["entity-ui-1"].backing.markerId, "marker-1");
+assert.equal(scene.lionwing.entities["entity-ui-1"].backing.x, undefined, "entity does not copy backing coordinates");
+assert.equal(Entities.reload(JSON.parse(JSON.stringify(scene))).lionwing.entities["entity-ui-1"].id, "entity-ui-1", "created entity survives JSON reload");
+confirmed = false;
+assert.equal(context.lwDestroyEntity("entity-ui-1"), false, "cancel does not remove an entity");
+assert.ok(scene.lionwing.entities["entity-ui-1"]);
+confirmed = true;
+assert.ok(context.lwDestroyEntity("entity-ui-1")?.scene, "Narrator remove uses the common Scene commit boundary");
+assert.equal(scene.lionwing.entities["entity-ui-1"], undefined);
+assert.equal(commitLabels.length, 2, "only confirmed create and remove reach undo/log commit");
+view = "player";
+assert.equal(context.lwCreateEntity(form), "Эта операция доступна только Нарратору", "player cannot invoke mutations directly");
+
+console.log("LionWing entities UI loading, projection and Narrator create/remove commit passed");
