@@ -7,6 +7,12 @@
   const legacy = { ...global.DAWN_SCENE_ENGINE };
   const core = global.DAWN_LIONWING_DATA.coreRules;
   const foundations = global.DAWN_LIONWING_EXECUTION;
+  // The dice foundation is optional so the old single-event reducer remains
+  // byte-for-byte compatible in pages that have not loaded the new module yet.
+  const dice = global.DAWN_LIONWING_DICE || null;
+  const DICE_SCENE_ROLL_LIMIT = 128;
+  const DICE_SCENE_JOURNAL_LIMIT = 256;
+  let preparedSerial = 0;
   const copy = value => JSON.parse(JSON.stringify(value));
   const ids = legacy.ACTION_IDS;
   const actor = (scene, id) => (scene.actors || []).find(item => item.id === id);
@@ -15,6 +21,84 @@
   const live = a => a && !a.knockedOut;
   const distance = (a, b) => a.space === b.space ? Math.abs(a.x - b.x) + Math.abs(a.y - b.y) : Infinity;
   const fail = message => { throw new Error(message); };
+  const plain = value => Boolean(value && typeof value === "object" && !Array.isArray(value));
+  const diceAvailable = () => {
+    if (!dice || typeof dice.roll !== "function" || typeof dice.reload !== "function" || typeof dice.apply !== "function") fail("Модуль бросков LionWing недоступен");
+    return dice;
+  };
+  const diceSourcePresent = value => plain(value) && ["sourceFaces", "rawFaces", "rolls", "faces"].some(key => value[key] != null);
+  const diceRollId = (value, fallback = null) => {
+    if (!plain(value)) return fallback;
+    return value.rollId ?? value.id ?? value.rollEventId ?? fallback;
+  };
+  const diceRequest = (value, fallbackId, ownerActorId = null, kind = null) => {
+    if (!plain(value)) return value;
+    const request = { ...value };
+    if (Object.hasOwn(request, "random")) fail("Авторитетная случайность передаётся только сервером");
+    if (kind && request.kind == null && request.rollKind == null) request.kind = kind;
+    if (request.id == null && request.rollId == null && request.rollEventId == null && fallbackId != null) request.id = fallbackId;
+    if (ownerActorId != null && request.ownerActorId == null) request.ownerActorId = ownerActorId;
+    return request;
+  };
+  const diceRulesFromPayload = value => {
+    if (!plain(value) || !plain(value.dice)) return value;
+    const metadata = value.dice;
+    const result = { ...value };
+    if (result.kind == null && metadata.kind != null) result.kind = metadata.kind;
+    if (result.rollKind == null && metadata.rollKind != null) result.rollKind = metadata.rollKind;
+    if (result.successAt == null && (metadata.successAt != null || metadata.threshold != null)) result.successAt = metadata.successAt ?? metadata.threshold;
+    if (result.criticalAt == null && (metadata.criticalAt != null || metadata.critAt != null)) result.criticalAt = metadata.criticalAt ?? metadata.critAt;
+    if (result.explode == null && metadata.explode != null) result.explode = metadata.explode;
+    return result;
+  };
+  const inferDicePool = value => {
+    value = diceRulesFromPayload(value);
+    if (!plain(value) || value.pool != null || value.initialCount != null) return value;
+    const match = typeof value.formula === "string" ? value.formula.match(/^\s*(\d+)\s*D6\b/i) : null;
+    return match ? { ...value, pool: Number(match[1]), initialCount: Number(match[1]) } : value;
+  };
+  function createDiceRoll(value = {}, options = {}) {
+    const api = diceAvailable();
+    const input = inferDicePool(diceRequest(value, options.rollId ?? options.id ?? "roll:anonymous", options.ownerActorId ?? null));
+    if (diceSourcePresent(input)) return api.create(input);
+    const request = { ...input };
+    delete request.random;
+    return api.roll(request, { random: options.random });
+  }
+  function applyDiceRoll(value, operation, context = null) {
+    return diceAvailable().apply(value, operation, context);
+  }
+  function reloadDiceRoll(value) {
+    return diceAvailable().reload(value);
+  }
+  function opposedDiceRoll(value = {}, options = {}) {
+    const api = diceAvailable();
+    const input = diceRequest(value, options.opposedId ?? options.rollId ?? options.id ?? "opposed:anonymous", options.ownerActorId ?? null);
+    return api.opposed(input, { random: options.random });
+  }
+  function validateDiceSceneState(s) {
+    if (!dice) return;
+    if (s.diceRolls == null) s.diceRolls = {};
+    if (!plain(s.diceRolls)) fail("Реестр бросков LionWing имеет неподдерживаемый формат");
+    const rollEntries = Object.entries(s.diceRolls);
+    if (rollEntries.length > DICE_SCENE_ROLL_LIMIT) fail("Сцена содержит слишком много сохранённых бросков");
+    for (const [rollId, saved] of rollEntries) {
+      const normalized = reloadDiceRoll(saved);
+      if (normalized.id !== rollId) fail("ID сохранённого броска не совпадает с ключом реестра");
+      s.diceRolls[rollId] = normalized;
+    }
+    if (s.diceOpposed == null) s.diceOpposed = {};
+    if (!plain(s.diceOpposed)) fail("Реестр встречных бросков LionWing имеет неподдерживаемый формат");
+    const opposedEntries = Object.entries(s.diceOpposed);
+    if (opposedEntries.length > DICE_SCENE_ROLL_LIMIT) fail("Сцена содержит слишком много встречных бросков");
+    for (const [opposedId, saved] of opposedEntries) {
+      const normalized = reloadDiceRoll(saved);
+      if (normalized.id !== opposedId || normalized.kind !== "opposed") fail("ID сохранённой встречной проверки не совпадает с ключом реестра");
+      s.diceOpposed[opposedId] = normalized;
+    }
+    if (s.diceJournal == null) s.diceJournal = [];
+    if (!Array.isArray(s.diceJournal) || s.diceJournal.length > DICE_SCENE_JOURNAL_LIMIT) fail("Журнал бросков LionWing имеет неподдерживаемый размер");
+  }
   const integer = (value, label, max = 9999) => {
     if (!Number.isSafeInteger(value) || value < 0 || value > max) fail(`Некорректное значение: ${label}`);
     return value;
@@ -36,6 +120,7 @@
     if(s.lastTeam===undefined){const last=(scene.log||[]).find(e=>e.type==="turn.end");s.lastTeam=actor(scene,last?.actorId)?.team||null;}
     const migrateHistory=!Array.isArray(s.history);
     for(const key of ["choices","deferred","receipts","history"])if(!Array.isArray(s[key]))s[key]=[];
+    validateDiceSceneState(s);
     s.sceneSerial=Number.isSafeInteger(s.sceneSerial)&&s.sceneSerial>0?s.sceneSerial:1;
     s.chapterSerial=Number.isSafeInteger(s.chapterSerial)&&s.chapterSerial>0?s.chapterSerial:1;
     for (const participant of scene.actors || []) normalizeTurnCounters(participant, scene);
@@ -425,6 +510,15 @@
   }
 
   function roll(count, random = Math.random, options = {}) {
+    if (dice) {
+      const kind = options.kind || options.rollKind || "check";
+      const rollId = options.rollId ?? options.id ?? options.rollEventId ?? "roll:anonymous";
+      const request = { id: rollId, kind, pool: count, successAt: options.successAt ?? 4, criticalAt: options.criticalAt ?? options.critAt ?? 6, explode: kind === "raw-d6" ? false : options.explode !== false };
+      for (const key of ["formula", "rootActionId", "actionId", "actionDefinitionId", "actionInstanceId", "causeEventId", "ownerActorId", "provenance"]) {
+        if (options[key] != null) request[key] = copy(options[key]);
+      }
+      return dice.roll(request, { random });
+    }
     const critAt=options.critAt??6,explode=options.kind==="raw-d6"?false:options.explode!==false;if(![5,6].includes(critAt))fail("Критический успех: 5+ или 6");
     integer(count, "число костей", 100);
     const rolls = [], queue = Array(count).fill(0);
@@ -438,7 +532,12 @@
     return foundations.normalizeRoll({ initialCount: count, sourceFaces: rolls }, { kind: options.kind || "check", criticalAt: critAt, successAt: options.successAt ?? 4, explode });
   }
 
-  function validateRoll(value) {
+  function validateRoll(value, options = {}) {
+    if (dice) {
+      const fallbackId = options.rollId ?? options.id ?? null;
+      const input = inferDicePool(diceRequest(value, fallbackId, options.ownerActorId ?? null));
+      return reloadDiceRoll(input);
+    }
     return foundations.normalizeRoll(value, { kind: value?.kind || "check", criticalAt: value?.rules?.criticalAt ?? value?.critAt ?? 6, successAt: value?.rules?.successAt ?? 4, explode: value?.rules?.explode ?? value?.explode !== false, modifications: value?.modifications || [] });
   }
 
@@ -523,14 +622,16 @@
 
   function prepare(scene, request, options = {}) {
     try {
+      const eventId = request?.eventId ?? request?.commandId ?? request?.id ?? global.crypto?.randomUUID?.() ?? `lw-prepared-${Date.now()}-${preparedSerial++}`;
       const payload = copy(request), a = ["scene-reset","round-end","tension","note"].includes(payload.kind)&&!payload.actorId?null:requiredActor(scene, payload.actorId, !["choice", "correct", "resolve-attack", "cancel-attack", "batch"].includes(payload.kind));
+      const rollMeta = (extra = {}) => ({ rootActionId: eventId, actionInstanceId: eventId, causeEventId: eventId, ownerActorId: a?.id || null, ...extra });
       delete payload.actorId;
       if (payload.kind === "action") {
         const def = actionDef(payload.actionId);
         if (!def) fail("Базовое действие не найдено");
         const status = actionStatus(scene, a, def, payload);
         if (!status.available) fail(status.reason);
-        if ([ids.charge, ids.spell, ids.skirmish, ids.finish].includes(def.id) && !payload.roll){const pools=attackPools(scene,a,def,payload);payload.roll=roll(pools.base,options.random);payload.targetRolls={};for(const[id,count]of Object.entries(pools.counts))if(count>pools.base)payload.targetRolls[id]=roll(count-pools.base,options.random);}
+        if ([ids.charge, ids.spell, ids.skirmish, ids.finish].includes(def.id) && !payload.roll){const pools=attackPools(scene,a,def,payload);payload.roll=roll(pools.base,options.random,rollMeta({rollId:`${eventId}:roll`,kind:"check",actionId:def.id,actionDefinitionId:def.id}));payload.targetRolls={};let targetRollSerial=0;for(const[id,count]of Object.entries(pools.counts))if(count>pools.base)payload.targetRolls[id]=roll(count-pools.base,options.random,rollMeta({rollId:`${eventId}:target:${targetRollSerial++}`,kind:"check",actionId:def.id,actionDefinitionId:def.id}));}
       }
       const preparedOperations=["plan","batch"].includes(payload.kind)?payload.operations:[payload];
       if(Array.isArray(preparedOperations))for(const operation of preparedOperations.filter(item=>item?.kind==="geometry-move"&&!item.geometryPlan)){
@@ -541,28 +642,28 @@
         if(!planned.available)fail(planned.reason);operation.geometryPlan=planned.plan;
       }
       if (payload.kind === "plan" && !payload.reservation) payload.reservation = costQuote(scene, a.id, payload.costs, payload.targetIds || []);
-      if (payload.kind === "roll" && !payload.roll) payload.roll = roll(integer(payload.count, "число костей", 100), options.random, { ...payload, kind: payload.rollKind || "check" });
+      if (payload.kind === "roll" && !payload.roll) payload.roll = roll(integer(payload.count, "число костей", 100), options.random, { ...payload, ...rollMeta({ rollId: payload.rollId || payload.id || `${eventId}:roll`, kind: payload.rollKind || "check" }), kind: payload.rollKind || "check" });
       if (payload.kind === "reaction" && payload.choice === "clash" && !payload.roll) {
         const source = requiredActor(scene, scene.pendingAction?.actorId);
-        payload.roll = roll(3 + Number(a.tier || 1), options.random);
-        payload.opponentRoll = roll(3 + Number(source.tier || 1), options.random);
+        payload.roll = roll(3 + Number(a.tier || 1), options.random, rollMeta({ rollId: `${eventId}:reaction`, kind: "check" }));
+        payload.opponentRoll = roll(3 + Number(source.tier || 1), options.random, { ...rollMeta({ rollId: `${eventId}:reaction-opponent`, kind: "check", ownerActorId: source.id }), ownerActorId: source.id });
       }
       if(payload.kind==="choice"&&payload.choice==="reroll"&&scene.lionwing?.choices?.[0]?.kind==="clash-loss"){
         const source=requiredActor(scene,scene.pendingAction?.actorId);
-        payload.roll=roll(3+Number(a.tier||1),options.random);payload.opponentRoll=roll(3+Number(source.tier||1),options.random);
+        payload.roll=roll(3+Number(a.tier||1),options.random,rollMeta({rollId:`${eventId}:reroll`,kind:"check"}));payload.opponentRoll=roll(3+Number(source.tier||1),options.random,{...rollMeta({rollId:`${eventId}:reroll-opponent`,kind:"check",ownerActorId:source.id}),ownerActorId:source.id});
       }
-      if(payload.kind==="punish"&&!payload.roll)payload.roll=roll(Math.max(Number(a.attrs.body||0),Number(a.attrs.talent||0)),options.random);
-      const events = [{ ...command(a?.id||null, payload), id: global.crypto?.randomUUID?.() || `lw-${Date.now()}-${Math.random().toString(36).slice(2)}` }], preview = previewEvents(scene, events);
+      if(payload.kind==="punish"&&!payload.roll)payload.roll=roll(Math.max(Number(a.attrs.body||0),Number(a.attrs.talent||0)),options.random,rollMeta({rollId:`${eventId}:punish`,kind:"check"}));
+      const events = [{ ...command(a?.id||null, payload), id: eventId }], preview = previewEvents(scene, events);
       return preview.ok ? { ...preview, events } : preview;
     } catch (error) { return { ok: false, errors: [error.message] }; }
   }
 
   // Operations use typed data, stable source ids, and explicit phase lifetimes.
   // Techniques may compose these operations without registering imperative code.
-  function execute(scene, event, output) {
+  function execute(scene, event, output, executionOptions = {}) {
     const s = state(scene), rootId = event.id, emitted = [];
     const scheduled = [];
-    let frameSerial = 0, choiceSerial = 0, historySerial = 0, provenance = null;
+    let frameSerial = 0, choiceSerial = 0, historySerial = 0, rollSerial = 0, provenance = null;
     let executionCursor = s.executionCursor ? foundations.openCursor(s.executionCursor) : null, completedSteps = 0, completedResults = [];
     const cursorSource = items => {
       const item = (items || []).find(entry => entry?.provenance?.rootActionId || entry?.__execution?.rootActionId || entry?.p?.__execution?.rootActionId || entry?.sourceId || entry?.p?.sourceActorId);
@@ -649,6 +750,92 @@
       else if (type === "counter.threshold") saveFact("counter.threshold", actorId, targets, { counterId: payload.counterId || payload.id, kind: payload.kind || payload.type, before: payload.before, value: payload.value, threshold: payload.threshold });
       else if (type === "attack.clear" && payload.cancelled) saveFact("cancel", actorId, targets, { reason: payload.reason || "cancelled" });
       return row;
+    };
+    const diceRequestFromPayload = (p, fallbackId, kind, ownerActorId = null) => {
+      let input;
+      if (p.request !== undefined) input = p.request;
+      else if (p.roll !== undefined) input = p.roll;
+      else if (p.opposed !== undefined) input = p.opposed;
+      else {
+        input = {};
+        const reserved = new Set(["kind", "request", "roll", "opposed", "operation", "modification", "rollId", "baseRollId", "opposedId", "operationId", "sourceActorId"]);
+        for (const [key, value] of Object.entries(p || {})) if (!reserved.has(key)) input[key] = copy(value);
+        input.kind = p.diceKind || p.rollKind || kind;
+      }
+      if (!plain(input)) return input;
+      const request = copy(input);
+      if (request.id == null && request.rollId == null && request.rollEventId == null) request.id = fallbackId;
+      if (request.kind == null && request.rollKind == null) request.kind = kind;
+      if (ownerActorId != null && request.ownerActorId == null) request.ownerActorId = ownerActorId;
+      if (request.rootActionId == null) request.rootActionId = provenance?.rootActionId || rootId;
+      if (request.actionInstanceId == null) request.actionInstanceId = provenance?.actionInstanceId || rootId;
+      if (request.causeEventId == null) request.causeEventId = rootId;
+      return request;
+    };
+    const diceOwnerCheck = (result, sourceId, label = "Бросок") => {
+      const owner = result?.ownerActorId ?? result?.provenance?.ownerActorId;
+      if (owner && event.actorId && owner !== event.actorId) fail(`${label} принадлежит другому участнику`);
+      if (owner && sourceId && owner !== sourceId) fail(`${label} принадлежит другому участнику`);
+      if (!owner && (event.actorId || sourceId) && event.actorId !== "scene" && sourceId !== "scene") fail(`${label} не имеет владельца-участника`);
+    };
+    const diceJournal = (kind, result, operationId = null) => {
+      if (!Array.isArray(s.diceJournal)) s.diceJournal = [];
+      const duplicate = s.diceJournal.find(entry => entry.rollId === result.id && entry.kind === kind && entry.revision === result.revision && (operationId == null ? entry.operationId == null : entry.operationId === operationId));
+      if (duplicate) return duplicate;
+      if (s.diceJournal.length >= DICE_SCENE_JOURNAL_LIMIT) fail("Журнал бросков LionWing достиг лимита");
+      const entry = { id: `${rootId}:dice:${s.diceJournal.length}`, eventId: rootId, kind, rollId: result.id, operationId, revision: result.revision, at: event.at };
+      s.diceJournal.push(entry);
+      return entry;
+    };
+    const storeDiceRoll = (result, allowRestore = false) => {
+      const current = s.diceRolls[result.id];
+      if (current) {
+        const normalized = reloadDiceRoll(current);
+        if (JSON.stringify(normalized) !== JSON.stringify(result)) {
+          if (!allowRestore) fail(`Конфликт ID броска: ${result.id}`);
+          s.diceRolls[result.id] = copy(result);
+          return result;
+        }
+        return normalized;
+      }
+      if (Object.keys(s.diceRolls).length >= DICE_SCENE_ROLL_LIMIT) fail("Реестр бросков LionWing достиг лимита");
+      s.diceRolls[result.id] = copy(result);
+      return result;
+    };
+    const storeOpposed = (result, allowRestore = false) => {
+      const current = s.diceOpposed[result.id];
+      if (current) {
+        const normalized = reloadDiceRoll(current);
+        if (JSON.stringify(normalized) !== JSON.stringify(result)) {
+          if (!allowRestore) fail(`Конфликт ID встречной проверки: ${result.id}`);
+          s.diceOpposed[result.id] = copy(result);
+          return result;
+        }
+        return normalized;
+      }
+      if (Object.keys(s.diceOpposed).length >= DICE_SCENE_ROLL_LIMIT) fail("Реестр встречных бросков LionWing достиг лимита");
+      s.diceOpposed[result.id] = copy(result);
+      return result;
+    };
+    const diceOperationFromPayload = p => {
+      if (p.operation && plain(p.operation)) return copy(p.operation);
+      if (p.modification && plain(p.modification)) return copy(p.modification);
+      const reserved = new Set(["kind", "rollId", "baseRollId", "roll", "request", "sourceActorId"]);
+      const operation = {};
+      for (const [key, value] of Object.entries(p || {})) if (!reserved.has(key)) operation[key] = copy(value);
+      if (operation.kind == null) operation.kind = p.operationKind;
+      return operation;
+    };
+    const diceParticipantRequest = (p, fallbackId) => {
+      const input = diceRequestFromPayload(p, fallbackId, "opposed", null);
+      if (plain(input) && Array.isArray(input.participants) && event.actorId) {
+        input.participants = input.participants.map((participant, index) => {
+          const side = copy(participant);
+          if (side.ownerActorId == null && (index === 0 || side.participantId === event.actorId || side.actorId === event.actorId)) side.ownerActorId = event.actorId;
+          return side;
+        });
+      }
+      return input;
     };
     const mutateCounter = (p, sourceId, forcedType = null, forcedOperation = null) => {
       const a = sourceId ? requiredActor(scene, sourceId, false) : null;
@@ -1073,7 +1260,9 @@
       for (const reminder of scene.reminders || []) if (!reminder.resolved && reminder.boundary === boundary && (!reminder.ownerActorId || reminder.ownerActorId === owner?.id)) reminder.due = true;
     };
     const publishRoll = (a, value, label) => {
-      const result = validateRoll(value);
+      const fallbackId = `${rootId}:roll:${rollSerial++}`;
+      const result = validateRoll(value, { rollId: fallbackId, ownerActorId: a?.id ?? null });
+      if (dice && a?.id) diceOwnerCheck(result, a.id, "Бросок");
       const row = emit("roll.public", a.id, { ...result, name: label, actorName: a.name });
       scene.rollFeed ||= []; scene.rollFeed.unshift({ id: row.id, actorId: a.id, actor: a.name, ...result, outcome: label, visibility: event.visibility || "public" }); scene.rollFeed = scene.rollFeed.slice(0, 40);
       return result;
@@ -1314,6 +1503,79 @@
         case "configure-resource": {
           if (resources.has(p.id)) fail("ID совпадает со встроенным показателем");
           mutateCounter(p, sourceId, "resource", Object.hasOwn(a.ruleResources || {}, p.id) ? "configure" : "create");
+          break;
+        }
+        case "dice-create": {
+          if (!dice) fail("Модуль бросков LionWing недоступен");
+          const request = diceRequestFromPayload(p, p.rollId || `${rootId}:roll`, p.rollKind || p.diceKind || "check", sourceId);
+          const result = storeDiceRoll(createDiceRoll(request, { random: executionOptions.random }));
+          diceOwnerCheck(result, sourceId, "Создание броска");
+          diceJournal("create", result);
+          emit("dice.create", sourceId, { rollId: result.id, roll: result });
+          break;
+        }
+        case "dice-apply": {
+          if (!dice) fail("Модуль бросков LionWing недоступен");
+          const rollId = p.rollId || p.baseRollId || p.roll?.id;
+          if (typeof rollId !== "string" || !rollId) fail("Изменение броска требует ID сохранённого броска");
+          const base = s.diceRolls[rollId];
+          if (!base) fail("Сохранённый бросок не найден");
+          diceOwnerCheck(base, sourceId, "Изменение броска");
+          const operation = diceOperationFromPayload(p);
+          const suppliedProvenance = plain(operation.provenance) ? operation.provenance : {};
+          const suppliedRoot = operation.rootActionId ?? suppliedProvenance.rootActionId;
+          const suppliedInstance = operation.actionInstanceId ?? suppliedProvenance.actionInstanceId;
+          if (suppliedRoot != null && suppliedRoot !== base.provenance?.rootActionId) fail("Операция относится к другому rootAction");
+          if (suppliedInstance != null && suppliedInstance !== base.provenance?.actionInstanceId) fail("Операция относится к другому экземпляру действия");
+          const previousOperation = (base.operations || []).find(item => item.id === operation.id);
+          const result = applyDiceRoll(base, operation, {
+            rootActionId: suppliedRoot ?? base.provenance?.rootActionId,
+            actionInstanceId: suppliedInstance ?? base.provenance?.actionInstanceId,
+            causeEventId: operation.causeEventId ?? suppliedProvenance.causeEventId ?? previousOperation?.provenance?.causeEventId ?? rootId,
+            ownerActorId: operation.ownerActorId ?? suppliedProvenance.ownerActorId ?? base.ownerActorId ?? sourceId ?? null,
+          });
+          storeDiceRoll(result, true);
+          diceJournal("apply", result, result.operations.at(-1)?.id || operation.id || null);
+          emit("dice.apply", sourceId, { rollId: result.id, operation: result.operations.at(-1), roll: result });
+          break;
+        }
+        case "dice-reload": {
+          if (!dice) fail("Модуль бросков LionWing недоступен");
+          const rollId = p.rollId || p.baseRollId || p.roll?.id || p.snapshot?.id;
+          const saved = p.snapshot ?? p.roll ?? (rollId && s.diceRolls[rollId] ? s.diceRolls[rollId] : null);
+          if (!saved) fail("Перезагрузка броска требует JSON-снимок");
+          const result = reloadDiceRoll(saved);
+          if (result.kind === "opposed") {
+            diceOwnerCheck(result.leftRoll, sourceId, "Перезагрузка встречной проверки");
+            storeOpposed(result, true);
+          } else {
+            diceOwnerCheck(result, sourceId, "Перезагрузка броска");
+            storeDiceRoll(result, true);
+          }
+          diceJournal("reload", result);
+          emit("dice.reload", sourceId, { rollId: result.id, kind: result.kind, roll: result });
+          break;
+        }
+        case "dice-opposed": {
+          if (!dice) fail("Модуль бросков LionWing недоступен");
+          const request = diceParticipantRequest(p, p.opposedId || `${rootId}:opposed`);
+          const result = storeOpposed(opposedDiceRoll(request, { random: executionOptions.random }));
+          const owners = (result.participants || []).map(participant => participant.ownerActorId).filter(Boolean);
+          if (sourceId && owners.length && !owners.includes(sourceId)) fail("Встречная проверка принадлежит другому участнику");
+          diceJournal("opposed", result);
+          emit("dice.opposed", sourceId, { opposedId: result.id, opposed: result });
+          break;
+        }
+        case "dice-resolve-tie": {
+          if (!dice) fail("Модуль бросков LionWing недоступен");
+          if (sourceId) fail("Ничью встречной проверки разрешает только Нарратор");
+          const opposedId = p.opposedId || p.id;
+          if (typeof opposedId !== "string" || !opposedId) fail("Разрешение ничьей требует ID встречной проверки");
+          const current = s.diceOpposed[opposedId];
+          if (!current) fail("Встречная проверка не найдена");
+          const result = storeOpposed(dice.resolveTie(current, p.resolution ?? p.choice), true);
+          diceJournal("tie", result, p.operationId || null);
+          emit("dice.tie.resolve", null, { opposedId: result.id, resolution: result.resolution, opposed: result });
           break;
         }
         case "counter": {
@@ -1613,7 +1875,8 @@
         "actor.heal": { kind: "heal", ...p }, "actor.wound": { kind: "wound", ...p }, "actor.knockout": { kind: "knockout", ...p },
         "resource.gain": { kind: "resource", operation: "gain", ...p }, "resource.spend": { kind: "resource", operation: "spend", ...p },
         "effect.apply": { kind: "effect", ...p }, "effect.remove": { kind: "effect", ...p, remove: true },
-        "actor.move": { kind: "move", ...p, maximum: p.maximum ?? 99 }, "actor.enter": { kind: "note", note: "Вход в клетку" }
+        "actor.move": { kind: "move", ...p, maximum: p.maximum ?? 99 }, "actor.enter": { kind: "note", note: "Вход в клетку" },
+        "roll.public": { kind: "roll", roll: p, label: p.label || p.outcome || "Бросок" }
       };
       request = mapped[event.type];
       if (!request) fail(`Событие ${event.type} не перенесено в LionWing`);
@@ -1704,6 +1967,7 @@
 
   const sharedTypes = new Set(["movement-traces.clear", "topology.cells.remove", "topology.cells.restore", "roll.public", "challenge.request", "challenge.clear", "opposed.request", "opposed.reroll", "opposed.tie.resolve", "opposed.clear", "rule.share", "session-clock.create", "session-clock.set", "session-clock.add", "session-clock.reset", "session-clock.rename", "session-clock.kind", "session-clock.size", "session-clock.remove", "reminder.create", "reminder.due", "reminder.resolve", "reminder.remove", "actor.spawn", "actor.despawn", "area.create", "area.remove", "area.duration", "object.damage", "object.restore", "wall.create", "wall.damage", "wall.restore", "wall.remove", "marker.create", "marker.move", "marker.remove", "marker.duration", "targets.set", "space.ensure", "space.remove"]);
   function dispatchMany(scene, events, options = {}) {
+    if (!isScene(scene)) return legacy.dispatchMany(scene, events, options);
     if (!Array.isArray(events) || !events.length || events.length > 192) fail("Некорректный пакет событий");
     if (options.expectedVersion !== undefined && Number(options.expectedVersion) !== Number(scene.version || 0)) {
       if(events.every(event=>event?.id&&(scene.lionwing?.receipts||[]).some(receipt=>receipt.id===event.id&&receipt.fingerprint===JSON.stringify([event.type,event.actorId||null,event.payload||{}]))))return {scene:copy(scene),events:[],event:null};
@@ -1712,9 +1976,20 @@
     let next = copy(scene); next.rulesEdition = "lionwing"; next.log ||= []; state(next);
     const output = [];
     for (const raw of events) {
-      const event = { ...copy(raw), id: raw.id || global.crypto?.randomUUID?.() || `lw-${Date.now()}-${Math.random().toString(36).slice(2)}`, at: raw.at || new Date().toISOString(), payload: copy(raw.payload || {}) };
-      if(!event.visibility&&actor(next,event.actorId)?.hidden)event.visibility="gm";
+      let event = { ...copy(raw), id: raw.id || global.crypto?.randomUUID?.() || `lw-${Date.now()}-${Math.random().toString(36).slice(2)}`, at: raw.at || new Date().toISOString(), payload: copy(raw.payload || {}) };
       const fingerprint = JSON.stringify([event.type, event.actorId || null, event.payload]);
+      if(!event.visibility&&actor(next,event.actorId)?.hidden)event.visibility="gm";
+      // Keep the legacy public-roll reducer as the source of challenge and
+      // opposed-roll state transitions, while validating the dice projection
+      // through the authoritative foundation first. Derived counters sent by
+      // a client are replaced by values recomputed from the source faces.
+      if (dice && event.type === "roll.public") {
+        const normalized = validateRoll(event.payload, { rollId: event.id, ownerActorId: event.actorId ?? null });
+        const owner = normalized.ownerActorId ?? normalized.provenance?.ownerActorId;
+        if (event.actorId && owner && owner !== event.actorId) fail("Публичный бросок принадлежит другому участнику");
+        if (normalized.successes == null || normalized.crits == null) fail("Публичный бросок должен иметь Успехи и Криты");
+        event = { ...event, payload: { ...event.payload, formula: event.payload.formula ?? normalized.formula, rolls: copy(normalized.rolls), successes: normalized.successes, crits: normalized.crits } };
+      }
       const receipt = state(next).receipts.find(r => r.id === event.id);
       if (receipt) { if (receipt.fingerprint !== fingerprint) fail("Конфликт ID события"); continue; }
       if (sharedTypes.has(event.type)) {
@@ -1727,7 +2002,7 @@
         const result = legacy.dispatch(next, event); next = result.scene; output.push(result.event);
         const lostSourceId=event.type==="marker.remove"?event.payload?.markerId:event.type==="actor.despawn"?event.actorId||event.payload?.actorId:null;
         removeAurasForLostSource(next,lostSourceId);
-      } else { execute(next, event, output); next.version = Number(next.version || 0) + 1; }
+      } else { execute(next, event, output, options); next.version = Number(next.version || 0) + 1; }
       state(next).receipts.push({ id: event.id, fingerprint }); state(next).receipts = state(next).receipts.slice(-256);
     }
     return { scene: next, events: output, event: output[output.length - 1] };
@@ -1740,11 +2015,16 @@
     schema: 2, isScene, prepare, command, dispatchMany, previewEvents,
     turnStartStatus, roundEndStatus, turnIdentity,
     movement, roll, actionStatus, actionDef, speed, balance, canSpend, targetIds, costQuote,
+    createDiceRoll, createRoll: createDiceRoll, diceCreate: createDiceRoll,
+    applyDiceRoll, applyRoll: applyDiceRoll, diceApply: applyDiceRoll,
+    reloadDiceRoll, reloadRoll: reloadDiceRoll, diceReload: reloadDiceRoll,
+    opposedDiceRoll, opposedRoll: opposedDiceRoll, diceOpposed: opposedDiceRoll,
+    resolveDiceTie: (value, resolution) => diceAvailable().resolveTie(value, resolution),
     historyStatus, effectInstanceStatus, activeState, auraRecord, auraStatus, lifetimeExpired,
     lifetimeBoundary: foundations.lifetimeBoundary,
     normalizeLifetime: foundations.normalizeLifetime,
     isLifetimeExpired: foundations.lifetimeExpired,
-    operations: ["automation", "plan", "batch", "pause-chain", "resume-chain", "amend-attack", "recover-track", "record-action", "action", "attack", "damage", "spend-health", "lose-health", "heal", "wound", "stress", "knockout", "resource", "correct", "effect", "effect-source", "aura", "aura-create", "aura-update", "aura-suppress", "aura-restore", "aura-remove", "move", "geometry-move", "geometry-segment", "modifier", "allow-action", "grant-turn", "usage", "punish", "invisible", "search", "configure-resource", "counter", "clock", "prompt", "choice", "roll", "reaction", "resolve-attack", "cancel-attack", "turn-start", "turn-end", "round-end", "scene-reset", "chapter-start", "tension", "note"]
+    operations: ["automation", "plan", "batch", "pause-chain", "resume-chain", "amend-attack", "recover-track", "record-action", "action", "attack", "damage", "spend-health", "lose-health", "heal", "wound", "stress", "knockout", "resource", "correct", "effect", "effect-source", "aura", "aura-create", "aura-update", "aura-suppress", "aura-restore", "aura-remove", "move", "geometry-move", "geometry-segment", "modifier", "allow-action", "grant-turn", "usage", "punish", "invisible", "search", "configure-resource", "dice-create", "dice-apply", "dice-reload", "dice-opposed", "dice-resolve-tie", "counter", "clock", "prompt", "choice", "roll", "reaction", "resolve-attack", "cancel-attack", "turn-start", "turn-end", "round-end", "scene-reset", "chapter-start", "tension", "note"]
   };
   global.DAWN_LIONWING_ENGINE = api;
   const routed = global.DAWN_SCENE_ENGINE;
