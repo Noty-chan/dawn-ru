@@ -24,6 +24,87 @@
   const scopes = new Set(["rootAction", "action", "ownerTurn", "anyTurn", "round", "scene", "chapter"]);
   const factTypes = new Set(["attempt", "apply", "hit", "damage", "healthLoss", "heal", "wound", "knockout", "spend", "gain", "preventedGain", "roll", "cancel", "counter.threshold"]);
   const rollKinds = new Set(["check", "opposed", "raw-d6"]);
+  const lifetimeNames = new Set(["default", "startTurn", "endTurn", "nextTurn", "roundEnd", "scene", "persistent", "manual", "turn", "round", "chapter", "session"]);
+  const lifetimeBoundaries = new Set(["startNextOwnerTurn", "endNextOwnerTurn"]);
+  const boundaryPhases = new Set(["start", "end"]);
+
+  // A lifetime boundary is data, rather than an implicit comparison against
+  // the scene-wide turnSerial.  The owner serial is the number of the owner's
+  // own started Turns at the moment the lifetime is created.  Consequently a
+  // source can remain active through any number of other participants' Turns.
+  const normalizeBoundaryName = value => {
+    const aliases = {
+      "start-next-owner-turn": "startNextOwnerTurn",
+      "end-next-owner-turn": "endNextOwnerTurn",
+      "nextOwnerTurnStart": "startNextOwnerTurn",
+      "nextOwnerTurnEnd": "endNextOwnerTurn",
+      "ownerTurnStart": "startNextOwnerTurn",
+      "ownerTurnEnd": "endNextOwnerTurn",
+      "startNextTurn": "startNextOwnerTurn",
+      "endNextTurn": "endNextOwnerTurn",
+      "turn-start": "start",
+      "turn-end": "end",
+    };
+    return aliases[value] || value;
+  };
+  const normalizeBoundaryPhase = value => ({ startTurn: "start", endTurn: "end", "turn-start": "start", "turn-end": "end", startNextOwnerTurn: "start", endNextOwnerTurn: "end" }[value] || value);
+  const optionalSerial = (value, label, fallback = null) => {
+    if (value == null) return fallback;
+    return serial(value, label);
+  };
+
+  function lifetimeBoundary(value, defaults = {}) {
+    if (value == null) return null;
+    const raw = typeof value === "string" ? { boundary: value } : value;
+    if (!plain(raw)) reject("Граница срока должна быть объектом или строкой");
+    const boundary = normalizeBoundaryName(raw.boundary ?? raw.kind ?? raw.phase);
+    if (!lifetimeBoundaries.has(boundary)) reject("Неизвестная граница срока");
+    const ownerActorId = raw.ownerActorId ?? raw.boundaryOwnerId ?? defaults.ownerActorId;
+    if (typeof ownerActorId !== "string" || !ownerActorId || ownerActorId.length > 180) reject("Границе срока нужен владелец Хода");
+    const ownerTurnSerial = optionalSerial(raw.ownerTurnSerial ?? raw.serial ?? raw.turnSerial ?? defaults.ownerTurnSerial, "номер собственного Хода");
+    if (ownerTurnSerial == null) reject("Границе срока нужен номер собственного Хода");
+    const sceneSerial = optionalSerial(raw.sceneSerial ?? defaults.sceneSerial, "Сцена", 1);
+    const ownerTurnInstanceId = raw.ownerTurnInstanceId ?? raw.turnInstanceId ?? defaults.ownerTurnInstanceId ?? null;
+    if (ownerTurnInstanceId != null) id(ownerTurnInstanceId, "экземпляр собственного Хода");
+    return copy({ schema: 1, kind: "turn-boundary", boundary, ownerActorId, ownerTurnSerial, ownerTurnKey: `${sceneSerial}:${ownerActorId}:${ownerTurnSerial}`, sceneSerial, ownerTurnInstanceId });
+  }
+
+  function normalizeLifetime(value, defaults = {}) {
+    if (value == null) return null;
+    if (typeof value === "string") {
+      if (!lifetimeNames.has(value) && !lifetimeBoundaries.has(normalizeBoundaryName(value))) reject("Неизвестный срок жизни");
+      if (lifetimeBoundaries.has(normalizeBoundaryName(value))) return lifetimeBoundary(value, defaults);
+      return value;
+    }
+    return lifetimeBoundary(value, defaults);
+  }
+
+  // Strict query used by effects, counters and future rule families.  It only
+  // returns true at the requested owner's boundary; a foreign Turn never
+  // consumes the interval.  `phase` is intentionally mandatory for a turn
+  // boundary so callers cannot accidentally treat a status/render query as an
+  // expiry transition.
+  function lifetimeExpired(value, query = {}) {
+    const lifetime = normalizeLifetime(value);
+    if (!lifetime || typeof lifetime !== "object") return false;
+    if (!plain(query)) reject("Запрос истечения должен быть объектом");
+    const queriedBoundary = query.boundary == null ? null : normalizeBoundaryName(query.boundary);
+    const phase = normalizeBoundaryPhase(query.phase ?? (boundaryPhases.has(queriedBoundary) ? queriedBoundary : queriedBoundary === "startNextOwnerTurn" ? "start" : queriedBoundary === "endNextOwnerTurn" ? "end" : null));
+    const canonicalBoundary = queriedBoundary != null && lifetimeBoundaries.has(queriedBoundary) ? queriedBoundary : null;
+    if (!boundaryPhases.has(phase) || query.boundary != null && queriedBoundary !== phase && canonicalBoundary == null) reject("Запрос истечения должен содержать фазу границы");
+    const ownerActorId = query.ownerActorId ?? query.actorId;
+    if (ownerActorId !== lifetime.ownerActorId) return false;
+    const sceneSerial = query.sceneSerial;
+    if (sceneSerial != null && sceneSerial !== lifetime.sceneSerial) return false;
+    const currentSerial = query.ownerTurnSerial ?? query.currentOwnerTurnSerial ?? query.ownerSerial ?? query.serial ?? query.turnSerial;
+    if (!Number.isSafeInteger(currentSerial) || currentSerial < 0) reject("Запрос истечения требует номер собственного Хода");
+    if (canonicalBoundary != null && lifetime.boundary !== canonicalBoundary) return false;
+    // A boundary is crossed once the next own serial has been reached.  `>=`
+    // keeps a reloaded/late query truthful even if an intervening event was
+    // compacted; a foreign owner still cannot consume the lifetime.
+    if (currentSerial < lifetime.ownerTurnSerial + 1) return false;
+    return lifetime.boundary === (phase === "start" ? "startNextOwnerTurn" : "endNextOwnerTurn");
+  }
 
   function identity(value = {}) {
     const result = {
@@ -138,18 +219,62 @@
     if (!factTypes.has(type)) reject("Неизвестный тип исторического факта");
     if (!plain(details) || !serializable(details)) reject("Исторический факт должен быть сохраняемым JSON");
     const provenance = identity(context);
-    const actorId=Object.hasOwn(context,"actorId")?context.actorId:provenance.ownerActorId;
+    // `scene` is a provenance owner, never an actor.  This matters for
+    // narrator-authored damage: the target remains a target and is not
+    // silently promoted to the event subject or author.
+    const actorId=Object.hasOwn(context,"actorId")?context.actorId:(provenance.ownerActorId === "scene" ? null : provenance.ownerActorId);
     if(actorId!==null&&typeof actorId!=="string")reject("Некорректный субъект исторического факта");
-    return copy({ schema: 1, id: id(context.id, "history"), type, ...provenance, actorId, subjectKind:actorId===null?"scene":"actor", targetIds: [...new Set((context.targetIds || []).filter(value => typeof value === "string"))].slice(0, 40), round: serial(context.round ?? 0, "Раунд"), turnSerial: serial(context.turnSerial ?? 0, "Ход"), turnInstanceId:context.turnInstanceId==null?null:id(context.turnInstanceId,"экземпляр Хода"), ownerTurnActorId: context.ownerTurnActorId || null, sceneSerial: serial(context.sceneSerial ?? 1, "Сцена"), chapterSerial: serial(context.chapterSerial ?? 1, "Глава"), details });
+    const ownerTurnActorId = context.ownerTurnActorId == null ? null : id(context.ownerTurnActorId, "участник текущего Хода");
+    const ownerTurnSerial = context.ownerTurnSerial == null ? null : serial(context.ownerTurnSerial, "номер текущего собственного Хода");
+    const ownerTurnInstanceId = context.ownerTurnInstanceId == null ? null : id(context.ownerTurnInstanceId, "экземпляр текущего собственного Хода");
+    const turnInstanceId = context.turnInstanceId == null ? null : id(context.turnInstanceId, "экземпляр Хода");
+    const sceneSerial = serial(context.sceneSerial ?? 1, "Сцена");
+    return copy({
+      schema: 2,
+      id: id(context.id, "history"),
+      type,
+      ...provenance,
+      actorId,
+      subjectKind: actorId === null ? "scene" : "actor",
+      targetIds: [...new Set((context.targetIds || []).filter(value => typeof value === "string"))].slice(0, 40),
+      round: serial(context.round ?? 0, "Раунд"),
+      turnSerial: serial(context.turnSerial ?? 0, "Ход"),
+      turnInstanceId,
+      ownerTurnActorId,
+      ownerTurnSerial,
+      ownerTurnInstanceId,
+      ownerTurnKey: ownerTurnActorId && ownerTurnSerial != null ? `${sceneSerial}:${ownerTurnActorId}:${ownerTurnSerial}` : null,
+      sceneSerial,
+      chapterSerial: serial(context.chapterSerial ?? 1, "Глава"),
+      details,
+    });
   }
 
   function inScope(item, query = {}) {
     if (!scopes.has(query.scope)) reject("Неизвестная область истории");
-    if (query.type && item.type !== query.type || query.ruleId && item.ruleId !== query.ruleId || query.actorId && item.actorId !== query.actorId || query.targetId && !item.targetIds.includes(query.targetId)) return false;
+    const legacyTurnSerial = typeof (query.turnInstanceId ?? query.ownerTurnInstanceId) === "string" ? Number(String(query.turnInstanceId ?? query.ownerTurnInstanceId).match(/^legacy-turn:(\d+)$/)?.[1]) : null;
+    const queryTurnSerial = query.turnSerial ?? (Number.isSafeInteger(legacyTurnSerial) ? legacyTurnSerial : undefined);
+    if (query.type && item.type !== query.type || query.ruleId && item.ruleId !== query.ruleId || Object.hasOwn(query, "actorId") && query.actorId !== undefined && item.actorId !== query.actorId || query.targetId && !item.targetIds.includes(query.targetId) || query.ownerActorId && item.ownerActorId !== query.ownerActorId) return false;
     if (query.scope === "rootAction") return item.rootActionId === query.rootActionId;
     if (query.scope === "action") return query.actionInstanceId ? item.actionInstanceId === query.actionInstanceId : item.actionId === query.actionId && (!query.rootActionId || item.rootActionId === query.rootActionId);
-    if (query.scope === "ownerTurn") return item.sceneSerial === query.sceneSerial && item.ownerTurnActorId === query.ownerActorId && (query.turnInstanceId ? item.turnInstanceId === query.turnInstanceId : item.turnSerial === query.turnSerial);
-    if (query.scope === "anyTurn") return item.sceneSerial === query.sceneSerial && item.turnSerial === query.turnSerial;
+    if (query.scope === "ownerTurn") {
+      if (query.ownerTurnKey != null) return item.ownerTurnKey === query.ownerTurnKey;
+      if (item.sceneSerial !== query.sceneSerial || item.ownerTurnActorId !== query.ownerActorId) return false;
+      const instanceId = query.ownerTurnInstanceId ?? query.turnInstanceId;
+      if (instanceId != null) {
+        const itemInstanceId = item.ownerTurnInstanceId ?? item.turnInstanceId;
+        return itemInstanceId != null ? itemInstanceId === instanceId : (item.ownerTurnSerial ?? item.turnSerial) === (query.ownerTurnSerial ?? query.serial ?? queryTurnSerial);
+      }
+      const ownerSerial = query.ownerTurnSerial ?? query.serial;
+      // New facts use the participant's own serial.  Old facts fall back to
+      // the global turnSerial so existing saves remain queryable.
+      return ownerSerial != null ? (item.ownerTurnSerial ?? item.turnSerial) === ownerSerial : item.turnSerial === queryTurnSerial;
+    }
+    if (query.scope === "anyTurn") {
+      if (item.sceneSerial !== query.sceneSerial) return false;
+      if (query.turnInstanceId != null) return item.turnInstanceId != null ? item.turnInstanceId === query.turnInstanceId : item.turnSerial === queryTurnSerial;
+      return item.turnSerial === queryTurnSerial;
+    }
     if (query.scope === "round") return item.sceneSerial === query.sceneSerial && item.round === query.round;
     if (query.scope === "scene") return item.sceneSerial === query.sceneSerial;
     return item.chapterSerial === query.chapterSerial;
@@ -194,5 +319,14 @@
     return { schema: 1, kind, pool, sourceFaces, finalFaces: copy(sourceFaces), rules: { successAt, criticalAt, explode }, modifications, hits, criticals, initialCount: pool, rolls: copy(sourceFaces), successes: hits, crits: criticals, formula: `${pool}D6`, ...(criticalAt !== 6 || !explode ? { critAt: criticalAt, explode } : {}) };
   }
 
-  global.DAWN_LIONWING_EXECUTION = Object.freeze({ open, choose, plan, openCursor, advanceCursor, resizeCursor, waitCursor, resumeCursor, identity, fact, inScope, historyCount, normalizeCosts, reserveCost, normalizeRoll });
+  global.DAWN_LIONWING_EXECUTION = Object.freeze({
+    open, choose, plan, openCursor, advanceCursor, resizeCursor, waitCursor, resumeCursor,
+    identity, fact, inScope, historyCount,
+    lifetimeBoundary, normalizeLifetime, lifetimeExpired,
+    // Short aliases make the pure query usable by foundations without exposing
+    // another mutable registry or storing executable callbacks in saves.
+    boundaryDescriptor: lifetimeBoundary,
+    isLifetimeExpired: lifetimeExpired,
+    normalizeCosts, reserveCost, normalizeRoll,
+  });
 })(typeof window === "object" ? window : globalThis);

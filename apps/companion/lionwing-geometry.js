@@ -116,6 +116,124 @@
     });
   }
 
+  // A route used to contain only `path` and `stoppedAt`. Keep accepting that
+  // shape, but give every new route a stable, JSON-only segment description.
+  // Costs are deliberately derived from the two endpoints so old plans remain
+  // readable and diagonal Line movement keeps its two-cell cost.
+  function routeSegments(route = {}) {
+    if (Array.isArray(route.segments) && route.segments.length) return route.segments.map((raw, index) => {
+      const from = raw?.from || {}, to = raw?.to || {};
+      const cost = Number(raw?.cost ?? Math.abs(Number(to.x) - Number(from.x)) + Math.abs(Number(to.y) - Number(from.y)));
+      return {
+        ...clone(raw),
+        index: Number.isSafeInteger(Number(raw?.index)) ? Number(raw.index) : index,
+        from: { space: from.space || route.origin?.space || route.stoppedAt?.space || route.destination?.space, x: Number(from.x), y: Number(from.y) },
+        to: { space: to.space || route.stoppedAt?.space || route.destination?.space, x: Number(to.x), y: Number(to.y) },
+        cost,
+        terminal: Boolean(raw?.terminal || route.terminal && index === route.segments.length - 1),
+        stopReason: raw?.stopReason ?? (route.terminal && index === route.segments.length - 1 ? route.stopReason || null : null),
+        boundaries: Array.isArray(raw?.boundaries) && raw.boundaries.length ? [...raw.boundaries] : ["before-leave", "leave", "before-enter", "enter"],
+        cursor: raw?.cursor && typeof raw.cursor === "object" ? { ...clone(raw.cursor), schema: 1, segmentIndex: index } : { schema: 1, segmentIndex: index, phase: "before-leave" },
+      };
+    });
+    const points = Array.isArray(route.path) ? route.path : [];
+    let from = route.origin && Number.isInteger(Number(route.origin.x)) ? route.origin : points[0];
+    const segments = [];
+    for (const [index, raw] of points.entries()) {
+      const to = { space: raw.space || route.stoppedAt?.space || route.destination?.space, x: Number(raw.x), y: Number(raw.y) };
+      if (!from || !Number.isInteger(Number(from.x)) || !Number.isInteger(Number(from.y))) break;
+      const start = { space: from.space || to.space, x: Number(from.x), y: Number(from.y) };
+      const cost = Math.abs(to.x - start.x) + Math.abs(to.y - start.y);
+      segments.push({
+        index,
+        from: start,
+        to,
+        cost,
+        terminal: Boolean(route.terminal && index === points.length - 1),
+        stopReason: route.terminal && index === points.length - 1 ? route.stopReason || null : null,
+        boundaries: ["before-leave", "leave", "before-enter", "enter"],
+        cursor: { schema: 1, segmentIndex: index, phase: "before-leave" },
+      });
+      from = to;
+    }
+    return segments;
+  }
+
+  function geometryCursor(route, segmentIndex = 0, scene = null, overrides = {}) {
+    const segments = routeSegments(route);
+    const index = Number(segmentIndex);
+    const expectedSceneVersion = overrides.expectedSceneVersion == null ? Number(scene?.version || 0) : Number(overrides.expectedSceneVersion);
+    const expectedGeometryStamp = overrides.expectedGeometryStamp || (scene ? geometryStamp(scene) : null);
+    return {
+      schema: 1,
+      id: String(overrides.id || `${route.actorId || "movement"}:geometry`),
+      routeSceneVersion: Number(route.sceneVersion || 0),
+      segmentIndex: Number.isInteger(index) && index >= 0 ? index : 0,
+      segmentCount: segments.length,
+      phase: overrides.phase || "before-leave",
+      status: overrides.status || (index >= segments.length ? "completed" : "running"),
+      expectedSceneVersion,
+      expectedGeometryStamp,
+      spent: Number(overrides.spent ?? 0),
+      ...(overrides.reason ? { stopReason: String(overrides.reason) } : {}),
+    };
+  }
+
+  function samePoint(left, right) {
+    return Boolean(left && right) && String(left.space || "") === String(right.space || "") && Number(left.x) === Number(right.x) && Number(left.y) === Number(right.y);
+  }
+
+  function segmentStatus(scene, plan, cursor = {}, options = {}) {
+    if (!plan || plan.schema !== 1 || plan.kind !== "lionwing.geometry.route" || !plan.route || !plan.request) return { available: false, stale: true, reason: "Некорректный геометрический план." };
+    const route = plan.route;
+    const segments = routeSegments(route);
+    const index = Number(cursor.segmentIndex ?? cursor.cursor ?? 0);
+    if (!Number.isSafeInteger(index) || index < 0 || index > segments.length) return { available: false, stale: true, reason: "Курсор движения повреждён." };
+    if (index >= segments.length) return { available: true, stale: false, completed: true, reason: "", route: clone(route), cursor: geometryCursor(route, index, scene, { ...cursor, status: "completed" }) };
+    const mover = actorById(scene, route.actorId), source = actorById(scene, route.sourceActorId);
+    if (!mover || mover.knockedOut) return { available: false, stale: true, reason: "Перемещаемый участник отсутствует или выведен из боя." };
+    if (!source) return { available: false, stale: true, reason: "Автор геометрии не найден." };
+    const segment = segments[index], actual = { space: mover.space, x: Number(mover.x), y: Number(mover.y) };
+    if (!samePoint(actual, segment.from)) return { available: false, stale: true, reason: "Курсор движения больше не совпадает с координатами участника." };
+    const plannedWidth = route.width == null ? null : Number(route.width), plannedHeight = route.height == null ? null : Number(route.height);
+    if (plannedWidth != null && Number(mover.occupiedWidth || 1) !== plannedWidth || plannedHeight != null && Number(mover.occupiedHeight || 1) !== plannedHeight) return { available: false, stale: true, reason: "Размер перемещаемого тела изменился во время движения." };
+    if (!options.allowVersionChange && cursor.expectedSceneVersion != null && Number(cursor.expectedSceneVersion) !== Number(scene?.version || 0)) return { available: false, stale: true, reason: "Геометрический план устарел." };
+    const request = {
+      ...clone(plan.request),
+      sourceActorId: route.sourceActorId,
+      actorId: route.actorId,
+      // The saved anchor is useful for the initial confirmation. A resumed
+      // segment is checked from the mover's actual current cell instead.
+      anchor: { kind: "cell", space: segment.from.space, x: segment.from.x, y: segment.from.y },
+      destination: { space: segment.to.space, x: segment.to.x, y: segment.to.y },
+      maximum: Math.max(0, Number(segment.cost || 0)),
+      ...(plannedWidth == null ? {} : { width: plannedWidth }),
+      ...(plannedHeight == null ? {} : { height: plannedHeight }),
+      allowPartial: false,
+    };
+    const fresh = routePlan(scene, request);
+    if (!fresh.available) return { available: false, stale: Boolean(options.allowVersionChange), reason: fresh.reason || "Следующий сегмент движения больше недоступен." };
+    const freshPath = fresh.route.path || [];
+    if (freshPath.length !== 1 || !samePoint({ ...freshPath[0], space: segment.to.space }, segment.to)) return { available: false, stale: true, reason: "Следующий сегмент движения изменился." };
+    const freshSegment = routeSegments(fresh.route)[0] || segment;
+    const verifiedSegment = {
+      ...clone(segment),
+      cost: Number(freshSegment.cost ?? segment.cost ?? 0),
+      terminal: Boolean(segment.terminal || fresh.route.terminal || freshSegment.terminal),
+      stopReason: fresh.route.terminal || freshSegment.terminal ? fresh.route.stopReason || freshSegment.stopReason || segment.stopReason || null : segment.stopReason || null,
+    };
+    const nextCursor = geometryCursor(route, index, scene, {
+      ...cursor,
+      expectedSceneVersion: Number(scene?.version || 0),
+      expectedGeometryStamp: geometryStamp(scene),
+      segmentCount: segments.length,
+      spent: Number(cursor.spent || 0),
+      phase: "before-leave",
+      status: "running",
+    });
+    return { available: true, stale: false, completed: false, reason: "", route: clone(route), segment: verifiedSegment, cursor: nextCursor, fresh: clone(fresh.route) };
+  }
+
   function routePlan(scene, request = {}) {
     const runtime = engine();
     const lionwing = lionwingEngine();
@@ -222,8 +340,11 @@
       actorId: mover.id,
       anchor: anchor.anchor,
       destination: { space: mover.space, x: Number(destination.x), y: Number(destination.y) },
+      origin: { space: mover.space, x: Number(mover.x), y: Number(mover.y) },
       mode: request.mode || "move",
       maximum,
+      width,
+      height,
       path: selected.path.map(point => ({ space: mover.space, x: Number(point.x), y: Number(point.y) })),
       spent: selected.cost,
       stoppedAt: { space: selected.space, x: selected.x, y: selected.y },
@@ -234,6 +355,8 @@
       sceneVersion: Number(scene.version || 0),
       geometryStamp: geometryStamp(scene),
     };
+    route.segments = routeSegments(route);
+    route.cursor = geometryCursor(route, 0, scene);
     const plan = { schema: 1, kind: "lionwing.geometry.route", request: clone(request), route };
     return { available: true, reason: "", plan: clone(plan), route: clone(route) };
   }
@@ -243,9 +366,21 @@
     if (Number(plan.route.sceneVersion) !== Number(scene?.version || 0)) return { available: false, stale: true, reason: "Геометрический план устарел." };
     const fresh = routePlan(scene, plan.request);
     if (!fresh.available) return { available: false, stale: true, reason: fresh.reason || "Геометрический план изменился." };
-    if (plan.route.geometryStamp !== geometryStamp(scene) || JSON.stringify(fresh.route) !== JSON.stringify(plan.route)) return { available: false, stale: true, reason: "Геометрический план устарел." };
-    return { available: true, stale: false, reason: "", plan: clone(plan), route: clone(plan.route) };
+    const saved = clone(plan.route), current = clone(fresh.route);
+    // The additions (`segments` and `cursor`) are optional for old saves. For
+    // a new save compare the complete route, while old saves compare their
+    // original fields and receive the normalized segment view on return.
+    const savedHasSegments = Array.isArray(saved.segments);
+    if (saved.geometryStamp !== geometryStamp(scene)) return { available: false, stale: true, reason: "Геометрический план устарел." };
+    if (savedHasSegments ? JSON.stringify(current) !== JSON.stringify(saved) : Object.keys(saved).some(key => key !== "cursor" && key !== "segments" && key !== "origin" && JSON.stringify(saved[key]) !== JSON.stringify(current[key]))) return { available: false, stale: true, reason: "Геометрический план устарел." };
+    if (!savedHasSegments) {
+      const mover = actorById(scene, saved.actorId);
+      saved.origin ||= mover ? { space: mover.space, x: Number(mover.x), y: Number(mover.y) } : null;
+      saved.segments = routeSegments(saved);
+      saved.cursor = geometryCursor(saved, 0, scene);
+    }
+    return { available: true, stale: false, reason: "", plan: { ...clone(plan), route: saved }, route: saved };
   }
 
-  global.DAWN_LIONWING_GEOMETRY = Object.freeze({ anchorStatus, footprintStatus, nearestCandidates, routePlan, revalidatePlan });
+  global.DAWN_LIONWING_GEOMETRY = Object.freeze({ anchorStatus, footprintStatus, nearestCandidates, routePlan, revalidatePlan, geometryStamp, routeSegments, geometryCursor, segmentStatus });
 })(typeof window === "object" ? window : globalThis);
