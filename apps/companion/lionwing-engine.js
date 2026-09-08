@@ -260,7 +260,11 @@
   const actionDef = id => core.actions.list.find(item => item.id === id);
   const nameOf = id => actionDef(id)?.name || id;
   const command = (actorId, payload) => ({ type: "lionwing.command", actorId, payload });
-  const stat = (a, key) => Math.max(0, Number(a[key] || 0) + (a.lionwing?.modifiers || []).filter(m => m.stat === key).reduce((sum, m) => sum + (key==="evasion"?m.remaining??m.amount:m.amount), 0));
+  const adapterNumber = (method, a, ...args) => {
+    const value = Number(global.DAWN_LIONWING_ADAPTERS?.[method]?.(a, ...args) || 0);
+    return Number.isFinite(value) ? value : 0;
+  };
+  const stat = (a, key, context = {}) => Math.max(0, Number(a[key] || 0) + (a.lionwing?.modifiers || []).filter(m => m.stat === key).reduce((sum, m) => sum + (key==="evasion"?m.remaining??m.amount:m.amount), 0) + adapterNumber("statBonus", a, key, context));
   const scaledMove = (a, amount, scene=null) => Math.ceil(amount * ((scene?effectActive(scene,a,"positive.ускорен"):has(a,"positive.ускорен")) ? 2 : 1) / ((scene?effectActive(scene,a,"negative.замедлен"):has(a,"negative.замедлен")) ? 2 : 1));
   const speed = (a,scene=null) => scaledMove(a, stat(a, "speed"), scene);
   const sceneSpeed = (scene,a) => scene.activeActorId && Number(a.lionwing?.difficultTerrainStopSerial) === Number(scene.turnSerial) ? 0 : (() => { const group=legacy.compoundEnemyStatus(scene,a);return group.active?scaledMove(a,group.speed+(a.lionwing?.modifiers||[]).filter(m=>m.stat==="speed").reduce((sum,m)=>sum+m.amount,0),scene):speed(a,scene); })();
@@ -618,7 +622,7 @@
     const base=diceCount(scene,a,def,p),targets=p.targetIds||[];
     if(!attacks.has(def.id)||!targets.length)return{base,counts:{}};
     const taunts=activeEffectSources(a,"negative.спровоцирован",scene).map(x=>x.actorId),fears=activeEffectSources(a,"negative.испуган",scene).map(x=>x.actorId);
-    const counts=Object.fromEntries(targets.map(id=>[id,Math.max(0,base-(effectActive(scene,a,"negative.спровоцирован")&&!targets.some(t=>taunts.includes(t))?a.tier:0)-(effectActive(scene,a,"negative.испуган")&&fears.includes(id)?a.tier:0)+((p.spikeTargetIds||[]).includes(id)&&effectActive(scene,actor(scene,id),"negative.подброшен")?a.tier:0))]));
+    const counts=Object.fromEntries(targets.map(id=>{const target=actor(scene,id),tauntedByActor=activeEffectSources(target,"negative.спровоцирован",scene).some(source=>source.actorId===a.id);return[id,Math.max(0,base+adapterNumber("rollBonus",a,{scene,kind:"attack",actionId:def.id,targetId:id,tauntedByActor})-(effectActive(scene,a,"negative.спровоцирован")&&!targets.some(t=>taunts.includes(t))?a.tier:0)-(effectActive(scene,a,"negative.испуган")&&fears.includes(id)?a.tier:0)+((p.spikeTargetIds||[]).includes(id)&&effectActive(scene,target,"negative.подброшен")?a.tier:0))]}));
     return{base:Math.min(...Object.values(counts)),counts};
   }
 
@@ -681,12 +685,12 @@
       if (payload.kind === "roll" && !payload.roll) payload.roll = roll(integer(payload.count, "число костей", 100), options.random, { ...payload, ...rollMeta({ rollId: payload.rollId || payload.id || `${eventId}:roll`, kind: payload.rollKind || "check" }), kind: payload.rollKind || "check" });
       if (payload.kind === "reaction" && payload.choice === "clash" && !payload.roll) {
         const source = requiredActor(scene, scene.pendingAction?.actorId);
-        payload.roll = roll(3 + Number(a.tier || 1), options.random, rollMeta({ rollId: `${eventId}:reaction`, kind: "check" }));
-        payload.opponentRoll = roll(3 + Number(source.tier || 1), options.random, { ...rollMeta({ rollId: `${eventId}:reaction-opponent`, kind: "check", ownerActorId: source.id }), ownerActorId: source.id });
+        payload.roll = roll(3 + Number(a.tier || 1) + adapterNumber("rollBonus", a, { scene, kind: "clash", opponentId: source.id }), options.random, rollMeta({ rollId: `${eventId}:reaction`, kind: "check" }));
+        payload.opponentRoll = roll(3 + Number(source.tier || 1) + adapterNumber("rollBonus", source, { scene, kind: "clash", opponentId: a.id }), options.random, { ...rollMeta({ rollId: `${eventId}:reaction-opponent`, kind: "check", ownerActorId: source.id }), ownerActorId: source.id });
       }
       if(payload.kind==="choice"&&payload.choice==="reroll"&&scene.lionwing?.choices?.[0]?.kind==="clash-loss"){
         const source=requiredActor(scene,scene.pendingAction?.actorId);
-        payload.roll=roll(3+Number(a.tier||1),options.random,rollMeta({rollId:`${eventId}:reroll`,kind:"check"}));payload.opponentRoll=roll(3+Number(source.tier||1),options.random,{...rollMeta({rollId:`${eventId}:reroll-opponent`,kind:"check",ownerActorId:source.id}),ownerActorId:source.id});
+        payload.roll=roll(3+Number(a.tier||1)+adapterNumber("rollBonus",a,{scene,kind:"clash",opponentId:source.id}),options.random,rollMeta({rollId:`${eventId}:reroll`,kind:"check"}));payload.opponentRoll=roll(3+Number(source.tier||1)+adapterNumber("rollBonus",source,{scene,kind:"clash",opponentId:a.id}),options.random,{...rollMeta({rollId:`${eventId}:reroll-opponent`,kind:"check",ownerActorId:source.id}),ownerActorId:source.id});
       }
       if(payload.kind==="punish"&&!payload.roll)payload.roll=roll(Math.max(Number(a.attrs.body||0),Number(a.attrs.talent||0)),options.random,rollMeta({rollId:`${eventId}:punish`,kind:"check"}));
       const events = [{ ...command(a?.id||null, payload), id: eventId }], preview = previewEvents(scene, events);
@@ -1741,13 +1745,14 @@
         case "clash-roll":{
           const pending=scene.pendingAction;if(!pending||!live(a)){if(pending)pending.responses[sourceId]={choice:"unavailable"};break;}
           const attacker=requiredActor(scene,pending.actorId,false),own=publishRoll(a,p.roll,"Столкновение"),other=publishRoll(attacker,p.opponentRoll,"Столкновение");
-          if(own.initialCount!==3+Number(a.tier||1)||other.initialCount!==3+Number(attacker.tier||1))fail("Неверный пул Столкновения");
+          const ownPool=3+Number(a.tier||1)+adapterNumber("rollBonus",a,{scene,kind:"clash",opponentId:attacker.id}),otherPool=3+Number(attacker.tier||1)+adapterNumber("rollBonus",attacker,{scene,kind:"clash",opponentId:a.id});
+          if(own.initialCount!==ownPool||other.initialCount!==otherPool)fail("Неверный пул Столкновения");
           if(own.successes>other.successes)queue.unshift({p:{kind:"clash-win"},sourceId});
           else if(own.successes<other.successes)choice(a,"clash-loss","Столкновение проиграно: принять Атаку или получить 5 урона и перебросить?",["accept","reroll"],{attackId:pending.id});
           else choice(a,"clash-tie","Ничья Столкновения: Нарратор определяет победителя",["win","lose"],{attackId:pending.id});
           break;
         }
-        case "clash-win":{const pending=scene.pendingAction;if(!pending)fail("Атака завершена");const reduction=Number(a.attrs.spirit||0);pending.responses[a.id]={choice:"clash",reduction};applyDamage({targetId:pending.actorId,sourceActorId:a.id,amount:reduction});break;}
+        case "clash-win":{const pending=scene.pendingAction;if(!pending)fail("Атака завершена");const context={scene,kind:"clash",opponentId:pending.actorId},reduction=Math.max(0,Number(a.attrs.spirit||0)+adapterNumber("statBonus",a,"spirit",context));pending.responses[a.id]={choice:"clash",reduction};applyDamage({targetId:pending.actorId,sourceActorId:a.id,amount:reduction});break;}
         case "duel-return":{const duel=s.duels.find(item=>item.id===p.duelId);if(duel)duelReturn(duel);break;}
         case "resolve-attack": {
           const pending = scene.pendingAction;
