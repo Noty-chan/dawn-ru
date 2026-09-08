@@ -621,22 +621,144 @@
     return Object.entries(value).some(([childKey, child]) => valueReferencesBacking(child, ids, childKey));
   }
 
+  // These are the only mutable runtime roots owned by the LionWing kernel. A
+  // cleanup descriptor names one concrete root so deletion can be planned and
+  // checked before a copy of the Scene is changed. Historical log/undo data is
+  // deliberately not in this inventory: it is evidence, not a live reference.
+  const CLEANUP_ROOTS = Object.freeze([
+    { kind: "aura", path: ["lionwing", "auras"], defaultPolicy: "disable" },
+    { kind: "subscription", path: ["lionwing", "subscriptions"], defaultPolicy: "remove" },
+    { kind: "choice", path: ["lionwing", "choices"], defaultPolicy: "remove" },
+    { kind: "deferred", path: ["lionwing", "deferred"], defaultPolicy: "remove" },
+    { kind: "paused-chain", path: ["lionwing", "pausedChains"], defaultPolicy: "remove" },
+    { kind: "after-attack", path: ["lionwing", "afterAttack"], defaultPolicy: "remove" },
+    { kind: "execution-cursor", path: ["lionwing", "executionCursor"], defaultPolicy: "remove", singleton: true },
+    { kind: "pending-action", path: ["pendingAction"], defaultPolicy: "remove", singleton: true },
+    { kind: "pending-action-plan", path: ["pendingActionPlan"], defaultPolicy: "remove", singleton: true },
+    { kind: "pending-prompt", path: ["pendingPrompt"], defaultPolicy: "remove", singleton: true },
+    { kind: "trigger-queue", path: ["triggerQueue"], defaultPolicy: "remove" },
+    { kind: "challenge-request", path: ["challengeRequest"], defaultPolicy: "remove", singleton: true },
+    { kind: "opposed-roll", path: ["opposedRoll"], defaultPolicy: "remove", singleton: true },
+    // Actor-owned resources/effects can retain an entity source after the
+    // registry row is gone. They are handled as one root per actor so a
+    // protected source can reject the whole transaction before mutation.
+    { kind: "actor-runtime", path: ["actors"], defaultPolicy: "disable", actorRoot: true },
+  ]);
+
+  const pathRead = (value, path) => path.reduce((current, key) => current == null ? undefined : current[key], value);
+  const pathWrite = (value, path, next) => {
+    if (!path.length) return next;
+    const parent = pathRead(value, path.slice(0, -1));
+    if (parent == null) return value;
+    const key = path[path.length - 1];
+    if (next === undefined) delete parent[key]; else parent[key] = next;
+    return value;
+  };
+  const dependencyProtected = row => {
+    if (!isObject(row)) return false;
+    if (row.cleanupProtected || row.protected || row.required || row.unresolved || row.resolvable === false || row.dependencyState === "unresolved" || row.removable === false && ["remove", "purge"].includes(row.cleanupPolicy || row.sourceLossPolicy)) return true;
+    if (Array.isArray(row)) return row.some(dependencyProtected);
+    return Object.values(row).some(value => isObject(value) && dependencyProtected(value));
+  };
+  const referencePaths = (value, ids, path = [], result = []) => {
+    if (typeof value === "string") {
+      const key = String(path[path.length - 1] || "");
+      if (valueReferencesEntity(value, ids, key)) result.push(path);
+      return result;
+    }
+    if (Array.isArray(value)) { value.forEach((item, index) => referencePaths(item, ids, [...path, index], result)); return result; }
+    if (isObject(value)) for (const [key, child] of Object.entries(value)) referencePaths(child, ids, [...path, key], result);
+    return result;
+  };
+
   function cleanupPlan(scene, entityIds, options = {}) {
     const ids = new Set((Array.isArray(entityIds) ? entityIds : [entityIds]).filter(value => typeof value === "string"));
-    const cleanups = [], collections = [
-      ["aura", scene?.lionwing?.auras], ["subscription", scene?.lionwing?.subscriptions], ["subscription", scene?.subscriptions],
-      ["choice", scene?.lionwing?.choices], ["choice", scene?.choices], ["deferred", scene?.lionwing?.deferred],
-      ["paused-chain", scene?.lionwing?.pausedChains], ["selection", scene?.lionwing?.selections], ["selection", scene?.selections],
-    ];
-    for (const [kind, rows] of collections) for (const row of Array.isArray(rows) ? rows : []) {
-      if (!isObject(row) || !valueReferencesEntity(row, ids)) continue;
-      const policy = POLICIES.has(row.sourceLossPolicy) ? row.sourceLossPolicy : options.policy || "disable";
+    const cleanups = [], add = (root, row, path, index = null) => {
+      if (!isObject(row) || !valueReferencesEntity(row, ids)) return;
+      // An actor row is a container for runtime records. Its source-loss
+      // metadata must never turn entity cleanup into actor deletion; nested
+      // records are disabled in place below.
+      const policy = root.actorRoot ? root.defaultPolicy : POLICIES.has(row.sourceLossPolicy) ? row.sourceLossPolicy : options.policy && POLICIES.has(options.policy) ? options.policy : root.defaultPolicy;
       const lifetime = typeof row.lifetime === "string" ? row.lifetime : row.lifetime?.boundary || row.duration || "default";
-      const id = typeof row.id === "string" ? row.id : `${kind}:${cleanups.length}`;
-      cleanups.push({ kind, id, policy, lifetime, action: policy === "remove" ? "remove" : policy === "detach" ? "detach" : "disable", sourceEntityIds: [...ids] });
+      const id = typeof row.id === "string" ? row.id : `${root.kind}:${cleanups.length}`;
+      cleanups.push({ kind: root.kind, id, path: [...path], index, policy, lifetime, action: policy === "remove" ? "remove" : policy === "detach" ? "detach" : "disable", sourceEntityIds: [...ids].sort(), referencePaths: referencePaths(row, ids).map(item => item.map(String)), protected: dependencyProtected(row), resolved: row.unresolved !== true && row.resolvable !== false && row.dependencyState !== "unresolved" });
+    };
+    for (const root of CLEANUP_ROOTS) {
+      const value = pathRead(scene, root.path);
+      if (root.singleton) add(root, value, root.path);
+      else if (root.actorRoot) for (const [index, row] of (Array.isArray(value) ? value.entries() : [])) add(root, row, [...root.path, index], index);
+      else for (const [index, row] of (Array.isArray(value) ? value.entries() : [])) add(root, row, [...root.path, index], index);
     }
     cleanups.sort((a, b) => `${a.kind}:${a.id}`.localeCompare(`${b.kind}:${b.id}`));
-    return { schema: SCHEMA, entityIds: [...ids].sort(), cleanups, preservesIndependentConsequences: true, mutatesForeignCollections: false };
+    return { schema: SCHEMA, entityIds: [...ids].sort(), cleanups, preservesIndependentConsequences: true, mutatesForeignCollections: false, roots: CLEANUP_ROOTS.map(root => ({ kind: root.kind, path: [...root.path], defaultPolicy: root.defaultPolicy })) };
+  }
+
+  function cleanseValue(value, ids, action) {
+    if (Array.isArray(value)) return value.filter(item => !(isObject(item) && action === "remove" && valueReferencesEntity(item, ids))).map(item => cleanseValue(item, ids, action));
+    if (!isObject(value)) return value;
+    const result = clone(value);
+    for (const [key, child] of Object.entries(result)) {
+      if (typeof child === "string" && valueReferencesEntity(child, ids, key) && ids.has(child)) {
+        if (action === "detach") delete result[key];
+        continue;
+      }
+      if (Array.isArray(child) && action === "detach") result[key] = child.filter(item => !(typeof item === "string" && ids.has(item))).map(item => cleanseValue(item, ids, action));
+      else if (Array.isArray(child) || isObject(child)) result[key] = cleanseValue(child, ids, action);
+    }
+    if (action === "disable") {
+      result.disabled = true;
+      result.active = false;
+      result.status = "disabled";
+      result.disabledEntityIds = [...new Set([...(Array.isArray(result.disabledEntityIds) ? result.disabledEntityIds : []), ...ids])].sort();
+      result.suppressedBy = [...new Set([...(Array.isArray(result.suppressedBy) ? result.suppressedBy : []), ...[...ids].map(id => `entity:${id}`)])].sort();
+    }
+    if (action === "detach") { result.detached = true; result.detachedEntityIds = [...new Set([...(Array.isArray(result.detachedEntityIds) ? result.detachedEntityIds : []), ...ids])].sort(); }
+    return result;
+  }
+
+  // Actor rows contain several independent runtime maps (effects, resources
+  // and clocks). A source entity may be referenced by one entry in those maps;
+  // disabling the whole actor would alter unrelated combat state. Preserve the
+  // actor root and mark only the nested source-bearing records.
+  function cleanseActorRuntime(value, ids) {
+    if (Array.isArray(value)) return value.map(item => cleanseActorRuntime(item, ids));
+    if (!isObject(value)) return value;
+    const result = clone(value);
+    for (const [key, child] of Object.entries(result)) {
+      if (Array.isArray(child) || isObject(child)) result[key] = cleanseActorRuntime(child, ids);
+    }
+    const direct = Object.entries(result).some(([key, child]) => {
+      if (typeof child === "string") return valueReferencesEntity(child, ids, key);
+      if (Array.isArray(child)) return child.some(item => typeof item === "string" && valueReferencesEntity(item, ids, key));
+      return false;
+    });
+    if (!direct) return result;
+    result.disabled = true;
+    result.active = false;
+    result.status = "disabled";
+    result.disabledEntityIds = [...new Set([...(Array.isArray(result.disabledEntityIds) ? result.disabledEntityIds : []), ...ids])].sort();
+    result.suppressedBy = [...new Set([...(Array.isArray(result.suppressedBy) ? result.suppressedBy : []), ...[...ids].map(id => `entity:${id}`)])].sort();
+    return result;
+  }
+
+  function applyCleanup(scene, plan) {
+    const blocked = (plan?.cleanups || []).find(item => item.protected || item.resolved === false);
+    if (blocked) fail(blocked.protected ? "Удаление блокирует защищённая зависимость сущности." : "Удаление блокирует неразрешённая зависимость сущности.", blocked.protected ? "protected-dependency" : "unresolved-dependency", { cleanup: clone(blocked) });
+    const next = clone(scene || {}), ids = new Set(plan?.entityIds || []);
+    const descriptors = [...(plan?.cleanups || [])].sort((left, right) => Number(right.index ?? -1) - Number(left.index ?? -1));
+    for (const descriptor of descriptors) {
+      const root = CLEANUP_ROOTS.find(item => JSON.stringify(item.path) === JSON.stringify(descriptor.path.slice(0, item.path.length)));
+      if (!root) fail("Cleanup ссылается на неизвестную коллекцию Сцены.", "unknown-cleanup-root", { cleanup: clone(descriptor) });
+      const value = pathRead(next, root.path);
+      if (root.singleton) pathWrite(next, root.path, descriptor.action === "remove" ? null : cleanseValue(value, ids, descriptor.action));
+      else if (Array.isArray(value)) {
+        const index = descriptor.index !== null && value[descriptor.index] ? descriptor.index : value.findIndex(row => row?.id === descriptor.id);
+        if (index < 0) continue;
+        if (descriptor.action === "remove") value.splice(index, 1);
+        else value[index] = root.actorRoot ? cleanseActorRuntime(value[index], ids) : cleanseValue(value[index], ids, descriptor.action);
+      }
+    }
+    return next;
   }
 
   function sourceMatches(entity, source, scene) {
@@ -672,6 +794,45 @@
 
   function registrySnapshot(map) { return clone(Object.fromEntries(Object.entries(map).sort(([left], [right]) => left.localeCompare(right)))); }
   const eventFingerprint = (operation, payload) => JSON.stringify([operation, payload]);
+  const cleanupSnapshot = scene => {
+    const result = clone(scene || {});
+    if (result.lionwing) {
+      delete result.lionwing.entities;
+      delete result.lionwing.entityReceipts;
+      // The dispatcher owns these private bookkeeping streams. Entity undo
+      // restores live dependencies while retaining receipt/history ordering.
+      delete result.lionwing.receipts;
+      delete result.lionwing.history;
+    }
+    delete result.version;
+    delete result.log;
+    delete result.undo;
+    delete result.redo;
+    delete result.turnUndo;
+    return result;
+  };
+  function assertReceipt(scene, operation, payload, options = {}) {
+    const id = eventId(operation, payload?.id || payload?.entityId, options), saved = receiptsOf(scene)[id];
+    if (!saved) return null;
+    const savedEvent = saved.event || saved;
+    const savedPayload = savedEvent.payload || {};
+    const comparable = ["remove", "destroy"].includes(operation)
+      ? { id: savedPayload.id || savedPayload.entityId, purge: Boolean(savedPayload.purge), propagateSourceLoss: savedPayload.propagateSourceLoss !== false }
+      : payload;
+    const requested = ["remove", "destroy"].includes(operation)
+      ? { id: payload.id || payload.entityId, purge: Boolean(payload.purge), propagateSourceLoss: payload.propagateSourceLoss !== false }
+      : payload;
+    const fingerprint = saved.fingerprint || eventFingerprint(savedEvent.operation, savedPayload);
+    if (["remove", "destroy"].includes(operation) ? savedEvent.operation !== operation || !sameJson(comparable, requested) : fingerprint !== eventFingerprint(operation, payload)) fail("Повтор события сущности с тем же ID содержит другие данные.", "entity-event-conflict", { eventId: id });
+    return savedEvent;
+  }
+  function appendJournal(scene, event, options = {}) {
+    const next = scene;
+    next.log = Array.isArray(next.log) ? next.log : [];
+    next.log.unshift({ id: `${event.id}:journal`, at: new Date().toISOString(), type: event.type, actorId: requesterOf(options) || null, payload: { operation: event.operation, entityId: event.payload?.id || event.payload?.entityId || null, cleanup: clone(event.cleanup || null) }, visibility: "public" });
+    next.log = next.log.slice(0, 200);
+    return next;
+  }
 
   function finish(scene, before, after, operation, payload, options = {}, extra = {}) {
     const id = eventId(operation, payload?.id || payload?.entityId || payload?.sourceEntityId, options);
@@ -690,13 +851,18 @@
       payload: clone(payload),
       before: registrySnapshot(before),
       after: registrySnapshot(after),
+      cleanupBefore: clone(extra.cleanupBefore || null),
+      cleanupAfter: clone(extra.cleanupAfter || null),
       backingEvent: clone(extra.backingEvent || null),
       backingEvents: clone(extra.backingEvents || (extra.backingEvent ? [extra.backingEvent] : [])),
       cleanup: clone(extra.cleanup || null),
     };
     const nextReceipts = { ...receipts, [id]: { fingerprint, event: clone(event) } };
-    const next = withRegistry(scene, after, nextReceipts);
-    return { ok: true, scene: next, event, replayed: false, ...extra };
+    const next = withRegistry(extra.scene || scene, after, nextReceipts);
+    appendJournal(next, event, options);
+    const resultExtra = { ...extra };
+    delete resultExtra.scene;
+    return { ok: true, scene: next, event, replayed: false, ...resultExtra };
   }
 
   function alreadySame(map, id, entity) { return own(map, id) && sameJson(registrySnapshot({ [id]: map[id] }), registrySnapshot({ [id]: entity })); }
@@ -727,6 +893,43 @@
     return result;
   }
 
+  function assertNarrator(options = {}) {
+    const role = options.role || options.viewerRole;
+    if (!['narrator', 'gm'].includes(role)) fail("Удаление сущности доступно только Нарратору.", "narrator-authority");
+    const requester = options.actorId ?? options.requesterId;
+    if (requester != null && !['narrator', 'gm'].includes(String(requester))) fail("Удаление сущности доступно только Нарратору.", "narrator-authority");
+  }
+
+  function prepareDestroy(scene, ref, options = {}) {
+    assertNarrator(options);
+    assertVersion(scene, options);
+    const map = registryMap(scene), id = typeof ref === "string" ? ref : ref?.id ?? ref?.entityId, old = map[id];
+    const payload = { id, purge: options.purge === true || options.removeRecord === true, propagateSourceLoss: options.propagateSourceLoss !== false };
+    if (!old) return { ok: true, exists: false, id, payload, scene: clone(scene), plan: { schema: SCHEMA, entityIds: [id].filter(Boolean), cleanups: [], roots: CLEANUP_ROOTS.map(root => ({ kind: root.kind, path: [...root.path], defaultPolicy: root.defaultPolicy })) } };
+    const dependentPlan = payload.propagateSourceLoss ? sourceLossPlan(scene, { entityId: old.id }, options) : { actions: [], entityIds: [], cleanup: null };
+    const removed = payload.purge;
+    const next = removed ? Object.fromEntries(Object.entries(map).filter(([key]) => key !== old.id)) : { ...map, [old.id]: attachEntityAliases({ ...clone(old), lifecycle: "destroyed", state: "destroyed", links: [] }) };
+    for (const action of dependentPlan.actions || []) {
+      if (action.entityId === old.id || !next[action.entityId]) continue;
+      if (action.action === "remove") delete next[action.entityId];
+      else if (action.action === "detach") {
+        const lifecycle = next[action.entityId].lifecycle === "disabled" ? "active" : next[action.entityId].lifecycle;
+        next[action.entityId] = attachEntityAliases({ ...clone(next[action.entityId]), source: makeSource({ detachedId: old.id }, scene), lifecycle, state: lifecycle });
+      } else next[action.entityId] = attachEntityAliases({ ...clone(next[action.entityId]), lifecycle: "disabled", state: "disabled" });
+    }
+    for (const entity of Object.values(next)) entity.links = (entity.links || []).filter(link => link.from !== old.id && link.to !== old.id && !(dependentPlan.actions || []).some(action => action.action === "remove" && (link.from === action.entityId || link.to === action.entityId))).map(makeLink);
+    const cleanup = cleanupPlan(scene, [old.id, ...(dependentPlan.entityIds || [])]);
+    // This performs all protected/unresolved checks on a detached copy. No
+    // caller-owned object is changed during prepare.
+    const cleaned = applyCleanup(scene, cleanup);
+    return { ok: true, exists: true, id: old.id, payload, map, next, old: clone(old), dependentPlan, cleanup, scene: cleaned, cleanupBefore: cleanupSnapshot(scene), cleanupAfter: cleanupSnapshot(cleaned) };
+  }
+
+  function cancelDestroy(scene, ref, options = {}) {
+    assertNarrator(options);
+    return { ok: false, cancelled: true, id: typeof ref === "string" ? ref : ref?.id ?? ref?.entityId ?? null, scene: clone(scene), event: null };
+  }
+
   function transform(scene, ref, rawBacking, options = {}) {
     assertVersion(scene, options);
     const map = registryMap(scene), id = typeof ref === "string" ? ref : ref?.id ?? ref?.entityId;
@@ -743,25 +946,17 @@
   }
 
   function destroy(scene, ref, options = {}) {
-    assertVersion(scene, options);
-    const map = registryMap(scene), id = typeof ref === "string" ? ref : ref?.id ?? ref?.entityId, old = map[id];
-    if (!old) return { ok: true, scene: clone(scene), replayed: true, idempotent: true, event: null };
-    assertAuthority(scene, requesterOf(options), [old.ownerActorId], options);
-    const dependentPlan = options.propagateSourceLoss === false ? { actions: [], entityIds: [], cleanup: null } : sourceLossPlan(scene, { entityId: old.id }, options);
-    const removed = options.purge === true || options.removeRecord === true;
-    const next = removed ? Object.fromEntries(Object.entries(map).filter(([key]) => key !== old.id)) : { ...map, [old.id]: attachEntityAliases({ ...clone(old), lifecycle: "destroyed", state: "destroyed", links: [] }) };
-    for (const action of dependentPlan.actions || []) {
-      if (action.entityId === old.id || !next[action.entityId]) continue;
-      if (action.action === "remove") delete next[action.entityId];
-      else if (action.action === "detach") {
-        const lifecycle = next[action.entityId].lifecycle === "disabled" ? "active" : next[action.entityId].lifecycle;
-        next[action.entityId] = attachEntityAliases({ ...clone(next[action.entityId]), source: makeSource({ detachedId: old.id }, scene), lifecycle, state: lifecycle });
-      } else next[action.entityId] = attachEntityAliases({ ...clone(next[action.entityId]), lifecycle: "disabled", state: "disabled" });
-    }
-    for (const entity of Object.values(next)) entity.links = (entity.links || []).filter(link => link.from !== old.id && link.to !== old.id).map(makeLink);
-    const cleanup = cleanupPlan(scene, [old.id, ...(dependentPlan.entityIds || [])], { policy: old.sourceLossPolicy });
-    const backingEvents = [{ operation: "unbind", entityId: old.id, backing: clone(old.backing) }, ...(dependentPlan.actions || []).filter(action => action.action === "remove").map(action => ({ operation: "unbind", entityId: action.entityId, backing: clone(action.backing) }))];
-    return finish(scene, map, next, removed ? "remove" : "destroy", { id: old.id, purge: removed, dependentActions: dependentPlan.actions || [] }, options, { entity: removed ? null : clone(next[old.id]), cleanup, backingEvent: { operation: "unbind", entityId: old.id, backing: clone(old.backing) }, backingEvents, sourceLoss: dependentPlan });
+    assertNarrator(options);
+    const id = typeof ref === "string" ? ref : ref?.id ?? ref?.entityId;
+    const operation = options.purge === true || options.removeRecord === true ? "remove" : "destroy";
+    const payloadForReceipt = { id, purge: operation === "remove", propagateSourceLoss: options.propagateSourceLoss !== false };
+    const saved = assertReceipt(scene, operation, payloadForReceipt, options);
+    if (saved) return { ok: true, scene: clone(scene), event: clone(saved), replayed: true, idempotent: true };
+    const prepared = prepareDestroy(scene, ref, options);
+    if (!prepared.exists) return { ok: true, scene: clone(scene), replayed: true, idempotent: true, event: null };
+    const removed = prepared.payload.purge;
+    const backingEvents = [{ operation: "unbind", entityId: prepared.old.id, backing: clone(prepared.old.backing) }, ...(prepared.dependentPlan.actions || []).filter(action => action.action === "remove").map(action => ({ operation: "unbind", entityId: action.entityId, backing: clone(action.backing) }))];
+    return finish(scene, prepared.map, prepared.next, removed ? "remove" : "destroy", { id: prepared.old.id, purge: removed, dependentActions: prepared.dependentPlan.actions || [], propagateSourceLoss: prepared.payload.propagateSourceLoss }, options, { scene: prepared.scene, entity: removed ? null : clone(prepared.next[prepared.old.id]), cleanup: prepared.cleanup, cleanupBefore: prepared.cleanupBefore, cleanupAfter: cleanupSnapshot(prepared.scene), backingEvent: { operation: "unbind", entityId: prepared.old.id, backing: clone(prepared.old.backing) }, backingEvents, sourceLoss: prepared.dependentPlan });
   }
 
   function changeOwner(scene, ref, ownerActorId, options = {}) {
@@ -900,10 +1095,18 @@
     if (!isObject(event) || !isObject(event.before) || !isObject(event.after)) fail("Событие сущности не содержит снимки для отката.", "invalid-event");
     const current = registrySnapshot(registryMap(scene));
     if (!sameJson(current, event.after)) fail("Откат сущности устарел: текущий реестр уже изменён.", "stale-undo");
+    if (event.cleanupAfter && !sameJson(cleanupSnapshot(scene), event.cleanupAfter)) fail("Откат сущности устарел: связанные runtime-ссылки уже изменены.", "stale-undo");
     const receipts = receiptsOf(scene);
     if (event.id) delete receipts[event.id];
-    const next = withRegistry(scene, event.before, receipts);
+    const restored = clone(scene);
+    if (event.cleanupBefore) {
+      const saved = clone(event.cleanupBefore);
+      for (const [key, value] of Object.entries(saved)) restored[key] = value;
+      restored.lionwing = { ...(scene.lionwing || {}), ...(saved.lionwing || {}) };
+    }
+    const next = withRegistry(restored, event.before, receipts);
     const undoEvent = { schema: SCHEMA, id: `undo:${event.id || "entity"}`, type: "entity.undo", operation: "undo", payload: { eventId: event.id || null }, before: clone(event.after), after: clone(event.before) };
+    appendJournal(next, undoEvent, options);
     return { ok: true, scene: next, event: undoEvent, undone: true };
   }
 
@@ -965,10 +1168,10 @@
     resolveBacking: (scene, ref) => { const entity = resolveEntityRecord(scene, ref); const item = entity ? backingItem(scene, entity.backing) : null; return item ? clone(item) : null; },
     query, queryEntities: query, queryGraph: graphStatus, connected, linksFor,
     project, projection: project, projectEntities: project, projectEntity: entityProjection, projectScene,
-    cleanupPlan, planCleanup: cleanupPlan, sourceLossPlan, sourceLossStatus: sourceLossPlan, sourceLoss,
+    cleanupPlan, planCleanup: cleanupPlan, applyCleanup, cleanupRoots: CLEANUP_ROOTS.map(root => ({ kind: root.kind, path: [...root.path], defaultPolicy: root.defaultPolicy })), sourceLossPlan, sourceLossStatus: sourceLossPlan, sourceLoss,
     command: (actorId, payload) => ({ type: "entity.command", actorId: actorId ?? null, payload: clone(payload) }),
     transition, apply: transition, dispatch: transition,
-    create, createEntity: create, transform, transformEntity: transform, destroy, destroyEntity: destroy,
+    create, createEntity: create, transform, transformEntity: transform, prepareDestroy, prepareRemove: prepareDestroy, cancelDestroy, cancelRemove: cancelDestroy, destroy, destroyEntity: destroy,
     remove: (scene, ref, options = {}) => destroy(scene, ref, { ...options, purge: true }),
     changeOwner, ownerChange: changeOwner, link, linkEntities: link, unlink, unlinkEntities: unlink, pilotEnter, pilotExit,
     replay, reload, hydrate: reload, serialize, undo,

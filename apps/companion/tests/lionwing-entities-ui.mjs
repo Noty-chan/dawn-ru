@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import vm from "node:vm";
+import { loadSceneEngine } from "./load-scene-engine.mjs";
 
 const root = new URL("..", import.meta.url);
 const read = name => fs.readFileSync(new URL(name, root), "utf8");
@@ -29,6 +30,11 @@ vm.createContext(moduleContext);
 vm.runInContext(entitiesSource, moduleContext, { filename: "lionwing-entities.js" });
 assert.ok(moduleContext.window.DAWN_LIONWING_ENTITIES?.project, "entities module installs its browser API");
 const Entities = moduleContext.window.DAWN_LIONWING_ENTITIES;
+const runtimeContext = { window: {}, console, crypto: globalThis.crypto };
+vm.createContext(runtimeContext);
+for (const file of ["data.js", "edition-lionwing.js", "logic.js"]) vm.runInContext(read(file), runtimeContext, { filename: file });
+vm.runInContext(entitiesSource, runtimeContext, { filename: "lionwing-entities.js" });
+const RuntimeEngine = loadSceneEngine(runtimeContext);
 
 const helperStart = uiSource.indexOf("const lwEntities = () =>");
 const helperEnd = uiSource.indexOf("const lwFormDraft =", helperStart);
@@ -51,6 +57,7 @@ let view = "gm";
 let projectionMode = "full";
 const projectionCalls = [];
 const commitLabels = [];
+let committedEvents = [];
 let generatedId = 0;
 let confirmed = true;
 const context = {
@@ -59,6 +66,7 @@ const context = {
     DAWN_LIONWING_ENTITIES: {
       create: Entities.create,
       destroy: Entities.destroy,
+      remove: Entities.remove,
       resolve: Entities.resolve,
       project(_scene, viewer) {
         projectionCalls.push({ ...viewer });
@@ -87,6 +95,16 @@ const context = {
     mutator(scene);
     scene.version += 1;
     return { scene };
+  },
+  commitSceneEvents: (label, events) => {
+    commitLabels.push(label);
+    committedEvents = JSON.parse(JSON.stringify(events));
+    const before = JSON.parse(JSON.stringify(scene));
+    const result = RuntimeEngine.dispatchMany(scene, events, { expectedVersion: Number(scene.version || 0) });
+    for (const key of Object.keys(scene)) delete scene[key];
+    Object.assign(scene, result.scene);
+    scene.undo = [{ id: `ui-undo-${generatedId + 1}`, label, state: before }, ...(scene.undo || [])].slice(0, 20);
+    return result;
   },
   esc: value => String(value).replace(/[&<>"']/g, character => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[character])),
 };
@@ -131,12 +149,36 @@ assert.deepEqual(Object.keys(scene.lionwing.entities), ["entity-ui-1"]);
 assert.equal(scene.lionwing.entities["entity-ui-1"].backing.markerId, "marker-1");
 assert.equal(scene.lionwing.entities["entity-ui-1"].backing.x, undefined, "entity does not copy backing coordinates");
 assert.equal(Entities.reload(JSON.parse(JSON.stringify(scene))).lionwing.entities["entity-ui-1"].id, "entity-ui-1", "created entity survives JSON reload");
+scene.lionwing.auras = [{ id: "ui-aura", sourceEntityId: "entity-ui-1", sourceLossPolicy: "remove" }];
+scene.lionwing.choices = [{ id: "ui-choice", context: { anchorEntityId: "entity-ui-1" } }];
+scene.pendingAction = { id: "ui-pending", targetEntityId: "entity-ui-1" };
+const networkBase = JSON.parse(JSON.stringify(scene));
 confirmed = false;
 assert.equal(context.lwDestroyEntity("entity-ui-1"), false, "cancel does not remove an entity");
 assert.ok(scene.lionwing.entities["entity-ui-1"]);
+view = "player";
+assert.equal(context.lwDestroyEntity("entity-ui-1"), "Эта операция доступна только Нарратору", "player cannot invoke entity removal");
+view = "gm";
 confirmed = true;
 assert.ok(context.lwDestroyEntity("entity-ui-1")?.scene, "Narrator remove uses the common Scene commit boundary");
 assert.equal(scene.lionwing.entities["entity-ui-1"], undefined);
+assert.equal(scene.lionwing.auras.length, 0, "the actual UI event path removes a dependent aura");
+assert.equal(scene.lionwing.choices.length, 0, "the actual UI event path removes a dependent choice");
+assert.equal(scene.pendingAction, null, "the actual UI event path cancels a dependent pending action");
+assert.equal(committedEvents[0].type, "entity.remove", "the UI submits the typed entity removal event");
+assert.equal(committedEvents[0].actorId, "narrator", "the typed UI event carries Narrator authority");
+assert.equal(scene.log[0].type, "entity.remove", "the cleanup event is journaled by the runtime reducer");
+assert.ok(scene.undo[0].state.lionwing.auras.some(aura => aura.id === "ui-aura"), "the common UI commit stores a full cleanup undo snapshot");
+const networkResult = RuntimeEngine.dispatchMany(networkBase, committedEvents, { expectedVersion: networkBase.version, role: "narrator" });
+assert.equal(networkResult.scene.lionwing.entities["entity-ui-1"], undefined, "authoritative network materialization purges the registry");
+assert.equal(networkResult.scene.lionwing.auras.length, 0, "authoritative network materialization applies the same aura cleanup");
+assert.equal(networkResult.scene.pendingAction, null, "authoritative network materialization applies the same pending cleanup");
+const reloadedUiScene = Entities.reload(JSON.parse(JSON.stringify(scene)));
+assert.equal(reloadedUiScene.lionwing.entities["entity-ui-1"], undefined, "the committed cleanup survives JSON reload");
+assert.equal(reloadedUiScene.lionwing.auras.length, 0, "the committed aura cleanup survives JSON reload");
+const reloadedUndo = Entities.reload(JSON.parse(JSON.stringify(scene.undo[0].state)));
+assert.equal(reloadedUndo.lionwing.entities["entity-ui-1"].id, "entity-ui-1", "the full UI undo snapshot reloads the removed entity");
+assert.equal(reloadedUndo.lionwing.auras[0].id, "ui-aura", "the full UI undo snapshot reloads the dependent aura");
 assert.equal(commitLabels.length, 2, "only confirmed create and remove reach undo/log commit");
 view = "player";
 assert.equal(context.lwCreateEntity(form), "Эта операция доступна только Нарратору", "player cannot invoke mutations directly");

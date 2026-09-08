@@ -394,7 +394,7 @@
     // Keep the fields consumed by the existing common reducer alongside the
     // strict operation envelope.  ActionPlan still never interprets these
     // values as outcomes; it only carries them into the execution sequence.
-    for (const key of ["amount", "value", "resource", "operation", "mode", "track", "sourceActorId", "actorId", "targetIds", "effects", "effect", "actionId", "swift", "reaction", "destination", "maximum", "width", "height", "geometryPlan", "roll", "cost", "irreducible", "forced", "placement", "options"]) {
+    for (const key of ["amount", "value", "resource", "operation", "mode", "track", "sourceActorId", "actorId", "targetIds", "effects", "effect", "actionId", "swift", "reaction", "destination", "maximum", "width", "height", "geometryPlan", "roll", "cost", "repeat", "targetDamage", "ignoreArmor", "ignoreEvasion", "finalDamage", "attack", "reduction", "temporaryArmor", "preventForcedMovement", "irreducible", "forced", "placement", "remove", "options"]) {
       if (!own(raw, key)) continue;
       assertJson(raw[key], `$.${phase}.${id}.${key}`);
       result[key] = copy(raw[key]);

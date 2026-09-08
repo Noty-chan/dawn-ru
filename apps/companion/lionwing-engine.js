@@ -7,6 +7,7 @@
   const legacy = { ...global.DAWN_SCENE_ENGINE };
   const core = global.DAWN_LIONWING_DATA.coreRules;
   const foundations = global.DAWN_LIONWING_EXECUTION;
+  const entities = global.DAWN_LIONWING_ENTITIES || null;
   // The dice foundation is optional so the old single-event reducer remains
   // byte-for-byte compatible in pages that have not loaded the new module yet.
   const dice = global.DAWN_LIONWING_DICE || null;
@@ -14,6 +15,7 @@
   const DICE_SCENE_JOURNAL_LIMIT = 256;
   let preparedSerial = 0;
   const copy = value => JSON.parse(JSON.stringify(value));
+  const sameJson = (left, right) => JSON.stringify(left) === JSON.stringify(right);
   const ids = legacy.ACTION_IDS;
   const actor = (scene, id) => (scene.actors || []).find(item => item.id === id);
   const has = (a, id) => (a?.effects || []).includes(id);
@@ -641,6 +643,40 @@
         const planned=geometry.routePlan(scene,{sourceActorId,actorId:targetId,anchor:operation.anchor||{kind:"actor",actorId:sourceActorId},destination:operation.destination,maximum:operation.maximum,mode:operation.mode||"move",straight:operation.straight===true,allowPartial:operation.allowPartial===true,ignoreTerrain:operation.ignoreTerrain===true,ignoreEnemies:operation.ignoreEnemies===true,width:operation.width,height:operation.height});
         if(!planned.available)fail(planned.reason);operation.geometryPlan=planned.plan;
       }
+      // Manual attacks enter the same declarative ActionPlan boundary as
+      // every other composed LionWing operation. Keep the existing `plan`
+      // event vocabulary so old saves and reducers remain compatible, while
+      // attaching the previewed plan and pure execution descriptor for the
+      // strict recheck at dispatch time.
+      if (payload.kind === "plan") {
+        const actionPlanApi = global.DAWN_LIONWING_ACTION_PLAN;
+        if (typeof actionPlanApi?.open === "function" && typeof actionPlanApi.preview === "function" && typeof actionPlanApi.prepareExecution === "function") {
+          const planInput = payload.actionPlan || actionPlanApi.open({
+          id: payload.planId || eventId,
+          rootActionId: payload.rootActionId || eventId,
+          definitionId: payload.actionId || "manual.attack",
+          actionInstanceId: payload.actionInstanceId || eventId,
+          source: { id: a.id, kind: "actor", actorId: a.id, causeEventId: eventId },
+          owner: { id: a.id, kind: "actor", actorId: a.id },
+          sceneVersion: Number(scene.version || 0),
+          targets: (payload.targetIds || []).map(targetId => {
+            const target = requiredActor(scene, targetId, false);
+            return { targetId, snapshot: { space: target.space, x: target.x, y: target.y, knockedOut: Boolean(target.knockedOut) } };
+          }),
+          baseValues: { amount: payload.operations?.[0]?.amount ?? 0, operationCount: payload.operations?.length || 0 },
+          ...(payload.costs?.length ? { costs: payload.costs } : {}),
+          phases: { before: [], replace: [], apply: payload.operations || [], after: [] },
+          });
+          const normalizedInput = actionPlanApi.normalizePlan(planInput);
+          if (normalizedInput.ownerActorId !== a.id || normalizedInput.source.actorId !== a.id) fail("ActionPlan принадлежит другому участнику");
+          const previewed = actionPlanApi.preview(planInput, { scene, expectedRevision: planInput.revision });
+          const execution = actionPlanApi.prepareExecution(previewed.plan, { scene, expectedRevision: previewed.plan.revision });
+          payload.actionPlan = previewed.plan;
+          payload.execution = execution.execution;
+          payload.operations = execution.execution.operations.map(operation => ({ ...operation }));
+          payload.targetIds = previewed.plan.targetIds;
+        }
+      }
       if (payload.kind === "plan" && !payload.reservation) payload.reservation = costQuote(scene, a.id, payload.costs, payload.targetIds || []);
       if (payload.kind === "roll" && !payload.roll) payload.roll = roll(integer(payload.count, "число костей", 100), options.random, { ...payload, ...rollMeta({ rollId: payload.rollId || payload.id || `${eventId}:roll`, kind: payload.rollKind || "check" }), kind: payload.rollKind || "check" });
       if (payload.kind === "reaction" && payload.choice === "clash" && !payload.roll) {
@@ -946,7 +982,7 @@
         choice(a, "consequence", "Выберите длительное последствие по правилу Уязвимости", ["record"], {});
       }
     };
-    const wound = (a, sourceId, track = "wounds") => {
+    const wound = (a, sourceId, track = "wounds", actionPlanId = null) => {
       if (!isPlayer(a)) { applyDamage({ targetId: a.id, amount: 10, irreducible: true, sourceActorId: sourceId }); return; }
       a[track] = Number(a[track] || 0) + 1;
       if (track === "wounds") a.hp = a.maxHp;
@@ -955,7 +991,7 @@
       if (a[track] >= 3) {
         a[track] = 2;
          if (astate(a).vulnerable) knockout(a, { kind: track, sourceActorId: sourceId });
-        else choice(a, "knockout", "Выведение из боя: Сопротивляться или принять?", ["resist", "accept"], { track });
+        else choice(a, "knockout", "Выведение из боя: Сопротивляться или принять?", ["resist", "accept"], { track, ...(actionPlanId ? { actionPlanId } : {}) });
       }
     };
     const applyEffect = (a, p, sourceId) => {
@@ -1075,7 +1111,7 @@
       else a.hp = Math.max(0, Number(a.hp) - dealt);
       const hit = p.hit !== false;
       emit("damage.apply", p.sourceActorId, { ...p, raw, armor, evaded, dealt, healthLost: Math.min(hpBefore, dealt), hp: a.hp, hit });
-      if (dealt > 0 && (compound.active?compound.hp-dealt<=0:a.hp===0)) { if (isPlayer(a)) wound(a, p.sourceActorId); else {knockout(a,{kind:"damage",sourceActorId:p.sourceActorId});if(compound.active)for(const part of compound.parts){part.knockedOut=true;part.ap=0;}} }
+      if (dealt > 0 && (compound.active?compound.hp-dealt<=0:a.hp===0)) { if (isPlayer(a)) wound(a, p.sourceActorId, "wounds", p.actionPlanId || null); else {knockout(a,{kind:"damage",sourceActorId:p.sourceActorId});if(compound.active)for(const part of compound.parts){part.knockedOut=true;part.ap=0;}} }
       if (hit && !(attack && afterArmor > 0 && evaded === afterArmor) && !a.knockedOut) for (const e of p.effects || []) applyEffect(a, {...(typeof e === "string" ? { effect: e } : e),preventForcedMovement:p.preventForcedMovement}, p.sourceActorId);
     };
     const move = (a, p) => {
@@ -1190,7 +1226,7 @@
       if(a.compoundId)fail("Потеря Здоровья составного тела требует отдельного решения Нарратора");
       a.hp = before - lost;
       emit(p.mode === "lose" ? "health.lose" : "health.spend", sourceId, { targetId: a.id, requested, lost, hp: a.hp });
-      if (lost > 0 && a.hp === 0) { if (isPlayer(a)) wound(a, sourceId); else knockout(a, { kind: p.mode === "lose" ? "health-loss" : "health-spend", sourceActorId: sourceId }); }
+      if (lost > 0 && a.hp === 0) { if (isPlayer(a)) wound(a, sourceId, "wounds", p.actionPlanId || null); else knockout(a, { kind: p.mode === "lose" ? "health-loss" : "health-spend", sourceActorId: sourceId }); }
     };
     const payReservation = (a, reservation) => {
       for (const part of reservation.costs) {
@@ -1275,7 +1311,7 @@
         const target = requiredActor(scene, id);
         if (effectActive(scene,target,"positive.исчез") || effectActive(scene,a,"positive.изгнан") !== effectActive(scene,target,"positive.изгнан")) fail("Цель недоступна из-за Эффекта");
       }
-      scene.pendingAction = { id: rootId, actionInstanceId:provenance?.actionInstanceId||rootId, lionwing: true, actorId: a.id, name: p.name || "Атака", targetIds: targets, damage: integer(p.amount, "урон"), repeat: integer(p.repeat ?? 1, "повторы", 30), effects: copy(p.effects || []), finalDamage: Boolean(p.finalDamage), ignoreArmor:p.ignoreArmor===true, ignoreEvasion:p.ignoreEvasion===true, irreducible:p.irreducible===true, responses: Object.fromEntries(targets.map(id => [id, { choice: "pending" }])), sourceActionId: p.actionId || "manual.attack" };
+      scene.pendingAction = { id: rootId, actionInstanceId:provenance?.actionInstanceId||rootId, lionwing: true, actorId: a.id, name: p.name || "Атака", targetIds: targets, damage: integer(p.amount, "урон"), repeat: integer(p.repeat ?? 1, "повторы", 30), effects: copy(p.effects || []), finalDamage: Boolean(p.finalDamage), ignoreArmor:p.ignoreArmor===true, ignoreEvasion:p.ignoreEvasion===true, irreducible:p.irreducible===true, responses: Object.fromEntries(targets.map(id => [id, { choice: "pending" }])), sourceActionId: p.actionId || "manual.attack", ...(p.__actionPlan ? { actionPlan: copy(p.__actionPlan), actionPlanId: p.__actionPlan.id } : {}), ...(p.__execution ? { execution: copy(p.__execution) } : {}) };
       if(p.targetDamage){if(typeof p.targetDamage!=="object"||Array.isArray(p.targetDamage))fail("Некорректный урон по целям");for(const[id,amount]of Object.entries(p.targetDamage)){if(!targets.includes(id))fail("Урон указан для посторонней цели");integer(amount,"урон цели");}scene.pendingAction.targetDamage=copy(p.targetDamage);}
       if (!scene.pendingAction.repeat) fail("Нужно хотя бы одно нанесение урона");
       emit("attack.pending", a.id, scene.pendingAction);
@@ -1353,8 +1389,21 @@
           if (!p.reservation || p.reservation.sceneVersion !== Number(scene.version || 0) || p.reservation.actorId !== sourceId) fail("Резерв цены устарел: подготовьте действие заново");
           const quoted = costQuote(scene, sourceId, p.costs, p.targetIds || []);
           if (JSON.stringify(quoted) !== JSON.stringify(p.reservation)) fail("Составная цена или цели изменены после подтверждения");
+          let actionPlan = null, execution = null;
+          if (p.actionPlan != null || p.execution != null) {
+            const actionPlanApi = global.DAWN_LIONWING_ACTION_PLAN;
+            if (typeof actionPlanApi?.commitExecution !== "function" || typeof actionPlanApi?.prepareExecution !== "function") fail("ActionPlan LionWing недоступен");
+            if (!p.actionPlan || !p.execution) fail("План действия требует ActionPlan и execution descriptor");
+            const preparedDescriptor = actionPlanApi.prepareExecution(p.actionPlan, { scene, expectedRevision: p.actionPlan.revision });
+            if (!sameJson(preparedDescriptor.execution, p.execution)) fail("Execution descriptor ActionPlan изменён после подготовки");
+            const committedDescriptor = actionPlanApi.commitExecution(p.actionPlan, { scene, expectedRevision: p.actionPlan.revision, eventId: rootId });
+            actionPlan = committedDescriptor.plan;
+            execution = committedDescriptor.execution;
+            if (!sameJson(execution.costs, p.costs || []) || !sameJson(execution.targetIds, p.targetIds || [])) fail("Цена или цели не совпадают с ActionPlan");
+            if (!sameJson(execution.operations, p.operations)) fail("Операции не совпадают с execution descriptor ActionPlan");
+          }
           payReservation(a, quoted);
-          queue.unshift(...p.operations.map(operation => ({ p: operation, sourceId: operation.sourceActorId ?? sourceId, provenance: { ...provenance, actionId: p.actionId || provenance?.actionId } })));
+          queue.unshift(...p.operations.map(operation => ({ p: { ...operation, ...(actionPlan ? { __actionPlan: actionPlan, __execution: execution } : {}) }, sourceId: operation.sourceActorId ?? sourceId, provenance: { ...provenance, actionId: p.actionId || provenance?.actionId } })));
           emit("cost.commit", sourceId, { costs: quoted.costs, targetIds: quoted.targetIds });
           break;
         }
@@ -1592,6 +1641,7 @@
         case "choice": {
           const pending = s.choices[0];
           if (!pending || pending.id !== p.id || pending.actorId !== sourceId || !pending.options.includes(p.choice)) fail("Решение устарело или принадлежит другому участнику");
+          if (p.planId != null && p.planId !== pending.context?.actionPlanId) fail("Решение относится к другому ActionPlan");
           if (executionCursor?.status === "waiting") {
             executionCursor = foundations.resumeCursor(executionCursor, pending.id, sourceId);
             s.executionCursor = executionCursor;
@@ -1664,6 +1714,7 @@
         case "reaction": {
           const pending = scene.pendingAction;
           if (!pending?.lionwing || !pending.targetIds.includes(sourceId) || pending.responses[sourceId]?.choice !== "pending") fail("Эта Реакция уже недоступна");
+          if (p.planId != null && p.planId !== pending.actionPlanId) fail("Реакция относится к другому ActionPlan");
           if (!["take", "block", "dodge", "clash"].includes(p.choice)) fail("Неизвестная Реакция");
           requiredActor(scene, sourceId);
           const response = { choice: p.choice, temporaryArmor: 0, reduction: 0 };
@@ -1700,13 +1751,14 @@
         case "duel-return":{const duel=s.duels.find(item=>item.id===p.duelId);if(duel)duelReturn(duel);break;}
         case "resolve-attack": {
           const pending = scene.pendingAction;
+          if (p.planId != null && p.planId !== pending?.actionPlanId) fail("Разрешение относится к другому ActionPlan");
           if (!pending?.lionwing || pending.targetIds.some(id => live(actor(scene, id)) && !effectActive(scene,actor(scene,id),"positive.исчез") && pending.responses[id]?.choice === "pending")) fail("Сначала дождитесь всех Реакций");
           scene.pendingAction = null;
           const operations = [];
           for (let i = 0; i < pending.repeat; i++) for (const targetId of pending.targetIds) {
             if(effectActive(scene,actor(scene,targetId),"positive.исчез"))continue;
             const response = pending.responses[targetId] || {};
-            operations.push({ kind: "damage", sourceActorId: pending.actorId, targetId, amount: pending.targetDamage?.[targetId]??pending.damage, attack: true, reduction: response.reduction || 0, temporaryArmor: response.temporaryArmor || 0, effects: pending.effects, finalDamage: pending.finalDamage, ignoreArmor:pending.ignoreArmor, ignoreEvasion:pending.ignoreEvasion, irreducible:pending.irreducible, preventForcedMovement:response.preventForcedMovement });
+            operations.push({ kind: "damage", sourceActorId: pending.actorId, targetId, amount: pending.targetDamage?.[targetId]??pending.damage, attack: true, reduction: response.reduction || 0, temporaryArmor: response.temporaryArmor || 0, effects: pending.effects, finalDamage: pending.finalDamage, ignoreArmor:pending.ignoreArmor, ignoreEvasion:pending.ignoreEvasion, irreducible:pending.irreducible, preventForcedMovement:response.preventForcedMovement, ...(pending.actionPlanId ? { actionPlanId: pending.actionPlanId } : {}) });
           }
           for(const tail of s.afterAttack||[]){
             if(tail.kind==="move"&&tail.forced&&pending.responses[tail.targetId||tail.sourceActorId]?.preventForcedMovement)emit("movement.prevented",pending.actorId,{targetId:tail.targetId||tail.sourceActorId,reason:"Уворот",attackId:pending.id});
@@ -1966,6 +2018,18 @@
   }
 
   const sharedTypes = new Set(["movement-traces.clear", "topology.cells.remove", "topology.cells.restore", "roll.public", "challenge.request", "challenge.clear", "opposed.request", "opposed.reroll", "opposed.tie.resolve", "opposed.clear", "rule.share", "session-clock.create", "session-clock.set", "session-clock.add", "session-clock.reset", "session-clock.rename", "session-clock.kind", "session-clock.size", "session-clock.remove", "reminder.create", "reminder.due", "reminder.resolve", "reminder.remove", "actor.spawn", "actor.despawn", "area.create", "area.remove", "area.duration", "object.damage", "object.restore", "wall.create", "wall.damage", "wall.restore", "wall.remove", "marker.create", "marker.move", "marker.remove", "marker.duration", "targets.set", "space.ensure", "space.remove"]);
+  const prepareEntityRemoval = (scene, ref, options = {}) => {
+    if (!entities?.prepareDestroy) fail("Реестр сущностей LionWing недоступен");
+    return entities.prepareDestroy(scene, ref, options);
+  };
+  const cancelEntityRemoval = (scene, ref, options = {}) => {
+    if (!entities?.cancelDestroy) fail("Реестр сущностей LionWing недоступен");
+    return entities.cancelDestroy(scene, ref, options);
+  };
+  const removeEntity = (scene, ref, options = {}) => {
+    if (!entities?.destroy) fail("Реестр сущностей LionWing недоступен");
+    return entities.destroy(scene, ref, { ...options, purge: true });
+  };
   function dispatchMany(scene, events, options = {}) {
     if (!isScene(scene)) return legacy.dispatchMany(scene, events, options);
     if (!Array.isArray(events) || !events.length || events.length > 192) fail("Некорректный пакет событий");
@@ -1992,6 +2056,20 @@
       }
       const receipt = state(next).receipts.find(r => r.id === event.id);
       if (receipt) { if (receipt.fingerprint !== fingerprint) fail("Конфликт ID события"); continue; }
+      if (["entity.remove", "entity.destroy"].includes(event.type)) {
+        if (!entities?.transition) fail("Реестр сущностей LionWing недоступен");
+        // Authority is supplied by the trusted dispatcher context. A role
+        // embedded in an untrusted event payload must never elevate a player.
+        const role = options.role || (event.actorId === "narrator" || event.actorId === "gm" ? event.actorId : null);
+        if (!["narrator", "gm"].includes(role)) fail("Удаление сущности доступно только Нарратору.");
+        const result = entities.transition(next, { type: event.type, operation: event.type.slice("entity.".length), payload: event.payload }, { ...options, role, eventId: event.id, actorId: event.actorId, expectedVersion: options.expectedVersion ?? next.version });
+        next = result.scene;
+        next.version = Number(next.version || 0) + 1;
+        output.push(result.event);
+        state(next).receipts.push({ id: event.id, fingerprint });
+        state(next).receipts = state(next).receipts.slice(-256);
+        continue;
+      }
       if (sharedTypes.has(event.type)) {
         // Only structural tools use the old single-event reducer, never its triggers.
         if(event.type==="actor.spawn"){
@@ -2012,7 +2090,7 @@
     catch (error) { return { ok: false, errors: [error.message], code: error.code || "LIONWING_RULE_BLOCKED" }; }
   }
   const api = {
-    schema: 2, isScene, prepare, command, dispatchMany, previewEvents,
+    schema: 2, isScene, prepare, command, dispatchMany, previewEvents, prepareEntityRemoval, cancelEntityRemoval, removeEntity, destroyEntity: removeEntity,
     turnStartStatus, roundEndStatus, turnIdentity,
     movement, roll, actionStatus, actionDef, speed, balance, canSpend, targetIds, costQuote,
     createDiceRoll, createRoll: createDiceRoll, diceCreate: createDiceRoll,
