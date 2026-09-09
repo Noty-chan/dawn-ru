@@ -16,6 +16,7 @@
     skirmish: "action.атаки.стычка",
     breathe: "action.утилитарные-действия.передышка",
     charge: "action.утилитарные-действия.зарядка",
+    finish: "action.атаки.завершение",
     hide: "action.утилитарные-действия.скрыться",
     interact: "action.утилитарные-действия.взаимодействие",
     study: "action.утилитарные-действия.изучение",
@@ -29,6 +30,21 @@
     ));
   };
   const usedInRound = (actor, scene, actionId) => eventHistory(actor, scene).some(item => item.actionId === actionId && Number(item.round) === Number(scene?.round));
+  const turnHistory = (actor, scene) => {
+    const serial = Number(scene?.turnSerial), instance = scene?.lionwing?.activeTurnInstanceId || null;
+    return eventHistory(actor, scene).filter(item => instance && item.ownerTurnInstanceId === instance || !instance && Number(item.turnSerial) === serial);
+  };
+  const attackActionIds = new Set(["action.атаки.стычка", "action.атаки.заклинание", "action.атаки.завершение"]);
+  const hasAttackThisTurn = (actor, scene) => turnHistory(actor, scene).some(item => attackActionIds.has(item.actionId));
+  const comboComplete = (actor, scene, event) => {
+    if (event?.type !== "action.resolve" || event.actorId !== actor.id || event.payload?.actionId !== ACTIONS.finish) return false;
+    const history = turnHistory(actor, scene), current = history.at(-1), previous = history.at(-2);
+    return current?.actionId === ACTIONS.finish && previous?.actionId === ACTIONS.skirmish &&
+      (!current.ownerTurnInstanceId || !previous.ownerTurnInstanceId || current.ownerTurnInstanceId === previous.ownerTurnInstanceId);
+  };
+  const clockValue = (actor, id) => id === "focus"
+    ? Number(actor?.focus || 0)
+    : Number(actor?.ruleClocks?.[id]?.current ?? actor?.ruleClocks?.[id]?.value ?? 0);
   const actionModifier = ({ id, techniqueId, level, sourceDigest, label, coverage = "partial", available, modify }) => Object.freeze({
     id, techniqueId, level, sourceDigest, label, coverage,
     available,
@@ -131,6 +147,62 @@
       },
     }),
     eventTrigger({
+      id: "powerhouse.monastic-sage.2",
+      label: "Монах-воин II: чередование Действий заполняет Баланс",
+      sourceDigest: "68c84fc146d316b7508a983d89e6438f07785d78ff8bb885ac25dade66f40c60",
+      coverage: "partial",
+      triggerKey: ({ actor, event, context }) => `${event.id}:${actor.id}:${context.ownerTurnKey || "turn"}:balance`,
+      operations: (actor, _event, context) => {
+        const history = turnHistory(actor, context.scene), current = history.at(-1)?.actionId;
+        const previous = history.length > 1 ? history.at(-2)?.actionId : null;
+        const currentAttack = attackActionIds.has(current), previousAttack = attackActionIds.has(previous);
+        return current && previous && currentAttack !== previousAttack
+          ? [{ kind: "clock", targetId: actor.id, id: "powerhouse.monastic-sage.balance", operation: "add", delta: 1, ruleId: "powerhouse.monastic-sage.2" }]
+          : [];
+      },
+      choices: () => [],
+    }),
+    eventTrigger({
+      id: "powerhouse.technician.1",
+      label: "Техник I: Разминка сохраняет окно для ОД за комбо",
+      sourceDigest: "79946bc3df6de994901a8519030345403e62c0fac627a76aaa8bc0ee45edda83",
+      coverage: "partial",
+      triggerKey: ({ actor, event }) => `${event.id}:${actor.id}:stretch`,
+      operations: (actor, event, context) => {
+        if (event.payload?.actionId === ACTIONS.charge) return [{ kind: "clock", targetId: actor.id, id: "powerhouse.technician.stretch", operation: "configure", label: "Разминка", size: 1, max: 1, min: 0, current: 1, initial: 0, resetAt: "manual", lifetime: { boundary: "endNextOwnerTurn", ownerActorId: actor.id, ownerTurnSerial: context.ownerTurnSerial } , ruleId: "powerhouse.technician.1" }];
+        if (comboComplete(actor, context.scene, event) && clockValue(actor, "powerhouse.technician.stretch") > 0) return [{ kind: "resource", targetId: actor.id, resource: "ap", operation: "gain", amount: 1, ruleId: "powerhouse.technician.1" }];
+        return [];
+      },
+      choices: () => [],
+    }),
+    eventTrigger({
+      id: "powerhouse.technician.2",
+      label: "Техник II: завершённое комбо даёт Броню до следующего Хода",
+      sourceDigest: "87d635215f2088e683f229d48bc51b0f2bc34d6a88bc1dea707fcea12e4be250",
+      coverage: "partial",
+      triggerKey: ({ actor, event }) => `${event.id}:${actor.id}:perfect-form`,
+      operations: (actor, event, context) => comboComplete(actor, context.scene, event) ? [{ kind: "modifier", id: `powerhouse.technician.2:${actor.id}:${event.payload?.actionInstanceId || event.id}`, targetId: actor.id, ownerActorId: actor.id, stat: "armor", amount: Math.ceil(Number(actor.tier || 0) / 2), duration: "startTurn", ruleId: "powerhouse.technician.2" }] : [],
+      choices: () => [],
+    }),
+    eventTrigger({
+      id: "vagabond.opportunist.2",
+      label: "Опортюнист II: пометить цель союзной Атаки за 1 Фокус",
+      sourceDigest: "4428e0016f97c612a78e62f5229be16a4b71ec6043a44d1599195d77e81ae62f",
+      coverage: "partial",
+      triggerKey: ({ actor, event }) => `${event.id}:${actor.id}:hungry-eyes`,
+      operations: () => [],
+      choices: (actor, event, context) => {
+        const payload = event.payload || {}, targetId = Array.isArray(payload.targetIds) && payload.targetIds.length === 1 ? payload.targetIds[0] : payload.targetId;
+        const target = targetId && context.scene?.actors?.find(item => item.id === targetId);
+        const ally = event.actorId && context.scene?.actors?.find(item => item.id === event.actorId);
+        if (!target || !ally || ally.id === actor.id || ally.team !== actor.team || target.team === actor.team || target.knockedOut || clockValue(actor, "focus") < 1 || Number.isNaN(Number(actor.attrs?.talent)) || (target.space !== actor.space || Math.abs(Number(target.x) - Number(actor.x)) + Math.abs(Number(target.y) - Number(actor.y)) > Number(actor.attrs?.talent || 0))) return [];
+        return [{ id: "mark", label: `Потратить 1 Фокус и Пометить ${target.name || "цель"}`, operations: [
+          { kind: "resource", targetId: actor.id, resource: "focus", operation: "spend", amount: 1, ruleId: "vagabond.opportunist.2" },
+          { kind: "effect", targetId: target.id, sourceActorId: actor.id, effect: "negative.помечен", ruleId: "vagabond.opportunist.2", sourceActionId: "vagabond.opportunist.2" },
+        ], context: { targetId, allyId: ally.id, eventId: event.id } }];
+      },
+    }),
+    eventTrigger({
       id: "disruptor.chemist.2",
       label: "Химик II: после Ослабления запросить Здоровье и при пороге вывести цель из боя",
       sourceDigest: "ac64f39e6d822bc8b310d86e0a37a9c2c7236f089e76d51e70693c943bd3dff3",
@@ -228,6 +300,32 @@
       boundaryOperations: (actor, context) => context?.boundary === "turnEnd" && context.activeActor?.id === actor.id && context.activeEffectIds?.includes("positive.ускорен")
         ? [{ kind: "modifier", targetId: actor.id, stat: "evasion", amount: 2, duration: "manual" }]
         : [],
+    }),
+    passive({
+      id: "powerhouse.monastic-sage.2",
+      label: "Монах-воин II: Часы Баланса и усиление в начале Хода",
+      sourceDigest: "68c84fc146d316b7508a983d89e6438f07785d78ff8bb885ac25dade66f40c60",
+      coverage: "partial",
+      boundaryOperations: (actor, context) => {
+        if (context?.boundary === "sceneStart") return [{ kind: "clock", targetId: actor.id, id: "powerhouse.monastic-sage.balance", operation: "create", label: "Баланс", size: 8, max: 8, min: 0, current: 0, initial: 0, resetAt: "scene", lifetime: "scene", ruleId: "powerhouse.monastic-sage.2" }];
+        if (context?.boundary === "turnStart" && context.activeActor?.id === actor.id && clockValue(actor, "powerhouse.monastic-sage.balance") > 0) return { operations: [], choices: [
+          { id: "strengthen", label: "Потратить 1 Баланс: Усилиться", operations: [{ kind: "clock", targetId: actor.id, id: "powerhouse.monastic-sage.balance", operation: "add", delta: -1, ruleId: "powerhouse.monastic-sage.2" }, { kind: "effect", targetId: actor.id, effect: "positive.усилен", ruleId: "powerhouse.monastic-sage.2" }] },
+          { id: "hasten", label: "Потратить 1 Баланс: Ускориться", operations: [{ kind: "clock", targetId: actor.id, id: "powerhouse.monastic-sage.balance", operation: "add", delta: -1, ruleId: "powerhouse.monastic-sage.2" }, { kind: "effect", targetId: actor.id, effect: "positive.ускорен", ruleId: "powerhouse.monastic-sage.2" }], },
+        ] };
+        return [];
+      },
+    }),
+    passive({
+      id: "vagabond.sniper.2",
+      label: "Снайпер II: добровольно занять Засаду в начале Сцены или после неатакующего Хода",
+      sourceDigest: "e154b6164f886770be2bb7a63a6a86bd7be83a88967eecaeb1f801b631874767",
+      coverage: "partial",
+      boundaryOperations: (actor, context) => {
+        if (context?.boundary === "sceneStart" || context?.boundary === "turnEnd" && context.activeActor?.id === actor.id && !hasAttackThisTurn(actor, context.scene)) return { operations: [], choices: [
+          { id: "bunker", label: "Занять Засаду и получить Обездвижен", operations: [{ kind: "effect", targetId: actor.id, effect: "negative.обездвижен", duration: "scene", ruleId: "vagabond.sniper.2", sourceActionId: "vagabond.sniper.2" }] },
+        ] };
+        return [];
+      },
     }),
     passive({
       id: "bulwark.iron-bodied.1",
@@ -482,6 +580,22 @@
   };
   const enabled = actor => adapters.filter(rule => rule.available(actor) && actor.lionwing?.automation?.[rule.id] === true);
   const eventTriggerRules = Object.freeze(eventAdapters);
+  const lifecycleBoundaries = Object.freeze(["sceneStart", "sceneEnd", "roundStart", "roundEnd", "ownTurnStart", "ownTurnEnd", "anyTurnStart", "anyTurnEnd"]);
+  const lifecycle = Object.freeze({
+    boundaries: lifecycleBoundaries,
+    turnKey: (actor, scene) => {
+      const serial = Number(actor?.lionwing?.ownerTurnSerial ?? actor?.lionwing?.ownTurnSerial ?? actor?.lionwing?.turnCount ?? 0);
+      return `${scene?.lionwing?.sceneSerial || 1}:${actor?.id || ""}:${serial}`;
+    },
+    count: (actor, scene, query = {}) => {
+      const rows = eventHistory(actor, scene), scope = query.scope || "ownerTurn", serial = query.ownerTurnSerial ?? actor?.lionwing?.ownerTurnSerial ?? actor?.lionwing?.ownTurnSerial ?? 0, instance = query.ownerTurnInstanceId ?? scene?.lionwing?.activeTurnInstanceId;
+      return rows.filter(item => query.ruleId == null || item.ruleId === query.ruleId).filter(item => query.actionId == null || item.actionId === query.actionId).filter(item => scope === "scene" ? Number(item.sceneSerial || scene?.lionwing?.sceneSerial || 1) === Number(scene?.lionwing?.sceneSerial || 1) : scope === "round" ? Number(item.round) === Number(scene?.round) : instance ? item.ownerTurnInstanceId === instance : Number(item.ownerTurnSerial ?? item.turnSerial) === Number(serial)).length;
+    },
+    used: (actor, scene, query = {}) => lifecycle.count(actor, scene, query) > 0,
+    once: (actor, scene, query = {}) => lifecycle.count(actor, scene, query) === 0,
+    first: (actor, scene, query = {}) => lifecycle.count(actor, scene, query) === 0,
+    nth: (actor, scene, n, query = {}) => Number.isSafeInteger(Number(n)) && Number(n) > 0 && lifecycle.count(actor, scene, query) === Number(n) - 1,
+  });
   const afterEvent = (actor, event, context = {}) => {
     if (!actor || !event || !event.type) return [];
     return enabled(actor).filter(rule => eventTriggerRules.includes(rule)).flatMap(rule => {
@@ -493,6 +607,16 @@
       else if (rule.id === "disruptor.siren.3") {
         const payload = event.payload || {}, attribute = payload.attribute || "spirit";
         match = event.type === "action.resolve" && event.actorId === actor.id && payload.actionId === "action.атаки.завершение" && ["mind", "spirit"].includes(String(attribute).toLowerCase()) && typeof payload.actionInstanceId === "string" && Array.isArray(payload.targetIds) && payload.targetIds.length === 1 && Boolean(payload.targetIds[0]) && Boolean(event.execution?.actionInstanceId || event.execution?.rootActionId);
+      }
+      else if (rule.id === "powerhouse.technician.1") match = (event.type === "action.resolve" && event.actorId === actor.id && event.payload?.actionId === ACTIONS.charge) || comboComplete(actor, context.scene, event) && clockValue(actor, "powerhouse.technician.stretch") > 0;
+      else if (rule.id === "powerhouse.technician.2") match = comboComplete(actor, context.scene, event);
+      else if (rule.id === "powerhouse.monastic-sage.2") {
+        const history = turnHistory(actor, context.scene), current = history.at(-1)?.actionId, previous = history.length > 1 ? history.at(-2)?.actionId : null;
+        match = event.type === "action.resolve" && event.actorId === actor.id && current && previous && attackActionIds.has(current) !== attackActionIds.has(previous);
+      }
+      else if (rule.id === "vagabond.opportunist.2") {
+        const targetId = event.payload?.targetIds?.length === 1 ? event.payload.targetIds[0] : event.payload?.targetId, target = targetId && context.scene?.actors?.find(item => item.id === targetId), ally = event.actorId && context.scene?.actors?.find(item => item.id === event.actorId);
+        match = event.type === "action.resolve" && event.actorId !== actor.id && ally?.team === actor.team && target && target.team !== actor.team && !target.knockedOut && target.space === actor.space && Math.abs(Number(target.x) - Number(actor.x)) + Math.abs(Number(target.y) - Number(actor.y)) <= Number(actor.attrs?.talent || 0) && Number(actor.focus || 0) >= 1;
       }
       else if (rule.id === "disruptor.chemist.2") match = event.type === "effect.apply" && event.payload?.effect === "negative.ослаблен" && event.actorId === actor.id && event.payload?.targetId !== actor.id;
       else if (rule.id === "vagabond.dim-mak.1") {
@@ -519,10 +643,11 @@
     return Number.isFinite(amount) && amount !== 0 ? [{ id: rule.id, label: rule.label, amount }] : [];
   });
   global.DAWN_LIONWING_ADAPTERS = Object.freeze({
-    list: actor => adapters.filter(rule => rule.available(actor)).map(({ id, label, sourceDigest, coverage }) => ({ id, label, sourceDigest, coverage })),
+    list: actor => adapters.filter(rule => rule.available(actor)).filter((rule, index, all) => all.findIndex(item => item.id === rule.id) === index).map(({ id, label, sourceDigest, coverage }) => ({ id, label, sourceDigest, coverage })),
     replacements: (actor, original) => enabled(actor).flatMap(rule => rule.replacements?.(actor, original) || []),
     afterEffect: (actor, original) => enabled(actor).flatMap(rule => rule.afterEffect?.(actor, original) || []),
     afterEvent,
+    lifecycle,
     rollBonuses: (actor, context = {}) => numericContributions(actor, "rollBonus", context),
     rollBonus: (actor, context = {}) => numericContributions(actor, "rollBonus", context).reduce((sum, item) => sum + item.amount, 0),
     statBonuses: (actor, key, context = {}) => numericContributions(actor, "statBonus", { ...context, key }),
@@ -532,8 +657,10 @@
     rangeBonuses: (actor, context = {}) => numericContributions(actor, "rangeBonus", context),
     rangeBonus: (actor, context = {}) => numericContributions(actor, "rangeBonus", context).reduce((sum, item) => sum + item.amount, 0),
     boundaryOperations: (actor, context = {}) => enabled(actor).flatMap(rule => {
-      const operations = rule.boundaryOperations?.(actor, context) || [];
-      return operations.length ? [{ id: rule.id, label: rule.label, operations }] : [];
+      const declared = rule.boundaryOperations?.(actor, context) || [];
+      const operations = Array.isArray(declared) ? declared : (Array.isArray(declared.operations) ? declared.operations : []);
+      const choices = Array.isArray(declared) ? [] : (Array.isArray(declared.choices) ? declared.choices : []);
+      return operations.length || choices.length ? [{ id: rule.id, label: rule.label, sourceDigest: rule.sourceDigest, coverage: rule.coverage, operations, choices }] : [];
     }),
     resourceGainStatus: (actor, context = {}) => enabled(actor).reduce((status, rule) => status.allowed === false ? status : rule.resourceGainStatus?.(actor, context) || status, { allowed: true, reason: "" }),
     actionStatus: (actor, context = {}) => enabled(actor).reduce((status, rule) => status.allowed === false ? status : rule.actionStatus?.(actor, context) || status, { allowed: true, reason: "" }),

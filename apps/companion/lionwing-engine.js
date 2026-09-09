@@ -133,7 +133,7 @@
     if(s.started===undefined)s.started=Boolean(scene.activeActorId||Number(scene.round||1)>1||(scene.actors||[]).some(a=>a.acted&&a.kind!=="crowd"));
     if(s.lastTeam===undefined){const last=(scene.log||[]).find(e=>e.type==="turn.end");s.lastTeam=actor(scene,last?.actorId)?.team||null;}
     const migrateHistory=!Array.isArray(s.history);
-    for(const key of ["choices","deferred","receipts","history","specialJournal","afterEventReceipts"])if(!Array.isArray(s[key]))s[key]=[];
+    for(const key of ["choices","deferred","receipts","history","specialJournal","afterEventReceipts","boundaryReceipts"])if(!Array.isArray(s[key]))s[key]=[];
     if(!Array.isArray(s.movementGroups))s.movementGroups=[];
     if(s.compounds===undefined)s.compounds={};
     if(!s.compounds||typeof s.compounds!=="object"||Array.isArray(s.compounds))fail("Реестр Составных LionWing имеет неподдерживаемый формат");
@@ -198,6 +198,7 @@
       compounds: copy(l.compounds || {}),
       choices: copy(l.choices || []),
       deferred: copy(l.deferred || []),
+      boundaryReceipts: copy(l.boundaryReceipts || []),
       afterAttack: copy(l.afterAttack || []),
       pendingAction: copy(scene.pendingAction || null),
       pendingPrompt: copy(scene.pendingPrompt || null),
@@ -221,6 +222,7 @@
     next.lionwing.compounds = copy(snapshot.compounds || {});
     next.lionwing.choices = copy(snapshot.choices || []);
     next.lionwing.deferred = copy(snapshot.deferred || []);
+    next.lionwing.boundaryReceipts = copy(snapshot.boundaryReceipts || []);
     next.lionwing.afterAttack = copy(snapshot.afterAttack || []);
     if (snapshot.executionCursor == null) delete next.lionwing.executionCursor;
     else next.lionwing.executionCursor = copy(snapshot.executionCursor);
@@ -751,6 +753,18 @@
     };
   }
 
+  // Read-only lifecycle context shared by adapters, UI previews and tests.
+  // Boundary execution still goes through the existing boundaryOperations
+  // hook above; this helper only gives callers one stable vocabulary for
+  // Turn/Round/Scene windows and receipt keys.
+  function lifecycleContext(scene, query = {}) {
+    const snapshot = copy(scene), s = state(snapshot), owner = actor(snapshot, query.ownerActorId || query.actorId || snapshot.activeActorId), boundaryAliases = { sceneStart: "sceneStart", sceneEnd: "sceneEnd", roundStart: "roundStart", roundEnd: "roundEnd", turnStart: "ownTurnStart", turnEnd: "ownTurnEnd", ownTurnStart: "ownTurnStart", ownTurnEnd: "ownTurnEnd", anyTurnStart: "anyTurnStart", anyTurnEnd: "anyTurnEnd" }, boundary = boundaryAliases[query.boundary] || query.boundary || "ownTurnStart", ownerSerial = owner ? ownTurnSerial(owner) : Number(query.ownerTurnSerial || 0), ownerKey = owner ? ownerTurnKey(s.sceneSerial, owner, ownerSerial) : null, turnInstanceId = query.turnInstanceId || (snapshot.activeActorId === owner?.id ? s.activeTurnInstanceId || null : owner?.lionwing?.turnInstanceId || owner?.lionwing?.lastTurnInstanceId || null);
+    if (!["sceneStart", "sceneEnd", "roundStart", "roundEnd", "ownTurnStart", "ownTurnEnd", "anyTurnStart", "anyTurnEnd"].includes(boundary)) fail("Неизвестная граница жизненного цикла");
+    const periodKey = ["sceneStart", "sceneEnd"].includes(boundary) ? `${s.sceneSerial}:${boundary}` : ["roundStart", "roundEnd"].includes(boundary) ? `${s.sceneSerial}:${snapshot.round}:${boundary}` : ["ownTurnStart", "ownTurnEnd"].includes(boundary) ? `${ownerKey}:${boundary}` : `${s.sceneSerial}:${s.activeTurnInstanceId || `scene-turn:${snapshot.turnSerial}`}:${boundary}`;
+    const historyQuery = query.history && typeof query.history === "object" ? { ...query.history, sceneSerial: query.history.sceneSerial ?? s.sceneSerial, ownerActorId: query.history.ownerActorId ?? owner?.id, ownerTurnSerial: query.history.ownerTurnSerial ?? ownerSerial, ownerTurnInstanceId: query.history.ownerTurnInstanceId ?? turnInstanceId } : null;
+    return { schema: 1, boundary, sceneSerial: s.sceneSerial, chapterSerial: s.chapterSerial, round: Number(snapshot.round || 0), turnSerial: Number(snapshot.turnSerial || 0), ownerActorId: owner?.id || null, ownerTurnSerial: ownerSerial, ownerTurnInstanceId: turnInstanceId, ownerTurnKey: ownerKey, activeActorId: snapshot.activeActorId || null, activeTurnInstanceId: s.activeTurnInstanceId || null, extraTurn: s.activeTurn?.kind === "extra", periodKey, receipt: query.ruleId ? (s.boundaryReceipts || []).find(item => item.ruleId === query.ruleId && item.ownerActorId === owner?.id && item.boundaryKey === periodKey) || null : null, history: historyQuery ? { count: foundations.historyCount(s.history, { ...historyQuery, scope: historyQuery.scope || "ownerTurn" }), facts: s.history.filter(item => foundations.inScope(item, { ...historyQuery, scope: historyQuery.scope || "ownerTurn" })).map(copy) } : null };
+  }
+
   function lifetimeExpired(scene, lifetime, query = {}) {
     const snapshot = copy(scene), s = state(snapshot), owner = actor(snapshot, query.ownerActorId || query.actorId || lifetime?.ownerActorId);
     const current = {
@@ -1041,30 +1055,54 @@
       saveFact("apply", actorId, payload.targetId ? [payload.targetId] : payload.partIds || [], { operation, eventType: type, special: true });
       return row;
     };
-    const scheduleBoundary = (boundary, activeActor = null) => {
+    const scheduleBoundary = (boundary, activeActor = null, options = {}) => {
       if (typeof global.DAWN_LIONWING_ADAPTERS?.boundaryOperations !== "function") return;
-      for (const owner of scene.actors || []) for (const rule of global.DAWN_LIONWING_ADAPTERS.boundaryOperations(owner, { scene, boundary, activeActor, activeEffectIds: activeState(scene, owner.id).effects.filter(status => status.present).map(status => status.effect), distanceToActive: activeActor ? distance(owner, activeActor) : Infinity })) {
-        emit("rule.activated", owner.id, { ruleId: rule.id, boundary, targetId: activeActor?.id || owner.id, automatic: true });
-        scheduled.push(...rule.operations.map(p => ({ p, sourceId: owner.id, provenance: { rootActionId: rootId, actionId: null, actionDefinitionId: null, actionInstanceId: rootId, causeEventId: rootId, ownerActorId: owner.id, ruleId: rule.id } })));
+      const canonicalBoundary = ({ sceneStart: "sceneStart", sceneEnd: "sceneEnd", roundStart: "roundStart", roundEnd: "roundEnd", turnStart: "ownTurnStart", turnEnd: "ownTurnEnd", ownTurnStart: "ownTurnStart", ownTurnEnd: "ownTurnEnd", anyTurnStart: "anyTurnStart", anyTurnEnd: "anyTurnEnd" }[boundary] || boundary);
+      const ownerTurnKey = owner => owner ? `${s.sceneSerial}:${owner.id}:${ownTurnSerial(owner)}` : null;
+      const boundaryKey = owner => {
+        if (["sceneStart", "sceneEnd"].includes(canonicalBoundary)) return `${s.sceneSerial}:${canonicalBoundary}`;
+        if (["roundStart", "roundEnd"].includes(canonicalBoundary)) return `${s.sceneSerial}:${scene.round}:${canonicalBoundary}`;
+        if (["ownTurnStart", "ownTurnEnd"].includes(canonicalBoundary)) return `${ownerTurnKey(owner)}:${canonicalBoundary}`;
+        return `${s.sceneSerial}:${s.activeTurnInstanceId || `scene-turn:${scene.turnSerial}`}:${canonicalBoundary}`;
+      };
+      const context = owner => ({ scene, boundary: ["ownTurnStart", "ownTurnEnd"].includes(canonicalBoundary) ? "turn" + (canonicalBoundary === "ownTurnStart" ? "Start" : "End") : boundary, canonicalBoundary, activeActor, activeEffectIds: activeState(scene, owner.id).effects.filter(status => status.present).map(status => status.effect), distanceToActive: activeActor ? distance(owner, activeActor) : Infinity, ownerTurnSerial: ownTurnSerial(owner), ownerTurnInstanceId: owner.id === activeActor?.id ? s.activeTurnInstanceId || null : owner.lionwing?.turnInstanceId || null, ownerTurnKey: ownerTurnKey(owner), boundaryKey: boundaryKey(owner) });
+      for (const owner of scene.actors || []) for (const rule of global.DAWN_LIONWING_ADAPTERS.boundaryOperations(owner, context(owner))) {
+        const key = `${rule.id}:${owner.id}:${boundaryKey(owner)}`;
+        if (s.boundaryReceipts.some(receipt => receipt.key === key)) continue;
+        s.boundaryReceipts.push({ schema: 1, key, ruleId: rule.id, ownerActorId: owner.id, boundary: canonicalBoundary, boundaryKey: boundaryKey(owner), sceneSerial: s.sceneSerial, round: Number(scene.round || 0), turnInstanceId: s.activeTurnInstanceId || null, sourceDigest: rule.sourceDigest || null, eventId: rootId });
+        s.boundaryReceipts = s.boundaryReceipts.slice(-512);
+        const choices = Array.isArray(rule.choices) ? rule.choices : [];
+        emit("rule.activated", owner.id, { ruleId: rule.id, sourceDigest: rule.sourceDigest || null, coverage: rule.coverage || "full", boundary: canonicalBoundary, targetId: activeActor?.id || owner.id, automatic: true, optional: choices.length > 0, reason: rule.label || null });
+        if (!options.discardOperations) scheduled.push(...(rule.operations || []).map(p => ({ p: { ...copy(p), sourceDigest: p.sourceDigest ?? rule.sourceDigest ?? null }, sourceId: owner.id, provenance: { rootActionId: rootId, actionId: null, actionDefinitionId: null, actionInstanceId: rootId, causeEventId: rootId, ownerActorId: owner.id, ruleId: rule.id, sourceDigest: rule.sourceDigest || null, coverage: rule.coverage || "full" } })));
+        for (const option of choices) {
+          if (!option?.id || !Array.isArray(option.operations)) continue;
+          const optionsList = choices.map(item => item.id).filter(Boolean);
+          scheduled.push({ p: { kind: "technique-choice", ruleId: rule.id, triggerKey: key, title: `${rule.label || rule.id}: ${canonicalBoundary}`, options: ["skip", ...optionsList], optionLabels: { skip: "Не использовать", ...Object.fromEntries(choices.map(item => [item.id, item.label || item.id])) }, choices: Object.fromEntries(choices.map(item => [item.id, item.operations])), context: { boundary: canonicalBoundary, boundaryKey: boundaryKey(owner), ownerActorId: owner.id, optional: true, sourceDigest: rule.sourceDigest || null, coverage: rule.coverage || "full" } }, sourceId: owner.id, provenance: { rootActionId: rootId, actionId: null, actionDefinitionId: null, actionInstanceId: rootId, causeEventId: rootId, ownerActorId: owner.id, ruleId: rule.id, sourceDigest: rule.sourceDigest || null, coverage: rule.coverage || "full" } });
+          break;
+        }
       }
     };
     scheduleAfterEvent = eventRow => {
       const eventPayload = eventRow.payload || {};
-      const candidateIds = [...new Set([eventRow.actorId, eventPayload.targetId].filter(id => typeof id === "string" && id))];
+      // Completed events may trigger a rule owned by a nearby ally (for
+      // example Opportunist II), so candidate ownership is not limited to the
+      // event subject and target. Adapters perform the authoritative relation
+      // and range checks; this only widens the read-only query set.
+      const candidateIds = [...new Set([eventRow.actorId, eventPayload.targetId, ...(scene.actors || []).map(item => item.id)].filter(id => typeof id === "string" && id))];
       const activeOwner = scene.activeActorId ? actor(scene, scene.activeActorId) : null;
       const ownerTurnKeyValue = activeOwner ? ownerTurnKey(s.sceneSerial, activeOwner, ownTurnSerial(activeOwner)) : null;
       for (const candidateId of candidateIds) {
         const candidate = actor(scene, candidateId);
         if (!candidate || candidate.knockedOut && eventRow.type !== "actor.knockout") continue;
         const used = (s.afterEventReceipts || []).some(receipt => receipt.ruleId === "powerhouse.berserker.3" && receipt.ownerActorId === candidate.id && receipt.turnKey === ownerTurnKeyValue);
-        const triggers = global.DAWN_LIONWING_ADAPTERS?.afterEvent?.(candidate, eventRow, { scene, ownerTurnKey: ownerTurnKeyValue, used }) || [];
+        const triggers = global.DAWN_LIONWING_ADAPTERS?.afterEvent?.(candidate, eventRow, { scene, ownerTurnKey: ownerTurnKeyValue, ownerTurnSerial: activeOwner ? ownTurnSerial(activeOwner) : null, ownerTurnInstanceId: s.activeTurnInstanceId || null, used }) || [];
         for (const trigger of triggers) {
           if (!trigger.triggerKey || (s.afterEventReceipts || []).some(receipt => receipt.key === trigger.triggerKey)) continue;
-          s.afterEventReceipts.push({ schema: 1, key: trigger.triggerKey, ruleId: trigger.id, ownerActorId: candidate.id, eventId: eventRow.id, turnKey: ownerTurnKeyValue });
+          s.afterEventReceipts.push({ schema: 1, key: trigger.triggerKey, ruleId: trigger.id, ownerActorId: candidate.id, eventId: eventRow.id, turnKey: ownerTurnKeyValue, sourceDigest: trigger.sourceDigest || null, coverage: trigger.coverage || "full" });
           s.afterEventReceipts = s.afterEventReceipts.slice(-256);
           emit("rule.activated", candidate.id, { ruleId: trigger.id, sourceDigest: trigger.sourceDigest, triggerKey: trigger.triggerKey, causeEventId: eventRow.id, targetId: eventPayload.targetId || candidate.id, automatic: true, coverage: trigger.coverage });
-          scheduled.push(...(trigger.operations || []).map(operation => ({ p: { ...copy(operation), sourceActorId: operation.sourceActorId ?? candidate.id }, sourceId: operation.sourceActorId ?? candidate.id, provenance: { rootActionId: eventRow.execution?.rootActionId || rootId, actionId: eventRow.execution?.actionId || null, actionDefinitionId: eventRow.execution?.actionDefinitionId || eventRow.execution?.actionId || null, actionInstanceId: eventRow.execution?.actionInstanceId || rootId, causeEventId: eventRow.id, ownerActorId: candidate.id, ruleId: trigger.id } })));
-          for (const option of trigger.choices || []) scheduled.push({ p: { kind: "technique-choice", ruleId: trigger.id, triggerKey: trigger.triggerKey, title: trigger.label, options: ["skip", option.id], optionLabels: { skip: "Не использовать", [option.id]: option.label }, choices: { [option.id]: copy(option.operations || []) }, context: { ...(option.context || {}), causeEventId: eventRow.id, ownerActorId: candidate.id } }, sourceId: candidate.id, provenance: { rootActionId: eventRow.execution?.rootActionId || rootId, actionId: eventRow.execution?.actionId || null, actionDefinitionId: eventRow.execution?.actionDefinitionId || eventRow.execution?.actionId || null, actionInstanceId: eventRow.execution?.actionInstanceId || rootId, causeEventId: eventRow.id, ownerActorId: candidate.id, ruleId: trigger.id } });
+          scheduled.push(...(trigger.operations || []).map(operation => ({ p: { ...copy(operation), sourceActorId: operation.sourceActorId ?? candidate.id, sourceDigest: operation.sourceDigest ?? trigger.sourceDigest ?? null }, sourceId: operation.sourceActorId ?? candidate.id, provenance: { rootActionId: eventRow.execution?.rootActionId || rootId, actionId: eventRow.execution?.actionId || null, actionDefinitionId: eventRow.execution?.actionDefinitionId || eventRow.execution?.actionId || null, actionInstanceId: eventRow.execution?.actionInstanceId || rootId, causeEventId: eventRow.id, ownerActorId: candidate.id, ruleId: trigger.id, sourceDigest: trigger.sourceDigest || null, coverage: trigger.coverage || "full" } })));
+          for (const option of trigger.choices || []) scheduled.push({ p: { kind: "technique-choice", ruleId: trigger.id, triggerKey: trigger.triggerKey, title: trigger.label, options: ["skip", option.id], optionLabels: { skip: "Не использовать", [option.id]: option.label }, choices: { [option.id]: copy(option.operations || []) }, context: { ...(option.context || {}), causeEventId: eventRow.id, ownerActorId: candidate.id, sourceDigest: trigger.sourceDigest || null, coverage: trigger.coverage || "full" } }, sourceId: candidate.id, provenance: { rootActionId: eventRow.execution?.rootActionId || rootId, actionId: eventRow.execution?.actionId || null, actionDefinitionId: eventRow.execution?.actionDefinitionId || eventRow.execution?.actionId || null, actionInstanceId: eventRow.execution?.actionInstanceId || rootId, causeEventId: eventRow.id, ownerActorId: candidate.id, ruleId: trigger.id, sourceDigest: trigger.sourceDigest || null, coverage: trigger.coverage || "full" } });
         }
       }
     };
@@ -2560,12 +2598,14 @@
           }
           if (effectActive(scene,a,"negative.подброшен")) removeEffect(a, "negative.подброшен");
           if (astate(a).startedDisappeared&&!s.choices.some(c=>c.actorId===a.id&&c.kind==="placement"&&c.context.reappear)) { if (effectActive(scene,a,"positive.исчез")) removeEffect(a, "positive.исчез",{reappear:false}); choice(a, "placement", "Выберите клетку появления вне соседства с персонажами", ["place"], { reappear: true }); }
+          scheduleBoundary("anyTurnStart", a);
           scheduleBoundary("turnStart", a);
           emit("turn.start", a.id, { ap: a.ap }); break;
         }
         case "turn-end": {
           if (scene.activeActorId !== sourceId || scene.pendingAction || s.choices.length || s.pausedChains?.length) fail("Нельзя завершить этот Ход: есть незавершённое действие");
           if (effectActive(scene,a,"positive.регенерирует")) applyHealing({targetId:a.id,amount:4+Number(a.tier||1)},a.id);
+          scheduleBoundary("anyTurnEnd", a);
           scheduleBoundary("turnEnd", a);
           phase("endTurn", a); a.ap = 0; a.stepRemaining = 0; a.acted = true; scene.activeActorId = null; s.lastTeam = a.team; s.lastActorId = a.id; s.breakout = { actorId: a.id, turnSerial: scene.turnSerial }; s.opportunities = [];
           for(const other of scene.actors)if(Number(other.lionwing?.difficultTerrainStopSerial)===Number(scene.turnSerial))delete other.lionwing.difficultTerrainStopSerial;
@@ -2575,6 +2615,7 @@
         }
         case "round-end": {
           const status = roundEndStatus(scene); if (!status.available) fail(status.reason);
+          scheduleBoundary("roundEnd", null);
           phase("roundEnd", null); scene.round++; scene.tension++; s.lastTeam = null; s.breakout = null;
           for (const other of scene.actors) { other.acted = other.kind === "crowd"; other.usedActions = []; other.ap = 0; other.stepRemaining = 0; }
           scheduleBoundary("roundStart", null);
@@ -2582,6 +2623,7 @@
         }
         case "scene-reset": {
           if(scene.pendingAction||s.choices.length||s.deferred.length||s.duels?.length||s.pausedChains?.length)fail("Сначала завершите ожидающие решения и Дуэли");
+          scheduleBoundary("sceneEnd", null, { discardOperations: true });
           for(const target of scene.actors){
             resetCounters(target,"scene");
             target.hp=maxHealth(target);target.knockedOut=false;target.evasion=0;target.ap=0;target.acted=target.kind==="crowd";target.usedActions=[];target.stepRemaining=0;
@@ -2885,7 +2927,8 @@
     reloadDiceRoll, reloadRoll: reloadDiceRoll, diceReload: reloadDiceRoll,
     opposedDiceRoll, opposedRoll: opposedDiceRoll, diceOpposed: opposedDiceRoll,
     resolveDiceTie: (value, resolution) => diceAvailable().resolveTie(value, resolution),
-    historyStatus, effectInstanceStatus, activeState, auraRecord, auraStatus, lifetimeExpired, compoundStatus,
+    historyStatus, effectInstanceStatus, activeState, auraRecord, auraStatus, lifetimeExpired, compoundStatus, lifecycleContext,
+    lifecycle: lifecycleContext,
     lifetimeBoundary: foundations.lifetimeBoundary,
     normalizeLifetime: foundations.normalizeLifetime,
     isLifetimeExpired: foundations.lifetimeExpired,
@@ -2928,7 +2971,7 @@
       const refersToHidden=value=>typeof value==="string"?hidden.has(value):value&&typeof value==="object"?Object.entries(value).some(([key,item])=>hidden.has(key)||refersToHidden(item)):false;
       projected.log=(projected.log||[]).filter(row=>!refersToHidden(row));
       if(projected.lionwing){
-        delete projected.lionwing.history;delete projected.lionwing.pausedChains;delete projected.lionwing.receipts;delete projected.lionwing.deferred;delete projected.lionwing.afterAttack;delete projected.lionwing.executionCursor;delete projected.lionwing.afterEventReceipts;
+        delete projected.lionwing.history;delete projected.lionwing.pausedChains;delete projected.lionwing.receipts;delete projected.lionwing.boundaryReceipts;delete projected.lionwing.deferred;delete projected.lionwing.afterAttack;delete projected.lionwing.executionCursor;delete projected.lionwing.afterEventReceipts;
         for(const key of ["choices","duels","opportunities","grantedTurns"])projected.lionwing[key]=(projected.lionwing[key]||[]).filter(item=>!refersToHidden(item));
         projected.lionwing.auras=(projected.lionwing.auras||[]).filter(aura=>!hidden.has(aura.ownerActorId)&&!hidden.has(aura.sourceEntityId));
       }
