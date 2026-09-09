@@ -771,3 +771,26 @@ actions, turns, entities. Их зависимости описывают пор�
 После ровно трёх удалений принадлежащих Детективу Слабых точек одного hostActorId в собственном `activeTurnInstanceId` появляется сохранённый optional choice. Выбор клетки рядом с целью повторно валидирует runtime; затем один бесплатный Завершающий удар атрибутом Mind по исходной цели. Повтор/replay/чужая цель и отключённая автоматизация не создают бесплатное действие.
 UI: в обычной панели действий появляется выбор телепортации, допустимые точки подсвечиваются на поле, доступен preview и confirm/cancel. Добавлен `tests/lionwing-detective-three.mjs`; он включён в `test:families`.
 Изменён Jab I на LionWing `[Mind/2]` с округлением вверх во всех трёх путях проверки (adapter, scene event, rule response). Остаток: live browser QA требует поднятого локального сервера; основные unit tests и `node --check` пройдены.
+## Gap-audit — общий контракт инвентаря и зарядов (2026-09-09, `codex/luna-inventory-resources`)
+
+Перед реализацией проверено состояние `origin/main`. Ядро уже является единственным
+писателем для `ruleResources`/`ruleClocks`: определения имеют стабильные id, owner/source,
+`ruleId`, scope/lifetime, min/max/initial/current, проверяемые create/configure/set/add/reset,
+конфликт замены Фокуса/ОД, пороги, replay/reload/undo и сетевую квитанцию. Те же primitives
+покрывают специальные ресурсы Сострадания, Пуль, Оружия, Материала, Упорства и Инновации.
+Есть отдельный registry typed entities и нормализация app-core; обычные `focus`, `ap`,
+`health` остаются базовыми показателями. Плоский `actor.inventory` сейчас совместимостный
+словарь положительных чисел, а `inventory.change` — слабый legacy reducer без owner,
+source, max, reserve или atomic cost semantics. UI умеет вручную править rule resources и
+clocks, но не показывает typed item records, charges, slots, recorded/selected values;
+служебные receipts не отделены от редактируемых полей. Сетевая authority проверяет общие
+ресурсы, но отдельного typed inventory projection/operation contract нет.
+
+Минимальный gap: расширить существующие primitives отдельным typed registry под
+`actor.lionwing.inventory` с декларациями stack/count/charges/slots/recorded-value/
+selected-item, validated operations и cost reservation/rollback; сохранить legacy
+`actor.inventory` только как read-compatible зеркало. Нужны boundary reset для Scene/Round/
+Turn/Intermission/persistent, duplicate/replay/reload/undo, transfer и source removal,
+visibility-aware public/private projection, а также UI статусы действий и причины блокировки.
+Техники подключаются через opt-in typed adapters с canonical digest; engine не получает
+technique-id switch и не принимает balance/max/ownership от клиента.
