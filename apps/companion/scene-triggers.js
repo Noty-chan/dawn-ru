@@ -66,7 +66,12 @@ const TRIGGER_RULES = [
     id: "disruptor.siren.1.study",
     eventTypes: ["action.resolve"],
     priority: 60,
-    match: ({ scene, actor, payload }) => actor && actionIdIs(eventActionId(payload), "study") && Number(actor.techniques?.["disruptor.siren"] || 0) >= 1 && usageLimitStatus(scene, actor.id, { ruleId: "disruptor.siren.1", scope: "scene", maximum: 3 }).available,
+    match: ({ scene, actor, payload }) => {
+      if (!actor || !actionIdIs(eventActionId(payload), "study") || Number(actor.techniques?.["disruptor.siren"] || 0) < 1 || usageLimitStatus(scene, actor.id, { ruleId: "disruptor.siren.1", scope: "scene", maximum: 3 }).available === false) return false;
+      const target = payload.targetIds?.length === 1 ? actorById(scene, payload.targetIds[0]) : null;
+      const prepared = target && (scene.log || []).some(row => row.type === "action.prepare" && row.actorId === actor.id && (!payload.actionInstanceId || row.payload?.actionInstanceId === payload.actionInstanceId) && actionIdIs(row.payload?.actionId || row.payload?.actionName, "study") && row.payload?.targetIds?.length === 1 && row.payload.targetIds[0] === target.id);
+      return Boolean(target && prepared && !target.knockedOut && target.team !== actor.team && target.space === actor.space);
+    },
     build: ({ scene, event, actor, payload }) => {
       const limit = usageLimitStatus(scene, actor.id, { ruleId: "disruptor.siren.1", scope: "scene", maximum: 3 }), target = actorById(scene, payload.targetIds?.[0]);
       if (!target || target.knockedOut || target.team === actor.team) return [];

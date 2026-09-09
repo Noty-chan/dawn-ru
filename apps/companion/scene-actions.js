@@ -556,6 +556,7 @@ function prepareAction(scene, data, request = {}) {
         }
       });
       events.push({ type: "action.resolve", actorId: actor.id, payload: { actionInstanceId, actionId: action.id, name: action.name, targetIds, heavenlyHealing: true } });
+      events[events.length - 1].payload.actionInstanceId = actionInstanceId;
       if (request.roll?.rolls) events.push({ type: "roll.public", actorId: actor.id, payload: clone(request.roll) });
     } else {
       targets.forEach(target => events.push({ type: "reaction.offer", actorId: target.id, payload: { sourceActorId: actor.id, actionId: action.id } }));
