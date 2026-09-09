@@ -1008,3 +1008,26 @@ Grim Ascendant II, Empath III и Assassin III. Старый платный Empat
 старые half-damage/Regeneration claims Grim больше не считаются источником
 автоматизации. Подробные counts и оставшийся partial/manual surface:
 `docs/tasks/LIONWING_CANONICAL_RECERTIFICATION_AUDIT.md`.
+
+## Интеграционный аудит authority и information pipeline, 2026-09-10
+
+Каноническая пересертификация объединена с generic Technique UI,
+Will-O-Wisp, information-query и typed inventory в ветке
+`codex/integration-audit-20260910`. Конфликтующие списки модулей, адаптеров и
+тестов объединены вручную; generated reports пересобраны после слияния.
+
+Закрыты два блокирующих дефекта. Player intent больше не может напрямую
+`gain/add/remove/select` запись typed inventory: игроку доступны только расход
+собственной записи и передача из неё, а получение проходит через проверенное
+правило или решение Нарратора. Кнопка `+` скрыта от игрока и остаётся в ручном
+пульте Нарратора. Дополнительная проверка находится и внутри inventory contract.
+
+Подтверждение и отмена Изучения из UI теперь проходят через
+`LionWingEngine.prepare` и `commitSceneEvents`. Прямой вызов мутации
+information-query удалён, поэтому решения попадают в единый event journal и
+сохраняют обычные replay/undo/network границы.
+
+После исправлений пройдены provenance gate (66 адаптеров и 84 executable
+registry levels), targeted inventory/information tests и полный `npm test`:
+391 уникальный rule id. Следующая отдельная проверка перед main — живой
+двухклиентный smoke-test и поэтапный аудит turn/movement/numeric branches.

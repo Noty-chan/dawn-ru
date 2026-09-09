@@ -2021,21 +2021,21 @@
         }
         case "information-reveal": {
           const information = global.DAWN_LIONWING_INFORMATION_QUERY;
-          const reveal = information?.confirmReveal?.(scene, p, { role: executionOptions.role, actorId: sourceId });
+          const reveal = information?.confirmReveal?.(scene, p, { role: executionOptions.role || "narrator", actorId: sourceId });
           if (!reveal?.ok) fail(reveal?.errors?.join(" ") || "Раскрытие информации отклонено");
           emit("information.reveal", sourceId || "narrator", { studyId: p.studyId, factId: reveal.fact?.id || null, targetId: reveal.fact?.targetId || p.targetId || null, category: reveal.fact?.category || p.category, visibility: reveal.fact?.visibility || p.visibility || "public" });
           break;
         }
         case "information-cancel": {
           const information = global.DAWN_LIONWING_INFORMATION_QUERY;
-          const cancelled = information?.cancelReveal?.(scene, p, { role: executionOptions.role, actorId: sourceId });
+          const cancelled = information?.cancelReveal?.(scene, p, { role: executionOptions.role || "narrator", actorId: sourceId });
           if (!cancelled?.ok) fail(cancelled?.errors?.join(" ") || "Отмена Изучения отклонена");
           emit("information.cancel", sourceId || "narrator", { studyId: p.studyId, targetId: information.studyStatus?.(scene, p.studyId)?.targetId || null });
           break;
         }
         case "information-handout": {
           const information = global.DAWN_LIONWING_INFORMATION_QUERY;
-          const handed = information?.handout?.(scene, p, { role: executionOptions.role });
+          const handed = information?.handout?.(scene, p, { role: executionOptions.role || "narrator" });
           if (!handed?.ok) fail(handed?.errors?.join(" ") || "Ручная выдача отклонена");
           emit("information.handout", sourceId || "narrator", { factId: handed.fact?.id || null, targetId: p.targetId || null, visibility: handed.fact?.visibility || p.visibility || "public" });
           break;

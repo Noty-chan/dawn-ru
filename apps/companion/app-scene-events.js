@@ -350,8 +350,7 @@ document.addEventListener("click", event => {
   event.preventDefault();
   event.stopImmediatePropagation();
   if (activeSceneView() !== "gm") return toast("Решение раскрытия доступно Нарратору");
-  const query = window.DAWN_LIONWING_INFORMATION_QUERY;
-  if (!query) return toast("Контракт Изучения недоступен");
+  if (!LionwingEngine) return toast("Ядро LionWing недоступно");
   const studyId = (reveal || cancel).dataset.informationReveal || (reveal || cancel).dataset.informationCancel;
   const category = reveal?.dataset.informationCategory;
   let value;
@@ -359,9 +358,8 @@ document.addEventListener("click", event => {
     value = window.prompt("Введите раскрываемую информацию для выбранной категории:");
     if (value === null) return;
   }
-  const committed = commitScene(cancel ? "Изучение отменено Нарратором" : "Нарратор раскрыл сведения", scene => {
-    const response = cancel ? query.cancelReveal(scene, { studyId }, { role: "narrator" }) : query.confirmReveal(scene, { studyId, category, value }, { role: "narrator" });
-    if (!response?.ok) throw new Error(response?.errors?.join(" ") || "Решение информации отклонено");
-  });
+  const prepared = LionwingEngine.prepare(Scene, cancel ? { kind: "information-cancel", studyId } : { kind: "information-reveal", studyId, category, value }, { role: "narrator" });
+  if (!prepared?.ok) return toast(prepared?.errors?.join(" ") || "Решение информации отклонено");
+  const committed = commitSceneEvents(cancel ? "Изучение отменено Нарратором" : "Нарратор раскрыл сведения", prepared.events);
   if (committed) toast(cancel ? "Ожидающее Изучение отменено" : "Сведения раскрыты");
 }, true);

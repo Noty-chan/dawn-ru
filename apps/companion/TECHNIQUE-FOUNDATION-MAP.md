@@ -40,15 +40,15 @@ SHA-256 проверенных файлов: `6049f3ff6b79b8204c45cb8b830b265369
 | `composite-action` | Сохраняемое составное действие | готово | `scene-query.js / scene-events.js / scene-responses.js / scene-effects.js` | 4 |
 | `effect-lifecycle` | Механика, источник и срок Эффекта | готово | `scene-engine-core.js / scene-query.js / scene-events.js / scene-triggers.js / scene-responses.js` | 129 |
 | `entity-lifecycle` | Жизненный цикл зон, маркеров и объектов | готово | `scene-events.js / scene-triggers.js / scene-ui.js` | 60 |
-| `inventory` | Инвентарь и заряды | планируется | — | 24 |
+| `inventory` | Инвентарь и заряды | готово | `lionwing-inventory.js / lionwing-engine.js` | 24 |
 | `summon-turns` | Призывы и делегированные Ходы | планируется | — | 8 |
 | `dice-hooks` | Модификаторы и повтор броска | готово | `scene-foundations.js / scene-events.js / scene-triggers.js` | 73 |
 | `duration-scheduler` | Сроки действия и отложенные эффекты | готово | `scene-events.js / scene-triggers.js / scene-ui.js` | 15 |
 | `deployment-hooks` | Развертывание | планируется | — | 6 |
-| `intermission-reset` | Сброс на Интермиссии | планируется | — | 3 |
+| `intermission-reset` | Сброс на Интермиссии | готово | `lionwing-inventory.js / lionwing-engine.js` | 3 |
 | `bond-actions` | Связи и действия Связей | планируется | — | 5 |
 | `derived-stats` | Производные характеристики персонажа | планируется | — | 47 |
-| `information-query` | Изучение и раскрытие информации | планируется | — | 13 |
+| `information-query` | Изучение и раскрытие информации | готово | `lionwing-information-query.js / lionwing-engine.js` | 13 |
 | `transformation` | Трансформации и заимствованные правила | планируется | — | 11 |
 | `duel-flow` | Дуэли и ставки | планируется | — | 5 |
 | `combat-meter` | Напряжение и общие счетчики боя | планируется | — | 18 |

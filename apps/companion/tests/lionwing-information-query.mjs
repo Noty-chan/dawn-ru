@@ -319,6 +319,11 @@ const narratorPanel = Info.panel(scene, { role: "narrator" });
 assert.match(narratorPanel, /Ожидает выбора Нарратора/);
 assert.match(narratorPanel, /data-information-reveal/);
 assert.match(narratorPanel, /data-information-cancel/);
+const sceneEventsSource = fs.readFileSync(new URL("../app-scene-events.js", import.meta.url), "utf8");
+const informationHandler = sceneEventsSource.slice(sceneEventsSource.indexOf('const reveal = event.target.closest("[data-information-reveal]")'), sceneEventsSource.indexOf("}, true);", sceneEventsSource.indexOf('const reveal = event.target.closest("[data-information-reveal]")')));
+assert.match(informationHandler, /LionwingEngine\.prepare\(Scene/);
+assert.match(informationHandler, /commitSceneEvents\(/);
+assert.doesNotMatch(informationHandler, /query\.(?:confirmReveal|cancelReveal)|commitScene\(/, "Narrator information decisions must pass through LionWing Engine events");
 
 const canonicalTechniques = Object.values(context.DAWN_LIONWING_DATA.archetypes).flatMap(item => item.techniques);
 for (const [id, evidence] of Object.entries(Info.evidence)) {

@@ -359,7 +359,7 @@
   function mutateOne(scene, actor, payload, ctx = {}) {
     const operation = String(payload.operation || payload.action || "");
     if (!["configure", "create", "gain", "add", "spend", "remove", "set", "record", "select", "reset"].includes(operation)) fail("Неизвестная операция записи инвентаря");
-    if (["configure", "create", "set", "record", "reset"].includes(operation) && roleFor(ctx) === "player") fail("Игрок не может менять служебное определение записи инвентаря", "LIONWING_INVENTORY_AUTHORITY");
+    if (!["spend", "transfer"].includes(operation) && roleFor(ctx) === "player") fail("Получение и служебные изменения инвентаря подтверждает ядро или Нарратор", "LIONWING_INVENTORY_AUTHORITY");
     if (operation === "configure" || operation === "create") {
       const result = ensureRecord(scene, actor, payload, { replaceExisting: payload.replaceExisting === true });
       emitOperation(ctx, operation === "create" ? "create" : "configure", actor.id, { operation, itemId: result.definition.id, instanceId: result.record.instanceId, kind: result.definition.kind, ownerActorId: actor.id, sourceActorId: result.definition.sourceActorId, sourceEntityId: result.definition.sourceEntityId, ruleId: result.definition.ruleId, sourceDigest: result.definition.sourceDigest, label: result.definition.label, value: readNumeric(result.record), current: result.record.current, maximum: result.definition.maximum, minimum: result.definition.minimum, lifetime: result.definition.lifetime, visibility: eventVisibility(result.definition.visibility) });

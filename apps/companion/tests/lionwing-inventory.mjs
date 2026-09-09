@@ -283,9 +283,9 @@ assert.equal(bardTrigger[0].choices.length, 5);
 direct(bardScene, bardTrigger[0].choices[0].operations[0], { actorId: "b", operationId: "bard-verse-choice" });
 assert.deepEqual(copy(record(bardScene, "b", "altruist.bardic-savant.verses").selectedItems), ["harsh"]);
 
-// The player network surface can submit only ownership-safe spend/select
-// operations; definitions, max values and cross-actor targets are authority
-// operations.
+// The player network surface can only spend or transfer an existing owned
+// record. Acquisition and mutable record contents require an authoritative
+// rule event or a Narrator operation.
 const networkSource = fs.readFileSync(new URL("../network-v2.js", import.meta.url), "utf8");
 vm.runInContext(networkSource, context, { filename: "network-v2.js" });
 const network = context.window.DAWN_NETWORK_V2;
@@ -296,10 +296,15 @@ assert.equal(networkEvents[0].type, "lionwing.command");
 const networkAfter = lionwing.dispatchMany(networkScene, networkEvents).scene;
 assert.equal(record(networkAfter, "h", "network-item").count, 1);
 blocked(() => network.materializeIntent(networkScene, {}, { kind: "lionwing", actorId: "h", request: { kind: "inventory", operation: "configure", id: "network-item", maximum: 999 } }, "player", { sceneEngine: lionwing }), /только расходовать|операция/i);
+for (const operation of ["gain", "add", "remove", "select"]) blocked(
+  () => network.materializeIntent(networkScene, {}, { kind: "lionwing", actorId: "h", request: { kind: "inventory", operation, id: "network-item", amount: 1, selectedItemId: "forged" } }, "player", { sceneEngine: lionwing }),
+  /только расходовать|подтверждает ядро|Нарратор/i,
+);
 blocked(() => network.materializeIntent(networkScene, {}, { kind: "lionwing", actorId: "h", request: { kind: "inventory", operation: "spend", id: "network-item", targetId: "e", amount: 1 } }, "player", { sceneEngine: lionwing }), /чуж|владель/i);
+blocked(() => inventory.applyOperation(networkScene, { operation: "gain", targetId: "h", id: "network-item", amount: 1 }, { actorId: "h", sourceActorId: "h", role: "player", operationId: "forged-direct-gain" }), /подтверждает ядро|Нарратор/i);
 
 // Static UI checks exercise the rendered controls and their lock reason. The
-// event handler submits only typed gain/spend/remove operations.
+// A player sees spend, while the gain control is reserved for the Narrator.
 const uiSource = fs.readFileSync(new URL("../lionwing-ui.js", import.meta.url), "utf8");
 const uiHelper = uiSource.slice(uiSource.indexOf("function lwInventoryHtml"), uiSource.indexOf("function lwActionsHtml"));
 const uiContext = {
@@ -309,10 +314,14 @@ const uiContext = {
 vm.createContext(uiContext);
 vm.runInContext(`${uiHelper}\nthis.renderInventory = lwInventoryHtml;`, uiContext);
 const uiHtml = uiContext.renderInventory({ id: "h", lionwing: { inventory: { records: { ammo: {} } } } });
-assert.match(uiHtml, /data-lw-inventory="gain"/);
+assert.doesNotMatch(uiHtml, /data-lw-inventory="gain"/);
 assert.match(uiHtml, /data-lw-inventory="spend"[^>]+disabled/);
 assert.match(uiHtml, /Недостаточно Боеприпасов/);
 assert.doesNotMatch(uiHtml, /data-lw-(?:journal|receipt)/i);
 assert.match(uiSource, /kind:"inventory",operation,id,amount/);
+
+uiContext.lwCanNarrate = () => true;
+const narratorHtml = uiContext.renderInventory({ id: "h", lionwing: { inventory: { records: { ammo: {} } } } });
+assert.match(narratorHtml, /data-lw-inventory="gain"/);
 
 console.log("LionWing inventory: typed records, atomic costs, boundaries, provenance, replacement, visibility, transfer, adapters, network and UI passed");

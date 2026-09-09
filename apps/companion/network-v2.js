@@ -234,7 +234,7 @@
       const kernel=global.DAWN_LIONWING_ENGINE,raw=safeObject(intent.request);
       if(!kernel?.isScene(scene)||!["action","reaction","choice","roll","dice-create","dice-apply","punish","invisible","search","inventory"].includes(raw.kind))throw new Error("Эта операция LionWing доступна только Нарратору");
       if(raw.kind === "inventory") {
-        if(!["gain","add","spend","remove","select","transfer"].includes(raw.operation)) throw new Error("Игрок может только расходовать, получать или выбирать собственные записи инвентаря");
+        if(!["spend","transfer"].includes(raw.operation)) throw new Error("Игрок может только расходовать или передавать собственные записи инвентаря; получение и служебные изменения подтверждает ядро или Нарратор");
         if(raw.operation === "transfer" && raw.fromActorId !== actor.id) throw new Error("Перевод доступен только из собственной записи");
         if(raw.operation !== "transfer" && raw.targetId && raw.targetId !== actor.id) throw new Error("Игрок не может указать чужого владельца записи");
       }
