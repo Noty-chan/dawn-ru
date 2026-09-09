@@ -6,7 +6,10 @@ teleport / displacement, а LionWing engine — единственным пис�
 него добавлен малый automation-facing слой: нормализованные журналируемые события
 `movement.prepare/start/leave/segment/enter/cross/end/stop` сопровождаются
 авторитетным снимком режима, фактического маршрута, дистанции, причины остановки,
-Action/Technique provenance и first-movement flag. Клиент не может заявить путь,
+Action/Technique provenance и first-movement flag. Обычный core Jump теперь также
+публикует этот lifecycle; Акробат I читает подтверждённую дистанцию последнего
+Jump, а положительный `jumpDistance` из клиента больше не даёт Преимущество.
+Клиент не может заявить путь,
 дистанцию или endpoint: `movementOperation` строит только проверенный geometry plan,
 а `movementFacts` и `movementCondition` читают только engine journal.
 

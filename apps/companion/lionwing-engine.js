@@ -360,8 +360,8 @@
   };
   const latestJumpDistance = (scene, a) => {
     const turnInstanceId = currentTurnInstance(scene);
-    const row = (scene.log || []).find(item => item?.type === "actor.move" && item.actorId === a.id && item.payload?.sourceActionId === ids.jump && (turnInstanceId == null || item.payload?.ownerTurnInstanceId === turnInstanceId));
-    return row?.payload?.distance == null ? null : Number(row.payload.distance);
+    const row = (scene.log || []).find(item => item?.type === "movement.end" && item.actorId === a.id && item.payload?.movement?.sourceActionId === ids.jump && (turnInstanceId == null || item.payload?.movement?.ownerTurnInstanceId === turnInstanceId));
+    return row?.payload?.movement?.distance == null ? null : Number(row.payload.movement.distance);
   };
   const maxHealth = a => stat(a, "maxHp");
   const scaledMove = (a, amount, scene=null) => Math.ceil(amount * ((scene?effectActive(scene,a,"positive.ускорен"):has(a,"positive.ускорен")) ? 2 : 1) / ((scene?effectActive(scene,a,"negative.замедлен"):has(a,"negative.замедлен")) ? 2 : 1));
@@ -776,7 +776,9 @@
     if(!attacks.has(def.id)||!targets.length)return{base,counts:{}};
     const taunts=activeEffectSources(a,"negative.спровоцирован",scene).map(x=>x.actorId),fears=activeEffectSources(a,"negative.испуган",scene).map(x=>x.actorId);
     const sourceEffectIds=activeState(scene,a.id).effects.map(status=>status.effect),techniqueTags=(p.techniqueTags||[]).map(tag=>String(tag).toLowerCase());
-    const jumpDistance = p.jumpDistance ?? latestJumpDistance(scene, a);
+    // A caller may decline the chain explicitly, but cannot inflate its
+    // distance: every positive value comes from the completed Jump journal.
+    const jumpDistance = Number(p.jumpDistance) === 0 ? null : latestJumpDistance(scene, a);
     const attackAttribute = p.attribute || (def.id === ids.finish ? "spirit" : def.id === ids.skirmish ? (Number(a.attrs.body) >= Number(a.attrs.talent) ? "body" : "talent") : "spirit");
     const differentEnemiesWithinFive = p.differentEnemiesWithinFive ?? (p.rapidFire === true ? new Set(scene.actors.filter(target => live(target) && target.team !== a.team && target.space === a.space && distance(a, target) <= 5).map(target => target.compoundId || target.id)).size : null);
     const targetContext = {
@@ -1424,13 +1426,14 @@
     };
     const move = (a, p) => {
       const auraBefore=auraSnapshot();
+      const firstMovementThisTurn=!(scene.log||[]).some(row=>row.type==="movement.start"&&row.actorId===a.id&&Number(row.execution?.turnSerial)===Number(scene.turnSerial));
       const result = p.__verifiedRoute ? {cost:p.__verifiedRoute.spent,path:p.__verifiedRoute.path.map(point=>({x:point.x,y:point.y})),space:p.__verifiedRoute.stoppedAt.space,endedByDifficultTerrain:p.__verifiedRoute.terminal&&p.__verifiedRoute.stopReason==="difficult-terrain"} : movement(scene, a, p.destination || p, p), from = { x: a.x, y: a.y, space: a.space };
       const endpoint=result.path[result.path.length-1]||p.destination||p;
       a.x = endpoint.x; a.y = endpoint.y; a.space = result.space;
       if(result.endedByDifficultTerrain){astate(a).difficultTerrainStopSerial=scene.turnSerial;a.stepRemaining=0;}
       if(a.compoundId)for(const part of scene.actors.filter(x=>x.compoundId===a.compoundId)){part.x=a.x;part.y=a.y;part.space=a.space;}
       const publicPayload={...p};delete publicPayload.__deferAuraTransitions;
-      emit("actor.move", a.id, { ...publicPayload, from, x: a.x, y: a.y, space: a.space, path: result.path, distance: result.cost });
+      const moveRow=emit("actor.move", a.id, { ...publicPayload, from, x: a.x, y: a.y, space: a.space, path: result.path, distance: result.cost });
       syncAttachedMarkers(a, p.sourceActionId || p.movement || "movement");
       // Every supported move has a stable endpoint entry receipt.  The
       // segment id is derived from the authoritative execution root, so a
@@ -1438,6 +1441,23 @@
       emit("actor.enter", a.id, { x: a.x, y: a.y, space: a.space, segmentId: `${rootId}:endpoint`, movement: p.movement || "Перемещение", teleport: Boolean(p.teleport) });
       const auraTransitions=auraChanges(auraBefore);
       if(!p.__deferAuraTransitions)emitAuraChanges(auraTransitions,{movementTargetId:a.id,from,to:{space:a.space,x:a.x,y:a.y}});
+      // Core actions such as Jump use the same journal facts as a planned
+      // route. A segmented route emits its own windows below, so avoid a
+      // duplicate lifecycle for its one-cell reducer moves.
+      if(!p.__verifiedRoute&&!p.placement){
+        const lifecycle={id:`${rootId}:move:${a.id}:${moveRow.id}`,actorId:a.id,sourceActorId:p.sourceActorId||a.id,sourceActionId:p.sourceActionId||null,actionInstanceId:p.actionInstanceId||provenance?.actionInstanceId||null,ownerTurnInstanceId:p.ownerTurnInstanceId||null,techniqueRuleId:p.techniqueRuleId||p.ruleId||null,sourceDigest:p.sourceDigest||null,mode:p.teleport?"teleport":p.forced?"forced":p.mode||"move",forced:Boolean(p.forced),from:copy(from),path:result.path.map(point=>({space:result.space,x:Number(point.x),y:Number(point.y)})),distance:Number(result.cost||0),totalDistanceThisTurn:Number(result.cost||0),firstMovementThisTurn,stoppedAt:{space:a.space,x:Number(a.x),y:Number(a.y)},stopReason:result.endedByDifficultTerrain?"difficult-terrain":null};
+        emit("movement.prepare",a.id,{routeId:lifecycle.id,targetId:a.id,requestedDestination:copy(p.destination||p),maximum:Number(p.maximum??result.cost??0),movement:lifecycle});
+        emit("movement.start",a.id,{routeId:lifecycle.id,targetId:a.id,movement:lifecycle});
+        for(const [index,to] of lifecycle.path.entries()){
+          const segment={index,from:index?lifecycle.path[index-1]:copy(from),to:copy(to),cost:1,terminal:Boolean(lifecycle.stopReason&&index===lifecycle.path.length-1),stopReason:lifecycle.stopReason};
+          emit("movement.leave",a.id,{routeId:lifecycle.id,targetId:a.id,from:copy(segment.from),to:copy(to),segment,movement:{...lifecycle,path:lifecycle.path.slice(0,index)}});
+          emit("movement.segment",a.id,{routeId:lifecycle.id,targetId:a.id,to:copy(to),segment,movement:{...lifecycle,path:lifecycle.path.slice(0,index+1),distance:index+1,totalDistanceThisTurn:index+1,stoppedAt:copy(to)}});
+          emit("movement.enter",a.id,{routeId:lifecycle.id,targetId:a.id,to:copy(to),segment,movement:{...lifecycle,path:lifecycle.path.slice(0,index+1),distance:index+1,totalDistanceThisTurn:index+1,stoppedAt:copy(to)}});
+          emit("movement.cross",a.id,{routeId:lifecycle.id,targetId:a.id,from:copy(segment.from),to:copy(to),segment,movement:{...lifecycle,path:lifecycle.path.slice(0,index+1),distance:index+1,totalDistanceThisTurn:index+1,stoppedAt:copy(to)}});
+        }
+        emit("movement.end",a.id,{routeId:lifecycle.id,targetId:a.id,stoppedAt:copy(lifecycle.stoppedAt),terminal:Boolean(lifecycle.stopReason),stopReason:lifecycle.stopReason,movement:lifecycle});
+        if(lifecycle.stopReason)emit("movement.stop",a.id,{routeId:lifecycle.id,targetId:a.id,stoppedAt:copy(lifecycle.stoppedAt),terminal:true,stopReason:lifecycle.stopReason,movement:lifecycle});
+      }
       // A typed notification is also useful when the Technique itself is manual.
       const points=[from,...result.path.map(point=>({...point,space:result.space}))];
       if (!p.placement) for (const foe of scene.actors.filter(x => live(x) && !effectActive(scene,x,"positive.исчез") && x.team !== a.team)) if (points.some((point,index)=>index>0&&distance(points[index-1],foe)===1&&distance(point,foe)>1)) {
