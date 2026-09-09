@@ -591,21 +591,29 @@
       if (!scene.lionwing?.breakout || scene.lionwing.breakout.actorId === a.id || attacks.has(def.id)) return unavailable("Прорыв: только не-Атака после чужого Хода");
       if (Number(a.influence || 0) < 1) return unavailable("Для Прорыва нужно 1 Влияние");
     } else if (scene.activeActorId !== a.id && !allowance?.reaction) return unavailable("Сейчас не Ход этого участника");
-    const swift = breakout || Boolean(allowance?.swift||allowance?.reaction) || !isPlayer(a) && def.id === ids.step;
+    const baseSwift = breakout || Boolean(allowance?.swift||allowance?.reaction) || !isPlayer(a) && def.id === ids.step;
     const continuation = def.id === ids.step && Number(a.stepRemaining || 0) > 0 && !breakout;
     if (continuation) return { available: true, reason: "", cost: 0, resource: "ap", continuation: true };
-    const used = isPlayer(a) ? (a.usedActions || []) : (a.lionwing?.turnActions || []);
-    if (!swift && used.includes(def.id)) return unavailable("Действие уже использовано");
     const requestedAttribute=request.attribute||(def.id===ids.finish?"spirit":null);
     const adapterStatus=global.DAWN_LIONWING_ADAPTERS?.actionStatus?.(a,{scene,actionId:def.id,attribute:requestedAttribute,techniqueTags:(request.techniqueTags||[]).map(tag=>String(tag).toLowerCase())})||{allowed:true};
     if(adapterStatus.allowed===false)return unavailable(adapterStatus.reason||"Действие запрещено Техникой");
-    const cost = breakout ? 0 : allowance?.cost??(def.id === "action.атаки.дуэль" ? Math.max(1, 4 - Number(scene.tension || 0)) : def.id===ids.improvise&&request.removeObstacleId?1:def.cost.amount);
+    const baseCost = breakout ? 0 : allowance?.cost??(def.id === "action.атаки.дуэль" ? Math.max(1, 4 - Number(scene.tension || 0)) : def.id===ids.improvise&&request.removeObstacleId?1:def.cost.amount);
+    const actionHistory = Array.isArray(a.lionwing?.history) ? a.lionwing.history : [];
+    const deploymentRows = (scene.log || []).map((event, index) => ({ event, index })).filter(({ event }) => event?.actorId === a.id && ["actor.move", "actor.place"].includes(event.type) && event.payload?.placement === true && /развер|deploy/i.test(String(event.payload?.movement || event.payload?.reason || "")));
+    const latestDeployment = deploymentRows.length ? deploymentRows[deploymentRows.length - 1] : null;
+    const actionsAfterDeployment = latestDeployment ? (scene.log || []).slice(latestDeployment.index + 1).some(event => event?.actorId === a.id && ["action.prepare", "action.resolve"].includes(event.type)) || actionHistory.some(item => Number(item.turnSerial) === Number(scene.turnSerial) && (!scene.lionwing?.activeTurnInstanceId || !item.ownerTurnInstanceId || item.ownerTurnInstanceId === scene.lionwing.activeTurnInstanceId)) : false;
+    const firstActionAfterDeploy = Boolean(latestDeployment && !actionsAfterDeployment);
+    const modifierQuote = global.DAWN_LIONWING_ADAPTERS?.actionQuote?.(a, { scene, actionId: def.id, baseCost, baseResource: def.cost.resource, baseSwift, continuation, firstActionAfterDeploy, request: { breakout: Boolean(request.breakout) } }) || { ok: true, cost: baseCost, resource: def.cost.resource, swift: baseSwift, ignoreRequirements: [], modifiers: [], modifierIds: [] };
+    if (modifierQuote.ok === false) return unavailable(modifierQuote.reason || "Модификаторы действия конфликтуют");
+    const cost = Number(modifierQuote.cost ?? baseCost), swift = Boolean(modifierQuote.swift), used = isPlayer(a) ? (a.usedActions || []) : (a.lionwing?.turnActions || []);
+    if (!swift && used.includes(def.id)) return unavailable("Действие уже использовано");
     if (!canSpend(a,def.cost.resource,cost)) return unavailable(`Недостаточно ${def.cost.resource === "ap" ? "ОД" : "ресурса"}: нужно ${cost}`);
     if (def.id === ids.disappear) {
       const board = scene.spaces.find(b => b.id === a.space);
-      if (!board || ![0, board.width - 1].includes(a.x) && ![0, board.height - 1].includes(a.y) || a.lionwing?.startedDisappeared) return unavailable("Скрыться можно на краю поля, если Ход начат без Исчезновения");
+      const ignored = new Set(modifierQuote.ignoreRequirements || []);
+      if (!ignored.has("boardEdge") && (!board || ![0, board.width - 1].includes(a.x) && ![0, board.height - 1].includes(a.y)) || !ignored.has("startedDisappeared") && a.lionwing?.startedDisappeared) return unavailable("Скрыться можно на краю поля, если Ход начат без Исчезновения");
     }
-    return { available: true, reason: "", cost, resource: def.cost.resource, swift,allowanceId:allowance?.id };
+    return { available: true, reason: modifierQuote.reason || "", cost, resource: def.cost.resource, swift, actionQuote: modifierQuote, actionModifierIds: modifierQuote.modifierIds || [], allowanceId:allowance?.id };
   }
 
   function roll(count, random = Math.random, options = {}) {
