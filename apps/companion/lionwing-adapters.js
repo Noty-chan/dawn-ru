@@ -519,7 +519,10 @@
     return Number.isFinite(amount) && amount !== 0 ? [{ id: rule.id, label: rule.label, amount }] : [];
   });
   global.DAWN_LIONWING_ADAPTERS = Object.freeze({
-    list: actor => adapters.filter(rule => rule.available(actor)).map(({ id, label, sourceDigest, coverage }) => ({ id, label, sourceDigest, coverage })),
+    list: actor => adapters.filter(rule => rule.available(actor)).map(({ id, techniqueId, level, label, sourceDigest, coverage }) => ({
+      id, techniqueId, level, label, sourceDigest, coverage,
+      enabled: actor?.lionwing?.automation?.[id] === true,
+    })),
     replacements: (actor, original) => enabled(actor).flatMap(rule => rule.replacements?.(actor, original) || []),
     afterEffect: (actor, original) => enabled(actor).flatMap(rule => rule.afterEffect?.(actor, original) || []),
     afterEvent,
