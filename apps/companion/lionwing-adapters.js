@@ -227,15 +227,29 @@
       },
     }),
     passive({
+      id: "ruiner.bombardier.1",
+      label: "Бомбардир I: Завершение Духом по центру и смежным целям",
+      sourceDigest: "3d9ff42ccdca001941878db3a63ef647bf904ad689d35b2c6b7e5c76e1ce59d3",
+      coverage: "partial",
+    }),
+    passive({
       id: "ruiner.bombardier.2",
       label: "Бомбардир II: Преимущество Духовного Завершения за пустые клетки (пассивная часть)",
       sourceDigest: "46784c9f35cd64891f6ba70dc0d5a14ddf7f15aaab733ca1dbd3e6b3c60697c5",
       coverage: "partial",
       rollBonus: (actor, context) => {
         if (context?.kind !== "attack" || context.actionId !== "action.атаки.завершение" || context.attribute !== "spirit" || context.techniqueRuleId !== "ruiner.bombardier.2" || Number(context.focusSpent || 0) < 2) return 0;
-        const empty = Number(context.emptyTargetCount);
+        const area = context.areaPlan?.result;
+        if (area && (area.shape !== "square3" || Number(area.emptyTargetCount) !== Number(context.emptyTargetCount))) return 0;
+        const empty = Number(area?.emptyTargetCount ?? context.emptyTargetCount);
         return Number.isSafeInteger(empty) && empty >= 0 ? Math.min(empty, Number(actor.tier || 1) + 2) : 0;
       },
+    }),
+    passive({
+      id: "ruiner.bombardier.3",
+      label: "Бомбардир III: Завершение Духом по зоне 5×5",
+      sourceDigest: "e9b9958348fa1bf6bf5f752ead593042fcd332ebcc8e28cd2a23054bea16a4de",
+      coverage: "full",
     }),
     passive({
       id: "ruiner.ritualist.2",

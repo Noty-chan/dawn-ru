@@ -78,6 +78,124 @@
     });
   }
 
+  // Area targeting is a read-only plan.  The action reducer owns payment and
+  // damage; this contract owns only the canonical center, shape, cells and
+  // derived targets.  Keeping it here lets all future area techniques share
+  // the same snapshot/revalidation boundary as placement and teleport.
+  const AREA_SHAPES = Object.freeze(["adjacent", "square3", "square5"]);
+  const AREA_RULES = Object.freeze({
+    adjacent: { shape: "adjacent", range: 4, includeAnchor: true },
+    square3: { shape: "square", width: 3, height: 3, range: 5 },
+    square5: { shape: "square", width: 5, height: 5, range: 6 },
+  });
+
+  function areaSpacePoint(scene, source, raw) {
+    const point = normalizePoint(raw, source?.space, "центр области");
+    const space = spaceById(scene, point.space);
+    if (!space) fail("Пространство области не найдено", "LIONWING_GEOMETRY_RUNTIME_INVALID");
+    if (point.x >= Number(space.width) || point.y >= Number(space.height)) fail("Центр области находится вне поля", "LIONWING_GEOMETRY_RUNTIME_DESTINATION_BLOCKED");
+    if (removedCells(scene, point.space).has(cellKey(point))) fail("Центр области находится в удалённой клетке", "LIONWING_GEOMETRY_RUNTIME_DESTINATION_BLOCKED");
+    return point;
+  }
+
+  function sourceDistanceToPoint(source, point) {
+    const width = Math.max(1, Number(source?.occupiedWidth || 1));
+    const height = Math.max(1, Number(source?.occupiedHeight || 1));
+    let best = Infinity;
+    for (let oy = 0; oy < height; oy += 1) for (let ox = 0; ox < width; ox += 1) {
+      best = Math.min(best, Math.abs(point.x - (Number(source.x) + ox)) + Math.abs(point.y - (Number(source.y) + oy)));
+    }
+    return best;
+  }
+
+  function areaCells(scene, source, center, rule, request) {
+    const query = global.DAWN_SCENE_ENGINE?.spatialShapeStatus;
+    if (typeof query !== "function") fail("Общий планировщик форм области недоступен");
+    const shape = rule.shape === "adjacent" ? "adjacent" : "square";
+    const result = query(scene, {
+      space: center.space,
+      anchor: { x: center.x, y: center.y },
+      shape,
+      width: rule.width,
+      height: rule.height,
+      includeAnchor: rule.includeAnchor,
+      // Finishers affect enemies in their selected area.  The common query
+      // also accounts for occupiedWidth/occupiedHeight and effect targeting.
+      sourceActorId: source.id,
+      targets: { audience: "enemies", includeSelf: false },
+    });
+    if (!result.available) fail(result.reason || "Форма области недоступна", "LIONWING_GEOMETRY_RUNTIME_DESTINATION_BLOCKED");
+    const removed = removedCells(scene, center.space);
+    const cells = result.cells
+      .map(cell => {
+        if (typeof cell === "string") { const [x, y] = cell.split(",").map(Number); return { space: center.space, x, y }; }
+        return { space: center.space, x: Number(cell.x), y: Number(cell.y) };
+      })
+      .filter(cell => !removed.has(cellKey(cell)));
+    const wanted = new Set(cells.map(cellKey));
+    const targetIds = (scene.actors || []).filter(actor => {
+      if (!live(actor) || actor.space !== center.space || actor.id === source.id || actor.team === source.team) return false;
+      if (disappeared(actor) || exile(actor) !== exile(source)) return false;
+      return actorCells(actor).some(cell => wanted.has(cellKey(cell)));
+    }).map(actor => actor.id);
+    const occupied = new Set();
+    // "Empty space" means no character stands in the selected cell, even if
+    // that character is an ally and therefore is not a Finisher target.
+    for (const participant of scene.actors || []) {
+      if (!participant || participant.space !== center.space) continue;
+      for (const actorCell of actorCells(participant)) occupied.add(cellKey(actorCell));
+    }
+    return { cells, targetIds, emptyTargetCount: cells.filter(cell => !occupied.has(cellKey(cell))).length };
+  }
+
+  function normalizeAreaRequest(scene, request = {}) {
+    if (!object(request)) fail("План области должен быть объектом", "LIONWING_GEOMETRY_RUNTIME_INVALID");
+    const sourceActorId = request.sourceActorId || request.actorId;
+    const source = actorById(scene, sourceActorId);
+    if (!source || !live(source)) fail("Автор области отсутствует или выведен из боя", "LIONWING_GEOMETRY_RUNTIME_SOURCE_MISSING");
+    const rawShape = String(request.shape || request.areaShape || "");
+    const shapeKey = rawShape === "square" ? `square${Number(request.width || 0)}` : rawShape;
+    const rule = AREA_RULES[shapeKey];
+    if (!rule) fail("Неизвестная форма области", "LIONWING_GEOMETRY_RUNTIME_INVALID");
+    const center = areaSpacePoint(scene, source, request.center || request.anchor);
+    const range = Number(request.range == null ? rule.range : request.range);
+    if (!Number.isSafeInteger(range) || range < 0 || source.space !== center.space || sourceDistanceToPoint(source, center) > range) fail(`Центр области находится вне дальности ${range}`, "LIONWING_GEOMETRY_RUNTIME_RANGE");
+    return { schema: SCHEMA, sourceActorId: source.id, center, shape: shapeKey, range, ruleId: request.ruleId || null, label: request.label || null };
+  }
+
+  function areaPlanFor(scene, request) {
+    const normalized = normalizeAreaRequest(scene, request), source = actorById(scene, normalized.sourceActorId);
+    const derived = areaCells(scene, source, normalized.center, AREA_RULES[normalized.shape], normalized);
+    return {
+      schema: SCHEMA,
+      kind: `${KIND}.area`,
+      id: String(request.id || request.areaId || `area:${normalized.sourceActorId}:${Number(scene.version || 0)}:${normalized.shape}:${normalized.center.x},${normalized.center.y}`),
+      request: normalized,
+      precondition: { sceneVersion: Number(scene.version || 0), geometryStamp: geometryStamp(scene), source: actorSnapshot(source) },
+      result: { center: clone(normalized.center), shape: normalized.shape, range: normalized.range, cells: derived.cells, targetIds: derived.targetIds, emptyTargetCount: derived.emptyTargetCount },
+      status: "prepared",
+    };
+  }
+
+  function validateAreaShape(raw) {
+    if (!object(raw) || raw.kind !== `${KIND}.area` || Number(raw.schema) !== SCHEMA || !object(raw.request) || !object(raw.precondition) || !object(raw.result)) fail("Некорректный план области", "LIONWING_GEOMETRY_RUNTIME_INVALID");
+    return clone(raw);
+  }
+
+  function revalidateArea(scene, rawPlan, options = {}) {
+    const plan = validateAreaShape(rawPlan), currentVersion = Number(scene?.version || 0);
+    if (!options.allowVersionChange && Number(plan.precondition.sceneVersion) !== currentVersion) fail("План области устарел: версия Сцены изменилась", "LIONWING_GEOMETRY_RUNTIME_STALE");
+    if (!options.allowGeometryChange && plan.precondition.geometryStamp !== geometryStamp(scene)) fail("План области устарел: геометрия Сцены изменилась", "LIONWING_GEOMETRY_RUNTIME_STALE");
+    const fresh = areaPlanFor(scene, { ...plan.request, id: plan.id });
+    if (!same(comparableAreaResult(fresh.result), comparableAreaResult(plan.result))) fail("План области устарел: цели или форма изменились", "LIONWING_GEOMETRY_RUNTIME_STALE");
+    if (!same(actorSnapshot(actorById(scene, plan.request.sourceActorId)), plan.precondition.source)) fail("План области устарел: автор изменился", "LIONWING_GEOMETRY_RUNTIME_STALE");
+    return { available: true, stale: false, plan: clone(plan), result: clone(plan.result) };
+  }
+
+  function comparableAreaResult(result) {
+    return { center: result.center, shape: result.shape, range: result.range, cells: result.cells, targetIds: result.targetIds, emptyTargetCount: result.emptyTargetCount };
+  }
+
   function removedCells(scene, spaceId) {
     const api = sceneApi();
     if (typeof api?.removedCellKeys === "function") {
@@ -485,7 +603,7 @@
     }
     if (object(value) && value.plan && !value.kind) value = value.plan;
     if (object(value) && value.payload?.geometryRuntime && !value.kind) value = value.payload.geometryRuntime;
-    return validatePlanShape(value);
+    return value?.kind === `${KIND}.area` ? validateAreaShape(value) : validatePlanShape(value);
   }
 
   function eventFor(plan, options = {}) {
@@ -517,10 +635,10 @@
 
   function preview(scene, input, options = {}) {
     try {
-      const plan = object(input) && (input.kind === KIND || input.plan?.kind === KIND || input.payload?.geometryRuntime)
+      const plan = object(input) && (input.kind === KIND || input.kind === `${KIND}.area` || input.plan?.kind === KIND || input.plan?.kind === `${KIND}.area` || input.payload?.geometryRuntime)
         ? reload(input)
         : planFor(scene, input, options);
-      const checked = revalidate(scene, plan, options);
+      const checked = plan.kind === `${KIND}.area` ? revalidateArea(scene, plan, options) : revalidate(scene, plan, options);
       return { ok: true, errors: [], plan: clone(checked.plan), preview: clone(checked.plan.result), stale: false, scene: clone(scene) };
     } catch (error) {
       return { ok: false, errors: [error.message], code: error.code || "LIONWING_GEOMETRY_RUNTIME_BLOCKED", plan: null, preview: null, stale: /устар|измен|снимок/i.test(error.message || ""), scene: clone(scene) };
@@ -679,6 +797,25 @@
     return { ok: true, event: undoEvent, journal, after: undoEvent.after, fingerprint: JSON.stringify({ undoOf: event.id, before: event.after, after: undoEvent.after }), undone: true };
   }
 
+  function areaPrepare(scene, request = {}) {
+    try {
+      const plan = areaPlanFor(scene, request);
+      return { ok: true, errors: [], plan: clone(plan), preview: clone(plan.result), scene: clone(scene) };
+    } catch (error) {
+      return { ok: false, errors: [error.message], code: error.code || "LIONWING_GEOMETRY_RUNTIME_BLOCKED", plan: null, preview: null, scene: clone(scene) };
+    }
+  }
+
+  function areaPreview(scene, input, options = {}) {
+    try {
+      const plan = object(input) && input.kind === `${KIND}.area` ? validateAreaShape(input) : areaPlanFor(scene, input);
+      const checked = revalidateArea(scene, plan, options);
+      return { ok: true, errors: [], plan: clone(checked.plan), preview: clone(checked.result), stale: false, scene: clone(scene) };
+    } catch (error) {
+      return { ok: false, errors: [error.message], code: error.code || "LIONWING_GEOMETRY_RUNTIME_BLOCKED", plan: null, preview: null, stale: /устар|измен|снимок/i.test(error.message || ""), scene: clone(scene) };
+    }
+  }
+
   function journal(scene) {
     return clone((scene?.log || []).filter(row => typeof row?.type === "string" && row.type.startsWith("geometry.")).slice(0, MAX_JOURNAL));
   }
@@ -710,6 +847,13 @@
     commitOperation: commit,
     replayOperation: replay,
     undoOperation: undo,
+    areaShapes: AREA_SHAPES,
+    areaRules: AREA_RULES,
+    areaPlan: areaPlanFor,
+    areaPrepare,
+    areaPreview,
+    areaRevalidate: revalidateArea,
+    revalidateArea,
   });
   global.DAWN_LIONWING_GEOMETRY_RUNTIME = api;
 })(typeof window === "object" ? window : globalThis);

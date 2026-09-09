@@ -732,6 +732,7 @@
       techniqueTags, attribute: attackAttribute, tension: Number(scene.tension || 0),
       techniqueRuleId: p.techniqueRuleId || null, finisherMode: p.finisherMode || null,
       focusSpent: Number(p.focusSpent || 0), emptyTargetCount: p.emptyTargetCount,
+      areaPlan: p.areaPlan ? copy(p.areaPlan) : null,
       rapidFire: p.rapidFire === true,
       differentEnemiesWithinFive,
       jumpDistance, jumpActionInstanceId: p.jumpActionInstanceId || null,
@@ -741,6 +742,58 @@
     };
     const counts=Object.fromEntries(targets.map(id=>{const target=actor(scene,id),targetEffectIds=activeState(scene,id).effects.map(status=>status.effect),tauntedByActor=activeEffectSources(target,"negative.спровоцирован",scene).some(source=>source.actorId===a.id);return[id,Math.max(0,base+adapterNumber("rollBonus",a,{...targetContext,targetId:id,targetDistance:distance(a,target),targetEffectIds,tauntedByActor})-(effectActive(scene,a,"negative.спровоцирован")&&!targets.some(t=>taunts.includes(t))?a.tier:0)-(effectActive(scene,a,"negative.испуган")&&fears.includes(id)?a.tier:0)+((p.spikeTargetIds||[]).includes(id)&&effectActive(scene,target,"negative.подброшен")?a.tier:0))]}));
     return{base:Math.min(...Object.values(counts)),counts};
+  }
+
+  const bombardierAreaRules = Object.freeze({
+    "ruiner.bombardier.1": { shape: "adjacent", range: 4, minimumFocus: 0 },
+    "ruiner.bombardier.2": { shape: "square3", range: 5, minimumFocus: 2 },
+    "ruiner.bombardier.3": { shape: "square5", range: 6, minimumFocus: 4 },
+  });
+  function bombardierAreaStatus(scene, actorValue, payload) {
+    if (payload?.actionId !== ids.finish || !payload?.techniqueRuleId) return null;
+    const rule = bombardierAreaRules[payload.techniqueRuleId];
+    if (!rule) return null;
+    const techniqueId = "ruiner.bombardier", level = Number(payload.techniqueRuleId.split(".").at(-1));
+    if (Number((actorValue.knownTechniques ?? actorValue.techniques)?.[techniqueId] || 0) < level) fail("Бомбардир требует изученный уровень Техники");
+    if (actorValue.lionwing?.automation?.[payload.techniqueRuleId] !== true) fail("Автоматизация Бомбардира для этого уровня выключена");
+    const focusSpent = integer(payload.focusSpent || 0, "Фокус");
+    if (focusSpent < rule.minimumFocus) fail(`Для ${payload.techniqueRuleId} нужно потратить хотя бы ${rule.minimumFocus} Фокуса`);
+    const fallbackTarget = Array.isArray(payload.targetIds) && payload.targetIds.length ? actor(scene, payload.targetIds[0]) : null;
+    const center = payload.areaCenter || payload.techniqueAnchor || payload.anchor || payload.center || (fallbackTarget ? { space: fallbackTarget.space, x: fallbackTarget.x, y: fallbackTarget.y } : null);
+    if (!center) fail("Бомбардир требует выбранный центр области");
+    return { ...rule, ruleId: payload.techniqueRuleId, center, focusSpent };
+  }
+  function prepareBombardierArea(scene, actorValue, payload, eventId) {
+    const status = bombardierAreaStatus(scene, actorValue, payload);
+    if (!status) return null;
+    const runtime = global.DAWN_LIONWING_GEOMETRY_RUNTIME;
+    if (!runtime?.areaPrepare) fail("Планировщик областей недоступен");
+    const prepared = runtime.areaPrepare(scene, {
+      id: `${eventId}:area`, sourceActorId: actorValue.id, center: status.center,
+      shape: status.shape, range: status.range, ruleId: status.ruleId,
+      label: `Бомбардир: ${status.shape}`,
+    });
+    if (!prepared.ok) fail(prepared.errors?.join(" ") || "Область Бомбардира недоступна");
+    payload.areaPlan = prepared.plan;
+    payload.targetIds = [...prepared.preview.targetIds];
+    payload.emptyTargetCount = Number(prepared.preview.emptyTargetCount || 0);
+    payload.areaCenter = copy(prepared.preview.center);
+    return prepared.preview;
+  }
+  function revalidateBombardierArea(scene, actorValue, payload) {
+    if (!payload?.areaPlan) return null;
+    const status = bombardierAreaStatus(scene, actorValue, payload);
+    if (!status || status.ruleId !== payload.areaPlan.request?.ruleId || payload.areaPlan.request?.sourceActorId !== actorValue.id) fail("План области Бомбардира повреждён");
+    if (payload.areaPlan.request?.shape !== status.shape || Number(payload.areaPlan.request?.range) !== Number(status.range)) fail("План области Бомбардира не соответствует уровню Техники");
+    const runtime = global.DAWN_LIONWING_GEOMETRY_RUNTIME;
+    if (!runtime?.revalidateArea) fail("Планировщик областей недоступен");
+    let checked;
+    try { checked = runtime.revalidateArea(scene, payload.areaPlan); }
+    catch (error) { fail(error.message); }
+    payload.targetIds = [...checked.result.targetIds];
+    payload.emptyTargetCount = Number(checked.result.emptyTargetCount || 0);
+    payload.areaCenter = copy(checked.result.center);
+    return checked.result;
   }
 
   function prepare(scene, request, options = {}) {
@@ -754,6 +807,7 @@
         if (!def) fail("Базовое действие не найдено");
         const status = actionStatus(scene, a, def, payload);
         if (!status.available) fail(status.reason);
+        if (def.id === ids.finish) prepareBombardierArea(scene, a, payload, eventId);
         if ([ids.charge, ids.spell, ids.skirmish, ids.finish].includes(def.id) && !payload.roll){const pools=attackPools(scene,a,def,payload);payload.roll=roll(pools.base,options.random,rollMeta({rollId:`${eventId}:roll`,kind:"check",actionId:def.id,actionDefinitionId:def.id}));payload.targetRolls={};let targetRollSerial=0;for(const[id,count]of Object.entries(pools.counts))if(count>pools.base)payload.targetRolls[id]=roll(count-pools.base,options.random,rollMeta({rollId:`${eventId}:target:${targetRollSerial++}`,kind:"check",actionId:def.id,actionDefinitionId:def.id}));}
       }
       const preparedOperations=["plan","batch"].includes(payload.kind)?payload.operations:[payload];
@@ -1703,7 +1757,7 @@
         const target = requiredActor(scene, id);
         if (effectActive(scene,target,"positive.исчез") || effectActive(scene,a,"positive.изгнан") !== effectActive(scene,target,"positive.изгнан")) fail("Цель недоступна из-за Эффекта");
       }
-      scene.pendingAction = { id: rootId, actionInstanceId:provenance?.actionInstanceId||rootId, lionwing: true, actorId: a.id, name: p.name || "Атака", targetIds: targets, damage: integer(p.amount, "урон"), repeat: integer(p.repeat ?? 1, "повторы", 30), effects: copy(p.effects || []), finalDamage: Boolean(p.finalDamage), ignoreArmor:p.ignoreArmor===true, ignoreEvasion:p.ignoreEvasion===true, irreducible:p.irreducible===true, responses: Object.fromEntries(targets.map(id => [id, { choice: "pending" }])), sourceActionId: p.actionId || "manual.attack", ...(p.__actionPlan ? { actionPlan: copy(p.__actionPlan), actionPlanId: p.__actionPlan.id } : {}), ...(p.__execution ? { execution: copy(p.__execution) } : {}) };
+      scene.pendingAction = { id: rootId, actionInstanceId:provenance?.actionInstanceId||rootId, lionwing: true, actorId: a.id, name: p.name || "Атака", targetIds: targets, damage: integer(p.amount, "урон"), repeat: integer(p.repeat ?? 1, "повторы", 30), effects: copy(p.effects || []), finalDamage: Boolean(p.finalDamage), ignoreArmor:p.ignoreArmor===true, ignoreEvasion:p.ignoreEvasion===true, irreducible:p.irreducible===true, responses: Object.fromEntries(targets.map(id => [id, { choice: "pending" }])), sourceActionId: p.actionId || "manual.attack", ...(p.areaPlan ? { areaPlan: copy(p.areaPlan), areaCells: copy(p.areaPlan.result?.cells || []), areaCenter: copy(p.areaPlan.result?.center), emptyTargetCount: Number(p.emptyTargetCount || 0) } : {}), ...(p.__actionPlan ? { actionPlan: copy(p.__actionPlan), actionPlanId: p.__actionPlan.id } : {}), ...(p.__execution ? { execution: copy(p.__execution) } : {}) };
       if(p.targetDamage){if(typeof p.targetDamage!=="object"||Array.isArray(p.targetDamage))fail("Некорректный урон по целям");for(const[id,amount]of Object.entries(p.targetDamage)){if(!targets.includes(id))fail("Урон указан для посторонней цели");integer(amount,"урон цели");}scene.pendingAction.targetDamage=copy(p.targetDamage);}
       if (!scene.pendingAction.repeat) fail("Нужно хотя бы одно нанесение урона");
       emit("attack.pending", a.id, scene.pendingAction);
@@ -1719,11 +1773,12 @@
         if (scene.actors.some(x => live(x) && x.id !== a.id && distance({ ...p.reappearance, space: p.reappearance.space || a.space }, x) <= 1)) fail("Появление запрещено рядом с персонажем");
         removeEffect(a, "positive.исчез",{reappear:false}); placeActor(a, p.reappearance, { reason: "reappear-action" });
       }
+      if (def.id === ids.finish && p.areaPlan) revalidateBombardierArea(scene, a, p);
       const targets = targetIds(scene,p.targetIds).map(id => requiredActor(scene, id));
-      if ([ids.spell, ids.finish, ids.study, ids.shove, "action.атаки.дуэль"].includes(def.id) && targets.length !== 1 || def.id === ids.skirmish && (!targets.length || targets.length > 2)) fail("Неверное число целей");
+      if ([ids.spell, ids.study, ids.shove, "action.атаки.дуэль"].includes(def.id) && targets.length !== 1 || def.id === ids.finish && !p.areaPlan && targets.length !== 1 || def.id === ids.skirmish && (!targets.length || targets.length > 2)) fail("Неверное число целей");
       const finishContext = { scene, kind: "attack", actionId: def.id, attribute: p.attribute || (def.id === ids.finish ? "spirit" : null), tension: Number(scene.tension || 0), spellCircleActive: p.spellCircleActive === true || spellCircleActive(scene, a), firstSpiritFinisherThisTurn: def.id === ids.finish && (p.firstSpiritFinisherThisTurn === true || firstSpiritFinisherThisTurn(scene, a, p.actionInstanceId || provenance?.actionInstanceId || rootId)) };
       const range = def.id === ids.spell ? 5 : def.id === ids.finish ? 1 + adapterNumber("rangeBonus", a, finishContext) : def.id === ids.study ? Number(a.attrs.mind || 0) : 1;
-      if ([ids.spell, ids.skirmish, ids.finish, ids.study, ids.shove, "action.атаки.дуэль"].includes(def.id) && targets.some(t => t.id === a.id || distance(a, t) > range)) fail("Цель вне дальности действия");
+      if ([ids.spell, ids.skirmish, ids.study, ids.shove, "action.атаки.дуэль"].includes(def.id) && targets.some(t => t.id === a.id || distance(a, t) > range) || def.id === ids.finish && !p.areaPlan && targets.some(t => t.id === a.id || distance(a, t) > range)) fail("Цель вне дальности действия");
       if (def.id === ids.study && isPlayer(targets[0])) fail("Изучение требует NPC");
       const focusSpent = integer(p.focusSpent || 0, "Фокус");
       if (def.id === ids.finish && focusSpent > Number(scene.tension || 0)) fail("Расход Фокуса превышает Напряжение");
