@@ -1,7 +1,7 @@
 # DAWN: кодовая спецификация Техник
 
-> Сгенерировано `npm run docs:rules` из канонического `apps/companion/data.js` (SHA-256 `17aabda97a27e25c3268e887a3e09dcfdc9aac280a0647517114b6fd216020f4`).
-> Русский текст - канонический перевод из `source/translation/`; локальные профили Леона взяты из `source/companion/named-enemies.md`. Английские названия сверяются с `source/translation/adapted-names-index.md` и, для Черточек Антагониста, с `source/original/Dawn - A Diceless Fantasy TTRPG.pdf`.
+> Сгенерировано `npm run docs:rules` из новой канонической редакции `apps/companion/edition-lionwing.js` и RU-оверлея `apps/companion/edition-lionwing-ru.js` (SHA-256 `45f7482557e5ab8bc30d8c7b846e2dd66df27278218054174b8711f84a945de6`).
+> Английский текст и механика берутся из canonical EN; русские названия и тексты — из отдельного reviewed RU overlay. Legacy-редакция в этот документ не входит.
 
 ## Границы этого документа
 
@@ -9,7 +9,7 @@
 
 ## Общий контракт выполнения
 
-`data.js` → `technique-engine.js:RULES` (если правило зарегистрировано) → `scene-engine` (валидация, events, prompt, реакции, урон, эффект, движение) → UI/intent. Отсутствие строки в `RULES` означает, что UI может показать текст и foundation-plan, но механика не вызывается: статус должен быть `manual`.
+`edition-lionwing.js` + `edition-lionwing-ru.js` → `technique-engine.js:RULES` (если правило зарегистрировано) → `scene-engine` (валидация, events, prompt, реакции, урон, эффект, движение) → UI/intent. Отсутствие строки в `RULES` означает, что UI может показать текст и foundation-plan, но механика не вызывается: статус должен быть `manual`.
 
 ## Уже работающие семейства
 
@@ -81,14 +81,14 @@
 - **Готовые foundations:** `resource-check`, `usage-limits`, `trigger-router`, `reaction-window`, `damage-pipeline`, `action-modifier`.
 - **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `turn-lifecycle`, `derived-stats`, `combat-meter`.
 
-#### 2. Выдержать побои (Take A Beating) `powerhouse.berserker.2`
+#### 2. Загнанный пёс (Cornered Dog) `powerhouse.berserker.2`
 
 - **Заявленный статус:** `manual` (ручная).
 - **Текущий адаптер:** нет записи в `RULES`.
 - **Готовые foundations:** `trigger-router`, `damage-pipeline`.
 - **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `derived-stats`.
 
-#### 3. Загнанный пес (Cornered Dog) `powerhouse.berserker.3`
+#### 3. Выдержать побои (Take A Beating) `powerhouse.berserker.3`
 
 - **Заявленный статус:** `manual` (ручная).
 - **Текущий адаптер:** нет записи в `RULES`.
@@ -97,7 +97,7 @@
 
 ### Драконоборец (Dragonslayer) `powerhouse.dragonslayer`
 
-#### 1. Скорость - это вес (Speed Is Weight) `powerhouse.dragonslayer.1`
+#### 1. Скорость — это вес (Speed Is Weight) `powerhouse.dragonslayer.1`
 
 - **Заявленный статус:** `full` (полная).
 - **Текущий адаптер:** `powerhouse.dragonslayer.1` · `passive` · {"kind":"passive","sourceLevelId":"powerhouse.dragonslayer.1","sourceDigest":"5967f1ff724e990c007796133cc60b106a15c4d303d733bda7e73e4b4eb52f7d","coverage":"full"}; Успешное Завершение Телом после общего окна Реакций накладывает Разорван на доступные цели..
@@ -111,7 +111,7 @@
 - **Готовые foundations:** `target-validation`, `event-participants`, `spatial-cells`, `resource-check`, `trigger-router`, `choice-flow`, `action-modifier`.
 - **Нужно добавить:** Зарегистрировать отдельный adapter (trigger → validation → events/resolver) и прямые тесты; общая инфраструктура сама правило не исполняет.
 
-#### 3. Титанический замах (Titanic Heave) `powerhouse.dragonslayer.3`
+#### 3. Титанический замах [Передышка → Завершение Телом] (Titanic Heave [ Breathe → Body Finisher ]) `powerhouse.dragonslayer.3`
 
 - **Заявленный статус:** `full` (полная).
 - **Текущий адаптер:** `powerhouse.dragonslayer.3` · `combo` · {"kind":"combo","sequenceKeys":["breathe","finish"],"actionKey":"finish","attribute":"body","allDiceSucceed":true,"postPush":2,"postSelfEffects":["Ослаблен"],"sourceLevelId":"powerhouse.dragonslayer.3","sourceDigest":"2ff4e5d3424564bbc5f46de9fc2a2ca411701d14a1c94fa9c7bb67e13791886b","coverage":"full"}.
@@ -120,7 +120,7 @@
 
 ### Дуэлянт (Duelist) `powerhouse.duelist`
 
-#### 1. Ответный выпад (Riposte) `powerhouse.duelist.1`
+#### 1. Ответный выпад [Блок → Стычка] (Riposte [ Block → Skirmish ]) `powerhouse.duelist.1`
 
 - **Заявленный статус:** `manual` (ручная).
 - **Текущий адаптер:** нет записи в `RULES`.
@@ -150,7 +150,7 @@
 - **Готовые foundations:** `effect-state`, `effect-lifecycle`, `trigger-router`, `choice-flow`.
 - **Нужно добавить:** Зарегистрировать отдельный adapter (trigger → validation → events/resolver) и прямые тесты; общая инфраструктура сама правило не исполняет.
 
-#### 2. Кровавый рывок (Blood Rush) `powerhouse.flagellant.2`
+#### 2. Дикий рывок (Wild Rush) `powerhouse.flagellant.2`
 
 - **Заявленный статус:** `manual` (ручная).
 - **Текущий адаптер:** нет записи в `RULES`.
@@ -212,21 +212,21 @@
 
 ### Магический мечник (SpellSword) `powerhouse.spellsword`
 
-#### 1. Чародейский клинок (Spell Blade) `powerhouse.spellsword.1`
+#### 1. Два солнца [Заклинание → Стычка] (Twin Suns [ Cast → Skirmish ]) `powerhouse.spellsword.1`
 
 - **Заявленный статус:** `manual` (ручная).
 - **Текущий адаптер:** нет записи в `RULES`.
 - **Готовые foundations:** `resource-check`, `trigger-router`, `choice-flow`, `action-modifier`.
 - **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `action-copy`.
 
-#### 2. Два солнца (Twin Suns) `powerhouse.spellsword.2`
+#### 2. Зачарованное лезвие (Infused Edge) `powerhouse.spellsword.2`
 
 - **Заявленный статус:** `partial` (частичная).
 - **Текущий адаптер:** `powerhouse.spellsword.2` · `teleport` · {"kind":"teleport","range":3,"timing":"beforeTargets","coverage":"partial"}.
 - **Готовые foundations:** `target-validation`, `event-participants`, `action-modifier`, `action-history`.
 - **Нужно добавить:** Сохранить существующий adapter и добавить недостающий контракт: `movement-lifecycle`.
 
-#### 3. Охотник на ведьм (Witch Hunter) `powerhouse.spellsword.3`
+#### 3. Охотник на ведьм [Заклинание → Завершение Телом/Талантом] (Witch Hunter [ Cast → Body/Talent Finisher ]) `powerhouse.spellsword.3`
 
 - **Заявленный статус:** `full` (полная).
 - **Текущий адаптер:** `powerhouse.spellsword.3.foundation` · `foundation` · {"kind":"foundation","foundation":"action-history","scope":"turn","actionKeys":["spell"],"sourceLevelId":"powerhouse.spellsword.3","sourceDigest":"ee60afad76ec4020051636adcbc32a8f8bc62e440b38b523e8e0386f73868f44","coverage":"full"}; Ядро находит непосредственно предыдущее Заклинание и его цели; комбо проверяет Завершение Телом/Талантом по тем же целям и добавляет Дух к урону.<br>`powerhouse.spellsword.3` · `combo` · {"kind":"combo","sequenceKeys":["spell","finish"],"actionKey":"finish","attributes":["body","talent"],"sameTargets":true,"bonusDamageAttribute":"spirit","sourceLevelId":"powerhouse.spellsword.3","sourceDigest":"ee60afad76ec4020051636adcbc32a8f8bc62e440b38b523e8e0386f73868f44","coverage":"full"}.
@@ -249,7 +249,7 @@
 - **Готовые foundations:** `trigger-router`, `duration-scheduler`, `action-modifier`, `action-history`.
 - **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `turn-lifecycle`, `derived-stats`.
 
-#### 3. Последний удар (Final Blow) `powerhouse.technician.3`
+#### 3. Последний удар [Стычка → Завершение] (Final Blow [ Skirmish → Finisher ]) `powerhouse.technician.3`
 
 - **Заявленный статус:** `full` (полная).
 - **Текущий адаптер:** `powerhouse.technician.3` · `combo` · {"kind":"combo","sequenceKeys":["skirmish","finish"],"actionKey":"finish","apCost":1,"sourceLevelId":"powerhouse.technician.3","sourceDigest":"69e9007f8f65def64ef7640b8441616852def68765ad7a717f09587b1039ecfe","coverage":"full"}.
@@ -327,7 +327,7 @@
 
 ### Боец с парным оружием (Dual Wielder) `powerhouse.dual-wielder`
 
-#### 1. Парный удар (Twinned Blow) `powerhouse.dual-wielder.1`
+#### 1. Парный удар (Twinned blow) `powerhouse.dual-wielder.1`
 
 - **Заявленный статус:** `manual` (ручная).
 - **Текущий адаптер:** нет записи в `RULES`.
@@ -347,6 +347,29 @@
 - **Текущий адаптер:** нет записи в `RULES`.
 - **Готовые foundations:** `target-validation`, `event-participants`, `resource-check`, `usage-limits`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier`, `action-history`.
 - **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `movement-lifecycle`, `turn-lifecycle`.
+
+### Устрашитель (Intimidator) `powerhouse.intimidator`
+
+#### 1. Жалкое зрелище ("Pathetic") `powerhouse.intimidator.1`
+
+- **Заявленный статус:** `manual` (ручная).
+- **Текущий адаптер:** нет записи в `RULES`.
+- **Готовые foundations:** `event-preview`, `event-summary`, `trigger-router`, `damage-pipeline`.
+- **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `combat-meter`.
+
+#### 2. С дороги ("Out Of My Way") `powerhouse.intimidator.2`
+
+- **Заявленный статус:** `manual` (ручная).
+- **Текущий адаптер:** нет записи в `RULES`.
+- **Готовые foundations:** `event-preview`, `event-summary`, `trigger-router`, `choice-flow`, `action-modifier`.
+- **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `movement-lifecycle`.
+
+#### 3. Глупцы и мертвецы ("Fools And Dead Men") `powerhouse.intimidator.3`
+
+- **Заявленный статус:** `manual` (ручная).
+- **Текущий адаптер:** нет записи в `RULES`.
+- **Готовые foundations:** `event-preview`, `event-summary`, `trigger-router`, `damage-pipeline`.
+- **Нужно добавить:** Зарегистрировать отдельный adapter (trigger → validation → events/resolver) и прямые тесты; общая инфраструктура сама правило не исполняет.
 
 ### Мастер боевых искусств (Martial Artist) `powerhouse.martial-artist`
 
@@ -371,16 +394,16 @@
 - **Готовые foundations:** `usage-limits`, `trigger-router`, `action-modifier`, `dice-hooks`.
 - **Нужно добавить:** Зарегистрировать отдельный adapter (trigger → validation → events/resolver) и прямые тесты; общая инфраструктура сама правило не исполняет.
 
-### Мудрец монастыря (Monastic Sage) `powerhouse.monastic-sage`
+### Монастырский воин (Monastic Warrior) `powerhouse.monastic-sage`
 
-#### 1. Разум воплощенный (Mind Made Manifest) `powerhouse.monastic-sage.1`
+#### 1. Разум воплощённый (Mind Made Manifest) `powerhouse.monastic-sage.1`
 
 - **Заявленный статус:** `manual` (ручная).
 - **Текущий адаптер:** нет записи в `RULES`.
 - **Готовые foundations:** `effect-state`, `effect-lifecycle`, `trigger-router`.
 - **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `turn-lifecycle`, `derived-stats`.
 
-#### 2. Меж двух миров (Of Two Worlds) `powerhouse.monastic-sage.2`
+#### 2. Покой среди хаоса (Calm Within Chaos) `powerhouse.monastic-sage.2`
 
 - **Заявленный статус:** `manual` (ручная).
 - **Текущий адаптер:** нет записи в `RULES`.
@@ -410,7 +433,7 @@
 - **Готовые foundations:** `target-validation`, `event-participants`, `spatial-range`, `damage-pipeline`, `action-modifier`.
 - **Нужно добавить:** Зарегистрировать отдельный adapter (trigger → validation → events/resolver) и прямые тесты; общая инфраструктура сама правило не исполняет.
 
-#### 3. Рука-пушка (Cannon-Arm) `powerhouse.lancer.3`
+#### 3. Рука-пушка [Передышка → Стычка] (Cannon-Arm [ Breathe → Skirmish ]) `powerhouse.lancer.3`
 
 - **Заявленный статус:** `manual` (ручная).
 - **Текущий адаптер:** нет записи в `RULES`.
@@ -433,7 +456,7 @@
 - **Готовые foundations:** `terrain`, `trigger-router`, `damage-pipeline`.
 - **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `movement-lifecycle`, `derived-stats`, `information-query`.
 
-#### 3. Пожрать (Devour) `powerhouse.predator.3`
+#### 3. Поглощение (Envelop) `powerhouse.predator.3`
 
 - **Заявленный статус:** `manual` (ручная).
 - **Текущий адаптер:** нет записи в `RULES`.
@@ -442,14 +465,14 @@
 
 ### Импровизатор (Improvisational Fighter) `powerhouse.improvisational-fighter`
 
-#### 1. Все - инструмент (Everything's A Tool) `powerhouse.improvisational-fighter.1`
+#### 1. И это сгодится ("This'll Do") `powerhouse.improvisational-fighter.1`
 
 - **Заявленный статус:** `partial` (частичная).
 - **Текущий адаптер:** `powerhouse.improvisational-fighter.1.foundation` · `foundation` · {"kind":"foundation","foundation":"terrain","range":5,"types":["terrain","difficult","custom"],"coverage":"partial"}; Поиск, дальность, владение и Здоровье местности готовы; выбор между созданием и удалением пока подтверждает игрок..
 - **Готовые foundations:** `spatial-range`, `terrain`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier`, `dice-hooks`.
 - **Нужно добавить:** Сохранить существующий adapter и добавить недостающий контракт: `derived-stats`.
 
-#### 2. Ох! Вот это было больно! (Oh! That One Hurt!) `powerhouse.improvisational-fighter.2`
+#### 2. А вот это больно! ("That One Hurts!") `powerhouse.improvisational-fighter.2`
 
 - **Заявленный статус:** `manual` (ручная).
 - **Текущий адаптер:** нет записи в `RULES`.
@@ -463,7 +486,7 @@
 - **Готовые foundations:** `terrain`, `usage-limits`, `trigger-router`, `action-modifier`, `dice-hooks`.
 - **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `scene-lifecycle`, `combat-meter`.
 
-### Воинственный Вознесенный (Warring Ascendant) `powerhouse.warring-ascendant`
+### Воинственный Вознесённый (Warring Ascendant) `powerhouse.warring-ascendant`
 
 #### 1. Небесная рука (Heavenly Arm) `powerhouse.warring-ascendant.1`
 
@@ -479,25 +502,48 @@
 - **Готовые foundations:** `trigger-router`, `choice-flow`.
 - **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `transformation`, `action-copy`.
 
-#### 3. Святой меч, Дюрандаль (Saintly Sword, Durandal) `powerhouse.warring-ascendant.3`
+#### 3. Святой меч, Пронзающий Небеса (Saintly Sword, Heaven Piercer) `powerhouse.warring-ascendant.3`
 
 - **Заявленный статус:** `partial` (частичная).
 - **Текущий адаптер:** `powerhouse.warring-ascendant.3` · `area` · {"kind":"area","shape":"line","areaType":"attack","duration":"instant","adjacency":true,"coverage":"partial"}; Трансформация и Линия проверяются; потеря трансформации и дополнительный урон за каждую цель ещё не разрешаются полностью..
 - **Готовые foundations:** `target-validation`, `event-participants`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier`.
 - **Нужно добавить:** Сохранить существующий adapter и добавить недостающий контракт: `transformation`.
 
+### Героический Вознесённый (Heroic Ascendant) `powerhouse.heroic-ascendant`
+
+#### 1. Легендарный воин (Warrior Of Legend) `powerhouse.heroic-ascendant.1`
+
+- **Заявленный статус:** `manual` (ручная).
+- **Текущий адаптер:** нет записи в `RULES`.
+- **Готовые foundations:** `event-preview`, `event-summary`, `usage-limits`, `trigger-router`, `damage-pipeline`, `action-modifier`.
+- **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `movement-lifecycle`, `transformation`, `combat-meter`.
+
+#### 2. Подвиг героя (Hero's Feat) `powerhouse.heroic-ascendant.2`
+
+- **Заявленный статус:** `manual` (ручная).
+- **Текущий адаптер:** нет записи в `RULES`.
+- **Готовые foundations:** `event-preview`, `event-summary`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier`, `dice-hooks`.
+- **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `movement-lifecycle`, `derived-stats`, `transformation`.
+
+#### 3. Укрощённая сила (Mastered Strength) `powerhouse.heroic-ascendant.3`
+
+- **Заявленный статус:** `manual` (ручная).
+- **Текущий адаптер:** нет записи в `RULES`.
+- **Готовые foundations:** `event-preview`, `event-summary`, `trigger-router`, `reaction-window`.
+- **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `transformation`, `combat-meter`.
+
 ## Бродяга (Vagabond)
 
 ### Воздушный мастер (Aerial Master) `vagabond.aerial-master`
 
-#### 1. Над и вокруг (Over And Around) `vagabond.aerial-master.1`
+#### 1. Парение (Soar) `vagabond.aerial-master.1`
 
 - **Заявленный статус:** `partial` (частичная).
 - **Текущий адаптер:** `vagabond.aerial-master.1.foundation` · `foundation` · {"kind":"foundation","foundation":"stance","stanceId":"vagabond.aerial-master.flight","requiredEffects":["positive.ускорен"],"coverage":"partial"}; Условие входа в Стойку полёта и конфликт с другой Стойкой вычисляются канонически..
 - **Готовые foundations:** `effect-state`, `effect-lifecycle`, `stance`, `terrain`, `trigger-router`, `action-modifier`, `dice-hooks`.
 - **Нужно добавить:** Сохранить существующий adapter и добавить недостающий контракт: `movement-lifecycle`.
 
-#### 2. Парение (Soar) `vagabond.aerial-master.2`
+#### 2. Охота (Hunt) `vagabond.aerial-master.2`
 
 - **Заявленный статус:** `manual` (ручная).
 - **Текущий адаптер:** нет записи в `RULES`.
@@ -527,7 +573,7 @@
 - **Готовые foundations:** `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `trigger-router`, `reaction-window`, `choice-flow`, `action-modifier`, `composite-action`, `dice-hooks`.
 - **Нужно добавить:** Заявление decision понижено до partial: composite plan покрывает появление и отмену, но ядро принимает готовый roll и не добавляет/не валидирует [Ступень] Преимущества и крит на 5–6.
 
-#### 3. Скорость тьмы (Speed of Dark) `vagabond.assassin.3`
+#### 3. Скорость тьмы [Скрыться → Шаг] (Speed of Dark [ Hide → Stride ]) `vagabond.assassin.3`
 
 - **Заявленный статус:** `full` (полная).
 - **Текущий адаптер:** `vagabond.assassin.3` · `combo` · {"kind":"combo","sequenceKeys":["disappear","step"],"actionKey":"step","apCost":0,"selfEffect":"Невидим","sourceLevelId":"vagabond.assassin.3","sourceDigest":"0a28c9c9cc800d859e9f2352923ece0aa23754cc12541124234b16400378c1c1","coverage":"full"}.
@@ -550,7 +596,7 @@
 - **Готовые foundations:** `effect-state`, `effect-lifecycle`, `trigger-router`, `action-modifier`, `dice-hooks`, `spatial-range`.
 - **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `turn-lifecycle`.
 
-#### 3. Меткий глаз (Deadeye) `vagabond.sniper.3`
+#### 3. Меткий глаз [Скрыться → Завершение Талантом] (Deadeye [ Hide → Talent Finisher ]) `vagabond.sniper.3`
 
 - **Заявленный статус:** `manual` (ручная).
 - **Текущий адаптер:** нет записи в `RULES`.
@@ -589,14 +635,14 @@
 - **Готовые foundations:** `target-validation`, `event-participants`.
 - **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `movement-lifecycle`.
 
-#### 2. Мгновенный шаг (Flash Step) `vagabond.speed-demon.2`
+#### 2. Мгновенный удар (Flash Strike) `vagabond.speed-demon.2`
 
 - **Заявленный статус:** `full` (полная).
 - **Текущий адаптер:** `vagabond.speed-demon.2` · `combo` · {"kind":"combo","sequenceKeys":["breathe","step"],"actionKey":"step","movementMultiplier":3,"sourceLevelId":"vagabond.speed-demon.2","sourceDigest":"0365cfb5ae901e4cac9e6571651dc2a256170a13afb47a2077b1c785eb368b62","coverage":"full"}.
 - **Готовые foundations:** `action-modifier`, `action-history`.
 - **Нужно добавить:** Сохранить существующий adapter и добавить недостающий контракт: `movement-lifecycle`.
 
-#### 3. Мгновенный удар (Flash Strike) `vagabond.speed-demon.3`
+#### 3. Мгновенный шаг [Передышка → Шаг] (Flash Step [ Breathe → Stride ]) `vagabond.speed-demon.3`
 
 - **Заявленный статус:** `manual` (ручная).
 - **Текущий адаптер:** нет записи в `RULES`.
@@ -619,7 +665,7 @@
 - **Готовые foundations:** `trigger-router`, `damage-pipeline`.
 - **Нужно добавить:** До повторного аудита повторный Dodge предлагался при любом итоговом нуле, даже если Evasion не поглотило урон; исправлено требование `evaded > 0` и добавлен zero-damage regression.
 
-#### 3. Инстинкт бойца (Fighter's Instinct) `vagabond.untouchable.3`
+#### 3. Инстинкт бойца [Уворот → Стычка] (Fighter's Instinct [ Dodge → Skirmish ]) `vagabond.untouchable.3`
 
 - **Заявленный статус:** `manual` (ручная).
 - **Текущий адаптер:** нет записи в `RULES`.
@@ -628,7 +674,7 @@
 
 ### Акробат (Acrobat) `vagabond.acrobat`
 
-#### 1. Летящий удар ногой (Flying Kick) `vagabond.acrobat.1`
+#### 1. Летящий удар ногой [Прыжок → Стычка] (Flying Kick [ Jump → Skirmish ]) `vagabond.acrobat.1`
 
 - **Заявленный статус:** `manual` (ручная).
 - **Текущий адаптер:** нет записи в `RULES`.
@@ -658,7 +704,7 @@
 - **Готовые foundations:** `stance`, `trigger-router`, `duration-scheduler`, `action-modifier`, `action-history`, `dice-hooks`.
 - **Нужно добавить:** Зарегистрировать отдельный adapter (trigger → validation → events/resolver) и прямые тесты; общая инфраструктура сама правило не исполняет.
 
-#### 2. Рассечение одним движением (Divide In One Motion) `vagabond.blade-master.2`
+#### 2. Рассечение одним движением [Передышка → Прыжок] (Divide In One Motion [ Breathe → Jump ]) `vagabond.blade-master.2`
 
 - **Заявленный статус:** `manual` (ручная).
 - **Текущий адаптер:** нет записи в `RULES`.
@@ -704,7 +750,7 @@
 - **Готовые foundations:** `target-validation`, `event-participants`, `resource-check`, `rule-clock`, `trigger-router`, `action-modifier`, `action-history`, `dice-hooks`.
 - **Нужно добавить:** До повторного аудита условие «Танец» принимало любое недавнее перемещение при текущей смежности; теперь требуется переход предыдущим действием из несмежной клетки в смежность. Добавлен отрицательный regression для adjacent→adjacent.
 
-#### 2. Дразнить, красоваться, устрашать (Taunt, Flaunt, Daunt) `vagabond.egomaniac.2`
+#### 2. Потанцуй со мной (Dance With Me) `vagabond.egomaniac.2`
 
 - **Заявленный статус:** `decision` (решение).
 - **Текущий адаптер:** `vagabond.egomaniac.2` · `passive` · {"kind":"passive","sourceLevelId":"vagabond.egomaniac.2","sourceDigest":"6e1526c365b7cee6ba44e603d7a09ce62ed4c4431deff0c26b1e55e9aaf02b0e","coverage":"partial"}; При заполнении Стиля можно отказаться от ОД и выбрать массовый Спровоцирован или Испуган для врагов в пределах 3..
@@ -734,14 +780,14 @@
 - **Готовые foundations:** `target-validation`, `event-participants`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier`.
 - **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `movement-lifecycle`.
 
-#### 3. Импульс (Momentum) `vagabond.enchained.3`
+#### 3. Импульс [Заклинание → Стычка] (Momentum [ Cast → Skirmish ]) `vagabond.enchained.3`
 
 - **Заявленный статус:** `manual` (ручная).
 - **Текущий адаптер:** нет записи в `RULES`.
 - **Готовые foundations:** `target-validation`, `event-participants`, `trigger-router`, `action-modifier`, `action-history`, `dice-hooks`.
 - **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `movement-lifecycle`.
 
-### Жонглер ножами (Knife Juggler) `vagabond.knife-juggler`
+### Жонглёр ножами (Knife Juggler) `vagabond.knife-juggler`
 
 #### 1. Метнуть (Throw) `vagabond.knife-juggler.1`
 
@@ -766,7 +812,7 @@
 
 ### Злобный подражатель (Malicious Mimic) `vagabond.malicious-mimic`
 
-#### 1. "Все, что можешь ты..." ("Anything You Can Do...") `vagabond.malicious-mimic.1`
+#### 1. «Всё, что можешь ты…» ("Anything You Can Do…") `vagabond.malicious-mimic.1`
 
 - **Заявленный статус:** `manual` (ручная).
 - **Текущий адаптер:** нет записи в `RULES`.
@@ -780,12 +826,35 @@
 - **Готовые foundations:** `effect-state`, `effect-lifecycle`, `trigger-router`.
 - **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `derived-stats`, `inventory`.
 
-#### 3. "...я могу лучше" ("...I Can Do Better") `vagabond.malicious-mimic.3`
+#### 3. «…я могу лучше» ("…I Can Do Better") `vagabond.malicious-mimic.3`
 
 - **Заявленный статус:** `manual` (ручная).
 - **Текущий адаптер:** нет записи в `RULES`.
 - **Готовые foundations:** `resource-check`, `trigger-router`, `choice-flow`, `action-modifier`.
 - **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `inventory`, `action-copy`.
+
+### Оружейник (Weaponsmith) `vagabond.weaponsmith`
+
+#### 1. Оружие с секретом (Trick Weapon) `vagabond.weaponsmith.1`
+
+- **Заявленный статус:** `manual` (ручная).
+- **Текущий адаптер:** нет записи в `RULES`.
+- **Готовые foundations:** `event-preview`, `event-summary`, `trigger-router`, `choice-flow`, `action-modifier`.
+- **Нужно добавить:** Зарегистрировать отдельный adapter (trigger → validation → events/resolver) и прямые тесты; общая инфраструктура сама правило не исполняет.
+
+#### 2. Адаптивное лезвие (Adaptive Edge) `vagabond.weaponsmith.2`
+
+- **Заявленный статус:** `manual` (ручная).
+- **Текущий адаптер:** нет записи в `RULES`.
+- **Готовые foundations:** `event-preview`, `event-summary`, `trigger-router`, `action-modifier`.
+- **Нужно добавить:** Зарегистрировать отдельный adapter (trigger → validation → events/resolver) и прямые тесты; общая инфраструктура сама правило не исполняет.
+
+#### 3. Металлургия (Metalurgy) `vagabond.weaponsmith.3`
+
+- **Заявленный статус:** `manual` (ручная).
+- **Текущий адаптер:** нет записи в `RULES`.
+- **Готовые foundations:** `event-preview`, `event-summary`, `trigger-router`.
+- **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `derived-stats`.
 
 ### Модифицированный мейстер (Modified Meister) `vagabond.modified-meister`
 
@@ -856,7 +925,7 @@
 - **Готовые foundations:** `target-validation`, `event-participants`, `trigger-router`, `reaction-window`, `choice-flow`, `damage-pipeline`, `action-modifier`.
 - **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `movement-lifecycle`, `derived-stats`.
 
-### Дим Мак (Dim Mak) `vagabond.dim-mak`
+### Детектив (Detective) `vagabond.dim-mak`
 
 #### 1. Изучить слабость (Study Weakness) `vagabond.dim-mak.1`
 
@@ -865,14 +934,14 @@
 - **Готовые foundations:** `target-validation`, `event-participants`, `owned-entities`, `entity-lifecycle`, `usage-limits`, `trigger-router`, `choice-flow`, `action-modifier`.
 - **Нужно добавить:** Сохранить существующий adapter и добавить недостающий контракт: `movement-lifecycle`, `turn-lifecycle`, `information-query`.
 
-#### 2. Полевая разведка (Field Investigation) `vagabond.dim-mak.2`
+#### 2. Вскрытие [Изучение × 3] (Dissect [ Investigate x 3 ]) `vagabond.dim-mak.2`
 
 - **Заявленный статус:** `decision` (решение).
 - **Текущий адаптер:** `vagabond.dim-mak.2` · `passive` · {"kind":"passive","sourceLevelId":"vagabond.dim-mak.2","sourceDigest":"d63edd4d649fb29805706009934a7eb38427b2507f32b1d5632e881f7e24a5a2","coverage":"partial"}; Промах вражеской Атаки предлагает бесплатное Быстрое Изучение атакующего; снятие Слабой точки автоматически даёт 2 Уклонения..
 - **Готовые foundations:** `target-validation`, `event-participants`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `reaction-window`, `action-modifier`.
 - **Нужно добавить:** Сохранить существующий adapter и добавить недостающий контракт: `information-query`, `derived-stats`.
 
-#### 3. Казнь по четырем точкам (4-Point Execution) `vagabond.dim-mak.3`
+#### 3. Казнь по четырём точкам (4-Point Execution) `vagabond.dim-mak.3`
 
 - **Заявленный статус:** `manual` (ручная).
 - **Текущий адаптер:** нет записи в `RULES`.
@@ -943,7 +1012,7 @@
 - **Готовые foundations:** `target-validation`, `event-participants`, `spatial-cells`, `effect-state`, `effect-lifecycle`, `trigger-router`, `damage-pipeline`, `action-modifier`, `action-history`.
 - **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `turn-lifecycle`.
 
-#### 3. Ты похож на гвоздь (You Look Like A Nail) `bulwark.crusher.3`
+#### 3. «Ты похож на гвоздь» ("You Look Like A Nail") `bulwark.crusher.3`
 
 - **Заявленный статус:** `manual` (ручная).
 - **Текущий адаптер:** нет записи в `RULES`.
@@ -952,7 +1021,7 @@
 
 ### Гигантская фигура (Giant Frame) `bulwark.giant-frame`
 
-#### 1. Огромные руки (Big Arms) `bulwark.giant-frame.1`
+#### 1. Большие руки (Big Arms) `bulwark.giant-frame.1`
 
 - **Заявленный статус:** `partial` (частичная).
 - **Текущий адаптер:** `bulwark.giant-frame.1` · `area` · {"kind":"area","shape":"square2","areaType":"attack","duration":"instant","adjacency":true,"optionMinimum":{"key":"focusSpent","value":1,"label":"дополнительно потрачено Фокуса"},"coverage":"partial"}; Зона, оплата и общий конвейер Атаки поддержаны; замена цели конкретного Завершения Телом ещё не связана атомарно..
@@ -975,21 +1044,21 @@
 
 ### Железное тело (Iron Bodied) `bulwark.iron-bodied`
 
-#### 1. Крепкий как камень (Tough As Stone) `bulwark.iron-bodied.1`
+#### 1. Твёрдый как камень (Tough As Stone) `bulwark.iron-bodied.1`
 
 - **Заявленный статус:** `manual` (ручная).
 - **Текущий адаптер:** нет записи в `RULES`.
 - **Готовые foundations:** нет.
 - **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `movement-lifecycle`, `derived-stats`.
 
-#### 2. Выносливость (Resilience) `bulwark.iron-bodied.2`
+#### 2. Стойкость (Resilience) `bulwark.iron-bodied.2`
 
 - **Заявленный статус:** `full` (полная).
 - **Текущий адаптер:** `bulwark.iron-bodied.2` · `passive` · {"kind":"passive","sourceLevelId":"bulwark.iron-bodied.2","sourceDigest":"fa7b6c2676514b1bf9dfca34c58256d51ef5f80513957fd244784ba1e0b94344","coverage":"full"}; Броня автоматически включает [Тело / 2]..
 - **Готовые foundations:** нет.
 - **Нужно добавить:** Сохранить существующий adapter и добавить недостающий контракт: `derived-stats`.
 
-#### 3. Нержавеющий шаг (Stainless Stride) `bulwark.iron-bodied.3`
+#### 3. Нержавеющая поступь (Stainless Stride) `bulwark.iron-bodied.3`
 
 - **Заявленный статус:** `manual` (ручная).
 - **Текущий адаптер:** нет записи в `RULES`.
@@ -1035,7 +1104,7 @@
 - **Готовые foundations:** `target-validation`, `event-participants`, `resource-check`, `effect-state`, `effect-lifecycle`, `usage-limits`, `trigger-router`, `choice-flow`.
 - **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `movement-lifecycle`, `turn-lifecycle`, `derived-stats`.
 
-#### 3. Добавить травму к оскорблению (Add Injury To Insult) `bulwark.absolute-bastard.3`
+#### 3. Сыпать соль на рану (Add Injury To Insult) `bulwark.absolute-bastard.3`
 
 - **Заявленный статус:** `manual` (ручная).
 - **Текущий адаптер:** нет записи в `RULES`.
@@ -1051,14 +1120,14 @@
 - **Готовые foundations:** `owned-entities`, `entity-lifecycle`, `trigger-router`.
 - **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `movement-lifecycle`, `summon-turns`, `deployment-hooks`.
 
-#### 2. Хваткие челюсти (Grasping Jaws) `bulwark.battle-jockey.2`
+#### 2. Цепкие челюсти (Grasping Jaws) `bulwark.battle-jockey.2`
 
 - **Заявленный статус:** `manual` (ручная).
 - **Текущий адаптер:** нет записи в `RULES`.
 - **Готовые foundations:** `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `owned-entities`, `entity-lifecycle`, `trigger-router`.
 - **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `summon-turns`.
 
-#### 3. Ревущий выход (Roaring Entry) `bulwark.battle-jockey.3`
+#### 3. Громогласное появление (Roaring Entry) `bulwark.battle-jockey.3`
 
 - **Заявленный статус:** `manual` (ручная).
 - **Текущий адаптер:** нет записи в `RULES`.
@@ -1074,14 +1143,14 @@
 - **Готовые foundations:** `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `trigger-router`, `action-modifier`.
 - **Нужно добавить:** Зарегистрировать отдельный adapter (trigger → validation → events/resolver) и прямые тесты; общая инфраструктура сама правило не исполняет.
 
-#### 2. Перелом позвоночника (Spine Breaker) `bulwark.grappler.2`
+#### 2. Хребтолом (Spine Breaker) `bulwark.grappler.2`
 
 - **Заявленный статус:** `decision` (решение).
 - **Текущий адаптер:** `bulwark.grappler.2` · `passive` · {"kind":"passive","sourceLevelId":"bulwark.grappler.2","sourceDigest":"87e908315db54db355c6fa2e4c772f05a08a0fbd835cd50e6339ac034f66ff4d","coverage":"partial"}; Стычки получают 1 Преимущество. Для единственной Подброшенной цели можно выбрать составной модификатор: Вбить, телепортироваться в свободную смежную клетку и заменить Атаку на Завершение Телом по исходной Стоимости..
 - **Готовые foundations:** `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `trigger-router`, `action-modifier`, `dice-hooks`.
 - **Нужно добавить:** Сохранить существующий adapter и добавить недостающий контракт: `movement-lifecycle`.
 
-#### 3. Завершающий прием (Finishing Move) `bulwark.grappler.3`
+#### 3. Завершающий приём [Завершение Телом → Прыжок] (Finishing Move [ Body Finisher → Jump ]) `bulwark.grappler.3`
 
 - **Заявленный статус:** `manual` (ручная).
 - **Текущий адаптер:** нет записи в `RULES`.
@@ -1090,7 +1159,7 @@
 
 ### Джаггернаут (Juggernaut) `bulwark.juggernaut`
 
-#### 1. Дикий рывок (Wild Charge) `bulwark.juggernaut.1`
+#### 1. Дикий натиск (Wild Charge) `bulwark.juggernaut.1`
 
 - **Заявленный статус:** `manual` (ручная).
 - **Текущий адаптер:** нет записи в `RULES`.
@@ -1104,30 +1173,53 @@
 - **Готовые foundations:** `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `usage-limits`, `trigger-router`, `damage-pipeline`.
 - **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `movement-lifecycle`, `turn-lifecycle`.
 
-#### 3. Резкий поворот (Hard Turn) `bulwark.juggernaut.3`
+#### 3. «Жри землю!» ("Eat Dirt!") `bulwark.juggernaut.3`
 
 - **Заявленный статус:** `manual` (ручная).
 - **Текущий адаптер:** нет записи в `RULES`.
 - **Готовые foundations:** `trigger-router`, `choice-flow`, `action-modifier`.
 - **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `movement-lifecycle`.
 
+### Нянька (Mollycoddler) `bulwark.runic-retribution`
+
+#### 1. Плеть (Lash) `bulwark.runic-retribution.1`
+
+- **Заявленный статус:** `manual` (ручная).
+- **Текущий адаптер:** нет записи в `RULES`.
+- **Готовые foundations:** `target-validation`, `event-participants`, `trigger-router`, `reaction-window`, `action-modifier`.
+- **Нужно добавить:** Зарегистрировать отдельный adapter (trigger → validation → events/resolver) и прямые тесты; общая инфраструктура сама правило не исполняет.
+
+#### 2. Обряд любви (Loving Rite) `bulwark.runic-retribution.2`
+
+- **Заявленный статус:** `manual` (ручная).
+- **Текущий адаптер:** нет записи в `RULES`.
+- **Готовые foundations:** `target-validation`, `event-participants`, `resource-check`, `effect-state`, `effect-lifecycle`, `trigger-router`, `reaction-window`, `choice-flow`, `action-modifier`.
+- **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `information-query`.
+
+#### 3. Преданность (Devotion) `bulwark.runic-retribution.3`
+
+- **Заявленный статус:** `manual` (ручная).
+- **Текущий адаптер:** нет записи в `RULES`.
+- **Готовые foundations:** `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `trigger-router`, `duration-scheduler`, `choice-flow`, `action-modifier`.
+- **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `movement-lifecycle`.
+
 ### Обычный (Mundane) `bulwark.mundane`
 
-#### 1. Чего не хватает Духу (For What The Spirit Lacks) `bulwark.mundane.1`
+#### 1. Чего не хватает духу (For What The Spirit Lacks) `bulwark.mundane.1`
 
 - **Заявленный статус:** `partial` (частичная).
 - **Текущий адаптер:** `bulwark.mundane.1.foundation` · `foundation` · {"kind":"foundation","foundation":"alternate-resource","resource":"grit","resourceLabel":"Упорство","initialFormula":"1 + ceil(body / 2)","replaces":["focus","ap"],"coverage":"partial"}; Общий запас оплачивает Фокус и ОД, округляет [Тело / 2] вверх, сбрасывается в начале Раунда; Передышка и Зарядка не пополняют его..
 - **Готовые foundations:** `resource-check`, `alternate-resource`, `action-modifier`.
 - **Нужно добавить:** До повторного аудита `[Тело / 2]` ошибочно округлялось вниз, вопреки общему правилу Always Round Up (PDF-стр. 22); исправлено на `ceil` и закреплено нечётным Body regression.
 
-#### 2. Копнуть глубже, стоять твердо (Dig Deep, Stand Firm) `bulwark.mundane.2`
+#### 2. Копай глубже, стой крепче (Dig Deep, Stand Firm) `bulwark.mundane.2`
 
 - **Заявленный статус:** `full` (полная).
 - **Текущий адаптер:** `bulwark.mundane.2` · `passive` · {"kind":"passive","sourceLevelId":"bulwark.mundane.2","sourceDigest":"9f2acd96734496115e4336cfba21ae1002107d282e903cc9e9a76fa209b81410","coverage":"full"}; Получение предложения Реакции как цели Атаки даёт 1 Упорство..
 - **Готовые foundations:** `target-validation`, `event-participants`, `resource-check`, `alternate-resource`, `trigger-router`, `reaction-window`.
 - **Нужно добавить:** Для кода явный следующий шаг не выведен автоматически; нужны direct pos/neg/boundary тесты и evidence до повышения доверия.
 
-#### 3. Перед лицом Запредельного (In The Face Of The Beyond) `bulwark.mundane.3`
+#### 3. Перед лицом потустороннего (In The Face Of The Beyond) `bulwark.mundane.3`
 
 - **Заявленный статус:** `decision` (решение).
 - **Текущий адаптер:** `bulwark.mundane.3` · `passive` · {"kind":"passive","sourceLevelId":"bulwark.mundane.3","sourceDigest":"c9c11d54ab21f1dcfcab8dd1fa3905c278a6ceab4f057c7507f5b2e152421e77","coverage":"partial"}; Передышка и Зарядка принимают явный список целей Спровоцированного в пределах 4 и ограничивают его несостоявшимся получением Фокуса..
@@ -1143,42 +1235,19 @@
 - **Готовые foundations:** `resource-check`, `trigger-router`, `reaction-window`, `action-modifier`.
 - **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `movement-lifecycle`.
 
-#### 2. "Сначала тебе придется пройти через меня!" ("You'll Have To Get Through Me!") `bulwark.rising-challenger.2`
+#### 2. «Сначала пройди через меня!» ("You'll Have To Get Through Me!") `bulwark.rising-challenger.2`
 
 - **Заявленный статус:** `manual` (ручная).
 - **Текущий адаптер:** нет записи в `RULES`.
 - **Готовые foundations:** `target-validation`, `event-participants`, `spatial-range`, `trigger-router`, `reaction-window`, `action-modifier`.
 - **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `movement-lifecycle`.
 
-#### 3. Драма и злость (Drama And Spite) `bulwark.rising-challenger.3`
+#### 3. Драма и злоба (Drama And Spite) `bulwark.rising-challenger.3`
 
 - **Заявленный статус:** `full` (полная).
 - **Текущий адаптер:** `bulwark.rising-challenger.3` · `passive` · {"kind":"passive","sourceLevelId":"bulwark.rising-challenger.3","sourceDigest":"e9655fd8cbbaab4e8119a75716013a6ac3aec744c098de9d0d9e404cd7cf6d41","coverage":"full"}; В бросок Столкновения автоматически добавляются 3 кости..
 - **Готовые foundations:** `dice-hooks`, `action-modifier`.
 - **Нужно добавить:** Для кода явный следующий шаг не выведен автоматически; нужны direct pos/neg/boundary тесты и evidence до повышения доверия.
-
-### Рунное возмездие (Runic Retribution) `bulwark.runic-retribution`
-
-#### 1. Удар плетью (Lash) `bulwark.runic-retribution.1`
-
-- **Заявленный статус:** `manual` (ручная).
-- **Текущий адаптер:** нет записи в `RULES`.
-- **Готовые foundations:** `target-validation`, `event-participants`, `trigger-router`, `reaction-window`, `action-modifier`.
-- **Нужно добавить:** Зарегистрировать отдельный adapter (trigger → validation → events/resolver) и прямые тесты; общая инфраструктура сама правило не исполняет.
-
-#### 2. Любящий обряд (Loving Rite) `bulwark.runic-retribution.2`
-
-- **Заявленный статус:** `manual` (ручная).
-- **Текущий адаптер:** нет записи в `RULES`.
-- **Готовые foundations:** `target-validation`, `event-participants`, `resource-check`, `effect-state`, `effect-lifecycle`, `trigger-router`, `reaction-window`, `choice-flow`, `action-modifier`.
-- **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `information-query`.
-
-#### 3. Преданность (Devotion) `bulwark.runic-retribution.3`
-
-- **Заявленный статус:** `manual` (ручная).
-- **Текущий адаптер:** нет записи в `RULES`.
-- **Готовые foundations:** `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `trigger-router`, `duration-scheduler`, `choice-flow`, `action-modifier`.
-- **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `movement-lifecycle`.
 
 ### Щитоносец (Shield Bearer) `bulwark.shield-bearer`
 
@@ -1189,14 +1258,14 @@
 - **Готовые foundations:** `resource-check`, `trigger-router`, `reaction-window`, `duration-scheduler`, `choice-flow`.
 - **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `turn-lifecycle`, `derived-stats`.
 
-#### 2. Удар щитом (Shield Charge) `bulwark.shield-bearer.2`
+#### 2. Натиск щитом (Shield Charge) `bulwark.shield-bearer.2`
 
 - **Заявленный статус:** `manual` (ручная).
 - **Текущий адаптер:** нет записи в `RULES`.
 - **Готовые foundations:** `target-validation`, `event-participants`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `damage-pipeline`, `action-modifier`.
 - **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `movement-lifecycle`.
 
-#### 3. Сосредоточенная защита (Focused Defense) `bulwark.shield-bearer.3`
+#### 3. Сосредоточенная оборона (Focused Defense) `bulwark.shield-bearer.3`
 
 - **Заявленный статус:** `manual` (ручная).
 - **Текущий адаптер:** нет записи в `RULES`.
@@ -1212,7 +1281,7 @@
 - **Готовые foundations:** `trigger-router`.
 - **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `movement-lifecycle`, `turn-lifecycle`.
 
-#### 2. На посту (On Watch) `bulwark.stalwart-sentry.2`
+#### 2. На страже (On Watch) `bulwark.stalwart-sentry.2`
 
 - **Заявленный статус:** `decision` (решение).
 - **Текущий адаптер:** `bulwark.stalwart-sentry.2.foundation` · `foundation` · {"kind":"foundation","foundation":"clock","clockId":"bulwark.stalwart-sentry.vigilance","size":4,"initial":4,"sourceLevelId":"bulwark.stalwart-sentry.2","sourceDigest":"11c89e120a37e64ba570b3bb664bf52f056ebca5ad3e83046100c00952bb8d67","coverage":"partial"}; Выход врага из смежности открывает Наказание с обычной оплатой либо очисткой Бдительности; бросок, Реакции и отмена проходят через общий конвейер..
@@ -1226,9 +1295,9 @@
 - **Готовые foundations:** `target-validation`, `event-participants`, `terrain`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `reaction-window`, `action-modifier`.
 - **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `movement-lifecycle`, `information-query`.
 
-### Звериный Вознесенный (Beastial Ascendant) `bulwark.beastial-ascendant`
+### Звериный Вознесённый (Bestial Ascendant) `bulwark.beastial-ascendant`
 
-#### 1. Звериность (Beastly) `bulwark.beastial-ascendant.1`
+#### 1. Звериная сущность (Beastly) `bulwark.beastial-ascendant.1`
 
 - **Заявленный статус:** `manual` (ручная).
 - **Текущий адаптер:** нет записи в `RULES`.
@@ -1249,7 +1318,7 @@
 - **Готовые foundations:** `resource-check`, `usage-limits`, `trigger-router`, `choice-flow`, `action-modifier`.
 - **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `scene-lifecycle`, `transformation`, `action-copy`.
 
-### Ангел-хранитель (Guardian Angel) `bulwark.guardian-angel`
+### Ангел-хранитель (Guard Caller) `bulwark.guardian-angel`
 
 #### 1. Два тела (Two Bodies) `bulwark.guardian-angel.1`
 
@@ -1258,7 +1327,7 @@
 - **Готовые foundations:** `target-validation`, `event-participants`, `damage-pipeline`, `action-modifier`.
 - **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `movement-lifecycle`, `multi-space-actor`.
 
-#### 2. Вместе в жизни (Together In Life) `bulwark.guardian-angel.2`
+#### 2. Вместе при жизни (Together In Life) `bulwark.guardian-angel.2`
 
 - **Заявленный статус:** `manual` (ручная).
 - **Текущий адаптер:** нет записи в `RULES`.
@@ -1272,39 +1341,16 @@
 - **Готовые foundations:** `target-validation`, `event-participants`, `spatial-range`, `resource-check`, `trigger-router`, `reaction-window`, `damage-pipeline`, `action-modifier`.
 - **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `movement-lifecycle`, `derived-stats`, `multi-space-actor`.
 
-### Зов слуги (Servant's Call) `bulwark.servant-s-call`
-
-#### 1. Честь подчиненного (A Subordinate's Honor) `bulwark.servant-s-call.1`
-
-- **Заявленный статус:** `partial` (частичная).
-- **Текущий адаптер:** `bulwark.servant-s-call.1.foundation` · `foundation` · {"kind":"foundation","foundation":"owned-entities","rulePrefix":"bulwark.servant-s-call","kinds":["summon"],"coverage":"partial"}; Призывы собираются по владельцу и источнику правила; создание полноценного участника вместо маркера остаётся следующим этапом.<br>`bulwark.servant-s-call.1` · `marker` · {"kind":"marker","markerKind":"summon","duration":"scene","color":"#6fc9d8","coverage":"partial"}; Точка призыва ставится в пустую клетку за 1 Фокус с выбором типа и лимитом [Ступень]; полноценный Призыв слуги остаётся следующим этапом ядра сущностей..
-- **Готовые foundations:** `target-validation`, `event-participants`, `spatial-cells`, `resource-check`, `owned-entities`, `entity-lifecycle`, `usage-limits`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier`.
-- **Нужно добавить:** Сохранить существующий adapter и добавить недостающий контракт: `summon-turns`.
-
-#### 2. Гимн героя (Hero's Hymn) `bulwark.servant-s-call.2`
-
-- **Заявленный статус:** `manual` (ручная).
-- **Текущий адаптер:** нет записи в `RULES`.
-- **Готовые foundations:** `target-validation`, `event-participants`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `reaction-window`, `duration-scheduler`, `choice-flow`, `action-modifier`.
-- **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `movement-lifecycle`, `summon-turns`, `turn-lifecycle`.
-
-#### 3. Верховный слуга (Supreme Servant) `bulwark.servant-s-call.3`
-
-- **Заявленный статус:** `manual` (ручная).
-- **Текущий адаптер:** нет записи в `RULES`.
-- **Готовые foundations:** `target-validation`, `event-participants`, `spatial-cells`, `resource-check`, `owned-entities`, `entity-lifecycle`, `usage-limits`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier`.
-- **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `summon-turns`, `scene-lifecycle`, `bond-actions`.
-
 ### Пилот меха (Mecha Pilot) `bulwark.mecha-pilot`
 
-#### 1. Двигатель рунного ядра (Rune Core Engine) `bulwark.mecha-pilot.1`
+#### 1. Двигатель с руническим ядром (Rune Core Engine) `bulwark.mecha-pilot.1`
 
 - **Заявленный статус:** `manual` (ручная).
 - **Текущий адаптер:** нет записи в `RULES`.
 - **Готовые foundations:** `target-validation`, `event-participants`, `spatial-cells`, `terrain`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier`.
 - **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `movement-lifecycle`, `derived-stats`, `multi-space-actor`.
 
-#### 2. Автономный (Autonomous) `bulwark.mecha-pilot.2`
+#### 2. Автономность (Autonomous) `bulwark.mecha-pilot.2`
 
 - **Заявленный статус:** `manual` (ручная).
 - **Текущий адаптер:** нет записи в `RULES`.
@@ -1320,23 +1366,46 @@
 
 ## Альтруист (Altruist)
 
+### Предвидящий (Analyst) `altruist.precognizant`
+
+#### 1. Вспышка озарения (Flash Of Insight) `altruist.precognizant.1`
+
+- **Заявленный статус:** `manual` (ручная).
+- **Текущий адаптер:** нет записи в `RULES`.
+- **Готовые foundations:** `target-validation`, `event-participants`, `resource-check`, `usage-limits`, `trigger-router`, `reaction-window`, `choice-flow`, `dice-hooks`.
+- **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `scene-lifecycle`.
+
+#### 2. Использовать преимущество (Take Advantage) `altruist.precognizant.2`
+
+- **Заявленный статус:** `manual` (ручная).
+- **Текущий адаптер:** нет записи в `RULES`.
+- **Готовые foundations:** `target-validation`, `event-participants`, `trigger-router`, `reaction-window`, `action-modifier`.
+- **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `derived-stats`.
+
+#### 3. Смотреть и ждать (Watch And Wait) `altruist.precognizant.3`
+
+- **Заявленный статус:** `manual` (ручная).
+- **Текущий адаптер:** нет записи в `RULES`.
+- **Готовые foundations:** `target-validation`, `event-participants`, `resource-check`, `effect-state`, `effect-lifecycle`, `trigger-router`, `choice-flow`, `action-modifier`.
+- **Нужно добавить:** Зарегистрировать отдельный adapter (trigger → validation → events/resolver) и прямые тесты; общая инфраструктура сама правило не исполняет.
+
 ### Боевой инструктор (Battle Instructor) `altruist.battle-instructor`
 
-#### 1. Приказ к удару (Strike Order) `altruist.battle-instructor.1`
+#### 1. Приказ атаковать (Strike Order) `altruist.battle-instructor.1`
 
 - **Заявленный статус:** `manual` (ручная).
 - **Текущий адаптер:** нет записи в `RULES`.
 - **Готовые foundations:** `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `trigger-router`, `choice-flow`, `action-modifier`.
 - **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `movement-lifecycle`, `information-query`.
 
-#### 2. Обучающий момент (Teaching Moment) `altruist.battle-instructor.2`
+#### 2. Поучительный момент (Teaching Moment) `altruist.battle-instructor.2`
 
 - **Заявленный статус:** `manual` (ручная).
 - **Текущий адаптер:** нет записи в `RULES`.
 - **Готовые foundations:** `target-validation`, `event-participants`, `resource-check`, `trigger-router`, `reaction-window`, `choice-flow`, `dice-hooks`.
 - **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `bond-actions`.
 
-#### 3. Вспомни обучение (Remember Your Training) `altruist.battle-instructor.3`
+#### 3. Помни, чему тебя учили (Remember Your Training) `altruist.battle-instructor.3`
 
 - **Заявленный статус:** `manual` (ручная).
 - **Текущий адаптер:** нет записи в `RULES`.
@@ -1352,44 +1421,21 @@
 - **Готовые foundations:** `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `trigger-router`, `choice-flow`.
 - **Нужно добавить:** Сохранить существующий adapter и добавить недостающий контракт: `turn-lifecycle`.
 
-#### 2. Защитный отклик (Protective Response) `altruist.empath.2`
+#### 2. Защитная реакция (Protective Response) `altruist.empath.2`
 
 - **Заявленный статус:** `decision` (решение).
 - **Текущий адаптер:** `altruist.empath.2` · `passive` · {"kind":"passive","sourceLevelId":"altruist.empath.2","sourceDigest":"da8df2484b2ddad6fe56569848bd88938700e4ae11006dbc9bd8475512d364c7","coverage":"partial"}; После внешней Раны или Эффекта стол предлагает бесплатный Прорыв в смежную клетку..
 - **Готовые foundations:** `target-validation`, `event-participants`, `spatial-range`, `resource-check`, `trigger-router`, `reaction-window`, `damage-pipeline`, `action-modifier`.
 - **Нужно добавить:** До повторного аудита самонанесённая Рана открывала Protective Response, хотя канон исключает source=self; добавлена проверка источника и отрицательный regression.
 
-#### 3. "Ты в порядке?" ("Are You Ok?") `altruist.empath.3`
+#### 3. «Ты в порядке?» ("Are You Ok?") `altruist.empath.3`
 
 - **Заявленный статус:** `full` (полная).
 - **Текущий адаптер:** `altruist.empath.3` · `passive` · {"kind":"passive","coverage":"full","sourceLevelId":"altruist.empath.3","sourceDigest":"4473ee348631cf63dd51750aca3869aac5f3abb159e490f4b390407c8ac61f73"}; На начале Хода союзника рядом адаптер ядра автоматически даёт 3 Фокуса и восстанавливает [Ступень] Здоровья; отдельный платный Support-путь удалён, чтобы исключить двойное применение..
 - **Готовые foundations:** `target-validation`, `event-participants`, `resource-check`, `action-modifier`.
 - **Нужно добавить:** Каноническая passive boundary-ветка автоматически выдаёт соседнему союзнику 3 Фокуса и [Ступень] Здоровья в начале его Хода; прежний платный Support-путь удалён во избежание двойного применения.
 
-### Гурман (Gourmand) `altruist.gourmand`
-
-#### 1. Здоровая трапеза (Healthy Meal) `altruist.gourmand.1`
-
-- **Заявленный статус:** `manual` (ручная).
-- **Текущий адаптер:** нет записи в `RULES`.
-- **Готовые foundations:** `target-validation`, `event-participants`, `damage-pipeline`, `trigger-router`, `choice-flow`, `action-modifier`.
-- **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `inventory`, `intermission-reset`.
-
-#### 2. Бездонная кладовая (Bottomless Pantry) `altruist.gourmand.2`
-
-- **Заявленный статус:** `full` (полная).
-- **Текущий адаптер:** `altruist.gourmand.2` · `passive` · {"kind":"passive","sourceLevelId":"altruist.gourmand.2","sourceDigest":"84ec37d54af70332e7bb2f4ed402265d3514db190bc24b400016b9444b4b8ce7","coverage":"full"}; Запас Трапез автоматически равен 3 за Интермиссию..
-- **Готовые foundations:** нет.
-- **Нужно добавить:** Сохранить существующий adapter и добавить недостающий контракт: `inventory`, `intermission-reset`.
-
-#### 3. Общий опыт (Shared Experiences) `altruist.gourmand.3`
-
-- **Заявленный статус:** `manual` (ручная).
-- **Текущий адаптер:** нет записи в `RULES`.
-- **Готовые foundations:** `target-validation`, `event-participants`, `resource-check`, `trigger-router`.
-- **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `bond-actions`, `inventory`.
-
-### Небесный святой (Heavenly Saint) `altruist.heavenly-saint`
+### Небесный святой (Compassionate Sage) `altruist.heavenly-saint`
 
 #### 1. Сила молитвы (Strength Of Prayer) `altruist.heavenly-saint.1`
 
@@ -1412,28 +1458,28 @@
 - **Готовые foundations:** `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `usage-limits`, `trigger-router`, `damage-pipeline`, `action-modifier`.
 - **Нужно добавить:** Сохранить существующий adapter и добавить недостающий контракт: `scene-lifecycle`.
 
-### Предвидящий (Precognizant) `altruist.precognizant`
+### Гурман (Gourmand) `altruist.gourmand`
 
-#### 1. Вспышка озарения (Flash Of Insight) `altruist.precognizant.1`
-
-- **Заявленный статус:** `manual` (ручная).
-- **Текущий адаптер:** нет записи в `RULES`.
-- **Готовые foundations:** `target-validation`, `event-participants`, `resource-check`, `usage-limits`, `trigger-router`, `reaction-window`, `choice-flow`, `dice-hooks`.
-- **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `scene-lifecycle`.
-
-#### 2. Воспользоваться (Take Advantage) `altruist.precognizant.2`
+#### 1. Полезная еда (Healthy Meal) `altruist.gourmand.1`
 
 - **Заявленный статус:** `manual` (ручная).
 - **Текущий адаптер:** нет записи в `RULES`.
-- **Готовые foundations:** `target-validation`, `event-participants`, `trigger-router`, `reaction-window`, `action-modifier`.
-- **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `derived-stats`.
+- **Готовые foundations:** `target-validation`, `event-participants`, `damage-pipeline`, `trigger-router`, `choice-flow`, `action-modifier`.
+- **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `inventory`, `intermission-reset`.
 
-#### 3. Швырнуть в бесконечность (Hurl Into The Infinite) `altruist.precognizant.3`
+#### 2. Фастфуд (Fast Food) `altruist.gourmand.2`
+
+- **Заявленный статус:** `full` (полная).
+- **Текущий адаптер:** `altruist.gourmand.2` · `passive` · {"kind":"passive","sourceLevelId":"altruist.gourmand.2","sourceDigest":"84ec37d54af70332e7bb2f4ed402265d3514db190bc24b400016b9444b4b8ce7","coverage":"full"}; Запас Трапез автоматически равен 3 за Интермиссию..
+- **Готовые foundations:** нет.
+- **Нужно добавить:** Сохранить существующий adapter и добавить недостающий контракт: `inventory`, `intermission-reset`.
+
+#### 3. Общий опыт (Shared Experiences) `altruist.gourmand.3`
 
 - **Заявленный статус:** `manual` (ручная).
 - **Текущий адаптер:** нет записи в `RULES`.
-- **Готовые foundations:** `target-validation`, `event-participants`, `resource-check`, `effect-state`, `effect-lifecycle`, `trigger-router`, `choice-flow`, `action-modifier`.
-- **Нужно добавить:** Зарегистрировать отдельный adapter (trigger → validation → events/resolver) и прямые тесты; общая инфраструктура сама правило не исполняет.
+- **Готовые foundations:** `target-validation`, `event-participants`, `resource-check`, `trigger-router`.
+- **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `bond-actions`, `inventory`.
 
 ### Хирург (Surgeon) `altruist.surgeon`
 
@@ -1444,7 +1490,7 @@
 - **Готовые foundations:** `target-validation`, `event-participants`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier`, `dice-hooks`.
 - **Нужно добавить:** Заявление full понижено до partial: core проверяет наличие массива rolls, но доверяет присланным successes и не доказывает обязательный бросок Разума.
 
-#### 2. Операционная процедура (Operational Procedure) `altruist.surgeon.2`
+#### 2. Порядок операции (Operational Procedure) `altruist.surgeon.2`
 
 - **Заявленный статус:** `manual` (ручная).
 - **Текущий адаптер:** нет записи в `RULES`.
@@ -1458,7 +1504,30 @@
 - **Готовые foundations:** `target-validation`, `event-participants`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `damage-pipeline`, `action-modifier`, `dice-hooks`.
 - **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `inventory`.
 
-### Заклинатель талисманов (Talisman Caster) `altruist.talisman-caster`
+### Мастер тактики (Tactical Master) `disruptor.tactical-master`
+
+#### 1. Остановись и подумай (Stop And Think) `disruptor.tactical-master.1`
+
+- **Заявленный статус:** `manual` (ручная).
+- **Текущий адаптер:** нет записи в `RULES`.
+- **Готовые foundations:** `resource-check`, `effect-state`, `effect-lifecycle`, `stance`, `usage-limits`, `trigger-router`, `damage-pipeline`, `action-modifier`.
+- **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `turn-lifecycle`.
+
+#### 2. Изучение (Study) `disruptor.tactical-master.2`
+
+- **Заявленный статус:** `manual` (ручная).
+- **Текущий адаптер:** нет записи в `RULES`.
+- **Готовые foundations:** `resource-check`, `effect-state`, `effect-lifecycle`, `trigger-router`, `choice-flow`, `action-modifier`.
+- **Нужно добавить:** Зарегистрировать отдельный adapter (trigger → validation → events/resolver) и прямые тесты; общая инфраструктура сама правило не исполняет.
+
+#### 3. Эврика! (Eureka!) `disruptor.tactical-master.3`
+
+- **Заявленный статус:** `manual` (ручная).
+- **Текущий адаптер:** нет записи в `RULES`.
+- **Готовые foundations:** `resource-check`, `stance`, `trigger-router`, `action-modifier`.
+- **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `turn-lifecycle`, `derived-stats`.
+
+### Заклинатель талисманов (Talisman Exorcist) `altruist.talisman-caster`
 
 #### 1. Священная печать (Sacred Seal) `altruist.talisman-caster.1`
 
@@ -1474,11 +1543,34 @@
 - **Готовые foundations:** `spatial-range`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `choice-flow`, `action-modifier`.
 - **Нужно добавить:** Зарегистрировать отдельный adapter (trigger → validation → events/resolver) и прямые тесты; общая инфраструктура сама правило не исполняет.
 
-#### 3. Экзорцизм (Exorcize) `altruist.talisman-caster.3`
+#### 3. Изгнание (Exorcize) `altruist.talisman-caster.3`
 
 - **Заявленный статус:** `manual` (ручная).
 - **Текущий адаптер:** нет записи в `RULES`.
 - **Готовые foundations:** `target-validation`, `event-participants`, `owned-entities`, `entity-lifecycle`, `action-modifier`.
+- **Нужно добавить:** Зарегистрировать отдельный adapter (trigger → validation → events/resolver) и прямые тесты; общая инфраструктура сама правило не исполняет.
+
+### Мудрец ограждения (Abjuring Sage) `altruist.abjuring-sage`
+
+#### 1. Барьер (Barrier) `altruist.abjuring-sage.1`
+
+- **Заявленный статус:** `manual` (ручная).
+- **Текущий адаптер:** нет записи в `RULES`.
+- **Готовые foundations:** `event-preview`, `event-summary`, `trigger-router`, `damage-pipeline`, `action-modifier`.
+- **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `movement-lifecycle`.
+
+#### 2. Непроницаемость (Impenetrable) `altruist.abjuring-sage.2`
+
+- **Заявленный статус:** `manual` (ручная).
+- **Текущий адаптер:** нет записи в `RULES`.
+- **Готовые foundations:** `event-preview`, `event-summary`, `trigger-router`.
+- **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `derived-stats`.
+
+#### 3. Блокирующий луч (Block Beam) `altruist.abjuring-sage.3`
+
+- **Заявленный статус:** `manual` (ручная).
+- **Текущий адаптер:** нет записи в `RULES`.
+- **Готовые foundations:** `event-preview`, `event-summary`, `trigger-router`, `damage-pipeline`.
 - **Нужно добавить:** Зарегистрировать отдельный adapter (trigger → validation → events/resolver) и прямые тесты; общая инфраструктура сама правило не исполняет.
 
 ### Алхимик (Alchemist) `altruist.alchemist`
@@ -1497,39 +1589,16 @@
 - **Готовые foundations:** `target-validation`, `event-participants`, `resource-check`, `trigger-router`, `choice-flow`, `damage-pipeline`.
 - **Нужно добавить:** Урон зельем по врагу применяется обязательно, хотя канон требует опциональный выбор.
 
-#### 3. Высокоинтенсивная смесь (High Intensity Mix) `altruist.alchemist.3`
+#### 3. Смесь высокой интенсивности (High Intensity Mix) `altruist.alchemist.3`
 
 - **Заявленный статус:** `manual` (ручная).
 - **Текущий адаптер:** нет записи в `RULES`.
 - **Готовые foundations:** `resource-check`, `trigger-router`, `choice-flow`, `action-modifier`, `dice-hooks`.
 - **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `inventory`.
 
-### Хрономант (Chronomancer) `altruist.chronomancer`
-
-#### 1. Ускорение (Accelerate) `altruist.chronomancer.1`
-
-- **Заявленный статус:** `manual` (ручная).
-- **Текущий адаптер:** нет записи в `RULES`.
-- **Готовые foundations:** `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier`.
-- **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `movement-lifecycle`.
-
-#### 2. Замедление (Decelerate) `altruist.chronomancer.2`
-
-- **Заявленный статус:** `decision` (решение).
-- **Текущий адаптер:** `altruist.chronomancer.2` · `passive` · {"kind":"passive","sourceLevelId":"altruist.chronomancer.2","sourceDigest":"bab452f231f9a7c7c0ee1777945bb658db08a587663551cdcb857ccb1b3f5105","coverage":"partial"}; Заклинания получают 1 Преимущество; удаление Эффекта открывает перепроверяемое окно повторного применения за 1 Фокус..
-- **Готовые foundations:** `target-validation`, `event-participants`, `resource-check`, `effect-state`, `effect-lifecycle`, `trigger-router`, `reaction-window`, `action-modifier`, `dice-hooks`.
-- **Нужно добавить:** Реестр заявлял manual, хотя core уже выдаёт 1 Преимущество Заклинаниям и ведёт prompt повторного применения снятого Эффекта за 1 Фокус; добавлен честный decision-adapter. Полный surface evidence отсутствует.
-
-#### 3. Остановка времени (Time Stop) `altruist.chronomancer.3`
-
-- **Заявленный статус:** `decision` (решение).
-- **Текущий адаптер:** `altruist.chronomancer.3.foundation` · `foundation` · {"kind":"foundation","foundation":"clock","clockId":"altruist.chronomancer.flow","size":8,"initial":0,"sourceLevelId":"altruist.chronomancer.3","sourceDigest":"fe9f7c35921e35add383a6125039a427cb00110764b1b3f021a4e616e18f890b","coverage":"partial"}; Полный Поток в начале Хода предлагает однократное массовое Заклинание, тратит все ОД и поддерживает Ва-банк с Раной и Завершением против врагов..
-- **Готовые foundations:** `target-validation`, `event-participants`, `resource-check`, `rule-clock`, `usage-limits`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier`, `dice-hooks`.
-- **Нужно добавить:** Сохранить существующий adapter и добавить недостающий контракт: `turn-lifecycle`, `scene-lifecycle`, `duel-flow`.
-
 ### Танцор (Dancer) `altruist.dancer`
 
-#### 1. Партнер по танцу (Dance Partner) `altruist.dancer.1`
+#### 1. Партнёр по танцу (Dance Partner) `altruist.dancer.1`
 
 - **Заявленный статус:** `manual` (ручная).
 - **Текущий адаптер:** нет записи в `RULES`.
@@ -1575,7 +1644,7 @@
 
 ### Последняя надежда (Last Hope) `altruist.last-hope`
 
-#### 1. Примечательно отсутствует (Notably Absent) `altruist.last-hope.1`
+#### 1. Заметное отсутствие (Notably Absent) `altruist.last-hope.1`
 
 - **Заявленный статус:** `manual` (ручная).
 - **Текущий адаптер:** нет записи в `RULES`.
@@ -1619,28 +1688,51 @@
 - **Готовые foundations:** `resource-check`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `action-modifier`.
 - **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `turn-lifecycle`, `derived-stats`.
 
-### Блуждающий огонек (Will-O-Wisp) `altruist.will-o-wisp`
+### Хрономант (Temporal Sage) `altruist.chronomancer`
 
-#### 1. Пламя духовного плетения (Spirit Weaving Flame) `altruist.will-o-wisp.1`
+#### 1. Ускорение (Accelerate) `altruist.chronomancer.1`
 
-- **Заявленный статус:** `decision` (решение).
-- **Текущий адаптер:** `altruist.will-o-wisp.1` · `passive` · {"kind":"passive","sourceLevelId":"altruist.will-o-wisp.1","sourceDigest":"718c1072bf9fb744208642697c7e52e01925efc76cb61a9e04e7a5bf85789c30","coverage":"partial"}; Изученный тип Духа сохраняется в листе и импорте; первая Зарядка создаёт Пламя, а Атака по его клетке обязательно толкает маркер на 1..
-- **Готовые foundations:** `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `owned-entities`, `entity-lifecycle`, `usage-limits`, `trigger-router`, `choice-flow`, `action-modifier`.
-- **Нужно добавить:** Заявление decision понижено до partial: первая Зарядка, аура и выбранное движение есть, но Пламя не толкается на 1 клетку, когда Атака выбирает целью его клетку.
+- **Заявленный статус:** `manual` (ручная).
+- **Текущий адаптер:** нет записи в `RULES`.
+- **Готовые foundations:** `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier`.
+- **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `movement-lifecycle`.
 
-#### 2. Дружелюбные духи (Friendly Spirits) `altruist.will-o-wisp.2`
-
-- **Заявленный статус:** `decision` (решение).
-- **Текущий адаптер:** `altruist.will-o-wisp.2` · `passive` · {"kind":"passive","sourceLevelId":"altruist.will-o-wisp.2","sourceDigest":"fbd6b0c3eae8b30f64d4a9c59e9c15870dd290fa7590ee08968b537dba88e63f","coverage":"partial"}; Дружественный выход предлагает переместить Пламя; вражеский путь прерывается на первой клетке выхода до downstream enter-триггеров и продолжается только после перепроверяемого отказа..
-- **Готовые foundations:** `target-validation`, `event-participants`, `resource-check`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `reaction-window`, `choice-flow`.
-- **Нужно добавить:** Заявление decision понижено до partial: остановка врага происходит после полного actor.move и ретроспективно возвращает его в первую клетку выхода, поэтому downstream enter/path-триггеры уже могли сработать за канонической точкой остановки.
-
-#### 3. Парные духи (Twinned Spirits) `altruist.will-o-wisp.3`
+#### 2. Замедление (Decelerate) `altruist.chronomancer.2`
 
 - **Заявленный статус:** `decision` (решение).
-- **Текущий адаптер:** `altruist.will-o-wisp.3` · `passive` · {"kind":"passive","sourceLevelId":"altruist.will-o-wisp.3","sourceDigest":"73fc31ad0348f634cb773ccd09f4dbb3ba9f0b16eea3ced967977e838286adfb","coverage":"partial"}; Второй изученный тип сохраняется; поддерживаются одно Пламя с двумя свойствами либо два независимых Пламени с отдельными эффектами и движением..
-- **Готовые foundations:** `owned-entities`, `entity-lifecycle`, `trigger-router`, `choice-flow`.
-- **Нужно добавить:** Для кода явный следующий шаг не выведен автоматически; нужны direct pos/neg/boundary тесты и evidence до повышения доверия.
+- **Текущий адаптер:** `altruist.chronomancer.2` · `passive` · {"kind":"passive","sourceLevelId":"altruist.chronomancer.2","sourceDigest":"bab452f231f9a7c7c0ee1777945bb658db08a587663551cdcb857ccb1b3f5105","coverage":"partial"}; Заклинания получают 1 Преимущество; удаление Эффекта открывает перепроверяемое окно повторного применения за 1 Фокус..
+- **Готовые foundations:** `target-validation`, `event-participants`, `resource-check`, `effect-state`, `effect-lifecycle`, `trigger-router`, `reaction-window`, `action-modifier`, `dice-hooks`.
+- **Нужно добавить:** Реестр заявлял manual, хотя core уже выдаёт 1 Преимущество Заклинаниям и ведёт prompt повторного применения снятого Эффекта за 1 Фокус; добавлен честный decision-adapter. Полный surface evidence отсутствует.
+
+#### 3. Остановка времени (Time Stop) `altruist.chronomancer.3`
+
+- **Заявленный статус:** `decision` (решение).
+- **Текущий адаптер:** `altruist.chronomancer.3.foundation` · `foundation` · {"kind":"foundation","foundation":"clock","clockId":"altruist.chronomancer.flow","size":8,"initial":0,"sourceLevelId":"altruist.chronomancer.3","sourceDigest":"fe9f7c35921e35add383a6125039a427cb00110764b1b3f021a4e616e18f890b","coverage":"partial"}; Полный Поток в начале Хода предлагает однократное массовое Заклинание, тратит все ОД и поддерживает Ва-банк с Раной и Завершением против врагов..
+- **Готовые foundations:** `target-validation`, `event-participants`, `resource-check`, `rule-clock`, `usage-limits`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier`, `dice-hooks`.
+- **Нужно добавить:** Сохранить существующий adapter и добавить недостающий контракт: `turn-lifecycle`, `scene-lifecycle`, `duel-flow`.
+
+### Виртуоз (Virtuoso) `altruist.bardic-savant`
+
+#### 1. Музыкант (Musician) `altruist.bardic-savant.1`
+
+- **Заявленный статус:** `manual` (ручная).
+- **Текущий адаптер:** нет записи в `RULES`.
+- **Готовые foundations:** `target-validation`, `event-participants`, `resource-check`, `effect-state`, `effect-lifecycle`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier`.
+- **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `movement-lifecycle`, `inventory`.
+
+#### 2. Реверберация (Reverb) `altruist.bardic-savant.2`
+
+- **Заявленный статус:** `manual` (ручная).
+- **Текущий адаптер:** нет записи в `RULES`.
+- **Готовые foundations:** `resource-check`, `usage-limits`, `trigger-router`, `choice-flow`, `action-modifier`.
+- **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `inventory`, `turn-lifecycle`.
+
+#### 3. На бис (Encore) `altruist.bardic-savant.3`
+
+- **Заявленный статус:** `manual` (ручная).
+- **Текущий адаптер:** нет записи в `RULES`.
+- **Готовые foundations:** `resource-check`, `trigger-router`, `choice-flow`, `action-modifier`.
+- **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `inventory`.
 
 ### Художник (Artist) `altruist.artist`
 
@@ -1665,29 +1757,6 @@
 - **Готовые foundations:** `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `choice-flow`, `action-modifier`.
 - **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `turn-lifecycle`.
 
-### Ученый бард (Bardic Savant) `altruist.bardic-savant`
-
-#### 1. Музыкант (Musician) `altruist.bardic-savant.1`
-
-- **Заявленный статус:** `manual` (ручная).
-- **Текущий адаптер:** нет записи в `RULES`.
-- **Готовые foundations:** `target-validation`, `event-participants`, `resource-check`, `effect-state`, `effect-lifecycle`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier`.
-- **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `movement-lifecycle`, `inventory`.
-
-#### 2. Быстрая композиция (Quick Composition) `altruist.bardic-savant.2`
-
-- **Заявленный статус:** `manual` (ручная).
-- **Текущий адаптер:** нет записи в `RULES`.
-- **Готовые foundations:** `resource-check`, `usage-limits`, `trigger-router`, `choice-flow`, `action-modifier`.
-- **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `inventory`, `turn-lifecycle`.
-
-#### 3. На бис (Encore) `altruist.bardic-savant.3`
-
-- **Заявленный статус:** `manual` (ручная).
-- **Текущий адаптер:** нет записи в `RULES`.
-- **Готовые foundations:** `resource-check`, `trigger-router`, `choice-flow`, `action-modifier`.
-- **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `inventory`.
-
 ### Сборщик колоды (Deckbuilder) `altruist.deckbuilder`
 
 #### 1. Добор (Draw) `altruist.deckbuilder.1`
@@ -1697,7 +1766,7 @@
 - **Готовые foundations:** `target-validation`, `event-participants`, `resource-check`, `effect-state`, `effect-lifecycle`, `usage-limits`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier`, `dice-hooks`.
 - **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `movement-lifecycle`, `inventory`, `scene-lifecycle`.
 
-#### 2. Карточная ловушка (Card Trap) `altruist.deckbuilder.2`
+#### 2. Захват карты (Card Capture) `altruist.deckbuilder.2`
 
 - **Заявленный статус:** `manual` (ручная).
 - **Текущий адаптер:** нет записи в `RULES`.
@@ -1711,11 +1780,34 @@
 - **Готовые foundations:** `usage-limits`, `action-modifier`.
 - **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `inventory`.
 
+### Блуждающий огонёк (Will-O-Wisp) `altruist.will-o-wisp`
+
+#### 1. Пламя духовного плетения (Spirit Weaving Flame) `altruist.will-o-wisp.1`
+
+- **Заявленный статус:** `decision` (решение).
+- **Текущий адаптер:** `altruist.will-o-wisp.1` · `passive` · {"kind":"passive","sourceLevelId":"altruist.will-o-wisp.1","sourceDigest":"718c1072bf9fb744208642697c7e52e01925efc76cb61a9e04e7a5bf85789c30","coverage":"partial"}; Изученный тип Духа сохраняется в листе и импорте; первая Зарядка создаёт Пламя, а Атака по его клетке обязательно толкает маркер на 1..
+- **Готовые foundations:** `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `owned-entities`, `entity-lifecycle`, `usage-limits`, `trigger-router`, `choice-flow`, `action-modifier`.
+- **Нужно добавить:** Заявление decision понижено до partial: первая Зарядка, аура и выбранное движение есть, но Пламя не толкается на 1 клетку, когда Атака выбирает целью его клетку.
+
+#### 2. Дружелюбные духи (Friendly Spirits) `altruist.will-o-wisp.2`
+
+- **Заявленный статус:** `decision` (решение).
+- **Текущий адаптер:** `altruist.will-o-wisp.2` · `passive` · {"kind":"passive","sourceLevelId":"altruist.will-o-wisp.2","sourceDigest":"fbd6b0c3eae8b30f64d4a9c59e9c15870dd290fa7590ee08968b537dba88e63f","coverage":"partial"}; Дружественный выход предлагает переместить Пламя; вражеский путь прерывается на первой клетке выхода до downstream enter-триггеров и продолжается только после перепроверяемого отказа..
+- **Готовые foundations:** `target-validation`, `event-participants`, `resource-check`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `reaction-window`, `choice-flow`.
+- **Нужно добавить:** Заявление decision понижено до partial: остановка врага происходит после полного actor.move и ретроспективно возвращает его в первую клетку выхода, поэтому downstream enter/path-триггеры уже могли сработать за канонической точкой остановки.
+
+#### 3. Парные духи (Twinned Spirits) `altruist.will-o-wisp.3`
+
+- **Заявленный статус:** `decision` (решение).
+- **Текущий адаптер:** `altruist.will-o-wisp.3` · `passive` · {"kind":"passive","sourceLevelId":"altruist.will-o-wisp.3","sourceDigest":"73fc31ad0348f634cb773ccd09f4dbb3ba9f0b16eea3ced967977e838286adfb","coverage":"partial"}; Второй изученный тип сохраняется; поддерживаются одно Пламя с двумя свойствами либо два независимых Пламени с отдельными эффектами и движением..
+- **Готовые foundations:** `owned-entities`, `entity-lifecycle`, `trigger-router`, `choice-flow`.
+- **Нужно добавить:** Для кода явный следующий шаг не выведен автоматически; нужны direct pos/neg/boundary тесты и evidence до повышения доверия.
+
 ## Подрывник (Disruptor)
 
 ### Кровопускатель (Bloodletter) `disruptor.bloodletter`
 
-#### 1. Кровоточащее лезвие (Bleeding Edge) `disruptor.bloodletter.1`
+#### 1. Кровавая грань (Bleeding Edge) `disruptor.bloodletter.1`
 
 - **Заявленный статус:** `manual` (ручная).
 - **Текущий адаптер:** нет записи в `RULES`.
@@ -1729,7 +1821,7 @@
 - **Готовые foundations:** `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `trigger-router`, `reaction-window`, `choice-flow`, `damage-pipeline`, `action-modifier`.
 - **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `movement-lifecycle`.
 
-#### 3. Разрыв (Rupture) `disruptor.bloodletter.3`
+#### 3. Разрыв [Стычка → Передышка] (Rupture [ Skirmish → Breathe ]) `disruptor.bloodletter.3`
 
 - **Заявленный статус:** `manual` (ручная).
 - **Текущий адаптер:** нет записи в `RULES`.
@@ -1798,35 +1890,35 @@
 - **Готовые foundations:** `effect-state`, `effect-lifecycle`, `trigger-router`, `choice-flow`.
 - **Нужно добавить:** Зарегистрировать отдельный adapter (trigger → validation → events/resolver) и прямые тесты; общая инфраструктура сама правило не исполняет.
 
-#### 3. Вор в ночи (Thief In The Night) `disruptor.cutpurse.3`
+#### 3. Обчистить до нитки (Rob Them Blind) `disruptor.cutpurse.3`
 
 - **Заявленный статус:** `manual` (ручная).
 - **Текущий адаптер:** нет записи в `RULES`.
 - **Готовые foundations:** `usage-limits`, `trigger-router`, `action-modifier`, `action-history`.
 - **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `movement-lifecycle`, `turn-lifecycle`.
 
-### Морок (Mind Breaker) `disruptor.mind-breaker`
+### Искривитель света (Light Bender) `disruptor.light-bender`
 
-#### 1. "Где вы?" ("Where Are You?") `disruptor.mind-breaker.1`
+#### 1. Ослепительный свет (Blendendes Licht) (Blendendes Licht) `disruptor.light-bender.1`
 
 - **Заявленный статус:** `manual` (ручная).
 - **Текущий адаптер:** нет записи в `RULES`.
-- **Готовые foundations:** `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `usage-limits`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier`.
+- **Готовые foundations:** `event-preview`, `event-summary`, `action-modifier`, `dice-hooks`.
 - **Нужно добавить:** Зарегистрировать отдельный adapter (trigger → validation → events/resolver) и прямые тесты; общая инфраструктура сама правило не исполняет.
 
-#### 2. "Что вы делаете?" ("What Do You Do?") `disruptor.mind-breaker.2`
+#### 2. Солнечное извержение (Sonneneruption) (Sonneneruption) `disruptor.light-bender.2`
 
-- **Заявленный статус:** `partial` (частичная).
-- **Текущий адаптер:** `disruptor.mind-breaker.2` · `passive` · {"kind":"passive","coverage":"partial"}; Source-aware Изгнание производит Помечен/Усилен, но канонический способ наложить Изгнание уровнем I отсутствует..
-- **Готовые foundations:** `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `trigger-router`.
-- **Нужно добавить:** Реестр заявлял manual, хотя source-aware Изгнание уже производит Помечен для врага и Усилен для союзника. Добавлен partial-adapter; уровень I и полный пользовательский путь отсутствуют.
+- **Заявленный статус:** `manual` (ручная).
+- **Текущий адаптер:** нет записи в `RULES`.
+- **Готовые foundations:** `event-preview`, `event-summary`, `trigger-router`, `action-modifier`, `dice-hooks`.
+- **Нужно добавить:** Зарегистрировать отдельный adapter (trigger → validation → events/resolver) и прямые тесты; общая инфраструктура сама правило не исполняет.
 
-#### 3. "Кто они?" ("Who Are They?") `disruptor.mind-breaker.3`
+#### 3. Ложная звезда (Falscher Stern) (Falscher Stern) `disruptor.light-bender.3`
 
-- **Заявленный статус:** `partial` (частичная).
-- **Текущий адаптер:** `disruptor.mind-breaker.3` · `passive` · {"kind":"passive","coverage":"partial"}; Единственный Изгнанный сохраняет эффект в начале Хода; перемещение двух целей и принудительная Атака отсутствуют..
-- **Готовые foundations:** `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `usage-limits`, `trigger-router`, `choice-flow`, `action-modifier`.
-- **Нужно добавить:** Реестр заявлял manual, хотя единственная source-owned Изгнанная цель уже сохраняет эффект в начале Хода. Добавлен partial-adapter; end-Turn перемещение и принудительная Атака отсутствуют.
+- **Заявленный статус:** `manual` (ручная).
+- **Текущий адаптер:** нет записи в `RULES`.
+- **Готовые foundations:** `event-preview`, `event-summary`, `rule-clock`, `owned-entities`, `entity-lifecycle`, `usage-limits`, `trigger-router`, `action-modifier`.
+- **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `combat-meter`.
 
 ### Жнец (Reaper) `disruptor.reaper`
 
@@ -1851,28 +1943,28 @@
 - **Готовые foundations:** `target-validation`, `event-participants`, `spatial-range`, `resource-check`, `effect-state`, `effect-lifecycle`, `usage-limits`, `trigger-router`, `action-modifier`.
 - **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `movement-lifecycle`, `turn-lifecycle`.
 
-### Мастер тактики (Tactical Master) `disruptor.tactical-master`
+### Уличный боец (Street Fighter) `disruptor.street-fighter`
 
-#### 1. Остановиться и подумать (Stop And Think) `disruptor.tactical-master.1`
-
-- **Заявленный статус:** `manual` (ручная).
-- **Текущий адаптер:** нет записи в `RULES`.
-- **Готовые foundations:** `resource-check`, `effect-state`, `effect-lifecycle`, `stance`, `usage-limits`, `trigger-router`, `damage-pipeline`, `action-modifier`.
-- **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `turn-lifecycle`.
-
-#### 2. Анализ (Study) `disruptor.tactical-master.2`
+#### 1. Кровавая латунь (Bloody Brass) `disruptor.street-fighter.1`
 
 - **Заявленный статус:** `manual` (ручная).
 - **Текущий адаптер:** нет записи в `RULES`.
-- **Готовые foundations:** `resource-check`, `effect-state`, `effect-lifecycle`, `trigger-router`, `choice-flow`, `action-modifier`.
+- **Готовые foundations:** `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `trigger-router`, `action-modifier`.
 - **Нужно добавить:** Зарегистрировать отдельный adapter (trigger → validation → events/resolver) и прямые тесты; общая инфраструктура сама правило не исполняет.
 
-#### 3. Эврика! (Eureka!) `disruptor.tactical-master.3`
+#### 2. Ломать и калечить (Break And Bruise) `disruptor.street-fighter.2`
 
 - **Заявленный статус:** `manual` (ручная).
 - **Текущий адаптер:** нет записи в `RULES`.
-- **Готовые foundations:** `resource-check`, `stance`, `trigger-router`, `action-modifier`.
-- **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `turn-lifecycle`, `derived-stats`.
+- **Готовые foundations:** `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `trigger-router`, `action-modifier`, `dice-hooks`.
+- **Нужно добавить:** Зарегистрировать отдельный adapter (trigger → validation → events/resolver) и прямые тесты; общая инфраструктура сама правило не исполняет.
+
+#### 3. Зверство (Brutalize) `disruptor.street-fighter.3`
+
+- **Заявленный статус:** `manual` (ручная).
+- **Текущий адаптер:** нет записи в `RULES`.
+- **Готовые foundations:** `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `trigger-router`, `damage-pipeline`, `action-modifier`, `dice-hooks`.
+- **Нужно добавить:** Зарегистрировать отдельный adapter (trigger → validation → events/resolver) и прямые тесты; общая инфраструктура сама правило не исполняет.
 
 ### Автофаг (Autophage) `disruptor.autophage`
 
@@ -1890,37 +1982,37 @@
 - **Готовые foundations:** `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier`, `dice-hooks`.
 - **Нужно добавить:** Заявление decision понижено до partial: preview ищет любой прежний успешный удар в журнале Сцены и не доказывает незавершённое окно текущей Атаки; возможна поздняя повторная активация.
 
-#### 3. Рожденный изменчивой плотью (Born Of Mutable Flesh) `disruptor.autophage.3`
+#### 3. Рождённый изменчивой плотью (Born Of Mutable Flesh) `disruptor.autophage.3`
 
 - **Заявленный статус:** `partial` (частичная).
 - **Текущий адаптер:** `disruptor.autophage.3` · `autophage-overexert` · {"kind":"autophage-overexert","double":true,"coverage":"partial"}; Двойной эффект, цели и once/Scene реализованы, но запуск не связан с текущим Завершением и наследует stale-trigger уровня II..
 - **Готовые foundations:** `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `usage-limits`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier`.
 - **Нужно добавить:** Заявление decision понижено до partial: once/Scene и выбор всех врагов с большим HP есть, но запуск наследует stale-hit уровня II и не атомарен с текущим Завершением.
 
-### Говорящий с землей (Earth Speaker) `disruptor.earth-speaker`
+### Говорящий с землёй (Earth Speaker) `disruptor.earth-speaker`
 
-#### 1. Тектонический сдвиг (Tectonic Shift) `disruptor.earth-speaker.1`
+#### 1. Каменные солдаты (Stone Soldiers) `disruptor.earth-speaker.1`
 
 - **Заявленный статус:** `manual` (ручная).
 - **Текущий адаптер:** нет записи в `RULES`.
 - **Готовые foundations:** `terrain`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `damage-pipeline`.
 - **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `movement-lifecycle`.
 
-#### 2. Земляные осколки (Earthen Shards) `disruptor.earth-speaker.2`
+#### 2. Тектонический сдвиг (Tectonic Shift) `disruptor.earth-speaker.2`
 
 - **Заявленный статус:** `manual` (ручная).
 - **Текущий адаптер:** нет записи в `RULES`.
 - **Готовые foundations:** `target-validation`, `event-participants`, `terrain`, `owned-entities`, `entity-lifecycle`, `usage-limits`, `trigger-router`, `damage-pipeline`.
 - **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `movement-lifecycle`, `turn-lifecycle`.
 
-#### 3. Каменные солдаты (Stone Soldiers) `disruptor.earth-speaker.3`
+#### 3. Каменные осколки (Earthen Shards) `disruptor.earth-speaker.3`
 
 - **Заявленный статус:** `manual` (ручная).
 - **Текущий адаптер:** нет записи в `RULES`.
 - **Готовые foundations:** `target-validation`, `event-participants`, `terrain`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `damage-pipeline`, `action-modifier`, `dice-hooks`.
 - **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `movement-lifecycle`.
 
-### Нечеловеческая сила (Inhuman Strength) `disruptor.inhuman-strength`
+### Здоровяк (Strongman) `disruptor.inhuman-strength`
 
 #### 1. Сильная рука (Strong-Arm) `disruptor.inhuman-strength.1`
 
@@ -1936,53 +2028,30 @@
 - **Готовые foundations:** `target-validation`, `event-participants`, `trigger-router`, `action-modifier`.
 - **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `movement-lifecycle`, `derived-stats`.
 
-#### 3. Проломить насквозь (Smash Through) `disruptor.inhuman-strength.3`
+#### 3. Пролом (Smash Through) `disruptor.inhuman-strength.3`
 
 - **Заявленный статус:** `manual` (ручная).
 - **Текущий адаптер:** нет записи в `RULES`.
 - **Готовые foundations:** `target-validation`, `event-participants`, `terrain`, `trigger-router`, `damage-pipeline`.
 - **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `movement-lifecycle`.
 
-### Уличный боец (Street Fighter) `disruptor.street-fighter`
+### Родич роя (SwarmKin) `disruptor.swarm-body`
 
-#### 1. Кровавые кастеты (Bloody Brass) `disruptor.street-fighter.1`
-
-- **Заявленный статус:** `manual` (ручная).
-- **Текущий адаптер:** нет записи в `RULES`.
-- **Готовые foundations:** `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `trigger-router`, `action-modifier`.
-- **Нужно добавить:** Зарегистрировать отдельный adapter (trigger → validation → events/resolver) и прямые тесты; общая инфраструктура сама правило не исполняет.
-
-#### 2. Ломать и калечить (Break And Bruise) `disruptor.street-fighter.2`
-
-- **Заявленный статус:** `manual` (ручная).
-- **Текущий адаптер:** нет записи в `RULES`.
-- **Готовые foundations:** `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `trigger-router`, `action-modifier`, `dice-hooks`.
-- **Нужно добавить:** Зарегистрировать отдельный adapter (trigger → validation → events/resolver) и прямые тесты; общая инфраструктура сама правило не исполняет.
-
-#### 3. Зверствовать (Brutalize) `disruptor.street-fighter.3`
-
-- **Заявленный статус:** `manual` (ручная).
-- **Текущий адаптер:** нет записи в `RULES`.
-- **Готовые foundations:** `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `trigger-router`, `damage-pipeline`, `action-modifier`, `dice-hooks`.
-- **Нужно добавить:** Зарегистрировать отдельный adapter (trigger → validation → events/resolver) и прямые тесты; общая инфраструктура сама правило не исполняет.
-
-### Тело-рой (Swarm Body) `disruptor.swarm-body`
-
-#### 1. Порхающая форма (Fluttering Form) `disruptor.swarm-body.1`
+#### 1. Трепещущая форма (Fluttering Form) `disruptor.swarm-body.1`
 
 - **Заявленный статус:** `manual` (ручная).
 - **Текущий адаптер:** нет записи в `RULES`.
 - **Готовые foundations:** `target-validation`, `event-participants`, `resource-check`, `terrain`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `reaction-window`, `damage-pipeline`.
 - **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `movement-lifecycle`, `turn-lifecycle`.
 
-#### 2. Исчезнуть в мухах (Vanish Into Flies) `disruptor.swarm-body.2`
+#### 2. Раствориться в мухах (Vanish Into Flies) `disruptor.swarm-body.2`
 
 - **Заявленный статус:** `manual` (ручная).
 - **Текущий адаптер:** нет записи в `RULES`.
 - **Готовые foundations:** `owned-entities`, `entity-lifecycle`, `trigger-router`, `action-modifier`.
 - **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `movement-lifecycle`.
 
-#### 3. Пожрать (Devour) `disruptor.swarm-body.3`
+#### 3. Пожирание (Devour) `disruptor.swarm-body.3`
 
 - **Заявленный статус:** `manual` (ручная).
 - **Текущий адаптер:** нет записи в `RULES`.
@@ -1991,21 +2060,21 @@
 
 ### Сирена (Siren) `disruptor.siren`
 
-#### 1. Ты ведь не причинишь МНЕ боль? (You wouldn't hurt ME, would you?) `disruptor.siren.1`
+#### 1. «Ты ведь не причинишь МНЕ боль?» ("You wouldn't hurt ME, would you?") `disruptor.siren.1`
 
 - **Заявленный статус:** `decision` (решение).
 - **Текущий адаптер:** `disruptor.siren.1` · `passive` · {"kind":"passive","coverage":"full","sourceDigest":"8d9becba6e6f63641f5dc1a8a47e965c73f0e7112ef7ef4b781b2c6ffb632979","sourceLevelId":"disruptor.siren.1"}; После Изучения врага стол предлагает потратить 1 Фокус и наложить Испуган на изученную цель, повторно проверяет цель и общий лимит 3 раза за Сцену и фиксирует применение отдельным событием..
 - **Готовые foundations:** `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `usage-limits`, `trigger-router`, `action-modifier`.
 - **Нужно добавить:** Сохранить существующий adapter и добавить недостающий контракт: `scene-lifecycle`, `information-query`.
 
-#### 2. Неотразимая (Irresistible) `disruptor.siren.2`
+#### 2. «Я неотразима!» ("I'm Irresistible!") `disruptor.siren.2`
 
 - **Заявленный статус:** `decision` (решение).
 - **Текущий адаптер:** `disruptor.siren.2` · `passive` · {"kind":"passive","coverage":"full","sourceDigest":"62f65d9d2cfad5b96f12f80b2ece81635e47b5f63083b35b4f4c6eb1db1b5ed6","sourceLevelId":"disruptor.siren.2"}; Первое за Ход наложение Испуган открывает отменяемый выбор клетки: путь цели до 3 клеток проверяется пошагово на приближение к Сирене, а после фактического входа цели в смежность отдельно предлагает наложить Ошеломлен и только тогда даёт 1 Фокус..
 - **Готовые foundations:** `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `usage-limits`, `trigger-router`.
 - **Нужно добавить:** Сохранить существующий adapter и добавить недостающий контракт: `movement-lifecycle`, `turn-lifecycle`.
 
-#### 3. Помогите-ка сюда (A little help over here?) `disruptor.siren.3`
+#### 3. «Не поможете?» ("A little help over here?") `disruptor.siren.3`
 
 - **Заявленный статус:** `decision` (решение).
 - **Текущий адаптер:** `disruptor.siren.3` · `passive` · {"kind":"passive","coverage":"full","sourceDigest":"231b63c69615f78497650a97d3a5225a98f298a882d4adb2eedaebdff16c5b7e","sourceLevelId":"disruptor.siren.3"}; После разрешённого Духовного или Ментального Завершения предлагает подтянуть всех Испуганных врагов к цели Завершения на их Скорость и наносит цели урон Ступени за каждого, кто фактически оказался рядом..
@@ -2021,7 +2090,7 @@
 - **Готовые foundations:** `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `owned-entities`, `entity-lifecycle`, `usage-limits`, `trigger-router`, `choice-flow`, `action-modifier`.
 - **Нужно добавить:** Сохранить существующий adapter и добавить недостающий контракт: `movement-lifecycle`, `turn-lifecycle`.
 
-#### 2. Мощные волны (Momentous Waves) `disruptor.wave-rider.2`
+#### 2. Могучие волны (Momentous Waves) `disruptor.wave-rider.2`
 
 - **Заявленный статус:** `manual` (ручная).
 - **Текущий адаптер:** нет записи в `RULES`.
@@ -2034,6 +2103,29 @@
 - **Текущий адаптер:** нет записи в `RULES`.
 - **Готовые foundations:** `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `owned-entities`, `entity-lifecycle`, `usage-limits`, `trigger-router`.
 - **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `scene-lifecycle`.
+
+### Морок (Mind Breaker) `disruptor.mind-breaker`
+
+#### 1. «Где ты?» ("Where Are You?") `disruptor.mind-breaker.1`
+
+- **Заявленный статус:** `manual` (ручная).
+- **Текущий адаптер:** нет записи в `RULES`.
+- **Готовые foundations:** `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `usage-limits`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier`.
+- **Нужно добавить:** Зарегистрировать отдельный adapter (trigger → validation → events/resolver) и прямые тесты; общая инфраструктура сама правило не исполняет.
+
+#### 2. «Где я?» ("Where Am I?") `disruptor.mind-breaker.2`
+
+- **Заявленный статус:** `partial` (частичная).
+- **Текущий адаптер:** `disruptor.mind-breaker.2` · `passive` · {"kind":"passive","coverage":"partial"}; Source-aware Изгнание производит Помечен/Усилен, но канонический способ наложить Изгнание уровнем I отсутствует..
+- **Готовые foundations:** `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `trigger-router`.
+- **Нужно добавить:** Реестр заявлял manual, хотя source-aware Изгнание уже производит Помечен для врага и Усилен для союзника. Добавлен partial-adapter; уровень I и полный пользовательский путь отсутствуют.
+
+#### 3. «Кто они?» ("Who Are They?") `disruptor.mind-breaker.3`
+
+- **Заявленный статус:** `partial` (частичная).
+- **Текущий адаптер:** `disruptor.mind-breaker.3` · `passive` · {"kind":"passive","coverage":"partial"}; Единственный Изгнанный сохраняет эффект в начале Хода; перемещение двух целей и принудительная Атака отсутствуют..
+- **Готовые foundations:** `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `usage-limits`, `trigger-router`, `choice-flow`, `action-modifier`.
+- **Нужно добавить:** Реестр заявлял manual, хотя единственная source-owned Изгнанная цель уже сохраняет эффект в начале Хода. Добавлен partial-adapter; end-Turn перемещение и принудительная Атака отсутствуют.
 
 ### Шагающий по буре (Gale Strider) `disruptor.gale-strider`
 
@@ -2051,14 +2143,14 @@
 - **Готовые foundations:** `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `owned-entities`, `entity-lifecycle`, `trigger-router`.
 - **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `movement-lifecycle`, `turn-lifecycle`.
 
-#### 3. Рассекатель гор (Mountain Carver) `disruptor.gale-strider.3`
+#### 3. Резчик гор (Mountain Carver) `disruptor.gale-strider.3`
 
 - **Заявленный статус:** `manual` (ручная).
 - **Текущий адаптер:** нет записи в `RULES`.
 - **Готовые foundations:** `target-validation`, `event-participants`, `terrain`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `choice-flow`, `damage-pipeline`.
 - **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `movement-lifecycle`.
 
-### Охотник (Hunter) `disruptor.hunter`
+### Браконьер (Poacher) `disruptor.hunter`
 
 #### 1. Стальные челюсти (Steel Jaws) `disruptor.hunter.1`
 
@@ -2081,7 +2173,30 @@
 - **Готовые foundations:** `target-validation`, `event-participants`, `spatial-cells`, `terrain`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `action-modifier`.
 - **Нужно добавить:** Для кода явный следующий шаг не выведен автоматически; нужны direct pos/neg/boundary тесты и evidence до повышения доверия.
 
-### Внутренний мир (Inner World) `disruptor.inner-world`
+### Тюремщик (Jailor) `disruptor.mage-s-array`
+
+#### 1. Возвести (Erect) `disruptor.mage-s-array.1`
+
+- **Заявленный статус:** `manual` (ручная).
+- **Текущий адаптер:** нет записи в `RULES`.
+- **Готовые foundations:** `target-validation`, `event-participants`, `spatial-cells`, `spatial-range`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `choice-flow`, `action-modifier`.
+- **Нужно добавить:** Зарегистрировать отдельный adapter (trigger → validation → events/resolver) и прямые тесты; общая инфраструктура сама правило не исполняет.
+
+#### 2. Перестройка (Readjust) `disruptor.mage-s-array.2`
+
+- **Заявленный статус:** `manual` (ручная).
+- **Текущий адаптер:** нет записи в `RULES`.
+- **Готовые foundations:** `owned-entities`, `entity-lifecycle`, `trigger-router`, `choice-flow`.
+- **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `movement-lifecycle`.
+
+#### 3. Тюрьма собственного устройства (Prison Of Your Own Design) `disruptor.mage-s-array.3`
+
+- **Заявленный статус:** `manual` (ручная).
+- **Текущий адаптер:** нет записи в `RULES`.
+- **Готовые foundations:** `terrain`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `choice-flow`, `action-modifier`.
+- **Нужно добавить:** Зарегистрировать отдельный adapter (trigger → validation → events/resolver) и прямые тесты; общая инфраструктура сама правило не исполняет.
+
+### Кузнец миров (Worldsmith) `disruptor.inner-world`
 
 #### 1. Глубокий взгляд (Gaze Deeply) `disruptor.inner-world.1`
 
@@ -2090,42 +2205,19 @@
 - **Готовые foundations:** `target-validation`, `event-participants`, `resource-check`, `effect-state`, `effect-lifecycle`, `trigger-router`, `choice-flow`, `action-modifier`.
 - **Нужно добавить:** Заявление decision понижено до partial: после action.resolve Зарядки trigger ищет последнее подходящее получение Фокуса во всём журнале и может повторно использовать старое событие, если текущая Зарядка дала 0 или ресурс был заменён.
 
-#### 2. Домен контроля (Domain Of Control) `disruptor.inner-world.2`
+#### 2. Область контроля (Domain Of Control) `disruptor.inner-world.2`
 
 - **Заявленный статус:** `decision` (решение).
 - **Текущий адаптер:** `disruptor.inner-world.2` · `space` · {"kind":"space","spaceName":"Внутренний мир","width":3,"height":3,"sourceLevelId":"disruptor.inner-world.2","sourceDigest":"390e3b65210483b8eebd3f9decc0997f2e63132a0377fd1ae63053a9210323d1","coverage":"partial"}; После наложения Эффекта предлагает перенос выбранных участников в отдельное пространство 3×3 с возвратом на край поля при Ране или нокауте..
 - **Готовые foundations:** `target-validation`, `event-participants`, `spatial-cells`, `effect-state`, `effect-lifecycle`, `usage-limits`, `trigger-router`, `damage-pipeline`.
 - **Нужно добавить:** Сохранить существующий adapter и добавить недостающий контракт: `movement-lifecycle`, `scene-lifecycle`.
 
-#### 3. Родная территория (Home Turf) `disruptor.inner-world.3`
+#### 3. Своя территория (Home Turf) `disruptor.inner-world.3`
 
 - **Заявленный статус:** `partial` (частичная).
 - **Текущий адаптер:** `disruptor.inner-world.3` · `passive` · {"kind":"passive","coverage":"partial"}; Бонус Атак и Дуэлей и увеличенный лимит Домена применяются автоматически; составной выбор Домена остаётся решением игрока..
 - **Готовые foundations:** `usage-limits`, `trigger-router`, `action-modifier`, `dice-hooks`.
 - **Нужно добавить:** Сохранить существующий adapter и добавить недостающий контракт: `scene-lifecycle`, `duel-flow`.
-
-### Магическая схема (Mage's Array) `disruptor.mage-s-array`
-
-#### 1. Начертание (Inscribe) `disruptor.mage-s-array.1`
-
-- **Заявленный статус:** `manual` (ручная).
-- **Текущий адаптер:** нет записи в `RULES`.
-- **Готовые foundations:** `target-validation`, `event-participants`, `spatial-cells`, `spatial-range`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `choice-flow`, `action-modifier`.
-- **Нужно добавить:** Зарегистрировать отдельный adapter (trigger → validation → events/resolver) и прямые тесты; общая инфраструктура сама правило не исполняет.
-
-#### 2. Корректировка (Readjust) `disruptor.mage-s-array.2`
-
-- **Заявленный статус:** `manual` (ручная).
-- **Текущий адаптер:** нет записи в `RULES`.
-- **Готовые foundations:** `owned-entities`, `entity-lifecycle`, `trigger-router`, `choice-flow`.
-- **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `movement-lifecycle`.
-
-#### 3. Тюрьма собственного замысла (Prison Of Your Own Design) `disruptor.mage-s-array.3`
-
-- **Заявленный статус:** `manual` (ручная).
-- **Текущий адаптер:** нет записи в `RULES`.
-- **Готовые foundations:** `terrain`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `choice-flow`, `action-modifier`.
-- **Нужно добавить:** Зарегистрировать отдельный adapter (trigger → validation → events/resolver) и прямые тесты; общая инфраструктура сама правило не исполняет.
 
 ## Разрушитель (Ruiner)
 
@@ -2152,9 +2244,9 @@
 - **Готовые foundations:** `target-validation`, `event-participants`, `spatial-cells`, `spatial-range`, `resource-check`, `trigger-router`, `choice-flow`, `action-modifier`.
 - **Нужно добавить:** Заявление full понижено до partial: 5×5, range 6 и Focus≥4 проверяются, но атрибут и результаты Spirit Finisher не авторитетны; полного surface evidence нет.
 
-### Револьверное колдовство (Rapid-Fire Sorcery) `ruiner.rapid-fire-sorcery`
+### Искоренитель (Eradicator) `ruiner.rapid-fire-sorcery`
 
-#### 1. Размножение (Proliferate) `ruiner.rapid-fire-sorcery.1`
+#### 1. Распространение (Proliferate) `ruiner.rapid-fire-sorcery.1`
 
 - **Заявленный статус:** `manual` (ручная).
 - **Текущий адаптер:** нет записи в `RULES`.
@@ -2168,7 +2260,7 @@
 - **Готовые foundations:** `target-validation`, `event-participants`, `terrain`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `damage-pipeline`.
 - **Нужно добавить:** Сохранить существующий adapter и добавить недостающий контракт: `turn-lifecycle`.
 
-#### 3. Бесконечный огонь (Endless Fire) `ruiner.rapid-fire-sorcery.3`
+#### 3. Бесконечный огонь [Зарядка → Заклинание] (Endless Fire [ Charge → Cast ]) `ruiner.rapid-fire-sorcery.3`
 
 - **Заявленный статус:** `manual` (ручная).
 - **Текущий адаптер:** нет записи в `RULES`.
@@ -2191,7 +2283,7 @@
 - **Готовые foundations:** `spatial-range`, `terrain`, `owned-entities`, `entity-lifecycle`, `usage-limits`, `trigger-router`, `action-modifier`, `dice-hooks`.
 - **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `turn-lifecycle`, `combat-meter`.
 
-#### 3. Фрактальные начертания (Fractal Etchings) `ruiner.ritualist.3`
+#### 3. Фрактальная вязь (Fractal Etchings) `ruiner.ritualist.3`
 
 - **Заявленный статус:** `manual` (ручная).
 - **Текущий адаптер:** нет записи в `RULES`.
@@ -2214,16 +2306,16 @@
 - **Готовые foundations:** `resource-check`, `trigger-router`, `action-modifier`.
 - **Нужно добавить:** Заявление decision понижено до partial: Focus-оплата и стартовый бонус работают, но уровень наследует отсутствие постоянного набора изученных Модификаций.
 
-#### 3. Финализация (Finalization) `ruiner.spellcrafter.3`
+#### 3. Завершение (Finalization) `ruiner.spellcrafter.3`
 
 - **Заявленный статус:** `decision` (решение).
 - **Текущий адаптер:** `ruiner.spellcrafter.3` · `modifier-choice` · {"kind":"modifier-choice","sourceLevelId":"ruiner.spellcrafter.3","sourceDigest":"934e98cf6f004417c5ac6779976bcbec9ffae7056163a7b460560ca8641d4735","coverage":"partial"}; Второй изученный вариант сохраняется; одно действие может выбрать не более двух разных изученных Модификаций и платит за обе в одной проверяемой цепочке..
 - **Готовые foundations:** `resource-check`, `trigger-router`, `action-modifier`.
 - **Нужно добавить:** Заявление decision понижено до partial: две разные Модификации можно оплатить, однако они выбираются из полного списка, а не из канонически изученных вариантов.
 
-### Ученик звезд (Student Of Stars) `ruiner.student-of-stars`
+### Ученик звёзд (Student Of Stars) `ruiner.student-of-stars`
 
-#### 1. Высвобожденная мощь (Power Unleashed) `ruiner.student-of-stars.1`
+#### 1. Высвобождение силы [Зарядка → Завершение] (Power Unleashed [ Charge → Finisher ]) `ruiner.student-of-stars.1`
 
 - **Заявленный статус:** `manual` (ручная).
 - **Текущий адаптер:** нет записи в `RULES`.
@@ -2244,53 +2336,53 @@
 - **Готовые foundations:** `resource-check`, `trigger-router`, `choice-flow`, `dice-hooks`.
 - **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `duel-flow`.
 
-### Криомант (Cryomancer) `ruiner.cryomancer`
+### Кузнец клинков (Blade Smith) `ruiner.mana-blades`
 
-#### 1. Охлаждение (Chill) `ruiner.cryomancer.1`
-
-- **Заявленный статус:** `full` (полная).
-- **Текущий адаптер:** `ruiner.cryomancer.1` · `passive` · {"kind":"passive","sourceLevelId":"ruiner.cryomancer.1","sourceDigest":"604e45fc7a8fadb9fbe5fdad4a5e8981a97d1aabc01388a92d3e94b291fdd204","coverage":"full"}; Успешное Заклинание после разрешения Реакций автоматически накладывает Замедлен на доступные цели..
-- **Готовые foundations:** `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `trigger-router`, `action-modifier`.
-- **Нужно добавить:** Для кода явный следующий шаг не выведен автоматически; нужны direct pos/neg/boundary тесты и evidence до повышения доверия.
-
-#### 2. Ледяной нимб (Icicle Halo) `ruiner.cryomancer.2`
-
-- **Заявленный статус:** `partial` (частичная).
-- **Текущий адаптер:** `ruiner.cryomancer.2.foundation` · `foundation` · {"kind":"foundation","foundation":"clock","clockId":"ruiner.cryomancer.icicle","size":4,"initial":0,"sourceLevelId":"ruiner.cryomancer.2","sourceDigest":"32667d8918127c1729dc39430bde0375999651854e06e8cd599d91b7fcd14f30","coverage":"partial"}; Канон: Заклинания получают +1 Преимущество; после фактического получения Фокуса один раз за это Действие заполняется Сосулька; перед Передышкой можно заменить её эффект опустошением часов и уроном [Дух/2] за сегмент, с Ошеломлением Замедленного. Старый quick-Cast/persistent-prompt путь не является доказательством этой механики..
-- **Готовые foundations:** `target-validation`, `event-participants`, `resource-check`, `effect-state`, `effect-lifecycle`, `rule-clock`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier`, `dice-hooks`.
-- **Нужно добавить:** Заявление decision понижено до partial: старый prompt использовал любой текущий Focus; новый adapter/core требует фактический Focus gain с action provenance, ведёт 4-сегментную Сосульку и каноническую замену Breathe, но полного UI/network/save evidence ещё нет.
-
-#### 3. Раскол (Shatter) `ruiner.cryomancer.3`
+#### 1. К оружию (Call Arms) `ruiner.mana-blades.1`
 
 - **Заявленный статус:** `manual` (ручная).
 - **Текущий адаптер:** нет записи в `RULES`.
-- **Готовые foundations:** `target-validation`, `event-participants`, `spatial-range`, `resource-check`, `effect-state`, `effect-lifecycle`, `trigger-router`, `damage-pipeline`, `action-modifier`.
-- **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `information-query`.
+- **Готовые foundations:** `resource-check`, `trigger-router`, `choice-flow`, `action-modifier`.
+- **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `action-copy`.
+
+#### 2. Буря клинков (Blade Storm) `ruiner.mana-blades.2`
+
+- **Заявленный статус:** `manual` (ручная).
+- **Текущий адаптер:** нет записи в `RULES`.
+- **Готовые foundations:** `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `action-modifier`, `dice-hooks`.
+- **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `movement-lifecycle`.
+
+#### 3. Святой меч Экскалибур (Saintly Sword, Excalibur) `ruiner.mana-blades.3`
+
+- **Заявленный статус:** `manual` (ручная).
+- **Текущий адаптер:** нет записи в `RULES`.
+- **Готовые foundations:** `effect-state`, `effect-lifecycle`, `trigger-router`, `choice-flow`, `action-modifier`.
+- **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `transformation`, `action-copy`.
 
 ### Драматург (Dramaturge) `ruiner.dramaturge`
 
-#### 1. Все смотрят на меня (All Eyes On Me) `ruiner.dramaturge.1`
+#### 1. Все глаза на меня (All Eyes On Me) `ruiner.dramaturge.1`
 
 - **Заявленный статус:** `manual` (ручная).
 - **Текущий адаптер:** нет записи в `RULES`.
 - **Готовые foundations:** `resource-check`, `usage-limits`, `trigger-router`, `choice-flow`, `action-modifier`, `dice-hooks`.
 - **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `combat-meter`.
 
-#### 2. Украсть их огонь (Snatch Their Fire) `ruiner.dramaturge.2`
+#### 2. Похитить их огонь (Snatch Their Fire) `ruiner.dramaturge.2`
 
 - **Заявленный статус:** `manual` (ручная).
 - **Текущий адаптер:** нет записи в `RULES`.
 - **Готовые foundations:** `trigger-router`.
 - **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `turn-lifecycle`, `combat-meter`.
 
-#### 3. Сила подачи (Power In Presentation) `ruiner.dramaturge.3`
+#### 3. Сила представления (Power In Presentation) `ruiner.dramaturge.3`
 
 - **Заявленный статус:** `manual` (ручная).
 - **Текущий адаптер:** нет записи в `RULES`.
 - **Готовые foundations:** `target-validation`, `event-participants`, `resource-check`, `effect-state`, `effect-lifecycle`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier`.
 - **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `combat-meter`.
 
-### Дикая магия (Feral Arcana) `ruiner.feral-arcana`
+### Дикий арканист (Feral Arcanist) `ruiner.feral-arcana`
 
 #### 1. Ворпальный коготь (Vorpal Claw) `ruiner.feral-arcana.1`
 
@@ -2299,7 +2391,7 @@
 - **Готовые foundations:** `target-validation`, `event-participants`, `spatial-range`, `effect-state`, `effect-lifecycle`, `action-modifier`, `dice-hooks`.
 - **Нужно добавить:** Зарегистрировать отдельный adapter (trigger → validation → events/resolver) и прямые тесты; общая инфраструктура сама правило не исполняет.
 
-#### 2. Сорваться с цепи (Unchain) `ruiner.feral-arcana.2`
+#### 2. Снять цепи [Зарядка → Взаимодействие] (Unchain [ Charge → Interact]) `ruiner.feral-arcana.2`
 
 - **Заявленный статус:** `decision` (решение).
 - **Текущий адаптер:** `ruiner.feral-arcana.2.foundation` · `foundation` · {"kind":"foundation","foundation":"clock","clockId":"ruiner.feral-arcana.rage","size":6,"initial":0,"sourceLevelId":"ruiner.feral-arcana.2","sourceDigest":"d745e6fa077a45223741fbb879b15e58914fff47b700b5167c15845bfa9b34a4","coverage":"partial"}; Создание и жизненный цикл Ярости, ограничения ОД, Быстрые Прыжки и обязательное бесплатное Заклинание по всем смежным персонажам проходят через цели, Реакции, отмену и журнал..
@@ -2329,14 +2421,37 @@
 - **Готовые foundations:** `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `trigger-router`, `damage-pipeline`, `action-modifier`, `dice-hooks`.
 - **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `combat-meter`.
 
-#### 3. Прах к праху (Ashes To Ashes) `ruiner.flame-heart.3`
+#### 3. Пепел к пеплу (Ashes To Ashes) `ruiner.flame-heart.3`
 
 - **Заявленный статус:** `manual` (ручная).
 - **Текущий адаптер:** нет записи в `RULES`.
 - **Готовые foundations:** `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `trigger-router`, `choice-flow`, `action-modifier`, `dice-hooks`.
 - **Нужно добавить:** Зарегистрировать отдельный adapter (trigger → validation → events/resolver) и прямые тесты; общая инфраструктура сама правило не исполняет.
 
-### Мрачный Вознесенный (Grim Ascendant) `ruiner.grim-ascendant`
+### Криомант (Frost Veiler) `ruiner.cryomancer`
+
+#### 1. Охлаждение (Chill) `ruiner.cryomancer.1`
+
+- **Заявленный статус:** `full` (полная).
+- **Текущий адаптер:** `ruiner.cryomancer.1` · `passive` · {"kind":"passive","sourceLevelId":"ruiner.cryomancer.1","sourceDigest":"604e45fc7a8fadb9fbe5fdad4a5e8981a97d1aabc01388a92d3e94b291fdd204","coverage":"full"}; Успешное Заклинание после разрешения Реакций автоматически накладывает Замедлен на доступные цели..
+- **Готовые foundations:** `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `trigger-router`, `action-modifier`.
+- **Нужно добавить:** Для кода явный следующий шаг не выведен автоматически; нужны direct pos/neg/boundary тесты и evidence до повышения доверия.
+
+#### 2. Ледяной нимб (Icicle Halo) `ruiner.cryomancer.2`
+
+- **Заявленный статус:** `partial` (частичная).
+- **Текущий адаптер:** `ruiner.cryomancer.2.foundation` · `foundation` · {"kind":"foundation","foundation":"clock","clockId":"ruiner.cryomancer.icicle","size":4,"initial":0,"sourceLevelId":"ruiner.cryomancer.2","sourceDigest":"32667d8918127c1729dc39430bde0375999651854e06e8cd599d91b7fcd14f30","coverage":"partial"}; Канон: Заклинания получают +1 Преимущество; после фактического получения Фокуса один раз за это Действие заполняется Сосулька; перед Передышкой можно заменить её эффект опустошением часов и уроном [Дух/2] за сегмент, с Ошеломлением Замедленного. Старый quick-Cast/persistent-prompt путь не является доказательством этой механики..
+- **Готовые foundations:** `target-validation`, `event-participants`, `resource-check`, `effect-state`, `effect-lifecycle`, `rule-clock`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier`, `dice-hooks`.
+- **Нужно добавить:** Заявление decision понижено до partial: старый prompt использовал любой текущий Focus; новый adapter/core требует фактический Focus gain с action provenance, ведёт 4-сегментную Сосульку и каноническую замену Breathe, но полного UI/network/save evidence ещё нет.
+
+#### 3. Раскол (Shatter) `ruiner.cryomancer.3`
+
+- **Заявленный статус:** `manual` (ручная).
+- **Текущий адаптер:** нет записи в `RULES`.
+- **Готовые foundations:** `target-validation`, `event-participants`, `spatial-range`, `resource-check`, `effect-state`, `effect-lifecycle`, `trigger-router`, `damage-pipeline`, `action-modifier`.
+- **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `information-query`.
+
+### Мрачный Вознесённый (Grim Ascendant) `ruiner.grim-ascendant`
 
 #### 1. Непостоянная мощь (Impermanent Power) `ruiner.grim-ascendant.1`
 
@@ -2359,7 +2474,7 @@
 - **Готовые foundations:** `target-validation`, `event-participants`, `spatial-cells`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier`.
 - **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `transformation`.
 
-### Сильное натяжение (Long Draw) `ruiner.long-draw`
+### Рейнджер (Ranger) `ruiner.long-draw`
 
 #### 1. Наложить стрелу (Nock The Arrow) `ruiner.long-draw.1`
 
@@ -2368,60 +2483,60 @@
 - **Готовые foundations:** `resource-check`, `trigger-router`, `action-modifier`, `dice-hooks`.
 - **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `inventory`.
 
-#### 2. Перьевой шаг (Feather Step) `ruiner.long-draw.2`
+#### 2. Лёгкий шаг (Feather Step) `ruiner.long-draw.2`
 
 - **Заявленный статус:** `manual` (ручная).
 - **Текущий адаптер:** нет записи в `RULES`.
 - **Готовые foundations:** `trigger-router`.
 - **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `movement-lifecycle`, `inventory`.
 
-#### 3. Пронзитель владык (Lord Piercer) `ruiner.long-draw.3`
+#### 3. Пробиватель владык [Подготовка × 3] (Lord Piercer [ Prepare × 3 ]) `ruiner.long-draw.3`
 
 - **Заявленный статус:** `manual` (ручная).
 - **Текущий адаптер:** нет записи в `RULES`.
 - **Готовые foundations:** `target-validation`, `event-participants`, `spatial-range`, `resource-check`, `trigger-router`, `damage-pipeline`, `action-modifier`, `action-history`.
 - **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `inventory`, `scene-lifecycle`.
 
-### Клинки маны (Mana Blades) `ruiner.mana-blades`
+### Призыватель меча (Sword Caller) `ruiner.sellsword-s-call`
 
-#### 1. К оружию (Call Arms) `ruiner.mana-blades.1`
+#### 1. Реприза воина (A Warrior's Reprise) `ruiner.sellsword-s-call.1`
 
-- **Заявленный статус:** `manual` (ручная).
-- **Текущий адаптер:** нет записи в `RULES`.
-- **Готовые foundations:** `resource-check`, `trigger-router`, `choice-flow`, `action-modifier`.
-- **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `action-copy`.
+- **Заявленный статус:** `partial` (частичная).
+- **Текущий адаптер:** `ruiner.sellsword-s-call.1` · `marker` · {"kind":"marker","markerKind":"summon","duration":"scene","color":"#6fc9d8","coverage":"partial"}; Точка призыва ставится только в пустую клетку за 1 Фокус, с выбором типа и лимитом [Ступень/2]. Незакрыто: полноценный Призыв-участник с 1 Здоровьем, профильной Атакой, половиной урона и Ходом..
+- **Готовые foundations:** `target-validation`, `event-participants`, `spatial-cells`, `resource-check`, `owned-entities`, `entity-lifecycle`, `usage-limits`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier`.
+- **Нужно добавить:** Создаётся marker, а не Призыв-actor с HP, атакой, половиной урона и Ходом.
 
-#### 2. Орудия павших (Tools Of The Fallen) `ruiner.mana-blades.2`
-
-- **Заявленный статус:** `manual` (ручная).
-- **Текущий адаптер:** нет записи в `RULES`.
-- **Готовые foundations:** `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `action-modifier`, `dice-hooks`.
-- **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `movement-lifecycle`.
-
-#### 3. Святой меч, Экскалибур (Saintly Sword, Excalibur) `ruiner.mana-blades.3`
+#### 2. Ярость воина (Warrior's Fury) `ruiner.sellsword-s-call.2`
 
 - **Заявленный статус:** `manual` (ручная).
 - **Текущий адаптер:** нет записи в `RULES`.
-- **Готовые foundations:** `effect-state`, `effect-lifecycle`, `trigger-router`, `choice-flow`, `action-modifier`.
-- **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `transformation`, `action-copy`.
+- **Готовые foundations:** `resource-check`, `effect-state`, `effect-lifecycle`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `choice-flow`, `action-modifier`.
+- **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `movement-lifecycle`, `summon-turns`.
+
+#### 3. Высший наёмник (Supreme Sellsword) `ruiner.sellsword-s-call.3`
+
+- **Заявленный статус:** `manual` (ручная).
+- **Текущий адаптер:** нет записи в `RULES`.
+- **Готовые foundations:** `target-validation`, `event-participants`, `spatial-cells`, `resource-check`, `owned-entities`, `entity-lifecycle`, `usage-limits`, `trigger-router`, `choice-flow`, `action-modifier`.
+- **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `summon-turns`, `scene-lifecycle`, `bond-actions`, `deployment-hooks`.
 
 ### Душа пустоты (Void Soul) `ruiner.void-soul`
 
-#### 1. Возвращение в ничто (Return To Nothing) `ruiner.void-soul.1`
+#### 1. Возврат в ничто (Return To Nothing) `ruiner.void-soul.1`
 
 - **Заявленный статус:** `manual` (ручная).
 - **Текущий адаптер:** нет записи в `RULES`.
 - **Готовые foundations:** `effect-state`, `effect-lifecycle`, `trigger-router`, `duration-scheduler`, `choice-flow`.
 - **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `movement-lifecycle`, `turn-lifecycle`.
 
-#### 2. Раствориться (Fade Away) `ruiner.void-soul.2`
+#### 2. Растворение (Fade Away) `ruiner.void-soul.2`
 
 - **Заявленный статус:** `manual` (ручная).
 - **Текущий адаптер:** нет записи в `RULES`.
 - **Готовые foundations:** `resource-check`, `usage-limits`, `trigger-router`.
 - **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `movement-lifecycle`, `turn-lifecycle`.
 
-#### 3. Полое сердце (Hollow Heart) `ruiner.void-soul.3`
+#### 3. Пустое сердце (Hollow Heart) `ruiner.void-soul.3`
 
 - **Заявленный статус:** `decision` (решение).
 - **Текущий адаптер:** `ruiner.void-soul.3.foundation` · `foundation` · {"kind":"foundation","foundation":"clock","clockId":"ruiner.void-soul.void","size":6,"initial":0,"sourceLevelId":"ruiner.void-soul.3","sourceDigest":"6d15c248b8a627ae99aef38582164433ed90f727ee9e8e9317428f215c33d3b8","coverage":"partial"}; Полная Пустота открывает Завершение Духом по всем врагам центральной зоны 5×5 с половинным уроном и обычными Реакциями..
@@ -2430,7 +2545,7 @@
 
 ### Громовая кровь (Thunder Blood) `ruiner.thunder-blood`
 
-#### 1. Райден (Raiden) `ruiner.thunder-blood.1`
+#### 1. Райдзин (Raiden) `ruiner.thunder-blood.1`
 
 - **Заявленный статус:** `decision` (решение).
 - **Текущий адаптер:** `ruiner.thunder-blood.1.foundation` · `foundation` · {"kind":"foundation","foundation":"clock","clockId":"ruiner.thunder-blood.static","size":6,"initial":0,"sourceLevelId":"ruiner.thunder-blood.1","sourceDigest":"209467fbf50f3b3db2c2ab7811bdb1e5c9eb67c2031d6610935c65cacb62d2ea","coverage":"partial"}; Передышка предлагает заполнить Статику; непустая Статика автоматически снимает Ошеломлен..
@@ -2444,7 +2559,7 @@
 - **Готовые foundations:** `target-validation`, `event-participants`, `spatial-range`, `effect-state`, `effect-lifecycle`, `rule-clock`, `trigger-router`, `choice-flow`, `action-modifier`.
 - **Нужно добавить:** Сохранить существующий adapter и добавить недостающий контракт: `movement-lifecycle`.
 
-#### 3. Разрядка (Discharge) `ruiner.thunder-blood.3`
+#### 3. Тактический разряд (Tactical Discharge) `ruiner.thunder-blood.3`
 
 - **Заявленный статус:** `decision` (решение).
 - **Текущий адаптер:** `ruiner.thunder-blood.3` · `passive` · {"kind":"passive","sourceLevelId":"ruiner.thunder-blood.3","sourceDigest":"a21a0082bbc4f755f1340fc4f480f9ba560c54975c97b83bbb20dfbff7de4117","coverage":"partial"}; При 3+ Статики Завершение Духом собирает зону 3×3 без владельца, добавляет Ступень урона уже Ошеломленным и после Успеха накладывает Ошеломлен..
@@ -2460,37 +2575,37 @@
 - **Готовые foundations:** `resource-check`, `rule-clock`, `usage-limits`, `trigger-router`, `choice-flow`, `action-modifier`, `dice-hooks`.
 - **Нужно добавить:** Сохранить существующий adapter и добавить недостающий контракт: `scene-lifecycle`.
 
-#### 2. Всегда под взглядом, утоплен в слезах (Always Watched, Drowned In Tears) `ruiner.zealot.2`
+#### 2. Урод (Freak) `ruiner.zealot.2`
 
 - **Заявленный статус:** `decision` (решение).
 - **Текущий адаптер:** `ruiner.zealot.2` · `passive` · {"kind":"passive","sourceLevelId":"ruiner.zealot.2","sourceDigest":"6baef7e8dd9c06bb53b223e9a252f60b091b0363e61724b66a2afb67dcff18f7","coverage":"partial"}; Начало Хода при четырёх сегментах предлагает Усиление и записывает отдельное наложение Испуган каждым персонажем..
 - **Готовые foundations:** `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `rule-clock`, `trigger-router`, `choice-flow`.
 - **Нужно добавить:** Сохранить существующий adapter и добавить недостающий контракт: `turn-lifecycle`.
 
-#### 3. Так не должно было быть (Never Meant To Be) `ruiner.zealot.3`
+#### 3. Не должно было существовать (Never Meant To Be) `ruiner.zealot.3`
 
 - **Заявленный статус:** `decision` (решение).
 - **Текущий адаптер:** `ruiner.zealot.3` · `passive` · {"kind":"passive","sourceLevelId":"ruiner.zealot.3","sourceDigest":"c4ecec53d411e601f394d0f05644f3334328c1526ea54a2f87b80cd44d5a8161","coverage":"partial"}; Полное Озарение открывает Завершение Духом по двум пересекающимся Линиям; стол последовательно проверяет сдвиг каждого персонажа, атомарно очищает часы, уничтожает связанную местность, удаляет клетки и ведёт обычную цепочку Реакций..
 - **Готовые foundations:** `target-validation`, `event-participants`, `rule-clock`, `terrain`, `spatial-topology`, `trigger-router`, `choice-flow`, `action-modifier`.
 - **Нужно добавить:** Сохранить существующий adapter и добавить недостающий контракт: `movement-lifecycle`.
 
-### Аскет творения (Creation Ascetic) `ruiner.creation-ascetic`
+### Творец (Creator) `ruiner.creation-ascetic`
 
-#### 1. Формирование знаков (Forming Signs) `ruiner.creation-ascetic.1`
+#### 1. Формирующие знаки (Forming Signs) `ruiner.creation-ascetic.1`
 
 - **Заявленный статус:** `decision` (решение).
 - **Текущий адаптер:** `ruiner.creation-ascetic.1` · `resource-replacement` · {"kind":"resource-replacement","sourceLevelId":"ruiner.creation-ascetic.1","sourceDigest":"6f4e55f851dd43392db08bf1fb2bd639f7921d6767a899dcde23c7492b8f41a3","coverage":"full"}; Метки творения заменяют Фокус; обычная Атака с Метками направляется к подходящей форме.<br>`ruiner.creation-ascetic.1.nails` · `creation-attack` · {"kind":"creation-attack","actionKey":"spell","markBand":"low","form":"nails","sourceLevelId":"ruiner.creation-ascetic.1","sourceDigest":"6f4e55f851dd43392db08bf1fb2bd639f7921d6767a899dcde23c7492b8f41a3","coverage":"partial"}<br>`ruiner.creation-ascetic.1.mallet` · `creation-attack` · {"kind":"creation-attack","actionKey":"spell","markBand":"high","form":"mallet","sourceLevelId":"ruiner.creation-ascetic.1","sourceDigest":"6f4e55f851dd43392db08bf1fb2bd639f7921d6767a899dcde23c7492b8f41a3","coverage":"partial"}<br>`ruiner.creation-ascetic.1.pile-arm` · `creation-attack` · {"kind":"creation-attack","actionKey":"finish","markBand":"low","form":"pile-arm","advantage":2,"sourceLevelId":"ruiner.creation-ascetic.1","sourceDigest":"6f4e55f851dd43392db08bf1fb2bd639f7921d6767a899dcde23c7492b8f41a3","coverage":"partial"}<br>`ruiner.creation-ascetic.1.idol` · `creation-attack` · {"kind":"creation-attack","actionKey":"finish","markBand":"high","form":"idol","advantage":4,"sourceLevelId":"ruiner.creation-ascetic.1","sourceDigest":"6f4e55f851dd43392db08bf1fb2bd639f7921d6767a899dcde23c7492b8f41a3","coverage":"partial"}.
 - **Готовые foundations:** `target-validation`, `event-participants`, `spatial-cells`, `spatial-range`, `resource-check`, `alternate-resource`, `terrain`, `usage-limits`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier`, `dice-hooks`.
 - **Нужно добавить:** Сохранить существующий adapter и добавить недостающий контракт: `movement-lifecycle`, `scene-lifecycle`.
 
-#### 2. Один истинный мир (One True World) `ruiner.creation-ascetic.2`
+#### 2. Единый истинный мир (One True World) `ruiner.creation-ascetic.2`
 
 - **Заявленный статус:** `full` (полная).
 - **Текущий адаптер:** `ruiner.creation-ascetic.2` · `passive` · {"kind":"passive","sourceLevelId":"ruiner.creation-ascetic.2","sourceDigest":"d19e636560bcfb7c9345b9bb4779f65c6b3f25b78576a6432bd6b1bbc834cbf9","coverage":"full"}; Передышка, Зарядка и получение Меток от повреждения или уничтожения местности автоматизированы..
 - **Готовые foundations:** `resource-check`, `alternate-resource`, `terrain`, `usage-limits`, `trigger-router`, `damage-pipeline`, `action-modifier`.
 - **Нужно добавить:** Сохранить существующий adapter и добавить недостающий контракт: `turn-lifecycle`.
 
-#### 3. Труд благочестивых (Labor Of The Devout) `ruiner.creation-ascetic.3`
+#### 3. Труд верующего [Заклинание → Завершение] (Labor Of The Devout [ Cast → Finisher ]) `ruiner.creation-ascetic.3`
 
 - **Заявленный статус:** `full` (полная).
 - **Текущий адаптер:** `ruiner.creation-ascetic.3` · `passive` · {"kind":"passive","sourceLevelId":"ruiner.creation-ascetic.3","sourceDigest":"c7dc7bbd517cd65a2d221ae8066489b4aca652a6a2c2c0a3dadf771ea4962c82","coverage":"full"}; Форма Завершения получает число Меток непосредственно предшествовавшего Заклинания..
@@ -2499,14 +2614,14 @@
 
 ### Эго-оружие (Ego Arm) `ruiner.ego-arm`
 
-#### 1. Я - твой меч (I Am Your Sword) `ruiner.ego-arm.1`
+#### 1. Я — твой меч (I Am Your Sword) `ruiner.ego-arm.1`
 
 - **Заявленный статус:** `manual` (ручная).
 - **Текущий адаптер:** нет записи в `RULES`.
 - **Готовые foundations:** `target-validation`, `event-participants`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier`.
 - **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `movement-lifecycle`, `deployment-hooks`, `transformation`.
 
-#### 2. Покажи свои цели (Show Your Targets) `ruiner.ego-arm.2`
+#### 2. Покажи цели (Show Your Targets) `ruiner.ego-arm.2`
 
 - **Заявленный статус:** `manual` (ручная).
 - **Текущий адаптер:** `ruiner.ego-arm.2` · `marker` · {"kind":"marker","markerKind":"damocles","duration":"scene","color":"#d04f64","coverage":"partial"}; Нужна модель носителя/трансформации: в каноне маркеры ставятся в конце Хода на клетках всех врагов, атакованных носителем; текущий произвольный выбор клетки нельзя показывать как автоматизацию..
@@ -2519,26 +2634,3 @@
 - **Текущий адаптер:** нет записи в `RULES`.
 - **Готовые foundations:** `target-validation`, `event-participants`, `resource-check`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `choice-flow`, `action-modifier`, `dice-hooks`.
 - **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `derived-stats`.
-
-### Зов наемника (Sellsword's Call) `ruiner.sellsword-s-call`
-
-#### 1. Реприза воина (A Warrior's Reprise) `ruiner.sellsword-s-call.1`
-
-- **Заявленный статус:** `partial` (частичная).
-- **Текущий адаптер:** `ruiner.sellsword-s-call.1` · `marker` · {"kind":"marker","markerKind":"summon","duration":"scene","color":"#6fc9d8","coverage":"partial"}; Точка призыва ставится только в пустую клетку за 1 Фокус, с выбором типа и лимитом [Ступень/2]. Незакрыто: полноценный Призыв-участник с 1 Здоровьем, профильной Атакой, половиной урона и Ходом..
-- **Готовые foundations:** `target-validation`, `event-participants`, `spatial-cells`, `resource-check`, `owned-entities`, `entity-lifecycle`, `usage-limits`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier`.
-- **Нужно добавить:** Создаётся marker, а не Призыв-actor с HP, атакой, половиной урона и Ходом.
-
-#### 2. Боевой гимн (Battle Hymn) `ruiner.sellsword-s-call.2`
-
-- **Заявленный статус:** `manual` (ручная).
-- **Текущий адаптер:** нет записи в `RULES`.
-- **Готовые foundations:** `resource-check`, `effect-state`, `effect-lifecycle`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `choice-flow`, `action-modifier`.
-- **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `movement-lifecycle`, `summon-turns`.
-
-#### 3. Верховный наемник (Supreme Sellsword) `ruiner.sellsword-s-call.3`
-
-- **Заявленный статус:** `manual` (ручная).
-- **Текущий адаптер:** нет записи в `RULES`.
-- **Готовые foundations:** `target-validation`, `event-participants`, `spatial-cells`, `resource-check`, `owned-entities`, `entity-lifecycle`, `usage-limits`, `trigger-router`, `choice-flow`, `action-modifier`.
-- **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `summon-turns`, `scene-lifecycle`, `bond-actions`, `deployment-hooks`.

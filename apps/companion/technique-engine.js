@@ -303,7 +303,12 @@
     }
     return seen.size === set.size;
   }
-  const actionByKey = key => global.DAWN_SCENE_ENGINE?.actionByKey(global.DAWN_DATA, key) || null;
+  const runtimeData = () => {
+    const lionwing = global.DAWN_LIONWING_DATA;
+    if (lionwing) return { ...lionwing, actions: lionwing.coreRules?.actions || lionwing.actions, effects: lionwing.coreRules?.effects || lionwing.effects };
+    return global.DAWN_DATA;
+  };
+  const actionByKey = key => global.DAWN_SCENE_ENGINE?.actionByKey(runtimeData(), key) || null;
   const effectiveEffects = (scene, actor) => global.DAWN_SCENE_ENGINE?.effectiveEffects?.(scene, actor.id) || actor.effects || [];
 
   function rulesFor(techniques = {}) {
@@ -466,7 +471,7 @@
       return { ok: true, engineVersion: VERSION, actorId: actor.id, rule: publicRule(rule), request: clone(request), errors: [], warnings: [], commands: [], events, summary: `${rule.name}: последствия подготовлены`, affectedCells: [], affectedActorIds: targetIds };
     }
     if (rule.kind === "combo") {
-      const prepared = global.DAWN_SCENE_ENGINE?.prepareTechniqueCombo(scene, global.DAWN_DATA, { actorId: actor.id, ruleId: rule.id, targetIds: request.targetIds || [], destination: request.destination || null, roll: request.roll || null, attribute: request.attribute || request.roll?.attribute || null, attackModifierIds: request.attackModifierIds || [] });
+      const prepared = global.DAWN_SCENE_ENGINE?.prepareTechniqueCombo(scene, runtimeData(), { actorId: actor.id, ruleId: rule.id, targetIds: request.targetIds || [], destination: request.destination || null, roll: request.roll || null, attribute: request.attribute || request.roll?.attribute || null, attackModifierIds: request.attackModifierIds || [] });
       if (!prepared?.ok) return { ok: false, engineVersion: VERSION, actorId: actor.id, rule: publicRule(rule), request: clone(request), errors: prepared?.errors || ["Ядро комбо недоступно."], warnings: [], commands: [], events: [], affectedCells: [], affectedActorIds: [] };
       return { ok: true, engineVersion: VERSION, actorId: actor.id, rule: publicRule(rule), request: clone(request), errors: [], warnings: [], commands: [], events: prepared.events, summary: `«${rule.name}»: комбо готово`, affectedCells: request.destination ? [pointKey(request.destination)] : [], affectedActorIds: clone(request.targetIds || []) };
     }
@@ -492,7 +497,7 @@
     }
     if (rule.kind === "surgery") {
       const targetId = unique(request.targetIds || [])[0] || null;
-      const prepared = global.DAWN_SCENE_ENGINE?.prepareSurgery(scene, global.DAWN_DATA, { actorId: actor.id, targetId, roll: request.roll || null });
+      const prepared = global.DAWN_SCENE_ENGINE?.prepareSurgery(scene, runtimeData(), { actorId: actor.id, targetId, roll: request.roll || null });
       if (!prepared?.ok) return { ok: false, engineVersion: VERSION, actorId: actor.id, rule: publicRule(rule), request: clone(request), errors: prepared?.errors || ["Ядро операции недоступно."], warnings: [], commands: [], events: [], affectedCells: [], affectedActorIds: [] };
       return { ok: true, engineVersion: VERSION, actorId: actor.id, rule: publicRule(rule), request: clone(request), errors: [], warnings: [], commands: [], events: prepared.events, summary: "«Не навреди»: операция готова", affectedCells: [], affectedActorIds: [targetId] };
     }
@@ -505,7 +510,7 @@
     let affectedActorIds = [];
 
     if (rule.kind === "trap-placement") {
-      const actionMode = request.options?.actionMode === "finish" ? "finish" : "skirmish", action = actionByKey(actionMode), available = global.DAWN_SCENE_ENGINE?.availableActions(scene, global.DAWN_DATA, actor.id).find(item => item.id === action?.id);
+      const actionMode = request.options?.actionMode === "finish" ? "finish" : "skirmish", action = actionByKey(actionMode), available = global.DAWN_SCENE_ENGINE?.availableActions(scene, runtimeData(), actor.id).find(item => item.id === action?.id);
       if (!inBounds(sourceSpace, anchor)) errors.push("Выберите пустую клетку для Малой ловушки.");
       if (anchor && removedCells.has(pointKey(anchor))) errors.push("Выбранная клетка удалена из поля.");
       if (anchor && (scene.actors || []).some(item => !item.knockedOut && item.space === actor.space && item.x === anchor.x && item.y === anchor.y)) errors.push("Малая ловушка ставится только в пустую клетку.");
@@ -525,7 +530,7 @@
     }
 
     if (rule.kind === "creation-attack") {
-      const action = actionByKey(rule.actionKey), available = global.DAWN_SCENE_ENGINE?.availableActions(scene, global.DAWN_DATA, actor.id).find(item => item.id === action?.id), lastAction = (scene.log || []).find(event => event.type === "action.prepare" && event.actorId === actor.id), inherited = rule.actionKey === "finish" && Number(actor.techniques?.["ruiner.creation-ascetic"] || 0) >= 3 && global.DAWN_SCENE_ENGINE?.actionIdIs(lastAction?.payload?.actionId, "spell") ? Number(actor.ruleState?.lastCreationSpellMarks || 0) : 0, marks = Number(global.DAWN_SCENE_ENGINE?.ruleResourceStatus(scene, actor.id, { resource: "creation-marks" }).balance || 0), effectiveMarks = marks || inherited;
+      const action = actionByKey(rule.actionKey), available = global.DAWN_SCENE_ENGINE?.availableActions(scene, runtimeData(), actor.id).find(item => item.id === action?.id), lastAction = (scene.log || []).find(event => event.type === "action.prepare" && event.actorId === actor.id), inherited = rule.actionKey === "finish" && Number(actor.techniques?.["ruiner.creation-ascetic"] || 0) >= 3 && global.DAWN_SCENE_ENGINE?.actionIdIs(lastAction?.payload?.actionId, "spell") ? Number(actor.ruleState?.lastCreationSpellMarks || 0) : 0, marks = Number(global.DAWN_SCENE_ENGINE?.ruleResourceStatus(scene, actor.id, { resource: "creation-marks" }).balance || 0), effectiveMarks = marks || inherited;
       if (!action || !available) errors.push("Базовая Атака для формы не найдена.");
       if (available && !available.available) errors.push(available.reason);
       if (rule.markBand === "low" && (effectiveMarks < 1 || effectiveMarks > 2)) errors.push("Эта форма требует 1–2 Метки творения.");
@@ -581,7 +586,7 @@
       if (destination && (scene.actors || []).some(item => item.id !== actor.id && item.space === actor.space && item.x === destination.x && item.y === destination.y)) errors.push("Клетка приземления занята.");
       if (anchor && destination && manhattan(anchor, destination) !== manhattan(actor, anchor)) errors.push(`Приземление должно быть ровно в ${manhattan(actor, anchor)} клетках от цели Заклинания.`);
       const spell = actionByKey("spell");
-      const available = global.DAWN_SCENE_ENGINE?.availableActions(scene, global.DAWN_DATA, actor.id).find(action => action.id === spell?.id);
+      const available = global.DAWN_SCENE_ENGINE?.availableActions(scene, runtimeData(), actor.id).find(action => action.id === spell?.id);
       if (available && !available.available) errors.push(available.reason);
       if (errors.length) return { ok: false, engineVersion: VERSION, actorId: actor.id, rule: publicRule(rule), request: clone(request), errors, warnings: [], commands: [], events: [], affectedCells: [], affectedActorIds: [] };
       const events = [
@@ -603,7 +608,7 @@
     }
     if (rule.id === "powerhouse.warring-ascendant.3" && !actor.ruleState?.warringTransformed) errors.push("«Святой меч, Дюрандаль» требует активной Трансформации Небесной руки.");
     if (rule.areaType === "attack") {
-      const finish = actionByKey("finish"), available = global.DAWN_SCENE_ENGINE?.availableActions(scene, global.DAWN_DATA, actor.id).find(action => action.id === finish?.id), spent = Number(request.options?.focusSpent || 0);
+      const finish = actionByKey("finish"), available = global.DAWN_SCENE_ENGINE?.availableActions(scene, runtimeData(), actor.id).find(action => action.id === finish?.id), spent = Number(request.options?.focusSpent || 0);
       if (available && !available.available) errors.push(available.reason);
       if (spent < 0 || spent > Number(actor.focus || 0) || spent > Number(scene.tension || 0)) errors.push("На Завершение нельзя потратить больше Фокуса, чем есть у героя или текущего Напряжения.");
       const modifiers = [...new Set(actor.techniqueState?.spellModifiers || [])], level = Number(actor.techniques?.["ruiner.spellcrafter"] || 0), resource = level >= 2 ? "focus" : "innovationCharges";

@@ -3,7 +3,7 @@
 > Генерируется командой `npm run map`. Не редактируйте таблицы вручную:
 > классификация, реестр ручной сверки и точные исключения находятся в `technique-foundation-map.js`.
 
-Покрыто Уровней: **321**. Ручная сверка текста завершена: **321**. Непроверенные строки остаются кандидатами и не являются утверждением о полной автоматизации.
+Покрыто Уровней: **333**. Ручная сверка текста завершена: **318**. Непроверенные строки остаются кандидатами и не являются утверждением о полной автоматизации.
 
 Ревизия источника ручной сверки: `d41acc9`.
 SHA-256 проверенных файлов: `6049f3ff6b79b8204c45cb8b830b2653696d0469f42f58fb4fedf07b0880dd76`.
@@ -12,41 +12,41 @@ SHA-256 проверенных файлов: `6049f3ff6b79b8204c45cb8b830b265369
 
 | id | Назначение | Состояние | Модуль | Проверенных Уровней |
 | --- | --- | --- | --- | ---: |
-| `event-participants` | Участники события | готово | `scene-engine-core.js` | 202 |
+| `event-participants` | Участники события | готово | `scene-engine-core.js` | 199 |
 | `event-preview` | Предпросмотр цепочки | готово | `scene-triggers.js` | 0 |
-| `spatial-cells` | Персонажи в клетках и областях | готово | `scene-query.js` | 29 |
+| `spatial-cells` | Персонажи в клетках и областях | готово | `scene-query.js` | 27 |
 | `spatial-range` | Персонажи в дальности | готово | `scene-query.js` | 44 |
 | `spatial-topology` | Удалённые клетки и разрывы поля | готово | `scene-engine-core.js / scene-events.js / scene-movement.js` | 1 |
-| `target-validation` | Проверка целей | готово | `scene-query.js` | 202 |
-| `resource-check` | Проверка ресурсов | готово | `scene-query.js` | 108 |
+| `target-validation` | Проверка целей | готово | `scene-query.js` | 199 |
+| `resource-check` | Проверка ресурсов | готово | `scene-query.js` | 106 |
 | `effect-state` | Чтение состояния Эффекта | готово | `scene-query.js` | 129 |
 | `event-summary` | Сводка цепочки | готово | `scene-query.js` | 0 |
 | `rule-clock` | Часы правила | готово | `scene-foundations.js` | 19 |
 | `alternate-resource` | Альтернативный ресурс | готово | `scene-foundations.js` | 17 |
 | `stance` | Стойки | готово | `scene-foundations.js` | 6 |
 | `exclusive-mode` | Взаимоисключающие режимы | готово | `scene-foundations.js / scene-events.js` | 3 |
-| `owned-entities` | Принадлежащие сущности | готово | `scene-foundations.js` | 63 |
+| `owned-entities` | Принадлежащие сущности | готово | `scene-foundations.js` | 60 |
 | `action-history` | История действий | готово | `scene-foundations.js` | 36 |
 | `terrain` | Местность | готово | `scene-foundations.js` | 33 |
-| `usage-limits` | Лимиты использования | готово | `scene-foundations.js` | 77 |
-| `trigger-router` | Маршрутизация триггеров | готово | `scene-triggers.js / scene-events.js` | 293 |
-| `reaction-window` | Окна Реакций и вмешательств | готово | `scene-responses.js / scene-events.js` | 40 |
-| `turn-lifecycle` | Жизненный цикл Хода и Раунда | планируется | — | 80 |
-| `scene-lifecycle` | Начало, конец и сброс Сцены | планируется | — | 40 |
-| `movement-lifecycle` | Жизненный цикл движения | планируется | — | 118 |
-| `choice-flow` | Типизированное решение | готово | `scene-responses.js / scene-events.js / scene-effects.js` | 144 |
-| `damage-pipeline` | Конвейер урона, Здоровья и Ран | готово | `scene-responses.js / scene-events.js` | 106 |
-| `action-modifier` | Модификатор или новое действие | готово | `scene-actions.js / scene-responses.js` | 244 |
+| `usage-limits` | Лимиты использования | готово | `scene-foundations.js` | 75 |
+| `trigger-router` | Маршрутизация триггеров | готово | `scene-triggers.js / scene-events.js` | 290 |
+| `reaction-window` | Окна Реакций и вмешательств | готово | `scene-responses.js / scene-events.js` | 39 |
+| `turn-lifecycle` | Жизненный цикл Хода и Раунда | планируется | — | 79 |
+| `scene-lifecycle` | Начало, конец и сброс Сцены | планируется | — | 39 |
+| `movement-lifecycle` | Жизненный цикл движения | планируется | — | 117 |
+| `choice-flow` | Типизированное решение | готово | `scene-responses.js / scene-events.js / scene-effects.js` | 141 |
+| `damage-pipeline` | Конвейер урона, Здоровья и Ран | готово | `scene-responses.js / scene-events.js` | 104 |
+| `action-modifier` | Модификатор или новое действие | готово | `scene-actions.js / scene-responses.js` | 241 |
 | `composite-action` | Сохраняемое составное действие | готово | `scene-query.js / scene-events.js / scene-responses.js / scene-effects.js` | 4 |
 | `effect-lifecycle` | Механика, источник и срок Эффекта | готово | `scene-engine-core.js / scene-query.js / scene-events.js / scene-triggers.js / scene-responses.js` | 129 |
-| `entity-lifecycle` | Жизненный цикл зон, маркеров и объектов | готово | `scene-events.js / scene-triggers.js / scene-ui.js` | 63 |
+| `entity-lifecycle` | Жизненный цикл зон, маркеров и объектов | готово | `scene-events.js / scene-triggers.js / scene-ui.js` | 60 |
 | `inventory` | Инвентарь и заряды | планируется | — | 24 |
-| `summon-turns` | Призывы и делегированные Ходы | планируется | — | 11 |
+| `summon-turns` | Призывы и делегированные Ходы | планируется | — | 8 |
 | `dice-hooks` | Модификаторы и повтор броска | готово | `scene-foundations.js / scene-events.js / scene-triggers.js` | 73 |
-| `duration-scheduler` | Сроки действия и отложенные эффекты | готово | `scene-events.js / scene-triggers.js / scene-ui.js` | 16 |
+| `duration-scheduler` | Сроки действия и отложенные эффекты | готово | `scene-events.js / scene-triggers.js / scene-ui.js` | 15 |
 | `deployment-hooks` | Развертывание | планируется | — | 6 |
 | `intermission-reset` | Сброс на Интермиссии | планируется | — | 3 |
-| `bond-actions` | Связи и действия Связей | планируется | — | 6 |
+| `bond-actions` | Связи и действия Связей | планируется | — | 5 |
 | `derived-stats` | Производные характеристики персонажа | планируется | — | 47 |
 | `information-query` | Изучение и раскрытие информации | планируется | — | 13 |
 | `transformation` | Трансформации и заимствованные правила | планируется | — | 11 |
@@ -66,873 +66,905 @@ SHA-256 проверенных файлов: `6049f3ff6b79b8204c45cb8b830b265369
 
 ## Все Техники
 
-## Силач
+## Powerhouse
 
-### Берсерк (`powerhouse.berserker`)
+### Berserker (`powerhouse.berserker`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Месть (Revenge) | проверено | ручная | `resource-check`, `usage-limits`, `trigger-router`, `reaction-window`, `turn-lifecycle`, `damage-pipeline`, `action-modifier`, `derived-stats`, `combat-meter` |
-| 2 | Выдержать побои (Take A Beating) | проверено | ручная | `trigger-router`, `damage-pipeline`, `derived-stats` |
-| 3 | Загнанный пес (Cornered Dog) | проверено | ручная | `effect-state`, `effect-lifecycle`, `trigger-router`, `choice-flow`, `damage-pipeline` |
+| 1 | Revenge | проверено | ручная | `resource-check`, `usage-limits`, `trigger-router`, `reaction-window`, `turn-lifecycle`, `damage-pipeline`, `action-modifier`, `derived-stats`, `combat-meter` |
+| 2 | Cornered Dog | проверено | ручная | `trigger-router`, `damage-pipeline`, `derived-stats` |
+| 3 | Take A Beating | проверено | ручная | `effect-state`, `effect-lifecycle`, `trigger-router`, `choice-flow`, `damage-pipeline` |
 
-### Драконоборец (`powerhouse.dragonslayer`)
+### Dragonslayer (`powerhouse.dragonslayer`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Скорость - это вес (Speed Is Weight) | проверено | полная | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `trigger-router`, `damage-pipeline`, `action-modifier` |
-| 2 | Широкая дуга (Wide Arc) | проверено | ручная | `target-validation`, `event-participants`, `spatial-cells`, `resource-check`, `trigger-router`, `choice-flow`, `action-modifier` |
-| 3 | Титанический замах (Titanic Heave) [Передышка -> Завершение Телом] | проверено | полная | `target-validation`, `event-participants`, `movement-lifecycle`, `effect-state`, `effect-lifecycle`, `action-modifier`, `action-history`, `dice-hooks` |
+| 1 | Speed Is Weight | проверено | полная | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `trigger-router`, `damage-pipeline`, `action-modifier` |
+| 2 | Wide Arc | проверено | ручная | `target-validation`, `event-participants`, `spatial-cells`, `resource-check`, `trigger-router`, `choice-flow`, `action-modifier` |
+| 3 | Titanic Heave [ Breathe → Body Finisher ] | проверено | полная | `target-validation`, `event-participants`, `movement-lifecycle`, `effect-state`, `effect-lifecycle`, `action-modifier`, `action-history`, `dice-hooks` |
 
-### Дуэлянт (`powerhouse.duelist`)
+### Duelist (`powerhouse.duelist`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Ответный выпад (Riposte) [Блок -> Стычка] | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle`, `effect-state`, `effect-lifecycle`, `action-modifier`, `action-history`, `dice-hooks` |
-| 2 | Парирование (Parry) | проверено | полная | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `trigger-router`, `reaction-window`, `action-modifier` |
-| 3 | Отбивающий удар (Deflecting Blow) | проверено | ручная | `target-validation`, `event-participants`, `spatial-range`, `resource-check`, `trigger-router`, `reaction-window`, `action-modifier` |
+| 1 | Riposte [ Block → Skirmish ] | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle`, `effect-state`, `effect-lifecycle`, `action-modifier`, `action-history`, `dice-hooks` |
+| 2 | Parry | проверено | полная | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `trigger-router`, `reaction-window`, `action-modifier` |
+| 3 | Deflecting Blow | проверено | ручная | `target-validation`, `event-participants`, `spatial-range`, `resource-check`, `trigger-router`, `reaction-window`, `action-modifier` |
 
-### Самобичеватель (`powerhouse.flagellant`)
+### Flagellant (`powerhouse.flagellant`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Азарт (Thrill) | проверено | ручная | `effect-state`, `effect-lifecycle`, `trigger-router`, `choice-flow` |
-| 2 | Кровавый рывок (Blood Rush) | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle`, `effect-state`, `effect-lifecycle`, `usage-limits`, `trigger-router`, `turn-lifecycle`, `action-modifier`, `dice-hooks` |
-| 3 | Обескровлен (Bled Dry) | проверено | ручная | `effect-state`, `effect-lifecycle`, `trigger-router`, `damage-pipeline` |
+| 1 | Thrill | проверено | ручная | `effect-state`, `effect-lifecycle`, `trigger-router`, `choice-flow` |
+| 2 | Wild Rush | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle`, `effect-state`, `effect-lifecycle`, `usage-limits`, `trigger-router`, `turn-lifecycle`, `action-modifier`, `dice-hooks` |
+| 3 | Bled Dry | проверено | ручная | `effect-state`, `effect-lifecycle`, `trigger-router`, `damage-pipeline` |
 
-### Стрелок (`powerhouse.gunslinger`)
+### Gunslinger (`powerhouse.gunslinger`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Большой ствол (Big Iron) | проверено | частичная | `target-validation`, `event-participants`, `spatial-range`, `resource-check`, `alternate-resource`, `scene-lifecycle`, `choice-flow`, `action-modifier`, `dice-hooks` |
-| 2 | Зарядить и взвести (Lock And Load) | проверено | с выбором | `resource-check`, `alternate-resource`, `trigger-router`, `turn-lifecycle`, `action-modifier`, `dice-hooks` |
-| 3 | Жонглирование пулями (Bullet Juggle) | проверено | полная | `target-validation`, `event-participants`, `resource-check`, `alternate-resource`, `effect-state`, `effect-lifecycle`, `trigger-router`, `action-modifier` |
+| 1 | Big Iron | проверено | частичная | `target-validation`, `event-participants`, `spatial-range`, `resource-check`, `alternate-resource`, `scene-lifecycle`, `choice-flow`, `action-modifier`, `dice-hooks` |
+| 2 | Lock And Load | проверено | с выбором | `resource-check`, `alternate-resource`, `trigger-router`, `turn-lifecycle`, `action-modifier`, `dice-hooks` |
+| 3 | Bullet Juggle | проверено | полная | `target-validation`, `event-participants`, `resource-check`, `alternate-resource`, `effect-state`, `effect-lifecycle`, `trigger-router`, `action-modifier` |
 
-### Борец (`powerhouse.struggler`)
+### Struggler (`powerhouse.struggler`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Усилие (Effort) | проверено | ручная | `trigger-router`, `scene-lifecycle`, `choice-flow`, `damage-pipeline`, `dice-hooks`, `derived-stats` |
-| 2 | Адреналин (Adrenaline) | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle`, `effect-state`, `effect-lifecycle`, `trigger-router`, `choice-flow`, `damage-pipeline` |
-| 3 | Вопреки разуму (Defy Reason) | проверено | ручная | `trigger-router`, `action-modifier`, `dice-hooks` |
+| 1 | Effort | проверено | ручная | `trigger-router`, `scene-lifecycle`, `choice-flow`, `damage-pipeline`, `dice-hooks`, `derived-stats` |
+| 2 | Adrenaline | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle`, `effect-state`, `effect-lifecycle`, `trigger-router`, `choice-flow`, `damage-pipeline` |
+| 3 | Defy Reason | проверено | ручная | `trigger-router`, `action-modifier`, `dice-hooks` |
 
-### Магический мечник (`powerhouse.spellsword`)
+### SpellSword (`powerhouse.spellsword`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Чародейский клинок (Spell Blade) | проверено | ручная | `resource-check`, `trigger-router`, `choice-flow`, `action-modifier`, `action-copy` |
-| 2 | Два солнца (Twin Suns) [Заклинание -> Стычка] | проверено | частичная | `target-validation`, `event-participants`, `movement-lifecycle`, `action-modifier`, `action-history` |
-| 3 | Охотник на ведьм (Witch Hunter) [Заклинание -> Завершение Телом/Талантом] | проверено | полная | `target-validation`, `event-participants`, `trigger-router`, `damage-pipeline`, `action-modifier`, `action-history` |
+| 1 | Twin Suns [ Cast → Skirmish ] | проверено | ручная | `resource-check`, `trigger-router`, `choice-flow`, `action-modifier`, `action-copy` |
+| 2 | Infused Edge | проверено | частичная | `target-validation`, `event-participants`, `movement-lifecycle`, `action-modifier`, `action-history` |
+| 3 | Witch Hunter [ Cast → Body/Talent Finisher ] | проверено | полная | `target-validation`, `event-participants`, `trigger-router`, `damage-pipeline`, `action-modifier`, `action-history` |
 
-### Техник (`powerhouse.technician`)
+### Technician (`powerhouse.technician`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Разминка (Stretch) | проверено | ручная | `resource-check`, `usage-limits`, `trigger-router`, `turn-lifecycle`, `duration-scheduler`, `action-modifier`, `action-history`, `derived-stats` |
-| 2 | Идеальная форма (Perfect Form) | проверено | ручная | `trigger-router`, `turn-lifecycle`, `duration-scheduler`, `action-modifier`, `action-history`, `derived-stats` |
-| 3 | Последний удар (Final Blow) [Стычка -> Завершение] | проверено | полная | `resource-check`, `action-modifier`, `action-history`, `derived-stats` |
+| 1 | Stretch | проверено | ручная | `resource-check`, `usage-limits`, `trigger-router`, `turn-lifecycle`, `duration-scheduler`, `action-modifier`, `action-history`, `derived-stats` |
+| 2 | Perfect Form | проверено | ручная | `trigger-router`, `turn-lifecycle`, `duration-scheduler`, `action-modifier`, `action-history`, `derived-stats` |
+| 3 | Final Blow [ Skirmish → Finisher ] | проверено | полная | `resource-check`, `action-modifier`, `action-history`, `derived-stats` |
 
-### Несломленный (`powerhouse.unbroken`)
+### Unbroken (`powerhouse.unbroken`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Встать снова (Get Back Up) | проверено | ручная | `resource-check`, `usage-limits`, `scene-lifecycle`, `choice-flow`, `duration-scheduler`, `duel-flow` |
-| 2 | Яростное возрождение (Furious Revival) | проверено | ручная | `resource-check`, `trigger-router`, `action-modifier` |
-| 3 | Феникс (Phoenix) | проверено | ручная | `resource-check`, `trigger-router`, `damage-pipeline`, `duel-flow` |
+| 1 | Get Back Up | проверено | ручная | `resource-check`, `usage-limits`, `scene-lifecycle`, `choice-flow`, `duration-scheduler`, `duel-flow` |
+| 2 | Furious Revival | проверено | ручная | `resource-check`, `trigger-router`, `action-modifier` |
+| 3 | Phoenix | проверено | ручная | `resource-check`, `trigger-router`, `damage-pipeline`, `duel-flow` |
 
-### Хвастун (`powerhouse.braggart`)
+### Braggart (`powerhouse.braggart`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Гордыня (Hubris) | проверено | частичная | `rule-clock`, `trigger-router`, `reaction-window`, `scene-lifecycle`, `duration-scheduler`, `action-modifier`, `action-history`, `dice-hooks` |
-| 2 | Докажи, чего стоишь (Prove Yourself) | проверено | с выбором | `rule-clock`, `usage-limits`, `trigger-router`, `choice-flow`, `dice-hooks` |
-| 3 | Достойный противник (A Worthy Opponent) | проверено | с выбором | `rule-clock`, `trigger-router`, `damage-pipeline` |
+| 1 | Hubris | проверено | частичная | `rule-clock`, `trigger-router`, `reaction-window`, `scene-lifecycle`, `duration-scheduler`, `action-modifier`, `action-history`, `dice-hooks` |
+| 2 | Prove Yourself | проверено | с выбором | `rule-clock`, `usage-limits`, `trigger-router`, `choice-flow`, `dice-hooks` |
+| 3 | A Worthy Opponent | проверено | с выбором | `rule-clock`, `trigger-router`, `damage-pipeline` |
 
-### Картечник (`powerhouse.breacher`)
+### Breacher (`powerhouse.breacher`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Картечь (Buck Shot) | проверено | полная | `target-validation`, `event-participants`, `spatial-range`, `movement-lifecycle`, `trigger-router`, `action-modifier` |
-| 2 | Из обоих стволов (Both Barrels) | проверено | ручная | `effect-state`, `effect-lifecycle`, `trigger-router`, `choice-flow`, `action-modifier`, `dice-hooks` |
-| 3 | Уничтожение (Annihilate) | проверено | ручная | `target-validation`, `event-participants`, `spatial-cells`, `trigger-router`, `choice-flow`, `action-modifier` |
+| 1 | Buck Shot | проверено | полная | `target-validation`, `event-participants`, `spatial-range`, `movement-lifecycle`, `trigger-router`, `action-modifier` |
+| 2 | Both Barrels | проверено | ручная | `effect-state`, `effect-lifecycle`, `trigger-router`, `choice-flow`, `action-modifier`, `dice-hooks` |
+| 3 | Annihilate | проверено | ручная | `target-validation`, `event-participants`, `spatial-cells`, `trigger-router`, `choice-flow`, `action-modifier` |
 
-### Боец с парным оружием (`powerhouse.dual-wielder`)
+### Dual Wielder (`powerhouse.dual-wielder`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Парный удар (Twinned Blow) | проверено | ручная | `target-validation`, `event-participants`, `usage-limits`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier`, `dice-hooks` |
-| 2 | Неистовый обстрел (Frenzied Barrage) | проверено | ручная | `target-validation`, `event-participants`, `resource-check`, `trigger-router`, `choice-flow`, `action-modifier`, `dice-hooks` |
-| 3 | Разные клинки (Varied Blades) | проверено | ручная | `target-validation`, `event-participants`, `resource-check`, `movement-lifecycle`, `usage-limits`, `trigger-router`, `turn-lifecycle`, `choice-flow`, `damage-pipeline`, `action-modifier`, `action-history` |
+| 1 | Twinned blow | проверено | ручная | `target-validation`, `event-participants`, `usage-limits`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier`, `dice-hooks` |
+| 2 | Frenzied Barrage | проверено | ручная | `target-validation`, `event-participants`, `resource-check`, `trigger-router`, `choice-flow`, `action-modifier`, `dice-hooks` |
+| 3 | Varied Blades | проверено | ручная | `target-validation`, `event-participants`, `resource-check`, `movement-lifecycle`, `usage-limits`, `trigger-router`, `turn-lifecycle`, `choice-flow`, `damage-pipeline`, `action-modifier`, `action-history` |
 
-### Мастер боевых искусств (`powerhouse.martial-artist`)
+### Intimidator (`powerhouse.intimidator`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Искусство восьми молотов (Art Of The 8 Hammers) | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle`, `effect-state`, `effect-lifecycle`, `usage-limits`, `trigger-router`, `turn-lifecycle`, `choice-flow`, `action-modifier` |
-| 2 | Состояние потока (Flow-State) | проверено | ручная | `target-validation`, `event-participants`, `trigger-router`, `damage-pipeline`, `action-modifier`, `action-history`, `derived-stats` |
-| 3 | Бесконечные удары (Unlimited Blows) | проверено | ручная | `usage-limits`, `trigger-router`, `action-modifier`, `dice-hooks` |
+| 1 | "Pathetic" | кандидат | ручная | `event-preview`, `event-summary` |
+| 2 | "Out Of My Way" | кандидат | ручная | `event-preview`, `event-summary` |
+| 3 | "Fools And Dead Men" | кандидат | ручная | `event-preview`, `event-summary` |
 
-### Мудрец монастыря (`powerhouse.monastic-sage`)
+### Martial Artist (`powerhouse.martial-artist`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Разум воплощенный (Mind Made Manifest) | проверено | ручная | `effect-state`, `effect-lifecycle`, `trigger-router`, `turn-lifecycle`, `derived-stats` |
-| 2 | Меж двух миров (Of Two Worlds) | проверено | ручная | `resource-check`, `effect-state`, `effect-lifecycle`, `trigger-router`, `turn-lifecycle`, `action-modifier`, `inventory` |
-| 3 | Возвышенная невозмутимость (Sublime Equanimity) | проверено | ручная | `resource-check`, `trigger-router`, `turn-lifecycle`, `choice-flow` |
+| 1 | Art Of The 8 Hammers | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle`, `effect-state`, `effect-lifecycle`, `usage-limits`, `trigger-router`, `turn-lifecycle`, `choice-flow`, `action-modifier` |
+| 2 | Flow-State | проверено | ручная | `target-validation`, `event-participants`, `trigger-router`, `damage-pipeline`, `action-modifier`, `action-history`, `derived-stats` |
+| 3 | Unlimited Blows | проверено | ручная | `usage-limits`, `trigger-router`, `action-modifier`, `dice-hooks` |
 
-### Копейщик (`powerhouse.lancer`)
+### Monastic Warrior (`powerhouse.monastic-sage`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Пронзание (Pierce) | проверено | ручная | `target-validation`, `event-participants`, `spatial-range`, `action-modifier`, `dice-hooks` |
-| 2 | Фаланга (Phalanx) | проверено | ручная | `target-validation`, `event-participants`, `spatial-range`, `damage-pipeline`, `action-modifier` |
-| 3 | Рука-пушка (Cannon-Arm) [Передышка -> Стычка] | проверено | ручная | `target-validation`, `event-participants`, `spatial-cells`, `spatial-range`, `terrain`, `trigger-router`, `damage-pipeline`, `action-modifier`, `dice-hooks` |
+| 1 | Mind Made Manifest | проверено | ручная | `effect-state`, `effect-lifecycle`, `trigger-router`, `turn-lifecycle`, `derived-stats` |
+| 2 | Calm Within Chaos | проверено | ручная | `resource-check`, `effect-state`, `effect-lifecycle`, `trigger-router`, `turn-lifecycle`, `action-modifier`, `inventory` |
+| 3 | Sublime Equanimity | проверено | ручная | `resource-check`, `trigger-router`, `turn-lifecycle`, `choice-flow` |
 
-### Хищник (`powerhouse.predator`)
+### Lancer (`powerhouse.lancer`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Тоска (Yearn) | проверено | ручная | `target-validation`, `event-participants`, `resource-check`, `usage-limits`, `trigger-router`, `turn-lifecycle`, `damage-pipeline`, `action-modifier`, `information-query` |
-| 2 | Одержимость (Obsess) | проверено | ручная | `movement-lifecycle`, `terrain`, `trigger-router`, `damage-pipeline`, `derived-stats`, `information-query` |
-| 3 | Пожрать (Devour) | проверено | ручная | `resource-check`, `effect-state`, `effect-lifecycle`, `usage-limits`, `trigger-router`, `scene-lifecycle`, `damage-pipeline`, `action-modifier` |
+| 1 | Pierce | проверено | ручная | `target-validation`, `event-participants`, `spatial-range`, `action-modifier`, `dice-hooks` |
+| 2 | Phalanx | проверено | ручная | `target-validation`, `event-participants`, `spatial-range`, `damage-pipeline`, `action-modifier` |
+| 3 | Cannon-Arm [ Breathe → Skirmish ] | проверено | ручная | `target-validation`, `event-participants`, `spatial-cells`, `spatial-range`, `terrain`, `trigger-router`, `damage-pipeline`, `action-modifier`, `dice-hooks` |
 
-### Импровизатор (`powerhouse.improvisational-fighter`)
+### Predator (`powerhouse.predator`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Все - инструмент (Everything's A Tool) | проверено | частичная | `spatial-range`, `terrain`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier`, `dice-hooks`, `derived-stats` |
-| 2 | Ох! Вот это было больно! (Oh! That One Hurt!) | проверено | ручная | `usage-limits`, `trigger-router`, `turn-lifecycle`, `action-modifier`, `dice-hooks` |
-| 3 | Последнее средство (Last Resort) | проверено | ручная | `terrain`, `usage-limits`, `trigger-router`, `scene-lifecycle`, `action-modifier`, `dice-hooks`, `combat-meter` |
+| 1 | Yearn | проверено | ручная | `target-validation`, `event-participants`, `resource-check`, `usage-limits`, `trigger-router`, `turn-lifecycle`, `damage-pipeline`, `action-modifier`, `information-query` |
+| 2 | Obsess | проверено | ручная | `movement-lifecycle`, `terrain`, `trigger-router`, `damage-pipeline`, `derived-stats`, `information-query` |
+| 3 | Envelop | проверено | ручная | `resource-check`, `effect-state`, `effect-lifecycle`, `usage-limits`, `trigger-router`, `scene-lifecycle`, `damage-pipeline`, `action-modifier` |
 
-### Воинственный Вознесенный (`powerhouse.warring-ascendant`)
+### Improvisational Fighter (`powerhouse.improvisational-fighter`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Небесная рука (Heavenly Arm) | проверено | частичная | `target-validation`, `event-participants`, `spatial-range`, `resource-check`, `effect-state`, `effect-lifecycle`, `movement-lifecycle`, `usage-limits`, `trigger-router`, `scene-lifecycle`, `choice-flow`, `damage-pipeline`, `action-modifier`, `transformation`, `combat-meter`, `action-copy` |
-| 2 | Эзотерические клинки (Esoteric Blades) | проверено | ручная | `trigger-router`, `choice-flow`, `transformation`, `action-copy` |
-| 3 | Святой меч, Дюрандаль (Saintly Sword, Durandal) | проверено | частичная | `target-validation`, `event-participants`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier`, `transformation` |
+| 1 | "This'll Do" | проверено | частичная | `spatial-range`, `terrain`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier`, `dice-hooks`, `derived-stats` |
+| 2 | "That One Hurts!" | проверено | ручная | `usage-limits`, `trigger-router`, `turn-lifecycle`, `action-modifier`, `dice-hooks` |
+| 3 | Last Resort | проверено | ручная | `terrain`, `usage-limits`, `trigger-router`, `scene-lifecycle`, `action-modifier`, `dice-hooks`, `combat-meter` |
 
-## Бродяга
+### Warring Ascendant (`powerhouse.warring-ascendant`)
 
-### Воздушный мастер (`vagabond.aerial-master`)
+| Ур. | Название | Разметка | Адаптер | Возможности |
+| ---: | --- | --- | --- | --- |
+| 1 | Heavenly Arm | проверено | частичная | `target-validation`, `event-participants`, `spatial-range`, `resource-check`, `effect-state`, `effect-lifecycle`, `movement-lifecycle`, `usage-limits`, `trigger-router`, `scene-lifecycle`, `choice-flow`, `damage-pipeline`, `action-modifier`, `transformation`, `combat-meter`, `action-copy` |
+| 2 | Esoteric Blades | проверено | ручная | `trigger-router`, `choice-flow`, `transformation`, `action-copy` |
+| 3 | Saintly Sword, Heaven Piercer | проверено | частичная | `target-validation`, `event-participants`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier`, `transformation` |
+
+### Heroic Ascendant (`powerhouse.heroic-ascendant`)
+
+| Ур. | Название | Разметка | Адаптер | Возможности |
+| ---: | --- | --- | --- | --- |
+| 1 | Warrior Of Legend | кандидат | ручная | `event-preview`, `event-summary` |
+| 2 | Hero's Feat | кандидат | ручная | `event-preview`, `event-summary` |
+| 3 | Mastered Strength | кандидат | ручная | `event-preview`, `event-summary` |
+
+## Vagabond
+
+### Aerial Master (`vagabond.aerial-master`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Над и вокруг (Over And Around) | проверено | частичная | `effect-state`, `effect-lifecycle`, `stance`, `terrain`, `movement-lifecycle`, `trigger-router`, `action-modifier`, `dice-hooks` |
-| 2 | Парение (Soar) | проверено | ручная | `effect-state`, `effect-lifecycle`, `movement-lifecycle`, `trigger-router`, `choice-flow`, `action-modifier` |
-| 3 | Падающий удар топором (Falling Ax Strike) | проверено | ручная | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `stance`, `trigger-router`, `action-modifier`, `dice-hooks`, `derived-stats` |
+| 1 | Soar | проверено | частичная | `effect-state`, `effect-lifecycle`, `stance`, `terrain`, `movement-lifecycle`, `trigger-router`, `action-modifier`, `dice-hooks` |
+| 2 | Hunt | проверено | ручная | `effect-state`, `effect-lifecycle`, `movement-lifecycle`, `trigger-router`, `choice-flow`, `action-modifier` |
+| 3 | Falling Ax Strike | проверено | ручная | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `stance`, `trigger-router`, `action-modifier`, `dice-hooks`, `derived-stats` |
 
-### Ассасин (`vagabond.assassin`)
+### Assassin (`vagabond.assassin`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Засада (Ambush) | проверено | полная | `usage-limits`, `trigger-router`, `action-modifier`, `deployment-hooks` |
-| 2 | Ликвидация (Assassinate) | проверено | с выбором | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `movement-lifecycle`, `trigger-router`, `reaction-window`, `choice-flow`, `action-modifier`, `composite-action`, `dice-hooks` |
-| 3 | Скорость тьмы (Speed of Dark) [Скрыться -> Шаг] | проверено | полная | `effect-state`, `effect-lifecycle`, `movement-lifecycle`, `action-modifier`, `action-history` |
+| 1 | Ambush | проверено | полная | `usage-limits`, `trigger-router`, `action-modifier`, `deployment-hooks` |
+| 2 | Assassinate | проверено | с выбором | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `movement-lifecycle`, `trigger-router`, `reaction-window`, `choice-flow`, `action-modifier`, `composite-action`, `dice-hooks` |
+| 3 | Speed of Dark [ Hide → Stride ] | проверено | полная | `effect-state`, `effect-lifecycle`, `movement-lifecycle`, `action-modifier`, `action-history` |
 
-### Снайпер (`vagabond.sniper`)
+### Sniper (`vagabond.sniper`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Дальний выстрел (Long Shot) | проверено | ручная | `target-validation`, `event-participants`, `spatial-range`, `action-modifier` |
-| 2 | Окопаться (Bunker Down) | проверено | ручная | `effect-state`, `effect-lifecycle`, `trigger-router`, `turn-lifecycle`, `action-modifier`, `dice-hooks`, `spatial-range` |
-| 3 | Меткий глаз (Deadeye) [Скрыться -> Завершение Талантом] | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle`, `trigger-router`, `damage-pipeline`, `action-modifier`, `action-history`, `dice-hooks` |
+| 1 | Long Shot | проверено | ручная | `target-validation`, `event-participants`, `spatial-range`, `action-modifier` |
+| 2 | Bunker Down | проверено | ручная | `effect-state`, `effect-lifecycle`, `trigger-router`, `turn-lifecycle`, `action-modifier`, `dice-hooks`, `spatial-range` |
+| 3 | Deadeye [ Hide → Talent Finisher ] | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle`, `trigger-router`, `damage-pipeline`, `action-modifier`, `action-history`, `dice-hooks` |
 
-### Застрельщик (`vagabond.skirmisher`)
+### Skirmisher (`vagabond.skirmisher`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Укол (Sting) | проверено | ручная | `target-validation`, `event-participants`, `usage-limits`, `trigger-router`, `turn-lifecycle`, `damage-pipeline`, `action-modifier`, `derived-stats` |
-| 2 | Смещающиеся удары (Shifting Blows) | проверено | ручная | `movement-lifecycle`, `trigger-router`, `choice-flow`, `action-modifier` |
-| 3 | Отскок (Rebound) | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier`, `dice-hooks` |
+| 1 | Sting | проверено | ручная | `target-validation`, `event-participants`, `usage-limits`, `trigger-router`, `turn-lifecycle`, `damage-pipeline`, `action-modifier`, `derived-stats` |
+| 2 | Shifting Blows | проверено | ручная | `movement-lifecycle`, `trigger-router`, `choice-flow`, `action-modifier` |
+| 3 | Rebound | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier`, `dice-hooks` |
 
-### Демон скорости (`vagabond.speed-demon`)
+### Speed Demon (`vagabond.speed-demon`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Уход в тень (Fade) | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle` |
-| 2 | Мгновенный шаг (Flash Step) [Передышка -> Шаг] | проверено | полная | `movement-lifecycle`, `action-modifier`, `action-history` |
-| 3 | Мгновенный удар (Flash Strike) | проверено | ручная | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `movement-lifecycle`, `usage-limits`, `trigger-router`, `turn-lifecycle`, `damage-pipeline`, `action-modifier` |
+| 1 | Fade | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle` |
+| 2 | Flash Strike | проверено | полная | `movement-lifecycle`, `action-modifier`, `action-history` |
+| 3 | Flash Step [ Breathe → Stride ] | проверено | ручная | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `movement-lifecycle`, `usage-limits`, `trigger-router`, `turn-lifecycle`, `damage-pipeline`, `action-modifier` |
 
-### Неуловимый (`vagabond.untouchable`)
+### Untouchable (`vagabond.untouchable`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Нырок (Duck) | проверено | полная | `usage-limits`, `trigger-router`, `turn-lifecycle`, `derived-stats` |
-| 2 | Маятник (Weave) | проверено | с выбором | `movement-lifecycle`, `trigger-router`, `damage-pipeline`, `derived-stats` |
-| 3 | Инстинкт бойца (Fighter's Instinct) [Уворот -> Стычка] | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle`, `action-modifier`, `action-history`, `dice-hooks` |
+| 1 | Duck | проверено | полная | `usage-limits`, `trigger-router`, `turn-lifecycle`, `derived-stats` |
+| 2 | Weave | проверено | с выбором | `movement-lifecycle`, `trigger-router`, `damage-pipeline`, `derived-stats` |
+| 3 | Fighter's Instinct [ Dodge → Skirmish ] | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle`, `action-modifier`, `action-history`, `dice-hooks` |
 
-### Акробат (`vagabond.acrobat`)
+### Acrobat (`vagabond.acrobat`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Летящий удар ногой (Flying Kick) [Прыжок -> Стычка] | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle`, `trigger-router`, `action-modifier`, `action-history`, `dice-hooks` |
-| 2 | Отскок от стены (Wall Jump) | проверено | ручная | `movement-lifecycle`, `terrain`, `usage-limits`, `trigger-router`, `turn-lifecycle`, `derived-stats` |
-| 3 | Невесомое тело (Weightless Body) | проверено | ручная | `movement-lifecycle`, `terrain`, `usage-limits`, `trigger-router`, `action-modifier` |
+| 1 | Flying Kick [ Jump → Skirmish ] | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle`, `trigger-router`, `action-modifier`, `action-history`, `dice-hooks` |
+| 2 | Wall Jump | проверено | ручная | `movement-lifecycle`, `terrain`, `usage-limits`, `trigger-router`, `turn-lifecycle`, `derived-stats` |
+| 3 | Weightless Body | проверено | ручная | `movement-lifecycle`, `terrain`, `usage-limits`, `trigger-router`, `action-modifier` |
 
-### Мастер клинка (`vagabond.blade-master`)
+### Blade Master (`vagabond.blade-master`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Стойка выхвата (Draw Stance) | проверено | ручная | `stance`, `trigger-router`, `duration-scheduler`, `action-modifier`, `action-history`, `dice-hooks` |
-| 2 | Рассечение одним движением (Divide In One Motion) [Передышка -> Прыжок] | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle`, `stance`, `trigger-router`, `action-modifier`, `action-history` |
-| 3 | Прыгающий карп (Leaping Koi) | проверено | ручная | `movement-lifecycle`, `trigger-router`, `action-modifier`, `action-history`, `dice-hooks` |
+| 1 | Draw Stance | проверено | ручная | `stance`, `trigger-router`, `duration-scheduler`, `action-modifier`, `action-history`, `dice-hooks` |
+| 2 | Divide In One Motion [ Breathe → Jump ] | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle`, `stance`, `trigger-router`, `action-modifier`, `action-history` |
+| 3 | Leaping Koi | проверено | ручная | `movement-lifecycle`, `trigger-router`, `action-modifier`, `action-history`, `dice-hooks` |
 
-### Хитроумный боец (`vagabond.cunning-fighter`)
+### Cunning Fighter (`vagabond.cunning-fighter`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | План и исполнение (Plan and Execute) | проверено | с выбором | `target-validation`, `event-participants`, `rule-clock`, `usage-limits`, `trigger-router`, `turn-lifecycle`, `scene-lifecycle`, `action-modifier`, `information-query` |
-| 2 | Планы внутри планов (Plans Within Plans) | проверено | полная | `usage-limits`, `turn-lifecycle`, `action-modifier` |
-| 3 | С первого взгляда (At a Glance) | проверено | ручная | `target-validation`, `event-participants`, `spatial-cells`, `spatial-range`, `resource-check`, `usage-limits`, `trigger-router`, `turn-lifecycle`, `action-modifier`, `information-query` |
+| 1 | Plan and Execute | проверено | с выбором | `target-validation`, `event-participants`, `rule-clock`, `usage-limits`, `trigger-router`, `turn-lifecycle`, `scene-lifecycle`, `action-modifier`, `information-query` |
+| 2 | Plans Within Plans | проверено | полная | `usage-limits`, `turn-lifecycle`, `action-modifier` |
+| 3 | At a Glance | проверено | ручная | `target-validation`, `event-participants`, `spatial-cells`, `spatial-range`, `resource-check`, `usage-limits`, `trigger-router`, `turn-lifecycle`, `action-modifier`, `information-query` |
 
-### Эгоманьяк (`vagabond.egomaniac`)
+### Egomaniac (`vagabond.egomaniac`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Пиковая форма (Peak Condition) | проверено | с выбором | `target-validation`, `event-participants`, `resource-check`, `movement-lifecycle`, `rule-clock`, `trigger-router`, `turn-lifecycle`, `scene-lifecycle`, `action-modifier`, `action-history`, `dice-hooks` |
-| 2 | Дразнить, красоваться, устрашать (Taunt, Flaunt, Daunt) | проверено | с выбором | `target-validation`, `event-participants`, `spatial-range`, `resource-check`, `rule-clock`, `trigger-router`, `choice-flow`, `effect-state`, `effect-lifecycle`, `derived-stats` |
-| 3 | Финал (Finale) | проверено | с выбором | `rule-clock`, `trigger-router`, `choice-flow`, `scene-lifecycle`, `action-modifier`, `combat-meter` |
+| 1 | Peak Condition | проверено | с выбором | `target-validation`, `event-participants`, `resource-check`, `movement-lifecycle`, `rule-clock`, `trigger-router`, `turn-lifecycle`, `scene-lifecycle`, `action-modifier`, `action-history`, `dice-hooks` |
+| 2 | Dance With Me | проверено | с выбором | `target-validation`, `event-participants`, `spatial-range`, `resource-check`, `rule-clock`, `trigger-router`, `choice-flow`, `effect-state`, `effect-lifecycle`, `derived-stats` |
+| 3 | Finale | проверено | с выбором | `rule-clock`, `trigger-router`, `choice-flow`, `scene-lifecycle`, `action-modifier`, `combat-meter` |
 
-### Скованный (`vagabond.enchained`)
+### Enchained (`vagabond.enchained`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Выстрел крюком (Hook Shot) | проверено | полная | `target-validation`, `event-participants`, `spatial-range`, `movement-lifecycle`, `trigger-router`, `choice-flow`, `action-modifier` |
-| 2 | Притянуть (Draw In) | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier` |
-| 3 | Импульс (Momentum) [Заклинание -> Стычка] | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle`, `trigger-router`, `action-modifier`, `action-history`, `dice-hooks` |
+| 1 | Hook Shot | проверено | полная | `target-validation`, `event-participants`, `spatial-range`, `movement-lifecycle`, `trigger-router`, `choice-flow`, `action-modifier` |
+| 2 | Draw In | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier` |
+| 3 | Momentum [ Cast → Skirmish ] | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle`, `trigger-router`, `action-modifier`, `action-history`, `dice-hooks` |
 
-### Жонглер ножами (`vagabond.knife-juggler`)
+### Knife Juggler (`vagabond.knife-juggler`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Метнуть (Throw) | проверено | частичная | `target-validation`, `event-participants`, `spatial-range`, `resource-check`, `alternate-resource`, `trigger-router`, `choice-flow`, `action-modifier` |
-| 2 | Пополнение (Resupply) | проверено | частичная | `target-validation`, `event-participants`, `movement-lifecycle`, `resource-check`, `alternate-resource`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `action-modifier`, `dice-hooks` |
-| 3 | Преследователь (Chaser) | проверено | с выбором | `target-validation`, `event-participants`, `spatial-range`, `resource-check`, `alternate-resource`, `owned-entities`, `entity-lifecycle`, `movement-lifecycle`, `trigger-router`, `reaction-window`, `action-modifier` |
+| 1 | Throw | проверено | частичная | `target-validation`, `event-participants`, `spatial-range`, `resource-check`, `alternate-resource`, `trigger-router`, `choice-flow`, `action-modifier` |
+| 2 | Resupply | проверено | частичная | `target-validation`, `event-participants`, `movement-lifecycle`, `resource-check`, `alternate-resource`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `action-modifier`, `dice-hooks` |
+| 3 | Chaser | проверено | с выбором | `target-validation`, `event-participants`, `spatial-range`, `resource-check`, `alternate-resource`, `owned-entities`, `entity-lifecycle`, `movement-lifecycle`, `trigger-router`, `reaction-window`, `action-modifier` |
 
-### Злобный подражатель (`vagabond.malicious-mimic`)
+### Malicious Mimic (`vagabond.malicious-mimic`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | "Все, что можешь ты..." ("Anything You Can Do...") | проверено | ручная | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `trigger-router`, `scene-lifecycle`, `action-modifier`, `inventory`, `action-copy` |
-| 2 | Отрепетированные движения (Rehearsed Movements) | проверено | ручная | `effect-state`, `effect-lifecycle`, `trigger-router`, `derived-stats`, `inventory` |
-| 3 | "...я могу лучше" ("...I Can Do Better") | проверено | ручная | `resource-check`, `trigger-router`, `choice-flow`, `action-modifier`, `inventory`, `action-copy` |
+| 1 | "Anything You Can Do…" | проверено | ручная | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `trigger-router`, `scene-lifecycle`, `action-modifier`, `inventory`, `action-copy` |
+| 2 | Rehearsed Movements | проверено | ручная | `effect-state`, `effect-lifecycle`, `trigger-router`, `derived-stats`, `inventory` |
+| 3 | "…I Can Do Better" | проверено | ручная | `resource-check`, `trigger-router`, `choice-flow`, `action-modifier`, `inventory`, `action-copy` |
 
-### Модифицированный мейстер (`vagabond.modified-meister`)
+### Weaponsmith (`vagabond.weaponsmith`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | На горячем ходу (Running Hot) | проверено | частичная | `target-validation`, `event-participants`, `resource-check`, `alternate-resource`, `damage-pipeline`, `trigger-router`, `scene-lifecycle`, `action-modifier` |
-| 2 | Перегрузка (Overload) | проверено | с выбором | `target-validation`, `event-participants`, `resource-check`, `alternate-resource`, `effect-state`, `effect-lifecycle`, `trigger-router`, `damage-pipeline`, `action-modifier`, `dice-hooks` |
-| 3 | Разгон (Overclock) | проверено | с выбором | `resource-check`, `alternate-resource`, `movement-lifecycle`, `trigger-router`, `turn-lifecycle`, `duration-scheduler`, `choice-flow`, `damage-pipeline`, `action-modifier`, `combat-meter` |
+| 1 | Trick Weapon | кандидат | ручная | `event-preview`, `event-summary` |
+| 2 | Adaptive Edge | кандидат | ручная | `event-preview`, `event-summary` |
+| 3 | Metalurgy | кандидат | ручная | `event-preview`, `event-summary` |
 
-### Оппортунист (`vagabond.opportunist`)
+### Modified Meister (`vagabond.modified-meister`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Стайная тактика (Pack Tactics) | проверено | ручная | `target-validation`, `event-participants`, `spatial-range`, `movement-lifecycle`, `usage-limits`, `trigger-router`, `reaction-window`, `turn-lifecycle`, `action-modifier` |
-| 2 | Голодные глаза (Hungry Eyes) | проверено | ручная | `target-validation`, `event-participants`, `spatial-range`, `resource-check`, `effect-state`, `effect-lifecycle`, `trigger-router`, `reaction-window` |
-| 3 | Комбо-подброс (Launcher Combo) | проверено | ручная | `target-validation`, `event-participants`, `spatial-range`, `effect-state`, `effect-lifecycle`, `usage-limits`, `trigger-router`, `reaction-window`, `turn-lifecycle`, `action-modifier` |
+| 1 | Running Hot | проверено | частичная | `target-validation`, `event-participants`, `resource-check`, `alternate-resource`, `damage-pipeline`, `trigger-router`, `scene-lifecycle`, `action-modifier` |
+| 2 | Overload | проверено | с выбором | `target-validation`, `event-participants`, `resource-check`, `alternate-resource`, `effect-state`, `effect-lifecycle`, `trigger-router`, `damage-pipeline`, `action-modifier`, `dice-hooks` |
+| 3 | Overclock | проверено | с выбором | `resource-check`, `alternate-resource`, `movement-lifecycle`, `trigger-router`, `turn-lifecycle`, `duration-scheduler`, `choice-flow`, `damage-pipeline`, `action-modifier`, `combat-meter` |
 
-### Отражатель (`vagabond.reflector`)
+### Opportunist (`vagabond.opportunist`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Поймать клинок (Catch The Blade) | проверено | ручная | `trigger-router`, `reaction-window`, `scene-lifecycle`, `damage-pipeline`, `choice-flow`, `derived-stats` |
-| 2 | Смотреть и ждать (Watch And Wait) | проверено | ручная | `trigger-router`, `reaction-window`, `damage-pipeline`, `dice-hooks` |
-| 3 | Нести их ярость (To Carry Their Fury) | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle`, `trigger-router`, `reaction-window`, `choice-flow`, `damage-pipeline`, `action-modifier`, `derived-stats` |
+| 1 | Pack Tactics | проверено | ручная | `target-validation`, `event-participants`, `spatial-range`, `movement-lifecycle`, `usage-limits`, `trigger-router`, `reaction-window`, `turn-lifecycle`, `action-modifier` |
+| 2 | Hungry Eyes | проверено | ручная | `target-validation`, `event-participants`, `spatial-range`, `resource-check`, `effect-state`, `effect-lifecycle`, `trigger-router`, `reaction-window` |
+| 3 | Launcher Combo | проверено | ручная | `target-validation`, `event-participants`, `spatial-range`, `effect-state`, `effect-lifecycle`, `usage-limits`, `trigger-router`, `reaction-window`, `turn-lifecycle`, `action-modifier` |
 
-### Дим Мак (`vagabond.dim-mak`)
+### Reflector (`vagabond.reflector`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Изучить слабость (Study Weakness) | проверено | с выбором | `target-validation`, `event-participants`, `movement-lifecycle`, `owned-entities`, `entity-lifecycle`, `usage-limits`, `trigger-router`, `turn-lifecycle`, `choice-flow`, `action-modifier`, `information-query` |
-| 2 | Полевая разведка (Field Investigation) | проверено | с выбором | `target-validation`, `event-participants`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `reaction-window`, `action-modifier`, `information-query`, `derived-stats` |
-| 3 | Казнь по четырем точкам (4-Point Execution) | проверено | ручная | `target-validation`, `event-participants`, `owned-entities`, `entity-lifecycle`, `movement-lifecycle`, `trigger-router`, `turn-lifecycle`, `action-modifier`, `action-history` |
+| 1 | Catch The Blade | проверено | ручная | `trigger-router`, `reaction-window`, `scene-lifecycle`, `damage-pipeline`, `choice-flow`, `derived-stats` |
+| 2 | Watch And Wait | проверено | ручная | `trigger-router`, `reaction-window`, `damage-pipeline`, `dice-hooks` |
+| 3 | To Carry Their Fury | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle`, `trigger-router`, `reaction-window`, `choice-flow`, `damage-pipeline`, `action-modifier`, `derived-stats` |
 
-### Пьяница (`vagabond.drunkard`)
+### Detective (`vagabond.dim-mak`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | До дна (Down The Hatch) | проверено | ручная | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `movement-lifecycle`, `usage-limits`, `trigger-router`, `turn-lifecycle`, `choice-flow`, `damage-pipeline`, `action-modifier`, `deployment-hooks`, `dice-hooks` |
-| 2 | Танец дурака (Fool's Dance) | проверено | ручная | `effect-state`, `effect-lifecycle`, `trigger-router`, `turn-lifecycle`, `derived-stats` |
-| 3 | Залпом (Chug) | проверено | ручная | `effect-state`, `effect-lifecycle`, `movement-lifecycle`, `usage-limits`, `trigger-router`, `turn-lifecycle`, `action-modifier` |
+| 1 | Study Weakness | проверено | с выбором | `target-validation`, `event-participants`, `movement-lifecycle`, `owned-entities`, `entity-lifecycle`, `usage-limits`, `trigger-router`, `turn-lifecycle`, `choice-flow`, `action-modifier`, `information-query` |
+| 2 | Dissect [ Investigate x 3 ] | проверено | с выбором | `target-validation`, `event-participants`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `reaction-window`, `action-modifier`, `information-query`, `derived-stats` |
+| 3 | 4-Point Execution | проверено | ручная | `target-validation`, `event-participants`, `owned-entities`, `entity-lifecycle`, `movement-lifecycle`, `trigger-router`, `turn-lifecycle`, `action-modifier`, `action-history` |
 
-### Мастер оружия (`vagabond.master-at-arms`)
+### Drunkard (`vagabond.drunkard`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Многогранность (Multi-Faceted) | проверено | полная | `target-validation`, `event-participants`, `spatial-range`, `effect-state`, `effect-lifecycle`, `movement-lifecycle`, `usage-limits`, `exclusive-mode`, `trigger-router`, `turn-lifecycle`, `choice-flow`, `action-modifier` |
-| 2 | Как вода (Like Water) | проверено | полная | `resource-check`, `effect-state`, `effect-lifecycle`, `usage-limits`, `exclusive-mode`, `trigger-router`, `turn-lifecycle`, `derived-stats` |
-| 3 | Мастер за работой (Master At Work) | проверено | полная | `target-validation`, `event-participants`, `spatial-cells`, `effect-state`, `effect-lifecycle`, `movement-lifecycle`, `terrain`, `exclusive-mode`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier`, `dice-hooks` |
+| 1 | Down The Hatch | проверено | ручная | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `movement-lifecycle`, `usage-limits`, `trigger-router`, `turn-lifecycle`, `choice-flow`, `damage-pipeline`, `action-modifier`, `deployment-hooks`, `dice-hooks` |
+| 2 | Fool's Dance | проверено | ручная | `effect-state`, `effect-lifecycle`, `trigger-router`, `turn-lifecycle`, `derived-stats` |
+| 3 | Chug | проверено | ручная | `effect-state`, `effect-lifecycle`, `movement-lifecycle`, `usage-limits`, `trigger-router`, `turn-lifecycle`, `action-modifier` |
 
-## Оплот
+### Master-At-Arms (`vagabond.master-at-arms`)
 
-### Сокрушитель (`bulwark.crusher`)
+| Ур. | Название | Разметка | Адаптер | Возможности |
+| ---: | --- | --- | --- | --- |
+| 1 | Multi-Faceted | проверено | полная | `target-validation`, `event-participants`, `spatial-range`, `effect-state`, `effect-lifecycle`, `movement-lifecycle`, `usage-limits`, `exclusive-mode`, `trigger-router`, `turn-lifecycle`, `choice-flow`, `action-modifier` |
+| 2 | Like Water | проверено | полная | `resource-check`, `effect-state`, `effect-lifecycle`, `usage-limits`, `exclusive-mode`, `trigger-router`, `turn-lifecycle`, `derived-stats` |
+| 3 | Master At Work | проверено | полная | `target-validation`, `event-participants`, `spatial-cells`, `effect-state`, `effect-lifecycle`, `movement-lifecycle`, `terrain`, `exclusive-mode`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier`, `dice-hooks` |
+
+## Bulwark
+
+### Crusher (`bulwark.crusher`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | 30 000 тонн (30,000 Tons) | проверено | ручная | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier` |
-| 2 | Молотопад (Hammerfall) | проверено | ручная | `target-validation`, `event-participants`, `spatial-cells`, `effect-state`, `effect-lifecycle`, `trigger-router`, `turn-lifecycle`, `damage-pipeline`, `action-modifier`, `action-history` |
-| 3 | Ты похож на гвоздь (You Look Like A Nail) | проверено | ручная | `trigger-router`, `turn-lifecycle`, `damage-pipeline`, `action-modifier`, `action-history` |
+| 1 | 30,000 Tons | проверено | ручная | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier` |
+| 2 | Hammerfall | проверено | ручная | `target-validation`, `event-participants`, `spatial-cells`, `effect-state`, `effect-lifecycle`, `trigger-router`, `turn-lifecycle`, `damage-pipeline`, `action-modifier`, `action-history` |
+| 3 | "You Look Like A Nail" | проверено | ручная | `trigger-router`, `turn-lifecycle`, `damage-pipeline`, `action-modifier`, `action-history` |
 
-### Гигантская фигура (`bulwark.giant-frame`)
+### Giant Frame (`bulwark.giant-frame`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Огромные руки (Big Arms) | проверено | частичная | `target-validation`, `event-participants`, `spatial-cells`, `resource-check`, `trigger-router`, `choice-flow`, `action-modifier` |
-| 2 | Исполин (Immense) | проверено | ручная | `movement-lifecycle`, `terrain`, `trigger-router`, `choice-flow`, `deployment-hooks`, `derived-stats`, `multi-space-actor` |
-| 3 | Ударная волна (Shockwave) | проверено | ручная | `target-validation`, `event-participants`, `spatial-cells`, `resource-check`, `effect-state`, `effect-lifecycle`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier` |
+| 1 | Big Arms | проверено | частичная | `target-validation`, `event-participants`, `spatial-cells`, `resource-check`, `trigger-router`, `choice-flow`, `action-modifier` |
+| 2 | Immense | проверено | ручная | `movement-lifecycle`, `terrain`, `trigger-router`, `choice-flow`, `deployment-hooks`, `derived-stats`, `multi-space-actor` |
+| 3 | Shockwave | проверено | ручная | `target-validation`, `event-participants`, `spatial-cells`, `resource-check`, `effect-state`, `effect-lifecycle`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier` |
 
-### Железное тело (`bulwark.iron-bodied`)
+### Iron Bodied (`bulwark.iron-bodied`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Крепкий как камень (Tough As Stone) | проверено | ручная | `movement-lifecycle`, `derived-stats` |
-| 2 | Выносливость (Resilience) | проверено | полная | `derived-stats` |
-| 3 | Нержавеющий шаг (Stainless Stride) | проверено | ручная | `effect-state`, `effect-lifecycle`, `trigger-router`, `turn-lifecycle`, `choice-flow`, `damage-pipeline`, `derived-stats` |
+| 1 | Tough As Stone | проверено | ручная | `movement-lifecycle`, `derived-stats` |
+| 2 | Resilience | проверено | полная | `derived-stats` |
+| 3 | Stainless Stride | проверено | ручная | `effect-state`, `effect-lifecycle`, `trigger-router`, `turn-lifecycle`, `choice-flow`, `damage-pipeline`, `derived-stats` |
 
-### Щит авангарда (`bulwark.vanguard-defender`)
+### Vanguard Defender (`bulwark.vanguard-defender`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Белый рыцарь (White Knight) | проверено | ручная | `target-validation`, `event-participants`, `spatial-range`, `movement-lifecycle`, `trigger-router`, `reaction-window`, `choice-flow`, `action-modifier` |
-| 2 | Стальной ангел (Steel Angel) | проверено | ручная | `resource-check`, `usage-limits`, `trigger-router`, `reaction-window`, `turn-lifecycle`, `duration-scheduler`, `action-modifier`, `derived-stats` |
-| 3 | Вдохновить мужество (Inspire Courage) | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle`, `effect-state`, `effect-lifecycle`, `trigger-router`, `reaction-window`, `choice-flow` |
+| 1 | White Knight | проверено | ручная | `target-validation`, `event-participants`, `spatial-range`, `movement-lifecycle`, `trigger-router`, `reaction-window`, `choice-flow`, `action-modifier` |
+| 2 | Steel Angel | проверено | ручная | `resource-check`, `usage-limits`, `trigger-router`, `reaction-window`, `turn-lifecycle`, `duration-scheduler`, `action-modifier`, `derived-stats` |
+| 3 | Inspire Courage | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle`, `effect-state`, `effect-lifecycle`, `trigger-router`, `reaction-window`, `choice-flow` |
 
-### Полный ублюдок (`bulwark.absolute-bastard`)
+### Absolute Bastard (`bulwark.absolute-bastard`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Легко ненавидеть (Easy To Hate) | проверено | ручная | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `usage-limits`, `trigger-router`, `scene-lifecycle`, `action-modifier`, `information-query` |
-| 2 | Задира (Bully) | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle`, `resource-check`, `effect-state`, `effect-lifecycle`, `usage-limits`, `trigger-router`, `turn-lifecycle`, `choice-flow`, `derived-stats` |
-| 3 | Добавить травму к оскорблению (Add Injury To Insult) | проверено | ручная | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `trigger-router`, `action-modifier`, `dice-hooks` |
+| 1 | Easy To Hate | проверено | ручная | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `usage-limits`, `trigger-router`, `scene-lifecycle`, `action-modifier`, `information-query` |
+| 2 | Bully | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle`, `resource-check`, `effect-state`, `effect-lifecycle`, `usage-limits`, `trigger-router`, `turn-lifecycle`, `choice-flow`, `derived-stats` |
+| 3 | Add Injury To Insult | проверено | ручная | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `trigger-router`, `action-modifier`, `dice-hooks` |
 
-### Боевой наездник (`bulwark.battle-jockey`)
+### Battle Jockey (`bulwark.battle-jockey`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Верный скакун (Trusty Steed) | проверено | ручная | `movement-lifecycle`, `owned-entities`, `entity-lifecycle`, `summon-turns`, `trigger-router`, `deployment-hooks` |
-| 2 | Хваткие челюсти (Grasping Jaws) | проверено | ручная | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `summon-turns` |
-| 3 | Ревущий выход (Roaring Entry) | проверено | ручная | `target-validation`, `event-participants`, `spatial-range`, `movement-lifecycle`, `effect-state`, `effect-lifecycle`, `owned-entities`, `entity-lifecycle`, `summon-turns`, `usage-limits`, `trigger-router`, `scene-lifecycle`, `choice-flow`, `turn-lifecycle` |
+| 1 | Trusty Steed | проверено | ручная | `movement-lifecycle`, `owned-entities`, `entity-lifecycle`, `summon-turns`, `trigger-router`, `deployment-hooks` |
+| 2 | Grasping Jaws | проверено | ручная | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `summon-turns` |
+| 3 | Roaring Entry | проверено | ручная | `target-validation`, `event-participants`, `spatial-range`, `movement-lifecycle`, `effect-state`, `effect-lifecycle`, `owned-entities`, `entity-lifecycle`, `summon-turns`, `usage-limits`, `trigger-router`, `scene-lifecycle`, `choice-flow`, `turn-lifecycle` |
 
-### Борец-захватчик (`bulwark.grappler`)
+### Grappler (`bulwark.grappler`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Удержание (Restrain) | проверено | ручная | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `trigger-router`, `action-modifier` |
-| 2 | Перелом позвоночника (Spine Breaker) | проверено | с выбором | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `movement-lifecycle`, `trigger-router`, `action-modifier`, `dice-hooks` |
-| 3 | Завершающий прием (Finishing Move) [Завершение Телом -> Прыжок] | проверено | ручная | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `movement-lifecycle`, `trigger-router`, `reaction-window`, `turn-lifecycle`, `duration-scheduler`, `action-modifier`, `composite-action`, `action-history` |
+| 1 | Restrain | проверено | ручная | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `trigger-router`, `action-modifier` |
+| 2 | Spine Breaker | проверено | с выбором | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `movement-lifecycle`, `trigger-router`, `action-modifier`, `dice-hooks` |
+| 3 | Finishing Move [ Body Finisher → Jump ] | проверено | ручная | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `movement-lifecycle`, `trigger-router`, `reaction-window`, `turn-lifecycle`, `duration-scheduler`, `action-modifier`, `composite-action`, `action-history` |
 
-### Джаггернаут (`bulwark.juggernaut`)
+### Juggernaut (`bulwark.juggernaut`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Дикий рывок (Wild Charge) | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle`, `terrain`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier`, `derived-stats` |
-| 2 | Насилие (Violence) | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle`, `effect-state`, `effect-lifecycle`, `usage-limits`, `trigger-router`, `turn-lifecycle`, `damage-pipeline` |
-| 3 | Резкий поворот (Hard Turn) | проверено | ручная | `movement-lifecycle`, `trigger-router`, `choice-flow`, `action-modifier` |
+| 1 | Wild Charge | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle`, `terrain`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier`, `derived-stats` |
+| 2 | Violence | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle`, `effect-state`, `effect-lifecycle`, `usage-limits`, `trigger-router`, `turn-lifecycle`, `damage-pipeline` |
+| 3 | "Eat Dirt!" | проверено | ручная | `movement-lifecycle`, `trigger-router`, `choice-flow`, `action-modifier` |
 
-### Обычный (`bulwark.mundane`)
+### Mollycoddler (`bulwark.runic-retribution`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Чего не хватает Духу (For What The Spirit Lacks) | проверено | частичная | `resource-check`, `alternate-resource`, `turn-lifecycle`, `action-modifier`, `derived-stats` |
-| 2 | Копнуть глубже, стоять твердо (Dig Deep, Stand Firm) | проверено | полная | `target-validation`, `event-participants`, `resource-check`, `alternate-resource`, `trigger-router`, `reaction-window` |
-| 3 | Перед лицом Запредельного (In The Face Of The Beyond) | проверено | с выбором | `target-validation`, `event-participants`, `spatial-range`, `resource-check`, `alternate-resource`, `effect-state`, `effect-lifecycle`, `trigger-router`, `action-modifier`, `dice-hooks` |
+| 1 | Lash | проверено | ручная | `target-validation`, `event-participants`, `trigger-router`, `reaction-window`, `action-modifier` |
+| 2 | Loving Rite | проверено | ручная | `target-validation`, `event-participants`, `resource-check`, `effect-state`, `effect-lifecycle`, `trigger-router`, `reaction-window`, `choice-flow`, `action-modifier`, `information-query` |
+| 3 | Devotion | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle`, `effect-state`, `effect-lifecycle`, `trigger-router`, `duration-scheduler`, `choice-flow`, `action-modifier` |
 
-### Восходящий претендент (`bulwark.rising-challenger`)
+### Mundane (`bulwark.mundane`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Идеальное отражение (Perfect Deflection) | проверено | ручная | `resource-check`, `movement-lifecycle`, `trigger-router`, `reaction-window`, `action-modifier` |
-| 2 | "Сначала тебе придется пройти через меня!" ("You'll Have To Get Through Me!") | проверено | ручная | `target-validation`, `event-participants`, `spatial-range`, `movement-lifecycle`, `trigger-router`, `reaction-window`, `action-modifier` |
-| 3 | Драма и злость (Drama And Spite) | проверено | полная | `dice-hooks`, `action-modifier` |
+| 1 | For What The Spirit Lacks | проверено | частичная | `resource-check`, `alternate-resource`, `turn-lifecycle`, `action-modifier`, `derived-stats` |
+| 2 | Dig Deep, Stand Firm | проверено | полная | `target-validation`, `event-participants`, `resource-check`, `alternate-resource`, `trigger-router`, `reaction-window` |
+| 3 | In The Face Of The Beyond | проверено | с выбором | `target-validation`, `event-participants`, `spatial-range`, `resource-check`, `alternate-resource`, `effect-state`, `effect-lifecycle`, `trigger-router`, `action-modifier`, `dice-hooks` |
 
-### Рунное возмездие (`bulwark.runic-retribution`)
+### Rising Challenger (`bulwark.rising-challenger`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Удар плетью (Lash) | проверено | ручная | `target-validation`, `event-participants`, `trigger-router`, `reaction-window`, `action-modifier` |
-| 2 | Любящий обряд (Loving Rite) | проверено | ручная | `target-validation`, `event-participants`, `resource-check`, `effect-state`, `effect-lifecycle`, `trigger-router`, `reaction-window`, `choice-flow`, `action-modifier`, `information-query` |
-| 3 | Преданность (Devotion) | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle`, `effect-state`, `effect-lifecycle`, `trigger-router`, `duration-scheduler`, `choice-flow`, `action-modifier` |
+| 1 | Perfect Deflection | проверено | ручная | `resource-check`, `movement-lifecycle`, `trigger-router`, `reaction-window`, `action-modifier` |
+| 2 | "You'll Have To Get Through Me!" | проверено | ручная | `target-validation`, `event-participants`, `spatial-range`, `movement-lifecycle`, `trigger-router`, `reaction-window`, `action-modifier` |
+| 3 | Drama And Spite | проверено | полная | `dice-hooks`, `action-modifier` |
 
-### Щитоносец (`bulwark.shield-bearer`)
+### Shield Bearer (`bulwark.shield-bearer`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Стена (Wall) | проверено | ручная | `resource-check`, `trigger-router`, `reaction-window`, `turn-lifecycle`, `duration-scheduler`, `choice-flow`, `derived-stats` |
-| 2 | Удар щитом (Shield Charge) | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `damage-pipeline`, `action-modifier` |
-| 3 | Сосредоточенная защита (Focused Defense) | проверено | ручная | `target-validation`, `event-participants`, `spatial-cells`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `reaction-window`, `derived-stats` |
+| 1 | Wall | проверено | ручная | `resource-check`, `trigger-router`, `reaction-window`, `turn-lifecycle`, `duration-scheduler`, `choice-flow`, `derived-stats` |
+| 2 | Shield Charge | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `damage-pipeline`, `action-modifier` |
+| 3 | Focused Defense | проверено | ручная | `target-validation`, `event-participants`, `spatial-cells`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `reaction-window`, `derived-stats` |
 
-### Стойкий часовой (`bulwark.stalwart-sentry`)
+### Stalwart Sentry (`bulwark.stalwart-sentry`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Страж (Guardian) | проверено | ручная | `movement-lifecycle`, `trigger-router`, `turn-lifecycle` |
-| 2 | На посту (On Watch) | проверено | с выбором | `resource-check`, `rule-clock`, `trigger-router`, `action-modifier` |
-| 3 | Зона контроля (Zone Of Influence) | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle`, `terrain`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `reaction-window`, `action-modifier`, `information-query` |
+| 1 | Guardian | проверено | ручная | `movement-lifecycle`, `trigger-router`, `turn-lifecycle` |
+| 2 | On Watch | проверено | с выбором | `resource-check`, `rule-clock`, `trigger-router`, `action-modifier` |
+| 3 | Zone Of Influence | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle`, `terrain`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `reaction-window`, `action-modifier`, `information-query` |
 
-### Звериный Вознесенный (`bulwark.beastial-ascendant`)
+### Bestial Ascendant (`bulwark.beastial-ascendant`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Звериность (Beastly) | проверено | ручная | `target-validation`, `event-participants`, `spatial-range`, `resource-check`, `effect-state`, `effect-lifecycle`, `movement-lifecycle`, `usage-limits`, `trigger-router`, `scene-lifecycle`, `choice-flow`, `damage-pipeline`, `action-modifier`, `transformation`, `combat-meter`, `action-copy` |
-| 2 | Наследие (Inheritance) | проверено | ручная | `trigger-router`, `choice-flow`, `damage-pipeline`, `transformation`, `action-copy` |
-| 3 | Вершина (Apex) | проверено | ручная | `resource-check`, `usage-limits`, `trigger-router`, `scene-lifecycle`, `choice-flow`, `action-modifier`, `transformation`, `action-copy` |
+| 1 | Beastly | проверено | ручная | `target-validation`, `event-participants`, `spatial-range`, `resource-check`, `effect-state`, `effect-lifecycle`, `movement-lifecycle`, `usage-limits`, `trigger-router`, `scene-lifecycle`, `choice-flow`, `damage-pipeline`, `action-modifier`, `transformation`, `combat-meter`, `action-copy` |
+| 2 | Inheritance | проверено | ручная | `trigger-router`, `choice-flow`, `damage-pipeline`, `transformation`, `action-copy` |
+| 3 | Apex | проверено | ручная | `resource-check`, `usage-limits`, `trigger-router`, `scene-lifecycle`, `choice-flow`, `action-modifier`, `transformation`, `action-copy` |
 
-### Ангел-хранитель (`bulwark.guardian-angel`)
+### Guard Caller (`bulwark.guardian-angel`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Два тела (Two Bodies) | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle`, `damage-pipeline`, `action-modifier`, `multi-space-actor` |
-| 2 | Вместе в жизни (Together In Life) | проверено | ручная | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `trigger-router`, `action-modifier`, `action-history` |
-| 3 | Вместе в смерти (Together In Death) | проверено | ручная | `target-validation`, `event-participants`, `spatial-range`, `resource-check`, `movement-lifecycle`, `trigger-router`, `reaction-window`, `damage-pipeline`, `action-modifier`, `derived-stats`, `multi-space-actor` |
+| 1 | Two Bodies | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle`, `damage-pipeline`, `action-modifier`, `multi-space-actor` |
+| 2 | Together In Life | проверено | ручная | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `trigger-router`, `action-modifier`, `action-history` |
+| 3 | Together In Death | проверено | ручная | `target-validation`, `event-participants`, `spatial-range`, `resource-check`, `movement-lifecycle`, `trigger-router`, `reaction-window`, `damage-pipeline`, `action-modifier`, `derived-stats`, `multi-space-actor` |
 
-### Зов слуги (`bulwark.servant-s-call`)
+### Mecha Pilot (`bulwark.mecha-pilot`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Честь подчиненного (A Subordinate's Honor) | проверено | частичная | `target-validation`, `event-participants`, `spatial-cells`, `resource-check`, `owned-entities`, `entity-lifecycle`, `summon-turns`, `usage-limits`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier` |
-| 2 | Гимн героя (Hero's Hymn) | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle`, `owned-entities`, `entity-lifecycle`, `summon-turns`, `trigger-router`, `reaction-window`, `turn-lifecycle`, `duration-scheduler`, `choice-flow`, `action-modifier` |
-| 3 | Верховный слуга (Supreme Servant) | проверено | ручная | `target-validation`, `event-participants`, `spatial-cells`, `resource-check`, `owned-entities`, `entity-lifecycle`, `summon-turns`, `usage-limits`, `trigger-router`, `scene-lifecycle`, `choice-flow`, `damage-pipeline`, `action-modifier`, `bond-actions` |
+| 1 | Rune Core Engine | проверено | ручная | `target-validation`, `event-participants`, `spatial-cells`, `movement-lifecycle`, `terrain`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier`, `derived-stats`, `multi-space-actor` |
+| 2 | Autonomous | проверено | ручная | `target-validation`, `event-participants`, `spatial-cells`, `terrain`, `owned-entities`, `entity-lifecycle`, `summon-turns`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier`, `derived-stats`, `multi-space-actor` |
+| 3 | Perfect Sync | проверено | ручная | `resource-check`, `effect-state`, `effect-lifecycle`, `owned-entities`, `entity-lifecycle`, `summon-turns`, `trigger-router`, `choice-flow`, `action-modifier`, `derived-stats`, `multi-space-actor` |
 
-### Пилот меха (`bulwark.mecha-pilot`)
+## Altruist
 
+### Analyst (`altruist.precognizant`)
+
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Двигатель рунного ядра (Rune Core Engine) | проверено | ручная | `target-validation`, `event-participants`, `spatial-cells`, `movement-lifecycle`, `terrain`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier`, `derived-stats`, `multi-space-actor` |
-| 2 | Автономный (Autonomous) | проверено | ручная | `target-validation`, `event-participants`, `spatial-cells`, `terrain`, `owned-entities`, `entity-lifecycle`, `summon-turns`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier`, `derived-stats`, `multi-space-actor` |
-| 3 | Идеальная синхронизация (Perfect Sync) | проверено | ручная | `resource-check`, `effect-state`, `effect-lifecycle`, `owned-entities`, `entity-lifecycle`, `summon-turns`, `trigger-router`, `choice-flow`, `action-modifier`, `derived-stats`, `multi-space-actor` |
+| 1 | Flash Of Insight | проверено | ручная | `target-validation`, `event-participants`, `resource-check`, `usage-limits`, `trigger-router`, `reaction-window`, `scene-lifecycle`, `choice-flow`, `dice-hooks` |
+| 2 | Take Advantage | проверено | ручная | `target-validation`, `event-participants`, `trigger-router`, `reaction-window`, `action-modifier`, `derived-stats` |
+| 3 | Watch And Wait | проверено | ручная | `target-validation`, `event-participants`, `resource-check`, `effect-state`, `effect-lifecycle`, `trigger-router`, `choice-flow`, `action-modifier` |
+
+### Battle Instructor (`altruist.battle-instructor`)
 
-## Альтруист
+| Ур. | Название | Разметка | Адаптер | Возможности |
+| ---: | --- | --- | --- | --- |
+| 1 | Strike Order | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle`, `effect-state`, `effect-lifecycle`, `trigger-router`, `choice-flow`, `action-modifier`, `information-query` |
+| 2 | Teaching Moment | проверено | ручная | `target-validation`, `event-participants`, `resource-check`, `bond-actions`, `trigger-router`, `reaction-window`, `choice-flow`, `dice-hooks` |
+| 3 | Remember Your Training | проверено | ручная | `target-validation`, `event-participants`, `resource-check`, `bond-actions`, `usage-limits`, `trigger-router`, `scene-lifecycle`, `action-modifier` |
 
-### Боевой инструктор (`altruist.battle-instructor`)
+### Empath (`altruist.empath`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Приказ к удару (Strike Order) | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle`, `effect-state`, `effect-lifecycle`, `trigger-router`, `choice-flow`, `action-modifier`, `information-query` |
-| 2 | Обучающий момент (Teaching Moment) | проверено | ручная | `target-validation`, `event-participants`, `resource-check`, `bond-actions`, `trigger-router`, `reaction-window`, `choice-flow`, `dice-hooks` |
-| 3 | Вспомни обучение (Remember Your Training) | проверено | ручная | `target-validation`, `event-participants`, `resource-check`, `bond-actions`, `usage-limits`, `trigger-router`, `scene-lifecycle`, `action-modifier` |
+| 1 | Calming Aura | проверено | с выбором | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `trigger-router`, `turn-lifecycle`, `choice-flow` |
+| 2 | Protective Response | проверено | с выбором | `target-validation`, `event-participants`, `spatial-range`, `resource-check`, `movement-lifecycle`, `trigger-router`, `reaction-window`, `damage-pipeline`, `action-modifier` |
+| 3 | "Are You Ok?" | проверено | полная | `target-validation`, `event-participants`, `resource-check`, `bond-actions`, `action-modifier` |
 
-### Эмпат (`altruist.empath`)
+### Compassionate Sage (`altruist.heavenly-saint`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Успокаивающая аура (Calming Aura) | проверено | с выбором | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `trigger-router`, `turn-lifecycle`, `choice-flow` |
-| 2 | Защитный отклик (Protective Response) | проверено | с выбором | `target-validation`, `event-participants`, `spatial-range`, `resource-check`, `movement-lifecycle`, `trigger-router`, `reaction-window`, `damage-pipeline`, `action-modifier` |
-| 3 | "Ты в порядке?" ("Are You Ok?") | проверено | полная | `target-validation`, `event-participants`, `resource-check`, `bond-actions`, `action-modifier` |
+| 1 | Strength Of Prayer | проверено | частичная | `target-validation`, `event-participants`, `resource-check`, `alternate-resource`, `usage-limits`, `trigger-router`, `scene-lifecycle`, `action-modifier` |
+| 2 | Cleansing Light | проверено | с выбором | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier`, `dice-hooks` |
+| 3 | Grand Restoration | проверено | с выбором | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `usage-limits`, `trigger-router`, `scene-lifecycle`, `damage-pipeline`, `action-modifier` |
 
-### Гурман (`altruist.gourmand`)
+### Gourmand (`altruist.gourmand`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Здоровая трапеза (Healthy Meal) | проверено | ручная | `target-validation`, `event-participants`, `damage-pipeline`, `inventory`, `trigger-router`, `intermission-reset`, `choice-flow`, `action-modifier` |
-| 2 | Бездонная кладовая (Bottomless Pantry) | проверено | полная | `inventory`, `intermission-reset` |
-| 3 | Общий опыт (Shared Experiences) | проверено | ручная | `target-validation`, `event-participants`, `resource-check`, `bond-actions`, `inventory`, `trigger-router` |
+| 1 | Healthy Meal | проверено | ручная | `target-validation`, `event-participants`, `damage-pipeline`, `inventory`, `trigger-router`, `intermission-reset`, `choice-flow`, `action-modifier` |
+| 2 | Fast Food | проверено | полная | `inventory`, `intermission-reset` |
+| 3 | Shared Experiences | проверено | ручная | `target-validation`, `event-participants`, `resource-check`, `bond-actions`, `inventory`, `trigger-router` |
 
-### Небесный святой (`altruist.heavenly-saint`)
+### Surgeon (`altruist.surgeon`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Сила молитвы (Strength Of Prayer) | проверено | частичная | `target-validation`, `event-participants`, `resource-check`, `alternate-resource`, `usage-limits`, `trigger-router`, `scene-lifecycle`, `action-modifier` |
-| 2 | Очищающий свет (Cleansing Light) | проверено | с выбором | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier`, `dice-hooks` |
-| 3 | Великое восстановление (Grand Restoration) | проверено | с выбором | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `usage-limits`, `trigger-router`, `scene-lifecycle`, `damage-pipeline`, `action-modifier` |
+| 1 | Do No Harm | проверено | частичная | `target-validation`, `event-participants`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier`, `dice-hooks` |
+| 2 | Operational Procedure | проверено | ручная | `effect-state`, `effect-lifecycle`, `inventory`, `trigger-router`, `intermission-reset`, `choice-flow`, `damage-pipeline`, `dice-hooks` |
+| 3 | Miracle Worker | проверено | ручная | `target-validation`, `event-participants`, `owned-entities`, `entity-lifecycle`, `inventory`, `trigger-router`, `damage-pipeline`, `action-modifier`, `dice-hooks` |
 
-### Предвидящий (`altruist.precognizant`)
+### Tactical Master (`disruptor.tactical-master`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Вспышка озарения (Flash Of Insight) | проверено | ручная | `target-validation`, `event-participants`, `resource-check`, `usage-limits`, `trigger-router`, `reaction-window`, `scene-lifecycle`, `choice-flow`, `dice-hooks` |
-| 2 | Воспользоваться (Take Advantage) | проверено | ручная | `target-validation`, `event-participants`, `trigger-router`, `reaction-window`, `action-modifier`, `derived-stats` |
-| 3 | Швырнуть в бесконечность (Hurl Into The Infinite) | проверено | ручная | `target-validation`, `event-participants`, `resource-check`, `effect-state`, `effect-lifecycle`, `trigger-router`, `choice-flow`, `action-modifier` |
+| 1 | Stop And Think | проверено | ручная | `resource-check`, `effect-state`, `effect-lifecycle`, `stance`, `usage-limits`, `trigger-router`, `turn-lifecycle`, `damage-pipeline`, `action-modifier` |
+| 2 | Study | проверено | ручная | `resource-check`, `effect-state`, `effect-lifecycle`, `trigger-router`, `choice-flow`, `action-modifier` |
+| 3 | Eureka! | проверено | ручная | `resource-check`, `stance`, `trigger-router`, `turn-lifecycle`, `action-modifier`, `derived-stats` |
 
-### Хирург (`altruist.surgeon`)
+### Talisman Exorcist (`altruist.talisman-caster`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Не навреди (Do No Harm) | проверено | частичная | `target-validation`, `event-participants`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier`, `dice-hooks` |
-| 2 | Операционная процедура (Operational Procedure) | проверено | ручная | `effect-state`, `effect-lifecycle`, `inventory`, `trigger-router`, `intermission-reset`, `choice-flow`, `damage-pipeline`, `dice-hooks` |
-| 3 | Чудотворец (Miracle Worker) | проверено | ручная | `target-validation`, `event-participants`, `owned-entities`, `entity-lifecycle`, `inventory`, `trigger-router`, `damage-pipeline`, `action-modifier`, `dice-hooks` |
+| 1 | Sacred Seal | проверено | ручная | `target-validation`, `event-participants`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `action-modifier` |
+| 2 | Tossed Talisman | проверено | ручная | `spatial-range`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `choice-flow`, `action-modifier` |
+| 3 | Exorcize | проверено | ручная | `target-validation`, `event-participants`, `owned-entities`, `entity-lifecycle`, `action-modifier` |
 
-### Заклинатель талисманов (`altruist.talisman-caster`)
+### Abjuring Sage (`altruist.abjuring-sage`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Священная печать (Sacred Seal) | проверено | ручная | `target-validation`, `event-participants`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `action-modifier` |
-| 2 | Брошенный талисман (Tossed Talisman) | проверено | ручная | `spatial-range`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `choice-flow`, `action-modifier` |
-| 3 | Экзорцизм (Exorcize) | проверено | ручная | `target-validation`, `event-participants`, `owned-entities`, `entity-lifecycle`, `action-modifier` |
+| 1 | Barrier | кандидат | ручная | `event-preview`, `event-summary` |
+| 2 | Impenetrable | кандидат | ручная | `event-preview`, `event-summary` |
+| 3 | Block Beam | кандидат | ручная | `event-preview`, `event-summary` |
 
-### Алхимик (`altruist.alchemist`)
+### Alchemist (`altruist.alchemist`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Быстрая смесь (Quick Mix) | проверено | с выбором | `target-validation`, `event-participants`, `spatial-range`, `effect-state`, `effect-lifecycle`, `inventory`, `trigger-router`, `choice-flow`, `action-modifier` |
-| 2 | Мощная смесь (Powerful Mix) | проверено | с выбором | `target-validation`, `event-participants`, `resource-check`, `inventory`, `trigger-router`, `choice-flow`, `damage-pipeline` |
-| 3 | Высокоинтенсивная смесь (High Intensity Mix) | проверено | ручная | `resource-check`, `inventory`, `trigger-router`, `choice-flow`, `action-modifier`, `dice-hooks` |
+| 1 | Quick Mix | проверено | с выбором | `target-validation`, `event-participants`, `spatial-range`, `effect-state`, `effect-lifecycle`, `inventory`, `trigger-router`, `choice-flow`, `action-modifier` |
+| 2 | Powerful Mix | проверено | с выбором | `target-validation`, `event-participants`, `resource-check`, `inventory`, `trigger-router`, `choice-flow`, `damage-pipeline` |
+| 3 | High Intensity Mix | проверено | ручная | `resource-check`, `inventory`, `trigger-router`, `choice-flow`, `action-modifier`, `dice-hooks` |
 
-### Хрономант (`altruist.chronomancer`)
+### Dancer (`altruist.dancer`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Ускорение (Accelerate) | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle`, `effect-state`, `effect-lifecycle`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier` |
-| 2 | Замедление (Decelerate) | проверено | с выбором | `target-validation`, `event-participants`, `resource-check`, `effect-state`, `effect-lifecycle`, `trigger-router`, `reaction-window`, `action-modifier`, `dice-hooks` |
-| 3 | Остановка времени (Time Stop) | проверено | с выбором | `target-validation`, `event-participants`, `resource-check`, `rule-clock`, `usage-limits`, `trigger-router`, `turn-lifecycle`, `scene-lifecycle`, `choice-flow`, `damage-pipeline`, `action-modifier`, `duel-flow`, `dice-hooks` |
+| 1 | Dance Partner | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle`, `effect-state`, `effect-lifecycle`, `usage-limits`, `trigger-router`, `turn-lifecycle`, `choice-flow`, `action-modifier` |
+| 2 | Hearts In Tandem | проверено | ручная | `resource-check`, `trigger-router`, `action-modifier`, `action-history` |
+| 3 | The Prestige | проверено | ручная | `effect-state`, `effect-lifecycle`, `trigger-router`, `choice-flow`, `action-modifier`, `action-history` |
 
-### Танцор (`altruist.dancer`)
+### Fog Walker (`altruist.fog-walker`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Партнер по танцу (Dance Partner) | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle`, `effect-state`, `effect-lifecycle`, `usage-limits`, `trigger-router`, `turn-lifecycle`, `choice-flow`, `action-modifier` |
-| 2 | Сердца в унисон (Hearts In Tandem) | проверено | ручная | `resource-check`, `trigger-router`, `action-modifier`, `action-history` |
-| 3 | Престиж (The Prestige) | проверено | ручная | `effect-state`, `effect-lifecycle`, `trigger-router`, `choice-flow`, `action-modifier`, `action-history` |
+| 1 | Blowing Smoke | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle`, `resource-check`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `turn-lifecycle`, `choice-flow`, `action-modifier`, `composite-action` |
+| 2 | Mystic Mist | проверено | ручная | `movement-lifecycle`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `derived-stats`, `composite-action` |
+| 3 | Stinging Steam | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle`, `resource-check`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier` |
 
-### Ходящий в тумане (`altruist.fog-walker`)
+### Last Hope (`altruist.last-hope`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Пустить дым (Blowing Smoke) | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle`, `resource-check`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `turn-lifecycle`, `choice-flow`, `action-modifier`, `composite-action` |
-| 2 | Мистическая дымка (Mystic Mist) | проверено | ручная | `movement-lifecycle`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `derived-stats`, `composite-action` |
-| 3 | Жалящий пар (Stinging Steam) | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle`, `resource-check`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier` |
+| 1 | Notably Absent | проверено | ручная | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `trigger-router`, `reaction-window`, `action-modifier` |
+| 2 | Heroic Return | проверено | ручная | `movement-lifecycle`, `effect-state`, `effect-lifecycle`, `trigger-router`, `reaction-window`, `turn-lifecycle`, `duration-scheduler`, `choice-flow`, `combat-meter` |
+| 3 | Explosive Return | проверено | ручная | `trigger-router`, `reaction-window`, `turn-lifecycle` |
 
-### Последняя надежда (`altruist.last-hope`)
+### Replicator (`altruist.replicator`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Примечательно отсутствует (Notably Absent) | проверено | ручная | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `trigger-router`, `reaction-window`, `action-modifier` |
-| 2 | Героическое возвращение (Heroic Return) | проверено | ручная | `movement-lifecycle`, `effect-state`, `effect-lifecycle`, `trigger-router`, `reaction-window`, `turn-lifecycle`, `duration-scheduler`, `choice-flow`, `combat-meter` |
-| 3 | Взрывное возвращение (Explosive Return) | проверено | ручная | `trigger-router`, `reaction-window`, `turn-lifecycle` |
+| 1 | Echo Form | проверено | ручная | `target-validation`, `event-participants`, `terrain`, `owned-entities`, `entity-lifecycle`, `usage-limits`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier` |
+| 2 | Symmetry | проверено | ручная | `movement-lifecycle`, `owned-entities`, `entity-lifecycle`, `trigger-router` |
+| 3 | Full Sync | проверено | ручная | `resource-check`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `turn-lifecycle`, `action-modifier`, `derived-stats` |
 
-### Репликатор (`altruist.replicator`)
+### Temporal Sage (`altruist.chronomancer`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Форма эха (Echo Form) | проверено | ручная | `target-validation`, `event-participants`, `terrain`, `owned-entities`, `entity-lifecycle`, `usage-limits`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier` |
-| 2 | Симметрия (Symmetry) | проверено | ручная | `movement-lifecycle`, `owned-entities`, `entity-lifecycle`, `trigger-router` |
-| 3 | Полная синхронизация (Full Sync) | проверено | ручная | `resource-check`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `turn-lifecycle`, `action-modifier`, `derived-stats` |
+| 1 | Accelerate | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle`, `effect-state`, `effect-lifecycle`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier` |
+| 2 | Decelerate | проверено | с выбором | `target-validation`, `event-participants`, `resource-check`, `effect-state`, `effect-lifecycle`, `trigger-router`, `reaction-window`, `action-modifier`, `dice-hooks` |
+| 3 | Time Stop | проверено | с выбором | `target-validation`, `event-participants`, `resource-check`, `rule-clock`, `usage-limits`, `trigger-router`, `turn-lifecycle`, `scene-lifecycle`, `choice-flow`, `damage-pipeline`, `action-modifier`, `duel-flow`, `dice-hooks` |
 
-### Блуждающий огонек (`altruist.will-o-wisp`)
+### Virtuoso (`altruist.bardic-savant`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Пламя духовного плетения (Spirit Weaving Flame) | проверено | с выбором | `target-validation`, `event-participants`, `movement-lifecycle`, `effect-state`, `effect-lifecycle`, `owned-entities`, `entity-lifecycle`, `usage-limits`, `trigger-router`, `turn-lifecycle`, `scene-lifecycle`, `choice-flow`, `action-modifier` |
-| 2 | Дружелюбные духи (Friendly Spirits) | проверено | с выбором | `target-validation`, `event-participants`, `resource-check`, `movement-lifecycle`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `reaction-window`, `choice-flow` |
-| 3 | Парные духи (Twinned Spirits) | проверено | с выбором | `owned-entities`, `entity-lifecycle`, `trigger-router`, `choice-flow` |
+| 1 | Musician | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle`, `resource-check`, `effect-state`, `effect-lifecycle`, `inventory`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier` |
+| 2 | Reverb | проверено | ручная | `resource-check`, `inventory`, `usage-limits`, `trigger-router`, `turn-lifecycle`, `choice-flow`, `action-modifier` |
+| 3 | Encore | проверено | ручная | `resource-check`, `inventory`, `trigger-router`, `choice-flow`, `action-modifier` |
 
-### Художник (`altruist.artist`)
+### Artist (`altruist.artist`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Взмах кисти (Stroke Of The Brush) | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle`, `resource-check`, `effect-state`, `effect-lifecycle`, `owned-entities`, `entity-lifecycle`, `usage-limits`, `trigger-router`, `turn-lifecycle`, `choice-flow`, `action-modifier` |
-| 2 | Холст из плоти (Canvas Of Flesh) | проверено | ручная | `target-validation`, `event-participants`, `resource-check`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `choice-flow`, `action-modifier` |
-| 3 | Клеймо кисти (Brush-Brand) | проверено | ручная | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `turn-lifecycle`, `choice-flow`, `action-modifier` |
+| 1 | Stroke Of The Brush | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle`, `resource-check`, `effect-state`, `effect-lifecycle`, `owned-entities`, `entity-lifecycle`, `usage-limits`, `trigger-router`, `turn-lifecycle`, `choice-flow`, `action-modifier` |
+| 2 | Canvas Of Flesh | проверено | ручная | `target-validation`, `event-participants`, `resource-check`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `choice-flow`, `action-modifier` |
+| 3 | Brush-Brand | проверено | ручная | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `turn-lifecycle`, `choice-flow`, `action-modifier` |
 
-### Ученый бард (`altruist.bardic-savant`)
+### Deckbuilder (`altruist.deckbuilder`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Музыкант (Musician) | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle`, `resource-check`, `effect-state`, `effect-lifecycle`, `inventory`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier` |
-| 2 | Быстрая композиция (Quick Composition) | проверено | ручная | `resource-check`, `inventory`, `usage-limits`, `trigger-router`, `turn-lifecycle`, `choice-flow`, `action-modifier` |
-| 3 | На бис (Encore) | проверено | ручная | `resource-check`, `inventory`, `trigger-router`, `choice-flow`, `action-modifier` |
+| 1 | Draw | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle`, `resource-check`, `effect-state`, `effect-lifecycle`, `inventory`, `usage-limits`, `trigger-router`, `scene-lifecycle`, `choice-flow`, `damage-pipeline`, `action-modifier`, `dice-hooks` |
+| 2 | Card Capture | проверено | ручная | `target-validation`, `event-participants`, `terrain`, `owned-entities`, `entity-lifecycle`, `inventory`, `trigger-router`, `reaction-window`, `choice-flow`, `action-modifier`, `dice-hooks` |
+| 3 | Greed | проверено | ручная | `inventory`, `usage-limits`, `action-modifier` |
 
-### Сборщик колоды (`altruist.deckbuilder`)
+### Will-O-Wisp (`altruist.will-o-wisp`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Добор (Draw) | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle`, `resource-check`, `effect-state`, `effect-lifecycle`, `inventory`, `usage-limits`, `trigger-router`, `scene-lifecycle`, `choice-flow`, `damage-pipeline`, `action-modifier`, `dice-hooks` |
-| 2 | Карточная ловушка (Card Trap) | проверено | ручная | `target-validation`, `event-participants`, `terrain`, `owned-entities`, `entity-lifecycle`, `inventory`, `trigger-router`, `reaction-window`, `choice-flow`, `action-modifier`, `dice-hooks` |
-| 3 | Жадность (Greed) | проверено | ручная | `inventory`, `usage-limits`, `action-modifier` |
+| 1 | Spirit Weaving Flame | проверено | с выбором | `target-validation`, `event-participants`, `movement-lifecycle`, `effect-state`, `effect-lifecycle`, `owned-entities`, `entity-lifecycle`, `usage-limits`, `trigger-router`, `turn-lifecycle`, `scene-lifecycle`, `choice-flow`, `action-modifier` |
+| 2 | Friendly Spirits | проверено | с выбором | `target-validation`, `event-participants`, `resource-check`, `movement-lifecycle`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `reaction-window`, `choice-flow` |
+| 3 | Twinned Spirits | проверено | с выбором | `owned-entities`, `entity-lifecycle`, `trigger-router`, `choice-flow` |
 
-## Подрывник
+## Disruptor
 
-### Кровопускатель (`disruptor.bloodletter`)
+### Bloodletter (`disruptor.bloodletter`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Кровоточащее лезвие (Bleeding Edge) | проверено | ручная | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `trigger-router`, `action-modifier` |
-| 2 | Ищейка (Bloodhound) | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle`, `effect-state`, `effect-lifecycle`, `trigger-router`, `reaction-window`, `choice-flow`, `damage-pipeline`, `action-modifier` |
-| 3 | Разрыв (Rupture) [Стычка -> Передышка] | проверено | ручная | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `trigger-router`, `damage-pipeline`, `action-modifier`, `action-history`, `dice-hooks` |
+| 1 | Bleeding Edge | проверено | ручная | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `trigger-router`, `action-modifier` |
+| 2 | Bloodhound | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle`, `effect-state`, `effect-lifecycle`, `trigger-router`, `reaction-window`, `choice-flow`, `damage-pipeline`, `action-modifier` |
+| 3 | Rupture [ Skirmish → Breathe ] | проверено | ручная | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `trigger-router`, `damage-pipeline`, `action-modifier`, `action-history`, `dice-hooks` |
 
-### Химик (`disruptor.chemist`)
+### Chemist (`disruptor.chemist`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Сублимация (Sublimation) | проверено | полная | `target-validation`, `event-participants`, `spatial-cells`, `effect-state`, `effect-lifecycle`, `terrain`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `turn-lifecycle`, `duration-scheduler`, `damage-pipeline`, `action-modifier`, `derived-stats` |
-| 2 | Экспериментальная смесь (Experimental Mixture) | проверено | частичная | `target-validation`, `event-participants`, `resource-check`, `effect-state`, `effect-lifecycle`, `trigger-router`, `choice-flow`, `damage-pipeline`, `information-query` |
-| 3 | Осаждение (Deposition) | проверено | полная | `target-validation`, `event-participants`, `spatial-cells`, `effect-state`, `effect-lifecycle`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `damage-pipeline` |
+| 1 | Sublimation | проверено | полная | `target-validation`, `event-participants`, `spatial-cells`, `effect-state`, `effect-lifecycle`, `terrain`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `turn-lifecycle`, `duration-scheduler`, `damage-pipeline`, `action-modifier`, `derived-stats` |
+| 2 | Experimental Mixture | проверено | частичная | `target-validation`, `event-participants`, `resource-check`, `effect-state`, `effect-lifecycle`, `trigger-router`, `choice-flow`, `damage-pipeline`, `information-query` |
+| 3 | Deposition | проверено | полная | `target-validation`, `event-participants`, `spatial-cells`, `effect-state`, `effect-lifecycle`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `damage-pipeline` |
 
-### Душитель (`disruptor.constrictor`)
+### Constrictor (`disruptor.constrictor`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Обвить (Wrap) | проверено | с выбором | `target-validation`, `event-participants`, `movement-lifecycle`, `effect-state`, `effect-lifecycle`, `trigger-router`, `turn-lifecycle`, `choice-flow`, `action-modifier` |
-| 2 | Удушение (Choke) | проверено | полная | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `trigger-router`, `damage-pipeline`, `action-modifier` |
-| 3 | Скручивающий удар (Twisting Impact) | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle`, `effect-state`, `effect-lifecycle`, `trigger-router`, `damage-pipeline`, `action-modifier`, `dice-hooks` |
+| 1 | Wrap | проверено | с выбором | `target-validation`, `event-participants`, `movement-lifecycle`, `effect-state`, `effect-lifecycle`, `trigger-router`, `turn-lifecycle`, `choice-flow`, `action-modifier` |
+| 2 | Choke | проверено | полная | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `trigger-router`, `damage-pipeline`, `action-modifier` |
+| 3 | Twisting Impact | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle`, `effect-state`, `effect-lifecycle`, `trigger-router`, `damage-pipeline`, `action-modifier`, `dice-hooks` |
 
-### Карманник (`disruptor.cutpurse`)
+### Cutpurse (`disruptor.cutpurse`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Ловкие руки (Fast Hands) | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle`, `resource-check`, `effect-state`, `effect-lifecycle`, `usage-limits`, `trigger-router`, `turn-lifecycle`, `choice-flow` |
-| 2 | Урвать (Snatch) | проверено | ручная | `effect-state`, `effect-lifecycle`, `trigger-router`, `choice-flow` |
-| 3 | Вор в ночи (Thief In The Night) | проверено | ручная | `movement-lifecycle`, `usage-limits`, `trigger-router`, `turn-lifecycle`, `action-modifier`, `action-history` |
+| 1 | Fast Hands | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle`, `resource-check`, `effect-state`, `effect-lifecycle`, `usage-limits`, `trigger-router`, `turn-lifecycle`, `choice-flow` |
+| 2 | Snatch | проверено | ручная | `effect-state`, `effect-lifecycle`, `trigger-router`, `choice-flow` |
+| 3 | Rob Them Blind | проверено | ручная | `movement-lifecycle`, `usage-limits`, `trigger-router`, `turn-lifecycle`, `action-modifier`, `action-history` |
 
-### Морок (`disruptor.mind-breaker`)
+### Light Bender (`disruptor.light-bender`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | "Где вы?" ("Where Are You?") | проверено | ручная | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `usage-limits`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier` |
-| 2 | "Что вы делаете?" ("What Do You Do?") | проверено | частичная | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `trigger-router` |
-| 3 | "Кто они?" ("Who Are They?") | проверено | частичная | `target-validation`, `event-participants`, `movement-lifecycle`, `effect-state`, `effect-lifecycle`, `usage-limits`, `trigger-router`, `turn-lifecycle`, `choice-flow`, `action-modifier` |
+| 1 | Blendendes Licht | кандидат | ручная | `event-preview`, `event-summary` |
+| 2 | Sonneneruption | кандидат | ручная | `event-preview`, `event-summary` |
+| 3 | Falscher Stern | кандидат | ручная | `event-preview`, `event-summary` |
 
-### Жнец (`disruptor.reaper`)
+### Reaper (`disruptor.reaper`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Посев (Sow) | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle`, `effect-state`, `effect-lifecycle`, `usage-limits`, `trigger-router`, `turn-lifecycle`, `action-modifier` |
-| 2 | Уход (Tend) | проверено | частичная | `spatial-range`, `effect-state`, `effect-lifecycle`, `trigger-router`, `turn-lifecycle`, `duration-scheduler` |
-| 3 | Жатва (Reap) | проверено | ручная | `target-validation`, `event-participants`, `spatial-range`, `resource-check`, `movement-lifecycle`, `effect-state`, `effect-lifecycle`, `usage-limits`, `trigger-router`, `turn-lifecycle`, `action-modifier` |
+| 1 | Sow | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle`, `effect-state`, `effect-lifecycle`, `usage-limits`, `trigger-router`, `turn-lifecycle`, `action-modifier` |
+| 2 | Tend | проверено | частичная | `spatial-range`, `effect-state`, `effect-lifecycle`, `trigger-router`, `turn-lifecycle`, `duration-scheduler` |
+| 3 | Reap | проверено | ручная | `target-validation`, `event-participants`, `spatial-range`, `resource-check`, `movement-lifecycle`, `effect-state`, `effect-lifecycle`, `usage-limits`, `trigger-router`, `turn-lifecycle`, `action-modifier` |
 
-### Мастер тактики (`disruptor.tactical-master`)
+### Street Fighter (`disruptor.street-fighter`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Остановиться и подумать (Stop And Think) | проверено | ручная | `resource-check`, `effect-state`, `effect-lifecycle`, `stance`, `usage-limits`, `trigger-router`, `turn-lifecycle`, `damage-pipeline`, `action-modifier` |
-| 2 | Анализ (Study) | проверено | ручная | `resource-check`, `effect-state`, `effect-lifecycle`, `trigger-router`, `choice-flow`, `action-modifier` |
-| 3 | Эврика! (Eureka!) | проверено | ручная | `resource-check`, `stance`, `trigger-router`, `turn-lifecycle`, `action-modifier`, `derived-stats` |
+| 1 | Bloody Brass | проверено | ручная | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `trigger-router`, `action-modifier` |
+| 2 | Break And Bruise | проверено | ручная | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `trigger-router`, `action-modifier`, `dice-hooks` |
+| 3 | Brutalize | проверено | ручная | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `trigger-router`, `damage-pipeline`, `action-modifier`, `dice-hooks` |
 
-### Автофаг (`disruptor.autophage`)
+### Autophage (`disruptor.autophage`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Переливание (Transfusion) | проверено | частичная | `resource-check`, `alternate-resource`, `effect-state`, `effect-lifecycle`, `trigger-router`, `damage-pipeline`, `action-modifier` |
-| 2 | Перенапряжение (Overexert) | проверено | частичная | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier`, `dice-hooks` |
-| 3 | Рожденный изменчивой плотью (Born Of Mutable Flesh) | проверено | частичная | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `usage-limits`, `trigger-router`, `scene-lifecycle`, `choice-flow`, `damage-pipeline`, `action-modifier` |
+| 1 | Transfusion | проверено | частичная | `resource-check`, `alternate-resource`, `effect-state`, `effect-lifecycle`, `trigger-router`, `damage-pipeline`, `action-modifier` |
+| 2 | Overexert | проверено | частичная | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier`, `dice-hooks` |
+| 3 | Born Of Mutable Flesh | проверено | частичная | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `usage-limits`, `trigger-router`, `scene-lifecycle`, `choice-flow`, `damage-pipeline`, `action-modifier` |
 
-### Говорящий с землей (`disruptor.earth-speaker`)
+### Earth Speaker (`disruptor.earth-speaker`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Тектонический сдвиг (Tectonic Shift) | проверено | ручная | `movement-lifecycle`, `terrain`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `damage-pipeline` |
-| 2 | Земляные осколки (Earthen Shards) | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle`, `terrain`, `owned-entities`, `entity-lifecycle`, `usage-limits`, `trigger-router`, `turn-lifecycle`, `damage-pipeline` |
-| 3 | Каменные солдаты (Stone Soldiers) | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle`, `terrain`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `damage-pipeline`, `action-modifier`, `dice-hooks` |
+| 1 | Stone Soldiers | проверено | ручная | `movement-lifecycle`, `terrain`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `damage-pipeline` |
+| 2 | Tectonic Shift | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle`, `terrain`, `owned-entities`, `entity-lifecycle`, `usage-limits`, `trigger-router`, `turn-lifecycle`, `damage-pipeline` |
+| 3 | Earthen Shards | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle`, `terrain`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `damage-pipeline`, `action-modifier`, `dice-hooks` |
 
-### Нечеловеческая сила (`disruptor.inhuman-strength`)
+### Strongman (`disruptor.inhuman-strength`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Сильная рука (Strong-Arm) | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle`, `effect-state`, `effect-lifecycle`, `terrain`, `trigger-router`, `choice-flow`, `action-modifier` |
-| 2 | Поршневой кулак (Piston Fist) | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle`, `trigger-router`, `action-modifier`, `derived-stats` |
-| 3 | Проломить насквозь (Smash Through) | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle`, `terrain`, `trigger-router`, `damage-pipeline` |
+| 1 | Strong-Arm | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle`, `effect-state`, `effect-lifecycle`, `terrain`, `trigger-router`, `choice-flow`, `action-modifier` |
+| 2 | Piston Fist | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle`, `trigger-router`, `action-modifier`, `derived-stats` |
+| 3 | Smash Through | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle`, `terrain`, `trigger-router`, `damage-pipeline` |
 
-### Уличный боец (`disruptor.street-fighter`)
+### SwarmKin (`disruptor.swarm-body`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Кровавые кастеты (Bloody Brass) | проверено | ручная | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `trigger-router`, `action-modifier` |
-| 2 | Ломать и калечить (Break And Bruise) | проверено | ручная | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `trigger-router`, `action-modifier`, `dice-hooks` |
-| 3 | Зверствовать (Brutalize) | проверено | ручная | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `trigger-router`, `damage-pipeline`, `action-modifier`, `dice-hooks` |
+| 1 | Fluttering Form | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle`, `resource-check`, `terrain`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `reaction-window`, `turn-lifecycle`, `damage-pipeline` |
+| 2 | Vanish Into Flies | проверено | ручная | `movement-lifecycle`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `action-modifier` |
+| 3 | Devour | проверено | ручная | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `choice-flow`, `damage-pipeline` |
 
-### Тело-рой (`disruptor.swarm-body`)
+### Siren (`disruptor.siren`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Порхающая форма (Fluttering Form) | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle`, `resource-check`, `terrain`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `reaction-window`, `turn-lifecycle`, `damage-pipeline` |
-| 2 | Исчезнуть в мухах (Vanish Into Flies) | проверено | ручная | `movement-lifecycle`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `action-modifier` |
-| 3 | Пожрать (Devour) | проверено | ручная | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `choice-flow`, `damage-pipeline` |
+| 1 | "You wouldn't hurt ME, would you?" | проверено | с выбором | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `usage-limits`, `trigger-router`, `scene-lifecycle`, `action-modifier`, `information-query` |
+| 2 | "I'm Irresistible!" | проверено | с выбором | `target-validation`, `event-participants`, `movement-lifecycle`, `effect-state`, `effect-lifecycle`, `usage-limits`, `trigger-router`, `turn-lifecycle` |
+| 3 | "A little help over here?" | проверено | с выбором | `target-validation`, `event-participants`, `movement-lifecycle`, `effect-state`, `effect-lifecycle`, `trigger-router`, `action-modifier` |
 
-### Сирена (`disruptor.siren`)
+### Wave Rider (`disruptor.wave-rider`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Ты ведь не причинишь МНЕ боль? (You wouldn't hurt ME, would you?) | проверено | с выбором | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `usage-limits`, `trigger-router`, `scene-lifecycle`, `action-modifier`, `information-query` |
-| 2 | Неотразимая (Irresistible) | проверено | с выбором | `target-validation`, `event-participants`, `movement-lifecycle`, `effect-state`, `effect-lifecycle`, `usage-limits`, `trigger-router`, `turn-lifecycle` |
-| 3 | Помогите-ка сюда (A little help over here?) | проверено | с выбором | `target-validation`, `event-participants`, `movement-lifecycle`, `effect-state`, `effect-lifecycle`, `trigger-router`, `action-modifier` |
+| 1 | Gentle Waves | проверено | частичная | `target-validation`, `event-participants`, `movement-lifecycle`, `effect-state`, `effect-lifecycle`, `owned-entities`, `entity-lifecycle`, `usage-limits`, `trigger-router`, `turn-lifecycle`, `choice-flow`, `action-modifier` |
+| 2 | Momentous Waves | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle`, `trigger-router`, `turn-lifecycle`, `damage-pipeline`, `action-modifier` |
+| 3 | Aqua Cage | проверено | ручная | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `owned-entities`, `entity-lifecycle`, `usage-limits`, `trigger-router`, `scene-lifecycle` |
 
-### Всадник волн (`disruptor.wave-rider`)
+### Mind Breaker (`disruptor.mind-breaker`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Мягкие волны (Gentle Waves) | проверено | частичная | `target-validation`, `event-participants`, `movement-lifecycle`, `effect-state`, `effect-lifecycle`, `owned-entities`, `entity-lifecycle`, `usage-limits`, `trigger-router`, `turn-lifecycle`, `choice-flow`, `action-modifier` |
-| 2 | Мощные волны (Momentous Waves) | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle`, `trigger-router`, `turn-lifecycle`, `damage-pipeline`, `action-modifier` |
-| 3 | Водяная клетка (Aqua Cage) | проверено | ручная | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `owned-entities`, `entity-lifecycle`, `usage-limits`, `trigger-router`, `scene-lifecycle` |
+| 1 | "Where Are You?" | проверено | ручная | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `usage-limits`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier` |
+| 2 | "Where Am I?" | проверено | частичная | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `trigger-router` |
+| 3 | "Who Are They?" | проверено | частичная | `target-validation`, `event-participants`, `movement-lifecycle`, `effect-state`, `effect-lifecycle`, `usage-limits`, `trigger-router`, `turn-lifecycle`, `choice-flow`, `action-modifier` |
 
-### Шагающий по буре (`disruptor.gale-strider`)
+### Gale Strider (`disruptor.gale-strider`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Растущие ветра (Growing Winds) | проверено | частичная | `target-validation`, `event-participants`, `movement-lifecycle`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `turn-lifecycle`, `choice-flow`, `action-modifier`, `action-history` |
-| 2 | Восходящий поток (Updraft) | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle`, `effect-state`, `effect-lifecycle`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `turn-lifecycle` |
-| 3 | Рассекатель гор (Mountain Carver) | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle`, `terrain`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `choice-flow`, `damage-pipeline` |
+| 1 | Growing Winds | проверено | частичная | `target-validation`, `event-participants`, `movement-lifecycle`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `turn-lifecycle`, `choice-flow`, `action-modifier`, `action-history` |
+| 2 | Updraft | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle`, `effect-state`, `effect-lifecycle`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `turn-lifecycle` |
+| 3 | Mountain Carver | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle`, `terrain`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `choice-flow`, `damage-pipeline` |
 
-### Охотник (`disruptor.hunter`)
+### Poacher (`disruptor.hunter`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Стальные челюсти (Steel Jaws) | проверено | с выбором | `target-validation`, `event-participants`, `movement-lifecycle`, `terrain`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `reaction-window`, `choice-flow`, `action-modifier` |
-| 2 | Дальняя установка (Far Setting) | проверено | полная | `target-validation`, `event-participants`, `spatial-range`, `effect-state`, `effect-lifecycle`, `trigger-router`, `action-modifier` |
-| 3 | Яма-ловушка (Pit Trap) | проверено | частичная | `target-validation`, `event-participants`, `spatial-cells`, `terrain`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `action-modifier` |
+| 1 | Steel Jaws | проверено | с выбором | `target-validation`, `event-participants`, `movement-lifecycle`, `terrain`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `reaction-window`, `choice-flow`, `action-modifier` |
+| 2 | Far Setting | проверено | полная | `target-validation`, `event-participants`, `spatial-range`, `effect-state`, `effect-lifecycle`, `trigger-router`, `action-modifier` |
+| 3 | Pit Trap | проверено | частичная | `target-validation`, `event-participants`, `spatial-cells`, `terrain`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `action-modifier` |
 
-### Внутренний мир (`disruptor.inner-world`)
+### Jailor (`disruptor.mage-s-array`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Глубокий взгляд (Gaze Deeply) | проверено | частичная | `target-validation`, `event-participants`, `resource-check`, `effect-state`, `effect-lifecycle`, `trigger-router`, `choice-flow`, `action-modifier` |
-| 2 | Домен контроля (Domain Of Control) | проверено | с выбором | `target-validation`, `event-participants`, `spatial-cells`, `movement-lifecycle`, `effect-state`, `effect-lifecycle`, `usage-limits`, `trigger-router`, `scene-lifecycle`, `damage-pipeline` |
-| 3 | Родная территория (Home Turf) | проверено | частичная | `usage-limits`, `trigger-router`, `scene-lifecycle`, `action-modifier`, `duel-flow`, `dice-hooks` |
+| 1 | Erect | проверено | ручная | `target-validation`, `event-participants`, `spatial-cells`, `spatial-range`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `choice-flow`, `action-modifier` |
+| 2 | Readjust | проверено | ручная | `movement-lifecycle`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `choice-flow` |
+| 3 | Prison Of Your Own Design | проверено | ручная | `terrain`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `choice-flow`, `action-modifier` |
 
-### Магическая схема (`disruptor.mage-s-array`)
+### Worldsmith (`disruptor.inner-world`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Начертание (Inscribe) | проверено | ручная | `target-validation`, `event-participants`, `spatial-cells`, `spatial-range`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `choice-flow`, `action-modifier` |
-| 2 | Корректировка (Readjust) | проверено | ручная | `movement-lifecycle`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `choice-flow` |
-| 3 | Тюрьма собственного замысла (Prison Of Your Own Design) | проверено | ручная | `terrain`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `choice-flow`, `action-modifier` |
+| 1 | Gaze Deeply | проверено | частичная | `target-validation`, `event-participants`, `resource-check`, `effect-state`, `effect-lifecycle`, `trigger-router`, `choice-flow`, `action-modifier` |
+| 2 | Domain Of Control | проверено | с выбором | `target-validation`, `event-participants`, `spatial-cells`, `movement-lifecycle`, `effect-state`, `effect-lifecycle`, `usage-limits`, `trigger-router`, `scene-lifecycle`, `damage-pipeline` |
+| 3 | Home Turf | проверено | частичная | `usage-limits`, `trigger-router`, `scene-lifecycle`, `action-modifier`, `duel-flow`, `dice-hooks` |
 
-## Разрушитель
+## Ruiner
 
-### Бомбардир (`ruiner.bombardier`)
+### Bombardier (`ruiner.bombardier`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Взрыв!! (Explosion!!) | проверено | полная | `target-validation`, `event-participants`, `spatial-cells`, `spatial-range`, `action-modifier` |
-| 2 | Взрыв!!! (Explosion!!!) | проверено | полная | `target-validation`, `event-participants`, `spatial-cells`, `spatial-range`, `resource-check`, `trigger-router`, `choice-flow`, `action-modifier` |
-| 3 | ВЗРЫВ!!!! (EXPLOSION!!!!) | проверено | полная | `target-validation`, `event-participants`, `spatial-cells`, `spatial-range`, `resource-check`, `trigger-router`, `choice-flow`, `action-modifier` |
+| 1 | Explosion!! | проверено | полная | `target-validation`, `event-participants`, `spatial-cells`, `spatial-range`, `action-modifier` |
+| 2 | Explosion!!! | проверено | полная | `target-validation`, `event-participants`, `spatial-cells`, `spatial-range`, `resource-check`, `trigger-router`, `choice-flow`, `action-modifier` |
+| 3 | EXPLOSION!!!! | проверено | полная | `target-validation`, `event-participants`, `spatial-cells`, `spatial-range`, `resource-check`, `trigger-router`, `choice-flow`, `action-modifier` |
 
-### Револьверное колдовство (`ruiner.rapid-fire-sorcery`)
+### Eradicator (`ruiner.rapid-fire-sorcery`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Размножение (Proliferate) | проверено | ручная | `target-validation`, `event-participants`, `spatial-range`, `resource-check`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier`, `dice-hooks` |
-| 2 | Выжженная земля (Scorched Earth) | проверено | частичная | `target-validation`, `event-participants`, `terrain`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `turn-lifecycle`, `damage-pipeline` |
-| 3 | Бесконечный огонь (Endless Fire) [Зарядка -> Заклинание] | проверено | ручная | `target-validation`, `event-participants`, `trigger-router`, `action-modifier`, `action-history`, `dice-hooks`, `combat-meter` |
+| 1 | Proliferate | проверено | ручная | `target-validation`, `event-participants`, `spatial-range`, `resource-check`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier`, `dice-hooks` |
+| 2 | Scorched Earth | проверено | частичная | `target-validation`, `event-participants`, `terrain`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `turn-lifecycle`, `damage-pipeline` |
+| 3 | Endless Fire [ Charge → Cast ] | проверено | ручная | `target-validation`, `event-participants`, `trigger-router`, `action-modifier`, `action-history`, `dice-hooks`, `combat-meter` |
 
-### Ритуалист (`ruiner.ritualist`)
+### Ritualist (`ruiner.ritualist`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Лей-линии (Ley Lines) | проверено | частичная | `resource-check`, `terrain`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `choice-flow`, `action-modifier`, `combat-meter` |
-| 2 | Магическая артиллерия (Arcane Artillery) | проверено | ручная | `spatial-range`, `terrain`, `owned-entities`, `entity-lifecycle`, `usage-limits`, `trigger-router`, `turn-lifecycle`, `action-modifier`, `dice-hooks`, `combat-meter` |
-| 3 | Фрактальные начертания (Fractal Etchings) | проверено | ручная | `terrain`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `scene-lifecycle`, `choice-flow`, `action-modifier` |
+| 1 | Ley Lines | проверено | частичная | `resource-check`, `terrain`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `choice-flow`, `action-modifier`, `combat-meter` |
+| 2 | Arcane Artillery | проверено | ручная | `spatial-range`, `terrain`, `owned-entities`, `entity-lifecycle`, `usage-limits`, `trigger-router`, `turn-lifecycle`, `action-modifier`, `dice-hooks`, `combat-meter` |
+| 3 | Fractal Etchings | проверено | ручная | `terrain`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `scene-lifecycle`, `choice-flow`, `action-modifier` |
 
-### Творец заклинаний (`ruiner.spellcrafter`)
+### Spellcrafter (`ruiner.spellcrafter`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Эксперимент (Experimentation) | проверено | с выбором | `spatial-cells`, `spatial-range`, `inventory`, `usage-limits`, `trigger-router`, `scene-lifecycle`, `choice-flow`, `damage-pipeline`, `action-modifier`, `derived-stats` |
-| 2 | Закрепление (Solidification) | проверено | с выбором | `resource-check`, `inventory`, `trigger-router`, `action-modifier`, `derived-stats` |
-| 3 | Финализация (Finalization) | проверено | с выбором | `resource-check`, `inventory`, `trigger-router`, `action-modifier` |
+| 1 | Experimentation | проверено | с выбором | `spatial-cells`, `spatial-range`, `inventory`, `usage-limits`, `trigger-router`, `scene-lifecycle`, `choice-flow`, `damage-pipeline`, `action-modifier`, `derived-stats` |
+| 2 | Solidification | проверено | с выбором | `resource-check`, `inventory`, `trigger-router`, `action-modifier`, `derived-stats` |
+| 3 | Finalization | проверено | с выбором | `resource-check`, `inventory`, `trigger-router`, `action-modifier` |
 
-### Ученик звезд (`ruiner.student-of-stars`)
+### Student Of Stars (`ruiner.student-of-stars`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Высвобожденная мощь (Power Unleashed) [Зарядка -> Завершение] | проверено | ручная | `resource-check`, `usage-limits`, `action-modifier`, `action-history`, `combat-meter` |
-| 2 | Бесформенная сила (Formless Strength) | проверено | частичная | `target-validation`, `event-participants`, `spatial-cells`, `choice-flow`, `action-modifier`, `action-history` |
-| 3 | Момент истины (Moment Of Truth) | проверено | ручная | `resource-check`, `trigger-router`, `choice-flow`, `duel-flow`, `dice-hooks` |
+| 1 | Power Unleashed [ Charge → Finisher ] | проверено | ручная | `resource-check`, `usage-limits`, `action-modifier`, `action-history`, `combat-meter` |
+| 2 | Formless Strength | проверено | частичная | `target-validation`, `event-participants`, `spatial-cells`, `choice-flow`, `action-modifier`, `action-history` |
+| 3 | Moment Of Truth | проверено | ручная | `resource-check`, `trigger-router`, `choice-flow`, `duel-flow`, `dice-hooks` |
 
-### Криомант (`ruiner.cryomancer`)
+### Blade Smith (`ruiner.mana-blades`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Охлаждение (Chill) | проверено | полная | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `trigger-router`, `action-modifier` |
-| 2 | Ледяной нимб (Icicle Halo) | проверено | частичная | `target-validation`, `event-participants`, `resource-check`, `effect-state`, `effect-lifecycle`, `rule-clock`, `trigger-router`, `scene-lifecycle`, `choice-flow`, `damage-pipeline`, `action-modifier`, `dice-hooks` |
-| 3 | Раскол (Shatter) | проверено | ручная | `target-validation`, `event-participants`, `spatial-range`, `resource-check`, `effect-state`, `effect-lifecycle`, `trigger-router`, `damage-pipeline`, `action-modifier`, `information-query` |
+| 1 | Call Arms | проверено | ручная | `resource-check`, `trigger-router`, `choice-flow`, `action-modifier`, `action-copy` |
+| 2 | Blade Storm | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle`, `effect-state`, `effect-lifecycle`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `action-modifier`, `dice-hooks` |
+| 3 | Saintly Sword, Excalibur | проверено | ручная | `effect-state`, `effect-lifecycle`, `trigger-router`, `choice-flow`, `action-modifier`, `transformation`, `action-copy` |
 
-### Драматург (`ruiner.dramaturge`)
+### Dramaturge (`ruiner.dramaturge`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Все смотрят на меня (All Eyes On Me) | проверено | ручная | `resource-check`, `usage-limits`, `trigger-router`, `choice-flow`, `action-modifier`, `dice-hooks`, `combat-meter` |
-| 2 | Украсть их огонь (Snatch Their Fire) | проверено | ручная | `trigger-router`, `turn-lifecycle`, `combat-meter` |
-| 3 | Сила подачи (Power In Presentation) | проверено | ручная | `target-validation`, `event-participants`, `resource-check`, `effect-state`, `effect-lifecycle`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier`, `combat-meter` |
+| 1 | All Eyes On Me | проверено | ручная | `resource-check`, `usage-limits`, `trigger-router`, `choice-flow`, `action-modifier`, `dice-hooks`, `combat-meter` |
+| 2 | Snatch Their Fire | проверено | ручная | `trigger-router`, `turn-lifecycle`, `combat-meter` |
+| 3 | Power In Presentation | проверено | ручная | `target-validation`, `event-participants`, `resource-check`, `effect-state`, `effect-lifecycle`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier`, `combat-meter` |
 
-### Дикая магия (`ruiner.feral-arcana`)
+### Feral Arcanist (`ruiner.feral-arcana`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Ворпальный коготь (Vorpal Claw) | проверено | ручная | `target-validation`, `event-participants`, `spatial-range`, `effect-state`, `effect-lifecycle`, `action-modifier`, `dice-hooks` |
-| 2 | Сорваться с цепи (Unchain) [Зарядка -> Взаимодействие] | проверено | с выбором | `target-validation`, `event-participants`, `resource-check`, `effect-state`, `effect-lifecycle`, `movement-lifecycle`, `rule-clock`, `trigger-router`, `turn-lifecycle`, `choice-flow`, `action-modifier`, `duration-scheduler`, `combat-meter` |
-| 3 | Хватка (Grasp) | проверено | с выбором | `target-validation`, `event-participants`, `movement-lifecycle`, `rule-clock`, `trigger-router`, `choice-flow`, `action-modifier`, `dice-hooks`, `combat-meter` |
+| 1 | Vorpal Claw | проверено | ручная | `target-validation`, `event-participants`, `spatial-range`, `effect-state`, `effect-lifecycle`, `action-modifier`, `dice-hooks` |
+| 2 | Unchain [ Charge → Interact] | проверено | с выбором | `target-validation`, `event-participants`, `resource-check`, `effect-state`, `effect-lifecycle`, `movement-lifecycle`, `rule-clock`, `trigger-router`, `turn-lifecycle`, `choice-flow`, `action-modifier`, `duration-scheduler`, `combat-meter` |
+| 3 | Grasp | проверено | с выбором | `target-validation`, `event-participants`, `movement-lifecycle`, `rule-clock`, `trigger-router`, `choice-flow`, `action-modifier`, `dice-hooks`, `combat-meter` |
 
-### Пламенное сердце (`ruiner.flame-heart`)
+### Flame Heart (`ruiner.flame-heart`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Разогрев (Rev Up) | проверено | ручная | `resource-check`, `effect-state`, `effect-lifecycle`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier` |
-| 2 | Проклятый удар (Damning Impact) | проверено | ручная | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `trigger-router`, `damage-pipeline`, `action-modifier`, `dice-hooks`, `combat-meter` |
-| 3 | Прах к праху (Ashes To Ashes) | проверено | ручная | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `trigger-router`, `choice-flow`, `action-modifier`, `dice-hooks` |
+| 1 | Rev Up | проверено | ручная | `resource-check`, `effect-state`, `effect-lifecycle`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier` |
+| 2 | Damning Impact | проверено | ручная | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `trigger-router`, `damage-pipeline`, `action-modifier`, `dice-hooks`, `combat-meter` |
+| 3 | Ashes To Ashes | проверено | ручная | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `trigger-router`, `choice-flow`, `action-modifier`, `dice-hooks` |
 
-### Мрачный Вознесенный (`ruiner.grim-ascendant`)
+### Frost Veiler (`ruiner.cryomancer`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Непостоянная мощь (Impermanent Power) | проверено | с выбором | `target-validation`, `event-participants`, `spatial-range`, `resource-check`, `effect-state`, `effect-lifecycle`, `movement-lifecycle`, `usage-limits`, `trigger-router`, `scene-lifecycle`, `choice-flow`, `damage-pipeline`, `action-modifier`, `derived-stats`, `transformation`, `combat-meter` |
-| 2 | Вытянуть жизнь (Drain Life) | проверено | частичная | `effect-state`, `effect-lifecycle`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier`, `transformation` |
-| 3 | Умбра (Umbra) | проверено | ручная | `target-validation`, `event-participants`, `spatial-cells`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier`, `transformation` |
+| 1 | Chill | проверено | полная | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `trigger-router`, `action-modifier` |
+| 2 | Icicle Halo | проверено | частичная | `target-validation`, `event-participants`, `resource-check`, `effect-state`, `effect-lifecycle`, `rule-clock`, `trigger-router`, `scene-lifecycle`, `choice-flow`, `damage-pipeline`, `action-modifier`, `dice-hooks` |
+| 3 | Shatter | проверено | ручная | `target-validation`, `event-participants`, `spatial-range`, `resource-check`, `effect-state`, `effect-lifecycle`, `trigger-router`, `damage-pipeline`, `action-modifier`, `information-query` |
 
-### Сильное натяжение (`ruiner.long-draw`)
+### Grim Ascendant (`ruiner.grim-ascendant`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Наложить стрелу (Nock The Arrow) | проверено | ручная | `resource-check`, `inventory`, `trigger-router`, `action-modifier`, `dice-hooks` |
-| 2 | Перьевой шаг (Feather Step) | проверено | ручная | `movement-lifecycle`, `inventory`, `trigger-router` |
-| 3 | Пронзитель владык (Lord Piercer) [Подготовка x 3] | проверено | ручная | `target-validation`, `event-participants`, `spatial-range`, `resource-check`, `inventory`, `trigger-router`, `scene-lifecycle`, `damage-pipeline`, `action-modifier`, `action-history` |
+| 1 | Impermanent Power | проверено | с выбором | `target-validation`, `event-participants`, `spatial-range`, `resource-check`, `effect-state`, `effect-lifecycle`, `movement-lifecycle`, `usage-limits`, `trigger-router`, `scene-lifecycle`, `choice-flow`, `damage-pipeline`, `action-modifier`, `derived-stats`, `transformation`, `combat-meter` |
+| 2 | Drain Life | проверено | частичная | `effect-state`, `effect-lifecycle`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier`, `transformation` |
+| 3 | Umbra | проверено | ручная | `target-validation`, `event-participants`, `spatial-cells`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier`, `transformation` |
 
-### Клинки маны (`ruiner.mana-blades`)
+### Ranger (`ruiner.long-draw`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | К оружию (Call Arms) | проверено | ручная | `resource-check`, `trigger-router`, `choice-flow`, `action-modifier`, `action-copy` |
-| 2 | Орудия павших (Tools Of The Fallen) | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle`, `effect-state`, `effect-lifecycle`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `action-modifier`, `dice-hooks` |
-| 3 | Святой меч, Экскалибур (Saintly Sword, Excalibur) | проверено | ручная | `effect-state`, `effect-lifecycle`, `trigger-router`, `choice-flow`, `action-modifier`, `transformation`, `action-copy` |
+| 1 | Nock The Arrow | проверено | ручная | `resource-check`, `inventory`, `trigger-router`, `action-modifier`, `dice-hooks` |
+| 2 | Feather Step | проверено | ручная | `movement-lifecycle`, `inventory`, `trigger-router` |
+| 3 | Lord Piercer [ Prepare × 3 ] | проверено | ручная | `target-validation`, `event-participants`, `spatial-range`, `resource-check`, `inventory`, `trigger-router`, `scene-lifecycle`, `damage-pipeline`, `action-modifier`, `action-history` |
 
-### Душа пустоты (`ruiner.void-soul`)
+### Sword Caller (`ruiner.sellsword-s-call`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Возвращение в ничто (Return To Nothing) | проверено | ручная | `movement-lifecycle`, `effect-state`, `effect-lifecycle`, `trigger-router`, `turn-lifecycle`, `duration-scheduler`, `choice-flow` |
-| 2 | Раствориться (Fade Away) | проверено | ручная | `resource-check`, `movement-lifecycle`, `usage-limits`, `trigger-router`, `turn-lifecycle` |
-| 3 | Полое сердце (Hollow Heart) | проверено | с выбором | `target-validation`, `event-participants`, `spatial-cells`, `effect-state`, `effect-lifecycle`, `movement-lifecycle`, `rule-clock`, `trigger-router`, `scene-lifecycle`, `damage-pipeline`, `action-modifier` |
+| 1 | A Warrior's Reprise | проверено | частичная | `target-validation`, `event-participants`, `spatial-cells`, `resource-check`, `owned-entities`, `entity-lifecycle`, `summon-turns`, `usage-limits`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier` |
+| 2 | Warrior's Fury | проверено | ручная | `resource-check`, `movement-lifecycle`, `effect-state`, `effect-lifecycle`, `owned-entities`, `entity-lifecycle`, `summon-turns`, `trigger-router`, `choice-flow`, `action-modifier` |
+| 3 | Supreme Sellsword | проверено | ручная | `target-validation`, `event-participants`, `spatial-cells`, `resource-check`, `owned-entities`, `entity-lifecycle`, `summon-turns`, `usage-limits`, `trigger-router`, `scene-lifecycle`, `choice-flow`, `action-modifier`, `bond-actions`, `deployment-hooks` |
 
-### Громовая кровь (`ruiner.thunder-blood`)
+### Void Soul (`ruiner.void-soul`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Райден (Raiden) | проверено | с выбором | `effect-state`, `effect-lifecycle`, `rule-clock`, `trigger-router`, `scene-lifecycle`, `choice-flow`, `action-modifier` |
-| 2 | Заряженное заклинание (Energized Incantation) | проверено | с выбором | `target-validation`, `event-participants`, `spatial-range`, `effect-state`, `effect-lifecycle`, `movement-lifecycle`, `rule-clock`, `trigger-router`, `choice-flow`, `action-modifier` |
-| 3 | Разрядка (Discharge) | проверено | с выбором | `target-validation`, `event-participants`, `spatial-cells`, `effect-state`, `effect-lifecycle`, `rule-clock`, `trigger-router`, `damage-pipeline`, `action-modifier`, `dice-hooks` |
+| 1 | Return To Nothing | проверено | ручная | `movement-lifecycle`, `effect-state`, `effect-lifecycle`, `trigger-router`, `turn-lifecycle`, `duration-scheduler`, `choice-flow` |
+| 2 | Fade Away | проверено | ручная | `resource-check`, `movement-lifecycle`, `usage-limits`, `trigger-router`, `turn-lifecycle` |
+| 3 | Hollow Heart | проверено | с выбором | `target-validation`, `event-participants`, `spatial-cells`, `effect-state`, `effect-lifecycle`, `movement-lifecycle`, `rule-clock`, `trigger-router`, `scene-lifecycle`, `damage-pipeline`, `action-modifier` |
 
-### Фанатик (`ruiner.zealot`)
+### Thunder Blood (`ruiner.thunder-blood`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Еретическая преданность (Heretical Devotion) | проверено | с выбором | `resource-check`, `rule-clock`, `usage-limits`, `trigger-router`, `scene-lifecycle`, `choice-flow`, `action-modifier`, `dice-hooks` |
-| 2 | Всегда под взглядом, утоплен в слезах (Always Watched, Drowned In Tears) | проверено | с выбором | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `rule-clock`, `trigger-router`, `turn-lifecycle`, `choice-flow` |
-| 3 | Так не должно было быть (Never Meant To Be) | проверено | с выбором | `target-validation`, `event-participants`, `movement-lifecycle`, `rule-clock`, `terrain`, `spatial-topology`, `trigger-router`, `choice-flow`, `action-modifier` |
+| 1 | Raiden | проверено | с выбором | `effect-state`, `effect-lifecycle`, `rule-clock`, `trigger-router`, `scene-lifecycle`, `choice-flow`, `action-modifier` |
+| 2 | Energized Incantation | проверено | с выбором | `target-validation`, `event-participants`, `spatial-range`, `effect-state`, `effect-lifecycle`, `movement-lifecycle`, `rule-clock`, `trigger-router`, `choice-flow`, `action-modifier` |
+| 3 | Tactical Discharge | проверено | с выбором | `target-validation`, `event-participants`, `spatial-cells`, `effect-state`, `effect-lifecycle`, `rule-clock`, `trigger-router`, `damage-pipeline`, `action-modifier`, `dice-hooks` |
 
-### Аскет творения (`ruiner.creation-ascetic`)
+### Zealot (`ruiner.zealot`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Формирование знаков (Forming Signs) | проверено | с выбором | `target-validation`, `event-participants`, `spatial-cells`, `spatial-range`, `resource-check`, `alternate-resource`, `movement-lifecycle`, `terrain`, `usage-limits`, `trigger-router`, `scene-lifecycle`, `choice-flow`, `damage-pipeline`, `action-modifier`, `dice-hooks` |
-| 2 | Один истинный мир (One True World) | проверено | полная | `resource-check`, `alternate-resource`, `terrain`, `usage-limits`, `trigger-router`, `turn-lifecycle`, `damage-pipeline`, `action-modifier` |
-| 3 | Труд благочестивых (Labor Of The Devout) [Заклинание -> Завершение] | проверено | полная | `resource-check`, `alternate-resource`, `action-modifier`, `action-history` |
+| 1 | Heretical Devotion | проверено | с выбором | `resource-check`, `rule-clock`, `usage-limits`, `trigger-router`, `scene-lifecycle`, `choice-flow`, `action-modifier`, `dice-hooks` |
+| 2 | Freak | проверено | с выбором | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `rule-clock`, `trigger-router`, `turn-lifecycle`, `choice-flow` |
+| 3 | Never Meant To Be | проверено | с выбором | `target-validation`, `event-participants`, `movement-lifecycle`, `rule-clock`, `terrain`, `spatial-topology`, `trigger-router`, `choice-flow`, `action-modifier` |
 
-### Эго-оружие (`ruiner.ego-arm`)
+### Creator (`ruiner.creation-ascetic`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Я - твой меч (I Am Your Sword) | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier`, `deployment-hooks`, `transformation` |
-| 2 | Покажи свои цели (Show Your Targets) | проверено | ручная | `target-validation`, `event-participants`, `resource-check`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `turn-lifecycle`, `damage-pipeline`, `action-modifier`, `action-history`, `derived-stats` |
-| 3 | И я стану незаменимым (And I'll Become Irreplaceable) | проверено | ручная | `target-validation`, `event-participants`, `resource-check`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `choice-flow`, `action-modifier`, `dice-hooks`, `derived-stats` |
+| 1 | Forming Signs | проверено | с выбором | `target-validation`, `event-participants`, `spatial-cells`, `spatial-range`, `resource-check`, `alternate-resource`, `movement-lifecycle`, `terrain`, `usage-limits`, `trigger-router`, `scene-lifecycle`, `choice-flow`, `damage-pipeline`, `action-modifier`, `dice-hooks` |
+| 2 | One True World | проверено | полная | `resource-check`, `alternate-resource`, `terrain`, `usage-limits`, `trigger-router`, `turn-lifecycle`, `damage-pipeline`, `action-modifier` |
+| 3 | Labor Of The Devout [ Cast → Finisher ] | проверено | полная | `resource-check`, `alternate-resource`, `action-modifier`, `action-history` |
 
-### Зов наемника (`ruiner.sellsword-s-call`)
+### Ego Arm (`ruiner.ego-arm`)
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Реприза воина (A Warrior's Reprise) | проверено | частичная | `target-validation`, `event-participants`, `spatial-cells`, `resource-check`, `owned-entities`, `entity-lifecycle`, `summon-turns`, `usage-limits`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier` |
-| 2 | Боевой гимн (Battle Hymn) | проверено | ручная | `resource-check`, `movement-lifecycle`, `effect-state`, `effect-lifecycle`, `owned-entities`, `entity-lifecycle`, `summon-turns`, `trigger-router`, `choice-flow`, `action-modifier` |
-| 3 | Верховный наемник (Supreme Sellsword) | проверено | ручная | `target-validation`, `event-participants`, `spatial-cells`, `resource-check`, `owned-entities`, `entity-lifecycle`, `summon-turns`, `usage-limits`, `trigger-router`, `scene-lifecycle`, `choice-flow`, `action-modifier`, `bond-actions`, `deployment-hooks` |
+| 1 | I Am Your Sword | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier`, `deployment-hooks`, `transformation` |
+| 2 | Show Your Targets | проверено | ручная | `target-validation`, `event-participants`, `resource-check`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `turn-lifecycle`, `damage-pipeline`, `action-modifier`, `action-history`, `derived-stats` |
+| 3 | And I'll Become Irreplaceable | проверено | ручная | `target-validation`, `event-participants`, `resource-check`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `choice-flow`, `action-modifier`, `dice-hooks`, `derived-stats` |
 
 ## Поддержание ручной сверки
 

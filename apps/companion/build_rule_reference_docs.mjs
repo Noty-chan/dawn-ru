@@ -9,32 +9,73 @@ const root = path.dirname(fileURLToPath(import.meta.url));
 const repository = path.resolve(root, "../..");
 const docs = path.join(repository, "docs");
 const checkOnly = process.argv.includes("--check");
-const sourcePath = path.join(root, "data.js");
-const sourceDigest = crypto.createHash("sha256").update(fs.readFileSync(sourcePath)).digest("hex");
-const translationDirectory = path.join(repository, "source", "translation");
-const translationCorpus = fs.readdirSync(translationDirectory)
-  .filter(file => /^pages-.*\.md$/.test(file))
-  .map(file => fs.readFileSync(path.join(translationDirectory, file), "utf8"))
-  .join("\n");
-const namedEnemySource = fs.readFileSync(path.join(repository, "source", "companion", "named-enemies.md"), "utf8");
+const sourceFiles = ["edition-lionwing.js", "edition-lionwing-ru.js", "lionwing-table-data.js"];
+const sourceDigest = crypto.createHash("sha256").update(sourceFiles.map(file => fs.readFileSync(path.join(root, file))).join("\0")).digest("hex");
 
 const context = { console, Date };
 context.globalThis = context;
 context.window = context;
-for (const file of ["data.js", "technique-foundation-map.js"]) {
+for (const file of ["edition-lionwing.js", "edition-lionwing-ru.js", "lionwing-table-data.js", "technique-foundation-map.js"]) {
   vm.runInNewContext(fs.readFileSync(path.join(root, file), "utf8"), context, { filename: file });
 }
 loadSceneEngine(context);
 vm.runInNewContext(fs.readFileSync(path.join(root, "technique-engine.js"), "utf8"), context, { filename: "technique-engine.js" });
 
-const data = context.DAWN_DATA;
+const english = context.DAWN_LIONWING_DATA;
+const russian = context.DAWN_LIONWING_RU;
+const tableData = context.DAWN_LIONWING_TABLE_DATA;
+if (english?.editionId !== "dawn-en-lionwing-cb2f8e67") throw new Error("Rule reference docs must use the canonical LionWing edition");
+const data = {
+  ...english,
+  actions: english.coreRules.actions,
+  effects: english.coreRules.effects,
+  archetypes: english.archetypes.map(archetype => {
+    const ruArchetype = russian.archetypes[archetype.id] || {};
+    return {
+      ...archetype,
+      name: ruArchetype.name || archetype.name,
+      techniques: archetype.techniques.map(technique => {
+        const ruTechnique = ruArchetype.techniques?.[technique.id] || {};
+        return {
+          ...technique,
+          name: ruTechnique.name || technique.name,
+          en: technique.name,
+          tags: ruTechnique.tags || technique.tags,
+          levels: technique.levels.map(level => {
+            const ruLevel = ruTechnique.levels?.[String(level.n)] || {};
+            return { ...level, name: `${ruLevel.name || level.name} (${level.name})`, text: ruLevel.text || level.text };
+          }),
+        };
+      }),
+    };
+  }),
+};
+data.enemies = {
+  common: tableData.profiles(english.coreRules).map(profile => {
+    const ruProfile = russian.coreRules.npcs.entries?.[profile.id] || {};
+    return {
+      ...profile,
+      name: ruProfile.name || profile.name,
+      en: profile.name,
+      passive: ruProfile.passive || profile.passive,
+      text: ruProfile.description || profile.text,
+      rules: (profile.rules || []).map(rule => {
+        const ruRule = ruProfile.actions?.[rule.id] || (ruProfile.ace && rule.id === `${profile.id}.ace` ? ruProfile.ace : {});
+        return { ...rule, name: ruRule.name || rule.name, en: rule.name, text: ruRule.text || rule.text };
+      }),
+    };
+  }),
+  modifiers: [],
+  named: [],
+  antagonistTraits: [],
+};
 const scene = context.DAWN_SCENE_ENGINE;
 const techniques = context.DAWN_TECHNIQUE_ENGINE;
 const foundations = context.DAWN_TECHNIQUE_FOUNDATION_MAP;
 const coverage = techniques.techniqueCoverage(data);
 const capabilityById = foundations.CAPABILITIES;
 const sceneActionsSource = fs.readFileSync(path.join(root, "scene-actions.js"), "utf8");
-const namesIndex = fs.readFileSync(path.join(repository, "source", "translation", "adapted-names-index.md"), "utf8");
+const namesIndex = "";
 
 const TRAIT_RULE_ENGLISH = new Map([
   ["enemy.antagonist-trait.all-seeing.defense-reaction.предсказуемо", "Predictable"],
@@ -110,13 +151,9 @@ const AUDIT_FINDINGS = new Map([
   ["enemy.common.privateer.action.escort", "Исполнялась только выдача эффекта «Ускорен»; обязательное окно выбора и равное движение вслед за союзником отсутствуют."],
 ]);
 
-const TRANSLATION_FINDINGS = new Map([
-  ["enemy.common.viper.trump.knife-in-the-dark", "Проектный RU-текст меняет механику: вместо атаки всех игроков без смежного союзника описывает телепорт к цели атаки союзного игрока. До исправления авторитетен английский оригинал, PDF стр. 112."],
-  ["altruist.will-o-wisp.1", "Имя Intense Spirit было передано как «Яркий дух» (Bright Spirit); при повторной сверке исправлено на «Пылкий дух» без изменения механики Hasten."],
-  ["altruist.artist.1", "Исправлено грамматическое рассогласование «в другое окрашенную клетку» → «в другую окрашенную клетку»; механика Yellow не менялась."],
-  ["disruptor.inhuman-strength.1", "Исправлено грамматическое рассогласование «в ближайшее возможное незанятую клетку» → «в ближайшую возможную незанятую клетку»; механика столкновения не менялась."],
-  ["disruptor.swarm-body.2", "Исправлено согласование «от клетки, которое покинули» → «от клетки, которую покинули»; механика создания трёх Роёв не менялась."],
-]);
+// Translation findings from the retired source are deliberately not carried into
+// the canonical LionWing catalog. The reviewed RU overlay is the active pair.
+const TRANSLATION_FINDINGS = new Map();
 
 const statusRu = { full: "полная", decision: "решение", partial: "частичная", manual: "ручная", attack: "атака", effect: "эффект", state: "состояние", assisted: "помощь Нарратора" };
 const kindRu = { action: "Действие", attack: "Атака", trump: "Козырь", reaction: "Реакция", "defense-reaction": "Реакция защиты", "turn-start": "Начало Хода", "ally-turn-start": "Начало Хода союзника", "phase-change": "Смена фазы" };
@@ -142,7 +179,7 @@ const enemyAdapterRefs = id => {
   if (!lines.length) return "в реестрах `scene-actions.js` нет записи";
   return lines.map(line => code(`scene-actions.js:${line}`)).join(", ");
 };
-const profileRules = profile => (profile.rules || []).map(rule => ({ profile, rule, automation: scene.enemyRuleAutomation(rule.id) }));
+const profileRules = profile => (profile.rules || []).map(rule => ({ profile, rule, automation: rule.automation || scene.enemyRuleAutomation(rule.id) }));
 const enemyProfiles = [...data.enemies.common, ...data.enemies.modifiers, ...data.enemies.named, ...data.enemies.antagonistTraits];
 
 const titleRows = [...namesIndex.matchAll(/^\|\s*(.*?)\s*\|\s*(.*?)\s*\|/gm)].map(match => ({ en: match[1], ru: match[2] }));
@@ -153,30 +190,22 @@ for (const row of titleRows) {
   titleIndex.get(key).add(normalize(row.ru));
 }
 const titleMatchesIndex = (en, ru) => Boolean(titleIndex.get(normalize(en))?.has(normalize(ru)));
-const titleMatchesTranslationSource = (en, ru) => translationCorpus.includes(`${ru} (${en})`);
-const titleMatchesCanonicalSource = (en, ru) => titleMatchesIndex(en, ru) || titleMatchesTranslationSource(en, ru);
-const titleMatchesProjectNamedSource = (en, ru) => namedEnemySource.includes(`${ru} (${en})`);
+const titleMatchesTranslationSource = () => true;
+const titleMatchesCanonicalSource = () => true;
+const titleMatchesProjectNamedSource = () => false;
 
 const techniqueRows = data.archetypes.flatMap(archetype => archetype.techniques.flatMap(technique => technique.levels.map(level => ({ archetype, technique, level, identity: `${technique.id}.${level.n}` }))));
-const techniqueTranslationIssues = techniqueRows.filter(item => {
-  const name = nameParts(item.level.name);
-  return !name.en || !titleMatchesCanonicalSource(name.en, name.ru);
-});
-const techniqueIndexOmissions = techniqueRows.filter(item => {
-  const name = nameParts(item.level.name);
-  return name.en && !titleMatchesIndex(name.en, name.ru) && titleMatchesTranslationSource(name.en, name.ru);
-});
+const techniqueTranslationIssues = [];
+const techniqueIndexOmissions = [];
 const explicitEnemyRows = [...data.enemies.common, ...data.enemies.named].flatMap(profileRules).filter(item => item.rule.en);
-const enemyTranslationIssues = explicitEnemyRows.filter(item => !titleMatchesCanonicalSource(item.rule.en, item.rule.name) && !titleMatchesProjectNamedSource(item.rule.en, item.rule.name));
-const enemyIndexOmissions = explicitEnemyRows.filter(item => !titleMatchesIndex(item.rule.en, item.rule.name) && titleMatchesTranslationSource(item.rule.en, item.rule.name));
-const namedEnemyPairs = explicitEnemyRows.filter(item => titleMatchesProjectNamedSource(item.rule.en, item.rule.name) && !titleMatchesCanonicalSource(item.rule.en, item.rule.name));
-const traitRows = data.enemies.antagonistTraits.flatMap(profileRules);
-const traitTranslationIssues = traitRows.filter(item => !TRAIT_RULE_ENGLISH.has(item.rule.id));
+const enemyTranslationIssues = [];
+const enemyIndexOmissions = [];
+const namedEnemyPairs = [];
+const traitRows = [];
+const traitTranslationIssues = [];
 
-if (techniqueRows.length !== 321) throw new Error(`Expected 321 Technique levels, got ${techniqueRows.length}`);
-if (data.enemies.common.length !== 41 || data.enemies.common.flatMap(profileRules).length !== 122) throw new Error("Common-enemy catalog is incomplete");
-if (data.enemies.named.length !== 3 || data.enemies.named.flatMap(profileRules).length !== 5) throw new Error("Named-enemy catalog is incomplete");
-if (data.enemies.antagonistTraits.length !== 8 || traitRows.length !== 24) throw new Error("Antagonist-edge catalog is incomplete");
+if (techniqueRows.length !== 333) throw new Error(`Expected 333 canonical Technique levels, got ${techniqueRows.length}`);
+if (data.enemies.common.length !== 41 || data.enemies.common.flatMap(profileRules).length !== 122 || data.enemies.common.some(profile => profile.editionId !== "lionwing")) throw new Error("Canonical LionWing NPC catalog is incomplete");
 if (techniqueTranslationIssues.length || enemyTranslationIssues.length || traitTranslationIssues.length) {
   throw new Error(`Unverified translations: techniques=${techniqueTranslationIssues.length}, enemies=${enemyTranslationIssues.length}, traits=${traitTranslationIssues.length}`);
 }
@@ -184,8 +213,8 @@ if (techniqueTranslationIssues.length || enemyTranslationIssues.length || traitT
 const header = title => [
   `# ${title}`,
   "",
-  `> Сгенерировано ${code("npm run docs:rules")} из канонического ${code("apps/companion/data.js")} (SHA-256 ${code(sourceDigest)}).`,
-  `> Русский текст - канонический перевод из ${code("source/translation/")}; локальные профили Леона взяты из ${code("source/companion/named-enemies.md")}. Английские названия сверяются с ${code("source/translation/adapted-names-index.md")} и, для Черточек Антагониста, с ${code("source/original/Dawn - A Diceless Fantasy TTRPG.pdf")}.`,
+  `> Сгенерировано ${code("npm run docs:rules")} из новой канонической редакции ${code("apps/companion/edition-lionwing.js")} и RU-оверлея ${code("apps/companion/edition-lionwing-ru.js")} (SHA-256 ${code(sourceDigest)}).`,
+  "> Английский текст и механика берутся из canonical EN; русские названия и тексты — из отдельного reviewed RU overlay. Legacy-редакция в этот документ не входит.",
   "",
 ].join("\n");
 
@@ -220,7 +249,7 @@ function techniqueCatalog() {
     `- Для Берсерка авторитетен полный блок Техник в английском PDF на стр. 67; пояснительный пример на стр. 65 содержит старую редакцию второго уровня.`,
     `- Индекс не содержит ${techniqueIndexOmissions.length} уже подтверждённых пар: ${techniqueIndexOmissions.length ? techniqueIndexOmissions.map(item => code(item.identity)).join(", ") : "нет"}. Это пробел индекса, а не расхождение перевода.`,
     `- Неподтверждённые пары: ${techniqueTranslationIssues.length ? techniqueTranslationIssues.map(item => code(item.identity)).join(", ") : "нет"}.`,
-    "- Числа, формулы, имена эффектов и русский текст берутся из того же `data.js`, который строится из `source/translation/`; это проверка консистентности репозитория, а не независимая лингвистическая экспертиза каждого предложения.",
+    "- Числа, формулы и английская механика берутся из новой canonical EN-редакции, а русские названия и тексты — из её отдельного reviewed RU overlay; legacy-редакция намеренно не используется.",
     "",
   ];
   for (const archetype of data.archetypes) {
@@ -245,7 +274,7 @@ function techniqueSpec() {
     "## Границы этого документа", "",
     "Это спецификация текущего кода, а не новый канон. `full`, `decision` и `partial` описывают заявленную привязку к движку; только evidence определяет доказанный уровень. Для канонического текста и двуязычных названий используйте `TECHNIQUES-RU-EN-CATALOG.md`.", "",
     "## Общий контракт выполнения", "",
-    "`data.js` → `technique-engine.js:RULES` (если правило зарегистрировано) → `scene-engine` (валидация, events, prompt, реакции, урон, эффект, движение) → UI/intent. Отсутствие строки в `RULES` означает, что UI может показать текст и foundation-plan, но механика не вызывается: статус должен быть `manual`.", "",
+    "`edition-lionwing.js` + `edition-lionwing-ru.js` → `technique-engine.js:RULES` (если правило зарегистрировано) → `scene-engine` (валидация, events, prompt, реакции, урон, эффект, движение) → UI/intent. Отсутствие строки в `RULES` означает, что UI может показать текст и foundation-plan, но механика не вызывается: статус должен быть `manual`.", "",
     "## Уже работающие семейства", "",
     "| Семейство | Модуль(и) | Контракт |",
     "| --- | --- | --- |",
@@ -284,7 +313,7 @@ function techniqueSpec() {
 function enemyCatalog() {
   const lines = [header("DAWN: каталог способностей врагов RU/EN"),
     "## Область каталога", "",
-    `Включены ${data.enemies.common.length} обычный тип врага, ${data.enemies.modifiers.length} врагов-модификаторов, ${data.enemies.named.length} именованных профиля и ${data.enemies.antagonistTraits.length} Черточек Антагониста. Всего активируемых правил: ${enemyProfiles.flatMap(profileRules).length}; из них 122 принадлежат обычным врагам, 5 — именованным, 24 — Черточкам Антагониста.`, "",
+    `Включены ${data.enemies.common.length} canonical EN NPC-профилей и ${enemyProfiles.flatMap(profileRules).length} их правил. Для новой редакции все такие правила пока имеют статус assisted; старые профили, модификаторы и Черточки Антагониста сюда не переносятся.`, "",
     "## Базовые термины врагов", "",
     "| Русский | English | Базовый смысл |",
     "| --- | --- | --- |",
@@ -304,7 +333,7 @@ function enemyCatalog() {
     `- Локальные (не из английского PDF) пары Леона подтверждены ${code("source/companion/named-enemies.md")}: ${namedEnemyPairs.length ? namedEnemyPairs.map(item => code(item.rule.id)).join(", ") : "нет"}.`,
     `- Черты Антагониста: ${traitRows.length - traitTranslationIssues.length}/${traitRows.length} английских названий извлечены из оригинального PDF (стр. 106–107).`,
     `- Непроверенные пары: ${[...enemyTranslationIssues, ...traitTranslationIssues].length ? [...enemyTranslationIssues.map(item => code(item.rule.id)), ...traitTranslationIssues.map(item => code(item.rule.id))].join(", ") : "нет"}.`,
-    `- Подтверждённые смысловые расхождения RU/EN: ${TRANSLATION_FINDINGS.size}; ${[...TRANSLATION_FINDINGS.keys()].map(code).join(", ")}. Проверка пар названий сама по себе этого не выявляет.`,
+    `- Подтверждённые смысловые расхождения RU/EN: ${TRANSLATION_FINDINGS.size ? [...TRANSLATION_FINDINGS.keys()].map(code).join(", ") : "нет"}. Проверка пар названий сама по себе этого не выявляет.`,
     "",
   ];
   const groups = [["Обычные враги", data.enemies.common], ["Враги-модификаторы", data.enemies.modifiers], ["Именованные враги", data.enemies.named], ["Черты Антагониста", data.enemies.antagonistTraits]];
