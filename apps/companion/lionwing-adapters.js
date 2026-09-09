@@ -14,6 +14,79 @@
   const attackIds = new Set(["action.атаки.заклинание", "action.атаки.завершение", "action.атаки.стычка"]);
   const sceneFocus = amount => actor => [{ kind: "resource", targetId: actor.id, resource: "focus", operation: "gain", amount: typeof amount === "function" ? amount(actor) : amount }];
   const resourceConfiguration = (actor, id, label, current, options = {}) => [{ kind: "configure-resource", targetId: actor.id, id, label, current, initial: current, scope: options.scope || "scene", lifetime: "scene", replaces: options.replaces || null, replacesAp: options.replacesAp === true, inverted: options.inverted === true, ruleId: options.ruleId || null }];
+  const eventTrigger = ({ id, label, sourceDigest, coverage = "full", triggerKey, operations = [], choices = [] }) => ({ id, techniqueId: id.replace(/\.\d+$/, ""), level: Number(id.match(/\.(\d+)$/)?.[1] || 0), label, sourceDigest, coverage, available: actor => knows(actor, id.replace(/\.\d+$/, ""), Number(id.match(/\.(\d+)$/)?.[1] || 0)), triggerKey, operations, choices });
+
+  // Completed-event adapters are deliberately data-only.  The engine supplies
+  // the authoritative event and applies the returned operations; an adapter
+  // can only describe an eligible trigger and its optional choices.
+  const eventAdapters = [
+    eventTrigger({
+      id: "bulwark.rising-challenger.1",
+      label: "Восходящий претендент I: после успешного Столкновения получить Фокус и выбрать перемещение",
+      sourceDigest: "8dac6ad2f82600c0115cd3569d35ae2b0229d6b1ef750e33ee347a2b017bded6",
+      coverage: "partial",
+      triggerKey: ({ actor, event }) => `${event.id}:${actor.id}`,
+      operations: actor => [{ kind: "resource", targetId: actor.id, resource: "focus", operation: "gain", amount: 1 }],
+      choices: (actor, event) => [{
+        id: "move",
+        label: `Переместиться на ${Number(actor.tier || 1)} клеток`,
+        operations: [{ kind: "move", targetId: actor.id, maximum: Number(actor.tier || 1), forced: false, techniqueId: "bulwark.rising-challenger.1" }],
+        context: { destinationRequired: true, targetId: actor.id, maximum: Number(actor.tier || 1), eventId: event.id },
+      }],
+    }),
+    eventTrigger({
+      id: "powerhouse.berserker.3",
+      label: "Берсерк III: первый полученный урон за Ход даёт Фокус",
+      sourceDigest: "f8a2fdd4233866f34b406075d3315b2284daf7f825d8ba9202fa91b643cfc504",
+      coverage: "partial",
+      triggerKey: ({ actor, event, context }) => `${context.ownerTurnKey || event.id}:${actor.id}`,
+      operations: actor => [{ kind: "resource", targetId: actor.id, resource: "focus", operation: "gain", amount: 1 }],
+      choices: () => [],
+    }),
+    eventTrigger({
+      id: "powerhouse.intimidator.3",
+      label: "Запугиватель III: после выведения врага получить 2 Фокуса и 1 ОД",
+      sourceDigest: "8f8c850431a27afebd4c48021fe9b2e4dec0bf8574f8324222acf328b8a239e5",
+      coverage: "partial",
+      triggerKey: ({ actor, event }) => `${event.id}:${actor.id}`,
+      operations: actor => [
+        { kind: "resource", targetId: actor.id, resource: "focus", operation: "gain", amount: 2 },
+        { kind: "resource", targetId: actor.id, resource: "ap", operation: "gain", amount: 1 },
+      ],
+      choices: () => [],
+    }),
+    eventTrigger({
+      id: "disruptor.siren.2",
+      label: "Сирена II: после Испуга выбрать притягивание до 3 клеток",
+      sourceDigest: "62f65d9d2cfad5b96f12f80b2ece81635e47b5f63083b35b4f4c6eb1db1b5ed6",
+      coverage: "partial",
+      triggerKey: ({ actor, event, context }) => `${context.ownerTurnKey || event.id}:${actor.id}`,
+      operations: () => [],
+      choices: (actor, event) => {
+        const targetId = event.payload?.targetId;
+        return targetId ? [{
+          id: "pull",
+          label: "Притянуть до 3 клеток",
+          operations: [{ kind: "forced-towards", targetId, sourceActorId: actor.id, maximum: 3, ruleId: "disruptor.siren.2" }],
+          context: { targetId, sourceActorId: actor.id, maximum: 3, eventId: event.id },
+        }] : [];
+      },
+    }),
+    eventTrigger({
+      id: "disruptor.chemist.2",
+      label: "Химик II: после Ослабления запросить Здоровье и при пороге вывести цель из боя",
+      sourceDigest: "ac64f39e6d822bc8b310d86e0a37a9c2c7236f089e76d51e70693c943bd3dff3",
+      coverage: "partial",
+      triggerKey: ({ actor, event }) => `${event.id}:${actor.id}`,
+      operations: () => [],
+      choices: (actor, event) => event.payload?.targetId ? [{
+        id: "check-health",
+        label: "Запросить текущее Здоровье",
+        operations: [{ kind: "chemist-health-check", targetId: event.payload.targetId, sourceActorId: actor.id, ruleId: "disruptor.chemist.2" }],
+        context: { targetId: event.payload.targetId, sourceActorId: actor.id, eventId: event.id },
+      }] : [],
+    }),
+  ];
 
   const berserker = Object.freeze({
     id: "powerhouse.berserker.2", techniqueId: "powerhouse.berserker", level: 2,
@@ -105,8 +178,23 @@
     passive({ id: "vagabond.knife-juggler.2", label: "Жонглёр ножами II: +1 Преимущество к Стычкам (пассивная часть)", sourceDigest: "4da1a911cf7ed1eb5a90e3c4aed8abbb87087a567f7ab38406c11d1130c6c54a", coverage: "partial", rollBonus: actionBonus("action.атаки.стычка") }),
     passive({ id: "vagabond.assassin.2", label: "Убийца II: +[Ранг] Преимущества к Атакам из Исчезновения (пассивная часть)", sourceDigest: "6e95fe2767088e069f995f384a6e03856f26d428161dbd57efca1c03a5eda98f", coverage: "partial", rollBonus: (actor, context) => context?.kind === "attack" && attackIds.has(context.actionId) && context.sourceEffectIds?.includes("positive.исчез") ? Number(actor.tier || 1) : 0 }),
   ];
-  const adapters = Object.freeze([berserker, flagellant, ...passives]);
+  const adapters = Object.freeze([berserker, flagellant, ...passives, ...eventAdapters]);
   const enabled = actor => adapters.filter(rule => rule.available(actor) && actor.lionwing?.automation?.[rule.id] === true);
+  const eventTriggerRules = Object.freeze(eventAdapters);
+  const afterEvent = (actor, event, context = {}) => {
+    if (!actor || !event || !event.type) return [];
+    return enabled(actor).filter(rule => eventTriggerRules.includes(rule)).flatMap(rule => {
+      let match = false;
+      if (rule.id === "bulwark.rising-challenger.1") match = event.type === "clash.success" && event.actorId === actor.id;
+      else if (rule.id === "powerhouse.berserker.3") match = event.type === "damage.apply" && event.payload?.targetId === actor.id && Number(event.payload?.dealt || 0) > 0 && !context.used;
+      else if (rule.id === "powerhouse.intimidator.3") match = event.type === "actor.knockout" && event.actorId === actor.id && event.payload?.targetId !== actor.id && Boolean(event.payload?.targetId);
+      else if (rule.id === "disruptor.siren.2") match = event.type === "effect.apply" && event.payload?.effect === "negative.испуган" && event.actorId === actor.id && event.payload?.targetId !== actor.id;
+      else if (rule.id === "disruptor.chemist.2") match = event.type === "effect.apply" && event.payload?.effect === "negative.ослаблен" && event.actorId === actor.id && event.payload?.targetId !== actor.id;
+      if (!match) return [];
+      const triggerKey = typeof rule.triggerKey === "function" ? rule.triggerKey({ actor, event, context }) : `${event.id}:${actor.id}`;
+      return [{ id: rule.id, label: rule.label, sourceDigest: rule.sourceDigest, coverage: rule.coverage, triggerKey, operations: rule.operations(actor, event, context), choices: rule.choices(actor, event, context) }];
+    });
+  };
   const numericContributions = (actor, method, context) => enabled(actor).flatMap(rule => {
     const amount = Number(method.startsWith("stat") ? rule[method]?.(actor, context.key, context) : rule[method]?.(actor, context) || 0);
     return Number.isFinite(amount) && amount !== 0 ? [{ id: rule.id, label: rule.label, amount }] : [];
@@ -115,6 +203,7 @@
     list: actor => adapters.filter(rule => rule.available(actor)).map(({ id, label, sourceDigest, coverage }) => ({ id, label, sourceDigest, coverage })),
     replacements: (actor, original) => enabled(actor).flatMap(rule => rule.replacements?.(actor, original) || []),
     afterEffect: (actor, original) => enabled(actor).flatMap(rule => rule.afterEffect?.(actor, original) || []),
+    afterEvent,
     rollBonuses: (actor, context = {}) => numericContributions(actor, "rollBonus", context),
     rollBonus: (actor, context = {}) => numericContributions(actor, "rollBonus", context).reduce((sum, item) => sum + item.amount, 0),
     statBonuses: (actor, key, context = {}) => numericContributions(actor, "statBonus", { ...context, key }),

@@ -48,7 +48,7 @@ as $$
   select (value - 'undo' - 'redo' - 'turnUndo' - 'privateNotes' - 'gmNotes') || jsonb_build_object(
     'view','player',
     'lionwing',case when jsonb_typeof(value->'lionwing')='object' then
-      ((value->'lionwing') - 'history' - 'pausedChains' - 'receipts' - 'deferred' - 'afterAttack' - 'compounds' - 'executionCursor' - 'entities') || jsonb_build_object(
+      ((value->'lionwing') - 'history' - 'pausedChains' - 'receipts' - 'deferred' - 'afterAttack' - 'compounds' - 'executionCursor' - 'afterEventReceipts' - 'entities') || jsonb_build_object(
         'entities',coalesce((select jsonb_object_agg(key,item) from jsonb_each(coalesce(value->'lionwing'->'entities','{}'::jsonb)) entries(key,item) where coalesce(item->>'visibility','public')='public' and public.scene_metadata_visible(item,(select ids from hidden_ids))),'{}'::jsonb),
         'choices',coalesce((select jsonb_agg(item) from jsonb_array_elements(coalesce(value->'lionwing'->'choices','[]'::jsonb)) item where public.scene_metadata_visible(item,(select ids from hidden_ids))),'[]'::jsonb),
         'duels',coalesce((select jsonb_agg(item) from jsonb_array_elements(coalesce(value->'lionwing'->'duels','[]'::jsonb)) item where public.scene_metadata_visible(item,(select ids from hidden_ids))),'[]'::jsonb),
