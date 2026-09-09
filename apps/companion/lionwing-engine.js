@@ -363,8 +363,8 @@
   };
   const latestJumpDistance = (scene, a) => {
     const turnInstanceId = currentTurnInstance(scene);
-    const row = (scene.log || []).find(item => item?.type === "actor.move" && item.actorId === a.id && item.payload?.sourceActionId === ids.jump && (turnInstanceId == null || item.payload?.ownerTurnInstanceId === turnInstanceId));
-    return row?.payload?.distance == null ? null : Number(row.payload.distance);
+    const row = (scene.log || []).find(item => item?.type === "movement.end" && item.actorId === a.id && item.payload?.movement?.sourceActionId === ids.jump && (turnInstanceId == null || item.payload?.movement?.ownerTurnInstanceId === turnInstanceId));
+    return row?.payload?.movement?.distance == null ? null : Number(row.payload.movement.distance);
   };
   const maxHealth = a => stat(a, "maxHp");
   const scaledMove = (a, amount, scene=null) => Math.ceil(amount * ((scene?effectActive(scene,a,"positive.ускорен"):has(a,"positive.ускорен")) ? 2 : 1) / ((scene?effectActive(scene,a,"negative.замедлен"):has(a,"negative.замедлен")) ? 2 : 1));
@@ -779,7 +779,9 @@
     if(!attacks.has(def.id)||!targets.length)return{base,counts:{}};
     const taunts=activeEffectSources(a,"negative.спровоцирован",scene).map(x=>x.actorId),fears=activeEffectSources(a,"negative.испуган",scene).map(x=>x.actorId);
     const sourceEffectIds=activeState(scene,a.id).effects.map(status=>status.effect),techniqueTags=(p.techniqueTags||[]).map(tag=>String(tag).toLowerCase());
-    const jumpDistance = p.jumpDistance ?? latestJumpDistance(scene, a);
+    // A caller may decline the chain explicitly, but cannot inflate its
+    // distance: every positive value comes from the completed Jump journal.
+    const jumpDistance = Number(p.jumpDistance) === 0 ? null : latestJumpDistance(scene, a);
     const attackAttribute = p.attribute || (def.id === ids.finish ? "spirit" : def.id === ids.skirmish ? (Number(a.attrs.body) >= Number(a.attrs.talent) ? "body" : "talent") : "spirit");
     const differentEnemiesWithinFive = p.differentEnemiesWithinFive ?? (p.rapidFire === true ? new Set(scene.actors.filter(target => live(target) && target.team !== a.team && target.space === a.space && distance(a, target) <= 5).map(target => target.compoundId || target.id)).size : null);
     const targetContext = {
@@ -1029,7 +1031,7 @@
       else if (type === "counter.threshold") saveFact("counter.threshold", actorId, targets, { counterId: payload.counterId || payload.id, kind: payload.kind || payload.type, before: payload.before, value: payload.value, threshold: payload.threshold });
       else if (type === "aura.enter" || type === "aura.exit") saveFact(type, actorId, [actorId], { auraId:payload.auraId, effectId:payload.effectId, ruleId:payload.ruleId, ownerActorId:payload.ownerActorId, sourceEntityId:payload.sourceEntityId, movementTargetId:payload.movementTargetId||null, segmentIndex:payload.segmentIndex??null });
       else if (type === "attack.clear" && payload.cancelled) saveFact("cancel", actorId, targets, { reason: payload.reason || "cancelled" });
-      if (scheduleAfterEvent && ["clash.success", "damage.apply", "actor.knockout", "effect.apply", "actor.enter", "action.resolve", "marker.remove", "reaction.respond", "resource.gain"].includes(type)) scheduleAfterEvent(row);
+      if (scheduleAfterEvent && ["clash.success", "damage.apply", "actor.knockout", "effect.apply", "actor.enter", "action.resolve", "marker.remove", "reaction.respond", "resource.gain", "movement.prepare", "movement.start", "movement.segment", "movement.enter", "movement.leave", "movement.cross", "movement.end", "movement.stop"].includes(type)) scheduleAfterEvent(row);
       return row;
     };
     const emitSpecial = (type, actorId, operation, payload, before, after) => {
@@ -1427,13 +1429,14 @@
     };
     const move = (a, p) => {
       const auraBefore=auraSnapshot();
+      const firstMovementThisTurn=!(scene.log||[]).some(row=>row.type==="movement.start"&&row.actorId===a.id&&Number(row.execution?.turnSerial)===Number(scene.turnSerial));
       const result = p.__verifiedRoute ? {cost:p.__verifiedRoute.spent,path:p.__verifiedRoute.path.map(point=>({x:point.x,y:point.y})),space:p.__verifiedRoute.stoppedAt.space,endedByDifficultTerrain:p.__verifiedRoute.terminal&&p.__verifiedRoute.stopReason==="difficult-terrain"} : movement(scene, a, p.destination || p, p), from = { x: a.x, y: a.y, space: a.space };
       const endpoint=result.path[result.path.length-1]||p.destination||p;
       a.x = endpoint.x; a.y = endpoint.y; a.space = result.space;
       if(result.endedByDifficultTerrain){astate(a).difficultTerrainStopSerial=scene.turnSerial;a.stepRemaining=0;}
       if(a.compoundId)for(const part of scene.actors.filter(x=>x.compoundId===a.compoundId)){part.x=a.x;part.y=a.y;part.space=a.space;}
       const publicPayload={...p};delete publicPayload.__deferAuraTransitions;
-      emit("actor.move", a.id, { ...publicPayload, from, x: a.x, y: a.y, space: a.space, path: result.path, distance: result.cost });
+      const moveRow=emit("actor.move", a.id, { ...publicPayload, from, x: a.x, y: a.y, space: a.space, path: result.path, distance: result.cost });
       syncAttachedMarkers(a, p.sourceActionId || p.movement || "movement");
       // Every supported move has a stable endpoint entry receipt.  The
       // segment id is derived from the authoritative execution root, so a
@@ -1441,6 +1444,23 @@
       emit("actor.enter", a.id, { x: a.x, y: a.y, space: a.space, segmentId: `${rootId}:endpoint`, movement: p.movement || "Перемещение", teleport: Boolean(p.teleport) });
       const auraTransitions=auraChanges(auraBefore);
       if(!p.__deferAuraTransitions)emitAuraChanges(auraTransitions,{movementTargetId:a.id,from,to:{space:a.space,x:a.x,y:a.y}});
+      // Core actions such as Jump use the same journal facts as a planned
+      // route. A segmented route emits its own windows below, so avoid a
+      // duplicate lifecycle for its one-cell reducer moves.
+      if(!p.__verifiedRoute&&!p.placement){
+        const lifecycle={id:`${rootId}:move:${a.id}:${moveRow.id}`,actorId:a.id,sourceActorId:p.sourceActorId||a.id,sourceActionId:p.sourceActionId||null,actionInstanceId:p.actionInstanceId||provenance?.actionInstanceId||null,ownerTurnInstanceId:p.ownerTurnInstanceId||null,techniqueRuleId:p.techniqueRuleId||p.ruleId||null,sourceDigest:p.sourceDigest||null,mode:p.teleport?"teleport":p.forced?"forced":p.mode||"move",forced:Boolean(p.forced),from:copy(from),path:result.path.map(point=>({space:result.space,x:Number(point.x),y:Number(point.y)})),distance:Number(result.cost||0),totalDistanceThisTurn:Number(result.cost||0),firstMovementThisTurn,stoppedAt:{space:a.space,x:Number(a.x),y:Number(a.y)},stopReason:result.endedByDifficultTerrain?"difficult-terrain":null};
+        emit("movement.prepare",a.id,{routeId:lifecycle.id,targetId:a.id,requestedDestination:copy(p.destination||p),maximum:Number(p.maximum??result.cost??0),movement:lifecycle});
+        emit("movement.start",a.id,{routeId:lifecycle.id,targetId:a.id,movement:lifecycle});
+        for(const [index,to] of lifecycle.path.entries()){
+          const segment={index,from:index?lifecycle.path[index-1]:copy(from),to:copy(to),cost:1,terminal:Boolean(lifecycle.stopReason&&index===lifecycle.path.length-1),stopReason:lifecycle.stopReason};
+          emit("movement.leave",a.id,{routeId:lifecycle.id,targetId:a.id,from:copy(segment.from),to:copy(to),segment,movement:{...lifecycle,path:lifecycle.path.slice(0,index)}});
+          emit("movement.segment",a.id,{routeId:lifecycle.id,targetId:a.id,to:copy(to),segment,movement:{...lifecycle,path:lifecycle.path.slice(0,index+1),distance:index+1,totalDistanceThisTurn:index+1,stoppedAt:copy(to)}});
+          emit("movement.enter",a.id,{routeId:lifecycle.id,targetId:a.id,to:copy(to),segment,movement:{...lifecycle,path:lifecycle.path.slice(0,index+1),distance:index+1,totalDistanceThisTurn:index+1,stoppedAt:copy(to)}});
+          emit("movement.cross",a.id,{routeId:lifecycle.id,targetId:a.id,from:copy(segment.from),to:copy(to),segment,movement:{...lifecycle,path:lifecycle.path.slice(0,index+1),distance:index+1,totalDistanceThisTurn:index+1,stoppedAt:copy(to)}});
+        }
+        emit("movement.end",a.id,{routeId:lifecycle.id,targetId:a.id,stoppedAt:copy(lifecycle.stoppedAt),terminal:Boolean(lifecycle.stopReason),stopReason:lifecycle.stopReason,movement:lifecycle});
+        if(lifecycle.stopReason)emit("movement.stop",a.id,{routeId:lifecycle.id,targetId:a.id,stoppedAt:copy(lifecycle.stoppedAt),terminal:true,stopReason:lifecycle.stopReason,movement:lifecycle});
+      }
       // A typed notification is also useful when the Technique itself is manual.
       const points=[from,...result.path.map(point=>({...point,space:result.space}))];
       if (!p.placement) for (const foe of scene.actors.filter(x => live(x) && !effectActive(scene,x,"positive.исчез") && x.team !== a.team)) if (points.some((point,index)=>index>0&&distance(points[index-1],foe)===1&&distance(point,foe)>1)) {
@@ -1465,6 +1485,15 @@
       return { ...result, distance: 0 };
     };
     const geometryRouteId = route => `${route?.sourceActorId || "scene"}:${route?.actorId || "movement"}:${route?.sceneVersion || 0}:${route?.geometryStamp || ""}`;
+    // One compact, public-safe snapshot accompanies every lifecycle row. The
+    // route itself was checked by DAWN_LIONWING_GEOMETRY; adapters only ever
+    // receive these derived facts, never a client-supplied path or distance.
+    const movementLifecycle = (route, operation, cursor = {}, extra = {}) => {
+      const id = geometryRouteId(route), prior = (scene.log || []).filter(row => row.type === "movement.start" && row.actorId === route.actorId && Number(row.execution?.turnSerial) === Number(scene.turnSerial)).length;
+      const completed = (route.segments || []).slice(0, Number(cursor.segmentIndex || 0));
+      const distance = Number(cursor.spent || 0);
+      return { id, actorId: route.actorId, sourceActorId: operation.sourceActorId || route.sourceActorId, sourceActionId: operation.sourceActionId || route.request?.sourceActionId || null, actionInstanceId: provenance?.actionInstanceId || operation.actionInstanceId || null, techniqueRuleId: operation.techniqueRuleId || operation.ruleId || route.request?.techniqueRuleId || null, sourceDigest: operation.sourceDigest || route.request?.sourceDigest || null, mode: route.mode || "move", forced: route.mode === "forced" || Boolean(operation.forced), from: route.origin ? copy(route.origin) : null, path: completed.map(segment => copy(segment.to)), distance, totalDistanceThisTurn: distance, firstMovementThisTurn: prior === 0, stoppedAt: extra.stoppedAt ? copy(extra.stoppedAt) : null, stopReason: extra.stopReason || null };
+    };
     const geometryTriggerList = (plan, operation) => {
       const values = operation.segmentChoices ?? operation.enterChoices ?? operation.segmentTriggers ?? operation.boundaryChoices ?? operation.onEnter ?? plan?.request?.segmentChoices ?? plan?.request?.enterChoices ?? plan?.request?.segmentTriggers ?? plan?.request?.boundaryChoices ?? plan?.request?.onEnter ?? plan?.route?.segmentChoices ?? plan?.route?.enterChoices ?? plan?.route?.segmentTriggers ?? plan?.route?.boundaryChoices ?? plan?.route?.onEnter ?? [];
       if (Array.isArray(values)) return values;
@@ -1485,6 +1514,7 @@
     }) || null;
     const geometryCommit = (route, target, operation, cursor, terminal = false, stopReason = null) => {
       const stoppedAt = { space: target.space, x: Number(target.x), y: Number(target.y) };
+      const lifecycle = movementLifecycle(route, operation, cursor, { stoppedAt, stopReason });
       // Keep the legacy actor.move projection available to old journal/UI
       // consumers. The actual state transition has already happened one
       // segment at a time; this row is only the completed-route summary.
@@ -1496,6 +1526,7 @@
         space: stoppedAt.space,
         path: (route.path || []).map(point => ({ x: Number(point.x), y: Number(point.y) })),
         distance: Number(cursor.spent || 0),
+        movement: lifecycle,
         geometrySummary: true,
       });
       emit("geometry.route.commit", operation.sourceActorId || route.sourceActorId, {
@@ -1508,7 +1539,10 @@
         stopReason: stopReason || null,
         segments: route.segments || [],
         cursor: { ...cursor, status: "completed", phase: terminal ? "terminal" : "completed" },
+        movement: lifecycle,
       });
+      emit("movement.end", target.id, { routeId: lifecycle.id, targetId: target.id, stoppedAt, terminal: Boolean(terminal), stopReason: stopReason || null, movement: lifecycle });
+      if (terminal) emit("movement.stop", target.id, { routeId: lifecycle.id, targetId: target.id, stoppedAt, terminal: true, stopReason: stopReason || "terminal", movement: lifecycle });
       if(operation.spatialCommit){
         const saved=copy(operation.spatialCommit),summary={...(saved.summary||{})},completedSegments=(route.segments||[]).slice(0,Number(cursor.segmentIndex||route.segments?.length||0));
         summary.stoppedAt=stoppedAt;summary.path=completedSegments.map(segment=>copy(segment.to));summary.segments=copy(completedSegments);summary.spent=Number(cursor.spent||0);summary.remaining=terminal?0:Math.max(0,Number(route.maximum||0)-Number(cursor.spent||0));summary.terminal=Boolean(terminal);summary.stopReason=stopReason||null;
@@ -2262,6 +2296,7 @@
           const checked=geometry.revalidatePlan(scene,p.geometryPlan);if(!checked.available)fail(checked.reason);
           if(checked.route.sourceActorId!==sourceId||checked.route.actorId!==(p.targetId||sourceId))fail("Геометрический план принадлежит другой операции");
           const target=requiredActor(scene,checked.route.actorId),route=checked.route,segments=geometry.routeSegments(route);
+          emit("movement.prepare", target.id, { routeId: geometryRouteId(route), targetId: target.id, requestedDestination: copy(route.destination), maximum: Number(route.maximum || 0), movement: movementLifecycle(route, p, { segmentIndex: 0, spent: 0 }) });
           if(!segments.length){
             const cursor=geometry.geometryCursor(route,0,scene,{id:`${rootId}:geometry`,status:"completed",phase:"completed",spent:0});
             delete s.geometryCursor;
@@ -2280,13 +2315,20 @@
           if(!checked.available)fail(checked.reason);
           if(checked.completed){delete s.geometryCursor;geometryCommit(route,requiredActor(scene,route.actorId),p,cursor,false,null);if(p.groupId)queue.unshift({p:{kind:"forced-towards-group-after-route",groupId:p.groupId,moverId:p.groupMoverId||route.actorId},sourceId:p.sourceActorId||sourceId,provenance:copy(provenance)});break;}
           const target=requiredActor(scene,route.actorId),segment=checked.segment;
-          const phasePayload={routeId:geometryRouteId(route),targetId:target.id,segmentIndex,from:segment.from,to:segment.to,cost:segment.cost,cursor:{...cursor,phase:"before-leave"}};
+          const lifecycle=movementLifecycle(route,p,cursor), segmentPayload={index:segmentIndex,from:copy(segment.from),to:copy(segment.to),cost:Number(segment.cost||0),terminal:Boolean(segment.terminal),stopReason:segment.stopReason||null};
+          if(segmentIndex===0)emit("movement.start",target.id,{routeId:lifecycle.id,targetId:target.id,movement:lifecycle});
+          const phasePayload={routeId:geometryRouteId(route),targetId:target.id,segmentIndex,from:segment.from,to:segment.to,cost:segment.cost,cursor:{...cursor,phase:"before-leave"},movement:lifecycle,segment:segmentPayload};
           emit("geometry.segment.before-leave",target.id,phasePayload);
+          emit("movement.leave",target.id,phasePayload);
           emit("geometry.segment.leave",target.id,{...phasePayload,cursor:{...cursor,phase:"leave"}});
           emit("geometry.segment.before-enter",target.id,{...phasePayload,cursor:{...cursor,phase:"before-enter"}});
           const result=move(target,{destination:segment.to,forced:route.mode==="forced",maximum:segment.cost,width:route.width,height:route.height,ignoreTerrain:plan.request?.ignoreTerrain===true,ignoreOpponents:plan.request?.ignoreEnemies===true,straight:plan.request?.straight===true,__verifiedRoute:{spent:segment.cost,path:[{x:segment.to.x,y:segment.to.y}],space:segment.to.space,stoppedAt:segment.to,terminal:Boolean(segment.terminal),stopReason:segment.stopReason||null},__deferAuraTransitions:true,movement:p.label||"Движение по плану"});
           emit("geometry.segment.enter",target.id,{...phasePayload,cursor:{...cursor,phase:"enter"},position:{space:target.space,x:Number(target.x),y:Number(target.y)}});
           emitAuraChanges(result.auraTransitions,{movementTargetId:target.id,routeId:geometryRouteId(route),segmentIndex,boundary:"enter",from:segment.from,to:segment.to});
+          const enteredMovement={...lifecycle,path:[...lifecycle.path,copy(segment.to)],distance:Number(cursor.spent||0)+Number(segment.cost||0),totalDistanceThisTurn:Number(cursor.spent||0)+Number(segment.cost||0),stoppedAt:copy(segment.to)};
+          emit("movement.segment",target.id,{...phasePayload,to:copy(segment.to),movement:enteredMovement,segment:segmentPayload});
+          emit("movement.enter",target.id,{...phasePayload,to:copy(segment.to),movement:enteredMovement,segment:segmentPayload});
+          emit("movement.cross",target.id,{...phasePayload,from:copy(segment.from),to:copy(segment.to),movement:enteredMovement,segment:segmentPayload});
           const spent=Number(cursor.spent||0)+Number(segment.cost||result.cost||0),nextIndex=segmentIndex+1,terminal=Boolean(segment.terminal||nextIndex>=geometry.routeSegments(route).length&&route.terminal),trigger=geometryTriggerFor(plan,p,segment,segmentIndex),nextCursor=nextIndex<geometry.routeSegments(route).length&&!terminal?queueGeometrySegment(plan,p,cursor,sourceId,nextIndex,spent):{...geometry.geometryCursor(route,nextIndex,{...scene,version:Number(scene.version||0)+1},{id:cursor.id,spent,phase:terminal?"terminal":"completed",status:"completed",expectedSceneVersion:Number(scene.version||0)+1,expectedGeometryStamp:geometry.geometryStamp({...scene,version:Number(scene.version||0)+1})}),status:"completed",phase:terminal?"terminal":"completed"};
           if(terminal||nextIndex>=geometry.routeSegments(route).length){delete s.geometryCursor;geometryCommit(route,target,p,nextCursor,terminal,terminal?segment.stopReason||route.stopReason||null:null);if(p.groupId)queue.unshift({p:{kind:"forced-towards-group-after-route",groupId:p.groupId,moverId:p.groupMoverId||target.id},sourceId:p.sourceActorId||sourceId,provenance:copy(provenance)});break;}
           if(!s.choices.length&&trigger){

@@ -382,5 +382,71 @@
     return { available: true, stale: false, reason: "", plan: { ...clone(plan), route: saved }, route: saved };
   }
 
-  global.DAWN_LIONWING_GEOMETRY = Object.freeze({ anchorStatus, footprintStatus, nearestCandidates, routePlan, revalidatePlan, geometryStamp, routeSegments, geometryCursor, segmentStatus });
+  // This is the adapter-facing half of movement.  It deliberately reads only
+  // engine-emitted lifecycle rows (or a checked route), never a client path.
+  // A Technique can therefore ask the same questions after reload/replay as it
+  // can while a route is still running without growing a private geometry
+  // implementation.  `movement.end` is the durable summary; segment rows are
+  // useful for enter/leave/cross windows.
+  const MOVEMENT_EVENTS = Object.freeze(["movement.prepare", "movement.start", "movement.segment", "movement.leave", "movement.enter", "movement.cross", "movement.end", "movement.stop"]);
+  const movementMode = payload => payload?.movement?.mode || payload?.mode || (payload?.teleport ? "teleport" : payload?.forced ? "forced" : "move");
+  const movementId = row => row?.payload?.movement?.id || row?.payload?.routeId || null;
+  const sameFactPoint = (left, right) => Boolean(left && right) && String(left.space || "") === String(right.space || "") && Number(left.x) === Number(right.x) && Number(left.y) === Number(right.y);
+  const adjacent = (left, right) => sameFactPoint(left, right) ? false : String(left?.space || "") === String(right?.space || "") && Math.max(Math.abs(Number(left?.x) - Number(right?.x)), Math.abs(Number(left?.y) - Number(right?.y))) <= 1;
+  function lifecycleRows(scene, request = {}) {
+    const actorId = request.actorId || request.targetId || null;
+    const routeId = request.routeId || request.movementId || null;
+    return (scene?.log || []).filter(row => MOVEMENT_EVENTS.includes(row?.type) && (!actorId || row.actorId === actorId || row.payload?.targetId === actorId) && (!routeId || movementId(row) === routeId));
+  }
+  function movementFacts(scene, request = {}) {
+    const rows = lifecycleRows(scene, request);
+    // Scene logs are newest-first, so prefer the newest stop summary before
+    // the accompanying end summary.
+    const row = rows.find(item => item.type === "movement.stop") || rows.find(item => item.type === "movement.end") || rows.at(-1) || null, payload = row?.payload || {}, movement = payload.movement || {};
+    const segments = rows.filter(item => item.type === "movement.segment").map(item => item.payload?.segment).filter(Boolean);
+    const path = Array.isArray(movement.path) ? movement.path : segments.map(segment => segment.to).filter(Boolean);
+    const entered = rows.filter(item => item.type === "movement.enter").map(item => item.payload?.to || item.payload?.segment?.to).filter(Boolean);
+    const left = rows.filter(item => item.type === "movement.leave").map(item => item.payload?.from || item.payload?.segment?.from).filter(Boolean);
+    const start = movement.from || segments[0]?.from || null, end = movement.stoppedAt || payload.stoppedAt || path.at(-1) || start;
+    return {
+      available: Boolean(row), id: movement.id || movementId(row), actorId: movement.actorId || request.actorId || row?.actorId || null,
+      sourceActorId: movement.sourceActorId || null, sourceActionId: movement.sourceActionId || null, actionInstanceId: movement.actionInstanceId || null,
+      techniqueRuleId: movement.techniqueRuleId || null, sourceDigest: movement.sourceDigest || null,
+      mode: movement.mode || movementMode(payload), forced: Boolean(movement.forced || movementMode(payload) === "forced" || ["push", "pull"].includes(movementMode(payload))),
+      from: start ? clone(start) : null, end: end ? clone(end) : null, path: clone(path), segments: clone(segments),
+      entered: clone(entered), left: clone(left), distance: Number(movement.distance ?? payload.spent ?? path.length ?? 0),
+      stopped: row?.type === "movement.stop" || Boolean(payload.terminal), stopReason: payload.stopReason || movement.stopReason || null,
+      firstMovementThisTurn: Boolean(movement.firstMovementThisTurn), totalDistanceThisTurn: Number(movement.totalDistanceThisTurn ?? 0),
+      rows: rows.map(item => ({ id: item.id, type: item.type })),
+    };
+  }
+  function movementCondition(scene, request = {}) {
+    const facts = movementFacts(scene, request), condition = request.condition || request.kind;
+    if (!facts.available) return { available: false, reason: "Нет подтверждённого движения.", facts };
+    const point = request.point || request.destination || null;
+    const result = condition === "moved" ? facts.distance > 0
+      : condition === "moved-at-least" ? facts.distance >= Number(request.distance || request.minimum || 0)
+      : condition === "first-movement-this-turn" ? facts.firstMovementThisTurn
+      : condition === "entered" ? facts.entered.some(value => sameFactPoint(value, point))
+      : condition === "left" ? facts.left.some(value => sameFactPoint(value, point))
+      : condition === "crossed" ? facts.path.some(value => sameFactPoint(value, point))
+      : condition === "ended-adjacent" ? adjacent(facts.end, point)
+      : condition === "ended-in" ? sameFactPoint(facts.end, point)
+      : condition === "mode" ? facts.mode === String(request.mode)
+      : condition === "forced" ? facts.forced
+      : false;
+    return { available: result, reason: result ? "" : "Условие движения не выполнено.", facts };
+  }
+  // The operation factory is intentionally small.  It creates an intent which
+  // still goes through routePlan/revalidation in LionWing Engine; it does not
+  // accept an asserted path, distance or endpoint.
+  function movementOperation(scene, request = {}) {
+    const source = actorById(scene, request.sourceActorId);
+    const normalized = request.anchor ? request : { ...request, anchor: source ? { kind: "cell", space: source.space, x: Number(source.x), y: Number(source.y) } : undefined };
+    const planned = routePlan(scene, normalized);
+    if (!planned.available) return { ok: false, errors: [planned.reason], operation: null, plan: null };
+    return { ok: true, errors: [], plan: clone(planned.plan), operation: { kind: "geometry-move", targetId: planned.route.actorId, sourceActorId: planned.route.sourceActorId, destination: clone(planned.route.destination), maximum: planned.route.maximum, mode: planned.route.mode, geometryPlan: clone(planned.plan), techniqueRuleId: request.techniqueRuleId || null, sourceDigest: request.sourceDigest || null } };
+  }
+
+  global.DAWN_LIONWING_GEOMETRY = Object.freeze({ anchorStatus, footprintStatus, nearestCandidates, routePlan, revalidatePlan, geometryStamp, routeSegments, geometryCursor, segmentStatus, movementEvents: MOVEMENT_EVENTS, movementFacts, movementCondition, movementOperation });
 })(typeof window === "object" ? window : globalThis);

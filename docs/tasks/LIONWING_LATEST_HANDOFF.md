@@ -1031,3 +1031,7 @@ information-query удалён, поэтому решения попадают �
 registry levels), targeted inventory/information tests и полный `npm test`:
 391 уникальный rule id. Следующая отдельная проверка перед main — живой
 двухклиентный smoke-test и поэтапный аудит turn/movement/numeric branches.
+
+## Movement lifecycle integration audit, 2026-09-10
+
+Принят общий adapter-facing lifecycle `movement.prepare/start/leave/segment/enter/cross/end/stop`. Факты пути, дистанции, режима и причины остановки вычисляет геометрия и журналирует ядро; клиентский путь не считается доказательством. Обычный Jump публикует тот же контракт. API предназначен как фундамент для массовых адаптеров и сам по себе не объявляет 118 зависимых уровней автоматизированными.
