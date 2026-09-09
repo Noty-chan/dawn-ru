@@ -267,7 +267,44 @@ function lwBatchHtml(){
     ${draft?`<p>Источник: ${esc(actor?.name||draft.actorId)}</p><ol>${draft.operations.map((operation,index)=>`<li>${esc(lwOperationSummary(operation))} <button data-lw-batch-remove="${index}" aria-label="Убрать операцию ${index+1}">Убрать</button></li>`).join("")}</ol><div class="button-row"><button data-lw-batch-apply>Проверить и применить пакет</button><button data-lw-batch-clear>Отменить пакет</button></div>`:""}</details>`;
 }
 
-function lwChainHtml(a){return lwCanNarrate()?`<div class="button-row">${Scene.pendingAction||Scene.lionwing?.choices?.length?`<button data-lw-chain="pause-chain" data-lw-actor="${esc(a.id)}">Приостановить цепочку для ручного правила</button>`:""}${Scene.lionwing?.pausedChains?.length?`<button data-lw-chain="resume-chain" data-lw-actor="${esc(a.id)}">Возобновить цепочку (${Scene.lionwing.pausedChains.length})</button>`:""}</div>`:"";}
+const lwChainChoiceStages=Object.freeze({knockout:"Сопротивление","clash-loss":"Реакция","clash-tie":"Реакция","duel-outcome":"Реакция","duel-failure":"Реакция","duel-wounds":"Рана",wound:"Рана",replacement:"Последствие","rule-trigger":"Последствие",consequence:"Последствие",placement:"Решение"});
+const lwChainPathForStage=Object.freeze({Атака:"Атака",Реакция:"Атака → Реакция",Урон:"Атака → Реакция → Урон",Рана:"Атака → Реакция → Урон → Рана",Сопротивление:"Атака → Реакция → Урон → Рана → Сопротивление",Последствие:"Последствие",Решение:"Ручное решение"});
+function lwChainOperationKind(value){return value?.kind||value?.p?.kind||"";}
+function lwChainFrameInfo(frame){
+  const data=frame?.lionwing||frame||{},choices=Array.isArray(data.choices)?data.choices:[],choice=choices[0],pending=frame?.pendingAction||null,cursor=data.executionCursor||null;
+  const actorId=choice?.actorId||pending?.actorId||frame?.turnFrame?.actorId||cursor?.responderActorId||cursor?.ownerActorId||null;
+  if(choice){
+    const stage=lwChainChoiceStages[choice.kind]||(String(choice.title||"").includes("Сопротив")?"Сопротивление":"Решение");
+    return {stage,path:stage==="Сопротивление"&&choice.context?.track==="wounds"?lwChainPathForStage.Сопротивление:lwChainPathForStage[stage]||stage,actorId,choiceId:choice.id};
+  }
+  if(pending){
+    const waiting=Object.values(pending.responses||{}).filter(response=>response?.choice==="pending").length;
+    return {stage:"Реакция",path:lwChainPathForStage.Реакция,actorId,pendingId:pending.id,waiting};
+  }
+  const deferred=Array.isArray(data.deferred)?data.deferred:[],afterAttack=Array.isArray(data.afterAttack)?data.afterAttack:[],item=deferred[0]||afterAttack[0],kind=lwChainOperationKind(item);
+  if(kind){
+    const stage=kind==="damage"?"Урон":kind==="wound"?"Рана":kind==="knockout"?"Сопротивление":"Последствие";
+    return {stage,path:lwChainPathForStage[stage]||stage,actorId,cursor:cursor&&Number.isInteger(cursor.cursor)&&Number.isInteger(cursor.total)?{cursor:cursor.cursor,total:cursor.total,status:cursor.status}:null};
+  }
+  if(cursor?.status==="waiting")return {stage:"Решение",path:lwChainPathForStage.Решение,actorId,choiceId:cursor.waitingChoiceId,cursor:Number.isInteger(cursor.cursor)&&Number.isInteger(cursor.total)?{cursor:cursor.cursor,total:cursor.total,status:cursor.status}:null};
+  return {stage:"Ручное решение",path:"Вложенный ручной уровень",actorId};
+}
+function lwChainOwnerLabel(actorId){
+  if(!actorId||typeof Scene==="undefined")return "";
+  const actor=Scene.actors?.find(item=>item.id===actorId);
+  return actor?.name||actorId;
+}
+function lwChainFrameHtml(frame,kind,depth,resumable=false){
+  const info=lwChainFrameInfo(frame),owner=lwChainOwnerLabel(info.actorId),progress=info.cursor?` · шаг ${info.cursor.cursor}/${info.cursor.total}`:"",waiting=info.waiting?` · ожидается ответов: ${info.waiting}`:"",token=info.choiceId||info.pendingId;
+  return `<li class="lw-chain-frame${kind==="current"?" is-current":""}" data-lw-chain-frame="${kind}" data-lw-chain-depth="${depth}" data-lw-chain-stage="${esc(info.stage)}" data-lw-chain-path="${esc(info.path)}"${resumable?' data-lw-chain-resumable="true"':""}${token?` data-lw-chain-id="${esc(token)}"`:""}><b>${kind==="current"?"Сейчас":"Слой "+depth}: ${esc(info.stage)}</b><small>${esc(info.path)}${owner?` · ${esc(owner)}`:""}${progress}${waiting}</small></li>`;
+}
+function lwChainHtml(a){
+  if(!lwCanNarrate())return "";
+  const state=Scene.lionwing||{},choices=Array.isArray(state.choices)?state.choices:[],paused=Array.isArray(state.pausedChains)?state.pausedChains:[],hasCurrent=Boolean(Scene.pendingAction||choices.length||state.deferred?.length||state.afterAttack?.length||state.executionCursor),current=hasCurrent?lwChainFrameInfo(Scene):null;
+  if(!hasCurrent&&!paused.length)return "";
+  const top=paused.length?lwChainFrameInfo(paused[paused.length-1]):null,header=current?.path||top?.path||"Вложенный ручной уровень",canPause=Boolean(Scene.pendingAction||choices.length),canResume=Boolean(paused.length&&!Scene.pendingAction&&!choices.length&&!state.deferred?.length),items=`${hasCurrent?lwChainFrameHtml(Scene,"current",0):""}${paused.map((frame,index)=>lwChainFrameHtml(frame,"paused",index+1,index===paused.length-1)).join("")}`;
+  return `<section class="lw-chain-stack" data-lw-chain-stack data-lw-chain-depth="${paused.length}" data-lw-chain-stage="${esc(current?.stage||top?.stage||"Решение")}" data-lw-chain-path="${esc(header)}" aria-live="polite"><header><strong>Контекст цепочки${paused.length?` · вложенность ${paused.length}`:""}</strong><small>${esc(header)}</small></header><ol>${items}</ol><div class="button-row">${canPause?`<button data-lw-chain="pause-chain" data-lw-actor="${esc(a.id)}" title="Сохранить этап «${esc(current?.stage||"Решение") }» для вложенного ручного правила">Приостановить цепочку для ручного правила</button>`:""}${paused.length?`<button data-lw-chain="resume-chain" data-lw-actor="${esc(a.id)}"${canResume?"":' disabled title="Сначала завершите вложенное решение"'}>Возобновить цепочку (${paused.length})</button>`:""}</div></section>`;
+}
 
 function lwGeneralHtml(){
   return `<details class="lw-general"><summary>Общие операции правила</summary><div class="lw-fields">
@@ -307,7 +344,7 @@ function lwSubmit(actorId, payload, label = "Действие LionWing") {
   }
   const prepared = LionwingEngine.prepare(Scene, { ...payload, actorId });
   if (!prepared.ok) { toast(prepared.errors.join(" ")); return false; }
-  if(payload.kind==="attack"||prepared.scene?.pendingAction||prepared.scene?.lionwing?.choices?.length)activeDirectorTab="turn";
+  if(["pause-chain","resume-chain"].includes(payload.kind)||payload.kind==="attack"||prepared.scene?.pendingAction||prepared.scene?.lionwing?.choices?.length)activeDirectorTab="turn";
   return commitSceneEvents(label, prepared.events);
 }
 
@@ -497,7 +534,7 @@ document.addEventListener("click", event => {
   const effectSource=event.target.closest("[data-lw-effect-source]");
   if(effectSource){event.preventDefault();event.stopImmediatePropagation();if(!lwCanNarrate())return toast("Эта операция доступна Нарратору");const operation=effectSource.dataset.lwEffectSource,reason=effectSource.closest("[data-lw-effect-source-row]")?.querySelector("[data-lw-suppression-reason]")?.value?.trim(),suppressionId=effectSource.dataset.lwSuppression||`manual:${effectSource.closest(".lw-console")?.dataset.lwActor||"narrator"}:${Date.now()}`;if(operation==="suppress"&&!reason)return toast("Укажите причину подавления");return lwSubmit(effectSource.closest(".lw-console")?.dataset.lwActor||lwActor()?.id,{kind:"effect-source",operation,targetId:effectSource.dataset.lwTarget,effect:effectSource.dataset.lwEffect,sourceId:effectSource.dataset.lwSource,...(["suppress","restore"].includes(operation)?{suppressionId}:{})},reason||"Источник Эффекта");}
   const chainControl=event.target.closest("[data-lw-chain]");
-  if(chainControl){event.preventDefault();event.stopImmediatePropagation();if(!lwCanNarrate())return;return lwSubmit(chainControl.dataset.lwActor,{kind:chainControl.dataset.lwChain},"Ручное прерывание цепочки");}
+  if(chainControl){event.preventDefault();event.stopImmediatePropagation();if(!lwCanNarrate())return;const kind=chainControl.dataset.lwChain;return lwSubmit(chainControl.dataset.lwActor,{kind},kind==="resume-chain"?"Возобновление вложенной цепочки":"Приостановка цепочки для вложенного правила");}
   const batchControl=event.target.closest("[data-lw-batch-apply],[data-lw-batch-clear],[data-lw-batch-remove]");
   if(batchControl){event.preventDefault();event.stopImmediatePropagation();if(!lwCanNarrate())return;
     if(batchControl.hasAttribute("data-lw-batch-clear")){lwDraftBatch=null;lwDraftEnabled=false;renderScene();return;}
