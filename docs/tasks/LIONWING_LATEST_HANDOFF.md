@@ -721,3 +721,11 @@ actions, turns, entities. Их зависимости описывают пор�
 при возобновлении проверить. SQL-миграция
 `supabase/migrations/202609060001_lionwing_public_projection.sql`
 подготовлена и проверена локально, но не применена к общей базе.
+
+## Блок Detective III (ветка codex/luna-detective-three)
+
+Сверен новый canonical `vagabond.dim-mak.3` из `source/editions/dawn-en-lionwing-cb2f8e67/canonical/archetypes/vagabond.json`; sourceDigest: `8a5ddc5d808d41166abd99dd0c207a6070ebeacf382fe4b0f3275304d7f532dd`.
+Добавлена авторитетная замена обычного Шага телепортацией к собственной живой Слабой точке в пределах проверенной дальности движения. План проходит `lionwing-geometry-runtime` и повторно проверяется на commit (тело, клетка, геометрия, stale plan); замена расходует тот же Шаг и ОД, а остаток движения уменьшается по фактической дистанции.
+После ровно трёх удалений принадлежащих Детективу Слабых точек одного hostActorId в собственном `activeTurnInstanceId` появляется сохранённый optional choice. Выбор клетки рядом с целью повторно валидирует runtime; затем один бесплатный Завершающий удар атрибутом Mind по исходной цели. Повтор/replay/чужая цель и отключённая автоматизация не создают бесплатное действие.
+UI: в обычной панели действий появляется выбор телепортации, допустимые точки подсвечиваются на поле, доступен preview и confirm/cancel. Добавлен `tests/lionwing-detective-three.mjs`; он включён в `test:families`.
+Изменён Jab I на LionWing `[Mind/2]` с округлением вверх во всех трёх путях проверки (adapter, scene event, rule response). Остаток: live browser QA требует поднятого локального сервера; основные unit tests и `node --check` пройдены.
