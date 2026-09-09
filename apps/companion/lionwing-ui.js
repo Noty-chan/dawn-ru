@@ -337,7 +337,7 @@ function lwSubmit(actorId, payload, label = "Действие LionWing") {
   }
   // A player's public snapshot intentionally has no authoritative continuation.
   // Send the selected option; the Narrator validates and resumes its saved frame.
-  if (!lwCanNarrate() && payload.kind === "choice" && ["replacement","rule-trigger"].includes(Scene.lionwing?.choices?.[0]?.kind)) {
+  if (!lwCanNarrate() && payload.kind === "choice" && ["replacement","rule-trigger","technique-trigger"].includes(Scene.lionwing?.choices?.[0]?.kind)) {
     const pending = Scene.lionwing.choices[0];
     if (!lwOwns(actorId) || pending.actorId !== actorId || pending.id !== payload.id || !pending.options.includes(payload.choice)) return false;
     return commitSceneEvents(label, [LionwingEngine.command(actorId, { kind: "choice", id: payload.id, choice: payload.choice })]);
