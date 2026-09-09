@@ -104,7 +104,7 @@ const catalog = [...adapters.list(catalogActor), ...adapters.list(actor("spell-o
 assert.deepEqual(copy(catalog.map(rule => rule.id).sort()), [...passiveRules].sort());
 for (const rule of catalog) {
   assert.equal(rule.sourceDigest, sourceDigest(rule.id), `${rule.id} keeps its canonical source identity`);
-  assert.equal(rule.coverage, ["bulwark.iron-bodied.2", "bulwark.rising-challenger.3", "bulwark.absolute-bastard.3", "altruist.empath.3", "bulwark.mundane.1"].includes(rule.id) ? "full" : "partial", `${rule.id} declares its actual scope`);
+  assert.equal(rule.coverage, ["bulwark.iron-bodied.2", "bulwark.rising-challenger.3", "bulwark.absolute-bastard.3", "altruist.empath.3", "bulwark.mundane.1", "powerhouse.monastic-sage.1"].includes(rule.id) ? "full" : "partial", `${rule.id} declares its actual scope`);
 }
 
 // The new blocks are opt-in and require their reviewed semantic context. A
@@ -117,6 +117,12 @@ const numericActor = actor("numeric", "hero", 1, { tier: 2, knownTechniques: {
 for (const id of ["powerhouse.monastic-sage.1", "vagabond.acrobat.1", "ruiner.rapid-fire-sorcery.3", "ruiner.bombardier.2", "ruiner.ritualist.2", "vagabond.enchained.3"]) numericActor.lionwing ||= {}, numericActor.lionwing.automation ||= {}, numericActor.lionwing.automation[id] = true;
 assert.equal(adapters.statBonus(numericActor, "armor", { activeEffectIds: ["positive.усилен"] }), 2, "Monastic Warrior grants Armor only while Strengthened");
 assert.equal(adapters.statBonus({ ...numericActor, effects: [] }, "armor", { activeEffectIds: [] }), 0, "Monastic Warrior does not grant Armor without Strengthened");
+
+let monasticScene = fixture({ knownTechniques: { "powerhouse.monastic-sage": 1 }, effects: ["positive.ускорен"] });
+monasticScene = enable(monasticScene, "powerhouse.monastic-sage.1");
+monasticScene = run(monasticScene, "h", { kind: "turn-start" });
+monasticScene = run(monasticScene, "h", { kind: "turn-end" });
+assert.equal(monasticScene.actors[0].lionwing.modifiers.filter(item => item.stat === "evasion").reduce((sum, item) => sum + (item.remaining ?? item.amount), 0), 2, "Monastic Warrior gains 2 consumable Evasion at the end of its Turn while Accelerated");
 assert.equal(adapters.rollBonus(numericActor, { kind: "attack", actionId: ids.skirmish, targetIds: ["e"], targetDistance: 1, jumpDistance: 4 }), 3, "Acrobat caps Jump distance at Talent");
 assert.equal(adapters.rollBonus(numericActor, { kind: "attack", actionId: ids.skirmish, targetIds: ["e", "e2"], targetDistance: 1, jumpDistance: 4 }), 0, "Acrobat requires one Skirmish target");
 assert.equal(adapters.rollBonus(numericActor, { kind: "attack", actionId: ids.spell, rapidFire: false, differentEnemiesWithinFive: 3, tension: 2 }), 0, "Eradicator III does not leak into an ordinary Cast");

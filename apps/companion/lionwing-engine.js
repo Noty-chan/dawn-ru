@@ -937,7 +937,7 @@
     };
     const scheduleBoundary = (boundary, activeActor = null) => {
       if (typeof global.DAWN_LIONWING_ADAPTERS?.boundaryOperations !== "function") return;
-      for (const owner of scene.actors || []) for (const rule of global.DAWN_LIONWING_ADAPTERS.boundaryOperations(owner, { scene, boundary, activeActor, distanceToActive: activeActor ? distance(owner, activeActor) : Infinity })) {
+      for (const owner of scene.actors || []) for (const rule of global.DAWN_LIONWING_ADAPTERS.boundaryOperations(owner, { scene, boundary, activeActor, activeEffectIds: activeState(scene, owner.id).effects.filter(status => status.present).map(status => status.effect), distanceToActive: activeActor ? distance(owner, activeActor) : Infinity })) {
         emit("rule.activated", owner.id, { ruleId: rule.id, boundary, targetId: activeActor?.id || owner.id, automatic: true });
         scheduled.push(...rule.operations.map(p => ({ p, sourceId: owner.id, provenance: { rootActionId: rootId, actionId: null, actionDefinitionId: null, actionInstanceId: rootId, causeEventId: rootId, ownerActorId: owner.id, ruleId: rule.id } })));
       }
@@ -2317,6 +2317,7 @@
         case "turn-end": {
           if (scene.activeActorId !== sourceId || scene.pendingAction || s.choices.length || s.pausedChains?.length) fail("Нельзя завершить этот Ход: есть незавершённое действие");
           if (effectActive(scene,a,"positive.регенерирует")) applyHealing({targetId:a.id,amount:4+Number(a.tier||1)},a.id);
+          scheduleBoundary("turnEnd", a);
           phase("endTurn", a); a.ap = 0; a.stepRemaining = 0; a.acted = true; scene.activeActorId = null; s.lastTeam = a.team; s.lastActorId = a.id; s.breakout = { actorId: a.id, turnSerial: scene.turnSerial }; s.opportunities = [];
           for(const other of scene.actors)if(Number(other.lionwing?.difficultTerrainStopSerial)===Number(scene.turnSerial))delete other.lionwing.difficultTerrainStopSerial;
           if(astate(a).grantedTurn){const resume=astate(a).grantedTurn;s.lastTeam=resume.lastTeam;s.lastActorId=resume.lastActorId;a.acted=resume.acted;delete astate(a).grantedTurn;}

@@ -157,10 +157,13 @@
     }),
     passive({
       id: "powerhouse.monastic-sage.1",
-      label: "Монах-воин I: +2 Брони, пока Усилен",
+      label: "Монах-воин I: +2 Брони, пока Усилен; +2 Уклонения в конце Хода, пока Ускорен",
       sourceDigest: "f1ff824c2299d7184c07c4bf6a212d3a2f8c40a914d18948ed0c1987059480cc",
-      coverage: "partial",
+      coverage: "full",
       statBonus: (actor, key, context) => key === "armor" && (context?.activeEffectIds || actor.effects || []).includes("positive.усилен") ? 2 : 0,
+      boundaryOperations: (actor, context) => context?.boundary === "turnEnd" && context.activeActor?.id === actor.id && context.activeEffectIds?.includes("positive.ускорен")
+        ? [{ kind: "modifier", targetId: actor.id, stat: "evasion", amount: 2, duration: "manual" }]
+        : [],
     }),
     passive({
       id: "bulwark.iron-bodied.1",
