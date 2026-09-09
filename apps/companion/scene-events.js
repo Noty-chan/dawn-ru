@@ -5,6 +5,17 @@ const SESSION_COUNTER_SCOPES = new Set(["manual", "turn", "round", "scene", "cha
 const SESSION_COUNTER_LIFETIMES = new Set(["manual", "turn", "round", "scene", "chapter", "session", "persistent"]);
 const SESSION_COUNTER_ID = /^[a-z0-9][a-z0-9._:-]{0,119}$/i;
 const SESSION_RULE_ID = /^[a-z0-9][a-z0-9._:-]{0,179}$/i;
+// A marker may be attached to an actor.  The attachment is deliberately kept
+// on the ordinary marker record so old scenes and the entity registry can both
+// project it without a second, technique-specific store.
+function markerHostId(marker) {
+  return marker?.hostActorId || marker?.metadata?.hostActorId || marker?.metadata?.carrierActorId || null;
+}
+function markerAttachmentStatus(scene, marker) {
+  const hostId = markerHostId(marker), host = hostId ? actorById(scene, hostId) : null;
+  const offset = marker?.offset || marker?.metadata?.offset || null;
+  return { attached: Boolean(hostId), hostId, host, offset: offset && { dx: Number(offset.dx || 0), dy: Number(offset.dy || 0) }, available: !hostId || Boolean(host) };
+}
 const strictSessionInteger = (value, label, minimum = 0, maximum = 9999) => {
   if (typeof value !== "number" || !Number.isSafeInteger(value) || value < minimum || value > maximum) throw new Error(`Некорректное значение: ${label}.`);
   return value;
@@ -156,6 +167,12 @@ function validateEvent(scene, event, options = {}) {
     if(!actor||typeof payload.reason!=="string"||!payload.reason.trim()||payload.reason.length>160||actor.kind!=="crowd"&&!collateralRescue)throw new Error("Некорректное удаление участника.");
     if(collateralRescue&&(!rescuer||rescuer.team===actor.team||rescuer.knockedOut||rescuer.space!==actor.space||distance(rescuer,actor)>1||roll?.type!=="roll.public"||roll.actorId!==rescuer.id||Number(roll.payload?.successes)<modifierTierValue("2(+1)",actor.tier)||Number(payload.threshold)!==modifierTierValue("2(+1)",actor.tier)))throw new Error("Спасение Случайной жертвы не подтверждено актуальным Взаимодействием.");
   }
+  if (event.type === "actor.enter") {
+    const enteredSpace = (scene.spaces || []).find(item => item.id === payload.space);
+    const hasCoordinates = payload.space != null || payload.x != null || payload.y != null;
+    if (!actor || hasCoordinates && (!enteredSpace || !Number.isInteger(Number(payload.x)) || !Number.isInteger(Number(payload.y)) || Number(payload.x) < 0 || Number(payload.y) < 0 || Number(payload.x) >= Number(enteredSpace.width) || Number(payload.y) >= Number(enteredSpace.height) || actor.space !== payload.space || Number(actor.x) !== Number(payload.x) || Number(actor.y) !== Number(payload.y))) throw new Error("Вход должен соответствовать актуальной клетке персонажа.");
+    if (payload.segmentId != null && (typeof payload.segmentId !== "string" || payload.segmentId.length > 180)) throw new Error("Некорректный идентификатор сегмента входа.");
+  }
   if(event.type==="modifier.configure"){
     if(!actor||payload.profileId!==actor.profileId||!isEnemyModifier(actor)||!payload.state||typeof payload.state!=="object")throw new Error("Некорректная настройка врага-модификатора.");
     const status=modifierConfigurationStatus(scene,actor.id,payload.state);if(!status.available)throw new Error(status.reason);
@@ -168,6 +185,12 @@ function validateEvent(scene, event, options = {}) {
     const marker = markerById(scene, payload.markerId), space = (scene.spaces || []).find(item => item.id === (payload.space || marker?.space));
     if (!marker || !space || !Number.isInteger(Number(payload.x)) || !Number.isInteger(Number(payload.y)) || Number(payload.x) < 0 || Number(payload.y) < 0 || Number(payload.x) >= space.width || Number(payload.y) >= space.height) throw new Error("Некорректное перемещение маркера.");
     if (removedCellKeys(scene, payload.space || marker.space).has(`${Number(payload.x)},${Number(payload.y)}`)) throw new Error("Нельзя переместить маркер в удалённую клетку.");
+    const attachment = markerAttachmentStatus(scene, marker);
+    if (attachment.attached) {
+      const host = attachment.host;
+      const offset = payload.offset || attachment.offset;
+      if (!host || payload.hostActorId && payload.hostActorId !== attachment.hostId || !offset || Number(payload.x) !== Number(host.x) + Number(offset.dx) || Number(payload.y) !== Number(host.y) + Number(offset.dy) || (payload.space || marker.space) !== host.space) throw new Error("Прикреплённый маркер можно перемещать только вместе с носителем.");
+    }
   }
   if (event.type === "marker.remove" && !markerById(scene, payload.markerId)) throw new Error("Удаляемый маркер уже отсутствует.");
   if (event.type === "area.duration") {
@@ -364,6 +387,10 @@ function validateEvent(scene, event, options = {}) {
   }
   if (event.type === "damage.apply") {
     if (!actorById(scene, payload.targetId) || !finite(payload.amount) || Number(payload.amount) < 0 || Number(payload.amount) > 9999) throw new Error("Некорректный урон.");
+    if (payload.sourceActionId === "vagabond.dim-mak.1.jab") {
+      const source = actorById(scene, event.actorId), target = actorById(scene, payload.targetId), removed = [...(scene.log || [])].reverse().find(item => item.type === "marker.remove" && item.payload?.sourceActionId === "vagabond.dim-mak.1.jab");
+      if (!source || !target || !removed || removed.actorId !== source.id || removed.payload?.carrierActorId !== target.id || removed.payload?.ruleId !== "vagabond.dim-mak.1" || Number(payload.amount) !== Math.floor(Number(source.attrs?.mind || 0) / 2) || payload.fixedTargetId !== target.id || payload.fixedDamage !== true || payload.attack !== true || payload.finalDamage !== true) throw new Error("Удар по Слабой точке не соответствует авторитетному источнику, цели или фиксированному урону.");
+    }
     if(actorById(scene,payload.targetId)?.profileId===ENEMY_MODIFIER_IDS.legion&&payload.sourceActionId!=="enemy.modifier.legion.passive")throw new Error("Легион получает урон только от своего Пассивa при поражении другого врага.");
     if(actor&&actor.team===actorById(scene,payload.targetId)?.team&&[ENEMY_MODIFIER_IDS.collateral,ENEMY_MODIFIER_IDS.vip].includes(actorById(scene,payload.targetId)?.profileId)&&!effectTargetingStatus(scene,actor.id,payload.targetId).available)throw new Error(effectTargetingStatus(scene,actor.id,payload.targetId).reason);
   }
@@ -382,6 +409,14 @@ function validateEvent(scene, event, options = {}) {
     const space = (scene.spaces || []).find(item => item.id === payload.space);
     if ((scene.markers || []).length >= 240 || typeof payload.id !== "string" || !payload.id || payload.id.length > 120 || (scene.markers || []).some(marker => marker.id === payload.id) || typeof payload.markerKind !== "string" || !payload.markerKind || payload.markerKind.length > 40 || !space || !Number.isInteger(Number(payload.x)) || !Number.isInteger(Number(payload.y)) || Number(payload.x) < 0 || Number(payload.y) < 0 || Number(payload.x) >= space.width || Number(payload.y) >= space.height || !["endTurn","nextTurn","round","scene","persistent"].includes(payload.duration)) throw new Error("Некорректный маркер Техники.");
     if (removedCellKeys(scene, payload.space).has(`${Number(payload.x)},${Number(payload.y)}`)) throw new Error("Нельзя поставить маркер в удалённую клетку.");
+    const hostId = payload.hostActorId || payload.metadata?.hostActorId || payload.carrierActorId || payload.metadata?.carrierActorId;
+    if (hostId != null) {
+      const host = actorById(scene, hostId), offset = payload.offset || payload.metadata?.offset;
+      if (!host || host.knockedOut || host.space !== payload.space || !offset || !Number.isInteger(Number(offset.dx)) || !Number.isInteger(Number(offset.dy)) || Number(payload.x) !== Number(host.x) + Number(offset.dx) || Number(payload.y) !== Number(host.y) + Number(offset.dy)) throw new Error("Прикреплённый маркер не соответствует носителю.");
+      if (payload.sourceActorId != null && !actorById(scene, payload.sourceActorId)) throw new Error("Источник прикреплённого маркера отсутствует.");
+      if (payload.sourceLossPolicy != null && !["remove", "detach"].includes(payload.sourceLossPolicy)) throw new Error("Неизвестная политика потери источника маркера.");
+      if (payload.ruleId === "vagabond.dim-mak.1" && (scene.markers || []).some(item => item.ruleId === payload.ruleId && Number(item.x) === Number(payload.x) && Number(item.y) === Number(payload.y))) throw new Error("В этой клетке уже есть Слабая точка.");
+    }
   }
   if (event.type === "topology.cells.remove") {
     const status = topologyStatus(scene, { space: payload.space, cells: payload.cells, operation: "remove" });
@@ -621,6 +656,15 @@ function reduceEvent(scene, event) {
     scene.actors.push(clone(payload.actor));
   } else if (event.type === "actor.despawn" && actor) {
     scene.actors = (scene.actors || []).filter(item => item.id !== actor.id);
+    // Attached markers never retain a dangling host/source reference.  A
+    // source loss removes the entity by default; Narrator-created detached
+    // markers may explicitly opt into detaching instead.
+    scene.markers = (scene.markers || []).filter(marker => {
+      const hostId = markerHostId(marker), sourceId = marker.sourceActorId || marker.metadata?.sourceActorId;
+      if (hostId === actor.id) return false;
+      if (sourceId === actor.id) return marker.sourceLossPolicy === "detach" || marker.metadata?.sourceLossPolicy === "detach";
+      return true;
+    });
     scene.targetIds = (scene.targetIds || []).filter(id => id !== actor.id);
     if (scene.selectedActor === actor.id) scene.selectedActor = null;
   } else if (event.type === "actor.move" && actor) {
@@ -672,20 +716,22 @@ function reduceEvent(scene, event) {
     const wall=(scene.walls||[]).find(item=>item.id===payload.wallId);payload.label=wall?.label||payload.label||"Стена";scene.walls=(scene.walls||[]).filter(item=>item.id!==payload.wallId);
   } else if (event.type === "marker.create") {
     scene.markers ||= [];
-    scene.markers.push({ id: payload.id, space: payload.space, x: Number(payload.x), y: Number(payload.y), kind: payload.markerKind, label: payload.label, color: payload.color, source: payload.source, ruleId: payload.ruleId || payload.source || "", duration: payload.duration, ownerActorId: payload.ownerActorId || event.actorId, createdRound: Number(scene.round || 1), metadata: clone(payload.metadata || {}) });
+    const metadata = clone(payload.metadata || {}), hostActorId = payload.hostActorId || metadata.hostActorId || payload.carrierActorId || metadata.carrierActorId || null;
+    if (hostActorId) { metadata.hostActorId ||= hostActorId; metadata.carrierActorId ||= hostActorId; metadata.offset ||= clone(payload.offset); }
+    scene.markers.push({ id: payload.id, space: payload.space, x: Number(payload.x), y: Number(payload.y), kind: payload.markerKind, label: payload.label, color: payload.color, source: payload.source, sourceActorId: payload.sourceActorId || null, sourceLossPolicy: payload.sourceLossPolicy || metadata.sourceLossPolicy || "remove", ruleId: payload.ruleId || payload.source || "", duration: payload.duration, ownerActorId: payload.ownerActorId || event.actorId, hostActorId, offset: payload.offset ? clone(payload.offset) : metadata.offset ? clone(metadata.offset) : null, createdRound: Number(scene.round || 1), metadata });
   } else if (event.type === "marker.move") {
     const marker = markerById(scene, payload.markerId);
     if (marker) {
       payload.from ||= { space: marker.space, x: marker.x, y: marker.y };
       Object.assign(marker, { space: payload.space || marker.space, x: Number(payload.x), y: Number(payload.y) });
-      if (payload.carrierActorId && marker.metadata?.carrierActorId === payload.carrierActorId) marker.metadata.offset = clone(payload.offset || marker.metadata.offset || {});
+      if (payload.carrierActorId && markerHostId(marker) === payload.carrierActorId) { marker.offset = clone(payload.offset || marker.offset || marker.metadata?.offset || {}); marker.metadata ||= {}; marker.metadata.offset = clone(marker.offset); }
     }
   } else if (event.type === "marker.remove") {
     const marker = markerById(scene, payload.markerId);
     payload.label = marker?.label || payload.label || "маркер";
     payload.ruleId = marker?.ruleId || null;
     payload.ownerActorId = marker?.ownerActorId || null;
-    payload.carrierActorId = marker?.metadata?.carrierActorId || null;
+    payload.carrierActorId = markerHostId(marker);
     scene.markers = (scene.markers || []).filter(item => item.id !== payload.markerId);
   } else if (event.type === "marker.duration") {
     const marker = markerById(scene, payload.markerId);

@@ -18,6 +18,7 @@
     charge: "action.утилитарные-действия.зарядка",
     hide: "action.утилитарные-действия.скрыться",
     interact: "action.утилитарные-действия.взаимодействие",
+    study: "action.утилитарные-действия.изучение",
   });
   const eventHistory = (actor, scene) => Array.isArray(actor?.lionwing?.history) ? actor.lionwing.history : [];
   const usedInTurn = (actor, scene, actionId) => {
@@ -41,6 +42,19 @@
   // the authoritative event and applies the returned operations; an adapter
   // can only describe an eligible trigger and its optional choices.
   const eventAdapters = [
+    eventTrigger({
+      id: "vagabond.dim-mak.1",
+      label: "Детектив I: удалить Слабую точку и выполнить фиксированный Джеб",
+      sourceDigest: "57c2d10021b83b34",
+      coverage: "partial",
+      triggerKey: ({ actor, event }) => `${event.id}:${actor.id}:dim-mak-1`,
+      operations: () => [],
+      choices: (actor, event, context) => {
+        const marker = (context.scene?.markers || []).find(item => item.ruleId === "vagabond.dim-mak.1" && item.ownerActorId === actor.id && item.space === actor.space && Number(item.x) === Number(actor.x) && Number(item.y) === Number(actor.y)), targetId = marker && (marker.hostActorId || marker.metadata?.hostActorId || marker.metadata?.carrierActorId);
+        const target = targetId && (context.scene?.actors || []).find(item => item.id === targetId);
+        return marker && target && !target.knockedOut ? [{ id: "jab", label: `Удалить точку и Джеб (${target.name})`, operations: [{ kind: "marker-remove", markerId: marker.id, targetId, sourceActorId: actor.id, ruleId: "vagabond.dim-mak.1", sourceActionId: "vagabond.dim-mak.1.jab" }, { kind: "damage", targetId, sourceActorId: actor.id, amount: Math.floor(Number(actor.attrs?.mind || 0) / 2), fixedTargetId: targetId, fixedDamage: true, finalDamage: true, attack: true, ignoreEvasion: true, sourceActionId: "vagabond.dim-mak.1.jab" }], context: { targetId, markerId: marker.id, eventId: event.id } }] : [];
+      },
+    }),
     eventTrigger({
       id: "bulwark.rising-challenger.1",
       label: "Восходящий претендент I: после успешного Столкновения получить Фокус и выбрать перемещение",
@@ -106,6 +120,15 @@
         operations: [{ kind: "chemist-health-check", targetId: event.payload.targetId, sourceActorId: actor.id, ruleId: "disruptor.chemist.2" }],
         context: { targetId: event.payload.targetId, sourceActorId: actor.id, eventId: event.id },
       }] : [],
+    }),
+    eventTrigger({
+      id: "vagabond.dim-mak.2",
+      label: "Детектив II: после третьего Изучения замедлить всех Помеченных",
+      sourceDigest: "8f245e4e776b3358",
+      coverage: "partial",
+      triggerKey: ({ actor, event }) => `${event.id}:${actor.id}:dim-mak-2`,
+      operations: (actor, _event, context) => (context.scene?.actors || []).filter(target => target.team !== actor.team && !target.knockedOut && hasEffect(context.scene, target, "negative.помечен")).map(target => ({ kind: "effect", targetId: target.id, effect: "negative.замедлен", sourceActionId: "vagabond.dim-mak.2", techniqueRuleId: "vagabond.dim-mak.2" })),
+      choices: () => [],
     }),
   ];
 
@@ -259,6 +282,34 @@
   // opt-in flag is present, just like the numeric adapters above.
   const actionModifiers = [
     actionModifier({
+      id: "vagabond.dim-mak.1", techniqueId: "vagabond.dim-mak", level: 1,
+      sourceDigest: "57c2d10021b83b34",
+      label: "Детектив I: повторное Изучение той же цели Быстрое",
+      available: actor => knows(actor, "vagabond.dim-mak", 1),
+      modify: (actor, context) => {
+        if (context.actionId !== ACTIONS.study) return null;
+        const targetId = Array.isArray(context.targetIds) && context.targetIds.length === 1 ? context.targetIds[0] : null;
+        if (!targetId) return null;
+        const serial = Number(context.scene?.turnSerial), instance = context.scene?.lionwing?.activeTurnInstanceId || null;
+        const studies = eventHistory(actor, context.scene).filter(item => item.actionId === ACTIONS.study && (instance && item.ownerTurnInstanceId === instance || Number(item.turnSerial) === serial));
+        const sameTarget = studies.filter(item => (item.targetIds || [item.targetId]).includes(targetId));
+        if (!sameTarget.length) return null;
+        return { swift: true, reason: "Повторное Изучение той же цели Быстрое." };
+      },
+    }),
+    actionModifier({
+      id: "vagabond.dim-mak.2", techniqueId: "vagabond.dim-mak", level: 2,
+      sourceDigest: "8f245e4e776b3358",
+      label: "Детектив II: третье Изучение бесплатно и замедляет Помеченных",
+      available: actor => knows(actor, "vagabond.dim-mak", 2),
+      modify: (actor, context) => {
+        if (context.actionId !== ACTIONS.study || !Array.isArray(context.targetIds) || context.targetIds.length !== 1) return null;
+        const serial = Number(context.scene?.turnSerial), instance = context.scene?.lionwing?.activeTurnInstanceId || null;
+        const studies = eventHistory(actor, context.scene).filter(item => item.actionId === ACTIONS.study && (instance && item.ownerTurnInstanceId === instance || Number(item.turnSerial) === serial));
+        return studies.length >= 2 ? { cost: 0, costMode: "replace", reason: "Третье Изучение бесплатно." } : null;
+      },
+    }),
+    actionModifier({
       id: "powerhouse.martial-artist.2", techniqueId: "powerhouse.martial-artist", level: 2,
       sourceDigest: "ffab119dac241453faa82dab8e20523afa694f42b997a24d13fdf4b7f16e9e83",
       label: "Мастер боевых искусств II: первая Стычка в Ход Быстрая",
@@ -385,6 +436,13 @@
       else if (rule.id === "powerhouse.intimidator.3") match = event.type === "actor.knockout" && event.actorId === actor.id && event.payload?.targetId !== actor.id && Boolean(event.payload?.targetId);
       else if (rule.id === "disruptor.siren.2") match = event.type === "effect.apply" && event.payload?.effect === "negative.испуган" && event.actorId === actor.id && event.payload?.targetId !== actor.id;
       else if (rule.id === "disruptor.chemist.2") match = event.type === "effect.apply" && event.payload?.effect === "negative.ослаблен" && event.actorId === actor.id && event.payload?.targetId !== actor.id;
+      else if (rule.id === "vagabond.dim-mak.1") {
+        const marker = (context.scene?.markers || []).find(item => item.ruleId === "vagabond.dim-mak.1" && item.ownerActorId === actor.id && item.space === actor.space && Number(item.x) === Number(actor.x) && Number(item.y) === Number(actor.y));
+        match = event.type === "actor.enter" && event.actorId === actor.id && Boolean(marker);
+      } else if (rule.id === "vagabond.dim-mak.2") {
+        const studies = eventHistory(actor, context.scene).filter(item => item.actionId === ACTIONS.study && Number(item.turnSerial) === Number(context.scene?.turnSerial));
+        match = event.type === "action.resolve" && event.payload?.actionId === ACTIONS.study && event.actorId === actor.id && studies.length === 3;
+      }
       if (!match) return [];
       const triggerKey = typeof rule.triggerKey === "function" ? rule.triggerKey({ actor, event, context }) : `${event.id}:${actor.id}`;
       return [{ id: rule.id, label: rule.label, sourceDigest: rule.sourceDigest, coverage: rule.coverage, triggerKey, operations: rule.operations(actor, event, context), choices: rule.choices(actor, event, context) }];

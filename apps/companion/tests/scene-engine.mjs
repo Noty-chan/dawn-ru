@@ -887,7 +887,7 @@ const arbitrationSource = { id: "trigger-arbitration-source", type: "effect.appl
 const arbitrationApplied = Engine.dispatch(arbitrationScene, arbitrationSource);
 const triggerRegistry = Engine.triggerRegistryStatus();
 assert.equal(triggerRegistry.available, true);
-assert.equal(triggerRegistry.count, 17);
+assert.equal(triggerRegistry.count, 19);
 assert.ok(triggerRegistry.eventTypes.includes("effect.apply"));
 assert.ok(triggerRegistry.rules.every(rule => typeof rule.id === "string" && Number.isInteger(rule.priority) && Array.isArray(rule.eventTypes)));
 assert.throws(() => Engine.defineTriggerRule({ id: "bad trigger", eventTypes: ["effect.apply"], priority: 1, match: () => true, build: () => [] }), /id декларативного триггера/);

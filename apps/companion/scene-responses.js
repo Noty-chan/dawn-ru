@@ -261,6 +261,15 @@ function respondRulePrompt(scene, data, request = {}) {
   const errors = choiceStatus.available ? [] : [choiceStatus.reason];
   if (errors.length) return { ok: false, errors, events: [] };
   const events = [{ type: "rule.respond", actorId: actor.id, payload: { promptId: prompt.id, choice, sourceActorId: actor.id, targetId: target?.id || null, participantIds: [actor.id, target?.id].filter(Boolean) } }];
+  if (prompt.kind === "dim-mak-jab" && choice === "jab") {
+    const marker = markerById(scene, prompt.context?.markerId), host = marker && actorById(scene, markerHostId(marker)), enter = (scene.log || []).find(item => item.id === prompt.context?.enterEventId), expected = Math.floor(Number(actor.attrs?.mind || 0) / 2);
+    if (scene.rulesEdition !== "lionwing" || !marker || marker.ruleId !== "vagabond.dim-mak.1" || marker.ownerActorId !== actor.id || !host || host.id !== prompt.context?.fixedTargetId || host.knockedOut || actor.space !== marker.space || Number(actor.x) !== Number(marker.x) || Number(actor.y) !== Number(marker.y) || !enter || enter.type !== "actor.enter" || enter.actorId !== actor.id || enter.payload?.segmentId !== prompt.context?.segmentId && prompt.context?.segmentId != null) return { ok: false, errors: ["Слабая точка или подтверждённый вход больше недоступны."], events: [] };
+    events.push({ type: "marker.remove", actorId: actor.id, payload: { markerId: marker.id, ruleId: "vagabond.dim-mak.1", carrierActorId: host.id, sourceActionId: "vagabond.dim-mak.1.jab", reason: "Слабая точка: Джеб", participantIds: [actor.id, host.id] } });
+    events.push({ type: "action.prepare", actorId: actor.id, payload: { actionId: "action.атаки.стычка", targetIds: [host.id], attribute: "mind", quick: true, fixedTargetId: host.id, techniqueRuleId: "vagabond.dim-mak.1" } });
+    events.push({ type: "action.resolve", actorId: actor.id, payload: { actionId: "action.атаки.стычка", targetIds: [host.id], attribute: "mind", swift: true, techniqueRuleId: "vagabond.dim-mak.1", sourceActionId: "vagabond.dim-mak.1.jab" } });
+    events.push({ type: "damage.apply", actorId: actor.id, payload: { targetId: host.id, fixedTargetId: host.id, amount: expected, fixedDamage: true, finalDamage: true, attack: true, hit: true, ignoreEvasion: true, sourceActionId: "vagabond.dim-mak.1.jab", participantIds: [actor.id, host.id] } });
+    events.push({ type: "technique.resolve", actorId: actor.id, payload: { ruleId: "vagabond.dim-mak.1", name: "Jab", fixedDamage: expected, fixedTargetId: host.id, affectedActorIds: [host.id], participantIds: [actor.id, host.id] } });
+  }
   if(prompt.kind==="modifier-refresh"){
     const state=modifierState(actor),status=modifierConfigurationStatus(scene,actor.id,state);
     if(!status.available||Number(state.configuredRound||0)!==Number(scene.round||1))return{ok:false,errors:[status.reason||"Сначала задайте новую настройку модификатора в его панели."],events:[]};
@@ -917,6 +926,7 @@ function preparePromptPlacement(scene, request = {}) {
     const occupied = (scene.actors || []).some(item => !item.knockedOut && item.space === target?.space && Number(item.x) === Number(destination?.x) && Number(item.y) === Number(destination?.y));
     if (!target || target.knockedOut || target.space !== actor.space || distance(target, { ...destination, space: target?.space }) !== 1) errors.push("Слабая точка должна находиться в клетке, смежной с целью.");
     if (occupied) errors.push("Слабую точку можно поставить только в незанятую клетку.");
+    if ((scene.markers || []).some(item => item.ruleId === "vagabond.dim-mak.1" && item.space === target?.space && Number(item.x) === Number(destination?.x) && Number(item.y) === Number(destination?.y))) errors.push("В этой клетке уже есть Слабая точка.");
   }
   let weavePath = [];
   if (prompt?.kind === "untouchable-weave-cell") {
@@ -989,7 +999,7 @@ function preparePromptPlacement(scene, request = {}) {
   }
   if (prompt.kind === "marker-move-cell") events.push({ type: "marker.move", actorId: actor.id, payload: { markerId: marker.id, space: marker.space, x: destination.x, y: destination.y, movement: prompt.title, participantIds: [actor.id] } });
   else if (prompt.kind === "dim-mak-weak-point-cell") {
-    events.push({ type: "marker.create", actorId: actor.id, payload: { id: `dim-mak-${prompt.id}`, space: target.space, x: destination.x, y: destination.y, markerKind: "mark", label: `Слабая точка · ${target.name}`, color: "#db6c9b", source: "vagabond.dim-mak.1", ruleId: "vagabond.dim-mak.1", duration: "scene", ownerActorId: actor.id, metadata: { carrierActorId: target.id, offset: { dx: Number(destination.x) - Number(target.x), dy: Number(destination.y) - Number(target.y) } }, participantIds: [actor.id, target.id] } });
+    events.push({ type: "marker.create", actorId: actor.id, payload: { id: `dim-mak-${prompt.id}`, space: target.space, x: destination.x, y: destination.y, markerKind: "mark", label: `Слабая точка · ${target.name}`, color: "#db6c9b", source: "vagabond.dim-mak.1", sourceActorId: actor.id, sourceLossPolicy: "remove", hostActorId: target.id, offset: { dx: Number(destination.x) - Number(target.x), dy: Number(destination.y) - Number(target.y) }, ruleId: "vagabond.dim-mak.1", duration: "scene", ownerActorId: actor.id, metadata: { carrierActorId: target.id, hostActorId: target.id, offset: { dx: Number(destination.x) - Number(target.x), dy: Number(destination.y) - Number(target.y) } }, participantIds: [actor.id, target.id] } });
     events.push({ type: "technique.resolve", actorId: actor.id, payload: { ruleId: "vagabond.dim-mak.1", name: "Изучение слабости", affectedActorIds: [target.id], participantIds: [actor.id, target.id] } });
   }
   else if (prompt.kind === "siren-irresistible-cell") {

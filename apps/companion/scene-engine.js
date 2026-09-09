@@ -15,7 +15,10 @@ function projectScene(scene, viewer = {}) {
     projected.activeActorId = visibleActorIds.has(projected.activeActorId) ? projected.activeActorId : null;
     projected.targetIds = (projected.targetIds || []).filter(id => visibleActorIds.has(id));
     projected.objects = (projected.objects || []).filter(object => !object.hidden && (!object.ownerActorId || visibleActorIds.has(object.ownerActorId)));
-    projected.markers = (projected.markers || []).filter(marker => marker.kind !== "hidden" && !marker.hidden);
+    projected.markers = (projected.markers || []).filter(marker => marker.kind !== "hidden" && !marker.hidden).map(marker => {
+      if (marker.hostActorId && !visibleActorIds.has(marker.hostActorId)) { const { hostActorId, sourceActorId, offset, ...publicMarker } = marker; return publicMarker; }
+      return marker;
+    });
     projected.artworks = (projected.artworks || []).filter(art => !art.hidden);
     const visibleArtIds = new Set(projected.artworks.map(art => art.id));
     projected.backgroundArt = visibleArtIds.has(projected.backgroundArt) ? projected.backgroundArt : null;
@@ -53,6 +56,7 @@ function projectScene(scene, viewer = {}) {
 (typeof window === "object" ? window : globalThis).DAWN_SCENE_ENGINE.fodderMoveDestinations = fodderMoveDestinations;
 (typeof window === "object" ? window : globalThis).DAWN_SCENE_ENGINE.isEnemyModifier = isEnemyModifier;
 (typeof window === "object" ? window : globalThis).DAWN_SCENE_ENGINE.isAttachedModifier = isAttachedModifier;
+(typeof window === "object" ? window : globalThis).DAWN_SCENE_ENGINE.markerAttachmentStatus = markerAttachmentStatus;
 (typeof window === "object" ? window : globalThis).DAWN_SCENE_ENGINE.modifierConfigurationStatus = modifierConfigurationStatus;
 (typeof window === "object" ? window : globalThis).DAWN_SCENE_ENGINE.prepareModifierConfigure = prepareModifierConfigure;
 (typeof window === "object" ? window : globalThis).DAWN_SCENE_ENGINE.modifierActionStatus = modifierActionStatus;

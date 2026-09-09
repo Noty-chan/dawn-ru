@@ -116,11 +116,11 @@ const TRIGGER_RULES = [
     id: "vagabond.dim-mak.1.study",
     eventTypes: ["action.resolve"],
     priority: 58,
-    match: ({ actor, payload }) => actor && actionIdIs(eventActionId(payload), "study") && Number(actor.techniques?.["vagabond.dim-mak"] || 0) >= 1,
+    match: ({ scene, actor, payload }) => actor && actionIdIs(eventActionId(payload), "study") && Number((actor.knownTechniques ?? actor.techniques)?.["vagabond.dim-mak"] || 0) >= 1,
     build: ({ scene, event, actor, payload }) => {
       const target = actorById(scene, payload.targetIds?.[0]);
       if (!target || target.knockedOut || target.team === actor.team || target.space !== actor.space) return [];
-      return [{ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${event.id}-dim-mak`, kind: "dim-mak-weak-point", sourceActorId: actor.id, targetId: target.id, title: "Изучение слабости", text: `Поставить Слабую точку в свободной клетке, смежной с ${target.name}?`, options: ["place", "pass"], participantIds: [actor.id, target.id] } }];
+      return [{ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${event.id}-dim-mak`, kind: "dim-mak-weak-point", sourceActorId: actor.id, targetId: target.id, title: "Изучение слабости", text: `Разместить Слабую точку в свободной клетке, смежной с ${target.name}?`, options: ["place", "pass"], context: { canonical: scene.rulesEdition === "lionwing", ruleId: "vagabond.dim-mak.1", optionLabels: { pass: "Отмена" } }, participantIds: [actor.id, target.id] } }];
     },
   },
   {
@@ -129,7 +129,7 @@ const TRIGGER_RULES = [
     priority: 68,
     match: ({ scene, event, payload }) => {
       const target = actorById(scene, payload.targetId), attacker = actorById(scene, event.actorId);
-      return payload.attackMiss === true && target && attacker && target.id !== attacker.id && target.team !== attacker.team && !target.knockedOut && !attacker.knockedOut && Number(target.techniques?.["vagabond.dim-mak"] || 0) >= 2 && scene.pendingAction?.id === payload.attackPendingId && scene.pendingAction.actorId === attacker.id;
+      return scene.rulesEdition !== "lionwing" && payload.attackMiss === true && target && attacker && target.id !== attacker.id && target.team !== attacker.team && !target.knockedOut && !attacker.knockedOut && Number(target.techniques?.["vagabond.dim-mak"] || 0) >= 2 && scene.pendingAction?.id === payload.attackPendingId && scene.pendingAction.actorId === attacker.id;
     },
     build: ({ scene, event, payload }) => {
       const target = actorById(scene, payload.targetId), attacker = actorById(scene, event.actorId);
@@ -142,11 +142,45 @@ const TRIGGER_RULES = [
     priority: 55,
     match: ({ scene, payload }) => {
       const owner = actorById(scene, payload.ownerActorId);
-      return payload.ruleId === "vagabond.dim-mak.1" && owner && Number(owner.techniques?.["vagabond.dim-mak"] || 0) >= 2;
+      return scene.rulesEdition !== "lionwing" && payload.ruleId === "vagabond.dim-mak.1" && owner && Number(owner.techniques?.["vagabond.dim-mak"] || 0) >= 2;
     },
     build: ({ scene, payload }) => {
       const owner = actorById(scene, payload.ownerActorId);
       return [{ type: "actor.state", actorId: owner.id, payload: { key: "evasion", delta: 2, sourceActionId: "vagabond.dim-mak.2", reason: "Снята Слабая точка", participantIds: [owner.id, payload.carrierActorId].filter(Boolean) } }];
+    },
+  },
+  {
+    id: "vagabond.dim-mak.2.third-study",
+    eventTypes: ["action.resolve"],
+    priority: 57,
+    match: ({ scene, actor, payload }) => {
+      if (scene.rulesEdition !== "lionwing" || !actor || !actionIdIs(eventActionId(payload), "study") || Number((actor.knownTechniques ?? actor.techniques)?.["vagabond.dim-mak"] || 0) < 2) return false;
+      const studies = currentTurnEvents(scene, actor.id).filter(item => item.type === "action.resolve" && actionIdIs(eventActionId(item.payload), "study"));
+      return studies.length === 3 && !studies.some(item => item.payload?.techniqueRuleId === "vagabond.dim-mak.2");
+    },
+    build: ({ scene, event, actor }) => {
+      const marked = (scene.actors || []).filter(target => target.id !== actor.id && target.team !== actor.team && !target.knockedOut && hasEffect(scene, target, "negative.помечен"));
+      return [
+        ...marked.map(target => ({ type: "effect.apply", actorId: actor.id, payload: { targetId: target.id, effect: "negative.замедлен", sourceActionId: "vagabond.dim-mak.2", techniqueRuleId: "vagabond.dim-mak.2", participantIds: [actor.id, target.id] } })),
+        { type: "technique.resolve", actorId: actor.id, payload: { ruleId: "vagabond.dim-mak.2", name: "Dissect", free: true, affectedActorIds: marked.map(target => target.id), participantIds: [actor.id, ...marked.map(target => target.id)] } },
+      ];
+    },
+  },
+  {
+    id: "vagabond.dim-mak.1.enter",
+    eventTypes: ["actor.enter"],
+    priority: 66,
+    match: ({ scene, actor, payload, event }) => {
+      if (scene.rulesEdition !== "lionwing" || !actor || actor.knockedOut || !payload || (scene.pendingPrompt && scene.pendingPrompt.kind === "dim-mak-jab")) return false;
+      const duplicate = payload.segmentId && (scene.log || []).some(item => item.type === "actor.enter" && item.id !== event.id && item.actorId === actor.id && item.payload?.segmentId === payload.segmentId);
+      if (duplicate) return false;
+      return (scene.markers || []).some(marker => marker.ruleId === "vagabond.dim-mak.1" && marker.ownerActorId === actor.id && marker.space === actor.space && Number(marker.x) === Number(actor.x) && Number(marker.y) === Number(actor.y) && markerHostId(marker) && actorById(scene, markerHostId(marker)));
+    },
+    build: ({ scene, event, actor, payload }) => {
+      const marker = (scene.markers || []).find(item => item.ruleId === "vagabond.dim-mak.1" && item.ownerActorId === actor.id && item.space === actor.space && Number(item.x) === Number(actor.x) && Number(item.y) === Number(actor.y));
+      const host = marker && actorById(scene, markerHostId(marker));
+      if (!marker || !host) return [];
+      return [{ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${event.id}-dim-mak-jab`, kind: "dim-mak-jab", sourceActorId: actor.id, targetId: host.id, title: "Слабая точка", text: `Удалить Слабую точку и выполнить Быструю Стычку Разумом по ${host.name}?`, options: ["jab", "pass"], context: { markerId: marker.id, enterEventId: event.id, segmentId: payload.segmentId || null, fixedTargetId: host.id, ruleId: "vagabond.dim-mak.1" }, participantIds: [actor.id, host.id] } }];
     },
   },
   {
@@ -618,10 +652,10 @@ function triggeredEvents(scene, event, options = {}) {
     }
   }
   if (event.type === "actor.move" && actor && payload.from) {
-    const weakPoints = (scene.markers || []).filter(marker => marker.ruleId === "vagabond.dim-mak.1" && marker.metadata?.carrierActorId === actor.id);
+    const weakPoints = (scene.markers || []).filter(marker => marker.ruleId === "vagabond.dim-mak.1" && markerHostId(marker) === actor.id);
     const space = (scene.spaces || []).find(item => item.id === actor.space), occupied = new Set((scene.actors || []).filter(item => !item.knockedOut && item.space === actor.space).map(item => `${item.x},${item.y}`));
     for (const marker of weakPoints) {
-      const offset = marker.metadata?.offset || { dx: Number(marker.x) - Number(payload.from.x), dy: Number(marker.y) - Number(payload.from.y) };
+      const offset = marker.offset || marker.metadata?.offset || { dx: Number(marker.x) - Number(payload.from.x), dy: Number(marker.y) - Number(payload.from.y) };
       const preferred = { x: Number(actor.x) + Number(offset.dx || 0), y: Number(actor.y) + Number(offset.dy || 0) };
       const candidates = [preferred, { x: actor.x + 1, y: actor.y }, { x: actor.x - 1, y: actor.y }, { x: actor.x, y: actor.y + 1 }, { x: actor.x, y: actor.y - 1 }]
         .filter((point, index, list) => list.findIndex(other => other.x === point.x && other.y === point.y) === index)
