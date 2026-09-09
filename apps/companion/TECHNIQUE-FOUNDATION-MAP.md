@@ -364,7 +364,7 @@ SHA-256 проверенных файлов: `6049f3ff6b79b8204c45cb8b830b265369
 | ---: | --- | --- | --- | --- |
 | 1 | Многогранность (Multi-Faceted) | проверено | полная | `target-validation`, `event-participants`, `spatial-range`, `effect-state`, `effect-lifecycle`, `movement-lifecycle`, `usage-limits`, `exclusive-mode`, `trigger-router`, `turn-lifecycle`, `choice-flow`, `action-modifier` |
 | 2 | Как вода (Like Water) | проверено | полная | `resource-check`, `effect-state`, `effect-lifecycle`, `usage-limits`, `exclusive-mode`, `trigger-router`, `turn-lifecycle`, `derived-stats` |
-| 3 | Мастер за работой (Master At Work) | проверено | частичная | `target-validation`, `event-participants`, `spatial-cells`, `effect-state`, `effect-lifecycle`, `movement-lifecycle`, `terrain`, `exclusive-mode`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier`, `dice-hooks` |
+| 3 | Мастер за работой (Master At Work) | проверено | полная | `target-validation`, `event-participants`, `spatial-cells`, `effect-state`, `effect-lifecycle`, `movement-lifecycle`, `terrain`, `exclusive-mode`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier`, `dice-hooks` |
 
 ## Оплот
 

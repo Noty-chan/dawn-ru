@@ -920,8 +920,8 @@
 
 #### 3. Мастер за работой (Master At Work) `vagabond.master-at-arms.3`
 
-- **Заявленный статус:** `partial` (частичная).
-- **Текущий адаптер:** `vagabond.master-at-arms.3` · `passive` · {"kind":"passive","coverage":"partial","sourceDigest":"f104c7652bda2a425422af31d8d91b30515463c98f78892fe25eb204ac7508d3"}; Экипированное Вооружение сохраняется как состояние; нейтральный hook передаёт текущий Armament в будущий Talent Finisher. Сложная геометрия Завершения остаётся под подтверждением Нарратора..
+- **Заявленный статус:** `full` (полная).
+- **Текущий адаптер:** `vagabond.master-at-arms.3` · `passive` · {"kind":"passive","coverage":"full","sourceDigest":"f104c7652bda2a425422af31d8d91b30515463c98f78892fe25eb204ac7508d3"}; Только Завершение Талантом читает текущее авторитетное Вооружение: Клинок проверяет путь до 2 клеток, Древко строит Линию длиной 2, а Цепь строит 1×1 и расширяет её по проверенным Критам..
 - **Готовые foundations:** `target-validation`, `event-participants`, `spatial-cells`, `effect-state`, `effect-lifecycle`, `terrain`, `exclusive-mode`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier`, `dice-hooks`.
 - **Нужно добавить:** Сохранить существующий adapter и добавить недостающий контракт: `movement-lifecycle`.
 
