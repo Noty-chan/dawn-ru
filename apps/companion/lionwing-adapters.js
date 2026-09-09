@@ -21,6 +21,15 @@
     study: "action.утилитарные-действия.изучение",
   });
   const eventHistory = (actor, scene) => Array.isArray(actor?.lionwing?.history) ? actor.lionwing.history : [];
+  // Information-query owns authoritative Study receipts. Keep legacy actor
+  // history as a compatibility fallback for old saves that predate the
+  // shared registry; never treat a client supplied flag as a Study proof.
+  const studyHistory = (actor, scene) => {
+    const shared = global.DAWN_LIONWING_INFORMATION_QUERY;
+    const canonical = typeof shared?.studies === "function" ? shared.studies(scene, { actorId: actor?.id }).map(item => ({ ...item, actionId: ACTIONS.study, targetIds: [item.targetId], ownerTurnInstanceId: item.turnInstanceId })) : [];
+    const seen = new Set(canonical.map(item => item.actionInstanceId).filter(Boolean));
+    return canonical.concat(eventHistory(actor, scene).filter(item => item.actionId === ACTIONS.study && (!item.actionInstanceId || !seen.has(item.actionInstanceId))));
+  };
   const usedInTurn = (actor, scene, actionId) => {
     const serial = Number(scene?.turnSerial);
     const instance = scene?.lionwing?.activeTurnInstanceId || null;
@@ -45,7 +54,7 @@
     eventTrigger({
       id: "vagabond.dim-mak.1",
       label: "Детектив I: удалить Слабую точку и выполнить фиксированный Джеб",
-      sourceDigest: "57c2d10021b83b34",
+      sourceDigest: "86bc2801b43ae4f2bd3de697124313b986e9ae1081e0dd8f3f52dfc44b097c59",
       coverage: "partial",
       triggerKey: ({ actor, event }) => `${event.id}:${actor.id}:dim-mak-1`,
       operations: () => [],
@@ -147,7 +156,7 @@
     eventTrigger({
       id: "vagabond.dim-mak.2",
       label: "Детектив II: после третьего Изучения замедлить всех Помеченных",
-      sourceDigest: "8f245e4e776b3358",
+      sourceDigest: "d63edd4d649fb29805706009934a7eb38427b2507f32b1d5632e881f7e24a5a2",
       coverage: "partial",
       triggerKey: ({ actor, event }) => `${event.id}:${actor.id}:dim-mak-2`,
       operations: (actor, _event, context) => (context.scene?.actors || []).filter(target => target.team !== actor.team && !target.knockedOut && hasEffect(context.scene, target, "negative.помечен")).map(target => ({ kind: "effect", targetId: target.id, effect: "negative.замедлен", sourceActionId: "vagabond.dim-mak.2", techniqueRuleId: "vagabond.dim-mak.2" })),
@@ -346,7 +355,7 @@
         const targetId = Array.isArray(context.targetIds) && context.targetIds.length === 1 ? context.targetIds[0] : null;
         if (!targetId) return null;
         const serial = Number(context.scene?.turnSerial), instance = context.scene?.lionwing?.activeTurnInstanceId || null;
-        const studies = eventHistory(actor, context.scene).filter(item => item.actionId === ACTIONS.study && (instance && item.ownerTurnInstanceId === instance || Number(item.turnSerial) === serial));
+        const studies = studyHistory(actor, context.scene).filter(item => item.actionId === ACTIONS.study && (instance && item.ownerTurnInstanceId === instance || Number(item.turnSerial) === serial));
         const sameTarget = studies.filter(item => (item.targetIds || [item.targetId]).includes(targetId));
         if (!sameTarget.length) return null;
         return { swift: true, reason: "Повторное Изучение той же цели Быстрое." };
@@ -360,7 +369,7 @@
       modify: (actor, context) => {
         if (context.actionId !== ACTIONS.study || !Array.isArray(context.targetIds) || context.targetIds.length !== 1) return null;
         const serial = Number(context.scene?.turnSerial), instance = context.scene?.lionwing?.activeTurnInstanceId || null;
-        const studies = eventHistory(actor, context.scene).filter(item => item.actionId === ACTIONS.study && (instance && item.ownerTurnInstanceId === instance || !instance && Number(item.turnSerial) === serial));
+        const studies = studyHistory(actor, context.scene).filter(item => item.actionId === ACTIONS.study && (instance && item.ownerTurnInstanceId === instance || !instance && Number(item.turnSerial) === serial));
         return studies.length >= 2 ? { cost: 0, costMode: "replace", reason: "Третье Изучение бесплатно." } : null;
       },
     }),
@@ -474,6 +483,20 @@
       quote.modifiers.push({ id: rule.id, techniqueId: rule.techniqueId, level: rule.level, sourceDigest: rule.sourceDigest, coverage: rule.coverage, reason: patch.reason || rule.label });
       if (patch.reason) quote.reasons.push(patch.reason);
     }
+    const informationPatch = global.DAWN_LIONWING_INFORMATION_QUERY?.actionQuote?.(actor, context);
+    if (informationPatch?.ok === false) return informationPatch;
+    if (informationPatch) {
+      if (informationPatch.cost != null) {
+        const cost = Number(informationPatch.cost);
+        if (!Number.isSafeInteger(cost) || cost < 0 || cost > 9999) return { ok: false, reason: "Модификатор Изучения вернул недопустимую цену." };
+        replacements.set(informationPatch.modifierIds?.[0] || "information-query", cost);
+      }
+      if (informationPatch.swift === true) quote.swift = true;
+      if (informationPatch.range != null) quote.range = Number(informationPatch.range);
+      if (informationPatch.informationCategories) quote.informationCategories = [...informationPatch.informationCategories];
+      quote.modifiers.push(...(informationPatch.modifiers || []));
+      if (informationPatch.reason) quote.reasons.push(informationPatch.reason);
+    }
     const distinctCosts = [...new Set(replacements.values())];
     if (distinctCosts.length > 1) return { ok: false, reason: `Конфликт замен цены: ${[...replacements.keys()].join(", ")}.` };
     if (distinctCosts.length === 1) quote.cost = distinctCosts[0];
@@ -500,7 +523,7 @@
         match = event.type === "actor.enter" && event.actorId === actor.id && Boolean(marker);
       } else if (rule.id === "vagabond.dim-mak.2") {
         const instance = context.scene?.lionwing?.activeTurnInstanceId || event.execution?.ownerTurnInstanceId || null;
-        const studies = eventHistory(actor, context.scene).filter(item => item.actionId === ACTIONS.study && (instance ? item.ownerTurnInstanceId === instance : Number(item.turnSerial) === Number(context.scene?.turnSerial)));
+        const studies = studyHistory(actor, context.scene).filter(item => item.actionId === ACTIONS.study && (instance ? item.ownerTurnInstanceId === instance : Number(item.turnSerial) === Number(context.scene?.turnSerial)));
         match = event.type === "action.resolve" && event.payload?.actionId === ACTIONS.study && event.actorId === actor.id && studies.length === 3;
       } else if (rule.id === "vagabond.dim-mak.3") {
         if (event.type !== "marker.remove" || event.payload?.ruleId !== "vagabond.dim-mak.1" || event.actorId !== actor.id) return [];
@@ -519,7 +542,7 @@
     return Number.isFinite(amount) && amount !== 0 ? [{ id: rule.id, label: rule.label, amount }] : [];
   });
   global.DAWN_LIONWING_ADAPTERS = Object.freeze({
-    list: actor => adapters.filter(rule => rule.available(actor)).map(({ id, label, sourceDigest, coverage }) => ({ id, label, sourceDigest, coverage })),
+    list: actor => adapters.filter(rule => rule.available(actor)).map(({ id, label, sourceDigest, coverage }) => ({ id, label, sourceDigest, coverage })).concat((global.DAWN_LIONWING_INFORMATION_QUERY?.adapters || []).filter(rule => Number((actor?.knownTechniques ?? actor?.techniques)?.[rule.techniqueId] || 0) >= rule.level)),
     replacements: (actor, original) => enabled(actor).flatMap(rule => rule.replacements?.(actor, original) || []),
     afterEffect: (actor, original) => enabled(actor).flatMap(rule => rule.afterEffect?.(actor, original) || []),
     afterEvent,
@@ -537,7 +560,7 @@
     }),
     resourceGainStatus: (actor, context = {}) => enabled(actor).reduce((status, rule) => status.allowed === false ? status : rule.resourceGainStatus?.(actor, context) || status, { allowed: true, reason: "" }),
     actionStatus: (actor, context = {}) => enabled(actor).reduce((status, rule) => status.allowed === false ? status : rule.actionStatus?.(actor, context) || status, { allowed: true, reason: "" }),
-    actionModifiers: actor => enabledActionModifiers(actor).map(rule => ({ id: rule.id, techniqueId: rule.techniqueId, level: rule.level, label: rule.label, sourceDigest: rule.sourceDigest, coverage: rule.coverage })),
+    actionModifiers: actor => enabledActionModifiers(actor).map(rule => ({ id: rule.id, techniqueId: rule.techniqueId, level: rule.level, label: rule.label, sourceDigest: rule.sourceDigest, coverage: rule.coverage })).concat((global.DAWN_LIONWING_INFORMATION_QUERY?.adapters || []).filter(rule => Number((actor?.knownTechniques ?? actor?.techniques)?.[rule.techniqueId] || 0) >= rule.level)),
     actionQuote: (actor, context = {}) => actionQuote(actor, context),
   });
 })(typeof window === "object" ? window : globalThis);
