@@ -17,6 +17,12 @@ const fixture = () => ({ rulesEdition: "lionwing", version: 0, round: 1, turnSer
 const dispatch = (scene, actorId, payload, id, options = {}) => engine.dispatchMany(scene, [{ ...engine.command(actorId, payload), id }], options);
 const clone = value => JSON.parse(JSON.stringify(value));
 
+const preparedRoll = engine.prepare(fixture(), { actorId: "hero", kind: "dice-create", pool: 3, rollId: "prepared-roll" });
+assert.equal(preparedRoll.ok, true, preparedRoll.errors?.join(" "));
+assert.ok(preparedRoll.events[0].payload.roll, "prepared command captures the random result");
+const committedRoll = engine.dispatchMany(fixture(), preparedRoll.events, { random: () => { throw new Error("commit must not roll again"); } });
+assert.deepEqual(clone(committedRoll.scene.lionwing.diceRolls["prepared-roll"].sourceFaces), clone(preparedRoll.scene.lionwing.diceRolls["prepared-roll"].sourceFaces));
+
 // Ordinary checks and raw D6 share the engine's public roll entry point while
 // keeping the raw table free of automatic derived Hits/Crits/explosions.
 const ordinary = engine.roll(2, () => 0.5, { rollId: "engine:ordinary" });

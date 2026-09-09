@@ -694,6 +694,11 @@
       }
       if(payload.kind==="punish"&&!payload.roll)payload.roll=roll(Math.max(Number(a.attrs.body||0),Number(a.attrs.talent||0)),options.random,rollMeta({rollId:`${eventId}:punish`,kind:"check"}));
       const events = [{ ...command(a?.id||null, payload), id: eventId }], preview = previewEvents(scene, events);
+      // A preview rolls once. Commit and replay must use that exact snapshot.
+      if (preview.ok && payload.kind === "dice-create") {
+        const created = preview.events?.find(item => item.type === "dice.create")?.payload?.roll;
+        if (created) events[0].payload = { ...payload, roll: copy(created), rollId: created.id };
+      }
       return preview.ok ? { ...preview, events } : preview;
     } catch (error) { return { ok: false, errors: [error.message] }; }
   }
@@ -812,10 +817,10 @@
       if (request.causeEventId == null) request.causeEventId = rootId;
       return request;
     };
-    const diceOwnerCheck = (result, sourceId, label = "Бросок") => {
+    const diceOwnerCheck = (result, sourceId, label = "Бросок", allowDelegated = false) => {
       const owner = result?.ownerActorId ?? result?.provenance?.ownerActorId;
-      if (owner && event.actorId && owner !== event.actorId) fail(`${label} принадлежит другому участнику`);
       if (owner && sourceId && owner !== sourceId) fail(`${label} принадлежит другому участнику`);
+      if (!allowDelegated && owner && event.actorId && owner !== event.actorId) fail(`${label} принадлежит другому участнику`);
       if (!owner && (event.actorId || sourceId) && event.actorId !== "scene" && sourceId !== "scene") fail(`${label} не имеет владельца-участника`);
     };
     const diceJournal = (kind, result, operationId = null) => {
@@ -1302,7 +1307,7 @@
     const publishRoll = (a, value, label) => {
       const fallbackId = `${rootId}:roll:${rollSerial++}`;
       const result = validateRoll(value, { rollId: fallbackId, ownerActorId: a?.id ?? null });
-      if (dice && a?.id) diceOwnerCheck(result, a.id, "Бросок");
+      if (dice && a?.id) diceOwnerCheck(result, a.id, "Бросок", true);
       const row = emit("roll.public", a.id, { ...result, name: label, actorName: a.name });
       scene.rollFeed ||= []; scene.rollFeed.unshift({ id: row.id, actorId: a.id, actor: a.name, ...result, outcome: label, visibility: event.visibility || "public" }); scene.rollFeed = scene.rollFeed.slice(0, 40);
       return result;
@@ -1403,7 +1408,7 @@
             const committedDescriptor = actionPlanApi.commitExecution(p.actionPlan, { scene, expectedRevision: p.actionPlan.revision, eventId: rootId });
             actionPlan = committedDescriptor.plan;
             execution = committedDescriptor.execution;
-            if (!sameJson(execution.costs, p.costs || []) || !sameJson(execution.targetIds, p.targetIds || [])) fail("Цена или цели не совпадают с ActionPlan");
+            if (!sameJson(execution.costs, p.costs?.length ? foundations.normalizeCosts(p.costs) : []) || !sameJson(execution.targetIds, p.targetIds || [])) fail("Цена или цели не совпадают с ActionPlan");
             if (!sameJson(execution.operations, p.operations)) fail("Операции не совпадают с execution descriptor ActionPlan");
           }
           payReservation(a, quoted);

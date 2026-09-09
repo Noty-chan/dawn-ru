@@ -90,3 +90,45 @@ assert.equal(replay.events.length, 0);
 assert.deepEqual(pendingSave.pendingAction.execution.planId, committedPlanId, "the saved pending descriptor survives reload");
 
 console.log("LionWing manual Attack ActionPlan: preview, stale and price rejection, Reaction gate, Resistance continuation, JSON reload, replay and payment idempotency passed");
+
+// Use the real dice reducer behind the UI controls, including cancellation.
+vm.runInContext(fs.readFileSync(new URL("../network-v2.js", import.meta.url), "utf8"), context);
+const uiSource = fs.readFileSync(new URL("../lionwing-ui.js", import.meta.url), "utf8");
+const ui = { window: { DAWN_I18N: { t: key => key } }, Scene: fixture(), esc: String, uid: () => `dice-ui-${++ui.serial}`, serial: 0, lwOwns: () => true };
+ui.window.confirm = () => true;
+ui.lwSubmit = (actorId, payload) => {
+  const prepared = engine.prepare(ui.Scene, { actorId, ...payload });
+  assert.equal(prepared.ok, true, prepared.errors?.join(" "));
+  ui.Scene = engine.dispatchMany(ui.Scene, prepared.events).scene;
+  return true;
+};
+vm.createContext(ui);
+vm.runInContext(uiSource.slice(uiSource.indexOf("function lwDiceHtml"), uiSource.indexOf("function lwStatusHtml")), ui);
+const panel = { dataset: { lwActor: "attacker" }, querySelector: () => ({ value: "2" }) };
+assert.equal(ui.lwDiceClick({ closest: () => panel, hasAttribute: () => true }), true);
+const rollId = Object.keys(ui.Scene.lionwing.diceRolls)[0];
+const dieId = ui.Scene.lionwing.diceRolls[rollId].dice[0].id;
+const button = kind => ({ dataset: { lwDiceOp: kind }, hasAttribute: () => false, closest: selector => selector === "[data-lw-dice-panel]" ? panel : selector === "[data-lw-roll]" ? { dataset: { lwRoll: rollId } } : { dataset: { lwDie: dieId }, querySelector: () => ({ value: "5" }) } });
+const beforeCancel = JSON.stringify(ui.Scene);
+ui.window.confirm = () => false;
+assert.equal(ui.lwDiceClick(button("change")), false);
+assert.equal(JSON.stringify(ui.Scene), beforeCancel);
+ui.window.confirm = () => true;
+ui.lwDiceClick(button("change"));
+assert.equal(ui.Scene.lionwing.diceRolls[rollId].dice[0].value, 5);
+ui.lwDiceClick(button("lock"));
+assert.equal(ui.Scene.lionwing.diceRolls[rollId].dice[0].locked, true);
+assert.match(ui.lwDiceHtml(ui.Scene.actors[0]), /disabled/);
+ui.lwDiceClick(button("unlock"));
+ui.lwDiceClick(button("remove"));
+assert.equal(ui.Scene.lionwing.diceRolls[rollId].dice[0].removed, true);
+const network = context.window.DAWN_NETWORK_V2;
+assert.throws(() => network.materializeIntent(fixture(), {}, { kind: "lionwing", actorId: "attacker", request: { kind: "plan", operations: [] } }), /Нарратор/);
+const networkBase = fixture();
+const networkPrepared = engine.prepare(networkBase, { actorId: "attacker", kind: "dice-create", pool: 2, rollId: "network-roll" });
+const networkIntent = network.intentFromEvents(networkBase, networkPrepared.events, "Сетевой бросок");
+assert.equal(networkIntent.request.pool, 2, "the player intent keeps the requested pool while discarding its local outcome");
+const authoritativeEvents = network.materializeIntent(networkBase, {}, networkIntent, null);
+const authoritative = engine.dispatchMany(networkBase, authoritativeEvents).scene.lionwing.diceRolls["network-roll"];
+assert.equal(authoritative.pool, 2, "the authoritative materializer can create the requested persistent roll");
+console.log("Persistent dice UI: create, cancel, change, lock/unlock, remove and Narrator plan boundary passed");

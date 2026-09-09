@@ -5,6 +5,18 @@
 // system messages. New or edited UI text must be added here rather than adding
 // a second language directly to feature code.
 window.DAWN_I18N?.registerLocale("ru", {
+  "lionwing.dice.title": "Сохраняемые броски",
+  "lionwing.dice.hint": "Общий инструмент для ручных правил. Изменение костей сохраняется в журнале; уже нанесённый урон автоматически не пересчитывается.",
+  "lionwing.dice.pool": "Число костей",
+  "lionwing.dice.create": "Бросить и сохранить",
+  "lionwing.dice.hits": "Успехи",
+  "lionwing.dice.face": "Грань",
+  "lionwing.dice.change": "Изменить",
+  "lionwing.dice.reroll": "Перебросить",
+  "lionwing.dice.remove": "Убрать",
+  "lionwing.dice.lock": "Заблокировать",
+  "lionwing.dice.unlock": "Разблокировать",
+  "lionwing.dice.confirm": "Применить изменение к выбранной кости? Результат будет записан в журнал; отменить его можно откатом Сцены.",
   "app.error.data": "Не удалось загрузить данные правил. Запустите build_data.py.",
   "app.error.logic": "Не удалось загрузить модуль механики DAWN.",
   "app.error.sceneEngine": "Не удалось загрузить ядро игровой Сцены DAWN.",

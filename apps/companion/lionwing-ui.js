@@ -311,6 +311,26 @@ function lwSubmit(actorId, payload, label = "Действие LionWing") {
   return commitSceneEvents(label, prepared.events);
 }
 
+function lwDiceHtml(a) {
+  const t = key => esc(window.DAWN_I18N.t(`lionwing.dice.${key}`));
+  const rolls = Object.values(Scene.lionwing?.diceRolls || {}).filter(roll => roll.ownerActorId === a.id).slice(-8).reverse();
+  return `<details ${rolls.length ? "open" : ""} data-lw-dice-panel data-lw-actor="${esc(a.id)}"><summary>${t("title")}</summary><p>${t("hint")}</p><label>${t("pool")}<input data-lw-dice-pool type="number" min="1" max="100" value="3"></label><button data-lw-dice-create>${t("create")}</button>${rolls.map(roll => `<fieldset data-lw-roll="${esc(roll.id)}"><legend>${esc(roll.formula || roll.id)} · ${t("hits")}: ${roll.successes ?? "—"}</legend>${roll.dice.filter(die => !die.removed).map(die => `<div class="button-row" data-lw-die="${esc(die.id)}"><strong>${die.value} ⚄</strong><label>${t("face")}<select data-lw-die-value ${die.locked ? "disabled" : ""}>${[1,2,3,4,5,6].map(value => `<option ${value === die.value ? "selected" : ""}>${value}</option>`).join("")}</select></label>${["change","reroll","remove",die.locked ? "unlock" : "lock"].map(kind => `<button data-lw-dice-op="${kind}" ${die.locked && ["change","reroll","remove"].includes(kind) ? "disabled" : ""}>${t(kind)}</button>`).join("")}</div>`).join("")}</fieldset>`).join("")}</details>`;
+}
+
+function lwDiceClick(button) {
+  const panel = button.closest("[data-lw-dice-panel]"), actorId = panel?.dataset.lwActor;
+  if (!actorId || !lwOwns(actorId)) return false;
+  const label = window.DAWN_I18N.t("lionwing.dice.title");
+  if (button.hasAttribute("data-lw-dice-create")) return lwSubmit(actorId, { kind: "dice-create", pool: Number(panel.querySelector("[data-lw-dice-pool]").value), rollId: uid() }, label);
+  const row = button.closest("[data-lw-die]"), rollId = button.closest("[data-lw-roll]")?.dataset.lwRoll, kind = button.dataset.lwDiceOp;
+  if (!row || !rollId || !["change","reroll","remove","lock","unlock"].includes(kind)) return false;
+  if (!window.confirm(window.DAWN_I18N.t("lionwing.dice.confirm"))) return false;
+  const operation = { id: uid(), kind, dieId: row.dataset.lwDie };
+  if (kind === "change") operation.value = Number(row.querySelector("[data-lw-die-value]").value);
+  if (kind === "reroll") operation.value = 1 + Math.floor(Math.random() * 6);
+  return lwSubmit(actorId, { kind: "dice-apply", rollId, operation }, label);
+}
+
 function lwStatusHtml(a) {
   const vulnerability = a.lionwing?.vulnerable ? " · Уязвим" : "", focusLabel=Object.values(a.ruleResources||{}).find(r=>r.replaces==="focus")?.label||"Фокус";
   return `<p class="lw-status"><b>${a.hp}/${a.maxHp} ЗД</b> · ${a.ap} ОД · ${LionwingEngine.balance(a,"focus")} ${esc(focusLabel)}${a.kind === "hero" || a.heroId ? ` · ${a.wounds || 0}/3 Ран${vulnerability}` : ""}${a.stepRemaining ? ` · осталось ${a.stepRemaining} кл. Шага` : ""}</p>`;
@@ -349,7 +369,7 @@ function lwActionsHtml(a) {
   }).join("");
   const opportunities=(Scene.lionwing?.opportunities||[]).filter(o=>o.actorId===a.id&&lwOwns(a.id)).map(o=>`<button data-lw-punish="${esc(o.id)}" data-lw-actor="${esc(a.id)}" ${!LionwingEngine.canSpend(a,"focus",2)?"disabled":""}>Наказать · 2 Фокуса: ${esc(Scene.actors.find(x=>x.id===o.targetId)?.name||"цель")}</button>`).join("");
   const effects=[...lwRules().effects.positive,...lwRules().effects.negative].filter(e=>e.id!=="positive.изгнан");
-  return `<section class="lw-actions" data-lw-root data-lw-actor="${esc(a.id)}">${lwStatusHtml(a)}${lwAutomationHtml(a)}${lwPendingHtml()}${lwChainHtml(a)}${opportunities}${(a.effects||[]).includes("positive.невидим")?`<button data-lw-invisible data-lw-actor="${esc(a.id)}">Потратить Невидимость → Исчезнуть</button>`:""}${lwDestination ? '<p class="lw-hint">Выберите клетку на поле. <button data-lw-clear-destination>Отменить выбор</button></p>' : ""}<div class="core-action-list">${buttons}</div><details><summary>Параметры действия</summary><div class="lw-fields"><label>Атрибут<select data-lw-attribute><option value="">Подобрать по действию</option><option value="body">Тело</option><option value="talent">Талант</option><option value="spirit">Дух</option><option value="mind">Разум</option></select></label><label>Фокус для Завершения<input data-lw-focus type="number" min="0" max="${Math.min(Object.values(a.ruleResources||{}).some(r=>r.replaces==="focus"&&r.inverted)?Scene.tension||0:LionwingEngine.balance(a,"focus"), Scene.tension || 0)}" value="0"></label><label>Преимущество<input data-lw-advantage type="number" min="0" max="50" value="0"></label><label>Помеха<input data-lw-disadvantage type="number" min="0" max="50" value="0"></label><label>Импровизация<select data-lw-improvise-effect><option value="">Создать препятствие</option>${effects.map(e=>`<option value="${esc(e.id)}">${esc(e.name)}</option>`).join("")}</select></label><label>Убрать соседнее препятствие<select data-lw-remove-obstacle><option value="">Не убирать</option>${Scene.objects.filter(o=>o.type==="terrain"&&o.space===a.space).map(o=>`<option value="${esc(o.id)}">${esc(o.label||"Препятствие")}</option>`).join("")}</select></label><label><input type="checkbox" data-lw-spike>Использовать бонус по Подброшенным целям</label></div></details></section>`;
+  return `<section class="lw-actions" data-lw-root data-lw-actor="${esc(a.id)}">${lwStatusHtml(a)}${lwDiceHtml(a)}${lwAutomationHtml(a)}${lwPendingHtml()}${lwChainHtml(a)}${opportunities}${(a.effects||[]).includes("positive.невидим")?`<button data-lw-invisible data-lw-actor="${esc(a.id)}">Потратить Невидимость → Исчезнуть</button>`:""}${lwDestination ? '<p class="lw-hint">Выберите клетку на поле. <button data-lw-clear-destination>Отменить выбор</button></p>' : ""}<div class="core-action-list">${buttons}</div><details><summary>Параметры действия</summary><div class="lw-fields"><label>Атрибут<select data-lw-attribute><option value="">Подобрать по действию</option><option value="body">Тело</option><option value="talent">Талант</option><option value="spirit">Дух</option><option value="mind">Разум</option></select></label><label>Фокус для Завершения<input data-lw-focus type="number" min="0" max="${Math.min(Object.values(a.ruleResources||{}).some(r=>r.replaces==="focus"&&r.inverted)?Scene.tension||0:LionwingEngine.balance(a,"focus"), Scene.tension || 0)}" value="0"></label><label>Преимущество<input data-lw-advantage type="number" min="0" max="50" value="0"></label><label>Помеха<input data-lw-disadvantage type="number" min="0" max="50" value="0"></label><label>Импровизация<select data-lw-improvise-effect><option value="">Создать препятствие</option>${effects.map(e=>`<option value="${esc(e.id)}">${esc(e.name)}</option>`).join("")}</select></label><label>Убрать соседнее препятствие<select data-lw-remove-obstacle><option value="">Не убирать</option>${Scene.objects.filter(o=>o.type==="terrain"&&o.space===a.space).map(o=>`<option value="${esc(o.id)}">${esc(o.label||"Препятствие")}</option>`).join("")}</select></label><label><input type="checkbox" data-lw-spike>Использовать бонус по Подброшенным целям</label></div></details></section>`;
 }
 
 function lwEffectSourcesHtml(targets) {
@@ -470,6 +490,8 @@ moveSceneActorFromBoard = function(a,x,y,options={}) {
 
 document.addEventListener("click", event => {
   if (!lwActive()) return;
+  const diceButton = event.target.closest("[data-lw-dice-create],[data-lw-dice-op]");
+  if (diceButton) { event.preventDefault(); event.stopImmediatePropagation(); return lwDiceClick(diceButton); }
   const entityDestroy = event.target.closest("[data-lw-entity-destroy]");
   if (entityDestroy) { event.preventDefault(); event.stopImmediatePropagation(); return lwDestroyEntity(entityDestroy.dataset.lwEntityDestroy); }
   const effectSource=event.target.closest("[data-lw-effect-source]");
