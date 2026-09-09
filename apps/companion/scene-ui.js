@@ -221,6 +221,11 @@ function sceneMarkerGlyph(marker){
   const wispGlyphs={dreamy:"М",angry:"З",insightful:"П",bright:"Я",kind:"Д",fierce:"Р"},spirits=Array.isArray(marker.metadata?.spiritTypes)?marker.metadata.spiritTypes:[];
   return spirits.length?spirits.map(type=>wispGlyphs[type]||"?").join("").slice(0,2):sceneMarkerType(marker.kind).symbol;
 }
+function sceneMarkerHostLabel(marker){
+  const hostId=marker?.hostActorId||marker?.metadata?.hostActorId||marker?.metadata?.carrierActorId;
+  const host=hostId&&Scene.actors.find(actor=>actor.id===hostId);
+  return host?` · носитель: ${host.name}`:"";
+}
 function renderSceneWalls(board,walls){
   walls.forEach(wall=>{const [ax,ay]=wall.a.split(",").map(Number),[bx,by]=wall.b.split(",").map(Number),side=bx>ax?"east":bx<ax?"west":by>ay?"south":"north",cell=board.querySelector(`[data-scene-cell="${CSS.escape(wall.a)}"]`);if(!cell)return;cell.insertAdjacentHTML("beforeend",`<button type="button" class="scene-wall side-${side}" data-scene-wall="${wall.id}" title="${esc(`${wall.label} · ЗД ${wall.hp}/${wall.maxHp} · блокирует движение и проведение цели`)}" aria-label="${esc(`${wall.label}, Здоровье ${wall.hp} из ${wall.maxHp}`)}"><span>${wall.hp}</span></button>`)});
 }
@@ -243,6 +248,7 @@ const objects=Scene.objects.filter(object=>object.space===space.id),actors=Scene
   for(const object of Scene.objects.filter(item=>item.space===space.id&&item.metadata?.enemyModifier==="haven"))for(const key of object.cells||[])board.querySelector(`[data-scene-cell="${CSS.escape(key)}"]`)?.classList.add("haven-safe-cell");
   for(const actor of actors.filter(item=>Number(item.occupiedWidth||1)>1||Number(item.occupiedHeight||1)>1))for(let oy=0;oy<Number(actor.occupiedHeight||1);oy++)for(let ox=0;ox<Number(actor.occupiedWidth||1);ox++){const cell=board.querySelector(`[data-scene-cell="${Number(actor.x)+ox},${Number(actor.y)+oy}"]`);cell?.classList.add("giant-footprint-cell");cell?.style.setProperty("--giant-color",actor.tokenColor||"#902a3d")}
   for(const key of wispAuraCells)board.querySelector(`[data-scene-cell="${key}"]`)?.classList.add("wisp-aura");
+  for(const marker of markers){const button=board.querySelector(`[data-scene-marker="${CSS.escape(marker.id)}"]`);if(button)button.title=`${marker.label}${sceneMarkerHostLabel(marker)} · ${String.fromCharCode(65+marker.x)}${marker.y+1} · ${SCENE_DURATION_NAMES[marker.duration]||"срок не указан"}`;}
   renderSceneWalls(board,walls);
 }
 function applyEnemyModifierVisuals(){

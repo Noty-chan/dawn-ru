@@ -32,6 +32,10 @@ const placement = Engine.preparePromptPlacement(dimMak, { destination: { x: 3, y
 assert.equal(placement.ok, true);
 dimMak = Engine.dispatchMany(dimMak, placement.events).scene;
 assert.equal(dimMak.markers[0]?.metadata?.carrierActorId, "enemy");
+assert.equal(dimMak.markers[0]?.hostActorId, "enemy");
+assert.equal(dimMak.markers[0]?.sourceActorId, "hero");
+assert.equal(dimMak.markers[0]?.sourceLossPolicy, "remove");
+assert.throws(() => Engine.dispatchMany(dimMak, [{ type: "marker.create", actorId: "hero", payload: { id: "duplicate-point", space: "main", x: 3, y: 2, markerKind: "mark", label: "Слабая точка", source: "vagabond.dim-mak.1", sourceActorId: "hero", hostActorId: "enemy", offset: { dx: 0, dy: 1 }, ruleId: "vagabond.dim-mak.1", duration: "scene", ownerActorId: "hero" } }]), /уже есть Слабая точка/);
 
 dimMak = Engine.dispatchMany(dimMak, [{ type: "actor.move", actorId: "enemy", payload: { space: "main", x: 4, y: 1, path: ["4,1"] } }]).scene;
 assert.deepEqual([dimMak.markers[0].x, dimMak.markers[0].y], [4, 2], "Слабая точка следует за носителем");

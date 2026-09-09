@@ -53,6 +53,14 @@ hero = actor({ "powerhouse.improvisational-fighter": 2 }); enable(hero, ["powerh
 quote = adapters.actionQuote(hero, { scene: scene(hero), actionId: action.interact, baseCost: 1, baseResource: "ap", baseSwift: false });
 assert.equal(quote.modifiers.length, 0, "Interact without trusted outcome semantics is not guessed as non-Attack");
 
+hero = actor({ "vagabond.dim-mak": 2 }); enable(hero, ["vagabond.dim-mak.1", "vagabond.dim-mak.2"]);
+const study = ids.study || "action.утилитарные-действия.изучение";
+const studyScene = scene(hero);
+hero.lionwing.history = [{ actionId: study, targetIds: ["enemy"], ownerTurnInstanceId: "turn:1", turnSerial: 1 }, { actionId: study, targetIds: ["enemy"], ownerTurnInstanceId: "turn:1", turnSerial: 1 }];
+quote = adapters.actionQuote(hero, { scene: studyScene, actionId: study, targetIds: ["enemy"], baseCost: 1, baseResource: "ap", baseSwift: false });
+assert.equal(quote.cost, 0, "Detective II makes the third Investigate free");
+assert.equal(quote.swift, true, "Detective repeat Investigate is Swift");
+
 // prepare and dispatch recompute the same quote.  A client supplied cost does
 // not alter the authoritative payment.
 hero = actor({ "altruist.artist": 2 }); enable(hero, ["altruist.artist.2"]);

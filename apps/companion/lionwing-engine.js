@@ -974,7 +974,7 @@
       else if (type === "counter.threshold") saveFact("counter.threshold", actorId, targets, { counterId: payload.counterId || payload.id, kind: payload.kind || payload.type, before: payload.before, value: payload.value, threshold: payload.threshold });
       else if (type === "aura.enter" || type === "aura.exit") saveFact(type, actorId, [actorId], { auraId:payload.auraId, effectId:payload.effectId, ruleId:payload.ruleId, ownerActorId:payload.ownerActorId, sourceEntityId:payload.sourceEntityId, movementTargetId:payload.movementTargetId||null, segmentIndex:payload.segmentIndex??null });
       else if (type === "attack.clear" && payload.cancelled) saveFact("cancel", actorId, targets, { reason: payload.reason || "cancelled" });
-      if (scheduleAfterEvent && ["clash.success", "damage.apply", "actor.knockout", "effect.apply"].includes(type)) scheduleAfterEvent(row);
+      if (scheduleAfterEvent && ["clash.success", "damage.apply", "actor.knockout", "effect.apply", "actor.enter", "action.resolve"].includes(type)) scheduleAfterEvent(row);
       return row;
     };
     const emitSpecial = (type, actorId, operation, payload, before, after) => {
@@ -1353,6 +1353,23 @@
     const emitAuraChanges=(changes,context={})=>{
       for(const change of changes||[])emit(`aura.${change.operation}`,change.targetId,{...change,...context,targetId:change.targetId});
     };
+    const syncAttachedMarkers = (host, sourceActionId) => {
+      const space = (scene.spaces || []).find(item => item.id === host.space);
+      if (!space) return;
+      for (const marker of scene.markers || []) {
+        const hostId = marker.hostActorId || marker.metadata?.hostActorId || marker.metadata?.carrierActorId;
+        if (hostId !== host.id) continue;
+        const offset = marker.offset || marker.metadata?.offset || { dx: 0, dy: 0 };
+        const candidates = [{ x: Number(host.x) + Number(offset.dx || 0), y: Number(host.y) + Number(offset.dy || 0) }, { x: Number(host.x) + 1, y: Number(host.y) }, { x: Number(host.x) - 1, y: Number(host.y) }, { x: Number(host.x), y: Number(host.y) + 1 }, { x: Number(host.x), y: Number(host.y) - 1 }];
+        const destination = candidates.find(point => point.x >= 0 && point.y >= 0 && point.x < Number(space.width) && point.y < Number(space.height) && !removedCellKeys(scene, host.space).has(`${point.x},${point.y}`));
+        if (!destination) continue;
+        const nextOffset = { dx: destination.x - Number(host.x), dy: destination.y - Number(host.y) };
+        if (marker.space === host.space && Number(marker.x) === destination.x && Number(marker.y) === destination.y) continue;
+        Object.assign(marker, { space: host.space, x: destination.x, y: destination.y, offset: nextOffset });
+        marker.metadata ||= {}; marker.metadata.hostActorId ||= host.id; marker.metadata.carrierActorId ||= host.id; marker.metadata.offset = nextOffset;
+        emit("marker.move", host.id, { markerId: marker.id, carrierActorId: host.id, hostActorId: host.id, space: host.space, x: destination.x, y: destination.y, offset: nextOffset, sourceActionId, participantIds: [marker.ownerActorId, host.id].filter(Boolean) });
+      }
+    };
     const move = (a, p) => {
       const auraBefore=auraSnapshot();
       const result = p.__verifiedRoute ? {cost:p.__verifiedRoute.spent,path:p.__verifiedRoute.path.map(point=>({x:point.x,y:point.y})),space:p.__verifiedRoute.stoppedAt.space,endedByDifficultTerrain:p.__verifiedRoute.terminal&&p.__verifiedRoute.stopReason==="difficult-terrain"} : movement(scene, a, p.destination || p, p), from = { x: a.x, y: a.y, space: a.space };
@@ -1362,6 +1379,11 @@
       if(a.compoundId)for(const part of scene.actors.filter(x=>x.compoundId===a.compoundId)){part.x=a.x;part.y=a.y;part.space=a.space;}
       const publicPayload={...p};delete publicPayload.__deferAuraTransitions;
       emit("actor.move", a.id, { ...publicPayload, from, x: a.x, y: a.y, space: a.space, path: result.path, distance: result.cost });
+      syncAttachedMarkers(a, p.sourceActionId || p.movement || "movement");
+      // Every supported move has a stable endpoint entry receipt.  The
+      // segment id is derived from the authoritative execution root, so a
+      // replay with a new client event id cannot fire an attached marker twice.
+      emit("actor.enter", a.id, { x: a.x, y: a.y, space: a.space, segmentId: `${rootId}:endpoint`, movement: p.movement || "Перемещение", teleport: Boolean(p.teleport) });
       const auraTransitions=auraChanges(auraBefore);
       if(!p.__deferAuraTransitions)emitAuraChanges(auraTransitions,{movementTargetId:a.id,from,to:{space:a.space,x:a.x,y:a.y}});
       // A typed notification is also useful when the Technique itself is manual.
@@ -1383,6 +1405,7 @@
       a.x = target.x; a.y = target.y; a.space = result.space;
       if (a.compoundId) for (const part of scene.actors.filter(x => x.compoundId === a.compoundId)) { part.x = a.x; part.y = a.y; part.space = a.space; }
       emit("actor.place", a.id, { reason: options.reason || "placement", from, x: a.x, y: a.y, space: a.space, distance: 0 });
+      syncAttachedMarkers(a, options.sourceActionId || options.reason || "placement");
       emitAuraChanges(auraChanges(auraBefore), { placementTargetId: a.id, from, to: { space: a.space, x: a.x, y: a.y } });
       return { ...result, distance: 0 };
     };
@@ -1862,6 +1885,13 @@
         }
         case "action": performAction(requiredActor(scene, sourceId), p); break;
         case "attack": if (p.cost) spend(requiredActor(scene, sourceId), p.cost.resource || "ap", integer(p.cost.amount, "стоимость")); beginAttack(requiredActor(scene, sourceId), p); break;
+        case "marker-remove": {
+          const marker = (scene.markers || []).find(item => item.id === p.markerId), hostId = marker && (marker.hostActorId || marker.metadata?.hostActorId || marker.metadata?.carrierActorId);
+          if (!marker || marker.ruleId !== p.ruleId || marker.ownerActorId !== sourceId || hostId !== p.targetId) fail("Слабая точка уже отсутствует или принадлежит другой цели");
+          scene.markers = (scene.markers || []).filter(item => item.id !== marker.id);
+          emit("marker.remove", sourceId, { markerId: marker.id, ruleId: marker.ruleId, ownerActorId: marker.ownerActorId, carrierActorId: hostId, sourceActionId: p.sourceActionId || "vagabond.dim-mak.1.jab" });
+          break;
+        }
         case "damage": applyDamage({ ...p, sourceActorId: Object.hasOwn(p,"sourceActorId")?p.sourceActorId:sourceId }); break;
         case "spend-health": applyHealthLoss(requiredActor(scene, p.targetId || sourceId, false), { ...p, mode: "spend" }, sourceId); break;
         case "lose-health": applyHealthLoss(requiredActor(scene, p.targetId || sourceId, false), { ...p, mode: "lose" }, sourceId); break;
