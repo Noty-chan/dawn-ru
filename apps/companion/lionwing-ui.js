@@ -333,7 +333,7 @@ function lwDiceClick(button) {
 
 function lwStatusHtml(a) {
   const vulnerability = a.lionwing?.vulnerable ? " · Уязвим" : "", focusLabel=Object.values(a.ruleResources||{}).find(r=>r.replaces==="focus")?.label||"Фокус";
-  return `<p class="lw-status"><b>${a.hp}/${a.maxHp} ЗД</b> · ${a.ap} ОД · ${LionwingEngine.balance(a,"focus")} ${esc(focusLabel)}${a.kind === "hero" || a.heroId ? ` · ${a.wounds || 0}/3 Ран${vulnerability}` : ""}${a.stepRemaining ? ` · осталось ${a.stepRemaining} кл. Шага` : ""}</p>`;
+  return `<p class="lw-status"><b>${a.hp}/${LionwingEngine.maxHealth(a)} ЗД</b> · ${a.ap} ОД · ${LionwingEngine.balance(a,"focus")} ${esc(focusLabel)}${a.kind === "hero" || a.heroId ? ` · ${a.wounds || 0}/3 Ран${vulnerability}` : ""}${a.stepRemaining ? ` · осталось ${a.stepRemaining} кл. Шага` : ""}</p>`;
 }
 
 function lwPendingHtml() {

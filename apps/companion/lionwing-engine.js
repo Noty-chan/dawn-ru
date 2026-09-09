@@ -264,7 +264,8 @@
     const value = Number(global.DAWN_LIONWING_ADAPTERS?.[method]?.(a, ...args) || 0);
     return Number.isFinite(value) ? value : 0;
   };
-  const stat = (a, key, context = {}) => Math.max(0, Number(a[key] || 0) + (a.lionwing?.modifiers || []).filter(m => m.stat === key).reduce((sum, m) => sum + (key==="evasion"?m.remaining??m.amount:m.amount), 0) + adapterNumber("statBonus", a, key, context));
+  const stat = (a, key, context = {}) => Math.max(0, adapterNumber("statMinimum", a, key, context), Number(a[key] || 0) + (a.lionwing?.modifiers || []).filter(m => m.stat === key).reduce((sum, m) => sum + (key==="evasion"?m.remaining??m.amount:m.amount), 0) + adapterNumber("statBonus", a, key, context));
+  const maxHealth = a => stat(a, "maxHp");
   const scaledMove = (a, amount, scene=null) => Math.ceil(amount * ((scene?effectActive(scene,a,"positive.ускорен"):has(a,"positive.ускорен")) ? 2 : 1) / ((scene?effectActive(scene,a,"negative.замедлен"):has(a,"negative.замедлен")) ? 2 : 1));
   const speed = (a,scene=null) => scaledMove(a, stat(a, "speed"), scene);
   const sceneSpeed = (scene,a) => scene.activeActorId && Number(a.lionwing?.difficultTerrainStopSerial) === Number(scene.turnSerial) ? 0 : (() => { const group=legacy.compoundEnemyStatus(scene,a);return group.active?scaledMove(a,group.speed+(a.lionwing?.modifiers||[]).filter(m=>m.stat==="speed").reduce((sum,m)=>sum+m.amount,0),scene):speed(a,scene); })();
@@ -622,7 +623,8 @@
     const base=diceCount(scene,a,def,p),targets=p.targetIds||[];
     if(!attacks.has(def.id)||!targets.length)return{base,counts:{}};
     const taunts=activeEffectSources(a,"negative.спровоцирован",scene).map(x=>x.actorId),fears=activeEffectSources(a,"negative.испуган",scene).map(x=>x.actorId);
-    const counts=Object.fromEntries(targets.map(id=>{const target=actor(scene,id),tauntedByActor=activeEffectSources(target,"negative.спровоцирован",scene).some(source=>source.actorId===a.id);return[id,Math.max(0,base+adapterNumber("rollBonus",a,{scene,kind:"attack",actionId:def.id,targetId:id,tauntedByActor})-(effectActive(scene,a,"negative.спровоцирован")&&!targets.some(t=>taunts.includes(t))?a.tier:0)-(effectActive(scene,a,"negative.испуган")&&fears.includes(id)?a.tier:0)+((p.spikeTargetIds||[]).includes(id)&&effectActive(scene,target,"negative.подброшен")?a.tier:0))]}));
+    const sourceEffectIds=activeState(scene,a.id).effects.map(status=>status.effect),techniqueTags=(p.techniqueTags||[]).map(tag=>String(tag).toLowerCase());
+    const counts=Object.fromEntries(targets.map(id=>{const target=actor(scene,id),targetEffectIds=activeState(scene,id).effects.map(status=>status.effect),tauntedByActor=activeEffectSources(target,"negative.спровоцирован",scene).some(source=>source.actorId===a.id);return[id,Math.max(0,base+adapterNumber("rollBonus",a,{scene,kind:"attack",actionId:def.id,targetId:id,targetDistance:distance(a,target),sourceEffectIds,targetEffectIds,tauntedByActor,techniqueTags,attribute:p.attribute,tension:Number(scene.tension||0)})-(effectActive(scene,a,"negative.спровоцирован")&&!targets.some(t=>taunts.includes(t))?a.tier:0)-(effectActive(scene,a,"negative.испуган")&&fears.includes(id)?a.tier:0)+((p.spikeTargetIds||[]).includes(id)&&effectActive(scene,target,"negative.подброшен")?a.tier:0))]}));
     return{base:Math.min(...Object.values(counts)),counts};
   }
 
@@ -795,6 +797,13 @@
       else if (type === "counter.threshold") saveFact("counter.threshold", actorId, targets, { counterId: payload.counterId || payload.id, kind: payload.kind || payload.type, before: payload.before, value: payload.value, threshold: payload.threshold });
       else if (type === "attack.clear" && payload.cancelled) saveFact("cancel", actorId, targets, { reason: payload.reason || "cancelled" });
       return row;
+    };
+    const scheduleBoundary = (boundary, activeActor = null) => {
+      if (typeof global.DAWN_LIONWING_ADAPTERS?.boundaryOperations !== "function") return;
+      for (const owner of scene.actors || []) for (const rule of global.DAWN_LIONWING_ADAPTERS.boundaryOperations(owner, { scene, boundary, activeActor, distanceToActive: activeActor ? distance(owner, activeActor) : Infinity })) {
+        emit("rule.activated", owner.id, { ruleId: rule.id, boundary, targetId: activeActor?.id || owner.id, automatic: true });
+        scheduled.push(...rule.operations.map(p => ({ p, sourceId: owner.id, provenance: { rootActionId: rootId, actionId: null, actionDefinitionId: null, actionInstanceId: rootId, causeEventId: rootId, ownerActorId: owner.id, ruleId: rule.id } })));
+      }
     };
     const diceRequestFromPayload = (p, fallbackId, kind, ownerActorId = null) => {
       let input;
@@ -994,7 +1003,7 @@
     const wound = (a, sourceId, track = "wounds", actionPlanId = null) => {
       if (!isPlayer(a)) { applyDamage({ targetId: a.id, amount: 10, irreducible: true, sourceActorId: sourceId }); return; }
       a[track] = Number(a[track] || 0) + 1;
-      if (track === "wounds") a.hp = a.maxHp;
+      if (track === "wounds") a.hp = maxHealth(a);
       if (sourceId !== a.id && !astate(a).vulnerable) a.influence = Number(a.influence || 0) + 1;
       emit(track === "wounds" ? "actor.wound" : "actor.stress", sourceId, { targetId: a.id, delta: 1, total: a[track], hp: a.hp });
       if (a[track] >= 3) {
@@ -1228,7 +1237,7 @@
       else {const def=a.ruleResources[resource];if(def.maximum!=null&&before+amount>def.maximum)fail("Получение превышает максимум ресурса");def.value=before+amount;}
       emit("resource.gain",a.id,{requestedResource,resource,amount});
     };
-    const applyHealing = (p,sourceId) => { const target = requiredActor(scene, p.targetId || sourceId); const amount = integer(p.amount, "лечение"),compound=legacy.compoundEnemyStatus(scene,target),before=compound.active?compound.hp:target.hp;let after;if(compound.active){after=Math.min(Math.ceil(compound.hp/compound.gate)*compound.gate,compound.hp+amount);let remaining=after;for(const part of compound.parts){part.hp=Math.min(part.maxHp,remaining);remaining-=part.hp;}}else{target.hp=Math.min(target.maxHp,target.hp+amount);after=target.hp;}emit("actor.heal",sourceId,{targetId:target.id,amount,restored:after-before,prevented:amount>0&&after===before});};
+    const applyHealing = (p,sourceId) => { const target = requiredActor(scene, p.targetId || sourceId); const amount = integer(p.amount, "лечение"),compound=legacy.compoundEnemyStatus(scene,target),before=compound.active?compound.hp:target.hp;let after;if(compound.active){after=Math.min(Math.ceil(compound.hp/compound.gate)*compound.gate,compound.hp+amount);let remaining=after;for(const part of compound.parts){part.hp=Math.min(part.maxHp,remaining);remaining-=part.hp;}}else{target.hp=Math.min(maxHealth(target),target.hp+amount);after=target.hp;}emit("actor.heal",sourceId,{targetId:target.id,amount,restored:after-before,prevented:amount>0&&after===before});};
     const applyHealthLoss = (a, p, sourceId) => {
       const requested = integer(p.amount, "потеря Здоровья"), before = Number(a.hp || 0), lost = Math.min(before, requested);
       if(p.mode!=="lose"&&requested>before)fail("Недостаточно Здоровья для оплаты");
@@ -1450,12 +1459,12 @@
           const amount = integer(p.amount, "новое значение",p.resource==="knockedOut"?1:["wounds","stress"].includes(p.resource)?2:attributes.has(p.resource)||["baseAp","armor","speed","tier"].includes(p.resource)?99:9999), before = attributes.has(p.resource) ? target.attrs[p.resource] : target[p.resource];
           if(["maxHp","tier"].includes(p.resource)&&amount===0)fail("Значение должно быть положительным");
           const compound=legacy.compoundEnemyStatus(scene,target);
-          if(p.resource==="hp"&&amount>(compound.active?compound.maxHp:target.maxHp))fail("Здоровье превышает максимум");
+          if(p.resource==="hp"&&amount>(compound.active?compound.maxHp:maxHealth(target)))fail("Здоровье превышает максимум");
           if (attributes.has(p.resource)) target.attrs[p.resource] = amount;
           else if(p.resource==="vulnerable"){if(amount>1)fail("Уязвимость: 0 или 1");astate(target).vulnerable=Boolean(amount);}
           else if (p.resource === "knockedOut") { for(const part of compound.active?compound.parts:[target]){part.knockedOut=Boolean(amount);if(part.knockedOut){part.ap=0;part.stepRemaining=0;if(scene.activeActorId===part.id){scene.activeActorId=null;s.lastTeam=part.team;}s.grantedTurns=(s.grantedTurns||[]).filter(item=>item.actorId!==part.id);for(const aura of [...s.auras])if(aura.sourceLossPolicy==="remove"&&(aura.sourceEntityId===part.id||aura.ownerActorId===part.id))removeAuraRecord(aura,"removed",part.id);}} }
           else if(p.resource==="hp"&&compound.active){let remaining=amount;for(const part of compound.parts){part.hp=Math.min(part.maxHp,remaining);remaining-=part.hp;}}
-          else {target[p.resource] = amount;if(p.resource==="maxHp")target.hp=Math.min(target.hp,amount);}
+          else {target[p.resource] = amount;if(p.resource==="maxHp")target.hp=Math.min(target.hp,maxHealth(target));}
           emit("actor.runtime.set", target.id, { resource: p.resource, value: amount, before, correction: true, note: p.note || "Ручное исправление" }); break;
         }
         case "automation": {
@@ -1677,7 +1686,7 @@
               else emit("geometry.route.stop", sourceId, { targetId: target.id, routeId: context.routeId || null, segmentIndex: context.segmentIndex, reason: "decision", terminal: true, stoppedAt: { space: target.space, x: Number(target.x), y: Number(target.y) } });
             }
           }
-          else if (pending.kind === "knockout") { if (p.choice === "resist") { a[pending.context.track] = 1; a.hp = a.maxHp; astate(a).vulnerable = true; } else knockout(a); }
+          else if (pending.kind === "knockout") { if (p.choice === "resist") { a[pending.context.track] = 1; a.hp = maxHealth(a); astate(a).vulnerable = true; } else knockout(a); }
           else if(pending.kind==="clash-loss"||pending.kind==="clash-tie"){
             if(!scene.pendingAction||scene.pendingAction.id!==pending.context.attackId)fail("Атака больше не ожидает Столкновения");
             if(p.choice==="reroll")queue.unshift({p:{kind:"damage",targetId:a.id,amount:5,sourceActorId:a.id},sourceId:a.id},{p:{kind:"clash-roll",roll:p.roll,opponentRoll:p.opponentRoll},sourceId:a.id});
@@ -1833,8 +1842,9 @@
         case "turn-start": {
           const status = turnStartStatus(scene, sourceId); if (!status.available) fail(status.reason);
           const extraTurn = Boolean(s.grantedTurns?.length && s.grantedTurns[0].actorId === a.id);
+          const sceneStarting = !s.started;
           if(s.grantedTurns?.length){s.grantedTurns.shift();astate(a).grantedTurn={lastTeam:s.lastTeam,lastActorId:s.lastActorId,acted:a.acted};}
-          if (!s.started) { s.started = true; for (const hero of scene.actors.filter(isPlayer)) hero.focus = 1 + Math.ceil(Number(hero.attrs.spirit || 0) / 2); for (const other of scene.actors) other.ap = 0; }
+          if (sceneStarting) { s.started = true; for (const hero of scene.actors.filter(isPlayer)) hero.focus = 1 + Math.ceil(Number(hero.attrs.spirit || 0) / 2); for (const other of scene.actors) other.ap = 0; scheduleBoundary("sceneStart", a); }
           scene.activeActorId = a.id;
           scene.turnSerial = Number(scene.turnSerial || 0) + 1;
           s.activeTurnInstanceId=rootId;
@@ -1864,6 +1874,7 @@
           }
           if (effectActive(scene,a,"negative.подброшен")) removeEffect(a, "negative.подброшен");
           if (astate(a).startedDisappeared&&!s.choices.some(c=>c.actorId===a.id&&c.kind==="placement"&&c.context.reappear)) { if (effectActive(scene,a,"positive.исчез")) removeEffect(a, "positive.исчез",{reappear:false}); choice(a, "placement", "Выберите клетку появления вне соседства с персонажами", ["place"], { reappear: true }); }
+          scheduleBoundary("turnStart", a);
           emit("turn.start", a.id, { ap: a.ap }); break;
         }
         case "turn-end": {
@@ -1885,7 +1896,8 @@
           if(scene.pendingAction||s.choices.length||s.deferred.length||s.duels?.length||s.pausedChains?.length)fail("Сначала завершите ожидающие решения и Дуэли");
           for(const target of scene.actors){
             resetCounters(target,"scene");
-            target.hp=target.maxHp;target.knockedOut=false;target.evasion=0;target.ap=0;target.acted=target.kind==="crowd";target.usedActions=[];target.stepRemaining=0;
+            target.hp=maxHealth(target);target.knockedOut=false;target.evasion=0;target.ap=0;target.acted=target.kind==="crowd";target.usedActions=[];target.stepRemaining=0;
+            const automation=copy(target.lionwing?.automation||{});
             const persistentStates={};
             for(const [effect,saved] of Object.entries(target.effectStates||{})){
               const sources=Array.isArray(saved?.sources)?saved.sources:[];
@@ -1895,7 +1907,7 @@
               }else if(saved?.duration==="persistent"||saved?.lifetime==="persistent")persistentStates[effect]=saved;
             }
             target.effectStates=persistentStates;target.effects=Object.keys(persistentStates);
-            target.lionwing={};
+            target.lionwing=Object.keys(automation).length?{automation}:{};
           }
           scene.lionwing={schema:2,started:false,choices:[],deferred:[],receipts:s.receipts,history:s.history,auras:s.auras.filter(aura=>aura.lifetime==="persistent"),sceneSerial:s.sceneSerial+1,chapterSerial:s.chapterSerial};
           scene.round=1;scene.turnSerial=0;scene.tension=0;scene.activeActorId=null;scene.targetIds=[];scene.targetCells=[];scene.results=null;
@@ -2102,7 +2114,7 @@
   const api = {
     schema: 2, isScene, prepare, command, dispatchMany, previewEvents, prepareEntityRemoval, cancelEntityRemoval, removeEntity, destroyEntity: removeEntity,
     turnStartStatus, roundEndStatus, turnIdentity,
-    movement, roll, actionStatus, actionDef, speed, balance, canSpend, targetIds, costQuote,
+    movement, roll, actionStatus, actionDef, speed, maxHealth, balance, canSpend, targetIds, costQuote,
     createDiceRoll, createRoll: createDiceRoll, diceCreate: createDiceRoll,
     applyDiceRoll, applyRoll: applyDiceRoll, diceApply: applyDiceRoll,
     reloadDiceRoll, reloadRoll: reloadDiceRoll, diceReload: reloadDiceRoll,
@@ -2122,6 +2134,7 @@
   route("prepareAction", (scene, data, request) => prepare(scene, { kind: "action", ...request }));
   route("availableActions", (scene, data, id) => core.actions.list.filter(d => d.type === "action").map(d => { const status = actionStatus(scene, actor(scene, id), d); return { ...d, ...status, cost: `${status.cost ?? d.cost.amount} ${d.cost.resource === "ap" ? "ОД" : d.cost.resource}`, automation: ["action.атаки.дуэль",ids.interact,ids.study].includes(d.id)?"decision":"full" }; }));
   route("effectiveActorSpeed", (scene, id) => sceneSpeed(scene,requiredActor(scene, id, false)));
+  route("effectiveActorMaxHealth", (scene, id) => maxHealth(requiredActor(scene, id, false)));
   route("pendingActionStatus", scene => {
     const pending = scene.pendingAction, targets = pending?.targetIds || [];
     const eligibleIds = targets.filter(id => live(actor(scene, id)) && !effectActive(scene,actor(scene,id), "positive.исчез"));
