@@ -438,6 +438,10 @@
     const rule = RULES.find(item => item.id === request.ruleId);
     const actor = actorById(scene, request.actorId);
     if (!rule) errors.push("Неизвестное правило Техники.");
+    if (rule && scene?.rulesEdition === "lionwing") {
+      const canonicalIds = new Set((runtimeData()?.archetypes || []).flatMap(archetype => (archetype.techniques || []).map(technique => technique.id)));
+      if (!canonicalIds.has(rule.techniqueId)) errors.push("Эта Техника отсутствует в каноническом каталоге LionWing.");
+    }
     if (!actor) errors.push("Не выбран персонаж, использующий Технику.");
     if (rule && actor) {
       const knownLevel = Number(request.knownLevel ?? actor.techniques?.[rule.techniqueId] ?? 0);

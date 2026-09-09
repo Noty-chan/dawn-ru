@@ -34,6 +34,10 @@ const scene = {
 assert.ok(Engine.rulesFor(scene.actors[0].techniques).some(rule => rule.id === "ruiner.bombardier.3"));
 assert.equal(Engine.RULES.find(rule => rule.id === "ruiner.bombardier.3").automation, "full");
 assert.equal(Engine.RULES.find(rule => rule.id === "disruptor.chemist.1").automation, "full");
+const staleLionWingScene = structuredClone(scene);
+staleLionWingScene.rulesEdition = "lionwing";
+staleLionWingScene.actors[0].techniques["bulwark.servant-s-call"] = 1;
+assert.match(Engine.preview(staleLionWingScene, { actorId: staleLionWingScene.actors[0].id, ruleId: "bulwark.servant-s-call.1", anchor: { x: 1, y: 1 } }).errors.join(" "), /отсутствует в каноническом каталоге LionWing/);
 const coverage = Engine.techniqueCoverage(data);
 const canonicalLevelIds = Array.from(data.archetypes.flatMap(archetype =>
   archetype.techniques.flatMap(technique => technique.levels.map(level => `${technique.id}.${level.n}`))
