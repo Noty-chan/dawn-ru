@@ -8,6 +8,7 @@
   const core = global.DAWN_LIONWING_DATA.coreRules;
   const foundations = global.DAWN_LIONWING_EXECUTION;
   const entities = global.DAWN_LIONWING_ENTITIES || null;
+  const inventory = global.DAWN_LIONWING_INVENTORY || null;
   // The dice foundation is optional so the old single-event reducer remains
   // byte-for-byte compatible in pages that have not loaded the new module yet.
   const dice = global.DAWN_LIONWING_DICE || null;
@@ -127,6 +128,7 @@
     scene.lionwing ||= {};
     if (global.DAWN_LIONWING_INFORMATION_QUERY?.ensureState) global.DAWN_LIONWING_INFORMATION_QUERY.ensureState(scene);
     const s=scene.lionwing;s.schema=2;
+    if (inventory?.normalizeScene) inventory.normalizeScene(scene);
     // Auras are declarative scene state. They stay outside actor.effects so a
     // render/query never materializes one copy on every target.
     if(!Array.isArray(s.auras)&&Array.isArray(scene.auras))s.auras=copy(scene.auras);
@@ -852,7 +854,7 @@
   function prepare(scene, request, options = {}) {
     try {
       const eventId = request?.eventId ?? request?.commandId ?? request?.id ?? global.crypto?.randomUUID?.() ?? `lw-prepared-${Date.now()}-${preparedSerial++}`;
-      const payload = copy(request), a = ["scene-reset","round-end","tension","note","banish","vanish","compound","information-reveal","information-cancel","information-handout"].includes(payload.kind)&&!payload.actorId?null:requiredActor(scene, payload.actorId, !["choice", "correct", "resolve-attack", "cancel-attack", "batch","banish","vanish","compound","information-reveal","information-cancel","information-handout"].includes(payload.kind));
+      const payload = copy(request), actorlessKinds = ["scene-reset","round-end","intermission","tension","note","banish","vanish","compound","information-reveal","information-cancel","information-handout"], optionalActorKinds = ["choice","correct","resolve-attack","cancel-attack","batch","banish","vanish","compound","information-reveal","information-cancel","information-handout"], actorlessInventoryReset = payload.kind === "inventory" && payload.operation === "reset" && !payload.actorId, a = (actorlessKinds.includes(payload.kind) && !payload.actorId || actorlessInventoryReset) ? null : requiredActor(scene, payload.actorId, !optionalActorKinds.includes(payload.kind));
       const rollMeta = (extra = {}) => ({ rootActionId: eventId, actionInstanceId: eventId, causeEventId: eventId, ownerActorId: a?.id || null, ...extra });
       delete payload.actorId;
       if (payload.kind === "action") {
@@ -1027,7 +1029,7 @@
       else if (type === "counter.threshold") saveFact("counter.threshold", actorId, targets, { counterId: payload.counterId || payload.id, kind: payload.kind || payload.type, before: payload.before, value: payload.value, threshold: payload.threshold });
       else if (type === "aura.enter" || type === "aura.exit") saveFact(type, actorId, [actorId], { auraId:payload.auraId, effectId:payload.effectId, ruleId:payload.ruleId, ownerActorId:payload.ownerActorId, sourceEntityId:payload.sourceEntityId, movementTargetId:payload.movementTargetId||null, segmentIndex:payload.segmentIndex??null });
       else if (type === "attack.clear" && payload.cancelled) saveFact("cancel", actorId, targets, { reason: payload.reason || "cancelled" });
-      if (scheduleAfterEvent && ["clash.success", "damage.apply", "actor.knockout", "effect.apply", "actor.enter", "action.resolve", "marker.remove"].includes(type)) scheduleAfterEvent(row);
+      if (scheduleAfterEvent && ["clash.success", "damage.apply", "actor.knockout", "effect.apply", "actor.enter", "action.resolve", "marker.remove", "reaction.respond"].includes(type)) scheduleAfterEvent(row);
       return row;
     };
     const emitSpecial = (type, actorId, operation, payload, before, after) => {
@@ -1772,6 +1774,10 @@
         if(descriptorDue) def.lifetime=foundations.lifetimeBoundary(def.lifetime.boundary,{ownerActorId:a.id,ownerTurnSerial:ownTurnSerial(a),ownerTurnInstanceId:s.activeTurnInstanceId||null,sceneSerial:s.sceneSerial});
         emit(type,a.id,{id,kind:type.endsWith("clock.reset")?"clock":"resource",before,value:next,current:next,initial:def.initial??0,boundary,ownerActorId:def.ownerActorId??a.id,sourceActorId:def.sourceActorId??a.id,sourceEntityId:def.sourceEntityId??null,ruleId:def.ruleId??null,lifetime:def.lifetime??null});
       }
+      if (inventory?.resetActor) {
+        const changes = inventory.resetActor(a, boundary === "roundEnd" ? "round" : boundary === "startTurn" || boundary === "endTurn" ? "turn" : boundary, { scene });
+        for (const change of changes) emit("inventory.reset", a.id, change);
+      }
     };
     const lifetimeDue = (source, saved, effect, target, owner, boundary) => {
       const lifetime=source ? source.lifetime ?? null : saved?.lifetime || null;
@@ -2044,6 +2050,32 @@
           if (p.operation === "spend") spend(target, p.resource, amount);
           else if(p.operation === "gain")gain(target,p.resource,amount,{actionId:p.actionId});
           else fail("Неизвестная операция ресурса");
+          break;
+        }
+        case "inventory": {
+          if (!inventory?.applyOperation) fail("Модуль типизированного инвентаря LionWing недоступен");
+          const targetId = p.operation === "transfer" ? (p.fromActorId || sourceId) : (p.targetId || p.ownerActorId || sourceId);
+          if (!targetId) fail("Операция инвентаря требует владельца");
+          const authorityRole = executionOptions.role || (sourceId === "narrator" || sourceId === "gm" ? sourceId : null);
+          if (sourceId && sourceId !== targetId && !["narrator", "gm"].includes(authorityRole)) fail("Операция инвентаря принадлежит другому участнику", "LIONWING_INVENTORY_OWNER");
+          const context = { scene, actorId: sourceId || targetId, sourceActorId: sourceId || targetId, role: executionOptions.role || null, eventId: rootId, operationId: p.operationId || `${rootId}:inventory:${emitted.length}:${p.operation || "operation"}:${targetId}`, at: event.at, emit };
+          if (p.operation === "reserve") inventory.reserve(scene, targetId, p.costs, context);
+          else if (p.operation === "commit") inventory.commitReservation(scene, targetId, p.reservationId, context);
+          else if (p.operation === "cancel") inventory.cancelReservation(scene, targetId, p.reservationId, context);
+          else if (p.operation === "reset" && !p.id && !p.itemId && !p.definitionId) {
+            for (const change of inventory.resetActor(requiredActor(scene, targetId, false), p.boundary || p.resetAt || "manual", { scene })) emit("inventory.reset", targetId, change);
+          } else {
+            const inventoryPayload = { ...p, targetId };
+            if (p.inventoryKind || p.itemKind || p.recordKind) inventoryPayload.kind = p.inventoryKind || p.itemKind || p.recordKind;
+            inventory.applyOperation(scene, inventoryPayload, context);
+          }
+          break;
+        }
+        case "intermission": {
+          for (const target of scene.actors || []) {
+            if (inventory?.resetActor) for (const change of inventory.resetActor(target, "intermission", { scene })) emit("inventory.reset", target.id, change);
+          }
+          emit("intermission", sourceId, {});
           break;
         }
         case "correct": {
@@ -2622,6 +2654,8 @@
             resetCounters(target,"scene");
             target.hp=maxHealth(target);target.knockedOut=false;target.evasion=0;target.ap=0;target.acted=target.kind==="crowd";target.usedActions=[];target.stepRemaining=0;
             const automation=copy(target.lionwing?.automation||{});
+            const previousInventoryIds=Object.keys(target.lionwing?.inventory?.definitions||{});
+            const persistentInventory=inventory?.persistentState ? inventory.persistentState(target) : null;
             const persistentStates={};
             for(const [effect,saved] of Object.entries(target.effectStates||{})){
               const sources=Array.isArray(saved?.sources)?saved.sources:[];
@@ -2632,6 +2666,10 @@
             }
             target.effectStates=persistentStates;target.effects=Object.keys(persistentStates);
             target.lionwing=Object.keys(automation).length?{automation}:{};
+            if (persistentInventory && (Object.keys(persistentInventory.definitions || {}).length || Object.keys(persistentInventory.records || {}).length)) target.lionwing.inventory=persistentInventory;
+            target.inventory ||= {};
+            for (const id of previousInventoryIds) delete target.inventory[id];
+            if (inventory?.syncLegacy) inventory.syncLegacy(target);
           }
           scene.lionwing={schema:2,started:false,choices:[],deferred:[],receipts:s.receipts,history:s.history,specialJournal:s.specialJournal,compounds:s.compounds,auras:s.auras.filter(aura=>aura.lifetime==="persistent"),sceneSerial:s.sceneSerial+1,chapterSerial:s.chapterSerial};
           if (global.DAWN_LIONWING_INFORMATION_QUERY?.reset) global.DAWN_LIONWING_INFORMATION_QUERY.reset(scene);
@@ -2669,7 +2707,7 @@
     let request = event.payload;
     if (event.type !== "lionwing.command") {
       const p = event.payload || {}, mapped = {
-        "turn.start": { kind: "turn-start" }, "turn.end": { kind: "turn-end" }, "round.end": { kind: "round-end" },
+        "turn.start": { kind: "turn-start" }, "turn.end": { kind: "turn-end" }, "round.end": { kind: "round-end" }, "intermission": { kind: "intermission" },
         "damage.apply": { kind: "damage", ...p, sourceActorId: event.actorId, attack: p.attack === true || Boolean(p.sourceActionId && p.sourceActionId !== "manual.adjudication") },
         "actor.heal": { kind: "heal", ...p }, "actor.wound": { kind: "wound", ...p }, "actor.knockout": { kind: "knockout", ...p },
         "resource.gain": { kind: "resource", operation: "gain", ...p }, "resource.spend": { kind: "resource", operation: "spend", ...p },
@@ -2678,7 +2716,8 @@
         "compound.create": { kind: "compound", operation: "create", ...p }, "compound.add": { kind: "compound", operation: "add", ...p },
         "compound.update": { kind: "compound", operation: "update", ...p }, "compound.remove": { kind: "compound", operation: "remove", ...p }, "compound.dissolve": { kind: "compound", operation: "dissolve", ...p },
         "actor.move": { kind: "move", ...p, maximum: p.maximum ?? 99 }, "actor.enter": { kind: "note", note: "Вход в клетку" },
-        "roll.public": { kind: "roll", roll: p, label: p.label || p.outcome || "Бросок" }
+        "roll.public": { kind: "roll", roll: p, label: p.label || p.outcome || "Бросок" },
+        "inventory.change": { kind: "inventory", ...p, operation: p.operation || (Number(p.delta || 0) >= 0 ? "gain" : "spend"), id: p.itemId || p.item, amount: Math.abs(Number(p.amount ?? p.delta ?? 0)) }
       };
       request = mapped[event.type];
       if (!request) fail(`Событие ${event.type} не перенесено в LionWing`);
@@ -2873,6 +2912,7 @@
         const result = legacy.dispatch(next, event); next = result.scene; output.push(result.event);
         const lostSourceId=event.type==="marker.remove"?event.payload?.markerId:event.type==="actor.despawn"?event.actorId||event.payload?.actorId:null;
         removeAurasForLostSource(next,lostSourceId);
+        if (inventory?.removeSource && lostSourceId) inventory.removeSource(next, lostSourceId);
       } else { execute(next, event, output, options); next.version = Number(next.version || 0) + 1; }
       state(next).receipts.push({ id: event.id, fingerprint }); state(next).receipts = state(next).receipts.slice(-256);
     }
@@ -2933,7 +2973,7 @@
     lifetimeBoundary: foundations.lifetimeBoundary,
     normalizeLifetime: foundations.normalizeLifetime,
     isLifetimeExpired: foundations.lifetimeExpired,
-    operations: ["automation", "plan", "batch", "pause-chain", "resume-chain", "amend-attack", "recover-track", "record-action", "action", "attack", "information-study", "information-reveal", "information-cancel", "information-handout", "damage", "spend-health", "lose-health", "heal", "wound", "stress", "knockout", "resource", "correct", "effect", "effect-source", "banish", "vanish", "compound", "aura", "aura-create", "aura-update", "aura-suppress", "aura-restore", "aura-remove", "placement", "teleport", "displacement", "move", "forced-towards-group", "forced-towards-group-step", "forced-towards-group-after-route", "geometry-move", "geometry-segment", "modifier", "allow-action", "grant-turn", "usage", "punish", "invisible", "search", "configure-resource", "dice-create", "dice-apply", "dice-reload", "dice-opposed", "dice-resolve-tie", "counter", "clock", "prompt", "choice", "roll", "reaction", "resolve-attack", "cancel-attack", "turn-start", "turn-end", "round-end", "scene-reset", "chapter-start", "tension", "note", "marker-remove"]
+    operations: ["automation", "plan", "batch", "pause-chain", "resume-chain", "amend-attack", "recover-track", "record-action", "action", "attack", "information-study", "information-reveal", "information-cancel", "information-handout", "damage", "spend-health", "lose-health", "heal", "wound", "stress", "knockout", "resource", "inventory", "intermission", "correct", "effect", "effect-source", "banish", "vanish", "compound", "aura", "aura-create", "aura-update", "aura-suppress", "aura-restore", "aura-remove", "placement", "teleport", "displacement", "move", "forced-towards-group", "forced-towards-group-step", "forced-towards-group-after-route", "geometry-move", "geometry-segment", "modifier", "allow-action", "grant-turn", "usage", "punish", "invisible", "search", "configure-resource", "dice-create", "dice-apply", "dice-reload", "dice-opposed", "dice-resolve-tie", "counter", "clock", "prompt", "choice", "roll", "reaction", "resolve-attack", "cancel-attack", "turn-start", "turn-end", "round-end", "scene-reset", "chapter-start", "tension", "note", "marker-remove"]
   };
   global.DAWN_LIONWING_ENGINE = api;
   const routed = global.DAWN_SCENE_ENGINE;
@@ -2964,6 +3004,14 @@
   }
   route("projectScene",(scene,viewer={})=>{
     const projected=legacy.projectScene(scene,viewer);
+    if (inventory?.project && projected?.actors) {
+      const inventoryProjection = inventory.project(scene, viewer);
+      for (const projectedActor of projected.actors) {
+        projectedActor.lionwing ||= {};
+        if (inventoryProjection[projectedActor.id]) projectedActor.lionwing.inventory = inventoryProjection[projectedActor.id];
+        else delete projectedActor.lionwing.inventory;
+      }
+    }
     if(!["owner","narrator","gm"].includes(viewer.role)){
       delete projected.turnUndo;
       const hidden=new Set(scene.actors.filter(a=>a.hidden).map(a=>a.id));

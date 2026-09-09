@@ -106,7 +106,7 @@
 | Мастер боевых искусств (`powerhouse.martial-artist`) | 2 | Состояние потока (Flow-State) | `derived-stats` |
 | Мастер боевых искусств (`powerhouse.martial-artist`) | 3 | Бесконечные удары (Unlimited Blows) | тонкий адаптер уникального условия поверх уже готового ядра |
 | Мудрец монастыря (`powerhouse.monastic-sage`) | 1 | Разум воплощенный (Mind Made Manifest) | `turn-lifecycle`, `derived-stats` |
-| Мудрец монастыря (`powerhouse.monastic-sage`) | 2 | Меж двух миров (Of Two Worlds) | `turn-lifecycle`, `inventory` |
+| Мудрец монастыря (`powerhouse.monastic-sage`) | 2 | Меж двух миров (Of Two Worlds) | `turn-lifecycle` |
 | Мудрец монастыря (`powerhouse.monastic-sage`) | 3 | Возвышенная невозмутимость (Sublime Equanimity) | `turn-lifecycle` |
 | Копейщик (`powerhouse.lancer`) | 1 | Пронзание (Pierce) | тонкий адаптер уникального условия поверх уже готового ядра |
 | Копейщик (`powerhouse.lancer`) | 2 | Фаланга (Phalanx) | тонкий адаптер уникального условия поверх уже готового ядра |
@@ -137,9 +137,9 @@
 | Хитроумный боец (`vagabond.cunning-fighter`) | 3 | С первого взгляда (At a Glance) | `turn-lifecycle` |
 | Скованный (`vagabond.enchained`) | 2 | Притянуть (Draw In) | `movement-lifecycle` |
 | Скованный (`vagabond.enchained`) | 3 | Импульс (Momentum) [Заклинание -> Стычка] | `movement-lifecycle` |
-| Злобный подражатель (`vagabond.malicious-mimic`) | 1 | "Все, что можешь ты..." ("Anything You Can Do...") | `scene-lifecycle`, `inventory`, `action-copy` |
-| Злобный подражатель (`vagabond.malicious-mimic`) | 2 | Отрепетированные движения (Rehearsed Movements) | `derived-stats`, `inventory` |
-| Злобный подражатель (`vagabond.malicious-mimic`) | 3 | "...я могу лучше" ("...I Can Do Better") | `inventory`, `action-copy` |
+| Злобный подражатель (`vagabond.malicious-mimic`) | 1 | "Все, что можешь ты..." ("Anything You Can Do...") | `scene-lifecycle`, `action-copy` |
+| Злобный подражатель (`vagabond.malicious-mimic`) | 2 | Отрепетированные движения (Rehearsed Movements) | `derived-stats` |
+| Злобный подражатель (`vagabond.malicious-mimic`) | 3 | "...я могу лучше" ("...I Can Do Better") | `action-copy` |
 | Оппортунист (`vagabond.opportunist`) | 1 | Стайная тактика (Pack Tactics) | `movement-lifecycle`, `turn-lifecycle` |
 | Оппортунист (`vagabond.opportunist`) | 2 | Голодные глаза (Hungry Eyes) | тонкий адаптер уникального условия поверх уже готового ядра |
 | Оппортунист (`vagabond.opportunist`) | 3 | Комбо-подброс (Launcher Combo) | `turn-lifecycle` |
@@ -195,17 +195,17 @@
 | Боевой инструктор (`altruist.battle-instructor`) | 1 | Приказ к удару (Strike Order) | `movement-lifecycle` |
 | Боевой инструктор (`altruist.battle-instructor`) | 2 | Обучающий момент (Teaching Moment) | `bond-actions` |
 | Боевой инструктор (`altruist.battle-instructor`) | 3 | Вспомни обучение (Remember Your Training) | `bond-actions`, `scene-lifecycle` |
-| Гурман (`altruist.gourmand`) | 1 | Здоровая трапеза (Healthy Meal) | `inventory`, `intermission-reset` |
-| Гурман (`altruist.gourmand`) | 3 | Общий опыт (Shared Experiences) | `bond-actions`, `inventory` |
+| Гурман (`altruist.gourmand`) | 1 | Здоровая трапеза (Healthy Meal) | тонкий адаптер уникального условия поверх уже готового ядра |
+| Гурман (`altruist.gourmand`) | 3 | Общий опыт (Shared Experiences) | `bond-actions` |
 | Предвидящий (`altruist.precognizant`) | 1 | Вспышка озарения (Flash Of Insight) | `scene-lifecycle` |
 | Предвидящий (`altruist.precognizant`) | 2 | Воспользоваться (Take Advantage) | `derived-stats` |
 | Предвидящий (`altruist.precognizant`) | 3 | Швырнуть в бесконечность (Hurl Into The Infinite) | тонкий адаптер уникального условия поверх уже готового ядра |
-| Хирург (`altruist.surgeon`) | 2 | Операционная процедура (Operational Procedure) | `inventory`, `intermission-reset` |
-| Хирург (`altruist.surgeon`) | 3 | Чудотворец (Miracle Worker) | `inventory` |
+| Хирург (`altruist.surgeon`) | 2 | Операционная процедура (Operational Procedure) | тонкий адаптер уникального условия поверх уже готового ядра |
+| Хирург (`altruist.surgeon`) | 3 | Чудотворец (Miracle Worker) | тонкий адаптер уникального условия поверх уже готового ядра |
 | Заклинатель талисманов (`altruist.talisman-caster`) | 1 | Священная печать (Sacred Seal) | тонкий адаптер уникального условия поверх уже готового ядра |
 | Заклинатель талисманов (`altruist.talisman-caster`) | 2 | Брошенный талисман (Tossed Talisman) | тонкий адаптер уникального условия поверх уже готового ядра |
 | Заклинатель талисманов (`altruist.talisman-caster`) | 3 | Экзорцизм (Exorcize) | тонкий адаптер уникального условия поверх уже готового ядра |
-| Алхимик (`altruist.alchemist`) | 3 | Высокоинтенсивная смесь (High Intensity Mix) | `inventory` |
+| Алхимик (`altruist.alchemist`) | 3 | Высокоинтенсивная смесь (High Intensity Mix) | тонкий адаптер уникального условия поверх уже готового ядра |
 | Хрономант (`altruist.chronomancer`) | 1 | Ускорение (Accelerate) | `movement-lifecycle` |
 | Танцор (`altruist.dancer`) | 1 | Партнер по танцу (Dance Partner) | `movement-lifecycle`, `turn-lifecycle` |
 | Танцор (`altruist.dancer`) | 2 | Сердца в унисон (Hearts In Tandem) | тонкий адаптер уникального условия поверх уже готового ядра |
@@ -222,12 +222,12 @@
 | Художник (`altruist.artist`) | 1 | Взмах кисти (Stroke Of The Brush) | `movement-lifecycle`, `turn-lifecycle` |
 | Художник (`altruist.artist`) | 2 | Холст из плоти (Canvas Of Flesh) | тонкий адаптер уникального условия поверх уже готового ядра |
 | Художник (`altruist.artist`) | 3 | Клеймо кисти (Brush-Brand) | `turn-lifecycle` |
-| Ученый бард (`altruist.bardic-savant`) | 1 | Музыкант (Musician) | `movement-lifecycle`, `inventory` |
-| Ученый бард (`altruist.bardic-savant`) | 2 | Быстрая композиция (Quick Composition) | `inventory`, `turn-lifecycle` |
-| Ученый бард (`altruist.bardic-savant`) | 3 | На бис (Encore) | `inventory` |
-| Сборщик колоды (`altruist.deckbuilder`) | 1 | Добор (Draw) | `movement-lifecycle`, `inventory`, `scene-lifecycle` |
-| Сборщик колоды (`altruist.deckbuilder`) | 2 | Карточная ловушка (Card Trap) | `inventory` |
-| Сборщик колоды (`altruist.deckbuilder`) | 3 | Жадность (Greed) | `inventory` |
+| Ученый бард (`altruist.bardic-savant`) | 1 | Музыкант (Musician) | `movement-lifecycle` |
+| Ученый бард (`altruist.bardic-savant`) | 2 | Быстрая композиция (Quick Composition) | `turn-lifecycle` |
+| Ученый бард (`altruist.bardic-savant`) | 3 | На бис (Encore) | тонкий адаптер уникального условия поверх уже готового ядра |
+| Сборщик колоды (`altruist.deckbuilder`) | 1 | Добор (Draw) | `movement-lifecycle`, `scene-lifecycle` |
+| Сборщик колоды (`altruist.deckbuilder`) | 2 | Карточная ловушка (Card Trap) | тонкий адаптер уникального условия поверх уже готового ядра |
+| Сборщик колоды (`altruist.deckbuilder`) | 3 | Жадность (Greed) | тонкий адаптер уникального условия поверх уже готового ядра |
 | Кровопускатель (`disruptor.bloodletter`) | 1 | Кровоточащее лезвие (Bleeding Edge) | тонкий адаптер уникального условия поверх уже готового ядра |
 | Кровопускатель (`disruptor.bloodletter`) | 2 | Ищейка (Bloodhound) | `movement-lifecycle` |
 | Кровопускатель (`disruptor.bloodletter`) | 3 | Разрыв (Rupture) [Стычка -> Передышка] | тонкий адаптер уникального условия поверх уже готового ядра |
@@ -275,9 +275,9 @@
 | Пламенное сердце (`ruiner.flame-heart`) | 2 | Проклятый удар (Damning Impact) | `combat-meter` |
 | Пламенное сердце (`ruiner.flame-heart`) | 3 | Прах к праху (Ashes To Ashes) | тонкий адаптер уникального условия поверх уже готового ядра |
 | Мрачный Вознесенный (`ruiner.grim-ascendant`) | 3 | Умбра (Umbra) | `transformation` |
-| Сильное натяжение (`ruiner.long-draw`) | 1 | Наложить стрелу (Nock The Arrow) | `inventory` |
-| Сильное натяжение (`ruiner.long-draw`) | 2 | Перьевой шаг (Feather Step) | `movement-lifecycle`, `inventory` |
-| Сильное натяжение (`ruiner.long-draw`) | 3 | Пронзитель владык (Lord Piercer) [Подготовка x 3] | `inventory`, `scene-lifecycle` |
+| Сильное натяжение (`ruiner.long-draw`) | 1 | Наложить стрелу (Nock The Arrow) | тонкий адаптер уникального условия поверх уже готового ядра |
+| Сильное натяжение (`ruiner.long-draw`) | 2 | Перьевой шаг (Feather Step) | `movement-lifecycle` |
+| Сильное натяжение (`ruiner.long-draw`) | 3 | Пронзитель владык (Lord Piercer) [Подготовка x 3] | `scene-lifecycle` |
 | Клинки маны (`ruiner.mana-blades`) | 1 | К оружию (Call Arms) | `action-copy` |
 | Клинки маны (`ruiner.mana-blades`) | 2 | Орудия павших (Tools Of The Fallen) | `movement-lifecycle` |
 | Клинки маны (`ruiner.mana-blades`) | 3 | Святой меч, Экскалибур (Saintly Sword, Excalibur) | `transformation`, `action-copy` |
@@ -297,7 +297,6 @@
 | `turn-lifecycle` · Жизненный цикл Хода и Раунда | 62 | Один общий контракт сможет снять этот блокер сразу у нескольких адаптеров; модуль пока не закреплён |
 | `derived-stats` · Производные характеристики персонажа | 36 | Один общий контракт сможет снять этот блокер сразу у нескольких адаптеров; модуль пока не закреплён |
 | `scene-lifecycle` · Начало, конец и сброс Сцены | 25 | Один общий контракт сможет снять этот блокер сразу у нескольких адаптеров; модуль пока не закреплён |
-| `inventory` · Инвентарь и заряды | 18 | Один общий контракт сможет снять этот блокер сразу у нескольких адаптеров; модуль пока не закреплён |
 | `combat-meter` · Напряжение и общие счетчики боя | 13 | Один общий контракт сможет снять этот блокер сразу у нескольких адаптеров; модуль пока не закреплён |
 | `summon-turns` · Призывы и делегированные Ходы | 11 | Один общий контракт сможет снять этот блокер сразу у нескольких адаптеров; модуль пока не закреплён |
 | `action-copy` · Заимствование Атак и Техник | 10 | Один общий контракт сможет снять этот блокер сразу у нескольких адаптеров; модуль пока не закреплён |
@@ -306,7 +305,6 @@
 | `deployment-hooks` · Развертывание | 5 | Один общий контракт сможет снять этот блокер сразу у нескольких адаптеров; модуль пока не закреплён |
 | `bond-actions` · Связи и действия Связей | 5 | Один общий контракт сможет снять этот блокер сразу у нескольких адаптеров; модуль пока не закреплён |
 | `duel-flow` · Дуэли и ставки | 4 | Один общий контракт сможет снять этот блокер сразу у нескольких адаптеров; модуль пока не закреплён |
-| `intermission-reset` · Сброс на Интермиссии | 2 | Один общий контракт сможет снять этот блокер сразу у нескольких адаптеров; модуль пока не закреплён |
 
 ## Враги
 
