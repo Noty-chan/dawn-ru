@@ -75,7 +75,7 @@ const TRIGGER_RULES = [
     build: ({ scene, event, actor, payload }) => {
       const limit = usageLimitStatus(scene, actor.id, { ruleId: "disruptor.siren.1", scope: "scene", maximum: 3 }), target = actorById(scene, payload.targetIds?.[0]);
       if (!target || target.knockedOut || target.team === actor.team) return [];
-      return [{ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${event.id}-siren-study`, kind: "siren-study-frighten", sourceActorId: actor.id, targetId: target.id, title: "Ты ведь не причинишь МНЕ боль?", text: `Наложить Испуган на ${target.name}? Осталось применений в Сцене: ${limit.remaining}.`, options: ["frighten", "pass"], participantIds: [actor.id, target.id] } }];
+      return [{ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${event.id}-siren-study`, kind: "siren-study-frighten", sourceActorId: actor.id, targetId: target.id, title: "Ты ведь не причинишь МНЕ боль?", text: `Наложить Испуган на ${target.name}? Осталось применений в Сцене: ${limit.remaining}.`, options: ["frighten", "pass"], context: { studyEventId: event.id, ruleId: "disruptor.siren.1", sourceDigest: "8d9becba6e6f63641f5dc1a8a47e965c73f0e7112ef7ef4b781b2c6ffb632979" }, participantIds: [actor.id, target.id] } }];
     },
   },
   {
@@ -114,7 +114,7 @@ const TRIGGER_RULES = [
     build: ({ scene, event, actor, payload }) => {
       const target = actorById(scene, payload.targetId);
       if (!target || target.knockedOut || target.id === actor.id || target.space !== actor.space) return [];
-      return [{ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${event.id}-siren-irresistible`, kind: "siren-irresistible", sourceActorId: actor.id, targetId: target.id, title: "Неотразимая", text: `Заставить ${target.name} переместиться на расстояние до 3 клеток к вам? Если цель окажется смежной, можно наложить Ошеломлен.`, options: ["rush", "pass"], context: { frightenedEventId: event.id }, participantIds: [actor.id, target.id] } }];
+      return [{ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${event.id}-siren-irresistible`, kind: "siren-irresistible", sourceActorId: actor.id, targetId: target.id, title: "Неотразимая", text: `Заставить ${target.name} переместиться на расстояние до 3 клеток к вам? Если цель окажется смежной, можно наложить Ошеломлен.`, options: ["rush", "pass"], context: { frightenedEventId: event.id, ruleId: "disruptor.siren.2", sourceDigest: "62f65d9d2cfad5b96f12f80b2ece81635e47b5f63083b35b4f4c6eb1db1b5ed6" }, participantIds: [actor.id, target.id] } }];
     },
   },
   {

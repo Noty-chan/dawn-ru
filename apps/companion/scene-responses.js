@@ -1,5 +1,8 @@
 "use strict";
 
+const SIREN_I_SOURCE_DIGEST = "8d9becba6e6f63641f5dc1a8a47e965c73f0e7112ef7ef4b781b2c6ffb632979";
+const SIREN_II_SOURCE_DIGEST = "62f65d9d2cfad5b96f12f80b2ece81635e47b5f63083b35b4f4c6eb1db1b5ed6";
+
 function antagonistDefenseRule(data, actor) {
   const trait = (data.enemies?.antagonistTraits || []).find(item => item.id === actor?.antagonistTraitId);
   const rule = trait?.rules?.find(item => item.kind === "defense-reaction");
@@ -715,7 +718,7 @@ function respondRulePrompt(scene, data, request = {}) {
     events.push({ type: "effect.remove", actorId: actor.id, payload: { targetId: target.id, effect: choice, sourceActionId: "altruist.empath.1", participantIds: [actor.id, target.id] } });
     events.push({ type: "effect.apply", actorId: actor.id, payload: { targetId: target.id, effect: "positive.усилен", sourceActionId: "altruist.empath.1", participantIds: [actor.id, target.id] } });
   }
-  if (prompt.kind === "siren-irresistible") events.push({ type: "technique.resolve", actorId: actor.id, payload: { ruleId: "disruptor.siren.2", name: "Неотразимая · первое окно Хода", affectedActorIds: [target?.id].filter(Boolean), used: choice === "rush", participantIds: [actor.id, target?.id].filter(Boolean) } });
+  if (prompt.kind === "siren-irresistible") events.push({ type: "technique.resolve", actorId: actor.id, payload: { ruleId: "disruptor.siren.2", sourceRuleId: "disruptor.siren.2", sourceDigest: SIREN_II_SOURCE_DIGEST, name: "Неотразимая · первое окно Хода", affectedActorIds: [target?.id].filter(Boolean), used: choice === "rush", participantIds: [actor.id, target?.id].filter(Boolean) } });
   if (prompt.kind === "siren-irresistible" && choice === "rush") {
     const frightenedEvent = (scene.log || []).find(event => event.id === prompt.context?.frightenedEventId);
     if (Number(actor.techniques?.["disruptor.siren"] || 0) < 2 || !target || target.knockedOut || target.space !== actor.space || frightenedEvent?.type !== "effect.apply" || frightenedEvent.actorId !== actor.id || frightenedEvent.payload?.targetId !== target.id || frightenedEvent.payload?.effect !== "negative.испуган" || !frightenedEvent.payload?.applied) return { ok: false, errors: ["Источник или цель «Неотразимой» больше не соответствуют сработавшему Испугу."], events: [] };
@@ -723,7 +726,11 @@ function respondRulePrompt(scene, data, request = {}) {
   }
   if (prompt.kind === "siren-irresistible-stun" && choice === "stun") {
     if (!target || target.knockedOut || target.space !== actor.space || distance(actor, target) !== 1) return { ok: false, errors: ["Цель «Неотразимой» больше не смежна с Сиреной."], events: [] };
-    events.push({ type: "effect.apply", actorId: actor.id, payload: { targetId: target.id, effect: "negative.ошеломлен", sourceActionId: "disruptor.siren.2", participantIds: [actor.id, target.id] } });
+    events.push({ type: "effect.apply", actorId: actor.id, payload: { targetId: target.id, effect: "negative.ошеломлен", sourceActionId: "disruptor.siren.2", sourceRuleId: "disruptor.siren.2", sourceDigest: SIREN_II_SOURCE_DIGEST, participantIds: [actor.id, target.id] } });
+    // The canonical reward is coupled to the optional Daze. Queue it beside
+    // the effect so it cannot be granted by merely ending adjacent or by a
+    // cancelled movement prompt.
+    events.push({ type: "resource.gain", actorId: actor.id, payload: { resource: "focus", amount: 1, sourceActionId: "disruptor.siren.2", sourceRuleId: "disruptor.siren.2", sourceDigest: SIREN_II_SOURCE_DIGEST, participantIds: [actor.id, target.id] } });
   }
   if (prompt.kind === "dim-mak-weak-point" && choice === "place") {
     if (!target || target.knockedOut || target.team === actor.team || target.space !== actor.space) return { ok: false, errors: ["Цель Слабой точки больше недоступна."], events: [] };
@@ -740,9 +747,12 @@ function respondRulePrompt(scene, data, request = {}) {
   }
   if (prompt.kind === "siren-study-frighten" && choice === "frighten") {
     const limit = usageLimitStatus(scene, actor.id, { ruleId: "disruptor.siren.1", scope: "scene", maximum: 3 });
-    if (!limit.available) return { ok: false, errors: [limit.reason], events: [] };
-    events.push({ type: "effect.apply", actorId: actor.id, payload: { targetId: target.id, effect: "negative.испуган", sourceActionId: "disruptor.siren.1", participantIds: [actor.id, target.id] } });
-    events.push({ type: "technique.resolve", actorId: actor.id, payload: { ruleId: "disruptor.siren.1", name: "Ты ведь не причинишь МНЕ боль?", affectedActorIds: [target.id], participantIds: [actor.id, target.id] } });
+    const studyEvent = (scene.log || []).find(event => event.id === prompt.context?.studyEventId);
+    const focus = resourceOperationStatus(scene, actor.id, { resource: "focus", amount: 1, operation: "spend" });
+    if (!limit.available || !focus.available || !target || target.knockedOut || target.team === actor.team || target.space !== actor.space || studyEvent?.type !== "action.resolve" || studyEvent.actorId !== actor.id || studyEvent.payload?.targetIds?.length !== 1 || studyEvent.payload.targetIds[0] !== target.id || !actionIdIs(studyEvent.payload.actionId || studyEvent.payload.actionName || studyEvent.payload.name, "study")) return { ok: false, errors: [limit.reason || focus.reason || "Изученная цель Сирены больше недоступна."], events: [] };
+    events.push({ type: "resource.spend", actorId: actor.id, payload: { resource: "focus", amount: 1, sourceActionId: "disruptor.siren.1", sourceRuleId: "disruptor.siren.1", sourceDigest: SIREN_I_SOURCE_DIGEST, participantIds: [actor.id, target.id] } });
+    events.push({ type: "effect.apply", actorId: actor.id, payload: { targetId: target.id, effect: "negative.испуган", sourceActionId: "disruptor.siren.1", sourceRuleId: "disruptor.siren.1", sourceDigest: SIREN_I_SOURCE_DIGEST, participantIds: [actor.id, target.id] } });
+    events.push({ type: "technique.resolve", actorId: actor.id, payload: { ruleId: "disruptor.siren.1", sourceRuleId: "disruptor.siren.1", sourceDigest: SIREN_I_SOURCE_DIGEST, name: "Ты ведь не причинишь МНЕ боль?", affectedActorIds: [target.id], participantIds: [actor.id, target.id] } });
   }
   if (prompt.kind === "untouchable-weave" && choice === "rush") events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${prompt.id}-cell`, kind: "untouchable-weave-cell", sourceActorId: actor.id, title: "Маятник", text: "Выберите свободную клетку в пределах 3 клеток.", options: ["cancel"], context: { maxDistance: 3 }, participantIds: [actor.id] } });
   if (prompt.kind === "grim-transform" && choice === "transform") {
