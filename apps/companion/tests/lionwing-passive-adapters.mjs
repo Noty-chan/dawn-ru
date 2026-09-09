@@ -48,6 +48,12 @@ const passiveRules = [
   "powerhouse.lancer.1",
   "ruiner.flame-heart.2",
   "vagabond.assassin.2",
+  "powerhouse.monastic-sage.1",
+  "vagabond.acrobat.1",
+  "ruiner.rapid-fire-sorcery.3",
+  "ruiner.bombardier.2",
+  "ruiner.ritualist.2",
+  "vagabond.enchained.3",
 ];
 const castRules = ["altruist.chronomancer.2", "ruiner.feral-arcana.3", "ruiner.flame-heart.3", "ruiner.cryomancer.2", "ruiner.sellsword-s-call.1"];
 const skirmishRules = ["bulwark.grappler.2", "disruptor.bloodletter.2", "disruptor.constrictor.3", "powerhouse.gunslinger.2", "vagabond.skirmisher.3", "vagabond.knife-juggler.2"];
@@ -100,6 +106,67 @@ for (const rule of catalog) {
   assert.equal(rule.sourceDigest, sourceDigest(rule.id), `${rule.id} keeps its canonical source identity`);
   assert.equal(rule.coverage, ["bulwark.iron-bodied.2", "bulwark.rising-challenger.3", "bulwark.absolute-bastard.3", "altruist.empath.3", "bulwark.mundane.1"].includes(rule.id) ? "full" : "partial", `${rule.id} declares its actual scope`);
 }
+
+// The new blocks are opt-in and require their reviewed semantic context. A
+// matching base action alone must never activate a chain-specific bonus.
+const numericActor = actor("numeric", "hero", 1, { tier: 2, knownTechniques: {
+  "powerhouse.monastic-sage": 1, "vagabond.acrobat": 1,
+  "ruiner.rapid-fire-sorcery": 3, "ruiner.bombardier": 2,
+  "ruiner.ritualist": 2, "vagabond.enchained": 3,
+}, effects: ["positive.усилен"] });
+for (const id of ["powerhouse.monastic-sage.1", "vagabond.acrobat.1", "ruiner.rapid-fire-sorcery.3", "ruiner.bombardier.2", "ruiner.ritualist.2", "vagabond.enchained.3"]) numericActor.lionwing ||= {}, numericActor.lionwing.automation ||= {}, numericActor.lionwing.automation[id] = true;
+assert.equal(adapters.statBonus(numericActor, "armor", { activeEffectIds: ["positive.усилен"] }), 2, "Monastic Warrior grants Armor only while Strengthened");
+assert.equal(adapters.statBonus({ ...numericActor, effects: [] }, "armor", { activeEffectIds: [] }), 0, "Monastic Warrior does not grant Armor without Strengthened");
+assert.equal(adapters.rollBonus(numericActor, { kind: "attack", actionId: ids.skirmish, targetIds: ["e"], targetDistance: 1, jumpDistance: 4 }), 3, "Acrobat caps Jump distance at Talent");
+assert.equal(adapters.rollBonus(numericActor, { kind: "attack", actionId: ids.skirmish, targetIds: ["e", "e2"], targetDistance: 1, jumpDistance: 4 }), 0, "Acrobat requires one Skirmish target");
+assert.equal(adapters.rollBonus(numericActor, { kind: "attack", actionId: ids.spell, rapidFire: false, differentEnemiesWithinFive: 3, tension: 2 }), 0, "Eradicator III does not leak into an ordinary Cast");
+assert.equal(adapters.rollBonus(numericActor, { kind: "attack", actionId: ids.spell, rapidFire: true, differentEnemiesWithinFive: 3, tension: 2 }), 5, "Eradicator III uses only the Rapid Fire Cast context");
+assert.equal(adapters.rollBonus(numericActor, { kind: "attack", actionId: ids.finish, attribute: "spirit", techniqueRuleId: "ruiner.bombardier.2", focusSpent: 2, emptyTargetCount: 9 }), 4, "Bombardier II applies its Tier+2 cap");
+assert.equal(adapters.rollBonus(numericActor, { kind: "attack", actionId: ids.finish, attribute: "body", techniqueRuleId: "ruiner.bombardier.2", focusSpent: 2, emptyTargetCount: 2 }), 0, "Bombardier II requires a Spirit Finisher");
+assert.equal(adapters.rollBonus(numericActor, { kind: "attack", actionId: ids.finish, attribute: "spirit", spellCircleActive: true, firstSpiritFinisherThisTurn: true, tension: 3 }), 3, "Ritualist II grants Tension Advantage once in a Circle");
+assert.equal(adapters.rangeBonus(numericActor, { actionId: ids.finish, attribute: "spirit", spellCircleActive: true, firstSpiritFinisherThisTurn: true }), 3, "Ritualist II grants its additional range in the same context");
+assert.equal(adapters.rollBonus(numericActor, { kind: "attack", actionId: ids.skirmish, enchainedCastMoveAdjacent: true }), 4, "Enchained III grants Tier x2 Advantage to the chained Skirmish");
+assert.equal(adapters.rollBonus(numericActor, { kind: "attack", actionId: ids.skirmish, enchainedCastMoveAdjacent: false }), 0, "Enchained III does not affect an unrelated Skirmish");
+
+// The engine supplies Jump provenance from the current Turn journal. This
+// survives a JSON save/load and cannot be activated by an unrelated Skirmish.
+let jumpScene = fixture({ knownTechniques: { "vagabond.acrobat": 1 } });
+jumpScene = enable(jumpScene, "vagabond.acrobat.1");
+jumpScene = run(jumpScene, "h", { kind: "turn-start" });
+let jump = prepare(jumpScene, "h", { kind: "action", actionId: ids.jump, destination: { x: 3, y: 1 } });
+jumpScene = lionwing.dispatchMany(jumpScene, jump.events).scene;
+jumpScene = copy(jumpScene);
+let acrobatSkirmish = prepare(jumpScene, "h", { kind: "action", actionId: ids.skirmish, targetIds: ["e"] });
+assert.equal(acrobatSkirmish.events[0].payload.roll.initialCount, 7, "Acrobat reads the two cells moved by the immediately preceding Jump");
+let unrelatedSkirmish = prepare(jumpScene, "h", { kind: "action", actionId: ids.skirmish, targetIds: ["e"], jumpDistance: 0 });
+assert.equal(unrelatedSkirmish.events[0].payload.roll.initialCount, 5, "An explicit unrelated Jump context cannot add Acrobat Advantage");
+
+let rapidScene = fixture({ knownTechniques: { "ruiner.rapid-fire-sorcery": 3 } });
+rapidScene.actors.push(actor("e2", "enemy", 5));
+rapidScene.tension = 2;
+rapidScene = enable(rapidScene, "ruiner.rapid-fire-sorcery.3");
+rapidScene = run(rapidScene, "h", { kind: "turn-start" });
+let rapid = prepare(rapidScene, "h", { kind: "action", actionId: ids.spell, targetIds: ["e"], rapidFire: true });
+assert.equal(rapid.events[0].payload.roll.initialCount, 7, "Eradicator counts both enemies in range and current Tension for Rapid Fire Cast");
+let ordinaryCastScene = run(fixture({ knownTechniques: { "ruiner.rapid-fire-sorcery": 3 } }), "h", { kind: "turn-start" });
+let ordinaryCast = prepare(ordinaryCastScene, "h", { kind: "action", actionId: ids.spell, targetIds: ["e"] });
+assert.equal(ordinaryCast.events[0].payload.roll.initialCount, 3, "The same Eradicator level does not affect an ordinary Cast");
+
+let circleScene = fixture({ knownTechniques: { "ruiner.ritualist": 2 } });
+circleScene.actors[1].x = 4; circleScene.tension = 2;
+circleScene.markers = [{ id: "circle", kind: "ritual", ruleId: "ruiner.ritualist.1", ownerActorId: "h", space: "main", x: 1, y: 1, duration: "scene" }];
+circleScene = enable(circleScene, "ruiner.ritualist.2");
+circleScene = run(circleScene, "h", { kind: "turn-start" });
+const circleFinisher = prepare(circleScene, "h", { kind: "action", actionId: ids.finish, attribute: "spirit", targetIds: ["e"] });
+assert.equal(circleFinisher.ok, true, "Ritualist's first Spirit Finisher can use the Circle range");
+assert.equal(circleFinisher.events[0].payload.roll.initialCount, 5, "Ritualist adds Tension Advantage to the first Spirit Finisher");
+
+let bombardierScene = fixture({ tier: 2, knownTechniques: { "ruiner.bombardier": 2 } });
+bombardierScene.tension = 2; bombardierScene.actors[0].focus = 8;
+bombardierScene = enable(bombardierScene, "ruiner.bombardier.2");
+bombardierScene = run(bombardierScene, "h", { kind: "turn-start" });
+const bombardierFinisher = prepare(bombardierScene, "h", { kind: "action", actionId: ids.finish, attribute: "spirit", focusSpent: 2, techniqueRuleId: "ruiner.bombardier.2", targetIds: ["e"], emptyTargetCount: 9 });
+assert.equal(bombardierFinisher.events[0].payload.roll.initialCount, 9, "Bombardier derives the canonical Tier+2 empty-space cap");
 
 // No rule applies until the narrator has explicitly enabled it.  Plural
 // contributions retain stable source IDs so overlapping passive clauses stack.

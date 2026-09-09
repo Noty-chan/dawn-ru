@@ -1,5 +1,20 @@
 # LionWing — последняя передача, 2026-09-06
 
+## Актуальная точка передачи — 2026-09-09, числовые цепочки (codex/luna-numeric-bonuses)
+
+Добавлены частичные, opt-in адаптеры с canonical digest для Monastic Warrior I
+(+2 Armor пока Strengthened), Acrobat I (Advantage Skirmish по клеткам текущего
+Jump, максимум Talent), Eradicator III (Advantage только явно помеченному Rapid
+Fire Cast), Bombardier II (Advantage Spirit Finisher за пустые клетки с лимитом
+Tier+2), Ritualist II (+Tension Advantage и +3 range первому Spirit Finisher
+в Spell Circle за Turn) и Enchained III (Tier×2 только при явно переданном
+движении Cast этой цепочки). Для chain-зависимых случаев ядро использует
+проверяемый контекст, а не один actionId; Jump provenance сохраняется в журнале
+и читается после reload. Push 4 Enchained и Monastic Warrior I Evasion в конце
+Turn сознательно не автоматизированы: безопасного сквозного контракта пока нет.
+Тесты положительных/отрицательных условий, наложений, reload/replay и полный
+`npm test` проходят. Ветка отправлена в origin для последующего fast-forward/merge.
+
 ## Актуальная точка передачи — 2026-09-09, простые части всех Техник
 
 После отдельной сверки всех `canonical/archetypes/*.json` набор нового ядра вырос

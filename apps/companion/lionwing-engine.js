@@ -338,6 +338,18 @@
     return Number.isFinite(value) ? value : 0;
   };
   const stat = (a, key, context = {}) => Math.max(0, adapterNumber("statMinimum", a, key, context), Number(a[key] || 0) + (a.lionwing?.modifiers || []).filter(m => m.stat === key).reduce((sum, m) => sum + (key==="evasion"?m.remaining??m.amount:m.amount), 0) + adapterNumber("statBonus", a, key, context));
+  const currentTurnInstance = scene => state(copy(scene)).activeTurnInstanceId || null;
+  const spellCircleActive = (scene, a) => (scene.markers || []).some(marker =>
+    marker?.ownerActorId === a.id && (marker.kind === "ritual" || marker.kind === "spell-circle") && marker.space === a.space && Number(marker.x) === Number(a.x) && Number(marker.y) === Number(a.y));
+  const firstSpiritFinisherThisTurn = (scene, a, currentActionInstanceId = null) => {
+    const turnInstanceId = currentTurnInstance(scene);
+    return !(scene.log || []).some(row => row?.type === "action.resolve" && row.actorId === a.id && row.payload?.actionId === ids.finish && row.payload?.attribute === "spirit" && row.payload?.actionInstanceId !== currentActionInstanceId && (turnInstanceId == null || row.payload?.ownerTurnInstanceId === turnInstanceId));
+  };
+  const latestJumpDistance = (scene, a) => {
+    const turnInstanceId = currentTurnInstance(scene);
+    const row = (scene.log || []).find(item => item?.type === "actor.move" && item.actorId === a.id && item.payload?.sourceActionId === ids.jump && (turnInstanceId == null || item.payload?.ownerTurnInstanceId === turnInstanceId));
+    return row?.payload?.distance == null ? null : Number(row.payload.distance);
+  };
   const maxHealth = a => stat(a, "maxHp");
   const scaledMove = (a, amount, scene=null) => Math.ceil(amount * ((scene?effectActive(scene,a,"positive.ускорен"):has(a,"positive.ускорен")) ? 2 : 1) / ((scene?effectActive(scene,a,"negative.замедлен"):has(a,"negative.замедлен")) ? 2 : 1));
   const speed = (a,scene=null) => scaledMove(a, stat(a, "speed"), scene);
@@ -704,7 +716,22 @@
     if(!attacks.has(def.id)||!targets.length)return{base,counts:{}};
     const taunts=activeEffectSources(a,"negative.спровоцирован",scene).map(x=>x.actorId),fears=activeEffectSources(a,"negative.испуган",scene).map(x=>x.actorId);
     const sourceEffectIds=activeState(scene,a.id).effects.map(status=>status.effect),techniqueTags=(p.techniqueTags||[]).map(tag=>String(tag).toLowerCase());
-    const counts=Object.fromEntries(targets.map(id=>{const target=actor(scene,id),targetEffectIds=activeState(scene,id).effects.map(status=>status.effect),tauntedByActor=activeEffectSources(target,"negative.спровоцирован",scene).some(source=>source.actorId===a.id);return[id,Math.max(0,base+adapterNumber("rollBonus",a,{scene,kind:"attack",actionId:def.id,targetId:id,targetDistance:distance(a,target),sourceEffectIds,targetEffectIds,tauntedByActor,techniqueTags,attribute:p.attribute,tension:Number(scene.tension||0)})-(effectActive(scene,a,"negative.спровоцирован")&&!targets.some(t=>taunts.includes(t))?a.tier:0)-(effectActive(scene,a,"negative.испуган")&&fears.includes(id)?a.tier:0)+((p.spikeTargetIds||[]).includes(id)&&effectActive(scene,target,"negative.подброшен")?a.tier:0))]}));
+    const jumpDistance = p.jumpDistance ?? latestJumpDistance(scene, a);
+    const attackAttribute = p.attribute || (def.id === ids.finish ? "spirit" : def.id === ids.skirmish ? (Number(a.attrs.body) >= Number(a.attrs.talent) ? "body" : "talent") : "spirit");
+    const differentEnemiesWithinFive = p.differentEnemiesWithinFive ?? (p.rapidFire === true ? new Set(scene.actors.filter(target => live(target) && target.team !== a.team && target.space === a.space && distance(a, target) <= 5).map(target => target.compoundId || target.id)).size : null);
+    const targetContext = {
+      scene, kind: "attack", actionId: def.id, targetIds: targets, sourceEffectIds,
+      techniqueTags, attribute: attackAttribute, tension: Number(scene.tension || 0),
+      techniqueRuleId: p.techniqueRuleId || null, finisherMode: p.finisherMode || null,
+      focusSpent: Number(p.focusSpent || 0), emptyTargetCount: p.emptyTargetCount,
+      rapidFire: p.rapidFire === true,
+      differentEnemiesWithinFive,
+      jumpDistance, jumpActionInstanceId: p.jumpActionInstanceId || null,
+      spellCircleActive: p.spellCircleActive === true || spellCircleActive(scene, a),
+      firstSpiritFinisherThisTurn: p.firstSpiritFinisherThisTurn === true || (def.id === ids.finish && attackAttribute === "spirit" && firstSpiritFinisherThisTurn(scene, a, p.actionInstanceId || null)),
+      enchainedCastMoveAdjacent: p.enchainedCastMoveAdjacent === true,
+    };
+    const counts=Object.fromEntries(targets.map(id=>{const target=actor(scene,id),targetEffectIds=activeState(scene,id).effects.map(status=>status.effect),tauntedByActor=activeEffectSources(target,"negative.спровоцирован",scene).some(source=>source.actorId===a.id);return[id,Math.max(0,base+adapterNumber("rollBonus",a,{...targetContext,targetId:id,targetDistance:distance(a,target),targetEffectIds,tauntedByActor})-(effectActive(scene,a,"negative.спровоцирован")&&!targets.some(t=>taunts.includes(t))?a.tier:0)-(effectActive(scene,a,"negative.испуган")&&fears.includes(id)?a.tier:0)+((p.spikeTargetIds||[]).includes(id)&&effectActive(scene,target,"negative.подброшен")?a.tier:0))]}));
     return{base:Math.min(...Object.values(counts)),counts};
   }
 
@@ -1211,16 +1238,17 @@
       const source = actor(scene, p.sourceActorId), raw = integer(p.amount, "урон"), attack = p.attack === true;
       const compound=legacy.compoundEnemyStatus(scene,a);
       if(compound.active){s.compounds||={};const saved=s.compounds[compound.id]||={defenseType:compound.defenseType};compound.defenseType=compound.parts.find(part=>part.compoundDefense)?.compoundDefense||saved.defenseType;}
-      const defender=compound.active?compound.parts.reduce((best,x)=>stat(x,compound.defenseType)>stat(best,compound.defenseType)?x:best,compound.parts[0]):a;
+      const defenseContext = target => ({ scene, activeEffectIds: activeState(scene, target.id).effects.filter(status => status.present).map(status => status.effect) });
+      const defender=compound.active?compound.parts.reduce((best,x)=>stat(x,compound.defenseType,defenseContext(x))>stat(best,compound.defenseType,defenseContext(best))?x:best,compound.parts[0]):a;
       let amount = raw;
       if (!p.irreducible) {
         if (attack && !p.finalDamage) amount = Math.max(0, amount + (effectActive(scene,source,"positive.усилен") ? Math.ceil(source.tier / 2) : 0) - (effectActive(scene,source,"negative.ослаблен") ? Math.ceil(source.tier / 2) : 0));
         amount = Math.max(0, amount - integer(p.reduction || 0, "снижение урона"));
       }
-      const armor = !p.irreducible && attack && !p.ignoreArmor && !effectActive(scene,a,"negative.разорван") ? (compound.active&&compound.defenseType!=="armor"?0:stat(defender, "armor")) + (effectActive(scene,a,"positive.укреплен") ? Number(a.tier || 1) : 0) + Number(p.temporaryArmor || 0) : 0;
+      const armor = !p.irreducible && attack && !p.ignoreArmor && !effectActive(scene,a,"negative.разорван") ? (compound.active&&compound.defenseType!=="armor"?0:stat(defender, "armor", defenseContext(defender))) + (effectActive(scene,a,"positive.укреплен") ? Number(a.tier || 1) : 0) + Number(p.temporaryArmor || 0) : 0;
       const afterArmor = amount > 0 ? Math.max(1, amount - armor) : 0;
       const evasionAllowed = !p.irreducible && !p.ignoreEvasion && !effectActive(scene,a,"negative.обездвижен") && !effectActive(scene,a,"negative.пойман");
-      const evaded = evasionAllowed ? Math.min(afterArmor, compound.active&&compound.defenseType!=="evasion"?0:stat(defender, "evasion")) : 0;
+      const evaded = evasionAllowed ? Math.min(afterArmor, compound.active&&compound.defenseType!=="evasion"?0:stat(defender, "evasion", defenseContext(defender))) : 0;
       let toSpend=evaded;
       for(const m of astate(defender).modifiers.filter(m=>m.stat==="evasion"&&m.amount>0)){const used=Math.min(toSpend,m.remaining??m.amount);m.remaining=(m.remaining??m.amount)-used;toSpend-=used;}
       defender.evasion = Math.max(0, Number(defender.evasion || 0) - toSpend);
@@ -1663,7 +1691,8 @@
       }
       const targets = targetIds(scene,p.targetIds).map(id => requiredActor(scene, id));
       if ([ids.spell, ids.finish, ids.study, ids.shove, "action.атаки.дуэль"].includes(def.id) && targets.length !== 1 || def.id === ids.skirmish && (!targets.length || targets.length > 2)) fail("Неверное число целей");
-      const range = def.id === ids.spell ? 5 : def.id === ids.study ? Number(a.attrs.mind || 0) : 1;
+      const finishContext = { scene, kind: "attack", actionId: def.id, attribute: p.attribute || (def.id === ids.finish ? "spirit" : null), tension: Number(scene.tension || 0), spellCircleActive: p.spellCircleActive === true || spellCircleActive(scene, a), firstSpiritFinisherThisTurn: def.id === ids.finish && (p.firstSpiritFinisherThisTurn === true || firstSpiritFinisherThisTurn(scene, a, p.actionInstanceId || provenance?.actionInstanceId || rootId)) };
+      const range = def.id === ids.spell ? 5 : def.id === ids.finish ? 1 + adapterNumber("rangeBonus", a, finishContext) : def.id === ids.study ? Number(a.attrs.mind || 0) : 1;
       if ([ids.spell, ids.skirmish, ids.finish, ids.study, ids.shove, "action.атаки.дуэль"].includes(def.id) && targets.some(t => t.id === a.id || distance(a, t) > range)) fail("Цель вне дальности действия");
       if (def.id === ids.study && isPlayer(targets[0])) fail("Изучение требует NPC");
       const focusSpent = integer(p.focusSpent || 0, "Фокус");
@@ -1676,7 +1705,9 @@
       if (!status.continuation && !status.swift) { a.usedActions = [...new Set([...(a.usedActions || []), def.id])]; astate(a).turnActions = [...new Set([...(astate(a).turnActions || []), def.id])]; }
       const activeTurnOwner = scene.activeActorId ? actor(scene, scene.activeActorId) : null, activeOwnerSerial = activeTurnOwner ? ownTurnSerial(activeTurnOwner) : null;
       astate(a).history = [...(astate(a).history || []), { actionId: def.id, actionDefinitionId: def.id, actionInstanceId: provenance?.actionInstanceId || null, targetIds: targets.map(t => t.id), round: scene.round, turnSerial: scene.turnSerial, ownerTurnActorId: activeTurnOwner?.id || null, ownerTurnSerial: activeOwnerSerial, ownerTurnInstanceId: s.activeTurnInstanceId || null, ownerTurnKey: activeTurnOwner ? ownerTurnKey(s.sceneSerial, activeTurnOwner, activeOwnerSerial) : null, swift: Boolean(status.swift) }].filter((item,index,list)=>item.ruleId||index>=list.length-200);
-      emit("action.resolve", a.id, { actionId: def.id, name: def.name, targetIds: targets.map(t => t.id) });
+      p.actionInstanceId ||= provenance?.actionInstanceId || rootId;
+      p.ownerTurnInstanceId ||= s.activeTurnInstanceId || null;
+      emit("action.resolve", a.id, { actionId: def.id, name: def.name, targetIds: targets.map(t => t.id), actionInstanceId: p.actionInstanceId, ownerTurnInstanceId: p.ownerTurnInstanceId, attribute: p.attribute, techniqueRuleId: p.techniqueRuleId || null, finisherMode: p.finisherMode || null });
       let result;
       if ([ids.spell, ids.skirmish, ids.finish, ids.charge].includes(def.id)) {
         result = publishRoll(a, p.roll, def.name);
@@ -1686,8 +1717,8 @@
       }
       if ([ids.spell, ids.skirmish, ids.finish].includes(def.id)) beginAttack(a, { ...p, name: def.name, amount: result.successes + (def.id === ids.finish ? Number(scene.tension || 0) : 0) });
       else if (def.id === ids.charge || def.id === ids.breathe) { const amount = def.id === ids.charge ? Math.max(2, result.successes) : 1; gain(a,"focus",amount,{actionId:def.id}); }
-      else if (def.id === ids.step) { if (!status.continuation) a.stepRemaining = sceneSpeed(scene,a); if (p.destination) {const moved=move(a, { destination: p.destination, maximum: a.stepRemaining });if(Number(astate(a).difficultTerrainStopSerial)!==Number(scene.turnSerial))a.stepRemaining-=moved.cost;} }
-      else if (def.id === ids.jump) move(a, { destination: p.destination, maximum: scaledMove(a, Number(a.attrs.talent || 0),scene), line: true, ignoreOpponents: true, ignoreDifficultTerrain:true });
+      else if (def.id === ids.step) { if (!status.continuation) a.stepRemaining = sceneSpeed(scene,a); if (p.destination) {const moved=move(a, { destination: p.destination, maximum: a.stepRemaining, sourceActionId: def.id, actionInstanceId: p.actionInstanceId, ownerTurnInstanceId: p.ownerTurnInstanceId, turnSerial: scene.turnSerial });if(Number(astate(a).difficultTerrainStopSerial)!==Number(scene.turnSerial))a.stepRemaining-=moved.cost;} }
+      else if (def.id === ids.jump) move(a, { destination: p.destination, maximum: scaledMove(a, Number(a.attrs.talent || 0),scene), line: true, ignoreOpponents: true, ignoreDifficultTerrain:true, sourceActionId: def.id, actionInstanceId: p.actionInstanceId, ownerTurnInstanceId: p.ownerTurnInstanceId, turnSerial: scene.turnSerial });
       else if (def.id === ids.shove) move(targets[0], { destination: p.destination, maximum: 1, forced: true });
       else if (def.id === ids.disappear) applyEffect(a, { effect: "positive.исчез", duration: "actionOrStartTurn" }, a.id);
       else if (def.id === ids.study) { applyEffect(targets[0], { effect: "negative.помечен" }, a.id); emit("rule.prompt", a.id, { targetId: targets[0].id, title: "Нарратор раскрывает выбранный параметр NPC", category: p.category || "health" }); }
