@@ -56,7 +56,7 @@ known-health, marked-target и private fact checks.
 
 Коммиты: `096573b` (контракт, engine, adapters), `055f40e` (UI, SQL projection),
 `a272319` (targeted test, package gate, maps/readiness). Ветка
-`codex/luna-information-query` будет отправлена в `origin` после финальной проверки.
+`codex/luna-information-query` отправлена в `origin`; полный `npm test` проходит.
 
 ## Актуальная точка передачи — 2026-09-09, Master at Arms III и общий выбор центра области
 
