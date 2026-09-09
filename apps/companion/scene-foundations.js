@@ -376,11 +376,15 @@ const RULE_MODE_ADAPTERS = [
     minimumLevel: 1,
     groupId: "vagabond.master-at-arms.armament",
     label: "Вооружение",
+    sourceRuleId: "vagabond.master-at-arms.1",
+    sourceDigest: "d35f468065e84fbb0c86bc60015632bdbcfe9b0ced2ed2cfa370453f64a72371",
+    actionId: ACTION_IDS.skirmish,
+    stateScope: "scene",
     maximumEachPerTurn: 1,
     modes: [
-      { id: "blade", label: "Клинок" },
-      { id: "polearm", label: "Древко" },
-      { id: "chain", label: "Цепь" },
+      { id: "blade", label: "Клинок", condition: { distance: 2, targetCount: { min: 1, max: 2 }, adjacentToOwner: false, moveBeforeTarget: { exact: 1 } }, modifiers: { swift: true }, postOperations: [{ type: "effect", effect: "positive.усилен", target: "self", timing: "after-resolve" }] },
+      { id: "polearm", label: "Древко", condition: { targetCount: { exact: 2 }, adjacentTargets: true }, modifiers: { swift: true }, postOperations: [{ type: "displacement", mode: "push", maximum: 3, target: "targets", timing: "after-damage" }, { type: "effect", effect: "negative.подброшен", target: "targets", timing: "after-resolve" }, { type: "effect", effect: "negative.замедлен", target: "targets", timing: "after-resolve" }] },
+      { id: "chain", label: "Цепь", condition: { distance: 4, targetCount: { exact: 1 } }, modifiers: { swift: true, range: 4 }, postOperations: [{ type: "effect", effect: "negative.разорван", target: "targets", timing: "after-resolve" }, { type: "effect", effect: "negative.порчен", target: "targets", timing: "after-resolve" }] },
     ],
   },
 ];
@@ -394,14 +398,42 @@ function ruleModeDefinition(actor, groupId) {
   return ruleModeDefinitions(actor).find(definition => definition.groupId === groupId) || null;
 }
 
+// Serializable contract consumed by action preparation and resolution. The
+// contract is deliberately generic so future forms and stances can register
+// their own modes without adding technique-specific reducer branches.
+function ruleModeContract(scene, actorId, request = {}) {
+  const actor = actorById(scene, actorId), groupId = String(request.groupId || ""), modeId = request.modeId == null ? null : String(request.modeId);
+  const definition = ruleModeDefinition(actor, groupId), mode = definition?.modes.find(item => item.id === modeId) || null;
+  if (!actor || !definition || !mode) return { available: false, reason: "Режим правила не найден.", groupId, modeId, mode: null };
+  const turnSerial = Number(scene.turnSerial || 0), uses = currentTurnEvents(scene, actor.id).filter(event => event.type === "rule-mode.set" && event.payload?.groupId === groupId && event.payload?.modeId === modeId).length;
+  const maximum = Number(definition.maximumEachPerTurn || 1);
+  return { available: !actor.knockedOut && uses < maximum, reason: actor.knockedOut ? "Выведенный из строя персонаж не может менять режим." : uses >= maximum ? `«${mode.label}» уже использован в этом Ходу.` : "", groupId, modeId, label: mode.label, sourceRuleId: definition.sourceRuleId, sourceDigest: definition.sourceDigest, actionId: definition.actionId, stateScope: definition.stateScope, modifiers: clone(mode.modifiers || {}), condition: clone(mode.condition || {}), postOperations: clone(mode.postOperations || []), receipt: { schema: 1, key: `${actor.id}:${groupId}:${modeId}:${turnSerial}`, turnSerial, useIndex: uses + 1 } };
+}
+
+function ruleModeState(actor, groupId) {
+  const value = actor?.ruleModes?.[groupId];
+  return value && typeof value === "object" ? clone(value) : null;
+}
+
+function serializeRuleModeState(actor, groupId) {
+  const value = ruleModeState(actor, groupId);
+  return value ? { schema: 1, groupId: String(groupId || ""), ...value } : null;
+}
+
+function clearRuleModeState(actor, groupId) {
+  if (!actor?.ruleModes || typeof groupId !== "string" || !Object.hasOwn(actor.ruleModes, groupId)) return false;
+  delete actor.ruleModes[groupId];
+  return true;
+}
+
 function ruleModeStatus(scene, actorId, request = {}) {
   const actor = actorById(scene, actorId), groupId = String(request.groupId || ""), modeId = request.modeId == null ? null : String(request.modeId);
   if (!actor) return { available: false, reason: "Исполнитель не найден.", groupId, modeId, current: null, used: 0, remaining: 0, modes: [] };
-  const definition = ruleModeDefinition(actor, groupId), mode = definition?.modes.find(item => item.id === modeId) || null, current = actor.ruleModes?.[groupId] || null;
+  const definition = ruleModeDefinition(actor, groupId), mode = definition?.modes.find(item => item.id === modeId) || null, current = ruleModeState(actor, groupId);
   if (!definition || modeId && !mode) return { available: false, reason: "Такой режим правила недоступен персонажу.", groupId, modeId, current: clone(current), used: 0, remaining: 0, modes: clone(definition?.modes || []) };
   const uses = modeId ? currentTurnEvents(scene, actor.id).filter(event => event.type === "rule-mode.set" && event.payload?.groupId === groupId && event.payload?.modeId === modeId).length : 0;
   const maximum = Number(definition.maximumEachPerTurn || 1), available = !actor.knockedOut && (!modeId || uses < maximum);
-  return { available, reason: actor.knockedOut ? "Выведенный из строя персонаж не может менять режим." : modeId && uses >= maximum ? `«${mode.label}» уже экипирован в этом Ходу.` : "", groupId, label: definition.label, modeId, mode: clone(mode), current: clone(current), active: current?.modeId === modeId, used: uses, maximum, remaining: Math.max(0, maximum - uses), modes: clone(definition.modes), definition: clone(definition) };
+  return { available, reason: actor.knockedOut ? "Выведенный из строя персонаж не может менять режим." : modeId && uses >= maximum ? `«${mode.label}» уже экипирован в этом Ходу.` : "", groupId, label: definition.label, modeId, mode: clone(mode), current: clone(current), active: current?.modeId === modeId, used: uses, maximum, remaining: Math.max(0, maximum - uses), modes: clone(definition.modes), definition: clone(definition), contract: modeId ? ruleModeContract(scene, actor.id, { groupId, modeId }) : null };
 }
 
 function ownedEntities(scene, ownerActorId, options = {}) {

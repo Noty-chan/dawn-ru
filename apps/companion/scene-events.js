@@ -74,6 +74,12 @@ function validateEvent(scene, event, options = {}) {
   if (event.type === "rule-mode.set") {
     const status = ruleModeStatus(scene, event.actorId, { groupId: payload.groupId, modeId: payload.modeId });
     if (!status.available) throw new Error(status.reason || "Некорректное изменение режима правила.");
+    const contract = status.contract;
+    if (payload.ruleId != null && payload.ruleId !== contract?.sourceRuleId || payload.sourceRuleId != null && payload.sourceRuleId !== contract?.sourceRuleId || payload.sourceDigest != null && payload.sourceDigest !== contract?.sourceDigest || payload.actionId != null && payload.actionId !== contract?.actionId) throw new Error("Источник или действие режима правила не совпадает с canonical-контрактом.");
+    if (payload.actionInstanceId != null) {
+      const prepared = (scene.log || []).find(item => item.type === "action.prepare" && item.actorId === event.actorId && item.payload?.actionInstanceId === payload.actionInstanceId);
+      if (!prepared || prepared.payload?.request?.armamentMode !== payload.modeId || !actionIdIs(prepared.payload?.actionId || prepared.payload?.actionName, "skirmish")) throw new Error("Вооружение должно быть подтверждено подготовленным действием Стычки.");
+    }
   }
   if (event.type === "rule-resource.configure") {
     const definition = normalizeRuleResourceDefinition(actor, payload);
@@ -548,9 +554,13 @@ function reduceEvent(scene, event) {
   } else if (event.type === "rule-mode.set" && actor) {
     const status = ruleModeStatus(scene, actor.id, { groupId: payload.groupId, modeId: payload.modeId });
     actor.ruleModes ||= {};
-    actor.ruleModes[payload.groupId] = { modeId: payload.modeId, label: status.mode.label, ruleId: payload.ruleId || null, equippedTurnSerial: Number(scene.turnSerial || 0) };
+    const contract = status.contract || ruleModeContract(scene, actor.id, { groupId: payload.groupId, modeId: payload.modeId });
+    actor.ruleModes[payload.groupId] = { schema: 1, modeId: payload.modeId, label: status.mode.label, ruleId: payload.ruleId || contract.sourceRuleId || null, sourceRuleId: contract.sourceRuleId || null, sourceDigest: contract.sourceDigest || null, actionId: contract.actionId || null, stateScope: contract.stateScope || "scene", equippedTurnSerial: Number(scene.turnSerial || 0), receipt: clone(contract.receipt || null) };
     payload.label = status.mode.label;
     payload.replacedModeId = status.current?.modeId || null;
+    payload.sourceRuleId = contract.sourceRuleId || null;
+    payload.sourceDigest = contract.sourceDigest || null;
+    payload.receipt = clone(contract.receipt || null);
   } else if (event.type === "rule-resource.configure" && actor) {
     const definition = normalizeRuleResourceDefinition(actor, payload);
     const previous = ruleResourceDefinition(actor, definition.resource);
