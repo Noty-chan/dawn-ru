@@ -729,6 +729,13 @@
         const planned=geometry.routePlan(scene,{sourceActorId,actorId:targetId,anchor:operation.anchor||{kind:"actor",actorId:sourceActorId},destination:operation.destination,maximum:operation.maximum,mode:operation.mode||"move",straight:operation.straight===true,allowPartial:operation.allowPartial===true,ignoreTerrain:operation.ignoreTerrain===true,ignoreEnemies:operation.ignoreEnemies===true,width:operation.width,height:operation.height});
         if(!planned.available)fail(planned.reason);operation.geometryPlan=planned.plan;
       }
+      if(Array.isArray(preparedOperations))for(const [spatialIndex,operation] of preparedOperations.entries())if(["placement","teleport","displacement"].includes(operation?.kind)&&!operation.geometryRuntime){
+        const runtime=global.DAWN_LIONWING_GEOMETRY_RUNTIME;if(!runtime?.prepare)fail("Планировщик пространственных операций недоступен");
+        const sourceActorId=operation.sourceActorId||a?.id,targetId=operation.targetId||a?.id;
+        const planned=runtime.prepare(scene,{...operation,operation:operation.kind,sourceActorId,targetId},{operationId:operation.operationId||(preparedOperations.length===1?eventId:`${eventId}:spatial:${spatialIndex}`)});
+        if(!planned.ok)fail(planned.errors?.join(" ")||"Пространственная операция недоступна");
+        operation.geometryRuntime=planned.plan;
+      }
       // Manual attacks enter the same declarative ActionPlan boundary as
       // every other composed LionWing operation. Keep the existing `plan`
       // event vocabulary so old saves and reducers remain compatible, while
@@ -1312,6 +1319,12 @@
         segments: route.segments || [],
         cursor: { ...cursor, status: "completed", phase: terminal ? "terminal" : "completed" },
       });
+      if(operation.spatialCommit){
+        const saved=copy(operation.spatialCommit),summary={...(saved.summary||{})},completedSegments=(route.segments||[]).slice(0,Number(cursor.segmentIndex||route.segments?.length||0));
+        summary.stoppedAt=stoppedAt;summary.path=completedSegments.map(segment=>copy(segment.to));summary.segments=copy(completedSegments);summary.spent=Number(cursor.spent||0);summary.remaining=terminal?0:Math.max(0,Number(route.maximum||0)-Number(cursor.spent||0));summary.terminal=Boolean(terminal);summary.stopReason=stopReason||null;
+        if(summary.after){summary.after.sceneVersion=Number(scene.version||0)+1;summary.after.geometryStamp=global.DAWN_LIONWING_GEOMETRY.geometryStamp({...scene,version:Number(scene.version||0)+1});for(const part of summary.after.actors||[]){part.space=target.space;part.x=Number(target.x);part.y=Number(target.y);}}
+        emit(`geometry.${saved.operation}.commit`,operation.sourceActorId||route.sourceActorId,{...summary,targetId:route.actorId,operation:saved.operation});
+      }
     };
     const queueGeometrySegment = (plan, operation, cursor, sourceId, segmentIndex, spent) => {
       const route = plan.route;
@@ -1327,7 +1340,7 @@
       });
       s.geometryCursor = nextCursor;
       queue.unshift({
-        p: { kind: "geometry-segment", targetId: route.actorId, geometryPlan: plan, geometryCursor: nextCursor, label: operation.label, sourceActorId: operation.sourceActorId, segmentChoices: operation.segmentChoices ?? operation.enterChoices },
+        p: { kind: "geometry-segment", targetId: route.actorId, geometryPlan: plan, geometryCursor: nextCursor, label: operation.label, sourceActorId: operation.sourceActorId, segmentChoices: operation.segmentChoices ?? operation.enterChoices, spatialCommit:operation.spatialCommit },
         sourceId,
         provenance: copy(provenance),
       });
@@ -1802,6 +1815,29 @@
           } else fail("Неизвестная операция источника Эффекта");
           break;
         }
+        case "placement":
+        case "teleport":
+        case "displacement": {
+          const runtime=global.DAWN_LIONWING_GEOMETRY_RUNTIME,geometry=global.DAWN_LIONWING_GEOMETRY;
+          if(!runtime?.commit||!p.geometryRuntime)fail("Пространственная операция не подготовлена");
+          const checked=runtime.commit(scene,p.geometryRuntime);
+          if(checked.plan.operation!==p.kind||checked.plan.sourceActorId!==sourceId||checked.plan.targetId!==(p.targetId||checked.plan.targetId))fail("Пространственный план принадлежит другой операции");
+          const target=requiredActor(scene,checked.plan.targetId,false);
+          if(p.kind!=="displacement"){
+            const auraBefore=auraSnapshot();
+            for(const saved of checked.after.actors||[]){const current=requiredActor(scene,saved.id,false);current.space=saved.space;current.x=Number(saved.x);current.y=Number(saved.y);}
+            emit(`geometry.${p.kind}.commit`,sourceId,{...checked.event.payload.summary,operation:p.kind,targetId:target.id});
+            emitAuraChanges(auraChanges(auraBefore),{spatialOperation:p.kind,movementTargetId:target.id,from:checked.result.from,to:checked.result.stoppedAt});
+            break;
+          }
+          if(!geometry?.geometryCursor||!Array.isArray(checked.result.segments)||!checked.result.segments.length)fail("Принудительное перемещение не содержит проверяемых сегментов");
+          const route={schema:1,sourceActorId:sourceId,actorId:target.id,anchor:{kind:"cell",...checked.result.from},destination:checked.result.requestedDestination||checked.result.stoppedAt,origin:checked.result.from,mode:"forced",maximum:Number(checked.result.spent||0)+Number(checked.result.remaining||0),width:checked.result.width,height:checked.result.height,path:copy(checked.result.path||[]),spent:Number(checked.result.spent||0),stoppedAt:copy(checked.result.stoppedAt),remaining:Number(checked.result.remaining||0),terminal:Boolean(checked.result.terminal),stopReason:checked.result.stopReason||null,partial:Boolean(checked.result.terminal),sceneVersion:Number(scene.version||0),geometryStamp:geometry.geometryStamp(scene),segments:copy(checked.result.segments)};
+          const plan={schema:1,kind:"lionwing.geometry.route",request:{sourceActorId:sourceId,actorId:target.id,anchor:{kind:"cell",...checked.result.from},destination:checked.result.stoppedAt,maximum:route.maximum,mode:"forced",straight:true,allowPartial:false,ignoreTerrain:p.ignoreTerrain===true,ignoreEnemies:p.ignoreActors===true,width:route.width,height:route.height},route};
+          const cursor=geometry.geometryCursor(route,0,scene,{id:`${rootId}:spatial`,expectedSceneVersion:Number(scene.version||0),expectedGeometryStamp:route.geometryStamp,spent:0});
+          s.geometryCursor=cursor;
+          queue.unshift({p:{kind:"geometry-segment",targetId:target.id,geometryPlan:plan,geometryCursor:cursor,label:p.label||`Принудительное перемещение`,sourceActorId:sourceId,segmentChoices:p.segmentChoices??p.enterChoices,spatialCommit:{operation:p.kind,summary:copy(checked.event.payload.summary)}},sourceId,provenance:copy(provenance)});
+          break;
+        }
         case "move": move(requiredActor(scene, p.targetId || sourceId), p); break;
         case "geometry-move":{
           const geometry=global.DAWN_LIONWING_GEOMETRY;if(!geometry?.revalidatePlan)fail("Планировщик геометрии недоступен");
@@ -1838,7 +1874,7 @@
           if(!s.choices.length&&trigger){
             const options=Array.isArray(trigger.options)&&trigger.options.length?trigger.options.map(String):["continue","stop"];
             const responderId=trigger.responderActorId||trigger.actorId||sourceId,targetResponder=requiredActor(scene,responderId,false);
-            choice(targetResponder,"geometry-boundary",String(trigger.title||trigger.label||"Решение на границе движения").slice(0,240),options,{routeId:geometryRouteId(route),route:clone(route),cursorId:cursor.id,targetId:target.id,segmentIndex,cursorSegmentIndex:nextCursor.segmentIndex,boundary:"enter",triggerId:trigger.id||null,stopChoices:Array.isArray(trigger.stopChoices)?trigger.stopChoices.map(String):["stop"]});
+            choice(targetResponder,"geometry-boundary",String(trigger.title||trigger.label||"Решение на границе движения").slice(0,240),options,{routeId:geometryRouteId(route),route:clone(route),cursorId:cursor.id,targetId:target.id,segmentIndex,cursorSegmentIndex:nextCursor.segmentIndex,boundary:"enter",triggerId:trigger.id||null,stopChoices:Array.isArray(trigger.stopChoices)?trigger.stopChoices.map(String):["stop"],spatialCommit:p.spatialCommit||null});
           }
           break;
         }
@@ -1988,7 +2024,7 @@
               delete s.executionCursor;
               delete s.geometryCursor;
               const target = requiredActor(scene, context.targetId || sourceId, false), route = context.route || null;
-              if (route) geometryCommit({ ...route, path: (route.path || []).slice(0, Number(context.segmentIndex) + 1) }, target, { sourceActorId: route.sourceActorId, label: "Движение остановлено решением" }, { ...cursor, status: "completed", phase: "terminal" }, true, "decision");
+              if (route) geometryCommit({ ...route, path: (route.path || []).slice(0, Number(context.segmentIndex) + 1) }, target, { sourceActorId: route.sourceActorId, label: "Движение остановлено решением", spatialCommit:context.spatialCommit||null }, { ...cursor, status: "completed", phase: "terminal" }, true, "decision");
               else emit("geometry.route.stop", sourceId, { targetId: target.id, routeId: context.routeId || null, segmentIndex: context.segmentIndex, reason: "decision", terminal: true, stoppedAt: { space: target.space, x: Number(target.x), y: Number(target.y) } });
             }
           }
@@ -2298,6 +2334,10 @@
         if(typeof (p.compoundId??p.id)!=="string"||!(p.compoundId??p.id).trim())fail("Compound требует ID");
         if((p.operation||"create")==="create"&&(p.partIds??p.actorIds??p.parts)===undefined)fail("Compound требует список Parts");
       }
+      if(["placement","teleport","displacement"].includes(p.kind)){
+        if(!p.geometryRuntime||p.geometryRuntime.operation!==p.kind)fail("Пространственная операция требует проверенный план");
+        if(typeof p.targetId!=="string"||!p.targetId)fail("Пространственная операция требует цель");
+      }
       if(p.kind==="aura"&&!['create','update','suppress','restore','remove','expire'].includes(p.operation||"create"))fail("Неизвестная операция ауры");
       if(["aura-create","aura-update","aura-suppress","aura-restore","aura-remove"].includes(p.kind)&&(!(p.id||p.aura?.id)||p.kind==="aura-create"&&!((p.sourceEntityId||p.aura?.sourceEntityId))))fail("Некорректное описание ауры");
     }
@@ -2488,7 +2528,7 @@
     lifetimeBoundary: foundations.lifetimeBoundary,
     normalizeLifetime: foundations.normalizeLifetime,
     isLifetimeExpired: foundations.lifetimeExpired,
-    operations: ["automation", "plan", "batch", "pause-chain", "resume-chain", "amend-attack", "recover-track", "record-action", "action", "attack", "damage", "spend-health", "lose-health", "heal", "wound", "stress", "knockout", "resource", "correct", "effect", "effect-source", "banish", "vanish", "compound", "aura", "aura-create", "aura-update", "aura-suppress", "aura-restore", "aura-remove", "move", "geometry-move", "geometry-segment", "modifier", "allow-action", "grant-turn", "usage", "punish", "invisible", "search", "configure-resource", "dice-create", "dice-apply", "dice-reload", "dice-opposed", "dice-resolve-tie", "counter", "clock", "prompt", "choice", "roll", "reaction", "resolve-attack", "cancel-attack", "turn-start", "turn-end", "round-end", "scene-reset", "chapter-start", "tension", "note"]
+    operations: ["automation", "plan", "batch", "pause-chain", "resume-chain", "amend-attack", "recover-track", "record-action", "action", "attack", "damage", "spend-health", "lose-health", "heal", "wound", "stress", "knockout", "resource", "correct", "effect", "effect-source", "banish", "vanish", "compound", "aura", "aura-create", "aura-update", "aura-suppress", "aura-restore", "aura-remove", "placement", "teleport", "displacement", "move", "geometry-move", "geometry-segment", "modifier", "allow-action", "grant-turn", "usage", "punish", "invisible", "search", "configure-resource", "dice-create", "dice-apply", "dice-reload", "dice-opposed", "dice-resolve-tie", "counter", "clock", "prompt", "choice", "roll", "reaction", "resolve-attack", "cancel-attack", "turn-start", "turn-end", "round-end", "scene-reset", "chapter-start", "tension", "note"]
   };
   global.DAWN_LIONWING_ENGINE = api;
   const routed = global.DAWN_SCENE_ENGINE;
