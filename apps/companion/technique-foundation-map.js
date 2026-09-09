@@ -1,7 +1,7 @@
 "use strict";
 
 (function exposeTechniqueFoundationMap(global) {
-  const VERSION = 8;
+  const VERSION = 9;
   const CAPABILITIES = {
     "event-participants": { label: "Участники события", state: "ready", module: "scene-engine-core.js" },
     "event-preview": { label: "Предпросмотр цепочки", state: "ready", module: "scene-triggers.js" },
@@ -38,11 +38,11 @@
     "deployment-hooks": { label: "Развертывание", state: "planned" },
     "intermission-reset": { label: "Сброс на Интермиссии", state: "planned" },
     "bond-actions": { label: "Связи и действия Связей", state: "planned" },
-    "derived-stats": { label: "Производные характеристики персонажа", state: "planned" },
+    "derived-stats": { label: "Производные характеристики персонажа", state: "ready", module: "lionwing-adapters.js / lionwing-engine.js" },
     "information-query": { label: "Изучение и раскрытие информации", state: "planned" },
     transformation: { label: "Трансформации и заимствованные правила", state: "planned" },
     "duel-flow": { label: "Дуэли и ставки", state: "planned" },
-    "combat-meter": { label: "Напряжение и общие счетчики боя", state: "planned" },
+    "combat-meter": { label: "Напряжение и общие счетчики боя", state: "ready", module: "lionwing-adapters.js / lionwing-engine.js" },
     "action-copy": { label: "Заимствование Атак и Техник", state: "planned" },
     "multi-space-actor": { label: "Размер и несколько клеток персонажа", state: "planned" },
     "manual-ruling": { label: "Ручное решение Нарратора", state: "fallback" },
