@@ -5,6 +5,7 @@ const SESSION_COUNTER_SCOPES = new Set(["manual", "turn", "round", "scene", "cha
 const SESSION_COUNTER_LIFETIMES = new Set(["manual", "turn", "round", "scene", "chapter", "session", "persistent"]);
 const SESSION_COUNTER_ID = /^[a-z0-9][a-z0-9._:-]{0,119}$/i;
 const SESSION_RULE_ID = /^[a-z0-9][a-z0-9._:-]{0,179}$/i;
+const MASTER_AT_ARMS_3_EVENT_SOURCE_DIGEST = "f104c7652bda2a425422af31d8d91b30515463c98f78892fe25eb204ac7508d3";
 // A marker may be attached to an actor.  The attachment is deliberately kept
 // on the ordinary marker record so old scenes and the entity registry can both
 // project it without a second, technique-specific store.
@@ -16,7 +17,26 @@ function markerAttachmentStatus(scene, marker) {
   const offset = marker?.offset || marker?.metadata?.offset || null;
   return { attached: Boolean(hostId), hostId, host, offset: offset && { dx: Number(offset.dx || 0), dy: Number(offset.dy || 0) }, available: !hostId || Boolean(host) };
 }
-const strictSessionInteger = (value, label, minimum = 0, maximum = 9999) => {
+function masterFinisherGeometry(scene, source, special, roll) {
+  const space = (scene.spaces || []).find(item => item.id === source?.space), key = point => `${Number(point?.x)},${Number(point?.y)}`;
+  const footprint = target => { const width = Math.max(1, Number(target?.occupiedWidth || target?.width || 1)), height = Math.max(1, Number(target?.occupiedHeight || target?.height || 1)), cells = []; for (let oy = 0; oy < height; oy += 1) for (let ox = 0; ox < width; ox += 1) cells.push(`${Number(target.x) + ox},${Number(target.y) + oy}`); return cells; };
+  const inBounds = point => Boolean(space && Number.isInteger(Number(point?.x)) && Number.isInteger(Number(point?.y)) && Number(point.x) >= 0 && Number(point.y) >= 0 && Number(point.x) < Number(space.width) && Number(point.y) < Number(space.height));
+  const cells = Array.isArray(special?.targetCells) ? [...new Set(special.targetCells)] : [];
+  if (special?.modeId === "chain") {
+    const anchor = special.anchor, radius = Math.max(0, Math.min(8, Math.floor(Number(roll?.crits || 0)))), expected = [];
+    if (inBounds(anchor) && Math.abs(Number(anchor.x) - Number(source.x)) + Math.abs(Number(anchor.y) - Number(source.y)) === 1) for (let y = Number(anchor.y) - radius; y <= Number(anchor.y) + radius; y += 1) for (let x = Number(anchor.x) - radius; x <= Number(anchor.x) + radius; x += 1) if (inBounds({ x, y })) expected.push(`${x},${y}`);
+    return { valid: JSON.stringify(cells.slice().sort()) === JSON.stringify([...new Set(expected)].sort()), cells, footprint, key };
+  }
+  if (special?.modeId === "polearm") {
+    const anchor = special.anchor, dx = anchor ? Math.sign(Number(anchor.x) - Number(source.x)) : 0, dy = anchor ? Math.sign(Number(anchor.y) - Number(source.y)) : 0, second = anchor && { x: Number(anchor.x) + dx, y: Number(anchor.y) + dy }, expected = anchor && second && inBounds(anchor) && inBounds(second) && (dx || dy) && Math.abs(Number(anchor.x) - Number(source.x)) <= 1 && Math.abs(Number(anchor.y) - Number(source.y)) <= 1 ? [key(anchor), key(second)] : [];
+    return { valid: JSON.stringify(cells.slice().sort()) === JSON.stringify(expected.slice().sort()), cells, footprint, key };
+  }
+  if (special?.modeId === "blade") {
+    const path = Array.isArray(special.path) ? special.path : [], origin = special.origin, destination = special.destination, points = path.map(cell => { const [x, y] = String(cell).split(",").map(Number); return { x, y }; }), contiguous = points.every((point, index) => index === 0 ? Math.abs(point.x - Number(origin?.x)) <= 1 && Math.abs(point.y - Number(origin?.y)) <= 1 : Math.abs(point.x - points[index - 1].x) <= 1 && Math.abs(point.y - points[index - 1].y) <= 1), valid = (!destination || (points.length > 0 && key(points.at(-1)) === key(destination))) && points.length <= 2 && points.every(inBounds) && contiguous;
+    return { valid, cells, footprint, key, points };
+  }
+  return { valid: false, cells, footprint, key };
+}const strictSessionInteger = (value, label, minimum = 0, maximum = 9999) => {
   if (typeof value !== "number" || !Number.isSafeInteger(value) || value < minimum || value > maximum) throw new Error(`Некорректное значение: ${label}.`);
   return value;
 };
@@ -312,6 +332,20 @@ function validateEvent(scene, event, options = {}) {
     }
   }
   if (event.type === "attack.pending") {
+    if (payload.techniqueRuleId === "vagabond.master-at-arms.3") {
+      const source = actorById(scene, event.actorId), mode = source?.ruleModes?.["vagabond.master-at-arms.armament"]?.modeId, special = payload.masterFinisher;
+      if (Number(source?.techniques?.["vagabond.master-at-arms"] || 0) < 3 || !["blade", "polearm", "chain"].includes(mode) || !special || special.modeId !== mode || payload.attribute !== "talent") throw new Error("Мастер за работой требует текущее Вооружение и Завершение Талантом.");
+if (!Array.isArray(special.targetCells) || special.targetCells.some(cell => typeof cell !== "string" || !/^\d+,\d+$/.test(cell))) throw new Error("Некорректная область Мастера за работой.");
+      const modeState = source.ruleModes?.["vagabond.master-at-arms.armament"];
+      if (!modeState?.sourceDigest || payload.techniqueSourceDigest !== MASTER_AT_ARMS_3_EVENT_SOURCE_DIGEST || special.sourceDigest !== MASTER_AT_ARMS_3_EVENT_SOURCE_DIGEST) throw new Error("Источник Мастера за работой устарел или не совпадает с экипированным Вооружением.");
+      const geometry = masterFinisherGeometry(scene, source, special, payload.roll);
+      if (!geometry.valid) throw new Error("Геометрия Мастера за работой устарела или подменена.");
+const expectedTargets = (scene.actors || []).filter(target => !target.knockedOut && target.id !== source.id && target.team !== source.team && target.space === source.space && geometry.footprint(target).some(cell => geometry.cells.includes(cell))).map(target => target.id).sort();
+      const expectedCrossed = mode === "blade" && geometry.points?.length ? (scene.actors || []).filter(target => !target.knockedOut && target.id !== source.id && target.team !== source.team && target.space === source.space && geometry.footprint(target).some(cell => geometry.points.some(point => geometry.key(point) === cell))).map(target => target.id).sort() : [];
+      if (mode === "blade" && geometry.points?.length && (JSON.stringify([...new Set(payload.targetIds || [])].sort()) !== JSON.stringify(expectedCrossed) || JSON.stringify([...(special.crossedTargetIds || [])].sort()) !== JSON.stringify(expectedCrossed))) throw new Error("Цели Клинка не соответствуют фактическому пути.");
+
+      if (mode !== "blade" && JSON.stringify([...new Set(payload.targetIds || [])].sort()) !== JSON.stringify(expectedTargets)) throw new Error("Цели Мастера за работой не соответствуют проверенной области.");
+    }
     payload.targetIds = [...new Map((payload.targetIds || []).map(id => [canonicalTargetId(scene, id), canonicalTargetId(scene, id)])).values()];
     if (!Array.isArray(payload.targetIds) || payload.targetIds.length > 40 || !payload.allowEmptyTargets && payload.targetIds.length < 1 || payload.targetIds.some(id => !actorById(scene, id) || actorById(scene, id).knockedOut) || !finite(payload.damage) || Number(payload.damage) < 0 || Number(payload.damage) > 9999) throw new Error("Некорректные параметры атаки.");
     const unavailableTarget = payload.targetIds.find(id => !effectTargetingStatus(scene, event.actorId, id).available);

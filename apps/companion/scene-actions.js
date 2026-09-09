@@ -201,6 +201,7 @@ function quickActionSources(scene, data, actor, action) {
 }
 
 const MASTER_AT_ARMS_GROUP = "vagabond.master-at-arms.armament";
+const MASTER_AT_ARMS_3_SOURCE_DIGEST = "f104c7652bda2a425422af31d8d91b30515463c98f78892fe25eb204ac7508d3";
 
 function masterAtArmsStatus(scene, actorId, request = {}) {
   const actor = actorById(scene, actorId), modeId = request.modeId || null, targetIds = [...new Set(request.targetIds || [])], targets = targetIds.map(id => actorById(scene, id)).filter(Boolean);
@@ -342,6 +343,10 @@ function prepareAction(scene, data, request = {}) {
   if (available && !available.available) errors.push(available.reason);
   if (errors.length) return { ok: false, errors, events: [] };
 
+  const masterLevel = Number(actor.techniques?.["vagabond.master-at-arms"] || 0), masterModeState = actor.ruleModes?.[MASTER_AT_ARMS_GROUP];
+  const actionAttributeHint = request.attribute || request.roll?.attribute || null;
+  const masterFinisherMode = actionIs(action, "finish") && actionAttributeHint === "talent" && masterLevel >= 3 && ["blade", "polearm", "chain"].includes(masterModeState?.modeId) ? String(masterModeState.modeId) : null;
+  let masterFinisher = null;
   let targetIds = request.startRage ? [] : [...new Set(request.targetIds || [])];
   const requestedTargetCells = Array.isArray(request.targetCells) ? request.targetCells : [];
   let targetCells = [...new Set(requestedTargetCells)].filter(cell => typeof cell === "string");
@@ -351,9 +356,51 @@ function prepareAction(scene, data, request = {}) {
   }) : [];
   targetIds = [...new Set([...targetIds, ...occupiedCellTargetIds])];
   let targets = targetIds.map(id => actorById(scene, id)).filter(Boolean);
+  if (masterFinisherMode) {
+    const specialRequest = scene.__masterFinisherRequest?.mode === masterFinisherMode ? scene.__masterFinisherRequest : null, space = (scene.spaces || []).find(item => item.id === actor.space), requestedAnchor = request.armamentAnchor || request.techniqueAnchor || request.areaCenter || specialRequest?.anchor || null;
+    const key = point => `${Number(point.x)},${Number(point.y)}`;
+    const footprint = target => { const width = Math.max(1, Number(target?.occupiedWidth || target?.width || 1)), height = Math.max(1, Number(target?.occupiedHeight || target?.height || 1)), cells = []; for (let oy = 0; oy < height; oy += 1) for (let ox = 0; ox < width; ox += 1) cells.push(`${Number(target.x) + ox},${Number(target.y) + oy}`); return cells; };
+    const inBounds = point => Boolean(space && point && Number.isInteger(Number(point.x)) && Number.isInteger(Number(point.y)) && Number(point.x) >= 0 && Number(point.y) >= 0 && Number(point.x) < Number(space.width) && Number(point.y) < Number(space.height));
+    const owner = { x: Number(actor.x), y: Number(actor.y) }, anchor = requestedAnchor && { x: Number(requestedAnchor.x), y: Number(requestedAnchor.y) };
+    if (masterFinisherMode === "blade") {
+      const destination = request.armamentDestination || request.destination || specialRequest?.destination;
+      const finishDestination = destination && { x: Number(destination.x), y: Number(destination.y) };
+      let path = [];
+      if (finishDestination && (finishDestination.x !== owner.x || finishDestination.y !== owner.y)) path = movementPath(scene, actor.id, finishDestination, { maxDistance: 2, ignoreEnemies: true });
+      if (finishDestination && (!inBounds(finishDestination) || !path.length || path.length > 2)) errors.push("Клинок может переместиться максимум на 2 клетки по проверенному пути.");
+      if (finishDestination && (scene.actors || []).some(item => item.id !== actor.id && !item.knockedOut && item.space === actor.space && item.x === finishDestination.x && item.y === finishDestination.y)) errors.push("Клетка окончания движения Клинка занята.");
+      const crossed = new Set(path.map(key));
+      const requestedTargets = targetIds.map(id => actorById(scene, id)).filter(Boolean);
+      const crossedTargetIds = (scene.actors || []).filter(target => target.id !== actor.id && !target.knockedOut && target.team !== actor.team && target.space === actor.space && footprint(target).some(cell => crossed.has(cell))).map(target => target.id);
+      masterFinisher = { modeId: "blade", origin: owner, destination: finishDestination || null, path: path.map(key), crossedTargetIds, targetCells: [], extraDamage: 0, sourceDigest: MASTER_AT_ARMS_3_SOURCE_DIGEST };
+    } else if (masterFinisherMode === "polearm") {
+      if (!anchor || !inBounds(anchor) || Math.abs(anchor.x - owner.x) > 1 || Math.abs(anchor.y - owner.y) > 1 || (anchor.x === owner.x && anchor.y === owner.y)) errors.push("Древко выбирает направление Линии, начинающейся в смежной клетке.");
+      const dx = anchor ? Math.sign(anchor.x - owner.x) : 0, dy = anchor ? Math.sign(anchor.y - owner.y) : 0, second = anchor && { x: anchor.x + dx, y: anchor.y + dy }, cells = anchor && second && inBounds(second) ? [key(anchor), key(second)] : [];
+      if (anchor && !cells.length) errors.push("Вторая клетка Линии Древка находится вне поля.");
+      const launchedTargetIds = (scene.actors || []).filter(target => target.id !== actor.id && target.team !== actor.team && target.space === actor.space && footprint(target).some(cell => cells.includes(cell)) && (target.effects || []).includes("negative.подброшен")).map(target => target.id);
+      masterFinisher = { modeId: "polearm", anchor, targetCells: cells, crossedTargetIds: [], launchedTargetIds, advantage: launchedTargetIds.length ? Number(actor.tier || 1) : 0, extraDamage: 0, terrainCells: cells, sourceDigest: MASTER_AT_ARMS_3_SOURCE_DIGEST };
+    } else if (masterFinisherMode === "chain") {
+      if (!anchor || !inBounds(anchor) || Math.abs(anchor.x - owner.x) + Math.abs(anchor.y - owner.y) !== 1) errors.push("Цепь выбирает центр 1×1 в смежной клетке.");
+      const crits = Number(request.roll?.crits || 0), radius = Math.max(0, Math.min(8, crits)), cells = [];
+      if (anchor) for (let y = anchor.y - radius; y <= anchor.y + radius; y += 1) for (let x = anchor.x - radius; x <= anchor.x + radius; x += 1) if (inBounds({ x, y })) cells.push(`${x},${y}`);
+      masterFinisher = { modeId: "chain", anchor, targetCells: [...new Set(cells)], crossedTargetIds: [], extraDamage: Math.max(0, crits), sourceDigest: MASTER_AT_ARMS_3_SOURCE_DIGEST };
+    }
+    if (masterFinisher) {
+      if ((masterFinisher.targetCells || []).some(cell => removedCellKeys(scene, actor.space).has(cell))) errors.push("Область Мастера за работой затрагивает удалённую клетку.");
+      targetCells = masterFinisher.targetCells || [];
+      const derived = masterFinisher.modeId === "blade" && !masterFinisher.path.length ? targetIds.filter(id => { const target = actorById(scene, id); return target && !target.knockedOut && target.id !== actor.id && target.team !== actor.team && target.space === actor.space; }) : (scene.actors || []).filter(target => !target.knockedOut && target.id !== actor.id && target.team !== actor.team && target.space === actor.space && (masterFinisher.modeId === "blade" ? masterFinisher.crossedTargetIds.includes(target.id) : footprint(target).some(cell => targetCells.includes(cell)))).map(target => target.id);
+      targetIds = [...new Set(derived.concat(masterFinisher.modeId === "blade" && masterFinisher.path.length ? masterFinisher.crossedTargetIds : []))];
+      targets = targetIds.map(id => actorById(scene, id)).filter(Boolean);
+    }
+  }
   const attack = candidate => actionIsAny(candidate, ["skirmish", "spell", "finish"]);
   const attackModifiers = attack(declaredAction) ? attackModifierStatus(scene, actor.id, targetIds, request.attackModifierIds || [], { actionId: declaredAction.id, origin: request.armamentMode === "blade" ? request.armamentDestination : null }) : { available: !(request.attackModifierIds || []).length, reason: "Модификаторы Атаки применимы только к Атакам.", selectedIds: [], advantage: 0, actionTransform: null };
   if (!attackModifiers.available) errors.push(attackModifiers.reason);
+  if (masterFinisher?.modeId === "polearm") {
+    const selectedSpikes = new Set((attackModifiers.selectedIds || []).filter(id => String(id).startsWith("core.launch-spike:")));
+    masterFinisher.spikedTargetIds = (masterFinisher.launchedTargetIds || []).filter(id => selectedSpikes.has(`core.launch-spike:${id}`));
+    masterFinisher.advantage = masterFinisher.spikedTargetIds.length ? Number(actor.tier || 1) : 0;
+  }
   if (attackModifiers.actionTransform) {
     action = actionByKey(data, attackModifiers.actionTransform.actionKey) || null;
     if (!action) errors.push("Действие-замена модификатора не найдено.");
@@ -376,6 +423,10 @@ function prepareAction(scene, data, request = {}) {
   const finisherFocus = actionIs(action, "finish") ? Number(request.focusSpent ?? request.roll?.finisherFocus ?? 0) : 0;
   const assassination = Boolean(request.planId && scene.pendingActionPlan?.id === request.planId && scene.pendingActionPlan.actorId === actor.id && scene.pendingActionPlan.actionId === declaredAction.id && scene.pendingActionPlan.context?.assassination?.ruleId === "vagabond.assassin.2" && Number(actor.techniques?.["vagabond.assassin"] || 0) >= 2 && attack(declaredAction));
   const mundaneLevel = Number(actor.techniques?.["bulwark.mundane"] || 0), actionAttribute = attackModifiers.attributeOverride || request.attribute || request.roll?.attribute || null;
+  // Master At Arms III is deliberately resolved from the persisted mode. A
+  // client may choose the cells used by the mode, but cannot choose the mode
+  // itself (or provide a target list) for a Talent Finisher.
+  if (actionIs(action, "finish") && masterLevel >= 3 && request.armamentMode) errors.push("Завершение Мастера за работой использует только текущее авторитетное Вооружение.");
   const ritualistCircle = actionIs(action, "finish") && actionAttribute === "spirit" && Number(actor.techniques?.["ruiner.ritualist"] || 0) >= 1 && (scene.markers || []).some(marker => marker.ownerActorId === actor.id && marker.kind === "ritual" && marker.duration === "scene" && /ritualist/.test(String(marker.ruleId || "")) && marker.space === actor.space && Number(marker.x) === Number(actor.x) && Number(marker.y) === Number(actor.y));
   const finisherFocusCap = Number(scene.tension || 0) + (ritualistCircle ? 2 : 0);
   const attackModifierDestination = attackModifiers.requiresDestination ? attackModifierDestinationStatus(scene, actor.id, targetIds, attackModifiers.selectedIds, request.attackModifierDestination, { actionId: declaredAction.id }) : null;
@@ -506,6 +557,11 @@ function prepareAction(scene, data, request = {}) {
       events.push({ type: "actor.move", actorId: actor.id, payload: { space: actor.space, x: attackOrigin.x, y: attackOrigin.y, movement: "Клинок · Многогранность", path: armament.path.map(cellKey), participantIds: [actor.id, ...targetIds] } });
       events.push({ type: "actor.enter", actorId: actor.id, payload: { space: actor.space, x: attackOrigin.x, y: attackOrigin.y, movement: "Клинок · Многогранность" } });
     }
+    if (masterFinisher?.modeId === "blade" && masterFinisher.destination) {
+      attackOrigin = { ...actor, x: masterFinisher.destination.x, y: masterFinisher.destination.y };
+      events.push({ type: "actor.move", actorId: actor.id, payload: { space: actor.space, x: attackOrigin.x, y: attackOrigin.y, movement: "Клинок · Мастер за работой", path: masterFinisher.path.map(cell => { const [x, y] = cell.split(",").map(Number); return { x, y }; }), ignoreCharacters: true, participantIds: [actor.id, ...targetIds] } });
+      events.push({ type: "actor.enter", actorId: actor.id, payload: { space: actor.space, x: attackOrigin.x, y: attackOrigin.y, movement: "Клинок · Мастер за работой", ignoreCharacters: true } });
+    }
     if (attackModifierDestination?.available) {
       attackOrigin = { ...actor, x: attackModifierDestination.destination.x, y: attackModifierDestination.destination.y };
       events.push({ type: "actor.move", actorId: actor.id, payload: { space: actor.space, x: attackOrigin.x, y: attackOrigin.y, movement: "Телепортация · Перелом позвоночника", placement: true, sourceActionId: "bulwark.grappler.2", participantIds: [actor.id, ...targetIds] } });
@@ -525,22 +581,22 @@ function prepareAction(scene, data, request = {}) {
     const space = (scene.spaces || []).find(item => item.id === actor.space), targetCellPoints = targetCells.map(cell => { const [x, y] = cell.split(",").map(Number); return { cell, space: actor.space, x, y }; });
     const invalidTargetCell = targetCellPoints.find(point => !space || !/^(?:0|[1-9]\d*),(?:0|[1-9]\d*)$/.test(point.cell) || !Number.isInteger(point.x) || !Number.isInteger(point.y) || point.x < 0 || point.y < 0 || point.x >= Number(space.width) || point.y >= Number(space.height) || removedCellKeys(scene, actor.space).has(point.cell));
     const cellLimit = limit + (actionIs(action, "skirmish") && !targetIds.length && Number(actor.techniques?.["disruptor.hunter"] || 0) >= 2 ? 3 : 0), distantTargetCell = targetCellPoints.find(point => distance(attackOrigin, point) > cellLimit), blockedTargetCell = targetCellPoints.find(point => !wallTargetingStatus(scene, attackOrigin, point, { range: cellLimit }).available);
-    if (targetCells.length && !actionIs(action, "skirmish")) errors.push("Пустую клетку можно выбрать целью только для Стычки.");
+    if (targetCells.length && !actionIs(action, "skirmish") && !masterFinisher) errors.push("Пустую клетку можно выбрать целью только для Стычки или Мастера за работой.");
     if (requestedTargetCells.length > 40) errors.push("Можно передать не больше 40 клеток-целей.");
     if (invalidTargetCell) errors.push("Одна из выбранных клеток находится вне доступного поля.");
-    if (distantTargetCell) errors.push(`Пустая клетка должна быть в пределах ${cellLimit} клеток.`);
+    if (distantTargetCell && !masterFinisher) errors.push(`Пустая клетка должна быть в пределах ${cellLimit} клеток.`);
     if (blockedTargetCell) errors.push("Стена перекрывает проведение цели к выбранной клетке.");
-    if (!targets.length && !targetCells.length && !zealotRupture) errors.push("Выберите цель атаки.");
+    if (!targets.length && !targetCells.length && !zealotRupture && !masterFinisher) errors.push("Выберите цель атаки.");
     const unavailableEffectTarget = targets.find(target => !effectTargetingStatus(scene, actor.id, target.id, { sourceReappearing: disappeared }).available);
     if (unavailableEffectTarget) errors.push(effectTargetingStatus(scene, actor.id, unavailableEffectTarget.id, { sourceReappearing: disappeared }).reason);
     const unavailableWallTarget = targets.find(target => !wallTargetingStatus(scene, attackOrigin, target, { range: limit }).available);
-    if (unavailableWallTarget) errors.push("Стена перекрывает проведение цели.");
+    if (unavailableWallTarget && !masterFinisher) errors.push("Стена перекрывает проведение цели.");
     if (heavenlyHealing ? targets.some(target => target.team !== actor.team || target.id === actor.id) : !thunderDischarge && !zealotRupture && targets.some(target => target.team === actor.team)) errors.push(heavenlyHealing ? "Очищающий свет выбирает союзника, но не самого исполнителя." : "Базовая Атака может выбирать целью только противника.");
     const occupiedSelectedCells = new Set(targetCellPoints.filter(point => targets.some(target => target.space === point.space && Number(target.x) === point.x && Number(target.y) === point.y)).map(point => point.cell));
     if (actionIs(action, "skirmish") && !gunslingerSkirmish && !knifeThrow && targets.length + targetCells.filter(cell => !occupiedSelectedCells.has(cell)).length > 2) errors.push("Стычка выбирает не больше 2 целей или клеток суммарно.");
-    if (!actionIs(action, "skirmish") && targets.length > 1 && !thunderDischarge && !eclipseStars && !zealotRupture) errors.push(`${action.name} выбирает только одну цель.`);
+    if (!actionIs(action, "skirmish") && !masterFinisher && targets.length > 1 && !thunderDischarge && !eclipseStars && !zealotRupture) errors.push(`${action.name} выбирает только одну цель.`);
     const constrictorReach = target => actionIs(action, "finish") && Number(actor.techniques?.["disruptor.constrictor"] || 0) >= 2 && ["body", "talent"].includes(actionAttribute) && caughtByConstrictor(target);
-    if (!thunderDischarge && !eclipseStars && !zealotRupture && targets.some(target => distance(attackOrigin, target) > limit && !constrictorReach(target))) errors.push(`Цель должна быть в пределах ${limit} клеток от клетки появления.`);
+    if (!thunderDischarge && !eclipseStars && !zealotRupture && !masterFinisher && targets.some(target => distance(attackOrigin, target) > limit && !constrictorReach(target))) errors.push(`Цель должна быть в пределах ${limit} клеток от клетки появления.`);
     const drainLifeArmed = Boolean(actor.ruleState?.drainLife && actor.ruleState?.grimTransformed);
     if (drainLifeArmed && actionIs(action, "finish") && actionAttribute !== "spirit") errors.push("«Вытянуть жизнь» применяется только к Завершению Духом.");
     const bonus = (actionIs(action, "finish") ? Number(scene.tension || 0) : 0) + (spellModifiers.includes("fierce") ? Number(actor.attrs?.mind || 0) : 0), drainLife = Boolean(drainLifeArmed && actionIs(action, "finish") && actionAttribute === "spirit"), adjustedDamage = value => drainLife ? Math.ceil(Math.max(0, value) / 2) : Math.max(0, value);
@@ -565,14 +621,19 @@ function prepareAction(scene, data, request = {}) {
       const areaDamage = value => eclipseStars || icicleHalo ? Math.ceil(adjustedDamage(value) / 2) : adjustedDamage(value);
       const effectAttack = effectAttackStatus(scene, actor.id, targetIds);
       const empathSupport = Math.max(0, Number(actor.ruleState?.empathSupport || 0)), rawHindrance = Number(effectAttack.hindrance || 0), assassinationManualAdvantage = Number(attackModifiers.advantage || 0) + finisherFocus + (gunslingerSkirmish ? bulletAdvantage + (Number(actor.techniques?.["powerhouse.gunslinger"] || 0) >= 2 ? 1 : 0) : 0) + (actionIs(action, "skirmish") && Number(actor.techniques?.["vagabond.knife-juggler"] || 0) >= 2 ? 1 : 0) + (meisterOverload ? Math.floor(Number(actor.attrs?.mind || 0) / 2) : 0) + (grasp ? Number(scene.tension || 0) : 0) + (assassination ? Number(actor.tier || 1) : 0) + (empathSupport && !rawHindrance ? empathSupport : 0), assassinationManualHindrance = empathSupport ? 0 : rawHindrance;
-      const effectDamageBase = Number(request.roll?.successes || 0) + bonus + Number(effectAttack.damageModifier || 0);
+      const masterFinisherDamage = Number(masterFinisher?.extraDamage || 0), effectDamageBase = Number(request.roll?.successes || 0) + bonus + Number(effectAttack.damageModifier || 0) + masterFinisherDamage;
       const effectDamageBaseByTarget = Object.fromEntries(targets.map(target => [target.id, effectDamageBase + Number(effectAttack.damageByTarget?.[target.id] || 0) + (thunderDischarge && hasEffect(scene, target, "negative.ошеломлен") ? Number(actor.tier || 1) : 0) + (actionIs(action, "finish") && Number(actor.techniques?.["disruptor.constrictor"] || 0) >= 2 && hasEffect(scene, target, "negative.пойман") ? Number(actor.tier || 1) : 0)]));
       const armamentOperations = armament?.contract?.postOperations || [];
       const postDisplacements = armamentOperations.filter(operation => operation.type === "displacement").flatMap(operation => operation.target === "targets" ? targets.map(target => ({ targetId: target.id, mode: operation.mode || "push", maximum: Number(operation.maximum || 0), name: armament.label, ruleId: armament.contract.sourceRuleId, collisionDamagePerCell: 0 })) : []).concat(breacherSkirmish ? targets.filter(target => distance(attackOrigin, target) <= 2).map(target => ({ targetId: target.id, mode: "push", maximum: 1, name: "Картечь", ruleId: "powerhouse.breacher.1", collisionDamagePerCell: 0, requiresSuccess: true })) : []);
       const dragonslayerTear = actionIs(action, "finish") && actionAttribute === "body" && Number(actor.techniques?.["powerhouse.dragonslayer"] || 0) >= 1 ? ["negative.разорван"] : [];
       const postSelfEffects = armamentOperations.filter(operation => operation.type === "effect" && operation.target === "self" && operation.timing === "after-resolve").map(operation => operation.effect), postTargetEffects = armamentOperations.filter(operation => operation.type === "effect" && operation.target === "targets" && operation.timing === "after-resolve").map(operation => operation.effect);
-      events.push({ type: "attack.pending", actorId: actor.id, payload: { actionId: action.id, declaredActionId: declaredAction.id, declaredActionName: declaredAction.name, name: armamentQuick ? `Стычка · ${armament.label}` : assassination ? "Ликвидация" : thunderDischarge ? "Разрядка" : eclipseStars ? "Затмить звезды" : zealotRupture ? "Так не должно было быть" : icicleHalo ? "Ледяной нимб" : action.name, attribute: actionAttribute, targetIds, targetCells, allowEmptyTargets: zealotRupture || targetCells.length > 0, roll: clone(request.roll || null), damage: areaDamage(effectDamageBase), damageByTarget: Object.fromEntries(Object.entries(effectDamageBaseByTarget).map(([targetId, value]) => [targetId, areaDamage(value)])), effectDamageBase, effectDamageBaseByTarget, effectDamageDivisor, attackModifierIds: attackModifiers.selectedIds, attackModifierAdvantage: attackModifiers.advantage, attackModifierDestination: attackModifierDestination?.destination || null, actionTransform: attackModifiers.actionTransform, techniqueRuleId: armamentQuick ? "vagabond.master-at-arms.1" : assassination ? "vagabond.assassin.2" : null, techniqueSourceDigest: armament?.contract?.sourceDigest || null, armamentContract: armament?.contract ? clone(armament.contract) : null, assassination, expectedManualAdvantage: assassination ? assassinationManualAdvantage : null, expectedManualHindrance: assassination ? assassinationManualHindrance : null, finisherFocus, armamentMode, successEffects: dragonslayerTear, postSelfEffects, postTargetEffects, postOperations: armament?.contract?.postOperations || [], thunderDischarge, eclipseStars, zealotRupture, zealotCells, icicleHalo, drainLife, postDisplacements, gunslingerBulletJuggle: gunslingerSkirmish && Number(actor.techniques?.["powerhouse.gunslinger"] || 0) >= 3 && bulletsSpent >= 3 && targetIds.length === 1 && !targetCells.length, knifeThrow: knifeThrow && Number(actor.techniques?.["vagabond.knife-juggler"] || 0) >= 2, overload: meisterOverload ? clone(events[0].payload.overload) : null } });
+      events.push({ type: "attack.pending", actorId: actor.id, payload: { actionId: action.id, declaredActionId: declaredAction.id, declaredActionName: declaredAction.name, name: armamentQuick ? `Стычка · ${armament.label}` : masterFinisher ? `Завершение · ${masterFinisher.modeId === "blade" ? "Клинок" : masterFinisher.modeId === "polearm" ? "Древко" : "Цепь"}` : assassination ? "Ликвидация" : thunderDischarge ? "Разрядка" : eclipseStars ? "Затмить звезды" : zealotRupture ? "Так не должно было быть" : icicleHalo ? "Ледяной нимб" : action.name, attribute: actionAttribute, targetIds, targetCells, allowEmptyTargets: zealotRupture || Boolean(masterFinisher) || targetCells.length > 0, roll: clone(request.roll || null), damage: areaDamage(effectDamageBase), damageByTarget: Object.fromEntries(Object.entries(effectDamageBaseByTarget).map(([targetId, value]) => [targetId, areaDamage(value)])), effectDamageBase, effectDamageBaseByTarget, effectDamageDivisor, attackModifierIds: attackModifiers.selectedIds, attackModifierAdvantage: attackModifiers.advantage, attackModifierDestination: attackModifierDestination?.destination || null, actionTransform: attackModifiers.actionTransform, techniqueRuleId: armamentQuick ? "vagabond.master-at-arms.1" : masterFinisher ? "vagabond.master-at-arms.3" : assassination ? "vagabond.assassin.2" : null, techniqueSourceDigest: armament?.contract?.sourceDigest || (masterFinisher ? MASTER_AT_ARMS_3_SOURCE_DIGEST : null), armamentContract: armament?.contract ? clone(armament.contract) : null, assassination, expectedManualAdvantage: assassination ? assassinationManualAdvantage : null, expectedManualHindrance: assassination ? assassinationManualHindrance : null, finisherFocus, armamentMode, masterFinisher: masterFinisher ? clone(masterFinisher) : null, successEffects: dragonslayerTear, postSelfEffects, postTargetEffects, postOperations: armament?.contract?.postOperations || [], thunderDischarge, eclipseStars, zealotRupture, zealotCells, icicleHalo, drainLife, postDisplacements, gunslingerBulletJuggle: gunslingerSkirmish && Number(actor.techniques?.["powerhouse.gunslinger"] || 0) >= 3 && bulletsSpent >= 3 && targetIds.length === 1 && !targetCells.length, knifeThrow: knifeThrow && Number(actor.techniques?.["vagabond.knife-juggler"] || 0) >= 2, overload: meisterOverload ? clone(events[0].payload.overload) : null } });
       if (request.roll?.rolls) events.push({ type: "roll.public", actorId: actor.id, payload: clone(request.roll) });
+    }
+    if (masterFinisher?.advantage && events.find(event => event.type === "attack.pending")) {
+      const pending = events.find(event => event.type === "attack.pending");
+      pending.payload.masterFinisherAdvantage = Number(masterFinisher.advantage || 0);
+      pending.payload.attackModifierAdvantage = Number(pending.payload.attackModifierAdvantage || 0) + Number(masterFinisher.advantage || 0);
     }
   } else if (actionIs(action, "breathe")) {
     events.push({ type: "resource.gain", actorId: actor.id, payload: { actionInstanceId, resource: "focus", amount: 1, sourceActionName: "Передышка", sourceActionId: action.id } });

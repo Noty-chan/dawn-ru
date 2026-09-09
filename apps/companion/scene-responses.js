@@ -1350,6 +1350,18 @@ function resolvePendingAction(scene, data) {
     if (amount > 0) events.push({ type: "actor.heal", actorId: source.id, payload: { targetId: source.id, amount, sourceActionId: pending.enemyRuleId || pending.actionId, participantIds: [source.id, ...status.eligibleIds] } });
   }
   if (source) for (const effect of pending.postSelfEffects || []) events.push({ type: "effect.apply", actorId: source.id, payload: { targetId: source.id, effect, sourceActionId: pending.techniqueRuleId || pending.actionId, participantIds: [source.id] } });
+  const masterFinisher = pending.masterFinisher;
+  if (masterFinisher && source) {
+    const successful = new Set(successfulEnemyTargets);
+    if (masterFinisher.modeId === "blade") for (const targetId of (masterFinisher.crossedTargetIds || []).filter(id => successful.has(id))) {
+      events.push({ type: "effect.apply", actorId: source.id, payload: { targetId, effect: "negative.помечен", sourceActionId: "vagabond.master-at-arms.3", participantIds: [source.id, targetId] } });
+      events.push({ type: "effect.apply", actorId: source.id, payload: { targetId, effect: "negative.подброшен", sourceActionId: "vagabond.master-at-arms.3", participantIds: [source.id, targetId] } });
+    }
+    if (masterFinisher.modeId === "polearm" && Number(pending.roll?.crits || 0) > 0 && (masterFinisher.spikedTargetIds || []).some(id => successful.has(id))) {
+      const cells = [...new Set(masterFinisher.terrainCells || [])];
+      if (cells.length) events.push({ type: "area.create", actorId: source.id, payload: { id: `master-terrain-${pending.id}`, space: source.space, areaType: "difficult", label: "Мастер за работой · Трудная местность", source: "vagabond.master-at-arms.3", ruleId: "vagabond.master-at-arms.3", duration: "scene", ownerActorId: source.id, cells, metadata: { lifecycle: "scene", finisherId: pending.id }, participantIds: [source.id, ...successful] } });
+    }
+  }
   if (pending.gunslingerBulletJuggle && status.eligibleIds[0]) events.push({ type: "effect.apply", actorId: pending.actorId, payload: { targetId: status.eligibleIds[0], effect: "negative.подброшен", sourceActionId: "powerhouse.gunslinger.3", participantIds: [pending.actorId, status.eligibleIds[0]] } });
   if (pending.thunderDischarge && Number(pending.roll?.successes || 0) > 0) status.eligibleIds.forEach(targetId => events.push({ type: "effect.apply", actorId: pending.actorId, payload: { targetId, effect: "negative.ошеломлен", sourceActionId: "ruiner.thunder-blood.3", participantIds: [pending.actorId, targetId] } }));
   if (pending.overload) {

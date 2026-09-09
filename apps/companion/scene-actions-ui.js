@@ -112,6 +112,8 @@ function coreActionRoll(actor,action,optionAdvantage=0,attributeOverride=null,ta
 const coreActionRollWithoutFinisherFocus=coreActionRoll;
 coreActionRoll=function(actor,action,optionAdvantage=0,attributeOverride=null,targetIds=null){const focusSpent=SceneEngine.actionIs(action,"finish")?Number(document.querySelector(`[data-action-options="${CSS.escape(action.id)}"] [data-action-finisher-focus]`)?.valueAsNumber||0):0,result=coreActionRollWithoutFinisherFocus(actor,action,Number(optionAdvantage||0)+focusSpent,attributeOverride,targetIds);return result?{...result,finisherFocus:focusSpent,formula:`${result.formula}${focusSpent?` · Фокус ${focusSpent}`:""}`}:result};
 
+const _masterAwareCoreActionRoll=coreActionRoll;
+coreActionRoll=function(actor,action,optionAdvantage=0,attributeOverride=null,targetIds=null){const mode=actor&&Number(actor.techniques?.["vagabond.master-at-arms"]||0)>=3?actor.ruleModes?.["vagabond.master-at-arms.armament"]?.modeId:null;if(mode&&SceneEngine.actionIs(action,"finish")){const ids=targetIds||Scene.targetIds||[],selected=selectedAttackModifierIds(actor.id),launched=mode==="polearm"&&selected.some(id=>String(id).startsWith("core.launch-spike:"));return _masterAwareCoreActionRoll(actor,action,Number(optionAdvantage||0)+(launched?Number(actor.tier||1):0),"talent",ids)}return _masterAwareCoreActionRoll(actor,action,optionAdvantage,attributeOverride,targetIds)};
 function zealotLineCells(line){
   const actor=currentHeroActor(),status=actor&&SceneEngine.spatialShapeStatus(Scene,{space:actor.space,shape:"line",anchor:line.anchor,orientation:line.orientation,full:true});
   return status?.available?[...status.cells]:[];
@@ -209,6 +211,8 @@ function prepareCoreActionWithPlans(actionId,extra={}){
   else toast(prepared.action?.automation==="assist"?`«${action.name}»: стоимость списана, решение записано для подтверждения Нарратором`:`«${action.name}»: действие применено`);
 }
 prepareCoreAction=prepareCoreActionWithPlans;
+const _prepareCoreActionWithMaster=prepareCoreAction;
+prepareCoreAction=function(actionId,extra={}){const actor=currentHeroActor(),action=D.actions.list.find(item=>item.id===actionId),mode=actor&&Number(actor.techniques?.["vagabond.master-at-arms"]||0)>=3?actor.ruleModes?.["vagabond.master-at-arms.armament"]?.modeId:null;if(actor&&action&&SceneEngine.actionIs(action,"finish")&&mode&&extra.masterFinisherReady!==true){pendingCoreAction=actionId;pendingCoreActionContext={actionId,context:{masterFinisherMode:mode,targetIds:[...(Scene.targetIds||[])]}};Scene.tool="select";renderScene();toast("«Мастер за работой»: выберите клетку движения или центр области");return;}if(mode&&SceneEngine.actionIs(action,"finish")){Scene.__masterFinisherRequest={mode,anchor:extra.masterFinisherAnchor||extra.armamentAnchor||null,destination:extra.armamentDestination||extra.destination||null};extra={...extra,masterFinisherReady:true};}const result=_prepareCoreActionWithMaster(actionId,extra);delete Scene.__masterFinisherRequest;return result};
 function respondCoreReaction(actorId,choice,destination=null){
   const actor=Scene.actors.find(item=>item.id===actorId),option=SceneEngine.reactionOptions(Scene,D,actorId).find(item=>item.id===SceneEngine.canonicalActionId(choice));
   if(!actor||!option)return toast("Реакция больше не доступна");
@@ -283,7 +287,7 @@ function techniquePreview(rule,point=null){
   const attackModifiers=SceneEngine.attackModifierStatus(Scene,actor?.id,request.targetIds,request.attackModifierIds);
   if(rule.kind==="equidistant-teleport"){request.anchor=pendingTechniqueAnchor;request.destination=point}
   else if(rule.kind==="teleport"||(rule.kind==="combo"&&rule.actionKey==="step"))request.destination=point;
-  else if(["area","marker","trap-placement"].includes(rule.kind))request.anchor=point;
+  else if(["area","marker","trap-placement"].includes(rule.kind))request.anchor=point||pendingTechniqueAnchor;
   if(rule.kind==="creation-attack"){
     const inherited=Number(actor?.techniques?.["ruiner.creation-ascetic"]||0)>=3?Number(actor?.ruleState?.lastCreationSpellMarks||0):0,marks=Number(actor?.creationMarks||0)||inherited,attribute=rule.actionKey==="spell"?"spirit":Object.entries(actor?.attrs||{}).sort((a,b)=>b[1]-a[1])[0]?.[0]||"spirit",advantage=Number(rule.advantage||0)+(rule.actionKey==="finish"?Math.min(marks,Number(Scene.tension||0)):0)+attackModifiers.advantage,effectAttack=SceneEngine.effectAttackStatus(Scene,actor.id,request.targetIds),hindrance=Number(effectAttack.hindrance||0),count=Math.max(1,Number(actor?.attrs?.[attribute]||0)+advantage-hindrance),result=Logic.rollXd6({count});
     request.roll={formula:`${result.initialCount}D6 · ${ATTRS.find(item=>item[0]===attribute)?.[1]||attribute} · ${rule.name}${advantage?` · преимущество ${advantage}`:""}${hindrance?` · Помеха −${hindrance} (${effectAttack.hindranceEffects.join(", ")})`:""}`,rolls:result.rolls,successes:result.successes,crits:result.crits};
