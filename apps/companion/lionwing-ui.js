@@ -397,6 +397,25 @@ function lwAutomationHtml(a) {
   }).join("")}</details>`;
 }
 
+function lwInventoryHtml(a) {
+  const api = window.DAWN_LIONWING_INVENTORY;
+  if (!api?.project || !a?.lionwing?.inventory) return "";
+  let projection;
+  try { projection = api.project(Scene, { role: lwCanNarrate() ? "narrator" : "owner", actorIds: [a.id] }); }
+  catch (error) { return `<details open><summary>Инвентарь</summary><p class="autosave">Инвентарь недоступен: ${esc(error.message || error)}</p></details>`; }
+  const state = projection?.[a.id], definitions = state?.definitions || {}, records = Object.values(state?.records || {});
+  if (!state || !records.length) return "";
+  const rows = records.map(record => {
+    const definition = definitions[record.definitionId];
+    if (!definition) return "";
+    const numeric = ["stack", "count", "charges", "slots"].includes(definition.kind), value = numeric ? api.readNumeric(record) : definition.kind === "recorded-value" ? (record.values || []).map(item => item.value).join(", ") || "—" : (record.selectedItems || (record.selectedItemId ? [record.selectedItemId] : [])).join(", ") || "—";
+    if (!numeric) return `<div class="lw-inventory-row" data-lw-inventory-row><span><b>${esc(definition.label)}</b>${record.instanceId ? ` · ${esc(record.instanceId)}` : ""}<small>${esc(definition.kind)} · ${esc(String(value))}</small></span></div>`;
+    const spend = api.status(Scene, a.id, { id: definition.id, instanceId: record.instanceId, operation: "spend", amount: 1 }), gain = api.status(Scene, a.id, { id: definition.id, instanceId: record.instanceId, operation: "gain", amount: 1 }), max = definition.maximum == null ? "∞" : definition.maximum;
+    return `<div class="lw-inventory-row" data-lw-inventory-row><span><b>${esc(definition.label)}</b>${record.instanceId ? ` · ${esc(record.instanceId)}` : ""}<small>${esc(definition.kind)} · ${value} / ${max}${spend.reserved ? ` · зарезервировано ${spend.reserved}` : ""}</small></span><span class="button-row"><button type="button" data-lw-inventory="spend" data-lw-inventory-id="${esc(definition.id)}"${record.instanceId ? ` data-lw-inventory-instance="${esc(record.instanceId)}"` : ""} data-lw-actor="${esc(a.id)}" ${spend.available && lwOwns(a.id) ? "" : `disabled title="${esc(spend.reason || "Расход недоступен")}"`}>−</button><button type="button" data-lw-inventory="gain" data-lw-inventory-id="${esc(definition.id)}"${record.instanceId ? ` data-lw-inventory-instance="${esc(record.instanceId)}"` : ""} data-lw-actor="${esc(a.id)}" ${gain.available && lwOwns(a.id) ? "" : `disabled title="${esc(gain.reason || "Получение недоступно")}"`}>+</button></span></div>`;
+  }).join("");
+  return `<details class="lw-inventory" open><summary>Инвентарь и заряды</summary><p>Текущие значения принадлежат ядру Сцены. Кнопки меняют только проверяемую запись; служебные receipt игроку не показываются.</p><div class="lw-inventory-list">${rows}</div></details>`;
+}
+
 function lwActionsHtml(a) {
   if (!a) return "<p>Выберите участника на поле.</p>";
   const buttons = lwRules().actions.list.filter(d => d.type === "action"&&(a.kind!=="enemy"||d.id===SceneEngine.ACTION_IDS.step)).map(def => {
@@ -408,7 +427,7 @@ function lwActionsHtml(a) {
   const detective=LionwingEngine.detectiveMovementStatus?.(Scene,a.id), detectiveState=lwDetectiveTeleport?.actorId===a.id?lwDetectiveTeleport:null;
   const detectiveControls=detective?.available&&lwOwns(a.id)?`<div class="lw-detective-teleport"><button data-lw-detective-teleport data-lw-actor="${esc(a.id)}">Детектив III: заменить Шаг телепортом</button><small>Допустимые Слабые точки: ${detective.markers.map(item=>`(${item.destination.x}, ${item.destination.y})`).join(", ")} · до ${detective.allowance} кл.</small>${detectiveState?.plan?`<p>Предпросмотр: (${detectiveState.plan.preview.stoppedAt.x}, ${detectiveState.plan.preview.stoppedAt.y}) · ${detectiveState.plan.preview.distance ?? ""} кл. <button data-lw-detective-confirm data-lw-actor="${esc(a.id)}">Подтвердить</button> <button data-lw-detective-cancel>Отмена</button></p>`:detectiveState?`<p>Выберите подсвеченную Слабую точку на поле. <button data-lw-detective-cancel>Отмена</button></p>`:""}</div>`:"";
   const effects=[...lwRules().effects.positive,...lwRules().effects.negative].filter(e=>e.id!=="positive.изгнан");
-  return `<section class="lw-actions" data-lw-root data-lw-actor="${esc(a.id)}">${lwStatusHtml(a)}${lwDiceHtml(a)}${lwAutomationHtml(a)}${lwPendingHtml()}${lwChainHtml(a)}${opportunities}${detectiveControls}${(a.effects||[]).includes("positive.невидим")?`<button data-lw-invisible data-lw-actor="${esc(a.id)}">Потратить Невидимость → Исчезнуть</button>`:""}${lwDestination ? '<p class="lw-hint">Выберите клетку на поле. <button data-lw-clear-destination>Отменить выбор</button></p>' : ""}<div class="core-action-list">${buttons}</div><details><summary>Параметры действия</summary><div class="lw-fields"><label>Атрибут<select data-lw-attribute><option value="">Подобрать по действию</option><option value="body">Тело</option><option value="talent">Талант</option><option value="spirit">Дух</option><option value="mind">Разум</option></select></label><label>Фокус для Завершения<input data-lw-focus type="number" min="0" max="${Math.min(Object.values(a.ruleResources||{}).some(r=>r.replaces==="focus"&&r.inverted)?Scene.tension||0:LionwingEngine.balance(a,"focus"), Scene.tension || 0)}" value="0"></label><label>Преимущество<input data-lw-advantage type="number" min="0" max="50" value="0"></label><label>Помеха<input data-lw-disadvantage type="number" min="0" max="50" value="0"></label><label>Импровизация<select data-lw-improvise-effect><option value="">Создать препятствие</option>${effects.map(e=>`<option value="${esc(e.id)}">${esc(e.name)}</option>`).join("")}</select></label><label>Убрать соседнее препятствие<select data-lw-remove-obstacle><option value="">Не убирать</option>${Scene.objects.filter(o=>o.type==="terrain"&&o.space===a.space).map(o=>`<option value="${esc(o.id)}">${esc(o.label||"Препятствие")}</option>`).join("")}</select></label><label><input type="checkbox" data-lw-spike>Использовать бонус по Подброшенным целям</label></div></details></section>`;
+  return `<section class="lw-actions" data-lw-root data-lw-actor="${esc(a.id)}">${lwStatusHtml(a)}${lwDiceHtml(a)}${lwInventoryHtml(a)}${lwAutomationHtml(a)}${lwPendingHtml()}${lwChainHtml(a)}${opportunities}${detectiveControls}${(a.effects||[]).includes("positive.невидим")?`<button data-lw-invisible data-lw-actor="${esc(a.id)}">Потратить Невидимость → Исчезнуть</button>`:""}${lwDestination ? '<p class="lw-hint">Выберите клетку на поле. <button data-lw-clear-destination>Отменить выбор</button></p>' : ""}<div class="core-action-list">${buttons}</div><details><summary>Параметры действия</summary><div class="lw-fields"><label>Атрибут<select data-lw-attribute><option value="">Подобрать по действию</option><option value="body">Тело</option><option value="talent">Талант</option><option value="spirit">Дух</option><option value="mind">Разум</option></select></label><label>Фокус для Завершения<input data-lw-focus type="number" min="0" max="${Math.min(Object.values(a.ruleResources||{}).some(r=>r.replaces==="focus"&&r.inverted)?Scene.tension||0:LionwingEngine.balance(a,"focus"), Scene.tension || 0)}" value="0"></label><label>Преимущество<input data-lw-advantage type="number" min="0" max="50" value="0"></label><label>Помеха<input data-lw-disadvantage type="number" min="0" max="50" value="0"></label><label>Импровизация<select data-lw-improvise-effect><option value="">Создать препятствие</option>${effects.map(e=>`<option value="${esc(e.id)}">${esc(e.name)}</option>`).join("")}</select></label><label>Убрать соседнее препятствие<select data-lw-remove-obstacle><option value="">Не убирать</option>${Scene.objects.filter(o=>o.type==="terrain"&&o.space===a.space).map(o=>`<option value="${esc(o.id)}">${esc(o.label||"Препятствие")}</option>`).join("")}</select></label><label><input type="checkbox" data-lw-spike>Использовать бонус по Подброшенным целям</label></div></details></section>`;
 }
 
 function lwEffectSourcesHtml(targets) {
@@ -488,6 +507,7 @@ eventText = function(event) {
   if(event.type==="action.allow")return `${who}: допуск ${lwRules().actions.list.find(d=>d.id===p.actionId)?.name||p.actionId}, применений ${p.uses??1}${p.swift?", Быстрое":""}`;
   if(event.type==="modifier.configure"&&p.stat)return `${who}: временное изменение ${resourceNames[p.stat]||p.stat} ${p.amount>0?"+":""}${p.amount}`;
   if(event.type==="modifier.remove")return `${who}: сняты временные изменения ${resourceNames[p.stat]||p.stat}`;
+  if(event.type.startsWith("inventory."))return `${who}: ${p.operation||event.type.replace("inventory.","")} · ${p.itemId||p.id||"запись"}${p.value!=null?` → ${p.value}`:""}${p.boundary?` · ${p.boundary}`:""}`;
   if(event.type==="movement.prevented")return `${who}: принудительное движение предотвращено (${p.reason})`;
   if(event.type==="geometry.route.commit"){
     const stopped=p.stoppedAt?`${String.fromCharCode(65+Number(p.stoppedAt.x))}${Number(p.stoppedAt.y)+1}`:"—",reason=p.terminal?lwGeometryStopReason(p.stopReason):p.partial?"цель недостижима, показана ближайшая клетка":"";
@@ -589,7 +609,7 @@ document.addEventListener("click", event => {
     if(kind==="move"){if(targets.length!==1)return toast("Для движения выберите одну цель");lwDestination={actorId:sourceId,payload:operations[0],label:"Движение правила",stage:lwDraftEnabled&&movementKind==="geometry-move"};renderScene();toast(lwDestination.stage?"Выберите клетку: маршрут будет добавлен в пакет":"Выберите клетку назначения");return;}
     return lwSubmit(sourceId,operations.length===1?operations[0]:{kind:"batch",operations:["note","prompt","usage"].includes(kind)?[operations[0]]:operations},"Общая операция правила");
   }
-  const button = event.target.closest("[data-core-action], [data-lw-automation], [data-lw-action], [data-lw-reaction], [data-lw-choice], [data-lw-resolve], [data-lw-cancel], [data-lw-clear-destination], [data-lw-geometry-confirm], [data-lw-geometry-add], [data-lw-geometry-cancel], [data-lw-operation], [data-lw-correct], [data-lw-custom], [data-lw-modifier], [data-lw-punish], [data-lw-invisible], [data-lw-detective-teleport], [data-lw-detective-confirm], [data-lw-detective-cancel]");
+  const button = event.target.closest("[data-core-action], [data-lw-automation], [data-lw-action], [data-lw-reaction], [data-lw-choice], [data-lw-resolve], [data-lw-cancel], [data-lw-clear-destination], [data-lw-geometry-confirm], [data-lw-geometry-add], [data-lw-geometry-cancel], [data-lw-operation], [data-lw-correct], [data-lw-custom], [data-lw-modifier], [data-lw-punish], [data-lw-invisible], [data-lw-inventory], [data-lw-detective-teleport], [data-lw-detective-confirm], [data-lw-detective-cancel]");
   if (!button) {
     const oldControl=event.target.closest("[data-director-set-field], [data-director-knockout], [data-director-tension], [data-director-open-reactions], [data-director-set-rule-resource], [data-director-set-rule-clock]");
     if(oldControl){event.preventDefault();event.stopImmediatePropagation();const a=lwActor();if(!a||!lwCanNarrate())return;
@@ -612,6 +632,11 @@ document.addEventListener("click", event => {
   if (!actorId || !lwOwns(actorId)) return toast("Этим участником управляет другой игрок");
   const val = (selector, fallback="") => root?.querySelector(selector)?.value ?? fallback;
   const num = (selector, fallback=0) => Number(val(selector,fallback));
+  if(button.hasAttribute("data-lw-inventory")){
+    const operation=button.dataset.lwInventory, id=button.dataset.lwInventoryId, instanceId=button.dataset.lwInventoryInstance, amount=Number(button.dataset.lwInventoryAmount||1);
+    if(!["gain","spend","add","remove"].includes(operation)||!id||!Number.isSafeInteger(amount)||amount<1)return toast("Некорректная операция инвентаря");
+    return lwSubmit(actorId,{kind:"inventory",operation,id,amount,...(instanceId?{instanceId}:{} )},operation==="spend"?"Расход записи инвентаря":"Изменение записи инвентаря");
+  }
   if(button.hasAttribute("data-lw-geometry-confirm")||button.hasAttribute("data-lw-geometry-add")){
     const preview=lwGeometryPreview;
     if(!preview||preview.actorId!==actorId)return toast("Маршрут больше не доступен: выберите клетку заново.");

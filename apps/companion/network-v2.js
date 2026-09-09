@@ -232,10 +232,15 @@
     const actor=ownedActor(scene,intent.actorId,ownerId);
     if(intent.kind==="lionwing"){
       const kernel=global.DAWN_LIONWING_ENGINE,raw=safeObject(intent.request);
-      if(!kernel?.isScene(scene)||!["action","reaction","choice","roll","dice-create","dice-apply","punish","invisible","search"].includes(raw.kind))throw new Error("Эта операция LionWing доступна только Нарратору");
+      if(!kernel?.isScene(scene)||!["action","reaction","choice","roll","dice-create","dice-apply","punish","invisible","search","inventory"].includes(raw.kind))throw new Error("Эта операция LionWing доступна только Нарратору");
+      if(raw.kind === "inventory") {
+        if(!["gain","add","spend","remove","select","transfer"].includes(raw.operation)) throw new Error("Игрок может только расходовать, получать или выбирать собственные записи инвентаря");
+        if(raw.operation === "transfer" && raw.fromActorId !== actor.id) throw new Error("Перевод доступен только из собственной записи");
+        if(raw.operation !== "transfer" && raw.targetId && raw.targetId !== actor.id) throw new Error("Игрок не может указать чужого владельца записи");
+      }
       const request={kind:raw.kind,actorId:actor.id};
       if(raw.kind==="choice"&&["clash-tie","duel-outcome","duel-wounds"].includes(scene.lionwing?.choices?.[0]?.kind))throw new Error("Исход ничьей определяет Нарратор");
-      const fields={action:["actionId","targetIds","destination","attribute","focusSpent","breakout","reappearance","spikeTargetIds","removeObstacleId","effect"],plan:["actionId","targetIds","costs","operations","planId","rootActionId","actionInstanceId","actionPlan","execution"],reaction:["choice","destination","attribute","planId"],choice:["id","choice","destination","note","planId"],"dice-create":["pool","rollId","rollKind"],"dice-apply":["rollId","operation"],roll:["count","label","rollKind"],punish:["id"],invisible:[],search:["targetId"]}[raw.kind];
+      const fields={action:["actionId","targetIds","destination","attribute","focusSpent","breakout","reappearance","spikeTargetIds","removeObstacleId","effect"],plan:["actionId","targetIds","costs","operations","planId","rootActionId","actionInstanceId","actionPlan","execution"],reaction:["choice","destination","attribute","planId"],choice:["id","choice","destination","note","planId"],"dice-create":["pool","rollId","rollKind"],"dice-apply":["rollId","operation"],roll:["count","label","rollKind"],punish:["id"],invisible:[],search:["targetId"],inventory:["operation","id","itemId","instanceId","amount","value","selectedItemId","selectedItems","mode","remove","targetId","fromActorId","toActorId","costs","reservationId","boundary","resetAt"]}[raw.kind];
       for(const key of fields)if(raw[key]!==undefined)request[key]=clone(raw[key]);
       const result=kernel.prepare(scene,request);if(!result.ok)throw new Error(result.errors.join(" "));return result.events;
     }
