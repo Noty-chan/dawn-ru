@@ -350,7 +350,13 @@
     const value = Number(global.DAWN_LIONWING_ADAPTERS?.[method]?.(a, ...args) || 0);
     return Number.isFinite(value) ? value : 0;
   };
-  const stat = (a, key, context = {}) => Math.max(0, adapterNumber("statMinimum", a, key, context), Number(a[key] || 0) + (a.lionwing?.modifiers || []).filter(m => m.stat === key).reduce((sum, m) => sum + (key==="evasion"?m.remaining??m.amount:m.amount), 0) + adapterNumber("statBonus", a, key, context));
+  const stat = (a, key, context = {}) => {
+    const rawBase = attributes.has(key) ? Number(a.attrs?.[key] || 0) : Number(a[key] || 0);
+    const temporary = (a.lionwing?.modifiers || []).filter(m => m.stat === key).reduce((sum, m) => sum + (key === "evasion" ? m.remaining ?? m.amount : m.amount), 0);
+    const quote = global.DAWN_LIONWING_ADAPTERS?.statQuote?.(a, key, { ...context, baseValue: rawBase + temporary });
+    if (quote?.ok !== false && Number.isFinite(Number(quote?.value))) return Math.max(0, Number(quote.value));
+    return Math.max(0, adapterNumber("statMinimum", a, key, context), rawBase + temporary + adapterNumber("statBonus", a, key, context));
+  };
   const currentTurnInstance = scene => state(copy(scene)).activeTurnInstanceId || null;
   const spellCircleActive = (scene, a) => (scene.markers || []).some(marker =>
     marker?.ownerActorId === a.id && (marker.kind === "ritual" || marker.kind === "spell-circle") && marker.space === a.space && Number(marker.x) === Number(a.x) && Number(marker.y) === Number(a.y));
@@ -792,7 +798,7 @@
       firstSpiritFinisherThisTurn: p.firstSpiritFinisherThisTurn === true || (def.id === ids.finish && attackAttribute === "spirit" && firstSpiritFinisherThisTurn(scene, a, p.actionInstanceId || null)),
       enchainedCastMoveAdjacent: p.enchainedCastMoveAdjacent === true,
     };
-    const counts=Object.fromEntries(targets.map(id=>{const target=actor(scene,id),targetEffectIds=activeState(scene,id).effects.map(status=>status.effect),tauntedByActor=activeEffectSources(target,"negative.спровоцирован",scene).some(source=>source.actorId===a.id);return[id,Math.max(0,base+adapterNumber("rollBonus",a,{...targetContext,targetId:id,targetDistance:distance(a,target),targetEffectIds,tauntedByActor})-(effectActive(scene,a,"negative.спровоцирован")&&!targets.some(t=>taunts.includes(t))?a.tier:0)-(effectActive(scene,a,"negative.испуган")&&fears.includes(id)?a.tier:0)+((p.spikeTargetIds||[]).includes(id)&&effectActive(scene,target,"negative.подброшен")?a.tier:0))]}));
+    const counts=Object.fromEntries(targets.map(id=>{const target=actor(scene,id),targetEffectIds=activeState(scene,id).effects.map(status=>status.effect),tauntedByActor=activeEffectSources(target,"negative.спровоцирован",scene).some(source=>source.actorId===a.id),context={...targetContext,targetId:id,targetDistance:distance(a,target),targetEffectIds,tauntedByActor,flightStance:effectActive(scene,a,"positive.полёт")||a.lionwing?.stance==="flight",useSpeedAttribute:p.useSpeedAttribute===true};const quoted=global.DAWN_LIONWING_ADAPTERS?.attackQuote?.(a,{...context,baseValue:base,roundUp:true})||{ok:true,value:base};if(quoted.ok===false)fail(quoted.reason||"Числовые модификаторы Атаки конфликтуют");return[id,Math.max(0,Number(quoted.value)-(effectActive(scene,a,"negative.спровоцирован")&&!targets.some(t=>taunts.includes(t))?a.tier:0)-(effectActive(scene,a,"negative.испуган")&&fears.includes(id)?a.tier:0)+((p.spikeTargetIds||[]).includes(id)&&effectActive(scene,target,"negative.подброшен")?a.tier:0))]}));
     return{base:Math.min(...Object.values(counts)),counts};
   }
 
@@ -1381,6 +1387,11 @@
         if (attack && !p.finalDamage) amount = Math.max(0, amount + (effectActive(scene,source,"positive.усилен") ? Math.ceil(source.tier / 2) : 0) - (effectActive(scene,source,"negative.ослаблен") ? Math.ceil(source.tier / 2) : 0));
         amount = Math.max(0, amount - integer(p.reduction || 0, "снижение урона"));
       }
+      if (attack && !p.finalDamage && source) {
+        const damageQuote = global.DAWN_LIONWING_ADAPTERS?.damageQuote?.(source, { scene, kind: "attack", actionId: p.sourceActionId || null, targetId: a.id, targetIds: [a.id], baseValue: amount, fixedDamage: p.fixedDamage === true, jab: p.jab === true, hammersFollowUpTriggered: p.hammersFollowUpTriggered === true, followUpAttribute: p.followUpAttribute || null, tier: Number(source.tier || 1), roundUp: true });
+        if (damageQuote?.ok === false) fail(damageQuote.reason || "Числовые модификаторы урона конфликтуют");
+        if (damageQuote?.ok && Number.isFinite(Number(damageQuote.value))) amount = Math.max(0, Number(damageQuote.value));
+      }
       const armor = !p.irreducible && attack && !p.ignoreArmor && !effectActive(scene,a,"negative.разорван") ? (compound.active&&compound.defenseType!=="armor"?0:stat(defender, "armor", defenseContext(defender))) + (effectActive(scene,a,"positive.укреплен") ? Number(a.tier || 1) : 0) + Number(p.temporaryArmor || 0) : 0;
       const afterArmor = amount > 0 ? Math.max(1, amount - armor) : 0;
       const evasionAllowed = !p.irreducible && !p.ignoreEvasion && !effectActive(scene,a,"negative.обездвижен") && !effectActive(scene,a,"negative.пойман");
@@ -1392,6 +1403,9 @@
       const hpBefore = compound.active ? compound.hp : Number(a.hp);
       let dealt = Math.max(0, afterArmor - evaded);
       if (attack && dealt > 0 && !p.irreducible && !p.finalDamage && effectActive(scene,a,"negative.помечен")) { dealt += Number(a.tier || 1); removeEffect(a, "negative.помечен"); }
+      const finalDamageQuote = global.DAWN_LIONWING_ADAPTERS?.damageQuote?.(a, { scene, key: "finalDamage", kind: "damage", actionId: p.sourceActionId || null, sourceActorId: source?.id || null, targetId: a.id, baseValue: dealt, immobilized: effectActive(scene, a, "negative.обездвижен"), tier: Number(a.tier || 1), roundUp: true });
+      if (finalDamageQuote?.ok === false) fail(finalDamageQuote.reason || "Числовые модификаторы итогового урона конфликтуют");
+      if (finalDamageQuote?.ok && Number.isFinite(Number(finalDamageQuote.value))) dealt = Math.max(0, Number(finalDamageQuote.value));
       if(compound.active){const nextGate=Math.max(0,(Math.ceil(compound.hp/compound.gate-1e-9)-1)*compound.gate),beforeGateDealt=dealt,gateCapacity=Math.max(0,compound.hp-nextGate);dealt=Math.min(dealt,gateCapacity);let remaining=compound.hp-dealt;for(const part of compound.parts){part.hp=Math.min(part.maxHp,remaining);remaining-=part.hp;}if(beforeGateDealt>gateCapacity&&nextGate>0)scene.tension++;}
       else a.hp = Math.max(0, Number(a.hp) - dealt);
       const hit = p.hit !== false;

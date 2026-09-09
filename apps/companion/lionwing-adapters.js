@@ -6,9 +6,9 @@
 (function (global) {
   const lionwing = actor => actor?.rulesEdition === "lionwing";
   const knows = (actor, techniqueId, level) => lionwing(actor) && Number((actor.knownTechniques ?? actor.techniques)?.[techniqueId] || 0) >= level;
-  const passive = ({ id, label, sourceDigest, rollBonus, statBonus, statMinimum, rangeBonus, boundaryOperations, resourceGainStatus, actionStatus, maximumLevel = null, coverage = "full" }) => {
+  const passive = ({ id, label, sourceDigest, rollBonus, statBonus, statMinimum, rangeBonus, numeric, boundaryOperations, resourceGainStatus, actionStatus, maximumLevel = null, coverage = "full" }) => {
     const techniqueId = id.replace(/\.\d+$/, ""), level = Number(id.match(/\.(\d+)$/)?.[1] || 0);
-    return Object.freeze({ id, techniqueId, level, label, sourceDigest, coverage, available: actor => knows(actor, techniqueId, level) && (maximumLevel == null || Number((actor.knownTechniques ?? actor.techniques)?.[techniqueId] || 0) <= maximumLevel), rollBonus, statBonus, statMinimum, rangeBonus, boundaryOperations, resourceGainStatus, actionStatus });
+    return Object.freeze({ id, techniqueId, level, label, sourceDigest, coverage, available: actor => knows(actor, techniqueId, level) && (maximumLevel == null || Number((actor.knownTechniques ?? actor.techniques)?.[techniqueId] || 0) <= maximumLevel), rollBonus, statBonus, statMinimum, rangeBonus, numeric, boundaryOperations, resourceGainStatus, actionStatus });
   };
   const actionBonus = (actionId, amount = 1) => (_actor, context) => context?.kind === "attack" && context.actionId === actionId ? amount : 0;
   const attackIds = new Set(["action.атаки.заклинание", "action.атаки.завершение", "action.атаки.стычка"]);
@@ -330,6 +330,67 @@
       coverage: "partial",
       rollBonus: (actor, context) => context?.kind === "attack" && context.actionId === "action.атаки.стычка" && context.enchainedCastMoveAdjacent === true ? Number(actor.tier || 1) * 2 : 0,
     }),
+    // These clauses intentionally expose only their unambiguous numeric part.
+    // Their unique trigger/choice remains in the manual Narrator path.
+    passive({
+      id: "bulwark.iron-bodied.3",
+      label: "Железное тело III: максимум урона за один удар при Обездвиженности",
+      sourceDigest: "7726f5c94cfdfba228b739db1cad6221687af83bf183a7c16bed34afd5a6526f",
+      coverage: "partial",
+      numeric: (_actor, context) => context?.key === "finalDamage" && context.immobilized === true
+        ? { operation: "max", amount: 4 + Math.ceil(Number(context.tier ?? _actor.tier ?? 1) / 2), reason: "Железное тело: Обездвиженный участник не получает больше 4 + [Ступень/2] урона за один случай." }
+        : null,
+    }),
+    passive({
+      id: "bulwark.vanguard-defender.2",
+      label: "Щит авангарда II: [Ступень] Брони после первого Блока за Раунд",
+      sourceDigest: "0802bfc72bc142e3279febb556997bcde79061d09dc21ad750bdfa764287676b",
+      coverage: "partial",
+      statBonus: (actor, key, context) => key === "armor" && context?.blockingForAlly === true && context?.blockResolved === true && context?.firstBlockThisRound === true ? Number(actor.tier || 1) : 0,
+    }),
+    passive({
+      id: "powerhouse.technician.2",
+      label: "Техник II: [Ступень/2] Брони после завершённого Комбо",
+      sourceDigest: "87d635215f2088e683f229d48bc51b0f2bc34d6a88bc1dea707fcea12e4be250",
+      coverage: "partial",
+      statBonus: (actor, key, context) => key === "armor" && context?.perfectFormActive === true ? Math.ceil(Number(actor.tier || 1) / 2) : 0,
+    }),
+    passive({
+      id: "vagabond.drunkard.2",
+      label: "Пьяница II: [Ступень/2] + отрицательные Эффекты к Уклонению в конце Хода",
+      sourceDigest: "73477795efb4e90b3c7bf8d17ed305b312f08703a0085672f72b5e0a869dde56",
+      coverage: "partial",
+      statBonus: (actor, key, context) => key === "evasion" && context?.boundary === "turnEnd" && context?.slowed === true ? Math.ceil(Number(actor.tier || 1) / 2) + Math.max(0, Number(context.negativeEffectCount || 0)) : 0,
+    }),
+    passive({
+      id: "vagabond.aerial-master.3",
+      label: "Воздушный мастер III: в Полёте бросать [Скорость] вместо Атрибута",
+      sourceDigest: "af9100fcba37294038c9e66fb6fd2aed9fb592bd0468468ebcce546b087bf3ac",
+      coverage: "partial",
+      numeric: (actor, context) => context?.key === "attackPool" && context?.flightStance === true && context?.useSpeedAttribute === true
+        ? { operation: "replace", amount: Number(actor.speed || 0), reason: "Воздушный мастер: Атака в Полёте использует Скорость." }
+        : null,
+    }),
+    passive({
+      id: "vagabond.skirmisher.1",
+      label: "Застрельщик I: Джеб наносит [Талант/2] фиксированного урона",
+      sourceDigest: "a14b57ddcf585e19b76a19e20b3ab1dc5190a59a5b044ed5df6d0bc2141a503e",
+      coverage: "partial",
+      numeric: (actor, context) => context?.key === "damage" && context?.jab === true && context?.fixedDamage === true
+        ? { operation: "replace", amount: Math.ceil(Number(actor.attrs?.talent || 0) / 2), reason: "Застрельщик: урон Джеба нельзя изменить другими Техниками." }
+        : null,
+    }),
+    passive({
+      id: "powerhouse.martial-artist.2",
+      label: "Мастер боевых искусств II: [Тело/2] или [Талант/2] после эффекта Восьми молотов",
+      sourceDigest: "ffab119dac241453faa82dab8e20523afa694f42b997a24d13fdf4b7f16e9e83",
+      coverage: "partial",
+      numeric: (actor, context) => {
+        if (context?.key !== "damage" || context.hammersFollowUpTriggered !== true) return null;
+        const attribute = context.followUpAttribute === "talent" ? "talent" : "body";
+        return { operation: "add", amount: Math.ceil(Number(actor.attrs?.[attribute] || 0) / 2), reason: `Мастер боевых искусств: дополнительный урон от эффекта Восьми молотов (${attribute === "talent" ? "Талант" : "Тело"}/2).` };
+      },
+    }),
   ];
   // Action modifiers are pure quotes.  They describe a possible change to a
   // base action; the engine remains the only writer of AP, resources, usage
@@ -450,6 +511,14 @@
       // choice, so this adapter deliberately does not guess.
       modify: (_actor, _context) => null,
     }),
+    actionModifier({
+      id: "powerhouse.berserker.3", techniqueId: "powerhouse.berserker", level: 3,
+      sourceDigest: "f8a2fdd4233866f34b406075d3315b2284daf7f825d8ba9202fa91b643cfc504",
+      label: "Берсерк III: Зарядка после нанесшей Рану Атаки бесплатна",
+      available: actor => knows(actor, "powerhouse.berserker", 3),
+      modify: (_actor, context) => context.actionId === ACTIONS.charge && context.woundChargeReaction === true
+        ? { cost: 0, costMode: "replace", swift: true, reason: "Зарядка после полученной Раны бесплатна и является Реакцией." } : null,
+    }),
   ];
   const adapters = Object.freeze([berserker, flagellant, ...passives, ...eventAdapters]);
   const enabledActionModifiers = actor => actionModifiers.filter(rule => rule.available(actor) && actor?.lionwing?.automation?.[rule.id] === true);
@@ -478,6 +547,10 @@
     if (distinctCosts.length > 1) return { ok: false, reason: `Конфликт замен цены: ${[...replacements.keys()].join(", ")}.` };
     if (distinctCosts.length === 1) quote.cost = distinctCosts[0];
     quote.ignoreRequirements = [...new Set(quote.ignoreRequirements)];
+    const costComposition = numericQuote(actor, { ...context, key: "actionCost", baseValue: quote.cost, roundUp: true });
+    if (costComposition.ok === false) return costComposition;
+    quote.cost = costComposition.value;
+    quote.costQuote = costComposition;
     return { ok: true, ...quote, modifierIds: quote.modifiers.map(item => item.id), reason: quote.reasons.join(" ") };
   };
   const enabled = actor => adapters.filter(rule => rule.available(actor) && actor.lionwing?.automation?.[rule.id] === true);
@@ -516,8 +589,72 @@
   };
   const numericContributions = (actor, method, context) => enabled(actor).flatMap(rule => {
     const amount = Number(method.startsWith("stat") ? rule[method]?.(actor, context.key, context) : rule[method]?.(actor, context) || 0);
-    return Number.isFinite(amount) && amount !== 0 ? [{ id: rule.id, label: rule.label, amount }] : [];
+    return Number.isFinite(amount) && amount !== 0 ? [{ id: rule.id, label: rule.label, amount, sourceDigest: rule.sourceDigest, coverage: rule.coverage, reason: rule.label, operation: method === "statMinimum" ? "min" : "add" }] : [];
   });
+
+  // One deterministic, read-only composition contract for every numeric
+  // value exposed to the automation layer. Legacy stat/range/roll hooks are
+  // projected into this contract, so consumers never need a second pipeline.
+  const NUMERIC_ORDER = Object.freeze({ replace: 10, multiply: 20, add: 30, min: 40, max: 50 });
+  const numericOperation = value => {
+    if (value == null) return [];
+    const list = Array.isArray(value) ? value : [value];
+    return list.flatMap(item => {
+      if (typeof item === "number") return [{ operation: "add", amount: item }];
+      if (!item || typeof item !== "object") return [];
+      const operation = item.operation || item.mode || "add", amount = Number(item.amount ?? item.value);
+      return Object.hasOwn(NUMERIC_ORDER, operation) && Number.isFinite(amount) ? [{ ...item, operation, amount }] : [];
+    });
+  };
+  const composeNumeric = (base, operations = [], context = {}) => {
+    const initial = Number(base);
+    if (!Number.isFinite(initial)) return { ok: false, reason: "Базовое числовое значение некорректно.", value: 0, base: initial, operations: [] };
+    const normalized = operations.flatMap(numericOperation), replacements = normalized.filter(item => item.operation === "replace"), distinct = [...new Set(replacements.map(item => item.amount))];
+    if (distinct.length > 1) return { ok: false, reason: `Конфликт замен числового значения: ${replacements.map(item => item.id || item.reason || "источник").join(", ")}.`, key: context.key || null, value: initial, base: initial, operations: normalized, sources: normalized, reasons: ["Требуется решение Нарратора"] };
+    let value = distinct.length ? distinct[0] : initial;
+    for (const operation of ["multiply", "add", "min", "max"]) for (const item of normalized.filter(row => row.operation === operation)) {
+      if (operation === "multiply") value *= item.amount;
+      else if (operation === "add") value += item.amount;
+      else if (operation === "min") value = Math.max(value, item.amount);
+      else value = Math.min(value, item.amount);
+    }
+    if (context.roundUp === true || normalized.some(item => item.roundUp === true)) value = Math.ceil(value);
+    return { ok: true, key: context.key || null, base: initial, value, effective: value, operations: normalized, order: ["replace", "multiply", "add", "min", "max"] };
+  };
+  const numericKeys = new Set(["maxHp", "hp", "speed", "armor", "evasion", "body", "talent", "spirit", "mind", "attackRange", "targetLimit", "advantage", "hindrance", "attackPool", "damage", "finalDamage", "damageReduction", "actionCost", "resourceCost"]);
+  const numericQuote = (actor, context = {}) => {
+    const key = String(context.key || "value"), base = Number(context.baseValue ?? context.base ?? actor?.[key] ?? 0);
+    if (!Number.isFinite(base)) return { ok: false, reason: "Базовое числовое значение некорректно.", key, value: 0, base, operations: [], sources: [], reasons: [] };
+    const operations = [];
+    for (const rule of enabled(actor)) {
+      const legacy = [];
+      if (["maxHp", "hp", "speed", "armor", "evasion", "body", "talent", "spirit", "mind"].includes(key)) {
+        const amount = Number(rule.statBonus?.(actor, key, { ...context, key }) || 0);
+        const minimum = Number(rule.statMinimum?.(actor, key, { ...context, key }) || 0);
+        if (Number.isFinite(amount) && amount !== 0) legacy.push({ operation: "add", amount, reason: rule.label });
+        if (Number.isFinite(minimum) && minimum !== 0) legacy.push({ operation: "min", amount: minimum, reason: rule.label });
+      }
+      if (["attackRange", "range"].includes(key)) {
+        const amount = Number(rule.rangeBonus?.(actor, context) || 0);
+        if (Number.isFinite(amount) && amount !== 0) legacy.push({ operation: "add", amount, reason: rule.label });
+      }
+      if (["advantage", "attackPool"].includes(key)) {
+        const amount = Number(rule.rollBonus?.(actor, context) || 0);
+        if (Number.isFinite(amount) && amount !== 0) legacy.push({ operation: "add", amount, reason: rule.label });
+      }
+      const custom = numericOperation(rule.numeric?.(actor, { ...context, key }));
+      for (const operation of [...legacy, ...custom]) {
+        if (operation.amount === 0) continue;
+        operations.push({ ...operation, id: rule.id, techniqueId: rule.techniqueId, level: rule.level, label: rule.label, sourceDigest: rule.sourceDigest, coverage: rule.coverage, reason: operation.reason || rule.label });
+      }
+    }
+    const composed = composeNumeric(base, operations, { ...context, key });
+    if (composed.ok === false) return { ...composed, key, operations, sources: operations, reasons: [composed.reason] };
+    const value = composed.value;
+    const sources = operations.map(item => ({ id: item.id, label: item.label, amount: item.amount, operation: item.operation, sourceDigest: item.sourceDigest, coverage: item.coverage, reason: item.reason }));
+    const sourceDigests = [...new Set(sources.map(item => item.sourceDigest).filter(Boolean))];
+    return { ...composed, key, base, value, effective: value, operations, sources, sourceDigest: sourceDigests.length === 1 ? sourceDigests[0] : sourceDigests, sourceDigests, coverage: sources.some(item => item.coverage === "partial") ? "partial" : "full", reasons: sources.map(item => item.reason), reason: sources.map(item => item.reason).join(" ") };
+  };
   global.DAWN_LIONWING_ADAPTERS = Object.freeze({
     list: actor => adapters.filter(rule => rule.available(actor)).map(({ id, label, sourceDigest, coverage }) => ({ id, label, sourceDigest, coverage })),
     replacements: (actor, original) => enabled(actor).flatMap(rule => rule.replacements?.(actor, original) || []),
@@ -531,6 +668,12 @@
     statMinimum: (actor, key, context = {}) => numericContributions(actor, "statMinimum", { ...context, key }).reduce((minimum, item) => Math.max(minimum, item.amount), 0),
     rangeBonuses: (actor, context = {}) => numericContributions(actor, "rangeBonus", context),
     rangeBonus: (actor, context = {}) => numericContributions(actor, "rangeBonus", context).reduce((sum, item) => sum + item.amount, 0),
+    numericQuote,
+    composeNumeric,
+    statQuote: (actor, key, context = {}) => numericQuote(actor, { ...context, key, baseValue: context.baseValue ?? (actor?.attrs?.[key] ?? actor?.[key] ?? 0) }),
+    attackQuote: (actor, context = {}) => numericQuote(actor, { ...context, key: context.key || "attackPool" }),
+    damageQuote: (actor, context = {}) => numericQuote(actor, { ...context, key: context.key || "damage" }),
+    resourceQuote: (actor, context = {}) => numericQuote(actor, { ...context, key: context.key || "resourceCost" }),
     boundaryOperations: (actor, context = {}) => enabled(actor).flatMap(rule => {
       const operations = rule.boundaryOperations?.(actor, context) || [];
       return operations.length ? [{ id: rule.id, label: rule.label, operations }] : [];
