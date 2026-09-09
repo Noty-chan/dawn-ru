@@ -354,6 +354,45 @@
   const scaledMove = (a, amount, scene=null) => Math.ceil(amount * ((scene?effectActive(scene,a,"positive.ускорен"):has(a,"positive.ускорен")) ? 2 : 1) / ((scene?effectActive(scene,a,"negative.замедлен"):has(a,"negative.замедлен")) ? 2 : 1));
   const speed = (a,scene=null) => scaledMove(a, stat(a, "speed"), scene);
   const sceneSpeed = (scene,a) => scene.activeActorId && Number(a.lionwing?.difficultTerrainStopSerial) === Number(scene.turnSerial) ? 0 : (() => { const group=legacy.compoundEnemyStatus(scene,a);return group.active?scaledMove(a,group.speed+(a.lionwing?.modifiers||[]).filter(m=>m.stat==="speed").reduce((sum,m)=>sum+m.amount,0),scene):speed(a,scene); })();
+  const detectiveRuleId = "vagabond.dim-mak.3";
+  const detectiveWeakPointRuleId = "vagabond.dim-mak.1";
+  const detectiveDigest = "8a5ddc5d808d41166abd99dd0c207a6070ebeacf382fe4b0f3275304d7f532dd";
+  const detectiveEnabled = a => Boolean(a?.rulesEdition === "lionwing" && Number((a.knownTechniques ?? a.techniques)?.["vagabond.dim-mak"] || 0) >= 3 && a.lionwing?.automation?.[detectiveRuleId] === true);
+  const detectiveTurnId = scene => scene?.lionwing?.activeTurnInstanceId || null;
+  const detectiveRemovals = (scene, sourceId, targetId, turnId = detectiveTurnId(scene)) => (scene?.log || []).filter(row => row?.type === "marker.remove" && row.actorId === sourceId && row.payload?.ruleId === detectiveWeakPointRuleId && (row.payload?.carrierActorId || row.payload?.targetId) === targetId && (turnId ? (row.execution?.ownerTurnInstanceId || row.payload?.ownerTurnInstanceId) === turnId : Number(row.payload?.turnSerial ?? row.execution?.turnSerial) === Number(scene.turnSerial || 0)));
+  function detectiveMovementStatus(scene, actorId) {
+    const a = actor(scene, actorId);
+    if (!detectiveEnabled(a)) return { available: false, reason: "Детектив III отключён или не изучен", allowance: 0, markers: [] };
+    if (!live(a)) return { available: false, reason: "Участник выведен из боя", allowance: 0, markers: [] };
+    if (scene.activeActorId !== a.id) return { available: false, reason: "Телепортация доступна только в собственный Ход", allowance: 0, markers: [] };
+    const step = actionDef(ids.step), status = actionStatus(scene, a, step, {});
+    if (!status.available) return { available: false, reason: status.reason, allowance: 0, markers: [] };
+    const allowance = Number(status.continuation ? a.stepRemaining : sceneSpeed(scene, a));
+    if (!Number.isSafeInteger(allowance) || allowance < 1) return { available: false, reason: "Нет оставшейся дальности Движения", allowance: Math.max(0, allowance || 0), markers: [] };
+    const markers = (scene.markers || []).filter(marker => {
+      if (marker.ruleId !== detectiveWeakPointRuleId || marker.ownerActorId !== a.id) return false;
+      const hostId = marker.hostActorId || marker.metadata?.hostActorId || marker.metadata?.carrierActorId, host = actor(scene, hostId), offset = marker.offset || marker.metadata?.offset;
+      if (!host || !live(host) || host.team === a.team || !offset || marker.space !== host.space || Number(marker.x) !== Number(host.x) + Number(offset.dx) || Number(marker.y) !== Number(host.y) + Number(offset.dy)) return false;
+      if (marker.space !== a.space || Number(marker.x) === Number(a.x) && Number(marker.y) === Number(a.y)) return false;
+      const distanceAway = Math.abs(Number(marker.x) - Number(a.x)) + Math.abs(Number(marker.y) - Number(a.y));
+      return distanceAway <= allowance;
+    }).map(marker => ({ markerId: marker.id, targetId: marker.hostActorId || marker.metadata?.hostActorId || marker.metadata?.carrierActorId, destination: { space: marker.space, x: Number(marker.x), y: Number(marker.y) }, distance: Math.abs(Number(marker.x) - Number(a.x)) + Math.abs(Number(marker.y) - Number(a.y)) }));
+    return { available: markers.length > 0, reason: markers.length ? "" : "Нет доступной принадлежащей Слабой точки в пределах Движения", allowance, markers, ruleId: detectiveRuleId, sourceDigest: detectiveDigest };
+  }
+  function prepareDetectiveTeleport(scene, request = {}) {
+    try {
+      const status = detectiveMovementStatus(scene, request.actorId);
+      if (!status.available) fail(status.reason);
+      const marker = status.markers.find(item => item.markerId === request.markerId);
+      if (!marker) fail("Слабая точка недоступна для этой телепортации");
+      const runtime = global.DAWN_LIONWING_GEOMETRY_RUNTIME;
+      if (!runtime?.prepare) fail("Планировщик пространства недоступен");
+      const planned = runtime.prepare(scene, { operation: "teleport", sourceActorId: request.actorId, targetId: request.actorId, destination: marker.destination, maximum: status.allowance, ruleId: detectiveRuleId, label: "Детектив III: телепортация к Слабой точке", operationId: request.operationId });
+      if (!planned.ok) fail(planned.errors?.join(" ") || "Телепортация недоступна");
+      const eventId = request.eventId || `detective-teleport:${request.actorId}:${marker.markerId}:${Number(scene.version || 0)}`;
+      return prepare(scene, { kind: "teleport", actorId: request.actorId, targetId: request.actorId, sourceActorId: request.actorId, destination: marker.destination, maximum: status.allowance, ruleId: detectiveRuleId, label: "Детектив III: телепортация к Слабой точке", geometryRuntime: planned.plan, teleportEnter: true, operationId: planned.plan.id, eventId });
+    } catch (error) { return { ok: false, errors: [error.message], code: error.code || "LIONWING_DETECTIVE_BLOCKED" }; }
+  }
   const targetIds = (scene,values=[]) => {const seen=new Set();return [...new Set(values)].filter(id=>{const key=actor(scene,id)?.compoundId||id;if(seen.has(key))return false;seen.add(key);return true;});};
   const unavailable = reason => ({ available: false, reason });
   const auraIdPattern = /^[^\u0000-\u001f\s]{1,180}$/u;
@@ -974,7 +1013,7 @@
       else if (type === "counter.threshold") saveFact("counter.threshold", actorId, targets, { counterId: payload.counterId || payload.id, kind: payload.kind || payload.type, before: payload.before, value: payload.value, threshold: payload.threshold });
       else if (type === "aura.enter" || type === "aura.exit") saveFact(type, actorId, [actorId], { auraId:payload.auraId, effectId:payload.effectId, ruleId:payload.ruleId, ownerActorId:payload.ownerActorId, sourceEntityId:payload.sourceEntityId, movementTargetId:payload.movementTargetId||null, segmentIndex:payload.segmentIndex??null });
       else if (type === "attack.clear" && payload.cancelled) saveFact("cancel", actorId, targets, { reason: payload.reason || "cancelled" });
-      if (scheduleAfterEvent && ["clash.success", "damage.apply", "actor.knockout", "effect.apply", "actor.enter", "action.resolve"].includes(type)) scheduleAfterEvent(row);
+      if (scheduleAfterEvent && ["clash.success", "damage.apply", "actor.knockout", "effect.apply", "actor.enter", "action.resolve", "marker.remove"].includes(type)) scheduleAfterEvent(row);
       return row;
     };
     const emitSpecial = (type, actorId, operation, payload, before, after) => {
@@ -1780,11 +1819,49 @@
         const target = requiredActor(scene, id);
         if (effectActive(scene,target,"positive.исчез") || effectActive(scene,a,"positive.изгнан") !== effectActive(scene,target,"positive.изгнан")) fail("Цель недоступна из-за Эффекта");
       }
-      scene.pendingAction = { id: rootId, actionInstanceId:provenance?.actionInstanceId||rootId, lionwing: true, actorId: a.id, name: p.name || "Атака", targetIds: targets, damage: integer(p.amount, "урон"), repeat: integer(p.repeat ?? 1, "повторы", 30), effects: copy(p.effects || []), finalDamage: Boolean(p.finalDamage), ignoreArmor:p.ignoreArmor===true, ignoreEvasion:p.ignoreEvasion===true, irreducible:p.irreducible===true, responses: Object.fromEntries(targets.map(id => [id, { choice: "pending" }])), sourceActionId: p.actionId || "manual.attack", ...(p.areaPlan ? { areaPlan: copy(p.areaPlan), areaCells: copy(p.areaPlan.result?.cells || []), areaCenter: copy(p.areaPlan.result?.center), emptyTargetCount: Number(p.emptyTargetCount || 0) } : {}), ...(p.__actionPlan ? { actionPlan: copy(p.__actionPlan), actionPlanId: p.__actionPlan.id } : {}), ...(p.__execution ? { execution: copy(p.__execution) } : {}) };
+      scene.pendingAction = { id: rootId, actionInstanceId:p.actionInstanceId || provenance?.actionInstanceId||rootId, lionwing: true, actorId: a.id, name: p.name || "Атака", targetIds: targets, damage: integer(p.amount, "урон"), repeat: integer(p.repeat ?? 1, "повторы", 30), effects: copy(p.effects || []), finalDamage: Boolean(p.finalDamage), ignoreArmor:p.ignoreArmor===true, ignoreEvasion:p.ignoreEvasion===true, irreducible:p.irreducible===true, responses: Object.fromEntries(targets.map(id => [id, { choice: "pending" }])), sourceActionId: p.actionId || "manual.attack", ...(p.areaPlan ? { areaPlan: copy(p.areaPlan), areaCells: copy(p.areaPlan.result?.cells || []), areaCenter: copy(p.areaPlan.result?.center), emptyTargetCount: Number(p.emptyTargetCount || 0) } : {}), ...(p.__actionPlan ? { actionPlan: copy(p.__actionPlan), actionPlanId: p.__actionPlan.id } : {}), ...(p.__execution ? { execution: copy(p.__execution) } : {}) };
       if(p.targetDamage){if(typeof p.targetDamage!=="object"||Array.isArray(p.targetDamage))fail("Некорректный урон по целям");for(const[id,amount]of Object.entries(p.targetDamage)){if(!targets.includes(id))fail("Урон указан для посторонней цели");integer(amount,"урон цели");}scene.pendingAction.targetDamage=copy(p.targetDamage);}
       if (!scene.pendingAction.repeat) fail("Нужно хотя бы одно нанесение урона");
       emit("attack.pending", a.id, scene.pendingAction);
       if(effectActive(scene,a,"negative.порчен"))s.afterAttack=[...(s.afterAttack||[]),{kind:"damage",targetId:a.id,amount:Number(a.tier||1),sourceActorId:a.id,irreducible:true}];
+    };
+    const detectiveFinisherOpen = (p, sourceId) => {
+      const source = requiredActor(scene, sourceId, false), target = requiredActor(scene, p.targetId, false);
+      if (!detectiveEnabled(source) || source.lionwing?.automation?.[detectiveRuleId] !== true || target.team === source.team) fail("Завершение Детектива недоступно");
+      const turnId = s.activeTurnInstanceId || null;
+      if (detectiveRemovals(scene, source.id, target.id, turnId).length !== 3) fail("Требуются ровно три удаления Слабых точек этой цели за текущий Ход");
+      const cells = [[1, 0], [-1, 0], [0, 1], [0, -1]].map(([dx, dy]) => ({ space: target.space, x: Number(target.x) + dx, y: Number(target.y) + dy }));
+      const runtime = global.DAWN_LIONWING_GEOMETRY_RUNTIME;
+      if (!runtime?.prepare) fail("Планировщик пространства недоступен");
+      const choices = {}, labels = {};
+      for (const destination of cells) {
+        const planned = runtime.prepare(scene, { operation: "teleport", sourceActorId: source.id, targetId: source.id, destination, ruleId: detectiveRuleId, label: "Детектив III: телепортация рядом с целью" });
+        if (!planned.ok) continue;
+        const id = `cell:${destination.space}:${destination.x},${destination.y}`;
+        choices[id] = [{ kind: "detective-finisher", sourceActorId: source.id, targetId: target.id, destination, triggerKey: p.triggerKey, ruleId: detectiveRuleId, geometryRuntime: planned.plan }];
+        labels[id] = `Телепортировать в (${destination.x}, ${destination.y}) и выполнить Завершение Разумом`;
+      }
+      const options = ["skip", ...Object.keys(choices)];
+      if (options.length === 1) return;
+      choice(source, "technique-trigger", `Детектив III: телепорт рядом с ${target.name} и бесплатно выполнить Завершение Разумом`, options, { ruleId: detectiveRuleId, triggerKey: p.triggerKey, targetId: target.id, causeEventId: p.causeEventId || rootId, ownerActorId: source.id, optionLabels: { skip: "Не использовать", ...labels }, choices });
+    };
+    const detectiveFreeFinisher = (p, sourceId) => {
+      const source = requiredActor(scene, sourceId, false), target = requiredActor(scene, p.targetId, false);
+      if (!detectiveEnabled(source) || source.lionwing?.automation?.[detectiveRuleId] !== true || target.team === source.team || !p.triggerKey) fail("Завершение Детектива недоступно");
+      if (detectiveRemovals(scene, source.id, target.id, s.activeTurnInstanceId || null).length !== 3) fail("Завершение Детектива требует три удаления за текущий Ход");
+      if (!p.destination || p.destination.space !== target.space || Math.abs(Number(p.destination.x) - Number(target.x)) + Math.abs(Number(p.destination.y) - Number(target.y)) !== 1) fail("Телепортация Завершения должна быть в соседнюю клетку цели");
+      const runtime = global.DAWN_LIONWING_GEOMETRY_RUNTIME;
+      if (!runtime?.prepare) fail("Планировщик пространства недоступен");
+      const planned = runtime.prepare(scene, { operation: "teleport", sourceActorId: source.id, targetId: source.id, destination: p.destination, ruleId: detectiveRuleId, label: "Детектив III: телепортация к цели" });
+      if (!planned.ok) fail(planned.errors?.join(" ") || "Клетка телепортации недоступна");
+      const checked = runtime.commit(scene, planned.plan);
+      for (const saved of checked.after.actors || []) { const current = requiredActor(scene, saved.id, false); current.space = saved.space; current.x = Number(saved.x); current.y = Number(saved.y); }
+      emit("geometry.teleport.commit", source.id, { ...checked.event.payload.summary, operation: "teleport", targetId: source.id, ruleId: detectiveRuleId, free: true });
+      const def = actionDef(ids.finish), rollValue = roll(diceCount(scene, source, def, { attribute: "mind" }), executionOptions.random, { ...provenance, rollId: `${rootId}:detective-finisher:roll`, kind: "check", actionId: ids.finish, actionDefinitionId: ids.finish, ownerActorId: source.id });
+      emit("action.resolve", source.id, { actionId: ids.finish, name: "Завершение Разумом", targetIds: [target.id], actionInstanceId: `${rootId}:detective-finisher`, ownerTurnInstanceId: s.activeTurnInstanceId || null, attribute: "mind", techniqueRuleId: detectiveRuleId, finisherMode: "mind", free: true, fixedTargetId: target.id, triggerKey: p.triggerKey });
+      const result = publishRoll(source, rollValue, "Завершение Разумом (Детектив III)");
+      astate(source).history.push({ actionId: ids.finish, actionDefinitionId: ids.finish, actionInstanceId: `${rootId}:detective-finisher`, targetIds: [target.id], round: scene.round, turnSerial: scene.turnSerial, ownerTurnActorId: source.id, ownerTurnSerial: ownTurnSerial(source), ownerTurnInstanceId: s.activeTurnInstanceId || null, ownerTurnKey: ownerTurnKey(s.sceneSerial, source, ownTurnSerial(source)), swift: false, free: true, ruleId: detectiveRuleId, triggerKey: p.triggerKey });
+      beginAttack(source, { actionId: ids.finish, actionInstanceId: `${rootId}:detective-finisher`, name: "Завершение Разумом", targetIds: [target.id], amount: result.successes + Number(scene.tension || 0), targetDamage: { [target.id]: result.successes + Number(scene.tension || 0) }, attribute: "mind", finisherMode: "mind", techniqueRuleId: detectiveRuleId, finalDamage: false });
     };
     const performAction = (a, p) => {
       const def = actionDef(p.actionId);
@@ -1857,6 +1934,8 @@
     function op(p, sourceId) {
       const a = sourceId ? requiredActor(scene, sourceId, false) : null;
       switch (p.kind) {
+        case "detective-finisher-open": detectiveFinisherOpen(p, sourceId); break;
+        case "detective-finisher": detectiveFreeFinisher(p, sourceId); break;
         case "banish": banishOperation(p, sourceId); break;
         case "vanish": vanishOperation(p, sourceId); break;
         case "compound": compoundOperation(p, sourceId); break;
@@ -1889,7 +1968,7 @@
           const marker = (scene.markers || []).find(item => item.id === p.markerId), hostId = marker && (marker.hostActorId || marker.metadata?.hostActorId || marker.metadata?.carrierActorId);
           if (!marker || marker.ruleId !== p.ruleId || marker.ownerActorId !== sourceId || hostId !== p.targetId) fail("Слабая точка уже отсутствует или принадлежит другой цели");
           scene.markers = (scene.markers || []).filter(item => item.id !== marker.id);
-          emit("marker.remove", sourceId, { markerId: marker.id, ruleId: marker.ruleId, ownerActorId: marker.ownerActorId, carrierActorId: hostId, sourceActionId: p.sourceActionId || "vagabond.dim-mak.1.jab" });
+          emit("marker.remove", sourceId, { markerId: marker.id, ruleId: marker.ruleId, ownerActorId: marker.ownerActorId, carrierActorId: hostId, sourceActionId: p.sourceActionId || "vagabond.dim-mak.1.jab", turnSerial: Number(scene.turnSerial || 0), ownerTurnInstanceId: s.activeTurnInstanceId || null });
           break;
         }
         case "damage": applyDamage({ ...p, sourceActorId: Object.hasOwn(p,"sourceActorId")?p.sourceActorId:sourceId }); break;
@@ -1970,9 +2049,27 @@
           if(checked.plan.operation!==p.kind||checked.plan.sourceActorId!==sourceId||checked.plan.targetId!==(p.targetId||checked.plan.targetId))fail("Пространственный план принадлежит другой операции");
           const target=requiredActor(scene,checked.plan.targetId,false);
           if(p.kind!=="displacement"){
+            if (p.kind === "teleport" && p.ruleId === detectiveRuleId && p.teleportEnter === true) {
+              const stepDef = actionDef(ids.step), stepStatus = actionStatus(scene, target, stepDef, {}), fromPoint = checked.result.from, toPoint = checked.result.stoppedAt;
+              if (!stepStatus.available) fail(stepStatus.reason || "Движение уже недоступно");
+              const travelled = Math.abs(Number(toPoint.x) - Number(fromPoint.x)) + Math.abs(Number(toPoint.y) - Number(fromPoint.y));
+              const available = Number(stepStatus.continuation ? target.stepRemaining : sceneSpeed(scene, target));
+              if (travelled < 1 || travelled > available) fail("Телепортация должна заменить допустимое Движение в его пределах");
+              if (!stepStatus.continuation) {
+                if (stepStatus.cost) spend(target, stepStatus.resource, stepStatus.cost);
+                target.usedActions = [...new Set([...(target.usedActions || []), ids.step])];
+                astate(target).turnActions = [...new Set([...(astate(target).turnActions || []), ids.step])];
+                target.stepRemaining = available;
+                const activeOwner = scene.activeActorId ? actor(scene, scene.activeActorId) : null;
+                astate(target).history.push({ actionId: ids.step, actionDefinitionId: ids.step, actionInstanceId: provenance?.actionInstanceId || rootId, targetIds: [target.id], round: scene.round, turnSerial: scene.turnSerial, ownerTurnActorId: activeOwner?.id || target.id, ownerTurnSerial: activeOwner ? ownTurnSerial(activeOwner) : ownTurnSerial(target), ownerTurnInstanceId: s.activeTurnInstanceId || null, ownerTurnKey: activeOwner ? ownerTurnKey(s.sceneSerial, activeOwner, ownTurnSerial(activeOwner)) : null, swift: Boolean(stepStatus.swift), teleportReplacement: true, ruleId: detectiveRuleId });
+                emit("action.resolve", target.id, { actionId: ids.step, name: stepDef.name, targetIds: [target.id], actionInstanceId: provenance?.actionInstanceId || rootId, ownerTurnInstanceId: s.activeTurnInstanceId || null, teleportReplacement: true, techniqueRuleId: detectiveRuleId });
+              }
+              target.stepRemaining = Math.max(0, available - travelled);
+            }
             const auraBefore=auraSnapshot();
             for(const saved of checked.after.actors||[]){const current=requiredActor(scene,saved.id,false);current.space=saved.space;current.x=Number(saved.x);current.y=Number(saved.y);}
             emit(`geometry.${p.kind}.commit`,sourceId,{...checked.event.payload.summary,operation:p.kind,targetId:target.id});
+            if (p.kind === "teleport" && p.teleportEnter === true) emit("actor.enter", target.id, { x: target.x, y: target.y, space: target.space, segmentId: `${rootId}:teleport-endpoint`, movement: p.label || "Телепортация", teleport: true });
             emitAuraChanges(auraChanges(auraBefore),{spatialOperation:p.kind,movementTargetId:target.id,from:checked.result.from,to:checked.result.stoppedAt});
             break;
           }
@@ -2640,6 +2737,15 @@
         continue;
       }
       if (sharedTypes.has(event.type)) {
+        const structuralMarker = event.type === "marker.remove" ? (next.markers || []).find(item => item.id === event.payload?.markerId) : null;
+        if (event.type === "marker.remove" && structuralMarker?.ownerActorId === event.actorId && structuralMarker.ruleId === event.payload?.ruleId) {
+          const hostId = structuralMarker.hostActorId || structuralMarker.metadata?.hostActorId || structuralMarker.metadata?.carrierActorId;
+          execute(next, { ...event, type: "lionwing.command", payload: { ...event.payload, kind: "marker-remove", sourceActorId: event.actorId, targetId: hostId } }, output, options);
+          next.version = Number(next.version || 0) + 1;
+          state(next).receipts.push({ id: event.id, fingerprint });
+          state(next).receipts = state(next).receipts.slice(-256);
+          continue;
+        }
         // Only structural tools use the old single-event reducer, never its triggers.
         if(event.type==="actor.spawn"){
           const spawned=event.payload.actor,edition=spawned?.rulesEdition||(spawned?.profileId?.startsWith("lionwing.")?"lionwing":"ru-v0.9");
@@ -2698,7 +2804,7 @@
   const api = {
     schema: 2, isScene, prepare, command, dispatchMany, replay, undo, reload, previewEvents, prepareEntityRemoval, cancelEntityRemoval, removeEntity, destroyEntity: removeEntity,
     turnStartStatus, roundEndStatus, turnIdentity,
-    movement, roll, actionStatus, actionDef, speed, maxHealth, balance, canSpend, targetIds, costQuote,
+    movement, roll, actionStatus, actionDef, speed, maxHealth, balance, canSpend, targetIds, costQuote, detectiveMovementStatus, prepareDetectiveTeleport,
     createDiceRoll, createRoll: createDiceRoll, diceCreate: createDiceRoll,
     applyDiceRoll, applyRoll: applyDiceRoll, diceApply: applyDiceRoll,
     reloadDiceRoll, reloadRoll: reloadDiceRoll, diceReload: reloadDiceRoll,
@@ -2708,7 +2814,7 @@
     lifetimeBoundary: foundations.lifetimeBoundary,
     normalizeLifetime: foundations.normalizeLifetime,
     isLifetimeExpired: foundations.lifetimeExpired,
-    operations: ["automation", "plan", "batch", "pause-chain", "resume-chain", "amend-attack", "recover-track", "record-action", "action", "attack", "damage", "spend-health", "lose-health", "heal", "wound", "stress", "knockout", "resource", "correct", "effect", "effect-source", "banish", "vanish", "compound", "aura", "aura-create", "aura-update", "aura-suppress", "aura-restore", "aura-remove", "placement", "teleport", "displacement", "move", "geometry-move", "geometry-segment", "modifier", "allow-action", "grant-turn", "usage", "punish", "invisible", "search", "configure-resource", "dice-create", "dice-apply", "dice-reload", "dice-opposed", "dice-resolve-tie", "counter", "clock", "prompt", "choice", "roll", "reaction", "resolve-attack", "cancel-attack", "turn-start", "turn-end", "round-end", "scene-reset", "chapter-start", "tension", "note"]
+    operations: ["automation", "plan", "batch", "pause-chain", "resume-chain", "amend-attack", "recover-track", "record-action", "action", "attack", "damage", "spend-health", "lose-health", "heal", "wound", "stress", "knockout", "resource", "correct", "effect", "effect-source", "banish", "vanish", "compound", "aura", "aura-create", "aura-update", "aura-suppress", "aura-restore", "aura-remove", "placement", "teleport", "displacement", "move", "geometry-move", "geometry-segment", "modifier", "allow-action", "grant-turn", "usage", "punish", "invisible", "search", "configure-resource", "dice-create", "dice-apply", "dice-reload", "dice-opposed", "dice-resolve-tie", "counter", "clock", "prompt", "choice", "roll", "reaction", "resolve-attack", "cancel-attack", "turn-start", "turn-end", "round-end", "scene-reset", "chapter-start", "tension", "note", "marker-remove"]
   };
   global.DAWN_LIONWING_ENGINE = api;
   const routed = global.DAWN_SCENE_ENGINE;

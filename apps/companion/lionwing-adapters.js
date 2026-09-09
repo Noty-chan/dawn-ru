@@ -52,7 +52,7 @@
       choices: (actor, event, context) => {
         const marker = (context.scene?.markers || []).find(item => item.ruleId === "vagabond.dim-mak.1" && item.ownerActorId === actor.id && item.space === actor.space && Number(item.x) === Number(actor.x) && Number(item.y) === Number(actor.y)), targetId = marker && (marker.hostActorId || marker.metadata?.hostActorId || marker.metadata?.carrierActorId);
         const target = targetId && (context.scene?.actors || []).find(item => item.id === targetId);
-        return marker && target && !target.knockedOut ? [{ id: "jab", label: `Удалить точку и Джеб (${target.name})`, operations: [{ kind: "marker-remove", markerId: marker.id, targetId, sourceActorId: actor.id, ruleId: "vagabond.dim-mak.1", sourceActionId: "vagabond.dim-mak.1.jab" }, { kind: "damage", targetId, sourceActorId: actor.id, amount: Math.floor(Number(actor.attrs?.mind || 0) / 2), fixedTargetId: targetId, fixedDamage: true, finalDamage: true, attack: true, ignoreEvasion: true, sourceActionId: "vagabond.dim-mak.1.jab" }], context: { targetId, markerId: marker.id, eventId: event.id } }] : [];
+        return marker && target && !target.knockedOut ? [{ id: "jab", label: `Удалить точку и Джеб (${target.name})`, operations: [{ kind: "marker-remove", markerId: marker.id, targetId, sourceActorId: actor.id, ruleId: "vagabond.dim-mak.1", sourceActionId: "vagabond.dim-mak.1.jab" }, { kind: "damage", targetId, sourceActorId: actor.id, amount: Math.ceil(Number(actor.attrs?.mind || 0) / 2), fixedTargetId: targetId, fixedDamage: true, finalDamage: true, attack: true, ignoreEvasion: true, sourceActionId: "vagabond.dim-mak.1.jab" }], context: { targetId, markerId: marker.id, eventId: event.id } }] : [];
       },
     }),
     eventTrigger({
@@ -129,6 +129,24 @@
       triggerKey: ({ actor, event }) => `${event.id}:${actor.id}:dim-mak-2`,
       operations: (actor, _event, context) => (context.scene?.actors || []).filter(target => target.team !== actor.team && !target.knockedOut && hasEffect(context.scene, target, "negative.помечен")).map(target => ({ kind: "effect", targetId: target.id, effect: "negative.замедлен", sourceActionId: "vagabond.dim-mak.2", techniqueRuleId: "vagabond.dim-mak.2" })),
       choices: () => [],
+    }),
+    eventTrigger({
+      id: "vagabond.dim-mak.3",
+      label: "Детектив III: после трёх удалений Слабых точек — телепорт и Завершение Разумом",
+      sourceDigest: "8a5ddc5d808d41166abd99dd0c207a6070ebeacf382fe4b0f3275304d7f532dd",
+      coverage: "partial",
+      triggerKey: ({ actor, event, context }) => `${actor.id}:${event.payload?.carrierActorId || event.payload?.targetId || ""}:${context.ownerTurnKey || event.execution?.ownerTurnInstanceId || event.id}:dim-mak-3`,
+      operations: () => [],
+      choices: (actor, event, context) => {
+        const targetId = event.payload?.carrierActorId || event.payload?.targetId;
+        const target = targetId && (context.scene?.actors || []).find(item => item.id === targetId);
+        if (!target || target.knockedOut || target.team === actor.team) return [];
+        const rows = (context.scene?.log || []).filter(item => item.type === "marker.remove" && item.actorId === actor.id && (item.payload?.carrierActorId || item.payload?.targetId) === target.id && item.payload?.ruleId === "vagabond.dim-mak.1");
+        const turnId = event.execution?.ownerTurnInstanceId || context.ownerTurnInstanceId || context.scene?.lionwing?.activeTurnInstanceId || null;
+        const inTurn = rows.filter(item => turnId ? (item.execution?.ownerTurnInstanceId || item.payload?.ownerTurnInstanceId) === turnId : Number(item.payload?.turnSerial ?? item.execution?.turnSerial) === Number(context.scene?.turnSerial));
+        if (inTurn.length !== 3) return [];
+        return [{ id: "finisher", label: `Телепорт рядом с ${target.name} и бесплатное Завершение Разумом`, operations: [{ kind: "detective-finisher-open", targetId: target.id, triggerKey: `${actor.id}:${target.id}:${turnId || context.scene?.turnSerial}:dim-mak-3`, sourceActorId: actor.id, ruleId: "vagabond.dim-mak.3" }], context: { targetId: target.id, causeEventId: event.id } }];
+      },
     }),
   ];
 
@@ -319,7 +337,7 @@
       modify: (actor, context) => {
         if (context.actionId !== ACTIONS.study || !Array.isArray(context.targetIds) || context.targetIds.length !== 1) return null;
         const serial = Number(context.scene?.turnSerial), instance = context.scene?.lionwing?.activeTurnInstanceId || null;
-        const studies = eventHistory(actor, context.scene).filter(item => item.actionId === ACTIONS.study && (instance && item.ownerTurnInstanceId === instance || Number(item.turnSerial) === serial));
+        const studies = eventHistory(actor, context.scene).filter(item => item.actionId === ACTIONS.study && (instance && item.ownerTurnInstanceId === instance || !instance && Number(item.turnSerial) === serial));
         return studies.length >= 2 ? { cost: 0, costMode: "replace", reason: "Третье Изучение бесплатно." } : null;
       },
     }),
@@ -454,8 +472,15 @@
         const marker = (context.scene?.markers || []).find(item => item.ruleId === "vagabond.dim-mak.1" && item.ownerActorId === actor.id && item.space === actor.space && Number(item.x) === Number(actor.x) && Number(item.y) === Number(actor.y));
         match = event.type === "actor.enter" && event.actorId === actor.id && Boolean(marker);
       } else if (rule.id === "vagabond.dim-mak.2") {
-        const studies = eventHistory(actor, context.scene).filter(item => item.actionId === ACTIONS.study && Number(item.turnSerial) === Number(context.scene?.turnSerial));
+        const instance = context.scene?.lionwing?.activeTurnInstanceId || event.execution?.ownerTurnInstanceId || null;
+        const studies = eventHistory(actor, context.scene).filter(item => item.actionId === ACTIONS.study && (instance ? item.ownerTurnInstanceId === instance : Number(item.turnSerial) === Number(context.scene?.turnSerial)));
         match = event.type === "action.resolve" && event.payload?.actionId === ACTIONS.study && event.actorId === actor.id && studies.length === 3;
+      } else if (rule.id === "vagabond.dim-mak.3") {
+        if (event.type !== "marker.remove" || event.payload?.ruleId !== "vagabond.dim-mak.1" || event.actorId !== actor.id) return [];
+        const targetId = event.payload?.carrierActorId || event.payload?.targetId;
+        const turnId = event.execution?.ownerTurnInstanceId || context.ownerTurnInstanceId || context.scene?.lionwing?.activeTurnInstanceId || null;
+        const removals = (context.scene?.log || []).filter(item => item.type === "marker.remove" && item.actorId === actor.id && item.payload?.ruleId === "vagabond.dim-mak.1" && (item.payload?.carrierActorId || item.payload?.targetId) === targetId && (turnId ? (item.execution?.ownerTurnInstanceId || item.payload?.ownerTurnInstanceId) === turnId : Number(item.payload?.turnSerial ?? item.execution?.turnSerial) === Number(context.scene?.turnSerial)));
+        match = removals.length === 3;
       }
       if (!match) return [];
       const triggerKey = typeof rule.triggerKey === "function" ? rule.triggerKey({ actor, event, context }) : `${event.id}:${actor.id}`;

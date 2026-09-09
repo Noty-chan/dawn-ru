@@ -1,0 +1,64 @@
+import assert from "node:assert/strict";
+import fs from "node:fs";
+import vm from "node:vm";
+import { loadSceneEngine } from "./load-scene-engine.mjs";
+
+const context = { console, Date, structuredClone };
+context.globalThis = context; context.window = context;
+for (const file of ["data.js", "edition-lionwing.js", "logic.js"]) vm.runInNewContext(fs.readFileSync(new URL(`../${file}`, import.meta.url), "utf8"), context);
+loadSceneEngine(context);
+const Engine = context.DAWN_LIONWING_ENGINE;
+const hero = { id: "hero", kind: "hero", rulesEdition: "lionwing", name: "Детектив", team: "hero", space: "main", x: 1, y: 1, ap: 3, baseAp: 3, focus: 4, hp: 10, maxHp: 10, speed: 4, armor: 0, evasion: 0, attrs: { body: 2, talent: 2, spirit: 2, mind: 3 }, effects: [], usedActions: [], acted: false, techniques: { "vagabond.dim-mak": 3 }, knownTechniques: { "vagabond.dim-mak": 3 }, lionwing: { automation: { "vagabond.dim-mak.1": true, "vagabond.dim-mak.3": true } } };
+const enemy = { id: "enemy", kind: "enemy", rulesEdition: "lionwing", name: "Цель", team: "enemy", space: "main", x: 4, y: 1, ap: 2, baseAp: 2, focus: 0, hp: 20, maxHp: 20, speed: 3, armor: 0, evasion: 0, attrs: { body: 2, talent: 2, spirit: 1, mind: 1 }, effects: [], usedActions: [], acted: false };
+const base = () => ({ rulesEdition: "lionwing", version: 0, round: 1, turnSerial: 1, activeActorId: "hero", spaces: [{ id: "main", width: 7, height: 7 }], actors: [structuredClone(hero), structuredClone(enemy)], objects: [], walls: [], markers: [], topology: { cuts: [] }, log: [], rollFeed: [], lionwing: { activeTurnInstanceId: "hero-turn-1" } });
+const marker = (id, x, y) => ({ id, space: "main", x, y, kind: "mark", label: "Слабая точка", ruleId: "vagabond.dim-mak.1", ownerActorId: "hero", hostActorId: "enemy", offset: { dx: x - 4, dy: y - 1 }, metadata: { hostActorId: "enemy", carrierActorId: "enemy", offset: { dx: x - 4, dy: y - 1 } } });
+
+let scene = base();
+scene.markers = [marker("wp-1", 4, 2), marker("wp-2", 3, 1)];
+let status = Engine.detectiveMovementStatus(scene, "hero");
+assert.equal(status.available, true);
+assert.equal(status.allowance, 4);
+assert.equal(status.markers.length, 2);
+assert.equal(Engine.detectiveMovementStatus({ ...scene, actors: scene.actors.map(a => a.id === "hero" ? { ...a, lionwing: { ...a.lionwing, automation: { "vagabond.dim-mak.3": false } } } : a) }, "hero").available, false);
+assert.equal(Engine.detectiveMovementStatus({ ...scene, markers: [marker("foreign", 4, 2)] }, "hero").available, true, "same owner marker remains eligible");
+const prepared = Engine.prepareDetectiveTeleport(scene, { actorId: "hero", markerId: "wp-1" });
+assert.equal(prepared.ok, true);
+scene = Engine.dispatchMany(scene, prepared.events).scene;
+assert.deepEqual([scene.actors[0].x, scene.actors[0].y], [4, 2]);
+assert.equal(scene.actors[0].ap, 2, "teleport consumes the replaced Step");
+assert.equal(scene.actors[0].stepRemaining, 0);
+assert.ok(scene.log.some(row => row.type === "actor.enter" && row.payload.teleport === true));
+
+scene = base();
+scene.markers = [marker("wp-1", 2, 1), marker("wp-2", 3, 1), marker("wp-3", 4, 2)];
+for (const id of ["wp-1", "wp-2", "wp-3"]) scene = Engine.dispatchMany(scene, [{ type: "marker.remove", actorId: "hero", payload: { markerId: id, ruleId: "vagabond.dim-mak.1" } }]).scene;
+assert.equal(scene.lionwing.choices.length, 1, "third removal opens the optional Detective III choice");
+const trigger = scene.lionwing.choices[0];
+assert.equal(trigger.context.ruleId, "vagabond.dim-mak.3");
+assert.ok(trigger.options.includes("skip"));
+const skipped = Engine.prepare(scene, { kind: "choice", actorId: "hero", id: trigger.id, choice: "skip" });
+assert.equal(skipped.ok, true);
+scene = Engine.dispatchMany(scene, skipped.events).scene;
+assert.equal(scene.pendingAction == null, true);
+
+scene = base();
+scene.markers = [marker("wp-1", 2, 1), marker("wp-2", 3, 1), marker("wp-3", 4, 2)];
+for (const id of ["wp-1", "wp-2", "wp-3"]) scene = Engine.dispatchMany(scene, [{ type: "marker.remove", actorId: "hero", payload: { markerId: id, ruleId: "vagabond.dim-mak.1" } }]).scene;
+const first = scene.lionwing.choices[0];
+const open = Engine.prepare(scene, { kind: "choice", actorId: "hero", id: first.id, choice: first.options.find(value => value !== "skip") });
+assert.equal(open.ok, true, open.errors?.join(" "));
+scene = Engine.dispatchMany(scene, open.events).scene;
+assert.equal(scene.lionwing.choices.length, 1, "adjacent teleport gets an explicit confirm/cancel choice");
+const cellChoice = scene.lionwing.choices[0], cell = cellChoice.options.find(value => value !== "skip");
+const finish = Engine.prepare(scene, { kind: "choice", actorId: "hero", id: cellChoice.id, choice: cell });
+assert.equal(finish.ok, true);
+scene = Engine.dispatchMany(scene, finish.events, { expectedVersion: scene.version }).scene;
+assert.equal(scene.pendingAction?.actorId, "hero");
+assert.equal(scene.pendingAction?.targetIds[0], "enemy");
+assert.equal(scene.pendingAction?.sourceActionId, "action.атаки.завершение");
+assert.equal(scene.pendingAction?.actionInstanceId.endsWith(":detective-finisher"), true);
+assert.equal(scene.actors[0].ap, 3, "free Finisher does not spend AP");
+assert.equal(scene.actors[0].focus, 4, "free Finisher does not spend Focus");
+assert.equal(scene.log.filter(row => row.type === "action.resolve" && row.payload?.techniqueRuleId === "vagabond.dim-mak.3").length, 1);
+
+console.log("Detective III QA passed");
