@@ -6,9 +6,9 @@
 (function (global) {
   const lionwing = actor => actor?.rulesEdition === "lionwing";
   const knows = (actor, techniqueId, level) => lionwing(actor) && Number((actor.knownTechniques ?? actor.techniques)?.[techniqueId] || 0) >= level;
-  const passive = ({ id, label, sourceDigest, rollBonus, statBonus, statMinimum, boundaryOperations, resourceGainStatus, actionStatus, maximumLevel = null, coverage = "full" }) => {
+  const passive = ({ id, label, sourceDigest, rollBonus, statBonus, statMinimum, rangeBonus, boundaryOperations, resourceGainStatus, actionStatus, maximumLevel = null, coverage = "full" }) => {
     const techniqueId = id.replace(/\.\d+$/, ""), level = Number(id.match(/\.(\d+)$/)?.[1] || 0);
-    return Object.freeze({ id, techniqueId, level, label, sourceDigest, coverage, available: actor => knows(actor, techniqueId, level) && (maximumLevel == null || Number((actor.knownTechniques ?? actor.techniques)?.[techniqueId] || 0) <= maximumLevel), rollBonus, statBonus, statMinimum, boundaryOperations, resourceGainStatus, actionStatus });
+    return Object.freeze({ id, techniqueId, level, label, sourceDigest, coverage, available: actor => knows(actor, techniqueId, level) && (maximumLevel == null || Number((actor.knownTechniques ?? actor.techniques)?.[techniqueId] || 0) <= maximumLevel), rollBonus, statBonus, statMinimum, rangeBonus, boundaryOperations, resourceGainStatus, actionStatus });
   };
   const actionBonus = (actionId, amount = 1) => (_actor, context) => context?.kind === "attack" && context.actionId === actionId ? amount : 0;
   const attackIds = new Set(["action.атаки.заклинание", "action.атаки.завершение", "action.атаки.стычка"]);
@@ -62,6 +62,13 @@
       statBonus: (actor, key) => key === "armor" ? Math.ceil(Number(actor.attrs?.body || 0) / 2) : 0,
     }),
     passive({
+      id: "powerhouse.monastic-sage.1",
+      label: "Монах-воин I: +2 Брони, пока Усилен",
+      sourceDigest: "f1ff824c2299d7184c07c4bf6a212d3a2f8c40a914d18948ed0c1987059480cc",
+      coverage: "partial",
+      statBonus: (actor, key, context) => key === "armor" && (context?.activeEffectIds || actor.effects || []).includes("positive.усилен") ? 2 : 0,
+    }),
+    passive({
       id: "bulwark.iron-bodied.1",
       label: "Железное тело I: Скорость не ниже 3 (пассивная часть)",
       sourceDigest: "67e59b6badf638975b3e95d0a570a6bd6c759fd49b4f632cd31791d28a7bfad7",
@@ -104,6 +111,50 @@
     passive({ id: "vagabond.skirmisher.3", label: "Застрельщик III: +1 Преимущество к Стычкам (пассивная часть)", sourceDigest: "4933347df61d45014a553af1c97f078e20ee677081e433464ba9c96726513c61", coverage: "partial", rollBonus: actionBonus("action.атаки.стычка") }),
     passive({ id: "vagabond.knife-juggler.2", label: "Жонглёр ножами II: +1 Преимущество к Стычкам (пассивная часть)", sourceDigest: "4da1a911cf7ed1eb5a90e3c4aed8abbb87087a567f7ab38406c11d1130c6c54a", coverage: "partial", rollBonus: actionBonus("action.атаки.стычка") }),
     passive({ id: "vagabond.assassin.2", label: "Убийца II: +[Ранг] Преимущества к Атакам из Исчезновения (пассивная часть)", sourceDigest: "6e95fe2767088e069f995f384a6e03856f26d428161dbd57efca1c03a5eda98f", coverage: "partial", rollBonus: (actor, context) => context?.kind === "attack" && attackIds.has(context.actionId) && context.sourceEffectIds?.includes("positive.исчез") ? Number(actor.tier || 1) : 0 }),
+    passive({
+      id: "vagabond.acrobat.1",
+      label: "Акробат I: Преимущество Стычки за клетки этого Прыжка (пассивная часть)",
+      sourceDigest: "c32ea3ffcffce0dad6125825610e62362b8a123a707aefbd6e5198a4e4aa80ae",
+      coverage: "partial",
+      rollBonus: (actor, context) => context?.kind === "attack" && context.actionId === "action.атаки.стычка" && context.targetIds?.length === 1 && Number(context.targetDistance) === 1 && Number.isFinite(Number(context.jumpDistance)) ? Math.min(Number(actor.attrs?.talent || 0), Math.max(0, Number(context.jumpDistance))) : 0,
+    }),
+    passive({
+      id: "ruiner.rapid-fire-sorcery.3",
+      label: "Искоренитель III: Преимущество Заклинания после Rapid Fire (пассивная часть)",
+      sourceDigest: "0462eaa7973d62275213d8721669cbbdd741d05c772b0b87ded9557e7ad58a0b",
+      coverage: "partial",
+      rollBonus: (actor, context) => {
+        if (context?.kind !== "attack" || context.actionId !== "action.атаки.заклинание" || context.rapidFire !== true) return 0;
+        const nearbyEnemies = Number(context.differentEnemiesWithinFive ?? 0);
+        return Number.isSafeInteger(nearbyEnemies) && nearbyEnemies >= 0 ? nearbyEnemies + Math.max(0, Number(context.tension || 0)) : 0;
+      },
+    }),
+    passive({
+      id: "ruiner.bombardier.2",
+      label: "Бомбардир II: Преимущество Духовного Завершения за пустые клетки (пассивная часть)",
+      sourceDigest: "46784c9f35cd64891f6ba70dc0d5a14ddf7f15aaab733ca1dbd3e6b3c60697c5",
+      coverage: "partial",
+      rollBonus: (actor, context) => {
+        if (context?.kind !== "attack" || context.actionId !== "action.атаки.завершение" || context.attribute !== "spirit" || context.techniqueRuleId !== "ruiner.bombardier.2" || Number(context.focusSpent || 0) < 2) return 0;
+        const empty = Number(context.emptyTargetCount);
+        return Number.isSafeInteger(empty) && empty >= 0 ? Math.min(empty, Number(actor.tier || 1) + 2) : 0;
+      },
+    }),
+    passive({
+      id: "ruiner.ritualist.2",
+      label: "Ритуалист II: +Напряжение и +3 дальности первому Духовному Завершению в круге (пассивная часть)",
+      sourceDigest: "63d521cc5b39ef4ed246eb5330c236374e010d8e1cd066ee83c92b770211905a",
+      coverage: "partial",
+      rollBonus: (_actor, context) => context?.kind === "attack" && context.actionId === "action.атаки.завершение" && context.attribute === "spirit" && context.spellCircleActive === true && context.firstSpiritFinisherThisTurn === true ? Math.max(0, Number(context.tension || 0)) : 0,
+      rangeBonus: (_actor, context) => context?.actionId === "action.атаки.завершение" && context.attribute === "spirit" && context.spellCircleActive === true && context.firstSpiritFinisherThisTurn === true ? 3 : 0,
+    }),
+    passive({
+      id: "vagabond.enchained.3",
+      label: "Скованный III: Преимущество Стычки после движения от связанного Заклинания (пассивная часть)",
+      sourceDigest: "d64f6084e498993783640f7d7b09dad64d000a3cfeb26b7744524b23336a1b10",
+      coverage: "partial",
+      rollBonus: (actor, context) => context?.kind === "attack" && context.actionId === "action.атаки.стычка" && context.enchainedCastMoveAdjacent === true ? Number(actor.tier || 1) * 2 : 0,
+    }),
   ];
   const adapters = Object.freeze([berserker, flagellant, ...passives]);
   const enabled = actor => adapters.filter(rule => rule.available(actor) && actor.lionwing?.automation?.[rule.id] === true);
@@ -121,6 +172,8 @@
     statBonus: (actor, key, context = {}) => numericContributions(actor, "statBonus", { ...context, key }).reduce((sum, item) => sum + item.amount, 0),
     statMinimums: (actor, key, context = {}) => numericContributions(actor, "statMinimum", { ...context, key }),
     statMinimum: (actor, key, context = {}) => numericContributions(actor, "statMinimum", { ...context, key }).reduce((minimum, item) => Math.max(minimum, item.amount), 0),
+    rangeBonuses: (actor, context = {}) => numericContributions(actor, "rangeBonus", context),
+    rangeBonus: (actor, context = {}) => numericContributions(actor, "rangeBonus", context).reduce((sum, item) => sum + item.amount, 0),
     boundaryOperations: (actor, context = {}) => enabled(actor).flatMap(rule => {
       const operations = rule.boundaryOperations?.(actor, context) || [];
       return operations.length ? [{ id: rule.id, label: rule.label, operations }] : [];
