@@ -314,11 +314,12 @@ function commitTechniquePreview(prepared){
     renderScene();
     if(sent)toast(`Техника «${prepared.rule.name}» отправлена за стол`);
     if(prepared.warnings?.length)toast(prepared.warnings.join(" "));
-    return;
+    return Boolean(sent);
   }
   const events=TechniqueEngine.toEvents(Scene,prepared);
-  commitSceneEvents(prepared.rule.name,events);
+  const committed=commitSceneEvents(prepared.rule.name,events);
   if(prepared.warnings?.length)toast(prepared.warnings.join(" "));
+  return Boolean(committed);
 }
 function startTechnique(ruleId,options={}){
   const rule=TechniqueEngine.RULES.find(item=>item.id===ruleId),actor=currentHeroActor();if(!rule||!actor)return;
