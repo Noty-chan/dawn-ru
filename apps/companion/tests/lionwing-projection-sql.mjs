@@ -18,6 +18,7 @@ try {
     lionwing:{schema:1,history:[{details:{secret:"ledger"}}],receipts:[{fingerprint:"secret"}],deferred:[{secret:"tail"}],afterAttack:[{}],executionCursor:{secret:"cursor"},
       entities:{publicMarker:{visibility:"public",backing:{markerId:"visible-marker"}},hidden:{visibility:"hidden",backing:{actorId:"hidden"}}},actionPlans:[{id:"public-plan"}],turnFrames:[{id:"visible-frame"}],
       choices:[{id:"public",actorId:"hero",context:{}},{id:"hidden-choice",actorId:"hero",context:{duelId:"hidden-duel"}}],
+      information:{schema:1,studies:[{id:"study-public",actorId:"hero",targetId:"hero",visibility:"public",status:"resolved",actionInstanceId:"secret-action"},{id:"study-hidden",actorId:"hidden",targetId:"hero",visibility:"public",status:"resolved"}],facts:[{id:"fact-public",studyId:"study-public",actorId:"hero",targetId:"hero",category:"health",visibility:"public",value:{current:4,maximum:10},fingerprint:"secret",sourceDigest:"secret"},{id:"fact-private",studyId:"study-public",actorId:"hero",targetId:"hero",category:"defense",visibility:"player",value:99}],handouts:[{id:"handout-public",targetId:"hero",category:"custom",visibility:"public",value:"shown",fingerprint:"secret"}],receipts:[{id:"private-receipt",fingerprint:"secret"}],journal:[{id:"private-journal"}],warnings:[{id:"private-warning"}],pending:["study-public"]},
       duels:[{id:"hidden-duel",actorId:"hero",targetId:"hidden"}],opportunities:[{actorId:"hero",targetId:"hidden"}]},
     pendingAction:{actorId:"hero",targetIds:["hero","hidden"],targetDamage:{hero:2,hidden:7},responses:{hero:{choice:"take"},hidden:{choice:"pending"}}},
     log:[{id:"visible",actorId:"hero"},{actorId:"hidden",payload:{name:"secret NPC"}},{visibility:"gm",payload:{note:"secret"}}]};
@@ -31,6 +32,12 @@ try {
   assert.deepEqual(state.actors.map(a=>a.id),["hero"]);assert.equal(state.actors[0].attrs,undefined);
   assert.deepEqual(state.lionwing.choices.map(c=>c.id),["public"]);
   assert.deepEqual(state.lionwing.duels,[]);assert.deepEqual(state.lionwing.opportunities,[]);
+  assert.deepEqual(state.lionwing.information.studies.map(item=>item.id),["study-public"]);
+  assert.deepEqual(state.lionwing.information.facts.map(item=>item.id),["fact-public"]);
+  assert.deepEqual(state.lionwing.information.handouts.map(item=>item.id),["handout-public"]);
+  assert.equal(Object.hasOwn(state.lionwing.information,"receipts"),false);
+  assert.equal(Object.hasOwn(state.lionwing.information,"journal"),false);
+  assert.equal(Object.hasOwn(state.lionwing.information,"warnings"),false);
   assert.deepEqual(state.pendingAction.targetDamage,{hero:2});assert.deepEqual(state.log.map(row=>row.id),["visible"]);
   const legacy=await project({...source,rulesEdition:"legacy",lionwing:undefined});
   assert.equal(legacy.rulesEdition,"legacy");assert.equal(legacy.lionwing,null);

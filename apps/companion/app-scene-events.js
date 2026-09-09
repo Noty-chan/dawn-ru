@@ -343,3 +343,24 @@ $("scene-art-upload").addEventListener("change",async event=>{try{if(Scene.artwo
 $("scene-board").addEventListener("click",event=>{const cell=event.target.closest("[data-scene-cell]"),mode=pendingCoreActionContext?.context?.masterFinisherMode;if(!cell||!mode||!pendingCoreAction)return;event.stopImmediatePropagation();const[x,y]=cell.dataset.sceneCell.split(",").map(Number);prepareCoreAction(pendingCoreAction,{masterFinisherReady:true,masterFinisherAnchor:mode==="blade"?null:{x,y},armamentDestination:mode==="blade"?{x,y}:null});},{capture:true});
 $("scene-board").addEventListener("click",event=>{const cell=event.target.closest("[data-scene-cell]");if(!cell||!pendingTechniqueRule||pendingTechniqueRule.kind!=="area")return;event.stopImmediatePropagation();const[x,y]=cell.dataset.sceneCell.split(",").map(Number);const prepared=techniquePreview(pendingTechniqueRule,{x,y});if(!prepared.ok)return toast(prepared.errors.join(" "));pendingTechniqueAnchor={x,y};scenePreviewCells=new Set(prepared.affectedCells||[]);renderScene();toast("Центр области выбран: проверьте подсветку и подтвердите или отмените.");},{capture:true});
 $("scene-board").addEventListener("mouseover",event=>{const cell=event.target.closest("[data-scene-cell]"),mode=pendingCoreActionContext?.context?.masterFinisherMode,actor=currentHeroActor();if(!cell||!mode||!pendingCoreAction||!actor)return;const[x,y]=cell.dataset.sceneCell.split(",").map(Number),cells=[];if(mode==="blade"){const path=SceneEngine.movementPath(Scene,actor.id,{x,y},{maxDistance:2,ignoreEnemies:true});cells.push(...path.map(point=>`${point.x},${point.y}`));}else if(mode==="polearm"){const dx=Math.sign(x-Number(actor.x)),dy=Math.sign(y-Number(actor.y));if(Math.abs(x-Number(actor.x))<=1&&Math.abs(y-Number(actor.y))<=1&&(dx||dy)){cells.push(`${x},${y}`,`${x+dx},${y+dy}`)}}else cells.push(`${x},${y}`);scenePreviewCells=new Set(cells);$$('[data-scene-cell]').forEach(item=>item.classList.toggle('preview',scenePreviewCells.has(item.dataset.sceneCell)));},{capture:true});
+document.addEventListener("click", event => {
+  const reveal = event.target.closest("[data-information-reveal]"), cancel = event.target.closest("[data-information-cancel]");
+  if (!reveal && !cancel) return;
+  event.preventDefault();
+  event.stopImmediatePropagation();
+  if (activeSceneView() !== "gm") return toast("Решение раскрытия доступно Нарратору");
+  const query = window.DAWN_LIONWING_INFORMATION_QUERY;
+  if (!query) return toast("Контракт Изучения недоступен");
+  const studyId = (reveal || cancel).dataset.informationReveal || (reveal || cancel).dataset.informationCancel;
+  const category = reveal?.dataset.informationCategory;
+  let value;
+  if (reveal && category !== "health") {
+    value = window.prompt("Введите раскрываемую информацию для выбранной категории:");
+    if (value === null) return;
+  }
+  const committed = commitScene(cancel ? "Изучение отменено Нарратором" : "Нарратор раскрыл сведения", scene => {
+    const response = cancel ? query.cancelReveal(scene, { studyId }, { role: "narrator" }) : query.confirmReveal(scene, { studyId, category, value }, { role: "narrator" });
+    if (!response?.ok) throw new Error(response?.errors?.join(" ") || "Решение информации отклонено");
+  });
+  if (committed) toast(cancel ? "Ожидающее Изучение отменено" : "Сведения раскрыты");
+}, true);
