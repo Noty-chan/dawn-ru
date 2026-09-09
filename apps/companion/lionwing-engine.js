@@ -507,6 +507,9 @@
     if (continuation) return { available: true, reason: "", cost: 0, resource: "ap", continuation: true };
     const used = isPlayer(a) ? (a.usedActions || []) : (a.lionwing?.turnActions || []);
     if (!swift && used.includes(def.id)) return unavailable("Действие уже использовано");
+    const requestedAttribute=request.attribute||(def.id===ids.finish?"spirit":null);
+    const adapterStatus=global.DAWN_LIONWING_ADAPTERS?.actionStatus?.(a,{scene,actionId:def.id,attribute:requestedAttribute,techniqueTags:(request.techniqueTags||[]).map(tag=>String(tag).toLowerCase())})||{allowed:true};
+    if(adapterStatus.allowed===false)return unavailable(adapterStatus.reason||"Действие запрещено Техникой");
     const cost = breakout ? 0 : allowance?.cost??(def.id === "action.атаки.дуэль" ? Math.max(1, 4 - Number(scene.tension || 0)) : def.id===ids.improvise&&request.removeObstacleId?1:def.cost.amount);
     if (!canSpend(a,def.cost.resource,cost)) return unavailable(`Недостаточно ${def.cost.resource === "ap" ? "ОД" : "ресурса"}: нужно ${cost}`);
     if (def.id === ids.disappear) {
@@ -1228,8 +1231,10 @@
       else fail("Ресурс не настроен");
       emit("resource.spend", a.id, { requestedResource, resource, amount });
     };
-    const gain = (a, requestedResource, amount) => {
+    const gain = (a, requestedResource, amount, gainContext = {}) => {
       integer(amount,"получение ресурса");
+      const gainStatus=global.DAWN_LIONWING_ADAPTERS?.resourceGainStatus?.(a,{scene,requestedResource,amount,actionId:gainContext.actionId||provenance?.actionId||null})||{allowed:true};
+      if(gainStatus.allowed===false){emit("resource.gain.prevented",a.id,{requestedResource,amount,reason:gainStatus.reason||"Получение запрещено Техникой"});return;}
       const resource=resourceKey(a,requestedResource),before=balance(a,resource);
       if(!spendable.has(resource)&&!Object.hasOwn(a.ruleResources||{},resource))fail("Сначала настройте ресурс");
       if(requestedResource==="focus"&&a.ruleResources?.[resource]?.inverted){a.ruleResources[resource].value=Math.max(0,before-amount);emit("resource.spend",a.id,{resource,amount:Math.min(before,amount),requestedAmount:amount,inverted:true});return;}
@@ -1369,7 +1374,7 @@
         for(const id of p.spikeTargetIds||[])if(targets.some(t=>t.id===id)&&effectActive(scene,actor(scene,id),"negative.подброшен"))removeEffect(actor(scene,id),"negative.подброшен");
       }
       if ([ids.spell, ids.skirmish, ids.finish].includes(def.id)) beginAttack(a, { ...p, name: def.name, amount: result.successes + (def.id === ids.finish ? Number(scene.tension || 0) : 0) });
-      else if (def.id === ids.charge || def.id === ids.breathe) { const amount = def.id === ids.charge ? Math.max(2, result.successes) : 1; gain(a,"focus",amount); }
+      else if (def.id === ids.charge || def.id === ids.breathe) { const amount = def.id === ids.charge ? Math.max(2, result.successes) : 1; gain(a,"focus",amount,{actionId:def.id}); }
       else if (def.id === ids.step) { if (!status.continuation) a.stepRemaining = sceneSpeed(scene,a); if (p.destination) {const moved=move(a, { destination: p.destination, maximum: a.stepRemaining });if(Number(astate(a).difficultTerrainStopSerial)!==Number(scene.turnSerial))a.stepRemaining-=moved.cost;} }
       else if (def.id === ids.jump) move(a, { destination: p.destination, maximum: scaledMove(a, Number(a.attrs.talent || 0),scene), line: true, ignoreOpponents: true, ignoreDifficultTerrain:true });
       else if (def.id === ids.shove) move(targets[0], { destination: p.destination, maximum: 1, forced: true });
@@ -1449,7 +1454,7 @@
         case "resource": {
           const target = requiredActor(scene, p.targetId || sourceId, false), amount = integer(p.amount, "ресурс");
           if (p.operation === "spend") spend(target, p.resource, amount);
-          else if(p.operation === "gain")gain(target,p.resource,amount);
+          else if(p.operation === "gain")gain(target,p.resource,amount,{actionId:p.actionId});
           else fail("Неизвестная операция ресурса");
           break;
         }
@@ -1890,6 +1895,7 @@
           const status = roundEndStatus(scene); if (!status.available) fail(status.reason);
           phase("roundEnd", null); scene.round++; scene.tension++; s.lastTeam = null; s.breakout = null;
           for (const other of scene.actors) { other.acted = other.kind === "crowd"; other.usedActions = []; other.ap = 0; other.stepRemaining = 0; }
+          scheduleBoundary("roundStart", null);
           emit("round.end", null); break;
         }
         case "scene-reset": {

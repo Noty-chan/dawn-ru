@@ -16,6 +16,12 @@ const ids = engine.ACTION_IDS;
 const copy = value => JSON.parse(JSON.stringify(value));
 
 const passiveRules = [
+  "altruist.heavenly-saint.1",
+  "powerhouse.gunslinger.1",
+  "vagabond.knife-juggler.1",
+  "ruiner.creation-ascetic.1",
+  "bulwark.mundane.1",
+  "ruiner.spellcrafter.1",
   "bulwark.absolute-bastard.1",
   "disruptor.siren.1",
   "ruiner.spellcrafter.2",
@@ -87,11 +93,12 @@ const sourceDigest = ruleId => {
   return crypto.createHash("sha256").update(JSON.stringify({ id: ruleId, archetypeId: technique.archetypeId, techniqueId: technique.id, name: level.name, text: level.text, notes: technique.notes, source: technique.source })).digest("hex");
 };
 const catalogActor = actor("catalog", "hero", 1, { knownTechniques });
-const catalog = adapters.list(catalogActor).filter(rule => passiveRules.includes(rule.id));
+const catalog = [...adapters.list(catalogActor), ...adapters.list(actor("spell-one", "hero", 1, { knownTechniques: { "ruiner.spellcrafter": 1 } }))]
+  .filter((rule, index, all) => passiveRules.includes(rule.id) && all.findIndex(candidate => candidate.id === rule.id) === index);
 assert.deepEqual(copy(catalog.map(rule => rule.id).sort()), [...passiveRules].sort());
 for (const rule of catalog) {
   assert.equal(rule.sourceDigest, sourceDigest(rule.id), `${rule.id} keeps its canonical source identity`);
-  assert.equal(rule.coverage, ["bulwark.iron-bodied.2", "bulwark.rising-challenger.3", "bulwark.absolute-bastard.3", "altruist.empath.3"].includes(rule.id) ? "full" : "partial", `${rule.id} declares its actual scope`);
+  assert.equal(rule.coverage, ["bulwark.iron-bodied.2", "bulwark.rising-challenger.3", "bulwark.absolute-bastard.3", "altruist.empath.3", "bulwark.mundane.1"].includes(rule.id) ? "full" : "partial", `${rule.id} declares its actual scope`);
 }
 
 // No rule applies until the narrator has explicitly enabled it.  Plural
@@ -100,7 +107,7 @@ let scene = fixture({ knownTechniques });
 let hero = scene.actors[0];
 assert.equal(adapters.rollBonus(hero, { scene, kind: "attack", actionId: ids.skirmish, targetId: "e" }), 0);
 assert.equal(adapters.statBonus(hero, "armor", { scene }), 0);
-scene = enableAll(scene, passiveRules);
+scene = enableAll(scene, passiveRules.filter(id => id !== "ruiner.spellcrafter.1"));
 hero = scene.actors[0];
 assert.deepEqual(copy(adapters.rollBonuses(hero, { scene, kind: "attack", actionId: ids.skirmish, targetId: "e" }).map(item => item.id).sort()), [...skirmishRules, "powerhouse.martial-artist.3"].sort());
 assert.equal(adapters.rollBonus(hero, { scene, kind: "attack", actionId: ids.skirmish, targetId: "e" }), 7, "six Skirmish clauses and the all-Attack clause stack");
@@ -135,6 +142,44 @@ empathScene = enable(empathScene, "altruist.empath.3");
 empathScene = run(empathScene, "ally", { kind: "turn-start" });
 assert.equal(empathScene.actors[1].focus, 6, "an adjacent ally gains 3 Focus at Turn start");
 assert.equal(empathScene.actors[1].hp, 10, "the same ally restores the Empath's Tier in Health");
+
+// Alternative starting resources use the existing resource family. Each is
+// tested separately because the Techniques themselves are mutually exclusive.
+const startWith = (techniqueId, level, ruleId, extra = {}) => {
+  let value = enable(fixture({ knownTechniques: { [techniqueId]: level }, ...extra }), ruleId);
+  return run(value, "h", { kind: "turn-start" });
+};
+let resourceScene = startWith("powerhouse.gunslinger", 1, "powerhouse.gunslinger.1");
+assert.equal(resourceScene.actors[0].ruleResources.bullets.current, 6);
+assert.equal(lionwing.balance(resourceScene.actors[0], "focus"), 6, "Bullets replace Focus");
+resourceScene = startWith("vagabond.knife-juggler", 1, "vagabond.knife-juggler.1");
+assert.equal(lionwing.balance(resourceScene.actors[0], "focus"), 4, "Weapons replace Focus");
+resourceScene = startWith("altruist.heavenly-saint", 1, "altruist.heavenly-saint.1");
+assert.equal(lionwing.balance(resourceScene.actors[0], "focus"), 3, "Compassion starts at Spirit");
+resourceScene = run(resourceScene, "h", { kind: "resource", resource: "focus", operation: "gain", amount: 2, actionId: ids.breathe });
+assert.equal(lionwing.balance(resourceScene.actors[0], "focus"), 3, "Breathe cannot grant Compassion");
+assert.ok(resourceScene.log.some(event => event.type === "resource.gain.prevented"));
+resourceScene = startWith("ruiner.creation-ascetic", 1, "ruiner.creation-ascetic.1");
+resourceScene = run(resourceScene, "h", { kind: "resource", resource: "focus", operation: "gain", amount: 2 });
+assert.equal(lionwing.balance(resourceScene.actors[0], "focus"), 0, "unattributed gains cannot create Material");
+resourceScene = run(resourceScene, "h", { kind: "resource", resource: "focus", operation: "gain", amount: 2, actionId: ids.charge });
+assert.equal(lionwing.balance(resourceScene.actors[0], "focus"), 2, "Charge can create Material");
+resourceScene = startWith("ruiner.spellcrafter", 1, "ruiner.spellcrafter.1");
+assert.equal(resourceScene.actors[0].ruleResources.innovation.current, 2, "Innovation starts at Mind on level I");
+assert.equal(adapters.list(actor("spell-two", "hero", 1, { knownTechniques: { "ruiner.spellcrafter": 2 } })).some(rule => rule.id === "ruiner.spellcrafter.1"), false, "level II removes Innovation");
+
+resourceScene = startWith("bulwark.mundane", 1, "bulwark.mundane.1");
+assert.equal(lionwing.balance(resourceScene.actors[0], "focus"), 5);
+assert.equal(lionwing.balance(resourceScene.actors[0], "ap"), 5, "Tenacity replaces both Focus and AP and rounds Body/2 up");
+assert.equal(lionwing.prepare(resourceScene, { actorId: "h", kind: "action", actionId: ids.spell, targetIds: ["e"] }).ok, false, "Mundane blocks Cast");
+assert.equal(lionwing.prepare(resourceScene, { actorId: "h", kind: "action", actionId: ids.finish, attribute: "spirit", targetIds: ["e"], focusSpent: 0 }).ok, false, "Mundane blocks Spirit Finishers");
+assert.equal(lionwing.prepare(resourceScene, { actorId: "h", kind: "action", actionId: ids.finish, targetIds: ["e"], focusSpent: 0 }).ok, false, "Mundane also blocks the default Spirit Finisher when its attribute is omitted");
+resourceScene = run(resourceScene, "h", { kind: "resource", resource: "focus", operation: "spend", amount: 2 });
+resourceScene.actors.forEach(participant => { participant.acted = participant.kind !== "crowd"; });
+resourceScene.activeActorId = null;
+resourceScene.lionwing.lastTeam = "enemy";
+resourceScene = run(resourceScene, null, { kind: "round-end" });
+assert.equal(lionwing.balance(resourceScene.actors[0], "focus"), 5, "Tenacity refreshes at the next Round");
 
 // Absolute Bastard is target-specific and checks the source of Taunted rather
 // than granting its bonus against every Taunted character on the board.
@@ -226,4 +271,4 @@ const inactiveClash = run(fixture({ knownTechniques: { "bulwark.rising-challenge
 prepared = prepare(inactiveClash, "h", { kind: "reaction", choice: "clash" });
 assert.equal(prepared.events[0].payload.roll.initialCount, 4, "known but disabled Rising Challenger leaves the normal Clash pool");
 
-console.log("LionWing passive adapters passed: canonical digests and coverage, opt-in stacking, Cast/Skirmish scope, source-owned Taunt, ceiling Armor, Clash dice/Spirit, reload and replay");
+console.log("LionWing passive adapters passed: canonical identity, bonuses and floors, lifecycle grants, replacement resources and action restrictions");
