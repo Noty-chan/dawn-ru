@@ -1,5 +1,5 @@
 const RAW_BUILD = "__BUILD_VERSION__";
-const BUILD = RAW_BUILD.startsWith("__") ? "dev-20260909-lionwing-seams-1" : RAW_BUILD;
+const BUILD = RAW_BUILD.startsWith("__") ? "dev-20260909-lionwing-seams-2" : RAW_BUILD;
 const CACHE = `dawn-ru-companion-${BUILD}`;
 const versioned = path => `${path}?v=${BUILD}`;
 const SCRIPT_ASSETS = [

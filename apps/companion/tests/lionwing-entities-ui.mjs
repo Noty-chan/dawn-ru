@@ -23,7 +23,7 @@ assert.match(index.slice(index.lastIndexOf("<section", entitiesPanelStart), enti
 assert.match(index.slice(index.lastIndexOf("<section", entitiesPanelStart), entitiesPanelEnd + "</section>".length), /<button type="button"[^>]*data-close-scene-panel[^>]*aria-label="Закрыть панель"/, "entities panel has a keyboard-close button");
 assert.ok(serviceWorker.indexOf('"./lionwing-entities.js"') >= 0, "service worker precaches the entities module");
 assert.ok(serviceWorker.indexOf('"./lionwing-entities.js"') < serviceWorker.indexOf('"./app-core.js"') && serviceWorker.indexOf('"./lionwing-entities.js"') < serviceWorker.indexOf('"./lionwing-ui.js"'), "service worker keeps entities before its consumers");
-assert.match(serviceWorker, /dev-20260909-lionwing-seams-1/, "service worker cache revision covers the current LionWing runtime package");
+assert.match(serviceWorker, /dev-20260909-lionwing-seams-2/, "service worker cache revision covers the current LionWing runtime package");
 
 const moduleContext = { window: {}, console };
 vm.createContext(moduleContext);
@@ -116,7 +116,7 @@ context.renderLionwingEntities();
 assert.match(domRoot.innerHTML, /&lt;Костёр &amp;&gt;/, "backing labels are escaped");
 assert.match(domRoot.innerHTML, /&lt;img src=x onerror=alert\(1\)&gt;/, "entity kinds are escaped");
 assert.doesNotMatch(domRoot.innerHTML, /<img src=x/, "escaped entity kinds cannot inject markup");
-assert.ok(domRoot.innerHTML.indexOf("<details") < domRoot.innerHTML.indexOf("entity-public"), "technical entity ID stays inside details");
+assert.match(domRoot.innerHTML, /<details[^>]*scene-entity-technical[\s\S]*?<code>entity-public[^<]*<\/code>[\s\S]*?<\/details>/, "technical entity ID stays inside details");
 assert.match(domRoot.innerHTML, /entity-hidden/, "narrator receives hidden records");
 
 view = "player";
