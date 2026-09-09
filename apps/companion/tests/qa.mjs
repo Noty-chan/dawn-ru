@@ -30,7 +30,7 @@ const appSource = appFiles.map(file => fs.readFileSync(path.join(root, file), "u
 const companionMarkup = fs.readFileSync(path.join(root, "index.html"), "utf8");
 const companionCss = fs.readFileSync(path.join(root, "app.css"), "utf8");
 const publicProjectionMigration = fs.readFileSync(path.resolve(root, "..", "..", "supabase", "migrations", "202609080001_harden_lionwing_private_state.sql"), "utf8");
-for (const privateLionwingKey of ["history", "pausedChains", "receipts", "deferred", "executionCursor", "entities"]) {
+for (const privateLionwingKey of ["history", "pausedChains", "receipts", "deferred", "executionCursor", "afterEventReceipts", "entities"]) {
   assert.match(publicProjectionMigration, new RegExp(`- '${privateLionwingKey}'`), `The SQL public projection must remove private LionWing ${privateLionwingKey}`);
 }
 assert.match(publicProjectionMigration, /'entities',coalesce[\s\S]+visibility','public'[\s\S]+scene_metadata_visible/, "The SQL public projection must retain public entities while filtering hidden references");

@@ -24,7 +24,7 @@ try {
   const project=async value=>(await db.query("select public.public_scene_projection($1::jsonb) as state",[JSON.stringify(value)])).rows[0].state;
   const state=await project(source);
   for(const key of ["undo","redo","turnUndo"])assert.equal(Object.hasOwn(state,key),false);
-  for(const key of ["history","receipts","deferred","afterAttack","executionCursor"])assert.equal(Object.hasOwn(state.lionwing,key),false,`${key} must stay private`);
+  for(const key of ["history","receipts","deferred","afterAttack","executionCursor","afterEventReceipts"])assert.equal(Object.hasOwn(state.lionwing,key),false,`${key} must stay private`);
   assert.deepEqual(Object.keys(state.lionwing.entities),["publicMarker"],"public entity gameplay data remains available without hidden entities");
   assert.equal(state.lionwing.actionPlans[0].id,"public-plan","non-private gameplay state is not removed speculatively");
   assert.equal(state.lionwing.turnFrames[0].id,"visible-frame","turn UI state remains available to players");

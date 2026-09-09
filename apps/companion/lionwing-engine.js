@@ -121,7 +121,7 @@
     if(s.started===undefined)s.started=Boolean(scene.activeActorId||Number(scene.round||1)>1||(scene.actors||[]).some(a=>a.acted&&a.kind!=="crowd"));
     if(s.lastTeam===undefined){const last=(scene.log||[]).find(e=>e.type==="turn.end");s.lastTeam=actor(scene,last?.actorId)?.team||null;}
     const migrateHistory=!Array.isArray(s.history);
-    for(const key of ["choices","deferred","receipts","history","specialJournal"])if(!Array.isArray(s[key]))s[key]=[];
+    for(const key of ["choices","deferred","receipts","history","specialJournal","afterEventReceipts"])if(!Array.isArray(s[key]))s[key]=[];
     if(s.compounds===undefined)s.compounds={};
     if(!s.compounds||typeof s.compounds!=="object"||Array.isArray(s.compounds))fail("Реестр Составных LionWing имеет неподдерживаемый формат");
     validateDiceSceneState(s);
@@ -898,8 +898,9 @@
       }, details);
       s.history.push(fact);
     };
+    let scheduleAfterEvent = null;
     const emit = (type, actorId, payload = {}) => {
-      const row = { id: `${rootId}:${emitted.length}`, at: event.at, type, actorId: actorId || null, payload: copy(payload), visibility: event.visibility || "public" };
+      const row = { id: `${rootId}:${emitted.length}`, at: event.at, type, actorId: actorId || null, payload: copy(payload), visibility: payload.visibility === "gm" ? "gm" : event.visibility || "public" };
       if (provenance) row.execution = copy(provenance);
       emitted.push(row); scene.log.unshift(row); scene.log = scene.log.slice(0, 200);
       const targets = payload.targetIds || (payload.targetId ? [payload.targetId] : []);
@@ -919,6 +920,7 @@
       else if (type === "counter.threshold") saveFact("counter.threshold", actorId, targets, { counterId: payload.counterId || payload.id, kind: payload.kind || payload.type, before: payload.before, value: payload.value, threshold: payload.threshold });
       else if (type === "aura.enter" || type === "aura.exit") saveFact(type, actorId, [actorId], { auraId:payload.auraId, effectId:payload.effectId, ruleId:payload.ruleId, ownerActorId:payload.ownerActorId, sourceEntityId:payload.sourceEntityId, movementTargetId:payload.movementTargetId||null, segmentIndex:payload.segmentIndex??null });
       else if (type === "attack.clear" && payload.cancelled) saveFact("cancel", actorId, targets, { reason: payload.reason || "cancelled" });
+      if (scheduleAfterEvent && ["clash.success", "damage.apply", "actor.knockout", "effect.apply"].includes(type)) scheduleAfterEvent(row);
       return row;
     };
     const emitSpecial = (type, actorId, operation, payload, before, after) => {
@@ -938,6 +940,26 @@
       for (const owner of scene.actors || []) for (const rule of global.DAWN_LIONWING_ADAPTERS.boundaryOperations(owner, { scene, boundary, activeActor, distanceToActive: activeActor ? distance(owner, activeActor) : Infinity })) {
         emit("rule.activated", owner.id, { ruleId: rule.id, boundary, targetId: activeActor?.id || owner.id, automatic: true });
         scheduled.push(...rule.operations.map(p => ({ p, sourceId: owner.id, provenance: { rootActionId: rootId, actionId: null, actionDefinitionId: null, actionInstanceId: rootId, causeEventId: rootId, ownerActorId: owner.id, ruleId: rule.id } })));
+      }
+    };
+    scheduleAfterEvent = eventRow => {
+      const eventPayload = eventRow.payload || {};
+      const candidateIds = [...new Set([eventRow.actorId, eventPayload.targetId].filter(id => typeof id === "string" && id))];
+      const activeOwner = scene.activeActorId ? actor(scene, scene.activeActorId) : null;
+      const ownerTurnKeyValue = activeOwner ? ownerTurnKey(s.sceneSerial, activeOwner, ownTurnSerial(activeOwner)) : null;
+      for (const candidateId of candidateIds) {
+        const candidate = actor(scene, candidateId);
+        if (!candidate || candidate.knockedOut && eventRow.type !== "actor.knockout") continue;
+        const used = (s.afterEventReceipts || []).some(receipt => receipt.ruleId === "powerhouse.berserker.3" && receipt.ownerActorId === candidate.id && receipt.turnKey === ownerTurnKeyValue);
+        const triggers = global.DAWN_LIONWING_ADAPTERS?.afterEvent?.(candidate, eventRow, { scene, ownerTurnKey: ownerTurnKeyValue, used }) || [];
+        for (const trigger of triggers) {
+          if (!trigger.triggerKey || (s.afterEventReceipts || []).some(receipt => receipt.key === trigger.triggerKey)) continue;
+          s.afterEventReceipts.push({ schema: 1, key: trigger.triggerKey, ruleId: trigger.id, ownerActorId: candidate.id, eventId: eventRow.id, turnKey: ownerTurnKeyValue });
+          s.afterEventReceipts = s.afterEventReceipts.slice(-256);
+          emit("rule.activated", candidate.id, { ruleId: trigger.id, triggerKey: trigger.triggerKey, causeEventId: eventRow.id, targetId: eventPayload.targetId || candidate.id, automatic: true, coverage: trigger.coverage });
+          scheduled.push(...(trigger.operations || []).map(operation => ({ p: { ...copy(operation), sourceActorId: operation.sourceActorId ?? candidate.id }, sourceId: operation.sourceActorId ?? candidate.id, provenance: { rootActionId: eventRow.execution?.rootActionId || rootId, actionId: eventRow.execution?.actionId || null, actionDefinitionId: eventRow.execution?.actionDefinitionId || eventRow.execution?.actionId || null, actionInstanceId: eventRow.execution?.actionInstanceId || rootId, causeEventId: eventRow.id, ownerActorId: candidate.id, ruleId: trigger.id } })));
+          for (const option of trigger.choices || []) scheduled.push({ p: { kind: "technique-choice", ruleId: trigger.id, triggerKey: trigger.triggerKey, title: trigger.label, options: ["skip", option.id], optionLabels: { skip: "Не использовать", [option.id]: option.label }, choices: { [option.id]: copy(option.operations || []) }, context: { ...(option.context || {}), causeEventId: eventRow.id, ownerActorId: candidate.id } }, sourceId: candidate.id, provenance: { rootActionId: eventRow.execution?.rootActionId || rootId, actionId: eventRow.execution?.actionId || null, actionDefinitionId: eventRow.execution?.actionDefinitionId || eventRow.execution?.actionId || null, actionInstanceId: eventRow.execution?.actionInstanceId || rootId, causeEventId: eventRow.id, ownerActorId: candidate.id, ruleId: trigger.id } });
+        }
       }
     };
     const diceRequestFromPayload = (p, fallbackId, kind, ownerActorId = null) => {
@@ -1267,7 +1289,7 @@
       if(compound.active){const nextGate=Math.max(0,(Math.ceil(compound.hp/compound.gate-1e-9)-1)*compound.gate),beforeGateDealt=dealt,gateCapacity=Math.max(0,compound.hp-nextGate);dealt=Math.min(dealt,gateCapacity);let remaining=compound.hp-dealt;for(const part of compound.parts){part.hp=Math.min(part.maxHp,remaining);remaining-=part.hp;}if(beforeGateDealt>gateCapacity&&nextGate>0)scene.tension++;}
       else a.hp = Math.max(0, Number(a.hp) - dealt);
       const hit = p.hit !== false;
-      emit("damage.apply", p.sourceActorId, { ...p, raw, armor, evaded, dealt, healthLost: Math.min(hpBefore, dealt), hp: a.hp, hit });
+      emit("damage.apply", p.sourceActorId, { ...p, raw, armor, evaded, dealt, healthLost: Math.min(hpBefore, dealt), hp: a.hp, hit, wouldWound: Boolean(dealt > 0 && !compound.active && a.hp === 0) });
       if (dealt > 0 && (compound.active?compound.hp-dealt<=0:a.hp===0)) { if (isPlayer(a)) wound(a, p.sourceActorId, "wounds", p.actionPlanId || null); else {knockout(a,{kind:"damage",sourceActorId:p.sourceActorId});if(compound.active)for(const part of compound.parts){part.knockedOut=true;part.ap=0;}} }
       if (hit && !(attack && afterArmor > 0 && evaded === afterArmor) && !a.knockedOut) for (const e of p.effects || []) applyEffect(a, {...(typeof e === "string" ? { effect: e } : e),preventForcedMovement:p.preventForcedMovement}, p.sourceActorId);
     };
@@ -1878,6 +1900,24 @@
           break;
         }
         case "move": move(requiredActor(scene, p.targetId || sourceId), p); break;
+        case "forced-towards": {
+          const target = requiredActor(scene, p.targetId, false), toward = requiredActor(scene, p.sourceActorId || sourceId, false), maximum = integer(p.maximum ?? 3, "принудительное перемещение");
+          let destination = { space: target.space, x: Number(target.x), y: Number(target.y) };
+          for (let step = 0; step < maximum && distance(destination, toward) > 1; step++) {
+            const dx = Math.sign(Number(toward.x) - Number(destination.x)), dy = Math.sign(Number(toward.y) - Number(destination.y));
+            if (Math.abs(Number(toward.x) - Number(destination.x)) >= Math.abs(Number(toward.y) - Number(destination.y))) destination.x += dx || 0;
+            else destination.y += dy || 0;
+          }
+          if (distance(target, toward) > 1) move(target, { destination, maximum, forced: true, followSnare: true });
+          if (distance(target, toward) === 1) choice(requiredActor(scene, p.sourceActorId || sourceId, false), "technique-trigger", "Сирена II: выбрать последствие сближения", ["skip", "daze"], { ruleId: "disruptor.siren.2", optionLabels: { skip: "Не использовать", daze: "Ошеломить и получить 1 Фокус" }, choices: { daze: [{ kind: "effect", targetId: target.id, sourceActorId: p.sourceActorId || sourceId, effect: "negative.ошеломлен" }, { kind: "resource", targetId: p.sourceActorId || sourceId, resource: "focus", operation: "gain", amount: 1 }] }, targetId: target.id, causeEventId: rootId });
+          break;
+        }
+        case "chemist-health-check": {
+          const target = requiredActor(scene, p.targetId, false), source = requiredActor(scene, p.sourceActorId || sourceId, false), health = Number(target.hp || 0), threshold = Number(source.attrs?.mind || 0);
+          emit("rule.health-check", source.id, { targetId: target.id, health, threshold, ruleId: p.ruleId, private: true });
+          if (!target.knockedOut && health <= threshold) { knockout(target, { kind: "chemist-weaken-threshold", sourceActorId: source.id }); gain(source, "focus", 2, { actionId: p.ruleId }); }
+          break;
+        }
         case "geometry-move":{
           const geometry=global.DAWN_LIONWING_GEOMETRY;if(!geometry?.revalidatePlan)fail("Планировщик геометрии недоступен");
           const checked=geometry.revalidatePlan(scene,p.geometryPlan);if(!checked.available)fail(checked.reason);
@@ -2037,6 +2077,12 @@
         }
         case "roll": publishRoll(a, p.roll, p.label || "Бросок"); break;
         case "prompt": choice(requiredActor(scene,p.targetId||sourceId), "manual", String(p.title || "Решение правила").slice(0,240), ["record"], { ruleId: p.ruleId, text: String(p.text || "").slice(0,1200) }); break;
+        case "technique-choice": {
+          const target = requiredActor(scene, sourceId, false), options = Array.isArray(p.options) ? p.options : [];
+          if (!p.ruleId || !p.triggerKey || options.length < 2 || !plain(p.choices)) fail("Некорректный выбор Техники");
+          choice(target, "technique-trigger", String(p.title || "Сработала Техника").slice(0, 240), options, { ruleId: p.ruleId, triggerKey: p.triggerKey, optionLabels: copy(p.optionLabels || {}), choices: copy(p.choices), ...(p.context || {}) });
+          break;
+        }
         case "choice": {
           const pending = s.choices[0];
           if (!pending || pending.id !== p.id || pending.actorId !== sourceId || !pending.options.includes(p.choice)) fail("Решение устарело или принадлежит другому участнику");
@@ -2050,6 +2096,15 @@
             const item = queue.find(item => item.p.kind === "execution-frame" && item.p.frame.id === pending.context.frameId);
             if (!item || item.p.frame.ownerActorId !== sourceId) fail("Продолжение последствия отсутствует");
             item.p.frame = global.DAWN_LIONWING_EXECUTION.choose(item.p.frame, p.choice);
+          }
+          else if (pending.kind === "technique-trigger") {
+            const operations = pending.context?.choices?.[p.choice] || [];
+            if (!Array.isArray(operations)) fail("Продолжение Техники повреждено");
+            for (const operation of operations) {
+              const nextOperation = { ...operation, sourceActorId: operation.sourceActorId ?? sourceId };
+              if (pending.context?.destinationRequired && p.choice === "move" && p.destination) nextOperation.destination = p.destination;
+              queue.unshift({ p: nextOperation, sourceId: nextOperation.sourceActorId ?? sourceId, provenance: { ...provenance, causeEventId: pending.context?.causeEventId || rootId, ownerActorId: pending.context?.ownerActorId || sourceId, ruleId: pending.context?.ruleId } });
+            }
           }
           else if (pending.kind === "geometry-boundary") {
             const context = pending.context || {}, cursor = s.geometryCursor;
@@ -2148,7 +2203,7 @@
           else choice(a,"clash-tie","Ничья Столкновения: Нарратор определяет победителя",["win","lose"],{attackId:pending.id});
           break;
         }
-        case "clash-win":{const pending=scene.pendingAction;if(!pending)fail("Атака завершена");const context={scene,kind:"clash",opponentId:pending.actorId},reduction=Math.max(0,Number(a.attrs.spirit||0)+adapterNumber("statBonus",a,"spirit",context));pending.responses[a.id]={choice:"clash",reduction};applyDamage({targetId:pending.actorId,sourceActorId:a.id,amount:reduction});break;}
+        case "clash-win":{const pending=scene.pendingAction;if(!pending)fail("Атака завершена");const context={scene,kind:"clash",opponentId:pending.actorId},reduction=Math.max(0,Number(a.attrs.spirit||0)+adapterNumber("statBonus",a,"spirit",context));pending.responses[a.id]={choice:"clash",reduction};emit("clash.success",a.id,{targetId:pending.actorId,opponentId:pending.actorId,attackId:pending.id,reduction});applyDamage({targetId:pending.actorId,sourceActorId:a.id,amount:reduction});break;}
         case "duel-return":{const duel=s.duels.find(item=>item.id===p.duelId);if(duel)duelReturn(duel);break;}
         case "resolve-attack": {
           const pending = scene.pendingAction;
@@ -2606,7 +2661,7 @@
       const refersToHidden=value=>typeof value==="string"?hidden.has(value):value&&typeof value==="object"?Object.entries(value).some(([key,item])=>hidden.has(key)||refersToHidden(item)):false;
       projected.log=(projected.log||[]).filter(row=>!refersToHidden(row));
       if(projected.lionwing){
-        delete projected.lionwing.history;delete projected.lionwing.pausedChains;delete projected.lionwing.receipts;delete projected.lionwing.deferred;delete projected.lionwing.afterAttack;delete projected.lionwing.executionCursor;
+        delete projected.lionwing.history;delete projected.lionwing.pausedChains;delete projected.lionwing.receipts;delete projected.lionwing.deferred;delete projected.lionwing.afterAttack;delete projected.lionwing.executionCursor;delete projected.lionwing.afterEventReceipts;
         for(const key of ["choices","duels","opportunities","grantedTurns"])projected.lionwing[key]=(projected.lionwing[key]||[]).filter(item=>!refersToHidden(item));
         projected.lionwing.auras=(projected.lionwing.auras||[]).filter(aura=>!hidden.has(aura.ownerActorId)&&!hidden.has(aura.sourceEntityId));
       }
