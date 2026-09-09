@@ -22,6 +22,18 @@
   const isPlayer = a => a?.kind === "hero" || Boolean(a?.heroId);
   const live = a => a && !a.knockedOut;
   const distance = (a, b) => a.space === b.space ? Math.abs(a.x - b.x) + Math.abs(a.y - b.y) : Infinity;
+  const footprintCells = a => {
+    const width = Math.max(1, Number(a?.occupiedWidth || 1)), height = Math.max(1, Number(a?.occupiedHeight || 1));
+    const cells = [];
+    for (let y = 0; y < height; y += 1) for (let x = 0; x < width; x += 1) cells.push({ space: a.space, x: Number(a.x) + x, y: Number(a.y) + y });
+    return cells;
+  };
+  const footprintDistance = (a, b) => {
+    if (!a || !b || a.space !== b.space) return Infinity;
+    let result = Infinity;
+    for (const left of footprintCells(a)) for (const right of footprintCells(b)) result = Math.min(result, Math.abs(left.x - right.x) + Math.abs(left.y - right.y));
+    return result;
+  };
   const fail = message => { throw new Error(message); };
   const plain = value => Boolean(value && typeof value === "object" && !Array.isArray(value));
   const diceAvailable = () => {
@@ -122,6 +134,7 @@
     if(s.lastTeam===undefined){const last=(scene.log||[]).find(e=>e.type==="turn.end");s.lastTeam=actor(scene,last?.actorId)?.team||null;}
     const migrateHistory=!Array.isArray(s.history);
     for(const key of ["choices","deferred","receipts","history","specialJournal","afterEventReceipts"])if(!Array.isArray(s[key]))s[key]=[];
+    if(!Array.isArray(s.movementGroups))s.movementGroups=[];
     if(s.compounds===undefined)s.compounds={};
     if(!s.compounds||typeof s.compounds!=="object"||Array.isArray(s.compounds))fail("Реестр Составных LionWing имеет неподдерживаемый формат");
     validateDiceSceneState(s);
@@ -1010,7 +1023,7 @@
           if (!trigger.triggerKey || (s.afterEventReceipts || []).some(receipt => receipt.key === trigger.triggerKey)) continue;
           s.afterEventReceipts.push({ schema: 1, key: trigger.triggerKey, ruleId: trigger.id, ownerActorId: candidate.id, eventId: eventRow.id, turnKey: ownerTurnKeyValue });
           s.afterEventReceipts = s.afterEventReceipts.slice(-256);
-          emit("rule.activated", candidate.id, { ruleId: trigger.id, triggerKey: trigger.triggerKey, causeEventId: eventRow.id, targetId: eventPayload.targetId || candidate.id, automatic: true, coverage: trigger.coverage });
+          emit("rule.activated", candidate.id, { ruleId: trigger.id, sourceDigest: trigger.sourceDigest, triggerKey: trigger.triggerKey, causeEventId: eventRow.id, targetId: eventPayload.targetId || candidate.id, automatic: true, coverage: trigger.coverage });
           scheduled.push(...(trigger.operations || []).map(operation => ({ p: { ...copy(operation), sourceActorId: operation.sourceActorId ?? candidate.id }, sourceId: operation.sourceActorId ?? candidate.id, provenance: { rootActionId: eventRow.execution?.rootActionId || rootId, actionId: eventRow.execution?.actionId || null, actionDefinitionId: eventRow.execution?.actionDefinitionId || eventRow.execution?.actionId || null, actionInstanceId: eventRow.execution?.actionInstanceId || rootId, causeEventId: eventRow.id, ownerActorId: candidate.id, ruleId: trigger.id } })));
           for (const option of trigger.choices || []) scheduled.push({ p: { kind: "technique-choice", ruleId: trigger.id, triggerKey: trigger.triggerKey, title: trigger.label, options: ["skip", option.id], optionLabels: { skip: "Не использовать", [option.id]: option.label }, choices: { [option.id]: copy(option.operations || []) }, context: { ...(option.context || {}), causeEventId: eventRow.id, ownerActorId: candidate.id } }, sourceId: candidate.id, provenance: { rootActionId: eventRow.execution?.rootActionId || rootId, actionId: eventRow.execution?.actionId || null, actionDefinitionId: eventRow.execution?.actionDefinitionId || eventRow.execution?.actionId || null, actionInstanceId: eventRow.execution?.actionInstanceId || rootId, causeEventId: eventRow.id, ownerActorId: candidate.id, ruleId: trigger.id } });
         }
@@ -1475,7 +1488,7 @@
       });
       s.geometryCursor = nextCursor;
       queue.unshift({
-        p: { kind: "geometry-segment", targetId: route.actorId, geometryPlan: plan, geometryCursor: nextCursor, label: operation.label, sourceActorId: operation.sourceActorId, segmentChoices: operation.segmentChoices ?? operation.enterChoices, spatialCommit:operation.spatialCommit },
+        p: { kind: "geometry-segment", targetId: route.actorId, geometryPlan: plan, geometryCursor: nextCursor, label: operation.label, sourceActorId: operation.sourceActorId, segmentChoices: operation.segmentChoices ?? operation.enterChoices, spatialCommit:operation.spatialCommit, ...(operation.groupId ? { groupId: operation.groupId, groupMoverId: operation.groupMoverId } : {}) },
         sourceId,
         provenance: copy(provenance),
       });
@@ -1815,7 +1828,7 @@
       astate(a).history = [...(astate(a).history || []), { actionId: def.id, actionDefinitionId: def.id, actionInstanceId: provenance?.actionInstanceId || null, targetIds: targets.map(t => t.id), round: scene.round, turnSerial: scene.turnSerial, ownerTurnActorId: activeTurnOwner?.id || null, ownerTurnSerial: activeOwnerSerial, ownerTurnInstanceId: s.activeTurnInstanceId || null, ownerTurnKey: activeTurnOwner ? ownerTurnKey(s.sceneSerial, activeTurnOwner, activeOwnerSerial) : null, swift: Boolean(status.swift) }].filter((item,index,list)=>item.ruleId||index>=list.length-200);
       p.actionInstanceId ||= provenance?.actionInstanceId || rootId;
       p.ownerTurnInstanceId ||= s.activeTurnInstanceId || null;
-      emit("action.resolve", a.id, { actionId: def.id, name: def.name, targetIds: targets.map(t => t.id), actionInstanceId: p.actionInstanceId, ownerTurnInstanceId: p.ownerTurnInstanceId, attribute: p.attribute, techniqueRuleId: p.techniqueRuleId || null, finisherMode: p.finisherMode || null });
+      emit("action.resolve", a.id, { actionId: def.id, name: def.name, targetIds: targets.map(t => t.id), actionInstanceId: p.actionInstanceId, ownerTurnInstanceId: p.ownerTurnInstanceId, attribute: finishContext.attribute, techniqueRuleId: p.techniqueRuleId || null, finisherMode: p.finisherMode || null });
       let result;
       if ([ids.spell, ids.skirmish, ids.finish, ids.charge].includes(def.id)) {
         result = publishRoll(a, p.roll, def.name);
@@ -1985,6 +1998,60 @@
           break;
         }
         case "move": move(requiredActor(scene, p.targetId || sourceId), p); break;
+        case "forced-towards-group": {
+          const source = requiredActor(scene, p.sourceActorId || sourceId, false), target = requiredActor(scene, p.targetId, false), geometry = global.DAWN_LIONWING_GEOMETRY;
+          if (!p.ruleId || typeof p.ruleId !== "string" || !p.actionInstanceId || typeof p.actionInstanceId !== "string" || !plain(p.filter) || p.filter.effect !== "negative.испуган" || p.filter.team !== "opposing") fail("Некорректное групповое принудительное перемещение");
+          if (p.sourceActorId && p.sourceActorId !== sourceId) fail("Источник группового перемещения не совпадает с исполнителем");
+          const sourceRule = global.DAWN_LIONWING_ADAPTERS?.list?.(source)?.find(rule => rule.id === p.ruleId && rule.sourceDigest === p.sourceDigest);
+          if (!sourceRule || source.lionwing?.automation?.[p.ruleId] !== true) fail("Групповое перемещение не разрешено включённой Техникой");
+          const actionEvent = (scene.log || []).find(row => row.type === "action.resolve" && row.actorId === source.id && row.payload?.actionId === ids.finish && row.payload?.actionInstanceId === p.actionInstanceId && Array.isArray(row.payload?.targetIds) && row.payload.targetIds.length === 1 && row.payload.targetIds[0] === target.id && ["mind", "spirit"].includes(String(row.payload?.attribute || "spirit").toLowerCase()));
+          if (!actionEvent) fail("Групповое перемещение не связано с разрешённым Завершением");
+          const groupId = `${p.actionInstanceId}:siren3:${source.id}`;
+          const frightened = scene.actors.filter(item => item.id !== source.id && item.id !== target.id && item.team !== source.team && live(item) && has(item, p.filter.effect)).map(item => item.id);
+          s.movementGroups = (s.movementGroups || []).filter(group => group.id !== groupId);
+          s.movementGroups.push({ schema: 1, id: groupId, sourceActorId: source.id, targetId: target.id, actionInstanceId: p.actionInstanceId, ruleId: p.ruleId, sourceDigest: p.sourceDigest, actorIds: frightened, index: 0, damage: Number(source.tier || 1) });
+          const groupProvenance = { ...provenance, actionId: ids.finish, actionDefinitionId: ids.finish, actionInstanceId: p.actionInstanceId, causeEventId: actionEvent.id, ownerActorId: source.id, ruleId: p.ruleId };
+          queue.unshift({ p: { kind: "forced-towards-group-step", groupId }, sourceId: source.id, provenance: groupProvenance });
+          break;
+        }
+        case "forced-towards-group-step": {
+          const group = (s.movementGroups || []).find(item => item.id === p.groupId), geometry = global.DAWN_LIONWING_GEOMETRY;
+          if (!group) break;
+          const source = actor(scene, group.sourceActorId), target = actor(scene, group.targetId);
+          if (!live(source) || !live(target)) { s.movementGroups = s.movementGroups.filter(item => item.id !== group.id); break; }
+          while (group.index < group.actorIds.length) {
+            const mover = actor(scene, group.actorIds[group.index]);
+            if (live(mover) && has(mover, "negative.испуган")) break;
+            group.index += 1;
+          }
+          if (group.index >= group.actorIds.length) { s.movementGroups = s.movementGroups.filter(item => item.id !== group.id); break; }
+          const mover = actor(scene, group.actorIds[group.index]);
+          if (!geometry?.routePlan) fail("Планировщик геометрии недоступен");
+          const targetCells = footprintCells(target), destinations = [];
+          for (const cell of targetCells) for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) destinations.push({ space: target.space, x: Number(cell.x) + dx, y: Number(cell.y) + dy });
+          const uniqueDestinations = [...new Map(destinations.map(point => [`${point.space}:${point.x},${point.y}`, point])).values()];
+          const plans = uniqueDestinations.map(destination => geometry.routePlan(scene, { sourceActorId: source.id, actorId: mover.id, anchor: { kind: "actor", actorId: mover.id }, destination, maximum: Math.max(0, Number(mover.speed || 0)), mode: "forced", allowPartial: true, width: mover.occupiedWidth, height: mover.occupiedHeight })).filter(result => result?.available);
+          const endpointDistance = result => footprintDistance({ ...mover, space: result.route.stoppedAt.space, x: result.route.stoppedAt.x, y: result.route.stoppedAt.y }, target);
+          plans.sort((left, right) => endpointDistance(left) - endpointDistance(right) || Number(left.route.spent || 0) - Number(right.route.spent || 0));
+          const selected = plans[0] || null;
+          const groupProvenance = { ...provenance, actionId: ids.finish, actionDefinitionId: ids.finish, actionInstanceId: group.actionInstanceId, causeEventId: group.actionInstanceId, ownerActorId: source.id, ruleId: group.ruleId };
+          if (!selected || !Array.isArray(selected.route?.segments) || !selected.route.segments.length) {
+            queue.unshift({ p: { kind: "forced-towards-group-after-route", groupId: group.id, moverId: mover.id }, sourceId: source.id, provenance: groupProvenance });
+            break;
+          }
+          const route = selected.route, cursor = geometry.geometryCursor(route, 0, scene, { id: `${group.id}:${mover.id}`, expectedSceneVersion: Number(scene.version || 0), expectedGeometryStamp: geometry.geometryStamp(scene), spent: 0 });
+          s.geometryCursor = cursor;
+          queue.unshift({ p: { kind: "geometry-segment", targetId: mover.id, geometryPlan: selected.plan, geometryCursor: cursor, sourceActorId: source.id, label: "Сирена III: движение Испуганного", groupId: group.id, groupMoverId: mover.id }, sourceId: source.id, provenance: groupProvenance });
+          break;
+        }
+        case "forced-towards-group-after-route": {
+          const group = (s.movementGroups || []).find(item => item.id === p.groupId), source = group && actor(scene, group.sourceActorId), target = group && actor(scene, group.targetId), mover = group && actor(scene, p.moverId);
+          if (!group) break;
+          group.index += 1;
+          if (source && target && mover && live(source) && live(target) && live(mover) && has(mover, "negative.испуган") && footprintDistance(mover, target) === 1) queue.unshift({ p: { kind: "damage", targetId: target.id, sourceActorId: mover.id, amount: group.damage, attack: true, sourceActionId: group.ruleId, sourceDigest: group.sourceDigest, sirenGroupId: group.id, actionInstanceId: group.actionInstanceId }, sourceId: mover.id, provenance: { ...provenance, actionId: ids.finish, actionDefinitionId: ids.finish, actionInstanceId: group.actionInstanceId, causeEventId: group.actionInstanceId, ownerActorId: source.id, ruleId: group.ruleId, sourceDigest: group.sourceDigest } });
+          queue.unshift({ p: { kind: "forced-towards-group-step", groupId: group.id }, sourceId: source?.id || sourceId, provenance: { ...provenance, actionId: ids.finish, actionDefinitionId: ids.finish, actionInstanceId: group.actionInstanceId, causeEventId: group.actionInstanceId, ownerActorId: source?.id || sourceId, ruleId: group.ruleId } });
+          break;
+        }
         case "forced-towards": {
           const target = requiredActor(scene, p.targetId, false), toward = requiredActor(scene, p.sourceActorId || sourceId, false), maximum = integer(p.maximum ?? 3, "принудительное перемещение");
           let destination = { space: target.space, x: Number(target.x), y: Number(target.y) };
@@ -2024,7 +2091,7 @@
           const plan=p.geometryPlan, route=plan?.route, cursor=p.geometryCursor || route?.cursor || {};
           const segmentIndex=Number(cursor.segmentIndex||0), checked=geometry.segmentStatus(scene,plan,cursor,{allowVersionChange:segmentIndex>0});
           if(!checked.available)fail(checked.reason);
-          if(checked.completed){delete s.geometryCursor;geometryCommit(route,requiredActor(scene,route.actorId),p,cursor,false,null);break;}
+          if(checked.completed){delete s.geometryCursor;geometryCommit(route,requiredActor(scene,route.actorId),p,cursor,false,null);if(p.groupId)queue.unshift({p:{kind:"forced-towards-group-after-route",groupId:p.groupId,moverId:p.groupMoverId||route.actorId},sourceId:p.sourceActorId||sourceId,provenance:copy(provenance)});break;}
           const target=requiredActor(scene,route.actorId),segment=checked.segment;
           const phasePayload={routeId:geometryRouteId(route),targetId:target.id,segmentIndex,from:segment.from,to:segment.to,cost:segment.cost,cursor:{...cursor,phase:"before-leave"}};
           emit("geometry.segment.before-leave",target.id,phasePayload);
@@ -2034,7 +2101,7 @@
           emit("geometry.segment.enter",target.id,{...phasePayload,cursor:{...cursor,phase:"enter"},position:{space:target.space,x:Number(target.x),y:Number(target.y)}});
           emitAuraChanges(result.auraTransitions,{movementTargetId:target.id,routeId:geometryRouteId(route),segmentIndex,boundary:"enter",from:segment.from,to:segment.to});
           const spent=Number(cursor.spent||0)+Number(segment.cost||result.cost||0),nextIndex=segmentIndex+1,terminal=Boolean(segment.terminal||nextIndex>=geometry.routeSegments(route).length&&route.terminal),trigger=geometryTriggerFor(plan,p,segment,segmentIndex),nextCursor=nextIndex<geometry.routeSegments(route).length&&!terminal?queueGeometrySegment(plan,p,cursor,sourceId,nextIndex,spent):{...geometry.geometryCursor(route,nextIndex,{...scene,version:Number(scene.version||0)+1},{id:cursor.id,spent,phase:terminal?"terminal":"completed",status:"completed",expectedSceneVersion:Number(scene.version||0)+1,expectedGeometryStamp:geometry.geometryStamp({...scene,version:Number(scene.version||0)+1})}),status:"completed",phase:terminal?"terminal":"completed"};
-          if(terminal||nextIndex>=geometry.routeSegments(route).length){delete s.geometryCursor;geometryCommit(route,target,p,nextCursor,terminal,terminal?segment.stopReason||route.stopReason||null:null);break;}
+          if(terminal||nextIndex>=geometry.routeSegments(route).length){delete s.geometryCursor;geometryCommit(route,target,p,nextCursor,terminal,terminal?segment.stopReason||route.stopReason||null:null);if(p.groupId)queue.unshift({p:{kind:"forced-towards-group-after-route",groupId:p.groupId,moverId:p.groupMoverId||target.id},sourceId:p.sourceActorId||sourceId,provenance:copy(provenance)});break;}
           if(!s.choices.length&&trigger){
             const options=Array.isArray(trigger.options)&&trigger.options.length?trigger.options.map(String):["continue","stop"];
             const responderId=trigger.responderActorId||trigger.actorId||sourceId,targetResponder=requiredActor(scene,responderId,false);
@@ -2518,6 +2585,14 @@
         if(!p.geometryRuntime||p.geometryRuntime.operation!==p.kind)fail("Пространственная операция требует проверенный план");
         if(typeof p.targetId!=="string"||!p.targetId)fail("Пространственная операция требует цель");
       }
+      if(p.kind === "forced-towards-group") {
+        if(typeof p.sourceActorId !== "string" || typeof p.targetId !== "string" || typeof p.actionInstanceId !== "string" || typeof p.ruleId !== "string" || typeof p.sourceDigest !== "string") fail("Групповое принудительное перемещение требует источник, цель и происхождение");
+        if(!plain(p.filter) || p.filter.team !== "opposing" || p.filter.effect !== "negative.испуган") fail("Групповое перемещение использует неподдерживаемый фильтр");
+        if(p.actorIds !== undefined || p.fearedActorIds !== undefined || p.remainingActorIds !== undefined) fail("Список участников группового перемещения вычисляется ядром");
+      }
+      if(p.kind === "forced-towards-group-step" || p.kind === "forced-towards-group-after-route") {
+        if(typeof p.groupId !== "string") fail("Продолжение группового перемещения повреждено");
+      }
       if(p.kind==="aura"&&!['create','update','suppress','restore','remove','expire'].includes(p.operation||"create"))fail("Неизвестная операция ауры");
       if(["aura-create","aura-update","aura-suppress","aura-restore","aura-remove"].includes(p.kind)&&(!(p.id||p.aura?.id)||p.kind==="aura-create"&&!((p.sourceEntityId||p.aura?.sourceEntityId))))fail("Некорректное описание ауры");
     }
@@ -2708,7 +2783,7 @@
     lifetimeBoundary: foundations.lifetimeBoundary,
     normalizeLifetime: foundations.normalizeLifetime,
     isLifetimeExpired: foundations.lifetimeExpired,
-    operations: ["automation", "plan", "batch", "pause-chain", "resume-chain", "amend-attack", "recover-track", "record-action", "action", "attack", "damage", "spend-health", "lose-health", "heal", "wound", "stress", "knockout", "resource", "correct", "effect", "effect-source", "banish", "vanish", "compound", "aura", "aura-create", "aura-update", "aura-suppress", "aura-restore", "aura-remove", "placement", "teleport", "displacement", "move", "geometry-move", "geometry-segment", "modifier", "allow-action", "grant-turn", "usage", "punish", "invisible", "search", "configure-resource", "dice-create", "dice-apply", "dice-reload", "dice-opposed", "dice-resolve-tie", "counter", "clock", "prompt", "choice", "roll", "reaction", "resolve-attack", "cancel-attack", "turn-start", "turn-end", "round-end", "scene-reset", "chapter-start", "tension", "note"]
+    operations: ["automation", "plan", "batch", "pause-chain", "resume-chain", "amend-attack", "recover-track", "record-action", "action", "attack", "damage", "spend-health", "lose-health", "heal", "wound", "stress", "knockout", "resource", "correct", "effect", "effect-source", "banish", "vanish", "compound", "aura", "aura-create", "aura-update", "aura-suppress", "aura-restore", "aura-remove", "placement", "teleport", "displacement", "move", "forced-towards-group", "forced-towards-group-step", "forced-towards-group-after-route", "geometry-move", "geometry-segment", "modifier", "allow-action", "grant-turn", "usage", "punish", "invisible", "search", "configure-resource", "dice-create", "dice-apply", "dice-reload", "dice-opposed", "dice-resolve-tie", "counter", "clock", "prompt", "choice", "roll", "reaction", "resolve-attack", "cancel-attack", "turn-start", "turn-end", "round-end", "scene-reset", "chapter-start", "tension", "note"]
   };
   global.DAWN_LIONWING_ENGINE = api;
   const routed = global.DAWN_SCENE_ENGINE;

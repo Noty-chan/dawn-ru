@@ -108,6 +108,29 @@
       },
     }),
     eventTrigger({
+      id: "disruptor.siren.3",
+      label: "Сирена III: после Духовного или Ментального Завершения подтянуть Испуганных врагов",
+      sourceDigest: "231b63c69615f78497650a97d3a5225a98f298a882d4adb2eedaebdff16c5b7e",
+      coverage: "full",
+      triggerKey: ({ actor, event }) => `${event.id}:${event.payload?.actionInstanceId || "missing"}:${actor.id}:siren-3`,
+      operations: () => [],
+      choices: (actor, event, context) => {
+        const payload = event.payload || {}, actionInstanceId = payload.actionInstanceId;
+        if (event.type !== "action.resolve" || event.actorId !== actor.id || !actionInstanceId || !context.scene) return [];
+        const targetIds = Array.isArray(payload.targetIds) ? payload.targetIds.filter(id => typeof id === "string") : [];
+        if (targetIds.length !== 1) return [];
+        const target = context.scene.actors?.find(item => item.id === targetIds[0]);
+        const feared = (context.scene.actors || []).filter(item => item.team !== actor.team && !item.knockedOut && item.effects?.includes("negative.испуган"));
+        if (!target || target.knockedOut || !feared.length) return [];
+        return [{
+          id: "call-help",
+          label: `Подтянуть всех Испуганных врагов к цели (${target.name}) и нанести урон рядом`,
+          operations: [{ kind: "forced-towards-group", sourceActorId: actor.id, targetId: target.id, ruleId: "disruptor.siren.3", sourceDigest: "231b63c69615f78497650a97d3a5225a98f298a882d4adb2eedaebdff16c5b7e", actionInstanceId, filter: { team: "opposing", effect: "negative.испуган" } }],
+          context: { targetId: target.id, sourceActorId: actor.id, actionInstanceId, fearedActorIds: feared.map(item => item.id), eventId: event.id },
+        }];
+      },
+    }),
+    eventTrigger({
       id: "disruptor.chemist.2",
       label: "Химик II: после Ослабления запросить Здоровье и при пороге вывести цель из боя",
       sourceDigest: "ac64f39e6d822bc8b310d86e0a37a9c2c7236f089e76d51e70693c943bd3dff3",
@@ -449,6 +472,10 @@
       else if (rule.id === "powerhouse.berserker.3") match = event.type === "damage.apply" && event.payload?.targetId === actor.id && Number(event.payload?.dealt || 0) > 0 && !context.used;
       else if (rule.id === "powerhouse.intimidator.3") match = event.type === "actor.knockout" && event.actorId === actor.id && event.payload?.targetId !== actor.id && Boolean(event.payload?.targetId);
       else if (rule.id === "disruptor.siren.2") match = event.type === "effect.apply" && event.payload?.effect === "negative.испуган" && event.actorId === actor.id && event.payload?.targetId !== actor.id;
+      else if (rule.id === "disruptor.siren.3") {
+        const payload = event.payload || {}, attribute = payload.attribute || "spirit";
+        match = event.type === "action.resolve" && event.actorId === actor.id && payload.actionId === "action.атаки.завершение" && ["mind", "spirit"].includes(String(attribute).toLowerCase()) && typeof payload.actionInstanceId === "string" && Array.isArray(payload.targetIds) && payload.targetIds.length === 1 && Boolean(payload.targetIds[0]) && Boolean(event.execution?.actionInstanceId || event.execution?.rootActionId);
+      }
       else if (rule.id === "disruptor.chemist.2") match = event.type === "effect.apply" && event.payload?.effect === "negative.ослаблен" && event.actorId === actor.id && event.payload?.targetId !== actor.id;
       else if (rule.id === "vagabond.dim-mak.1") {
         const marker = (context.scene?.markers || []).find(item => item.ruleId === "vagabond.dim-mak.1" && item.ownerActorId === actor.id && item.space === actor.space && Number(item.x) === Number(actor.x) && Number(item.y) === Number(actor.y));
