@@ -746,7 +746,7 @@ SHA-256 проверенных файлов: `6049f3ff6b79b8204c45cb8b830b265369
 | ---: | --- | --- | --- | --- |
 | 1 | Ты ведь не причинишь МНЕ боль? (You wouldn't hurt ME, would you?) | проверено | с выбором | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `usage-limits`, `trigger-router`, `scene-lifecycle`, `action-modifier`, `information-query` |
 | 2 | Неотразимая (Irresistible) | проверено | с выбором | `target-validation`, `event-participants`, `movement-lifecycle`, `effect-state`, `effect-lifecycle`, `usage-limits`, `trigger-router`, `turn-lifecycle` |
-| 3 | Помогите-ка сюда (A little help over here?) | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle`, `effect-state`, `effect-lifecycle`, `trigger-router`, `action-modifier` |
+| 3 | Помогите-ка сюда (A little help over here?) | проверено | с выбором | `target-validation`, `event-participants`, `movement-lifecycle`, `effect-state`, `effect-lifecycle`, `trigger-router`, `action-modifier` |
 
 ### Всадник волн (`disruptor.wave-rider`)
 

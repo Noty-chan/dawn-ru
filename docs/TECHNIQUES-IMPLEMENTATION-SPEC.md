@@ -2007,10 +2007,10 @@
 
 #### 3. Помогите-ка сюда (A little help over here?) `disruptor.siren.3`
 
-- **Заявленный статус:** `manual` (ручная).
-- **Текущий адаптер:** нет записи в `RULES`.
+- **Заявленный статус:** `decision` (решение).
+- **Текущий адаптер:** `disruptor.siren.3` · `passive` · {"kind":"passive","coverage":"full","sourceDigest":"231b63c69615f78497650a97d3a5225a98f298a882d4adb2eedaebdff16c5b7e"}; После разрешённого Духовного или Ментального Завершения предлагает подтянуть всех Испуганных врагов к цели Завершения на их Скорость и наносит цели урон Ступени за каждого, кто фактически оказался рядом..
 - **Готовые foundations:** `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `trigger-router`, `action-modifier`.
-- **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `movement-lifecycle`.
+- **Нужно добавить:** Сохранить существующий adapter и добавить недостающий контракт: `movement-lifecycle`.
 
 ### Всадник волн (Wave Rider) `disruptor.wave-rider`
 
