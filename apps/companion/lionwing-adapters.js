@@ -4,11 +4,12 @@
 // mutate a scene: the LionWing engine remains the single authority that applies
 // the resulting rule.
 (function (global) {
+  const inventory = global.DAWN_LIONWING_INVENTORY || null;
   const lionwing = actor => actor?.rulesEdition === "lionwing";
   const knows = (actor, techniqueId, level) => lionwing(actor) && Number((actor.knownTechniques ?? actor.techniques)?.[techniqueId] || 0) >= level;
-  const passive = ({ id, label, sourceDigest, rollBonus, statBonus, statMinimum, rangeBonus, boundaryOperations, resourceGainStatus, actionStatus, maximumLevel = null, coverage = "full" }) => {
+  const passive = ({ id, label, sourceDigest, rollBonus, statBonus, statMinimum, rangeBonus, boundaryOperations, inventoryOperations, resourceGainStatus, actionStatus, maximumLevel = null, coverage = "full" }) => {
     const techniqueId = id.replace(/\.\d+$/, ""), level = Number(id.match(/\.(\d+)$/)?.[1] || 0);
-    return Object.freeze({ id, techniqueId, level, label, sourceDigest, coverage, available: actor => knows(actor, techniqueId, level) && (maximumLevel == null || Number((actor.knownTechniques ?? actor.techniques)?.[techniqueId] || 0) <= maximumLevel), rollBonus, statBonus, statMinimum, rangeBonus, boundaryOperations, resourceGainStatus, actionStatus });
+    return Object.freeze({ id, techniqueId, level, label, sourceDigest, coverage, available: actor => knows(actor, techniqueId, level) && (maximumLevel == null || Number((actor.knownTechniques ?? actor.techniques)?.[techniqueId] || 0) <= maximumLevel), rollBonus, statBonus, statMinimum, rangeBonus, boundaryOperations, inventoryOperations, resourceGainStatus, actionStatus });
   };
   const actionBonus = (actionId, amount = 1) => (_actor, context) => context?.kind === "attack" && context.actionId === actionId ? amount : 0;
   const attackIds = new Set(["action.атаки.заклинание", "action.атаки.завершение", "action.атаки.стычка"]);
@@ -36,7 +37,18 @@
   });
   const sceneFocus = amount => actor => [{ kind: "resource", targetId: actor.id, resource: "focus", operation: "gain", amount: typeof amount === "function" ? amount(actor) : amount }];
   const resourceConfiguration = (actor, id, label, current, options = {}) => [{ kind: "configure-resource", targetId: actor.id, id, label, current, initial: current, scope: options.scope || "scene", lifetime: "scene", replaces: options.replaces || null, replacesAp: options.replacesAp === true, inverted: options.inverted === true, ruleId: options.ruleId || null }];
-  const eventTrigger = ({ id, label, sourceDigest, coverage = "full", triggerKey, operations = [], choices = [] }) => ({ id, techniqueId: id.replace(/\.\d+$/, ""), level: Number(id.match(/\.(\d+)$/)?.[1] || 0), label, sourceDigest, coverage, available: actor => knows(actor, id.replace(/\.\d+$/, ""), Number(id.match(/\.(\d+)$/)?.[1] || 0)), triggerKey, operations, choices });
+  const eventTrigger = ({ id, label, sourceDigest, coverage = "full", triggerKey, match, operations = [], choices = [], boundaryOperations }) => ({ id, techniqueId: id.replace(/\.\d+$/, ""), level: Number(id.match(/\.(\d+)$/)?.[1] || 0), label, sourceDigest, coverage, available: actor => knows(actor, id.replace(/\.\d+$/, ""), Number(id.match(/\.(\d+)$/)?.[1] || 0)), triggerKey, match, operations, choices, boundaryOperations });
+  const typedConfiguration = (actor, id, label, itemKind, source, options = {}) => [{
+    kind: "inventory", operation: "configure", targetId: actor.id, ownerActorId: actor.id, sourceActorId: actor.id,
+    id, label, inventoryKind: itemKind || "stack", current: options.current ?? (["selected-item", "recorded-value"].includes(itemKind) ? null : options.initial ?? 0), ...(["selected-item", "recorded-value"].includes(itemKind) ? {} : { initial: options.initial ?? 0 }),
+    minimum: options.minimum ?? 0, maximum: options.maximum ?? 99, resetAt: options.resetAt ?? options.lifetime ?? "scene",
+    lifetime: options.lifetime ?? "scene", visibility: options.visibility ?? "owner", unique: options.unique === true,
+    multiple: options.multiple === true, replacementGroup: options.replacementGroup, level: options.level,
+    alternateResource: options.alternateResource, labelI18n: options.labelI18n, items: options.items,
+    ruleId: source.ruleId, sourceDigest: source.sourceDigest, editionId: "lionwing",
+    ...(options.instanceId != null ? { instanceId: options.instanceId } : {}),
+  }];
+  const typedReset = (actor, id, source) => [{ kind: "inventory", operation: "reset", targetId: actor.id, id, boundary: "intermission", ruleId: source.ruleId, sourceDigest: source.sourceDigest }];
 
   // Completed-event adapters are deliberately data-only.  The engine supplies
   // the authoritative event and applies the returned operations; an adapter
@@ -171,6 +183,38 @@
         return [{ id: "finisher", label: `Телепорт рядом с ${target.name} и бесплатное Завершение Разумом`, operations: [{ kind: "detective-finisher-open", targetId: target.id, triggerKey: `${actor.id}:${target.id}:${turnId || context.scene?.turnSerial}:dim-mak-3`, sourceActorId: actor.id, ruleId: "vagabond.dim-mak.3" }], context: { targetId: target.id, causeEventId: event.id } }];
       },
     }),
+    eventTrigger({
+      id: "vagabond.malicious-mimic.1",
+      label: "Злобный подражатель I: записать Впечатление атакующего",
+      sourceDigest: "869edd09e775c11dce1b8a01408870c2841d5970e28544d2380ddcb6752718dd",
+      coverage: "partial",
+      triggerKey: ({ actor, context }) => `${actor.id}:${Number(context.scene?.round || 0)}:malicious-mimic-impression`,
+      match: (actor, event, context) => {
+        const pending = context.scene?.pendingAction;
+        return event.type === "reaction.respond" && event.actorId === actor.id && ["dodge", "clash"].includes(event.payload?.choice) && pending?.actorId && pending.actorId !== actor.id;
+      },
+      operations: (actor, event, context) => {
+        const attacker = context.scene?.actors?.find(item => item.id === context.scene?.pendingAction?.actorId);
+        if (!attacker) return [];
+        const instanceId = String(attacker.name || attacker.id).trim(), state = actor.lionwing?.inventory, key = `impression#${instanceId}`;
+        const source = { ruleId: "vagabond.malicious-mimic.1", sourceDigest: "869edd09e775c11dce1b8a01408870c2841d5970e28544d2380ddcb6752718dd" };
+        return state?.records?.[key] ? [{ kind: "inventory", operation: "gain", targetId: actor.id, id: "impression", instanceId, amount: 1, ...source }] : typedConfiguration(actor, "impression", `Впечатление: ${instanceId}`, "count", source, { instanceId, current: 1, initial: 0, maximum: 99, resetAt: "scene", lifetime: "scene", multiple: true, visibility: "owner" });
+      },
+      choices: () => [],
+    }),
+    eventTrigger({
+      id: "altruist.bardic-savant.1",
+      label: "Виртуоз I: выбрать Куплет после Передышки",
+      sourceDigest: "896edba28e9a933577bd1956f94da01f4f6beadc1452a5d4c52ac3e4038a5486",
+      coverage: "partial",
+      triggerKey: ({ actor, event }) => `${event.id}:${actor.id}:bardic-verse`,
+      match: (actor, event) => event.type === "action.resolve" && event.actorId === actor.id && event.payload?.actionId === ACTIONS.breathe,
+      operations: () => [],
+      boundaryOperations: (actor, context) => context?.boundary === "sceneStart" ? typedConfiguration(actor, "altruist.bardic-savant.verses", "Куплеты", "selected-item", { ruleId: "altruist.bardic-savant.1", sourceDigest: "896edba28e9a933577bd1956f94da01f4f6beadc1452a5d4c52ac3e4038a5486" }, { current: null, maximum: 4, resetAt: "scene", lifetime: "scene", visibility: "owner", multiple: true, items: ["harsh", "soothing", "inspiring", "raucous", "frantic"] }) : [],
+      choices: (actor) => [
+        ["harsh", "Резкий"], ["soothing", "Успокаивающий"], ["inspiring", "Вдохновляющий"], ["raucous", "Шумный"], ["frantic", "Неистовый"],
+      ].map(([id, label]) => ({ id, label: `Получить Куплет «${label}»`, operations: [{ kind: "inventory", operation: "select", targetId: actor.id, id: "altruist.bardic-savant.verses", selectedItemId: id, mode: "add", ruleId: "altruist.bardic-savant.1", sourceDigest: "896edba28e9a933577bd1956f94da01f4f6beadc1452a5d4c52ac3e4038a5486" }], context: { verse: id } })),
+    }),
   ];
 
   const berserker = Object.freeze({
@@ -201,6 +245,36 @@
     passive({ id: "ruiner.creation-ascetic.1", label: "Создатель I: Материал вместо Фокуса, 0 в начале Сцены (ресурсная часть)", sourceDigest: "6f4e55f851dd43392db08bf1fb2bd639f7921d6767a899dcde23c7492b8f41a3", coverage: "partial", boundaryOperations: (actor, context) => context?.boundary === "sceneStart" ? resourceConfiguration(actor, "material", "Материал", 0, { replaces: "focus", ruleId: "ruiner.creation-ascetic.1" }) : [], resourceGainStatus: (_actor, context) => context.requestedResource === "focus" && !["action.утилитарные-действия.передышка", "action.утилитарные-действия.зарядка"].includes(context.actionId) ? { allowed: false, reason: "Материал можно получать только Передышкой или Зарядкой" } : { allowed: true } }),
     passive({ id: "bulwark.mundane.1", label: "Обыватель I: Упорство вместо Фокуса и ОД, старт Раунда 2+[Тело/2]", sourceDigest: "68955d58e5ba2eed7a9fcc9dbdf303a782a44fecb22c41d22483f7a2468b6710", boundaryOperations: (actor, context) => ["sceneStart", "roundStart"].includes(context?.boundary) ? resourceConfiguration(actor, "tenacity", "Упорство", 2 + Math.ceil(Number(actor.attrs?.body || 0) / 2), { replaces: "focus", replacesAp: true, scope: "roundEnd", ruleId: "bulwark.mundane.1" }) : [], resourceGainStatus: (_actor, context) => ["focus", "ap"].includes(context.requestedResource) ? { allowed: false, reason: "Упорство нельзя получать не из своей Техники" } : { allowed: true }, actionStatus: (_actor, context) => context.actionId === "action.атаки.заклинание" || context.actionId === "action.атаки.завершение" && context.attribute === "spirit" ? { allowed: false, reason: "Обыватель не может использовать Заклинания и Завершения Духом" } : { allowed: true } }),
     passive({ id: "ruiner.spellcrafter.1", label: "Создатель заклинаний I: [Разум] зарядов Инновации в начале Сцены (ресурсная часть)", sourceDigest: "cd258e50964ec7fdf255d20dfb2a710459dc94dfbb4c5c3e9ea73e8ff6f98303", maximumLevel: 1, coverage: "partial", boundaryOperations: (actor, context) => context?.boundary === "sceneStart" ? resourceConfiguration(actor, "innovation", "Инновация", Number(actor.attrs?.mind || 0), { ruleId: "ruiner.spellcrafter.1" }) : [] }),
+    passive({
+      id: "altruist.gourmand.1", label: "Гурман I: порции обновляются в Антракт", sourceDigest: "d7dabbe3ac7be7d0ded9c75f214be072cd634c54e318455cbd28f6e02d401d73", coverage: "partial",
+      inventoryOperations: (actor, context) => context?.boundary === "sceneStart" ? typedConfiguration(actor, "altruist.gourmand.meals", "Порции", "stack", { ruleId: "altruist.gourmand.1", sourceDigest: "d7dabbe3ac7be7d0ded9c75f214be072cd634c54e318455cbd28f6e02d401d73" }, { current: Math.ceil(Number(actor.attrs?.mind || 0) / 2), initial: Math.ceil(Number(actor.attrs?.mind || 0) / 2), maximum: Math.ceil(Number(actor.attrs?.mind || 0) / 2), resetAt: "intermission", lifetime: "scene" }) : [],
+    }),
+    passive({
+      id: "altruist.surgeon.2", label: "Хирург II: Бинты и Антисептики", sourceDigest: "701325c8c91817a0ec796973befba9c45e3230ac5670fbb3271dbc3ff54ea40a", coverage: "partial",
+      inventoryOperations: (actor, context) => context?.boundary === "sceneStart" ? [
+        ...typedConfiguration(actor, "altruist.surgeon.bandages", "Бинты", "stack", { ruleId: "altruist.surgeon.2", sourceDigest: "701325c8c91817a0ec796973befba9c45e3230ac5670fbb3271dbc3ff54ea40a" }, { current: 0, initial: 0, maximum: 99, resetAt: "intermission", lifetime: "scene" }),
+        ...typedConfiguration(actor, "altruist.surgeon.disinfectant", "Антисептики", "stack", { ruleId: "altruist.surgeon.2", sourceDigest: "701325c8c91817a0ec796973befba9c45e3230ac5670fbb3271dbc3ff54ea40a" }, { current: 0, initial: 0, maximum: 99, resetAt: "intermission", lifetime: "scene" }),
+      ] : [],
+    }),
+    passive({
+      id: "altruist.deckbuilder.1", label: "Сборщик колоды I: Карты (значения костей)", sourceDigest: "4cc9dcace6206469b673302c5793c819f54edd9bbc31090aea4b22a016ef6b0b", coverage: "partial",
+      inventoryOperations: (actor, context) => context?.boundary === "sceneStart" ? typedConfiguration(actor, "altruist.deckbuilder.cards", "Карты", "recorded-value", { ruleId: "altruist.deckbuilder.1", sourceDigest: "4cc9dcace6206469b673302c5793c819f54edd9bbc31090aea4b22a016ef6b0b" }, { current: 0, initial: 0, minimum: 1, maximum: 6, resetAt: "scene", lifetime: "scene", visibility: "owner" }) : [],
+    }),
+    passive({
+      id: "altruist.deckbuilder.2", label: "Сборщик колоды II: захваченная Карта", sourceDigest: "e6c003921a7f4ac2390ae9b65fe104c443f63dedf9df50505bce49285e2b0d6a", coverage: "partial",
+      inventoryOperations: (actor, context) => context?.boundary === "sceneStart" ? typedConfiguration(actor, "altruist.deckbuilder.captured-card", "Захваченная Карта", "recorded-value", { ruleId: "altruist.deckbuilder.2", sourceDigest: "e6c003921a7f4ac2390ae9b65fe104c443f63dedf9df50505bce49285e2b0d6a" }, { current: 0, initial: 0, minimum: 1, maximum: 6, resetAt: "scene", lifetime: "scene", visibility: "owner" }) : [],
+    }),
+    passive({
+      id: "ruiner.mana-blades.1", label: "Кузнец клинков I: Арсенал и ковки", sourceDigest: "eacb55ca05c443bfe0782ea2a16415a37749691da1166a9298433934ae40257a", coverage: "partial",
+      inventoryOperations: (actor, context) => context?.boundary === "sceneStart" ? [
+        ...typedConfiguration(actor, "ruiner.mana-blades.arsenal", "Арсенал", "selected-item", { ruleId: "ruiner.mana-blades.1", sourceDigest: "eacb55ca05c443bfe0782ea2a16415a37749691da1166a9298433934ae40257a" }, { current: null, initial: null, maximum: 99, resetAt: "scene", lifetime: "scene", visibility: "owner", multiple: true, items: [] }),
+        ...typedConfiguration(actor, "ruiner.mana-blades.forges", "Ковки", "stack", { ruleId: "ruiner.mana-blades.1", sourceDigest: "eacb55ca05c443bfe0782ea2a16415a37749691da1166a9298433934ae40257a" }, { current: 0, initial: 0, maximum: 99, resetAt: "scene", lifetime: "scene" }),
+      ] : [],
+    }),
+    passive({
+      id: "ruiner.long-draw.1", label: "Рейнджер I: заряды Подготовки", sourceDigest: "16797d24282b090cf8d8967f8c6b48cdb67d5e95fc30f3c456a0a786954da4d9", coverage: "partial",
+      inventoryOperations: (actor, context) => context?.boundary === "sceneStart" ? typedConfiguration(actor, "ruiner.long-draw.prep", "Подготовка", "charges", { ruleId: "ruiner.long-draw.1", sourceDigest: "16797d24282b090cf8d8967f8c6b48cdb67d5e95fc30f3c456a0a786954da4d9" }, { current: 0, initial: 0, maximum: 6, resetAt: "scene", lifetime: "scene" }) : [],
+    }),
     passive({ id: "bulwark.absolute-bastard.1", label: "Абсолютный мерзавец I: +3 Фокуса в начале Сцены (пассивная часть)", sourceDigest: "91c7070f4960afafc561e002df64ca574cf017f64e12b15f175339623fd1d903", coverage: "partial", boundaryOperations: (actor, context) => context?.boundary === "sceneStart" ? sceneFocus(3)(actor) : [] }),
     passive({ id: "disruptor.siren.1", label: "Сирена I: +3 Фокуса в начале Сцены (пассивная часть)", sourceDigest: "8d9becba6e6f63641f5dc1a8a47e965c73f0e7112ef7ef4b781b2c6ffb632979", coverage: "partial", boundaryOperations: (actor, context) => context?.boundary === "sceneStart" ? sceneFocus(3)(actor) : [] }),
     passive({ id: "ruiner.spellcrafter.2", label: "Создатель заклинаний II: +[Разум] к начальному Фокусу (пассивная часть)", sourceDigest: "f94f640a08662ad025e0ded425aab945bdf0b4accabc6519142867e5f5cf0886", coverage: "partial", boundaryOperations: (actor, context) => context?.boundary === "sceneStart" ? sceneFocus(owner => Number(owner.attrs?.mind || 0))(actor) : [] }),
@@ -509,6 +583,7 @@
         const removals = (context.scene?.log || []).filter(item => item.type === "marker.remove" && item.actorId === actor.id && item.payload?.ruleId === "vagabond.dim-mak.1" && (item.payload?.carrierActorId || item.payload?.targetId) === targetId && (turnId ? (item.execution?.ownerTurnInstanceId || item.payload?.ownerTurnInstanceId) === turnId : Number(item.payload?.turnSerial ?? item.execution?.turnSerial) === Number(context.scene?.turnSerial)));
         match = removals.length === 3;
       }
+      else if (typeof rule.match === "function") match = Boolean(rule.match(actor, event, context));
       if (!match) return [];
       const triggerKey = typeof rule.triggerKey === "function" ? rule.triggerKey({ actor, event, context }) : `${event.id}:${actor.id}`;
       return [{ id: rule.id, label: rule.label, sourceDigest: rule.sourceDigest, coverage: rule.coverage, triggerKey, operations: rule.operations(actor, event, context), choices: rule.choices(actor, event, context) }];
@@ -532,7 +607,7 @@
     rangeBonuses: (actor, context = {}) => numericContributions(actor, "rangeBonus", context),
     rangeBonus: (actor, context = {}) => numericContributions(actor, "rangeBonus", context).reduce((sum, item) => sum + item.amount, 0),
     boundaryOperations: (actor, context = {}) => enabled(actor).flatMap(rule => {
-      const operations = rule.boundaryOperations?.(actor, context) || [];
+      const operations = [...(rule.boundaryOperations?.(actor, context) || []), ...(rule.inventoryOperations?.(actor, context) || [])];
       return operations.length ? [{ id: rule.id, label: rule.label, operations }] : [];
     }),
     resourceGainStatus: (actor, context = {}) => enabled(actor).reduce((status, rule) => status.allowed === false ? status : rule.resourceGainStatus?.(actor, context) || status, { allowed: true, reason: "" }),
