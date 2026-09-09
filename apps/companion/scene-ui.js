@@ -282,6 +282,11 @@ function sceneNarratorBasicActionsHtml(actor){
   return `<section class="gm-manual-console gm-basic-actions"><header><div><span class="kind">ДЕЙСТВИЯ НАРРАТОРА</span><h3>Базовые действия · ${esc(actor.name)}</h3></div><small>Цели берутся с поля</small></header><div class="core-action-list">${actions.map(action=>`<button type="button" class="planned-action" data-gm-core-action="${esc(action.id)}" data-gm-actor="${actor.id}" ${action.available?"":"disabled"} title="${esc(action.reason||action.text)}"><strong>${esc(action.continuation?`Шаг · ${action.remaining} кл.`:action.name)}</strong><small>${esc(action.cost||action.group||"")}</small></button>`).join("")}</div></section>`;
 }
 function sceneNarratorTechniquesHtml(actor){
+  const techniqueSurface=window.DAWN_LIONWING_TECHNIQUE_SURFACE;
+  if(actor?.rulesEdition==="lionwing"&&techniqueSurface?.render){
+    const rendered=techniqueSurface.render(actor,{scene:Scene,viewer:{role:"narrator",actorId:actor.id}});
+    if(rendered)return "<section class=\"gm-manual-console gm-technique-console\" data-gm-technique-actor=\"" + esc(actor.id) + "\">" + rendered + "</section>";
+  }
   const coverage=TechniqueEngine.techniqueCoverage(D,actor.techniques||{}),ready=Scene.activeActorId===actor.id&&!actor.knockedOut;
   if(!coverage.length)return"";
   return `<details class="gm-manual-console gm-technique-console" data-gm-technique-actor="${actor.id}" open><summary><span><span class="kind">ТЕХНИКИ НАРРАТОРА</span><strong>Техники · ${esc(actor.name)}</strong></span><small>${coverage.filter(entry=>entry.automation!=="manual").length} автоматизировано</small></summary><div class="core-techniques">${coverage.map(entry=>`<article><span class="automation-${entry.automation}">${entry.automation==="full"?"авто":entry.automation==="decision"?"выбор":entry.automation==="partial"?"частично":"вручную"}</span><div><strong>${automationBadge(entry.automation)}${esc(entry.techniqueName)} · ${entry.level}: ${esc(entry.name)}</strong><p>${md(entry.text)}</p><div class="technique-buttons">${techniqueButtonsHtml(entry,actor,ready)}</div></div></article>`).join("")}</div></details>`;
