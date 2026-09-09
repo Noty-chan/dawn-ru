@@ -1,3 +1,63 @@
+## Актуальная точка передачи — 2026-09-09, общий контракт `information-query`
+
+Сделан gap-аудит от свежего `origin/main` (`14f1632`): прочитаны этот handoff,
+`TECHNIQUE-FOUNDATION-MAP`, readiness и requirements review, canonical EN JSON/PDF
+extraction, RU overlay, `scene-query/actions/triggers/responses`, Detective/Siren и
+network/private projection tests. До работы у capability `information-query` не
+было общего модуля: Study жил в базовом действии и разрозненных адаптерах, а
+registry notes не использовались как источник механики. Основной worktree и `main`
+не изменялись.
+
+В `apps/companion/lionwing-information-query.js` добавлен типизированный
+automation-facing контракт `DAWN_LIONWING_INFORMATION_QUERY` (schema 1,
+edition `dawn-en-lionwing-cb2f8e67`, contract digest
+`lionwing-information-query:study:v1`). `recordStudy/study` принимает только
+реально разрешённый LionWing `action.resolve` с точными `actionInstanceId` и
+единственной целью, подтверждённый строкой `actor.lionwing.history`; клиентские
+флаги, чужая цель, поддельный action или старая редакция не принимаются. Stable
+receipts и bounded journal поддерживают duplicate delivery, reload, replay и undo.
+Запись хранит владельца, цель, Turn/Round/Scene/Chapter serials, scopes, статусы,
+категории, revealed fact ids и provenance.
+
+Контракт предоставляет `availableCategories`, `confirmReveal/reveal` с ролью
+Нарратора и ручным override для неоднозначного правила, `cancelReveal`,
+`handout`, `studies`, `studyCount`, `studiedThisTurn`, `firstStudy`,
+`revealedFact(s)`, `markedTarget`, `knownHealth/knownHealthAtMost` и
+`followupStatus`. Скрытые факты, цели и actor metadata отфильтрованы в player
+projection; receipts, journal, warnings, fingerprints и source digests наружу не
+выдаются. SQL migration распространяет только public information state.
+
+Перед каждым consumer зафиксированы полный canonical EN текст, reviewed RU текст,
+`sourceDigest` и semantic diff. Evidence находится в том же модуле для:
+`powerhouse.predator.1` (`a8cae751…`), `.2` (`88f405e…`),
+`vagabond.cunning-fighter.1` (`4373bc4…`), `.3` (`42e5ed6…`),
+`bulwark.absolute-bastard.1` (`91c7070…`), `altruist.battle-instructor.1`
+(`186549b…`), `vagabond.dim-mak.1` (`86bc280…`) и `.2` (`d63edd4…`).
+Тест сверяет эти строки непосредственно с `edition-lionwing.js` и RU overlay.
+
+Opt-in adapters подключили безопасные части Predator I–II, Cunning Fighter I/III,
+Absolute Bastard I и Battle Instructor I. Общая история Study также используется
+Detective/Dim Mak I–II без переписывания уже работающих веток; всего покрыто 8
+информационных уровней, каждый помечен `partial` и canonical digest. Action quote
+передаёт Predator I `cost=0`, Swift, range `[Body]`, health-only categories и
+Battle Instructor Swift; query surfaces дают health threshold, per-target/per-turn
+counts, marked target и Cunning III follow-up availability. Полные KO-heal, движение
+и derived Speed Predator, Cunning Plan/Focus и второй Study, Taunt Absolute Bastard,
+ally movement Battle Instructor и другие lifecycle части оставлены частичными.
+
+UI показывает историю целей, категории, факт и ожидающий выбор Нарратора на русском;
+кнопки раскрытия/отмены вызывают тот же authority contract. Map/readiness обновлены:
+`information-query` теперь `ready`, версия foundation map — 9. Прямой следующий
+consumer для Frost Veiler, Assassin, Poacher, Empath, Grim Ascendant, Will-O-Wisp и
+Spellcrafter не добавлялся: их нужные уровни требуют отдельной canonical сверки и,
+для отмеченных stale registry rows Frost Veiler II, Grim Ascendant II и Empath III,
+сначала исправления semantic diff. Новый query уже прямо пригоден для их будущих
+known-health, marked-target и private fact checks.
+
+Коммиты: `096573b` (контракт, engine, adapters), `055f40e` (UI, SQL projection),
+`a272319` (targeted test, package gate, maps/readiness). Ветка
+`codex/luna-information-query` будет отправлена в `origin` после финальной проверки.
+
 ## Актуальная точка передачи — 2026-09-09, Master at Arms III и общий выбор центра области
 
 В ветке `codex/luna-master-three-area-ui` поверх контракта Armament добавлена полная
