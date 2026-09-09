@@ -771,3 +771,17 @@ actions, turns, entities. Их зависимости описывают пор�
 После ровно трёх удалений принадлежащих Детективу Слабых точек одного hostActorId в собственном `activeTurnInstanceId` появляется сохранённый optional choice. Выбор клетки рядом с целью повторно валидирует runtime; затем один бесплатный Завершающий удар атрибутом Mind по исходной цели. Повтор/replay/чужая цель и отключённая автоматизация не создают бесплатное действие.
 UI: в обычной панели действий появляется выбор телепортации, допустимые точки подсвечиваются на поле, доступен preview и confirm/cancel. Добавлен `tests/lionwing-detective-three.mjs`; он включён в `test:families`.
 Изменён Jab I на LionWing `[Mind/2]` с округлением вверх во всех трёх путях проверки (adapter, scene event, rule response). Остаток: live browser QA требует поднятого локального сервера; основные unit tests и `node --check` пройдены.
+
+## Каноническая повторная сертификация 2026-09-10
+
+Добавлен обязательный provenance gate `tests/lionwing-provenance.mjs`: каждый доступный
+адаптер и каждый registry-уровень со статусом `full/decision` теперь обязан иметь
+полный SHA-256 digest стабильного canonical payload и явный `sourceLevelId` для
+внутренних subrules. Gate проверяет также объявленный coverage и включён в
+`test:families`.
+
+Исправлены усечённые digest Детектива I–II, канонические ветки Cryomancer II,
+Grim Ascendant II, Empath III и Assassin III. Старый платный Empath Support и
+старые half-damage/Regeneration claims Grim больше не считаются источником
+автоматизации. Подробные counts и оставшийся partial/manual surface:
+`docs/tasks/LIONWING_CANONICAL_RECERTIFICATION_AUDIT.md`.

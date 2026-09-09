@@ -63,7 +63,7 @@ for (const [id, automation] of [
   ["ruiner.spellcrafter.2", "decision"],
   ["ruiner.spellcrafter.3", "decision"],
   ["ruiner.ritualist.1", "partial"],
-  ["ruiner.cryomancer.2", "decision"],
+  ["ruiner.cryomancer.2", "partial"],
   ["vagabond.knife-juggler.2", "partial"],
   ["altruist.alchemist.2", "decision"],
   ["disruptor.chemist.2", "partial"],
@@ -166,9 +166,8 @@ empathScene.actors[0].techniques={"altruist.empath":3};
 empathScene.actors[0].focus=3;empathScene.actors[0].ap=1;
 empathScene.actors[1].team="hero";empathScene.actors[1].tier=2;
 const support=Engine.preview(empathScene,{actorId:"hero",ruleId:"altruist.empath.3",targetIds:["enemy-a"]});
-assert.equal(support.ok,true);
-assert.deepEqual(JSON.parse(JSON.stringify(support.events.filter(event=>event.type==="resource.spend").map(event=>[event.payload.resource,event.payload.amount]))),[["focus",3],["ap",1]]);
-assert.equal(support.events.find(event=>event.type==="actor.state").payload.value,2);
+assert.equal(support.ok,false, "Empath III is a boundary passive, not a paid Support action");
+assert.match(support.errors.join(" "), /Пассивное правило/);
 
 const tooFar = Engine.preview(scene, {
   actorId: "hero",

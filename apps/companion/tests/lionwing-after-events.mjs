@@ -81,6 +81,17 @@ scene = choose(scene, "h", "check-health");
 assert.equal(scene.actors.find(a => a.id === "e").knockedOut, true);
 assert.equal(scene.actors.find(a => a.id === "h").focus, 2);
 
+// Grim Ascendant II is the new optional Drain Life rule, not the obsolete
+// half-damage/Regeneration toggle. The adapter requires the transformed state
+// and a real Spirit Finisher with one target.
+const grimScene = fixture({ knownTechniques: { "ruiner.grim-ascendant": 2 }, ruleState: { grimTransformed: true } });
+const grimActor = grimScene.actors[0]; grimActor.lionwing.automation = { "ruiner.grim-ascendant.2": true };
+const grimTrigger = adapters.afterEvent(grimActor, { id: "grim-finisher", type: "action.resolve", actorId: grimActor.id, execution: { actionInstanceId: "grim-action" }, payload: { actionId: "action.атаки.завершение", actionInstanceId: "grim-action", attribute: "spirit", targetIds: ["e"] } }, { scene: grimScene });
+assert.equal(grimTrigger.length, 1, "transformed Spirit Finishers open Drain Life");
+assert.equal(grimTrigger[0].choices[0].id, "drain");
+assert.equal(grimTrigger[0].choices[0].operations.length, 2, "Drain Life applies one linked Immobilize to each participant");
+assert.equal(grimTrigger[0].choices[0].operations[0].effect, "negative.обездвижен");
+
 // Meal/Bond identity is deliberately unavailable in the current runtime.
 assert.equal(adapters.afterEvent(catalogActor, { id: "meal", type: "meal.eaten", actorId: "catalog", payload: {} }, {}).length, 0);
 console.log("LionWing after-event adapters passed: opt-in, Clash reward choice, Turn limit, KO rewards, Fear/Weaken choices, reload/replay and unsupported Meal/Bond exclusion");

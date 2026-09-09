@@ -216,6 +216,24 @@ empathScene = run(empathScene, "ally", { kind: "turn-start" });
 assert.equal(empathScene.actors[1].focus, 6, "an adjacent ally gains 3 Focus at Turn start");
 assert.equal(empathScene.actors[1].hp, 10, "the same ally restores the Empath's Tier in Health");
 
+let cryomancerScene = fixture({ knownTechniques: { "ruiner.cryomancer": 2, }, attrs: { body: 5, talent: 3, spirit: 2, mind: 2 } });
+cryomancerScene = enable(cryomancerScene, "ruiner.cryomancer.2");
+cryomancerScene = run(cryomancerScene, "h", { kind: "turn-start" });
+assert.equal(cryomancerScene.actors[0].ruleClocks["ruiner.cryomancer.icicle"].current, 0, "Cryomancer II creates the four-segment Icicle clock at Scene start");
+const breathe = prepare(cryomancerScene, "h", { kind: "action", actionId: ids.breathe });
+cryomancerScene = lionwing.dispatchMany(cryomancerScene, breathe.events).scene;
+assert.equal(cryomancerScene.actors[0].ruleClocks["ruiner.cryomancer.icicle"].current, 1, "Icicle fills after an actual Focus gain from an Action");
+cryomancerScene.actors[0].ruleClocks["ruiner.cryomancer.icicle"].current = 2;
+cryomancerScene.actors[0].ruleClocks["ruiner.cryomancer.icicle"].value = 2;
+cryomancerScene.actors[1].effects = ["negative.замедлен"];
+cryomancerScene.actors[1].effectStates = { "negative.замедлен": { sources: [{ sourceId: "slow", actorId: "e", duration: "scene" }] } };
+cryomancerScene.actors[1].ap = 3; cryomancerScene.actors[0].ap = 3; cryomancerScene.actors[0].usedActions = []; cryomancerScene.actors[0].lionwing.turnActions = [];
+const icicleBreathe = prepare(cryomancerScene, "h", { kind: "action", actionId: ids.breathe, icicle: true, icicleTargetId: "e" });
+cryomancerScene = lionwing.dispatchMany(cryomancerScene, icicleBreathe.events).scene;
+assert.equal(cryomancerScene.actors[0].ruleClocks["ruiner.cryomancer.icicle"].current, 0, "Icicle replacement empties the clock");
+assert.equal(cryomancerScene.actors[1].hp, 18, "Icicle replacement deals Spirit/2 damage per emptied segment");
+assert.ok(cryomancerScene.actors[1].effects.includes("negative.обездвижен"), "Icicle damage Immobilizes a Slow target");
+
 // Alternative starting resources use the existing resource family. Each is
 // tested separately because the Techniques themselves are mutually exclusive.
 const startWith = (techniqueId, level, ruleId, extra = {}) => {

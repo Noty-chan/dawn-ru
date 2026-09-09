@@ -520,7 +520,7 @@ SHA-256 проверенных файлов: `6049f3ff6b79b8204c45cb8b830b265369
 | ---: | --- | --- | --- | --- |
 | 1 | Успокаивающая аура (Calming Aura) | проверено | с выбором | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `trigger-router`, `turn-lifecycle`, `choice-flow` |
 | 2 | Защитный отклик (Protective Response) | проверено | с выбором | `target-validation`, `event-participants`, `spatial-range`, `resource-check`, `movement-lifecycle`, `trigger-router`, `reaction-window`, `damage-pipeline`, `action-modifier` |
-| 3 | "Ты в порядке?" ("Are You Ok?") | проверено | с выбором | `target-validation`, `event-participants`, `resource-check`, `bond-actions`, `action-modifier` |
+| 3 | "Ты в порядке?" ("Are You Ok?") | проверено | полная | `target-validation`, `event-participants`, `resource-check`, `bond-actions`, `action-modifier` |
 
 ### Гурман (`altruist.gourmand`)
 
@@ -835,7 +835,7 @@ SHA-256 проверенных файлов: `6049f3ff6b79b8204c45cb8b830b265369
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
 | 1 | Охлаждение (Chill) | проверено | полная | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `trigger-router`, `action-modifier` |
-| 2 | Ледяной нимб (Icicle Halo) | проверено | с выбором | `target-validation`, `event-participants`, `resource-check`, `effect-state`, `effect-lifecycle`, `rule-clock`, `trigger-router`, `scene-lifecycle`, `choice-flow`, `damage-pipeline`, `action-modifier`, `dice-hooks` |
+| 2 | Ледяной нимб (Icicle Halo) | проверено | частичная | `target-validation`, `event-participants`, `resource-check`, `effect-state`, `effect-lifecycle`, `rule-clock`, `trigger-router`, `scene-lifecycle`, `choice-flow`, `damage-pipeline`, `action-modifier`, `dice-hooks` |
 | 3 | Раскол (Shatter) | проверено | ручная | `target-validation`, `event-participants`, `spatial-range`, `resource-check`, `effect-state`, `effect-lifecycle`, `trigger-router`, `damage-pipeline`, `action-modifier`, `information-query` |
 
 ### Драматург (`ruiner.dramaturge`)
@@ -867,7 +867,7 @@ SHA-256 проверенных файлов: `6049f3ff6b79b8204c45cb8b830b265369
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
 | 1 | Непостоянная мощь (Impermanent Power) | проверено | с выбором | `target-validation`, `event-participants`, `spatial-range`, `resource-check`, `effect-state`, `effect-lifecycle`, `movement-lifecycle`, `usage-limits`, `trigger-router`, `scene-lifecycle`, `choice-flow`, `damage-pipeline`, `action-modifier`, `derived-stats`, `transformation`, `combat-meter` |
-| 2 | Вытянуть жизнь (Drain Life) | проверено | с выбором | `effect-state`, `effect-lifecycle`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier`, `transformation` |
+| 2 | Вытянуть жизнь (Drain Life) | проверено | частичная | `effect-state`, `effect-lifecycle`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier`, `transformation` |
 | 3 | Умбра (Umbra) | проверено | ручная | `target-validation`, `event-participants`, `spatial-cells`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier`, `transformation` |
 
 ### Сильное натяжение (`ruiner.long-draw`)
