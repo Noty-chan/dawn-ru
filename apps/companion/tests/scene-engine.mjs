@@ -2872,7 +2872,11 @@ const pairedWispPrompt = Engine.dispatchMany(wispScene, firstWispChoice.events).
 assert.equal(pairedWispPrompt.pendingPrompt.kind, "wisp-secondary");
 const pairedWispChoice = Engine.respondRulePrompt(pairedWispPrompt, data, { choice: "split:bright" });
 assert.equal(pairedWispChoice.ok, true);
-let movingWispScene = Engine.dispatchMany(pairedWispPrompt, pairedWispChoice.events).scene;
+let movingWispPrompt = Engine.dispatchMany(pairedWispPrompt, pairedWispChoice.events).scene;
+assert.equal(movingWispPrompt.pendingPrompt?.kind, "wisp-create-cell");
+const movingWispPlacement = Engine.preparePromptPlacement(movingWispPrompt, { destination: { x: 1, y: 1 } });
+assert.equal(movingWispPlacement.ok, true);
+let movingWispScene = Engine.dispatchMany(movingWispPrompt, movingWispPlacement.events).scene;
 assert.equal(movingWispScene.markers.length, 2, "Paired Spirits creates two separately identifiable wisps");
 const selectedWisp = movingWispScene.markers[0];
 movingWispScene = Engine.dispatch(movingWispScene, {

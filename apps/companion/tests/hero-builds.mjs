@@ -279,14 +279,22 @@ changedWispLearning.actors[0].techniqueState.wispLearnedTypes = ["bright"];
 assert.equal(SceneEngine.respondRulePrompt(changedWispLearning, data, { actorId: "hero", choice: "split:dreamy" }).ok, false, "The secondary layout revalidates the persisted learned-property set");
 const secondSpirit = SceneEngine.respondRulePrompt(choosingLayout, data, { actorId: "hero", choice: "split:dreamy" });
 const secondSpiritEvents = secondSpirit.events.map((event, index) => ({ ...event, id: `wisp-layout-${index}` }));
-const twinWisps = SceneEngine.dispatchMany(choosingLayout, secondSpiritEvents).scene;
+const twinWispPrompt = SceneEngine.dispatchMany(choosingLayout, secondSpiritEvents).scene;
+assert.equal(twinWispPrompt.pendingPrompt?.kind, "wisp-create-cell");
+assert.equal(SceneEngine.preparePromptPlacement(twinWispPrompt, { destination: { x: 4, y: 1 } }).ok, false, "A Spirit Flame cannot be created beyond the canonical one-cell range");
+const twinWispPlacement = SceneEngine.preparePromptPlacement(twinWispPrompt, { destination: { x: 1, y: 1 } });
+assert.equal(twinWispPlacement.ok, true);
+const twinWisps = SceneEngine.dispatchMany(twinWispPrompt, twinWispPlacement.events).scene;
 assert.equal(twinWisps.markers.length, 2);
 assert.ok(SceneEngine.effectiveEffects(twinWisps, "ally").includes("positive.ускорен"));
 assert.ok(SceneEngine.effectiveEffects(twinWisps, "enemy").includes("negative.замедлен"));
 assert.equal(SceneEngine.dispatchMany(twinWisps, secondSpiritEvents).events.length, 0, "A replayed Twinned Spirits response cannot create duplicate Flames");
 const combinedWispScene = structuredClone(choosingLayout);
 const combinedWisp = SceneEngine.respondRulePrompt(combinedWispScene, data, { actorId: "hero", choice: "combine:dreamy" });
-const combinedWispResolved = SceneEngine.dispatchMany(combinedWispScene, combinedWisp.events).scene;
+const combinedWispPrompt = SceneEngine.dispatchMany(combinedWispScene, combinedWisp.events).scene;
+const combinedWispPlacement = SceneEngine.preparePromptPlacement(combinedWispPrompt, { destination: { x: 1, y: 1 } });
+assert.equal(combinedWispPlacement.ok, true);
+const combinedWispResolved = SceneEngine.dispatchMany(combinedWispPrompt, combinedWispPlacement.events).scene;
 assert.equal(combinedWispResolved.markers.length, 1);
 assert.deepEqual(Array.from(combinedWispResolved.markers[0].metadata.spiritTypes), ["bright", "dreamy"], "Twinned Spirits can combine two distinct learned properties into one Flame");
 
@@ -331,6 +339,16 @@ const declined = SceneEngine.dispatchMany(firstDeclinedCharge, decline.events).s
 assert.equal(declined.actors[0].ruleState.wispCreationUsed, true);
 const noSecondOffer = SceneEngine.dispatchMany(declined, [{ type: "action.resolve", actorId: "hero", payload: { actionId: actionNamed("Зарядка").id, name: "Зарядка", targetIds: [] } }]).scene;
 assert.equal(noSecondOffer.pendingPrompt, null, "Declining the first Scene offer cannot be retried on a later Charge");
+
+const wispIOnly = sceneWith(actor({ techniques: { "altruist.will-o-wisp": 1 }, techniqueState: { wispLearnedTypes: ["dreamy"] } }));
+const wispICharge = SceneEngine.dispatchMany(wispIOnly, SceneEngine.prepareAction(wispIOnly, data, { actorId: "hero", actionId: actionNamed("Зарядка").id }).events).scene;
+const wispIChoice = SceneEngine.respondRulePrompt(wispICharge, data, { choice: "dreamy" });
+const wispICellPrompt = SceneEngine.dispatchMany(wispICharge, wispIChoice.events).scene;
+assert.equal(wispICellPrompt.pendingPrompt?.kind, "wisp-create-cell", "Will-O-Wisp I exposes the initial placement as a visible cell choice");
+const wispICancel = SceneEngine.respondRulePrompt(wispICellPrompt, data, { choice: "cancel" });
+const wispICancelled = SceneEngine.dispatchMany(wispICellPrompt, wispICancel.events).scene;
+assert.equal(wispICancelled.actors[0].ruleState.wispCreationUsed, false, "Cancelling initial Flame placement leaves the one-time offer available");
+assert.equal(wispICancelled.markers.length, 0, "Cancelling initial Flame placement creates no marker");
 
 const autophageConstrictorBuild = { "disruptor.autophage": 3, "disruptor.constrictor": 2 };
 assert.ok(coverageFor(autophageConstrictorBuild).filter(level => level.techniqueId === "disruptor.autophage").every(level => level.automation === "partial"), "Autophage I-III remain partial until success timing and stale-trigger defects are fixed");

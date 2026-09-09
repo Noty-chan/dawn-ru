@@ -259,6 +259,11 @@ const POTION_EFFECTS = {
   "thorn-rot": "negative.порчен",
 };
 
+function wispMarkerPayload(actor, promptId, spiritTypes, destination, suffix = "a") {
+  const types = [...new Set(spiritTypes || [])], rules = types.map(type => WISP_TYPES[type]).filter(Boolean);
+  return { id: `wisp-${promptId}-${suffix}`, space: actor.space, x: Number(destination.x), y: Number(destination.y), markerKind: "ritual", label: `Духовное пламя · ${rules.map(rule => rule.label).join(" + ")}`, color: "#ef9ac1", source: "altruist.will-o-wisp.1", ruleId: "altruist.will-o-wisp.1", duration: "scene", ownerActorId: actor.id, metadata: { spiritTypes: types, effectRules: rules.map(rule => ({ effect: rule.effect, audience: rule.audience })) } };
+}
+
 function respondRulePrompt(scene, data, request = {}) {
   const choiceStatus = ruleChoiceStatus(scene, request), prompt = scene.pendingPrompt, actor = choiceStatus.source, target = choiceStatus.target, choice = choiceStatus.choice;
   const errors = choiceStatus.available ? [] : [choiceStatus.reason];
@@ -794,19 +799,18 @@ function respondRulePrompt(scene, data, request = {}) {
       const secondOptions = ["single", ...learned.filter(id => id !== choice).flatMap(id => [`combine:${id}`, `split:${id}`])];
       events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${prompt.id}-secondary`, kind: "wisp-secondary", sourceActorId: actor.id, title: "Парные духи", text: "Оставить один Дух, объединить два свойства или создать два отдельных Пламени?", options: secondOptions, context: { firstType: choice }, participantIds: [actor.id] } });
     } else if (choice !== "pass") {
-      const spirit = WISP_TYPES[choice];
-      events.push({ type: "marker.create", actorId: actor.id, payload: { id: `wisp-${prompt.id}`, space: actor.space, x: actor.x, y: actor.y, markerKind: "ritual", label: `Духовное пламя · ${spirit.label}`, color: "#ef9ac1", source: "altruist.will-o-wisp.1", ruleId: "altruist.will-o-wisp.1", duration: "scene", ownerActorId: actor.id, metadata: { spiritTypes: [choice], effectRules: [{ effect: spirit.effect, audience: spirit.audience }] } } });
+      events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${prompt.id}-cell`, kind: "wisp-create-cell", sourceActorId: actor.id, title: "Создание Духовного пламени", text: "Выберите клетку в пределах 1 клетки от себя.", options: ["cancel"], context: { spiritTypes: [choice], layout: "single" }, participantIds: [actor.id] } });
     }
   }
   if (prompt.kind === "wisp-secondary") {
     const learned = [...new Set(actor.techniqueState?.wispLearnedTypes || [])].filter(id => WISP_TYPES[id]), firstType = prompt.context?.firstType, [layout, secondType] = choice.split(":"), first = WISP_TYPES[firstType], second = WISP_TYPES[secondType];
     if (Number(actor.techniques?.["altruist.will-o-wisp"] || 0) < 3 || !actor.ruleState?.wispCreationUsed || wispMarkers(scene, actor.id).length || !learned.includes(firstType) || choice !== "single" && (!learned.includes(secondType) || secondType === firstType)) return { ok: false, errors: ["Парные духи больше не соответствуют изученным свойствам или состоянию Сцены."], events: [] };
-    if (choice === "single" && first) events.push({ type: "marker.create", actorId: actor.id, payload: { id: `wisp-${prompt.id}-a`, space: actor.space, x: actor.x, y: actor.y, markerKind: "ritual", label: `Духовное пламя · ${first.label}`, color: "#ef9ac1", source: "altruist.will-o-wisp.1", ruleId: "altruist.will-o-wisp.1", duration: "scene", ownerActorId: actor.id, metadata: { spiritTypes: [firstType], effectRules: [{ effect: first.effect, audience: first.audience }] } } });
-    else if (layout === "combine" && first && second) {
-      events.push({ type: "marker.create", actorId: actor.id, payload: { id: `wisp-${prompt.id}-a`, space: actor.space, x: actor.x, y: actor.y, markerKind: "ritual", label: `Духовное пламя · ${first.label} + ${second.label}`, color: "#ef9ac1", source: "altruist.will-o-wisp.1", ruleId: "altruist.will-o-wisp.1", duration: "scene", ownerActorId: actor.id, metadata: { spiritTypes: [firstType, secondType], effectRules: [{ effect: first.effect, audience: first.audience }, { effect: second.effect, audience: second.audience }] } } });
-    } else if (layout === "split" && first && second) {
-      for (const [index, pair] of [[0, [firstType, first]], [1, [secondType, second]]]) events.push({ type: "marker.create", actorId: actor.id, payload: { id: `wisp-${prompt.id}-${index}`, space: actor.space, x: actor.x, y: actor.y, markerKind: "ritual", label: `Духовное пламя · ${pair[1].label}`, color: "#ef9ac1", source: "altruist.will-o-wisp.1", ruleId: "altruist.will-o-wisp.1", duration: "scene", ownerActorId: actor.id, metadata: { spiritTypes: [pair[0]], effectRules: [{ effect: pair[1].effect, audience: pair[1].audience }] } } });
-    }
+    if (choice === "single" && first || second) events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${prompt.id}-cell`, kind: "wisp-create-cell", sourceActorId: actor.id, title: "Создание Духовного пламени", text: "Выберите клетку в пределах 1 клетки от себя.", options: ["cancel"], context: { spiritTypes: choice === "single" ? [firstType] : [firstType, secondType], layout }, participantIds: [actor.id] } });
+  }
+  if (prompt.kind === "wisp-create-cell") {
+    const level = Number(actor.techniques?.["altruist.will-o-wisp"] || 0), learned = [...new Set(actor.techniqueState?.wispLearnedTypes || [])].filter(id => WISP_TYPES[id]), types = [...new Set(prompt.context?.spiritTypes || [])];
+    if (level < 1 || !actor.ruleState?.wispCreationUsed || wispMarkers(scene, actor.id).length || !types.length || types.length > (level >= 3 ? 2 : 1) || types.some(type => !learned.includes(type))) return { ok: false, errors: ["Создание Духовного пламени больше не соответствует состоянию Сцены или изученным свойствам."], events: [] };
+    if (choice === "cancel") events.push({ type: "actor.state", actorId: actor.id, payload: { key: "wispCreationUsed", value: false, sourceActionId: "altruist.will-o-wisp.1", reason: "Отмена размещения до создания Пламени" } });
   }
   if (prompt.kind === "wisp-move-select" && choice !== "pass") events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${prompt.id}-cell`, kind: "marker-move-cell", sourceActorId: actor.id, title: "Перемещение Пламени", text: "Выберите клетку в пределах 4 клеток.", options: ["cancel"], context: { markerId: choice, maxDistance: 4 }, participantIds: [actor.id] } });
   if (prompt.kind === "wisp-follow" && choice !== "pass") events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${prompt.id}-cell`, kind: "marker-move-cell", sourceActorId: actor.id, targetId: target.id, title: "Пламя следует за союзником", text: `Выберите клетку, смежную с ${target.name}.`, options: ["cancel"], context: { markerId: choice, adjacentToActorId: target.id }, participantIds: [actor.id, target.id] } });
@@ -905,16 +909,21 @@ function respondRulePrompt(scene, data, request = {}) {
 function preparePromptPlacement(scene, request = {}) {
   const prompt = scene.pendingPrompt, actor = actorById(scene, prompt?.sourceActorId), marker = markerById(scene, prompt?.context?.markerId), target = actorById(scene, prompt?.targetId || prompt?.context?.targetId), destination = request.destination && { x: Number(request.destination.x), y: Number(request.destination.y) }, errors = [];
   const space = (scene.spaces || []).find(item => item.id === (marker?.space || actor?.space));
-  if (!prompt || !actor || !["marker-move-cell", "dim-mak-weak-point-cell", "empath-rush-cell", "reappear-cell", "knife-pickup-step", "meister-overclock-move", "egomaniac-style-move", "thunder-surge-cell", "siren-irresistible-cell", "untouchable-weave-cell", "constrictor-move-cell", "enemy-move-cell", "enemy-crowd-move-cell", "fodder-move-cell", "wave-rider-move-cell"].includes(prompt.kind)) errors.push("Сейчас нет выбора клетки для правила.");
+  if (!prompt || !actor || !["marker-move-cell", "wisp-create-cell", "dim-mak-weak-point-cell", "empath-rush-cell", "reappear-cell", "knife-pickup-step", "meister-overclock-move", "egomaniac-style-move", "thunder-surge-cell", "siren-irresistible-cell", "untouchable-weave-cell", "constrictor-move-cell", "enemy-move-cell", "enemy-crowd-move-cell", "fodder-move-cell", "wave-rider-move-cell"].includes(prompt.kind)) errors.push("Сейчас нет выбора клетки для правила.");
   if (!space || !destination || !Number.isInteger(destination.x) || !Number.isInteger(destination.y) || destination.x < 0 || destination.y < 0 || destination.x >= Number(space?.width || 0) || destination.y >= Number(space?.height || 0)) errors.push("Выберите клетку в пределах поля.");
   if (space && destination && removedCellKeys(scene, space.id).has(cellKey(destination))) errors.push("Эта клетка удалена из поля.");
   const movingActor = ["siren-irresistible-cell", "constrictor-move-cell", "enemy-crowd-move-cell", "fodder-move-cell", "wave-rider-move-cell"].includes(prompt?.kind) || prompt?.kind === "enemy-move-cell" && prompt.context?.moveTarget ? target : actor;
-  if (prompt?.kind !== "marker-move-cell" && movingActor && !effectCellOccupancyStatus(scene, movingActor.id, { space: space?.id, x: destination?.x, y: destination?.y }).available) errors.push("Клетка занята.");
+  if (!["marker-move-cell", "wisp-create-cell"].includes(prompt?.kind) && movingActor && !effectCellOccupancyStatus(scene, movingActor.id, { space: space?.id, x: destination?.x, y: destination?.y }).available) errors.push("Клетка занята.");
   if (prompt?.kind === "marker-move-cell") {
     if (!marker) errors.push("Духовное пламя больше не существует.");
     if (prompt.context?.maxDistance && marker && distance(marker, { ...destination, space: marker.space }) > Number(prompt.context.maxDistance)) errors.push(`Маркер можно переместить не дальше ${prompt.context.maxDistance} клеток.`);
     const adjacent = actorById(scene, prompt.context?.adjacentToActorId);
     if (adjacent && distance(adjacent, { ...destination, space: adjacent.space }) !== 1) errors.push("Пламя должно оказаться смежно с союзником.");
+  }
+  if (prompt?.kind === "wisp-create-cell") {
+    const level = Number(actor.techniques?.["altruist.will-o-wisp"] || 0), learned = [...new Set(actor.techniqueState?.wispLearnedTypes || [])].filter(id => WISP_TYPES[id]), types = [...new Set(prompt.context?.spiritTypes || [])];
+    if (actor.ruleState?.wispCreationUsed !== true || wispMarkers(scene, actor.id).length || level < 1 || !types.length || types.length > (level >= 3 ? 2 : 1) || types.some(type => !learned.includes(type))) errors.push("Создание Духовного пламени больше не соответствует состоянию Сцены или изученным свойствам.");
+    if (destination && distance(actor, { ...destination, space: actor.space }) > 1) errors.push("Духовное пламя можно создать не дальше 1 клетки от владельца.");
   }
   if (prompt?.kind === "empath-rush-cell") {
     if (!target || distance(target, { ...destination, space: target.space }) !== 1) errors.push("Прорыв должен закончиться смежно с союзником.");
@@ -1006,7 +1015,11 @@ function preparePromptPlacement(scene, request = {}) {
     events.push({ type: "rule-clock.tick", actorId: actor.id, payload: { clockId: "ruiner.thunder-blood.static", delta: -1, sourceActionId: "ruiner.thunder-blood.2", reason: "Скачок" } });
     events.push({ type: "effect.apply", actorId: actor.id, payload: { targetId: actor.id, effect: "negative.ошеломлен", sourceActionId: "ruiner.thunder-blood.2", participantIds: [actor.id] } });
   }
-  if (prompt.kind === "marker-move-cell") events.push({ type: "marker.move", actorId: actor.id, payload: { markerId: marker.id, space: marker.space, x: destination.x, y: destination.y, movement: prompt.title, participantIds: [actor.id] } });
+  if (prompt.kind === "wisp-create-cell") {
+    const types = [...new Set(prompt.context?.spiritTypes || [])], layout = prompt.context?.layout || "single";
+    if (layout === "split") for (const [index, type] of types.entries()) events.push({ type: "marker.create", actorId: actor.id, payload: wispMarkerPayload(actor, prompt.id, [type], destination, String(index)) });
+    else events.push({ type: "marker.create", actorId: actor.id, payload: wispMarkerPayload(actor, prompt.id, types, destination) });
+  } else if (prompt.kind === "marker-move-cell") events.push({ type: "marker.move", actorId: actor.id, payload: { markerId: marker.id, space: marker.space, x: destination.x, y: destination.y, movement: prompt.title, participantIds: [actor.id] } });
   else if (prompt.kind === "dim-mak-weak-point-cell") {
     events.push({ type: "marker.create", actorId: actor.id, payload: { id: `dim-mak-${prompt.id}`, space: target.space, x: destination.x, y: destination.y, markerKind: "mark", label: `Слабая точка · ${target.name}`, color: "#db6c9b", source: "vagabond.dim-mak.1", sourceActorId: actor.id, sourceLossPolicy: "remove", hostActorId: target.id, offset: { dx: Number(destination.x) - Number(target.x), dy: Number(destination.y) - Number(target.y) }, ruleId: "vagabond.dim-mak.1", duration: "scene", ownerActorId: actor.id, metadata: { carrierActorId: target.id, hostActorId: target.id, offset: { dx: Number(destination.x) - Number(target.x), dy: Number(destination.y) - Number(target.y) } }, participantIds: [actor.id, target.id] } });
     events.push({ type: "technique.resolve", actorId: actor.id, payload: { ruleId: "vagabond.dim-mak.1", name: "Изучение слабости", affectedActorIds: [target.id], participantIds: [actor.id, target.id] } });

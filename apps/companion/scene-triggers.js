@@ -1088,7 +1088,9 @@ function dispatchMany(scene, events, options = {}) {
     const placementActorId = ["siren-irresistible-cell", "constrictor-move-cell", "enemy-crowd-move-cell", "fodder-move-cell", "wave-rider-move-cell"].includes(prompt?.kind) || prompt?.kind === "enemy-move-cell" && prompt.context?.moveTarget ? prompt.targetId : prompt?.sourceActorId;
     const stationarySiren = prompt?.kind === "siren-irresistible-cell" && actorById(next, prompt.targetId)?.x === Number(destination?.x) && actorById(next, prompt.targetId)?.y === Number(destination?.y);
     const placementResponse = event?.type === "rule.respond" && event.payload?.choice === "cell" && destination && (
-      prompt?.kind === "marker-move-cell"
+      prompt?.kind === "wisp-create-cell"
+        ? queue.some(candidate => candidate.type === "marker.create" && Number(candidate.payload?.x) === Number(destination.x) && Number(candidate.payload?.y) === Number(destination.y))
+        : prompt?.kind === "marker-move-cell"
         ? queue.some(candidate => candidate.type === "marker.move" && candidate.payload?.markerId === (prompt.context?.markerId || prompt.markerId) && Number(candidate.payload?.x) === Number(destination.x) && Number(candidate.payload?.y) === Number(destination.y))
         : prompt?.kind === "dim-mak-weak-point-cell"
           ? queue.some(candidate => candidate.type === "marker.create" && Number(candidate.payload?.x) === Number(destination.x) && Number(candidate.payload?.y) === Number(destination.y))
