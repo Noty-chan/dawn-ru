@@ -907,21 +907,21 @@
 #### 1. Многогранность (Multi-Faceted) `vagabond.master-at-arms.1`
 
 - **Заявленный статус:** `full` (полная).
-- **Текущий адаптер:** `vagabond.master-at-arms.1` · `armament` · {"kind":"armament"}; Вооружение выбирается вместе со Стычкой; ядро проверяет дистанцию, число целей и повторное экипирование, хранит взаимоисключающий режим, затем ведёт перемещение, Эффекты и толчок. Каждое Вооружение ограничено одним разом за Ход..
+- **Текущий адаптер:** `vagabond.master-at-arms.1` · `armament` · {"kind":"armament","coverage":"full","sourceDigest":"d35f468065e84fbb0c86bc60015632bdbcfe9b0ced2ed2cfa370453f64a72371"}; Вооружение выбирается вместе со Стычкой; ядро проверяет дистанцию, число целей и повторное экипирование, хранит взаимоисключающий режим, затем ведёт перемещение, Эффекты и толчок. Каждое Вооружение ограничено одним разом за Ход..
 - **Готовые foundations:** `target-validation`, `event-participants`, `spatial-range`, `effect-state`, `effect-lifecycle`, `usage-limits`, `exclusive-mode`, `trigger-router`, `choice-flow`, `action-modifier`.
 - **Нужно добавить:** Сохранить существующий adapter и добавить недостающий контракт: `movement-lifecycle`, `turn-lifecycle`.
 
 #### 2. Как вода (Like Water) `vagabond.master-at-arms.2`
 
 - **Заявленный статус:** `full` (полная).
-- **Текущий адаптер:** `vagabond.master-at-arms.2` · `passive` · {"kind":"passive"}; Второе экипирование за Ход автоматически даёт 1 ОД и Ускорен..
+- **Текущий адаптер:** `vagabond.master-at-arms.2` · `passive` · {"kind":"passive","coverage":"full","sourceDigest":"743ae31f60f1a826d3346b6e07c7cff94983860c399cdc9484302e120fd726c4"}; Второе экипирование за Ход автоматически даёт 1 ОД и Ускорен..
 - **Готовые foundations:** `resource-check`, `effect-state`, `effect-lifecycle`, `usage-limits`, `exclusive-mode`, `trigger-router`.
 - **Нужно добавить:** Сохранить существующий adapter и добавить недостающий контракт: `turn-lifecycle`, `derived-stats`.
 
 #### 3. Мастер за работой (Master At Work) `vagabond.master-at-arms.3`
 
 - **Заявленный статус:** `partial` (частичная).
-- **Текущий адаптер:** `vagabond.master-at-arms.3` · `passive` · {"kind":"passive"}; Экипированное Вооружение сохраняется как состояние. Сложная геометрия Завершения пока остаётся под подтверждением Нарратора..
+- **Текущий адаптер:** `vagabond.master-at-arms.3` · `passive` · {"kind":"passive","coverage":"partial","sourceDigest":"f104c7652bda2a425422af31d8d91b30515463c98f78892fe25eb204ac7508d3"}; Экипированное Вооружение сохраняется как состояние; нейтральный hook передаёт текущий Armament в будущий Talent Finisher. Сложная геометрия Завершения остаётся под подтверждением Нарратора..
 - **Готовые foundations:** `target-validation`, `event-participants`, `spatial-cells`, `effect-state`, `effect-lifecycle`, `terrain`, `exclusive-mode`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier`, `dice-hooks`.
 - **Нужно добавить:** Сохранить существующий adapter и добавить недостающий контракт: `movement-lifecycle`.
 
@@ -1994,14 +1994,14 @@
 #### 1. Ты ведь не причинишь МНЕ боль? (You wouldn't hurt ME, would you?) `disruptor.siren.1`
 
 - **Заявленный статус:** `decision` (решение).
-- **Текущий адаптер:** `disruptor.siren.1` · `passive` · {"kind":"passive"}; После Изучения врага стол предлагает наложить Испуган, повторно проверяет цель и общий лимит 3 раза за Сцену и фиксирует применение отдельным событием..
+- **Текущий адаптер:** `disruptor.siren.1` · `passive` · {"kind":"passive","coverage":"full","sourceDigest":"8d9becba6e6f63641f5dc1a8a47e965c73f0e7112ef7ef4b781b2c6ffb632979"}; После Изучения врага стол предлагает потратить 1 Фокус и наложить Испуган на изученную цель, повторно проверяет цель и общий лимит 3 раза за Сцену и фиксирует применение отдельным событием..
 - **Готовые foundations:** `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `usage-limits`, `trigger-router`, `action-modifier`.
 - **Нужно добавить:** Сохранить существующий adapter и добавить недостающий контракт: `scene-lifecycle`, `information-query`.
 
 #### 2. Неотразимая (Irresistible) `disruptor.siren.2`
 
 - **Заявленный статус:** `decision` (решение).
-- **Текущий адаптер:** `disruptor.siren.2` · `passive` · {"kind":"passive"}; Первое за Ход наложение Испуган открывает отменяемый выбор клетки: путь цели до 3 клеток проверяется пошагово на приближение к Сирене, а смежный итог отдельно предлагает наложить Ошеломлен..
+- **Текущий адаптер:** `disruptor.siren.2` · `passive` · {"kind":"passive","coverage":"full","sourceDigest":"62f65d9d2cfad5b96f12f80b2ece81635e47b5f63083b35b4f4c6eb1db1b5ed6"}; Первое за Ход наложение Испуган открывает отменяемый выбор клетки: путь цели до 3 клеток проверяется пошагово на приближение к Сирене, а после фактического входа цели в смежность отдельно предлагает наложить Ошеломлен и только тогда даёт 1 Фокус..
 - **Готовые foundations:** `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `usage-limits`, `trigger-router`.
 - **Нужно добавить:** Сохранить существующий adapter и добавить недостающий контракт: `movement-lifecycle`, `turn-lifecycle`.
 

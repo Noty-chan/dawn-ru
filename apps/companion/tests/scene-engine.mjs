@@ -383,7 +383,8 @@ const secondArmamentResolved = Engine.dispatchMany(secondPolearmPending, Engine.
 assert.equal(secondArmamentResolved.actors[0].ap, 4, "Exactly the second Armament equip in the Turn grants 1 AP");
 assert.ok(secondArmamentResolved.actors[0].effects.includes("positive.ускорен"), "Exactly the second Armament equip Hastens the owner");
 assert.equal(secondArmamentResolved.actors[0].ruleState.masterArmament, "polearm", "The persisted equipped mode uses the canonical stable id");
-assert.ok(secondArmamentResolved.actors.find(actor => actor.id === "enemy").effects.includes("negative.подброшен") && secondArmamentResolved.actors.find(actor => actor.id === "enemy").effects.includes("negative.замедлен"), "Polearm applies both canonical effects through the shared hit pipeline");
+assert.ok(secondArmamentResolved.actors.find(actor => actor.id === "enemy").effects.includes("negative.подброшен"), "Polearm applies canonical Launch through the shared hit pipeline");
+assert.ok(!secondArmamentResolved.actors.find(actor => actor.id === "enemy").effects.includes("negative.замедлен"), "Polearm does not retain the obsolete Slow effect");
 const thirdArmamentScene = structuredClone(secondArmamentResolved);
 Object.assign(thirdArmamentScene.actors.find(actor => actor.id === "enemy"), { x: 6, y: 1 });
 thirdArmamentScene.actors.find(actor => actor.id === "enemy-2").knockedOut = true;
@@ -418,7 +419,7 @@ const armamentChainPending = Engine.dispatchMany(chainScene, armamentChainPrepar
 const armamentChainResolved = Engine.resolvePendingAction(armamentChainPending, data);
 const armamentChainFinished = Engine.dispatchMany(armamentChainPending, armamentChainResolved.events).scene;
 assert.ok(armamentChainFinished.actors[1].effects.includes("negative.разорван"));
-assert.ok(armamentChainFinished.actors[1].effects.includes("negative.порчен"), "Chain applies Torn and Corrupted to its range-4 target");
+assert.ok(!armamentChainFinished.actors[1].effects.includes("negative.порчен"), "Chain applies Rupture without the obsolete Corrupted effect");
 const polearmScene = structuredClone(scene);
 polearmScene.actors[0].techniques = { "vagabond.master-at-arms": 1 };
 polearmScene.actors[1].x = 2;
@@ -432,7 +433,7 @@ const polearmFinished = Engine.dispatchMany(polearmPending, polearmResolved.even
 for (const targetId of ["enemy", "enemy-2"]) {
   const target = polearmFinished.actors.find(actor => actor.id === targetId);
   assert.ok(target.effects.includes("negative.подброшен"));
-  assert.ok(target.effects.includes("negative.замедлен"));
+  assert.ok(!target.effects.includes("negative.замедлен"));
 }
 const chargeScene = structuredClone(scene);
 chargeScene.actors[0].focus = 0;
@@ -863,14 +864,12 @@ const sirenFrighten = Engine.respondRulePrompt(sirenStudyFlow, data, { choice: "
 assert.equal(sirenFrighten.ok, true);
 sirenStudyFlow = Engine.dispatchMany(sirenStudyFlow, sirenFrighten.events).scene;
 assert.ok(sirenStudyFlow.actors.find(actor => actor.id === "enemy").effects.includes("negative.испуган"), "Siren I applies Frightened through a typed decision");
-const sirenLimit = Engine.usageLimitStatus(sirenStudyFlow, "hero", { ruleId: "disruptor.siren.1", scope: "scene", maximum: 3 });
-assert.equal(sirenLimit.used, 1);
-assert.equal(sirenLimit.remaining, 2);
-const exhaustedSiren = structuredClone(sirenStudyScene);
-exhaustedSiren.log = [1, 2, 3].map(index => ({ id: `siren-limit-${index}`, type: "technique.resolve", actorId: "hero", payload: { ruleId: "disruptor.siren.1" } }));
-const exhaustedStudy = Engine.prepareAction(exhaustedSiren, data, { actorId: "hero", actionId: actionNamed("Изучение").id, targetIds: ["enemy"] });
-const exhaustedStudyScene = Engine.dispatchMany(exhaustedSiren, exhaustedStudy.events).scene;
-assert.notEqual(exhaustedStudyScene.pendingPrompt?.kind, "siren-study-frighten", "Siren I cannot offer a fourth use in the Scene");
+const repeatedSiren = structuredClone(sirenStudyScene);
+repeatedSiren.actors[0].focus = 4;
+repeatedSiren.log = [1, 2, 3].map(index => ({ id: `siren-use-${index}`, type: "technique.resolve", actorId: "hero", payload: { ruleId: "disruptor.siren.1" } }));
+const repeatedStudy = Engine.prepareAction(repeatedSiren, data, { actorId: "hero", actionId: actionNamed("Изучение").id, targetIds: ["enemy"] });
+const repeatedStudyScene = Engine.dispatchMany(repeatedSiren, repeatedStudy.events).scene;
+assert.equal(repeatedStudyScene.pendingPrompt?.kind, "siren-study-frighten", "Siren I remains available while the actor can pay Focus; the canonical rule has no three-use Scene limit");
 
 const stableTriggerScene = structuredClone(sirenStudyScene);
 const stableTriggerSource = { id: "stable-trigger-source", type: "action.resolve", actorId: "hero", payload: { name: "Изучение", targetIds: ["enemy"] } };

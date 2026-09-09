@@ -383,8 +383,8 @@ const RULE_MODE_ADAPTERS = [
     maximumEachPerTurn: 1,
     modes: [
       { id: "blade", label: "Клинок", condition: { distance: 2, targetCount: { min: 1, max: 2 }, adjacentToOwner: false, moveBeforeTarget: { exact: 1 } }, modifiers: { swift: true }, postOperations: [{ type: "effect", effect: "positive.усилен", target: "self", timing: "after-resolve" }] },
-      { id: "polearm", label: "Древко", condition: { targetCount: { exact: 2 }, adjacentTargets: true }, modifiers: { swift: true }, postOperations: [{ type: "displacement", mode: "push", maximum: 3, target: "targets", timing: "after-damage" }, { type: "effect", effect: "negative.подброшен", target: "targets", timing: "after-resolve" }, { type: "effect", effect: "negative.замедлен", target: "targets", timing: "after-resolve" }] },
-      { id: "chain", label: "Цепь", condition: { distance: 4, targetCount: { exact: 1 } }, modifiers: { swift: true, range: 4 }, postOperations: [{ type: "effect", effect: "negative.разорван", target: "targets", timing: "after-resolve" }, { type: "effect", effect: "negative.порчен", target: "targets", timing: "after-resolve" }] },
+      { id: "polearm", label: "Древко", condition: { targetCount: { exact: 2 }, adjacentTargets: true }, modifiers: { swift: true }, postOperations: [{ type: "displacement", mode: "push", maximum: 3, target: "targets", timing: "after-damage" }, { type: "effect", effect: "negative.подброшен", target: "targets", timing: "after-resolve" }] },
+      { id: "chain", label: "Цепь", condition: { distance: 4, targetCount: { exact: 1 } }, modifiers: { swift: true, range: 4 }, postOperations: [{ type: "effect", effect: "negative.разорван", target: "targets", timing: "after-resolve" }] },
     ],
   },
 ];

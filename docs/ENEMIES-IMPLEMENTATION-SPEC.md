@@ -138,7 +138,7 @@
 
 - **Заявленный кодовый статус:** `attack` (атака).
 - **Входная конфигурация:** `{"kind":"attack","apCost":1,"tension":0,"dice":"8(+2)","tensionMultiplier":2,"target":"targetIds: 1..1","targetEffects":["Разорван"]}`.
-- **Текущий адаптер:** статус `attack`; реестр: `scene-actions.js:25`, `scene-actions.js:73`, `scene-actions.js:811`.
+- **Текущий адаптер:** статус `attack`; реестр: `scene-actions.js:25`, `scene-actions.js:73`, `scene-actions.js:813`.
 - **Нужно добавить / проверить:** Кодовый пробел не выведен из статуса; нужны прямые pos/neg/boundary тесты и evidence для UI/сети/save-load.
 
 #### Рассечение `enemy.common.executioner.trump.bifurcate`
@@ -230,7 +230,7 @@
 
 - **Заявленный кодовый статус:** `attack` (атака).
 - **Входная конфигурация:** `{"kind":"attack","apCost":1,"tension":0,"dice":"5(+1)","tensionMultiplier":1,"target":"targetIds: 1..1, adjacent"}`.
-- **Текущий адаптер:** статус `attack`; реестр: `scene-actions.js:29`, `scene-actions.js:77`, `scene-actions.js:700`, `scene-actions.js:718`.
+- **Текущий адаптер:** статус `attack`; реестр: `scene-actions.js:29`, `scene-actions.js:77`, `scene-actions.js:702`, `scene-actions.js:720`.
 - **Нужно добавить / проверить:** Кодовый пробел не выведен из статуса; нужны прямые pos/neg/boundary тесты и evidence для UI/сети/save-load.
 
 #### Удар грома и вспышка `enemy.common.ronin.trump.thunderclap-and-flash`
@@ -490,7 +490,7 @@
 
 - **Заявленный кодовый статус:** `attack` (атака).
 - **Входная конфигурация:** `{"kind":"trump","apCost":2,"tension":1,"target":"targetIds: 0, range≤2"}`.
-- **Текущий адаптер:** статус `attack`; реестр: `scene-actions.js:61`, `scene-actions.js:88`, `scene-actions.js:734`.
+- **Текущий адаптер:** статус `attack`; реестр: `scene-actions.js:61`, `scene-actions.js:88`, `scene-actions.js:736`.
 - **Нужно добавить / проверить:** Кодовый пробел не выведен из статуса; нужны прямые pos/neg/boundary тесты и evidence для UI/сети/save-load.
 
 ### Ревенант (Revenant) `enemy.common.revenant`
@@ -782,7 +782,7 @@
 
 - **Заявленный кодовый статус:** `attack` (атака).
 - **Входная конфигурация:** `{"kind":"trump","apCost":2,"tension":0,"dice":"6(+1)","tensionMultiplier":1,"target":"targetIds: 1..1, range≤10"}`.
-- **Текущий адаптер:** статус `attack`; реестр: `scene-actions.js:60`, `scene-actions.js:99`, `scene-actions.js:699`, `scene-actions.js:1019`.
+- **Текущий адаптер:** статус `attack`; реестр: `scene-actions.js:60`, `scene-actions.js:99`, `scene-actions.js:701`, `scene-actions.js:1021`.
 - **Нужно добавить / проверить:** Конфигурация повторяет канонический урон три раза вместо одного броска 6(+1)D6.
 
 ### Культист (Cultist) `enemy.common.cultist`

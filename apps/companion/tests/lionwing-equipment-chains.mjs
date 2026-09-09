@@ -22,6 +22,8 @@ const contract = Engine.ruleModeContract(scene, "hero", { groupId: "vagabond.mas
 assert.equal(contract.sourceRuleId, "vagabond.master-at-arms.1");
 assert.equal(contract.modifiers.swift, true);
 assert.equal(contract.postOperations[0].type, "effect");
+assert.deepEqual(Array.from(Engine.ruleModeContract(scene, "hero", { groupId: contract.groupId, modeId: "polearm" }).postOperations.filter(item => item.type === "effect"), item => item.effect), ["negative.подброшен"], "Polearm applies only the canonical Launch effect");
+assert.deepEqual(Array.from(Engine.ruleModeContract(scene, "hero", { groupId: contract.groupId, modeId: "chain" }).postOperations, item => item.effect), ["negative.разорван"], "Chain applies only the canonical Rupture effect");
 const bladeReady = structuredClone(scene);
 bladeReady.actors[1].x = 3;
 let blade = Engine.masterAtArmsStatus(bladeReady, "hero", { modeId: "blade", targetIds: ["enemy"], destination: { x: 2, y: 1 } });

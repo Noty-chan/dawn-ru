@@ -67,15 +67,15 @@ const TRIGGER_RULES = [
     eventTypes: ["action.resolve"],
     priority: 60,
     match: ({ scene, actor, payload }) => {
-      if (!actor || !actionIdIs(eventActionId(payload), "study") || Number(actor.techniques?.["disruptor.siren"] || 0) < 1 || usageLimitStatus(scene, actor.id, { ruleId: "disruptor.siren.1", scope: "scene", maximum: 3 }).available === false) return false;
+      if (!actor || !actionIdIs(eventActionId(payload), "study") || Number(actor.techniques?.["disruptor.siren"] || 0) < 1) return false;
       const target = payload.targetIds?.length === 1 ? actorById(scene, payload.targetIds[0]) : null;
       const prepared = target && (scene.log || []).some(row => row.type === "action.prepare" && row.actorId === actor.id && (!payload.actionInstanceId || row.payload?.actionInstanceId === payload.actionInstanceId) && actionIdIs(row.payload?.actionId || row.payload?.actionName, "study") && row.payload?.targetIds?.length === 1 && row.payload.targetIds[0] === target.id);
       return Boolean(target && prepared && !target.knockedOut && target.team !== actor.team && target.space === actor.space);
     },
     build: ({ scene, event, actor, payload }) => {
-      const limit = usageLimitStatus(scene, actor.id, { ruleId: "disruptor.siren.1", scope: "scene", maximum: 3 }), target = actorById(scene, payload.targetIds?.[0]);
+      const target = actorById(scene, payload.targetIds?.[0]);
       if (!target || target.knockedOut || target.team === actor.team) return [];
-      return [{ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${event.id}-siren-study`, kind: "siren-study-frighten", sourceActorId: actor.id, targetId: target.id, title: "Ты ведь не причинишь МНЕ боль?", text: `Наложить Испуган на ${target.name}? Осталось применений в Сцене: ${limit.remaining}.`, options: ["frighten", "pass"], context: { studyEventId: event.id, ruleId: "disruptor.siren.1", sourceDigest: "8d9becba6e6f63641f5dc1a8a47e965c73f0e7112ef7ef4b781b2c6ffb632979" }, participantIds: [actor.id, target.id] } }];
+      return [{ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${event.id}-siren-study`, kind: "siren-study-frighten", sourceActorId: actor.id, targetId: target.id, title: "Ты ведь не причинишь МНЕ боль?", text: `Потратить 1 Фокус и наложить Испуган на ${target.name}?`, options: ["frighten", "pass"], context: { studyEventId: event.id, ruleId: "disruptor.siren.1", sourceDigest: "8d9becba6e6f63641f5dc1a8a47e965c73f0e7112ef7ef4b781b2c6ffb632979" }, participantIds: [actor.id, target.id] } }];
     },
   },
   {
