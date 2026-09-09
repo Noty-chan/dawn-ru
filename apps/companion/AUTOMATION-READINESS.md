@@ -111,8 +111,8 @@
 | Копейщик (`powerhouse.lancer`) | 1 | Пронзание (Pierce) | тонкий адаптер уникального условия поверх уже готового ядра |
 | Копейщик (`powerhouse.lancer`) | 2 | Фаланга (Phalanx) | тонкий адаптер уникального условия поверх уже готового ядра |
 | Копейщик (`powerhouse.lancer`) | 3 | Рука-пушка (Cannon-Arm) [Передышка -> Стычка] | тонкий адаптер уникального условия поверх уже готового ядра |
-| Хищник (`powerhouse.predator`) | 1 | Тоска (Yearn) | `turn-lifecycle`, `information-query` |
-| Хищник (`powerhouse.predator`) | 2 | Одержимость (Obsess) | `movement-lifecycle`, `derived-stats`, `information-query` |
+| Хищник (`powerhouse.predator`) | 1 | Тоска (Yearn) | `turn-lifecycle` |
+| Хищник (`powerhouse.predator`) | 2 | Одержимость (Obsess) | `movement-lifecycle`, `derived-stats` |
 | Хищник (`powerhouse.predator`) | 3 | Пожрать (Devour) | `scene-lifecycle` |
 | Импровизатор (`powerhouse.improvisational-fighter`) | 2 | Ох! Вот это было больно! (Oh! That One Hurt!) | `turn-lifecycle` |
 | Импровизатор (`powerhouse.improvisational-fighter`) | 3 | Последнее средство (Last Resort) | `scene-lifecycle`, `combat-meter` |
@@ -134,7 +134,7 @@
 | Мастер клинка (`vagabond.blade-master`) | 1 | Стойка выхвата (Draw Stance) | тонкий адаптер уникального условия поверх уже готового ядра |
 | Мастер клинка (`vagabond.blade-master`) | 2 | Рассечение одним движением (Divide In One Motion) [Передышка -> Прыжок] | `movement-lifecycle` |
 | Мастер клинка (`vagabond.blade-master`) | 3 | Прыгающий карп (Leaping Koi) | `movement-lifecycle` |
-| Хитроумный боец (`vagabond.cunning-fighter`) | 3 | С первого взгляда (At a Glance) | `turn-lifecycle`, `information-query` |
+| Хитроумный боец (`vagabond.cunning-fighter`) | 3 | С первого взгляда (At a Glance) | `turn-lifecycle` |
 | Скованный (`vagabond.enchained`) | 2 | Притянуть (Draw In) | `movement-lifecycle` |
 | Скованный (`vagabond.enchained`) | 3 | Импульс (Momentum) [Заклинание -> Стычка] | `movement-lifecycle` |
 | Злобный подражатель (`vagabond.malicious-mimic`) | 1 | "Все, что можешь ты..." ("Anything You Can Do...") | `scene-lifecycle`, `inventory`, `action-copy` |
@@ -160,7 +160,7 @@
 | Щит авангарда (`bulwark.vanguard-defender`) | 1 | Белый рыцарь (White Knight) | `movement-lifecycle` |
 | Щит авангарда (`bulwark.vanguard-defender`) | 2 | Стальной ангел (Steel Angel) | `turn-lifecycle`, `derived-stats` |
 | Щит авангарда (`bulwark.vanguard-defender`) | 3 | Вдохновить мужество (Inspire Courage) | `movement-lifecycle` |
-| Полный ублюдок (`bulwark.absolute-bastard`) | 1 | Легко ненавидеть (Easy To Hate) | `scene-lifecycle`, `information-query` |
+| Полный ублюдок (`bulwark.absolute-bastard`) | 1 | Легко ненавидеть (Easy To Hate) | `scene-lifecycle` |
 | Полный ублюдок (`bulwark.absolute-bastard`) | 2 | Задира (Bully) | `movement-lifecycle`, `turn-lifecycle`, `derived-stats` |
 | Полный ублюдок (`bulwark.absolute-bastard`) | 3 | Добавить травму к оскорблению (Add Injury To Insult) | тонкий адаптер уникального условия поверх уже готового ядра |
 | Боевой наездник (`bulwark.battle-jockey`) | 1 | Верный скакун (Trusty Steed) | `movement-lifecycle`, `summon-turns`, `deployment-hooks` |
@@ -174,13 +174,13 @@
 | Восходящий претендент (`bulwark.rising-challenger`) | 1 | Идеальное отражение (Perfect Deflection) | `movement-lifecycle` |
 | Восходящий претендент (`bulwark.rising-challenger`) | 2 | "Сначала тебе придется пройти через меня!" ("You'll Have To Get Through Me!") | `movement-lifecycle` |
 | Рунное возмездие (`bulwark.runic-retribution`) | 1 | Удар плетью (Lash) | тонкий адаптер уникального условия поверх уже готового ядра |
-| Рунное возмездие (`bulwark.runic-retribution`) | 2 | Любящий обряд (Loving Rite) | `information-query` |
+| Рунное возмездие (`bulwark.runic-retribution`) | 2 | Любящий обряд (Loving Rite) | тонкий адаптер уникального условия поверх уже готового ядра |
 | Рунное возмездие (`bulwark.runic-retribution`) | 3 | Преданность (Devotion) | `movement-lifecycle` |
 | Щитоносец (`bulwark.shield-bearer`) | 1 | Стена (Wall) | `turn-lifecycle`, `derived-stats` |
 | Щитоносец (`bulwark.shield-bearer`) | 2 | Удар щитом (Shield Charge) | `movement-lifecycle` |
 | Щитоносец (`bulwark.shield-bearer`) | 3 | Сосредоточенная защита (Focused Defense) | `derived-stats` |
 | Стойкий часовой (`bulwark.stalwart-sentry`) | 1 | Страж (Guardian) | `movement-lifecycle`, `turn-lifecycle` |
-| Стойкий часовой (`bulwark.stalwart-sentry`) | 3 | Зона контроля (Zone Of Influence) | `movement-lifecycle`, `information-query` |
+| Стойкий часовой (`bulwark.stalwart-sentry`) | 3 | Зона контроля (Zone Of Influence) | `movement-lifecycle` |
 | Звериный Вознесенный (`bulwark.beastial-ascendant`) | 1 | Звериность (Beastly) | `movement-lifecycle`, `scene-lifecycle`, `transformation`, `combat-meter`, `action-copy` |
 | Звериный Вознесенный (`bulwark.beastial-ascendant`) | 2 | Наследие (Inheritance) | `transformation`, `action-copy` |
 | Звериный Вознесенный (`bulwark.beastial-ascendant`) | 3 | Вершина (Apex) | `scene-lifecycle`, `transformation`, `action-copy` |
@@ -192,7 +192,7 @@
 | Пилот меха (`bulwark.mecha-pilot`) | 1 | Двигатель рунного ядра (Rune Core Engine) | `movement-lifecycle`, `derived-stats`, `multi-space-actor` |
 | Пилот меха (`bulwark.mecha-pilot`) | 2 | Автономный (Autonomous) | `summon-turns`, `derived-stats`, `multi-space-actor` |
 | Пилот меха (`bulwark.mecha-pilot`) | 3 | Идеальная синхронизация (Perfect Sync) | `summon-turns`, `derived-stats`, `multi-space-actor` |
-| Боевой инструктор (`altruist.battle-instructor`) | 1 | Приказ к удару (Strike Order) | `movement-lifecycle`, `information-query` |
+| Боевой инструктор (`altruist.battle-instructor`) | 1 | Приказ к удару (Strike Order) | `movement-lifecycle` |
 | Боевой инструктор (`altruist.battle-instructor`) | 2 | Обучающий момент (Teaching Moment) | `bond-actions` |
 | Боевой инструктор (`altruist.battle-instructor`) | 3 | Вспомни обучение (Remember Your Training) | `bond-actions`, `scene-lifecycle` |
 | Гурман (`altruist.gourmand`) | 1 | Здоровая трапеза (Healthy Meal) | `inventory`, `intermission-reset` |
@@ -266,7 +266,7 @@
 | Ритуалист (`ruiner.ritualist`) | 3 | Фрактальные начертания (Fractal Etchings) | `scene-lifecycle` |
 | Ученик звезд (`ruiner.student-of-stars`) | 1 | Высвобожденная мощь (Power Unleashed) [Зарядка -> Завершение] | `combat-meter` |
 | Ученик звезд (`ruiner.student-of-stars`) | 3 | Момент истины (Moment Of Truth) | `duel-flow` |
-| Криомант (`ruiner.cryomancer`) | 3 | Раскол (Shatter) | `information-query` |
+| Криомант (`ruiner.cryomancer`) | 3 | Раскол (Shatter) | тонкий адаптер уникального условия поверх уже готового ядра |
 | Драматург (`ruiner.dramaturge`) | 1 | Все смотрят на меня (All Eyes On Me) | `combat-meter` |
 | Драматург (`ruiner.dramaturge`) | 2 | Украсть их огонь (Snatch Their Fire) | `turn-lifecycle`, `combat-meter` |
 | Драматург (`ruiner.dramaturge`) | 3 | Сила подачи (Power In Presentation) | `combat-meter` |
@@ -301,7 +301,6 @@
 | `combat-meter` · Напряжение и общие счетчики боя | 13 | Один общий контракт сможет снять этот блокер сразу у нескольких адаптеров; модуль пока не закреплён |
 | `summon-turns` · Призывы и делегированные Ходы | 11 | Один общий контракт сможет снять этот блокер сразу у нескольких адаптеров; модуль пока не закреплён |
 | `action-copy` · Заимствование Атак и Техник | 10 | Один общий контракт сможет снять этот блокер сразу у нескольких адаптеров; модуль пока не закреплён |
-| `information-query` · Изучение и раскрытие информации | 9 | Один общий контракт сможет снять этот блокер сразу у нескольких адаптеров; модуль пока не закреплён |
 | `transformation` · Трансформации и заимствованные правила | 9 | Один общий контракт сможет снять этот блокер сразу у нескольких адаптеров; модуль пока не закреплён |
 | `multi-space-actor` · Размер и несколько клеток персонажа | 6 | Один общий контракт сможет снять этот блокер сразу у нескольких адаптеров; модуль пока не закреплён |
 | `deployment-hooks` · Развертывание | 5 | Один общий контракт сможет снять этот блокер сразу у нескольких адаптеров; модуль пока не закреплён |

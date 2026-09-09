@@ -1,7 +1,7 @@
 "use strict";
 
 (function exposeTechniqueFoundationMap(global) {
-  const VERSION = 8;
+  const VERSION = 9;
   const CAPABILITIES = {
     "event-participants": { label: "Участники события", state: "ready", module: "scene-engine-core.js" },
     "event-preview": { label: "Предпросмотр цепочки", state: "ready", module: "scene-triggers.js" },
@@ -39,7 +39,7 @@
     "intermission-reset": { label: "Сброс на Интермиссии", state: "planned" },
     "bond-actions": { label: "Связи и действия Связей", state: "planned" },
     "derived-stats": { label: "Производные характеристики персонажа", state: "planned" },
-    "information-query": { label: "Изучение и раскрытие информации", state: "planned" },
+    "information-query": { label: "Изучение и раскрытие информации", state: "ready", module: "lionwing-information-query.js / lionwing-engine.js" },
     transformation: { label: "Трансформации и заимствованные правила", state: "planned" },
     "duel-flow": { label: "Дуэли и ставки", state: "planned" },
     "combat-meter": { label: "Напряжение и общие счетчики боя", state: "planned" },

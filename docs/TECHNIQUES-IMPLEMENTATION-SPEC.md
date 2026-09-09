@@ -42,6 +42,7 @@
 | `entity-lifecycle` · Жизненный цикл зон, маркеров и объектов | `scene-events.js / scene-triggers.js / scene-ui.js` | Готовая общая возможность; отдельный уровень всё равно должен явно зарегистрировать адаптер. |
 | `dice-hooks` · Модификаторы и повтор броска | `scene-foundations.js / scene-events.js / scene-triggers.js` | Готовая общая возможность; отдельный уровень всё равно должен явно зарегистрировать адаптер. |
 | `duration-scheduler` · Сроки действия и отложенные эффекты | `scene-events.js / scene-triggers.js / scene-ui.js` | Готовая общая возможность; отдельный уровень всё равно должен явно зарегистрировать адаптер. |
+| `information-query` · Изучение и раскрытие информации | `lionwing-information-query.js / lionwing-engine.js` | Готовая общая возможность; отдельный уровень всё равно должен явно зарегистрировать адаптер. |
 
 ## Требуемые / незавершённые семейства
 
@@ -56,7 +57,6 @@
 | `intermission-reset` · Сброс на Интермиссии | planned | Общий typed контракт вместо ручного решения; текущая карта перечисляет зависимость, но не реализует уровень сама. |
 | `bond-actions` · Связи и действия Связей | planned | Общий typed контракт вместо ручного решения; текущая карта перечисляет зависимость, но не реализует уровень сама. |
 | `derived-stats` · Производные характеристики персонажа | planned | Общий typed контракт вместо ручного решения; текущая карта перечисляет зависимость, но не реализует уровень сама. |
-| `information-query` · Изучение и раскрытие информации | planned | Общий typed контракт вместо ручного решения; текущая карта перечисляет зависимость, но не реализует уровень сама. |
 | `transformation` · Трансформации и заимствованные правила | planned | Общий typed контракт вместо ручного решения; текущая карта перечисляет зависимость, но не реализует уровень сама. |
 | `duel-flow` · Дуэли и ставки | planned | Общий typed контракт вместо ручного решения; текущая карта перечисляет зависимость, но не реализует уровень сама. |
 | `combat-meter` · Напряжение и общие счетчики боя | planned | Общий typed контракт вместо ручного решения; текущая карта перечисляет зависимость, но не реализует уровень сама. |
@@ -423,15 +423,15 @@
 
 - **Заявленный статус:** `manual` (ручная).
 - **Текущий адаптер:** нет записи в `RULES`.
-- **Готовые foundations:** `target-validation`, `event-participants`, `resource-check`, `usage-limits`, `trigger-router`, `damage-pipeline`, `action-modifier`.
-- **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `turn-lifecycle`, `information-query`.
+- **Готовые foundations:** `target-validation`, `event-participants`, `resource-check`, `usage-limits`, `trigger-router`, `damage-pipeline`, `action-modifier`, `information-query`.
+- **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `turn-lifecycle`.
 
 #### 2. Одержимость (Obsess) `powerhouse.predator.2`
 
 - **Заявленный статус:** `manual` (ручная).
 - **Текущий адаптер:** нет записи в `RULES`.
-- **Готовые foundations:** `terrain`, `trigger-router`, `damage-pipeline`.
-- **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `movement-lifecycle`, `derived-stats`, `information-query`.
+- **Готовые foundations:** `terrain`, `trigger-router`, `damage-pipeline`, `information-query`.
+- **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `movement-lifecycle`, `derived-stats`.
 
 #### 3. Пожрать (Devour) `powerhouse.predator.3`
 
@@ -678,8 +678,8 @@
 
 - **Заявленный статус:** `decision` (решение).
 - **Текущий адаптер:** `vagabond.cunning-fighter.1.foundation` · `foundation` · {"kind":"foundation","foundation":"clock","clockId":"vagabond.cunning-fighter.plan","size":4,"initial":0}; Новая цель Изучения заполняет Хитрый план; интерфейс явно предлагает потратить сегмент на Быстрое действие не-Атаки..
-- **Готовые foundations:** `target-validation`, `event-participants`, `rule-clock`, `usage-limits`, `trigger-router`, `action-modifier`.
-- **Нужно добавить:** Сохранить существующий adapter и добавить недостающий контракт: `turn-lifecycle`, `scene-lifecycle`, `information-query`.
+- **Готовые foundations:** `target-validation`, `event-participants`, `rule-clock`, `usage-limits`, `trigger-router`, `action-modifier`, `information-query`.
+- **Нужно добавить:** Сохранить существующий adapter и добавить недостающий контракт: `turn-lifecycle`, `scene-lifecycle`.
 
 #### 2. Планы внутри планов (Plans Within Plans) `vagabond.cunning-fighter.2`
 
@@ -692,8 +692,8 @@
 
 - **Заявленный статус:** `manual` (ручная).
 - **Текущий адаптер:** нет записи в `RULES`.
-- **Готовые foundations:** `target-validation`, `event-participants`, `spatial-cells`, `spatial-range`, `resource-check`, `usage-limits`, `trigger-router`, `action-modifier`.
-- **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `turn-lifecycle`, `information-query`.
+- **Готовые foundations:** `target-validation`, `event-participants`, `spatial-cells`, `spatial-range`, `resource-check`, `usage-limits`, `trigger-router`, `action-modifier`, `information-query`.
+- **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `turn-lifecycle`.
 
 ### Эгоманьяк (Egomaniac) `vagabond.egomaniac`
 
@@ -862,15 +862,15 @@
 
 - **Заявленный статус:** `decision` (решение).
 - **Текущий адаптер:** `vagabond.dim-mak.1` · `passive` · {"kind":"passive"}; Повторное и третье Изучение получают Быстроту по тексту уровня; после Изучения можно поставить привязанную к цели Слабую точку, а Атака с её клетки снимает маркер, становится Быстрой и использует Разум..
-- **Готовые foundations:** `target-validation`, `event-participants`, `owned-entities`, `entity-lifecycle`, `usage-limits`, `trigger-router`, `choice-flow`, `action-modifier`.
-- **Нужно добавить:** Сохранить существующий adapter и добавить недостающий контракт: `movement-lifecycle`, `turn-lifecycle`, `information-query`.
+- **Готовые foundations:** `target-validation`, `event-participants`, `owned-entities`, `entity-lifecycle`, `usage-limits`, `trigger-router`, `choice-flow`, `action-modifier`, `information-query`.
+- **Нужно добавить:** Сохранить существующий adapter и добавить недостающий контракт: `movement-lifecycle`, `turn-lifecycle`.
 
 #### 2. Полевая разведка (Field Investigation) `vagabond.dim-mak.2`
 
 - **Заявленный статус:** `decision` (решение).
 - **Текущий адаптер:** `vagabond.dim-mak.2` · `passive` · {"kind":"passive"}; Промах вражеской Атаки предлагает бесплатное Быстрое Изучение атакующего; снятие Слабой точки автоматически даёт 2 Уклонения..
-- **Готовые foundations:** `target-validation`, `event-participants`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `reaction-window`, `action-modifier`.
-- **Нужно добавить:** Сохранить существующий adapter и добавить недостающий контракт: `information-query`, `derived-stats`.
+- **Готовые foundations:** `target-validation`, `event-participants`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `reaction-window`, `action-modifier`, `information-query`.
+- **Нужно добавить:** Сохранить существующий adapter и добавить недостающий контракт: `derived-stats`.
 
 #### 3. Казнь по четырем точкам (4-Point Execution) `vagabond.dim-mak.3`
 
@@ -1025,8 +1025,8 @@
 
 - **Заявленный статус:** `manual` (ручная).
 - **Текущий адаптер:** нет записи в `RULES`.
-- **Готовые foundations:** `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `usage-limits`, `trigger-router`, `action-modifier`.
-- **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `scene-lifecycle`, `information-query`.
+- **Готовые foundations:** `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `usage-limits`, `trigger-router`, `action-modifier`, `information-query`.
+- **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `scene-lifecycle`.
 
 #### 2. Задира (Bully) `bulwark.absolute-bastard.2`
 
@@ -1170,8 +1170,8 @@
 
 - **Заявленный статус:** `manual` (ручная).
 - **Текущий адаптер:** нет записи в `RULES`.
-- **Готовые foundations:** `target-validation`, `event-participants`, `resource-check`, `effect-state`, `effect-lifecycle`, `trigger-router`, `reaction-window`, `choice-flow`, `action-modifier`.
-- **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `information-query`.
+- **Готовые foundations:** `target-validation`, `event-participants`, `resource-check`, `effect-state`, `effect-lifecycle`, `trigger-router`, `reaction-window`, `choice-flow`, `action-modifier`, `information-query`.
+- **Нужно добавить:** Зарегистрировать отдельный adapter (trigger → validation → events/resolver) и прямые тесты; общая инфраструктура сама правило не исполняет.
 
 #### 3. Преданность (Devotion) `bulwark.runic-retribution.3`
 
@@ -1223,8 +1223,8 @@
 
 - **Заявленный статус:** `manual` (ручная).
 - **Текущий адаптер:** нет записи в `RULES`.
-- **Готовые foundations:** `target-validation`, `event-participants`, `terrain`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `reaction-window`, `action-modifier`.
-- **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `movement-lifecycle`, `information-query`.
+- **Готовые foundations:** `target-validation`, `event-participants`, `terrain`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `reaction-window`, `action-modifier`, `information-query`.
+- **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `movement-lifecycle`.
 
 ### Звериный Вознесенный (Beastial Ascendant) `bulwark.beastial-ascendant`
 
@@ -1326,8 +1326,8 @@
 
 - **Заявленный статус:** `manual` (ручная).
 - **Текущий адаптер:** нет записи в `RULES`.
-- **Готовые foundations:** `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `trigger-router`, `choice-flow`, `action-modifier`.
-- **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `movement-lifecycle`, `information-query`.
+- **Готовые foundations:** `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `trigger-router`, `choice-flow`, `action-modifier`, `information-query`.
+- **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `movement-lifecycle`.
 
 #### 2. Обучающий момент (Teaching Moment) `altruist.battle-instructor.2`
 
@@ -1749,7 +1749,7 @@
 
 - **Заявленный статус:** `partial` (частичная).
 - **Текущий адаптер:** `disruptor.chemist.2` · `passive` · {"kind":"passive"}; Незакрыто: опциональный запрос Нарратору о скрытом Здоровье; текущий автоматический KO не может заменять это решение..
-- **Готовые foundations:** `target-validation`, `event-participants`, `resource-check`, `effect-state`, `effect-lifecycle`, `trigger-router`, `choice-flow`, `damage-pipeline`.
+- **Готовые foundations:** `target-validation`, `event-participants`, `resource-check`, `effect-state`, `effect-lifecycle`, `trigger-router`, `choice-flow`, `damage-pipeline`, `information-query`.
 - **Нужно добавить:** Здоровье цели читается и KO применяется автоматически вместо вопроса Нарратору.
 
 #### 3. Осаждение (Deposition) `disruptor.chemist.3`
@@ -1995,8 +1995,8 @@
 
 - **Заявленный статус:** `decision` (решение).
 - **Текущий адаптер:** `disruptor.siren.1` · `passive` · {"kind":"passive","coverage":"full","sourceDigest":"8d9becba6e6f63641f5dc1a8a47e965c73f0e7112ef7ef4b781b2c6ffb632979"}; После Изучения врага стол предлагает потратить 1 Фокус и наложить Испуган на изученную цель, повторно проверяет цель и общий лимит 3 раза за Сцену и фиксирует применение отдельным событием..
-- **Готовые foundations:** `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `usage-limits`, `trigger-router`, `action-modifier`.
-- **Нужно добавить:** Сохранить существующий adapter и добавить недостающий контракт: `scene-lifecycle`, `information-query`.
+- **Готовые foundations:** `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `usage-limits`, `trigger-router`, `action-modifier`, `information-query`.
+- **Нужно добавить:** Сохранить существующий adapter и добавить недостающий контракт: `scene-lifecycle`.
 
 #### 2. Неотразимая (Irresistible) `disruptor.siren.2`
 
@@ -2264,8 +2264,8 @@
 
 - **Заявленный статус:** `manual` (ручная).
 - **Текущий адаптер:** нет записи в `RULES`.
-- **Готовые foundations:** `target-validation`, `event-participants`, `spatial-range`, `resource-check`, `effect-state`, `effect-lifecycle`, `trigger-router`, `damage-pipeline`, `action-modifier`.
-- **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `information-query`.
+- **Готовые foundations:** `target-validation`, `event-participants`, `spatial-range`, `resource-check`, `effect-state`, `effect-lifecycle`, `trigger-router`, `damage-pipeline`, `action-modifier`, `information-query`.
+- **Нужно добавить:** Зарегистрировать отдельный adapter (trigger → validation → events/resolver) и прямые тесты; общая инфраструктура сама правило не исполняет.
 
 ### Драматург (Dramaturge) `ruiner.dramaturge`
 

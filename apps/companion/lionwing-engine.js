@@ -125,6 +125,7 @@
   const isScene = scene => scene?.rulesEdition === "lionwing" || !scene?.rulesEdition && (scene?.actors || []).some(a => a.rulesEdition === "lionwing" || a.profileId?.startsWith("lionwing."));
   const state = scene => {
     scene.lionwing ||= {};
+    if (global.DAWN_LIONWING_INFORMATION_QUERY?.ensureState) global.DAWN_LIONWING_INFORMATION_QUERY.ensureState(scene);
     const s=scene.lionwing;s.schema=2;
     // Auras are declarative scene state. They stay outside actor.effects so a
     // render/query never materializes one copy on every target.
@@ -655,7 +656,7 @@
     const latestDeployment = deploymentRows.length ? deploymentRows[deploymentRows.length - 1] : null;
     const actionsAfterDeployment = latestDeployment ? (scene.log || []).slice(latestDeployment.index + 1).some(event => event?.actorId === a.id && ["action.prepare", "action.resolve"].includes(event.type)) || actionHistory.some(item => Number(item.turnSerial) === Number(scene.turnSerial) && (!scene.lionwing?.activeTurnInstanceId || !item.ownerTurnInstanceId || item.ownerTurnInstanceId === scene.lionwing.activeTurnInstanceId)) : false;
     const firstActionAfterDeploy = Boolean(latestDeployment && !actionsAfterDeployment);
-    const modifierQuote = global.DAWN_LIONWING_ADAPTERS?.actionQuote?.(a, { scene, actionId: def.id, baseCost, baseResource: def.cost.resource, baseSwift, continuation, firstActionAfterDeploy, request: { breakout: Boolean(request.breakout) } }) || { ok: true, cost: baseCost, resource: def.cost.resource, swift: baseSwift, ignoreRequirements: [], modifiers: [], modifierIds: [] };
+    const modifierQuote = global.DAWN_LIONWING_ADAPTERS?.actionQuote?.(a, { scene, actionId: def.id, baseCost, baseResource: def.cost.resource, baseSwift, continuation, firstActionAfterDeploy, targetIds: request.targetIds || [], request: { breakout: Boolean(request.breakout) } }) || { ok: true, cost: baseCost, resource: def.cost.resource, swift: baseSwift, ignoreRequirements: [], modifiers: [], modifierIds: [] };
     if (modifierQuote.ok === false) return unavailable(modifierQuote.reason || "Модификаторы действия конфликтуют");
     const cost = Number(modifierQuote.cost ?? baseCost), swift = Boolean(modifierQuote.swift), used = isPlayer(a) ? (a.usedActions || []) : (a.lionwing?.turnActions || []);
     if (!swift && used.includes(def.id)) return unavailable("Действие уже использовано");
@@ -851,7 +852,7 @@
   function prepare(scene, request, options = {}) {
     try {
       const eventId = request?.eventId ?? request?.commandId ?? request?.id ?? global.crypto?.randomUUID?.() ?? `lw-prepared-${Date.now()}-${preparedSerial++}`;
-      const payload = copy(request), a = ["scene-reset","round-end","tension","note","banish","vanish","compound"].includes(payload.kind)&&!payload.actorId?null:requiredActor(scene, payload.actorId, !["choice", "correct", "resolve-attack", "cancel-attack", "batch","banish","vanish","compound"].includes(payload.kind));
+      const payload = copy(request), a = ["scene-reset","round-end","tension","note","banish","vanish","compound","information-reveal","information-cancel","information-handout"].includes(payload.kind)&&!payload.actorId?null:requiredActor(scene, payload.actorId, !["choice", "correct", "resolve-attack", "cancel-attack", "batch","banish","vanish","compound","information-reveal","information-cancel","information-handout"].includes(payload.kind));
       const rollMeta = (extra = {}) => ({ rootActionId: eventId, actionInstanceId: eventId, causeEventId: eventId, ownerActorId: a?.id || null, ...extra });
       delete payload.actorId;
       if (payload.kind === "action") {
@@ -1890,7 +1891,7 @@
       const targets = targetIds(scene,p.targetIds).map(id => requiredActor(scene, id));
       if ([ids.spell, ids.study, ids.shove, "action.атаки.дуэль"].includes(def.id) && targets.length !== 1 || def.id === ids.finish && !p.areaPlan && targets.length !== 1 || def.id === ids.skirmish && (!targets.length || targets.length > 2)) fail("Неверное число целей");
       const finishContext = { scene, kind: "attack", actionId: def.id, attribute: p.attribute || (def.id === ids.finish ? "spirit" : null), tension: Number(scene.tension || 0), spellCircleActive: p.spellCircleActive === true || spellCircleActive(scene, a), firstSpiritFinisherThisTurn: def.id === ids.finish && (p.firstSpiritFinisherThisTurn === true || firstSpiritFinisherThisTurn(scene, a, p.actionInstanceId || provenance?.actionInstanceId || rootId)) };
-      const range = def.id === ids.spell ? 5 : def.id === ids.finish ? 1 + adapterNumber("rangeBonus", a, finishContext) : def.id === ids.study ? Number(a.attrs.mind || 0) : 1;
+      const range = def.id === ids.spell ? 5 : def.id === ids.finish ? 1 + adapterNumber("rangeBonus", a, finishContext) : def.id === ids.study ? Number(status.actionQuote?.range ?? a.attrs.mind ?? 0) : 1;
       if ([ids.spell, ids.skirmish, ids.study, ids.shove, "action.атаки.дуэль"].includes(def.id) && targets.some(t => t.id === a.id || distance(a, t) > range) || def.id === ids.finish && !p.areaPlan && targets.some(t => t.id === a.id || distance(a, t) > range)) fail("Цель вне дальности действия");
       if (def.id === ids.study && isPlayer(targets[0])) fail("Изучение требует NPC");
       const focusSpent = integer(p.focusSpent || 0, "Фокус");
@@ -1906,6 +1907,11 @@
       p.actionInstanceId ||= provenance?.actionInstanceId || rootId;
       p.ownerTurnInstanceId ||= s.activeTurnInstanceId || null;
       emit("action.resolve", a.id, { actionId: def.id, name: def.name, targetIds: targets.map(t => t.id), actionInstanceId: p.actionInstanceId, ownerTurnInstanceId: p.ownerTurnInstanceId, attribute: finishContext.attribute, techniqueRuleId: p.techniqueRuleId || null, finisherMode: p.finisherMode || null });
+      if (def.id === ids.study && global.DAWN_LIONWING_INFORMATION_QUERY?.recordStudy) {
+        const studyResult = global.DAWN_LIONWING_INFORMATION_QUERY.recordStudy(scene, { actorId: a.id, targetId: targets[0].id, actionInstanceId: p.actionInstanceId, actionEventId: scene.log[0]?.id, rootActionId: provenance?.rootActionId || rootId, categories: status.actionQuote?.informationCategories || null });
+        if (!studyResult.ok) fail(studyResult.errors?.join(" ") || "Изучение не подтверждено квитанцией");
+        emit("information.study", a.id, { studyId: studyResult.study?.id, targetId: targets[0].id, categories: global.DAWN_LIONWING_INFORMATION_QUERY.availableCategories(scene, studyResult.study).map(item => item.id), actionInstanceId: p.actionInstanceId });
+      }
       let result;
       if ([ids.spell, ids.skirmish, ids.finish, ids.charge].includes(def.id)) {
         result = publishRoll(a, p.roll, def.name);
@@ -1919,7 +1925,7 @@
       else if (def.id === ids.jump) move(a, { destination: p.destination, maximum: scaledMove(a, Number(a.attrs.talent || 0),scene), line: true, ignoreOpponents: true, ignoreDifficultTerrain:true, sourceActionId: def.id, actionInstanceId: p.actionInstanceId, ownerTurnInstanceId: p.ownerTurnInstanceId, turnSerial: scene.turnSerial });
       else if (def.id === ids.shove) move(targets[0], { destination: p.destination, maximum: 1, forced: true });
       else if (def.id === ids.disappear) applyEffect(a, { effect: "positive.исчез", duration: "actionOrStartTurn" }, a.id);
-      else if (def.id === ids.study) { applyEffect(targets[0], { effect: "negative.помечен" }, a.id); emit("rule.prompt", a.id, { targetId: targets[0].id, title: "Нарратор раскрывает выбранный параметр NPC", category: p.category || "health" }); }
+      else if (def.id === ids.study) { applyEffect(targets[0], { effect: "negative.помечен" }, a.id); const study = global.DAWN_LIONWING_INFORMATION_QUERY?.studyStatus?.(scene, "information:study:" + p.actionInstanceId); emit("rule.prompt", a.id, { targetId: targets[0].id, title: "Нарратор раскрывает выбранный параметр NPC", informationStudyId: study?.id || null, informationCategories: global.DAWN_LIONWING_INFORMATION_QUERY?.availableCategories?.(scene, study).map(item => ({ id: item.id, label: item.label })) || [] }); }
       else if (def.id === ids.improvise && !p.removeObstacleId) {
         if (p.effect) { if (targets.length !== 1 || distance(a, targets[0]) > 1 || p.effect === "positive.изгнан") fail("Импровизация: соседняя цель и Эффект кроме Изгнания"); applyEffect(targets[0], { effect: p.effect }, a.id); }
         else { const d = p.destination; if (!d || distance(a, { ...d, space: a.space }) !== 1) fail("Выберите соседнюю клетку препятствия"); movement(scene, a, d, { placement: true }); scene.objects.push({ id: `${rootId}:obstacle`, type: "terrain", label: "Препятствие", space: a.space, cells: [`${d.x},${d.y}`], hp: 10, maxHp: 10, duration: "scene", ownerActorId: a.id }); }
@@ -1945,7 +1951,8 @@
     };
 
     function op(p, sourceId) {
-      const a = sourceId ? requiredActor(scene, sourceId, false) : null;
+      const actorlessInformation = new Set(["information-reveal", "information-cancel", "information-handout"]);
+      const a = sourceId && !actorlessInformation.has(p.kind) ? requiredActor(scene, sourceId, false) : null;
       switch (p.kind) {
         case "detective-finisher-open": detectiveFinisherOpen(p, sourceId); break;
         case "detective-finisher": detectiveFreeFinisher(p, sourceId); break;
@@ -1976,6 +1983,35 @@
           break;
         }
         case "action": performAction(requiredActor(scene, sourceId), p); break;
+        case "information-study": {
+          const information = global.DAWN_LIONWING_INFORMATION_QUERY;
+          if (!information?.recordStudy) fail("Контракт Изучения LionWing недоступен");
+          const studyResult = information.recordStudy(scene, { ...p, actorId: p.actorId || sourceId });
+          if (!studyResult.ok) fail(studyResult.errors?.join(" ") || "Изучение не подтверждено квитанцией");
+          emit("information.study", sourceId, { studyId: studyResult.study?.id, targetId: studyResult.study?.targetId, actionInstanceId: studyResult.study?.actionInstanceId });
+          break;
+        }
+        case "information-reveal": {
+          const information = global.DAWN_LIONWING_INFORMATION_QUERY;
+          const reveal = information?.confirmReveal?.(scene, p, { role: executionOptions.role, actorId: sourceId });
+          if (!reveal?.ok) fail(reveal?.errors?.join(" ") || "Раскрытие информации отклонено");
+          emit("information.reveal", sourceId || "narrator", { studyId: p.studyId, factId: reveal.fact?.id || null, targetId: reveal.fact?.targetId || p.targetId || null, category: reveal.fact?.category || p.category, visibility: reveal.fact?.visibility || p.visibility || "public" });
+          break;
+        }
+        case "information-cancel": {
+          const information = global.DAWN_LIONWING_INFORMATION_QUERY;
+          const cancelled = information?.cancelReveal?.(scene, p, { role: executionOptions.role, actorId: sourceId });
+          if (!cancelled?.ok) fail(cancelled?.errors?.join(" ") || "Отмена Изучения отклонена");
+          emit("information.cancel", sourceId || "narrator", { studyId: p.studyId, targetId: information.studyStatus?.(scene, p.studyId)?.targetId || null });
+          break;
+        }
+        case "information-handout": {
+          const information = global.DAWN_LIONWING_INFORMATION_QUERY;
+          const handed = information?.handout?.(scene, p, { role: executionOptions.role });
+          if (!handed?.ok) fail(handed?.errors?.join(" ") || "Ручная выдача отклонена");
+          emit("information.handout", sourceId || "narrator", { factId: handed.fact?.id || null, targetId: p.targetId || null, visibility: handed.fact?.visibility || p.visibility || "public" });
+          break;
+        }
         case "attack": if (p.cost) spend(requiredActor(scene, sourceId), p.cost.resource || "ap", integer(p.cost.amount, "стоимость")); beginAttack(requiredActor(scene, sourceId), p); break;
         case "marker-remove": {
           const marker = (scene.markers || []).find(item => item.id === p.markerId), hostId = marker && (marker.hostActorId || marker.metadata?.hostActorId || marker.metadata?.carrierActorId);
@@ -2598,6 +2634,7 @@
             target.lionwing=Object.keys(automation).length?{automation}:{};
           }
           scene.lionwing={schema:2,started:false,choices:[],deferred:[],receipts:s.receipts,history:s.history,specialJournal:s.specialJournal,compounds:s.compounds,auras:s.auras.filter(aura=>aura.lifetime==="persistent"),sceneSerial:s.sceneSerial+1,chapterSerial:s.chapterSerial};
+          if (global.DAWN_LIONWING_INFORMATION_QUERY?.reset) global.DAWN_LIONWING_INFORMATION_QUERY.reset(scene);
           scene.round=1;scene.turnSerial=0;scene.tension=0;scene.activeActorId=null;scene.targetIds=[];scene.targetCells=[];scene.results=null;
           scene.pendingAction=null;scene.pendingPrompt=null;scene.pendingActionPlan=null;scene.triggerQueue=[];scene.opposedRoll=null;scene.challengeRequest=null;scene.turnUndo=[];delete scene.lionwing.executionCursor;
           scene.objects=scene.objects.filter(item=>item.duration==="persistent");scene.markers=scene.markers.filter(item=>item.duration==="persistent");
@@ -2650,8 +2687,8 @@
     provenance = foundations.identity({ rootActionId: rootId, actionId: request.actionId || pendingActionId || `operation.${request.kind}`, actionDefinitionId:request.actionId||pendingActionId||`operation.${request.kind}`, actionInstanceId:rootId, causeEventId: rootId, ownerActorId: event.actorId || "scene" });
     saveFact("attempt", event.actorId??null, request.targetIds || (request.targetId ? [request.targetId] : []), { kind: request.kind });
     const duelPreparation=s.choices[0]?.kind==="duel-outcome"&&["roll","resource"].includes(request.kind)&&(s.duels||[]).some(duel=>duel.id===s.choices[0].context.duelId&&[duel.actorId,duel.targetId].includes(request.targetId||event.actorId));
-    if (s.choices.length && !duelPreparation && !["choice", "correct", "note", "tension", "pause-chain"].includes(request.kind)) fail("Сначала ответьте на ожидающее решение");
-    if (scene.pendingAction && !["reaction", "resolve-attack", "cancel-attack", "correct", "note", "choice", "tension","invisible","pause-chain","amend-attack"].includes(request.kind)) fail("Сначала завершите Атаку");
+    if (s.choices.length && !duelPreparation && !["choice", "correct", "note", "tension", "pause-chain", "information-reveal", "information-cancel", "information-handout"].includes(request.kind)) fail("Сначала ответьте на ожидающее решение");
+    if (scene.pendingAction && !["reaction", "resolve-attack", "cancel-attack", "correct", "note", "choice", "tension","invisible","pause-chain","amend-attack", "information-reveal", "information-cancel", "information-handout"].includes(request.kind)) fail("Сначала завершите Атаку");
     const operations = request.kind === "batch" ? request.operations : [request];
     if (!Array.isArray(operations) || !operations.length || operations.length > 192 || operations.some(p => !p || p.kind === "batch")) fail("Некорректный пакет операций");
     for(const p of operations){
@@ -2692,6 +2729,12 @@
       }
       if(p.kind==="aura"&&!['create','update','suppress','restore','remove','expire'].includes(p.operation||"create"))fail("Неизвестная операция ауры");
       if(["aura-create","aura-update","aura-suppress","aura-restore","aura-remove"].includes(p.kind)&&(!(p.id||p.aura?.id)||p.kind==="aura-create"&&!((p.sourceEntityId||p.aura?.sourceEntityId))))fail("Некорректное описание ауры");
+      if(["information-study","information-reveal","information-cancel","information-handout"].includes(p.kind)) {
+        if (p.role !== undefined) fail("Роль информации передаётся только доверенным контекстом");
+        if (p.kind === "information-study" && (!p.targetId || !p.actionInstanceId)) fail("Изучение требует цель и actionInstanceId");
+        if (["information-reveal", "information-cancel"].includes(p.kind) && !p.studyId) fail("Операция информации требует Изучение");
+        if (p.kind === "information-reveal" && !p.category) fail("Раскрытие информации требует категорию");
+      }
     }
     if (request.kind === "choice" && s.deferred.length && !executionCursor) setCursor(s.deferred, 0, s.choices[0]?.id);
     const actionLike = new Set(["action", "record-action", "attack"]);
@@ -2886,10 +2929,11 @@
     opposedDiceRoll, opposedRoll: opposedDiceRoll, diceOpposed: opposedDiceRoll,
     resolveDiceTie: (value, resolution) => diceAvailable().resolveTie(value, resolution),
     historyStatus, effectInstanceStatus, activeState, auraRecord, auraStatus, lifetimeExpired, compoundStatus,
+    informationQuery: global.DAWN_LIONWING_INFORMATION_QUERY || null,
     lifetimeBoundary: foundations.lifetimeBoundary,
     normalizeLifetime: foundations.normalizeLifetime,
     isLifetimeExpired: foundations.lifetimeExpired,
-    operations: ["automation", "plan", "batch", "pause-chain", "resume-chain", "amend-attack", "recover-track", "record-action", "action", "attack", "damage", "spend-health", "lose-health", "heal", "wound", "stress", "knockout", "resource", "correct", "effect", "effect-source", "banish", "vanish", "compound", "aura", "aura-create", "aura-update", "aura-suppress", "aura-restore", "aura-remove", "placement", "teleport", "displacement", "move", "forced-towards-group", "forced-towards-group-step", "forced-towards-group-after-route", "geometry-move", "geometry-segment", "modifier", "allow-action", "grant-turn", "usage", "punish", "invisible", "search", "configure-resource", "dice-create", "dice-apply", "dice-reload", "dice-opposed", "dice-resolve-tie", "counter", "clock", "prompt", "choice", "roll", "reaction", "resolve-attack", "cancel-attack", "turn-start", "turn-end", "round-end", "scene-reset", "chapter-start", "tension", "note", "marker-remove"]
+    operations: ["automation", "plan", "batch", "pause-chain", "resume-chain", "amend-attack", "recover-track", "record-action", "action", "attack", "information-study", "information-reveal", "information-cancel", "information-handout", "damage", "spend-health", "lose-health", "heal", "wound", "stress", "knockout", "resource", "correct", "effect", "effect-source", "banish", "vanish", "compound", "aura", "aura-create", "aura-update", "aura-suppress", "aura-restore", "aura-remove", "placement", "teleport", "displacement", "move", "forced-towards-group", "forced-towards-group-step", "forced-towards-group-after-route", "geometry-move", "geometry-segment", "modifier", "allow-action", "grant-turn", "usage", "punish", "invisible", "search", "configure-resource", "dice-create", "dice-apply", "dice-reload", "dice-opposed", "dice-resolve-tie", "counter", "clock", "prompt", "choice", "roll", "reaction", "resolve-attack", "cancel-attack", "turn-start", "turn-end", "round-end", "scene-reset", "chapter-start", "tension", "note", "marker-remove"]
   };
   global.DAWN_LIONWING_ENGINE = api;
   const routed = global.DAWN_SCENE_ENGINE;
@@ -2934,6 +2978,7 @@
       }
       if(projected.pendingAction?.targetDamage)projected.pendingAction.targetDamage=Object.fromEntries(Object.entries(projected.pendingAction.targetDamage).filter(([id])=>!hidden.has(id)));
     }
+    if (projected.lionwing && global.DAWN_LIONWING_INFORMATION_QUERY?.project) projected.lionwing.information = global.DAWN_LIONWING_INFORMATION_QUERY.project(scene, viewer);
     return projected;
   });
 })(typeof window === "object" ? window : globalThis);
