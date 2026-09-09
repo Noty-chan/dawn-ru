@@ -44,7 +44,7 @@
   };
   const cursorStatuses = new Set(["running", "waiting", "completed"]);
   const scopes = new Set(["rootAction", "action", "ownerTurn", "anyTurn", "round", "scene", "chapter"]);
-  const factTypes = new Set(["attempt", "apply", "hit", "damage", "healthLoss", "heal", "wound", "knockout", "spend", "gain", "preventedGain", "roll", "cancel", "counter.threshold"]);
+  const factTypes = new Set(["attempt", "apply", "hit", "damage", "healthLoss", "heal", "wound", "knockout", "spend", "gain", "preventedGain", "roll", "cancel", "counter.threshold", "aura.enter", "aura.exit"]);
   const rollKinds = new Set(["check", "opposed", "raw-d6"]);
   const lifetimeNames = new Set(["default", "startTurn", "endTurn", "nextTurn", "roundEnd", "scene", "persistent", "manual", "turn", "round", "chapter", "session"]);
   const lifetimeBoundaries = new Set(["startNextOwnerTurn", "endNextOwnerTurn"]);

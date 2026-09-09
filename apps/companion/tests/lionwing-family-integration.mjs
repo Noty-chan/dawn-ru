@@ -17,13 +17,16 @@ vm.runInContext(fs.readFileSync(new URL("../lionwing-action-plan.js", import.met
 const engine = context.window.DAWN_LIONWING_ENGINE;
 const plans = context.window.DAWN_LIONWING_ACTION_PLAN;
 const entities = context.window.DAWN_LIONWING_ENTITIES;
-assert.ok(engine && plans && entities, "the LionWing family APIs are installed");
+const auraTransitions = context.window.DAWN_LIONWING_AURA_TRANSITIONS;
+assert.ok(engine && plans && entities && auraTransitions, "the LionWing family APIs are installed");
 const browserMarkup = fs.readFileSync(new URL("../index.html", import.meta.url), "utf8");
 const browserDice = browserMarkup.indexOf('src="lionwing-dice.js');
+const browserAuraTransitions = browserMarkup.indexOf('src="lionwing-aura-transitions.js');
 const browserPlan = browserMarkup.indexOf('src="lionwing-action-plan.js');
 const browserEntities = browserMarkup.indexOf('src="lionwing-entities.js');
 const browserEngine = browserMarkup.indexOf('src="lionwing-engine.js');
 assert.ok(browserDice >= 0 && browserDice < browserEngine, "the browser installs dice before the engine captures its adapter");
+assert.ok(browserAuraTransitions >= 0 && browserAuraTransitions < browserEngine, "the browser installs aura transitions before the engine captures its adapter");
 assert.ok(browserPlan >= 0 && browserPlan < browserEngine && browserEntities < browserEngine, "the browser installs family foundations before the LionWing engine");
 
 const copy = value => JSON.parse(JSON.stringify(value));

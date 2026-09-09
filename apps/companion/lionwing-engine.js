@@ -375,10 +375,14 @@
     if(source.kind==="actor"&&source.entity.knockedOut)return { active:false,reason:"Источник ауры выведен из боя" };
     if(auraLifetimeExpired(scene,aura))return { active:false,reason:"Срок ауры истёк" };
     if(targetActor.knockedOut)return { active:false,reason:"Цель выведена из боя" };
-    if(source.entity.space!==targetActor.space)return { active:false,reason:"Цель в другом пространстве" };
-    const distanceValue=Math.abs(Number(source.entity.x||0)-Number(targetActor.x||0))+Math.abs(Number(source.entity.y||0)-Number(targetActor.y||0));
-    const radius=Number(aura.shape?.distance??aura.distance);
-    if(!Number.isSafeInteger(radius)||distanceValue>radius)return { active:false,reason:`За пределами радиуса ${radius}` };
+    const spatial=global.DAWN_LIONWING_AURA_TRANSITIONS?.coverage?.(scene,aura,targetActor);
+    if(spatial&&!spatial.active)return { active:false,reason:spatial.reason };
+    if(!spatial){
+      if(source.entity.space!==targetActor.space)return { active:false,reason:"Цель в другом пространстве" };
+      const distanceValue=Math.abs(Number(source.entity.x||0)-Number(targetActor.x||0))+Math.abs(Number(source.entity.y||0)-Number(targetActor.y||0));
+      const radius=Number(aura.shape?.distance??aura.distance);
+      if(!Number.isSafeInteger(radius)||distanceValue>radius)return { active:false,reason:`За пределами радиуса ${radius}` };
+    }
     const relation=aura.filter?.relation||"any";
     if(relation==="ally"&&owner.team!==targetActor.team)return {active:false,reason:"Цель не союзник источника"};
     if(relation==="enemy"&&owner.team===targetActor.team)return {active:false,reason:"Цель не противник источника"};
@@ -798,6 +802,7 @@
       else if (type === "roll.public") saveFact("roll", actorId, targets, { kind: payload.kind, pool: payload.pool, hits: payload.hits, criticals: payload.criticals });
       else if (type === "rule.used") saveFact("apply", actorId, targets, { scope: payload.scope }, { ...provenance, ruleId: payload.ruleId, ownerActorId: actorId });
       else if (type === "counter.threshold") saveFact("counter.threshold", actorId, targets, { counterId: payload.counterId || payload.id, kind: payload.kind || payload.type, before: payload.before, value: payload.value, threshold: payload.threshold });
+      else if (type === "aura.enter" || type === "aura.exit") saveFact(type, actorId, [actorId], { auraId:payload.auraId, effectId:payload.effectId, ruleId:payload.ruleId, ownerActorId:payload.ownerActorId, sourceEntityId:payload.sourceEntityId, movementTargetId:payload.movementTargetId||null, segmentIndex:payload.segmentIndex??null });
       else if (type === "attack.clear" && payload.cancelled) saveFact("cancel", actorId, targets, { reason: payload.reason || "cancelled" });
       return row;
     };
@@ -1135,13 +1140,23 @@
       if (dealt > 0 && (compound.active?compound.hp-dealt<=0:a.hp===0)) { if (isPlayer(a)) wound(a, p.sourceActorId, "wounds", p.actionPlanId || null); else {knockout(a,{kind:"damage",sourceActorId:p.sourceActorId});if(compound.active)for(const part of compound.parts){part.knockedOut=true;part.ap=0;}} }
       if (hit && !(attack && afterArmor > 0 && evaded === afterArmor) && !a.knockedOut) for (const e of p.effects || []) applyEffect(a, {...(typeof e === "string" ? { effect: e } : e),preventForcedMovement:p.preventForcedMovement}, p.sourceActorId);
     };
+    const auraTransitionApi=global.DAWN_LIONWING_AURA_TRANSITIONS;
+    const auraSnapshot=()=>auraTransitionApi?.capture?.(scene,auraStatus)||null;
+    const auraChanges=before=>before&&auraTransitionApi?.diff?auraTransitionApi.diff(before,auraTransitionApi.capture(scene,auraStatus)):[];
+    const emitAuraChanges=(changes,context={})=>{
+      for(const change of changes||[])emit(`aura.${change.operation}`,change.targetId,{...change,...context,targetId:change.targetId});
+    };
     const move = (a, p) => {
+      const auraBefore=auraSnapshot();
       const result = p.__verifiedRoute ? {cost:p.__verifiedRoute.spent,path:p.__verifiedRoute.path.map(point=>({x:point.x,y:point.y})),space:p.__verifiedRoute.stoppedAt.space,endedByDifficultTerrain:p.__verifiedRoute.terminal&&p.__verifiedRoute.stopReason==="difficult-terrain"} : movement(scene, a, p.destination || p, p), from = { x: a.x, y: a.y, space: a.space };
       const endpoint=result.path[result.path.length-1]||p.destination||p;
       a.x = endpoint.x; a.y = endpoint.y; a.space = result.space;
       if(result.endedByDifficultTerrain){astate(a).difficultTerrainStopSerial=scene.turnSerial;a.stepRemaining=0;}
       if(a.compoundId)for(const part of scene.actors.filter(x=>x.compoundId===a.compoundId)){part.x=a.x;part.y=a.y;part.space=a.space;}
-      emit("actor.move", a.id, { ...p, from, x: a.x, y: a.y, space: a.space, path: result.path, distance: result.cost });
+      const publicPayload={...p};delete publicPayload.__deferAuraTransitions;
+      emit("actor.move", a.id, { ...publicPayload, from, x: a.x, y: a.y, space: a.space, path: result.path, distance: result.cost });
+      const auraTransitions=auraChanges(auraBefore);
+      if(!p.__deferAuraTransitions)emitAuraChanges(auraTransitions,{movementTargetId:a.id,from,to:{space:a.space,x:a.x,y:a.y}});
       // A typed notification is also useful when the Technique itself is manual.
       const points=[from,...result.path.map(point=>({...point,space:result.space}))];
       if (!p.placement) for (const foe of scene.actors.filter(x => live(x) && !effectActive(scene,x,"positive.исчез") && x.team !== a.team)) if (points.some((point,index)=>index>0&&distance(points[index-1],foe)===1&&distance(point,foe)>1)) {
@@ -1151,7 +1166,7 @@
       if(!p.followSnare)for(const caught of scene.actors.filter(x=>live(x)&&x.id!==a.id&&effectActive(scene,x,"negative.пойман")&&activeEffectSources(x,"negative.пойман",scene).some(source=>source.actorId===a.id))){
         if(distance(caught,a)!==1&&!effectActive(scene,caught,"positive.устойчив"))choice(caught,"placement","Пойман: выберите клетку рядом с переместившимся источником",["place"],{adjacentTo:a.id,forced:true});
       }
-      return result;
+      return {...result,auraTransitions};
     };
     const geometryRouteId = route => `${route?.sourceActorId || "scene"}:${route?.actorId || "movement"}:${route?.sceneVersion || 0}:${route?.geometryStamp || ""}`;
     const geometryTriggerList = (plan, operation) => {
@@ -1530,8 +1545,9 @@
           emit("geometry.segment.before-leave",target.id,phasePayload);
           emit("geometry.segment.leave",target.id,{...phasePayload,cursor:{...cursor,phase:"leave"}});
           emit("geometry.segment.before-enter",target.id,{...phasePayload,cursor:{...cursor,phase:"before-enter"}});
-          const result=move(target,{destination:segment.to,forced:route.mode==="forced",maximum:segment.cost,width:route.width,height:route.height,ignoreTerrain:plan.request?.ignoreTerrain===true,ignoreOpponents:plan.request?.ignoreEnemies===true,straight:plan.request?.straight===true,__verifiedRoute:{spent:segment.cost,path:[{x:segment.to.x,y:segment.to.y}],space:segment.to.space,stoppedAt:segment.to,terminal:Boolean(segment.terminal),stopReason:segment.stopReason||null},movement:p.label||"Движение по плану"});
+          const result=move(target,{destination:segment.to,forced:route.mode==="forced",maximum:segment.cost,width:route.width,height:route.height,ignoreTerrain:plan.request?.ignoreTerrain===true,ignoreOpponents:plan.request?.ignoreEnemies===true,straight:plan.request?.straight===true,__verifiedRoute:{spent:segment.cost,path:[{x:segment.to.x,y:segment.to.y}],space:segment.to.space,stoppedAt:segment.to,terminal:Boolean(segment.terminal),stopReason:segment.stopReason||null},__deferAuraTransitions:true,movement:p.label||"Движение по плану"});
           emit("geometry.segment.enter",target.id,{...phasePayload,cursor:{...cursor,phase:"enter"},position:{space:target.space,x:Number(target.x),y:Number(target.y)}});
+          emitAuraChanges(result.auraTransitions,{movementTargetId:target.id,routeId:geometryRouteId(route),segmentIndex,boundary:"enter",from:segment.from,to:segment.to});
           const spent=Number(cursor.spent||0)+Number(segment.cost||result.cost||0),nextIndex=segmentIndex+1,terminal=Boolean(segment.terminal||nextIndex>=geometry.routeSegments(route).length&&route.terminal),trigger=geometryTriggerFor(plan,p,segment,segmentIndex),nextCursor=nextIndex<geometry.routeSegments(route).length&&!terminal?queueGeometrySegment(plan,p,cursor,sourceId,nextIndex,spent):{...geometry.geometryCursor(route,nextIndex,{...scene,version:Number(scene.version||0)+1},{id:cursor.id,spent,phase:terminal?"terminal":"completed",status:"completed",expectedSceneVersion:Number(scene.version||0)+1,expectedGeometryStamp:geometry.geometryStamp({...scene,version:Number(scene.version||0)+1})}),status:"completed",phase:terminal?"terminal":"completed"};
           if(terminal||nextIndex>=geometry.routeSegments(route).length){delete s.geometryCursor;geometryCommit(route,target,p,nextCursor,terminal,terminal?segment.stopReason||route.stopReason||null:null);break;}
           if(!s.choices.length&&trigger){
