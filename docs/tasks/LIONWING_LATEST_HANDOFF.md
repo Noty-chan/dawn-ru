@@ -1,5 +1,36 @@
 # LionWing — последняя передача, 2026-09-06
 
+## Актуальная точка передачи — 2026-09-09, action modifiers
+
+В ветке `codex/luna-action-modifiers` добавлен общий read-only контракт
+`DAWN_LIONWING_ADAPTERS.actionQuote(actor, context)`. Он возвращает фактические
+`cost`, `resource`, `swift`, `range`, строго перечисленные `ignoreRequirements`,
+`modifierIds`, источники с canonical `sourceDigest` и `coverage`. Цена проходит
+через единый порядок замен; разные одновременные замены дают явный конфликт.
+Адаптеры opt-in и не меняют Сцену: единственным писателем остаётся LionWing
+engine. `actionStatus`, `availableActions`, `prepare` и `dispatch` повторяют один
+и тот же quote перед показом, оплатой и записью `usedActions`/history; клиентская
+подмена цены не принимается.
+
+Подключены безопасные части уровней: `powerhouse.martial-artist.2` (первая
+Стычка Хода Swift), `altruist.fog-walker.3` и `altruist.bardic-savant.2`
+(Передышки Swift), `vagabond.drunkard.3` и `ruiner.creation-ascetic.2`
+(первая Передышка Хода Swift), `ruiner.creation-ascetic.2` (Зарядка за 1),
+`altruist.artist.2` и `altruist.alchemist.2` (первое Взаимодействие Хода за 0
+и Swift), а также `vagabond.assassin.1` (первый Hide после проверенного
+Развёртывания с нулевой ценой и исключениями только для края поля и
+начального Исчезновения). `vagabond.weaponsmith.2` активируется только при
+доверенном `actor.lionwing.formSwapTurnSerial`; пока lifecycle смены Формы не
+пишет это поле, правило остаётся неактивным. `powerhouse.improvisational-fighter.2`
+не угадывает, что Interact не приведёт к Атаке, и ждёт подключённого доверенного
+semantic ActionPlan.
+
+Добавлен поведенческий тест `tests/lionwing-action-modifiers.mjs`: stacking
+Swift/cost, first-per-Turn, opt-in, конфликт/повтор, reload-safe history,
+Assassin requirement exceptions, trusted-state gating и forged cost через
+prepare/dispatch. `npm run test:families` проходит. Полный `npm test` нужно
+повторить после интеграции этой ветки в общий рабочий поток.
+
 ## Актуальная точка передачи — 2026-09-09, простые части всех Техник
 
 После отдельной сверки всех `canonical/archetypes/*.json` набор нового ядра вырос

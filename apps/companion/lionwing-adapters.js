@@ -12,6 +12,27 @@
   };
   const actionBonus = (actionId, amount = 1) => (_actor, context) => context?.kind === "attack" && context.actionId === actionId ? amount : 0;
   const attackIds = new Set(["action.атаки.заклинание", "action.атаки.завершение", "action.атаки.стычка"]);
+  const ACTIONS = Object.freeze({
+    skirmish: "action.атаки.стычка",
+    breathe: "action.утилитарные-действия.передышка",
+    charge: "action.утилитарные-действия.зарядка",
+    hide: "action.утилитарные-действия.скрыться",
+    interact: "action.утилитарные-действия.взаимодействие",
+  });
+  const eventHistory = (actor, scene) => Array.isArray(actor?.lionwing?.history) ? actor.lionwing.history : [];
+  const usedInTurn = (actor, scene, actionId) => {
+    const serial = Number(scene?.turnSerial);
+    const instance = scene?.lionwing?.activeTurnInstanceId || null;
+    return eventHistory(actor, scene).some(item => item.actionId === actionId && (
+      instance && item.ownerTurnInstanceId === instance || Number(item.turnSerial) === serial
+    ));
+  };
+  const usedInRound = (actor, scene, actionId) => eventHistory(actor, scene).some(item => item.actionId === actionId && Number(item.round) === Number(scene?.round));
+  const actionModifier = ({ id, techniqueId, level, sourceDigest, label, coverage = "partial", available, modify }) => Object.freeze({
+    id, techniqueId, level, sourceDigest, label, coverage,
+    available,
+    modify,
+  });
   const sceneFocus = amount => actor => [{ kind: "resource", targetId: actor.id, resource: "focus", operation: "gain", amount: typeof amount === "function" ? amount(actor) : amount }];
   const resourceConfiguration = (actor, id, label, current, options = {}) => [{ kind: "configure-resource", targetId: actor.id, id, label, current, initial: current, scope: options.scope || "scene", lifetime: "scene", replaces: options.replaces || null, replacesAp: options.replacesAp === true, inverted: options.inverted === true, ruleId: options.ruleId || null }];
 
@@ -105,7 +126,127 @@
     passive({ id: "vagabond.knife-juggler.2", label: "Жонглёр ножами II: +1 Преимущество к Стычкам (пассивная часть)", sourceDigest: "4da1a911cf7ed1eb5a90e3c4aed8abbb87087a567f7ab38406c11d1130c6c54a", coverage: "partial", rollBonus: actionBonus("action.атаки.стычка") }),
     passive({ id: "vagabond.assassin.2", label: "Убийца II: +[Ранг] Преимущества к Атакам из Исчезновения (пассивная часть)", sourceDigest: "6e95fe2767088e069f995f384a6e03856f26d428161dbd57efca1c03a5eda98f", coverage: "partial", rollBonus: (actor, context) => context?.kind === "attack" && attackIds.has(context.actionId) && context.sourceEffectIds?.includes("positive.исчез") ? Number(actor.tier || 1) : 0 }),
   ];
+  // Action modifiers are pure quotes.  They describe a possible change to a
+  // base action; the engine remains the only writer of AP, resources, usage
+  // history, and Scene state.  A modifier is enabled only when its narrator
+  // opt-in flag is present, just like the numeric adapters above.
+  const actionModifiers = [
+    actionModifier({
+      id: "powerhouse.martial-artist.2", techniqueId: "powerhouse.martial-artist", level: 2,
+      sourceDigest: "ffab119dac241453faa82dab8e20523afa694f42b997a24d13fdf4b7f16e9e83",
+      label: "Мастер боевых искусств II: первая Стычка в Ход Быстрая",
+      available: actor => knows(actor, "powerhouse.martial-artist", 2),
+      modify: (actor, context) => context.actionId === ACTIONS.skirmish && !usedInTurn(actor, context.scene, ACTIONS.skirmish)
+        ? { swift: true, reason: "Первая Стычка этого Хода по «Состоянию потока»." } : null,
+    }),
+    actionModifier({
+      id: "altruist.fog-walker.3", techniqueId: "altruist.fog-walker", level: 3,
+      sourceDigest: "a82de2c090617d57ffbdfed479a3f04d329d621c75f9a11c1aeadd99e5c45f35",
+      label: "Туманник III: Передышки Быстрые",
+      available: actor => knows(actor, "altruist.fog-walker", 3),
+      modify: (_actor, context) => context.actionId === ACTIONS.breathe ? { swift: true, reason: "Передышки Туманника являются Быстрыми." } : null,
+    }),
+    actionModifier({
+      id: "altruist.bardic-savant.2", techniqueId: "altruist.bardic-savant", level: 2,
+      sourceDigest: "e95d0d8dec7fd38dc97009b99220ff661e0c5d27896e6200de36fc110a16c8db",
+      label: "Виртуоз II: Передышки Быстрые",
+      available: actor => knows(actor, "altruist.bardic-savant", 2),
+      modify: (_actor, context) => context.actionId === ACTIONS.breathe ? { swift: true, reason: "Передышки Виртуоза являются Быстрыми." } : null,
+    }),
+    actionModifier({
+      id: "vagabond.drunkard.3", techniqueId: "vagabond.drunkard", level: 3,
+      sourceDigest: "33495ba0f5d41b1cda1d7dc1bc5ff3c414484490bfcebbc2fa52b8d994dde833",
+      label: "Пьяница III: первая Передышка в Ход Быстрая",
+      available: actor => knows(actor, "vagabond.drunkard", 3),
+      modify: (actor, context) => context.actionId === ACTIONS.breathe && !usedInTurn(actor, context.scene, ACTIONS.breathe)
+        ? { swift: true, reason: "Первая Передышка этого Хода по «Залпом»." } : null,
+    }),
+    actionModifier({
+      id: "ruiner.creation-ascetic.2", techniqueId: "ruiner.creation-ascetic", level: 2,
+      sourceDigest: "d19e636560bcfb7c9345b9bb4779f65c6b3f25b78576a6432bd6b1bbc834cbf9",
+      label: "Создатель II: первая Передышка Быстрая, Зарядка за 1",
+      available: actor => knows(actor, "ruiner.creation-ascetic", 2),
+      modify: (actor, context) => {
+        if (context.actionId === ACTIONS.breathe && !usedInTurn(actor, context.scene, ACTIONS.breathe)) return { swift: true, reason: "Первая Передышка этого Хода Быстрая." };
+        if (context.actionId === ACTIONS.charge) return { cost: 1, costMode: "replace", reason: "Зарядка Создателя стоит 1." };
+        return null;
+      },
+    }),
+    actionModifier({
+      id: "altruist.artist.2", techniqueId: "altruist.artist", level: 2,
+      sourceDigest: "41644f20d10eb46aecf2c3e4548d86ff759ff7dc7f8e679a8b5046395023d851",
+      label: "Артист II: первое Взаимодействие в Ход бесплатно",
+      available: actor => knows(actor, "altruist.artist", 2),
+      modify: (actor, context) => context.actionId === ACTIONS.interact && !usedInTurn(actor, context.scene, ACTIONS.interact)
+        ? { cost: 0, costMode: "replace", swift: true, reason: "Первое Взаимодействие этого Хода бесплатно и Быстрое." } : null,
+    }),
+    actionModifier({
+      id: "altruist.alchemist.2", techniqueId: "altruist.alchemist", level: 2,
+      sourceDigest: "389ef1a54fb172ceaff075d3155b697ae17d25ad138ea4854d38d515db1333ea",
+      label: "Алхимик II: первое Взаимодействие в Ход бесплатно",
+      available: actor => knows(actor, "altruist.alchemist", 2),
+      modify: (actor, context) => context.actionId === ACTIONS.interact && !usedInTurn(actor, context.scene, ACTIONS.interact)
+        ? { cost: 0, costMode: "replace", swift: true, reason: "Первое Взаимодействие этого Хода бесплатно и Быстрое." } : null,
+    }),
+    actionModifier({
+      id: "vagabond.assassin.1", techniqueId: "vagabond.assassin", level: 1,
+      sourceDigest: "e2e8e0aa3b195f4df4e15393490e95fe151ebcf62a28e16c75afd5684b2b75ca",
+      label: "Ассасин I: первое Hide после Deploy бесплатно",
+      available: actor => knows(actor, "vagabond.assassin", 1),
+      modify: (actor, context) => context.actionId === ACTIONS.hide && context.firstActionAfterDeploy === true
+        ? { cost: 0, costMode: "replace", ignoreRequirements: ["boardEdge", "startedDisappeared"], reason: "Первое действие после Развёртывания — Hide Ассасина." } : null,
+    }),
+    actionModifier({
+      id: "vagabond.weaponsmith.2", techniqueId: "vagabond.weaponsmith", level: 2,
+      sourceDigest: "7aa33f76d9edadcbdc4aced83462e36c212eec5b7c1fa48d162a9424dc16fd37",
+      label: "Оружейник II: Зарядка за 1 до смены Формы",
+      available: actor => knows(actor, "vagabond.weaponsmith", 2),
+      // Form swapping is not currently a public engine operation.  Until a
+      // trusted form lifecycle writes formSwapTurnSerial, this rule stays
+      // inactive rather than accepting a client supplied flag.
+      modify: (actor, context) => context.actionId === ACTIONS.charge && Number.isSafeInteger(actor.lionwing?.formSwapTurnSerial) && Number(actor.lionwing.formSwapTurnSerial) !== Number(context.scene?.turnSerial)
+        ? { cost: 1, costMode: "replace", reason: "В этом Ходу Формы ещё не менялись." } : null,
+    }),
+    actionModifier({
+      id: "powerhouse.improvisational-fighter.2", techniqueId: "powerhouse.improvisational-fighter", level: 2,
+      sourceDigest: "5deab4b222d3c6321b8e5797888d7959ed5e2ac77dba223d0dbf1974857302ba",
+      label: "Импровизатор II: одно Взаимодействие за Раунд бесплатно",
+      available: actor => knows(actor, "powerhouse.improvisational-fighter", 2),
+      // Whether Interact results in an Attack belongs to the trusted ActionPlan
+      // semantic context.  The ordinary client action has no proof of that
+      // choice, so this adapter deliberately does not guess.
+      modify: (_actor, _context) => null,
+    }),
+  ];
   const adapters = Object.freeze([berserker, flagellant, ...passives]);
+  const enabledActionModifiers = actor => actionModifiers.filter(rule => rule.available(actor) && actor?.lionwing?.automation?.[rule.id] === true);
+  const actionQuote = (actor, context = {}) => {
+    const baseCost = Number(context.baseCost || 0), baseResource = context.baseResource || null;
+    const quote = { cost: baseCost, resource: baseResource, swift: Boolean(context.baseSwift), range: context.baseRange ?? null, ignoreRequirements: [], modifiers: [], reasons: [] };
+    const replacements = new Map();
+    for (const rule of enabledActionModifiers(actor)) {
+      const patch = rule.modify?.(actor, context);
+      if (!patch) continue;
+      if (patch.cost != null) {
+        const cost = Number(patch.cost);
+        if (!Number.isSafeInteger(cost) || cost < 0 || cost > 9999) return { ok: false, reason: "Модификатор действия вернул недопустимую цену." };
+        const mode = patch.costMode || "replace";
+        if (mode === "replace") replacements.set(rule.id, cost);
+        else if (mode === "add") quote.cost += cost;
+        else return { ok: false, reason: "Модификатор действия использует неизвестный порядок цены." };
+      }
+      if (patch.swift === true) quote.swift = true;
+      if (patch.range != null) quote.range = Number(patch.range);
+      if (Array.isArray(patch.ignoreRequirements)) quote.ignoreRequirements.push(...patch.ignoreRequirements);
+      quote.modifiers.push({ id: rule.id, techniqueId: rule.techniqueId, level: rule.level, sourceDigest: rule.sourceDigest, coverage: rule.coverage, reason: patch.reason || rule.label });
+      if (patch.reason) quote.reasons.push(patch.reason);
+    }
+    const distinctCosts = [...new Set(replacements.values())];
+    if (distinctCosts.length > 1) return { ok: false, reason: `Конфликт замен цены: ${[...replacements.keys()].join(", ")}.` };
+    if (distinctCosts.length === 1) quote.cost = distinctCosts[0];
+    quote.ignoreRequirements = [...new Set(quote.ignoreRequirements)];
+    return { ok: true, ...quote, modifierIds: quote.modifiers.map(item => item.id), reason: quote.reasons.join(" ") };
+  };
   const enabled = actor => adapters.filter(rule => rule.available(actor) && actor.lionwing?.automation?.[rule.id] === true);
   const numericContributions = (actor, method, context) => enabled(actor).flatMap(rule => {
     const amount = Number(method.startsWith("stat") ? rule[method]?.(actor, context.key, context) : rule[method]?.(actor, context) || 0);
@@ -127,5 +268,7 @@
     }),
     resourceGainStatus: (actor, context = {}) => enabled(actor).reduce((status, rule) => status.allowed === false ? status : rule.resourceGainStatus?.(actor, context) || status, { allowed: true, reason: "" }),
     actionStatus: (actor, context = {}) => enabled(actor).reduce((status, rule) => status.allowed === false ? status : rule.actionStatus?.(actor, context) || status, { allowed: true, reason: "" }),
+    actionModifiers: actor => enabledActionModifiers(actor).map(rule => ({ id: rule.id, techniqueId: rule.techniqueId, level: rule.level, label: rule.label, sourceDigest: rule.sourceDigest, coverage: rule.coverage })),
+    actionQuote: (actor, context = {}) => actionQuote(actor, context),
   });
 })(typeof window === "object" ? window : globalThis);
