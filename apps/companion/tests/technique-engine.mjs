@@ -4,7 +4,7 @@ import vm from "node:vm";
 import { loadSceneEngine } from "./load-scene-engine.mjs";
 
 const source = fs.readFileSync(new URL("../technique-engine.js", import.meta.url), "utf8");
-const dataSource = fs.readFileSync(new URL("../data.js", import.meta.url), "utf8");
+const dataSource = fs.readFileSync(new URL("../edition-lionwing.js", import.meta.url), "utf8");
 const foundationMapSource = fs.readFileSync(new URL("../technique-foundation-map.js", import.meta.url), "utf8");
 const context = { console };
 context.globalThis = context;
@@ -15,6 +15,9 @@ loadSceneEngine(context);
 vm.runInNewContext(source, context);
 const Engine = context.DAWN_TECHNIQUE_ENGINE;
 const SceneEngine = context.DAWN_SCENE_ENGINE;
+const lionwing = context.DAWN_LIONWING_DATA;
+assert.equal(lionwing.editionId, "dawn-en-lionwing-cb2f8e67");
+const data = { ...lionwing, actions: lionwing.coreRules.actions, effects: lionwing.coreRules.effects };
 
 const scene = {
   version: 0, round: 1, tension: 5, activeActorId: "hero",
@@ -31,16 +34,14 @@ const scene = {
 assert.ok(Engine.rulesFor(scene.actors[0].techniques).some(rule => rule.id === "ruiner.bombardier.3"));
 assert.equal(Engine.RULES.find(rule => rule.id === "ruiner.bombardier.3").automation, "full");
 assert.equal(Engine.RULES.find(rule => rule.id === "disruptor.chemist.1").automation, "full");
-const coverage = Engine.techniqueCoverage(context.DAWN_DATA);
-const canonicalLevelIds = Array.from(context.DAWN_DATA.archetypes.flatMap(archetype =>
+const coverage = Engine.techniqueCoverage(data);
+const canonicalLevelIds = Array.from(data.archetypes.flatMap(archetype =>
   archetype.techniques.flatMap(technique => technique.levels.map(level => `${technique.id}.${level.n}`))
 )).sort();
-assert.deepEqual(
-  Object.keys(context.DAWN_TECHNIQUE_FOUNDATION_MAP.REVIEWED.profiles).sort(),
-  canonicalLevelIds,
-  "manual REVIEWED profiles must exactly match all canonical Technique levels",
-);
-assert.equal(coverage.length, 321, "every Technique level must have an automation status");
+const reviewedLevelIds = Object.keys(context.DAWN_TECHNIQUE_FOUNDATION_MAP.REVIEWED.profiles).sort();
+assert.equal(reviewedLevelIds.length, 318, "the reviewed registry must contain only explicitly reviewed levels");
+assert.ok(reviewedLevelIds.every(id => canonicalLevelIds.includes(id)), "reviewed registry must not contain retired or noncanonical levels");
+assert.equal(coverage.length, 333, "every canonical Technique level must have an automation status");
 assert.ok(coverage.every(entry => ["full", "partial", "decision", "manual"].includes(entry.automation)));
 assert.ok(coverage.filter(entry => !entry.rules.length).every(entry => entry.automation === "manual"), "canonical text and foundation-map annotations alone never claim partial automation");
 for (const [id, automation] of [
@@ -63,7 +64,7 @@ for (const [id, automation] of [
   ["ruiner.spellcrafter.2", "decision"],
   ["ruiner.spellcrafter.3", "decision"],
   ["ruiner.ritualist.1", "partial"],
-  ["ruiner.cryomancer.2", "decision"],
+  ["ruiner.cryomancer.2", "partial"],
   ["vagabond.knife-juggler.2", "partial"],
   ["altruist.alchemist.2", "decision"],
   ["disruptor.chemist.2", "partial"],
@@ -72,12 +73,12 @@ for (const [id, automation] of [
 ]) {
   assert.equal(coverage.find(entry => entry.id === id)?.automation, automation, `${id} remains honestly downgraded until its missing canonical branch is implemented and evidenced`);
 }
-assert.equal(coverage.filter(entry => entry.automation !== "manual").length, 112, "only levels with a registered runtime rule may claim any automation");
-assert.ok(coverage.some(entry => entry.mechanics?.areas?.length));
-assert.ok(coverage.some(entry => entry.mechanics?.clocks?.length));
-assert.equal(coverage.filter(entry => entry.foundationPlan?.capabilities?.length).length, 321, "every Technique level must have a foundation plan");
+assert.equal(coverage.filter(entry => entry.automation !== "manual").length, 111, "only levels with a registered runtime rule may claim any automation");
+assert.ok(coverage.some(entry => /area|line|zone/i.test(entry.text || "")), "canonical Technique text remains available to the coverage audit");
+assert.ok(coverage.some(entry => /clock|segment/i.test(entry.text || "")), "canonical Technique text remains available to the foundation audit");
+assert.equal(coverage.filter(entry => entry.foundationPlan?.capabilities?.length).length, 333, "every canonical Technique level must have a foundation plan");
 assert.ok(coverage.every(entry => ["candidate", "reviewed"].includes(entry.foundationPlan.status)));
-assert.equal(coverage.filter(entry => entry.foundationPlan.status === "reviewed").length, 321, "all current Technique levels were manually reviewed");
+assert.equal(coverage.filter(entry => entry.foundationPlan.status === "reviewed").length, 318, "only explicitly reviewed Technique levels are marked reviewed");
 const clockLevels = coverage.filter(entry => entry.foundationPlan.reviewed.includes("rule-clock"));
 assert.equal(clockLevels.length, 19, "manual review identifies exactly nineteen current clock levels");
 assert.ok(clockLevels.every(entry => Engine.RULES.some(rule => rule.techniqueId === entry.techniqueId && Number(rule.level) === Number(entry.level))), "every reviewed clock level has an explicit thin adapter and honest automation status");
@@ -101,7 +102,7 @@ assert.equal(
   "candidate",
   "unlisted future levels must never become reviewed automatically",
 );
-assert.equal(Engine.techniqueCoverage(context.DAWN_DATA, { "ruiner.bombardier": 2 }).length, 2);
+assert.equal(Engine.techniqueCoverage(data, { "ruiner.bombardier": 2 }).length, 2);
 
 const baseExplosion = Engine.preview(scene, {
   actorId: "hero",
@@ -166,9 +167,8 @@ empathScene.actors[0].techniques={"altruist.empath":3};
 empathScene.actors[0].focus=3;empathScene.actors[0].ap=1;
 empathScene.actors[1].team="hero";empathScene.actors[1].tier=2;
 const support=Engine.preview(empathScene,{actorId:"hero",ruleId:"altruist.empath.3",targetIds:["enemy-a"]});
-assert.equal(support.ok,true);
-assert.deepEqual(JSON.parse(JSON.stringify(support.events.filter(event=>event.type==="resource.spend").map(event=>[event.payload.resource,event.payload.amount]))),[["focus",3],["ap",1]]);
-assert.equal(support.events.find(event=>event.type==="actor.state").payload.value,2);
+assert.equal(support.ok,false, "Empath III is a boundary passive, not a paid Support action");
+assert.match(support.errors.join(" "), /Пассивное правило/);
 
 const tooFar = Engine.preview(scene, {
   actorId: "hero",
@@ -198,7 +198,7 @@ assert.equal(bombardierPending.payload.targetedTerrainId, "terrain");
 assert.equal(bombardierPending.payload.targetsTerrainCell, true);
 assert.deepEqual(JSON.parse(JSON.stringify(bombardierPending.payload.techniqueAnchor)), { x: 3, y: 3 });
 assert.throws(() => SceneEngine.dispatchMany({ ...gasScene, version: 0, log: [] }, bombardierEvents), /проверяемый снимок пула Завершения Духом/, "Bombardier cannot commit client-supplied successes without Spirit Finisher dice provenance");
-const bombardierDiceRequest = { scope: "action", baseCount: 4, advantage: 0, hindrance: 0, attribute: "spirit", actionId: context.DAWN_DATA.actions.list.find(action => action.name === "Завершение").id, targetIds: bombardierOnTerrain.affectedActorIds };
+const bombardierDiceRequest = { scope: "action", baseCount: 4, advantage: 0, hindrance: 0, attribute: "spirit", actionId: data.actions.list.find(action => action.id === "action.атаки.завершение").id, targetIds: bombardierOnTerrain.affectedActorIds };
 const verifiedBombardierRoll = SceneEngine.diceRollPayload(gasScene, "hero", bombardierDiceRequest, { rolls: [4, 4, 2, 2] });
 assert.equal(verifiedBombardierRoll.available, true);
 const verifiedBombardier = Engine.preview(gasScene, { actorId: "hero", ruleId: "ruiner.bombardier.1", anchor: { x: 3, y: 3 }, options: { focusSpent: 0 }, roll: verifiedBombardierRoll.payload });
@@ -207,12 +207,12 @@ const verifiedBombardierPending = SceneEngine.dispatchMany({ ...gasScene, versio
 assert.equal(verifiedBombardierPending.pendingAction?.techniqueRuleId, "ruiner.bombardier.1", "A canonically derived Spirit Finisher roll commits through the same authority path");
 const interruptedBombardier = structuredClone(verifiedBombardierPending);
 interruptedBombardier.actors.find(actor => actor.id === "hero").knockedOut = true;
-const cancelledBombardier = SceneEngine.resolvePendingAction(interruptedBombardier, context.DAWN_DATA);
+const cancelledBombardier = SceneEngine.resolvePendingAction(interruptedBombardier, data);
 assert.equal(cancelledBombardier.ok, true);
 assert.ok(cancelledBombardier.events.some(event => event.type === "attack.clear" && event.payload?.cancelled), "KO of the Bombardier cancels the pending explosion instead of applying stale damage");
 let reconnectedBombardier = structuredClone(verifiedBombardierPending);
-for (const targetId of [...reconnectedBombardier.pendingAction.targetIds]) reconnectedBombardier = SceneEngine.dispatchMany(reconnectedBombardier, SceneEngine.respondReaction(reconnectedBombardier, context.DAWN_DATA, { actorId: targetId, choice: "pass" }).events).scene;
-const resolvedBombardier = SceneEngine.dispatchMany(reconnectedBombardier, SceneEngine.resolvePendingAction(reconnectedBombardier, context.DAWN_DATA).events).scene;
+for (const targetId of [...reconnectedBombardier.pendingAction.targetIds]) reconnectedBombardier = SceneEngine.dispatchMany(reconnectedBombardier, SceneEngine.respondReaction(reconnectedBombardier, data, { actorId: targetId, choice: "pass" }).events).scene;
+const resolvedBombardier = SceneEngine.dispatchMany(reconnectedBombardier, SceneEngine.resolvePendingAction(reconnectedBombardier, data).events).scene;
 assert.equal(resolvedBombardier.pendingAction, null, "A serialized/reconnected Bombardier reaction chain resolves normally");
 assert.ok(resolvedBombardier.log.some(event => event.type === "roll.public" && event.payload?.dice?.attribute === "spirit"), "The final Bombardier roll and successes remain in the public journal");
 assert.equal(SceneEngine.dispatchMany(resolvedBombardier, verifiedBombardierEvents).events.length, 0, "Replaying the same Bombardier event batch is idempotent");

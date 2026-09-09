@@ -658,7 +658,7 @@
     const latestDeployment = deploymentRows.length ? deploymentRows[deploymentRows.length - 1] : null;
     const actionsAfterDeployment = latestDeployment ? (scene.log || []).slice(latestDeployment.index + 1).some(event => event?.actorId === a.id && ["action.prepare", "action.resolve"].includes(event.type)) || actionHistory.some(item => Number(item.turnSerial) === Number(scene.turnSerial) && (!scene.lionwing?.activeTurnInstanceId || !item.ownerTurnInstanceId || item.ownerTurnInstanceId === scene.lionwing.activeTurnInstanceId)) : false;
     const firstActionAfterDeploy = Boolean(latestDeployment && !actionsAfterDeployment);
-    const modifierQuote = global.DAWN_LIONWING_ADAPTERS?.actionQuote?.(a, { scene, actionId: def.id, baseCost, baseResource: def.cost.resource, baseSwift, continuation, firstActionAfterDeploy, targetIds: request.targetIds || [], request: { breakout: Boolean(request.breakout) } }) || { ok: true, cost: baseCost, resource: def.cost.resource, swift: baseSwift, ignoreRequirements: [], modifiers: [], modifierIds: [] };
+    const modifierQuote = global.DAWN_LIONWING_ADAPTERS?.actionQuote?.(a, { scene, actionId: def.id, targetIds: request.targetIds || [], attribute: requestedAttribute, baseCost, baseResource: def.cost.resource, baseSwift, continuation, firstActionAfterDeploy, request: { breakout: Boolean(request.breakout) } }) || { ok: true, cost: baseCost, resource: def.cost.resource, swift: baseSwift, ignoreRequirements: [], modifiers: [], modifierIds: [] };
     if (modifierQuote.ok === false) return unavailable(modifierQuote.reason || "Модификаторы действия конфликтуют");
     const cost = Number(modifierQuote.cost ?? baseCost), swift = Boolean(modifierQuote.swift), used = isPlayer(a) ? (a.usedActions || []) : (a.lionwing?.turnActions || []);
     if (!swift && used.includes(def.id)) return unavailable("Действие уже использовано");
@@ -1029,7 +1029,7 @@
       else if (type === "counter.threshold") saveFact("counter.threshold", actorId, targets, { counterId: payload.counterId || payload.id, kind: payload.kind || payload.type, before: payload.before, value: payload.value, threshold: payload.threshold });
       else if (type === "aura.enter" || type === "aura.exit") saveFact(type, actorId, [actorId], { auraId:payload.auraId, effectId:payload.effectId, ruleId:payload.ruleId, ownerActorId:payload.ownerActorId, sourceEntityId:payload.sourceEntityId, movementTargetId:payload.movementTargetId||null, segmentIndex:payload.segmentIndex??null });
       else if (type === "attack.clear" && payload.cancelled) saveFact("cancel", actorId, targets, { reason: payload.reason || "cancelled" });
-      if (scheduleAfterEvent && ["clash.success", "damage.apply", "actor.knockout", "effect.apply", "actor.enter", "action.resolve", "marker.remove", "reaction.respond"].includes(type)) scheduleAfterEvent(row);
+      if (scheduleAfterEvent && ["clash.success", "damage.apply", "actor.knockout", "effect.apply", "actor.enter", "action.resolve", "marker.remove", "reaction.respond", "resource.gain"].includes(type)) scheduleAfterEvent(row);
       return row;
     };
     const emitSpecial = (type, actorId, operation, payload, before, after) => {
@@ -1312,7 +1312,7 @@
       a.effects = [...new Set([...(a.effects || []), p.effect])];
       a.effectStates ||= {};
       const previousSources=(a.effectStates[p.effect]?.sources||[]).filter(item=>(item.sourceId||item.actorId)!==sourceKey);
-      const source={sourceId:sourceKey,actorId:sourceId||null,actionId:p.sourceActionId||provenance?.actionId||null,actionInstanceId:provenance?.actionInstanceId||null,eventId:rootId,appliedSerial:Number(scene.turnSerial||0),appliedRound:Number(scene.round||0),duration,lifetime,ownerActorId:boundaryOwnerId,ownerTurnSerial:ownTurnSerial(boundaryOwner),removable:p.removable!==false,sourceBound:p.sourceBound!==false,suppressedBy:[],sourceType:"effect",active:true};
+      const source={sourceId:sourceKey,actorId:sourceId||null,ruleId:p.ruleId||provenance?.ruleId||null,actionId:p.sourceActionId||provenance?.actionId||null,actionInstanceId:provenance?.actionInstanceId||null,eventId:rootId,appliedSerial:Number(scene.turnSerial||0),appliedRound:Number(scene.round||0),duration,lifetime,ownerActorId:boundaryOwnerId,ownerTurnSerial:ownTurnSerial(boundaryOwner),removable:p.removable!==false,sourceBound:p.sourceBound!==false,suppressedBy:[],sourceType:"effect",active:true};
       a.effectStates[p.effect] = { duration, lifetime, removable: previousSources.concat(source).every(item=>item.removable!==false), appliedTurnSerial: Number(scene.turnSerial || 0), appliedRound: scene.round, appliedEventId: rootId, sources: [...previousSources,source] };
       astate(a).effectLifetimes ||= {};
       astate(a).effectLifetimes[p.effect] = { ownerActorId: boundaryOwnerId, duration, lifetime, appliedSerial: Number(scene.turnSerial || 0), ownerTurnSerial: ownTurnSerial(boundaryOwner), appliedRound: scene.round };
@@ -1557,7 +1557,7 @@
       if(requestedResource==="focus"&&a.ruleResources?.[resource]?.inverted){a.ruleResources[resource].value=Math.max(0,before-amount);emit("resource.spend",a.id,{resource,amount:Math.min(before,amount),requestedAmount:amount,inverted:true});return;}
       if(spendable.has(resource))a[resource]=before+amount;
       else {const def=a.ruleResources[resource];if(def.maximum!=null&&before+amount>def.maximum)fail("Получение превышает максимум ресурса");def.value=before+amount;}
-      emit("resource.gain",a.id,{requestedResource,resource,amount});
+      emit("resource.gain",a.id,{requestedResource,resource,amount,actionId:gainContext.actionId || null,actionInstanceId:gainContext.actionInstanceId || provenance?.actionInstanceId || null});
     };
     const specialString = (value, label, max = 180) => {
       if (typeof value !== "string" || !value.trim() || value.length > max || /[\u0000-\u001f\s]/u.test(value)) fail(`Некорректное значение: ${label}`);
@@ -1888,7 +1888,19 @@
       if (!def) fail("Неизвестное базовое действие");
       const status = actionStatus(scene, a, def, p);
       if (!status.available) fail(status.reason);
-      if (effectActive(scene,a,"positive.исчез")) {
+      const assassinStride = def.id === ids.step && status.actionQuote?.modifierIds?.includes("vagabond.assassin.3");
+      const icicleRequested = def.id === ids.breathe && (p.icicle === true || p.useIcicle === true || p.cryomancerIcicle === true || p.icicleChoice === "empty");
+      const icicleClock = a.ruleClocks?.["ruiner.cryomancer.icicle"];
+      if (icicleRequested) {
+        if (a.lionwing?.automation?.["ruiner.cryomancer.2"] !== true || !icicleClock) fail("Сосулька Ледяного покрова недоступна");
+        const segments = Number(icicleClock.current ?? icicleClock.value ?? 0);
+        if (!Number.isSafeInteger(segments) || segments < 1) fail("Сосулька пуста");
+        const targetId = p.icicleTargetId || p.targetId || (Array.isArray(p.targetIds) && p.targetIds.length === 1 ? p.targetIds[0] : null);
+        const target = targetId && requiredActor(scene, targetId, true);
+        if (!target || target.id === a.id || distance(a, target) > 5) fail("Сосулька требует вражескую цель в пределах 5 клеток");
+        p.icicleReplacement = { segments, targetId: target.id, immobilize: effectActive(scene, target, "negative.замедлен") };
+      }
+      if (effectActive(scene,a,"positive.исчез") && !assassinStride) {
         if (!p.reappearance) fail("Сначала выберите клетку появления");
         if (scene.actors.some(x => live(x) && x.id !== a.id && distance({ ...p.reappearance, space: p.reappearance.space || a.space }, x) <= 1)) fail("Появление запрещено рядом с персонажем");
         removeEffect(a, "positive.исчез",{reappear:false}); placeActor(a, p.reappearance, { reason: "reappear-action" });
@@ -1909,7 +1921,7 @@
       if(def.id===ids.improvise&&p.removeObstacleId){const index=scene.objects.findIndex(o=>o.id===p.removeObstacleId&&o.type==="terrain"&&o.space===a.space&&(o.cells||[]).some(cell=>{const[x,y]=cell.split(',').map(Number);return distance(a,{x,y,space:a.space})===1;}));if(index<0)fail("Соседнее препятствие не найдено");scene.objects.splice(index,1);}
       if (!status.continuation && !status.swift) { a.usedActions = [...new Set([...(a.usedActions || []), def.id])]; astate(a).turnActions = [...new Set([...(astate(a).turnActions || []), def.id])]; }
       const activeTurnOwner = scene.activeActorId ? actor(scene, scene.activeActorId) : null, activeOwnerSerial = activeTurnOwner ? ownTurnSerial(activeTurnOwner) : null;
-      astate(a).history = [...(astate(a).history || []), { actionId: def.id, actionDefinitionId: def.id, actionInstanceId: provenance?.actionInstanceId || null, targetIds: targets.map(t => t.id), round: scene.round, turnSerial: scene.turnSerial, ownerTurnActorId: activeTurnOwner?.id || null, ownerTurnSerial: activeOwnerSerial, ownerTurnInstanceId: s.activeTurnInstanceId || null, ownerTurnKey: activeTurnOwner ? ownerTurnKey(s.sceneSerial, activeTurnOwner, activeOwnerSerial) : null, swift: Boolean(status.swift) }].filter((item,index,list)=>item.ruleId||index>=list.length-200);
+      astate(a).history = [...(astate(a).history || []), { actionId: def.id, actionDefinitionId: def.id, actionInstanceId: provenance?.actionInstanceId || null, targetIds: targets.map(t => t.id), round: scene.round, turnSerial: scene.turnSerial, ownerTurnActorId: activeTurnOwner?.id || null, ownerTurnSerial: activeOwnerSerial, ownerTurnInstanceId: s.activeTurnInstanceId || null, ownerTurnKey: activeTurnOwner ? ownerTurnKey(s.sceneSerial, activeTurnOwner, activeOwnerSerial) : null, swift: Boolean(status.swift), ...(assassinStride ? { ruleId: "vagabond.assassin.3" } : {}) }].filter((item,index,list)=>item.ruleId||index>=list.length-200);
       p.actionInstanceId ||= provenance?.actionInstanceId || rootId;
       p.ownerTurnInstanceId ||= s.activeTurnInstanceId || null;
       emit("action.resolve", a.id, { actionId: def.id, name: def.name, targetIds: targets.map(t => t.id), actionInstanceId: p.actionInstanceId, ownerTurnInstanceId: p.ownerTurnInstanceId, attribute: finishContext.attribute, techniqueRuleId: p.techniqueRuleId || null, finisherMode: p.finisherMode || null });
@@ -1926,8 +1938,18 @@
         for(const id of p.spikeTargetIds||[])if(targets.some(t=>t.id===id)&&effectActive(scene,actor(scene,id),"negative.подброшен"))removeEffect(actor(scene,id),"negative.подброшен");
       }
       if ([ids.spell, ids.skirmish, ids.finish].includes(def.id)) beginAttack(a, { ...p, name: def.name, amount: result.successes + (def.id === ids.finish ? Number(scene.tension || 0) : 0) });
-      else if (def.id === ids.charge || def.id === ids.breathe) { const amount = def.id === ids.charge ? Math.max(2, result.successes) : 1; gain(a,"focus",amount,{actionId:def.id}); }
-      else if (def.id === ids.step) { if (!status.continuation) a.stepRemaining = sceneSpeed(scene,a); if (p.destination) {const moved=move(a, { destination: p.destination, maximum: a.stepRemaining, sourceActionId: def.id, actionInstanceId: p.actionInstanceId, ownerTurnInstanceId: p.ownerTurnInstanceId, turnSerial: scene.turnSerial });if(Number(astate(a).difficultTerrainStopSerial)!==Number(scene.turnSerial))a.stepRemaining-=moved.cost;} }
+      else if (def.id === ids.charge || def.id === ids.breathe) {
+        if (p.icicleReplacement) {
+          mutateCounter({ id: "ruiner.cryomancer.icicle", operation: "reset" }, a.id, "clock");
+          const replacement = p.icicleReplacement;
+          applyDamage({ targetId: replacement.targetId, sourceActorId: a.id, amount: replacement.segments * Math.ceil(Number(a.attrs?.spirit || 0) / 2), sourceActionId: "ruiner.cryomancer.2.icicle", attack: false });
+          if (replacement.immobilize && !actor(scene, replacement.targetId).knockedOut) applyEffect(actor(scene, replacement.targetId), { effect: "negative.обездвижен", sourceActionId: "ruiner.cryomancer.2.icicle", ruleId: "ruiner.cryomancer.2" }, a.id);
+        } else {
+          const amount = def.id === ids.charge ? Math.max(2, result.successes) : 1;
+          gain(a,"focus",amount,{actionId:def.id,actionInstanceId:p.actionInstanceId});
+        }
+      }
+      else if (def.id === ids.step) { if (assassinStride) { removeEffect(a, "positive.исчез", { reappear: false }); applyEffect(a, { effect: "positive.невидим", duration: "scene", sourceActionId: "vagabond.assassin.3" }, a.id); } if (!status.continuation) a.stepRemaining = sceneSpeed(scene,a); if (p.destination) {const moved=move(a, { destination: p.destination, maximum: a.stepRemaining, sourceActionId: def.id, actionInstanceId: p.actionInstanceId, ownerTurnInstanceId: p.ownerTurnInstanceId, turnSerial: scene.turnSerial });if(Number(astate(a).difficultTerrainStopSerial)!==Number(scene.turnSerial))a.stepRemaining-=moved.cost;} }
       else if (def.id === ids.jump) move(a, { destination: p.destination, maximum: scaledMove(a, Number(a.attrs.talent || 0),scene), line: true, ignoreOpponents: true, ignoreDifficultTerrain:true, sourceActionId: def.id, actionInstanceId: p.actionInstanceId, ownerTurnInstanceId: p.ownerTurnInstanceId, turnSerial: scene.turnSerial });
       else if (def.id === ids.shove) move(targets[0], { destination: p.destination, maximum: 1, forced: true });
       else if (def.id === ids.disappear) applyEffect(a, { effect: "positive.исчез", duration: "actionOrStartTurn" }, a.id);

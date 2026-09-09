@@ -61,6 +61,21 @@ quote = adapters.actionQuote(hero, { scene: studyScene, actionId: study, targetI
 assert.equal(quote.cost, 0, "Detective II makes the third Investigate free");
 assert.equal(quote.swift, true, "Detective repeat Investigate is Swift");
 
+hero = actor({ "vagabond.assassin": 3 }, { x: 0, speed: 4 });
+enable(hero, ["vagabond.assassin.3"]);
+let speedScene = scene(hero, { actors: [hero, { id: "enemy", name: "Enemy", kind: "enemy", rulesEdition: "lionwing", team: "enemy", space: "main", x: 3, y: 2, hp: 12, maxHp: 12, ap: 3, baseAp: 3, focus: 0, influence: 0, tier: 1, speed: 4, armor: 0, evasion: 0, attrs: { body: 2, talent: 2, spirit: 2, mind: 2 }, effects: [], effectStates: {}, usedActions: [], acted: false, knockedOut: false, knownTechniques: {}, techniques: {}, lionwing: {} }] });
+let hide = lionwing.prepare(speedScene, { actorId: hero.id, kind: "action", actionId: action.hide }, { random: () => 0.6 });
+assert.equal(hide.ok, true, hide.errors?.join(" "));
+speedScene = lionwing.dispatchMany(speedScene, hide.events).scene;
+assert.ok(speedScene.actors[0].effects.includes("positive.исчез"), "Hide leaves the Assassin Disappeared before the combo Step");
+const stepStatus = lionwing.actionStatus(speedScene, speedScene.actors[0], lionwing.actionDef(ids.step), { destination: { x: 1, y: 2 } });
+assert.equal(stepStatus.cost, 0, "Speed of Dark makes the following Step free");
+let step = lionwing.prepare(speedScene, { actorId: hero.id, kind: "action", actionId: ids.step, destination: { x: 1, y: 2 } }, { random: () => 0.6 });
+assert.equal(step.ok, true, step.errors?.join(" "));
+speedScene = lionwing.dispatchMany(speedScene, step.events).scene;
+assert.ok(speedScene.actors[0].effects.includes("positive.невидим"), "Speed of Dark applies Invisible after the free Step");
+assert.equal(adapters.rollBonus(speedScene.actors[0], { scene: speedScene, kind: "attack", actionId: ids.finish }), 2, "Speed of Dark grants Speed/2 Advantage to the next Finisher");
+
 // prepare and dispatch recompute the same quote.  A client supplied cost does
 // not alter the authoritative payment.
 hero = actor({ "altruist.artist": 2 }); enable(hero, ["altruist.artist.2"]);

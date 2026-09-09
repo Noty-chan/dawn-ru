@@ -18,6 +18,7 @@
     breathe: "action.утилитарные-действия.передышка",
     charge: "action.утилитарные-действия.зарядка",
     hide: "action.утилитарные-действия.скрыться",
+    step: "action.движение.шаг",
     interact: "action.утилитарные-действия.взаимодействие",
     study: "action.утилитарные-действия.изучение",
   });
@@ -58,6 +59,7 @@
     ...(options.instanceId != null ? { instanceId: options.instanceId } : {}),
   }];
   const typedReset = (actor, id, source) => [{ kind: "inventory", operation: "reset", targetId: actor.id, id, boundary: "intermission", ruleId: source.ruleId, sourceDigest: source.sourceDigest }];
+  const clockConfiguration = (actor, id, label, size, options = {}) => [{ kind: "clock", targetId: actor.id, id, operation: "create", label, current: options.current ?? 0, initial: options.initial ?? 0, size, scope: options.scope || "scene", lifetime: options.lifetime || "scene", ruleId: options.ruleId || null }];
 
   // Completed-event adapters are deliberately data-only.  The engine supplies
   // the authoritative event and applies the returned operations; an adapter
@@ -224,6 +226,47 @@
         ["harsh", "Резкий"], ["soothing", "Успокаивающий"], ["inspiring", "Вдохновляющий"], ["raucous", "Шумный"], ["frantic", "Неистовый"],
       ].map(([id, label]) => ({ id, label: `Получить Куплет «${label}»`, operations: [{ kind: "inventory", operation: "select", targetId: actor.id, id: "altruist.bardic-savant.verses", selectedItemId: id, mode: "add", ruleId: "altruist.bardic-savant.1", sourceDigest: "896edba28e9a933577bd1956f94da01f4f6beadc1452a5d4c52ac3e4038a5486" }], context: { verse: id } })),
     }),
+    eventTrigger({
+      id: "ruiner.grim-ascendant.2",
+      label: "Мрачный вознёсшийся II: после Духовного Завершения начать Drain Life",
+      sourceDigest: "f9768c5e588f5471e9e1e5b145e1b9ec0216d2fcba298f5c64364b027af2bf96",
+      coverage: "partial",
+      triggerKey: ({ actor, event }) => `${event.payload?.actionInstanceId || event.id}:${actor.id}:grim-2`,
+      operations: () => [],
+      choices: (actor, event, context) => {
+        const payload = event.payload || {}, targetId = Array.isArray(payload.targetIds) && payload.targetIds.length === 1 ? payload.targetIds[0] : null;
+        const target = targetId && context.scene?.actors?.find(item => item.id === targetId), transformed = actor.ruleState?.grimTransformed === true || actor.lionwing?.grimTransformed === true || actor.grimTransformed === true;
+        if (!transformed || event.type !== "action.resolve" || payload.actionId !== "action.атаки.завершение" || String(payload.attribute || "spirit").toLowerCase() !== "spirit" || !target || target.team === actor.team || target.knockedOut) return [];
+        const actionInstanceId = payload.actionInstanceId || event.execution?.actionInstanceId;
+        if (typeof actionInstanceId !== "string") return [];
+        const drainId = `${actor.id}:${actionInstanceId}:grim-drain`;
+        return [{
+          id: "drain",
+          label: `Начать Drain Life на ${target.name}`,
+          operations: [
+            { kind: "effect", targetId: actor.id, sourceActorId: actor.id, sourceId: drainId, ownerActorId: actor.id, duration: "startTurn", effect: "negative.обездвижен", ruleId: "ruiner.grim-ascendant.2", sourceActionId: "ruiner.grim-ascendant.2" },
+            { kind: "effect", targetId: target.id, sourceActorId: actor.id, sourceId: drainId, ownerActorId: target.id, duration: "startTurn", effect: "negative.обездвижен", ruleId: "ruiner.grim-ascendant.2", sourceActionId: "ruiner.grim-ascendant.2" },
+          ],
+          context: { targetId: target.id, sourceActorId: actor.id, drainId, actionInstanceId },
+        }];
+      },
+      boundaryOperations: (activeActor, context) => {
+        if (context?.boundary !== "startTurn" || !context.scene) return [];
+        const drains = [];
+        for (const participant of context.scene.actors || []) for (const source of participant.effectStates?.["negative.обездвижен"]?.sources || []) if (source.ruleId === "ruiner.grim-ascendant.2" && source.sourceId && !drains.some(item => item.drainId === source.sourceId)) drains.push({ drainId: source.sourceId, sourceActorId: source.actorId, appliedEventId: source.eventId });
+        return drains.filter(drain => (context.scene.actors || []).some(participant => participant.id === activeActor.id && participant.effectStates?.["negative.обездвижен"]?.sources?.some(source => source.sourceId === drain.drainId) || participant.id === activeActor.id && (context.scene.log || []).some(row => row.type === "effect.remove" && row.payload?.sourceId === drain.drainId))).flatMap(drain => {
+          const participantIds = (context.scene.actors || []).filter(participant => participant.effectStates?.["negative.обездвижен"]?.sources?.some(source => source.sourceId === drain.drainId)).map(participant => participant.id);
+          if (!participantIds.length) return [];
+          const appliedIndex = (context.scene.log || []).findIndex(row => row.id === drain.appliedEventId), recent = appliedIndex < 0 ? (context.scene.log || []) : (context.scene.log || []).slice(0, appliedIndex);
+          const damaged = recent.some(row => row.type === "damage.apply" && Number(row.payload?.dealt || 0) > 0 && participantIds.includes(row.payload?.targetId));
+          const sourceActor = (context.scene.actors || []).find(participant => participant.id === drain.sourceActorId);
+          const operations = [];
+          if (!damaged && sourceActor) operations.push({ kind: "resource", targetId: sourceActor.id, resource: "focus", operation: "gain", amount: Number(sourceActor.attrs?.spirit || 0), ruleId: "ruiner.grim-ascendant.2" });
+          for (const participantId of participantIds) operations.push({ kind: "effect-source", targetId: participantId, sourceId: drain.drainId, operation: "remove", ruleId: "ruiner.grim-ascendant.2" });
+          return [{ id: "ruiner.grim-ascendant.2", label: "Drain Life завершён", operations }];
+        });
+      },
+    }),
   ];
 
   const berserker = Object.freeze({
@@ -350,11 +393,17 @@
     passive({ id: "ruiner.feral-arcana.3", label: "Дикий арканист III: +1 Преимущество к Заклинаниям (пассивная часть)", sourceDigest: "9f6cfdd94da5ecb8aae12c24b3602fc117b2890191d51dabd3eb6d89a3b83df3", coverage: "partial", rollBonus: actionBonus("action.атаки.заклинание") }),
     passive({ id: "ruiner.flame-heart.3", label: "Пламенное сердце III: +1 Преимущество к Заклинаниям (пассивная часть)", sourceDigest: "4896f18d23e7ba4de201859ecfb76d46c7049c32e532747831b973b2d75c6d29", coverage: "partial", rollBonus: actionBonus("action.атаки.заклинание") }),
     passive({ id: "ruiner.flame-heart.2", label: "Пламенное сердце II: +[Напряжение] Преимущества к магической Атаке в Порче (пассивная часть)", sourceDigest: "2259304d1ba4a37ae5e0850fa66ffcba7b9b70b1ce544d02f97fcbd6472809c2", coverage: "partial", rollBonus: (_actor, context) => context?.kind === "attack" && context.sourceEffectIds?.includes("negative.порчен") && (context.actionId === "action.атаки.заклинание" || context.actionId === "action.атаки.завершение" && context.attribute === "spirit") ? Number(context.tension || 0) : 0 }),
-    passive({ id: "ruiner.cryomancer.2", label: "Ледяной покров II: +1 Преимущество к Заклинаниям (пассивная часть)", sourceDigest: "32667d8918127c1729dc39430bde0375999651854e06e8cd599d91b7fcd14f30", coverage: "partial", rollBonus: actionBonus("action.атаки.заклинание") }),
+    passive({ id: "ruiner.cryomancer.2", label: "Ледяной покров II: +1 Преимущество к Заклинаниям и Сосулька", sourceDigest: "32667d8918127c1729dc39430bde0375999651854e06e8cd599d91b7fcd14f30", coverage: "partial", rollBonus: actionBonus("action.атаки.заклинание"), boundaryOperations: (actor, context) => context?.boundary === "sceneStart" ? clockConfiguration(actor, "ruiner.cryomancer.icicle", "Сосулька", 4, { ruleId: "ruiner.cryomancer.2" }) : [] }),
     passive({ id: "ruiner.sellsword-s-call.1", label: "Зов мечника I: +2 Преимущества к Заклинаниям (пассивная часть)", sourceDigest: "712c5d75aebe965eb606cb4b930e141138c87dd24cb14804cd367a1904d5c283", coverage: "partial", rollBonus: actionBonus("action.атаки.заклинание", 2) }),
     passive({ id: "vagabond.skirmisher.3", label: "Застрельщик III: +1 Преимущество к Стычкам (пассивная часть)", sourceDigest: "4933347df61d45014a553af1c97f078e20ee677081e433464ba9c96726513c61", coverage: "partial", rollBonus: actionBonus("action.атаки.стычка") }),
     passive({ id: "vagabond.knife-juggler.2", label: "Жонглёр ножами II: +1 Преимущество к Стычкам (пассивная часть)", sourceDigest: "4da1a911cf7ed1eb5a90e3c4aed8abbb87087a567f7ab38406c11d1130c6c54a", coverage: "partial", rollBonus: actionBonus("action.атаки.стычка") }),
     passive({ id: "vagabond.assassin.2", label: "Убийца II: +[Ранг] Преимущества к Атакам из Исчезновения (пассивная часть)", sourceDigest: "6e95fe2767088e069f995f384a6e03856f26d428161dbd57efca1c03a5eda98f", coverage: "partial", rollBonus: (actor, context) => context?.kind === "attack" && attackIds.has(context.actionId) && context.sourceEffectIds?.includes("positive.исчез") ? Number(actor.tier || 1) : 0 }),
+    passive({ id: "vagabond.assassin.3", label: "Ассасин III: после Скрыться → Шаг следующий Завершающий удар получает [Скорость/2] Преимуществ", sourceDigest: "0a28c9c9cc800d859e9f2352923ece0aa23754cc12541124234b16400378c1c1", coverage: "full", rollBonus: (actor, context) => {
+      if (context?.kind !== "attack" || context.actionId !== "action.атаки.завершение" || !context.scene) return 0;
+      const serial = Number(context.scene.turnSerial), instance = context.scene.lionwing?.activeTurnInstanceId || null;
+      const used = eventHistory(actor, context.scene).some(item => item.actionId === ACTIONS.step && item.ruleId === "vagabond.assassin.3" && (instance && item.ownerTurnInstanceId === instance || !instance && Number(item.turnSerial) === serial));
+      return used ? Math.ceil(Number(actor.speed || 0) / 2) : 0;
+    } }),
     passive({
       id: "vagabond.acrobat.1",
       label: "Акробат I: Преимущество Стычки за клетки этого Прыжка (пассивная часть)",
@@ -421,7 +470,7 @@
   const actionModifiers = [
     actionModifier({
       id: "vagabond.dim-mak.1", techniqueId: "vagabond.dim-mak", level: 1,
-      sourceDigest: "57c2d10021b83b34",
+      sourceDigest: "86bc2801b43ae4f2bd3de697124313b986e9ae1081e0dd8f3f52dfc44b097c59",
       label: "Детектив I: повторное Изучение той же цели Быстрое",
       available: actor => knows(actor, "vagabond.dim-mak", 1),
       modify: (actor, context) => {
@@ -437,7 +486,7 @@
     }),
     actionModifier({
       id: "vagabond.dim-mak.2", techniqueId: "vagabond.dim-mak", level: 2,
-      sourceDigest: "8f245e4e776b3358",
+      sourceDigest: "d63edd4d649fb29805706009934a7eb38427b2507f32b1d5632e881f7e24a5a2",
       label: "Детектив II: третье Изучение бесплатно и замедляет Помеченных",
       available: actor => knows(actor, "vagabond.dim-mak", 2),
       modify: (actor, context) => {
@@ -513,6 +562,21 @@
         ? { cost: 0, costMode: "replace", ignoreRequirements: ["boardEdge", "startedDisappeared"], reason: "Первое действие после Развёртывания — Hide Ассасина." } : null,
     }),
     actionModifier({
+      id: "vagabond.assassin.3", techniqueId: "vagabond.assassin", level: 3, coverage: "full",
+      sourceDigest: "0a28c9c9cc800d859e9f2352923ece0aa23754cc12541124234b16400378c1c1",
+      label: "Ассасин III: следующий Шаг после Hide бесплатен и даёт Невидим",
+      available: actor => knows(actor, "vagabond.assassin", 3),
+      modify: (actor, context) => {
+        if (context.actionId !== ACTIONS.step || !context.scene) return null;
+        const serial = Number(context.scene.turnSerial), instance = context.scene.lionwing?.activeTurnInstanceId || null;
+        const history = eventHistory(actor, context.scene);
+        const sameTurn = item => instance && item.ownerTurnInstanceId === instance || !instance && Number(item.turnSerial) === serial;
+        const hideUsed = history.some(item => item.actionId === ACTIONS.hide && sameTurn(item));
+        return hideUsed && context.scene.actors?.find(item => item.id === actor.id)?.effects?.includes("positive.исчез")
+          ? { cost: 0, costMode: "replace", swift: true, assassinStride: true, reason: "Шаг сразу после Hide Ассасина бесплатен и даёт Невидим." } : null;
+      },
+    }),
+    actionModifier({
       id: "vagabond.weaponsmith.2", techniqueId: "vagabond.weaponsmith", level: 2,
       sourceDigest: "7aa33f76d9edadcbdc4aced83462e36c212eec5b7c1fa48d162a9424dc16fd37",
       label: "Оружейник II: Зарядка за 1 до смены Формы",
@@ -581,7 +645,7 @@
   const eventTriggerRules = Object.freeze(eventAdapters);
   const afterEvent = (actor, event, context = {}) => {
     if (!actor || !event || !event.type) return [];
-    return enabled(actor).filter(rule => eventTriggerRules.includes(rule)).flatMap(rule => {
+    return enabled(actor).filter(rule => eventTriggerRules.includes(rule) || rule.id === "ruiner.cryomancer.2").flatMap(rule => {
       let match = false;
       if (rule.id === "bulwark.rising-challenger.1") match = event.type === "clash.success" && event.actorId === actor.id;
       else if (rule.id === "powerhouse.berserker.3") match = event.type === "damage.apply" && event.payload?.targetId === actor.id && Number(event.payload?.dealt || 0) > 0 && !context.used;
@@ -605,11 +669,18 @@
         const turnId = event.execution?.ownerTurnInstanceId || context.ownerTurnInstanceId || context.scene?.lionwing?.activeTurnInstanceId || null;
         const removals = (context.scene?.log || []).filter(item => item.type === "marker.remove" && item.actorId === actor.id && item.payload?.ruleId === "vagabond.dim-mak.1" && (item.payload?.carrierActorId || item.payload?.targetId) === targetId && (turnId ? (item.execution?.ownerTurnInstanceId || item.payload?.ownerTurnInstanceId) === turnId : Number(item.payload?.turnSerial ?? item.execution?.turnSerial) === Number(context.scene?.turnSerial)));
         match = removals.length === 3;
+      } else if (rule.id === "ruiner.grim-ascendant.2") {
+        const payload = event.payload || {}, transformed = actor.ruleState?.grimTransformed === true || actor.lionwing?.grimTransformed === true || actor.grimTransformed === true;
+        match = transformed && event.type === "action.resolve" && event.actorId === actor.id && payload.actionId === "action.атаки.завершение" && String(payload.attribute || "spirit").toLowerCase() === "spirit" && typeof (payload.actionInstanceId || event.execution?.actionInstanceId) === "string" && Array.isArray(payload.targetIds) && payload.targetIds.length === 1;
+      } else if (rule.id === "ruiner.cryomancer.2") {
+        const payload = event.payload || {}, clock = actor.ruleClocks?.["ruiner.cryomancer.icicle"];
+        match = event.type === "resource.gain" && event.actorId === actor.id && payload.requestedResource === "focus" && Number(payload.amount || 0) > 0 && typeof payload.actionId === "string" && event.execution?.actionDefinitionId === payload.actionId && typeof (payload.actionInstanceId || event.execution?.actionInstanceId) === "string" && Number(clock?.current ?? clock?.value ?? 0) < Number(clock?.max ?? clock?.size ?? 4);
       }
       else if (typeof rule.match === "function") match = Boolean(rule.match(actor, event, context));
       if (!match) return [];
       const triggerKey = typeof rule.triggerKey === "function" ? rule.triggerKey({ actor, event, context }) : `${event.id}:${actor.id}`;
-      return [{ id: rule.id, label: rule.label, sourceDigest: rule.sourceDigest, coverage: rule.coverage, triggerKey, operations: rule.operations(actor, event, context), choices: rule.choices(actor, event, context) }];
+      const operations = rule.id === "ruiner.cryomancer.2" ? [{ kind: "clock", targetId: actor.id, id: "ruiner.cryomancer.icicle", operation: "add", delta: 1, ruleId: rule.id }] : rule.operations(actor, event, context);
+      return [{ id: rule.id, label: rule.label, sourceDigest: rule.sourceDigest, coverage: rule.coverage, triggerKey: rule.id === "ruiner.cryomancer.2" ? `${event.payload.actionInstanceId || event.execution?.actionInstanceId}:${actor.id}:cryomancer-2` : triggerKey, operations, choices: rule.choices ? rule.choices(actor, event, context) : [] }];
     });
   };
   const numericContributions = (actor, method, context) => enabled(actor).flatMap(rule => {

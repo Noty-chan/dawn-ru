@@ -994,3 +994,17 @@ maps/docs обновлены только для доказанного coverage
 неопределённые случаи должны оставаться blocked с уведомлением и ручным Narrator
 override; расширение до full technique automation требует отдельных movement,
 lifecycle, derived-stats/combat-meter и action-copy contracts.
+
+## Каноническая повторная сертификация 2026-09-10
+
+Добавлен обязательный provenance gate `tests/lionwing-provenance.mjs`: каждый доступный
+адаптер и каждый registry-уровень со статусом `full/decision` теперь обязан иметь
+полный SHA-256 digest стабильного canonical payload и явный `sourceLevelId` для
+внутренних subrules. Gate проверяет также объявленный coverage и включён в
+`test:families`.
+
+Исправлены усечённые digest Детектива I–II, канонические ветки Cryomancer II,
+Grim Ascendant II, Empath III и Assassin III. Старый платный Empath Support и
+старые half-damage/Regeneration claims Grim больше не считаются источником
+автоматизации. Подробные counts и оставшийся partial/manual surface:
+`docs/tasks/LIONWING_CANONICAL_RECERTIFICATION_AUDIT.md`.

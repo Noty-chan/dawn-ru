@@ -9,13 +9,16 @@ const root = path.dirname(fileURLToPath(import.meta.url));
 const context = { console, Date };
 context.globalThis = context;
 context.window = context;
-for (const file of ["data.js", "technique-foundation-map.js"]) {
+for (const file of ["edition-lionwing.js", "technique-foundation-map.js"]) {
   vm.runInNewContext(fs.readFileSync(path.join(root, file), "utf8"), context);
 }
 loadSceneEngine(context);
 vm.runInNewContext(fs.readFileSync(path.join(root, "technique-engine.js"), "utf8"), context);
 
 const map = context.DAWN_TECHNIQUE_FOUNDATION_MAP;
+if (context.DAWN_LIONWING_DATA?.editionId !== "dawn-en-lionwing-cb2f8e67") {
+  throw new Error("Technique foundation map must use the canonical LionWing edition");
+}
 const reviewedSourceFiles = [
   "pages-065-070-powerhouse-techniques.md",
   "pages-071-076-vagabond-techniques.md",
@@ -28,7 +31,8 @@ const actualSourceDigest = reviewedSourceFilesDigest(reviewedSourceFiles.map(fil
 if (actualSourceDigest !== map.REVIEWED.sourceDigest) {
   throw new Error("Текст Техник изменился после ручной сверки. Обновите REVIEWED.profiles и sourceDigest.");
 }
-const coverage = context.DAWN_TECHNIQUE_ENGINE.techniqueCoverage(context.DAWN_DATA);
+const coverage = context.DAWN_TECHNIQUE_ENGINE.techniqueCoverage(context.DAWN_LIONWING_DATA);
+if (coverage.length !== 333) throw new Error(`Expected 333 canonical Technique levels, got ${coverage.length}`);
 const escapeCell = value => String(value ?? "").replaceAll("|", "\\|").replace(/\s+/g, " ").trim();
 const stateLabel = { ready: "готово", planned: "планируется", fallback: "ручное" };
 const automationLabel = { full: "полная", decision: "с выбором", partial: "частичная", manual: "ручная" };

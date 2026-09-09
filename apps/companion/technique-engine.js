@@ -15,7 +15,7 @@
     { id: "bulwark.stalwart-sentry.2.foundation", techniqueId: "bulwark.stalwart-sentry", level: 2, name: "На посту", kind: "foundation", foundation: "clock", automation: "decision", clockId: "bulwark.stalwart-sentry.vigilance", size: 4, initial: 4, note: "Выход врага из смежности открывает Наказание с обычной оплатой либо очисткой Бдительности; бросок, Реакции и отмена проходят через общий конвейер." },
     { id: "altruist.chronomancer.3.foundation", techniqueId: "altruist.chronomancer", level: 3, name: "Остановка времени", kind: "foundation", foundation: "clock", automation: "decision", clockId: "altruist.chronomancer.flow", size: 8, initial: 0, note: "Полный Поток в начале Хода предлагает однократное массовое Заклинание, тратит все ОД и поддерживает Ва-банк с Раной и Завершением против врагов." },
     { id: "ruiner.cryomancer.1", techniqueId: "ruiner.cryomancer", level: 1, name: "Охлаждение", kind: "passive", automation: "full", note: "Успешное Заклинание после разрешения Реакций автоматически накладывает Замедлен на доступные цели." },
-    { id: "ruiner.cryomancer.2.foundation", techniqueId: "ruiner.cryomancer", level: 2, name: "Ледяной нимб", kind: "foundation", foundation: "clock", automation: "decision", clockId: "ruiner.cryomancer.icicle", size: 4, initial: 0, note: "Заклинания получают Преимущество; Сосулька заполняется только фактическим Focus gain, а persisted prompt может отказаться лишь от gain конкретной Передышки и ведёт точную серию Быстрых Заклинаний с половинным уроном." },
+    { id: "ruiner.cryomancer.2.foundation", techniqueId: "ruiner.cryomancer", level: 2, name: "Ледяной нимб", kind: "foundation", foundation: "clock", automation: "partial", clockId: "ruiner.cryomancer.icicle", size: 4, initial: 0, note: "Канон: Заклинания получают +1 Преимущество; после фактического получения Фокуса один раз за это Действие заполняется Сосулька; перед Передышкой можно заменить её эффект опустошением часов и уроном [Дух/2] за сегмент, с Ошеломлением Замедленного. Старый quick-Cast/persistent-prompt путь не является доказательством этой механики." },
     { id: "ruiner.feral-arcana.2.foundation", techniqueId: "ruiner.feral-arcana", level: 2, name: "Сорваться с цепи", kind: "foundation", foundation: "clock", automation: "decision", clockId: "ruiner.feral-arcana.rage", size: 6, initial: 0, note: "Создание и жизненный цикл Ярости, ограничения ОД, Быстрые Прыжки и обязательное бесплатное Заклинание по всем смежным персонажам проходят через цели, Реакции, отмену и журнал." },
     { id: "ruiner.feral-arcana.3", techniqueId: "ruiner.feral-arcana", level: 3, name: "Хватка", kind: "passive", automation: "decision", note: "Завершение Телом может потратить всю Ярость, получить Преимущество от Напряжения и переместиться до 3 клеток перед созданием Атаки." },
     { id: "ruiner.void-soul.3.foundation", techniqueId: "ruiner.void-soul", level: 3, name: "Полое сердце", kind: "foundation", foundation: "clock", automation: "decision", clockId: "ruiner.void-soul.void", size: 6, initial: 0, note: "Полная Пустота открывает Завершение Духом по всем врагам центральной зоны 5×5 с половинным уроном и обычными Реакциями." },
@@ -118,10 +118,10 @@
     { id: "disruptor.siren.3", techniqueId: "disruptor.siren", level: 3, name: "Помогите-ка сюда", kind: "passive", automation: "decision", coverage: "full", sourceDigest: "231b63c69615f78497650a97d3a5225a98f298a882d4adb2eedaebdff16c5b7e", note: "После разрешённого Духовного или Ментального Завершения предлагает подтянуть всех Испуганных врагов к цели Завершения на их Скорость и наносит цели урон Ступени за каждого, кто фактически оказался рядом." },
     { id: "powerhouse.spellsword.2", techniqueId: "powerhouse.spellsword", level: 2, name: "Два солнца", kind: "teleport", range: 3, timing: "beforeTargets" },
     { id: "ruiner.grim-ascendant.1", techniqueId: "ruiner.grim-ascendant", level: 1, name: "Непостоянная мощь", kind: "passive", automation: "decision", note: "После подходящей Зарядки стол предлагает трансформацию и полностью ведёт перенаправление Здоровья, Фокуса, толчок и завершение формы." },
-    { id: "ruiner.grim-ascendant.2", techniqueId: "ruiner.grim-ascendant", level: 2, name: "Вытянуть жизнь", kind: "state-toggle", stateKey: "drainLife", automation: "decision", note: "Включите перед Завершением Духом: урон будет округлён вверх пополам, а Успех даст Регенерацию." },
+    { id: "ruiner.grim-ascendant.2", techniqueId: "ruiner.grim-ascendant", level: 2, name: "Вытянуть жизнь", kind: "passive", automation: "partial", note: "Канон: после Завершения Духом в форме можно начать Drain Life; источник и цель Ошеломляются до начала следующего Хода любого из них, а если до снятия эффекта оба не получают урон, источник получает [Дух] Фокуса. Старый state-toggle с половиной урона и Регенерацией исключён." },
     { id: "altruist.empath.1", techniqueId: "altruist.empath", level: 1, name: "Успокаивающая аура", kind: "passive", automation: "decision", note: "В начале Хода союзника стол предлагает снять один выбранный Эффект и наложить Усилен." },
     { id: "altruist.empath.2", techniqueId: "altruist.empath", level: 2, name: "Защитный отклик", kind: "passive", automation: "decision", note: "После внешней Раны или Эффекта стол предлагает бесплатный Прорыв в смежную клетку." },
-    { id: "altruist.empath.3", techniqueId: "altruist.empath", level: 3, name: "Ты в порядке?", kind: "bond-support", automation: "decision", note: "В бою оплачивает Поддержку 3 Фокусом и 1 ОД; следующая проверка выбранного союзника игнорирует Помеху или получает Преимущество Ступени." },
+    { id: "altruist.empath.3", techniqueId: "altruist.empath", level: 3, name: "Ты в порядке?", kind: "passive", automation: "full", coverage: "full", note: "На начале Хода союзника рядом адаптер ядра автоматически даёт 3 Фокуса и восстанавливает [Ступень] Здоровья; отдельный платный Support-путь удалён, чтобы исключить двойное применение." },
     { id: "altruist.will-o-wisp.1", techniqueId: "altruist.will-o-wisp", level: 1, name: "Пламя духовного плетения", kind: "passive", automation: "decision", note: "Изученный тип Духа сохраняется в листе и импорте; первая Зарядка создаёт Пламя, а Атака по его клетке обязательно толкает маркер на 1." },
     { id: "altruist.will-o-wisp.2", techniqueId: "altruist.will-o-wisp", level: 2, name: "Дружелюбные духи", kind: "passive", automation: "decision", note: "Дружественный выход предлагает переместить Пламя; вражеский путь прерывается на первой клетке выхода до downstream enter-триггеров и продолжается только после перепроверяемого отказа." },
     { id: "altruist.will-o-wisp.3", techniqueId: "altruist.will-o-wisp", level: 3, name: "Парные духи", kind: "passive", automation: "decision", note: "Второй изученный тип сохраняется; поддерживаются одно Пламя с двумя свойствами либо два независимых Пламени с отдельными эффектами и движением." },
@@ -133,7 +133,104 @@
   const manhattan = (a, b) => Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
   const unique = values => [...new Set(values)];
   const idFactory = prefix => `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
-  const publicRule = rule => ({ ...clone(rule), automation: rule.automation || "partial" });
+  // This is generated provenance, not a second rules source.  The digest is
+  // calculated from the canonical EN level payload in the provenance test;
+  // this table only makes the reviewed identity available to the browser.
+  const SOURCE_PROVENANCE = Object.freeze({
+    "powerhouse.braggart.2": ["powerhouse.braggart.2", "886d7077c31b4749f8cbb789b513d61ba11e78c401e49cfafd0028bd973385c4"],
+    "powerhouse.braggart.3": ["powerhouse.braggart.3", "a7862dd909d76331b9483d45114caf8e24b60193b2969226dcf16b30b540d0fd"],
+    "vagabond.cunning-fighter.1.foundation": ["vagabond.cunning-fighter.1", "4373bc4971b0d11b0adce5ad6d070e9012c97e4acb27f45a34b8d28b89b6b421"],
+    "vagabond.egomaniac.1.foundation": ["vagabond.egomaniac.1", "66869802f1ffd549e82f6a842b7d5739add130943a9aafd252064abdadeb83fe"],
+    "vagabond.egomaniac.2": ["vagabond.egomaniac.2", "6e1526c365b7cee6ba44e603d7a09ce62ed4c4431deff0c26b1e55e9aaf02b0e"],
+    "vagabond.egomaniac.3": ["vagabond.egomaniac.3", "9cd1b25dc6fbaab0efb398dfa3640f953ddf643cad4574b2941f91e44531c5be"],
+    "bulwark.stalwart-sentry.2.foundation": ["bulwark.stalwart-sentry.2", "11c89e120a37e64ba570b3bb664bf52f056ebca5ad3e83046100c00952bb8d67"],
+    "altruist.chronomancer.3.foundation": ["altruist.chronomancer.3", "fe9f7c35921e35add383a6125039a427cb00110764b1b3f021a4e616e18f890b"],
+    "ruiner.cryomancer.1": ["ruiner.cryomancer.1", "604e45fc7a8fadb9fbe5fdad4a5e8981a97d1aabc01388a92d3e94b291fdd204"],
+    "ruiner.cryomancer.2.foundation": ["ruiner.cryomancer.2", "32667d8918127c1729dc39430bde0375999651854e06e8cd599d91b7fcd14f30"],
+    "ruiner.feral-arcana.2.foundation": ["ruiner.feral-arcana.2", "d745e6fa077a45223741fbb879b15e58914fff47b700b5167c15845bfa9b34a4"],
+    "ruiner.feral-arcana.3": ["ruiner.feral-arcana.3", "9f6cfdd94da5ecb8aae12c24b3602fc117b2890191d51dabd3eb6d89a3b83df3"],
+    "ruiner.void-soul.3.foundation": ["ruiner.void-soul.3", "6d15c248b8a627ae99aef38582164433ed90f727ee9e8e9317428f215c33d3b8"],
+    "ruiner.thunder-blood.1.foundation": ["ruiner.thunder-blood.1", "209467fbf50f3b3db2c2ab7811bdb1e5c9eb67c2031d6610935c65cacb62d2ea"],
+    "ruiner.thunder-blood.2": ["ruiner.thunder-blood.2", "a3138ed2ae39fd300138b566bd502bfff93976c30ac428ff55666939ad3a73d2"],
+    "ruiner.thunder-blood.3": ["ruiner.thunder-blood.3", "a21a0082bbc4f755f1340fc4f480f9ba560c54975c97b83bbb20dfbff7de4117"],
+    "ruiner.zealot.1.foundation": ["ruiner.zealot.1", "c8e971ffe78514c097777e0eec812c6925aa9784440fb7d26ec563955ec36f69"],
+    "ruiner.zealot.2": ["ruiner.zealot.2", "6baef7e8dd9c06bb53b223e9a252f60b091b0363e61724b66a2afb67dcff18f7"],
+    "ruiner.zealot.3": ["ruiner.zealot.3", "c4ecec53d411e601f394d0f05644f3334328c1526ea54a2f87b80cd44d5a8161"],
+    "powerhouse.gunslinger.2": ["powerhouse.gunslinger.2", "6559e6a6b597f579ef43c6b7b20e4a6d92659d2b41de8338239a7059df0694ea"],
+    "powerhouse.gunslinger.3": ["powerhouse.gunslinger.3", "fd9e3d44ce0f4c8bcff8c3b316c54ed304a10be26073d9242cbbe17f141f5950"],
+    "vagabond.knife-juggler.3": ["vagabond.knife-juggler.3", "ef1b46f397efd2b243cfbef7c9f750bc764a54d80850232d0731dc2e443e7554"],
+    "vagabond.modified-meister.2": ["vagabond.modified-meister.2", "35eb82acb41e4ebfc23b6526f3c99f1df43c4cb58fa8751c794567c218983f57"],
+    "vagabond.modified-meister.3": ["vagabond.modified-meister.3", "5d1b03eadd74852e075d160ea5844aa2c283616bd41f3ca58fbfbde5c5328d0a"],
+    "bulwark.mundane.2": ["bulwark.mundane.2", "9f2acd96734496115e4336cfba21ae1002107d282e903cc9e9a76fa209b81410"],
+    "bulwark.mundane.3": ["bulwark.mundane.3", "c9c11d54ab21f1dcfcab8dd1fa3905c278a6ceab4f057c7507f5b2e152421e77"],
+    "altruist.heavenly-saint.2": ["altruist.heavenly-saint.2", "14cf0fe056a45cc38001948ffa75ea257b21e532012f2b0708f7bc9f2fdd1de1"],
+    "altruist.heavenly-saint.3": ["altruist.heavenly-saint.3", "5f42cdf622ce588debfafa058a85655946db0c400a1e925653fec9b6d0568e51"],
+    "disruptor.constrictor.1": ["disruptor.constrictor.1", "5072860b45e77e05b30520edca36b8150d1ac7b90cddceb4c7a9f34d9fd80e2a"],
+    "disruptor.constrictor.2": ["disruptor.constrictor.2", "31497052acc5975d0710be32d338ee9b8f371577bde12aca4250b1ee967ace4f"],
+    "powerhouse.spellsword.3.foundation": ["powerhouse.spellsword.3", "ee60afad76ec4020051636adcbc32a8f8bc62e440b38b523e8e0386f73868f44"],
+    "vagabond.cunning-fighter.2": ["vagabond.cunning-fighter.2", "cad73b94a9ce468c18309a11ba6a7a84fe70d3ff1ed249e230d1b54b8977fcfd"],
+    "bulwark.iron-bodied.2": ["bulwark.iron-bodied.2", "fa7b6c2676514b1bf9dfca34c58256d51ef5f80513957fd244784ba1e0b94344"],
+    "bulwark.rising-challenger.3": ["bulwark.rising-challenger.3", "e9655fd8cbbaab4e8119a75716013a6ac3aec744c098de9d0d9e404cd7cf6d41"],
+    "altruist.gourmand.2": ["altruist.gourmand.2", "84ec37d54af70332e7bb2f4ed402265d3514db190bc24b400016b9444b4b8ce7"],
+    "powerhouse.technician.3": ["powerhouse.technician.3", "69e9007f8f65def64ef7640b8441616852def68765ad7a717f09587b1039ecfe"],
+    "powerhouse.dragonslayer.1": ["powerhouse.dragonslayer.1", "5967f1ff724e990c007796133cc60b106a15c4d303d733bda7e73e4b4eb52f7d"],
+    "powerhouse.dragonslayer.3": ["powerhouse.dragonslayer.3", "2ff4e5d3424564bbc5f46de9fc2a2ca411701d14a1c94fa9c7bb67e13791886b"],
+    "powerhouse.spellsword.3": ["powerhouse.spellsword.3", "ee60afad76ec4020051636adcbc32a8f8bc62e440b38b523e8e0386f73868f44"],
+    "powerhouse.duelist.2": ["powerhouse.duelist.2", "6ac5d7c737f81f4ba33f9a649d3bdfae9c2627d6420540f72f9626c53efb0827"],
+    "bulwark.grappler.2": ["bulwark.grappler.2", "87e908315db54db355c6fa2e4c772f05a08a0fbd835cd50e6339ac034f66ff4d"],
+    "vagabond.assassin.1": ["vagabond.assassin.1", "e2e8e0aa3b195f4df4e15393490e95fe151ebcf62a28e16c75afd5684b2b75ca"],
+    "vagabond.assassin.2": ["vagabond.assassin.2", "6e95fe2767088e069f995f384a6e03856f26d428161dbd57efca1c03a5eda98f"],
+    "vagabond.assassin.3": ["vagabond.assassin.3", "0a28c9c9cc800d859e9f2352923ece0aa23754cc12541124234b16400378c1c1"],
+    "vagabond.speed-demon.2": ["vagabond.speed-demon.2", "0365cfb5ae901e4cac9e6571651dc2a256170a13afb47a2077b1c785eb368b62"],
+    "vagabond.enchained.1": ["vagabond.enchained.1", "014b9edb50b008efb13865734553ef7cfc44c532e46c8deaef2be5858d8b654b"],
+    "vagabond.untouchable.1": ["vagabond.untouchable.1", "348244d9362ed86da47559403a2fd0f22afb93a9647db589007e8ff203c8a26a"],
+    "vagabond.untouchable.2": ["vagabond.untouchable.2", "abd33cfc8f9dfb48eaf90234e99044a1f3c16d2d99d527286e6dd14c52d7433e"],
+    "vagabond.dim-mak.1": ["vagabond.dim-mak.1", "86bc2801b43ae4f2bd3de697124313b986e9ae1081e0dd8f3f52dfc44b097c59"],
+    "vagabond.dim-mak.2": ["vagabond.dim-mak.2", "d63edd4d649fb29805706009934a7eb38427b2507f32b1d5632e881f7e24a5a2"],
+    "vagabond.master-at-arms.1": ["vagabond.master-at-arms.1", "d35f468065e84fbb0c86bc60015632bdbcfe9b0ced2ed2cfa370453f64a72371"],
+    "vagabond.master-at-arms.2": ["vagabond.master-at-arms.2", "743ae31f60f1a826d3346b6e07c7cff94983860c399cdc9484302e120fd726c4"],
+    "vagabond.master-at-arms.3": ["vagabond.master-at-arms.3", "f104c7652bda2a425422af31d8d91b30515463c98f78892fe25eb204ac7508d3"],
+    "altruist.alchemist.1": ["altruist.alchemist.1", "594587d26d665ad38373fdd84fa54af81997e642829129d8c17cd46dc5d28bb9"],
+    "altruist.alchemist.2": ["altruist.alchemist.2", "389ef1a54fb172ceaff075d3155b697ae17d25ad138ea4854d38d515db1333ea"],
+    "altruist.chronomancer.2": ["altruist.chronomancer.2", "bab452f231f9a7c7c0ee1777945bb658db08a587663551cdcb857ccb1b3f5105"],
+    "ruiner.creation-ascetic.1": ["ruiner.creation-ascetic.1", "6f4e55f851dd43392db08bf1fb2bd639f7921d6767a899dcde23c7492b8f41a3"],
+    "ruiner.creation-ascetic.1.nails": ["ruiner.creation-ascetic.1", "6f4e55f851dd43392db08bf1fb2bd639f7921d6767a899dcde23c7492b8f41a3"],
+    "ruiner.creation-ascetic.1.mallet": ["ruiner.creation-ascetic.1", "6f4e55f851dd43392db08bf1fb2bd639f7921d6767a899dcde23c7492b8f41a3"],
+    "ruiner.creation-ascetic.1.pile-arm": ["ruiner.creation-ascetic.1", "6f4e55f851dd43392db08bf1fb2bd639f7921d6767a899dcde23c7492b8f41a3"],
+    "ruiner.creation-ascetic.1.idol": ["ruiner.creation-ascetic.1", "6f4e55f851dd43392db08bf1fb2bd639f7921d6767a899dcde23c7492b8f41a3"],
+    "ruiner.creation-ascetic.2": ["ruiner.creation-ascetic.2", "d19e636560bcfb7c9345b9bb4779f65c6b3f25b78576a6432bd6b1bbc834cbf9"],
+    "ruiner.creation-ascetic.3": ["ruiner.creation-ascetic.3", "c7dc7bbd517cd65a2d221ae8066489b4aca652a6a2c2c0a3dadf771ea4962c82"],
+    "ruiner.spellcrafter.1": ["ruiner.spellcrafter.1", "cd258e50964ec7fdf255d20dfb2a710459dc94dfbb4c5c3e9ea73e8ff6f98303"],
+    "ruiner.spellcrafter.2": ["ruiner.spellcrafter.2", "f94f640a08662ad025e0ded425aab945bdf0b4accabc6519142867e5f5cf0886"],
+    "ruiner.spellcrafter.3": ["ruiner.spellcrafter.3", "934e98cf6f004417c5ac6779976bcbec9ffae7056163a7b460560ca8641d4735"],
+    "ruiner.bombardier.1": ["ruiner.bombardier.1", "3d9ff42ccdca001941878db3a63ef647bf904ad689d35b2c6b7e5c76e1ce59d3"],
+    "ruiner.bombardier.2": ["ruiner.bombardier.2", "46784c9f35cd64891f6ba70dc0d5a14ddf7f15aaab733ca1dbd3e6b3c60697c5"],
+    "ruiner.bombardier.3": ["ruiner.bombardier.3", "e9b9958348fa1bf6bf5f752ead593042fcd332ebcc8e28cd2a23054bea16a4de"],
+    "disruptor.hunter.1": ["disruptor.hunter.1", "4631594ad05e136bae6833e79ee4100f05fbc6102e19050c7ef92f2b8e38f28b"],
+    "disruptor.hunter.2": ["disruptor.hunter.2", "9cf3c781404a8c16afe29156f0a2ebcf706b9975a00531ab53ced5298a0fea86"],
+    "disruptor.siren.1": ["disruptor.siren.1", "8d9becba6e6f63641f5dc1a8a47e965c73f0e7112ef7ef4b781b2c6ffb632979"],
+    "disruptor.chemist.1": ["disruptor.chemist.1", "7387a31ab85448d843cc0159532db66530bf54c3b975336e1a13fbefcd624a93"],
+    "disruptor.chemist.3": ["disruptor.chemist.3", "4125cbbef359eaa384850fa36e8a442b992640ba73695e720264967d3fc0b300"],
+    "disruptor.inner-world.2": ["disruptor.inner-world.2", "390e3b65210483b8eebd3f9decc0997f2e63132a0377fd1ae63053a9210323d1"],
+    "powerhouse.breacher.1": ["powerhouse.breacher.1", "9e9680211a203830a82230d86136cc85108032eaea3655fc9e991129d2826af5"],
+    "disruptor.siren.2": ["disruptor.siren.2", "62f65d9d2cfad5b96f12f80b2ece81635e47b5f63083b35b4f4c6eb1db1b5ed6"],
+    "disruptor.siren.3": ["disruptor.siren.3", "231b63c69615f78497650a97d3a5225a98f298a882d4adb2eedaebdff16c5b7e"],
+    "ruiner.grim-ascendant.1": ["ruiner.grim-ascendant.1", "14985f7ee4c071f07156d6dd763680da6d7a9d83e19a175cd9d3d2d06b113e0f"],
+    "ruiner.grim-ascendant.2": ["ruiner.grim-ascendant.2", "f9768c5e588f5471e9e1e5b145e1b9ec0216d2fcba298f5c64364b027af2bf96"],
+    "altruist.empath.1": ["altruist.empath.1", "42f17ac72dc89e094821759adde23e71d12a63da1f41caf44424b63b49b03557"],
+    "altruist.empath.2": ["altruist.empath.2", "da8df2484b2ddad6fe56569848bd88938700e4ae11006dbc9bd8475512d364c7"],
+    "altruist.empath.3": ["altruist.empath.3", "4473ee348631cf63dd51750aca3869aac5f3abb159e490f4b390407c8ac61f73"],
+    "altruist.will-o-wisp.1": ["altruist.will-o-wisp.1", "718c1072bf9fb744208642697c7e52e01925efc76cb61a9e04e7a5bf85789c30"],
+    "altruist.will-o-wisp.2": ["altruist.will-o-wisp.2", "fbd6b0c3eae8b30f64d4a9c59e9c15870dd290fa7590ee08968b537dba88e63f"],
+    "altruist.will-o-wisp.3": ["altruist.will-o-wisp.3", "73fc31ad0348f634cb773ccd09f4dbb3ba9f0b16eea3ced967977e838286adfb"],
+  });
+  const publicRule = rule => {
+    const result = { ...clone(rule), automation: rule.automation || "partial" };
+    const provenance = SOURCE_PROVENANCE[rule.id];
+    if (provenance) { result.sourceLevelId = provenance[0]; result.sourceDigest = provenance[1]; }
+    result.coverage ||= result.automation === "full" ? "full" : "partial";
+    return result;
+  };
 
   function activeSpace(scene, id) {
     return (scene.spaces || []).find(space => space.id === id) || null;
@@ -206,7 +303,12 @@
     }
     return seen.size === set.size;
   }
-  const actionByKey = key => global.DAWN_SCENE_ENGINE?.actionByKey(global.DAWN_DATA, key) || null;
+  const runtimeData = () => {
+    const lionwing = global.DAWN_LIONWING_DATA;
+    if (lionwing) return { ...lionwing, actions: lionwing.coreRules?.actions || lionwing.actions, effects: lionwing.coreRules?.effects || lionwing.effects };
+    return global.DAWN_DATA;
+  };
+  const actionByKey = key => global.DAWN_SCENE_ENGINE?.actionByKey(runtimeData(), key) || null;
   const effectiveEffects = (scene, actor) => global.DAWN_SCENE_ENGINE?.effectiveEffects?.(scene, actor.id) || actor.effects || [];
 
   function rulesFor(techniques = {}) {
@@ -369,7 +471,7 @@
       return { ok: true, engineVersion: VERSION, actorId: actor.id, rule: publicRule(rule), request: clone(request), errors: [], warnings: [], commands: [], events, summary: `${rule.name}: последствия подготовлены`, affectedCells: [], affectedActorIds: targetIds };
     }
     if (rule.kind === "combo") {
-      const prepared = global.DAWN_SCENE_ENGINE?.prepareTechniqueCombo(scene, global.DAWN_DATA, { actorId: actor.id, ruleId: rule.id, targetIds: request.targetIds || [], destination: request.destination || null, roll: request.roll || null, attribute: request.attribute || request.roll?.attribute || null, attackModifierIds: request.attackModifierIds || [] });
+      const prepared = global.DAWN_SCENE_ENGINE?.prepareTechniqueCombo(scene, runtimeData(), { actorId: actor.id, ruleId: rule.id, targetIds: request.targetIds || [], destination: request.destination || null, roll: request.roll || null, attribute: request.attribute || request.roll?.attribute || null, attackModifierIds: request.attackModifierIds || [] });
       if (!prepared?.ok) return { ok: false, engineVersion: VERSION, actorId: actor.id, rule: publicRule(rule), request: clone(request), errors: prepared?.errors || ["Ядро комбо недоступно."], warnings: [], commands: [], events: [], affectedCells: [], affectedActorIds: [] };
       return { ok: true, engineVersion: VERSION, actorId: actor.id, rule: publicRule(rule), request: clone(request), errors: [], warnings: [], commands: [], events: prepared.events, summary: `«${rule.name}»: комбо готово`, affectedCells: request.destination ? [pointKey(request.destination)] : [], affectedActorIds: clone(request.targetIds || []) };
     }
@@ -395,7 +497,7 @@
     }
     if (rule.kind === "surgery") {
       const targetId = unique(request.targetIds || [])[0] || null;
-      const prepared = global.DAWN_SCENE_ENGINE?.prepareSurgery(scene, global.DAWN_DATA, { actorId: actor.id, targetId, roll: request.roll || null });
+      const prepared = global.DAWN_SCENE_ENGINE?.prepareSurgery(scene, runtimeData(), { actorId: actor.id, targetId, roll: request.roll || null });
       if (!prepared?.ok) return { ok: false, engineVersion: VERSION, actorId: actor.id, rule: publicRule(rule), request: clone(request), errors: prepared?.errors || ["Ядро операции недоступно."], warnings: [], commands: [], events: [], affectedCells: [], affectedActorIds: [] };
       return { ok: true, engineVersion: VERSION, actorId: actor.id, rule: publicRule(rule), request: clone(request), errors: [], warnings: [], commands: [], events: prepared.events, summary: "«Не навреди»: операция готова", affectedCells: [], affectedActorIds: [targetId] };
     }
@@ -408,7 +510,7 @@
     let affectedActorIds = [];
 
     if (rule.kind === "trap-placement") {
-      const actionMode = request.options?.actionMode === "finish" ? "finish" : "skirmish", action = actionByKey(actionMode), available = global.DAWN_SCENE_ENGINE?.availableActions(scene, global.DAWN_DATA, actor.id).find(item => item.id === action?.id);
+      const actionMode = request.options?.actionMode === "finish" ? "finish" : "skirmish", action = actionByKey(actionMode), available = global.DAWN_SCENE_ENGINE?.availableActions(scene, runtimeData(), actor.id).find(item => item.id === action?.id);
       if (!inBounds(sourceSpace, anchor)) errors.push("Выберите пустую клетку для Малой ловушки.");
       if (anchor && removedCells.has(pointKey(anchor))) errors.push("Выбранная клетка удалена из поля.");
       if (anchor && (scene.actors || []).some(item => !item.knockedOut && item.space === actor.space && item.x === anchor.x && item.y === anchor.y)) errors.push("Малая ловушка ставится только в пустую клетку.");
@@ -428,7 +530,7 @@
     }
 
     if (rule.kind === "creation-attack") {
-      const action = actionByKey(rule.actionKey), available = global.DAWN_SCENE_ENGINE?.availableActions(scene, global.DAWN_DATA, actor.id).find(item => item.id === action?.id), lastAction = (scene.log || []).find(event => event.type === "action.prepare" && event.actorId === actor.id), inherited = rule.actionKey === "finish" && Number(actor.techniques?.["ruiner.creation-ascetic"] || 0) >= 3 && global.DAWN_SCENE_ENGINE?.actionIdIs(lastAction?.payload?.actionId, "spell") ? Number(actor.ruleState?.lastCreationSpellMarks || 0) : 0, marks = Number(global.DAWN_SCENE_ENGINE?.ruleResourceStatus(scene, actor.id, { resource: "creation-marks" }).balance || 0), effectiveMarks = marks || inherited;
+      const action = actionByKey(rule.actionKey), available = global.DAWN_SCENE_ENGINE?.availableActions(scene, runtimeData(), actor.id).find(item => item.id === action?.id), lastAction = (scene.log || []).find(event => event.type === "action.prepare" && event.actorId === actor.id), inherited = rule.actionKey === "finish" && Number(actor.techniques?.["ruiner.creation-ascetic"] || 0) >= 3 && global.DAWN_SCENE_ENGINE?.actionIdIs(lastAction?.payload?.actionId, "spell") ? Number(actor.ruleState?.lastCreationSpellMarks || 0) : 0, marks = Number(global.DAWN_SCENE_ENGINE?.ruleResourceStatus(scene, actor.id, { resource: "creation-marks" }).balance || 0), effectiveMarks = marks || inherited;
       if (!action || !available) errors.push("Базовая Атака для формы не найдена.");
       if (available && !available.available) errors.push(available.reason);
       if (rule.markBand === "low" && (effectiveMarks < 1 || effectiveMarks > 2)) errors.push("Эта форма требует 1–2 Метки творения.");
@@ -484,7 +586,7 @@
       if (destination && (scene.actors || []).some(item => item.id !== actor.id && item.space === actor.space && item.x === destination.x && item.y === destination.y)) errors.push("Клетка приземления занята.");
       if (anchor && destination && manhattan(anchor, destination) !== manhattan(actor, anchor)) errors.push(`Приземление должно быть ровно в ${manhattan(actor, anchor)} клетках от цели Заклинания.`);
       const spell = actionByKey("spell");
-      const available = global.DAWN_SCENE_ENGINE?.availableActions(scene, global.DAWN_DATA, actor.id).find(action => action.id === spell?.id);
+      const available = global.DAWN_SCENE_ENGINE?.availableActions(scene, runtimeData(), actor.id).find(action => action.id === spell?.id);
       if (available && !available.available) errors.push(available.reason);
       if (errors.length) return { ok: false, engineVersion: VERSION, actorId: actor.id, rule: publicRule(rule), request: clone(request), errors, warnings: [], commands: [], events: [], affectedCells: [], affectedActorIds: [] };
       const events = [
@@ -506,7 +608,7 @@
     }
     if (rule.id === "powerhouse.warring-ascendant.3" && !actor.ruleState?.warringTransformed) errors.push("«Святой меч, Дюрандаль» требует активной Трансформации Небесной руки.");
     if (rule.areaType === "attack") {
-      const finish = actionByKey("finish"), available = global.DAWN_SCENE_ENGINE?.availableActions(scene, global.DAWN_DATA, actor.id).find(action => action.id === finish?.id), spent = Number(request.options?.focusSpent || 0);
+      const finish = actionByKey("finish"), available = global.DAWN_SCENE_ENGINE?.availableActions(scene, runtimeData(), actor.id).find(action => action.id === finish?.id), spent = Number(request.options?.focusSpent || 0);
       if (available && !available.available) errors.push(available.reason);
       if (spent < 0 || spent > Number(actor.focus || 0) || spent > Number(scene.tension || 0)) errors.push("На Завершение нельзя потратить больше Фокуса, чем есть у героя или текущего Напряжения.");
       const modifiers = [...new Set(actor.techniqueState?.spellModifiers || [])], level = Number(actor.techniques?.["ruiner.spellcrafter"] || 0), resource = level >= 2 ? "focus" : "innovationCharges";

@@ -6,13 +6,15 @@ import { loadSceneEngine } from "./load-scene-engine.mjs";
 const context = { console, Date, structuredClone };
 context.globalThis = context;
 context.window = context;
-for (const file of ["data.js", "technique-foundation-map.js"]) {
+for (const file of ["edition-lionwing.js", "technique-foundation-map.js"]) {
   vm.runInNewContext(fs.readFileSync(new URL(`../${file}`, import.meta.url), "utf8"), context, { filename: file });
 }
 loadSceneEngine(context);
 vm.runInNewContext(fs.readFileSync(new URL("../technique-engine.js", import.meta.url), "utf8"), context, { filename: "technique-engine.js" });
 
-const data = context.DAWN_DATA;
+const lionwing = context.DAWN_LIONWING_DATA;
+assert.equal(lionwing.editionId, "dawn-en-lionwing-cb2f8e67");
+const data = { ...lionwing, actions: lionwing.coreRules.actions, effects: lionwing.coreRules.effects };
 const SceneEngine = context.DAWN_SCENE_ENGINE;
 const TechniqueEngine = context.DAWN_TECHNIQUE_ENGINE;
 
@@ -125,7 +127,7 @@ for (const rule of TechniqueEngine.RULES) {
         advantage: request.options.focusSpent,
         hindrance: 0,
         attribute: "spirit",
-        actionId: data.actions.list.find(action => action.name === "Завершение").id,
+        actionId: data.actions.list.find(action => action.id === "action.атаки.завершение").id,
         targetIds: request.targetIds,
       }, { rolls: [6, 5, 4, 3, 2, 1, 1, 1].slice(0, 4 + request.options.focusSpent) }).payload;
     }

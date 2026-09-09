@@ -9,16 +9,19 @@ const root = path.dirname(fileURLToPath(import.meta.url));
 const context = { console, Date };
 context.globalThis = context;
 context.window = context;
-for (const file of ["data.js", "technique-foundation-map.js"]) vm.runInNewContext(fs.readFileSync(path.join(root, file), "utf8"), context);
+for (const file of ["edition-lionwing.js", "technique-foundation-map.js"]) vm.runInNewContext(fs.readFileSync(path.join(root, file), "utf8"), context);
+vm.runInNewContext(fs.readFileSync(path.join(root, "lionwing-table-data.js"), "utf8"), context);
 loadSceneEngine(context);
 vm.runInNewContext(fs.readFileSync(path.join(root, "technique-engine.js"), "utf8"), context);
 
-const data = context.DAWN_DATA;
+const data = context.DAWN_LIONWING_DATA;
+if (data?.editionId !== "dawn-en-lionwing-cb2f8e67") throw new Error("Automation readiness must use the canonical LionWing edition");
 const engine = context.DAWN_SCENE_ENGINE;
 const techniqueEngine = context.DAWN_TECHNIQUE_ENGINE;
 const foundation = context.DAWN_TECHNIQUE_FOUNDATION_MAP;
 const evidence = JSON.parse(fs.readFileSync(path.join(root, "automation-evidence.json"), "utf8"));
 const coverage = techniqueEngine.techniqueCoverage(data);
+if (coverage.length !== 333) throw new Error(`Expected 333 canonical Technique levels, got ${coverage.length}`);
 const capabilities = foundation.CAPABILITIES;
 const escape = value => String(value ?? "").replaceAll("|", "\\|").replace(/\s+/g, " ").trim();
 const countBy = (rows, key) => rows.reduce((result, row) => ({ ...result, [row[key]]: Number(result[row[key]] || 0) + 1 }), {});
@@ -55,8 +58,12 @@ const certifiedEvidence = evidence.entries.filter(entry => entry.confidence === 
 
 const techniqueCounts = countBy(coverage, "automation");
 const executableTechniqueLevels = Number(techniqueCounts.full || 0) + Number(techniqueCounts.decision || 0);
-const enemyProfiles = data.enemies.common;
-const enemyRules = enemyProfiles.flatMap(profile => (profile.rules || []).map(rule => ({ profile, rule, automation: engine.enemyRuleAutomation(rule.id) })));
+const enemyProfiles = context.DAWN_LIONWING_TABLE_DATA.profiles(data.coreRules);
+if (enemyProfiles.length !== 41) throw new Error(`Expected 41 canonical LionWing NPC profiles, got ${enemyProfiles.length}`);
+const enemyRules = enemyProfiles.flatMap(profile => (profile.rules || []).map(rule => ({ profile, rule, automation: rule.automation || "assisted" })));
+if (enemyRules.length !== 122 || enemyRules.some(({ profile }) => profile.editionId !== "lionwing")) {
+  throw new Error("Enemy readiness must use the canonical LionWing NPC rule set");
+}
 const enemyCounts = countBy(enemyRules, "automation");
 const executableEnemyRules = enemyRules.length - Number(enemyCounts.assisted || 0);
 const plannedCapabilityCounts = new Map();
@@ -146,7 +153,7 @@ for (const archetype of [...new Set(coverage.map(entry => entry.archetypeName))]
 
 lines.push(
   "",
-  "Полная построчная карта всех 321 Уровней находится в `TECHNIQUE-FOUNDATION-MAP.md`. Её статусы также заявленные: таблица удобна для планирования аудита, но не заменяет evidence-записи. Ниже перечислены самые дорогие известные пробелы.",
+  "Полная построчная карта всех 333 Уровней canonical EN находится в `TECHNIQUE-FOUNDATION-MAP.md`. Её статусы также заявленные: таблица удобна для планирования аудита, но не заменяет evidence-записи. Ниже перечислены самые дорогие известные пробелы.",
   "",
   "### Ручные Уровни",
   "",
