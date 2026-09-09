@@ -391,6 +391,20 @@
         return { operation: "add", amount: Math.ceil(Number(actor.attrs?.[attribute] || 0) / 2), reason: `Мастер боевых искусств: дополнительный урон от эффекта Восьми молотов (${attribute === "talent" ? "Талант" : "Тело"}/2).` };
       },
     }),
+    passive({
+      id: "vagabond.acrobat.2",
+      label: "Акробат II: 1 Уклонение после подтверждённого Отскока от стены",
+      sourceDigest: "9f9c14026b925083cb2c883c3ce10f9b9e6faf004c885b75ecd6180f820f4dcb",
+      coverage: "partial",
+      statBonus: (actor, key, context) => key === "evasion" && context?.wallJumpActive === true ? 1 : 0,
+    }),
+    passive({
+      id: "vagabond.reflector.1",
+      label: "Отражатель I: [Разум] Уклонения после совпадения записанного урона",
+      sourceDigest: "2608090c390a030861397e5faefe29d957812d7b9be9ad1248b3ae3b2a07d592",
+      coverage: "partial",
+      statBonus: (actor, key, context) => key === "evasion" && context?.catchTheBladeMatch === true ? Number(actor.attrs?.mind || 0) : 0,
+    }),
   ];
   // Action modifiers are pure quotes.  They describe a possible change to a
   // base action; the engine remains the only writer of AP, resources, usage

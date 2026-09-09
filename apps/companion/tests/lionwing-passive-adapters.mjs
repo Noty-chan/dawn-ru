@@ -54,6 +54,8 @@ const passiveRules = [
   "ruiner.bombardier.2",
   "ruiner.ritualist.2",
   "vagabond.enchained.3",
+  "vagabond.acrobat.2",
+  "vagabond.reflector.1",
 ];
 const castRules = ["altruist.chronomancer.2", "ruiner.feral-arcana.3", "ruiner.flame-heart.3", "ruiner.cryomancer.2", "ruiner.sellsword-s-call.1"];
 const skirmishRules = ["bulwark.grappler.2", "disruptor.bloodletter.2", "disruptor.constrictor.3", "powerhouse.gunslinger.2", "vagabond.skirmisher.3", "vagabond.knife-juggler.2"];

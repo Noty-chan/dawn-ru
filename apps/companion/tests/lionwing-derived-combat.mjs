@@ -40,6 +40,10 @@ assert.equal(adapters.statQuote(vanguard, "armor", { baseValue: 1, blockingForAl
 assert.equal(adapters.statQuote(vanguard, "armor", { baseValue: 1, blockingForAlly: false, blockResolved: true, firstBlockThisRound: true }).value, 1);
 const drunk = enable(actor("drunk", { knownTechniques: { "vagabond.drunkard": 2 } }), "vagabond.drunkard.2");
 assert.equal(adapters.statQuote(drunk, "evasion", { baseValue: 1, boundary: "turnEnd", slowed: true, negativeEffectCount: 3 }).value, 6);
+const acrobat = enable(actor("acrobat", { knownTechniques: { "vagabond.acrobat": 2 } }), "vagabond.acrobat.2");
+assert.equal(adapters.statQuote(acrobat, "evasion", { baseValue: 0, wallJumpActive: true }).value, 1);
+const reflector = enable(actor("reflector", { knownTechniques: { "vagabond.reflector": 1 } }), "vagabond.reflector.1");
+assert.equal(adapters.statQuote(reflector, "evasion", { baseValue: 0, catchTheBladeMatch: true }).value, 4);
 
 // Directly exercise operation ordering and replacement conflicts through the
 // same pure function used by all adapter quotes.
