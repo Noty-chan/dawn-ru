@@ -1,4 +1,4 @@
-## Актуальная точка передачи — 2026-09-09, общий контракт `information-query`
+## Актуальная точка передачи — 2026-09-10, общий контракт `information-query`
 
 Сделан gap-аудит от свежего `origin/main` (`14f1632`): прочитаны этот handoff,
 `TECHNIQUE-FOUNDATION-MAP`, readiness и requirements review, canonical EN JSON/PDF
@@ -55,8 +55,15 @@ Spellcrafter не добавлялся: их нужные уровни треб�
 known-health, marked-target и private fact checks.
 
 Коммиты: `096573b` (контракт, engine, adapters), `055f40e` (UI, SQL projection),
-`a272319` (targeted test, package gate, maps/readiness). Ветка
-`codex/luna-information-query` отправлена в `origin`; полный `npm test` проходит.
+`a272319` (targeted test, package gate, maps/readiness), `e9e97fe` (reference
+spec), `7e11790` и `ad3a872` (handoff/validation), `f0c38c6` (скобки в SQL
+projection для совместимости PostgreSQL/PGlite). Ветка
+`codex/luna-information-query` отправлена в
+`origin/codex/luna-information-query` (`f0c38c62f3cb9faed7b131d85b350266a26e0917`),
+worktree чистый. Полный `npm test` проходит; отдельно
+`node tests/lionwing-projection-sql.mjs` проходит на локальном
+`@electric-sql/pglite` 0.3.16 и проверяет replay миграции, pending responses,
+скрытые Duel references, private history и public entity filtering.
 
 ## Актуальная точка передачи — 2026-09-09, Master at Arms III и общий выбор центра области
 
