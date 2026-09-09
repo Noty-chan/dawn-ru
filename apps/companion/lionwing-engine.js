@@ -121,7 +121,9 @@
     if(s.started===undefined)s.started=Boolean(scene.activeActorId||Number(scene.round||1)>1||(scene.actors||[]).some(a=>a.acted&&a.kind!=="crowd"));
     if(s.lastTeam===undefined){const last=(scene.log||[]).find(e=>e.type==="turn.end");s.lastTeam=actor(scene,last?.actorId)?.team||null;}
     const migrateHistory=!Array.isArray(s.history);
-    for(const key of ["choices","deferred","receipts","history"])if(!Array.isArray(s[key]))s[key]=[];
+    for(const key of ["choices","deferred","receipts","history","specialJournal"])if(!Array.isArray(s[key]))s[key]=[];
+    if(s.compounds===undefined)s.compounds={};
+    if(!s.compounds||typeof s.compounds!=="object"||Array.isArray(s.compounds))fail("Реестр Составных LionWing имеет неподдерживаемый формат");
     validateDiceSceneState(s);
     s.sceneSerial=Number.isSafeInteger(s.sceneSerial)&&s.sceneSerial>0?s.sceneSerial:1;
     s.chapterSerial=Number.isSafeInteger(s.chapterSerial)&&s.chapterSerial>0?s.chapterSerial:1;
@@ -161,6 +163,76 @@
     }
     return s;
   };
+  // Special shared operations keep a small, scoped before/after projection in
+  // their typed journal row.  It is deliberately limited to the affected
+  // actors and pending decisions so replay/undo can reject a stale scene
+  // without copying an entire table into every ordinary event.
+  const specialActorIds = (scene, actorIds = [], compoundId = null) => {
+    const ids = new Set((actorIds || []).filter(id => typeof id === "string" && id));
+    if (compoundId) for (const participant of scene.actors || []) if (participant.compoundId === compoundId) ids.add(participant.id);
+    return [...ids].sort();
+  };
+  function specialSnapshot(scene, kind, actorIds = [], compoundId = null) {
+    const ids = specialActorIds(scene, actorIds, compoundId);
+    const selected = ids.map(id => actor(scene, id)).filter(Boolean).map(copy);
+    const l = scene.lionwing || {};
+    return {
+      schema: 1,
+      kind,
+      actorIds: ids,
+      compoundId: compoundId || null,
+      actors: selected,
+      compounds: copy(l.compounds || {}),
+      choices: copy(l.choices || []),
+      deferred: copy(l.deferred || []),
+      afterAttack: copy(l.afterAttack || []),
+      pendingAction: copy(scene.pendingAction || null),
+      pendingPrompt: copy(scene.pendingPrompt || null),
+      executionCursor: copy(l.executionCursor || null),
+      activeActorId: scene.activeActorId || null,
+      turnSerial: Number(scene.turnSerial || 0),
+      round: Number(scene.round || 0),
+      tension: Number(scene.tension || 0),
+    };
+  }
+  function restoreSpecialSnapshot(scene, snapshot) {
+    if (!snapshot || typeof snapshot !== "object" || !Array.isArray(snapshot.actors)) fail("Событие специальной операции не содержит снимок состояния");
+    const next = copy(scene), byId = new Map((snapshot.actors || []).map(item => [item.id, item]));
+    for (const [id, saved] of byId) {
+      const current = actor(next, id);
+      if (!current) fail("Откат специальной операции невозможен: участник отсутствует");
+      const index = next.actors.findIndex(item => item.id === id);
+      next.actors[index] = copy(saved);
+    }
+    next.lionwing ||= {};
+    next.lionwing.compounds = copy(snapshot.compounds || {});
+    next.lionwing.choices = copy(snapshot.choices || []);
+    next.lionwing.deferred = copy(snapshot.deferred || []);
+    next.lionwing.afterAttack = copy(snapshot.afterAttack || []);
+    if (snapshot.executionCursor == null) delete next.lionwing.executionCursor;
+    else next.lionwing.executionCursor = copy(snapshot.executionCursor);
+    next.pendingAction = copy(snapshot.pendingAction || null);
+    next.pendingPrompt = copy(snapshot.pendingPrompt || null);
+    next.activeActorId = snapshot.activeActorId || null;
+    next.turnSerial = Number(snapshot.turnSerial || 0);
+    next.round = Number(snapshot.round || 0);
+    next.tension = Number(snapshot.tension || 0);
+    return next;
+  }
+  const validateSpecialSnapshotPair = (before, after) => {
+    if (!before || !after || before.kind !== after.kind || before.compoundId !== after.compoundId || !sameJson(before.actorIds || [], after.actorIds || []) || !sameJson((before.actors || []).map(item => item.id).sort(), (after.actors || []).map(item => item.id).sort())) fail("Снимки специальной операции относятся к разным участникам");
+  };
+  function compoundStatus(scene, ref) {
+    const snapshot = copy(scene), s = state(snapshot);
+    const requested = typeof ref === "string" ? ref : ref?.id || ref?.compoundId;
+    const target = actor(snapshot, requested) || snapshot.actors.find(item => item.compoundId === requested);
+    const id = target?.compoundId || (requested && s.compounds?.[requested] ? requested : null);
+    if (!id) return { active: false, id: null, parts: [], partIds: [], hp: 0, maxHp: 0, gate: 0, defenseType: null, speed: 0 };
+    const parts = snapshot.actors.filter(item => item.compoundId === id || s.compounds?.[id]?.partIds?.includes(item.id));
+    if (parts.length < 2) return { active: false, id, parts, partIds: parts.map(item => item.id), hp: parts.reduce((sum, item) => sum + Number(item.hp || 0), 0), maxHp: parts.reduce((sum, item) => sum + Number(item.maxHp ?? maxHealth(item)), 0), gate: 0, defenseType: null, speed: 0, record: copy(s.compounds?.[id] || null) };
+    const status = legacy.compoundEnemyStatus(snapshot, parts[0]);
+    return { ...status, id, partIds: parts.map(item => item.id), record: copy(s.compounds?.[id] || null) };
+  }
   const astate = a => {a.lionwing||={};for(const key of ["modifiers","history"])if(!Array.isArray(a.lionwing[key]))a.lionwing[key]=[];return a.lionwing;};
   function normalizeTurnCounters(a, scene = null) {
     if (!a || typeof a !== "object") return 0;
@@ -197,7 +269,8 @@
   const resourceKey = (a,key) => ["focus","ap"].includes(key)?Object.keys(a.ruleResources||{}).find(id=>key==="focus"?a.ruleResources[id].replaces==="focus":a.ruleResources[id].replacesAp===true)||key:key;
   const balance = (a, key) => { const resolved=resourceKey(a,key);return Number(spendable.has(resolved)?a[resolved]||0:a.ruleResources?.[resolved]?.value||0); };
   const canSpend=(a,key,amount)=>{const resource=resourceKey(a,key),def=a.ruleResources?.[resource];return key==="focus"&&def?.inverted?def.maximum==null||balance(a,key)+amount<=def.maximum:balance(a,key)>=amount;};
-  const lifetimes = new Set(["default", "startTurn", "endTurn", "nextTurn", "startNextOwnerTurn", "endNextOwnerTurn", "roundEnd", "scene", "persistent", "manual"]);
+  const lifetimes = new Set(["default", "startTurn", "endTurn", "actionOrStartTurn", "nextTurn", "startNextOwnerTurn", "endNextOwnerTurn", "roundEnd", "scene", "persistent", "manual"]);
+  const compoundIdPattern = /^[a-z][a-z0-9._:-]{0,119}$/i;
   const counterIdPattern = /^[a-z][a-z0-9._:-]{0,119}$/i;
   const counterRuleIdPattern = /^[a-z0-9][a-z0-9._:-]{0,179}$/i;
   const counterScopes = new Set(["manual", "startTurn", "endTurn", "roundEnd", "scene", "turn", "round", "chapter", "session"]);
@@ -638,7 +711,7 @@
   function prepare(scene, request, options = {}) {
     try {
       const eventId = request?.eventId ?? request?.commandId ?? request?.id ?? global.crypto?.randomUUID?.() ?? `lw-prepared-${Date.now()}-${preparedSerial++}`;
-      const payload = copy(request), a = ["scene-reset","round-end","tension","note"].includes(payload.kind)&&!payload.actorId?null:requiredActor(scene, payload.actorId, !["choice", "correct", "resolve-attack", "cancel-attack", "batch"].includes(payload.kind));
+      const payload = copy(request), a = ["scene-reset","round-end","tension","note","banish","vanish","compound"].includes(payload.kind)&&!payload.actorId?null:requiredActor(scene, payload.actorId, !["choice", "correct", "resolve-attack", "cancel-attack", "batch","banish","vanish","compound"].includes(payload.kind));
       const rollMeta = (extra = {}) => ({ rootActionId: eventId, actionInstanceId: eventId, causeEventId: eventId, ownerActorId: a?.id || null, ...extra });
       delete payload.actorId;
       if (payload.kind === "action") {
@@ -804,6 +877,18 @@
       else if (type === "counter.threshold") saveFact("counter.threshold", actorId, targets, { counterId: payload.counterId || payload.id, kind: payload.kind || payload.type, before: payload.before, value: payload.value, threshold: payload.threshold });
       else if (type === "aura.enter" || type === "aura.exit") saveFact(type, actorId, [actorId], { auraId:payload.auraId, effectId:payload.effectId, ruleId:payload.ruleId, ownerActorId:payload.ownerActorId, sourceEntityId:payload.sourceEntityId, movementTargetId:payload.movementTargetId||null, segmentIndex:payload.segmentIndex??null });
       else if (type === "attack.clear" && payload.cancelled) saveFact("cancel", actorId, targets, { reason: payload.reason || "cancelled" });
+      return row;
+    };
+    const emitSpecial = (type, actorId, operation, payload, before, after) => {
+      const row = emit(type, actorId, { ...payload, special: true, specialOperation: operation });
+      row.schema = 1;
+      row.operation = operation;
+      row.rootEventId = rootId;
+      row.before = copy(before);
+      row.after = copy(after);
+      s.specialJournal.push(copy(row));
+      s.specialJournal = s.specialJournal.slice(-128);
+      saveFact("apply", actorId, payload.targetId ? [payload.targetId] : payload.partIds || [], { operation, eventType: type, special: true });
       return row;
     };
     const scheduleBoundary = (boundary, activeActor = null) => {
@@ -1024,7 +1109,7 @@
       if (!effectIds.has(p.effect)) fail("Неизвестный Эффект LionWing");
       if (p.duration && typeof p.duration === "string" && p.duration !== "default" && !lifetimes.has(p.duration)) fail("Неизвестный срок Эффекта");
       if (p.duration && typeof p.duration === "object") foundations.normalizeLifetime(p.duration, { ownerActorId: p.ownerActorId || p.boundaryOwnerId || a.id, ownerTurnSerial: ownTurnSerial(actor(scene, p.ownerActorId || p.boundaryOwnerId) || a), sceneSerial: s.sceneSerial });
-      if (p.lifetime != null) foundations.normalizeLifetime(p.lifetime, { ownerActorId: p.ownerActorId || p.boundaryOwnerId || a.id, ownerTurnSerial: ownTurnSerial(actor(scene, p.ownerActorId || p.boundaryOwnerId) || a), sceneSerial: s.sceneSerial });
+      if (p.lifetime != null && p.lifetime !== "actionOrStartTurn") foundations.normalizeLifetime(p.lifetime, { ownerActorId: p.ownerActorId || p.boundaryOwnerId || a.id, ownerTurnSerial: ownTurnSerial(actor(scene, p.ownerActorId || p.boundaryOwnerId) || a), sceneSerial: s.sceneSerial });
       const original = { ...copy(p), kind: "effect", targetId: a.id, sourceActorId: sourceId };
       const consequenceId = `${rootId}:consequence:${frameSerial++}`;
       const identity = { id: consequenceId, rootActionId: provenance?.rootActionId || rootId, actionId: provenance?.actionId || p.sourceActionId || null, actionDefinitionId:provenance?.actionDefinitionId||provenance?.actionId||p.sourceActionId||null, actionInstanceId:provenance?.actionInstanceId||provenance?.rootActionId||rootId, effectInstanceId: p.effectInstanceId || `${consequenceId}:effect`, causeEventId: provenance?.causeEventId || rootId, ownerActorId: a.id };
@@ -1033,8 +1118,9 @@
     };
     const commitEffect = (a, p, sourceId) => {
       if (!effectIds.has(p.effect)) fail("Неизвестный Эффект LionWing");
-      const duration = p.duration && typeof p.duration === "string" && p.duration!=="default" ? p.duration : (persistent.has(p.effect) ? "scene" : p.effect === "positive.изгнан" ? "startTurn" : a.compoundId?"roundEnd":"default");
+      const duration = p.duration && typeof p.duration === "string" && p.duration!=="default" ? p.duration : (persistent.has(p.effect) ? "scene" : p.effect === "positive.изгнан" ? "startTurn" : p.effect === "positive.исчез" ? "actionOrStartTurn" : a.compoundId?"roundEnd":"default");
       if (!lifetimes.has(duration)) fail("Неизвестный срок Эффекта");
+      const sourceKey=p.sourceId||sourceId||`${rootId}:source`;
       const boundaryOwnerId = p.ownerActorId || p.boundaryOwnerId || a.id;
       const boundaryOwner = actor(scene, boundaryOwnerId) || a;
       const boundaryOwnerTurnInstanceId = scene.activeActorId === boundaryOwner.id ? s.activeTurnInstanceId || null : null;
@@ -1046,12 +1132,14 @@
       const lifetime = explicitLifetime && typeof explicitLifetime === "object"
         ? foundations.normalizeLifetime(explicitLifetime, { ownerActorId: boundaryOwnerId, ownerTurnSerial: ownTurnSerial(boundaryOwner), ownerTurnInstanceId: boundaryOwnerTurnInstanceId, sceneSerial: s.sceneSerial })
         : boundaryName ? foundations.lifetimeBoundary(boundaryName, { ownerActorId: boundaryOwnerId, ownerTurnSerial: ownTurnSerial(boundaryOwner), ownerTurnInstanceId: boundaryOwnerTurnInstanceId, sceneSerial: s.sceneSerial }) : null;
-      if (p.effect === "positive.изгнан") for (const other of scene.actors) if (other.id !== a.id && (!a.compoundId||other.compoundId!==a.compoundId) && (other.effectStates?.[p.effect]?.sources || []).some(source => source.actorId === sourceId)) removeEffect(other, p.effect);
+      if (p.effect === "positive.изгнан" && sourceId) for (const other of scene.actors) if (other.id !== a.id && (!a.compoundId||other.compoundId!==a.compoundId)) {
+        const previous = (other.effectStates?.[p.effect]?.sources || []).filter(source => source.actorId === sourceId || (source.sourceId || source.actorId) === sourceKey);
+        for (const source of previous) removeEffect(other, p.effect, { sourceId: source.sourceId || source.actorId, manual: false });
+      }
       a.effects = [...new Set([...(a.effects || []), p.effect])];
       a.effectStates ||= {};
-      const sourceKey=p.sourceId||sourceId||`${rootId}:source`;
       const previousSources=(a.effectStates[p.effect]?.sources||[]).filter(item=>(item.sourceId||item.actorId)!==sourceKey);
-      const source={sourceId:sourceKey,actorId:sourceId||null,actionId:p.sourceActionId||provenance?.actionId||null,actionInstanceId:provenance?.actionInstanceId||null,eventId:rootId,appliedSerial:Number(scene.turnSerial||0),appliedRound:Number(scene.round||0),duration,lifetime,ownerActorId:boundaryOwnerId,ownerTurnSerial:ownTurnSerial(boundaryOwner),removable:p.removable!==false,sourceBound:p.sourceBound!==false,suppressedBy:[]};
+      const source={sourceId:sourceKey,actorId:sourceId||null,actionId:p.sourceActionId||provenance?.actionId||null,actionInstanceId:provenance?.actionInstanceId||null,eventId:rootId,appliedSerial:Number(scene.turnSerial||0),appliedRound:Number(scene.round||0),duration,lifetime,ownerActorId:boundaryOwnerId,ownerTurnSerial:ownTurnSerial(boundaryOwner),removable:p.removable!==false,sourceBound:p.sourceBound!==false,suppressedBy:[],sourceType:"effect",active:true};
       a.effectStates[p.effect] = { duration, lifetime, removable: previousSources.concat(source).every(item=>item.removable!==false), appliedTurnSerial: Number(scene.turnSerial || 0), appliedRound: scene.round, appliedEventId: rootId, sources: [...previousSources,source] };
       astate(a).effectLifetimes ||= {};
       astate(a).effectLifetimes[p.effect] = { ownerActorId: boundaryOwnerId, duration, lifetime, appliedSerial: Number(scene.turnSerial || 0), ownerTurnSerial: ownTurnSerial(boundaryOwner), appliedRound: scene.round };
@@ -1133,7 +1221,7 @@
       const hpBefore = compound.active ? compound.hp : Number(a.hp);
       let dealt = Math.max(0, afterArmor - evaded);
       if (attack && dealt > 0 && !p.irreducible && !p.finalDamage && effectActive(scene,a,"negative.помечен")) { dealt += Number(a.tier || 1); removeEffect(a, "negative.помечен"); }
-      if(compound.active){const nextGate=Math.max(0,(Math.ceil(compound.hp/compound.gate-1e-9)-1)*compound.gate);dealt=Math.min(dealt,Math.max(0,compound.hp-nextGate));let remaining=compound.hp-dealt;for(const part of compound.parts){part.hp=Math.min(part.maxHp,remaining);remaining-=part.hp;}if(dealt>0&&compound.hp-dealt===nextGate&&nextGate>0)scene.tension++;}
+      if(compound.active){const nextGate=Math.max(0,(Math.ceil(compound.hp/compound.gate-1e-9)-1)*compound.gate),beforeGateDealt=dealt,gateCapacity=Math.max(0,compound.hp-nextGate);dealt=Math.min(dealt,gateCapacity);let remaining=compound.hp-dealt;for(const part of compound.parts){part.hp=Math.min(part.maxHp,remaining);remaining-=part.hp;}if(beforeGateDealt>gateCapacity&&nextGate>0)scene.tension++;}
       else a.hp = Math.max(0, Number(a.hp) - dealt);
       const hit = p.hit !== false;
       emit("damage.apply", p.sourceActorId, { ...p, raw, armor, evaded, dealt, healthLost: Math.min(hpBefore, dealt), hp: a.hp, hit });
@@ -1167,6 +1255,17 @@
         if(distance(caught,a)!==1&&!effectActive(scene,caught,"positive.устойчив"))choice(caught,"placement","Пойман: выберите клетку рядом с переместившимся источником",["place"],{adjacentTo:a.id,forced:true});
       }
       return {...result,auraTransitions};
+    };
+    const placeActor = (a, destination, options = {}) => {
+      const auraBefore = auraSnapshot();
+      const target = { ...destination, space: destination?.space || a.space };
+      const result = movement(scene, a, target, { placement: true, ignoreTerrain: true, ignoreOpponents: true, width: options.width, height: options.height });
+      const from = { x: a.x, y: a.y, space: a.space };
+      a.x = target.x; a.y = target.y; a.space = result.space;
+      if (a.compoundId) for (const part of scene.actors.filter(x => x.compoundId === a.compoundId)) { part.x = a.x; part.y = a.y; part.space = a.space; }
+      emit("actor.place", a.id, { reason: options.reason || "placement", from, x: a.x, y: a.y, space: a.space, distance: 0 });
+      emitAuraChanges(auraChanges(auraBefore), { placementTargetId: a.id, from, to: { space: a.space, x: a.x, y: a.y } });
+      return { ...result, distance: 0 };
     };
     const geometryRouteId = route => `${route?.sourceActorId || "scene"}:${route?.actorId || "movement"}:${route?.sceneVersion || 0}:${route?.geometryStamp || ""}`;
     const geometryTriggerList = (plan, operation) => {
@@ -1257,14 +1356,198 @@
       else {const def=a.ruleResources[resource];if(def.maximum!=null&&before+amount>def.maximum)fail("Получение превышает максимум ресурса");def.value=before+amount;}
       emit("resource.gain",a.id,{requestedResource,resource,amount});
     };
+    const specialString = (value, label, max = 180) => {
+      if (typeof value !== "string" || !value.trim() || value.length > max || /[\u0000-\u001f\s]/u.test(value)) fail(`Некорректное значение: ${label}`);
+      return value.trim();
+    };
+    const specialSourceId = (p, sourceId) => {
+      const declared = p.sourceActorId ?? p.ownerActorId ?? sourceId ?? null;
+      if (declared != null && (!actor(scene, declared) || actor(scene, declared).knockedOut)) fail("Источник специальной операции отсутствует или выведен из боя");
+      if (p.sourceActorId != null && sourceId != null && p.sourceActorId !== sourceId) fail("Источник операции не совпадает с исполнителем");
+      return declared;
+    };
+    const specialTarget = (p, sourceId, alive = false) => requiredActor(scene, p.targetId || p.targetActorId || sourceId, alive);
+    const reappearanceChoice = (target, context = {}) => choice(target, "placement", "Выберите клетку появления вне соседства с персонажами", ["place"], { reappear: true, ...context });
+    const reappear = (target, p = {}, reason = "reappear") => {
+      const destination = p.destination || p.reappearance || null;
+      removeEffect(target, "positive.исчез", { sourceId: p.sourceId || p.effectSourceId || undefined, manual: p.operation === "remove", reappear: false });
+      if (!destination) { reappearanceChoice(target, { special: true, reason }); return null; }
+      if (!Number.isInteger(destination.x) || !Number.isInteger(destination.y)) fail("Появление требует координаты клетки");
+      const point = { ...destination, space: destination.space || target.space };
+      if (scene.actors.some(other => live(other) && other.id !== target.id && distance(point, other) <= 1)) fail("Появление запрещено рядом с персонажем");
+      return placeActor(target, point, { reason });
+    };
+    const banishOperation = (p, sourceId) => {
+      const operation = p.operation || "apply";
+      if (!["apply", "remove", "expire"].includes(operation)) fail("Неизвестная операция Изгнания");
+      if (p.effect != null && p.effect !== "positive.изгнан") fail("Изгнание работает только с Эффектом positive.изгнан");
+      const target = specialTarget(p, sourceId, false), sourceActorId = specialSourceId(p, sourceId), compoundId = target.compoundId || null;
+      const before = specialSnapshot(scene, "banish", [target.id], compoundId);
+      const sourceKey = p.sourceId ?? sourceActorId ?? `${rootId}:banish`;
+      if (typeof sourceKey !== "string" || !sourceKey || sourceKey.length > 180) fail("Некорректный источник Изгнания");
+      if (operation === "apply") {
+        commitEffect(target, { effect: "positive.изгнан", duration: "startTurn", sourceId: sourceKey, removable: p.removable !== false, sourceBound: true }, sourceActorId);
+      } else {
+        const sources = target.effectStates?.["positive.изгнан"]?.sources || [];
+        const selected = p.sourceId || p.sourceActorId || sourceActorId ? sources.filter(item => (item.sourceId || item.actorId) === (p.sourceId || p.sourceActorId || sourceActorId)) : sources;
+        if (!selected.length) fail("Источник Изгнания не найден");
+        if (!p.sourceId && !p.sourceActorId && !sourceActorId && new Set(sources.map(item => item.sourceId || item.actorId)).size > 1) fail("Снятие Изгнания требует ID источника");
+        removeEffect(target, "positive.изгнан", { sourceId: selected.length === 1 ? selected[0].sourceId || selected[0].actorId : undefined, manual: operation === "remove", reappear: false });
+      }
+      const after = specialSnapshot(scene, "banish", [target.id], compoundId);
+      emitSpecial("effect.banish", sourceActorId || sourceId, "banish", { operation, targetId: target.id, sourceActorId, sourceId: operation === "apply" ? sourceKey : p.sourceId || sourceActorId || null, duration: operation === "apply" ? "startTurn" : null }, before, after);
+      return target;
+    };
+    const vanishOperation = (p, sourceId) => {
+      const operation = p.operation || "apply";
+      if (!["apply", "remove", "expire", "reappear", "search"].includes(operation)) fail("Неизвестная операция Исчезновения");
+      if (p.effect != null && p.effect !== "positive.исчез") fail("Исчезновение работает только с Эффектом positive.исчез");
+      if (operation === "search") {
+        const seeker = requiredActor(scene, sourceId, true), target = requiredActor(scene, p.targetId, true);
+        if (scene.activeActorId !== seeker.id || target.team === seeker.team || !effectActive(scene, target, "positive.исчез")) fail("Поиск: на своём Ходу выберите Исчезнувшего противника");
+        const before = specialSnapshot(scene, "vanish", [target.id], target.compoundId || null);
+        spend(seeker, "ap", 2);
+        reappear(target, { operation: "search", sourceId: p.sourceId || undefined, destination: p.destination }, "reappear-search");
+        const after = specialSnapshot(scene, "vanish", [target.id], target.compoundId || null);
+        emitSpecial("effect.vanish", seeker.id, "vanish", { operation, targetId: target.id, sourceActorId: seeker.id, destination: p.destination || null }, before, after);
+        return target;
+      }
+      const target = specialTarget(p, sourceId, false), sourceActorId = specialSourceId(p, sourceId), compoundId = target.compoundId || null;
+      const before = specialSnapshot(scene, "vanish", [target.id], compoundId);
+      if (operation === "apply") {
+        if (effectActive(scene, target, "positive.исчез")) fail("Участник уже Исчез");
+        const sourceKey = p.sourceId ?? sourceActorId ?? `${rootId}:vanish`;
+        if (typeof sourceKey !== "string" || !sourceKey || sourceKey.length > 180) fail("Некорректный источник Исчезновения");
+        commitEffect(target, { effect: "positive.исчез", duration: "actionOrStartTurn", sourceId: sourceKey, removable: p.removable !== false, sourceBound: false }, sourceActorId);
+      } else {
+        if (!effectActive(scene, target, "positive.исчез")) fail("Участник не Исчез");
+        reappear(target, { ...p, operation }, operation === "expire" ? "reappear-expire" : operation === "remove" ? "reappear-remove" : "reappear");
+      }
+      const after = specialSnapshot(scene, "vanish", [target.id], compoundId);
+      emitSpecial("effect.vanish", sourceActorId || sourceId, "vanish", { operation, targetId: target.id, sourceActorId, destination: p.destination || p.reappearance || null, duration: operation === "apply" ? "actionOrStartTurn" : null }, before, after);
+      return target;
+    };
+    const compoundInputIds = p => {
+      const raw = p.partIds ?? p.actorIds ?? p.parts;
+      if (!Array.isArray(raw) || !raw.length) fail("Compound требует список Parts");
+      if (raw.length > 12 || raw.some(id => typeof id !== "string" || !id.trim())) fail("Некорректный список Parts Compound");
+      const ids = raw.map(id => id.trim());
+      if (new Set(ids).size !== ids.length) fail("Part нельзя указать дважды");
+      return ids;
+    };
+    const compoundParts = ids => ids.map(id => requiredActor(scene, id, false));
+    const validateCompoundParts = (parts, id, existing = null) => {
+      if (parts.length < 2 || parts.length > 12) fail("Compound должен содержать от 2 до 12 Parts");
+      const teams = new Set(parts.map(part => part.team));
+      if (teams.size !== 1) fail("Все Parts Compound должны быть одной стороны");
+      const first = parts[0];
+      if (parts.some(part => isPlayer(part) || part.kind === "crowd" || String(part.profileId || "").includes(".modifier.") || part.modifier === "collateral" || part.knockedOut)) fail("Compound состоит только из активных NPC Parts");
+      if (parts.some(part => part.compoundId && part.compoundId !== id && (!existing || !existing.partIds?.includes(part.id)))) fail("Part уже принадлежит другому Compound");
+      if (parts.some(part => part.space !== first.space || Number(part.x) !== Number(first.x) || Number(part.y) !== Number(first.y))) fail("Все Parts Compound должны занимать одно пространство и клетку");
+      return parts;
+    };
+    const compoundStats = (parts, p, existing = null) => {
+      const tier = p.tier ?? existing?.tier ?? parts.reduce((max, part) => Math.max(max, Number(part.tier || 0)), 0);
+      if (!Number.isSafeInteger(tier) || tier < 0 || tier > 99) fail("Некорректная Ступень Compound");
+      const speeds = parts.map(part => Number(part.compoundBaseSpeed ?? part.speed ?? 0));
+      const counts = new Map(); for (const value of speeds) counts.set(value, (counts.get(value) || 0) + 1);
+      const speed = [...counts.entries()].sort((left, right) => right[1] - left[1] || right[0] - left[0])[0]?.[0] ?? 0;
+      const armor = Math.max(...parts.map(part => stat(part, "armor"))), evasion = Math.max(...parts.map(part => stat(part, "evasion")));
+      const defenseType = p.defenseType ?? existing?.defenseType ?? (armor >= evasion ? "armor" : "evasion");
+      if (!["armor", "evasion"].includes(defenseType)) fail("Compound выбирает Armor или Evasion");
+      return { tier, speed, defenseType };
+    };
+    const mergeCompoundEffects = parts => {
+      const effects = new Set(parts.flatMap(part => part.effects || []));
+      const states = {};
+      for (const effect of effects) {
+        const sourceList = [];
+        for (const part of parts) for (const source of part.effectStates?.[effect]?.sources || []) if (!sourceList.some(item => (item.sourceId || item.actorId) === (source.sourceId || source.actorId))) sourceList.push(copy(source));
+        const first = parts.map(part => part.effectStates?.[effect]).find(Boolean) || { duration: effect === "positive.изгнан" ? "startTurn" : effect === "positive.исчез" ? "actionOrStartTurn" : "roundEnd" };
+        states[effect] = { ...copy(first), sources: sourceList };
+      }
+      for (const part of parts) { part.effects = [...effects]; part.effectStates = copy(states); }
+    };
+    const mergeCompoundTraits = parts => {
+      const techniques = {};
+      for (const part of parts) for (const [id, level] of Object.entries(part.techniques || {})) techniques[id] = Math.max(Number(techniques[id] || 0), Number(level || 0));
+      const passives = [...new Set(parts.flatMap(part => Array.isArray(part.passives) ? part.passives : Object.keys(part.passives || {})))];
+      for (const part of parts) { if (Object.keys(techniques).length) part.techniques = copy(techniques); if (passives.length) part.passives = [...passives]; }
+    };
+    const compoundRecord = (id, parts, stats, existing = null) => ({
+      schema: 1, id, partIds: parts.map(part => part.id), team: parts[0].team, space: parts[0].space, x: Number(parts[0].x), y: Number(parts[0].y), tier: stats.tier, speed: stats.speed, defenseType: stats.defenseType,
+      maxHp: parts.reduce((sum, part) => sum + Number(part.maxHp ?? maxHealth(part)), 0), hp: parts.reduce((sum, part) => sum + Number(part.hp || 0), 0), gate: parts.reduce((sum, part) => sum + Number(part.maxHp ?? maxHealth(part)), 0) / parts.length,
+      originals: existing?.originals || Object.fromEntries(parts.map(part => [part.id, { tier: part.tier, compoundBaseSpeed: part.compoundBaseSpeed ?? null, compoundDefense: part.compoundDefense ?? null }]))
+    });
+    const applyCompoundStats = (parts, id, stats) => {
+      for (const part of parts) { part.compoundId = id; part.compoundBaseSpeed = stats.speed; part.compoundDefense = stats.defenseType; part.tier = stats.tier; }
+      mergeCompoundEffects(parts); mergeCompoundTraits(parts);
+    };
+    const dissolveParts = (parts, record) => {
+      for (const part of parts) {
+        const original = record?.originals?.[part.id] || {};
+        delete part.compoundId;
+        if (original.compoundBaseSpeed == null) delete part.compoundBaseSpeed; else part.compoundBaseSpeed = original.compoundBaseSpeed;
+        if (original.compoundDefense == null) delete part.compoundDefense; else part.compoundDefense = original.compoundDefense;
+        if (original.tier != null) part.tier = original.tier;
+        if (original.techniques != null) part.techniques = copy(original.techniques); else delete part.techniques;
+        if (original.passives != null) part.passives = copy(original.passives); else delete part.passives;
+      }
+    };
+    const compoundOperation = (p, sourceId) => {
+      const operation = p.operation || "create";
+      if (!["create", "update", "add", "remove", "dissolve", "disband"].includes(operation)) fail("Неизвестная операция Compound");
+      const id = specialString(p.compoundId ?? p.id, "ID Compound", 120);
+      if (!compoundIdPattern.test(id) || ["constructor", "prototype", "__proto__"].includes(id)) fail("Некорректный ID Compound");
+      const current = s.compounds[id] || null;
+      const currentIds = current?.partIds || scene.actors.filter(part => part.compoundId === id).map(part => part.id);
+      if (operation === "create") {
+        if (current || currentIds.length) fail("Compound с таким ID уже существует");
+        const parts = validateCompoundParts(compoundParts(compoundInputIds(p)), id), before = specialSnapshot(scene, "compound", parts.map(part => part.id), id), stats = compoundStats(parts, p), originals = Object.fromEntries(parts.map(part => [part.id, { tier: part.tier, compoundBaseSpeed: part.compoundBaseSpeed ?? null, compoundDefense: part.compoundDefense ?? null, techniques: copy(part.techniques || null), passives: copy(part.passives || null) }]));
+        applyCompoundStats(parts, id, stats); s.compounds[id] = compoundRecord(id, parts, stats, { originals });
+        const after = specialSnapshot(scene, "compound", parts.map(part => part.id), id);
+        emitSpecial("compound.create", sourceId, "compound", { operation, compoundId: id, partIds: parts.map(part => part.id), tier: stats.tier, speed: stats.speed, defenseType: stats.defenseType }, before, after); return;
+      }
+      if (!current && currentIds.length < 2) fail("Compound не найден");
+      if (!current) { const members = compoundParts(currentIds), stats = compoundStats(members, {}, null); s.compounds[id] = compoundRecord(id, members, stats); }
+      const record = s.compounds[id], members = compoundParts(record.partIds || currentIds);
+      if (operation === "add") {
+        const additions = compoundParts(compoundInputIds(p));
+        if (additions.some(part => members.some(member => member.id === part.id))) fail("Part уже входит в этот Compound");
+        const all = validateCompoundParts([...members, ...additions], id, record), before = specialSnapshot(scene, "compound", all.map(part => part.id), id), stats = compoundStats(all, p, record);
+        const originals = { ...(record.originals || {}), ...Object.fromEntries(additions.map(part => [part.id, { tier: part.tier, compoundBaseSpeed: part.compoundBaseSpeed ?? null, compoundDefense: part.compoundDefense ?? null, techniques: copy(part.techniques || null), passives: copy(part.passives || null) }])) };
+        applyCompoundStats(all, id, stats); s.compounds[id] = compoundRecord(id, all, stats, { ...record, originals }); const after = specialSnapshot(scene, "compound", all.map(part => part.id), id);
+        emitSpecial("compound.add", sourceId, "compound", { operation, compoundId: id, partIds: additions.map(part => part.id), allPartIds: all.map(part => part.id) }, before, after); return;
+      }
+      if (operation === "update") {
+        const before = specialSnapshot(scene, "compound", members.map(part => part.id), id), stats = compoundStats(members, p, record); applyCompoundStats(members, id, stats); s.compounds[id] = compoundRecord(id, members, stats, record); const after = specialSnapshot(scene, "compound", members.map(part => part.id), id);
+        emitSpecial("compound.update", sourceId, "compound", { operation, compoundId: id, partIds: members.map(part => part.id), tier: stats.tier, speed: stats.speed, defenseType: stats.defenseType }, before, after); return;
+      }
+      const removeIds = operation === "remove" && (p.partIds || p.actorIds || p.parts) ? compoundInputIds(p) : members.map(part => part.id);
+      if (removeIds.some(partId => !members.some(member => member.id === partId))) fail("Part не входит в этот Compound");
+      const removed = compoundParts(removeIds), remaining = members.filter(part => !removeIds.includes(part.id)), before = specialSnapshot(scene, members.map(part => part.id), id);
+      if (remaining.length && remaining.length < 2) fail("Compound нельзя оставить с одним Part");
+      dissolveParts(removed, record);
+      if (remaining.length) { const stats = compoundStats(remaining, {}, record); applyCompoundStats(remaining, id, stats); s.compounds[id] = compoundRecord(id, remaining, stats); }
+      else delete s.compounds[id];
+      const after = specialSnapshot(scene, members.map(part => part.id), id);
+      emitSpecial(operation === "remove" ? "compound.remove" : "compound.dissolve", sourceId, "compound", { operation, compoundId: id, removedPartIds: removed.map(part => part.id), partIds: remaining.map(part => part.id) }, before, after);
+    };
     const applyHealing = (p,sourceId) => { const target = requiredActor(scene, p.targetId || sourceId); const amount = integer(p.amount, "лечение"),compound=legacy.compoundEnemyStatus(scene,target),before=compound.active?compound.hp:target.hp;let after;if(compound.active){after=Math.min(Math.ceil(compound.hp/compound.gate)*compound.gate,compound.hp+amount);let remaining=after;for(const part of compound.parts){part.hp=Math.min(part.maxHp,remaining);remaining-=part.hp;}}else{target.hp=Math.min(maxHealth(target),target.hp+amount);after=target.hp;}emit("actor.heal",sourceId,{targetId:target.id,amount,restored:after-before,prevented:amount>0&&after===before});};
     const applyHealthLoss = (a, p, sourceId) => {
-      const requested = integer(p.amount, "потеря Здоровья"), before = Number(a.hp || 0), lost = Math.min(before, requested);
+      const requested = integer(p.amount, "потеря Здоровья"), compound = legacy.compoundEnemyStatus(scene, a), before = compound.active ? compound.hp : Number(a.hp || 0), lost = Math.min(before, requested);
       if(p.mode!=="lose"&&requested>before)fail("Недостаточно Здоровья для оплаты");
-      if(a.compoundId)fail("Потеря Здоровья составного тела требует отдельного решения Нарратора");
-      a.hp = before - lost;
-      emit(p.mode === "lose" ? "health.lose" : "health.spend", sourceId, { targetId: a.id, requested, lost, hp: a.hp });
-      if (lost > 0 && a.hp === 0) { if (isPlayer(a)) wound(a, sourceId, "wounds", p.actionPlanId || null); else knockout(a, { kind: p.mode === "lose" ? "health-loss" : "health-spend", sourceActorId: sourceId }); }
+      const after = before - lost;
+      if (compound.active) {
+        let remaining = after;
+        for (const part of compound.parts) { const capacity = Number(part.maxHp ?? maxHealth(part)); part.hp = Math.min(capacity, remaining); remaining = Math.max(0, remaining - part.hp); }
+      } else a.hp = after;
+      emit(p.mode === "lose" ? "health.lose" : "health.spend", sourceId, { targetId: a.id, requested, lost, hp: compound.active ? after : a.hp, compoundId: compound.active ? compound.id : null });
+      if (lost > 0 && after === 0) {
+        if (compound.active) { const representative = compound.parts.find(part => !part.knockedOut) || compound.parts[0]; knockout(representative, { kind: p.mode === "lose" ? "health-loss" : "health-spend", sourceActorId: sourceId }); for (const part of compound.parts) { part.knockedOut = true; part.ap = 0; } }
+        else if (isPlayer(a)) wound(a, sourceId, "wounds", p.actionPlanId || null);
+        else knockout(a, { kind: p.mode === "lose" ? "health-loss" : "health-spend", sourceActorId: sourceId });
+      }
     };
     const payReservation = (a, reservation) => {
       for (const part of reservation.costs) {
@@ -1302,7 +1585,7 @@
       const ownerId=source?.ownerActorId||source?.boundaryOwnerId||old.ownerActorId||target?.id;
       const applied=source?.appliedSerial??old.appliedSerial??saved?.appliedTurnSerial??-1;
       return boundary === "roundEnd" && (source?.duration||saved?.duration) === "roundEnd" || owner?.id === ownerId && owner && (
-        boundary === "startTurn" && ["startTurn","nextTurn"].includes(source?.duration||saved?.duration) ||
+        boundary === "startTurn" && ["startTurn","nextTurn","actionOrStartTurn"].includes(source?.duration||saved?.duration) ||
         boundary === "endTurn" && ["default","endTurn"].includes(source?.duration||saved?.duration) && scene.turnSerial > Number(applied)
       );
     };
@@ -1362,8 +1645,8 @@
       if (!status.available) fail(status.reason);
       if (effectActive(scene,a,"positive.исчез")) {
         if (!p.reappearance) fail("Сначала выберите клетку появления");
-        if (scene.actors.some(x => live(x) && x.id !== a.id && distance({ ...p.reappearance, space: a.space }, x) <= 1)) fail("Появление запрещено рядом с персонажем");
-        removeEffect(a, "positive.исчез",{reappear:false}); move(a, { destination: p.reappearance, placement: true });
+        if (scene.actors.some(x => live(x) && x.id !== a.id && distance({ ...p.reappearance, space: p.reappearance.space || a.space }, x) <= 1)) fail("Появление запрещено рядом с персонажем");
+        removeEffect(a, "positive.исчез",{reappear:false}); placeActor(a, p.reappearance, { reason: "reappear-action" });
       }
       const targets = targetIds(scene,p.targetIds).map(id => requiredActor(scene, id));
       if ([ids.spell, ids.finish, ids.study, ids.shove, "action.атаки.дуэль"].includes(def.id) && targets.length !== 1 || def.id === ids.skirmish && (!targets.length || targets.length > 2)) fail("Неверное число целей");
@@ -1393,7 +1676,7 @@
       else if (def.id === ids.step) { if (!status.continuation) a.stepRemaining = sceneSpeed(scene,a); if (p.destination) {const moved=move(a, { destination: p.destination, maximum: a.stepRemaining });if(Number(astate(a).difficultTerrainStopSerial)!==Number(scene.turnSerial))a.stepRemaining-=moved.cost;} }
       else if (def.id === ids.jump) move(a, { destination: p.destination, maximum: scaledMove(a, Number(a.attrs.talent || 0),scene), line: true, ignoreOpponents: true, ignoreDifficultTerrain:true });
       else if (def.id === ids.shove) move(targets[0], { destination: p.destination, maximum: 1, forced: true });
-      else if (def.id === ids.disappear) applyEffect(a, { effect: "positive.исчез", duration: "startTurn" }, a.id);
+      else if (def.id === ids.disappear) applyEffect(a, { effect: "positive.исчез", duration: "actionOrStartTurn" }, a.id);
       else if (def.id === ids.study) { applyEffect(targets[0], { effect: "negative.помечен" }, a.id); emit("rule.prompt", a.id, { targetId: targets[0].id, title: "Нарратор раскрывает выбранный параметр NPC", category: p.category || "health" }); }
       else if (def.id === ids.improvise && !p.removeObstacleId) {
         if (p.effect) { if (targets.length !== 1 || distance(a, targets[0]) > 1 || p.effect === "positive.изгнан") fail("Импровизация: соседняя цель и Эффект кроме Изгнания"); applyEffect(targets[0], { effect: p.effect }, a.id); }
@@ -1422,6 +1705,9 @@
     function op(p, sourceId) {
       const a = sourceId ? requiredActor(scene, sourceId, false) : null;
       switch (p.kind) {
+        case "banish": banishOperation(p, sourceId); break;
+        case "vanish": vanishOperation(p, sourceId); break;
+        case "compound": compoundOperation(p, sourceId); break;
         case "plan": {
           if (!Array.isArray(p.operations) || !p.operations.length || p.operations.length > 192 || p.operations.some(operation => !operation || !api.operations.includes(operation.kind) || ["plan","batch","execution-frame"].includes(operation.kind))) fail("Некорректный план действия");
           if (!p.reservation || p.reservation.sceneVersion !== Number(scene.version || 0) || p.reservation.actorId !== sourceId) fail("Резерв цены устарел: подготовьте действие заново");
@@ -1501,19 +1787,18 @@
         case "aura-remove": mutateAura({...p,kind:"aura",operation:"remove"},sourceId,event.actorId); break;
         case "effect": { const target = requiredActor(scene, p.targetId || sourceId, false); if (p.remove) removeEffect(target, p.effect,{sourceId:p.sourceId,manual:true}); else applyEffect(target, p, sourceId); break; }
         case "effect-source": {
-          const target=requiredActor(scene,p.targetId||sourceId,false), saved=target.effectStates?.[p.effect], source=(saved?.sources||[]).find(item=>(item.sourceId||item.actorId)===p.sourceId);
-          if(!source)fail("Источник Эффекта не найден");
+          const target=requiredActor(scene,p.targetId||sourceId,false), parts=target.compoundId?scene.actors.filter(item=>item.compoundId===target.compoundId):[target], sourceEntries=parts.map(part=>({part,saved:part.effectStates?.[p.effect],source:(part.effectStates?.[p.effect]?.sources||[]).find(item=>(item.sourceId||item.actorId)===p.sourceId)})).filter(item=>item.source);
+          if(!sourceEntries.length)fail("Источник Эффекта не найден");
           if(p.operation==="remove")removeEffect(target,p.effect,{sourceId:p.sourceId,manual:true});
           else if(p.operation==="expire")removeEffect(target,p.effect,{sourceId:p.sourceId,manual:false,reappear:true});
-          else if(p.operation==="suppress"){
-            if(target.compoundId||["positive.исчез","positive.изгнан"].includes(p.effect))fail("Подавление этого Эффекта пока не поддерживается");
-            if(!p.suppressionId)fail("Укажите источник подавления");source.suppressedBy=[...new Set([...(source.suppressedBy||[]),p.suppressionId])];
-            if(!(saved.sources||[]).some(item=>!(item.suppressedBy||[]).length))target.effects=(target.effects||[]).filter(item=>item!==p.effect);
-            emit("effect.suppress",sourceId,{targetId:target.id,effect:p.effect,sourceId:p.sourceId,suppressionId:p.suppressionId});
-          } else if(p.operation==="restore"){
-            if(!p.suppressionId)fail("Укажите источник подавления");source.suppressedBy=(source.suppressedBy||[]).filter(id=>id!==p.suppressionId);
-            if(!(source.suppressedBy||[]).length)target.effects=[...new Set([...(target.effects||[]),p.effect])];
-            emit("effect.restore",sourceId,{targetId:target.id,effect:p.effect,sourceId:p.sourceId,suppressionId:p.suppressionId});
+          else if(p.operation==="suppress"||p.operation==="restore"){
+            if(!p.suppressionId)fail("Укажите источник подавления");
+            for(const {part,source} of sourceEntries){
+              source.suppressedBy=p.operation==="suppress"?[...new Set([...(source.suppressedBy||[]),p.suppressionId])]:[...(source.suppressedBy||[])].filter(id=>id!==p.suppressionId);
+              const active=(part.effectStates?.[p.effect]?.sources||[]).some(item=>!(item.suppressedBy||[]).length);
+              if(active)part.effects=[...new Set([...(part.effects||[]),p.effect])]; else part.effects=(part.effects||[]).filter(item=>item!==p.effect);
+            }
+            emit(p.operation==="suppress"?"effect.suppress":"effect.restore",sourceId,{targetId:target.id,effect:p.effect,sourceId:p.sourceId,suppressionId:p.suppressionId,compoundId:target.compoundId||null});
           } else fail("Неизвестная операция источника Эффекта");
           break;
         }
@@ -1586,8 +1871,8 @@
           emit("rule.used",sourceId,{...p,scope});break;
         }
         case "punish":{const opportunity=(s.opportunities||[]).find(o=>o.id===p.id&&o.actorId===sourceId);if(!opportunity)fail("Окно Наказания уже закрыто");spend(a,"focus",2);const result=publishRoll(a,p.roll,"Наказание");if(result.initialCount!==Math.max(Number(a.attrs.body||0),Number(a.attrs.talent||0)))fail("Неверный пул Наказания");s.opportunities=s.opportunities.filter(o=>o.id!==p.id);beginAttack(a,{name:"Наказание",targetIds:[opportunity.targetId],amount:result.successes});break;}
-        case "search": {const target=requiredActor(scene,p.targetId);if(scene.activeActorId!==a.id||target.team===a.team||!effectActive(scene,target,"positive.исчез"))fail("Поиск: на своём Ходу выберите Исчезнувшего противника");spend(a,"ap",2);removeEffect(target,"positive.исчез");break;}
-        case "invisible":if(!effectActive(scene,a,"positive.невидим"))fail("Нет Невидимости");removeEffect(a,"positive.невидим");applyEffect(a,{effect:"positive.исчез",duration:"startTurn"},a.id);break;
+        case "search": vanishOperation({ ...p, operation: "search" }, sourceId); break;
+        case "invisible":if(!effectActive(scene,a,"positive.невидим"))fail("Нет Невидимости");removeEffect(a,"positive.невидим");applyEffect(a,{effect:"positive.исчез",duration:"actionOrStartTurn"},a.id);break;
         case "configure-resource": {
           if (resources.has(p.id)) fail("ID совпадает со встроенным показателем");
           mutateCounter(p, sourceId, "resource", Object.hasOwn(a.ruleResources || {}, p.id) ? "configure" : "create");
@@ -1743,9 +2028,10 @@
               }
               emit("rule.respond",sourceId,{...p,title:pending.title});break;
             }
-            const destination = { ...p.destination, space: a.space }, source = actor(scene, pending.context.adjacentTo);
+            const source = actor(scene, pending.context.adjacentTo), destination = { ...p.destination, space: p.destination?.space || (pending.context.reappear ? a.space : source?.space || a.space) };
             if (source && distance(destination, source) !== 1 || pending.context.reappear && scene.actors.some(x => live(x) && x.id !== a.id && distance(destination, x) <= 1)) fail("Клетка не соответствует условию появления");
-            move(a, { destination:{...destination,space:source?.space||a.space}, placement: true, followSnare:true });
+            if (pending.context.reappear) placeActor(a, { ...destination, space: source?.space || a.space }, { reason: "reappear-choice" });
+            else move(a, { destination:{...destination,space:source?.space||a.space}, placement: true, followSnare:true });
           } else if (!String(p.note || "").trim()) fail("Запишите принятое решение");
           emit("rule.respond", sourceId, { ...p, title: pending.title });
           break;
@@ -1931,7 +2217,7 @@
             target.effectStates=persistentStates;target.effects=Object.keys(persistentStates);
             target.lionwing=Object.keys(automation).length?{automation}:{};
           }
-          scene.lionwing={schema:2,started:false,choices:[],deferred:[],receipts:s.receipts,history:s.history,auras:s.auras.filter(aura=>aura.lifetime==="persistent"),sceneSerial:s.sceneSerial+1,chapterSerial:s.chapterSerial};
+          scene.lionwing={schema:2,started:false,choices:[],deferred:[],receipts:s.receipts,history:s.history,specialJournal:s.specialJournal,compounds:s.compounds,auras:s.auras.filter(aura=>aura.lifetime==="persistent"),sceneSerial:s.sceneSerial+1,chapterSerial:s.chapterSerial};
           scene.round=1;scene.turnSerial=0;scene.tension=0;scene.activeActorId=null;scene.targetIds=[];scene.targetCells=[];scene.results=null;
           scene.pendingAction=null;scene.pendingPrompt=null;scene.pendingActionPlan=null;scene.triggerQueue=[];scene.opposedRoll=null;scene.challengeRequest=null;scene.turnUndo=[];delete scene.lionwing.executionCursor;
           scene.objects=scene.objects.filter(item=>item.duration==="persistent");scene.markers=scene.markers.filter(item=>item.duration==="persistent");
@@ -1971,6 +2257,9 @@
         "actor.heal": { kind: "heal", ...p }, "actor.wound": { kind: "wound", ...p }, "actor.knockout": { kind: "knockout", ...p },
         "resource.gain": { kind: "resource", operation: "gain", ...p }, "resource.spend": { kind: "resource", operation: "spend", ...p },
         "effect.apply": { kind: "effect", ...p }, "effect.remove": { kind: "effect", ...p, remove: true },
+        "effect.banish": { kind: "banish", ...p }, "effect.vanish": { kind: "vanish", ...p },
+        "compound.create": { kind: "compound", operation: "create", ...p }, "compound.add": { kind: "compound", operation: "add", ...p },
+        "compound.update": { kind: "compound", operation: "update", ...p }, "compound.remove": { kind: "compound", operation: "remove", ...p }, "compound.dissolve": { kind: "compound", operation: "dissolve", ...p },
         "actor.move": { kind: "move", ...p, maximum: p.maximum ?? 99 }, "actor.enter": { kind: "note", note: "Вход в клетку" },
         "roll.public": { kind: "roll", roll: p, label: p.label || p.outcome || "Бросок" }
       };
@@ -1993,6 +2282,22 @@
       if(p.kind==="resource"&&!["spend","gain"].includes(p.operation))fail("Неизвестная операция ресурса");
       if(["effect","effect-source"].includes(p.kind)&&!effectIds.has(p.effect))fail("Неизвестный Эффект LionWing");
       if(p.kind==="effect-source"&&!['remove','expire','suppress','restore'].includes(p.operation))fail("Неизвестная операция источника Эффекта");
+      if(p.kind==="banish"){
+        if(!["apply","remove","expire"].includes(p.operation||"apply"))fail("Неизвестная операция Изгнания");
+        if(typeof p.targetId!=="string"||!p.targetId)fail("Изгнание требует цель");
+        if(p.duration!==undefined&&p.duration!=="startTurn"&&p.duration!=="default")fail("Изгнание истекает только в начале Хода");
+      }
+      if(p.kind==="vanish"){
+        if(!["apply","remove","expire","reappear","search"].includes(p.operation||"apply"))fail("Неизвестная операция Исчезновения");
+        if(typeof p.targetId!=="string"||!p.targetId)fail("Исчезновение требует цель");
+        if(p.duration!==undefined&&p.duration!=="actionOrStartTurn"&&p.duration!=="default")fail("Исчезновение истекает при Действии или в начале Хода");
+        if(p.destination!==undefined&&(!p.destination||typeof p.destination!=="object"||Array.isArray(p.destination)||!Number.isInteger(p.destination.x)||!Number.isInteger(p.destination.y)))fail("Появление требует координаты клетки");
+      }
+      if(p.kind==="compound"){
+        if(!["create","update","add","remove","dissolve","disband"].includes(p.operation||"create"))fail("Неизвестная операция Compound");
+        if(typeof (p.compoundId??p.id)!=="string"||!(p.compoundId??p.id).trim())fail("Compound требует ID");
+        if((p.operation||"create")==="create"&&(p.partIds??p.actorIds??p.parts)===undefined)fail("Compound требует список Parts");
+      }
       if(p.kind==="aura"&&!['create','update','suppress','restore','remove','expire'].includes(p.operation||"create"))fail("Неизвестная операция ауры");
       if(["aura-create","aura-update","aura-suppress","aura-restore","aura-remove"].includes(p.kind)&&(!(p.id||p.aura?.id)||p.kind==="aura-create"&&!((p.sourceEntityId||p.aura?.sourceEntityId))))fail("Некорректное описание ауры");
     }
@@ -2129,12 +2434,49 @@
     }
     return { scene: next, events: output, event: output[output.length - 1] };
   }
+  function replay(scene, rawEvent, options = {}) {
+    const event = typeof rawEvent === "string" ? JSON.parse(rawEvent) : copy(rawEvent);
+    if (!event || typeof event !== "object" || typeof event.operation !== "string") fail("Событие специальной операции имеет неподдерживаемый формат");
+    if (!event.before || !event.after) fail("Событие специальной операции не содержит снимки для replay");
+    validateSpecialSnapshotPair(event.before, event.after);
+    const snapshot = specialSnapshot(scene, event.before.kind, event.before.actorIds || [], event.before.compoundId || null);
+    const rootId = event.rootEventId || event.id;
+    const saved = (state(copy(scene)).specialJournal || []).find(item => item.rootEventId === rootId || item.id === event.id);
+    if (sameJson(snapshot, event.after)) return { ok: true, scene: copy(scene), event: copy(saved || event), replayed: true, idempotent: true };
+    if (!sameJson(snapshot, event.before)) fail("Повтор специальной операции применён не к тому снимку");
+    const payload = { ...(event.payload || {}), kind: event.operation };
+    delete payload.special; delete payload.specialOperation;
+    const result = dispatchMany(scene, [{ id: rootId, type: "lionwing.command", actorId: event.actorId || null, payload }], options);
+    return { ...result, replayed: false, idempotent: false, event: result.event || event };
+  }
+  function undo(scene, rawEvent, options = {}) {
+    const event = typeof rawEvent === "string" ? JSON.parse(rawEvent) : copy(rawEvent);
+    if (!event || typeof event !== "object" || !event.before || !event.after || typeof event.operation !== "string") fail("Событие специальной операции не содержит снимки для отката");
+    validateSpecialSnapshotPair(event.before, event.after);
+    const current = specialSnapshot(scene, event.after.kind, event.after.actorIds || [], event.after.compoundId || null);
+    if (!sameJson(current, event.after)) fail("Откат специальной операции устарел: состояние уже изменилось");
+    const next = restoreSpecialSnapshot(scene, event.before), rootId = event.rootEventId || event.id;
+    state(next).receipts = state(next).receipts.filter(receipt => receipt.id !== rootId && receipt.id !== event.id);
+    next.version = Number(scene.version || 0) + 1;
+    const undoEvent = { schema: 1, id: `undo:${event.id || rootId || "special"}`, type: `${event.type || `lionwing.${event.operation}`}.undo`, operation: "undo", actorId: options.actorId || null, rootEventId: rootId || null, payload: { eventId: event.id || null }, before: copy(event.after), after: copy(event.before) };
+    next.log = Array.isArray(next.log) ? next.log : [];
+    next.log.unshift({ id: `${undoEvent.id}:journal`, at: new Date().toISOString(), type: undoEvent.type, actorId: undoEvent.actorId, payload: copy(undoEvent.payload), visibility: "public" });
+    next.log = next.log.slice(0, 200);
+    state(next).specialJournal.push(copy(undoEvent)); state(next).specialJournal = state(next).specialJournal.slice(-128);
+    return { ok: true, scene: next, event: undoEvent, undone: true };
+  }
+  function reload(scene) {
+    const next = typeof scene === "string" ? JSON.parse(scene) : copy(scene);
+    if (!next || typeof next !== "object") fail("Сохранение Сцены не является JSON-объектом");
+    state(next);
+    return next;
+  }
   function previewEvents(scene, events, options = {}) {
     try { return { ok: true, ...dispatchMany(scene, events, options), errors: [] }; }
     catch (error) { return { ok: false, errors: [error.message], code: error.code || "LIONWING_RULE_BLOCKED" }; }
   }
   const api = {
-    schema: 2, isScene, prepare, command, dispatchMany, previewEvents, prepareEntityRemoval, cancelEntityRemoval, removeEntity, destroyEntity: removeEntity,
+    schema: 2, isScene, prepare, command, dispatchMany, replay, undo, reload, previewEvents, prepareEntityRemoval, cancelEntityRemoval, removeEntity, destroyEntity: removeEntity,
     turnStartStatus, roundEndStatus, turnIdentity,
     movement, roll, actionStatus, actionDef, speed, maxHealth, balance, canSpend, targetIds, costQuote,
     createDiceRoll, createRoll: createDiceRoll, diceCreate: createDiceRoll,
@@ -2142,11 +2484,11 @@
     reloadDiceRoll, reloadRoll: reloadDiceRoll, diceReload: reloadDiceRoll,
     opposedDiceRoll, opposedRoll: opposedDiceRoll, diceOpposed: opposedDiceRoll,
     resolveDiceTie: (value, resolution) => diceAvailable().resolveTie(value, resolution),
-    historyStatus, effectInstanceStatus, activeState, auraRecord, auraStatus, lifetimeExpired,
+    historyStatus, effectInstanceStatus, activeState, auraRecord, auraStatus, lifetimeExpired, compoundStatus,
     lifetimeBoundary: foundations.lifetimeBoundary,
     normalizeLifetime: foundations.normalizeLifetime,
     isLifetimeExpired: foundations.lifetimeExpired,
-    operations: ["automation", "plan", "batch", "pause-chain", "resume-chain", "amend-attack", "recover-track", "record-action", "action", "attack", "damage", "spend-health", "lose-health", "heal", "wound", "stress", "knockout", "resource", "correct", "effect", "effect-source", "aura", "aura-create", "aura-update", "aura-suppress", "aura-restore", "aura-remove", "move", "geometry-move", "geometry-segment", "modifier", "allow-action", "grant-turn", "usage", "punish", "invisible", "search", "configure-resource", "dice-create", "dice-apply", "dice-reload", "dice-opposed", "dice-resolve-tie", "counter", "clock", "prompt", "choice", "roll", "reaction", "resolve-attack", "cancel-attack", "turn-start", "turn-end", "round-end", "scene-reset", "chapter-start", "tension", "note"]
+    operations: ["automation", "plan", "batch", "pause-chain", "resume-chain", "amend-attack", "recover-track", "record-action", "action", "attack", "damage", "spend-health", "lose-health", "heal", "wound", "stress", "knockout", "resource", "correct", "effect", "effect-source", "banish", "vanish", "compound", "aura", "aura-create", "aura-update", "aura-suppress", "aura-restore", "aura-remove", "move", "geometry-move", "geometry-segment", "modifier", "allow-action", "grant-turn", "usage", "punish", "invisible", "search", "configure-resource", "dice-create", "dice-apply", "dice-reload", "dice-opposed", "dice-resolve-tie", "counter", "clock", "prompt", "choice", "roll", "reaction", "resolve-attack", "cancel-attack", "turn-start", "turn-end", "round-end", "scene-reset", "chapter-start", "tension", "note"]
   };
   global.DAWN_LIONWING_ENGINE = api;
   const routed = global.DAWN_SCENE_ENGINE;

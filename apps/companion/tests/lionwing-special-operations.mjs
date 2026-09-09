@@ -1,0 +1,95 @@
+import assert from "node:assert/strict";
+import fs from "node:fs";
+import vm from "node:vm";
+import { loadSceneEngine } from "./load-scene-engine.mjs";
+
+const context = { window: {}, console };
+vm.createContext(context);
+for (const file of ["data.js", "edition-lionwing.js", "logic.js"]) vm.runInContext(fs.readFileSync(new URL(`../${file}`, import.meta.url), "utf8"), context);
+loadSceneEngine(context);
+const Engine = context.window.DAWN_LIONWING_ENGINE;
+const actor = (id, kind, team, x, y, extra = {}) => ({ id, name: id, kind, rulesEdition: "lionwing", team, space: "main", x, y, hp: 20, maxHp: 20, ap: 3, baseAp: 3, focus: 4, influence: 0, wounds: 0, stress: 0, tier: 2, speed: 4, armor: 2, evasion: 1, attrs: { body: 3, talent: 3, spirit: 2, mind: 2 }, effects: [], effectStates: {}, usedActions: [], acted: false, knockedOut: false, ...extra });
+const fixture = () => ({ rulesEdition: "lionwing", version: 0, round: 1, turnSerial: 0, tension: 0, activeActorId: null, spaces: [{ id: "main", width: 8, height: 8 }], actors: [actor("h", "hero", "hero", 1, 1), actor("e1", "enemy", "enemy", 3, 1), actor("e2", "enemy", "enemy", 3, 1), actor("e3", "enemy", "enemy", 3, 1)], objects: [], walls: [], markers: [], log: [], targetIds: [], reminders: [], rollFeed: [] });
+let serial = 0;
+const command = (scene, actorId, payload) => Engine.dispatchMany(scene, [{ ...Engine.command(actorId, payload), id: `special-${++serial}` }]);
+const run = (scene, actorId, payload) => command(scene, actorId, payload).scene;
+
+let scene = fixture();
+let result = command(scene, "h", { kind: "banish", targetId: "e1" });
+scene = result.scene;
+const banish = result.events.find(event => event.type === "effect.banish");
+assert.ok(banish && banish.before && banish.after, "Banish is a typed journal event with scoped snapshots");
+assert.equal(banish.operation, "banish");
+assert.equal(banish.payload.operation, "apply");
+assert.ok(scene.actors.find(item => item.id === "e1").effects.includes("positive.изгнан"));
+assert.ok(scene.lionwing.specialJournal.some(event => event.id === banish.id));
+scene = Engine.reload(JSON.stringify(scene));
+const replayedBanish = Engine.replay(scene, banish);
+assert.equal(replayedBanish.idempotent, true, "Banish replay after JSON reload is idempotent");
+scene = replayedBanish.scene;
+const undoneBanish = Engine.undo(scene, banish);
+assert.equal(undoneBanish.undone, true);
+assert.equal(undoneBanish.scene.actors.find(item => item.id === "e1").effects.includes("positive.изгнан"), false);
+assert.equal(undoneBanish.scene.log[0].type, "effect.banish.undo");
+scene = Engine.replay(undoneBanish.scene, banish).scene;
+assert.ok(scene.actors.find(item => item.id === "e1").effects.includes("positive.изгнан"), "Banish can replay after its undo");
+
+scene = fixture();
+scene = run(scene, "h", { kind: "turn-start" });
+scene = run(scene, "h", { kind: "banish", targetId: "e1" });
+scene = run(scene, "h", { kind: "turn-end" });
+scene = run(scene, "e1", { kind: "turn-start" });
+assert.equal(scene.actors.find(item => item.id === "e1").effects.includes("positive.изгнан"), false, "Banished expires at the target's Turn start");
+
+scene = fixture();
+result = command(scene, "h", { kind: "vanish", targetId: "h" });
+scene = result.scene;
+const vanish = result.events.find(event => event.type === "effect.vanish");
+assert.ok(vanish && scene.actors[0].effects.includes("positive.исчез"));
+scene = run(scene, "h", { kind: "vanish", operation: "reappear", targetId: "h", destination: { space: "main", x: 0, y: 0 } });
+assert.equal(scene.actors[0].effects.includes("positive.исчез"), false);
+assert.ok(scene.log.some(event => event.type === "actor.place"), "Reappearance is placement, not movement");
+assert.equal(scene.log.some(event => event.type === "actor.move" && event.payload?.reason?.startsWith("reappear")), false);
+
+scene = fixture();
+scene = run(scene, "h", { kind: "vanish", targetId: "h" });
+scene = run(scene, "h", { kind: "turn-start" });
+assert.equal(scene.actors[0].effects.includes("positive.исчез"), false, "Vanish expires at the start of the owner's Turn");
+assert.equal(scene.lionwing.choices.filter(choice => choice.context?.reappear).length, 1, "Vanish start boundary creates one reappearance choice");
+
+scene = fixture();
+scene = run(scene, "e1", { kind: "vanish", targetId: "e1" });
+scene = run(scene, "h", { kind: "turn-start" });
+result = command(scene, "h", { kind: "vanish", operation: "search", targetId: "e1" });
+scene = result.scene;
+const searchedVanish = result.events.find(event => event.type === "effect.vanish");
+assert.equal(scene.actors.find(item => item.id === "h").ap, 1, "Searching a Vanished enemy costs 2 AP");
+assert.ok(searchedVanish && scene.lionwing.choices[0]?.context.reappear);
+scene = run(scene, "e1", { kind: "choice", id: scene.lionwing.choices[0].id, choice: "place", destination: { x: 0, y: 0 } });
+assert.equal(scene.actors.find(item => item.id === "e1").effects.includes("positive.исчез"), false);
+
+scene = fixture();
+scene.actors[1].speed = 5; scene.actors[2].speed = 4; scene.actors[1].armor = 5; scene.actors[2].evasion = 6;
+scene.actors[1].effects = ["positive.укреплен"];
+scene = run(scene, null, { kind: "compound", compoundId: "boss", partIds: ["e1", "e2"] });
+let compoundEvent = scene.log.find(event => event.type === "compound.create");
+assert.ok(compoundEvent && Engine.compoundStatus(scene, "boss").active);
+assert.deepEqual(JSON.parse(JSON.stringify(Engine.compoundStatus(scene, "boss").partIds)), ["e1", "e2"]);
+assert.equal(scene.actors[1].tier, 2); assert.equal(scene.actors[2].tier, 2);
+assert.ok(scene.actors[2].effects.includes("positive.укреплен"), "Compound Parts share Effects");
+scene = run(scene, "h", { kind: "damage", targetId: "e1", amount: 25, irreducible: true });
+assert.equal(scene.actors[1].hp + scene.actors[2].hp, 20); assert.equal(scene.tension, 1);
+scene = run(scene, "h", { kind: "heal", targetId: "e2", amount: 20 });
+assert.equal(scene.actors[1].hp + scene.actors[2].hp, 20, "Compound healing cannot cross a Health Gate");
+scene = run(scene, "h", { kind: "compound", operation: "add", compoundId: "boss", partIds: ["e3"] });
+assert.equal(Engine.compoundStatus(scene, "boss").parts.length, 3);
+const addEvent = scene.lionwing.specialJournal.find(event => event.type === "compound.add");
+scene = Engine.reload(JSON.stringify(scene));
+assert.equal(Engine.compoundStatus(scene, "boss").active, true, "Compound registry survives JSON reload");
+scene = Engine.undo(scene, addEvent);
+assert.equal(Engine.compoundStatus(scene.scene, "boss").parts.length, 2, "Compound add has an undoable journal event");
+scene = scene.scene;
+scene = Engine.replay(scene, addEvent).scene;
+assert.equal(Engine.compoundStatus(scene, "boss").parts.length, 3, "Compound add replays after its undo");
+
+console.log("LionWing special operations: typed Banish, Vanish and Compound operations, lifetimes, reappearance placement, gates, reload, replay and undo passed");
