@@ -794,3 +794,76 @@ Turn/Intermission/persistent, duplicate/replay/reload/undo, transfer и source r
 visibility-aware public/private projection, а также UI статусы действий и причины блокировки.
 Техники подключаются через opt-in typed adapters с canonical digest; engine не получает
 technique-id switch и не принимает balance/max/ownership от клиента.
+
+## Передача: typed inventory/resources, 2026-09-10
+
+Срез завершён в ветке `codex/luna-inventory-resources` от свежего `origin/main`.
+Основные коммиты: `4acd975` (foundation), `8ccc58d` (canonical consumers),
+`90faab2` (UI и network intents). Итоговый docs-коммит с этой передачей указан
+в сообщении родительской задачи после push.
+
+### Что теперь умеет ядро
+
+`apps/companion/lionwing-inventory.js` расширяет существующие primitives и хранит
+типизированные записи в `actor.lionwing.inventory`; старый `actor.inventory` остаётся
+только числовым read-compatible зеркалом. Стабильная декларация проверяет `owner`,
+`source`, `ruleId`, `sourceDigest`, label/localization, minimum/maximum, initial/current,
+boundary lifetime, visibility, uniqueness, multiple instances, replacement level/group,
+edition и alternate-resource metadata. Поддержаны `stack`, `count`, `charges`, `slots`,
+`recorded-value` и `selected-item` (включая повторяющиеся selected values).
+
+Авторитетные операции: `configure/create`, `gain/add`, `spend`, `set`, `remove`,
+`transfer`, `record`, `select`, `reset`. Cost API — `prepareCost`, `reserve`,
+`commitReservation`, `cancelReservation`, `applyCosts`; reservations учитывают уже
+занятый баланс, несколько одинаковых cost entries, атомарный rollback и duplicate
+operation/replay protection. `resetActor`, `persistentState`, `resetScene` и
+`removeSource` покрывают Scene/Round/Turn/Intermission/persistent, отменяя затронутые
+резервации. `status`, `project`, `export`, `import`, `replay`, `undo` и
+`alternateResourceStatus` дают typed public/private/network boundary. Engine остаётся
+единственным writer, валидирует actor/source/role и не принимает от клиента balance,
+max или ownership; private records, receipts и reservations видны только владельцу
+в нужной проекции или Narrator/GM.
+
+В `lionwing-engine.js` добавлены inventory event routing, typed projection, intermission
+reset и корректные turn/round reset boundaries. `network-v2.js` принимает только
+ограниченный набор player operations для собственных записей, сервер сам назначает
+operation id. `lionwing-ui.js` показывает current/max/reserved, доступные `+`, `−`,
+spend/remove действия и причину блокировки; recorded/selected values и служебные
+receipts игрок не редактирует.
+
+### Canonical consumers
+
+Включены opt-in adapters с `knows level`, `sourceDigest` и `coverage: partial`; EN
+canonical text, RU interface text и semantic diff зафиксированы в
+`docs/tasks/LIONWING-INVENTORY-CANONICAL-REVIEW.md`:
+
+- `altruist.gourmand.1`: Meal stack/count и расход независимой еды;
+- `vagabond.malicious-mimic.1`: named Impression count instances и round reset;
+- `altruist.surgeon.2`: Bandages и Disinfectant charges;
+- `altruist.deckbuilder.1`: cards и recorded values;
+- `altruist.deckbuilder.2`: captured card recorded value;
+- `altruist.bardic-savant.1`: Verses selected items, repeated entries и Breathe choice;
+- `ruiner.mana-blades.1`: Arsenal selected items и Forges stack;
+- `ruiner.long-draw.1`: Prep charges.
+
+Это только проверяемые inventory slices: броски, цели, эффекты, action economy,
+полная валидация оружия/материалов и другие будущие families намеренно остаются
+manual/partial. Не добавлялись дубли для Will-O-Wisp (его marker/selection/push
+pipeline уже существует), Spellcrafter Innovation и Grim Ascendant Corruption;
+Assassin, Poacher и Empath не получили независимого inventory slice в этом срезе.
+Старые или расходящиеся записи Frost Veiler II, Grim Ascendant II и Empath III не
+подключались. Registry notes не использовались как источник механики: каждый новый
+consumer сверялся с EN PDF/canonical JSON, digest и RU semantic diff.
+
+### Проверки и следующие шаги
+
+Пройдены targeted `node tests/lionwing-inventory.mjs`, `npm --prefix apps/companion
+run test:families`, `node --check` для inventory/engine, `git diff --check`, затем
+полный `npm --prefix apps/companion test` (391 unique rule ids, OK). Generated
+maps/docs обновлены только для доказанного coverage; supplements и maps не трогались.
+
+Следующий безопасный шаг — подключать ещё один независимый partial slice только
+после той же canonical сверки и расширять contract tests для нового consumer. Все
+неопределённые случаи должны оставаться blocked с уведомлением и ручным Narrator
+override; расширение до full technique automation требует отдельных movement,
+lifecycle, derived-stats/combat-meter и action-copy contracts.
