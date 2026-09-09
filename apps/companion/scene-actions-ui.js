@@ -198,7 +198,13 @@ function continueCompositeCoreAction(destination=null){
 }
 function prepareCoreActionWithPlans(actionId,extra={}){
   const actor=coreActionActor(),action=D.actions.list.find(item=>item.id===actionId);if(!actor||!action)return;
-  const context=extra.context?structuredClone(extra.context):pendingCoreActionContext?.actionId===action.id?structuredClone(pendingCoreActionContext.context):coreActionDraftContext(action,actor,{useCunningPlan:Boolean(extra.useCunningPlan)}),modifierStatus=SceneEngine.attackModifierStatus(Scene,actor.id,context.targetIds||[],context.attackModifierIds||[],{actionId:action.id,origin:context.armamentMode==="blade"?context.armamentDestination:null});
+  const context=extra.context?structuredClone(extra.context):pendingCoreActionContext?.actionId===action.id?structuredClone(pendingCoreActionContext.context):coreActionDraftContext(action,actor,{useCunningPlan:Boolean(extra.useCunningPlan)});
+  if(!context.targetIds?.length&&SceneEngine.actionIsAny(action,["skirmish","spell","finish","duel"])){
+    Scene.tool="target";renderScene();
+    const requirement=SceneEngine.actionIs(action,"skirmish")?"одну или две цели":"одну цель";
+    toast(`«${sceneActionDisplayName(action)}»: выберите ${requirement} на поле, затем нажмите действие снова`);return;
+  }
+  const modifierStatus=SceneEngine.attackModifierStatus(Scene,actor.id,context.targetIds||[],context.attackModifierIds||[],{actionId:action.id,origin:context.armamentMode==="blade"?context.armamentDestination:null});
   if(!modifierStatus.available)return toast(modifierStatus.reason);
   const attributeOverride=modifierStatus.attributeOverride||context.attributeOverride||null,optionAdvantage=Math.max(0,Number(context.bulletAdvantage||0))+(context.overload?Math.floor(Number(actor.attrs?.mind||0)/2):0)+(context.useGrasp?Number(Scene.tension||0):0)+modifierStatus.advantage,roll=coreActionRoll(actor,action,optionAdvantage,attributeOverride,context.targetIds||[]);
   const requestContext={...context,roll,attribute:roll?.attribute||attributeOverride||null,attackModifierIds:modifierStatus.selectedIds,attackModifierDestination:context.modifierDestination||null};
