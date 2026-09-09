@@ -518,6 +518,12 @@
     const amount = Number(method.startsWith("stat") ? rule[method]?.(actor, context.key, context) : rule[method]?.(actor, context) || 0);
     return Number.isFinite(amount) && amount !== 0 ? [{ id: rule.id, label: rule.label, amount }] : [];
   });
+  // Techniques use this small facade rather than scanning the Scene journal
+  // themselves. Geometry owns the authoritative facts and checked operation;
+  // adapters remain declarative and cannot provide their own route/distance.
+  const movementFacts = (scene, request = {}) => global.DAWN_LIONWING_GEOMETRY?.movementFacts?.(scene, request) || { available: false, reason: "Жизненный цикл движения недоступен." };
+  const movementCondition = (scene, request = {}) => global.DAWN_LIONWING_GEOMETRY?.movementCondition?.(scene, request) || { available: false, reason: "Жизненный цикл движения недоступен." };
+  const movementOperation = (scene, request = {}) => global.DAWN_LIONWING_GEOMETRY?.movementOperation?.(scene, request) || { ok: false, errors: ["Жизненный цикл движения недоступен."], operation: null, plan: null };
   global.DAWN_LIONWING_ADAPTERS = Object.freeze({
     list: actor => adapters.filter(rule => rule.available(actor)).map(({ id, label, sourceDigest, coverage }) => ({ id, label, sourceDigest, coverage })),
     replacements: (actor, original) => enabled(actor).flatMap(rule => rule.replacements?.(actor, original) || []),
@@ -539,5 +545,8 @@
     actionStatus: (actor, context = {}) => enabled(actor).reduce((status, rule) => status.allowed === false ? status : rule.actionStatus?.(actor, context) || status, { allowed: true, reason: "" }),
     actionModifiers: actor => enabledActionModifiers(actor).map(rule => ({ id: rule.id, techniqueId: rule.techniqueId, level: rule.level, label: rule.label, sourceDigest: rule.sourceDigest, coverage: rule.coverage })),
     actionQuote: (actor, context = {}) => actionQuote(actor, context),
+    movementFacts,
+    movementCondition,
+    movementOperation,
   });
 })(typeof window === "object" ? window : globalThis);

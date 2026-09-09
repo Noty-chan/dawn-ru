@@ -1,3 +1,34 @@
+## Актуальная точка передачи — 2026-09-09, adapter-facing movement lifecycle
+
+Существующий фундамент движения сохранён: `lionwing-geometry` остаётся единственным
+планировщиком маршрута тела, `lionwing-geometry-runtime` — контрактом placement /
+teleport / displacement, а LionWing engine — единственным писателем Сцены. Поверх
+него добавлен малый automation-facing слой: нормализованные журналируемые события
+`movement.prepare/start/leave/segment/enter/cross/end/stop` сопровождаются
+авторитетным снимком режима, фактического маршрута, дистанции, причины остановки,
+Action/Technique provenance и first-movement flag. Клиент не может заявить путь,
+дистанцию или endpoint: `movementOperation` строит только проверенный geometry plan,
+а `movementFacts` и `movementCondition` читают только engine journal.
+
+Общий API доступен обоим массовым путям подключения:
+`DAWN_LIONWING_GEOMETRY.movementFacts/movementCondition/movementOperation` и тонкий
+`DAWN_LIONWING_ADAPTERS` facade. Условия покрывают фактическое движение на N,
+first movement, enter/leave/cross, end in/adjacent, mode и forced; факты переживают
+reload/replay, сегментные continuation и terminal terrain. Старые placement и
+teleport не объявлены «обычным движением»: их прежние отдельные contracts сохранены.
+UI теперь маркирует ожидающий `geometry-boundary` как этап «Движение» с обычными
+кнопками продолжения/остановки; existing geometry renderer продолжает давать
+preview, confirm, cancel и причину terminal stop.
+
+Добавлен `tests/lionwing-movement-lifecycle.mjs` и включён в `test:families`.
+Он проверяет event order, forged unreachable operation, фактические cross/end/N
+условия, forced route, difficult stop, JSON reload. Existing segmented, aura,
+spatial, geometry-runtime, Siren и Detective tests остаются evidence для больших
+тел, barriers, forced group movement, attached-marker entry, teleport/replay и
+nested continuations. Это foundation/API, не заявление об автоматизации всех 118
+зависимостей: новые адаптеры техник должны opt-in подключать только свои
+канонические условия и source digest.
+
 ## Актуальная точка передачи — 2026-09-09, Master at Arms III и общий выбор центра области
 
 В ветке `codex/luna-master-three-area-ui` поверх контракта Armament добавлена полная

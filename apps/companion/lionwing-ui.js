@@ -267,8 +267,8 @@ function lwBatchHtml(){
     ${draft?`<p>Источник: ${esc(actor?.name||draft.actorId)}</p><ol>${draft.operations.map((operation,index)=>`<li>${esc(lwOperationSummary(operation))} <button data-lw-batch-remove="${index}" aria-label="Убрать операцию ${index+1}">Убрать</button></li>`).join("")}</ol><div class="button-row"><button data-lw-batch-apply>Проверить и применить пакет</button><button data-lw-batch-clear>Отменить пакет</button></div>`:""}</details>`;
 }
 
-const lwChainChoiceStages=Object.freeze({knockout:"Сопротивление","clash-loss":"Реакция","clash-tie":"Реакция","duel-outcome":"Реакция","duel-failure":"Реакция","duel-wounds":"Рана",wound:"Рана",replacement:"Последствие","rule-trigger":"Последствие",consequence:"Последствие",placement:"Решение"});
-const lwChainPathForStage=Object.freeze({Атака:"Атака",Реакция:"Атака → Реакция",Урон:"Атака → Реакция → Урон",Рана:"Атака → Реакция → Урон → Рана",Сопротивление:"Атака → Реакция → Урон → Рана → Сопротивление",Последствие:"Последствие",Решение:"Ручное решение"});
+const lwChainChoiceStages=Object.freeze({knockout:"Сопротивление","clash-loss":"Реакция","clash-tie":"Реакция","duel-outcome":"Реакция","duel-failure":"Реакция","duel-wounds":"Рана",wound:"Рана",replacement:"Последствие","rule-trigger":"Последствие",consequence:"Последствие",placement:"Решение","geometry-boundary":"Движение"});
+const lwChainPathForStage=Object.freeze({Атака:"Атака",Реакция:"Атака → Реакция",Урон:"Атака → Реакция → Урон",Рана:"Атака → Реакция → Урон → Рана",Сопротивление:"Атака → Реакция → Урон → Рана → Сопротивление",Последствие:"Последствие",Решение:"Ручное решение",Движение:"Движение: выберите продолжение или остановку"});
 function lwChainOperationKind(value){return value?.kind||value?.p?.kind||"";}
 function lwChainFrameInfo(frame){
   const data=frame?.lionwing||frame||{},choices=Array.isArray(data.choices)?data.choices:[],choice=choices[0],pending=frame?.pendingAction||null,cursor=data.executionCursor||null;

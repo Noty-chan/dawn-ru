@@ -1026,7 +1026,7 @@
       else if (type === "counter.threshold") saveFact("counter.threshold", actorId, targets, { counterId: payload.counterId || payload.id, kind: payload.kind || payload.type, before: payload.before, value: payload.value, threshold: payload.threshold });
       else if (type === "aura.enter" || type === "aura.exit") saveFact(type, actorId, [actorId], { auraId:payload.auraId, effectId:payload.effectId, ruleId:payload.ruleId, ownerActorId:payload.ownerActorId, sourceEntityId:payload.sourceEntityId, movementTargetId:payload.movementTargetId||null, segmentIndex:payload.segmentIndex??null });
       else if (type === "attack.clear" && payload.cancelled) saveFact("cancel", actorId, targets, { reason: payload.reason || "cancelled" });
-      if (scheduleAfterEvent && ["clash.success", "damage.apply", "actor.knockout", "effect.apply", "actor.enter", "action.resolve", "marker.remove"].includes(type)) scheduleAfterEvent(row);
+      if (scheduleAfterEvent && ["clash.success", "damage.apply", "actor.knockout", "effect.apply", "actor.enter", "action.resolve", "marker.remove", "movement.prepare", "movement.start", "movement.segment", "movement.enter", "movement.leave", "movement.cross", "movement.end", "movement.stop"].includes(type)) scheduleAfterEvent(row);
       return row;
     };
     const emitSpecial = (type, actorId, operation, payload, before, after) => {
@@ -1462,6 +1462,15 @@
       return { ...result, distance: 0 };
     };
     const geometryRouteId = route => `${route?.sourceActorId || "scene"}:${route?.actorId || "movement"}:${route?.sceneVersion || 0}:${route?.geometryStamp || ""}`;
+    // One compact, public-safe snapshot accompanies every lifecycle row. The
+    // route itself was checked by DAWN_LIONWING_GEOMETRY; adapters only ever
+    // receive these derived facts, never a client-supplied path or distance.
+    const movementLifecycle = (route, operation, cursor = {}, extra = {}) => {
+      const id = geometryRouteId(route), prior = (scene.log || []).filter(row => row.type === "movement.start" && row.actorId === route.actorId && Number(row.execution?.turnSerial) === Number(scene.turnSerial)).length;
+      const completed = (route.segments || []).slice(0, Number(cursor.segmentIndex || 0));
+      const distance = Number(cursor.spent || 0);
+      return { id, actorId: route.actorId, sourceActorId: operation.sourceActorId || route.sourceActorId, sourceActionId: operation.sourceActionId || route.request?.sourceActionId || null, actionInstanceId: provenance?.actionInstanceId || operation.actionInstanceId || null, techniqueRuleId: operation.techniqueRuleId || operation.ruleId || route.request?.techniqueRuleId || null, sourceDigest: operation.sourceDigest || route.request?.sourceDigest || null, mode: route.mode || "move", forced: route.mode === "forced" || Boolean(operation.forced), from: route.origin ? copy(route.origin) : null, path: completed.map(segment => copy(segment.to)), distance, totalDistanceThisTurn: distance, firstMovementThisTurn: prior === 0, stoppedAt: extra.stoppedAt ? copy(extra.stoppedAt) : null, stopReason: extra.stopReason || null };
+    };
     const geometryTriggerList = (plan, operation) => {
       const values = operation.segmentChoices ?? operation.enterChoices ?? operation.segmentTriggers ?? operation.boundaryChoices ?? operation.onEnter ?? plan?.request?.segmentChoices ?? plan?.request?.enterChoices ?? plan?.request?.segmentTriggers ?? plan?.request?.boundaryChoices ?? plan?.request?.onEnter ?? plan?.route?.segmentChoices ?? plan?.route?.enterChoices ?? plan?.route?.segmentTriggers ?? plan?.route?.boundaryChoices ?? plan?.route?.onEnter ?? [];
       if (Array.isArray(values)) return values;
@@ -1482,6 +1491,7 @@
     }) || null;
     const geometryCommit = (route, target, operation, cursor, terminal = false, stopReason = null) => {
       const stoppedAt = { space: target.space, x: Number(target.x), y: Number(target.y) };
+      const lifecycle = movementLifecycle(route, operation, cursor, { stoppedAt, stopReason });
       // Keep the legacy actor.move projection available to old journal/UI
       // consumers. The actual state transition has already happened one
       // segment at a time; this row is only the completed-route summary.
@@ -1493,6 +1503,7 @@
         space: stoppedAt.space,
         path: (route.path || []).map(point => ({ x: Number(point.x), y: Number(point.y) })),
         distance: Number(cursor.spent || 0),
+        movement: lifecycle,
         geometrySummary: true,
       });
       emit("geometry.route.commit", operation.sourceActorId || route.sourceActorId, {
@@ -1505,7 +1516,10 @@
         stopReason: stopReason || null,
         segments: route.segments || [],
         cursor: { ...cursor, status: "completed", phase: terminal ? "terminal" : "completed" },
+        movement: lifecycle,
       });
+      emit("movement.end", target.id, { routeId: lifecycle.id, targetId: target.id, stoppedAt, terminal: Boolean(terminal), stopReason: stopReason || null, movement: lifecycle });
+      if (terminal) emit("movement.stop", target.id, { routeId: lifecycle.id, targetId: target.id, stoppedAt, terminal: true, stopReason: stopReason || "terminal", movement: lifecycle });
       if(operation.spatialCommit){
         const saved=copy(operation.spatialCommit),summary={...(saved.summary||{})},completedSegments=(route.segments||[]).slice(0,Number(cursor.segmentIndex||route.segments?.length||0));
         summary.stoppedAt=stoppedAt;summary.path=completedSegments.map(segment=>copy(segment.to));summary.segments=copy(completedSegments);summary.spent=Number(cursor.spent||0);summary.remaining=terminal?0:Math.max(0,Number(route.maximum||0)-Number(cursor.spent||0));summary.terminal=Boolean(terminal);summary.stopReason=stopReason||null;
@@ -2172,6 +2186,7 @@
           const checked=geometry.revalidatePlan(scene,p.geometryPlan);if(!checked.available)fail(checked.reason);
           if(checked.route.sourceActorId!==sourceId||checked.route.actorId!==(p.targetId||sourceId))fail("Геометрический план принадлежит другой операции");
           const target=requiredActor(scene,checked.route.actorId),route=checked.route,segments=geometry.routeSegments(route);
+          emit("movement.prepare", target.id, { routeId: geometryRouteId(route), targetId: target.id, requestedDestination: copy(route.destination), maximum: Number(route.maximum || 0), movement: movementLifecycle(route, p, { segmentIndex: 0, spent: 0 }) });
           if(!segments.length){
             const cursor=geometry.geometryCursor(route,0,scene,{id:`${rootId}:geometry`,status:"completed",phase:"completed",spent:0});
             delete s.geometryCursor;
@@ -2190,13 +2205,20 @@
           if(!checked.available)fail(checked.reason);
           if(checked.completed){delete s.geometryCursor;geometryCommit(route,requiredActor(scene,route.actorId),p,cursor,false,null);if(p.groupId)queue.unshift({p:{kind:"forced-towards-group-after-route",groupId:p.groupId,moverId:p.groupMoverId||route.actorId},sourceId:p.sourceActorId||sourceId,provenance:copy(provenance)});break;}
           const target=requiredActor(scene,route.actorId),segment=checked.segment;
-          const phasePayload={routeId:geometryRouteId(route),targetId:target.id,segmentIndex,from:segment.from,to:segment.to,cost:segment.cost,cursor:{...cursor,phase:"before-leave"}};
+          const lifecycle=movementLifecycle(route,p,cursor), segmentPayload={index:segmentIndex,from:copy(segment.from),to:copy(segment.to),cost:Number(segment.cost||0),terminal:Boolean(segment.terminal),stopReason:segment.stopReason||null};
+          if(segmentIndex===0)emit("movement.start",target.id,{routeId:lifecycle.id,targetId:target.id,movement:lifecycle});
+          const phasePayload={routeId:geometryRouteId(route),targetId:target.id,segmentIndex,from:segment.from,to:segment.to,cost:segment.cost,cursor:{...cursor,phase:"before-leave"},movement:lifecycle,segment:segmentPayload};
           emit("geometry.segment.before-leave",target.id,phasePayload);
+          emit("movement.leave",target.id,phasePayload);
           emit("geometry.segment.leave",target.id,{...phasePayload,cursor:{...cursor,phase:"leave"}});
           emit("geometry.segment.before-enter",target.id,{...phasePayload,cursor:{...cursor,phase:"before-enter"}});
           const result=move(target,{destination:segment.to,forced:route.mode==="forced",maximum:segment.cost,width:route.width,height:route.height,ignoreTerrain:plan.request?.ignoreTerrain===true,ignoreOpponents:plan.request?.ignoreEnemies===true,straight:plan.request?.straight===true,__verifiedRoute:{spent:segment.cost,path:[{x:segment.to.x,y:segment.to.y}],space:segment.to.space,stoppedAt:segment.to,terminal:Boolean(segment.terminal),stopReason:segment.stopReason||null},__deferAuraTransitions:true,movement:p.label||"Движение по плану"});
           emit("geometry.segment.enter",target.id,{...phasePayload,cursor:{...cursor,phase:"enter"},position:{space:target.space,x:Number(target.x),y:Number(target.y)}});
           emitAuraChanges(result.auraTransitions,{movementTargetId:target.id,routeId:geometryRouteId(route),segmentIndex,boundary:"enter",from:segment.from,to:segment.to});
+          const enteredMovement={...lifecycle,path:[...lifecycle.path,copy(segment.to)],distance:Number(cursor.spent||0)+Number(segment.cost||0),totalDistanceThisTurn:Number(cursor.spent||0)+Number(segment.cost||0),stoppedAt:copy(segment.to)};
+          emit("movement.segment",target.id,{...phasePayload,to:copy(segment.to),movement:enteredMovement,segment:segmentPayload});
+          emit("movement.enter",target.id,{...phasePayload,to:copy(segment.to),movement:enteredMovement,segment:segmentPayload});
+          emit("movement.cross",target.id,{...phasePayload,from:copy(segment.from),to:copy(segment.to),movement:enteredMovement,segment:segmentPayload});
           const spent=Number(cursor.spent||0)+Number(segment.cost||result.cost||0),nextIndex=segmentIndex+1,terminal=Boolean(segment.terminal||nextIndex>=geometry.routeSegments(route).length&&route.terminal),trigger=geometryTriggerFor(plan,p,segment,segmentIndex),nextCursor=nextIndex<geometry.routeSegments(route).length&&!terminal?queueGeometrySegment(plan,p,cursor,sourceId,nextIndex,spent):{...geometry.geometryCursor(route,nextIndex,{...scene,version:Number(scene.version||0)+1},{id:cursor.id,spent,phase:terminal?"terminal":"completed",status:"completed",expectedSceneVersion:Number(scene.version||0)+1,expectedGeometryStamp:geometry.geometryStamp({...scene,version:Number(scene.version||0)+1})}),status:"completed",phase:terminal?"terminal":"completed"};
           if(terminal||nextIndex>=geometry.routeSegments(route).length){delete s.geometryCursor;geometryCommit(route,target,p,nextCursor,terminal,terminal?segment.stopReason||route.stopReason||null:null);if(p.groupId)queue.unshift({p:{kind:"forced-towards-group-after-route",groupId:p.groupId,moverId:p.groupMoverId||target.id},sourceId:p.sourceActorId||sourceId,provenance:copy(provenance)});break;}
           if(!s.choices.length&&trigger){
