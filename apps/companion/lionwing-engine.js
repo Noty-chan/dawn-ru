@@ -670,11 +670,6 @@
     const actionsAfterDeployment = latestDeployment ? (scene.log || []).slice(latestDeployment.index + 1).some(event => event?.actorId === a.id && ["action.prepare", "action.resolve"].includes(event.type)) || actionHistory.some(item => Number(item.turnSerial) === Number(scene.turnSerial) && (!scene.lionwing?.activeTurnInstanceId || !item.ownerTurnInstanceId || item.ownerTurnInstanceId === scene.lionwing.activeTurnInstanceId)) : false;
     const firstActionAfterDeploy = Boolean(latestDeployment && !actionsAfterDeployment);
     const modifierQuote = global.DAWN_LIONWING_ADAPTERS?.actionQuote?.(a, { scene, actionId: def.id, targetIds: request.targetIds || [], attribute: requestedAttribute, baseCost, baseResource: def.cost.resource, baseSwift, continuation, firstActionAfterDeploy, request: { breakout: Boolean(request.breakout), breacherBuckShot: request.breacherBuckShot === true, breacherBothBarrels: request.breacherBothBarrels === true } }) || { ok: true, cost: baseCost, resource: def.cost.resource, swift: baseSwift, ignoreRequirements: [], modifierIds: [] };
-    if (request.breacherBuckShot === true) {
-      if (def.id !== ids.skirmish || !a.lionwing?.automation?.["powerhouse.breacher.1"] || Number((a.knownTechniques ?? a.techniques)?.["powerhouse.breacher"] || 0) < 1) return unavailable("Картечь I недоступна для этой Стычки");
-      const areaUpgrade = request.breacherBothBarrels === true && Number((a.knownTechniques ?? a.techniques)?.["powerhouse.breacher"] || 0) >= 3 && request.areaPlan?.request?.ruleId === "powerhouse.breacher.3";
-      if ((request.targetIds || []).length !== 1 && !areaUpgrade) return unavailable("Картечь выбирает ровно одну цель");
-    }
     if (request.breacherBothBarrels === true) {
       const level = Number((a.knownTechniques ?? a.techniques)?.["powerhouse.breacher"] || 0);
       const bodyFinisher = def.id === ids.finish && requestedAttribute === "body" && level >= 3;
@@ -2109,7 +2104,9 @@
       }
       if ([ids.spell, ids.skirmish, ids.finish].includes(def.id)) {
         const initialDistances = Object.fromEntries(targets.map(target => [target.id, distance(a, target)]));
-        beginAttack(a, { ...p, name: def.name, amount: result.successes + (def.id === ids.finish ? tensionValue(scene) : 0), breacherPush: p.breacherBuckShot === true && def.id === ids.skirmish, breacherPushMultiplier: p.breacherBothBarrels === true ? 2 : 1, breacherAttackSuccess: result.successes > 0, breacherInitialDistances: initialDistances, breacherWeaken: p.breacherBothBarrels === true });
+        const breacherLevel = Number((a.knownTechniques ?? a.techniques)?.["powerhouse.breacher"] || 0);
+        const breacherPush = def.id === ids.skirmish && breacherLevel >= 1 && a.lionwing?.automation?.["powerhouse.breacher.1"] === true;
+        beginAttack(a, { ...p, name: def.name, amount: result.successes + (def.id === ids.finish ? tensionValue(scene) : 0), breacherPush, breacherPushMultiplier: p.breacherBothBarrels === true ? 2 : 1, breacherAttackSuccess: result.successes > 0, breacherInitialDistances: initialDistances, breacherWeaken: p.breacherBothBarrels === true });
       }
       else if (def.id === ids.charge || def.id === ids.breathe) {
         if (p.icicleReplacement) {

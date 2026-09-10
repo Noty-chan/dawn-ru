@@ -122,7 +122,7 @@
       label: "Картечь I: после успешной Стычки оттолкнуть близкую цель",
       sourceDigest: "9e9680211a203830a82230d86136cc85108032eaea3655fc9e991129d2826af5",
       coverage: "full",
-      rangeBonus: (_actor, context) => context?.actionId === ACTIONS.skirmish && context?.breacherBuckShot === true ? 3 : 0,
+      rangeBonus: (_actor, context) => context?.actionId === ACTIONS.skirmish ? 3 : 0,
       triggerKey: ({ actor, event }) => `${event.id}:${actor.id}:breacher-buck-shot`,
       match: (actor, event) => {
         const payload = event.payload || {};

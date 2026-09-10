@@ -42,7 +42,7 @@ assert.equal(scene.actors.find(item => item.id === "enemy").x, 5, "Buck Shot per
 scene = fixture(2);
 scene.actors.find(item => item.id === "hero").knownTechniques["powerhouse.breacher"] = 2;
 scene.actors.find(item => item.id === "hero").lionwing.automation["powerhouse.breacher.3"] = false;
-scene = run(scene, "hero", { kind: "action", actionId: ids.skirmish, targetIds: ["enemy"], attribute: "body", breacherBuckShot: true, breacherBothBarrels: true }, "both-barrels", { random: () => 0.5 });
+scene = run(scene, "hero", { kind: "action", actionId: ids.skirmish, targetIds: ["enemy"], attribute: "body", breacherBothBarrels: true }, "both-barrels", { random: () => 0.5 });
 assert.equal(scene.pendingAction.breacherPushMultiplier, 2);
 scene = resolve(scene, ["enemy"], "both-barrels");
 assert.equal(scene.actors.find(item => item.id === "enemy").x, 4, "Both Barrels doubles the existing push");
@@ -56,7 +56,7 @@ assert.equal(blocked.ok, false);
 assert.match(blocked.errors.join(" "), /Ослаблен/);
 
 scene = fixture(2);
-scene = run(scene, "hero", { kind: "action", actionId: ids.skirmish, targetIds: ["enemy"], attribute: "body", breacherBuckShot: true, breacherBothBarrels: true }, "cancel-both", { random: () => 0.5 });
+scene = run(scene, "hero", { kind: "action", actionId: ids.skirmish, targetIds: ["enemy"], attribute: "body", breacherBothBarrels: true }, "cancel-both", { random: () => 0.5 });
 scene = run(scene, "hero", { kind: "cancel-attack" }, "cancel-both:cancel");
 assert.equal(scene.pendingAction, null, "Both Barrels cancellation clears the pending attack");
 assert.equal(scene.actors.find(item => item.id === "enemy").x, 2, "Both Barrels cancellation does not push");
