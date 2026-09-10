@@ -1238,7 +1238,14 @@
         const wasCancelled = followup.status === "cancelled";
         followup.status = "completed"; followup.completedBoundary = canonicalBoundary; followup.completedEventId = rootId;
         const allCompletion = Array.isArray(followup.completionOperations) ? followup.completionOperations : [];
-        const completion = wasCancelled ? allCompletion.filter(operation => operation?.kind !== "resource" || operation.operation !== "gain") : allCompletion;
+        const completion = allCompletion.filter(operation => {
+          if (wasCancelled && operation?.kind === "resource" && operation.operation === "gain") return false;
+          if (operation?.kind === "effect-source") {
+            const target = actor(scene, operation.targetId), sources = target?.effectStates?.[operation.effect]?.sources || [];
+            return sources.some(source => (source.sourceId || source.actorId) === operation.sourceId);
+          }
+          return true;
+        });
         scheduled.push(...completion.map(operation => ({ p: { ...copy(operation), sourceActorId: operation.sourceActorId ?? followup.sourceActorId }, sourceId: operation.sourceActorId ?? followup.sourceActorId, provenance: { rootActionId: followup.causeEventId || rootId, actionId: null, actionDefinitionId: null, actionInstanceId: followup.causeEventId || rootId, causeEventId: followup.causeEventId || rootId, ownerActorId: followup.ownerActorId, ruleId: followup.ruleId, sourceDigest: followup.sourceDigest } })));
         emit("followup.complete", followup.sourceActorId || followup.ownerActorId, { followupId: followup.id, ruleId: followup.ruleId, participantIds: copy(participantIds), cancelled: wasCancelled, boundary: canonicalBoundary });
       }
