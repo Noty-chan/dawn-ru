@@ -48,6 +48,7 @@ assert.equal(quote.modifiers[0].sourceDigest, "fb44b773e2eb1b59c5691f7f5f6b9a2b6
 
 a = hero(); s = scene(a); s = prepareAndCommit(s, "hero", { kind: "action", actionId: duelId, targetIds: ["foe"] });
 const pendingId = s.lionwing.choices[0].id;
+assert.throws(() => lionwing.dispatchMany(s, [{ id: "foreign", type: "lionwing.command", actorId: "foe", payload: { kind: "choice", id: pendingId, choice: "moment-of-truth" } }]), /принадлежит другому/, "the target client cannot answer the initiator's entry window");
 const cancelled = respond(s, "cancel");
 assert.equal(cancelled.lionwing.duels?.length || 0, 0, "cancel does not enter or pay");
 assert.equal(cancelled.actors[0].focus, 8);
