@@ -110,7 +110,10 @@ function validateEvidence(evidence, known) {
     const actualDigest = `sha256:${sha256(fs.readFileSync(sourcePath))}`;
     const stale = entry.sourceDigest !== actualDigest;
     if (entry.canonicalDigest && (!known.has(entry.id) || entry.canonicalDigest !== known.get(entry.id).canonicalDigest)) fail(`automation-evidence.json: stale canonical digest for ${entry.id}`);
-    for (const test of entry.tests) if (!test.path || !fs.existsSync(path.join(root, test.path))) fail(`automation-evidence.json: missing test file ${test.path || "<empty>"} for ${entry.id}`);
+    for (const test of entry.tests) {
+      if (!test.path || !fs.existsSync(path.join(root, test.path))) fail(`automation-evidence.json: missing test file ${test.path || "<empty>"} for ${entry.id}`);
+      if (![test.case, test.command].some(value => typeof value === "string" && value.trim())) fail(`automation-evidence.json: test ${test.path} for ${entry.id} lacks case or command`);
+    }
     result.set(entry.id, { entry: clone(entry), stale });
   }
   return result;

@@ -45,6 +45,7 @@ for (const entry of evidence.entries) {
   if (entry.sourceDigest !== `sha256:${actualDigest}`) staleEvidence.push({ entry, actualDigest: `sha256:${actualDigest}` });
   for (const test of entry.tests) {
     if (!test.path || !fs.existsSync(path.join(root, test.path))) throw new Error(`automation-evidence.json: missing test file ${test.path || "<empty>"} for ${entry.id}`);
+    if (![test.case, test.command].some(value => typeof value === "string" && value.trim())) throw new Error(`automation-evidence.json: test ${test.path} for ${entry.id} lacks case or command`);
   }
   if (entry.confidence === 'certified') {
     const surfaces = entry.surfaces || {};
@@ -121,7 +122,7 @@ const lines = [
   "",
   "### Обязательная evidence-запись",
   "",
-  "Для повышения до `certified` в `automation-evidence.json` нужны: стабильный id правила, `sourceDigest`, заявленный статус, уровень доверия, проверяемые claims, точные тестовые файлы, применимые поверхности `core/ui/network/persistence`, граничные случаи и commit аудита. CI отклоняет неполную запись и пропавший тестовый файл. Изменение исходника меняет digest: генератор автоматически отзывает и явно перечисляет прежнее evidence, не принимая его за действующую сертификацию.",
+  "Для повышения до `certified` в `automation-evidence.json` нужны: стабильный id правила, `sourceDigest`, заявленный статус, уровень доверия, проверяемые claims, точные тестовые файлы с конкретным `case` или командой запуска, применимые поверхности `core/ui/network/persistence`, граничные случаи и commit аудита. CI отклоняет неполную запись и пропавший тестовый файл. Изменение исходника меняет digest: генератор автоматически отзывает и явно перечисляет прежнее evidence, не принимая его за действующую сертификацию.",
   "",
   "До независимого прохода системные оценки ниже означают зрелость инфраструктуры и объём найденных тестов, а не процент буквально верных игровых правил.",
   "",

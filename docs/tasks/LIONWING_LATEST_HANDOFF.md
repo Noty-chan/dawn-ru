@@ -1,3 +1,12 @@
+## Актуальная точка передачи — 2026-09-10, принят read-only аудит Luna helper
+
+Прочитан итог отдельной задачи `Luna helper — LionWing automation ledger`.
+Его архитектурные требования уже покрывает машинный реестр: 333 canonical
+levels считаются отдельно от registry subrules, implementation отделён от
+review и certification, пустой evidence не повышает доверие. Дополнительно
+закрыта найденная разница: каждая будущая test evidence теперь обязана содержать
+не только существующий путь к файлу, но и конкретный `case` или `command`.
+
 ## Актуальная точка передачи — 2026-09-10, lifecycle и numeric foundations
 
 В `451d8e9` интегрирован нейтральный планировщик границ Scene/Round/Turn:
