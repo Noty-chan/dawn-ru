@@ -305,7 +305,10 @@ streetScene = run(streetScene, "h", { kind: "turn-start" });
 prepared = prepare(streetScene, "h", { kind: "action", actionId: ids.skirmish, targetIds: ["e"] });
 assert.equal(prepared.events[0].payload.roll.initialCount, 7, "Street Fighter counts distinct active target Effects");
 prepared = prepare(streetScene, "h", { kind: "action", actionId: ids.skirmish, targetIds: ["e"], techniqueTags: ["weapon"] });
-assert.equal(prepared.events[0].payload.roll.initialCount, 5, "a weapon-tagged Technique blocks the conditional bonus");
+assert.equal(prepared.events[0].payload.roll.initialCount, 7, "a client supplied weapon tag cannot block the conditional bonus");
+streetScene.actors[0].knownTechniques["powerhouse.dragonslayer"] = 1;
+prepared = prepare(streetScene, "h", { kind: "action", actionId: ids.skirmish, targetIds: ["e"], techniqueIds: ["powerhouse.dragonslayer.1"] });
+assert.equal(prepared.events[0].payload.roll.initialCount, 5, "a trusted owned weapon Technique blocks the conditional bonus");
 
 const conditionalActor = actor("conditional", "hero", 1, { tier: 2, knownTechniques: { "vagabond.assassin": 2, "ruiner.flame-heart": 2 }, lionwing: { automation: { "vagabond.assassin.2": true, "ruiner.flame-heart.2": true } } });
 assert.equal(adapters.rollBonus(conditionalActor, { kind: "attack", actionId: ids.skirmish, sourceEffectIds: ["positive.исчез"] }), 2);

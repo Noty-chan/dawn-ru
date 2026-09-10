@@ -6,6 +6,9 @@
   const tensionValue = scene => Number(global.DAWN_LIONWING_COMBAT_METER?.read?.(scene)?.current ?? scene?.tension ?? 0);
 
   const RULES = [
+    { id: "powerhouse.martial-artist.1", techniqueId: "powerhouse.martial-artist", level: 1, name: "Искусство восьми молотов", kind: "passive", automation: "decision", coverage: "partial", note: "После успешной Стычки или Завершения Телом/Талантом предлагается ровно один доступный follow up; четыре варианта ограничены разом за Раунд и исключают доверенные weapon-tag Техники." },
+    { id: "powerhouse.martial-artist.2", techniqueId: "powerhouse.martial-artist", level: 2, name: "Состояние потока", kind: "passive", automation: "decision", coverage: "partial", note: "Первая Стычка Хода Быстрая; после Восьми молотов предлагается фиксированный урон [Тело/2] или [Талант/2] по атакованной цели." },
+    { id: "powerhouse.martial-artist.3", techniqueId: "powerhouse.martial-artist", level: 3, name: "Бесконечные удары", kind: "passive", automation: "partial", coverage: "partial", note: "Все атаки получают +1 Преимущество; критический бросок авторитетно открывает дополнительное срабатывание Восьми молотов." },
     { id: "powerhouse.braggart.1.foundation", techniqueId: "powerhouse.braggart", level: 1, name: "Гордыня", kind: "foundation", foundation: "clock", automation: "partial", clockId: "powerhouse.braggart.pride", size: 6, initial: 0, note: "Гордость получает сегменты от Атак низкими Атрибутами и попаданий без защитной Реакции; полные часы дают Преимущество." },
     { id: "powerhouse.braggart.2", techniqueId: "powerhouse.braggart", level: 2, name: "Докажи, чего стоишь", kind: "passive", automation: "decision", note: "При заполнении предлагается очистить часы и уменьшить их размер на 2, минимум до 2." },
     { id: "powerhouse.braggart.3", techniqueId: "powerhouse.braggart", level: 3, name: "Достойный противник", kind: "passive", automation: "decision", note: "Полученная Рана предлагает заполнить сегмент Гордости." },
@@ -58,7 +61,9 @@
     { id: "powerhouse.spellsword.3.foundation", techniqueId: "powerhouse.spellsword", level: 3, name: "Охотник на ведьм", kind: "foundation", foundation: "action-history", automation: "full", scope: "turn", actionKeys: ["spell"], note: "Ядро находит непосредственно предыдущее Заклинание и его цели; комбо проверяет Завершение Телом/Талантом по тем же целям и добавляет Дух к урону." },
     { id: "powerhouse.improvisational-fighter.1.foundation", techniqueId: "powerhouse.improvisational-fighter", level: 1, name: "Всё — инструмент", kind: "foundation", foundation: "terrain", automation: "partial", range: 5, types: ["terrain", "difficult", "custom"], note: "Поиск, дальность, владение и Здоровье местности готовы; выбор между созданием и удалением пока подтверждает игрок." },
     { id: "vagabond.cunning-fighter.2", techniqueId: "vagabond.cunning-fighter", level: 2, name: "Планы внутри планов", kind: "passive", automation: "full", note: "Снято ограничение одного «Плана и исполнения» за Ход." },
-    { id: "vagabond.skirmisher.3", techniqueId: "vagabond.skirmisher", level: 3, name: "Отскок", kind: "passive", automation: "partial", coverage: "partial", note: "Стычки получают 1 Преимущество через общий numeric composer; условный Jab после перемещения остаётся ручным." },
+    { id: "vagabond.skirmisher.1", techniqueId: "vagabond.skirmisher", level: 1, name: "Укол", kind: "passive", automation: "decision", coverage: "partial", note: "После авторитетного движения Страйдом предлагается один фиксированный Тычок по смежной цели раз за собственный Ход." },
+    { id: "vagabond.skirmisher.2", techniqueId: "vagabond.skirmisher", level: 2, name: "Смещающиеся удары", kind: "passive", automation: "partial", coverage: "partial", note: "После Стычки предлагается проверяемое прямолинейное движение до 2 клеток; выбор и маршрут проходят общей поверхностью движения." },
+    { id: "vagabond.skirmisher.3", techniqueId: "vagabond.skirmisher", level: 3, name: "Отскок", kind: "passive", automation: "decision", coverage: "partial", note: "Стычки получают 1 Преимущество; после движения от Стычки предлагается фиксированный Тычок по персонажу, не атакованному в этом Ходу." },
     { id: "bulwark.iron-bodied.2", techniqueId: "bulwark.iron-bodied", level: 2, name: "Выносливость", kind: "passive", automation: "full", note: "Броня автоматически включает [Тело / 2]." },
     { id: "bulwark.iron-bodied.3", techniqueId: "bulwark.iron-bodied", level: 3, name: "Бесшовный шаг", kind: "passive", automation: "partial", coverage: "partial", note: "После всех снижений итоговый урон ограничивается 4 + ceil(Ранг/2), если персонаж авторитетно Обездвижен; включение Обездвиженности и начало Хода остаются ручными." },
     { id: "bulwark.rising-challenger.3", techniqueId: "bulwark.rising-challenger", level: 3, name: "Драма и злость", kind: "passive", automation: "full", note: "В бросок Столкновения автоматически добавляются 3 кости." },
@@ -146,6 +151,12 @@
   // calculated from the canonical EN level payload in the provenance test;
   // this table only makes the reviewed identity available to the browser.
   const SOURCE_PROVENANCE = Object.freeze({
+    "powerhouse.martial-artist.1": ["powerhouse.martial-artist.1", "5f4610235181dbccff56d2a15b161412018f62becc35812b1e911232e4af4a36"],
+    "powerhouse.martial-artist.2": ["powerhouse.martial-artist.2", "ffab119dac241453faa82dab8e20523afa694f42b997a24d13fdf4b7f16e9e83"],
+    "powerhouse.martial-artist.3": ["powerhouse.martial-artist.3", "8428fb10aec3237aa82ef24d052a5610a5f9701fa3576d9be06b9219dc23176c"],
+    "vagabond.skirmisher.1": ["vagabond.skirmisher.1", "a14b57ddcf585e19b76a19e20b3ab1dc5190a59a5b044ed5df6d0bc2141a503e"],
+    "vagabond.skirmisher.2": ["vagabond.skirmisher.2", "ea74421d17b94486eaedb08b78d461b42ac4eaba89e27430ed74ce015285adc7"],
+    "vagabond.skirmisher.3": ["vagabond.skirmisher.3", "4933347df61d45014a553af1c97f078e20ee677081e433464ba9c96726513c61"],
     "powerhouse.braggart.2": ["powerhouse.braggart.2", "886d7077c31b4749f8cbb789b513d61ba11e78c401e49cfafd0028bd973385c4"],
     "powerhouse.braggart.3": ["powerhouse.braggart.3", "a7862dd909d76331b9483d45114caf8e24b60193b2969226dcf16b30b540d0fd"],
     "vagabond.cunning-fighter.1.foundation": ["vagabond.cunning-fighter.1", "4373bc4971b0d11b0adce5ad6d070e9012c97e4acb27f45a34b8d28b89b6b421"],
