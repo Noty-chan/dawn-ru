@@ -71,10 +71,12 @@
 
   function read(scene, id = TENSION_ID) {
     if (!scene || typeof scene !== "object") return null;
-    const snapshot = copy(scene);
-    ensureScene(snapshot);
-    const meter = snapshot?.lionwing?.meters?.[id];
-    return meter ? copy(meter) : null;
+    const stored = scene?.lionwing?.meters?.[id];
+    if (plain(stored)) return copy(definition(scene, id, {}, stored));
+    // Reading a legacy Scene must stay side-effect free and proportional to
+    // the meter itself. Cloning the entire battlefield here made every range,
+    // roll and damage quote grow with the size of the Scene.
+    return id === TENSION_ID ? copy(definition(scene, id)) : null;
   }
 
   function quote(scene, id = TENSION_ID, change = {}) {

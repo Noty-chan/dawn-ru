@@ -14,6 +14,9 @@ const command = (payload, id) => ({ id, type: "lionwing.command", actorId: "h", 
 
 assert.equal(meter.read(scene, "tension").current, 0);
 assert.equal(scene.lionwing, undefined, "read is side-effect free");
+const cyclicScene = { ...scene };
+cyclicScene.self = cyclicScene;
+assert.equal(meter.read(cyclicScene, "tension").current, 0, "read does not clone the entire battlefield");
 const normalized = engine.reload(scene);
 const initial = meter.read(normalized);
 assert.deepEqual(JSON.parse(JSON.stringify({ owner: initial.owner, source: initial.source, scope: initial.scope, lifetime: initial.lifetime, min: initial.min, max: initial.max, current: initial.current })), {
