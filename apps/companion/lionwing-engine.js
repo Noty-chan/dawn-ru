@@ -830,6 +830,63 @@
     "ruiner.bombardier.2": { shape: "square3", range: 5, minimumFocus: 2 },
     "ruiner.bombardier.3": { shape: "square5", range: 6, minimumFocus: 4 },
   });
+  const studentAreaRules = Object.freeze({
+    "ruiner.student-of-stars.2-line": { shape: "line", range: 1 },
+    "ruiner.student-of-stars.2-zone": { shape: "square2", range: 1 },
+  });
+  function studentPowerStatus(scene, actorValue, payload) {
+    if (payload?.actionId !== ids.finish) return null;
+    const quote = global.DAWN_LIONWING_ADAPTERS?.actionQuote?.(actorValue, {
+      scene, actionId: ids.finish, targetIds: payload.targetIds || [], attribute: payload.attribute || "spirit",
+      baseCost: 2, baseResource: "ap", request: {},
+    });
+    return quote?.studentPowerUnleashed === true ? quote : null;
+  }
+  function studentAreaStatus(scene, actorValue, payload) {
+    const ruleId = payload?.techniqueRuleId || payload?.studentArea?.ruleId;
+    const rule = studentAreaRules[ruleId];
+    if (!rule) return null;
+    if (Number((actorValue.knownTechniques ?? actorValue.techniques)?.["ruiner.student-of-stars"] || 0) < 2) fail("Бесформенная сила требует изученный II уровень Техники");
+    if (actorValue.lionwing?.automation?.[ruleId] !== true) fail("Автоматизация Бесформенной силы для этого уровня выключена");
+    if (!studentPowerStatus(scene, actorValue, payload)) fail("Бесформенная сила доступна только Завершению после Зарядки");
+    const requested = payload.studentArea || payload;
+    const center = payload.areaCenter || requested.center || requested.anchor || null;
+    if (!center) fail("Бесформенная сила требует выбранный центр области");
+    return { ...rule, ruleId, center, orientation: requested.orientation || "horizontal" };
+  }
+  function prepareStudentArea(scene, actorValue, payload, eventId) {
+    const status = studentAreaStatus(scene, actorValue, payload);
+    if (!status) return null;
+    const runtime = global.DAWN_LIONWING_GEOMETRY_RUNTIME;
+    if (!runtime?.areaPrepare) fail("Планировщик областей недоступен");
+    const prepared = runtime.areaPrepare(scene, {
+      id: `${eventId}:student-area`, sourceActorId: actorValue.id, center: status.center,
+      shape: status.shape, range: status.range, orientation: status.orientation,
+      ruleId: status.ruleId, label: `Ученик звёзд II: ${status.shape}`,
+    });
+    if (!prepared.ok) fail(prepared.errors?.join(" ") || "Область Бесформенной силы недоступна");
+    payload.areaPlan = prepared.plan;
+    payload.targetIds = [...prepared.preview.targetIds];
+    payload.emptyTargetCount = Number(prepared.preview.emptyTargetCount || 0);
+    payload.areaCenter = copy(prepared.preview.center);
+    payload.techniqueRuleId = status.ruleId;
+    payload.studentArea = { shape: status.shape, orientation: status.orientation, center: copy(prepared.preview.center), ruleId: status.ruleId };
+    return prepared.preview;
+  }
+  function revalidateStudentArea(scene, actorValue, payload) {
+    if (!payload?.areaPlan) return null;
+    const status = studentAreaStatus(scene, actorValue, payload);
+    if (!status || status.ruleId !== payload.areaPlan.request?.ruleId || payload.areaPlan.request?.sourceActorId !== actorValue.id) fail("План области Бесформенной силы повреждён");
+    if (payload.areaPlan.request?.shape !== status.shape || Number(payload.areaPlan.request?.range) !== Number(status.range) || (status.shape === "line" && payload.areaPlan.request?.orientation !== status.orientation)) fail("План области Бесформенной силы не соответствует уровню Техники");
+    const runtime = global.DAWN_LIONWING_GEOMETRY_RUNTIME;
+    if (!runtime?.revalidateArea) fail("Планировщик областей недоступен");
+    let checked;
+    try { checked = runtime.revalidateArea(scene, payload.areaPlan); } catch (error) { fail(error.message); }
+    payload.targetIds = [...checked.result.targetIds];
+    payload.emptyTargetCount = Number(checked.result.emptyTargetCount || 0);
+    payload.areaCenter = copy(checked.result.center);
+    return checked.result;
+  }
   function bombardierAreaStatus(scene, actorValue, payload) {
     if (payload?.actionId !== ids.finish || !payload?.techniqueRuleId) return null;
     const rule = bombardierAreaRules[payload.techniqueRuleId];
@@ -888,7 +945,11 @@
         if (!def) fail("Базовое действие не найдено");
         const status = actionStatus(scene, a, def, payload);
         if (!status.available) fail(status.reason);
-        if (def.id === ids.finish) prepareBombardierArea(scene, a, payload, eventId);
+        if (def.id === ids.finish) {
+          if (payload.studentArea && !payload.techniqueRuleId) payload.techniqueRuleId = payload.studentArea.shape === "square2" ? "ruiner.student-of-stars.2-zone" : payload.studentArea.shape === "line" ? "ruiner.student-of-stars.2-line" : null;
+          if (payload.techniqueRuleId && studentAreaRules[payload.techniqueRuleId]) prepareStudentArea(scene, a, payload, eventId);
+          else prepareBombardierArea(scene, a, payload, eventId);
+        }
         if ([ids.charge, ids.spell, ids.skirmish, ids.finish].includes(def.id) && !payload.roll){const pools=attackPools(scene,a,def,payload);payload.roll=roll(pools.base,options.random,rollMeta({rollId:`${eventId}:roll`,kind:"check",actionId:def.id,actionDefinitionId:def.id}));payload.targetRolls={};let targetRollSerial=0;for(const[id,count]of Object.entries(pools.counts))if(count>pools.base)payload.targetRolls[id]=roll(count-pools.base,options.random,rollMeta({rollId:`${eventId}:target:${targetRollSerial++}`,kind:"check",actionId:def.id,actionDefinitionId:def.id}));}
       }
       const preparedOperations=["plan","batch"].includes(payload.kind)?payload.operations:[payload];
@@ -2026,7 +2087,10 @@
         if (scene.actors.some(x => live(x) && x.id !== a.id && distance({ ...p.reappearance, space: p.reappearance.space || a.space }, x) <= 1)) fail("Появление запрещено рядом с персонажем");
         removeEffect(a, "positive.исчез",{reappear:false}); placeActor(a, p.reappearance, { reason: "reappear-action" });
       }
-      if (def.id === ids.finish && p.areaPlan) revalidateBombardierArea(scene, a, p);
+      if (def.id === ids.finish && p.areaPlan) {
+        if (p.areaPlan.request?.ruleId && studentAreaRules[p.areaPlan.request.ruleId]) revalidateStudentArea(scene, a, p);
+        else revalidateBombardierArea(scene, a, p);
+      }
       const targets = targetIds(scene,p.targetIds).map(id => requiredActor(scene, id));
       if ([ids.spell, ids.study, ids.shove, "action.атаки.дуэль"].includes(def.id) && targets.length !== 1 || def.id === ids.finish && !p.areaPlan && targets.length !== 1 || def.id === ids.skirmish && (!targets.length || targets.length > 2)) fail("Неверное число целей");
       const finishContext = { scene, kind: "attack", actionId: def.id, attribute: p.attribute || (def.id === ids.finish ? "spirit" : null), tension: tensionValue(scene), spellCircleActive: p.spellCircleActive === true || spellCircleActive(scene, a), firstSpiritFinisherThisTurn: def.id === ids.finish && (p.firstSpiritFinisherThisTurn === true || firstSpiritFinisherThisTurn(scene, a, p.actionInstanceId || provenance?.actionInstanceId || rootId)) };
@@ -2034,7 +2098,15 @@
       if ([ids.spell, ids.skirmish, ids.study, ids.shove, "action.атаки.дуэль"].includes(def.id) && targets.some(t => t.id === a.id || distance(a, t) > range) || def.id === ids.finish && !p.areaPlan && targets.some(t => t.id === a.id || distance(a, t) > range)) fail("Цель вне дальности действия");
       if (def.id === ids.study && isPlayer(targets[0])) fail("Изучение требует NPC");
       const focusSpent = integer(p.focusSpent || 0, "Фокус");
-      if (def.id === ids.finish && focusSpent > tensionValue(scene)) fail("Расход Фокуса превышает Напряжение");
+      const studentPower = def.id === ids.finish && status.actionQuote?.studentPowerUnleashed === true;
+      const focusCap = studentPower ? Number(status.actionQuote?.focusCap ?? 0) : tensionValue(scene);
+      if (def.id === ids.finish && focusSpent > focusCap) fail(`Расход Фокуса превышает допустимый предел ${focusCap}`);
+      if (studentPower) {
+        p.techniqueRuleId ||= "ruiner.student-of-stars.1";
+        p.techniqueSourceDigest ||= "64d7fc6b8ff19f2f7ab1b9b12c8021872835baf6374bb729837f7d2f2a27fa60";
+        p.studentPowerUnleashed = true;
+        p.studentFocusCap = focusCap;
+      }
       if (p.breakout) spend(a, "influence", 1);
       if (status.cost) spend(a, status.resource, status.cost);
       if (def.id === ids.finish && focusSpent) spend(a, "focus", focusSpent);
@@ -2042,10 +2114,10 @@
       if(def.id===ids.improvise&&p.removeObstacleId){const index=scene.objects.findIndex(o=>o.id===p.removeObstacleId&&o.type==="terrain"&&o.space===a.space&&(o.cells||[]).some(cell=>{const[x,y]=cell.split(',').map(Number);return distance(a,{x,y,space:a.space})===1;}));if(index<0)fail("Соседнее препятствие не найдено");scene.objects.splice(index,1);}
       if (!status.continuation && !status.swift) { a.usedActions = [...new Set([...(a.usedActions || []), def.id])]; astate(a).turnActions = [...new Set([...(astate(a).turnActions || []), def.id])]; }
       const activeTurnOwner = scene.activeActorId ? actor(scene, scene.activeActorId) : null, activeOwnerSerial = activeTurnOwner ? ownTurnSerial(activeTurnOwner) : null;
-      astate(a).history = [...(astate(a).history || []), { actionId: def.id, actionDefinitionId: def.id, actionInstanceId: provenance?.actionInstanceId || null, targetIds: targets.map(t => t.id), round: scene.round, turnSerial: scene.turnSerial, ownerTurnActorId: activeTurnOwner?.id || null, ownerTurnSerial: activeOwnerSerial, ownerTurnInstanceId: s.activeTurnInstanceId || null, ownerTurnKey: activeTurnOwner ? ownerTurnKey(s.sceneSerial, activeTurnOwner, activeOwnerSerial) : null, swift: Boolean(status.swift), ...(assassinStride ? { ruleId: "vagabond.assassin.3" } : {}) }].filter((item,index,list)=>item.ruleId||index>=list.length-200);
+      astate(a).history = [...(astate(a).history || []), { actionId: def.id, actionDefinitionId: def.id, actionInstanceId: provenance?.actionInstanceId || null, targetIds: targets.map(t => t.id), round: scene.round, turnSerial: scene.turnSerial, ownerTurnActorId: activeTurnOwner?.id || null, ownerTurnSerial: activeOwnerSerial, ownerTurnInstanceId: s.activeTurnInstanceId || null, ownerTurnKey: activeTurnOwner ? ownerTurnKey(s.sceneSerial, activeTurnOwner, activeOwnerSerial) : null, swift: Boolean(status.swift), ...(p.techniqueRuleId ? { techniqueRuleId: p.techniqueRuleId } : {}), ...(p.studentPowerUnleashed ? { studentPowerUnleashed: true, studentFocusCap: focusCap } : {}), ...(assassinStride ? { ruleId: "vagabond.assassin.3" } : {}) }].filter((item,index,list)=>item.ruleId||item.techniqueRuleId||index>=list.length-200);
       p.actionInstanceId ||= provenance?.actionInstanceId || rootId;
       p.ownerTurnInstanceId ||= s.activeTurnInstanceId || null;
-      emit("action.resolve", a.id, { actionId: def.id, name: def.name, targetIds: targets.map(t => t.id), actionInstanceId: p.actionInstanceId, ownerTurnInstanceId: p.ownerTurnInstanceId, attribute: finishContext.attribute, techniqueRuleId: p.techniqueRuleId || null, finisherMode: p.finisherMode || null });
+      emit("action.resolve", a.id, { actionId: def.id, name: def.name, targetIds: targets.map(t => t.id), actionInstanceId: p.actionInstanceId, ownerTurnInstanceId: p.ownerTurnInstanceId, attribute: finishContext.attribute, techniqueRuleId: p.techniqueRuleId || null, studentPowerRuleId: p.studentPowerUnleashed ? "ruiner.student-of-stars.1" : null, studentFocusCap: p.studentPowerUnleashed ? focusCap : null, finisherMode: p.finisherMode || null });
       if (def.id === ids.study && global.DAWN_LIONWING_INFORMATION_QUERY?.recordStudy) {
         const studyResult = global.DAWN_LIONWING_INFORMATION_QUERY.recordStudy(scene, { actorId: a.id, targetId: targets[0].id, actionInstanceId: p.actionInstanceId, actionEventId: scene.log[0]?.id, rootActionId: provenance?.rootActionId || rootId, categories: status.actionQuote?.informationCategories || null });
         if (!studyResult.ok) fail(studyResult.errors?.join(" ") || "Изучение не подтверждено квитанцией");

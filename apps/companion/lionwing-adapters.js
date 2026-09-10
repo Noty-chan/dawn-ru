@@ -57,6 +57,21 @@
       ? item.ownerTurnInstanceId === instance
       : Number(item.ownerTurnSerial ?? item.turnSerial) === serial);
   };
+  const sceneTension = scene => {
+    const meter = global.DAWN_LIONWING_COMBAT_METER?.read?.(scene);
+    const value = Number(meter?.current ?? scene?.tension ?? 0);
+    return Number.isSafeInteger(value) && value >= 0 ? value : 0;
+  };
+  // Power Unleashed is a Charge -> Finisher sequence.  The immediately
+  // preceding row is engine-owned history, so a request cannot manufacture
+  // the prerequisite with a payload flag or a copied client tension value.
+  const studentPowerUnleashed = (actor, scene, context = {}) => {
+    if (!knows(actor, "ruiner.student-of-stars", 1) || context.actionId !== ACTIONS.finish) return false;
+    const history = turnHistory(actor, scene);
+    const previous = history.at(-1);
+    return previous?.actionId === ACTIONS.charge
+      && (!context.actionInstanceId || previous.ownerTurnInstanceId === context.ownerTurnInstanceId || Number(previous.turnSerial) === Number(scene?.turnSerial));
+  };
   const utilityAction = actionId => typeof actionId === "string" && actionId.startsWith("action.утилитарные-действия.");
   const attackAction = actionId => attackIds.has(actionId);
   const balanceId = "powerhouse.monastic-sage.balance";
@@ -667,6 +682,16 @@
       },
     }),
     actionModifier({
+      id: "ruiner.student-of-stars.1", techniqueId: "ruiner.student-of-stars", level: 1,
+      sourceDigest: "64d7fc6b8ff19f2f7ab1b9b12c8021872835baf6374bb729837f7d2f2a27fa60",
+      label: "Ученик звёзд I: Высвобожденная мощь после Зарядки",
+      available: actor => knows(actor, "ruiner.student-of-stars", 1),
+      modify: (actor, context) => {
+        if (!studentPowerUnleashed(actor, context.scene, context)) return null;
+        return { cost: 1, costMode: "replace", studentPowerUnleashed: true, focusCap: sceneTension(context.scene), reason: "Высвобожденная мощь: Завершение после Зарядки стоит 1 ОД и может вложить до 3×Напряжения Фокуса." };
+      },
+    }),
+    actionModifier({
       id: "vagabond.dim-mak.2", techniqueId: "vagabond.dim-mak", level: 2,
       sourceDigest: "d63edd4d649fb29805706009934a7eb38427b2507f32b1d5632e881f7e24a5a2",
       label: "Детектив II: третье Изучение бесплатно и замедляет Помеченных",
@@ -802,6 +827,12 @@
       if (Array.isArray(patch.ignoreRequirements)) quote.ignoreRequirements.push(...patch.ignoreRequirements);
       quote.modifiers.push({ id: rule.id, techniqueId: rule.techniqueId, level: rule.level, sourceDigest: rule.sourceDigest, coverage: rule.coverage, reason: patch.reason || rule.label });
       if (patch.reason) quote.reasons.push(patch.reason);
+      if (patch.studentPowerUnleashed === true) quote.studentPowerUnleashed = true;
+      if (patch.focusCap != null) {
+        const cap = Number(patch.focusCap);
+        if (!Number.isSafeInteger(cap) || cap < 0) return { ok: false, reason: "Модификатор действия вернул недопустимый предел Фокуса." };
+        quote.focusCap = Math.max(Number(quote.focusCap ?? 0), cap * 3);
+      }
     }
     const informationPatch = global.DAWN_LIONWING_INFORMATION_QUERY?.actionQuote?.(actor, context);
     if (informationPatch?.ok === false) return informationPatch;

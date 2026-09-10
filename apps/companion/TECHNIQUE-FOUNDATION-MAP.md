@@ -858,7 +858,7 @@ SHA-256 проверенных файлов: `6049f3ff6b79b8204c45cb8b830b265369
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Power Unleashed [ Charge → Finisher ] | проверено | ручная | `resource-check`, `usage-limits`, `action-modifier`, `action-history`, `combat-meter` |
+| 1 | Power Unleashed [ Charge → Finisher ] | проверено | частичная | `resource-check`, `usage-limits`, `action-modifier`, `action-history`, `combat-meter` |
 | 2 | Formless Strength | проверено | частичная | `target-validation`, `event-participants`, `spatial-cells`, `choice-flow`, `action-modifier`, `action-history` |
 | 3 | Moment Of Truth | проверено | ручная | `resource-check`, `trigger-router`, `choice-flow`, `duel-flow`, `dice-hooks` |
 

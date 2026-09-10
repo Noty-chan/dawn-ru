@@ -2317,15 +2317,15 @@
 
 #### 1. Высвобождение силы [Зарядка → Завершение] (Power Unleashed [ Charge → Finisher ]) `ruiner.student-of-stars.1`
 
-- **Заявленный статус:** `manual` (ручная).
-- **Текущий адаптер:** нет записи в `RULES`.
+- **Заявленный статус:** `partial` (частичная).
+- **Текущий адаптер:** `ruiner.student-of-stars.1` · `action-modifier` · {"kind":"action-modifier","actionKey":"finish","sourceDigest":"64d7fc6b8ff19f2f7ab1b9b12c8021872835baf6374bb729837f7d2f2a27fa60","coverage":"partial"}; После подтверждённой Зарядки Завершение стоит 1 ОД; предел дополнительного Фокуса вычисляется Engine как 3×текущее Напряжение..
 - **Готовые foundations:** `resource-check`, `usage-limits`, `action-modifier`, `action-history`, `combat-meter`.
-- **Нужно добавить:** Зарегистрировать отдельный adapter (trigger → validation → events/resolver) и прямые тесты; общая инфраструктура сама правило не исполняет.
+- **Нужно добавить:** Для кода явный следующий шаг не выведен автоматически; нужны direct pos/neg/boundary тесты и evidence до повышения доверия.
 
 #### 2. Бесформенная сила (Formless Strength) `ruiner.student-of-stars.2`
 
 - **Заявленный статус:** `partial` (частичная).
-- **Текущий адаптер:** `ruiner.student-of-stars.2-line` · `area` · {"kind":"area","shape":"line","areaType":"attack","duration":"instant","coverage":"partial"}; Геометрия зональной Атаки поддержана, но она ещё не связана строго с «Высвобожденной мощью».<br>`ruiner.student-of-stars.2-zone` · `area` · {"kind":"area","shape":"square2","areaType":"attack","duration":"instant","coverage":"partial"}; Геометрия зональной Атаки поддержана, но она ещё не связана строго с «Высвобожденной мощью»..
+- **Текущий адаптер:** `ruiner.student-of-stars.2-line` · `area` · {"kind":"area","shape":"line","areaType":"attack","duration":"instant","sourceDigest":"6fd4f1cf8b3ee7fbe492fd7a439792e61c568bd4c28d0b6efe80071d99482d7e","coverage":"partial"}; После Высвобожденной мощи Engine перепроверяет бесконечную линию, центр в соседней клетке и цели по общей геометрии.<br>`ruiner.student-of-stars.2-zone` · `area` · {"kind":"area","shape":"square2","areaType":"attack","duration":"instant","sourceDigest":"6fd4f1cf8b3ee7fbe492fd7a439792e61c568bd4c28d0b6efe80071d99482d7e","coverage":"partial"}; После Высвобожденной мощи Engine перепроверяет зону 2×2, центр в соседней клетке и цели по общей геометрии..
 - **Готовые foundations:** `target-validation`, `event-participants`, `spatial-cells`, `choice-flow`, `action-modifier`, `action-history`.
 - **Нужно добавить:** Для кода явный следующий шаг не выведен автоматически; нужны direct pos/neg/boundary тесты и evidence до повышения доверия.
 

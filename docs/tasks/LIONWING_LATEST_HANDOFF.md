@@ -1140,3 +1140,30 @@ receipt и `combat-meter.change`. При ревью убрано полное к
 каждого чтения и добавлен проверяемый сброс после загрузки расстановки, чтобы
 проекция не расходилась с meter. Отдельные Техники ещё должны подключать свои
 семантические условия; фундамент сам по себе не повышает их coverage.
+
+## Student Of Stars I–II, 2026-09-10
+
+Новый английский канон для `ruiner.student-of-stars` подтверждён по PDF p. 98
+(payload digests уровней I–III: `64d7fc6b8ff19f2f7ab1b9b12c8021872835baf6374bb729837f7d2f2a27fa60`,
+`6fd4f1cf8b3ee7fbe492fd7a439792e61c568bd4c28d0b6efe80071d99482d7e`,
+`806d52c0296048d69a25b379d8dcdfa5690dbee0cef391ea6894485016393f6e`).
+
+Student I теперь работает через action modifier: Engine принимает только
+непосредственную запись `Charge` в текущей авторитетной истории, заменяет цену
+Finisher на 1 ОД и вычисляет лимит вложенного Фокуса как `3 ×` typed Tension.
+Student II добавляет выбираемый на столе центр в соседней клетке для ∞ линии
+или зоны 2×2; клетки и цели строятся общей geometry runtime, а при исполнении
+строго перепроверяются по версии и geometry stamp. Payload flags, клиентская
+Tension, чужие цели и устаревшие планы не являются доказательством.
+
+Оба уровня остаются `partial`: общий action/area pipeline атомарно проводит
+оплату, историю, журнал и replay, но ручной Narrator choice всё ещё нужен для
+подтверждения необязательного применения и направления линии. Student III
+остаётся честным `manual`: текущий Duel hook не публикует безопасного
+`Focus-at-entry` receipt и не имеет общего seam для атомарного расхода всего
+Focus и Advantage половиной потраченного значения; его реализация отложена до
+появления такого Duel seam.
+
+Добавлены contract checks в `apps/companion/tests/lionwing-student-of-stars.mjs`,
+пересобраны foundation map и automation registry. Интеграционный коммит будет
+Интеграционный коммит `feat(lionwing): implement student of stars I-II` находится в tip ветки `codex/luna-student-of-stars`.

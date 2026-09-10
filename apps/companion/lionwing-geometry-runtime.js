@@ -82,11 +82,13 @@
   // damage; this contract owns only the canonical center, shape, cells and
   // derived targets.  Keeping it here lets all future area techniques share
   // the same snapshot/revalidation boundary as placement and teleport.
-  const AREA_SHAPES = Object.freeze(["adjacent", "square3", "square5"]);
+  const AREA_SHAPES = Object.freeze(["adjacent", "square2", "square3", "square5", "line"]);
   const AREA_RULES = Object.freeze({
     adjacent: { shape: "adjacent", range: 4, includeAnchor: true },
+    square2: { shape: "square", width: 2, height: 2, range: 1 },
     square3: { shape: "square", width: 3, height: 3, range: 5 },
     square5: { shape: "square", width: 5, height: 5, range: 6 },
+    line: { shape: "line", range: 1, includeAnchor: true, full: true },
   });
 
   function areaSpacePoint(scene, source, raw) {
@@ -111,7 +113,7 @@
   function areaCells(scene, source, center, rule, request) {
     const query = global.DAWN_SCENE_ENGINE?.spatialShapeStatus;
     if (typeof query !== "function") fail("Общий планировщик форм области недоступен");
-    const shape = rule.shape === "adjacent" ? "adjacent" : "square";
+    const shape = rule.shape === "adjacent" ? "adjacent" : rule.shape === "line" ? "line" : "square";
     const result = query(scene, {
       space: center.space,
       anchor: { x: center.x, y: center.y },
@@ -119,6 +121,7 @@
       width: rule.width,
       height: rule.height,
       includeAnchor: rule.includeAnchor,
+      ...(rule.shape === "line" ? { full: true, orientation: request.orientation || "horizontal" } : {}),
       // Finishers affect enemies in their selected area.  The common query
       // also accounts for occupiedWidth/occupiedHeight and effect targeting.
       sourceActorId: source.id,
@@ -160,7 +163,9 @@
     const center = areaSpacePoint(scene, source, request.center || request.anchor);
     const range = Number(request.range == null ? rule.range : request.range);
     if (!Number.isSafeInteger(range) || range < 0 || source.space !== center.space || sourceDistanceToPoint(source, center) > range) fail(`Центр области находится вне дальности ${range}`, "LIONWING_GEOMETRY_RUNTIME_RANGE");
-    return { schema: SCHEMA, sourceActorId: source.id, center, shape: shapeKey, range, ruleId: request.ruleId || null, label: request.label || null };
+    const orientation = shapeKey === "line" ? String(request.orientation || "horizontal") : null;
+    if (shapeKey === "line" && !["horizontal", "vertical", "diagonal-down", "diagonal-up"].includes(orientation)) fail("Некорректное направление линии", "LIONWING_GEOMETRY_RUNTIME_INVALID");
+    return { schema: SCHEMA, sourceActorId: source.id, center, shape: shapeKey, range, orientation, ruleId: request.ruleId || null, label: request.label || null };
   }
 
   function areaPlanFor(scene, request) {

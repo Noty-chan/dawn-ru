@@ -299,7 +299,7 @@ Canonical уровней: **333** · Явно исправленных review: *
 | `ruiner.spellcrafter.1` | Spellcrafter | 1 | `decision` | `unreviewed` | — | `uncertified` |
 | `ruiner.spellcrafter.2` | Spellcrafter | 2 | `decision` | `unreviewed` | — | `uncertified` |
 | `ruiner.spellcrafter.3` | Spellcrafter | 3 | `decision` | `unreviewed` | — | `uncertified` |
-| `ruiner.student-of-stars.1` | Student Of Stars | 1 | `manual` | `unreviewed` | — | `uncertified` |
+| `ruiner.student-of-stars.1` | Student Of Stars | 1 | `partial` | `unreviewed` | — | `uncertified` |
 | `ruiner.student-of-stars.2` | Student Of Stars | 2 | `partial` | `unreviewed` | — | `uncertified` |
 | `ruiner.student-of-stars.3` | Student Of Stars | 3 | `manual` | `unreviewed` | — | `uncertified` |
 | `ruiner.mana-blades.1` | Blade Smith | 1 | `manual` | `unreviewed` | — | `uncertified` |
