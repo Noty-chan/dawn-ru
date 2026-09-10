@@ -4349,9 +4349,24 @@
       },
       "level": 1,
       "implementation": {
-        "automation": "manual",
-        "ruleIds": [],
-        "rules": [],
+        "automation": "decision",
+        "ruleIds": [
+          "powerhouse.martial-artist.1"
+        ],
+        "rules": [
+          {
+            "id": "powerhouse.martial-artist.1",
+            "techniqueId": "powerhouse.martial-artist",
+            "level": 1,
+            "name": "Искусство восьми молотов",
+            "kind": "passive",
+            "automation": "decision",
+            "coverage": "partial",
+            "note": "После успешной Стычки или Завершения Телом/Талантом предлагается ровно один доступный follow up; четыре варианта ограничены разом за Раунд и исключают доверенные weapon-tag Техники.",
+            "sourceLevelId": "powerhouse.martial-artist.1",
+            "sourceDigest": "5f4610235181dbccff56d2a15b161412018f62becc35812b1e911232e4af4a36"
+          }
+        ],
         "foundationPlan": {
           "version": 11,
           "status": "reviewed",
@@ -4450,7 +4465,9 @@
           "text": "You can't use any part of this Technique if you use Techniques with the \"weapon\" tag. After you Skirmish or Body / Talent Finisher, you can use one of the following ‘follow ups' on one of your targets. Each can be used once per Round. ‣ Quick Step: Move up to 3 spaces. Gain [Tier] Evasion. ‣ Binding Blow: Snare your target. ‣ Rising Knee: Launch your target. ‣ Iron Shoulder: Push your target 3 spaces."
         },
         "canonicalDigest": "5f4610235181dbccff56d2a15b161412018f62becc35812b1e911232e4af4a36",
-        "engineRuleDigests": []
+        "engineRuleDigests": [
+          "5f4610235181dbccff56d2a15b161412018f62becc35812b1e911232e4af4a36"
+        ]
       },
       "review": {
         "status": "unreviewed",
@@ -4484,9 +4501,24 @@
       },
       "level": 2,
       "implementation": {
-        "automation": "manual",
-        "ruleIds": [],
-        "rules": [],
+        "automation": "decision",
+        "ruleIds": [
+          "powerhouse.martial-artist.2"
+        ],
+        "rules": [
+          {
+            "id": "powerhouse.martial-artist.2",
+            "techniqueId": "powerhouse.martial-artist",
+            "level": 2,
+            "name": "Состояние потока",
+            "kind": "passive",
+            "automation": "decision",
+            "coverage": "partial",
+            "note": "Первая Стычка Хода Быстрая; после Восьми молотов предлагается фиксированный урон [Тело/2] или [Талант/2] по атакованной цели.",
+            "sourceLevelId": "powerhouse.martial-artist.2",
+            "sourceDigest": "ffab119dac241453faa82dab8e20523afa694f42b997a24d13fdf4b7f16e9e83"
+          }
+        ],
         "foundationPlan": {
           "version": 11,
           "status": "reviewed",
@@ -4561,7 +4593,9 @@
           "text": "Your first Skirmish each Turn is Swift. After you trigger an effect of \"Art Of The 8 Hammers\", you may deal [Body / 2] or [Talent / 2] damage to a character you've attacked this Turn."
         },
         "canonicalDigest": "ffab119dac241453faa82dab8e20523afa694f42b997a24d13fdf4b7f16e9e83",
-        "engineRuleDigests": []
+        "engineRuleDigests": [
+          "ffab119dac241453faa82dab8e20523afa694f42b997a24d13fdf4b7f16e9e83"
+        ]
       },
       "review": {
         "status": "unreviewed",
@@ -4595,9 +4629,24 @@
       },
       "level": 3,
       "implementation": {
-        "automation": "manual",
-        "ruleIds": [],
-        "rules": [],
+        "automation": "partial",
+        "ruleIds": [
+          "powerhouse.martial-artist.3"
+        ],
+        "rules": [
+          {
+            "id": "powerhouse.martial-artist.3",
+            "techniqueId": "powerhouse.martial-artist",
+            "level": 3,
+            "name": "Бесконечные удары",
+            "kind": "passive",
+            "automation": "partial",
+            "coverage": "partial",
+            "note": "Все атаки получают +1 Преимущество; критический бросок авторитетно открывает дополнительное срабатывание Восьми молотов.",
+            "sourceLevelId": "powerhouse.martial-artist.3",
+            "sourceDigest": "8428fb10aec3237aa82ef24d052a5610a5f9701fa3576d9be06b9219dc23176c"
+          }
+        ],
         "foundationPlan": {
           "version": 11,
           "status": "reviewed",
@@ -4648,7 +4697,9 @@
           "text": "Your attacks gain 1 Advantage. If you roll at least one Crit on a Skirmish or Finisher, \"Art Of The 8 Hammers\" triggers an additional time."
         },
         "canonicalDigest": "8428fb10aec3237aa82ef24d052a5610a5f9701fa3576d9be06b9219dc23176c",
-        "engineRuleDigests": []
+        "engineRuleDigests": [
+          "8428fb10aec3237aa82ef24d052a5610a5f9701fa3576d9be06b9219dc23176c"
+        ]
       },
       "review": {
         "status": "unreviewed",
@@ -7757,9 +7808,24 @@
       },
       "level": 1,
       "implementation": {
-        "automation": "manual",
-        "ruleIds": [],
-        "rules": [],
+        "automation": "decision",
+        "ruleIds": [
+          "vagabond.skirmisher.1"
+        ],
+        "rules": [
+          {
+            "id": "vagabond.skirmisher.1",
+            "techniqueId": "vagabond.skirmisher",
+            "level": 1,
+            "name": "Укол",
+            "kind": "passive",
+            "automation": "decision",
+            "coverage": "partial",
+            "note": "После авторитетного движения Страйдом предлагается один фиксированный Тычок по смежной цели раз за собственный Ход.",
+            "sourceLevelId": "vagabond.skirmisher.1",
+            "sourceDigest": "a14b57ddcf585e19b76a19e20b3ab1dc5190a59a5b044ed5df6d0bc2141a503e"
+          }
+        ],
         "foundationPlan": {
           "version": 11,
           "status": "reviewed",
@@ -7842,7 +7908,9 @@
           "text": "Once per Turn, if you've moved with Stride on the same Turn, you may ‘Jab' an adjacent target at no Cost. A Jab deals [Talent/2] damage to its target and counts as a Swift Skirmish; features other than this Technique cannot change a Jab's damage or targeting."
         },
         "canonicalDigest": "a14b57ddcf585e19b76a19e20b3ab1dc5190a59a5b044ed5df6d0bc2141a503e",
-        "engineRuleDigests": []
+        "engineRuleDigests": [
+          "a14b57ddcf585e19b76a19e20b3ab1dc5190a59a5b044ed5df6d0bc2141a503e"
+        ]
       },
       "review": {
         "status": "unreviewed",
@@ -7876,9 +7944,24 @@
       },
       "level": 2,
       "implementation": {
-        "automation": "manual",
-        "ruleIds": [],
-        "rules": [],
+        "automation": "partial",
+        "ruleIds": [
+          "vagabond.skirmisher.2"
+        ],
+        "rules": [
+          {
+            "id": "vagabond.skirmisher.2",
+            "techniqueId": "vagabond.skirmisher",
+            "level": 2,
+            "name": "Смещающиеся удары",
+            "kind": "passive",
+            "automation": "partial",
+            "coverage": "partial",
+            "note": "После Стычки предлагается проверяемое прямолинейное движение до 2 клеток; выбор и маршрут проходят общей поверхностью движения.",
+            "sourceLevelId": "vagabond.skirmisher.2",
+            "sourceDigest": "ea74421d17b94486eaedb08b78d461b42ac4eaba89e27430ed74ce015285adc7"
+          }
+        ],
         "foundationPlan": {
           "version": 11,
           "status": "reviewed",
@@ -7929,7 +8012,9 @@
           "text": "You may move up to two spaces in a straight line after Skirmishing."
         },
         "canonicalDigest": "ea74421d17b94486eaedb08b78d461b42ac4eaba89e27430ed74ce015285adc7",
-        "engineRuleDigests": []
+        "engineRuleDigests": [
+          "ea74421d17b94486eaedb08b78d461b42ac4eaba89e27430ed74ce015285adc7"
+        ]
       },
       "review": {
         "status": "unreviewed",
@@ -7963,7 +8048,7 @@
       },
       "level": 3,
       "implementation": {
-        "automation": "partial",
+        "automation": "decision",
         "ruleIds": [
           "vagabond.skirmisher.3"
         ],
@@ -7974,9 +8059,9 @@
             "level": 3,
             "name": "Отскок",
             "kind": "passive",
-            "automation": "partial",
+            "automation": "decision",
             "coverage": "partial",
-            "note": "Стычки получают 1 Преимущество через общий numeric composer; условный Jab после перемещения остаётся ручным.",
+            "note": "Стычки получают 1 Преимущество; после движения от Стычки предлагается фиксированный Тычок по персонажу, не атакованному в этом Ходу.",
             "sourceLevelId": "vagabond.skirmisher.3",
             "sourceDigest": "4933347df61d45014a553af1c97f078e20ee677081e433464ba9c96726513c61"
           }
