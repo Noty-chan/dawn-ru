@@ -693,6 +693,33 @@
   const movementFacts = (scene, request = {}) => global.DAWN_LIONWING_GEOMETRY?.movementFacts?.(scene, request) || { available: false, reason: "Жизненный цикл движения недоступен." };
   const movementCondition = (scene, request = {}) => global.DAWN_LIONWING_GEOMETRY?.movementCondition?.(scene, request) || { available: false, reason: "Жизненный цикл движения недоступен." };
   const movementOperation = (scene, request = {}) => global.DAWN_LIONWING_GEOMETRY?.movementOperation?.(scene, request) || { ok: false, errors: ["Жизненный цикл движения недоступен."], operation: null, plan: null };
+  const lifecycleBoundaries = Object.freeze(["sceneStart", "sceneEnd", "roundStart", "roundEnd", "ownTurnStart", "ownTurnEnd", "anyTurnStart", "anyTurnEnd"]);
+  const lifecycle = Object.freeze({
+    boundaries: lifecycleBoundaries,
+    turnKey: (actor, scene) => {
+      const serial = Number(actor?.lionwing?.ownerTurnSerial ?? actor?.lionwing?.ownTurnSerial ?? actor?.lionwing?.turnCount ?? 0);
+      return `${scene?.lionwing?.sceneSerial || 1}:${actor?.id || ""}:${serial}`;
+    },
+    count: (actor, scene, query = {}) => {
+      const rows = eventHistory(actor, scene), scope = query.scope || "ownerTurn";
+      const serial = query.ownerTurnSerial ?? actor?.lionwing?.ownerTurnSerial ?? actor?.lionwing?.ownTurnSerial ?? 0;
+      const instance = query.ownerTurnInstanceId ?? scene?.lionwing?.activeTurnInstanceId;
+      return rows
+        .filter(item => query.ruleId == null || item.ruleId === query.ruleId)
+        .filter(item => query.actionId == null || item.actionId === query.actionId)
+        .filter(item => scope === "scene"
+          ? Number(item.sceneSerial || scene?.lionwing?.sceneSerial || 1) === Number(scene?.lionwing?.sceneSerial || 1)
+          : scope === "round"
+            ? Number(item.round) === Number(scene?.round)
+            : instance
+              ? item.ownerTurnInstanceId === instance
+              : Number(item.ownerTurnSerial ?? item.turnSerial) === Number(serial)).length;
+    },
+    used: (actor, scene, query = {}) => lifecycle.count(actor, scene, query) > 0,
+    once: (actor, scene, query = {}) => lifecycle.count(actor, scene, query) === 0,
+    first: (actor, scene, query = {}) => lifecycle.count(actor, scene, query) === 0,
+    nth: (actor, scene, n, query = {}) => Number.isSafeInteger(Number(n)) && Number(n) > 0 && lifecycle.count(actor, scene, query) === Number(n) - 1,
+  });
   global.DAWN_LIONWING_ADAPTERS = Object.freeze({
     list: actor => adapters.filter(rule => rule.available(actor)).map(({ id, techniqueId, level, label, sourceDigest, coverage }) => ({
       id, techniqueId, level, label, sourceDigest, coverage,
@@ -703,6 +730,7 @@
     replacements: (actor, original) => enabled(actor).flatMap(rule => rule.replacements?.(actor, original) || []),
     afterEffect: (actor, original) => enabled(actor).flatMap(rule => rule.afterEffect?.(actor, original) || []),
     afterEvent,
+    lifecycle,
     rollBonuses: (actor, context = {}) => numericContributions(actor, "rollBonus", context),
     rollBonus: (actor, context = {}) => numericContributions(actor, "rollBonus", context).reduce((sum, item) => sum + item.amount, 0),
     statBonuses: (actor, key, context = {}) => numericContributions(actor, "statBonus", { ...context, key }),
@@ -712,8 +740,12 @@
     rangeBonuses: (actor, context = {}) => numericContributions(actor, "rangeBonus", context),
     rangeBonus: (actor, context = {}) => numericContributions(actor, "rangeBonus", context).reduce((sum, item) => sum + item.amount, 0),
     boundaryOperations: (actor, context = {}) => enabled(actor).flatMap(rule => {
-      const operations = [...(rule.boundaryOperations?.(actor, context) || []), ...(rule.inventoryOperations?.(actor, context) || [])];
-      return operations.length ? [{ id: rule.id, label: rule.label, operations }] : [];
+      const declared = rule.boundaryOperations?.(actor, context) || [];
+      const boundaryOperations = Array.isArray(declared) ? declared : (Array.isArray(declared.operations) ? declared.operations : []);
+      const inventoryOperations = rule.inventoryOperations?.(actor, context) || [];
+      const operations = [...boundaryOperations, ...inventoryOperations];
+      const choices = Array.isArray(declared) ? [] : (Array.isArray(declared.choices) ? declared.choices : []);
+      return operations.length || choices.length ? [{ id: rule.id, label: rule.label, sourceDigest: rule.sourceDigest, coverage: rule.coverage, operations, choices }] : [];
     }),
     resourceGainStatus: (actor, context = {}) => enabled(actor).reduce((status, rule) => status.allowed === false ? status : rule.resourceGainStatus?.(actor, context) || status, { allowed: true, reason: "" }),
     actionStatus: (actor, context = {}) => enabled(actor).reduce((status, rule) => status.allowed === false ? status : rule.actionStatus?.(actor, context) || status, { allowed: true, reason: "" }),
