@@ -24,6 +24,13 @@
     study: "action.утилитарные-действия.изучение",
   });
   const eventHistory = (actor, scene) => Array.isArray(actor?.lionwing?.history) ? actor.lionwing.history : [];
+  const comboSequences = Object.freeze([
+    { techniqueId: "powerhouse.technician", level: 3, sequenceKeys: ["skirmish", "finish"] },
+    { techniqueId: "powerhouse.dragonslayer", level: 3, sequenceKeys: ["breathe", "finish"] },
+    { techniqueId: "powerhouse.spellsword", level: 3, sequenceKeys: ["spell", "finish"] },
+    { techniqueId: "vagabond.assassin", level: 3, sequenceKeys: ["disappear", "step"] },
+    { techniqueId: "vagabond.speed-demon", level: 2, sequenceKeys: ["breathe", "step"] },
+  ]);
   // Information-query owns authoritative Study receipts. Keep legacy actor
   // history as a compatibility fallback for old saves that predate the
   // shared registry; never treat a client supplied flag as a Study proof.
@@ -60,16 +67,29 @@
   const comboComplete = (actor, scene, event) => {
     if (event?.type !== "action.resolve" || event.actorId !== actor.id) return false;
     const payload = event.payload || {};
-    if (payload.actionId !== ACTIONS.finish || typeof payload.actionInstanceId !== "string" || !payload.actionInstanceId) return false;
+    if (typeof payload.actionInstanceId !== "string" || !payload.actionInstanceId) return false;
     const history = turnHistory(actor, scene), current = history.at(-1), previous = history.at(-2);
-    if (!current || !previous || current.actionId !== ACTIONS.finish || previous.actionId !== ACTIONS.skirmish) return false;
+    if (!current || !previous || current.actionId !== payload.actionId) return false;
     if (current.ownerTurnInstanceId && previous.ownerTurnInstanceId && current.ownerTurnInstanceId !== previous.ownerTurnInstanceId) return false;
     // Normal engine writes carry the action instance into history.  Retain a
     // compatibility path for pre-instance saves only when the emitted event
     // has an execution receipt; no client boolean is accepted as proof.
     if (current.actionInstanceId && current.actionInstanceId !== payload.actionInstanceId) return false;
     if (!current.actionInstanceId && !event.execution?.actionInstanceId && !event.execution?.rootActionId) return false;
-    return true;
+    const idsByKey = {
+      skirmish: ACTIONS.skirmish,
+      finish: ACTIONS.finish,
+      breathe: ACTIONS.breathe,
+      step: ACTIONS.step,
+      disappear: ACTIONS.hide,
+      spell: "action.атаки.заклинание",
+    };
+    return comboSequences.some(rule => {
+      const knownLevel = Math.max(Number(actor.knownTechniques?.[rule.techniqueId] || 0), Number(actor.techniques?.[rule.techniqueId] || 0));
+      return knownLevel >= Number(rule.level || 0)
+        && idsByKey[rule.sequenceKeys[0]] === previous.actionId
+        && idsByKey[rule.sequenceKeys[1]] === current.actionId;
+    });
   };
   const stretchClockValue = clockValue;
   const actionModifier = ({ id, techniqueId, level, sourceDigest, label, coverage = "partial", available, modify }) => Object.freeze({

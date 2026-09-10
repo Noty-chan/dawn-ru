@@ -103,6 +103,9 @@ const flagged = { id: "flagged", type: "action.resolve", actorId: "tech", payloa
 assert.equal(adapterTriggers(scene(), flagged).length, 0, "combo boolean is not evidence");
 s.actors[0].lionwing.history = [hist(IDS.skirmish, "skirmish-1"), hist(IDS.finish, "other-finish")];
 assert.equal(adapterTriggers(s, event("mismatch", IDS.finish, "finish-1")).length, 0, "action instance mismatch is rejected");
+const levelOneOnly = scene(actor({ knownTechniques: { "powerhouse.technician": 1 }, lionwing: { automation: { "powerhouse.technician.1": true }, history: [hist(IDS.skirmish, "plain-skirmish"), hist(IDS.finish, "plain-finish")] } }));
+levelOneOnly.actors[0].ruleClocks = { "powerhouse.technician.stretch": { current: 1, max: 1 } };
+assert.equal(adapterTriggers(levelOneOnly, event("plain-finish", IDS.finish, "plain-finish")).length, 0, "an action sequence is not a Combo unless the actor knows its Combo technique");
 
 // The neutral engine can persist the clock and action history.  The command
 // is deliberately a no-roll record, which still receives a generated action
@@ -148,6 +151,10 @@ const prepared = SceneEngine.prepareTechniqueCombo(comboScene, sceneData, {
 assert.equal(prepared.ok, true, prepared.errors?.join(" "));
 assert.equal(prepared.rule.sourceDigest, DIGESTS["powerhouse.technician.3"]);
 assert.equal(prepared.events.find(item => item.type === "resource.spend")?.payload.amount, 1, "Finisher costs 1 AP");
+const brokeCombo = SceneEngine.prepareTechniqueCombo(scene(actor({ ap: 0, lionwing: { automation: { "powerhouse.technician.3": true }, history: [hist(IDS.skirmish, "skirmish-broke")] } })), sceneData, {
+  actorId: "tech", ruleId: "powerhouse.technician.3", targetIds: ["target"], roll: null,
+});
+assert.equal(brokeCombo.ok, false, "the canonical one AP cost is rejected during preview when unavailable");
 const cancelled = SceneEngine.cancelPendingAction({ ...comboScene, pendingAction: { id: "pending-combo", actorId: "tech", targetIds: [], allowEmptyTargets: true } }, { actorId: "tech" });
 assert.equal(cancelled.ok, true, "pending combo can be cancelled before resolution");
 assert.equal(cancelled.events.at(-1).type, "attack.clear");

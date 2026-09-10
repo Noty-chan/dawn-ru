@@ -674,7 +674,7 @@ function techniqueComboStatus(scene, data, actorId, ruleId) {
   let reason = "";
   if (!rule) reason = "Неизвестное автоматизированное комбо.";
   else if (!actor) reason = "Не выбран исполнитель комбо.";
-  else if (Number((actor.knownTechniques ?? actor.techniques)?.[rule.techniqueId] || 0) < rule.level) reason = `Для «${rule.name}» нужен ${rule.level}-й Уровень Техники.`;
+  else if (Math.max(Number(actor.knownTechniques?.[rule.techniqueId] || 0), Number(actor.techniques?.[rule.techniqueId] || 0)) < rule.level) reason = `Для «${rule.name}» нужен ${rule.level}-й Уровень Техники.`;
   else if (actor.knockedOut) reason = "Выведенный из строя персонаж не может использовать комбо.";
   else if (scene.activeActorId !== actor.id) reason = "Комбо можно использовать только в Ход этого героя.";
   else if (scene.pendingAction) reason = "Сначала завершите текущую цепочку Реакций.";
@@ -700,6 +700,7 @@ function prepareTechniqueCombo(scene, data, request = {}) {
   const status = techniqueComboStatus(scene, data, request.actorId, request.ruleId), rule = status.rule, actor = actorById(scene, request.actorId), errors = status.available ? [] : [status.reason];
   const action = rule ? actionByKey(data, rule.actionKey) : null;
   if (errors.length) return { ok: false, errors, events: [], rule };
+  if (Number(rule.apCost || 0) > Number(actor.ap || 0)) return { ok: false, errors: [`Для «${rule.name}» не хватает ОД.`], events: [], rule };
 
   const working = clone(scene), workingActor = actorById(working, actor.id), baseCost = actionCost(action);
   const requiredAction = actionByKey(data, rule.requiresKey);
