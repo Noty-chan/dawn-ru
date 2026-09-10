@@ -13,6 +13,34 @@
   };
   const actionBonus = (actionId, amount = 1) => (_actor, context) => context?.kind === "attack" && context.actionId === actionId ? amount : 0;
   const attackIds = new Set(["action.атаки.заклинание", "action.атаки.завершение", "action.атаки.стычка"]);
+  // Technique tags are rules data.  Never trust a client supplied `tags` /
+  // `techniqueTags` array: it could opt a Martial Artist out of its canonical
+  // weapon restriction (or opt another technique into one).  Callers may
+  // identify techniques, but ownership and level are checked against the
+  // loaded LionWing catalogue before tags are read.
+  const techniqueCatalogue = () => [...(global.DAWN_LIONWING_DATA?.archetypes || []), ...(global.DAWN_DATA?.archetypes || [])];
+  const trustedTechniqueTags = (actor, context = {}) => {
+    const ids = [];
+    for (const value of [context.techniqueId, context.techniqueRuleId, ...(Array.isArray(context.techniqueIds) ? context.techniqueIds : [])]) {
+      if (typeof value !== "string" || !value) continue;
+      const match = value.match(/^(.*)\.(\d+)(?:\.[a-z-]+)?$/i);
+      const techniqueId = match?.[1] || value, requestedLevel = Number(match?.[2] || 0);
+      const known = Number((actor?.knownTechniques ?? actor?.techniques)?.[techniqueId] || 0);
+      if (!known || requestedLevel > known) continue;
+      ids.push(techniqueId);
+    }
+    const tags = new Set();
+    for (const id of ids) {
+      const technique = techniqueCatalogue().flatMap(archetype => archetype.techniques || []).find(item => item.id === id);
+      for (const tag of String(technique?.tags || "").split(",")) {
+        const normalized = tag.trim().toLowerCase();
+        if (normalized) tags.add(normalized);
+        if (normalized === "оружие") tags.add("weapon");
+      }
+    }
+    return tags;
+  };
+  const usesWeaponTechnique = (actor, context = {}) => trustedTechniqueTags(actor, context).has("weapon");
   const ACTIONS = Object.freeze({
     skirmish: "action.атаки.стычка",
     finish: "action.атаки.завершение",
@@ -114,7 +142,7 @@
   });
   const sceneFocus = amount => actor => [{ kind: "resource", targetId: actor.id, resource: "focus", operation: "gain", amount: typeof amount === "function" ? amount(actor) : amount }];
   const resourceConfiguration = (actor, id, label, current, options = {}) => [{ kind: "configure-resource", targetId: actor.id, id, label, current, initial: current, scope: options.scope || "scene", lifetime: "scene", replaces: options.replaces || null, replacesAp: options.replacesAp === true, inverted: options.inverted === true, ruleId: options.ruleId || null }];
-  const eventTrigger = ({ id, label, sourceDigest, coverage = "full", triggerKey, match, operations = [], choices = [], boundaryOperations, rangeBonus }) => ({ id, techniqueId: id.replace(/\.\d+$/, ""), level: Number(id.match(/\.(\d+)$/)?.[1] || 0), label, sourceDigest, coverage, available: actor => knows(actor, id.replace(/\.\d+$/, ""), Number(id.match(/\.(\d+)$/)?.[1] || 0)), triggerKey, match, operations, choices, boundaryOperations, rangeBonus });
+  const eventTrigger = ({ id, label, sourceDigest, coverage = "full", triggerKey, match, operations = [], choices = [], choiceSet = false, boundaryOperations, rangeBonus }) => ({ id, techniqueId: id.replace(/\.\d+$/, ""), level: Number(id.match(/\.(\d+)$/)?.[1] || 0), label, sourceDigest, coverage, available: actor => knows(actor, id.replace(/\.\d+$/, ""), Number(id.match(/\.(\d+)$/)?.[1] || 0)), triggerKey, match, operations, choices, choiceSet, boundaryOperations, rangeBonus });
   const typedConfiguration = (actor, id, label, itemKind, source, options = {}) => [{
     kind: "inventory", operation: "configure", targetId: actor.id, ownerActorId: actor.id, sourceActorId: actor.id,
     id, label, inventoryKind: itemKind || "stack", current: options.current ?? (["selected-item", "recorded-value"].includes(itemKind) ? null : options.initial ?? 0), ...(["selected-item", "recorded-value"].includes(itemKind) ? {} : { initial: options.initial ?? 0 }),
@@ -131,6 +159,33 @@
   // Completed-event adapters are deliberately data-only.  The engine supplies
   // the authoritative event and applies the returned operations; an adapter
   // can only describe an eligible trigger and its optional choices.
+  const roundRuleUsed = (actor, scene, ruleId) => eventHistory(actor, scene).some(item => item.ruleId === ruleId && Number(item.round) === Number(scene?.round));
+  const ownerTurnRuleUsed = (actor, scene, ruleId) => eventHistory(actor, scene).some(item => item.ruleId === ruleId && (
+    (scene?.lionwing?.activeTurnInstanceId && item.ownerTurnInstanceId === scene.lionwing.activeTurnInstanceId)
+    || Number(item.ownerTurnSerial ?? item.turnSerial) === Number(scene?.turnSerial)
+  ));
+  const actionReceipt = (scene, actorId, actionInstanceId) => (scene?.log || []).find(item => item.type === "action.resolve" && item.actorId === actorId && item.payload?.actionInstanceId === actionInstanceId) || null;
+  const actionTargetsThisTurn = (scene, actor) => {
+    const instance = scene?.lionwing?.activeTurnInstanceId;
+    return [...new Set((scene?.log || []).filter(item => item.type === "action.resolve" && item.actorId === actor.id && attackIds.has(item.payload?.actionId) && (instance ? item.payload?.ownerTurnInstanceId === instance || item.execution?.ownerTurnInstanceId === instance : true)).flatMap(item => item.payload?.targetIds || []))];
+  };
+  const hammersChoices = (actor, event, context, triggerKey) => {
+    const instanceId = event.payload?.actionInstanceId || event.execution?.actionInstanceId || event.execution?.rootActionId;
+    const receipt = actionReceipt(context.scene, actor.id, instanceId), payload = receipt?.payload || {};
+    const targetIds = [...new Set([...actionTargetsThisTurn(context.scene, actor), event.payload?.targetId, ...(payload.targetIds || [])].filter(Boolean))];
+    const targets = targetIds.map(id => context.scene.actors?.find(item => item.id === id)).filter(target => target && target.id !== actor.id && !target.knockedOut && target.team !== actor.team);
+    const sourceDigest = "5f4610235181dbccff56d2a15b161412018f62becc35812b1e911232e4af4a36", ruleId = "powerhouse.martial-artist.1";
+    const use = (id, targetId) => ({ kind: "usage", ruleId: `${ruleId}.${id}`, scope: "round", targetIds: [targetId], actionId: payload.actionId, sourceDigest });
+    const option = (id, label, target, operations, extra = {}) => ({ id: `${id}:${target.id}`, label: `${label} (${target.name || target.id})`, operations: [use(id, target.id), ...operations], context: { targetId: target.id, targetIds: [target.id], actionInstanceId: instanceId, ...extra } });
+    const choices = [];
+    for (const target of targets) {
+      if (!roundRuleUsed(actor, context.scene, `${ruleId}.quick-step`)) choices.push(option("quick-step", "Быстрый шаг", target, [{ kind: "martial-quick-step", targetId: actor.id, maximum: 3, evasion: Number(actor.tier || 1), ruleId, sourceDigest }]));
+      if (!roundRuleUsed(actor, context.scene, `${ruleId}.binding-blow`)) choices.push(option("binding-blow", "Связывающий удар", target, [{ kind: "effect", targetId: target.id, effect: "negative.пойман", ruleId, sourceDigest }]));
+      if (!roundRuleUsed(actor, context.scene, `${ruleId}.rising-knee`)) choices.push(option("rising-knee", "Восходящее колено", target, [{ kind: "effect", targetId: target.id, effect: "negative.подброшен", ruleId, sourceDigest }]));
+      if (!roundRuleUsed(actor, context.scene, `${ruleId}.iron-shoulder`)) choices.push(option("iron-shoulder", "Железное плечо", target, [{ kind: "forced-away", targetId: target.id, sourceActorId: actor.id, maximum: 3, ruleId, sourceDigest }]));
+    }
+    return choices;
+  };
   const eventAdapters = [
     eventTrigger({
       id: "powerhouse.breacher.1",
@@ -155,6 +210,65 @@
         sourceDigest: "9e9680211a203830a82230d86136cc85108032eaea3655fc9e991129d2826af5",
       }],
       choices: () => [],
+    }),
+    eventTrigger({
+      id: "powerhouse.martial-artist.1", label: "Мастер боевых искусств I: выбрать один из Восьми молотов", sourceDigest: "5f4610235181dbccff56d2a15b161412018f62becc35812b1e911232e4af4a36", coverage: "partial",
+      triggerKey: ({ actor, event }) => `${event.execution?.rootActionId || event.id}:${actor.id}:hammers`,
+      match: (actor, event, context) => {
+        if (event.type !== "damage.apply" || event.actorId !== actor.id || event.payload?.attack !== true || event.payload?.hit === false || !context.scene || !event.execution?.rootActionId) return false;
+        const actionId = event.payload?.sourceActionId, finish = actionReceipt(context.scene, actor.id, event.payload?.actionInstanceId || event.execution?.actionInstanceId || event.execution?.rootActionId);
+        const attribute = String(finish?.payload?.attribute || "").toLowerCase();
+        if (actionId !== ACTIONS.skirmish && !(actionId === ACTIONS.finish && ["body", "talent"].includes(attribute))) return false;
+        return !usesWeaponTechnique(actor, { techniqueId: finish?.payload?.techniqueId, techniqueRuleId: finish?.payload?.techniqueRuleId, techniqueIds: finish?.payload?.techniqueIds });
+      },
+      operations: () => [],
+      choices: (actor, event, context) => hammersChoices(actor, event, context, `${event.execution?.rootActionId || event.id}:${actor.id}:hammers`),
+      choiceSet: true,
+    }),
+    eventTrigger({
+      id: "powerhouse.martial-artist.2", label: "Мастер боевых искусств II: урон Состояния потока", sourceDigest: "ffab119dac241453faa82dab8e20523afa694f42b997a24d13fdf4b7f16e9e83", coverage: "partial",
+      triggerKey: ({ actor, event }) => `${event.id}:${actor.id}:flow-state`,
+      match: (actor, event, context) => event.type === "rule.used" && event.actorId === actor.id && /^powerhouse\.martial-artist\.1\./.test(String(event.payload?.ruleId || "")) && Boolean(context.scene),
+      operations: () => [],
+      choices: (actor, event, context) => {
+        const targetIds = [...new Set([...actionTargetsThisTurn(context.scene, actor), ...(event.payload?.targetIds || []), event.payload?.targetId].filter(Boolean))];
+        const targets = targetIds.map(id => context.scene.actors?.find(item => item.id === id)).filter(target => target && !target.knockedOut && target.team !== actor.team);
+        const digest = "ffab119dac241453faa82dab8e20523afa694f42b997a24d13fdf4b7f16e9e83";
+        return targets.flatMap(target => [
+          { id: `body:${target.id}`, label: `Урон Телом (${target.name || target.id})`, operations: [{ kind: "usage", ruleId: "powerhouse.martial-artist.2.flow", scope: "rootAction", targetIds: [target.id], sourceDigest: digest }, { kind: "damage", targetId: target.id, sourceActorId: actor.id, amount: Math.ceil(Number(actor.attrs?.body || 0) / 2), fixedDamage: true, finalDamage: true, attack: true, sourceActionId: "powerhouse.martial-artist.2" }], context: { targetId: target.id, attribute: "body", eventId: event.id } },
+          { id: `talent:${target.id}`, label: `Урон Талантом (${target.name || target.id})`, operations: [{ kind: "usage", ruleId: "powerhouse.martial-artist.2.flow", scope: "rootAction", targetIds: [target.id], sourceDigest: digest }, { kind: "damage", targetId: target.id, sourceActorId: actor.id, amount: Math.ceil(Number(actor.attrs?.talent || 0) / 2), fixedDamage: true, finalDamage: true, attack: true, sourceActionId: "powerhouse.martial-artist.2" }], context: { targetId: target.id, attribute: "talent", eventId: event.id } },
+        ]);
+      },
+      choiceSet: true,
+    }),
+    eventTrigger({
+      id: "vagabond.skirmisher.1", label: "Застрельщик I: Тычок после Шага", sourceDigest: "a14b57ddcf585e19b76a19e20b3ab1dc5190a59a5b044ed5df6d0bc2141a503e", coverage: "partial",
+      triggerKey: ({ actor, event }) => `${event.execution?.rootActionId || event.id}:${actor.id}:sting`,
+      match: (actor, event, context) => event.type === "actor.move" && event.actorId === actor.id && event.payload?.sourceActionId === ACTIONS.step && Number(event.payload?.distance || 0) > 0 && !ownerTurnRuleUsed(actor, context.scene, "vagabond.skirmisher.1.sting"),
+      operations: () => [],
+      choices: (actor, event, context) => {
+        const endpoint = event.payload || actor;
+        const target = (context.scene?.actors || []).find(item => item.id !== actor.id && item.team !== actor.team && !item.knockedOut && item.space === (endpoint.space || actor.space) && Math.abs(Number(item.x) - Number(endpoint.x)) + Math.abs(Number(item.y) - Number(endpoint.y)) === 1);
+        if (!target) return [];
+        return [{ id: `jab:${target.id}`, label: `Тычок (${target.name || target.id})`, operations: [{ kind: "usage", ruleId: "vagabond.skirmisher.1.sting", scope: "ownerTurn", targetIds: [target.id], actionId: ACTIONS.skirmish, sourceDigest: "a14b57ddcf585e19b76a19e20b3ab1dc5190a59a5b044ed5df6d0bc2141a503e" }, { kind: "jab", targetId: target.id, sourceActorId: actor.id, ruleId: "vagabond.skirmisher.1", sourceDigest: "a14b57ddcf585e19b76a19e20b3ab1dc5190a59a5b044ed5df6d0bc2141a503e" }], context: { targetId: target.id, eventId: event.id } }];
+      },
+    }),
+    eventTrigger({
+      id: "vagabond.skirmisher.2", label: "Застрельщик II: сместиться по прямой после Стычки", sourceDigest: "ea74421d17b94486eaedb08b78d461b42ac4eaba89e27430ed74ce015285adc7", coverage: "partial",
+      triggerKey: ({ actor, event }) => `${event.execution?.rootActionId || event.id}:${actor.id}:shifting-blows`,
+      match: (actor, event, context) => event.type === "attack.clear" && event.actorId === actor.id && (event.execution?.actionId === ACTIONS.skirmish || event.payload?.sourceActionId === ACTIONS.skirmish) && Boolean(event.execution?.rootActionId) && Boolean(context.scene),
+      operations: () => [],
+      choices: (actor, event) => [{ id: "shift", label: "Сместиться на 0–2 клетки по прямой", operations: [{ kind: "skirmisher-shift", targetId: actor.id, maximum: 2, sourceActionId: "vagabond.skirmisher.2", ruleId: "vagabond.skirmisher.2", sourceDigest: "ea74421d17b94486eaedb08b78d461b42ac4eaba89e27430ed74ce015285adc7" }], context: { destinationRequired: true, targetId: actor.id, maximum: 2, eventId: event.id } }],
+    }),
+    eventTrigger({
+      id: "vagabond.skirmisher.3", label: "Застрельщик III: Тычок после смещения", sourceDigest: "4933347df61d45014a553af1c97f078e20ee677081e433464ba9c96726513c61", coverage: "partial",
+      triggerKey: ({ actor, event }) => `${event.execution?.rootActionId || event.id}:${actor.id}:rebound`,
+      match: (actor, event, context) => event.type === "actor.move" && event.actorId === actor.id && event.payload?.sourceActionId === "vagabond.skirmisher.2" && !usesWeaponTechnique(actor, event.payload) && Boolean(context.scene),
+      operations: () => [],
+      choices: (actor, event, context) => {
+        const targets = (context.scene?.actors || []).filter(item => item.id !== actor.id && item.team !== actor.team && !item.knockedOut && item.space === actor.space && Math.abs(Number(item.x) - Number(actor.x)) + Math.abs(Number(item.y) - Number(actor.y)) === 1 && !actionTargetsThisTurn(context.scene, actor).includes(item.id));
+        return targets.slice(0, 8).map(target => ({ id: `jab:${target.id}`, label: `Тычок (${target.name || target.id})`, operations: [{ kind: "jab", targetId: target.id, sourceActorId: actor.id, ruleId: "vagabond.skirmisher.3", sourceDigest: "4933347df61d45014a553af1c97f078e20ee677081e433464ba9c96726513c61" }], context: { targetId: target.id, eventId: event.id } }));
+      },
     }),
     eventTrigger({
       id: "powerhouse.technician.1",
@@ -607,9 +721,9 @@
     passive({ id: "bulwark.grappler.2", label: "Борец II: +1 Преимущество к Стычкам (пассивная часть)", sourceDigest: "87e908315db54db355c6fa2e4c772f05a08a0fbd835cd50e6339ac034f66ff4d", coverage: "partial", rollBonus: actionBonus("action.атаки.стычка") }),
     passive({ id: "disruptor.bloodletter.2", label: "Кровопускатель II: +1 Преимущество к Стычкам (пассивная часть)", sourceDigest: "c9c73dd242441bab4248e9a2726af8ed73cae41c41df3d09d6bb095c709f9d05", coverage: "partial", rollBonus: actionBonus("action.атаки.стычка") }),
     passive({ id: "disruptor.constrictor.3", label: "Удушитель III: +1 Преимущество к Стычкам (пассивная часть)", sourceDigest: "0103c5ab35c610ced640ee2b40b6bb0d0dc9c7552a1c961a6afb0877ba79bd80", coverage: "partial", rollBonus: actionBonus("action.атаки.стычка") }),
-    passive({ id: "disruptor.street-fighter.2", label: "Уличный боец II: Преимущество по числу Эффектов ошеломлённой цели (пассивная часть)", sourceDigest: "d2a047b0ae8184c4e9d98adedde7f5fe1a5db592efef26ab16556a230284a0a8", coverage: "partial", rollBonus: (_actor, context) => context?.kind === "attack" && context.actionId === "action.атаки.стычка" && context.targetEffectIds?.includes("negative.ошеломлен") && !(context.techniqueTags || []).includes("weapon") ? context.targetEffectIds.length : 0 }),
+    passive({ id: "disruptor.street-fighter.2", label: "Уличный боец II: Преимущество по числу Эффектов ошеломлённой цели (пассивная часть)", sourceDigest: "d2a047b0ae8184c4e9d98adedde7f5fe1a5db592efef26ab16556a230284a0a8", coverage: "partial", rollBonus: (actor, context) => context?.kind === "attack" && context.actionId === "action.атаки.стычка" && context.targetEffectIds?.includes("negative.ошеломлен") && !usesWeaponTechnique(actor, context) ? context.targetEffectIds.length : 0 }),
     passive({ id: "powerhouse.gunslinger.2", label: "Стрелок II: +1 Преимущество к Стычкам (пассивная часть)", sourceDigest: "6559e6a6b597f579ef43c6b7b20e4a6d92659d2b41de8338239a7059df0694ea", coverage: "partial", rollBonus: actionBonus("action.атаки.стычка") }),
-    passive({ id: "powerhouse.martial-artist.3", label: "Мастер боевых искусств III: +1 Преимущество к Атакам (пассивная часть)", sourceDigest: "8428fb10aec3237aa82ef24d052a5610a5f9701fa3576d9be06b9219dc23176c", coverage: "partial", rollBonus: (_actor, context) => context?.kind === "attack" && attackIds.has(context.actionId) && !(context.techniqueTags || []).includes("weapon") ? 1 : 0 }),
+    passive({ id: "powerhouse.martial-artist.3", label: "Мастер боевых искусств III: +1 Преимущество к Атакам (пассивная часть)", sourceDigest: "8428fb10aec3237aa82ef24d052a5610a5f9701fa3576d9be06b9219dc23176c", coverage: "partial", rollBonus: (actor, context) => context?.kind === "attack" && attackIds.has(context.actionId) && !usesWeaponTechnique(actor, context) ? 1 : 0 }),
     passive({ id: "powerhouse.lancer.1", label: "Копейщик I: Преимущество к Стычке по расстоянию, максимум 3 (пассивная часть)", sourceDigest: "8591643bda0a61a4165679413af42b8b60a40ca90dc47dc5a9d6ee1c32a5e701", coverage: "partial", rollBonus: (_actor, context) => context?.kind === "attack" && context.actionId === "action.атаки.стычка" ? Math.min(3, Math.max(0, Number(context.targetDistance || 0))) : 0 }),
     passive({ id: "ruiner.feral-arcana.3", label: "Дикий арканист III: +1 Преимущество к Заклинаниям (пассивная часть)", sourceDigest: "9f6cfdd94da5ecb8aae12c24b3602fc117b2890191d51dabd3eb6d89a3b83df3", coverage: "partial", rollBonus: actionBonus("action.атаки.заклинание") }),
     passive({ id: "ruiner.flame-heart.3", label: "Пламенное сердце III: +1 Преимущество к Заклинаниям (пассивная часть)", sourceDigest: "4896f18d23e7ba4de201859ecfb76d46c7049c32e532747831b973b2d75c6d29", coverage: "partial", rollBonus: actionBonus("action.атаки.заклинание") }),
@@ -944,7 +1058,7 @@
       if (!match) return [];
       const triggerKey = typeof rule.triggerKey === "function" ? rule.triggerKey({ actor, event, context }) : `${event.id}:${actor.id}`;
       const operations = rule.id === "ruiner.cryomancer.2" ? [{ kind: "clock", targetId: actor.id, id: "ruiner.cryomancer.icicle", operation: "add", delta: 1, ruleId: rule.id }] : rule.operations(actor, event, context);
-      return [{ id: rule.id, label: rule.label, sourceDigest: rule.sourceDigest, coverage: rule.coverage, triggerKey: rule.id === "ruiner.cryomancer.2" ? `${event.payload.actionInstanceId || event.execution?.actionInstanceId}:${actor.id}:cryomancer-2` : triggerKey, operations, choices: rule.choices ? rule.choices(actor, event, context) : [] }];
+      return [{ id: rule.id, label: rule.label, sourceDigest: rule.sourceDigest, coverage: rule.coverage, triggerKey: rule.id === "ruiner.cryomancer.2" ? `${event.payload.actionInstanceId || event.execution?.actionInstanceId}:${actor.id}:cryomancer-2` : triggerKey, operations, choices: rule.choices ? rule.choices(actor, event, context) : [], choiceSet: rule.choiceSet === true }];
     });
   };
   const numericContributions = (actor, method, context) => enabled(actor).flatMap(rule => {
@@ -1086,6 +1200,7 @@
     }),
     resourceGainStatus: (actor, context = {}) => enabled(actor).reduce((status, rule) => status.allowed === false ? status : rule.resourceGainStatus?.(actor, context) || status, { allowed: true, reason: "" }),
     actionStatus: (actor, context = {}) => enabled(actor).reduce((status, rule) => status.allowed === false ? status : rule.actionStatus?.(actor, context) || status, { allowed: true, reason: "" }),
+    trustedTechniqueTags,
     actionModifiers: actor => enabledActionModifiers(actor).map(rule => ({ id: rule.id, techniqueId: rule.techniqueId, level: rule.level, label: rule.label, sourceDigest: rule.sourceDigest, coverage: rule.coverage })).concat((global.DAWN_LIONWING_INFORMATION_QUERY?.adapters || []).filter(rule => Number((actor?.knownTechniques ?? actor?.techniques)?.[rule.techniqueId] || 0) >= rule.level)),
     actionQuote: (actor, context = {}) => actionQuote(actor, context),
     movementFacts,

@@ -74,10 +74,16 @@ for (const [id, automation] of [
   ["disruptor.chemist.2", "partial"],
   ["ruiner.ego-arm.2", "manual"],
   ["ruiner.sellsword-s-call.1", "partial"],
+  ["powerhouse.martial-artist.1", "decision"],
+  ["powerhouse.martial-artist.2", "decision"],
+  ["powerhouse.martial-artist.3", "partial"],
+  ["vagabond.skirmisher.1", "decision"],
+  ["vagabond.skirmisher.2", "partial"],
+  ["vagabond.skirmisher.3", "decision"],
 ]) {
   assert.equal(coverage.find(entry => entry.id === id)?.automation, automation, `${id} remains honestly downgraded until its missing canonical branch is implemented and evidenced`);
 }
-assert.equal(coverage.filter(entry => entry.automation !== "manual").length, 122, "only levels with a registered runtime rule may claim any automation");
+assert.equal(coverage.filter(entry => entry.automation !== "manual").length, 126, "only levels with a registered runtime rule may claim any automation");
 for (const [id, digest, automation] of [
   ["powerhouse.breacher.1", "9e9680211a203830a82230d86136cc85108032eaea3655fc9e991129d2826af5", "full"],
   ["powerhouse.breacher.2", "d632e668fdf4e39e44c32cc7c36973f9272fcb04d36a611ebfe7c55be96c565c", "full"],

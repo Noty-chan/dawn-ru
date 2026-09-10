@@ -661,7 +661,7 @@
     const continuation = def.id === ids.step && Number(a.stepRemaining || 0) > 0 && !breakout;
     if (continuation) return { available: true, reason: "", cost: 0, resource: "ap", continuation: true };
     const requestedAttribute=request.attribute||(def.id===ids.finish?"spirit":null);
-    const adapterStatus=global.DAWN_LIONWING_ADAPTERS?.actionStatus?.(a,{scene,actionId:def.id,attribute:requestedAttribute,techniqueTags:(request.techniqueTags||[]).map(tag=>String(tag).toLowerCase())})||{allowed:true};
+    const adapterStatus=global.DAWN_LIONWING_ADAPTERS?.actionStatus?.(a,{scene,actionId:def.id,attribute:requestedAttribute,techniqueId:request.techniqueId || null,techniqueRuleId:request.techniqueRuleId || null,techniqueIds:Array.isArray(request.techniqueIds) ? request.techniqueIds : [],techniqueTags:(request.techniqueTags||[]).map(tag=>String(tag).toLowerCase())})||{allowed:true};
     if(adapterStatus.allowed===false)return unavailable(adapterStatus.reason||"Действие запрещено Техникой");
     const baseCost = breakout ? 0 : allowance?.cost??(def.id === "action.атаки.дуэль" ? Math.max(1, 4 - tensionValue(scene)) : def.id===ids.improvise&&request.removeObstacleId?1:def.cost.amount);
     const actionHistory = Array.isArray(a.lionwing?.history) ? a.lionwing.history : [];
@@ -669,7 +669,7 @@
     const latestDeployment = deploymentRows.length ? deploymentRows[deploymentRows.length - 1] : null;
     const actionsAfterDeployment = latestDeployment ? (scene.log || []).slice(latestDeployment.index + 1).some(event => event?.actorId === a.id && ["action.prepare", "action.resolve"].includes(event.type)) || actionHistory.some(item => Number(item.turnSerial) === Number(scene.turnSerial) && (!scene.lionwing?.activeTurnInstanceId || !item.ownerTurnInstanceId || item.ownerTurnInstanceId === scene.lionwing.activeTurnInstanceId)) : false;
     const firstActionAfterDeploy = Boolean(latestDeployment && !actionsAfterDeployment);
-    const modifierQuote = global.DAWN_LIONWING_ADAPTERS?.actionQuote?.(a, { scene, actionId: def.id, targetIds: request.targetIds || [], attribute: requestedAttribute, baseCost, baseResource: def.cost.resource, baseSwift, continuation, firstActionAfterDeploy, request: { breakout: Boolean(request.breakout), breacherBuckShot: request.breacherBuckShot === true, breacherBothBarrels: request.breacherBothBarrels === true } }) || { ok: true, cost: baseCost, resource: def.cost.resource, swift: baseSwift, ignoreRequirements: [], modifierIds: [] };
+    const modifierQuote = global.DAWN_LIONWING_ADAPTERS?.actionQuote?.(a, { scene, actionId: def.id, targetIds: request.targetIds || [], attribute: requestedAttribute, techniqueId: request.techniqueId || null, techniqueRuleId: request.techniqueRuleId || null, techniqueIds: Array.isArray(request.techniqueIds) ? request.techniqueIds : [], techniqueTags: (request.techniqueTags || []).map(tag => String(tag).toLowerCase()), baseCost, baseResource: def.cost.resource, baseSwift, continuation, firstActionAfterDeploy, request: { breakout: Boolean(request.breakout), breacherBothBarrels: request.breacherBothBarrels === true } }) || { ok: true, cost: baseCost, resource: def.cost.resource, swift: baseSwift, ignoreRequirements: [], modifiers: [], modifierIds: [] };
     if (request.breacherBothBarrels === true) {
       const level = Number((a.knownTechniques ?? a.techniques)?.["powerhouse.breacher"] || 0);
       const bodyFinisher = def.id === ids.finish && requestedAttribute === "body" && level >= 3;
@@ -814,7 +814,7 @@
     const base=baseDice+Number(actionModifierQuote.attackBonus||0);
     if(!attacks.has(def.id)||!targets.length)return{base,counts:{}};
     const taunts=activeEffectSources(a,"negative.спровоцирован",scene).map(x=>x.actorId),fears=activeEffectSources(a,"negative.испуган",scene).map(x=>x.actorId);
-    const sourceEffectIds=activeState(scene,a.id).effects.map(status=>status.effect),techniqueTags=(p.techniqueTags||[]).map(tag=>String(tag).toLowerCase());
+    const sourceEffectIds=activeState(scene,a.id).effects.map(status=>status.effect),techniqueTags=[...(global.DAWN_LIONWING_ADAPTERS?.trustedTechniqueTags?.(a, p) || [])];
     // A caller may decline the chain explicitly, but cannot inflate its
     // distance: every positive value comes from the completed Jump journal.
     const jumpDistance = Number(p.jumpDistance) === 0 ? null : latestJumpDistance(scene, a);
@@ -822,7 +822,7 @@
     const differentEnemiesWithinFive = p.differentEnemiesWithinFive ?? (p.rapidFire === true ? new Set(scene.actors.filter(target => live(target) && target.team !== a.team && target.space === a.space && distance(a, target) <= 5).map(target => target.compoundId || target.id)).size : null);
     const targetContext = {
       scene, kind: "attack", actionId: def.id, targetIds: targets, sourceEffectIds,
-      techniqueTags, attribute: attackAttribute, tension: tensionValue(scene),
+      techniqueTags, techniqueId: p.techniqueId || null, techniqueIds: Array.isArray(p.techniqueIds) ? p.techniqueIds : [], attribute: attackAttribute, tension: tensionValue(scene),
       techniqueRuleId: p.techniqueRuleId || null, finisherMode: p.finisherMode || null,
       focusSpent: Number(p.focusSpent || 0), emptyTargetCount: p.emptyTargetCount,
       areaPlan: p.areaPlan ? copy(p.areaPlan) : null,
@@ -1166,7 +1166,7 @@
       else if (type === "counter.threshold") saveFact("counter.threshold", actorId, targets, { counterId: payload.counterId || payload.id, kind: payload.kind || payload.type, before: payload.before, value: payload.value, threshold: payload.threshold });
       else if (type === "aura.enter" || type === "aura.exit") saveFact(type, actorId, [actorId], { auraId:payload.auraId, effectId:payload.effectId, ruleId:payload.ruleId, ownerActorId:payload.ownerActorId, sourceEntityId:payload.sourceEntityId, movementTargetId:payload.movementTargetId||null, segmentIndex:payload.segmentIndex??null });
       else if (type === "attack.clear" && payload.cancelled) saveFact("cancel", actorId, targets, { reason: payload.reason || "cancelled" });
-      if (scheduleAfterEvent && ["clash.success", "combat-meter.change", "damage.apply", "actor.knockout", "effect.apply", "actor.enter", "action.resolve", "marker.remove", "reaction.respond", "resource.gain", "movement.prepare", "movement.start", "movement.segment", "movement.enter", "movement.leave", "movement.cross", "movement.end", "movement.stop"].includes(type)) scheduleAfterEvent(row);
+      if (scheduleAfterEvent && ["clash.success", "combat-meter.change", "damage.apply", "actor.knockout", "effect.apply", "actor.enter", "actor.move", "action.resolve", "attack.clear", "marker.remove", "reaction.respond", "resource.gain", "rule.used", "movement.prepare", "movement.start", "movement.segment", "movement.enter", "movement.leave", "movement.cross", "movement.end", "movement.stop"].includes(type)) scheduleAfterEvent(row);
       return row;
     };
     const mutateCombatMeter = (change = {}, sourceId = null, receiptId = `${rootId}:meter`) => {
@@ -1244,13 +1244,17 @@
         if (!candidate || candidate.knockedOut && eventRow.type !== "actor.knockout") continue;
         const used = (s.afterEventReceipts || []).some(receipt => receipt.ruleId === "powerhouse.berserker.3" && receipt.ownerActorId === candidate.id && receipt.turnKey === ownerTurnKeyValue);
         const triggers = global.DAWN_LIONWING_ADAPTERS?.afterEvent?.(candidate, eventRow, { scene, ownerTurnKey: ownerTurnKeyValue, ownerTurnSerial: activeOwner ? ownTurnSerial(activeOwner) : null, ownerTurnInstanceId: s.activeTurnInstanceId || null, used }) || [];
-        for (const trigger of triggers) {
+        const extraHammers = triggers.filter(trigger => trigger.id === "powerhouse.martial-artist.1" && Number((candidate.knownTechniques ?? candidate.techniques)?.["powerhouse.martial-artist"] || 0) >= 3 && candidate.lionwing?.automation?.["powerhouse.martial-artist.3"] === true && Number(eventPayload.criticals || 0) > 0).map(trigger => ({ ...trigger, triggerKey: `${trigger.triggerKey}:unlimited-blows` }));
+        for (const trigger of [...triggers, ...extraHammers]) {
           if (!trigger.triggerKey || (s.afterEventReceipts || []).some(receipt => receipt.key === trigger.triggerKey)) continue;
           s.afterEventReceipts.push({ schema: 1, key: trigger.triggerKey, ruleId: trigger.id, ownerActorId: candidate.id, eventId: eventRow.id, turnKey: ownerTurnKeyValue, sourceDigest: trigger.sourceDigest || null, coverage: trigger.coverage || "full" });
           s.afterEventReceipts = s.afterEventReceipts.slice(-256);
           emit("rule.activated", candidate.id, { ruleId: trigger.id, sourceDigest: trigger.sourceDigest, triggerKey: trigger.triggerKey, causeEventId: eventRow.id, targetId: eventPayload.targetId || candidate.id, automatic: true, coverage: trigger.coverage });
           scheduled.push(...(trigger.operations || []).map(operation => ({ p: { ...copy(operation), sourceActorId: operation.sourceActorId ?? candidate.id, sourceDigest: operation.sourceDigest ?? trigger.sourceDigest ?? null }, sourceId: operation.sourceActorId ?? candidate.id, provenance: { rootActionId: eventRow.execution?.rootActionId || rootId, actionId: eventRow.execution?.actionId || null, actionDefinitionId: eventRow.execution?.actionDefinitionId || eventRow.execution?.actionId || null, actionInstanceId: eventRow.execution?.actionInstanceId || rootId, causeEventId: eventRow.id, ownerActorId: candidate.id, ruleId: trigger.id, sourceDigest: trigger.sourceDigest || null, coverage: trigger.coverage || "full" } })));
-          for (const option of trigger.choices || []) scheduled.push({ p: { kind: "technique-choice", ruleId: trigger.id, triggerKey: trigger.triggerKey, title: trigger.label, options: ["skip", option.id], optionLabels: { skip: "Не использовать", [option.id]: option.label }, choices: { [option.id]: copy(option.operations || []) }, context: { ...(option.context || {}), causeEventId: eventRow.id, ownerActorId: candidate.id, sourceDigest: trigger.sourceDigest || null, coverage: trigger.coverage || "full" } }, sourceId: candidate.id, provenance: { rootActionId: eventRow.execution?.rootActionId || rootId, actionId: eventRow.execution?.actionId || null, actionDefinitionId: eventRow.execution?.actionDefinitionId || eventRow.execution?.actionId || null, actionInstanceId: eventRow.execution?.actionInstanceId || rootId, causeEventId: eventRow.id, ownerActorId: candidate.id, ruleId: trigger.id, sourceDigest: trigger.sourceDigest || null, coverage: trigger.coverage || "full" } });
+          if (trigger.choiceSet && trigger.choices?.length) {
+            const options = trigger.choices.filter(option => option?.id && Array.isArray(option.operations));
+            scheduled.push({ p: { kind: "technique-choice", ruleId: trigger.id, triggerKey: trigger.triggerKey, title: trigger.label, options: ["skip", ...options.map(option => option.id)], optionLabels: { skip: "Не использовать", ...Object.fromEntries(options.map(option => [option.id, option.label])) }, choices: Object.fromEntries(options.map(option => [option.id, copy(option.operations)])), context: { ...(options[0]?.context || {}), choiceSet: true, causeEventId: eventRow.id, ownerActorId: candidate.id, sourceDigest: trigger.sourceDigest || null, coverage: trigger.coverage || "full" } }, sourceId: candidate.id, provenance: { rootActionId: eventRow.execution?.rootActionId || rootId, actionId: eventRow.execution?.actionId || null, actionDefinitionId: eventRow.execution?.actionDefinitionId || eventRow.execution?.actionId || null, actionInstanceId: eventRow.execution?.actionInstanceId || rootId, causeEventId: eventRow.id, ownerActorId: candidate.id, ruleId: trigger.id, sourceDigest: trigger.sourceDigest || null, coverage: trigger.coverage || "full" } });
+          } else for (const option of trigger.choices || []) scheduled.push({ p: { kind: "technique-choice", ruleId: trigger.id, triggerKey: trigger.triggerKey, title: trigger.label, options: ["skip", option.id], optionLabels: { skip: "Не использовать", [option.id]: option.label }, choices: { [option.id]: copy(option.operations || []) }, context: { ...(option.context || {}), causeEventId: eventRow.id, ownerActorId: candidate.id, sourceDigest: trigger.sourceDigest || null, coverage: trigger.coverage || "full" } }, sourceId: candidate.id, provenance: { rootActionId: eventRow.execution?.rootActionId || rootId, actionId: eventRow.execution?.actionId || null, actionDefinitionId: eventRow.execution?.actionDefinitionId || eventRow.execution?.actionId || null, actionInstanceId: eventRow.execution?.actionInstanceId || rootId, causeEventId: eventRow.id, ownerActorId: candidate.id, ruleId: trigger.id, sourceDigest: trigger.sourceDigest || null, coverage: trigger.coverage || "full" } });
         }
       }
     };
@@ -1567,7 +1571,7 @@
         if (attack && !p.finalDamage) amount = Math.max(0, amount + (effectActive(scene,source,"positive.усилен") ? Math.ceil(source.tier / 2) : 0) - (effectActive(scene,source,"negative.ослаблен") ? Math.ceil(source.tier / 2) : 0));
         amount = Math.max(0, amount - integer(p.reduction || 0, "снижение урона"));
       }
-      if (attack && !p.finalDamage && source) {
+      if (attack && !p.finalDamage && source && p.fixedDamage !== true) {
         const damageQuote = global.DAWN_LIONWING_ADAPTERS?.damageQuote?.(source, { scene, kind: "attack", actionId: p.sourceActionId || null, techniqueRuleId: p.techniqueRuleId || null, targetId: a.id, targetIds: [a.id], baseValue: amount, fixedDamage: p.fixedDamage === true, jab: p.jab === true, hammersFollowUpTriggered: p.hammersFollowUpTriggered === true, followUpAttribute: p.followUpAttribute || null, tier: Number(source.tier || 1), roundUp: true });
         if (damageQuote?.ok === false) fail(damageQuote.reason || "Числовые модификаторы урона конфликтуют");
         if (damageQuote?.ok && Number.isFinite(Number(damageQuote.value))) amount = Math.max(0, Number(damageQuote.value));
@@ -2062,7 +2066,7 @@
         const target = requiredActor(scene, id);
         if (effectActive(scene,target,"positive.исчез") || effectActive(scene,a,"positive.изгнан") !== effectActive(scene,target,"positive.изгнан")) fail("Цель недоступна из-за Эффекта");
       }
-      scene.pendingAction = { id: rootId, actionInstanceId:p.actionInstanceId || provenance?.actionInstanceId||rootId, lionwing: true, actorId: a.id, name: p.name || "Атака", targetIds: targets, damage: integer(p.amount, "урон"), repeat: integer(p.repeat ?? 1, "повторы", 30), effects: copy(p.effects || []), finalDamage: Boolean(p.finalDamage), ignoreArmor:p.ignoreArmor===true, ignoreEvasion:p.ignoreEvasion===true, irreducible:p.irreducible===true, responses: Object.fromEntries(targets.map(id => [id, { choice: "pending" }])), sourceActionId: p.actionId || "manual.attack", ...(p.breacherPush ? { breacherPush: true, breacherPushMultiplier: Number(p.breacherPushMultiplier || 1), breacherAttackSuccess: p.breacherAttackSuccess === true, breacherInitialDistances: copy(p.breacherInitialDistances || {}) } : {}), ...(p.breacherWeaken ? { breacherWeaken: true } : {}), ...(p.areaPlan ? { areaPlan: copy(p.areaPlan), areaCells: copy(p.areaPlan.result?.cells || []), areaCenter: copy(p.areaPlan.result?.center), emptyTargetCount: Number(p.emptyTargetCount || 0) } : {}), ...(p.__actionPlan ? { actionPlan: copy(p.__actionPlan), actionPlanId: p.__actionPlan.id } : {}), ...(p.__execution ? { execution: copy(p.__execution) } : {}) };
+      scene.pendingAction = { id: rootId, actionInstanceId:p.actionInstanceId || provenance?.actionInstanceId||rootId, lionwing: true, actorId: a.id, name: p.name || "Атака", targetIds: targets, damage: integer(p.amount, "урон"), repeat: integer(p.repeat ?? 1, "повторы", 30), criticals: Number(p.criticals || 0), effects: copy(p.effects || []), finalDamage: Boolean(p.finalDamage), ignoreArmor:p.ignoreArmor===true, ignoreEvasion:p.ignoreEvasion===true, irreducible:p.irreducible===true, responses: Object.fromEntries(targets.map(id => [id, { choice: "pending" }])), sourceActionId: p.actionId || "manual.attack", techniqueRuleId: p.techniqueRuleId || null, techniqueId: p.techniqueId || null, techniqueIds: Array.isArray(p.techniqueIds) ? copy(p.techniqueIds) : null, ...(p.breacherPush ? { breacherPush: true, breacherPushMultiplier: Number(p.breacherPushMultiplier || 1), breacherAttackSuccess: p.breacherAttackSuccess === true, breacherInitialDistances: copy(p.breacherInitialDistances || {}) } : {}), ...(p.breacherWeaken ? { breacherWeaken: true } : {}), ...(p.areaPlan ? { areaPlan: copy(p.areaPlan), areaCells: copy(p.areaPlan.result?.cells || []), areaCenter: copy(p.areaPlan.result?.center), emptyTargetCount: Number(p.emptyTargetCount || 0) } : {}), ...(p.__actionPlan ? { actionPlan: copy(p.__actionPlan), actionPlanId: p.__actionPlan.id } : {}), ...(p.__execution ? { execution: copy(p.__execution) } : {}) };
       if(p.targetDamage){if(typeof p.targetDamage!=="object"||Array.isArray(p.targetDamage))fail("Некорректный урон по целям");for(const[id,amount]of Object.entries(p.targetDamage)){if(!targets.includes(id))fail("Урон указан для посторонней цели");integer(amount,"урон цели");}scene.pendingAction.targetDamage=copy(p.targetDamage);}
       if (!scene.pendingAction.repeat) fail("Нужно хотя бы одно нанесение урона");
       emit("attack.pending", a.id, scene.pendingAction);
@@ -2159,7 +2163,7 @@
       astate(a).history = [...(astate(a).history || []), { actionId: def.id, actionDefinitionId: def.id, actionInstanceId: provenance?.actionInstanceId || null, targetIds: targets.map(t => t.id), round: scene.round, turnSerial: scene.turnSerial, ownerTurnActorId: activeTurnOwner?.id || null, ownerTurnSerial: activeOwnerSerial, ownerTurnInstanceId: s.activeTurnInstanceId || null, ownerTurnKey: activeTurnOwner ? ownerTurnKey(s.sceneSerial, activeTurnOwner, activeOwnerSerial) : null, swift: Boolean(status.swift), ...(p.techniqueRuleId ? { techniqueRuleId: p.techniqueRuleId } : {}), ...(p.studentPowerUnleashed ? { studentPowerUnleashed: true, studentFocusCap: focusCap } : {}), ...(assassinStride ? { ruleId: "vagabond.assassin.3" } : {}) }].filter((item,index,list)=>item.ruleId||item.techniqueRuleId||index>=list.length-200);
       p.actionInstanceId ||= provenance?.actionInstanceId || rootId;
       p.ownerTurnInstanceId ||= s.activeTurnInstanceId || null;
-      emit("action.resolve", a.id, { actionId: def.id, name: def.name, targetIds: targets.map(t => t.id), actionInstanceId: p.actionInstanceId, ownerTurnInstanceId: p.ownerTurnInstanceId, attribute: finishContext.attribute, techniqueRuleId: p.techniqueRuleId || null, studentPowerRuleId: p.studentPowerUnleashed ? "ruiner.student-of-stars.1" : null, studentFocusCap: p.studentPowerUnleashed ? focusCap : null, finisherMode: p.finisherMode || null });
+      emit("action.resolve", a.id, { actionId: def.id, name: def.name, targetIds: targets.map(t => t.id), actionInstanceId: p.actionInstanceId, ownerTurnInstanceId: p.ownerTurnInstanceId, attribute: finishContext.attribute, techniqueRuleId: p.techniqueRuleId || null, techniqueId: p.techniqueId || null, techniqueIds: Array.isArray(p.techniqueIds) ? p.techniqueIds : null, studentPowerRuleId: p.studentPowerUnleashed ? "ruiner.student-of-stars.1" : null, studentFocusCap: p.studentPowerUnleashed ? focusCap : null, finisherMode: p.finisherMode || null });
       if (def.id === ids.study && global.DAWN_LIONWING_INFORMATION_QUERY?.recordStudy) {
         const studyResult = global.DAWN_LIONWING_INFORMATION_QUERY.recordStudy(scene, { actorId: a.id, targetId: targets[0].id, actionInstanceId: p.actionInstanceId, actionEventId: scene.log[0]?.id, rootActionId: provenance?.rootActionId || rootId, categories: status.actionQuote?.informationCategories || null });
         if (!studyResult.ok) fail(studyResult.errors?.join(" ") || "Изучение не подтверждено квитанцией");
@@ -2176,7 +2180,7 @@
         const initialDistances = Object.fromEntries(targets.map(target => [target.id, distance(a, target)]));
         const breacherLevel = Number((a.knownTechniques ?? a.techniques)?.["powerhouse.breacher"] || 0);
         const breacherPush = def.id === ids.skirmish && breacherLevel >= 1 && a.lionwing?.automation?.["powerhouse.breacher.1"] === true;
-        beginAttack(a, { ...p, name: def.name, amount: result.successes + (def.id === ids.finish ? tensionValue(scene) : 0), breacherPush, breacherPushMultiplier: p.breacherBothBarrels === true ? 2 : 1, breacherAttackSuccess: result.successes > 0, breacherInitialDistances: initialDistances, breacherWeaken: p.breacherBothBarrels === true });
+        beginAttack(a, { ...p, name: def.name, amount: result.successes + (def.id === ids.finish ? tensionValue(scene) : 0), breacherPush, breacherPushMultiplier: p.breacherBothBarrels === true ? 2 : 1, breacherAttackSuccess: result.successes > 0, breacherInitialDistances: initialDistances, breacherWeaken: p.breacherBothBarrels === true, criticals: result.crits, actionInstanceId: p.actionInstanceId, sourceActionId: def.id });
       }
       else if (def.id === ids.charge || def.id === ids.breathe) {
         if (p.icicleReplacement) {
@@ -2509,6 +2513,46 @@
           if (distance(target, toward) === 1) choice(requiredActor(scene, p.sourceActorId || sourceId, false), "technique-trigger", "Сирена II: выбрать последствие сближения", ["skip", "daze"], { ruleId: "disruptor.siren.2", optionLabels: { skip: "Не использовать", daze: "Ошеломить и получить 1 Фокус" }, choices: { daze: [{ kind: "effect", targetId: target.id, sourceActorId: p.sourceActorId || sourceId, effect: "negative.ошеломлен" }, { kind: "resource", targetId: p.sourceActorId || sourceId, resource: "focus", operation: "gain", amount: 1 }] }, targetId: target.id, causeEventId: rootId });
           break;
         }
+        case "forced-away": {
+          const source = requiredActor(scene, p.sourceActorId || sourceId, false), target = requiredActor(scene, p.targetId, false), maximum = integer(p.maximum ?? 3, "принудительное перемещение");
+          if (source.id === target.id || source.space !== target.space) fail("Отталкивание требует отдельную цель в том же пространстве");
+          let destination = { space: target.space, x: Number(target.x), y: Number(target.y) };
+          for (let step = 0; step < maximum; step++) {
+            const dx = Math.sign(Number(destination.x) - Number(source.x)), dy = Math.sign(Number(destination.y) - Number(source.y));
+            if (!dx && !dy) break;
+            if (Math.abs(Number(destination.x) - Number(source.x)) >= Math.abs(Number(destination.y) - Number(source.y))) destination.x += dx || 0;
+            else destination.y += dy || 0;
+          }
+          move(target, { destination, maximum, forced: true, sourceActionId: p.ruleId || "forced-away" });
+          break;
+        }
+        case "martial-quick-step": {
+          const owner = requiredActor(scene, p.targetId || sourceId, false), maximum = integer(p.maximum ?? 3, "Быстрый шаг"), evasion = integer(p.evasion ?? owner.tier ?? 1, "Уклонение");
+          if (!global.DAWN_LIONWING_ADAPTERS?.list?.(owner)?.some(rule => rule.id === "powerhouse.martial-artist.1" && owner.lionwing?.automation?.[rule.id] === true)) fail("Быстрый шаг Восьми молотов недоступен");
+          if (!p.destination) { choice(owner, "placement", "Выберите клетку для Быстрого шага", ["place"], { martialQuickStep: true, targetId: owner.id, maximum, evasion, ruleId: p.ruleId, sourceDigest: p.sourceDigest, causeEventId: rootId }); break; }
+          if (p.destination.space && p.destination.space !== owner.space) fail("Быстрый шаг не меняет пространство");
+          move(owner, { destination: { ...p.destination, space: owner.space }, maximum, sourceActionId: p.ruleId || "powerhouse.martial-artist.1", movement: "Быстрый шаг" });
+          queue.unshift({ p: { kind: "modifier", targetId: owner.id, stat: "evasion", amount: evasion, duration: "endTurn", ruleId: p.ruleId, sourceDigest: p.sourceDigest }, sourceId: owner.id, provenance: { ...provenance, ownerActorId: owner.id, ruleId: p.ruleId, sourceDigest: p.sourceDigest } });
+          break;
+        }
+        case "skirmisher-shift": {
+          const owner = requiredActor(scene, p.targetId || sourceId, false), maximum = integer(p.maximum ?? 2, "Смещающиеся удары");
+          if (Number((owner.knownTechniques ?? owner.techniques)?.["vagabond.skirmisher"] || 0) < 2 || owner.lionwing?.automation?.["vagabond.skirmisher.2"] !== true) fail("Смещение Застрельщика недоступно");
+          if (!p.destination) { choice(owner, "placement", "Выберите клетку для Смещающихся ударов", ["place"], { skirmisherShift: true, targetId: owner.id, maximum, ruleId: "vagabond.skirmisher.2", sourceDigest: p.sourceDigest, causeEventId: rootId }); break; }
+          if (p.destination.space && p.destination.space !== owner.space) fail("Смещение не меняет пространство");
+          if (Math.abs(Number(p.destination.x) - Number(owner.x)) !== 0 && Math.abs(Number(p.destination.y) - Number(owner.y)) !== 0) fail("Смещение должно идти по прямой");
+          move(owner, { destination: { ...p.destination, space: owner.space }, maximum, straight: true, ignoreOpponents: true, sourceActionId: "vagabond.skirmisher.2", movement: "Смещающиеся удары" });
+          break;
+        }
+        case "jab": {
+          const owner = requiredActor(scene, p.sourceActorId || sourceId, false), target = requiredActor(scene, p.targetId, false), ruleId = p.ruleId === "vagabond.skirmisher.3" ? "vagabond.skirmisher.3" : "vagabond.skirmisher.1", sourceDigest = ruleId === "vagabond.skirmisher.3" ? "4933347df61d45014a553af1c97f078e20ee677081e433464ba9c96726513c61" : "a14b57ddcf585e19b76a19e20b3ab1dc5190a59a5b044ed5df6d0bc2141a503e";
+          if (owner.team === target.team || owner.space !== target.space || distance(owner, target) !== 1) fail("Тычок требует вражескую смежную цель");
+          if (Number((owner.knownTechniques ?? owner.techniques)?.["vagabond.skirmisher"] || 0) < 1 || owner.lionwing?.automation?.[ruleId] !== true) fail("Тычок Застрельщика недоступен");
+          const amount = Math.ceil(Number(owner.attrs?.talent || 0) / 2);
+          applyDamage({ targetId: target.id, sourceActorId: owner.id, amount, attack: true, fixedDamage: true, finalDamage: true, ignoreEvasion: false, sourceActionId: `${ruleId}.jab`, techniqueRuleId: ruleId, actionInstanceId: provenance?.actionInstanceId || rootId });
+          emit("technique.resolve", owner.id, { ruleId, name: "Jab", fixedDamage: amount, fixedTargetId: target.id, affectedActorIds: [target.id], participantIds: [owner.id, target.id] });
+          break;
+        }
         case "chemist-health-check": {
           const target = requiredActor(scene, p.targetId, false), source = requiredActor(scene, p.sourceActorId || sourceId, false), health = Number(target.hp || 0), threshold = Number(source.attrs?.mind || 0);
           emit("rule.health-check", source.id, { targetId: target.id, health, threshold, ruleId: p.ruleId, private: true });
@@ -2753,6 +2797,19 @@
             queue.unshift({p:{kind:"wound",targetId:duel.loserId,sourceActorId:sourceId},sourceId},{p:{kind:"duel-return",duelId:duel.id},sourceId:duel.actorId});
           }
           else if (pending.kind === "placement") {
+            if (pending.context.martialQuickStep) {
+              const owner = requiredActor(scene, pending.context.targetId || sourceId, false), destination = p.destination && { ...p.destination, space: p.destination.space || owner.space };
+              if (!destination || destination.space !== owner.space || distance(owner, destination) < 1 || distance(owner, destination) > Number(pending.context.maximum || 3)) fail("Клетка Быстрого шага не соответствует дальности");
+              move(owner, { destination, maximum: Number(pending.context.maximum || 3), sourceActionId: pending.context.ruleId || "powerhouse.martial-artist.1", movement: "Быстрый шаг" });
+              queue.unshift({ p: { kind: "modifier", targetId: owner.id, stat: "evasion", amount: Number(pending.context.evasion || owner.tier || 1), duration: "endTurn", ruleId: pending.context.ruleId, sourceDigest: pending.context.sourceDigest }, sourceId: owner.id, provenance: { ...provenance, ownerActorId: owner.id, ruleId: pending.context.ruleId, sourceDigest: pending.context.sourceDigest } });
+              emit("rule.respond", sourceId, { ...p, title: pending.title }); break;
+            }
+            if (pending.context.skirmisherShift) {
+              const owner = requiredActor(scene, pending.context.targetId || sourceId, false), destination = p.destination && { ...p.destination, space: p.destination.space || owner.space };
+              if (!destination || destination.space !== owner.space || (Number(destination.x) !== Number(owner.x) && Number(destination.y) !== Number(owner.y)) || distance(owner, destination) > Number(pending.context.maximum || 2)) fail("Клетка Смещающихся ударов должна быть прямолинейной и находиться в пределах 2 клеток");
+              move(owner, { destination, maximum: Number(pending.context.maximum || 2), straight: true, ignoreOpponents: true, sourceActionId: "vagabond.skirmisher.2", movement: "Смещающиеся удары" });
+              emit("rule.respond", sourceId, { ...p, title: pending.title }); break;
+            }
             if(pending.context.edge){
               const target=requiredActor(scene,pending.context.targetId,false),board=scene.spaces.find(item=>item.id===pending.context.returnSpaceId),d=p.destination;
               if(!board||!d||![0,board.width-1].includes(d.x)&&![0,board.height-1].includes(d.y))fail("Выберите клетку на краю исходного поля");
@@ -2819,7 +2876,7 @@
           for (let i = 0; i < pending.repeat; i++) for (const targetId of pending.targetIds) {
             if(effectActive(scene,actor(scene,targetId),"positive.исчез"))continue;
             const response = pending.responses[targetId] || {};
-            operations.push({ kind: "damage", sourceActorId: pending.actorId, targetId, amount: pending.targetDamage?.[targetId]??pending.damage, attack: true, sourceActionId: pending.sourceActionId, reduction: response.reduction || 0, temporaryArmor: response.temporaryArmor || 0, effects: pending.effects, finalDamage: pending.finalDamage, ignoreArmor:pending.ignoreArmor, ignoreEvasion:pending.ignoreEvasion, irreducible:pending.irreducible, preventForcedMovement:response.preventForcedMovement, ...(pending.breacherPush ? { breacherPush: true, breacherPushMultiplier: pending.breacherPushMultiplier, breacherAttackSuccess: pending.breacherAttackSuccess, breacherInitialDistance: pending.breacherInitialDistances?.[targetId] } : {}), ...(pending.actionPlanId ? { actionPlanId: pending.actionPlanId } : {}) });
+            operations.push({ kind: "damage", sourceActorId: pending.actorId, targetId, amount: pending.targetDamage?.[targetId]??pending.damage, attack: true, sourceActionId: pending.sourceActionId, actionInstanceId: pending.actionInstanceId, techniqueRuleId: pending.techniqueRuleId, techniqueId: pending.techniqueId, techniqueIds: pending.techniqueIds, criticals: pending.criticals, reduction: response.reduction || 0, temporaryArmor: response.temporaryArmor || 0, effects: pending.effects, finalDamage: pending.finalDamage, ignoreArmor:pending.ignoreArmor, ignoreEvasion:pending.ignoreEvasion, irreducible:pending.irreducible, preventForcedMovement:response.preventForcedMovement, ...(pending.breacherPush ? { breacherPush: true, breacherPushMultiplier: pending.breacherPushMultiplier, breacherAttackSuccess: pending.breacherAttackSuccess, breacherInitialDistance: pending.breacherInitialDistances?.[targetId] } : {}), ...(pending.actionPlanId ? { actionPlanId: pending.actionPlanId } : {}) });
           }
           if (pending.breacherWeaken) operations.push({ kind: "effect", targetId: pending.actorId, sourceActorId: pending.actorId, effect: "negative.ослаблен", ruleId: "powerhouse.breacher.2", sourceActionId: pending.sourceActionId, duration: "default" });
           for(const tail of s.afterAttack||[]){
@@ -3284,7 +3341,7 @@
     lifetimeBoundary: foundations.lifetimeBoundary,
     normalizeLifetime: foundations.normalizeLifetime,
     isLifetimeExpired: foundations.lifetimeExpired,
-    operations: ["automation", "plan", "batch", "pause-chain", "resume-chain", "amend-attack", "recover-track", "record-action", "action", "attack", "information-study", "information-reveal", "information-cancel", "information-handout", "damage", "breacher-push", "spend-health", "lose-health", "heal", "wound", "stress", "knockout", "resource", "inventory", "intermission", "correct", "effect", "effect-source", "banish", "vanish", "compound", "aura", "aura-create", "aura-update", "aura-suppress", "aura-restore", "aura-remove", "placement", "teleport", "displacement", "move", "forced-towards-group", "forced-towards-group-step", "forced-towards-group-after-route", "geometry-move", "geometry-segment", "modifier", "allow-action", "grant-turn", "usage", "punish", "invisible", "search", "configure-resource", "dice-create", "dice-apply", "dice-reload", "dice-opposed", "dice-resolve-tie", "counter", "clock", "prompt", "choice", "roll", "reaction", "resolve-attack", "cancel-attack", "turn-start", "turn-end", "round-end", "scene-reset", "chapter-start", "tension", "combat-meter", "note", "marker-remove"]
+    operations: ["automation", "plan", "batch", "pause-chain", "resume-chain", "amend-attack", "recover-track", "record-action", "action", "attack", "information-study", "information-reveal", "information-cancel", "information-handout", "damage", "breacher-push", "spend-health", "lose-health", "heal", "wound", "stress", "knockout", "resource", "inventory", "intermission", "correct", "effect", "effect-source", "banish", "vanish", "compound", "aura", "aura-create", "aura-update", "aura-suppress", "aura-restore", "aura-remove", "placement", "teleport", "displacement", "move", "forced-towards-group", "forced-towards-group-step", "forced-towards-group-after-route", "forced-towards", "forced-away", "martial-quick-step", "jab", "skirmisher-shift", "geometry-move", "geometry-segment", "modifier", "allow-action", "grant-turn", "usage", "punish", "invisible", "search", "configure-resource", "dice-create", "dice-apply", "dice-reload", "dice-opposed", "dice-resolve-tie", "counter", "clock", "prompt", "technique-choice", "choice", "roll", "reaction", "resolve-attack", "cancel-attack", "turn-start", "turn-end", "round-end", "scene-reset", "chapter-start", "tension", "combat-meter", "note", "marker-remove"]
   };
   global.DAWN_LIONWING_ENGINE = api;
   const routed = global.DAWN_SCENE_ENGINE;
