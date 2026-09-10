@@ -500,6 +500,19 @@
       statBonus: (actor, key) => key === "armor" ? Math.ceil(Number(actor.attrs?.body || 0) / 2) : 0,
     }),
     passive({
+      id: "bulwark.iron-bodied.3",
+      label: "Железное тело III: предел итогового урона 4 + [Ранг/2] в Обездвиженности",
+      sourceDigest: "7726f5c94cfdfba228b739db1cad6221687af83bf183a7c16bed34afd5a6526f",
+      coverage: "partial",
+      numeric: (actor, context) => {
+        if (context?.key !== "finalDamage" || context.kind !== "damage" || context.targetId !== actor.id) return [];
+        const immobilized = actor.effects?.includes("negative.обездвижен") || actor.effectStates?.["negative.обездвижен"]?.present === true;
+        if (!immobilized) return [];
+        const tier = Number(actor.tier || 0);
+        return Number.isFinite(tier) && tier >= 0 ? { operation: "max", amount: 4 + Math.ceil(tier / 2), reason: "Обездвиженное Железное тело ограничивает итоговый урон." } : [];
+      },
+    }),
+    passive({
       id: "powerhouse.monastic-sage.1",
       label: "Монах-воин I: +2 Брони, пока Усилен; +2 Уклонения в конце Хода, пока Ускорен",
       sourceDigest: "f1ff824c2299d7184c07c4bf6a212d3a2f8c40a914d18948ed0c1987059480cc",
@@ -522,6 +535,21 @@
       sourceDigest: "975bd5e7a5998ef8e1cc117ce188735f040ecf96be68d9a857248fd6dfb4147a",
       coverage: "partial",
       statBonus: (actor, key) => key === "maxHp" ? Number(actor.attrs?.body || 0) : 0,
+    }),
+    passive({
+      id: "vagabond.aerial-master.3",
+      label: "Воздушный мастер III: в Полёте Атака может использовать Скорость",
+      sourceDigest: "af9100fcba37294038c9e66fb6fd2aed9fb592bd0468468ebcce546b087bf3ac",
+      coverage: "partial",
+      numeric: (actor, context) => {
+        if (context?.key !== "attackPool" || context.kind !== "attack" || context.useSpeedAttribute !== true || !attackIds.has(context.actionId)) return [];
+        const inFlight = actor.effects?.includes("positive.полёт") || actor.lionwing?.stance === "flight";
+        if (!inFlight) return [];
+        const speedValue = Number(context.speedValue ?? actor.speed);
+        return Number.isFinite(speedValue) && speedValue >= 0
+          ? { operation: "replace", amount: speedValue, reason: "Атака в Полёте использует Скорость по выбору игрока." }
+          : [];
+      },
     }),
     passive({
       id: "bulwark.rising-challenger.3",

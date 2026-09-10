@@ -28,6 +28,7 @@ const passiveRules = [
   "bulwark.stalwart-sentry.2",
   "altruist.empath.3",
   "bulwark.iron-bodied.2",
+  "bulwark.iron-bodied.3",
   "bulwark.iron-bodied.1",
   "bulwark.giant-frame.2",
   "bulwark.rising-challenger.3",
@@ -41,6 +42,7 @@ const passiveRules = [
   "powerhouse.gunslinger.2",
   "powerhouse.martial-artist.3",
   "vagabond.skirmisher.3",
+  "vagabond.aerial-master.3",
   "vagabond.knife-juggler.2",
   "ruiner.flame-heart.3",
   "ruiner.sellsword-s-call.1",
@@ -341,6 +343,40 @@ unarmored = run(unarmored, "e", { kind: "attack", targetIds: ["h"], amount: 5 })
 unarmored = run(unarmored, "h", { kind: "reaction", choice: "take" });
 unarmored = run(unarmored, "e", { kind: "resolve-attack" });
 assert.equal(unarmored.actors[0].hp, 11, "known but disabled Iron Bodied provides no Armor");
+
+// Iron Bodied III is a final-damage cap. The adapter derives Immobilized from
+// the actor state, so a forged context flag cannot activate it.
+let stainless = fixture({ tier: 3, knownTechniques: { "bulwark.iron-bodied": 3 }, effects: ["negative.обездвижен"] });
+stainless = enable(stainless, "bulwark.iron-bodied.3");
+let quote = adapters.damageQuote(stainless.actors[0], { scene: stainless, key: "finalDamage", kind: "damage", targetId: "h", baseValue: 20 });
+assert.equal(quote.value, 6, "Iron Bodied III caps final damage at 4 + ceil(Tier/2)");
+quote = adapters.damageQuote({ ...stainless.actors[0], effects: [] }, { scene: stainless, key: "finalDamage", kind: "damage", targetId: "h", immobilized: true, baseValue: 20 });
+assert.equal(quote.value, 20, "a forged Immobilized context cannot activate Iron Bodied III");
+quote = adapters.damageQuote({ ...stainless.actors[0], tier: 2 }, { scene: stainless, key: "finalDamage", kind: "damage", targetId: "h", baseValue: 20 });
+assert.equal(quote.value, 5, "Iron Bodied III rounds an even Tier cap correctly");
+quote = adapters.damageQuote({ ...stainless.actors[0], tier: -1 }, { scene: stainless, key: "finalDamage", kind: "damage", targetId: "h", baseValue: 20 });
+assert.equal(quote.value, 20, "negative Tier context cannot create a damage cap");
+let capped = fixture({ tier: 3, knownTechniques: { "bulwark.iron-bodied": 3 }, effects: ["negative.обездвижен"] });
+capped = enable(capped, "bulwark.iron-bodied.3");
+capped = run(capped, "e", { kind: "attack", targetIds: ["h"], amount: 20 });
+capped = run(capped, "h", { kind: "reaction", choice: "take" });
+capped = run(capped, "e", { kind: "resolve-attack" });
+assert.equal(capped.actors[0].hp, 10, "Iron Bodied III caps an actual post-reduction damage instance");
+
+// Aerial Master III contributes a replacement operation only for the explicit
+// Speed choice while the actor is authoritatively in Flight Stance.
+let aerial = fixture({ speed: 2, knownTechniques: { "vagabond.aerial-master": 3 }, effects: ["positive.полёт"] });
+aerial = enable(aerial, "vagabond.aerial-master.3");
+quote = adapters.attackQuote(aerial.actors[0], { scene: aerial, kind: "attack", actionId: ids.skirmish, useSpeedAttribute: true, speedValue: 4, baseValue: 7 });
+assert.equal(quote.value, 4, "Aerial Master III replaces the attack pool with effective Speed");
+quote = adapters.attackQuote(aerial.actors[0], { scene: aerial, kind: "attack", actionId: ids.skirmish, baseValue: 7 });
+assert.equal(quote.value, 7, "Aerial Master III waits for the explicit Speed choice");
+quote = adapters.attackQuote(aerial.actors[0], { scene: aerial, kind: "attack", actionId: ids.charge, useSpeedAttribute: true, speedValue: 4, baseValue: 7 });
+assert.equal(quote.value, 7, "Aerial Master III applies only to an Attack action");
+quote = adapters.attackQuote(aerial.actors[0], { scene: aerial, kind: "attack", actionId: ids.skirmish, useSpeedAttribute: true, speedValue: -1, baseValue: 7 });
+assert.equal(quote.value, 7, "negative Speed context cannot replace an attack pool");
+quote = adapters.attackQuote({ ...aerial.actors[0], effects: [] }, { scene: aerial, kind: "attack", actionId: ids.skirmish, useSpeedAttribute: true, speedValue: 4, flightStance: true, baseValue: 7 });
+assert.equal(quote.value, 7, "a forged Flight context cannot activate Aerial Master III");
 
 // Rising Challenger changes both sides of the actual Clash contract.  A JSON
 // reload retains the enabled rule, and replaying its receipt cannot reroll or
