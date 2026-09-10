@@ -22,6 +22,31 @@
     interact: "action.утилитарные-действия.взаимодействие",
     study: "action.утилитарные-действия.изучение",
   });
+  const OPPORTUNIST_DIGESTS = Object.freeze({
+    "vagabond.opportunist.1": "f0492855d27579faf8b5030f09909996a4248a7d2367d8b8805f3942ce0bd4e2",
+    "vagabond.opportunist.2": "4428e0016f97c612a78e62f5229be16a4b71ec6043a44d1599195d77e81ae62f",
+    "vagabond.opportunist.3": "4d949a7772b7991cf858b6076c5df703fbb138721a7b62cb591511d732692b37",
+  });
+  const opportunistDistance = (left, right) => left?.space === right?.space
+    ? Math.abs(Number(left.x) - Number(right.x)) + Math.abs(Number(left.y) - Number(right.y))
+    : Infinity;
+  const opportunistEventStatus = (actor, event, scene, ruleId) => {
+    const payload = event?.payload || {}, source = scene?.actors?.find(item => item.id === event?.actorId), targetId = event?.type === "effect.apply" ? payload.targetId : Array.isArray(payload.targetIds) && payload.targetIds.length === 1 ? payload.targetIds[0] : null;
+    const target = targetId && scene?.actors?.find(item => item.id === targetId), talent = Number(actor?.attrs?.talent ?? actor?.talent ?? 0);
+    if (!actor || !source || source.id === actor.id || source.team !== actor.team || source.knockedOut || !target || target.id === actor.id || target.knockedOut || !Number.isSafeInteger(talent) || talent < 0 || opportunistDistance(actor, target) > talent) return { available: false, source, target, targetId };
+    if (ruleId === "vagabond.opportunist.1") {
+      if (event.type !== "action.resolve" || !event.execution || typeof (event.execution.actionInstanceId || event.execution.rootActionId) !== "string" || !attackIds.has(payload.actionId) || typeof payload.actionInstanceId !== "string" || payload.actionInstanceId.length < 1 || !Array.isArray(payload.targetIds) || payload.targetIds.length !== 1) return { available: false, source, target, targetId };
+    } else if (ruleId === "vagabond.opportunist.3") {
+      if (event.type !== "effect.apply" || !event.execution || typeof (event.execution.actionInstanceId || event.execution.rootActionId) !== "string" || typeof payload.effect !== "string" || target.team === actor.team) return { available: false, source, target, targetId };
+    } else return { available: false, source, target, targetId };
+    return { available: true, source, target, targetId, talent };
+  };
+  const opportunistChoice = (actor, event, context, ruleId) => {
+    const status = opportunistEventStatus(actor, event, context?.scene, ruleId);
+    if (!status.available) return [];
+    const triggerKey = `${context?.scene?.lionwing?.sceneSerial || 1}:${context?.scene?.round || 0}:${actor.id}:${ruleId}`;
+    return [{ id: "skirmish", label: `Бесплатная Быстрая Стычка против ${status.target.name}`, operations: [{ kind: "opportunist-skirmish-open", sourceActorId: actor.id, targetId: status.target.id, ruleId, triggerKey, causeEventId: event.id, sourceDigest: OPPORTUNIST_DIGESTS[ruleId] }], context: { targetId: status.target.id, sourceActorId: actor.id, causeEventId: event.id, triggerKey, ruleId } }];
+  };
   const eventHistory = (actor, scene) => Array.isArray(actor?.lionwing?.history) ? actor.lionwing.history : [];
   // Information-query owns authoritative Study receipts. Keep legacy actor
   // history as a compatibility fallback for old saves that predate the
@@ -65,6 +90,45 @@
   // the authoritative event and applies the returned operations; an adapter
   // can only describe an eligible trigger and its optional choices.
   const eventAdapters = [
+    eventTrigger({
+      id: "vagabond.opportunist.1",
+      label: "Оппортунист I: после союзной Атаки — бесплатная Быстрая Стычка",
+      sourceDigest: OPPORTUNIST_DIGESTS["vagabond.opportunist.1"],
+      coverage: "partial",
+      triggerKey: ({ actor, context }) => `${context?.scene?.lionwing?.sceneSerial || 1}:${context?.scene?.round || 0}:${actor.id}:vagabond.opportunist.1`,
+      match: (actor, event, context) => opportunistEventStatus(actor, event, context?.scene, "vagabond.opportunist.1").available,
+      operations: () => [],
+      choices: (actor, event, context) => opportunistChoice(actor, event, context, "vagabond.opportunist.1"),
+    }),
+    eventTrigger({
+      id: "vagabond.opportunist.2",
+      label: "Оппортунист II: потратить 1 Фокус и Пометить цель союзной Атаки",
+      sourceDigest: OPPORTUNIST_DIGESTS["vagabond.opportunist.2"],
+      coverage: "partial",
+      triggerKey: ({ actor, event }) => `${event.id}:${actor.id}:vagabond.opportunist.2`,
+      match: (actor, event, context) => {
+        const payload = event?.payload || {}, source = context?.scene?.actors?.find(item => item.id === event?.actorId), targetId = Array.isArray(payload.targetIds) && payload.targetIds.length === 1 ? payload.targetIds[0] : payload.targetId, target = context?.scene?.actors?.find(item => item.id === targetId);
+        const payment = global.DAWN_SCENE_ENGINE?.resourceStatus?.(context?.scene, actor.id, { focus: 1 });
+        return event.type === "action.resolve" && event.execution && typeof (event.execution.actionInstanceId || event.execution.rootActionId) === "string" && source && source.id !== actor.id && source.team === actor.team && !source.knockedOut && target && target.id !== actor.id && !target.knockedOut && payment?.available !== false && opportunistDistance(actor, target) <= Number(actor.attrs?.talent ?? actor.talent ?? 0) && payload.actionId && attackIds.has(payload.actionId) && Array.isArray(payload.targetIds) && payload.targetIds.length === 1 && typeof payload.actionInstanceId === "string";
+      },
+      operations: () => [],
+      choices: (actor, event, context) => {
+        const payload = event?.payload || {}, source = context?.scene?.actors?.find(item => item.id === event?.actorId), targetId = Array.isArray(payload.targetIds) && payload.targetIds.length === 1 ? payload.targetIds[0] : payload.targetId, target = context?.scene?.actors?.find(item => item.id === targetId);
+        const payment = global.DAWN_SCENE_ENGINE?.resourceStatus?.(context?.scene, actor.id, { focus: 1 });
+        if (event.type !== "action.resolve" || !event.execution || typeof (event.execution.actionInstanceId || event.execution.rootActionId) !== "string" || !source || source.id === actor.id || source.team !== actor.team || source.knockedOut || !target || target.id === actor.id || target.knockedOut || payment?.available === false || !attackIds.has(payload.actionId) || !Array.isArray(payload.targetIds) || payload.targetIds.length !== 1 || typeof payload.actionInstanceId !== "string" || opportunistDistance(actor, target) > Number(actor.attrs?.talent ?? actor.talent ?? 0)) return [];
+        return [{ id: "mark", label: `Потратить 1 Фокус и наложить Помечен на ${target.name}`, operations: [{ kind: "opportunist-mark", targetId: target.id, sourceActorId: actor.id, ruleId: "vagabond.opportunist.2", sourceDigest: OPPORTUNIST_DIGESTS["vagabond.opportunist.2"], causeEventId: event.id, triggerKey: `${event.id}:${actor.id}:vagabond.opportunist.2`, actionInstanceId: payload.actionInstanceId }], context: { targetId: target.id, sourceActorId: actor.id, causeEventId: event.id, triggerKey: `${event.id}:${actor.id}:vagabond.opportunist.2`, actionInstanceId: payload.actionInstanceId } }];
+      },
+    }),
+    eventTrigger({
+      id: "vagabond.opportunist.3",
+      label: "Оппортунист III: после союзного Эффекта — отдельная бесплатная Быстрая Стычка",
+      sourceDigest: OPPORTUNIST_DIGESTS["vagabond.opportunist.3"],
+      coverage: "partial",
+      triggerKey: ({ actor, context }) => `${context?.scene?.lionwing?.sceneSerial || 1}:${context?.scene?.round || 0}:${actor.id}:vagabond.opportunist.3`,
+      match: (actor, event, context) => opportunistEventStatus(actor, event, context?.scene, "vagabond.opportunist.3").available,
+      operations: () => [],
+      choices: (actor, event, context) => opportunistChoice(actor, event, context, "vagabond.opportunist.3"),
+    }),
     eventTrigger({
       id: "vagabond.dim-mak.1",
       label: "Детектив I: удалить Слабую точку и выполнить фиксированный Джеб",
@@ -468,6 +532,22 @@
   // history, and Scene state.  A modifier is enabled only when its narrator
   // opt-in flag is present, just like the numeric adapters above.
   const actionModifiers = [
+    actionModifier({
+      id: "vagabond.opportunist.1", techniqueId: "vagabond.opportunist", level: 1,
+      sourceDigest: OPPORTUNIST_DIGESTS["vagabond.opportunist.1"], coverage: "partial",
+      label: "Оппортунист I: Стычка после союзной Атаки бесплатна и Быстрая",
+      available: actor => knows(actor, "vagabond.opportunist", 1),
+      modify: (_actor, context) => context.actionId === ACTIONS.skirmish && context.request?.techniqueRuleId === "vagabond.opportunist.1" && context.request?.reaction === true
+        ? { cost: 0, costMode: "replace", swift: true, reason: "Стычка Оппортуниста I бесплатна и Быстрая." } : null,
+    }),
+    actionModifier({
+      id: "vagabond.opportunist.3", techniqueId: "vagabond.opportunist", level: 3,
+      sourceDigest: OPPORTUNIST_DIGESTS["vagabond.opportunist.3"], coverage: "partial",
+      label: "Оппортунист III: Комбо-подброс бесплатен и Быстр",
+      available: actor => knows(actor, "vagabond.opportunist", 3),
+      modify: (_actor, context) => context.actionId === ACTIONS.skirmish && context.request?.techniqueRuleId === "vagabond.opportunist.3" && context.request?.reaction === true
+        ? { cost: 0, costMode: "replace", swift: true, reason: "Стычка Оппортуниста III бесплатна и Быстрая." } : null,
+    }),
     actionModifier({
       id: "vagabond.dim-mak.1", techniqueId: "vagabond.dim-mak", level: 1,
       sourceDigest: "86bc2801b43ae4f2bd3de697124313b986e9ae1081e0dd8f3f52dfc44b097c59",

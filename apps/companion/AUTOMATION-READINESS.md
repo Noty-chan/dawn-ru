@@ -8,7 +8,7 @@
 
 | Контур | Всего | Заявлено исполнимым | Формально E2E-сертифицировано | Неполный путь |
 | --- | ---: | ---: | ---: | --- |
-| Уровни Техник | 333 | 79 shared/inherited (23.7%) | 0 | 32 частичных; 222 ручных |
+| Уровни Техник | 333 | 79 shared/inherited (23.7%) | 0 | 35 частичных; 219 ручных |
 | Правила обычных врагов | 122 | 0 (0.0%) | 0 | 122 assisted |
 | Атаки врагов | 40 | 0 | 0 | не установлено независимым аудитом |
 
@@ -67,7 +67,7 @@
 | Архетип | Уровней | Заявлено full | Заявлено decision | Заявлено partial | Заявлено manual |
 | --- | ---: | ---: | ---: | ---: | ---: |
 | Powerhouse | 60 | 7 | 3 | 6 | 44 |
-| Vagabond | 60 | 9 | 11 | 4 | 36 |
+| Vagabond | 60 | 9 | 11 | 7 | 33 |
 | Bulwark | 48 | 3 | 3 | 2 | 40 |
 | Altruist | 57 | 2 | 11 | 2 | 42 |
 | Disruptor | 54 | 4 | 6 | 12 | 32 |
@@ -149,9 +149,6 @@
 | Weaponsmith (`vagabond.weaponsmith`) | 1 | Trick Weapon | тонкий адаптер уникального условия поверх уже готового ядра |
 | Weaponsmith (`vagabond.weaponsmith`) | 2 | Adaptive Edge | тонкий адаптер уникального условия поверх уже готового ядра |
 | Weaponsmith (`vagabond.weaponsmith`) | 3 | Metalurgy | тонкий адаптер уникального условия поверх уже готового ядра |
-| Opportunist (`vagabond.opportunist`) | 1 | Pack Tactics | тонкий адаптер уникального условия поверх уже готового ядра |
-| Opportunist (`vagabond.opportunist`) | 2 | Hungry Eyes | тонкий адаптер уникального условия поверх уже готового ядра |
-| Opportunist (`vagabond.opportunist`) | 3 | Launcher Combo | тонкий адаптер уникального условия поверх уже готового ядра |
 | Reflector (`vagabond.reflector`) | 1 | Catch The Blade | тонкий адаптер уникального условия поверх уже готового ядра |
 | Reflector (`vagabond.reflector`) | 2 | Watch And Wait | тонкий адаптер уникального условия поверх уже готового ядра |
 | Reflector (`vagabond.reflector`) | 3 | To Carry Their Fury | тонкий адаптер уникального условия поверх уже готового ядра |

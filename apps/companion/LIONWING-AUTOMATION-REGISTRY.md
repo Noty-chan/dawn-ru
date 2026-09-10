@@ -3,7 +3,7 @@
 > Генерируется командой `npm run build:lionwing-registry`. Реестр строится из canonical EN, `techniqueCoverage` и `automation-evidence.json`.
 > `review=unreviewed/inherited` означает отсутствие явной записи в аудите; это не сертификация и не повышение readiness.
 
-Canonical уровней: **333** · Явно исправленных review: **6** · Сертифицированных evidence: **0**
+Canonical уровней: **333** · Явно исправленных review: **9** · Сертифицированных evidence: **0**
 
 | ID | Техника | Ур. | Implementation | Review | Surfaces | Certification |
 | --- | --- | ---: | --- | --- | --- | --- |
@@ -112,9 +112,9 @@ Canonical уровней: **333** · Явно исправленных review: *
 | `vagabond.modified-meister.1` | Modified Meister | 1 | `partial` | `unreviewed` | — | `uncertified` |
 | `vagabond.modified-meister.2` | Modified Meister | 2 | `decision` | `unreviewed` | — | `uncertified` |
 | `vagabond.modified-meister.3` | Modified Meister | 3 | `decision` | `unreviewed` | — | `uncertified` |
-| `vagabond.opportunist.1` | Opportunist | 1 | `manual` | `unreviewed` | — | `uncertified` |
-| `vagabond.opportunist.2` | Opportunist | 2 | `manual` | `unreviewed` | — | `uncertified` |
-| `vagabond.opportunist.3` | Opportunist | 3 | `manual` | `unreviewed` | — | `uncertified` |
+| `vagabond.opportunist.1` | Opportunist | 1 | `partial` | `corrected` | — | `uncertified` |
+| `vagabond.opportunist.2` | Opportunist | 2 | `partial` | `corrected` | — | `uncertified` |
+| `vagabond.opportunist.3` | Opportunist | 3 | `partial` | `corrected` | — | `uncertified` |
 | `vagabond.reflector.1` | Reflector | 1 | `manual` | `unreviewed` | — | `uncertified` |
 | `vagabond.reflector.2` | Reflector | 2 | `manual` | `unreviewed` | — | `uncertified` |
 | `vagabond.reflector.3` | Reflector | 3 | `manual` | `unreviewed` | — | `uncertified` |

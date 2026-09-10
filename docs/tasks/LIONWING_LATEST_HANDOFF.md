@@ -27,9 +27,10 @@ Monastic Sage, Technician, Opportunist и Sniper из исходной эксп�
 Проверенный срез находится в `main` на `6212afd`. Добавлен воспроизводимый
 реестр всех 333 уровней, который раздельно хранит наличие обработчика,
 канонический provenance, явное review, evidence по поверхностям и E2E
-certification. Текущее распределение: 222 manual, 32 partial, 48 decision,
-31 full; 327 уровней остаются `unreviewed/inherited`, 6 имеют явную запись
-исправления, сертифицированных E2E уровней пока 0. Все 15 новых уровней LionWing
+certification. Текущее распределение: 219 manual, 35 partial, 48 decision,
+31 full; 324 уровня остаются `unreviewed/inherited`, 9 имеют явную запись
+исправления, сертифицированных E2E уровней пока 0. Opportunist I–III теперь
+частично автоматизированы и явно проверены; остальные новые уровни LionWing
 остаются manual/unreviewed, Servant's Call в активный реестр не попадает.
 
 Независимое Luna-ревью исправило digest: теперь он считается по полному
@@ -1075,3 +1076,10 @@ registry levels), targeted inventory/information tests и полный `npm test
 ## Movement lifecycle integration audit, 2026-09-10
 
 Принят общий adapter-facing lifecycle `movement.prepare/start/leave/segment/enter/cross/end/stop`. Факты пути, дистанции, режима и причины остановки вычисляет геометрия и журналирует ядро; клиентский путь не считается доказательством. Обычный Jump публикует тот же контракт. API предназначен как фундамент для массовых адаптеров и сам по себе не объявляет 118 зависимых уровней автоматизированными.
+## Актуальная точка передачи — 2026-09-10, Opportunist I–III (codex/luna-opportunist-v2)
+
+Канонический источник: `source/editions/dawn-en-lionwing-cb2f8e67/canonical/archetypes/vagabond.json`, русский overlay — `apps/companion/edition-lionwing-ru.js`. Полные digest канонического payload (`id`, `archetypeId`, `techniqueId`, `name`, `text`, `notes`, `source`): Opportunist I `f0492855d27579faf8b5030f09909996a4248a7d2367d8b8805f3942ce0bd4e2`, II `4428e0016f97c612a78e62f5229be16a4b71ec6043a44d1599195d77e81ae62f`, III `4d949a7772b7991cf858b6076c5df703fbb138721a7b62cb591511d732692b37`.
+
+Добавлен безопасный частичный вертикальный срез в `lionwing-adapters.js` и `lionwing-engine.js`. I и III реагируют только на авторитетные `action.resolve`/`effect.apply` события живого союзника с одной живой целью в точной Talent range; каждое правило имеет отдельный round лимит и stable trigger key. I и III открывают сохраняемый отменяемый choice, повторно проверяют receipt, источник, цель, range, digest и геометрию перед бесплатной реакционной Стычкой; при удалённой цели предлагается проверенный телепорт в свободную смежную клетку. II открывает choice только при наличии 1 Focus и повторно проверяет Focus, событие, союзника, врага и range перед оплатой и Mark. Поддельные поля клиента, чужие события, self-target, KO/удалённая цель, stale/duplicate/reload receipts отбрасываются.
+
+Остаток ручной/partial: полная семантика Mark и броска/результата Pack Tactics, а также весь downstream UI для выбора цели/клетки остаются ручным fallback; E2E certification/evidence не повышались. Добавлен targeted `tests/lionwing-opportunist.mjs` с проверками digest, ally/enemy/self, точной дальности, недостатка Focus, cancel до оплаты и trigger isolation. Полный реестр и generated docs пересобраны.

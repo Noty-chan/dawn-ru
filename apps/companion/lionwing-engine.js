@@ -653,7 +653,7 @@
     if (breakout) {
       if (!scene.lionwing?.breakout || scene.lionwing.breakout.actorId === a.id || attacks.has(def.id)) return unavailable("Прорыв: только не-Атака после чужого Хода");
       if (Number(a.influence || 0) < 1) return unavailable("Для Прорыва нужно 1 Влияние");
-    } else if (scene.activeActorId !== a.id && !allowance?.reaction) return unavailable("Сейчас не Ход этого участника");
+    } else if (scene.activeActorId !== a.id && !allowance?.reaction && !(request.reaction === true && ["vagabond.opportunist.1", "vagabond.opportunist.3"].includes(request.techniqueRuleId))) return unavailable("Сейчас не Ход этого участника");
     const baseSwift = breakout || Boolean(allowance?.swift||allowance?.reaction) || !isPlayer(a) && def.id === ids.step;
     const continuation = def.id === ids.step && Number(a.stepRemaining || 0) > 0 && !breakout;
     if (continuation) return { available: true, reason: "", cost: 0, resource: "ap", continuation: true };
@@ -666,7 +666,7 @@
     const latestDeployment = deploymentRows.length ? deploymentRows[deploymentRows.length - 1] : null;
     const actionsAfterDeployment = latestDeployment ? (scene.log || []).slice(latestDeployment.index + 1).some(event => event?.actorId === a.id && ["action.prepare", "action.resolve"].includes(event.type)) || actionHistory.some(item => Number(item.turnSerial) === Number(scene.turnSerial) && (!scene.lionwing?.activeTurnInstanceId || !item.ownerTurnInstanceId || item.ownerTurnInstanceId === scene.lionwing.activeTurnInstanceId)) : false;
     const firstActionAfterDeploy = Boolean(latestDeployment && !actionsAfterDeployment);
-    const modifierQuote = global.DAWN_LIONWING_ADAPTERS?.actionQuote?.(a, { scene, actionId: def.id, targetIds: request.targetIds || [], attribute: requestedAttribute, baseCost, baseResource: def.cost.resource, baseSwift, continuation, firstActionAfterDeploy, request: { breakout: Boolean(request.breakout) } }) || { ok: true, cost: baseCost, resource: def.cost.resource, swift: baseSwift, ignoreRequirements: [], modifiers: [], modifierIds: [] };
+    const modifierQuote = global.DAWN_LIONWING_ADAPTERS?.actionQuote?.(a, { scene, actionId: def.id, targetIds: request.targetIds || [], attribute: requestedAttribute, baseCost, baseResource: def.cost.resource, baseSwift, continuation, firstActionAfterDeploy, request: { breakout: Boolean(request.breakout), reaction: request.reaction === true, techniqueRuleId: request.techniqueRuleId || null, triggerKey: request.triggerKey || null } }) || { ok: true, cost: baseCost, resource: def.cost.resource, swift: baseSwift, ignoreRequirements: [], modifiers: [], modifierIds: [] };
     if (modifierQuote.ok === false) return unavailable(modifierQuote.reason || "Модификаторы действия конфликтуют");
     const cost = Number(modifierQuote.cost ?? baseCost), swift = Boolean(modifierQuote.swift), used = isPlayer(a) ? (a.usedActions || []) : (a.lionwing?.turnActions || []);
     if (!swift && used.includes(def.id)) return unavailable("Действие уже использовано");
@@ -1969,7 +1969,67 @@
       astate(source).history.push({ actionId: ids.finish, actionDefinitionId: ids.finish, actionInstanceId: `${rootId}:detective-finisher`, targetIds: [target.id], round: scene.round, turnSerial: scene.turnSerial, ownerTurnActorId: source.id, ownerTurnSerial: ownTurnSerial(source), ownerTurnInstanceId: s.activeTurnInstanceId || null, ownerTurnKey: ownerTurnKey(s.sceneSerial, source, ownTurnSerial(source)), swift: false, free: true, ruleId: detectiveRuleId, triggerKey: p.triggerKey });
       beginAttack(source, { actionId: ids.finish, actionInstanceId: `${rootId}:detective-finisher`, name: "Завершение Разумом", targetIds: [target.id], amount: result.successes + Number(scene.tension || 0), targetDamage: { [target.id]: result.successes + Number(scene.tension || 0) }, attribute: "mind", finisherMode: "mind", techniqueRuleId: detectiveRuleId, finalDamage: false });
     };
+    const opportunistRuleDigests = Object.freeze({
+      "vagabond.opportunist.1": "f0492855d27579faf8b5030f09909996a4248a7d2367d8b8805f3942ce0bd4e2",
+      "vagabond.opportunist.2": "4428e0016f97c612a78e62f5229be16a4b71ec6043a44d1599195d77e81ae62f",
+      "vagabond.opportunist.3": "4d949a7772b7991cf858b6076c5df703fbb138721a7b62cb591511d732692b37",
+    });
+    const opportunistTriggerStatus = (a, p) => {
+      const ruleId = p?.ruleId || p?.techniqueRuleId, receipt = (s.afterEventReceipts || []).find(item => item.ruleId === ruleId && item.ownerActorId === a?.id && item.key === p?.triggerKey), cause = receipt && (scene.log || []).find(item => item.id === receipt.eventId), payload = cause?.payload || {}, targetId = p?.targetId;
+      const source = cause && actor(scene, cause.actorId), target = targetId && actor(scene, targetId), talent = Number(a?.attrs?.talent ?? 0);
+      if (!a || !opportunistRuleDigests[ruleId] || p.sourceDigest !== opportunistRuleDigests[ruleId] || !receipt || !cause || !source || source.id === a.id || source.team !== a.team || source.knockedOut || !target || target.id === a.id || target.knockedOut || !Number.isSafeInteger(talent) || talent < 0 || distance(a, target) > talent) return { ok: false, reason: "Триггер Оппортуниста устарел или больше недоступен." };
+      if (["vagabond.opportunist.1", "vagabond.opportunist.2"].includes(ruleId) && (cause.type !== "action.resolve" || !cause.execution || typeof (cause.execution.actionInstanceId || cause.execution.rootActionId) !== "string" || !attacks.has(payload.actionId) || typeof payload.actionInstanceId !== "string" || !Array.isArray(payload.targetIds) || payload.targetIds.length !== 1 || payload.targetIds[0] !== target.id)) return { ok: false, reason: "Оппортунист требует подтверждённую союзную Атаку по этой цели." };
+      if (ruleId === "vagabond.opportunist.3" && (cause.type !== "effect.apply" || payload.targetId !== target.id || typeof payload.effect !== "string" || target.team === a.team)) return { ok: false, reason: "Комбо-подброс требует подтверждённый союзный Эффект на враге." };
+      return { ok: true, source, target, cause, targetId, talent };
+    };
+    const opportunistAction = (a, status, p) => ({ kind: "action", actionId: ids.skirmish, targetId: status.target.id, targetIds: [status.target.id], techniqueRuleId: p.ruleId, triggerKey: p.triggerKey, causeEventId: p.causeEventId, sourceDigest: p.sourceDigest, reaction: true, attribute: p.attribute || undefined, actionInstanceId: `${p.causeEventId}:${a.id}:${p.ruleId}:skirmish` });
+    const opportunistSkirmishOpen = (p, sourceId) => {
+      const source = requiredActor(scene, sourceId, false), status = opportunistTriggerStatus(source, p);
+      if (!status.ok) fail(status.reason);
+      if (distance(source, status.target) <= 1) { queue.unshift({ p: opportunistAction(source, status, p), sourceId: source.id, provenance: { ...provenance, ownerActorId: source.id, ruleId: p.ruleId, sourceDigest: p.sourceDigest, causeEventId: p.causeEventId } }); return; }
+      const runtime = global.DAWN_LIONWING_GEOMETRY_RUNTIME;
+      if (!runtime?.prepare) fail("Планировщик пространства недоступен");
+      const choices = {}, labels = {};
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const destination = { space: status.target.space, x: Number(status.target.x) + dx, y: Number(status.target.y) + dy };
+        const planned = runtime.prepare(scene, { operation: "teleport", sourceActorId: source.id, targetId: source.id, destination, ruleId: p.ruleId, label: "Оппортунист: телепортация к цели" });
+        if (!planned.ok) continue;
+        const id = `cell:${destination.space}:${destination.x},${destination.y}`;
+        choices[id] = [{ ...p, kind: "opportunist-skirmish", destination, sourceActorId: source.id }];
+        labels[id] = `Телепортироваться в (${destination.x}, ${destination.y}) и применить Стычку`;
+      }
+      const options = ["skip", ...Object.keys(choices)];
+      if (options.length === 1) fail("Нет свободной клетки рядом с целью для телепортации");
+      choice(source, "technique-trigger", `Оппортунист: телепортироваться к ${status.target.name} и применить Стычку`, options, { ruleId: p.ruleId, triggerKey: p.triggerKey, causeEventId: p.causeEventId, targetId: status.target.id, ownerActorId: source.id, sourceDigest: p.sourceDigest, optionLabels: { skip: "Не использовать", ...labels }, choices });
+    };
+    const opportunistSkirmish = (p, sourceId) => {
+      const source = requiredActor(scene, sourceId, false), status = opportunistTriggerStatus(source, p);
+      if (!status.ok) fail(status.reason);
+      if (!p.destination || p.destination.space !== status.target.space || Math.abs(Number(p.destination.x) - Number(status.target.x)) + Math.abs(Number(p.destination.y) - Number(status.target.y)) !== 1) fail("Телепортация Оппортуниста должна быть в смежную клетку цели");
+      const runtime = global.DAWN_LIONWING_GEOMETRY_RUNTIME;
+      if (!runtime?.prepare || !runtime?.commit) fail("Планировщик пространства недоступен");
+      const planned = runtime.prepare(scene, { operation: "teleport", sourceActorId: source.id, targetId: source.id, destination: p.destination, ruleId: p.ruleId, label: "Оппортунист: телепортация к цели" });
+      if (!planned.ok) fail(planned.errors?.join(" ") || "Клетка телепортации недоступна");
+      const checked = runtime.commit(scene, planned.plan);
+      const saved = checked.after.actors?.find(item => item.id === source.id);
+      if (!saved) fail("Телепортация Оппортуниста не вернула исполнителя");
+      source.space = saved.space; source.x = Number(saved.x); source.y = Number(saved.y);
+      emit("geometry.teleport.commit", source.id, { ...checked.event.payload.summary, operation: "teleport", targetId: source.id, ruleId: p.ruleId, free: true });
+      queue.unshift({ p: opportunistAction(source, status, p), sourceId: source.id, provenance: { ...provenance, ownerActorId: source.id, ruleId: p.ruleId, sourceDigest: p.sourceDigest, causeEventId: p.causeEventId } });
+    };
+    const opportunistMark = (p, sourceId) => {
+      const source = requiredActor(scene, sourceId, false), status = opportunistTriggerStatus(source, p), payment = global.DAWN_SCENE_ENGINE?.resourceStatus?.(scene, source.id, { focus: 1 });
+      if (!status.ok) fail(status.reason);
+      if (payment?.available === false || Number(source.focus || 0) < 1) fail("Недостаточно Фокуса для Голодных глаз.");
+      spend(source, "focus", 1);
+      applyEffect(status.target, { kind: "effect", targetId: status.target.id, effect: "negative.помечен", sourceActorId: source.id, sourceActionId: p.ruleId, actionInstanceId: p.actionInstanceId || status.cause.payload?.actionInstanceId, ruleId: p.ruleId, sourceDigest: p.sourceDigest }, source.id);
+    };
     const performAction = (a, p) => {
+      if (p?.techniqueRuleId && ["vagabond.opportunist.1", "vagabond.opportunist.3"].includes(p.techniqueRuleId)) {
+        const checked = opportunistTriggerStatus(a, p);
+        if (!checked.ok) fail(checked.reason);
+        p.reaction = true;
+      }
       const def = actionDef(p.actionId);
       if (!def) fail("Неизвестное базовое действие");
       const status = actionStatus(scene, a, def, p);
@@ -2018,7 +2078,7 @@
       }
       let result;
       if ([ids.spell, ids.skirmish, ids.finish, ids.charge].includes(def.id)) {
-        result = publishRoll(a, p.roll, def.name);
+        result = publishRoll(a, p.roll || (p.techniqueRuleId && ["vagabond.opportunist.1", "vagabond.opportunist.3"].includes(p.techniqueRuleId) ? roll(diceCount(scene, a, def, p), executionOptions.random, { ...provenance, rollId: `${rootId}:opportunist:roll`, kind: "check", actionId: def.id, actionDefinitionId: def.id, actionInstanceId: p.actionInstanceId, ownerActorId: a.id }) : p.roll), def.name);
         const pools=attackPools(scene,a,def,p);if(result.initialCount!==pools.base)fail("Пул броска не соответствует действию");
         p.targetDamage={};for(const[id,count]of Object.entries(pools.counts)){let extra=0;if(count>pools.base){const extraRoll=publishRoll(a,p.targetRolls?.[id],`Дополнительные кости: ${actor(scene,id).name}`);if(extraRoll.initialCount!==count-pools.base)fail("Неверный дополнительный пул");extra=extraRoll.successes;}p.targetDamage[id]=result.successes+extra+(def.id===ids.finish?Number(scene.tension||0):0);}
         for(const id of p.spikeTargetIds||[])if(targets.some(t=>t.id===id)&&effectActive(scene,actor(scene,id),"negative.подброшен"))removeEffect(actor(scene,id),"negative.подброшен");
@@ -2070,6 +2130,9 @@
       switch (p.kind) {
         case "detective-finisher-open": detectiveFinisherOpen(p, sourceId); break;
         case "detective-finisher": detectiveFreeFinisher(p, sourceId); break;
+        case "opportunist-skirmish-open": opportunistSkirmishOpen(p, sourceId); break;
+        case "opportunist-skirmish": opportunistSkirmish(p, sourceId); break;
+        case "opportunist-mark": opportunistMark(p, sourceId); break;
         case "banish": banishOperation(p, sourceId); break;
         case "vanish": vanishOperation(p, sourceId); break;
         case "compound": compoundOperation(p, sourceId); break;
@@ -2886,6 +2949,11 @@
       if(p.kind === "forced-towards-group-step" || p.kind === "forced-towards-group-after-route") {
         if(typeof p.groupId !== "string") fail("Продолжение группового перемещения повреждено");
       }
+      if (["opportunist-skirmish-open", "opportunist-skirmish", "opportunist-mark"].includes(p.kind)) {
+        if (!Object.hasOwn(opportunistRuleDigests, p.ruleId) || typeof p.triggerKey !== "string" || typeof p.causeEventId !== "string" || typeof p.sourceDigest !== "string" || typeof p.targetId !== "string") fail("Триггер Оппортуниста повреждён");
+        if (p.kind === "opportunist-skirmish" && (!p.destination || !Number.isInteger(Number(p.destination.x)) || !Number.isInteger(Number(p.destination.y)) || typeof p.destination.space !== "string")) fail("Телепортация Оппортуниста требует клетку");
+        if (p.kind === "opportunist-mark" && (p.ruleId !== "vagabond.opportunist.2" || typeof p.actionInstanceId !== "string")) fail("Голодные глаза требуют исходную Атаку");
+      }
       if(p.kind==="aura"&&!['create','update','suppress','restore','remove','expire'].includes(p.operation||"create"))fail("Неизвестная операция ауры");
       if(["aura-create","aura-update","aura-suppress","aura-restore","aura-remove"].includes(p.kind)&&(!(p.id||p.aura?.id)||p.kind==="aura-create"&&!((p.sourceEntityId||p.aura?.sourceEntityId))))fail("Некорректное описание ауры");
       if(["information-study","information-reveal","information-cancel","information-handout"].includes(p.kind)) {
@@ -3096,7 +3164,7 @@
     lifetimeBoundary: foundations.lifetimeBoundary,
     normalizeLifetime: foundations.normalizeLifetime,
     isLifetimeExpired: foundations.lifetimeExpired,
-    operations: ["automation", "plan", "batch", "pause-chain", "resume-chain", "amend-attack", "recover-track", "record-action", "action", "attack", "information-study", "information-reveal", "information-cancel", "information-handout", "damage", "spend-health", "lose-health", "heal", "wound", "stress", "knockout", "resource", "inventory", "intermission", "correct", "effect", "effect-source", "banish", "vanish", "compound", "aura", "aura-create", "aura-update", "aura-suppress", "aura-restore", "aura-remove", "placement", "teleport", "displacement", "move", "forced-towards-group", "forced-towards-group-step", "forced-towards-group-after-route", "geometry-move", "geometry-segment", "modifier", "allow-action", "grant-turn", "usage", "punish", "invisible", "search", "configure-resource", "dice-create", "dice-apply", "dice-reload", "dice-opposed", "dice-resolve-tie", "counter", "clock", "prompt", "choice", "roll", "reaction", "resolve-attack", "cancel-attack", "turn-start", "turn-end", "round-end", "scene-reset", "chapter-start", "tension", "note", "marker-remove"]
+    operations: ["automation", "plan", "batch", "pause-chain", "resume-chain", "amend-attack", "recover-track", "record-action", "action", "attack", "opportunist-skirmish-open", "opportunist-skirmish", "opportunist-mark", "information-study", "information-reveal", "information-cancel", "information-handout", "damage", "spend-health", "lose-health", "heal", "wound", "stress", "knockout", "resource", "inventory", "intermission", "correct", "effect", "effect-source", "banish", "vanish", "compound", "aura", "aura-create", "aura-update", "aura-suppress", "aura-restore", "aura-remove", "placement", "teleport", "displacement", "move", "forced-towards-group", "forced-towards-group-step", "forced-towards-group-after-route", "geometry-move", "geometry-segment", "modifier", "allow-action", "grant-turn", "usage", "punish", "invisible", "search", "configure-resource", "dice-create", "dice-apply", "dice-reload", "dice-opposed", "dice-resolve-tie", "counter", "clock", "prompt", "choice", "roll", "reaction", "resolve-attack", "cancel-attack", "turn-start", "turn-end", "round-end", "scene-reset", "chapter-start", "tension", "note", "marker-remove"]
   };
   global.DAWN_LIONWING_ENGINE = api;
   const routed = global.DAWN_SCENE_ENGINE;

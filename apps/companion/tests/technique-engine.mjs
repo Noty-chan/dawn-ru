@@ -77,7 +77,7 @@ for (const [id, automation] of [
 ]) {
   assert.equal(coverage.find(entry => entry.id === id)?.automation, automation, `${id} remains honestly downgraded until its missing canonical branch is implemented and evidenced`);
 }
-assert.equal(coverage.filter(entry => entry.automation !== "manual").length, 111, "only levels with a registered runtime rule may claim any automation");
+assert.equal(coverage.filter(entry => entry.automation !== "manual").length, 114, "only levels with a registered runtime rule may claim any automation");
 assert.ok(coverage.some(entry => /area|line|zone/i.test(entry.text || "")), "canonical Technique text remains available to the coverage audit");
 assert.ok(coverage.some(entry => /clock|segment/i.test(entry.text || "")), "canonical Technique text remains available to the foundation audit");
 assert.equal(coverage.filter(entry => entry.foundationPlan?.capabilities?.length).length, 333, "every canonical Technique level must have a foundation plan");

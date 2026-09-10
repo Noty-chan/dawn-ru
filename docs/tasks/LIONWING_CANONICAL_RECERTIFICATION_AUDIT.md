@@ -21,5 +21,6 @@
 - `ruiner.grim-ascendant.2`: удалён старый half-damage/Regeneration state-toggle; добавлен opt-in Drain Life с двумя связанными Immobilize-источниками и условным Focus reward.
 - `altruist.empath.3`: registry переведён в passive/full и оставлен только boundary-адаптер `3 Focus + [Tier] Health`; платный Support-путь больше не является executable path.
 - `vagabond.assassin.3`: ядро проверяет Hide→Stride, бесплатный Шаг, Invisible и `[Speed/2]` к следующему Finisher в том же Turn.
+- `vagabond.opportunist.1–3`: добавлен частичный event/choice/action boundary с полными canonical digest; безопасная реакция требует авторитетного события, живого союзника/врага, точной Talent range, persisted choice и повторной проверки до расхода или действия.
 
 Оставшиеся partial/manual записи намеренно не повышались: они требуют дополнительных surface/evidence или ещё не доказывают полный канонический пользовательский путь.

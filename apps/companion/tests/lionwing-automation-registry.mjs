@@ -37,6 +37,9 @@ assert.deepEqual(explicit, [
   "ruiner.grim-ascendant.2",
   "altruist.empath.3",
   "vagabond.assassin.3",
+  "vagabond.opportunist.1",
+  "vagabond.opportunist.2",
+  "vagabond.opportunist.3",
 ].sort());
 for (const row of registry.rows) {
   for (const key of ["implementation", "provenance", "review", "surfaces", "certification"]) assert.equal(typeof row[key], "object", `${row.id} has ${key}`);

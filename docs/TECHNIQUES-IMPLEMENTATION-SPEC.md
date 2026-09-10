@@ -883,24 +883,24 @@
 
 #### 1. Стайная тактика (Pack Tactics) `vagabond.opportunist.1`
 
-- **Заявленный статус:** `manual` (ручная).
-- **Текущий адаптер:** нет записи в `RULES`.
+- **Заявленный статус:** `partial` (частичная).
+- **Текущий адаптер:** `vagabond.opportunist.1` · `reaction` · {"kind":"reaction","coverage":"partial","sourceDigest":"f0492855d27579faf8b5030f09909996a4248a7d2367d8b8805f3942ce0bd4e2","sourceLevelId":"vagabond.opportunist.1"}; После авторитетного разрешения однократной Атаки союзника в пределах Таланта сохраняется отменяемая бесплатная Быстрая Стычка по той же цели; при необходимости отдельно предлагается телепорт в свободную смежную клетку. Полные правила подсказок и маршрута остаются ручным остатком..
 - **Готовые foundations:** `target-validation`, `event-participants`, `spatial-range`, `movement-lifecycle`, `usage-limits`, `trigger-router`, `reaction-window`, `turn-lifecycle`, `action-modifier`.
-- **Нужно добавить:** Зарегистрировать отдельный adapter (trigger → validation → events/resolver) и прямые тесты; общая инфраструктура сама правило не исполняет.
+- **Нужно добавить:** Для кода явный следующий шаг не выведен автоматически; нужны direct pos/neg/boundary тесты и evidence до повышения доверия.
 
 #### 2. Голодные глаза (Hungry Eyes) `vagabond.opportunist.2`
 
-- **Заявленный статус:** `manual` (ручная).
-- **Текущий адаптер:** нет записи в `RULES`.
+- **Заявленный статус:** `partial` (частичная).
+- **Текущий адаптер:** `vagabond.opportunist.2` · `reaction` · {"kind":"reaction","coverage":"partial","sourceDigest":"4428e0016f97c612a78e62f5229be16a4b71ec6043a44d1599195d77e81ae62f","sourceLevelId":"vagabond.opportunist.2"}; После авторитетной цели Атаки союзника в пределах Таланта сохраняется перепроверяемый выбор потратить 1 Фокус и наложить Метку на цель; расходы и отмена проходят через журнал выбора. Бросок и полная семантика Метки требуют ручного остатка..
 - **Готовые foundations:** `target-validation`, `event-participants`, `spatial-range`, `resource-check`, `effect-state`, `effect-lifecycle`, `trigger-router`, `reaction-window`.
-- **Нужно добавить:** Зарегистрировать отдельный adapter (trigger → validation → events/resolver) и прямые тесты; общая инфраструктура сама правило не исполняет.
+- **Нужно добавить:** Для кода явный следующий шаг не выведен автоматически; нужны direct pos/neg/boundary тесты и evidence до повышения доверия.
 
 #### 3. Комбо-подброс (Launcher Combo) `vagabond.opportunist.3`
 
-- **Заявленный статус:** `manual` (ручная).
-- **Текущий адаптер:** нет записи в `RULES`.
+- **Заявленный статус:** `partial` (частичная).
+- **Текущий адаптер:** `vagabond.opportunist.3` · `reaction` · {"kind":"reaction","coverage":"partial","sourceDigest":"4d949a7772b7991cf858b6076c5df703fbb138721a7b62cb591511d732692b37","sourceLevelId":"vagabond.opportunist.3"}; После авторитетного наложения Эффекта союзником на врага в пределах Таланта сохраняется отдельный лимит реакции и открывается бесплатная Быстрая Стычка по той же цели; телепорт и повторная проверка источника выполняются ядром. Полный отдельный эффект Pack Tactics остаётся ручным остатком..
 - **Готовые foundations:** `target-validation`, `event-participants`, `spatial-range`, `effect-state`, `effect-lifecycle`, `usage-limits`, `trigger-router`, `reaction-window`, `turn-lifecycle`, `action-modifier`.
-- **Нужно добавить:** Зарегистрировать отдельный adapter (trigger → validation → events/resolver) и прямые тесты; общая инфраструктура сама правило не исполняет.
+- **Нужно добавить:** Для кода явный следующий шаг не выведен автоматически; нужны direct pos/neg/boundary тесты и evidence до повышения доверия.
 
 ### Отражатель (Reflector) `vagabond.reflector`
 

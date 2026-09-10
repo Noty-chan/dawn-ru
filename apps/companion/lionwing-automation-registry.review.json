@@ -46,6 +46,27 @@
       "status": "corrected",
       "correction": "Ядро проверяет Hide→Stride, бесплатный Шаг, Invisible и [Speed/2] к следующему Finisher в том же Turn.",
       "auditRef": "Исправленные границы: vagabond.assassin.3"
+    },
+    {
+      "id": "vagabond.opportunist.1",
+      "canonicalDigest": "f0492855d27579faf8b5030f09909996a4248a7d2367d8b8805f3942ce0bd4e2",
+      "status": "corrected",
+      "correction": "Зафиксирован полный canonical digest; реакция ограничена авторитетным одиночным Attack resolve союзника, проверкой Talent range, сохранённым cancelable choice и повторной проверкой перед бесплатной Skirmish.",
+      "auditRef": "Исправленные границы: vagabond.opportunist.1–3"
+    },
+    {
+      "id": "vagabond.opportunist.2",
+      "canonicalDigest": "4428e0016f97c612a78e62f5229be16a4b71ec6043a44d1599195d77e81ae62f",
+      "status": "corrected",
+      "correction": "Зафиксирован полный canonical digest; платный Mark запускается только для живой союзной цели в точной Talent range и проходит persisted choice с повторной проверкой Focus до оплаты.",
+      "auditRef": "Исправленные границы: vagabond.opportunist.1–3"
+    },
+    {
+      "id": "vagabond.opportunist.3",
+      "canonicalDigest": "4d949a7772b7991cf858b6076c5df703fbb138721a7b62cb591511d732692b37",
+      "status": "corrected",
+      "correction": "Зафиксирован полный canonical digest; отдельный once-per-round reaction запускается только после авторитетного Effect apply союзника по живому врагу в Talent range и повторно проверяет событие до действия.",
+      "auditRef": "Исправленные границы: vagabond.opportunist.1–3"
     }
   ]
 }

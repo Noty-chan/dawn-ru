@@ -354,9 +354,9 @@ SHA-256 проверенных файлов: `6049f3ff6b79b8204c45cb8b830b265369
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Pack Tactics | проверено | ручная | `target-validation`, `event-participants`, `spatial-range`, `movement-lifecycle`, `usage-limits`, `trigger-router`, `reaction-window`, `turn-lifecycle`, `action-modifier` |
-| 2 | Hungry Eyes | проверено | ручная | `target-validation`, `event-participants`, `spatial-range`, `resource-check`, `effect-state`, `effect-lifecycle`, `trigger-router`, `reaction-window` |
-| 3 | Launcher Combo | проверено | ручная | `target-validation`, `event-participants`, `spatial-range`, `effect-state`, `effect-lifecycle`, `usage-limits`, `trigger-router`, `reaction-window`, `turn-lifecycle`, `action-modifier` |
+| 1 | Pack Tactics | проверено | частичная | `target-validation`, `event-participants`, `spatial-range`, `movement-lifecycle`, `usage-limits`, `trigger-router`, `reaction-window`, `turn-lifecycle`, `action-modifier` |
+| 2 | Hungry Eyes | проверено | частичная | `target-validation`, `event-participants`, `spatial-range`, `resource-check`, `effect-state`, `effect-lifecycle`, `trigger-router`, `reaction-window` |
+| 3 | Launcher Combo | проверено | частичная | `target-validation`, `event-participants`, `spatial-range`, `effect-state`, `effect-lifecycle`, `usage-limits`, `trigger-router`, `reaction-window`, `turn-lifecycle`, `action-modifier` |
 
 ### Reflector (`vagabond.reflector`)
 
