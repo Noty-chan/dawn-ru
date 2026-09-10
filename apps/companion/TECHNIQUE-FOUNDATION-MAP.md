@@ -153,8 +153,8 @@ SHA-256 проверенных файлов: `6049f3ff6b79b8204c45cb8b830b265369
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
 | 1 | Buck Shot | проверено | полная | `target-validation`, `event-participants`, `spatial-range`, `movement-lifecycle`, `trigger-router`, `action-modifier` |
-| 2 | Both Barrels | проверено | ручная | `effect-state`, `effect-lifecycle`, `trigger-router`, `choice-flow`, `action-modifier`, `dice-hooks` |
-| 3 | Annihilate | проверено | ручная | `target-validation`, `event-participants`, `spatial-cells`, `trigger-router`, `choice-flow`, `action-modifier` |
+| 2 | Both Barrels | проверено | полная | `effect-state`, `effect-lifecycle`, `trigger-router`, `choice-flow`, `action-modifier`, `dice-hooks` |
+| 3 | Annihilate | проверено | частичная | `target-validation`, `event-participants`, `spatial-cells`, `trigger-router`, `choice-flow`, `action-modifier` |
 
 ### Dual Wielder (`powerhouse.dual-wielder`)
 

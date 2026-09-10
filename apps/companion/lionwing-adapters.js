@@ -99,7 +99,7 @@
   });
   const sceneFocus = amount => actor => [{ kind: "resource", targetId: actor.id, resource: "focus", operation: "gain", amount: typeof amount === "function" ? amount(actor) : amount }];
   const resourceConfiguration = (actor, id, label, current, options = {}) => [{ kind: "configure-resource", targetId: actor.id, id, label, current, initial: current, scope: options.scope || "scene", lifetime: "scene", replaces: options.replaces || null, replacesAp: options.replacesAp === true, inverted: options.inverted === true, ruleId: options.ruleId || null }];
-  const eventTrigger = ({ id, label, sourceDigest, coverage = "full", triggerKey, match, operations = [], choices = [], boundaryOperations }) => ({ id, techniqueId: id.replace(/\.\d+$/, ""), level: Number(id.match(/\.(\d+)$/)?.[1] || 0), label, sourceDigest, coverage, available: actor => knows(actor, id.replace(/\.\d+$/, ""), Number(id.match(/\.(\d+)$/)?.[1] || 0)), triggerKey, match, operations, choices, boundaryOperations });
+  const eventTrigger = ({ id, label, sourceDigest, coverage = "full", triggerKey, match, operations = [], choices = [], boundaryOperations, rangeBonus }) => ({ id, techniqueId: id.replace(/\.\d+$/, ""), level: Number(id.match(/\.(\d+)$/)?.[1] || 0), label, sourceDigest, coverage, available: actor => knows(actor, id.replace(/\.\d+$/, ""), Number(id.match(/\.(\d+)$/)?.[1] || 0)), triggerKey, match, operations, choices, boundaryOperations, rangeBonus });
   const typedConfiguration = (actor, id, label, itemKind, source, options = {}) => [{
     kind: "inventory", operation: "configure", targetId: actor.id, ownerActorId: actor.id, sourceActorId: actor.id,
     id, label, inventoryKind: itemKind || "stack", current: options.current ?? (["selected-item", "recorded-value"].includes(itemKind) ? null : options.initial ?? 0), ...(["selected-item", "recorded-value"].includes(itemKind) ? {} : { initial: options.initial ?? 0 }),
@@ -117,6 +117,30 @@
   // the authoritative event and applies the returned operations; an adapter
   // can only describe an eligible trigger and its optional choices.
   const eventAdapters = [
+    eventTrigger({
+      id: "powerhouse.breacher.1",
+      label: "Картечь I: после успешной Стычки оттолкнуть близкую цель",
+      sourceDigest: "9e9680211a203830a82230d86136cc85108032eaea3655fc9e991129d2826af5",
+      coverage: "full",
+      rangeBonus: (_actor, context) => context?.actionId === ACTIONS.skirmish && context?.breacherBuckShot === true ? 3 : 0,
+      triggerKey: ({ actor, event }) => `${event.id}:${actor.id}:breacher-buck-shot`,
+      match: (actor, event) => {
+        const payload = event.payload || {};
+        return event.type === "damage.apply" && event.actorId === actor.id && payload.sourceActionId === ACTIONS.skirmish
+          && payload.breacherPush === true && payload.breacherAttackSuccess === true && payload.breacherInitialDistance != null
+          && Number(payload.breacherInitialDistance) <= 2 && payload.ignored !== true && payload.hit !== false;
+      },
+      operations: (actor, event) => [{
+        kind: "breacher-push",
+        targetId: event.payload.targetId,
+        sourceActorId: actor.id,
+        maximum: Number(event.payload.breacherPushMultiplier || 1),
+        initialDistance: Number(event.payload.breacherInitialDistance),
+        ruleId: "powerhouse.breacher.1",
+        sourceDigest: "9e9680211a203830a82230d86136cc85108032eaea3655fc9e991129d2826af5",
+      }],
+      choices: () => [],
+    }),
     eventTrigger({
       id: "powerhouse.technician.1",
       label: "Техник I: Разминка после Зарядки и ОД за завершённое комбо",
@@ -651,6 +675,24 @@
   // opt-in flag is present, just like the numeric adapters above.
   const actionModifiers = [
     actionModifier({
+      id: "powerhouse.breacher.2", techniqueId: "powerhouse.breacher", level: 2,
+      sourceDigest: "d632e668fdf4e39e44c32cc7c36973f9272fcb04d36a611ebfe7c55be96c565c",
+      label: "Картечь II: режим «Из обоих стволов»",
+      available: actor => knows(actor, "powerhouse.breacher", 2),
+      modify: (actor, context) => {
+        if (context.request?.breacherBothBarrels !== true) return null;
+        const allowed = context.actionId === ACTIONS.skirmish || context.actionId === ACTIONS.finish && context.attribute === "body" && knows(actor, "powerhouse.breacher", 3);
+        return allowed ? { attackBonus: Math.ceil(Number(actor.attrs?.body || 0) / 2), reason: "Из обоих стволов добавляет Преимущество и удваивает толчок." } : null;
+      },
+    }),
+    actionModifier({
+      id: "powerhouse.breacher.3", techniqueId: "powerhouse.breacher", level: 3,
+      sourceDigest: "ddb18671a7bf29177c52af4b26a5bc35b6408dd125d75007abd25e547f2ac6b3",
+      label: "Картечь III: дальнее Завершение Телом и зона 2×2",
+      available: actor => knows(actor, "powerhouse.breacher", 3),
+      modify: (actor, context) => context.actionId === ACTIONS.finish && context.attribute === "body" ? { range: 3, reason: "Завершение Телом получает дальность 3." } : null,
+    }),
+    actionModifier({
       id: "vagabond.dim-mak.1", techniqueId: "vagabond.dim-mak", level: 1,
       sourceDigest: "86bc2801b43ae4f2bd3de697124313b986e9ae1081e0dd8f3f52dfc44b097c59",
       label: "Детектив I: повторное Изучение той же цели Быстрое",
@@ -800,6 +842,11 @@
       if (patch.swift === true) quote.swift = true;
       if (patch.range != null) quote.range = Number(patch.range);
       if (Array.isArray(patch.ignoreRequirements)) quote.ignoreRequirements.push(...patch.ignoreRequirements);
+      if (patch.attackBonus != null) {
+        const amount = Number(patch.attackBonus);
+        if (!Number.isSafeInteger(amount) || amount < 0 || amount > 9999) return { ok: false, reason: "Модификатор действия вернул недопустимое Преимущество." };
+        quote.attackBonus = (quote.attackBonus || 0) + amount;
+      }
       quote.modifiers.push({ id: rule.id, techniqueId: rule.techniqueId, level: rule.level, sourceDigest: rule.sourceDigest, coverage: rule.coverage, reason: patch.reason || rule.label });
       if (patch.reason) quote.reasons.push(patch.reason);
     }

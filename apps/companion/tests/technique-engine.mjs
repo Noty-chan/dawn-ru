@@ -77,7 +77,16 @@ for (const [id, automation] of [
 ]) {
   assert.equal(coverage.find(entry => entry.id === id)?.automation, automation, `${id} remains honestly downgraded until its missing canonical branch is implemented and evidenced`);
 }
-assert.equal(coverage.filter(entry => entry.automation !== "manual").length, 119, "only levels with a registered runtime rule may claim any automation");
+assert.equal(coverage.filter(entry => entry.automation !== "manual").length, 121, "only levels with a registered runtime rule may claim any automation");
+for (const [id, digest, automation] of [
+  ["powerhouse.breacher.1", "9e9680211a203830a82230d86136cc85108032eaea3655fc9e991129d2826af5", "full"],
+  ["powerhouse.breacher.2", "d632e668fdf4e39e44c32cc7c36973f9272fcb04d36a611ebfe7c55be96c565c", "full"],
+  ["powerhouse.breacher.3", "ddb18671a7bf29177c52af4b26a5bc35b6408dd125d75007abd25e547f2ac6b3", "partial"],
+]) {
+  const entry = coverage.find(item => item.id === id);
+  assert.equal(entry?.automation, automation, `${id} has the expected honest automation status`);
+  assert.equal(entry?.rules?.[0]?.sourceDigest, digest, `${id} runtime rule is digest-bound`);
+}
 for (const [id, digest] of [
   ["powerhouse.technician.1", "79946bc3df6de994901a8519030345403e62c0fac627a76aaa8bc0ee45edda83"],
   ["powerhouse.technician.2", "87d635215f2088e683f229d48bc51b0f2bc34d6a88bc1dea707fcea12e4be250"],
