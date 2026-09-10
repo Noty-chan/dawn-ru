@@ -670,6 +670,18 @@
     const actionsAfterDeployment = latestDeployment ? (scene.log || []).slice(latestDeployment.index + 1).some(event => event?.actorId === a.id && ["action.prepare", "action.resolve"].includes(event.type)) || actionHistory.some(item => Number(item.turnSerial) === Number(scene.turnSerial) && (!scene.lionwing?.activeTurnInstanceId || !item.ownerTurnInstanceId || item.ownerTurnInstanceId === scene.lionwing.activeTurnInstanceId)) : false;
     const firstActionAfterDeploy = Boolean(latestDeployment && !actionsAfterDeployment);
     const modifierQuote = global.DAWN_LIONWING_ADAPTERS?.actionQuote?.(a, { scene, actionId: def.id, targetIds: request.targetIds || [], attribute: requestedAttribute, techniqueId: request.techniqueId || null, techniqueRuleId: request.techniqueRuleId || null, techniqueIds: Array.isArray(request.techniqueIds) ? request.techniqueIds : [], techniqueTags: (request.techniqueTags || []).map(tag => String(tag).toLowerCase()), baseCost, baseResource: def.cost.resource, baseSwift, continuation, firstActionAfterDeploy, request: { breakout: Boolean(request.breakout), breacherBothBarrels: request.breacherBothBarrels === true } }) || { ok: true, cost: baseCost, resource: def.cost.resource, swift: baseSwift, ignoreRequirements: [], modifiers: [], modifierIds: [] };
+    if (def.id === "action.атаки.дуэль") {
+      const opponent = Array.isArray(request.targetIds) && request.targetIds.length === 1 ? actor(scene, request.targetIds[0]) : null;
+      const duelQuote = opponent ? global.DAWN_LIONWING_ADAPTERS?.duelEntryQuote?.(a, { scene, actionId: def.id, targetIds: [opponent.id], opponentId: opponent.id }) : null;
+      if (duelQuote?.ok === false) return unavailable(duelQuote.reason || "Вход в Дуэль недоступен");
+      if (duelQuote) {
+        modifierQuote.duelEntry = duelQuote;
+        modifierQuote.duelAdvantage = Number(duelQuote.advantage || 0);
+        modifierQuote.modifiers = [...(modifierQuote.modifiers || []), ...(duelQuote.modifiers || [])];
+        modifierQuote.modifierIds = [...new Set([...(modifierQuote.modifierIds || []), ...(duelQuote.modifierIds || [])])];
+        modifierQuote.reason = [modifierQuote.reason, duelQuote.reason].filter(Boolean).join(" ");
+      }
+    }
     if (request.breacherBothBarrels === true) {
       const level = Number((a.knownTechniques ?? a.techniques)?.["powerhouse.breacher"] || 0);
       const bodyFinisher = def.id === ids.finish && requestedAttribute === "body" && level >= 3;
@@ -1419,7 +1431,19 @@
       if(wasDisappeared&&!has(a,effect)&&options.reappear!==false)choice(a,"placement","Выберите клетку появления вне соседства с персонажами",["place"],{reappear:true});
     };
     const choice = (a, kind, title, options, context = {}) => { s.choices.push({ id: `${rootId}:choice:${choiceSerial++}`, actorId: a.id, kind, title, options, context }); };
-    const duelOutcome = duel => choice(requiredActor(scene,duel.actorId,false),"duel-outcome","Дуэль: разыграйте встречную Проверку. NPC бросает [Напряжение Дуэли + Ступень]; бросок игрока согласуйте с Нарратором. Подходы и Напряжение определяет Нарратор.",["win","lose"],{duelId:duel.id});
+    const duelEntrySnapshot = (initiator, opponent) => ({
+      initiator: { id: initiator.id, team: initiator.team, kind: initiator.kind, space: initiator.space, x: Number(initiator.x), y: Number(initiator.y), focus: Number(initiator.focus || 0), influence: Number(initiator.influence || 0) },
+      opponent: { id: opponent.id, team: opponent.team, kind: opponent.kind, space: opponent.space, x: Number(opponent.x), y: Number(opponent.y) },
+    });
+    const duelEntryQuote = (initiator, opponent) => global.DAWN_LIONWING_ADAPTERS?.duelEntryQuote?.(initiator, {
+      scene, actionId: "action.атаки.дуэль", targetIds: [opponent.id], opponentId: opponent.id,
+    }) || { ok: true, focusAtEntry: Number(initiator.focus || 0), advantage: 0, modifiers: [], options: [] };
+    const duelOutcome = duel => {
+      const owner = requiredActor(scene, duel.actorId, false), resolved = global.DAWN_LIONWING_ADAPTERS?.duelResolveQuote?.(owner, { scene, duel, entryQuote: duel.entryQuote }) || { advantage: Number(duel.advantage || 0), sources: duel.entryQuote?.sources || [] };
+      duel.resolveQuote = copy(resolved); duel.advantage = Number(resolved.advantage || 0);
+      const entry = { ...(duel.entryQuote || {}), advantage: duel.advantage, sources: resolved.sources || [] }, sourceText = entry.sources?.length ? ` Источники Преимущества: ${entry.sources.map(item => `${item.id} (+${item.amount || item.advantage || 0})`).join(", ")}.` : "";
+      choice(requiredActor(scene,duel.actorId,false),"duel-outcome",`Дуэль: встречная Проверка (Преимущество ${Number(entry.advantage || 0)}).${sourceText} NPC бросает [Напряжение Дуэли + Ступень]; бросок игрока согласуйте с Нарратором.`,["win","lose"],{duelId:duel.id, advantage:Number(entry.advantage || 0), sources:copy(entry.sources || []), entrySnapshot:copy(duel.entrySnapshot || null)});
+    };
     const duelReturn = duel => {
       scene.activeSpace=duel.returnSpaceId;
       for(const targetId of [duel.actorId,duel.targetId]){
@@ -2110,7 +2134,7 @@
       astate(source).history.push({ actionId: ids.finish, actionDefinitionId: ids.finish, actionInstanceId: `${rootId}:detective-finisher`, targetIds: [target.id], round: scene.round, turnSerial: scene.turnSerial, ownerTurnActorId: source.id, ownerTurnSerial: ownTurnSerial(source), ownerTurnInstanceId: s.activeTurnInstanceId || null, ownerTurnKey: ownerTurnKey(s.sceneSerial, source, ownTurnSerial(source)), swift: false, free: true, ruleId: detectiveRuleId, triggerKey: p.triggerKey });
       beginAttack(source, { actionId: ids.finish, actionInstanceId: `${rootId}:detective-finisher`, name: "Завершение Разумом", targetIds: [target.id], amount: result.successes + tensionValue(scene), targetDamage: { [target.id]: result.successes + tensionValue(scene) }, attribute: "mind", finisherMode: "mind", techniqueRuleId: detectiveRuleId, finalDamage: false });
     };
-    const performAction = (a, p) => {
+    const performAction = (a, p, internal = {}) => {
       const def = actionDef(p.actionId);
       if (!def) fail("Неизвестное базовое действие");
       const status = actionStatus(scene, a, def, p);
@@ -2143,7 +2167,31 @@
       const range = def.id === ids.spell ? 5 : def.id === ids.finish ? Math.max(Number(status.actionQuote?.range || 0), 1 + adapterNumber("rangeBonus", a, finishContext)) : def.id === ids.skirmish ? 1 + adapterNumber("rangeBonus", a, finishContext) : def.id === ids.study ? Number(status.actionQuote?.range ?? a.attrs.mind ?? 0) : 1;
       if ([ids.spell, ids.skirmish, ids.study, ids.shove, "action.атаки.дуэль"].includes(def.id) && !p.areaPlan && targets.some(t => t.id === a.id || distance(a, t) > range) || def.id === ids.finish && !p.areaPlan && targets.some(t => t.id === a.id || distance(a, t) > range)) fail("Цель вне дальности действия");
       if (def.id === ids.study && isPlayer(targets[0])) fail("Изучение требует NPC");
+      if (def.id === "action.атаки.дуэль" && !internal.duelEntryAuthorized) {
+        const opponent = targets[0], entry = duelEntryQuote(a, opponent);
+        if (entry.ok === false) fail(entry.reason || "Вход в Дуэль недоступен");
+        if (Array.isArray(entry.options) && entry.options.length) {
+          const snapshot = duelEntrySnapshot(a, opponent), duelId = `${rootId}:duel`;
+          choice(a, "duel-entry", `Вход в Дуэль: ${Number(entry.focusAtEntry || 0)} Фокуса, ${Number(entry.advantage || 0)} базового Преимущества.${entry.reason ? ` ${entry.reason}` : ""}`, [...entry.options], {
+            duelId, targetId: opponent.id, rootActionId: rootId, entryQuote: { ...entry, sources: copy(entry.modifiers || []) }, entrySnapshot: snapshot,
+          });
+          emit("duel.entry.pending", a.id, { duelId, targetId: opponent.id, focusAtEntry: Number(entry.focusAtEntry || 0), advantage: Number(entry.advantage || 0), sources: copy(entry.modifiers || []), options: [...entry.options] });
+          return;
+        }
+      }
       const focusSpent = integer(p.focusSpent || 0, "Фокус");
+      let duelEntry = null;
+      if (def.id === "action.атаки.дуэль" && internal.duelEntryAuthorized) {
+        const opponent = targets[0], saved = internal.duelEntryContext || {}, snapshot = duelEntrySnapshot(a, opponent), entry = duelEntryQuote(a, opponent);
+        if (!saved.entrySnapshot || !sameJson(snapshot, saved.entrySnapshot)) fail("Окно входа в Дуэль устарело: участник, Фокус или позиция изменились");
+        if (Number(entry.focusAtEntry || 0) !== Number(saved.entryQuote?.focusAtEntry || 0) || !sameJson(entry.modifiers || [], saved.entryQuote?.modifiers || [])) fail("Окно входа в Дуэль устарело: источники или Фокус изменились");
+        if (!["moment-of-truth", "enter"].includes(internal.duelEntryChoice)) fail("Выбор входа в Дуэль недействителен");
+        const student = entry.studentOfStars;
+        if (internal.duelEntryChoice === "moment-of-truth") {
+          if (!student || Number(student.focus) !== Number(entry.focusAtEntry) || Number(student.focus) < 6) fail("Момент истины больше недоступен");
+          duelEntry = { focusSpent: Number(student.focus), advantage: Number(entry.advantage || 0) + Number(student.advantage || 0), sources: copy(entry.modifiers || []), studentFocusSpent: Number(student.focus), studentRuleId: student.ruleId };
+        } else duelEntry = { focusSpent: 0, advantage: Number(entry.advantage || 0), sources: copy(entry.modifiers || []) };
+      }
       const studentPower = def.id === ids.finish && status.actionQuote?.studentPowerUnleashed === true;
       const focusCap = studentPower ? Number(status.actionQuote?.focusCap ?? 0) : tensionValue(scene);
       if (def.id === ids.finish && focusSpent > focusCap) fail(`Расход Фокуса превышает допустимый предел ${focusCap}`);
@@ -2156,6 +2204,7 @@
       if (p.breakout) spend(a, "influence", 1);
       if (status.cost) spend(a, status.resource, status.cost);
       if (def.id === ids.finish && focusSpent) spend(a, "focus", focusSpent);
+      if (duelEntry?.focusSpent) spend(a, "focus", duelEntry.focusSpent);
       if(status.allowanceId)astate(a).allowances.find(x=>x.id===status.allowanceId).remaining--;
       if(def.id===ids.improvise&&p.removeObstacleId){const index=scene.objects.findIndex(o=>o.id===p.removeObstacleId&&o.type==="terrain"&&o.space===a.space&&(o.cells||[]).some(cell=>{const[x,y]=cell.split(',').map(Number);return distance(a,{x,y,space:a.space})===1;}));if(index<0)fail("Соседнее препятствие не найдено");scene.objects.splice(index,1);}
       if (!status.continuation && !status.swift) { a.usedActions = [...new Set([...(a.usedActions || []), def.id])]; astate(a).turnActions = [...new Set([...(astate(a).turnActions || []), def.id])]; }
@@ -2205,8 +2254,8 @@
         const opponent=targets[0];
         if(opponent.team===a.team)fail("Дуэль требует противника");
         if(astate(a).duelId||astate(opponent).duelId)fail("Участник уже находится в Дуэли");
-        const duelId=`${rootId}:duel`,spaceId=`duel-${rootId}`,participants=[a,opponent];
-        s.duels||=[];const duel={id:duelId,spaceId,actorId:a.id,targetId:opponent.id,returnSpaceId:a.space,startedSerial:scene.turnSerial,tension:tensionValue(scene),influenceSpent:status.cost};s.duels.push(duel);
+        const duelId=internal.duelEntryContext?.duelId || `${rootId}:duel`, spaceId=`duel-${duelId}`, participants=[a,opponent];
+        s.duels||=[];const duel={id:duelId,spaceId,actorId:a.id,targetId:opponent.id,returnSpaceId:a.space,startedSerial:scene.turnSerial,tension:tensionValue(scene),influenceSpent:status.cost,advantage:Number(duelEntry?.advantage || 0),entrySnapshot:copy(duelEntry ? internal.duelEntryContext.entrySnapshot : duelEntrySnapshot(a, opponent)),entryQuote:duelEntry ? { focusAtEntry:Number(internal.duelEntryContext.entryQuote.focusAtEntry || 0), advantage:Number(duelEntry.advantage || 0), sources:copy(duelEntry.sources || []), modifiers:copy(internal.duelEntryContext.entryQuote.modifiers || []), studentRuleId:duelEntry.studentRuleId || null, studentFocusSpent:Number(duelEntry.studentFocusSpent || 0) } : { focusAtEntry:Number(a.focus || 0), advantage:0, sources:[], modifiers:[] }};s.duels.push(duel);
         scene.spaces.push({id:spaceId,name:"Дуэль",width:7,height:7,returnSpaceId:a.space,ownerActorId:a.id});
         for(const [index,participant]of participants.entries()){
           const parts=participant.compoundId?scene.actors.filter(x=>x.compoundId===participant.compoundId):[participant];
@@ -2777,6 +2826,15 @@
             if(p.choice==="reroll")queue.unshift({p:{kind:"damage",targetId:a.id,amount:5,sourceActorId:a.id},sourceId:a.id},{p:{kind:"clash-roll",roll:p.roll,opponentRoll:p.opponentRoll},sourceId:a.id});
             else if(p.choice==="win")queue.unshift({p:{kind:"clash-win"},sourceId:a.id});
             else scene.pendingAction.responses[a.id]={choice:"clash",reduction:0};
+          }
+          else if (pending.kind === "duel-entry") {
+            if (p.focusSpent !== undefined || p.advantage !== undefined || p.targetId !== undefined || p.targetIds !== undefined) fail("Окно входа в Дуэль не принимает цену или участника от клиента");
+            if (!["moment-of-truth", "enter"].includes(p.choice)) {
+              if (p.choice === "cancel") { emit("duel.entry.cancel", sourceId, { duelId: pending.context?.duelId || null, targetId: pending.context?.targetId || null }); break; }
+              fail("Недопустимый выбор входа в Дуэль");
+            }
+            const targetId = pending.context?.targetId, target = requiredActor(scene, targetId, false);
+            performAction(a, { actionId: "action.атаки.дуэль", targetIds: [target.id], actionInstanceId: pending.context?.rootActionId || rootId }, { duelEntryAuthorized: true, duelEntryChoice: p.choice, duelEntryContext: pending.context });
           }
           else if(pending.kind==="duel-outcome"){
             const duel=(s.duels||[]).find(item=>item.id===pending.context.duelId);if(!duel)fail("Дуэль уже завершена");
