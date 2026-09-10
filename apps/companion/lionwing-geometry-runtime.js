@@ -82,9 +82,10 @@
   // damage; this contract owns only the canonical center, shape, cells and
   // derived targets.  Keeping it here lets all future area techniques share
   // the same snapshot/revalidation boundary as placement and teleport.
-  const AREA_SHAPES = Object.freeze(["adjacent", "square3", "square5"]);
+  const AREA_SHAPES = Object.freeze(["adjacent", "square2", "square3", "square5"]);
   const AREA_RULES = Object.freeze({
     adjacent: { shape: "adjacent", range: 4, includeAnchor: true },
+    square2: { shape: "square", width: 2, height: 2, range: 1 },
     square3: { shape: "square", width: 3, height: 3, range: 5 },
     square5: { shape: "square", width: 5, height: 5, range: 6 },
   });
@@ -122,7 +123,7 @@
       // Finishers affect enemies in their selected area.  The common query
       // also accounts for occupiedWidth/occupiedHeight and effect targeting.
       sourceActorId: source.id,
-      targets: { audience: "enemies", includeSelf: false },
+      targets: { audience: request.targetAudience === "all" ? "all" : "enemies", includeSelf: false },
     });
     if (!result.available) fail(result.reason || "Форма области недоступна", "LIONWING_GEOMETRY_RUNTIME_DESTINATION_BLOCKED");
     const removed = removedCells(scene, center.space);
@@ -134,7 +135,7 @@
       .filter(cell => !removed.has(cellKey(cell)));
     const wanted = new Set(cells.map(cellKey));
     const targetIds = (scene.actors || []).filter(actor => {
-      if (!live(actor) || actor.space !== center.space || actor.id === source.id || actor.team === source.team) return false;
+      if (!live(actor) || actor.space !== center.space || actor.id === source.id || request.targetAudience !== "all" && actor.team === source.team) return false;
       if (disappeared(actor) || exile(actor) !== exile(source)) return false;
       return actorCells(actor).some(cell => wanted.has(cellKey(cell)));
     }).map(actor => actor.id);
@@ -160,7 +161,7 @@
     const center = areaSpacePoint(scene, source, request.center || request.anchor);
     const range = Number(request.range == null ? rule.range : request.range);
     if (!Number.isSafeInteger(range) || range < 0 || source.space !== center.space || sourceDistanceToPoint(source, center) > range) fail(`Центр области находится вне дальности ${range}`, "LIONWING_GEOMETRY_RUNTIME_RANGE");
-    return { schema: SCHEMA, sourceActorId: source.id, center, shape: shapeKey, range, ruleId: request.ruleId || null, label: request.label || null };
+    return { schema: SCHEMA, sourceActorId: source.id, center, shape: shapeKey, range, targetAudience: request.targetAudience === "all" ? "all" : "enemies", label: request.label || null, ruleId: request.ruleId || null };
   }
 
   function areaPlanFor(scene, request) {

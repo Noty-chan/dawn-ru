@@ -3424,7 +3424,7 @@
             "name": "Картечь",
             "kind": "passive",
             "automation": "full",
-            "note": "Стычка получает дальность 4; каждая цель в пределах 2 после Успеха проходит обычные Реакции и затем отталкивается на 1 через общий post-hit displacement без добавочного урона.",
+            "note": "Стычка получает дальность 4; выбранная одиночная цель в пределах 2 после успешной Атаки проходит обычные Реакции и затем отталкивается на 1 через общий post-hit displacement.",
             "sourceLevelId": "powerhouse.breacher.1",
             "sourceDigest": "9e9680211a203830a82230d86136cc85108032eaea3655fc9e991129d2826af5",
             "coverage": "full"
@@ -3532,9 +3532,24 @@
       },
       "level": 2,
       "implementation": {
-        "automation": "manual",
-        "ruleIds": [],
-        "rules": [],
+        "automation": "full",
+        "ruleIds": [
+          "powerhouse.breacher.2"
+        ],
+        "rules": [
+          {
+            "id": "powerhouse.breacher.2",
+            "techniqueId": "powerhouse.breacher",
+            "level": 2,
+            "name": "Из обоих стволов",
+            "kind": "passive",
+            "automation": "full",
+            "note": "До Стычки при отсутствии Ослаблен можно включить режим: [Тело/2] Преимущества, удвоение толчка и Ослаблен после разрешения.",
+            "sourceLevelId": "powerhouse.breacher.2",
+            "sourceDigest": "d632e668fdf4e39e44c32cc7c36973f9272fcb04d36a611ebfe7c55be96c565c",
+            "coverage": "full"
+          }
+        ],
         "foundationPlan": {
           "version": 11,
           "status": "reviewed",
@@ -3601,7 +3616,9 @@
           "text": "Before you Skirmish, so long as you're not Weakened, you can use ‘Both Barrels'. Doing this gives the Attack [Body/2] Advantage, doubles any push it deals, and Weakens you after it resolves."
         },
         "canonicalDigest": "d632e668fdf4e39e44c32cc7c36973f9272fcb04d36a611ebfe7c55be96c565c",
-        "engineRuleDigests": []
+        "engineRuleDigests": [
+          "d632e668fdf4e39e44c32cc7c36973f9272fcb04d36a611ebfe7c55be96c565c"
+        ]
       },
       "review": {
         "status": "unreviewed",
@@ -3635,9 +3652,24 @@
       },
       "level": 3,
       "implementation": {
-        "automation": "manual",
-        "ruleIds": [],
-        "rules": [],
+        "automation": "partial",
+        "ruleIds": [
+          "powerhouse.breacher.3"
+        ],
+        "rules": [
+          {
+            "id": "powerhouse.breacher.3",
+            "techniqueId": "powerhouse.breacher",
+            "level": 3,
+            "name": "Уничтожение",
+            "kind": "passive",
+            "automation": "partial",
+            "note": "Завершение Телом получает дальность 3; режим Из обоих стволов может выбрать проверенную зону 2×2, смежную с владельцем, по всем персонажам зоны.",
+            "sourceLevelId": "powerhouse.breacher.3",
+            "sourceDigest": "ddb18671a7bf29177c52af4b26a5bc35b6408dd125d75007abd25e547f2ac6b3",
+            "coverage": "partial"
+          }
+        ],
         "foundationPlan": {
           "version": 11,
           "status": "reviewed",
@@ -3704,7 +3736,9 @@
           "text": "Your Body Finisher can now target characters up to 3 spaces away and can use the effect of \"Both Barrels\". If you use \"Both Barrels\" with a Skirmish or Body Finisher, have it affect all targets in a 2x2 Zone adjacent to you."
         },
         "canonicalDigest": "ddb18671a7bf29177c52af4b26a5bc35b6408dd125d75007abd25e547f2ac6b3",
-        "engineRuleDigests": []
+        "engineRuleDigests": [
+          "ddb18671a7bf29177c52af4b26a5bc35b6408dd125d75007abd25e547f2ac6b3"
+        ]
       },
       "review": {
         "status": "unreviewed",

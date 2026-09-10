@@ -8,7 +8,7 @@
 
 | Контур | Всего | Заявлено исполнимым | Формально E2E-сертифицировано | Неполный путь |
 | --- | ---: | ---: | ---: | --- |
-| Уровни Техник | 333 | 81 shared/inherited (24.3%) | 0 | 38 частичных; 214 ручных |
+| Уровни Техник | 333 | 82 shared/inherited (24.6%) | 0 | 39 частичных; 212 ручных |
 | Правила обычных врагов | 122 | 0 (0.0%) | 0 | 122 assisted |
 | Атаки врагов | 40 | 0 | 0 | не установлено независимым аудитом |
 
@@ -66,7 +66,7 @@
 
 | Архетип | Уровней | Заявлено full | Заявлено decision | Заявлено partial | Заявлено manual |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| Powerhouse | 60 | 7 | 5 | 9 | 39 |
+| Powerhouse | 60 | 8 | 5 | 10 | 37 |
 | Vagabond | 60 | 9 | 11 | 6 | 34 |
 | Bulwark | 48 | 3 | 3 | 3 | 39 |
 | Altruist | 57 | 2 | 11 | 2 | 42 |
@@ -95,8 +95,6 @@
 | Unbroken (`powerhouse.unbroken`) | 1 | Get Back Up | `duel-flow` |
 | Unbroken (`powerhouse.unbroken`) | 2 | Furious Revival | тонкий адаптер уникального условия поверх уже готового ядра |
 | Unbroken (`powerhouse.unbroken`) | 3 | Phoenix | `duel-flow` |
-| Breacher (`powerhouse.breacher`) | 2 | Both Barrels | тонкий адаптер уникального условия поверх уже готового ядра |
-| Breacher (`powerhouse.breacher`) | 3 | Annihilate | тонкий адаптер уникального условия поверх уже готового ядра |
 | Dual Wielder (`powerhouse.dual-wielder`) | 1 | Twinned blow | тонкий адаптер уникального условия поверх уже готового ядра |
 | Dual Wielder (`powerhouse.dual-wielder`) | 2 | Frenzied Barrage | тонкий адаптер уникального условия поверх уже готового ядра |
 | Dual Wielder (`powerhouse.dual-wielder`) | 3 | Varied Blades | тонкий адаптер уникального условия поверх уже готового ядра |

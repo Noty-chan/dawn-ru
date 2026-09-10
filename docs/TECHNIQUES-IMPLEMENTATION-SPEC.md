@@ -307,23 +307,23 @@
 #### 1. Картечь (Buck Shot) `powerhouse.breacher.1`
 
 - **Заявленный статус:** `full` (полная).
-- **Текущий адаптер:** `powerhouse.breacher.1` · `passive` · {"kind":"passive","sourceLevelId":"powerhouse.breacher.1","sourceDigest":"9e9680211a203830a82230d86136cc85108032eaea3655fc9e991129d2826af5","coverage":"full"}; Стычка получает дальность 4; каждая цель в пределах 2 после Успеха проходит обычные Реакции и затем отталкивается на 1 через общий post-hit displacement без добавочного урона..
+- **Текущий адаптер:** `powerhouse.breacher.1` · `passive` · {"kind":"passive","sourceLevelId":"powerhouse.breacher.1","sourceDigest":"9e9680211a203830a82230d86136cc85108032eaea3655fc9e991129d2826af5","coverage":"full"}; Стычка получает дальность 4; выбранная одиночная цель в пределах 2 после успешной Атаки проходит обычные Реакции и затем отталкивается на 1 через общий post-hit displacement..
 - **Готовые foundations:** `target-validation`, `event-participants`, `spatial-range`, `movement-lifecycle`, `trigger-router`, `action-modifier`.
 - **Нужно добавить:** До повторного аудита толчок срабатывал при ненулевом уроне от Напряжения даже без Успеха; исправлено отдельным requiresSuccess и negative regression.
 
 #### 2. Из обоих стволов (Both Barrels) `powerhouse.breacher.2`
 
-- **Заявленный статус:** `manual` (ручная).
-- **Текущий адаптер:** нет записи в `RULES`.
+- **Заявленный статус:** `full` (полная).
+- **Текущий адаптер:** `powerhouse.breacher.2` · `passive` · {"kind":"passive","sourceLevelId":"powerhouse.breacher.2","sourceDigest":"d632e668fdf4e39e44c32cc7c36973f9272fcb04d36a611ebfe7c55be96c565c","coverage":"full"}; До Стычки при отсутствии Ослаблен можно включить режим: [Тело/2] Преимущества, удвоение толчка и Ослаблен после разрешения..
 - **Готовые foundations:** `effect-state`, `effect-lifecycle`, `trigger-router`, `choice-flow`, `action-modifier`, `dice-hooks`.
-- **Нужно добавить:** Зарегистрировать отдельный adapter (trigger → validation → events/resolver) и прямые тесты; общая инфраструктура сама правило не исполняет.
+- **Нужно добавить:** Для кода явный следующий шаг не выведен автоматически; нужны direct pos/neg/boundary тесты и evidence до повышения доверия.
 
 #### 3. Уничтожение (Annihilate) `powerhouse.breacher.3`
 
-- **Заявленный статус:** `manual` (ручная).
-- **Текущий адаптер:** нет записи в `RULES`.
+- **Заявленный статус:** `partial` (частичная).
+- **Текущий адаптер:** `powerhouse.breacher.3` · `passive` · {"kind":"passive","sourceLevelId":"powerhouse.breacher.3","sourceDigest":"ddb18671a7bf29177c52af4b26a5bc35b6408dd125d75007abd25e547f2ac6b3","coverage":"partial"}; Завершение Телом получает дальность 3; режим Из обоих стволов может выбрать проверенную зону 2×2, смежную с владельцем, по всем персонажам зоны..
 - **Готовые foundations:** `target-validation`, `event-participants`, `spatial-cells`, `trigger-router`, `choice-flow`, `action-modifier`.
-- **Нужно добавить:** Зарегистрировать отдельный adapter (trigger → validation → events/resolver) и прямые тесты; общая инфраструктура сама правило не исполняет.
+- **Нужно добавить:** Для кода явный следующий шаг не выведен автоматически; нужны direct pos/neg/boundary тесты и evidence до повышения доверия.
 
 ### Боец с парным оружием (Dual Wielder) `powerhouse.dual-wielder`
 

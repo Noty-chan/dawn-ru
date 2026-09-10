@@ -39,8 +39,8 @@ Canonical уровней: **333** · Явно исправленных review: *
 | `powerhouse.braggart.2` | Braggart | 2 | `decision` | `unreviewed` | — | `uncertified` |
 | `powerhouse.braggart.3` | Braggart | 3 | `decision` | `unreviewed` | — | `uncertified` |
 | `powerhouse.breacher.1` | Breacher | 1 | `full` | `unreviewed` | — | `uncertified` |
-| `powerhouse.breacher.2` | Breacher | 2 | `manual` | `unreviewed` | — | `uncertified` |
-| `powerhouse.breacher.3` | Breacher | 3 | `manual` | `unreviewed` | — | `uncertified` |
+| `powerhouse.breacher.2` | Breacher | 2 | `full` | `unreviewed` | — | `uncertified` |
+| `powerhouse.breacher.3` | Breacher | 3 | `partial` | `unreviewed` | — | `uncertified` |
 | `powerhouse.dual-wielder.1` | Dual Wielder | 1 | `manual` | `unreviewed` | — | `uncertified` |
 | `powerhouse.dual-wielder.2` | Dual Wielder | 2 | `manual` | `unreviewed` | — | `uncertified` |
 | `powerhouse.dual-wielder.3` | Dual Wielder | 3 | `manual` | `unreviewed` | — | `uncertified` |
