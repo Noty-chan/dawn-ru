@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import crypto from "node:crypto";
 import fs from "node:fs";
 import vm from "node:vm";
 import { loadSceneEngine } from "./load-scene-engine.mjs";
@@ -24,6 +25,15 @@ const DIGESTS = {
   "powerhouse.technician.2": "87d635215f2088e683f229d48bc51b0f2bc34d6a88bc1dea707fcea12e4be250",
   "powerhouse.technician.3": "69e9007f8f65def64ef7640b8441616852def68765ad7a717f09587b1039ecfe",
 };
+const canonicalPowerhouse = JSON.parse(fs.readFileSync(new URL("../../../source/editions/dawn-en-lionwing-cb2f8e67/canonical/archetypes/powerhouse.json", import.meta.url), "utf8"));
+for (const [id, expected] of Object.entries(DIGESTS)) {
+  const levelNumber = Number(id.match(/\.(\d+)$/)[1]);
+  const technique = canonicalPowerhouse.techniques.find(item => item.id === id.replace(/\.\d+$/, ""));
+  const level = technique?.levels.find(item => item.n === levelNumber);
+  assert.ok(level, `${id} exists in the canonical EN source`);
+  const digest = crypto.createHash("sha256").update(JSON.stringify({ id, archetypeId: technique.archetypeId, techniqueId: technique.id, name: level.name, text: level.text, notes: technique.notes, source: technique.source })).digest("hex");
+  assert.equal(digest, expected, `${id} digest is computed from the complete canonical payload`);
+}
 const actor = (extra = {}) => ({
   id: "tech", name: "Техник", kind: "hero", heroId: "tech", rulesEdition: "lionwing", team: "hero",
   space: "main", x: 1, y: 1, hp: 10, maxHp: 10, ap: 3, baseAp: 3, focus: 2, influence: 0,
