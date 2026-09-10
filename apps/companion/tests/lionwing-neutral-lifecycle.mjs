@@ -21,7 +21,7 @@ const actor = id => ({ id, name: id, kind: "hero", heroId: id, ownerId: id,
   knownTechniques: {}, techniques: {}, lionwing: { automation: {} } });
 const initial = { rulesEdition: "lionwing", version: 0, round: 1, turnSerial: 0,
   tension: 0, activeActorId: null, spaces: [{ id: "main", width: 5, height: 5 }],
-  actors: [actor("hero")], objects: [], walls: [], markers: [], log: [], targetIds: [], reminders: [] };
+  actors: [actor("hero"), actor("other")], objects: [], walls: [], markers: [], log: [], targetIds: [], reminders: [] };
 
 // A synthetic consumer proves the scheduler without making claims about a Technique.
 context.window.DAWN_LIONWING_ADAPTERS = Object.freeze({
@@ -34,6 +34,10 @@ context.window.DAWN_LIONWING_ADAPTERS = Object.freeze({
       operations: [{ kind: "resource", targetId: owner.id, resource: "focus", operation: "gain", amount: 1, ruleId: "test.lifecycle.scene-start" }], choices: [] }];
     if (boundary.canonicalBoundary === "ownTurnStart") return [{
       id: "test.lifecycle.own-turn", label: "Synthetic optional boundary",
+      sourceDigest: "test:lifecycle:v1", coverage: "test", operations: [],
+      choices: [{ id: "accept", label: "Accept", operations: [] }] }];
+    if (boundary.canonicalBoundary === "sceneEnd") return [{
+      id: "test.lifecycle.scene-end", label: "Synthetic closing boundary",
       sourceDigest: "test:lifecycle:v1", coverage: "test", operations: [],
       choices: [{ id: "accept", label: "Accept", operations: [] }] }];
     return [];
@@ -61,5 +65,19 @@ const reloaded = engine.reload(JSON.stringify(started));
 assert.equal(reloaded.lionwing.boundaryReceipts.length, started.lionwing.boundaryReceipts.length);
 const redelivered = engine.dispatchMany(started, prepared.events).scene;
 assert.equal(redelivered.lionwing.boundaryReceipts.length, started.lionwing.boundaryReceipts.length, "duplicate delivery does not fire a boundary twice");
+
+// A foreign active Turn must not change the owner's own-turn window. The
+// adapter facade therefore falls back to the owner's serial for ownerTurn,
+// while anyTurn continues to use the current global Turn instance.
+const choiceId = started.lionwing.choices[0].id;
+const afterChoice = engine.dispatchMany(started, [engine.command("hero", { kind: "choice", id: choiceId, choice: "skip" })]).scene;
+const used = engine.dispatchMany(afterChoice, [engine.command("hero", { kind: "usage", ruleId: "test.owner", scope: "ownerTurn", limit: 1 })]).scene;
+const ended = engine.dispatchMany(used, [engine.command("hero", { kind: "turn-end" })]).scene;
+const foreign = engine.dispatchMany(ended, [engine.command("other", { kind: "turn-start" })]).scene;
+assert.equal(baseAdapters.lifecycle.count(foreign.actors[0], foreign, { scope: "ownerTurn", ruleId: "test.owner" }), 1, "ownerTurn query remains tied to the owner's serial during a foreign Turn");
+assert.equal(baseAdapters.lifecycle.once(foreign.actors[0], foreign, { scope: "ownerTurn", ruleId: "test.missing" }), true);
+const foreignEnded = engine.dispatchMany(foreign, [engine.command("other", { kind: "turn-end" })]).scene;
+const reset = engine.dispatchMany(foreignEnded, [engine.command(null, { kind: "scene-reset" })]).scene;
+assert.equal(reset.lionwing.choices.length, 0, "Scene reset does not carry closing-boundary choices into the next Scene");
 
 console.log("LionWing neutral lifecycle: canonical boundaries, stable private receipts, optional choices, reload and replay passed");

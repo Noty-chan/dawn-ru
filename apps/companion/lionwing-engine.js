@@ -1080,25 +1080,38 @@
       if (typeof global.DAWN_LIONWING_ADAPTERS?.boundaryOperations !== "function") return;
       const canonicalBoundary = ({ sceneStart: "sceneStart", sceneEnd: "sceneEnd", roundStart: "roundStart", roundEnd: "roundEnd", turnStart: "ownTurnStart", turnEnd: "ownTurnEnd", ownTurnStart: "ownTurnStart", ownTurnEnd: "ownTurnEnd", anyTurnStart: "anyTurnStart", anyTurnEnd: "anyTurnEnd" }[boundary] || boundary);
       const ownerTurnKey = owner => owner ? `${s.sceneSerial}:${owner.id}:${ownTurnSerial(owner)}` : null;
-      const boundaryKey = owner => {
-        if (["sceneStart", "sceneEnd"].includes(canonicalBoundary)) return `${s.sceneSerial}:${canonicalBoundary}`;
-        if (["roundStart", "roundEnd"].includes(canonicalBoundary)) return `${s.sceneSerial}:${scene.round}:${canonicalBoundary}`;
-        if (["ownTurnStart", "ownTurnEnd"].includes(canonicalBoundary)) return `${ownerTurnKey(owner)}:${canonicalBoundary}`;
-        return `${s.sceneSerial}:${s.activeTurnInstanceId || `scene-turn:${scene.turnSerial}`}:${canonicalBoundary}`;
+      // `turnStart`/`turnEnd` are offered to every registered consumer so an
+      // ally can react to somebody else's Turn. Such a callback belongs to
+      // the current global Turn, while a callback for the active owner keeps
+      // its own-turn identity. This distinction prevents an ally's receipt
+      // from suppressing the next extra Turn of the active actor.
+      const boundaryForOwner = owner => {
+        if (canonicalBoundary === "ownTurnStart" && boundary === "turnStart" && activeActor && owner.id !== activeActor.id) return "anyTurnStart";
+        if (canonicalBoundary === "ownTurnEnd" && boundary === "turnEnd" && activeActor && owner.id !== activeActor.id) return "anyTurnEnd";
+        return canonicalBoundary;
       };
-      const context = owner => ({ scene, boundary: ["ownTurnStart", "ownTurnEnd"].includes(canonicalBoundary) ? "turn" + (canonicalBoundary === "ownTurnStart" ? "Start" : "End") : boundary, canonicalBoundary, activeActor, activeEffectIds: activeState(scene, owner.id).effects.filter(status => status.present).map(status => status.effect), distanceToActive: activeActor ? distance(owner, activeActor) : Infinity, ownerTurnSerial: ownTurnSerial(owner), ownerTurnInstanceId: owner.id === activeActor?.id ? s.activeTurnInstanceId || null : owner.lionwing?.turnInstanceId || null, ownerTurnKey: ownerTurnKey(owner), boundaryKey: boundaryKey(owner) });
+      const boundaryKey = (owner, resolvedBoundary = boundaryForOwner(owner)) => {
+        if (["sceneStart", "sceneEnd"].includes(resolvedBoundary)) return `${s.sceneSerial}:${resolvedBoundary}`;
+        if (["roundStart", "roundEnd"].includes(resolvedBoundary)) return `${s.sceneSerial}:${scene.round}:${resolvedBoundary}`;
+        if (["ownTurnStart", "ownTurnEnd"].includes(resolvedBoundary)) return `${ownerTurnKey(owner)}:${resolvedBoundary}`;
+        return `${s.sceneSerial}:${s.activeTurnInstanceId || `scene-turn:${scene.turnSerial}`}:${resolvedBoundary}`;
+      };
+      const context = owner => {
+        const resolvedBoundary = boundaryForOwner(owner);
+        return { scene, boundary: ["ownTurnStart", "ownTurnEnd"].includes(canonicalBoundary) ? "turn" + (canonicalBoundary === "ownTurnStart" ? "Start" : "End") : boundary, canonicalBoundary: resolvedBoundary, activeActor, activeEffectIds: activeState(scene, owner.id).effects.filter(status => status.present).map(status => status.effect), distanceToActive: activeActor ? distance(owner, activeActor) : Infinity, ownerTurnSerial: ownTurnSerial(owner), ownerTurnInstanceId: activeActor ? s.activeTurnInstanceId || null : owner.lionwing?.turnInstanceId || null, ownerTurnKey: ownerTurnKey(owner), boundaryKey: boundaryKey(owner, resolvedBoundary) };
+      };
       for (const owner of scene.actors || []) for (const rule of global.DAWN_LIONWING_ADAPTERS.boundaryOperations(owner, context(owner))) {
-        const key = `${rule.id}:${owner.id}:${boundaryKey(owner)}`;
+        const resolvedBoundary = context(owner).canonicalBoundary, resolvedBoundaryKey = boundaryKey(owner, resolvedBoundary), key = `${rule.id}:${owner.id}:${resolvedBoundaryKey}`;
         if (s.boundaryReceipts.some(receipt => receipt.key === key)) continue;
-        s.boundaryReceipts.push({ schema: 1, key, ruleId: rule.id, ownerActorId: owner.id, boundary: canonicalBoundary, boundaryKey: boundaryKey(owner), sceneSerial: s.sceneSerial, round: Number(scene.round || 0), turnInstanceId: s.activeTurnInstanceId || null, sourceDigest: rule.sourceDigest || null, eventId: rootId });
+        s.boundaryReceipts.push({ schema: 1, key, ruleId: rule.id, ownerActorId: owner.id, boundary: resolvedBoundary, boundaryKey: resolvedBoundaryKey, sceneSerial: s.sceneSerial, round: Number(scene.round || 0), turnInstanceId: s.activeTurnInstanceId || null, sourceDigest: rule.sourceDigest || null, eventId: rootId });
         s.boundaryReceipts = s.boundaryReceipts.slice(-512);
         const choices = Array.isArray(rule.choices) ? rule.choices : [];
-        emit("rule.activated", owner.id, { ruleId: rule.id, sourceDigest: rule.sourceDigest || null, coverage: rule.coverage || "full", boundary: canonicalBoundary, targetId: activeActor?.id || owner.id, automatic: true, optional: choices.length > 0, reason: rule.label || null });
+        emit("rule.activated", owner.id, { ruleId: rule.id, sourceDigest: rule.sourceDigest || null, coverage: rule.coverage || "full", boundary: resolvedBoundary, targetId: activeActor?.id || owner.id, automatic: true, optional: choices.length > 0, reason: rule.label || null });
         if (!options.discardOperations) scheduled.push(...(rule.operations || []).map(p => ({ p: { ...copy(p), sourceDigest: p.sourceDigest ?? rule.sourceDigest ?? null }, sourceId: owner.id, provenance: { rootActionId: rootId, actionId: null, actionDefinitionId: null, actionInstanceId: rootId, causeEventId: rootId, ownerActorId: owner.id, ruleId: rule.id, sourceDigest: rule.sourceDigest || null, coverage: rule.coverage || "full" } })));
         for (const option of choices) {
           if (!option?.id || !Array.isArray(option.operations)) continue;
           const optionsList = choices.map(item => item.id).filter(Boolean);
-          scheduled.push({ p: { kind: "technique-choice", ruleId: rule.id, triggerKey: key, title: `${rule.label || rule.id}: ${canonicalBoundary}`, options: ["skip", ...optionsList], optionLabels: { skip: "Не использовать", ...Object.fromEntries(choices.map(item => [item.id, item.label || item.id])) }, choices: Object.fromEntries(choices.map(item => [item.id, item.operations])), context: { boundary: canonicalBoundary, boundaryKey: boundaryKey(owner), ownerActorId: owner.id, optional: true, sourceDigest: rule.sourceDigest || null, coverage: rule.coverage || "full" } }, sourceId: owner.id, provenance: { rootActionId: rootId, actionId: null, actionDefinitionId: null, actionInstanceId: rootId, causeEventId: rootId, ownerActorId: owner.id, ruleId: rule.id, sourceDigest: rule.sourceDigest || null, coverage: rule.coverage || "full" } });
+          if (!options.discardChoices) scheduled.push({ p: { kind: "technique-choice", ruleId: rule.id, triggerKey: key, title: `${rule.label || rule.id}: ${resolvedBoundary}`, options: ["skip", ...optionsList], optionLabels: { skip: "Не использовать", ...Object.fromEntries(choices.map(item => [item.id, item.label || item.id])) }, choices: Object.fromEntries(choices.map(item => [item.id, item.operations])), context: { boundary: resolvedBoundary, boundaryKey: resolvedBoundaryKey, ownerActorId: owner.id, optional: true, sourceDigest: rule.sourceDigest || null, coverage: rule.coverage || "full" } }, sourceId: owner.id, provenance: { rootActionId: rootId, actionId: null, actionDefinitionId: null, actionInstanceId: rootId, causeEventId: rootId, ownerActorId: owner.id, ruleId: rule.id, sourceDigest: rule.sourceDigest || null, coverage: rule.coverage || "full" } });
           break;
         }
       }
@@ -2781,7 +2794,10 @@
         }
         case "scene-reset": {
           if(scene.pendingAction||s.choices.length||s.deferred.length||s.duels?.length||s.pausedChains?.length)fail("Сначала завершите ожидающие решения и Дуэли");
-          scheduleBoundary("sceneEnd", null, { discardOperations: true });
+          // Scene-end callbacks are observed for diagnostics/receipts, but
+          // their optional choices belong to the scene that is being closed.
+          // Never leave a stale prompt attached to the freshly reset Scene.
+          scheduleBoundary("sceneEnd", null, { discardOperations: true, discardChoices: true });
           for(const target of scene.actors){
             resetCounters(target,"scene");
             target.hp=maxHealth(target);target.knockedOut=false;target.evasion=0;target.ap=0;target.acted=target.kind==="crowd";target.usedActions=[];target.stepRemaining=0;
