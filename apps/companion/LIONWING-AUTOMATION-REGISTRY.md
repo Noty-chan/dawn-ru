@@ -28,9 +28,9 @@ Canonical уровней: **333** · Явно исправленных review: *
 | `powerhouse.spellsword.1` | SpellSword | 1 | `manual` | `unreviewed` | — | `uncertified` |
 | `powerhouse.spellsword.2` | SpellSword | 2 | `partial` | `unreviewed` | — | `uncertified` |
 | `powerhouse.spellsword.3` | SpellSword | 3 | `full` | `unreviewed` | — | `uncertified` |
-| `powerhouse.technician.1` | Technician | 1 | `manual` | `unreviewed` | — | `uncertified` |
-| `powerhouse.technician.2` | Technician | 2 | `manual` | `unreviewed` | — | `uncertified` |
-| `powerhouse.technician.3` | Technician | 3 | `full` | `unreviewed` | — | `uncertified` |
+| `powerhouse.technician.1` | Technician | 1 | `partial` | `unreviewed` | — | `uncertified` |
+| `powerhouse.technician.2` | Technician | 2 | `partial` | `unreviewed` | — | `uncertified` |
+| `powerhouse.technician.3` | Technician | 3 | `partial` | `unreviewed` | — | `uncertified` |
 | `powerhouse.unbroken.1` | Unbroken | 1 | `manual` | `unreviewed` | — | `uncertified` |
 | `powerhouse.unbroken.2` | Unbroken | 2 | `manual` | `unreviewed` | — | `uncertified` |
 | `powerhouse.unbroken.3` | Unbroken | 3 | `manual` | `unreviewed` | — | `uncertified` |

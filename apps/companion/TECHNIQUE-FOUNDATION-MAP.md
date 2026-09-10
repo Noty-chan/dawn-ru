@@ -128,9 +128,9 @@ SHA-256 проверенных файлов: `6049f3ff6b79b8204c45cb8b830b265369
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Stretch | проверено | ручная | `resource-check`, `usage-limits`, `trigger-router`, `turn-lifecycle`, `duration-scheduler`, `action-modifier`, `action-history`, `derived-stats` |
-| 2 | Perfect Form | проверено | ручная | `trigger-router`, `turn-lifecycle`, `duration-scheduler`, `action-modifier`, `action-history`, `derived-stats` |
-| 3 | Final Blow [ Skirmish → Finisher ] | проверено | полная | `resource-check`, `action-modifier`, `action-history`, `derived-stats` |
+| 1 | Stretch | проверено | частичная | `resource-check`, `usage-limits`, `trigger-router`, `turn-lifecycle`, `duration-scheduler`, `action-modifier`, `action-history`, `derived-stats` |
+| 2 | Perfect Form | проверено | частичная | `trigger-router`, `turn-lifecycle`, `duration-scheduler`, `action-modifier`, `action-history`, `derived-stats` |
+| 3 | Final Blow [ Skirmish → Finisher ] | проверено | частичная | `resource-check`, `action-modifier`, `action-history`, `derived-stats` |
 
 ### Unbroken (`powerhouse.unbroken`)
 

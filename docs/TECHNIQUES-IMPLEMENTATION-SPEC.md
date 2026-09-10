@@ -237,22 +237,22 @@
 
 #### 1. Разминка (Stretch) `powerhouse.technician.1`
 
-- **Заявленный статус:** `manual` (ручная).
-- **Текущий адаптер:** нет записи в `RULES`.
+- **Заявленный статус:** `partial` (частичная).
+- **Текущий адаптер:** `powerhouse.technician.1` · `passive` · {"kind":"passive","sourceDigest":"79946bc3df6de994901a8519030345403e62c0fac627a76aaa8bc0ee45edda83","sourceLevelId":"powerhouse.technician.1","coverage":"partial"}; Авторитетная Зарядка создаёт одноразовое окно до конца следующего собственного Хода; завершённое Skirmish → Finisher даёт 1 ОД. События и срок ведёт общий scheduler..
 - **Готовые foundations:** `resource-check`, `usage-limits`, `trigger-router`, `turn-lifecycle`, `duration-scheduler`, `action-modifier`, `action-history`, `derived-stats`.
-- **Нужно добавить:** Зарегистрировать отдельный adapter (trigger → validation → events/resolver) и прямые тесты; общая инфраструктура сама правило не исполняет.
+- **Нужно добавить:** Для кода явный следующий шаг не выведен автоматически; нужны direct pos/neg/boundary тесты и evidence до повышения доверия.
 
 #### 2. Идеальная форма (Perfect Form) `powerhouse.technician.2`
 
-- **Заявленный статус:** `manual` (ручная).
-- **Текущий адаптер:** нет записи в `RULES`.
+- **Заявленный статус:** `partial` (частичная).
+- **Текущий адаптер:** `powerhouse.technician.2` · `passive` · {"kind":"passive","sourceDigest":"87d635215f2088e683f229d48bc51b0f2bc34d6a88bc1dea707fcea12e4be250","sourceLevelId":"powerhouse.technician.2","coverage":"partial"}; После авторитетно завершённого Skirmish → Finisher выдаётся Tier/2 Брони до начала следующего собственного Хода..
 - **Готовые foundations:** `trigger-router`, `turn-lifecycle`, `duration-scheduler`, `action-modifier`, `action-history`, `derived-stats`.
-- **Нужно добавить:** Зарегистрировать отдельный adapter (trigger → validation → events/resolver) и прямые тесты; общая инфраструктура сама правило не исполняет.
+- **Нужно добавить:** Для кода явный следующий шаг не выведен автоматически; нужны direct pos/neg/boundary тесты и evidence до повышения доверия.
 
 #### 3. Последний удар [Стычка → Завершение] (Final Blow [ Skirmish → Finisher ]) `powerhouse.technician.3`
 
-- **Заявленный статус:** `full` (полная).
-- **Текущий адаптер:** `powerhouse.technician.3` · `combo` · {"kind":"combo","sequenceKeys":["skirmish","finish"],"actionKey":"finish","apCost":1,"sourceLevelId":"powerhouse.technician.3","sourceDigest":"69e9007f8f65def64ef7640b8441616852def68765ad7a717f09587b1039ecfe","coverage":"full"}.
+- **Заявленный статус:** `partial` (частичная).
+- **Текущий адаптер:** `powerhouse.technician.3` · `combo` · {"kind":"combo","sourceDigest":"69e9007f8f65def64ef7640b8441616852def68765ad7a717f09587b1039ecfe","sequenceKeys":["skirmish","finish"],"actionKey":"finish","apCost":1,"postPush":3,"sourceLevelId":"powerhouse.technician.3","coverage":"partial"}.
 - **Готовые foundations:** `resource-check`, `action-modifier`, `action-history`, `derived-stats`.
 - **Нужно добавить:** Для кода явный следующий шаг не выведен автоматически; нужны direct pos/neg/boundary тесты и evidence до повышения доверия.
 

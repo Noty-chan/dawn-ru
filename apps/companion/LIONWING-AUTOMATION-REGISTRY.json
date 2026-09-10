@@ -2433,9 +2433,24 @@
       },
       "level": 1,
       "implementation": {
-        "automation": "manual",
-        "ruleIds": [],
-        "rules": [],
+        "automation": "partial",
+        "ruleIds": [
+          "powerhouse.technician.1"
+        ],
+        "rules": [
+          {
+            "id": "powerhouse.technician.1",
+            "techniqueId": "powerhouse.technician",
+            "level": 1,
+            "name": "Разминка",
+            "kind": "passive",
+            "automation": "partial",
+            "sourceDigest": "79946bc3df6de994901a8519030345403e62c0fac627a76aaa8bc0ee45edda83",
+            "note": "Авторитетная Зарядка создаёт одноразовое окно до конца следующего собственного Хода; завершённое Skirmish → Finisher даёт 1 ОД. События и срок ведёт общий scheduler.",
+            "sourceLevelId": "powerhouse.technician.1",
+            "coverage": "partial"
+          }
+        ],
         "foundationPlan": {
           "version": 10,
           "status": "reviewed",
@@ -2518,7 +2533,9 @@
           "text": "After you Charge, you ‘Stretch'. After Stretching, until the end of your next Turn, completing a Combo gives you 1 AP."
         },
         "canonicalDigest": "79946bc3df6de994901a8519030345403e62c0fac627a76aaa8bc0ee45edda83",
-        "engineRuleDigests": []
+        "engineRuleDigests": [
+          "79946bc3df6de994901a8519030345403e62c0fac627a76aaa8bc0ee45edda83"
+        ]
       },
       "review": {
         "status": "unreviewed",
@@ -2552,9 +2569,24 @@
       },
       "level": 2,
       "implementation": {
-        "automation": "manual",
-        "ruleIds": [],
-        "rules": [],
+        "automation": "partial",
+        "ruleIds": [
+          "powerhouse.technician.2"
+        ],
+        "rules": [
+          {
+            "id": "powerhouse.technician.2",
+            "techniqueId": "powerhouse.technician",
+            "level": 2,
+            "name": "Идеальная форма",
+            "kind": "passive",
+            "automation": "partial",
+            "sourceDigest": "87d635215f2088e683f229d48bc51b0f2bc34d6a88bc1dea707fcea12e4be250",
+            "note": "После авторитетно завершённого Skirmish → Finisher выдаётся Tier/2 Брони до начала следующего собственного Хода.",
+            "sourceLevelId": "powerhouse.technician.2",
+            "coverage": "partial"
+          }
+        ],
         "foundationPlan": {
           "version": 10,
           "status": "reviewed",
@@ -2621,7 +2653,9 @@
           "text": "After you complete a Combo, you gain [Tier/2] Armor until the start of your next Turn."
         },
         "canonicalDigest": "87d635215f2088e683f229d48bc51b0f2bc34d6a88bc1dea707fcea12e4be250",
-        "engineRuleDigests": []
+        "engineRuleDigests": [
+          "87d635215f2088e683f229d48bc51b0f2bc34d6a88bc1dea707fcea12e4be250"
+        ]
       },
       "review": {
         "status": "unreviewed",
@@ -2655,7 +2689,7 @@
       },
       "level": 3,
       "implementation": {
-        "automation": "full",
+        "automation": "partial",
         "ruleIds": [
           "powerhouse.technician.3"
         ],
@@ -2666,16 +2700,17 @@
             "level": 3,
             "name": "Последний удар",
             "kind": "combo",
-            "automation": "full",
+            "automation": "partial",
+            "sourceDigest": "69e9007f8f65def64ef7640b8441616852def68765ad7a717f09587b1039ecfe",
             "sequenceKeys": [
               "skirmish",
               "finish"
             ],
             "actionKey": "finish",
             "apCost": 1,
+            "postPush": 3,
             "sourceLevelId": "powerhouse.technician.3",
-            "sourceDigest": "69e9007f8f65def64ef7640b8441616852def68765ad7a717f09587b1039ecfe",
-            "coverage": "full"
+            "coverage": "partial"
           }
         ],
         "foundationPlan": {

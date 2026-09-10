@@ -1,3 +1,11 @@
+## Актуальная точка передачи — 2026-09-10, Technician I–III canonical slice (`codex/luna-technician-v2`)
+
+Сверен новый EN-канон `source/editions/dawn-en-lionwing-cb2f8e67/canonical/archetypes/powerhouse.json`, стр. 70, и RU overlay в `apps/companion/edition-lionwing-ru.js`. Полные canonical sourceDigest: Technician I `79946bc3df6de994901a8519030345403e62c0fac627a76aaa8bc0ee45edda83`, II `87d635215f2088e683f229d48bc51b0f2bc34d6a88bc1dea707fcea12e4be250`, III `69e9007f8f65def64ef7640b8441616852def68765ad7a717f09587b1039ecfe`.
+
+I: авторитетная Charge открывает clock `powerhouse.technician.stretch` до конца следующего собственного Хода; завершённое `Skirmish → Finisher` в том же Ходе даёт 1 AP. II: тот же подтверждённый combo выдаёт `ceil(Tier / 2)` Armor до начала следующего собственного Хода. III: существующий combo/ActionPlan pipeline проверяет последнее authoritative действие, списывает 1 AP и добавляет push на 3 клетки. Все три уровня имеют honest `partial` coverage; выбор/сложные ветви остаются ручным fallback. Client `combo`/Charge booleans не используются как доказательство.
+
+Добавлены проверки правильного и неправильного порядка, лишнего/чужого Хода, истечения clock, duplicate/reload, cancel pending action и forged provenance, включая реальный scheduler dispatch. Производные `TECHNIQUE-FOUNDATION-MAP.md`, `AUTOMATION-READINESS.md`, `LIONWING-AUTOMATION-MAP.*`, registry и implementation spec обновлены; E2E certification не добавлялась. Targeted и полный `npm --prefix apps/companion test` должны быть запущены на этом срезе.
+
 ## Актуальная точка передачи — 2026-09-10, принят read-only аудит Luna helper
 
 Прочитан итог отдельной задачи `Luna helper — LionWing automation ledger`.

@@ -8,7 +8,7 @@
 
 | Контур | Всего | Заявлено исполнимым | Формально E2E-сертифицировано | Неполный путь |
 | --- | ---: | ---: | ---: | --- |
-| Уровни Техник | 333 | 79 shared/inherited (23.7%) | 0 | 32 частичных; 222 ручных |
+| Уровни Техник | 333 | 78 shared/inherited (23.4%) | 0 | 35 частичных; 220 ручных |
 | Правила обычных врагов | 122 | 0 (0.0%) | 0 | 122 assisted |
 | Атаки врагов | 40 | 0 | 0 | не установлено независимым аудитом |
 
@@ -66,7 +66,7 @@
 
 | Архетип | Уровней | Заявлено full | Заявлено decision | Заявлено partial | Заявлено manual |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| Powerhouse | 60 | 7 | 3 | 6 | 44 |
+| Powerhouse | 60 | 6 | 3 | 9 | 42 |
 | Vagabond | 60 | 9 | 11 | 4 | 36 |
 | Bulwark | 48 | 3 | 3 | 2 | 40 |
 | Altruist | 57 | 2 | 11 | 2 | 42 |
@@ -92,8 +92,6 @@
 | Struggler (`powerhouse.struggler`) | 2 | Adrenaline | тонкий адаптер уникального условия поверх уже готового ядра |
 | Struggler (`powerhouse.struggler`) | 3 | Defy Reason | тонкий адаптер уникального условия поверх уже готового ядра |
 | SpellSword (`powerhouse.spellsword`) | 1 | Twin Suns [ Cast → Skirmish ] | `action-copy` |
-| Technician (`powerhouse.technician`) | 1 | Stretch | тонкий адаптер уникального условия поверх уже готового ядра |
-| Technician (`powerhouse.technician`) | 2 | Perfect Form | тонкий адаптер уникального условия поверх уже готового ядра |
 | Unbroken (`powerhouse.unbroken`) | 1 | Get Back Up | `duel-flow` |
 | Unbroken (`powerhouse.unbroken`) | 2 | Furious Revival | тонкий адаптер уникального условия поверх уже готового ядра |
 | Unbroken (`powerhouse.unbroken`) | 3 | Phoenix | `duel-flow` |
