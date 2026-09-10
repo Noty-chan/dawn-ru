@@ -2215,7 +2215,7 @@
 #### 3. Своя территория (Home Turf) `disruptor.inner-world.3`
 
 - **Заявленный статус:** `partial` (частичная).
-- **Текущий адаптер:** `disruptor.inner-world.3` · `passive` · {"kind":"passive","coverage":"partial"}; Бонус Атак и Дуэлей и увеличенный лимит Домена применяются автоматически; составной выбор Домена остаётся решением игрока..
+- **Текущий адаптер:** `disruptor.inner-world.3` · `passive` · {"kind":"passive","sourceDigest":"fb44b773e2eb1b59c5691f7f5f6b9a2b624f2b9d3cdcffe70ee98cd46a597dff","sourceLevelId":"disruptor.inner-world.3","coverage":"partial"}; Бонус Тир Преимущества в Дуэле сохраняется в entry/resolve snapshot только внутри собственного Внутреннего мира; составной выбор Домена остаётся решением игрока..
 - **Готовые foundations:** `usage-limits`, `trigger-router`, `scene-lifecycle`, `action-modifier`, `dice-hooks`.
 - **Нужно добавить:** Сохранить существующий adapter и добавить недостающий контракт: `duel-flow`.
 
@@ -2331,10 +2331,10 @@
 
 #### 3. Момент истины (Moment Of Truth) `ruiner.student-of-stars.3`
 
-- **Заявленный статус:** `manual` (ручная).
-- **Текущий адаптер:** нет записи в `RULES`.
+- **Заявленный статус:** `decision` (решение).
+- **Текущий адаптер:** `ruiner.student-of-stars.3` · `duel-entry` · {"kind":"duel-entry","sourceDigest":"806d52c0296048d69a25b379d8dcdfa5690dbee0cef391ea6894485016393f6e","sourceLevelId":"ruiner.student-of-stars.3","coverage":"partial"}; Перед входом в Дуэль стол показывает фактический Фокус; при 6+ владелец может потратить весь снимок и получить ceil(Фокус/2) Преимущества только в этой Дуэли. Выбор, отмена и квитанция переживают reload/replay..
 - **Готовые foundations:** `resource-check`, `trigger-router`, `choice-flow`, `dice-hooks`.
-- **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `duel-flow`.
+- **Нужно добавить:** Сохранить существующий adapter и добавить недостающий контракт: `duel-flow`.
 
 ### Кузнец клинков (Blade Smith) `ruiner.mana-blades`
 

@@ -33195,7 +33195,9 @@
             "name": "Родная территория",
             "kind": "passive",
             "automation": "partial",
-            "note": "Бонус Атак и Дуэлей и увеличенный лимит Домена применяются автоматически; составной выбор Домена остаётся решением игрока.",
+            "sourceDigest": "fb44b773e2eb1b59c5691f7f5f6b9a2b624f2b9d3cdcffe70ee98cd46a597dff",
+            "note": "Бонус Тир Преимущества в Дуэле сохраняется в entry/resolve snapshot только внутри собственного Внутреннего мира; составной выбор Домена остаётся решением игрока.",
+            "sourceLevelId": "disruptor.inner-world.3",
             "coverage": "partial"
           }
         ],
@@ -33265,7 +33267,9 @@
           "text": "While in your Inner World, you gain [Tier] Advantage on all attacks and Duels (this feature carries over to the Duel despite it not being combat). \"Domain Of Control\" is now [Spirit] times per Scene instead of once per Scene."
         },
         "canonicalDigest": "fb44b773e2eb1b59c5691f7f5f6b9a2b624f2b9d3cdcffe70ee98cd46a597dff",
-        "engineRuleDigests": []
+        "engineRuleDigests": [
+          "fb44b773e2eb1b59c5691f7f5f6b9a2b624f2b9d3cdcffe70ee98cd46a597dff"
+        ]
       },
       "review": {
         "status": "unreviewed",
@@ -35076,9 +35080,24 @@
       },
       "level": 3,
       "implementation": {
-        "automation": "manual",
-        "ruleIds": [],
-        "rules": [],
+        "automation": "decision",
+        "ruleIds": [
+          "ruiner.student-of-stars.3"
+        ],
+        "rules": [
+          {
+            "id": "ruiner.student-of-stars.3",
+            "techniqueId": "ruiner.student-of-stars",
+            "level": 3,
+            "name": "Момент истины",
+            "kind": "duel-entry",
+            "automation": "decision",
+            "sourceDigest": "806d52c0296048d69a25b379d8dcdfa5690dbee0cef391ea6894485016393f6e",
+            "note": "Перед входом в Дуэль стол показывает фактический Фокус; при 6+ владелец может потратить весь снимок и получить ceil(Фокус/2) Преимущества только в этой Дуэли. Выбор, отмена и квитанция переживают reload/replay.",
+            "sourceLevelId": "ruiner.student-of-stars.3",
+            "coverage": "partial"
+          }
+        ],
         "foundationPlan": {
           "version": 11,
           "status": "reviewed",
@@ -35137,7 +35156,9 @@
           "text": "If you enter a Duel with 6 or more Focus, you may expend all of it to gain Advantage in that Duel, equal to half the Focus you spent."
         },
         "canonicalDigest": "806d52c0296048d69a25b379d8dcdfa5690dbee0cef391ea6894485016393f6e",
-        "engineRuleDigests": []
+        "engineRuleDigests": [
+          "806d52c0296048d69a25b379d8dcdfa5690dbee0cef391ea6894485016393f6e"
+        ]
       },
       "review": {
         "status": "unreviewed",

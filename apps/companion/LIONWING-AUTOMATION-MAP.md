@@ -7,6 +7,8 @@
 
 Числовой проход 2026-09-10 отражён в registry: `bulwark.iron-bodied.3` и `vagabond.aerial-master.3` добавлены как partial, а существующий `vagabond.skirmisher.3` получил явную partial запись; полные canonical digest и остаток ручной работы указаны в [numeric pass handoff](../../docs/tasks/LIONWING_NUMERIC_PASSIVES_HANDOFF_2026-09-10.md).
 
+Проход Duel entry 2026-09-10: `ruiner.student-of-stars.3` подключён как decision через проверяемый Focus-at-entry choice, а `disruptor.inner-world.3` сохраняет собственный Tier-бонус в entry/resolve snapshot; остальные найденные в новом английском каноне Duel-триггеры отсутствуют.
+
 ## Сводка стратегий
 
 | Стратегия | Количество | Назначение |
