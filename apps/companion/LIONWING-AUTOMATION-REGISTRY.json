@@ -28,7 +28,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "resource-check",
@@ -100,7 +100,7 @@
             },
             {
               "id": "combat-meter",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -155,7 +155,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "trigger-router",
@@ -234,7 +234,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "effect-state",
@@ -344,7 +344,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -457,7 +457,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -593,7 +593,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -714,7 +714,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -848,7 +848,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -961,7 +961,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -1072,7 +1072,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "effect-state",
@@ -1159,7 +1159,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -1294,7 +1294,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "effect-state",
@@ -1401,7 +1401,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -1543,7 +1543,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "resource-check",
@@ -1663,7 +1663,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -1784,7 +1784,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "trigger-router",
@@ -1887,7 +1887,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -2006,7 +2006,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "trigger-router",
@@ -2085,7 +2085,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "resource-check",
@@ -2194,7 +2194,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -2332,7 +2332,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -2437,7 +2437,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "resource-check",
@@ -2556,7 +2556,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "trigger-router",
@@ -2679,7 +2679,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "resource-check",
@@ -2768,7 +2768,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "resource-check",
@@ -2871,7 +2871,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "resource-check",
@@ -2950,7 +2950,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "resource-check",
@@ -3054,7 +3054,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "rule-clock",
@@ -3188,7 +3188,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "rule-clock",
@@ -3300,7 +3300,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "rule-clock",
@@ -3396,7 +3396,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -3501,7 +3501,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "effect-state",
@@ -3604,7 +3604,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -3707,7 +3707,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -3826,7 +3826,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -3937,7 +3937,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -4080,7 +4080,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "candidate",
           "reviewed": [],
           "capabilities": [
@@ -4148,7 +4148,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "candidate",
           "reviewed": [],
           "capabilities": [
@@ -4216,7 +4216,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "candidate",
           "reviewed": [],
           "capabilities": [
@@ -4284,7 +4284,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -4419,7 +4419,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -4530,7 +4530,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "usage-limits",
@@ -4617,7 +4617,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "effect-state",
@@ -4712,7 +4712,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "resource-check",
@@ -4823,7 +4823,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "resource-check",
@@ -4910,7 +4910,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -5005,7 +5005,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -5100,7 +5100,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -5227,7 +5227,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -5354,7 +5354,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "movement-lifecycle",
@@ -5457,7 +5457,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "resource-check",
@@ -5596,7 +5596,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "spatial-range",
@@ -5731,7 +5731,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "usage-limits",
@@ -5826,7 +5826,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "terrain",
@@ -5882,7 +5882,7 @@
             },
             {
               "id": "combat-meter",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -5950,7 +5950,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -6071,7 +6071,7 @@
             },
             {
               "id": "combat-meter",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -6133,7 +6133,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "trigger-router",
@@ -6237,7 +6237,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -6348,7 +6348,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "candidate",
           "reviewed": [],
           "capabilities": [
@@ -6416,7 +6416,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "candidate",
           "reviewed": [],
           "capabilities": [
@@ -6484,7 +6484,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "candidate",
           "reviewed": [],
           "capabilities": [
@@ -6570,7 +6570,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "effect-state",
@@ -6689,7 +6689,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "effect-state",
@@ -6792,7 +6792,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -6934,7 +6934,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "usage-limits",
@@ -7038,7 +7038,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -7204,7 +7204,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "effect-state",
@@ -7303,7 +7303,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -7390,7 +7390,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "effect-state",
@@ -7501,7 +7501,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -7620,7 +7620,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -7739,7 +7739,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "movement-lifecycle",
@@ -7826,7 +7826,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -7945,7 +7945,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -8044,7 +8044,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "movement-lifecycle",
@@ -8125,7 +8125,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -8275,7 +8275,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "usage-limits",
@@ -8379,7 +8379,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "movement-lifecycle",
@@ -8468,7 +8468,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -8571,7 +8571,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -8682,7 +8682,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "movement-lifecycle",
@@ -8785,7 +8785,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "movement-lifecycle",
@@ -8880,7 +8880,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "stance",
@@ -8983,7 +8983,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -9094,7 +9094,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "movement-lifecycle",
@@ -9208,7 +9208,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -9352,7 +9352,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "usage-limits",
@@ -9433,7 +9433,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -9587,7 +9587,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -9747,7 +9747,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -9899,7 +9899,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "rule-clock",
@@ -9947,7 +9947,7 @@
             },
             {
               "id": "combat-meter",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -10019,7 +10019,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -10132,7 +10132,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -10243,7 +10243,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -10374,7 +10374,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -10506,7 +10506,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -10656,7 +10656,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -10801,7 +10801,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -10928,7 +10928,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "effect-state",
@@ -11023,7 +11023,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "resource-check",
@@ -11126,7 +11126,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "candidate",
           "reviewed": [],
           "capabilities": [
@@ -11194,7 +11194,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "candidate",
           "reviewed": [],
           "capabilities": [
@@ -11262,7 +11262,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "candidate",
           "reviewed": [],
           "capabilities": [
@@ -11350,7 +11350,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -11484,7 +11484,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -11636,7 +11636,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "resource-check",
@@ -11716,7 +11716,7 @@
             },
             {
               "id": "combat-meter",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -11773,7 +11773,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -11900,7 +11900,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -12019,7 +12019,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -12154,7 +12154,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "trigger-router",
@@ -12257,7 +12257,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "trigger-router",
@@ -12344,7 +12344,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -12486,7 +12486,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -12648,7 +12648,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -12779,7 +12779,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -12906,7 +12906,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -13065,7 +13065,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "effect-state",
@@ -13160,7 +13160,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "effect-state",
@@ -13286,7 +13286,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -13454,7 +13454,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "resource-check",
@@ -13590,7 +13590,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -13751,7 +13751,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -13870,7 +13870,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -14005,7 +14005,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "trigger-router",
@@ -14122,7 +14122,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -14233,7 +14233,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "movement-lifecycle",
@@ -14344,7 +14344,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -14479,7 +14479,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "movement-lifecycle",
@@ -14565,7 +14565,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "derived-stats"
@@ -14630,7 +14630,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "effect-state",
@@ -14741,7 +14741,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -14860,7 +14860,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "resource-check",
@@ -14979,7 +14979,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -15098,7 +15098,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -15225,7 +15225,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -15368,7 +15368,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -15479,7 +15479,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "movement-lifecycle",
@@ -15582,7 +15582,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -15701,7 +15701,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -15868,7 +15868,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -15986,7 +15986,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -16107,7 +16107,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -16258,7 +16258,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -16385,7 +16385,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -16512,7 +16512,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "movement-lifecycle",
@@ -16599,7 +16599,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -16694,7 +16694,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -16829,7 +16829,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -16977,7 +16977,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "resource-check",
@@ -17087,7 +17087,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -17207,7 +17207,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -17344,7 +17344,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "resource-check",
@@ -17439,7 +17439,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -17565,7 +17565,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "dice-hooks",
@@ -17638,7 +17638,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "resource-check",
@@ -17749,7 +17749,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -17868,7 +17868,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -17987,7 +17987,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "movement-lifecycle",
@@ -18085,7 +18085,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "resource-check",
@@ -18174,7 +18174,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -18309,7 +18309,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -18430,7 +18430,7 @@
             },
             {
               "id": "combat-meter",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -18492,7 +18492,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "trigger-router",
@@ -18587,7 +18587,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "resource-check",
@@ -18706,7 +18706,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -18809,7 +18809,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -18920,7 +18920,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -19063,7 +19063,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -19222,7 +19222,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -19381,7 +19381,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "resource-check",
@@ -19524,7 +19524,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -19651,7 +19651,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -19754,7 +19754,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -19873,7 +19873,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -20000,7 +20000,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -20119,7 +20119,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -20253,7 +20253,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -20381,7 +20381,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -20525,7 +20525,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -20644,7 +20644,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -20778,7 +20778,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -20922,7 +20922,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -21051,7 +21051,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -21185,7 +21185,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "inventory",
@@ -21258,7 +21258,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -21374,7 +21374,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -21485,7 +21485,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "effect-state",
@@ -21604,7 +21604,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -21731,7 +21731,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "resource-check",
@@ -21858,7 +21858,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "resource-check",
@@ -21961,7 +21961,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "resource-check",
@@ -22064,7 +22064,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -22167,7 +22167,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "spatial-range",
@@ -22270,7 +22270,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -22365,7 +22365,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "candidate",
           "reviewed": [],
           "capabilities": [
@@ -22433,7 +22433,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "candidate",
           "reviewed": [],
           "capabilities": [
@@ -22501,7 +22501,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "candidate",
           "reviewed": [],
           "capabilities": [
@@ -22584,7 +22584,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -22728,7 +22728,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -22841,7 +22841,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "resource-check",
@@ -22944,7 +22944,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -23079,7 +23079,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "resource-check",
@@ -23166,7 +23166,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "effect-state",
@@ -23269,7 +23269,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -23412,7 +23412,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "movement-lifecycle",
@@ -23515,7 +23515,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -23650,7 +23650,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -23761,7 +23761,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "movement-lifecycle",
@@ -23833,7 +23833,7 @@
             },
             {
               "id": "combat-meter",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -23888,7 +23888,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "trigger-router",
@@ -23967,7 +23967,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -24102,7 +24102,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "movement-lifecycle",
@@ -24189,7 +24189,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "resource-check",
@@ -24300,7 +24300,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -24442,7 +24442,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -24590,7 +24590,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -24751,7 +24751,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -24894,7 +24894,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "resource-check",
@@ -25005,7 +25005,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "resource-check",
@@ -25100,7 +25100,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -25259,7 +25259,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -25378,7 +25378,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -25513,7 +25513,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -25680,7 +25680,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -25823,7 +25823,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "inventory",
@@ -25917,7 +25917,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -26093,7 +26093,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -26237,7 +26237,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "owned-entities",
@@ -26326,7 +26326,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -26429,7 +26429,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -26564,7 +26564,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -26708,7 +26708,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -26890,7 +26890,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -27031,7 +27031,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -27175,7 +27175,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -27319,7 +27319,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -27432,7 +27432,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -27559,7 +27559,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -27694,7 +27694,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "effect-state",
@@ -27781,7 +27781,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "movement-lifecycle",
@@ -27884,7 +27884,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "candidate",
           "reviewed": [],
           "capabilities": [
@@ -27952,7 +27952,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "candidate",
           "reviewed": [],
           "capabilities": [
@@ -28020,7 +28020,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "candidate",
           "reviewed": [],
           "capabilities": [
@@ -28088,7 +28088,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -28228,7 +28228,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "spatial-range",
@@ -28331,7 +28331,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -28474,7 +28474,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -28577,7 +28577,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -28688,7 +28688,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -28827,7 +28827,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "resource-check",
@@ -28951,7 +28951,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -29092,7 +29092,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -29227,7 +29227,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "movement-lifecycle",
@@ -29330,7 +29330,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -29465,7 +29465,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -29600,7 +29600,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -29727,7 +29727,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -29830,7 +29830,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -29933,7 +29933,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -30076,7 +30076,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "movement-lifecycle",
@@ -30171,7 +30171,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -30313,7 +30313,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -30457,7 +30457,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -30593,7 +30593,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -30722,7 +30722,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -30873,7 +30873,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -30984,7 +30984,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -31111,7 +31111,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -31251,7 +31251,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -31359,7 +31359,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -31510,7 +31510,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -31645,7 +31645,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -31772,7 +31772,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -31916,7 +31916,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -32068,7 +32068,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -32197,7 +32197,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -32316,7 +32316,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -32443,7 +32443,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "movement-lifecycle",
@@ -32538,7 +32538,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "terrain",
@@ -32654,7 +32654,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -32791,7 +32791,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -32941,7 +32941,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "usage-limits",
@@ -33063,7 +33063,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -33184,7 +33184,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -33329,7 +33329,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -33450,7 +33450,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -33593,7 +33593,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -33712,7 +33712,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -33768,7 +33768,7 @@
             },
             {
               "id": "combat-meter",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -33839,7 +33839,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "resource-check",
@@ -33903,7 +33903,7 @@
             },
             {
               "id": "combat-meter",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -33958,7 +33958,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "spatial-range",
@@ -34038,7 +34038,7 @@
             },
             {
               "id": "combat-meter",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -34093,7 +34093,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "terrain",
@@ -34219,7 +34219,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "spatial-cells",
@@ -34371,7 +34371,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "resource-check",
@@ -34483,7 +34483,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "resource-check",
@@ -34572,7 +34572,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "resource-check",
@@ -34612,7 +34612,7 @@
             },
             {
               "id": "combat-meter",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -34697,7 +34697,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -34800,7 +34800,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "resource-check",
@@ -34895,7 +34895,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "resource-check",
@@ -34990,7 +34990,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -35125,7 +35125,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "effect-state",
@@ -35236,7 +35236,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "resource-check",
@@ -35292,7 +35292,7 @@
             },
             {
               "id": "combat-meter",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -35347,7 +35347,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "trigger-router",
@@ -35371,7 +35371,7 @@
             },
             {
               "id": "combat-meter",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -35426,7 +35426,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -35506,7 +35506,7 @@
             },
             {
               "id": "combat-meter",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -35561,7 +35561,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -35691,7 +35691,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -35795,7 +35795,7 @@
             },
             {
               "id": "combat-meter",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -35867,7 +35867,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -35939,7 +35939,7 @@
             },
             {
               "id": "combat-meter",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -35996,7 +35996,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "resource-check",
@@ -36107,7 +36107,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -36179,7 +36179,7 @@
             },
             {
               "id": "combat-meter",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -36234,7 +36234,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -36368,7 +36368,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -36492,7 +36492,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -36647,7 +36647,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -36797,7 +36797,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -36925,7 +36925,7 @@
             },
             {
               "id": "combat-meter",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -36997,7 +36997,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "effect-state",
@@ -37112,7 +37112,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -37231,7 +37231,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "resource-check",
@@ -37326,7 +37326,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "movement-lifecycle",
@@ -37405,7 +37405,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -37556,7 +37556,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -37707,7 +37707,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "resource-check",
@@ -37842,7 +37842,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -38009,7 +38009,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "movement-lifecycle",
@@ -38120,7 +38120,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "resource-check",
@@ -38234,7 +38234,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -38398,7 +38398,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "effect-state",
@@ -38526,7 +38526,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -38678,7 +38678,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -38834,7 +38834,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "resource-check",
@@ -38970,7 +38970,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -39106,7 +39106,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -39312,7 +39312,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -39504,7 +39504,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "resource-check",
@@ -39640,7 +39640,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "resource-check",
@@ -39729,7 +39729,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -39872,7 +39872,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -40015,7 +40015,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 10,
+          "version": 11,
           "status": "reviewed",
           "reviewed": [
             "target-validation",

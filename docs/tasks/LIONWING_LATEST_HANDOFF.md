@@ -1075,3 +1075,22 @@ registry levels), targeted inventory/information tests и полный `npm test
 ## Movement lifecycle integration audit, 2026-09-10
 
 Принят общий adapter-facing lifecycle `movement.prepare/start/leave/segment/enter/cross/end/stop`. Факты пути, дистанции, режима и причины остановки вычисляет геометрия и журналирует ядро; клиентский путь не считается доказательством. Обычный Jump публикует тот же контракт. API предназначен как фундамент для массовых адаптеров и сам по себе не объявляет 118 зависимых уровней автоматизированными.
+## Актуальная точка передачи — 2026-09-10, общий combat meter
+
+В `codex/luna-combat-meter-v2` добавлен `lionwing-combat-meter.js`: typed
+`scene.lionwing.meters.tension` с обязательными owner/source, scope/lifetime,
+min/max, revision и bounded receipts. Старый `scene.tension` сохранён только
+как совместимый projection для UI/старых сохранений; engine восстанавливает его
+из typed meter при нормализации.
+
+KO, конец Раунда, составной Health Gate, scene reset и ручные `tension`/
+`combat-meter` команды проходят через один атомарный engine writer. Он публикует
+`combat-meter.change`, threshold остаётся `counter.threshold`, повторный receipt
+идемпотентен. Reader/quote доступны через `DAWN_LIONWING_ENGINE.combatMeter`;
+они работают по копии и не являются writer-API. Три contract consumers покрыты
+`tests/lionwing-combat-meter.mjs`; E2E не заявляется.
+
+Gap audit и ручные границы: `docs/tasks/LIONWING_COMBAT_METER_GAP_AUDIT.md`.
+Карта/registry/readiness/reference docs пересобраны. Targeted `test:families` и
+полный `npm test` проходят; отдельный commit/push выполняются после проверки
+этой ветки.

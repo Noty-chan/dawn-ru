@@ -79,7 +79,7 @@
 
 | Техника | Ур. | Правило | Чего не хватает |
 | --- | ---: | --- | --- |
-| Berserker (`powerhouse.berserker`) | 1 | Revenge | `combat-meter` |
+| Berserker (`powerhouse.berserker`) | 1 | Revenge | тонкий адаптер уникального условия поверх уже готового ядра |
 | Berserker (`powerhouse.berserker`) | 2 | Cornered Dog | тонкий адаптер уникального условия поверх уже готового ядра |
 | Berserker (`powerhouse.berserker`) | 3 | Take A Beating | тонкий адаптер уникального условия поверх уже готового ядра |
 | Dragonslayer (`powerhouse.dragonslayer`) | 2 | Wide Arc | тонкий адаптер уникального условия поверх уже готового ядра |
@@ -118,7 +118,7 @@
 | Predator (`powerhouse.predator`) | 2 | Obsess | тонкий адаптер уникального условия поверх уже готового ядра |
 | Predator (`powerhouse.predator`) | 3 | Envelop | тонкий адаптер уникального условия поверх уже готового ядра |
 | Improvisational Fighter (`powerhouse.improvisational-fighter`) | 2 | "That One Hurts!" | тонкий адаптер уникального условия поверх уже готового ядра |
-| Improvisational Fighter (`powerhouse.improvisational-fighter`) | 3 | Last Resort | `combat-meter` |
+| Improvisational Fighter (`powerhouse.improvisational-fighter`) | 3 | Last Resort | тонкий адаптер уникального условия поверх уже готового ядра |
 | Warring Ascendant (`powerhouse.warring-ascendant`) | 2 | Esoteric Blades | `transformation`, `action-copy` |
 | Heroic Ascendant (`powerhouse.heroic-ascendant`) | 1 | Warrior Of Legend | тонкий адаптер уникального условия поверх уже готового ядра |
 | Heroic Ascendant (`powerhouse.heroic-ascendant`) | 2 | Hero's Feat | тонкий адаптер уникального условия поверх уже готового ядра |
@@ -190,7 +190,7 @@
 | Shield Bearer (`bulwark.shield-bearer`) | 3 | Focused Defense | тонкий адаптер уникального условия поверх уже готового ядра |
 | Stalwart Sentry (`bulwark.stalwart-sentry`) | 1 | Guardian | тонкий адаптер уникального условия поверх уже готового ядра |
 | Stalwart Sentry (`bulwark.stalwart-sentry`) | 3 | Zone Of Influence | тонкий адаптер уникального условия поверх уже готового ядра |
-| Bestial Ascendant (`bulwark.beastial-ascendant`) | 1 | Beastly | `transformation`, `combat-meter`, `action-copy` |
+| Bestial Ascendant (`bulwark.beastial-ascendant`) | 1 | Beastly | `transformation`, `action-copy` |
 | Bestial Ascendant (`bulwark.beastial-ascendant`) | 2 | Inheritance | `transformation`, `action-copy` |
 | Bestial Ascendant (`bulwark.beastial-ascendant`) | 3 | Apex | `transformation`, `action-copy` |
 | Guard Caller (`bulwark.guardian-angel`) | 1 | Two Bodies | `multi-space-actor` |
@@ -226,7 +226,7 @@
 | Fog Walker (`altruist.fog-walker`) | 2 | Mystic Mist | тонкий адаптер уникального условия поверх уже готового ядра |
 | Fog Walker (`altruist.fog-walker`) | 3 | Stinging Steam | тонкий адаптер уникального условия поверх уже готового ядра |
 | Last Hope (`altruist.last-hope`) | 1 | Notably Absent | тонкий адаптер уникального условия поверх уже готового ядра |
-| Last Hope (`altruist.last-hope`) | 2 | Heroic Return | `combat-meter` |
+| Last Hope (`altruist.last-hope`) | 2 | Heroic Return | тонкий адаптер уникального условия поверх уже готового ядра |
 | Last Hope (`altruist.last-hope`) | 3 | Explosive Return | тонкий адаптер уникального условия поверх уже готового ядра |
 | Replicator (`altruist.replicator`) | 1 | Echo Form | тонкий адаптер уникального условия поверх уже готового ядра |
 | Replicator (`altruist.replicator`) | 2 | Symmetry | тонкий адаптер уникального условия поверх уже готового ядра |
@@ -274,20 +274,20 @@
 | Jailor (`disruptor.mage-s-array`) | 2 | Readjust | тонкий адаптер уникального условия поверх уже готового ядра |
 | Jailor (`disruptor.mage-s-array`) | 3 | Prison Of Your Own Design | тонкий адаптер уникального условия поверх уже готового ядра |
 | Eradicator (`ruiner.rapid-fire-sorcery`) | 1 | Proliferate | тонкий адаптер уникального условия поверх уже готового ядра |
-| Eradicator (`ruiner.rapid-fire-sorcery`) | 3 | Endless Fire [ Charge → Cast ] | `combat-meter` |
-| Ritualist (`ruiner.ritualist`) | 2 | Arcane Artillery | `combat-meter` |
+| Eradicator (`ruiner.rapid-fire-sorcery`) | 3 | Endless Fire [ Charge → Cast ] | тонкий адаптер уникального условия поверх уже готового ядра |
+| Ritualist (`ruiner.ritualist`) | 2 | Arcane Artillery | тонкий адаптер уникального условия поверх уже готового ядра |
 | Ritualist (`ruiner.ritualist`) | 3 | Fractal Etchings | тонкий адаптер уникального условия поверх уже готового ядра |
-| Student Of Stars (`ruiner.student-of-stars`) | 1 | Power Unleashed [ Charge → Finisher ] | `combat-meter` |
+| Student Of Stars (`ruiner.student-of-stars`) | 1 | Power Unleashed [ Charge → Finisher ] | тонкий адаптер уникального условия поверх уже готового ядра |
 | Student Of Stars (`ruiner.student-of-stars`) | 3 | Moment Of Truth | `duel-flow` |
 | Blade Smith (`ruiner.mana-blades`) | 1 | Call Arms | `action-copy` |
 | Blade Smith (`ruiner.mana-blades`) | 2 | Blade Storm | тонкий адаптер уникального условия поверх уже готового ядра |
 | Blade Smith (`ruiner.mana-blades`) | 3 | Saintly Sword, Excalibur | `transformation`, `action-copy` |
-| Dramaturge (`ruiner.dramaturge`) | 1 | All Eyes On Me | `combat-meter` |
-| Dramaturge (`ruiner.dramaturge`) | 2 | Snatch Their Fire | `combat-meter` |
-| Dramaturge (`ruiner.dramaturge`) | 3 | Power In Presentation | `combat-meter` |
+| Dramaturge (`ruiner.dramaturge`) | 1 | All Eyes On Me | тонкий адаптер уникального условия поверх уже готового ядра |
+| Dramaturge (`ruiner.dramaturge`) | 2 | Snatch Their Fire | тонкий адаптер уникального условия поверх уже готового ядра |
+| Dramaturge (`ruiner.dramaturge`) | 3 | Power In Presentation | тонкий адаптер уникального условия поверх уже готового ядра |
 | Feral Arcanist (`ruiner.feral-arcana`) | 1 | Vorpal Claw | тонкий адаптер уникального условия поверх уже готового ядра |
 | Flame Heart (`ruiner.flame-heart`) | 1 | Rev Up | тонкий адаптер уникального условия поверх уже готового ядра |
-| Flame Heart (`ruiner.flame-heart`) | 2 | Damning Impact | `combat-meter` |
+| Flame Heart (`ruiner.flame-heart`) | 2 | Damning Impact | тонкий адаптер уникального условия поверх уже готового ядра |
 | Flame Heart (`ruiner.flame-heart`) | 3 | Ashes To Ashes | тонкий адаптер уникального условия поверх уже готового ядра |
 | Frost Veiler (`ruiner.cryomancer`) | 3 | Shatter | тонкий адаптер уникального условия поверх уже готового ядра |
 | Grim Ascendant (`ruiner.grim-ascendant`) | 3 | Umbra | `transformation` |
@@ -306,7 +306,6 @@
 
 | Возможность | Затронуто Уровней | Почему это выгодная следующая инвестиция |
 | --- | ---: | --- |
-| `combat-meter` · Напряжение и общие счетчики боя | 13 | Один общий контракт сможет снять этот блокер сразу у нескольких адаптеров; модуль пока не закреплён |
 | `action-copy` · Заимствование Атак и Техник | 10 | Один общий контракт сможет снять этот блокер сразу у нескольких адаптеров; модуль пока не закреплён |
 | `transformation` · Трансформации и заимствованные правила | 10 | Один общий контракт сможет снять этот блокер сразу у нескольких адаптеров; модуль пока не закреплён |
 | `summon-turns` · Призывы и делегированные Ходы | 8 | Один общий контракт сможет снять этот блокер сразу у нескольких адаптеров; модуль пока не закреплён |
