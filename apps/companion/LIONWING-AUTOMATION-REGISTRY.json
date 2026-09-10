@@ -28,7 +28,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "resource-check",
@@ -72,7 +72,7 @@
             },
             {
               "id": "turn-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -93,7 +93,7 @@
             },
             {
               "id": "derived-stats",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -155,7 +155,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "trigger-router",
@@ -179,7 +179,7 @@
             },
             {
               "id": "derived-stats",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -234,7 +234,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "effect-state",
@@ -344,7 +344,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -457,7 +457,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -593,7 +593,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -622,7 +622,7 @@
             },
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -714,7 +714,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -743,7 +743,7 @@
             },
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -848,7 +848,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -961,7 +961,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -1072,7 +1072,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "effect-state",
@@ -1159,7 +1159,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -1190,7 +1190,7 @@
             },
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -1225,7 +1225,7 @@
             },
             {
               "id": "turn-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -1294,7 +1294,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "effect-state",
@@ -1401,7 +1401,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -1452,7 +1452,7 @@
             },
             {
               "id": "scene-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -1543,7 +1543,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "resource-check",
@@ -1577,7 +1577,7 @@
             },
             {
               "id": "turn-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -1663,7 +1663,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -1784,7 +1784,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "trigger-router",
@@ -1804,7 +1804,7 @@
             },
             {
               "id": "scene-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -1832,7 +1832,7 @@
             },
             {
               "id": "derived-stats",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -1887,7 +1887,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -1916,7 +1916,7 @@
             },
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -2006,7 +2006,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "trigger-router",
@@ -2085,7 +2085,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "resource-check",
@@ -2194,7 +2194,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -2220,7 +2220,7 @@
             },
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -2332,7 +2332,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -2437,7 +2437,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "resource-check",
@@ -2473,7 +2473,7 @@
             },
             {
               "id": "turn-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -2501,7 +2501,7 @@
             },
             {
               "id": "derived-stats",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -2556,7 +2556,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "trigger-router",
@@ -2576,7 +2576,7 @@
             },
             {
               "id": "turn-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -2604,7 +2604,7 @@
             },
             {
               "id": "derived-stats",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -2679,7 +2679,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "resource-check",
@@ -2711,7 +2711,7 @@
             },
             {
               "id": "derived-stats",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -2768,7 +2768,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "resource-check",
@@ -2795,7 +2795,7 @@
             },
             {
               "id": "scene-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -2871,7 +2871,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "resource-check",
@@ -2950,7 +2950,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "resource-check",
@@ -3054,7 +3054,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "rule-clock",
@@ -3090,7 +3090,7 @@
             },
             {
               "id": "scene-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -3188,7 +3188,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "rule-clock",
@@ -3300,7 +3300,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "rule-clock",
@@ -3396,7 +3396,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -3430,7 +3430,7 @@
             },
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -3501,7 +3501,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "effect-state",
@@ -3604,7 +3604,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -3707,7 +3707,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -3826,7 +3826,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -3937,7 +3937,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -3976,7 +3976,7 @@
             },
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -3997,7 +3997,7 @@
             },
             {
               "id": "turn-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -4080,7 +4080,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "candidate",
           "reviewed": [],
           "capabilities": [
@@ -4148,7 +4148,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "candidate",
           "reviewed": [],
           "capabilities": [
@@ -4216,7 +4216,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "candidate",
           "reviewed": [],
           "capabilities": [
@@ -4284,7 +4284,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -4315,7 +4315,7 @@
             },
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -4350,7 +4350,7 @@
             },
             {
               "id": "turn-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -4419,7 +4419,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -4475,7 +4475,7 @@
             },
             {
               "id": "derived-stats",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -4530,7 +4530,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "usage-limits",
@@ -4617,7 +4617,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "effect-state",
@@ -4650,14 +4650,14 @@
             },
             {
               "id": "turn-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
             },
             {
               "id": "derived-stats",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -4712,7 +4712,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "resource-check",
@@ -4754,7 +4754,7 @@
             },
             {
               "id": "turn-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -4823,7 +4823,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "resource-check",
@@ -4848,7 +4848,7 @@
             },
             {
               "id": "turn-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -4910,7 +4910,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -5005,7 +5005,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -5100,7 +5100,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -5227,7 +5227,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -5278,7 +5278,7 @@
             },
             {
               "id": "turn-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -5354,7 +5354,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "movement-lifecycle",
@@ -5367,7 +5367,7 @@
           "capabilities": [
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -5395,7 +5395,7 @@
             },
             {
               "id": "derived-stats",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -5457,7 +5457,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "resource-check",
@@ -5507,7 +5507,7 @@
             },
             {
               "id": "scene-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -5596,7 +5596,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "spatial-range",
@@ -5676,7 +5676,7 @@
             },
             {
               "id": "derived-stats",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -5731,7 +5731,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "usage-limits",
@@ -5757,7 +5757,7 @@
             },
             {
               "id": "turn-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -5826,7 +5826,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "terrain",
@@ -5861,7 +5861,7 @@
             },
             {
               "id": "scene-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -5950,7 +5950,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -6015,7 +6015,7 @@
             },
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -6036,7 +6036,7 @@
             },
             {
               "id": "scene-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -6133,7 +6133,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "trigger-router",
@@ -6237,7 +6237,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -6348,7 +6348,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "candidate",
           "reviewed": [],
           "capabilities": [
@@ -6416,7 +6416,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "candidate",
           "reviewed": [],
           "capabilities": [
@@ -6484,7 +6484,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "candidate",
           "reviewed": [],
           "capabilities": [
@@ -6570,7 +6570,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "effect-state",
@@ -6613,7 +6613,7 @@
             },
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -6689,7 +6689,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "effect-state",
@@ -6716,7 +6716,7 @@
             },
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -6792,7 +6792,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -6864,7 +6864,7 @@
             },
             {
               "id": "derived-stats",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -6934,7 +6934,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "usage-limits",
@@ -7038,7 +7038,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -7084,7 +7084,7 @@
             },
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -7204,7 +7204,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "effect-state",
@@ -7230,7 +7230,7 @@
             },
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -7303,7 +7303,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -7390,7 +7390,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "effect-state",
@@ -7425,7 +7425,7 @@
             },
             {
               "id": "turn-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -7501,7 +7501,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -7530,7 +7530,7 @@
             },
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -7620,7 +7620,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -7663,7 +7663,7 @@
             },
             {
               "id": "turn-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -7684,7 +7684,7 @@
             },
             {
               "id": "derived-stats",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -7739,7 +7739,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "movement-lifecycle",
@@ -7750,7 +7750,7 @@
           "capabilities": [
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -7826,7 +7826,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -7855,7 +7855,7 @@
             },
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -7945,7 +7945,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -7969,7 +7969,7 @@
             },
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -8044,7 +8044,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "movement-lifecycle",
@@ -8054,7 +8054,7 @@
           "capabilities": [
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -8125,7 +8125,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -8170,7 +8170,7 @@
             },
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -8191,7 +8191,7 @@
             },
             {
               "id": "turn-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -8275,7 +8275,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "usage-limits",
@@ -8300,14 +8300,14 @@
             },
             {
               "id": "turn-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
             },
             {
               "id": "derived-stats",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -8379,7 +8379,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "movement-lifecycle",
@@ -8390,7 +8390,7 @@
           "capabilities": [
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -8411,7 +8411,7 @@
             },
             {
               "id": "derived-stats",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -8468,7 +8468,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -8495,7 +8495,7 @@
             },
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -8571,7 +8571,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -8599,7 +8599,7 @@
             },
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -8682,7 +8682,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "movement-lifecycle",
@@ -8695,7 +8695,7 @@
           "capabilities": [
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -8723,14 +8723,14 @@
             },
             {
               "id": "turn-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
             },
             {
               "id": "derived-stats",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -8785,7 +8785,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "movement-lifecycle",
@@ -8797,7 +8797,7 @@
           "capabilities": [
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -8880,7 +8880,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "stance",
@@ -8983,7 +8983,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -9011,7 +9011,7 @@
             },
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -9094,7 +9094,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "movement-lifecycle",
@@ -9106,7 +9106,7 @@
           "capabilities": [
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -9208,7 +9208,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -9259,14 +9259,14 @@
             },
             {
               "id": "turn-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
             },
             {
               "id": "scene-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -9352,7 +9352,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "usage-limits",
@@ -9369,7 +9369,7 @@
             },
             {
               "id": "turn-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -9433,7 +9433,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -9499,7 +9499,7 @@
             },
             {
               "id": "turn-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -9587,7 +9587,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -9626,7 +9626,7 @@
             },
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -9647,14 +9647,14 @@
             },
             {
               "id": "turn-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
             },
             {
               "id": "scene-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -9747,7 +9747,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -9827,7 +9827,7 @@
             },
             {
               "id": "derived-stats",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -9899,7 +9899,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "rule-clock",
@@ -9933,7 +9933,7 @@
             },
             {
               "id": "scene-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -10019,7 +10019,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -10054,7 +10054,7 @@
             },
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -10132,7 +10132,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -10160,7 +10160,7 @@
             },
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -10243,7 +10243,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -10271,7 +10271,7 @@
             },
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -10374,7 +10374,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -10506,7 +10506,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -10537,7 +10537,7 @@
             },
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -10656,7 +10656,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -10723,7 +10723,7 @@
             },
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -10801,7 +10801,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -10852,7 +10852,7 @@
             },
             {
               "id": "scene-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -10928,7 +10928,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "effect-state",
@@ -10961,7 +10961,7 @@
             },
             {
               "id": "derived-stats",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -11023,7 +11023,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "resource-check",
@@ -11126,7 +11126,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "candidate",
           "reviewed": [],
           "capabilities": [
@@ -11194,7 +11194,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "candidate",
           "reviewed": [],
           "capabilities": [
@@ -11262,7 +11262,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "candidate",
           "reviewed": [],
           "capabilities": [
@@ -11350,7 +11350,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -11407,7 +11407,7 @@
             },
             {
               "id": "scene-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -11484,7 +11484,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -11636,7 +11636,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "resource-check",
@@ -11667,7 +11667,7 @@
             },
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -11681,7 +11681,7 @@
             },
             {
               "id": "turn-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -11773,7 +11773,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -11810,7 +11810,7 @@
             },
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -11838,7 +11838,7 @@
             },
             {
               "id": "turn-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -11900,7 +11900,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -12019,7 +12019,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -12092,7 +12092,7 @@
             },
             {
               "id": "turn-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -12154,7 +12154,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "trigger-router",
@@ -12181,7 +12181,7 @@
             },
             {
               "id": "scene-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -12202,7 +12202,7 @@
             },
             {
               "id": "derived-stats",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -12257,7 +12257,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "trigger-router",
@@ -12344,7 +12344,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -12374,7 +12374,7 @@
             },
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -12416,7 +12416,7 @@
             },
             {
               "id": "derived-stats",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -12486,7 +12486,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -12518,7 +12518,7 @@
             },
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -12553,7 +12553,7 @@
             },
             {
               "id": "turn-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -12648,7 +12648,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -12720,7 +12720,7 @@
             },
             {
               "id": "derived-stats",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -12779,7 +12779,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -12823,7 +12823,7 @@
             },
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -12837,7 +12837,7 @@
             },
             {
               "id": "turn-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -12906,7 +12906,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -12954,7 +12954,7 @@
             },
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -12975,7 +12975,7 @@
             },
             {
               "id": "turn-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -13065,7 +13065,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "effect-state",
@@ -13098,14 +13098,14 @@
             },
             {
               "id": "turn-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
             },
             {
               "id": "derived-stats",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -13160,7 +13160,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "effect-state",
@@ -13188,7 +13188,7 @@
             },
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -13209,7 +13209,7 @@
             },
             {
               "id": "turn-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -13286,7 +13286,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -13340,7 +13340,7 @@
             },
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -13368,7 +13368,7 @@
             },
             {
               "id": "turn-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -13454,7 +13454,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "resource-check",
@@ -13511,14 +13511,14 @@
             },
             {
               "id": "turn-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
             },
             {
               "id": "derived-stats",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -13590,7 +13590,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -13645,7 +13645,7 @@
             },
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -13751,7 +13751,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -13870,7 +13870,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -13929,7 +13929,7 @@
             },
             {
               "id": "turn-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -14005,7 +14005,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "trigger-router",
@@ -14024,7 +14024,7 @@
             },
             {
               "id": "turn-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -14122,7 +14122,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -14233,7 +14233,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "movement-lifecycle",
@@ -14247,7 +14247,7 @@
           "capabilities": [
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -14282,7 +14282,7 @@
             },
             {
               "id": "derived-stats",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -14344,7 +14344,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -14479,7 +14479,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "movement-lifecycle",
@@ -14488,14 +14488,14 @@
           "capabilities": [
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
             },
             {
               "id": "derived-stats",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -14565,7 +14565,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "derived-stats"
@@ -14573,7 +14573,7 @@
           "capabilities": [
             {
               "id": "derived-stats",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -14630,7 +14630,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "effect-state",
@@ -14665,7 +14665,7 @@
             },
             {
               "id": "turn-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -14686,7 +14686,7 @@
             },
             {
               "id": "derived-stats",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -14741,7 +14741,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -14777,7 +14777,7 @@
             },
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -14860,7 +14860,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "resource-check",
@@ -14903,7 +14903,7 @@
             },
             {
               "id": "turn-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -14924,7 +14924,7 @@
             },
             {
               "id": "derived-stats",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -14979,7 +14979,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -15008,7 +15008,7 @@
             },
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -15098,7 +15098,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -15156,7 +15156,7 @@
             },
             {
               "id": "scene-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -15225,7 +15225,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -15257,7 +15257,7 @@
             },
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -15299,7 +15299,7 @@
             },
             {
               "id": "turn-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -15313,7 +15313,7 @@
             },
             {
               "id": "derived-stats",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -15368,7 +15368,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -15479,7 +15479,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "movement-lifecycle",
@@ -15492,7 +15492,7 @@
           "capabilities": [
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -15582,7 +15582,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -15701,7 +15701,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -15743,7 +15743,7 @@
             },
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -15799,7 +15799,7 @@
             },
             {
               "id": "scene-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -15813,7 +15813,7 @@
             },
             {
               "id": "turn-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -15868,7 +15868,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -15986,7 +15986,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -16029,7 +16029,7 @@
             },
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -16107,7 +16107,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -16154,7 +16154,7 @@
             },
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -16175,7 +16175,7 @@
             },
             {
               "id": "turn-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -16258,7 +16258,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -16288,7 +16288,7 @@
             },
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -16330,7 +16330,7 @@
             },
             {
               "id": "derived-stats",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -16385,7 +16385,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -16415,7 +16415,7 @@
             },
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -16450,7 +16450,7 @@
             },
             {
               "id": "turn-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -16512,7 +16512,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "movement-lifecycle",
@@ -16523,7 +16523,7 @@
           "capabilities": [
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -16599,7 +16599,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -16694,7 +16694,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -16829,7 +16829,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -16859,7 +16859,7 @@
             },
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -16977,7 +16977,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "resource-check",
@@ -17003,7 +17003,7 @@
             },
             {
               "id": "turn-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -17017,7 +17017,7 @@
             },
             {
               "id": "derived-stats",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -17087,7 +17087,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -17207,7 +17207,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -17344,7 +17344,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "resource-check",
@@ -17363,7 +17363,7 @@
             },
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -17439,7 +17439,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -17474,7 +17474,7 @@
             },
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -17565,7 +17565,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "dice-hooks",
@@ -17638,7 +17638,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "resource-check",
@@ -17673,7 +17673,7 @@
             },
             {
               "id": "turn-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -17694,7 +17694,7 @@
             },
             {
               "id": "derived-stats",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -17749,7 +17749,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -17778,7 +17778,7 @@
             },
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -17868,7 +17868,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -17932,7 +17932,7 @@
             },
             {
               "id": "derived-stats",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -17987,7 +17987,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "movement-lifecycle",
@@ -17997,7 +17997,7 @@
           "capabilities": [
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -18011,7 +18011,7 @@
             },
             {
               "id": "turn-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -18085,7 +18085,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "resource-check",
@@ -18174,7 +18174,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -18205,7 +18205,7 @@
             },
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -18309,7 +18309,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -18374,7 +18374,7 @@
             },
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -18395,7 +18395,7 @@
             },
             {
               "id": "scene-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -18492,7 +18492,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "trigger-router",
@@ -18587,7 +18587,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "resource-check",
@@ -18623,7 +18623,7 @@
             },
             {
               "id": "scene-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -18706,7 +18706,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -18733,7 +18733,7 @@
             },
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -18809,7 +18809,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -18920,7 +18920,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -18966,7 +18966,7 @@
             },
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -19001,7 +19001,7 @@
             },
             {
               "id": "derived-stats",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -19063,7 +19063,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -19104,7 +19104,7 @@
             },
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -19160,7 +19160,7 @@
             },
             {
               "id": "derived-stats",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -19222,7 +19222,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -19319,7 +19319,7 @@
             },
             {
               "id": "derived-stats",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -19381,7 +19381,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "resource-check",
@@ -19462,7 +19462,7 @@
             },
             {
               "id": "derived-stats",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -19524,7 +19524,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -19582,7 +19582,7 @@
             },
             {
               "id": "scene-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -19651,7 +19651,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -19699,7 +19699,7 @@
             },
             {
               "id": "derived-stats",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -19754,7 +19754,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -19873,7 +19873,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -19903,7 +19903,7 @@
             },
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -20000,7 +20000,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -20119,7 +20119,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -20176,7 +20176,7 @@
             },
             {
               "id": "scene-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -20253,7 +20253,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -20302,7 +20302,7 @@
             },
             {
               "id": "turn-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -20381,7 +20381,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -20425,7 +20425,7 @@
             },
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -20525,7 +20525,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -20644,7 +20644,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -20701,7 +20701,7 @@
             },
             {
               "id": "scene-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -20778,7 +20778,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -20922,7 +20922,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -20980,7 +20980,7 @@
             },
             {
               "id": "scene-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -21051,7 +21051,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -21185,7 +21185,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "inventory",
@@ -21258,7 +21258,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -21374,7 +21374,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -21485,7 +21485,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "effect-state",
@@ -21604,7 +21604,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -21731,7 +21731,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "resource-check",
@@ -21789,7 +21789,7 @@
             },
             {
               "id": "turn-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -21858,7 +21858,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "resource-check",
@@ -21961,7 +21961,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "resource-check",
@@ -21995,7 +21995,7 @@
             },
             {
               "id": "turn-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -22009,7 +22009,7 @@
             },
             {
               "id": "derived-stats",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -22064,7 +22064,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -22167,7 +22167,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "spatial-range",
@@ -22270,7 +22270,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -22365,7 +22365,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "candidate",
           "reviewed": [],
           "capabilities": [
@@ -22433,7 +22433,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "candidate",
           "reviewed": [],
           "capabilities": [
@@ -22501,7 +22501,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "candidate",
           "reviewed": [],
           "capabilities": [
@@ -22584,7 +22584,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -22728,7 +22728,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -22841,7 +22841,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "resource-check",
@@ -22944,7 +22944,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -22975,7 +22975,7 @@
             },
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -23010,7 +23010,7 @@
             },
             {
               "id": "turn-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -23079,7 +23079,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "resource-check",
@@ -23166,7 +23166,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "effect-state",
@@ -23269,7 +23269,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -23301,7 +23301,7 @@
             },
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -23336,7 +23336,7 @@
             },
             {
               "id": "turn-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -23412,7 +23412,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "movement-lifecycle",
@@ -23425,7 +23425,7 @@
           "capabilities": [
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -23453,7 +23453,7 @@
             },
             {
               "id": "derived-stats",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -23515,7 +23515,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -23546,7 +23546,7 @@
             },
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -23650,7 +23650,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -23761,7 +23761,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "movement-lifecycle",
@@ -23777,7 +23777,7 @@
           "capabilities": [
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -23812,7 +23812,7 @@
             },
             {
               "id": "turn-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -23888,7 +23888,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "trigger-router",
@@ -23912,7 +23912,7 @@
             },
             {
               "id": "turn-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -23967,7 +23967,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -24102,7 +24102,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "movement-lifecycle",
@@ -24113,7 +24113,7 @@
           "capabilities": [
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -24189,7 +24189,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "resource-check",
@@ -24231,7 +24231,7 @@
             },
             {
               "id": "turn-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -24245,7 +24245,7 @@
             },
             {
               "id": "derived-stats",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -24300,7 +24300,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -24330,7 +24330,7 @@
             },
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -24442,7 +24442,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -24590,7 +24590,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -24652,14 +24652,14 @@
             },
             {
               "id": "turn-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
             },
             {
               "id": "scene-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -24751,7 +24751,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -24783,7 +24783,7 @@
             },
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -24894,7 +24894,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "resource-check",
@@ -24936,7 +24936,7 @@
             },
             {
               "id": "turn-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -25005,7 +25005,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "resource-check",
@@ -25100,7 +25100,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -25134,7 +25134,7 @@
             },
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -25190,7 +25190,7 @@
             },
             {
               "id": "turn-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -25259,7 +25259,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -25378,7 +25378,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -25444,7 +25444,7 @@
             },
             {
               "id": "turn-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -25513,7 +25513,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -25548,7 +25548,7 @@
             },
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -25597,7 +25597,7 @@
             },
             {
               "id": "scene-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -25680,7 +25680,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -25823,7 +25823,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "inventory",
@@ -25917,7 +25917,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -25951,7 +25951,7 @@
             },
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -26000,14 +26000,14 @@
             },
             {
               "id": "turn-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
             },
             {
               "id": "scene-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -26093,7 +26093,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -26130,7 +26130,7 @@
             },
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -26237,7 +26237,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "owned-entities",
@@ -26326,7 +26326,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -26429,7 +26429,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -26460,7 +26460,7 @@
             },
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -26564,7 +26564,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -26708,7 +26708,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -26792,7 +26792,7 @@
             },
             {
               "id": "turn-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -26820,7 +26820,7 @@
             },
             {
               "id": "derived-stats",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -26890,7 +26890,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -27031,7 +27031,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -27175,7 +27175,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -27205,7 +27205,7 @@
             },
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -27233,7 +27233,7 @@
             },
             {
               "id": "turn-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -27319,7 +27319,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -27432,7 +27432,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -27462,7 +27462,7 @@
             },
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -27559,7 +27559,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -27590,7 +27590,7 @@
             },
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -27632,7 +27632,7 @@
             },
             {
               "id": "turn-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -27694,7 +27694,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "effect-state",
@@ -27781,7 +27781,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "movement-lifecycle",
@@ -27794,7 +27794,7 @@
           "capabilities": [
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -27815,7 +27815,7 @@
             },
             {
               "id": "turn-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -27884,7 +27884,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "candidate",
           "reviewed": [],
           "capabilities": [
@@ -27952,7 +27952,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "candidate",
           "reviewed": [],
           "capabilities": [
@@ -28020,7 +28020,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "candidate",
           "reviewed": [],
           "capabilities": [
@@ -28088,7 +28088,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -28118,7 +28118,7 @@
             },
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -28153,7 +28153,7 @@
             },
             {
               "id": "turn-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -28228,7 +28228,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "spatial-range",
@@ -28269,7 +28269,7 @@
             },
             {
               "id": "turn-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -28331,7 +28331,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -28377,7 +28377,7 @@
             },
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -28412,7 +28412,7 @@
             },
             {
               "id": "turn-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -28474,7 +28474,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -28577,7 +28577,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -28688,7 +28688,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -28827,7 +28827,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "resource-check",
@@ -28951,7 +28951,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -29092,7 +29092,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -29151,7 +29151,7 @@
             },
             {
               "id": "scene-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -29227,7 +29227,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "movement-lifecycle",
@@ -29240,7 +29240,7 @@
           "capabilities": [
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -29330,7 +29330,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -29361,7 +29361,7 @@
             },
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -29403,7 +29403,7 @@
             },
             {
               "id": "turn-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -29465,7 +29465,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -29496,7 +29496,7 @@
             },
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -29600,7 +29600,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -29630,7 +29630,7 @@
             },
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -29727,7 +29727,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -29754,7 +29754,7 @@
             },
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -29775,7 +29775,7 @@
             },
             {
               "id": "derived-stats",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -29830,7 +29830,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -29857,7 +29857,7 @@
             },
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -29933,7 +29933,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -29965,7 +29965,7 @@
             },
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -30014,7 +30014,7 @@
             },
             {
               "id": "turn-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -30076,7 +30076,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "movement-lifecycle",
@@ -30088,7 +30088,7 @@
           "capabilities": [
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -30171,7 +30171,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -30313,7 +30313,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -30371,7 +30371,7 @@
             },
             {
               "id": "scene-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -30457,7 +30457,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -30486,7 +30486,7 @@
             },
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -30521,7 +30521,7 @@
             },
             {
               "id": "turn-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -30593,7 +30593,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -30621,7 +30621,7 @@
             },
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -30722,7 +30722,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -30755,7 +30755,7 @@
             },
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -30804,7 +30804,7 @@
             },
             {
               "id": "turn-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -30873,7 +30873,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -30901,7 +30901,7 @@
             },
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -30915,7 +30915,7 @@
             },
             {
               "id": "turn-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -30984,7 +30984,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -31056,7 +31056,7 @@
             },
             {
               "id": "scene-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -31111,7 +31111,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -31251,7 +31251,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -31359,7 +31359,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -31390,7 +31390,7 @@
             },
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -31425,7 +31425,7 @@
             },
             {
               "id": "turn-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -31510,7 +31510,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -31541,7 +31541,7 @@
             },
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -31569,7 +31569,7 @@
             },
             {
               "id": "turn-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -31645,7 +31645,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -31675,7 +31675,7 @@
             },
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -31717,7 +31717,7 @@
             },
             {
               "id": "turn-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -31772,7 +31772,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -31802,7 +31802,7 @@
             },
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -31916,7 +31916,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -31947,7 +31947,7 @@
             },
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -32068,7 +32068,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -32197,7 +32197,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -32316,7 +32316,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -32443,7 +32443,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "movement-lifecycle",
@@ -32455,7 +32455,7 @@
           "capabilities": [
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -32538,7 +32538,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "terrain",
@@ -32654,7 +32654,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -32791,7 +32791,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -32829,7 +32829,7 @@
             },
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -32864,7 +32864,7 @@
             },
             {
               "id": "scene-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -32941,7 +32941,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "usage-limits",
@@ -32968,7 +32968,7 @@
             },
             {
               "id": "scene-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -33063,7 +33063,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -33184,7 +33184,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -33329,7 +33329,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -33450,7 +33450,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -33593,7 +33593,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -33650,7 +33650,7 @@
             },
             {
               "id": "turn-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -33712,7 +33712,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -33839,7 +33839,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "resource-check",
@@ -33958,7 +33958,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "spatial-range",
@@ -34017,7 +34017,7 @@
             },
             {
               "id": "turn-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -34093,7 +34093,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "terrain",
@@ -34135,7 +34135,7 @@
             },
             {
               "id": "scene-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -34219,7 +34219,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "spatial-cells",
@@ -34271,7 +34271,7 @@
             },
             {
               "id": "scene-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -34299,7 +34299,7 @@
             },
             {
               "id": "derived-stats",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -34371,7 +34371,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "resource-check",
@@ -34411,7 +34411,7 @@
             },
             {
               "id": "derived-stats",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -34483,7 +34483,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "resource-check",
@@ -34572,7 +34572,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "resource-check",
@@ -34697,7 +34697,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -34800,7 +34800,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "resource-check",
@@ -34895,7 +34895,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "resource-check",
@@ -34990,7 +34990,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -35021,7 +35021,7 @@
             },
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -35125,7 +35125,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "effect-state",
@@ -35236,7 +35236,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "resource-check",
@@ -35347,7 +35347,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "trigger-router",
@@ -35364,7 +35364,7 @@
             },
             {
               "id": "turn-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -35426,7 +35426,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -35561,7 +35561,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -35691,7 +35691,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -35746,7 +35746,7 @@
             },
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -35767,7 +35767,7 @@
             },
             {
               "id": "turn-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -35867,7 +35867,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -35897,7 +35897,7 @@
             },
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -35996,7 +35996,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "resource-check",
@@ -36107,7 +36107,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -36234,7 +36234,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -36368,7 +36368,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -36492,7 +36492,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -36560,7 +36560,7 @@
             },
             {
               "id": "scene-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -36647,7 +36647,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -36797,7 +36797,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -36862,7 +36862,7 @@
             },
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -36883,7 +36883,7 @@
             },
             {
               "id": "scene-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -36911,7 +36911,7 @@
             },
             {
               "id": "derived-stats",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -36997,7 +36997,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "effect-state",
@@ -37112,7 +37112,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -37231,7 +37231,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "resource-check",
@@ -37326,7 +37326,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "movement-lifecycle",
@@ -37336,7 +37336,7 @@
           "capabilities": [
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -37405,7 +37405,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -37464,7 +37464,7 @@
             },
             {
               "id": "scene-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -37556,7 +37556,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -37707,7 +37707,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "resource-check",
@@ -37731,7 +37731,7 @@
             },
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -37842,7 +37842,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -37926,7 +37926,7 @@
             },
             {
               "id": "scene-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -38009,7 +38009,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "movement-lifecycle",
@@ -38023,7 +38023,7 @@
           "capabilities": [
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -38051,7 +38051,7 @@
             },
             {
               "id": "turn-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -38120,7 +38120,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "resource-check",
@@ -38139,7 +38139,7 @@
             },
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -38160,7 +38160,7 @@
             },
             {
               "id": "turn-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -38234,7 +38234,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -38287,7 +38287,7 @@
             },
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -38308,7 +38308,7 @@
             },
             {
               "id": "scene-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -38398,7 +38398,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "effect-state",
@@ -38440,7 +38440,7 @@
             },
             {
               "id": "scene-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -38526,7 +38526,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -38578,7 +38578,7 @@
             },
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -38678,7 +38678,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -38834,7 +38834,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "resource-check",
@@ -38877,7 +38877,7 @@
             },
             {
               "id": "scene-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -38970,7 +38970,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -39027,7 +39027,7 @@
             },
             {
               "id": "turn-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -39106,7 +39106,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -39136,7 +39136,7 @@
             },
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -39312,7 +39312,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -39376,7 +39376,7 @@
             },
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -39404,7 +39404,7 @@
             },
             {
               "id": "scene-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -39504,7 +39504,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "resource-check",
@@ -39554,7 +39554,7 @@
             },
             {
               "id": "turn-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -39640,7 +39640,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "resource-check",
@@ -39729,7 +39729,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -39759,7 +39759,7 @@
             },
             {
               "id": "movement-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -39872,7 +39872,7 @@
           }
         ],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -39932,7 +39932,7 @@
             },
             {
               "id": "turn-lifecycle",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -39960,7 +39960,7 @@
             },
             {
               "id": "derived-stats",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]
@@ -40015,7 +40015,7 @@
         "ruleIds": [],
         "rules": [],
         "foundationPlan": {
-          "version": 9,
+          "version": 10,
           "status": "reviewed",
           "reviewed": [
             "target-validation",
@@ -40095,7 +40095,7 @@
             },
             {
               "id": "derived-stats",
-              "state": "planned",
+              "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
               ]

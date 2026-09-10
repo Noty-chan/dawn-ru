@@ -31,9 +31,9 @@ SHA-256 проверенных файлов: `6049f3ff6b79b8204c45cb8b830b265369
 | `usage-limits` | Лимиты использования | готово | `scene-foundations.js` | 75 |
 | `trigger-router` | Маршрутизация триггеров | готово | `scene-triggers.js / scene-events.js` | 290 |
 | `reaction-window` | Окна Реакций и вмешательств | готово | `scene-responses.js / scene-events.js` | 39 |
-| `turn-lifecycle` | Жизненный цикл Хода и Раунда | планируется | — | 79 |
-| `scene-lifecycle` | Начало, конец и сброс Сцены | планируется | — | 39 |
-| `movement-lifecycle` | Жизненный цикл движения | планируется | — | 117 |
+| `turn-lifecycle` | Жизненный цикл Хода и Раунда | готово | `lionwing-adapters.js / lionwing-engine.js` | 79 |
+| `scene-lifecycle` | Начало, конец и сброс Сцены | готово | `lionwing-adapters.js / lionwing-engine.js` | 39 |
+| `movement-lifecycle` | Жизненный цикл движения | готово | `lionwing-geometry.js / lionwing-engine.js` | 117 |
 | `choice-flow` | Типизированное решение | готово | `scene-responses.js / scene-events.js / scene-effects.js` | 141 |
 | `damage-pipeline` | Конвейер урона, Здоровья и Ран | готово | `scene-responses.js / scene-events.js` | 104 |
 | `action-modifier` | Модификатор или новое действие | готово | `scene-actions.js / scene-responses.js` | 241 |
@@ -47,7 +47,7 @@ SHA-256 проверенных файлов: `6049f3ff6b79b8204c45cb8b830b265369
 | `deployment-hooks` | Развертывание | планируется | — | 6 |
 | `intermission-reset` | Сброс на Интермиссии | готово | `lionwing-inventory.js / lionwing-engine.js` | 3 |
 | `bond-actions` | Связи и действия Связей | планируется | — | 5 |
-| `derived-stats` | Производные характеристики персонажа | планируется | — | 47 |
+| `derived-stats` | Производные характеристики персонажа | готово | `lionwing-adapters.js / lionwing-engine.js` | 47 |
 | `information-query` | Изучение и раскрытие информации | готово | `lionwing-information-query.js / lionwing-engine.js` | 13 |
 | `transformation` | Трансформации и заимствованные правила | планируется | — | 11 |
 | `duel-flow` | Дуэли и ставки | планируется | — | 5 |

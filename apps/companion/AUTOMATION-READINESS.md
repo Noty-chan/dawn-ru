@@ -79,139 +79,139 @@
 
 | Техника | Ур. | Правило | Чего не хватает |
 | --- | ---: | --- | --- |
-| Berserker (`powerhouse.berserker`) | 1 | Revenge | `turn-lifecycle`, `derived-stats`, `combat-meter` |
-| Berserker (`powerhouse.berserker`) | 2 | Cornered Dog | `derived-stats` |
+| Berserker (`powerhouse.berserker`) | 1 | Revenge | `combat-meter` |
+| Berserker (`powerhouse.berserker`) | 2 | Cornered Dog | тонкий адаптер уникального условия поверх уже готового ядра |
 | Berserker (`powerhouse.berserker`) | 3 | Take A Beating | тонкий адаптер уникального условия поверх уже готового ядра |
 | Dragonslayer (`powerhouse.dragonslayer`) | 2 | Wide Arc | тонкий адаптер уникального условия поверх уже готового ядра |
-| Duelist (`powerhouse.duelist`) | 1 | Riposte [ Block → Skirmish ] | `movement-lifecycle` |
+| Duelist (`powerhouse.duelist`) | 1 | Riposte [ Block → Skirmish ] | тонкий адаптер уникального условия поверх уже готового ядра |
 | Duelist (`powerhouse.duelist`) | 3 | Deflecting Blow | тонкий адаптер уникального условия поверх уже готового ядра |
 | Flagellant (`powerhouse.flagellant`) | 1 | Thrill | тонкий адаптер уникального условия поверх уже готового ядра |
-| Flagellant (`powerhouse.flagellant`) | 2 | Wild Rush | `movement-lifecycle`, `turn-lifecycle` |
+| Flagellant (`powerhouse.flagellant`) | 2 | Wild Rush | тонкий адаптер уникального условия поверх уже готового ядра |
 | Flagellant (`powerhouse.flagellant`) | 3 | Bled Dry | тонкий адаптер уникального условия поверх уже готового ядра |
-| Struggler (`powerhouse.struggler`) | 1 | Effort | `scene-lifecycle`, `derived-stats` |
-| Struggler (`powerhouse.struggler`) | 2 | Adrenaline | `movement-lifecycle` |
+| Struggler (`powerhouse.struggler`) | 1 | Effort | тонкий адаптер уникального условия поверх уже готового ядра |
+| Struggler (`powerhouse.struggler`) | 2 | Adrenaline | тонкий адаптер уникального условия поверх уже готового ядра |
 | Struggler (`powerhouse.struggler`) | 3 | Defy Reason | тонкий адаптер уникального условия поверх уже готового ядра |
 | SpellSword (`powerhouse.spellsword`) | 1 | Twin Suns [ Cast → Skirmish ] | `action-copy` |
-| Technician (`powerhouse.technician`) | 1 | Stretch | `turn-lifecycle`, `derived-stats` |
-| Technician (`powerhouse.technician`) | 2 | Perfect Form | `turn-lifecycle`, `derived-stats` |
-| Unbroken (`powerhouse.unbroken`) | 1 | Get Back Up | `scene-lifecycle`, `duel-flow` |
+| Technician (`powerhouse.technician`) | 1 | Stretch | тонкий адаптер уникального условия поверх уже готового ядра |
+| Technician (`powerhouse.technician`) | 2 | Perfect Form | тонкий адаптер уникального условия поверх уже готового ядра |
+| Unbroken (`powerhouse.unbroken`) | 1 | Get Back Up | `duel-flow` |
 | Unbroken (`powerhouse.unbroken`) | 2 | Furious Revival | тонкий адаптер уникального условия поверх уже готового ядра |
 | Unbroken (`powerhouse.unbroken`) | 3 | Phoenix | `duel-flow` |
 | Breacher (`powerhouse.breacher`) | 2 | Both Barrels | тонкий адаптер уникального условия поверх уже готового ядра |
 | Breacher (`powerhouse.breacher`) | 3 | Annihilate | тонкий адаптер уникального условия поверх уже готового ядра |
 | Dual Wielder (`powerhouse.dual-wielder`) | 1 | Twinned blow | тонкий адаптер уникального условия поверх уже готового ядра |
 | Dual Wielder (`powerhouse.dual-wielder`) | 2 | Frenzied Barrage | тонкий адаптер уникального условия поверх уже готового ядра |
-| Dual Wielder (`powerhouse.dual-wielder`) | 3 | Varied Blades | `movement-lifecycle`, `turn-lifecycle` |
+| Dual Wielder (`powerhouse.dual-wielder`) | 3 | Varied Blades | тонкий адаптер уникального условия поверх уже готового ядра |
 | Intimidator (`powerhouse.intimidator`) | 1 | "Pathetic" | тонкий адаптер уникального условия поверх уже готового ядра |
 | Intimidator (`powerhouse.intimidator`) | 2 | "Out Of My Way" | тонкий адаптер уникального условия поверх уже готового ядра |
 | Intimidator (`powerhouse.intimidator`) | 3 | "Fools And Dead Men" | тонкий адаптер уникального условия поверх уже готового ядра |
-| Martial Artist (`powerhouse.martial-artist`) | 1 | Art Of The 8 Hammers | `movement-lifecycle`, `turn-lifecycle` |
-| Martial Artist (`powerhouse.martial-artist`) | 2 | Flow-State | `derived-stats` |
+| Martial Artist (`powerhouse.martial-artist`) | 1 | Art Of The 8 Hammers | тонкий адаптер уникального условия поверх уже готового ядра |
+| Martial Artist (`powerhouse.martial-artist`) | 2 | Flow-State | тонкий адаптер уникального условия поверх уже готового ядра |
 | Martial Artist (`powerhouse.martial-artist`) | 3 | Unlimited Blows | тонкий адаптер уникального условия поверх уже готового ядра |
-| Monastic Warrior (`powerhouse.monastic-sage`) | 1 | Mind Made Manifest | `turn-lifecycle`, `derived-stats` |
-| Monastic Warrior (`powerhouse.monastic-sage`) | 2 | Calm Within Chaos | `turn-lifecycle` |
-| Monastic Warrior (`powerhouse.monastic-sage`) | 3 | Sublime Equanimity | `turn-lifecycle` |
+| Monastic Warrior (`powerhouse.monastic-sage`) | 1 | Mind Made Manifest | тонкий адаптер уникального условия поверх уже готового ядра |
+| Monastic Warrior (`powerhouse.monastic-sage`) | 2 | Calm Within Chaos | тонкий адаптер уникального условия поверх уже готового ядра |
+| Monastic Warrior (`powerhouse.monastic-sage`) | 3 | Sublime Equanimity | тонкий адаптер уникального условия поверх уже готового ядра |
 | Lancer (`powerhouse.lancer`) | 1 | Pierce | тонкий адаптер уникального условия поверх уже готового ядра |
 | Lancer (`powerhouse.lancer`) | 2 | Phalanx | тонкий адаптер уникального условия поверх уже готового ядра |
 | Lancer (`powerhouse.lancer`) | 3 | Cannon-Arm [ Breathe → Skirmish ] | тонкий адаптер уникального условия поверх уже готового ядра |
-| Predator (`powerhouse.predator`) | 1 | Yearn | `turn-lifecycle` |
-| Predator (`powerhouse.predator`) | 2 | Obsess | `movement-lifecycle`, `derived-stats` |
-| Predator (`powerhouse.predator`) | 3 | Envelop | `scene-lifecycle` |
-| Improvisational Fighter (`powerhouse.improvisational-fighter`) | 2 | "That One Hurts!" | `turn-lifecycle` |
-| Improvisational Fighter (`powerhouse.improvisational-fighter`) | 3 | Last Resort | `scene-lifecycle`, `combat-meter` |
+| Predator (`powerhouse.predator`) | 1 | Yearn | тонкий адаптер уникального условия поверх уже готового ядра |
+| Predator (`powerhouse.predator`) | 2 | Obsess | тонкий адаптер уникального условия поверх уже готового ядра |
+| Predator (`powerhouse.predator`) | 3 | Envelop | тонкий адаптер уникального условия поверх уже готового ядра |
+| Improvisational Fighter (`powerhouse.improvisational-fighter`) | 2 | "That One Hurts!" | тонкий адаптер уникального условия поверх уже готового ядра |
+| Improvisational Fighter (`powerhouse.improvisational-fighter`) | 3 | Last Resort | `combat-meter` |
 | Warring Ascendant (`powerhouse.warring-ascendant`) | 2 | Esoteric Blades | `transformation`, `action-copy` |
 | Heroic Ascendant (`powerhouse.heroic-ascendant`) | 1 | Warrior Of Legend | тонкий адаптер уникального условия поверх уже готового ядра |
 | Heroic Ascendant (`powerhouse.heroic-ascendant`) | 2 | Hero's Feat | тонкий адаптер уникального условия поверх уже готового ядра |
 | Heroic Ascendant (`powerhouse.heroic-ascendant`) | 3 | Mastered Strength | тонкий адаптер уникального условия поверх уже готового ядра |
-| Aerial Master (`vagabond.aerial-master`) | 2 | Hunt | `movement-lifecycle` |
-| Aerial Master (`vagabond.aerial-master`) | 3 | Falling Ax Strike | `derived-stats` |
+| Aerial Master (`vagabond.aerial-master`) | 2 | Hunt | тонкий адаптер уникального условия поверх уже готового ядра |
+| Aerial Master (`vagabond.aerial-master`) | 3 | Falling Ax Strike | тонкий адаптер уникального условия поверх уже готового ядра |
 | Sniper (`vagabond.sniper`) | 1 | Long Shot | тонкий адаптер уникального условия поверх уже готового ядра |
-| Sniper (`vagabond.sniper`) | 2 | Bunker Down | `turn-lifecycle` |
-| Sniper (`vagabond.sniper`) | 3 | Deadeye [ Hide → Talent Finisher ] | `movement-lifecycle` |
-| Skirmisher (`vagabond.skirmisher`) | 1 | Sting | `turn-lifecycle`, `derived-stats` |
-| Skirmisher (`vagabond.skirmisher`) | 2 | Shifting Blows | `movement-lifecycle` |
-| Skirmisher (`vagabond.skirmisher`) | 3 | Rebound | `movement-lifecycle` |
-| Speed Demon (`vagabond.speed-demon`) | 1 | Fade | `movement-lifecycle` |
-| Speed Demon (`vagabond.speed-demon`) | 3 | Flash Step [ Breathe → Stride ] | `movement-lifecycle`, `turn-lifecycle` |
-| Untouchable (`vagabond.untouchable`) | 3 | Fighter's Instinct [ Dodge → Skirmish ] | `movement-lifecycle` |
-| Acrobat (`vagabond.acrobat`) | 1 | Flying Kick [ Jump → Skirmish ] | `movement-lifecycle` |
-| Acrobat (`vagabond.acrobat`) | 2 | Wall Jump | `movement-lifecycle`, `turn-lifecycle`, `derived-stats` |
-| Acrobat (`vagabond.acrobat`) | 3 | Weightless Body | `movement-lifecycle` |
+| Sniper (`vagabond.sniper`) | 2 | Bunker Down | тонкий адаптер уникального условия поверх уже готового ядра |
+| Sniper (`vagabond.sniper`) | 3 | Deadeye [ Hide → Talent Finisher ] | тонкий адаптер уникального условия поверх уже готового ядра |
+| Skirmisher (`vagabond.skirmisher`) | 1 | Sting | тонкий адаптер уникального условия поверх уже готового ядра |
+| Skirmisher (`vagabond.skirmisher`) | 2 | Shifting Blows | тонкий адаптер уникального условия поверх уже готового ядра |
+| Skirmisher (`vagabond.skirmisher`) | 3 | Rebound | тонкий адаптер уникального условия поверх уже готового ядра |
+| Speed Demon (`vagabond.speed-demon`) | 1 | Fade | тонкий адаптер уникального условия поверх уже готового ядра |
+| Speed Demon (`vagabond.speed-demon`) | 3 | Flash Step [ Breathe → Stride ] | тонкий адаптер уникального условия поверх уже готового ядра |
+| Untouchable (`vagabond.untouchable`) | 3 | Fighter's Instinct [ Dodge → Skirmish ] | тонкий адаптер уникального условия поверх уже готового ядра |
+| Acrobat (`vagabond.acrobat`) | 1 | Flying Kick [ Jump → Skirmish ] | тонкий адаптер уникального условия поверх уже готового ядра |
+| Acrobat (`vagabond.acrobat`) | 2 | Wall Jump | тонкий адаптер уникального условия поверх уже готового ядра |
+| Acrobat (`vagabond.acrobat`) | 3 | Weightless Body | тонкий адаптер уникального условия поверх уже готового ядра |
 | Blade Master (`vagabond.blade-master`) | 1 | Draw Stance | тонкий адаптер уникального условия поверх уже готового ядра |
-| Blade Master (`vagabond.blade-master`) | 2 | Divide In One Motion [ Breathe → Jump ] | `movement-lifecycle` |
-| Blade Master (`vagabond.blade-master`) | 3 | Leaping Koi | `movement-lifecycle` |
-| Cunning Fighter (`vagabond.cunning-fighter`) | 3 | At a Glance | `turn-lifecycle` |
-| Enchained (`vagabond.enchained`) | 2 | Draw In | `movement-lifecycle` |
-| Enchained (`vagabond.enchained`) | 3 | Momentum [ Cast → Skirmish ] | `movement-lifecycle` |
-| Malicious Mimic (`vagabond.malicious-mimic`) | 1 | "Anything You Can Do…" | `scene-lifecycle`, `action-copy` |
-| Malicious Mimic (`vagabond.malicious-mimic`) | 2 | Rehearsed Movements | `derived-stats` |
+| Blade Master (`vagabond.blade-master`) | 2 | Divide In One Motion [ Breathe → Jump ] | тонкий адаптер уникального условия поверх уже готового ядра |
+| Blade Master (`vagabond.blade-master`) | 3 | Leaping Koi | тонкий адаптер уникального условия поверх уже готового ядра |
+| Cunning Fighter (`vagabond.cunning-fighter`) | 3 | At a Glance | тонкий адаптер уникального условия поверх уже готового ядра |
+| Enchained (`vagabond.enchained`) | 2 | Draw In | тонкий адаптер уникального условия поверх уже готового ядра |
+| Enchained (`vagabond.enchained`) | 3 | Momentum [ Cast → Skirmish ] | тонкий адаптер уникального условия поверх уже готового ядра |
+| Malicious Mimic (`vagabond.malicious-mimic`) | 1 | "Anything You Can Do…" | `action-copy` |
+| Malicious Mimic (`vagabond.malicious-mimic`) | 2 | Rehearsed Movements | тонкий адаптер уникального условия поверх уже готового ядра |
 | Malicious Mimic (`vagabond.malicious-mimic`) | 3 | "…I Can Do Better" | `action-copy` |
 | Weaponsmith (`vagabond.weaponsmith`) | 1 | Trick Weapon | тонкий адаптер уникального условия поверх уже готового ядра |
 | Weaponsmith (`vagabond.weaponsmith`) | 2 | Adaptive Edge | тонкий адаптер уникального условия поверх уже готового ядра |
 | Weaponsmith (`vagabond.weaponsmith`) | 3 | Metalurgy | тонкий адаптер уникального условия поверх уже готового ядра |
-| Opportunist (`vagabond.opportunist`) | 1 | Pack Tactics | `movement-lifecycle`, `turn-lifecycle` |
+| Opportunist (`vagabond.opportunist`) | 1 | Pack Tactics | тонкий адаптер уникального условия поверх уже готового ядра |
 | Opportunist (`vagabond.opportunist`) | 2 | Hungry Eyes | тонкий адаптер уникального условия поверх уже готового ядра |
-| Opportunist (`vagabond.opportunist`) | 3 | Launcher Combo | `turn-lifecycle` |
-| Reflector (`vagabond.reflector`) | 1 | Catch The Blade | `scene-lifecycle`, `derived-stats` |
+| Opportunist (`vagabond.opportunist`) | 3 | Launcher Combo | тонкий адаптер уникального условия поверх уже готового ядра |
+| Reflector (`vagabond.reflector`) | 1 | Catch The Blade | тонкий адаптер уникального условия поверх уже готового ядра |
 | Reflector (`vagabond.reflector`) | 2 | Watch And Wait | тонкий адаптер уникального условия поверх уже готового ядра |
-| Reflector (`vagabond.reflector`) | 3 | To Carry Their Fury | `movement-lifecycle`, `derived-stats` |
-| Detective (`vagabond.dim-mak`) | 3 | 4-Point Execution | `movement-lifecycle`, `turn-lifecycle` |
-| Drunkard (`vagabond.drunkard`) | 1 | Down The Hatch | `movement-lifecycle`, `turn-lifecycle`, `deployment-hooks` |
-| Drunkard (`vagabond.drunkard`) | 2 | Fool's Dance | `turn-lifecycle`, `derived-stats` |
-| Drunkard (`vagabond.drunkard`) | 3 | Chug | `movement-lifecycle`, `turn-lifecycle` |
+| Reflector (`vagabond.reflector`) | 3 | To Carry Their Fury | тонкий адаптер уникального условия поверх уже готового ядра |
+| Detective (`vagabond.dim-mak`) | 3 | 4-Point Execution | тонкий адаптер уникального условия поверх уже готового ядра |
+| Drunkard (`vagabond.drunkard`) | 1 | Down The Hatch | `deployment-hooks` |
+| Drunkard (`vagabond.drunkard`) | 2 | Fool's Dance | тонкий адаптер уникального условия поверх уже готового ядра |
+| Drunkard (`vagabond.drunkard`) | 3 | Chug | тонкий адаптер уникального условия поверх уже готового ядра |
 | Crusher (`bulwark.crusher`) | 1 | 30,000 Tons | тонкий адаптер уникального условия поверх уже готового ядра |
-| Crusher (`bulwark.crusher`) | 2 | Hammerfall | `turn-lifecycle` |
-| Crusher (`bulwark.crusher`) | 3 | "You Look Like A Nail" | `turn-lifecycle` |
-| Giant Frame (`bulwark.giant-frame`) | 2 | Immense | `movement-lifecycle`, `deployment-hooks`, `derived-stats`, `multi-space-actor` |
+| Crusher (`bulwark.crusher`) | 2 | Hammerfall | тонкий адаптер уникального условия поверх уже готового ядра |
+| Crusher (`bulwark.crusher`) | 3 | "You Look Like A Nail" | тонкий адаптер уникального условия поверх уже готового ядра |
+| Giant Frame (`bulwark.giant-frame`) | 2 | Immense | `deployment-hooks`, `multi-space-actor` |
 | Giant Frame (`bulwark.giant-frame`) | 3 | Shockwave | тонкий адаптер уникального условия поверх уже готового ядра |
-| Iron Bodied (`bulwark.iron-bodied`) | 1 | Tough As Stone | `movement-lifecycle`, `derived-stats` |
-| Iron Bodied (`bulwark.iron-bodied`) | 3 | Stainless Stride | `turn-lifecycle`, `derived-stats` |
-| Vanguard Defender (`bulwark.vanguard-defender`) | 1 | White Knight | `movement-lifecycle` |
-| Vanguard Defender (`bulwark.vanguard-defender`) | 2 | Steel Angel | `turn-lifecycle`, `derived-stats` |
-| Vanguard Defender (`bulwark.vanguard-defender`) | 3 | Inspire Courage | `movement-lifecycle` |
-| Absolute Bastard (`bulwark.absolute-bastard`) | 1 | Easy To Hate | `scene-lifecycle` |
-| Absolute Bastard (`bulwark.absolute-bastard`) | 2 | Bully | `movement-lifecycle`, `turn-lifecycle`, `derived-stats` |
+| Iron Bodied (`bulwark.iron-bodied`) | 1 | Tough As Stone | тонкий адаптер уникального условия поверх уже готового ядра |
+| Iron Bodied (`bulwark.iron-bodied`) | 3 | Stainless Stride | тонкий адаптер уникального условия поверх уже готового ядра |
+| Vanguard Defender (`bulwark.vanguard-defender`) | 1 | White Knight | тонкий адаптер уникального условия поверх уже готового ядра |
+| Vanguard Defender (`bulwark.vanguard-defender`) | 2 | Steel Angel | тонкий адаптер уникального условия поверх уже готового ядра |
+| Vanguard Defender (`bulwark.vanguard-defender`) | 3 | Inspire Courage | тонкий адаптер уникального условия поверх уже готового ядра |
+| Absolute Bastard (`bulwark.absolute-bastard`) | 1 | Easy To Hate | тонкий адаптер уникального условия поверх уже готового ядра |
+| Absolute Bastard (`bulwark.absolute-bastard`) | 2 | Bully | тонкий адаптер уникального условия поверх уже готового ядра |
 | Absolute Bastard (`bulwark.absolute-bastard`) | 3 | Add Injury To Insult | тонкий адаптер уникального условия поверх уже готового ядра |
-| Battle Jockey (`bulwark.battle-jockey`) | 1 | Trusty Steed | `movement-lifecycle`, `summon-turns`, `deployment-hooks` |
+| Battle Jockey (`bulwark.battle-jockey`) | 1 | Trusty Steed | `summon-turns`, `deployment-hooks` |
 | Battle Jockey (`bulwark.battle-jockey`) | 2 | Grasping Jaws | `summon-turns` |
-| Battle Jockey (`bulwark.battle-jockey`) | 3 | Roaring Entry | `movement-lifecycle`, `summon-turns`, `scene-lifecycle`, `turn-lifecycle` |
+| Battle Jockey (`bulwark.battle-jockey`) | 3 | Roaring Entry | `summon-turns` |
 | Grappler (`bulwark.grappler`) | 1 | Restrain | тонкий адаптер уникального условия поверх уже готового ядра |
-| Grappler (`bulwark.grappler`) | 3 | Finishing Move [ Body Finisher → Jump ] | `movement-lifecycle`, `turn-lifecycle` |
-| Juggernaut (`bulwark.juggernaut`) | 1 | Wild Charge | `movement-lifecycle`, `derived-stats` |
-| Juggernaut (`bulwark.juggernaut`) | 2 | Violence | `movement-lifecycle`, `turn-lifecycle` |
-| Juggernaut (`bulwark.juggernaut`) | 3 | "Eat Dirt!" | `movement-lifecycle` |
+| Grappler (`bulwark.grappler`) | 3 | Finishing Move [ Body Finisher → Jump ] | тонкий адаптер уникального условия поверх уже готового ядра |
+| Juggernaut (`bulwark.juggernaut`) | 1 | Wild Charge | тонкий адаптер уникального условия поверх уже готового ядра |
+| Juggernaut (`bulwark.juggernaut`) | 2 | Violence | тонкий адаптер уникального условия поверх уже готового ядра |
+| Juggernaut (`bulwark.juggernaut`) | 3 | "Eat Dirt!" | тонкий адаптер уникального условия поверх уже готового ядра |
 | Mollycoddler (`bulwark.runic-retribution`) | 1 | Lash | тонкий адаптер уникального условия поверх уже готового ядра |
 | Mollycoddler (`bulwark.runic-retribution`) | 2 | Loving Rite | тонкий адаптер уникального условия поверх уже готового ядра |
-| Mollycoddler (`bulwark.runic-retribution`) | 3 | Devotion | `movement-lifecycle` |
-| Rising Challenger (`bulwark.rising-challenger`) | 1 | Perfect Deflection | `movement-lifecycle` |
-| Rising Challenger (`bulwark.rising-challenger`) | 2 | "You'll Have To Get Through Me!" | `movement-lifecycle` |
-| Shield Bearer (`bulwark.shield-bearer`) | 1 | Wall | `turn-lifecycle`, `derived-stats` |
-| Shield Bearer (`bulwark.shield-bearer`) | 2 | Shield Charge | `movement-lifecycle` |
-| Shield Bearer (`bulwark.shield-bearer`) | 3 | Focused Defense | `derived-stats` |
-| Stalwart Sentry (`bulwark.stalwart-sentry`) | 1 | Guardian | `movement-lifecycle`, `turn-lifecycle` |
-| Stalwart Sentry (`bulwark.stalwart-sentry`) | 3 | Zone Of Influence | `movement-lifecycle` |
-| Bestial Ascendant (`bulwark.beastial-ascendant`) | 1 | Beastly | `movement-lifecycle`, `scene-lifecycle`, `transformation`, `combat-meter`, `action-copy` |
+| Mollycoddler (`bulwark.runic-retribution`) | 3 | Devotion | тонкий адаптер уникального условия поверх уже готового ядра |
+| Rising Challenger (`bulwark.rising-challenger`) | 1 | Perfect Deflection | тонкий адаптер уникального условия поверх уже готового ядра |
+| Rising Challenger (`bulwark.rising-challenger`) | 2 | "You'll Have To Get Through Me!" | тонкий адаптер уникального условия поверх уже готового ядра |
+| Shield Bearer (`bulwark.shield-bearer`) | 1 | Wall | тонкий адаптер уникального условия поверх уже готового ядра |
+| Shield Bearer (`bulwark.shield-bearer`) | 2 | Shield Charge | тонкий адаптер уникального условия поверх уже готового ядра |
+| Shield Bearer (`bulwark.shield-bearer`) | 3 | Focused Defense | тонкий адаптер уникального условия поверх уже готового ядра |
+| Stalwart Sentry (`bulwark.stalwart-sentry`) | 1 | Guardian | тонкий адаптер уникального условия поверх уже готового ядра |
+| Stalwart Sentry (`bulwark.stalwart-sentry`) | 3 | Zone Of Influence | тонкий адаптер уникального условия поверх уже готового ядра |
+| Bestial Ascendant (`bulwark.beastial-ascendant`) | 1 | Beastly | `transformation`, `combat-meter`, `action-copy` |
 | Bestial Ascendant (`bulwark.beastial-ascendant`) | 2 | Inheritance | `transformation`, `action-copy` |
-| Bestial Ascendant (`bulwark.beastial-ascendant`) | 3 | Apex | `scene-lifecycle`, `transformation`, `action-copy` |
-| Guard Caller (`bulwark.guardian-angel`) | 1 | Two Bodies | `movement-lifecycle`, `multi-space-actor` |
+| Bestial Ascendant (`bulwark.beastial-ascendant`) | 3 | Apex | `transformation`, `action-copy` |
+| Guard Caller (`bulwark.guardian-angel`) | 1 | Two Bodies | `multi-space-actor` |
 | Guard Caller (`bulwark.guardian-angel`) | 2 | Together In Life | тонкий адаптер уникального условия поверх уже готового ядра |
-| Guard Caller (`bulwark.guardian-angel`) | 3 | Together In Death | `movement-lifecycle`, `derived-stats`, `multi-space-actor` |
-| Mecha Pilot (`bulwark.mecha-pilot`) | 1 | Rune Core Engine | `movement-lifecycle`, `derived-stats`, `multi-space-actor` |
-| Mecha Pilot (`bulwark.mecha-pilot`) | 2 | Autonomous | `summon-turns`, `derived-stats`, `multi-space-actor` |
-| Mecha Pilot (`bulwark.mecha-pilot`) | 3 | Perfect Sync | `summon-turns`, `derived-stats`, `multi-space-actor` |
-| Analyst (`altruist.precognizant`) | 1 | Flash Of Insight | `scene-lifecycle` |
-| Analyst (`altruist.precognizant`) | 2 | Take Advantage | `derived-stats` |
+| Guard Caller (`bulwark.guardian-angel`) | 3 | Together In Death | `multi-space-actor` |
+| Mecha Pilot (`bulwark.mecha-pilot`) | 1 | Rune Core Engine | `multi-space-actor` |
+| Mecha Pilot (`bulwark.mecha-pilot`) | 2 | Autonomous | `summon-turns`, `multi-space-actor` |
+| Mecha Pilot (`bulwark.mecha-pilot`) | 3 | Perfect Sync | `summon-turns`, `multi-space-actor` |
+| Analyst (`altruist.precognizant`) | 1 | Flash Of Insight | тонкий адаптер уникального условия поверх уже готового ядра |
+| Analyst (`altruist.precognizant`) | 2 | Take Advantage | тонкий адаптер уникального условия поверх уже готового ядра |
 | Analyst (`altruist.precognizant`) | 3 | Watch And Wait | тонкий адаптер уникального условия поверх уже готового ядра |
-| Battle Instructor (`altruist.battle-instructor`) | 1 | Strike Order | `movement-lifecycle` |
+| Battle Instructor (`altruist.battle-instructor`) | 1 | Strike Order | тонкий адаптер уникального условия поверх уже готового ядра |
 | Battle Instructor (`altruist.battle-instructor`) | 2 | Teaching Moment | `bond-actions` |
-| Battle Instructor (`altruist.battle-instructor`) | 3 | Remember Your Training | `bond-actions`, `scene-lifecycle` |
+| Battle Instructor (`altruist.battle-instructor`) | 3 | Remember Your Training | `bond-actions` |
 | Gourmand (`altruist.gourmand`) | 1 | Healthy Meal | тонкий адаптер уникального условия поверх уже готового ядра |
 | Gourmand (`altruist.gourmand`) | 3 | Shared Experiences | `bond-actions` |
 | Surgeon (`altruist.surgeon`) | 2 | Operational Procedure | тонкий адаптер уникального условия поверх уже готового ядра |
 | Surgeon (`altruist.surgeon`) | 3 | Miracle Worker | тонкий адаптер уникального условия поверх уже готового ядра |
-| Tactical Master (`disruptor.tactical-master`) | 1 | Stop And Think | `turn-lifecycle` |
+| Tactical Master (`disruptor.tactical-master`) | 1 | Stop And Think | тонкий адаптер уникального условия поверх уже готового ядра |
 | Tactical Master (`disruptor.tactical-master`) | 2 | Study | тонкий адаптер уникального условия поверх уже готового ядра |
-| Tactical Master (`disruptor.tactical-master`) | 3 | Eureka! | `turn-lifecycle`, `derived-stats` |
+| Tactical Master (`disruptor.tactical-master`) | 3 | Eureka! | тонкий адаптер уникального условия поверх уже готового ядра |
 | Talisman Exorcist (`altruist.talisman-caster`) | 1 | Sacred Seal | тонкий адаптер уникального условия поверх уже готового ядра |
 | Talisman Exorcist (`altruist.talisman-caster`) | 2 | Tossed Talisman | тонкий адаптер уникального условия поверх уже готового ядра |
 | Talisman Exorcist (`altruist.talisman-caster`) | 3 | Exorcize | тонкий адаптер уникального условия поверх уже готового ядра |
@@ -219,71 +219,71 @@
 | Abjuring Sage (`altruist.abjuring-sage`) | 2 | Impenetrable | тонкий адаптер уникального условия поверх уже готового ядра |
 | Abjuring Sage (`altruist.abjuring-sage`) | 3 | Block Beam | тонкий адаптер уникального условия поверх уже готового ядра |
 | Alchemist (`altruist.alchemist`) | 3 | High Intensity Mix | тонкий адаптер уникального условия поверх уже готового ядра |
-| Dancer (`altruist.dancer`) | 1 | Dance Partner | `movement-lifecycle`, `turn-lifecycle` |
+| Dancer (`altruist.dancer`) | 1 | Dance Partner | тонкий адаптер уникального условия поверх уже готового ядра |
 | Dancer (`altruist.dancer`) | 2 | Hearts In Tandem | тонкий адаптер уникального условия поверх уже готового ядра |
 | Dancer (`altruist.dancer`) | 3 | The Prestige | тонкий адаптер уникального условия поверх уже готового ядра |
-| Fog Walker (`altruist.fog-walker`) | 1 | Blowing Smoke | `movement-lifecycle`, `turn-lifecycle` |
-| Fog Walker (`altruist.fog-walker`) | 2 | Mystic Mist | `movement-lifecycle`, `derived-stats` |
-| Fog Walker (`altruist.fog-walker`) | 3 | Stinging Steam | `movement-lifecycle` |
+| Fog Walker (`altruist.fog-walker`) | 1 | Blowing Smoke | тонкий адаптер уникального условия поверх уже готового ядра |
+| Fog Walker (`altruist.fog-walker`) | 2 | Mystic Mist | тонкий адаптер уникального условия поверх уже готового ядра |
+| Fog Walker (`altruist.fog-walker`) | 3 | Stinging Steam | тонкий адаптер уникального условия поверх уже готового ядра |
 | Last Hope (`altruist.last-hope`) | 1 | Notably Absent | тонкий адаптер уникального условия поверх уже готового ядра |
-| Last Hope (`altruist.last-hope`) | 2 | Heroic Return | `movement-lifecycle`, `turn-lifecycle`, `combat-meter` |
-| Last Hope (`altruist.last-hope`) | 3 | Explosive Return | `turn-lifecycle` |
+| Last Hope (`altruist.last-hope`) | 2 | Heroic Return | `combat-meter` |
+| Last Hope (`altruist.last-hope`) | 3 | Explosive Return | тонкий адаптер уникального условия поверх уже готового ядра |
 | Replicator (`altruist.replicator`) | 1 | Echo Form | тонкий адаптер уникального условия поверх уже готового ядра |
-| Replicator (`altruist.replicator`) | 2 | Symmetry | `movement-lifecycle` |
-| Replicator (`altruist.replicator`) | 3 | Full Sync | `turn-lifecycle`, `derived-stats` |
-| Temporal Sage (`altruist.chronomancer`) | 1 | Accelerate | `movement-lifecycle` |
-| Virtuoso (`altruist.bardic-savant`) | 1 | Musician | `movement-lifecycle` |
-| Virtuoso (`altruist.bardic-savant`) | 2 | Reverb | `turn-lifecycle` |
+| Replicator (`altruist.replicator`) | 2 | Symmetry | тонкий адаптер уникального условия поверх уже готового ядра |
+| Replicator (`altruist.replicator`) | 3 | Full Sync | тонкий адаптер уникального условия поверх уже готового ядра |
+| Temporal Sage (`altruist.chronomancer`) | 1 | Accelerate | тонкий адаптер уникального условия поверх уже готового ядра |
+| Virtuoso (`altruist.bardic-savant`) | 1 | Musician | тонкий адаптер уникального условия поверх уже готового ядра |
+| Virtuoso (`altruist.bardic-savant`) | 2 | Reverb | тонкий адаптер уникального условия поверх уже готового ядра |
 | Virtuoso (`altruist.bardic-savant`) | 3 | Encore | тонкий адаптер уникального условия поверх уже готового ядра |
-| Artist (`altruist.artist`) | 1 | Stroke Of The Brush | `movement-lifecycle`, `turn-lifecycle` |
+| Artist (`altruist.artist`) | 1 | Stroke Of The Brush | тонкий адаптер уникального условия поверх уже готового ядра |
 | Artist (`altruist.artist`) | 2 | Canvas Of Flesh | тонкий адаптер уникального условия поверх уже готового ядра |
-| Artist (`altruist.artist`) | 3 | Brush-Brand | `turn-lifecycle` |
-| Deckbuilder (`altruist.deckbuilder`) | 1 | Draw | `movement-lifecycle`, `scene-lifecycle` |
+| Artist (`altruist.artist`) | 3 | Brush-Brand | тонкий адаптер уникального условия поверх уже готового ядра |
+| Deckbuilder (`altruist.deckbuilder`) | 1 | Draw | тонкий адаптер уникального условия поверх уже готового ядра |
 | Deckbuilder (`altruist.deckbuilder`) | 2 | Card Capture | тонкий адаптер уникального условия поверх уже готового ядра |
 | Deckbuilder (`altruist.deckbuilder`) | 3 | Greed | тонкий адаптер уникального условия поверх уже готового ядра |
 | Bloodletter (`disruptor.bloodletter`) | 1 | Bleeding Edge | тонкий адаптер уникального условия поверх уже готового ядра |
-| Bloodletter (`disruptor.bloodletter`) | 2 | Bloodhound | `movement-lifecycle` |
+| Bloodletter (`disruptor.bloodletter`) | 2 | Bloodhound | тонкий адаптер уникального условия поверх уже готового ядра |
 | Bloodletter (`disruptor.bloodletter`) | 3 | Rupture [ Skirmish → Breathe ] | тонкий адаптер уникального условия поверх уже готового ядра |
-| Constrictor (`disruptor.constrictor`) | 3 | Twisting Impact | `movement-lifecycle` |
-| Cutpurse (`disruptor.cutpurse`) | 1 | Fast Hands | `movement-lifecycle`, `turn-lifecycle` |
+| Constrictor (`disruptor.constrictor`) | 3 | Twisting Impact | тонкий адаптер уникального условия поверх уже готового ядра |
+| Cutpurse (`disruptor.cutpurse`) | 1 | Fast Hands | тонкий адаптер уникального условия поверх уже готового ядра |
 | Cutpurse (`disruptor.cutpurse`) | 2 | Snatch | тонкий адаптер уникального условия поверх уже готового ядра |
-| Cutpurse (`disruptor.cutpurse`) | 3 | Rob Them Blind | `movement-lifecycle`, `turn-lifecycle` |
+| Cutpurse (`disruptor.cutpurse`) | 3 | Rob Them Blind | тонкий адаптер уникального условия поверх уже готового ядра |
 | Light Bender (`disruptor.light-bender`) | 1 | Blendendes Licht | тонкий адаптер уникального условия поверх уже готового ядра |
 | Light Bender (`disruptor.light-bender`) | 2 | Sonneneruption | тонкий адаптер уникального условия поверх уже готового ядра |
 | Light Bender (`disruptor.light-bender`) | 3 | Falscher Stern | тонкий адаптер уникального условия поверх уже готового ядра |
-| Reaper (`disruptor.reaper`) | 1 | Sow | `movement-lifecycle`, `turn-lifecycle` |
-| Reaper (`disruptor.reaper`) | 3 | Reap | `movement-lifecycle`, `turn-lifecycle` |
+| Reaper (`disruptor.reaper`) | 1 | Sow | тонкий адаптер уникального условия поверх уже готового ядра |
+| Reaper (`disruptor.reaper`) | 3 | Reap | тонкий адаптер уникального условия поверх уже готового ядра |
 | Street Fighter (`disruptor.street-fighter`) | 1 | Bloody Brass | тонкий адаптер уникального условия поверх уже готового ядра |
 | Street Fighter (`disruptor.street-fighter`) | 2 | Break And Bruise | тонкий адаптер уникального условия поверх уже готового ядра |
 | Street Fighter (`disruptor.street-fighter`) | 3 | Brutalize | тонкий адаптер уникального условия поверх уже готового ядра |
-| Earth Speaker (`disruptor.earth-speaker`) | 1 | Stone Soldiers | `movement-lifecycle` |
-| Earth Speaker (`disruptor.earth-speaker`) | 2 | Tectonic Shift | `movement-lifecycle`, `turn-lifecycle` |
-| Earth Speaker (`disruptor.earth-speaker`) | 3 | Earthen Shards | `movement-lifecycle` |
-| Strongman (`disruptor.inhuman-strength`) | 1 | Strong-Arm | `movement-lifecycle` |
-| Strongman (`disruptor.inhuman-strength`) | 2 | Piston Fist | `movement-lifecycle`, `derived-stats` |
-| Strongman (`disruptor.inhuman-strength`) | 3 | Smash Through | `movement-lifecycle` |
-| SwarmKin (`disruptor.swarm-body`) | 1 | Fluttering Form | `movement-lifecycle`, `turn-lifecycle` |
-| SwarmKin (`disruptor.swarm-body`) | 2 | Vanish Into Flies | `movement-lifecycle` |
+| Earth Speaker (`disruptor.earth-speaker`) | 1 | Stone Soldiers | тонкий адаптер уникального условия поверх уже готового ядра |
+| Earth Speaker (`disruptor.earth-speaker`) | 2 | Tectonic Shift | тонкий адаптер уникального условия поверх уже готового ядра |
+| Earth Speaker (`disruptor.earth-speaker`) | 3 | Earthen Shards | тонкий адаптер уникального условия поверх уже готового ядра |
+| Strongman (`disruptor.inhuman-strength`) | 1 | Strong-Arm | тонкий адаптер уникального условия поверх уже готового ядра |
+| Strongman (`disruptor.inhuman-strength`) | 2 | Piston Fist | тонкий адаптер уникального условия поверх уже готового ядра |
+| Strongman (`disruptor.inhuman-strength`) | 3 | Smash Through | тонкий адаптер уникального условия поверх уже готового ядра |
+| SwarmKin (`disruptor.swarm-body`) | 1 | Fluttering Form | тонкий адаптер уникального условия поверх уже готового ядра |
+| SwarmKin (`disruptor.swarm-body`) | 2 | Vanish Into Flies | тонкий адаптер уникального условия поверх уже готового ядра |
 | SwarmKin (`disruptor.swarm-body`) | 3 | Devour | тонкий адаптер уникального условия поверх уже готового ядра |
-| Wave Rider (`disruptor.wave-rider`) | 2 | Momentous Waves | `movement-lifecycle`, `turn-lifecycle` |
-| Wave Rider (`disruptor.wave-rider`) | 3 | Aqua Cage | `scene-lifecycle` |
+| Wave Rider (`disruptor.wave-rider`) | 2 | Momentous Waves | тонкий адаптер уникального условия поверх уже готового ядра |
+| Wave Rider (`disruptor.wave-rider`) | 3 | Aqua Cage | тонкий адаптер уникального условия поверх уже готового ядра |
 | Mind Breaker (`disruptor.mind-breaker`) | 1 | "Where Are You?" | тонкий адаптер уникального условия поверх уже готового ядра |
-| Gale Strider (`disruptor.gale-strider`) | 2 | Updraft | `movement-lifecycle`, `turn-lifecycle` |
-| Gale Strider (`disruptor.gale-strider`) | 3 | Mountain Carver | `movement-lifecycle` |
+| Gale Strider (`disruptor.gale-strider`) | 2 | Updraft | тонкий адаптер уникального условия поверх уже готового ядра |
+| Gale Strider (`disruptor.gale-strider`) | 3 | Mountain Carver | тонкий адаптер уникального условия поверх уже готового ядра |
 | Jailor (`disruptor.mage-s-array`) | 1 | Erect | тонкий адаптер уникального условия поверх уже готового ядра |
-| Jailor (`disruptor.mage-s-array`) | 2 | Readjust | `movement-lifecycle` |
+| Jailor (`disruptor.mage-s-array`) | 2 | Readjust | тонкий адаптер уникального условия поверх уже готового ядра |
 | Jailor (`disruptor.mage-s-array`) | 3 | Prison Of Your Own Design | тонкий адаптер уникального условия поверх уже готового ядра |
 | Eradicator (`ruiner.rapid-fire-sorcery`) | 1 | Proliferate | тонкий адаптер уникального условия поверх уже готового ядра |
 | Eradicator (`ruiner.rapid-fire-sorcery`) | 3 | Endless Fire [ Charge → Cast ] | `combat-meter` |
-| Ritualist (`ruiner.ritualist`) | 2 | Arcane Artillery | `turn-lifecycle`, `combat-meter` |
-| Ritualist (`ruiner.ritualist`) | 3 | Fractal Etchings | `scene-lifecycle` |
+| Ritualist (`ruiner.ritualist`) | 2 | Arcane Artillery | `combat-meter` |
+| Ritualist (`ruiner.ritualist`) | 3 | Fractal Etchings | тонкий адаптер уникального условия поверх уже готового ядра |
 | Student Of Stars (`ruiner.student-of-stars`) | 1 | Power Unleashed [ Charge → Finisher ] | `combat-meter` |
 | Student Of Stars (`ruiner.student-of-stars`) | 3 | Moment Of Truth | `duel-flow` |
 | Blade Smith (`ruiner.mana-blades`) | 1 | Call Arms | `action-copy` |
-| Blade Smith (`ruiner.mana-blades`) | 2 | Blade Storm | `movement-lifecycle` |
+| Blade Smith (`ruiner.mana-blades`) | 2 | Blade Storm | тонкий адаптер уникального условия поверх уже готового ядра |
 | Blade Smith (`ruiner.mana-blades`) | 3 | Saintly Sword, Excalibur | `transformation`, `action-copy` |
 | Dramaturge (`ruiner.dramaturge`) | 1 | All Eyes On Me | `combat-meter` |
-| Dramaturge (`ruiner.dramaturge`) | 2 | Snatch Their Fire | `turn-lifecycle`, `combat-meter` |
+| Dramaturge (`ruiner.dramaturge`) | 2 | Snatch Their Fire | `combat-meter` |
 | Dramaturge (`ruiner.dramaturge`) | 3 | Power In Presentation | `combat-meter` |
 | Feral Arcanist (`ruiner.feral-arcana`) | 1 | Vorpal Claw | тонкий адаптер уникального условия поверх уже готового ядра |
 | Flame Heart (`ruiner.flame-heart`) | 1 | Rev Up | тонкий адаптер уникального условия поверх уже готового ядра |
@@ -292,24 +292,20 @@
 | Frost Veiler (`ruiner.cryomancer`) | 3 | Shatter | тонкий адаптер уникального условия поверх уже готового ядра |
 | Grim Ascendant (`ruiner.grim-ascendant`) | 3 | Umbra | `transformation` |
 | Ranger (`ruiner.long-draw`) | 1 | Nock The Arrow | тонкий адаптер уникального условия поверх уже готового ядра |
-| Ranger (`ruiner.long-draw`) | 2 | Feather Step | `movement-lifecycle` |
-| Ranger (`ruiner.long-draw`) | 3 | Lord Piercer [ Prepare × 3 ] | `scene-lifecycle` |
-| Sword Caller (`ruiner.sellsword-s-call`) | 2 | Warrior's Fury | `movement-lifecycle`, `summon-turns` |
-| Sword Caller (`ruiner.sellsword-s-call`) | 3 | Supreme Sellsword | `summon-turns`, `scene-lifecycle`, `bond-actions`, `deployment-hooks` |
-| Void Soul (`ruiner.void-soul`) | 1 | Return To Nothing | `movement-lifecycle`, `turn-lifecycle` |
-| Void Soul (`ruiner.void-soul`) | 2 | Fade Away | `movement-lifecycle`, `turn-lifecycle` |
-| Ego Arm (`ruiner.ego-arm`) | 1 | I Am Your Sword | `movement-lifecycle`, `deployment-hooks`, `transformation` |
-| Ego Arm (`ruiner.ego-arm`) | 2 | Show Your Targets | `turn-lifecycle`, `derived-stats` |
-| Ego Arm (`ruiner.ego-arm`) | 3 | And I'll Become Irreplaceable | `derived-stats` |
+| Ranger (`ruiner.long-draw`) | 2 | Feather Step | тонкий адаптер уникального условия поверх уже готового ядра |
+| Ranger (`ruiner.long-draw`) | 3 | Lord Piercer [ Prepare × 3 ] | тонкий адаптер уникального условия поверх уже готового ядра |
+| Sword Caller (`ruiner.sellsword-s-call`) | 2 | Warrior's Fury | `summon-turns` |
+| Sword Caller (`ruiner.sellsword-s-call`) | 3 | Supreme Sellsword | `summon-turns`, `bond-actions`, `deployment-hooks` |
+| Void Soul (`ruiner.void-soul`) | 1 | Return To Nothing | тонкий адаптер уникального условия поверх уже готового ядра |
+| Void Soul (`ruiner.void-soul`) | 2 | Fade Away | тонкий адаптер уникального условия поверх уже готового ядра |
+| Ego Arm (`ruiner.ego-arm`) | 1 | I Am Your Sword | `deployment-hooks`, `transformation` |
+| Ego Arm (`ruiner.ego-arm`) | 2 | Show Your Targets | тонкий адаптер уникального условия поверх уже готового ядра |
+| Ego Arm (`ruiner.ego-arm`) | 3 | And I'll Become Irreplaceable | тонкий адаптер уникального условия поверх уже готового ядра |
 
 ### Общие блокеры частичных и ручных Техник
 
 | Возможность | Затронуто Уровней | Почему это выгодная следующая инвестиция |
 | --- | ---: | --- |
-| `movement-lifecycle` · Жизненный цикл движения | 88 | Один общий контракт сможет снять этот блокер сразу у нескольких адаптеров; модуль пока не закреплён |
-| `turn-lifecycle` · Жизненный цикл Хода и Раунда | 61 | Один общий контракт сможет снять этот блокер сразу у нескольких адаптеров; модуль пока не закреплён |
-| `derived-stats` · Производные характеристики персонажа | 36 | Один общий контракт сможет снять этот блокер сразу у нескольких адаптеров; модуль пока не закреплён |
-| `scene-lifecycle` · Начало, конец и сброс Сцены | 25 | Один общий контракт сможет снять этот блокер сразу у нескольких адаптеров; модуль пока не закреплён |
 | `combat-meter` · Напряжение и общие счетчики боя | 13 | Один общий контракт сможет снять этот блокер сразу у нескольких адаптеров; модуль пока не закреплён |
 | `action-copy` · Заимствование Атак и Техник | 10 | Один общий контракт сможет снять этот блокер сразу у нескольких адаптеров; модуль пока не закреплён |
 | `transformation` · Трансформации и заимствованные правила | 10 | Один общий контракт сможет снять этот блокер сразу у нескольких адаптеров; модуль пока не закреплён |

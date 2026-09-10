@@ -1,7 +1,7 @@
 "use strict";
 
 (function exposeTechniqueFoundationMap(global) {
-  const VERSION = 9;
+  const VERSION = 10;
   const CAPABILITIES = {
     "event-participants": { label: "Участники события", state: "ready", module: "scene-engine-core.js" },
     "event-preview": { label: "Предпросмотр цепочки", state: "ready", module: "scene-triggers.js" },
@@ -22,9 +22,9 @@
     "usage-limits": { label: "Лимиты использования", state: "ready", module: "scene-foundations.js" },
     "trigger-router": { label: "Маршрутизация триггеров", state: "ready", module: "scene-triggers.js / scene-events.js" },
     "reaction-window": { label: "Окна Реакций и вмешательств", state: "ready", module: "scene-responses.js / scene-events.js" },
-    "turn-lifecycle": { label: "Жизненный цикл Хода и Раунда", state: "planned" },
-    "scene-lifecycle": { label: "Начало, конец и сброс Сцены", state: "planned" },
-    "movement-lifecycle": { label: "Жизненный цикл движения", state: "planned" },
+    "turn-lifecycle": { label: "Жизненный цикл Хода и Раунда", state: "ready", module: "lionwing-adapters.js / lionwing-engine.js" },
+    "scene-lifecycle": { label: "Начало, конец и сброс Сцены", state: "ready", module: "lionwing-adapters.js / lionwing-engine.js" },
+    "movement-lifecycle": { label: "Жизненный цикл движения", state: "ready", module: "lionwing-geometry.js / lionwing-engine.js" },
     "choice-flow": { label: "Типизированное решение", state: "ready", module: "scene-responses.js / scene-events.js / scene-effects.js" },
     "damage-pipeline": { label: "Конвейер урона, Здоровья и Ран", state: "ready", module: "scene-responses.js / scene-events.js" },
     "action-modifier": { label: "Модификатор или новое действие", state: "ready", module: "scene-actions.js / scene-responses.js" },
@@ -38,7 +38,7 @@
     "deployment-hooks": { label: "Развертывание", state: "planned" },
     "intermission-reset": { label: "Сброс на Интермиссии", state: "ready", module: "lionwing-inventory.js / lionwing-engine.js" },
     "bond-actions": { label: "Связи и действия Связей", state: "planned" },
-    "derived-stats": { label: "Производные характеристики персонажа", state: "planned" },
+    "derived-stats": { label: "Производные характеристики персонажа", state: "ready", module: "lionwing-adapters.js / lionwing-engine.js" },
     "information-query": { label: "Изучение и раскрытие информации", state: "ready", module: "lionwing-information-query.js / lionwing-engine.js" },
     transformation: { label: "Трансформации и заимствованные правила", state: "planned" },
     "duel-flow": { label: "Дуэли и ставки", state: "planned" },
