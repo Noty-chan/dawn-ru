@@ -376,7 +376,7 @@
 #### 1. Искусство восьми молотов (Art Of The 8 Hammers) `powerhouse.martial-artist.1`
 
 - **Заявленный статус:** `decision` (решение).
-- **Текущий адаптер:** `powerhouse.martial-artist.1` · `passive` · {"kind":"passive","coverage":"partial","sourceLevelId":"powerhouse.martial-artist.1","sourceDigest":"5f4610235181dbccff56d2a15b161412018f62becc35812b1e911232e4af4a36"}; После успешной Стычки или Завершения Телом/Талантом предлагается ровно один доступный follow up; четыре варианта ограничены разом за Раунд и исключают доверенные weapon-tag Техники..
+- **Текущий адаптер:** `powerhouse.martial-artist.1` · `passive` · {"kind":"passive","coverage":"partial","sourceLevelId":"powerhouse.martial-artist.1","sourceDigest":"5f4610235181dbccff56d2a15b161412018f62becc35812b1e911232e4af4a36"}; После Стычки или Завершения Телом/Талантом предлагается ровно один доступный follow up по цели этого действия; четыре варианта ограничены разом за Раунд и исключают доверенные weapon-tag Техники..
 - **Готовые foundations:** `target-validation`, `event-participants`, `movement-lifecycle`, `effect-state`, `effect-lifecycle`, `usage-limits`, `trigger-router`, `turn-lifecycle`, `choice-flow`, `action-modifier`.
 - **Нужно добавить:** Для кода явный следующий шаг не выведен автоматически; нужны direct pos/neg/boundary тесты и evidence до повышения доверия.
 

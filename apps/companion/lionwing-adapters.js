@@ -172,7 +172,9 @@
   const hammersChoices = (actor, event, context, triggerKey) => {
     const instanceId = event.payload?.actionInstanceId || event.execution?.actionInstanceId || event.execution?.rootActionId;
     const receipt = actionReceipt(context.scene, actor.id, instanceId), payload = receipt?.payload || {};
-    const targetIds = [...new Set([...actionTargetsThisTurn(context.scene, actor), event.payload?.targetId, ...(payload.targetIds || [])].filter(Boolean))];
+    // A Hammer follows this Attack and may choose one of this Attack's
+    // targets. Earlier targets from the Turn belong only to Flow-State.
+    const targetIds = [...new Set([event.payload?.targetId, ...(payload.targetIds || [])].filter(Boolean))];
     const targets = targetIds.map(id => context.scene.actors?.find(item => item.id === id)).filter(target => target && target.id !== actor.id && !target.knockedOut && target.team !== actor.team);
     const sourceDigest = "5f4610235181dbccff56d2a15b161412018f62becc35812b1e911232e4af4a36", ruleId = "powerhouse.martial-artist.1";
     const use = (id, targetId) => ({ kind: "usage", ruleId: `${ruleId}.${id}`, scope: "round", targetIds: [targetId], actionId: payload.actionId, sourceDigest });

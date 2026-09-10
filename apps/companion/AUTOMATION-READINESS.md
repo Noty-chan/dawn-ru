@@ -8,7 +8,7 @@
 
 | Контур | Всего | Заявлено исполнимым | Формально E2E-сертифицировано | Неполный путь |
 | --- | ---: | ---: | ---: | --- |
-| Уровни Техник | 333 | 82 shared/inherited (24.6%) | 0 | 40 частичных; 211 ручных |
+| Уровни Техник | 333 | 86 shared/inherited (25.8%) | 0 | 41 частичных; 206 ручных |
 | Правила обычных врагов | 122 | 0 (0.0%) | 0 | 122 assisted |
 | Атаки врагов | 40 | 0 | 0 | не установлено независимым аудитом |
 
@@ -66,8 +66,8 @@
 
 | Архетип | Уровней | Заявлено full | Заявлено decision | Заявлено partial | Заявлено manual |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| Powerhouse | 60 | 8 | 5 | 10 | 37 |
-| Vagabond | 60 | 9 | 11 | 6 | 34 |
+| Powerhouse | 60 | 8 | 7 | 11 | 34 |
+| Vagabond | 60 | 9 | 13 | 6 | 32 |
 | Bulwark | 48 | 3 | 3 | 3 | 39 |
 | Altruist | 57 | 2 | 11 | 2 | 42 |
 | Disruptor | 54 | 4 | 6 | 12 | 32 |
@@ -101,9 +101,6 @@
 | Intimidator (`powerhouse.intimidator`) | 1 | "Pathetic" | тонкий адаптер уникального условия поверх уже готового ядра |
 | Intimidator (`powerhouse.intimidator`) | 2 | "Out Of My Way" | тонкий адаптер уникального условия поверх уже готового ядра |
 | Intimidator (`powerhouse.intimidator`) | 3 | "Fools And Dead Men" | тонкий адаптер уникального условия поверх уже готового ядра |
-| Martial Artist (`powerhouse.martial-artist`) | 1 | Art Of The 8 Hammers | тонкий адаптер уникального условия поверх уже готового ядра |
-| Martial Artist (`powerhouse.martial-artist`) | 2 | Flow-State | тонкий адаптер уникального условия поверх уже готового ядра |
-| Martial Artist (`powerhouse.martial-artist`) | 3 | Unlimited Blows | тонкий адаптер уникального условия поверх уже готового ядра |
 | Lancer (`powerhouse.lancer`) | 1 | Pierce | тонкий адаптер уникального условия поверх уже готового ядра |
 | Lancer (`powerhouse.lancer`) | 2 | Phalanx | тонкий адаптер уникального условия поверх уже готового ядра |
 | Lancer (`powerhouse.lancer`) | 3 | Cannon-Arm [ Breathe → Skirmish ] | тонкий адаптер уникального условия поверх уже готового ядра |
@@ -120,8 +117,6 @@
 | Sniper (`vagabond.sniper`) | 1 | Long Shot | тонкий адаптер уникального условия поверх уже готового ядра |
 | Sniper (`vagabond.sniper`) | 2 | Bunker Down | тонкий адаптер уникального условия поверх уже готового ядра |
 | Sniper (`vagabond.sniper`) | 3 | Deadeye [ Hide → Talent Finisher ] | тонкий адаптер уникального условия поверх уже готового ядра |
-| Skirmisher (`vagabond.skirmisher`) | 1 | Sting | тонкий адаптер уникального условия поверх уже готового ядра |
-| Skirmisher (`vagabond.skirmisher`) | 2 | Shifting Blows | тонкий адаптер уникального условия поверх уже готового ядра |
 | Speed Demon (`vagabond.speed-demon`) | 1 | Fade | тонкий адаптер уникального условия поверх уже готового ядра |
 | Speed Demon (`vagabond.speed-demon`) | 3 | Flash Step [ Breathe → Stride ] | тонкий адаптер уникального условия поверх уже готового ядра |
 | Untouchable (`vagabond.untouchable`) | 3 | Fighter's Instinct [ Dodge → Skirmish ] | тонкий адаптер уникального условия поверх уже готового ядра |

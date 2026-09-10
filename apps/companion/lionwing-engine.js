@@ -2532,7 +2532,7 @@
           if (!p.destination) { choice(owner, "placement", "Выберите клетку для Быстрого шага", ["place"], { martialQuickStep: true, targetId: owner.id, maximum, evasion, ruleId: p.ruleId, sourceDigest: p.sourceDigest, causeEventId: rootId }); break; }
           if (p.destination.space && p.destination.space !== owner.space) fail("Быстрый шаг не меняет пространство");
           move(owner, { destination: { ...p.destination, space: owner.space }, maximum, sourceActionId: p.ruleId || "powerhouse.martial-artist.1", movement: "Быстрый шаг" });
-          queue.unshift({ p: { kind: "modifier", targetId: owner.id, stat: "evasion", amount: evasion, duration: "endTurn", ruleId: p.ruleId, sourceDigest: p.sourceDigest }, sourceId: owner.id, provenance: { ...provenance, ownerActorId: owner.id, ruleId: p.ruleId, sourceDigest: p.sourceDigest } });
+          queue.unshift({ p: { kind: "modifier", targetId: owner.id, stat: "evasion", amount: evasion, duration: "manual", ruleId: p.ruleId, sourceDigest: p.sourceDigest }, sourceId: owner.id, provenance: { ...provenance, ownerActorId: owner.id, ruleId: p.ruleId, sourceDigest: p.sourceDigest } });
           break;
         }
         case "skirmisher-shift": {
@@ -2801,7 +2801,7 @@
               const owner = requiredActor(scene, pending.context.targetId || sourceId, false), destination = p.destination && { ...p.destination, space: p.destination.space || owner.space };
               if (!destination || destination.space !== owner.space || distance(owner, destination) < 1 || distance(owner, destination) > Number(pending.context.maximum || 3)) fail("Клетка Быстрого шага не соответствует дальности");
               move(owner, { destination, maximum: Number(pending.context.maximum || 3), sourceActionId: pending.context.ruleId || "powerhouse.martial-artist.1", movement: "Быстрый шаг" });
-              queue.unshift({ p: { kind: "modifier", targetId: owner.id, stat: "evasion", amount: Number(pending.context.evasion || owner.tier || 1), duration: "endTurn", ruleId: pending.context.ruleId, sourceDigest: pending.context.sourceDigest }, sourceId: owner.id, provenance: { ...provenance, ownerActorId: owner.id, ruleId: pending.context.ruleId, sourceDigest: pending.context.sourceDigest } });
+              queue.unshift({ p: { kind: "modifier", targetId: owner.id, stat: "evasion", amount: Number(pending.context.evasion || owner.tier || 1), duration: "manual", ruleId: pending.context.ruleId, sourceDigest: pending.context.sourceDigest }, sourceId: owner.id, provenance: { ...provenance, ownerActorId: owner.id, ruleId: pending.context.ruleId, sourceDigest: pending.context.sourceDigest } });
               emit("rule.respond", sourceId, { ...p, title: pending.title }); break;
             }
             if (pending.context.skirmisherShift) {
