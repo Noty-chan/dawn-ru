@@ -816,6 +816,7 @@
       spellCircleActive: p.spellCircleActive === true || spellCircleActive(scene, a),
       firstSpiritFinisherThisTurn: p.firstSpiritFinisherThisTurn === true || (def.id === ids.finish && attackAttribute === "spirit" && firstSpiritFinisherThisTurn(scene, a, p.actionInstanceId || null)),
       enchainedCastMoveAdjacent: p.enchainedCastMoveAdjacent === true,
+      speedValue: stat(a, "speed"),
     };
     const counts=Object.fromEntries(targets.map(id=>{const target=actor(scene,id),targetEffectIds=activeState(scene,id).effects.map(status=>status.effect),tauntedByActor=activeEffectSources(target,"negative.спровоцирован",scene).some(source=>source.actorId===a.id),context={...targetContext,targetId:id,targetDistance:distance(a,target),targetEffectIds,tauntedByActor,flightStance:effectActive(scene,a,"positive.полёт")||a.lionwing?.stance==="flight",useSpeedAttribute:p.useSpeedAttribute===true};const quoted=global.DAWN_LIONWING_ADAPTERS?.attackQuote?.(a,{...context,baseValue:base,roundUp:true})||{ok:true,value:base};if(quoted.ok===false)fail(quoted.reason||"Числовые модификаторы Атаки конфликтуют");return[id,Math.max(0,Number(quoted.value)-(effectActive(scene,a,"negative.спровоцирован")&&!targets.some(t=>taunts.includes(t))?a.tier:0)-(effectActive(scene,a,"negative.испуган")&&fears.includes(id)?a.tier:0)+((p.spikeTargetIds||[]).includes(id)&&effectActive(scene,target,"negative.подброшен")?a.tier:0))]}));
     return{base:Math.min(...Object.values(counts)),counts};
@@ -1431,7 +1432,7 @@
         amount = Math.max(0, amount - integer(p.reduction || 0, "снижение урона"));
       }
       if (attack && !p.finalDamage && source) {
-        const damageQuote = global.DAWN_LIONWING_ADAPTERS?.damageQuote?.(source, { scene, kind: "attack", actionId: p.sourceActionId || null, targetId: a.id, targetIds: [a.id], baseValue: amount, fixedDamage: p.fixedDamage === true, jab: p.jab === true, hammersFollowUpTriggered: p.hammersFollowUpTriggered === true, followUpAttribute: p.followUpAttribute || null, tier: Number(source.tier || 1), roundUp: true });
+        const damageQuote = global.DAWN_LIONWING_ADAPTERS?.damageQuote?.(source, { scene, kind: "attack", actionId: p.sourceActionId || null, techniqueRuleId: p.techniqueRuleId || null, targetId: a.id, targetIds: [a.id], baseValue: amount, fixedDamage: p.fixedDamage === true, jab: p.jab === true, hammersFollowUpTriggered: p.hammersFollowUpTriggered === true, followUpAttribute: p.followUpAttribute || null, tier: Number(source.tier || 1), roundUp: true });
         if (damageQuote?.ok === false) fail(damageQuote.reason || "Числовые модификаторы урона конфликтуют");
         if (damageQuote?.ok && Number.isFinite(Number(damageQuote.value))) amount = Math.max(0, Number(damageQuote.value));
       }
