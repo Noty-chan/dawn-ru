@@ -16,7 +16,18 @@ const EXPECTED_EDITION = "dawn-en-lionwing-cb2f8e67";
 const SURFACES = ["core", "ui", "network", "persistence"];
 const clone = value => value == null ? value : JSON.parse(JSON.stringify(value));
 const sha256 = value => crypto.createHash("sha256").update(value).digest("hex");
-const canonicalLevelDigest = (techniqueId, level) => sha256(JSON.stringify({ techniqueId, ...level }));
+// Keep the registry's canonical identity on the same payload as the existing
+// adapter/provenance gate. A level-only digest would look stable while silently
+// diverging from the digest carried by executable rules.
+const canonicalLevelDigest = (techniqueId, level, metadata = {}) => sha256(JSON.stringify({
+  id: `${techniqueId}.${level.n}`,
+  archetypeId: metadata.archetypeId ?? metadata.technique?.archetypeId ?? null,
+  techniqueId,
+  name: level.name,
+  text: level.text,
+  notes: metadata.notes ?? metadata.technique?.notes ?? "",
+  source: metadata.source ?? metadata.technique?.source ?? null,
+}));
 const readJson = file => JSON.parse(fs.readFileSync(file, "utf8"));
 const fail = message => { throw new Error(message); };
 const isObject = value => value && typeof value === "object" && !Array.isArray(value);
@@ -45,7 +56,7 @@ function canonicalRows(canonical) {
     const id = `${technique.id}.${level.n}`;
     if (ids.has(id)) fail(`Canonical LionWing has duplicate level id: ${id}`);
     ids.add(id);
-    rows.push({ id, archetype, technique, level, canonicalDigest: canonicalLevelDigest(technique.id, level) });
+    rows.push({ id, archetype, technique, level, canonicalDigest: canonicalLevelDigest(technique.id, level, { archetypeId: archetype.id, technique }) });
   }
   if (rows.length !== 333) fail(`Expected 333 canonical LionWing levels, got ${rows.length}`);
   if (rows.some(row => row.id.includes("servant-s-call"))) fail("Removed Servant's Call must not enter the LionWing registry");

@@ -7,42 +7,42 @@
   "entries": [
     {
       "id": "vagabond.dim-mak.1",
-      "canonicalDigest": "57c2d10021b83b3463b54399a1fa23b7e28fb1f682637d04af50d8dbc758125b",
+      "canonicalDigest": "86bc2801b43ae4f2bd3de697124313b986e9ae1081e0dd8f3f52dfc44b097c59",
       "status": "corrected",
       "correction": "Исправлен усечённый digest; canonical EN payload теперь идентифицируется полным SHA-256.",
       "auditRef": "Исправленные границы: vagabond.dim-mak.1–2"
     },
     {
       "id": "vagabond.dim-mak.2",
-      "canonicalDigest": "8f245e4e776b3358fa398227552bb151c497b3a534f68da1cb28c24f54e30fd6",
+      "canonicalDigest": "d63edd4d649fb29805706009934a7eb38427b2507f32b1d5632e881f7e24a5a2",
       "status": "corrected",
       "correction": "Исправлен усечённый digest; canonical EN payload теперь идентифицируется полным SHA-256.",
       "auditRef": "Исправленные границы: vagabond.dim-mak.1–2"
     },
     {
       "id": "ruiner.cryomancer.2",
-      "canonicalDigest": "4014763b472ea2c8dfc4952f2919d7779da77aef488a273aea535ed13be2e256",
+      "canonicalDigest": "32667d8918127c1729dc39430bde0375999651854e06e8cd599d91b7fcd14f30",
       "status": "corrected",
       "correction": "Исправлен контракт четырёхсегментной Сосульки: заполнение после фактического Focus gain один раз за Action и каноническая Breathe replacement ветка.",
       "auditRef": "Исправленные границы: ruiner.cryomancer.2"
     },
     {
       "id": "ruiner.grim-ascendant.2",
-      "canonicalDigest": "e28956139215c6fc606a8443cdfeabc261acce4a0fcdb8f1572ff1c9d91b46ad",
+      "canonicalDigest": "f9768c5e588f5471e9e1e5b145e1b9ec0216d2fcba298f5c64364b027af2bf96",
       "status": "corrected",
       "correction": "Удалён устаревший half-damage/Regeneration state-toggle; зафиксирована opt-in Drain Life ветка с двумя Immobilize источниками и условным Focus reward.",
       "auditRef": "Исправленные границы: ruiner.grim-ascendant.2"
     },
     {
       "id": "altruist.empath.3",
-      "canonicalDigest": "2aa2256aa75ebc52b32964e679cf3cfe822e580cb1234f6c9991f77bd76dca51",
+      "canonicalDigest": "4473ee348631cf63dd51750aca3869aac5f3abb159e490f4b390407c8ac61f73",
       "status": "corrected",
       "correction": "Registry переведён в passive/full; оставлен boundary adapter 3 Focus + [Tier] Health, платный Support путь исключён.",
       "auditRef": "Исправленные границы: altruist.empath.3"
     },
     {
       "id": "vagabond.assassin.3",
-      "canonicalDigest": "554e9163e23ffafcee1f3fc01a4d0162a0f176defb851d49508d262744a054ba",
+      "canonicalDigest": "0a28c9c9cc800d859e9f2352923ece0aa23754cc12541124234b16400378c1c1",
       "status": "corrected",
       "correction": "Ядро проверяет Hide→Stride, бесплатный Шаг, Invisible и [Speed/2] к следующему Finisher в том же Turn.",
       "auditRef": "Исправленные границы: vagabond.assassin.3"

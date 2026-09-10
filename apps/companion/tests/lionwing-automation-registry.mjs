@@ -8,7 +8,20 @@ import { fileURLToPath } from "node:url";
 const root = path.dirname(fileURLToPath(import.meta.url));
 const appRoot = path.join(root, "..");
 const registry = JSON.parse(fs.readFileSync(path.join(appRoot, "LIONWING-AUTOMATION-REGISTRY.json"), "utf8"));
-const digest = (techniqueId, level) => crypto.createHash("sha256").update(JSON.stringify({ techniqueId, ...level })).digest("hex");
+const canonical = JSON.parse(fs.readFileSync(path.join(appRoot, "..", "..", "source", "editions", "dawn-en-lionwing-cb2f8e67", "extracted-companion.json"), "utf8"));
+const canonicalById = new Map(canonical.archetypes.flatMap(archetype => archetype.techniques.flatMap(technique => technique.levels.map(level => [
+  `${technique.id}.${level.n}`,
+  { archetypeId: archetype.id, technique, level },
+]))));
+const digest = (techniqueId, level, technique, archetypeId) => crypto.createHash("sha256").update(JSON.stringify({
+  id: `${techniqueId}.${level.n}`,
+  archetypeId,
+  techniqueId,
+  name: level.name,
+  text: level.text,
+  notes: technique.notes,
+  source: technique.source,
+})).digest("hex");
 
 assert.equal(registry.schemaVersion, 1);
 assert.equal(registry.editionId, "dawn-en-lionwing-cb2f8e67");
@@ -27,7 +40,10 @@ assert.deepEqual(explicit, [
 ].sort());
 for (const row of registry.rows) {
   for (const key of ["implementation", "provenance", "review", "surfaces", "certification"]) assert.equal(typeof row[key], "object", `${row.id} has ${key}`);
-  assert.equal(row.provenance.canonicalDigest, digest(row.technique.id, row.provenance.canonicalLevel), `${row.id} canonical digest`);
+  const source = canonicalById.get(row.id);
+  assert.ok(source, `${row.id} exists in canonical source`);
+  assert.equal(row.provenance.canonicalDigest, digest(row.technique.id, source.level, source.technique, source.archetypeId), `${row.id} canonical digest`);
+  if (row.provenance.engineRuleDigests.length) assert.ok(row.provenance.engineRuleDigests.includes(row.provenance.canonicalDigest), `${row.id} adapter digest uses canonical payload`);
   if (!row.review.explicit) {
     assert.equal(row.review.status, "unreviewed");
     assert.equal(row.review.inherited, true);
