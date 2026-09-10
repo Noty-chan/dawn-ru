@@ -768,14 +768,20 @@
     count: (actor, scene, query = {}) => {
       const rows = eventHistory(actor, scene), scope = query.scope || "ownerTurn";
       const serial = query.ownerTurnSerial ?? actor?.lionwing?.ownerTurnSerial ?? actor?.lionwing?.ownTurnSerial ?? 0;
-      const instance = query.ownerTurnInstanceId ?? scene?.lionwing?.activeTurnInstanceId;
+      // An owner Turn is keyed by the owner's own serial. The global active
+      // instance is meaningful only for anyTurn; using it as a default for an
+      // inactive owner made a query for that owner's last Turn silently return
+      // zero while somebody else was up.
+      const instance = scope === "anyTurn"
+        ? query.ownerTurnInstanceId ?? query.turnInstanceId ?? scene?.lionwing?.activeTurnInstanceId
+        : query.ownerTurnInstanceId ?? null;
       return rows
         .filter(item => query.ruleId == null || item.ruleId === query.ruleId)
         .filter(item => query.actionId == null || item.actionId === query.actionId)
         .filter(item => scope === "scene"
           ? Number(item.sceneSerial || scene?.lionwing?.sceneSerial || 1) === Number(scene?.lionwing?.sceneSerial || 1)
           : scope === "round"
-            ? Number(item.round) === Number(scene?.round)
+            ? Number(item.sceneSerial || scene?.lionwing?.sceneSerial || 1) === Number(scene?.lionwing?.sceneSerial || 1) && Number(item.round) === Number(scene?.round)
             : instance
               ? item.ownerTurnInstanceId === instance
               : Number(item.ownerTurnSerial ?? item.turnSerial) === Number(serial)).length;
