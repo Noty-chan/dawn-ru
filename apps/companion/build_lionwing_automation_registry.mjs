@@ -196,6 +196,7 @@ function buildMarkdown(registry) {
     "",
     "> Генерируется командой `npm run build:lionwing-registry`. Реестр строится из canonical EN, `techniqueCoverage` и `automation-evidence.json`.",
     "> `review=unreviewed/inherited` означает отсутствие явной записи в аудите; это не сертификация и не повышение readiness.",
+    "> Общий lifecycle scheduler проверяется `tests/lionwing-neutral-lifecycle.mjs` и `tests/lionwing-lifecycle-consumers.mjs`; эти тесты не являются E2E-сертификацией отдельных Техник.",
     "",
     `Canonical уровней: **${registry.rows.length}** · Явно исправленных review: **${reviewed}** · Сертифицированных evidence: **${certified}**`,
     "",

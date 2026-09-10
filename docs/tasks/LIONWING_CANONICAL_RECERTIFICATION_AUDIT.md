@@ -22,4 +22,19 @@
 - `altruist.empath.3`: registry переведён в passive/full и оставлен только boundary-адаптер `3 Focus + [Tier] Health`; платный Support-путь больше не является executable path.
 - `vagabond.assassin.3`: ядро проверяет Hide→Stride, бесплатный Шаг, Invisible и `[Speed/2]` к следующему Finisher в том же Turn.
 
+## Общие границы жизненного цикла
+
+- Канонические `Scene`, `Round` и `Turn` теперь проходят через один scheduler
+  LionWing Engine. Сериал собственного Хода (`ownerTurnSerial`/`ownerTurnKey`)
+  используется для own-turn правил, а `activeTurnInstanceId` — для any-turn
+  правил, включая дополнительные Ходы.
+- Boundary receipts сохраняются приватно и дедуплицируются по правилу,
+  владельцу, Сцене и нужной границе. Повторная доставка, JSON reload и replay
+  не создают второй активации; Scene reset очищает receipts и stale optional
+  choices.
+- Проверены через общий путь несколько уже зарегистрированных consumers:
+  Absolute Bastard I, Gunslinger I, Gourmand I, Mundane I и Empath III.
+  Это доказывает повторное использование scheduler, но не поднимает их
+  registry certification и не является E2E evidence.
+
 Оставшиеся partial/manual записи намеренно не повышались: они требуют дополнительных surface/evidence или ещё не доказывают полный канонический пользовательский путь.

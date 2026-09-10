@@ -1075,3 +1075,18 @@ registry levels), targeted inventory/information tests и полный `npm test
 ## Movement lifecycle integration audit, 2026-09-10
 
 Принят общий adapter-facing lifecycle `movement.prepare/start/leave/segment/enter/cross/end/stop`. Факты пути, дистанции, режима и причины остановки вычисляет геометрия и журналирует ядро; клиентский путь не считается доказательством. Обычный Jump публикует тот же контракт. API предназначен как фундамент для массовых адаптеров и сам по себе не объявляет 118 зависимых уровней автоматизированными.
+
+## Turn/round/scene lifecycle boundaries, 2026-09-10
+
+Общий scheduler LionWing теперь различает собственный и любой текущий Ход:
+callbacks союзника на чужом Ходу получают `anyTurnStart`/`anyTurnEnd` и
+`activeTurnInstanceId`, поэтому extra Turns не теряют повторную активацию.
+Read-only `ownerTurn` queries используют сериал владельца даже во время чужого
+Хода; round queries дополнительно изолированы `sceneSerial`. Scene reset не
+переносит optional boundary choices в новую Сцену.
+
+Канонический smoke-path через Engine добавлен для уже зарегистрированных
+Absolute Bastard I, Gunslinger I, Gourmand I, Mundane I и Empath III. Это
+подтверждает универсальность scheduler и сохраняет честный статус registry:
+333 canonical levels, 6 explicit reviews, 0 certified E2E evidence. Детали:
+`docs/tasks/LIONWING_LIFECYCLE_BOUNDARIES_HANDOFF_2026-09-10.md`.
