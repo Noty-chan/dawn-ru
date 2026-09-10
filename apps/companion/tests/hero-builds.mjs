@@ -220,8 +220,8 @@ let missedCryomancer = SceneEngine.dispatchMany(missedCryomancerScene, missedCry
 missedCryomancer = SceneEngine.dispatchMany(missedCryomancer, SceneEngine.respondReaction(missedCryomancer, data, { actorId: "enemy", choice: "pass" }).events).scene;
 missedCryomancer = SceneEngine.dispatchMany(missedCryomancer, SceneEngine.resolvePendingAction(missedCryomancer, data).events).scene;
 assert.equal(missedCryomancer.actors.find(item => item.id === "enemy").effects.includes("negative.замедлен"), false, "Cryomancer I does not Slow a target when the Spell produces no damage");
-const focused = SceneEngine.dispatchMany(chilled, [{ type: "resource.gain", actorId: "hero", payload: { resource: "focus", amount: 3, sourceActionId: "test.focus" } }]).scene;
-assert.equal(SceneEngine.clockStatus(focused, "hero", "ruiner.cryomancer.icicle").value, 1, "Cryomancer II fills one Icicle segment whenever Focus is gained");
+const focused = SceneEngine.dispatchMany(chilled, [{ type: "resource.gain", actorId: "hero", payload: { resource: "focus", amount: 3, resolvedResource: "focus", resolvedDelta: 3, actionInstanceId: "test-action", sourceActionId: "test.focus" } }]).scene;
+assert.equal(SceneEngine.clockStatus(focused, "hero", "ruiner.cryomancer.icicle").value, 1, "Cryomancer II fills one Icicle segment for an attributed Focus gain");
 
 const spellcrafterBuild = { "ruiner.spellcrafter": 3 };
 assert.ok(coverageFor(spellcrafterBuild).every(level => level.automation === "decision"), "Spellcrafter exposes the completed persisted modifier choices at every level");
