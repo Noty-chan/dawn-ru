@@ -7,9 +7,9 @@
   const inventory = global.DAWN_LIONWING_INVENTORY || null;
   const lionwing = actor => actor?.rulesEdition === "lionwing";
   const knows = (actor, techniqueId, level) => lionwing(actor) && Number((actor.knownTechniques ?? actor.techniques)?.[techniqueId] || 0) >= level;
-  const passive = ({ id, label, sourceDigest, rollBonus, statBonus, statMinimum, rangeBonus, boundaryOperations, inventoryOperations, resourceGainStatus, actionStatus, maximumLevel = null, coverage = "full" }) => {
+  const passive = ({ id, label, sourceDigest, rollBonus, statBonus, statMinimum, rangeBonus, numeric, boundaryOperations, inventoryOperations, resourceGainStatus, actionStatus, maximumLevel = null, coverage = "full" }) => {
     const techniqueId = id.replace(/\.\d+$/, ""), level = Number(id.match(/\.(\d+)$/)?.[1] || 0);
-    return Object.freeze({ id, techniqueId, level, label, sourceDigest, coverage, available: actor => knows(actor, techniqueId, level) && (maximumLevel == null || Number((actor.knownTechniques ?? actor.techniques)?.[techniqueId] || 0) <= maximumLevel), rollBonus, statBonus, statMinimum, rangeBonus, boundaryOperations, inventoryOperations, resourceGainStatus, actionStatus });
+    return Object.freeze({ id, techniqueId, level, label, sourceDigest, coverage, available: actor => knows(actor, techniqueId, level) && (maximumLevel == null || Number((actor.knownTechniques ?? actor.techniques)?.[techniqueId] || 0) <= maximumLevel), rollBonus, statBonus, statMinimum, rangeBonus, numeric, boundaryOperations, inventoryOperations, resourceGainStatus, actionStatus });
   };
   const actionBonus = (actionId, amount = 1) => (_actor, context) => context?.kind === "attack" && context.actionId === actionId ? amount : 0;
   const attackIds = new Set(["action.атаки.заклинание", "action.атаки.завершение", "action.атаки.стычка"]);
@@ -639,6 +639,10 @@
     if (distinctCosts.length > 1) return { ok: false, reason: `Конфликт замен цены: ${[...replacements.keys()].join(", ")}.` };
     if (distinctCosts.length === 1) quote.cost = distinctCosts[0];
     quote.ignoreRequirements = [...new Set(quote.ignoreRequirements)];
+    const costComposition = numericQuote(actor, { ...context, key: "actionCost", baseValue: quote.cost, roundUp: true });
+    if (costComposition.ok === false) return costComposition;
+    quote.cost = costComposition.value;
+    quote.costQuote = costComposition;
     return { ok: true, ...quote, modifierIds: quote.modifiers.map(item => item.id), reason: quote.reasons.join(" ") };
   };
   const enabled = actor => adapters.filter(rule => rule.available(actor) && actor.lionwing?.automation?.[rule.id] === true);
@@ -685,8 +689,69 @@
   };
   const numericContributions = (actor, method, context) => enabled(actor).flatMap(rule => {
     const amount = Number(method.startsWith("stat") ? rule[method]?.(actor, context.key, context) : rule[method]?.(actor, context) || 0);
-    return Number.isFinite(amount) && amount !== 0 ? [{ id: rule.id, label: rule.label, amount }] : [];
+    return Number.isFinite(amount) && amount !== 0 ? [{ id: rule.id, label: rule.label, amount, sourceDigest: rule.sourceDigest, coverage: rule.coverage, reason: rule.label, operation: method === "statMinimum" ? "min" : "add" }] : [];
   });
+  // One deterministic read-only pipeline for every numeric value. Existing
+  // stat/range/roll hooks are projected into it, while future adapters may
+  // return typed operations without changing the engine again.
+  const numericOperations = new Set(["replace", "multiply", "add", "min", "max"]);
+  const normalizeNumericOperation = value => {
+    if (value == null) return [];
+    return (Array.isArray(value) ? value : [value]).flatMap(item => {
+      if (typeof item === "number") return Number.isFinite(item) ? [{ operation: "add", amount: item }] : [];
+      if (!item || typeof item !== "object") return [];
+      const operation = item.operation || item.mode || "add", amount = Number(item.amount ?? item.value);
+      return numericOperations.has(operation) && Number.isFinite(amount) ? [{ ...item, operation, amount }] : [];
+    });
+  };
+  const composeNumeric = (base, operations = [], context = {}) => {
+    const initial = Number(base);
+    if (!Number.isFinite(initial)) return { ok: false, reason: "Базовое числовое значение некорректно.", key: context.key || null, value: 0, base: initial, operations: [] };
+    const normalized = normalizeNumericOperation(operations);
+    const replacements = normalized.filter(item => item.operation === "replace");
+    const distinctReplacements = [...new Set(replacements.map(item => item.amount))];
+    if (distinctReplacements.length > 1) return { ok: false, reason: `Конфликт замен числового значения: ${replacements.map(item => item.id || item.reason || "источник").join(", ")}.`, key: context.key || null, value: initial, base: initial, operations: normalized, sources: normalized, reasons: ["Требуется решение Нарратора"] };
+    let value = distinctReplacements.length ? distinctReplacements[0] : initial;
+    for (const operation of ["multiply", "add", "min", "max"]) for (const item of normalized.filter(row => row.operation === operation)) {
+      if (operation === "multiply") value *= item.amount;
+      else if (operation === "add") value += item.amount;
+      else if (operation === "min") value = Math.max(value, item.amount);
+      else value = Math.min(value, item.amount);
+    }
+    if (context.roundUp === true || normalized.some(item => item.roundUp === true)) value = Math.ceil(value);
+    return { ok: true, key: context.key || null, base: initial, value, effective: value, operations: normalized, order: ["replace", "multiply", "add", "min", "max"] };
+  };
+  const numericQuote = (actor, context = {}) => {
+    const key = String(context.key || "value"), base = Number(context.baseValue ?? context.base ?? actor?.[key] ?? 0);
+    if (!Number.isFinite(base)) return { ok: false, reason: "Базовое числовое значение некорректно.", key, value: 0, base, operations: [], sources: [], reasons: [] };
+    const operations = [];
+    for (const rule of enabled(actor)) {
+      const legacy = [];
+      if (["maxHp", "hp", "speed", "armor", "evasion", "body", "talent", "spirit", "mind"].includes(key)) {
+        const amount = Number(rule.statBonus?.(actor, key, { ...context, key }) || 0);
+        const minimum = Number(rule.statMinimum?.(actor, key, { ...context, key }) || 0);
+        if (Number.isFinite(amount) && amount !== 0) legacy.push({ operation: "add", amount, reason: rule.label });
+        if (Number.isFinite(minimum) && minimum !== 0) legacy.push({ operation: "min", amount: minimum, reason: rule.label });
+      }
+      if (["attackRange", "range"].includes(key)) {
+        const amount = Number(rule.rangeBonus?.(actor, context) || 0);
+        if (Number.isFinite(amount) && amount !== 0) legacy.push({ operation: "add", amount, reason: rule.label });
+      }
+      if (["advantage", "attackPool"].includes(key)) {
+        const amount = Number(rule.rollBonus?.(actor, context) || 0);
+        if (Number.isFinite(amount) && amount !== 0) legacy.push({ operation: "add", amount, reason: rule.label });
+      }
+      for (const operation of [...legacy, ...normalizeNumericOperation(rule.numeric?.(actor, { ...context, key }))]) {
+        if (operation.amount === 0) continue;
+        operations.push({ ...operation, id: rule.id, techniqueId: rule.techniqueId, level: rule.level, label: rule.label, sourceDigest: rule.sourceDigest, coverage: rule.coverage, reason: operation.reason || rule.label });
+      }
+    }
+    const composed = composeNumeric(base, operations, { ...context, key });
+    if (composed.ok === false) return { ...composed, key, operations, sources: operations, reasons: [composed.reason] };
+    const sources = operations.map(item => ({ id: item.id, label: item.label, amount: item.amount, operation: item.operation, sourceDigest: item.sourceDigest, coverage: item.coverage, reason: item.reason }));
+    const sourceDigests = [...new Set(sources.map(item => item.sourceDigest).filter(Boolean))];
+    return { ...composed, key, sources, sourceDigest: sourceDigests.length === 1 ? sourceDigests[0] : sourceDigests, sourceDigests, coverage: sources.some(item => item.coverage === "partial") ? "partial" : "full", reasons: sources.map(item => item.reason), reason: sources.map(item => item.reason).join(" ") };
+  };
   // Techniques use this small facade rather than scanning the Scene journal
   // themselves. Geometry owns the authoritative facts and checked operation;
   // adapters remain declarative and cannot provide their own route/distance.
@@ -739,6 +804,12 @@
     statMinimum: (actor, key, context = {}) => numericContributions(actor, "statMinimum", { ...context, key }).reduce((minimum, item) => Math.max(minimum, item.amount), 0),
     rangeBonuses: (actor, context = {}) => numericContributions(actor, "rangeBonus", context),
     rangeBonus: (actor, context = {}) => numericContributions(actor, "rangeBonus", context).reduce((sum, item) => sum + item.amount, 0),
+    numericQuote,
+    composeNumeric,
+    statQuote: (actor, key, context = {}) => numericQuote(actor, { ...context, key, baseValue: context.baseValue ?? (actor?.attrs?.[key] ?? actor?.[key] ?? 0) }),
+    attackQuote: (actor, context = {}) => numericQuote(actor, { ...context, key: context.key || "attackPool" }),
+    damageQuote: (actor, context = {}) => numericQuote(actor, { ...context, key: context.key || "damage" }),
+    resourceQuote: (actor, context = {}) => numericQuote(actor, { ...context, key: context.key || "resourceCost" }),
     boundaryOperations: (actor, context = {}) => enabled(actor).flatMap(rule => {
       const declared = rule.boundaryOperations?.(actor, context) || [];
       const boundaryOperations = Array.isArray(declared) ? declared : (Array.isArray(declared.operations) ? declared.operations : []);
