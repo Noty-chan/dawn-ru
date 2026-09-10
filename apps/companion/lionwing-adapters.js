@@ -40,6 +40,19 @@
     ));
   };
   const usedInRound = (actor, scene, actionId) => eventHistory(actor, scene).some(item => item.actionId === actionId && Number(item.round) === Number(scene?.round));
+  const clockValue = (actor, id) => Number(actor?.ruleClocks?.[id]?.current ?? actor?.ruleClocks?.[id]?.value ?? 0);
+  const turnHistory = (actor, scene, event = null) => {
+    const rows = eventHistory(actor, scene);
+    const instance = event?.payload?.ownerTurnInstanceId || event?.execution?.ownerTurnInstanceId || scene?.lionwing?.activeTurnInstanceId || null;
+    const serial = Number(event?.payload?.turnSerial ?? event?.execution?.turnSerial ?? scene?.turnSerial ?? 0);
+    return rows.filter(item => instance
+      ? item.ownerTurnInstanceId === instance
+      : Number(item.ownerTurnSerial ?? item.turnSerial) === serial);
+  };
+  const utilityAction = actionId => typeof actionId === "string" && actionId.startsWith("action.утилитарные-действия.");
+  const attackAction = actionId => attackIds.has(actionId);
+  const balanceId = "powerhouse.monastic-sage.balance";
+  const meditatedId = "powerhouse.monastic-sage.meditated";
   const actionModifier = ({ id, techniqueId, level, sourceDigest, label, coverage = "partial", available, modify }) => Object.freeze({
     id, techniqueId, level, sourceDigest, label, coverage,
     available,
@@ -166,6 +179,63 @@
         operations: [{ kind: "chemist-health-check", targetId: event.payload.targetId, sourceActorId: actor.id, ruleId: "disruptor.chemist.2" }],
         context: { targetId: event.payload.targetId, sourceActorId: actor.id, eventId: event.id },
       }] : [],
+    }),
+    eventTrigger({
+      id: "powerhouse.monastic-sage.2",
+      label: "Монах-воин II: чередование Атаки и утилитарного Действия заполняет Баланс",
+      sourceDigest: "68c84fc146d316b7508a983d89e6438f07785d78ff8bb885ac25dade66f40c60",
+      coverage: "full",
+      triggerKey: ({ actor, event, context }) => `${event.id}:${event.payload?.actionInstanceId || event.execution?.actionInstanceId || "action"}:${actor.id}:${context.ownerTurnKey || context.scene?.turnSerial || 0}:balance`,
+      match: (actor, event, context) => {
+        if (event.type !== "action.resolve" || event.actorId !== actor.id || !context.scene) return false;
+        const actionId = event.payload?.actionId;
+        // A raw action.resolve without trusted execution provenance is not an
+        // authoritative action. This keeps a client supplied event/flag from
+        // filling a rule clock.
+        if (!(attackAction(actionId) || utilityAction(actionId)) || !event.execution?.rootActionId) return false;
+        const history = turnHistory(actor, context.scene, event).filter(item => attackAction(item.actionId) || utilityAction(item.actionId));
+        if (history.length < 2 || clockValue(actor, meditatedId) > 0) return false;
+        const current = history.at(-1), previous = history.at(-2);
+        return current?.actionId === actionId && attackAction(current.actionId) !== attackAction(previous.actionId);
+      },
+      operations: (actor, _event, context) => clockValue(actor, balanceId) < 8 && clockValue(actor, meditatedId) < 1
+        ? [{ kind: "clock", targetId: actor.id, id: balanceId, operation: "add", delta: 1, ruleId: "powerhouse.monastic-sage.2", sourceDigest: "68c84fc146d316b7508a983d89e6438f07785d78ff8bb885ac25dade66f40c60" }]
+        : [],
+      choices: () => [],
+      boundaryOperations: (actor, context) => {
+        if (context?.boundary === "sceneStart") return [{ kind: "clock", targetId: actor.id, id: balanceId, operation: "create", label: "Баланс", size: 8, max: 8, min: 0, current: 0, initial: 0, resetAt: "scene", lifetime: "scene", ruleId: "powerhouse.monastic-sage.2", sourceDigest: "68c84fc146d316b7508a983d89e6438f07785d78ff8bb885ac25dade66f40c60" }];
+        if (context?.boundary === "turnStart" && clockValue(actor, balanceId) > 0 && context.activeActor?.id === actor.id) return {
+          operations: [],
+          choices: [
+            { id: "strengthen", label: "Потратить 1 Баланс: Усилиться", operations: [{ kind: "clock", targetId: actor.id, id: balanceId, operation: "add", delta: -1, ruleId: "powerhouse.monastic-sage.2", sourceDigest: "68c84fc146d316b7508a983d89e6438f07785d78ff8bb885ac25dade66f40c60" }, { kind: "effect", targetId: actor.id, effect: "positive.усилен", ruleId: "powerhouse.monastic-sage.2", sourceActionId: "powerhouse.monastic-sage.2" }], },
+            { id: "hasten", label: "Потратить 1 Баланс: Ускориться", operations: [{ kind: "clock", targetId: actor.id, id: balanceId, operation: "add", delta: -1, ruleId: "powerhouse.monastic-sage.2", sourceDigest: "68c84fc146d316b7508a983d89e6438f07785d78ff8bb885ac25dade66f40c60" }, { kind: "effect", targetId: actor.id, effect: "positive.ускорен", ruleId: "powerhouse.monastic-sage.2", sourceActionId: "powerhouse.monastic-sage.2" }], },
+          ],
+        };
+        return [];
+      },
+    }),
+    eventTrigger({
+      id: "powerhouse.monastic-sage.3",
+      label: "Монах-воин III: после Зарядки можно Медитировать",
+      sourceDigest: "b12c0e7f1d63dd1217d15f64aa7f2fcb7bbfa649761b476eb5e0840bc36ba994",
+      coverage: "partial",
+      triggerKey: ({ actor, event }) => `${event.id}:${event.payload?.actionInstanceId || event.execution?.actionInstanceId || "action"}:${actor.id}:meditate`,
+      match: (actor, event, context) => event.type === "action.resolve" && event.actorId === actor.id && event.payload?.actionId === ACTIONS.charge && Boolean(event.execution?.rootActionId) && Boolean(context.scene),
+      operations: () => [],
+      choices: (actor, event, context) => {
+        const filled = Math.max(0, Math.min(8, clockValue(actor, balanceId))), full = filled === 8;
+        const sourceDigest = "b12c0e7f1d63dd1217d15f64aa7f2fcb7bbfa649761b476eb5e0840bc36ba994";
+        const operations = [
+          ...(filled ? [{ kind: "modifier", id: `${event.id}:monastic-meditate:evasion`, targetId: actor.id, stat: "evasion", amount: filled, duration: "manual", ruleId: "powerhouse.monastic-sage.3", sourceDigest }] : []),
+          { kind: "clock", targetId: actor.id, id: balanceId, operation: "set", current: 0, ruleId: "powerhouse.monastic-sage.3", sourceDigest },
+          ...(full ? [{ kind: "resource", targetId: actor.id, resource: "focus", operation: "gain", amount: Number(actor.tier || 1) + 1, ruleId: "powerhouse.monastic-sage.3", sourceDigest }] : []),
+          ...(actor.ruleClocks?.[meditatedId] ? [{ kind: "clock", targetId: actor.id, id: meditatedId, operation: "set", current: 1, ruleId: "powerhouse.monastic-sage.3", sourceDigest }] : [{ kind: "clock", targetId: actor.id, id: meditatedId, operation: "create", label: "Медитация в этом Ходу", size: 1, max: 1, min: 0, current: 1, initial: 0, resetAt: "endTurn", lifetime: "scene", ruleId: "powerhouse.monastic-sage.3", sourceDigest }]),
+        ];
+        return [{ id: "meditate", label: `Медитировать: получить ${filled} Уклонения и очистить Баланс${full ? `; получить ${Number(actor.tier || 1) + 1} Фокуса` : ""}`, operations, context: { eventId: event.id, filled, full, sourceDigest, manualRemainder: "Teleport to any empty space and swift spirit or mind finisher on adjacent enemy require the manual Narrator path until an authoritative composed action is available." } }];
+      },
+      boundaryOperations: (actor, context) => context?.boundary === "sceneStart" && !actor.ruleClocks?.[meditatedId]
+        ? [{ kind: "clock", targetId: actor.id, id: meditatedId, operation: "create", label: "Медитация в этом Ходу", size: 1, max: 1, min: 0, current: 0, initial: 0, resetAt: "endTurn", lifetime: "scene", ruleId: "powerhouse.monastic-sage.3", sourceDigest: "b12c0e7f1d63dd1217d15f64aa7f2fcb7bbfa649761b476eb5e0840bc36ba994" }]
+        : [],
     }),
     eventTrigger({
       id: "vagabond.dim-mak.2",

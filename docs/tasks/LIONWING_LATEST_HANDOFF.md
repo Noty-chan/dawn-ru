@@ -1075,3 +1075,30 @@ registry levels), targeted inventory/information tests и полный `npm test
 ## Movement lifecycle integration audit, 2026-09-10
 
 Принят общий adapter-facing lifecycle `movement.prepare/start/leave/segment/enter/cross/end/stop`. Факты пути, дистанции, режима и причины остановки вычисляет геометрия и журналирует ядро; клиентский путь не считается доказательством. Обычный Jump публикует тот же контракт. API предназначен как фундамент для массовых адаптеров и сам по себе не объявляет 118 зависимых уровней автоматизированными.
+
+## Monastic Sage I–III canonical block, 2026-09-10
+
+В ветке `codex/luna-monastic-sage-v2` добавлен блок `powerhouse.monastic-sage`
+по новому EN канону. Полные payload digests уровней: I —
+`f1ff824c2299d7184c07c4bf6a212d3a2f8c40a914d18948ed0c1987059480cc`, II —
+`68c84fc146d316b7508a983d89e6438f07785d78ff8bb885ac25dade66f40c60`, III —
+`b12c0e7f1d63dd1217d15f64aa7f2fcb7bbfa649761b476eb5e0840bc36ba994`.
+
+Уровень I полностью покрывает пассивные +2 Armor при Strengthened и +2
+Evasion при Hastened с окончанием Turn. Уровень II полностью покрывает
+авторитетный восьмисегментный Balance Clock, чередование Attack/Utility в
+одном Turn, сброс после Scene и выбор Strengthen/Hasten в начале собственного
+хода через receipt-backed clock operations. Уровень III оставлен `partial`:
+после Charge открывается optional Meditate через choice flow; заполненный
+Balance превращается в Evasion, очищается, а полный Clock даёт Tier+1 Focus.
+Телепортация и бесплатный swift spirit/mind finisher остаются ручным
+продолжением, поскольку текущий журнал не публикует безопасную замену броска,
+Awaken и составное действие finisher.
+
+Добавлены positive/negative/boundary/duplicate/reload-oriented checks в
+`apps/companion/tests/lionwing-monastic-sage.mjs`, provenance mappings и
+пересобраны штатные maps/registry/reference docs. Targeted проверки и полный
+`npm test` пройдены; E2E evidence не заявляется без проверки реальных
+поверхностей.
+
+Текущий проверенный коммит: `e502a2d` (`feat(lionwing): implement monastic sage levels I–III`), ветка опубликована как `origin/codex/luna-monastic-sage-v2`.

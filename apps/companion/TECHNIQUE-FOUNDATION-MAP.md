@@ -184,9 +184,9 @@ SHA-256 проверенных файлов: `6049f3ff6b79b8204c45cb8b830b265369
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Mind Made Manifest | проверено | ручная | `effect-state`, `effect-lifecycle`, `trigger-router`, `turn-lifecycle`, `derived-stats` |
-| 2 | Calm Within Chaos | проверено | ручная | `resource-check`, `effect-state`, `effect-lifecycle`, `trigger-router`, `turn-lifecycle`, `action-modifier`, `inventory` |
-| 3 | Sublime Equanimity | проверено | ручная | `resource-check`, `trigger-router`, `turn-lifecycle`, `choice-flow` |
+| 1 | Mind Made Manifest | проверено | полная | `effect-state`, `effect-lifecycle`, `trigger-router`, `turn-lifecycle`, `derived-stats` |
+| 2 | Calm Within Chaos | проверено | с выбором | `resource-check`, `effect-state`, `effect-lifecycle`, `trigger-router`, `turn-lifecycle`, `action-modifier`, `inventory` |
+| 3 | Sublime Equanimity | проверено | с выбором | `resource-check`, `trigger-router`, `turn-lifecycle`, `choice-flow` |
 
 ### Lancer (`powerhouse.lancer`)
 
