@@ -10,6 +10,7 @@
   const entities = global.DAWN_LIONWING_ENTITIES || null;
   const inventory = global.DAWN_LIONWING_INVENTORY || null;
   const combatMeter = global.DAWN_LIONWING_COMBAT_METER || null;
+  const derivedActions = global.DAWN_LIONWING_DERIVED_ACTIONS || null;
   const tensionValue = scene => Number(combatMeter?.read?.(scene)?.current ?? scene?.tension ?? 0);
   // The dice foundation is optional so the old single-event reducer remains
   // byte-for-byte compatible in pages that have not loaded the new module yet.
@@ -2066,7 +2067,7 @@
         const target = requiredActor(scene, id);
         if (effectActive(scene,target,"positive.исчез") || effectActive(scene,a,"positive.изгнан") !== effectActive(scene,target,"positive.изгнан")) fail("Цель недоступна из-за Эффекта");
       }
-      scene.pendingAction = { id: rootId, actionInstanceId:p.actionInstanceId || provenance?.actionInstanceId||rootId, lionwing: true, actorId: a.id, name: p.name || "Атака", targetIds: targets, damage: integer(p.amount, "урон"), repeat: integer(p.repeat ?? 1, "повторы", 30), criticals: Number(p.criticals || 0), effects: copy(p.effects || []), finalDamage: Boolean(p.finalDamage), ignoreArmor:p.ignoreArmor===true, ignoreEvasion:p.ignoreEvasion===true, irreducible:p.irreducible===true, responses: Object.fromEntries(targets.map(id => [id, { choice: "pending" }])), sourceActionId: p.actionId || "manual.attack", techniqueRuleId: p.techniqueRuleId || null, techniqueId: p.techniqueId || null, techniqueIds: Array.isArray(p.techniqueIds) ? copy(p.techniqueIds) : null, ...(p.breacherPush ? { breacherPush: true, breacherPushMultiplier: Number(p.breacherPushMultiplier || 1), breacherAttackSuccess: p.breacherAttackSuccess === true, breacherInitialDistances: copy(p.breacherInitialDistances || {}) } : {}), ...(p.breacherWeaken ? { breacherWeaken: true } : {}), ...(p.areaPlan ? { areaPlan: copy(p.areaPlan), areaCells: copy(p.areaPlan.result?.cells || []), areaCenter: copy(p.areaPlan.result?.center), emptyTargetCount: Number(p.emptyTargetCount || 0) } : {}), ...(p.__actionPlan ? { actionPlan: copy(p.__actionPlan), actionPlanId: p.__actionPlan.id } : {}), ...(p.__execution ? { execution: copy(p.__execution) } : {}) };
+      scene.pendingAction = { id: rootId, actionInstanceId:p.actionInstanceId || provenance?.actionInstanceId||rootId, lionwing: true, actorId: a.id, name: p.name || "Атака", targetIds: targets, damage: integer(p.amount, "урон"), repeat: integer(p.repeat ?? 1, "повторы", 30), criticals: Number(p.criticals || 0), effects: copy(p.effects || []), finalDamage: Boolean(p.finalDamage), ignoreArmor:p.ignoreArmor===true, ignoreEvasion:p.ignoreEvasion===true, irreducible:p.irreducible===true, responses: Object.fromEntries(targets.map(id => [id, { choice: "pending" }])), sourceActionId: p.actionId || "manual.attack", techniqueRuleId: p.techniqueRuleId || null, techniqueId: p.techniqueId || null, techniqueIds: Array.isArray(p.techniqueIds) ? copy(p.techniqueIds) : null, ...(p.derivedActionId ? { derived: true, derivedActionId: p.derivedActionId, derivedLineage: copy(p.lineage || []), fixedTargetId: p.fixedTargetId || targets[0], fixedDamage: p.fixedDamage === true, derivedSourceDigest: p.sourceDigest || null } : {}), ...(p.breacherPush ? { breacherPush: true, breacherPushMultiplier: Number(p.breacherPushMultiplier || 1), breacherAttackSuccess: p.breacherAttackSuccess === true, breacherInitialDistances: copy(p.breacherInitialDistances || {}) } : {}), ...(p.breacherWeaken ? { breacherWeaken: true } : {}), ...(p.areaPlan ? { areaPlan: copy(p.areaPlan), areaCells: copy(p.areaPlan.result?.cells || []), areaCenter: copy(p.areaPlan.result?.center), emptyTargetCount: Number(p.emptyTargetCount || 0) } : {}), ...(p.__actionPlan ? { actionPlan: copy(p.__actionPlan), actionPlanId: p.__actionPlan.id } : {}), ...(p.__execution ? { execution: copy(p.__execution) } : {}) };
       if(p.targetDamage){if(typeof p.targetDamage!=="object"||Array.isArray(p.targetDamage))fail("Некорректный урон по целям");for(const[id,amount]of Object.entries(p.targetDamage)){if(!targets.includes(id))fail("Урон указан для посторонней цели");integer(amount,"урон цели");}scene.pendingAction.targetDamage=copy(p.targetDamage);}
       if (!scene.pendingAction.repeat) fail("Нужно хотя бы одно нанесение урона");
       emit("attack.pending", a.id, scene.pendingAction);
@@ -2113,7 +2114,10 @@
     const performAction = (a, p) => {
       const def = actionDef(p.actionId);
       if (!def) fail("Неизвестное базовое действие");
-      const status = actionStatus(scene, a, def, p);
+      const derived = p.__derivedContract || null;
+      const derivedQuote = derived ? global.DAWN_LIONWING_ADAPTERS?.actionQuote?.(a, { scene, actionId: def.id, targetIds: p.targetIds || [], attribute: p.attribute || null, baseCost: 0, baseResource: def.cost.resource, baseSwift: true, techniqueRuleId: derived.id, techniqueIds: [derived.id] }) : null;
+      if (derivedQuote?.ok === false) fail(derivedQuote.reason || "Модификаторы производного действия конфликтуют");
+      const status = derived ? { available: true, reason: "", cost: 0, resource: def.cost.resource, swift: true, actionQuote: derivedQuote || {} } : actionStatus(scene, a, def, p);
       if (!status.available) fail(status.reason);
       const assassinStride = def.id === ids.step && status.actionQuote?.modifierIds?.includes("vagabond.assassin.3");
       const icicleRequested = def.id === ids.breathe && (p.icicle === true || p.useIcicle === true || p.cryomancerIcicle === true || p.icicleChoice === "empty");
@@ -2141,7 +2145,7 @@
       if ([ids.spell, ids.study, ids.shove, "action.атаки.дуэль"].includes(def.id) && targets.length !== 1 || def.id === ids.finish && !p.areaPlan && targets.length !== 1 || def.id === ids.skirmish && (!targets.length || !p.areaPlan && targets.length > 2)) fail("Неверное число целей");
       const finishContext = { scene, kind: "attack", actionId: def.id, attribute: p.attribute || (def.id === ids.finish ? "spirit" : null), techniqueRuleId: p.techniqueRuleId || null, breacherBuckShot: p.breacherBuckShot === true, tension: tensionValue(scene), spellCircleActive: p.spellCircleActive === true || spellCircleActive(scene, a), firstSpiritFinisherThisTurn: def.id === ids.finish && (p.firstSpiritFinisherThisTurn === true || firstSpiritFinisherThisTurn(scene, a, p.actionInstanceId || provenance?.actionInstanceId || rootId)) };
       const range = def.id === ids.spell ? 5 : def.id === ids.finish ? Math.max(Number(status.actionQuote?.range || 0), 1 + adapterNumber("rangeBonus", a, finishContext)) : def.id === ids.skirmish ? 1 + adapterNumber("rangeBonus", a, finishContext) : def.id === ids.study ? Number(status.actionQuote?.range ?? a.attrs.mind ?? 0) : 1;
-      if ([ids.spell, ids.skirmish, ids.study, ids.shove, "action.атаки.дуэль"].includes(def.id) && !p.areaPlan && targets.some(t => t.id === a.id || distance(a, t) > range) || def.id === ids.finish && !p.areaPlan && targets.some(t => t.id === a.id || distance(a, t) > range)) fail("Цель вне дальности действия");
+      if (!derived && ([ids.spell, ids.skirmish, ids.study, ids.shove, "action.атаки.дуэль"].includes(def.id) && !p.areaPlan && targets.some(t => t.id === a.id || distance(a, t) > range) || def.id === ids.finish && !p.areaPlan && targets.some(t => t.id === a.id || distance(a, t) > range)) || derived && !derived.ignoreRange && targets.some(t => t.id === a.id || distance(a, t) > range)) fail("Цель вне дальности действия");
       if (def.id === ids.study && isPlayer(targets[0])) fail("Изучение требует NPC");
       const focusSpent = integer(p.focusSpent || 0, "Фокус");
       const studentPower = def.id === ids.finish && status.actionQuote?.studentPowerUnleashed === true;
@@ -2154,16 +2158,16 @@
         p.studentFocusCap = focusCap;
       }
       if (p.breakout) spend(a, "influence", 1);
-      if (status.cost) spend(a, status.resource, status.cost);
+      if (!derived && status.cost) spend(a, status.resource, status.cost);
       if (def.id === ids.finish && focusSpent) spend(a, "focus", focusSpent);
       if(status.allowanceId)astate(a).allowances.find(x=>x.id===status.allowanceId).remaining--;
       if(def.id===ids.improvise&&p.removeObstacleId){const index=scene.objects.findIndex(o=>o.id===p.removeObstacleId&&o.type==="terrain"&&o.space===a.space&&(o.cells||[]).some(cell=>{const[x,y]=cell.split(',').map(Number);return distance(a,{x,y,space:a.space})===1;}));if(index<0)fail("Соседнее препятствие не найдено");scene.objects.splice(index,1);}
       if (!status.continuation && !status.swift) { a.usedActions = [...new Set([...(a.usedActions || []), def.id])]; astate(a).turnActions = [...new Set([...(astate(a).turnActions || []), def.id])]; }
       const activeTurnOwner = scene.activeActorId ? actor(scene, scene.activeActorId) : null, activeOwnerSerial = activeTurnOwner ? ownTurnSerial(activeTurnOwner) : null;
-      astate(a).history = [...(astate(a).history || []), { actionId: def.id, actionDefinitionId: def.id, actionInstanceId: provenance?.actionInstanceId || null, targetIds: targets.map(t => t.id), round: scene.round, turnSerial: scene.turnSerial, ownerTurnActorId: activeTurnOwner?.id || null, ownerTurnSerial: activeOwnerSerial, ownerTurnInstanceId: s.activeTurnInstanceId || null, ownerTurnKey: activeTurnOwner ? ownerTurnKey(s.sceneSerial, activeTurnOwner, activeOwnerSerial) : null, swift: Boolean(status.swift), ...(p.techniqueRuleId ? { techniqueRuleId: p.techniqueRuleId } : {}), ...(p.studentPowerUnleashed ? { studentPowerUnleashed: true, studentFocusCap: focusCap } : {}), ...(assassinStride ? { ruleId: "vagabond.assassin.3" } : {}) }].filter((item,index,list)=>item.ruleId||item.techniqueRuleId||index>=list.length-200);
+      astate(a).history = [...(astate(a).history || []), { actionId: def.id, actionDefinitionId: def.id, actionInstanceId: provenance?.actionInstanceId || null, targetIds: targets.map(t => t.id), round: scene.round, turnSerial: scene.turnSerial, ownerTurnActorId: activeTurnOwner?.id || null, ownerTurnSerial: activeOwnerSerial, ownerTurnInstanceId: s.activeTurnInstanceId || null, ownerTurnKey: activeTurnOwner ? ownerTurnKey(s.sceneSerial, activeTurnOwner, activeOwnerSerial) : null, swift: Boolean(status.swift), ...(derived ? { derived: true, derivedActionId: derived.id, sourceDigest: derived.sourceDigest, lineage: copy(p.lineage || []) } : {}), ...(p.techniqueRuleId ? { techniqueRuleId: p.techniqueRuleId } : {}), ...(p.studentPowerUnleashed ? { studentPowerUnleashed: true, studentFocusCap: focusCap } : {}), ...(assassinStride ? { ruleId: "vagabond.assassin.3" } : {}) }].filter((item,index,list)=>item.ruleId||item.techniqueRuleId||item.derivedActionId||index>=list.length-200);
       p.actionInstanceId ||= provenance?.actionInstanceId || rootId;
       p.ownerTurnInstanceId ||= s.activeTurnInstanceId || null;
-      emit("action.resolve", a.id, { actionId: def.id, name: def.name, targetIds: targets.map(t => t.id), actionInstanceId: p.actionInstanceId, ownerTurnInstanceId: p.ownerTurnInstanceId, attribute: finishContext.attribute, techniqueRuleId: p.techniqueRuleId || null, techniqueId: p.techniqueId || null, techniqueIds: Array.isArray(p.techniqueIds) ? p.techniqueIds : null, studentPowerRuleId: p.studentPowerUnleashed ? "ruiner.student-of-stars.1" : null, studentFocusCap: p.studentPowerUnleashed ? focusCap : null, finisherMode: p.finisherMode || null });
+      emit("action.resolve", a.id, { actionId: def.id, name: def.name, targetIds: targets.map(t => t.id), actionInstanceId: p.actionInstanceId, ownerTurnInstanceId: p.ownerTurnInstanceId, attribute: finishContext.attribute, techniqueRuleId: p.techniqueRuleId || null, techniqueId: p.techniqueId || null, techniqueIds: Array.isArray(p.techniqueIds) ? p.techniqueIds : null, ...(derived ? { derived: true, derivedActionId: derived.id, sourceDigest: derived.sourceDigest, lineage: copy(p.lineage || []), swift: true, free: true, fixedTargetId: p.fixedTargetId || null } : {}), studentPowerRuleId: p.studentPowerUnleashed ? "ruiner.student-of-stars.1" : null, studentFocusCap: p.studentPowerUnleashed ? focusCap : null, finisherMode: p.finisherMode || null });
       if (def.id === ids.study && global.DAWN_LIONWING_INFORMATION_QUERY?.recordStudy) {
         const studyResult = global.DAWN_LIONWING_INFORMATION_QUERY.recordStudy(scene, { actorId: a.id, targetId: targets[0].id, actionInstanceId: p.actionInstanceId, actionEventId: scene.log[0]?.id, rootActionId: provenance?.rootActionId || rootId, categories: status.actionQuote?.informationCategories || null });
         if (!studyResult.ok) fail(studyResult.errors?.join(" ") || "Изучение не подтверждено квитанцией");
@@ -2222,6 +2226,35 @@
       }
     };
 
+    const performDerivedAction = (payload, sourceId) => {
+      if (!derivedActions) fail("Контракты производных действий LionWing недоступны");
+      const contract = derivedActions.validate(payload), source = requiredActor(scene, sourceId, false);
+      if (payload.sourceActorId !== source.id || payload.sourceDigest !== contract.sourceDigest) fail("Производное действие принадлежит другому источнику");
+      const techniqueId = contract.id.replace(/\.\d+$/, ""), level = Number((source.knownTechniques ?? source.techniques)?.[techniqueId] || 0), requiredLevel = Number(contract.id.match(/\.(\d+)$/)?.[1] || 0);
+      if (level < requiredLevel || source.lionwing?.automation?.[contract.id] !== true) fail("Производное действие недоступно этой Технике");
+      const target = requiredActor(scene, payload.targetIds[0], false);
+      if (target.team === source.team || target.id === source.id || target.space !== source.space) fail("Производное действие требует вражескую цель в текущем пространстве");
+      if (contract.targetMode === "adjacent-single" && distance(source, target) !== 1) fail("Фиксированное производное действие требует смежную цель");
+      if (contract.targetMode === "same-single" && contract.mode === "fixed" && distance(source, target) !== 1 && !contract.ignoreRange) fail("Производное Skirmish требует смежную цель");
+      const identity = derivedActions.identity(contract, payload, provenance), actionInstanceId = identity.actionInstanceId;
+      if (contract.mode === "roll") {
+        const base = actionDef(contract.actionId), rollValue = payload.roll || roll(diceCount(scene, source, base, payload), executionOptions.random, { ...provenance, rollId: `${rootId}:derived:${contract.id}:roll`, kind: "check", actionId: contract.actionId, actionDefinitionId: contract.actionId, actionInstanceId, ownerActorId: source.id });
+        performAction(source, { ...payload, roll: rollValue, kind: "action", actionId: contract.actionId, techniqueRuleId: contract.id, sourceDigest: contract.sourceDigest, actionInstanceId, ownerTurnInstanceId: s.activeTurnInstanceId || null, derivedAction: true, derivedActionId: contract.id, lineage: identity.lineage, __derivedContract: contract, fixedTargetId: target.id });
+        return;
+      }
+      const attribute = contract.damageAttribute === "choice-body-talent" ? payload.damageAttribute : contract.damageAttribute;
+      if (!attribute || !attributes.has(attribute)) fail("Производное действие требует допустимый Атрибут урона");
+      const amount = Math.ceil(Number(source.attrs?.[attribute] || 0) / 2);
+      emit("action.resolve", source.id, { actionId: contract.actionId, name: payload.name || "Производная атака", targetIds: [target.id], actionInstanceId, ownerTurnInstanceId: s.activeTurnInstanceId || null, attribute, techniqueRuleId: contract.id, derived: true, derivedActionId: contract.id, sourceDigest: contract.sourceDigest, lineage: identity.lineage, swift: true, free: true, fixedTargetId: target.id, fixedDamage: true });
+      astate(source).history.push({ actionId: contract.actionId, actionDefinitionId: contract.actionId, actionInstanceId, targetIds: [target.id], round: scene.round, turnSerial: scene.turnSerial, ownerTurnActorId: source.id, ownerTurnSerial: ownTurnSerial(source), ownerTurnInstanceId: s.activeTurnInstanceId || null, ownerTurnKey: ownerTurnKey(s.sceneSerial, source, ownTurnSerial(source)), swift: true, free: true, derived: true, derivedActionId: contract.id, sourceDigest: contract.sourceDigest, lineage: identity.lineage, ruleId: contract.id });
+      // Fixed Jabs are already a deterministic consequence in the canonical
+      // text. They still emit the same identity/damage/clear lifecycle so
+      // after-event consumers can observe them, but have no ordinary reaction
+      // choice or editable pending attack to alter the locked target/amount.
+      applyDamage({ targetId: target.id, sourceActorId: source.id, amount, attack: true, fixedDamage: true, finalDamage: true, ignoreEvasion: contract.ignoreEvasion === true, sourceActionId: contract.actionId, actionInstanceId, techniqueRuleId: contract.id, derived: true, derivedActionId: contract.id, derivedLineage: identity.lineage, derivedSourceDigest: contract.sourceDigest, fixedTargetId: target.id });
+      emit("attack.clear", source.id, { name: payload.name || "Производная атака", actionId: contract.actionId, actionInstanceId, derived: true, derivedActionId: contract.id, targetIds: [target.id], fixedTargetId: target.id, lineage: identity.lineage });
+    };
+
     function op(p, sourceId) {
       const actorlessInformation = new Set(["information-reveal", "information-cancel", "information-handout"]);
       const a = sourceId && !actorlessInformation.has(p.kind) ? requiredActor(scene, sourceId, false) : null;
@@ -2255,6 +2288,7 @@
           break;
         }
         case "action": performAction(requiredActor(scene, sourceId), p); break;
+        case "derived-action": performDerivedAction(p, sourceId); break;
         case "information-study": {
           const information = global.DAWN_LIONWING_INFORMATION_QUERY;
           if (!information?.recordStudy) fail("Контракт Изучения LionWing недоступен");
@@ -2876,7 +2910,7 @@
           for (let i = 0; i < pending.repeat; i++) for (const targetId of pending.targetIds) {
             if(effectActive(scene,actor(scene,targetId),"positive.исчез"))continue;
             const response = pending.responses[targetId] || {};
-            operations.push({ kind: "damage", sourceActorId: pending.actorId, targetId, amount: pending.targetDamage?.[targetId]??pending.damage, attack: true, sourceActionId: pending.sourceActionId, actionInstanceId: pending.actionInstanceId, techniqueRuleId: pending.techniqueRuleId, techniqueId: pending.techniqueId, techniqueIds: pending.techniqueIds, criticals: pending.criticals, reduction: response.reduction || 0, temporaryArmor: response.temporaryArmor || 0, effects: pending.effects, finalDamage: pending.finalDamage, ignoreArmor:pending.ignoreArmor, ignoreEvasion:pending.ignoreEvasion, irreducible:pending.irreducible, preventForcedMovement:response.preventForcedMovement, ...(pending.breacherPush ? { breacherPush: true, breacherPushMultiplier: pending.breacherPushMultiplier, breacherAttackSuccess: pending.breacherAttackSuccess, breacherInitialDistance: pending.breacherInitialDistances?.[targetId] } : {}), ...(pending.actionPlanId ? { actionPlanId: pending.actionPlanId } : {}) });
+            operations.push({ kind: "damage", sourceActorId: pending.actorId, targetId, amount: pending.targetDamage?.[targetId]??pending.damage, attack: true, sourceActionId: pending.sourceActionId, actionInstanceId: pending.actionInstanceId, techniqueRuleId: pending.techniqueRuleId, techniqueId: pending.techniqueId, techniqueIds: pending.techniqueIds, criticals: pending.criticals, reduction: response.reduction || 0, temporaryArmor: response.temporaryArmor || 0, effects: pending.effects, finalDamage: pending.finalDamage, ignoreArmor:pending.ignoreArmor, ignoreEvasion:pending.ignoreEvasion, irreducible:pending.irreducible, preventForcedMovement:response.preventForcedMovement, ...(pending.derived ? { derived: true, derivedActionId: pending.derivedActionId, derivedLineage: pending.derivedLineage, derivedSourceDigest: pending.derivedSourceDigest, fixedTargetId: pending.fixedTargetId, fixedDamage: pending.fixedDamage } : {}), ...(pending.breacherPush ? { breacherPush: true, breacherPushMultiplier: pending.breacherPushMultiplier, breacherAttackSuccess: pending.breacherAttackSuccess, breacherInitialDistance: pending.breacherInitialDistances?.[targetId] } : {}), ...(pending.actionPlanId ? { actionPlanId: pending.actionPlanId } : {}) });
           }
           if (pending.breacherWeaken) operations.push({ kind: "effect", targetId: pending.actorId, sourceActorId: pending.actorId, effect: "negative.ослаблен", ruleId: "powerhouse.breacher.2", sourceActionId: pending.sourceActionId, duration: "default" });
           for(const tail of s.afterAttack||[]){
@@ -2884,10 +2918,11 @@
             else operations.push(tail);
           } s.afterAttack = [];
           queue.unshift(...operations.map(p => { const saved=p.__execution;const operation={...p};delete operation.__execution;return { p: operation, sourceId: p.sourceActorId ?? pending.actorId, provenance: saved || { rootActionId: pending.id, actionId: pending.sourceActionId, actionDefinitionId:pending.sourceActionId, actionInstanceId:pending.actionInstanceId||pending.id, causeEventId: rootId, ownerActorId: pending.actorId } }; }));
-          emit("attack.clear", pending.actorId, { name: pending.name }); break;
+          emit("attack.clear", pending.actorId, { name: pending.name, actionId: pending.sourceActionId, actionInstanceId: pending.actionInstanceId, targetIds: pending.targetIds, ...(pending.derived ? { derived: true, derivedActionId: pending.derivedActionId, fixedTargetId: pending.fixedTargetId, lineage: pending.derivedLineage } : {}) }); break;
         }
         case "amend-attack": {
           const pending=scene.pendingAction;if(!pending?.lionwing||s.choices.length)fail("Изменение Атаки доступно до разрешения и вне ожидающего решения");
+          if (pending.derived) fail("Производное действие защищает свой базовый тип, цель и урон");
           const targets=targetIds(scene,p.targetIds||pending.targetIds);if(!targets.length)fail("Выберите цели Атаки");
           for(const id of targets){const target=requiredActor(scene,id);if(effectActive(scene,target,"positive.исчез"))fail("Цель отсутствует на поле");}
           const targetDamage=p.targetDamage||{};for(const[id,value]of Object.entries(targetDamage)){if(!targets.includes(id))fail("Урон указан для посторонней цели");integer(value,"урон цели");}
@@ -2938,7 +2973,7 @@
           if(previous.executionCursor){executionCursor=foundations.openCursor(previous.executionCursor);s.executionCursor=executionCursor;}else{executionCursor=null;delete s.executionCursor;}
           emit("chain.resume",sourceId,{depth:s.pausedChains.length});break;
         }
-        case "cancel-attack": scene.pendingAction = null; s.afterAttack = []; emit("attack.clear", sourceId, { cancelled: true }); break;
+        case "cancel-attack": { const pending = scene.pendingAction; scene.pendingAction = null; s.afterAttack = []; emit("attack.clear", sourceId, { cancelled: true, ...(pending?.derived ? { actionId: pending.sourceActionId, actionInstanceId: pending.actionInstanceId, targetIds: pending.targetIds, derived: true, derivedActionId: pending.derivedActionId, fixedTargetId: pending.fixedTargetId, lineage: pending.derivedLineage } : {}) }); break; }
         case "turn-start": {
           const status = turnStartStatus(scene, sourceId); if (!status.available) fail(status.reason);
           const extraTurn = Boolean(s.grantedTurns?.length && s.grantedTurns[0].actorId === a.id);
@@ -3095,6 +3130,12 @@
     for(const p of operations){
       if(!api.operations.includes(p.kind))fail("Неизвестная публичная операция LionWing");
       if(p.kind==="geometry-segment")fail("Сегмент движения создаётся только подтверждённым geometry-move");
+      if(p.kind === "derived-action") {
+        if (!derivedActions) fail("Контракты производных действий LionWing недоступны");
+        derivedActions.validate(p);
+        if (typeof p.sourceActorId !== "string" || typeof p.sourceDigest !== "string") fail("Производное действие требует доверенные источник и происхождение");
+        if (p.targetIds.length !== 1) fail("Производное действие требует одну цель");
+      }
       if(p.targetId)requiredActor(scene,p.targetId,false);
       if(["damage","heal","resource","correct","tension","spend-health","lose-health"].includes(p.kind))integer(p.amount,"количество");
       if(p.kind==="combat-meter" && p.operation === "add" && (typeof p.delta !== "number" || !Number.isSafeInteger(p.delta) || Math.abs(p.delta) > 9999)) fail("Некорректное значение: изменение");
@@ -3140,7 +3181,7 @@
       }
     }
     if (request.kind === "choice" && s.deferred.length && !executionCursor) setCursor(s.deferred, 0, s.choices[0]?.id);
-    const actionLike = new Set(["action", "record-action", "attack"]);
+    const actionLike = new Set(["action", "record-action", "attack", "derived-action"]);
     const queue = operations.map((p, index) => {
       const operationProvenance = copy(provenance);
       if (actionLike.has(p.kind)) operationProvenance.actionInstanceId = p.actionInstanceId || (operations.length > 1 ? `${rootId}:action:${index}` : operationProvenance.actionInstanceId);
@@ -3341,7 +3382,7 @@
     lifetimeBoundary: foundations.lifetimeBoundary,
     normalizeLifetime: foundations.normalizeLifetime,
     isLifetimeExpired: foundations.lifetimeExpired,
-    operations: ["automation", "plan", "batch", "pause-chain", "resume-chain", "amend-attack", "recover-track", "record-action", "action", "attack", "information-study", "information-reveal", "information-cancel", "information-handout", "damage", "breacher-push", "spend-health", "lose-health", "heal", "wound", "stress", "knockout", "resource", "inventory", "intermission", "correct", "effect", "effect-source", "banish", "vanish", "compound", "aura", "aura-create", "aura-update", "aura-suppress", "aura-restore", "aura-remove", "placement", "teleport", "displacement", "move", "forced-towards-group", "forced-towards-group-step", "forced-towards-group-after-route", "forced-towards", "forced-away", "martial-quick-step", "jab", "skirmisher-shift", "geometry-move", "geometry-segment", "modifier", "allow-action", "grant-turn", "usage", "punish", "invisible", "search", "configure-resource", "dice-create", "dice-apply", "dice-reload", "dice-opposed", "dice-resolve-tie", "counter", "clock", "prompt", "technique-choice", "choice", "roll", "reaction", "resolve-attack", "cancel-attack", "turn-start", "turn-end", "round-end", "scene-reset", "chapter-start", "tension", "combat-meter", "note", "marker-remove"]
+    operations: ["automation", "plan", "batch", "pause-chain", "resume-chain", "amend-attack", "recover-track", "record-action", "action", "derived-action", "attack", "information-study", "information-reveal", "information-cancel", "information-handout", "damage", "breacher-push", "spend-health", "lose-health", "heal", "wound", "stress", "knockout", "resource", "inventory", "intermission", "correct", "effect", "effect-source", "banish", "vanish", "compound", "aura", "aura-create", "aura-update", "aura-suppress", "aura-restore", "aura-remove", "placement", "teleport", "displacement", "move", "forced-towards-group", "forced-towards-group-step", "forced-towards-group-after-route", "forced-towards", "forced-away", "martial-quick-step", "jab", "skirmisher-shift", "geometry-move", "geometry-segment", "modifier", "allow-action", "grant-turn", "usage", "punish", "invisible", "search", "configure-resource", "dice-create", "dice-apply", "dice-reload", "dice-opposed", "dice-resolve-tie", "counter", "clock", "prompt", "technique-choice", "choice", "roll", "reaction", "resolve-attack", "cancel-attack", "turn-start", "turn-end", "round-end", "scene-reset", "chapter-start", "tension", "combat-meter", "note", "marker-remove"]
   };
   global.DAWN_LIONWING_ENGINE = api;
   const routed = global.DAWN_SCENE_ENGINE;
