@@ -8,7 +8,7 @@
 
 | Контур | Всего | Заявлено исполнимым | Формально E2E-сертифицировано | Неполный путь |
 | --- | ---: | ---: | ---: | --- |
-| Уровни Техник | 333 | 79 shared/inherited (23.7%) | 0 | 32 частичных; 222 ручных |
+| Уровни Техник | 333 | 82 shared/inherited (24.6%) | 0 | 32 частичных; 219 ручных |
 | Правила обычных врагов | 122 | 0 (0.0%) | 0 | 122 assisted |
 | Атаки врагов | 40 | 0 | 0 | не установлено независимым аудитом |
 
@@ -66,7 +66,7 @@
 
 | Архетип | Уровней | Заявлено full | Заявлено decision | Заявлено partial | Заявлено manual |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| Powerhouse | 60 | 7 | 3 | 6 | 44 |
+| Powerhouse | 60 | 8 | 5 | 6 | 41 |
 | Vagabond | 60 | 9 | 11 | 4 | 36 |
 | Bulwark | 48 | 3 | 3 | 2 | 40 |
 | Altruist | 57 | 2 | 11 | 2 | 42 |
@@ -108,9 +108,6 @@
 | Martial Artist (`powerhouse.martial-artist`) | 1 | Art Of The 8 Hammers | тонкий адаптер уникального условия поверх уже готового ядра |
 | Martial Artist (`powerhouse.martial-artist`) | 2 | Flow-State | тонкий адаптер уникального условия поверх уже готового ядра |
 | Martial Artist (`powerhouse.martial-artist`) | 3 | Unlimited Blows | тонкий адаптер уникального условия поверх уже готового ядра |
-| Monastic Warrior (`powerhouse.monastic-sage`) | 1 | Mind Made Manifest | тонкий адаптер уникального условия поверх уже готового ядра |
-| Monastic Warrior (`powerhouse.monastic-sage`) | 2 | Calm Within Chaos | тонкий адаптер уникального условия поверх уже готового ядра |
-| Monastic Warrior (`powerhouse.monastic-sage`) | 3 | Sublime Equanimity | тонкий адаптер уникального условия поверх уже готового ядра |
 | Lancer (`powerhouse.lancer`) | 1 | Pierce | тонкий адаптер уникального условия поверх уже готового ядра |
 | Lancer (`powerhouse.lancer`) | 2 | Phalanx | тонкий адаптер уникального условия поверх уже готового ядра |
 | Lancer (`powerhouse.lancer`) | 3 | Cannon-Arm [ Breathe → Skirmish ] | тонкий адаптер уникального условия поверх уже готового ядра |

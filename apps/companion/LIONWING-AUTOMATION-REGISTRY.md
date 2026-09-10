@@ -49,9 +49,9 @@ Canonical уровней: **333** · Явно исправленных review: *
 | `powerhouse.martial-artist.1` | Martial Artist | 1 | `manual` | `unreviewed` | — | `uncertified` |
 | `powerhouse.martial-artist.2` | Martial Artist | 2 | `manual` | `unreviewed` | — | `uncertified` |
 | `powerhouse.martial-artist.3` | Martial Artist | 3 | `manual` | `unreviewed` | — | `uncertified` |
-| `powerhouse.monastic-sage.1` | Monastic Warrior | 1 | `manual` | `unreviewed` | — | `uncertified` |
-| `powerhouse.monastic-sage.2` | Monastic Warrior | 2 | `manual` | `unreviewed` | — | `uncertified` |
-| `powerhouse.monastic-sage.3` | Monastic Warrior | 3 | `manual` | `unreviewed` | — | `uncertified` |
+| `powerhouse.monastic-sage.1` | Monastic Warrior | 1 | `full` | `unreviewed` | — | `uncertified` |
+| `powerhouse.monastic-sage.2` | Monastic Warrior | 2 | `decision` | `unreviewed` | — | `uncertified` |
+| `powerhouse.monastic-sage.3` | Monastic Warrior | 3 | `decision` | `unreviewed` | — | `uncertified` |
 | `powerhouse.lancer.1` | Lancer | 1 | `manual` | `unreviewed` | — | `uncertified` |
 | `powerhouse.lancer.2` | Lancer | 2 | `manual` | `unreviewed` | — | `uncertified` |
 | `powerhouse.lancer.3` | Lancer | 3 | `manual` | `unreviewed` | — | `uncertified` |

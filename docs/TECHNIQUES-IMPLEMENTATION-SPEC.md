@@ -398,24 +398,24 @@
 
 #### 1. Разум воплощённый (Mind Made Manifest) `powerhouse.monastic-sage.1`
 
-- **Заявленный статус:** `manual` (ручная).
-- **Текущий адаптер:** нет записи в `RULES`.
+- **Заявленный статус:** `full` (полная).
+- **Текущий адаптер:** `powerhouse.monastic-sage.1` · `passive` · {"kind":"passive","sourceLevelId":"powerhouse.monastic-sage.1","sourceDigest":"f1ff824c2299d7184c07c4bf6a212d3a2f8c40a914d18948ed0c1987059480cc","coverage":"full"}; Усиление даёт 2 Брони, а Ускорение — 2 расходуемых Уклонения в конце собственного Хода..
 - **Готовые foundations:** `effect-state`, `effect-lifecycle`, `trigger-router`, `turn-lifecycle`, `derived-stats`.
-- **Нужно добавить:** Зарегистрировать отдельный adapter (trigger → validation → events/resolver) и прямые тесты; общая инфраструктура сама правило не исполняет.
+- **Нужно добавить:** Для кода явный следующий шаг не выведен автоматически; нужны direct pos/neg/boundary тесты и evidence до повышения доверия.
 
 #### 2. Покой среди хаоса (Calm Within Chaos) `powerhouse.monastic-sage.2`
 
-- **Заявленный статус:** `manual` (ручная).
-- **Текущий адаптер:** нет записи в `RULES`.
+- **Заявленный статус:** `decision` (решение).
+- **Текущий адаптер:** `powerhouse.monastic-sage.2` · `passive` · {"kind":"passive","coverage":"full","foundation":"clock","clockId":"powerhouse.monastic-sage.balance","size":8,"initial":0,"sourceLevelId":"powerhouse.monastic-sage.2","sourceDigest":"68c84fc146d316b7508a983d89e6438f07785d78ff8bb885ac25dade66f40c60"}; Баланс заполняется после авторитетно записанного чередования Атаки и утилитарного Действия; в начале Хода выбор владельца может потратить сегмент на Усиление или Ускорение..
 - **Готовые foundations:** `resource-check`, `effect-state`, `effect-lifecycle`, `trigger-router`, `turn-lifecycle`, `action-modifier`, `inventory`.
-- **Нужно добавить:** Зарегистрировать отдельный adapter (trigger → validation → events/resolver) и прямые тесты; общая инфраструктура сама правило не исполняет.
+- **Нужно добавить:** Для кода явный следующий шаг не выведен автоматически; нужны direct pos/neg/boundary тесты и evidence до повышения доверия.
 
 #### 3. Возвышенная невозмутимость (Sublime Equanimity) `powerhouse.monastic-sage.3`
 
-- **Заявленный статус:** `manual` (ручная).
-- **Текущий адаптер:** нет записи в `RULES`.
+- **Заявленный статус:** `decision` (решение).
+- **Текущий адаптер:** `powerhouse.monastic-sage.3` · `passive` · {"kind":"passive","sourceLevelId":"powerhouse.monastic-sage.3","sourceDigest":"b12c0e7f1d63dd1217d15f64aa7f2fcb7bbfa649761b476eb5e0840bc36ba994","coverage":"partial"}; После Зарядки открывается частичное решение Медитации: проверяемо получает Уклонение, очищает Баланс и при полном Балансе даёт Фокус; телепортация и бесплатное Завершение остаются ручным продолжением..
 - **Готовые foundations:** `resource-check`, `trigger-router`, `turn-lifecycle`, `choice-flow`.
-- **Нужно добавить:** Зарегистрировать отдельный adapter (trigger → validation → events/resolver) и прямые тесты; общая инфраструктура сама правило не исполняет.
+- **Нужно добавить:** Для кода явный следующий шаг не выведен автоматически; нужны direct pos/neg/boundary тесты и evidence до повышения доверия.
 
 ### Копейщик (Lancer) `powerhouse.lancer`
 
@@ -861,7 +861,7 @@
 #### 1. На горячем ходу (Running Hot) `vagabond.modified-meister.1`
 
 - **Заявленный статус:** `partial` (частичная).
-- **Текущий адаптер:** `vagabond.modified-meister.1.foundation` · `foundation` · {"kind":"foundation","foundation":"alternate-resource","resource":"heat","resourceLabel":"Нагрев","initial":0,"replaces":["focus"],"coverage":"partial"}; Стоимость в Фокусе повышает Нагрев, получение Фокуса снижает его; порог 6, сброс до 3 и базовый взрыв разрешаются ядром..
+- **Текущий адаптер:** `vagabond.modified-meister.1.foundation` · `foundation` · {"kind":"foundation","resource":"heat","resourceLabel":"Нагрев","initial":0,"replaces":["focus"],"coverage":"partial"}; Стоимость в Фокусе повышает Нагрев, получение Фокуса снижает его; порог 6, сброс до 3 и базовый взрыв разрешаются ядром..
 - **Готовые foundations:** `target-validation`, `event-participants`, `resource-check`, `alternate-resource`, `damage-pipeline`, `trigger-router`, `scene-lifecycle`, `action-modifier`.
 - **Нужно добавить:** Для кода явный следующий шаг не выведен автоматически; нужны direct pos/neg/boundary тесты и evidence до повышения доверия.
 

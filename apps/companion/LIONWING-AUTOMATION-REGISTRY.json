@@ -4613,9 +4613,24 @@
       },
       "level": 1,
       "implementation": {
-        "automation": "manual",
-        "ruleIds": [],
-        "rules": [],
+        "automation": "full",
+        "ruleIds": [
+          "powerhouse.monastic-sage.1"
+        ],
+        "rules": [
+          {
+            "id": "powerhouse.monastic-sage.1",
+            "techniqueId": "powerhouse.monastic-sage",
+            "level": 1,
+            "name": "Разум воплощённый",
+            "kind": "passive",
+            "automation": "full",
+            "note": "Усиление даёт 2 Брони, а Ускорение — 2 расходуемых Уклонения в конце собственного Хода.",
+            "sourceLevelId": "powerhouse.monastic-sage.1",
+            "sourceDigest": "f1ff824c2299d7184c07c4bf6a212d3a2f8c40a914d18948ed0c1987059480cc",
+            "coverage": "full"
+          }
+        ],
         "foundationPlan": {
           "version": 10,
           "status": "reviewed",
@@ -4674,7 +4689,9 @@
           "text": "While you're Strengthened, gain 2 Armor. While you're Hastened, gain 2 Evasion at the end of your Turn."
         },
         "canonicalDigest": "f1ff824c2299d7184c07c4bf6a212d3a2f8c40a914d18948ed0c1987059480cc",
-        "engineRuleDigests": []
+        "engineRuleDigests": [
+          "f1ff824c2299d7184c07c4bf6a212d3a2f8c40a914d18948ed0c1987059480cc"
+        ]
       },
       "review": {
         "status": "unreviewed",
@@ -4708,9 +4725,28 @@
       },
       "level": 2,
       "implementation": {
-        "automation": "manual",
-        "ruleIds": [],
-        "rules": [],
+        "automation": "decision",
+        "ruleIds": [
+          "powerhouse.monastic-sage.2"
+        ],
+        "rules": [
+          {
+            "id": "powerhouse.monastic-sage.2",
+            "techniqueId": "powerhouse.monastic-sage",
+            "level": 2,
+            "name": "Меж двух миров",
+            "kind": "passive",
+            "automation": "decision",
+            "coverage": "full",
+            "foundation": "clock",
+            "clockId": "powerhouse.monastic-sage.balance",
+            "size": 8,
+            "initial": 0,
+            "note": "Баланс заполняется после авторитетно записанного чередования Атаки и утилитарного Действия; в начале Хода выбор владельца может потратить сегмент на Усиление или Ускорение.",
+            "sourceLevelId": "powerhouse.monastic-sage.2",
+            "sourceDigest": "68c84fc146d316b7508a983d89e6438f07785d78ff8bb885ac25dade66f40c60"
+          }
+        ],
         "foundationPlan": {
           "version": 10,
           "status": "reviewed",
@@ -4785,7 +4821,9 @@
           "text": "Begin tracking \"Balance\", an 8 segment Clock that's emptied after every scene. Fill 1 segment each time you perform a Utility Action after an Attack Action, or an Attack Action after a Utility Action on the same Turn. At the start of your Turn, you may empty 1 segment to Strengthen or Hasten yourself."
         },
         "canonicalDigest": "68c84fc146d316b7508a983d89e6438f07785d78ff8bb885ac25dade66f40c60",
-        "engineRuleDigests": []
+        "engineRuleDigests": [
+          "68c84fc146d316b7508a983d89e6438f07785d78ff8bb885ac25dade66f40c60"
+        ]
       },
       "review": {
         "status": "unreviewed",
@@ -4819,9 +4857,24 @@
       },
       "level": 3,
       "implementation": {
-        "automation": "manual",
-        "ruleIds": [],
-        "rules": [],
+        "automation": "decision",
+        "ruleIds": [
+          "powerhouse.monastic-sage.3"
+        ],
+        "rules": [
+          {
+            "id": "powerhouse.monastic-sage.3",
+            "techniqueId": "powerhouse.monastic-sage",
+            "level": 3,
+            "name": "Возвышенная невозмутимость",
+            "kind": "passive",
+            "automation": "decision",
+            "note": "После Зарядки открывается частичное решение Медитации: проверяемо получает Уклонение, очищает Баланс и при полном Балансе даёт Фокус; телепортация и бесплатное Завершение остаются ручным продолжением.",
+            "sourceLevelId": "powerhouse.monastic-sage.3",
+            "sourceDigest": "b12c0e7f1d63dd1217d15f64aa7f2fcb7bbfa649761b476eb5e0840bc36ba994",
+            "coverage": "partial"
+          }
+        ],
         "foundationPlan": {
           "version": 10,
           "status": "reviewed",
@@ -4872,7 +4925,9 @@
           "text": "After you Charge or Awaken this, you may ‘Meditate'. If you Meditate, instead of rolling, gain Evasion equal to the filled Balance segments, then empty your Balance. If your Balance was full, gain [Tier + 1] focus, teleport to any empty space, and perform a swift spirit or mind finisher on an adjacent enemy at no cost. After Meditating you cannot fill balance segments on the same Turn."
         },
         "canonicalDigest": "b12c0e7f1d63dd1217d15f64aa7f2fcb7bbfa649761b476eb5e0840bc36ba994",
-        "engineRuleDigests": []
+        "engineRuleDigests": [
+          "b12c0e7f1d63dd1217d15f64aa7f2fcb7bbfa649761b476eb5e0840bc36ba994"
+        ]
       },
       "review": {
         "status": "unreviewed",
@@ -11337,7 +11392,6 @@
             "level": 1,
             "name": "На горячем ходу",
             "kind": "foundation",
-            "foundation": "alternate-resource",
             "automation": "partial",
             "resource": "heat",
             "resourceLabel": "Нагрев",
