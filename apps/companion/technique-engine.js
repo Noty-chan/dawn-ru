@@ -1,7 +1,7 @@
 "use strict";
 
 (function exposeDawnTechniqueEngine(global) {
-  const VERSION = 15;
+  const VERSION = 16;
   const CHEMIST_TERRAIN_TYPES = new Set(["terrain", "difficult", "high", "low", "custom"]);
   const tensionValue = scene => Number(global.DAWN_LIONWING_COMBAT_METER?.read?.(scene)?.current ?? scene?.tension ?? 0);
 
@@ -64,6 +64,9 @@
     { id: "vagabond.skirmisher.1", techniqueId: "vagabond.skirmisher", level: 1, name: "Укол", kind: "passive", automation: "decision", coverage: "partial", note: "После авторитетного движения Страйдом предлагается один фиксированный Тычок по смежной цели раз за собственный Ход." },
     { id: "vagabond.skirmisher.2", techniqueId: "vagabond.skirmisher", level: 2, name: "Смещающиеся удары", kind: "passive", automation: "partial", coverage: "partial", note: "После Стычки предлагается проверяемое прямолинейное движение до 2 клеток; выбор и маршрут проходят общей поверхностью движения." },
     { id: "vagabond.skirmisher.3", techniqueId: "vagabond.skirmisher", level: 3, name: "Отскок", kind: "passive", automation: "decision", coverage: "partial", note: "Стычки получают 1 Преимущество; после движения от Стычки предлагается фиксированный Тычок по персонажу, не атакованному в этом Ходу." },
+    { id: "powerhouse.dual-wielder.1", techniqueId: "powerhouse.dual-wielder", level: 1, name: "Двойной удар", kind: "derived-action", automation: "partial", coverage: "partial", sourceDigest: "ab0e66e627e16c102f6cd8ec4a2cd62a4aac0a45d4bffc9e5197a3f9dd326b13", note: "После одиночной Стычки предлагается Флёрри по той же цели: фиксированный урон Телом/Талантом, доверенно считается Быстрой Стычкой и проходит обычные Реакции." },
+    { id: "vagabond.opportunist.1", techniqueId: "vagabond.opportunist", level: 1, name: "Тактика стаи", kind: "derived-action", automation: "partial", coverage: "partial", sourceDigest: "f0492855d27579faf8b5030f09909996a4248a7d2367d8b8805f3942ce0bd4e2", note: "После Атаки союзника в доступной смежности предлагается одно бесплатное Быстрое производное Skirmish с фиксированной целью." },
+    { id: "bulwark.runic-retribution.1", techniqueId: "bulwark.runic-retribution", level: 1, name: "Ласка", kind: "derived-action", automation: "partial", coverage: "partial", sourceDigest: "4bf4aab119ae103e04dde891dc96daefe5cc02c06fcdd16308a24c09a07d3822", note: "После попадания по союзнику за 1 Фокус предлагается бесплатное производное Заклинание по атакующему через общий roll/reaction lifecycle." },
     { id: "bulwark.iron-bodied.2", techniqueId: "bulwark.iron-bodied", level: 2, name: "Выносливость", kind: "passive", automation: "full", note: "Броня автоматически включает [Тело / 2]." },
     { id: "bulwark.iron-bodied.3", techniqueId: "bulwark.iron-bodied", level: 3, name: "Бесшовный шаг", kind: "passive", automation: "partial", coverage: "partial", note: "После всех снижений итоговый урон ограничивается 4 + ceil(Ранг/2), если персонаж авторитетно Обездвижен; включение Обездвиженности и начало Хода остаются ручными." },
     { id: "bulwark.rising-challenger.3", techniqueId: "bulwark.rising-challenger", level: 3, name: "Драма и злость", kind: "passive", automation: "full", note: "В бросок Столкновения автоматически добавляются 3 кости." },

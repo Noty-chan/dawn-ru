@@ -329,10 +329,10 @@
 
 #### 1. Парный удар (Twinned blow) `powerhouse.dual-wielder.1`
 
-- **Заявленный статус:** `manual` (ручная).
-- **Текущий адаптер:** нет записи в `RULES`.
+- **Заявленный статус:** `partial` (частичная).
+- **Текущий адаптер:** `powerhouse.dual-wielder.1` · `derived-action` · {"kind":"derived-action","coverage":"partial","sourceDigest":"ab0e66e627e16c102f6cd8ec4a2cd62a4aac0a45d4bffc9e5197a3f9dd326b13"}; После одиночной Стычки предлагается Флёрри по той же цели: фиксированный урон Телом/Талантом, доверенно считается Быстрой Стычкой и проходит обычные Реакции..
 - **Готовые foundations:** `target-validation`, `event-participants`, `usage-limits`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier`, `dice-hooks`.
-- **Нужно добавить:** Зарегистрировать отдельный adapter (trigger → validation → events/resolver) и прямые тесты; общая инфраструктура сама правило не исполняет.
+- **Нужно добавить:** Для кода явный следующий шаг не выведен автоматически; нужны direct pos/neg/boundary тесты и evidence до повышения доверия.
 
 #### 2. Неистовый обстрел (Frenzied Barrage) `powerhouse.dual-wielder.2`
 
@@ -883,10 +883,10 @@
 
 #### 1. Стайная тактика (Pack Tactics) `vagabond.opportunist.1`
 
-- **Заявленный статус:** `manual` (ручная).
-- **Текущий адаптер:** нет записи в `RULES`.
+- **Заявленный статус:** `partial` (частичная).
+- **Текущий адаптер:** `vagabond.opportunist.1` · `derived-action` · {"kind":"derived-action","coverage":"partial","sourceDigest":"f0492855d27579faf8b5030f09909996a4248a7d2367d8b8805f3942ce0bd4e2"}; После Атаки союзника в доступной смежности предлагается одно бесплатное Быстрое производное Skirmish с фиксированной целью..
 - **Готовые foundations:** `target-validation`, `event-participants`, `spatial-range`, `movement-lifecycle`, `usage-limits`, `trigger-router`, `reaction-window`, `turn-lifecycle`, `action-modifier`.
-- **Нужно добавить:** Зарегистрировать отдельный adapter (trigger → validation → events/resolver) и прямые тесты; общая инфраструктура сама правило не исполняет.
+- **Нужно добавить:** Для кода явный следующий шаг не выведен автоматически; нужны direct pos/neg/boundary тесты и evidence до повышения доверия.
 
 #### 2. Голодные глаза (Hungry Eyes) `vagabond.opportunist.2`
 
@@ -1184,10 +1184,10 @@
 
 #### 1. Плеть (Lash) `bulwark.runic-retribution.1`
 
-- **Заявленный статус:** `manual` (ручная).
-- **Текущий адаптер:** нет записи в `RULES`.
+- **Заявленный статус:** `partial` (частичная).
+- **Текущий адаптер:** `bulwark.runic-retribution.1` · `derived-action` · {"kind":"derived-action","coverage":"partial","sourceDigest":"4bf4aab119ae103e04dde891dc96daefe5cc02c06fcdd16308a24c09a07d3822"}; После попадания по союзнику за 1 Фокус предлагается бесплатное производное Заклинание по атакующему через общий roll/reaction lifecycle..
 - **Готовые foundations:** `target-validation`, `event-participants`, `trigger-router`, `reaction-window`, `action-modifier`.
-- **Нужно добавить:** Зарегистрировать отдельный adapter (trigger → validation → events/resolver) и прямые тесты; общая инфраструктура сама правило не исполняет.
+- **Нужно добавить:** Для кода явный следующий шаг не выведен автоматически; нужны direct pos/neg/boundary тесты и evidence до повышения доверия.
 
 #### 2. Обряд любви (Loving Rite) `bulwark.runic-retribution.2`
 

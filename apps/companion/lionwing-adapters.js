@@ -7,6 +7,7 @@
   const inventory = global.DAWN_LIONWING_INVENTORY || null;
   const lionwing = actor => actor?.rulesEdition === "lionwing";
   const knows = (actor, techniqueId, level) => lionwing(actor) && Number((actor.knownTechniques ?? actor.techniques)?.[techniqueId] || 0) >= level;
+  const distance = (a, b) => a?.space === b?.space ? Math.abs(Number(a?.x || 0) - Number(b?.x || 0)) + Math.abs(Number(a?.y || 0) - Number(b?.y || 0)) : Infinity;
   const passive = ({ id, label, sourceDigest, rollBonus, statBonus, statMinimum, rangeBonus, numeric, boundaryOperations, inventoryOperations, resourceGainStatus, actionStatus, maximumLevel = null, coverage = "full" }) => {
     const techniqueId = id.replace(/\.\d+$/, ""), level = Number(id.match(/\.(\d+)$/)?.[1] || 0);
     return Object.freeze({ id, techniqueId, level, label, sourceDigest, coverage, available: actor => knows(actor, techniqueId, level) && (maximumLevel == null || Number((actor.knownTechniques ?? actor.techniques)?.[techniqueId] || 0) <= maximumLevel), rollBonus, statBonus, statMinimum, rangeBonus, numeric, boundaryOperations, inventoryOperations, resourceGainStatus, actionStatus });
@@ -252,7 +253,7 @@
         const endpoint = event.payload || actor;
         const target = (context.scene?.actors || []).find(item => item.id !== actor.id && item.team !== actor.team && !item.knockedOut && item.space === (endpoint.space || actor.space) && Math.abs(Number(item.x) - Number(endpoint.x)) + Math.abs(Number(item.y) - Number(endpoint.y)) === 1);
         if (!target) return [];
-        return [{ id: `jab:${target.id}`, label: `Тычок (${target.name || target.id})`, operations: [{ kind: "usage", ruleId: "vagabond.skirmisher.1.sting", scope: "ownerTurn", targetIds: [target.id], actionId: ACTIONS.skirmish, sourceDigest: "a14b57ddcf585e19b76a19e20b3ab1dc5190a59a5b044ed5df6d0bc2141a503e" }, { kind: "jab", targetId: target.id, sourceActorId: actor.id, ruleId: "vagabond.skirmisher.1", sourceDigest: "a14b57ddcf585e19b76a19e20b3ab1dc5190a59a5b044ed5df6d0bc2141a503e" }], context: { targetId: target.id, eventId: event.id } }];
+        return [{ id: `jab:${target.id}`, label: `Тычок (${target.name || target.id})`, operations: [{ kind: "usage", ruleId: "vagabond.skirmisher.1.sting", scope: "ownerTurn", targetIds: [target.id], actionId: ACTIONS.skirmish, sourceDigest: "a14b57ddcf585e19b76a19e20b3ab1dc5190a59a5b044ed5df6d0bc2141a503e" }, { kind: "derived-action", targetIds: [target.id], sourceActorId: actor.id, ruleId: "vagabond.skirmisher.1", sourceDigest: "a14b57ddcf585e19b76a19e20b3ab1dc5190a59a5b044ed5df6d0bc2141a503e" }], context: { targetId: target.id, eventId: event.id } }];
       },
     }),
     eventTrigger({
@@ -269,8 +270,32 @@
       operations: () => [],
       choices: (actor, event, context) => {
         const targets = (context.scene?.actors || []).filter(item => item.id !== actor.id && item.team !== actor.team && !item.knockedOut && item.space === actor.space && Math.abs(Number(item.x) - Number(actor.x)) + Math.abs(Number(item.y) - Number(actor.y)) === 1 && !actionTargetsThisTurn(context.scene, actor).includes(item.id));
-        return targets.slice(0, 8).map(target => ({ id: `jab:${target.id}`, label: `Тычок (${target.name || target.id})`, operations: [{ kind: "jab", targetId: target.id, sourceActorId: actor.id, ruleId: "vagabond.skirmisher.3", sourceDigest: "4933347df61d45014a553af1c97f078e20ee677081e433464ba9c96726513c61" }], context: { targetId: target.id, eventId: event.id } }));
+        return targets.slice(0, 8).map(target => ({ id: `jab:${target.id}`, label: `Тычок (${target.name || target.id})`, operations: [{ kind: "derived-action", targetIds: [target.id], sourceActorId: actor.id, ruleId: "vagabond.skirmisher.3", sourceDigest: "4933347df61d45014a553af1c97f078e20ee677081e433464ba9c96726513c61" }], context: { targetId: target.id, eventId: event.id } }));
       },
+    }),
+    eventTrigger({
+      id: "powerhouse.dual-wielder.1", label: "Двойной боец I: Флёрри после Стычки", sourceDigest: "ab0e66e627e16c102f6cd8ec4a2cd62a4aac0a45d4bffc9e5197a3f9dd326b13", coverage: "partial",
+      triggerKey: ({ actor, event }) => `${event.execution?.rootActionId || event.id}:${actor.id}:flurry`,
+      match: (actor, event) => event.type === "attack.clear" && event.actorId === actor.id && event.payload?.actionId === ACTIONS.skirmish && event.payload?.targetIds?.length === 1 && Boolean(event.execution?.rootActionId),
+      operations: () => [],
+      choices: (actor, event) => ["body", "talent"].map(attribute => ({ id: `flurry:${attribute}`, label: `Флёрри (${attribute === "body" ? "Телом" : "Талантом"})`, operations: [{ kind: "usage", ruleId: "powerhouse.dual-wielder.1.flurry", scope: "rootAction", targetIds: [event.payload.targetIds[0]], actionId: ACTIONS.skirmish, sourceDigest: "ab0e66e627e16c102f6cd8ec4a2cd62a4aac0a45d4bffc9e5197a3f9dd326b13" }, { kind: "derived-action", targetIds: [event.payload.targetIds[0]], sourceActorId: actor.id, ruleId: "powerhouse.dual-wielder.1", sourceDigest: "ab0e66e627e16c102f6cd8ec4a2cd62a4aac0a45d4bffc9e5197a3f9dd326b13", damageAttribute: attribute }], context: { targetId: event.payload.targetIds[0], eventId: event.id, attribute } })),
+    }),
+    eventTrigger({
+      id: "vagabond.opportunist.1", label: "Оппортунист I: Стычка после Атаки союзника", sourceDigest: "f0492855d27579faf8b5030f09909996a4248a7d2367d8b8805f3942ce0bd4e2", coverage: "partial",
+      triggerKey: ({ actor, event }) => `${event.id}:${actor.id}:opportunist`,
+      match: (actor, event, context) => event.type === "attack.clear" && event.actorId !== actor.id && event.payload?.targetIds?.length === 1 && context.scene?.actors?.some(item => item.id === event.actorId && item.team === actor.team) && context.scene?.actors?.some(item => item.id === event.payload.targetIds[0] && item.team !== actor.team && !item.knockedOut && item.space === actor.space && distance(actor, item) <= 1),
+      operations: () => [],
+      choices: (actor, event, context) => {
+        const target = context.scene?.actors?.find(item => item.id === event.payload.targetIds[0]);
+        return target && target.team !== actor.team && !target.knockedOut && target.space === actor.space && distance(actor, target) <= 1 ? [{ id: "skirmish", label: `Быстрая Стычка (${target.name || target.id})`, operations: [{ kind: "usage", ruleId: "vagabond.opportunist.1.pack-tactics", scope: "round", targetIds: [target.id], actionId: ACTIONS.skirmish, sourceDigest: "f0492855d27579faf8b5030f09909996a4248a7d2367d8b8805f3942ce0bd4e2" }, { kind: "derived-action", targetIds: [target.id], sourceActorId: actor.id, ruleId: "vagabond.opportunist.1", sourceDigest: "f0492855d27579faf8b5030f09909996a4248a7d2367d8b8805f3942ce0bd4e2" }], context: { targetId: target.id, eventId: event.id } }] : [];
+      },
+    }),
+    eventTrigger({
+      id: "bulwark.runic-retribution.1", label: "Молли: Ласка — Быстрое Заклинание по атакующему", sourceDigest: "4bf4aab119ae103e04dde891dc96daefe5cc02c06fcdd16308a24c09a07d3822", coverage: "partial",
+      triggerKey: ({ actor, event }) => `${event.id}:${actor.id}:lash`,
+      match: (actor, event, context) => event.type === "damage.apply" && event.payload?.attack === true && event.payload?.hit !== false && event.payload?.targetId !== actor.id && event.actorId !== actor.id && context.scene?.actors?.some(item => item.id === event.payload?.targetId && item.team === actor.team && !item.knockedOut) && context.scene?.actors?.some(item => item.id === event.actorId && item.team !== actor.team && !item.knockedOut),
+      operations: (actor, event) => [{ kind: "usage", ruleId: "bulwark.runic-retribution.1.lash", scope: "round", targetIds: [event.actorId], actionId: ACTIONS.spell, sourceDigest: "4bf4aab119ae103e04dde891dc96daefe5cc02c06fcdd16308a24c09a07d3822" }, { kind: "resource", targetId: actor.id, resource: "focus", operation: "spend", amount: 1, ruleId: "bulwark.runic-retribution.1", sourceDigest: "4bf4aab119ae103e04dde891dc96daefe5cc02c06fcdd16308a24c09a07d3822" }, { kind: "derived-action", targetIds: [event.actorId], sourceActorId: actor.id, ruleId: "bulwark.runic-retribution.1", sourceDigest: "4bf4aab119ae103e04dde891dc96daefe5cc02c06fcdd16308a24c09a07d3822" }],
+      choices: () => [],
     }),
     eventTrigger({
       id: "powerhouse.technician.1",
@@ -327,7 +352,7 @@
       choices: (actor, event, context) => {
         const marker = (context.scene?.markers || []).find(item => item.ruleId === "vagabond.dim-mak.1" && item.ownerActorId === actor.id && item.space === actor.space && Number(item.x) === Number(actor.x) && Number(item.y) === Number(actor.y)), targetId = marker && (marker.hostActorId || marker.metadata?.hostActorId || marker.metadata?.carrierActorId);
         const target = targetId && (context.scene?.actors || []).find(item => item.id === targetId);
-        return marker && target && !target.knockedOut ? [{ id: "jab", label: `Удалить точку и Джеб (${target.name})`, operations: [{ kind: "marker-remove", markerId: marker.id, targetId, sourceActorId: actor.id, ruleId: "vagabond.dim-mak.1", sourceActionId: "vagabond.dim-mak.1.jab" }, { kind: "damage", targetId, sourceActorId: actor.id, amount: Math.ceil(Number(actor.attrs?.mind || 0) / 2), fixedTargetId: targetId, fixedDamage: true, finalDamage: true, attack: true, ignoreEvasion: true, sourceActionId: "vagabond.dim-mak.1.jab" }], context: { targetId, markerId: marker.id, eventId: event.id } }] : [];
+        return marker && target && !target.knockedOut ? [{ id: "jab", label: `Удалить точку и Джеб (${target.name})`, operations: [{ kind: "marker-remove", markerId: marker.id, targetId, sourceActorId: actor.id, ruleId: "vagabond.dim-mak.1", sourceActionId: "vagabond.dim-mak.1.jab" }, { kind: "derived-action", targetIds: [targetId], sourceActorId: actor.id, ruleId: "vagabond.dim-mak.1", sourceDigest: "86bc2801b43ae4f2bd3de697124313b986e9ae1081e0dd8f3f52dfc44b097c59", lineage: ["vagabond.dim-mak.1"] }], context: { targetId, markerId: marker.id, eventId: event.id } }] : [];
       },
     }),
     eventTrigger({
