@@ -375,24 +375,24 @@
 
 #### 1. Искусство восьми молотов (Art Of The 8 Hammers) `powerhouse.martial-artist.1`
 
-- **Заявленный статус:** `manual` (ручная).
-- **Текущий адаптер:** нет записи в `RULES`.
+- **Заявленный статус:** `decision` (решение).
+- **Текущий адаптер:** `powerhouse.martial-artist.1` · `passive` · {"kind":"passive","coverage":"partial","sourceLevelId":"powerhouse.martial-artist.1","sourceDigest":"5f4610235181dbccff56d2a15b161412018f62becc35812b1e911232e4af4a36"}; После успешной Стычки или Завершения Телом/Талантом предлагается ровно один доступный follow up; четыре варианта ограничены разом за Раунд и исключают доверенные weapon-tag Техники..
 - **Готовые foundations:** `target-validation`, `event-participants`, `movement-lifecycle`, `effect-state`, `effect-lifecycle`, `usage-limits`, `trigger-router`, `turn-lifecycle`, `choice-flow`, `action-modifier`.
-- **Нужно добавить:** Зарегистрировать отдельный adapter (trigger → validation → events/resolver) и прямые тесты; общая инфраструктура сама правило не исполняет.
+- **Нужно добавить:** Для кода явный следующий шаг не выведен автоматически; нужны direct pos/neg/boundary тесты и evidence до повышения доверия.
 
 #### 2. Состояние потока (Flow-State) `powerhouse.martial-artist.2`
 
-- **Заявленный статус:** `manual` (ручная).
-- **Текущий адаптер:** нет записи в `RULES`.
+- **Заявленный статус:** `decision` (решение).
+- **Текущий адаптер:** `powerhouse.martial-artist.2` · `passive` · {"kind":"passive","coverage":"partial","sourceLevelId":"powerhouse.martial-artist.2","sourceDigest":"ffab119dac241453faa82dab8e20523afa694f42b997a24d13fdf4b7f16e9e83"}; Первая Стычка Хода Быстрая; после Восьми молотов предлагается фиксированный урон [Тело/2] или [Талант/2] по атакованной цели..
 - **Готовые foundations:** `target-validation`, `event-participants`, `trigger-router`, `damage-pipeline`, `action-modifier`, `action-history`, `derived-stats`.
-- **Нужно добавить:** Зарегистрировать отдельный adapter (trigger → validation → events/resolver) и прямые тесты; общая инфраструктура сама правило не исполняет.
+- **Нужно добавить:** Для кода явный следующий шаг не выведен автоматически; нужны direct pos/neg/boundary тесты и evidence до повышения доверия.
 
 #### 3. Бесконечные удары (Unlimited Blows) `powerhouse.martial-artist.3`
 
-- **Заявленный статус:** `manual` (ручная).
-- **Текущий адаптер:** нет записи в `RULES`.
+- **Заявленный статус:** `partial` (частичная).
+- **Текущий адаптер:** `powerhouse.martial-artist.3` · `passive` · {"kind":"passive","coverage":"partial","sourceLevelId":"powerhouse.martial-artist.3","sourceDigest":"8428fb10aec3237aa82ef24d052a5610a5f9701fa3576d9be06b9219dc23176c"}; Все атаки получают +1 Преимущество; критический бросок авторитетно открывает дополнительное срабатывание Восьми молотов..
 - **Готовые foundations:** `usage-limits`, `trigger-router`, `action-modifier`, `dice-hooks`.
-- **Нужно добавить:** Зарегистрировать отдельный adapter (trigger → validation → events/resolver) и прямые тесты; общая инфраструктура сама правило не исполняет.
+- **Нужно добавить:** Для кода явный следующий шаг не выведен автоматически; нужны direct pos/neg/boundary тесты и evidence до повышения доверия.
 
 ### Монастырский воин (Monastic Warrior) `powerhouse.monastic-sage`
 
@@ -607,22 +607,22 @@
 
 #### 1. Укол (Sting) `vagabond.skirmisher.1`
 
-- **Заявленный статус:** `manual` (ручная).
-- **Текущий адаптер:** нет записи в `RULES`.
+- **Заявленный статус:** `decision` (решение).
+- **Текущий адаптер:** `vagabond.skirmisher.1` · `passive` · {"kind":"passive","coverage":"partial","sourceLevelId":"vagabond.skirmisher.1","sourceDigest":"a14b57ddcf585e19b76a19e20b3ab1dc5190a59a5b044ed5df6d0bc2141a503e"}; После авторитетного движения Страйдом предлагается один фиксированный Тычок по смежной цели раз за собственный Ход..
 - **Готовые foundations:** `target-validation`, `event-participants`, `usage-limits`, `trigger-router`, `turn-lifecycle`, `damage-pipeline`, `action-modifier`, `derived-stats`.
-- **Нужно добавить:** Зарегистрировать отдельный adapter (trigger → validation → events/resolver) и прямые тесты; общая инфраструктура сама правило не исполняет.
+- **Нужно добавить:** Для кода явный следующий шаг не выведен автоматически; нужны direct pos/neg/boundary тесты и evidence до повышения доверия.
 
 #### 2. Смещающиеся удары (Shifting Blows) `vagabond.skirmisher.2`
 
-- **Заявленный статус:** `manual` (ручная).
-- **Текущий адаптер:** нет записи в `RULES`.
+- **Заявленный статус:** `partial` (частичная).
+- **Текущий адаптер:** `vagabond.skirmisher.2` · `passive` · {"kind":"passive","coverage":"partial","sourceLevelId":"vagabond.skirmisher.2","sourceDigest":"ea74421d17b94486eaedb08b78d461b42ac4eaba89e27430ed74ce015285adc7"}; После Стычки предлагается проверяемое прямолинейное движение до 2 клеток; выбор и маршрут проходят общей поверхностью движения..
 - **Готовые foundations:** `movement-lifecycle`, `trigger-router`, `choice-flow`, `action-modifier`.
-- **Нужно добавить:** Зарегистрировать отдельный adapter (trigger → validation → events/resolver) и прямые тесты; общая инфраструктура сама правило не исполняет.
+- **Нужно добавить:** Для кода явный следующий шаг не выведен автоматически; нужны direct pos/neg/boundary тесты и evidence до повышения доверия.
 
 #### 3. Отскок (Rebound) `vagabond.skirmisher.3`
 
-- **Заявленный статус:** `partial` (частичная).
-- **Текущий адаптер:** `vagabond.skirmisher.3` · `passive` · {"kind":"passive","coverage":"partial","sourceLevelId":"vagabond.skirmisher.3","sourceDigest":"4933347df61d45014a553af1c97f078e20ee677081e433464ba9c96726513c61"}; Стычки получают 1 Преимущество через общий numeric composer; условный Jab после перемещения остаётся ручным..
+- **Заявленный статус:** `decision` (решение).
+- **Текущий адаптер:** `vagabond.skirmisher.3` · `passive` · {"kind":"passive","coverage":"partial","sourceLevelId":"vagabond.skirmisher.3","sourceDigest":"4933347df61d45014a553af1c97f078e20ee677081e433464ba9c96726513c61"}; Стычки получают 1 Преимущество; после движения от Стычки предлагается фиксированный Тычок по персонажу, не атакованному в этом Ходу..
 - **Готовые foundations:** `target-validation`, `event-participants`, `movement-lifecycle`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier`, `dice-hooks`.
 - **Нужно добавить:** Для кода явный следующий шаг не выведен автоматически; нужны direct pos/neg/boundary тесты и evidence до повышения доверия.
 

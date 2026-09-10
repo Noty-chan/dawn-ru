@@ -176,9 +176,9 @@ SHA-256 проверенных файлов: `6049f3ff6b79b8204c45cb8b830b265369
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Art Of The 8 Hammers | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle`, `effect-state`, `effect-lifecycle`, `usage-limits`, `trigger-router`, `turn-lifecycle`, `choice-flow`, `action-modifier` |
-| 2 | Flow-State | проверено | ручная | `target-validation`, `event-participants`, `trigger-router`, `damage-pipeline`, `action-modifier`, `action-history`, `derived-stats` |
-| 3 | Unlimited Blows | проверено | ручная | `usage-limits`, `trigger-router`, `action-modifier`, `dice-hooks` |
+| 1 | Art Of The 8 Hammers | проверено | с выбором | `target-validation`, `event-participants`, `movement-lifecycle`, `effect-state`, `effect-lifecycle`, `usage-limits`, `trigger-router`, `turn-lifecycle`, `choice-flow`, `action-modifier` |
+| 2 | Flow-State | проверено | с выбором | `target-validation`, `event-participants`, `trigger-router`, `damage-pipeline`, `action-modifier`, `action-history`, `derived-stats` |
+| 3 | Unlimited Blows | проверено | частичная | `usage-limits`, `trigger-router`, `action-modifier`, `dice-hooks` |
 
 ### Monastic Warrior (`powerhouse.monastic-sage`)
 
@@ -258,9 +258,9 @@ SHA-256 проверенных файлов: `6049f3ff6b79b8204c45cb8b830b265369
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Sting | проверено | ручная | `target-validation`, `event-participants`, `usage-limits`, `trigger-router`, `turn-lifecycle`, `damage-pipeline`, `action-modifier`, `derived-stats` |
-| 2 | Shifting Blows | проверено | ручная | `movement-lifecycle`, `trigger-router`, `choice-flow`, `action-modifier` |
-| 3 | Rebound | проверено | частичная | `target-validation`, `event-participants`, `movement-lifecycle`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier`, `dice-hooks` |
+| 1 | Sting | проверено | с выбором | `target-validation`, `event-participants`, `usage-limits`, `trigger-router`, `turn-lifecycle`, `damage-pipeline`, `action-modifier`, `derived-stats` |
+| 2 | Shifting Blows | проверено | частичная | `movement-lifecycle`, `trigger-router`, `choice-flow`, `action-modifier` |
+| 3 | Rebound | проверено | с выбором | `target-validation`, `event-participants`, `movement-lifecycle`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier`, `dice-hooks` |
 
 ### Speed Demon (`vagabond.speed-demon`)
 

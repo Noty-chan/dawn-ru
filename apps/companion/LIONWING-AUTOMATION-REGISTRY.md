@@ -47,9 +47,9 @@ Canonical уровней: **333** · Явно исправленных review: *
 | `powerhouse.intimidator.1` | Intimidator | 1 | `manual` | `unreviewed` | — | `uncertified` |
 | `powerhouse.intimidator.2` | Intimidator | 2 | `manual` | `unreviewed` | — | `uncertified` |
 | `powerhouse.intimidator.3` | Intimidator | 3 | `manual` | `unreviewed` | — | `uncertified` |
-| `powerhouse.martial-artist.1` | Martial Artist | 1 | `manual` | `unreviewed` | — | `uncertified` |
-| `powerhouse.martial-artist.2` | Martial Artist | 2 | `manual` | `unreviewed` | — | `uncertified` |
-| `powerhouse.martial-artist.3` | Martial Artist | 3 | `manual` | `unreviewed` | — | `uncertified` |
+| `powerhouse.martial-artist.1` | Martial Artist | 1 | `decision` | `unreviewed` | — | `uncertified` |
+| `powerhouse.martial-artist.2` | Martial Artist | 2 | `decision` | `unreviewed` | — | `uncertified` |
+| `powerhouse.martial-artist.3` | Martial Artist | 3 | `partial` | `unreviewed` | — | `uncertified` |
 | `powerhouse.monastic-sage.1` | Monastic Warrior | 1 | `full` | `unreviewed` | — | `uncertified` |
 | `powerhouse.monastic-sage.2` | Monastic Warrior | 2 | `decision` | `unreviewed` | — | `uncertified` |
 | `powerhouse.monastic-sage.3` | Monastic Warrior | 3 | `decision` | `unreviewed` | — | `uncertified` |
@@ -77,9 +77,9 @@ Canonical уровней: **333** · Явно исправленных review: *
 | `vagabond.sniper.1` | Sniper | 1 | `manual` | `unreviewed` | — | `uncertified` |
 | `vagabond.sniper.2` | Sniper | 2 | `manual` | `unreviewed` | — | `uncertified` |
 | `vagabond.sniper.3` | Sniper | 3 | `manual` | `unreviewed` | — | `uncertified` |
-| `vagabond.skirmisher.1` | Skirmisher | 1 | `manual` | `unreviewed` | — | `uncertified` |
-| `vagabond.skirmisher.2` | Skirmisher | 2 | `manual` | `unreviewed` | — | `uncertified` |
-| `vagabond.skirmisher.3` | Skirmisher | 3 | `partial` | `unreviewed` | — | `uncertified` |
+| `vagabond.skirmisher.1` | Skirmisher | 1 | `decision` | `unreviewed` | — | `uncertified` |
+| `vagabond.skirmisher.2` | Skirmisher | 2 | `partial` | `unreviewed` | — | `uncertified` |
+| `vagabond.skirmisher.3` | Skirmisher | 3 | `decision` | `unreviewed` | — | `uncertified` |
 | `vagabond.speed-demon.1` | Speed Demon | 1 | `manual` | `unreviewed` | — | `uncertified` |
 | `vagabond.speed-demon.2` | Speed Demon | 2 | `full` | `unreviewed` | — | `uncertified` |
 | `vagabond.speed-demon.3` | Speed Demon | 3 | `manual` | `unreviewed` | — | `uncertified` |
