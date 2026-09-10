@@ -128,9 +128,9 @@ SHA-256 проверенных файлов: `6049f3ff6b79b8204c45cb8b830b265369
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Stretch | проверено | ручная | `resource-check`, `usage-limits`, `trigger-router`, `turn-lifecycle`, `duration-scheduler`, `action-modifier`, `action-history`, `derived-stats` |
-| 2 | Perfect Form | проверено | ручная | `trigger-router`, `turn-lifecycle`, `duration-scheduler`, `action-modifier`, `action-history`, `derived-stats` |
-| 3 | Final Blow [ Skirmish → Finisher ] | проверено | полная | `resource-check`, `action-modifier`, `action-history`, `derived-stats` |
+| 1 | Stretch | проверено | частичная | `resource-check`, `usage-limits`, `trigger-router`, `turn-lifecycle`, `duration-scheduler`, `action-modifier`, `action-history`, `derived-stats` |
+| 2 | Perfect Form | проверено | частичная | `trigger-router`, `turn-lifecycle`, `duration-scheduler`, `action-modifier`, `action-history`, `derived-stats` |
+| 3 | Final Blow [ Skirmish → Finisher ] | проверено | частичная | `resource-check`, `action-modifier`, `action-history`, `derived-stats` |
 
 ### Unbroken (`powerhouse.unbroken`)
 
@@ -236,7 +236,7 @@ SHA-256 проверенных файлов: `6049f3ff6b79b8204c45cb8b830b265369
 | ---: | --- | --- | --- | --- |
 | 1 | Soar | проверено | частичная | `effect-state`, `effect-lifecycle`, `stance`, `terrain`, `movement-lifecycle`, `trigger-router`, `action-modifier`, `dice-hooks` |
 | 2 | Hunt | проверено | ручная | `effect-state`, `effect-lifecycle`, `movement-lifecycle`, `trigger-router`, `choice-flow`, `action-modifier` |
-| 3 | Falling Ax Strike | проверено | ручная | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `stance`, `trigger-router`, `action-modifier`, `dice-hooks`, `derived-stats` |
+| 3 | Falling Ax Strike | проверено | частичная | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `stance`, `trigger-router`, `action-modifier`, `dice-hooks`, `derived-stats` |
 
 ### Assassin (`vagabond.assassin`)
 
@@ -260,7 +260,7 @@ SHA-256 проверенных файлов: `6049f3ff6b79b8204c45cb8b830b265369
 | ---: | --- | --- | --- | --- |
 | 1 | Sting | проверено | ручная | `target-validation`, `event-participants`, `usage-limits`, `trigger-router`, `turn-lifecycle`, `damage-pipeline`, `action-modifier`, `derived-stats` |
 | 2 | Shifting Blows | проверено | ручная | `movement-lifecycle`, `trigger-router`, `choice-flow`, `action-modifier` |
-| 3 | Rebound | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier`, `dice-hooks` |
+| 3 | Rebound | проверено | частичная | `target-validation`, `event-participants`, `movement-lifecycle`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier`, `dice-hooks` |
 
 ### Speed Demon (`vagabond.speed-demon`)
 
@@ -414,7 +414,7 @@ SHA-256 проверенных файлов: `6049f3ff6b79b8204c45cb8b830b265369
 | ---: | --- | --- | --- | --- |
 | 1 | Tough As Stone | проверено | ручная | `movement-lifecycle`, `derived-stats` |
 | 2 | Resilience | проверено | полная | `derived-stats` |
-| 3 | Stainless Stride | проверено | ручная | `effect-state`, `effect-lifecycle`, `trigger-router`, `turn-lifecycle`, `choice-flow`, `damage-pipeline`, `derived-stats` |
+| 3 | Stainless Stride | проверено | частичная | `effect-state`, `effect-lifecycle`, `trigger-router`, `turn-lifecycle`, `choice-flow`, `damage-pipeline`, `derived-stats` |
 
 ### Vanguard Defender (`bulwark.vanguard-defender`)
 

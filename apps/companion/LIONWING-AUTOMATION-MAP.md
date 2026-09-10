@@ -5,6 +5,8 @@
 
 Текущие ручные операции и границы проверки: [LIONWING-KERNEL.md](LIONWING-KERNEL.md). Статусы Техник ниже не повышаются от наличия этих операций.
 
+Числовой проход 2026-09-10 отражён в registry: `bulwark.iron-bodied.3` и `vagabond.aerial-master.3` добавлены как partial, а существующий `vagabond.skirmisher.3` получил явную partial запись; полные canonical digest и остаток ручной работы указаны в [numeric pass handoff](../../docs/tasks/LIONWING_NUMERIC_PASSIVES_HANDOFF_2026-09-10.md).
+
 ## Сводка стратегий
 
 | Стратегия | Количество | Назначение |

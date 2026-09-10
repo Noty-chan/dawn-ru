@@ -8,7 +8,7 @@
 
 | Контур | Всего | Заявлено исполнимым | Формально E2E-сертифицировано | Неполный путь |
 | --- | ---: | ---: | ---: | --- |
-| Уровни Техник | 333 | 82 shared/inherited (24.6%) | 0 | 32 частичных; 219 ручных |
+| Уровни Техник | 333 | 81 shared/inherited (24.3%) | 0 | 38 частичных; 214 ручных |
 | Правила обычных врагов | 122 | 0 (0.0%) | 0 | 122 assisted |
 | Атаки врагов | 40 | 0 | 0 | не установлено независимым аудитом |
 
@@ -66,9 +66,9 @@
 
 | Архетип | Уровней | Заявлено full | Заявлено decision | Заявлено partial | Заявлено manual |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| Powerhouse | 60 | 8 | 5 | 6 | 41 |
-| Vagabond | 60 | 9 | 11 | 4 | 36 |
-| Bulwark | 48 | 3 | 3 | 2 | 40 |
+| Powerhouse | 60 | 7 | 5 | 9 | 39 |
+| Vagabond | 60 | 9 | 11 | 6 | 34 |
+| Bulwark | 48 | 3 | 3 | 3 | 39 |
 | Altruist | 57 | 2 | 11 | 2 | 42 |
 | Disruptor | 54 | 4 | 6 | 12 | 32 |
 | Ruiner | 54 | 6 | 14 | 6 | 28 |
@@ -92,8 +92,6 @@
 | Struggler (`powerhouse.struggler`) | 2 | Adrenaline | тонкий адаптер уникального условия поверх уже готового ядра |
 | Struggler (`powerhouse.struggler`) | 3 | Defy Reason | тонкий адаптер уникального условия поверх уже готового ядра |
 | SpellSword (`powerhouse.spellsword`) | 1 | Twin Suns [ Cast → Skirmish ] | `action-copy` |
-| Technician (`powerhouse.technician`) | 1 | Stretch | тонкий адаптер уникального условия поверх уже готового ядра |
-| Technician (`powerhouse.technician`) | 2 | Perfect Form | тонкий адаптер уникального условия поверх уже готового ядра |
 | Unbroken (`powerhouse.unbroken`) | 1 | Get Back Up | `duel-flow` |
 | Unbroken (`powerhouse.unbroken`) | 2 | Furious Revival | тонкий адаптер уникального условия поверх уже готового ядра |
 | Unbroken (`powerhouse.unbroken`) | 3 | Phoenix | `duel-flow` |
@@ -121,13 +119,11 @@
 | Heroic Ascendant (`powerhouse.heroic-ascendant`) | 2 | Hero's Feat | тонкий адаптер уникального условия поверх уже готового ядра |
 | Heroic Ascendant (`powerhouse.heroic-ascendant`) | 3 | Mastered Strength | тонкий адаптер уникального условия поверх уже готового ядра |
 | Aerial Master (`vagabond.aerial-master`) | 2 | Hunt | тонкий адаптер уникального условия поверх уже готового ядра |
-| Aerial Master (`vagabond.aerial-master`) | 3 | Falling Ax Strike | тонкий адаптер уникального условия поверх уже готового ядра |
 | Sniper (`vagabond.sniper`) | 1 | Long Shot | тонкий адаптер уникального условия поверх уже готового ядра |
 | Sniper (`vagabond.sniper`) | 2 | Bunker Down | тонкий адаптер уникального условия поверх уже готового ядра |
 | Sniper (`vagabond.sniper`) | 3 | Deadeye [ Hide → Talent Finisher ] | тонкий адаптер уникального условия поверх уже готового ядра |
 | Skirmisher (`vagabond.skirmisher`) | 1 | Sting | тонкий адаптер уникального условия поверх уже готового ядра |
 | Skirmisher (`vagabond.skirmisher`) | 2 | Shifting Blows | тонкий адаптер уникального условия поверх уже готового ядра |
-| Skirmisher (`vagabond.skirmisher`) | 3 | Rebound | тонкий адаптер уникального условия поверх уже готового ядра |
 | Speed Demon (`vagabond.speed-demon`) | 1 | Fade | тонкий адаптер уникального условия поверх уже готового ядра |
 | Speed Demon (`vagabond.speed-demon`) | 3 | Flash Step [ Breathe → Stride ] | тонкий адаптер уникального условия поверх уже готового ядра |
 | Untouchable (`vagabond.untouchable`) | 3 | Fighter's Instinct [ Dodge → Skirmish ] | тонкий адаптер уникального условия поверх уже готового ядра |
@@ -162,7 +158,6 @@
 | Giant Frame (`bulwark.giant-frame`) | 2 | Immense | `deployment-hooks`, `multi-space-actor` |
 | Giant Frame (`bulwark.giant-frame`) | 3 | Shockwave | тонкий адаптер уникального условия поверх уже готового ядра |
 | Iron Bodied (`bulwark.iron-bodied`) | 1 | Tough As Stone | тонкий адаптер уникального условия поверх уже готового ядра |
-| Iron Bodied (`bulwark.iron-bodied`) | 3 | Stainless Stride | тонкий адаптер уникального условия поверх уже готового ядра |
 | Vanguard Defender (`bulwark.vanguard-defender`) | 1 | White Knight | тонкий адаптер уникального условия поверх уже готового ядра |
 | Vanguard Defender (`bulwark.vanguard-defender`) | 2 | Steel Angel | тонкий адаптер уникального условия поверх уже готового ядра |
 | Vanguard Defender (`bulwark.vanguard-defender`) | 3 | Inspire Courage | тонкий адаптер уникального условия поверх уже готового ядра |
