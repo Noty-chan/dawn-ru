@@ -104,7 +104,7 @@ assert.equal(transform.ok, true);
 const transformed = SceneEngine.dispatchMany(chargedGrim, transform.events).scene;
 assert.equal(transformed.actors[0].hp, 1);
 assert.equal(transformed.actors[0].ruleState.grimTransformed, true);
-assert.ok(transformed.actors[0].focus >= 14, "Lost Health becomes doubled Focus");
+assert.equal(transformed.actors[0].focus, 7, "Existing Focus and lost Health become the Corruption pool without the obsolete doubling");
 assert.ok(SceneEngine.availableActions(transformed, data, "hero").find(item => item.name === "Заклинание")?.quick, "The first transformed Spell is Quick");
 const grimSpell = actionNamed("Заклинание");
 const afterFirstGrimSpell = SceneEngine.dispatch(transformed, { type: "action.prepare", actorId: "hero", payload: { actionId: grimSpell.id, name: grimSpell.name, quick: true } }).scene;

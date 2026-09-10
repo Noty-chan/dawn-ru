@@ -773,7 +773,10 @@ function respondRulePrompt(scene, data, request = {}) {
     events.push({ type: "actor.state", actorId: actor.id, payload: { key: "grimUsed", value: true, sourceActionId: "ruiner.grim-ascendant.1" } });
     events.push({ type: "actor.state", actorId: actor.id, payload: { key: "grimTransformed", value: true, lostHealth, sourceActionId: "ruiner.grim-ascendant.1" } });
     events.push({ type: "resource.gain", actorId: actor.id, payload: { resource: "ap", amount: 1, sourceActionId: "ruiner.grim-ascendant.1" } });
-    events.push({ type: "resource.gain", actorId: actor.id, payload: { resource: "focus", amount: lostHealth * 2, sourceActionId: "ruiner.grim-ascendant.1" } });
+    // Existing Focus and lost Health become one Corruption pool. While the
+    // transformation is active the shared Focus slot is its compatibility
+    // projection, so only the lost Health is added here.
+    events.push({ type: "resource.gain", actorId: actor.id, payload: { resource: "focus", amount: lostHealth, sourceActionId: "ruiner.grim-ascendant.1", resolvedResourceLabel: "Corruption" } });
     const enemies = (scene.actors || []).filter(item => !item.knockedOut && item.team !== actor.team && distance(actor, item) <= 2);
     if (enemies.length) {
       const plan = prepareDisplacements(scene, enemies.map(enemy => ({ actorId: enemy.id, mode: "push", sourceActorId: actor.id, maximum: 3, allowPartial: true, allowBlocked: true, name: "Непостоянная мощь", ruleId: "ruiner.grim-ascendant.1", participantIds: [actor.id, enemy.id] })));
