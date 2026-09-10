@@ -34742,9 +34742,24 @@
       },
       "level": 1,
       "implementation": {
-        "automation": "manual",
-        "ruleIds": [],
-        "rules": [],
+        "automation": "partial",
+        "ruleIds": [
+          "ruiner.student-of-stars.1"
+        ],
+        "rules": [
+          {
+            "id": "ruiner.student-of-stars.1",
+            "techniqueId": "ruiner.student-of-stars",
+            "level": 1,
+            "name": "Высвобожденная мощь",
+            "kind": "action-modifier",
+            "automation": "partial",
+            "actionKey": "finish",
+            "sourceDigest": "64d7fc6b8ff19f2f7ab1b9b12c8021872835baf6374bb729837f7d2f2a27fa60",
+            "note": "После подтверждённой Зарядки Завершение стоит 1 ОД; предел дополнительного Фокуса вычисляется Engine как 3×текущее Напряжение.",
+            "coverage": "partial"
+          }
+        ],
         "foundationPlan": {
           "version": 11,
           "status": "reviewed",
@@ -34803,7 +34818,9 @@
           "text": "The Finisher has its Cost reduced to 1. While you use this Finisher, you may spend up to [3 x Tension] Focus."
         },
         "canonicalDigest": "64d7fc6b8ff19f2f7ab1b9b12c8021872835baf6374bb729837f7d2f2a27fa60",
-        "engineRuleDigests": []
+        "engineRuleDigests": [
+          "64d7fc6b8ff19f2f7ab1b9b12c8021872835baf6374bb729837f7d2f2a27fa60"
+        ]
       },
       "review": {
         "status": "unreviewed",
@@ -34853,7 +34870,8 @@
             "shape": "line",
             "areaType": "attack",
             "duration": "instant",
-            "note": "Геометрия зональной Атаки поддержана, но она ещё не связана строго с «Высвобожденной мощью».",
+            "sourceDigest": "6fd4f1cf8b3ee7fbe492fd7a439792e61c568bd4c28d0b6efe80071d99482d7e",
+            "note": "После Высвобожденной мощи Engine перепроверяет бесконечную линию, центр в соседней клетке и цели по общей геометрии.",
             "coverage": "partial"
           },
           {
@@ -34866,7 +34884,8 @@
             "shape": "square2",
             "areaType": "attack",
             "duration": "instant",
-            "note": "Геометрия зональной Атаки поддержана, но она ещё не связана строго с «Высвобожденной мощью».",
+            "sourceDigest": "6fd4f1cf8b3ee7fbe492fd7a439792e61c568bd4c28d0b6efe80071d99482d7e",
+            "note": "После Высвобожденной мощи Engine перепроверяет зону 2×2, центр в соседней клетке и цели по общей геометрии.",
             "coverage": "partial"
           }
         ],
@@ -34936,7 +34955,9 @@
           "text": "If you use \"Power Unleashed\", you may have it affect all targets in an ∞ length Line or a 2x2 space Zone adjacent to you."
         },
         "canonicalDigest": "6fd4f1cf8b3ee7fbe492fd7a439792e61c568bd4c28d0b6efe80071d99482d7e",
-        "engineRuleDigests": []
+        "engineRuleDigests": [
+          "6fd4f1cf8b3ee7fbe492fd7a439792e61c568bd4c28d0b6efe80071d99482d7e"
+        ]
       },
       "review": {
         "status": "unreviewed",
