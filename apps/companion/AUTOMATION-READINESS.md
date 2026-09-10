@@ -8,7 +8,7 @@
 
 | Контур | Всего | Заявлено исполнимым | Формально E2E-сертифицировано | Неполный путь |
 | --- | ---: | ---: | ---: | --- |
-| Уровни Техник | 333 | 82 shared/inherited (24.6%) | 0 | 39 частичных; 212 ручных |
+| Уровни Техник | 333 | 82 shared/inherited (24.6%) | 0 | 40 частичных; 211 ручных |
 | Правила обычных врагов | 122 | 0 (0.0%) | 0 | 122 assisted |
 | Атаки врагов | 40 | 0 | 0 | не установлено независимым аудитом |
 
@@ -71,7 +71,7 @@
 | Bulwark | 48 | 3 | 3 | 3 | 39 |
 | Altruist | 57 | 2 | 11 | 2 | 42 |
 | Disruptor | 54 | 4 | 6 | 12 | 32 |
-| Ruiner | 54 | 6 | 14 | 6 | 28 |
+| Ruiner | 54 | 6 | 14 | 7 | 27 |
 
 Полная построчная карта всех 333 Уровней canonical EN находится в `TECHNIQUE-FOUNDATION-MAP.md`. Её статусы также заявленные: таблица удобна для планирования аудита, но не заменяет evidence-записи. Ниже перечислены самые дорогие известные пробелы.
 
@@ -267,7 +267,6 @@
 | Eradicator (`ruiner.rapid-fire-sorcery`) | 3 | Endless Fire [ Charge → Cast ] | тонкий адаптер уникального условия поверх уже готового ядра |
 | Ritualist (`ruiner.ritualist`) | 2 | Arcane Artillery | тонкий адаптер уникального условия поверх уже готового ядра |
 | Ritualist (`ruiner.ritualist`) | 3 | Fractal Etchings | тонкий адаптер уникального условия поверх уже готового ядра |
-| Student Of Stars (`ruiner.student-of-stars`) | 1 | Power Unleashed [ Charge → Finisher ] | тонкий адаптер уникального условия поверх уже готового ядра |
 | Student Of Stars (`ruiner.student-of-stars`) | 3 | Moment Of Truth | `duel-flow` |
 | Blade Smith (`ruiner.mana-blades`) | 1 | Call Arms | `action-copy` |
 | Blade Smith (`ruiner.mana-blades`) | 2 | Blade Storm | тонкий адаптер уникального условия поверх уже готового ядра |
