@@ -387,6 +387,15 @@ function lwPendingHtml() {
     const labels = { keep:"Применить Эффект", "bail":"Отступить — без ставки", "take-it":"Принять удар — вернуть Влияние", "double-down":"Удвоить ставку — переброс", "one-wound":"1 Рана (стр. 38)", "two-wounds":"2 Раны (стр. 62)", resist: "Сопротивляться", accept: choice.kind==="clash-loss"?"Принять Атаку":"Принять выведение", reroll:"5 урона → перебросить", win:choice.kind==="duel-outcome"?"Инициатор победил":"Защитник победил",lose:choice.kind==="duel-outcome"?"Инициатор проиграл":"Атакующий победил",record: "Записать решение", place: "Выбрать клетку", "call-help": "Подтянуть Испуганных врагов и нанести урон" };
     return `<section class="lw-pending"><strong>${esc(owner?.name || "Участник")}: ${esc(choice.kind==="duel-wounds"?"Продолжить сохранённую Дуэль: 1 Рана по уточнению автора":choice.title)}</strong>${duelControls}${choice.kind==="replacement"?`<p>${esc([...lwRules().effects.positive,...lwRules().effects.negative].find(e=>e.id===choice.context.effect)?.name||choice.context.effect)}. Исходный Эффект ещё не наложен.</p>`:""}${choice.context?.text ? `<p>${esc(choice.context.text)}</p>` : ""}${can ? `${choice.options.includes("record") ? '<input data-lw-choice-note placeholder="Принятое решение" aria-label="Принятое решение">' : ""}<div class="button-row">${(choice.kind==="duel-wounds"?["one-wound"]:choice.options).map(option => `<button data-lw-choice="${option}" data-lw-choice-id="${esc(choice.id)}"${choice.context?.actionPlanId?` data-lw-plan-id="${esc(choice.context.actionPlanId)}"`:""} data-lw-actor="${esc(choice.actorId)}">${esc(choice.context?.labels?.[option] || labels[option] || option)}</button>`).join("")}</div>` : "<p>Ожидается решение владельца героя.</p>"}</section>`;
   }
+  const followups = typeof LionwingEngine.pendingFollowups === "function" ? LionwingEngine.pendingFollowups(Scene).filter(item => ["offered", "active"].includes(item.status)) : [];
+  if (followups.length) {
+    const rows = followups.map(item => {
+      const participants = (item.participantIds || []).map(id => Scene.actors.find(actor => actor.id === id)?.name || id).join(", ");
+      const deadline = item.endBoundary === "anyTurnStart" ? "до начала следующего Хода любого участника" : item.endBoundary === "anyTurnEnd" ? "до конца следующего Хода любого участника" : item.endBoundary || "до установленной границы";
+      return `<li><b>${esc(item.ruleId)}</b><span>${esc(item.status === "active" ? "активно" : "ожидает выбора")} · ${esc(deadline)}${participants ? ` · ${esc(participants)}` : ""}</span></li>`;
+    }).join("");
+    return `<section class="lw-pending lw-followups"><strong>Ожидающие продолжения</strong><ul>${rows}</ul></section>`;
+  }
   const pending = Scene.pendingAction;
   if (!pending?.lionwing) return "";
   const waiting = SceneEngine.pendingActionStatus(Scene).waitingIds;

@@ -229,6 +229,8 @@
 
   function deadline(choice, scene) {
     const context = choice?.context || {};
+    if (context.followup && context.deadline === "anyTurnStart") return "до начала следующего Хода любого участника";
+    if (context.followup && context.deadline === "anyTurnEnd") return "до конца следующего Хода любого участника";
     if (context.deadline) return text(context.deadline);
     if (context.expiresAt) return "до " + text(context.expiresAt);
     if (scene?.lionwing?.executionCursor?.status === "waiting") return "до продолжения текущей цепочки";
