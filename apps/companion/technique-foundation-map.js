@@ -1,7 +1,7 @@
 "use strict";
 
 (function exposeTechniqueFoundationMap(global) {
-  const VERSION = 10;
+  const VERSION = 11;
   const CAPABILITIES = {
     "event-participants": { label: "Участники события", state: "ready", module: "scene-engine-core.js" },
     "event-preview": { label: "Предпросмотр цепочки", state: "ready", module: "scene-triggers.js" },
@@ -22,8 +22,8 @@
     "usage-limits": { label: "Лимиты использования", state: "ready", module: "scene-foundations.js" },
     "trigger-router": { label: "Маршрутизация триггеров", state: "ready", module: "scene-triggers.js / scene-events.js" },
     "reaction-window": { label: "Окна Реакций и вмешательств", state: "ready", module: "scene-responses.js / scene-events.js" },
-    "turn-lifecycle": { label: "Жизненный цикл Хода и Раунда", state: "ready", module: "lionwing-adapters.js / lionwing-engine.js" },
-    "scene-lifecycle": { label: "Начало, конец и сброс Сцены", state: "ready", module: "lionwing-adapters.js / lionwing-engine.js" },
+    "turn-lifecycle": { label: "Жизненный цикл Хода и Раунда", state: "ready", module: "lionwing-engine.js (scheduler) / lionwing-adapters.js (declarative hooks)" },
+    "scene-lifecycle": { label: "Начало, конец и сброс Сцены", state: "ready", module: "lionwing-engine.js (scheduler) / lionwing-adapters.js (declarative hooks)" },
     "movement-lifecycle": { label: "Жизненный цикл движения", state: "ready", module: "lionwing-geometry.js / lionwing-engine.js" },
     "choice-flow": { label: "Типизированное решение", state: "ready", module: "scene-responses.js / scene-events.js / scene-effects.js" },
     "damage-pipeline": { label: "Конвейер урона, Здоровья и Ран", state: "ready", module: "scene-responses.js / scene-events.js" },
@@ -42,7 +42,7 @@
     "information-query": { label: "Изучение и раскрытие информации", state: "ready", module: "lionwing-information-query.js / lionwing-engine.js" },
     transformation: { label: "Трансформации и заимствованные правила", state: "planned" },
     "duel-flow": { label: "Дуэли и ставки", state: "planned" },
-    "combat-meter": { label: "Напряжение и общие счетчики боя", state: "planned" },
+    "combat-meter": { label: "Напряжение и общие счетчики боя", state: "ready", module: "lionwing-combat-meter.js / lionwing-engine.js" },
     "action-copy": { label: "Заимствование Атак и Техник", state: "planned" },
     "multi-space-actor": { label: "Размер и несколько клеток персонажа", state: "planned" },
     "manual-ruling": { label: "Ручное решение Нарратора", state: "fallback" },

@@ -31,8 +31,8 @@ SHA-256 проверенных файлов: `6049f3ff6b79b8204c45cb8b830b265369
 | `usage-limits` | Лимиты использования | готово | `scene-foundations.js` | 75 |
 | `trigger-router` | Маршрутизация триггеров | готово | `scene-triggers.js / scene-events.js` | 290 |
 | `reaction-window` | Окна Реакций и вмешательств | готово | `scene-responses.js / scene-events.js` | 39 |
-| `turn-lifecycle` | Жизненный цикл Хода и Раунда | готово | `lionwing-adapters.js / lionwing-engine.js` | 79 |
-| `scene-lifecycle` | Начало, конец и сброс Сцены | готово | `lionwing-adapters.js / lionwing-engine.js` | 39 |
+| `turn-lifecycle` | Жизненный цикл Хода и Раунда | готово | `lionwing-engine.js (scheduler) / lionwing-adapters.js (declarative hooks)` | 79 |
+| `scene-lifecycle` | Начало, конец и сброс Сцены | готово | `lionwing-engine.js (scheduler) / lionwing-adapters.js (declarative hooks)` | 39 |
 | `movement-lifecycle` | Жизненный цикл движения | готово | `lionwing-geometry.js / lionwing-engine.js` | 117 |
 | `choice-flow` | Типизированное решение | готово | `scene-responses.js / scene-events.js / scene-effects.js` | 141 |
 | `damage-pipeline` | Конвейер урона, Здоровья и Ран | готово | `scene-responses.js / scene-events.js` | 104 |
@@ -51,7 +51,7 @@ SHA-256 проверенных файлов: `6049f3ff6b79b8204c45cb8b830b265369
 | `information-query` | Изучение и раскрытие информации | готово | `lionwing-information-query.js / lionwing-engine.js` | 13 |
 | `transformation` | Трансформации и заимствованные правила | планируется | — | 11 |
 | `duel-flow` | Дуэли и ставки | планируется | — | 5 |
-| `combat-meter` | Напряжение и общие счетчики боя | планируется | — | 18 |
+| `combat-meter` | Напряжение и общие счетчики боя | готово | `lionwing-combat-meter.js / lionwing-engine.js` | 18 |
 | `action-copy` | Заимствование Атак и Техник | планируется | — | 10 |
 | `multi-space-actor` | Размер и несколько клеток персонажа | планируется | — | 6 |
 | `manual-ruling` | Ручное решение Нарратора | ручное | — | 0 |
