@@ -1031,11 +1031,20 @@
     };
     let scheduleAfterEvent = null;
     const emit = (type, actorId, payload = {}) => {
-      const row = { id: `${rootId}:${emitted.length}`, at: event.at, type, actorId: actorId || null, payload: copy(payload), visibility: payload.visibility === "gm" ? "gm" : event.visibility || "public" };
+      // Every resolved Action carries its engine provenance in the public
+      // receipt as well as in execution metadata.  Manual record-action used
+      // to omit this field, which made downstream combo adapters depend on a
+      // client supplied payload flag instead of the authoritative history.
+      const receiptPayload = type === "action.resolve" ? {
+        ...payload,
+        ...(payload.actionInstanceId || !provenance?.actionInstanceId ? {} : { actionInstanceId: provenance.actionInstanceId }),
+        ...(payload.ownerTurnInstanceId || !provenance?.ownerTurnInstanceId ? {} : { ownerTurnInstanceId: provenance.ownerTurnInstanceId }),
+      } : payload;
+      const row = { id: `${rootId}:${emitted.length}`, at: event.at, type, actorId: actorId || null, payload: copy(receiptPayload), visibility: receiptPayload.visibility === "gm" ? "gm" : event.visibility || "public" };
       if (provenance) row.execution = copy(provenance);
       emitted.push(row); scene.log.unshift(row); scene.log = scene.log.slice(0, 200);
-      const targets = payload.targetIds || (payload.targetId ? [payload.targetId] : []);
-      if (type === "action.resolve") saveFact("apply", actorId, targets, { actionId: payload.actionId, manual: payload.manual === true }, { ...provenance, actionId: payload.actionId || provenance?.actionId, ownerActorId: actorId });
+      const targets = receiptPayload.targetIds || (receiptPayload.targetId ? [receiptPayload.targetId] : []);
+      if (type === "action.resolve") saveFact("apply", actorId, targets, { actionId: receiptPayload.actionId, manual: receiptPayload.manual === true }, { ...provenance, actionId: receiptPayload.actionId || provenance?.actionId, ownerActorId: actorId });
       else if (type === "damage.apply") {
         if (payload.attack && payload.hit !== false) saveFact("hit", actorId, targets, { planned: payload.raw, zeroDamage: payload.dealt === 0 });
         saveFact("damage", actorId, targets, { planned: payload.raw, actual: payload.dealt, hit: payload.hit !== false, ignored: payload.ignored === true });
@@ -2144,9 +2153,11 @@
           if(!swift&&used.includes(def.id))fail("Действие уже использовано");
           spend(a,p.resource||"ap",integer(p.amount??0,"стоимость"));
           if(!swift){a.usedActions=[...new Set([...(a.usedActions||[]),def.id])];astate(a).turnActions=[...new Set([...(astate(a).turnActions||[]),def.id])];}
+          p.actionInstanceId ||= provenance?.actionInstanceId || rootId;
+          p.ownerTurnInstanceId ||= s.activeTurnInstanceId || null;
           const activeTurnOwner = scene.activeActorId ? actor(scene, scene.activeActorId) : null, activeOwnerSerial = activeTurnOwner ? ownTurnSerial(activeTurnOwner) : null;
-          astate(a).history.push({actionId:def.id,actionDefinitionId:def.id,actionInstanceId:provenance?.actionInstanceId||null,round:scene.round,turnSerial:scene.turnSerial,ownerTurnActorId:activeTurnOwner?.id||null,ownerTurnSerial:activeOwnerSerial,ownerTurnInstanceId:s.activeTurnInstanceId||null,ownerTurnKey:activeTurnOwner?ownerTurnKey(s.sceneSerial,activeTurnOwner,activeOwnerSerial):null,swift,manual:true});
-          emit("action.resolve",sourceId,{actionId:def.id,name:def.name,manual:true});break;
+          astate(a).history.push({actionId:def.id,actionDefinitionId:def.id,actionInstanceId:p.actionInstanceId,round:scene.round,turnSerial:scene.turnSerial,ownerTurnActorId:activeTurnOwner?.id||null,ownerTurnSerial:activeOwnerSerial,ownerTurnInstanceId:p.ownerTurnInstanceId,ownerTurnKey:activeTurnOwner?ownerTurnKey(s.sceneSerial,activeTurnOwner,activeOwnerSerial):null,swift,manual:true});
+          emit("action.resolve",sourceId,{actionId:def.id,name:def.name,manual:true,actionInstanceId:p.actionInstanceId,ownerTurnInstanceId:p.ownerTurnInstanceId});break;
         }
         case "recover-track": {const target=requiredActor(scene,p.targetId||sourceId,false);if(!["wounds","stress"].includes(p.track))fail("Выберите Раны или Стресс");const amount=integer(p.amount,"восстановление",3),before=Number(target[p.track]||0);target[p.track]=Math.max(0,before-amount);emit("actor.track.recover",sourceId,{targetId:target.id,track:p.track,amount:before-target[p.track],value:target[p.track]});break;}
         case "heal": applyHealing(p,sourceId);break;
@@ -2394,7 +2405,7 @@
           const target = requiredActor(scene, p.targetId || sourceId, false);
           if(p.remove){if(!["armor","evasion","speed"].includes(p.stat))fail("Неизвестный показатель");astate(target).modifiers=astate(target).modifiers.filter(m=>m.stat!==p.stat||(p.id&&m.id!==p.id));emit("modifier.remove",sourceId,p);break;}
           if (!["armor", "evasion", "speed"].includes(p.stat) || !Number.isInteger(p.amount) || Math.abs(p.amount) > 9999 || !["startTurn","endTurn","roundEnd","scene","manual"].includes(p.duration || "endTurn")) fail("Некорректный модификатор");
-          astate(target).modifiers.push({ id: p.id || `${rootId}:modifier:${astate(target).modifiers.length}`, sourceActorId: sourceId, ownerActorId: p.ownerActorId || target.id, stat: p.stat, amount: p.amount, boundary: p.duration || "endTurn", appliedSerial: scene.turnSerial }); emit("modifier.configure", sourceId, p); break;
+          astate(target).modifiers.push({ id: p.id || `${rootId}:modifier:${astate(target).modifiers.length}`, sourceActorId: sourceId, ownerActorId: p.ownerActorId || target.id, stat: p.stat, amount: p.amount, boundary: p.duration || "endTurn", appliedSerial: scene.turnSerial, ruleId: p.ruleId || provenance?.ruleId || null, sourceDigest: p.sourceDigest || provenance?.sourceDigest || null }); emit("modifier.configure", sourceId, p); break;
         }
         case "allow-action":{const target=requiredActor(scene,p.targetId||sourceId);if(!actionDef(p.actionId))fail("Неизвестное действие");astate(target).allowances||=[];astate(target).allowances.push({id:p.id||`${rootId}:allowance:${astate(target).allowances.length}`,actionId:p.actionId,swift:p.swift===true,reaction:p.reaction===true,cost:p.cost==null?undefined:integer(p.cost,"стоимость"),remaining:integer(p.uses??1,"применения",99),sourceActorId:sourceId});emit("action.allow",sourceId,p);break;}
         case "grant-turn":{

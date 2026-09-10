@@ -8,7 +8,7 @@ const QUICK_ACTION_RULES = [
   { id: "ruiner.creation-ascetic.2.rest", techniqueId: "ruiner.creation-ascetic", level: 2, actionKey: "breathe", condition: "firstTurn" },
 ];
 const TECHNIQUE_COMBO_RULES = new Map([
-  ["powerhouse.technician.3", { techniqueId: "powerhouse.technician", level: 3, name: "Последний удар", requiresKey: "skirmish", actionKey: "finish", apCost: 1 }],
+  ["powerhouse.technician.3", { techniqueId: "powerhouse.technician", level: 3, name: "Последний удар", requiresKey: "skirmish", actionKey: "finish", apCost: 1, postPush: 3, sourceDigest: "69e9007f8f65def64ef7640b8441616852def68765ad7a717f09587b1039ecfe" }],
   ["vagabond.assassin.3", { techniqueId: "vagabond.assassin", level: 3, name: "Скорость тьмы", requiresKey: "disappear", actionKey: "step", apCost: 0, selfEffect: "Невидим" }],
   ["powerhouse.dragonslayer.3", { techniqueId: "powerhouse.dragonslayer", level: 3, name: "Титанический замах", requiresKey: "breathe", actionKey: "finish", attribute: "body", allDiceSucceed: true, postPush: 2, postSelfEffects: ["Ослаблен"] }],
   ["powerhouse.spellsword.3", { techniqueId: "powerhouse.spellsword", level: 3, name: "Охотник на ведьм", requiresKey: "spell", actionKey: "finish", attributes: ["body", "talent"], sameTargets: true, bonusDamageAttribute: "spirit" }],
@@ -674,13 +674,21 @@ function techniqueComboStatus(scene, data, actorId, ruleId) {
   let reason = "";
   if (!rule) reason = "Неизвестное автоматизированное комбо.";
   else if (!actor) reason = "Не выбран исполнитель комбо.";
-  else if (Number(actor.techniques?.[rule.techniqueId] || 0) < rule.level) reason = `Для «${rule.name}» нужен ${rule.level}-й Уровень Техники.`;
+  else if (Number((actor.knownTechniques ?? actor.techniques)?.[rule.techniqueId] || 0) < rule.level) reason = `Для «${rule.name}» нужен ${rule.level}-й Уровень Техники.`;
   else if (actor.knockedOut) reason = "Выведенный из строя персонаж не может использовать комбо.";
   else if (scene.activeActorId !== actor.id) reason = "Комбо можно использовать только в Ход этого героя.";
   else if (scene.pendingAction) reason = "Сначала завершите текущую цепочку Реакций.";
   else if (Number(actor.comboCooldowns?.[ruleId] || 0) > 0) reason = `«${rule.name}» на перезарядке до конца следующего Хода.`;
   else {
-    const lastAction = currentTurnEvents(scene, actor.id).find(event => event.actorId === actor.id && event.type === "action.prepare");
+    const turnInstanceId = scene.lionwing?.activeTurnInstanceId || null, turnSerial = Number(scene.turnSerial || 0);
+    const actionHistory = Array.isArray(actor.lionwing?.history)
+      ? actor.lionwing.history.filter(item => item.ownerTurnInstanceId && turnInstanceId
+        ? item.ownerTurnInstanceId === turnInstanceId
+        : Number(item.turnSerial) === turnSerial)
+      : [];
+    const lastAction = actionHistory.length
+      ? { payload: { actionId: actionHistory.at(-1).actionId }, actorId: actor.id, type: "action.prepare" }
+      : currentTurnEvents(scene, actor.id).find(event => event.actorId === actor.id && event.type === "action.prepare");
     const requiredAction = actionByKey(data, rule.requiresKey), comboAction = actionByKey(data, rule.actionKey);
     if (!actionIdIs(lastAction?.payload?.actionId, rule.requiresKey)) reason = `Сначала используйте «${requiredAction?.name || rule.requiresKey}» и не совершайте между ними других действий.`;
     else if (!comboAction) reason = `Базовое действие «${rule.actionKey}» не найдено.`;
@@ -696,7 +704,16 @@ function prepareTechniqueCombo(scene, data, request = {}) {
   const working = clone(scene), workingActor = actorById(working, actor.id), baseCost = actionCost(action);
   const requiredAction = actionByKey(data, rule.requiresKey);
   if (baseCost.resource === "ap") workingActor.ap = Number(workingActor.ap || 0) + Math.max(0, Number(baseCost.amount || 0) - Number(rule.apCost || 0));
-  const priorAction = currentTurnEvents(scene, actor.id).find(event => event.actorId === actor.id && event.type === "action.prepare");
+  // The preceding Action must come from the engine-owned action history. The
+  // event log fallback keeps old saves readable, but a request payload (and
+  // its optional combo flag) is never treated as sequence evidence.
+  const history = Array.isArray(actor.lionwing?.history) ? actor.lionwing.history : [], turnInstanceId = scene.lionwing?.activeTurnInstanceId || null, turnSerial = Number(scene.turnSerial || 0);
+  const turnHistory = history.filter(item => item.ownerTurnInstanceId && turnInstanceId
+    ? item.ownerTurnInstanceId === turnInstanceId
+    : Number(item.turnSerial) === turnSerial);
+  const priorAction = turnHistory.length
+    ? turnHistory.filter(item => item.actionId === (requiredAction?.id || ACTION_IDS[rule.requiresKey])).at(-1)
+    : currentTurnEvents(scene, actor.id).find(event => event.actorId === actor.id && event.type === "action.prepare");
   const targetIds = [...new Set(request.targetIds || [])], roll = clone(request.roll || null);
   if (rule.sameTargets && JSON.stringify([...(priorAction?.payload?.targetIds || [])].sort()) !== JSON.stringify([...targetIds].sort())) errors.push(`«${rule.name}» должно выбрать те же цели, что и «${requiredAction?.name || rule.requiresKey}».`);
   const requestedAttribute = request.attribute || roll?.attribute || null;
@@ -715,6 +732,12 @@ function prepareTechniqueCombo(scene, data, request = {}) {
   if (spendIndex >= 0 && Number(rule.apCost || 0) > 0) events[spendIndex].payload.amount = Number(rule.apCost);
   else if (spendIndex >= 0) events.splice(spendIndex, 1);
   const actionPrepare = events.find(event => event.type === "action.prepare");
+  // Some generated editions expose action costs as structured data while the
+  // legacy parser only recognizes the older display string. A combo's
+  // canonical override must still emit an authoritative AP spend when the
+  // base event did not carry one; otherwise Technician III would appear to
+  // cost 1 AP in the preview but resolve for free.
+  if (Number(rule.apCost || 0) > 0 && spendIndex < 0) events.unshift({ type: "resource.spend", actorId: actor.id, payload: { resource: "ap", amount: Number(rule.apCost), sourceActionId: request.ruleId, sourceDigest: rule.sourceDigest } });
   if (actionPrepare) {
     actionPrepare.payload.name = rule.name;
     actionPrepare.payload.combo = { ruleId: request.ruleId, requiresActionId: requiredAction?.id || ACTION_IDS[rule.requiresKey], actionId: action.id };
@@ -724,10 +747,10 @@ function prepareTechniqueCombo(scene, data, request = {}) {
     const bonusDamage = rule.bonusDamageAttribute ? Number(actor.attrs?.[rule.bonusDamageAttribute] || 0) : 0;
     pending.payload.damage = Number(pending.payload.damage || 0) + bonusDamage;
     if (pending.payload.damageByTarget) Object.keys(pending.payload.damageByTarget).forEach(targetId => { pending.payload.damageByTarget[targetId] = Number(pending.payload.damageByTarget[targetId] || 0) + bonusDamage; });
-    const displacements = Number(rule.postPush || 0) > 0 ? targetIds.map(targetId => ({ targetId, mode: "push", maximum: Number(rule.postPush), name: rule.name, ruleId: request.ruleId, collisionDamagePerCell: 0 })) : [];
-    Object.assign(pending.payload, { name: rule.name, techniqueRuleId: request.ruleId, techniqueName: rule.name, postDisplacements: [...(pending.payload.postDisplacements || []), ...displacements], postSelfEffects: (rule.postSelfEffects || []).map(name => effectIdByName(data, name)) });
+    const displacements = Number(rule.postPush || 0) > 0 ? targetIds.map(targetId => ({ targetId, mode: "push", maximum: Number(rule.postPush), name: rule.name, ruleId: request.ruleId, sourceDigest: rule.sourceDigest, collisionDamagePerCell: 0 })) : [];
+    Object.assign(pending.payload, { name: rule.name, techniqueRuleId: request.ruleId, techniqueSourceDigest: rule.sourceDigest, techniqueName: rule.name, postDisplacements: [...(pending.payload.postDisplacements || []), ...displacements], postSelfEffects: (rule.postSelfEffects || []).map(name => effectIdByName(data, name)) });
   }
-  events.unshift({ type: "technique.prepare", actorId: actor.id, payload: { ruleId: request.ruleId, name: rule.name, cooldownTurns: 2, comboActionIds: [requiredAction?.id || ACTION_IDS[rule.requiresKey], action.id] } });
+  events.unshift({ type: "technique.prepare", actorId: actor.id, payload: { ruleId: request.ruleId, name: rule.name, cooldownTurns: 2, comboActionIds: [requiredAction?.id || ACTION_IDS[rule.requiresKey], action.id], sourceDigest: rule.sourceDigest } });
   if (rule.selfEffect) {
     const resolvedIndex = events.findIndex(event => event.type === "action.resolve");
     const additions = [

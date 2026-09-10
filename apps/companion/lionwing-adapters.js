@@ -15,6 +15,7 @@
   const attackIds = new Set(["action.атаки.заклинание", "action.атаки.завершение", "action.атаки.стычка"]);
   const ACTIONS = Object.freeze({
     skirmish: "action.атаки.стычка",
+    finish: "action.атаки.завершение",
     breathe: "action.утилитарные-действия.передышка",
     charge: "action.утилитарные-действия.зарядка",
     hide: "action.утилитарные-действия.скрыться",
@@ -40,6 +41,30 @@
     ));
   };
   const usedInRound = (actor, scene, actionId) => eventHistory(actor, scene).some(item => item.actionId === actionId && Number(item.round) === Number(scene?.round));
+  // Combo eligibility is derived from the engine-owned action history.  The
+  // request payload may carry a cosmetic combo flag, but it cannot establish
+  // either member of the sequence or its absence of intervening Actions.
+  const turnHistory = (actor, scene) => {
+    const serial = Number(scene?.turnSerial), instance = scene?.lionwing?.activeTurnInstanceId || null;
+    return eventHistory(actor, scene).filter(item => instance
+      ? item.ownerTurnInstanceId === instance
+      : Number(item.turnSerial) === serial);
+  };
+  const comboComplete = (actor, scene, event) => {
+    if (event?.type !== "action.resolve" || event.actorId !== actor.id) return false;
+    const payload = event.payload || {};
+    if (payload.actionId !== ACTIONS.finish || typeof payload.actionInstanceId !== "string" || !payload.actionInstanceId) return false;
+    const history = turnHistory(actor, scene), current = history.at(-1), previous = history.at(-2);
+    if (!current || !previous || current.actionId !== ACTIONS.finish || previous.actionId !== ACTIONS.skirmish) return false;
+    if (current.ownerTurnInstanceId && previous.ownerTurnInstanceId && current.ownerTurnInstanceId !== previous.ownerTurnInstanceId) return false;
+    // Normal engine writes carry the action instance into history.  Retain a
+    // compatibility path for pre-instance saves only when the emitted event
+    // has an execution receipt; no client boolean is accepted as proof.
+    if (current.actionInstanceId && current.actionInstanceId !== payload.actionInstanceId) return false;
+    if (!current.actionInstanceId && !event.execution?.actionInstanceId && !event.execution?.rootActionId) return false;
+    return true;
+  };
+  const stretchClockValue = (actor, id) => Number(actor?.ruleClocks?.[id]?.current ?? actor?.ruleClocks?.[id]?.value ?? 0);
   const actionModifier = ({ id, techniqueId, level, sourceDigest, label, coverage = "partial", available, modify }) => Object.freeze({
     id, techniqueId, level, sourceDigest, label, coverage,
     available,
@@ -65,6 +90,51 @@
   // the authoritative event and applies the returned operations; an adapter
   // can only describe an eligible trigger and its optional choices.
   const eventAdapters = [
+    eventTrigger({
+      id: "powerhouse.technician.1",
+      label: "Техник I: Разминка после Зарядки и ОД за завершённое комбо",
+      sourceDigest: "79946bc3df6de994901a8519030345403e62c0fac627a76aaa8bc0ee45edda83",
+      coverage: "partial",
+      triggerKey: ({ actor, event }) => `${event.id}:${actor.id}:technician-stretch`,
+      match: (actor, event, context) => event.type === "action.resolve" && event.actorId === actor.id && ((event.payload?.actionId === ACTIONS.charge && typeof event.payload?.actionInstanceId === "string" && Boolean(event.execution?.actionInstanceId || event.execution?.rootActionId)) || comboComplete(actor, context.scene, event) && stretchClockValue(actor, "powerhouse.technician.stretch") > 0),
+      operations: (actor, event, context) => event.payload?.actionId === ACTIONS.charge ? [{
+        kind: "clock",
+        targetId: actor.id,
+        id: "powerhouse.technician.stretch",
+        operation: "configure",
+        label: "Разминка",
+        size: 1,
+        max: 1,
+        min: 0,
+        current: 1,
+        initial: 0,
+        resetAt: "manual",
+        lifetime: { boundary: "endNextOwnerTurn", ownerActorId: actor.id, ownerTurnSerial: Number(context.ownerTurnSerial ?? actor.lionwing?.ownerTurnSerial ?? 0), ownerTurnInstanceId: context.ownerTurnInstanceId || null, sceneSerial: Number(context.scene?.lionwing?.sceneSerial || 1) },
+        ruleId: "powerhouse.technician.1",
+        sourceDigest: "79946bc3df6de994901a8519030345403e62c0fac627a76aaa8bc0ee45edda83",
+      }] : [{ kind: "resource", targetId: actor.id, resource: "ap", operation: "gain", amount: 1, ruleId: "powerhouse.technician.1", sourceDigest: "79946bc3df6de994901a8519030345403e62c0fac627a76aaa8bc0ee45edda83" }],
+      choices: () => [],
+    }),
+    eventTrigger({
+      id: "powerhouse.technician.2",
+      label: "Техник II: Идеальная форма после завершённого комбо",
+      sourceDigest: "87d635215f2088e683f229d48bc51b0f2bc34d6a88bc1dea707fcea12e4be250",
+      coverage: "partial",
+      triggerKey: ({ actor, event }) => `${event.id}:${actor.id}:technician-perfect-form`,
+      match: (actor, event, context) => comboComplete(actor, context.scene, event),
+      operations: actor => [{
+        kind: "modifier",
+        id: `powerhouse.technician.2:${actor.id}`,
+        targetId: actor.id,
+        ownerActorId: actor.id,
+        stat: "armor",
+        amount: Math.ceil(Number(actor.tier || 0) / 2),
+        duration: "startTurn",
+        ruleId: "powerhouse.technician.2",
+        sourceDigest: "87d635215f2088e683f229d48bc51b0f2bc34d6a88bc1dea707fcea12e4be250",
+      }],
+      choices: () => [],
+    }),
     eventTrigger({
       id: "vagabond.dim-mak.1",
       label: "Детектив I: удалить Слабую точку и выполнить фиксированный Джеб",
