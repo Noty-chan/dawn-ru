@@ -16,6 +16,9 @@ const EXPECTED_EDITION = "dawn-en-lionwing-cb2f8e67";
 const SURFACES = ["core", "ui", "network", "persistence"];
 const clone = value => value == null ? value : JSON.parse(JSON.stringify(value));
 const sha256 = value => crypto.createHash("sha256").update(value).digest("hex");
+// Git may check text files out with CRLF on Windows and LF in CI. Registry
+// identity must describe the source text, not the checkout's line endings.
+const textFileDigest = file => sha256(fs.readFileSync(file, "utf8").replace(/\r\n/g, "\n"));
 // Keep the registry's canonical identity on the same payload as the existing
 // adapter/provenance gate. A level-only digest would look stable while silently
 // diverging from the digest carried by executable rules.
@@ -107,7 +110,7 @@ function validateEvidence(evidence, known) {
     }
     const sourcePath = path.join(root, entry.sourcePath);
     if (!fs.existsSync(sourcePath)) fail(`automation-evidence.json: missing source ${entry.sourcePath} for ${entry.id}`);
-    const actualDigest = `sha256:${sha256(fs.readFileSync(sourcePath))}`;
+    const actualDigest = `sha256:${textFileDigest(sourcePath)}`;
     const stale = entry.sourceDigest !== actualDigest;
     if (entry.canonicalDigest && (!known.has(entry.id) || entry.canonicalDigest !== known.get(entry.id).canonicalDigest)) fail(`automation-evidence.json: stale canonical digest for ${entry.id}`);
     for (const test of entry.tests) {
@@ -176,7 +179,7 @@ function buildRegistry({ canonical, coverage, review, evidence }) {
     editionId: canonical.editionId,
     canonical: {
       sourcePath: "source/editions/dawn-en-lionwing-cb2f8e67/extracted-companion.json",
-      sourceDigest: `sha256:${sha256(fs.readFileSync(editionPath))}`,
+      sourceDigest: `sha256:${textFileDigest(editionPath)}`,
       levelCount: rows.length,
     },
     inputs: {
