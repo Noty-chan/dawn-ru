@@ -69,7 +69,7 @@ Canonical уровней: **333** · Явно исправленных review: *
 | `powerhouse.heroic-ascendant.3` | Heroic Ascendant | 3 | `manual` | `unreviewed` | — | `uncertified` |
 | `vagabond.aerial-master.1` | Aerial Master | 1 | `partial` | `unreviewed` | — | `uncertified` |
 | `vagabond.aerial-master.2` | Aerial Master | 2 | `manual` | `unreviewed` | — | `uncertified` |
-| `vagabond.aerial-master.3` | Aerial Master | 3 | `manual` | `unreviewed` | — | `uncertified` |
+| `vagabond.aerial-master.3` | Aerial Master | 3 | `partial` | `unreviewed` | — | `uncertified` |
 | `vagabond.assassin.1` | Assassin | 1 | `full` | `unreviewed` | — | `uncertified` |
 | `vagabond.assassin.2` | Assassin | 2 | `decision` | `unreviewed` | — | `uncertified` |
 | `vagabond.assassin.3` | Assassin | 3 | `full` | `corrected` | — | `uncertified` |
@@ -78,7 +78,7 @@ Canonical уровней: **333** · Явно исправленных review: *
 | `vagabond.sniper.3` | Sniper | 3 | `manual` | `unreviewed` | — | `uncertified` |
 | `vagabond.skirmisher.1` | Skirmisher | 1 | `manual` | `unreviewed` | — | `uncertified` |
 | `vagabond.skirmisher.2` | Skirmisher | 2 | `manual` | `unreviewed` | — | `uncertified` |
-| `vagabond.skirmisher.3` | Skirmisher | 3 | `manual` | `unreviewed` | — | `uncertified` |
+| `vagabond.skirmisher.3` | Skirmisher | 3 | `partial` | `unreviewed` | — | `uncertified` |
 | `vagabond.speed-demon.1` | Speed Demon | 1 | `manual` | `unreviewed` | — | `uncertified` |
 | `vagabond.speed-demon.2` | Speed Demon | 2 | `full` | `unreviewed` | — | `uncertified` |
 | `vagabond.speed-demon.3` | Speed Demon | 3 | `manual` | `unreviewed` | — | `uncertified` |
@@ -135,7 +135,7 @@ Canonical уровней: **333** · Явно исправленных review: *
 | `bulwark.giant-frame.3` | Giant Frame | 3 | `manual` | `unreviewed` | — | `uncertified` |
 | `bulwark.iron-bodied.1` | Iron Bodied | 1 | `manual` | `unreviewed` | — | `uncertified` |
 | `bulwark.iron-bodied.2` | Iron Bodied | 2 | `full` | `unreviewed` | — | `uncertified` |
-| `bulwark.iron-bodied.3` | Iron Bodied | 3 | `manual` | `unreviewed` | — | `uncertified` |
+| `bulwark.iron-bodied.3` | Iron Bodied | 3 | `partial` | `unreviewed` | — | `uncertified` |
 | `bulwark.vanguard-defender.1` | Vanguard Defender | 1 | `manual` | `unreviewed` | — | `uncertified` |
 | `bulwark.vanguard-defender.2` | Vanguard Defender | 2 | `manual` | `unreviewed` | — | `uncertified` |
 | `bulwark.vanguard-defender.3` | Vanguard Defender | 3 | `manual` | `unreviewed` | — | `uncertified` |

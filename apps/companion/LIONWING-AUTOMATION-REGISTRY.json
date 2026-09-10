@@ -6788,9 +6788,24 @@
       },
       "level": 3,
       "implementation": {
-        "automation": "manual",
-        "ruleIds": [],
-        "rules": [],
+        "automation": "partial",
+        "ruleIds": [
+          "vagabond.aerial-master.3"
+        ],
+        "rules": [
+          {
+            "id": "vagabond.aerial-master.3",
+            "techniqueId": "vagabond.aerial-master",
+            "level": 3,
+            "name": "Падающий удар топором",
+            "kind": "passive",
+            "automation": "partial",
+            "coverage": "partial",
+            "note": "В авторитетной Flight Stance по явному выбору заменяет пул Атаки на Скорость; снятие Ускорен и Launch цели остаются ручным продолжением.",
+            "sourceLevelId": "vagabond.aerial-master.3",
+            "sourceDigest": "af9100fcba37294038c9e66fb6fd2aed9fb592bd0468468ebcce546b087bf3ac"
+          }
+        ],
         "foundationPlan": {
           "version": 10,
           "status": "reviewed",
@@ -6881,7 +6896,9 @@
           "text": "The Attacks you use while in the Flight Stance can roll [Speed] rather than an Attribute. Doing so removes Hastened and Launches your target."
         },
         "canonicalDigest": "af9100fcba37294038c9e66fb6fd2aed9fb592bd0468468ebcce546b087bf3ac",
-        "engineRuleDigests": []
+        "engineRuleDigests": [
+          "af9100fcba37294038c9e66fb6fd2aed9fb592bd0468468ebcce546b087bf3ac"
+        ]
       },
       "review": {
         "status": "unreviewed",
@@ -7822,9 +7839,24 @@
       },
       "level": 3,
       "implementation": {
-        "automation": "manual",
-        "ruleIds": [],
-        "rules": [],
+        "automation": "partial",
+        "ruleIds": [
+          "vagabond.skirmisher.3"
+        ],
+        "rules": [
+          {
+            "id": "vagabond.skirmisher.3",
+            "techniqueId": "vagabond.skirmisher",
+            "level": 3,
+            "name": "Отскок",
+            "kind": "passive",
+            "automation": "partial",
+            "coverage": "partial",
+            "note": "Стычки получают 1 Преимущество через общий numeric composer; условный Jab после перемещения остаётся ручным.",
+            "sourceLevelId": "vagabond.skirmisher.3",
+            "sourceDigest": "4933347df61d45014a553af1c97f078e20ee677081e433464ba9c96726513c61"
+          }
+        ],
         "foundationPlan": {
           "version": 10,
           "status": "reviewed",
@@ -7907,7 +7939,9 @@
           "text": "Your Skirmishes gain 1 Advantage. If movement provided by Skirmish moves you into adjacency with a character who hasn't been attacked this Turn, you may Jab them."
         },
         "canonicalDigest": "4933347df61d45014a553af1c97f078e20ee677081e433464ba9c96726513c61",
-        "engineRuleDigests": []
+        "engineRuleDigests": [
+          "4933347df61d45014a553af1c97f078e20ee677081e433464ba9c96726513c61"
+        ]
       },
       "review": {
         "status": "unreviewed",
@@ -14626,9 +14660,24 @@
       },
       "level": 3,
       "implementation": {
-        "automation": "manual",
-        "ruleIds": [],
-        "rules": [],
+        "automation": "partial",
+        "ruleIds": [
+          "bulwark.iron-bodied.3"
+        ],
+        "rules": [
+          {
+            "id": "bulwark.iron-bodied.3",
+            "techniqueId": "bulwark.iron-bodied",
+            "level": 3,
+            "name": "Бесшовный шаг",
+            "kind": "passive",
+            "automation": "partial",
+            "coverage": "partial",
+            "note": "После всех снижений итоговый урон ограничивается 4 + ceil(Ранг/2), если персонаж авторитетно Обездвижен; включение Обездвиженности и начало Хода остаются ручными.",
+            "sourceLevelId": "bulwark.iron-bodied.3",
+            "sourceDigest": "7726f5c94cfdfba228b739db1cad6221687af83bf183a7c16bed34afd5a6526f"
+          }
+        ],
         "foundationPlan": {
           "version": 10,
           "status": "reviewed",
@@ -14703,7 +14752,9 @@
           "text": "At the beginning of your Turn, you may Immobilize yourself. While Immobilized, you can never take more damage than 4 + [Tier/2] in one instance (after all forms of damage reduction)."
         },
         "canonicalDigest": "7726f5c94cfdfba228b739db1cad6221687af83bf183a7c16bed34afd5a6526f",
-        "engineRuleDigests": []
+        "engineRuleDigests": [
+          "7726f5c94cfdfba228b739db1cad6221687af83bf183a7c16bed34afd5a6526f"
+        ]
       },
       "review": {
         "status": "unreviewed",

@@ -552,10 +552,10 @@
 
 #### 3. Падающий удар топором (Falling Ax Strike) `vagabond.aerial-master.3`
 
-- **Заявленный статус:** `manual` (ручная).
-- **Текущий адаптер:** нет записи в `RULES`.
+- **Заявленный статус:** `partial` (частичная).
+- **Текущий адаптер:** `vagabond.aerial-master.3` · `passive` · {"kind":"passive","coverage":"partial","sourceLevelId":"vagabond.aerial-master.3","sourceDigest":"af9100fcba37294038c9e66fb6fd2aed9fb592bd0468468ebcce546b087bf3ac"}; В авторитетной Flight Stance по явному выбору заменяет пул Атаки на Скорость; снятие Ускорен и Launch цели остаются ручным продолжением..
 - **Готовые foundations:** `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `stance`, `trigger-router`, `action-modifier`, `dice-hooks`, `derived-stats`.
-- **Нужно добавить:** Зарегистрировать отдельный adapter (trigger → validation → events/resolver) и прямые тесты; общая инфраструктура сама правило не исполняет.
+- **Нужно добавить:** Для кода явный следующий шаг не выведен автоматически; нужны direct pos/neg/boundary тесты и evidence до повышения доверия.
 
 ### Ассасин (Assassin) `vagabond.assassin`
 
@@ -621,10 +621,10 @@
 
 #### 3. Отскок (Rebound) `vagabond.skirmisher.3`
 
-- **Заявленный статус:** `manual` (ручная).
-- **Текущий адаптер:** нет записи в `RULES`.
+- **Заявленный статус:** `partial` (частичная).
+- **Текущий адаптер:** `vagabond.skirmisher.3` · `passive` · {"kind":"passive","coverage":"partial","sourceLevelId":"vagabond.skirmisher.3","sourceDigest":"4933347df61d45014a553af1c97f078e20ee677081e433464ba9c96726513c61"}; Стычки получают 1 Преимущество через общий numeric composer; условный Jab после перемещения остаётся ручным..
 - **Готовые foundations:** `target-validation`, `event-participants`, `movement-lifecycle`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier`, `dice-hooks`.
-- **Нужно добавить:** Зарегистрировать отдельный adapter (trigger → validation → events/resolver) и прямые тесты; общая инфраструктура сама правило не исполняет.
+- **Нужно добавить:** Для кода явный следующий шаг не выведен автоматически; нужны direct pos/neg/boundary тесты и evidence до повышения доверия.
 
 ### Демон скорости (Speed Demon) `vagabond.speed-demon`
 
@@ -1060,10 +1060,10 @@
 
 #### 3. Нержавеющая поступь (Stainless Stride) `bulwark.iron-bodied.3`
 
-- **Заявленный статус:** `manual` (ручная).
-- **Текущий адаптер:** нет записи в `RULES`.
+- **Заявленный статус:** `partial` (частичная).
+- **Текущий адаптер:** `bulwark.iron-bodied.3` · `passive` · {"kind":"passive","coverage":"partial","sourceLevelId":"bulwark.iron-bodied.3","sourceDigest":"7726f5c94cfdfba228b739db1cad6221687af83bf183a7c16bed34afd5a6526f"}; После всех снижений итоговый урон ограничивается 4 + ceil(Ранг/2), если персонаж авторитетно Обездвижен; включение Обездвиженности и начало Хода остаются ручными..
 - **Готовые foundations:** `effect-state`, `effect-lifecycle`, `trigger-router`, `turn-lifecycle`, `choice-flow`, `damage-pipeline`, `derived-stats`.
-- **Нужно добавить:** Зарегистрировать отдельный adapter (trigger → validation → events/resolver) и прямые тесты; общая инфраструктура сама правило не исполняет.
+- **Нужно добавить:** Для кода явный следующий шаг не выведен автоматически; нужны direct pos/neg/boundary тесты и evidence до повышения доверия.
 
 ### Щит авангарда (Vanguard Defender) `bulwark.vanguard-defender`
 
