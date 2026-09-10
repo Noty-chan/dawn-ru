@@ -13,6 +13,7 @@ const ENEMY_MODIFIER_IDS = Object.freeze({
   vip: "enemy.modifier.vip",
   vortex: "enemy.modifier.vortex",
 });
+const lionwingModifierTension = scene => Number(globalThis.DAWN_LIONWING_COMBAT_METER?.read?.(scene)?.current ?? scene?.tension ?? 0);
 const ATTACHED_MODIFIER_IDS = new Set([
   ENEMY_MODIFIER_IDS.contagion,
   ENEMY_MODIFIER_IDS.earthquake,
@@ -753,7 +754,7 @@ function modifierActionStatus(scene, request = {}) {
     }
   } else if (action === "legion-return") {
     const space = (scene.spaces || []).find((item) => item.id === actor?.space),
-      tension = Number(scene.tension || 0);
+      tension = lionwingModifierTension(scene);
     if (
       actor?.profileId !== ENEMY_MODIFIER_IDS.legion ||
       targets.some(
@@ -854,7 +855,7 @@ function modifierActionEvents(scene, event) {
         payload: {
           targetId: target.id,
           amount:
-            Number(status.roll.successes || 0) + Number(scene.tension || 0),
+            Number(status.roll.successes || 0) + lionwingModifierTension(scene),
           sourceActionId: "enemy.modifier.gargantuan.attack",
           participantIds: [actor.id, target.id],
         },
@@ -923,7 +924,7 @@ function modifierActionEvents(scene, event) {
     }
     for (
       let index = status.targets.length;
-      index < Number(scene.tension || 0);
+      index < lionwingModifierTension(scene);
       index++
     ) {
       const [x, y] = status.cells[index].split(",").map(Number);

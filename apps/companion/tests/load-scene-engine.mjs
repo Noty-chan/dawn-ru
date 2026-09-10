@@ -26,6 +26,7 @@ export const sceneEngineFiles = [
   "lionwing-information-query.js",
   "lionwing-inventory.js",
   "lionwing-adapters.js",
+  "lionwing-combat-meter.js",
   "lionwing-engine.js",
 ];
 

@@ -3,6 +3,7 @@
 (function exposeDawnTechniqueEngine(global) {
   const VERSION = 15;
   const CHEMIST_TERRAIN_TYPES = new Set(["terrain", "difficult", "high", "low", "custom"]);
+  const tensionValue = scene => Number(global.DAWN_LIONWING_COMBAT_METER?.read?.(scene)?.current ?? scene?.tension ?? 0);
 
   const RULES = [
     { id: "powerhouse.braggart.1.foundation", techniqueId: "powerhouse.braggart", level: 1, name: "Гордыня", kind: "foundation", foundation: "clock", automation: "partial", clockId: "powerhouse.braggart.pride", size: 6, initial: 0, note: "Гордость получает сегменты от Атак низкими Атрибутами и попаданий без защитной Реакции; полные часы дают Преимущество." },
@@ -564,7 +565,7 @@
       if (targetCells.length) targetIds.push(...(scene.actors || []).filter(target => !target.knockedOut && target.team !== actor.team && target.space === actor.space && targetCells.includes(pointKey(target))).map(target => target.id));
       if (!targetIds.length && ["mallet", "pile-arm"].includes(rule.form)) errors.push("В выбранной форме нет доступной цели.");
       if (errors.length) return { ok: false, engineVersion: VERSION, actorId: actor.id, rule: publicRule(rule), request: clone(request), errors, warnings: [], commands: [], events: [], affectedCells: targetCells, affectedActorIds: targetIds };
-      const cost = global.DAWN_SCENE_ENGINE?.actionCost(action) || { resource: "ap", amount: rule.actionKey === "finish" ? 2 : 1 }, baseDamage = Number(request.roll.successes || 0) + (rule.actionKey === "finish" ? Number(scene.tension || 0) : 0), chosenDistance = Number(request.options?.distance || 0), damageByTarget = Object.fromEntries(targetIds.map(id => [id, Math.max(0, baseDamage + (rule.form === "mallet" ? chosenDistance : 0))])), events = [
+      const cost = global.DAWN_SCENE_ENGINE?.actionCost(action) || { resource: "ap", amount: rule.actionKey === "finish" ? 2 : 1 }, baseDamage = Number(request.roll.successes || 0) + (rule.actionKey === "finish" ? tensionValue(scene) : 0), chosenDistance = Number(request.options?.distance || 0), damageByTarget = Object.fromEntries(targetIds.map(id => [id, Math.max(0, baseDamage + (rule.form === "mallet" ? chosenDistance : 0))])), events = [
         { type: "technique.prepare", actorId: actor.id, payload: { ruleId: rule.id, name: rule.name, affectedCells: targetCells, targetIds, participantIds: [actor.id, ...targetIds], creationMarksSpent: effectiveMarks } },
         { type: "action.prepare", actorId: actor.id, payload: { actionId: action.id, actionName: action.name, name: rule.name, targetIds, quick: false, creationMarksSpent: effectiveMarks } },
       ];
@@ -614,7 +615,7 @@
     if (rule.areaType === "attack") {
       const finish = actionByKey("finish"), available = global.DAWN_SCENE_ENGINE?.availableActions(scene, runtimeData(), actor.id).find(action => action.id === finish?.id), spent = Number(request.options?.focusSpent || 0);
       if (available && !available.available) errors.push(available.reason);
-      if (spent < 0 || spent > Number(actor.focus || 0) || spent > Number(scene.tension || 0)) errors.push("На Завершение нельзя потратить больше Фокуса, чем есть у героя или текущего Напряжения.");
+      if (spent < 0 || spent > Number(actor.focus || 0) || spent > tensionValue(scene)) errors.push("На Завершение нельзя потратить больше Фокуса, чем есть у героя или текущего Напряжения.");
       const modifiers = [...new Set(actor.techniqueState?.spellModifiers || [])], level = Number(actor.techniques?.["ruiner.spellcrafter"] || 0), resource = level >= 2 ? "focus" : "innovationCharges";
       if (modifiers.length > (level >= 3 ? 2 : 1)) errors.push("Выбрано слишком много Модификаций.");
       if (modifiers.some(modifier => !(actor.techniqueState?.spellcrafterLearnedModifiers || []).includes(modifier))) errors.push("Выбрана неизученная Модификация.");
@@ -735,7 +736,7 @@
       targetIds.forEach(targetId => events.push({ type: "reaction.offer", actorId: targetId, payload: { sourceActorId: actorId, actionId: prepared.rule.id, participantIds: [actorId, targetId] } }));
       const terrainAnchor = prepared.request?.anchor && [...(scene.objects || [])].reverse().find(object => object.space === actor?.space && CHEMIST_TERRAIN_TYPES.has(object.type) && (object.cells || []).includes(pointKey(prepared.request.anchor)));
       const attackModifiers = global.DAWN_SCENE_ENGINE?.attackModifierStatus(scene, actorId, targetIds, prepared.request?.attackModifierIds || [], { actionId: finish.id }) || { advantage: 0 };
-      events.push({ type: "attack.pending", actorId, payload: { actionId: finish.id, techniqueRuleId: prepared.rule.id, techniqueName: prepared.rule.name, name: prepared.rule.name, targetIds, roll, damage: Number(roll?.successes || 0) + Number(scene.tension || 0) + (modifiers.includes("fierce") ? Number(actor?.attrs?.mind || 0) : 0), finisherFocus: focusSpent, spellModifiers: modifiers, attackModifierIds: clone(prepared.request?.attackModifierIds || []), attackModifierAdvantage: Number(attackModifiers.advantage || 0), techniqueAnchor: clone(prepared.request?.anchor || null), targetsTerrainCell: Boolean(prepared.request?.anchor), targetedTerrainId: terrainAnchor?.id || null, participantIds: [actorId, ...targetIds] } });
+      events.push({ type: "attack.pending", actorId, payload: { actionId: finish.id, techniqueRuleId: prepared.rule.id, techniqueName: prepared.rule.name, name: prepared.rule.name, targetIds, roll, damage: Number(roll?.successes || 0) + tensionValue(scene) + (modifiers.includes("fierce") ? Number(actor?.attrs?.mind || 0) : 0), finisherFocus: focusSpent, spellModifiers: modifiers, attackModifierIds: clone(prepared.request?.attackModifierIds || []), attackModifierAdvantage: Number(attackModifiers.advantage || 0), techniqueAnchor: clone(prepared.request?.anchor || null), targetsTerrainCell: Boolean(prepared.request?.anchor), targetedTerrainId: terrainAnchor?.id || null, participantIds: [actorId, ...targetIds] } });
       if (roll?.rolls) events.push({ type: "roll.public", actorId, payload: clone(roll) });
       return events;
     }

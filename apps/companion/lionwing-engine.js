@@ -9,6 +9,8 @@
   const foundations = global.DAWN_LIONWING_EXECUTION;
   const entities = global.DAWN_LIONWING_ENTITIES || null;
   const inventory = global.DAWN_LIONWING_INVENTORY || null;
+  const combatMeter = global.DAWN_LIONWING_COMBAT_METER || null;
+  const tensionValue = scene => Number(combatMeter?.read?.(scene)?.current ?? scene?.tension ?? 0);
   // The dice foundation is optional so the old single-event reducer remains
   // byte-for-byte compatible in pages that have not loaded the new module yet.
   const dice = global.DAWN_LIONWING_DICE || null;
@@ -129,6 +131,7 @@
     if (global.DAWN_LIONWING_INFORMATION_QUERY?.ensureState) global.DAWN_LIONWING_INFORMATION_QUERY.ensureState(scene);
     const s=scene.lionwing;s.schema=2;
     if (inventory?.normalizeScene) inventory.normalizeScene(scene);
+    if (combatMeter?.ensureScene) combatMeter.ensureScene(scene);
     // Auras are declarative scene state. They stay outside actor.effects so a
     // render/query never materializes one copy on every target.
     if(!Array.isArray(s.auras)&&Array.isArray(scene.auras))s.auras=copy(scene.auras);
@@ -209,7 +212,7 @@
       activeActorId: scene.activeActorId || null,
       turnSerial: Number(scene.turnSerial || 0),
       round: Number(scene.round || 0),
-      tension: Number(scene.tension || 0),
+      tension: tensionValue(scene),
     };
   }
   function restoreSpecialSnapshot(scene, snapshot) {
@@ -660,7 +663,7 @@
     const requestedAttribute=request.attribute||(def.id===ids.finish?"spirit":null);
     const adapterStatus=global.DAWN_LIONWING_ADAPTERS?.actionStatus?.(a,{scene,actionId:def.id,attribute:requestedAttribute,techniqueTags:(request.techniqueTags||[]).map(tag=>String(tag).toLowerCase())})||{allowed:true};
     if(adapterStatus.allowed===false)return unavailable(adapterStatus.reason||"Действие запрещено Техникой");
-    const baseCost = breakout ? 0 : allowance?.cost??(def.id === "action.атаки.дуэль" ? Math.max(1, 4 - Number(scene.tension || 0)) : def.id===ids.improvise&&request.removeObstacleId?1:def.cost.amount);
+    const baseCost = breakout ? 0 : allowance?.cost??(def.id === "action.атаки.дуэль" ? Math.max(1, 4 - tensionValue(scene)) : def.id===ids.improvise&&request.removeObstacleId?1:def.cost.amount);
     const actionHistory = Array.isArray(a.lionwing?.history) ? a.lionwing.history : [];
     const deploymentRows = (scene.log || []).map((event, index) => ({ event, index })).filter(({ event }) => event?.actorId === a.id && ["actor.move", "actor.place"].includes(event.type) && event.payload?.placement === true && /развер|deploy/i.test(String(event.payload?.movement || event.payload?.reason || "")));
     const latestDeployment = deploymentRows.length ? deploymentRows[deploymentRows.length - 1] : null;
@@ -789,7 +792,7 @@
   function diceCount(scene, a, def, request) {
     let attribute = request.attribute || (def.id === ids.skirmish ? (Number(a.attrs.body) >= Number(a.attrs.talent) ? "body" : "talent") : "spirit");
     if (!attributes.has(attribute) || def.id === ids.skirmish && !["body", "talent"].includes(attribute) || [ids.charge, ids.spell].includes(def.id) && attribute !== "spirit") fail("Недопустимый Атрибут для действия");
-    const bonus = def.id === ids.charge ? Number(scene.tension || 0) : def.id === ids.finish ? Number(request.focusSpent || 0) : 0;
+    const bonus = def.id === ids.charge ? tensionValue(scene) : def.id === ids.finish ? Number(request.focusSpent || 0) : 0;
     const advantage=integer(request.advantage||0,"Преимущество",100),disadvantage=integer(request.disadvantage||0,"Помеха",100);
     return Math.max(0, Number(a.attrs[attribute] || 0) + bonus + advantage - disadvantage);
   }
@@ -806,7 +809,7 @@
     const differentEnemiesWithinFive = p.differentEnemiesWithinFive ?? (p.rapidFire === true ? new Set(scene.actors.filter(target => live(target) && target.team !== a.team && target.space === a.space && distance(a, target) <= 5).map(target => target.compoundId || target.id)).size : null);
     const targetContext = {
       scene, kind: "attack", actionId: def.id, targetIds: targets, sourceEffectIds,
-      techniqueTags, attribute: attackAttribute, tension: Number(scene.tension || 0),
+      techniqueTags, attribute: attackAttribute, tension: tensionValue(scene),
       techniqueRuleId: p.techniqueRuleId || null, finisherMode: p.finisherMode || null,
       focusSpent: Number(p.focusSpent || 0), emptyTargetCount: p.emptyTargetCount,
       areaPlan: p.areaPlan ? copy(p.areaPlan) : null,
@@ -1051,8 +1054,17 @@
       else if (type === "counter.threshold") saveFact("counter.threshold", actorId, targets, { counterId: payload.counterId || payload.id, kind: payload.kind || payload.type, before: payload.before, value: payload.value, threshold: payload.threshold });
       else if (type === "aura.enter" || type === "aura.exit") saveFact(type, actorId, [actorId], { auraId:payload.auraId, effectId:payload.effectId, ruleId:payload.ruleId, ownerActorId:payload.ownerActorId, sourceEntityId:payload.sourceEntityId, movementTargetId:payload.movementTargetId||null, segmentIndex:payload.segmentIndex??null });
       else if (type === "attack.clear" && payload.cancelled) saveFact("cancel", actorId, targets, { reason: payload.reason || "cancelled" });
-      if (scheduleAfterEvent && ["clash.success", "damage.apply", "actor.knockout", "effect.apply", "actor.enter", "action.resolve", "marker.remove", "reaction.respond", "resource.gain", "movement.prepare", "movement.start", "movement.segment", "movement.enter", "movement.leave", "movement.cross", "movement.end", "movement.stop"].includes(type)) scheduleAfterEvent(row);
+      if (scheduleAfterEvent && ["clash.success", "combat-meter.change", "damage.apply", "actor.knockout", "effect.apply", "actor.enter", "action.resolve", "marker.remove", "reaction.respond", "resource.gain", "movement.prepare", "movement.start", "movement.segment", "movement.enter", "movement.leave", "movement.cross", "movement.end", "movement.stop"].includes(type)) scheduleAfterEvent(row);
       return row;
+    };
+    const mutateCombatMeter = (change = {}, sourceId = null, receiptId = `${rootId}:meter`) => {
+      if (!combatMeter?.apply) fail("Фундамент боевого счётчика LionWing недоступен");
+      const result = combatMeter.apply(scene, combatMeter.ids.tension, change, { receiptId });
+      if (!result.changed) return result;
+      const meter = result.meter;
+      emit("combat-meter.change", sourceId, { id: meter.id, kind: meter.kind, before: result.before, value: result.value, current: result.value, delta: result.value - result.before, min: meter.min, max: meter.max, threshold: meter.threshold, owner: copy(meter.owner), source: copy(meter.source), scope: meter.scope, lifetime: meter.lifetime, receiptId });
+      if (result.thresholdCrossed) emit("counter.threshold", sourceId, { counterId: meter.id, id: meter.id, kind: meter.kind, before: result.before, value: result.value, threshold: meter.threshold, owner: copy(meter.owner), source: copy(meter.source), scope: meter.scope, lifetime: meter.lifetime, receiptId });
+      return result;
     };
     const emitSpecial = (type, actorId, operation, payload, before, after) => {
       const row = emit(type, actorId, { ...payload, special: true, specialOperation: operation });
@@ -1295,7 +1307,7 @@
       if (a.knockedOut) return;
       a.knockedOut = true; a.ap = 0; a.stepRemaining = 0; s.grantedTurns=(s.grantedTurns||[]).filter(turn=>turn.actorId!==a.id);
       if (scene.activeActorId === a.id) { scene.activeActorId = null; a.acted = true; s.lastTeam = a.team; s.lastActorId = a.id; }
-      if (!s.lowTension) scene.tension = Number(scene.tension || 0) + 1;
+      if (!s.lowTension) mutateCombatMeter({ operation: "add", delta: 1 }, a.id, `${rootId}:ko-tension:${a.id}`);
       // Source loss is policy driven. The default `disable` keeps the aura in
       // saved state; only an explicitly configured `remove` policy deletes it.
       for(const aura of [...s.auras])if(aura.sourceLossPolicy==="remove"&&(aura.sourceEntityId===a.id||aura.ownerActorId===a.id))removeAuraRecord(aura,"removed",a.id);
@@ -1449,7 +1461,7 @@
       const finalDamageQuote = global.DAWN_LIONWING_ADAPTERS?.damageQuote?.(a, { scene, key: "finalDamage", kind: "damage", actionId: p.sourceActionId || null, sourceActorId: source?.id || null, targetId: a.id, baseValue: dealt, immobilized: effectActive(scene, a, "negative.обездвижен"), tier: Number(a.tier || 1), roundUp: true });
       if (finalDamageQuote?.ok === false) fail(finalDamageQuote.reason || "Числовые модификаторы итогового урона конфликтуют");
       if (finalDamageQuote?.ok && Number.isFinite(Number(finalDamageQuote.value))) dealt = Math.max(0, Number(finalDamageQuote.value));
-      if(compound.active){const nextGate=Math.max(0,(Math.ceil(compound.hp/compound.gate-1e-9)-1)*compound.gate),beforeGateDealt=dealt,gateCapacity=Math.max(0,compound.hp-nextGate);dealt=Math.min(dealt,gateCapacity);let remaining=compound.hp-dealt;for(const part of compound.parts){part.hp=Math.min(part.maxHp,remaining);remaining-=part.hp;}if(beforeGateDealt>gateCapacity&&nextGate>0)scene.tension++;}
+      if(compound.active){const nextGate=Math.max(0,(Math.ceil(compound.hp/compound.gate-1e-9)-1)*compound.gate),beforeGateDealt=dealt,gateCapacity=Math.max(0,compound.hp-nextGate);dealt=Math.min(dealt,gateCapacity);let remaining=compound.hp-dealt;for(const part of compound.parts){part.hp=Math.min(part.maxHp,remaining);remaining-=part.hp;}if(beforeGateDealt>gateCapacity&&nextGate>0)mutateCombatMeter({operation:"add",delta:1},a.id,`${rootId}:compound-gate`);}
       else a.hp = Math.max(0, Number(a.hp) - dealt);
       const hit = p.hit !== false;
       emit("damage.apply", p.sourceActorId, { ...p, raw, armor, evaded, dealt, healthLost: Math.min(hpBefore, dealt), hp: a.hp, hit, wouldWound: Boolean(dealt > 0 && !compound.active && a.hp === 0) });
@@ -1967,7 +1979,7 @@
       emit("action.resolve", source.id, { actionId: ids.finish, name: "Завершение Разумом", targetIds: [target.id], actionInstanceId: `${rootId}:detective-finisher`, ownerTurnInstanceId: s.activeTurnInstanceId || null, attribute: "mind", techniqueRuleId: detectiveRuleId, finisherMode: "mind", free: true, fixedTargetId: target.id, triggerKey: p.triggerKey });
       const result = publishRoll(source, rollValue, "Завершение Разумом (Детектив III)");
       astate(source).history.push({ actionId: ids.finish, actionDefinitionId: ids.finish, actionInstanceId: `${rootId}:detective-finisher`, targetIds: [target.id], round: scene.round, turnSerial: scene.turnSerial, ownerTurnActorId: source.id, ownerTurnSerial: ownTurnSerial(source), ownerTurnInstanceId: s.activeTurnInstanceId || null, ownerTurnKey: ownerTurnKey(s.sceneSerial, source, ownTurnSerial(source)), swift: false, free: true, ruleId: detectiveRuleId, triggerKey: p.triggerKey });
-      beginAttack(source, { actionId: ids.finish, actionInstanceId: `${rootId}:detective-finisher`, name: "Завершение Разумом", targetIds: [target.id], amount: result.successes + Number(scene.tension || 0), targetDamage: { [target.id]: result.successes + Number(scene.tension || 0) }, attribute: "mind", finisherMode: "mind", techniqueRuleId: detectiveRuleId, finalDamage: false });
+      beginAttack(source, { actionId: ids.finish, actionInstanceId: `${rootId}:detective-finisher`, name: "Завершение Разумом", targetIds: [target.id], amount: result.successes + tensionValue(scene), targetDamage: { [target.id]: result.successes + tensionValue(scene) }, attribute: "mind", finisherMode: "mind", techniqueRuleId: detectiveRuleId, finalDamage: false });
     };
     const performAction = (a, p) => {
       const def = actionDef(p.actionId);
@@ -1994,12 +2006,12 @@
       if (def.id === ids.finish && p.areaPlan) revalidateBombardierArea(scene, a, p);
       const targets = targetIds(scene,p.targetIds).map(id => requiredActor(scene, id));
       if ([ids.spell, ids.study, ids.shove, "action.атаки.дуэль"].includes(def.id) && targets.length !== 1 || def.id === ids.finish && !p.areaPlan && targets.length !== 1 || def.id === ids.skirmish && (!targets.length || targets.length > 2)) fail("Неверное число целей");
-      const finishContext = { scene, kind: "attack", actionId: def.id, attribute: p.attribute || (def.id === ids.finish ? "spirit" : null), tension: Number(scene.tension || 0), spellCircleActive: p.spellCircleActive === true || spellCircleActive(scene, a), firstSpiritFinisherThisTurn: def.id === ids.finish && (p.firstSpiritFinisherThisTurn === true || firstSpiritFinisherThisTurn(scene, a, p.actionInstanceId || provenance?.actionInstanceId || rootId)) };
+      const finishContext = { scene, kind: "attack", actionId: def.id, attribute: p.attribute || (def.id === ids.finish ? "spirit" : null), tension: tensionValue(scene), spellCircleActive: p.spellCircleActive === true || spellCircleActive(scene, a), firstSpiritFinisherThisTurn: def.id === ids.finish && (p.firstSpiritFinisherThisTurn === true || firstSpiritFinisherThisTurn(scene, a, p.actionInstanceId || provenance?.actionInstanceId || rootId)) };
       const range = def.id === ids.spell ? 5 : def.id === ids.finish ? 1 + adapterNumber("rangeBonus", a, finishContext) : def.id === ids.study ? Number(status.actionQuote?.range ?? a.attrs.mind ?? 0) : 1;
       if ([ids.spell, ids.skirmish, ids.study, ids.shove, "action.атаки.дуэль"].includes(def.id) && targets.some(t => t.id === a.id || distance(a, t) > range) || def.id === ids.finish && !p.areaPlan && targets.some(t => t.id === a.id || distance(a, t) > range)) fail("Цель вне дальности действия");
       if (def.id === ids.study && isPlayer(targets[0])) fail("Изучение требует NPC");
       const focusSpent = integer(p.focusSpent || 0, "Фокус");
-      if (def.id === ids.finish && focusSpent > Number(scene.tension || 0)) fail("Расход Фокуса превышает Напряжение");
+      if (def.id === ids.finish && focusSpent > tensionValue(scene)) fail("Расход Фокуса превышает Напряжение");
       if (p.breakout) spend(a, "influence", 1);
       if (status.cost) spend(a, status.resource, status.cost);
       if (def.id === ids.finish && focusSpent) spend(a, "focus", focusSpent);
@@ -2020,10 +2032,10 @@
       if ([ids.spell, ids.skirmish, ids.finish, ids.charge].includes(def.id)) {
         result = publishRoll(a, p.roll, def.name);
         const pools=attackPools(scene,a,def,p);if(result.initialCount!==pools.base)fail("Пул броска не соответствует действию");
-        p.targetDamage={};for(const[id,count]of Object.entries(pools.counts)){let extra=0;if(count>pools.base){const extraRoll=publishRoll(a,p.targetRolls?.[id],`Дополнительные кости: ${actor(scene,id).name}`);if(extraRoll.initialCount!==count-pools.base)fail("Неверный дополнительный пул");extra=extraRoll.successes;}p.targetDamage[id]=result.successes+extra+(def.id===ids.finish?Number(scene.tension||0):0);}
+      p.targetDamage={};for(const[id,count]of Object.entries(pools.counts)){let extra=0;if(count>pools.base){const extraRoll=publishRoll(a,p.targetRolls?.[id],`Дополнительные кости: ${actor(scene,id).name}`);if(extraRoll.initialCount!==count-pools.base)fail("Неверный дополнительный пул");extra=extraRoll.successes;}p.targetDamage[id]=result.successes+extra+(def.id===ids.finish?tensionValue(scene):0);}
         for(const id of p.spikeTargetIds||[])if(targets.some(t=>t.id===id)&&effectActive(scene,actor(scene,id),"negative.подброшен"))removeEffect(actor(scene,id),"negative.подброшен");
       }
-      if ([ids.spell, ids.skirmish, ids.finish].includes(def.id)) beginAttack(a, { ...p, name: def.name, amount: result.successes + (def.id === ids.finish ? Number(scene.tension || 0) : 0) });
+      if ([ids.spell, ids.skirmish, ids.finish].includes(def.id)) beginAttack(a, { ...p, name: def.name, amount: result.successes + (def.id === ids.finish ? tensionValue(scene) : 0) });
       else if (def.id === ids.charge || def.id === ids.breathe) {
         if (p.icicleReplacement) {
           mutateCounter({ id: "ruiner.cryomancer.icicle", operation: "reset" }, a.id, "clock");
@@ -2048,7 +2060,7 @@
         if(opponent.team===a.team)fail("Дуэль требует противника");
         if(astate(a).duelId||astate(opponent).duelId)fail("Участник уже находится в Дуэли");
         const duelId=`${rootId}:duel`,spaceId=`duel-${rootId}`,participants=[a,opponent];
-        s.duels||=[];const duel={id:duelId,spaceId,actorId:a.id,targetId:opponent.id,returnSpaceId:a.space,startedSerial:scene.turnSerial,tension:Number(scene.tension||0),influenceSpent:status.cost};s.duels.push(duel);
+        s.duels||=[];const duel={id:duelId,spaceId,actorId:a.id,targetId:opponent.id,returnSpaceId:a.space,startedSerial:scene.turnSerial,tension:tensionValue(scene),influenceSpent:status.cost};s.duels.push(duel);
         scene.spaces.push({id:spaceId,name:"Дуэль",width:7,height:7,returnSpaceId:a.space,ownerActorId:a.id});
         for(const [index,participant]of participants.entries()){
           const parts=participant.compoundId?scene.actors.filter(x=>x.compoundId===participant.compoundId):[participant];
@@ -2762,7 +2774,7 @@
         case "round-end": {
           const status = roundEndStatus(scene); if (!status.available) fail(status.reason);
           scheduleBoundary("roundEnd", null);
-          phase("roundEnd", null); scene.round++; scene.tension++; s.lastTeam = null; s.breakout = null;
+          phase("roundEnd", null); scene.round++; mutateCombatMeter({ operation: "add", delta: 1 }, sourceId, `${rootId}:round-tension`); s.lastTeam = null; s.breakout = null;
           for (const other of scene.actors) { other.acted = other.kind === "crowd"; other.usedActions = []; other.ap = 0; other.stepRemaining = 0; }
           scheduleBoundary("roundStart", null);
           emit("round.end", null); break;
@@ -2791,9 +2803,10 @@
             for (const id of previousInventoryIds) delete target.inventory[id];
             if (inventory?.syncLegacy) inventory.syncLegacy(target);
           }
-          scene.lionwing={schema:2,started:false,choices:[],deferred:[],receipts:s.receipts,history:s.history,specialJournal:s.specialJournal,compounds:s.compounds,auras:s.auras.filter(aura=>aura.lifetime==="persistent"),sceneSerial:s.sceneSerial+1,chapterSerial:s.chapterSerial};
+          const resetMeter = mutateCombatMeter({ operation: "set", value: 0 }, sourceId, `${rootId}:scene-reset-tension`);
+          scene.lionwing={schema:2,started:false,choices:[],deferred:[],receipts:s.receipts,history:s.history,specialJournal:s.specialJournal,compounds:s.compounds,auras:s.auras.filter(aura=>aura.lifetime==="persistent"),meters:{ tension: resetMeter.meter },sceneSerial:s.sceneSerial+1,chapterSerial:s.chapterSerial};
           if (global.DAWN_LIONWING_INFORMATION_QUERY?.reset) global.DAWN_LIONWING_INFORMATION_QUERY.reset(scene);
-          scene.round=1;scene.turnSerial=0;scene.tension=0;scene.activeActorId=null;scene.targetIds=[];scene.targetCells=[];scene.results=null;
+          scene.round=1;scene.turnSerial=0;scene.activeActorId=null;scene.targetIds=[];scene.targetCells=[];scene.results=null;
           scene.pendingAction=null;scene.pendingPrompt=null;scene.pendingActionPlan=null;scene.triggerQueue=[];scene.opposedRoll=null;scene.challengeRequest=null;scene.turnUndo=[];delete scene.lionwing.executionCursor;
           scene.objects=scene.objects.filter(item=>item.duration==="persistent");scene.markers=scene.markers.filter(item=>item.duration==="persistent");
           scene.reminders=[];
@@ -2817,7 +2830,15 @@
         case "tension": {
           const amount=integer(p.amount,"Напряжение",999);
           if(p.duelId){const duel=(s.duels||[]).find(item=>item.id===p.duelId);if(!duel)fail("Дуэль уже завершена");duel.tension=amount;emit("duel.tension",sourceId,{duelId:duel.id,amount});}
-          else {scene.tension=amount;emit("scene.tension",sourceId,{amount});}break;
+          else {const result=mutateCombatMeter({operation:"set",value:amount},sourceId,`${rootId}:tension`);emit("scene.tension",sourceId,{amount:result.value,before:result.before,owner:copy(result.meter.owner),source:copy(result.meter.source),scope:result.meter.scope,lifetime:result.meter.lifetime,receiptId:result.receiptId});}break;
+        }
+        case "combat-meter": {
+          if (p.id !== combatMeter?.ids?.tension) fail("Поддерживается только общий счётчик Напряжения");
+          const operation = p.operation || (p.delta !== undefined ? "add" : "set");
+          const change = operation === "add" ? { operation, delta: p.delta } : operation === "reset" ? { operation } : { operation, value: p.value ?? p.current };
+          const result = mutateCombatMeter(change, sourceId, `${rootId}:combat-meter`);
+          emit("scene.tension", sourceId, { amount: result.value, before: result.before, owner: copy(result.meter.owner), source: copy(result.meter.source), scope: result.meter.scope, lifetime: result.meter.lifetime, receiptId: result.receiptId });
+          break;
         }
         case "note": emit("rule.respond", sourceId, { note: String(p.note || "").slice(0,1200) }); break;
         default: fail(`Операция LionWing пока не поддерживается: ${p.kind}`);
@@ -2855,6 +2876,8 @@
       if(p.kind==="geometry-segment")fail("Сегмент движения создаётся только подтверждённым geometry-move");
       if(p.targetId)requiredActor(scene,p.targetId,false);
       if(["damage","heal","resource","correct","tension","spend-health","lose-health"].includes(p.kind))integer(p.amount,"количество");
+      if(p.kind==="combat-meter" && p.operation === "add" && (typeof p.delta !== "number" || !Number.isSafeInteger(p.delta) || Math.abs(p.delta) > 9999)) fail("Некорректное значение: изменение");
+      if(p.kind==="combat-meter" && ["set"].includes(p.operation)) integer(p.value ?? p.current,"новое значение");
       if(p.kind==="resource"&&!["spend","gain"].includes(p.operation))fail("Неизвестная операция ресурса");
       if(["effect","effect-source"].includes(p.kind)&&!effectIds.has(p.effect))fail("Неизвестный Эффект LionWing");
       if(p.kind==="effect-source"&&!['remove','expire','suppress','restore'].includes(p.operation))fail("Неизвестная операция источника Эффекта");
@@ -3081,6 +3104,7 @@
   }
   const api = {
     schema: 2, isScene, prepare, command, dispatchMany, replay, undo, reload, previewEvents, prepareEntityRemoval, cancelEntityRemoval, removeEntity, destroyEntity: removeEntity,
+    combatMeter: combatMeter ? { read: (scene, id) => combatMeter.read(scene, id), quote: (scene, id, change) => combatMeter.quote(scene, id, change) } : null,
     turnStartStatus, roundEndStatus, turnIdentity,
     movement, roll, actionStatus, actionDef, speed, maxHealth, balance, canSpend, targetIds, costQuote, detectiveMovementStatus, prepareDetectiveTeleport,
     createDiceRoll, createRoll: createDiceRoll, diceCreate: createDiceRoll,
@@ -3096,7 +3120,7 @@
     lifetimeBoundary: foundations.lifetimeBoundary,
     normalizeLifetime: foundations.normalizeLifetime,
     isLifetimeExpired: foundations.lifetimeExpired,
-    operations: ["automation", "plan", "batch", "pause-chain", "resume-chain", "amend-attack", "recover-track", "record-action", "action", "attack", "information-study", "information-reveal", "information-cancel", "information-handout", "damage", "spend-health", "lose-health", "heal", "wound", "stress", "knockout", "resource", "inventory", "intermission", "correct", "effect", "effect-source", "banish", "vanish", "compound", "aura", "aura-create", "aura-update", "aura-suppress", "aura-restore", "aura-remove", "placement", "teleport", "displacement", "move", "forced-towards-group", "forced-towards-group-step", "forced-towards-group-after-route", "geometry-move", "geometry-segment", "modifier", "allow-action", "grant-turn", "usage", "punish", "invisible", "search", "configure-resource", "dice-create", "dice-apply", "dice-reload", "dice-opposed", "dice-resolve-tie", "counter", "clock", "prompt", "choice", "roll", "reaction", "resolve-attack", "cancel-attack", "turn-start", "turn-end", "round-end", "scene-reset", "chapter-start", "tension", "note", "marker-remove"]
+    operations: ["automation", "plan", "batch", "pause-chain", "resume-chain", "amend-attack", "recover-track", "record-action", "action", "attack", "information-study", "information-reveal", "information-cancel", "information-handout", "damage", "spend-health", "lose-health", "heal", "wound", "stress", "knockout", "resource", "inventory", "intermission", "correct", "effect", "effect-source", "banish", "vanish", "compound", "aura", "aura-create", "aura-update", "aura-suppress", "aura-restore", "aura-remove", "placement", "teleport", "displacement", "move", "forced-towards-group", "forced-towards-group-step", "forced-towards-group-after-route", "geometry-move", "geometry-segment", "modifier", "allow-action", "grant-turn", "usage", "punish", "invisible", "search", "configure-resource", "dice-create", "dice-apply", "dice-reload", "dice-opposed", "dice-resolve-tie", "counter", "clock", "prompt", "choice", "roll", "reaction", "resolve-attack", "cancel-attack", "turn-start", "turn-end", "round-end", "scene-reset", "chapter-start", "tension", "combat-meter", "note", "marker-remove"]
   };
   global.DAWN_LIONWING_ENGINE = api;
   const routed = global.DAWN_SCENE_ENGINE;
