@@ -77,7 +77,16 @@ for (const [id, automation] of [
 ]) {
   assert.equal(coverage.find(entry => entry.id === id)?.automation, automation, `${id} remains honestly downgraded until its missing canonical branch is implemented and evidenced`);
 }
-assert.equal(coverage.filter(entry => entry.automation !== "manual").length, 114, "only levels with a registered runtime rule may claim any automation");
+assert.equal(coverage.filter(entry => entry.automation !== "manual").length, 116, "only levels with a registered runtime rule may claim any automation");
+for (const [id, digest] of [
+  ["powerhouse.technician.1", "79946bc3df6de994901a8519030345403e62c0fac627a76aaa8bc0ee45edda83"],
+  ["powerhouse.technician.2", "87d635215f2088e683f229d48bc51b0f2bc34d6a88bc1dea707fcea12e4be250"],
+  ["powerhouse.technician.3", "69e9007f8f65def64ef7640b8441616852def68765ad7a717f09587b1039ecfe"],
+]) {
+  const entry = coverage.find(item => item.id === id);
+  assert.equal(entry?.automation, "partial", `${id} remains an honest partial adapter`);
+  assert.equal(entry?.rules?.[0]?.sourceDigest, digest, `${id} runtime rule is digest-bound`);
+}
 assert.ok(coverage.some(entry => /area|line|zone/i.test(entry.text || "")), "canonical Technique text remains available to the coverage audit");
 assert.ok(coverage.some(entry => /clock|segment/i.test(entry.text || "")), "canonical Technique text remains available to the foundation audit");
 assert.equal(coverage.filter(entry => entry.foundationPlan?.capabilities?.length).length, 333, "every canonical Technique level must have a foundation plan");
