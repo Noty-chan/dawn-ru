@@ -274,7 +274,7 @@ function respondRulePrompt(scene, data, request = {}) {
     events.push({ type: "marker.remove", actorId: actor.id, payload: { markerId: marker.id, ruleId: "vagabond.dim-mak.1", carrierActorId: host.id, sourceActionId: "vagabond.dim-mak.1.jab", reason: "Слабая точка: Джеб", participantIds: [actor.id, host.id] } });
     events.push({ type: "action.prepare", actorId: actor.id, payload: { actionId: "action.атаки.стычка", targetIds: [host.id], attribute: "mind", quick: true, fixedTargetId: host.id, techniqueRuleId: "vagabond.dim-mak.1" } });
     events.push({ type: "action.resolve", actorId: actor.id, payload: { actionId: "action.атаки.стычка", targetIds: [host.id], attribute: "mind", swift: true, techniqueRuleId: "vagabond.dim-mak.1", sourceActionId: "vagabond.dim-mak.1.jab" } });
-    events.push({ type: "damage.apply", actorId: actor.id, payload: { targetId: host.id, fixedTargetId: host.id, amount: expected, fixedDamage: true, finalDamage: true, attack: true, hit: true, ignoreEvasion: true, sourceActionId: "vagabond.dim-mak.1.jab", participantIds: [actor.id, host.id] } });
+    events.push({ type: "damage.apply", actorId: actor.id, payload: { targetId: host.id, fixedTargetId: host.id, amount: expected, fixedDamage: true, finalDamage: true, attack: true, hit: true, ignoreEvasion: false, sourceActionId: "vagabond.dim-mak.1.jab", participantIds: [actor.id, host.id] } });
     events.push({ type: "technique.resolve", actorId: actor.id, payload: { ruleId: "vagabond.dim-mak.1", name: "Jab", fixedDamage: expected, fixedTargetId: host.id, affectedActorIds: [host.id], participantIds: [actor.id, host.id] } });
   }
   if(prompt.kind==="modifier-refresh"){

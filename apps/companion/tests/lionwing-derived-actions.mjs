@@ -14,6 +14,10 @@ const foe = (id, x = 3, y = 2) => ({ id, name: id, kind: "enemy", rulesEdition: 
 const scene = actors => ({ rulesEdition: "lionwing", version: 0, round: 1, turnSerial: 1, tension: 0, activeActorId: "h", lionwing: { activeTurnInstanceId: "turn:1" }, spaces: [{ id: "main", width: 8, height: 8 }], actors, objects: [], walls: [], markers: [], log: [], targetIds: [] });
 const dispatch = (s, event) => lionwing.dispatchMany(s, [event], { random: () => 0.8 }).scene;
 const enable = (actor, ...idsToEnable) => { actor.lionwing.automation = Object.fromEntries(idsToEnable.map(id => [id, true])); return actor; };
+const trustedDerived = (s, actorId, payload) => {
+  s.lionwing.choices = [{ id: `trusted-${payload.ruleId}`, actorId, kind: "technique-trigger", options: ["go"], context: { ruleId: payload.ruleId, sourceDigest: payload.sourceDigest, ownerActorId: actorId, choices: { go: [payload] } } }];
+  return dispatch(s, { id: `choose-${payload.ruleId}`, type: "lionwing.command", actorId, payload: { kind: "choice", id: `trusted-${payload.ruleId}`, choice: "go" } });
+};
 
 let h = enable(hero({ "vagabond.skirmisher": 1 }), "vagabond.skirmisher.1"), s = scene([h, foe("e", 4, 2)]);
 const trigger = { id: "move", type: "actor.move", actorId: "h", payload: { sourceActionId: ids.step, x: 3, y: 2, space: "main", distance: 1 } };
@@ -34,10 +38,9 @@ assert.ok(s.log.some(row => row.type === "damage.apply" && row.payload.derivedAc
 h = enable(hero({ "vagabond.opportunist": 1 }), "vagabond.opportunist.1");
 s = scene([h, foe("e")]);
 const opportunist = derived.contract("vagabond.opportunist.1");
-s = dispatch(s, { id: "opportunist-roll", type: "lionwing.command", actorId: "h", payload: {
-  kind: "derived-action", sourceActorId: "h", ruleId: opportunist.id,
+s = trustedDerived(s, "h", { kind: "derived-action", sourceActorId: "h", ruleId: opportunist.id,
   sourceDigest: opportunist.sourceDigest, targetIds: ["e"], attribute: "body",
-} });
+});
 assert.equal(s.pendingAction.derivedActionId, opportunist.id, "roll derived action keeps identity in pending attack");
 assert.equal(JSON.stringify(s.pendingAction.targetIds), JSON.stringify(["e"]), "roll derived action locks its target set");
 s = dispatch(s, { id: "opportunist-reaction", type: "lionwing.command", actorId: "e", payload: { kind: "reaction", choice: "take" } });
@@ -49,10 +52,9 @@ assert.ok(s.log.some(row => row.type === "attack.clear" && row.payload.derivedAc
 // serialized scene remains replay safe.
 h = enable(hero({ "vagabond.opportunist": 1 }), "vagabond.opportunist.1");
 s = scene([h, foe("e")]);
-s = dispatch(s, { id: "opportunist-cancel", type: "lionwing.command", actorId: "h", payload: {
-  kind: "derived-action", sourceActorId: "h", ruleId: opportunist.id,
+s = trustedDerived(s, "h", { kind: "derived-action", sourceActorId: "h", ruleId: opportunist.id,
   sourceDigest: opportunist.sourceDigest, targetIds: ["e"], attribute: "body",
-} });
+});
 const beforeCancel = s.log.length;
 const reloadedCancel = lionwing.reload(JSON.parse(JSON.stringify(s)));
 s = dispatch(reloadedCancel, { id: "opportunist-cancelled", type: "lionwing.command", actorId: "h", payload: { kind: "cancel-attack" } });

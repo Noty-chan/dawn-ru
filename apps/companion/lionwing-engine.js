@@ -1650,7 +1650,7 @@
       if (attack && dealt > 0 && !p.irreducible && !p.finalDamage && effectActive(scene,a,"negative.помечен")) { dealt += Number(a.tier || 1); removeEffect(a, "negative.помечен"); }
       const finalDamageQuote = global.DAWN_LIONWING_ADAPTERS?.damageQuote?.(a, { scene, key: "finalDamage", kind: "damage", actionId: p.sourceActionId || null, sourceActorId: source?.id || null, targetId: a.id, baseValue: dealt, immobilized: effectActive(scene, a, "negative.обездвижен"), tier: Number(a.tier || 1), roundUp: true });
       if (finalDamageQuote?.ok === false) fail(finalDamageQuote.reason || "Числовые модификаторы итогового урона конфликтуют");
-      if (finalDamageQuote?.ok && Number.isFinite(Number(finalDamageQuote.value))) dealt = Math.max(0, Number(finalDamageQuote.value));
+      if (p.fixedDamage !== true && finalDamageQuote?.ok && Number.isFinite(Number(finalDamageQuote.value))) dealt = Math.max(0, Number(finalDamageQuote.value));
       if(compound.active){const nextGate=Math.max(0,(Math.ceil(compound.hp/compound.gate-1e-9)-1)*compound.gate),beforeGateDealt=dealt,gateCapacity=Math.max(0,compound.hp-nextGate);dealt=Math.min(dealt,gateCapacity);let remaining=compound.hp-dealt;for(const part of compound.parts){part.hp=Math.min(part.maxHp,remaining);remaining-=part.hp;}if(beforeGateDealt>gateCapacity&&nextGate>0)mutateCombatMeter({operation:"add",delta:1},a.id,`${rootId}:compound-gate`);}
       else a.hp = Math.max(0, Number(a.hp) - dealt);
       const hit = p.hit !== false;
@@ -2334,9 +2334,11 @@
         return { ruleId, sourceDigest, source, target, cause };
       }
       return { ruleId, sourceDigest, source, cause };
+    };
     const performDerivedAction = (payload, sourceId) => {
       if (!derivedActions) fail("Контракты производных действий LionWing недоступны");
       const contract = derivedActions.validate(payload), source = requiredActor(scene, sourceId, false);
+      if (!provenance || provenance.ruleId !== contract.id || provenance.sourceDigest !== contract.sourceDigest) fail("Производное действие можно выполнить только из подтверждённого окна Техники");
       if (payload.sourceActorId !== source.id || payload.sourceDigest !== contract.sourceDigest) fail("Производное действие принадлежит другому источнику");
       const techniqueId = contract.id.replace(/\.\d+$/, ""), level = Number((source.knownTechniques ?? source.techniques)?.[techniqueId] || 0), requiredLevel = Number(contract.id.match(/\.(\d+)$/)?.[1] || 0);
       if (level < requiredLevel || source.lionwing?.automation?.[contract.id] !== true) fail("Производное действие недоступно этой Технике");
@@ -2920,7 +2922,7 @@
                 ...(operation.causeEventId == null && pending.context?.causeEventId != null ? { causeEventId: pending.context.causeEventId } : {}),
               };
               if (pending.context?.destinationRequired && p.choice === "move" && p.destination) nextOperation.destination = p.destination;
-              queue.unshift({ p: nextOperation, sourceId: nextOperation.sourceActorId ?? sourceId, provenance: { ...provenance, causeEventId: pending.context?.causeEventId || rootId, ownerActorId: pending.context?.ownerActorId || sourceId, ruleId: pending.context?.ruleId, ...(pending.context?.sourceDigest != null ? { sourceDigest: pending.context.sourceDigest } : {}) } });
+              queue.unshift({ p: nextOperation, sourceId: nextOperation.sourceActorId ?? sourceId, provenance: { ...provenance, causeEventId: pending.context?.causeEventId || rootId, ownerActorId: pending.context?.ownerActorId || sourceId, ruleId: nextOperation.ruleId || pending.context?.ruleId, ...(nextOperation.sourceDigest != null || pending.context?.sourceDigest != null ? { sourceDigest: nextOperation.sourceDigest ?? pending.context.sourceDigest } : {}) } });
             }
           }
           else if (pending.kind === "geometry-boundary") {
