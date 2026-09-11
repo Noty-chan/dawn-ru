@@ -140,7 +140,16 @@
     if(s.started===undefined)s.started=Boolean(scene.activeActorId||Number(scene.round||1)>1||(scene.actors||[]).some(a=>a.acted&&a.kind!=="crowd"));
     if(s.lastTeam===undefined){const last=(scene.log||[]).find(e=>e.type==="turn.end");s.lastTeam=actor(scene,last?.actorId)?.team||null;}
     const migrateHistory=!Array.isArray(s.history);
-    for(const key of ["choices","deferred","receipts","history","specialJournal","afterEventReceipts","boundaryReceipts"])if(!Array.isArray(s[key]))s[key]=[];
+    for(const key of ["choices","deferred","receipts","history","specialJournal","afterEventReceipts","boundaryReceipts","followups"])if(!Array.isArray(s[key]))s[key]=[];
+    // Follow-ups are the persisted lifecycle record for an after-event choice.
+    // The choice remains the user-facing scheduler item; this record carries
+    // its exact participants, deadline, cancellation facts and completion
+    // receipt across reloads and nested continuations.
+    s.followups = s.followups.filter(item => item && typeof item.id === "string" && typeof item.ruleId === "string").slice(-256);
+    // Migrate pre-canonical saves.  Drain Life is now a follow-up record;
+    // the former half-damage/Regeneration boolean has no authority and must
+    // not survive a reload as apparently valid actor state.
+    for (const participant of scene.actors || []) if (participant.ruleState && typeof participant.ruleState === "object") delete participant.ruleState.drainLife;
     if(!Array.isArray(s.movementGroups))s.movementGroups=[];
     if(s.compounds===undefined)s.compounds={};
     if(!s.compounds||typeof s.compounds!=="object"||Array.isArray(s.compounds))fail("Реестр Составных LionWing имеет неподдерживаемый формат");
@@ -206,6 +215,7 @@
       choices: copy(l.choices || []),
       deferred: copy(l.deferred || []),
       boundaryReceipts: copy(l.boundaryReceipts || []),
+      followups: copy(l.followups || []),
       afterAttack: copy(l.afterAttack || []),
       pendingAction: copy(scene.pendingAction || null),
       pendingPrompt: copy(scene.pendingPrompt || null),
@@ -230,6 +240,7 @@
     next.lionwing.choices = copy(snapshot.choices || []);
     next.lionwing.deferred = copy(snapshot.deferred || []);
     next.lionwing.boundaryReceipts = copy(snapshot.boundaryReceipts || []);
+    next.lionwing.followups = copy(snapshot.followups || []);
     next.lionwing.afterAttack = copy(snapshot.afterAttack || []);
     if (snapshot.executionCursor == null) delete next.lionwing.executionCursor;
     else next.lionwing.executionCursor = copy(snapshot.executionCursor);
@@ -1207,7 +1218,7 @@
         ...(payload.actionInstanceId || !provenance?.actionInstanceId ? {} : { actionInstanceId: provenance.actionInstanceId }),
         ...(payload.ownerTurnInstanceId || !provenance?.ownerTurnInstanceId ? {} : { ownerTurnInstanceId: provenance.ownerTurnInstanceId }),
       } : payload;
-      const row = { id: `${rootId}:${emitted.length}`, at: event.at, type, actorId: actorId || null, payload: copy(receiptPayload), visibility: receiptPayload.visibility === "gm" ? "gm" : event.visibility || "public" };
+      const row = { id: `${rootId}:${emitted.length}`, at: event.at, type, actorId: actorId || null, payload: copy(receiptPayload), visibility: ["gm", "owner"].includes(receiptPayload.visibility) ? receiptPayload.visibility : event.visibility || "public" };
       if (provenance) row.execution = copy(provenance);
       emitted.push(row); scene.log.unshift(row); scene.log = scene.log.slice(0, 200);
       const targets = receiptPayload.targetIds || (receiptPayload.targetId ? [receiptPayload.targetId] : []);
@@ -1227,7 +1238,8 @@
       else if (type === "counter.threshold") saveFact("counter.threshold", actorId, targets, { counterId: payload.counterId || payload.id, kind: payload.kind || payload.type, before: payload.before, value: payload.value, threshold: payload.threshold });
       else if (type === "aura.enter" || type === "aura.exit") saveFact(type, actorId, [actorId], { auraId:payload.auraId, effectId:payload.effectId, ruleId:payload.ruleId, ownerActorId:payload.ownerActorId, sourceEntityId:payload.sourceEntityId, movementTargetId:payload.movementTargetId||null, segmentIndex:payload.segmentIndex??null });
       else if (type === "attack.clear" && payload.cancelled) saveFact("cancel", actorId, targets, { reason: payload.reason || "cancelled" });
-      if (scheduleAfterEvent && ["clash.success", "combat-meter.change", "damage.apply", "actor.knockout", "effect.apply", "actor.enter", "actor.move", "action.resolve", "attack.clear", "marker.remove", "reaction.respond", "resource.gain", "rule.used", "movement.prepare", "movement.start", "movement.segment", "movement.enter", "movement.leave", "movement.cross", "movement.end", "movement.stop"].includes(type)) scheduleAfterEvent(row);
+      if (scheduleAfterEvent && ["clash.success", "combat-meter.change", "damage.apply", "actor.knockout", "effect.apply", "actor.enter", "actor.move", "action.resolve", "attack.clear", "marker.remove", "reaction.respond", "resource.gain", "rule.used", "movement.prepare", "movement.start", "movement.segment", "movement.enter", "movement.leave", "movement.cross", "movement.end", "movement.stop", "actor.despawn", "actor.remove", "space.remove"].includes(type)) scheduleAfterEvent(row);
+      if (typeof cancelFollowupsForEvent === "function" && ["damage.apply", "actor.knockout", "actor.despawn", "actor.remove", "space.remove"].includes(type)) cancelFollowupsForEvent(row);
       return row;
     };
     const mutateCombatMeter = (change = {}, sourceId = null, receiptId = `${rootId}:meter`) => {
@@ -1252,7 +1264,6 @@
       return row;
     };
     const scheduleBoundary = (boundary, activeActor = null, options = {}) => {
-      if (typeof global.DAWN_LIONWING_ADAPTERS?.boundaryOperations !== "function") return;
       const canonicalBoundary = ({ sceneStart: "sceneStart", sceneEnd: "sceneEnd", roundStart: "roundStart", roundEnd: "roundEnd", turnStart: "ownTurnStart", turnEnd: "ownTurnEnd", ownTurnStart: "ownTurnStart", ownTurnEnd: "ownTurnEnd", anyTurnStart: "anyTurnStart", anyTurnEnd: "anyTurnEnd" }[boundary] || boundary);
       const ownerTurnKey = owner => owner ? `${s.sceneSerial}:${owner.id}:${ownTurnSerial(owner)}` : null;
       // `turnStart`/`turnEnd` are offered to every registered consumer so an
@@ -1275,7 +1286,32 @@
         const resolvedBoundary = boundaryForOwner(owner);
         return { scene, boundary: ["ownTurnStart", "ownTurnEnd"].includes(canonicalBoundary) ? "turn" + (canonicalBoundary === "ownTurnStart" ? "Start" : "End") : boundary, canonicalBoundary: resolvedBoundary, activeActor, activeEffectIds: activeState(scene, owner.id).effects.filter(status => status.present).map(status => status.effect), distanceToActive: activeActor ? distance(owner, activeActor) : Infinity, ownerTurnSerial: ownTurnSerial(owner), ownerTurnInstanceId: activeActor ? s.activeTurnInstanceId || null : owner.lionwing?.turnInstanceId || null, ownerTurnKey: ownerTurnKey(owner), boundaryKey: boundaryKey(owner, resolvedBoundary) };
       };
-      for (const owner of scene.actors || []) for (const rule of global.DAWN_LIONWING_ADAPTERS.boundaryOperations(owner, context(owner))) {
+      // Resolve generic after-event follow-ups at the same boundary scheduler
+      // used by resources/effects.  `anyTurnStart`/`anyTurnEnd` means the first
+      // eligible participant's next own boundary, regardless of whose Turn is
+      // currently active; the baseline serials make both Turn orders equal.
+      for (const followup of s.followups) {
+        if (!["active", "cancelled"].includes(followup.status) || followup.endBoundary !== canonicalBoundary) continue;
+        const participantIds = followup.participantIds || [], current = activeActor && participantIds.includes(activeActor.id) ? activeActor : null;
+        if (!current || Number(ownTurnSerial(current)) < Number(followup.baselineTurnSerials?.[current.id] ?? -1) + 1) continue;
+        const missing = participantIds.some(id => !actor(scene, id));
+        if (missing) { followupCancel(followup, "sourceLoss"); continue; }
+        const wasCancelled = followup.status === "cancelled";
+        followup.status = "completed"; followup.completedBoundary = canonicalBoundary; followup.completedEventId = rootId;
+        const allCompletion = Array.isArray(followup.completionOperations) ? followup.completionOperations : [];
+        const completion = allCompletion.filter(operation => {
+          if (wasCancelled && operation?.kind === "resource" && operation.operation === "gain") return false;
+          if (operation?.kind === "effect-source") {
+            const target = actor(scene, operation.targetId), sources = target?.effectStates?.[operation.effect]?.sources || [];
+            return sources.some(source => (source.sourceId || source.actorId) === operation.sourceId);
+          }
+          return true;
+        });
+        scheduled.push(...completion.map(operation => ({ p: { ...copy(operation), sourceActorId: operation.sourceActorId ?? followup.sourceActorId }, sourceId: operation.sourceActorId ?? followup.sourceActorId, provenance: { rootActionId: followup.causeEventId || rootId, actionId: null, actionDefinitionId: null, actionInstanceId: followup.causeEventId || rootId, causeEventId: followup.causeEventId || rootId, ownerActorId: followup.ownerActorId, ruleId: followup.ruleId, sourceDigest: followup.sourceDigest } })));
+        emit("followup.complete", followup.sourceActorId || followup.ownerActorId, { followupId: followup.id, ruleId: followup.ruleId, participantIds: copy(participantIds), cancelled: wasCancelled, boundary: canonicalBoundary });
+      }
+      const boundaryRules = typeof global.DAWN_LIONWING_ADAPTERS?.boundaryOperations === "function" ? global.DAWN_LIONWING_ADAPTERS.boundaryOperations : () => [];
+      for (const owner of scene.actors || []) for (const rule of boundaryRules(owner, context(owner))) {
         const resolvedBoundary = context(owner).canonicalBoundary, resolvedBoundaryKey = boundaryKey(owner, resolvedBoundary), key = `${rule.id}:${owner.id}:${resolvedBoundaryKey}`;
         if (s.boundaryReceipts.some(receipt => receipt.key === key)) continue;
         s.boundaryReceipts.push({ schema: 1, key, ruleId: rule.id, ownerActorId: owner.id, boundary: resolvedBoundary, boundaryKey: resolvedBoundaryKey, sceneSerial: s.sceneSerial, round: Number(scene.round || 0), turnInstanceId: s.activeTurnInstanceId || null, sourceDigest: rule.sourceDigest || null, eventId: rootId });
@@ -1312,10 +1348,27 @@
           s.afterEventReceipts = s.afterEventReceipts.slice(-256);
           emit("rule.activated", candidate.id, { ruleId: trigger.id, sourceDigest: trigger.sourceDigest, triggerKey: trigger.triggerKey, causeEventId: eventRow.id, targetId: eventPayload.targetId || candidate.id, automatic: true, coverage: trigger.coverage });
           scheduled.push(...(trigger.operations || []).map(operation => ({ p: { ...copy(operation), sourceActorId: operation.sourceActorId ?? candidate.id, sourceDigest: operation.sourceDigest ?? trigger.sourceDigest ?? null }, sourceId: operation.sourceActorId ?? candidate.id, provenance: { rootActionId: eventRow.execution?.rootActionId || rootId, actionId: eventRow.execution?.actionId || null, actionDefinitionId: eventRow.execution?.actionDefinitionId || eventRow.execution?.actionId || null, actionInstanceId: eventRow.execution?.actionInstanceId || rootId, causeEventId: eventRow.id, ownerActorId: candidate.id, ruleId: trigger.id, sourceDigest: trigger.sourceDigest || null, coverage: trigger.coverage || "full" } })));
+          // A follow-up owns a concrete pending choice.  Do not persist an
+          // orphan record when a partial adapter found no legal option.
+          const followup = trigger.choices?.length ? followupDescriptor(trigger, candidate, eventRow) : null;
+          if (followup) {
+            const existing = followupById(followup.id);
+            if (!existing) s.followups.push(followup);
+            else followup.choiceId = existing.choiceId || null;
+          }
           if (trigger.choiceSet && trigger.choices?.length) {
             const options = trigger.choices.filter(option => option?.id && Array.isArray(option.operations));
-            scheduled.push({ p: { kind: "technique-choice", ruleId: trigger.id, triggerKey: trigger.triggerKey, title: trigger.label, options: ["skip", ...options.map(option => option.id)], optionLabels: { skip: "Не использовать", ...Object.fromEntries(options.map(option => [option.id, option.label])) }, choices: Object.fromEntries(options.map(option => [option.id, copy(option.operations)])), context: { ...(options[0]?.context || {}), choiceSet: true, causeEventId: eventRow.id, ownerActorId: candidate.id, sourceDigest: trigger.sourceDigest || null, coverage: trigger.coverage || "full" } }, sourceId: candidate.id, provenance: { rootActionId: eventRow.execution?.rootActionId || rootId, actionId: eventRow.execution?.actionId || null, actionDefinitionId: eventRow.execution?.actionDefinitionId || eventRow.execution?.actionId || null, actionInstanceId: eventRow.execution?.actionInstanceId || rootId, causeEventId: eventRow.id, ownerActorId: candidate.id, ruleId: trigger.id, sourceDigest: trigger.sourceDigest || null, coverage: trigger.coverage || "full" } });
-          } else for (const option of trigger.choices || []) scheduled.push({ p: { kind: "technique-choice", ruleId: trigger.id, triggerKey: trigger.triggerKey, title: trigger.label, options: ["skip", option.id], optionLabels: { skip: "Не использовать", [option.id]: option.label }, choices: { [option.id]: copy(option.operations || []) }, context: { ...(option.context || {}), causeEventId: eventRow.id, ownerActorId: candidate.id, sourceDigest: trigger.sourceDigest || null, coverage: trigger.coverage || "full" } }, sourceId: candidate.id, provenance: { rootActionId: eventRow.execution?.rootActionId || rootId, actionId: eventRow.execution?.actionId || null, actionDefinitionId: eventRow.execution?.actionDefinitionId || eventRow.execution?.actionId || null, actionInstanceId: eventRow.execution?.actionInstanceId || rootId, causeEventId: eventRow.id, ownerActorId: candidate.id, ruleId: trigger.id, sourceDigest: trigger.sourceDigest || null, coverage: trigger.coverage || "full" } });
+            const choiceOptions = followup?.optional === false ? options.map(option => option.id) : ["skip", ...options.map(option => option.id)];
+            const followupContext = followup ? { followupId: followup.id, followup: true, mandatory: followup.optional === false, deadline: followup.endBoundary } : {};
+            const pending = { p: { kind: "technique-choice", ruleId: trigger.id, triggerKey: trigger.triggerKey, title: trigger.label, options: choiceOptions, optionLabels: { ...(followup?.optional === false ? {} : { skip: "Не использовать" }), ...Object.fromEntries(options.map(item => [item.id, item.label])) }, choices: Object.fromEntries(options.map(item => [item.id, copy(item.operations)])), context: { ...(options[0]?.context || {}), choiceSet: true, causeEventId: eventRow.id, ownerActorId: candidate.id, sourceDigest: trigger.sourceDigest || null, coverage: trigger.coverage || "full", ...followupContext } }, sourceId: candidate.id, provenance: { rootActionId: eventRow.execution?.rootActionId || rootId, actionId: eventRow.execution?.actionId || null, actionDefinitionId: eventRow.execution?.actionDefinitionId || eventRow.execution?.actionId || null, actionInstanceId: eventRow.execution?.actionInstanceId || rootId, causeEventId: eventRow.id, ownerActorId: candidate.id, ruleId: trigger.id, sourceDigest: trigger.sourceDigest || null, coverage: trigger.coverage || "full" } };
+            scheduled.push(pending);
+            if (followup) followup.choiceId = `${rootId}:choice:${choiceSerial}`;
+          } else for (const option of trigger.choices || []) {
+            const choiceOptions = followup?.optional === false ? [option.id] : ["skip", option.id];
+            const followupContext = followup ? { followupId: followup.id, followup: true, mandatory: followup.optional === false, deadline: followup.endBoundary } : {};
+            scheduled.push({ p: { kind: "technique-choice", ruleId: trigger.id, triggerKey: trigger.triggerKey, title: trigger.label, options: choiceOptions, optionLabels: { ...(followup?.optional === false ? {} : { skip: "Не использовать" }), [option.id]: option.label }, choices: { [option.id]: copy(option.operations || []) }, context: { ...(option.context || {}), causeEventId: eventRow.id, ownerActorId: candidate.id, sourceDigest: trigger.sourceDigest || null, coverage: trigger.coverage || "full", ...followupContext } }, sourceId: candidate.id, provenance: { rootActionId: eventRow.execution?.rootActionId || rootId, actionId: eventRow.execution?.actionId || null, actionDefinitionId: eventRow.execution?.actionDefinitionId || eventRow.execution?.actionId || null, actionInstanceId: eventRow.execution?.actionInstanceId || rootId, causeEventId: eventRow.id, ownerActorId: candidate.id, ruleId: trigger.id, sourceDigest: trigger.sourceDigest || null, coverage: trigger.coverage || "full" } });
+            if (followup) followup.choiceId = `${rootId}:choice:${choiceSerial}`;
+          }
         }
       }
     };
@@ -1480,6 +1533,53 @@
       if(wasDisappeared&&!has(a,effect)&&options.reappear!==false)choice(a,"placement","Выберите клетку появления вне соседства с персонажами",["place"],{reappear:true});
     };
     const choice = (a, kind, title, options, context = {}) => { s.choices.push({ id: `${rootId}:choice:${choiceSerial++}`, actorId: a.id, kind, title, options, context }); };
+    const followupActors = ids => [...new Set((Array.isArray(ids) ? ids : []).filter(id => typeof id === "string" && id && actor(scene, id)))];
+    const followupDescriptor = (trigger, candidate, eventRow) => {
+      const raw = trigger?.followUp || trigger?.followup;
+      if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+      const targetIds = followupActors(raw.participantIds || raw.participants || [candidate.id, eventRow.payload?.targetId]);
+      if (!targetIds.length || !targetIds.includes(candidate.id)) return null;
+      const id = String(raw.id || `${trigger.id}:${eventRow.id}:${candidate.id}`).slice(0, 180);
+      const baseline = Object.fromEntries(targetIds.map(id => { const participant = actor(scene, id); return [id, ownTurnSerial(participant)]; }));
+      const endBoundary = raw.endBoundary || raw.deadline?.boundary || "anyTurnStart";
+      const cancelOn = [...new Set((Array.isArray(raw.cancelOn) ? raw.cancelOn : ["damage", "knockout", "sourceLoss"]).filter(value => typeof value === "string"))];
+      return {
+        schema: 1, id, ruleId: trigger.id, sourceDigest: trigger.sourceDigest || null,
+        causeEventId: eventRow.id, ownerActorId: raw.ownerActorId || candidate.id,
+        sourceActorId: raw.sourceActorId || candidate.id, participantIds: targetIds,
+        baselineTurnSerials: baseline, endBoundary, cancelOn,
+        status: "offered", optional: raw.optional !== false, selected: null, cancelledReason: null,
+        completionOperations: copy(raw.completionOperations || raw.completeOperations || []),
+        choiceId: null,
+      };
+    };
+    const followupById = id => s.followups.find(item => item.id === id) || null;
+    const followupCancel = (followup, reason, eventRow = null) => {
+      if (!followup || ["completed", "cancelled"].includes(followup.status)) return false;
+      followup.status = "cancelled"; followup.cancelledReason = reason;
+      followup.cancelEventId = eventRow?.id || rootId;
+      emit("followup.cancel", followup.sourceActorId || followup.ownerActorId, { followupId: followup.id, ruleId: followup.ruleId, participantIds: copy(followup.participantIds), reason, causeEventId: followup.causeEventId });
+      return true;
+    };
+    const cancelFollowupsForEvent = eventRow => {
+      const payload = eventRow?.payload || {};
+      const targetIds = [...new Set([payload.targetId, ...(payload.targetIds || []), eventRow?.actorId].filter(id => typeof id === "string"))];
+      const damage = eventRow?.type === "damage.apply" && Number(payload.dealt ?? payload.healthLost ?? 0) > 0;
+      const knockoutEvent = eventRow?.type === "actor.knockout";
+      const sourceLoss = ["actor.despawn", "actor.remove", "space.remove"].includes(eventRow?.type);
+      for (const followup of s.followups) {
+        // Damage/KO/source loss during the triggering action happens before
+        // the optional choice is answered.  The canonical window starts only
+        // after the participant selects the follow-up, so an offered record
+        // must survive that initiating action and be rejected by the choice
+        // validator only if a participant is no longer available.
+        if (followup.status !== "active") continue;
+        const participants = followup.participantIds || [];
+        if (damage && followup.cancelOn.includes("damage") && targetIds.some(id => participants.includes(id))) followupCancel(followup, "damage", eventRow);
+        else if (knockoutEvent && followup.cancelOn.includes("knockout") && targetIds.some(id => participants.includes(id))) followupCancel(followup, "knockout", eventRow);
+        else if (sourceLoss && followup.cancelOn.includes("sourceLoss") && targetIds.some(id => participants.includes(id))) followupCancel(followup, "sourceLoss", eventRow);
+      }
+    };
     const duelOutcome = duel => choice(requiredActor(scene,duel.actorId,false),"duel-outcome","Дуэль: разыграйте встречную Проверку. NPC бросает [Напряжение Дуэли + Ступень]; бросок игрока согласуйте с Нарратором. Подходы и Напряжение определяет Нарратор.",["win","lose"],{duelId:duel.id});
     const duelReturn = duel => {
       scene.activeSpace=duel.returnSpaceId;
@@ -2436,6 +2536,25 @@
           emit("marker.remove", sourceId, { markerId: marker.id, ruleId: marker.ruleId, ownerActorId: marker.ownerActorId, carrierActorId: hostId, sourceActionId: p.sourceActionId || "vagabond.dim-mak.1.jab", turnSerial: Number(scene.turnSerial || 0), ownerTurnInstanceId: s.activeTurnInstanceId || null });
           break;
         }
+        case "shatter-check": {
+          const source = requiredActor(scene, p.sourceActorId || sourceId, false), target = requiredActor(scene, p.targetId, false);
+          const rule = global.DAWN_LIONWING_ADAPTERS?.list?.(source)?.find(item => item.id === "ruiner.cryomancer.3" && item.sourceDigest === p.sourceDigest);
+          const actionEvent = (scene.log || []).find(row => row.id === p.actionEventId && row.type === "action.resolve" && row.actorId === source.id && row.payload?.actionId === ids.finish && Array.isArray(row.payload?.targetIds) && row.payload.targetIds.length === 1 && row.payload.targetIds[0] === target.id);
+          if (!rule || source.lionwing?.automation?.[p.ruleId] !== true || p.ruleId !== "ruiner.cryomancer.3" || !actionEvent || target.team === source.team || !effectActive(scene, target, "negative.обездвижен")) fail("Раскол связан с устаревшей или недопустимой целью");
+          // The Finisher's own damage resolves before this queued post-event
+          // check.  If it already knocked the target out, Shatter has no
+          // second KO to perform and the authenticated continuation ends
+          // idempotently.
+          if (target.knockedOut) break;
+          const current = Number(target.hp || 0), maximum = maxHealth(target), threshold = Number(source.attrs?.spirit || 0);
+          emit("information.reveal", source.id, { visibility: "owner", ownerActorId: source.id, targetId: target.id, category: "health", current, maximum, sourceActionId: p.ruleId, actionEventId: actionEvent.id });
+          if (current <= threshold) {
+            knockout(target, { kind: "shatter", sourceActorId: source.id, eventId: actionEvent.id });
+            for (const enemy of scene.actors || []) if (!enemy.knockedOut && enemy.team !== source.team && enemy.space === target.space && distance(enemy, target) <= 3) applyEffect(enemy, { effect: "negative.замедлен", sourceActorId: source.id, sourceId: `${p.ruleId}:${actionEvent.id}:${enemy.id}`, ruleId: p.ruleId, sourceActionId: p.ruleId }, source.id);
+          }
+          emit("technique.resolve", source.id, { ruleId: p.ruleId, sourceDigest: p.sourceDigest, actionEventId: actionEvent.id, targetId: target.id, health: { current, maximum }, knockedOut: current <= threshold });
+          break;
+        }
         case "damage": applyDamage({ ...p, sourceActorId: Object.hasOwn(p,"sourceActorId")?p.sourceActorId:sourceId }); break;
         case "breacher-push": {
           const source = requiredActor(scene, p.sourceActorId || sourceId, false), target = requiredActor(scene, p.targetId, false);
@@ -2892,8 +3011,13 @@
         case "prompt": choice(requiredActor(scene,p.targetId||sourceId), "manual", String(p.title || "Решение правила").slice(0,240), ["record"], { ruleId: p.ruleId, text: String(p.text || "").slice(0,1200) }); break;
         case "technique-choice": {
           const target = requiredActor(scene, sourceId, false), options = Array.isArray(p.options) ? p.options : [];
-          if (!p.ruleId || !p.triggerKey || options.length < 2 || !plain(p.choices)) fail("Некорректный выбор Техники");
+          if (!p.ruleId || !p.triggerKey || options.length < (p.context?.mandatory ? 1 : 2) || !plain(p.choices)) fail("Некорректный выбор Техники");
           choice(target, "technique-trigger", String(p.title || "Сработала Техника").slice(0, 240), options, { ruleId: p.ruleId, triggerKey: p.triggerKey, optionLabels: copy(p.optionLabels || {}), choices: copy(p.choices), ...(p.context || {}) });
+          if (p.context?.followupId) {
+            const followup = followupById(p.context.followupId), pending = s.choices.at(-1);
+            if (!followup) fail("Жизненный цикл follow-up отсутствует");
+            followup.choiceId = pending?.id || null;
+          }
           break;
         }
         case "choice": {
@@ -2911,6 +3035,22 @@
             item.p.frame = global.DAWN_LIONWING_EXECUTION.choose(item.p.frame, p.choice);
           }
           else if (pending.kind === "technique-trigger") {
+            const followup = pending.context?.followupId ? followupById(pending.context.followupId) : null;
+            if (pending.context?.followupId && !followup) fail("Жизненный цикл follow-up не найден");
+            if (followup) {
+              if (followup.status === "cancelled") fail(`Follow-up отменён: ${followup.cancelledReason || "условие отмены"}`);
+              if (followup.status !== "offered") fail("Follow-up уже получил ответ");
+              for (const participantId of followup.participantIds || []) {
+                const participant = actor(scene, participantId);
+                if (!participant || participant.knockedOut) { followupCancel(followup, participant ? "knockout" : "sourceLoss"); fail("Участник follow-up больше недоступен"); }
+              }
+              if (p.choice === "skip" && followup.optional !== false) {
+                followupCancel(followup, "declined");
+              } else {
+                followup.status = "active"; followup.selected = p.choice; followup.startedEventId = rootId;
+                emit("followup.start", followup.sourceActorId || sourceId, { followupId: followup.id, ruleId: followup.ruleId, participantIds: copy(followup.participantIds), causeEventId: followup.causeEventId, choice: p.choice, endBoundary: followup.endBoundary });
+              }
+            }
             const operations = pending.context?.choices?.[p.choice] || [];
             if (!Array.isArray(operations)) fail("Продолжение Техники повреждено");
             for (const operation of operations) {
@@ -3268,7 +3408,10 @@
     provenance = foundations.identity({ rootActionId: rootId, actionId: request.actionId || pendingActionId || `operation.${request.kind}`, actionDefinitionId:request.actionId||pendingActionId||`operation.${request.kind}`, actionInstanceId:rootId, causeEventId: rootId, ownerActorId: event.actorId || "scene" });
     saveFact("attempt", event.actorId??null, request.targetIds || (request.targetId ? [request.targetId] : []), { kind: request.kind });
     const duelPreparation=s.choices[0]?.kind==="duel-outcome"&&["roll","resource"].includes(request.kind)&&(s.duels||[]).some(duel=>duel.id===s.choices[0].context.duelId&&[duel.actorId,duel.targetId].includes(request.targetId||event.actorId));
-    if (s.choices.length && !duelPreparation && !["choice", "correct", "note", "tension", "pause-chain", "information-reveal", "information-cancel", "information-handout"].includes(request.kind)) fail("Сначала ответьте на ожидающее решение");
+    const pendingFollowup = s.choices[0]?.context?.followupId && followupById(s.choices[0].context.followupId);
+    const followupCancellationTarget = pendingFollowup && (request.targetId || event.actorId);
+    const followupCancellationEvent = pendingFollowup && ["damage", "knockout"].includes(request.kind) && pendingFollowup.participantIds?.includes(followupCancellationTarget);
+    if (s.choices.length && !duelPreparation && !followupCancellationEvent && !["choice", "correct", "note", "tension", "pause-chain", "information-reveal", "information-cancel", "information-handout"].includes(request.kind)) fail("Сначала ответьте на ожидающее решение");
     if (scene.pendingAction && !["reaction", "resolve-attack", "cancel-attack", "correct", "note", "choice", "tension","invisible","pause-chain","amend-attack", "information-reveal", "information-cancel", "information-handout"].includes(request.kind)) fail("Сначала завершите Атаку");
     const operations = request.kind === "batch" ? request.operations : [request];
     if (!Array.isArray(operations) || !operations.length || operations.length > 192 || operations.some(p => !p || p.kind === "batch")) fail("Некорректный пакет операций");
@@ -3316,6 +3459,9 @@
       if (p.kind === "forced-towards") {
         if (p.ruleId !== "disruptor.siren.2" || typeof p.sourceActorId !== "string" || typeof p.targetId !== "string" || typeof p.sourceDigest !== "string" || typeof (p.causeEventId || p.frightenedEventId) !== "string") fail("Сирена II требует источник, цель, канонический digest и событие причины");
         if (p.maximum !== undefined && (!Number.isSafeInteger(p.maximum) || p.maximum < 0 || p.maximum > 3)) fail("Сирена II позволяет не более 3 клеток движения");
+      }
+      if(p.kind === "shatter-check") {
+        if (p.ruleId !== "ruiner.cryomancer.3" || typeof p.sourceDigest !== "string" || typeof p.sourceActorId !== "string" || typeof p.targetId !== "string" || typeof p.actionEventId !== "string") fail("Раскол требует авторитетную квитанцию Завершения");
       }
       if(p.kind === "forced-towards-group-step" || p.kind === "forced-towards-group-after-route") {
         if(typeof p.groupId !== "string") fail("Продолжение группового перемещения повреждено");
@@ -3513,10 +3659,16 @@
     try { return { ok: true, ...dispatchMany(scene, events, options), errors: [] }; }
     catch (error) { return { ok: false, errors: [error.message], code: error.code || "LIONWING_RULE_BLOCKED" }; }
   }
+  const followupStatus = (scene, id = null) => {
+    const rows = state(copy(scene)).followups || [];
+    const selected = id == null ? rows : rows.filter(item => item.id === id);
+    return copy(selected.map(item => ({ ...item, completionOperations: undefined })));
+  };
+  const pendingFollowups = scene => followupStatus(scene).filter(item => ["offered", "active", "cancelled"].includes(item.status));
   const api = {
     schema: 2, isScene, prepare, command, dispatchMany, replay, undo, reload, previewEvents, prepareEntityRemoval, cancelEntityRemoval, removeEntity, destroyEntity: removeEntity,
     combatMeter: combatMeter ? { read: (scene, id) => combatMeter.read(scene, id), quote: (scene, id, change) => combatMeter.quote(scene, id, change) } : null,
-    turnStartStatus, roundEndStatus, turnIdentity,
+    turnStartStatus, roundEndStatus, turnIdentity, followupStatus, pendingFollowups,
     movement, roll, actionStatus, actionDef, speed, maxHealth, balance, canSpend, targetIds, costQuote, detectiveMovementStatus, prepareDetectiveTeleport,
     createDiceRoll, createRoll: createDiceRoll, diceCreate: createDiceRoll,
     applyDiceRoll, applyRoll: applyDiceRoll, diceApply: applyDiceRoll,
@@ -3531,7 +3683,7 @@
     lifetimeBoundary: foundations.lifetimeBoundary,
     normalizeLifetime: foundations.normalizeLifetime,
     isLifetimeExpired: foundations.lifetimeExpired,
-    operations: ["automation", "plan", "batch", "pause-chain", "resume-chain", "amend-attack", "recover-track", "record-action", "action", "derived-action", "attack", "information-study", "information-reveal", "information-cancel", "information-handout", "damage", "breacher-push", "spend-health", "lose-health", "heal", "wound", "stress", "knockout", "resource", "inventory", "intermission", "correct", "effect", "effect-source", "banish", "vanish", "compound", "aura", "aura-create", "aura-update", "aura-suppress", "aura-restore", "aura-remove", "placement", "teleport", "displacement", "move", "forced-towards-group", "forced-towards-group-step", "forced-towards-group-after-route", "forced-towards", "forced-away", "martial-quick-step", "jab", "skirmisher-shift", "geometry-move", "geometry-segment", "modifier", "allow-action", "grant-turn", "usage", "punish", "invisible", "search", "configure-resource", "dice-create", "dice-apply", "dice-reload", "dice-opposed", "dice-resolve-tie", "counter", "clock", "prompt", "technique-choice", "choice", "roll", "reaction", "resolve-attack", "cancel-attack", "turn-start", "turn-end", "round-end", "scene-reset", "chapter-start", "tension", "combat-meter", "note", "marker-remove"]
+    operations: ["automation", "plan", "batch", "pause-chain", "resume-chain", "amend-attack", "recover-track", "record-action", "action", "derived-action", "attack", "information-study", "information-reveal", "information-cancel", "information-handout", "shatter-check", "damage", "breacher-push", "spend-health", "lose-health", "heal", "wound", "stress", "knockout", "resource", "inventory", "intermission", "correct", "effect", "effect-source", "banish", "vanish", "compound", "aura", "aura-create", "aura-update", "aura-suppress", "aura-restore", "aura-remove", "placement", "teleport", "displacement", "move", "forced-towards-group", "forced-towards-group-step", "forced-towards-group-after-route", "forced-towards", "forced-away", "martial-quick-step", "jab", "skirmisher-shift", "geometry-move", "geometry-segment", "modifier", "allow-action", "grant-turn", "usage", "punish", "invisible", "search", "configure-resource", "dice-create", "dice-apply", "dice-reload", "dice-opposed", "dice-resolve-tie", "counter", "clock", "prompt", "technique-choice", "choice", "roll", "reaction", "resolve-attack", "cancel-attack", "turn-start", "turn-end", "round-end", "scene-reset", "chapter-start", "tension", "combat-meter", "note", "marker-remove"]
   };
   global.DAWN_LIONWING_ENGINE = api;
   const routed = global.DAWN_SCENE_ENGINE;
@@ -3581,6 +3733,10 @@
       if(projected.lionwing){
         delete projected.lionwing.history;delete projected.lionwing.pausedChains;delete projected.lionwing.receipts;delete projected.lionwing.boundaryReceipts;delete projected.lionwing.deferred;delete projected.lionwing.afterAttack;delete projected.lionwing.executionCursor;delete projected.lionwing.afterEventReceipts;
         for(const key of ["choices","duels","opportunities","grantedTurns"])projected.lionwing[key]=(projected.lionwing[key]||[]).filter(item=>!refersToHidden(item));
+        const viewerActorIds = new Set([...(Array.isArray(viewer.actorIds) ? viewer.actorIds : []), ...(typeof viewer.actorId === "string" ? [viewer.actorId] : [])]);
+        projected.lionwing.followups = (projected.lionwing.followups || [])
+          .filter(item => viewerActorIds.has(item.ownerActorId) || viewerActorIds.has(item.sourceActorId))
+          .map(item => { const safe = { ...item }; delete safe.completionOperations; return safe; });
         projected.lionwing.auras=(projected.lionwing.auras||[]).filter(aura=>!hidden.has(aura.ownerActorId)&&!hidden.has(aura.sourceEntityId));
       }
       if(projected.pendingAction?.targetDamage)projected.pendingAction.targetDamage=Object.fromEntries(Object.entries(projected.pendingAction.targetDamage).filter(([id])=>!hidden.has(id)));

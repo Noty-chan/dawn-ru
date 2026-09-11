@@ -414,7 +414,7 @@ const expectedTargets = (scene.actors || []).filter(target => !target.knockedOut
     if (payload.key === "enemyAim" && (!Number.isInteger(Number(payload.value)) || Number(payload.value) < 0 || Number(payload.value) > 1)) throw new Error("Некорректное значение Прицела.");
     if (payload.key === "berserkerReactionTurnSerial" && (!Number.isInteger(Number(payload.value)) || Number(payload.value) < 0)) throw new Error("Некорректная отметка Пассивa Берсерка.");
     if (payload.key === "rangerHeadshotTargetId" && payload.value !== null && !actorById(scene, payload.value)) throw new Error("Некорректная цель Выстрела в голову.");
-    if (["grimTransformed", "grimUsed", "warringTransformed", "warringUsed", "drainLife", "wispCreationUsed"].includes(payload.key) && typeof payload.value !== "boolean") throw new Error("Некорректный переключатель Техники.");
+    if (["grimTransformed", "grimUsed", "warringTransformed", "warringUsed", "wispCreationUsed"].includes(payload.key) && typeof payload.value !== "boolean") throw new Error("Некорректный переключатель Техники.");
     if (payload.key === "lastCreationSpellMarks" && (!Number.isInteger(Number(payload.value)) || Number(payload.value) < 0 || Number(payload.value) > 99)) throw new Error("Некорректное число Меток творения.");
     if (payload.key === "empathSupport" && (!Number.isInteger(Number(payload.value)) || Number(payload.value) < 0 || Number(payload.value) > 99)) throw new Error("Некорректная Поддержка Эмпата.");
     if(payload.key==="masterArmament"&&!["blade","polearm","chain"].includes(payload.value))throw new Error("Некорректное Вооружение.");
@@ -1146,7 +1146,6 @@ function reduceEvent(scene, event) {
     else {
       actor.ruleState[payload.key] = payload.value;
       if (payload.key === "grimTransformed" && payload.value) actor.hp = Math.min(Number(actor.hp || 0), 1);
-      if (payload.key === "grimTransformed" && !payload.value) actor.ruleState.drainLife = false;
     }
   } else if (event.type === "turn.grant" && actor) {
     actor.extraTurns = Math.max(0, Number(actor.extraTurns || 0) + Number(payload.amount || 0));

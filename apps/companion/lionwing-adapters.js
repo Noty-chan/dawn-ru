@@ -152,7 +152,7 @@
   });
   const sceneFocus = amount => actor => [{ kind: "resource", targetId: actor.id, resource: "focus", operation: "gain", amount: typeof amount === "function" ? amount(actor) : amount }];
   const resourceConfiguration = (actor, id, label, current, options = {}) => [{ kind: "configure-resource", targetId: actor.id, id, label, current, initial: current, scope: options.scope || "scene", lifetime: "scene", replaces: options.replaces || null, replacesAp: options.replacesAp === true, inverted: options.inverted === true, ruleId: options.ruleId || null }];
-  const eventTrigger = ({ id, label, sourceDigest, coverage = "full", triggerKey, match, operations = [], choices = [], choiceSet = false, boundaryOperations, rangeBonus }) => ({ id, techniqueId: id.replace(/\.\d+$/, ""), level: Number(id.match(/\.(\d+)$/)?.[1] || 0), label, sourceDigest, coverage, available: actor => knows(actor, id.replace(/\.\d+$/, ""), Number(id.match(/\.(\d+)$/)?.[1] || 0)), triggerKey, match, operations, choices, choiceSet, boundaryOperations, rangeBonus });
+  const eventTrigger = ({ id, label, sourceDigest, coverage = "full", triggerKey, match, operations = [], choices = [], choiceSet = false, boundaryOperations, rangeBonus, followUp }) => ({ id, techniqueId: id.replace(/\.\d+$/, ""), level: Number(id.match(/\.(\d+)$/)?.[1] || 0), label, sourceDigest, coverage, available: actor => knows(actor, id.replace(/\.\d+$/, ""), Number(id.match(/\.(\d+)$/)?.[1] || 0)), triggerKey, match, operations, choices, choiceSet, boundaryOperations, rangeBonus, followUp });
   const typedConfiguration = (actor, id, label, itemKind, source, options = {}) => [{
     kind: "inventory", operation: "configure", targetId: actor.id, ownerActorId: actor.id, sourceActorId: actor.id,
     id, label, inventoryKind: itemKind || "stack", current: options.current ?? (["selected-item", "recorded-value"].includes(itemKind) ? null : options.initial ?? 0), ...(["selected-item", "recorded-value"].includes(itemKind) ? {} : { initial: options.initial ?? 0 }),
@@ -377,6 +377,7 @@
         operations: [{ kind: "move", targetId: actor.id, maximum: Number(actor.tier || 1), forced: false, techniqueId: "bulwark.rising-challenger.1" }],
         context: { destinationRequired: true, targetId: actor.id, maximum: Number(actor.tier || 1), eventId: event.id },
       }],
+      followUp: (actor, event) => ({ id: `${event.id}:${actor.id}:rising-challenger-followup`, ownerActorId: actor.id, sourceActorId: actor.id, participantIds: [actor.id, event.payload?.targetId || actor.id], endBoundary: "anyTurnStart", cancelOn: ["damage", "knockout", "sourceLoss"], completionOperations: [] }),
     }),
     eventTrigger({
       id: "powerhouse.berserker.3",
@@ -415,6 +416,7 @@
           context: { targetId, sourceActorId: actor.id, maximum: 3, eventId: event.id, frightenedEventId: event.id, sourceDigest: SIREN_SOURCE_DIGESTS["disruptor.siren.2"] },
         }] : [];
       },
+      followUp: (actor, event) => event.payload?.targetId ? ({ id: `${event.id}:${actor.id}:siren-pull-followup`, ownerActorId: actor.id, sourceActorId: actor.id, participantIds: [actor.id, event.payload.targetId], endBoundary: "anyTurnStart", cancelOn: ["damage", "knockout", "sourceLoss"], completionOperations: [] }) : null,
     }),
     eventTrigger({
       id: "disruptor.siren.3",
@@ -452,6 +454,7 @@
         operations: [{ kind: "chemist-health-check", targetId: event.payload.targetId, sourceActorId: actor.id, ruleId: "disruptor.chemist.2" }],
         context: { targetId: event.payload.targetId, sourceActorId: actor.id, eventId: event.id },
       }] : [],
+      followUp: (actor, event) => event.payload?.targetId ? ({ id: `${event.id}:${actor.id}:chemist-health-followup`, ownerActorId: actor.id, sourceActorId: actor.id, participantIds: [actor.id, event.payload.targetId], endBoundary: "anyTurnStart", cancelOn: ["damage", "knockout", "sourceLoss"], completionOperations: [] }) : null,
     }),
     eventTrigger({
       id: "powerhouse.monastic-sage.2",
@@ -587,28 +590,33 @@
           id: "drain",
           label: `Начать Drain Life на ${target.name}`,
           operations: [
-            { kind: "effect", targetId: actor.id, sourceActorId: actor.id, sourceId: drainId, ownerActorId: actor.id, duration: "startTurn", effect: "negative.обездвижен", ruleId: "ruiner.grim-ascendant.2", sourceActionId: "ruiner.grim-ascendant.2" },
-            { kind: "effect", targetId: target.id, sourceActorId: actor.id, sourceId: drainId, ownerActorId: target.id, duration: "startTurn", effect: "negative.обездвижен", ruleId: "ruiner.grim-ascendant.2", sourceActionId: "ruiner.grim-ascendant.2" },
+            { kind: "effect", targetId: actor.id, sourceActorId: actor.id, sourceId: drainId, ownerActorId: actor.id, duration: "scene", effect: "negative.обездвижен", ruleId: "ruiner.grim-ascendant.2", sourceActionId: "ruiner.grim-ascendant.2" },
+            { kind: "effect", targetId: target.id, sourceActorId: actor.id, sourceId: drainId, ownerActorId: target.id, duration: "scene", effect: "negative.обездвижен", ruleId: "ruiner.grim-ascendant.2", sourceActionId: "ruiner.grim-ascendant.2" },
           ],
           context: { targetId: target.id, sourceActorId: actor.id, drainId, actionInstanceId },
         }];
       },
-      boundaryOperations: (activeActor, context) => {
-        if (context?.boundary !== "startTurn" || !context.scene) return [];
-        const drains = [];
-        for (const participant of context.scene.actors || []) for (const source of participant.effectStates?.["negative.обездвижен"]?.sources || []) if (source.ruleId === "ruiner.grim-ascendant.2" && source.sourceId && !drains.some(item => item.drainId === source.sourceId)) drains.push({ drainId: source.sourceId, sourceActorId: source.actorId, appliedEventId: source.eventId });
-        return drains.filter(drain => (context.scene.actors || []).some(participant => participant.id === activeActor.id && participant.effectStates?.["negative.обездвижен"]?.sources?.some(source => source.sourceId === drain.drainId) || participant.id === activeActor.id && (context.scene.log || []).some(row => row.type === "effect.remove" && row.payload?.sourceId === drain.drainId))).flatMap(drain => {
-          const participantIds = (context.scene.actors || []).filter(participant => participant.effectStates?.["negative.обездвижен"]?.sources?.some(source => source.sourceId === drain.drainId)).map(participant => participant.id);
-          if (!participantIds.length) return [];
-          const appliedIndex = (context.scene.log || []).findIndex(row => row.id === drain.appliedEventId), recent = appliedIndex < 0 ? (context.scene.log || []) : (context.scene.log || []).slice(0, appliedIndex);
-          const damaged = recent.some(row => row.type === "damage.apply" && Number(row.payload?.dealt || 0) > 0 && participantIds.includes(row.payload?.targetId));
-          const sourceActor = (context.scene.actors || []).find(participant => participant.id === drain.sourceActorId);
-          const operations = [];
-          if (!damaged && sourceActor) operations.push({ kind: "resource", targetId: sourceActor.id, resource: "focus", operation: "gain", amount: Number(sourceActor.attrs?.spirit || 0), ruleId: "ruiner.grim-ascendant.2" });
-          for (const participantId of participantIds) operations.push({ kind: "effect-source", targetId: participantId, sourceId: drain.drainId, operation: "remove", ruleId: "ruiner.grim-ascendant.2" });
-          return [{ id: "ruiner.grim-ascendant.2", label: "Drain Life завершён", operations }];
-        });
+      followUp: (actor, event, context) => {
+        const payload = event.payload || {}, targetId = Array.isArray(payload.targetIds) && payload.targetIds.length === 1 ? payload.targetIds[0] : null;
+        const target = targetId && context.scene?.actors?.find(item => item.id === targetId), actionInstanceId = payload.actionInstanceId || event.execution?.actionInstanceId;
+        if (!target || !actionInstanceId) return null;
+        const drainId = `${actor.id}:${actionInstanceId}:grim-drain`;
+        return { id: drainId, ownerActorId: actor.id, sourceActorId: actor.id, participantIds: [actor.id, target.id], endBoundary: "anyTurnStart", cancelOn: ["damage", "knockout", "sourceLoss"], completionOperations: [{ kind: "resource", targetId: actor.id, resource: "focus", operation: "gain", amount: Number(actor.attrs?.spirit || 0), ruleId: "ruiner.grim-ascendant.2" }, { kind: "effect-source", targetId: actor.id, sourceId: drainId, operation: "remove", effect: "negative.обездвижен", ruleId: "ruiner.grim-ascendant.2" }, { kind: "effect-source", targetId: target.id, sourceId: drainId, operation: "remove", effect: "negative.обездвижен", ruleId: "ruiner.grim-ascendant.2" }] };
       },
+    }),
+    eventTrigger({
+      id: "ruiner.cryomancer.3",
+      label: "Раскол: раскрыть приватное Здоровье Обездвиженной цели и проверить нокаут",
+      sourceDigest: "0e00f6cef0e67d2cb07a99ada1557193abfd5f1932f170c733a063839a5200eb",
+      coverage: "partial",
+      triggerKey: ({ actor, event }) => `${event.payload?.actionInstanceId || event.execution?.actionInstanceId || event.id}:${actor.id}:shatter`,
+      match: (actor, event, context) => {
+        const payload = event.payload || {}, targetId = Array.isArray(payload.targetIds) && payload.targetIds.length === 1 ? payload.targetIds[0] : null;
+        const target = targetId && context.scene?.actors?.find(item => item.id === targetId);
+        return event.type === "action.resolve" && event.actorId === actor.id && payload.actionId === ACTIONS.finish && typeof (payload.actionInstanceId || event.execution?.actionInstanceId) === "string" && target && target.team !== actor.team && !target.knockedOut && Boolean(target.effects?.includes("negative.обездвижен") || target.effectStates?.["negative.обездвижен"]);
+      },
+      operations: (actor, event) => [{ kind: "shatter-check", targetId: event.payload.targetIds[0], sourceActorId: actor.id, actionEventId: event.id, ruleId: "ruiner.cryomancer.3", sourceDigest: "0e00f6cef0e67d2cb07a99ada1557193abfd5f1932f170c733a063839a5200eb" }],
+      choices: () => [],
     }),
   ];
 
@@ -1157,6 +1165,13 @@
       // choice, so this adapter deliberately does not guess.
       modify: (_actor, _context) => null,
     }),
+    actionModifier({
+      id: "ruiner.cryomancer.3", techniqueId: "ruiner.cryomancer", level: 3,
+      sourceDigest: "0e00f6cef0e67d2cb07a99ada1557193abfd5f1932f170c733a063839a5200eb",
+      label: "Раскол: дальность Духовного Завершения 5",
+      available: actor => knows(actor, "ruiner.cryomancer", 3),
+      modify: (_actor, context) => context.actionId === ACTIONS.finish && context.attribute === "spirit" ? { range: 5, reason: "Раскол расширяет дальность Духовного Завершения до 5." } : null,
+    }),
   ];
   const adapters = Object.freeze([berserker, flagellant, ...passives, ...eventAdapters]);
   const enabledActionModifiers = actor => actionModifiers.filter(rule => rule.available(actor) && actor?.lionwing?.automation?.[rule.id] === true);
@@ -1260,7 +1275,9 @@
       if (!match) return [];
       const triggerKey = typeof rule.triggerKey === "function" ? rule.triggerKey({ actor, event, context }) : `${event.id}:${actor.id}`;
       const operations = rule.id === "ruiner.cryomancer.2" ? [{ kind: "clock", targetId: actor.id, id: "ruiner.cryomancer.icicle", operation: "add", delta: 1, ruleId: rule.id }] : rule.operations(actor, event, context);
-      return [{ id: rule.id, label: rule.label, sourceDigest: rule.sourceDigest, coverage: rule.coverage, triggerKey: rule.id === "ruiner.cryomancer.2" ? `${event.payload.actionInstanceId || event.execution?.actionInstanceId}:${actor.id}:cryomancer-2` : triggerKey, operations, choices: typeof rule.choices === "function" ? rule.choices(actor, event, context) : [], choiceSet: rule.choiceSet === true }];
+      const ruleChoices = rule.choices ? rule.choices(actor, event, context) : [];
+      const followUp = typeof rule.followUp === "function" ? rule.followUp(actor, event, context) : rule.followUp;
+      return [{ id: rule.id, label: rule.label, sourceDigest: rule.sourceDigest, coverage: rule.coverage, triggerKey: rule.id === "ruiner.cryomancer.2" ? `${event.payload.actionInstanceId || event.execution?.actionInstanceId}:${actor.id}:cryomancer-2` : triggerKey, operations, choices: ruleChoices, choiceSet: rule.choiceSet === true, ...(followUp ? { followUp } : {}) }];
     });
   };
   const numericContributions = (actor, method, context) => enabled(actor).flatMap(rule => {

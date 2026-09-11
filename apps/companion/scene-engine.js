@@ -4,6 +4,7 @@ function projectScene(scene, viewer = {}) {
   const projected = clone(scene);
   const narrator = ["owner", "narrator", "gm"].includes(viewer.role);
   const ownActorIds = new Set(Array.isArray(viewer.actorIds) ? viewer.actorIds : []);
+  if (typeof viewer.actorId === "string" && viewer.actorId) ownActorIds.add(viewer.actorId);
   if (!narrator) {
     projected.actors = (projected.actors || []).filter(actor => !actor.hidden).map(actor => {
       if (ownActorIds.has(actor.id)) return actor;
@@ -23,7 +24,7 @@ function projectScene(scene, viewer = {}) {
     const visibleArtIds = new Set(projected.artworks.map(art => art.id));
     projected.backgroundArt = visibleArtIds.has(projected.backgroundArt) ? projected.backgroundArt : null;
     projected.featuredArt = visibleArtIds.has(projected.featuredArt) ? projected.featuredArt : null;
-    projected.log = (projected.log || []).filter(event => event.visibility !== "gm" && event.payload?.visibility !== "gm");
+    projected.log = (projected.log || []).filter(event => event.visibility !== "gm" && event.payload?.visibility !== "gm" && (event.visibility !== "owner" && event.payload?.visibility !== "owner" || ownActorIds.has(event.payload?.ownerActorId || event.actorId)));
     projected.rollFeed = (projected.rollFeed || []).filter(roll => roll.visibility !== "gm").map(roll => ({ ...roll, targetIds: (roll.targetIds || []).filter(id => visibleActorIds.has(id)), dice: roll.dice ? { ...roll.dice, targetIds: (roll.dice.targetIds || []).filter(id => visibleActorIds.has(id)) } : roll.dice }));
     if (projected.pendingAction) {
       if (!visibleActorIds.has(projected.pendingAction.actorId)) projected.pendingAction = null;
