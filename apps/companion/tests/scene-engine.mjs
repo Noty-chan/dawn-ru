@@ -1000,7 +1000,7 @@ offTurnSiren.activeActorId = "enemy";
 assert.notEqual(Engine.dispatchMany(offTurnSiren, [{ type: "effect.apply", actorId: "hero", payload: { targetId: "enemy", effect: "negative.испуган" } }]).scene.pendingPrompt?.kind, "siren-irresistible", "Siren II never opens outside its owner's Turn");
 const alliedSiren = structuredClone(sirenScene);
 alliedSiren.actors.push({ ...structuredClone(alliedSiren.actors[1]), id: "ally", name: "Союзник", team: "hero", x: 4, y: 1 });
-assert.notEqual(Engine.dispatchMany(alliedSiren, [{ type: "effect.apply", actorId: "hero", payload: { targetId: "ally", effect: "negative.испуган" } }]).scene.pendingPrompt?.kind, "siren-irresistible", "Siren II applies only when the owner Frightens an enemy");
+assert.equal(Engine.dispatchMany(alliedSiren, [{ type: "effect.apply", actorId: "hero", payload: { targetId: "ally", effect: "negative.испуган" } }]).scene.pendingPrompt?.kind, "siren-irresistible", "Siren II also works when the owner Frightens an allied character");
 let declinedSiren = Engine.dispatchMany(sirenScene, [{ type: "effect.apply", actorId: "hero", payload: { targetId: "enemy", effect: "negative.испуган" } }]).scene;
 const declineEvents = Engine.respondRulePrompt(declinedSiren, data, { choice: "pass" }).events.map((event, index) => ({ ...event, id: `siren-decline-${index}` }));
 declinedSiren = Engine.dispatchMany(declinedSiren, declineEvents).scene;

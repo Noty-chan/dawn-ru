@@ -2063,16 +2063,16 @@
 #### 1. «Ты ведь не причинишь МНЕ боль?» ("You wouldn't hurt ME, would you?") `disruptor.siren.1`
 
 - **Заявленный статус:** `decision` (решение).
-- **Текущий адаптер:** `disruptor.siren.1` · `passive` · {"kind":"passive","coverage":"full","sourceDigest":"8d9becba6e6f63641f5dc1a8a47e965c73f0e7112ef7ef4b781b2c6ffb632979","sourceLevelId":"disruptor.siren.1"}; После Изучения врага стол предлагает потратить 1 Фокус и наложить Испуган на изученную цель, повторно проверяет цель и общий лимит 3 раза за Сцену и фиксирует применение отдельным событием..
-- **Готовые foundations:** `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `usage-limits`, `trigger-router`, `scene-lifecycle`, `action-modifier`, `information-query`.
-- **Нужно добавить:** Для кода явный следующий шаг не выведен автоматически; нужны direct pos/neg/boundary тесты и evidence до повышения доверия.
+- **Текущий адаптер:** `disruptor.siren.1` · `passive` · {"kind":"passive","coverage":"partial","sourceDigest":"8d9becba6e6f63641f5dc1a8a47e965c73f0e7112ef7ef4b781b2c6ffb632979","sourceLevelId":"disruptor.siren.1"}; В начале каждой Сцены даёт 3 Фокуса без лимита применений; после авторитетного Изучения врага предлагает потратить 1 Фокус и наложить Испуган на изученную цель. Текст уровня не содержит ограничения «3 раза за Сцену»; UI/network surface-сверка остаётся ручной..
+- **Готовые foundations:** `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `trigger-router`, `scene-lifecycle`, `action-modifier`, `information-query`.
+- **Нужно добавить:** Старый текстовый путь ошибочно обещал ограничение «3 раза за Сцену». Английский канон требует +3 Фокуса в начале каждой Сцены без этого лимита; авторитетный Study→Fear choice-flow и digest добавлены, cross-surface certification остаётся ручной.
 
 #### 2. «Я неотразима!» ("I'm Irresistible!") `disruptor.siren.2`
 
 - **Заявленный статус:** `decision` (решение).
-- **Текущий адаптер:** `disruptor.siren.2` · `passive` · {"kind":"passive","coverage":"full","sourceDigest":"62f65d9d2cfad5b96f12f80b2ece81635e47b5f63083b35b4f4c6eb1db1b5ed6","sourceLevelId":"disruptor.siren.2"}; Первое за Ход наложение Испуган открывает отменяемый выбор клетки: путь цели до 3 клеток проверяется пошагово на приближение к Сирене, а после фактического входа цели в смежность отдельно предлагает наложить Ошеломлен и только тогда даёт 1 Фокус..
+- **Текущий адаптер:** `disruptor.siren.2` · `passive` · {"kind":"passive","coverage":"partial","sourceDigest":"62f65d9d2cfad5b96f12f80b2ece81635e47b5f63083b35b4f4c6eb1db1b5ed6","sourceLevelId":"disruptor.siren.2"}; Первое за Ход наложение Испуган открывает отменяемый выбор клетки: путь цели до 3 клеток проверяется пошагово на приближение к Сирене, а после фактического входа цели в смежность отдельно предлагает наложить Ошеломлен и только тогда даёт 1 Фокус. Surface-сверка импортов и сетевых повторов остаётся ручной..
 - **Готовые foundations:** `target-validation`, `event-participants`, `movement-lifecycle`, `effect-state`, `effect-lifecycle`, `usage-limits`, `trigger-router`, `turn-lifecycle`.
-- **Нужно добавить:** Для кода явный следующий шаг не выведен автоматически; нужны direct pos/neg/boundary тесты и evidence до повышения доверия.
+- **Нужно добавить:** Сирена II требует once-per-Turn receipt после собственного Fear-события; авторитетно проверены владелец, digest, живой враг, пошаговое движение до 3 и Daze/+1 Focus только после фактической смежности. UI/network/import surface evidence остаётся ручным.
 
 #### 3. «Не поможете?» ("A little help over here?") `disruptor.siren.3`
 
@@ -2225,24 +2225,24 @@
 
 #### 1. Взрыв!! (Explosion!!) `ruiner.bombardier.1`
 
-- **Заявленный статус:** `full` (полная).
-- **Текущий адаптер:** `ruiner.bombardier.1` · `area` · {"kind":"area","shape":"adjacent","areaType":"attack","duration":"instant","range":4,"sourceLevelId":"ruiner.bombardier.1","sourceDigest":"3d9ff42ccdca001941878db3a63ef647bf904ad689d35b2c6b7e5c76e1ce59d3","coverage":"full"}; Завершение Духом использует авторитетный снимок пула; центр в дальности 4 поражает выбранную клетку и четыре смежные через общий attack pipeline..
+- **Заявленный статус:** `partial` (частичная).
+- **Текущий адаптер:** `ruiner.bombardier.1` · `area` · {"kind":"area","shape":"adjacent","areaType":"attack","duration":"instant","range":4,"sourceLevelId":"ruiner.bombardier.1","sourceDigest":"3d9ff42ccdca001941878db3a63ef647bf904ad689d35b2c6b7e5c76e1ce59d3","coverage":"partial"}; Частично автоматизировано: Завершение Духом требует вражескую цель в центре в дальности 4 и поражает её и все доступные смежные клетки; полный surface-сверка ещё требует проверки..
 - **Готовые foundations:** `target-validation`, `event-participants`, `spatial-cells`, `spatial-range`, `action-modifier`.
-- **Нужно добавить:** Заявление full понижено до partial: area/reaction/damage pipeline существует, но preview принимает готовые `roll.successes` и не валидирует обязательное Завершение Духом.
+- **Нужно добавить:** Заявление full понижено до partial: авторитетный план требует Завершение Духом, вражескую цель в центре и дальность 4, затем выводит центр и смежные клетки; полный сетевой/UI surface-контракт ещё не сертифицирован.
 
 #### 2. Взрыв!!! (Explosion!!!) `ruiner.bombardier.2`
 
-- **Заявленный статус:** `full` (полная).
-- **Текущий адаптер:** `ruiner.bombardier.2` · `area` · {"kind":"area","shape":"square3","areaType":"attack","duration":"instant","range":5,"optionMinimum":{"key":"focusSpent","value":2,"label":"потрачено Фокуса"},"sourceLevelId":"ruiner.bombardier.2","sourceDigest":"46784c9f35cd64891f6ba70dc0d5a14ddf7f15aaab733ca1dbd3e6b3c60697c5","coverage":"full"}; При фактической оплате 2+ Фокуса Завершение Духом использует перепроверяемую зону 3×3 в дальности 5..
+- **Заявленный статус:** `partial` (частичная).
+- **Текущий адаптер:** `ruiner.bombardier.2` · `area` · {"kind":"area","shape":"square3","areaType":"attack","duration":"instant","range":5,"optionMinimum":{"key":"focusSpent","value":2,"label":"потрачено Фокуса"},"sourceLevelId":"ruiner.bombardier.2","sourceDigest":"46784c9f35cd64891f6ba70dc0d5a14ddf7f15aaab733ca1dbd3e6b3c60697c5","coverage":"partial"}; Частично автоматизировано: при фактической оплате 2+ Фокуса Завершение Духом перепроверяет зону 3×3 в дальности 5 и получает по 1 Преимуществу за пустую клетку с пределом [Ступень+2]; полный surface-контракт остаётся ручным..
 - **Готовые foundations:** `target-validation`, `event-participants`, `spatial-cells`, `spatial-range`, `resource-check`, `trigger-router`, `choice-flow`, `action-modifier`.
-- **Нужно добавить:** Заявление full понижено до partial: 3×3, range 5 и Focus≥2 проверяются, но атрибут и результаты Spirit Finisher не авторитетны.
+- **Нужно добавить:** Заявление full понижено до partial: авторитетно проверяются Завершение Духом, Focus≥2, зона 3×3 в дальности 5, производный счёт пустых клеток и предел [Ступень+2]; полный surface-контракт остаётся ручным.
 
 #### 3. ВЗРЫВ!!!! (EXPLOSION!!!!) `ruiner.bombardier.3`
 
-- **Заявленный статус:** `full` (полная).
-- **Текущий адаптер:** `ruiner.bombardier.3` · `area` · {"kind":"area","shape":"square5","areaType":"attack","duration":"instant","range":6,"optionMinimum":{"key":"focusSpent","value":4,"label":"потрачено Фокуса"},"sourceLevelId":"ruiner.bombardier.3","sourceDigest":"e9b9958348fa1bf6bf5f752ead593042fcd332ebcc8e28cd2a23054bea16a4de","coverage":"full"}; При фактической оплате 4+ Фокуса Завершение Духом использует перепроверяемую и обрезаемую краем поля зону 5×5 в дальности 6..
+- **Заявленный статус:** `partial` (частичная).
+- **Текущий адаптер:** `ruiner.bombardier.3` · `area` · {"kind":"area","shape":"square5","areaType":"attack","duration":"instant","range":6,"optionMinimum":{"key":"focusSpent","value":4,"label":"потрачено Фокуса"},"sourceLevelId":"ruiner.bombardier.3","sourceDigest":"e9b9958348fa1bf6bf5f752ead593042fcd332ebcc8e28cd2a23054bea16a4de","coverage":"partial"}; Частично автоматизировано: при фактической оплате 4+ Фокуса Завершение Духом перепроверяет зону 5×5 в дальности 6; полный surface-контракт остаётся ручным..
 - **Готовые foundations:** `target-validation`, `event-participants`, `spatial-cells`, `spatial-range`, `resource-check`, `trigger-router`, `choice-flow`, `action-modifier`.
-- **Нужно добавить:** Заявление full понижено до partial: 5×5, range 6 и Focus≥4 проверяются, но атрибут и результаты Spirit Finisher не авторитетны; полного surface evidence нет.
+- **Нужно добавить:** Заявление full понижено до partial: авторитетно проверяются Завершение Духом, Focus≥4 и зона 5×5 в дальности 6; полный surface-контракт остаётся ручным.
 
 ### Искоренитель (Eradicator) `ruiner.rapid-fire-sorcery`
 

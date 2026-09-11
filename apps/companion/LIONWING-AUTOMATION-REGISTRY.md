@@ -287,9 +287,9 @@ Canonical уровней: **333** · Явно исправленных review: *
 | `disruptor.inner-world.1` | Worldsmith | 1 | `partial` | `unreviewed` | — | `uncertified` |
 | `disruptor.inner-world.2` | Worldsmith | 2 | `decision` | `unreviewed` | — | `uncertified` |
 | `disruptor.inner-world.3` | Worldsmith | 3 | `partial` | `unreviewed` | — | `uncertified` |
-| `ruiner.bombardier.1` | Bombardier | 1 | `full` | `unreviewed` | — | `uncertified` |
-| `ruiner.bombardier.2` | Bombardier | 2 | `full` | `unreviewed` | — | `uncertified` |
-| `ruiner.bombardier.3` | Bombardier | 3 | `full` | `unreviewed` | — | `uncertified` |
+| `ruiner.bombardier.1` | Bombardier | 1 | `partial` | `unreviewed` | — | `uncertified` |
+| `ruiner.bombardier.2` | Bombardier | 2 | `partial` | `unreviewed` | — | `uncertified` |
+| `ruiner.bombardier.3` | Bombardier | 3 | `partial` | `unreviewed` | — | `uncertified` |
 | `ruiner.rapid-fire-sorcery.1` | Eradicator | 1 | `manual` | `unreviewed` | — | `uncertified` |
 | `ruiner.rapid-fire-sorcery.2` | Eradicator | 2 | `partial` | `unreviewed` | — | `uncertified` |
 | `ruiner.rapid-fire-sorcery.3` | Eradicator | 3 | `manual` | `unreviewed` | — | `uncertified` |

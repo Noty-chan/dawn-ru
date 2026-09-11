@@ -32,7 +32,7 @@ const scene = {
 };
 
 assert.ok(Engine.rulesFor(scene.actors[0].techniques).some(rule => rule.id === "ruiner.bombardier.3"));
-assert.equal(Engine.RULES.find(rule => rule.id === "ruiner.bombardier.3").automation, "full");
+assert.equal(Engine.RULES.find(rule => rule.id === "ruiner.bombardier.3").automation, "partial");
 assert.equal(Engine.RULES.find(rule => rule.id === "disruptor.chemist.1").automation, "full");
 const staleLionWingScene = structuredClone(scene);
 staleLionWingScene.rulesEdition = "lionwing";
@@ -61,9 +61,9 @@ for (const [id, automation] of [
   ["disruptor.mind-breaker.3", "partial"],
   ["disruptor.reaper.2", "partial"],
   ["disruptor.inner-world.1", "partial"],
-  ["ruiner.bombardier.1", "full"],
-  ["ruiner.bombardier.2", "full"],
-  ["ruiner.bombardier.3", "full"],
+  ["ruiner.bombardier.1", "partial"],
+  ["ruiner.bombardier.2", "partial"],
+  ["ruiner.bombardier.3", "partial"],
   ["ruiner.spellcrafter.1", "decision"],
   ["ruiner.spellcrafter.2", "decision"],
   ["ruiner.spellcrafter.3", "decision"],

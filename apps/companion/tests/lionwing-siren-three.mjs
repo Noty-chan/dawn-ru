@@ -54,9 +54,12 @@ cancelled = engine.dispatchMany(cancelled, [{ type: "lionwing.command", actorId:
 cancelled = engine.dispatchMany(cancelled, [{ type: "lionwing.command", actorId: "s", payload: { kind: "resolve-attack", pendingId: cancelled.pendingAction.id } }]).scene;
 const cancelChoice = cancelled.lionwing.choices[0];
 assert.equal(cancelChoice?.options.includes("skip"), true, "Siren III is explicitly optional");
+const siren3CauseId = cancelChoice.context.causeEventId;
+const siren3ActionInstanceId = cancelChoice.context.actionInstanceId;
 cancelled = engine.dispatchMany(cancelled, [{ type: "lionwing.command", actorId: "s", payload: { kind: "choice", id: cancelChoice.id, choice: "skip" } }]).scene;
 assert.equal(cancelled.actors.find(item => item.id === "far").x, 4, "cancelling leaves frightened enemies in place");
 assert.equal(cancelled.actors.find(item => item.id === "target").hp, 17, "cancelling applies no Siren damage");
+assert.throws(() => engine.dispatchMany(structuredClone(cancelled), [{ type: "lionwing.command", actorId: "s", payload: { kind: "forced-towards-group", sourceActorId: "s", targetId: "target", ruleId: "disruptor.siren.3", sourceDigest: "231b63c69615f78497650a97d3a5225a98f298a882d4adb2eedaebdff16c5b7e", actionInstanceId: siren3ActionInstanceId, causeEventId: siren3CauseId, filter: { team: "opposing", effect: "negative.испуган" } } }]), /авторитетн|сохранён|продолж/i, "Siren III rejects a direct replay with the old cause and canonical digest");
 
 assert.throws(() => engine.dispatchMany(scene(), [{ type: "lionwing.command", actorId: "s", payload: { kind: "forced-towards-group", sourceActorId: "s", targetId: "target", ruleId: "disruptor.siren.3", sourceDigest: "231b63c69615f78497650a97d3a5225a98f298a882d4adb2eedaebdff16c5b7e", actionInstanceId: "forged", filter: { team: "opposing", effect: "negative.испуган" }, actorIds: ["far"] } }]), /вычисляется ядром|не связано/);
 

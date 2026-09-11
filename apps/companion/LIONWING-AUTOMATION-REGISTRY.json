@@ -30565,9 +30565,9 @@
             "name": "Ты ведь не причинишь МНЕ боль?",
             "kind": "passive",
             "automation": "decision",
-            "coverage": "full",
+            "coverage": "partial",
             "sourceDigest": "8d9becba6e6f63641f5dc1a8a47e965c73f0e7112ef7ef4b781b2c6ffb632979",
-            "note": "После Изучения врага стол предлагает потратить 1 Фокус и наложить Испуган на изученную цель, повторно проверяет цель и общий лимит 3 раза за Сцену и фиксирует применение отдельным событием.",
+            "note": "В начале каждой Сцены даёт 3 Фокуса без лимита применений; после авторитетного Изучения врага предлагает потратить 1 Фокус и наложить Испуган на изученную цель. Текст уровня не содержит ограничения «3 раза за Сцену»; UI/network surface-сверка остаётся ручной.",
             "sourceLevelId": "disruptor.siren.1"
           }
         ],
@@ -30579,7 +30579,6 @@
             "event-participants",
             "effect-state",
             "effect-lifecycle",
-            "usage-limits",
             "trigger-router",
             "scene-lifecycle",
             "action-modifier",
@@ -30609,13 +30608,6 @@
             },
             {
               "id": "effect-lifecycle",
-              "state": "ready",
-              "reasons": [
-                "подтверждено отдельной ручной записью Уровня"
-              ]
-            },
-            {
-              "id": "usage-limits",
               "state": "ready",
               "reasons": [
                 "подтверждено отдельной ручной записью Уровня"
@@ -30709,9 +30701,9 @@
             "name": "Неотразимая",
             "kind": "passive",
             "automation": "decision",
-            "coverage": "full",
+            "coverage": "partial",
             "sourceDigest": "62f65d9d2cfad5b96f12f80b2ece81635e47b5f63083b35b4f4c6eb1db1b5ed6",
-            "note": "Первое за Ход наложение Испуган открывает отменяемый выбор клетки: путь цели до 3 клеток проверяется пошагово на приближение к Сирене, а после фактического входа цели в смежность отдельно предлагает наложить Ошеломлен и только тогда даёт 1 Фокус.",
+            "note": "Первое за Ход наложение Испуган открывает отменяемый выбор клетки: путь цели до 3 клеток проверяется пошагово на приближение к Сирене, а после фактического входа цели в смежность отдельно предлагает наложить Ошеломлен и только тогда даёт 1 Фокус. Surface-сверка импортов и сетевых повторов остаётся ручной.",
             "sourceLevelId": "disruptor.siren.2"
           }
         ],
@@ -33299,7 +33291,7 @@
       },
       "level": 1,
       "implementation": {
-        "automation": "full",
+        "automation": "partial",
         "ruleIds": [
           "ruiner.bombardier.1"
         ],
@@ -33310,15 +33302,15 @@
             "level": 1,
             "name": "Взрыв!!",
             "kind": "area",
-            "automation": "full",
+            "automation": "partial",
             "shape": "adjacent",
             "areaType": "attack",
             "duration": "instant",
             "range": 4,
-            "note": "Завершение Духом использует авторитетный снимок пула; центр в дальности 4 поражает выбранную клетку и четыре смежные через общий attack pipeline.",
+            "note": "Частично автоматизировано: Завершение Духом требует вражескую цель в центре в дальности 4 и поражает её и все доступные смежные клетки; полный surface-сверка ещё требует проверки.",
             "sourceLevelId": "ruiner.bombardier.1",
             "sourceDigest": "3d9ff42ccdca001941878db3a63ef647bf904ad689d35b2c6b7e5c76e1ce59d3",
-            "coverage": "full"
+            "coverage": "partial"
           }
         ],
         "foundationPlan": {
@@ -33415,7 +33407,7 @@
       },
       "level": 2,
       "implementation": {
-        "automation": "full",
+        "automation": "partial",
         "ruleIds": [
           "ruiner.bombardier.2"
         ],
@@ -33426,7 +33418,7 @@
             "level": 2,
             "name": "Взрыв!!!",
             "kind": "area",
-            "automation": "full",
+            "automation": "partial",
             "shape": "square3",
             "areaType": "attack",
             "duration": "instant",
@@ -33436,10 +33428,10 @@
               "value": 2,
               "label": "потрачено Фокуса"
             },
-            "note": "При фактической оплате 2+ Фокуса Завершение Духом использует перепроверяемую зону 3×3 в дальности 5.",
+            "note": "Частично автоматизировано: при фактической оплате 2+ Фокуса Завершение Духом перепроверяет зону 3×3 в дальности 5 и получает по 1 Преимуществу за пустую клетку с пределом [Ступень+2]; полный surface-контракт остаётся ручным.",
             "sourceLevelId": "ruiner.bombardier.2",
             "sourceDigest": "46784c9f35cd64891f6ba70dc0d5a14ddf7f15aaab733ca1dbd3e6b3c60697c5",
-            "coverage": "full"
+            "coverage": "partial"
           }
         ],
         "foundationPlan": {
@@ -33560,7 +33552,7 @@
       },
       "level": 3,
       "implementation": {
-        "automation": "full",
+        "automation": "partial",
         "ruleIds": [
           "ruiner.bombardier.3"
         ],
@@ -33571,7 +33563,7 @@
             "level": 3,
             "name": "ВЗРЫВ!!!!",
             "kind": "area",
-            "automation": "full",
+            "automation": "partial",
             "shape": "square5",
             "areaType": "attack",
             "duration": "instant",
@@ -33581,10 +33573,10 @@
               "value": 4,
               "label": "потрачено Фокуса"
             },
-            "note": "При фактической оплате 4+ Фокуса Завершение Духом использует перепроверяемую и обрезаемую краем поля зону 5×5 в дальности 6.",
+            "note": "Частично автоматизировано: при фактической оплате 4+ Фокуса Завершение Духом перепроверяет зону 5×5 в дальности 6; полный surface-контракт остаётся ручным.",
             "sourceLevelId": "ruiner.bombardier.3",
             "sourceDigest": "e9b9958348fa1bf6bf5f752ead593042fcd332ebcc8e28cd2a23054bea16a4de",
-            "coverage": "full"
+            "coverage": "partial"
           }
         ],
         "foundationPlan": {

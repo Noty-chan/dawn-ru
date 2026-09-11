@@ -1,3 +1,22 @@
+## Актуальная точка передачи — 2026-09-10, Siren / Bombardier canonical audit
+
+В отдельной ветке `codex/luna-siren-bombardier-audit-v1` проверены английские
+уровни LionWing и их канонические ссылки на PDF (Siren, стр. 95; Bombardier,
+стр. 98). Новый LionWing PDF в checkout отсутствует; локальный
+`source/original/Dawn - A Diceless Fantasy TTRPG.pdf` относится к 0.9 и
+визуальным доказательством этих страниц не считается. Подробный срез,
+формулировки, digests, границы покрытия и ручной остаток записаны в
+`docs/tasks/LIONWING_SIREN_BOMBARDIER_AUDIT_2026-09-10.md`. Исправлено старое
+утверждение о «3 раза за Сцену» для Siren I: канон даёт 3 Фокуса в начале
+каждой Сцены и не задаёт лимит Fear.
+
+Siren I–II получили digest-bound Study/Fear и active-Turn guards; Siren II
+движется пошагово и предлагает Ошеломление/+1 Фокус только после фактического
+входа в смежность. Bombardier I–III требуют Spirit Finisher; I требует врага
+в центре, II перепроверяет 3×3, Focus≥2 и пустые клетки с cap [Tier+2], III
+перепроверяет 5×5 и Focus≥4. UI даёт игроку выбор уровня и центра; registry
+оставляет все шесть уровней partial до полного surface/reconnect evidence.
+
 ## Актуальная точка передачи — 2026-09-10, принят read-only аудит Luna helper
 
 Прочитан итог отдельной задачи `Luna helper — LionWing automation ledger`.
