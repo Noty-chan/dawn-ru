@@ -2190,7 +2190,7 @@
         if (internal.duelEntryChoice === "moment-of-truth") {
           if (!student || Number(student.focus) !== Number(entry.focusAtEntry) || Number(student.focus) < 6) fail("Момент истины больше недоступен");
           duelEntry = { focusSpent: Number(student.focus), advantage: Number(entry.advantage || 0) + Number(student.advantage || 0), sources: copy(entry.modifiers || []), studentFocusSpent: Number(student.focus), studentRuleId: student.ruleId };
-        } else duelEntry = { focusSpent: 0, advantage: Number(entry.advantage || 0), sources: copy(entry.modifiers || []) };
+        } else duelEntry = { focusSpent: 0, advantage: Number(entry.advantage || 0), sources: copy((entry.modifiers || []).filter(item => item.optional !== true)) };
       }
       const studentPower = def.id === ids.finish && status.actionQuote?.studentPowerUnleashed === true;
       const focusCap = studentPower ? Number(status.actionQuote?.focusCap ?? 0) : tensionValue(scene);

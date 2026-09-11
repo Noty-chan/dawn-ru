@@ -1041,7 +1041,8 @@
       quote.modifiers.push({ id, techniqueId, level, sourceDigest, coverage: "partial", reason, ...extra });
       quote.reasons.push(reason);
     };
-    if (knows(actor, "disruptor.inner-world", 3) && actor?.lionwing?.automation?.["disruptor.inner-world.3"] === true && actor.space === `inner-world-${actor.id}`) {
+    const currentSpace = (context.scene?.spaces || []).find(space => space.id === actor?.space);
+    if (knows(actor, "disruptor.inner-world", 3) && actor?.lionwing?.automation?.["disruptor.inner-world.3"] === true && currentSpace?.ownerActorId === actor.id) {
       const amount = Math.max(0, Number(actor.tier || 1));
       quote.advantage += amount;
       add("disruptor.inner-world.3", "disruptor.inner-world", 3, "fb44b773e2eb1b59c5691f7f5f6b9a2b624f2b9d3cdcffe70ee98cd46a597dff", `Родная территория: +${amount} Преимущества в Дуэли.` , { amount });
@@ -1050,14 +1051,14 @@
       const amount = Math.ceil(quote.focusAtEntry / 2);
       quote.options.push("moment-of-truth");
       quote.studentOfStars = { focus: quote.focusAtEntry, advantage: amount, ruleId: "ruiner.student-of-stars.3", sourceDigest: "806d52c0296048d69a25b379d8dcdfa5690dbee0cef391ea6894485016393f6e" };
-      add("ruiner.student-of-stars.3", "ruiner.student-of-stars", 3, quote.studentOfStars.sourceDigest, `Момент истины: потратить все ${quote.focusAtEntry} Фокуса за +${amount} Преимущества в этой Дуэли.`, { amount, focusSpent: quote.focusAtEntry });
+      add("ruiner.student-of-stars.3", "ruiner.student-of-stars", 3, quote.studentOfStars.sourceDigest, `Момент истины: потратить все ${quote.focusAtEntry} Фокуса за +${amount} Преимущества в этой Дуэли.`, { amount, focusSpent: quote.focusAtEntry, optional: true });
     }
     if (quote.options.length) quote.options.push("enter", "cancel");
     return { ...quote, modifierIds: quote.modifiers.map(item => item.id), reason: quote.reasons.join(" ") };
   };
   const duelResolveQuote = (actor, context = {}) => {
     const entry = context.entryQuote || context.duel?.entryQuote || {};
-    const sources = Array.isArray(entry.modifiers) ? entry.modifiers.map(item => ({ ...item })) : [];
+    const sources = Array.isArray(entry.sources) ? entry.sources.map(item => ({ ...item })) : [];
     return { ok: true, advantage: Math.max(0, Number(entry.advantage || 0)), sources, modifierIds: sources.map(item => item.id) };
   };
   const enabled = actor => adapters.filter(rule => rule.available(actor) && actor.lionwing?.automation?.[rule.id] === true);

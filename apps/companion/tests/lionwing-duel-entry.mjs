@@ -34,6 +34,12 @@ assert.match(s.lionwing.choices[0].title, /Преимущество 4/);
 const reloaded = lionwing.reload(JSON.parse(JSON.stringify(s)));
 assert.equal(reloaded.lionwing.duels[0].entrySnapshot.initiator.focus, 8);
 
+a = hero(); s = scene(a); s = prepareAndCommit(s, "hero", { kind: "action", actionId: duelId, targetIds: ["foe"] });
+s = respond(s, "enter");
+assert.equal(s.lionwing.duels[0].advantage, 0, "declining Moment Of Truth grants no Advantage");
+assert.equal(s.lionwing.duels[0].entryQuote.sources.some(source => source.id === "ruiner.student-of-stars.3"), false, "declined optional source is absent from the resolved Duel");
+assert.equal(s.lionwing.choices[0].title.includes("ruiner.student-of-stars.3"), false, "outcome UI does not claim a declined source");
+
 a = hero({ focus: 5 }); s = scene(a); quote = adapters.duelEntryQuote(a, { actionId: duelId, targetIds: ["foe"] });
 assert.equal(quote.options.length, 0, "five Focus is below the canonical threshold");
 s = prepareAndCommit(s, "hero", { kind: "action", actionId: duelId, targetIds: ["foe"] });
@@ -42,9 +48,11 @@ assert.equal(s.lionwing.duels.length, 1, "ordinary Duel enters without an option
 a = hero({ focus: 7 }); quote = adapters.duelEntryQuote(a, { actionId: duelId, targetIds: ["foe"] });
 assert.equal(quote.studentOfStars.advantage, 4, "odd Focus uses the canonical ceil half bracket");
 a = hero({ space: "inner-world-hero", knownTechniques: { "disruptor.inner-world": 3 }, techniques: { "disruptor.inner-world": 3 }, lionwing: { automation: { "disruptor.inner-world.3": true }, history: [] } });
-quote = adapters.duelEntryQuote(a, { actionId: duelId, targetIds: ["foe"] });
+quote = adapters.duelEntryQuote(a, { actionId: duelId, targetIds: ["foe"], scene: { spaces: [{ id: "inner-world-hero", ownerActorId: "hero" }] } });
 assert.equal(quote.advantage, 1, "Home Turf adds Tier Advantage only in the owner's Inner World");
 assert.equal(quote.modifiers[0].sourceDigest, "fb44b773e2eb1b59c5691f7f5f6b9a2b624f2b9d3cdcffe70ee98cd46a597dff");
+quote = adapters.duelEntryQuote(a, { actionId: duelId, targetIds: ["foe"], scene: { spaces: [{ id: "inner-world-hero", ownerActorId: "someone-else" }] } });
+assert.equal(quote.advantage, 0, "a spoofed space id is not enough to claim ownership of an Inner World");
 
 a = hero(); s = scene(a); s = prepareAndCommit(s, "hero", { kind: "action", actionId: duelId, targetIds: ["foe"] });
 const pendingId = s.lionwing.choices[0].id;
