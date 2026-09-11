@@ -129,8 +129,8 @@
 
 #### 2. Парирование (Parry) `powerhouse.duelist.2`
 
-- **Заявленный статус:** `full` (полная).
-- **Текущий адаптер:** `powerhouse.duelist.2` · `passive` · {"kind":"passive","sourceLevelId":"powerhouse.duelist.2","sourceDigest":"6ac5d7c737f81f4ba33f9a649d3bdfae9c2627d6420540f72f9626c53efb0827","coverage":"full"}; Ответ Блоком против смежного атакующего автоматически накладывает Ошеломлен до разрешения исходной Атаки..
+- **Заявленный статус:** `partial` (частичная).
+- **Текущий адаптер:** `powerhouse.duelist.2` · `passive` · {"kind":"passive","coverage":"partial","sourceDigest":"6ac5d7c737f81f4ba33f9a649d3bdfae9c2627d6420540f72f9626c53efb0827","sourceLevelId":"powerhouse.duelist.2"}; Блок получает авторитетное Напряжение дополнительной Бронёй. Незакрыто: условие смежного атакующего, Ошеломление и толчок вместо владельца..
 - **Готовые foundations:** `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `trigger-router`, `reaction-window`, `action-modifier`.
 - **Нужно добавить:** Для кода явный следующий шаг не выведен автоматически; нужны direct pos/neg/boundary тесты и evidence до повышения доверия.
 
@@ -421,24 +421,24 @@
 
 #### 1. Пронзание (Pierce) `powerhouse.lancer.1`
 
-- **Заявленный статус:** `manual` (ручная).
-- **Текущий адаптер:** нет записи в `RULES`.
+- **Заявленный статус:** `partial` (частичная).
+- **Текущий адаптер:** `powerhouse.lancer.1` · `passive` · {"kind":"passive","coverage":"partial","sourceDigest":"8591643bda0a61a4165679413af42b8b60a40ca90dc47dc5a9d6ee1c32a5e701","sourceLevelId":"powerhouse.lancer.1"}; Стычка и Завершение Телом получают дальность не ниже 2; дальностное Преимущество Стычки ограничено 3. Остальные детали выбора цели остаются в общем действии..
 - **Готовые foundations:** `target-validation`, `event-participants`, `spatial-range`, `action-modifier`, `dice-hooks`.
-- **Нужно добавить:** Зарегистрировать отдельный adapter (trigger → validation → events/resolver) и прямые тесты; общая инфраструктура сама правило не исполняет.
+- **Нужно добавить:** Для кода явный следующий шаг не выведен автоматически; нужны direct pos/neg/boundary тесты и evidence до повышения доверия.
 
 #### 2. Фаланга (Phalanx) `powerhouse.lancer.2`
 
-- **Заявленный статус:** `manual` (ручная).
-- **Текущий адаптер:** нет записи в `RULES`.
+- **Заявленный статус:** `partial` (частичная).
+- **Текущий адаптер:** `powerhouse.lancer.2` · `passive` · {"kind":"passive","coverage":"partial","sourceDigest":"bbc32f09a04b64473f2a4eaacdb4686a3827af112fa7b2737d5117fcc1975c1b","sourceLevelId":"powerhouse.lancer.2"}; Стычка и Завершение Телом получают дальность не ниже 3. Поражение всех противников между владельцем и целью остаётся ручным расширением..
 - **Готовые foundations:** `target-validation`, `event-participants`, `spatial-range`, `damage-pipeline`, `action-modifier`.
-- **Нужно добавить:** Зарегистрировать отдельный adapter (trigger → validation → events/resolver) и прямые тесты; общая инфраструктура сама правило не исполняет.
+- **Нужно добавить:** Для кода явный следующий шаг не выведен автоматически; нужны direct pos/neg/boundary тесты и evidence до повышения доверия.
 
 #### 3. Рука-пушка [Передышка → Стычка] (Cannon-Arm [ Breathe → Skirmish ]) `powerhouse.lancer.3`
 
-- **Заявленный статус:** `manual` (ручная).
-- **Текущий адаптер:** нет записи в `RULES`.
+- **Заявленный статус:** `partial` (частичная).
+- **Текущий адаптер:** `powerhouse.lancer.3` · `passive` · {"kind":"passive","coverage":"partial","sourceDigest":"cf89959221bf368de82bf3bc9e6c4e2d64fd30d5b33a5095e355a6aa93aab5c0","sourceLevelId":"powerhouse.lancer.3"}; После авторитетной последовательности Передышка → Стычка дальность Стычки не ниже 4 и дальностное Преимущество может достигать 4. Зона, трудная местность и точный выбор последовательности остаются ручными..
 - **Готовые foundations:** `target-validation`, `event-participants`, `spatial-cells`, `spatial-range`, `terrain`, `trigger-router`, `damage-pipeline`, `action-modifier`, `dice-hooks`.
-- **Нужно добавить:** Зарегистрировать отдельный adapter (trigger → validation → events/resolver) и прямые тесты; общая инфраструктура сама правило не исполняет.
+- **Нужно добавить:** Для кода явный следующий шаг не выведен автоматически; нужны direct pos/neg/boundary тесты и evidence до повышения доверия.
 
 ### Хищник (Predator) `powerhouse.predator`
 
@@ -584,17 +584,17 @@
 
 #### 1. Дальний выстрел (Long Shot) `vagabond.sniper.1`
 
-- **Заявленный статус:** `manual` (ручная).
-- **Текущий адаптер:** нет записи в `RULES`.
+- **Заявленный статус:** `partial` (частичная).
+- **Текущий адаптер:** `vagabond.sniper.1` · `passive` · {"kind":"passive","coverage":"partial","sourceDigest":"a84de0a68e37fcfc0bd9e9f2b31d19f5f09d686294b82e40138d26e0ed6ba8e8","sourceLevelId":"vagabond.sniper.1"}; Завершение Талантом получает дальность не ниже 5 через общий конвейер дальности..
 - **Готовые foundations:** `target-validation`, `event-participants`, `spatial-range`, `action-modifier`.
-- **Нужно добавить:** Зарегистрировать отдельный adapter (trigger → validation → events/resolver) и прямые тесты; общая инфраструктура сама правило не исполняет.
+- **Нужно добавить:** Для кода явный следующий шаг не выведен автоматически; нужны direct pos/neg/boundary тесты и evidence до повышения доверия.
 
 #### 2. Окопаться (Bunker Down) `vagabond.sniper.2`
 
-- **Заявленный статус:** `manual` (ручная).
-- **Текущий адаптер:** нет записи в `RULES`.
+- **Заявленный статус:** `partial` (частичная).
+- **Текущий адаптер:** `vagabond.sniper.2` · `passive` · {"kind":"passive","coverage":"partial","sourceDigest":"e154b6164f886770be2bb7a63a6a86bd7be83a88967eecaeb1f801b631874767","sourceLevelId":"vagabond.sniper.2"}; При авторитетной Обездвиженности Завершение Талантом получает ещё 5 дальности. Вход в Обездвиженность и крит на 5–6 остаются ручными..
 - **Готовые foundations:** `effect-state`, `effect-lifecycle`, `trigger-router`, `turn-lifecycle`, `action-modifier`, `dice-hooks`, `spatial-range`.
-- **Нужно добавить:** Зарегистрировать отдельный adapter (trigger → validation → events/resolver) и прямые тесты; общая инфраструктура сама правило не исполняет.
+- **Нужно добавить:** Для кода явный следующий шаг не выведен автоматически; нужны direct pos/neg/boundary тесты и evidence до повышения доверия.
 
 #### 3. Меткий глаз [Скрыться → Завершение Талантом] (Deadeye [ Hide → Talent Finisher ]) `vagabond.sniper.3`
 
@@ -653,15 +653,15 @@
 
 #### 1. Нырок (Duck) `vagabond.untouchable.1`
 
-- **Заявленный статус:** `full` (полная).
-- **Текущий адаптер:** `vagabond.untouchable.1` · `passive` · {"kind":"passive","sourceLevelId":"vagabond.untouchable.1","sourceDigest":"348244d9362ed86da47559403a2fd0f22afb93a9647db589007e8ff203c8a26a","coverage":"full"}; Первый Уворот за Раунд автоматически получает дополнительное [Талант / 2] Уклонение..
+- **Заявленный статус:** `partial` (частичная).
+- **Текущий адаптер:** `vagabond.untouchable.1` · `passive` · {"kind":"passive","coverage":"partial","sourceDigest":"348244d9362ed86da47559403a2fd0f22afb93a9647db589007e8ff203c8a26a","sourceLevelId":"vagabond.untouchable.1"}; Первый Уворот за Раунд получает авторитетные +Талант Уклонения. Событие первого Уворота и обычное расходование Уклонения ведёт ядро..
 - **Готовые foundations:** `usage-limits`, `trigger-router`, `turn-lifecycle`, `derived-stats`.
 - **Нужно добавить:** Для кода явный следующий шаг не выведен автоматически; нужны direct pos/neg/boundary тесты и evidence до повышения доверия.
 
 #### 2. Маятник (Weave) `vagabond.untouchable.2`
 
-- **Заявленный статус:** `decision` (решение).
-- **Текущий адаптер:** `vagabond.untouchable.2` · `passive` · {"kind":"passive","sourceLevelId":"vagabond.untouchable.2","sourceDigest":"abd33cfc8f9dfb48eaf90234e99044a1f3c16d2d99d527286e6dd14c52d7433e","coverage":"partial"}; Уворот перемещает до 3 клеток; если итоговое Уклонение сводит урон к 0, стол предлагает отменяемое повторное перемещение до 3 клеток и пишет его в журнал..
+- **Заявленный статус:** `partial` (частичная).
+- **Текущий адаптер:** `vagabond.untouchable.2` · `passive` · {"kind":"passive","coverage":"partial","sourceDigest":"abd33cfc8f9dfb48eaf90234e99044a1f3c16d2d99d527286e6dd14c52d7433e","sourceLevelId":"vagabond.untouchable.2"}; Уворот получает +1 к дальности движения. Повторное движение после снижения урона до 0 остаётся решением игрока..
 - **Готовые foundations:** `movement-lifecycle`, `trigger-router`, `damage-pipeline`, `derived-stats`.
 - **Нужно добавить:** До повторного аудита повторный Dodge предлагался при любом итоговом нуле, даже если Evasion не поглотило урон; исправлено требование `evaded > 0` и добавлен zero-damage regression.
 
@@ -959,10 +959,10 @@
 
 #### 2. Танец дурака (Fool's Dance) `vagabond.drunkard.2`
 
-- **Заявленный статус:** `manual` (ручная).
-- **Текущий адаптер:** нет записи в `RULES`.
+- **Заявленный статус:** `partial` (частичная).
+- **Текущий адаптер:** `vagabond.drunkard.2` · `passive` · {"kind":"passive","coverage":"partial","sourceDigest":"73477795efb4e90b3c7bf8d17ed305b312f08703a0085672f72b5e0a869dde56","sourceLevelId":"vagabond.drunkard.2"}; После собственного Хода с авторитетным Замедлен Эффектом выдаётся временное Уклонение на начало следующего Хода; размер читает Ранг/2 и число отрицательных Эффектов. Обязательное движение первого уровня остаётся ручным..
 - **Готовые foundations:** `effect-state`, `effect-lifecycle`, `trigger-router`, `turn-lifecycle`, `derived-stats`.
-- **Нужно добавить:** Зарегистрировать отдельный adapter (trigger → validation → events/resolver) и прямые тесты; общая инфраструктура сама правило не исполняет.
+- **Нужно добавить:** Для кода явный следующий шаг не выведен автоматически; нужны direct pos/neg/boundary тесты и evidence до повышения доверия.
 
 #### 3. Залпом (Chug) `vagabond.drunkard.3`
 
@@ -1454,7 +1454,7 @@
 #### 3. Великое восстановление (Grand Restoration) `altruist.heavenly-saint.3`
 
 - **Заявленный статус:** `decision` (решение).
-- **Текущий адаптер:** `altruist.heavenly-saint.3` · `passive` · {"kind":"passive","sourceLevelId":"altruist.heavenly-saint.3","sourceDigest":"5f42cdf622ce588debfafa058a85655946db0c400a1e925653fec9b6d0568e51","coverage":"partial"}; Завершение Духом наследует лечение, даёт Регенерацию и один раз за Сцену снимает Рану цели..
+- **Текущий адаптер:** `altruist.heavenly-saint.3` · `passive` · {"kind":"passive","coverage":"partial","sourceDigest":"5f42cdf622ce588debfafa058a85655946db0c400a1e925653fec9b6d0568e51","sourceLevelId":"altruist.heavenly-saint.3"}; Духовное Завершение получает дальность 5 через общий числовой конвейер; лечение, Регенерация и снятие Раны остаются решением Техники..
 - **Готовые foundations:** `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `usage-limits`, `trigger-router`, `scene-lifecycle`, `damage-pipeline`, `action-modifier`.
 - **Нужно добавить:** Для кода явный следующий шаг не выведен автоматически; нужны direct pos/neg/boundary тесты и evidence до повышения доверия.
 
@@ -2423,10 +2423,10 @@
 
 #### 3. Пепел к пеплу (Ashes To Ashes) `ruiner.flame-heart.3`
 
-- **Заявленный статус:** `manual` (ручная).
-- **Текущий адаптер:** нет записи в `RULES`.
+- **Заявленный статус:** `partial` (частичная).
+- **Текущий адаптер:** `ruiner.flame-heart.3` · `passive` · {"kind":"passive","coverage":"partial","sourceDigest":"4896f18d23e7ba4de201859ecfb76d46c7049c32e532747831b973b2d75c6d29","sourceLevelId":"ruiner.flame-heart.3"}; Заклинания получают +1 Преимущество, а Духовное Завершение — дальность 5 через общий числовой конвейер. Снятие Порчи и Х-образная область остаются ручными..
 - **Готовые foundations:** `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `trigger-router`, `choice-flow`, `action-modifier`, `dice-hooks`.
-- **Нужно добавить:** Зарегистрировать отдельный adapter (trigger → validation → events/resolver) и прямые тесты; общая инфраструктура сама правило не исполняет.
+- **Нужно добавить:** Для кода явный следующий шаг не выведен автоматически; нужны direct pos/neg/boundary тесты и evidence до повышения доверия.
 
 ### Криомант (Frost Veiler) `ruiner.cryomancer`
 

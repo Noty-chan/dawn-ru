@@ -47,7 +47,7 @@ const lines = [
   "",
   "Текущие ручные операции и границы проверки: [LIONWING-KERNEL.md](LIONWING-KERNEL.md). Статусы Техник ниже не повышаются от наличия этих операций.",
   "",
-  "Числовой проход 2026-09-10 отражён в registry: `bulwark.iron-bodied.3` и `vagabond.aerial-master.3` добавлены как partial, а существующий `vagabond.skirmisher.3` получил явную partial запись; полные canonical digest и остаток ручной работы указаны в [numeric pass handoff](../../docs/tasks/LIONWING_NUMERIC_PASSIVES_HANDOFF_2026-09-10.md).",
+  "Числовой проход 2026-09-11 отражён в registry: `powerhouse.braggart.1`, `powerhouse.duelist.2`, `powerhouse.lancer.1–3`, `vagabond.sniper.1–2`, `vagabond.untouchable.1–2`, `vagabond.drunkard.2`, `ruiner.flame-heart.3` и `altruist.heavenly-saint.3` получили явные partial записи поверх общего числового конвейера; полные canonical digest и остаток ручной работы указаны в [numeric pass handoff](../../docs/tasks/LIONWING_NUMERIC_PASSIVES_HANDOFF_2026-09-11.md).",
   "",
   "## Сводка стратегий",
   "",
