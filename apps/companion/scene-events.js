@@ -5,6 +5,7 @@ const SESSION_COUNTER_SCOPES = new Set(["manual", "turn", "round", "scene", "cha
 const SESSION_COUNTER_LIFETIMES = new Set(["manual", "turn", "round", "scene", "chapter", "session", "persistent"]);
 const SESSION_COUNTER_ID = /^[a-z0-9][a-z0-9._:-]{0,119}$/i;
 const SESSION_RULE_ID = /^[a-z0-9][a-z0-9._:-]{0,179}$/i;
+const MASTER_AT_ARMS_1_EVENT_SOURCE_DIGEST = "d35f468065e84fbb0c86bc60015632bdbcfe9b0ced2ed2cfa370453f64a72371";
 const MASTER_AT_ARMS_3_EVENT_SOURCE_DIGEST = "f104c7652bda2a425422af31d8d91b30515463c98f78892fe25eb204ac7508d3";
 // A marker may be attached to an actor.  The attachment is deliberately kept
 // on the ordinary marker record so old scenes and the entity registry can both
@@ -32,7 +33,7 @@ function masterFinisherGeometry(scene, source, special, roll) {
     return { valid: JSON.stringify(cells.slice().sort()) === JSON.stringify(expected.slice().sort()), cells, footprint, key };
   }
   if (special?.modeId === "blade") {
-    const path = Array.isArray(special.path) ? special.path : [], origin = special.origin, destination = special.destination, points = path.map(cell => { const [x, y] = String(cell).split(",").map(Number); return { x, y }; }), contiguous = points.every((point, index) => index === 0 ? Math.abs(point.x - Number(origin?.x)) <= 1 && Math.abs(point.y - Number(origin?.y)) <= 1 : Math.abs(point.x - points[index - 1].x) <= 1 && Math.abs(point.y - points[index - 1].y) <= 1), valid = (!destination || (points.length > 0 && key(points.at(-1)) === key(destination))) && points.length <= 2 && points.every(inBounds) && contiguous;
+    const path = Array.isArray(special.path) ? special.path : [], origin = special.origin, destination = special.destination, points = path.map(cell => { const [x, y] = String(cell).split(",").map(Number); return { x, y }; }), step = (from, to) => Math.abs(Number(to?.x) - Number(from?.x)) + Math.abs(Number(to?.y) - Number(from?.y)) === 1, contiguous = points.every((point, index) => step(origin, point) && (index === 0 || step(points[index - 1], point))), valid = (!destination || (points.length > 0 && key(points.at(-1)) === key(destination))) && points.length <= 2 && points.every(inBounds) && contiguous;
     return { valid, cells, footprint, key, points };
   }
   return { valid: false, cells, footprint, key };
@@ -337,7 +338,7 @@ function validateEvent(scene, event, options = {}) {
       if (Number(source?.techniques?.["vagabond.master-at-arms"] || 0) < 3 || !["blade", "polearm", "chain"].includes(mode) || !special || special.modeId !== mode || payload.attribute !== "talent") throw new Error("Мастер за работой требует текущее Вооружение и Завершение Талантом.");
 if (!Array.isArray(special.targetCells) || special.targetCells.some(cell => typeof cell !== "string" || !/^\d+,\d+$/.test(cell))) throw new Error("Некорректная область Мастера за работой.");
       const modeState = source.ruleModes?.["vagabond.master-at-arms.armament"];
-      if (!modeState?.sourceDigest || payload.techniqueSourceDigest !== MASTER_AT_ARMS_3_EVENT_SOURCE_DIGEST || special.sourceDigest !== MASTER_AT_ARMS_3_EVENT_SOURCE_DIGEST) throw new Error("Источник Мастера за работой устарел или не совпадает с экипированным Вооружением.");
+      if (modeState?.sourceDigest !== MASTER_AT_ARMS_1_EVENT_SOURCE_DIGEST || payload.techniqueSourceDigest !== MASTER_AT_ARMS_3_EVENT_SOURCE_DIGEST || special.sourceDigest !== MASTER_AT_ARMS_3_EVENT_SOURCE_DIGEST) throw new Error("Источник Мастера за работой устарел или не совпадает с экипированным Вооружением.");
       const geometry = masterFinisherGeometry(scene, source, special, payload.roll);
       if (!geometry.valid) throw new Error("Геометрия Мастера за работой устарела или подменена.");
 const expectedTargets = (scene.actors || []).filter(target => !target.knockedOut && target.id !== source.id && target.team !== source.team && target.space === source.space && geometry.footprint(target).some(cell => geometry.cells.includes(cell))).map(target => target.id).sort();
