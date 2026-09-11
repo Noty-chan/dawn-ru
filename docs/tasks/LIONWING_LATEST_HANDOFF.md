@@ -16,6 +16,36 @@ Siren I–II получили digest-bound Study/Fear и active-Turn guards; Sir
 в центре, II перепроверяет 3×3, Focus≥2 и пустые клетки с cap [Tier+2], III
 перепроверяет 5×5 и Focus≥4. UI даёт игроку выбор уровня и центра; registry
 оставляет все шесть уровней partial до полного surface/reconnect evidence.
+## Актуальная точка передачи — 2026-09-11, аудит Master at Arms / Detective
+
+В clean worktree `codex/luna-master-dimmak-audit-v1` проведён точечный аудит
+канонического LionWing `dawn-en-lionwing-cb2f8e67`: старый `Dim Mak` сейчас
+называется `Detective`, а `Master-At-Arms` сохраняет это имя; обе карточки —
+PDF page 79. Проверены полные digest уровней Master I
+`d35f468065e84fbb0c86bc60015632bdbcfe9b0ced2ed2cfa370453f64a72371`, II
+`743ae31f60f1a826d3346b6e07c7cff94983860c399cdc9484302e120fd726c4`, III
+`f104c7652bda2a425422af31d8d91b30515463c98f78892fe25eb204ac7508d3`.
+
+Master I–III остаются `implementation=full` на общем core-конвейере и получили
+явные corrected review/evidence records без certification: I — три условия
+Armament и последствия, II — только второе Equip за Turn, III — авторитетный
+Talent Finisher с Blade path, Pole line/Spike/Terrain и Chain center/Critical.
+Dispatch дополнительно отклоняет stale Armament source, проверяет ортогональные
+шаги Blade и повторно сверяет производные цели. UI показывает mode из
+`actor.ruleModes` и после выбора геометрии Master III не требует отдельного
+ручного target prompt.
+
+Добавлен targeted `tests/lionwing-master-at-arms-audit.mjs`, расширен
+`lionwing-equipment-chains.mjs` регрессиями, обновлены registry/map/readiness и
+handoff генераторы. Браузерный/network/persistence E2E и прямой render/read page
+79 остаются `partial/manual`: canonical PDF локально не поставляется, а
+официальный файл на itch.io purchase-gated. Skirmisher, Detective/Jab runtime,
+Grim Ascendant, Frost Veiler, Student of Stars, Duel и derived/followup/duel-entry
+ветки в этой работе не изменялись.
+
+Изменения разделены на `c930865` (runtime/UI authority и targeted regressions),
+`1797875` (review/evidence registry и generated registry output) и `a003bdc`
+(канонический аудит, source verification и эта передача).
 
 ## Актуальная точка передачи — 2026-09-10, принят read-only аудит Luna helper
 

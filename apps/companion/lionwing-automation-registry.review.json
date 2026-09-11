@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "editionId": "dawn-en-lionwing-cb2f8e67",
   "auditDocument": "docs/tasks/LIONWING_CANONICAL_RECERTIFICATION_AUDIT.md",
-  "auditDate": "2026-09-10",
+  "auditDate": "2026-09-11",
   "description": "Только уровни, для которых аудит явно зафиксировал исправление границы или digest. Остальные строки получают review=unreviewed/inherited.",
   "entries": [
     {
@@ -46,6 +46,27 @@
       "status": "corrected",
       "correction": "Ядро проверяет Hide→Stride, бесплатный Шаг, Invisible и [Speed/2] к следующему Finisher в том же Turn.",
       "auditRef": "Исправленные границы: vagabond.assassin.3"
+    },
+    {
+      "id": "vagabond.master-at-arms.1",
+      "canonicalDigest": "d35f468065e84fbb0c86bc60015632bdbcfe9b0ced2ed2cfa370453f64a72371",
+      "status": "corrected",
+      "correction": "Повторно сверены три Armament с LionWing p.79: Blade/ Pole/ Chain сохраняют только канонические условия и последствия Strengthen / Launch / Shred; старые эффекты и несвязанные ветки не входят в контракт.",
+      "auditRef": "Исправленные границы: vagabond.master-at-arms.1–3"
+    },
+    {
+      "id": "vagabond.master-at-arms.2",
+      "canonicalDigest": "743ae31f60f1a826d3346b6e07c7cff94983860c399cdc9484302e120fd726c4",
+      "status": "corrected",
+      "correction": "Второе Equip за текущий Turn даёт ровно 1 AP и Hasten; первый и последующие Equip не получают повторной награды.",
+      "auditRef": "Исправленные границы: vagabond.master-at-arms.1–3"
+    },
+    {
+      "id": "vagabond.master-at-arms.3",
+      "canonicalDigest": "f104c7652bda2a425422af31d8d91b30515463c98f78892fe25eb204ac7508d3",
+      "status": "corrected",
+      "correction": "Talent Finisher читает только сохранённый Armament: Blade — проверенный путь до 2 клеток, Pole — линия из 2 клеток и Terrain после успешного Spike, Chain — смежный центр и расширение по Critical; прямые подмены источника, геометрии и целей отклоняются.",
+      "auditRef": "Исправленные границы: vagabond.master-at-arms.1–3"
     }
   ]
 }

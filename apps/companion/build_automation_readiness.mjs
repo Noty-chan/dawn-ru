@@ -41,7 +41,9 @@ for (const entry of evidence.entries) {
   }
   const sourcePath = path.join(root, entry.sourcePath);
   if (!fs.existsSync(sourcePath)) throw new Error(`automation-evidence.json: missing source ${entry.sourcePath} for ${entry.id}`);
-  const actualDigest = crypto.createHash('sha256').update(fs.readFileSync(sourcePath)).digest('hex');
+  // Keep evidence identity independent of the checkout's CRLF/LF setting,
+  // matching the LionWing registry generator.
+  const actualDigest = crypto.createHash('sha256').update(fs.readFileSync(sourcePath, 'utf8').replace(/\r\n/g, '\n')).digest('hex');
   if (entry.sourceDigest !== `sha256:${actualDigest}`) staleEvidence.push({ entry, actualDigest: `sha256:${actualDigest}` });
   for (const test of entry.tests) {
     if (!test.path || !fs.existsSync(path.join(root, test.path))) throw new Error(`automation-evidence.json: missing test file ${test.path || "<empty>"} for ${entry.id}`);
