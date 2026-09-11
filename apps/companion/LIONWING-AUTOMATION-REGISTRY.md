@@ -15,7 +15,7 @@ Canonical уровней: **333** · Явно исправленных review: *
 | `powerhouse.dragonslayer.2` | Dragonslayer | 2 | `manual` | `unreviewed` | — | `uncertified` |
 | `powerhouse.dragonslayer.3` | Dragonslayer | 3 | `full` | `unreviewed` | — | `uncertified` |
 | `powerhouse.duelist.1` | Duelist | 1 | `manual` | `unreviewed` | — | `uncertified` |
-| `powerhouse.duelist.2` | Duelist | 2 | `full` | `unreviewed` | — | `uncertified` |
+| `powerhouse.duelist.2` | Duelist | 2 | `partial` | `unreviewed` | — | `uncertified` |
 | `powerhouse.duelist.3` | Duelist | 3 | `manual` | `unreviewed` | — | `uncertified` |
 | `powerhouse.flagellant.1` | Flagellant | 1 | `manual` | `unreviewed` | — | `uncertified` |
 | `powerhouse.flagellant.2` | Flagellant | 2 | `manual` | `unreviewed` | — | `uncertified` |
@@ -53,9 +53,9 @@ Canonical уровней: **333** · Явно исправленных review: *
 | `powerhouse.monastic-sage.1` | Monastic Warrior | 1 | `full` | `unreviewed` | — | `uncertified` |
 | `powerhouse.monastic-sage.2` | Monastic Warrior | 2 | `decision` | `unreviewed` | — | `uncertified` |
 | `powerhouse.monastic-sage.3` | Monastic Warrior | 3 | `decision` | `unreviewed` | — | `uncertified` |
-| `powerhouse.lancer.1` | Lancer | 1 | `manual` | `unreviewed` | — | `uncertified` |
-| `powerhouse.lancer.2` | Lancer | 2 | `manual` | `unreviewed` | — | `uncertified` |
-| `powerhouse.lancer.3` | Lancer | 3 | `manual` | `unreviewed` | — | `uncertified` |
+| `powerhouse.lancer.1` | Lancer | 1 | `partial` | `unreviewed` | — | `uncertified` |
+| `powerhouse.lancer.2` | Lancer | 2 | `partial` | `unreviewed` | — | `uncertified` |
+| `powerhouse.lancer.3` | Lancer | 3 | `partial` | `unreviewed` | — | `uncertified` |
 | `powerhouse.predator.1` | Predator | 1 | `manual` | `unreviewed` | — | `uncertified` |
 | `powerhouse.predator.2` | Predator | 2 | `manual` | `unreviewed` | — | `uncertified` |
 | `powerhouse.predator.3` | Predator | 3 | `manual` | `unreviewed` | — | `uncertified` |
@@ -74,8 +74,8 @@ Canonical уровней: **333** · Явно исправленных review: *
 | `vagabond.assassin.1` | Assassin | 1 | `full` | `unreviewed` | — | `uncertified` |
 | `vagabond.assassin.2` | Assassin | 2 | `decision` | `unreviewed` | — | `uncertified` |
 | `vagabond.assassin.3` | Assassin | 3 | `full` | `corrected` | — | `uncertified` |
-| `vagabond.sniper.1` | Sniper | 1 | `manual` | `unreviewed` | — | `uncertified` |
-| `vagabond.sniper.2` | Sniper | 2 | `manual` | `unreviewed` | — | `uncertified` |
+| `vagabond.sniper.1` | Sniper | 1 | `partial` | `unreviewed` | — | `uncertified` |
+| `vagabond.sniper.2` | Sniper | 2 | `partial` | `unreviewed` | — | `uncertified` |
 | `vagabond.sniper.3` | Sniper | 3 | `manual` | `unreviewed` | — | `uncertified` |
 | `vagabond.skirmisher.1` | Skirmisher | 1 | `decision` | `unreviewed` | — | `uncertified` |
 | `vagabond.skirmisher.2` | Skirmisher | 2 | `partial` | `unreviewed` | — | `uncertified` |
@@ -83,8 +83,8 @@ Canonical уровней: **333** · Явно исправленных review: *
 | `vagabond.speed-demon.1` | Speed Demon | 1 | `manual` | `unreviewed` | — | `uncertified` |
 | `vagabond.speed-demon.2` | Speed Demon | 2 | `full` | `unreviewed` | — | `uncertified` |
 | `vagabond.speed-demon.3` | Speed Demon | 3 | `manual` | `unreviewed` | — | `uncertified` |
-| `vagabond.untouchable.1` | Untouchable | 1 | `full` | `unreviewed` | — | `uncertified` |
-| `vagabond.untouchable.2` | Untouchable | 2 | `decision` | `unreviewed` | — | `uncertified` |
+| `vagabond.untouchable.1` | Untouchable | 1 | `partial` | `unreviewed` | — | `uncertified` |
+| `vagabond.untouchable.2` | Untouchable | 2 | `partial` | `unreviewed` | — | `uncertified` |
 | `vagabond.untouchable.3` | Untouchable | 3 | `manual` | `unreviewed` | — | `uncertified` |
 | `vagabond.acrobat.1` | Acrobat | 1 | `manual` | `unreviewed` | — | `uncertified` |
 | `vagabond.acrobat.2` | Acrobat | 2 | `manual` | `unreviewed` | — | `uncertified` |
@@ -123,7 +123,7 @@ Canonical уровней: **333** · Явно исправленных review: *
 | `vagabond.dim-mak.2` | Detective | 2 | `decision` | `corrected` | — | `uncertified` |
 | `vagabond.dim-mak.3` | Detective | 3 | `manual` | `unreviewed` | — | `uncertified` |
 | `vagabond.drunkard.1` | Drunkard | 1 | `manual` | `unreviewed` | — | `uncertified` |
-| `vagabond.drunkard.2` | Drunkard | 2 | `manual` | `unreviewed` | — | `uncertified` |
+| `vagabond.drunkard.2` | Drunkard | 2 | `partial` | `unreviewed` | — | `uncertified` |
 | `vagabond.drunkard.3` | Drunkard | 3 | `manual` | `unreviewed` | — | `uncertified` |
 | `vagabond.master-at-arms.1` | Master-At-Arms | 1 | `full` | `corrected` | core | `uncertified` |
 | `vagabond.master-at-arms.2` | Master-At-Arms | 2 | `full` | `corrected` | core | `uncertified` |
@@ -313,7 +313,7 @@ Canonical уровней: **333** · Явно исправленных review: *
 | `ruiner.feral-arcana.3` | Feral Arcanist | 3 | `decision` | `unreviewed` | — | `uncertified` |
 | `ruiner.flame-heart.1` | Flame Heart | 1 | `manual` | `unreviewed` | — | `uncertified` |
 | `ruiner.flame-heart.2` | Flame Heart | 2 | `manual` | `unreviewed` | — | `uncertified` |
-| `ruiner.flame-heart.3` | Flame Heart | 3 | `manual` | `unreviewed` | — | `uncertified` |
+| `ruiner.flame-heart.3` | Flame Heart | 3 | `partial` | `unreviewed` | — | `uncertified` |
 | `ruiner.cryomancer.1` | Frost Veiler | 1 | `full` | `unreviewed` | — | `uncertified` |
 | `ruiner.cryomancer.2` | Frost Veiler | 2 | `partial` | `corrected` | — | `uncertified` |
 | `ruiner.cryomancer.3` | Frost Veiler | 3 | `manual` | `unreviewed` | — | `uncertified` |

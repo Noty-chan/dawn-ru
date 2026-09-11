@@ -89,7 +89,7 @@ SHA-256 проверенных файлов: `6049f3ff6b79b8204c45cb8b830b265369
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
 | 1 | Riposte [ Block → Skirmish ] | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle`, `effect-state`, `effect-lifecycle`, `action-modifier`, `action-history`, `dice-hooks` |
-| 2 | Parry | проверено | полная | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `trigger-router`, `reaction-window`, `action-modifier` |
+| 2 | Parry | проверено | частичная | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `trigger-router`, `reaction-window`, `action-modifier` |
 | 3 | Deflecting Blow | проверено | ручная | `target-validation`, `event-participants`, `spatial-range`, `resource-check`, `trigger-router`, `reaction-window`, `action-modifier` |
 
 ### Flagellant (`powerhouse.flagellant`)
@@ -192,9 +192,9 @@ SHA-256 проверенных файлов: `6049f3ff6b79b8204c45cb8b830b265369
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Pierce | проверено | ручная | `target-validation`, `event-participants`, `spatial-range`, `action-modifier`, `dice-hooks` |
-| 2 | Phalanx | проверено | ручная | `target-validation`, `event-participants`, `spatial-range`, `damage-pipeline`, `action-modifier` |
-| 3 | Cannon-Arm [ Breathe → Skirmish ] | проверено | ручная | `target-validation`, `event-participants`, `spatial-cells`, `spatial-range`, `terrain`, `trigger-router`, `damage-pipeline`, `action-modifier`, `dice-hooks` |
+| 1 | Pierce | проверено | частичная | `target-validation`, `event-participants`, `spatial-range`, `action-modifier`, `dice-hooks` |
+| 2 | Phalanx | проверено | частичная | `target-validation`, `event-participants`, `spatial-range`, `damage-pipeline`, `action-modifier` |
+| 3 | Cannon-Arm [ Breathe → Skirmish ] | проверено | частичная | `target-validation`, `event-participants`, `spatial-cells`, `spatial-range`, `terrain`, `trigger-router`, `damage-pipeline`, `action-modifier`, `dice-hooks` |
 
 ### Predator (`powerhouse.predator`)
 
@@ -250,8 +250,8 @@ SHA-256 проверенных файлов: `6049f3ff6b79b8204c45cb8b830b265369
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Long Shot | проверено | ручная | `target-validation`, `event-participants`, `spatial-range`, `action-modifier` |
-| 2 | Bunker Down | проверено | ручная | `effect-state`, `effect-lifecycle`, `trigger-router`, `turn-lifecycle`, `action-modifier`, `dice-hooks`, `spatial-range` |
+| 1 | Long Shot | проверено | частичная | `target-validation`, `event-participants`, `spatial-range`, `action-modifier` |
+| 2 | Bunker Down | проверено | частичная | `effect-state`, `effect-lifecycle`, `trigger-router`, `turn-lifecycle`, `action-modifier`, `dice-hooks`, `spatial-range` |
 | 3 | Deadeye [ Hide → Talent Finisher ] | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle`, `trigger-router`, `damage-pipeline`, `action-modifier`, `action-history`, `dice-hooks` |
 
 ### Skirmisher (`vagabond.skirmisher`)
@@ -274,8 +274,8 @@ SHA-256 проверенных файлов: `6049f3ff6b79b8204c45cb8b830b265369
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Duck | проверено | полная | `usage-limits`, `trigger-router`, `turn-lifecycle`, `derived-stats` |
-| 2 | Weave | проверено | с выбором | `movement-lifecycle`, `trigger-router`, `damage-pipeline`, `derived-stats` |
+| 1 | Duck | проверено | частичная | `usage-limits`, `trigger-router`, `turn-lifecycle`, `derived-stats` |
+| 2 | Weave | проверено | частичная | `movement-lifecycle`, `trigger-router`, `damage-pipeline`, `derived-stats` |
 | 3 | Fighter's Instinct [ Dodge → Skirmish ] | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle`, `action-modifier`, `action-history`, `dice-hooks` |
 
 ### Acrobat (`vagabond.acrobat`)
@@ -379,7 +379,7 @@ SHA-256 проверенных файлов: `6049f3ff6b79b8204c45cb8b830b265369
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
 | 1 | Down The Hatch | проверено | ручная | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `movement-lifecycle`, `usage-limits`, `trigger-router`, `turn-lifecycle`, `choice-flow`, `damage-pipeline`, `action-modifier`, `deployment-hooks`, `dice-hooks` |
-| 2 | Fool's Dance | проверено | ручная | `effect-state`, `effect-lifecycle`, `trigger-router`, `turn-lifecycle`, `derived-stats` |
+| 2 | Fool's Dance | проверено | частичная | `effect-state`, `effect-lifecycle`, `trigger-router`, `turn-lifecycle`, `derived-stats` |
 | 3 | Chug | проверено | ручная | `effect-state`, `effect-lifecycle`, `movement-lifecycle`, `usage-limits`, `trigger-router`, `turn-lifecycle`, `action-modifier` |
 
 ### Master-At-Arms (`vagabond.master-at-arms`)
@@ -892,7 +892,7 @@ SHA-256 проверенных файлов: `6049f3ff6b79b8204c45cb8b830b265369
 | ---: | --- | --- | --- | --- |
 | 1 | Rev Up | проверено | ручная | `resource-check`, `effect-state`, `effect-lifecycle`, `trigger-router`, `choice-flow`, `damage-pipeline`, `action-modifier` |
 | 2 | Damning Impact | проверено | ручная | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `trigger-router`, `damage-pipeline`, `action-modifier`, `dice-hooks`, `combat-meter` |
-| 3 | Ashes To Ashes | проверено | ручная | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `trigger-router`, `choice-flow`, `action-modifier`, `dice-hooks` |
+| 3 | Ashes To Ashes | проверено | частичная | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `trigger-router`, `choice-flow`, `action-modifier`, `dice-hooks` |
 
 ### Frost Veiler (`ruiner.cryomancer`)
 

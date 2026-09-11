@@ -8,7 +8,7 @@
 
 | Контур | Всего | Заявлено исполнимым | Формально E2E-сертифицировано | Неполный путь |
 | --- | ---: | ---: | ---: | --- |
-| Уровни Техник | 333 | 83 shared/inherited (24.9%) | 0 | 44 частичных; 206 ручных |
+| Уровни Техник | 333 | 83 shared/inherited (24.9%) | 0 | 51 частичных; 199 ручных |
 | Правила обычных врагов | 122 | 0 (0.0%) | 0 | 122 assisted |
 | Атаки врагов | 40 | 0 | 0 | не установлено независимым аудитом |
 
@@ -47,6 +47,8 @@
 
 До независимого прохода системные оценки ниже означают зрелость инфраструктуры и объём найденных тестов, а не процент буквально верных игровых правил.
 
+Числовой контракт и разбивка источников характеристик на столе описаны в [numeric pass handoff](../../docs/tasks/LIONWING_NUMERIC_PASSIVES_HANDOFF_2026-09-11.md). Статусы `partial` сохраняют честный объём автоматизации и не создают evidence-сертификацию.
+
 ## Готовность системных слоёв
 
 | Слой | Готовность | Уже есть | Следующий обязательный шаг | Где работать |
@@ -66,12 +68,12 @@
 
 | Архетип | Уровней | Заявлено full | Заявлено decision | Заявлено partial | Заявлено manual |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| Powerhouse | 60 | 8 | 7 | 11 | 34 |
-| Vagabond | 60 | 9 | 13 | 6 | 32 |
+| Powerhouse | 60 | 7 | 7 | 15 | 31 |
+| Vagabond | 60 | 8 | 12 | 11 | 29 |
 | Bulwark | 48 | 3 | 3 | 3 | 39 |
 | Altruist | 57 | 2 | 11 | 2 | 42 |
 | Disruptor | 54 | 4 | 6 | 12 | 32 |
-| Ruiner | 54 | 3 | 14 | 10 | 27 |
+| Ruiner | 54 | 6 | 14 | 8 | 26 |
 
 Полная построчная карта всех 333 Уровней canonical EN находится в `TECHNIQUE-FOUNDATION-MAP.md`. Её статусы также заявленные: таблица удобна для планирования аудита, но не заменяет evidence-записи. Ниже перечислены самые дорогие известные пробелы.
 
@@ -101,9 +103,6 @@
 | Intimidator (`powerhouse.intimidator`) | 1 | "Pathetic" | тонкий адаптер уникального условия поверх уже готового ядра |
 | Intimidator (`powerhouse.intimidator`) | 2 | "Out Of My Way" | тонкий адаптер уникального условия поверх уже готового ядра |
 | Intimidator (`powerhouse.intimidator`) | 3 | "Fools And Dead Men" | тонкий адаптер уникального условия поверх уже готового ядра |
-| Lancer (`powerhouse.lancer`) | 1 | Pierce | тонкий адаптер уникального условия поверх уже готового ядра |
-| Lancer (`powerhouse.lancer`) | 2 | Phalanx | тонкий адаптер уникального условия поверх уже готового ядра |
-| Lancer (`powerhouse.lancer`) | 3 | Cannon-Arm [ Breathe → Skirmish ] | тонкий адаптер уникального условия поверх уже готового ядра |
 | Predator (`powerhouse.predator`) | 1 | Yearn | тонкий адаптер уникального условия поверх уже готового ядра |
 | Predator (`powerhouse.predator`) | 2 | Obsess | тонкий адаптер уникального условия поверх уже готового ядра |
 | Predator (`powerhouse.predator`) | 3 | Envelop | тонкий адаптер уникального условия поверх уже готового ядра |
@@ -114,8 +113,6 @@
 | Heroic Ascendant (`powerhouse.heroic-ascendant`) | 2 | Hero's Feat | тонкий адаптер уникального условия поверх уже готового ядра |
 | Heroic Ascendant (`powerhouse.heroic-ascendant`) | 3 | Mastered Strength | тонкий адаптер уникального условия поверх уже готового ядра |
 | Aerial Master (`vagabond.aerial-master`) | 2 | Hunt | тонкий адаптер уникального условия поверх уже готового ядра |
-| Sniper (`vagabond.sniper`) | 1 | Long Shot | тонкий адаптер уникального условия поверх уже готового ядра |
-| Sniper (`vagabond.sniper`) | 2 | Bunker Down | тонкий адаптер уникального условия поверх уже готового ядра |
 | Sniper (`vagabond.sniper`) | 3 | Deadeye [ Hide → Talent Finisher ] | тонкий адаптер уникального условия поверх уже готового ядра |
 | Speed Demon (`vagabond.speed-demon`) | 1 | Fade | тонкий адаптер уникального условия поверх уже готового ядра |
 | Speed Demon (`vagabond.speed-demon`) | 3 | Flash Step [ Breathe → Stride ] | тонкий адаптер уникального условия поверх уже готового ядра |
@@ -143,7 +140,6 @@
 | Reflector (`vagabond.reflector`) | 3 | To Carry Their Fury | тонкий адаптер уникального условия поверх уже готового ядра |
 | Detective (`vagabond.dim-mak`) | 3 | 4-Point Execution | тонкий адаптер уникального условия поверх уже готового ядра |
 | Drunkard (`vagabond.drunkard`) | 1 | Down The Hatch | `deployment-hooks` |
-| Drunkard (`vagabond.drunkard`) | 2 | Fool's Dance | тонкий адаптер уникального условия поверх уже готового ядра |
 | Drunkard (`vagabond.drunkard`) | 3 | Chug | тонкий адаптер уникального условия поверх уже готового ядра |
 | Crusher (`bulwark.crusher`) | 1 | 30,000 Tons | тонкий адаптер уникального условия поверх уже готового ядра |
 | Crusher (`bulwark.crusher`) | 2 | Hammerfall | тонкий адаптер уникального условия поверх уже готового ядра |
@@ -272,7 +268,6 @@
 | Feral Arcanist (`ruiner.feral-arcana`) | 1 | Vorpal Claw | тонкий адаптер уникального условия поверх уже готового ядра |
 | Flame Heart (`ruiner.flame-heart`) | 1 | Rev Up | тонкий адаптер уникального условия поверх уже готового ядра |
 | Flame Heart (`ruiner.flame-heart`) | 2 | Damning Impact | тонкий адаптер уникального условия поверх уже готового ядра |
-| Flame Heart (`ruiner.flame-heart`) | 3 | Ashes To Ashes | тонкий адаптер уникального условия поверх уже готового ядра |
 | Frost Veiler (`ruiner.cryomancer`) | 3 | Shatter | тонкий адаптер уникального условия поверх уже готового ядра |
 | Grim Ascendant (`ruiner.grim-ascendant`) | 3 | Umbra | `transformation` |
 | Ranger (`ruiner.long-draw`) | 1 | Nock The Arrow | тонкий адаптер уникального условия поверх уже готового ядра |

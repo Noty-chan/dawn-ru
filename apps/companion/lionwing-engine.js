@@ -358,13 +358,26 @@
     const value = Number(global.DAWN_LIONWING_ADAPTERS?.[method]?.(a, ...args) || 0);
     return Number.isFinite(value) ? value : 0;
   };
-  const stat = (a, key, context = {}) => {
+  const statQuote = (a, key, context = {}) => {
     const rawBase = attributes.has(key) ? Number(a.attrs?.[key] || 0) : Number(a[key] || 0);
-    const temporary = (a.lionwing?.modifiers || []).filter(m => m.stat === key).reduce((sum, m) => sum + (key === "evasion" ? m.remaining ?? m.amount : m.amount), 0);
+    const temporaryModifiers = (a.lionwing?.modifiers || []).filter(m => m.stat === key);
+    const temporary = temporaryModifiers.reduce((sum, m) => sum + (key === "evasion" ? m.remaining ?? m.amount : m.amount), 0);
     const quote = global.DAWN_LIONWING_ADAPTERS?.statQuote?.(a, key, { ...context, baseValue: rawBase + temporary });
-    if (quote?.ok !== false && Number.isFinite(Number(quote?.value))) return Math.max(0, Number(quote.value));
-    return Math.max(0, adapterNumber("statMinimum", a, key, context), rawBase + temporary + adapterNumber("statBonus", a, key, context));
+    const temporarySources = temporaryModifiers.map(modifier => ({
+      id: modifier.id || null,
+      label: modifier.label || modifier.ruleId || "Временный модификатор",
+      amount: Number(key === "evasion" ? modifier.remaining ?? modifier.amount : modifier.amount) || 0,
+      operation: "add",
+      sourceDigest: modifier.sourceDigest || null,
+      coverage: modifier.coverage || "full",
+      sourceType: "temporary",
+      reason: modifier.reason || "Временный модификатор Сцены",
+    }));
+    if (quote?.ok !== false && Number.isFinite(Number(quote?.value))) return { ...quote, key, rawBase, temporary, temporarySources, value: Math.max(0, Number(quote.value)) };
+    const fallbackValue = Math.max(0, Math.max(0, adapterNumber("statMinimum", a, key, context)), rawBase + temporary + adapterNumber("statBonus", a, key, context));
+    return { ok: true, key, rawBase, temporary, temporarySources, base: rawBase + temporary, value: fallbackValue, effective: fallbackValue, sources: temporarySources, sourceDigests: temporarySources.map(item => item.sourceDigest).filter(Boolean), coverage: temporarySources.some(item => item.coverage === "partial") ? "partial" : "full", reason: "Совместимый статический расчёт" };
   };
+  const stat = (a, key, context = {}) => Number(statQuote(a, key, context).value || 0);
   const currentTurnInstance = scene => state(copy(scene)).activeTurnInstanceId || null;
   const spellCircleActive = (scene, a) => (scene.markers || []).some(marker =>
     marker?.ownerActorId === a.id && (marker.kind === "ritual" || marker.kind === "spell-circle") && marker.space === a.space && Number(marker.x) === Number(a.x) && Number(marker.y) === Number(a.y));
@@ -381,6 +394,35 @@
   const scaledMove = (a, amount, scene=null) => Math.ceil(amount * ((scene?effectActive(scene,a,"positive.ускорен"):has(a,"positive.ускорен")) ? 2 : 1) / ((scene?effectActive(scene,a,"negative.замедлен"):has(a,"negative.замедлен")) ? 2 : 1));
   const speed = (a,scene=null) => scaledMove(a, stat(a, "speed"), scene);
   const sceneSpeed = (scene,a) => scene.activeActorId && Number(a.lionwing?.difficultTerrainStopSerial) === Number(scene.turnSerial) ? 0 : (() => { const group=legacy.compoundEnemyStatus(scene,a);return group.active?scaledMove(a,group.speed+(a.lionwing?.modifiers||[]).filter(m=>m.stat==="speed").reduce((sum,m)=>sum+m.amount,0),scene):speed(a,scene); })();
+  const effectiveStats = (scene, a) => {
+    if (!scene || !a) return null;
+    const activeEffectIds = activeState(scene, a.id).effects.filter(status => status.present).map(status => status.effect);
+    const quote = key => statQuote(a, key, {
+      scene,
+      kind: "stat",
+      activeEffectIds,
+    });
+    const range = (actionId, attribute = null) => {
+      const baseValue = actionId === ids.skirmish ? 1 : actionId === ids.finish ? 1 : actionId === ids.spell ? 5 : 1;
+      const result = global.DAWN_LIONWING_ADAPTERS?.rangeQuote?.(a, { scene, kind: "attack", key: "range", actionId, attribute, baseValue, activeEffectIds, roundUp: true })
+        || global.DAWN_LIONWING_ADAPTERS?.numericQuote?.(a, { scene, kind: "attack", key: "range", actionId, attribute, baseValue, roundUp: true })
+        || { ok: true, key: "range", base: baseValue, value: baseValue, sources: [] };
+      return result;
+    };
+    return {
+      actorId: a.id,
+      maxHp: quote("maxHp"),
+      speed: { ...quote("speed"), effective: sceneSpeed(scene, a), value: sceneSpeed(scene, a) },
+      armor: quote("armor"),
+      evasion: quote("evasion"),
+      ranges: {
+        skirmish: range(ids.skirmish),
+        finishBody: range(ids.finish, "body"),
+        finishTalent: range(ids.finish, "talent"),
+        spell: range(ids.spell, "spirit"),
+      },
+    };
+  };
   const detectiveRuleId = "vagabond.dim-mak.3";
   const detectiveWeakPointRuleId = "vagabond.dim-mak.1";
   const detectiveDigest = "8a5ddc5d808d41166abd99dd0c207a6070ebeacf382fe4b0f3275304d7f532dd";
@@ -2161,8 +2203,13 @@
       }
       const targets = targetIds(scene,p.targetIds).map(id => requiredActor(scene, id));
       if ([ids.spell, ids.study, ids.shove, "action.атаки.дуэль"].includes(def.id) && targets.length !== 1 || def.id === ids.finish && !p.areaPlan && targets.length !== 1 || def.id === ids.skirmish && (!targets.length || !p.areaPlan && targets.length > 2)) fail("Неверное число целей");
-      const finishContext = { scene, kind: "attack", actionId: def.id, attribute: p.attribute || (def.id === ids.finish ? "spirit" : null), techniqueRuleId: p.techniqueRuleId || null, techniqueSourceDigest: p.techniqueSourceDigest || null, breacherBuckShot: p.breacherBuckShot === true, tension: tensionValue(scene), spellCircleActive: p.spellCircleActive === true || spellCircleActive(scene, a), firstSpiritFinisherThisTurn: def.id === ids.finish && (p.firstSpiritFinisherThisTurn === true || firstSpiritFinisherThisTurn(scene, a, p.actionInstanceId || provenance?.actionInstanceId || rootId)) };
-      const range = def.id === ids.spell ? 5 : def.id === ids.finish ? Math.max(Number(status.actionQuote?.range || 0), 1 + adapterNumber("rangeBonus", a, finishContext)) : def.id === ids.skirmish ? 1 + adapterNumber("rangeBonus", a, finishContext) : def.id === ids.study ? Number(status.actionQuote?.range ?? a.attrs.mind ?? 0) : 1;
+      const finishContext = { scene, kind: "attack", actionId: def.id, attribute: p.attribute || (def.id === ids.finish ? "spirit" : null), activeEffectIds: activeState(scene, a.id).effects.filter(status => status.present).map(status => status.effect), techniqueRuleId: p.techniqueRuleId || null, techniqueSourceDigest: p.techniqueSourceDigest || null, breacherBuckShot: p.breacherBuckShot === true, tension: tensionValue(scene), spellCircleActive: p.spellCircleActive === true || spellCircleActive(scene, a), firstSpiritFinisherThisTurn: def.id === ids.finish && (p.firstSpiritFinisherThisTurn === true || firstSpiritFinisherThisTurn(scene, a, p.actionInstanceId || provenance?.actionInstanceId || rootId)) };
+      const baseRange = def.id === ids.spell ? 5 : def.id === ids.finish ? Math.max(Number(status.actionQuote?.range || 0), 1) : def.id === ids.skirmish ? 1 : def.id === ids.study ? Number(status.actionQuote?.range ?? a.attrs.mind ?? 0) : 1;
+      const rangeQuote = global.DAWN_LIONWING_ADAPTERS?.rangeQuote?.(a, { ...finishContext, key: "range", baseValue: baseRange, roundUp: true })
+        || global.DAWN_LIONWING_ADAPTERS?.numericQuote?.(a, { ...finishContext, key: "range", baseValue: baseRange, roundUp: true })
+        || { ok: true, value: baseRange };
+      if (rangeQuote.ok === false) fail(rangeQuote.reason || "Числовые модификаторы дальности конфликтуют");
+      const range = Math.max(0, Number(rangeQuote.value ?? baseRange));
       if ([ids.spell, ids.skirmish, ids.study, ids.shove, "action.атаки.дуэль"].includes(def.id) && !p.areaPlan && targets.some(t => t.id === a.id || distance(a, t) > range) || def.id === ids.finish && !p.areaPlan && targets.some(t => t.id === a.id || distance(a, t) > range)) fail("Цель вне дальности действия");
       if (def.id === ids.study && isPlayer(targets[0])) fail("Изучение требует NPC");
       const focusSpent = integer(p.focusSpent || 0, "Фокус");
@@ -2693,7 +2740,7 @@
           const target = requiredActor(scene, p.targetId || sourceId, false);
           if(p.remove){if(!["armor","evasion","speed"].includes(p.stat))fail("Неизвестный показатель");astate(target).modifiers=astate(target).modifiers.filter(m=>m.stat!==p.stat||(p.id&&m.id!==p.id));emit("modifier.remove",sourceId,p);break;}
           if (!["armor", "evasion", "speed"].includes(p.stat) || !Number.isInteger(p.amount) || Math.abs(p.amount) > 9999 || !["startTurn","endTurn","roundEnd","scene","manual"].includes(p.duration || "endTurn")) fail("Некорректный модификатор");
-          astate(target).modifiers.push({ id: p.id || `${rootId}:modifier:${astate(target).modifiers.length}`, sourceActorId: sourceId, ownerActorId: p.ownerActorId || target.id, stat: p.stat, amount: p.amount, boundary: p.duration || "endTurn", appliedSerial: scene.turnSerial, ruleId: p.ruleId || provenance?.ruleId || null, sourceDigest: p.sourceDigest || provenance?.sourceDigest || null }); emit("modifier.configure", sourceId, p); break;
+          astate(target).modifiers.push({ id: p.id || `${rootId}:modifier:${astate(target).modifiers.length}`, sourceActorId: sourceId, ownerActorId: p.ownerActorId || target.id, stat: p.stat, amount: p.amount, boundary: p.duration || "endTurn", appliedSerial: scene.turnSerial, ruleId: p.ruleId || provenance?.ruleId || null, sourceDigest: p.sourceDigest || provenance?.sourceDigest || null, label: p.label || provenance?.label || p.ruleId || provenance?.ruleId || "Временный модификатор", coverage: p.coverage || provenance?.coverage || "full", reason: p.reason || provenance?.reason || null }); emit("modifier.configure", sourceId, p); break;
         }
         case "allow-action":{const target=requiredActor(scene,p.targetId||sourceId);if(!actionDef(p.actionId))fail("Неизвестное действие");astate(target).allowances||=[];astate(target).allowances.push({id:p.id||`${rootId}:allowance:${astate(target).allowances.length}`,actionId:p.actionId,swift:p.swift===true,reaction:p.reaction===true,cost:p.cost==null?undefined:integer(p.cost,"стоимость"),remaining:integer(p.uses??1,"применения",99),sourceActorId:sourceId});emit("action.allow",sourceId,p);break;}
         case "grant-turn":{
@@ -2927,7 +2974,9 @@
           if (p.choice !== "take") spend(a, "focus", 2);
           const attacker = requiredActor(scene, pending.actorId, false);
           if (p.choice === "block") {
-            response.temporaryArmor = Number(a.attrs.body || 0);
+            const blockBase = Number(a.attrs.body || 0), blockQuote = global.DAWN_LIONWING_ADAPTERS?.numericQuote?.(a, { scene, kind: "block", key: "blockArmor", baseValue: blockBase, attackId: pending.id, attackerId: attacker.id });
+            if (blockQuote?.ok === false) fail(blockQuote.reason || "Числовые модификаторы Блока конфликтуют");
+            response.temporaryArmor = Math.max(0, Number(blockQuote?.value ?? blockBase));
             if (!effectActive(scene,a,"positive.устойчив")) {
               const d = { x: a.x + Math.sign(a.x - attacker.x), y: a.y + Math.sign(a.y - attacker.y) };
               try { movement(scene, a, d, { forced: true, maximum: 1, line: true }); move(a, { destination: d, forced: true, maximum: 1, line: true }); } catch { /* A push stops at an obstruction. */ }
@@ -2936,13 +2985,20 @@
           if (p.choice === "dodge") {
             const chosen = p.attribute || (a.attrs.talent >= a.attrs.mind ? "talent" : "mind");
             if (!["talent", "mind"].includes(chosen)) fail("Уворот использует Талант или Разум");
-            const gain = Math.ceil(Number(a.attrs[chosen] || 0) / 2); a.evasion = Number(a.evasion || 0) + gain;
+            const gain = Math.ceil(Number(a.attrs[chosen] || 0) / 2), dodgeQuote = global.DAWN_LIONWING_ADAPTERS?.numericQuote?.(a, { scene, kind: "dodge", key: "dodgeEvasion", baseValue: gain, attribute: chosen });
+            if (dodgeQuote?.ok === false) fail(dodgeQuote.reason || "Числовые модификаторы Уворота конфликтуют");
+            const dodgeMoveBase = scaledMove(a, 2, scene), dodgeMoveQuote = global.DAWN_LIONWING_ADAPTERS?.numericQuote?.(a, { scene, kind: "dodge", key: "dodgeMove", baseValue: dodgeMoveBase, attribute: chosen });
+            if (dodgeMoveQuote?.ok === false) fail(dodgeMoveQuote.reason || "Числовые модификаторы движения Уворота конфликтуют");
+            const dodgeGain = Math.max(0, Number(dodgeQuote?.value ?? gain)), dodgeMaximum = Math.max(0, Number(dodgeMoveQuote?.value ?? dodgeMoveBase));
+            a.evasion = Number(a.evasion || 0) + dodgeGain;
             if(!p.destination||distance(a,{...p.destination,space:a.space})===0)fail("Уворот требует движения");
-            move(a, { destination: p.destination, maximum: scaledMove(a, 2,scene) }); response.preventForcedMovement = true;
+            move(a, { destination: p.destination, maximum: dodgeMaximum });
+            a.lionwing.lastDodgeRound = Number(scene.round || 0);
+            response.dodgeEvasion = dodgeGain; response.dodgeMove = dodgeMaximum; response.preventForcedMovement = true;
           }
           if (p.choice === "clash") {pending.responses[sourceId]={choice:"pending"};queue.unshift({p:{kind:"clash-roll",roll:p.roll,opponentRoll:p.opponentRoll},sourceId});}
           else pending.responses[sourceId] = response;
-          emit("reaction.respond", sourceId, { ...response, attackId: pending.id }); break;
+          emit("reaction.respond", sourceId, { ...response, attackId: pending.id, round: Number(scene.round || 0) }); break;
         }
         case "clash-roll":{
           const pending=scene.pendingAction;if(!pending||!live(a)){if(pending)pending.responses[sourceId]={choice:"unavailable"};break;}
@@ -3426,7 +3482,7 @@
     reloadDiceRoll, reloadRoll: reloadDiceRoll, diceReload: reloadDiceRoll,
     opposedDiceRoll, opposedRoll: opposedDiceRoll, diceOpposed: opposedDiceRoll,
     resolveDiceTie: (value, resolution) => diceAvailable().resolveTie(value, resolution),
-    historyStatus, effectInstanceStatus, activeState, auraRecord, auraStatus, lifetimeExpired, compoundStatus, lifecycleContext,
+    historyStatus, effectInstanceStatus, activeState, auraRecord, auraStatus, lifetimeExpired, compoundStatus, lifecycleContext, statQuote, effectiveStats,
     lifecycle: lifecycleContext,
     composeNumeric: (base, operations, context = {}) => global.DAWN_LIONWING_ADAPTERS?.composeNumeric?.(base, operations, context) || { ok: false, reason: "Числовой конвейер недоступен." },
     numericQuote: (owner, context = {}) => global.DAWN_LIONWING_ADAPTERS?.numericQuote?.(owner, context) || { ok: false, reason: "Числовой конвейер недоступен." },
@@ -3445,6 +3501,7 @@
   route("availableActions", (scene, data, id) => core.actions.list.filter(d => d.type === "action").map(d => { const status = actionStatus(scene, actor(scene, id), d); return { ...d, ...status, cost: `${status.cost ?? d.cost.amount} ${d.cost.resource === "ap" ? "ОД" : d.cost.resource}`, automation: ["action.атаки.дуэль",ids.interact,ids.study].includes(d.id)?"decision":"full" }; }));
   route("effectiveActorSpeed", (scene, id) => sceneSpeed(scene,requiredActor(scene, id, false)));
   route("effectiveActorMaxHealth", (scene, id) => maxHealth(requiredActor(scene, id, false)));
+  route("effectiveActorStats", (scene, id) => effectiveStats(scene, requiredActor(scene, id, false)));
   route("pendingActionStatus", scene => {
     const pending = scene.pendingAction, targets = pending?.targetIds || [];
     const eligibleIds = targets.filter(id => live(actor(scene, id)) && !effectActive(scene,actor(scene,id), "positive.исчез"));

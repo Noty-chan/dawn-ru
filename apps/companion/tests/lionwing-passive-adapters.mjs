@@ -41,6 +41,8 @@ const passiveRules = [
   "disruptor.constrictor.3",
   "powerhouse.gunslinger.2",
   "powerhouse.martial-artist.3",
+  "powerhouse.braggart.1",
+  "powerhouse.duelist.2",
   "vagabond.skirmisher.3",
   "vagabond.aerial-master.3",
   "vagabond.knife-juggler.2",
@@ -48,6 +50,14 @@ const passiveRules = [
   "ruiner.sellsword-s-call.1",
   "disruptor.street-fighter.2",
   "powerhouse.lancer.1",
+  "powerhouse.lancer.2",
+  "powerhouse.lancer.3",
+  "vagabond.sniper.1",
+  "vagabond.sniper.2",
+  "vagabond.untouchable.1",
+  "vagabond.untouchable.2",
+  "vagabond.drunkard.2",
+  "altruist.heavenly-saint.3",
   "ruiner.flame-heart.2",
   "vagabond.assassin.2",
   "powerhouse.monastic-sage.1",
@@ -400,5 +410,121 @@ assert.equal(afterAttack.actors.find(item => item.id === "h").hp, 11, "the same 
 const inactiveClash = run(fixture({ knownTechniques: { "bulwark.rising-challenger": 3 } }), "e", { kind: "attack", targetIds: ["h"], amount: 10 });
 prepared = prepare(inactiveClash, "h", { kind: "reaction", choice: "clash" });
 assert.equal(prepared.events[0].payload.roll.initialCount, 4, "known but disabled Rising Challenger leaves the normal Clash pool");
+
+// Range floors and additions stack in the shared pipeline, while each level
+// can be removed independently and survives a JSON save/load.  Sniper II
+// reads the owner in the authoritative Scene, so a copied actor cannot fake
+// Immobilized.
+let ranged = fixture({ tier: 2, knownTechniques: { "powerhouse.lancer": 2, "vagabond.sniper": 2 }, effects: [] });
+ranged = enableAll(ranged, ["powerhouse.lancer.1", "powerhouse.lancer.2", "vagabond.sniper.1", "vagabond.sniper.2"]);
+quote = adapters.rangeQuote(ranged.actors[0], { scene: ranged, kind: "attack", actionId: ids.skirmish, baseValue: 1 });
+assert.equal(quote.value, 3, "Lancer I and II compose range floors 2 then 3");
+assert.deepEqual(Array.from(quote.sources.map(item => item.id)), ["powerhouse.lancer.1", "powerhouse.lancer.2"], "range quote keeps each canonical source");
+assert.ok(quote.sources.every(item => item.sourceType === "canonical"), "numeric quotes identify technique operations as canonical sources");
+quote = adapters.rangeQuote(ranged.actors[0], { scene: ranged, kind: "attack", actionId: ids.finish, attribute: "talent", baseValue: 1 });
+assert.equal(quote.value, 5, "Sniper I sets Talent Finisher range to at least 5");
+const saint = fixture({ knownTechniques: { "altruist.heavenly-saint": 3 } });
+saint.actors[0].lionwing.automation = { "altruist.heavenly-saint.3": true };
+quote = adapters.rangeQuote(saint.actors[0], { scene: saint, kind: "attack", actionId: ids.finish, attribute: "spirit", baseValue: 1 });
+assert.equal(quote.value, 5, "Compassionate Sage gives Spirit Finishers the canonical range five");
+ranged = run(ranged, "h", { kind: "automation", ruleId: "powerhouse.lancer.2", enabled: false });
+quote = adapters.rangeQuote(ranged.actors[0], { scene: ranged, kind: "attack", actionId: ids.skirmish, baseValue: 1 });
+assert.equal(quote.value, 2, "removing Lancer II restores the Lancer I floor");
+const rangedReload = copy(ranged);
+quote = adapters.rangeQuote(rangedReload.actors[0], { scene: rangedReload, kind: "attack", actionId: ids.skirmish, baseValue: 1 });
+assert.equal(quote.value, 2, "range opt-in and removal survive JSON reload");
+quote = adapters.rangeQuote({ ...rangedReload.actors[0], effects: ["negative.обездвижен"] }, { scene: rangedReload, kind: "attack", actionId: ids.finish, attribute: "talent", baseValue: 1, immobilized: true });
+assert.equal(quote.value, 5, "a forged Immobilized flag cannot activate Sniper II");
+ranged = run(ranged, "h", { kind: "effect", targetId: "h", effect: "negative.обездвижен" });
+quote = adapters.rangeQuote(ranged.actors[0], { scene: ranged, kind: "attack", actionId: ids.finish, attribute: "talent", baseValue: 1 });
+assert.equal(quote.value, 6, "Sniper II adds five only while the owner is authoritatively Immobilized; the shared floor stage then keeps the result at six");
+
+// Lancer III is a Breathe -> Skirmish sequence.  The sequence is read from
+// the owner Turn history rather than from a request boolean or copied actor.
+let cannon = fixture({ knownTechniques: { "powerhouse.lancer": 3 } });
+cannon = enableAll(cannon, ["powerhouse.lancer.1", "powerhouse.lancer.2", "powerhouse.lancer.3"]);
+cannon = run(cannon, "h", { kind: "turn-start" });
+const breatheAction = prepare(cannon, "h", { kind: "action", actionId: ids.breathe });
+cannon = lionwing.dispatchMany(cannon, breatheAction.events).scene;
+quote = adapters.rangeQuote(cannon.actors[0], { scene: cannon, kind: "attack", actionId: ids.skirmish, baseValue: 1 });
+assert.equal(quote.value, 4, "Lancer III raises the Breathe -> Skirmish range floor to 4");
+quote = adapters.attackQuote(cannon.actors[0], { scene: cannon, kind: "attack", actionId: ids.skirmish, targetDistance: 4, baseValue: 5 });
+assert.equal(quote.value, 9, "Lancer III raises Pierce's distance Advantage cap from 3 to 4");
+quote = adapters.rangeQuote({ ...cannon.actors[0], lionwing: { ...cannon.actors[0].lionwing, history: [] } }, { scene: cannon, kind: "attack", actionId: ids.skirmish, baseValue: 1, lancerCannonArm: true });
+assert.equal(quote.value, 4, "a copied actor cannot remove an authoritative Breathe -> Skirmish receipt");
+const noCannon = fixture({ knownTechniques: { "powerhouse.lancer": 3 } });
+noCannon.actors[0].lionwing.automation = { "powerhouse.lancer.3": true };
+quote = adapters.rangeQuote({ ...noCannon.actors[0], lionwing: { ...noCannon.actors[0].lionwing, history: [{ actionId: ids.breathe }] } }, { scene: noCannon, kind: "attack", actionId: ids.skirmish, baseValue: 1, lancerCannonArm: true });
+assert.equal(quote.value, 1, "a forged Breathe history cannot activate Lancer III");
+
+// Braggart's all-roll Advantage is clock-backed.  A copied full clock and a
+// cosmetic pride flag cannot create the bonus against an authoritative empty
+// clock; disabling it removes the source immediately.
+let braggart = fixture({ knownTechniques: { "powerhouse.braggart": 1 }, ruleClocks: { "powerhouse.braggart.pride": { current: 6, max: 6, size: 6 } } });
+braggart = enable(braggart, "powerhouse.braggart.1");
+quote = adapters.attackQuote(braggart.actors[0], { scene: braggart, kind: "attack", actionId: ids.skirmish, baseValue: 3 });
+assert.equal(quote.value, 4, "a full Pride clock adds one Advantage to an Attack pool");
+assert.ok(quote.sources.some(item => item.id === "powerhouse.braggart.1"), "Braggart source remains visible in the quote");
+let emptyPride = fixture({ knownTechniques: { "powerhouse.braggart": 1 }, ruleClocks: { "powerhouse.braggart.pride": { current: 0, max: 6, size: 6 } } });
+emptyPride = enable(emptyPride, "powerhouse.braggart.1");
+quote = adapters.attackQuote({ ...emptyPride.actors[0], ruleClocks: { "powerhouse.braggart.pride": { current: 6, max: 6 } } }, { scene: emptyPride, kind: "attack", actionId: ids.skirmish, baseValue: 3, prideFull: true });
+assert.equal(quote.value, 3, "Braggart ignores forged clock state and payload flags");
+emptyPride = run(emptyPride, "h", { kind: "automation", ruleId: "powerhouse.braggart.1", enabled: false });
+quote = adapters.attackQuote(emptyPride.actors[0], { scene: emptyPride, kind: "attack", actionId: ids.skirmish, baseValue: 3 });
+assert.equal(quote.value, 3, "removing Braggart opt-in removes its Advantage");
+
+// Duelist's Tension Armor belongs to the held Block response.  It does not
+// mutate the actor's persistent Armor and the disabled path is ordinary Block.
+let duelist = fixture({ knownTechniques: { "powerhouse.duelist": 2 } });
+duelist = enable(duelist, "powerhouse.duelist.2");
+duelist = run(duelist, "e", { kind: "tension", amount: 3 });
+duelist = run(duelist, "e", { kind: "attack", targetIds: ["h"], amount: 5 });
+duelist = run(duelist, "h", { kind: "reaction", choice: "block" });
+assert.equal(duelist.pendingAction.responses.h.temporaryArmor, 8, "Duelist Block adds the current Tension to Body Armor");
+assert.equal(duelist.actors[0].armor, 0, "Duelist keeps response Armor temporary");
+let ordinaryBlock = fixture({ knownTechniques: { "powerhouse.duelist": 2 } });
+ordinaryBlock = run(ordinaryBlock, "e", { kind: "tension", amount: 3 });
+ordinaryBlock = run(ordinaryBlock, "e", { kind: "attack", targetIds: ["h"], amount: 5 });
+ordinaryBlock = run(ordinaryBlock, "h", { kind: "reaction", choice: "block" });
+assert.equal(ordinaryBlock.pendingAction.responses.h.temporaryArmor, 5, "known but disabled Duelist leaves ordinary Body Block Armor");
+
+// Untouchable's first Dodge is round-scoped and its +1 movement is consumed by
+// the actual reaction path; the persisted marker prevents a second bonus in
+// the same Round and resets when the Round changes.
+let untouchable = fixture({ knownTechniques: { "vagabond.untouchable": 2 }, focus: 3 });
+untouchable = enableAll(untouchable, ["vagabond.untouchable.1", "vagabond.untouchable.2"]);
+untouchable = run(untouchable, "e", { kind: "attack", targetIds: ["h"], amount: 10 });
+untouchable = run(untouchable, "h", { kind: "reaction", choice: "dodge", attribute: "talent", destination: { space: "main", x: 0, y: 1 } });
+assert.equal(untouchable.actors[0].evasion, 2 + 3, "Untouchable adds Talent to the first actual Dodge");
+assert.equal(untouchable.actors[0].x, 0, "Untouchable Dodge uses the checked destination");
+assert.equal(untouchable.pendingAction.responses.h.dodgeMove, 3, "Untouchable adds one to the Dodge movement budget");
+assert.equal(untouchable.actors[0].lionwing.lastDodgeRound, 1, "the Dodge receipt is persisted with its Round");
+const untouchableReload = copy(untouchable);
+quote = adapters.numericQuote(untouchableReload.actors[0], { scene: untouchableReload, kind: "dodge", key: "dodgeEvasion", baseValue: 2 });
+assert.equal(quote.value, 2, "a second Dodge in the same Round has no first-Dodge bonus after reload");
+untouchableReload.round = 2;
+quote = adapters.numericQuote(untouchableReload.actors[0], { scene: untouchableReload, kind: "dodge", key: "dodgeEvasion", baseValue: 2 });
+assert.equal(quote.value, 5, "Untouchable first-Dodge bonus returns in the next Round");
+
+// Drunkard's Evasion is a bounded next-Turn modifier.  It is not folded into
+// the static stat and is removed by the owner's next start boundary.
+let drunkard = fixture({ tier: 3, knownTechniques: { "vagabond.drunkard": 2 }, effects: ["negative.замедлен", "negative.ослаблен"] });
+drunkard = enable(drunkard, "vagabond.drunkard.2");
+drunkard = run(drunkard, "h", { kind: "turn-start" });
+drunkard = run(drunkard, "h", { kind: "turn-end" });
+const drunkardModifier = drunkard.actors[0].lionwing.modifiers.find(item => item.ruleId === "vagabond.drunkard.2");
+assert.equal(drunkardModifier?.amount, 4, "Drunkard counts ceil(Tier/2) plus active Negative Effects");
+assert.equal(drunkardModifier?.boundary, "startTurn", "Drunkard grant expires at the next own start");
+assert.equal(drunkardModifier?.coverage, "partial", "bounded Drunkard modifier retains partial coverage metadata");
+const drunkardReload = copy(drunkard);
+const drunkardQuote = lionwing.statQuote(drunkardReload.actors[0], "evasion");
+assert.equal(drunkardQuote.value, 4, "the bounded Evasion is visible through the shared stat quote after reload");
+assert.equal(drunkardQuote.temporarySources[0]?.sourceType, "temporary", "reloaded bounded Evasion is exposed as a temporary source");
+assert.equal(drunkardQuote.temporarySources[0]?.coverage, "partial", "reloaded bounded Evasion keeps its partial coverage in the quote");
+drunkard = run(drunkard, "e", { kind: "turn-start" });
+drunkard = run(drunkard, "e", { kind: "turn-end" });
+drunkard = run(drunkard, "e", { kind: "round-end" });
+drunkard = run(drunkard, "h", { kind: "turn-start" });
+assert.equal(drunkard.actors[0].lionwing.modifiers.some(item => item.ruleId === "vagabond.drunkard.2"), false, "Drunkard's next-Turn modifier is removed at the owner's next start");
 
 console.log("LionWing passive adapters passed: canonical identity, bonuses and floors, lifecycle grants, replacement resources and action restrictions");

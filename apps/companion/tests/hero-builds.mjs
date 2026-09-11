@@ -40,7 +40,6 @@ const coverageFor = techniques => TechniqueEngine.techniqueCoverage(data, techni
 
 const chainedBuild = {
   "vagabond.enchained": 1,
-  "vagabond.untouchable": 1,
   "altruist.surgeon": 1,
   "ruiner.creation-ascetic": 2,
 };

@@ -829,7 +829,7 @@
       },
       "level": 2,
       "implementation": {
-        "automation": "full",
+        "automation": "partial",
         "ruleIds": [
           "powerhouse.duelist.2"
         ],
@@ -840,11 +840,11 @@
             "level": 2,
             "name": "Парирование",
             "kind": "passive",
-            "automation": "full",
-            "note": "Ответ Блоком против смежного атакующего автоматически накладывает Ошеломлен до разрешения исходной Атаки.",
-            "sourceLevelId": "powerhouse.duelist.2",
+            "automation": "partial",
+            "coverage": "partial",
             "sourceDigest": "6ac5d7c737f81f4ba33f9a649d3bdfae9c2627d6420540f72f9626c53efb0827",
-            "coverage": "full"
+            "note": "Блок получает авторитетное Напряжение дополнительной Бронёй. Незакрыто: условие смежного атакующего, Ошеломление и толчок вместо владельца.",
+            "sourceLevelId": "powerhouse.duelist.2"
           }
         ],
         "foundationPlan": {
@@ -5081,9 +5081,24 @@
       },
       "level": 1,
       "implementation": {
-        "automation": "manual",
-        "ruleIds": [],
-        "rules": [],
+        "automation": "partial",
+        "ruleIds": [
+          "powerhouse.lancer.1"
+        ],
+        "rules": [
+          {
+            "id": "powerhouse.lancer.1",
+            "techniqueId": "powerhouse.lancer",
+            "level": 1,
+            "name": "Пробить",
+            "kind": "passive",
+            "automation": "partial",
+            "coverage": "partial",
+            "sourceDigest": "8591643bda0a61a4165679413af42b8b60a40ca90dc47dc5a9d6ee1c32a5e701",
+            "note": "Стычка и Завершение Телом получают дальность не ниже 2; дальностное Преимущество Стычки ограничено 3. Остальные детали выбора цели остаются в общем действии.",
+            "sourceLevelId": "powerhouse.lancer.1"
+          }
+        ],
         "foundationPlan": {
           "version": 11,
           "status": "reviewed",
@@ -5142,7 +5157,9 @@
           "text": "Your Skirmish and Body Finisher can target one enemy within 2 range instead of its normal targeting. Your Skirmishes gain Advantage equal to your target's distance from you (up to a maximum of 3)."
         },
         "canonicalDigest": "8591643bda0a61a4165679413af42b8b60a40ca90dc47dc5a9d6ee1c32a5e701",
-        "engineRuleDigests": []
+        "engineRuleDigests": [
+          "8591643bda0a61a4165679413af42b8b60a40ca90dc47dc5a9d6ee1c32a5e701"
+        ]
       },
       "review": {
         "status": "unreviewed",
@@ -5176,9 +5193,24 @@
       },
       "level": 2,
       "implementation": {
-        "automation": "manual",
-        "ruleIds": [],
-        "rules": [],
+        "automation": "partial",
+        "ruleIds": [
+          "powerhouse.lancer.2"
+        ],
+        "rules": [
+          {
+            "id": "powerhouse.lancer.2",
+            "techniqueId": "powerhouse.lancer",
+            "level": 2,
+            "name": "Фаланга",
+            "kind": "passive",
+            "automation": "partial",
+            "coverage": "partial",
+            "sourceDigest": "bbc32f09a04b64473f2a4eaacdb4686a3827af112fa7b2737d5117fcc1975c1b",
+            "note": "Стычка и Завершение Телом получают дальность не ниже 3. Поражение всех противников между владельцем и целью остаётся ручным расширением.",
+            "sourceLevelId": "powerhouse.lancer.2"
+          }
+        ],
         "foundationPlan": {
           "version": 11,
           "status": "reviewed",
@@ -5237,7 +5269,9 @@
           "text": "Your Skirmish and Body Finishers can target an enemy within 3 range instead of its normal targeting. Skirmish affects all opposing targets between yourself and your original target(s), dealing half damage to each."
         },
         "canonicalDigest": "bbc32f09a04b64473f2a4eaacdb4686a3827af112fa7b2737d5117fcc1975c1b",
-        "engineRuleDigests": []
+        "engineRuleDigests": [
+          "bbc32f09a04b64473f2a4eaacdb4686a3827af112fa7b2737d5117fcc1975c1b"
+        ]
       },
       "review": {
         "status": "unreviewed",
@@ -5271,9 +5305,24 @@
       },
       "level": 3,
       "implementation": {
-        "automation": "manual",
-        "ruleIds": [],
-        "rules": [],
+        "automation": "partial",
+        "ruleIds": [
+          "powerhouse.lancer.3"
+        ],
+        "rules": [
+          {
+            "id": "powerhouse.lancer.3",
+            "techniqueId": "powerhouse.lancer",
+            "level": 3,
+            "name": "Рука-пушка",
+            "kind": "passive",
+            "automation": "partial",
+            "coverage": "partial",
+            "sourceDigest": "cf89959221bf368de82bf3bc9e6c4e2d64fd30d5b33a5095e355a6aa93aab5c0",
+            "note": "После авторитетной последовательности Передышка → Стычка дальность Стычки не ниже 4 и дальностное Преимущество может достигать 4. Зона, трудная местность и точный выбор последовательности остаются ручными.",
+            "sourceLevelId": "powerhouse.lancer.3"
+          }
+        ],
         "foundationPlan": {
           "version": 11,
           "status": "reviewed",
@@ -5364,7 +5413,9 @@
           "text": "The Skirmish can choose targets up to 4 spaces away and raises the maximum Advantage from \"Pierce\" to 4. If the attack had 4 or more total Advantage, it additionally affects all targets adjacent to the original, dealing half its damage to said targets. Each affected space becomes Difficult Terrain."
         },
         "canonicalDigest": "cf89959221bf368de82bf3bc9e6c4e2d64fd30d5b33a5095e355a6aa93aab5c0",
-        "engineRuleDigests": []
+        "engineRuleDigests": [
+          "cf89959221bf368de82bf3bc9e6c4e2d64fd30d5b33a5095e355a6aa93aab5c0"
+        ]
       },
       "review": {
         "status": "unreviewed",
@@ -7491,9 +7542,24 @@
       },
       "level": 1,
       "implementation": {
-        "automation": "manual",
-        "ruleIds": [],
-        "rules": [],
+        "automation": "partial",
+        "ruleIds": [
+          "vagabond.sniper.1"
+        ],
+        "rules": [
+          {
+            "id": "vagabond.sniper.1",
+            "techniqueId": "vagabond.sniper",
+            "level": 1,
+            "name": "Дальний выстрел",
+            "kind": "passive",
+            "automation": "partial",
+            "coverage": "partial",
+            "sourceDigest": "a84de0a68e37fcfc0bd9e9f2b31d19f5f09d686294b82e40138d26e0ed6ba8e8",
+            "note": "Завершение Талантом получает дальность не ниже 5 через общий конвейер дальности.",
+            "sourceLevelId": "vagabond.sniper.1"
+          }
+        ],
         "foundationPlan": {
           "version": 11,
           "status": "reviewed",
@@ -7544,7 +7610,9 @@
           "text": "Your Talent Finisher can target characters within 5 range instead of its normal targeting."
         },
         "canonicalDigest": "a84de0a68e37fcfc0bd9e9f2b31d19f5f09d686294b82e40138d26e0ed6ba8e8",
-        "engineRuleDigests": []
+        "engineRuleDigests": [
+          "a84de0a68e37fcfc0bd9e9f2b31d19f5f09d686294b82e40138d26e0ed6ba8e8"
+        ]
       },
       "review": {
         "status": "unreviewed",
@@ -7578,9 +7646,24 @@
       },
       "level": 2,
       "implementation": {
-        "automation": "manual",
-        "ruleIds": [],
-        "rules": [],
+        "automation": "partial",
+        "ruleIds": [
+          "vagabond.sniper.2"
+        ],
+        "rules": [
+          {
+            "id": "vagabond.sniper.2",
+            "techniqueId": "vagabond.sniper",
+            "level": 2,
+            "name": "Окопаться",
+            "kind": "passive",
+            "automation": "partial",
+            "coverage": "partial",
+            "sourceDigest": "e154b6164f886770be2bb7a63a6a86bd7be83a88967eecaeb1f801b631874767",
+            "note": "При авторитетной Обездвиженности Завершение Талантом получает ещё 5 дальности. Вход в Обездвиженность и крит на 5–6 остаются ручными.",
+            "sourceLevelId": "vagabond.sniper.2"
+          }
+        ],
         "foundationPlan": {
           "version": 11,
           "status": "reviewed",
@@ -7655,7 +7738,9 @@
           "text": "At the start of the Scene, or If you end your Turn without Attacking, you may ‘Bunker Down', gaining Immobilized. While you're Immobilized, your Talent Finishers gain 5 additional range and Crit on rolls of 5 or 6."
         },
         "canonicalDigest": "e154b6164f886770be2bb7a63a6a86bd7be83a88967eecaeb1f801b631874767",
-        "engineRuleDigests": []
+        "engineRuleDigests": [
+          "e154b6164f886770be2bb7a63a6a86bd7be83a88967eecaeb1f801b631874767"
+        ]
       },
       "review": {
         "status": "unreviewed",
@@ -8499,7 +8584,7 @@
       },
       "level": 1,
       "implementation": {
-        "automation": "full",
+        "automation": "partial",
         "ruleIds": [
           "vagabond.untouchable.1"
         ],
@@ -8510,11 +8595,11 @@
             "level": 1,
             "name": "Нырок",
             "kind": "passive",
-            "automation": "full",
-            "note": "Первый Уворот за Раунд автоматически получает дополнительное [Талант / 2] Уклонение.",
-            "sourceLevelId": "vagabond.untouchable.1",
+            "automation": "partial",
+            "coverage": "partial",
             "sourceDigest": "348244d9362ed86da47559403a2fd0f22afb93a9647db589007e8ff203c8a26a",
-            "coverage": "full"
+            "note": "Первый Уворот за Раунд получает авторитетные +Талант Уклонения. Событие первого Уворота и обычное расходование Уклонения ведёт ядро.",
+            "sourceLevelId": "vagabond.untouchable.1"
           }
         ],
         "foundationPlan": {
@@ -8603,7 +8688,7 @@
       },
       "level": 2,
       "implementation": {
-        "automation": "decision",
+        "automation": "partial",
         "ruleIds": [
           "vagabond.untouchable.2"
         ],
@@ -8614,11 +8699,11 @@
             "level": 2,
             "name": "Маятник",
             "kind": "passive",
-            "automation": "decision",
-            "note": "Уворот перемещает до 3 клеток; если итоговое Уклонение сводит урон к 0, стол предлагает отменяемое повторное перемещение до 3 клеток и пишет его в журнал.",
-            "sourceLevelId": "vagabond.untouchable.2",
+            "automation": "partial",
+            "coverage": "partial",
             "sourceDigest": "abd33cfc8f9dfb48eaf90234e99044a1f3c16d2d99d527286e6dd14c52d7433e",
-            "coverage": "partial"
+            "note": "Уворот получает +1 к дальности движения. Повторное движение после снижения урона до 0 остаётся решением игрока.",
+            "sourceLevelId": "vagabond.untouchable.2"
           }
         ],
         "foundationPlan": {
@@ -13303,9 +13388,24 @@
       },
       "level": 2,
       "implementation": {
-        "automation": "manual",
-        "ruleIds": [],
-        "rules": [],
+        "automation": "partial",
+        "ruleIds": [
+          "vagabond.drunkard.2"
+        ],
+        "rules": [
+          {
+            "id": "vagabond.drunkard.2",
+            "techniqueId": "vagabond.drunkard",
+            "level": 2,
+            "name": "Пляска дурака",
+            "kind": "passive",
+            "automation": "partial",
+            "coverage": "partial",
+            "sourceDigest": "73477795efb4e90b3c7bf8d17ed305b312f08703a0085672f72b5e0a869dde56",
+            "note": "После собственного Хода с авторитетным Замедлен Эффектом выдаётся временное Уклонение на начало следующего Хода; размер читает Ранг/2 и число отрицательных Эффектов. Обязательное движение первого уровня остаётся ручным.",
+            "sourceLevelId": "vagabond.drunkard.2"
+          }
+        ],
         "foundationPlan": {
           "version": 11,
           "status": "reviewed",
@@ -13364,7 +13464,9 @@
           "text": "If you end your Turn while Slowed, gain Evasion equal to [Tier/2] + the number of Negative Effects on you."
         },
         "canonicalDigest": "73477795efb4e90b3c7bf8d17ed305b312f08703a0085672f72b5e0a869dde56",
-        "engineRuleDigests": []
+        "engineRuleDigests": [
+          "73477795efb4e90b3c7bf8d17ed305b312f08703a0085672f72b5e0a869dde56"
+        ]
       },
       "review": {
         "status": "unreviewed",
@@ -21294,10 +21396,10 @@
             "name": "Великое восстановление",
             "kind": "passive",
             "automation": "decision",
-            "note": "Завершение Духом наследует лечение, даёт Регенерацию и один раз за Сцену снимает Рану цели.",
-            "sourceLevelId": "altruist.heavenly-saint.3",
+            "coverage": "partial",
             "sourceDigest": "5f42cdf622ce588debfafa058a85655946db0c400a1e925653fec9b6d0568e51",
-            "coverage": "partial"
+            "note": "Духовное Завершение получает дальность 5 через общий числовой конвейер; лечение, Регенерация и снятие Раны остаются решением Техники.",
+            "sourceLevelId": "altruist.heavenly-saint.3"
           }
         ],
         "foundationPlan": {
@@ -36622,9 +36724,24 @@
       },
       "level": 3,
       "implementation": {
-        "automation": "manual",
-        "ruleIds": [],
-        "rules": [],
+        "automation": "partial",
+        "ruleIds": [
+          "ruiner.flame-heart.3"
+        ],
+        "rules": [
+          {
+            "id": "ruiner.flame-heart.3",
+            "techniqueId": "ruiner.flame-heart",
+            "level": 3,
+            "name": "Пепел к пеплу",
+            "kind": "passive",
+            "automation": "partial",
+            "coverage": "partial",
+            "sourceDigest": "4896f18d23e7ba4de201859ecfb76d46c7049c32e532747831b973b2d75c6d29",
+            "note": "Заклинания получают +1 Преимущество, а Духовное Завершение — дальность 5 через общий числовой конвейер. Снятие Порчи и Х-образная область остаются ручными.",
+            "sourceLevelId": "ruiner.flame-heart.3"
+          }
+        ],
         "foundationPlan": {
           "version": 11,
           "status": "reviewed",
@@ -36707,7 +36824,9 @@
           "text": "Your Casts gain 1 Advantage. Your Spirit Finisher has a range of 5 and removes Blight from its target and yourself after targeting. If it removes any Blight, it additionally targets enemies in two crossing, diagonal 5 space Lines centered on the target in the shape of an \"X\"."
         },
         "canonicalDigest": "4896f18d23e7ba4de201859ecfb76d46c7049c32e532747831b973b2d75c6d29",
-        "engineRuleDigests": []
+        "engineRuleDigests": [
+          "4896f18d23e7ba4de201859ecfb76d46c7049c32e532747831b973b2d75c6d29"
+        ]
       },
       "review": {
         "status": "unreviewed",
