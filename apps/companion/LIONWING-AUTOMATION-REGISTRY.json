@@ -13646,23 +13646,63 @@
         ]
       },
       "review": {
-        "status": "unreviewed",
-        "inherited": true,
-        "explicit": false,
-        "source": "default"
+        "id": "vagabond.master-at-arms.1",
+        "canonicalDigest": "d35f468065e84fbb0c86bc60015632bdbcfe9b0ced2ed2cfa370453f64a72371",
+        "status": "corrected",
+        "correction": "Повторно сверены три Armament с LionWing p.79: Blade/ Pole/ Chain сохраняют только канонические условия и последствия Strengthen / Launch / Shred; старые эффекты и несвязанные ветки не входят в контракт.",
+        "auditRef": "Исправленные границы: vagabond.master-at-arms.1–3",
+        "explicit": true
       },
       "surfaces": {
-        "core": false,
+        "core": true,
         "ui": false,
         "network": false,
         "persistence": false
       },
       "certification": {
         "status": "uncertified",
-        "confidence": null,
-        "evidenceId": null,
+        "confidence": "core-tested",
+        "evidenceId": "vagabond.master-at-arms.1",
         "staleEvidence": false,
-        "evidence": null
+        "evidence": {
+          "id": "vagabond.master-at-arms.1",
+          "kind": "technique",
+          "canonicalDigest": "d35f468065e84fbb0c86bc60015632bdbcfe9b0ced2ed2cfa370453f64a72371",
+          "sourcePath": "../../source/editions/dawn-en-lionwing-cb2f8e67/extracted-companion.json",
+          "sourceDigest": "sha256:1228663d26bf3c87b3b94b0d2f3c4c02b302007df98aa407c40d13ee731c175f",
+          "confidence": "core-tested",
+          "auditedAtCommit": "c930865",
+          "claims": [
+            "Blade, Pole and Chain expose only their canonical Skirmish conditions.",
+            "Equip is stored as an authoritative scene rule mode with one receipt per mode and Turn.",
+            "Canonical Strengthen, Launch and Shred consequences are emitted through typed post operations."
+          ],
+          "surfaces": {
+            "core": true,
+            "ui": false,
+            "network": false,
+            "persistence": false
+          },
+          "tests": [
+            {
+              "path": "tests/lionwing-equipment-chains.mjs",
+              "case": "Armament conditions, receipts, typed post effects, stale source and replay-safe dispatch"
+            },
+            {
+              "path": "tests/scene-engine.mjs",
+              "case": "Blade/Pole/Chain resolution, once-per-Turn gates, KO cancellation and canonical effects"
+            },
+            {
+              "path": "tests/lionwing-master-at-arms-audit.mjs",
+              "case": "LionWing identity, page 79 provenance and full canonical level digests"
+            }
+          ],
+          "edgeCases": [
+            "Repeated Equip of the same mode in one Turn is rejected.",
+            "A stale source digest cannot commit an Armament Finisher path.",
+            "Direct browser/network and saved-scene surface evidence remains manual."
+          ]
+        }
       }
     },
     {
@@ -13782,23 +13822,63 @@
         ]
       },
       "review": {
-        "status": "unreviewed",
-        "inherited": true,
-        "explicit": false,
-        "source": "default"
+        "id": "vagabond.master-at-arms.2",
+        "canonicalDigest": "743ae31f60f1a826d3346b6e07c7cff94983860c399cdc9484302e120fd726c4",
+        "status": "corrected",
+        "correction": "Второе Equip за текущий Turn даёт ровно 1 AP и Hasten; первый и последующие Equip не получают повторной награды.",
+        "auditRef": "Исправленные границы: vagabond.master-at-arms.1–3",
+        "explicit": true
       },
       "surfaces": {
-        "core": false,
+        "core": true,
         "ui": false,
         "network": false,
         "persistence": false
       },
       "certification": {
         "status": "uncertified",
-        "confidence": null,
-        "evidenceId": null,
+        "confidence": "core-tested",
+        "evidenceId": "vagabond.master-at-arms.2",
         "staleEvidence": false,
-        "evidence": null
+        "evidence": {
+          "id": "vagabond.master-at-arms.2",
+          "kind": "technique",
+          "canonicalDigest": "743ae31f60f1a826d3346b6e07c7cff94983860c399cdc9484302e120fd726c4",
+          "sourcePath": "../../source/editions/dawn-en-lionwing-cb2f8e67/extracted-companion.json",
+          "sourceDigest": "sha256:1228663d26bf3c87b3b94b0d2f3c4c02b302007df98aa407c40d13ee731c175f",
+          "confidence": "core-tested",
+          "auditedAtCommit": "c930865",
+          "claims": [
+            "The second Equip in the current Turn grants exactly 1 AP.",
+            "The same second Equip applies Hasten through the normal effect lifecycle.",
+            "First and third Equip events do not grant duplicate Like Water rewards."
+          ],
+          "surfaces": {
+            "core": true,
+            "ui": false,
+            "network": false,
+            "persistence": false
+          },
+          "tests": [
+            {
+              "path": "tests/scene-engine.mjs",
+              "case": "Second and third Armament Equip AP/Hasten boundaries and next-Turn reset"
+            },
+            {
+              "path": "tests/lionwing-equipment-chains.mjs",
+              "case": "Mode receipt gate and canonical Multi-Faceted contract"
+            },
+            {
+              "path": "tests/lionwing-master-at-arms-audit.mjs",
+              "case": "Canonical Like Water text and digest"
+            }
+          ],
+          "edgeCases": [
+            "A second Armament of a different mode is the only rewarded second Equip.",
+            "A third Armament in the same Turn leaves the reward count at one.",
+            "UI, network races and persisted browser reload are not independently evidenced."
+          ]
+        }
       }
     },
     {
@@ -13958,23 +14038,63 @@
         ]
       },
       "review": {
-        "status": "unreviewed",
-        "inherited": true,
-        "explicit": false,
-        "source": "default"
+        "id": "vagabond.master-at-arms.3",
+        "canonicalDigest": "f104c7652bda2a425422af31d8d91b30515463c98f78892fe25eb204ac7508d3",
+        "status": "corrected",
+        "correction": "Talent Finisher читает только сохранённый Armament: Blade — проверенный путь до 2 клеток, Pole — линия из 2 клеток и Terrain после успешного Spike, Chain — смежный центр и расширение по Critical; прямые подмены источника, геометрии и целей отклоняются.",
+        "auditRef": "Исправленные границы: vagabond.master-at-arms.1–3",
+        "explicit": true
       },
       "surfaces": {
-        "core": false,
+        "core": true,
         "ui": false,
         "network": false,
         "persistence": false
       },
       "certification": {
         "status": "uncertified",
-        "confidence": null,
-        "evidenceId": null,
+        "confidence": "core-tested",
+        "evidenceId": "vagabond.master-at-arms.3",
         "staleEvidence": false,
-        "evidence": null
+        "evidence": {
+          "id": "vagabond.master-at-arms.3",
+          "kind": "technique",
+          "canonicalDigest": "f104c7652bda2a425422af31d8d91b30515463c98f78892fe25eb204ac7508d3",
+          "sourcePath": "../../source/editions/dawn-en-lionwing-cb2f8e67/extracted-companion.json",
+          "sourceDigest": "sha256:1228663d26bf3c87b3b94b0d2f3c4c02b302007df98aa407c40d13ee731c175f",
+          "confidence": "core-tested",
+          "auditedAtCommit": "c930865",
+          "claims": [
+            "Only a Talent Finisher can consume the currently equipped Armament bonus.",
+            "Blade uses a bounded legal path, Pole uses a two-cell line and verified Spike state, and Chain derives its square from an adjacent center and actual Criticals.",
+            "Reducer validation rechecks source digest, geometry and derived target ids before mutation."
+          ],
+          "surfaces": {
+            "core": true,
+            "ui": false,
+            "network": false,
+            "persistence": false
+          },
+          "tests": [
+            {
+              "path": "tests/lionwing-equipment-chains.mjs",
+              "case": "Blade/ Pole/ Chain geometry, target derivation, forged cells, stale source, Spike terrain and diagonal path rejection"
+            },
+            {
+              "path": "tests/lionwing-master-at-arms-audit.mjs",
+              "case": "Canonical Master At Work text, page 79 source and digest"
+            },
+            {
+              "path": "tests/scene-engine.mjs",
+              "case": "Master Armament lifecycle and typed effects used by the shared finisher pipeline"
+            }
+          ],
+          "edgeCases": [
+            "A successful Pole Spike creates Difficult Terrain even with zero Criticals.",
+            "A diagonal or otherwise forged Blade path is rejected before target mutation.",
+            "Live browser selection, network concurrency, persisted reload and direct PDF page render remain manual."
+          ]
+        }
       }
     },
     {

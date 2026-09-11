@@ -4,7 +4,7 @@
 > `review=unreviewed/inherited` означает отсутствие явной записи в аудите; это не сертификация и не повышение readiness.
 > Общий lifecycle scheduler проверяется `tests/lionwing-neutral-lifecycle.mjs` и `tests/lionwing-lifecycle-consumers.mjs`; эти тесты не являются E2E-сертификацией отдельных Техник.
 
-Canonical уровней: **333** · Явно исправленных review: **6** · Сертифицированных evidence: **0**
+Canonical уровней: **333** · Явно исправленных review: **9** · Сертифицированных evidence: **0**
 
 | ID | Техника | Ур. | Implementation | Review | Surfaces | Certification |
 | --- | --- | ---: | --- | --- | --- | --- |
@@ -125,9 +125,9 @@ Canonical уровней: **333** · Явно исправленных review: *
 | `vagabond.drunkard.1` | Drunkard | 1 | `manual` | `unreviewed` | — | `uncertified` |
 | `vagabond.drunkard.2` | Drunkard | 2 | `manual` | `unreviewed` | — | `uncertified` |
 | `vagabond.drunkard.3` | Drunkard | 3 | `manual` | `unreviewed` | — | `uncertified` |
-| `vagabond.master-at-arms.1` | Master-At-Arms | 1 | `full` | `unreviewed` | — | `uncertified` |
-| `vagabond.master-at-arms.2` | Master-At-Arms | 2 | `full` | `unreviewed` | — | `uncertified` |
-| `vagabond.master-at-arms.3` | Master-At-Arms | 3 | `full` | `unreviewed` | — | `uncertified` |
+| `vagabond.master-at-arms.1` | Master-At-Arms | 1 | `full` | `corrected` | core | `uncertified` |
+| `vagabond.master-at-arms.2` | Master-At-Arms | 2 | `full` | `corrected` | core | `uncertified` |
+| `vagabond.master-at-arms.3` | Master-At-Arms | 3 | `full` | `corrected` | core | `uncertified` |
 | `bulwark.crusher.1` | Crusher | 1 | `manual` | `unreviewed` | — | `uncertified` |
 | `bulwark.crusher.2` | Crusher | 2 | `manual` | `unreviewed` | — | `uncertified` |
 | `bulwark.crusher.3` | Crusher | 3 | `manual` | `unreviewed` | — | `uncertified` |

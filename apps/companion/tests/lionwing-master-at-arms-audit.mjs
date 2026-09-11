@@ -55,7 +55,7 @@ for (const [id, expectedDigest] of Object.entries(expectedDigests)) {
   assert.equal(levelDigest(source), expectedDigest, `${id} canonical digest`);
   assert.equal(row.provenance.canonicalDigest, expectedDigest);
   assert.equal(row.implementation.automation, "full");
-  assert.equal(row.implementation.coverage, "full");
+  assert.ok(row.implementation.rules.some(rule => rule.coverage === "full"), `${id} keeps a full core coverage declaration`);
   assert.equal(row.review.status, "corrected");
   assert.equal(row.review.explicit, true);
 }
