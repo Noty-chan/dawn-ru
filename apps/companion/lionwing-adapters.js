@@ -1315,7 +1315,7 @@
       if (!match) return [];
       const triggerKey = typeof rule.triggerKey === "function" ? rule.triggerKey({ actor, event, context }) : `${event.id}:${actor.id}`;
       const operations = rule.id === "ruiner.cryomancer.2" ? [{ kind: "clock", targetId: actor.id, id: "ruiner.cryomancer.icicle", operation: "add", delta: 1, ruleId: rule.id }] : rule.operations(actor, event, context);
-      const ruleChoices = rule.choices ? rule.choices(actor, event, context) : [];
+      const ruleChoices = typeof rule.choices === "function" ? rule.choices(actor, event, context) : (Array.isArray(rule.choices) ? rule.choices : []);
       const followUp = typeof rule.followUp === "function" ? rule.followUp(actor, event, context) : rule.followUp;
       return [{ id: rule.id, label: rule.label, sourceDigest: rule.sourceDigest, coverage: rule.coverage, triggerKey: rule.id === "ruiner.cryomancer.2" ? `${event.payload.actionInstanceId || event.execution?.actionInstanceId}:${actor.id}:cryomancer-2` : triggerKey, operations, choices: ruleChoices, choiceSet: rule.choiceSet === true, ...(followUp ? { followUp } : {}) }];
     });
