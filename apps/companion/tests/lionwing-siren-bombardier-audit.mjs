@@ -53,15 +53,17 @@ assert.equal(study.ok, true, study.errors?.join(" "));
 scene = engine.dispatchMany(scene, study.events).scene;
 assert.equal(scene.lionwing.choices[0]?.kind, "technique-trigger", "Siren I offers Fear after Study");
 assert.deepEqual([...scene.lionwing.choices[0].options], ["skip", "fear"]);
+const siren1Pending = clone(scene);
 const siren1CauseId = scene.lionwing.choices[0].context.causeEventId;
 const siren1ChoiceEvent = event("h", { kind: "choice", id: scene.lionwing.choices[0].id, choice: "fear" }, "siren1-fear");
-scene = engine.dispatchMany(scene, [siren1ChoiceEvent]).scene;
+scene = engine.dispatchMany(engine.reload(siren1Pending), [siren1ChoiceEvent]).scene;
 assert.equal(scene.actors.find(item => item.id === "h").focus, 5, "Siren I spends exactly one Focus after the scene-start grant");
 assert.ok(scene.actors.find(item => item.id === "e").effects.includes("negative.испуган"));
 const siren1Effect = scene.log.find(row => row.type === "effect.apply" && row.payload.targetId === "e" && row.payload.effect === "negative.испуган");
 assert.equal(siren1Effect.payload.sourceDigest, digests["disruptor.siren.1"]);
 assert.equal(siren1Effect.payload.causeEventId, siren1CauseId);
-assert.throws(() => engine.dispatchMany(scene, [event("h", { kind: "effect", targetId: "e", effect: "negative.испуган", remove: true, sourceActorId: "h", sourceActionId: "action.утилитарные-действия.изучение", studyTargetId: "e", ruleId: "disruptor.siren.1", sourceDigest: digests["disruptor.siren.1"], causeEventId: siren1CauseId }, "siren1-remove")]), /снимает|Эффект/i, "Siren I cannot turn its apply receipt into effect removal");
+assert.throws(() => engine.dispatchMany(scene, [event("h", { kind: "effect", targetId: "e", effect: "negative.испуган", remove: true, sourceActorId: "h", sourceActionId: "action.утилитарные-действия.изучение", studyTargetId: "e", ruleId: "disruptor.siren.1", sourceDigest: digests["disruptor.siren.1"], causeEventId: siren1CauseId }, "siren1-remove")]), /авторитетн|сохранён|продолж/i, "Siren I rejects a public mutation even when its payload is otherwise valid");
+assert.throws(() => engine.dispatchMany(clone(scene), [event("h", { kind: "effect", targetId: "e", effect: "negative.испуган", sourceActorId: "h", sourceActionId: "action.утилитарные-действия.изучение", studyTargetId: "e", ruleId: "disruptor.siren.1", sourceDigest: digests["disruptor.siren.1"], causeEventId: siren1CauseId }, "siren1-direct-replay")]), /авторитетн|сохранён|продолж/i, "Siren I rejects a direct replay with the old cause and canonical digest");
 const siren1Reload = engine.reload(clone(scene));
 assert.deepEqual(engine.dispatchMany(siren1Reload, [siren1ChoiceEvent]).scene, siren1Reload, "replaying the committed Siren I choice is idempotent");
 
@@ -71,12 +73,35 @@ scene = fixture({ hero: { knownTechniques: { "disruptor.siren": 2 }, focus: 1 } 
 scene = run(scene, "h", { kind: "automation", ruleId: "disruptor.siren.2", enabled: true }, "siren2-enable");
 scene = run(scene, "h", { kind: "effect", targetId: "e", effect: "negative.испуган" }, "siren2-fear");
 assert.equal(scene.lionwing.choices[0]?.kind, "technique-trigger");
-scene = choose(scene, "h", "pull", "siren2-pull");
+const siren2Pending = clone(scene);
+const siren2CauseId = scene.lionwing.choices[0].context.causeEventId;
+scene = choose(engine.reload(siren2Pending), "h", "pull", "siren2-pull");
 assert.equal(scene.actors.find(item => item.id === "e").x, 2, "Siren II moves exactly until adjacency within three cells");
 assert.equal(scene.lionwing.choices[0]?.kind, "technique-trigger", "Daze is a separate choice after actual adjacency");
 assert.deepEqual([...scene.lionwing.choices[0].options], ["skip", "daze"]);
 scene = choose(scene, "h", "skip", "siren2-skip");
 assert.equal(scene.actors.find(item => item.id === "e").effects.includes("negative.ошеломлен"), false);
+scene.actors.push(actor("e2", "enemy", 6, 1));
+scene = run(scene, "h", { kind: "effect", targetId: "e2", effect: "negative.испуган" }, "siren2-second-fear");
+assert.equal(scene.lionwing.choices.some(item => item.context?.ruleId === "disruptor.siren.2"), false, "Siren II grants no second window in the same owner Turn");
+assert.throws(() => engine.dispatchMany(clone(scene), [event("h", { kind: "forced-towards", targetId: "e", sourceActorId: "h", maximum: 3, ruleId: "disruptor.siren.2", sourceDigest: digests["disruptor.siren.2"], sourceActionId: "disruptor.siren.2", causeEventId: siren2CauseId, frightenedEventId: siren2CauseId }, "siren2-direct-replay")]), /авторитетн|сохранён|продолж/i, "Siren II rejects a direct replay with the old cause and canonical digest");
+
+const allySirenBase = fixture({ hero: { knownTechniques: { "disruptor.siren": 2 }, focus: 1 } });
+allySirenBase.actors.push(actor("ally", "hero", 5, 1));
+let allySiren = run(allySirenBase, "h", { kind: "automation", ruleId: "disruptor.siren.2", enabled: true }, "siren2-ally-enable");
+allySiren = run(allySiren, "h", { kind: "effect", targetId: "ally", effect: "negative.испуган" }, "siren2-ally-fear");
+assert.equal(allySiren.lionwing.choices[0]?.kind, "technique-trigger", "Siren II works on an allied character");
+allySiren = choose(engine.reload(clone(allySiren)), "h", "pull", "siren2-ally-pull");
+assert.equal(allySiren.actors.find(item => item.id === "ally").x, 2, "Siren II pulls an allied character toward the owner");
+assert.equal(allySiren.lionwing.choices[0]?.kind, "technique-trigger", "Ally pull can still open the separate adjacency choice");
+allySiren = choose(allySiren, "h", "skip", "siren2-ally-skip");
+
+const adjacent = fixture({ hero: { knownTechniques: { "disruptor.siren": 2 } }, enemy: { x: 2 } });
+let adjacentScene = run(adjacent, "h", { kind: "automation", ruleId: "disruptor.siren.2", enabled: true }, "siren2-adjacent-enable");
+adjacentScene = run(adjacentScene, "h", { kind: "effect", targetId: "e", effect: "negative.испуган" }, "siren2-adjacent-fear");
+adjacentScene = choose(adjacentScene, "h", "pull", "siren2-adjacent-pull");
+assert.equal(adjacentScene.actors.find(item => item.id === "e").x, 2, "Siren II leaves an already adjacent target in place");
+assert.equal(adjacentScene.lionwing.choices.length, 0, "Siren II does not invent Daze when no movement occurred");
 
 const dazeScene = fixture({ hero: { knownTechniques: { "disruptor.siren": 2 }, focus: 1 }, enemy: { x: 3 } });
 let daze = run(dazeScene, "h", { kind: "automation", ruleId: "disruptor.siren.2", enabled: true }, "siren2-daze-enable");

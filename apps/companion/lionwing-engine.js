@@ -2250,13 +2250,13 @@
       if (p.sourceDigest !== sourceDigest) fail("Источник Сирены не совпадает с каноническим правилом");
       if (typeof p.sourceActorId !== "string" || p.sourceActorId !== sourceId) fail("Источник операции Сирены не совпадает с исполнителем");
       if (event.actorId != null && event.actorId !== p.sourceActorId) fail("Событие Сирены принадлежит другому участнику");
-      if (provenance?.ruleId && provenance.ruleId !== ruleId) fail("Продолжение Сирены относится к другому правилу");
       const source = requiredActor(scene, p.sourceActorId, false);
       if (!live(source) || scene.activeActorId !== source.id) fail("Сирена доступна только в собственный текущий Ход");
       const adapterRule = global.DAWN_LIONWING_ADAPTERS?.list?.(source)?.find(rule => rule.id === ruleId && rule.sourceDigest === sourceDigest);
       if (!adapterRule || source.lionwing?.automation?.[ruleId] !== true) fail("Автоматизация Сирены для этого уровня выключена");
       const causeId = p.causeEventId || p.frightenedEventId;
       if (typeof causeId !== "string" || !causeId) fail("Операция Сирены требует связанное событие причины");
+      if (!provenance || provenance.ruleId !== ruleId || provenance.sourceDigest !== sourceDigest || provenance.ownerActorId !== source.id || provenance.causeEventId !== causeId) fail("Операция Сирены должна продолжать сохранённый авторитетный выбор");
       const cause = (scene.log || []).find(row => row.id === causeId);
       if (!cause) fail("Событие причины Сирены отсутствует в журнале");
       const causePayload = cause.payload || {};
@@ -2276,7 +2276,7 @@
         const causeTargetId = operationKind === "resource" ? p.dazeTargetId : p.targetId;
         if (cause.type !== "effect.apply" || cause.actorId !== source.id || causePayload.effect !== "negative.испуган" || causePayload.targetId !== causeTargetId || causePayload.targetId === source.id) fail("Сирена II должна ссылаться на собственное наложение Испуган");
         const target = requiredActor(scene, causeTargetId, false);
-        if (!live(target) || target.team === source.team || target.space !== source.space || !has(target, "negative.испуган")) fail("Сирена II требует живую Испуганную вражескую цель в том же пространстве");
+        if (!live(target) || target.space !== source.space || !has(target, "negative.испуган")) fail("Сирена II требует живую Испуганную цель в том же пространстве");
         if (operationKind === "forced-towards" && (p.dazeTargetId !== undefined && p.dazeTargetId !== target.id || p.maximum !== undefined && (!Number.isSafeInteger(p.maximum) || p.maximum < 0 || p.maximum > 3))) fail("Сирена II имеет недопустимый предел движения");
         if (operationKind === "effect" && (p.remove || !p.daze || p.dazeTargetId !== target.id || p.targetId !== target.id || p.effect !== "negative.ошеломлен")) fail("Ошеломление Сирены II должно быть связано с фактическим сближением");
         if (operationKind === "resource" && (!p.daze || p.dazeTargetId !== target.id || p.targetId !== source.id || p.resource !== "focus" || p.operation !== "gain" || p.amount !== 1)) fail("Сирена II получает ровно 1 Фокус только вместе с Ошеломлением");
@@ -2515,6 +2515,7 @@
           const source = requiredActor(scene, p.sourceActorId || sourceId, false), target = requiredActor(scene, p.targetId, false), geometry = global.DAWN_LIONWING_GEOMETRY;
           if (!p.ruleId || typeof p.ruleId !== "string" || !p.actionInstanceId || typeof p.actionInstanceId !== "string" || !plain(p.filter) || p.filter.effect !== "negative.испуган" || p.filter.team !== "opposing") fail("Некорректное групповое принудительное перемещение");
           if (p.sourceActorId && p.sourceActorId !== sourceId) fail("Источник группового перемещения не совпадает с исполнителем");
+          validateSirenMutation(p, sourceId, "forced-towards-group");
           const sourceRule = global.DAWN_LIONWING_ADAPTERS?.list?.(source)?.find(rule => rule.id === p.ruleId && rule.sourceDigest === p.sourceDigest);
           if (!sourceRule || source.lionwing?.automation?.[p.ruleId] !== true) fail("Групповое перемещение не разрешено включённой Техникой");
           const actionEvent = (scene.log || []).find(row => row.type === "action.resolve" && row.actorId === source.id && row.payload?.actionId === ids.finish && row.payload?.actionInstanceId === p.actionInstanceId && Array.isArray(row.payload?.targetIds) && row.payload.targetIds.length === 1 && row.payload.targetIds[0] === target.id && ["mind", "spirit"].includes(String(row.payload?.attribute || "spirit").toLowerCase()));
@@ -2840,7 +2841,7 @@
                 ...(operation.causeEventId == null && pending.context?.causeEventId != null ? { causeEventId: pending.context.causeEventId } : {}),
               };
               if (pending.context?.destinationRequired && p.choice === "move" && p.destination) nextOperation.destination = p.destination;
-              queue.unshift({ p: nextOperation, sourceId: nextOperation.sourceActorId ?? sourceId, provenance: { ...provenance, causeEventId: pending.context?.causeEventId || rootId, ownerActorId: pending.context?.ownerActorId || sourceId, ruleId: pending.context?.ruleId } });
+              queue.unshift({ p: nextOperation, sourceId: nextOperation.sourceActorId ?? sourceId, provenance: { ...provenance, causeEventId: pending.context?.causeEventId || rootId, ownerActorId: pending.context?.ownerActorId || sourceId, ruleId: pending.context?.ruleId, ...(pending.context?.sourceDigest != null ? { sourceDigest: pending.context.sourceDigest } : {}) } });
             }
           }
           else if (pending.kind === "geometry-boundary") {

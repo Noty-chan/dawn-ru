@@ -20,7 +20,7 @@ Source digests are bound to the full canonical payload (`id`, archetype/techniqu
 ## Реализованный срез
 
 - **Siren I — partial**: every Scene start grants three Focus; the authoritative `action.resolve` Study of a live enemy in the same space opens an optional Fear choice. The choice spends exactly one Focus and applies Fear to that studied target. There is no artificial three-per-Scene cap. Legacy compatibility trigger uses the learned-technique source consistently.
-- **Siren II — partial**: the first qualifying Fear trigger per owner Turn is receipt-bound. The engine requires the owner’s active Turn, canonical digest, linked Fear event, live opposing target and same space. Movement is attempted one step at a time toward the Siren, at most three spaces, and the Daze/+1 Focus choice appears only when movement actually entered adjacency. Blocked movement and starting adjacency do not create a false Daze window.
+- **Siren II — partial**: the first qualifying Fear trigger per owner Turn is receipt-bound. The engine requires the owner’s active Turn, canonical digest, linked Fear event, live target and same space. Movement is attempted one step at a time toward the Siren, at most three spaces, and the Daze/+1 Focus choice appears only when movement actually entered adjacency. Blocked movement, starting adjacency and self-targeting do not create a false Daze window.
 - **Siren III — full core / manual surface certification**: existing typed group movement derives the frightened opposing actors from current Scene state, routes each actor toward the Finisher target, and applies Tier damage only after actual adjacency. Spirit/Mind, active owner Turn, one live non-self target, action instance and digest are checked.
 - **Bombardier I — partial**: Spirit Finisher, canonical range 4 and an enemy occupying the selected center cell are required. The shared area runtime derives the center plus adjacent cells and target IDs.
 - **Bombardier II — partial**: Spirit Finisher, Focus ≥2, 3×3 center within range 5 and derived empty-cell count are checked. The shared numeric adapter adds one Advantage per empty cell, capped at `[Tier + 2]`; the area plan is revalidated before resolution.
@@ -46,3 +46,13 @@ npm test
 ```
 
 The dedicated audit test covers canonical digests, Study→Fear, active-Turn/target ownership, blocked and actual Siren II adjacency, Bombardier Spirit/center/Focus/digest guards, derived empty cells, reload and forged payload rejection.
+
+## Review follow-up — 2026-09-11
+
+The Siren II contract now follows the canonical “after you Fear a character” wording: both the LionWing adapter path and the legacy compatibility trigger accept a live allied character. The real general guards remain active (owner’s Turn, same space, live/non-self target, linked applied Fear, canonical digest and once-per-Turn receipt); an already-adjacent or blocked target produces no movement and no invented Daze choice.
+
+Siren I–III mutation operations now require the saved authoritative technique continuation to carry the exact rule ID, canonical source digest, owner actor and cause event. A public `effect`, `resource`, `forced-towards` or `forced-towards-group` command is rejected even when it repeats a valid old cause and digest. The choice queue carries the pending digest into nested operations, so legal choices remain valid after JSON reload. Regressions cover Siren II on an ally, the second same-Turn window, direct replay rejection for Siren I and II, Siren III replay rejection, adjacent no-op movement, and reload-before-choice paths.
+
+Bombardier I’s enemy-in-center interpretation remains **partial/manual** pending visual confirmation against the new English LionWing PDF. No Bombardier rule or center policy was changed in this follow-up.
+
+Follow-up checks from `apps/companion`: targeted Siren/Bombardier audit, Siren III, Scene engine, and after-event tests; `git diff --check`; full `npm test -- --runInBand` (all pretest and test suites passed).

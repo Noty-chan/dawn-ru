@@ -109,7 +109,7 @@ const TRIGGER_RULES = [
     priority: 65,
     match: ({ scene, actor, payload }) => {
       const target = actorById(scene, payload.targetId);
-      return actor && scene.activeActorId === actor.id && target && target.team !== actor.team && payload.applied && payload.effect === "negative.испуган" && Number(actor.techniques?.["disruptor.siren"] || 0) >= 2 && !currentTurnEvents(scene, actor.id).some(item => item.type === "technique.resolve" && item.payload?.ruleId === "disruptor.siren.2");
+      return actor && scene.activeActorId === actor.id && target && payload.applied && payload.effect === "negative.испуган" && Number(actor.techniques?.["disruptor.siren"] || 0) >= 2 && !currentTurnEvents(scene, actor.id).some(item => item.type === "technique.resolve" && item.payload?.ruleId === "disruptor.siren.2");
     },
     build: ({ scene, event, actor, payload }) => {
       const target = actorById(scene, payload.targetId);
