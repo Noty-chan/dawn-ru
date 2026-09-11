@@ -2538,6 +2538,7 @@
         }
         case "shatter-check": {
           const source = requiredActor(scene, p.sourceActorId || sourceId, false), target = requiredActor(scene, p.targetId, false);
+          if (!provenance || provenance.ruleId !== p.ruleId || provenance.sourceDigest !== p.sourceDigest) fail("Раскол можно выполнить только из подтверждённого окна Завершения");
           const rule = global.DAWN_LIONWING_ADAPTERS?.list?.(source)?.find(item => item.id === "ruiner.cryomancer.3" && item.sourceDigest === p.sourceDigest);
           const actionEvent = (scene.log || []).find(row => row.id === p.actionEventId && row.type === "action.resolve" && row.actorId === source.id && row.payload?.actionId === ids.finish && Array.isArray(row.payload?.targetIds) && row.payload.targetIds.length === 1 && row.payload.targetIds[0] === target.id);
           if (!rule || source.lionwing?.automation?.[p.ruleId] !== true || p.ruleId !== "ruiner.cryomancer.3" || !actionEvent || target.team === source.team || !effectActive(scene, target, "negative.обездвижен")) fail("Раскол связан с устаревшей или недопустимой целью");
@@ -2545,14 +2546,14 @@
           // check.  If it already knocked the target out, Shatter has no
           // second KO to perform and the authenticated continuation ends
           // idempotently.
-          if (target.knockedOut) break;
+          if (target.knockedOut || (scene.log || []).some(row => row.type === "technique.resolve" && row.payload?.ruleId === p.ruleId && row.payload?.actionEventId === actionEvent.id)) break;
           const current = Number(target.hp || 0), maximum = maxHealth(target), threshold = Number(source.attrs?.spirit || 0);
           emit("information.reveal", source.id, { visibility: "owner", ownerActorId: source.id, targetId: target.id, category: "health", current, maximum, sourceActionId: p.ruleId, actionEventId: actionEvent.id });
           if (current <= threshold) {
             knockout(target, { kind: "shatter", sourceActorId: source.id, eventId: actionEvent.id });
             for (const enemy of scene.actors || []) if (!enemy.knockedOut && enemy.team !== source.team && enemy.space === target.space && distance(enemy, target) <= 3) applyEffect(enemy, { effect: "negative.замедлен", sourceActorId: source.id, sourceId: `${p.ruleId}:${actionEvent.id}:${enemy.id}`, ruleId: p.ruleId, sourceActionId: p.ruleId }, source.id);
           }
-          emit("technique.resolve", source.id, { ruleId: p.ruleId, sourceDigest: p.sourceDigest, actionEventId: actionEvent.id, targetId: target.id, health: { current, maximum }, knockedOut: current <= threshold });
+          emit("technique.resolve", source.id, { ruleId: p.ruleId, sourceDigest: p.sourceDigest, actionEventId: actionEvent.id, targetId: target.id, knockedOut: current <= threshold });
           break;
         }
         case "damage": applyDamage({ ...p, sourceActorId: Object.hasOwn(p,"sourceActorId")?p.sourceActorId:sourceId }); break;

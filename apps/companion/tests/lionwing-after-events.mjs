@@ -131,15 +131,18 @@ assert.equal(cancelled.actors[0].focus, 2, "damage cancellation removes Drain Li
 // Shatter uses an authenticated Finisher receipt, reveals Health privately,
 // and applies the post-KO Slow through Engine-owned effects.
 const shatterDigest = "0e00f6cef0e67d2cb07a99ada1557193abfd5f1932f170c733a063839a5200eb";
-const shatterScene = fixture({ knownTechniques: { "ruiner.cryomancer": 3 }, lionwing: { automation: { "ruiner.cryomancer.3": true } } }, { hp: 2, effects: ["negative.обездвижен"], effectStates: { "negative.обездвижен": { sources: [{ sourceId: "imm", actorId: "gm", duration: "scene" }] } } });
+let shatterScene = engine.reload(fixture({ knownTechniques: { "ruiner.cryomancer": 3 }, lionwing: { automation: { "ruiner.cryomancer.3": true } } }, { hp: 2, effects: ["negative.обездвижен"], effectStates: { "negative.обездвижен": { sources: [{ sourceId: "imm", actorId: "gm", duration: "scene" }] } } }));
 shatterScene.actors.push(actor("near", "enemy", { x: 3, y: 1 }));
 shatterScene.log.push({ id: "shatter-finisher", type: "action.resolve", actorId: "h", payload: { actionId: "action.атаки.завершение", actionInstanceId: "shatter-action", targetIds: ["e"], attribute: "talent" } });
-const shatterResult = command(shatterScene, "h", { kind: "shatter-check", sourceActorId: "h", targetId: "e", actionEventId: "shatter-finisher", ruleId: "ruiner.cryomancer.3", sourceDigest: shatterDigest }, "shatter-run");
+shatterScene.lionwing.choices = [{ id: "shatter-choice", actorId: "h", kind: "technique-trigger", options: ["go"], context: { ruleId: "ruiner.cryomancer.3", sourceDigest: shatterDigest, ownerActorId: "h", choices: { go: [{ kind: "shatter-check", sourceActorId: "h", targetId: "e", actionEventId: "shatter-finisher", ruleId: "ruiner.cryomancer.3", sourceDigest: shatterDigest }] } } }];
+const shatterResult = command(shatterScene, "h", { kind: "choice", id: "shatter-choice", choice: "go" }, "shatter-run");
 assert.equal(shatterResult.actors.find(item => item.id === "e").knockedOut, true);
 assert.ok(shatterResult.actors.find(item => item.id === "near").effects.includes("negative.замедлен"));
 assert.ok(shatterResult.log.some(item => item.type === "information.reveal" && item.visibility === "owner" && item.payload.ownerActorId === "h"));
 const shatterPublic = sceneEngine.projectScene(shatterResult, { role: "player", actorId: "e" });
 assert.equal(shatterPublic.log.some(item => item.type === "information.reveal" && item.visibility === "owner"), false, "Shatter Health stays private to its owner");
+assert.equal(shatterPublic.log.some(item => item.type === "technique.resolve" && item.payload?.health), false, "Shatter does not leak Health in the public result");
+assert.throws(() => command(shatterResult, "h", { kind: "shatter-check", sourceActorId: "h", targetId: "e", actionEventId: "shatter-finisher", ruleId: "ruiner.cryomancer.3", sourceDigest: shatterDigest }, "shatter-replay"), /подтверждённого|устаревшей|недопустимой|window/i, "Shatter cannot be replayed from a public command");
 
 // The removed half-damage/Regeneration toggle is ignored during reload.
 assert.equal("drainLife" in (engine.reload(JSON.parse(JSON.stringify({ ...grimScene, actors: grimScene.actors.map(item => ({ ...item, ruleState: { ...(item.ruleState || {}), drainLife: true } })) }))).actors[0].ruleState || {}), false);
