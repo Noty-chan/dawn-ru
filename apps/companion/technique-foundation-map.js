@@ -305,7 +305,7 @@
       "disruptor.swarm-body.1": "tg move res terrain entity trigger reaction turn damage",
       "disruptor.swarm-body.2": "move entity trigger action",
       "disruptor.swarm-body.3": "tg effect entity trigger choice damage",
-      "disruptor.siren.1": "tg effect limit trigger scene action info",
+      "disruptor.siren.1": "tg effect trigger scene action info",
       "disruptor.siren.2": "tg move effect limit trigger turn",
       "disruptor.siren.3": "tg move effect trigger action",
       "disruptor.wave-rider.1": "tg move effect entity limit trigger turn choice action",

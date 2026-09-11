@@ -67,7 +67,7 @@ const TRIGGER_RULES = [
     eventTypes: ["action.resolve"],
     priority: 60,
     match: ({ scene, actor, payload }) => {
-      if (!actor || !actionIdIs(eventActionId(payload), "study") || Number(actor.techniques?.["disruptor.siren"] || 0) < 1) return false;
+      if (!actor || !actionIdIs(eventActionId(payload), "study") || Number((actor.knownTechniques ?? actor.techniques)?.["disruptor.siren"] || 0) < 1) return false;
       const target = payload.targetIds?.length === 1 ? actorById(scene, payload.targetIds[0]) : null;
       const prepared = target && (scene.log || []).some(row => row.type === "action.prepare" && row.actorId === actor.id && (!payload.actionInstanceId || row.payload?.actionInstanceId === payload.actionInstanceId) && actionIdIs(row.payload?.actionId || row.payload?.actionName, "study") && row.payload?.targetIds?.length === 1 && row.payload.targetIds[0] === target.id);
       return Boolean(target && prepared && !target.knockedOut && target.team !== actor.team && target.space === actor.space);

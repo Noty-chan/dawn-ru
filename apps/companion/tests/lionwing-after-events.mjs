@@ -67,6 +67,8 @@ assert.equal(scene.actors.find(a => a.id === "h").ap, 4);
 
 // Siren's pull and Chemist's threshold are both optional entry choices.
 scene = fixture({ knownTechniques: { "disruptor.siren": 2 } });
+scene.activeActorId = "h";
+scene.turnSerial = 1;
 scene = enable(scene, "disruptor.siren.2");
 scene = run(scene, "h", { kind: "effect", targetId: "e", effect: "negative.испуган", sourceId: "fear:h" }, "siren-fear");
 assert.equal(scene.lionwing.choices[0].kind, "technique-trigger");

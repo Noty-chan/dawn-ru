@@ -7,9 +7,9 @@
   const inventory = global.DAWN_LIONWING_INVENTORY || null;
   const lionwing = actor => actor?.rulesEdition === "lionwing";
   const knows = (actor, techniqueId, level) => lionwing(actor) && Number((actor.knownTechniques ?? actor.techniques)?.[techniqueId] || 0) >= level;
-  const passive = ({ id, label, sourceDigest, rollBonus, statBonus, statMinimum, rangeBonus, numeric, boundaryOperations, inventoryOperations, resourceGainStatus, actionStatus, maximumLevel = null, coverage = "full" }) => {
+  const passive = ({ id, label, sourceDigest, rollBonus, statBonus, statMinimum, rangeBonus, numeric, boundaryOperations, inventoryOperations, resourceGainStatus, actionStatus, triggerKey, match, operations = [], choices = [], choiceSet = false, maximumLevel = null, coverage = "full" }) => {
     const techniqueId = id.replace(/\.\d+$/, ""), level = Number(id.match(/\.(\d+)$/)?.[1] || 0);
-    return Object.freeze({ id, techniqueId, level, label, sourceDigest, coverage, available: actor => knows(actor, techniqueId, level) && (maximumLevel == null || Number((actor.knownTechniques ?? actor.techniques)?.[techniqueId] || 0) <= maximumLevel), rollBonus, statBonus, statMinimum, rangeBonus, numeric, boundaryOperations, inventoryOperations, resourceGainStatus, actionStatus });
+    return Object.freeze({ id, techniqueId, level, label, sourceDigest, coverage, available: actor => knows(actor, techniqueId, level) && (maximumLevel == null || Number((actor.knownTechniques ?? actor.techniques)?.[techniqueId] || 0) <= maximumLevel), rollBonus, statBonus, statMinimum, rangeBonus, numeric, boundaryOperations, inventoryOperations, resourceGainStatus, actionStatus, triggerKey, match, operations, choices, choiceSet });
   };
   const actionBonus = (actionId, amount = 1) => (_actor, context) => context?.kind === "attack" && context.actionId === actionId ? amount : 0;
   const attackIds = new Set(["action.атаки.заклинание", "action.атаки.завершение", "action.атаки.стычка"]);
@@ -50,6 +50,11 @@
     step: "action.движение.шаг",
     interact: "action.утилитарные-действия.взаимодействие",
     study: "action.утилитарные-действия.изучение",
+  });
+  const SIREN_SOURCE_DIGESTS = Object.freeze({
+    "disruptor.siren.1": "8d9becba6e6f63641f5dc1a8a47e965c73f0e7112ef7ef4b781b2c6ffb632979",
+    "disruptor.siren.2": "62f65d9d2cfad5b96f12f80b2ece81635e47b5f63083b35b4f4c6eb1db1b5ed6",
+    "disruptor.siren.3": "231b63c69615f78497650a97d3a5225a98f298a882d4adb2eedaebdff16c5b7e",
   });
   const eventHistory = (actor, scene) => Array.isArray(actor?.lionwing?.history) ? actor.lionwing.history : [];
   const comboSequences = Object.freeze([
@@ -368,40 +373,40 @@
     eventTrigger({
       id: "disruptor.siren.2",
       label: "Сирена II: после Испуга выбрать притягивание до 3 клеток",
-      sourceDigest: "62f65d9d2cfad5b96f12f80b2ece81635e47b5f63083b35b4f4c6eb1db1b5ed6",
+      sourceDigest: SIREN_SOURCE_DIGESTS["disruptor.siren.2"],
       coverage: "partial",
       triggerKey: ({ actor, event, context }) => `${context.ownerTurnKey || event.id}:${actor.id}`,
       operations: () => [],
-      choices: (actor, event) => {
+      choices: (actor, event, context) => {
         const targetId = event.payload?.targetId;
         return targetId ? [{
           id: "pull",
           label: "Притянуть до 3 клеток",
-          operations: [{ kind: "forced-towards", targetId, sourceActorId: actor.id, maximum: 3, ruleId: "disruptor.siren.2" }],
-          context: { targetId, sourceActorId: actor.id, maximum: 3, eventId: event.id },
+          operations: [{ kind: "forced-towards", targetId, sourceActorId: actor.id, maximum: 3, ruleId: "disruptor.siren.2", sourceDigest: SIREN_SOURCE_DIGESTS["disruptor.siren.2"], sourceActionId: "disruptor.siren.2", causeEventId: event.id, frightenedEventId: event.id }],
+          context: { targetId, sourceActorId: actor.id, maximum: 3, eventId: event.id, frightenedEventId: event.id, sourceDigest: SIREN_SOURCE_DIGESTS["disruptor.siren.2"] },
         }] : [];
       },
     }),
     eventTrigger({
       id: "disruptor.siren.3",
       label: "Сирена III: после Духовного или Ментального Завершения подтянуть Испуганных врагов",
-      sourceDigest: "231b63c69615f78497650a97d3a5225a98f298a882d4adb2eedaebdff16c5b7e",
+      sourceDigest: SIREN_SOURCE_DIGESTS["disruptor.siren.3"],
       coverage: "full",
       triggerKey: ({ actor, event }) => `${event.id}:${event.payload?.actionInstanceId || "missing"}:${actor.id}:siren-3`,
       operations: () => [],
       choices: (actor, event, context) => {
         const payload = event.payload || {}, actionInstanceId = payload.actionInstanceId;
-        if (event.type !== "action.resolve" || event.actorId !== actor.id || !actionInstanceId || !context.scene) return [];
+        if (event.type !== "action.resolve" || event.actorId !== actor.id || !context.scene || context.scene.activeActorId !== actor.id || !actionInstanceId) return [];
         const targetIds = Array.isArray(payload.targetIds) ? payload.targetIds.filter(id => typeof id === "string") : [];
         if (targetIds.length !== 1) return [];
         const target = context.scene.actors?.find(item => item.id === targetIds[0]);
         const feared = (context.scene.actors || []).filter(item => item.team !== actor.team && !item.knockedOut && item.effects?.includes("negative.испуган"));
-        if (!target || target.knockedOut || !feared.length) return [];
+        if (!target || target.id === actor.id || target.knockedOut || target.space !== actor.space || !feared.length) return [];
         return [{
           id: "call-help",
           label: `Подтянуть всех Испуганных врагов к цели (${target.name}) и нанести урон рядом`,
-          operations: [{ kind: "forced-towards-group", sourceActorId: actor.id, targetId: target.id, ruleId: "disruptor.siren.3", sourceDigest: "231b63c69615f78497650a97d3a5225a98f298a882d4adb2eedaebdff16c5b7e", actionInstanceId, filter: { team: "opposing", effect: "negative.испуган" } }],
-          context: { targetId: target.id, sourceActorId: actor.id, actionInstanceId, fearedActorIds: feared.map(item => item.id), eventId: event.id },
+          operations: [{ kind: "forced-towards-group", sourceActorId: actor.id, targetId: target.id, ruleId: "disruptor.siren.3", sourceDigest: SIREN_SOURCE_DIGESTS["disruptor.siren.3"], actionInstanceId, filter: { team: "opposing", effect: "negative.испуган" } }],
+          context: { targetId: target.id, sourceActorId: actor.id, actionInstanceId, fearedActorIds: feared.map(item => item.id), eventId: event.id, sourceDigest: SIREN_SOURCE_DIGESTS["disruptor.siren.3"] },
         }];
       },
     }),
@@ -637,7 +642,37 @@
       inventoryOperations: (actor, context) => context?.boundary === "sceneStart" ? typedConfiguration(actor, "ruiner.long-draw.prep", "Подготовка", "charges", { ruleId: "ruiner.long-draw.1", sourceDigest: "16797d24282b090cf8d8967f8c6b48cdb67d5e95fc30f3c456a0a786954da4d9" }, { current: 0, initial: 0, maximum: 6, resetAt: "scene", lifetime: "scene" }) : [],
     }),
     passive({ id: "bulwark.absolute-bastard.1", label: "Абсолютный мерзавец I: +3 Фокуса в начале Сцены (пассивная часть)", sourceDigest: "91c7070f4960afafc561e002df64ca574cf017f64e12b15f175339623fd1d903", coverage: "partial", boundaryOperations: (actor, context) => context?.boundary === "sceneStart" ? sceneFocus(3)(actor) : [] }),
-    passive({ id: "disruptor.siren.1", label: "Сирена I: +3 Фокуса в начале Сцены (пассивная часть)", sourceDigest: "8d9becba6e6f63641f5dc1a8a47e965c73f0e7112ef7ef4b781b2c6ffb632979", coverage: "partial", boundaryOperations: (actor, context) => context?.boundary === "sceneStart" ? sceneFocus(3)(actor) : [] }),
+    passive({
+      id: "disruptor.siren.1",
+      label: "Сирена I: +3 Фокуса в начале Сцены и Fear после Изучения",
+      sourceDigest: SIREN_SOURCE_DIGESTS["disruptor.siren.1"],
+      coverage: "partial",
+      boundaryOperations: (actor, context) => context?.boundary === "sceneStart" ? sceneFocus(3)(actor) : [],
+      triggerKey: ({ actor, event }) => `${event.id}:${actor.id}:siren-1-study`,
+      match: (actor, event, context) => {
+        const payload = event.payload || {}, targetId = Array.isArray(payload.targetIds) && payload.targetIds.length === 1 ? payload.targetIds[0] : null;
+        const target = targetId && context.scene?.actors?.find(item => item.id === targetId);
+        return event.type === "action.resolve" && event.actorId === actor.id && context.scene?.activeActorId === actor.id
+          && payload.actionId === ACTIONS.study && typeof payload.actionInstanceId === "string" && Boolean(event.execution?.actionInstanceId || event.execution?.rootActionId)
+          && target && !target.knockedOut && target.team !== actor.team && target.space === actor.space;
+      },
+      operations: () => [],
+      choices: (actor, event, context) => {
+        const payload = event.payload || {}, targetId = Array.isArray(payload.targetIds) && payload.targetIds.length === 1 ? payload.targetIds[0] : null;
+        const target = targetId && context.scene?.actors?.find(item => item.id === targetId);
+        if (!target || target.knockedOut || target.team === actor.team || target.space !== actor.space) return [];
+        const ruleId = "disruptor.siren.1", sourceDigest = SIREN_SOURCE_DIGESTS[ruleId];
+        return [{
+          id: "fear",
+          label: `Потратить 1 Фокус и наложить Испуган на ${target.name || target.id}`,
+          operations: [
+            { kind: "resource", targetId: actor.id, sourceActorId: actor.id, resource: "focus", operation: "spend", amount: 1, actionId: ACTIONS.study, sourceActionId: ACTIONS.study, ruleId, sourceDigest, causeEventId: event.id, studyTargetId: target.id },
+            { kind: "effect", targetId: target.id, sourceActorId: actor.id, effect: "negative.испуган", sourceActionId: ACTIONS.study, ruleId, sourceDigest, causeEventId: event.id, studyTargetId: target.id },
+          ],
+          context: { targetId: target.id, sourceActorId: actor.id, studyEventId: event.id, eventId: event.id, sourceDigest },
+        }];
+      },
+    }),
     passive({ id: "ruiner.spellcrafter.2", label: "Создатель заклинаний II: +[Разум] к начальному Фокусу (пассивная часть)", sourceDigest: "f94f640a08662ad025e0ded425aab945bdf0b4accabc6519142867e5f5cf0886", coverage: "partial", boundaryOperations: (actor, context) => context?.boundary === "sceneStart" ? sceneFocus(owner => Number(owner.attrs?.mind || 0))(actor) : [] }),
     passive({ id: "bulwark.stalwart-sentry.2", label: "Стойкий часовой II: 4 Бдительности в начале Сцены (пассивная часть)", sourceDigest: "11c89e120a37e64ba570b3bb664bf52f056ebca5ad3e83046100c00952bb8d67", coverage: "partial", boundaryOperations: (actor, context) => context?.boundary === "sceneStart" ? [{ kind: "clock", targetId: actor.id, id: "bulwark.stalwart-sentry.vigilance", label: "Бдительность", size: 4, value: 4, initial: 4, resetAt: "scene", ruleId: "bulwark.stalwart-sentry.2" }] : [] }),
     passive({
@@ -782,7 +817,7 @@
       id: "ruiner.bombardier.3",
       label: "Бомбардир III: Завершение Духом по зоне 5×5",
       sourceDigest: "e9b9958348fa1bf6bf5f752ead593042fcd332ebcc8e28cd2a23054bea16a4de",
-      coverage: "full",
+      coverage: "partial",
     }),
     passive({
       id: "ruiner.ritualist.2",
@@ -1025,15 +1060,20 @@
   const eventTriggerRules = Object.freeze(eventAdapters);
   const afterEvent = (actor, event, context = {}) => {
     if (!actor || !event || !event.type) return [];
-    return enabled(actor).filter(rule => eventTriggerRules.includes(rule) || rule.id === "ruiner.cryomancer.2").flatMap(rule => {
+    return enabled(actor).filter(rule => eventTriggerRules.includes(rule) || ["ruiner.cryomancer.2", "disruptor.siren.1"].includes(rule.id)).flatMap(rule => {
       let match = false;
       if (rule.id === "bulwark.rising-challenger.1") match = event.type === "clash.success" && event.actorId === actor.id;
       else if (rule.id === "powerhouse.berserker.3") match = event.type === "damage.apply" && event.payload?.targetId === actor.id && Number(event.payload?.dealt || 0) > 0 && !context.used;
       else if (rule.id === "powerhouse.intimidator.3") match = event.type === "actor.knockout" && event.actorId === actor.id && event.payload?.targetId !== actor.id && Boolean(event.payload?.targetId);
-      else if (rule.id === "disruptor.siren.2") match = event.type === "effect.apply" && event.payload?.effect === "negative.испуган" && event.actorId === actor.id && event.payload?.targetId !== actor.id;
+      else if (rule.id === "disruptor.siren.1") match = typeof rule.match === "function" && Boolean(rule.match(actor, event, context));
+      else if (rule.id === "disruptor.siren.2") {
+        const target = context.scene?.actors?.find(item => item.id === event.payload?.targetId);
+        match = event.type === "effect.apply" && event.payload?.effect === "negative.испуган" && event.actorId === actor.id
+          && context.scene?.activeActorId === actor.id && event.payload?.targetId !== actor.id && target && !target.knockedOut;
+      }
       else if (rule.id === "disruptor.siren.3") {
-        const payload = event.payload || {}, attribute = payload.attribute || "spirit";
-        match = event.type === "action.resolve" && event.actorId === actor.id && payload.actionId === "action.атаки.завершение" && ["mind", "spirit"].includes(String(attribute).toLowerCase()) && typeof payload.actionInstanceId === "string" && Array.isArray(payload.targetIds) && payload.targetIds.length === 1 && Boolean(payload.targetIds[0]) && Boolean(event.execution?.actionInstanceId || event.execution?.rootActionId);
+        const payload = event.payload || {}, attribute = payload.attribute || "spirit", target = context.scene?.actors?.find(item => item.id === payload.targetIds?.[0]);
+        match = event.type === "action.resolve" && event.actorId === actor.id && context.scene?.activeActorId === actor.id && payload.actionId === "action.атаки.завершение" && ["mind", "spirit"].includes(String(attribute).toLowerCase()) && typeof payload.actionInstanceId === "string" && Array.isArray(payload.targetIds) && payload.targetIds.length === 1 && Boolean(payload.targetIds[0]) && target && target.id !== actor.id && !target.knockedOut && target.space === actor.space && Boolean(event.execution?.actionInstanceId || event.execution?.rootActionId);
       }
       else if (rule.id === "disruptor.chemist.2") match = event.type === "effect.apply" && event.payload?.effect === "negative.ослаблен" && event.actorId === actor.id && event.payload?.targetId !== actor.id;
       else if (rule.id === "vagabond.dim-mak.1") {
@@ -1060,7 +1100,7 @@
       if (!match) return [];
       const triggerKey = typeof rule.triggerKey === "function" ? rule.triggerKey({ actor, event, context }) : `${event.id}:${actor.id}`;
       const operations = rule.id === "ruiner.cryomancer.2" ? [{ kind: "clock", targetId: actor.id, id: "ruiner.cryomancer.icicle", operation: "add", delta: 1, ruleId: rule.id }] : rule.operations(actor, event, context);
-      return [{ id: rule.id, label: rule.label, sourceDigest: rule.sourceDigest, coverage: rule.coverage, triggerKey: rule.id === "ruiner.cryomancer.2" ? `${event.payload.actionInstanceId || event.execution?.actionInstanceId}:${actor.id}:cryomancer-2` : triggerKey, operations, choices: rule.choices ? rule.choices(actor, event, context) : [], choiceSet: rule.choiceSet === true }];
+      return [{ id: rule.id, label: rule.label, sourceDigest: rule.sourceDigest, coverage: rule.coverage, triggerKey: rule.id === "ruiner.cryomancer.2" ? `${event.payload.actionInstanceId || event.execution?.actionInstanceId}:${actor.id}:cryomancer-2` : triggerKey, operations, choices: typeof rule.choices === "function" ? rule.choices(actor, event, context) : [], choiceSet: rule.choiceSet === true }];
     });
   };
   const numericContributions = (actor, method, context) => enabled(actor).flatMap(rule => {
