@@ -85,6 +85,10 @@
       ? item.ownerTurnInstanceId === instance
       : Number(item.ownerTurnSerial ?? item.turnSerial) === serial);
   };
+  const immediateAction = (actor, scene, actionId) => {
+    const owner = scene?.actors?.find(item => item.id === actor?.id) || actor;
+    return turnHistory(owner, scene).at(-1)?.actionId === actionId;
+  };
   const sceneTension = scene => {
     const meter = global.DAWN_LIONWING_COMBAT_METER?.read?.(scene);
     const value = Number(meter?.current ?? scene?.tension ?? 0);
@@ -692,6 +696,49 @@
       statBonus: (actor, key) => key === "maxHp" ? Number(actor.attrs?.body || 0) : 0,
     }),
     passive({
+      id: "powerhouse.braggart.1",
+      label: "Гордыня I: +1 Преимущество на заполненных часах Гордыни",
+      sourceDigest: "27b8843e65beccd8722b61b6ecba36261f77a23c31119b7fae82f4785937ab77",
+      coverage: "partial",
+      // The clock is created and filled by the engine foundation.  This
+      // adapter only reads its persisted value, so a payload flag cannot
+      // manufacture the all-roll bonus.
+      rollBonus: (actor, context) => {
+        if (!context || !["attack", "clash", "roll"].includes(context.kind)) return 0;
+        const owner = context.scene?.actors?.find(item => item.id === actor.id) || actor;
+        const clock = owner.ruleClocks?.["powerhouse.braggart.pride"], current = clockValue(owner, "powerhouse.braggart.pride");
+        const maximum = Number(clock?.max ?? clock?.size ?? 6);
+        return maximum > 0 && Number.isSafeInteger(current) && current >= maximum ? 1 : 0;
+      },
+    }),
+    passive({
+      id: "powerhouse.duelist.2",
+      label: "Дуэлянт II: Блок получает +Напряжение Брони",
+      sourceDigest: "6ac5d7c737f81f4ba33f9a649d3bdfae9c2627d6420540f72f9626c53efb0827",
+      coverage: "partial",
+      // The response is held on the pending Attack until resolution.  It is
+      // therefore temporary Armor, rather than a mutation of the actor's
+      // persisted Armor stat.
+      numeric: (_actor, context) => context?.key === "blockArmor" && context.kind === "block" && context.scene
+        ? { operation: "add", amount: Math.max(0, sceneTension(context.scene)), reason: "Блок получает текущее Напряжение дополнительной Бронёй." }
+        : [],
+    }),
+    passive({
+      id: "vagabond.drunkard.2",
+      label: "Пьяница II: после замедленного Хода получить Уклонение",
+      sourceDigest: "73477795efb4e90b3c7bf8d17ed305b312f08703a0085672f72b5e0a869dde56",
+      coverage: "partial",
+      // This is a bounded lifecycle grant. It is deliberately emitted as a
+      // start-of-next-Turn modifier, so it can be spent by the normal damage
+      // pipeline and cannot become a permanent actor stat.
+      boundaryOperations: (actor, context) => {
+        if (context?.canonicalBoundary !== "ownTurnEnd" || context.activeActor?.id !== actor.id || !context.activeEffectIds?.includes("negative.замедлен")) return [];
+        const negativeEffects = context.activeEffectIds.filter(effect => String(effect).startsWith("negative.")).length;
+        const amount = Math.ceil(Number(actor.tier || 0) / 2) + negativeEffects;
+        return amount > 0 ? [{ kind: "modifier", id: `vagabond.drunkard.2:${actor.id}:${context.boundaryKey}`, targetId: actor.id, stat: "evasion", amount, duration: "startTurn", ruleId: "vagabond.drunkard.2", sourceDigest: "73477795efb4e90b3c7bf8d17ed305b312f08703a0085672f72b5e0a869dde56", coverage: "partial", label: "Пьяница II: временное Уклонение", reason: "Уклонение на начало следующего собственного Хода от Пьяницы II." }] : [];
+      },
+    }),
+    passive({
       id: "vagabond.aerial-master.3",
       label: "Воздушный мастер III: в Полёте Атака может использовать Скорость",
       sourceDigest: "af9100fcba37294038c9e66fb6fd2aed9fb592bd0468468ebcce546b087bf3ac",
@@ -726,9 +773,41 @@
     passive({ id: "disruptor.street-fighter.2", label: "Уличный боец II: Преимущество по числу Эффектов ошеломлённой цели (пассивная часть)", sourceDigest: "d2a047b0ae8184c4e9d98adedde7f5fe1a5db592efef26ab16556a230284a0a8", coverage: "partial", rollBonus: (actor, context) => context?.kind === "attack" && context.actionId === "action.атаки.стычка" && context.targetEffectIds?.includes("negative.ошеломлен") && !usesWeaponTechnique(actor, context) ? context.targetEffectIds.length : 0 }),
     passive({ id: "powerhouse.gunslinger.2", label: "Стрелок II: +1 Преимущество к Стычкам (пассивная часть)", sourceDigest: "6559e6a6b597f579ef43c6b7b20e4a6d92659d2b41de8338239a7059df0694ea", coverage: "partial", rollBonus: actionBonus("action.атаки.стычка") }),
     passive({ id: "powerhouse.martial-artist.3", label: "Мастер боевых искусств III: +1 Преимущество к Атакам (пассивная часть)", sourceDigest: "8428fb10aec3237aa82ef24d052a5610a5f9701fa3576d9be06b9219dc23176c", coverage: "partial", rollBonus: (actor, context) => context?.kind === "attack" && attackIds.has(context.actionId) && !usesWeaponTechnique(actor, context) ? 1 : 0 }),
-    passive({ id: "powerhouse.lancer.1", label: "Копейщик I: Преимущество к Стычке по расстоянию, максимум 3 (пассивная часть)", sourceDigest: "8591643bda0a61a4165679413af42b8b60a40ca90dc47dc5a9d6ee1c32a5e701", coverage: "partial", rollBonus: (_actor, context) => context?.kind === "attack" && context.actionId === "action.атаки.стычка" ? Math.min(3, Math.max(0, Number(context.targetDistance || 0))) : 0 }),
+    passive({
+      id: "powerhouse.lancer.1",
+      label: "Копейщик I: дальность Стычки и Завершения Телом не ниже 2",
+      sourceDigest: "8591643bda0a61a4165679413af42b8b60a40ca90dc47dc5a9d6ee1c32a5e701",
+      coverage: "partial",
+      rollBonus: (_actor, context) => context?.kind === "attack" && context.actionId === "action.атаки.стычка" ? Math.min(3, Math.max(0, Number(context.targetDistance || 0))) : 0,
+      numeric: (_actor, context) => context?.key === "range" && context.kind === "attack" && (context.actionId === ACTIONS.skirmish || context.actionId === ACTIONS.finish && context.attribute === "body")
+        ? { operation: "min", amount: 2, reason: "Копейщик I расширяет обычную дальность до 2." }
+        : [],
+    }),
+    passive({
+      id: "powerhouse.lancer.2",
+      label: "Копейщик II: дальность Стычки и Завершения Телом не ниже 3",
+      sourceDigest: "bbc32f09a04b64473f2a4eaacdb4686a3827af112fa7b2737d5117fcc1975c1b",
+      coverage: "partial",
+      numeric: (_actor, context) => context?.key === "range" && context.kind === "attack" && (context.actionId === ACTIONS.skirmish || context.actionId === ACTIONS.finish && context.attribute === "body")
+        ? { operation: "min", amount: 3, reason: "Копейщик II расширяет обычную дальность до 3." }
+        : [],
+    }),
+    passive({
+      id: "powerhouse.lancer.3",
+      label: "Копейщик III: дальность Стычки не ниже 4",
+      sourceDigest: "cf89959221bf368de82bf3bc9e6c4e2d64fd30d5b33a5095e355a6aa93aab5c0",
+      coverage: "partial",
+      rollBonus: (actor, context) => {
+        if (context?.kind !== "attack" || context.actionId !== ACTIONS.skirmish || !context.scene || !immediateAction(actor, context.scene, ACTIONS.breathe)) return 0;
+        const distance = Math.max(0, Number(context.targetDistance || 0));
+        return Math.max(0, Math.min(4, distance) - Math.min(3, distance));
+      },
+      numeric: (actor, context) => context?.key === "range" && context.kind === "attack" && context.actionId === ACTIONS.skirmish && immediateAction(actor, context.scene, ACTIONS.breathe)
+        ? { operation: "min", amount: 4, reason: "Копейщик III расширяет дальность Стычки после авторитетной Передышки до 4." }
+        : [],
+    }),
     passive({ id: "ruiner.feral-arcana.3", label: "Дикий арканист III: +1 Преимущество к Заклинаниям (пассивная часть)", sourceDigest: "9f6cfdd94da5ecb8aae12c24b3602fc117b2890191d51dabd3eb6d89a3b83df3", coverage: "partial", rollBonus: actionBonus("action.атаки.заклинание") }),
-    passive({ id: "ruiner.flame-heart.3", label: "Пламенное сердце III: +1 Преимущество к Заклинаниям (пассивная часть)", sourceDigest: "4896f18d23e7ba4de201859ecfb76d46c7049c32e532747831b973b2d75c6d29", coverage: "partial", rollBonus: actionBonus("action.атаки.заклинание") }),
+    passive({ id: "ruiner.flame-heart.3", label: "Пламенное сердце III: +1 Преимущество к Заклинаниям и дальность Духовного Завершения 5 (пассивная часть)", sourceDigest: "4896f18d23e7ba4de201859ecfb76d46c7049c32e532747831b973b2d75c6d29", coverage: "partial", rollBonus: actionBonus("action.атаки.заклинание"), numeric: (_actor, context) => context?.key === "range" && context.kind === "attack" && context.actionId === ACTIONS.finish && context.attribute === "spirit" ? { operation: "min", amount: 5, reason: "Пламенное сердце III даёт Духовному Завершению дальность 5." } : [] }),
     passive({ id: "ruiner.flame-heart.2", label: "Пламенное сердце II: +[Напряжение] Преимущества к магической Атаке в Порче (пассивная часть)", sourceDigest: "2259304d1ba4a37ae5e0850fa66ffcba7b9b70b1ce544d02f97fcbd6472809c2", coverage: "partial", rollBonus: (_actor, context) => context?.kind === "attack" && context.sourceEffectIds?.includes("negative.порчен") && (context.actionId === "action.атаки.заклинание" || context.actionId === "action.атаки.завершение" && context.attribute === "spirit") ? Number(context.tension || 0) : 0 }),
     passive({ id: "ruiner.cryomancer.2", label: "Ледяной покров II: +1 Преимущество к Заклинаниям и Сосулька", sourceDigest: "32667d8918127c1729dc39430bde0375999651854e06e8cd599d91b7fcd14f30", coverage: "partial", rollBonus: actionBonus("action.атаки.заклинание"), boundaryOperations: (actor, context) => context?.boundary === "sceneStart" ? clockConfiguration(actor, "ruiner.cryomancer.icicle", "Сосулька", 4, { ruleId: "ruiner.cryomancer.2" }) : [] }),
     passive({ id: "ruiner.sellsword-s-call.1", label: "Зов мечника I: +2 Преимущества к Заклинаниям (пассивная часть)", sourceDigest: "712c5d75aebe965eb606cb4b930e141138c87dd24cb14804cd367a1904d5c283", coverage: "partial", rollBonus: actionBonus("action.атаки.заклинание", 2) }),
@@ -747,6 +826,62 @@
       sourceDigest: "c32ea3ffcffce0dad6125825610e62362b8a123a707aefbd6e5198a4e4aa80ae",
       coverage: "partial",
       rollBonus: (actor, context) => context?.kind === "attack" && context.actionId === "action.атаки.стычка" && context.targetIds?.length === 1 && Number(context.targetDistance) === 1 && Number.isFinite(Number(context.jumpDistance)) ? Math.min(Number(actor.attrs?.talent || 0), Math.max(0, Number(context.jumpDistance))) : 0,
+    }),
+    passive({
+      id: "vagabond.sniper.1",
+      label: "Снайпер I: Завершение Талантом получает дальность 5",
+      sourceDigest: "a84de0a68e37fcfc0bd9e9f2b31d19f5f09d686294b82e40138d26e0ed6ba8e8",
+      coverage: "partial",
+      numeric: (_actor, context) => context?.key === "range" && context.kind === "attack" && context.actionId === ACTIONS.finish && context.attribute === "talent"
+        ? { operation: "min", amount: 5, reason: "Снайпер I расширяет дальность Завершения Талантом до 5." }
+        : [],
+    }),
+    passive({
+      id: "vagabond.sniper.2",
+      label: "Снайпер II: в Обездвиженности ещё +5 дальности Завершения Талантом",
+      sourceDigest: "e154b6164f886770be2bb7a63a6a86bd7be83a88967eecaeb1f801b631874767",
+      coverage: "partial",
+      numeric: (actor, context) => {
+        if (context?.key !== "range" || context.kind !== "attack" || context.actionId !== ACTIONS.finish || context.attribute !== "talent") return [];
+        const owner = context.scene?.actors?.find(item => item.id === actor.id) || actor;
+        const activeEffects = Array.isArray(context.activeEffectIds) ? context.activeEffectIds : owner?.effects;
+        return activeEffects?.includes("negative.обездвижен")
+          ? { operation: "add", amount: 5, reason: "Снайпер II даёт Обездвиженному Завершению Талантом ещё 5 дальности." }
+          : [];
+      },
+    }),
+    passive({
+      id: "vagabond.untouchable.1",
+      label: "Неуловимый I: первый Уворот Раунда получает +Талант Уклонения",
+      sourceDigest: "348244d9362ed86da47559403a2fd0f22afb93a9647db589007e8ff203c8a26a",
+      coverage: "partial",
+      numeric: (actor, context) => {
+        if (context?.key !== "dodgeEvasion" || context.kind !== "dodge" || !context.scene) return [];
+        const owner = context.scene.actors?.find(item => item.id === actor.id) || actor;
+        const round = Number(context.scene.round || 0), last = Number(owner.lionwing?.lastDodgeRound);
+        const logged = (context.scene.log || []).some(row => row?.type === "reaction.respond" && row.actorId === actor.id && row.payload?.choice === "dodge" && Number(row.payload?.round) === round);
+        return Number.isSafeInteger(round) && round >= 0 && last !== round && !logged
+          ? { operation: "add", amount: Math.max(0, Number(owner.attrs?.talent || 0)), reason: "Первый Уворот этого Раунда получает дополнительное Уклонение от Таланта." }
+          : [];
+      },
+    }),
+    passive({
+      id: "vagabond.untouchable.2",
+      label: "Неуловимый II: Уворот перемещается на 1 клетку дальше",
+      sourceDigest: "abd33cfc8f9dfb48eaf90234e99044a1f3c16d2d99d527286e6dd14c52d7433e",
+      coverage: "partial",
+      numeric: (_actor, context) => context?.key === "dodgeMove" && context.kind === "dodge"
+        ? { operation: "add", amount: 1, reason: "Неуловимый II увеличивает дальность перемещения Уворота на 1." }
+        : [],
+    }),
+    passive({
+      id: "altruist.heavenly-saint.3",
+      label: "Небесный святой III: Духовное Завершение получает дальность 5",
+      sourceDigest: "5f42cdf622ce588debfafa058a85655946db0c400a1e925653fec9b6d0568e51",
+      coverage: "partial",
+      numeric: (_actor, context) => context?.key === "range" && context.kind === "attack" && context.actionId === ACTIONS.finish && context.attribute === "spirit"
+        ? { operation: "min", amount: 5, reason: "Небесный святой III расширяет дальность Духовного Завершения до 5." }
+        : [],
     }),
     passive({
       id: "ruiner.rapid-fire-sorcery.3",
@@ -1065,7 +1200,7 @@
   };
   const numericContributions = (actor, method, context) => enabled(actor).flatMap(rule => {
     const amount = Number(method.startsWith("stat") ? rule[method]?.(actor, context.key, context) : rule[method]?.(actor, context) || 0);
-    return Number.isFinite(amount) && amount !== 0 ? [{ id: rule.id, label: rule.label, amount, sourceDigest: rule.sourceDigest, coverage: rule.coverage, reason: rule.label, operation: method === "statMinimum" ? "min" : "add" }] : [];
+    return Number.isFinite(amount) && amount !== 0 ? [{ id: rule.id, label: rule.label, amount, sourceDigest: rule.sourceDigest, coverage: rule.coverage, sourceType: "canonical", reason: rule.label, operation: method === "statMinimum" ? "min" : "add" }] : [];
   });
   // One deterministic read-only pipeline for every numeric value. Existing
   // stat/range/roll hooks are projected into it, while future adapters may
@@ -1119,12 +1254,12 @@
       }
       for (const operation of [...legacy, ...normalizeNumericOperation(rule.numeric?.(actor, { ...context, key }))]) {
         if (operation.amount === 0) continue;
-        operations.push({ ...operation, id: rule.id, techniqueId: rule.techniqueId, level: rule.level, label: rule.label, sourceDigest: rule.sourceDigest, coverage: rule.coverage, reason: operation.reason || rule.label });
+        operations.push({ ...operation, id: rule.id, techniqueId: rule.techniqueId, level: rule.level, label: rule.label, sourceDigest: rule.sourceDigest, coverage: rule.coverage, sourceType: "canonical", reason: operation.reason || rule.label });
       }
     }
     const composed = composeNumeric(base, operations, { ...context, key });
     if (composed.ok === false) return { ...composed, key, operations, sources: operations, reasons: [composed.reason] };
-    const sources = operations.map(item => ({ id: item.id, label: item.label, amount: item.amount, operation: item.operation, sourceDigest: item.sourceDigest, coverage: item.coverage, reason: item.reason }));
+    const sources = operations.map(item => ({ id: item.id, label: item.label, amount: item.amount, operation: item.operation, sourceDigest: item.sourceDigest, coverage: item.coverage, sourceType: item.sourceType || "canonical", reason: item.reason }));
     const sourceDigests = [...new Set(sources.map(item => item.sourceDigest).filter(Boolean))];
     return { ...composed, key, sources, sourceDigest: sourceDigests.length === 1 ? sourceDigests[0] : sourceDigests, sourceDigests, coverage: sources.some(item => item.coverage === "partial") ? "partial" : "full", reasons: sources.map(item => item.reason), reason: sources.map(item => item.reason).join(" ") };
   };
@@ -1189,6 +1324,7 @@
     numericQuote,
     composeNumeric,
     statQuote: (actor, key, context = {}) => numericQuote(actor, { ...context, key, baseValue: context.baseValue ?? (actor?.attrs?.[key] ?? actor?.[key] ?? 0) }),
+    rangeQuote: (actor, context = {}) => numericQuote(actor, { ...context, key: "range", baseValue: context.baseValue ?? context.baseRange ?? 0 }),
     attackQuote: (actor, context = {}) => numericQuote(actor, { ...context, key: context.key || "attackPool" }),
     damageQuote: (actor, context = {}) => numericQuote(actor, { ...context, key: context.key || "damage" }),
     resourceQuote: (actor, context = {}) => numericQuote(actor, { ...context, key: context.key || "resourceCost" }),
