@@ -558,7 +558,7 @@ function prepareAction(scene, data, request = {}) {
     }
     if (masterFinisher?.modeId === "blade" && masterFinisher.destination) {
       attackOrigin = { ...actor, x: masterFinisher.destination.x, y: masterFinisher.destination.y };
-      events.push({ type: "actor.move", actorId: actor.id, payload: { space: actor.space, x: attackOrigin.x, y: attackOrigin.y, movement: "Клинок · Мастер за работой", path: masterFinisher.path.map(cell => { const [x, y] = cell.split(",").map(Number); return { x, y }; }), ignoreCharacters: true, participantIds: [actor.id, ...targetIds] } });
+      events.push({ type: "actor.move", actorId: actor.id, payload: { space: actor.space, x: attackOrigin.x, y: attackOrigin.y, movement: "Клинок · Мастер за работой", path: masterFinisher.path, ignoreCharacters: true, participantIds: [actor.id, ...targetIds] } });
       events.push({ type: "actor.enter", actorId: actor.id, payload: { space: actor.space, x: attackOrigin.x, y: attackOrigin.y, movement: "Клинок · Мастер за работой", ignoreCharacters: true } });
     }
     if (attackModifierDestination?.available) {

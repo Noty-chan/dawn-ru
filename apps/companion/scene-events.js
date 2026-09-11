@@ -33,7 +33,7 @@ function masterFinisherGeometry(scene, source, special, roll) {
     return { valid: JSON.stringify(cells.slice().sort()) === JSON.stringify(expected.slice().sort()), cells, footprint, key };
   }
   if (special?.modeId === "blade") {
-    const path = Array.isArray(special.path) ? special.path : [], origin = special.origin, destination = special.destination, points = path.map(cell => { const [x, y] = String(cell).split(",").map(Number); return { x, y }; }), step = (from, to) => Math.abs(Number(to?.x) - Number(from?.x)) + Math.abs(Number(to?.y) - Number(from?.y)) === 1, contiguous = points.every((point, index) => step(origin, point) && (index === 0 || step(points[index - 1], point))), valid = (!destination || (points.length > 0 && key(points.at(-1)) === key(destination))) && points.length <= 2 && points.every(inBounds) && contiguous;
+    const path = Array.isArray(special.path) ? special.path : [], origin = special.origin, destination = special.destination, points = path.map(cell => { const [x, y] = String(cell).split(",").map(Number); return { x, y }; }), step = (from, to) => Math.abs(Number(to?.x) - Number(from?.x)) + Math.abs(Number(to?.y) - Number(from?.y)) === 1, contiguous = points.every((point, index) => step(index === 0 ? origin : points[index - 1], point)), valid = (!destination || (points.length > 0 && key(points.at(-1)) === key(destination))) && points.length <= 2 && points.every(inBounds) && contiguous;
     return { valid, cells, footprint, key, points };
   }
   return { valid: false, cells, footprint, key };
