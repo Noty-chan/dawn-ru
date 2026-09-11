@@ -860,7 +860,7 @@ SHA-256 проверенных файлов: `ac147280aeb307b429846c56c1f597ee9a
 | ---: | --- | --- | --- | --- |
 | 1 | Power Unleashed [ Charge → Finisher ] | проверено | частичная | `resource-check`, `usage-limits`, `action-modifier`, `action-history`, `combat-meter` |
 | 2 | Formless Strength | проверено | частичная | `target-validation`, `event-participants`, `spatial-cells`, `choice-flow`, `action-modifier`, `action-history` |
-| 3 | Moment Of Truth | проверено | ручная | `resource-check`, `trigger-router`, `choice-flow`, `duel-flow`, `dice-hooks` |
+| 3 | Moment Of Truth | проверено | с выбором | `resource-check`, `trigger-router`, `choice-flow`, `duel-flow`, `dice-hooks` |
 
 ### Blade Smith (`ruiner.mana-blades`)
 

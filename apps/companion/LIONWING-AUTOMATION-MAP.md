@@ -7,6 +7,8 @@
 
 Числовой проход 2026-09-11 отражён в registry: `powerhouse.braggart.1`, `powerhouse.duelist.2`, `powerhouse.lancer.1–3`, `vagabond.sniper.1–2`, `vagabond.untouchable.1–2`, `vagabond.drunkard.2`, `ruiner.flame-heart.3` и `altruist.heavenly-saint.3` получили явные partial записи поверх общего числового конвейера; полные canonical digest и остаток ручной работы указаны в [numeric pass handoff](../../docs/tasks/LIONWING_NUMERIC_PASSIVES_HANDOFF_2026-09-11.md).
 
+Проход Duel entry 2026-09-10: `ruiner.student-of-stars.3` подключён как decision через проверяемый Focus-at-entry choice, а `disruptor.inner-world.3` сохраняет собственный Tier-бонус в entry/resolve snapshot; остальные найденные в новом английском каноне Duel-триггеры отсутствуют.
+
 ## Сводка стратегий
 
 | Стратегия | Количество | Назначение |

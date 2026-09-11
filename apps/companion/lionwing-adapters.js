@@ -45,6 +45,7 @@
   const ACTIONS = Object.freeze({
     skirmish: "action.атаки.стычка",
     finish: "action.атаки.завершение",
+    duel: "action.атаки.дуэль",
     breathe: "action.утилитарные-действия.передышка",
     charge: "action.утилитарные-действия.зарядка",
     hide: "action.утилитарные-действия.скрыться",
@@ -1231,6 +1232,45 @@
     quote.costQuote = costComposition;
     return { ok: true, ...quote, modifierIds: quote.modifiers.map(item => item.id), reason: quote.reasons.join(" ") };
   };
+  // Duel entry is a separate quote because it can consume a resource before
+  // the participants leave the board.  The quote is read-only: the engine
+  // snapshots it, asks the owner for the optional choice, and only then
+  // performs the payment and creates the Duel.  Focus and the Inner World
+  // owner are read from the actor/scene, never from request fields.
+  const duelEntryQuote = (actor, context = {}) => {
+    const quote = {
+      ok: true,
+      focusAtEntry: Math.max(0, Number(actor?.focus || 0)),
+      advantage: 0,
+      modifiers: [],
+      options: [],
+      reasons: [],
+    };
+    if (context.actionId !== ACTIONS.duel) return quote;
+    const add = (id, techniqueId, level, sourceDigest, reason, extra = {}) => {
+      quote.modifiers.push({ id, techniqueId, level, sourceDigest, coverage: "partial", reason, ...extra });
+      quote.reasons.push(reason);
+    };
+    const currentSpace = (context.scene?.spaces || []).find(space => space.id === actor?.space);
+    if (knows(actor, "disruptor.inner-world", 3) && actor?.lionwing?.automation?.["disruptor.inner-world.3"] === true && currentSpace?.ownerActorId === actor.id) {
+      const amount = Math.max(0, Number(actor.tier || 1));
+      quote.advantage += amount;
+      add("disruptor.inner-world.3", "disruptor.inner-world", 3, "fb44b773e2eb1b59c5691f7f5f6b9a2b624f2b9d3cdcffe70ee98cd46a597dff", `Родная территория: +${amount} Преимущества в Дуэли.` , { amount });
+    }
+    if (knows(actor, "ruiner.student-of-stars", 3) && actor?.lionwing?.automation?.["ruiner.student-of-stars.3"] === true && quote.focusAtEntry >= 6) {
+      const amount = Math.ceil(quote.focusAtEntry / 2);
+      quote.options.push("moment-of-truth");
+      quote.studentOfStars = { focus: quote.focusAtEntry, advantage: amount, ruleId: "ruiner.student-of-stars.3", sourceDigest: "806d52c0296048d69a25b379d8dcdfa5690dbee0cef391ea6894485016393f6e" };
+      add("ruiner.student-of-stars.3", "ruiner.student-of-stars", 3, quote.studentOfStars.sourceDigest, `Момент истины: потратить все ${quote.focusAtEntry} Фокуса за +${amount} Преимущества в этой Дуэли.`, { amount, focusSpent: quote.focusAtEntry, optional: true });
+    }
+    if (quote.options.length) quote.options.push("enter", "cancel");
+    return { ...quote, modifierIds: quote.modifiers.map(item => item.id), reason: quote.reasons.join(" ") };
+  };
+  const duelResolveQuote = (actor, context = {}) => {
+    const entry = context.entryQuote || context.duel?.entryQuote || {};
+    const sources = Array.isArray(entry.sources) ? entry.sources.map(item => ({ ...item })) : [];
+    return { ok: true, advantage: Math.max(0, Number(entry.advantage || 0)), sources, modifierIds: sources.map(item => item.id) };
+  };
   const enabled = actor => adapters.filter(rule => rule.available(actor) && actor.lionwing?.automation?.[rule.id] === true);
   const eventTriggerRules = Object.freeze(eventAdapters);
   const afterEvent = (actor, event, context = {}) => {
@@ -1423,6 +1463,8 @@
     trustedTechniqueTags,
     actionModifiers: actor => enabledActionModifiers(actor).map(rule => ({ id: rule.id, techniqueId: rule.techniqueId, level: rule.level, label: rule.label, sourceDigest: rule.sourceDigest, coverage: rule.coverage })).concat((global.DAWN_LIONWING_INFORMATION_QUERY?.adapters || []).filter(rule => Number((actor?.knownTechniques ?? actor?.techniques)?.[rule.techniqueId] || 0) >= rule.level)),
     actionQuote: (actor, context = {}) => actionQuote(actor, context),
+    duelEntryQuote,
+    duelResolveQuote,
     movementFacts,
     movementCondition,
     movementOperation,

@@ -1190,6 +1190,34 @@ receipt и `combat-meter.change`. При ревью убрано полное к
 проекция не расходилась с meter. Отдельные Техники ещё должны подключать свои
 семантические условия; фундамент сам по себе не повышает их coverage.
 
+## Duel entry/resolve hooks, 2026-09-10
+
+В свежем worktree `codex/luna-duel-entry-v3` расширен существующий Duel flow
+через read-only входы `DAWN_LIONWING_ADAPTERS.duelEntryQuote(actor, context)` и
+`duelResolveQuote(actor, context)`. Перед оплатой движок публикует сохраняемый
+`duel-entry` choice с actor-owned snapshot участника, цели, позиции, Влияния и
+Фокуса. Выбор `cancel` не создаёт Дуэль и не списывает ресурсы; `enter` и
+`moment-of-truth` повторно проверяют snapshot и источники перед атомарной
+оплатой. После входа `scene.lionwing.duels[]` содержит `entrySnapshot`,
+`entryQuote`, итоговое `advantage` и canonical source digests; окно исхода
+показывает эти источники. Цена, участники, Focus, Advantage и Tension берутся
+из engine-owned state, а не из payload клиента.
+
+`ruiner.student-of-stars.3` теперь `decision`: при фактических 6+ Focus выбор
+`moment-of-truth` списывает весь сохранённый Focus и добавляет
+`ceil(Focus/2)` Advantage только этой Дуэли. `disruptor.inner-world.3` получает
+часть Home Turf, если владелец действительно находится в собственном
+`inner-world-${actor.id}`: его Tier Advantage попадает в тот же snapshot. В
+каноническом новом EN тексте других уровней с прямой реакцией на вход, ход или
+исход Duel не найдено; Duelist, Inner World I–II и остальные уровни остаются
+за пределами этого прохода с прежними статусами. Правило автора о ровно одной
+Ране проигравшему игроку не менялось.
+
+Проверки добавлены в `apps/companion/tests/lionwing-duel-entry.mjs`: порог 5/6,
+нечётное округление вверх, spend-all, cancel, reload, duplicate/forged choice,
+источники и сохранённая квитанция. Старые Duel Bail/Double Down, reload и
+exactly-one-Wound остаются покрыты `tests/lionwing-engine.mjs`.
+
 ## Student Of Stars I–II, 2026-09-10
 
 Новый английский канон для `ruiner.student-of-stars` подтверждён по PDF p. 98
