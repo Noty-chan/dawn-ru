@@ -25,9 +25,9 @@ handoff генераторы. Браузерный/network/persistence E2E и п
 Grim Ascendant, Frost Veiler, Student of Stars, Duel и derived/followup/duel-entry
 ветки в этой работе не изменялись.
 
-Изменения разделены на `c930865` (runtime/UI authority и targeted regressions) и
-`1797875` (review/evidence registry и generated registry output); финальный
-commit этой документации будет следующим малым коммитом.
+Изменения разделены на `c930865` (runtime/UI authority и targeted regressions),
+`1797875` (review/evidence registry и generated registry output) и `a003bdc`
+(канонический аудит, source verification и эта передача).
 
 ## Актуальная точка передачи — 2026-09-10, принят read-only аудит Luna helper
 
