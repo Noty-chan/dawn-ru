@@ -41,7 +41,7 @@ Canonical уровней: **333** · Явно исправленных review: *
 | `powerhouse.breacher.1` | Breacher | 1 | `full` | `unreviewed` | — | `uncertified` |
 | `powerhouse.breacher.2` | Breacher | 2 | `full` | `unreviewed` | — | `uncertified` |
 | `powerhouse.breacher.3` | Breacher | 3 | `partial` | `unreviewed` | — | `uncertified` |
-| `powerhouse.dual-wielder.1` | Dual Wielder | 1 | `manual` | `unreviewed` | — | `uncertified` |
+| `powerhouse.dual-wielder.1` | Dual Wielder | 1 | `partial` | `unreviewed` | — | `uncertified` |
 | `powerhouse.dual-wielder.2` | Dual Wielder | 2 | `manual` | `unreviewed` | — | `uncertified` |
 | `powerhouse.dual-wielder.3` | Dual Wielder | 3 | `manual` | `unreviewed` | — | `uncertified` |
 | `powerhouse.intimidator.1` | Intimidator | 1 | `manual` | `unreviewed` | — | `uncertified` |
@@ -113,7 +113,7 @@ Canonical уровней: **333** · Явно исправленных review: *
 | `vagabond.modified-meister.1` | Modified Meister | 1 | `partial` | `unreviewed` | — | `uncertified` |
 | `vagabond.modified-meister.2` | Modified Meister | 2 | `decision` | `unreviewed` | — | `uncertified` |
 | `vagabond.modified-meister.3` | Modified Meister | 3 | `decision` | `unreviewed` | — | `uncertified` |
-| `vagabond.opportunist.1` | Opportunist | 1 | `manual` | `unreviewed` | — | `uncertified` |
+| `vagabond.opportunist.1` | Opportunist | 1 | `partial` | `unreviewed` | — | `uncertified` |
 | `vagabond.opportunist.2` | Opportunist | 2 | `manual` | `unreviewed` | — | `uncertified` |
 | `vagabond.opportunist.3` | Opportunist | 3 | `manual` | `unreviewed` | — | `uncertified` |
 | `vagabond.reflector.1` | Reflector | 1 | `manual` | `unreviewed` | — | `uncertified` |
@@ -152,7 +152,7 @@ Canonical уровней: **333** · Явно исправленных review: *
 | `bulwark.juggernaut.1` | Juggernaut | 1 | `manual` | `unreviewed` | — | `uncertified` |
 | `bulwark.juggernaut.2` | Juggernaut | 2 | `manual` | `unreviewed` | — | `uncertified` |
 | `bulwark.juggernaut.3` | Juggernaut | 3 | `manual` | `unreviewed` | — | `uncertified` |
-| `bulwark.runic-retribution.1` | Mollycoddler | 1 | `manual` | `unreviewed` | — | `uncertified` |
+| `bulwark.runic-retribution.1` | Mollycoddler | 1 | `partial` | `unreviewed` | — | `uncertified` |
 | `bulwark.runic-retribution.2` | Mollycoddler | 2 | `manual` | `unreviewed` | — | `uncertified` |
 | `bulwark.runic-retribution.3` | Mollycoddler | 3 | `manual` | `unreviewed` | — | `uncertified` |
 | `bulwark.mundane.1` | Mundane | 1 | `partial` | `unreviewed` | — | `uncertified` |

@@ -8,7 +8,7 @@
 
 | Контур | Всего | Заявлено исполнимым | Формально E2E-сертифицировано | Неполный путь |
 | --- | ---: | ---: | ---: | --- |
-| Уровни Техник | 333 | 80 shared/inherited (24.0%) | 0 | 54 частичных; 199 ручных |
+| Уровни Техник | 333 | 86 shared/inherited (25.8%) | 0 | 44 частичных; 203 ручных |
 | Правила обычных врагов | 122 | 0 (0.0%) | 0 | 122 assisted |
 | Атаки врагов | 40 | 0 | 0 | не установлено независимым аудитом |
 
@@ -68,9 +68,9 @@
 
 | Архетип | Уровней | Заявлено full | Заявлено decision | Заявлено partial | Заявлено manual |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| Powerhouse | 60 | 7 | 7 | 15 | 31 |
-| Vagabond | 60 | 8 | 12 | 11 | 29 |
-| Bulwark | 48 | 3 | 3 | 3 | 39 |
+| Powerhouse | 60 | 8 | 7 | 12 | 33 |
+| Vagabond | 60 | 9 | 13 | 7 | 31 |
+| Bulwark | 48 | 3 | 3 | 4 | 38 |
 | Altruist | 57 | 2 | 11 | 2 | 42 |
 | Disruptor | 54 | 4 | 6 | 12 | 32 |
 | Ruiner | 54 | 3 | 14 | 11 | 26 |
@@ -97,7 +97,6 @@
 | Unbroken (`powerhouse.unbroken`) | 1 | Get Back Up | `duel-flow` |
 | Unbroken (`powerhouse.unbroken`) | 2 | Furious Revival | тонкий адаптер уникального условия поверх уже готового ядра |
 | Unbroken (`powerhouse.unbroken`) | 3 | Phoenix | `duel-flow` |
-| Dual Wielder (`powerhouse.dual-wielder`) | 1 | Twinned blow | тонкий адаптер уникального условия поверх уже готового ядра |
 | Dual Wielder (`powerhouse.dual-wielder`) | 2 | Frenzied Barrage | тонкий адаптер уникального условия поверх уже готового ядра |
 | Dual Wielder (`powerhouse.dual-wielder`) | 3 | Varied Blades | тонкий адаптер уникального условия поверх уже готового ядра |
 | Intimidator (`powerhouse.intimidator`) | 1 | "Pathetic" | тонкий адаптер уникального условия поверх уже готового ядра |
@@ -132,7 +131,6 @@
 | Weaponsmith (`vagabond.weaponsmith`) | 1 | Trick Weapon | тонкий адаптер уникального условия поверх уже готового ядра |
 | Weaponsmith (`vagabond.weaponsmith`) | 2 | Adaptive Edge | тонкий адаптер уникального условия поверх уже готового ядра |
 | Weaponsmith (`vagabond.weaponsmith`) | 3 | Metalurgy | тонкий адаптер уникального условия поверх уже готового ядра |
-| Opportunist (`vagabond.opportunist`) | 1 | Pack Tactics | тонкий адаптер уникального условия поверх уже готового ядра |
 | Opportunist (`vagabond.opportunist`) | 2 | Hungry Eyes | тонкий адаптер уникального условия поверх уже готового ядра |
 | Opportunist (`vagabond.opportunist`) | 3 | Launcher Combo | тонкий адаптер уникального условия поверх уже готового ядра |
 | Reflector (`vagabond.reflector`) | 1 | Catch The Blade | тонкий адаптер уникального условия поверх уже готового ядра |
@@ -161,7 +159,6 @@
 | Juggernaut (`bulwark.juggernaut`) | 1 | Wild Charge | тонкий адаптер уникального условия поверх уже готового ядра |
 | Juggernaut (`bulwark.juggernaut`) | 2 | Violence | тонкий адаптер уникального условия поверх уже готового ядра |
 | Juggernaut (`bulwark.juggernaut`) | 3 | "Eat Dirt!" | тонкий адаптер уникального условия поверх уже готового ядра |
-| Mollycoddler (`bulwark.runic-retribution`) | 1 | Lash | тонкий адаптер уникального условия поверх уже готового ядра |
 | Mollycoddler (`bulwark.runic-retribution`) | 2 | Loving Rite | тонкий адаптер уникального условия поверх уже готового ядра |
 | Mollycoddler (`bulwark.runic-retribution`) | 3 | Devotion | тонкий адаптер уникального условия поверх уже готового ядра |
 | Rising Challenger (`bulwark.rising-challenger`) | 1 | Perfect Deflection | тонкий адаптер уникального условия поверх уже готового ядра |

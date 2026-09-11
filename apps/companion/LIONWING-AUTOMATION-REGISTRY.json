@@ -3772,9 +3772,23 @@
       },
       "level": 1,
       "implementation": {
-        "automation": "manual",
-        "ruleIds": [],
-        "rules": [],
+        "automation": "partial",
+        "ruleIds": [
+          "powerhouse.dual-wielder.1"
+        ],
+        "rules": [
+          {
+            "id": "powerhouse.dual-wielder.1",
+            "techniqueId": "powerhouse.dual-wielder",
+            "level": 1,
+            "name": "Двойной удар",
+            "kind": "derived-action",
+            "automation": "partial",
+            "coverage": "partial",
+            "sourceDigest": "ab0e66e627e16c102f6cd8ec4a2cd62a4aac0a45d4bffc9e5197a3f9dd326b13",
+            "note": "После одиночной Стычки предлагается Флёрри по той же цели: фиксированный урон Телом/Талантом, доверенно считается Быстрой Стычкой и проходит обычные Реакции."
+          }
+        ],
         "foundationPlan": {
           "version": 11,
           "status": "reviewed",
@@ -3857,7 +3871,9 @@
           "text": "If you Skirmish targeting a single character, you may give it [Tier] disadvantage. If you do, you may ‘Flurry', Dealing [Body / 2] or [Talent / 2] damage to the same target afterwards. Flurrying counts as a Swift Skirmish at 0 cost. Other techniques cannot change Flurry's targeting."
         },
         "canonicalDigest": "ab0e66e627e16c102f6cd8ec4a2cd62a4aac0a45d4bffc9e5197a3f9dd326b13",
-        "engineRuleDigests": []
+        "engineRuleDigests": [
+          "ab0e66e627e16c102f6cd8ec4a2cd62a4aac0a45d4bffc9e5197a3f9dd326b13"
+        ]
       },
       "review": {
         "status": "unreviewed",
@@ -12096,9 +12112,23 @@
       },
       "level": 1,
       "implementation": {
-        "automation": "manual",
-        "ruleIds": [],
-        "rules": [],
+        "automation": "partial",
+        "ruleIds": [
+          "vagabond.opportunist.1"
+        ],
+        "rules": [
+          {
+            "id": "vagabond.opportunist.1",
+            "techniqueId": "vagabond.opportunist",
+            "level": 1,
+            "name": "Тактика стаи",
+            "kind": "derived-action",
+            "automation": "partial",
+            "coverage": "partial",
+            "sourceDigest": "f0492855d27579faf8b5030f09909996a4248a7d2367d8b8805f3942ce0bd4e2",
+            "note": "После Атаки союзника в доступной смежности предлагается одно бесплатное Быстрое производное Skirmish с фиксированной целью."
+          }
+        ],
         "foundationPlan": {
           "version": 11,
           "status": "reviewed",
@@ -12189,7 +12219,9 @@
           "text": "Once per Round, when an ally resolves an Attack on a character within [Talent] spaces, you may Swiftly Skirmish at no Cost, targeting them. If you are outside Skirmish's range, you may Teleport to a space adjacent to the target before drawing range."
         },
         "canonicalDigest": "f0492855d27579faf8b5030f09909996a4248a7d2367d8b8805f3942ce0bd4e2",
-        "engineRuleDigests": []
+        "engineRuleDigests": [
+          "f0492855d27579faf8b5030f09909996a4248a7d2367d8b8805f3942ce0bd4e2"
+        ]
       },
       "review": {
         "status": "unreviewed",
@@ -17076,9 +17108,23 @@
       },
       "level": 1,
       "implementation": {
-        "automation": "manual",
-        "ruleIds": [],
-        "rules": [],
+        "automation": "partial",
+        "ruleIds": [
+          "bulwark.runic-retribution.1"
+        ],
+        "rules": [
+          {
+            "id": "bulwark.runic-retribution.1",
+            "techniqueId": "bulwark.runic-retribution",
+            "level": 1,
+            "name": "Ласка",
+            "kind": "derived-action",
+            "automation": "partial",
+            "coverage": "partial",
+            "sourceDigest": "4bf4aab119ae103e04dde891dc96daefe5cc02c06fcdd16308a24c09a07d3822",
+            "note": "После попадания по союзнику за 1 Фокус предлагается бесплатное производное Заклинание по атакующему через общий roll/reaction lifecycle."
+          }
+        ],
         "foundationPlan": {
           "version": 11,
           "status": "reviewed",
@@ -17137,7 +17183,9 @@
           "text": "When an ally is hit by an Attack, you may spend 1 Focus to Swiftly Cast, targeting the attacker regardless of range at no AP Cost (this cannot trigger Lash or have you Cast targeting yourself)."
         },
         "canonicalDigest": "4bf4aab119ae103e04dde891dc96daefe5cc02c06fcdd16308a24c09a07d3822",
-        "engineRuleDigests": []
+        "engineRuleDigests": [
+          "4bf4aab119ae103e04dde891dc96daefe5cc02c06fcdd16308a24c09a07d3822"
+        ]
       },
       "review": {
         "status": "unreviewed",
