@@ -267,6 +267,22 @@
     return { ...status, id, partIds: parts.map(item => item.id), record: copy(s.compounds?.[id] || null) };
   }
   const astate = a => {a.lionwing||={};for(const key of ["modifiers","history"])if(!Array.isArray(a.lionwing[key]))a.lionwing[key]=[];return a.lionwing;};
+  const actionGuardScopes = new Set(["manual", "turn", "round", "scene"]);
+  const actionGuardScope = value => value === "ownerTurn" || value === "startTurn" || value === "endTurn" ? "turn" : value;
+  const actionGuardApplies = (scene, target, guard) => {
+    const scope = actionGuardScope(guard?.scope || guard?.lifetime || "manual");
+    if (scope === "manual") return true;
+    if (scope === "scene") return Number(guard.sceneSerial) === Number(scene.lionwing?.sceneSerial || scene.sceneSerial || 1);
+    if (scope === "round") return Number(guard.round) === Number(scene.round || 0);
+    if (scope === "turn") {
+      if (scene.activeActorId !== target.id) return false;
+      if (guard.ownerTurnSerial != null && Number(guard.ownerTurnSerial) !== Number(ownTurnSerial(target))) return false;
+      if (guard.ownerTurnInstanceId && guard.ownerTurnInstanceId !== scene.lionwing?.activeTurnInstanceId) return false;
+      return true;
+    }
+    return false;
+  };
+  const actionGuardList = (scene, target, key) => (Array.isArray(target?.lionwing?.[key]) ? target.lionwing[key] : []).filter(item => actionGuardApplies(scene, target, item));
   const UNBROKEN_SOURCE_DIGESTS = Object.freeze({
     "powerhouse.unbroken.1": "52ba0087d2a15fd28046b031145f0604f7ef83c4bbdfce709c77d39ea167bda1",
     "powerhouse.unbroken.3": "599936806cba9c44b00cf5223615e5fcef9b76ddb60b32144e0d8f03952aee08",
@@ -730,7 +746,9 @@
     if (!live(a)) return unavailable("Участник выведен из боя");
     if (scene.pendingAction || state(copy(scene)).choices?.length) return unavailable("Сначала завершите текущую цепочку");
     if (def.type === "reaction") return unavailable("Реакция доступна при соответствующем событии");
-    const allowance=(a.lionwing?.allowances||[]).find(item=>item.actionId===def.id&&item.remaining>0);
+    const denial = actionGuardList(scene, a, "denials").find(item => item.actionId === def.id && Number(item.remaining ?? 1) > 0);
+    if (denial) return unavailable(denial.reason || "Действие запрещено активным правилом");
+    const allowance=actionGuardList(scene, a, "allowances").find(item=>item.actionId===def.id&&item.remaining>0);
     const breakout = request.breakout === true;
     if (breakout) {
       if (!scene.lionwing?.breakout || scene.lionwing.breakout.actorId === a.id || attacks.has(def.id)) return unavailable("Прорыв: только не-Атака после чужого Хода");
@@ -776,7 +794,7 @@
       const ignored = new Set(modifierQuote.ignoreRequirements || []);
       if (!ignored.has("boardEdge") && (!board || ![0, board.width - 1].includes(a.x) && ![0, board.height - 1].includes(a.y)) || !ignored.has("startedDisappeared") && a.lionwing?.startedDisappeared) return unavailable("Скрыться можно на краю поля, если Ход начат без Исчезновения");
     }
-    return { available: true, reason: modifierQuote.reason || "", cost, resource: def.cost.resource, swift, actionQuote: modifierQuote, actionModifierIds: modifierQuote.modifierIds || [], allowanceId:allowance?.id };
+    return { available: true, reason: modifierQuote.reason || "", cost, resource: def.cost.resource, swift, actionQuote: modifierQuote, actionModifierIds: modifierQuote.modifierIds || [], allowanceId:allowance?.id, denialId: null };
   }
 
   function roll(count, random = Math.random, options = {}) {
@@ -1348,7 +1366,26 @@
         emit("followup.complete", followup.sourceActorId || followup.ownerActorId, { followupId: followup.id, ruleId: followup.ruleId, participantIds: copy(participantIds), cancelled: wasCancelled, boundary: canonicalBoundary });
       }
       const boundaryRules = typeof global.DAWN_LIONWING_ADAPTERS?.boundaryOperations === "function" ? global.DAWN_LIONWING_ADAPTERS.boundaryOperations : () => [];
-      for (const owner of scene.actors || []) for (const rule of boundaryRules(owner, context(owner))) {
+      const foundationBridge = global.DAWN_LIONWING_FOUNDATION;
+      for (const owner of scene.actors || []) {
+        const ownerContext = context(owner);
+        let declarations;
+        try { declarations = boundaryRules(owner, ownerContext); }
+        catch (error) {
+          emit("rule.manual-fallback", owner.id, { ruleId: null, boundary: ownerContext.canonicalBoundary, reason: "Автоматизация не прошла проверку: " + String(error?.message || error).slice(0, 180), automatic: false });
+          continue;
+        }
+        if (!Array.isArray(declarations)) {
+          emit("rule.manual-fallback", owner.id, { ruleId: null, boundary: ownerContext.canonicalBoundary, reason: "Автоматизация должна вернуть список деклараций; требуется решение Нарратора.", automatic: false });
+          continue;
+        }
+        for (const rawRule of declarations) {
+          const validation = foundationBridge?.validateBoundaryDeclaration?.(rawRule, owner, ownerContext);
+          if (validation && !validation.ok) {
+            emit("rule.manual-fallback", owner.id, { ruleId: rawRule?.id || null, sourceDigest: rawRule?.sourceDigest || null, boundary: ownerContext.canonicalBoundary, reason: validation.reason, automatic: false });
+            continue;
+          }
+          const rule = validation?.rule || rawRule;
         const resolvedBoundary = context(owner).canonicalBoundary, resolvedBoundaryKey = boundaryKey(owner, resolvedBoundary), key = `${rule.id}:${owner.id}:${resolvedBoundaryKey}`;
         if (s.boundaryReceipts.some(receipt => receipt.key === key)) continue;
         s.boundaryReceipts.push({ schema: 1, key, ruleId: rule.id, ownerActorId: owner.id, boundary: resolvedBoundary, boundaryKey: resolvedBoundaryKey, sceneSerial: s.sceneSerial, round: Number(scene.round || 0), turnInstanceId: s.activeTurnInstanceId || null, sourceDigest: rule.sourceDigest || null, eventId: rootId });
@@ -1362,6 +1399,7 @@
           if (!options.discardChoices) scheduled.push({ p: { kind: "technique-choice", ruleId: rule.id, triggerKey: key, title: `${rule.label || rule.id}: ${resolvedBoundary}`, options: ["skip", ...optionsList], optionLabels: { skip: "Не использовать", ...Object.fromEntries(choices.map(item => [item.id, item.label || item.id])) }, choices: Object.fromEntries(choices.map(item => [item.id, item.operations])), context: { boundary: resolvedBoundary, boundaryKey: resolvedBoundaryKey, ownerActorId: owner.id, optional: true, sourceDigest: rule.sourceDigest || null, coverage: rule.coverage || "full" } }, sourceId: owner.id, provenance: { rootActionId: rootId, actionId: null, actionDefinitionId: null, actionInstanceId: rootId, causeEventId: rootId, ownerActorId: owner.id, ruleId: rule.id, sourceDigest: rule.sourceDigest || null, coverage: rule.coverage || "full" } });
           break;
         }
+      }
       }
     };
     scheduleAfterEvent = eventRow => {
@@ -1379,7 +1417,13 @@
         const used = (s.afterEventReceipts || []).some(receipt => receipt.ruleId === "powerhouse.berserker.3" && receipt.ownerActorId === candidate.id && receipt.turnKey === ownerTurnKeyValue);
         const triggers = global.DAWN_LIONWING_ADAPTERS?.afterEvent?.(candidate, eventRow, { scene, ownerTurnKey: ownerTurnKeyValue, ownerTurnSerial: activeOwner ? ownTurnSerial(activeOwner) : null, ownerTurnInstanceId: s.activeTurnInstanceId || null, used }) || [];
         const extraHammers = triggers.filter(trigger => trigger.id === "powerhouse.martial-artist.1" && Number((candidate.knownTechniques ?? candidate.techniques)?.["powerhouse.martial-artist"] || 0) >= 3 && candidate.lionwing?.automation?.["powerhouse.martial-artist.3"] === true && Number(eventPayload.criticals || 0) > 0).map(trigger => ({ ...trigger, triggerKey: `${trigger.triggerKey}:unlimited-blows` }));
-        for (const trigger of [...triggers, ...extraHammers]) {
+        for (const rawTrigger of [...triggers, ...extraHammers]) {
+          const validation = global.DAWN_LIONWING_FOUNDATION?.validateTriggerDeclaration?.(rawTrigger, candidate);
+          if (validation && !validation.ok) {
+            emit("rule.manual-fallback", candidate.id, { ruleId: rawTrigger?.id || null, sourceDigest: rawTrigger?.sourceDigest || null, triggerKey: rawTrigger?.triggerKey || null, reason: validation.reason, automatic: false });
+            continue;
+          }
+          const trigger = validation?.rule || rawTrigger;
           if (!trigger.triggerKey || (s.afterEventReceipts || []).some(receipt => receipt.key === trigger.triggerKey)) continue;
           s.afterEventReceipts.push({ schema: 1, key: trigger.triggerKey, ruleId: trigger.id, ownerActorId: candidate.id, eventId: eventRow.id, turnKey: ownerTurnKeyValue, sourceDigest: trigger.sourceDigest || null, coverage: trigger.coverage || "full" });
           s.afterEventReceipts = s.afterEventReceipts.slice(-256);
@@ -2988,7 +3032,27 @@
           if (!["armor", "evasion", "speed"].includes(p.stat) || !Number.isInteger(p.amount) || Math.abs(p.amount) > 9999 || !["startTurn","endTurn","roundEnd","scene","manual"].includes(p.duration || "endTurn")) fail("Некорректный модификатор");
           astate(target).modifiers.push({ id: p.id || `${rootId}:modifier:${astate(target).modifiers.length}`, sourceActorId: sourceId, ownerActorId: p.ownerActorId || target.id, stat: p.stat, amount: p.amount, boundary: p.duration || "endTurn", appliedSerial: scene.turnSerial, ruleId: p.ruleId || provenance?.ruleId || null, sourceDigest: p.sourceDigest || provenance?.sourceDigest || null, label: p.label || provenance?.label || p.ruleId || provenance?.ruleId || "Временный модификатор", coverage: p.coverage || provenance?.coverage || "full", reason: p.reason || provenance?.reason || null }); emit("modifier.configure", sourceId, p); break;
         }
-        case "allow-action":{const target=requiredActor(scene,p.targetId||sourceId);if(!actionDef(p.actionId))fail("Неизвестное действие");astate(target).allowances||=[];astate(target).allowances.push({id:p.id||`${rootId}:allowance:${astate(target).allowances.length}`,actionId:p.actionId,swift:p.swift===true,reaction:p.reaction===true,cost:p.cost==null?undefined:integer(p.cost,"стоимость"),remaining:integer(p.uses??1,"применения",99),sourceActorId:sourceId});emit("action.allow",sourceId,p);break;}
+        case "allow-action": {
+          const target=requiredActor(scene,p.targetId||sourceId); if(!actionDef(p.actionId))fail("Неизвестное действие");
+          if (p.sourceActorId != null && p.sourceActorId !== provenance?.ownerActorId) fail("Источник разрешения принадлежит другому участнику");
+          if (p.ownerActorId != null && p.ownerActorId !== target.id) fail("Владелец разрешения не совпадает с целью");
+          const scope=actionGuardScope(p.scope||p.lifetime||"manual"); if(!actionGuardScopes.has(scope))fail("Неизвестная область разрешения действия");
+          astate(target).allowances||=[];
+          astate(target).allowances.push({id:p.id||`${rootId}:allowance:${astate(target).allowances.length}`,actionId:p.actionId,swift:p.swift===true,reaction:p.reaction===true,cost:p.cost==null?undefined:integer(p.cost,"стоимость"),remaining:integer(p.uses??1,"применения",99),sourceActorId:sourceId,scope,round:Number(scene.round||0),sceneSerial:Number(s.sceneSerial||1),ownerTurnSerial:ownTurnSerial(target),ownerTurnInstanceId:s.activeTurnInstanceId||null});
+          emit("action.allow",sourceId,{...p,scope}); break;
+        }
+        case "deny-action": {
+          const target=requiredActor(scene,p.targetId||sourceId); if(!actionDef(p.actionId))fail("Неизвестное действие");
+          if (p.sourceActorId != null && p.sourceActorId !== provenance?.ownerActorId) fail("Источник запрета принадлежит другому участнику");
+          if (p.ownerActorId != null && p.ownerActorId !== target.id) fail("Владелец запрета не совпадает с целью");
+          const scope=actionGuardScope(p.scope||p.lifetime||"turn"); if(!actionGuardScopes.has(scope))fail("Неизвестная область запрета действия");
+          const reason=typeof p.reason === "string" && p.reason.trim() ? p.reason.trim().slice(0,240) : "Действие запрещено активным правилом";
+          astate(target).denials||=[];
+          const id=p.id||`${rootId}:denial:${astate(target).denials.length}`;
+          if(astate(target).denials.some(item=>item.id===id)) break;
+          astate(target).denials.push({id,actionId:p.actionId,reason,remaining:integer(p.uses??1,"применения",99),sourceActorId:sourceId,scope,round:Number(scene.round||0),sceneSerial:Number(s.sceneSerial||1),ownerTurnSerial:ownTurnSerial(target),ownerTurnInstanceId:s.activeTurnInstanceId||null});
+          emit("action.deny",sourceId,{...p,id,scope,reason}); break;
+        }
         case "grant-turn":{
           const target=requiredActor(scene,p.targetId||sourceId), amount=integer(p.amount??1,"число дополнительных Ходов",4);
           if (amount < 1) fail("Дополнительный Ход должен быть положительным");
@@ -3555,6 +3619,12 @@
       if(p.kind==="combat-meter" && p.operation === "add" && (typeof p.delta !== "number" || !Number.isSafeInteger(p.delta) || Math.abs(p.delta) > 9999)) fail("Некорректное значение: изменение");
       if(p.kind==="combat-meter" && ["set"].includes(p.operation)) integer(p.value ?? p.current,"новое значение");
       if(p.kind==="resource"&&!["spend","gain"].includes(p.operation))fail("Неизвестная операция ресурса");
+      if(["allow-action", "deny-action"].includes(p.kind)) {
+        if (typeof p.actionId !== "string" || !actionDef(p.actionId)) fail("Разрешение действия требует известное действие");
+        const guardScope = actionGuardScope(p.scope || p.lifetime || (p.kind === "deny-action" ? "turn" : "manual"));
+        if (!actionGuardScopes.has(guardScope)) fail("Неизвестная область действия разрешения или запрета");
+        if (p.uses !== undefined) integer(p.uses, "применения", 99);
+      }
       if(["effect","effect-source"].includes(p.kind)&&!effectIds.has(p.effect))fail("Неизвестный Эффект LionWing");
       if(p.kind==="effect-source"&&!['remove','expire','suppress','restore'].includes(p.operation))fail("Неизвестная операция источника Эффекта");
       if(p.kind==="banish"){
@@ -3791,11 +3861,34 @@
     return copy(selected.map(item => ({ ...item, completionOperations: undefined })));
   };
   const pendingFollowups = scene => followupStatus(scene).filter(item => ["offered", "active", "cancelled"].includes(item.status));
+  function resourceQuote(scene, actorId, request = {}) {
+    const target = actor(scene, actorId), resource = typeof request.resource === "string" ? request.resource.trim() : "";
+    if (!target) return { available: false, reason: "Исполнитель не найден.", actorId, resource, amount: 0, before: 0, after: 0 };
+    if (!resource || !/^[a-zA-Z][\w.-]{0,79}$/.test(resource)) return { available: false, reason: "Некорректный ID ресурса.", actorId: target.id, resource, amount: 0, before: 0, after: 0 };
+    const rawAmount = request.amount ?? request.cost ?? 0, amount = Number(rawAmount);
+    if (!Number.isSafeInteger(amount) || amount < 0 || amount > 9999) return { available: false, reason: "Количество ресурса должно быть целым числом от 0 до 9999.", actorId: target.id, resource, amount: 0, before: balance(target, resource), after: balance(target, resource) };
+    const operation = request.operation === "gain" ? "gain" : request.operation === "spend" ? "spend" : null;
+    if (!operation) return { available: false, reason: "Укажите операцию получения или траты ресурса.", actorId: target.id, resource, amount, before: balance(target, resource), after: balance(target, resource) };
+    const resolved = resourceKey(target, resource), definition = target.ruleResources?.[resolved], before = balance(target, resource);
+    if (!spendable.has(resolved) && !definition) return { available: false, reason: "Ресурс не настроен.", actorId: target.id, ownerActorId: target.id, resource, resolvedResource: resolved, operation, amount, before, after: before, maximum: null, authoritative: true, manualFallback: true };
+    const maximum = definition?.maximum == null ? null : Number(definition.maximum);
+    const after = operation === "gain" ? before + amount : before - amount;
+    const gainStatus = operation === "gain" ? global.DAWN_LIONWING_ADAPTERS?.resourceGainStatus?.(target, { scene, requestedResource: resource, amount, actionId: request.actionId || null }) || { allowed: true } : { allowed: true };
+    const available = gainStatus.allowed !== false && (operation === "gain" ? (maximum == null || after <= maximum) : canSpend(target, resource, amount));
+    return { schema: 1, available, reason: available ? "" : gainStatus.allowed === false ? gainStatus.reason || "Получение ресурса запрещено правилом." : operation === "gain" ? "Ресурс достиг максимума." : `Недостаточно ресурса: нужно ${amount}.`, actorId: target.id, ownerActorId: target.id, resource, resolvedResource: resolved, operation, amount, before, after, maximum, authoritative: true, manualFallback: false };
+  }
+  function actionGate(scene, actorId, request = {}) {
+    const target = actor(scene, actorId), actionId = typeof request === "string" ? request : request.actionId;
+    if (!target) return { available: false, reason: "Исполнитель не найден.", actorId, actionId: actionId || null, authoritative: true };
+    const definition = actionDef(actionId);
+    if (!definition) return { available: false, reason: "Неизвестное действие.", actorId: target.id, actionId: actionId || null, authoritative: true };
+    return { ...actionStatus(scene, target, definition, typeof request === "object" ? request : {}), schema: 1, actorId: target.id, actionId: definition.id, authoritative: true, manualFallback: false };
+  }
   const api = {
     schema: 2, isScene, prepare, command, dispatchMany, replay, undo, reload, previewEvents, prepareEntityRemoval, cancelEntityRemoval, removeEntity, destroyEntity: removeEntity,
     combatMeter: combatMeter ? { read: (scene, id) => combatMeter.read(scene, id), quote: (scene, id, change) => combatMeter.quote(scene, id, change) } : null,
     turnStartStatus, roundEndStatus, turnIdentity, followupStatus, pendingFollowups,
-    movement, roll, actionStatus, actionDef, speed, maxHealth, balance, canSpend, targetIds, costQuote, detectiveMovementStatus, prepareDetectiveTeleport,
+    movement, roll, actionStatus, actionGate, actionDef, speed, maxHealth, balance, canSpend, resourceQuote, targetIds, costQuote, detectiveMovementStatus, prepareDetectiveTeleport,
     createDiceRoll, createRoll: createDiceRoll, diceCreate: createDiceRoll,
     applyDiceRoll, applyRoll: applyDiceRoll, diceApply: applyDiceRoll,
     reloadDiceRoll, reloadRoll: reloadDiceRoll, diceReload: reloadDiceRoll,
@@ -3809,7 +3902,7 @@
     lifetimeBoundary: foundations.lifetimeBoundary,
     normalizeLifetime: foundations.normalizeLifetime,
     isLifetimeExpired: foundations.lifetimeExpired,
-    operations: ["automation", "plan", "batch", "pause-chain", "resume-chain", "amend-attack", "recover-track", "record-action", "action", "derived-action", "attack", "information-study", "information-reveal", "information-cancel", "information-handout", "shatter-check", "damage", "breacher-push", "spend-health", "lose-health", "heal", "wound", "stress", "knockout", "resource", "inventory", "intermission", "correct", "effect", "effect-source", "banish", "vanish", "compound", "aura", "aura-create", "aura-update", "aura-suppress", "aura-restore", "aura-remove", "placement", "teleport", "displacement", "move", "forced-towards-group", "forced-towards-group-step", "forced-towards-group-after-route", "forced-towards", "forced-away", "martial-quick-step", "jab", "skirmisher-shift", "geometry-move", "geometry-segment", "modifier", "allow-action", "grant-turn", "usage", "punish", "invisible", "search", "configure-resource", "dice-create", "dice-apply", "dice-reload", "dice-opposed", "dice-resolve-tie", "counter", "clock", "prompt", "technique-choice", "choice", "roll", "reaction", "resolve-attack", "cancel-attack", "turn-start", "turn-end", "round-end", "scene-reset", "chapter-start", "tension", "combat-meter", "note", "marker-remove"]
+    operations: ["automation", "plan", "batch", "pause-chain", "resume-chain", "amend-attack", "recover-track", "record-action", "action", "derived-action", "attack", "information-study", "information-reveal", "information-cancel", "information-handout", "shatter-check", "damage", "breacher-push", "spend-health", "lose-health", "heal", "wound", "stress", "knockout", "resource", "inventory", "intermission", "correct", "effect", "effect-source", "banish", "vanish", "compound", "aura", "aura-create", "aura-update", "aura-suppress", "aura-restore", "aura-remove", "placement", "teleport", "displacement", "move", "forced-towards-group", "forced-towards-group-step", "forced-towards-group-after-route", "forced-towards", "forced-away", "martial-quick-step", "jab", "skirmisher-shift", "geometry-move", "geometry-segment", "modifier", "allow-action", "deny-action", "grant-turn", "usage", "punish", "invisible", "search", "configure-resource", "dice-create", "dice-apply", "dice-reload", "dice-opposed", "dice-resolve-tie", "counter", "clock", "prompt", "technique-choice", "choice", "roll", "reaction", "resolve-attack", "cancel-attack", "turn-start", "turn-end", "round-end", "scene-reset", "chapter-start", "tension", "combat-meter", "note", "marker-remove"]
   };
   global.DAWN_LIONWING_ENGINE = api;
   const routed = global.DAWN_SCENE_ENGINE;
