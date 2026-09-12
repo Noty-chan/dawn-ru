@@ -900,7 +900,7 @@
       id: "vagabond.sniper.1",
       label: "Снайпер I: Завершение Талантом получает дальность 5",
       sourceDigest: "a84de0a68e37fcfc0bd9e9f2b31d19f5f09d686294b82e40138d26e0ed6ba8e8",
-      coverage: "partial",
+      coverage: "full",
       numeric: (_actor, context) => context?.key === "range" && context.kind === "attack" && context.actionId === ACTIONS.finish && context.attribute === "talent"
         ? { operation: "min", amount: 5, reason: "Снайпер I расширяет дальность Завершения Талантом до 5." }
         : [],
@@ -923,7 +923,7 @@
       id: "vagabond.untouchable.1",
       label: "Неуловимый I: первый Уворот Раунда получает +Талант Уклонения",
       sourceDigest: "348244d9362ed86da47559403a2fd0f22afb93a9647db589007e8ff203c8a26a",
-      coverage: "partial",
+      coverage: "full",
       numeric: (actor, context) => {
         if (context?.key !== "dodgeEvasion" || context.kind !== "dodge" || !context.scene) return [];
         const owner = context.scene.actors?.find(item => item.id === actor.id) || actor;

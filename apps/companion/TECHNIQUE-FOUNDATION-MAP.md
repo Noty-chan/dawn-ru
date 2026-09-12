@@ -250,7 +250,7 @@ SHA-256 проверенных файлов: `ac147280aeb307b429846c56c1f597ee9a
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Long Shot | проверено | частичная | `target-validation`, `event-participants`, `spatial-range`, `action-modifier` |
+| 1 | Long Shot | проверено | полная | `target-validation`, `event-participants`, `spatial-range`, `action-modifier` |
 | 2 | Bunker Down | проверено | частичная | `effect-state`, `effect-lifecycle`, `trigger-router`, `turn-lifecycle`, `action-modifier`, `dice-hooks`, `spatial-range` |
 | 3 | Deadeye [ Hide → Talent Finisher ] | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle`, `trigger-router`, `damage-pipeline`, `action-modifier`, `action-history`, `dice-hooks` |
 
@@ -274,7 +274,7 @@ SHA-256 проверенных файлов: `ac147280aeb307b429846c56c1f597ee9a
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Duck | проверено | частичная | `usage-limits`, `trigger-router`, `turn-lifecycle`, `derived-stats` |
+| 1 | Duck | проверено | полная | `usage-limits`, `trigger-router`, `turn-lifecycle`, `derived-stats` |
 | 2 | Weave | проверено | частичная | `movement-lifecycle`, `trigger-router`, `damage-pipeline`, `derived-stats` |
 | 3 | Fighter's Instinct [ Dodge → Skirmish ] | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle`, `action-modifier`, `action-history`, `dice-hooks` |
 

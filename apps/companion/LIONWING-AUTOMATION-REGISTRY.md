@@ -74,7 +74,7 @@ Canonical уровней: **333** · Явно исправленных review: *
 | `vagabond.assassin.1` | Assassin | 1 | `full` | `unreviewed` | — | `uncertified` |
 | `vagabond.assassin.2` | Assassin | 2 | `decision` | `unreviewed` | — | `uncertified` |
 | `vagabond.assassin.3` | Assassin | 3 | `full` | `corrected` | — | `uncertified` |
-| `vagabond.sniper.1` | Sniper | 1 | `partial` | `unreviewed` | — | `uncertified` |
+| `vagabond.sniper.1` | Sniper | 1 | `full` | `unreviewed` | core | `uncertified` |
 | `vagabond.sniper.2` | Sniper | 2 | `partial` | `unreviewed` | — | `uncertified` |
 | `vagabond.sniper.3` | Sniper | 3 | `manual` | `unreviewed` | — | `uncertified` |
 | `vagabond.skirmisher.1` | Skirmisher | 1 | `decision` | `unreviewed` | — | `uncertified` |
@@ -83,7 +83,7 @@ Canonical уровней: **333** · Явно исправленных review: *
 | `vagabond.speed-demon.1` | Speed Demon | 1 | `manual` | `unreviewed` | — | `uncertified` |
 | `vagabond.speed-demon.2` | Speed Demon | 2 | `full` | `unreviewed` | — | `uncertified` |
 | `vagabond.speed-demon.3` | Speed Demon | 3 | `manual` | `unreviewed` | — | `uncertified` |
-| `vagabond.untouchable.1` | Untouchable | 1 | `partial` | `unreviewed` | — | `uncertified` |
+| `vagabond.untouchable.1` | Untouchable | 1 | `full` | `unreviewed` | core | `uncertified` |
 | `vagabond.untouchable.2` | Untouchable | 2 | `partial` | `unreviewed` | — | `uncertified` |
 | `vagabond.untouchable.3` | Untouchable | 3 | `manual` | `unreviewed` | — | `uncertified` |
 | `vagabond.acrobat.1` | Acrobat | 1 | `manual` | `unreviewed` | — | `uncertified` |
