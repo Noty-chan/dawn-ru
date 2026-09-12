@@ -516,6 +516,52 @@ assert.equal(adapters.damageQuote(flagellantReload.actors[0], { ...flagellantCon
 assert.equal(adapters.damageQuote({ ...flagellantReload.actors[0], lionwing: { ...flagellantReload.actors[0].lionwing, automation: {} } }, { ...flagellantContext, scene: flagellantReload }).value, 4, "known but disabled Bled Dry gives no bonus");
 assert.equal(adapters.damageQuote({ ...flagellantReload.actors[0], rulesEdition: "legacy" }, { ...flagellantContext, scene: flagellantReload }).value, 4, "Bled Dry is isolated from legacy editions");
 
+// The real attack pipeline emits action.resolve before it resolves damage.
+// The engine passes that attack's authoritative actionInstanceId into the
+// damage quote, so the current receipt is excluded while an earlier attack
+// remains counted. Verify first attack, second attack, turn boundary, reload,
+// and replay through dispatch rather than a hand-built quote context.
+let flagellantFlow = fixture({ knownTechniques: { "powerhouse.flagellant": 3 }, effects: ["negative.ослаблен", "positive.усилен"] });
+flagellantFlow = enable(flagellantFlow, "powerhouse.flagellant.3");
+flagellantFlow = run(flagellantFlow, "h", { kind: "turn-start" });
+let preparedAttack = prepare(flagellantFlow, "h", { kind: "action", actionId: ids.skirmish, targetIds: ["e"] });
+const firstAttackInstanceId = preparedAttack.events[0].id;
+const firstAttackEvents = copy(preparedAttack.events);
+flagellantFlow = lionwing.dispatchMany(flagellantFlow, preparedAttack.events).scene;
+assert.equal(flagellantFlow.pendingAction?.actionInstanceId, firstAttackInstanceId, "the pending attack keeps its authoritative identity");
+flagellantFlow = run(flagellantFlow, "e", { kind: "reaction", choice: "take" });
+flagellantFlow = run(flagellantFlow, "e", { kind: "resolve-attack" });
+const firstDamage = flagellantFlow.log.find(row => row.type === "damage.apply" && row.payload?.targetId === "e" && row.payload?.actionInstanceId === firstAttackInstanceId);
+assert.equal(firstDamage?.payload?.dealt, firstDamage?.payload?.raw + 2, "the real first attack receives Bled Dry before damage resolves");
+
+const flowReload = copy(flagellantFlow);
+const replayFirstAttack = lionwing.dispatchMany(copy(flowReload), firstAttackEvents);
+assert.equal(replayFirstAttack.events.length, 0, "replaying the first attack receipt remains idempotent after damage");
+preparedAttack = prepare(flagellantFlow, "h", { kind: "action", actionId: ids.finish, targetIds: ["e"] });
+const secondAttackInstanceId = preparedAttack.events[0].id;
+flagellantFlow = lionwing.dispatchMany(flagellantFlow, preparedAttack.events).scene;
+flagellantFlow = run(flagellantFlow, "e", { kind: "reaction", choice: "take" });
+flagellantFlow = run(flagellantFlow, "e", { kind: "resolve-attack" });
+const secondDamage = flagellantFlow.log.find(row => row.type === "damage.apply" && row.payload?.targetId === "e" && row.payload?.actionInstanceId === secondAttackInstanceId);
+assert.equal(secondDamage?.payload?.dealt, secondDamage?.payload?.raw, "the second attack in the same Turn receives no Bled Dry bonus");
+
+flagellantFlow = run(flagellantFlow, "h", { kind: "turn-end" });
+flagellantFlow = run(flagellantFlow, "e", { kind: "turn-start" });
+flagellantFlow = run(flagellantFlow, "e", { kind: "turn-end" });
+flagellantFlow = run(flagellantFlow, "e", { kind: "round-end" });
+flagellantFlow = run(flagellantFlow, "h", { kind: "turn-start" });
+flagellantFlow = run(flagellantFlow, "h", { kind: "effect", targetId: "h", effect: "negative.ослаблен" });
+flagellantFlow = run(flagellantFlow, "h", { kind: "effect", targetId: "h", effect: "positive.усилен" });
+preparedAttack = prepare(flagellantFlow, "h", { kind: "action", actionId: ids.skirmish, targetIds: ["e"] });
+const nextTurnAttackInstanceId = preparedAttack.events[0].id;
+flagellantFlow = lionwing.dispatchMany(flagellantFlow, preparedAttack.events).scene;
+flagellantFlow = run(flagellantFlow, "e", { kind: "reaction", choice: "take" });
+const nextTurnPending = copy(flagellantFlow);
+flagellantFlow = run(flagellantFlow, "e", { kind: "resolve-attack" });
+const nextTurnDamage = flagellantFlow.log.find(row => row.type === "damage.apply" && row.payload?.targetId === "e" && row.payload?.actionInstanceId === nextTurnAttackInstanceId);
+assert.equal(nextTurnDamage?.payload?.dealt, nextTurnDamage?.payload?.raw + 2, "Bled Dry returns at the next owner Turn boundary");
+assert.equal(lionwing.dispatchMany(copy(nextTurnPending), [{ ...lionwing.command("e", { kind: "resolve-attack" }), id: `passive:replay:${++serial}` }]).scene.pendingAction, null, "resolving the copied pending attack is deterministic after JSON reload");
+
 // Duelist's Tension Armor belongs to the held Block response.  It does not
 // mutate the actor's persistent Armor and the disabled path is ordinary Block.
 let duelist = fixture({ knownTechniques: { "powerhouse.duelist": 2 } });

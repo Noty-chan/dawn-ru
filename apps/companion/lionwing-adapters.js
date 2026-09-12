@@ -68,7 +68,11 @@
         : Number(row.payload?.turnSerial ?? row.execution?.turnSerial ?? 0) === turnSerial
     ));
   };
-  const firstAttackThisTurn = (actor, scene) => !currentTurnActionRows(actor, scene).some(row => attackIds.has(row.payload?.actionId));
+  const firstAttackThisTurn = (actor, scene, currentActionInstanceId = null) => !currentTurnActionRows(actor, scene).some(row => {
+    if (!attackIds.has(row.payload?.actionId)) return false;
+    const rowActionInstanceId = row.payload?.actionInstanceId || row.execution?.actionInstanceId || null;
+    return !currentActionInstanceId || rowActionInstanceId !== currentActionInstanceId;
+  });
   const activeEffectIds = actor => {
     const ids = new Set(Array.isArray(actor?.effects) ? actor.effects.filter(Boolean) : []);
     for (const [id, state] of Object.entries(actor?.effectStates || {})) if (state?.present !== false) ids.add(id);
@@ -834,7 +838,7 @@
       numeric: (actor, context) => {
         if (context?.key !== "damage" || context.kind !== "attack" || !context.scene || !attackIds.has(context.actionId)) return [];
         const owner = context.scene.actors?.find(item => item.id === actor.id) || actor;
-        if (!firstAttackThisTurn(owner, context.scene)) return [];
+        if (!firstAttackThisTurn(owner, context.scene, context.actionInstanceId || null)) return [];
         const amount = activeEffectIds(owner).size;
         return amount > 0 ? { operation: "add", amount, reason: "Первый Удар Хода получает урон за каждый активный Эффект Самобичевателя III." } : [];
       },
