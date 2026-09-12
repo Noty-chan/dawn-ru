@@ -32,9 +32,9 @@ Canonical уровней: **333** · Явно исправленных review: *
 | `powerhouse.technician.1` | Technician | 1 | `partial` | `unreviewed` | — | `uncertified` |
 | `powerhouse.technician.2` | Technician | 2 | `partial` | `unreviewed` | — | `uncertified` |
 | `powerhouse.technician.3` | Technician | 3 | `partial` | `unreviewed` | — | `uncertified` |
-| `powerhouse.unbroken.1` | Unbroken | 1 | `manual` | `unreviewed` | — | `uncertified` |
+| `powerhouse.unbroken.1` | Unbroken | 1 | `decision` | `unreviewed` | — | `uncertified` |
 | `powerhouse.unbroken.2` | Unbroken | 2 | `manual` | `unreviewed` | — | `uncertified` |
-| `powerhouse.unbroken.3` | Unbroken | 3 | `manual` | `unreviewed` | — | `uncertified` |
+| `powerhouse.unbroken.3` | Unbroken | 3 | `decision` | `unreviewed` | — | `uncertified` |
 | `powerhouse.braggart.1` | Braggart | 1 | `partial` | `unreviewed` | — | `uncertified` |
 | `powerhouse.braggart.2` | Braggart | 2 | `decision` | `unreviewed` | — | `uncertified` |
 | `powerhouse.braggart.3` | Braggart | 3 | `decision` | `unreviewed` | — | `uncertified` |
