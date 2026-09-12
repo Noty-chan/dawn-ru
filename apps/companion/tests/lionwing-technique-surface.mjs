@@ -21,6 +21,24 @@ context.window.DAWN_LIONWING_ADAPTERS = {
 context.window.DAWN_SCENE_ENGINE = {
   availableActions: () => [{ id: "action.cast", name: "Cast", available: false, reason: "Сейчас Ход другого участника", costModel: { amount: 1, resource: "ap" } }],
 };
+context.window.DAWN_LIONWING_ENGINE = {
+  prepare(scene, request) {
+    if (request.kind === "choice" && request.id === "offer-1") return { ok: true, events: [{ id: "choice-event", type: "lionwing.command", actorId: request.actorId, payload: { kind: "choice", id: request.id, choice: request.choice } }] };
+    if (request.kind === "batch" && Array.isArray(request.operations)) {
+      if (request.operations.some(operation => operation.targetId && !scene.actors.some(item => item.id === operation.targetId))) return { ok: false, errors: ["Неверная цель"] };
+      return { ok: true, events: [{ id: "batch-event", type: "lionwing.command", actorId: request.actorId, payload: request }] };
+    }
+    return { ok: false, errors: ["Неверное действие"] };
+  },
+  previewEvents(scene, events, options = {}) {
+    if (Number(options.expectedVersion) !== Number(scene.version)) return { ok: false, errors: ["Сцена изменилась"] };
+    return { ok: true, scene, events, errors: [] };
+  },
+  dispatchMany(scene, events, options = {}) {
+    if (Number(options.expectedVersion) !== Number(scene.version)) return { ok: false, errors: ["Сцена изменилась"] };
+    return { ok: true, scene: { ...scene, version: scene.version + 1 }, events };
+  },
+};
 vm.runInContext(fs.readFileSync(new URL("../lionwing-technique-surface.js", import.meta.url), "utf8"), context, { filename: "lionwing-technique-surface.js" });
 const surface = context.window.DAWN_LIONWING_TECHNIQUE_SURFACE;
 
@@ -76,6 +94,7 @@ offerScene.lionwing.choices = [{
     ruleId: "ruiner.cryomancer.1",
     optionLabels: { skip: "Не использовать", apply: "Применить" },
     choices: { apply: [{ kind: "effect", targetId: "other", effect: "negative.замедлен" }] },
+    sourceDigest: "adapter-digest-1",
   },
 }];
 const ownerModel = surface.model(offerScene, actor, { viewer: { role: "player", actorId: "hero" } });
@@ -91,6 +110,36 @@ assert.match(offerHtml, /Цели: Другой/);
 assert.deepEqual(surface.visibleChoices(offerScene, { role: "player", actorId: "other" }), [], "another player cannot see private technique offer");
 assert.equal(surface.visibleChoices(offerScene, { role: "player", actorId: "hero" }).length, 1);
 assert.equal(surface.visibleChoices(offerScene, { role: "narrator" }).length, 1);
+const actions = surface.adapterActions(offerScene, actor, { viewer: { role: "player", actorId: "hero" } });
+assert.equal(actions.length, 2, "each adapter choice is exposed as one table action");
+const applyAction = actions.find(item => item.option === "apply");
+assert.equal(Array.from(applyAction.targetIds).join(","), "other");
+assert.equal(applyAction.sourceDigest, "adapter-digest-1");
+const preparedAction = surface.previewAction(offerScene, applyAction);
+assert.equal(preparedAction.ok, true, "adapter action prepares and previews through the engine");
+assert.equal(preparedAction.sceneVersion, offerScene.version);
+let committedAction = 0;
+const committed = surface.commitAction(offerScene, preparedAction, { commit: (_label, events) => { committedAction += events.length; return { ok: true }; } });
+assert.equal(committed.ok, true, "previewed adapter action can be committed");
+assert.equal(committedAction, 1);
+const stale = surface.commitAction({ ...offerScene, version: offerScene.version + 1 }, preparedAction, { commit: () => ({ ok: true }) });
+assert.equal(stale.stale, true, "stale adapter preview is rejected before commit");
+assert.equal(surface.cancelAction("choice:offer-1:apply"), true, "adapter action can be cancelled");
+assert.match(surface.pendingHtml(offerScene.lionwing.choices[0], { scene: offerScene, viewer: { role: "player", actorId: "hero" } }), /Источник адаптера: adapter-digest-1/);
+const batchAction = surface.operationAction(offerScene, actor, {
+  id: "batch:heal-and-focus",
+  title: "Восстановить и получить Фокус",
+  level: 2,
+  sourceDigest: "batch-digest",
+  operations: [
+    { kind: "heal", targetId: "hero", amount: 1 },
+    { kind: "resource", targetId: "hero", resource: "focus", operation: "gain", amount: 1 },
+  ],
+});
+assert.equal(surface.previewAction(offerScene, batchAction).ok, true, "single UI bridge previews operation batches");
+assert.match(surface.renderActionControl(batchAction), /batch-digest/);
+const invalidTarget = surface.operationAction(offerScene, actor, { id: "bad-target", operations: [{ kind: "heal", targetId: "missing", amount: 1 }] });
+assert.equal(surface.previewAction(offerScene, invalidTarget).ok, false, "engine rejects an invalid operation target");
 
 let dispatches = 0;
 assert.equal(surface.dispatchOnce("choice:offer-1:skip", () => { dispatches += 1; return true; }), true);

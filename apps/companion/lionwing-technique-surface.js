@@ -279,6 +279,127 @@
     return "";
   }
 
+  // An adapter choice is already an authoritative operation offer.  Keep the
+  // bridge deliberately small: it turns the offer into a reviewable action,
+  // then asks the LionWing engine to prepare and preview the exact event
+  // batch before anything is sent to the table.
+  const actionPreviews = new Map();
+  function operationList(action) {
+    if (Array.isArray(action?.operations)) return action.operations;
+    const choices = action?.choice?.context?.choices;
+    return choices && Array.isArray(choices[action.option]) ? choices[action.option] : [];
+  }
+  function operationSourceDigests(operations) {
+    return [...new Set((operations || []).map(operation => operation?.sourceDigest).filter(Boolean))];
+  }
+  function actionFromChoice(scene, choice, option, actor) {
+    const operations = operationList({ choice, option });
+    const context = choice?.context || {};
+    const digests = operationSourceDigests(operations);
+    return {
+      id: "choice:" + choice.id + ":" + option,
+      kind: "choice",
+      actorId: actor?.id || choice?.actorId || null,
+      ruleId: context.ruleId || null,
+      techniqueRuleId: context.ruleId || null,
+      title: choice.title || "Сработала Техника",
+      level: Number(String(context.ruleId || "").match(/\.(\d+)$/)?.[1] || 0),
+      option,
+      label: context.optionLabels?.[option] || option,
+      choice,
+      operations,
+      targetIds: choiceTargetIds(choice),
+      destinationRequired: Boolean(context.destinationRequired),
+      sourceDigest: context.sourceDigest || (digests.length === 1 ? digests[0] : digests),
+      available: true,
+      reason: "Выбор доступен текущему владельцу решения.",
+    };
+  }
+  function operationAction(scene, actor, descriptor = {}) {
+    const operations = Array.isArray(descriptor.operations) ? descriptor.operations : [];
+    const digests = operationSourceDigests(operations);
+    return {
+      id: descriptor.id || "operation:" + actor?.id + ":" + (descriptor.ruleId || operations[0]?.ruleId || "action"),
+      kind: "operations",
+      actorId: actor?.id || descriptor.actorId || null,
+      ruleId: descriptor.ruleId || operations[0]?.ruleId || null,
+      techniqueRuleId: descriptor.techniqueRuleId || descriptor.ruleId || operations[0]?.ruleId || null,
+      title: descriptor.title || descriptor.label || "Действие Техники",
+      level: Number(descriptor.level || String(descriptor.ruleId || "").match(/\.(\d+)$/)?.[1] || 0),
+      label: descriptor.label || descriptor.title || "Выполнить",
+      operations,
+      targetIds: descriptor.targetIds || [...new Set(operations.map(operation => operation?.targetId).filter(Boolean))],
+      destinationRequired: Boolean(descriptor.destinationRequired),
+      sourceDigest: descriptor.sourceDigest || (digests.length === 1 ? digests[0] : digests),
+      available: descriptor.available !== false,
+      reason: descriptor.reason || (descriptor.available === false ? "Условия Техники не выполнены." : "Операция доступна."),
+    };
+  }
+  function adapterActions(scene, actorOrId, options = {}) {
+    const actor = typeof actorOrId === "string" ? actorById(scene, actorOrId) : actorOrId;
+    if (!scene || !actor) return [];
+    const viewer = viewerFor(scene, options.viewer);
+    return visibleChoices(scene, viewer).filter(choice => choice?.kind === "technique-trigger" && choice.actorId === actor.id)
+      .flatMap(choice => (choice.options || []).map(option => actionFromChoice(scene, choice, option, actor)));
+  }
+  function actionRequest(action) {
+    if (action.kind === "choice") return { kind: "choice", actorId: action.actorId, id: action.choice.id, choice: action.option };
+    return { kind: "batch", actorId: action.actorId, operations: operationList(action) };
+  }
+  function previewAction(scene, action) {
+    const engine = global.DAWN_LIONWING_ENGINE;
+    if (!engine?.prepare || !engine?.previewEvents) return { ok: false, errors: ["Конвейер предпросмотра Техники недоступен."] };
+    if (!action?.actorId || !["choice", "operations"].includes(action.kind)) return { ok: false, errors: ["Действие Техники повреждено."] };
+    if (action.kind === "operations" && !operationList(action).length) return { ok: false, errors: ["Пакет операций Техники пуст."] };
+    try {
+      const prepared = engine.prepare(scene, actionRequest(action));
+      if (!prepared?.ok) return prepared || { ok: false, errors: ["Действие Техники недоступно."] };
+      const checked = engine.previewEvents(scene, prepared.events, { expectedVersion: Number(scene.version || 0) });
+      if (!checked?.ok) return checked || { ok: false, errors: ["Предпросмотр отклонён ядром."] };
+      return { ok: true, action, prepared, preview: checked, sceneVersion: Number(scene.version || 0), events: prepared.events };
+    } catch (error) {
+      return { ok: false, errors: [error?.message || "Предпросмотр отклонён ядром."] };
+    }
+  }
+  function commitAction(scene, preview, options = {}) {
+    if (!preview?.ok || !Array.isArray(preview.events)) return { ok: false, errors: ["Нет подтверждённого предпросмотра."] };
+    const expectedVersion = Number(scene?.version || 0);
+    if (Number(preview.sceneVersion) !== expectedVersion) return { ok: false, stale: true, errors: ["Сцена изменилась: предпросмотр устарел."] };
+    const engine = global.DAWN_LIONWING_ENGINE;
+    const checked = engine?.previewEvents?.(scene, preview.events, { expectedVersion });
+    if (!checked?.ok) return { ok: false, stale: true, errors: checked?.errors || ["Предпросмотр устарел."] };
+    const commit = options.commit || global.commitSceneEvents || (() => { try { return typeof commitSceneEvents === "function" ? commitSceneEvents : null; } catch { return null; } })();
+    if (typeof commit === "function") {
+      const result = commit(options.label || preview.action?.title || "Действие Техники", preview.events);
+      return result === undefined ? { ok: true } : result;
+    }
+    if (!engine?.dispatchMany) return { ok: false, errors: ["Конвейер записи Техники недоступен."] };
+    return { ok: true, ...engine.dispatchMany(scene, preview.events, { expectedVersion }) };
+  }
+  function cancelAction(key) {
+    if (key) actionPreviews.delete(key);
+    return true;
+  }
+  function actionSourceLabel(action) {
+    const value = action?.sourceDigest;
+    if (Array.isArray(value)) return value.length ? value.join(" · ") : "Источник не указан";
+    return value || "Источник не указан";
+  }
+  function previewHtml(action, result = null, key = "") {
+    const targets = (action?.targetIds || []).map(id => actorById(currentScene(), id)?.name || id).join(", ");
+    const cost = formatCosts(operationCosts({ context: { choices: { apply: operationList(action) } } }));
+    const status = result?.ok ? "Предпросмотр подтверждён ядром. Проверьте цель и стоимость." : result?.errors?.join(" ") || "";
+    return "<div class=\"lw-technique-action-preview\" data-lw-technique-preview-result=\"" + escapeHtml(key) + "\"><p><b>Предпросмотр:</b> " + escapeHtml(status || "нажмите «Проверить»") + "</p><p>Цель: " + escapeHtml(targets || (action?.destinationRequired ? "выберите клетку на поле" : "указана в операции")) + " · Стоимость: " + escapeHtml(cost) + " · Источник: " + escapeHtml(actionSourceLabel(action)) + "</p>" + (result?.ok ? "<div class=\"button-row\"><button type=\"button\" data-lw-technique-commit=\"" + escapeHtml(key) + "\">Выполнить</button><button type=\"button\" data-lw-technique-cancel=\"" + escapeHtml(key) + "\">Отменить</button></div>" : "") + "</div>";
+  }
+  function renderActionControl(action, options = {}) {
+    if (!action) return "";
+    const key = String(options.key || action.id);
+    const disabled = action.available === false || options.canRespond === false ? " disabled" : "";
+    const targets = (action.targetIds || []).map(id => actorById(currentScene(), id)?.name || id).join(", ");
+    actionPreviews.set("action:" + key, { action });
+    return "<article class=\"lw-technique-action\" data-lw-technique-action-card=\"" + escapeHtml(key) + "\"><header><strong>" + escapeHtml(action.title || action.label || "Действие Техники") + (action.level ? " · " + escapeHtml(action.level) : "") + "</strong><small>" + escapeHtml(action.available === false ? "недоступно" : "доступно") + "</small></header><p>Причина: " + escapeHtml(action.reason || "условия выполнены") + "</p><p>Цель: " + escapeHtml(targets || (action.destinationRequired ? "выберите клетку на поле" : "указана в операции")) + " · Источник: " + escapeHtml(actionSourceLabel(action)) + "</p><button type=\"button\" data-lw-technique-action=\"true\" data-lw-action-id=\"" + escapeHtml(key) + "\" data-lw-actor=\"" + escapeHtml(action.actorId || "") + "\"" + disabled + ">Проверить и показать preview</button><div data-lw-technique-preview-host></div></article>";
+  }
+
   function renderActionShelf(actions, summary) {
     if (!actions.length) return "";
     const rows = actions.map(action => {
@@ -308,9 +429,12 @@
     const optionText = offer ? (offer.options || []).map(option => offerLabels[option] || option).join(" · ") : "";
     const offerDetails = offer ? [choiceTargets(offer, model.scene), choiceVariant(offer)].filter(Boolean).join(" · ") : "";
     const offerHtml = offer ? "<p class=\"lw-technique-offer\" role=\"status\"><b>Нужно решение</b> · " + escapeHtml(optionText) + (offerDetails ? " · " + escapeHtml(offerDetails) : "") + " · срок: " + escapeHtml(deadline(offer, model.scene)) + "</p>" : "";
+    const adapterDigests = [...new Set(status.rows.map(row => row.sourceDigest).filter(Boolean))];
+    const adapterSource = adapterDigests.length ? "<small class=\"lw-technique-source\">Адаптер: " + escapeHtml(adapterDigests.join(" · ")) + "</small>" : "";
     return "<article class=\"lw-technique-level\" data-lw-technique-level=\"" + escapeHtml(entry.id) + "\">" +
       "<header><strong>" + escapeHtml(entry.level + ". " + (entry.displayLevelName || entry.canonicalLevelName)) + "</strong><span class=\"lw-technique-status " + escapeHtml(status.state) + "\">" + escapeHtml(status.label) + "</span></header>" +
       "<small class=\"lw-technique-source\">Канон: " + escapeHtml(sourceLabel(entry.canonicalSource)) + "</small>" +
+      adapterSource +
       "<p class=\"lw-technique-canonical\"><b>EN:</b> " + escapeHtml(entry.canonicalText) + "</p>" +
       (translated ? "<details class=\"lw-technique-translation\"><summary>Русский перевод</summary><p>" + escapeHtml(entry.displayText) + "</p></details>" : "") +
       "<p class=\"lw-technique-automation\"><b>" + escapeHtml(status.label) + ":</b> " + escapeHtml(status.detail) + (status.receipt ? " · " + escapeHtml(receiptLabel(status.receipt)) : "") + "</p>" +
@@ -339,13 +463,15 @@
     }
     const activeCount = model.statuses.filter(item => ["automatic", "assisted"].includes(item.status.state)).length;
     const offerCount = model.offers.length;
+    const directActions = (options.actions || []).map(item => operationAction(scene, model.actor, item));
     const groupHtml = [...groups.values()].map((group, index) => {
       const heading = group.name + (group.canonicalName !== group.name ? " · " + group.canonicalName : "") + (group.previousName ? " · ранее: " + group.previousName : "");
       return "<details class=\"lw-technique-group\" data-lw-technique-group=\"" + escapeHtml(group.techniqueId) + "\"" + (openPreference(group.techniqueId, index === 0 || group.levels.some(item => item.status.offer)) ? " open" : "") + "><summary><strong>" + escapeHtml(heading) + "</strong><small>" + group.levels.length + " Уров." + (group.levels.some(item => item.status.offer) ? " · есть решение" : "") + "</small></summary><div>" + group.levels.map(item => renderLevel(item, model.actor, model)).join("") + "</div></details>";
     }).join("");
     const outerOpen = offerCount > 0 || openPreference("surface:" + model.actor.id, false);
     const intro = "<p class=\"lw-technique-intro\">Текст EN — источник правила. Перевод показан отдельно; статус автоматизации не заменяет правило.</p>";
-    return "<details class=\"lw-technique-surface\" data-lw-technique-surface data-lw-technique-actor=\"" + escapeHtml(model.actor.id) + "\"" + (outerOpen ? " open" : "") + "><summary><strong>Техники · " + model.entries.length + "</strong><small>" + activeCount + " подключено" + (offerCount ? " · " + offerCount + " требует решения" : "") + "</small></summary>" + intro + renderActionShelf(model.actions, model.actionSummary) + "<div class=\"lw-technique-groups\">" + groupHtml + "</div></details>";
+    const actionHtml = directActions.length ? "<div class=\"lw-technique-action-list\" aria-label=\"Действия Техник\">" + directActions.map(action => renderActionControl(action, { canRespond: model.manual.available })).join("") + "</div>" : "";
+    return "<details class=\"lw-technique-surface\" data-lw-technique-surface data-lw-technique-actor=\"" + escapeHtml(model.actor.id) + "\"" + (outerOpen ? " open" : "") + "><summary><strong>Техники · " + model.entries.length + "</strong><small>" + activeCount + " подключено" + (offerCount ? " · " + offerCount + " требует решения" : "") + "</small></summary>" + intro + actionHtml + renderActionShelf(model.actions, model.actionSummary) + "<div class=\"lw-technique-groups\">" + groupHtml + "</div></details>";
   }
 
   function pendingHtml(choice, options = {}) {
@@ -356,13 +482,15 @@
     const optionsHtml = (choice?.options || []).map(option => {
       const label = labels[option] || option;
       const cancel = cancellationSuffix(option, label);
-      return "<button type=\"button\" data-lw-technique-choice=\"true\" data-lw-choice=\"" + escapeHtml(option) + "\" data-lw-choice-id=\"" + escapeHtml(choice.id) + "\" data-lw-actor=\"" + escapeHtml(choice.actorId) + "\"" + (canRespond ? "" : " disabled") + ">" + escapeHtml(label + cancel) + "</button>";
+      return "<button type=\"button\" data-lw-technique-action=\"true\" data-lw-technique-choice=\"true\" data-lw-choice=\"" + escapeHtml(option) + "\" data-lw-choice-id=\"" + escapeHtml(choice.id) + "\" data-lw-actor=\"" + escapeHtml(choice.actorId) + "\"" + (canRespond ? "" : " disabled") + ">Проверить: " + escapeHtml(label + cancel) + "</button>";
     }).join("");
     const source = entry ? "<small class=\"lw-technique-source\">Канон: " + escapeHtml(sourceLabel(entry.canonicalSource)) + "</small>" : "";
     const canonical = entry ? "<p class=\"lw-technique-canonical\"><b>EN:</b> " + escapeHtml(entry.canonicalText) + "</p>" : "";
     const details = [choiceTargets(choice, scene), choiceVariant(choice)].filter(Boolean).join(" · ");
     const wait = canRespond ? "<div class=\"button-row\">" + optionsHtml + "</div>" : "<p>Ожидается решение владельца героя.</p>";
-    return "<section class=\"lw-pending lw-technique-offer\" data-lw-technique-offer=\"" + escapeHtml(choice.id) + "\"><header><strong>" + escapeHtml(actor?.name || "Участник") + ": " + escapeHtml(choice.title || "Сработала Техника") + "</strong><span>Срок: " + escapeHtml(deadline(choice, scene)) + "</span></header>" + source + canonical + (details ? "<p><b>" + escapeHtml(details) + "</b></p>" : "") + "<p><b>Стоимость:</b> " + escapeHtml(formatCosts(operationCosts(choice))) + "</p>" + wait + "</section>";
+    const digests = [...new Set([choice.context?.sourceDigest, ...(choice.options || []).flatMap(option => operationSourceDigests(operationList({ choice, option })))].filter(Boolean))];
+    const digestHtml = digests.length ? "<small class=\"lw-technique-source\">Источник адаптера: " + escapeHtml(digests.join(" · ")) + "</small>" : "";
+    return "<section class=\"lw-pending lw-technique-offer\" data-lw-technique-offer=\"" + escapeHtml(choice.id) + "\"><header><strong>" + escapeHtml(actor?.name || "Участник") + ": " + escapeHtml(choice.title || "Сработала Техника") + "</strong><span>Срок: " + escapeHtml(deadline(choice, scene)) + "</span></header>" + source + digestHtml + canonical + (details ? "<p><b>" + escapeHtml(details) + "</b></p>" : "") + "<p><b>Причина доступности:</b> " + escapeHtml(canRespond ? "решение принадлежит текущему участнику" : "ожидается решение владельца") + "</p><p><b>Стоимость:</b> " + escapeHtml(formatCosts(operationCosts(choice))) + "</p>" + wait + "<div data-lw-technique-preview-host></div></section>";
   }
 
   function dispatchOnce(key, action) {
@@ -385,6 +513,35 @@
     if (typeof submit !== "function") return false;
     const key = "choice:" + scene.version + ":" + choiceId + ":" + button.dataset.lwChoice;
     return dispatchOnce(key, () => submit(actorId, { kind: "choice", id: choiceId, choice: button.dataset.lwChoice }, "Решение Техники"));
+  }
+
+  function previewButton(button) {
+    const scene = currentScene(), actor = actorById(scene, button.dataset.lwActor), choice = scene?.lionwing?.choices?.find(item => item.id === button.dataset.lwChoiceId), option = button.dataset.lwChoice;
+    if (button.dataset.lwActionId && !choice) {
+      const stored = actionPreviews.get("action:" + button.dataset.lwActionId), action = stored?.action;
+      if (!scene || !action) return false;
+      const result = previewAction(scene, action), key = scene.version + ":" + action.id;
+      const host = button.closest("[data-lw-technique-action-card]")?.querySelector("[data-lw-technique-preview-host]");
+      if (result.ok) actionPreviews.set(key, result); else actionPreviews.delete(key);
+      if (host) host.innerHTML = previewHtml(action, result, key);
+      if (!result.ok) notify(result.errors.join(" "));
+      return result.ok;
+    }
+    if (!scene || !actor || !choice || !option || !choice.options?.includes(option)) return false;
+    const action = actionFromChoice(scene, choice, option, actor), result = previewAction(scene, action), key = scene.version + ":" + action.id;
+    const host = button.closest("[data-lw-technique-offer]")?.querySelector("[data-lw-technique-preview-host]");
+    if (result.ok) actionPreviews.set(key, result); else actionPreviews.delete(key);
+    if (host) host.innerHTML = previewHtml(action, result, key);
+    if (!result.ok) notify(result.errors.join(" "));
+    return result.ok;
+  }
+  function commitButton(button) {
+    const key = button.dataset.lwTechniqueCommit, result = actionPreviews.get(key), scene = currentScene();
+    if (!result || !scene) return false;
+    const committed = commitAction(scene, result);
+    if (committed?.ok !== false) { actionPreviews.delete(key); return true; }
+    notify((committed.errors || ["Действие Техники отклонено."]).join(" "));
+    return false;
   }
 
   function submitManual(button) {
@@ -416,6 +573,28 @@
 
   if (global.document?.addEventListener) {
     global.document.addEventListener("click", event => {
+      const commit = event.target.closest?.("[data-lw-technique-commit]");
+      if (commit) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        try { commitButton(commit); } catch (error) { notify(error.message || "Предпросмотр устарел."); }
+        return;
+      }
+      const cancel = event.target.closest?.("[data-lw-technique-cancel]");
+      if (cancel) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        cancelAction(cancel.dataset.lwTechniqueCancel);
+        cancel.closest("[data-lw-technique-preview-result]")?.replaceChildren();
+        return;
+      }
+      const action = event.target.closest?.("[data-lw-technique-action]");
+      if (action) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        try { previewButton(action); } catch (error) { notify(error.message || "Предпросмотр отклонён."); }
+        return;
+      }
       const manual = event.target.closest?.("[data-lw-technique-manual]");
       if (manual) {
         event.preventDefault();
@@ -445,6 +624,12 @@
     model: modelFor,
     render,
     pendingHtml,
+    adapterActions,
+    operationAction,
+    renderActionControl,
+    previewAction,
+    commitAction,
+    cancelAction,
     visibleChoices,
     actionStatuses,
     operationCosts,
