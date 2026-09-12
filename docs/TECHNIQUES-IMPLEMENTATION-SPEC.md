@@ -260,10 +260,10 @@
 
 #### 1. Встать снова (Get Back Up) `powerhouse.unbroken.1`
 
-- **Заявленный статус:** `manual` (ручная).
-- **Текущий адаптер:** нет записи в `RULES`.
+- **Заявленный статус:** `decision` (решение).
+- **Текущий адаптер:** `powerhouse.unbroken.1` · `knockout-choice` · {"kind":"knockout-choice","coverage":"partial","sourceLevelId":"powerhouse.unbroken.1","sourceDigest":"52ba0087d2a15fd28046b031145f0604f7ef83c4bbdfce709c77d39ea167bda1"}; Окно Сопротивления из Выведения из боя тратит 1 Влияние, действует раз за Главу и блокирует получение Влияния до конца Сцены; stale/replay/ownership проверяются перед расходом..
 - **Готовые foundations:** `resource-check`, `usage-limits`, `scene-lifecycle`, `choice-flow`, `duration-scheduler`.
-- **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `duel-flow`.
+- **Нужно добавить:** Сохранить существующий adapter и добавить недостающий контракт: `duel-flow`.
 
 #### 2. Яростное возрождение (Furious Revival) `powerhouse.unbroken.2`
 
@@ -274,10 +274,10 @@
 
 #### 3. Феникс (Phoenix) `powerhouse.unbroken.3`
 
-- **Заявленный статус:** `manual` (ручная).
-- **Текущий адаптер:** нет записи в `RULES`.
+- **Заявленный статус:** `decision` (решение).
+- **Текущий адаптер:** `powerhouse.unbroken.3` · `knockout-continuation` · {"kind":"knockout-continuation","coverage":"partial","sourceLevelId":"powerhouse.unbroken.3","sourceDigest":"599936806cba9c44b00cf5223615e5fcef9b76ddb60b32144e0d8f03952aee08"}; После подтверждённого Встать снова открывается одно продолжение, устанавливающее Раны в 1; digest, chapter/scene, ownership и stale/replay границы авторитетны, ручной skip остаётся доступен..
 - **Готовые foundations:** `resource-check`, `trigger-router`, `damage-pipeline`.
-- **Нужно добавить:** Зарегистрировать отдельный адаптер и закрыть зависимости: `duel-flow`.
+- **Нужно добавить:** Сохранить существующий adapter и добавить недостающий контракт: `duel-flow`.
 
 ### Хвастун (Braggart) `powerhouse.braggart`
 

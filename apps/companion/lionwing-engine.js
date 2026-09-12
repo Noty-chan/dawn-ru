@@ -267,6 +267,31 @@
     return { ...status, id, partIds: parts.map(item => item.id), record: copy(s.compounds?.[id] || null) };
   }
   const astate = a => {a.lionwing||={};for(const key of ["modifiers","history"])if(!Array.isArray(a.lionwing[key]))a.lionwing[key]=[];return a.lionwing;};
+  const UNBROKEN_SOURCE_DIGESTS = Object.freeze({
+    "powerhouse.unbroken.1": "52ba0087d2a15fd28046b031145f0604f7ef83c4bbdfce709c77d39ea167bda1",
+    "powerhouse.unbroken.3": "599936806cba9c44b00cf5223615e5fcef9b76ddb60b32144e0d8f03952aee08",
+  });
+  const unbrokenEnabled = (actor, level) => actor?.rulesEdition === "lionwing"
+    && Number((actor.knownTechniques ?? actor.techniques)?.["powerhouse.unbroken"] || 0) >= level
+    && actor.lionwing?.automation?.[`powerhouse.unbroken.${level}`] === true;
+  const unbrokenGetBackUpAvailable = (actor, sceneState) => unbrokenEnabled(actor, 1)
+    && Number(actor.influence || 0) >= 1
+    && Number(astate(actor).unbrokenGetBackUpChapter || 0) !== Number(sceneState.chapterSerial || 1)
+    && Number(astate(actor).unbrokenInfluenceLockSceneSerial || 0) !== Number(sceneState.sceneSerial || 1);
+  const unbrokenSnapshot = (actor, sceneState, track) => ({
+    sceneSerial: Number(sceneState.sceneSerial || 1),
+    chapterSerial: Number(sceneState.chapterSerial || 1),
+    influence: Number(actor.influence || 0),
+    track,
+    trackValue: Number(actor[track] || 0),
+    vulnerable: Boolean(astate(actor).vulnerable),
+  });
+  const sameUnbrokenSnapshot = (actor, sceneState, snapshot) => snapshot
+    && Number(snapshot.sceneSerial) === Number(sceneState.sceneSerial || 1)
+    && Number(snapshot.chapterSerial) === Number(sceneState.chapterSerial || 1)
+    && Number(snapshot.influence) === Number(actor.influence || 0)
+    && Number(snapshot.trackValue) === Number(actor[snapshot.track] || 0)
+    && Boolean(snapshot.vulnerable) === Boolean(astate(actor).vulnerable);
   function normalizeTurnCounters(a, scene = null) {
     if (!a || typeof a !== "object") return 0;
     a.lionwing ||= {};
@@ -1634,7 +1659,11 @@
       const knockoutSource=cause&&Object.hasOwn(cause,"sourceActorId")?cause.sourceActorId:a.id;
       emit("actor.knockout", knockoutSource, { targetId: a.id, cause: cause ? { kind: cause.kind || "rule", sourceActorId: cause.sourceActorId ?? null, eventId: cause.eventId || rootId } : null });
       if (isPlayer(a) && astate(a).vulnerable) {
-        for (const hero of scene.actors.filter(isPlayer)) hero.influence = Number(hero.influence || 0) + 3;
+        for (const hero of scene.actors.filter(isPlayer)) {
+          if (Number(astate(hero).unbrokenInfluenceLockSceneSerial || 0) === Number(s.sceneSerial || 1)) {
+            emit("resource.gain.prevented", hero.id, { requestedResource: "influence", amount: 3, reason: "Встать снова запрещает получать Влияние до конца Сцены", sourceActionId: "knockout" });
+          } else hero.influence = Number(hero.influence || 0) + 3;
+        }
         choice(a, "consequence", "Выберите длительное последствие по правилу Уязвимости", ["record"], {});
       }
     };
@@ -1642,12 +1671,26 @@
       if (!isPlayer(a)) { applyDamage({ targetId: a.id, amount: 10, irreducible: true, sourceActorId: sourceId }); return; }
       a[track] = Number(a[track] || 0) + 1;
       if (track === "wounds") a.hp = maxHealth(a);
-      if (sourceId !== a.id && !astate(a).vulnerable) a.influence = Number(a.influence || 0) + 1;
-      emit(track === "wounds" ? "actor.wound" : "actor.stress", sourceId, { targetId: a.id, delta: 1, total: a[track], hp: a.hp });
+      if (sourceId !== a.id && !astate(a).vulnerable) {
+        if (Number(astate(a).unbrokenInfluenceLockSceneSerial || 0) === Number(s.sceneSerial || 1)) {
+          emit("resource.gain.prevented", a.id, { requestedResource: "influence", amount: 1, reason: "Встать снова запрещает получать Влияние до конца Сцены", sourceActionId: sourceId || "wound" });
+        } else a.influence = Number(a.influence || 0) + 1;
+      }
+      emit(track === "wounds" ? "actor.wound" : "actor.stress", sourceId, { targetId: a.id, delta: 1, total: a[track] });
       if (a[track] >= 3) {
         a[track] = 2;
          if (astate(a).vulnerable) knockout(a, { kind: track, sourceActorId: sourceId });
-        else choice(a, "knockout", "Выведение из боя: Сопротивляться или принять?", ["resist", "accept"], { track, ...(actionPlanId ? { actionPlanId } : {}) });
+        else {
+          const options = ["resist", "accept"], context = { track, ...(actionPlanId ? { actionPlanId } : {}) };
+          if (unbrokenGetBackUpAvailable(a, s)) {
+            options.unshift("get-back-up");
+            context.getBackUp = {
+              sourceDigest: UNBROKEN_SOURCE_DIGESTS["powerhouse.unbroken.1"],
+              snapshot: unbrokenSnapshot(a, s, track),
+            };
+          }
+          choice(a, "knockout", "Выведение из боя: Сопротивляться или принять?", options, context);
+        }
       }
     };
     const applyEffect = (a, p, sourceId) => {
@@ -3131,7 +3174,31 @@
               else emit("geometry.route.stop", sourceId, { targetId: target.id, routeId: context.routeId || null, segmentIndex: context.segmentIndex, reason: "decision", terminal: true, stoppedAt: { space: target.space, x: Number(target.x), y: Number(target.y) } });
             }
           }
-          else if (pending.kind === "knockout") { if (p.choice === "resist") { a[pending.context.track] = 1; a.hp = maxHealth(a); astate(a).vulnerable = true; } else knockout(a); }
+          else if (pending.kind === "knockout") {
+            const getBackUp = pending.context?.getBackUp, snapshot = getBackUp?.snapshot;
+            if (p.choice === "get-back-up") {
+              if (!getBackUp || getBackUp.sourceDigest !== UNBROKEN_SOURCE_DIGESTS["powerhouse.unbroken.1"] || !["wounds", "stress"].includes(snapshot?.track) || !sameUnbrokenSnapshot(a, s, snapshot) || !unbrokenGetBackUpAvailable(a, s)) fail("Встать снова больше недоступно: окно устарело или лимит исчерпан");
+              const track = snapshot.track;
+              spend(a, "influence", 1, { sourceActionId: "powerhouse.unbroken.1", ruleId: "powerhouse.unbroken.1", sourceDigest: getBackUp.sourceDigest, causeEventId: pending.id });
+              a[track] = 1; a.hp = maxHealth(a); astate(a).vulnerable = false;
+              astate(a).unbrokenGetBackUpChapter = Number(s.chapterSerial || 1);
+              astate(a).unbrokenInfluenceLockSceneSerial = Number(s.sceneSerial || 1);
+              astate(a).history.push({ ruleId: "powerhouse.unbroken.1", sourceDigest: getBackUp.sourceDigest, targetIds: [a.id], chapterSerial: s.chapterSerial, sceneSerial: s.sceneSerial, actionInstanceId: provenance?.actionInstanceId || rootId });
+              emit("technique.resolve", a.id, { ruleId: "powerhouse.unbroken.1", sourceDigest: getBackUp.sourceDigest, name: "Get Back Up", resisted: true, participantIds: [a.id] });
+              if (unbrokenEnabled(a, 3)) {
+                choice(a, "unbroken-phoenix", "Phoenix: установить Раны в 1?", ["phoenix", "skip"], {
+                  ruleId: "powerhouse.unbroken.3", sourceDigest: UNBROKEN_SOURCE_DIGESTS["powerhouse.unbroken.3"],
+                  getBackUpChapter: Number(s.chapterSerial || 1), getBackUpScene: Number(s.sceneSerial || 1),
+                  woundsAtOffer: Number(a.wounds || 0), getBackUpEventId: rootId,
+                });
+              }
+            } else if (p.choice === "resist") { a[pending.context.track] = 1; a.hp = maxHealth(a); astate(a).vulnerable = true; }
+            else knockout(a);
+          }
+          else if (pending.kind === "unbroken-phoenix") {
+            if (!pending.context || pending.context.ruleId !== "powerhouse.unbroken.3" || pending.context.sourceDigest !== UNBROKEN_SOURCE_DIGESTS["powerhouse.unbroken.3"] || !unbrokenEnabled(a, 3) || Number(astate(a).unbrokenGetBackUpChapter || 0) !== Number(s.chapterSerial || 1) || Number(astate(a).unbrokenInfluenceLockSceneSerial || 0) !== Number(s.sceneSerial || 1) || Number(a.wounds || 0) !== Number(pending.context.woundsAtOffer || 0)) fail("Phoenix больше недоступен: продолжение устарело");
+            if (p.choice === "phoenix") { a.wounds = 1; emit("technique.resolve", a.id, { ruleId: "powerhouse.unbroken.3", sourceDigest: UNBROKEN_SOURCE_DIGESTS["powerhouse.unbroken.3"], name: "Phoenix", participantIds: [a.id] }); }
+          }
           else if(pending.kind==="clash-loss"||pending.kind==="clash-tie"){
             if(!scene.pendingAction||scene.pendingAction.id!==pending.context.attackId)fail("Атака больше не ожидает Столкновения");
             if(p.choice==="reroll")queue.unshift({p:{kind:"damage",targetId:a.id,amount:5,sourceActorId:a.id},sourceId:a.id},{p:{kind:"clash-roll",roll:p.roll,opponentRoll:p.opponentRoll},sourceId:a.id});

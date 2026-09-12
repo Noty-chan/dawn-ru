@@ -2799,9 +2799,24 @@
       },
       "level": 1,
       "implementation": {
-        "automation": "manual",
-        "ruleIds": [],
-        "rules": [],
+        "automation": "decision",
+        "ruleIds": [
+          "powerhouse.unbroken.1"
+        ],
+        "rules": [
+          {
+            "id": "powerhouse.unbroken.1",
+            "techniqueId": "powerhouse.unbroken",
+            "level": 1,
+            "name": "Встать снова",
+            "kind": "knockout-choice",
+            "automation": "decision",
+            "coverage": "partial",
+            "sourceLevelId": "powerhouse.unbroken.1",
+            "sourceDigest": "52ba0087d2a15fd28046b031145f0604f7ef83c4bbdfce709c77d39ea167bda1",
+            "note": "Окно Сопротивления из Выведения из боя тратит 1 Влияние, действует раз за Главу и блокирует получение Влияния до конца Сцены; stale/replay/ownership проверяются перед расходом."
+          }
+        ],
         "foundationPlan": {
           "version": 11,
           "status": "reviewed",
@@ -2868,7 +2883,9 @@
           "text": "Once per Chapter, you may spend an Influence to Resist a Knock Out without becoming Vulnerable. Doing this makes you lose the ability to gain Influence for the remainder of the Scene."
         },
         "canonicalDigest": "52ba0087d2a15fd28046b031145f0604f7ef83c4bbdfce709c77d39ea167bda1",
-        "engineRuleDigests": []
+        "engineRuleDigests": [
+          "52ba0087d2a15fd28046b031145f0604f7ef83c4bbdfce709c77d39ea167bda1"
+        ]
       },
       "review": {
         "status": "unreviewed",
@@ -2981,9 +2998,24 @@
       },
       "level": 3,
       "implementation": {
-        "automation": "manual",
-        "ruleIds": [],
-        "rules": [],
+        "automation": "decision",
+        "ruleIds": [
+          "powerhouse.unbroken.3"
+        ],
+        "rules": [
+          {
+            "id": "powerhouse.unbroken.3",
+            "techniqueId": "powerhouse.unbroken",
+            "level": 3,
+            "name": "Феникс",
+            "kind": "knockout-continuation",
+            "automation": "decision",
+            "coverage": "partial",
+            "sourceLevelId": "powerhouse.unbroken.3",
+            "sourceDigest": "599936806cba9c44b00cf5223615e5fcef9b76ddb60b32144e0d8f03952aee08",
+            "note": "После подтверждённого Встать снова открывается одно продолжение, устанавливающее Раны в 1; digest, chapter/scene, ownership и stale/replay границы авторитетны, ручной skip остаётся доступен."
+          }
+        ],
         "foundationPlan": {
           "version": 11,
           "status": "reviewed",
@@ -3034,7 +3066,9 @@
           "text": "After you Resist using \"Get Back Up\" you may set your Wounds to 1."
         },
         "canonicalDigest": "599936806cba9c44b00cf5223615e5fcef9b76ddb60b32144e0d8f03952aee08",
-        "engineRuleDigests": []
+        "engineRuleDigests": [
+          "599936806cba9c44b00cf5223615e5fcef9b76ddb60b32144e0d8f03952aee08"
+        ]
       },
       "review": {
         "status": "unreviewed",

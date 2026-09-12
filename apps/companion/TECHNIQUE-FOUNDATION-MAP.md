@@ -136,9 +136,9 @@ SHA-256 проверенных файлов: `ac147280aeb307b429846c56c1f597ee9a
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Get Back Up | проверено | ручная | `resource-check`, `usage-limits`, `scene-lifecycle`, `choice-flow`, `duration-scheduler`, `duel-flow` |
+| 1 | Get Back Up | проверено | с выбором | `resource-check`, `usage-limits`, `scene-lifecycle`, `choice-flow`, `duration-scheduler`, `duel-flow` |
 | 2 | Furious Revival | проверено | ручная | `resource-check`, `trigger-router`, `action-modifier` |
-| 3 | Phoenix | проверено | ручная | `resource-check`, `trigger-router`, `damage-pipeline`, `duel-flow` |
+| 3 | Phoenix | проверено | с выбором | `resource-check`, `trigger-router`, `damage-pipeline`, `duel-flow` |
 
 ### Braggart (`powerhouse.braggart`)
 
