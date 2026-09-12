@@ -518,3 +518,64 @@ function terrainComponentStatus(scene, request = {}) {
   const objects = candidates.filter(object => selected.has(object.id));
   return { available: true, reason: "", objects: clone(objects), objectIds: objects.map(object => object.id), cells: [...new Set(objects.flatMap(object => object.cells || []))] };
 }
+
+// Generic, read-only boundary bridge used by the LionWing writer.  Adapters
+// may describe an operation, but they do not get to smuggle actor snapshots,
+// client flags, or ownership changes into the authoritative reducer.
+(function installLionwingFoundationBridge(root) {
+  const boundaries = new Set(["sceneStart", "sceneEnd", "roundStart", "roundEnd", "ownTurnStart", "ownTurnEnd", "anyTurnStart", "anyTurnEnd"]);
+  const forbiddenKeys = new Set(["actor", "actorState", "actorSnapshot", "copiedActor", "client", "clientState", "clientFlags", "flags", "confirmed"]);
+  const aliases = { turnStart: "ownTurnStart", turnEnd: "ownTurnEnd", scene: "sceneStart", round: "roundStart", turn: "ownTurnStart" };
+  const isPlain = value => value && typeof value === "object" && !Array.isArray(value);
+  const hasForbidden = value => {
+    if (!isPlain(value) && !Array.isArray(value)) return false;
+    if (Array.isArray(value)) return value.some(hasForbidden);
+    return Object.entries(value).some(([key, child]) => forbiddenKeys.has(key) || hasForbidden(child));
+  };
+  const text = (value, max = 180) => typeof value === "string" && value.trim().length > 0 && value.length <= max;
+  const id = value => text(value, 180) && /^[a-z0-9][a-z0-9._:-]*$/i.test(value);
+  const operationSafe = operation => isPlain(operation) && text(operation.kind, 80) && !hasForbidden(operation);
+  const normalizeBoundary = value => {
+    const canonical = aliases[String(value || "")] || String(value || "");
+    return boundaries.has(canonical) ? canonical : null;
+  };
+  const boundaryDescriptor = (context = {}) => {
+    const boundary = normalizeBoundary(context.canonicalBoundary || context.boundary);
+    if (!boundary) return { available: false, reason: "Неизвестная граница жизненного цикла.", boundary: null, periodKey: null };
+    const sceneSerial = Number(context.sceneSerial ?? context.scene?.lionwing?.sceneSerial ?? context.scene?.sceneSerial ?? 0);
+    const round = Number(context.round ?? context.scene?.round ?? 0);
+    const ownerActorId = context.ownerActorId || context.actor?.id || null;
+    const ownerTurnSerial = Number(context.ownerTurnSerial ?? context.actor?.lionwing?.ownTurnSerial ?? 0);
+    const ownerTurnInstanceId = context.ownerTurnInstanceId || null;
+    let periodKey = `${sceneSerial}:${boundary}`;
+    if (boundary === "roundStart" || boundary === "roundEnd") periodKey = `${sceneSerial}:${round}:${boundary}`;
+    if (boundary === "ownTurnStart" || boundary === "ownTurnEnd") periodKey = `${sceneSerial}:${ownerActorId || "unknown"}:${ownerTurnSerial}:${boundary}`;
+    if (boundary === "anyTurnStart" || boundary === "anyTurnEnd") periodKey = `${sceneSerial}:${ownerTurnInstanceId || context.activeTurnInstanceId || "unknown"}:${boundary}`;
+    return { available: true, reason: "", boundary, sceneSerial, round, ownerActorId, ownerTurnSerial, ownerTurnInstanceId, periodKey };
+  };
+  const validateBoundaryDeclaration = (rule, owner, context = {}) => {
+    const descriptor = boundaryDescriptor(context);
+    if (!descriptor.available) return { ok: false, reason: descriptor.reason, manual: true };
+    if (!isPlain(rule) || !id(rule.id)) return { ok: false, reason: "Автоматизация требует корректный ID правила.", manual: true };
+    if (!owner || !text(owner.id, 180)) return { ok: false, reason: "Автоматизация требует подтверждённого владельца.", manual: true };
+    if (rule.ownerActorId != null && rule.ownerActorId !== owner.id) return { ok: false, reason: "Автоматизация принадлежит другому участнику.", manual: true };
+    if (!text(rule.sourceDigest, 240)) return { ok: false, reason: "Автоматизация без подтверждённого источника передана Нарратору.", manual: true };
+    const operations = Array.isArray(rule.operations) ? rule.operations : [];
+    const choices = Array.isArray(rule.choices) ? rule.choices : [];
+    if (hasForbidden(rule) || operations.some(operation => !operationSafe(operation))) return { ok: false, reason: "Автоматизация содержит неподтверждённое состояние клиента.", manual: true };
+    for (const choice of choices) {
+      if (!isPlain(choice) || !id(choice.id) || !Array.isArray(choice.operations) || choice.operations.some(operation => !operationSafe(operation))) return { ok: false, reason: "Вариант автоматизации содержит неподтверждённую операцию.", manual: true };
+    }
+    return { ok: true, manual: false, rule: { ...rule, ownerActorId: owner.id, operations: operations.map(operation => ({ ...operation })), choices: choices.map(choice => ({ ...choice, operations: choice.operations.map(operation => ({ ...operation })) })) }, descriptor };
+  };
+  const validateTriggerDeclaration = (rule, owner) => {
+    if (!isPlain(rule) || !id(rule.id)) return { ok: false, reason: "Триггер требует корректный ID правила.", manual: true };
+    if (!owner || !text(owner.id, 180) || rule.ownerActorId != null && rule.ownerActorId !== owner.id) return { ok: false, reason: "Триггер принадлежит неподтверждённому владельцу.", manual: true };
+    if (!text(rule.sourceDigest, 240) || !text(rule.triggerKey, 240)) return { ok: false, reason: "Триггер без подтверждённого источника или ключа передан Нарратору.", manual: true };
+    const operations = Array.isArray(rule.operations) ? rule.operations : [], choices = Array.isArray(rule.choices) ? rule.choices : [];
+    if (hasForbidden(rule) || operations.some(operation => !operationSafe(operation))) return { ok: false, reason: "Триггер содержит неподтверждённое состояние клиента.", manual: true };
+    for (const choice of choices) if (!isPlain(choice) || !id(choice.id) || !Array.isArray(choice.operations) || choice.operations.some(operation => !operationSafe(operation))) return { ok: false, reason: "Вариант триггера содержит неподтверждённую операцию.", manual: true };
+    return { ok: true, manual: false, rule: { ...rule, ownerActorId: owner.id, operations: operations.map(operation => ({ ...operation })), choices: choices.map(choice => ({ ...choice, operations: choice.operations.map(operation => ({ ...operation })) })) } };
+  };
+  root.DAWN_LIONWING_FOUNDATION = Object.freeze({ normalizeBoundary, boundaryDescriptor, validateBoundaryDeclaration, validateTriggerDeclaration });
+})(typeof window === "object" ? window : globalThis);
