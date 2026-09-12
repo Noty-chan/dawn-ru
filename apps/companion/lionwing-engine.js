@@ -2469,7 +2469,7 @@
       if(def.id===ids.improvise&&p.removeObstacleId){const index=scene.objects.findIndex(o=>o.id===p.removeObstacleId&&o.type==="terrain"&&o.space===a.space&&(o.cells||[]).some(cell=>{const[x,y]=cell.split(',').map(Number);return distance(a,{x,y,space:a.space})===1;}));if(index<0)fail("Соседнее препятствие не найдено");scene.objects.splice(index,1);}
       if (!status.continuation && !status.swift) { a.usedActions = [...new Set([...(a.usedActions || []), def.id])]; astate(a).turnActions = [...new Set([...(astate(a).turnActions || []), def.id])]; }
       const activeTurnOwner = scene.activeActorId ? actor(scene, scene.activeActorId) : null, activeOwnerSerial = activeTurnOwner ? ownTurnSerial(activeTurnOwner) : null;
-      astate(a).history = [...(astate(a).history || []), { actionId: def.id, actionDefinitionId: def.id, actionInstanceId: provenance?.actionInstanceId || null, targetIds: targets.map(t => t.id), round: scene.round, turnSerial: scene.turnSerial, ownerTurnActorId: activeTurnOwner?.id || null, ownerTurnSerial: activeOwnerSerial, ownerTurnInstanceId: s.activeTurnInstanceId || null, ownerTurnKey: activeTurnOwner ? ownerTurnKey(s.sceneSerial, activeTurnOwner, activeOwnerSerial) : null, swift: Boolean(status.swift), ...(derived ? { derived: true, derivedActionId: derived.id, sourceDigest: derived.sourceDigest, lineage: copy(p.lineage || []) } : {}), ...(p.techniqueRuleId ? { techniqueRuleId: p.techniqueRuleId } : {}), ...(p.studentPowerUnleashed ? { studentPowerUnleashed: true, studentFocusCap: focusCap } : {}), ...(assassinStride ? { ruleId: "vagabond.assassin.3" } : {}) }].filter((item,index,list)=>item.ruleId||item.techniqueRuleId||item.derivedActionId||index>=list.length-200);
+      astate(a).history = [...(astate(a).history || []), { actionId: def.id, actionDefinitionId: def.id, actionInstanceId: provenance?.actionInstanceId || null, ...(derived ? { causeEventId: provenance?.causeEventId || null } : {}), targetIds: targets.map(t => t.id), round: scene.round, turnSerial: scene.turnSerial, ownerTurnActorId: activeTurnOwner?.id || null, ownerTurnSerial: activeOwnerSerial, ownerTurnInstanceId: s.activeTurnInstanceId || null, ownerTurnKey: activeTurnOwner ? ownerTurnKey(s.sceneSerial, activeTurnOwner, activeOwnerSerial) : null, swift: Boolean(status.swift), ...(derived ? { derived: true, derivedActionId: derived.id, sourceDigest: derived.sourceDigest, lineage: copy(p.lineage || []) } : {}), ...(p.techniqueRuleId ? { techniqueRuleId: p.techniqueRuleId } : {}), ...(p.studentPowerUnleashed ? { studentPowerUnleashed: true, studentFocusCap: focusCap } : {}), ...(assassinStride ? { ruleId: "vagabond.assassin.3" } : {}) }].filter((item,index,list)=>item.ruleId||item.techniqueRuleId||item.derivedActionId||index>=list.length-200);
       p.actionInstanceId ||= provenance?.actionInstanceId || rootId;
       p.ownerTurnInstanceId ||= s.activeTurnInstanceId || null;
       const actionResolve = emit("action.resolve", a.id, { actionId: def.id, name: def.name, targetIds: targets.map(t => t.id), actionInstanceId: p.actionInstanceId, ownerTurnInstanceId: p.ownerTurnInstanceId, attribute: finishContext.attribute, techniqueRuleId: p.techniqueRuleId || null, techniqueSourceDigest: p.techniqueSourceDigest || null, techniqueId: p.techniqueId || null, techniqueIds: Array.isArray(p.techniqueIds) ? p.techniqueIds : null, ...(derived ? { derived: true, derivedActionId: derived.id, sourceDigest: derived.sourceDigest, lineage: copy(p.lineage || []), swift: true, free: true, fixedTargetId: p.fixedTargetId || null } : {}), studentPowerRuleId: p.studentPowerUnleashed ? "ruiner.student-of-stars.1" : null, studentFocusCap: p.studentPowerUnleashed ? focusCap : null, finisherMode: p.finisherMode || null });
@@ -2571,6 +2571,33 @@
       }
       return { ruleId, sourceDigest, source, cause };
     };
+    // The adapter may describe a continuation, but only the reducer can
+    // prove that it continues the saved event and its participants.
+    const validateDerivedCause = (contract, source, payload) => {
+      const requirements = {
+        "vagabond.opportunist.1": { type: "attack.clear", label: "Оппортунист I" },
+        "bulwark.runic-retribution.1": { type: "damage.apply", label: "Ласка" },
+      }[contract.id];
+      if (!requirements) return null;
+      const causeId = provenance?.causeEventId;
+      if (typeof causeId !== "string" || !causeId) fail(`${requirements.label} требует сохранённое событие причины`);
+      const cause = (scene.log || []).find(row => row.id === causeId);
+      if (!cause || cause.type !== requirements.type) fail(`${requirements.label} ссылается на недействительное событие причины`);
+      const causePayload = cause.payload || {};
+      if (!cause.execution?.rootActionId || !cause.execution?.actionInstanceId || typeof (causePayload.actionId || causePayload.sourceActionId) !== "string") fail(`${requirements.label} требует завершённую авторитетную Атаку`);
+      if (contract.id === "vagabond.opportunist.1") {
+        const attacker = actor(scene, cause.actorId), targetId = causePayload.targetIds?.[0];
+        if (!attacker || attacker.id === source.id || attacker.team !== source.team || !Array.isArray(causePayload.targetIds) || causePayload.targetIds.length !== 1 || targetId !== payload.targetIds?.[0]) fail("Оппортунист I может продолжать только Атаку союзника по этой цели");
+        const target = requiredActor(scene, targetId, false);
+        if (target.id === source.id || target.team === source.team || target.knockedOut || target.space !== source.space) fail("Оппортунист I требует живую вражескую цель в пространстве владельца");
+        return { cause, attacker, target };
+      }
+      const attacker = actor(scene, cause.actorId), ally = actor(scene, causePayload.targetId);
+      if (!attacker || attacker.id === source.id || attacker.team === source.team || !ally || ally.id === source.id || ally.team !== source.team || causePayload.attack !== true || causePayload.hit === false || payload.targetIds?.[0] !== attacker.id) fail("Ласка должна продолжать попадание по союзнику и целиться в атакующего");
+      const spent = (scene.log || []).some(row => row.type === "resource.spend" && row.actorId === source.id && row.payload?.ruleId === contract.id && (row.payload?.resource === "focus" || row.payload?.requestedResource === "focus") && row.payload?.amount === 1 && row.payload?.causeEventId === causeId);
+      if (!spent) fail("Ласка требует подтверждённый расход 1 Фокуса из этого события причины");
+      return { cause, attacker, ally };
+    };
     const performDerivedAction = (payload, sourceId) => {
       if (!derivedActions) fail("Контракты производных действий LionWing недоступны");
       const contract = derivedActions.validate(payload), source = requiredActor(scene, sourceId, false);
@@ -2578,11 +2605,13 @@
       if (payload.sourceActorId !== source.id || payload.sourceDigest !== contract.sourceDigest) fail("Производное действие принадлежит другому источнику");
       const techniqueId = contract.id.replace(/\.\d+$/, ""), level = Number((source.knownTechniques ?? source.techniques)?.[techniqueId] || 0), requiredLevel = Number(contract.id.match(/\.(\d+)$/)?.[1] || 0);
       if (level < requiredLevel || source.lionwing?.automation?.[contract.id] !== true) fail("Производное действие недоступно этой Технике");
+      validateDerivedCause(contract, source, payload);
       const target = requiredActor(scene, payload.targetIds[0], false);
       if (target.team === source.team || target.id === source.id || target.space !== source.space) fail("Производное действие требует вражескую цель в текущем пространстве");
       if (contract.targetMode === "adjacent-single" && distance(source, target) !== 1) fail("Фиксированное производное действие требует смежную цель");
       if (contract.targetMode === "same-single" && contract.mode === "fixed" && distance(source, target) !== 1 && !contract.ignoreRange) fail("Производное Skirmish требует смежную цель");
       const identity = derivedActions.identity(contract, payload, provenance), actionInstanceId = identity.actionInstanceId;
+      if ((astate(source).history || []).some(row => row.derivedActionId === contract.id && (row.causeEventId === provenance?.causeEventId || row.actionInstanceId === actionInstanceId))) fail("Производное действие уже выполнено для этого события причины");
       if (contract.mode === "roll") {
         const base = actionDef(contract.actionId), rollValue = payload.roll || roll(diceCount(scene, source, base, payload), executionOptions.random, { ...provenance, rollId: `${rootId}:derived:${contract.id}:roll`, kind: "check", actionId: contract.actionId, actionDefinitionId: contract.actionId, actionInstanceId, ownerActorId: source.id });
         performAction(source, { ...payload, roll: rollValue, kind: "action", actionId: contract.actionId, techniqueRuleId: contract.id, sourceDigest: contract.sourceDigest, actionInstanceId, ownerTurnInstanceId: s.activeTurnInstanceId || null, derivedAction: true, derivedActionId: contract.id, lineage: identity.lineage, __derivedContract: contract, fixedTargetId: target.id });
@@ -2592,7 +2621,7 @@
       if (!attribute || !attributes.has(attribute)) fail("Производное действие требует допустимый Атрибут урона");
       const amount = Math.ceil(Number(source.attrs?.[attribute] || 0) / 2);
       emit("action.resolve", source.id, { actionId: contract.actionId, name: payload.name || "Производная атака", targetIds: [target.id], actionInstanceId, ownerTurnInstanceId: s.activeTurnInstanceId || null, attribute, techniqueRuleId: contract.id, derived: true, derivedActionId: contract.id, sourceDigest: contract.sourceDigest, lineage: identity.lineage, swift: true, free: true, fixedTargetId: target.id, fixedDamage: true });
-      astate(source).history.push({ actionId: contract.actionId, actionDefinitionId: contract.actionId, actionInstanceId, targetIds: [target.id], round: scene.round, turnSerial: scene.turnSerial, ownerTurnActorId: source.id, ownerTurnSerial: ownTurnSerial(source), ownerTurnInstanceId: s.activeTurnInstanceId || null, ownerTurnKey: ownerTurnKey(s.sceneSerial, source, ownTurnSerial(source)), swift: true, free: true, derived: true, derivedActionId: contract.id, sourceDigest: contract.sourceDigest, lineage: identity.lineage, ruleId: contract.id });
+      astate(source).history.push({ actionId: contract.actionId, actionDefinitionId: contract.actionId, actionInstanceId, causeEventId: provenance?.causeEventId || null, targetIds: [target.id], round: scene.round, turnSerial: scene.turnSerial, ownerTurnActorId: source.id, ownerTurnSerial: ownTurnSerial(source), ownerTurnInstanceId: s.activeTurnInstanceId || null, ownerTurnKey: ownerTurnKey(s.sceneSerial, source, ownTurnSerial(source)), swift: true, free: true, derived: true, derivedActionId: contract.id, sourceDigest: contract.sourceDigest, lineage: identity.lineage, ruleId: contract.id });
       // Fixed Jabs are already a deterministic consequence in the canonical
       // text. They still emit the same identity/damage/clear lifecycle so
       // after-event consumers can observe them, but have no ordinary reaction
