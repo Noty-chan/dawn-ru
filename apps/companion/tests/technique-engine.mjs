@@ -50,6 +50,8 @@ assert.ok(coverage.every(entry => ["full", "partial", "decision", "manual"].incl
 assert.ok(coverage.filter(entry => !entry.rules.length).every(entry => entry.automation === "manual"), "canonical text and foundation-map annotations alone never claim partial automation");
 for (const [id, automation] of [
   ["altruist.surgeon.1", "partial"],
+  ["powerhouse.braggart.2", "partial"],
+  ["powerhouse.flagellant.3", "partial"],
   ["altruist.alchemist.1", "decision"],
   ["altruist.chronomancer.2", "decision"],
   ["altruist.will-o-wisp.1", "decision"],
@@ -83,7 +85,7 @@ for (const [id, automation] of [
 ]) {
   assert.equal(coverage.find(entry => entry.id === id)?.automation, automation, `${id} remains honestly downgraded until its missing canonical branch is implemented and evidenced`);
 }
-assert.equal(coverage.filter(entry => entry.automation !== "manual").length, 140, "only levels with a registered runtime rule may claim any automation");
+assert.equal(coverage.filter(entry => entry.automation !== "manual").length, 141, "only levels with a registered runtime rule may claim any automation");
 for (const [id, digest] of [
   ["powerhouse.unbroken.1", "52ba0087d2a15fd28046b031145f0604f7ef83c4bbdfce709c77d39ea167bda1"],
   ["powerhouse.unbroken.3", "599936806cba9c44b00cf5223615e5fcef9b76ddb60b32144e0d8f03952aee08"],
@@ -99,6 +101,14 @@ for (const [id, digest, automation] of [
 ]) {
   const entry = coverage.find(item => item.id === id);
   assert.equal(entry?.automation, automation, `${id} has the expected honest automation status`);
+  assert.equal(entry?.rules?.[0]?.sourceDigest, digest, `${id} runtime rule is digest-bound`);
+}
+for (const [id, digest] of [
+  ["powerhouse.braggart.2", "886d7077c31b4749f8cbb789b513d61ba11e78c401e49cfafd0028bd973385c4"],
+  ["powerhouse.flagellant.3", "e309e93313cdb717c1e9a2696608090f693f9b05714076a8c7043befced940c2"],
+]) {
+  const entry = coverage.find(item => item.id === id);
+  assert.equal(entry?.automation, "partial", `${id} keeps partial coverage for its numeric clause`);
   assert.equal(entry?.rules?.[0]?.sourceDigest, digest, `${id} runtime rule is digest-bound`);
 }
 for (const [id, digest] of [

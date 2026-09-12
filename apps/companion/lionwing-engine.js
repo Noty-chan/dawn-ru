@@ -1844,7 +1844,7 @@
         amount = Math.max(0, amount - integer(p.reduction || 0, "снижение урона"));
       }
       if (attack && !p.finalDamage && source && p.fixedDamage !== true) {
-        const damageQuote = global.DAWN_LIONWING_ADAPTERS?.damageQuote?.(source, { scene, kind: "attack", actionId: p.sourceActionId || null, techniqueRuleId: p.techniqueRuleId || null, targetId: a.id, targetIds: [a.id], baseValue: amount, fixedDamage: p.fixedDamage === true, jab: p.jab === true, hammersFollowUpTriggered: p.hammersFollowUpTriggered === true, followUpAttribute: p.followUpAttribute || null, tier: Number(source.tier || 1), roundUp: true });
+        const damageQuote = global.DAWN_LIONWING_ADAPTERS?.damageQuote?.(source, { scene, kind: "attack", actionId: p.sourceActionId || null, actionInstanceId: p.actionInstanceId || null, sourceActionId: p.sourceActionId || null, techniqueRuleId: p.techniqueRuleId || null, targetId: a.id, targetIds: [a.id], baseValue: amount, fixedDamage: p.fixedDamage === true, jab: p.jab === true, hammersFollowUpTriggered: p.hammersFollowUpTriggered === true, followUpAttribute: p.followUpAttribute || null, tier: Number(source.tier || 1), roundUp: true });
         if (damageQuote?.ok === false) fail(damageQuote.reason || "Числовые модификаторы урона конфликтуют");
         if (damageQuote?.ok && Number.isFinite(Number(damageQuote.value))) amount = Math.max(0, Number(damageQuote.value));
       }

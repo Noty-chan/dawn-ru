@@ -98,7 +98,7 @@ SHA-256 проверенных файлов: `ac147280aeb307b429846c56c1f597ee9a
 | ---: | --- | --- | --- | --- |
 | 1 | Thrill | проверено | ручная | `effect-state`, `effect-lifecycle`, `trigger-router`, `choice-flow` |
 | 2 | Wild Rush | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle`, `effect-state`, `effect-lifecycle`, `usage-limits`, `trigger-router`, `turn-lifecycle`, `action-modifier`, `dice-hooks` |
-| 3 | Bled Dry | проверено | ручная | `effect-state`, `effect-lifecycle`, `trigger-router`, `damage-pipeline` |
+| 3 | Bled Dry | проверено | частичная | `effect-state`, `effect-lifecycle`, `trigger-router`, `damage-pipeline` |
 
 ### Gunslinger (`powerhouse.gunslinger`)
 
@@ -145,7 +145,7 @@ SHA-256 проверенных файлов: `ac147280aeb307b429846c56c1f597ee9a
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
 | 1 | Hubris | проверено | частичная | `rule-clock`, `trigger-router`, `reaction-window`, `scene-lifecycle`, `duration-scheduler`, `action-modifier`, `action-history`, `dice-hooks` |
-| 2 | Prove Yourself | проверено | с выбором | `rule-clock`, `usage-limits`, `trigger-router`, `choice-flow`, `dice-hooks` |
+| 2 | Prove Yourself | проверено | частичная | `rule-clock`, `usage-limits`, `trigger-router`, `choice-flow`, `dice-hooks` |
 | 3 | A Worthy Opponent | проверено | с выбором | `rule-clock`, `trigger-router`, `damage-pipeline` |
 
 ### Breacher (`powerhouse.breacher`)

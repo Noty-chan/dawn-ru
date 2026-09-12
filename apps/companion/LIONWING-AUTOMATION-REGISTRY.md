@@ -19,7 +19,7 @@ Canonical уровней: **333** · Явно исправленных review: *
 | `powerhouse.duelist.3` | Duelist | 3 | `manual` | `unreviewed` | — | `uncertified` |
 | `powerhouse.flagellant.1` | Flagellant | 1 | `manual` | `unreviewed` | — | `uncertified` |
 | `powerhouse.flagellant.2` | Flagellant | 2 | `manual` | `unreviewed` | — | `uncertified` |
-| `powerhouse.flagellant.3` | Flagellant | 3 | `manual` | `unreviewed` | — | `uncertified` |
+| `powerhouse.flagellant.3` | Flagellant | 3 | `partial` | `unreviewed` | — | `uncertified` |
 | `powerhouse.gunslinger.1` | Gunslinger | 1 | `partial` | `unreviewed` | — | `uncertified` |
 | `powerhouse.gunslinger.2` | Gunslinger | 2 | `decision` | `unreviewed` | — | `uncertified` |
 | `powerhouse.gunslinger.3` | Gunslinger | 3 | `full` | `unreviewed` | — | `uncertified` |
@@ -36,7 +36,7 @@ Canonical уровней: **333** · Явно исправленных review: *
 | `powerhouse.unbroken.2` | Unbroken | 2 | `manual` | `unreviewed` | — | `uncertified` |
 | `powerhouse.unbroken.3` | Unbroken | 3 | `decision` | `unreviewed` | — | `uncertified` |
 | `powerhouse.braggart.1` | Braggart | 1 | `partial` | `unreviewed` | — | `uncertified` |
-| `powerhouse.braggart.2` | Braggart | 2 | `decision` | `unreviewed` | — | `uncertified` |
+| `powerhouse.braggart.2` | Braggart | 2 | `partial` | `unreviewed` | — | `uncertified` |
 | `powerhouse.braggart.3` | Braggart | 3 | `decision` | `unreviewed` | — | `uncertified` |
 | `powerhouse.breacher.1` | Breacher | 1 | `full` | `unreviewed` | — | `uncertified` |
 | `powerhouse.breacher.2` | Breacher | 2 | `full` | `unreviewed` | — | `uncertified` |

@@ -59,6 +59,25 @@
     "disruptor.siren.3": "231b63c69615f78497650a97d3a5225a98f298a882d4adb2eedaebdff16c5b7e",
   });
   const eventHistory = (actor, scene) => Array.isArray(actor?.lionwing?.history) ? actor.lionwing.history : [];
+  const currentTurnActionRows = (actor, scene) => {
+    const turnInstanceId = scene?.lionwing?.activeTurnInstanceId || null;
+    const turnSerial = Number(scene?.turnSerial ?? 0);
+    return (scene?.log || []).filter(row => row?.type === "action.resolve" && row.actorId === actor?.id && (
+      turnInstanceId
+        ? row.payload?.ownerTurnInstanceId === turnInstanceId || row.execution?.ownerTurnInstanceId === turnInstanceId
+        : Number(row.payload?.turnSerial ?? row.execution?.turnSerial ?? 0) === turnSerial
+    ));
+  };
+  const firstAttackThisTurn = (actor, scene, currentActionInstanceId = null) => !currentTurnActionRows(actor, scene).some(row => {
+    if (!attackIds.has(row.payload?.actionId)) return false;
+    const rowActionInstanceId = row.payload?.actionInstanceId || row.execution?.actionInstanceId || null;
+    return !currentActionInstanceId || rowActionInstanceId !== currentActionInstanceId;
+  });
+  const activeEffectIds = actor => {
+    const ids = new Set(Array.isArray(actor?.effects) ? actor.effects.filter(Boolean) : []);
+    for (const [id, state] of Object.entries(actor?.effectStates || {})) if (state?.present !== false) ids.add(id);
+    return ids;
+  };
   const comboSequences = Object.freeze([
     { techniqueId: "powerhouse.technician", level: 3, sequenceKeys: ["skirmish", "finish"] },
     { techniqueId: "powerhouse.dragonslayer", level: 3, sequenceKeys: ["breathe", "finish"] },
@@ -781,6 +800,22 @@
       },
     }),
     passive({
+      id: "powerhouse.braggart.2",
+      label: "Гордец II: дополнительное Преимущество от уменьшенных часов Гордыни",
+      sourceDigest: "886d7077c31b4749f8cbb789b513d61ba11e78c401e49cfafd0028bd973385c4",
+      coverage: "partial",
+      // Hold Back changes the persisted clock size.  Read that engine-owned
+      // size directly; a copied current value or a client flag cannot grant
+      // this bonus.  The clock reduction choice remains a decision surface.
+      rollBonus: (actor, context) => {
+        if (!context || !["attack", "clash", "roll"].includes(context.kind)) return 0;
+        const owner = context.scene?.actors?.find(item => item.id === actor.id) || actor;
+        const clock = owner.ruleClocks?.["powerhouse.braggart.pride"];
+        const maximum = Number(clock?.max ?? clock?.size);
+        return Number.isSafeInteger(maximum) && maximum >= 2 && maximum < 6 ? Math.floor((6 - maximum) / 2) : 0;
+      },
+    }),
+    passive({
       id: "powerhouse.duelist.2",
       label: "Дуэлянт II: Блок получает +Напряжение Брони",
       sourceDigest: "6ac5d7c737f81f4ba33f9a649d3bdfae9c2627d6420540f72f9626c53efb0827",
@@ -791,6 +826,22 @@
       numeric: (_actor, context) => context?.key === "blockArmor" && context.kind === "block" && context.scene
         ? { operation: "add", amount: Math.max(0, sceneTension(context.scene)), reason: "Блок получает текущее Напряжение дополнительной Бронёй." }
         : [],
+    }),
+    passive({
+      id: "powerhouse.flagellant.3",
+      label: "Самобичеватель III: первый Удар Хода получает урон за разные Эффекты",
+      sourceDigest: "e309e93313cdb717c1e9a2696608090f693f9b05714076a8c7043befced940c2",
+      coverage: "partial",
+      // The action receipt in the authoritative Scene log establishes the
+      // first attack of this Turn.  Effects are read from the owner state;
+      // the cleanup choice after the attack remains manual.
+      numeric: (actor, context) => {
+        if (context?.key !== "damage" || context.kind !== "attack" || !context.scene || !attackIds.has(context.actionId)) return [];
+        const owner = context.scene.actors?.find(item => item.id === actor.id) || actor;
+        if (!firstAttackThisTurn(owner, context.scene, context.actionInstanceId || null)) return [];
+        const amount = activeEffectIds(owner).size;
+        return amount > 0 ? { operation: "add", amount, reason: "Первый Удар Хода получает урон за каждый активный Эффект Самобичевателя III." } : [];
+      },
     }),
     passive({
       id: "vagabond.drunkard.2",

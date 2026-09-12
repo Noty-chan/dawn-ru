@@ -42,6 +42,8 @@ const passiveRules = [
   "powerhouse.gunslinger.2",
   "powerhouse.martial-artist.3",
   "powerhouse.braggart.1",
+  "powerhouse.braggart.2",
+  "powerhouse.flagellant.3",
   "powerhouse.duelist.2",
   "vagabond.skirmisher.3",
   "vagabond.aerial-master.3",
@@ -98,7 +100,7 @@ const prepare = (scene, actorId, payload) => {
 };
 
 // Every adapter is anchored to the reviewed canonical source.  The partial
-// entries deliberately cover only their passive Advantage clause.
+// entries deliberately cover only their audited numeric clause.
 const canonicalDir = new URL("../../../source/editions/dawn-en-lionwing-cb2f8e67/canonical/archetypes/", import.meta.url);
 const canonicalTechniques = fs.readdirSync(canonicalDir)
   .filter(file => file.endsWith(".json"))
@@ -472,6 +474,93 @@ assert.equal(quote.value, 3, "Braggart ignores forged clock state and payload fl
 emptyPride = run(emptyPride, "h", { kind: "automation", ruleId: "powerhouse.braggart.1", enabled: false });
 quote = adapters.attackQuote(emptyPride.actors[0], { scene: emptyPride, kind: "attack", actionId: ids.skirmish, baseValue: 3 });
 assert.equal(quote.value, 3, "removing Braggart opt-in removes its Advantage");
+
+// Prove Yourself contributes only the numeric part that follows an
+// authoritative Hold Back clock resize.  The choice itself remains outside
+// this adapter, while the result is stable through reload and replay.
+let braggartTwo = fixture({ knownTechniques: { "powerhouse.braggart": 2 }, ruleClocks: { "powerhouse.braggart.pride": { current: 0, max: 4, size: 4 } } });
+braggartTwo = enableAll(braggartTwo, ["powerhouse.braggart.1", "powerhouse.braggart.2"]);
+const braggartBefore = copy(braggartTwo.actors[0]);
+quote = adapters.attackQuote(braggartTwo.actors[0], { scene: braggartTwo, kind: "attack", actionId: ids.skirmish, baseValue: 3 });
+assert.equal(quote.value, 4, "a resized four-segment Pride clock adds one Hubris Advantage");
+assert.equal(quote.sources.find(item => item.id === "powerhouse.braggart.2")?.amount, 1, "Prove Yourself exposes its numeric source");
+assert.deepEqual(copy(braggartTwo.actors[0]), braggartBefore, "Braggart numeric quote is read-only");
+const braggartReload = copy(braggartTwo);
+assert.equal(adapters.attackQuote(braggartReload.actors[0], { scene: braggartReload, kind: "attack", actionId: ids.skirmish, baseValue: 3 }).value, 4, "Braggart bonus survives JSON reload");
+assert.equal(adapters.attackQuote(braggartReload.actors[0], { scene: braggartReload, kind: "attack", actionId: ids.skirmish, baseValue: 3 }).value, 4, "replaying the Braggart quote is idempotent");
+braggartReload.actors[0].ruleClocks["powerhouse.braggart.pride"] = { current: 0, max: 2, size: 2 };
+assert.equal(adapters.attackQuote(braggartReload.actors[0], { scene: braggartReload, kind: "attack", actionId: ids.skirmish, baseValue: 3 }).value, 5, "the two-segment boundary grants two additional Hubris Advantage");
+braggartReload.actors[0].ruleClocks["powerhouse.braggart.pride"] = { current: 0, max: 6, size: 6 };
+assert.equal(adapters.attackQuote(braggartReload.actors[0], { scene: braggartReload, kind: "attack", actionId: ids.skirmish, baseValue: 3 }).value, 3, "a full-size empty Pride clock gives no level-II bonus");
+assert.equal(adapters.attackQuote({ ...braggartTwo.actors[0], lionwing: { automation: { "powerhouse.braggart.1": true } } }, { scene: braggartTwo, kind: "attack", actionId: ids.skirmish, baseValue: 3 }).value, 3, "known but disabled Prove Yourself gives no bonus");
+assert.equal(adapters.attackQuote({ ...braggartTwo.actors[0], rulesEdition: "legacy" }, { scene: braggartTwo, kind: "attack", actionId: ids.skirmish, baseValue: 3 }).value, 3, "Prove Yourself is isolated from legacy editions");
+
+// Bled Dry reads both the current Turn's action receipt and the owner's
+// active Effects. A copied action row, legacy edition, or a second attack in
+// the same Turn cannot manufacture another first-attack bonus.
+let flagellant = fixture({ knownTechniques: { "powerhouse.flagellant": 3 }, effects: ["negative.ослаблен", "negative.замедлен", "positive.усилен"] });
+flagellant.lionwing = { activeTurnInstanceId: "turn-1" };
+flagellant = enable(flagellant, "powerhouse.flagellant.3");
+const flagellantContext = { scene: flagellant, kind: "attack", actionId: ids.skirmish, targetId: "e", baseValue: 4 };
+const flagellantBefore = copy(flagellant.actors[0]);
+quote = adapters.damageQuote(flagellant.actors[0], flagellantContext);
+assert.equal(quote.value, 7, "Bled Dry adds one damage per distinct active Effect on the first attack");
+assert.equal(quote.sources.find(item => item.id === "powerhouse.flagellant.3")?.amount, 3, "Bled Dry exposes the counted Effects in the quote");
+assert.deepEqual(copy(flagellant.actors[0]), flagellantBefore, "Bled Dry damage quote is read-only");
+const flagellantReload = copy(flagellant);
+assert.equal(adapters.damageQuote(flagellantReload.actors[0], { ...flagellantContext, scene: flagellantReload }).value, 7, "Bled Dry survives JSON reload");
+flagellantReload.log.push({ type: "action.resolve", actorId: "h", payload: { actionId: ids.skirmish, ownerTurnInstanceId: "turn-1" } });
+assert.equal(adapters.damageQuote(flagellantReload.actors[0], { ...flagellantContext, scene: flagellantReload }).value, 4, "Bled Dry does not repeat after an authoritative attack receipt");
+flagellantReload.lionwing.activeTurnInstanceId = "turn-2";
+assert.equal(adapters.damageQuote(flagellantReload.actors[0], { ...flagellantContext, scene: flagellantReload }).value, 7, "Bled Dry returns at the next Turn boundary");
+assert.equal(adapters.damageQuote({ ...flagellantReload.actors[0], lionwing: { ...flagellantReload.actors[0].lionwing, automation: {} } }, { ...flagellantContext, scene: flagellantReload }).value, 4, "known but disabled Bled Dry gives no bonus");
+assert.equal(adapters.damageQuote({ ...flagellantReload.actors[0], rulesEdition: "legacy" }, { ...flagellantContext, scene: flagellantReload }).value, 4, "Bled Dry is isolated from legacy editions");
+
+// The real attack pipeline emits action.resolve before it resolves damage.
+// The engine passes that attack's authoritative actionInstanceId into the
+// damage quote, so the current receipt is excluded while an earlier attack
+// remains counted. Verify first attack, second attack, turn boundary, reload,
+// and replay through dispatch rather than a hand-built quote context.
+let flagellantFlow = fixture({ knownTechniques: { "powerhouse.flagellant": 3 }, effects: ["negative.ослаблен", "positive.усилен"] });
+flagellantFlow = enable(flagellantFlow, "powerhouse.flagellant.3");
+flagellantFlow = run(flagellantFlow, "h", { kind: "turn-start" });
+let preparedAttack = prepare(flagellantFlow, "h", { kind: "action", actionId: ids.skirmish, targetIds: ["e"] });
+const firstAttackInstanceId = preparedAttack.events[0].id;
+const firstAttackEvents = copy(preparedAttack.events);
+flagellantFlow = lionwing.dispatchMany(flagellantFlow, preparedAttack.events).scene;
+assert.equal(flagellantFlow.pendingAction?.actionInstanceId, firstAttackInstanceId, "the pending attack keeps its authoritative identity");
+flagellantFlow = run(flagellantFlow, "e", { kind: "reaction", choice: "take" });
+flagellantFlow = run(flagellantFlow, "e", { kind: "resolve-attack" });
+const firstDamage = flagellantFlow.log.find(row => row.type === "damage.apply" && row.payload?.targetId === "e" && row.payload?.actionInstanceId === firstAttackInstanceId);
+assert.equal(firstDamage?.payload?.dealt, firstDamage?.payload?.raw + 2, "the real first attack receives Bled Dry before damage resolves");
+
+const flowReload = copy(flagellantFlow);
+const replayFirstAttack = lionwing.dispatchMany(copy(flowReload), firstAttackEvents);
+assert.equal(replayFirstAttack.events.length, 0, "replaying the first attack receipt remains idempotent after damage");
+preparedAttack = prepare(flagellantFlow, "h", { kind: "action", actionId: ids.finish, targetIds: ["e"] });
+const secondAttackInstanceId = preparedAttack.events[0].id;
+flagellantFlow = lionwing.dispatchMany(flagellantFlow, preparedAttack.events).scene;
+flagellantFlow = run(flagellantFlow, "e", { kind: "reaction", choice: "take" });
+flagellantFlow = run(flagellantFlow, "e", { kind: "resolve-attack" });
+const secondDamage = flagellantFlow.log.find(row => row.type === "damage.apply" && row.payload?.targetId === "e" && row.payload?.actionInstanceId === secondAttackInstanceId);
+assert.equal(secondDamage?.payload?.dealt, secondDamage?.payload?.raw, "the second attack in the same Turn receives no Bled Dry bonus");
+
+flagellantFlow = run(flagellantFlow, "h", { kind: "turn-end" });
+flagellantFlow = run(flagellantFlow, "e", { kind: "turn-start" });
+flagellantFlow = run(flagellantFlow, "e", { kind: "turn-end" });
+flagellantFlow = run(flagellantFlow, "e", { kind: "round-end" });
+flagellantFlow = run(flagellantFlow, "h", { kind: "turn-start" });
+flagellantFlow = run(flagellantFlow, "h", { kind: "effect", targetId: "h", effect: "negative.ослаблен" });
+flagellantFlow = run(flagellantFlow, "h", { kind: "effect", targetId: "h", effect: "positive.усилен" });
+preparedAttack = prepare(flagellantFlow, "h", { kind: "action", actionId: ids.skirmish, targetIds: ["e"] });
+const nextTurnAttackInstanceId = preparedAttack.events[0].id;
+flagellantFlow = lionwing.dispatchMany(flagellantFlow, preparedAttack.events).scene;
+flagellantFlow = run(flagellantFlow, "e", { kind: "reaction", choice: "take" });
+const nextTurnPending = copy(flagellantFlow);
+flagellantFlow = run(flagellantFlow, "e", { kind: "resolve-attack" });
+const nextTurnDamage = flagellantFlow.log.find(row => row.type === "damage.apply" && row.payload?.targetId === "e" && row.payload?.actionInstanceId === nextTurnAttackInstanceId);
+assert.equal(nextTurnDamage?.payload?.dealt, nextTurnDamage?.payload?.raw + 2, "Bled Dry returns at the next owner Turn boundary");
+assert.equal(lionwing.dispatchMany(copy(nextTurnPending), [{ ...lionwing.command("e", { kind: "resolve-attack" }), id: `passive:replay:${++serial}` }]).scene.pendingAction, null, "resolving the copied pending attack is deterministic after JSON reload");
 
 // Duelist's Tension Armor belongs to the held Block response.  It does not
 // mutate the actor's persistent Armor and the disabled path is ordinary Block.
