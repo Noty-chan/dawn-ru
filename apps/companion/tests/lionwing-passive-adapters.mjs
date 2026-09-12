@@ -116,7 +116,7 @@ const catalog = [...adapters.list(catalogActor), ...adapters.list(actor("spell-o
 assert.deepEqual(copy(catalog.map(rule => rule.id).sort()), [...passiveRules].sort());
 for (const rule of catalog) {
   assert.equal(rule.sourceDigest, sourceDigest(rule.id), `${rule.id} keeps its canonical source identity`);
-  assert.equal(rule.coverage, ["bulwark.iron-bodied.2", "bulwark.rising-challenger.3", "bulwark.absolute-bastard.3", "altruist.empath.3", "bulwark.mundane.1", "powerhouse.monastic-sage.1"].includes(rule.id) ? "full" : "partial", `${rule.id} declares its actual scope`);
+  assert.equal(rule.coverage, ["bulwark.iron-bodied.2", "bulwark.rising-challenger.3", "bulwark.absolute-bastard.3", "altruist.empath.3", "bulwark.mundane.1", "powerhouse.monastic-sage.1", "vagabond.sniper.1", "vagabond.untouchable.1"].includes(rule.id) ? "full" : "partial", `${rule.id} declares its actual scope`);
 }
 
 // The new blocks are opt-in and require their reviewed semantic context. A

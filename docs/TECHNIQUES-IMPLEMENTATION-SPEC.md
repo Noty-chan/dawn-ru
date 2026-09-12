@@ -584,8 +584,8 @@
 
 #### 1. Дальний выстрел (Long Shot) `vagabond.sniper.1`
 
-- **Заявленный статус:** `partial` (частичная).
-- **Текущий адаптер:** `vagabond.sniper.1` · `passive` · {"kind":"passive","coverage":"partial","sourceDigest":"a84de0a68e37fcfc0bd9e9f2b31d19f5f09d686294b82e40138d26e0ed6ba8e8","sourceLevelId":"vagabond.sniper.1"}; Завершение Талантом получает дальность не ниже 5 через общий конвейер дальности..
+- **Заявленный статус:** `full` (полная).
+- **Текущий адаптер:** `vagabond.sniper.1` · `passive` · {"kind":"passive","coverage":"full","sourceDigest":"a84de0a68e37fcfc0bd9e9f2b31d19f5f09d686294b82e40138d26e0ed6ba8e8","sourceLevelId":"vagabond.sniper.1"}; Завершение Талантом получает дальность не ниже 5 через общий конвейер дальности; другие действия и дальность выше 5 сохраняются без изменений..
 - **Готовые foundations:** `target-validation`, `event-participants`, `spatial-range`, `action-modifier`.
 - **Нужно добавить:** Для кода явный следующий шаг не выведен автоматически; нужны direct pos/neg/boundary тесты и evidence до повышения доверия.
 
@@ -653,8 +653,8 @@
 
 #### 1. Нырок (Duck) `vagabond.untouchable.1`
 
-- **Заявленный статус:** `partial` (частичная).
-- **Текущий адаптер:** `vagabond.untouchable.1` · `passive` · {"kind":"passive","coverage":"partial","sourceDigest":"348244d9362ed86da47559403a2fd0f22afb93a9647db589007e8ff203c8a26a","sourceLevelId":"vagabond.untouchable.1"}; Первый Уворот за Раунд получает авторитетные +Талант Уклонения. Событие первого Уворота и обычное расходование Уклонения ведёт ядро..
+- **Заявленный статус:** `full` (полная).
+- **Текущий адаптер:** `vagabond.untouchable.1` · `passive` · {"kind":"passive","coverage":"full","sourceDigest":"348244d9362ed86da47559403a2fd0f22afb93a9647db589007e8ff203c8a26a","sourceLevelId":"vagabond.untouchable.1"}; Первый Уворот за Раунд получает авторитетные +Талант Уклонения; адаптер читает квитанцию Уворота и текущий Раунд, а повтор и следующий Раунд проходят через общий lifecycle..
 - **Готовые foundations:** `usage-limits`, `trigger-router`, `turn-lifecycle`, `derived-stats`.
 - **Нужно добавить:** Для кода явный следующий шаг не выведен автоматически; нужны direct pos/neg/boundary тесты и evidence до повышения доверия.
 

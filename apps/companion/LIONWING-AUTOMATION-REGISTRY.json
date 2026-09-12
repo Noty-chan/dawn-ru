@@ -7558,7 +7558,7 @@
       },
       "level": 1,
       "implementation": {
-        "automation": "partial",
+        "automation": "full",
         "ruleIds": [
           "vagabond.sniper.1"
         ],
@@ -7569,10 +7569,10 @@
             "level": 1,
             "name": "Дальний выстрел",
             "kind": "passive",
-            "automation": "partial",
-            "coverage": "partial",
+            "automation": "full",
+            "coverage": "full",
             "sourceDigest": "a84de0a68e37fcfc0bd9e9f2b31d19f5f09d686294b82e40138d26e0ed6ba8e8",
-            "note": "Завершение Талантом получает дальность не ниже 5 через общий конвейер дальности.",
+            "note": "Завершение Талантом получает дальность не ниже 5 через общий конвейер дальности; другие действия и дальность выше 5 сохраняются без изменений.",
             "sourceLevelId": "vagabond.sniper.1"
           }
         ],
@@ -7637,17 +7637,47 @@
         "source": "default"
       },
       "surfaces": {
-        "core": false,
+        "core": true,
         "ui": false,
         "network": false,
         "persistence": false
       },
       "certification": {
         "status": "uncertified",
-        "confidence": null,
-        "evidenceId": null,
+        "confidence": "core-tested",
+        "evidenceId": "vagabond.sniper.1",
         "staleEvidence": false,
-        "evidence": null
+        "evidence": {
+          "id": "vagabond.sniper.1",
+          "kind": "technique",
+          "canonicalDigest": "a84de0a68e37fcfc0bd9e9f2b31d19f5f09d686294b82e40138d26e0ed6ba8e8",
+          "sourcePath": "../../source/editions/dawn-en-lionwing-cb2f8e67/extracted-companion.json",
+          "sourceDigest": "sha256:1228663d26bf3c87b3b94b0d2f3c4c02b302007df98aa407c40d13ee731c175f",
+          "confidence": "core-tested",
+          "auditedAtCommit": "2ff7642",
+          "claims": [
+            "The canonical EN text gives Talent Finishers a range floor of exactly 5.",
+            "The adapter applies the floor only to Talent Finishers and composes with a larger base range.",
+            "Known ownership and explicit LionWing automation opt-in are required before the contribution is visible."
+          ],
+          "surfaces": {
+            "core": true,
+            "ui": false,
+            "network": false,
+            "persistence": false
+          },
+          "tests": [
+            {
+              "path": "tests/lionwing-quick-core-techniques.mjs",
+              "case": "Canonical digest/text, Talent Finisher range floor, wrong action, ownership/opt-in and JSON reload/replay"
+            }
+          ],
+          "edgeCases": [
+            "A base range above 5 remains unchanged.",
+            "Body Finishers and disabled or non-LionWing owners receive no range contribution.",
+            "The range quote is read-only and remains stable after JSON reload and repeated evaluation."
+          ]
+        }
       }
     },
     {
@@ -8600,7 +8630,7 @@
       },
       "level": 1,
       "implementation": {
-        "automation": "partial",
+        "automation": "full",
         "ruleIds": [
           "vagabond.untouchable.1"
         ],
@@ -8611,10 +8641,10 @@
             "level": 1,
             "name": "Нырок",
             "kind": "passive",
-            "automation": "partial",
-            "coverage": "partial",
+            "automation": "full",
+            "coverage": "full",
             "sourceDigest": "348244d9362ed86da47559403a2fd0f22afb93a9647db589007e8ff203c8a26a",
-            "note": "Первый Уворот за Раунд получает авторитетные +Талант Уклонения. Событие первого Уворота и обычное расходование Уклонения ведёт ядро.",
+            "note": "Первый Уворот за Раунд получает авторитетные +Талант Уклонения; адаптер читает квитанцию Уворота и текущий Раунд, а повтор и следующий Раунд проходят через общий lifecycle.",
             "sourceLevelId": "vagabond.untouchable.1"
           }
         ],
@@ -8679,17 +8709,47 @@
         "source": "default"
       },
       "surfaces": {
-        "core": false,
+        "core": true,
         "ui": false,
         "network": false,
         "persistence": false
       },
       "certification": {
         "status": "uncertified",
-        "confidence": null,
-        "evidenceId": null,
+        "confidence": "core-tested",
+        "evidenceId": "vagabond.untouchable.1",
         "staleEvidence": false,
-        "evidence": null
+        "evidence": {
+          "id": "vagabond.untouchable.1",
+          "kind": "technique",
+          "canonicalDigest": "348244d9362ed86da47559403a2fd0f22afb93a9647db589007e8ff203c8a26a",
+          "sourcePath": "../../source/editions/dawn-en-lionwing-cb2f8e67/extracted-companion.json",
+          "sourceDigest": "sha256:1228663d26bf3c87b3b94b0d2f3c4c02b302007df98aa407c40d13ee731c175f",
+          "confidence": "core-tested",
+          "auditedAtCommit": "2ff7642",
+          "claims": [
+            "The first Dodge in a Round receives exactly the owner's Talent as additional Evasion.",
+            "The persisted reaction receipt closes the bonus for the current Round and the next Round reopens it.",
+            "Known ownership and explicit LionWing automation opt-in are required before the contribution is visible."
+          ],
+          "surfaces": {
+            "core": true,
+            "ui": false,
+            "network": false,
+            "persistence": false
+          },
+          "tests": [
+            {
+              "path": "tests/lionwing-quick-core-techniques.mjs",
+              "case": "Canonical digest/text, first/second Dodge Round gate, next-Round boundary, ownership/opt-in and JSON reload/replay"
+            }
+          ],
+          "edgeCases": [
+            "A second Dodge receipt in the same Round contributes zero additional Evasion.",
+            "Changing the Round restores the first-Dodge contribution without changing the actor stat.",
+            "A known but disabled or non-LionWing owner receives no contribution."
+          ]
+        }
       }
     },
     {
