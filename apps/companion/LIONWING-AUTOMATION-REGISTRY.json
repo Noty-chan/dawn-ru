@@ -1290,9 +1290,24 @@
       },
       "level": 3,
       "implementation": {
-        "automation": "manual",
-        "ruleIds": [],
-        "rules": [],
+        "automation": "partial",
+        "ruleIds": [
+          "powerhouse.flagellant.3"
+        ],
+        "rules": [
+          {
+            "id": "powerhouse.flagellant.3",
+            "techniqueId": "powerhouse.flagellant",
+            "level": 3,
+            "name": "Обескровлен",
+            "kind": "passive",
+            "automation": "partial",
+            "coverage": "partial",
+            "sourceDigest": "e309e93313cdb717c1e9a2696608090f693f9b05714076a8c7043befced940c2",
+            "note": "Первый Удар текущего Хода получает числовой бонус за число активных Эффектов из авторитетного состояния; очистка отрицательных Эффектов после броска остаётся ручной.",
+            "sourceLevelId": "powerhouse.flagellant.3"
+          }
+        ],
         "foundationPlan": {
           "version": 11,
           "status": "reviewed",
@@ -1343,7 +1358,9 @@
           "text": "The first attack you make each Turn deals additional damage equal to the number of different effects you have, and after it resolves you may clear a number of negative effects equal to the crits you rolled."
         },
         "canonicalDigest": "e309e93313cdb717c1e9a2696608090f693f9b05714076a8c7043befced940c2",
-        "engineRuleDigests": []
+        "engineRuleDigests": [
+          "e309e93313cdb717c1e9a2696608090f693f9b05714076a8c7043befced940c2"
+        ]
       },
       "review": {
         "status": "unreviewed",
@@ -3238,7 +3255,7 @@
       },
       "level": 2,
       "implementation": {
-        "automation": "decision",
+        "automation": "partial",
         "ruleIds": [
           "powerhouse.braggart.2"
         ],
@@ -3249,11 +3266,11 @@
             "level": 2,
             "name": "Докажи, чего стоишь",
             "kind": "passive",
-            "automation": "decision",
-            "note": "При заполнении предлагается очистить часы и уменьшить их размер на 2, минимум до 2.",
-            "sourceLevelId": "powerhouse.braggart.2",
+            "automation": "partial",
+            "coverage": "partial",
             "sourceDigest": "886d7077c31b4749f8cbb789b513d61ba11e78c401e49cfafd0028bd973385c4",
-            "coverage": "partial"
+            "note": "Числовой бонус Hubris после уменьшения размера часов читается из авторитетного Clock; выбор Hold Back и его lifecycle остаются решением.",
+            "sourceLevelId": "powerhouse.braggart.2"
           }
         ],
         "foundationPlan": {

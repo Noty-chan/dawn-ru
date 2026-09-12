@@ -159,10 +159,10 @@
 
 #### 3. Обескровлен (Bled Dry) `powerhouse.flagellant.3`
 
-- **Заявленный статус:** `manual` (ручная).
-- **Текущий адаптер:** нет записи в `RULES`.
+- **Заявленный статус:** `partial` (частичная).
+- **Текущий адаптер:** `powerhouse.flagellant.3` · `passive` · {"kind":"passive","coverage":"partial","sourceDigest":"e309e93313cdb717c1e9a2696608090f693f9b05714076a8c7043befced940c2","sourceLevelId":"powerhouse.flagellant.3"}; Первый Удар текущего Хода получает числовой бонус за число активных Эффектов из авторитетного состояния; очистка отрицательных Эффектов после броска остаётся ручной..
 - **Готовые foundations:** `effect-state`, `effect-lifecycle`, `trigger-router`, `damage-pipeline`.
-- **Нужно добавить:** Зарегистрировать отдельный adapter (trigger → validation → events/resolver) и прямые тесты; общая инфраструктура сама правило не исполняет.
+- **Нужно добавить:** Для кода явный следующий шаг не выведен автоматически; нужны direct pos/neg/boundary тесты и evidence до повышения доверия.
 
 ### Стрелок (Gunslinger) `powerhouse.gunslinger`
 
@@ -290,8 +290,8 @@
 
 #### 2. Докажи, чего стоишь (Prove Yourself) `powerhouse.braggart.2`
 
-- **Заявленный статус:** `decision` (решение).
-- **Текущий адаптер:** `powerhouse.braggart.2` · `passive` · {"kind":"passive","sourceLevelId":"powerhouse.braggart.2","sourceDigest":"886d7077c31b4749f8cbb789b513d61ba11e78c401e49cfafd0028bd973385c4","coverage":"partial"}; При заполнении предлагается очистить часы и уменьшить их размер на 2, минимум до 2..
+- **Заявленный статус:** `partial` (частичная).
+- **Текущий адаптер:** `powerhouse.braggart.2` · `passive` · {"kind":"passive","coverage":"partial","sourceDigest":"886d7077c31b4749f8cbb789b513d61ba11e78c401e49cfafd0028bd973385c4","sourceLevelId":"powerhouse.braggart.2"}; Числовой бонус Hubris после уменьшения размера часов читается из авторитетного Clock; выбор Hold Back и его lifecycle остаются решением..
 - **Готовые foundations:** `rule-clock`, `usage-limits`, `trigger-router`, `choice-flow`, `dice-hooks`.
 - **Нужно добавить:** Для кода явный следующий шаг не выведен автоматически; нужны direct pos/neg/boundary тесты и evidence до повышения доверия.
 
