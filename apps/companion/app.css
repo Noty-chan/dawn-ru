@@ -122,6 +122,55 @@ main{min-width:0;padding:clamp(1rem,3vw,3rem)}.mode-page{display:none}.mode-page
 .scene-tray-gm{display:flex;gap:.28rem;padding-left:.3rem;border-left:1px solid var(--line)}
 @media(max-width:720px){.scene-mode .scene-stage{height:auto;min-height:0}.scene-mode .scene-board-wrap{height:calc(100vh - 225px)}.scene-roll-feed{left:.5rem;top:7.2rem;width:min(220px,calc(100vw - 1rem))}.scene-roll-feed article:nth-child(n+2){display:none}.scene-action-tray{bottom:3.8rem;max-width:calc(100vw - 1rem);overflow-x:auto;justify-content:flex-start}.scene-tray-resources b{display:none}.scene-action-tray button{padding:.46rem .55rem}.scene-dock{grid-template-columns:repeat(7,auto)}.scene-mode .scene-rail{bottom:7rem;height:min(68vh,600px)}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
+
+/* Keep the playable Hero sheet dense and intentional on wide screens. */
+.hero-view-switch{width:100%;max-width:100%;min-height:44px;margin:.25rem 0 1.15rem;padding:.25rem;justify-content:flex-start;gap:.65rem;flex-wrap:nowrap;border-radius:999px}
+.hero-view-switch>div{grid-template-columns:repeat(2,minmax(90px,1fr));min-width:11rem;gap:.2rem}
+.hero-view-switch button{min-height:36px;padding:.48rem .8rem;font-size:.8rem}
+.hero-view-switch>span{max-width:42rem;min-width:0;padding:0 .25rem;text-align:left;line-height:1.35}
+.hero-sheet-toolbar{margin:.15rem 0 .1rem;padding:.2rem 0 .45rem}
+.hero-sheet-toolbar h1{margin-top:.1rem;letter-spacing:-.04em}
+.hero-play-sheet{gap:.7rem}
+.hero-sheet-identity{min-height:154px;padding:1.15rem;background:linear-gradient(120deg,color-mix(in srgb,var(--red) 18%,var(--surface)),var(--surface) 62%,color-mix(in srgb,var(--cyan) 9%,var(--surface)))}
+.hero-sheet-identity h2{margin:.12rem 0 .3rem}
+.hero-sheet-resources{gap:.4rem}
+.hero-sheet-resources article{padding:.58rem .65rem}
+.hero-sheet-resources strong{font-size:1.12rem}
+.hero-sheet-dashboard{grid-template-columns:minmax(240px,.82fr) minmax(360px,1.18fr);gap:.7rem}
+.hero-sheet-card{padding:.9rem}
+.hero-sheet-card>header{margin-bottom:.65rem}
+.hero-sheet-card>header h2{font-size:1.08rem}
+.hero-sheet-attributes{grid-column:1;grid-row:1}
+.hero-sheet-skills{grid-column:1;grid-row:2}
+.hero-sheet-actions{grid-column:2;grid-row:1 / span 2;align-self:stretch}
+.hero-sheet-techniques{grid-column:1 / -1;grid-row:3}
+.hero-sheet-action-group>summary,.hero-sheet-tech-group>summary{padding:.55rem .2rem}
+.hero-sheet-action-group>div{grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:.45rem}
+.hero-sheet-action-group article{padding:.58rem .62rem}
+.hero-sheet-tech-group>div{grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:.5rem}
+.hero-sheet-technique>header{padding:.62rem .68rem}
+.hero-sheet-technique>section{padding:.58rem .68rem}
+
+@media(max-width:980px){
+  .hero-sheet-dashboard{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+  .hero-sheet-attributes{grid-column:1;grid-row:1}
+  .hero-sheet-skills{grid-column:2;grid-row:1}
+  .hero-sheet-actions{grid-column:1 / -1;grid-row:2}
+  .hero-sheet-techniques{grid-column:1 / -1;grid-row:3}
+}
+
+@media(max-width:720px){
+  .topbar,.mode-tabs,.app-shell,.sidebar,main{min-width:0;max-width:100%}
+  .mode-tabs{width:100%}
+  .button-row>*{min-width:0}
+  .hero-switcher .button-row{min-width:0}
+  .hero-view-switch{width:100%;border-radius:13px;gap:.35rem;flex-wrap:wrap}
+  .hero-view-switch>div{width:100%;min-width:0}
+  .hero-view-switch>span{max-width:none}
+  .hero-sheet-dashboard{grid-template-columns:1fr;gap:.6rem}
+  .hero-sheet-attributes,.hero-sheet-skills,.hero-sheet-actions,.hero-sheet-techniques{grid-column:1;grid-row:auto}
+}
+
 @media print{body{background:#fff}.topbar,.sidebar,.page-heading,.mode-page:not([data-page="build"]),.panel:not(.sheet-panel),.section-title{display:none!important}.app-shell{display:block}.sheet-panel{display:block;border:0;box-shadow:none;padding:0}.character-sheet{padding:0}.sheet-columns{columns:2}main{padding:0}}
 
 /* Compact complete enemy sheets for the narrator cockpit. */
