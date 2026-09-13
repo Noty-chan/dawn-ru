@@ -3,6 +3,18 @@
 // Preview catalogue for the new-edition character builder. Loading this file
 // does not expose English in the public locale selector or change saved heroes.
 window.DAWN_I18N?.registerLocale("en", {
+  "lionwing.technique.automation.manual.label": "Manual mode",
+  "lionwing.technique.automation.manual.detail": "The action is recorded through the shared manual workflow.",
+  "lionwing.technique.automation.assisted.label": "Partially automated",
+  "lionwing.technique.automation.assisted.detail": "The automatable part is connected; the Narrator decides the rest.",
+  "lionwing.technique.automation.automatic.label": "Automatic",
+  "lionwing.technique.automation.automatic.detail": "The connected adapter applies this part of the rule through the engine.",
+  "lionwing.technique.automation.off.label": "Automation off",
+  "lionwing.technique.automation.off.detail": "The adapter is available in the Console, but the rule is currently handled manually.",
+  "lionwing.technique.automation.intro": "The EN text is the rule source. The translation is shown separately; automation status does not replace the rule.",
+  "lionwing.technique.automation.canonical": "Canonical",
+  "lionwing.technique.automation.adapter": "Adapter",
+  "lionwing.technique.automation.translation": "Russian translation",
   "app.error.data": "Rule data could not be loaded. Run build_data.py.",
   "app.error.logic": "The DAWN rules module could not be loaded.",
   "app.error.sceneEngine": "The DAWN scene engine could not be loaded.",

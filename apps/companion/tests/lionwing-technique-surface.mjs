@@ -4,7 +4,7 @@ import vm from "node:vm";
 
 const context = { window: {}, console };
 vm.createContext(context);
-for (const file of ["edition-lionwing.js", "edition-lionwing-ru.js"]) {
+for (const file of ["localization.js", "locale-ru.js", "locale-en-builder.js", "edition-lionwing.js", "edition-lionwing-ru.js"]) {
   vm.runInContext(fs.readFileSync(new URL("../" + file, import.meta.url), "utf8"), context, { filename: file });
 }
 context.window.DAWN_LIONWING_ADAPTERS = {
@@ -81,6 +81,23 @@ assert.match(html, /Авто частично/);
 assert.match(html, /Your successful Casts Slow/);
 assert.doesNotMatch(html, /reviewed adapter/);
 assert.match(html, /Сейчас Ход другого участника/);
+
+context.window.DAWN_LIONWING_AUTOMATION_STATUS = {
+  rows: [{ id: "ruiner.cryomancer.1", reason: { ru: "Причина RU <проверена>", en: "Reason EN <checked> & \"quoted\"" } }],
+};
+const localizedRu = surface.model(baseScene, actor, { locale: "ru", viewer: { role: "player", actorId: "hero" } });
+assert.equal(localizedRu.locale, "ru");
+assert.equal(localizedRu.statuses[0].status.reason, "Причина RU <проверена>");
+assert.match(surface.render(actor, { scene: baseScene, locale: "ru", viewer: { role: "player", actorId: "hero" } }), /Причина RU &lt;проверена&gt;/);
+const localizedEn = surface.model(baseScene, actor, { locale: "en", viewer: { role: "player", actorId: "hero" } });
+assert.equal(localizedEn.locale, "en");
+assert.equal(localizedEn.statuses[0].status.reason, "Reason EN <checked> & \"quoted\"");
+const enHtml = surface.render(actor, { scene: baseScene, locale: "en", viewer: { role: "player", actorId: "hero" } });
+assert.match(enHtml, /Partially automated/);
+assert.match(enHtml, /Reason EN &lt;checked&gt; &amp; &quot;quoted&quot;/);
+assert.match(enHtml, /Your successful Casts Slow/);
+assert.match(enHtml, /The EN text is the rule source/);
+assert.doesNotMatch(enHtml, /Reason EN <checked>/);
 
 const offerScene = structuredClone(baseScene);
 offerScene.activeActorId = "hero";
