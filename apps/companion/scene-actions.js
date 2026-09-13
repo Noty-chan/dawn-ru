@@ -288,11 +288,13 @@ function cunningPlanStatus(scene, data, actorId, actionId) {
 }
 
 function prepareAction(scene, data, request = {}) {
+  const normalizedTargetRequest = typeof normalizeLionwingActionTargetRequest === "function" ? normalizeLionwingActionTargetRequest(scene, request) : { request, errors: [], typedTargets: null };
+  request = normalizedTargetRequest.request;
   const actionInstanceId = eventId();
   const actor = actorById(scene, request.actorId);
   const declaredAction = actionById(data, request.actionId);
   let action = declaredAction;
-  const errors = [];
+  const errors = [...normalizedTargetRequest.errors];
   if (!actor) errors.push("Не выбран исполнитель действия.");
   if (!declaredAction) errors.push("Неизвестное базовое действие.");
   if (scene.pendingActionPlan && (request.planId !== scene.pendingActionPlan.id || request.actorId !== scene.pendingActionPlan.actorId || request.actionId !== scene.pendingActionPlan.actionId)) errors.push("Действие не совпадает с сохранённым составным планом.");
@@ -488,6 +490,7 @@ function prepareAction(scene, data, request = {}) {
   const modifierQuick = Boolean(attackModifiers.quick), armamentQuick = Boolean(armament?.available);
   const quickSource = armamentQuick ? { techniqueId: "vagabond.master-at-arms", level: 1, name: armament.label, needsConfirmation: false } : modifierQuick ? { techniqueId: "vagabond.dim-mak", level: 1, name: "Слабая точка", needsConfirmation: false } : available?.quickSource;
   const events = [{ type: "action.prepare", actorId: actor.id, payload: { actionInstanceId, actionId: action.id, actionName: action.name, name: action.name, declaredActionId: declaredAction.id, declaredActionName: declaredAction.name, targetIds, targetCells, planId: request.planId || null, attackModifierIds: attackModifiers.selectedIds, attackModifierAdvantage: attackModifiers.advantage, actionTransform: attackModifiers.actionTransform, quick: Boolean(available?.quick || modifierQuick || armamentQuick), quickSource: quickSource ? { techniqueId: quickSource.techniqueId, level: quickSource.level, name: quickSource.name, needsConfirmation: quickSource.needsConfirmation } : null, continuation: Boolean(available?.continuation && !modifierQuick && !armamentQuick) } }];
+  if (normalizedTargetRequest.typedTargets?.typedTargets?.length) events[0].payload.typedTargets = clone(normalizedTargetRequest.typedTargets.typedTargets);
   events[0].payload.request = { attribute: actionAttribute, focusSpent: finisherFocus, targetCells, useCunningPlan: Boolean(request.useCunningPlan), useRevelation: Boolean(request.useRevelation), useThunderDischarge: Boolean(request.useThunderDischarge), useEclipseStars: Boolean(request.useEclipseStars), useGrasp: Boolean(request.useGrasp), startRage: Boolean(request.startRage), armamentMode, armamentDestination: armament?.destination || null, bulletsSpent: Number.isFinite(Number(request.bulletsSpent)) ? Number(request.bulletsSpent) : null, bulletAdvantage: Number.isFinite(Number(request.bulletAdvantage)) ? Number(request.bulletAdvantage) : null, throwWeapon: Boolean(request.throwWeapon), overload: Boolean(request.overload), provokeTargetIds: [...new Set(request.provokeTargetIds || [])].slice(0, 40), removeEffectIdsByTarget: clone(request.removeEffectIdsByTarget || {}), attackModifierIds: attackModifiers.selectedIds };
   if (armamentQuick) {
     events[0].payload.armament = { groupId: MASTER_AT_ARMS_GROUP, modeId: armamentMode, label: armament.label };
@@ -793,13 +796,15 @@ function enemyRuleAutomation(ruleId) {
 }
 
 function prepareEnemyRule(scene, data, request = {}) {
+  const normalizedTargetRequest = typeof normalizeLionwingActionTargetRequest === "function" ? normalizeLionwingActionTargetRequest(scene, request) : { request, errors: [], typedTargets: null };
+  request = normalizedTargetRequest.request;
   const actor = actorById(scene, request.actorId);
   const profile = actor ? enemyProfileById(data, actor.profileId) : null;
   const sourceRule = profile?.rules?.find(item => item.id === request.ruleId);
   const available = actor && sourceRule ? availableEnemyRules(scene, data, actor.id).find(item => item.id === sourceRule.id) : null;
   let rule = sourceRule ? { ...sourceRule, ...(ENEMY_ATTACK_FAMILY_RULES.get(sourceRule.id) || {}) } : null;
   if (rule?.id === "enemy.common.ronin.attack.dissect" && actor?.ruleState?.roninSheathed) rule = { ...rule, adjacent: false, range: Number(actor.speed || 0) };
-  const errors = [];
+  const errors = [...normalizedTargetRequest.errors];
   if (!actor || !profile) errors.push("Не выбран профиль противника.");
   if (!rule) errors.push("Неизвестное действие противника.");
   if (available && !available.available) errors.push(available.reason);
@@ -936,6 +941,7 @@ function prepareEnemyRule(scene, data, request = {}) {
   const targetEffects = targetEffectNames.map(name => effectIdByName(data, name));
   const selfEffects = (rule.selfEffects || []).map(name => effectIdByName(data, name));
   const payload = { ruleId: rule.id, profileId: profile.id, name: rule.name, kind: rule.kind, targetIds, text: rule.text, reward: rule.reward, automation: available?.automation || (targetEffects.length || selfEffects.length ? "effect" : "assisted") };
+  if (normalizedTargetRequest.typedTargets?.typedTargets?.length) payload.typedTargets = clone(normalizedTargetRequest.typedTargets.typedTargets);
   if (fullRule?.type === "crowd-summon") payload.crowdSummon = { token: `crowd-summon-${eventId()}`, cells: crowdSummonCells.map(cellKey) };
   const events = [{ type: "enemy.action.prepare", actorId: actor.id, payload }, { type: "resource.spend", actorId: actor.id, payload: { resource: "ap", amount: Number(rule.apCost || 1) } }];
   if (attackDestination) {

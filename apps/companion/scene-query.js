@@ -31,10 +31,14 @@ function actorIdsInRange(scene, sourceActorId, range, options = {}) {
 
 function wallTargetingStatus(scene, sourceActorId, targetActorId, request = {}) {
   const source = typeof sourceActorId === "string" ? actorById(scene, sourceActorId) : sourceActorId;
-  const target = typeof targetActorId === "string" ? actorById(scene, targetActorId) : targetActorId;
+  const typedTarget = lionwingTypedTargetObject(targetActorId) ? typedTargetStatus(scene, { ...request, sourceActorId: source?.id, target: targetActorId, intent: "target" }) : null;
+  if (typedTarget && !typedTarget.available) return { ...typedTarget, walls: [] };
+  if (typedTarget && !["actor", "cell"].includes(typedTarget.kind)) return lionwingTypedTargetFailure(typedTarget.normalized, "Проверка стен поддерживает только персонажа или клетку; передайте выбор Нарратору.", "manual-only-kind", { walls: [], manualFallback: true, manual: true, fallback: "manual" });
+  if (typedTarget?.kind === "cell" && (typedTarget.cells || []).length !== 1) return lionwingTypedTargetFailure(typedTarget.normalized, "Проверка стен поддерживает одну клетку за раз; передайте выбор Нарратору.", "invalid-target", { walls: [], manualFallback: true, manual: true, fallback: "manual" });
+  const target = typedTarget ? typedTarget.kind === "cell" ? { space: typedTarget.space, ...spatialPoint(typedTarget.cell) } : typedTarget.target : typeof targetActorId === "string" ? actorById(scene, targetActorId) : targetActorId;
   const space = (scene.spaces || []).find(item => item.id === source?.space);
   if (!source || !target || !space || source.space !== target.space) return { available: false, reason: "Цель находится на другом поле.", walls: [] };
-  const targetCells=new Set(modifierTargetCells(scene,target)),sourceCells=modifierTargetCells(scene,source);
+  const targetCells=new Set(typedTarget?.kind === "cell" ? typedTarget.cells : modifierTargetCells(scene,target)),sourceCells=modifierTargetCells(scene,source);
   if(sourceCells.some(key=>targetCells.has(key)))return {available:true,reason:"",walls:[]};
   const maximum = modifierRangeDistance(scene,source,target);
   const queue = sourceCells.map(key=>{const[x,y]=key.split(",").map(Number);return{x,y,steps:0}}), seen = new Set(sourceCells), blocking = new Set();
@@ -74,7 +78,26 @@ const spatialLine = (start, end) => {
   return cells;
 };
 function spatialShapeStatus(scene, request = {}) {
-  const space = (scene?.spaces || []).find(item => item.id === request.space), anchor = spatialPoint(request.anchor), shape = request.shape || "cell";
+  const typedAnchorInput = request.typedAnchor || (lionwingTypedTargetObject(request.anchor) ? request.anchor : null);
+  let typedAnchorStatus = null;
+  if (typedAnchorInput) {
+    typedAnchorStatus = typedTargetStatus(scene, { ...request, target: typedAnchorInput, intent: request.intent || "target" });
+    if (!typedAnchorStatus.available) return { ...typedAnchorStatus, cells: [], targetIds: [], shape: request.shape || "cell" };
+    if (typedAnchorStatus.kind !== "cell" || (typedAnchorStatus.cells || []).length !== 1) return lionwingTypedTargetFailure(typedAnchorStatus.normalized, "Опорная типизированная цель должна быть одной клеткой.", "invalid-target", { cells: [], targetIds: [], shape: request.shape || "cell" });
+    if (request.space && request.space !== typedAnchorStatus.space) return lionwingTypedTargetFailure(typedAnchorStatus.normalized, "Опорная клетка находится в другом пространстве.", "space-mismatch", { cells: [], targetIds: [], shape: request.shape || "cell" });
+  }
+  const typedCellInputs = Array.isArray(request.cells) ? request.cells.filter(item => lionwingTypedTargetObject(item)) : [];
+  let typedCellStatus = null;
+  if (typedCellInputs.length) {
+    typedCellStatus = typedTargetsStatus(scene, typedCellInputs, { ...request, sourceActorId: request.sourceActorId, intent: request.intent || "target" });
+    if (!typedCellStatus.available) return { ...typedCellStatus, cells: [], targetIds: [], shape: request.shape || "connected" };
+    const nonCell = typedCellStatus.statuses.find(status => status.kind !== "cell");
+    if (nonCell) return lionwingTypedTargetFailure(nonCell.normalized, "Зона принимает только типизированные клетки.", "invalid-target", { cells: [], targetIds: [], shape: request.shape || "connected", typedTargets: typedCellStatus.typedTargets, statuses: typedCellStatus.statuses });
+  }
+  const space = (scene?.spaces || []).find(item => item.id === request.space || item.id === typedAnchorStatus?.space || item.id === typedCellStatus?.spaces?.[0]);
+  const anchor = typedAnchorStatus ? spatialPoint(typedAnchorStatus.cell) : spatialPoint(request.anchor);
+  const shape = request.shape || "cell";
+  const shapeRequest = typedCellStatus ? { ...request, cells: [...(Array.isArray(request.cells) ? request.cells.filter(item => typeof item === "string") : []), ...typedCellStatus.targetCells] } : request;
   if (!space) return { available: false, reason: "Пространство не найдено.", cells: [], targetIds: [] };
   const inBounds = point => point && point.x >= 0 && point.y >= 0 && point.x < Number(space.width) && point.y < Number(space.height);
   const cells = new Set(), add = point => { if (inBounds(point)) cells.add(cellKey(point)); };
@@ -82,7 +105,7 @@ function spatialShapeStatus(scene, request = {}) {
   const legacyLines = { lineH: "horizontal", lineV: "vertical", lineDiagDown: "diagonal-down", lineDiagUp: "diagonal-up" };
   let reason = "";
   if (shape === "connected") {
-    const chosen = [...new Set((request.cells || []).map(String))], chosenSet = new Set(chosen), points = chosen.map(spatialPoint);
+    const chosen = [...new Set((shapeRequest.cells || []).map(String))], chosenSet = new Set(chosen), points = chosen.map(spatialPoint);
     if (!chosen.length || points.some(point => !inBounds(point))) reason = "Связная фигура содержит некорректные клетки.";
     else {
       const diagonal = Boolean(request.diagonal), queue = [points[0]], visited = new Set([cellKey(points[0])]);
@@ -137,17 +160,393 @@ function spatialShapeStatus(scene, request = {}) {
     }
   } else if (shape === "cell") add(anchor);
   else reason = "Неизвестная форма области.";
-  const resultCells = [...cells], targetIds = reason ? [] : actorIdsInCells(scene, space.id, resultCells, request.targets || {});
-  return { available: !reason && resultCells.length > 0, reason: reason || (resultCells.length ? "" : "Форма не содержит клеток поля."), space, shape, cells: resultCells, targetIds };
+  const resultCells = [...cells], targetOptions = Array.isArray(request.targets) ? { sourceActorId: request.sourceActorId } : request.targets || {}, targetIds = reason ? [] : actorIdsInCells(scene, space.id, resultCells, targetOptions);
+  const explicitTargetIds = Array.isArray(request.targets) && request.targets.some(item => lionwingTypedTargetObject(item))
+    ? (typedTargetsStatus(scene, request.targets, { sourceActorId: request.sourceActorId, intent: "target" }).targetIds || [])
+    : null;
+  const selectedTargetIds = explicitTargetIds ? explicitTargetIds.filter(id => targetIds.includes(id)) : targetIds;
+  const result = { available: !reason && resultCells.length > 0, reason: reason || (resultCells.length ? "" : "Форма не содержит клеток поля."), space, shape, cells: resultCells, targetIds: selectedTargetIds };
+  if (typedAnchorStatus) result.typedAnchor = typedAnchorStatus.normalized;
+  if (typedCellStatus) result.typedCells = typedCellStatus.typedTargets;
+  return result;
+}
+
+// LionWing's next technique adapters need one small, serializable target
+// vocabulary.  The vocabulary deliberately carries references only: the
+// authoritative Scene resolves ids, coordinates, ownership and visibility at
+// query time.  A client supplied actor/object snapshot is never copied into a
+// normalized target.
+const LIONWING_TYPED_TARGET_KINDS = Object.freeze(["actor", "cell", "terrain", "wall", "entity"]);
+const LIONWING_TYPED_TARGET_KIND_SET = new Set(LIONWING_TYPED_TARGET_KINDS);
+const LIONWING_TYPED_TARGET_FORBIDDEN_KEYS = new Set([
+  "snapshot", "clientSnapshot", "actorSnapshot", "objectSnapshot", "wallSnapshot", "terrainSnapshot",
+  "actorState", "clientState", "clientFlags", "confirmed", "available", "availability", "accessible",
+  "name", "label", "team", "profileId", "hp", "maxHp", "effects", "hidden", "knockedOut", "ownerId",
+  "width", "height", "occupiedWidth", "occupiedHeight", "x", "y",
+]);
+const LIONWING_TYPED_TARGET_TERRAIN_TYPES = new Set(["terrain", "difficult", "custom"]);
+const LIONWING_TYPED_TARGET_MANUAL_CODES = new Set([
+  "unsupported-edition", "invalid-target", "missing-kind", "unknown-kind", "missing-space", "invalid-space",
+  "missing-id", "invalid-id", "invalid-cell", "invalid-cells", "conflicting-fields", "snapshot-forbidden",
+  "ambiguous-target", "ownership-mismatch", "owner-not-found", "hidden-entity", "disappeared-entity",
+]);
+
+const lionwingTypedTargetPlain = value => Boolean(value && typeof value === "object" && !Array.isArray(value));
+const lionwingTypedTargetObject = value => lionwingTypedTargetPlain(value) && typeof value.kind === "string" && LIONWING_TYPED_TARGET_KIND_SET.has(value.kind.trim().toLowerCase());
+const lionwingTypedTargetText = (value, max = 180) => typeof value === "string" && value.trim().length > 0 && value.length <= max;
+const lionwingTypedTargetCell = value => {
+  if (typeof value === "string") {
+    const match = value.match(/^(0|[1-9]\d*),(0|[1-9]\d*)$/);
+    if (!match) return null;
+    const x = Number(match[1]), y = Number(match[2]);
+    return Number.isSafeInteger(x) && Number.isSafeInteger(y) ? `${x},${y}` : null;
+  }
+  if (!lionwingTypedTargetPlain(value) || !Number.isSafeInteger(Number(value.x)) || !Number.isSafeInteger(Number(value.y)) || Number(value.x) < 0 || Number(value.y) < 0) return null;
+  return `${Number(value.x)},${Number(value.y)}`;
+};
+const lionwingTypedTargetCellExtrasForbidden = value => {
+  if (Array.isArray(value)) return value.some(lionwingTypedTargetCellExtrasForbidden);
+  if (!lionwingTypedTargetPlain(value)) return false;
+  return Object.entries(value).some(([key, child]) => key !== "x" && key !== "y" || lionwingTypedTargetForbidden(child));
+};
+const lionwingTypedTargetForbidden = value => {
+  if (Array.isArray(value)) return value.some(lionwingTypedTargetForbidden);
+  if (!lionwingTypedTargetPlain(value)) return false;
+  return Object.entries(value).some(([key, child]) => {
+    if (LIONWING_TYPED_TARGET_FORBIDDEN_KEYS.has(key)) return true;
+    // A nested cell is intentionally allowed to carry x/y.  Other nested
+    // values still undergo the same check, so a snapshot cannot hide inside
+    // an owner or arbitrary metadata field.
+    if (key === "cell" || key === "cells") return lionwingTypedTargetCellExtrasForbidden(child);
+    return lionwingTypedTargetForbidden(child);
+  });
+};
+
+function normalizeTypedTarget(value, options = {}) {
+  if (!lionwingTypedTargetPlain(value)) return { ok: false, reason: "Типизированная цель должна быть объектом.", reasonCode: "invalid-target", target: null };
+  if (lionwingTypedTargetForbidden(value)) return { ok: false, reason: "Типизированная цель не принимает снимок или заявление клиента о доступности.", reasonCode: "snapshot-forbidden", target: null };
+  const kind = typeof value.kind === "string" ? value.kind.trim().toLowerCase() : "";
+  if (!kind) return { ok: false, reason: "Типизированной цели нужен kind.", reasonCode: "missing-kind", target: null };
+  if (!LIONWING_TYPED_TARGET_KIND_SET.has(kind)) return { ok: false, reason: `Неизвестный вид типизированной цели: ${kind}.`, reasonCode: "unknown-kind", target: null };
+  const spaces = [value.space, value.spaceId].filter(item => item != null).map(item => typeof item === "string" ? item.trim() : item);
+  if (spaces.length > 1 && spaces[0] !== spaces[1]) return { ok: false, reason: "Типизированная цель содержит два разных пространства.", reasonCode: "conflicting-fields", target: null };
+  const space = spaces[0];
+  if (!lionwingTypedTargetText(space, 120)) return { ok: false, reason: "Типизированной цели нужно пространство.", reasonCode: "missing-space", target: null };
+  const idValues = [value.id, value.targetId].filter(item => item != null).map(item => typeof item === "string" ? item.trim() : item);
+  if (idValues.length > 1 && idValues[0] !== idValues[1]) return { ok: false, reason: "Типизированная цель содержит два разных ID.", reasonCode: "conflicting-fields", target: null };
+  const id = idValues.length ? idValues[0] : null;
+  if (id != null && !lionwingTypedTargetText(id)) return { ok: false, reason: "ID типизированной цели должен быть строкой.", reasonCode: "invalid-id", target: null };
+  const ownerValues = [value.ownerActorId, value.owner].filter(item => item != null).map(item => typeof item === "string" ? item.trim() : item);
+  if (ownerValues.length > 1 && ownerValues[0] !== ownerValues[1]) return { ok: false, reason: "Типизированная цель содержит двух разных владельцев.", reasonCode: "conflicting-fields", target: null };
+  if (ownerValues.some(item => !lionwingTypedTargetText(item))) return { ok: false, reason: "Владелец типизированной цели должен быть ID участника.", reasonCode: "invalid-id", target: null };
+  const ownerActorId = ownerValues[0] || null;
+  const rawCells = value.cells == null ? null : value.cells;
+  if (rawCells != null && !Array.isArray(rawCells)) return { ok: false, reason: "Поле cells типизированной цели должно быть массивом.", reasonCode: "invalid-cells", target: null };
+  const cells = rawCells == null ? [] : rawCells.map(lionwingTypedTargetCell);
+  if (cells.some(cell => !cell) || new Set(cells).size !== cells.length) return { ok: false, reason: "Типизированная цель содержит некорректные или повторные клетки.", reasonCode: "invalid-cells", target: null };
+  const cell = value.cell == null ? null : lionwingTypedTargetCell(value.cell);
+  if (value.cell != null && !cell) return { ok: false, reason: "Клетка типизированной цели должна быть канонической парой координат.", reasonCode: "invalid-cell", target: null };
+  if (cell && cells.length && !cells.includes(cell)) return { ok: false, reason: "Поле cell не входит в поле cells типизированной цели.", reasonCode: "conflicting-fields", target: null };
+  const normalizedCells = [...new Set([...(cell ? [cell] : []), ...cells])];
+  if (["actor", "terrain", "wall", "entity"].includes(kind) && !id) return { ok: false, reason: `Типизированной цели ${kind} нужен id.`, reasonCode: "missing-id", target: null };
+  if (kind === "cell" && !normalizedCells.length) return { ok: false, reason: "Цели-клетке нужна cell или cells.", reasonCode: "invalid-cell", target: null };
+  if (kind === "cell" && id) return { ok: false, reason: "Цель-клетка не принимает id персонажа или сущности.", reasonCode: "conflicting-fields", target: null };
+  const entityKind = value.entityKind == null ? (value.type == null ? null : value.type) : value.entityKind;
+  if (entityKind != null && !["actor", "object", "marker"].includes(entityKind)) return { ok: false, reason: "entityKind должен быть actor, object или marker.", reasonCode: "invalid-target", target: null };
+  if (kind === "actor" && entityKind != null && entityKind !== "actor") return { ok: false, reason: "Цель-actor должна ссылаться на actor.", reasonCode: "invalid-target", target: null };
+  if (kind === "terrain" && entityKind != null && entityKind !== "object") return { ok: false, reason: "Цель-terrain должна ссылаться на object.", reasonCode: "invalid-target", target: null };
+  if (kind === "wall" && entityKind != null) return { ok: false, reason: "Цель-wall не принимает entityKind.", reasonCode: "invalid-target", target: null };
+  if (kind === "cell" && entityKind != null) return { ok: false, reason: "Цель-cell не принимает entityKind.", reasonCode: "invalid-target", target: null };
+  const target = { kind, space: String(space).trim() };
+  if (id) target.id = String(id).trim();
+  if (ownerActorId) target.ownerActorId = String(ownerActorId).trim();
+  if (cell) target.cell = cell;
+  if (normalizedCells.length) target.cells = normalizedCells;
+  if (entityKind != null) target.entityKind = entityKind;
+  return { ok: true, reason: "", reasonCode: "", target };
+}
+
+function normalizeTypedTargets(value, options = {}) {
+  const list = Array.isArray(value) ? value : value == null ? [] : [value];
+  if (!list.length) return { ok: false, reason: "Не выбраны типизированные цели.", reasonCode: "invalid-target", targets: [], errors: [] };
+  const targets = [], errors = [];
+  for (const item of list) {
+    const normalized = normalizeTypedTarget(item, options);
+    if (!normalized.ok) errors.push(normalized);
+    else targets.push(normalized.target);
+  }
+  const first = errors[0];
+  return { ok: !errors.length, reason: first?.reason || "", reasonCode: first?.reasonCode || "", targets, errors };
+}
+
+function lionwingTypedTargetSceneIsLionwing(scene) {
+  if (!scene || scene.rulesEdition && scene.rulesEdition !== "lionwing") return false;
+  if (scene.rulesEdition === "lionwing") return true;
+  if (scene.lionwing && typeof scene.lionwing === "object") return true;
+  return (scene.actors || []).some(actor => actor?.rulesEdition === "lionwing" || String(actor?.profileId || "").startsWith("lionwing."));
+}
+
+function lionwingTypedTargetFailure(normalized, reason, reasonCode, extras = {}) {
+  const manualFallback = extras.manualFallback == null ? LIONWING_TYPED_TARGET_MANUAL_CODES.has(reasonCode) : Boolean(extras.manualFallback);
+  return {
+    available: false,
+    reason,
+    reasonCode,
+    code: reasonCode,
+    manualFallback,
+    manual: manualFallback,
+    fallback: manualFallback ? "manual" : null,
+    kind: normalized?.kind || null,
+    space: normalized?.space || null,
+    id: normalized?.id || null,
+    cell: normalized?.cell || null,
+    cells: normalized?.cells ? [...normalized.cells] : [],
+    ownerActorId: normalized?.ownerActorId || null,
+    normalized: normalized ? clone(normalized) : null,
+    ...extras,
+  };
+}
+
+function lionwingTypedTargetSuccess(normalized, extras = {}) {
+  return {
+    available: true,
+    reason: "",
+    reasonCode: "",
+    code: "",
+    manualFallback: false,
+    manual: false,
+    fallback: null,
+    kind: normalized.kind,
+    space: normalized.space,
+    id: normalized.id || null,
+    cell: normalized.cell || null,
+    cells: normalized.cells ? [...normalized.cells] : [],
+    ownerActorId: normalized.ownerActorId || null,
+    normalized: clone(normalized),
+    ...extras,
+  };
+}
+
+function lionwingTypedTargetEntityCells(entity, entityKind) {
+  if (!entity) return [];
+  if (entityKind === "actor" || entity.kind === "hero" || entity.kind === "enemy" || entity.kind === "crowd" || entity.profileId) {
+    const width = Math.max(1, Number(entity.occupiedWidth || entity.width || 1)), height = Math.max(1, Number(entity.occupiedHeight || entity.height || 1));
+    if (!Number.isInteger(Number(entity.x)) || !Number.isInteger(Number(entity.y))) return [];
+    const cells = [];
+    for (let oy = 0; oy < height; oy += 1) for (let ox = 0; ox < width; ox += 1) cells.push(`${Number(entity.x) + ox},${Number(entity.y) + oy}`);
+    return cells;
+  }
+  if (Array.isArray(entity.cells)) return entity.cells.map(lionwingTypedTargetCell).filter(Boolean);
+  if (Number.isInteger(Number(entity.x)) && Number.isInteger(Number(entity.y))) return [`${Number(entity.x)},${Number(entity.y)}`];
+  return [];
+}
+
+function lionwingTypedTargetSpaceCells(scene, normalized, cells = [], options = {}) {
+  const space = (scene?.spaces || []).find(item => item.id === normalized.space);
+  if (!space) return lionwingTypedTargetFailure(normalized, "Пространство типизированной цели не найдено.", "invalid-space", { spaceObject: null, cells: [...cells] });
+  const width = Number(space.width), height = Number(space.height);
+  if (!Number.isSafeInteger(width) || !Number.isSafeInteger(height) || width < 0 || height < 0) return lionwingTypedTargetFailure(normalized, "Пространство типизированной цели содержит некорректные границы.", "invalid-space", { spaceObject: space, cells: [...cells] });
+  const invalidCells = cells.filter(cell => {
+    const point = lionwingTypedTargetCell(cell), [x, y] = point ? point.split(",").map(Number) : [-1, -1];
+    return !point || x < 0 || y < 0 || x >= width || y >= height;
+  });
+  if (invalidCells.length) return lionwingTypedTargetFailure(normalized, "Клетка типизированной цели находится за пределами поля.", "out-of-bounds", { spaceObject: space, cells: [...cells], invalidCells });
+  const rawRemoved = typeof removedCellKeys === "function" ? removedCellKeys(scene, normalized.space) : new Set((scene?.topology?.cuts || []).filter(cut => cut.space === normalized.space).flatMap(cut => cut.cells || []));
+  const removed = new Set([...rawRemoved].map(lionwingTypedTargetCell).filter(Boolean));
+  const removedCells = cells.filter(cell => removed.has(cell));
+  if (removedCells.length && !options.allowRemoved) return lionwingTypedTargetFailure(normalized, "Удалённая клетка не может быть типизированной целью.", "removed-cell", { spaceObject: space, cells: [...cells], removedCells });
+  return { ok: true, space, removed, cells: [...cells] };
+}
+
+function lionwingTypedTargetOwnerStatus(scene, normalized, entity) {
+  if (!normalized.ownerActorId) return { ok: true, ownerActorId: entity?.ownerActorId || null };
+  const owner = actorById(scene, normalized.ownerActorId);
+  if (!owner) return { ok: false, result: lionwingTypedTargetFailure(normalized, "Владелец типизированной цели больше не находится на Сцене.", "owner-not-found") };
+  const actual = entity?.ownerActorId || null;
+  if (actual !== normalized.ownerActorId) return { ok: false, result: lionwingTypedTargetFailure(normalized, "Типизированная цель принадлежит другому участнику.", "ownership-mismatch", { actualOwnerActorId: actual }) };
+  return { ok: true, ownerActorId: actual };
+}
+
+function lionwingTypedTargetEntityVisibility(scene, entity, entityKind, normalized, request = {}) {
+  if (!entity) return lionwingTypedTargetFailure(normalized, "Сущность типизированной цели больше не находится на Сцене.", "unknown-id");
+  if (entity.hidden || entity.visibility === "hidden" || entityKind === "marker" && entity.kind === "hidden") return lionwingTypedTargetFailure(normalized, "Скрытая сущность не может быть выбрана типизированной целью.", "hidden-entity");
+  if (entityKind === "actor" && typeof effectPresenceStatus === "function") {
+    const presence = effectPresenceStatus(scene, entity.id);
+    if (presence.disappeared && !request.includeDisappeared) return lionwingTypedTargetFailure(normalized, "Исчезнувший персонаж сейчас недоступен как цель.", "disappeared-entity");
+  }
+  if (entityKind === "actor" && entity.knockedOut && !request.includeKnockedOut) return lionwingTypedTargetFailure(normalized, "Выведенный из боя персонаж недоступен как цель.", "knocked-out-entity");
+  return null;
+}
+
+function typedTargetStatus(scene, request = {}) {
+  const wrapper = lionwingTypedTargetPlain(request) && (request.target || request.typedTarget) ? (request.target || request.typedTarget) : request;
+  const normalizedResult = normalizeTypedTarget(wrapper, request);
+  if (!normalizedResult.ok) return lionwingTypedTargetFailure(null, normalizedResult.reason, normalizedResult.reasonCode, { normalized: null });
+  const normalized = normalizedResult.target;
+  if (!lionwingTypedTargetSceneIsLionwing(scene)) return lionwingTypedTargetFailure(normalized, "Типизированные цели доступны только в Сцене редакции LionWing.", "unsupported-edition");
+  const sourceActorId = request.sourceActorId || request.sourceId || null;
+  const source = sourceActorId ? actorById(scene, sourceActorId) : null;
+  if (sourceActorId && !source) return lionwingTypedTargetFailure(normalized, "Исполнитель типизированной цели не найден.", "unknown-source");
+  if (source && source.hidden) return lionwingTypedTargetFailure(normalized, "Скрытый исполнитель не может выбирать типизированную цель.", "hidden-source");
+  if (request.range != null && (!Number.isFinite(Number(request.range)) || Number(request.range) < 0)) return lionwingTypedTargetFailure(normalized, "Дальность типизированной цели должна быть неотрицательным числом.", "invalid-target");
+  if (source && source.space !== normalized.space && request.allowCrossSpace !== true) return lionwingTypedTargetFailure(normalized, "Типизированная цель находится в другом пространстве.", "space-mismatch");
+  if (normalized.kind === "cell") {
+    if (normalized.ownerActorId) return lionwingTypedTargetFailure(normalized, "У отдельной клетки нет однозначного владельца; передайте выбор Нарратору.", "ownership-mismatch");
+    const cellStatus = lionwingTypedTargetSpaceCells(scene, normalized, normalized.cells || [], request);
+    if (!cellStatus.ok) return cellStatus;
+    const occupants = [], terrainIds = [], blockingTerrainIds = [];
+    for (const actor of scene.actors || []) {
+      const actorCells = lionwingTypedTargetEntityCells(actor, "actor");
+      if (actor.space !== normalized.space || actor.hidden || actor.knockedOut || typeof effectPresenceStatus === "function" && effectPresenceStatus(scene, actor.id).disappeared) continue;
+      if (actorCells.some(cell => normalized.cells.includes(cell))) occupants.push(actor.id);
+    }
+    for (const object of scene.objects || []) {
+      if (object.space !== normalized.space || object.hidden || object.visibility === "hidden" || ![...LIONWING_TYPED_TARGET_TERRAIN_TYPES].includes(object.type)) continue;
+      if (lionwingTypedTargetEntityCells(object, "object").some(cell => normalized.cells.includes(cell))) {
+        terrainIds.push(object.id);
+        if (object.type === "terrain") blockingTerrainIds.push(object.id);
+      }
+    }
+    if (request.range != null && source && (normalized.cells || []).some(cell => modifierRangeDistance(scene, source, { space: normalized.space, ...spatialPoint(cell) }) > Number(request.range))) return lionwingTypedTargetFailure(normalized, "Клетка типизированной цели находится вне допустимой дальности.", "out-of-range", { spaceObject: cellStatus.space, occupants, terrainIds });
+    const requireFree = request.requireFree === true || request.placement === true || request.intent === "placement" || request.mode === "placement";
+    if (requireFree && occupants.length) return lionwingTypedTargetFailure(normalized, "Клетка типизированной цели уже занята.", "occupied-cell", { spaceObject: cellStatus.space, occupants, terrainIds });
+    if (requireFree && blockingTerrainIds.length) return lionwingTypedTargetFailure(normalized, "Клетка типизированной цели занята непроходимой местностью.", "blocked-terrain", { spaceObject: cellStatus.space, occupants, terrainIds, blockingTerrainIds });
+    return lionwingTypedTargetSuccess(normalized, { spaceObject: cellStatus.space, occupants, occupantIds: [...occupants], terrainIds, blockingTerrainIds, occupied: occupants.length > 0, blocked: blockingTerrainIds.length > 0 });
+  }
+  const collections = normalized.kind === "actor"
+    ? [{ entityKind: "actor", values: scene.actors || [] }]
+    : normalized.kind === "terrain"
+      ? [{ entityKind: "object", values: (scene.objects || []).filter(object => LIONWING_TYPED_TARGET_TERRAIN_TYPES.has(object.type)) }]
+      : normalized.kind === "wall"
+        ? [{ entityKind: "wall", values: scene.walls || [] }]
+        : [{ entityKind: "actor", values: scene.actors || [] }, { entityKind: "object", values: scene.objects || [] }, { entityKind: "marker", values: scene.markers || [] }];
+  const entityKindFilter = normalized.entityKind || null;
+  const matches = collections.flatMap(collection => collection.values.filter(entity => entity.id === normalized.id && (!entityKindFilter || collection.entityKind === entityKindFilter)).map(entity => ({ entity, entityKind: collection.entityKind })));
+  if (!matches.length) return lionwingTypedTargetFailure(normalized, `Сущность с ID «${normalized.id}» не найдена в пространстве Сцены.`, "unknown-id");
+  if (matches.length > 1) return lionwingTypedTargetFailure(normalized, "ID типизированной цели неоднозначен: найдено несколько сущностей.", "ambiguous-target", { matches: matches.map(item => item.entityKind) });
+  const { entity, entityKind } = matches[0];
+  if (entity.space !== normalized.space) return lionwingTypedTargetFailure(normalized, "Типизированная цель находится в другом пространстве.", "space-mismatch", { entity, entityKind });
+  const visibilityFailure = lionwingTypedTargetEntityVisibility(scene, entity, entityKind, normalized, request);
+  if (visibilityFailure) return visibilityFailure;
+  const ownerStatus = lionwingTypedTargetOwnerStatus(scene, normalized, entity);
+  if (!ownerStatus.ok) return ownerStatus.result;
+  if (normalized.kind === "wall") {
+    const endpoints = [lionwingTypedTargetCell(entity.a), lionwingTypedTargetCell(entity.b)];
+    if (endpoints.some(cell => !cell)) return lionwingTypedTargetFailure(normalized, "Стена не содержит двух канонических граничных клеток.", "invalid-target", { entity, entityKind });
+    const endpointStatus = lionwingTypedTargetSpaceCells(scene, normalized, endpoints, request);
+    if (!endpointStatus.ok) return endpointStatus;
+    if (normalized.cells?.some(cell => !endpoints.includes(cell))) return lionwingTypedTargetFailure(normalized, "Клетка типизированной стены не совпадает с её граничными клетками.", "target-cell-mismatch", { entity, entityKind, endpoints });
+    return lionwingTypedTargetSuccess(normalized, { target: clone(entity), entity, entityKind, spaceObject: endpointStatus.space, endpoints, cells: endpoints });
+  }
+  const entityCells = lionwingTypedTargetEntityCells(entity, entityKind);
+  if (entityKind === "actor" && !entityCells.length) return lionwingTypedTargetFailure(normalized, "Персонаж не содержит корректной позиции на поле.", "invalid-target", { target: clone(entity), entity, entityKind });
+  if (entityKind === "object" && normalized.kind === "terrain" && (!Array.isArray(entity.cells) || !entity.cells.length || entityCells.length !== entity.cells.length)) return lionwingTypedTargetFailure(normalized, "Местность не содержит корректных клеток поля.", "invalid-target", { target: clone(entity), entity, entityKind });
+  if (entityKind !== "actor" && Array.isArray(entity.cells) && entity.cells.length !== entityCells.length) return lionwingTypedTargetFailure(normalized, "Сущность содержит некорректные клетки поля.", "invalid-target", { target: clone(entity), entity, entityKind });
+  if (entityKind !== "actor" && new Set(entityCells).size !== entityCells.length) return lionwingTypedTargetFailure(normalized, "Сущность содержит повторные клетки поля.", "invalid-target", { target: clone(entity), entity, entityKind });
+  const entityCellStatus = entityCells.length ? lionwingTypedTargetSpaceCells(scene, normalized, entityCells, request) : { ok: true, space: (scene.spaces || []).find(item => item.id === normalized.space), removed: new Set(), cells: [] };
+  if (!entityCellStatus.ok) return entityCellStatus;
+  if (normalized.cells?.some(cell => !entityCells.includes(cell))) return lionwingTypedTargetFailure(normalized, "Выбранная клетка не принадлежит указанной сущности.", "target-cell-mismatch", { target: clone(entity), entity, entityKind, entityCells });
+  if (normalized.cell && !entityCells.includes(normalized.cell)) return lionwingTypedTargetFailure(normalized, "Выбранная клетка не принадлежит указанной сущности.", "target-cell-mismatch", { target: clone(entity), entity, entityKind, entityCells });
+  if (request.range != null && source && entityKind !== "wall" && (!entityCells.length || entityCells.every(cell => modifierRangeDistance(scene, source, { space: normalized.space, ...spatialPoint(cell) }) > Number(request.range)))) return lionwingTypedTargetFailure(normalized, "Типизированная цель находится вне допустимой дальности.", "out-of-range", { target: clone(entity), entity, entityKind, entityCells });
+  return lionwingTypedTargetSuccess(normalized, { target: clone(entity), entity, entityKind, spaceObject: entityCellStatus.space, entityCells, cells: entityCells, actualOwnerActorId: ownerStatus.ownerActorId });
+}
+
+function typedTargetsStatus(scene, value, options = {}) {
+  const normalized = normalizeTypedTargets(value, options);
+  if (!normalized.ok) return { available: false, reason: normalized.reason, reasonCode: normalized.reasonCode, code: normalized.reasonCode, manualFallback: true, manual: true, fallback: "manual", typedTargets: [], statuses: [], targetIds: [], targetCells: [], terrainIds: [], wallIds: [], entityIds: [] };
+  const statuses = normalized.targets.map(target => typedTargetStatus(scene, { ...options, target }));
+  const firstFailure = statuses.find(status => !status.available);
+  const spaces = [...new Set(normalized.targets.map(target => target.space))];
+  const sameSpaceRequired = options.allowCrossSpace !== true && options.sameSpace !== false;
+  if (!firstFailure && sameSpaceRequired && spaces.length > 1) return { available: false, reason: "Типизированные цели находятся в разных пространствах.", reasonCode: "space-mismatch", code: "space-mismatch", manualFallback: false, manual: false, fallback: null, typedTargets: normalized.targets.map(clone), statuses, targetIds: [], targetCells: [], terrainIds: [], wallIds: [], entityIds: [] };
+  const unique = values => [...new Set(values.filter(Boolean))];
+  const targetIds = unique(statuses.filter(status => status.available && status.entityKind === "actor").map(status => status.id));
+  const targetCells = unique(statuses.filter(status => status.available && status.kind === "cell").flatMap(status => status.cells || []));
+  const terrainIds = unique(statuses.filter(status => status.available && status.kind === "terrain").map(status => status.id));
+  const wallIds = unique(statuses.filter(status => status.available && status.kind === "wall").map(status => status.id));
+  const entityIds = unique(statuses.filter(status => status.available && status.kind === "entity").map(status => status.id));
+  const available = !firstFailure;
+  return {
+    available,
+    reason: firstFailure?.reason || "",
+    reasonCode: firstFailure?.reasonCode || "",
+    code: firstFailure?.reasonCode || "",
+    manualFallback: Boolean(firstFailure?.manualFallback),
+    manual: Boolean(firstFailure?.manualFallback),
+    fallback: firstFailure?.manualFallback ? "manual" : null,
+    typedTargets: normalized.targets.map(clone),
+    statuses,
+    targetIds,
+    targetCells,
+    terrainIds,
+    wallIds,
+    entityIds,
+    spaces,
+    count: normalized.targets.length,
+  };
+}
+
+function typedTargetInputsFromRequest(request = {}) {
+  if (!lionwingTypedTargetPlain(request)) return null;
+  if (request.typedTargets != null) return request.typedTargets;
+  if (request.typedTarget != null) return request.typedTarget;
+  if (request.target != null && lionwingTypedTargetObject(request.target)) return request.target;
+  if (Array.isArray(request.targets) && request.targets.some(item => lionwingTypedTargetObject(item))) return request.targets.filter(item => lionwingTypedTargetObject(item));
+  if (lionwingTypedTargetObject(request.targets)) return request.targets;
+  const typedIds = Array.isArray(request.targetIds) && request.targetIds.filter(item => lionwingTypedTargetObject(item));
+  if (typedIds?.length) return typedIds;
+  if (lionwingTypedTargetObject(request.targetIds)) return request.targetIds;
+  const typedCells = Array.isArray(request.targetCells) && request.targetCells.filter(item => lionwingTypedTargetObject(item));
+  if (typedCells?.length) return typedCells;
+  return lionwingTypedTargetObject(request.targetCells) ? request.targetCells : null;
+}
+
+function normalizeLionwingActionTargetRequest(scene, request = {}) {
+  const typedInput = typedTargetInputsFromRequest(request);
+  let typedStatus = null;
+  const coordinateTargets = [];
+  if (typedInput != null) {
+    typedStatus = typedTargetsStatus(scene, typedInput, { sourceActorId: request.sourceActorId || request.actorId, intent: "target" });
+    if (!typedStatus.available) return { request, errors: [typedStatus.reason || "Типизированная цель недоступна."], typedTargets: typedStatus };
+    const unsupportedKind = typedStatus.statuses.find(status => !["actor", "cell"].includes(status.kind));
+    if (unsupportedKind) return { request, errors: ["Это действие ещё не поддерживает типизированную местность, стену или принадлежащую сущность; передайте выбор Нарратору."], typedTargets: { ...typedStatus, available: false, reason: "Базовое действие ещё не поддерживает эту типизированную цель.", reasonCode: "manual-only-kind", code: "manual-only-kind", manualFallback: true, manual: true, fallback: "manual" } };
+  }
+  const legacyIds = Array.isArray(request.targetIds) ? request.targetIds.filter(item => typeof item === "string") : [];
+  const legacyCells = Array.isArray(request.targetCells) ? request.targetCells.filter(item => typeof item === "string") : [];
+  const next = typedStatus ? { ...request, targetIds: [...new Set([...legacyIds, ...typedStatus.targetIds])], targetCells: [...new Set([...legacyCells, ...typedStatus.targetCells])] } : { ...request };
+  if (lionwingTypedTargetPlain(next.options)) next.options = { ...next.options };
+  const coordinateFields = [
+    [next, "destination"], [next, "attackModifierDestination"], [next, "armamentDestination"],
+    [next.options, "destination"], [next.options, "reappearance"],
+  ];
+  for (const [container, field] of coordinateFields) {
+    const value = container?.[field];
+    if (!lionwingTypedTargetObject(value)) continue;
+    const status = typedTargetStatus(scene, { sourceActorId: request.sourceActorId || request.actorId, target: value, intent: "target" });
+    if (!status.available || status.kind !== "cell" || (status.cells || []).length !== 1) return { request, errors: [status.reason || `Типизированная клетка ${field} недоступна.`], typedTargets: status };
+    coordinateTargets.push(status.normalized);
+    container[field] = { space: status.space, ...spatialPoint(status.cell) };
+  }
+  if (coordinateTargets.length) {
+    const allTargets = [...(typedStatus?.typedTargets || []), ...coordinateTargets];
+    typedStatus = typedTargetsStatus(scene, allTargets, { sourceActorId: request.sourceActorId || request.actorId, intent: "target" });
+  }
+  return { request: next, errors: [], typedTargets: typedStatus };
 }
 
 function targetStatus(scene, request = {}) {
+  const typedInput = typedTargetInputsFromRequest(request);
+  const typedStatus = typedInput == null ? null : typedTargetsStatus(scene, typedInput, { sourceActorId: request.sourceActorId, intent: "target", includeKnockedOut: Boolean(request.includeKnockedOut), includeDisappeared: Boolean(request.includeDisappeared) });
+  if (typedStatus && !typedStatus.available) return { ...typedStatus, targetIds: typedStatus.targetIds || [], targetCells: typedStatus.targetCells || [] };
   const source = actorById(scene, request.sourceActorId);
-  const requested = [...new Set((Array.isArray(request.targetIds) ? request.targetIds : []).filter(id => typeof id === "string"))];
+  const requested = [...new Set([
+    ...(Array.isArray(request.targetIds) ? request.targetIds : []).filter(id => typeof id === "string"),
+    ...(typedStatus?.targetIds || []),
+  ])];
   const rawMinimum = Number(request.min ?? 1), rawMaximum = Number(request.max ?? 40);
-  if (!Number.isFinite(rawMinimum) || !Number.isFinite(rawMaximum) || rawMinimum < 0 || rawMaximum < rawMinimum) return { available: false, reason: "Некорректные ограничения целей.", targetIds: [], invalidIds: requested };
+  if (!Number.isFinite(rawMinimum) || !Number.isFinite(rawMaximum) || rawMinimum < 0 || rawMaximum < rawMinimum) return { available: false, reason: "Некорректные ограничения целей.", targetIds: [], invalidIds: requested, ...(typedStatus ? { typedTargets: typedStatus.typedTargets, targetCells: typedStatus.targetCells } : {}) };
   const minimum = Math.floor(rawMinimum), maximum = Math.floor(rawMaximum);
-  if (!source) return { available: false, reason: "Исполнитель не найден.", targetIds: [], invalidIds: requested };
+  if (!source) return { available: false, reason: "Исполнитель не найден.", targetIds: [], invalidIds: requested, ...(typedStatus ? { typedTargets: typedStatus.typedTargets, targetCells: typedStatus.targetCells } : {}) };
   const valid = new Set(actorIdsInRange(scene, source.id, request.range ?? Infinity, {
     audience: request.audience || "any",
     team: request.team,
@@ -156,10 +555,12 @@ function targetStatus(scene, request = {}) {
     excludeIds: request.excludeIds,
   }).filter(id => request.ignoreWalls || wallTargetingStatus(scene, source.id, id, { range: request.range }).available));
   const invalidIds = requested.filter(id => !valid.has(id));
-  if (invalidIds.length) return { available: false, reason: "Среди целей есть недоступные персонажи.", targetIds: requested.filter(id => valid.has(id)), invalidIds };
-  if (requested.length < minimum) return { available: false, reason: `Нужно выбрать целей: минимум ${minimum}.`, targetIds: requested, invalidIds: [] };
-  if (requested.length > maximum) return { available: false, reason: `Можно выбрать целей: максимум ${maximum}.`, targetIds: requested.slice(0, maximum), invalidIds: requested.slice(maximum) };
-  return { available: true, reason: "", targetIds: requested, invalidIds: [] };
+  const extra = typedStatus ? { typedTargets: typedStatus.typedTargets, targetCells: typedStatus.targetCells, typedTargetStatuses: typedStatus.statuses } : {};
+  const selectionCount = requested.length + Number(typedStatus?.targetCells?.length || 0) + Number(typedStatus?.terrainIds?.length || 0) + Number(typedStatus?.wallIds?.length || 0) + Number(typedStatus?.entityIds?.length || 0);
+  if (invalidIds.length) return { available: false, reason: "Среди целей есть недоступные персонажи.", targetIds: requested.filter(id => valid.has(id)), invalidIds, ...extra };
+  if (selectionCount < minimum) return { available: false, reason: `Нужно выбрать целей: минимум ${minimum}.`, targetIds: requested, invalidIds: [], ...extra };
+  if (selectionCount > maximum) return { available: false, reason: `Можно выбрать целей: максимум ${maximum}.`, targetIds: requested.slice(0, maximum), invalidIds: requested.slice(maximum), ...extra };
+  return { available: true, reason: "", targetIds: requested, invalidIds: [], ...extra };
 }
 
 function resourceStatus(scene, actorId, costs = {}) {
@@ -287,6 +688,15 @@ function effectMovementStatus(scene, actorId, request = {}) {
 }
 
 function effectCellOccupancyStatus(scene, actorId, request = {}) {
+  const typedDestination = (lionwingTypedTargetPlain(request.destination) && request.destination.kind ? request.destination : null)
+    || (lionwingTypedTargetPlain(request.typedTarget) && request.typedTarget.kind ? request.typedTarget : null)
+    || (lionwingTypedTargetObject(request) ? request : null);
+  let typedDestinationStatus = null;
+  if (typedDestination) {
+    typedDestinationStatus = typedTargetStatus(scene, { ...request, sourceActorId: actorId, target: typedDestination, intent: "target", includeKnockedOut: true });
+    if (!typedDestinationStatus.available || typedDestinationStatus.kind !== "cell" || (typedDestinationStatus.cells || []).length !== 1) return { ...typedDestinationStatus, actor: actorById(scene, actorId), blockers: [] };
+    request = { ...request, space: typedDestinationStatus.space, ...spatialPoint(typedDestinationStatus.cell) };
+  }
   const actor = request.actor || actorById(scene, actorId) || null, space = request.space || actor?.space, x = Number(request.x), y = Number(request.y);
   if (!actor || !space || !Number.isInteger(x) || !Number.isInteger(y)) return { available: false, reason: "Некорректная клетка назначения.", actor, blockers: [] };
   const battlefield = (scene.spaces || []).find(item => item.id === space);
@@ -302,7 +712,7 @@ function effectCellOccupancyStatus(scene, actorId, request = {}) {
     .filter(other => !compoundId || other.team !== actor.team || String(other.compoundId || "").trim() !== compoundId)
     .filter(other => !banished && !hasEffect(scene, other, "positive.изгнан"));
   const footprint=[];for(let oy=0;oy<height;oy++)for(let ox=0;ox<width;ox++)footprint.push(`${x+ox},${y+oy}`);const terrain = !banished && (scene.objects || []).find(object => object.space === space && object.type === "terrain" && (object.cells || []).some(cell=>footprint.includes(cell)));
-  return { available: blockers.length === 0 && !terrain, reason: blockers.length ? "Клетка назначения уже занята." : terrain ? "Клетка занята непроходимой местностью." : "", actor, blockers: terrain ? blockers.concat(terrain) : blockers };
+  return { available: blockers.length === 0 && !terrain, reason: blockers.length ? "Клетка назначения уже занята." : terrain ? "Клетка занята непроходимой местностью." : "", actor, blockers: terrain ? blockers.concat(terrain) : blockers, ...(typedDestinationStatus ? { typedTarget: typedDestinationStatus.normalized } : {}) };
 }
 
 function effectAttackStatus(scene, sourceActorId, targetIds = []) {
@@ -513,3 +923,34 @@ function movementTraceStatus(scene, request = {}) {
   }
   return { available: traces.length > 0, reason: traces.length ? "" : "На поле ещё нет зафиксированных перемещений.", space, traces };
 }
+
+// scene-engine.js assembles the public Engine object after this file loads.
+// Keep the contract available both as a small standalone bridge and on that
+// object without widening the reducer or adding a second writer.
+(function installLionwingTargetContract(root) {
+  const api = Object.freeze({
+    LIONWING_TYPED_TARGET_KINDS,
+    normalizeTypedTarget,
+    normalizeTypedTargets,
+    typedTargetStatus,
+    typedTargetsStatus,
+    targetContractStatus: typedTargetStatus,
+    normalizeLionwingActionTargetRequest,
+  });
+  root.DAWN_LIONWING_TARGETS = api;
+  const descriptor = Object.getOwnPropertyDescriptor(root, "DAWN_SCENE_ENGINE");
+  if (descriptor && !descriptor.configurable) {
+    if (descriptor.value && typeof descriptor.value === "object") Object.assign(descriptor.value, api);
+    return;
+  }
+  let engine = descriptor?.value;
+  Object.defineProperty(root, "DAWN_SCENE_ENGINE", {
+    configurable: true,
+    enumerable: true,
+    get: () => engine,
+    set: value => {
+      engine = value;
+      if (value && typeof value === "object") Object.assign(value, api);
+    },
+  });
+})(typeof window === "object" ? window : globalThis);
