@@ -1,6 +1,14 @@
 "use strict";
 
 $$('[data-mode]').forEach(button=>button.addEventListener("click",()=>setMode(button.dataset.mode)));
+document.querySelector('.mode-page[data-page="build"]').addEventListener("click",event=>{
+  const mode=event.target.closest("[data-hero-view-mode]"),status=event.target.closest("[data-hero-sheet-status]"),tools=event.target.closest("[data-hero-sheet-tools]"),table=event.target.closest("[data-hero-sheet-table]");
+  if(mode){setHeroViewMode(mode.dataset.heroViewMode);return}
+  if(status){heroSheetTechniqueStatus=status.dataset.heroSheetStatus;renderHeroPlaySheet();return}
+  if(tools){openToolsDicePreset();return}
+  if(table){setMode("play");return}
+});
+$('hero-play-sheet').addEventListener("click",event=>{const attr=event.target.closest("[data-sheet-tool-attr]"),skill=event.target.closest("[data-sheet-tool-skill]"),ability=event.target.closest("[data-sheet-tool-ability]");if(attr)openToolsDicePreset({attr:attr.dataset.sheetToolAttr});else if(skill)openToolsDicePreset({skillId:skill.dataset.sheetToolSkill});else if(ability)openToolsDicePreset({abilityKey:ability.dataset.sheetToolAbility})});
 $("rules-index").addEventListener("click",event=>{const link=event.target.closest('a[href^="#rules-"]');if(!link)return;const chapter=document.querySelector(link.getAttribute("href"));if(chapter?.matches(".rules-chapter"))chapter.open=true;});
 $("rules-search").addEventListener("input",renderRules);
 $("rules-filters").addEventListener("click",event=>{const button=event.target.closest("[data-rules-audience]");if(!button)return;rulesAudience=button.dataset.rulesAudience;renderRules();});
