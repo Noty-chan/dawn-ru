@@ -80,6 +80,57 @@ function normalizeEvent(event, options = {}) {
   };
 }
 
+// Prompt metadata is part of the persisted event contract.  Keep the
+// enrichment here so prompts created by an old helper can still be restored,
+// while new routes carry enough provenance for an imported response to be
+// checked without trusting client supplied actor or option data.
+function promptContractPayload(scene, event, payload = {}, defaults = {}) {
+  const sourceActorId = payload.sourceActorId == null ? payload.ownerActorId == null ? event?.actorId || null : payload.ownerActorId : payload.sourceActorId;
+  const participantIds = payload.participantIds == null
+    ? [sourceActorId, payload.targetId].filter(Boolean)
+    : Array.isArray(payload.participantIds)
+      ? [...new Set([...payload.participantIds, sourceActorId, payload.targetId].filter(Boolean))]
+      : payload.participantIds;
+  const sourceEventId = payload.sourceEventId == null ? payload.context?.sourceEventId == null ? defaults.sourceEventId ?? null : payload.context.sourceEventId : payload.sourceEventId;
+  const sourceEventType = payload.sourceEventType == null ? payload.context?.sourceEventType == null ? defaults.sourceEventType ?? null : payload.context.sourceEventType : payload.sourceEventType;
+  const priority = payload.priority == null ? Number(defaults.priority ?? 0) : payload.priority;
+  const tieBreak = payload.tieBreak == null ? String(defaults.tieBreak ?? "000000") : payload.tieBreak;
+  const sceneVersion = payload.sceneVersion == null ? Number(scene?.version || 0) + 1 : payload.sceneVersion;
+  const sourceSceneVersion = payload.sourceSceneVersion == null ? Number(scene?.version || 0) : payload.sourceSceneVersion;
+  const expiresAt = payload.expiresAt == null ? Date.now() + 120000 : payload.expiresAt;
+  return {
+    ...clone(payload),
+    sourceActorId,
+    ownerActorId: payload.ownerActorId == null ? sourceActorId : payload.ownerActorId,
+    controller: payload.controller == null ? (defaults.controller === "narrator" ? "narrator" : "source") : payload.controller,
+    participantIds,
+    priority,
+    tieBreak,
+    sourceEventId,
+    sourceEventType,
+    sourceSceneVersion,
+    sceneVersion,
+    expiresAt,
+  };
+}
+
+function promptSourceEvent(scene, payload = {}) {
+  if (!payload.sourceEventId) return null;
+  return (scene?.log || []).find(item => item.id === payload.sourceEventId) || null;
+}
+
+function promptExpired(prompt, now = Date.now()) {
+  return Number.isFinite(Number(prompt?.expiresAt)) && Number(prompt.expiresAt) <= now;
+}
+
+function promptParticipantIds(scene, payload = {}) {
+  return [...new Set((Array.isArray(payload.participantIds) ? payload.participantIds : []).filter(id => typeof id === "string" && id))];
+}
+
+function promptResponseRole(event, payload, options = {}) {
+  return options.role || payload.role || event?.role || null;
+}
+
 function validateEvent(scene, event, options = {}) {
   if (!EVENT_TYPES.has(event.type) && event.type !== "movement-traces.clear") throw new Error(`Неизвестный тип события: ${event.type}.`);
   if (typeof event.id !== "string" || !event.id || event.id.length > 120) throw new Error("Некорректный id события.");
@@ -367,20 +418,69 @@ const expectedTargets = (scene.actors || []).filter(target => !target.knockedOut
   if (event.type === "actor.wound" && (!actorById(scene, payload.targetId) || !Number.isInteger(Number(payload.delta)) || Math.abs(Number(payload.delta)) !== 1)) throw new Error("Некорректное изменение Ран.");
   if (event.type === "actor.knockout" && !actorById(scene, payload.targetId)) throw new Error("Некорректное выведение из строя.");
   if (event.type === "inventory.change" && (typeof payload.item !== "string" || payload.item.length > 80 || !Number.isInteger(Number(payload.delta)) || Math.abs(Number(payload.delta)) > 99)) throw new Error("Некорректное изменение инвентаря.");
-  if (event.type === "rule.prompt" && (typeof payload.id !== "string" || !payload.id || payload.id.length > 160 || typeof payload.kind !== "string" || !payload.kind || payload.controller != null && !["source", "narrator"].includes(payload.controller) || !Array.isArray(payload.options) || payload.options.length < 1 || payload.options.length > 48 || payload.options.some(option => typeof option !== "string" || !option || option.length > 120) || new Set(payload.options).size !== payload.options.length)) throw new Error("Некорректный запрос правила.");
+  if (event.type === "rule.prompt") {
+    Object.assign(payload, promptContractPayload(scene, event, payload));
+    const source = actorById(scene, payload.sourceActorId), owner = actorById(scene, payload.ownerActorId), target = payload.targetId ? actorById(scene, payload.targetId) : null;
+    const sourceEvent = promptSourceEvent(scene, payload), sourceEventType = payload.sourceEventType;
+    const participantIds = promptParticipantIds(scene, payload);
+    const invalidSource = payload.sourceEventId && (!sourceEvent && !(sourceEventType === "rule.prompt" && payload.sourceEventId === payload.id) || sourceEvent && sourceEventType && sourceEvent.type !== sourceEventType);
+    if (
+      typeof payload.id !== "string" || !payload.id || payload.id.length > 160
+      || typeof payload.kind !== "string" || !payload.kind
+      || !["source", "narrator"].includes(payload.controller)
+      || !Array.isArray(payload.options) || payload.options.length < 1 || payload.options.length > 48
+      || payload.options.some(option => typeof option !== "string" || !option || option.length > 120)
+      || new Set(payload.options).size !== payload.options.length
+      || !Array.isArray(payload.participantIds) || new Set(participantIds).size !== participantIds.length
+      || !source || !owner || owner.id !== source.id
+      || !participantIds.includes(source.id) || event.actorId && !participantIds.includes(event.actorId) || participantIds.some(id => !actorById(scene, id))
+      || payload.targetId && (!target || !participantIds.includes(target.id))
+      || payload.priority != null && (!Number.isInteger(Number(payload.priority)) || Number(payload.priority) < -1000 || Number(payload.priority) > 1000)
+      || typeof payload.tieBreak !== "string" || !payload.tieBreak || payload.tieBreak.length > 160
+      || payload.sourceEventId != null && (typeof payload.sourceEventId !== "string" || !payload.sourceEventId || payload.sourceEventId.length > 120)
+      || sourceEventType != null && (typeof sourceEventType !== "string" || sourceEventType !== "queued" && !EVENT_TYPES.has(sourceEventType))
+      || invalidSource
+      || !Number.isInteger(Number(payload.sourceSceneVersion)) || Number(payload.sourceSceneVersion) < 0
+      || !Number.isInteger(Number(payload.sceneVersion)) || Number(payload.sceneVersion) < 0
+      || !Number.isFinite(Number(payload.expiresAt))
+    ) throw new Error("Некорректный запрос правила или его источник.");
+  }
   if (event.type === "rule.respond") {
     const prompt = scene.pendingPrompt, source = actorById(scene, prompt?.sourceActorId), target = actorById(scene, prompt?.targetId);
+    const role = promptResponseRole(event, payload, options), stale = payload.stale === true, expired = promptExpired(prompt), narratorRole = ["owner", "narrator", "gm"].includes(role), participants = [...new Set([...(promptParticipantIds(scene, prompt || {})), prompt?.sourceActorId, prompt?.targetId, prompt?.actorId].filter(Boolean))];
     if (!prompt || payload.promptId !== prompt.id) throw new Error("Этот запрос правила уже закрыт.");
     if (event.actorId !== prompt.sourceActorId || !source || source.knockedOut) throw new Error("Источник решения больше не доступен.");
-    if (typeof payload.choice !== "string" || !(prompt.options || []).includes(payload.choice)) throw new Error("Такого ответа нет в запросе правила.");
-    if (prompt.targetId && (!target || target.knockedOut)) throw new Error("Цель решения больше не доступна.");
-    if (payload.choice === "cell" && !options.placementResponse) throw new Error("Выбор клетки должен применяться вместе с проверенным перемещением.");
+    if (prompt.ownerActorId != null && prompt.ownerActorId !== prompt.sourceActorId) throw new Error("Владелец решения не совпадает с источником.");
+    if (prompt.controller === "narrator" && role && !narratorRole && payload.narratorOverride !== true) throw new Error("Этот запрос может закрыть только Нарратор.");
+    if (payload.actorId != null && payload.actorId !== event.actorId) throw new Error("Ответ принадлежит другому участнику.");
+    if (payload.ownerActorId != null && payload.ownerActorId !== (prompt.ownerActorId || prompt.sourceActorId)) throw new Error("Владелец решения не совпадает с запросом.");
+    if (payload.controller != null && payload.controller !== (prompt.controller || "source")) throw new Error("Контроллер решения не совпадает с запросом.");
+    if (Array.isArray(payload.participantIds) && (payload.participantIds.some(id => !participants.includes(id)) || payload.participantIds.some(id => !actorById(scene, id)))) throw new Error("Участники ответа не совпадают с запросом.");
+    if (payload.sourceEventId != null && payload.sourceEventId !== prompt.sourceEventId) throw new Error("Источник события ответа не совпадает с запросом.");
+    if (payload.sourceEventType != null && payload.sourceEventType !== prompt.sourceEventType) throw new Error("Тип источника ответа не совпадает с запросом.");
+    if (prompt.sceneVersion != null && payload.sceneVersion != null && Number(payload.sceneVersion) !== Number(prompt.sceneVersion)) {
+      const error = new Error("Конфликт версии Сцены: версия запроса правила не совпадает.");
+      error.code = "SCENE_PROMPT_VERSION_CONFLICT";
+      throw error;
+    }
+    if (expired && !stale) throw new Error("Просроченный запрос правила закрывается через ручной fallback Нарратора.");
+    if (stale) {
+      if (!expired) throw new Error("Запрос правила ещё не просрочен.");
+    } else if (typeof payload.choice !== "string" || !(prompt.options || []).includes(payload.choice)) throw new Error("Такого ответа нет в запросе правила.");
+    if (!stale && prompt.targetId && (!target || target.knockedOut)) throw new Error("Цель решения больше не доступна.");
+    if (!stale && payload.choice === "cell" && !options.placementResponse) throw new Error("Выбор клетки должен применяться вместе с проверенным перемещением.");
   }
   if (event.type === "rule.trigger" && (
     typeof payload.triggerId !== "string" || !/^[a-z][a-z0-9.-]{0,119}$/.test(payload.triggerId)
     || typeof payload.sourceEventId !== "string" || !payload.sourceEventId
     || !["fired", "queued", "cancelled"].includes(payload.status)
     || payload.priority != null && !Number.isInteger(Number(payload.priority))
+    || payload.tieBreak != null && (typeof payload.tieBreak !== "string" || !payload.tieBreak || payload.tieBreak.length > 160)
+    || payload.sourceEventType != null && (typeof payload.sourceEventType !== "string" || payload.sourceEventType !== "queued" && !EVENT_TYPES.has(payload.sourceEventType))
+    || payload.sourceSceneVersion != null && (!Number.isInteger(Number(payload.sourceSceneVersion)) || Number(payload.sourceSceneVersion) < 0)
+    || payload.queueKey != null && (typeof payload.queueKey !== "string" || !payload.queueKey || payload.queueKey.length > 240)
+    || payload.triggerOwnerId != null && (typeof payload.triggerOwnerId !== "string" || !actorById(scene, payload.triggerOwnerId))
+    || payload.participantIds != null && (!Array.isArray(payload.participantIds) || new Set(payload.participantIds).size !== payload.participantIds.length || payload.participantIds.some(id => typeof id !== "string" || !actorById(scene, id)))
     || payload.emittedTypes != null && (!Array.isArray(payload.emittedTypes) || payload.emittedTypes.length > 24 || payload.emittedTypes.some(type => !EVENT_TYPES.has(type)))
     || payload.status === "queued" && (
       payload.deferredEvent?.type !== "rule.prompt"
@@ -391,6 +491,28 @@ const expectedTargets = (scene.actors || []).filter(target => !target.knockedOut
       || JSON.stringify(payload.deferredEvent).length > 8192
     )
   )) throw new Error("Некорректная запись маршрутизации триггера.");
+  if (event.type === "rule.trigger") {
+    const sourceEvent = payload.sourceEventId && (scene.log || []).find(item => item.id === payload.sourceEventId);
+    const syntheticPromptSource = payload.sourceEventType === "rule.prompt" && payload.sourceEventId === payload.deferredEvent?.id;
+    if (payload.sourceEventType && payload.sourceEventType !== "queued" && (!sourceEvent || sourceEvent.type !== payload.sourceEventType) && !syntheticPromptSource) throw new Error("Источник события маршрутизации не совпадает с журналом Сцены.");
+    if (payload.status === "queued") {
+      const deferred = payload.deferredEvent, deferredPayload = deferred.payload || {};
+      Object.assign(deferred.payload, promptContractPayload(scene, deferred, deferredPayload, {
+        sourceEventId: payload.sourceEventId,
+        sourceEventType: payload.sourceEventType,
+        sourceSceneVersion: payload.sourceSceneVersion ?? Number(scene?.version || 0),
+        priority: payload.priority ?? 0,
+        tieBreak: payload.tieBreak || `000000:${payload.triggerId}`,
+      }));
+      payload.tieBreak ||= deferred.payload.tieBreak;
+      payload.sourceEventType ||= deferred.payload.sourceEventType;
+      payload.sourceSceneVersion ??= deferred.payload.sourceSceneVersion;
+      payload.queueKey ||= `${payload.sourceEventId}:${payload.triggerId}`;
+      if (payload.triggerOwnerId == null) payload.triggerOwnerId = event.actorId || deferred.payload.ownerActorId || deferred.payload.sourceActorId || null;
+      if (payload.participantIds == null) payload.participantIds = clone(deferred.payload.participantIds || []);
+      if (!payload.triggerOwnerId || !actorById(scene, payload.triggerOwnerId) || payload.participantIds.some(id => !actorById(scene, id))) throw new Error("Владелец или участники маршрутизации не существуют на Сцене.");
+    }
+  }
   if (event.type === "technique.state") {
     if (!actorById(scene, event.actorId) || !["cunningPlan", "study", "spellModifiers"].includes(payload.key)) throw new Error("Некорректное состояние Техники.");
     if (payload.key === "cunningPlan" && (!Number.isInteger(Number(payload.delta)) || Math.abs(Number(payload.delta)) > 4)) throw new Error("Некорректное изменение часов Хитрого плана.");
@@ -495,6 +617,20 @@ function validateTransition(scene, event, options = {}) {
   }
   if (scene.pendingAction && event.type === "attack.pending") throw new Error("Сначала завершите текущую цепочку Реакций.");
   if (scene.pendingPrompt && ["action.prepare", "enemy.action.prepare", "attack.pending"].includes(event.type)) throw new Error("Сначала ответьте на сработавшее правило.");
+  const promptIntentTypes = new Set(["action.plan", "action.plan.update", "action.plan.cancel", "action.prepare", "action.resolve", "enemy.action.prepare", "enemy.action.resolve", "reaction.offer", "reaction.respond", "resource.spend", "resource.gain", "rule-resource.configure", "rule-resource.spend", "rule-resource.gain", "rule-resource.set", "rule-resource.reset", "rule-clock.configure", "rule-clock.tick", "rule-clock.set", "rule-clock.reset", "technique.prepare", "technique.resolve", "technique.state", "turn.start", "turn.end", "round.end"]);
+  const pendingAction = scene.pendingAction;
+  const prepareType = event.type === "enemy.action.resolve" ? "enemy.action.prepare" : event.type === "technique.resolve" ? "technique.prepare" : "action.prepare";
+  const priorPrepare = ["action.resolve", "enemy.action.resolve", "technique.resolve"].includes(event.type)
+    ? [...(scene.log || [])].reverse().find(item => (item.type === prepareType || event.type === "action.resolve" && item.type === "attack.pending" || event.type === "technique.resolve" && item.type === "action.prepare" && String(event.payload?.ruleId || "").startsWith(String(item.payload?.quickSource?.techniqueId || ""))) && item.actorId === event.actorId && (
+      event.payload?.actionInstanceId && item.payload?.actionInstanceId === event.payload.actionInstanceId
+        || event.payload?.actionId && item.payload?.actionId === event.payload.actionId
+        || event.payload?.ruleId && item.payload?.ruleId === event.payload.ruleId
+        || event.type === "technique.resolve" && item.type === "action.prepare" && String(event.payload?.ruleId || "").startsWith(String(item.payload?.quickSource?.techniqueId || ""))
+    ))
+    : null;
+  const actionResolution = ["action.resolve", "enemy.action.resolve", "technique.resolve"].includes(event.type) && priorPrepare && event.actorId === priorPrepare.actorId;
+  const promptOverride = options.narratorOverride === true || ["owner", "narrator", "gm"].includes(options.role) || actionResolution;
+  if (scene.pendingPrompt && promptIntentTypes.has(event.type) && !promptOverride && !options.internalChain) throw new Error("Сначала ответьте на сработавшее правило; Нарратор может применить ручной fallback.");
   if (event.type === "turn.start" && !narratorBoundaryOverride) {
     const status = turnStartStatus(scene, event.actorId);
     if (!status.available) throw new Error(status.reason);
@@ -1099,21 +1235,44 @@ function reduceEvent(scene, event) {
     if (!actor.inventory[payload.item]) delete actor.inventory[payload.item];
   } else if (event.type === "rule.trigger") {
     scene.triggerQueue ||= [];
-    const key = `${payload.sourceEventId}:${payload.triggerId}`;
+    const key = payload.queueKey || `${payload.sourceEventId}:${payload.triggerId}`;
     if (payload.status === "queued" && !scene.triggerQueue.some(item => item.key === key)) {
-      scene.triggerQueue.push({ key, triggerId: payload.triggerId, sourceEventId: payload.sourceEventId, priority: Number(payload.priority || 0), ownerId: event.actorId, event: clone(payload.deferredEvent) });
-      // Queue order is the order in which decisions became pending. A newly
-      // generated prompt must not overtake an older prompt during a chain.
+      scene.triggerQueueSequence = Number.isSafeInteger(Number(scene.triggerQueueSequence)) && Number(scene.triggerQueueSequence) >= 0 ? Number(scene.triggerQueueSequence) : 0;
+      const deferred = clone(payload.deferredEvent);
+      scene.triggerQueue.push({
+        key,
+        triggerId: payload.triggerId,
+        sourceEventId: payload.sourceEventId,
+        sourceEventType: payload.sourceEventType || deferred?.payload?.sourceEventType || "",
+        sourceSceneVersion: Number.isInteger(Number(payload.sourceSceneVersion)) ? Number(payload.sourceSceneVersion) : Number(deferred?.payload?.sourceSceneVersion || scene.version || 0),
+        priority: Number(payload.priority || deferred?.payload?.priority || 0),
+        tieBreak: payload.tieBreak || deferred?.payload?.tieBreak || `000000:${payload.triggerId}`,
+        sequence: scene.triggerQueueSequence++,
+        ownerId: payload.triggerOwnerId || event.actorId || deferred?.payload?.ownerActorId || deferred?.payload?.sourceActorId || null,
+        controller: deferred?.payload?.controller === "narrator" ? "narrator" : "source",
+        participantIds: clone(payload.participantIds || deferred?.payload?.participantIds || []),
+        event: deferred,
+      });
     }
     if (payload.queued && ["fired", "cancelled"].includes(payload.status)) scene.triggerQueue = scene.triggerQueue.filter(item => item.key !== key);
   } else if (event.type === "rule.prompt") {
-    const options = PLACEMENT_PROMPT_KINDS.has(payload.kind) && !payload.options.includes("cell") ? ["cell", ...payload.options] : payload.options;
+    const contract = promptContractPayload(scene, event, payload), options = PLACEMENT_PROMPT_KINDS.has(payload.kind) && !payload.options.includes("cell") ? ["cell", ...payload.options] : payload.options;
     const requiredActorIds = [event.actorId, payload.sourceActorId, payload.targetId].filter(Boolean);
-    if (!requiredActorIds.some(id => actorById(scene, id)?.knockedOut)) scene.pendingPrompt = { id: payload.id, kind: payload.kind, actorId: event.actorId, sourceActorId: payload.sourceActorId || event.actorId, controller: payload.controller === "narrator" ? "narrator" : "source", targetId: payload.targetId || null, markerId: payload.markerId || null, title: payload.title || "Решение правила", text: payload.text || "", options: clone(options || []), context: clone(payload.context || {}), createdAt: event.at || new Date().toISOString(), expiresAt: Date.now() + 120000 };
+    if (!requiredActorIds.some(id => actorById(scene, id)?.knockedOut)) scene.pendingPrompt = { id: contract.id, kind: contract.kind, actorId: event.actorId, sourceActorId: contract.sourceActorId || event.actorId, ownerActorId: contract.ownerActorId || contract.sourceActorId || event.actorId, controller: contract.controller, targetId: contract.targetId || null, markerId: contract.markerId || null, title: contract.title || "Решение правила", text: contract.text || "", options: clone(options || []), participantIds: clone(contract.participantIds || []), priority: Number(contract.priority || 0), tieBreak: contract.tieBreak || "000000", sourceEventId: contract.sourceEventId || null, sourceEventType: contract.sourceEventType || null, sourceSceneVersion: Number(contract.sourceSceneVersion || scene.version || 0), sceneVersion: Number(contract.sceneVersion || scene.version + 1), context: clone(contract.context || {}), createdAt: event.at || new Date().toISOString(), expiresAt: Number(contract.expiresAt || Date.now() + 120000) };
   } else if (event.type === "rule.respond") {
+    const livePrompt = scene.pendingPrompt;
     payload.kind = scene.pendingPrompt?.kind || payload.kind;
     payload.sourceActorId = scene.pendingPrompt?.sourceActorId || null;
     payload.targetId = scene.pendingPrompt?.targetId || null;
+    if (livePrompt) {
+      payload.ownerActorId = livePrompt.ownerActorId || livePrompt.sourceActorId || null;
+      payload.controller = livePrompt.controller || "source";
+      payload.participantIds = clone(livePrompt.participantIds || [livePrompt.sourceActorId].filter(Boolean));
+      payload.sourceEventId = livePrompt.sourceEventId || null;
+      payload.sourceEventType = livePrompt.sourceEventType || null;
+      payload.sceneVersion = livePrompt.sceneVersion ?? null;
+      payload.status = payload.stale === true ? "stale" : "answered";
+    }
     scene.pendingPrompt = null;
   } else if (event.type === "technique.state" && actor) {
     actor.techniqueState ||= {};

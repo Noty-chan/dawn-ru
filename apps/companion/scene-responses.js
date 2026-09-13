@@ -94,13 +94,41 @@ function pendingActionStatus(scene, data = null) {
 }
 
 function ruleChoiceStatus(scene, request = {}) {
-  const prompt = scene?.pendingPrompt, choice = String(request.choice || ""), source = actorById(scene, prompt?.sourceActorId), target = actorById(scene, prompt?.targetId);
+  const prompt = scene?.pendingPrompt, stale = request.stale === true, choice = String(request.choice || ""), source = actorById(scene, prompt?.sourceActorId), target = actorById(scene, prompt?.targetId), requestedActor = request.actorId ? actorById(scene, request.actorId) : source, role = request.role || null, participants = [...new Set([...(prompt?.participantIds || []), prompt?.sourceActorId, prompt?.targetId, prompt?.actorId].filter(Boolean))], expired = promptExpired(prompt);
   let reason = "";
   if (!prompt) reason = "Запрос правила больше не доступен.";
+  else if (request.actorId && request.actorId !== prompt.sourceActorId || request.actorId && !participants.includes(request.actorId)) reason = "Источник решения принадлежит другому участнику.";
   else if (!source || source.knockedOut) reason = "Источник решения больше не доступен.";
-  else if (!(prompt.options || []).includes(choice)) reason = "Такого ответа нет в запросе правила.";
-  else if (prompt.targetId && (!target || target.knockedOut)) reason = "Цель решения больше не доступна.";
-  return { available: !reason, reason, prompt: prompt ? clone(prompt) : null, source, target, choice, options: clone(prompt?.options || []) };
+  else if (prompt.ownerActorId && prompt.ownerActorId !== prompt.sourceActorId) reason = "Владелец решения не совпадает с источником.";
+  else if (prompt.controller === "narrator" && role && !["owner", "narrator", "gm"].includes(role) && request.narratorOverride !== true) reason = "Этот запрос может закрыть только Нарратор.";
+  else if (expired && !stale) reason = "Просроченный запрос правила закрывается через ручной fallback Нарратора.";
+  else if (stale && !expired) reason = "Запрос правила ещё не просрочен.";
+  else if (!stale && !(prompt.options || []).includes(choice)) reason = "Такого ответа нет в запросе правила.";
+  else if (!stale && prompt.targetId && (!target || target.knockedOut)) reason = "Цель решения больше не доступна.";
+  return { available: !reason, reason, stale: expired, expired, prompt: prompt ? clone(prompt) : null, source, target, actor: requestedActor, choice, options: clone(prompt?.options || []) };
+}
+
+function promptResponseEvent(prompt, actor, target, choice, request = {}) {
+  const promptId = String(prompt?.id || "prompt").slice(0, 100), participants = [...new Set([...(prompt?.participantIds || []), prompt?.sourceActorId, prompt?.targetId, prompt?.actorId].filter(Boolean))];
+  return {
+    id: `rule-response-${request.stale === true ? "stale-" : ""}${promptId}`.slice(0, 120),
+    type: "rule.respond",
+    actorId: actor.id,
+    payload: {
+      promptId: prompt.id,
+      ...(request.stale === true ? { stale: true } : { choice }),
+      sourceActorId: actor.id,
+      targetId: target?.id || null,
+      ownerActorId: prompt.ownerActorId || prompt.sourceActorId || actor.id,
+      controller: prompt.controller || "source",
+      sourceEventId: prompt.sourceEventId || null,
+      sourceEventType: prompt.sourceEventType || null,
+      sceneVersion: prompt.sceneVersion ?? null,
+      participantIds: participants,
+      ...(request.role ? { role: request.role } : {}),
+      ...(request.narratorOverride === true ? { narratorOverride: true } : {}),
+    },
+  };
 }
 
 function pendingTargetOutcome(scene, pending, targetId) {
@@ -267,7 +295,8 @@ function respondRulePrompt(scene, data, request = {}) {
   const choiceStatus = ruleChoiceStatus(scene, request), prompt = scene.pendingPrompt, actor = choiceStatus.source, target = choiceStatus.target, choice = choiceStatus.choice;
   const errors = choiceStatus.available ? [] : [choiceStatus.reason];
   if (errors.length) return { ok: false, errors, events: [] };
-  const events = [{ type: "rule.respond", actorId: actor.id, payload: { promptId: prompt.id, choice, sourceActorId: actor.id, targetId: target?.id || null, participantIds: [actor.id, target?.id].filter(Boolean) } }];
+  const events = [promptResponseEvent(prompt, actor, target, choice, request)];
+  if (request.stale === true) return { ok: true, errors: [], events };
   if (prompt.kind === "dim-mak-jab" && choice === "jab") {
     const marker = markerById(scene, prompt.context?.markerId), host = marker && actorById(scene, markerHostId(marker)), enter = (scene.log || []).find(item => item.id === prompt.context?.enterEventId), expected = Math.ceil(Number(actor.attrs?.mind || 0) / 2);
     if (scene.rulesEdition !== "lionwing" || !marker || marker.ruleId !== "vagabond.dim-mak.1" || marker.ownerActorId !== actor.id || !host || host.id !== prompt.context?.fixedTargetId || host.knockedOut || actor.space !== marker.space || Number(actor.x) !== Number(marker.x) || Number(actor.y) !== Number(marker.y) || !enter || enter.type !== "actor.enter" || enter.actorId !== actor.id || enter.payload?.segmentId !== prompt.context?.segmentId && prompt.context?.segmentId != null) return { ok: false, errors: ["Слабая точка или подтверждённый вход больше недоступны."], events: [] };
@@ -920,6 +949,8 @@ function respondRulePrompt(scene, data, request = {}) {
 function preparePromptPlacement(scene, request = {}) {
   const prompt = scene.pendingPrompt, actor = actorById(scene, prompt?.sourceActorId), marker = markerById(scene, prompt?.context?.markerId), target = actorById(scene, prompt?.targetId || prompt?.context?.targetId), destination = request.destination && { x: Number(request.destination.x), y: Number(request.destination.y) }, errors = [];
   const space = (scene.spaces || []).find(item => item.id === (marker?.space || actor?.space));
+  const authority = ruleChoiceStatus(scene, { actorId: request.actorId, choice: "cell", role: request.role, narratorOverride: request.narratorOverride });
+  if (!authority.available && authority.reason && prompt) errors.push(authority.reason);
   if (!prompt || !actor || !["marker-move-cell", "wisp-create-cell", "dim-mak-weak-point-cell", "empath-rush-cell", "reappear-cell", "knife-pickup-step", "meister-overclock-move", "egomaniac-style-move", "thunder-surge-cell", "siren-irresistible-cell", "untouchable-weave-cell", "constrictor-move-cell", "enemy-move-cell", "enemy-crowd-move-cell", "fodder-move-cell", "wave-rider-move-cell"].includes(prompt.kind)) errors.push("Сейчас нет выбора клетки для правила.");
   if (!space || !destination || !Number.isInteger(destination.x) || !Number.isInteger(destination.y) || destination.x < 0 || destination.y < 0 || destination.x >= Number(space?.width || 0) || destination.y >= Number(space?.height || 0)) errors.push("Выберите клетку в пределах поля.");
   if (space && destination && removedCellKeys(scene, space.id).has(cellKey(destination))) errors.push("Эта клетка удалена из поля.");
@@ -1021,7 +1052,9 @@ function preparePromptPlacement(scene, request = {}) {
     }
   }
   if (errors.length) return { ok: false, errors, events: [] };
-  const events = [{ type: "rule.respond", actorId: actor.id, payload: { promptId: prompt.id, choice: "cell", destination: clone(destination), sourceActorId: actor.id, targetId: target?.id || null, participantIds: [actor.id, target?.id].filter(Boolean) } }];
+  const response = promptResponseEvent(prompt, actor, target, "cell", request);
+  response.payload.destination = clone(destination);
+  const events = [response];
   if (prompt.kind === "thunder-surge-cell") {
     events.push({ type: "rule-clock.tick", actorId: actor.id, payload: { clockId: "ruiner.thunder-blood.static", delta: -1, sourceActionId: "ruiner.thunder-blood.2", reason: "Скачок" } });
     events.push({ type: "effect.apply", actorId: actor.id, payload: { targetId: actor.id, effect: "negative.ошеломлен", sourceActionId: "ruiner.thunder-blood.2", participantIds: [actor.id] } });
