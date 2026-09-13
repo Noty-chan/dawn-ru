@@ -74,7 +74,43 @@ const effectiveActorSpeed = (scene, actorId) => {
   return compound.active ? compound.speed : Math.max(0, Number(actor?.speed || 0));
 };
 const actionById = (data, id) => data?.actions?.list?.find(action => action.id === id) || null;
-const enemyProfileById = (data, id) => Object.values(data?.enemies || {}).flat().find(profile => profile.id === id) || null;
+// LionWing keeps its canonical NPC catalog outside the legacy `D.enemies`
+// table.  Scene commands still receive the legacy data object for backwards
+// compatibility, so resolve a canonical profile from the edition payload when
+// the actor belongs to that edition.  This is deliberately a read-only bridge:
+// canonical text is never parsed here and the action adapter in
+// `scene-actions.js` remains the authority for executable rule metadata.
+const lionwingCanonicalRoot = data => {
+  const scope = typeof window === "object" && window ? window : typeof globalThis === "object" ? globalThis : {};
+  return data?.coreRules?.npcs?.list ? data.coreRules : data?.npcs?.list ? data : scope.DAWN_LIONWING_DATA?.coreRules || scope.DAWN_LIONWING_DATA || null;
+};
+const enemyProfileById = (data, id) => {
+  const legacy = Object.values(data?.enemies || {}).flat().find(profile => profile.id === id);
+  if (legacy) return legacy;
+  const canonical = lionwingCanonicalRoot(data)?.npcs?.list?.find(profile => profile.id === id);
+  if (!canonical) return null;
+  const scope = typeof window === "object" && window ? window : typeof globalThis === "object" ? globalThis : {};
+  const table = scope.DAWN_LIONWING_TABLE_DATA;
+  if (table?.normalizeNpc) return table.normalizeNpc(canonical);
+  const stats = canonical.statistics || {};
+  const formula = value => typeof value === "number" ? String(value) : String(value || "0");
+  const rules = (canonical.actions || []).map(action => ({ ...action, apCost: 1, automation: "assisted", available: false }));
+  if (canonical.ace) rules.push({ ...canonical.ace, kind: "trump", apCost: 2, automation: "assisted", available: false });
+  return {
+    id: canonical.id,
+    kind: "common",
+    editionId: "lionwing",
+    manualOnly: true,
+    name: canonical.name,
+    tags: canonical.role || "NPC",
+    role: canonical.role || "NPC",
+    stats: { health: formula(stats.health), speed: formula(stats.speed), armor: formula(stats.armor), evasion: formula(stats.evasion) },
+    passive: canonical.passive || "",
+    text: canonical.description || "",
+    rules,
+    source: canonical.source || null,
+  };
+};
 const effectIdByName = (data, name) => [...(data?.effects?.positive || []), ...(data?.effects?.negative || [])].find(effect => effect.id === name || effect.name === name)?.id || name;
 const distance = (a, b) => {if(a.space!==b.space)return Infinity;const aw=Math.max(1,Number(a.occupiedWidth||1)),ah=Math.max(1,Number(a.occupiedHeight||1)),bw=Math.max(1,Number(b.occupiedWidth||1)),bh=Math.max(1,Number(b.occupiedHeight||1)),dx=Math.max(0,Number(a.x)-Number(b.x)-bw+1,Number(b.x)-Number(a.x)-aw+1),dy=Math.max(0,Number(a.y)-Number(b.y)-bh+1,Number(b.y)-Number(a.y)-ah+1);return dx+dy};
 const cellKey = point => `${point.x},${point.y}`;
