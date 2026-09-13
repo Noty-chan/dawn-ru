@@ -1380,12 +1380,26 @@
           continue;
         }
         for (const rawRule of declarations) {
-          const validation = foundationBridge?.validateBoundaryDeclaration?.(rawRule, owner, ownerContext);
-          if (validation && !validation.ok) {
-            emit("rule.manual-fallback", owner.id, { ruleId: rawRule?.id || null, sourceDigest: rawRule?.sourceDigest || null, boundary: ownerContext.canonicalBoundary, reason: validation.reason, automatic: false });
+          const validator = foundationBridge && typeof foundationBridge.validateBoundaryDeclaration === "function"
+            ? foundationBridge.validateBoundaryDeclaration : null;
+          let validation = null;
+          if (validator) {
+            try { validation = validator(rawRule, owner, ownerContext); }
+            catch (error) { validation = { ok: false, reason: "Валидатор границы LionWing завершился с ошибкой: " + String(error?.message || error).slice(0, 180) }; }
+          }
+          // A declaration is never allowed to fall back to the raw adapter
+          // object. The bridge is the proof boundary; if it is absent or its
+          // result is malformed, leave the decision with the Narrator.
+          const proofRule = validation?.rule;
+          const boundaryProof = validator && plain(validation) && validation.ok === true && validation.manual === false
+            && validation.schema === foundationBridge.BRIDGE_SCHEMA && plain(proofRule)
+            && proofRule.id === rawRule?.id && proofRule.sourceDigest === rawRule?.sourceDigest && proofRule.ownerActorId === owner.id
+            && Array.isArray(proofRule.operations) && Array.isArray(proofRule.choices);
+          if (!boundaryProof) {
+            emit("rule.manual-fallback", owner.id, { ruleId: rawRule?.id || null, sourceDigest: rawRule?.sourceDigest || null, boundary: ownerContext.canonicalBoundary, reason: validation?.reason || "Фундаментальный bridge границ LionWing недоступен; требуется решение Нарратора.", automatic: false });
             continue;
           }
-          const rule = validation?.rule || rawRule;
+          const rule = validation.rule;
         const resolvedBoundary = context(owner).canonicalBoundary, resolvedBoundaryKey = boundaryKey(owner, resolvedBoundary), key = `${rule.id}:${owner.id}:${resolvedBoundaryKey}`;
         if (s.boundaryReceipts.some(receipt => receipt.key === key)) continue;
         s.boundaryReceipts.push({ schema: 1, key, ruleId: rule.id, ownerActorId: owner.id, boundary: resolvedBoundary, boundaryKey: resolvedBoundaryKey, sceneSerial: s.sceneSerial, round: Number(scene.round || 0), turnInstanceId: s.activeTurnInstanceId || null, sourceDigest: rule.sourceDigest || null, eventId: rootId });
@@ -1410,20 +1424,45 @@
       // and range checks; this only widens the read-only query set.
       const candidateIds = [...new Set([eventRow.actorId, eventPayload.targetId, ...(scene.actors || []).map(item => item.id)].filter(id => typeof id === "string" && id))];
       const activeOwner = scene.activeActorId ? actor(scene, scene.activeActorId) : null;
+      const foundationBridge = global.DAWN_LIONWING_FOUNDATION;
       const ownerTurnKeyValue = activeOwner ? ownerTurnKey(s.sceneSerial, activeOwner, ownTurnSerial(activeOwner)) : null;
       for (const candidateId of candidateIds) {
         const candidate = actor(scene, candidateId);
         if (!candidate || candidate.knockedOut && eventRow.type !== "actor.knockout") continue;
         const used = (s.afterEventReceipts || []).some(receipt => receipt.ruleId === "powerhouse.berserker.3" && receipt.ownerActorId === candidate.id && receipt.turnKey === ownerTurnKeyValue);
-        const triggers = global.DAWN_LIONWING_ADAPTERS?.afterEvent?.(candidate, eventRow, { scene, ownerTurnKey: ownerTurnKeyValue, ownerTurnSerial: activeOwner ? ownTurnSerial(activeOwner) : null, ownerTurnInstanceId: s.activeTurnInstanceId || null, used }) || [];
-        const extraHammers = triggers.filter(trigger => trigger.id === "powerhouse.martial-artist.1" && Number((candidate.knownTechniques ?? candidate.techniques)?.["powerhouse.martial-artist"] || 0) >= 3 && candidate.lionwing?.automation?.["powerhouse.martial-artist.3"] === true && Number(eventPayload.criticals || 0) > 0).map(trigger => ({ ...trigger, triggerKey: `${trigger.triggerKey}:unlimited-blows` }));
-        for (const rawTrigger of [...triggers, ...extraHammers]) {
-          const validation = global.DAWN_LIONWING_FOUNDATION?.validateTriggerDeclaration?.(rawTrigger, candidate);
-          if (validation && !validation.ok) {
-            emit("rule.manual-fallback", candidate.id, { ruleId: rawTrigger?.id || null, sourceDigest: rawTrigger?.sourceDigest || null, triggerKey: rawTrigger?.triggerKey || null, reason: validation.reason, automatic: false });
+        const afterEventAdapter = global.DAWN_LIONWING_ADAPTERS && typeof global.DAWN_LIONWING_ADAPTERS.afterEvent === "function"
+          ? global.DAWN_LIONWING_ADAPTERS.afterEvent : null;
+        let triggers = [];
+        if (afterEventAdapter) {
+          try { triggers = afterEventAdapter(candidate, eventRow, { scene, ownerTurnKey: ownerTurnKeyValue, ownerTurnSerial: activeOwner ? ownTurnSerial(activeOwner) : null, ownerTurnInstanceId: s.activeTurnInstanceId || null, used }); }
+          catch (error) {
+            emit("rule.manual-fallback", candidate.id, { ruleId: null, sourceDigest: null, triggerKey: null, reason: "Автоматизация события не прошла проверку: " + String(error?.message || error).slice(0, 180), automatic: false });
             continue;
           }
-          const trigger = validation?.rule || rawTrigger;
+          if (!Array.isArray(triggers)) {
+            emit("rule.manual-fallback", candidate.id, { ruleId: null, sourceDigest: null, triggerKey: null, reason: "Автоматизация события должна вернуть список деклараций; требуется решение Нарратора.", automatic: false });
+            continue;
+          }
+        }
+        const extraHammers = triggers.filter(trigger => trigger.id === "powerhouse.martial-artist.1" && Number((candidate.knownTechniques ?? candidate.techniques)?.["powerhouse.martial-artist"] || 0) >= 3 && candidate.lionwing?.automation?.["powerhouse.martial-artist.3"] === true && Number(eventPayload.criticals || 0) > 0).map(trigger => ({ ...trigger, triggerKey: `${trigger.triggerKey}:unlimited-blows` }));
+        for (const rawTrigger of [...triggers, ...extraHammers]) {
+          const validator = foundationBridge && typeof foundationBridge.validateTriggerDeclaration === "function"
+            ? foundationBridge.validateTriggerDeclaration : null;
+          let validation = null;
+          if (validator) {
+            try { validation = validator(rawTrigger, candidate); }
+            catch (error) { validation = { ok: false, reason: "Валидатор триггера LionWing завершился с ошибкой: " + String(error?.message || error).slice(0, 180) }; }
+          }
+          const proofRule = validation?.rule;
+          const triggerProof = validator && plain(validation) && validation.ok === true && validation.manual === false
+            && validation.schema === foundationBridge.BRIDGE_SCHEMA && plain(proofRule)
+            && proofRule.id === rawTrigger?.id && proofRule.sourceDigest === rawTrigger?.sourceDigest && proofRule.triggerKey === rawTrigger?.triggerKey
+            && proofRule.ownerActorId === candidate.id && Array.isArray(proofRule.operations) && Array.isArray(proofRule.choices);
+          if (!triggerProof) {
+            emit("rule.manual-fallback", candidate.id, { ruleId: rawTrigger?.id || null, sourceDigest: rawTrigger?.sourceDigest || null, triggerKey: rawTrigger?.triggerKey || null, reason: validation?.reason || "Фундаментальный bridge триггеров LionWing недоступен; требуется решение Нарратора.", automatic: false });
+            continue;
+          }
+          const trigger = validation.rule;
           if (!trigger.triggerKey || (s.afterEventReceipts || []).some(receipt => receipt.key === trigger.triggerKey)) continue;
           s.afterEventReceipts.push({ schema: 1, key: trigger.triggerKey, ruleId: trigger.id, ownerActorId: candidate.id, eventId: eventRow.id, turnKey: ownerTurnKeyValue, sourceDigest: trigger.sourceDigest || null, coverage: trigger.coverage || "full" });
           s.afterEventReceipts = s.afterEventReceipts.slice(-256);

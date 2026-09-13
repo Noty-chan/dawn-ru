@@ -519,22 +519,105 @@ function terrainComponentStatus(scene, request = {}) {
   return { available: true, reason: "", objects: clone(objects), objectIds: objects.map(object => object.id), cells: [...new Set(objects.flatMap(object => object.cells || []))] };
 }
 
-// Generic, read-only boundary bridge used by the LionWing writer.  Adapters
-// may describe an operation, but they do not get to smuggle actor snapshots,
-// client flags, or ownership changes into the authoritative reducer.
+// Generic, read-only boundary bridge used by the LionWing writer. Adapters
+// may quote a plan, but they never get to pass state or an executable object
+// graph into the authoritative reducer. Keep this contract here because it is
+// the small, edition-neutral seam between the adapter registry and the engine.
 (function installLionwingFoundationBridge(root) {
+  const BRIDGE_SCHEMA = 2;
   const boundaries = new Set(["sceneStart", "sceneEnd", "roundStart", "roundEnd", "ownTurnStart", "ownTurnEnd", "anyTurnStart", "anyTurnEnd"]);
-  const forbiddenKeys = new Set(["actor", "actorState", "actorSnapshot", "copiedActor", "client", "clientState", "clientFlags", "flags", "confirmed"]);
   const aliases = { turnStart: "ownTurnStart", turnEnd: "ownTurnEnd", scene: "sceneStart", round: "roundStart", turn: "ownTurnStart" };
-  const isPlain = value => value && typeof value === "object" && !Array.isArray(value);
-  const hasForbidden = value => {
-    if (!isPlain(value) && !Array.isArray(value)) return false;
-    if (Array.isArray(value)) return value.some(hasForbidden);
-    return Object.entries(value).some(([key, child]) => forbiddenKeys.has(key) || hasForbidden(child));
+  const forbiddenKeys = new Set([
+    "actor", "actorstate", "actorsnapshot", "copiedactor", "client", "clientstate", "clientsnapshot", "clientflags", "flags", "confirmed",
+    "payload", "request", "snapshot", "provenance", "execution", "worldstate", "scenegraph", "state", "before", "after",
+  ]);
+  const operationKinds = new Set([
+    "breacher-push", "chemist-health-check", "clock", "configure-resource", "damage", "derived-action", "detective-finisher-open",
+    "effect-source", "effect", "forced-away", "forced-towards-group", "forced-towards", "heal", "inventory", "marker-remove",
+    "martial-quick-step", "modifier", "move", "note", "resource", "shatter-check", "skirmisher-shift", "usage",
+  ]);
+  const commonOperationKeys = new Set([
+    "kind", "id", "targetId", "targetIds", "sourceActorId", "ownerActorId", "sourceId", "sourceDigest", "ruleId", "sourceActionId",
+    "actionId", "actionEventId", "actionInstanceId", "triggerKey", "label", "coverage", "reason", "techniqueId", "techniqueRuleId",
+    "techniqueSourceDigest", "causeEventId", "frightenedEventId", "studyTargetId", "dazeTargetId", "lineage", "boundary", "lifetime",
+  ]);
+  const operationKeys = {
+    "breacher-push": ["maximum", "initialDistance"],
+    "chemist-health-check": [],
+    clock: ["operation", "label", "size", "value", "max", "min", "current", "initial", "resetAt", "scope", "delta", "threshold", "active", "removeWhenEmpty", "minimumSize", "legacyTechniqueState"],
+    "configure-resource": ["label", "current", "initial", "scope", "replaces", "replacesAp", "inverted"],
+    damage: ["amount", "fixedDamage", "finalDamage", "attack", "irreducible", "ignoreArmor", "ignoreEvasion", "criticals", "reduction", "temporaryArmor", "effects"],
+    "derived-action": ["damageAttribute"],
+    "detective-finisher-open": [],
+    "effect-source": ["operation", "effect"],
+    effect: ["effect", "duration", "remove"],
+    "forced-away": ["maximum", "initialDistance"],
+    "forced-towards-group": ["filter"],
+    "forced-towards": ["maximum", "initialDistance", "filter"],
+    heal: ["amount"],
+    inventory: ["operation", "inventoryKind", "current", "initial", "minimum", "maximum", "resetAt", "visibility", "unique", "multiple", "replacementGroup", "level", "alternateResource", "labelI18n", "items", "instanceId", "amount", "selectedItemId", "mode", "editionId"],
+    "marker-remove": ["markerId"],
+    "martial-quick-step": ["maximum", "evasion"],
+    modifier: ["stat", "amount", "duration"],
+    move: ["maximum", "forced"],
+    note: ["note"],
+    resource: ["resource", "operation", "amount", "studyTargetId", "daze", "dazeTargetId"],
+    "shatter-check": [],
+    "skirmisher-shift": ["maximum"],
+    usage: ["scope", "limit", "oncePerTarget"],
   };
-  const text = (value, max = 180) => typeof value === "string" && value.trim().length > 0 && value.length <= max;
+  const choiceKeys = new Set(["id", "label", "operations", "context"]);
+  const contextKeys = new Set([
+    "targetId", "targetIds", "sourceActorId", "ownerActorId", "eventId", "causeEventId", "actionInstanceId", "studyEventId", "frightenedEventId",
+    "attribute", "destinationRequired", "maximum", "markerId", "drainId", "fearedActorIds", "filled", "full", "manualRemainder", "verse",
+    "choiceSet", "optional", "boundary", "boundaryKey", "sourceDigest", "coverage", "followupId", "followup", "mandatory", "deadline",
+  ]);
+  const declarationKeys = new Set(["id", "ruleId", "label", "sourceDigest", "coverage", "operations", "choices", "ownerActorId", "choiceSet", "optional", "triggerKey", "followUp", "followup"]);
+  const followUpKeys = new Set(["id", "ownerActorId", "sourceActorId", "participantIds", "participants", "endBoundary", "deadline", "cancelOn", "optional", "completionOperations", "completeOperations"]);
+  const cancelReasons = new Set(["damage", "knockout", "sourceLoss"]);
+  const lifetimeBoundaries = new Set([...boundaries, "endNextOwnerTurn", "startNextOwnerTurn", "intermission", "manual", "scene", "round", "turn"]);
+  const aliasesForKey = value => String(value || "").replace(/[^a-z0-9]/gi, "").toLowerCase();
+  const isRecord = value => value !== null && typeof value === "object" && !Array.isArray(value);
+  const isPlain = isRecord;
+  const text = (value, max = 240) => typeof value === "string" && value.trim().length > 0 && value.length <= max;
   const id = value => text(value, 180) && /^[a-z0-9][a-z0-9._:-]*$/i.test(value);
-  const operationSafe = operation => isPlain(operation) && text(operation.kind, 80) && !hasForbidden(operation);
+  // Action names are edition data and may contain Cyrillic (the current
+  // LionWing action IDs do). They still must be a single bounded token.
+  const token = value => text(value, 180) && !/[\s\u0000-\u001f]/u.test(value);
+  const digest = value => text(value, 240) && (/^[a-f0-9]{64}$/i.test(value) || /^[a-z][a-z0-9_-]{1,31}:[a-z0-9][a-z0-9._:/-]{1,199}$/i.test(value));
+  const safeInteger = (value, min = -9999, max = 9999) => Number.isSafeInteger(value) && value >= min && value <= max;
+  const keyAllowed = (key, allowed) => allowed.has(key) && !forbiddenKeys.has(aliasesForKey(key));
+  const fail = reason => ({ ok: false, manual: true, code: "LIONWING_FOUNDATION_REJECTED", reason });
+
+  // Walk every adapter value before it is copied. This also prevents a
+  // hostile adapter from handing the engine functions, symbols, BigInts, a
+  // cycle, or an unexpectedly deep object graph.
+  const safeValue = (value, path = "value", seen = new Set(), depth = 0) => {
+    if (depth > 8) return { ok: false, reason: `Слишком глубокое значение в ${path}.` };
+    if (value == null || typeof value === "string" || typeof value === "boolean") return { ok: true };
+    if (typeof value === "number") return Number.isFinite(value) && Number.isSafeInteger(value) && Math.abs(value) <= 1000000
+      ? { ok: true } : { ok: false, reason: `Некорректное число в ${path}.` };
+    if (typeof value !== "object") return { ok: false, reason: `Неподтверждённое значение в ${path}.` };
+    if (seen.has(value)) return { ok: false, reason: `Циклическое значение в ${path}.` };
+    seen.add(value);
+    const entries = Array.isArray(value) ? value.map((child, index) => [`${index}`, child]) : Object.entries(value);
+    for (const [key, child] of entries) {
+      if (!Array.isArray(value) && forbiddenKeys.has(aliasesForKey(key))) return { ok: false, reason: `Неподтверждённое состояние клиента в ${path}.${key}.` };
+      const result = safeValue(child, `${path}.${key}`, seen, depth + 1);
+      if (!result.ok) return result;
+    }
+    seen.delete(value);
+    return { ok: true };
+  };
+  const clone = (value, seen = new Map()) => {
+    if (value == null || typeof value !== "object") return value;
+    if (seen.has(value)) throw new Error("Циклическое значение не может попасть в декларацию.");
+    const result = Array.isArray(value) ? [] : {};
+    seen.set(value, result);
+    for (const [key, child] of Object.entries(value)) result[key] = clone(child, seen);
+    seen.delete(value);
+    return result;
+  };
   const normalizeBoundary = value => {
     const canonical = aliases[String(value || "")] || String(value || "");
     return boundaries.has(canonical) ? canonical : null;
@@ -547,35 +630,203 @@ function terrainComponentStatus(scene, request = {}) {
     const ownerActorId = context.ownerActorId || context.actor?.id || null;
     const ownerTurnSerial = Number(context.ownerTurnSerial ?? context.actor?.lionwing?.ownTurnSerial ?? 0);
     const ownerTurnInstanceId = context.ownerTurnInstanceId || null;
+    if (![sceneSerial, round, ownerTurnSerial].every(value => Number.isSafeInteger(value) && value >= 0)) return { available: false, reason: "Состояние границы жизненного цикла не подтверждено.", boundary: null, periodKey: null };
+    if (ownerActorId != null && !id(ownerActorId)) return { available: false, reason: "Владелец границы жизненного цикла не подтверждён.", boundary: null, periodKey: null };
+    if (ownerTurnInstanceId != null && !id(ownerTurnInstanceId)) return { available: false, reason: "Идентификатор Хода не подтверждён.", boundary: null, periodKey: null };
     let periodKey = `${sceneSerial}:${boundary}`;
     if (boundary === "roundStart" || boundary === "roundEnd") periodKey = `${sceneSerial}:${round}:${boundary}`;
     if (boundary === "ownTurnStart" || boundary === "ownTurnEnd") periodKey = `${sceneSerial}:${ownerActorId || "unknown"}:${ownerTurnSerial}:${boundary}`;
     if (boundary === "anyTurnStart" || boundary === "anyTurnEnd") periodKey = `${sceneSerial}:${ownerTurnInstanceId || context.activeTurnInstanceId || "unknown"}:${boundary}`;
     return { available: true, reason: "", boundary, sceneSerial, round, ownerActorId, ownerTurnSerial, ownerTurnInstanceId, periodKey };
   };
-  const validateBoundaryDeclaration = (rule, owner, context = {}) => {
-    const descriptor = boundaryDescriptor(context);
-    if (!descriptor.available) return { ok: false, reason: descriptor.reason, manual: true };
-    if (!isPlain(rule) || !id(rule.id)) return { ok: false, reason: "Автоматизация требует корректный ID правила.", manual: true };
-    if (!owner || !text(owner.id, 180)) return { ok: false, reason: "Автоматизация требует подтверждённого владельца.", manual: true };
-    if (rule.ownerActorId != null && rule.ownerActorId !== owner.id) return { ok: false, reason: "Автоматизация принадлежит другому участнику.", manual: true };
-    if (!text(rule.sourceDigest, 240)) return { ok: false, reason: "Автоматизация без подтверждённого источника передана Нарратору.", manual: true };
-    const operations = Array.isArray(rule.operations) ? rule.operations : [];
-    const choices = Array.isArray(rule.choices) ? rule.choices : [];
-    if (hasForbidden(rule) || operations.some(operation => !operationSafe(operation))) return { ok: false, reason: "Автоматизация содержит неподтверждённое состояние клиента.", manual: true };
-    for (const choice of choices) {
-      if (!isPlain(choice) || !id(choice.id) || !Array.isArray(choice.operations) || choice.operations.some(operation => !operationSafe(operation))) return { ok: false, reason: "Вариант автоматизации содержит неподтверждённую операцию.", manual: true };
+  const checkScalar = (value, field, options = {}) => {
+    if (value == null) return null;
+    if (options.kind === "id" && !id(value)) return `Поле ${field} должно быть идентификатором.`;
+    if (options.kind === "token" && !token(value)) return `Поле ${field} должно быть одним идентификатором.`;
+    if (options.kind === "digest" && !digest(value)) return `Поле ${field} не содержит подтверждённый sourceDigest.`;
+    if (options.kind === "text" && !text(value, options.max || 240)) return `Поле ${field} должно быть коротким текстом.`;
+    if (options.kind === "integer" && !safeInteger(value, options.min ?? -9999, options.max ?? 9999)) return `Поле ${field} содержит недопустимое число.`;
+    if (options.kind === "boolean" && typeof value !== "boolean") return `Поле ${field} должно быть булевым.`;
+    return null;
+  };
+  const lifetimeSafe = (value, field) => {
+    if (value == null || typeof value === "string") return value == null || text(value, 80) ? null : `Поле ${field} содержит недопустимый срок.`;
+    if (!isRecord(value)) return `Поле ${field} содержит неподтверждённый срок.`;
+    const allowed = new Set(["boundary", "ownerActorId", "ownerTurnSerial", "ownerTurnInstanceId", "sceneSerial"]);
+    for (const key of Object.keys(value)) if (!allowed.has(key)) return `Поле ${field}.${key} не разрешено.`;
+    if (value.boundary != null && !lifetimeBoundaries.has(String(value.boundary))) return `Поле ${field}.boundary не разрешено.`;
+    if (value.ownerActorId != null && !id(value.ownerActorId)) return `Поле ${field}.ownerActorId не подтверждено.`;
+    if (value.ownerTurnInstanceId != null && !id(value.ownerTurnInstanceId)) return `Поле ${field}.ownerTurnInstanceId не подтверждено.`;
+    if (value.ownerTurnSerial != null && !safeInteger(value.ownerTurnSerial, 0, 1000000)) return `Поле ${field}.ownerTurnSerial не подтверждено.`;
+    if (value.sceneSerial != null && !safeInteger(value.sceneSerial, 0, 1000000)) return `Поле ${field}.sceneSerial не подтверждено.`;
+    return null;
+  };
+  const validateOperation = (operation, owner, parent, path) => {
+    if (!isRecord(operation) || !operationKinds.has(operation.kind)) return fail(`Операция ${path} имеет неподдерживаемую форму.`);
+    const allowed = new Set([...commonOperationKeys, ...(operationKeys[operation.kind] || [])]);
+    for (const key of Object.keys(operation)) if (!keyAllowed(key, allowed)) return fail(`Поле ${path}.${key} не разрешено для операции ${operation.kind}.`);
+    const safe = safeValue(operation, path);
+    if (!safe.ok) return fail(safe.reason);
+    const fields = [
+      ["id", "id"], ["targetId", "id"], ["sourceActorId", "id"], ["ownerActorId", "id"], ["sourceId", "id"], ["sourceActionId", "token"],
+      ["actionId", "token"], ["actionEventId", "id"], ["actionInstanceId", "id"], ["triggerKey", "text"], ["techniqueId", "token"], ["techniqueRuleId", "token"],
+      ["causeEventId", "id"], ["frightenedEventId", "id"], ["studyTargetId", "id"], ["dazeTargetId", "id"], ["ruleId", "id"], ["sourceDigest", "digest"], ["techniqueSourceDigest", "digest"],
+      ["label", "text"], ["coverage", "text"], ["reason", "text"], ["resource", "text"], ["operation", "text"], ["effect", "text"], ["duration", "text"],
+      ["stat", "text"], ["markerId", "id"], ["inventoryKind", "text"], ["editionId", "text"], ["resetAt", "text"], ["scope", "text"], ["boundary", "text"],
+      ["maximum", "integer"], ["initialDistance", "integer"], ["amount", "integer"], ["delta", "integer"], ["evasion", "integer"], ["size", "integer"], ["value", "integer"],
+      ["max", "integer"], ["min", "integer"], ["current", "integer"], ["initial", "integer"], ["threshold", "integer"], ["minimumSize", "integer"],
+      ["level", "integer"], ["minimum", "integer"], ["maximum", "integer"], ["fixedDamage", "boolean"], ["finalDamage", "boolean"], ["attack", "boolean"],
+      ["irreducible", "boolean"], ["ignoreArmor", "boolean"], ["ignoreEvasion", "boolean"], ["active", "boolean"], ["removeWhenEmpty", "boolean"], ["replacesAp", "boolean"],
+      ["inverted", "boolean"], ["unique", "boolean"], ["multiple", "boolean"], ["forced", "boolean"], ["daze", "boolean"], ["remove", "boolean"], ["oncePerTarget", "boolean"],
+    ];
+    for (const [field, kind] of fields) {
+      const problem = checkScalar(operation[field], `${path}.${field}`, kind === "id" ? { kind: "id" } : kind === "token" ? { kind: "token" } : kind === "digest" ? { kind: "digest" } : kind === "integer" ? { kind: "integer", min: -1000000, max: 1000000 } : { kind });
+      if (problem) return fail(problem);
     }
-    return { ok: true, manual: false, rule: { ...rule, ownerActorId: owner.id, operations: operations.map(operation => ({ ...operation })), choices: choices.map(choice => ({ ...choice, operations: choice.operations.map(operation => ({ ...operation })) })) }, descriptor };
+    if (operation.targetIds != null && (!Array.isArray(operation.targetIds) || !operation.targetIds.length || operation.targetIds.length > 32 || operation.targetIds.some(value => !id(value)))) return fail(`Поле ${path}.targetIds не подтверждено.`);
+    if (operation.lineage != null && (!Array.isArray(operation.lineage) || operation.lineage.length > 16 || operation.lineage.some(value => !id(value)))) return fail(`Поле ${path}.lineage не подтверждено.`);
+    if (operation.items != null && (!Array.isArray(operation.items) || operation.items.length > 64 || operation.items.some(value => !text(value, 120)))) return fail(`Поле ${path}.items не подтверждено.`);
+    if (operation.fearedActorIds != null && (!Array.isArray(operation.fearedActorIds) || operation.fearedActorIds.length > 32 || operation.fearedActorIds.some(value => !id(value)))) return fail(`Поле ${path}.fearedActorIds не подтверждено.`);
+    if (operation.labelI18n != null && (!isRecord(operation.labelI18n) || Object.values(operation.labelI18n).some(value => !text(value, 300)))) return fail(`Поле ${path}.labelI18n не подтверждено.`);
+    if (operation.effects != null && (!Array.isArray(operation.effects) || operation.effects.length > 32 || operation.effects.some(value => !text(value, 120)))) return fail(`Поле ${path}.effects не подтверждено.`);
+    for (const [field, limit] of [["replaces", 120], ["alternateResource", 120], ["replacementGroup", 120], ["selectedItemId", 180], ["mode", 80]]) if (operation[field] != null && !text(operation[field], limit)) return fail(`Поле ${path}.${field} не подтверждено.`);
+    for (const field of ["reduction", "temporaryArmor"]) if (operation[field] != null && !safeInteger(operation[field], -1000000, 1000000)) return fail(`Поле ${path}.${field} не подтверждено.`);
+    const lifetimeProblem = lifetimeSafe(operation.lifetime, `${path}.lifetime`);
+    if (lifetimeProblem) return fail(lifetimeProblem);
+    if (operation.filter != null) {
+      if (!isRecord(operation.filter) || Object.keys(operation.filter).some(key => !["team", "effect"].includes(key)) || (operation.filter.team != null && !text(operation.filter.team, 40)) || (operation.filter.effect != null && !text(operation.filter.effect, 120))) return fail(`Поле ${path}.filter не подтверждено.`);
+    }
+    if (operation.ruleId != null && operation.ruleId !== parent.id && !String(operation.ruleId).startsWith(`${parent.id}.`)) return fail(`Операция ${path} принадлежит другому ruleId.`);
+    if (operation.sourceDigest != null && operation.sourceDigest !== parent.sourceDigest) return fail(`Операция ${path} содержит чужой sourceDigest.`);
+    if (operation.techniqueSourceDigest != null && operation.techniqueSourceDigest !== parent.sourceDigest) return fail(`Операция ${path} содержит неподтверждённый techniqueSourceDigest.`);
+    if (operation.sourceActorId != null && operation.sourceActorId !== owner.id) return fail(`Операция ${path} содержит чужого sourceActorId.`);
+    if (operation.ownerActorId != null && operation.ownerActorId !== owner.id && !(operation.kind === "effect" && operation.ownerActorId === operation.targetId)) return fail(`Операция ${path} содержит чужого ownerActorId.`);
+    if (operation.kind === "note" && !text(operation.note, 500)) return fail(`Операция ${path} требует короткую заметку.`);
+    if (operation.kind === "resource" && (!id(operation.targetId) || !text(operation.resource, 80) || !text(operation.operation, 40) || !safeInteger(operation.amount, -1000000, 1000000))) return fail(`Ресурсная операция ${path} не подтверждена.`);
+    if (["configure-resource", "clock", "inventory"].includes(operation.kind) && (!id(operation.targetId) || !id(operation.id))) return fail(`Операция ${path} требует подтверждённый targetId и id.`);
+    if (["effect", "effect-source", "modifier", "heal", "damage", "move", "breacher-push", "chemist-health-check", "detective-finisher-open", "forced-away", "forced-towards", "forced-towards-group", "martial-quick-step", "shatter-check", "skirmisher-shift", "marker-remove"].includes(operation.kind) && !id(operation.targetId)) return fail(`Операция ${path} требует подтверждённый targetId.`);
+    if (operation.kind === "derived-action" && (!Array.isArray(operation.targetIds) || !operation.targetIds.length)) return fail(`Операция ${path} требует targetIds.`);
+    if (operation.kind === "usage" && (!Array.isArray(operation.targetIds) || !operation.targetIds.length || !text(operation.scope, 80))) return fail(`Операция ${path} требует scope и targetIds.`);
+    if (operation.kind === "effect-source" && (!id(operation.sourceId) || !text(operation.effect, 120) || !text(operation.operation, 40))) return fail(`Операция ${path} требует источник Эффекта.`);
+    // Keep optional operation metadata absent when the adapter omitted it.
+    // The engine adds provenance at the write boundary; manufacturing a
+    // ruleId here would turn an otherwise ordinary boundary resource into a
+    // special technique mutation (for example, Siren's cause-event gate).
+    return { ok: true, value: clone(operation) };
   };
-  const validateTriggerDeclaration = (rule, owner) => {
-    if (!isPlain(rule) || !id(rule.id)) return { ok: false, reason: "Триггер требует корректный ID правила.", manual: true };
-    if (!owner || !text(owner.id, 180) || rule.ownerActorId != null && rule.ownerActorId !== owner.id) return { ok: false, reason: "Триггер принадлежит неподтверждённому владельцу.", manual: true };
-    if (!text(rule.sourceDigest, 240) || !text(rule.triggerKey, 240)) return { ok: false, reason: "Триггер без подтверждённого источника или ключа передан Нарратору.", manual: true };
-    const operations = Array.isArray(rule.operations) ? rule.operations : [], choices = Array.isArray(rule.choices) ? rule.choices : [];
-    if (hasForbidden(rule) || operations.some(operation => !operationSafe(operation))) return { ok: false, reason: "Триггер содержит неподтверждённое состояние клиента.", manual: true };
-    for (const choice of choices) if (!isPlain(choice) || !id(choice.id) || !Array.isArray(choice.operations) || choice.operations.some(operation => !operationSafe(operation))) return { ok: false, reason: "Вариант триггера содержит неподтверждённую операцию.", manual: true };
-    return { ok: true, manual: false, rule: { ...rule, ownerActorId: owner.id, operations: operations.map(operation => ({ ...operation })), choices: choices.map(choice => ({ ...choice, operations: choice.operations.map(operation => ({ ...operation })) })) } };
+  const validateContext = (context, owner, parent, path) => {
+    if (context == null) return { ok: true, value: undefined };
+    if (!isRecord(context)) return fail(`Контекст ${path} не подтверждён.`);
+    for (const key of Object.keys(context)) if (!keyAllowed(key, contextKeys)) return fail(`Поле ${path}.${key} не разрешено.`);
+    const safe = safeValue(context, path);
+    if (!safe.ok) return fail(safe.reason);
+    for (const [field, kind] of [["targetId", "id"], ["sourceActorId", "id"], ["ownerActorId", "id"], ["eventId", "id"], ["causeEventId", "id"], ["actionInstanceId", "id"], ["studyEventId", "id"], ["frightenedEventId", "id"], ["markerId", "id"], ["drainId", "id"], ["followupId", "id"], ["sourceDigest", "digest"], ["coverage", "text"], ["attribute", "text"], ["boundary", "text"], ["boundaryKey", "text"], ["manualRemainder", "text"], ["verse", "id"]]) {
+      const problem = checkScalar(context[field], `${path}.${field}`, { kind });
+      if (problem) return fail(problem);
+    }
+    for (const field of ["targetIds", "fearedActorIds"]) if (context[field] != null && (!Array.isArray(context[field]) || context[field].length > 32 || context[field].some(value => !id(value)))) return fail(`Поле ${path}.${field} не подтверждено.`);
+    if (context.sourceActorId != null && context.sourceActorId !== owner.id) return fail(`Контекст ${path} содержит чужого sourceActorId.`);
+    if (context.ownerActorId != null && context.ownerActorId !== owner.id) return fail(`Контекст ${path} содержит чужого ownerActorId.`);
+    if (context.sourceDigest != null && context.sourceDigest !== parent.sourceDigest) return fail(`Контекст ${path} содержит чужой sourceDigest.`);
+    if (context.deadline != null && (!isRecord(context.deadline) || Object.keys(context.deadline).some(key => key !== "boundary") || !normalizeBoundary(context.deadline.boundary))) return fail(`Контекст ${path}.deadline не подтверждён.`);
+    if (context.maximum != null && !safeInteger(context.maximum, 0, 1000000)) return fail(`Контекст ${path}.maximum не подтверждён.`);
+    for (const field of ["destinationRequired", "filled", "full", "choiceSet", "optional", "followup", "mandatory"]) if (context[field] != null && typeof context[field] !== "boolean") return fail(`Контекст ${path}.${field} должен быть булевым.`);
+    return { ok: true, value: clone(context) };
   };
-  root.DAWN_LIONWING_FOUNDATION = Object.freeze({ normalizeBoundary, boundaryDescriptor, validateBoundaryDeclaration, validateTriggerDeclaration });
+  const validateChoice = (choice, owner, parent, path) => {
+    if (!isRecord(choice) || !id(choice.id) || !Array.isArray(choice.operations) || choice.operations.length > 192) return fail(`Вариант ${path} имеет неподдерживаемую форму.`);
+    for (const key of Object.keys(choice)) if (!choiceKeys.has(key)) return fail(`Поле ${path}.${key} не разрешено.`);
+    if (choice.label != null && !text(choice.label, 300)) return fail(`Вариант ${path}.label не подтверждён.`);
+    const operations = [];
+    for (let index = 0; index < choice.operations.length; index++) {
+      const result = validateOperation(choice.operations[index], owner, parent, `${path}.operations[${index}]`);
+      if (!result.ok) return result;
+      operations.push(result.value);
+    }
+    const context = validateContext(choice.context, owner, parent, `${path}.context`);
+    if (!context.ok) return context;
+    return { ok: true, value: { ...clone(choice), operations, ...(context.value === undefined ? {} : { context: context.value }) } };
+  };
+  const validateFollowUp = (raw, owner, parent) => {
+    if (raw == null) return { ok: true, value: undefined };
+    if (!isRecord(raw)) return fail("Follow-up содержит неподтверждённое состояние.");
+    for (const key of Object.keys(raw)) if (!followUpKeys.has(key)) return fail(`Поле follow-up.${key} не разрешено.`);
+    const value = clone(raw);
+    if (value.id != null && !id(value.id)) return fail("Follow-up содержит недопустимый ID.");
+    if (value.ownerActorId != null && value.ownerActorId !== owner.id) return fail("Follow-up принадлежит другому участнику.");
+    if (value.sourceActorId != null && value.sourceActorId !== owner.id) return fail("Follow-up содержит чужого sourceActorId.");
+    const participants = value.participantIds ?? value.participants;
+    if (participants != null && (!Array.isArray(participants) || participants.length < 1 || participants.length > 16 || participants.some(item => !id(item)))) return fail("Follow-up содержит неподтверждённых участников.");
+    const endBoundary = value.endBoundary || value.deadline?.boundary;
+    if (endBoundary != null && !normalizeBoundary(endBoundary)) return fail("Follow-up содержит неизвестную границу.");
+    if (value.deadline != null && (!isRecord(value.deadline) || Object.keys(value.deadline).some(key => key !== "boundary"))) return fail("Follow-up содержит неподтверждённый deadline.");
+    if (value.cancelOn != null && (!Array.isArray(value.cancelOn) || value.cancelOn.length > 3 || value.cancelOn.some(item => !cancelReasons.has(item)))) return fail("Follow-up содержит неподтверждённое условие отмены.");
+    if (value.optional != null && typeof value.optional !== "boolean") return fail("Follow-up.optional должен быть булевым.");
+    const completion = value.completionOperations ?? value.completeOperations;
+    if (completion != null) {
+      if (!Array.isArray(completion) || completion.length > 192) return fail("Follow-up содержит неподтверждённый план завершения.");
+      const normalized = [];
+      for (let index = 0; index < completion.length; index++) {
+        const result = validateOperation(completion[index], owner, parent, `followUp.completionOperations[${index}]`);
+        if (!result.ok) return result;
+        normalized.push(result.value);
+      }
+      value.completionOperations = normalized;
+      delete value.completeOperations;
+    }
+    if (value.ownerActorId == null) value.ownerActorId = owner.id;
+    if (value.sourceActorId == null) value.sourceActorId = owner.id;
+    if (value.participantIds == null && Array.isArray(value.participants)) value.participantIds = value.participants;
+    delete value.participants;
+    if (value.endBoundary == null) value.endBoundary = endBoundary || "anyTurnStart";
+    return { ok: true, value };
+  };
+  const validateDeclaration = (rule, owner, context = {}, kind = "boundary") => {
+    if (!isRecord(rule)) return fail(`${kind === "trigger" ? "Триггер" : "Автоматизация"} имеет неподдерживаемую форму.`);
+    if (!owner || !id(owner.id)) return fail(`${kind === "trigger" ? "Триггер" : "Автоматизация"} требует подтверждённого владельца.`);
+    const descriptor = kind === "boundary" ? boundaryDescriptor(context) : null;
+    if (descriptor && !descriptor.available) return fail(descriptor.reason);
+    for (const key of Object.keys(rule)) if (!declarationKeys.has(key)) return fail(`Поле декларации ${key} не разрешено.`);
+    if (!id(rule.id)) return fail(`${kind === "trigger" ? "Триггер" : "Автоматизация"} требует корректный ID правила.`);
+    if (rule.ruleId != null && rule.ruleId !== rule.id) return fail("Декларация содержит чужой ruleId.");
+    if (rule.ownerActorId != null && rule.ownerActorId !== owner.id) return fail(`${kind === "trigger" ? "Триггер" : "Автоматизация"} принадлежит другому участнику.`);
+    if (!digest(rule.sourceDigest)) return fail(`${kind === "trigger" ? "Триггер" : "Автоматизация"} без подтверждённого sourceDigest передан Нарратору.`);
+    if (rule.label != null && !text(rule.label, 300)) return fail("Декларация содержит недопустимую подпись.");
+    if (rule.coverage != null && !text(rule.coverage, 80)) return fail("Декларация содержит недопустимое покрытие.");
+    for (const field of ["choiceSet", "optional"]) if (rule[field] != null && typeof rule[field] !== "boolean") return fail(`Декларация.${field} должна быть булевой.`);
+    if (kind === "trigger" && !text(rule.triggerKey, 240)) return fail("Триггер без подтверждённого triggerKey передан Нарратору.");
+    if (rule.triggerKey != null && !text(rule.triggerKey, 240)) return fail("Декларация содержит недопустимый triggerKey.");
+    const safe = safeValue(rule, "declaration");
+    if (!safe.ok) return fail(safe.reason);
+    const parent = { id: rule.id, sourceDigest: rule.sourceDigest };
+    const rawOperations = rule.operations == null ? [] : rule.operations;
+    if (!Array.isArray(rawOperations) || rawOperations.length > 192) return fail("Декларация содержит неподтверждённый список операций.");
+    const operations = [];
+    for (let index = 0; index < rawOperations.length; index++) {
+      const result = validateOperation(rawOperations[index], owner, parent, `operations[${index}]`);
+      if (!result.ok) return result;
+      operations.push(result.value);
+    }
+    const rawChoices = rule.choices == null ? [] : rule.choices;
+    if (!Array.isArray(rawChoices) || rawChoices.length > 64) return fail("Декларация содержит неподтверждённый список вариантов.");
+    const choices = [], choiceIds = new Set();
+    for (let index = 0; index < rawChoices.length; index++) {
+      const result = validateChoice(rawChoices[index], owner, parent, `choices[${index}]`);
+      if (!result.ok) return result;
+      if (choiceIds.has(result.value.id)) return fail("Декларация содержит повторяющийся вариант.");
+      choiceIds.add(result.value.id); choices.push(result.value);
+    }
+    const followUp = validateFollowUp(rule.followUp ?? rule.followup, owner, parent);
+    if (!followUp.ok) return followUp;
+    const normalized = { ...clone(rule), ownerActorId: owner.id, operations, choices };
+    // Keep a canonical ruleId alongside the historical `id` field so the
+    // engine and audit tools can bind every receipt to one declaration.
+    normalized.ruleId = rule.id;
+    if (followUp.value !== undefined) normalized.followUp = followUp.value;
+    delete normalized.followup;
+    return { schema: BRIDGE_SCHEMA, ok: true, manual: false, rule: normalized, ...(descriptor ? { descriptor } : {}) };
+  };
+  const validateBoundaryDeclaration = (rule, owner, context = {}) => validateDeclaration(rule, owner, context, "boundary");
+  const validateTriggerDeclaration = (rule, owner) => validateDeclaration(rule, owner, {}, "trigger");
+  root.DAWN_LIONWING_FOUNDATION = Object.freeze({ BRIDGE_SCHEMA, normalizeBoundary, boundaryDescriptor, validateBoundaryDeclaration, validateTriggerDeclaration });
 })(typeof window === "object" ? window : globalThis);
