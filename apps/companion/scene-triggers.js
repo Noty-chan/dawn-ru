@@ -336,6 +336,80 @@ function triggerRegistryStatus() {
   return { available: true, count: rules.length, eventTypes, rules };
 }
 
+function triggerTieBreak(order, id = "prompt") {
+  return `${String(Math.max(0, Number(order) || 0)).padStart(6, "0")}:${String(id).slice(0, 120)}`;
+}
+
+function compareQueuedTriggers(left, right) {
+  const priority = Number(right?.priority || 0) - Number(left?.priority || 0);
+  if (priority) return priority;
+  const leftTie = String(left?.tieBreak || ""), rightTie = String(right?.tieBreak || ""), tie = leftTie.localeCompare(rightTie);
+  if (tie) return tie;
+  const leftSequence = Number.isSafeInteger(Number(left?.sequence)) ? Number(left.sequence) : Number.MAX_SAFE_INTEGER;
+  const rightSequence = Number.isSafeInteger(Number(right?.sequence)) ? Number(right.sequence) : Number.MAX_SAFE_INTEGER;
+  if (leftSequence !== rightSequence) return leftSequence - rightSequence;
+  return String(left?.key || "").localeCompare(String(right?.key || ""));
+}
+
+function orderedTriggerQueue(scene) {
+  return (scene?.triggerQueue || []).map((item, index) => ({ item, index })).sort((left, right) => compareQueuedTriggers(left.item, right.item) || left.index - right.index).map(({ item }) => item);
+}
+
+function comparePromptEvents(left, right) {
+  const priority = Number(right?.payload?.priority || 0) - Number(left?.payload?.priority || 0);
+  if (priority) return priority;
+  const leftTie = String(left?.payload?.tieBreak || ""), rightTie = String(right?.payload?.tieBreak || ""), tie = leftTie.localeCompare(rightTie);
+  if (tie) return tie;
+  return String(left?.payload?.id || left?.id || "").localeCompare(String(right?.payload?.id || right?.id || ""));
+}
+
+function latestPromptSource(scene) {
+  return [...(scene?.log || [])].reverse().find(item => item?.type !== "rule.trigger") || null;
+}
+
+function decoratePromptEvent(scene, event, defaults = {}) {
+  const explicitSourceId = defaults.sourceEventId || event?.payload?.sourceEventId || event?.payload?.context?.sourceEventId;
+  const source = explicitSourceId ? (scene?.log || []).find(item => item.id === explicitSourceId) : latestPromptSource(scene);
+  const payload = promptContractPayload(scene, event, event?.payload || {}, {
+    sourceEventId: explicitSourceId || source?.id || null,
+    sourceEventType: defaults.sourceEventType || source?.type || null,
+    sourceSceneVersion: defaults.sourceSceneVersion ?? Number(scene?.version || 0),
+    priority: defaults.priority ?? event?.payload?.priority ?? 0,
+    tieBreak: defaults.tieBreak || event?.payload?.tieBreak || triggerTieBreak(defaults.order || 0, event?.payload?.kind || "prompt"),
+  });
+  return { ...event, payload };
+}
+
+function queuePromptEvent(scene, event, defaults = {}) {
+  const payload = event.payload || {}, promptId = String(payload.id || `prompt-${event.type}`).slice(0, 120), deferred = decoratePromptEvent(scene, { ...event, id: event.id || promptId, payload }, defaults), deferredPayload = deferred.payload || {};
+  const sourceEventId = deferredPayload.sourceEventId || deferredPayload.id;
+  const sourceEventType = deferredPayload.sourceEventType || "rule.prompt";
+  const suffix = String(deferredPayload.kind || "prompt").toLowerCase().replace(/[^a-z0-9.-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 72) || "prompt";
+  const idSuffix = String(deferredPayload.id || "prompt").toLowerCase().replace(/[^a-z0-9.-]+/g, "-").replace(/^-+|-+$/g, "").slice(-32) || "prompt";
+  const triggerId = String(deferredPayload.triggerId || `legacy.${suffix}.${idSuffix}`).slice(0, 120);
+  const tieBreak = deferredPayload.tieBreak || triggerTieBreak(defaults.order || 0, triggerId);
+  return {
+    id: `trigger-queue-${String(deferredPayload.id).slice(0, 96)}`,
+    type: "rule.trigger",
+    actorId: deferredPayload.ownerActorId || deferredPayload.sourceActorId || deferred.actorId || null,
+    payload: {
+      triggerId,
+      sourceEventId,
+      sourceEventType,
+      sourceSceneVersion: deferredPayload.sourceSceneVersion ?? Number(scene?.version || 0),
+      status: "queued",
+      reason: defaults.reason || "Запрос ждёт завершения уже открытого решения.",
+      priority: Number(deferredPayload.priority || 0),
+      tieBreak,
+      queueKey: deferredPayload.queueKey || `${sourceEventId}:${triggerId}`,
+      emittedTypes: ["rule.prompt"],
+      triggerOwnerId: deferredPayload.ownerActorId || deferredPayload.sourceActorId || deferred.actorId || null,
+      participantIds: clone(deferredPayload.participantIds || []),
+      deferredEvent: deferred,
+    },
+  };
+}
+
 function caughtFollowEvent(scene, source, target, boundaryEvent, movement) {
   if (!source || !target || source.id === target.id || source.space !== target.space || distance(source, target) <= 1) return null;
   const space = (scene.spaces || []).find(item => item.id === source.space), removed = removedCellKeys(scene, source.space);
@@ -368,26 +442,33 @@ function caughtFollowEvent(scene, source, target, boundaryEvent, movement) {
 }
 
 function triggerQueueStatus(scene) {
-  const queued = (scene?.triggerQueue || []).map((item, index) => {
-    const deferred = item.event, payload = deferred?.payload || {}, source = actorById(scene, payload.sourceActorId || deferred?.actorId), target = payload.targetId ? actorById(scene, payload.targetId) : null;
-    const reason = !source || source.knockedOut ? "Источник отложенного триггера больше недоступен." : payload.targetId && (!target || target.knockedOut) ? "Цель отложенного триггера больше недоступна." : "";
+  const queued = orderedTriggerQueue(scene).map((item, index) => {
+    const deferred = item.event, payload = deferred?.payload || {}, sourceId = payload.sourceActorId || item.ownerId || deferred?.actorId, source = actorById(scene, sourceId), target = payload.targetId ? actorById(scene, payload.targetId) : null;
+    const reason = !source || source.knockedOut ? "Источник отложенного триггера больше недоступен." : payload.targetId && (!target || target.knockedOut) ? "Цель отложенного триггера больше недоступна." : promptExpired(payload) ? "Просроченный запрос правила закрывается через ручной fallback Нарратора." : "";
     return {
       index,
       key: item.key,
       triggerId: item.triggerId,
       sourceEventId: item.sourceEventId,
+      sourceEventType: item.sourceEventType || payload.sourceEventType || "",
+      sourceSceneVersion: item.sourceSceneVersion ?? payload.sourceSceneVersion ?? null,
       priority: Number(item.priority || 0),
+      tieBreak: item.tieBreak || payload.tieBreak || "",
+      sequence: Number.isSafeInteger(Number(item.sequence)) ? Number(item.sequence) : null,
       ownerId: item.ownerId,
+      controller: item.controller || payload.controller || "source",
+      participantIds: clone(item.participantIds || payload.participantIds || []),
       kind: payload.kind || "",
       title: payload.title || "Решение правила",
-      sourceActorId: source?.id || payload.sourceActorId || deferred?.actorId || null,
+      sourceActorId: source?.id || sourceId || null,
       targetId: target?.id || payload.targetId || null,
       available: !reason,
       reason,
       event: clone(deferred),
     };
   });
-  return { available: queued.length > 0, count: queued.length, pending: scene?.pendingPrompt ? clone(scene.pendingPrompt) : null, next: queued[0] || null, queued };
+  const pending = scene?.pendingPrompt ? clone(scene.pendingPrompt) : null;
+  return { available: queued.length > 0, count: queued.length, pending, active: pending, next: queued[0] || null, queued };
 }
 
 function triggerAuditEvent(event, proposal, status, reason = "") {
@@ -403,6 +484,9 @@ function triggerAuditEvent(event, proposal, status, reason = "") {
       status,
       reason,
       priority: proposal.rule.priority,
+      tieBreak: proposal.tieBreak,
+      queueKey: `${event.id}:${proposal.rule.id}`,
+      sourceSceneVersion: Number(proposal.sourceSceneVersion ?? 0),
       emittedTypes,
       triggerOwnerId: proposal.ownerId,
       participantIds: proposal.participantIds,
@@ -419,8 +503,8 @@ function triggerRouteStatus(scene, event, options = {}) {
     .map((rule, order) => ({ rule, order }))
     .filter(({ rule }) => rule.eventTypes.includes(event.type) && rule.match(context))
     .map(({ rule, order }) => {
-      const events = rule.build(context) || [], prompt = events.some(item => item.type === "rule.prompt"), participants = eventParticipants(scene, { actorId: events[0]?.actorId || event.actorId, payload: { participantIds: events.flatMap(item => eventParticipants(scene, item).actorIds) } });
-      return { rule, order, events, prompt, ownerId: events[0]?.actorId || event.actorId || null, participantIds: participants.actorIds };
+      const tieBreak = triggerTieBreak(order, rule.id), rawEvents = rule.build(context) || [], events = rawEvents.map(item => item.type === "rule.prompt" ? decoratePromptEvent(scene, item, { sourceEventId: event.id, sourceEventType: event.type, sourceSceneVersion: Number(scene?.version || 0), priority: rule.priority, tieBreak }) : item), prompt = events.some(item => item.type === "rule.prompt"), participants = eventParticipants(scene, { actorId: events[0]?.actorId || event.actorId, payload: { participantIds: events.flatMap(item => eventParticipants(scene, item).actorIds) } });
+      return { rule, order, tieBreak, sourceSceneVersion: Number(scene?.version || 0), events, prompt, ownerId: events[0]?.actorId || event.actorId || null, participantIds: participants.actorIds };
     })
     .filter(proposal => proposal.events.length)
     .sort((left, right) => Number(right.rule.priority || 0) - Number(left.rule.priority || 0) || left.order - right.order);
@@ -437,6 +521,10 @@ function triggerRouteStatus(scene, event, options = {}) {
   const describe = proposal => ({
     triggerId: proposal.rule.id,
     priority: Number(proposal.rule.priority || 0),
+    tieBreak: proposal.tieBreak,
+    sourceEventId: event.id,
+    sourceEventType: event.type,
+    sourceSceneVersion: proposal.sourceSceneVersion,
     prompt: proposal.prompt,
     ownerId: proposal.ownerId,
     participantIds: clone(proposal.participantIds),
@@ -452,7 +540,9 @@ function resumeQueuedTriggers(scene, event) {
   if (scene.pendingPrompt || !status.available) return { events: [], promptReserved: false };
   const events = [];
   for (const queuedStatus of status.queued) {
-    const queued = (scene.triggerQueue || []).find(item => item.key === queuedStatus.key), deferred = queued.event, reason = queuedStatus.reason;
+    const queued = (scene.triggerQueue || []).find(item => item.key === queuedStatus.key), reason = queuedStatus.reason;
+    if (!queued) continue;
+    const deferred = queued.event && { ...clone(queued.event), payload: clone(queued.event.payload || {}) };
     const audit = {
       id: `trigger-resume-${event.id}-${queued.triggerId}-${reason ? "cancelled" : "fired"}`,
       type: "rule.trigger",
@@ -460,18 +550,34 @@ function resumeQueuedTriggers(scene, event) {
       payload: {
         triggerId: queued.triggerId,
         sourceEventId: queued.sourceEventId,
-        sourceEventType: "queued",
+        sourceEventType: queued.sourceEventType || deferred?.payload?.sourceEventType || "queued",
+        sourceSceneVersion: queued.sourceSceneVersion ?? deferred?.payload?.sourceSceneVersion ?? Number(scene?.version || 0),
         status: reason ? "cancelled" : "fired",
         reason,
         priority: queued.priority,
+        tieBreak: queued.tieBreak || deferred?.payload?.tieBreak || "000000",
+        queueKey: queued.key,
         emittedTypes: reason ? [] : ["rule.prompt"],
         triggerOwnerId: queued.ownerId,
-        participantIds: deferred?.payload?.participantIds || [],
+        participantIds: queued.participantIds || deferred?.payload?.participantIds || [],
         queued: true,
       },
     };
     events.push(audit);
     if (!reason) {
+      deferred.payload = promptContractPayload(scene, deferred, deferred.payload, {
+        sourceEventId: queued.sourceEventId,
+        sourceEventType: queued.sourceEventType || deferred.payload.sourceEventType || "queued",
+        sourceSceneVersion: queued.sourceSceneVersion ?? deferred.payload.sourceSceneVersion ?? Number(scene?.version || 0),
+        priority: queued.priority,
+        tieBreak: queued.tieBreak || deferred.payload.tieBreak || "000000",
+      });
+      // The resume audit itself is committed immediately before the prompt.
+      // Advance this copy by two versions so validation remains independent
+      // of the number of other queued audits in the chain.
+      deferred.payload.sceneVersion = Number(scene?.version || 0) + 2;
+      deferred.payload.queueResume = true;
+      deferred.payload.queueKey = queued.key;
       events.push(clone(deferred));
       return { events, promptReserved: true };
     }
@@ -593,22 +699,22 @@ function reminderLifecycleEvents(scene, event) {
 }
 
 function routeLegacyPromptEvents(scene, sourceEvent, prefixEvents, legacyEvents) {
-  let promptReserved = Boolean(scene.pendingPrompt || prefixEvents.some(item => item.type === "rule.prompt"));
+  let promptReserved = Boolean(scene.pendingPrompt || scene.triggerQueue?.length || prefixEvents.some(item => item.type === "rule.prompt"));
   const routed = [...prefixEvents];
   legacyEvents.forEach((candidate, index) => {
     if (candidate.type !== "rule.prompt") {
       routed.push(candidate);
       return;
     }
-    const payload = candidate.payload || {}, ownerId = candidate.actorId || payload.sourceActorId || sourceEvent.actorId || null;
+    const payload = candidate.payload || {}, ownerId = candidate.actorId || payload.sourceActorId || sourceEvent.actorId || null, tieBreak = triggerTieBreak(index, payload.kind || "legacy-prompt"), decorated = decoratePromptEvent(scene, candidate, { sourceEventId: sourceEvent.id, sourceEventType: sourceEvent.type, sourceSceneVersion: Number(scene?.version || 0), priority: Number(payload.priority || 0), tieBreak });
     const suffix = String(payload.kind || "prompt").toLowerCase().replace(/[^a-z0-9.-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 72) || "prompt";
     const triggerId = `legacy.${suffix}.${index}`, participants = eventParticipants(scene, candidate).actorIds;
     const status = promptReserved ? "queued" : "fired", reason = promptReserved ? "Запрос ждёт завершения уже открытого решения." : "";
-    const audit = { type: "rule.trigger", actorId: ownerId, payload: { triggerId, sourceEventId: sourceEvent.id, sourceEventType: sourceEvent.type, status, reason, priority: 0, emittedTypes: ["rule.prompt"], triggerOwnerId: ownerId, participantIds: participants } };
-    if (status === "queued") audit.payload.deferredEvent = clone(candidate);
+    const audit = { id: `trigger-${sourceEvent.id}-${triggerId}-${status}`, type: "rule.trigger", actorId: ownerId, payload: { triggerId, sourceEventId: sourceEvent.id, sourceEventType: sourceEvent.type, sourceSceneVersion: Number(scene?.version || 0), status, reason, priority: Number(payload.priority || 0), tieBreak, queueKey: `${sourceEvent.id}:${triggerId}`, emittedTypes: ["rule.prompt"], triggerOwnerId: ownerId, participantIds: participants } };
+    if (status === "queued") audit.payload.deferredEvent = clone(decorated);
     routed.push(audit);
     if (!promptReserved) {
-      routed.push(candidate);
+      routed.push(decorated);
       promptReserved = true;
     }
   });
@@ -1049,12 +1155,30 @@ function dispatchMany(scene, events, options = {}) {
   let next = clone(scene);
   const committed = [], duplicates = [];
   const queue = [...(events || [])];
+  if (queue.length > 1 && queue.every(item => item?.type === "rule.prompt")) queue.sort(comparePromptEvents);
+  const externalEvents = new Set(queue);
   const invalidatedActorIds = new Set();
   let versionPending = options.expectedVersion !== undefined;
   let handled = 0;
   while (queue.length) {
     if (handled++ > 240) throw new Error("Слишком длинная цепочка автоматических правил.");
     let event = queue.shift();
+    const storedPrompt = event?.type === "rule.prompt" && (
+      event.id && (next.log || []).find(item => item.id === event.id && item.type === "rule.prompt")
+        || !event.id && event.payload?.id && (next.log || []).find(item => item.type === "rule.prompt" && item.payload?.id === event.payload.id)
+    );
+    if (event?.type === "rule.prompt" && !storedPrompt) {
+      const decorated = decoratePromptEvent(next, event);
+      if (!decorated.payload?.queueResume && (next.pendingPrompt || next.triggerQueue?.length)) {
+        const queuedEvent = queuePromptEvent(next, decorated);
+        const queueKey = queuedEvent.payload.queueKey, existing = (next.triggerQueue || []).find(item => item.key === queueKey) || (next.log || []).find(item => item.type === "rule.trigger" && item.payload?.status === "queued" && item.payload?.queueKey === queueKey);
+        if (existing) {
+          duplicates.push(existing);
+          continue;
+        }
+        event = queuedEvent;
+      } else event = decorated;
+    } else if (storedPrompt && !event.id) event = { ...event, id: storedPrompt.id };
     if (event?.type === "actor.move" && !event.payload?.wispInterruptionChecked) {
       const mover = actorById(next, event.actorId), route = mover ? [{ space: mover.space, x: Number(mover.x), y: Number(mover.y) }, ...(event.payload?.path || []).map(value => { const [x, y] = String(value).split(",").map(Number); return { space: event.payload?.space || mover.space, x, y }; })] : [];
       const declaredDestination = mover ? { space: event.payload?.space || mover.space, x: Number(event.payload?.x), y: Number(event.payload?.y) } : null;
@@ -1092,7 +1216,7 @@ function dispatchMany(scene, events, options = {}) {
           ? queue.some(candidate => candidate.type === "technique.resolve" && candidate.actorId === prompt.sourceActorId && candidate.payload?.ruleId === "disruptor.siren.2")
           : queue.some(candidate => candidate.type === "actor.move" && candidate.actorId === placementActorId && Number(candidate.payload?.x) === Number(destination.x) && Number(candidate.payload?.y) === Number(destination.y))
     );
-    const dispatchOptions = { ...options, expectedVersion: versionPending ? options.expectedVersion : undefined, placementResponse };
+    const dispatchOptions = { ...options, expectedVersion: versionPending ? options.expectedVersion : undefined, placementResponse, internalChain: !externalEvents.has(event) };
     const result = dispatch(next, event, dispatchOptions);
     next = result.scene;
     if (result.event.type === "actor.knockout" && result.event.payload?.applied && result.event.payload?.targetId) {
@@ -1133,6 +1257,7 @@ function dispatchMany(scene, events, options = {}) {
     const requiredActorIds = [item.event?.actorId, payload.sourceActorId, payload.targetId].filter(Boolean);
     return !requiredActorIds.some(id => unavailable.has(id));
   });
+  next.triggerQueue.sort(compareQueuedTriggers);
   return { scene: next, events: committed, duplicates };
 }
 
