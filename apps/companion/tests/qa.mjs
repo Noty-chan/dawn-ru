@@ -23,7 +23,7 @@ assert.deepEqual(JSON.parse(JSON.stringify(logic.reconcileHealthRuntime({ curren
 assert.deepEqual(JSON.parse(JSON.stringify(logic.reconcileHealthRuntime({ current: 0, previousMax: 0, nextMax: 10 }))), { current: 10, maximum: 10 }, "A legacy 0/0 Health placeholder initializes the hero at full Health");
 assert.deepEqual(JSON.parse(JSON.stringify(logic.reconcileSceneActorHealth({ current: 0, previousMax: 6, nextMax: 6, existing: false }))), { current: 6, maximum: 6 }, "A newly spawned table actor starts at full Health even when the saved character sheet was at zero");
 assert.deepEqual(JSON.parse(JSON.stringify(logic.reconcileSceneActorHealth({ current: 2, previousMax: 6, nextMax: 8, existing: true }))), { current: 4, maximum: 8 }, "Refreshing an existing table actor preserves its missing Health");
-const appFiles = ["localization.js", "locale-ru.js", "locale-en-builder.js", "edition-lionwing.js", "edition-lionwing-ru.js", "lionwing-table-data.js", "app-bootstrap.js", "app-reference-data.js", "app-core.js", "hero-ui.js", "scene-ui.js", "gm-library.js", "scene-effects.js", "scene-actions-ui.js", "scene-sync-ui.js", "play-ui.js", "app-builder-events.js", "app-sync-events.js", "app-scene-events.js", "app-play-events.js", "app.js"];
+const appFiles = ["localization.js", "locale-ru.js", "locale-en-builder.js", "edition-lionwing.js", "edition-lionwing-ru.js", "lionwing-table-data.js", "lionwing-automation-status.js", "app-bootstrap.js", "app-reference-data.js", "app-core.js", "hero-ui.js", "scene-ui.js", "gm-library.js", "scene-effects.js", "scene-actions-ui.js", "scene-sync-ui.js", "play-ui.js", "app-builder-events.js", "app-sync-events.js", "app-scene-events.js", "app-play-events.js", "app.js"];
 appFiles.splice(appFiles.indexOf("app.js"),0,"lionwing-ui.js");
 appFiles.push("lionwing-engine.js");
 const appSource = appFiles.map(file => fs.readFileSync(path.join(root, file), "utf8")).join("\n");
@@ -34,6 +34,12 @@ for (const privateLionwingKey of ["history", "pausedChains", "receipts", "deferr
   assert.match(publicProjectionMigration, new RegExp(`- '${privateLionwingKey}'`), `The SQL public projection must remove private LionWing ${privateLionwingKey}`);
 }
 assert.match(publicProjectionMigration, /'entities',coalesce[\s\S]+visibility','public'[\s\S]+scene_metadata_visible/, "The SQL public projection must retain public entities while filtering hidden references");
+assert.ok(companionMarkup.indexOf("lionwing-automation-status.js") < companionMarkup.indexOf("app-bootstrap.js"), "The canonical readiness projection must load before the app bootstrap");
+assert.match(companionMarkup, /id="tech-status-filter"/, "The Technique catalogue must expose the readiness filter");
+assert.match(appSource, /canonicalLionwingTechniqueStatus[\s\S]+techniqueMatchesStatus/, "The catalogue must resolve LionWing status through the canonical registry");
+assert.match(appSource, /techniqueAutomationStatusMarkup[\s\S]+esc\(reason\)/, "Technique statuses and explanations must be escaped before entering HTML");
+assert.match(companionCss, /\.status-picker/, "Technique readiness controls must remain compact in the catalogue");
+assert.match(companionCss, /\.technique-status-summary/, "Technique cards must show a compact readiness summary");
 assert.match(companionMarkup, /id="app-settings-open"[\s\S]+id="app-settings-dialog"/, "Global settings must be reachable from every companion mode");
 assert.match(companionMarkup, /id="app-settings-dialog"[\s\S]+id="locale-select"[\s\S]+id="edition-select"[\s\S]+id="theme-toggle"[\s\S]+id="supplement-picker"[\s\S]+id="scene-layout-settings"/, "Language, edition, theme, supplements, and table layout must share one settings menu");
 assert.match(companionMarkup, /interfaceRolloutVersion\|\|0\)<3[\s\S]+scene-interface-classic-styles[\s\S]+disabled=next[\s\S]+scene-interface-next-styles[\s\S]+disabled=!next/, "Existing tables must roll forward once and load exactly one table stylesheet");

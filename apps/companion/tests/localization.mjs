@@ -58,6 +58,7 @@ assert.ok(html.indexOf("locale-ru.js") < html.indexOf("data.js"));
 assert.ok(html.indexOf("locale-ru.js") < html.indexOf("locale-en-builder.js"));
 assert.ok(html.indexOf("locale-en-builder.js") < html.indexOf("data.js"));
 assert.ok(html.indexOf("data.js") < html.indexOf("edition-lionwing.js"));
+assert.ok(html.indexOf("lionwing-automation-status.js") < html.indexOf("app-bootstrap.js"));
 assert.ok(html.indexOf("edition-lionwing.js") < html.indexOf("app-bootstrap.js"));
 assert.match(html, /data-i18n="builder\.profile\.title"/);
 const serviceWorker = fs.readFileSync(new URL("sw.js", root), "utf8");
@@ -65,6 +66,7 @@ assert.match(serviceWorker, /localization\.js/);
 assert.match(serviceWorker, /locale-ru\.js/);
 assert.match(serviceWorker, /locale-en-builder\.js/);
 assert.match(serviceWorker, /edition-lionwing\.js/);
+assert.match(serviceWorker, /lionwing-automation-status\.js/);
 const referenceSource = fs.readFileSync(new URL("app-reference-data.js", root), "utf8");
 assert.match(referenceSource,/rule\.regeneration[\s\S]+Регенерирует \/ Регенерация[\s\S]+заканчивает свой \*\*Ход\*\*[\s\S]+максимального Здоровья[\s\S]+не снимается автоматически/,"the main reference must expose the complete Regenerating rule without relying on hover text");
 

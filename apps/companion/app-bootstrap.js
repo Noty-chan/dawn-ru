@@ -7,6 +7,7 @@ const D = window.DAWN_DATA;
 const Lionwing = window.DAWN_LIONWING_DATA;
 const LionwingRu = window.DAWN_LIONWING_RU;
 const LionwingTable = window.DAWN_LIONWING_TABLE_DATA;
+const LionwingAutomationStatus = window.DAWN_LIONWING_AUTOMATION_STATUS;
 const Supplements = window.DAWN_SUPPLEMENTS;
 if (!D || D.schemaVersion !== 2) document.body.innerHTML = `<p style='padding:2rem'>${t("app.error.data")}</p>`;
 const Logic = window.DAWN_LOGIC;
@@ -16,6 +17,28 @@ const TechniqueEngine = window.DAWN_TECHNIQUE_ENGINE;
 const NetworkV2 = window.DAWN_NETWORK_V2;
 if (!SceneEngine || !TechniqueEngine) throw new Error(t("app.error.sceneEngine"));
 const Sync = window.DAWN_SYNC;
+
+const LIONWING_AUTOMATION_STATUSES = new Set(["full", "decision", "partial", "manual"]);
+const lionwingCanonicalTechniqueLevelIds = new Set((Lionwing?.archetypes || []).flatMap(archetype => (archetype.techniques || []).flatMap(technique => (technique.levels || []).map(level => `${technique.id}.${Number(level.n)}`))));
+const lionwingCanonicalDigest = /^[0-9a-f]{64}$/i;
+const lionwingAutomationRows = new Map(
+  LionwingAutomationStatus?.schemaVersion === 1 && LionwingAutomationStatus?.editionId === Lionwing?.editionId && LionwingAutomationStatus?.canonical?.levelCount === lionwingCanonicalTechniqueLevelIds.size
+    ? (Array.isArray(LionwingAutomationStatus.rows) ? LionwingAutomationStatus.rows : [])
+      .filter(row => row && typeof row.id === "string" && lionwingCanonicalTechniqueLevelIds.has(row.id) && LIONWING_AUTOMATION_STATUSES.has(row.automation) && lionwingCanonicalDigest.test(row.canonicalDigest || ""))
+      .map(row => [row.id, Object.freeze({
+        id: row.id,
+        automation: row.automation,
+        reason: typeof row.reason === "string" ? row.reason : "",
+        canonicalDigest: typeof row.canonicalDigest === "string" ? row.canonicalDigest : null,
+      })])
+    : [],
+);
+function canonicalLionwingTechniqueStatus(techniqueId, level) {
+  if (!Lionwing || LionwingAutomationStatus?.editionId !== Lionwing.editionId) return null;
+  const numericLevel = Number(level);
+  if (typeof techniqueId !== "string" || !Number.isInteger(numericLevel) || numericLevel < 1 || numericLevel > 3) return null;
+  return lionwingAutomationRows.get(`${techniqueId}.${numericLevel}`) || null;
+}
 
 const STORAGE_KEY = "dawn-ru-companion-v2";
 const HERO_STORAGE_KEY = "dawn-ru-companion-heroes-v1";

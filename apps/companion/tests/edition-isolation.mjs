@@ -80,13 +80,14 @@ for (const [file, value] of [["outlooks.json", lionwing.outlooks], ["ability-wor
   assert.deepEqual(JSON.parse(fs.readFileSync(new URL(file, canonicalRoot), "utf8")), JSON.parse(JSON.stringify(value)), `${file} must match runtime data`);
 }
 
-const bootstrap = read("app-bootstrap.js"), app = read("app.js"), events = read("app-builder-events.js"), playUi = read("play-ui.js");
+const bootstrap = read("app-bootstrap.js"), status = read("lionwing-automation-status.js"), app = read("app.js"), events = read("app-builder-events.js"), playUi = read("play-ui.js");
 assert.match(bootstrap, /dawn-companion-content-preferences-v1/);
 assert.match(bootstrap, /localizedLionwingAbilityWords/, "LionWing RU must localize Ability words without mutating English canonical data");
 assert.match(bootstrap, /localizedLionwingCoreRules/, "LionWing RU must localize core rules without mutating English canonical data");
 assert.match(bootstrap, /activeCoreRules/, "selected-edition rules must have a dedicated resolver");
 assert.match(app, /syncContentUrl/);
 assert.match(events, /content:\{locale:contentPreferences\.locale,edition:S\.rulesEdition/);
+assert.match(events, /data-tech-status-select/, "Technique catalogue must wire the readiness-status filter");
 assert.match(events, /supplements:\[\.\.\.\(S\.supplementIds\|\|\[\]\)\]/, "portable heroes must declare their enabled supplement packages");
 assert.match(events, /supplementIds:data\.hero\?\.supplementIds\|\|data\.content\?\.supplements/, "hero import must restore supplement package identity");
 assert.match(events, /\["ru","en"\]\.includes\(data\.content\?\.locale\)/, "hero import must restore the exported display language");
@@ -94,7 +95,10 @@ assert.match(bootstrap + read("app-core.js"), /rulesEdition[\s\S]+activateHeroEd
 assert.doesNotMatch(app, /demo-no-table",isLionwingEdition\(\)/, "LionWing must remain playable through the manual table");
 assert.match(app, /isLionwingEdition\(\)&&sceneControlMode!=="manual"/, "LionWing must enter the table with Technique automation disabled");
 assert.doesNotMatch(playUi, /isEnglishPreview\(\)&&\["play","tools","rules"\]/, "English LionWing must be allowed to enter the table");
-assert.match(read("app-core.js"), /if\(isLionwingEdition\(\)\)return"manual"/, "0.9 Technique coverage must not be reported as LionWing automation");
+assert.match(status, /DAWN_LIONWING_AUTOMATION_STATUS/);
+assert.match(bootstrap, /LionwingAutomationStatus/);
+assert.match(read("app-core.js"), /canonicalLionwingTechniqueStatus[\s\S]+techniqueLevelStatus/, "LionWing Technique coverage must come from the canonical readiness registry");
+assert.doesNotMatch(read("app-core.js"), /if\(isLionwingEdition\(\)\)return"manual"/, "LionWing Technique coverage must not be hard-coded to manual");
 assert.match(read("scene-actions-ui.js"), /sceneControlMode!=="manual"&&hero\.rulesEdition==="ru-v0\.9"/, "manual and LionWing actors must not expose Techniques to the 0.9 engine");
 assert.match(playUi + read("scene-ui.js"), /activeOutlooks\(\)[\s\S]+activeArchetypes\(\)/, "table and reference views must consume the selected edition");
 assert.match(playUi, /function activeRuleChapters\(\)[\s\S]+activeCoreRules\(\)/, "LionWing rules view must consume selected-edition core rules");

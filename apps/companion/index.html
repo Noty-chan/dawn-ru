@@ -134,7 +134,7 @@
           <div class="catalog-tools">
             <input id="tech-search" type="search" placeholder="Название, тег или текст Техники" data-i18n-placeholder="builder.techniques.search">
             <div id="arch-tabs" class="chip-row"></div>
-            <div class="catalog-filter-row"><div id="tech-tag-filters" class="chip-row" aria-label="Technique tags" data-i18n-aria-label="builder.techniques.tags"></div><label><span data-i18n="catalog.sort">Порядок</span><select id="tech-sort"><option value="source" data-i18n="catalog.sort.source">Как в книге</option><option value="name" data-i18n="catalog.sort.name">По названию</option><option value="stars" data-i18n="catalog.sort.stars">По стоимости</option></select></label></div>
+            <div class="catalog-filter-row"><div id="tech-tag-filters" class="chip-row" aria-label="Technique tags" data-i18n-aria-label="builder.techniques.tags"></div><div id="tech-status-filter" class="status-filter" aria-label="Technique automation status" data-i18n-aria-label="builder.techniques.statusFilter"></div><label><span data-i18n="catalog.sort">Порядок</span><select id="tech-sort"><option value="source" data-i18n="catalog.sort.source">Как в книге</option><option value="name" data-i18n="catalog.sort.name">По названию</option><option value="stars" data-i18n="catalog.sort.stars">По стоимости</option></select></label></div>
           </div>
           <div id="tech-list" class="catalog-grid techniques"></div>
         </section>
@@ -408,6 +408,7 @@
   <script src="technique-foundation-map.js?v=__BUILD_VERSION__"></script>
   <script src="technique-engine.js?v=__BUILD_VERSION__"></script>
   <script src="lionwing-technique-surface.js?v=__BUILD_VERSION__"></script>
+  <script src="lionwing-automation-status.js?v=__BUILD_VERSION__"></script>
   <script src="config.js?v=__BUILD_VERSION__"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.3/dist/umd/supabase.min.js" crossorigin="anonymous"></script>
   <script src="sync.js?v=__BUILD_VERSION__"></script>
