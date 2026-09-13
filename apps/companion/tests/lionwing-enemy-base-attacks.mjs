@@ -22,7 +22,6 @@ const npcActionIds = [
   "lionwing.npc.pugilist.flurry-of-strikes",
   "lionwing.npc.ranger.take-the-shot",
   "lionwing.npc.ronin.dissect",
-  "lionwing.npc.viper.filet",
   "lionwing.npc.witch.expelling-force",
   "lionwing.npc.glutton.slobber",
   "lionwing.npc.guardian.shove",
@@ -44,6 +43,7 @@ const npcActionIds = [
   "lionwing.npc.privateer.spray-and-pray",
 ];
 const manualActionIds = [
+  "lionwing.npc.viper.filet",
   "lionwing.npc.executioner.cleave",
   "lionwing.npc.bodyguards.behind-me",
   "lionwing.npc.broodmother.swarming-chase",
@@ -194,16 +194,23 @@ assert.equal(current.actors.find(item => item.id === "hero").hp, 25, "damage use
 assert.ok(current.actors.find(item => item.id === "hero").effects.includes("negative.подброшен"), "direct canonical Launch effect is applied");
 assert.equal(current.actors.find(item => item.id === "hero").x, 5, "canonical push is committed through displacement validation");
 
-// Effects and direct damage: Viper applies Blight and then Mark when the
-// target was already Blighted; Builder uses its canonical tier-scaled direct
-// damage without accepting an invented roll.
+// Viper Filet has an explicit two-path choice in the canonical English text:
+// adjacent after the Passive, or up to 5 spaces when the Narrator declines
+// the Passive. Until that choice is represented in the action UI, keep the
+// attack assisted so the Narrator can resolve either path without the engine
+// silently enforcing only the adjacent branch.
 let viper = scene("lionwing.npc.viper", { actors: [actor("enemy", "enemy", 2, 2, { profileId: "lionwing.npc.viper" }), actor("hero", "hero", 3, 2, { effects: ["negative.порчен"] })] });
+const filetStatus = engine.availableEnemyRules(viper, data, "enemy").find(item => item.id === "lionwing.npc.viper.filet");
+assert.equal(filetStatus.automation, "assisted", "Viper Filet remains manual until its Passive choice is modeled");
 const filet = engine.prepareEnemyRule(viper, data, { actorId: "enemy", ruleId: "lionwing.npc.viper.filet", targetIds: ["hero"], roll: dice(5, [6, 5, 4, 1, 2]) });
 assert.equal(filet.ok, true, filet.errors?.join(" "));
-viper = engine.dispatchMany(viper, filet.events.map((event, index) => ({ ...event, id: `filet:${index}` }))).scene;
-viper = passAndResolve(viper, "filet");
-assert.ok(viper.actors.find(item => item.id === "hero").effects.includes("negative.порчен"));
-assert.ok(viper.actors.find(item => item.id === "hero").effects.includes("negative.помечен"), "conditional Blight to Mark effect is applied");
+assert.equal(filet.events.some(event => event.type === "attack.pending"), false, "assisted Filet leaves damage and effects to the Narrator");
+assert.equal(filet.events.find(event => event.type === "enemy.action.prepare")?.payload?.automation, "assisted");
+const distantViper = scene("lionwing.npc.viper", { actors: [actor("enemy", "enemy", 2, 2, { profileId: "lionwing.npc.viper" }), actor("hero", "hero", 6, 2, { effects: ["negative.порчен"] })] });
+assert.equal(engine.prepareEnemyRule(distantViper, data, { actorId: "enemy", ruleId: "lionwing.npc.viper.filet", targetIds: ["hero"], roll: dice(5, [6, 5, 4, 1, 2]) }).ok, true, "manual Filet can represent the non-Passive target path");
+
+// Builder uses its canonical tier-scaled direct damage without accepting an
+// invented roll.
 
 let builder = scene("lionwing.npc.builder", { actors: [actor("enemy", "enemy", 2, 2, { profileId: "lionwing.npc.builder" }), actor("hero", "hero", 3, 2)] });
 const construction = engine.prepareEnemyRule(builder, data, { actorId: "enemy", ruleId: "lionwing.npc.builder.violent-construction", targetIds: ["hero"] });
