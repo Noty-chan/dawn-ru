@@ -3819,7 +3819,17 @@
   };
   function dispatchMany(scene, events, options = {}) {
     if (!isScene(scene)) return legacy.dispatchMany(scene, events, options);
+    // The GM enemy panel intentionally uses the established preview → commit
+    // event pipeline.  Its enemy action/reaction events carry the canonical
+    // rule id and are validated by the legacy event reducer, which already
+    // owns the shared damage, resistance, evasion, effect, and idempotency
+    // semantics.  Keep the LionWing command dispatcher for player commands;
+    // route only an explicitly identified enemy flow to avoid treating a
+    // translated NPC rule as a new LionWing operation.
     if (!Array.isArray(events) || !events.length || events.length > 192) fail("Некорректный пакет событий");
+    const pendingEnemyFlow = scene.pendingAction?.enemyRuleId && events.some(event => ["reaction.respond", "rule.respond", "damage.apply", "effect.apply", "actor.move", "actor.enter", "attack.clear"].includes(event?.type));
+    const enemyEventFlow = events.some(event => ["enemy.action.prepare", "enemy.action.resolve", "attack.pending", "attack.clear"].includes(event?.type)) || pendingEnemyFlow;
+    if (enemyEventFlow) return legacy.dispatchMany(scene, events, options);
     if (options.expectedVersion !== undefined && Number(options.expectedVersion) !== Number(scene.version || 0)) {
       if(events.every(event=>event?.id&&(scene.lionwing?.receipts||[]).some(receipt=>receipt.id===event.id&&receipt.fingerprint===JSON.stringify([event.type,event.actorId||null,event.payload||{}]))))return {scene:copy(scene),events:[],event:null};
       fail("Конфликт версии Сцены: обновите состояние");
@@ -3988,7 +3998,10 @@
     const waitingIds = eligibleIds.filter(id => pending.responses[id]?.choice === "pending");
     return { eligibleIds, waitingIds, answeredIds: eligibleIds.filter(id => !waitingIds.includes(id)), unavailableIds: targets.filter(id => !eligibleIds.includes(id)), mustCancel: Boolean(pending && !eligibleIds.length), interruptedReason: "Все цели недоступны" };
   });
-  route("availableEnemyRules", () => []);
+  // Canonical LionWing NPC profiles are read through the shared enemy rule
+  // adapter.  Keep the public query on the routed engine so the GM panel can
+  // choose a profile action and see its validated automation status.
+  route("availableEnemyRules", (scene, data, actorId) => legacy.availableEnemyRules(scene, data, actorId));
   const sceneWithActiveEffects = scene => ({
     ...scene,
     actors: (scene.actors || []).map(participant => ({

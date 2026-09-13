@@ -384,6 +384,8 @@ function validateEvent(scene, event, options = {}) {
     }
   }
   if (event.type === "attack.pending") {
+    const canonicalRule = typeof enemyCanonicalRule === "function" ? enemyCanonicalRule(payload.enemyRuleId || payload.actionId) : null;
+    if (canonicalRule && (payload.sourceRuleId !== canonicalRule.id || payload.sourceDigest !== canonicalRule.sourceDigest)) throw new Error("Источник или digest Атаки LionWing устарел или не совпадает с canonical-правилом.");
     if (payload.techniqueRuleId === "vagabond.master-at-arms.3") {
       const source = actorById(scene, event.actorId), mode = source?.ruleModes?.["vagabond.master-at-arms.armament"]?.modeId, special = payload.masterFinisher;
       if (Number(source?.techniques?.["vagabond.master-at-arms"] || 0) < 3 || !["blade", "polearm", "chain"].includes(mode) || !special || special.modeId !== mode || payload.attribute !== "talent") throw new Error("Мастер за работой требует текущее Вооружение и Завершение Талантом.");
@@ -544,6 +546,10 @@ const expectedTargets = (scene.actors || []).filter(target => !target.knockedOut
   }
   if (event.type === "turn.grant" && (!actorById(scene, event.actorId) || !Number.isInteger(Number(payload.amount)) || Number(payload.amount) < 1 || Number(payload.amount) > 4)) throw new Error("Некорректный дополнительный Ход.");
   if (["enemy.action.prepare", "enemy.action.resolve"].includes(event.type) && (typeof payload.ruleId !== "string" || typeof payload.name !== "string" || payload.ruleId.length > 180 || payload.name.length > 120)) throw new Error("Некорректное действие врага.");
+  if (["enemy.action.prepare", "enemy.action.resolve"].includes(event.type)) {
+    const canonicalRule = typeof enemyCanonicalRule === "function" ? enemyCanonicalRule(payload.ruleId) : null;
+    if (canonicalRule && (payload.sourceRuleId !== canonicalRule.id || payload.sourceDigest !== canonicalRule.sourceDigest)) throw new Error("Источник или digest действия LionWing устарел или не совпадает с canonical-правилом.");
+  }
   if (event.type === "enemy.action.prepare" && payload.crowdSummon) {
     const rule = ENEMY_FULL_RULES.get(payload.ruleId), space = (scene.spaces || []).find(item => item.id === actor?.space), cells = payload.crowdSummon.cells, uses = currentRoundEvents(scene).filter(item => item.type === "enemy.action.prepare" && item.actorId === actor?.id && item.payload?.ruleId === payload.ruleId).length, expected = rule?.type === "crowd-summon" ? Math.max(0, rule.countState ? Number(actor?.ruleState?.[rule.countState] || 0) : enemyTierFormula(rule.formula, actor?.tier) - (rule.diminishEachRoundUse ? uses : 0)) : -1, occupied = new Set((scene.actors || []).filter(item => item.kind === "crowd" && !item.knockedOut && item.space === actor?.space).map(cellKey));
     if (!actor || actor.profileId !== payload.profileId || !space || typeof payload.crowdSummon.token !== "string" || !payload.crowdSummon.token || !Array.isArray(cells) || new Set(cells).size !== cells.length || cells.length !== expected || rule.oncePerRound && uses || cells.some(key => { const match = String(key).match(/^(\d{1,2}),(\d{1,2})$/), x = match ? Number(match[1]) : -1, y = match ? Number(match[2]) : -1, invalid = !match || x < 0 || y < 0 || x >= Number(space.width) || y >= Number(space.height) || removedCellKeys(scene, actor.space).has(String(key)) || occupied.has(String(key)); if (invalid) return true; return rule.edge ? !(x === 0 || y === 0 || x === Number(space.width) - 1 || y === Number(space.height) - 1) : rule.range != null && modifierRangeDistance(scene, actor, { space: actor.space, x, y }) > Number(rule.range); })) throw new Error("Некорректная авторитетная настройка Призыва массовки.");

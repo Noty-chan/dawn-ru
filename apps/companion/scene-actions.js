@@ -17,6 +17,44 @@ const TECHNIQUE_COMBO_RULES = new Map([
 // Enemy prose is intentionally never interpreted at runtime. These audited
 // registries contain only the deterministic part of a rule; everything else
 // stays assisted and is confirmed by the Narrator.
+// This digest is the normalized SHA-256 of the canonical English
+// `extracted-companion.json` used to build the LionWing companion.  It is
+// attached to every executable NPC event so a replay can prove which source
+// rule was used without depending on translated display text.
+const LIONWING_ENEMY_SOURCE_DIGEST = "sha256:1228663d26bf3c87b3b94b0d2f3c4c02b302007df98aa407c40d13ee731c175f";
+// Only deterministic attack parts are listed here.  Conditional movement,
+// passives, delayed attacks, and Trump rules remain assisted until their
+// complete English semantics have a reviewed event adapter.
+const LIONWING_AUTO_ATTACK_RULES = new Map([
+  ["lionwing.npc.assassin.slice", { dice: "3(+1)", tensionMultiplier: 1, targetEffects: [], reward: "Deal [Hits] + [Tension] damage; add [Tier] damage when the target has no adjacent characters.", family: { adjacent: true, maxTargets: 1, hiddenAdvantage: "2(+1)", isolatedBonusFormula: "1(+1)" } }],
+  ["lionwing.npc.bruiser.skulduggery", { dice: "4(+1)", tensionMultiplier: 1, targetEffects: [], reward: "Deal [Hits] + [Tension] damage and push each target [Tier × 2] spaces.", family: { area: [2, 2], areaAnchor: "self", maxTargets: 40, postPushFormula: "2(+2)" } }],
+  ["lionwing.npc.behemoth.tore-from-earth", { dice: "5(+1)", tensionMultiplier: 1, targetEffects: [], reward: "Deal [Hits] + [Tension] damage and place a 15 + [Tier × 5] Health Obstacle adjacent to each target.", family: { maxTargets: 2, range: 6, createTerrainAdjacent: "20(+5)" } }],
+  ["lionwing.npc.captor.catch-and-release", { dice: "5(+1)", tensionMultiplier: 1, targetEffects: [], reward: "Deal [Hits] + [Tension] damage; Weaken and Snare the target if enemies have not Attacked them this Round.", family: { maxTargets: 1, range: 4, conditionalEffectsIfUntouched: ["negative.ослаблен", "negative.пойман"] } }],
+  ["lionwing.npc.javelin.crushing-impact", { dice: "4(+1)", tensionMultiplier: 1, targetEffects: [], reward: "Deal [Hits] + [Tension] damage and Launch the target if it is the only target.", family: { area: [2, 2], areaAnchor: "self", maxTargets: 40, conditionalSingleEffect: "negative.подброшен" } }],
+  ["lionwing.npc.pugilist.flurry-of-strikes", { dice: "5(+1)", tensionMultiplier: 1, targetEffects: [], reward: "Deal [Hits] + [Tension] damage; Slow the target if enemies have not Attacked them this Round.", family: { adjacent: true, maxTargets: 1, conditionalEffectsIfUntouched: ["negative.замедлен"] } }],
+  ["lionwing.npc.ranger.take-the-shot", { dice: "5(+1)", tensionMultiplier: 1, targetEffects: [], reward: "Deal [Hits] + [Tension] damage; add [Tier + 2] damage at range when enemies have not Attacked the target this Round.", family: { range: 8, maxTargets: 1, bonusDamageFormula: "3(+1)", bonusDamageMinimumRange: 4, bonusDamageIfUntouched: true } }],
+  ["lionwing.npc.ronin.dissect", { dice: "4(+1)", tensionMultiplier: 1, targetEffects: [], reward: "Deal [Hits] + [Tension] damage; Shred and Slow the target after at least 2 Crits.", family: { adjacent: true, maxTargets: 1, conditionalEffectsOnCrits: { minimum: 2, effects: ["negative.разорван", "negative.замедлен"] } } }],
+  ["lionwing.npc.viper.filet", { dice: "4(+1)", tensionMultiplier: 1, targetEffects: ["negative.порчен"], reward: "Deal [Hits] + [Tension] damage and Blight the target; Mark it if it was already Blighted.", family: { adjacent: true, maxTargets: 1, conditionalExistingEffect: { ifPresent: "negative.порчен", apply: "negative.помечен" } } }],
+  ["lionwing.npc.witch.expelling-force", { dice: "5(+1)", tensionMultiplier: 1, targetEffects: [], reward: "Deal [Hits] + [Tension] damage and push the target 2 spaces away.", family: { range: 5, maxTargets: 1, postPush: 2 } }],
+  ["lionwing.npc.glutton.slobber", { dice: "5(+1)", tensionMultiplier: 1, targetEffects: [], reward: "Deal [Hits] + [Tension] damage and Slow targets enemies have not Attacked this Round.", family: { adjacent: true, maxTargets: 2, conditionalEffectsIfUntouched: ["negative.замедлен"] } }],
+  ["lionwing.npc.guardian.shove", { dice: "4(+1)", tensionMultiplier: 1, targetEffects: ["negative.подброшен"], reward: "Deal [Hits] + [Tension] damage, push the target 2 spaces away, and Launch it.", family: { adjacent: true, maxTargets: 1, postPush: 2 } }],
+  ["lionwing.npc.mount.thrash", { dice: "5(+1)", tensionMultiplier: 1, targetEffects: [], reward: "Deal [Hits] + [Tension] damage.", family: { adjacent: true, maxTargets: 2 } }],
+  ["lionwing.npc.paladin.gift-from-god", { dice: "4(+1)", tensionMultiplier: 1, targetEffects: [], reward: "Deal [Hits] + [Tension] damage and Daze one untouched opposing target, or give an allied target Regenerating.", family: { adjacent: true, maxTargets: 2, audience: "any", allyEffects: ["positive.регенерирует"], enemyEffectsIfUntouched: ["negative.ошеломлен"] } }],
+  ["lionwing.npc.revenant.tear-from-the-soul", { dice: "5(+1)", tensionMultiplier: 1, targetEffects: [], reward: "Deal [Hits] + [Tension] damage and make the target lose 1 + [Tier] Focus.", family: { range: 3, maxTargets: 1, postResourceLoss: { resource: "focus", formula: "1(+1)" } } }],
+  ["lionwing.npc.bannerman.swing", { dice: "4(+1)", tensionMultiplier: 1, targetEffects: [], reward: "Deal [Hits] + [Tension] damage and Weaken an untouched target.", family: { adjacent: true, maxTargets: 1, conditionalEffectsIfUntouched: ["negative.ослаблен"] } }],
+  ["lionwing.npc.builder.violent-construction", { directDamage: "3(+1)", tensionMultiplier: 0, targetEffects: [], reward: "Deal 2 + [Tier] damage and place a 15 + [Tier × 5] Health Obstacle adjacent to the target.", family: { range: 6, maxTargets: 1, createTerrainAdjacent: "20(+5)" } }],
+  ["lionwing.npc.healer.exsanguinate", { dice: "5(+1)", tensionMultiplier: 1, targetEffects: [], reward: "Deal [Hits] + [Tension] damage and Mark the target.", family: { range: 5, maxTargets: 1, healerMark: true } }],
+  ["lionwing.npc.illusionist.distort-reality", { dice: "4(+1)", tensionMultiplier: 1, targetEffects: [], reward: "Deal [Hits] + [Tension] damage and put each target in Flux.", family: { adjacent: true, maxTargets: 40, flux: true } }],
+  ["lionwing.npc.martyr.savor-my-blood", { dice: "5(+1)", tensionMultiplier: 1, targetEffects: [], reward: "Deal [Hits] + [Tension] damage and restore half this NPC's missing Health.", family: { range: 5, maxTargets: 1, postSelfHealMissingFraction: 0.5 } }],
+  ["lionwing.npc.baron.suppress", { dice: "4(+1)", tensionMultiplier: 1, targetEffects: [], reward: "Deal [Hits] + [Tension] damage and Weaken an untouched target.", family: { adjacent: true, maxTargets: 1, conditionalEffectsIfUntouched: ["negative.ослаблен"] } }],
+  ["lionwing.npc.berserker.thrash", { dice: "5(+1)", tensionMultiplier: 1, targetEffects: [], reward: "Deal [Hits] + [Tension] damage and push the target 1 space away.", family: { adjacent: true, maxTargets: 1, postPush: 1 } }],
+  ["lionwing.npc.cultist.swipe", { dice: "4(+1)", tensionMultiplier: 1, targetEffects: [], reward: "Deal [Hits] + [Tension] damage.", family: { adjacent: true, maxTargets: 1 } }],
+  ["lionwing.npc.daredevil.dance", { dice: "4(+1)", tensionMultiplier: 1, targetEffects: ["negative.подброшен"], reward: "Deal [Hits] + [Tension] damage and Launch the targets.", family: { adjacent: true, maxTargets: 2 } }],
+  ["lionwing.npc.enchanter.heartbreaker", { dice: "5(+1)", tensionMultiplier: 1, targetEffects: [], reward: "Deal [Hits] + [Tension] damage; Weaken and Slow a Feared or Taunted target.", family: { range: 5, maxTargets: 1, conditionalEffectsByTarget: { any: ["negative.испуган", "negative.спровоцирован"], apply: ["negative.ослаблен", "negative.замедлен"] } } }],
+  ["lionwing.npc.hound-master.shove", { dice: "5(+1)", tensionMultiplier: 1, targetEffects: [], reward: "Deal [Hits] + [Tension] damage and push the target 2 spaces away.", family: { range: 3, maxTargets: 1, postPush: 2 } }],
+  ["lionwing.npc.necromancer.terrifying-shot", { dice: "4(+1)", tensionMultiplier: 2, targetEffects: ["negative.испуган"], reward: "Deal [Hits] + [Tension × 2] damage and Fear the target.", family: { range: 5, maxTargets: 1 } }],
+  ["lionwing.npc.privateer.spray-and-pray", { dice: "4(+1)", tensionMultiplier: 2, targetEffects: [], reward: "Deal [Hits] + [Tension × 2] damage to all targets in the adjacent 2-space Line.", family: { maxTargets: 40, lineLength: 2, lineFromSelf: true } }],
+]);
 const ENEMY_AUTO_ATTACK_RULES = new Map([
   ["enemy.common.bruiser.attack.skulduggery", 2],
   ["enemy.common.assassin.attack.slice", 2],
@@ -63,6 +101,7 @@ const ENEMY_AUTO_ATTACK_RULES = new Map([
   ["enemy.named.leon-s-vayu-spirit.attack.air-shove", 0],
   ["enemy.named.leon-s-agni-spirit.attack.fire-spark", 0],
 ]);
+for (const [ruleId, metadata] of LIONWING_AUTO_ATTACK_RULES) ENEMY_AUTO_ATTACK_RULES.set(ruleId, metadata.tensionMultiplier);
 // These overrides are reviewed facts omitted by the prose parser. They route
 // otherwise ordinary attacks through existing target and post-hit families.
 const ENEMY_ATTACK_FAMILY_RULES = new Map([
@@ -178,6 +217,23 @@ const ENEMY_TARGET_LIMITS = new Map([
   ["enemy.common.daredevil.attack.dance", 2],
   ["enemy.common.privateer.attack.spray-and-pray", 40],
 ]);
+for (const [ruleId, metadata] of LIONWING_AUTO_ATTACK_RULES) ENEMY_ATTACK_FAMILY_RULES.set(ruleId, metadata.family || {});
+
+const enemyCanonicalRule = rule => {
+  const ruleId = typeof rule === "string" ? rule : rule?.id, metadata = ruleId ? LIONWING_AUTO_ATTACK_RULES.get(ruleId) : null;
+  if (!metadata) return rule;
+  const base = typeof rule === "string" ? { id: rule } : rule;
+  return { ...base, ...clone(metadata), sourceDigest: base.sourceDigest || LIONWING_ENEMY_SOURCE_DIGEST, apCost: Number(base.apCost || 1) };
+};
+const enemyAttackFamilyForRule = ruleId => ENEMY_ATTACK_FAMILY_RULES.get(ruleId) || {};
+const enemyAttackTensionMultiplier = ruleId => Number(ENEMY_AUTO_ATTACK_RULES.get(ruleId) || 0);
+const enemyFullRuleForRule = ruleId => ENEMY_FULL_RULES.get(ruleId) || null;
+const enemyRuleIsAutoEffect = ruleId => ENEMY_AUTO_EFFECT_RULES.has(ruleId);
+const enemyTargetUntouchedThisRound = (scene, targetId, sourceTeam) => !currentRoundEvents(scene).some(event => {
+  if (!(["attack.pending", "action.prepare", "enemy.action.prepare"].includes(event.type)) || !Array.isArray(event.payload?.targetIds) || !event.payload.targetIds.includes(targetId)) return false;
+  const source = actorById(scene, event.actorId);
+  return source && source.team !== sourceTeam;
+});
 function quickActionSources(scene, data, actor, action) {
   if (!action?.name || !actor?.techniques || !data?.archetypes) return [];
   const usesThisTurn = currentTurnEvents(scene, actor.id).filter(event => event.type === "action.prepare" && event.payload?.actionId === action.id).length;
@@ -766,10 +822,10 @@ function availableEnemyRules(scene, data, actorId) {
   const actor = actorById(scene, actorId);
   const profile = actor ? enemyProfileById(data, actor.profileId) : null;
   if (!actor || !profile) return [];
-  return (profile.rules || []).map(rule => {
-    const family = ENEMY_ATTACK_FAMILY_RULES.get(rule.id) || {};
+  return (profile.rules || []).map(rawRule => {
+    const rule = enemyCanonicalRule(rawRule), family = enemyAttackFamilyForRule(rule.id);
     const maxTargets = family.maxTargets || (ENEMY_TARGET_LIMITS.has(rule.id) ? ENEMY_TARGET_LIMITS.get(rule.id) : Number(rule.maxTargets || 0));
-    const fullRule = ENEMY_FULL_RULES.get(rule.id), stateOnly = ["pugilist-stance", "martial-perfection", "imposing-presence"].includes(fullRule?.type);
+    const fullRule = enemyFullRuleForRule(rule.id), stateOnly = ["pugilist-stance", "martial-perfection", "imposing-presence"].includes(fullRule?.type);
     const automation = ENEMY_AUTO_ATTACK_RULES.has(rule.id) ? "attack" : fullRule ? stateOnly ? "state" : "full" : ENEMY_AUTO_EFFECT_RULES.has(rule.id) ? "effect" : "assisted";
     let reason = "";
     if (!(actor.kind === "enemy" || actor.profileId)) reason = "Это не профильный НПС";
@@ -789,10 +845,10 @@ function availableEnemyRules(scene, data, actorId) {
 }
 
 function enemyRuleAutomation(ruleId) {
-  const fullRule = ENEMY_FULL_RULES.get(ruleId);
+  const fullRule = enemyFullRuleForRule(ruleId);
   if (ENEMY_AUTO_ATTACK_RULES.has(ruleId)) return "attack";
   if (fullRule) return ["pugilist-stance", "martial-perfection", "imposing-presence"].includes(fullRule.type) ? "state" : "full";
-  return ENEMY_AUTO_EFFECT_RULES.has(ruleId) ? "effect" : "assisted";
+  return enemyRuleIsAutoEffect(ruleId) ? "effect" : "assisted";
 }
 
 function prepareEnemyRule(scene, data, request = {}) {
@@ -800,15 +856,15 @@ function prepareEnemyRule(scene, data, request = {}) {
   request = normalizedTargetRequest.request;
   const actor = actorById(scene, request.actorId);
   const profile = actor ? enemyProfileById(data, actor.profileId) : null;
-  const sourceRule = profile?.rules?.find(item => item.id === request.ruleId);
+  const sourceRule = enemyCanonicalRule(profile?.rules?.find(item => item.id === request.ruleId));
   const available = actor && sourceRule ? availableEnemyRules(scene, data, actor.id).find(item => item.id === sourceRule.id) : null;
-  let rule = sourceRule ? { ...sourceRule, ...(ENEMY_ATTACK_FAMILY_RULES.get(sourceRule.id) || {}) } : null;
+  let rule = sourceRule ? { ...sourceRule, ...enemyAttackFamilyForRule(sourceRule.id) } : null;
   if (rule?.id === "enemy.common.ronin.attack.dissect" && actor?.ruleState?.roninSheathed) rule = { ...rule, adjacent: false, range: Number(actor.speed || 0) };
   const errors = [...normalizedTargetRequest.errors];
   if (!actor || !profile) errors.push("Не выбран профиль противника.");
   if (!rule) errors.push("Неизвестное действие противника.");
   if (available && !available.available) errors.push(available.reason);
-  const fullRule = rule ? ENEMY_FULL_RULES.get(rule.id) : null, family = rule ? ENEMY_ATTACK_FAMILY_RULES.get(rule.id) || {} : {};
+  const fullRule = rule ? enemyFullRuleForRule(rule.id) : null, family = rule ? enemyAttackFamilyForRule(rule.id) : {};
   const roundRuleUses = actor && rule ? currentRoundEvents(scene).filter(event => event.actorId === actor.id && event.type === "enemy.action.prepare" && event.payload?.ruleId === rule.id).length : 0;
   if (fullRule?.oncePerRound && roundRuleUses) errors.push("Это действие можно использовать только один раз за Раунд.");
   const isAttackRule = Boolean(rule && (rule.kind === "attack" || family.attack));
@@ -895,6 +951,12 @@ function prepareEnemyRule(scene, data, request = {}) {
   const maxTargets = Number(available?.maxTargets ?? rule?.maxTargets ?? 0);
   if (maxTargets && targets.length > maxTargets) errors.push(`Можно выбрать не больше ${maxTargets} целей.`);
   if (attackOrigin && (available?.adjacent || rule?.adjacent || family.targetsAdjacentAfterMove) && !hiddenAssassinAttack && targets.some(target => distance(attackOrigin, target) > 1)) errors.push("Цель должна быть смежной.");
+  if (attackOrigin && family.lineLength && targets.length) {
+    const vectors = targets.map(target => ({ dx: Number(target.x) - Number(attackOrigin.x), dy: Number(target.y) - Number(attackOrigin.y) }));
+    const axis = vectors[0].dx !== 0 ? "x" : "y", component = axis === "x" ? "dx" : "dy", other = axis === "x" ? "dy" : "dx";
+    const validLine = vectors.every(vector => vector[other] === 0 && Math.abs(vector[component]) >= 1 && Math.abs(vector[component]) <= Number(family.lineLength));
+    if (!validLine) errors.push(`Цели должны находиться в одной Линии длиной ${family.lineLength} клетки от исполнителя.`);
+  }
   if (family.targetAdjacentToCrowd && targets.some(target => !(scene.actors || []).some(crowd => crowd.kind === "crowd" && !crowd.knockedOut && crowd.team === actor.team && crowd.space === target.space && distance(crowd, target) <= 1))) errors.push("Каждая цель должна быть смежна с союзной Зоной массовки.");
   if (attackOrigin && rule?.id === "enemy.common.executioner.attack.cleave" && targets.length) {
     const vectors = targets.map(target => ({ dx: Number(target.x) - Number(attackOrigin.x), dy: Number(target.y) - Number(attackOrigin.y) })), axis = vectors[0].dx ? "x" : "y", sign = Math.sign(vectors[0][axis === "x" ? "dx" : "dy"]), valid = vectors.every(vector => (axis === "x" ? vector.dy === 0 : vector.dx === 0) && Math.sign(vector[axis === "x" ? "dx" : "dy"]) === sign && Math.abs(vector[axis === "x" ? "dx" : "dy"]) <= 2);
@@ -932,7 +994,19 @@ function prepareEnemyRule(scene, data, request = {}) {
   }
   const hasRoll = request.roll && Array.isArray(request.roll.rolls);
   const canonicalDirectDamage = rule?.directDamage ? enemyTierFormula(rule.directDamage, actor?.tier) : null;
-  const hasDirectDamage = Number.isFinite(canonicalDirectDamage) || Number.isFinite(Number(request.damage)) && Number(request.damage) >= 0;
+  const canonicalAutoAttack = LIONWING_AUTO_ATTACK_RULES.has(rule?.id);
+  const hasDirectDamage = Number.isFinite(canonicalDirectDamage) || !canonicalAutoAttack && Number.isFinite(Number(request.damage)) && Number(request.damage) >= 0;
+  if (LIONWING_AUTO_ATTACK_RULES.has(rule?.id) && hasRoll) {
+    const rolls = request.roll.rolls;
+    if (rolls.some(value => !Number.isInteger(value) || value < 1 || value > 6)) errors.push("Бросок Атаки содержит недопустимую кость.");
+    if (Number(request.roll.successes) !== rolls.filter(value => value >= 4).length || Number(request.roll.crits) !== rolls.filter(value => value === 6).length) errors.push("Итоги броска Атаки не соответствуют выпавшим костям.");
+    const hostileIds = targets.filter(target => target.team !== actor?.team).map(target => target.id);
+    const effectAttack = effectAttackStatus(scene, actor.id, hostileIds), baseDice = rule.dice ? enemyTierFormula(rule.dice, actor.tier) : 0;
+    const hiddenBonus = hiddenAssassinAttack && family.hiddenAdvantage ? enemyTierFormula(family.hiddenAdvantage, actor.tier) : 0;
+    const expectedDice = baseDice > 0 ? Math.max(1, baseDice + hiddenBonus + Number(attackModifiers.advantage || 0) - Number(effectAttack.hindrance || 0)) : 0;
+    if (expectedDice && rolls.length !== expectedDice) errors.push(`Бросок Атаки должен содержать ровно ${expectedDice} костей.`);
+  }
+  if (canonicalAutoAttack && rule.directDamage && hasRoll) errors.push("Это canonical-действие использует прямой урон вместо броска.");
   if (attackModifiers.selectedIds.length && !hasRoll) errors.push("Модификатор Преимущества требует бросок Атаки.");
   if (isAttackRule && fullRule?.type !== "cannoneer-load" && !hasRoll && !hasDirectDamage) errors.push("Для Атаки нужен бросок или прямой урон из профиля.");
   if (errors.length) return { ok: false, errors, events: [], rule: available || rule };
@@ -940,10 +1014,10 @@ function prepareEnemyRule(scene, data, request = {}) {
   const targetEffectNames = customTargetResolution ? [] : Object.prototype.hasOwnProperty.call(family, "effects") ? family.effects : (rule.targetEffects || rule.effects || []);
   const targetEffects = targetEffectNames.map(name => effectIdByName(data, name));
   const selfEffects = (rule.selfEffects || []).map(name => effectIdByName(data, name));
-  const payload = { ruleId: rule.id, profileId: profile.id, name: rule.name, kind: rule.kind, targetIds, text: rule.text, reward: rule.reward, automation: available?.automation || (targetEffects.length || selfEffects.length ? "effect" : "assisted") };
+  const payload = { ruleId: rule.id, sourceRuleId: rule.id, sourceDigest: rule.sourceDigest || null, profileId: profile.id, name: rule.name, kind: rule.kind, targetIds, text: rule.text, reward: rule.reward, automation: available?.automation || (targetEffects.length || selfEffects.length ? "effect" : "assisted") };
   if (normalizedTargetRequest.typedTargets?.typedTargets?.length) payload.typedTargets = clone(normalizedTargetRequest.typedTargets.typedTargets);
   if (fullRule?.type === "crowd-summon") payload.crowdSummon = { token: `crowd-summon-${eventId()}`, cells: crowdSummonCells.map(cellKey) };
-  const events = [{ type: "enemy.action.prepare", actorId: actor.id, payload }, { type: "resource.spend", actorId: actor.id, payload: { resource: "ap", amount: Number(rule.apCost || 1) } }];
+  const events = [{ type: "enemy.action.prepare", actorId: actor.id, payload }, { type: "resource.spend", actorId: actor.id, payload: { resource: "ap", amount: Number(rule.apCost || 1), sourceRuleId: rule.id, sourceDigest: rule.sourceDigest || null } }];
   if (attackDestination) {
     const movement = family.teleportAttack ? `${rule.name}: телепортация` : `${rule.name}: перемещение`, placement = Boolean(family.teleportAttack || family.preMoveIgnoreRestrictions);
     events.push({ type: "actor.move", actorId: actor.id, payload: { space: actor.space, x: attackDestination.x, y: attackDestination.y, movement, path: attackMovePath.map(cellKey), placement, teleport: Boolean(family.teleportAttack), participantIds: [actor.id, ...targetIds] } });
@@ -1109,12 +1183,14 @@ function prepareEnemyRule(scene, data, request = {}) {
     const oniReinforced = Boolean(family.oniModes && (actor.effects || []).includes("positive.укреплен"));
     const hostileTargets = oniReinforced ? [] : targets.filter(target => target.team !== actor.team), alliedTargets = targets.filter(target => target.team === actor.team);
     hostileTargets.forEach(target => events.push({ type: "reaction.offer", actorId: target.id, payload: { sourceActorId: actor.id, actionId: rule.id } }));
-    const tensionMultiplier = Number(ENEMY_AUTO_ATTACK_RULES.get(rule.id) || 0);
+    const tensionMultiplier = enemyAttackTensionMultiplier(rule.id);
     const effectAttack = effectAttackStatus(scene, actor.id, hostileTargets.map(target => target.id));
     const baseDamage = (hasRoll ? Number(request.roll.successes || 0) + Number(scene.tension || 0) * tensionMultiplier : Number.isFinite(canonicalDirectDamage) ? canonicalDirectDamage : Number(request.damage)) + Number(effectAttack.damageModifier || 0);
     const damageByTarget = Object.fromEntries(hostileTargets.map(target => {
       let amount = baseDamage + Number(effectAttack.damageByTarget?.[target.id] || 0);
       if (family.bonusTensionAtRange && distance(attackOrigin, target) >= Number(family.bonusTensionAtRange)) amount += Number(scene.tension || 0);
+      if (family.bonusDamageFormula && distance(attackOrigin, target) >= Number(family.bonusDamageMinimumRange || 0) && (!family.bonusDamageIfUntouched || enemyTargetUntouchedThisRound(scene, target.id, actor.team))) amount += enemyTierFormula(family.bonusDamageFormula, actor.tier);
+      if (family.isolatedBonusFormula && !(scene.actors || []).some(other => other.id !== target.id && other.id !== actor.id && !other.knockedOut && other.space === target.space && distance(other, target) <= 1)) amount += enemyTierFormula(family.isolatedBonusFormula, actor.tier);
       if (family.provokedTierDamage && (target.effects || []).includes("negative.спровоцирован")) amount += Number(actor.tier || 1);
       if (family.broodmotherDamage) amount += (scene.actors || []).filter(item => item.kind === "crowd" && !item.knockedOut && item.team === actor.team && distance(attackOrigin, item) <= 1).length;
       if (family.aimDamage) amount += Number(actor.ruleState?.enemyAim || 0);
@@ -1122,8 +1198,8 @@ function prepareEnemyRule(scene, data, request = {}) {
       return [target.id, amount];
     }));
     const push = Number(family.postPush || enemyTierFormula(family.postPushFormula, actor.tier) || 0);
-    const postDisplacements = push ? hostileTargets.map(target => ({ targetId: target.id, mode: "push", maximum: push, name: rule.name, ruleId: rule.id, collisionDamagePerCell: 0 })) : [];
-    const postResourceLoss = family.postResourceLoss ? { resource: family.postResourceLoss.resource, amount: enemyTierFormula(family.postResourceLoss.formula, actor.tier), ruleId: rule.id } : null;
+     const postDisplacements = push ? hostileTargets.map(target => ({ targetId: target.id, mode: "push", maximum: push, name: rule.name, ruleId: rule.id, sourceDigest: rule.sourceDigest || null, collisionDamagePerCell: 0 })) : [];
+     const postResourceLoss = family.postResourceLoss ? { resource: family.postResourceLoss.resource, amount: enemyTierFormula(family.postResourceLoss.formula, actor.tier), ruleId: rule.id, sourceDigest: rule.sourceDigest || null } : null;
     const allyEffectIds = (family.allyEffects || []).map(name => effectIdByName(data, name));
     const supportTargets = oniReinforced ? targets : alliedTargets;
     for (const target of supportTargets) {
@@ -1132,7 +1208,7 @@ function prepareEnemyRule(scene, data, request = {}) {
       allyEffectIds.forEach(effect => events.push({ type: "effect.apply", actorId: actor.id, payload: { targetId: target.id, effect, sourceActionId: rule.id, participantIds: [actor.id, target.id] } }));
     }
     const attackEffects = family.oniModes ? ((actor.effects || []).includes("positive.усилен") ? [effectIdByName(data, "Подброшен")] : []) : targetEffects;
-    if (hostileTargets.length) events.push({ type: "attack.pending", actorId: actor.id, payload: { actionId: rule.id, enemyRuleId: rule.id, name: rule.name, targetIds: hostileTargets.map(target => target.id), roll: hasRoll ? clone(request.roll) : null, damage: baseDamage, damageByTarget, damageRepeats: Math.max(1, Number(family.damageRepeats || 1)), effects: attackEffects, reward: rule.reward || "", attackModifierIds: attackModifiers.selectedIds, attackModifierAdvantage: attackModifiers.advantage, postDisplacements, postResourceLoss, postSelfHealMissingFraction: Number(family.postSelfHealMissingFraction || 0), enemyAttackFamily: clone(family), attackAnchor: anchor ? clone(anchor) : null } });
+     if (hostileTargets.length) events.push({ type: "attack.pending", actorId: actor.id, payload: { actionId: rule.id, enemyRuleId: rule.id, sourceRuleId: rule.id, sourceDigest: rule.sourceDigest || null, name: rule.name, targetIds: hostileTargets.map(target => target.id), roll: hasRoll ? clone(request.roll) : null, damage: baseDamage, damageByTarget, damageRepeats: Math.max(1, Number(family.damageRepeats || 1)), effects: attackEffects, reward: rule.reward || "", attackModifierIds: attackModifiers.selectedIds, attackModifierAdvantage: attackModifiers.advantage, postDisplacements, postResourceLoss, postSelfHealMissingFraction: Number(family.postSelfHealMissingFraction || 0), enemyAttackFamily: clone(family), attackAnchor: anchor ? clone(anchor) : null } });
     else events.push({ type: "enemy.action.resolve", actorId: actor.id, payload: { ...payload, targetIds } });
   } else {
     if (rule.kind !== "attack" && ["effect", "full"].includes(payload.automation)) targets.forEach(target => targetEffects.forEach(effect => events.push({ type: "effect.apply", actorId: actor.id, payload: { targetId: target.id, effect, sourceActionId: rule.id } })));
