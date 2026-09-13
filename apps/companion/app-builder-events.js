@@ -33,6 +33,7 @@ $("ranks-panel").addEventListener("change",event=>{const key=event.target.datase
 $("rank-modifiers").addEventListener("change",event=>{if(event.target.id==="tainted-toggle"){S.mods.taintedBody=event.target.checked;S.taintedAbility.enabled=event.target.checked}if(event.target.id==="gadget-spent")S.mods.gadgetSpent=clamp(event.target.value,0,99);if(event.target.id==="performance-skill")S.mods.performanceSkill=event.target.value||null;renderAll();});
 $("arch-tabs").addEventListener("click",event=>{const b=event.target.closest("[data-arch]");if(b){activeArch=b.dataset.arch;renderTechniques();}});$("tech-search").addEventListener("input",renderTechniques);
 $("tech-tag-filters").addEventListener("change",event=>{if(!event.target.matches("[data-tech-tag-select]"))return;techTag=event.target.value;renderTechniques();});
+$("tech-status-filter").addEventListener("change",event=>{if(!event.target.matches("[data-tech-status-select]"))return;techStatus=event.target.value;renderTechniques();});
 $("tech-sort").addEventListener("change",event=>{techSort=event.target.value;renderTechniques();});
 // Catalogue events live with the builder events so legacy table controls cannot
 // prevent the standalone English demo from wiring its filters.
