@@ -77,11 +77,12 @@ const oldCopy = json(gmContext.materializeBuiltinEncounter({
   name: "Existing RU encounter",
   enemies: [
     { profileId: "enemy.common.assassin", ap: 2, baseAp: 2 },
+    { profileId: "lionwing.npc.viper", ap: 2, baseAp: 2 },
     { kind: "crowd", ap: 2, baseAp: 2 },
     { profileId: "enemy.modifier.giant", ap: 2, baseAp: 2 },
   ],
 }));
-assert.deepEqual(oldCopy.enemies.map(enemy => [enemy.ap, enemy.baseAp]), [[2, 2], [0, 0], [0, 0]], "An old or unknown edition keeps explicit 2 AP without a migration layer");
+assert.deepEqual(oldCopy.enemies.map(enemy => [enemy.ap, enemy.baseAp]), [[2, 2], [2, 2], [0, 0], [0, 0]], "An old or unknown edition keeps explicit 2 AP without a migration layer");
 
 const normalized = json(coreContext.normalizeGmLibrary({ encounters: [
   { id: "new-user-lionwing", name: "New user record", edition: "lionwing", enemies: [
