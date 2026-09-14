@@ -181,6 +181,7 @@ const ENEMY_FULL_RULES = new Map([
   ["enemy.common.healer.action.heal", { type: "healer-heal", formula: "3(+1)" }],
   ["enemy.common.healer.trump.savior", { type: "healer-savior" }],
   ["enemy.common.cannoneer.attack.load", { type: "cannoneer-load" }],
+  ["lionwing.npc.cannoneer.load", { type: "cannoneer-load" }],
   ["enemy.common.oni.action.stabilize", { type: "oni-stabilize" }],
   ["enemy.common.revenant.action.lurk", { type: "revenant-lurk" }],
   ["enemy.common.revenant.trump.hollowed-eyes", { type: "revenant-hollowed-eyes" }],

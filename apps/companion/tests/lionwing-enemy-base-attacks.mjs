@@ -53,10 +53,10 @@ const manualActionIds = [
   "lionwing.npc.spright.incision",
   "lionwing.npc.matriarch.destroy-the-interloper",
   "lionwing.npc.coordinator.fanaticize",
-  "lionwing.npc.cannoneer.load",
   "lionwing.npc.rifter.emerge",
   "lionwing.npc.swarm.tear",
 ];
+const fullActionIds = ["lionwing.npc.cannoneer.load"];
 const actor = (id, team, x, y, extra = {}) => ({
   id,
   name: id,
@@ -162,7 +162,18 @@ for (const id of canonicalAceIds) {
   assert.ok(status, `${id} exists in canonical profile`);
   assert.equal(status.automation, "assisted", `${id} retains manual fallback`);
 }
-assert.deepEqual(new Set(npcActionIds.concat(manualActionIds)), new Set(canonicalAttackIds), "automated and manual sets cover every canonical NPC attack exactly once");
+assert.deepEqual(new Set(npcActionIds.concat(fullActionIds,manualActionIds)), new Set(canonicalAttackIds), "automated, full and manual sets cover every canonical NPC attack exactly once");
+
+// Cannoneer Load is classified as an Attack in the source data, but is a
+// deterministic Clock action: +2 Preparation before movement, otherwise +1.
+let cannoneer = scene("lionwing.npc.cannoneer");
+const loadStatus = engine.availableEnemyRules(cannoneer, data, "enemy").find(item => item.id === "lionwing.npc.cannoneer.load");
+assert.equal(loadStatus.automation, "full");
+let loaded = commitWithIds(cannoneer, engine.prepareEnemyRule(cannoneer, data, { actorId: "enemy", ruleId: loadStatus.id }), "load-still").result.scene;
+assert.equal(engine.clockStatus(loaded, "enemy", "enemy.common.cannoneer.preparation").value, 2, "Load fills two segments when the Cannoneer has not moved");
+cannoneer = scene("lionwing.npc.cannoneer", { log: [{ id: "moved", type: "actor.move", actorId: "enemy", payload: { x: 3, y: 2 } }] });
+loaded = commitWithIds(cannoneer, engine.prepareEnemyRule(cannoneer, data, { actorId: "enemy", ruleId: loadStatus.id }), "load-moved").result.scene;
+assert.equal(engine.clockStatus(loaded, "enemy", "enemy.common.cannoneer.preparation").value, 1, "Load fills one segment after movement");
 
 // Guardian Shove: preview does not mutate, commit spends AP and opens the
 // ordinary Reaction window, then the normal resistance/evasion/damage reducer
