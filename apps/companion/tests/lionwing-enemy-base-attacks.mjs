@@ -36,6 +36,7 @@ const npcActionIds = [
   "lionwing.npc.baron.suppress",
   "lionwing.npc.berserker.thrash",
   "lionwing.npc.cultist.swipe",
+  "lionwing.npc.duelist.fleche",
   "lionwing.npc.daredevil.dance",
   "lionwing.npc.enchanter.heartbreaker",
   "lionwing.npc.hound-master.shove",
@@ -48,7 +49,6 @@ const manualActionIds = [
   "lionwing.npc.bodyguards.behind-me",
   "lionwing.npc.broodmother.swarming-chase",
   "lionwing.npc.cocoon.rampage",
-  "lionwing.npc.duelist.fleche",
   "lionwing.npc.oni.polaris",
   "lionwing.npc.spright.incision",
   "lionwing.npc.matriarch.destroy-the-interloper",
@@ -174,6 +174,19 @@ assert.equal(engine.clockStatus(loaded, "enemy", "enemy.common.cannoneer.prepara
 cannoneer = scene("lionwing.npc.cannoneer", { log: [{ id: "moved", type: "actor.move", actorId: "enemy", payload: { x: 3, y: 2 } }] });
 loaded = commitWithIds(cannoneer, engine.prepareEnemyRule(cannoneer, data, { actorId: "enemy", ruleId: loadStatus.id }), "load-moved").result.scene;
 assert.equal(engine.clockStatus(loaded, "enemy", "enemy.common.cannoneer.preparation").value, 1, "Load fills one segment after movement");
+
+// Duelist Fleche reuses the shared Attack and post-resolution movement
+// contracts while its passive binds Provoked to this Duelist.
+let duelist = scene("lionwing.npc.duelist", { actors: [actor("enemy", "enemy", 2, 2, { profileId: "lionwing.npc.duelist" }), actor("hero", "hero", 4, 2, { effects: ["negative.спровоцирован"] })] });
+const flecheStatus = engine.availableEnemyRules(duelist, data, "enemy").find(item => item.id === "lionwing.npc.duelist.fleche");
+assert.equal(flecheStatus.automation, "attack");
+const flechePrepared = engine.prepareEnemyRule(duelist, data, { actorId: "enemy", ruleId: flecheStatus.id, targetIds: ["hero"], roll: dice(6, [6,5,1,1,1,1]) });
+assert.equal(flechePrepared.ok, true, flechePrepared.errors?.join(" "));
+assert.equal(flechePrepared.events.find(event => event.type === "attack.pending").payload.damageByTarget.hero, 6, "Fleche adds Tier damage against a Provoked target");
+duelist = commitWithIds(duelist, flechePrepared, "fleche").result.scene;
+duelist = passAndResolve(duelist, "fleche");
+assert.equal(duelist.actors.find(item => item.id === "hero").hp, 24);
+assert.equal(duelist.pendingPrompt?.kind, "enemy-move-cell", "Fleche offers its one-space post-Attack movement");
 
 // Guardian Shove: preview does not mutate, commit spends AP and opens the
 // ordinary Reaction window, then the normal resistance/evasion/damage reducer

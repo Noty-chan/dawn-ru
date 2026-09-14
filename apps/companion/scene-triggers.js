@@ -1100,11 +1100,11 @@ function triggeredEvents(scene, event, options = {}) {
     }
   }
   if (event.type === "attack.pending" && actor) {
-    const duelistSource = actor.profileId === "enemy.common.duelist" ? actor : null;
+    const duelistSource = ["enemy.common.duelist","lionwing.npc.duelist"].includes(actor.profileId) ? actor : null;
     if (duelistSource) for (const targetId of payload.targetIds || []) events.push({ type: "effect.apply", actorId: duelistSource.id, payload: { targetId, effect: "negative.спровоцирован", sourceActionId: "enemy.common.duelist.passive", duration: "scene", participantIds: [duelistSource.id, targetId] } });
     for (const targetId of payload.targetIds || []) {
       const duelistTarget = actorById(scene, targetId);
-      if (duelistTarget?.profileId === "enemy.common.duelist") events.push({ type: "effect.apply", actorId: duelistTarget.id, payload: { targetId: actor.id, effect: "negative.спровоцирован", sourceActionId: "enemy.common.duelist.passive", duration: "scene", participantIds: [duelistTarget.id, actor.id] } });
+      if (["enemy.common.duelist","lionwing.npc.duelist"].includes(duelistTarget?.profileId)) events.push({ type: "effect.apply", actorId: duelistTarget.id, payload: { targetId: actor.id, effect: "negative.спровоцирован", sourceActionId: "enemy.common.duelist.passive", duration: "scene", participantIds: [duelistTarget.id, actor.id] } });
     }
     for (const targetId of payload.targetIds || []) {
       const target = actorById(scene, targetId), mark = effectStateFor(target, "negative.помечен"), healerSource = mark?.sources.find(source => actorById(scene, source.actorId)?.profileId === "enemy.common.healer" && source.actionId === "enemy.common.healer.attack.exsanguinate");
