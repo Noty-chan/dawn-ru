@@ -40,6 +40,16 @@ assert.match(heroUi,/class="tech-level-heading"/,"technique level headers must h
 assert.match(css,/\.tech-level-heading\{[^}]*display:flex/,"only the explicit technique level heading should use the flex layout");
 assert.doesNotMatch(css,/\.tech-level(?:>|\s+)strong\{[^}]*display:flex/,"bold words inside catalog technique text must stay inline");
 assert.doesNotMatch(css,/\.sheet-technique-level(?:>|\s+)strong\{[^}]*display:flex/,"bold words inside legacy sheet technique text must stay inline");
+assert.match(appCore,/function ruleTextMarkup\(value\)/,"technique option lists must use the shared rule-text renderer");
+assert.match(heroUi,/ruleTextMarkup\(l\.text\)/,"builder technique cards must lay out embedded option lists");
+assert.match(heroUi,/ruleTextMarkup\(level\.text\)/,"play-sheet technique cards must lay out embedded option lists");
+const ruleTextContext={};
+vm.createContext(ruleTextContext);
+vm.runInContext(`${appCore.slice(appCore.indexOf("const esc ="),appCore.indexOf("const uid ="))};globalThis.renderRuleText=ruleTextMarkup`,ruleTextContext);
+const renderedRuleText=ruleTextContext.renderRuleText("Intro. ‣ **Dire:** damage. • **Wild:** area.");
+assert.equal((renderedRuleText.match(/<li>/g)||[]).length,2,"both LionWing bullet glyphs must become list items");
+assert.match(renderedRuleText,/<li><strong>Dire:<\/strong> damage\.<\/li>/,"inline emphasis must survive list layout");
+assert.match(css,/\.rule-list\{[^}]*display:grid/,"rule lists must have compact card layout");
 for(const key of ["heroView.modeLabel","heroView.editBuild","heroView.resource.health","heroView.actions","heroView.noMatchingTechniques"]){assert.ok(ru.includes(`"${key}"`),`${key} missing from RU locale`);assert.ok(en.includes(`"${key}"`),`${key} missing from EN locale`)}
 assert.match(sw,/\.\/hero-ui\.js/);assert.match(sw,/\.\/app-builder-events\.js/);
 

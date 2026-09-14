@@ -4,6 +4,17 @@ const $ = id => document.getElementById(id);
 const $$ = selector => [...document.querySelectorAll(selector)];
 const esc = value => String(value ?? "").replace(/[&<>"]/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[ch]));
 const md = value => esc(value).replace(/\*\*(.+?)\*\*/g,"<strong>$1</strong>").replace(/`(.+?)`/g,"<code>$1</code>").replace(/\n- /g,"<br>• ").replace(/\n/g,"<br>");
+function ruleTextMarkup(value){
+  const source=String(value??"").replace(/\r\n?/g,"\n").trim();
+  if(!source)return "";
+  const lines=source.replace(/(?:^|\n)\s*[-*•‣]\s+/g,"\n• ").replace(/[ \t]+[•‣][ \t]+/g,"\n• ").split("\n").map(line=>line.trim()).filter(Boolean);
+  const blocks=[];
+  let items=[];
+  const flush=()=>{if(items.length){blocks.push(`<ul class="rule-list">${items.map(item=>`<li>${md(item)}</li>`).join("")}</ul>`);items=[]}};
+  lines.forEach(line=>{if(line.startsWith("• "))items.push(line.slice(2).trim());else{flush();blocks.push(`<p>${md(line)}</p>`)}});
+  flush();
+  return blocks.join("");
+}
 const uid = () => globalThis.crypto?.randomUUID?.() || `id-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 const clamp = (n,min,max) => Math.max(min,Math.min(max,Number(n)||0));
 const download = (name, content, type="application/json") => { const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([content],{type})); a.download=name; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1000); };
