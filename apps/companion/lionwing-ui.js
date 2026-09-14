@@ -515,7 +515,7 @@ eventText = function(event) {
   if(event.type==="effect.source.remove")return `${who}: снят один источник Эффекта; остальные источники сохраняются`;
   if(event.type==="chain.pause")return "Цепочка приостановлена для ручного правила";
   if(event.type==="chain.resume")return "Приостановленная цепочка возобновлена";
-  if(event.type==="actor.stress")return `${who}: Стресс ${p.total}/3`;
+  if(event.type==="actor.stress")return `${who}: Стресс ${p.total}/${stressMaximumFor(a||{})}`;
   if(event.type==="health.spend"||event.type==="health.lose")return `${who}: ${event.type==="health.spend"?"потрачено":"потеряно"} ${p.lost} Здоровья (${p.hp} осталось)`;
   if(event.type==="cost.commit")return `${who}: составная цена подтверждена (${p.costs?.length||0} частей)`;
   if(event.type==="duel.start")return `${Scene.actors.find(x=>x.id===event.actorId)?.name||"Инициатор"}: Дуэль с ${who}`;

@@ -24,6 +24,10 @@
   const actor = (scene, id) => (scene.actors || []).find(item => item.id === id);
   const has = (a, id) => (a?.effects || []).includes(id);
   const isPlayer = a => a?.kind === "hero" || Boolean(a?.heroId);
+  // Supernatural Deafness changes the LionWing Stress track, including the
+  // knockout threshold.  Keep this local to the kernel because the engine is
+  // installed before app-core's UI helpers are available.
+  const stressMaximum = a => 3 + (Array.isArray(a?.gifts) && a.gifts.includes("rebel.supernatural-deafness") ? 1 : 0);
   const live = a => a && !a.knockedOut;
   const distance = (a, b) => a.space === b.space ? Math.abs(a.x - b.x) + Math.abs(a.y - b.y) : Infinity;
   const footprintCells = a => {
@@ -1760,8 +1764,9 @@
         } else a.influence = Number(a.influence || 0) + 1;
       }
       emit(track === "wounds" ? "actor.wound" : "actor.stress", sourceId, { targetId: a.id, delta: 1, total: a[track] });
-      if (a[track] >= 3) {
-        a[track] = 2;
+      const maximum = track === "stress" ? stressMaximum(a) : 3;
+      if (a[track] >= maximum) {
+        a[track] = maximum - 1;
          if (astate(a).vulnerable) knockout(a, { kind: track, sourceActorId: sourceId });
         else {
           const options = ["resist", "accept"], context = { track, ...(actionPlanId ? { actionPlanId } : {}) };
@@ -2834,7 +2839,7 @@
         case "correct": {
           const target = requiredActor(scene, p.targetId || sourceId, false);
           if (!resources.has(p.resource) && !attributes.has(p.resource) && !["knockedOut","vulnerable"].includes(p.resource)) fail("Это поле нельзя исправить");
-          const amount = integer(p.amount, "новое значение",p.resource==="knockedOut"?1:["wounds","stress"].includes(p.resource)?2:attributes.has(p.resource)||["baseAp","armor","speed","tier"].includes(p.resource)?99:9999), before = attributes.has(p.resource) ? target.attrs[p.resource] : target[p.resource];
+          const amount = integer(p.amount, "новое значение",p.resource==="knockedOut"?1:p.resource==="stress"?stressMaximum(target)-1:p.resource==="wounds"?2:attributes.has(p.resource)||["baseAp","armor","speed","tier"].includes(p.resource)?99:9999), before = attributes.has(p.resource) ? target.attrs[p.resource] : target[p.resource];
           if(["maxHp","tier"].includes(p.resource)&&amount===0)fail("Значение должно быть положительным");
           const compound=legacy.compoundEnemyStatus(scene,target);
           if(p.resource==="hp"&&amount>(compound.active?compound.maxHp:maxHealth(target)))fail("Здоровье превышает максимум");

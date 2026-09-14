@@ -68,18 +68,31 @@ function renderSkillsAbility(){
 }
 function abilityFormula(ability=S.ability){if(!ability.enabled)return t("builder.ability.none");const first=group=>(wordById(ability.words[group][0],ability)?.name||`[${t(`builder.ability.placeholder.${group==="verbs"?"verb":group==="nouns"?"noun":"condition"}`)}]`);const uncontrollable=ability===S.ability&&hasGift("Uncontrollable Power"),noCondition=!uncontrollable&&ability.words.verbs.concat(ability.words.nouns).some(id=>wordById(id,ability)?.marks.includes("✢"));const x=wordById(ability.xNoun,ability)?.name||"X",params={verb:first("verbs").replaceAll("X",x).toLowerCase(),noun:first("nouns").replaceAll("X",x).toLowerCase(),condition:first("conditions").replaceAll("X",x).toLowerCase()};return t(noCondition?"builder.ability.formulaNoCondition":uncontrollable?"builder.ability.formulaUncontrollable":"builder.ability.formula",params);}
 
+function techniqueSearchText(technique,canonical=technique){
+  const values=[];
+  const collect=entry=>{
+    if(!entry||typeof entry!=="object")return;
+    values.push(entry.id,entry.name,entry.en,entry.previousName,entry.tags,entry.flavor,entry.notes);
+    (entry.levels||[]).forEach(level=>values.push(level?.name,level?.en,level?.text,level?.previousName));
+  };
+  collect(technique);if(canonical!==technique)collect(canonical);
+  return values.filter(value=>typeof value==="string").join(" ").toLocaleLowerCase();
+}
+function techniqueTagValues(technique,canonical=technique){
+  return [...new Set([technique,canonical].flatMap(entry=>String(entry?.tags||"").split(",").map(tag=>tag.trim()).filter(Boolean)))];
+}
 function renderTechniques(){
-  const archetypes=activeArchetypes(),en=isEnglishPreview();
+  const archetypes=activeArchetypes(),en=isEnglishPreview(),canonicalById=new Map((Lionwing?.archetypes||[]).flatMap(archetype=>(archetype.techniques||[]).map(technique=>[technique.id,technique])));
   const tr=(key,params)=>t(key,params);
   $("arch-tabs").innerHTML=archetypes.map(a=>`<button type="button" class="${activeArch===a.id?"on":""}" data-arch="${a.id}">${esc(a.name)}</button>`).join("");
-  const arch=archetypes.find(a=>a.id===activeArch)||archetypes[0],q=$("tech-search").value.trim().toLowerCase(),tagList=t=>String(t.tags||"").split(",").map(tag=>tag.trim()).filter(Boolean),tags=[...new Set(arch.techniques.flatMap(tagList))].sort((a,b)=>a.localeCompare(b,en?"en":"ru"));
+  const arch=archetypes.find(a=>a.id===activeArch)||archetypes[0],q=$("tech-search").value.trim().toLocaleLowerCase(),tagList=technique=>techniqueTagValues(technique,canonicalById.get(technique.id)),tags=[...new Set(arch.techniques.flatMap(tagList))].sort((a,b)=>a.localeCompare(b,en?"en":"ru"));
   if(techTag!=="all"&&!tags.includes(techTag))techTag="all";
   const statusOptions=["all","full","decision","partial","manual"];
   if(!statusOptions.includes(techStatus))techStatus="all";
   $("tech-tag-filters").innerHTML=`<label class="tag-picker"><span>${t("builder.catalog.tag")}</span><select data-tech-tag-select>${["all",...tags].map(tag=>`<option value="${esc(tag)}" ${techTag===tag?"selected":""}>${tag==="all"?t("builder.catalog.allTags"):esc(tag)}</option>`).join("")}</select></label>`;
   $("tech-status-filter").innerHTML=`<label class="status-picker"><span>${tr("builder.techniques.statusFilter")}</span><select id="tech-status-select" data-tech-status-select>${statusOptions.map(status=>`<option value="${status}" ${techStatus===status?"selected":""}>${tr(status==="all"?"builder.techniques.statusAll":TECHNIQUE_STATUS_LABEL_KEYS[status])}</option>`).join("")}</select></label>`;
   $("tech-sort").value=techSort;
-  const list=arch.techniques.filter(t=>techniqueMatchesStatus(t,techStatus)&&(techTag==="all"||tagList(t).includes(techTag))&&(!q||`${t.name} ${t.en||""} ${t.tags} ${t.flavor} ${t.levels.map(l=>l.text).join(" ")}`.toLowerCase().includes(q))).map((technique,index)=>({technique,index}));
+  const list=arch.techniques.filter(t=>{const canonical=canonicalById.get(t.id);return techniqueMatchesStatus(t,techStatus)&&(techTag==="all"||tagList(t).includes(techTag))&&(!q||techniqueSearchText(t,canonical).includes(q))}).map((technique,index)=>({technique,index}));
   if(techSort==="name")list.sort((a,b)=>a.technique.name.localeCompare(b.technique.name,en?"en":"ru"));
   if(techSort==="stars")list.sort((a,b)=>a.technique.stars-b.technique.stars||a.technique.name.localeCompare(b.technique.name,en?"en":"ru"));
   $("tech-list").innerHTML=list.map(({technique:t})=>{
@@ -106,11 +119,11 @@ function setHeroViewMode(mode){if(!HERO_VIEW_MODES.has(mode))return;if(mode==="s
 function initHeroViewLayout(){const page=document.querySelector('.mode-page[data-page="build"]');if(!page||page.dataset.heroViewReady)return;page.dataset.heroViewReady="true";page.querySelectorAll(':scope > .page-heading, :scope > .panel').forEach(node=>{if(node.id!=="hero-sheet-view")node.classList.add("hero-builder-only")})}
 function heroViewRuntime(){
   ensureRuntime();
-  const linked=Scene?.rulesEdition==="lionwing"?(Scene.actors||[]).find(actor=>actor.team==="hero"&&(actor.heroId===S.id||actor.characterId===S.id)):null,d=derived();
-  return{linked:Boolean(linked),hp:linked?.hp??S.runtime.hp??d.hp,maxHp:linked?.maxHp??S.runtime.maxHp??d.hp,ap:linked?.ap??S.runtime.ap??3,baseAp:linked?.baseAp??3,focus:linked?.focus??S.runtime.focus??d.focus,influence:linked?.influence??S.runtime.influence??1,stress:linked?.stress??S.runtime.stress??0,armor:linked?.armor??0,evasion:linked?.evasion??0,speed:linked?.speed??d.speed};
+  const linked=Scene?.rulesEdition==="lionwing"?(Scene.actors||[]).find(actor=>actor.team==="hero"&&(actor.heroId===S.id||actor.characterId===S.id)):null,d=derived(),source=linked||S,maxStress=stressMaximumFor(source);
+  return{linked:Boolean(linked),hp:linked?.hp??S.runtime.hp??d.hp,maxHp:linked?.maxHp??S.runtime.maxHp??d.hp,ap:linked?.ap??S.runtime.ap??3,baseAp:linked?.baseAp??3,focus:linked?.focus??S.runtime.focus??d.focus,influence:linked?.influence??S.runtime.influence??1,stress:clamp(linked?.stress??S.runtime.stress??0,0,maxStress),maxStress,armor:linked?.armor??0,evasion:linked?.evasion??0,speed:linked?.speed??d.speed};
 }
-function heroSheetResourceMarkup(key,value,displayValue=value){
-  const adjustable=key==="influence"||key==="stress",maximum=key==="stress"?3:null,label=t(`heroView.resource.${key}`),numeric=clamp(value,0,maximum??999),display=displayValue==null?(maximum===null?numeric:`${numeric} / ${maximum}`):displayValue;
+function heroSheetResourceMarkup(key,value,displayValue=value,maximumOverride=null){
+  const adjustable=key==="influence"||key==="stress",maximum=key==="stress"?(maximumOverride??3):null,label=t(`heroView.resource.${key}`),numeric=clamp(value,0,maximum??999),display=displayValue==null?(maximum===null?numeric:`${numeric} / ${maximum}`):displayValue;
   if(!adjustable)return`<article data-resource="${key}"><span>${esc(label)}</span><strong>${esc(display)}</strong></article>`;
   const decrease=isEnglishPreview()?`Decrease ${label}`:`Уменьшить ${label}`,increase=isEnglishPreview()?`Increase ${label}`:`Увеличить ${label}`;
   return`<article class="hero-sheet-resource-adjustable" data-resource="${key}"><span>${esc(label)}</span><div class="hero-sheet-resource-counter"><button type="button" data-hero-resource="${key}" data-hero-resource-delta="-1" aria-label="${esc(decrease)}" ${numeric<=0?"disabled":""}>−</button><strong>${esc(display)}</strong><button type="button" data-hero-resource="${key}" data-hero-resource-delta="1" aria-label="${esc(increase)}" ${maximum!==null&&numeric>=maximum?"disabled":""}>+</button></div></article>`;
@@ -152,10 +165,10 @@ function heroSheetDiceSourcesLabel(state){
 }
 function heroSheetDiceResultMarkup(state=heroSheetDiceState()){
   const result=state.last;if(!result)return`<div class="hero-sheet-dice-empty">${esc(t("heroView.dice.empty"))}</div>`;
-  const main=result.main,threshold=4,mainDice=main.rolls.map(value=>`<span class="hero-die ${value>=6?"crit":value>=threshold?"success":""}">${value}</span>`).join(""),star=result.star==null?"":`<span class="hero-die hero-die-star ${result.star>=6?"crit":result.star>=5?"success":""}">${result.star}</span>`;
-  const stress=typeof toolsResourceValue==="function"?toolsResourceValue("stress"):Number(S.runtime.stress||0);
-  const starPrompt=result.star===5&&result.outcome==="failure"&&!result.starApplied?`<div class="hero-sheet-star-prompt"><span>${esc(t("heroView.dice.starFive"))}</span><button type="button" data-hero-dice-star-apply ${stress>=3?"disabled":""}>${esc(t("heroView.dice.starApply"))}</button></div>`:"";
-  const stressNote=result.star===5&&result.outcome==="failure"&&!result.starApplied&&stress>=3?`<small class="hero-sheet-dice-note">${esc(t("heroView.dice.starStressFull"))}</small>`:"";
+  const main=result.main,threshold=result.threshold??(result.reroll?3:4),mainDice=main.rolls.map(value=>`<span class="hero-die ${value>=6?"crit":value>=threshold?"success":""}">${value}</span>`).join(""),star=result.star==null?"":`<span class="hero-die hero-die-star ${result.star>=6?"crit":result.star>=5?"success":""}">${result.star}</span>`;
+  const stress=typeof toolsResourceValue==="function"?toolsResourceValue("stress"):Number(S.runtime.stress||0),stressMaximum=heroViewRuntime().maxStress;
+  const starPrompt=result.star===5&&result.outcome==="failure"&&!result.starApplied?`<div class="hero-sheet-star-prompt"><span>${esc(t("heroView.dice.starFive"))}</span><button type="button" data-hero-dice-star-apply ${stress>=stressMaximum?"disabled":""}>${esc(t("heroView.dice.starApply"))}</button></div>`:"";
+  const stressNote=result.star===5&&result.outcome==="failure"&&!result.starApplied&&stress>=stressMaximum?`<small class="hero-sheet-dice-note">${esc(t("heroView.dice.starStressFull"))}</small>`:"";
   return `<div class="hero-sheet-dice-rolls"><div class="hero-sheet-dice-main"><span>${esc(t("heroView.dice.main"))}</span><div class="hero-dice-row">${mainDice}</div></div>${result.star!=null?`<div class="hero-sheet-dice-star"><span>★ ${esc(t("heroView.dice.starDie"))}</span><div class="hero-dice-row">${star}</div></div>`:""}</div><div class="hero-sheet-dice-summary"><strong>${main.successes} ${esc(t("heroView.dice.successes"))}</strong><span>${main.crits} ${esc(t("heroView.dice.crits"))} · ${esc(heroSheetDiceOutcome(result.outcome))}</span></div>${starPrompt}${stressNote}<small class="hero-sheet-dice-note">${esc(result.reroll?t("heroView.dice.rerolledHint"):t("heroView.dice.resultHint"))}</small>`;
 }
 function heroSheetDiceMarkup(){
@@ -178,11 +191,13 @@ function heroSheetDiceSpendInfluence(){
 }
 function heroSheetDiceRoll(reroll=false){
   const state=heroSheetDiceState(),source=heroSheetDiceSourceInfo(state),count=clamp(source.baseCount+state.advantage-state.hindrance,1,HERO_SHEET_DICE_MAX);if(reroll&&!heroSheetDiceSpendInfluence())return;
-  const main=Logic.rollXd6({count,threshold:4,criticalAt:6}),hasStar=heroSheetHasStarDie()&&state.starEnabled&&state.advantageSources<=1,star=hasStar?1+Math.floor(Math.random()*6):null;let outcome=Logic.challengeOutcome({successes:main.successes,target:state.target}).id;if(star===6)outcome="extreme";
-  state.last={main,star,outcome,reroll,starApplied:false};renderHeroPlaySheet();
+  // All Out (the Influence reroll) treats 3+ as Hits; an ordinary roll stays
+  // on the canonical 4+ threshold.
+  const threshold=reroll?3:4,main=Logic.rollXd6({count,threshold,criticalAt:6}),hasStar=heroSheetHasStarDie()&&state.starEnabled&&state.advantageSources<=1,star=hasStar?1+Math.floor(Math.random()*6):null;let outcome=Logic.challengeOutcome({successes:main.successes,target:state.target}).id;if(star===6)outcome="extreme";
+  state.last={main,star,outcome,reroll,threshold,starApplied:false};renderHeroPlaySheet();
 }
 function heroSheetDiceApplyStar(){
-  const state=heroSheetDiceState(),last=state.last;if(!last||last.star!==5||last.outcome!=="failure"||last.starApplied)return;if((typeof toolsResourceValue==="function"?toolsResourceValue("stress"):Number(S.runtime.stress||0))>=3)return toast(t("heroView.dice.starStressFull"));
+  const state=heroSheetDiceState(),last=state.last,stressMaximum=heroViewRuntime().maxStress;if(!last||last.star!==5||last.outcome!=="failure"||last.starApplied)return;if((typeof toolsResourceValue==="function"?toolsResourceValue("stress"):Number(S.runtime.stress||0))>=stressMaximum)return toast(t("heroView.dice.starStressFull"));
   const current=typeof toolsResourceValue==="function"?toolsResourceValue("stress"):Number(S.runtime.stress||0);if(typeof setToolsResource==="function"){if(!setToolsResource("stress",current+1,t("heroView.dice.stress")))return}else{S.runtime.stress=current+1;persist()}last.starApplied=true;last.outcome="minimal";renderHeroPlaySheet();
 }
 function heroSheetTechniquesMarkup(){
@@ -194,8 +209,8 @@ function heroSheetTechniquesMarkup(){
 }
 function renderHeroPlaySheet(){
   const root=$("hero-play-sheet");if(!root)return;const runtime=heroViewRuntime(),attrs=activeAttrs(),portrait=S.media.portrait,identity=S.name||t("builder.hero.unnamedFull");
-  const resources=[["health",runtime.hp,`${runtime.hp} / ${runtime.maxHp}`],["ap",runtime.ap,`${runtime.ap} / ${runtime.baseAp}`],["focus",runtime.focus],["influence",runtime.influence],["stress",runtime.stress,`${runtime.stress} / 3`],["armor",runtime.armor],["evasion",runtime.evasion],["speed",runtime.speed]];
-  root.innerHTML=`<section class="hero-sheet-identity"><div class="hero-sheet-portrait">${portrait?`<img src="${portrait}" alt="${esc(t("builder.media.portraitOf",{hero:identity}))}">`:`<span aria-hidden="true">${esc(identity.slice(0,1).toUpperCase()||"D")}</span>`}</div><div><span class="eyebrow">${esc(t("heroView.tier",{tier:S.tier}))}</span><h2>${esc(identity)}</h2><p>${esc(S.concept||t("builder.hero.noConcept"))}</p>${S.player?`<small>${esc(t("heroView.player",{player:S.player}))}</small>`:""}</div>${runtime.linked?`<span class="hero-sheet-live">${esc(t("heroView.sceneState"))}</span>`:""}</section><section class="hero-sheet-resources" aria-label="${esc(t("heroView.resources"))}">${resources.map(([key,value,display])=>heroSheetResourceMarkup(key,value,display)).join("")}</section><div class="hero-sheet-dashboard"><section class="hero-sheet-card hero-sheet-attributes"><header><div><span class="eyebrow">01</span><h2>${esc(t("builder.sheet.attributes"))}</h2></div><small>${esc(t("heroView.rollHint"))}</small></header><div>${attrs.map(([key,name])=>`<button type="button" data-sheet-tool-attr="${key}"><span>${esc(name)}</span><strong>${attrValue(key)}D6</strong></button>`).join("")}</div></section><section class="hero-sheet-card hero-sheet-skills"><header><div><span class="eyebrow">02</span><h2>${esc(t("builder.sheet.skills"))}</h2></div></header><div class="hero-sheet-skill-list">${S.skills.filter(skill=>skillDisplayName(skill).trim()).map(skill=>`<button type="button" data-sheet-tool-skill="${esc(skill.id)}"><span>${esc(skillDisplayName(skill))}</span><strong>+${effectiveSkillRank(skill)}D6</strong></button>`).join("")||`<p>${t("heroView.empty")}</p>`}${S.ability.enabled?`<button type="button" data-sheet-tool-ability="main"><span>${esc(S.ability.name||abilityFormula())}</span><strong>+${S.ability.rank}D6</strong></button>`:""}</div></section><section class="hero-sheet-card hero-sheet-dice">${heroSheetDiceMarkup()}</section><section class="hero-sheet-card hero-sheet-techniques"><header><div><span class="eyebrow">04</span><h2>${esc(t("builder.sheet.techniques"))}</h2></div><small>${esc(t("heroView.statusHelp"))}</small></header>${heroSheetTechniquesMarkup()}</section>${typeof pinnedRulesMarkup==="function"?pinnedRulesMarkup():""}</div>`;
+  const resources=[["health",runtime.hp,`${runtime.hp} / ${runtime.maxHp}`],["ap",runtime.ap,`${runtime.ap} / ${runtime.baseAp}`],["focus",runtime.focus],["influence",runtime.influence],["stress",runtime.stress,`${runtime.stress} / ${runtime.maxStress}`,runtime.maxStress],["armor",runtime.armor],["evasion",runtime.evasion],["speed",runtime.speed]];
+  root.innerHTML=`<section class="hero-sheet-identity"><div class="hero-sheet-portrait">${portrait?`<img src="${portrait}" alt="${esc(t("builder.media.portraitOf",{hero:identity}))}">`:`<span aria-hidden="true">${esc(identity.slice(0,1).toUpperCase()||"D")}</span>`}</div><div><span class="eyebrow">${esc(t("heroView.tier",{tier:S.tier}))}</span><h2>${esc(identity)}</h2><p>${esc(S.concept||t("builder.hero.noConcept"))}</p>${S.player?`<small>${esc(t("heroView.player",{player:S.player}))}</small>`:""}</div>${runtime.linked?`<span class="hero-sheet-live">${esc(t("heroView.sceneState"))}</span>`:""}</section><section class="hero-sheet-resources" aria-label="${esc(t("heroView.resources"))}">${resources.map(([key,value,display,maximum])=>heroSheetResourceMarkup(key,value,display,maximum)).join("")}</section><div class="hero-sheet-dashboard"><section class="hero-sheet-card hero-sheet-attributes"><header><div><span class="eyebrow">01</span><h2>${esc(t("builder.sheet.attributes"))}</h2></div><small>${esc(t("heroView.rollHint"))}</small></header><div>${attrs.map(([key,name])=>`<button type="button" data-sheet-tool-attr="${key}"><span>${esc(name)}</span><strong>${attrValue(key)}D6</strong></button>`).join("")}</div></section><section class="hero-sheet-card hero-sheet-skills"><header><div><span class="eyebrow">02</span><h2>${esc(t("builder.sheet.skills"))}</h2></div></header><div class="hero-sheet-skill-list">${S.skills.filter(skill=>skillDisplayName(skill).trim()).map(skill=>`<button type="button" data-sheet-tool-skill="${esc(skill.id)}"><span>${esc(skillDisplayName(skill))}</span><strong>+${effectiveSkillRank(skill)}D6</strong></button>`).join("")||`<p>${t("heroView.empty")}</p>`}${S.ability.enabled?`<button type="button" data-sheet-tool-ability="main"><span>${esc(S.ability.name||abilityFormula())}</span><strong>+${S.ability.rank}D6</strong></button>`:""}</div></section><section class="hero-sheet-card hero-sheet-dice">${heroSheetDiceMarkup()}</section><section class="hero-sheet-card hero-sheet-techniques"><header><div><span class="eyebrow">04</span><h2>${esc(t("builder.sheet.techniques"))}</h2></div><small>${esc(t("heroView.statusHelp"))}</small></header>${heroSheetTechniquesMarkup()}</section>${typeof pinnedRulesMarkup==="function"?pinnedRulesMarkup():""}</div>`;
 }
 function renderHeroView(){
   const page=document.querySelector('.mode-page[data-page="build"]'),switcher=$("hero-view-switch"),viewer=$("hero-sheet-view");if(!page||!switcher||!viewer)return;initHeroViewLayout();

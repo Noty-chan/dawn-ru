@@ -33,6 +33,12 @@ s=run(s,"e",{kind:"batch",operations:[{kind:"damage",targetId:"h",amount:30},{ki
 assert.equal(s.lionwing.choices[0].kind,"knockout");assert.equal(s.lionwing.deferred.length,1);assert.equal(s.actors[0].hp,16);
 s=run(s,"h",{kind:"choice",id:s.lionwing.choices[0].id,choice:"resist"});assert.equal(s.actors[0].wounds,1);assert.equal(s.actors[0].hp,14);assert.equal(s.actors[0].lionwing.vulnerable,true);assert.equal(s.lionwing.deferred.length,0);
 
+// Supernatural Deafness raises the Stress track to four.  Reaching three is
+// still playable; the fourth Stress opens the normal Knockout choice.
+s=fixture();s.actors[0].gifts=["rebel.supernatural-deafness"];s.actors[0].stress=2;
+s=run(s,"e",{kind:"stress",targetId:"h"});assert.equal(s.actors[0].stress,3);assert.equal(s.lionwing.choices.length,0);
+s=run(s,"e",{kind:"stress",targetId:"h"});assert.equal(s.actors[0].stress,3);assert.equal(s.lionwing.choices[0].kind,"knockout");assert.equal(s.lionwing.choices[0].context.track,"stress");
+
 s=fixture();s.actors[0].hp=5;
 throws(s,"h",{kind:"batch",operations:[{kind:"heal",targetId:"h",amount:2},{kind:"resource",resource:"ap",operation:"spend",amount:4}]},/Недостаточно/);
 s=run(s,"h",{kind:"correct",resource:"hp",amount:0});assert.equal(s.actors[0].hp,0);assert.equal(s.actors[0].wounds,0);assert.equal(s.actors[0].knockedOut,false);

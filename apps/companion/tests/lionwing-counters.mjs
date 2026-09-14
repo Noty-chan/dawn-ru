@@ -54,6 +54,9 @@ vm.runInContext(appSource.slice(appSource.indexOf("function blankScene()"), appS
 const normalized = vm.runInContext(`sceneCore(${JSON.stringify(renamed)})`, appContext);
 assert.equal(normalized.actors[0].ruleClocks.doom.ownerActorId, "h", "storage normalization keeps the owner");
 assert.equal(normalized.actors[0].ruleClocks.doom.current, 4, "storage normalization keeps the current value");
+const deafScene = { ...renamed, actors: renamed.actors.map((item, index) => index === 0 ? { ...item, gifts: ["rebel.supernatural-deafness"], stress: 4 } : item) };
+const normalizedDeaf = vm.runInContext(`sceneCore(${JSON.stringify(deafScene)})`, appContext);
+assert.equal(normalizedDeaf.actors[0].stress, 4, "Supernatural Deafness preserves the fourth Stress during scene normalization");
 const undoSnapshot = JSON.parse(JSON.stringify(normalized)), undoRestored = vm.runInContext(`sceneCore(${JSON.stringify(undoSnapshot)})`, appContext);
 assert.equal(undoRestored.actors[0].ruleClocks.doom.id, "doom", "undo snapshots keep the stable id");
 assert.equal(undoRestored.actors[0].ruleClocks.doom.ruleId, "test.counter", "undo snapshots keep rule metadata");
