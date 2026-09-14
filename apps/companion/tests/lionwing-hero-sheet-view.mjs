@@ -36,7 +36,10 @@ assert.match(events,/data-hero-sheet-tools[\s\S]+openToolsDicePreset/,"sheet rol
 assert.match(events,/data-hero-sheet-table[\s\S]+setMode\("play"\)/,"table actions must reuse the existing page mode handler");
 assert.match(css,/hero-sheet-resources[\s\S]+@media\(max-width:420px\)/,"the resource rail and small-screen layout must be styled");
 assert.match(css,/\.techniques \.catalog-card\{[^}]*max-width:620px/,"a single filtered technique must keep a readable card width");
-assert.doesNotMatch(css,/\.tech-level strong\{[^}]*display:flex/,"bold words inside technique text must stay inline");
+assert.match(heroUi,/class="tech-level-heading"/,"technique level headers must have an explicit styling hook");
+assert.match(css,/\.tech-level-heading\{[^}]*display:flex/,"only the explicit technique level heading should use the flex layout");
+assert.doesNotMatch(css,/\.tech-level(?:>|\s+)strong\{[^}]*display:flex/,"bold words inside catalog technique text must stay inline");
+assert.doesNotMatch(css,/\.sheet-technique-level(?:>|\s+)strong\{[^}]*display:flex/,"bold words inside legacy sheet technique text must stay inline");
 for(const key of ["heroView.modeLabel","heroView.editBuild","heroView.resource.health","heroView.actions","heroView.noMatchingTechniques"]){assert.ok(ru.includes(`"${key}"`),`${key} missing from RU locale`);assert.ok(en.includes(`"${key}"`),`${key} missing from EN locale`)}
 assert.match(sw,/\.\/hero-ui\.js/);assert.match(sw,/\.\/app-builder-events\.js/);
 
