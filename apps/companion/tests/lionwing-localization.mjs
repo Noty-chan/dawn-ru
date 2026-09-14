@@ -194,6 +194,15 @@ for (const outlook of english.outlooks) {
   const overlay = russian.outlooks[outlook.id];
   assert.ok(overlay?.name, `missing Russian outlook name: ${outlook.id}`);
   assert.ok(overlay?.description, `missing Russian outlook description: ${outlook.id}`);
+  if (outlook.builtin) {
+    const builtinOverlay = overlay.builtin || overlay.gifts?.[outlook.builtin.id];
+    assert.ok(builtinOverlay?.name, `missing Russian inherent boon name: ${outlook.builtin.id}`);
+    assert.ok(builtinOverlay?.text, `missing Russian inherent boon text: ${outlook.builtin.id}`);
+  }
+  for (const boon of outlook.gifts) {
+    assert.ok(overlay.gifts?.[boon.id]?.name, `missing Russian boon name: ${boon.id}`);
+    assert.ok(overlay.gifts?.[boon.id]?.text, `missing Russian boon text: ${boon.id}`);
+  }
   for (const boon of outlook.gifts.filter(item => item.introducedIn)) {
     assert.ok(overlay.gifts?.[boon.id]?.name, `missing new boon name: ${boon.id}`);
     assert.ok(overlay.gifts?.[boon.id]?.text, `missing new boon text: ${boon.id}`);
@@ -219,7 +228,8 @@ assert.equal(translatedChangedTechniqueIds.length, changedTechniqueIds.length, "
 
 const localizedOutlooks = english.outlooks.map(outlook => {
   const overlay = russian.outlooks[outlook.id];
-  return { ...outlook, ...overlay, gifts: outlook.gifts.map(gift => ({ ...gift, ...(overlay.gifts?.[gift.id] || {}) })) };
+  const builtin = outlook.builtin ? { ...outlook.builtin, ...(overlay.builtin || overlay.gifts?.[outlook.builtin.id] || {}) } : outlook.builtin;
+  return { ...outlook, ...overlay, builtin, gifts: outlook.gifts.map(gift => ({ ...gift, ...(overlay.gifts?.[gift.id] || {}) })) };
 });
 const localizedArchetypes = english.archetypes.map(archetype => {
   const overlay = russian.archetypes[archetype.id];

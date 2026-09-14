@@ -8,8 +8,29 @@ document.querySelector('.mode-page[data-page="build"]').addEventListener("click"
   if(tools){openToolsDicePreset();return}
   if(table){setMode("play");return}
 });
-$('hero-play-sheet').addEventListener("click",event=>{const attr=event.target.closest("[data-sheet-tool-attr]"),skill=event.target.closest("[data-sheet-tool-skill]"),ability=event.target.closest("[data-sheet-tool-ability]");if(attr)openToolsDicePreset({attr:attr.dataset.sheetToolAttr});else if(skill)openToolsDicePreset({skillId:skill.dataset.sheetToolSkill});else if(ability)openToolsDicePreset({abilityKey:ability.dataset.sheetToolAbility})});
+$("hero-play-sheet").addEventListener("click",event=>{
+  const resource=event.target.closest("[data-hero-resource]"),pin=event.target.closest("[data-pin-rule]"),remove=event.target.closest("[data-pinned-rule-remove]"),open=event.target.closest("[data-pinned-rule-open]"),choose=event.target.closest("[data-pinned-rules-mode]"),field=event.target.closest("[data-hero-dice-field]"),roll=event.target.closest("[data-hero-dice-roll]"),reroll=event.target.closest("[data-hero-dice-reroll]"),starApply=event.target.closest("[data-hero-dice-star-apply]"),attr=event.target.closest("[data-sheet-tool-attr]"),skill=event.target.closest("[data-sheet-tool-skill]"),ability=event.target.closest("[data-sheet-tool-ability]");
+  if(resource){event.preventDefault();event.stopPropagation();const key=resource.dataset.heroResource,delta=Number(resource.dataset.heroResourceDelta||0),runtime=heroViewRuntime(),next=clamp(Number(runtime[key]||0)+delta,0,key==="stress"?3:999);if(typeof currentHeroActor==="function"&&currentHeroActor()&&typeof setPlayCounter==="function")setPlayCounter(key,next);else if(typeof setToolsResource==="function")setToolsResource(key,next,t(`heroView.resource.${key}`));else{S.runtime[key]=next;persist()}requestAnimationFrame(()=>renderHeroView());return}
+  if(pin||remove){event.preventDefault();event.stopPropagation();togglePinnedRuleById((pin||remove).dataset.pinRule||(pin||remove).dataset.pinnedRuleRemove);return}
+  if(open){event.preventDefault();openPinnedRule(open.dataset.pinnedRuleOpen);return}
+  if(choose){event.preventDefault();setMode(choose.dataset.pinnedRulesMode);return}
+  if(field){updateHeroSheetDiceField(field.dataset.heroDiceField,Number(field.dataset.heroDiceDelta||0));return}
+  if(roll){heroSheetDiceRoll(false);return}
+  if(reroll){heroSheetDiceRoll(true);return}
+  if(starApply){heroSheetDiceApplyStar();return}
+  if(attr){setHeroSheetDiceSource("attribute",attr.dataset.sheetToolAttr);return}
+  if(skill){setHeroSheetDiceSource("skill",skill.dataset.sheetToolSkill);return}
+  if(ability){setHeroSheetDiceSource("ability",ability.dataset.sheetToolAbility);return}
+});
+$("hero-play-sheet").addEventListener("change",event=>{
+  const source=event.target.closest("[data-hero-dice-source]"),star=event.target.closest("[data-hero-dice-star]"),target=event.target.closest("[data-hero-dice-target]");
+  if(source){const [type,id]=source.value.split("|");setHeroSheetDiceSource(type,id||"");return}
+  if(star){const state=heroSheetDiceState();state.starEnabled=Boolean(star.checked);state.last=null;renderHeroPlaySheet();return}
+  if(target){const state=heroSheetDiceState();state.target=clamp(target.value,1,99);state.last=null;renderHeroPlaySheet();}
+});
 $("rules-index").addEventListener("click",event=>{const link=event.target.closest('a[href^="#rules-"]');if(!link)return;const chapter=document.querySelector(link.getAttribute("href"));if(chapter?.matches(".rules-chapter"))chapter.open=true;});
+$("rules-chapters").addEventListener("click",event=>{const button=event.target.closest("[data-pin-rule]");if(!button)return;event.preventDefault();event.stopPropagation();togglePinnedRuleById(button.dataset.pinRule);});
+$("reference-list").addEventListener("click",event=>{const button=event.target.closest("[data-pin-rule]");if(!button)return;event.preventDefault();event.stopPropagation();togglePinnedRuleById(button.dataset.pinRule);});
 $("rules-search").addEventListener("input",renderRules);
 $("rules-filters").addEventListener("click",event=>{const button=event.target.closest("[data-rules-audience]");if(!button)return;rulesAudience=button.dataset.rulesAudience;renderRules();});
 $("rules-expand").onclick=()=>$$('#rules-chapters details').forEach(details=>details.open=true);

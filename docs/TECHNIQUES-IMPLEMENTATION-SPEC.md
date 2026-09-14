@@ -1,6 +1,6 @@
 # DAWN: кодовая спецификация Техник
 
-> Сгенерировано `npm run docs:rules` из новой канонической редакции `apps/companion/edition-lionwing.js` и RU-оверлея `apps/companion/edition-lionwing-ru.js` (SHA-256 `45f7482557e5ab8bc30d8c7b846e2dd66df27278218054174b8711f84a945de6`).
+> Сгенерировано `npm run docs:rules` из новой канонической редакции `apps/companion/edition-lionwing.js` и RU-оверлея `apps/companion/edition-lionwing-ru.js` (SHA-256 `5b5cf85058389a9224f2f7224d6005c0fbb3d1992942b84ee6753e61220247a4`).
 > Английский текст и механика берутся из canonical EN; русские названия и тексты — из отдельного reviewed RU overlay. Legacy-редакция в этот документ не входит.
 
 ## Границы этого документа

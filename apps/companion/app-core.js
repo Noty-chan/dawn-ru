@@ -363,6 +363,10 @@ function normalizeHero(raw){
   const rt=h.runtime||{},freeplay=rt.freeplay&&typeof rt.freeplay==="object"?rt.freeplay:{}; base.runtime={hp:rt.hp!==""&&rt.hp!=null&&Number.isFinite(+rt.hp)?+rt.hp:null,maxHp:rt.maxHp!==""&&rt.maxHp!=null&&Number.isFinite(+rt.maxHp)?Math.max(0,+rt.maxHp):null,wounds:clamp(rt.wounds,0,99),focus:Number.isFinite(+rt.focus)?+rt.focus:null,influence:clamp(rt.influence,0,999),stress:clamp(rt.stress,0,3),ap:clamp(rt.ap??3,0,99),tension:clamp(rt.tension,0,99),funding:Number.isFinite(+rt.funding)?clamp(rt.funding,0,999):null,fundingTier:clamp(rt.fundingTier,0,6),sacrifices:cleanArray(rt.sacrifices).filter(item=>["eye","arm","leg","tongue","life"].includes(item)),notes:typeof rt.notes==="string"?rt.notes.slice(0,10000):"",effects:cleanArray(rt.effects),clocks:Array.isArray(rt.clocks)?rt.clocks.slice(0,30).map(c=>({id:typeof c.id==="string"?c.id:uid(),name:typeof c.name==="string"?c.name.slice(0,120):"Часы",size:[4,6,8].includes(+c.size)?+c.size:6,value:clamp(c.value,0,[4,6,8].includes(+c.size)?+c.size:6)})):[],diceHistory:Array.isArray(rt.diceHistory)?rt.diceHistory.slice(0,20).map(row=>({at:typeof row.at==="string"?row.at.slice(0,20):"",count:clamp(row.count,1,300),successes:clamp(row.successes,0,300),crits:clamp(row.crits,0,300),outcome:typeof row.outcome==="string"?row.outcome.slice(0,80):"",target:clamp(row.target||base.tier+1,1,99),allIn:Boolean(row.allIn),payment:typeof row.payment==="string"?row.payment.slice(0,20):""})):[],freeplay:{target:freeplay.target!=null?clamp(freeplay.target,1,99):null}};
   return base;
 }
+function normalizePinnedRules(raw){
+  if(!Array.isArray(raw))return[];
+  return raw.slice(0,3).filter(item=>item&&typeof item==="object"&&typeof item.id==="string"&&["rules","reference"].includes(item.source)).map(item=>({id:item.id.slice(0,220),key:typeof item.key==="string"?item.key.slice(0,180):"",source:item.source,context:typeof item.context==="string"?item.context.slice(0,120):"item",anchor:typeof item.anchor==="string"?item.anchor.slice(0,220):"",title:typeof item.title==="string"?item.title.slice(0,180):"Правило",text:typeof item.text==="string"?item.text.slice(0,5000):"",kind:typeof item.kind==="string"?item.kind.slice(0,120):"Правило"}));
+}
 
 function migrateLegacy(raw){
   const techByName=new Map(D.archetypes.flatMap(a=>a.techniques.map(t=>[t.name,t.id])));
@@ -456,7 +460,7 @@ async function initializeHeroMediaStorage(){
 }
 function normalizedStoredState(parsed){
   const heroes=parsed.heroes.map(normalizeHero),scene=restoreLocalHeroMedia(normalizeScene(parsed.scene),heroes);
-  return {...parsed,heroes,scene,gmLibrary:normalizeGmLibrary(parsed.gmLibrary)};
+  return {...parsed,heroes,scene,gmLibrary:normalizeGmLibrary(parsed.gmLibrary),pinnedRules:normalizePinnedRules(parsed.pinnedRules)};
 }
 function loadStoredHeroes(){
   try{const parsed=JSON.parse(localStorage.getItem(HERO_STORAGE_KEY)||"null");if(parsed?.schema===APP_SCHEMA&&Array.isArray(parsed.heroes)&&parsed.heroes.length)return{current:clamp(parsed.current,0,parsed.heroes.length-1),heroes:parsed.heroes.map(normalizeHero)}}catch(e){console.warn(e)}
@@ -465,9 +469,9 @@ function loadStoredHeroes(){
 function loadStore(){
   const storedHeroes=loadStoredHeroes();
   try{const parsed=JSON.parse(localStorage.getItem(STORAGE_KEY)||"null");if(parsed?.schema===APP_SCHEMA&&Array.isArray(parsed.heroes)){const restored=normalizedStoredState(parsed);if(storedHeroes){restored.heroes=storedHeroes.heroes;restored.current=storedHeroes.current;restoreLocalHeroMedia(restored.scene,restored.heroes)}return restored}}catch(e){console.warn(e)}
-  if(storedHeroes)return {schema:APP_SCHEMA,current:storedHeroes.current,mode:"build",theme:"dark",heroes:storedHeroes.heroes,scene:blankScene(),gmLibrary:normalizeGmLibrary(null)};
+  if(storedHeroes)return {schema:APP_SCHEMA,current:storedHeroes.current,mode:"build",theme:"dark",heroes:storedHeroes.heroes,scene:blankScene(),gmLibrary:normalizeGmLibrary(null),pinnedRules:[]};
   try{const legacy=JSON.parse(localStorage.getItem(LEGACY_KEY)||"null");if(legacy){const migrated=migrateLegacy(legacy);localStorage.setItem(STORAGE_KEY,JSON.stringify(migrated));return migrated;}}catch(e){console.warn(e)}
-  return {schema:APP_SCHEMA,current:0,mode:"build",theme:"dark",heroes:[blankHero()],scene:blankScene(),gmLibrary:normalizeGmLibrary(null)};
+  return {schema:APP_SCHEMA,current:0,mode:"build",theme:"dark",heroes:[blankHero()],scene:blankScene(),gmLibrary:normalizeGmLibrary(null),pinnedRules:[]};
 }
 function isPristineHero(hero){
   return hero&&!hero.name&&!hero.player&&!hero.concept&&!hero.primaryOutlook&&!hero.outlooks.length&&!hero.gifts.length&&!hero.bonds?.length&&!Object.keys(hero.techniques).length&&!hero.ability.enabled&&hero.skills.length===1&&!hero.skills[0].name;

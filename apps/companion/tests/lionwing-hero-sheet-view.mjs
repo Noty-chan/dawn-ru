@@ -21,6 +21,8 @@ assert.doesNotMatch(viewSource,/DAWN_LIONWING_AUTOMATION_STATUS\s*=/,"the sheet 
 assert.match(viewSource,/esc\(identity\)/);
 assert.match(viewSource,/esc\(S\.concept/);
 assert.match(viewSource,/esc\(t\("heroView\.player",\{player:S\.player\}\)\)/);
+assert.match(viewSource,/data-hero-resource/,"the sheet must expose editable Stress and Influence counters");
+assert.match(viewSource,/key==="influence"\|\|key==="stress"/,"only Stress and Influence should be directly editable in the resource rail");
 assert.match(events,/data-hero-sheet-tools[\s\S]+openToolsDicePreset/,"sheet rolls must reuse the existing Tools handler");
 assert.match(events,/data-hero-sheet-table[\s\S]+setMode\("play"\)/,"table actions must reuse the existing page mode handler");
 assert.match(css,/hero-sheet-resources[\s\S]+@media\(max-width:420px\)/,"the resource rail and small-screen layout must be styled");
@@ -31,8 +33,8 @@ const modeFunction=heroUi.match(/function resolvedHeroViewMode\([^\n]+/s)?.[0];
 assert.ok(modeFunction,"resolved Hero view policy must stay directly testable");
 const context={HERO_VIEW_MODES:new Set(["builder","sheet"])};vm.createContext(context);vm.runInContext(`${modeFunction}\nthis.resolve=resolvedHeroViewMode;`,context);
 assert.equal(context.resolve("lionwing",true,undefined),"sheet","a completed LionWing Hero defaults to the play sheet");
-assert.equal(context.resolve("lionwing",false,"sheet"),"builder","an incomplete LionWing Hero stays in the Builder");
+assert.equal(context.resolve("lionwing",false,"sheet"),"sheet","an explicit Sheet choice is available before the build is complete");
 assert.equal(context.resolve("lionwing",true,"builder"),"builder","an explicit per-Hero Builder choice is retained");
 assert.equal(context.resolve("ru-v0.9",true,"sheet"),"builder","legacy v0.9 remains on its existing Builder path");
 
-console.log("LionWing Hero Build/Sheet mode QA passed: completion guard, per-Hero preference, canonical statuses, RU/EN and legacy isolation");
+console.log("LionWing Hero Build/Sheet mode QA passed: mode policy, per-Hero preference, canonical statuses, RU/EN, resource counters and legacy isolation");

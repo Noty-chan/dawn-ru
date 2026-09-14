@@ -99,20 +99,91 @@ const HERO_VIEW_MODES=new Set(["builder","sheet"]);
 let heroSheetTechniqueStatus="all";
 function loadHeroViewPreferences(){try{const parsed=JSON.parse(localStorage.getItem(HERO_VIEW_STORAGE_KEY)||"null");return parsed&&typeof parsed==="object"&&!Array.isArray(parsed)?parsed:{}}catch{return{}}}
 const heroViewPreferences=loadHeroViewPreferences();
-function resolvedHeroViewMode(edition,complete,preference){if(edition!=="lionwing")return"builder";if(preference==="sheet"&&!complete)return"builder";if(HERO_VIEW_MODES.has(preference))return preference;return complete?"sheet":"builder"}
+function resolvedHeroViewMode(edition,complete,preference){if(edition!=="lionwing")return"builder";if(HERO_VIEW_MODES.has(preference))return preference;return complete?"sheet":"builder"}
 function heroBuildComplete(){return issues().length===0}
 function saveHeroViewPreference(mode){if(!HERO_VIEW_MODES.has(mode)||!S?.id)return;heroViewPreferences[S.id]=mode;try{localStorage.setItem(HERO_VIEW_STORAGE_KEY,JSON.stringify(heroViewPreferences))}catch{}}
-function setHeroViewMode(mode){if(!HERO_VIEW_MODES.has(mode))return;const complete=heroBuildComplete();if(mode==="sheet"&&(!isLionwingEdition()||!complete)){toast(t("heroView.incompleteHelp"));return}saveHeroViewPreference(mode);renderHeroView();if(mode==="sheet")requestAnimationFrame(()=>$('button[data-hero-view-mode="builder"]')?.focus())}
+function setHeroViewMode(mode){if(!HERO_VIEW_MODES.has(mode))return;if(mode==="sheet"&&!isLionwingEdition())return;saveHeroViewPreference(mode);renderHeroView();if(mode==="sheet")requestAnimationFrame(()=>$('button[data-hero-view-mode="builder"]')?.focus())}
 function initHeroViewLayout(){const page=document.querySelector('.mode-page[data-page="build"]');if(!page||page.dataset.heroViewReady)return;page.dataset.heroViewReady="true";page.querySelectorAll(':scope > .page-heading, :scope > .panel').forEach(node=>{if(node.id!=="hero-sheet-view")node.classList.add("hero-builder-only")})}
 function heroViewRuntime(){
   ensureRuntime();
   const linked=Scene?.rulesEdition==="lionwing"?(Scene.actors||[]).find(actor=>actor.team==="hero"&&(actor.heroId===S.id||actor.characterId===S.id)):null,d=derived();
   return{linked:Boolean(linked),hp:linked?.hp??S.runtime.hp??d.hp,maxHp:linked?.maxHp??S.runtime.maxHp??d.hp,ap:linked?.ap??S.runtime.ap??3,baseAp:linked?.baseAp??3,focus:linked?.focus??S.runtime.focus??d.focus,influence:linked?.influence??S.runtime.influence??1,stress:linked?.stress??S.runtime.stress??0,armor:linked?.armor??0,evasion:linked?.evasion??0,speed:linked?.speed??d.speed};
 }
+function heroSheetResourceMarkup(key,value,displayValue=value){
+  const adjustable=key==="influence"||key==="stress",maximum=key==="stress"?3:null,label=t(`heroView.resource.${key}`),numeric=clamp(value,0,maximum??999),display=displayValue==null?(maximum===null?numeric:`${numeric} / ${maximum}`):displayValue;
+  if(!adjustable)return`<article data-resource="${key}"><span>${esc(label)}</span><strong>${esc(display)}</strong></article>`;
+  const decrease=isEnglishPreview()?`Decrease ${label}`:`Уменьшить ${label}`,increase=isEnglishPreview()?`Increase ${label}`:`Увеличить ${label}`;
+  return`<article class="hero-sheet-resource-adjustable" data-resource="${key}"><span>${esc(label)}</span><div class="hero-sheet-resource-counter"><button type="button" data-hero-resource="${key}" data-hero-resource-delta="-1" aria-label="${esc(decrease)}" ${numeric<=0?"disabled":""}>−</button><strong>${esc(display)}</strong><button type="button" data-hero-resource="${key}" data-hero-resource-delta="1" aria-label="${esc(increase)}" ${maximum!==null&&numeric>=maximum?"disabled":""}>+</button></div></article>`;
+}
 function heroSheetActionCost(action){if(typeof actionCostLabel==="function")return actionCostLabel(action);if(!action?.cost)return"";return typeof action.cost==="string"?action.cost:`${action.cost.amount} ${action.cost.resource}`}
 function heroSheetActionsMarkup(){
   const actionData=activeCoreRules()?.actions||D.actions,actions=actionData?.list||[],groups=[...new Set(actions.map(action=>action.group))];
   return groups.map((group,index)=>`<details class="hero-sheet-action-group" ${index===0?"open":""}><summary><span>${esc(group)}</span><b>${actions.filter(action=>action.group===group).length}</b></summary><div>${actions.filter(action=>action.group===group).map(action=>`<article><header><strong>${esc(action.name)}</strong>${heroSheetActionCost(action)?`<span>${esc(heroSheetActionCost(action))}</span>`:""}</header><div>${md(action.text||"")}</div></article>`).join("")}</div></details>`).join("")||`<p class="autosave">${t("heroView.empty")}</p>`;
+}
+const HERO_SHEET_DICE_MAX=40;
+let heroSheetDiceSessions=new Map();
+function heroSheetDiceState(){
+  const id=S?.id||"current";
+  let state=heroSheetDiceSessions.get(id);
+  if(!state){state={sourceType:"attribute",sourceId:"body",manualCount:1,advantage:0,hindrance:0,advantageSources:0,starEnabled:true,target:Math.max(1,Number(S?.tier||1)+1),last:null};heroSheetDiceSessions.set(id,state)}
+  state.target=clamp(state.target,1,99);state.manualCount=clamp(state.manualCount,1,HERO_SHEET_DICE_MAX);state.advantage=clamp(state.advantage,0,20);state.hindrance=clamp(state.hindrance,0,20);state.advantageSources=clamp(state.advantageSources,0,9);
+  return state;
+}
+function heroSheetDiceSourceItems(){
+  const attrs=activeAttrs().map(([id,name])=>({value:`attribute|${id}`,type:"attribute",id,label:name,count:attrValue(id)}));
+  const skills=S.skills.filter(skill=>skillDisplayName(skill).trim()).map(skill=>({value:`skill|${skill.id}`,type:"skill",id:skill.id,label:skillDisplayName(skill),count:effectiveSkillRank(skill)}));
+  const abilities=[];
+  if(S.ability.enabled)abilities.push({value:"ability|main",type:"ability",id:"main",label:S.ability.name||abilityFormula(),count:S.ability.rank});
+  if(S.mods.taintedBody&&S.taintedAbility.enabled)abilities.push({value:"ability|tainted",type:"ability",id:"tainted",label:S.taintedAbility.name||abilityFormula(S.taintedAbility),count:S.taintedAbility.rank});
+  return [...attrs,...skills,...abilities,{value:"manual",type:"manual",id:"",label:t("heroView.dice.manual"),count:heroSheetDiceState().manualCount}];
+}
+function heroSheetDiceSourceInfo(state=heroSheetDiceState()){
+  const items=heroSheetDiceSourceItems(),fallback=items.find(item=>item.type==="attribute")||items.at(-1),value=state.sourceType==="manual"?"manual":`${state.sourceType}|${state.sourceId}`,source=items.find(item=>item.value===value)||fallback||{type:"manual",id:"",label:t("heroView.dice.manual"),count:state.manualCount};
+  if(source.type!==state.sourceType){state.sourceType=source.type;state.sourceId=source.id||""}
+  return{...source,baseCount:source.type==="manual"?state.manualCount:source.count};
+}
+function heroSheetHasStarDie(){return S.gifts.includes("student.amazing-potential")||selectedGifts().some(gift=>gift.id==="student.amazing-potential")}
+function heroSheetDiceOutcome(id){return t(`heroView.dice.outcome.${id}`,{fallback:id})}
+function heroSheetDiceSourcesLabel(state){
+  const source=heroSheetDiceSourceInfo(state),parts=[`${source.baseCount}D6 ${source.label}`];
+  if(state.advantage)parts.push(`+${state.advantage} ${t("heroView.dice.advantage")}`);
+  if(state.hindrance)parts.push(`−${state.hindrance} ${t("heroView.dice.hindrance")}`);
+  return parts.join(" · ");
+}
+function heroSheetDiceResultMarkup(state=heroSheetDiceState()){
+  const result=state.last;if(!result)return`<div class="hero-sheet-dice-empty">${esc(t("heroView.dice.empty"))}</div>`;
+  const main=result.main,threshold=4,mainDice=main.rolls.map(value=>`<span class="hero-die ${value>=6?"crit":value>=threshold?"success":""}">${value}</span>`).join(""),star=result.star==null?"":`<span class="hero-die hero-die-star ${result.star>=6?"crit":result.star>=5?"success":""}">${result.star}</span>`;
+  const stress=typeof toolsResourceValue==="function"?toolsResourceValue("stress"):Number(S.runtime.stress||0);
+  const starPrompt=result.star===5&&result.outcome==="failure"&&!result.starApplied?`<div class="hero-sheet-star-prompt"><span>${esc(t("heroView.dice.starFive"))}</span><button type="button" data-hero-dice-star-apply ${stress>=3?"disabled":""}>${esc(t("heroView.dice.starApply"))}</button></div>`:"";
+  const stressNote=result.star===5&&result.outcome==="failure"&&!result.starApplied&&stress>=3?`<small class="hero-sheet-dice-note">${esc(t("heroView.dice.starStressFull"))}</small>`:"";
+  return `<div class="hero-sheet-dice-rolls"><div class="hero-sheet-dice-main"><span>${esc(t("heroView.dice.main"))}</span><div class="hero-dice-row">${mainDice}</div></div>${result.star!=null?`<div class="hero-sheet-dice-star"><span>★ ${esc(t("heroView.dice.starDie"))}</span><div class="hero-dice-row">${star}</div></div>`:""}</div><div class="hero-sheet-dice-summary"><strong>${main.successes} ${esc(t("heroView.dice.successes"))}</strong><span>${main.crits} ${esc(t("heroView.dice.crits"))} · ${esc(heroSheetDiceOutcome(result.outcome))}</span></div>${starPrompt}${stressNote}<small class="hero-sheet-dice-note">${esc(result.reroll?t("heroView.dice.rerolledHint"):t("heroView.dice.resultHint"))}</small>`;
+}
+function heroSheetDiceMarkup(){
+  const state=heroSheetDiceState(),source=heroSheetDiceSourceInfo(state),items=heroSheetDiceSourceItems(),sourceValue=source.type==="manual"?"manual":`${source.type}|${source.id}`,hasStar=heroSheetHasStarDie(),starEligible=hasStar&&state.advantageSources<=1,total=clamp(source.baseCount+state.advantage-state.hindrance,1,HERO_SHEET_DICE_MAX),influence=typeof toolsResourceValue==="function"?toolsResourceValue("influence"):Number(S.runtime.influence||0),starHelp=hasStar?(starEligible?t("heroView.dice.starHelp"):t("heroView.dice.starUnavailable")):"";
+  const sourceOptions=items.map(item=>`<option value="${esc(item.value)}" ${item.value===sourceValue?"selected":""}>${esc(item.label)} · ${item.count}D6</option>`).join("");
+  const step=(field,label,value,min,max,disabled=false)=>`<div class="hero-dice-step ${disabled?"disabled":""}"><span>${esc(label)}</span><div><button type="button" data-hero-dice-field="${field}" data-hero-dice-delta="-1" ${disabled||value<=min?"disabled":""}>−</button><output>${value}</output><button type="button" data-hero-dice-field="${field}" data-hero-dice-delta="1" ${disabled||value>=max?"disabled":""}>+</button></div></div>`;
+  return `<header><div><span class="eyebrow">03</span><h2>${esc(t("heroView.dice.title"))}</h2></div><small>${esc(t("heroView.dice.help"))}</small></header><div class="hero-sheet-dice-source"><label><span>${esc(t("heroView.dice.source"))}</span><select data-hero-dice-source>${sourceOptions}</select></label><div class="hero-sheet-dice-pool"><span>${esc(t("heroView.dice.pool"))}</span><strong>${total}D6</strong><small>${esc(heroSheetDiceSourcesLabel(state))}</small></div></div><div class="hero-sheet-dice-controls">${step("count",t("heroView.dice.count"),source.type==="manual"?state.manualCount:source.baseCount,1,HERO_SHEET_DICE_MAX,source.type!=="manual")}${step("advantage",t("heroView.dice.advantage"),state.advantage,0,20)}${step("hindrance",t("heroView.dice.hindrance"),state.hindrance,0,20)}<label class="hero-sheet-dice-target"><span>${esc(t("heroView.dice.target"))}</span><input type="number" min="1" max="99" value="${state.target}" data-hero-dice-target></label></div>${hasStar?`<div class="hero-sheet-star-control ${starEligible?"":"disabled"}"><label><input type="checkbox" data-hero-dice-star ${state.starEnabled&&starEligible?"checked":""} ${starEligible?"":"disabled"}><span><b>★ ${esc(t("heroView.dice.starDie"))}</b><small>${esc(starHelp)}</small></span></label>${step("advantageSources",t("heroView.dice.sources"),state.advantageSources,0,9)}</div>`:""}<div class="hero-sheet-dice-actions"><button type="button" class="primary" data-hero-dice-roll>${esc(t("heroView.dice.roll"))}</button><button type="button" data-hero-dice-reroll ${state.last&&influence>0?"":"disabled"}>${esc(t("heroView.dice.reroll"))}${state.last?` · 1 ${esc(t("heroView.dice.influence"))}`:""}</button></div><div class="hero-sheet-dice-result" aria-live="polite">${heroSheetDiceResultMarkup(state)}</div>`;
+}
+function setHeroSheetDiceSource(type,id=""){
+  const state=heroSheetDiceState();state.sourceType=type;state.sourceId=id;state.last=null;renderHeroPlaySheet();
+}
+function updateHeroSheetDiceField(field,delta){
+  const state=heroSheetDiceState(),limits={count:[1,HERO_SHEET_DICE_MAX],advantage:[0,20],hindrance:[0,20],advantageSources:[0,9]},key=field==="count"?"manualCount":field,[minimum,maximum]=limits[field]||limits.count;
+  state[key]=clamp(Number(state[key]||0)+Number(delta||0),minimum,maximum);state.last=null;renderHeroPlaySheet();
+}
+function heroSheetDiceSpendInfluence(){
+  const current=typeof toolsResourceValue==="function"?toolsResourceValue("influence"):Number(S.runtime.influence||0);if(current<1){toast(t("heroView.dice.noInfluence"));return false}
+  if(typeof setToolsResource==="function")return setToolsResource("influence",current-1,t("heroView.dice.influence"));
+  S.runtime.influence=current-1;persist();return true;
+}
+function heroSheetDiceRoll(reroll=false){
+  const state=heroSheetDiceState(),source=heroSheetDiceSourceInfo(state),count=clamp(source.baseCount+state.advantage-state.hindrance,1,HERO_SHEET_DICE_MAX);if(reroll&&!heroSheetDiceSpendInfluence())return;
+  const main=Logic.rollXd6({count,threshold:4,criticalAt:6}),hasStar=heroSheetHasStarDie()&&state.starEnabled&&state.advantageSources<=1,star=hasStar?1+Math.floor(Math.random()*6):null;let outcome=Logic.challengeOutcome({successes:main.successes,target:state.target}).id;if(star===6)outcome="extreme";
+  state.last={main,star,outcome,reroll,starApplied:false};renderHeroPlaySheet();
+}
+function heroSheetDiceApplyStar(){
+  const state=heroSheetDiceState(),last=state.last;if(!last||last.star!==5||last.outcome!=="failure"||last.starApplied)return;if((typeof toolsResourceValue==="function"?toolsResourceValue("stress"):Number(S.runtime.stress||0))>=3)return toast(t("heroView.dice.starStressFull"));
+  const current=typeof toolsResourceValue==="function"?toolsResourceValue("stress"):Number(S.runtime.stress||0);if(typeof setToolsResource==="function"){if(!setToolsResource("stress",current+1,t("heroView.dice.stress")))return}else{S.runtime.stress=current+1;persist()}last.starApplied=true;last.outcome="minimal";renderHeroPlaySheet();
 }
 function heroSheetTechniquesMarkup(){
   const statuses=["all","full","decision","partial","manual"],selected=statuses.includes(heroSheetTechniqueStatus)?heroSheetTechniqueStatus:"all";heroSheetTechniqueStatus=selected;
@@ -122,14 +193,14 @@ function heroSheetTechniquesMarkup(){
   return filters+(markup||`<p class="hero-sheet-empty">${t(selected==="all"?"heroView.noTechniques":"heroView.noMatchingTechniques")}</p>`);
 }
 function renderHeroPlaySheet(){
-  const root=$("hero-play-sheet");if(!root)return;const runtime=heroViewRuntime(),attrs=activeAttrs(),portrait=S.media.portrait,identity=S.name||t("builder.hero.unnamedFull"),actions=heroSheetActionsMarkup();
-  const resources=[["health",`${runtime.hp} / ${runtime.maxHp}`],["ap",`${runtime.ap} / ${runtime.baseAp}`],["focus",runtime.focus],["influence",runtime.influence],["stress",`${runtime.stress} / 3`],["armor",runtime.armor],["evasion",runtime.evasion],["speed",runtime.speed]];
-  root.innerHTML=`<section class="hero-sheet-identity"><div class="hero-sheet-portrait">${portrait?`<img src="${portrait}" alt="${esc(t("builder.media.portraitOf",{hero:identity}))}">`:`<span aria-hidden="true">${esc(identity.slice(0,1).toUpperCase()||"D")}</span>`}</div><div><span class="eyebrow">${esc(t("heroView.tier",{tier:S.tier}))}</span><h2>${esc(identity)}</h2><p>${esc(S.concept||t("builder.hero.noConcept"))}</p>${S.player?`<small>${esc(t("heroView.player",{player:S.player}))}</small>`:""}</div>${runtime.linked?`<span class="hero-sheet-live">${esc(t("heroView.sceneState"))}</span>`:""}</section><section class="hero-sheet-resources" aria-label="${esc(t("heroView.resources"))}">${resources.map(([key,value])=>`<article data-resource="${key}"><span>${esc(t(`heroView.resource.${key}`))}</span><strong>${esc(value)}</strong></article>`).join("")}</section><div class="hero-sheet-dashboard"><section class="hero-sheet-card hero-sheet-attributes"><header><div><span class="eyebrow">01</span><h2>${esc(t("builder.sheet.attributes"))}</h2></div><small>${esc(t("heroView.rollHint"))}</small></header><div>${attrs.map(([key,name])=>`<button type="button" data-sheet-tool-attr="${key}"><span>${esc(name)}</span><strong>${attrValue(key)}D6</strong></button>`).join("")}</div></section><section class="hero-sheet-card hero-sheet-skills"><header><div><span class="eyebrow">02</span><h2>${esc(t("builder.sheet.skills"))}</h2></div></header><div class="hero-sheet-skill-list">${S.skills.filter(skill=>skillDisplayName(skill).trim()).map(skill=>`<button type="button" data-sheet-tool-skill="${esc(skill.id)}"><span>${esc(skillDisplayName(skill))}</span><strong>+${effectiveSkillRank(skill)}D6</strong></button>`).join("")||`<p>${t("heroView.empty")}</p>`}${S.ability.enabled?`<button type="button" data-sheet-tool-ability="main"><span>${esc(S.ability.name||abilityFormula())}</span><strong>+${S.ability.rank}D6</strong></button>`:""}</div></section><section class="hero-sheet-card hero-sheet-actions"><header><div><span class="eyebrow">03</span><h2>${esc(t("heroView.actions"))}</h2></div><button type="button" data-hero-sheet-table>${esc(t("heroView.useAtTable"))}</button></header>${actions}</section><section class="hero-sheet-card hero-sheet-techniques"><header><div><span class="eyebrow">04</span><h2>${esc(t("builder.sheet.techniques"))}</h2></div><small>${esc(t("heroView.statusHelp"))}</small></header>${heroSheetTechniquesMarkup()}</section></div>`;
+  const root=$("hero-play-sheet");if(!root)return;const runtime=heroViewRuntime(),attrs=activeAttrs(),portrait=S.media.portrait,identity=S.name||t("builder.hero.unnamedFull");
+  const resources=[["health",runtime.hp,`${runtime.hp} / ${runtime.maxHp}`],["ap",runtime.ap,`${runtime.ap} / ${runtime.baseAp}`],["focus",runtime.focus],["influence",runtime.influence],["stress",runtime.stress,`${runtime.stress} / 3`],["armor",runtime.armor],["evasion",runtime.evasion],["speed",runtime.speed]];
+  root.innerHTML=`<section class="hero-sheet-identity"><div class="hero-sheet-portrait">${portrait?`<img src="${portrait}" alt="${esc(t("builder.media.portraitOf",{hero:identity}))}">`:`<span aria-hidden="true">${esc(identity.slice(0,1).toUpperCase()||"D")}</span>`}</div><div><span class="eyebrow">${esc(t("heroView.tier",{tier:S.tier}))}</span><h2>${esc(identity)}</h2><p>${esc(S.concept||t("builder.hero.noConcept"))}</p>${S.player?`<small>${esc(t("heroView.player",{player:S.player}))}</small>`:""}</div>${runtime.linked?`<span class="hero-sheet-live">${esc(t("heroView.sceneState"))}</span>`:""}</section><section class="hero-sheet-resources" aria-label="${esc(t("heroView.resources"))}">${resources.map(([key,value,display])=>heroSheetResourceMarkup(key,value,display)).join("")}</section><div class="hero-sheet-dashboard"><section class="hero-sheet-card hero-sheet-attributes"><header><div><span class="eyebrow">01</span><h2>${esc(t("builder.sheet.attributes"))}</h2></div><small>${esc(t("heroView.rollHint"))}</small></header><div>${attrs.map(([key,name])=>`<button type="button" data-sheet-tool-attr="${key}"><span>${esc(name)}</span><strong>${attrValue(key)}D6</strong></button>`).join("")}</div></section><section class="hero-sheet-card hero-sheet-skills"><header><div><span class="eyebrow">02</span><h2>${esc(t("builder.sheet.skills"))}</h2></div></header><div class="hero-sheet-skill-list">${S.skills.filter(skill=>skillDisplayName(skill).trim()).map(skill=>`<button type="button" data-sheet-tool-skill="${esc(skill.id)}"><span>${esc(skillDisplayName(skill))}</span><strong>+${effectiveSkillRank(skill)}D6</strong></button>`).join("")||`<p>${t("heroView.empty")}</p>`}${S.ability.enabled?`<button type="button" data-sheet-tool-ability="main"><span>${esc(S.ability.name||abilityFormula())}</span><strong>+${S.ability.rank}D6</strong></button>`:""}</div></section><section class="hero-sheet-card hero-sheet-dice">${heroSheetDiceMarkup()}</section><section class="hero-sheet-card hero-sheet-techniques"><header><div><span class="eyebrow">04</span><h2>${esc(t("builder.sheet.techniques"))}</h2></div><small>${esc(t("heroView.statusHelp"))}</small></header>${heroSheetTechniquesMarkup()}</section>${typeof pinnedRulesMarkup==="function"?pinnedRulesMarkup():""}</div>`;
 }
 function renderHeroView(){
   const page=document.querySelector('.mode-page[data-page="build"]'),switcher=$("hero-view-switch"),viewer=$("hero-sheet-view");if(!page||!switcher||!viewer)return;initHeroViewLayout();
   const lionwing=isLionwingEdition(),complete=heroBuildComplete(),mode=resolvedHeroViewMode(S.rulesEdition||"ru-v0.9",complete,heroViewPreferences[S.id]);page.dataset.heroView=mode;switcher.hidden=!lionwing;viewer.hidden=!lionwing||mode!=="sheet";
-  switcher.querySelectorAll("[data-hero-view-mode]").forEach(button=>{const target=button.dataset.heroViewMode;button.classList.toggle("on",target===mode);button.setAttribute("aria-pressed",String(target===mode));button.disabled=target==="sheet"&&!complete});
+  switcher.querySelectorAll("[data-hero-view-mode]").forEach(button=>{const target=button.dataset.heroViewMode;button.classList.toggle("on",target===mode);button.setAttribute("aria-pressed",String(target===mode));button.disabled=target==="sheet"&&!lionwing});
   $("hero-view-note").textContent=complete?t("heroView.completeHelp"):t("heroView.incompleteHelp");if(lionwing&&mode==="sheet")renderHeroPlaySheet();
 }
 

@@ -80,7 +80,18 @@ const activeArchetypes=()=>[...(isLionwingEdition()?localizedLionwingArchetypes(
 const allArchetypes=()=>Lionwing?[...D.archetypes,...Lionwing.archetypes]:D.archetypes;
 function localizedLionwingOutlooks(){
   if(contentPreferences.locale!=="ru"||!LionwingRu)return Lionwing.outlooks;
-  return Lionwing.outlooks.map(outlook=>{const translation=LionwingRu.outlooks?.[outlook.id];if(!translation)return outlook;return{...outlook,name:translation.name||outlook.name,description:translation.description||outlook.description,gifts:outlook.gifts.map(gift=>({...gift,...(translation.gifts?.[gift.id]||{})}))}});
+  return Lionwing.outlooks.map(outlook=>{
+    const translation=LionwingRu.outlooks?.[outlook.id];
+    if(!translation)return outlook;
+    const localizeGift=(gift,overlay)=>({...gift,...(overlay||{})});
+    return{
+      ...outlook,
+      name:translation.name||outlook.name,
+      description:translation.description||outlook.description,
+      builtin:outlook.builtin?localizeGift(outlook.builtin,translation.builtin||translation.gifts?.[outlook.builtin.id]):outlook.builtin,
+      gifts:outlook.gifts.map(gift=>localizeGift(gift,translation.gifts?.[gift.id])),
+    };
+  });
 }
 const activeOutlooks=()=>[...(isLionwingEdition()?localizedLionwingOutlooks():D.outlooks),...supplementItems("outlooks")];
 function localizedLionwingAbilityWords(){
