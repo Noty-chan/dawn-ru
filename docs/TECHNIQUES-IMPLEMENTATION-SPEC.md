@@ -2297,21 +2297,21 @@
 - **Заявленный статус:** `decision` (решение).
 - **Текущий адаптер:** `ruiner.spellcrafter.1` · `modifier-choice` · {"kind":"modifier-choice","sourceLevelId":"ruiner.spellcrafter.1","sourceDigest":"cd258e50964ec7fdf255d20dfb2a710459dc94dfbb4c5c3e9ea73e8ff6f98303","coverage":"partial"}; Одна изученная Модификация сохраняется в листе, сцене и импорте; каждое применение к Заклинанию или Завершению атомарно тратит 1 Новаторство..
 - **Готовые foundations:** `spatial-cells`, `spatial-range`, `inventory`, `usage-limits`, `trigger-router`, `scene-lifecycle`, `choice-flow`, `damage-pipeline`, `action-modifier`, `derived-stats`.
-- **Нужно добавить:** Заявление decision понижено до partial: канон фиксирует одну Модификацию при получении уровня, а текущий UI позволяет перед каждой Атакой выбрать любую из четырёх.
+- **Нужно добавить:** Решение выбора сохраняется в листе, сцене и импорте; уровень изучает одну Модификацию, а перед применением можно выбрать только изученные варианты.
 
 #### 2. Закрепление (Solidification) `ruiner.spellcrafter.2`
 
 - **Заявленный статус:** `decision` (решение).
-- **Текущий адаптер:** `ruiner.spellcrafter.2` · `modifier-choice` · {"kind":"modifier-choice","sourceLevelId":"ruiner.spellcrafter.2","sourceDigest":"f94f640a08662ad025e0ded425aab945bdf0b4accabc6519142867e5f5cf0886","coverage":"partial"}; Новаторство отключается, стартовый Фокус увеличивается на Разум, а изученная Модификация атомарно стоит 1 Фокус за применение..
+- **Текущий адаптер:** `ruiner.spellcrafter.2` · `modifier-choice` · {"kind":"modifier-choice","sourceLevelId":"ruiner.spellcrafter.2","sourceDigest":"f94f640a08662ad025e0ded425aab945bdf0b4accabc6519142867e5f5cf0886","coverage":"partial"}; Получается вторая изученная Модификация; Новаторство отключается, стартовый Фокус увеличивается на Разум, а каждая выбранная Модификация атомарно стоит 1 Фокус за применение..
 - **Готовые foundations:** `resource-check`, `inventory`, `trigger-router`, `action-modifier`, `derived-stats`.
-- **Нужно добавить:** Заявление decision понижено до partial: Focus-оплата и стартовый бонус работают, но уровень наследует отсутствие постоянного набора изученных Модификаций.
+- **Нужно добавить:** Решение выбора сохраняется в листе, сцене и импорте; этот уровень добавляет вторую изученную Модификацию, отключает Новаторство и переводит оплату на Фокус.
 
 #### 3. Завершение (Finalization) `ruiner.spellcrafter.3`
 
 - **Заявленный статус:** `decision` (решение).
-- **Текущий адаптер:** `ruiner.spellcrafter.3` · `modifier-choice` · {"kind":"modifier-choice","sourceLevelId":"ruiner.spellcrafter.3","sourceDigest":"934e98cf6f004417c5ac6779976bcbec9ffae7056163a7b460560ca8641d4735","coverage":"partial"}; Второй изученный вариант сохраняется; одно действие может выбрать не более двух разных изученных Модификаций и платит за обе в одной проверяемой цепочке..
+- **Текущий адаптер:** `ruiner.spellcrafter.3` · `modifier-choice` · {"kind":"modifier-choice","sourceLevelId":"ruiner.spellcrafter.3","sourceDigest":"934e98cf6f004417c5ac6779976bcbec9ffae7056163a7b460560ca8641d4735","coverage":"partial"}; Получается третья изученная Модификация; одно действие может выбрать не более двух разных изученных Модификаций и платит за обе в одной проверяемой цепочке..
 - **Готовые foundations:** `resource-check`, `inventory`, `trigger-router`, `action-modifier`.
-- **Нужно добавить:** Заявление decision понижено до partial: две разные Модификации можно оплатить, однако они выбираются из полного списка, а не из канонически изученных вариантов.
+- **Нужно добавить:** Решение выбора сохраняется в листе, сцене и импорте; этот уровень добавляет третью изученную Модификацию, а одно действие всё ещё может применить не больше двух разных вариантов.
 
 ### Ученик звёзд (Student Of Stars) `ruiner.student-of-stars`
 

@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),"..");
 const read=name=>fs.readFileSync(path.join(root,name),"utf8");
-const index=read("index.html"),heroUi=read("hero-ui.js"),events=read("app-builder-events.js"),css=read("app.css"),ru=read("locale-ru.js"),en=read("locale-en-builder.js"),sw=read("sw.js");
+const index=read("index.html"),appCore=read("app-core.js"),heroUi=read("hero-ui.js"),events=read("app-builder-events.js"),css=read("app.css"),ru=read("locale-ru.js"),en=read("locale-en-builder.js"),sw=read("sw.js");
 
 assert.match(index,/data-page="build"[\s\S]+id="hero-view-switch"[\s\S]+data-hero-view-mode="builder"[\s\S]+data-hero-view-mode="sheet"/,"Build and Sheet must be modes inside the existing Hero page");
 assert.match(index,/id="hero-sheet-view"[\s\S]+data-hero-view-mode="builder"/,"the play sheet must provide an explicit return to the Builder");
@@ -15,6 +15,9 @@ assert.match(heroUi,/Scene\.actors[\s\S]+actor\.heroId===S\.id/,"a linked Hero m
 assert.match(heroUi,/canonicalById=new Map\(\(Lionwing\?\.archetypes\|\|\[\]\)/,"the technique catalog must retain the canonical English entries while showing a translation");
 assert.match(heroUi,/techniqueSearchText\(t,canonical\)/,"the technique catalog search must use both display and canonical text");
 assert.match(heroUi,/techniqueTagValues\(technique,canonical(?:\)|ById)/,"technique tags must be filterable in either language");
+assert.match(appCore,/function spellcrafterLearnedLimitFor\(level\)/,"Spellcrafter learned-count policy must be centralized");
+assert.match(heroUi,/spellLimit=spellcrafterLearnedLimitFor\(level\)/,"the builder must show the canonical learned-count limit");
+assert.match(events,/limit=spellcrafterLearnedLimitFor\(level\)/,"the builder must enforce the canonical learned-count limit");
 const viewSource=heroUi.slice(heroUi.indexOf("const HERO_VIEW_STORAGE_KEY"),heroUi.indexOf("function counter("));
 assert.doesNotMatch(viewSource,/Scene\s*=|Scene\.[A-Za-z_$][\w$]*\s*=/,"the UI-only sheet must not mutate authoritative Scene state");
 assert.match(viewSource,/activeCoreRules\(\)\?\.actions\|\|D\.actions/,"basic actions must reuse the active edition rules");
@@ -52,5 +55,29 @@ const canonicalTechnique={id:"vagabond.master-at-arms",name:"Master At Arms",tag
 assert.match(searchContext.search(localizedTechnique,canonicalTechnique),/master at arms/,"English technique names must be searchable from the Russian catalog");
 assert.match(searchContext.search(localizedTechnique,canonicalTechnique),/versatility/,"English level names must be searchable from the Russian catalog");
 assert.deepEqual([...searchContext.tags(localizedTechnique,canonicalTechnique)], ["оружие","движение","Weapon","Movement"], "tag filters must include both language variants");
+
+const countContext={};vm.createContext(countContext);
+const countStart=appCore.indexOf("function spellcrafterLearnedLimitFor"),countEnd=appCore.indexOf("function sceneCore");
+vm.runInContext(`${appCore.slice(countStart,countEnd)}\nthis.limit=spellcrafterLearnedLimitFor;`,countContext);
+assert.deepEqual([0,1,2,3,4].map(level=>countContext.limit(level)),[0,1,2,3,3],"Spellcrafter learns one, two, then three total Modifications");
+
+const heroContext={console,contentPreferences:{edition:"lionwing"},APP_SCHEMA:14,ATTRS:[["body"],["talent"],["spirit"],["mind"]],Logic:{normalizeAttributeBases:values=>values,normalizeAttributeGrowth:values=>values},crypto:{randomUUID:()=>"hero-test-id"}};heroContext.globalThis=heroContext;vm.createContext(heroContext);
+const heroStart=appCore.indexOf("const $ ="),heroEnd=appCore.indexOf("function normalizePinnedRules");
+vm.runInContext(`${appCore.slice(heroStart,heroEnd)}\nthis.normalize=normalizeHero;`,heroContext);
+for(const [level,expected] of [[1,["fierce"]],[2,["fierce","focused"]],[3,["fierce","focused","wild"]]]){
+  const normalized=vm.runInContext(`normalize({rulesEdition:"lionwing",techniques:{"ruiner.spellcrafter":${level}},mods:{spellcrafterAugments:["fierce","focused","wild","outstanding"]}})`,heroContext);
+  assert.deepEqual(Array.from(normalized.mods.spellcrafterAugments),expected,`Hero import keeps the ${level === 1 ? "first" : level === 2 ? "first two" : "first three"} canonical learned Modifications`);
+}
+
+const dataContext={console};dataContext.window=dataContext;dataContext.globalThis=dataContext;vm.createContext(dataContext);
+for(const file of ["edition-lionwing.js","edition-lionwing-ru.js"])vm.runInContext(read(file),dataContext,{filename:file});
+const canonicalSpellcrafter=dataContext.DAWN_LIONWING_DATA.archetypes.flatMap(archetype=>archetype.techniques).find(technique=>technique.id==="ruiner.spellcrafter");
+const localizedSpellcrafter=dataContext.DAWN_LIONWING_RU.archetypes.ruiner.techniques["ruiner.spellcrafter"];
+assert.deepEqual(Array.from(canonicalSpellcrafter.levels,level=>level.n),[1,2,3],"canonical Spellcrafter has all three levels");
+assert.match(canonicalSpellcrafter.levels[1].text,/additional Augment/);
+assert.match(canonicalSpellcrafter.levels[2].text,/additional Augment/);
+assert.match(localizedSpellcrafter.levels["1"].text,/Выраженная/);
+assert.match(localizedSpellcrafter.levels["2"].text,/начальный Фокус/);
+assert.match(localizedSpellcrafter.levels["3"].text,/две разные Модификации/);
 
 console.log("LionWing Hero Build/Sheet mode QA passed: mode policy, per-Hero preference, canonical statuses, RU/EN, resource counters and legacy isolation");

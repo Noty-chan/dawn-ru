@@ -225,6 +225,17 @@ const changedTechniqueIds = worklist.units.filter(item => item.domain === "techn
 const translatedChangedTechniqueIds = changedTechniqueIds.filter(id => translatedTechniqueIds.has(id));
 assert.equal(changedTechniqueIds.length, 106);
 assert.equal(translatedChangedTechniqueIds.length, changedTechniqueIds.length, "every changed LionWing Technique must have a reviewed Russian overlay");
+for(const archetype of english.archetypes){
+  const overlay=russian.archetypes[archetype.id];
+  for(const technique of archetype.techniques){
+    const translated=overlay?.techniques?.[technique.id];
+    if(!translated)continue;
+    for(const level of technique.levels){
+      const localizedLevel=translated.levels?.[String(level.n)];
+      assert.ok(localizedLevel?.name?.trim()&&localizedLevel?.text?.trim(),`missing localized name or full text: ${technique.id}.${level.n}`);
+    }
+  }
+}
 
 const localizedOutlooks = english.outlooks.map(outlook => {
   const overlay = russian.outlooks[outlook.id];

@@ -57,6 +57,10 @@ assert.equal(normalized.actors[0].ruleClocks.doom.current, 4, "storage normaliza
 const deafScene = { ...renamed, actors: renamed.actors.map((item, index) => index === 0 ? { ...item, gifts: ["rebel.supernatural-deafness"], stress: 4 } : item) };
 const normalizedDeaf = vm.runInContext(`sceneCore(${JSON.stringify(deafScene)})`, appContext);
 assert.equal(normalizedDeaf.actors[0].stress, 4, "Supernatural Deafness preserves the fourth Stress during scene normalization");
+const spellcrafterScene = { ...renamed, actors: renamed.actors.map((item, index) => index === 0 ? { ...item, techniques: { "ruiner.spellcrafter": 3 }, techniqueState: { spellcrafterLearnedModifiers: ["fierce", "focused", "wild", "outstanding"], spellModifiers: ["fierce", "focused", "wild"] } } : item) };
+const normalizedSpellcrafter = vm.runInContext(`sceneCore(${JSON.stringify(spellcrafterScene)})`, appContext);
+assert.deepEqual(Array.from(normalizedSpellcrafter.actors[0].techniqueState.spellcrafterLearnedModifiers), ["fierce", "focused", "wild"], "scene normalization keeps all three canonical level-III learned Modifications");
+assert.deepEqual(Array.from(normalizedSpellcrafter.actors[0].techniqueState.spellModifiers), ["fierce", "focused"], "scene normalization keeps the separate two-Modification per-action limit");
 const undoSnapshot = JSON.parse(JSON.stringify(normalized)), undoRestored = vm.runInContext(`sceneCore(${JSON.stringify(undoSnapshot)})`, appContext);
 assert.equal(undoRestored.actors[0].ruleClocks.doom.id, "doom", "undo snapshots keep the stable id");
 assert.equal(undoRestored.actors[0].ruleClocks.doom.ruleId, "test.counter", "undo snapshots keep rule metadata");
