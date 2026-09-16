@@ -30,6 +30,7 @@ const npcActionIds = [
   "lionwing.npc.paladin.gift-from-god",
   "lionwing.npc.revenant.tear-from-the-soul",
   "lionwing.npc.bannerman.swing",
+  "lionwing.npc.bodyguards.behind-me",
   "lionwing.npc.builder.violent-construction",
   "lionwing.npc.healer.exsanguinate",
   "lionwing.npc.illusionist.distort-reality",
@@ -48,7 +49,6 @@ const npcActionIds = [
 ];
 const manualActionIds = [
   "lionwing.npc.viper.filet",
-  "lionwing.npc.bodyguards.behind-me",
   "lionwing.npc.broodmother.swarming-chase",
   "lionwing.npc.cocoon.rampage",
   "lionwing.npc.oni.polaris",
@@ -190,6 +190,22 @@ assert.equal(engine.effectDefenseStatus(executioner,"enemy").armorBonus,3,"Tier 
 const cleave=engine.prepareEnemyRule(executioner,data,{actorId:"enemy",ruleId:cleaveStatus.id,targetIds:["hero-a","hero-b"],roll:dice(10,[6,5,4,1,1,1,1,1,1,1])});
 assert.equal(cleave.ok,true,cleave.errors?.join(" "));
 assert.deepEqual(new Set(cleave.events.find(event=>event.type==="attack.pending").payload.targetIds),new Set(["hero-a","hero-b"]));
+
+// Bodyguards move their Fodder first, then split one mixed selection into
+// automatic allied Reinforcement and the ordinary hostile Attack pipeline.
+let bodyguards=scene("lionwing.npc.bodyguards",{actors:[
+  actor("enemy","enemy",1,1,{profileId:"lionwing.npc.bodyguards",ruleState:{enemyCrowdMovement:{ruleId:"lionwing.npc.bodyguards.behind-me",turnSerial:1}}}),
+  actor("fodder","enemy",3,2,{kind:"crowd",heroId:null,profileId:null}),
+  actor("ally","enemy",3,3,{profileId:"lionwing.npc.cultist"}),actor("hero","hero",4,2),
+]});
+const behindStatus=engine.availableEnemyRules(bodyguards,data,"enemy").find(item=>item.id==="lionwing.npc.bodyguards.behind-me");
+assert.equal(behindStatus.automation,"attack");
+const behind=engine.prepareEnemyRule(bodyguards,data,{actorId:"enemy",ruleId:behindStatus.id,targetIds:["ally","hero"],roll:dice(6,[6,5,1,1,1,1])});
+assert.equal(behind.ok,true,behind.errors?.join(" "));
+bodyguards=commitWithIds(bodyguards,behind,"behind-me").result.scene;
+assert.ok(bodyguards.actors.find(item=>item.id==="ally").effects.includes("positive.укреплен"),"Behind Me Reinforces allied targets immediately");
+bodyguards=passAndResolve(bodyguards,"behind-me");
+assert.ok(bodyguards.actors.find(item=>item.id==="hero").effects.includes("negative.ошеломлен"),"Behind Me Dazes an untouched opponent after damage");
 
 // Duelist Fleche reuses the shared Attack and post-resolution movement
 // contracts while its passive binds Provoked to this Duelist.
