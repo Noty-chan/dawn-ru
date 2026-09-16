@@ -168,7 +168,7 @@ function passiveDiceHooks(scene, actor, request = {}) {
   const balance = request.sceneContext === false ? { enemies: 0, allies: 0, outnumbered: false } : sideBalanceStatus(scene, actor.id);
   if (request.sceneContext !== false && (actor.gifts || []).includes("wolf.outgunned") && balance.outnumbered) hooks.push({ type: "advantage", ruleId: "wolf.outgunned", label: `В меньшинстве (${balance.enemies} враг. / ${balance.allies} союзн.)`, amount: 2 });
   const selected = new Set(Array.isArray(request.selectedHookIds) ? request.selectedHookIds : []);
-  if ((actor.gifts || []).includes("wolf.dark-urge") && request.scope === "challenge" && request.usesAbility && selected.has("wolf.dark-urge")) hooks.push({ type: "advantage", ruleId: "wolf.dark-urge", label: "Тёмный порыв", amount: 4 });
+  if ((actor.gifts || []).includes("wolf.dark-urge") && request.scope === "challenge" && request.usesAbility && selected.has("wolf.dark-urge")) hooks.push({ type: "advantage", ruleId: "wolf.dark-urge", label: "Тёмный порыв", amount: 2 });
   if ((actor.gifts || []).includes("cursed.the-voice") && request.scope === "challenge" && request.usesAbility && !request.usesSkill) {
     if (selected.has("cursed.the-voice.agree")) hooks.push({ type: "advantage", ruleId: "cursed.the-voice", label: "Голос согласен", amount: 2 });
     if (selected.has("cursed.the-voice.disagree")) hooks.push({ type: "hindrance", ruleId: "cursed.the-voice", label: "Голос не согласен", amount: 2 });

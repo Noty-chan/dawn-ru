@@ -37,7 +37,7 @@ assert.deepEqual(Array.from(ordinary.sources,source=>source.ruleId),["wolf.outgu
 const abilityActor={...raasha,ability:{enabled:true,name:"Псионика",rank:2}};
 const abilityScene={...scene,actors:[abilityActor,...scene.actors.slice(1)]};
 const dark=Engine.diceHookStatus(abilityScene,"raasha",{scope:"challenge",sceneContext:true,baseCount:2,usesAbility:true,usesSkill:false,abilityKey:"ability",selectedHookIds:["wolf.dark-urge"]});
-assert.equal(dark.count,8);assert.deepEqual(Array.from(dark.sources,source=>source.ruleId),["wolf.outgunned","wolf.dark-urge"]);
+assert.equal(dark.count,6);assert.deepEqual(Array.from(dark.sources,source=>source.ruleId),["wolf.outgunned","wolf.dark-urge"]);
 const agrees=Engine.diceHookStatus(abilityScene,"raasha",{scope:"challenge",sceneContext:true,baseCount:2,usesAbility:true,usesSkill:false,abilityKey:"ability",selectedHookIds:["cursed.the-voice.agree"]});
 assert.equal(agrees.count,6);assert.ok(agrees.sources.some(source=>source.ruleId==="cursed.the-voice"&&source.type==="advantage"));
 const disagrees=Engine.diceHookStatus(abilityScene,"raasha",{scope:"challenge",sceneContext:true,baseCount:2,usesAbility:true,usesSkill:false,abilityKey:"ability",selectedHookIds:["cursed.the-voice.disagree"]});

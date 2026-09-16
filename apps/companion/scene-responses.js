@@ -574,12 +574,14 @@ function respondRulePrompt(scene, data, request = {}) {
   if (prompt.kind === "dark-urge-narrator" && choice.startsWith("target:")) {
     const redirected = actorById(scene, choice.slice(7)), original = prompt.context?.originalTargetIds || [], sourceRoll = (scene.rollFeed || []).find(roll => roll.id === prompt.context?.sourceRollId);
     if (!redirected || redirected.knockedOut || redirected.id === actor.id || redirected.space !== actor.space || original.includes(redirected.id) || !sourceRoll || sourceRoll.actorId !== actor.id) return { ok: false, errors: ["Выбранная Нарратором цель или исходный бросок больше недоступны."], events: [] };
-    const options = Number(actor.stress || 0) <= 1 ? ["accept", "resist"] : ["accept"];
-    events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${prompt.id}-resist`, kind: "dark-urge-resist", sourceActorId: actor.id, targetId: redirected.id, title: "Сопротивление Тёмному порыву", text: `Нарратор перенаправляет сохранённый результат на ${redirected.name}. Принять это или получить 2 Стресса, чтобы сохранить исходную цель?${options.includes("resist")?"":" Сейчас получить 2 Стресса нельзя: шкала переполнится."}`, options, context: { sourceRollId: sourceRoll.id, originalTargetIds: [...original], optionLabels: { accept: `Принять: цель — ${redirected.name}`, resist: "Сопротивляться: +2 Стресса" } }, participantIds: [actor.id, redirected.id] } });
+    const stressMaximum=3+((actor.gifts||[]).includes("rebel.supernatural-deafness")?1:0),options=Number(actor.stress||0)<stressMaximum?["accept","resist"]:["accept"];
+    events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${prompt.id}-resist`, kind: "dark-urge-resist", sourceActorId: actor.id, targetId: redirected.id, title: "Сопротивление Тёмному порыву", text: `Нарратор перенаправляет сохранённый результат на ${redirected.name}. Принять это или получить 1 Стресс, чтобы сохранить исходную цель?${options.includes("resist")?"":" Сейчас получить Стресс нельзя: шкала заполнена."}`, options, context: { sourceRollId: sourceRoll.id, originalTargetIds: [...original], optionLabels: { accept: `Принять: цель — ${redirected.name}`, resist: "Сопротивляться: +1 Стресс" } }, participantIds: [actor.id, redirected.id] } });
   }
   if (prompt.kind === "dark-urge-resist" && choice === "resist") {
-    if (Number(actor.stress || 0) > 1) return { ok: false, errors: [`${actor.name} больше не может получить 2 Стресса без переполнения шкалы.`], events: [] };
-    events.push({ type: "actor.runtime.set", actorId: actor.id, payload: { key: "stress", value: Number(actor.stress || 0) + 2, sourceActionId: "wolf.dark-urge", reason: "Сопротивление Тёмному порыву", participantIds: [actor.id] } });
+    const stressMaximum=3+((actor.gifts||[]).includes("rebel.supernatural-deafness")?1:0),nextStress=Number(actor.stress||0)+1;
+    if(nextStress>stressMaximum)return{ok:false,errors:[`${actor.name} больше не может получить Стресс: шкала заполнена.`],events:[]};
+    events.push({ type: "actor.runtime.set", actorId: actor.id, payload: { key: "stress", value: nextStress, sourceActionId: "wolf.dark-urge", reason: "Сопротивление Тёмному порыву", participantIds: [actor.id] } });
+    if(nextStress>=stressMaximum)events.push({type:"actor.knockout",actorId:actor.id,payload:{targetId:actor.id,sourceActionId:"wolf.dark-urge",reason:"Достигнут максимум Стресса",participantIds:[actor.id]}});
   }
   if (prompt.kind === "dark-urge-resist" && choice === "accept") {
     const sourceRoll = (scene.rollFeed || []).find(roll => roll.id === prompt.context?.sourceRollId);
