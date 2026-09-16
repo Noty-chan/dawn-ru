@@ -167,6 +167,21 @@ const builderStep = engine.prepareAction(builderTurn, data, { actorId: "builder"
 assert.equal(builderStep.ok, true, builderStep.errors?.join(" "));
 const builderMoved = engine.dispatchMany(builderTurn, builderStep.events).scene;
 assert.equal(builderMoved.actors.find(item => item.id === "builder").x, 3, "canonical Builder passive is honored by the committed LionWing movement reducer");
+const svetozarRanger = scene("lionwing.npc.ranger", { activeActorId: "ranger", actors: [actor("ranger", "hero", 1, 2, { profileId: "lionwing.npc.ranger" }), actor("hostile", "enemy", 5, 2)] });
+const nestRule = engine.availableEnemyRules(svetozarRanger, data, "ranger").find(item => item.id === "lionwing.npc.ranger.nest");
+assert.equal(nestRule?.automation, "full", "Svetozar's canonical Ranger Nest is fully automated");
+const nestedRanger = commitWithIds(svetozarRanger, engine.prepareEnemyRule(svetozarRanger, data, { actorId: "ranger", ruleId: nestRule.id }), "svetozar-nest").result.scene;
+assert.equal(nestedRanger.actors.find(item => item.id === "ranger").ruleState.enemyAim, 1, "Nest stores Aim for Svetozar");
+const movedRanger = engine.dispatchMany(nestedRanger, [{ id: "svetozar-move", type: "actor.move", actorId: "ranger", payload: { space: "main", x: 2, y: 2, movement: "test" } }]).scene;
+assert.equal(movedRanger.actors.find(item => item.id === "ranger").ruleState.enemyAim, 0, "Svetozar loses Aim after moving");
+
+const svetozarCoordinator = scene("lionwing.npc.coordinator", { activeActorId: null, actors: [actor("coordinator", "hero", 1, 2, { profileId: "lionwing.npc.coordinator" }), actor("ally", "hero", 2, 2), actor("hostile", "enemy", 4, 2)] });
+const coordinatorTurn = engine.dispatchMany(svetozarCoordinator, [{ id: "svetozar-turn", type: "turn.start", actorId: "coordinator", payload: {} }]).scene;
+assert.ok(coordinatorTurn.actors.find(item => item.id === "ally").effects.includes("positive.усилен"), "Svetozar Strengthens nearby allies during his Turn");
+const neutralizeRule = engine.availableEnemyRules(coordinatorTurn, data, "coordinator").find(item => item.id === "lionwing.npc.coordinator.neutralize-them");
+assert.equal(neutralizeRule?.automation, "full", "Svetozar's canonical Coordinator mark is fully automated");
+const markedTarget = commitWithIds(coordinatorTurn, engine.prepareEnemyRule(coordinatorTurn, data, { actorId: "coordinator", ruleId: neutralizeRule.id, targetIds: ["hostile"] }), "svetozar-mark").result.scene;
+assert.ok(markedTarget.actors.find(item => item.id === "hostile").effects.includes("negative.помечен"), "Neutralize Them Marks its target");
 const canonicalNpcs = context.window.DAWN_LIONWING_DATA.coreRules.npcs.list;
 const canonicalAttackIds = canonicalNpcs.flatMap(profile => (profile.actions || []).filter(action => action.kind === "attack").map(action => action.id));
 assert.equal(canonicalAttackIds.length, 40, "all canonical NPC attack actions are audited");

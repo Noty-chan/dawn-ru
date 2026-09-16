@@ -187,8 +187,11 @@ const ENEMY_FULL_RULES = new Map([
   ["enemy.common.berserker.trump.last-stand", { type: "berserker-last-stand", formula: "10(+3)" }],
   ["lionwing.npc.berserker.last-stand", { type: "berserker-last-stand", formula: "18(+5)" }],
   ["enemy.common.ranger.action.nest", { type: "ranger-nest" }],
+  ["lionwing.npc.ranger.nest", { type: "ranger-nest" }],
   ["enemy.common.ranger.trump.headshot", { type: "ranger-headshot" }],
   ["lionwing.npc.ranger.headshot", { type: "ranger-headshot" }],
+  ["enemy.common.coordinator.action.neutralize-them", { type: "coordinator-mark" }],
+  ["lionwing.npc.coordinator.neutralize-them", { type: "coordinator-mark" }],
   ["enemy.common.duelist.action.goad", { type: "duelist-goad" }],
   ["enemy.common.healer.action.heal", { type: "healer-heal", formula: "3(+1)" }],
   ["enemy.common.healer.trump.savior", { type: "healer-savior" }],
@@ -1087,6 +1090,7 @@ function prepareEnemyRule(scene, data, request = {}) {
     events.push({ type: "actor.state", actorId: actor.id, payload: { key: "enemyAim", value: 1, sourceActionId: rule.id } });
   }
   if (fullRule?.type === "ranger-headshot") events.push({ type: "actor.state", actorId: actor.id, payload: { key: "rangerHeadshotTargetId", value: targetIds[0], sourceActionId: rule.id } });
+  if (fullRule?.type === "coordinator-mark") targets.forEach(target => events.push({ type: "effect.apply", actorId: actor.id, payload: { targetId: target.id, effect: "negative.помечен", sourceActionId: rule.id, duration: "scene", participantIds: [actor.id, target.id] } }));
   if (fullRule?.type === "duelist-goad") {
     const target = targets[0], alreadyProvoked = (target.effects || []).includes("negative.спровоцирован");
     if (alreadyProvoked) {

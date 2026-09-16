@@ -1953,6 +1953,7 @@
       if(a.compoundId)for(const part of scene.actors.filter(x=>x.compoundId===a.compoundId)){part.x=a.x;part.y=a.y;part.space=a.space;}
       const publicPayload={...p};delete publicPayload.__deferAuraTransitions;
       const moveRow=emit("actor.move", a.id, { ...publicPayload, from, x: a.x, y: a.y, space: a.space, path: result.path, distance: result.cost });
+      if(Number(result.cost||0)>0&&["enemy.common.ranger","lionwing.npc.ranger"].includes(a.profileId)&&Number(a.ruleState?.enemyAim||0)>0){a.ruleState||={};a.ruleState.enemyAim=0;emit("actor.state",a.id,{key:"enemyAim",value:0,sourceActionId:a.profileId==="lionwing.npc.ranger"?"lionwing.npc.ranger.nest":"enemy.common.ranger.action.nest"});}
       syncAttachedMarkers(a, p.sourceActionId || p.movement || "movement");
       // Every supported move has a stable endpoint entry receipt.  The
       // segment id is derived from the authoritative execution root, so a
@@ -3564,6 +3565,7 @@
           }
           if (effectActive(scene,a,"negative.подброшен")) removeEffect(a, "negative.подброшен");
           if (astate(a).startedDisappeared&&!s.choices.some(c=>c.actorId===a.id&&c.kind==="placement"&&c.context.reappear)) { if (effectActive(scene,a,"positive.исчез")) removeEffect(a, "positive.исчез",{reappear:false}); choice(a, "placement", "Выберите клетку появления вне соседства с персонажами", ["place"], { reappear: true }); }
+          if(["enemy.common.coordinator","lionwing.npc.coordinator"].includes(a.profileId))for(const ally of scene.actors.filter(item=>live(item)&&item.id!==a.id&&item.team===a.team&&item.space===a.space&&distance(a,item)<=4))applyEffect(ally,{effect:"positive.усилен",duration:"endTurn",ownerActorId:a.id,sourceId:`${a.id}:coordinator-passive`,sourceActionId:a.profileId==="lionwing.npc.coordinator"?"lionwing.npc.coordinator.passive":"enemy.common.coordinator.passive"},a.id);
           scheduleBoundary("anyTurnStart", a);
           scheduleBoundary("turnStart", a);
           emit("turn.start", a.id, { ap: a.ap }); break;

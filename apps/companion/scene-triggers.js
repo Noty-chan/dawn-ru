@@ -1059,7 +1059,7 @@ function triggeredEvents(scene, event, options = {}) {
   }
   if ((event.type === "area.remove" || event.type === "object.damage" && Number(payload.dealt || 0) > 0) && actor && Number(actor.techniques?.["ruiner.creation-ascetic"] || 0) >= 2) events.push({ type: "rule-resource.gain", actorId: actor.id, payload: { resource: "creation-marks", amount: 1, sourceActionId: "ruiner.creation-ascetic.2" } });
   if (event.type === "attack.clear" && !scene.pendingPrompt && !promptQueued()) {
-    const ranger = [...new Set(payload.targetIds || [])].map(id => actorById(scene, id)).find(target => !target?.knockedOut && target?.profileId === "enemy.common.ranger");
+    const ranger = [...new Set(payload.targetIds || [])].map(id => actorById(scene, id)).find(target => !target?.knockedOut && ["enemy.common.ranger","lionwing.npc.ranger"].includes(target?.profileId));
     if (ranger) events.push({ type: "rule.prompt", actorId: ranger.id, payload: { id: `prompt-${event.id}-ranger-retreat`, kind: "enemy-ranger-retreat", sourceActorId: ranger.id, controller: "narrator", title: "Снайперская дистанция", text: `${ranger.name} может переместиться на 1 клетку после Атаки по нему.`, options: ["move", "pass"], context: { optionLabels: { move: "Переместиться", pass: "Не использовать" } }, participantIds: [ranger.id, event.actorId].filter(Boolean) } });
   }
   if (event.type === "turn.start" && actor && !scene.pendingPrompt && !promptQueued()) {
@@ -1067,17 +1067,17 @@ function triggeredEvents(scene, event, options = {}) {
       const allies = (scene.actors || []).filter(item => !item.knockedOut && item.id !== actor.id && item.team === actor.team && effectPresenceStatus(scene, item.id).onField);
       events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${event.id}-healer-guardian`, kind: "enemy-healer-guardian", sourceActorId: actor.id, controller: "narrator", title: "Страж Целителя", text: "Выберите союзника Стражем Целителя на этот Ход.", options: [...allies.map(item => `guard:${item.id}`), "pass"], context: { optionLabels: Object.fromEntries([...allies.map(item => [`guard:${item.id}`, item.name]), ["pass", "Не выбирать Стража"]]) }, participantIds: [actor.id, ...allies.map(item => item.id)] } });
     }
-    if (actor.profileId === "enemy.common.coordinator") {
+    if (["enemy.common.coordinator","lionwing.npc.coordinator"].includes(actor.profileId)) {
       for (const ally of (scene.actors || []).filter(item => !item.knockedOut && item.id !== actor.id && item.team === actor.team && item.space === actor.space && distance(actor, item) <= 4)) events.push({ type: "effect.apply", actorId: actor.id, payload: { targetId: ally.id, effect: "positive.усилен", duration: "scene", sourceActionId: "enemy.common.coordinator.passive", participantIds: [actor.id, ally.id] } });
     }
     const flux = effectStateFor(actor, "special.поток"), sourceState = flux?.sources.find(source => actorById(scene, source.actorId)?.profileId === "enemy.common.illusionist"), illusionist = actorById(scene, sourceState?.actorId);
     const swaps = illusionist ? (scene.actors || []).filter(candidate => !candidate.knockedOut && candidate.team === illusionist.team && candidate.id !== illusionist.id && candidate.id !== actor.id) : [];
     if (illusionist && swaps.length) events.push({ type: "rule.prompt", actorId: illusionist.id, payload: { id: `prompt-${event.id}-flux`, kind: "enemy-flux-swap", sourceActorId: illusionist.id, targetId: actor.id, controller: "narrator", title: "Поток", text: `${actor.name} начинает Ход в Потоке. Иллюзионист может поменять его позицию с позицией другого врага.`, options: [...swaps.map(target => `swap:${target.id}`), "pass"], context: { optionLabels: Object.fromEntries(swaps.map(target => [`swap:${target.id}`, `Поменять с ${target.name}`])) }, participantIds: [illusionist.id, actor.id, ...swaps.map(target => target.id)] } });
   }
-  if (event.type === "turn.end" && actor?.profileId === "enemy.common.coordinator") {
+  if (event.type === "turn.end" && ["enemy.common.coordinator","lionwing.npc.coordinator"].includes(actor?.profileId)) {
     for (const ally of scene.actors || []) if (effectStateFor(ally, "positive.усилен")?.sources.some(source => source.actorId === actor.id && source.actionId === "enemy.common.coordinator.passive")) events.push({ type: "effect.remove", actorId: actor.id, payload: { targetId: ally.id, effect: "positive.усилен", sourceOnly: true, sourceActorId: actor.id, sourceActionId: "enemy.common.coordinator.passive", participantIds: [actor.id, ally.id] } });
   }
-  if (event.type === "actor.move") {
+  if (event.type === "actor.move" || event.type === "movement.end") {
     const escorted = actorById(scene, event.actorId), from = payload.from;
     if (escorted && from && !payload.privateerEscort) {
       const escortSources = effectStateFor(escorted, "positive.ускорен")?.sources.filter(source => source.actionId === "enemy.common.privateer.action.escort") || [];
@@ -1090,7 +1090,7 @@ function triggeredEvents(scene, event, options = {}) {
       }
     }
     const coordinator = actorById(scene, scene.activeActorId);
-    if (coordinator?.profileId === "enemy.common.coordinator") {
+    if (["enemy.common.coordinator","lionwing.npc.coordinator"].includes(coordinator?.profileId)) {
       for (const ally of (scene.actors || []).filter(item => item.id !== coordinator.id && item.team === coordinator.team)) {
         const inRange = !ally.knockedOut && ally.space === coordinator.space && distance(coordinator, ally) <= 4;
         const sourced = effectStateFor(ally, "positive.усилен")?.sources.some(source => source.actorId === coordinator.id && source.actionId === "enemy.common.coordinator.passive");
@@ -1117,7 +1117,7 @@ function triggeredEvents(scene, event, options = {}) {
     const berserker = actorById(scene, payload.targetId), attacker = actorById(scene, event.actorId);
     if (berserker && !berserker.knockedOut && ["enemy.common.berserker","lionwing.npc.berserker"].includes(berserker.profileId) && attacker && attacker.team !== berserker.team && Number(berserker.ruleState?.berserkerReactionTurnSerial || -1) !== Number(scene.turnSerial || 0)) events.push({ type: "rule.prompt", actorId: berserker.id, payload: { id: `prompt-${event.id}-berserker-retaliate`, kind: "enemy-berserker-retaliate", sourceActorId: berserker.id, targetId: attacker.id, controller: "narrator", title: "Неумолимое разрушение", text: `${berserker.name} получил не менее 4 урона: переместиться к ${attacker.name} и использовать Сокрушение?`, options: ["retaliate", "pass"], context: { maxDistance: berserker.ruleState?.berserkerLastStand ? 2 : 1, ruleId: berserker.profileId==="lionwing.npc.berserker"?"lionwing.npc.berserker.thrash":"enemy.common.berserker.attack.thrash", optionLabels: { retaliate: "Ответить Сокрушением", pass: "Не использовать" } }, participantIds: [berserker.id, attacker.id] } });
   }
-  if (event.type === "actor.move" && actor?.profileId === "enemy.common.ranger" && Number(actor.ruleState?.enemyAim || 0) > 0) events.push({ type: "actor.state", actorId: actor.id, payload: { key: "enemyAim", value: 0, sourceActionId: "enemy.common.ranger.action.nest" } });
+  if ((event.type === "actor.move" || event.type === "movement.end") && ["enemy.common.ranger","lionwing.npc.ranger"].includes(actor?.profileId) && Number(actor.ruleState?.enemyAim || 0) > 0) events.push({ type: "actor.state", actorId: actor.id, payload: { key: "enemyAim", value: 0, sourceActionId: actor.profileId === "lionwing.npc.ranger" ? "lionwing.npc.ranger.nest" : "enemy.common.ranger.action.nest" } });
   if (event.type === "actor.move" && actor?.kind === "crowd" && actor.crowdSubtype === "seeker") {
     const target = actorById(scene, actor.seekerTargetId);
     if (target && !target.knockedOut && target.space === actor.space && distance(actor, target) <= 1) {
