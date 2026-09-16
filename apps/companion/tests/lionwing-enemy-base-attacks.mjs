@@ -149,6 +149,22 @@ for (const id of npcActionIds) {
   assert.equal(status.automation, "attack", `${id} is automated through the shared Attack pipeline`);
   assert.equal(status.sourceDigest, "sha256:1228663d26bf3c87b3b94b0d2f3c4c02b302007df98aa407c40d13ee731c175f");
 }
+// The same profile action contract must work for an allied NPC.  A helper on
+// the heroes' side is still a canonical profile actor, so its automated attack
+// goes through the ordinary target, roll, reaction, and damage pipeline.
+const alliedRanger = scene("lionwing.npc.ranger", {
+  activeActorId: "ally",
+  actors: [
+    actor("ally", "hero", 2, 2, { kind: "hero", heroId: null, profileId: "lionwing.npc.ranger" }),
+    actor("hostile", "enemy", 4, 2),
+  ],
+});
+const alliedShot = engine.availableEnemyRules(alliedRanger, data, "ally").find(item => item.id === "lionwing.npc.ranger.take-the-shot");
+assert.equal(alliedShot?.automation, "attack", "Allied NPC keeps canonical automated profile actions");
+assert.equal(alliedShot?.available, true, alliedShot?.reason);
+const alliedPreparedShot = engine.prepareEnemyRule(alliedRanger, data, { actorId: "ally", ruleId: alliedShot.id, targetIds: ["hostile"], roll: dice(6, [6, 5, 4, 4, 1, 1]) });
+assert.equal(alliedPreparedShot.ok, true, alliedPreparedShot.errors?.join(" "));
+assert.ok(alliedPreparedShot.events.some(event => event.type === "attack.pending" && event.actorId === "ally"), "Allied profile attack opens the shared reaction chain");
 for (const id of manualActionIds) {
   const profile = id.split(".").slice(0, 3).join(".");
   const status = engine.availableEnemyRules(scene(profile), data, "enemy").find(item => item.id === id);
