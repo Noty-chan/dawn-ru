@@ -74,6 +74,9 @@ assert.ok(raashaCastle.enemies.some(enemy => enemy.profileId === "lionwing.npc.j
 assert.equal(raashaCastle.enemies.filter(enemy => enemy.team !== "hero" && enemy.profileId === "lionwing.npc.builder").length, 0, "Tom is the only Builder in the preset");
 assert.equal(raashaCastle.enemies.filter(enemy => enemy.compoundId === "svetozar").length, 2, "Svetozar is represented as a two-part allied profile");
 assert.ok(raashaCastle.objects.some(object => object.type === "deploy-hero") && raashaCastle.objects.some(object => object.type === "deploy-enemy"), "Preset has both deployment zones");
+assert.match(gmSource,/deploymentByTeam=\{enemy:[\s\S]+hero:/,"Preset deployment selects cells separately for allies and hostiles");
+assert.match(gmSource,/availableEncounterCell\(space,blueprint,occupied,\{allowedCells,compoundCell,sceneState:scene\}\)/,"Preset placement validates against the scene being rebuilt, not stale table state");
+assert.doesNotMatch(gmSource,/wanted\?\.team==="hero"\)allowedCells=null/,"Allied profiles remain inside their authored deployment zone");
 assert.ok(raashaCastle.markers.some(marker => marker.kind === "objective"), "Preset has a Melnum-core objective");
 const normalizedCastle = json(coreContext.normalizeGmLibrary({ encounters: [raashaCastle] })).encounters[0];
 assert.equal(normalizedCastle.enemies.filter(enemy => enemy.team === "hero").length, 4, "Saving the preset keeps allied NPC membership");
