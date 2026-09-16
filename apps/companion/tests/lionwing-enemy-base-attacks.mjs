@@ -264,11 +264,13 @@ assert.deepEqual([broodmother.actors.find(item=>item.id==="fodder").x,broodmothe
 // Cocoon Rampage performs its unrestricted straight move, then repeats with
 // the LionWing Tension multiplier against fresh adjacent targets.
 let cocoon=scene("lionwing.npc.cocoon",{actors:[
-  actor("enemy","enemy",2,2,{profileId:"lionwing.npc.cocoon"}),
+  actor("enemy","enemy",2,2,{profileId:"lionwing.npc.cocoon",ruleState:{cocoonAwake:true}}),
   actor("hero","hero",4,2),actor("hero-b","hero",3,3),
 ]});
 const rampageStatus=engine.availableEnemyRules(cocoon,data,"enemy").find(item=>item.id==="lionwing.npc.cocoon.rampage");
 assert.equal(rampageStatus.automation,"attack");
+const docileCocoon=scene("lionwing.npc.cocoon");
+assert.equal(engine.availableEnemyRules(docileCocoon,data,"enemy").find(item=>item.id==="lionwing.npc.cocoon.rampage").available,false,"a Docile Cocoon cannot Attack");
 const rampage=engine.prepareEnemyRule(cocoon,data,{actorId:"enemy",ruleId:rampageStatus.id,options:{destination:{x:3,y:2}},targetIds:["hero"],roll:dice(5,[6,5,1,1,1])});
 assert.equal(rampage.ok,true,rampage.errors?.join(" "));
 cocoon=commitWithIds(cocoon,rampage,"rampage").result.scene;
@@ -279,6 +281,42 @@ const repeated=engine.respondRulePrompt(cocoon,data,{actorId:"enemy",choice:"tar
 assert.equal(repeated.ok,true,repeated.errors?.join(" "));
 const repeatedPending=repeated.events.find(event=>event.type==="attack.pending");
 assert.equal(repeatedPending.payload.damage,4,"LionWing repeat uses Hits + Tension, not the retired Tension × 2 rule");
+
+// The remaining Cocoon, Hound Master and Revenant rules use the same typed
+// prompt, summon, boundary and effect contracts as their already automated Aces.
+let menaceScene=scene("lionwing.npc.cocoon",{actors:[actor("enemy","enemy",2,2,{profileId:"lionwing.npc.cocoon"}),actor("ally","enemy",1,2,{profileId:"lionwing.npc.cultist"}),actor("hero","hero",4,2)]});
+const menace=engine.prepareEnemyRule(menaceScene,data,{actorId:"enemy",ruleId:"lionwing.npc.cocoon.menace"});
+assert.equal(menace.ok,true,menace.errors?.join(" "));
+menaceScene=commitWithIds(menaceScene,menace,"menace").result.scene;
+assert.ok(menaceScene.actors.find(item=>item.id==="hero").effects.includes("negative.испуган"),"Menace Fears every opponent within 3");
+assert.equal(menaceScene.pendingPrompt?.kind,"enemy-cocoon-menace-ally","a Docile Cocoon offers an allied move or Attack");
+let menaceAlly=engine.respondRulePrompt(menaceScene,data,{actorId:"enemy",choice:"ally:ally"});
+assert.equal(menaceAlly.ok,true,menaceAlly.errors?.join(" "));
+menaceScene=engine.dispatchMany(menaceScene,menaceAlly.events).scene;
+assert.equal(menaceScene.pendingPrompt?.kind,"enemy-coordinator-followup-action");
+assert.equal(menaceScene.pendingPrompt?.context?.cocoonMenace,true);
+
+let hound=scene("lionwing.npc.hound-master",{actors:[actor("enemy","enemy",1,1,{profileId:"lionwing.npc.hound-master"}),actor("hero","hero",6,1)]});
+const seeker=engine.prepareEnemyRule(hound,data,{actorId:"enemy",ruleId:"lionwing.npc.hound-master.fire-seeker",targetIds:["hero"],options:{destination:{x:2,y:1}}});
+assert.equal(seeker.ok,true,seeker.errors?.join(" "));
+hound=commitWithIds(hound,seeker,"fire-seeker").result.scene;
+assert.equal(hound.actors.filter(item=>item.crowdSubtype==="seeker").length,1,"Fire Seeker creates one tracked Seeker");
+
+let revenant=scene("lionwing.npc.revenant",{actors:[actor("enemy","enemy",2,2,{profileId:"lionwing.npc.revenant"}),actor("anchor","enemy",3,2,{profileId:"lionwing.npc.cultist"}),actor("hero","hero",4,2,{focus:1})]});
+const lurk=engine.prepareEnemyRule(revenant,data,{actorId:"enemy",ruleId:"lionwing.npc.revenant.lurk"});
+assert.equal(lurk.ok,true,lurk.errors?.join(" "));
+revenant=commitWithIds(revenant,lurk,"lurk").result.scene;
+assert.ok(revenant.actors.find(item=>item.id==="hero").effects.includes("negative.испуган"),"Lurk Fears low-Focus opponents near a non-Revenant");
+let fallen=engine.dispatch(revenant,{id:"revenant-ko",type:"actor.knockout",actorId:"hero",payload:{targetId:"enemy"}}).scene;
+assert.equal(fallen.tension,2,"a Revenant knockout does not raise Tension");
+fallen.activeActorId=null;fallen.actors.forEach(item=>{item.acted=true;});
+fallen=engine.dispatch(fallen,{id:"revenant-round-end",type:"round.end",actorId:"anchor",payload:{}}).scene;
+assert.equal(fallen.pendingPrompt?.kind,"reappear-cell","a fallen Revenant asks the Narrator for its return cell");
+const returned=engine.preparePromptPlacement(fallen,{actorId:"enemy",role:"narrator",destination:{x:0,y:0}});
+assert.equal(returned.ok,true,returned.errors?.join(" "));
+const returnedScene=engine.dispatchMany(fallen,returned.events).scene;
+assert.equal(returnedScene.actors.find(item=>item.id==="enemy").knockedOut,false);
+assert.equal(returnedScene.actors.find(item=>item.id==="enemy").hp,25,"the Revenant returns at full Health");
 
 // Duelist Fleche reuses the shared Attack and post-resolution movement
 // contracts while its passive binds Provoked to this Duelist.

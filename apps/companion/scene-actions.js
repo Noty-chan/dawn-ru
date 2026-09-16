@@ -180,6 +180,7 @@ const ENEMY_FULL_RULES = new Map([
   ["enemy.common.viper.action.lick-the-knife", { type: "corrupted-damage", formula: "3(+1)" }],
   ["enemy.common.cocoon.trump.quick-growth", { type: "growth-and-turn" }],
   ["lionwing.npc.cocoon.quick-growth", { type: "growth-and-turn" }],
+  ["lionwing.npc.cocoon.menace", { type: "cocoon-menace" }],
   ["enemy.common.guardian.trump.imposing-presence", { type: "imposing-presence" }],
   ["lionwing.npc.guardian.imposing-presence", { type: "imposing-presence" }],
   ["enemy.common.guardian.action.guardian-shield", { type: "guardian-shield" }],
@@ -196,11 +197,13 @@ const ENEMY_FULL_RULES = new Map([
   ["lionwing.npc.cannoneer.load", { type: "cannoneer-load" }],
   ["enemy.common.oni.action.stabilize", { type: "oni-stabilize" }],
   ["enemy.common.revenant.action.lurk", { type: "revenant-lurk" }],
+  ["lionwing.npc.revenant.lurk", { type: "revenant-lurk" }],
   ["enemy.common.revenant.trump.hollowed-eyes", { type: "revenant-hollowed-eyes" }],
   ["lionwing.npc.revenant.hollowed-eyes", { type: "revenant-hollowed-eyes" }],
   ["enemy.common.broodmother.trump.roar", { type: "broodmother-roar" }],
   ["lionwing.npc.broodmother.roar", { type: "broodmother-roar" }],
   ["enemy.common.hound-master.action.fire-seeker", { type: "hound-seekers", count: 1, minimumTargetDistance: 4 }],
+  ["lionwing.npc.hound-master.fire-seeker", { type: "hound-seekers", count: 1, minimumTargetDistance: 4 }],
   ["enemy.common.hound-master.trump.wild-hunt", { type: "hound-seekers", count: 3, minimumTargetDistance: 0 }],
   ["lionwing.npc.hound-master.wild-hunt", { type: "hound-seekers", count: 3, minimumTargetDistance: 0 }],
   ["enemy.common.privateer.trump.gear-change", { type: "privateer-gear-change" }],
@@ -851,6 +854,7 @@ function availableEnemyRules(scene, data, actorId) {
     else if (automation !== "assisted" && scene.activeActorId !== actor.id) reason = "Сейчас Ход другого участника";
     else if (automation !== "assisted" && actor.acted) reason = "Ход противника уже завершён";
     else if (Number(actor.ap || 0) < Number(rule.apCost || 1)) reason = `Нужно ${rule.apCost || 1} ОД`;
+    else if (actor.profileId === "lionwing.npc.cocoon" && actor.ruleState?.cocoonAwake !== true && rule.kind === "attack") reason = "Смирный Кокон не может Атаковать";
     else if ((actor.usedActions || []).includes(rule.id) && !(family.chargedAttack && (actor.effects || []).includes("positive.заряжен")) && !fullRule?.diminishEachRoundUse) reason = "Это действие уже использовано в Раунде";
     else if (rule.kind === "trump" && actor.usedTrump) reason = "Козырь уже использован в этой Сцене";
     else if (rule.kind === "trump" && Number(scene.tension || 0) < Number(rule.tension || 0)) reason = `Нужно Напряжение ${rule.tension}`;
@@ -1108,9 +1112,17 @@ function prepareEnemyRule(scene, data, request = {}) {
     events.push({ type: "effect.apply", actorId: actor.id, payload: { targetId: actor.id, effect: "positive.ускорен", sourceActionId: rule.id, participantIds: [actor.id] } });
   }
   if (fullRule?.type === "revenant-lurk") {
-    const nonRevenants = (scene.actors || []).filter(item => !item.knockedOut && item.profileId !== "enemy.common.revenant");
+    const nonRevenants = (scene.actors || []).filter(item => !item.knockedOut && !["enemy.common.revenant","lionwing.npc.revenant"].includes(item.profileId));
     const frightened = (scene.actors || []).filter(target => !target.knockedOut && target.team !== actor.team && Number(target.focus || 0) <= 1 && nonRevenants.some(anchor => anchor.id !== target.id && anchor.space === target.space && distance(anchor, target) <= 2));
     for (const target of frightened) events.push({ type: "effect.apply", actorId: actor.id, payload: { targetId: target.id, effect: "negative.испуган", sourceActionId: rule.id, participantIds: [actor.id, target.id] } });
+  }
+  if (fullRule?.type === "cocoon-menace") {
+    const opponents=(scene.actors||[]).filter(target=>!target.knockedOut&&target.team!==actor.team&&target.space===actor.space&&distance(actor,target)<=3);
+    for(const target of opponents)events.push({type:"effect.apply",actorId:actor.id,payload:{targetId:target.id,effect:"negative.испуган",sourceActionId:rule.id,participantIds:[actor.id,target.id]}});
+    if(actor.ruleState?.cocoonAwake!==true){
+      const allies=(scene.actors||[]).filter(target=>!target.knockedOut&&target.id!==actor.id&&target.team===actor.team&&target.kind!=="crowd"&&effectPresenceStatus(scene,target.id).onField);
+      if(allies.length)events.push({type:"rule.prompt",actorId:actor.id,payload:{id:`prompt-${eventId()}-cocoon-menace`,kind:"enemy-cocoon-menace-ally",sourceActorId:actor.id,controller:"narrator",title:"Menace: ally action",text:"Choose an ally that may move or Attack.",options:[...allies.map(target=>`ally:${target.id}`),"pass"],context:{optionLabels:Object.fromEntries(allies.map(target=>[`ally:${target.id}`,target.name]))},participantIds:[actor.id,...allies.map(target=>target.id)]}});
+    }
   }
   if (fullRule?.type === "executioner-bifurcate") {
     events.push({ type: "effect.apply", actorId: actor.id, payload: { targetId: actor.id, effect: "positive.заряжен", sourceActionId: rule.id, participantIds: [actor.id] } });

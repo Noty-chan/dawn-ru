@@ -738,11 +738,21 @@ function triggeredEvents(scene, event, options = {}) {
     const state = delayed?.ruleState?.executionerBifurcate || delayed?.ruleState?.revenantHollowedEyes, target = actorById(scene, state?.targetId);
     if (delayed && target && !target.knockedOut) {
       const executioner = Boolean(delayed.ruleState?.executionerBifurcate);
-      events.push({ type: "rule.prompt", actorId: delayed.id, payload: { id: `prompt-${event.id}-${executioner ? "bifurcate" : "hollowed"}`, kind: executioner ? "enemy-executioner-bifurcate" : "enemy-revenant-hollowed", sourceActorId: delayed.id, targetId: target.id, controller: "narrator", title: executioner ? "Рассечение" : "Пустые глаза", text: executioner ? "Отложенное Рассечение готово: переместить Палача и провести Разруб?" : "Пустые глаза готовы: телепортировать Ревенанта и вырвать душу?", options: ["resolve", "pass"], context: { ruleId: executioner ? "enemy.common.executioner.attack.cleave" : "enemy.common.revenant.attack.tear-from-the-soul" }, participantIds: [delayed.id, target.id] } });
+      const delayedRuleId=executioner?(delayed.profileId==="lionwing.npc.executioner"?"lionwing.npc.executioner.cleave":"enemy.common.executioner.attack.cleave"):(delayed.profileId==="lionwing.npc.revenant"?"lionwing.npc.revenant.tear-from-the-soul":"enemy.common.revenant.attack.tear-from-the-soul");
+      events.push({ type: "rule.prompt", actorId: delayed.id, payload: { id: `prompt-${event.id}-${executioner ? "bifurcate" : "hollowed"}`, kind: executioner ? "enemy-executioner-bifurcate" : "enemy-revenant-hollowed", sourceActorId: delayed.id, targetId: target.id, controller: "narrator", title: executioner ? "Рассечение" : "Пустые глаза", text: executioner ? "Отложенное Рассечение готово: переместить Палача и провести Разруб?" : "Пустые глаза готовы: телепортировать Ревенанта и вырвать душу?", options: ["resolve", "pass"], context: { ruleId: delayedRuleId }, participantIds: [delayed.id, target.id] } });
     } else if (delayed) events.push({ type: "actor.state", actorId: delayed.id, payload: { key: delayed.ruleState?.executionerBifurcate ? "executionerBifurcate" : "revenantHollowedEyes", value: null, sourceActionId: "delayed-target-unavailable" } });
   }
+  if(event.type==="turn.end"&&actor?.profileId==="lionwing.npc.cocoon"&&actor.ruleState?.cocoonAwake!==true)events.push({type:"actor.state",actorId:actor.id,payload:{key:"growth",delta:1,sourceActionId:"lionwing.npc.cocoon.passive",participantIds:[actor.id]}});
+  if(event.type==="turn.start"&&actor?.profileId==="lionwing.npc.cocoon"&&actor.ruleState?.cocoonAwake!==true&&Number(actor.ruleState?.growth||0)>=3){
+    events.push({type:"actor.state",actorId:actor.id,payload:{key:"cocoonAwake",value:true,sourceActionId:"lionwing.npc.cocoon.passive",participantIds:[actor.id]}});
+    if(Number(actor.hp||0)<Number(actor.maxHp||0))events.push({type:"actor.heal",actorId:actor.id,payload:{targetId:actor.id,amount:12+Math.max(0,Number(actor.tier||1)-1)*2,sourceActionId:"lionwing.npc.cocoon.passive",participantIds:[actor.id]}});
+  }
   if (event.type === "round.end") {
-    for (const revenant of (scene.actors || []).filter(item => item.knockedOut && item.profileId === "enemy.common.revenant")) {
+    for (const revenant of (scene.actors || []).filter(item => item.knockedOut && ["enemy.common.revenant","lionwing.npc.revenant"].includes(item.profileId))) {
+      if(revenant.profileId==="lionwing.npc.revenant"){
+        events.push({type:"rule.prompt",actorId:revenant.id,payload:{id:`prompt-${event.id}-revenant-return-${revenant.id}`,kind:"reappear-cell",sourceActorId:revenant.id,controller:"narrator",title:"Revenant: return",text:"Choose any unoccupied space and return at full Health.",options:["cancel"],context:{revenantReturn:true},participantIds:[revenant.id]}});
+        continue;
+      }
       const space = (scene.spaces || []).find(item => item.id === revenant.space), occupied = new Set((scene.actors || []).filter(item => !item.knockedOut && item.space === revenant.space).map(cellKey)); let destination = null;
       for (let y = 0; y < Number(space?.height || 0) && !destination; y += 1) for (let x = 0; x < Number(space?.width || 0); x += 1) if (!occupied.has(`${x},${y}`) && !removedCellKeys(scene, revenant.space).has(`${x},${y}`) && effectCellOccupancyStatus(scene, revenant.id, { actor: revenant, space: revenant.space, x, y }).available) { destination = { x, y }; break; }
       if (destination) {
@@ -1199,7 +1209,7 @@ function dispatchMany(scene, events, options = {}) {
     if (event?.type === "rule.prompt") {
       const payload = event.payload || {};
       const requiredActorIds = [event.actorId, payload.sourceActorId, payload.targetId].filter(Boolean);
-      if (requiredActorIds.some(id => invalidatedActorIds.has(id) || actorById(next, id)?.knockedOut)) continue;
+      if (!payload.context?.revenantReturn && requiredActorIds.some(id => invalidatedActorIds.has(id) || actorById(next, id)?.knockedOut)) continue;
     }
     const placementActorId = ["siren-irresistible-cell", "constrictor-move-cell", "enemy-crowd-move-cell", "fodder-move-cell", "wave-rider-move-cell"].includes(prompt?.kind) || prompt?.kind === "enemy-move-cell" && prompt.context?.moveTarget ? prompt.targetId : prompt?.sourceActorId;
     const stationarySiren = prompt?.kind === "siren-irresistible-cell" && actorById(next, prompt.targetId)?.x === Number(destination?.x) && actorById(next, prompt.targetId)?.y === Number(destination?.y);
@@ -1231,7 +1241,7 @@ function dispatchMany(scene, events, options = {}) {
       if (candidate?.type !== "rule.prompt") continue;
       const requiredActorIds = [candidate.actorId, candidatePayload.sourceActorId, candidatePayload.targetId].filter(Boolean);
       const queuedKnockout = queue.some(followUp => followUp?.type === "actor.knockout" && followUp.payload?.applied !== false && requiredActorIds.includes(followUp.payload?.targetId));
-      if (queuedKnockout || requiredActorIds.some(id => invalidatedActorIds.has(id) || actorById(next, id)?.knockedOut)) queue.splice(index, 1);
+      if (!candidatePayload.context?.revenantReturn && (queuedKnockout || requiredActorIds.some(id => invalidatedActorIds.has(id) || actorById(next, id)?.knockedOut))) queue.splice(index, 1);
     }
     if (result.duplicate) duplicates.push(result.event);
     else {
@@ -1250,12 +1260,12 @@ function dispatchMany(scene, events, options = {}) {
   if (next.pendingPrompt) {
     const prompt = next.pendingPrompt;
     const requiredActorIds = [prompt.actorId, prompt.sourceActorId, prompt.targetId].filter(Boolean);
-    if (requiredActorIds.some(id => unavailable.has(id))) next.pendingPrompt = null;
+    if (!prompt.context?.revenantReturn && requiredActorIds.some(id => unavailable.has(id))) next.pendingPrompt = null;
   }
   next.triggerQueue = (next.triggerQueue || []).filter(item => {
     const payload = item.event?.payload || {};
     const requiredActorIds = [item.event?.actorId, payload.sourceActorId, payload.targetId].filter(Boolean);
-    return !requiredActorIds.some(id => unavailable.has(id));
+    return payload.context?.revenantReturn || !requiredActorIds.some(id => unavailable.has(id));
   });
   next.triggerQueue.sort(compareQueuedTriggers);
   return { scene: next, events: committed, duplicates };

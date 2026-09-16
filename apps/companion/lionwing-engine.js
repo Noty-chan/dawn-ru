@@ -3834,7 +3834,13 @@
     // translated NPC rule as a new LionWing operation.
     if (!Array.isArray(events) || !events.length || events.length > 192) fail("Некорректный пакет событий");
     const pendingEnemyFlow = scene.pendingAction?.enemyRuleId && events.some(event => ["reaction.respond", "rule.respond", "damage.apply", "effect.apply", "actor.move", "actor.enter", "attack.clear"].includes(event?.type));
-    const enemyEventFlow = events.some(event => ["enemy.action.prepare", "enemy.action.resolve", "attack.pending", "attack.clear"].includes(event?.type)) || pendingEnemyFlow;
+    const pendingEnemyPrompt = (String(scene.pendingPrompt?.kind || "").startsWith("enemy-") || scene.pendingPrompt?.context?.revenantReturn === true) && events.some(event => ["rule.respond", "actor.move", "actor.enter", "actor.knockout"].includes(event?.type));
+    const enemyPassiveFlow = events.some(event => {
+      if(event?.type==="round.end")return scene.actors.some(item=>item.knockedOut&&item.profileId==="lionwing.npc.revenant");
+      const owner=scene.actors.find(item=>item.id===(event?.payload?.targetId||event?.actorId));
+      return owner?.profileId==="lionwing.npc.revenant"&&event?.type==="actor.knockout"||owner?.profileId==="lionwing.npc.cocoon"&&["turn.start","turn.end"].includes(event?.type);
+    });
+    const enemyEventFlow = events.some(event => ["enemy.action.prepare", "enemy.action.resolve", "attack.pending", "attack.clear"].includes(event?.type)) || pendingEnemyFlow || pendingEnemyPrompt || enemyPassiveFlow;
     if (enemyEventFlow) return legacy.dispatchMany(scene, events, options);
     if (options.expectedVersion !== undefined && Number(options.expectedVersion) !== Number(scene.version || 0)) {
       if(events.every(event=>event?.id&&(scene.lionwing?.receipts||[]).some(receipt=>receipt.id===event.id&&receipt.fingerprint===JSON.stringify([event.type,event.actorId||null,event.payload||{}]))))return {scene:copy(scene),events:[],event:null};
