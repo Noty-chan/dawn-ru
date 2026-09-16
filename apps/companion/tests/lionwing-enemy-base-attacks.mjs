@@ -37,6 +37,7 @@ const npcActionIds = [
   "lionwing.npc.berserker.thrash",
   "lionwing.npc.cultist.swipe",
   "lionwing.npc.duelist.fleche",
+  "lionwing.npc.spright.incision",
   "lionwing.npc.daredevil.dance",
   "lionwing.npc.enchanter.heartbreaker",
   "lionwing.npc.hound-master.shove",
@@ -50,7 +51,6 @@ const manualActionIds = [
   "lionwing.npc.broodmother.swarming-chase",
   "lionwing.npc.cocoon.rampage",
   "lionwing.npc.oni.polaris",
-  "lionwing.npc.spright.incision",
   "lionwing.npc.matriarch.destroy-the-interloper",
   "lionwing.npc.coordinator.fanaticize",
   "lionwing.npc.rifter.emerge",
@@ -187,6 +187,23 @@ duelist = commitWithIds(duelist, flechePrepared, "fleche").result.scene;
 duelist = passAndResolve(duelist, "fleche");
 assert.equal(duelist.actors.find(item => item.id === "hero").hp, 24);
 assert.equal(duelist.pendingPrompt?.kind, "enemy-move-cell", "Fleche offers its one-space post-Attack movement");
+
+// Spright Incision teleports only after a successful hit and constrains the
+// board picker to the farthest available spaces adjacent to the target.
+let spright = scene("lionwing.npc.spright");
+const incisionStatus = engine.availableEnemyRules(spright, data, "enemy").find(item => item.id === "lionwing.npc.spright.incision");
+assert.equal(incisionStatus.automation, "attack");
+const incisionPrepared = engine.prepareEnemyRule(spright, data, { actorId: "enemy", ruleId: incisionStatus.id, targetIds: ["hero"], roll: dice(6, [6,5,1,1,1,1]) });
+assert.equal(incisionPrepared.ok, true, incisionPrepared.errors?.join(" "));
+spright = commitWithIds(spright, incisionPrepared, "incision").result.scene;
+spright = passAndResolve(spright, "incision");
+assert.equal(spright.pendingPrompt?.context?.teleportFarthestAdjacent, true);
+assert.equal(engine.preparePromptPlacement(spright, { actorId:"enemy", role:"narrator", destination:{x:2,y:2} }).ok, false, "Incision rejects a nearer adjacent space");
+const incisionTeleport = engine.preparePromptPlacement(spright, { actorId:"enemy", role:"narrator", destination:{x:4,y:2} });
+assert.equal(incisionTeleport.ok, true, incisionTeleport.errors?.join(" "));
+const incisionMove=incisionTeleport.events.find(event=>event.type==="actor.move");
+assert.deepEqual([incisionMove.payload.x,incisionMove.payload.y],[4,2]);
+assert.equal(incisionMove.payload.teleport,true,"Incision commits its destination as a Teleport");
 
 // Guardian Shove: preview does not mutate, commit spends AP and opens the
 // ordinary Reaction window, then the normal resistance/evasion/damage reducer
