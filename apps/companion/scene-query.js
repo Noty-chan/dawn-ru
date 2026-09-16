@@ -738,7 +738,7 @@ function effectDefenseStatus(scene, targetActorId) {
   const compound = compoundEnemyStatus(scene, target), defendedParts = compound.active ? compound.parts : [target];
   const armorAllowed = !defendedParts.some(part => hasEffect(scene, part, "negative.разорван"));
   const fortifiedBonus = armorAllowed && defendedParts.some(part => hasEffect(scene, part, "positive.укреплен")) ? Math.max(...defendedParts.map(part => Number(part.tier || 1))) : 0;
-  const chargedBonus = armorAllowed ? Math.max(0, ...defendedParts.filter(part => part.profileId === "enemy.common.executioner" && hasEffect(scene, part, "positive.заряжен")).map(part => 3 + Math.floor(Number(part.tier || 1) / 2))) : 0;
+  const chargedBonus = armorAllowed ? Math.max(0, ...defendedParts.filter(part => ["enemy.common.executioner","lionwing.npc.executioner"].includes(part.profileId) && hasEffect(scene, part, "positive.заряжен")).map(part => part.profileId === "lionwing.npc.executioner" ? 1 + Number(part.tier || 1) : 3 + Math.floor(Number(part.tier || 1) / 2))) : 0;
   const armorBonus = fortifiedBonus + chargedBonus;
   const dodgeBlockers = [
     defendedParts.some(part => hasEffect(scene, part, "negative.обездвижен")) && "Обездвижен",

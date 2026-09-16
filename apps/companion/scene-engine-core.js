@@ -70,7 +70,7 @@ const canonicalTargetId = (scene, actorId) => compoundEnemyStatus(scene, actorId
 const effectiveActorSpeed = (scene, actorId) => {
   const actor = actorById(scene, actorId), compound = compoundEnemyStatus(scene, actor);
   if(compound.parts?.some(part=>part.profileId===ENEMY_MODIFIER_IDS.gargantuan&&!part.knockedOut))return 0;
-  if (actor?.profileId === "enemy.common.executioner" && (actor.effects || []).includes("positive.заряжен")) return 1;
+  if (["enemy.common.executioner","lionwing.npc.executioner"].includes(actor?.profileId) && (actor.effects || []).includes("positive.заряжен")) return 1;
   return compound.active ? compound.speed : Math.max(0, Number(actor?.speed || 0));
 };
 const actionById = (data, id) => data?.actions?.list?.find(action => action.id === id) || null;

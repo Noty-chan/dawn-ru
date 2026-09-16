@@ -450,7 +450,7 @@
   const maxHealth = a => stat(a, "maxHp");
   const scaledMove = (a, amount, scene=null) => Math.ceil(amount * ((scene?effectActive(scene,a,"positive.ускорен"):has(a,"positive.ускорен")) ? 2 : 1) / ((scene?effectActive(scene,a,"negative.замедлен"):has(a,"negative.замедлен")) ? 2 : 1));
   const speed = (a,scene=null) => scaledMove(a, stat(a, "speed"), scene);
-  const sceneSpeed = (scene,a) => scene.activeActorId && Number(a.lionwing?.difficultTerrainStopSerial) === Number(scene.turnSerial) ? 0 : (() => { const group=legacy.compoundEnemyStatus(scene,a);return group.active?scaledMove(a,group.speed+(a.lionwing?.modifiers||[]).filter(m=>m.stat==="speed").reduce((sum,m)=>sum+m.amount,0),scene):speed(a,scene); })();
+  const sceneSpeed = (scene,a) => a?.profileId === "lionwing.npc.executioner" && effectActive(scene,a,"positive.заряжен") ? 1 : scene.activeActorId && Number(a.lionwing?.difficultTerrainStopSerial) === Number(scene.turnSerial) ? 0 : (() => { const group=legacy.compoundEnemyStatus(scene,a);return group.active?scaledMove(a,group.speed+(a.lionwing?.modifiers||[]).filter(m=>m.stat==="speed").reduce((sum,m)=>sum+m.amount,0),scene):speed(a,scene); })();
   const effectiveStats = (scene, a) => {
     if (!scene || !a) return null;
     const activeEffectIds = activeState(scene, a.id).effects.filter(status => status.present).map(status => status.effect);
@@ -466,11 +466,12 @@
         || { ok: true, key: "range", base: baseValue, value: baseValue, sources: [] };
       return result;
     };
+    const armor=quote("armor"), executionerArmor=a.profileId === "lionwing.npc.executioner" && effectActive(scene,a,"positive.заряжен") ? 1+Number(a.tier||1) : 0;
     return {
       actorId: a.id,
       maxHp: quote("maxHp"),
       speed: { ...quote("speed"), effective: sceneSpeed(scene, a), value: sceneSpeed(scene, a) },
-      armor: quote("armor"),
+      armor: executionerArmor ? {...armor,value:Number(armor.value||0)+executionerArmor,effective:Number(armor.effective??armor.value??0)+executionerArmor,sources:[...(armor.sources||[]),{id:"lionwing.npc.executioner.cleave",label:"Разруб · Заряжен",amount:executionerArmor}]} : armor,
       evasion: quote("evasion"),
       ranges: {
         skirmish: range(ids.skirmish),

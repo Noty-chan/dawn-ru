@@ -18,6 +18,7 @@ const npcActionIds = [
   "lionwing.npc.bruiser.skulduggery",
   "lionwing.npc.behemoth.tore-from-earth",
   "lionwing.npc.captor.catch-and-release",
+  "lionwing.npc.executioner.cleave",
   "lionwing.npc.javelin.crushing-impact",
   "lionwing.npc.pugilist.flurry-of-strikes",
   "lionwing.npc.ranger.take-the-shot",
@@ -47,7 +48,6 @@ const npcActionIds = [
 ];
 const manualActionIds = [
   "lionwing.npc.viper.filet",
-  "lionwing.npc.executioner.cleave",
   "lionwing.npc.bodyguards.behind-me",
   "lionwing.npc.broodmother.swarming-chase",
   "lionwing.npc.cocoon.rampage",
@@ -174,6 +174,22 @@ assert.equal(engine.clockStatus(loaded, "enemy", "enemy.common.cannoneer.prepara
 cannoneer = scene("lionwing.npc.cannoneer", { log: [{ id: "moved", type: "actor.move", actorId: "enemy", payload: { x: 3, y: 2 } }] });
 loaded = commitWithIds(cannoneer, engine.prepareEnemyRule(cannoneer, data, { actorId: "enemy", ruleId: loadStatus.id }), "load-moved").result.scene;
 assert.equal(engine.clockStatus(loaded, "enemy", "enemy.common.cannoneer.preparation").value, 1, "Load fills one segment after movement");
+
+// Executioner Cleave replaces its first use with Charge, then exposes the
+// canonical temporary Speed/Armor and resolves the adjacent two-space Line.
+let executioner=scene("lionwing.npc.executioner",{actors:[actor("enemy","enemy",2,2,{profileId:"lionwing.npc.executioner"}),actor("hero-a","hero",3,2),actor("hero-b","hero",4,2)]});
+const cleaveStatus=engine.availableEnemyRules(executioner,data,"enemy").find(item=>item.id==="lionwing.npc.executioner.cleave");
+assert.equal(cleaveStatus.automation,"attack");
+const chargeCleave=engine.prepareEnemyRule(executioner,data,{actorId:"enemy",ruleId:cleaveStatus.id,targetIds:[]});
+assert.equal(chargeCleave.ok,true,chargeCleave.errors?.join(" "));
+assert.equal(chargeCleave.events.some(event=>event.type==="attack.pending"),false,"the first Cleave is replaced by Charge");
+executioner=commitWithIds(executioner,chargeCleave,"cleave-charge").result.scene;
+assert.ok(executioner.actors[0].effects.includes("positive.заряжен"));
+assert.equal(engine.effectiveActorSpeed(executioner,"enemy"),1);
+assert.equal(engine.effectDefenseStatus(executioner,"enemy").armorBonus,3,"Tier 2 charged Executioner gains 1 + Tier Armor");
+const cleave=engine.prepareEnemyRule(executioner,data,{actorId:"enemy",ruleId:cleaveStatus.id,targetIds:["hero-a","hero-b"],roll:dice(10,[6,5,4,1,1,1,1,1,1,1])});
+assert.equal(cleave.ok,true,cleave.errors?.join(" "));
+assert.deepEqual(new Set(cleave.events.find(event=>event.type==="attack.pending").payload.targetIds),new Set(["hero-a","hero-b"]));
 
 // Duelist Fleche reuses the shared Attack and post-resolution movement
 // contracts while its passive binds Provoked to this Duelist.

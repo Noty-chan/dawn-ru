@@ -30,6 +30,7 @@ const LIONWING_AUTO_ATTACK_RULES = new Map([
   ["lionwing.npc.bruiser.skulduggery", { dice: "4(+1)", tensionMultiplier: 1, targetEffects: [], reward: "Deal [Hits] + [Tension] damage and push each target [Tier × 2] spaces.", family: { area: [2, 2], areaAnchor: "self", maxTargets: 40, postPushFormula: "2(+2)" } }],
   ["lionwing.npc.behemoth.tore-from-earth", { dice: "5(+1)", tensionMultiplier: 1, targetEffects: [], reward: "Deal [Hits] + [Tension] damage and place a 15 + [Tier × 5] Health Obstacle adjacent to each target.", family: { maxTargets: 2, range: 6, createTerrainAdjacent: "20(+5)" } }],
   ["lionwing.npc.captor.catch-and-release", { dice: "5(+1)", tensionMultiplier: 1, targetEffects: [], reward: "Deal [Hits] + [Tension] damage; Weaken and Snare the target if enemies have not Attacked them this Round.", family: { maxTargets: 1, range: 4, conditionalEffectsIfUntouched: ["negative.ослаблен", "negative.пойман"] } }],
+  ["lionwing.npc.executioner.cleave", { dice: "8(+2)", tensionMultiplier: 2, targetEffects: [], reward: "Deal [Hits] + [Tension × 2] damage; Shred a target if enemies have not Attacked them this Round.", family: { maxTargets: 2, lineLength: 2, chargedAttack: true, conditionalEffectsIfUntouched: ["negative.разорван"] } }],
   ["lionwing.npc.javelin.crushing-impact", { dice: "4(+1)", tensionMultiplier: 1, targetEffects: [], reward: "Deal [Hits] + [Tension] damage and Launch the target if it is the only target.", family: { area: [2, 2], areaAnchor: "self", maxTargets: 40, conditionalSingleEffect: "negative.подброшен" } }],
   ["lionwing.npc.pugilist.flurry-of-strikes", { dice: "5(+1)", tensionMultiplier: 1, targetEffects: [], reward: "Deal [Hits] + [Tension] damage; Slow the target if enemies have not Attacked them this Round.", family: { adjacent: true, maxTargets: 1, conditionalEffectsIfUntouched: ["negative.замедлен"] } }],
   ["lionwing.npc.ranger.take-the-shot", { dice: "5(+1)", tensionMultiplier: 1, targetEffects: [], reward: "Deal [Hits] + [Tension] damage; add [Tier + 2] damage at range when enemies have not Attacked the target this Round.", family: { range: 8, maxTargets: 1, bonusDamageFormula: "3(+1)", bonusDamageMinimumRange: 4, bonusDamageIfUntouched: true } }],
@@ -837,7 +838,7 @@ function availableEnemyRules(scene, data, actorId) {
     else if (automation !== "assisted" && scene.activeActorId !== actor.id) reason = "Сейчас Ход другого участника";
     else if (automation !== "assisted" && actor.acted) reason = "Ход противника уже завершён";
     else if (Number(actor.ap || 0) < Number(rule.apCost || 1)) reason = `Нужно ${rule.apCost || 1} ОД`;
-    else if ((actor.usedActions || []).includes(rule.id) && !fullRule?.diminishEachRoundUse) reason = "Это действие уже использовано в Раунде";
+    else if ((actor.usedActions || []).includes(rule.id) && !(family.chargedAttack && (actor.effects || []).includes("positive.заряжен")) && !fullRule?.diminishEachRoundUse) reason = "Это действие уже использовано в Раунде";
     else if (rule.kind === "trump" && actor.usedTrump) reason = "Козырь уже использован в этой Сцене";
     else if (rule.kind === "trump" && Number(scene.tension || 0) < Number(rule.tension || 0)) reason = `Нужно Напряжение ${rule.tension}`;
     else if (rule.id === "enemy.common.cannoneer.trump.fire" && !clockStatus(scene, actor.id, "enemy.common.cannoneer.preparation").full) reason = "Сначала заполните Подготовку 4/4";
@@ -870,6 +871,7 @@ function prepareEnemyRule(scene, data, request = {}) {
   const roundRuleUses = actor && rule ? currentRoundEvents(scene).filter(event => event.actorId === actor.id && event.type === "enemy.action.prepare" && event.payload?.ruleId === rule.id).length : 0;
   if (fullRule?.oncePerRound && roundRuleUses) errors.push("Это действие можно использовать только один раз за Раунд.");
   const isAttackRule = Boolean(rule && (rule.kind === "attack" || family.attack));
+  const chargingAttack = Boolean(isAttackRule && family.chargedAttack && !(actor?.effects || []).includes("positive.заряжен"));
   const crowdMovementReady = Boolean(actor?.ruleState?.enemyCrowdMovement?.ruleId === rule?.id && Number(actor.ruleState.enemyCrowdMovement.turnSerial) === Number(scene.turnSerial || 0));
   if (actor && rule && family.crowdAdvance && request.options?.beginCrowdMovement && !crowdMovementReady) {
     const crowdIds = (scene.actors || []).filter(item => item.kind === "crowd" && !item.knockedOut && item.team === actor.team && item.space === actor.space).map(item => item.id);
@@ -934,7 +936,7 @@ function prepareEnemyRule(scene, data, request = {}) {
   if (actor && rule?.areaAnchor !== "self" && rule?.range && anchor && Math.abs(actor.x - Number(anchor.x)) + Math.abs(actor.y - Number(anchor.y)) > Number(rule.range)) errors.push(`Область должна быть в пределах ${rule.range} клеток.`);
   if (actor && rule?.areaAnchor !== "self" && anchor && !wallTargetingStatus(scene, actor, { space: actor.space, x: Number(anchor.x), y: Number(anchor.y) }).available) errors.push("Стена перекрывает размещение области.");
   if (affectedCells.length && targets.some(target => target.space !== actor.space || !affectedCells.includes(`${target.x},${target.y}`))) errors.push("Все выбранные цели должны находиться в области.");
-  if ((available?.requiresTarget ?? rule?.requiresTarget) && !targets.length && fullRule?.type !== "guardian-shield") errors.push(rule.kind === "attack" ? "Выберите хотя бы одну цель Атаки." : "Выберите цель действия.");
+  if (!chargingAttack && (available?.requiresTarget ?? rule?.requiresTarget) && !targets.length && fullRule?.type !== "guardian-shield") errors.push(rule.kind === "attack" ? "Выберите хотя бы одну цель Атаки." : "Выберите цель действия.");
   if (fullRule?.type === "executioner-bifurcate" && (targets.length !== 1 || targets[0]?.team === actor?.team)) errors.push("Рассечение требует одного противника.");
   if (fullRule?.type === "revenant-hollowed-eyes" && targets.length !== 1) errors.push("Для Пустых глаз нужен игрок с наименьшим Фокусом.");
   if (fullRule?.type === "healer-heal" && (targets.length !== 1 || targets[0]?.team !== actor?.team || distance(actor, targets[0]) > 3)) errors.push("Лечение требует самого Целителя или одного союзника в пределах 3 клеток.");
@@ -1014,7 +1016,7 @@ function prepareEnemyRule(scene, data, request = {}) {
   }
   if (canonicalAutoAttack && rule.directDamage && hasRoll) errors.push("Это canonical-действие использует прямой урон вместо броска.");
   if (attackModifiers.selectedIds.length && !hasRoll) errors.push("Модификатор Преимущества требует бросок Атаки.");
-  if (isAttackRule && fullRule?.type !== "cannoneer-load" && !hasRoll && !hasDirectDamage) errors.push("Для Атаки нужен бросок или прямой урон из профиля.");
+  if (isAttackRule && !chargingAttack && fullRule?.type !== "cannoneer-load" && !hasRoll && !hasDirectDamage) errors.push("Для Атаки нужен бросок или прямой урон из профиля.");
   if (errors.length) return { ok: false, errors, events: [], rule: available || rule };
   const customTargetResolution = ["assassin-mark", "guardian-shield"].includes(fullRule?.type);
   const targetEffectNames = customTargetResolution ? [] : Object.prototype.hasOwnProperty.call(family, "effects") ? family.effects : (rule.targetEffects || rule.effects || []);
