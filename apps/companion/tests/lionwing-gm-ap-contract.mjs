@@ -68,8 +68,9 @@ assert.match(gmSource, /kind:actorTeam==="hero"\?"hero":"enemy"/, "Allied profil
 assert.equal(raashaCastle.enemies.filter(enemy => enemy.team === "hero").length, 4, "Preset deploys Svetozar's two-part profile plus Mira and Tom");
 assert.equal(JSON.stringify(raashaCastle.enemies.filter(enemy => enemy.team === "hero").map(enemy => enemy.profileId)), JSON.stringify(["lionwing.npc.ranger", "lionwing.npc.coordinator", "lionwing.npc.duelist", "lionwing.npc.builder"]));
 assert.equal(raashaCastle.enemies.filter(enemy => enemy.team !== "hero").length, 5, "Preset has a varied five-profile castle defense");
-assert.equal(JSON.stringify(raashaCastle.enemies.filter(enemy => enemy.team !== "hero").map(enemy => enemy.profileId)), JSON.stringify(["lionwing.npc.javelin", "lionwing.npc.guardian", "lionwing.npc.ranger", "lionwing.npc.captor", "lionwing.npc.builder"]), "Castle defense lineup is explicitly selected");
+assert.equal(JSON.stringify(raashaCastle.enemies.filter(enemy => enemy.team !== "hero").map(enemy => enemy.profileId)), JSON.stringify(["lionwing.npc.javelin", "lionwing.npc.guardian", "lionwing.npc.ranger", "lionwing.npc.captor", "lionwing.npc.berserker"]), "Castle defense lineup is explicitly selected");
 assert.ok(raashaCastle.enemies.some(enemy => enemy.profileId === "lionwing.npc.javelin"), "One defense profile creates Fodder crowd");
+assert.equal(raashaCastle.enemies.filter(enemy => enemy.team !== "hero" && enemy.profileId === "lionwing.npc.builder").length, 0, "Tom is the only Builder in the preset");
 assert.equal(raashaCastle.enemies.filter(enemy => enemy.compoundId === "svetozar").length, 2, "Svetozar is represented as a two-part allied profile");
 assert.ok(raashaCastle.objects.some(object => object.type === "deploy-hero") && raashaCastle.objects.some(object => object.type === "deploy-enemy"), "Preset has both deployment zones");
 assert.ok(raashaCastle.markers.some(marker => marker.kind === "objective"), "Preset has a castle-core objective");
