@@ -190,7 +190,6 @@ const ENEMY_FULL_RULES = new Map([
   ["lionwing.npc.ranger.nest", { type: "ranger-nest" }],
   ["enemy.common.ranger.trump.headshot", { type: "ranger-headshot" }],
   ["lionwing.npc.ranger.headshot", { type: "ranger-headshot" }],
-  ["enemy.common.coordinator.action.neutralize-them", { type: "coordinator-mark" }],
   ["lionwing.npc.coordinator.neutralize-them", { type: "coordinator-mark" }],
   ["enemy.common.duelist.action.goad", { type: "duelist-goad" }],
   ["enemy.common.healer.action.heal", { type: "healer-heal", formula: "3(+1)" }],
