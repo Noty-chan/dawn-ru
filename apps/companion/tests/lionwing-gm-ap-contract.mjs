@@ -66,7 +66,7 @@ assert.ok(raashaCastle, "Raasha Melnum Ruins companion preset is available");
 assert.equal(raashaCastle.edition, "lionwing", "Raasha Melnum Ruins preset is LionWing-only");
 assert.match(gmSource, /kind:actorTeam==="hero"\?"hero":"enemy"/, "Allied profile actors enter the player turn queue");
 assert.equal(raashaCastle.enemies.filter(enemy => enemy.team === "hero").length, 4, "Preset deploys Svetozar's two-part profile plus Mira and Tom");
-assert.equal(JSON.stringify(raashaCastle.enemies.filter(enemy => enemy.team === "hero").map(enemy => enemy.profileId)), JSON.stringify(["lionwing.npc.ranger", "lionwing.npc.coordinator", "lionwing.npc.duelist", "lionwing.npc.builder"]));
+assert.equal(JSON.stringify(raashaCastle.enemies.filter(enemy => enemy.team === "hero").map(enemy => enemy.profileId)), JSON.stringify(["lionwing.npc.ranger", "lionwing.npc.coordinator", "lionwing.npc.coordinator", "lionwing.npc.builder"]), "Mira uses the selected Coordinator profile");
 assert.equal(raashaCastle.enemies.filter(enemy => enemy.team !== "hero").length, 5, "Preset has a varied five-profile ruins defense");
 assert.equal(JSON.stringify(raashaCastle.enemies.filter(enemy => enemy.team !== "hero").map(enemy => enemy.profileId)), JSON.stringify(["lionwing.npc.javelin", "lionwing.npc.guardian", "lionwing.npc.ranger", "lionwing.npc.captor", "lionwing.npc.berserker"]), "Ruins defense lineup is explicitly selected");
 assert.ok(raashaCastle.enemies.some(enemy => enemy.profileId === "lionwing.npc.javelin"), "One defense profile creates Fodder crowd");
