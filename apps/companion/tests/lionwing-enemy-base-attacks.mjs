@@ -161,13 +161,43 @@ for (const id of manualActionIds) {
   assert.equal(status.automation, "assisted", `${id} retains manual fallback`);
 }
 const canonicalAceIds = canonicalNpcs.flatMap(profile => profile.ace?.id ? [profile.ace.id] : []);
+const automatedAceIds=new Set(["lionwing.npc.pugilist.martial-perfection","lionwing.npc.ranger.headshot","lionwing.npc.bodyguards.reinforcements","lionwing.npc.broodmother.roar","lionwing.npc.cocoon.quick-growth","lionwing.npc.guardian.imposing-presence","lionwing.npc.revenant.hollowed-eyes","lionwing.npc.berserker.last-stand","lionwing.npc.hound-master.wild-hunt","lionwing.npc.privateer.gear-change"]);
 for (const id of canonicalAceIds) {
   const profile = id.split(".").slice(0, 3).join(".");
   const status = engine.availableEnemyRules(scene(profile), data, "enemy").find(item => item.id === id);
   assert.ok(status, `${id} exists in canonical profile`);
-  assert.equal(status.automation, "assisted", `${id} retains manual fallback`);
+  assert.equal(status.automation,automatedAceIds.has(id)?(["lionwing.npc.pugilist.martial-perfection","lionwing.npc.guardian.imposing-presence"].includes(id)?"state":"full"):"assisted",`${id} has its reviewed automation status`);
 }
 assert.deepEqual(new Set(npcActionIds.concat(fullActionIds,manualActionIds)), new Set(canonicalAttackIds), "automated, full and manual sets cover every canonical NPC attack exactly once");
+
+// Ten low-complexity LionWing Aces reuse the existing typed state, summon,
+// effect and extra-Turn families rather than introducing bespoke reducers.
+const acePrepare=(profileId,ruleId,request={})=>{
+  const current=scene(profileId,{tension:8});
+  const prepared=engine.prepareEnemyRule(current,data,{actorId:"enemy",ruleId,...request});
+  assert.equal(prepared.ok,true,`${ruleId}: ${prepared.errors?.join(" ")}`);
+  return commitWithIds(current,prepared,`ace-${ruleId}`).result.scene;
+};
+let aceScene=acePrepare("lionwing.npc.pugilist","lionwing.npc.pugilist.martial-perfection");
+assert.equal(aceScene.actors[0].ruleState.martialPerfection,true);assert.equal(aceScene.actors[0].extraTurns,1);
+aceScene=acePrepare("lionwing.npc.ranger","lionwing.npc.ranger.headshot",{targetIds:["hero"]});
+assert.equal(aceScene.actors[0].ruleState.rangerHeadshotTargetId,"hero");
+aceScene=acePrepare("lionwing.npc.bodyguards","lionwing.npc.bodyguards.reinforcements",{options:{cells:["0,0","1,0","2,0","3,0","4,0"]}});
+assert.equal(aceScene.actors.filter(item=>item.kind==="crowd").length,5);assert.equal(aceScene.actors[0].extraTurns,1);
+aceScene=acePrepare("lionwing.npc.broodmother","lionwing.npc.broodmother.roar");
+assert.ok(aceScene.actors.find(item=>item.id==="hero").effects.includes("negative.спровоцирован"));assert.equal(aceScene.actors[0].extraTurns,1);
+aceScene=acePrepare("lionwing.npc.cocoon","lionwing.npc.cocoon.quick-growth");
+assert.equal(aceScene.actors[0].ruleState.growth,1);assert.equal(aceScene.actors[0].extraTurns,1);
+aceScene=acePrepare("lionwing.npc.guardian","lionwing.npc.guardian.imposing-presence");
+assert.equal(aceScene.actors[0].ruleState.imposingPresence,true);
+aceScene=acePrepare("lionwing.npc.revenant","lionwing.npc.revenant.hollowed-eyes",{targetIds:["hero"]});
+assert.equal(aceScene.actors[0].ruleState.revenantHollowedEyes.targetId,"hero");
+aceScene=acePrepare("lionwing.npc.berserker","lionwing.npc.berserker.last-stand");
+assert.equal(aceScene.actors[0].hp,23);assert.equal(aceScene.actors[0].ruleState.berserkerLastStand,true);assert.equal(aceScene.actors[0].extraTurns,1);
+aceScene=acePrepare("lionwing.npc.hound-master","lionwing.npc.hound-master.wild-hunt",{targetIds:["hero"],options:{destination:{x:2,y:1}}});
+assert.equal(aceScene.actors.filter(item=>item.crowdSubtype==="seeker").length,3);
+aceScene=acePrepare("lionwing.npc.privateer","lionwing.npc.privateer.gear-change");
+assert.equal(aceScene.actors[0].ruleState.privateerGearChange,true);assert.equal(aceScene.actors[0].extraTurns,1);
 
 // Cannoneer Load is classified as an Attack in the source data, but is a
 // deterministic Clock action: +2 Preparation before movement, otherwise +1.
@@ -396,4 +426,4 @@ forgedSource.id = "forged-source";
 forgedSource.payload.sourceDigest = "sha256:stale";
 assert.throws(() => engine.dispatch(current, forgedSource), /Источник|digest|canonical/);
 
-console.log(`LionWing enemy base attacks: ${npcActionIds.length} automated canonical attacks, ${manualActionIds.length} manual attack fallbacks, ${canonicalAceIds.length} manual Aces, shared reaction/effect/damage pipeline, guards, stale/replay/idempotency passed`);
+console.log(`LionWing enemy automation: ${npcActionIds.length} canonical attacks, ${automatedAceIds.size} Aces, ${manualActionIds.length} manual attack fallbacks, ${canonicalAceIds.length-automatedAceIds.size} manual Aces; shared reaction/effect/damage pipeline and guards passed`);
