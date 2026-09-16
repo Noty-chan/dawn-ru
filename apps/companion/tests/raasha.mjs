@@ -3,6 +3,14 @@ import fs from "node:fs";
 import vm from "node:vm";
 import { loadSceneEngine } from "./load-scene-engine.mjs";
 
+const appCoreSource=fs.readFileSync(new URL("../app-core.js",import.meta.url),"utf8");
+const sceneUiSource=fs.readFileSync(new URL("../scene-ui.js",import.meta.url),"utf8");
+assert.match(appCoreSource,/RAASHA_HERO_ID="237281b8-2dbe-42e7-b696-b66129836367"/);
+assert.match(appCoreSource,/budgetSkills=S\.skills\.filter\(skill=>!isRaashaPsionicSkill\(S,skill\)\)/,"Psionic disciplines must not consume the ordinary Skill rank budget");
+assert.match(appCoreSource,/abilityCost:aCost\+psionicAbilityCost/,"Psionic disciplines must consume Raasha's Ability allowance");
+assert.match(sceneUiSource,/usesAbility:Boolean\(ability\)\|\|psionicDiscipline/,"Psionic discipline rolls must trigger Ability rules");
+assert.match(sceneUiSource,/usesSkill:Boolean\(skill\)&&!psionicDiscipline/,"Psionic disciplines must not simultaneously count as Skills");
+
 const fixturePath = process.env.DAWN_RAASHA_FIXTURE || "D:/Downloads/Персы Мира Мертвых Богов/DAWN-Рааша-Шаадрин.json";
 if (!fs.existsSync(fixturePath)) {
   console.log("Raasha exact-sheet QA skipped: set DAWN_RAASHA_FIXTURE to the exported hero JSON");

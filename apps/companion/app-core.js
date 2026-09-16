@@ -566,15 +566,23 @@ function abilityCost(ability=S.ability){
   const words=Object.entries(ability.words).flatMap(([group,ids])=>ids.map(id=>{const word=wordById(id,ability);return word?{...word,group}:null})).filter(Boolean);
   return Logic.calculateAbilityCost({enabled:ability.enabled,rank:ability.rank,words,xWord:wordById(ability.xNoun,ability),specializations:ability.specializations,forceCondition:ability===S.ability&&hasGift("Uncontrollable Power")});
 }
+const RAASHA_HERO_ID="237281b8-2dbe-42e7-b696-b66129836367";
+const RAASHA_PSIONIC_DISCIPLINES=new Set(["псионика эмпатия","псионика кинетика","псионика психометаболизм"]);
+function isRaashaProfile(hero=S){return String(hero?.id||hero?.heroId||"")===RAASHA_HERO_ID}
+function isRaashaPsionicSkill(hero,skill){const name=String(skill?.name||"").toLocaleLowerCase("ru").replace(/ё/g,"е").replace(/[^а-яa-z0-9]+/gi," ").trim();return isRaashaProfile(hero)&&RAASHA_PSIONIC_DISCIPLINES.has(name)}
 function budgets(){
   const t=S.tier,rules=activeBuilderRules(),aCost=abilityCost(),taintedCost=abilityCost(S.taintedAbility),performanceSkill=S.skills.find(s=>s.id===S.mods.performanceSkill);
-  const rankAccounting=Logic.calculateCreationBudgets({tier:t,builderRules:rules,gifts:selectedGiftNames(),skillRanks:S.skills.map(s=>s.rank),performanceTargetRank:performanceSkill?.rank||0,abilityCost:aCost,taintedBodyUsed:S.mods.taintedBody,taintedAbilityCost:taintedCost,gadgetSpent:S.mods.gadgetSpent});
+  // Raasha's Psionic disciplines are one Ability represented as separate Skills so
+  // each discipline can keep its own rank. Account for them as Ability ranks.
+  const budgetSkills=S.skills.filter(skill=>!isRaashaPsionicSkill(S,skill));
+  const psionicAbilityCost=S.skills.filter(skill=>isRaashaPsionicSkill(S,skill)).reduce((sum,skill)=>sum+clamp(skill.rank,1,3),0);
+  const rankAccounting=Logic.calculateCreationBudgets({tier:t,builderRules:rules,gifts:selectedGiftNames(),skillRanks:budgetSkills.map(s=>s.rank),performanceTargetRank:performanceSkill?.rank||0,abilityCost:aCost+psionicAbilityCost,taintedBodyUsed:S.mods.taintedBody,taintedAbilityCost:taintedCost,gadgetSpent:S.mods.gadgetSpent});
   const giftPool=rules?rules.boons.startingChoices+rules.boons.perTier*(t-1):t+1,activeGiftIds=new Set(allGifts().map(gift=>gift.id)),giftSpent=S.gifts.filter(id=>activeGiftIds.has(id)).length;
   const activeTechniqueIds=new Set(activeArchetypes().flatMap(archetype=>archetype.techniques.map(technique=>technique.id)));
   const techPool=(rules?rules.techniques.startingLevels+rules.techniques.levelsPerTier*(t-1):5+2*(t-1))-(rules?.techniques.levelsPerAttributeConversion||2)*S.techConversions,techSpent=Object.entries(S.techniques).filter(([id])=>activeTechniqueIds.has(id)).reduce((n,[,v])=>n+v,0);
   const archUsed=activeArchetypes().filter(a=>a.techniques.some(tech=>(S.techniques[tech.id]||0)>0)).length;
   const attrPool=(rules?.attributes.growthPerTier||2)*(t-1),attrSpent=Object.values(S.attrBonus).reduce((n,v)=>n+v,0);
-  return {aCost,taintedCost,giftPool,giftSpent,techPool,techSpent,archUsed,attrPool,attrSpent,...rankAccounting};
+  return {aCost,taintedCost,giftPool,giftSpent,techPool,techSpent,archUsed,attrPool,attrSpent,raashaPsionicsExempt:psionicAbilityCost,...rankAccounting};
 }
 function effectiveSkillRank(skill){return Math.min(3,skill.rank+(hasGift("Performance Artist")&&S.mods.performanceSkill===skill.id?1:0))}
 function abilityNeedsX(ability=S.ability){return Object.values(ability.words).flat().some(id=>wordById(id,ability)?.marks.includes("☾"))}
