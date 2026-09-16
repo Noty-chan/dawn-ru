@@ -832,9 +832,9 @@ function availableEnemyRules(scene, data, actorId) {
     if (!(actor.kind === "enemy" || actor.profileId)) reason = "Это не профильный НПС";
     else if (actor.knockedOut) reason = "Профильный НПС выведен из строя";
     else if (scene.pendingAction) reason = "Сначала разрешите текущие Реакции";
-    else if (!scene.activeActorId) reason = "Сначала начните Ход противника";
-    else if (scene.activeActorId !== actor.id) reason = "Сейчас Ход другого участника";
-    else if (actor.acted) reason = "Ход противника уже завершён";
+    else if (automation !== "assisted" && !scene.activeActorId) reason = "Сначала начните Ход противника";
+    else if (automation !== "assisted" && scene.activeActorId !== actor.id) reason = "Сейчас Ход другого участника";
+    else if (automation !== "assisted" && actor.acted) reason = "Ход противника уже завершён";
     else if (Number(actor.ap || 0) < Number(rule.apCost || 1)) reason = `Нужно ${rule.apCost || 1} ОД`;
     else if ((actor.usedActions || []).includes(rule.id) && !fullRule?.diminishEachRoundUse) reason = "Это действие уже использовано в Раунде";
     else if (rule.kind === "trump" && actor.usedTrump) reason = "Козырь уже использован в этой Сцене";

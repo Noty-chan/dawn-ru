@@ -247,6 +247,12 @@ const filet = engine.prepareEnemyRule(viper, data, { actorId: "enemy", ruleId: "
 assert.equal(filet.ok, true, filet.errors?.join(" "));
 assert.equal(filet.events.some(event => event.type === "attack.pending"), false, "assisted Filet leaves damage and effects to the Narrator");
 assert.equal(filet.events.find(event => event.type === "enemy.action.prepare")?.payload?.automation, "assisted");
+const offTurnViper=scene("lionwing.npc.viper",{activeActorId:"hero",actors:[actor("enemy","enemy",2,2,{profileId:"lionwing.npc.viper",acted:true,ap:1}),actor("hero","hero",3,2)]});
+const offTurnFilet=engine.prepareEnemyRule(offTurnViper,data,{actorId:"enemy",ruleId:"lionwing.npc.viper.filet",targetIds:["hero"],roll:dice(5,[6,5,4,1,2])});
+assert.equal(offTurnFilet.ok,true,"Narrator-assisted attacks remain usable outside the enemy Turn");
+assert.ok(offTurnFilet.events.some(event=>event.type==="resource.spend"&&event.payload.resource==="ap"&&event.payload.amount===1),"off-Turn assisted attacks still spend canonical AP");
+const offTurnNoAp=scene("lionwing.npc.viper",{activeActorId:"hero",actors:[actor("enemy","enemy",2,2,{profileId:"lionwing.npc.viper",acted:true,ap:0}),actor("hero","hero",3,2)]});
+assert.equal(engine.prepareEnemyRule(offTurnNoAp,data,{actorId:"enemy",ruleId:"lionwing.npc.viper.filet",targetIds:["hero"],roll:dice(5,[6,5,4,1,2])}).ok,false,"Narrator flexibility never bypasses AP accounting");
 const distantViper = scene("lionwing.npc.viper", { actors: [actor("enemy", "enemy", 2, 2, { profileId: "lionwing.npc.viper" }), actor("hero", "hero", 6, 2, { effects: ["negative.порчен"] })] });
 assert.equal(engine.prepareEnemyRule(distantViper, data, { actorId: "enemy", ruleId: "lionwing.npc.viper.filet", targetIds: ["hero"], roll: dice(5, [6, 5, 4, 1, 2]) }).ok, true, "manual Filet can represent the non-Passive target path");
 
