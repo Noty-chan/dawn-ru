@@ -50,6 +50,7 @@ const LIONWING_AUTO_ATTACK_RULES = new Map([
   ["lionwing.npc.cultist.swipe", { dice: "4(+1)", tensionMultiplier: 1, targetEffects: [], reward: "Deal [Hits] + [Tension] damage.", family: { adjacent: true, maxTargets: 1 } }],
   ["lionwing.npc.duelist.fleche", { dice: "5(+1)", tensionMultiplier: 1, targetEffects: [], reward: "Deal [Hits] + [Tension] damage and move 1 space.", family: { range: 2, maxTargets: 1, provokedTierDamage: true, postSelfMove: 1 } }],
   ["lionwing.npc.spright.incision", { dice: "5(+1)", tensionMultiplier: 1, targetEffects: [], reward: "Deal [Hits] + [Tension] damage and Teleport to the farthest space adjacent to the target.", family: { adjacent: true, maxTargets: 1, postTeleportFarthestAdjacent: true } }],
+  ["lionwing.npc.rifter.emerge", { dice: "5(+1)", tensionMultiplier: 1, targetEffects: [], reward: "Deal [Hits] + [Tension] damage.", family: { maxTargets: 40, audience: "any", teleportAttack: true, preMoveMaximum: 5, targetsAdjacentAfterMove: true, selectAllAdjacentAfterMove: true, damageAllTargets: true } }],
   ["lionwing.npc.daredevil.dance", { dice: "4(+1)", tensionMultiplier: 1, targetEffects: ["negative.подброшен"], reward: "Deal [Hits] + [Tension] damage and Launch the targets.", family: { adjacent: true, maxTargets: 2 } }],
   ["lionwing.npc.enchanter.heartbreaker", { dice: "5(+1)", tensionMultiplier: 1, targetEffects: [], reward: "Deal [Hits] + [Tension] damage; Weaken and Slow a Feared or Taunted target.", family: { range: 5, maxTargets: 1, conditionalEffectsByTarget: { any: ["negative.испуган", "negative.спровоцирован"], apply: ["negative.ослаблен", "negative.замедлен"] } } }],
   ["lionwing.npc.hound-master.shove", { dice: "5(+1)", tensionMultiplier: 1, targetEffects: [], reward: "Deal [Hits] + [Tension] damage and push the target 2 spaces away.", family: { range: 3, maxTargets: 1, postPush: 2 } }],
@@ -887,11 +888,15 @@ function prepareEnemyRule(scene, data, request = {}) {
     targetIds = eligible.some(target => targetIds.includes(target.id)) ? [targetIds.find(id => eligible.some(target => target.id === id))] : eligible.slice(0, 1).map(target => target.id);
   }
   if (fullRule?.type === "healer-savior" && actor) targetIds = actor.ruleState?.healerGuardianId ? [actor.ruleState.healerGuardianId] : [];
-  const targets = targetIds.map(id => actorById(scene, id)).filter(Boolean);
+  let targets = targetIds.map(id => actorById(scene, id)).filter(Boolean);
   const hiddenAssassinAttack = Boolean(family.hiddenAdvantage && (actor?.effects || []).includes("positive.исчез"));
   const assassinReappearance = hiddenAssassinAttack && request.options?.reappearance ? { x: Number(request.options.reappearance.x), y: Number(request.options.reappearance.y) } : null;
   const attackDestination = fullRule?.type !== "hound-seekers" && request.options?.destination && { x: Number(request.options.destination.x), y: Number(request.options.destination.y) };
   const attackOrigin = actor && (assassinReappearance || attackDestination) ? { ...actor, ...(assassinReappearance || attackDestination) } : actor;
+  if (actor && attackOrigin && family.selectAllAdjacentAfterMove) {
+    targets=(scene.actors||[]).filter(target=>target.id!==actor.id&&!target.knockedOut&&target.space===actor.space&&distance(attackOrigin,target)<=1);
+    targetIds=targets.map(target=>target.id);
+  }
   let attackMovePath = [];
   if (targets.length !== targetIds.length) errors.push("Одна из выбранных целей больше не находится на Сцене.");
   if (targets.some(target => target.knockedOut)) errors.push("Выведенный из боя персонаж не может быть целью действия.");
@@ -1182,7 +1187,7 @@ function prepareEnemyRule(scene, data, request = {}) {
     }
     if (rule.id === "enemy.common.cannoneer.trump.fire") events.push({ type: "rule-clock.set", actorId: actor.id, payload: { clockId: "enemy.common.cannoneer.preparation", value: 0, sourceActionId: rule.id } });
     const oniReinforced = Boolean(family.oniModes && (actor.effects || []).includes("positive.укреплен"));
-    const hostileTargets = oniReinforced ? [] : targets.filter(target => target.team !== actor.team), alliedTargets = targets.filter(target => target.team === actor.team);
+    const hostileTargets = oniReinforced ? [] : family.damageAllTargets ? targets : targets.filter(target => target.team !== actor.team), alliedTargets = family.damageAllTargets ? [] : targets.filter(target => target.team === actor.team);
     hostileTargets.forEach(target => events.push({ type: "reaction.offer", actorId: target.id, payload: { sourceActorId: actor.id, actionId: rule.id } }));
     const tensionMultiplier = enemyAttackTensionMultiplier(rule.id);
     const effectAttack = effectAttackStatus(scene, actor.id, hostileTargets.map(target => target.id));

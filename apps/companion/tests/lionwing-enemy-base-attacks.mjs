@@ -38,6 +38,7 @@ const npcActionIds = [
   "lionwing.npc.cultist.swipe",
   "lionwing.npc.duelist.fleche",
   "lionwing.npc.spright.incision",
+  "lionwing.npc.rifter.emerge",
   "lionwing.npc.daredevil.dance",
   "lionwing.npc.enchanter.heartbreaker",
   "lionwing.npc.hound-master.shove",
@@ -53,7 +54,6 @@ const manualActionIds = [
   "lionwing.npc.oni.polaris",
   "lionwing.npc.matriarch.destroy-the-interloper",
   "lionwing.npc.coordinator.fanaticize",
-  "lionwing.npc.rifter.emerge",
   "lionwing.npc.swarm.tear",
 ];
 const fullActionIds = ["lionwing.npc.cannoneer.load"];
@@ -204,6 +204,23 @@ assert.equal(incisionTeleport.ok, true, incisionTeleport.errors?.join(" "));
 const incisionMove=incisionTeleport.events.find(event=>event.type==="actor.move");
 assert.deepEqual([incisionMove.payload.x,incisionMove.payload.y],[4,2]);
 assert.equal(incisionMove.payload.teleport,true,"Incision commits its destination as a Teleport");
+
+// Rifter Emerge derives every adjacent character after the Teleport instead
+// of trusting a partial target selection, then uses the shared Attack flow.
+let rifter=scene("lionwing.npc.rifter",{actors:[
+  actor("enemy","enemy",1,2,{profileId:"lionwing.npc.rifter"}),
+  actor("hero-a","hero",4,1),actor("hero-b","hero",5,2),
+  actor("ally","enemy",4,3,{profileId:"lionwing.npc.cultist"}),
+]});
+const emergeStatus=engine.availableEnemyRules(rifter,data,"enemy").find(item=>item.id==="lionwing.npc.rifter.emerge");
+assert.equal(emergeStatus.automation,"attack");
+const emergePrepared=engine.prepareEnemyRule(rifter,data,{actorId:"enemy",ruleId:emergeStatus.id,options:{destination:{x:4,y:2}},targetIds:[],roll:dice(6,[6,5,1,1,1,1])});
+assert.equal(emergePrepared.ok,true,emergePrepared.errors?.join(" "));
+assert.deepEqual(new Set(emergePrepared.events.find(event=>event.type==="attack.pending").payload.targetIds),new Set(["hero-a","hero-b","ally"]),"Emerge attacks every adjacent character, including allies");
+assert.equal(emergePrepared.events.filter(event=>event.type==="marker.create"&&event.payload.markerKind==="rift").length,2,"Emerge creates Rifts at departure and arrival");
+rifter=commitWithIds(rifter,emergePrepared,"emerge").result.scene;
+assert.deepEqual([rifter.actors.find(item=>item.id==="enemy").x,rifter.actors.find(item=>item.id==="enemy").y],[4,2]);
+assert.ok(rifter.pendingAction,"Emerge opens the ordinary Reaction and damage pipeline");
 
 // Guardian Shove: preview does not mutate, commit spends AP and opens the
 // ordinary Reaction window, then the normal resistance/evasion/damage reducer
