@@ -138,6 +138,30 @@ const passAndResolve = (s, prefix) => {
 const available = engine.availableEnemyRules(scene("lionwing.npc.guardian"), data, "enemy");
 assert.ok(available.length >= 2, "canonical profile actions are visible to the GM query");
 assert.ok(engine.availableEnemyRules(scene("lionwing.npc.guardian"), context.window.DAWN_LIONWING_DATA, "enemy").some(item => item.id === "lionwing.npc.guardian.shove"), "canonical edition data is accepted directly by the profile bridge");
+// Profile passives must use the canonical LionWing IDs as well as the legacy
+// IDs still present in older saved scenes. Guardian's aura stops ordinary
+// movement when a route enters an adjacent space; Builder can cross an
+// Obstacle (terrain) in both the preview and commit path.
+const passiveScene = scene("lionwing.npc.guardian", {
+  activeActorId: null,
+  actors: [
+    actor("mover", "hero", 1, 2),
+    actor("guardian", "enemy", 3, 2, { profileId: "lionwing.npc.guardian" }),
+  ],
+});
+assert.deepEqual(JSON.parse(JSON.stringify(engine.movementPath(passiveScene, "mover", { x: 3, y: 2 }, { maxDistance: 2, ignoreEnemies: true }))), [], "canonical Guardian passive adds adjacent Difficult Terrain");
+const builderScene = scene("lionwing.npc.builder", {
+  activeActorId: null,
+  actors: [actor("builder", "enemy", 1, 2, { profileId: "lionwing.npc.builder" }), actor("target", "hero", 6, 2)],
+  objects: [{ id: "obstacle", type: "terrain", space: "main", cells: ["2,2"], hp: 10, maxHp: 10 }],
+});
+assert.deepEqual(JSON.parse(JSON.stringify(engine.movementPath(builderScene, "builder", { x: 3, y: 2 }, { maxDistance: 2, ignoreEnemies: true }))), [{ x: 2, y: 2 }, { x: 3, y: 2 }], "canonical Builder passive allows movement through an Obstacle");
+const builderTurn = clone(builderScene);
+builderTurn.activeActorId = "builder";
+const builderStep = engine.prepareAction(builderTurn, data, { actorId: "builder", actionId: "action.движение.шаг", destination: { x: 3, y: 2 } });
+assert.equal(builderStep.ok, true, builderStep.errors?.join(" "));
+const builderMoved = engine.dispatchMany(builderTurn, builderStep.events).scene;
+assert.equal(builderMoved.actors.find(item => item.id === "builder").x, 3, "canonical Builder passive is honored by the committed LionWing movement reducer");
 const canonicalNpcs = context.window.DAWN_LIONWING_DATA.coreRules.npcs.list;
 const canonicalAttackIds = canonicalNpcs.flatMap(profile => (profile.actions || []).filter(action => action.kind === "attack").map(action => action.id));
 assert.equal(canonicalAttackIds.length, 40, "all canonical NPC attack actions are audited");

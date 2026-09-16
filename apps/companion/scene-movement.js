@@ -69,9 +69,10 @@ function movementPath(scene, actorId, destination, options = {}) {
   const end = { x: Number(destination.x), y: Number(destination.y) }, limit = Number.isFinite(Number(options.maxDistance)) ? Number(options.maxDistance) : Infinity;
   if (end.x < 0 || end.y < 0 || end.x >= space.width || end.y >= space.height) return [];
   const terrain = new Set((scene.objects || []).filter(object => object.space === actor.space && object.type === "terrain").flatMap(object => object.cells || []));
+  const movesThroughObstacles = ["enemy.common.builder", "lionwing.npc.builder"].includes(actor.profileId);
   const difficult = new Set((scene.objects || []).filter(object => object.space === actor.space && object.type === "difficult").flatMap(object => object.cells || []));
   for (const zone of (scene.actors || []).filter(item => item.kind === "crowd" && !item.knockedOut && item.team !== actor.team && item.space === actor.space)) difficult.add(cellKey(zone));
-  for (const guardian of (scene.actors || []).filter(item => !item.knockedOut && item.team !== actor.team && item.profileId === "enemy.common.guardian" && item.space === actor.space)) {
+  for (const guardian of (scene.actors || []).filter(item => !item.knockedOut && item.team !== actor.team && ["enemy.common.guardian", "lionwing.npc.guardian"].includes(item.profileId) && item.space === actor.space)) {
     for (const [dx, dy] of [[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,-1],[1,-1],[-1,1]]) difficult.add(`${guardian.x + dx},${guardian.y + dy}`);
   }
   for(const cell of actor.difficultTerrainImmunity||[])difficult.delete(cell);
@@ -82,7 +83,7 @@ function movementPath(scene, actorId, destination, options = {}) {
     .filter(item => !actorBanished && !hasEffect(scene, item, "positive.изгнан")).map(item => `${item.x},${item.y}`));
   const cinematic = space.mode === "cinematic";
   if (cinematic && !options.ignoreDifficult) opponents.forEach(cell => difficult.add(cell));
-  const blocked = point => removed.has(cellKey(point)) || (!options.ignoreTerrain && terrain.has(cellKey(point))) || (!cinematic && !options.ignoreEnemies && opponents.has(cellKey(point)));
+  const blocked = point => removed.has(cellKey(point)) || (!options.ignoreTerrain && !movesThroughObstacles && terrain.has(cellKey(point))) || (!cinematic && !options.ignoreEnemies && opponents.has(cellKey(point)));
   if (options.straight) {
     const dx = end.x - actor.x, dy = end.y - actor.y, ax = Math.abs(dx), ay = Math.abs(dy);
     if (!(dx === 0 || dy === 0 || ax === ay)) return [];
