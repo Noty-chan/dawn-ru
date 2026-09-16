@@ -61,9 +61,9 @@ function normalizedEncounterApContract(enemy,{profileEdition=null,edition=null}=
   return{baseAp:crowd||modifier?0:explicitBase??explicitAp??fallback,ap:crowd||modifier?0:explicitAp??explicitBase??fallback};
 }
 function normalizeGmLibraryEnemy(enemy,edition=null){
-  const kind=enemy?.kind==="crowd"?"crowd":"enemy",profileId=typeof enemy?.profileId==="string"?enemy.profileId:"",ap=normalizedEncounterApContract({ ...enemy,kind,profileId },{edition});
+  const kind=enemy?.kind==="crowd"?"crowd":"enemy",team=enemy?.team==="hero"?"hero":"enemy",profileId=typeof enemy?.profileId==="string"?enemy.profileId:"",ap=normalizedEncounterApContract({ ...enemy,kind,profileId },{edition});
   const numberOrNull=(value,min=0,max=9999)=>value===""||value==null||!Number.isFinite(Number(value))?null:clamp(value,min,max);
-  return {kind,profileId,enemyVariantId:typeof enemy?.enemyVariantId==="string"?enemy.enemyVariantId:null,compoundId:typeof enemy?.compoundId==="string"&&enemy.compoundId.trim()?enemy.compoundId.trim().slice(0,120):null,compoundDefense:["armor","evasion"].includes(enemy?.compoundDefense)?enemy.compoundDefense:null,crowdType:["mob","swarm","guards","undead","hounds","civilians","custom"].includes(enemy?.crowdType)?enemy.crowdType:"mob",crowdGroupId:typeof enemy?.crowdGroupId==="string"?enemy.crowdGroupId.slice(0,120):null,source:typeof enemy?.source==="string"?enemy.source.slice(0,160):"",name:typeof enemy?.name==="string"?enemy.name.slice(0,120):"Противник",tier:kind==="crowd"?0:clamp(enemy?.tier||1,1,99),x:clamp(enemy?.x,0,11),y:clamp(enemy?.y,0,11),hp:clamp(enemy?.hp,0,9999),maxHp:clamp(enemy?.maxHp,0,9999),ap:ap.ap,baseAp:ap.baseAp,speed:clamp(enemy?.speed,0,99),armor:clamp(enemy?.armor,0,99),evasion:clamp(enemy?.evasion,0,9999),effects:cleanArray(enemy?.effects).slice(0,30),tokenSymbol:typeof enemy?.tokenSymbol==="string"?enemy.tokenSymbol.slice(0,4):"☠",tokenColor:safeColor(enemy?.tokenColor,"#902a3d"),tokenImage:safeTokenImage(enemy?.tokenImage),portraitImage:safeImage(enemy?.portraitImage),gmRole:["named","boss","npc"].includes(enemy?.gmRole)?enemy.gmRole:"named",notes:typeof enemy?.notes==="string"?enemy.notes.slice(0,1200):""};
+  return {kind,team,profileId,enemyVariantId:typeof enemy?.enemyVariantId==="string"?enemy.enemyVariantId:null,compoundId:typeof enemy?.compoundId==="string"&&enemy.compoundId.trim()?enemy.compoundId.trim().slice(0,120):null,compoundDefense:["armor","evasion"].includes(enemy?.compoundDefense)?enemy.compoundDefense:null,crowdType:["mob","swarm","guards","undead","hounds","civilians","custom"].includes(enemy?.crowdType)?enemy.crowdType:"mob",crowdGroupId:typeof enemy?.crowdGroupId==="string"?enemy.crowdGroupId.slice(0,120):null,source:typeof enemy?.source==="string"?enemy.source.slice(0,160):"",name:typeof enemy?.name==="string"?enemy.name.slice(0,120):"Противник",tier:kind==="crowd"?0:clamp(enemy?.tier||1,1,99),x:clamp(enemy?.x,0,11),y:clamp(enemy?.y,0,11),hp:clamp(enemy?.hp,0,9999),maxHp:clamp(enemy?.maxHp,0,9999),ap:ap.ap,baseAp:ap.baseAp,speed:clamp(enemy?.speed,0,99),armor:clamp(enemy?.armor,0,99),evasion:clamp(enemy?.evasion,0,9999),effects:cleanArray(enemy?.effects).slice(0,30),tokenSymbol:typeof enemy?.tokenSymbol==="string"?enemy.tokenSymbol.slice(0,4):"☠",tokenColor:safeColor(enemy?.tokenColor,team==="hero"?"#287a73":"#902a3d"),tokenImage:safeTokenImage(enemy?.tokenImage),portraitImage:safeImage(enemy?.portraitImage),gmRole:["named","boss","npc"].includes(enemy?.gmRole)?enemy.gmRole:"named",notes:typeof enemy?.notes==="string"?enemy.notes.slice(0,1200):""};
 }
 function normalizeGmLibrary(raw){
   const source=raw&&typeof raw==="object"?raw:{},roles=new Set(["named","boss","npc"]),numberOrNull=(value,min=0,max=9999)=>value===""||value==null||!Number.isFinite(Number(value))?null:clamp(value,min,max);
@@ -603,15 +603,23 @@ function abilityCost(ability=S.ability){
   const words=Object.entries(ability.words).flatMap(([group,ids])=>ids.map(id=>{const word=wordById(id,ability);return word?{...word,group}:null})).filter(Boolean);
   return Logic.calculateAbilityCost({enabled:ability.enabled,rank:ability.rank,words,xWord:wordById(ability.xNoun,ability),specializations:ability.specializations,forceCondition:ability===S.ability&&hasGift("Uncontrollable Power")});
 }
+const RAASHA_HERO_ID="237281b8-2dbe-42e7-b696-b66129836367";
+const RAASHA_PSIONIC_DISCIPLINES=new Set(["псионика эмпатия","псионика кинетика","псионика психометаболизм"]);
+function isRaashaProfile(hero=S){return String(hero?.id||hero?.heroId||"")===RAASHA_HERO_ID}
+function isRaashaPsionicSkill(hero,skill){const name=String(skill?.name||"").toLocaleLowerCase("ru").replace(/ё/g,"е").replace(/[^а-яa-z0-9]+/gi," ").trim();return isRaashaProfile(hero)&&RAASHA_PSIONIC_DISCIPLINES.has(name)}
 function budgets(){
   const t=S.tier,rules=activeBuilderRules(),aCost=abilityCost(),taintedCost=abilityCost(S.taintedAbility),performanceSkill=S.skills.find(s=>s.id===S.mods.performanceSkill);
-  const rankAccounting=Logic.calculateCreationBudgets({tier:t,builderRules:rules,gifts:selectedGiftNames(),skillRanks:S.skills.map(s=>s.rank),performanceTargetRank:performanceSkill?.rank||0,abilityCost:aCost,taintedBodyUsed:S.mods.taintedBody,taintedAbilityCost:taintedCost,gadgetSpent:S.mods.gadgetSpent});
+  // Raasha's Psionic disciplines are one Ability represented as separate Skills so
+  // each discipline can keep its own rank. Account for them as Ability ranks.
+  const budgetSkills=S.skills.filter(skill=>!isRaashaPsionicSkill(S,skill));
+  const psionicAbilityCost=S.skills.filter(skill=>isRaashaPsionicSkill(S,skill)).reduce((sum,skill)=>sum+clamp(skill.rank,1,3),0);
+  const rankAccounting=Logic.calculateCreationBudgets({tier:t,builderRules:rules,gifts:selectedGiftNames(),skillRanks:budgetSkills.map(s=>s.rank),performanceTargetRank:performanceSkill?.rank||0,abilityCost:aCost+psionicAbilityCost,taintedBodyUsed:S.mods.taintedBody,taintedAbilityCost:taintedCost,gadgetSpent:S.mods.gadgetSpent});
   const giftPool=rules?rules.boons.startingChoices+rules.boons.perTier*(t-1):t+1,activeGiftIds=new Set(allGifts().map(gift=>gift.id)),giftSpent=S.gifts.filter(id=>activeGiftIds.has(id)).length;
   const activeTechniqueIds=new Set(activeArchetypes().flatMap(archetype=>archetype.techniques.map(technique=>technique.id)));
   const techPool=(rules?rules.techniques.startingLevels+rules.techniques.levelsPerTier*(t-1):5+2*(t-1))-(rules?.techniques.levelsPerAttributeConversion||2)*S.techConversions,techSpent=Object.entries(S.techniques).filter(([id])=>activeTechniqueIds.has(id)).reduce((n,[,v])=>n+v,0);
   const archUsed=activeArchetypes().filter(a=>a.techniques.some(tech=>(S.techniques[tech.id]||0)>0)).length;
   const attrPool=(rules?.attributes.growthPerTier||2)*(t-1),attrSpent=Object.values(S.attrBonus).reduce((n,v)=>n+v,0);
-  return {aCost,taintedCost,giftPool,giftSpent,techPool,techSpent,archUsed,attrPool,attrSpent,...rankAccounting};
+  return {aCost,taintedCost,giftPool,giftSpent,techPool,techSpent,archUsed,attrPool,attrSpent,raashaPsionicsExempt:psionicAbilityCost,...rankAccounting};
 }
 function effectiveSkillRank(skill){return Math.min(3,skill.rank+(hasGift("Performance Artist")&&S.mods.performanceSkill===skill.id?1:0))}
 function abilityNeedsX(ability=S.ability){return Object.values(ability.words).flat().some(id=>wordById(id,ability)?.marks.includes("☾"))}

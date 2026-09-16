@@ -698,10 +698,16 @@
     if (!options.placement && !options.forced && (effectActive(scene,a,"negative.обездвижен") || effectActive(scene,a,"negative.подброшен") || effectActive(scene,a,"negative.пойман") && activeEffectSources(a,"negative.пойман",scene).some(s => live(actor(scene, s.actorId))&&!effectActive(scene,actor(scene,s.actorId),"positive.исчез")))) fail("Эффект запрещает добровольное движение");
     if (options.forced && effectActive(scene,a,"positive.устойчив")) fail("Устойчивость запрещает принудительное движение");
     const key = p => `${p.x},${p.y}`;
-    const terrain = new Set([...scene.objects.filter(o => o.space === board.id && o.type === "terrain").flatMap(o => o.cells || []),...(scene.topology?.cuts||[]).filter(cut=>cut.space===board.id).flatMap(cut=>cut.cells||[])]);
+    const terrain = new Set(scene.objects.filter(o => o.space === board.id && o.type === "terrain").flatMap(o => o.cells || []));
+    const topologyCuts = new Set((scene.topology?.cuts||[]).filter(cut=>cut.space===board.id).flatMap(cut=>cut.cells||[]));
     const difficult = new Set(scene.objects.filter(o => o.space === board.id && o.type === "difficult").flatMap(o => o.cells || []));
+    const guardianProfiles = new Set(["enemy.common.guardian", "lionwing.npc.guardian"]);
+    const movesThroughObstacles = ["enemy.common.builder", "lionwing.npc.builder"].includes(a.profileId);
+    for (const guardian of scene.actors.filter(item => live(item) && item.team !== a.team && guardianProfiles.has(item.profileId) && item.space === board.id)) {
+      for (const [dx, dy] of [[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,-1],[1,-1],[-1,1]]) difficult.add(`${guardian.x + dx},${guardian.y + dy}`);
+    }
     const occupied = scene.actors.filter(x => x.id !== a.id && (!a.compoundId||x.compoundId!==a.compoundId) && x.space === board.id && live(x) && !effectActive(scene,x, "positive.исчез") && effectActive(scene,a,"positive.изгнан") === effectActive(scene,x,"positive.изгнан"));
-    const blocked = p => !options.ignoreTerrain && terrain.has(key(p));
+    const blocked = p => !options.ignoreTerrain && (topologyCuts.has(key(p)) || !movesThroughObstacles && terrain.has(key(p)));
     const footprint = p => {
       const cells=[];
       for(let y=0;y<Number(options.height??a.occupiedHeight??1);y++)for(let x=0;x<Number(options.width??a.occupiedWidth??1);x++)cells.push({x:p.x+x,y:p.y+y});
