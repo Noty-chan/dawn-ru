@@ -8,6 +8,7 @@ const sceneUiSource=fs.readFileSync(new URL("../scene-ui.js",import.meta.url),"u
 assert.match(appCoreSource,/RAASHA_HERO_ID="237281b8-2dbe-42e7-b696-b66129836367"/);
 assert.match(appCoreSource,/budgetSkills=S\.skills\.filter\(skill=>!isRaashaPsionicSkill\(S,skill\)\)/,"Psionic disciplines must not consume the ordinary Skill rank budget");
 assert.match(appCoreSource,/abilityCost:aCost\+psionicAbilityCost/,"Psionic disciplines must consume Raasha's Ability allowance");
+assert.match(sceneUiSource,/actor\.heroId==="237281b8-2dbe-42e7-b696-b66129836367"/,"The isolated table UI must recognize Raasha without app-core globals");
 assert.match(sceneUiSource,/usesAbility:Boolean\(ability\)\|\|psionicDiscipline/,"Psionic discipline rolls must trigger Ability rules");
 assert.match(sceneUiSource,/usesSkill:Boolean\(skill\)&&!psionicDiscipline/,"Psionic disciplines must not simultaneously count as Skills");
 
