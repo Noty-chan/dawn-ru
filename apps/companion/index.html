@@ -28,7 +28,7 @@
       <button type="button" data-mode="rules" data-i18n="nav.rules">Правила</button>
       <button type="button" data-mode="reference" data-i18n="nav.reference">Справочник</button>
     </nav>
-    <button type="button" class="icon-button app-settings-open" id="app-settings-open" data-open-app-settings aria-label="Открыть настройки" title="Настройки">⚙</button>
+    <div class="topbar-actions"><button type="button" class="bug-report-open" id="bug-report-open">Баг-репорт</button><button type="button" class="icon-button app-settings-open" id="app-settings-open" data-open-app-settings aria-label="Открыть настройки" title="Настройки">⚙</button></div>
   </header>
 
   <dialog id="app-settings-dialog" class="app-settings-dialog" aria-labelledby="app-settings-title">
@@ -39,6 +39,19 @@
       <details id="supplement-picker" class="supplement-picker app-settings-section"><summary><span data-i18n="supplements.title">Дополнения</span><small id="supplement-count"></small></summary><div id="supplement-options" class="supplement-options"></div></details>
       <section class="app-settings-section app-table-settings"><div><h3 data-i18n="settings.tableTitle">Интерфейс стола</h3><p data-i18n="settings.tableHelp">Компоновка, размеры панелей и вид ленты участников.</p></div><div id="scene-layout-settings" class="scene-layout-settings"></div></section>
     </div>
+  </dialog>
+
+  <dialog id="bug-report-dialog" class="bug-report-dialog" aria-labelledby="bug-report-title">
+    <form method="dialog" class="bug-report-card">
+      <header><div><span id="bug-report-eyebrow">АЛЬФА-ТЕСТ</span><h2 id="bug-report-title">Сообщить о проблеме</h2></div><button type="submit" class="icon-button" value="close" id="bug-report-close" aria-label="Закрыть">×</button></header>
+      <p id="bug-report-help"></p>
+      <label><span id="bug-report-description-label">Что произошло?</span><textarea id="bug-report-description" rows="5" maxlength="4000"></textarea></label>
+      <label><span id="bug-report-steps-label">Как это повторить?</span><textarea id="bug-report-steps" rows="4" maxlength="4000"></textarea></label>
+      <label class="bug-report-consent"><input id="bug-report-include-state" type="checkbox" checked><span id="bug-report-include-state-label"></span></label>
+      <details><summary id="bug-report-preview-label">Просмотреть технический отчёт</summary><pre id="bug-report-preview"></pre></details>
+      <p class="bug-report-discord" id="bug-report-discord"></p>
+      <footer><button type="button" id="bug-report-copy" class="primary">Скопировать отчёт</button><button type="button" id="bug-report-download">Скачать .txt</button></footer>
+    </form>
   </dialog>
 
   <div class="app-shell">
@@ -442,6 +455,7 @@
   <script src="app-scene-events.js?v=__BUILD_VERSION__"></script>
   <script src="app-play-events.js?v=__BUILD_VERSION__"></script>
   <script src="lionwing-ui.js?v=__BUILD_VERSION__"></script>
+  <script src="diagnostics.js?v=__BUILD_VERSION__"></script>
   <script src="app.js?v=__BUILD_VERSION__"></script>
 </body>
 </html>
