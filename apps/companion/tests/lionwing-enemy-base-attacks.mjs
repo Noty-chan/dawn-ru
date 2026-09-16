@@ -9,6 +9,11 @@ for (const file of ["data.js", "edition-lionwing.js", "lionwing-table-data.js", 
   vm.runInContext(fs.readFileSync(new URL(`../${file}`, import.meta.url), "utf8"), context, { filename: file });
 }
 loadSceneEngine(context);
+const sceneUi=fs.readFileSync(new URL("../scene-ui.js",import.meta.url),"utf8"),css=fs.readFileSync(new URL("../app.css",import.meta.url),"utf8");
+assert.match(sceneUi,/function enemyAutomationDetails\(rule,state=rule\)/,"enemy actions must explain their automation coverage");
+assert.match(sceneUi,/Автоматизировано:/,"enemy cards must label automated behavior");
+assert.match(sceneUi,/Вручную:/,"enemy cards must label Narrator-confirmed behavior");
+assert.match(css,/\.enemy-automation-note\{/,"enemy automation explanations must have a visible card treatment");
 
 const data = context.window.DAWN_DATA;
 const engine = context.window.DAWN_SCENE_ENGINE;
