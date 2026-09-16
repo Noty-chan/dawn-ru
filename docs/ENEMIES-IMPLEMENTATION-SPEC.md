@@ -136,10 +136,10 @@
 
 #### Разруб `lionwing.npc.executioner.cleave`
 
-- **Заявленный кодовый статус:** `assisted` (помощь Нарратора).
+- **Заявленный кодовый статус:** `attack` (атака).
 - **Входная конфигурация:** `{"kind":"attack","apCost":1,"target":"targetIds: 0"}`.
-- **Текущий адаптер:** нет зарегистрированного исполняемого адаптера.
-- **Нужно добавить / проверить:** Добавить named resolver/семейную конфигурацию, которая целиком покрывает trigger, выбор, effect/reward и срок. Базовая форма входа: `targetIds: 0`.
+- **Текущий адаптер:** статус `attack`; реестр: `scene-actions.js:33`.
+- **Нужно добавить / проверить:** Кодовый пробел не выведен из статуса; нужны прямые pos/neg/boundary тесты и evidence для UI/сети/save-load.
 
 #### Bifurcate `lionwing.npc.executioner.bifurcate`
 
@@ -161,7 +161,7 @@
 
 - **Заявленный кодовый статус:** `attack` (атака).
 - **Входная конфигурация:** `{"kind":"attack","apCost":1,"target":"targetIds: 0"}`.
-- **Текущий адаптер:** статус `attack`; реестр: `scene-actions.js:33`.
+- **Текущий адаптер:** статус `attack`; реестр: `scene-actions.js:34`.
 - **Нужно добавить / проверить:** Кодовый пробел не выведен из статуса; нужны прямые pos/neg/boundary тесты и evidence для UI/сети/save-load.
 
 #### Shockwave `lionwing.npc.javelin.shockwave`
@@ -184,7 +184,7 @@
 
 - **Заявленный кодовый статус:** `attack` (атака).
 - **Входная конфигурация:** `{"kind":"attack","apCost":1,"target":"targetIds: 0"}`.
-- **Текущий адаптер:** статус `attack`; реестр: `scene-actions.js:34`.
+- **Текущий адаптер:** статус `attack`; реестр: `scene-actions.js:35`.
 - **Нужно добавить / проверить:** Кодовый пробел не выведен из статуса; нужны прямые pos/neg/boundary тесты и evidence для UI/сети/save-load.
 
 #### Martial Perfection `lionwing.npc.pugilist.martial-perfection`
@@ -207,7 +207,7 @@
 
 - **Заявленный кодовый статус:** `attack` (атака).
 - **Входная конфигурация:** `{"kind":"attack","apCost":1,"target":"targetIds: 0"}`.
-- **Текущий адаптер:** статус `attack`; реестр: `scene-actions.js:35`.
+- **Текущий адаптер:** статус `attack`; реестр: `scene-actions.js:36`.
 - **Нужно добавить / проверить:** Кодовый пробел не выведен из статуса; нужны прямые pos/neg/boundary тесты и evidence для UI/сети/save-load.
 
 #### Headshot `lionwing.npc.ranger.headshot`
@@ -230,7 +230,7 @@
 
 - **Заявленный кодовый статус:** `attack` (атака).
 - **Входная конфигурация:** `{"kind":"attack","apCost":1,"target":"targetIds: 0"}`.
-- **Текущий адаптер:** статус `attack`; реестр: `scene-actions.js:36`.
+- **Текущий адаптер:** статус `attack`; реестр: `scene-actions.js:37`.
 - **Нужно добавить / проверить:** Кодовый пробел не выведен из статуса; нужны прямые pos/neg/boundary тесты и evidence для UI/сети/save-load.
 
 #### Thunderclap And Flash `lionwing.npc.ronin.thunderclap-and-flash`
@@ -276,7 +276,7 @@
 
 - **Заявленный кодовый статус:** `attack` (атака).
 - **Входная конфигурация:** `{"kind":"attack","apCost":1,"target":"targetIds: 0"}`.
-- **Текущий адаптер:** статус `attack`; реестр: `scene-actions.js:37`.
+- **Текущий адаптер:** статус `attack`; реестр: `scene-actions.js:38`.
 - **Нужно добавить / проверить:** Кодовый пробел не выведен из статуса; нужны прямые pos/neg/boundary тесты и evidence для UI/сети/save-load.
 
 #### EXPLOSION `lionwing.npc.witch.explosion`
@@ -297,10 +297,10 @@
 
 #### За мной `lionwing.npc.bodyguards.behind-me`
 
-- **Заявленный кодовый статус:** `assisted` (помощь Нарратора).
+- **Заявленный кодовый статус:** `attack` (атака).
 - **Входная конфигурация:** `{"kind":"attack","apCost":1,"target":"targetIds: 0"}`.
-- **Текущий адаптер:** нет зарегистрированного исполняемого адаптера.
-- **Нужно добавить / проверить:** Добавить named resolver/семейную конфигурацию, которая целиком покрывает trigger, выбор, effect/reward и срок. Базовая форма входа: `targetIds: 0`.
+- **Текущий адаптер:** статус `attack`; реестр: `scene-actions.js:45`.
+- **Нужно добавить / проверить:** Кодовый пробел не выведен из статуса; нужны прямые pos/neg/boundary тесты и evidence для UI/сети/save-load.
 
 #### Reinforcements `lionwing.npc.bodyguards.reinforcements`
 
@@ -320,10 +320,10 @@
 
 #### Роящаяся погоня `lionwing.npc.broodmother.swarming-chase`
 
-- **Заявленный кодовый статус:** `assisted` (помощь Нарратора).
+- **Заявленный кодовый статус:** `attack` (атака).
 - **Входная конфигурация:** `{"kind":"attack","apCost":1,"target":"targetIds: 0"}`.
-- **Текущий адаптер:** нет зарегистрированного исполняемого адаптера.
-- **Нужно добавить / проверить:** Добавить named resolver/семейную конфигурацию, которая целиком покрывает trigger, выбор, effect/reward и срок. Базовая форма входа: `targetIds: 0`.
+- **Текущий адаптер:** статус `attack`; реестр: `scene-actions.js:46`.
+- **Нужно добавить / проверить:** Кодовый пробел не выведен из статуса; нужны прямые pos/neg/boundary тесты и evidence для UI/сети/save-load.
 
 #### Roar `lionwing.npc.broodmother.roar`
 
@@ -343,10 +343,10 @@
 
 #### Буйство `lionwing.npc.cocoon.rampage`
 
-- **Заявленный кодовый статус:** `assisted` (помощь Нарратора).
+- **Заявленный кодовый статус:** `attack` (атака).
 - **Входная конфигурация:** `{"kind":"attack","apCost":1,"target":"targetIds: 0"}`.
-- **Текущий адаптер:** нет зарегистрированного исполняемого адаптера.
-- **Нужно добавить / проверить:** Добавить named resolver/семейную конфигурацию, которая целиком покрывает trigger, выбор, effect/reward и срок. Базовая форма входа: `targetIds: 0`.
+- **Текущий адаптер:** статус `attack`; реестр: `scene-actions.js:47`.
+- **Нужно добавить / проверить:** Кодовый пробел не выведен из статуса; нужны прямые pos/neg/boundary тесты и evidence для UI/сети/save-load.
 
 #### Quick Growth `lionwing.npc.cocoon.quick-growth`
 
@@ -368,7 +368,7 @@
 
 - **Заявленный кодовый статус:** `attack` (атака).
 - **Входная конфигурация:** `{"kind":"attack","apCost":1,"target":"targetIds: 0"}`.
-- **Текущий адаптер:** статус `attack`; реестр: `scene-actions.js:51`.
+- **Текущий адаптер:** статус `attack`; реестр: `scene-actions.js:55`.
 - **Нужно добавить / проверить:** Кодовый пробел не выведен из статуса; нужны прямые pos/neg/boundary тесты и evidence для UI/сети/save-load.
 
 #### Disassemble `lionwing.npc.duelist.disassemble`
@@ -391,7 +391,7 @@
 
 - **Заявленный кодовый статус:** `attack` (атака).
 - **Входная конфигурация:** `{"kind":"attack","apCost":1,"target":"targetIds: 0"}`.
-- **Текущий адаптер:** статус `attack`; реестр: `scene-actions.js:38`.
+- **Текущий адаптер:** статус `attack`; реестр: `scene-actions.js:39`.
 - **Нужно добавить / проверить:** Кодовый пробел не выведен из статуса; нужны прямые pos/neg/boundary тесты и evidence для UI/сети/save-load.
 
 #### Regurgitate `lionwing.npc.glutton.regurgitate`
@@ -414,7 +414,7 @@
 
 - **Заявленный кодовый статус:** `attack` (атака).
 - **Входная конфигурация:** `{"kind":"attack","apCost":1,"target":"targetIds: 0"}`.
-- **Текущий адаптер:** статус `attack`; реестр: `scene-actions.js:39`.
+- **Текущий адаптер:** статус `attack`; реестр: `scene-actions.js:40`.
 - **Нужно добавить / проверить:** Кодовый пробел не выведен из статуса; нужны прямые pos/neg/boundary тесты и evidence для UI/сети/save-load.
 
 #### Imposing Presence `lionwing.npc.guardian.imposing-presence`
@@ -437,7 +437,7 @@
 
 - **Заявленный кодовый статус:** `attack` (атака).
 - **Входная конфигурация:** `{"kind":"attack","apCost":1,"target":"targetIds: 0"}`.
-- **Текущий адаптер:** статус `attack`; реестр: `scene-actions.js:40`.
+- **Текущий адаптер:** статус `attack`; реестр: `scene-actions.js:41`.
 - **Нужно добавить / проверить:** Кодовый пробел не выведен из статуса; нужны прямые pos/neg/boundary тесты и evidence для UI/сети/save-load.
 
 #### CHARGE! `lionwing.npc.mount.charge`
@@ -483,7 +483,7 @@
 
 - **Заявленный кодовый статус:** `attack` (атака).
 - **Входная конфигурация:** `{"kind":"attack","apCost":1,"target":"targetIds: 0"}`.
-- **Текущий адаптер:** статус `attack`; реестр: `scene-actions.js:41`.
+- **Текущий адаптер:** статус `attack`; реестр: `scene-actions.js:42`.
 - **Нужно добавить / проверить:** Кодовый пробел не выведен из статуса; нужны прямые pos/neg/boundary тесты и evidence для UI/сети/save-load.
 
 #### Weal And Woe `lionwing.npc.paladin.weal-and-woe`
@@ -506,7 +506,7 @@
 
 - **Заявленный кодовый статус:** `attack` (атака).
 - **Входная конфигурация:** `{"kind":"attack","apCost":1,"target":"targetIds: 0"}`.
-- **Текущий адаптер:** статус `attack`; реестр: `scene-actions.js:42`.
+- **Текущий адаптер:** статус `attack`; реестр: `scene-actions.js:43`.
 - **Нужно добавить / проверить:** Кодовый пробел не выведен из статуса; нужны прямые pos/neg/boundary тесты и evidence для UI/сети/save-load.
 
 #### Hollowed Eyes `lionwing.npc.revenant.hollowed-eyes`
@@ -529,7 +529,7 @@
 
 - **Заявленный кодовый статус:** `attack` (атака).
 - **Входная конфигурация:** `{"kind":"attack","apCost":1,"target":"targetIds: 0"}`.
-- **Текущий адаптер:** статус `attack`; реестр: `scene-actions.js:52`.
+- **Текущий адаптер:** статус `attack`; реестр: `scene-actions.js:56`.
 - **Нужно добавить / проверить:** Кодовый пробел не выведен из статуса; нужны прямые pos/neg/boundary тесты и evidence для UI/сети/save-load.
 
 #### Thunderous Ascension `lionwing.npc.spright.thunderous-ascension`
@@ -552,7 +552,7 @@
 
 - **Заявленный кодовый статус:** `attack` (атака).
 - **Входная конфигурация:** `{"kind":"attack","apCost":1,"target":"targetIds: 0"}`.
-- **Текущий адаптер:** статус `attack`; реестр: `scene-actions.js:43`.
+- **Текущий адаптер:** статус `attack`; реестр: `scene-actions.js:44`.
 - **Нужно добавить / проверить:** Кодовый пробел не выведен из статуса; нужны прямые pos/neg/boundary тесты и evidence для UI/сети/save-load.
 
 #### Plant The Flag `lionwing.npc.bannerman.plant-the-flag`
@@ -575,7 +575,7 @@
 
 - **Заявленный кодовый статус:** `attack` (атака).
 - **Входная конфигурация:** `{"kind":"attack","apCost":1,"target":"targetIds: 0"}`.
-- **Текущий адаптер:** статус `attack`; реестр: `scene-actions.js:44`.
+- **Текущий адаптер:** статус `attack`; реестр: `scene-actions.js:48`.
 - **Нужно добавить / проверить:** Кодовый пробел не выведен из статуса; нужны прямые pos/neg/boundary тесты и evidence для UI/сети/save-load.
 
 #### Army Of Stone `lionwing.npc.builder.army-of-stone`
@@ -637,7 +637,7 @@
 
 - **Заявленный кодовый статус:** `attack` (атака).
 - **Входная конфигурация:** `{"kind":"attack","apCost":1,"target":"targetIds: 0"}`.
-- **Текущий адаптер:** статус `attack`; реестр: `scene-actions.js:45`.
+- **Текущий адаптер:** статус `attack`; реестр: `scene-actions.js:49`.
 - **Нужно добавить / проверить:** Кодовый пробел не выведен из статуса; нужны прямые pos/neg/boundary тесты и evidence для UI/сети/save-load.
 
 #### Savior `lionwing.npc.healer.savior`
@@ -660,7 +660,7 @@
 
 - **Заявленный кодовый статус:** `attack` (атака).
 - **Входная конфигурация:** `{"kind":"attack","apCost":1,"target":"targetIds: 0"}`.
-- **Текущий адаптер:** статус `attack`; реестр: `scene-actions.js:46`.
+- **Текущий адаптер:** статус `attack`; реестр: `scene-actions.js:50`.
 - **Нужно добавить / проверить:** Кодовый пробел не выведен из статуса; нужны прямые pos/neg/boundary тесты и evidence для UI/сети/save-load.
 
 #### Shattered Skies `lionwing.npc.illusionist.shattered-skies`
@@ -706,7 +706,7 @@
 
 - **Заявленный кодовый статус:** `attack` (атака).
 - **Входная конфигурация:** `{"kind":"attack","apCost":1,"target":"targetIds: 0"}`.
-- **Текущий адаптер:** статус `attack`; реестр: `scene-actions.js:47`.
+- **Текущий адаптер:** статус `attack`; реестр: `scene-actions.js:51`.
 - **Нужно добавить / проверить:** Кодовый пробел не выведен из статуса; нужны прямые pos/neg/boundary тесты и evidence для UI/сети/save-load.
 
 #### Sacrifice `lionwing.npc.martyr.sacrifice`
@@ -729,7 +729,7 @@
 
 - **Заявленный кодовый статус:** `attack` (атака).
 - **Входная конфигурация:** `{"kind":"attack","apCost":1,"target":"targetIds: 0"}`.
-- **Текущий адаптер:** статус `attack`; реестр: `scene-actions.js:48`.
+- **Текущий адаптер:** статус `attack`; реестр: `scene-actions.js:52`.
 - **Нужно добавить / проверить:** Кодовый пробел не выведен из статуса; нужны прямые pos/neg/boundary тесты и evidence для UI/сети/save-load.
 
 #### Absolute Sovereignty `lionwing.npc.baron.absolute-sovereignty`
@@ -752,7 +752,7 @@
 
 - **Заявленный кодовый статус:** `attack` (атака).
 - **Входная конфигурация:** `{"kind":"attack","apCost":1,"target":"targetIds: 0"}`.
-- **Текущий адаптер:** статус `attack`; реестр: `scene-actions.js:49`.
+- **Текущий адаптер:** статус `attack`; реестр: `scene-actions.js:53`.
 - **Нужно добавить / проверить:** Кодовый пробел не выведен из статуса; нужны прямые pos/neg/boundary тесты и evidence для UI/сети/save-load.
 
 #### Last Stand `lionwing.npc.berserker.last-stand`
@@ -775,7 +775,7 @@
 
 - **Заявленный кодовый статус:** `full` (полная).
 - **Входная конфигурация:** `{"kind":"attack","apCost":1,"target":"targetIds: 0"}`.
-- **Текущий адаптер:** статус `full`; реестр: `scene-actions.js:187`.
+- **Текущий адаптер:** статус `full`; реестр: `scene-actions.js:191`.
 - **Нужно добавить / проверить:** Кодовый пробел не выведен из статуса; нужны прямые pos/neg/boundary тесты и evidence для UI/сети/save-load.
 
 #### Fire `lionwing.npc.cannoneer.fire`
@@ -798,7 +798,7 @@
 
 - **Заявленный кодовый статус:** `attack` (атака).
 - **Входная конфигурация:** `{"kind":"attack","apCost":1,"target":"targetIds: 0"}`.
-- **Текущий адаптер:** статус `attack`; реестр: `scene-actions.js:50`.
+- **Текущий адаптер:** статус `attack`; реестр: `scene-actions.js:54`.
 - **Нужно добавить / проверить:** Кодовый пробел не выведен из статуса; нужны прямые pos/neg/boundary тесты и evidence для UI/сети/save-load.
 
 #### Grand Calling `lionwing.npc.cultist.grand-calling`
@@ -821,7 +821,7 @@
 
 - **Заявленный кодовый статус:** `attack` (атака).
 - **Входная конфигурация:** `{"kind":"attack","apCost":1,"target":"targetIds: 0"}`.
-- **Текущий адаптер:** статус `attack`; реестр: `scene-actions.js:54`.
+- **Текущий адаптер:** статус `attack`; реестр: `scene-actions.js:58`.
 - **Нужно добавить / проверить:** Кодовый пробел не выведен из статуса; нужны прямые pos/neg/boundary тесты и evidence для UI/сети/save-load.
 
 #### Adrenaline High `lionwing.npc.daredevil.adrenaline-high`
@@ -844,7 +844,7 @@
 
 - **Заявленный кодовый статус:** `attack` (атака).
 - **Входная конфигурация:** `{"kind":"attack","apCost":1,"target":"targetIds: 0"}`.
-- **Текущий адаптер:** статус `attack`; реестр: `scene-actions.js:55`.
+- **Текущий адаптер:** статус `attack`; реестр: `scene-actions.js:59`.
 - **Нужно добавить / проверить:** Кодовый пробел не выведен из статуса; нужны прямые pos/neg/boundary тесты и evidence для UI/сети/save-load.
 
 #### By My Command `lionwing.npc.enchanter.by-my-command`
@@ -867,7 +867,7 @@
 
 - **Заявленный кодовый статус:** `attack` (атака).
 - **Входная конфигурация:** `{"kind":"attack","apCost":1,"target":"targetIds: 0"}`.
-- **Текущий адаптер:** статус `attack`; реестр: `scene-actions.js:56`.
+- **Текущий адаптер:** статус `attack`; реестр: `scene-actions.js:60`.
 - **Нужно добавить / проверить:** Кодовый пробел не выведен из статуса; нужны прямые pos/neg/boundary тесты и evidence для UI/сети/save-load.
 
 #### Wild Hunt `lionwing.npc.hound-master.wild-hunt`
@@ -890,7 +890,7 @@
 
 - **Заявленный кодовый статус:** `attack` (атака).
 - **Входная конфигурация:** `{"kind":"attack","apCost":1,"target":"targetIds: 0"}`.
-- **Текущий адаптер:** статус `attack`; реестр: `scene-actions.js:57`.
+- **Текущий адаптер:** статус `attack`; реестр: `scene-actions.js:61`.
 - **Нужно добавить / проверить:** Кодовый пробел не выведен из статуса; нужны прямые pos/neg/boundary тесты и evidence для UI/сети/save-load.
 
 #### The Danse Macabre `lionwing.npc.necromancer.the-danse-macabre`
@@ -913,7 +913,7 @@
 
 - **Заявленный кодовый статус:** `attack` (атака).
 - **Входная конфигурация:** `{"kind":"attack","apCost":1,"target":"targetIds: 0"}`.
-- **Текущий адаптер:** статус `attack`; реестр: `scene-actions.js:58`.
+- **Текущий адаптер:** статус `attack`; реестр: `scene-actions.js:62`.
 - **Нужно добавить / проверить:** Кодовый пробел не выведен из статуса; нужны прямые pos/neg/boundary тесты и evidence для UI/сети/save-load.
 
 #### Gear Change `lionwing.npc.privateer.gear-change`
@@ -936,7 +936,7 @@
 
 - **Заявленный кодовый статус:** `attack` (атака).
 - **Входная конфигурация:** `{"kind":"attack","apCost":1,"target":"targetIds: 0"}`.
-- **Текущий адаптер:** статус `attack`; реестр: `scene-actions.js:53`.
+- **Текущий адаптер:** статус `attack`; реестр: `scene-actions.js:57`.
 - **Нужно добавить / проверить:** Кодовый пробел не выведен из статуса; нужны прямые pos/neg/boundary тесты и evidence для UI/сети/save-load.
 
 #### Implode `lionwing.npc.rifter.implode`
