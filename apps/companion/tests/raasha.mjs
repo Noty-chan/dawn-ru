@@ -16,6 +16,17 @@ assert.deepEqual(hero.outlooks,["wolf","cursed"]);assert.equal(hero.primaryOutlo
 assert.deepEqual([...hero.gifts].sort(),["cursed.the-voice","wolf.dark-urge","wolf.outgunned"]);
 assert.deepEqual(hero.techniques,{"disruptor.siren":2,"vagabond.master-at-arms":2,"ruiner.spellcrafter":3});
 assert.deepEqual(hero.mods.spellcrafterAugments,["fierce","focused","wild"]);
+const psionics=hero.skills.filter(skill=>skill.name.startsWith("Псионика."));
+assert.deepEqual(psionics.map(skill=>skill.rank),[3,2,2]);
+
+const appCoreSource=fs.readFileSync(new URL("../app-core.js",import.meta.url),"utf8");
+const sceneUiSource=fs.readFileSync(new URL("../scene-ui.js",import.meta.url),"utf8");
+assert.match(appCoreSource,/RAASHA_HERO_ID="237281b8-2dbe-42e7-b696-b66129836367"/);
+assert.match(appCoreSource,/budgetSkills=S\.skills\.filter\(skill=>!isRaashaPsionicSkill\(S,skill\)\)/,"Psionic disciplines must not consume the ordinary Skill rank budget");
+assert.match(appCoreSource,/abilityCost:aCost\+psionicAbilityCost/,"the disciplines must consume Raasha's Ability ranks, including Dark Urge's restricted allowance");
+assert.match(sceneUiSource,/usesAbility:Boolean\(ability\)\|\|psionicDiscipline/);
+assert.match(sceneUiSource,/usesSkill:Boolean\(skill\)&&!psionicDiscipline/);
+assert.match(sceneUiSource,/abilityKey:psionicDiscipline\?"raasha\.psionics"/);
 
 const context={console,Date};context.globalThis=context;context.window=context;
 for(const file of ["data.js","edition-lionwing.js","logic.js","technique-foundation-map.js"])
