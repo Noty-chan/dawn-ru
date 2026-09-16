@@ -32,6 +32,7 @@ const npcActionIds = [
   "lionwing.npc.bannerman.swing",
   "lionwing.npc.bodyguards.behind-me",
   "lionwing.npc.broodmother.swarming-chase",
+  "lionwing.npc.cocoon.rampage",
   "lionwing.npc.builder.violent-construction",
   "lionwing.npc.healer.exsanguinate",
   "lionwing.npc.illusionist.distort-reality",
@@ -50,7 +51,6 @@ const npcActionIds = [
 ];
 const manualActionIds = [
   "lionwing.npc.viper.filet",
-  "lionwing.npc.cocoon.rampage",
   "lionwing.npc.oni.polaris",
   "lionwing.npc.matriarch.destroy-the-interloper",
   "lionwing.npc.coordinator.fanaticize",
@@ -225,6 +225,25 @@ assert.equal(chasePending.payload.damageByTarget.hero,5,"Swarming Chase includes
 broodmother=commitWithIds(broodmother,chase,"swarming-chase").result.scene;
 assert.deepEqual([broodmother.actors.find(item=>item.id==="enemy").x,broodmother.actors.find(item=>item.id==="enemy").y],[3,2]);
 assert.deepEqual([broodmother.actors.find(item=>item.id==="fodder").x,broodmother.actors.find(item=>item.id==="fodder").y],[3,1]);
+
+// Cocoon Rampage performs its unrestricted straight move, then repeats with
+// the LionWing Tension multiplier against fresh adjacent targets.
+let cocoon=scene("lionwing.npc.cocoon",{actors:[
+  actor("enemy","enemy",2,2,{profileId:"lionwing.npc.cocoon"}),
+  actor("hero","hero",4,2),actor("hero-b","hero",3,3),
+]});
+const rampageStatus=engine.availableEnemyRules(cocoon,data,"enemy").find(item=>item.id==="lionwing.npc.cocoon.rampage");
+assert.equal(rampageStatus.automation,"attack");
+const rampage=engine.prepareEnemyRule(cocoon,data,{actorId:"enemy",ruleId:rampageStatus.id,options:{destination:{x:3,y:2}},targetIds:["hero"],roll:dice(5,[6,5,1,1,1])});
+assert.equal(rampage.ok,true,rampage.errors?.join(" "));
+cocoon=commitWithIds(cocoon,rampage,"rampage").result.scene;
+cocoon=passAndResolve(cocoon,"rampage");
+assert.equal(cocoon.pendingPrompt?.kind,"enemy-cocoon-repeat");
+assert.equal(cocoon.pendingPrompt?.context?.ruleId,"lionwing.npc.cocoon.rampage");
+const repeated=engine.respondRulePrompt(cocoon,data,{actorId:"enemy",choice:"target:hero-b",roll:dice(5,[6,5,1,1,1])});
+assert.equal(repeated.ok,true,repeated.errors?.join(" "));
+const repeatedPending=repeated.events.find(event=>event.type==="attack.pending");
+assert.equal(repeatedPending.payload.damage,4,"LionWing repeat uses Hits + Tension, not the retired Tension × 2 rule");
 
 // Duelist Fleche reuses the shared Attack and post-resolution movement
 // contracts while its passive binds Provoked to this Duelist.
