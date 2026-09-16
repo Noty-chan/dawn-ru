@@ -43,6 +43,7 @@ const LIONWING_AUTO_ATTACK_RULES = new Map([
   ["lionwing.npc.revenant.tear-from-the-soul", { dice: "5(+1)", tensionMultiplier: 1, targetEffects: [], reward: "Deal [Hits] + [Tension] damage and make the target lose 1 + [Tier] Focus.", family: { range: 3, maxTargets: 1, postResourceLoss: { resource: "focus", formula: "1(+1)" } } }],
   ["lionwing.npc.bannerman.swing", { dice: "4(+1)", tensionMultiplier: 1, targetEffects: [], reward: "Deal [Hits] + [Tension] damage and Weaken an untouched target.", family: { adjacent: true, maxTargets: 1, conditionalEffectsIfUntouched: ["negative.ослаблен"] } }],
   ["lionwing.npc.bodyguards.behind-me", { dice: "5(+1)", tensionMultiplier: 1, targetEffects: [], reward: "Reinforce allied targets; deal [Hits] + [Tension] damage and Daze untouched opponents.", family: { maxTargets: 3, audience: "any", allyEffects: ["positive.укреплен"], enemyEffectsIfUntouched: ["negative.ошеломлен"], crowdAdvance: 1, targetAdjacentToCrowd: true } }],
+  ["lionwing.npc.broodmother.swarming-chase", { dice: "4(+1)", tensionMultiplier: 1, targetEffects: [], reward: "Deal [Hits] + [Tension] damage, plus 1 for each Fodder Zone adjacent to the Broodmother.", family: { maxTargets: 40, broodmotherDamage: true, preMoveMaximum: 1, moveAdjacentAllies: true, targetsAdjacentAfterMove: true, selectNewAdjacentAfterMove: true } }],
   ["lionwing.npc.builder.violent-construction", { directDamage: "3(+1)", tensionMultiplier: 0, targetEffects: [], reward: "Deal 2 + [Tier] damage and place a 15 + [Tier × 5] Health Obstacle adjacent to the target.", family: { range: 6, maxTargets: 1, createTerrainAdjacent: "20(+5)" } }],
   ["lionwing.npc.healer.exsanguinate", { dice: "5(+1)", tensionMultiplier: 1, targetEffects: [], reward: "Deal [Hits] + [Tension] damage and Mark the target.", family: { range: 5, maxTargets: 1, healerMark: true } }],
   ["lionwing.npc.illusionist.distort-reality", { dice: "4(+1)", tensionMultiplier: 1, targetEffects: [], reward: "Deal [Hits] + [Tension] damage and put each target in Flux.", family: { adjacent: true, maxTargets: 40, flux: true } }],
@@ -899,6 +900,9 @@ function prepareEnemyRule(scene, data, request = {}) {
   if (actor && attackOrigin && family.selectAllAdjacentAfterMove) {
     targets=(scene.actors||[]).filter(target=>target.id!==actor.id&&!target.knockedOut&&target.space===actor.space&&distance(attackOrigin,target)<=1);
     targetIds=targets.map(target=>target.id);
+  } else if (actor && attackOrigin && family.selectNewAdjacentAfterMove) {
+    targets=(scene.actors||[]).filter(target=>target.id!==actor.id&&!target.knockedOut&&target.team!==actor.team&&target.space===actor.space&&distance(actor,target)>1&&distance(attackOrigin,target)<=1);
+    targetIds=targets.map(target=>target.id);
   }
   let attackMovePath = [];
   if (targets.length !== targetIds.length) errors.push("Одна из выбранных целей больше не находится на Сцене.");
@@ -1037,7 +1041,7 @@ function prepareEnemyRule(scene, data, request = {}) {
       for (const ally of (scene.actors || []).filter(item => item.id !== actor.id && !item.knockedOut && item.team === actor.team && item.space === actor.space && distance(actor, item) <= 1)) {
         const destination = { x: ally.x + dx, y: ally.y + dy };
         if (!effectCellOccupancyStatus(scene, ally.id, { actor: ally, space: ally.space, ...destination }).available) continue;
-        events.push({ type: "actor.move", actorId: ally.id, payload: { space: ally.space, ...destination, movement: `${rule.name}: союзник`, placement: true, participantIds: [actor.id, ally.id] } });
+        events.push({ type: "actor.move", actorId: ally.id, payload: { space: ally.space, ...destination, movement: `${rule.name}: союзник`, placement: true, enemyRuleMove:ally.kind==="crowd"?rule.id:null, sourceActorId:ally.kind==="crowd"?actor.id:null, maximum:ally.kind==="crowd"?Number(family.preMoveMaximum||1):null, participantIds: [actor.id, ally.id] } });
         events.push({ type: "actor.enter", actorId: ally.id, payload: { space: ally.space, ...destination, movement: `${rule.name}: союзник`, placement: true } });
       }
     }
@@ -1201,7 +1205,13 @@ function prepareEnemyRule(scene, data, request = {}) {
       if (family.bonusDamageFormula && distance(attackOrigin, target) >= Number(family.bonusDamageMinimumRange || 0) && (!family.bonusDamageIfUntouched || enemyTargetUntouchedThisRound(scene, target.id, actor.team))) amount += enemyTierFormula(family.bonusDamageFormula, actor.tier);
       if (family.isolatedBonusFormula && !(scene.actors || []).some(other => other.id !== target.id && other.id !== actor.id && !other.knockedOut && other.space === target.space && distance(other, target) <= 1)) amount += enemyTierFormula(family.isolatedBonusFormula, actor.tier);
       if (family.provokedTierDamage && (target.effects || []).includes("negative.спровоцирован")) amount += Number(actor.tier || 1);
-      if (family.broodmotherDamage) amount += (scene.actors || []).filter(item => item.kind === "crowd" && !item.knockedOut && item.team === actor.team && distance(attackOrigin, item) <= 1).length;
+      if (family.broodmotherDamage) {
+        const dx=Number(attackOrigin.x)-Number(actor.x),dy=Number(attackOrigin.y)-Number(actor.y);
+        amount+=(scene.actors||[]).filter(item=>item.kind==="crowd"&&!item.knockedOut&&item.team===actor.team&&item.space===actor.space).filter(item=>{
+          const adjacentBefore=distance(actor,item)<=1,destination={x:Number(item.x)+dx,y:Number(item.y)+dy},canFollow=adjacentBefore&&effectCellOccupancyStatus(scene,item.id,{actor:item,space:item.space,...destination}).available,predicted=canFollow?{...item,...destination}:item;
+          return distance(attackOrigin,predicted)<=1;
+        }).length;
+      }
       if (family.aimDamage) amount += Number(actor.ruleState?.enemyAim || 0);
       if (actor.ruleState?.rangerHeadshotTargetId === target.id) amount += Number(request.roll?.successes || 0);
       return [target.id, amount];

@@ -31,6 +31,7 @@ const npcActionIds = [
   "lionwing.npc.revenant.tear-from-the-soul",
   "lionwing.npc.bannerman.swing",
   "lionwing.npc.bodyguards.behind-me",
+  "lionwing.npc.broodmother.swarming-chase",
   "lionwing.npc.builder.violent-construction",
   "lionwing.npc.healer.exsanguinate",
   "lionwing.npc.illusionist.distort-reality",
@@ -49,7 +50,6 @@ const npcActionIds = [
 ];
 const manualActionIds = [
   "lionwing.npc.viper.filet",
-  "lionwing.npc.broodmother.swarming-chase",
   "lionwing.npc.cocoon.rampage",
   "lionwing.npc.oni.polaris",
   "lionwing.npc.matriarch.destroy-the-interloper",
@@ -206,6 +206,25 @@ bodyguards=commitWithIds(bodyguards,behind,"behind-me").result.scene;
 assert.ok(bodyguards.actors.find(item=>item.id==="ally").effects.includes("positive.укреплен"),"Behind Me Reinforces allied targets immediately");
 bodyguards=passAndResolve(bodyguards,"behind-me");
 assert.ok(bodyguards.actors.find(item=>item.id==="hero").effects.includes("negative.ошеломлен"),"Behind Me Dazes an untouched opponent after damage");
+
+// Broodmother moves as a one-cell group, derives only opponents newly entered
+// into adjacency, and counts the Fodder that actually follows her destination.
+let broodmother=scene("lionwing.npc.broodmother",{actors:[
+  actor("enemy","enemy",2,2,{profileId:"lionwing.npc.broodmother"}),
+  actor("fodder","enemy",2,1,{kind:"crowd",heroId:null,profileId:null}),
+  actor("ally","enemy",1,2,{profileId:"lionwing.npc.cultist"}),
+  actor("hero","hero",4,2),
+]});
+const chaseStatus=engine.availableEnemyRules(broodmother,data,"enemy").find(item=>item.id==="lionwing.npc.broodmother.swarming-chase");
+assert.equal(chaseStatus.automation,"attack");
+const chase=engine.prepareEnemyRule(broodmother,data,{actorId:"enemy",ruleId:chaseStatus.id,options:{destination:{x:3,y:2}},targetIds:[],roll:dice(5,[6,5,1,1,1])});
+assert.equal(chase.ok,true,chase.errors?.join(" "));
+const chasePending=chase.events.find(event=>event.type==="attack.pending");
+assert.deepEqual(chasePending.payload.targetIds,["hero"],"Swarming Chase derives the newly adjacent opponent");
+assert.equal(chasePending.payload.damageByTarget.hero,5,"Swarming Chase includes one following adjacent Fodder Zone");
+broodmother=commitWithIds(broodmother,chase,"swarming-chase").result.scene;
+assert.deepEqual([broodmother.actors.find(item=>item.id==="enemy").x,broodmother.actors.find(item=>item.id==="enemy").y],[3,2]);
+assert.deepEqual([broodmother.actors.find(item=>item.id==="fodder").x,broodmother.actors.find(item=>item.id==="fodder").y],[3,1]);
 
 // Duelist Fleche reuses the shared Attack and post-resolution movement
 // contracts while its passive binds Provoked to this Duelist.
