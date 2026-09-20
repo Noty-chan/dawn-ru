@@ -1753,11 +1753,10 @@
       const knockoutSource=cause&&Object.hasOwn(cause,"sourceActorId")?cause.sourceActorId:a.id;
       emit("actor.knockout", knockoutSource, { targetId: a.id, cause: cause ? { kind: cause.kind || "rule", sourceActorId: cause.sourceActorId ?? null, eventId: cause.eventId || rootId } : null });
       if (isPlayer(a) && astate(a).vulnerable) {
-        for (const hero of scene.actors.filter(isPlayer)) {
-          if (Number(astate(hero).unbrokenInfluenceLockSceneSerial || 0) === Number(s.sceneSerial || 1)) {
-            emit("resource.gain.prevented", hero.id, { requestedResource: "influence", amount: 3, reason: "Встать снова запрещает получать Влияние до конца Сцены", sourceActionId: "knockout" });
-          } else hero.influence = Number(hero.influence || 0) + 3;
-        }
+        // LionWing p. 37: the Vulnerable PC who is KOed gains 3 Influence.
+        if (Number(astate(a).unbrokenInfluenceLockSceneSerial || 0) === Number(s.sceneSerial || 1)) {
+          emit("resource.gain.prevented", a.id, { requestedResource: "influence", amount: 3, reason: "Встать снова запрещает получать Влияние до конца Сцены", sourceActionId: "knockout" });
+        } else a.influence = Number(a.influence || 0) + 3;
         choice(a, "consequence", "Выберите длительное последствие по правилу Уязвимости", ["record"], {});
       }
     };

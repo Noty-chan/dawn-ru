@@ -10,7 +10,9 @@ const repository = path.resolve(root, "../..");
 const docs = path.join(repository, "docs");
 const checkOnly = process.argv.includes("--check");
 const sourceFiles = ["edition-lionwing.js", "edition-lionwing-ru.js", "lionwing-table-data.js"];
-const sourceDigest = crypto.createHash("sha256").update(sourceFiles.map(file => fs.readFileSync(path.join(root, file))).join("\0")).digest("hex");
+// Git may check the same source out with LF or CRLF on different devices.
+const normalizedText = text => text.replace(/\r\n/g, "\n");
+const sourceDigest = crypto.createHash("sha256").update(sourceFiles.map(file => normalizedText(fs.readFileSync(path.join(root, file), "utf8"))).join("\0")).digest("hex");
 
 const context = { console, Date };
 context.globalThis = context;
@@ -432,7 +434,7 @@ const artifacts = new Map([
 
 let changed = 0;
 for (const [file, content] of artifacts) {
-  const current = fs.existsSync(file) ? fs.readFileSync(file, "utf8") : null;
+  const current = fs.existsSync(file) ? normalizedText(fs.readFileSync(file, "utf8")) : null;
   if (current !== content) {
     changed += 1;
     if (!checkOnly) fs.writeFileSync(file, content, "utf8");

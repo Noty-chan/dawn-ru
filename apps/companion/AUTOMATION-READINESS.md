@@ -9,8 +9,8 @@
 | Контур | Всего | Заявлено исполнимым | Формально E2E-сертифицировано | Неполный путь |
 | --- | ---: | ---: | ---: | --- |
 | Уровни Техник | 333 | 84 shared/inherited (25.2%) | 0 | 57 частичных; 192 ручных |
-| Правила обычных врагов | 122 | 0 (0.0%) | 0 | 122 assisted |
-| Атаки врагов | 40 | 0 | 0 | не установлено независимым аудитом |
+| Правила обычных врагов | 122 | 47 (38.5%) | 0 | 75 assisted |
+| Атаки врагов | 40 | 35 | 0 | не установлено независимым аудитом |
 
 Формально сертифицировано сейчас: **0** записей. Исполнимые уровни без evidence считаются **shared/inherited**, даже при совпавшем canonical digest: digest подтверждает текстовый источник, но не полноту поведения. Проценты выше измеряют охват кодом, а не верность правилам игры.
 
@@ -292,46 +292,46 @@
 
 | Профиль | Правил | Заявлено исполнимым | Assisted | Непокрытые правила |
 | --- | ---: | ---: | ---: | --- |
-| Assassin (`lionwing.npc.assassin`) | 3 | 0 | 3 | Neutralize Target; Slice; Hidden Blades |
-| Bruiser (`lionwing.npc.bruiser`) | 3 | 0 | 3 | Beatdown; Skulduggery; Decimate |
-| Behemoth (`lionwing.npc.behemoth`) | 3 | 0 | 3 | Leap; Tore From Earth; Meteor |
-| Captor (`lionwing.npc.captor`) | 3 | 0 | 3 | Watch And Wait; Catch And Release; Sticky Bomb |
-| Executioner (`lionwing.npc.executioner`) | 3 | 0 | 3 | Focus; Cleave; Bifurcate |
-| Javelin (`lionwing.npc.javelin`) | 3 | 0 | 3 | Call; Crushing Impact; Shockwave |
-| Pugilist (`lionwing.npc.pugilist`) | 3 | 0 | 3 | Take Stance; Flurry Of Strikes; Martial Perfection |
-| Ranger (`lionwing.npc.ranger`) | 3 | 0 | 3 | Nest; Take The Shot; Headshot |
-| Ronin (`lionwing.npc.ronin`) | 3 | 0 | 3 | Sheath; Dissect; Thunderclap And Flash |
+| Assassin (`lionwing.npc.assassin`) | 3 | 1 | 2 | Neutralize Target; Hidden Blades |
+| Bruiser (`lionwing.npc.bruiser`) | 3 | 1 | 2 | Beatdown; Decimate |
+| Behemoth (`lionwing.npc.behemoth`) | 3 | 1 | 2 | Leap; Meteor |
+| Captor (`lionwing.npc.captor`) | 3 | 1 | 2 | Watch And Wait; Sticky Bomb |
+| Executioner (`lionwing.npc.executioner`) | 3 | 1 | 2 | Focus; Bifurcate |
+| Javelin (`lionwing.npc.javelin`) | 3 | 1 | 2 | Call; Shockwave |
+| Pugilist (`lionwing.npc.pugilist`) | 3 | 2 | 1 | Take Stance |
+| Ranger (`lionwing.npc.ranger`) | 3 | 3 | 0 | — |
+| Ronin (`lionwing.npc.ronin`) | 3 | 1 | 2 | Sheath; Thunderclap And Flash |
 | Viper (`lionwing.npc.viper`) | 3 | 0 | 3 | Lick The Knife; Filet; Knife In The Dark |
-| Witch (`lionwing.npc.witch`) | 3 | 0 | 3 | Drawing Runes; Expelling Force; EXPLOSION |
-| Bodyguards (`lionwing.npc.bodyguards`) | 3 | 0 | 3 | Brace; Behind Me; Reinforcements |
-| Broodmother (`lionwing.npc.broodmother`) | 3 | 0 | 3 | Call; Swarming Chase; Roar |
-| Cocoon (`lionwing.npc.cocoon`) | 3 | 0 | 3 | Menace; Rampage; Quick Growth |
-| Duelist (`lionwing.npc.duelist`) | 3 | 0 | 3 | Goad; Flèche; Disassemble |
-| Glutton (`lionwing.npc.glutton`) | 3 | 0 | 3 | Call; Slobber; Regurgitate |
-| Guardian (`lionwing.npc.guardian`) | 3 | 0 | 3 | Guardian Shield; Shove; Imposing Presence |
-| Mount (`lionwing.npc.mount`) | 3 | 0 | 3 | Synergy; Thrash; CHARGE! |
+| Witch (`lionwing.npc.witch`) | 3 | 1 | 2 | Drawing Runes; EXPLOSION |
+| Bodyguards (`lionwing.npc.bodyguards`) | 3 | 2 | 1 | Brace |
+| Broodmother (`lionwing.npc.broodmother`) | 3 | 2 | 1 | Call |
+| Cocoon (`lionwing.npc.cocoon`) | 3 | 2 | 1 | Menace |
+| Duelist (`lionwing.npc.duelist`) | 3 | 1 | 2 | Goad; Disassemble |
+| Glutton (`lionwing.npc.glutton`) | 3 | 1 | 2 | Call; Regurgitate |
+| Guardian (`lionwing.npc.guardian`) | 3 | 2 | 1 | Guardian Shield |
+| Mount (`lionwing.npc.mount`) | 3 | 1 | 2 | Synergy; CHARGE! |
 | Oni (`lionwing.npc.oni`) | 3 | 0 | 3 | Stabilize; Polaris; Vibrant Terror |
-| Paladin (`lionwing.npc.paladin`) | 3 | 0 | 3 | Gospel; Gift From God; Weal And Woe |
-| Revenant (`lionwing.npc.revenant`) | 3 | 0 | 3 | Lurk; Tear From The Soul; Hollowed Eyes |
-| Spright (`lionwing.npc.spright`) | 3 | 0 | 3 | Discombobulate; Incision; Thunderous Ascension |
-| Bannerman (`lionwing.npc.bannerman`) | 3 | 0 | 3 | In Position; Swing; Plant The Flag |
-| Builder (`lionwing.npc.builder`) | 3 | 0 | 3 | Landscape; Violent Construction; Army Of Stone |
-| Coordinator (`lionwing.npc.coordinator`) | 3 | 0 | 3 | Neutralize Them; Fanaticize; Coordinated Charge |
+| Paladin (`lionwing.npc.paladin`) | 3 | 1 | 2 | Gospel; Weal And Woe |
+| Revenant (`lionwing.npc.revenant`) | 3 | 2 | 1 | Lurk |
+| Spright (`lionwing.npc.spright`) | 3 | 1 | 2 | Discombobulate; Thunderous Ascension |
+| Bannerman (`lionwing.npc.bannerman`) | 3 | 1 | 2 | In Position; Plant The Flag |
+| Builder (`lionwing.npc.builder`) | 3 | 1 | 2 | Landscape; Army Of Stone |
+| Coordinator (`lionwing.npc.coordinator`) | 3 | 1 | 2 | Fanaticize; Coordinated Charge |
 | Doppelgänger (`lionwing.npc.doppelganger`) | 2 | 0 | 2 | Imitate; Diplopia |
-| Healer (`lionwing.npc.healer`) | 3 | 0 | 3 | Heal; Exsanguinate; Savior |
-| Illusionist (`lionwing.npc.illusionist`) | 3 | 0 | 3 | Spatial Rift; Distort Reality; Shattered Skies |
+| Healer (`lionwing.npc.healer`) | 3 | 1 | 2 | Heal; Savior |
+| Illusionist (`lionwing.npc.illusionist`) | 3 | 1 | 2 | Spatial Rift; Shattered Skies |
 | Matriarch (`lionwing.npc.matriarch`) | 3 | 0 | 3 | Caress; Destroy The Interloper; Mother Of The Void |
-| Martyr (`lionwing.npc.martyr`) | 3 | 0 | 3 | Gorge On My Flesh; Savor My Blood; Sacrifice |
-| Baron (`lionwing.npc.baron`) | 3 | 0 | 3 | Prescript; Suppress; Absolute Sovereignty |
-| Berserker (`lionwing.npc.berserker`) | 3 | 0 | 3 | Seethe; Thrash; Last Stand |
-| Cannoneer (`lionwing.npc.cannoneer`) | 3 | 0 | 3 | Aim; Load; Fire |
-| Cultist (`lionwing.npc.cultist`) | 3 | 0 | 3 | Ritual Drawings; Swipe; Grand Calling |
-| Daredevil (`lionwing.npc.daredevil`) | 3 | 0 | 3 | Gloat; Dance; Adrenaline High |
-| Enchanter (`lionwing.npc.enchanter`) | 3 | 0 | 3 | Charm; Heartbreaker; By My Command |
-| Hound Master (`lionwing.npc.hound-master`) | 3 | 0 | 3 | Fire Seeker; Shove; Wild Hunt |
-| Necromancer (`lionwing.npc.necromancer`) | 3 | 0 | 3 | Call The Dead; Terrifying Shot; The Danse Macabre |
-| Privateer (`lionwing.npc.privateer`) | 3 | 0 | 3 | Escort; Spray And Pray; Gear Change |
-| Rifter (`lionwing.npc.rifter`) | 3 | 0 | 3 | Wild Shifting; Emerge; Implode |
+| Martyr (`lionwing.npc.martyr`) | 3 | 1 | 2 | Gorge On My Flesh; Sacrifice |
+| Baron (`lionwing.npc.baron`) | 3 | 1 | 2 | Prescript; Absolute Sovereignty |
+| Berserker (`lionwing.npc.berserker`) | 3 | 2 | 1 | Seethe |
+| Cannoneer (`lionwing.npc.cannoneer`) | 3 | 1 | 2 | Aim; Fire |
+| Cultist (`lionwing.npc.cultist`) | 3 | 1 | 2 | Ritual Drawings; Grand Calling |
+| Daredevil (`lionwing.npc.daredevil`) | 3 | 1 | 2 | Gloat; Adrenaline High |
+| Enchanter (`lionwing.npc.enchanter`) | 3 | 1 | 2 | Charm; By My Command |
+| Hound Master (`lionwing.npc.hound-master`) | 3 | 2 | 1 | Fire Seeker |
+| Necromancer (`lionwing.npc.necromancer`) | 3 | 1 | 2 | Call The Dead; The Danse Macabre |
+| Privateer (`lionwing.npc.privateer`) | 3 | 2 | 1 | Escort |
+| Rifter (`lionwing.npc.rifter`) | 3 | 1 | 2 | Wild Shifting; Implode |
 | Swarm (`lionwing.npc.swarm`) | 3 | 0 | 3 | Call; Tear; Reinforcements |
 
 ### Кластеры следующей автоматизации врагов

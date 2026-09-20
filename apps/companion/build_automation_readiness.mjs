@@ -63,7 +63,7 @@ const techniqueCounts = countBy(coverage, "automation");
 const executableTechniqueLevels = Number(techniqueCounts.full || 0) + Number(techniqueCounts.decision || 0);
 const enemyProfiles = context.DAWN_LIONWING_TABLE_DATA.profiles(data.coreRules);
 if (enemyProfiles.length !== 41) throw new Error(`Expected 41 canonical LionWing NPC profiles, got ${enemyProfiles.length}`);
-const enemyRules = enemyProfiles.flatMap(profile => (profile.rules || []).map(rule => ({ profile, rule, automation: rule.automation || "assisted" })));
+const enemyRules = enemyProfiles.flatMap(profile => (profile.rules || []).map(rule => ({ profile, rule, automation: engine.enemyRuleAutomation(rule.id) })));
 if (enemyRules.length !== 122 || enemyRules.some(({ profile }) => profile.editionId !== "lionwing")) {
   throw new Error("Enemy readiness must use the canonical LionWing NPC rule set");
 }

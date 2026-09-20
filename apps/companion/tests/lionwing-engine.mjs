@@ -33,6 +33,23 @@ s=run(s,"e",{kind:"batch",operations:[{kind:"damage",targetId:"h",amount:30},{ki
 assert.equal(s.lionwing.choices[0].kind,"knockout");assert.equal(s.lionwing.deferred.length,1);assert.equal(s.actors[0].hp,16);
 s=run(s,"h",{kind:"choice",id:s.lionwing.choices[0].id,choice:"resist"});assert.equal(s.actors[0].wounds,1);assert.equal(s.actors[0].hp,14);assert.equal(s.actors[0].lionwing.vulnerable,true);assert.equal(s.lionwing.deferred.length,0);
 
+// LionWing p. 37: a Vulnerable KO awards Influence only to that PC.
+for (const locked of [false, true]) {
+  let vulnerableScene=fixture();
+  vulnerableScene.actors.push(hero("ally",4,4));
+  vulnerableScene.actors[0].wounds=2;
+  vulnerableScene.actors[0].lionwing={vulnerable:true,...(locked?{unbrokenInfluenceLockSceneSerial:1}:{})};
+  const event={...lw.command("e",{kind:"wound",targetId:"h"}),id:`vulnerable-ko-${locked}`};
+  const result=lw.dispatchMany(vulnerableScene,[event]).scene;
+  assert.equal(result.actors[0].knockedOut,true);
+  assert.equal(result.actors[0].influence,locked?3:6,"only the KOed PC receives the reward unless locked");
+  assert.equal(result.actors.find(actor=>actor.id==="ally").influence,3,"another PC receives no KO reward");
+  assert.equal(result.lionwing.choices[0].kind,"consequence");
+  const reloaded=JSON.parse(JSON.stringify(result));
+  const replayed=lw.dispatchMany(reloaded,[event]).scene;
+  assert.equal(replayed.actors[0].influence,result.actors[0].influence,"replay after reload must not duplicate Influence");
+}
+
 // Supernatural Deafness raises the Stress track to four.  Reaching three is
 // still playable; the fourth Stress opens the normal Knockout choice.
 s=fixture();s.actors[0].gifts=["rebel.supernatural-deafness"];s.actors[0].stress=2;
