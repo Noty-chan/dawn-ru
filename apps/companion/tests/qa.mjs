@@ -484,6 +484,8 @@ assert.match(cockpitCss, /padding:\.65rem 0 \.65rem \.65rem/, "The desktop Scene
 assert.match(cockpitCss, /border-right:0;\s*border-radius:0;\s*background:color-mix/, "The permanent right rail is rendered as a wall rather than a floating card");
 assert.match(cockpitCss, /\.scene-player-view \.scene-turn-strip\{[^}]*flex-direction:column/, "Players receive a compact vertical participant strip instead of the Narrator's duplicate top row");
 assert.match(html, /data-scene-panel="map"[^>]*>Карта</, "Map editing has a dedicated button in the permanent Scene rail");
+assert.match(html, /class="scene-stage-quick-action scene-stage-target-action"[^>]*data-scene-tool="target"[^>]*>Цели</, "Target selection has an explicit quick action in the Scene header");
+assert.match(html, /class="scene-stage-quick-action scene-stage-map-action gm-only"[^>]*data-open-scene-panel="map"[^>]*title="Открыть редактор карты"/, "Narrators can open the map editor directly from the Scene header");
 assert.match(html, /id="scene-map-tools"/, "Map and space controls have an embedded panel host");
 assert.match(app, /function mountSceneMapTools\(\)[\s\S]+scene-area-controls[\s\S]+scene-management/, "Terrain tools and space management move into the embedded map panel");
 assert.match(app, /\["area","wall","marker","topology"\]\.includes\(requested\)\)setScenePanel\("map"\)/, "Choosing a map editing tool opens its embedded controls");
