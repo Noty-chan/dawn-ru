@@ -1,6 +1,6 @@
 "use strict";
 
-let sceneEnemyFilter="",sceneReferenceQuery="",sceneReferenceSection="combat",sceneReferenceMarkup="",scenePreviewCells=new Set(),sceneTopologyCells=new Set(),playerSceneTool="select";
+let sceneEnemyFilter="",sceneReferenceQuery="",sceneReferenceSection="combat",sceneReferenceMarkup="",scenePreviewCells=new Set(),sceneTopologyCells=new Set(),playerSceneTool="select",sceneCameraFocusTimer=0;
 const SCENE_TYPE_NAMES={attack:"Атака",gas:"Газ",terrain:"Местность",difficult:"Трудная местность",high:"Высокая местность",low:"Низкая местность",crowd:"Зона массовки","deploy-hero":"Развертывание героев","deploy-enemy":"Развертывание врагов",objective:"Цель сценария",danger:"Опасность",portal:"Переход",custom:"Особое правило"};
 const SCENE_DURATION_NAMES={instant:"мгновенно",endTurn:"до конца текущего Хода",nextTurn:"до начала следующего Хода владельца",round:"до конца Раунда",scene:"до конца Сцены",persistent:"постоянно"};
 const SCENE_MARKERS={mark:{name:"Метка",symbol:"◆"},damocles:{name:"Дамокл",symbol:"†"},bomb:{name:"Бомба / заряд",symbol:"✹"},ritual:{name:"Круг / печать",symbol:"◉"},trap:{name:"Ловушка",symbol:"⌁"},summon:{name:"Точка призыва",symbol:"✦"},weapon:{name:"Оружие",symbol:"⚔"},objective:{name:"Цель сцены",symbol:"⚑"},countdown:{name:"Отсчёт",symbol:"◷"},hidden:{name:"Скрытое ГМ",symbol:"?"},custom:{name:"Свой знак",symbol:"●"}};
@@ -182,6 +182,30 @@ function toggleSceneTarget(actorId){
   Scene.targetIds=Scene.targetIds.includes(actor.id)?Scene.targetIds.filter(id=>id!==actor.id):Scene.targetIds.concat(actor.id);
   persist();renderScene();
   toast(Scene.targetIds.includes(actor.id)?`${actor.name}: добавлен в цели`:`${actor.name}: убран из целей`);
+}
+function centerSceneActorOnBoard(actorId){
+  const actor=Scene.actors.find(item=>item.id===actorId),wrap=$("scene-board-wrap");
+  if(!actor||!wrap||actor.space!==Scene.activeSpace)return false;
+  const token=document.querySelector(`[data-scene-actor="${CSS.escape(actor.id)}"]`),cell=token?.closest("[data-scene-cell]")||document.querySelector(`[data-scene-cell="${actor.x},${actor.y}"]`);
+  if(!cell)return false;
+  const wrapRect=wrap.getBoundingClientRect(),cellRect=cell.getBoundingClientRect(),left=Math.max(0,wrap.scrollLeft+cellRect.left-wrapRect.left-(wrapRect.width-cellRect.width)/2),top=Math.max(0,wrap.scrollTop+cellRect.top-wrapRect.top-(wrapRect.height-cellRect.height)/2),reduced=window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
+  wrap.scrollTo({left,top,behavior:reduced?"auto":"smooth"});
+  clearTimeout(sceneCameraFocusTimer);
+  for(const item of $$(`[data-scene-actor="${CSS.escape(actor.id)}"]`))item.classList.add("scene-camera-focus");
+  cell.classList.add("scene-camera-focus");
+  sceneCameraFocusTimer=setTimeout(()=>{$$(".scene-camera-focus").forEach(item=>item.classList.remove("scene-camera-focus"))},reduced?0:1400);
+  return true;
+}
+function focusSceneActorOnBoard(actorId,{select=false,announce=true}={}){
+  const actor=Scene.actors.find(item=>item.id===actorId);
+  if(!actor)return false;
+  const changed=Scene.activeSpace!==actor.space||(select&&Scene.selectedActor!==actor.id);
+  Scene.activeSpace=actor.space;
+  if(select)Scene.selectedActor=actor.id;
+  if(changed){persist();renderScene()}
+  requestAnimationFrame(()=>centerSceneActorOnBoard(actor.id));
+  if(announce)toast(`${actor.name}: показан на поле`);
+  return true;
 }
 function hideSceneContextMenu(){
   const menu=$("scene-context-menu");if(menu)menu.hidden=true;sceneContextTarget=null;
@@ -750,6 +774,11 @@ function renderScene(){
   $("scene-clear-targets").disabled=!targets.length&&!Scene.targetCells?.length;
   $("scene-wall-controls").hidden=tool!=="wall";appendTerrainRepairControls();appendSceneWallInspector();appendMarkerClockControls();if($("scene-redo"))$("scene-redo").disabled=!Scene.redo?.length;
   document.body.dataset.sceneControlMode=sceneControlMode;document.body.dataset.sceneTurnApprovalMode=sceneTurnApprovalMode();$("scene-control-mode").value=sceneControlMode;$("scene-turn-approval-mode").value=sceneTurnApprovalMode();const ready=Scene.actors.filter(actor=>!actor.knockedOut&&!actor.acted&&actor.kind!=="crowd"&&!SceneEngine.isEnemyModifier?.(actor)).length,down=Scene.actors.filter(actor=>actor.knockedOut).length;$("scene-encounter-status").textContent=!Scene.actors.length?"Подготовка":`${ready} готовы${down?` · ${down} вне боя`:""}`;
+  const targetQuickAction=document.querySelector(".scene-stage-target-action");
+  if(targetQuickAction){const count=targets.length;targetQuickAction.classList.toggle("has-targets",count>0);targetQuickAction.innerHTML=`<span>Цели</span>${count?`<b>${count}</b>`:""}`;targetQuickAction.title=count?`Выбрано целей: ${count}`:"Включить выбор целей на поле";targetQuickAction.setAttribute("aria-label",count?`Выбрать цели. Сейчас выбрано ${count}`:"Выбрать цели")}
+  const cameraActions=document.querySelector(".scene-view-actions");
+  if(cameraActions&&!cameraActions.querySelector("[data-scene-camera]"))cameraActions.insertAdjacentHTML("afterbegin",'<button type="button" data-scene-camera="active" title="Показать текущего участника на поле">К ходу</button><button type="button" data-scene-camera="selected" title="Показать выбранного участника на поле">К выбранному</button>');
+  for(const button of $$("[data-scene-camera]")){const hasActor=button.dataset.sceneCamera==="active"?Boolean(active):Boolean(selected);button.disabled=!hasActor;button.title=hasActor?button.dataset.sceneCamera==="active"?"Показать текущего участника на поле":"Показать выбранного участника на поле":button.dataset.sceneCamera==="active"?"Ход ещё не начат":"Сначала выберите участника на поле"}
   renderSceneTurnStrip();renderSceneFlow();renderSceneRoster();renderSceneDirector();renderSceneUtility();renderSceneReference();renderGmLibraries();renderCompoundBuilder();renderSceneChrome();refreshSceneControlStates();applySceneZoom();setScenePanel(activeScenePanel);setSheetTab(activeSheetTab);if(sceneNeedsInitialFit)requestAnimationFrame(()=>fitSceneZoom(true));
   document.body.classList.toggle("scene-player-view",store.mode==="play"&&view==="player");
   $("scene-log").innerHTML=Scene.log.filter(row=>activeSceneView()==="gm"||row.visibility!=="gm").map(row=>`<li><time>${esc(String(row.at||"").slice(11,19)||row.at)}</time>${esc(clockEventText(row)||wallEventText(row)||eventText(row))}</li>`).join("")||`<li class="autosave">Изменения Сцены появятся здесь.</li>`;

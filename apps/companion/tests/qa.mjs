@@ -486,6 +486,11 @@ assert.match(cockpitCss, /\.scene-player-view \.scene-turn-strip\{[^}]*flex-dire
 assert.match(html, /data-scene-panel="map"[^>]*>Карта</, "Map editing has a dedicated button in the permanent Scene rail");
 assert.match(html, /class="scene-stage-quick-action scene-stage-target-action"[^>]*data-scene-tool="target"[^>]*>Цели</, "Target selection has an explicit quick action in the Scene header");
 assert.match(html, /class="scene-stage-quick-action scene-stage-map-action gm-only"[^>]*data-open-scene-panel="map"[^>]*title="Открыть редактор карты"/, "Narrators can open the map editor directly from the Scene header");
+assert.match(app, /function focusSceneActorOnBoard\(actorId,[\s\S]+centerSceneActorOnBoard\(actor\.id\)/, "The Scene can center the board on a selected or active participant without changing combat state");
+assert.match(app, /data-scene-camera="active"[\s\S]+data-scene-camera="selected"/, "The compact Scene menu exposes direct camera controls for the active and selected participants");
+assert.match(cockpitCss, /\.scene-mode \.scene-dock,[\s\S]*?overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain/, "Every permanent Scene rail action remains reachable by scrolling on a short desktop viewport");
+assert.match(cockpitCss, /\.scene-dock\{top:54px[\s\S]*?grid-auto-rows:minmax\(38px,auto\)[\s\S]*?overflow-y:auto/, "The landscape dock scrolls instead of hiding its lower actions");
+assert.match(cockpitCss, /scene-camera-focus/, "Board navigation visibly marks the participant it brings into view");
 assert.match(html, /id="scene-map-tools"/, "Map and space controls have an embedded panel host");
 assert.match(app, /function mountSceneMapTools\(\)[\s\S]+scene-area-controls[\s\S]+scene-management/, "Terrain tools and space management move into the embedded map panel");
 assert.match(app, /\["area","wall","marker","topology"\]\.includes\(requested\)\)setScenePanel\("map"\)/, "Choosing a map editing tool opens its embedded controls");
