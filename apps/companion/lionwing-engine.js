@@ -44,6 +44,75 @@
   };
   const fail = message => { throw new Error(message); };
   const plain = value => Boolean(value && typeof value === "object" && !Array.isArray(value));
+  // Lasting consequences are player-facing categories, but their IDs are part
+  // of the saved contract.  Keep the IDs stable and keep their labels here so
+  // the UI can render a localized choice without branching on visible text.
+  const CONSEQUENCE_CATEGORIES = Object.freeze([
+    Object.freeze({ id: "skill-ranks", label: "Потерять Ранги Навыка (Ранг 2+)" }),
+    Object.freeze({ id: "ability-part", label: "Потерять часть Способности" }),
+    Object.freeze({ id: "boon", label: "Потерять Дар" }),
+    Object.freeze({ id: "technique-levels", label: "Потерять два Уровня Техник" }),
+    Object.freeze({ id: "death", label: "Погибнуть и создать нового героя" }),
+  ]);
+  const CONSEQUENCE_CATEGORY_IDS = new Set(CONSEQUENCE_CATEGORIES.map(item => item.id));
+  const CONSEQUENCE_STATUSES = new Set(["pending-manual", "applied", "void"]);
+  const boundedText = (value, max = 1200) => String(value ?? "").trim().slice(0, max);
+  const consequenceTarget = value => {
+    if (value === undefined || value === null || value === "") return null;
+    if (typeof value === "string" || typeof value === "number") return String(value).slice(0, 240);
+    if (!plain(value)) return null;
+    const serialized = JSON.stringify(value);
+    if (serialized.length > 4000) fail("Цель последствия слишком велика");
+    return JSON.parse(serialized);
+  };
+  const normalizeLegacyNote = (value, actorId, index) => {
+    if (!plain(value)) return null;
+    const note = boundedText(value.note ?? value.text);
+    if (!note) return null;
+    return {
+      ...copy(value),
+      schema: 1,
+      id: typeof value.id === "string" && value.id.trim() ? value.id.slice(0, 240) : `${actorId}:legacy-note:${index}`,
+      type: "legacy-note",
+      note,
+      choiceId: typeof value.choiceId === "string" ? value.choiceId.slice(0, 240) : null,
+      reason: typeof value.reason === "string" && value.reason ? value.reason.slice(0, 180) : "legacy-record",
+    };
+  };
+  const normalizeConsequenceRecord = (value, actorId, index) => {
+    if (!plain(value)) return null;
+    const category = CONSEQUENCE_CATEGORY_IDS.has(value.category) ? value.category : null;
+    const status = CONSEQUENCE_STATUSES.has(value.status) ? value.status : value.applied === true ? "applied" : "pending-manual";
+    const targetValue = Object.hasOwn(value, "lossTarget") ? value.lossTarget : Object.hasOwn(value, "target") ? value.target : null;
+    return {
+      ...copy(value),
+      schema: 1,
+      id: typeof value.id === "string" && value.id.trim() ? value.id.slice(0, 240) : `${actorId}:consequence:${index}`,
+      category,
+      lossTarget: consequenceTarget(targetValue),
+      target: consequenceTarget(targetValue),
+      choiceId: typeof value.choiceId === "string" ? value.choiceId.slice(0, 240) : null,
+      reason: typeof value.reason === "string" && value.reason ? value.reason.slice(0, 180) : "vulnerable-knockout",
+      status,
+      applied: status === "applied",
+    };
+  };
+  const syncConsequenceIndex = l => {
+    l.usedConsequenceCategories = [...new Set((l.consequences || [])
+      .filter(item => item && item.category && CONSEQUENCE_CATEGORY_IDS.has(item.category) && item.status !== "void")
+      .map(item => item.category))];
+    return l;
+  };
+  const ensureConsequenceState = a => {
+    if (!a || typeof a !== "object") return null;
+    a.lionwing ||= {};
+    const l = a.lionwing;
+    const rawRecords = Array.isArray(l.consequences) ? l.consequences : plain(l.consequences) ? [l.consequences] : [];
+    l.consequences = rawRecords.map((item, index) => normalizeConsequenceRecord(item, a.id || "actor", index)).filter(Boolean).slice(-64);
+    const rawLegacy = Array.isArray(l.legacyNotes) ? l.legacyNotes : [];
+    l.legacyNotes = rawLegacy.map((item, index) => normalizeLegacyNote(item, a.id || "actor", index)).filter(Boolean).slice(-64);
+    return syncConsequenceIndex(l);
+  };
   const diceAvailable = () => {
     if (!dice || typeof dice.roll !== "function" || typeof dice.reload !== "function" || typeof dice.apply !== "function") fail("Модуль бросков LionWing недоступен");
     return dice;
@@ -160,7 +229,10 @@
     validateDiceSceneState(s);
     s.sceneSerial=Number.isSafeInteger(s.sceneSerial)&&s.sceneSerial>0?s.sceneSerial:1;
     s.chapterSerial=Number.isSafeInteger(s.chapterSerial)&&s.chapterSerial>0?s.chapterSerial:1;
-    for (const participant of scene.actors || []) normalizeTurnCounters(participant, scene);
+    for (const participant of scene.actors || []) {
+      normalizeTurnCounters(participant, scene);
+      ensureConsequenceState(participant);
+    }
     if(s.executionCursor!==undefined){
       if(!s.executionCursor||typeof s.executionCursor!=="object"||Array.isArray(s.executionCursor))fail("Сохранённый курсор исполнения имеет неподдерживаемый формат");
       try{s.executionCursor=foundations.openCursor(s.executionCursor)}catch{fail("Сохранённый курсор исполнения повреждён или имеет неподдерживаемый формат")}
@@ -270,7 +342,11 @@
     const status = legacy.compoundEnemyStatus(snapshot, parts[0]);
     return { ...status, id, partIds: parts.map(item => item.id), record: copy(s.compounds?.[id] || null) };
   }
-  const astate = a => {a.lionwing||={};for(const key of ["modifiers","history"])if(!Array.isArray(a.lionwing[key]))a.lionwing[key]=[];return a.lionwing;};
+  const astate = a => {
+    ensureConsequenceState(a);
+    for(const key of ["modifiers","history"])if(!Array.isArray(a.lionwing[key]))a.lionwing[key]=[];
+    return a.lionwing;
+  };
   const actionGuardScopes = new Set(["manual", "turn", "round", "scene"]);
   const actionGuardScope = value => value === "ownerTurn" || value === "startTurn" || value === "endTurn" ? "turn" : value;
   const actionGuardApplies = (scene, target, guard) => {
@@ -1664,6 +1740,87 @@
       if(wasDisappeared&&!has(a,effect)&&options.reappear!==false)choice(a,"placement","Выберите клетку появления вне соседства с персонажами",["place"],{reappear:true});
     };
     const choice = (a, kind, title, options, context = {}) => { s.choices.push({ id: `${rootId}:choice:${choiceSerial++}`, actorId: a.id, kind, title, options, context }); };
+    const appendConsequence = (target, pending, selection) => {
+      const l = ensureConsequenceState(target), category = selection.choice;
+      if (!CONSEQUENCE_CATEGORY_IDS.has(category)) fail("Неизвестная категория последствия");
+      if ((l.consequences || []).some(item => item.category === category && item.status !== "void")) fail("Это последствие уже выбрано для героя");
+      const rawTarget = Object.hasOwn(selection, "lossTarget") ? selection.lossTarget
+        : Object.hasOwn(selection, "consequenceTarget") ? selection.consequenceTarget
+          : Object.hasOwn(selection, "target") ? selection.target : null;
+      const lossTarget = consequenceTarget(rawTarget), id = `${pending.id}:consequence:${category}`;
+      if ((l.consequences || []).some(item => item.id === id)) fail("Запись последствия уже существует");
+      const record = {
+        schema: 1,
+        id,
+        category,
+        lossTarget: lossTarget === null ? null : copy(lossTarget),
+        target: lossTarget === null ? null : copy(lossTarget),
+        choiceId: pending.id,
+        reason: typeof pending.context?.reason === "string" && pending.context.reason ? pending.context.reason : "vulnerable-knockout",
+        status: "pending-manual",
+        applied: false,
+        sceneSerial: Number(s.sceneSerial || 1),
+        createdEventId: rootId,
+        ...(boundedText(selection.note) ? { manualNote: boundedText(selection.note) } : {}),
+      };
+      l.consequences.push(record);
+      syncConsequenceIndex(l);
+      emit("consequence.recorded", target.id, { ...copy(record), targetId: target.id });
+      return record;
+    };
+    const appendLegacyConsequenceNote = (target, pending, selection) => {
+      const l = ensureConsequenceState(target), note = boundedText(selection.note || pending.context?.note);
+      if (!note) fail("Запишите принятое решение");
+      const id = `${pending.id}:legacy-note`;
+      if ((l.legacyNotes || []).some(item => item.id === id)) fail("Историческая запись уже существует");
+      const record = { schema: 1, id, type: "legacy-note", note, choiceId: pending.id, reason: "legacy-record", createdEventId: rootId, sceneSerial: Number(s.sceneSerial || 1) };
+      l.legacyNotes.push(record);
+      emit("consequence.legacy-note", target.id, { ...copy(record), targetId: target.id });
+      return record;
+    };
+    const correctConsequence = (target, payload) => {
+      const l = ensureConsequenceState(target), requestedId = payload.consequenceId || payload.recordId || payload.id || null;
+      const candidates = (l.consequences || []).filter(item => item && item.type !== "legacy-note");
+      const record = requestedId ? candidates.find(item => item.id === requestedId) : payload.category ? [...candidates].reverse().find(item => item.category === payload.category) : candidates.at(-1);
+      if (!record) fail("Запись последствия не найдена");
+      const before = copy(record), operation = payload.operation || (payload.remove === true ? "remove" : "set");
+      if (!["set", "apply", "reopen", "void", "remove"].includes(operation)) fail("Неизвестное исправление последствия");
+      if (operation === "remove" || operation === "void") record.status = "void";
+      else {
+        if (payload.category !== undefined) {
+          if (!CONSEQUENCE_CATEGORY_IDS.has(payload.category)) fail("Неизвестная категория последствия");
+          if ((l.consequences || []).some(item => item !== record && item.category === payload.category && item.status !== "void")) fail("Эта категория уже занята другим последствием");
+          record.category = payload.category;
+        }
+        if (Object.hasOwn(payload, "lossTarget") || Object.hasOwn(payload, "consequenceTarget") || Object.hasOwn(payload, "target")) {
+          const rawTarget = Object.hasOwn(payload, "lossTarget") ? payload.lossTarget : Object.hasOwn(payload, "consequenceTarget") ? payload.consequenceTarget : payload.target;
+          const nextTarget = consequenceTarget(rawTarget);
+          record.lossTarget = nextTarget === null ? null : copy(nextTarget);
+          record.target = nextTarget === null ? null : copy(nextTarget);
+        }
+        if (payload.status !== undefined) {
+          if (!CONSEQUENCE_STATUSES.has(payload.status)) fail("Неизвестный статус последствия");
+          record.status = payload.status;
+        }
+        if (operation === "apply") record.status = "applied";
+        if (operation === "reopen") record.status = "pending-manual";
+        if (payload.applied !== undefined) {
+          if (typeof payload.applied !== "boolean") fail("Отметка применения последствия должна быть логическим значением");
+          record.status = payload.applied ? "applied" : "pending-manual";
+        }
+        if (Object.hasOwn(payload, "note")) {
+          const note = boundedText(payload.note);
+          if (note) record.manualNote = note;
+          else delete record.manualNote;
+        }
+      }
+      record.applied = record.status === "applied";
+      record.correctedEventId = rootId;
+      if (boundedText(payload.correctionNote)) record.correctionNote = boundedText(payload.correctionNote);
+      syncConsequenceIndex(l);
+      emit("consequence.corrected", target.id, { targetId: target.id, consequenceId: record.id, before, after: copy(record), operation });
+      return record;
+    };
     const followupActors = ids => [...new Set((Array.isArray(ids) ? ids : []).filter(id => typeof id === "string" && id && actor(scene, id)))];
     const followupDescriptor = (trigger, candidate, eventRow) => {
       const raw = trigger?.followUp || trigger?.followup;
@@ -1757,7 +1914,19 @@
         if (Number(astate(a).unbrokenInfluenceLockSceneSerial || 0) === Number(s.sceneSerial || 1)) {
           emit("resource.gain.prevented", a.id, { requestedResource: "influence", amount: 3, reason: "Встать снова запрещает получать Влияние до конца Сцены", sourceActionId: "knockout" });
         } else a.influence = Number(a.influence || 0) + 3;
-        choice(a, "consequence", "Выберите длительное последствие по правилу Уязвимости", ["record"], {});
+        const consequenceState = ensureConsequenceState(a);
+        const usedCategories = new Set(consequenceState.usedConsequenceCategories || []);
+        const availableCategories = CONSEQUENCE_CATEGORIES.filter(item => !usedCategories.has(item.id)).map(item => item.id);
+        const labels = Object.fromEntries(CONSEQUENCE_CATEGORIES.map(item => [item.id, item.label]));
+        // `record` remains in the option list for old saves and the existing
+        // free-note path.  New typed options are explicit and are not inferred
+        // from whatever note a player may enter.
+        choice(a, "consequence", "Выберите длительное последствие по правилу Уязвимости", [...availableCategories, "record"], {
+          reason: "vulnerable-knockout",
+          availableCategories,
+          usedCategories: [...usedCategories],
+          labels: { ...labels, record: "Записать решение" },
+        });
       }
     };
     const wound = (a, sourceId, track = "wounds", actionPlanId = null) => {
@@ -2845,6 +3014,10 @@
         }
         case "correct": {
           const target = requiredActor(scene, p.targetId || sourceId, false);
+          if (["consequence", "consequence-record"].includes(p.resource)) {
+            correctConsequence(target, p);
+            break;
+          }
           if (!resources.has(p.resource) && !attributes.has(p.resource) && !["knockedOut","vulnerable"].includes(p.resource)) fail("Это поле нельзя исправить");
           const amount = integer(p.amount, "новое значение",p.resource==="knockedOut"?1:p.resource==="stress"?stressMaximum(target)-1:p.resource==="wounds"?2:attributes.has(p.resource)||["baseAp","armor","speed","tier"].includes(p.resource)?99:9999), before = attributes.has(p.resource) ? target.attrs[p.resource] : target[p.resource];
           if(["maxHp","tier"].includes(p.resource)&&amount===0)fail("Значение должно быть положительным");
@@ -3376,7 +3549,16 @@
             // Resume pre-clarification saves using the author's final ruling.
             queue.unshift({p:{kind:"wound",targetId:duel.loserId,sourceActorId:sourceId},sourceId},{p:{kind:"duel-return",duelId:duel.id},sourceId:duel.actorId});
           }
-          else if (pending.kind === "placement") {
+          else if (pending.kind === "consequence") {
+            const target = requiredActor(scene, pending.actorId, false);
+            if (p.choice === "record") appendLegacyConsequenceNote(target, pending, p);
+            else {
+              if (!CONSEQUENCE_CATEGORY_IDS.has(p.choice)) fail("Неизвестная категория последствия");
+              const available = CONSEQUENCE_CATEGORIES.filter(item => !(ensureConsequenceState(target).usedConsequenceCategories || []).includes(item.id)).map(item => item.id);
+              if (!available.includes(p.choice) || !pending.options.includes(p.choice)) fail("Эта категория последствия уже выбрана для героя");
+              appendConsequence(target, pending, p);
+            }
+          } else if (pending.kind === "placement") {
             if (pending.context.martialQuickStep) {
               const owner = requiredActor(scene, pending.context.targetId || sourceId, false), destination = p.destination && { ...p.destination, space: p.destination.space || owner.space };
               if (!destination || destination.space !== owner.space || distance(owner, destination) < 1 || distance(owner, destination) > Number(pending.context.maximum || 3)) fail("Клетка Быстрого шага не соответствует дальности");
@@ -3597,6 +3779,7 @@
           for(const target of scene.actors){
             resetCounters(target,"scene");
             target.hp=maxHealth(target);target.knockedOut=false;target.evasion=0;target.ap=0;target.acted=target.kind==="crowd";target.usedActions=[];target.stepRemaining=0;
+            const consequenceRecords=copy(ensureConsequenceState(target).consequences||[]), legacyConsequenceNotes=copy(ensureConsequenceState(target).legacyNotes||[]);
             const automation=copy(target.lionwing?.automation||{});
             const previousInventoryIds=Object.keys(target.lionwing?.inventory?.definitions||{});
             const persistentInventory=inventory?.persistentState ? inventory.persistentState(target) : null;
@@ -3610,6 +3793,9 @@
             }
             target.effectStates=persistentStates;target.effects=Object.keys(persistentStates);
             target.lionwing=Object.keys(automation).length?{automation}:{};
+            if(consequenceRecords.length)target.lionwing.consequences=consequenceRecords;
+            if(legacyConsequenceNotes.length)target.lionwing.legacyNotes=legacyConsequenceNotes;
+            syncConsequenceIndex(target.lionwing);
             if (persistentInventory && (Object.keys(persistentInventory.definitions || {}).length || Object.keys(persistentInventory.records || {}).length)) target.lionwing.inventory=persistentInventory;
             target.inventory ||= {};
             for (const id of previousInventoryIds) delete target.inventory[id];
@@ -3696,7 +3882,8 @@
         if (p.targetIds.length !== 1) fail("Производное действие требует одну цель");
       }
       if(p.targetId)requiredActor(scene,p.targetId,false);
-      if(["damage","heal","resource","correct","tension","spend-health","lose-health"].includes(p.kind))integer(p.amount,"количество");
+      const consequenceCorrection = p.kind === "correct" && ["consequence", "consequence-record"].includes(p.resource);
+      if(["damage","heal","resource","correct","tension","spend-health","lose-health"].includes(p.kind) && !consequenceCorrection)integer(p.amount,"количество");
       if(p.kind==="combat-meter" && p.operation === "add" && (typeof p.delta !== "number" || !Number.isSafeInteger(p.delta) || Math.abs(p.delta) > 9999)) fail("Некорректное значение: изменение");
       if(p.kind==="combat-meter" && ["set"].includes(p.operation)) integer(p.value ?? p.current,"новое значение");
       if(p.kind==="resource"&&!["spend","gain"].includes(p.operation))fail("Неизвестная операция ресурса");
@@ -3975,6 +4162,21 @@
     if (!definition) return { available: false, reason: "Неизвестное действие.", actorId: target.id, actionId: actionId || null, authoritative: true };
     return { ...actionStatus(scene, target, definition, typeof request === "object" ? request : {}), schema: 1, actorId: target.id, actionId: definition.id, authoritative: true, manualFallback: false };
   }
+  function consequenceStatus(scene, actorId) {
+    const snapshot = copy(scene), target = actor(snapshot, actorId);
+    if (!target) return { schema: 1, actorId, available: false, reason: "Участник не найден.", categories: [], records: [], legacyNotes: [] };
+    const l = ensureConsequenceState(target), used = new Set(l.usedConsequenceCategories || []);
+    return {
+      schema: 1,
+      actorId: target.id,
+      available: true,
+      categories: CONSEQUENCE_CATEGORIES.map(item => ({ ...item, available: !used.has(item.id) })),
+      availableCategories: CONSEQUENCE_CATEGORIES.filter(item => !used.has(item.id)).map(item => item.id),
+      usedCategories: [...used],
+      records: copy(l.consequences || []),
+      legacyNotes: copy(l.legacyNotes || []),
+    };
+  }
   const api = {
     schema: 2, isScene, prepare, command, dispatchMany, replay, undo, reload, previewEvents, prepareEntityRemoval, cancelEntityRemoval, removeEntity, destroyEntity: removeEntity,
     combatMeter: combatMeter ? { read: (scene, id) => combatMeter.read(scene, id), quote: (scene, id, change) => combatMeter.quote(scene, id, change) } : null,
@@ -3986,6 +4188,7 @@
     opposedDiceRoll, opposedRoll: opposedDiceRoll, diceOpposed: opposedDiceRoll,
     resolveDiceTie: (value, resolution) => diceAvailable().resolveTie(value, resolution),
     historyStatus, effectInstanceStatus, activeState, auraRecord, auraStatus, lifetimeExpired, compoundStatus, lifecycleContext, statQuote, effectiveStats,
+    consequenceCategories: () => copy(CONSEQUENCE_CATEGORIES), consequenceStatus,
     lifecycle: lifecycleContext,
     composeNumeric: (base, operations, context = {}) => global.DAWN_LIONWING_ADAPTERS?.composeNumeric?.(base, operations, context) || { ok: false, reason: "Числовой конвейер недоступен." },
     numericQuote: (owner, context = {}) => global.DAWN_LIONWING_ADAPTERS?.numericQuote?.(owner, context) || { ok: false, reason: "Числовой конвейер недоступен." },
