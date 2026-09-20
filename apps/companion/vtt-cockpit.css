@@ -815,3 +815,98 @@ body[data-scene-control-mode="manual"] .scene-dock [data-scene-panel="director"]
   }
   .scene-action-tray .scene-tray-gm{flex:0 0 auto;align-items:center}
 }
+
+/* L03: keep the mobile chrome in a real vertical flow.  The old compact
+   header put the current step between fixed-width controls; its empty action
+   tray also occupied the flexible stage row and looked like lost content. */
+@media(max-width:720px){
+  .scene-mode .scene-stage{
+    grid-template-rows:auto auto auto auto auto;
+    height:auto;
+    min-height:0;
+    overflow:visible;
+  }
+
+  .scene-mode .scene-stage-head{
+    grid-template-columns:minmax(0,1fr);
+    gap:.42rem;
+    align-items:stretch;
+  }
+  .scene-mode .scene-stage-head>.scene-flow,
+  .scene-mode .scene-stage-head>.scene-stage-actions{
+    grid-column:1;
+    grid-row:auto;
+    min-width:0;
+    width:100%;
+  }
+  .scene-mode .scene-stage-head>.scene-flow{
+    grid-template-columns:minmax(0,1fr) auto;
+    min-height:46px;
+  }
+  .scene-mode .scene-flow-copy strong,
+  .scene-mode .scene-flow-copy small{
+    overflow:visible;
+    text-overflow:clip;
+    white-space:normal;
+    overflow-wrap:anywhere;
+  }
+  .scene-mode .scene-flow-copy strong{line-height:1.2}
+  .scene-mode .scene-flow-copy small{display:block;line-height:1.3}
+  .scene-mode .scene-flow-actions{min-width:0;max-width:42%;align-self:center}
+  .scene-mode .scene-flow-actions button{max-width:100%;white-space:normal;line-height:1.15}
+
+  .scene-mode .scene-stage-actions{
+    display:flex;
+    align-items:stretch;
+    justify-content:stretch;
+    flex-wrap:wrap;
+    gap:.25rem;
+  }
+  .scene-mode .scene-stage-actions .scene-stage-quick-action{
+    flex:1 1 0;
+    min-width:0;
+    white-space:normal;
+    line-height:1.15;
+  }
+  .scene-mode .scene-stage-actions .scene-chrome-menu{flex:0 0 auto}
+
+  /* Preserve the narrator actions; they must not disappear just because the
+     tray is below the board on a phone. */
+  .scene-mode .scene-action-tray{
+    align-self:start;
+    justify-self:stretch;
+    width:100%;
+    height:max-content;
+    min-height:0;
+    max-height:52px;
+  }
+  .scene-mode .scene-action-tray .scene-tray-gm{display:flex;align-items:center}
+
+  /* Leave a stable gap above the two-row dock while keeping the panel body
+     independently scrollable and its close button reachable. */
+  .scene-mode .scene-rail{
+    top:4.4rem;
+    bottom:auto;
+    height:min(calc(100dvh - 4.4rem - 7rem),720px);
+    max-height:none;
+    overflow:hidden;
+  }
+  .scene-mode .scene-rail>[data-scene-panel-content]{height:100%;min-height:0;overflow:auto;overscroll-behavior:contain}
+  .scene-panel-open.scene-mode .scene-rail{visibility:visible}
+}
+
+/* A tablet still has the three-part desktop header, but the current step
+   needs two lines before it competes with the target/map controls. */
+@media (min-width:721px) and (max-width:900px) and (min-height:501px){
+  .scene-mode .scene-stage-head>.scene-flow{
+    grid-template-columns:minmax(0,1fr) minmax(160px,1.1fr) auto;
+    min-height:48px;
+  }
+  .scene-mode .scene-stage-head .scene-flow-copy strong{
+    overflow:visible;
+    text-overflow:clip;
+    white-space:normal;
+    overflow-wrap:anywhere;
+    line-height:1.15;
+  }
+}
