@@ -127,11 +127,13 @@ assert.match(publicProjectionMigration, /'rollFeed'[\s\S]+visibility','public'\)
 assert.match(publicProjectionMigration, /'pendingAction'[\s\S]+'pendingPrompt'[\s\S]+'triggerQueue'[\s\S]+'challengeRequest'[\s\S]+'opposedRoll'/, "The server projection must sanitize every live combat lifecycle that can reference a hidden actor");
 assert.match(appSource, /deployment=new Set\([\s\S]+type==="deploy-enemy"/, "Encounter deployment uses explicit enemy deployment zones");
 assert.match(appSource, /gmDeployTerrainCells[\s\S]+availableEncounterCell/, "Encounter deployment avoids saved blocking Terrain");
+assert.match(appSource, /return findCell\(true\)\|\|\(allowedCells\?findCell\(false\):null\)/, "A crowded deployment zone falls back to the rest of the playable field instead of dropping preset participants");
 assert.match(appSource, /if\(Scene\.selectedActor!==actor\.id\)\{Scene\.targetIds=\[\];Scene\.targetCells=\[\]\}[\s\S]+Scene\.targetIds=\[\];Scene\.targetCells=\[\];Scene\.selectedActor=actor\.id/, "Switching the controlled actor cannot retain stale empty-cell targets from another character");
 assert.match(appSource, /const BUILTIN_ENCOUNTERS=Object\.freeze\(\[/, "Narrator tools provide reusable built-in encounter presets");
 assert.match(appSource, /data-gm-encounter-copy/, "A built-in encounter can be copied into the user's editable library");
 assert.doesNotMatch(appSource, /commitScene\(`Стены расстановки:/, "Encounter deployment must not split Walls into a second undo transaction");
 assert.match(appSource, /Резерв героев/, "A full preset has a safe overflow space instead of stacking excess heroes in one cell");
+for(const reserveName of ["Резерв новых героев","Резерв новых НПС","Резерв новых участников","Резерв подключившихся героев"]){assert.ok(appSource.includes(reserveName),`${reserveName} protects a participant from overlapping an occupied full field`)}
 assert.match(appSource, /Зоны Развёртывания задаются сценарием; это не фиксированные квадраты 2×2/, "The preset UI must not present a 2×2 deployment zone as a universal rule");
 assert.ok(appSource.includes('canonicalGroup:true')&&appSource.includes('Канонический состав: Т3 Громила + Т3 Бехемот + Т3 Гигант'), "The canonical compound-enemy example is available at its printed Tier");
 assert.match(appSource, /defined=\(value,fallback\)[\s\S]+source\.maxHp,stats\.health/, "Sparse built-in blueprints derive Health from enemy rules instead of spawning as 1 HP placeholders");

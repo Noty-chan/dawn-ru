@@ -65,8 +65,10 @@ function availableEncounterCell(space,wanted,occupied,{allowedCells=null,blocked
   if(compoundCell&&valid(compoundCell))return compoundCell;
   if(wanted?.kind==="crowd"&&valid(start)&&!gmDeployTerrainCells.has(`${start.x},${start.y}`)&&!removedCellKeys(sceneState,space.id).has(`${start.x},${start.y}`))return start;
   if(space.mode==="cinematic")return start;
-  for(let distance=0;distance<space.width+space.height;distance++)for(let y=0;y<space.height;y++)for(let x=0;x<space.width;x++){const key=`${x},${y}`;if(Math.abs(x-start.x)+Math.abs(y-start.y)===distance&&valid({x,y})&&!occupied.has(key)&&!blockedCells?.has(key)&&!gmDeployTerrainCells.has(key)&&!removedCellKeys(sceneState,space.id).has(key)&&!sceneState.objects.some(object=>object.space===space.id&&object.type==="terrain"&&(object.cells||[]).includes(key))){occupied.add(key);return{x,y}}}
-  return null;
+  const findCell=respectDeployment=>{for(let distance=0;distance<space.width+space.height;distance++)for(let y=0;y<space.height;y++)for(let x=0;x<space.width;x++){const key=`${x},${y}`;if(Math.abs(x-start.x)+Math.abs(y-start.y)===distance&&(!respectDeployment||valid({x,y}))&&!occupied.has(key)&&!blockedCells?.has(key)&&!gmDeployTerrainCells.has(key)&&!removedCellKeys(sceneState,space.id).has(key)&&!sceneState.objects.some(object=>object.space===space.id&&object.type==="terrain"&&(object.cells||[]).includes(key))){occupied.add(key);return{x,y}}}return null};
+  // Deployment zones guide ready-made encounters. They must not silently
+  // discard participants when a larger current party fills those cells.
+  return findCell(true)||(allowedCells?findCell(false):null);
 }
 
 function resetGmVariantEditor(){
