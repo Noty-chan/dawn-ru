@@ -25,10 +25,12 @@ Worktree: `lionwing-mobile-layout-l03`
 - `1280×800`: сохранена широкая компоновка; панель «Сущности» открывается справа (`380 px`), карта остаётся доступной слева, закрытие возвращает исходный вид.
 - Консоль браузера: `0` ошибок и `0` предупреждений.
 
-Снимки до/после:
+Снимки до/после сохранены локально в `apps/companion/output/playwright/`. Это локальные артефакты проверки; PNG исключены из Git и не входят в коммиты.
 
-- До: [390 пустая](../../apps/companion/output/playwright/l03-before-390-empty.png), [390 заполненная](../../apps/companion/output/playwright/l03-before-390-filled.png), [768 заполненная](../../apps/companion/output/playwright/l03-before-768-filled.png), [1280 заполненная](../../apps/companion/output/playwright/l03-before-1280-filled.png).
-- После: [390 пустая](../../apps/companion/output/playwright/l03-final-390-empty.png), [390 заполненная](../../apps/companion/output/playwright/l03-final-390-filled-closed.png), [390 «Сущности»](../../apps/companion/output/playwright/l03-final-390-entities.png), [390 «Пульт»](../../apps/companion/output/playwright/l03-final-390-director.png), [390 «Карта»](../../apps/companion/output/playwright/l03-final-390-map.png), [768 заполненная](../../apps/companion/output/playwright/l03-final-768-filled.png), [1280 заполненная](../../apps/companion/output/playwright/l03-final-1280-filled.png), [1280 «Сущности»](../../apps/companion/output/playwright/l03-final-1280-entities.png).
+Имена снимков:
+
+- До: `l03-before-390-empty.png`, `l03-before-390-filled.png`, `l03-before-768-filled.png`, `l03-before-1280-filled.png`.
+- После: `l03-final-390-empty.png`, `l03-final-390-filled-closed.png`, `l03-final-390-entities.png`, `l03-final-390-director.png`, `l03-final-390-map.png`, `l03-final-768-filled.png`, `l03-final-1280-filled.png`, `l03-final-1280-entities.png`, `l03-after-390-return-cell.png`.
 
 ## Проверки и остаток
 
