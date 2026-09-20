@@ -2,7 +2,7 @@
 
 Этот репозиторий содержит русский перевод DAWN, веб-приложение игрового стола, публикационные материалы и инструменты сборки.
 
-- `source/translation/` — источник истины для текста правил.
+- `source/translation/` — русский корпус прежней редакции; не считать его каноном LionWing. Для LionWing используются PDF `source/original/DAWN_ The RPG (LionWing Edition) w Bookmarks.pdf` и `source/editions/dawn-en-lionwing-cb2f8e67/canonical/`.
 - `apps/companion/` — интерактивный стол и автоматизация правил.
 - `tools/layout/` — сборка и проверка книжной верстки.
 - `site/` и `media/` — отдельные веб-материалы.

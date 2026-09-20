@@ -3,6 +3,9 @@ import fs from "node:fs";
 import vm from "node:vm";
 import { loadSceneEngine } from "./load-scene-engine.mjs";
 
+// Historical 0.9 sheet compatibility only. Dim Mak here is NOT LionWing Detective.
+// Keep workstation-specific exports out of the default reproducible test suite.
+
 const appCoreSource=fs.readFileSync(new URL("../app-core.js",import.meta.url),"utf8");
 const sceneUiSource=fs.readFileSync(new URL("../scene-ui.js",import.meta.url),"utf8");
 assert.match(appCoreSource,/RAASHA_HERO_ID="237281b8-2dbe-42e7-b696-b66129836367"/);
@@ -12,16 +15,18 @@ assert.match(sceneUiSource,/actor\.heroId==="237281b8-2dbe-42e7-b696-b6612983636
 assert.match(sceneUiSource,/usesAbility:Boolean\(ability\)\|\|psionicDiscipline/,"Psionic discipline rolls must trigger Ability rules");
 assert.match(sceneUiSource,/usesSkill:Boolean\(skill\)&&!psionicDiscipline/,"Psionic disciplines must not simultaneously count as Skills");
 
-const fixturePath = process.env.DAWN_RAASHA_FIXTURE || "D:/Downloads/Персы Мира Мертвых Богов/DAWN-Рааша-Шаадрин.json";
-if (!fs.existsSync(fixturePath)) {
-  console.log("Raasha exact-sheet QA skipped: set DAWN_RAASHA_FIXTURE to the exported hero JSON");
+const fixturePath = process.env.DAWN_RAASHA_FIXTURE;
+if (!fixturePath) {
+  console.log("Legacy 0.9 Raasha exact-sheet QA skipped: set DAWN_RAASHA_FIXTURE explicitly; shared UI assertions passed");
   process.exit(0);
 }
+assert.ok(fs.existsSync(fixturePath), "DAWN_RAASHA_FIXTURE must point to an existing legacy 0.9 export");
 
 const exported = JSON.parse(fs.readFileSync(fixturePath, "utf8"));
 assert.equal(exported.format, "dawn-ru-hero");
 assert.equal(exported.schema, 2);
 const hero = exported.hero;
+assert.equal(hero.rulesEdition || "ru-v0.9", "ru-v0.9", "This historical fixture must not be used to certify LionWing");
 assert.equal(hero.name, "Рааша Шаадрин");
 assert.equal(hero.tier, 1);
 assert.deepEqual(hero.attrs, { body: 2, talent: 2, spirit: 4, mind: 3 });
@@ -60,6 +65,7 @@ const spawnedHealth = context.DAWN_LOGIC.reconcileSceneActorHealth({
 assert.deepEqual(JSON.parse(JSON.stringify(spawnedHealth)), { current: 6, maximum: 6 }, "Рааша должна появляться на новом столе с 6/6 Здоровья");
 
 const raashaActor = {
+  rulesEdition: "ru-v0.9",
   id: "raasha",
   heroId: hero.id,
   kind: "hero",
@@ -87,6 +93,7 @@ const raashaActor = {
   knockedOut: false,
 };
 const scene = {
+  rulesEdition: "ru-v0.9",
   version: 0,
   round: 1,
   turnSerial: 1,
