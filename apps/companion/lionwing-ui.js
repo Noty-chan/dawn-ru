@@ -16,26 +16,102 @@ const lwEntityViewer = () => {
   const actor = currentHeroActor?.() || Scene.actors.find(item => item.id === sync.actorId);
   return { role: view === "gm" ? "narrator" : "player", actorId: actor?.id || sync.actorId || null, userId: sync.userId || null };
 };
-const lwEntityName = entity => {
-  const owner = Scene.actors.find(actor => actor.id === entity?.ownerActorId);
-  return owner?.name || "Участник Сцены";
+const lwEntityLifetimeNames = Object.freeze({
+  default: "по правилу", turn: "до конца Хода", ownerTurn: "до конца Хода владельца", action: "до конца действия",
+  round: "до конца Раунда", roundEnd: "до конца Раунда", scene: "до конца Сцены", chapter: "до конца Главы",
+  session: "до конца игровой сессии", persistent: "постоянно", manual: "до ручного снятия", instant: "мгновенно",
+  nextTurn: "до следующего Хода", startTurn: "до начала Хода", endTurn: "до конца Хода",
+  startNextOwnerTurn: "до следующего Хода владельца", endNextOwnerTurn: "до конца Хода владельца", actionOrStartTurn: "до действия или следующего Хода",
+});
+const lwEntityLinkTypeNames = Object.freeze({ pilot: "управляет", carrier: "несёт", anchor: "закрепляет", movement: "перемещает", attachment: "прикрепляет", contains: "содержит", contained: "содержится" });
+const lwEntityKindNames = Object.freeze({
+  summon: "Связь с точкой призыва", participant: "Связь с участником", marker: "Связь с маркером", object: "Связь с объектом",
+  area: "Связь с областью", wall: "Связь со Стеной", scene: "Связь Сцены", "scene-object": "Связь с объектом Сцены",
+  "scene-marker": "Связь с маркером Сцены", "scene-area": "Связь с областью Сцены", "scene-wall": "Связь со Стеной Сцены",
+  "scene-participant": "Связь с участником Сцены", "manual.entity": "Связь Сцены",
+});
+const lwEntityName = (entity, backing = null) => {
+  const ownerId = entity?.ownerActorId || backing?.ownerActorId || backing?.ownerId;
+  const owner = (Scene.actors || []).find(actor => actor.id === ownerId);
+  return owner?.name || (entity?.ownerHidden ? "Владелец скрыт" : "Не указан");
 };
-const lwEntityBacking = entity => {
-  const backing = entity?.backing;
-  if (!backing) return entity?.backingHidden ? "Backing скрыт правами проекции" : "Без backing";
+function lwEntityBackingRef(raw) {
+  const backing = raw?.backing || raw;
+  if (!backing || typeof backing !== "object") return null;
   const type = backing.type || (backing.actorId ? "actor" : backing.markerId ? "marker" : backing.objectId ? "object" : backing.areaId ? "area" : backing.wallId ? "wall" : "");
   const id = backing.id || backing[`${type}Id`];
-  const collections = { actor: Scene.actors, marker: Scene.markers, object: Scene.objects, area: [...(Scene.areas || []), ...(Scene.objects || []).filter(item => item.type === "area")], wall: Scene.walls };
-  const item = (collections[type] || []).find(candidate => candidate?.id === id);
-  const typeNames = { actor: "участник", marker: "маркер", object: "объект", area: "область", wall: "Стена" };
-  return `${typeNames[type] || "ссылка"}${item?.name || item?.label ? ` · ${item.name || item.label}` : ""}`;
+  return type && id ? { type, id: String(id) } : null;
+}
+const lwEntityBackingKey = ref => ref ? `${ref.type}:${ref.id}` : "";
+function lwEntityBackingCollections(scene = Scene) {
+  return {
+    actor: Array.isArray(scene?.actors) ? scene.actors : [],
+    marker: Array.isArray(scene?.markers) ? scene.markers : [],
+    object: (Array.isArray(scene?.objects) ? scene.objects : []).filter(item => item?.type !== "area"),
+    area: [...(Array.isArray(scene?.areas) ? scene.areas : []), ...(Array.isArray(scene?.objects) ? scene.objects : []).filter(item => item?.type === "area")],
+    wall: Array.isArray(scene?.walls) ? scene.walls : [],
+  };
+}
+function lwEntityBackingItem(scene, ref) {
+  if (!ref) return null;
+  return (lwEntityBackingCollections(scene)[ref.type] || []).find(item => item?.id === ref.id) || null;
+}
+function lwEntityBackingTypeName(type, item = null) {
+  if (type === "actor") return item?.kind === "crowd" ? "Массовка" : item?.team === "enemy" ? "Противник" : "Участник";
+  if (type === "marker") {
+    const markerType = typeof sceneMarkerType === "function" ? sceneMarkerType(item?.kind) : null;
+    return markerType?.name ? `Маркер · ${markerType.name}` : "Маркер";
+  }
+  if (type === "area") return "Область";
+  if (type === "wall") return "Стена";
+  const names = typeof SCENE_TYPE_NAMES === "object" ? SCENE_TYPE_NAMES : {};
+  return names[item?.type] || "Объект Сцены";
+}
+function lwEntityBackingLabel(item, type = "") {
+  return item?.name || item?.label || (type === "wall" ? "Стена без названия" : type === "area" ? "Область без названия" : "Объект без названия");
+}
+function lwEntitySpaceName(scene, item) {
+  if (!item?.space) return "—";
+  return scene?.spaces?.find(space => space.id === item.space)?.name || "Поле Сцены";
+}
+function lwEntityLifetimeLabel(value) {
+  const boundary = typeof value === "object" ? value?.boundary || value?.duration || value?.resetAt : value;
+  return lwEntityLifetimeNames[boundary] || (boundary ? "срок задан правилом" : "пока объект на Сцене");
+}
+function lwEntityBackingState(item, type) {
+  if (!item) return "объект отсутствует";
+  if (item.hidden || item.visibility === "hidden" || item.metadata?.hidden || item.type === "hidden" || item.kind === "hidden") return "скрыт";
+  if (type === "actor" && item.knockedOut) return "вне боя";
+  if (["object", "area", "wall"].includes(type) && item.hp != null && Number(item.hp) <= 0) return "разрушен";
+  return "на поле";
+}
+const lwEntityNameForRegistry = entity => lwEntityKindNames[entity?.kind] || "связь реестра";
+const lwEntityRegistryState = (entity, status) => {
+  if (entity?.lifecycle === "destroyed") return "уничтожена";
+  if (entity?.lifecycle === "disabled") return "отключена";
+  if (status?.reason) return `неактивна · ${status.reason}`;
+  return "активна";
 };
-const lwEntityTechnical = entity => {
-  const backing = entity?.backing || {};
-  const source = entity?.source || {};
-  const refs = [entity?.id, entity?.ownerActorId, source.actorId || source.markerId || source.objectId || source.areaId || source.sceneId, backing.id || backing.actorId || backing.markerId || backing.objectId || backing.areaId || backing.wallId].filter(Boolean);
+const lwEntityBacking = (entity, scene = Scene) => {
+  const ref = lwEntityBackingRef(entity), item = lwEntityBackingItem(scene, ref);
+  if (!ref) return entity?.backingHidden ? "объект скрыт правами проекции" : "без объекта Сцены";
+  return `${lwEntityBackingTypeName(ref.type, item)} · ${lwEntityBackingLabel(item, ref.type)}`;
+};
+function lwEntityTechnical(entity, row = null) {
+  const records = row?.registry?.length ? row.registry : entity ? [entity] : [];
+  const primary = records[0] || entity || null, backing = primary?.backing || entity?.backing || {};
+  const source = primary?.source || entity?.source || {};
+  const refs = [
+    primary?.id,
+    row?.key,
+    ...records.slice(1).flatMap(record => [record?.id, record?.kind && `kind:${record.kind}`, record?.source?.actorId || record?.source?.entityId || record?.source?.actionId || record?.source?.eventId || record?.source?.sceneId]),
+    primary?.kind && `kind:${primary.kind}`,
+    primary?.ownerActorId,
+    source.actorId || source.entityId || source.actionId || source.eventId || source.sceneId,
+    backing.id || backing.actorId || backing.markerId || backing.objectId || backing.areaId || backing.wallId,
+  ].filter(Boolean);
   return refs.length ? `<details class="scene-entity-technical"><summary>Технические данные</summary><code>${refs.map(esc).join(" · ")}</code></details>` : "";
-};
+}
 const lwEntityTypes = Object.freeze(["actor", "marker", "object", "area", "wall"]);
 const lwEntityTypeNames = Object.freeze({ actor: "участник", marker: "маркер", object: "объект", area: "область", wall: "Стена" });
 const lwEntityVisibilityNames = Object.freeze({ public: "Публичная", owner: "Только владельцу", narrator: "Только Нарратору", hidden: "Скрытая" });
@@ -64,7 +140,7 @@ function lwEntityControlsHtml() {
   if (!lwEntityCanMutate()) return "";
   const actors = Array.isArray(Scene.actors) ? Scene.actors : [], backings = lwEntityBackingOptions();
   const owner = actors[0]?.id || "", backing = backings[0];
-  return `<form class="scene-entity-create" data-lw-entity-form><strong>Создать public сущность</strong><p>Выберите существующий backing и владельца. Состояние backing (координаты, Здоровье и другие поля) сюда не копируется.</p><div class="scene-entity-create-fields"><label>Тип (kind)<input data-lw-entity-kind maxlength="80" value="summon" required spellcheck="false"></label><label>Владелец<select data-lw-entity-owner required>${actors.map(actor => `<option value="${esc(actor.id)}"${actor.id === owner ? " selected" : ""}>${esc(actor.name || actor.id)}</option>`).join("")}</select></label><label>Backing<select data-lw-entity-backing required>${backings.map(item => `<option value="${esc(`${item.type}:${item.id}`)}"${item === backing ? " selected" : ""}>${esc(`${lwEntityTypeNames[item.type]} · ${item.label}`)}</option>`).join("")}</select></label><label>Видимость<select data-lw-entity-visibility>${Object.entries(lwEntityVisibilityNames).map(([value, label]) => `<option value="${value}"${value === "public" ? " selected" : ""}>${label}</option>`).join("")}</select></label></div>${actors.length && backings.length ? `<button type="submit" class="primary" data-lw-entity-create>Создать сущность</button>` : `<p class="autosave">Нужны хотя бы один владелец и существующий backing.</p>`}</form>`;
+  return `<details class="scene-entity-link-form"><summary>Связать существующий объект</summary><form data-lw-entity-form><strong>Добавить строку связи</strong><p>Связь только указывает на объект, который уже стоит на Сцене. Координаты, Здоровье и другие поля объекта остаются в его backing.</p><div class="scene-entity-create-fields"><label>Название связи<input data-lw-entity-kind maxlength="80" value="scene-object" required spellcheck="false"></label><label>Владелец<select data-lw-entity-owner required>${actors.map(actor => `<option value="${esc(actor.id)}"${actor.id === owner ? " selected" : ""}>${esc(actor.name || actor.id)}</option>`).join("")}</select></label><label>Существующий объект<select data-lw-entity-backing required>${backings.map(item => `<option value="${esc(`${item.type}:${item.id}`)}"${item === backing ? " selected" : ""}>${esc(`${lwEntityTypeNames[item.type]} · ${item.label}`)}</option>`).join("")}</select></label><label>Видимость связи<select data-lw-entity-visibility>${Object.entries(lwEntityVisibilityNames).map(([value, label]) => `<option value="${value}"${value === "public" ? " selected" : ""}>${label}</option>`).join("")}</select></label></div>${actors.length && backings.length ? `<button type="submit" class="primary" data-lw-entity-create>Связать объект</button>` : `<p class="autosave">Нужны хотя бы один владелец и существующий объект Сцены.</p>`}</form></details>`;
 }
 function lwEntityCommit(label, transition) {
   let result = null;
@@ -83,14 +159,14 @@ function lwCreateEntity(form) {
   if (!lwEntityCanMutate()) return toast("Эта операция доступна только Нарратору");
   const api = lwEntities(), kind = form?.querySelector("[data-lw-entity-kind]")?.value?.trim() || "", ownerActorId = form?.querySelector("[data-lw-entity-owner]")?.value || "", backing = lwEntityBackingFromValue(form?.querySelector("[data-lw-entity-backing]")?.value), visibility = form?.querySelector("[data-lw-entity-visibility]")?.value || "public";
   if (!api?.create || !ownerActorId || !backing || !Scene.actors?.some(actor => actor.id === ownerActorId)) return toast("Выберите существующего владельца и backing");
-  if (!kind || /\s/u.test(kind) || kind.length > 80) return toast("Тип (kind) обязателен и не должен содержать пробелы");
+  if (!kind || /\s/u.test(kind) || kind.length > 80) return toast("Название связи обязательно и не должно содержать пробелы");
   if (!Object.prototype.hasOwnProperty.call(lwEntityVisibilityNames, visibility)) return toast("Неизвестная видимость сущности");
   const option = lwEntityBackingOptions().find(item => item.type === backing.type && item.id === backing.id), expectedVersion = Number(Scene.version || 0);
   if (!option) return toast("Backing отсутствует на Сцене");
-  const summary = `Создать сущность «${kind}» для «${Scene.actors.find(actor => actor.id === ownerActorId)?.name || ownerActorId}»?\nBacking: ${lwEntityTypeNames[option.type]} · ${option.label}\nВидимость: ${lwEntityVisibilityNames[visibility]}.`;
+  const summary = `Связать существующий объект «${option.label}» с владельцем «${Scene.actors.find(actor => actor.id === ownerActorId)?.name || ownerActorId}»?\nВид: ${lwEntityTypeNames[option.type]}\nВидимость связи: ${lwEntityVisibilityNames[visibility]}.`;
   if (!window.confirm(summary)) return false;
   const id = uid(), entity = { id, kind, ownerActorId, source: { actorId: ownerActorId }, rule: "manual.entity", backing: option.ref, lifetime: { boundary: "scene" }, visibility };
-  return lwEntityCommit(`Создана сущность «${kind}» · ${lwEntityTypeNames[option.type]} · ${option.label}`, scene => api.create(scene, entity, { role: "narrator", actorId: ownerActorId, expectedVersion }));
+  return lwEntityCommit(`Связь объекта «${option.label}» добавлена`, scene => api.create(scene, entity, { role: "narrator", actorId: ownerActorId, expectedVersion }));
 }
 function lwDestroyEntity(id) {
   if (!lwEntityCanMutate()) return toast("Эта операция доступна только Нарратору");
@@ -107,7 +183,78 @@ function lwDestroyEntity(id) {
   renderLionwingEntities();
   return committed;
 }
-function renderLionwingEntities() {
+let lwEntityListQuery = "", lwEntityListFilter = "all";
+function lwEntityProjectionScene(api, viewer) {
+  if (typeof api?.projectScene !== "function") return Scene;
+  try { return api.projectScene(Scene, viewer) || Scene; } catch { return Scene; }
+}
+function lwEntityRegistryRecords(api, projection) {
+  const records = Array.isArray(projection?.entities) ? projection.entities : [];
+  // Keep the projection's redactions (owner/source/backing) intact. The
+  // authoritative graph is useful for diagnostics, but replacing a player
+  // projection with graph records would reintroduce hidden IDs here.
+  return records;
+}
+function lwEntityRows(api, projection, projectedScene, viewer = {}) {
+  const rows = new Map(), unbound = [], registryRecords = lwEntityRegistryRecords(api, projection), statuses = new Map();
+  if (viewer.role === "player" && !registryRecords.length) return { rows: [], unbound: [], statuses };
+  const addBacking = (type, item) => {
+    if (!item?.id) return;
+    const ref = { type, id: String(item.id) }, key = lwEntityBackingKey(ref);
+    if (rows.has(key)) return;
+    rows.set(key, { key, type, id: ref.id, backing: item, registry: [], name: lwEntityBackingLabel(item, type), typeName: lwEntityBackingTypeName(type, item), owner: lwEntityName(null, item), space: lwEntitySpaceName(projectedScene, item), lifetime: lwEntityLifetimeLabel(item.duration), state: lwEntityBackingState(item, type) });
+  };
+  for (const [type, items] of Object.entries(lwEntityBackingCollections(projectedScene))) for (const item of items) addBacking(type, item);
+  for (const entity of registryRecords) {
+    if (viewer.role === "player" && (entity.ownerHidden || entity.backingHidden && entity.visibility === "public")) continue;
+    const ref = lwEntityBackingRef(entity), key = lwEntityBackingKey(ref), item = ref ? lwEntityBackingItem(projectedScene, ref) : null;
+    let status = null;
+    const rawRegistry = Scene?.lionwing?.entities, hasRawEntity = Array.isArray(rawRegistry) ? rawRegistry.some(item => item?.id === entity.id) : Boolean(rawRegistry && Object.prototype.hasOwnProperty.call(rawRegistry, entity.id));
+    if (hasRawEntity) try { status = api?.resolve?.(Scene, entity.id) || null; } catch { status = null; }
+    statuses.set(entity.id, status);
+    if (!ref || !item || !rows.has(key)) {
+      unbound.push({ entity, reason: entity?.backingHidden ? "объект скрыт правами проекции" : !ref ? "ссылка на объект не распознана" : "объект отсутствует на Сцене", status });
+      continue;
+    }
+    const row = rows.get(key);
+    row.registry.push(entity);
+    row.owner = lwEntityName(entity, item);
+    row.lifetime = lwEntityLifetimeLabel(entity.lifetime || item.duration);
+    row.state = lwEntityRegistryState(entity, status);
+  }
+  return { rows: [...rows.values()], unbound, statuses };
+}
+function lwEntityRowSearchText(row) {
+  return [row.name, row.typeName, row.owner, row.space, row.lifetime, row.state, row.registry.length ? "связана" : "без связи", ...row.registry.map(lwEntityNameForRegistry)].join(" ").toLocaleLowerCase();
+}
+function lwEntityFilterMatches(row) {
+  if (lwEntityListFilter === "linked") return row.registry.length > 0;
+  if (lwEntityListFilter === "unlinked") return row.registry.length === 0;
+  if (lwEntityListFilter === "inactive") return /неактив|вне боя|разруш|скрыт|отсутств/u.test(row.state);
+  return lwEntityListFilter === "all" || row.type === lwEntityListFilter;
+}
+function lwEntityLinkedText(row, index) {
+  if (!row.registry.length) return "Объект ещё не связан с записью реестра";
+  const relation = row.registry.map(entity => lwEntityNameForRegistry(entity));
+  const links = row.registry.flatMap(entity => (entity.links || []).map(link => lwEntityLinkTypeNames[link.type] || "связь"));
+  return `${relation.join(" · ")}${links.length ? ` · ${links.join(", ")}` : ""}`;
+}
+function lwEntityCardHtml(row, index) {
+  const first = row.registry[0], technical = first ? lwEntityTechnical(first, row) : `<details class="scene-entity-technical"><summary>Технические данные</summary><code>${esc(row.key)}</code></details>`;
+  return `<article class="scene-entity-card" data-lw-entity-row data-lw-entity-key="${esc(row.key)}"><header><div><strong>${esc(row.name)}</strong><small>${esc(row.typeName)}</small></div><button type="button" class="scene-entity-show" data-lw-entity-show="${esc(row.key)}" aria-label="Показать ${esc(row.name)} на поле">Показать на поле</button>${lwEntityCanMutate() && first ? `<button type="button" class="danger-quiet" data-lw-entity-destroy="${esc(first.id)}">Удалить связь</button>` : ""}</header><dl><div><dt>Вид</dt><dd>${esc(row.typeName)}</dd></div><div><dt>Владелец</dt><dd>${esc(row.owner)}</dd></div><div><dt>Пространство</dt><dd>${esc(row.space)}</dd></div><div><dt>Срок</dt><dd>${esc(row.lifetime)}</dd></div><div><dt>Состояние</dt><dd>${esc(row.state)}</dd></div></dl><p class="scene-entity-links"><span>Связь</span> ${esc(lwEntityLinkedText(row, index))}</p>${technical}</article>`;
+}
+function lwEntityUnboundHtml(entry) {
+  const entity = entry.entity, owner = lwEntityName(entity), technical = lwEntityTechnical(entity);
+  return `<article class="scene-entity-card scene-entity-unbound"><header><div><strong>Связь без объекта</strong><small>Связь Сцены</small></div></header><dl><div><dt>Вид</dt><dd>объект не найден</dd></div><div><dt>Владелец</dt><dd>${esc(owner)}</dd></div><div><dt>Пространство</dt><dd>—</dd></div><div><dt>Срок</dt><dd>${esc(lwEntityLifetimeLabel(entity?.lifetime))}</dd></div><div><dt>Состояние</dt><dd>не привязана · ${esc(entry.reason)}</dd></div></dl>${technical}</article>`;
+}
+function lwEntityRestoreListFocus(root, focusSearch, selectionStart) {
+  if (!focusSearch || !root?.querySelector) return;
+  const input = root.querySelector("[data-lw-entity-search]");
+  if (!input) return;
+  input.focus();
+  if (typeof input.setSelectionRange === "function") input.setSelectionRange(selectionStart ?? input.value.length, selectionStart ?? input.value.length);
+}
+function renderLionwingEntities({ focusSearch = false, selectionStart = null } = {}) {
   const root = $("scene-entities");
   if (!root || !lwActive()) return;
   const api = lwEntities();
@@ -115,9 +262,46 @@ function renderLionwingEntities() {
   let projection;
   try { projection = api.project(Scene, lwEntityViewer()); }
   catch (error) { root.innerHTML = `<p class="autosave" role="status">Реестр сущностей пока недоступен: ${esc(error.message || error)}</p>`; return; }
-  const records = Array.isArray(projection?.entities) ? projection.entities : [], controls = lwEntityControlsHtml();
-  const cards = records.map(entity => `<article class="scene-entity-card"><header><div><strong>${esc(entity.kind || "Сущность")}</strong><small>${esc(entity.lifecycle || "active")} · ${esc(lwEntityBacking(entity))}</small></div>${lwEntityCanMutate() ? `<button type="button" class="danger-quiet" data-lw-entity-destroy="${esc(entity.id)}">Удалить</button>` : ""}</header><dl><div><dt>Владелец</dt><dd>${esc(lwEntityName(entity))}</dd></div><div><dt>Видимость</dt><dd>${esc(entity.visibility || "public")}</dd></div><div><dt>Источник</dt><dd>${entity.sourceHidden ? "скрыт" : "указан"}</dd></div></dl>${lwEntityTechnical(entity)}</article>`).join("");
-  root.innerHTML = `<div class="scene-entities" aria-live="polite">${controls}<p class="scene-entities-intro">Показана проекция реестра, доступная текущему участнику Сцены.</p>${records.length ? `<div class="scene-entity-list">${cards}</div>` : `<p class="autosave">Доступных сущностей пока нет.</p>`}</div>`;
+  const viewer = lwEntityViewer(), projectedScene = lwEntityProjectionScene(api, viewer), inventory = lwEntityRows(api, projection, projectedScene, viewer), query = lwEntityListQuery.trim().toLocaleLowerCase(), rows = inventory.rows.filter(row => lwEntityFilterMatches(row) && (!query || lwEntityRowSearchText(row).includes(query))).sort((a, b) => `${a.name} ${a.key}`.localeCompare(`${b.name} ${b.key}`, "ru")), unbound = inventory.unbound.filter(entry => !query || `${entry.reason} ${lwEntityName(entry.entity)}`.toLocaleLowerCase().includes(query));
+  const cards = rows.map(lwEntityCardHtml).join(""), unboundMarkup = unbound.length ? `<section class="scene-entity-unbound-list"><h3>Связи без объекта</h3><p>Эти записи сохранились, но их объект больше не найден на Сцене.</p>${unbound.map(lwEntityUnboundHtml).join("")}</section>` : "";
+  const panel = root.closest?.("[data-scene-panel-content=\"entities\"]"), title = panel?.querySelector?.("h2");
+  if (title) title.textContent = "Объекты Сцены";
+  const trigger = typeof document !== "undefined" ? document.querySelector("[data-scene-panel=\"entities\"]") : null;
+  if (trigger) trigger.textContent = "Объекты";
+  const visibleSummary = `${rows.length} ${rows.length === 1 ? "объект" : rows.length >= 2 && rows.length <= 4 ? "объекта" : "объектов"}`;
+  root.innerHTML = `<div class="scene-entities" aria-live="polite"><div class="scene-entity-toolbar"><label>Поиск по объектам Сцены<input type="search" data-lw-entity-search value="${esc(lwEntityListQuery)}" placeholder="Имя, вид, владелец, поле…"></label><label>Фильтр<select data-lw-entity-filter><option value="all"${lwEntityListFilter === "all" ? " selected" : ""}>Все объекты</option>${lwEntityTypes.map(type => `<option value="${type}"${lwEntityListFilter === type ? " selected" : ""}>${esc(type === "actor" ? "Участники и массовка" : type === "marker" ? "Маркеры" : type === "object" ? "Объекты" : type === "area" ? "Области" : "Стены")}</option>`).join("")}<option value="linked"${lwEntityListFilter === "linked" ? " selected" : ""}>Есть связь</option><option value="unlinked"${lwEntityListFilter === "unlinked" ? " selected" : ""}>Без связи</option><option value="inactive"${lwEntityListFilter === "inactive" ? " selected" : ""}>Неактивные</option></select></label></div><p class="scene-entities-intro">${esc(visibleSummary)} · каждый объект взят прямо из Сцены; связь реестра дополняет строку и не копирует её состояние.</p>${cards ? `<div class="scene-entity-list">${cards}</div>` : `<p class="autosave">На поле пока нет объектов Сцены или фильтр ничего не нашёл.</p>`}${unboundMarkup}${lwEntityControlsHtml()}</div>`;
+  lwEntityRestoreListFocus(root, focusSearch, selectionStart);
+}
+function lwCenterEntityOnBoard(item, type) {
+  const wrap = typeof $ === "function" ? $("scene-board-wrap") : null;
+  if (!wrap || typeof wrap.getBoundingClientRect !== "function") return false;
+  const key = type === "actor" && item ? `${item.x},${item.y}` : item?.x != null && item?.y != null ? `${item.x},${item.y}` : item?.cells?.[0] || item?.a || "";
+  if (!key || typeof document === "undefined") return false;
+  const cell = document.querySelector(`[data-scene-cell="${CSS.escape(key)}"]`);
+  if (!cell) return false;
+  const wrapRect = wrap.getBoundingClientRect(), cellRect = cell.getBoundingClientRect(), reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
+  wrap.scrollTo?.({ left: Math.max(0, wrap.scrollLeft + cellRect.left - wrapRect.left - (wrapRect.width - cellRect.width) / 2), top: Math.max(0, wrap.scrollTop + cellRect.top - wrapRect.top - (wrapRect.height - cellRect.height) / 2), behavior: reduced ? "auto" : "smooth" });
+  cell.classList.add("scene-camera-focus");
+  setTimeout(() => cell.classList.remove("scene-camera-focus"), reduced ? 0 : 1400);
+  return true;
+}
+function lwShowEntityOnField(value) {
+  const ref = lwEntityBackingFromValue(value), item = lwEntityBackingItem(Scene, ref);
+  if (!ref || !item) return toast("Этот объект больше не найден на Сцене");
+  if (ref.type === "actor" && typeof focusSceneActorOnBoard === "function") {
+    const focused = focusSceneActorOnBoard(ref.id, { select: true, announce: true });
+    if (focused && typeof setScenePanel === "function") setScenePanel("inspector");
+    return focused;
+  }
+  if (item.space) Scene.activeSpace = item.space;
+  if (ref.type === "actor") Scene.selectedActor = ref.id;
+  else Scene.selectedActor = null;
+  if (typeof persist === "function") persist();
+  if (typeof renderScene === "function") renderScene();
+  if (typeof setScenePanel === "function") setScenePanel("inspector");
+  if (typeof requestAnimationFrame === "function") requestAnimationFrame(() => lwCenterEntityOnBoard(item, ref.type));
+  toast(`${lwEntityBackingLabel(item, ref.type)}: показан на поле`);
+  return true;
 }
 const lwFormDraft = new Map();
 const lwDraftKey=input=>{const attr=[...input.attributes].find(attr=>attr.name.startsWith("data-lw-"));return attr?attr.name+(attr.value?":"+attr.value:""):null;};
@@ -571,6 +755,8 @@ document.addEventListener("click", event => {
   if (!lwActive()) return;
   const diceButton = event.target.closest("[data-lw-dice-create],[data-lw-dice-op]");
   if (diceButton) { event.preventDefault(); event.stopImmediatePropagation(); return lwDiceClick(diceButton); }
+  const entityShow = event.target.closest("[data-lw-entity-show]");
+  if (entityShow) { event.preventDefault(); event.stopImmediatePropagation(); return lwShowEntityOnField(entityShow.dataset.lwEntityShow); }
   const entityDestroy = event.target.closest("[data-lw-entity-destroy]");
   if (entityDestroy) { event.preventDefault(); event.stopImmediatePropagation(); return lwDestroyEntity(entityDestroy.dataset.lwEntityDestroy); }
   const effectSource=event.target.closest("[data-lw-effect-source]");
@@ -739,12 +925,16 @@ document.addEventListener("submit", event => {
 
 document.addEventListener("change",event=>{
   if(!lwActive())return;
+  const entityFilter = event.target.closest?.("[data-lw-entity-filter]");
+  if (entityFilter) { lwEntityListFilter = ["all", ...lwEntityTypes, "linked", "unlinked", "inactive"].includes(entityFilter.value) ? entityFilter.value : "all"; renderLionwingEntities(); return; }
   if(event.target.matches("[data-lw-stage]")){lwDraftEnabled=event.target.checked;return;}
   const input=event.target.closest("[data-scene-actor-hp]");
   if(input){event.preventDefault();event.stopImmediatePropagation();if(lwCanNarrate())lwSubmit(input.dataset.sceneActorHp,{kind:"correct",resource:"hp",amount:Number(input.value)},"Исправление Здоровья");}
 },true);
 
 document.addEventListener("input",event=>{
+  const entitySearch = event.target.closest?.("[data-lw-entity-search]");
+  if (lwActive() && entitySearch) { lwEntityListQuery = String(entitySearch.value || ""); const caret = Number(entitySearch.selectionStart); renderLionwingEntities({ focusSearch: true, selectionStart: Number.isInteger(caret) ? caret : lwEntityListQuery.length }); return; }
   if(lwActive()&&event.target.closest("[data-lw-root]")){const key=lwDraftKey(event.target);if(key)lwFormDraft.set(key,event.target.type==="checkbox"?event.target.checked:event.target.value);}
   const root=event.target.closest(".lw-console");if(!root||!lwActive())return;
   const output=root.querySelector("[data-lw-preview]");if(!output)return;

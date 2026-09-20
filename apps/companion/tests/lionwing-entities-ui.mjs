@@ -126,7 +126,7 @@ assert.match(domRoot.innerHTML, /entity-owner/, "owner projection remains availa
 assert.doesNotMatch(domRoot.innerHTML, /Нарратор|Создать|Удалить/, "player projection has no narrator controls");
 projectionMode = "empty";
 context.renderLionwingEntities();
-assert.match(domRoot.innerHTML, /Доступных сущностей пока нет/, "player sees an empty allowed projection without internal data");
+assert.match(domRoot.innerHTML, /На поле пока нет объектов Сцены или фильтр ничего не нашёл/, "player sees an empty allowed projection without internal data");
 assert.deepEqual(JSON.parse(JSON.stringify(scene)), JSON.parse(beforeRender), "read-only rendering does not mutate the scene");
 assert.equal(projectionCalls.length, 3, "render asks the projection API for each view");
 
