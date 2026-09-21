@@ -523,10 +523,16 @@ function lwSubmit(actorId, payload, label = "Действие LionWing") {
   }
   // A player's public snapshot intentionally has no authoritative continuation.
   // Send the selected option; the Narrator validates and resumes its saved frame.
-  if (!lwCanNarrate() && payload.kind === "choice" && ["replacement","rule-trigger","technique-trigger"].includes(Scene.lionwing?.choices?.[0]?.kind)) {
+  if (!lwCanNarrate() && payload.kind === "choice" && ["replacement","rule-trigger","technique-trigger","consequence"].includes(Scene.lionwing?.choices?.[0]?.kind)) {
     const pending = Scene.lionwing.choices[0];
     if (!lwOwns(actorId) || pending.actorId !== actorId || pending.id !== payload.id || !pending.options.includes(payload.choice)) return false;
-    return commitSceneEvents(label, [LionwingEngine.command(actorId, { kind: "choice", id: payload.id, choice: payload.choice })]);
+    const forwarded = { kind: "choice", id: payload.id, choice: payload.choice };
+    if (pending.kind === "consequence" && !(Array.isArray(pending.options) && pending.options.includes("record"))) {
+      if (!payload.lossTarget || typeof payload.lossTarget !== "object") return false;
+      forwarded.lossTarget = structuredClone(payload.lossTarget);
+    }
+    if (pending.kind === "consequence" && payload.note) forwarded.note = String(payload.note).slice(0, 1200);
+    return commitSceneEvents(label, [LionwingEngine.command(actorId, forwarded)]);
   }
   const prepared = LionwingEngine.prepare(Scene, { ...payload, actorId });
   if (!prepared.ok) { toast(prepared.errors.join(" ")); return false; }
@@ -559,6 +565,165 @@ function lwStatusHtml(a) {
   return `<p class="lw-status"><b>${a.hp}/${LionwingEngine.maxHealth(a)} ЗД</b> · ${a.ap} ОД · ${LionwingEngine.balance(a,"focus")} ${esc(focusLabel)}${a.kind === "hero" || a.heroId ? ` · ${a.wounds || 0}/3 Ран${vulnerability}` : ""}${a.stepRemaining ? ` · осталось ${a.stepRemaining} кл. Шага` : ""}</p>`;
 }
 
+const lwConsequenceFallbackCategories = Object.freeze([
+  { id: "skill-ranks", label: "Потерять Ранги Навыка (Ранг 2+)" },
+  { id: "ability-part", label: "Потерять часть Способности" },
+  { id: "boon", label: "Потерять Дар" },
+  { id: "technique-levels", label: "Потерять два Уровня Техник" },
+  { id: "death", label: "Погибнуть и создать нового героя" },
+]);
+function lwConsequenceText(key, fallback) {
+  const translated = window.DAWN_I18N?.t?.(key);
+  return translated && translated !== key ? translated : fallback;
+}
+function lwConsequenceCategories() {
+  const source = typeof LionwingEngine?.consequenceCategories === "function" ? LionwingEngine.consequenceCategories() : lwConsequenceFallbackCategories;
+  return (Array.isArray(source) ? source : lwConsequenceFallbackCategories).map(item => {
+    const fallback = lwConsequenceFallbackCategories.find(candidate => candidate.id === item.id)?.label || item.label || item.id;
+    return { ...item, label: lwConsequenceText(`lionwing.consequence.category.${item.id}`, fallback) };
+  });
+}
+function lwConsequenceStatus(actorId) {
+  if (!actorId) return { schema: 1, actorId: null, available: false, categories: [], availableCategories: [], usedCategories: [], records: [], legacyNotes: [] };
+  if (typeof LionwingEngine?.consequenceStatus === "function") {
+    try { return LionwingEngine.consequenceStatus(Scene, actorId); } catch { /* a stale player projection remains readable below */ }
+  }
+  const actor = Scene.actors?.find(item => item.id === actorId), state = actor?.lionwing || {}, records = Array.isArray(state.consequences) ? state.consequences : [];
+  const usedCategories = [...new Set(records.filter(item => item?.category && item.status !== "void").map(item => item.category))];
+  return { schema: 1, actorId, available: Boolean(actor), categories: lwConsequenceCategories().map(item => ({ ...item, available: !usedCategories.includes(item.id) })), availableCategories: lwConsequenceCategories().map(item => item.id).filter(id => !usedCategories.includes(id)), usedCategories, records, legacyNotes: Array.isArray(state.legacyNotes) ? state.legacyNotes : [] };
+}
+function lwConsequenceChoiceCanRespond(choice) {
+  if (!choice?.actorId || !lwOwns(choice.actorId)) return false;
+  const sync = typeof Sync === "undefined" ? null : Sync?.state?.() || null;
+  // In a local table one person is both the player and the authority. In a
+  // shared table only the owning player's client may answer this window.
+  return !sync?.sceneId || sync.canNarrate !== true;
+}
+function lwConsequenceSkillName(skill, actor) {
+  try {
+    if (typeof skillDisplayName === "function") return skillDisplayName(skill, actor);
+  } catch { /* use the saved label when the builder is not loaded */ }
+  return skill?.name || skill?.definitionId || skill?.id || "Навык";
+}
+function lwConsequenceAbilityWordName(value) {
+  const id = typeof value === "string" ? value : value?.id;
+  if (!id) return "часть Способности";
+  try {
+    if (typeof activeAbilityWords === "function") {
+      for (const group of ["verbs", "nouns", "conditions"]) {
+        const word = (activeAbilityWords()?.[group] || []).find(item => (typeof item === "string" ? item : item?.id) === id);
+        if (word) return typeof word === "string" ? word : word.name || id;
+      }
+    }
+  } catch { /* keep the stable word id */ }
+  const catalogue = window.DAWN_LIONWING_DATA?.abilityWords || window.DAWN_DATA?.abilityWords || {};
+  const catalogueWord = Object.values(catalogue).flat().find(item => item?.id === id);
+  if (catalogueWord?.name) return catalogueWord.name;
+  return typeof value === "string" ? value : value?.name || id;
+}
+function lwConsequenceGiftName(id) {
+  try {
+    if (typeof activeOutlooks === "function") {
+      const gift = activeOutlooks().flatMap(outlook => (outlook.builtin ? [outlook.builtin] : []).concat(outlook.gifts || [])).find(item => item?.id === id);
+      if (gift?.name) return gift.name;
+    }
+  } catch { /* use the stable gift id */ }
+  const catalogue = Array.isArray(window.DAWN_LIONWING_DATA?.outlooks) ? window.DAWN_LIONWING_DATA.outlooks : [];
+  const gift = catalogue.flatMap(outlook => (outlook.builtin ? [outlook.builtin] : []).concat(outlook.gifts || [])).find(item => item?.id === id);
+  if (gift?.name) return gift.name;
+  return id;
+}
+function lwConsequenceTechniqueName(id, level = null) {
+  try {
+    if (typeof techById === "function") {
+      const technique = techById(id), levelEntry = technique?.levels?.find(item => Number(item.n) === Number(level));
+      if (technique?.name) return `${technique.name}${levelEntry?.name ? ` · ${levelEntry.name}` : ""}`;
+    }
+  } catch { /* use the stable technique id */ }
+  return id;
+}
+function lwConsequenceLossOptions(actor, category) {
+  if (!actor) return [];
+ if (category === "skill-ranks") return (Array.isArray(actor.skills) ? actor.skills : []).filter(skill => Number(skill?.rank) >= 2 && typeof skill?.id === "string" && skill.id).map(skill => {
+   const fromRank = Number(skill.rank), name = lwConsequenceSkillName(skill, actor);
+    return { target: { kind: "skill-ranks", id: skill.id }, label: `${name} · текущий Ранг ${fromRank}`, detail: lwConsequenceText("lionwing.consequence.manual.skill", "Уменьшить Ранг этого Навыка вручную в листе") };
+ });
+  if (category === "ability-part") {
+    const parts = [];
+    for (const [abilityKey, ability, fallback] of [["ability", actor.ability, "Способность"], ["taintedAbility", actor.taintedAbility, "Способность Порченого тела"]]) {
+      if (!ability || ability.enabled === false) continue;
+      const title = ability.name || fallback;
+      for (const group of ["verbs", "nouns", "conditions"]) for (const raw of (ability.words?.[group] || [])) {
+        const id = typeof raw === "string" ? raw : raw?.id;
+        if (!id) continue;
+        parts.push({ target: { kind: "ability-part", id: ability.id || abilityKey, partId: `${abilityKey}:${group}:${id}`, group, part: id }, label: `${title} · ${lwConsequenceAbilityWordName(raw)}`, detail: lwConsequenceText("lionwing.consequence.manual.ability", "Указать эту часть Способности при ручной правке листа") });
+      }
+      for (const [id, label] of Object.entries(ability.specializations || {})) if (typeof label === "string" && label.trim()) parts.push({ target: { kind: "ability-part", id: ability.id || abilityKey, partId: `${abilityKey}:specialization:${id}`, group: "specializations", part: id }, label: `${title} · ${label}`, detail: lwConsequenceText("lionwing.consequence.manual.ability", "Указать эту часть Способности при ручной правке листа") });
+    }
+    return parts;
+  }
+  if (category === "boon") return [...new Set((Array.isArray(actor.gifts) ? actor.gifts : []).filter(id => typeof id === "string" && id))].map(id => ({ target: { kind: "boon", id }, label: lwConsequenceGiftName(id), detail: lwConsequenceText("lionwing.consequence.manual.boon", "Убрать этот Дар из листа вручную") }));
+  if (category === "technique-levels") {
+   const levels = { ...(actor.techniques || {}), ...(actor.knownTechniques || {}) };
+   return Object.entries(levels).filter(([, level]) => Number(level) >= 2).map(([id, rawLevel]) => {
+     const fromLevel = Number(rawLevel);
+      return { target: { kind: "technique-levels", id, levels: 2 }, label: `${lwConsequenceTechniqueName(id, fromLevel)} · −2 Уровня (сейчас ${fromLevel})`, detail: lwConsequenceText("lionwing.consequence.manual.technique", "Уменьшить эту Технику на два Уровня в листе") };
+   });
+ }
+  if (category === "death") return [{ target: { kind: "death", id: actor.heroId || actor.id }, label: lwConsequenceText("lionwing.consequence.deathChoice", "Погибнуть · создать нового героя"), detail: lwConsequenceText("lionwing.consequence.manual.death", "Создать нового героя и заменить участника вручную") }];
+  return [];
+}
+function lwConsequenceTargetKey(target) {
+  if (!target) return "";
+  if (typeof target !== "object") return String(target);
+  return [target.kind, target.id, target.partId, target.group, target.part, target.levels, target.fromRank, target.toRank, target.fromLevel, target.toLevel].map(value => value == null ? "" : String(value)).join("|");
+}
+function lwConsequenceRecordLabel(actor, record) {
+  const target = record?.lossTarget || record?.target, options = lwConsequenceLossOptions(actor, record?.category), match = options.find(option => lwConsequenceTargetKey(option.target) === lwConsequenceTargetKey(target)) || options.find(option => option.target.kind === target?.kind && option.target.id === target?.id);
+  return match?.label || (target?.id ? `${target.kind || "цель"} · ${target.id}` : record?.category === "death" ? lwConsequenceText("lionwing.consequence.deathChoice", "Погибнуть · создать нового героя") : lwConsequenceText("lionwing.consequence.unknownTarget", "Конкретная цель не сохранилась"));
+}
+function lwConsequenceManualRemainder(actor, record) {
+  const target = lwConsequenceRecordLabel(actor, record);
+  const category = record?.category;
+  if (category === "skill-ranks") return `${lwConsequenceText("lionwing.consequence.manualRemaining", "Осталось вручную")}: ${target}. ${lwConsequenceText("lionwing.consequence.manual.skill", "Уменьшить Ранг этого Навыка вручную в листе")}.`;
+  if (category === "ability-part") return `${lwConsequenceText("lionwing.consequence.manualRemaining", "Осталось вручную")}: ${target}. ${lwConsequenceText("lionwing.consequence.manual.ability", "Указать эту часть Способности при ручной правке листа")}.`;
+  if (category === "boon") return `${lwConsequenceText("lionwing.consequence.manualRemaining", "Осталось вручную")}: ${target}. ${lwConsequenceText("lionwing.consequence.manual.boon", "Убрать этот Дар из листа вручную")}.`;
+  if (category === "technique-levels") return `${lwConsequenceText("lionwing.consequence.manualRemaining", "Осталось вручную")}: ${target}. ${lwConsequenceText("lionwing.consequence.manual.technique", "Уменьшить эту Технику на два Уровня в листе")}.`;
+  return `${lwConsequenceText("lionwing.consequence.manualRemaining", "Осталось вручную")}: ${lwConsequenceText("lionwing.consequence.manual.death", "Создать нового героя и заменить участника вручную")}.`;
+}
+function lwConsequenceStatusLabel(status) {
+  return status === "applied" ? lwConsequenceText("lionwing.consequence.status.applied", "применено") : status === "void" ? lwConsequenceText("lionwing.consequence.status.void", "аннулировано") : lwConsequenceText("lionwing.consequence.status.pending", "ожидает ручного применения");
+}
+function lwConsequenceCorrectionHtml(actor, record) {
+  if (!lwCanNarrate()) return "";
+  const options = lwConsequenceLossOptions(actor, record.category), currentKey = lwConsequenceTargetKey(record.lossTarget || record.target), selected = options.findIndex(option => lwConsequenceTargetKey(option.target) === currentKey);
+  return `<details class="lw-consequence-correction"><summary>${esc(lwConsequenceText("lionwing.consequence.narratorCorrection", "Исправление Нарратора"))}</summary><p>${esc(lwConsequenceText("lionwing.consequence.narratorCorrectionHelp", "Только Нарратор отмечает ручной шаг; лист героя автоматически не изменяется."))}</p>${options.length ? `<label>${esc(lwConsequenceText("lionwing.consequence.target", "Конкретная потеря"))}<select data-lw-consequence-correction-target>${options.map((option, index) => `<option value="${index}"${index === selected ? " selected" : ""}>${esc(option.label)}</option>`).join("")}</select></label>` : ""}<label>${esc(lwConsequenceText("lionwing.consequence.correctionNote", "Пояснение Нарратора"))}<input data-lw-consequence-correction-note value="${esc(record.correctionNote || "")}" maxlength="1200"></label><div class="button-row"><button type="button" data-lw-consequence-correct="apply" data-lw-consequence-id="${esc(record.id)}" data-lw-actor="${esc(actor.id)}">${esc(lwConsequenceText("lionwing.consequence.markApplied", "Отметить применённым"))}</button><button type="button" data-lw-consequence-correct="reopen" data-lw-consequence-id="${esc(record.id)}" data-lw-actor="${esc(actor.id)}">${esc(lwConsequenceText("lionwing.consequence.reopen", "Вернуть в ручной остаток"))}</button><button type="button" data-lw-consequence-correct="void" data-lw-consequence-id="${esc(record.id)}" data-lw-actor="${esc(actor.id)}">${esc(lwConsequenceText("lionwing.consequence.void", "Аннулировать запись"))}</button></div></details>`;
+}
+function lwConsequenceHistoryHtml(actor) {
+  if (!actor) return "";
+  const status = lwConsequenceStatus(actor.id), records = Array.isArray(status.records) ? status.records : [], legacyNotes = Array.isArray(status.legacyNotes) ? status.legacyNotes : [];
+  if (!records.length && !legacyNotes.length && !(status.usedCategories || []).length) return "";
+  const categories = lwConsequenceCategories(), used = new Set(status.usedCategories || []), usedLabels = categories.filter(item => used.has(item.id)).map(item => item.label);
+  const rows = records.map(record => `<li data-lw-consequence-record data-lw-consequence-id="${esc(record.id)}"><div><b>${esc(categories.find(item => item.id === record.category)?.label || record.category || "Последствие")}</b><span class="lw-consequence-status">${esc(lwConsequenceStatusLabel(record.status))}</span></div><p>${esc(lwConsequenceRecordLabel(actor, record))}</p><small>${esc(record.status === "applied" ? lwConsequenceText("lionwing.consequence.appliedHelp", "Ручной шаг отмечен; автоматического удаления из листа не было.") : record.status === "void" ? lwConsequenceText("lionwing.consequence.voidHelp", "Запись аннулирована; ручное изменение не ожидается.") : lwConsequenceManualRemainder(actor, record))}</small>${record.manualNote ? `<small>${esc(lwConsequenceText("lionwing.consequence.playerNote", "Заметка игрока"))}: ${esc(record.manualNote)}</small>` : ""}${lwConsequenceCorrectionHtml(actor, record)}</li>`).join("");
+  const legacy = legacyNotes.map(item => `<li data-lw-consequence-legacy><b>${esc(lwConsequenceText("lionwing.consequence.legacy", "Старое решение"))}</b><p>${esc(item.note)}</p></li>`).join("");
+  return `<details class="lw-consequence-history" open><summary>${esc(lwConsequenceText("lionwing.consequence.history", "Последствия Уязвимости"))} · ${used.size}/5</summary><p>${esc(lwConsequenceText("lionwing.consequence.used", "Использованные категории"))}: ${usedLabels.length ? usedLabels.map(esc).join(" · ") : "—"}</p>${rows || legacy ? `<ul>${rows}${legacy}</ul>` : ""}</details>`;
+}
+function lwConsequencePendingHtml(choice, owner) {
+  const status = lwConsequenceStatus(owner?.id || choice.actorId), categories = lwConsequenceCategories(), used = new Set(status.usedCategories || []), allowed = new Set(Array.isArray(choice.options) ? choice.options : []), canRespond = lwConsequenceChoiceCanRespond(choice), optionSections = categories.map(category => {
+    const categoryUsed = used.has(category.id) || !allowed.has(category.id), options = lwConsequenceLossOptions(owner, category.id);
+    const body = categoryUsed ? `<p class="lw-consequence-unavailable">${esc(lwConsequenceText("lionwing.consequence.usedOne", "Эта категория уже использована или недоступна для этого окна."))}</p>` : !options.length ? `<p class="lw-consequence-unavailable">${esc(lwConsequenceText("lionwing.consequence.noSheetTarget", "В заполненном листе нет допустимой конкретной потери для этой категории."))}</p>` : `<div class="button-row">${options.map((option, index) => canRespond ? `<button type="button" data-lw-choice="${esc(category.id)}" data-lw-choice-id="${esc(choice.id)}" data-lw-consequence-category="${esc(category.id)}" data-lw-consequence-target-index="${index}" data-lw-actor="${esc(choice.actorId)}" title="${esc(option.detail)}">${esc(option.label)}</button>` : `<span class="lw-consequence-option" aria-disabled="true">${esc(option.label)}</span>`).join("")}</div>`;
+    return `<fieldset class="lw-consequence-category${categoryUsed ? " is-used" : ""}" data-lw-consequence-category="${esc(category.id)}"><legend>${esc(category.label)}${categoryUsed ? ` · ${esc(lwConsequenceText("lionwing.consequence.status.used", "использовано"))}` : ""}</legend>${body}</fieldset>`;
+  }).join("");
+  const actorName = owner?.name || choice.actorId, intro = canRespond ? lwConsequenceText("lionwing.consequence.chooseHelp", "Выберите одну категорию и конкретную потерю из заполненного листа. Раны, Сопротивление и это постоянное последствие учитываются отдельно.") : lwConsequenceText("lionwing.consequence.waitingPlayer", "Окно принадлежит игроку этого героя. Нарратор может только исправить уже записанную ручную часть отдельным контролом.");
+  return `<section class="lw-pending lw-consequence-window" data-lw-consequence-window data-lw-choice-id="${esc(choice.id)}"><strong>${esc(actorName)}: ${esc(lwConsequenceText("lionwing.consequence.title", "Последствие Уязвимости"))}</strong><p>${esc(intro)}</p><p><b>${esc(lwConsequenceText("lionwing.consequence.used", "Использованные категории"))}:</b> ${used.size ? categories.filter(item => used.has(item.id)).map(item => esc(item.label)).join(" · ") : "—"}</p>${optionSections}${canRespond ? `<label>${esc(lwConsequenceText("lionwing.consequence.note", "Пояснение для ручного шага (необязательно)"))}<textarea data-lw-choice-note rows="2" maxlength="1200" placeholder="${esc(lwConsequenceText("lionwing.consequence.notePlaceholder", "Что именно останется изменить в листе героя?"))}"></textarea></label>` : "<p>Ожидается решение владельца героя.</p>"}</section>`;
+}
+function lwConsequenceChoicePayload(choice, actor, category, targetIndex, note = "") {
+  if (choice?.kind !== "consequence" || !actor || !lwConsequenceChoiceCanRespond(choice)) return null;
+  const allowed = Array.isArray(choice.options) && choice.options.includes(category), options = lwConsequenceLossOptions(actor, category), option = options[Number(targetIndex)];
+  if (!allowed || !option) return null;
+  return { kind: "choice", id: choice.id, choice: category, lossTarget: option.target, ...(note ? { note } : {}) };
+}
+
 function lwPendingHtml() {
   const choice = Scene.lionwing?.choices?.[0];
   const techniqueSurface = window.DAWN_LIONWING_TECHNIQUE_SURFACE;
@@ -566,6 +731,7 @@ function lwPendingHtml() {
     if (!lwCanNarrate() && !lwOwns(choice.actorId)) return "<section class=\"lw-pending lw-technique-offer-hidden\"><p>Ожидается решение другого участника.</p></section>";
     return techniqueSurface.pendingHtml(choice, { scene: Scene, viewer: lwEntityViewer(), canRespond: lwCanNarrate() || lwOwns(choice.actorId) });
   }
+  if (choice?.kind === "consequence" && !(Array.isArray(choice.options) && choice.options.includes("record"))) return lwConsequencePendingHtml(choice, Scene.actors.find(actor => actor.id === choice.actorId));
   if (choice) {
     const owner = Scene.actors.find(a => a.id === choice.actorId), can = ["clash-tie","duel-outcome","duel-wounds"].includes(choice.kind)?lwCanNarrate():lwOwns(choice.actorId);
     const duel=choice.kind==="duel-outcome"?Scene.lionwing.duels.find(item=>item.id===choice.context.duelId):null;
@@ -633,7 +799,7 @@ function lwActionsHtml(a) {
   const effects=[...lwRules().effects.positive,...lwRules().effects.negative].filter(e=>e.id!=="positive.изгнан");
   const breacher2 = Number((a.knownTechniques || a.techniques || {})["powerhouse.breacher"] || 0) >= 2 && a.lionwing?.automation?.["powerhouse.breacher.2"] === true;
   const breacher3 = Number((a.knownTechniques || a.techniques || {})["powerhouse.breacher"] || 0) >= 3 && a.lionwing?.automation?.["powerhouse.breacher.3"] === true;
-  return `<section class="lw-actions" data-lw-root data-lw-actor="${esc(a.id)}">${lwStatusHtml(a)}${lwDiceHtml(a)}${lwInventoryHtml(a)}${lwAutomationHtml(a)}${techniqueSurface}${lwPendingHtml()}${lwChainHtml(a)}${opportunities}${detectiveControls}${(a.effects||[]).includes("positive.невидим")?`<button data-lw-invisible data-lw-actor="${esc(a.id)}">Потратить Невидимость → Исчезнуть</button>`:""}${lwDestination ? '<p class="lw-hint">Выберите клетку на поле. <button data-lw-clear-destination>Отменить выбор</button></p>' : ""}<div class="core-action-list">${buttons}</div><details><summary>Параметры действия</summary><div class="lw-fields"><label>Атрибут<select data-lw-attribute><option value="">Подобрать по действию</option><option value="body">Тело</option><option value="talent">Талант</option><option value="spirit">Дух</option><option value="mind">Разум</option></select></label><label>Фокус для Завершения<input data-lw-focus type="number" min="0" max="${focusCap}" value="0"></label>${studentAreaChoice}${bombardierAreaChoice}<label>Преимущество<input data-lw-advantage type="number" min="0" max="50" value="0"></label><label>Помеха<input data-lw-disadvantage type="number" min="0" max="50" value="0"></label>${breacher2?'<label><input type="checkbox" data-lw-both-barrels>Из обоих стволов</label>':""}${breacher3?'<small>Картечь III: для Завершения Телом выберите центр зоны 2×2 среди целей.</small>':""}<label>Импровизация<select data-lw-improvise-effect><option value="">Создать препятствие</option>${effects.map(e=>`<option value="${esc(e.id)}">${esc(e.name)}</option>`).join("")}</select></label><label>Убрать соседнее препятствие<select data-lw-remove-obstacle><option value="">Не убирать</option>${Scene.objects.filter(o=>o.type==="terrain"&&o.space===a.space).map(o=>`<option value="${esc(o.id)}">${esc(o.label||"Препятствие")}</option>`).join("")}</select></label><label><input type="checkbox" data-lw-spike>Использовать бонус по Подброшенным целям</label></div></details></section>`;
+  return `<section class="lw-actions" data-lw-root data-lw-actor="${esc(a.id)}">${lwStatusHtml(a)}${lwConsequenceHistoryHtml(a)}${lwDiceHtml(a)}${lwInventoryHtml(a)}${lwAutomationHtml(a)}${techniqueSurface}${lwPendingHtml()}${lwChainHtml(a)}${opportunities}${detectiveControls}${(a.effects||[]).includes("positive.невидим")?`<button data-lw-invisible data-lw-actor="${esc(a.id)}">Потратить Невидимость → Исчезнуть</button>`:""}${lwDestination ? '<p class="lw-hint">Выберите клетку на поле. <button data-lw-clear-destination>Отменить выбор</button></p>' : ""}<div class="core-action-list">${buttons}</div><details><summary>Параметры действия</summary><div class="lw-fields"><label>Атрибут<select data-lw-attribute><option value="">Подобрать по действию</option><option value="body">Тело</option><option value="talent">Талант</option><option value="spirit">Дух</option><option value="mind">Разум</option></select></label><label>Фокус для Завершения<input data-lw-focus type="number" min="0" max="${focusCap}" value="0"></label>${studentAreaChoice}${bombardierAreaChoice}<label>Преимущество<input data-lw-advantage type="number" min="0" max="50" value="0"></label><label>Помеха<input data-lw-disadvantage type="number" min="0" max="50" value="0"></label>${breacher2?'<label><input type="checkbox" data-lw-both-barrels>Из обоих стволов</label>':""}${breacher3?'<small>Картечь III: для Завершения Телом выберите центр зоны 2×2 среди целей.</small>':""}<label>Импровизация<select data-lw-improvise-effect><option value="">Создать препятствие</option>${effects.map(e=>`<option value="${esc(e.id)}">${esc(e.name)}</option>`).join("")}</select></label><label>Убрать соседнее препятствие<select data-lw-remove-obstacle><option value="">Не убирать</option>${Scene.objects.filter(o=>o.type==="terrain"&&o.space===a.space).map(o=>`<option value="${esc(o.id)}">${esc(o.label||"Препятствие")}</option>`).join("")}</select></label><label><input type="checkbox" data-lw-spike>Использовать бонус по Подброшенным целям</label></div></details></section>`;
 }
 
 function lwEffectSourcesHtml(targets) {
@@ -817,7 +983,7 @@ document.addEventListener("click", event => {
     if(kind==="move"){if(targets.length!==1)return toast("Для движения выберите одну цель");lwDestination={actorId:sourceId,payload:operations[0],label:"Движение правила",stage:lwDraftEnabled&&movementKind==="geometry-move"};renderScene();toast(lwDestination.stage?"Выберите клетку: маршрут будет добавлен в пакет":"Выберите клетку назначения");return;}
     return lwSubmit(sourceId,operations.length===1?operations[0]:{kind:"batch",operations:["note","prompt","usage"].includes(kind)?[operations[0]]:operations},"Общая операция правила");
   }
-  const button = event.target.closest("[data-core-action], [data-lw-automation], [data-lw-action], [data-lw-student-area], [data-lw-bombardier-area], [data-lw-reaction], [data-lw-choice], [data-lw-resolve], [data-lw-cancel], [data-lw-clear-destination], [data-lw-geometry-confirm], [data-lw-geometry-add], [data-lw-geometry-cancel], [data-lw-operation], [data-lw-correct], [data-lw-custom], [data-lw-modifier], [data-lw-punish], [data-lw-invisible], [data-lw-inventory], [data-lw-detective-teleport], [data-lw-detective-confirm], [data-lw-detective-cancel]");
+  const button = event.target.closest("[data-core-action], [data-lw-automation], [data-lw-action], [data-lw-student-area], [data-lw-bombardier-area], [data-lw-reaction], [data-lw-choice], [data-lw-consequence-correct], [data-lw-resolve], [data-lw-cancel], [data-lw-clear-destination], [data-lw-geometry-confirm], [data-lw-geometry-add], [data-lw-geometry-cancel], [data-lw-operation], [data-lw-correct], [data-lw-custom], [data-lw-modifier], [data-lw-punish], [data-lw-invisible], [data-lw-inventory], [data-lw-detective-teleport], [data-lw-detective-confirm], [data-lw-detective-cancel]");
   if (!button) {
     const oldControl=event.target.closest("[data-director-set-field], [data-director-knockout], [data-director-tension], [data-director-open-reactions], [data-director-set-rule-resource], [data-director-set-rule-clock]");
     if(oldControl){event.preventDefault();event.stopImmediatePropagation();const a=lwActor();if(!a||!lwCanNarrate())return;
@@ -883,6 +1049,16 @@ document.addEventListener("click", event => {
   if(button.hasAttribute("data-lw-detective-teleport")){const status=LionwingEngine.detectiveMovementStatus?.(Scene,actorId);if(!status?.available)return toast(status?.reason||"Телепортация Детектива недоступна");lwDetectiveTeleport={actorId,sceneVersion:Number(Scene.version||0),markers:status.markers};renderScene();toast("Выберите подсвеченную Слабую точку для предпросмотра");return;}
   if(button.hasAttribute("data-lw-detective-confirm")){const draft=lwDetectiveTeleport;if(!draft?.plan||draft.actorId!==actorId)return toast("Предпросмотр телепортации устарел");const status=LionwingEngine.detectiveMovementStatus?.(Scene,actorId);if(Number(Scene.version||0)!==Number(draft.sceneVersion)||!status?.markers.some(item=>item.markerId===draft.markerId))return toast("Слабая точка или Движение изменились — выберите заново");if(commitSceneEvents("Детектив III: телепортация к Слабой точке",draft.plan.events)){lwDetectiveTeleport=null;renderScene()}return;}
   if (button.hasAttribute("data-lw-clear-destination")) { lwDestination=null; renderScene(); return; }
+  if (button.hasAttribute("data-lw-consequence-correct")) {
+    if (!lwCanNarrate()) return toast("Исправление последствия доступно только Нарратору");
+    const actor = Scene.actors.find(item => item.id === actorId), record = actor?.lionwing?.consequences?.find(item => item.id === button.dataset.lwConsequenceId);
+    if (!actor || !record) return toast("Запись последствия уже изменилась или исчезла");
+    const operation = button.dataset.lwConsequenceCorrect, targetSelect = button.closest("[data-lw-consequence-record]")?.querySelector("[data-lw-consequence-correction-target]"), targetOptions = lwConsequenceLossOptions(actor, record.category), targetIndex = Number(targetSelect?.value), payload = { kind: "correct", targetId: actor.id, resource: "consequence", consequenceId: record.id, operation };
+    if (Number.isInteger(targetIndex) && targetIndex >= 0 && targetOptions[targetIndex]) payload.lossTarget = targetOptions[targetIndex].target;
+    const note = button.closest("[data-lw-consequence-record]")?.querySelector("[data-lw-consequence-correction-note]")?.value?.trim();
+    if (note) payload.correctionNote = note;
+    return lwSubmit(actor.id, payload, "Исправление последствия Нарратора");
+  }
   if (button.hasAttribute("data-lw-action") || button.hasAttribute("data-core-action")) {
     const actionId=button.dataset.lwAction||button.dataset.coreAction, payload={kind:"action",actionId,targetIds:[...Scene.targetIds],breakout:button.dataset.lwBreakout==="true",focusSpent:num("[data-lw-focus]"),advantage:num("[data-lw-advantage]"),disadvantage:num("[data-lw-disadvantage]"),breacherBothBarrels:root?.querySelector("[data-lw-both-barrels]")?.checked===true};
     if(val("[data-lw-attribute]"))payload.attribute=val("[data-lw-attribute]");
@@ -894,7 +1070,18 @@ document.addEventListener("click", event => {
     lwSubmit(actorId,payload,name); return;
   }
   if (button.hasAttribute("data-lw-reaction")) { const payload={kind:"reaction",choice:button.dataset.lwReaction,...(button.dataset.lwPlanId?{planId:button.dataset.lwPlanId}:{})};if(payload.choice==="dodge"){lwDestination={actorId,payload,label:"Уворот"};toast("Выберите клетку Уворота");return;} lwSubmit(actorId,payload,"Реакция");return; }
-  if (button.hasAttribute("data-lw-choice")) { const payload={kind:"choice",id:button.dataset.lwChoiceId,choice:button.dataset.lwChoice,note:button.closest(".lw-pending")?.querySelector("[data-lw-choice-note]")?.value||"",...(button.dataset.lwPlanId?{planId:button.dataset.lwPlanId}:{})};if(payload.choice==="place"){lwDestination={actorId,payload,label:"Появление"};toast("Выберите клетку на поле");return;}lwSubmit(actorId,payload,"Решение игрока");return; }
+  if (button.hasAttribute("data-lw-choice")) {
+    const pending = Scene.lionwing?.choices?.find(item => item.id === button.dataset.lwChoiceId), note = button.closest(".lw-pending")?.querySelector("[data-lw-choice-note]")?.value?.trim() || "";
+    let payload = { kind: "choice", id: button.dataset.lwChoiceId, choice: button.dataset.lwChoice, note, ...(button.dataset.lwPlanId ? { planId: button.dataset.lwPlanId } : {}) };
+    const typedConsequence = pending?.kind === "consequence" && !(Array.isArray(pending.options) && pending.options.includes("record"));
+    if (typedConsequence || button.hasAttribute("data-lw-consequence-target-index")) {
+      if (!pending || !lwConsequenceChoiceCanRespond(pending)) return toast("Окно последствия принадлежит игроку этого героя");
+      const owner = Scene.actors.find(item => item.id === pending.actorId), typed = lwConsequenceChoicePayload(pending, owner, button.dataset.lwConsequenceCategory || button.dataset.lwChoice, Number(button.dataset.lwConsequenceTargetIndex), note);
+      if (!typed) return toast("Выберите конкретную допустимую потерю из заполненного листа");
+      payload = typed;
+    }
+    if(payload.choice==="place"){lwDestination={actorId,payload,label:"Появление"};toast("Выберите клетку на поле");return;}lwSubmit(actorId,payload,"Решение игрока");return;
+  }
   if (button.hasAttribute("data-lw-resolve") || button.hasAttribute("data-lw-cancel")) { if(!lwCanNarrate())return;lwSubmit(actorId,{kind:button.hasAttribute("data-lw-resolve")?"resolve-attack":"cancel-attack",...(button.dataset.lwPlanId?{planId:button.dataset.lwPlanId}:{})},"Разрешение Атаки");return; }
   if (!lwCanNarrate()) return toast("Эта операция доступна Нарратору");
   if (button.hasAttribute("data-lw-correct")) { lwSubmit(actorId,{kind:"correct",resource:val("[data-lw-correct-field]"),amount:num("[data-lw-correct-value]")},"Исправление состояния");return; }
