@@ -114,7 +114,7 @@ const applied = Plans.apply(scene, plan, {
   validateTableEdit: () => { validationCalls += 1; },
 });
 assert.equal(applied.ok, true);
-assert.ok(validationCalls >= 2, "the common validateTableEdit boundary is used before and after application");
+assert.equal(validationCalls, 1, "the common validateTableEdit boundary runs once on the prepared before/after pair");
 assert.equal(applied.scene.actors.some(item => item.id === "owner"), false, "the requested actor is removed");
 assert.equal(applied.scene.markers.some(item => item.id === "owner-marker"), false, "owned backing is removed with the actor");
 assert.equal(applied.scene.objects.some(item => item.id === "owner-object"), false, "owned object backing is removed with the actor");

@@ -324,7 +324,7 @@ function normalizeScene(raw){
   const base=sceneCore(raw);base.undo=history(raw?.undo);base.redo=history(raw?.redo);base.turnUndo=history(raw?.turnUndo,120);return base;
 }
 
-function validateTableEdit(before,after){
+function validateTableEdit(before,after,options={}){
   const edition=before.rulesEdition||"ru-v0.9";
   if(before.actors.length&&after.rulesEdition&&after.rulesEdition!==edition)throw new Error("Существующая Сцена сохраняет свою редакцию");
   for(const actor of after.actors){
@@ -334,8 +334,9 @@ function validateTableEdit(before,after){
   }
   if(edition!=="lionwing")return;
   const fields=["hp","maxHp","ap","baseAp","focus","influence","wounds","stress","evasion","armor","speed","attrs","effects","effectStates","lionwing","ruleResources","ruleClocks","knockedOut"];
-  for(const actor of after.actors){const old=before.actors.find(item=>item.id===actor.id);if(old&&fields.some(key=>JSON.stringify(old[key])!==JSON.stringify(actor[key])))throw new Error("Для игровых изменений используйте операции LionWing, для точных значений — исправления Нарратора");}
-  if((before.pendingAction||before.lionwing?.choices?.length||before.lionwing?.pausedChains?.length)&&before.actors.some(actor=>!after.actors.some(item=>item.id===actor.id)))throw new Error("Сначала завершите действие, затем удаляйте участников");
+  const destroyPlan=options?.plannedDestroy?.type==="lionwing.destroy-plan"&&options.plannedDestroy.ok===true;
+  for(const actor of after.actors){const old=before.actors.find(item=>item.id===actor.id);if(old&&!destroyPlan&&fields.some(key=>JSON.stringify(old[key])!==JSON.stringify(actor[key])))throw new Error("Для игровых изменений используйте операции LionWing, для точных значений — исправления Нарратора");}
+  if(!destroyPlan&&(before.pendingAction||before.lionwing?.choices?.length||before.lionwing?.pausedChains?.length)&&before.actors.some(actor=>!after.actors.some(item=>item.id===actor.id)))throw new Error("Сначала завершите действие, затем удаляйте участников");
 }
 
 const TABLE_BACKUP_FORMAT="dawn-ru-table-backup",TABLE_BACKUP_SCHEMA=1,TABLE_RECOVERY_KEY="dawn-ru-companion-table-recovery-v1",TABLE_RECOVERY_META_KEY="dawn-ru-companion-table-recovery-meta-v1";
@@ -346,7 +347,6 @@ function normalizedTableBackup(raw){
   const legacyStore=source.schema===APP_SCHEMA&&source.scene&&Array.isArray(source.heroes),sceneRaw=source.format===TABLE_BACKUP_FORMAT?source.scene:legacyStore?source.scene:Array.isArray(source.spaces)&&Array.isArray(source.actors)?source:null;
   if(!sceneRaw||!Array.isArray(sceneRaw.spaces)||!Array.isArray(sceneRaw.actors))throw new Error("Это не резервная копия Сцены DAWN.");
   const scene=normalizeScene(sceneRaw);if(!scene.spaces.length)throw new Error("В копии нет игрового пространства.");
-  validateTableEdit(scene,scene);
   return{scene,gmLibrary:source.format===TABLE_BACKUP_FORMAT||legacyStore?normalizeGmLibrary(source.gmLibrary):null,legacy:source.format!==TABLE_BACKUP_FORMAT};
 }
 

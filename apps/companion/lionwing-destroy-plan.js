@@ -4,13 +4,13 @@
 // This file deliberately does not install handlers or write to the live Scene.
 (function installLionwingDestroyPlan(global) {
   const SCHEMA = 1;
-  const POLICIES = new Set(["preserve", "disable", "remove", "detach"]);
   const SOURCE_POLICIES = new Set(["disable", "remove", "detach"]);
   const TARGET_KINDS = new Set(["actor", "space", "entity", "registry-row", "backing"]);
   const BACKING_TYPES = new Set(["actor", "marker", "object", "area", "wall"]);
   const RESERVED_IDS = new Set(["__proto__", "prototype", "constructor"]);
 
   const clone = value => value === undefined ? undefined : JSON.parse(JSON.stringify(value));
+  const publicPlan = value => { const result = clone(value); if (result?.type === "lionwing.destroy-plan") delete result.before; return result; };
   const sameJson = (left, right) => JSON.stringify(left) === JSON.stringify(right);
   const own = (value, key) => Object.prototype.hasOwnProperty.call(value || {}, key);
   const isObject = value => Boolean(value && typeof value === "object" && !Array.isArray(value));
@@ -46,7 +46,7 @@
     Object.freeze({ target: "space", subject: "backing", action: "remove", rule: "objects, areas, walls, markers, and topology in the space" }),
     Object.freeze({ target: "space", subject: "space", action: "remove", rule: "exact space id after evacuation" }),
     Object.freeze({ target: "space", subject: "pending", action: "invalidate", rule: "only exact space fields" }),
-    Object.freeze({ target: "any", subject: "source-dependent", action: "policy", rule: "sourceLossPolicy: preserve/disable/remove/detach" }),
+    Object.freeze({ target: "any", subject: "source-dependent", action: "policy", rule: "sourceLossPolicy: disable/remove/detach; independent consequences are preserved separately" }),
   ]);
 
   // Paths are intentionally enumerated.  The planner never walks arbitrary
@@ -360,29 +360,61 @@
     return groups;
   }
 
+  function actorFootprint(actor, space, x = actor?.x, y = actor?.y) {
+    const width = Math.max(1, Number(actor?.occupiedWidth || actor?.width || 1));
+    const height = Math.max(1, Number(actor?.occupiedHeight || actor?.height || 1));
+    const left = Number(x), top = Number(y);
+    if (!Number.isFinite(left) || !Number.isFinite(top)) return null;
+    const cells = [];
+    for (let dy = 0; dy < height; dy += 1) for (let dx = 0; dx < width; dx += 1) {
+      const cellX = left + dx, cellY = top + dy;
+      if (cellX < 0 || cellY < 0 || cellX >= Number(space?.width || 0) || cellY >= Number(space?.height || 0)) return null;
+      cells.push(`${cellX},${cellY}`);
+    }
+    return cells;
+  }
+
   function internalPlaceActorsSafely(scene, actors, space, reserveName) {
     if (!space) fail("Не найдено резервное пространство для переноса.", "missing-fallback-space");
     const movingIds = new Set(actors.map(actor => actor.id));
-    const occupied = new Set((scene.actors || []).filter(actor => actor.space === space.id && !movingIds.has(actor.id) && actor.kind !== "crowd").map(actor => `${actor.x},${actor.y}`));
+    const occupied = new Set();
+    for (const actor of (scene.actors || []).filter(item => item.space === space.id && !movingIds.has(item.id) && item.kind !== "crowd")) {
+      for (const key of actorFootprint(actor, space) || [`${actor.x},${actor.y}`]) occupied.add(key);
+    }
     const blocked = new Set((scene.objects || []).filter(object => object.space === space.id && object.type === "terrain").flatMap(object => object.cells || []));
     const removed = new Set((scene.topology?.cuts || []).filter(cut => cut.space === space.id).flatMap(cut => cut.cells || []));
     const all = Array.from({ length: Number(space.width || 0) * Number(space.height || 0) }, (_, index) => `${index % Number(space.width)},${Math.floor(index / Number(space.width))}`);
     const groups = placementGroups(scene, actors);
     const transfers = [], reserves = [];
-    let reserve = null, reserveIndex = 0;
+    let reserve = null, reserveCreated = false;
+    const reserveOccupied = new Set();
     for (const group of groups) {
       const lead = group[0], preferred = space.mode === "cinematic" ? [lead.team === "enemy" ? "6,0" : "0,0"] : all;
-      const cell = space.mode === "cinematic" ? preferred[0] : preferred.find(key => !occupied.has(key) && !blocked.has(key) && !removed.has(key));
+      const fits = (key, target = space, used = occupied) => {
+        const [x, y] = key.split(",").map(Number), cells = actorFootprint(lead, target, x, y);
+        return Boolean(cells?.length && cells.every(cell => !used.has(cell) && (target !== space || !blocked.has(cell) && !removed.has(cell))));
+      };
+      const cell = preferred.find(fits);
+      const width = Math.max(1, Number(lead?.occupiedWidth || lead?.width || 1)), height = Math.max(1, Number(lead?.occupiedHeight || lead?.height || 1));
       let destination = space, key = cell;
       if (!key) {
-        reserve ||= { id: `destroy-plan-reserve:${space.id}`, name: reserveName, mode: "cinematic", width: 7, height: 1 };
-        if (!scene.spaces.some(item => item.id === reserve.id)) { scene.spaces.push(reserve); reserves.push(clone(reserve)); }
-        destination = reserve; key = `${Math.min(6, reserveIndex++)},0`;
-      } else occupied.add(key);
+        reserve ||= { id: `destroy-plan-reserve:${space.id}`, name: reserveName, mode: "cinematic", width: Math.max(7, width), height: Math.max(1, height) };
+        if (width > reserve.width || height > reserve.height) fail("Для переноса участника не хватает места даже в резервном поле.", "placement-failed", { actorIds: group.map(actor => actor.id), footprint: { width, height } });
+        if (!scene.spaces.some(item => item.id === reserve.id)) { scene.spaces.push(reserve); reserveCreated = true; }
+        let reserveKey = null;
+        for (let y = 0; !reserveKey; y += 1) for (let x = 0; x + width <= reserve.width; x += 1) {
+          if (y + height > reserve.height) reserve.height = y + height;
+          const candidate = `${x},${y}`;
+          if (fits(candidate, reserve, reserveOccupied)) { reserveKey = candidate; break; }
+        }
+        if (!reserveKey) fail("Резервное поле не может разместить участника без пересечения клеток.", "placement-failed", { actorIds: group.map(actor => actor.id), footprint: { width, height } });
+        destination = reserve; key = reserveKey;
+        for (const reserveCell of actorFootprint(lead, reserve, ...key.split(",").map(Number)) || []) reserveOccupied.add(reserveCell);
+      } else for (const occupiedCell of actorFootprint(lead, space, ...key.split(",").map(Number)) || []) occupied.add(occupiedCell);
       const [x, y] = key.split(",").map(Number);
       for (const actor of group) { const from = { space: actor.space, x: actor.x, y: actor.y }; Object.assign(actor, { space: destination.id, x, y }); transfers.push({ actorId: actor.id, from, to: { space: destination.id, x, y }, groupId: actor.compoundId || null }); }
     }
-    return { transfers, reserves };
+    return { transfers, reserves: reserveCreated && reserve ? [clone(reserve)] : reserves };
   }
 
   function placementPreview(scene, movingIds, fallback, targetSpace, options, reserveName) {
@@ -392,10 +424,16 @@
     let result;
     if (typeof place === "function") {
       const output = place(copyScene, moving, copyScene.spaces.find(space => space.id === fallback.id), reserveName);
-      result = output?.scene ? output : { scene: copyScene, primitive: output };
+      result = output?.scene ? output : { scene: Array.isArray(output?.actors) ? output : copyScene, primitive: output };
     } else result = { scene: copyScene, ...internalPlaceActorsSafely(copyScene, moving, copyScene.spaces.find(space => space.id === fallback.id), reserveName) };
-    const transfers = moving.map(actor => ({ actorId: actor.id, from: { space: targetSpace.id, x: (scene.actors || []).find(item => item.id === actor.id)?.x, y: (scene.actors || []).find(item => item.id === actor.id)?.y }, to: { space: actor.space, x: actor.x, y: actor.y }, groupId: actor.compoundId || null }));
-    return { transfers, reserves: result.reserves || copyScene.spaces.filter(space => String(space.id).startsWith(`destroy-plan-reserve:${targetSpace.id}`)).map(clone), previewScene: copyScene };
+    const previewScene = result.scene || copyScene;
+    const originalById = new Map((scene.actors || []).map(actor => [actor.id, actor]));
+    const placedById = new Map((previewScene.actors || []).map(actor => [actor.id, actor]));
+    const transfers = [...movingIds].map(actorId => {
+      const before = originalById.get(actorId), after = placedById.get(actorId);
+      return { actorId, from: { space: before?.space || targetSpace.id, x: before?.x, y: before?.y }, to: { space: after?.space, x: after?.x, y: after?.y }, groupId: after?.compoundId || before?.compoundId || null };
+    });
+    return { transfers, reserves: result.reserves || previewScene.spaces.filter(space => String(space.id).startsWith(`destroy-plan-reserve:${targetSpace.id}`)).map(clone), previewScene };
   }
 
   function collectPlanReferences(scene, target, removedEntityIds = []) {
@@ -515,7 +553,9 @@
     if (["entity", "registry-row"].includes(target.kind) && !registryRawEntries(scene).some(([id]) => id === target.id)) return { schema: SCHEMA, type: "lionwing.destroy-plan", ok: true, exists: false, target, expectedVersion: Number(expectedVersion), fingerprint: sceneFingerprint(scene), before: clone(scene), operations: [], references: [], backings: [], transfers: [], entity: { operations: [], events: [], removedIds: [] } };
     if (target.kind === "backing" && !findBacking(scene, target.backing)) fail("Backing для удаления не найден.", "missing-backing", { backing: target.backing });
 
-    const actorIds = actor ? compoundActorIds(scene, actor) : [];
+    const requestedActorIds = target.kind === "actor" && Array.isArray(options.actorIds) && options.actorIds.length ? [...new Set(options.actorIds.map(id => asId(id, "ID участника массового удаления")))] : null;
+    if (requestedActorIds && requestedActorIds.some(id => !actorById(scene, id))) fail("Массовое удаление содержит участника, которого нет в Сцене.", "missing-actor", { actorIds: requestedActorIds });
+    const actorIds = target.kind === "actor" ? [...new Set((requestedActorIds || [target.id]).flatMap(id => compoundActorIds(scene, actorById(scene, id))))] : [];
     const normalizedTarget = { ...target, actorIds };
     const targetSpace = space;
     let fallback = null, transfers = [], reserves = [], movingIds = new Set();
@@ -581,6 +621,7 @@
       const fallback = scene.spaces.find(space => space.id === plan.fallbackSpaceId);
       const output = place(scene, moving, fallback, `Резерв после удаления «${plan.target.id}»`);
       if (output?.scene) return output.scene;
+      if (Array.isArray(output?.actors) && Array.isArray(output?.spaces)) return output;
       return scene;
     }
     const moving = (scene.actors || []).filter(actor => plan.transfers.some(item => item.actorId === actor.id));
@@ -634,13 +675,13 @@
     const existing = scene?.lionwing?.destroyPlanReceipts?.[key];
     if (existing) {
       if (existing.fingerprint !== plan.fingerprint) fail("ID плана уже использован для другой операции.", "destroy-plan-event-conflict", { key });
-      return { ok: true, scene: clone(scene), plan: clone(plan), replayed: true, idempotent: true, events: [] };
+      return { ok: true, scene: clone(scene), plan: publicPlan(plan), replayed: true, idempotent: true, events: [] };
     }
     assertVersion(scene, plan.expectedVersion, "stale-plan");
     if (sceneFingerprint(scene) !== plan.fingerprint) fail("Подготовленный план устарел: снимок Сцены изменился.", "stale-plan", { expectedVersion: plan.expectedVersion, actualVersion: Number(scene.version || 0) });
-    if (plan.exists === false) return { ok: true, scene: clone(scene), plan: clone(plan), replayed: true, idempotent: true, events: [] };
+    if (plan.exists === false) return { ok: true, scene: clone(scene), plan: publicPlan(plan), replayed: true, idempotent: true, events: [] };
     const validator = validateTable(options);
-    if (typeof validator === "function") validator(scene, scene);
+    const plannedDestroy = options.plannedDestroy === true;
     const working = clone(scene);
     try {
       const placed = invokePlacementForApply(working, plan, options);
@@ -660,6 +701,7 @@
         if (typeof removeSpace === "function") {
           const output = removeSpace(working, plan.target.id, { fallbackSpaceId: plan.fallbackSpaceId, prepared: true });
           if (output?.scene) Object.assign(working, output.scene);
+          if (spaceById(working, plan.target.id)) fail("Адаптер удаления пространства не выполнил удаление.", "space-remove-postcondition", { spaceId: plan.target.id });
           spaceHandledByAdapter = true;
         }
       }
@@ -669,15 +711,18 @@
       if (plan.target.kind === "space" && !spaceHandledByAdapter) applySpaceRemoval(finalScene, plan.target.id, plan.fallbackSpaceId);
       if (plan.target.kind === "space" && spaceHandledByAdapter && !spaceById(finalScene, plan.target.id)) applySpaceRemoval(finalScene, plan.target.id, plan.fallbackSpaceId);
       const finalValidator = validateTable(options);
-      if (typeof finalValidator === "function") finalValidator(finalScene, finalScene);
-      finalScene.version = Number(plan.expectedVersion) + 1;
+      if (typeof finalValidator === "function") finalValidator(plan.before || scene, finalScene, { plannedDestroy: plannedDestroy ? plan : null });
+      if (options.advanceVersion !== false) finalScene.version = Number(plan.expectedVersion) + 1;
+      else finalScene.version = Number(scene.version || plan.expectedVersion || 0);
       finalScene.lionwing ||= {};
       finalScene.lionwing.destroyPlanReceipts = { ...(finalScene.lionwing.destroyPlanReceipts || {}), [key]: { fingerprint: plan.fingerprint, target: clone(plan.target), version: finalScene.version } };
-      finalScene.undo = Array.isArray(finalScene.undo) ? finalScene.undo : [];
-      finalScene.undo.unshift({ id: `${key}:undo`, label: "Единое удаление", state: clone(scene) });
-      finalScene.undo = finalScene.undo.slice(0, 20);
+      if (options.recordHistory !== false) {
+        finalScene.undo = Array.isArray(finalScene.undo) ? finalScene.undo : [];
+        finalScene.undo.unshift({ id: `${key}:undo`, label: "Единое удаление", state: clone(scene) });
+        finalScene.undo = finalScene.undo.slice(0, 20);
+      }
       const events = [...(plan.entity.events || []), ...engineResult.events];
-      return { ok: true, scene: finalScene, plan: clone(plan), events, event: events.at(-1) || null, replayed: false, idempotent: false, before: clone(scene), after: clone(finalScene) };
+      return { ok: true, scene: finalScene, plan: publicPlan(plan), events, event: events.at(-1) || null, replayed: false, idempotent: false, before: clone(scene), after: clone(finalScene) };
     } catch (error) {
       // All writes above target the clone.  The caller's Scene is untouched on
       // a protected dependency, stale primitive, or placement failure.
@@ -688,7 +733,7 @@
   function cancelDestroy(first, second) {
     const plan = first?.type === "lionwing.destroy-plan" ? first : second;
     const scene = first?.type === "lionwing.destroy-plan" ? second || first.before : first || plan?.before;
-    return { ok: false, cancelled: true, plan: clone(plan), scene: clone(scene), events: [] };
+    return { ok: false, cancelled: true, plan: publicPlan(plan), scene: clone(scene), events: [] };
   }
 
   function undoDestroy(first, second) {
@@ -726,8 +771,8 @@
     cancel: cancelDestroy,
     undoDestroy,
     undo: undoDestroy,
-    serialize: value => JSON.stringify(clone(value)),
-    reload: value => clone(typeof value === "string" ? JSON.parse(value) : value),
+    serialize: value => JSON.stringify(publicPlan(value)),
+    reload: value => publicPlan(typeof value === "string" ? JSON.parse(value) : value),
   });
   global.DAWN_LIONWING_DESTROY_PLAN = api;
 })(typeof window === "object" && window ? window : globalThis);
