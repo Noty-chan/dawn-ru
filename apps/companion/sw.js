@@ -3,7 +3,7 @@ const BUILD = RAW_BUILD.startsWith("__") ? "dev-20260909-lionwing-seams-2" : RAW
 const CACHE = `dawn-ru-companion-${BUILD}`;
 const versioned = path => `${path}?v=${BUILD}`;
 const SCRIPT_ASSETS = [
-  "./localization.js", "./locale-ru.js", "./locale-en-builder.js", "./data.js", "./edition-lionwing.js", "./edition-lionwing-ru.js", "./lionwing-table-data.js", "./logic.js",
+  "./localization.js", "./locale-ru.js", "./locale-en-builder.js", "./data.js", "./edition-lionwing.js", "./edition-lionwing-ru.js", "./lionwing-display-mapping.js", "./lionwing-table-data.js", "./logic.js",
   "./scene-engine-core.js", "./scene-query.js", "./scene-movement.js", "./scene-foundations.js", "./scene-events.js", "./scene-triggers.js", "./scene-actions.js", "./scene-responses.js", "./scene-engine.js",
   "./lionwing-execution.js", "./lionwing-dice.js", "./lionwing-geometry.js", "./lionwing-geometry-runtime.js", "./lionwing-aura-transitions.js", "./lionwing-action-plan.js", "./lionwing-entities.js", "./lionwing-information-query.js", "./lionwing-inventory.js", "./lionwing-derived-actions.js", "./lionwing-adapters.js", "./lionwing-combat-meter.js", "./lionwing-engine.js", "./lionwing-ui.js", "./technique-foundation-map.js", "./technique-engine.js", "./lionwing-technique-surface.js", "./lionwing-automation-status.js", "./config.js", "./sync.js", "./network-v2.js",
   "./app-bootstrap.js", "./app-reference-data.js", "./app-core.js", "./hero-ui.js", "./scene-ui.js", "./scene-effects.js", "./scene-actions-ui.js", "./scene-sync-ui.js", "./play-ui.js",

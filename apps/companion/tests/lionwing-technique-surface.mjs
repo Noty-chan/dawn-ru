@@ -77,7 +77,7 @@ assert.equal(model.actionSummary.total, 1);
 assert.equal(model.actionSummary.available, 0);
 const html = surface.render(actor, { scene: baseScene, viewer: { role: "player", actorId: "hero" } });
 assert.match(html, /Канон: LionWing EN · стр\. 100/);
-assert.match(html, /Авто частично/);
+assert.match(html, /Частично готово/);
 assert.match(html, /Your successful Casts Slow/);
 assert.doesNotMatch(html, /reviewed adapter/);
 assert.match(html, /Сейчас Ход другого участника/);
