@@ -13,7 +13,7 @@
     "test:derived-actions": "node tests/lionwing-derived-actions.mjs",
     "test:alpha-stress": "node tests/lionwing-gm-ap-contract.mjs && node tests/lionwing-alpha-stress.mjs",
     "test:enemy-base-attacks": "node tests/lionwing-enemy-base-attacks.mjs",
-    "test:hero-sheet-view": "node tests/lionwing-hero-sheet-view.mjs",
+    "test:hero-sheet-view": "node tests/lionwing-hero-sheet-view.mjs && node tests/lionwing-sheet-manual.mjs && node tests/lionwing-hero-bridge-persistence.mjs && node tests/lionwing-ui-localization-l09.mjs",
     "pretest": "npm run test:families && npm run test:foundation-bridge && npm run test:typed-targets && npm run test:prompt-queue && npm run test:entities-removal && npm run test:derived-actions && npm run test:enemy-base-attacks",
     "data": "python build_data.py",
     "docs:rules": "node build_rule_reference_docs.mjs",

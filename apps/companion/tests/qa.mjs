@@ -741,6 +741,7 @@ assert.match(app, /data-scene-flow-round/);
 assert.match(app, /function sceneSheetPanel/);
 assert.match(app, /function rollSceneDice/);
 assert.match(app, /function automationBadge/);
+assert.match(appSource, /function normalizeHeroLionwingBridge[\s\S]+if\(base\.rulesEdition==="lionwing"\)[\s\S]+base\.lionwing=bridge/, "Hero persistence must retain only the bounded LionWing consequence bridge");
 assert.match(app, /data-gm-technique-actor/);
 assert.match(app, /scene-dice-actor-select/);
 assert.match(app, /scene-dice-target/);

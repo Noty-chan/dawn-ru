@@ -357,6 +357,20 @@ function normalizeAbility(raw){
   if(ability.customWordCosts&&typeof ability.customWordCosts==="object")for(const [id,value]of Object.entries(ability.customWordCosts))if(id.startsWith("custom:"))customWordCosts[id]=value==="X"?"X":clamp(value,-1,4);
   return {enabled:Boolean(ability.enabled),name:typeof ability.name==="string"?ability.name.slice(0,180):"",desc:typeof ability.desc==="string"?ability.desc.slice(0,1500):"",rank:clamp(ability.rank||1,1,3),words:{verbs:cleanArray(ability.words?.verbs),nouns:cleanArray(ability.words?.nouns),conditions:cleanArray(ability.words?.conditions)},xNoun:typeof ability.xNoun==="string"?ability.xNoun:null,specializations,customWordCosts};
 }
+function normalizeHeroLionwingBridge(raw){
+  if(!raw||typeof raw!=="object"||Array.isArray(raw))return null;
+  const text=(value,limit)=>typeof value==="string"?value.slice(0,limit):undefined;
+  const target=value=>value&&typeof value==="object"&&!Array.isArray(value)?Object.fromEntries([["kind",text(value.kind,40)],["id",text(value.id,180)]].filter(([,item])=>item!==undefined)):undefined;
+  const records=(items,legacy=false)=>Array.isArray(items)?items.slice(0,128).map(item=>{
+    if(!item||typeof item!=="object"||Array.isArray(item))return null;
+    const result={schema:1,id:text(item.id,180)};
+    if(legacy)Object.assign(result,{type:text(item.type,40),note:text(item.note,2000),choiceId:text(item.choiceId,180),reason:text(item.reason,180),createdEventId:text(item.createdEventId,180),sceneSerial:Number.isSafeInteger(Number(item.sceneSerial))?clamp(item.sceneSerial,0,999999999):undefined});
+    else Object.assign(result,{category:text(item.category,40),lossTarget:target(item.lossTarget),target:target(item.target),choiceId:text(item.choiceId,180),reason:text(item.reason,180),status:["pending-manual","applied","void"].includes(item.status)?item.status:"pending-manual",applied:item.applied===true,sceneSerial:Number.isSafeInteger(Number(item.sceneSerial))?clamp(item.sceneSerial,0,999999999):undefined,createdEventId:text(item.createdEventId,180),manualNote:text(item.manualNote,2000),correctedEventId:text(item.correctedEventId,180),correctionNote:text(item.correctionNote,2000)});
+    return Object.fromEntries(Object.entries(result).filter(([,value])=>value!==undefined));
+  }).filter(Boolean):[];
+  if(!Array.isArray(raw.consequences)&&!Array.isArray(raw.legacyNotes))return null;
+  return{schema:1,consequences:records(raw.consequences),legacyNotes:records(raw.legacyNotes,true)};
+}
 function normalizeHero(raw){
   const base=blankHero(), h=raw && typeof raw==="object" ? raw : {};
   base.id=typeof h.id==="string"?h.id:base.id;
@@ -379,6 +393,7 @@ function normalizeHero(raw){
   const wispLevel=Number(base.techniques["altruist.will-o-wisp"]||0),wispIds=new Set(["dreamy","angry","insightful","bright","kind","fierce"]);
   base.mods={taintedBody:Boolean(h.mods?.taintedBody),gadgetSpent:clamp(h.mods?.gadgetSpent,0,99),performanceSkill:typeof h.mods?.performanceSkill==="string"?h.mods.performanceSkill:null,spellcrafterAugments:[...new Set(cleanArray(h.mods?.spellcrafterAugments).filter(id=>spellcrafterIds.has(id)))].slice(0,spellcrafterLearnedLimit),wispSpiritTypes:[...new Set(cleanArray(h.mods?.wispSpiritTypes).filter(id=>wispIds.has(id)))].slice(0,wispLevel>=3?2:wispLevel>=1?1:0)};
   const rt=h.runtime||{},freeplay=rt.freeplay&&typeof rt.freeplay==="object"?rt.freeplay:{}; base.runtime={hp:rt.hp!==""&&rt.hp!=null&&Number.isFinite(+rt.hp)?+rt.hp:null,maxHp:rt.maxHp!==""&&rt.maxHp!=null&&Number.isFinite(+rt.maxHp)?Math.max(0,+rt.maxHp):null,wounds:clamp(rt.wounds,0,99),focus:Number.isFinite(+rt.focus)?+rt.focus:null,influence:clamp(rt.influence,0,999),stress:clamp(rt.stress,0,stressMaximumFor(base)),ap:clamp(rt.ap??3,0,99),tension:clamp(rt.tension,0,99),funding:Number.isFinite(+rt.funding)?clamp(rt.funding,0,999):null,fundingTier:clamp(rt.fundingTier,0,6),sacrifices:cleanArray(rt.sacrifices).filter(item=>["eye","arm","leg","tongue","life"].includes(item)),notes:typeof rt.notes==="string"?rt.notes.slice(0,10000):"",effects:cleanArray(rt.effects),clocks:Array.isArray(rt.clocks)?rt.clocks.slice(0,30).map(c=>({id:typeof c.id==="string"?c.id:uid(),name:typeof c.name==="string"?c.name.slice(0,120):"Часы",size:[4,6,8].includes(+c.size)?+c.size:6,value:clamp(c.value,0,[4,6,8].includes(+c.size)?+c.size:6)})):[],diceHistory:Array.isArray(rt.diceHistory)?rt.diceHistory.slice(0,20).map(row=>({at:typeof row.at==="string"?row.at.slice(0,20):"",count:clamp(row.count,1,300),successes:clamp(row.successes,0,300),crits:clamp(row.crits,0,300),outcome:typeof row.outcome==="string"?row.outcome.slice(0,80):"",target:clamp(row.target||base.tier+1,1,99),allIn:Boolean(row.allIn),payment:typeof row.payment==="string"?row.payment.slice(0,20):""})):[],freeplay:{target:freeplay.target!=null?clamp(freeplay.target,1,99):null}};
+  if(base.rulesEdition==="lionwing"){const bridge=normalizeHeroLionwingBridge(h.lionwing);if(bridge)base.lionwing=bridge;}
   return base;
 }
 function normalizePinnedRules(raw){
