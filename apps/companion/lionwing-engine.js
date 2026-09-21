@@ -65,6 +65,23 @@
     if (serialized.length > 4000) fail("Цель последствия слишком велика");
     return JSON.parse(serialized);
   };
+  const validateConsequenceTarget = (category, value) => {
+    const target = consequenceTarget(value);
+    if (category === "death") {
+      if (target !== null && (!plain(target) || target.kind !== "death")) fail("Для смерти цель должна иметь вид death");
+      return target;
+    }
+    if (!plain(target) || typeof target.id !== "string" || !target.id.trim()) fail("Укажите конкретную цель последствия");
+    const allowedKinds = {
+      "skill-ranks": new Set(["skill", "skill-ranks"]),
+      "ability-part": new Set(["ability", "ability-part"]),
+      boon: new Set(["boon"]),
+      "technique-levels": new Set(["technique", "technique-levels"]),
+    }[category];
+    if (!allowedKinds?.has(target.kind)) fail("Тип цели не соответствует категории последствия");
+    if (category === "technique-levels" && target.levels !== undefined && Number(target.levels) !== 2) fail("Последствие требует потерять ровно два Уровня Техник");
+    return target;
+  };
   const normalizeLegacyNote = (value, actorId, index) => {
     if (!plain(value)) return null;
     const note = boundedText(value.note ?? value.text);
@@ -1747,7 +1764,7 @@
       const rawTarget = Object.hasOwn(selection, "lossTarget") ? selection.lossTarget
         : Object.hasOwn(selection, "consequenceTarget") ? selection.consequenceTarget
           : Object.hasOwn(selection, "target") ? selection.target : null;
-      const lossTarget = consequenceTarget(rawTarget), id = `${pending.id}:consequence:${category}`;
+      const lossTarget = validateConsequenceTarget(category, rawTarget), id = `${pending.id}:consequence:${category}`;
       if ((l.consequences || []).some(item => item.id === id)) fail("Запись последствия уже существует");
       const record = {
         schema: 1,
@@ -1794,7 +1811,7 @@
         }
         if (Object.hasOwn(payload, "lossTarget") || Object.hasOwn(payload, "consequenceTarget") || Object.hasOwn(payload, "target")) {
           const rawTarget = Object.hasOwn(payload, "lossTarget") ? payload.lossTarget : Object.hasOwn(payload, "consequenceTarget") ? payload.consequenceTarget : payload.target;
-          const nextTarget = consequenceTarget(rawTarget);
+          const nextTarget = validateConsequenceTarget(payload.category || record.category, rawTarget);
           record.lossTarget = nextTarget === null ? null : copy(nextTarget);
           record.target = nextTarget === null ? null : copy(nextTarget);
         }
@@ -1918,14 +1935,11 @@
         const usedCategories = new Set(consequenceState.usedConsequenceCategories || []);
         const availableCategories = CONSEQUENCE_CATEGORIES.filter(item => !usedCategories.has(item.id)).map(item => item.id);
         const labels = Object.fromEntries(CONSEQUENCE_CATEGORIES.map(item => [item.id, item.label]));
-        // `record` remains in the option list for old saves and the existing
-        // free-note path.  New typed options are explicit and are not inferred
-        // from whatever note a player may enter.
-        choice(a, "consequence", "Выберите длительное последствие по правилу Уязвимости", [...availableCategories, "record"], {
+        choice(a, "consequence", "Выберите длительное последствие по правилу Уязвимости", availableCategories, {
           reason: "vulnerable-knockout",
           availableCategories,
           usedCategories: [...usedCategories],
-          labels: { ...labels, record: "Записать решение" },
+          labels,
         });
       }
     };
@@ -3551,7 +3565,10 @@
           }
           else if (pending.kind === "consequence") {
             const target = requiredActor(scene, pending.actorId, false);
-            if (p.choice === "record") appendLegacyConsequenceNote(target, pending, p);
+            if (p.choice === "record") {
+              if (!pending.options.includes("record") || pending.options.some(option => CONSEQUENCE_CATEGORY_IDS.has(option))) fail("Свободная запись доступна только для старого сохранения");
+              appendLegacyConsequenceNote(target, pending, p);
+            }
             else {
               if (!CONSEQUENCE_CATEGORY_IDS.has(p.choice)) fail("Неизвестная категория последствия");
               const available = CONSEQUENCE_CATEGORIES.filter(item => !(ensureConsequenceState(target).usedConsequenceCategories || []).includes(item.id)).map(item => item.id);

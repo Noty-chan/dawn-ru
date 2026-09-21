@@ -30,9 +30,9 @@ const lwEntityKindNames = Object.freeze({
   "scene-marker": "Связь с маркером Сцены", "scene-area": "Связь с областью Сцены", "scene-wall": "Связь со Стеной Сцены",
   "scene-participant": "Связь с участником Сцены", "manual.entity": "Связь Сцены",
 });
-const lwEntityName = (entity, backing = null) => {
+const lwEntityName = (entity, backing = null, scene = Scene) => {
   const ownerId = entity?.ownerActorId || backing?.ownerActorId || backing?.ownerId;
-  const owner = (Scene.actors || []).find(actor => actor.id === ownerId);
+  const owner = (scene?.actors || []).find(actor => actor.id === ownerId);
   return owner?.name || (entity?.ownerHidden ? "Владелец скрыт" : "Не указан");
 };
 function lwEntityBackingRef(raw) {
@@ -185,8 +185,9 @@ function lwDestroyEntity(id) {
 }
 let lwEntityListQuery = "", lwEntityListFilter = "all";
 function lwEntityProjectionScene(api, viewer) {
-  if (typeof api?.projectScene !== "function") return Scene;
-  try { return api.projectScene(Scene, viewer) || Scene; } catch { return Scene; }
+  if (typeof api?.projectScene !== "function") return viewer.role === "player" ? null : Scene;
+  try { return api.projectScene(Scene, viewer) || (viewer.role === "player" ? null : Scene); }
+  catch { return viewer.role === "player" ? null : Scene; }
 }
 function lwEntityRegistryRecords(api, projection) {
   const records = Array.isArray(projection?.entities) ? projection.entities : [];
@@ -197,12 +198,11 @@ function lwEntityRegistryRecords(api, projection) {
 }
 function lwEntityRows(api, projection, projectedScene, viewer = {}) {
   const rows = new Map(), unbound = [], registryRecords = lwEntityRegistryRecords(api, projection), statuses = new Map();
-  if (viewer.role === "player" && !registryRecords.length) return { rows: [], unbound: [], statuses };
   const addBacking = (type, item) => {
     if (!item?.id) return;
     const ref = { type, id: String(item.id) }, key = lwEntityBackingKey(ref);
     if (rows.has(key)) return;
-    rows.set(key, { key, type, id: ref.id, backing: item, registry: [], name: lwEntityBackingLabel(item, type), typeName: lwEntityBackingTypeName(type, item), owner: lwEntityName(null, item), space: lwEntitySpaceName(projectedScene, item), lifetime: lwEntityLifetimeLabel(item.duration), state: lwEntityBackingState(item, type) });
+    rows.set(key, { key, type, id: ref.id, backing: item, registry: [], name: lwEntityBackingLabel(item, type), typeName: lwEntityBackingTypeName(type, item), owner: lwEntityName(null, item, projectedScene), space: lwEntitySpaceName(projectedScene, item), lifetime: lwEntityLifetimeLabel(item.duration), state: lwEntityBackingState(item, type) });
   };
   for (const [type, items] of Object.entries(lwEntityBackingCollections(projectedScene))) for (const item of items) addBacking(type, item);
   for (const entity of registryRecords) {
@@ -210,7 +210,7 @@ function lwEntityRows(api, projection, projectedScene, viewer = {}) {
     const ref = lwEntityBackingRef(entity), key = lwEntityBackingKey(ref), item = ref ? lwEntityBackingItem(projectedScene, ref) : null;
     let status = null;
     const rawRegistry = Scene?.lionwing?.entities, hasRawEntity = Array.isArray(rawRegistry) ? rawRegistry.some(item => item?.id === entity.id) : Boolean(rawRegistry && Object.prototype.hasOwnProperty.call(rawRegistry, entity.id));
-    if (hasRawEntity) try { status = api?.resolve?.(Scene, entity.id) || null; } catch { status = null; }
+    if (viewer.role !== "player" && hasRawEntity) try { status = api?.resolve?.(Scene, entity.id) || null; } catch { status = null; }
     statuses.set(entity.id, status);
     if (!ref || !item || !rows.has(key)) {
       unbound.push({ entity, reason: entity?.backingHidden ? "объект скрыт правами проекции" : !ref ? "ссылка на объект не распознана" : "объект отсутствует на Сцене", status });
@@ -218,7 +218,7 @@ function lwEntityRows(api, projection, projectedScene, viewer = {}) {
     }
     const row = rows.get(key);
     row.registry.push(entity);
-    row.owner = lwEntityName(entity, item);
+    row.owner = lwEntityName(entity, item, projectedScene);
     row.lifetime = lwEntityLifetimeLabel(entity.lifetime || item.duration);
     row.state = lwEntityRegistryState(entity, status);
   }
@@ -262,7 +262,9 @@ function renderLionwingEntities({ focusSearch = false, selectionStart = null } =
   let projection;
   try { projection = api.project(Scene, lwEntityViewer()); }
   catch (error) { root.innerHTML = `<p class="autosave" role="status">Реестр сущностей пока недоступен: ${esc(error.message || error)}</p>`; return; }
-  const viewer = lwEntityViewer(), projectedScene = lwEntityProjectionScene(api, viewer), inventory = lwEntityRows(api, projection, projectedScene, viewer), query = lwEntityListQuery.trim().toLocaleLowerCase(), rows = inventory.rows.filter(row => lwEntityFilterMatches(row) && (!query || lwEntityRowSearchText(row).includes(query))).sort((a, b) => `${a.name} ${a.key}`.localeCompare(`${b.name} ${b.key}`, "ru")), unbound = inventory.unbound.filter(entry => !query || `${entry.reason} ${lwEntityName(entry.entity)}`.toLocaleLowerCase().includes(query));
+  const viewer = lwEntityViewer(), projectedScene = lwEntityProjectionScene(api, viewer);
+  if (!projectedScene) { root.innerHTML = `<p class="autosave" role="status">Объекты Сцены недоступны: безопасная проекция не построена.</p>`; return; }
+  const inventory = lwEntityRows(api, projection, projectedScene, viewer), query = lwEntityListQuery.trim().toLocaleLowerCase(), rows = inventory.rows.filter(row => lwEntityFilterMatches(row) && (!query || lwEntityRowSearchText(row).includes(query))).sort((a, b) => `${a.name} ${a.key}`.localeCompare(`${b.name} ${b.key}`, "ru")), unbound = inventory.unbound.filter(entry => !query || `${entry.reason} ${lwEntityName(entry.entity, null, projectedScene)}`.toLocaleLowerCase().includes(query));
   const cards = rows.map(lwEntityCardHtml).join(""), unboundMarkup = unbound.length ? `<section class="scene-entity-unbound-list"><h3>Связи без объекта</h3><p>Эти записи сохранились, но их объект больше не найден на Сцене.</p>${unbound.map(lwEntityUnboundHtml).join("")}</section>` : "";
   const panel = root.closest?.("[data-scene-panel-content=\"entities\"]"), title = panel?.querySelector?.("h2");
   if (title) title.textContent = "Объекты Сцены";

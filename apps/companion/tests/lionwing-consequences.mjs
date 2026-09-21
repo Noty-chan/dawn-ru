@@ -35,7 +35,7 @@ normal = run(normal, "enemy", { kind: "wound", targetId: "hero" }, "ko:normal");
 assert.equal(normal.lionwing.choices[0].kind, "knockout");
 normal = run(normal, "hero", { kind: "choice", id: normal.lionwing.choices[0].id, choice: "accept" }, "ko:normal:accept");
 assert.equal(normal.actors[0].knockedOut, true);
-assert.equal(normal.actors[0].lionwing.choices, undefined, "ordinary KO does not open a consequence choice");
+assert.equal(normal.lionwing.choices.some(item => item.kind === "consequence"), false, "ordinary KO does not open a consequence choice");
 assert.equal(normal.actors[0].influence, 4, "the ordinary non-self-inflicted Wound still gives its normal Influence");
 
 let vulnerable = scene();
@@ -49,8 +49,10 @@ assert.equal(vulnerable.actors.find(item => item.id === "hero").influence, 6, "V
 assert.equal(vulnerable.actors.find(item => item.id === "ally").influence, 3, "an ally receives no KO Influence");
 const choice = vulnerable.lionwing.choices[0];
 assert.equal(choice.kind, "consequence");
-assert.deepEqual(clone(choice.options), ["skill-ranks", "ability-part", "boon", "technique-levels", "death", "record"]);
+assert.deepEqual(clone(choice.options), ["skill-ranks", "ability-part", "boon", "technique-levels", "death"]);
 assert.equal(choice.context.reason, "vulnerable-knockout");
+assert.throws(() => run(vulnerable, "hero", { kind: "choice", id: choice.id, choice: "record", note: "обход" }, "choice:record:bypass"), /старого сохранения|устарело/);
+assert.throws(() => run(vulnerable, "hero", { kind: "choice", id: choice.id, choice: "boon", lossTarget: { kind: "skill", id: "athletics" } }, "choice:wrong-target"), /Тип цели/);
 
 const typedChoiceEvent = {
   ...lw.command("hero", {
@@ -102,7 +104,8 @@ const secondChoice = vulnerable.lionwing.choices[0];
 assert.ok(!secondChoice.options.includes("boon"), "a category cannot be selected twice for one hero");
 assert.throws(() => run(vulnerable, "hero", { kind: "choice", id: secondChoice.id, choice: "boon" }, "choice:boon:repeat"), /категория|последствие уже выбрано|устарело/);
 
-// Narrator correction marks manual application and records the concrete loss;
+// A correction through the command boundary marks manual application and records
+// the concrete loss. Role authorization is enforced by the UI/network boundary.
 // it does not silently delete anything from the hero sheet.
 const recordId = vulnerable.actors[0].lionwing.consequences[0].id;
 vulnerable.actors[0].gifts = ["outlook-oath"];

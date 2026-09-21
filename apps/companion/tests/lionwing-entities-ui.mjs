@@ -79,6 +79,7 @@ const context = {
         const hiddenEntity = { id: "entity-hidden", kind: "hidden", ownerActorId: "owner", source: { actorId: "owner" }, backing: { markerId: "marker-1" }, visibility: "hidden", lifecycle: "active" };
         return { entities: view === "gm" ? [publicEntity, ownerEntity, hiddenEntity] : [publicEntity, ownerEntity] };
       },
+      projectScene: Entities.projectScene,
     },
     confirm: () => confirmed,
   },
@@ -126,7 +127,8 @@ assert.match(domRoot.innerHTML, /entity-owner/, "owner projection remains availa
 assert.doesNotMatch(domRoot.innerHTML, /Нарратор|Создать|Удалить/, "player projection has no narrator controls");
 projectionMode = "empty";
 context.renderLionwingEntities();
-assert.match(domRoot.innerHTML, /На поле пока нет объектов Сцены или фильтр ничего не нашёл/, "player sees an empty allowed projection without internal data");
+assert.match(domRoot.innerHTML, /&lt;Костёр &amp;&gt;/, "visible Scene backings remain listed even when the registry projection is empty");
+assert.doesNotMatch(domRoot.innerHTML, /entity-public|entity-owner|entity-hidden/, "an empty registry projection exposes no registry IDs");
 assert.deepEqual(JSON.parse(JSON.stringify(scene)), JSON.parse(beforeRender), "read-only rendering does not mutate the scene");
 assert.equal(projectionCalls.length, 3, "render asks the projection API for each view");
 
