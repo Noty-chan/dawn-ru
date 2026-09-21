@@ -61,26 +61,11 @@ assert.equal(builtinCopy.edition, "lionwing", "A copied LionWing builtin retains
 assert.ok(builtinCopy.enemies.every(enemy => enemy.kind === "crowd" ? enemy.ap === 0 && enemy.baseAp === 0 : enemy.ap === 3 && enemy.baseAp === 3), "A copied LionWing builtin materializes ordinary NPCs at 3 AP and Fodder at 0");
 assert.equal(builtinCopy.builtin, undefined, "A copied builtin becomes a user encounter");
 
-const raashaCastle = gmContext.BUILTIN_ENCOUNTERS.find(item => item.id === "builtin.raasha-castle-companions");
-assert.ok(raashaCastle, "Raasha Melnum Ruins companion preset is available");
-assert.equal(raashaCastle.edition, "lionwing", "Raasha Melnum Ruins preset is LionWing-only");
-assert.match(gmSource, /kind:actorTeam==="hero"\?"hero":"enemy"/, "Allied profile actors enter the player turn queue");
-assert.equal(raashaCastle.enemies.filter(enemy => enemy.team === "hero").length, 4, "Preset deploys Svetozar's two-part profile plus Mira and Tom");
-assert.equal(JSON.stringify(raashaCastle.enemies.filter(enemy => enemy.team === "hero").map(enemy => enemy.profileId)), JSON.stringify(["lionwing.npc.ranger", "lionwing.npc.coordinator", "lionwing.npc.coordinator", "lionwing.npc.builder"]), "Mira uses the selected Coordinator profile");
-assert.equal(raashaCastle.enemies.filter(enemy => enemy.team !== "hero" && enemy.kind !== "crowd").length, 5, "Preset has a varied five-profile ruins defense");
-assert.equal(JSON.stringify(raashaCastle.enemies.filter(enemy => enemy.team !== "hero" && enemy.kind !== "crowd").map(enemy => enemy.profileId)), JSON.stringify(["lionwing.npc.javelin", "lionwing.npc.guardian", "lionwing.npc.ranger", "lionwing.npc.captor", "lionwing.npc.berserker"]), "Ruins defense lineup is explicitly selected");
-assert.equal(raashaCastle.enemies.filter(enemy => enemy.kind === "crowd" && enemy.crowdGroupId === "melnum-rune-fodder").length, 2, "Melnum Ruins starts with two linked Fodder Zones");
-assert.ok(raashaCastle.enemies.some(enemy => enemy.profileId === "lionwing.npc.javelin"), "One defense profile creates Fodder crowd");
-assert.equal(raashaCastle.enemies.filter(enemy => enemy.team !== "hero" && enemy.profileId === "lionwing.npc.builder").length, 0, "Tom is the only Builder in the preset");
-assert.equal(raashaCastle.enemies.filter(enemy => enemy.compoundId === "svetozar").length, 2, "Svetozar is represented as a two-part allied profile");
-assert.ok(raashaCastle.objects.some(object => object.type === "deploy-hero") && raashaCastle.objects.some(object => object.type === "deploy-enemy"), "Preset has both deployment zones");
+assert.equal(gmContext.BUILTIN_ENCOUNTERS.some(item => item.id === "builtin.raasha-castle-companions"), false, "Removed author preset must not return");
+assert.doesNotMatch(gmSource, /Светозар|Svetozar|svetozar/u, "Removed character and compound id must not remain in the encounter catalogue");
 assert.match(gmSource,/deploymentByTeam=\{enemy:[\s\S]+hero:/,"Preset deployment selects cells separately for allies and hostiles");
 assert.match(gmSource,/availableEncounterCell\(space,blueprint,occupied,\{allowedCells,compoundCell,sceneState:scene\}\)/,"Preset placement validates against the scene being rebuilt, not stale table state");
 assert.doesNotMatch(gmSource,/wanted\?\.team==="hero"\)allowedCells=null/,"Allied profiles remain inside their authored deployment zone");
-assert.ok(raashaCastle.markers.some(marker => marker.kind === "objective"), "Preset has a Melnum-core objective");
-const normalizedCastle = json(coreContext.normalizeGmLibrary({ encounters: [raashaCastle] })).encounters[0];
-assert.equal(normalizedCastle.enemies.filter(enemy => enemy.team === "hero").length, 4, "Saving the preset keeps allied NPC membership");
-assert.ok(normalizedCastle.enemies.filter(enemy => enemy.team === "hero").every(enemy => enemy.profileId.startsWith("lionwing.npc.")), "All allies retain canonical LionWing profile IDs after save");
 
 const newLionwingCopy = json(gmContext.materializeBuiltinEncounter({
   edition: "lionwing",
