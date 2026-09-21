@@ -64,7 +64,7 @@
 | L03 мобильная компоновка | connected | заполненный 390×844 прогон: полный лист, 2 врага, 5 зон массовки, `scrollWidth=390` | прогон встретил исправленный затем runtime numericQuote; нужен короткий повтор после исправления |
 | L04 UI последствий | connected | настоящий reducer, конкретные цели, network sanitizer `lossTarget`, reload и коррекция | живой двухклиентный сценарий и конфликт import→actor не проверены |
 | L05/L07 destroy plan | verified локально / blocked network | production validator/writer, одна версия/undo, rollback, большие тела, browser local persistence | Supabase и два клиента |
-| L06 recovery stress | connected, harness verified | 280 событий, журнал 200, undo 20, production normalizer/writer/apply, выбор валидной свежей IndexedDB/localStorage копии, legacy isolation | точный UI restore после изменения и reload |
+| L06 recovery stress | verified | 280 событий, журнал 200, undo 20, production normalizer/writer/apply, выбор валидной свежей IndexedDB/localStorage копии, legacy isolation, точный UI restore и reload | file chooser import и quota exhaustion — дополнительные проверки |
 
 ## Фундаментальные границы
 
@@ -96,7 +96,7 @@
    Рана/Сопротивление → consequence target → reload;
 2. то же для удаления участника, пространства и backing с cancel/undo/reload;
 3. заполненный мобильный прогон 390×844 для Стола и игрового листа;
-4. точный browser recovery: точка → изменение → восстановление → reload;
+4. UI file import и конфликт import→actor для геройских последствий;
 5. политика merge импортированных hero consequences в связанного table actor;
 6. после этого — адаптеры семейств поверх уже проверенных ActionPlan, dice,
    effects, counters, geometry, entities и lifecycle contracts.
