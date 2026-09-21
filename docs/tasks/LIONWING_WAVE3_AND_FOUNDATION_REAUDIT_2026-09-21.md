@@ -61,10 +61,10 @@
 |---|---|---|---|
 | L01 последствия Уязвимости | verified | настоящий LionWing reducer, typed loss target, replay/reload, отдельное исправление Нарратора | фактическое изменение Дара/Навыка/Техники остаётся ручным по замыслу |
 | L02 объекты Сцены | connected | production projection, persistence, backing inventory, скрытие player projection, UI loading | заполненный player browser и живая сеть не повторялись |
-| L03 мобильная компоновка | connected | исходные responsive assertions и прежний smoke пустой Сцены | финальный заполненный 390×844 прогон остаётся обязательным |
+| L03 мобильная компоновка | connected | заполненный 390×844 прогон: полный лист, 2 врага, 5 зон массовки, `scrollWidth=390` | прогон встретил исправленный затем runtime numericQuote; нужен короткий повтор после исправления |
 | L04 UI последствий | connected | настоящий reducer, конкретные цели, network sanitizer `lossTarget`, reload и коррекция | живой двухклиентный сценарий и конфликт import→actor не проверены |
 | L05/L07 destroy plan | verified локально / blocked network | production validator/writer, одна версия/undo, rollback, большие тела, browser local persistence | Supabase и два клиента |
-| L06 recovery stress | verified как harness | 280 событий, журнал 200, undo 20, настоящий normalizer/writer, localStorage, fake IndexedDB, backup import/export, failed write | browser IndexedDB quota/crash на опубликованном сайте |
+| L06 recovery stress | connected, harness verified | 280 событий, журнал 200, undo 20, production normalizer/writer/apply, выбор валидной свежей IndexedDB/localStorage копии, legacy isolation | точный UI restore после изменения и reload |
 
 ## Фундаментальные границы
 
@@ -96,7 +96,7 @@
    Рана/Сопротивление → consequence target → reload;
 2. то же для удаления участника, пространства и backing с cancel/undo/reload;
 3. заполненный мобильный прогон 390×844 для Стола и игрового листа;
-4. реальный browser IndexedDB recovery и table backup restore;
+4. точный browser recovery: точка → изменение → восстановление → reload;
 5. политика merge импортированных hero consequences в связанного table actor;
 6. после этого — адаптеры семейств поверх уже проверенных ActionPlan, dice,
    effects, counters, geometry, entities и lifecycle contracts.
@@ -114,4 +114,3 @@ writer. Для сетевого блока обязательны два кли�
 - реальный Playwright smoke: Builder → Sheet → Table, 0 console errors/warnings;
 - чистый браузер после cache revision показывает новые русские display labels;
 - `git diff --check` — PASS.
-

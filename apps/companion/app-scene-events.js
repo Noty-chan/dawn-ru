@@ -271,12 +271,30 @@ $("scene-space-manager").addEventListener("change",event=>{const select=event.ta
 $("scene-clear-field").onclick=()=>{if(Scene.pendingAction||Scene.pendingPrompt)return toast("Сначала завершите текущую цепочку правил");const space=activeSceneSpace(),count=Scene.objects.filter(item=>item.space===space.id).length+(Scene.walls||[]).filter(item=>item.space===space.id).length+Scene.markers.filter(item=>item.space===space.id).length+(Scene.topology?.cuts||[]).filter(item=>item.space===space.id).length;if(!count)return toast("На текущем поле нет объектов для очистки");if(!window.confirm(`Очистить местность, Стены, маркеры и разрывы поля «${space.name}»?`))return;commitScene(`Очищено поле «${space.name}»`,scene=>{scene.objects=scene.objects.filter(item=>item.space!==space.id);scene.walls=(scene.walls||[]).filter(item=>item.space!==space.id);scene.markers=scene.markers.filter(item=>item.space!==space.id);scene.topology.cuts=(scene.topology?.cuts||[]).filter(item=>item.space!==space.id)})};
 $("scene-remove-npcs").onclick=()=>{if(Scene.pendingAction||Scene.pendingPrompt)return toast("Сначала завершите текущую цепочку правил");const removed=Scene.actors.filter(actor=>actor.kind==="enemy"||actor.profileId||actor.kind==="crowd"||actor.kind==="token");if(!removed.length)return toast("На столе нет НПС или свободных токенов");if(!window.confirm(`Убрать НПС и свободные токены (${removed.length})? Герои останутся на поле.`))return;const ids=new Set(removed.map(actor=>actor.id));commitScene("Убраны НПС и свободные токены",scene=>{scene.actors=scene.actors.filter(actor=>!ids.has(actor.id));scene.objects=scene.objects.filter(object=>!ids.has(object.ownerActorId));scene.markers=scene.markers.filter(marker=>!ids.has(marker.ownerActorId));scene.targetIds=scene.targetIds.filter(id=>!ids.has(id));if(ids.has(scene.selectedActor))scene.selectedActor=null;if(ids.has(scene.activeActorId))scene.activeActorId=null})};
 function updateTableRecoveryStatus(message=""){
-  const output=$("scene-recovery-status");if(!output)return;let savedAt="";try{const saved=JSON.parse(localStorage.getItem(TABLE_RECOVERY_META_KEY)||localStorage.getItem(TABLE_RECOVERY_KEY)||"null");savedAt=saved?.exportedAt||""}catch{}output.textContent=(message||savedAt)?`${message?`${message} · `:""}Точка: ${savedAt?new Date(savedAt).toLocaleString("ru-RU"):"не создана"}`:"Точка восстановления ещё не создана.";
+  const output=$("scene-recovery-status");if(!output)return;
+  const timestamps=[];
+  try{const metadata=JSON.parse(localStorage.getItem(TABLE_RECOVERY_META_KEY)||"null"),time=Date.parse(metadata?.exportedAt||"");if(Number.isFinite(time))timestamps.push(time)}catch{}
+  try{const raw=localStorage.getItem(TABLE_RECOVERY_KEY)||"",parsed=JSON.parse(raw);normalizedTableBackup(parsed);const time=Date.parse(parsed?.exportedAt||"");if(Number.isFinite(time))timestamps.push(time)}catch{}
+  const savedAt=timestamps.length?new Date(Math.max(...timestamps)).toISOString():"";
+  output.textContent=(message||savedAt)?`${message?`${message} · `:""}Точка: ${savedAt?new Date(savedAt).toLocaleString("ru-RU"):"не создана"}`:"Точка восстановления ещё не создана.";
 }
 async function saveTableRecovery(label="Ручная точка"){
-  const payload=tableBackupPayload();payload.recoveryLabel=label;payload.gmLibrary=null;const serialized=JSON.stringify(payload);try{await writeHeroMedia([{key:TABLE_RECOVERY_KEY,value:serialized}]);localStorage.setItem(TABLE_RECOVERY_META_KEY,JSON.stringify({exportedAt:payload.exportedAt,recoveryLabel:label}));updateTableRecoveryStatus(label);return true}catch(error){try{localStorage.setItem(TABLE_RECOVERY_KEY,serialized);updateTableRecoveryStatus(label);return true}catch{toast("Не удалось сохранить точку восстановления: освободите место в браузере");return false}}
+  const payload=tableBackupPayload();payload.recoveryLabel=label;payload.gmLibrary=null;const serialized=JSON.stringify(payload),metadata=JSON.stringify({exportedAt:payload.exportedAt,recoveryLabel:label});
+  try{
+    await writeHeroMedia([{key:TABLE_RECOVERY_KEY,value:serialized}]);
+    try{localStorage.setItem(TABLE_RECOVERY_META_KEY,metadata)}catch{}
+    updateTableRecoveryStatus(label);return true;
+  }catch(error){
+    try{localStorage.setItem(TABLE_RECOVERY_KEY,serialized);try{localStorage.setItem(TABLE_RECOVERY_META_KEY,metadata)}catch{}updateTableRecoveryStatus(label);return true}
+    catch{toast("Не удалось сохранить точку восстановления: освободите место в браузере");return false}
+  }
 }
-async function readTableRecovery(){try{const stored=await readHeroMedia([TABLE_RECOVERY_KEY]);if(stored.has(TABLE_RECOVERY_KEY))return stored.get(TABLE_RECOVERY_KEY)}catch{}return localStorage.getItem(TABLE_RECOVERY_KEY)||""}
+async function readTableRecovery(){
+  try{const stored=await readHeroMedia([TABLE_RECOVERY_KEY]);if(stored.has(TABLE_RECOVERY_KEY)){const raw=stored.get(TABLE_RECOVERY_KEY);normalizedTableBackup(JSON.parse(raw));return raw}}
+  catch{}
+  try{const raw=localStorage.getItem(TABLE_RECOVERY_KEY)||"";if(!raw)return"";normalizedTableBackup(JSON.parse(raw));return raw}
+  catch{return""}
+}
 function applyTableBackup(backup,label){
   const candidate=normalizeScene(backup.scene),currentVersion=Number(Scene.version||0),currentView=Scene.view,currentUndo=Scene.undo;candidate.selectedActor=null;candidate.targetIds=[];const applied=commitScene(label,scene=>{for(const key of Object.keys(scene))delete scene[key];Object.assign(scene,candidate,{version:currentVersion,view:currentView,undo:currentUndo});if(backup.gmLibrary)store.gmLibrary=normalizeGmLibrary(backup.gmLibrary)});if(!applied)return false;persist();renderScene();setScenePanel("add");return true;
 }

@@ -45,7 +45,8 @@ function blankHero(rulesEdition=contentPreferences?.edition||"ru-v0.9"){
 }
 
 function blankScene(){
-  return {schema:14,version:0,name:"Структурированный бой",view:"gm",turnApprovalMode:"self",round:1,turnSerial:0,tension:0,tool:"select",activeSpace:"main",activeActorId:null,spaces:[{id:"main",name:"Основное поле",mode:"standard",width:7,height:7}],actors:[],objects:[],walls:[],markers:[],topology:{cuts:[]},artworks:[],backgroundArt:null,backgroundView:{fit:"cover",position:"center",dim:28,gridOpacity:58},featuredArt:null,selectedActor:null,targetIds:[],targetCells:[],pendingActionPlan:null,pendingAction:null,pendingPrompt:null,triggerQueue:[],challengeRequest:null,opposedRoll:null,results:null,sessionClocks:[],reminders:[],ruleHandouts:[],tools:{clocksMigrated:false},rollFeed:[],log:[],undo:[],redo:[],turnUndo:[]};
+  const activeEdition=typeof contentPreferences==="object"&&contentPreferences?contentPreferences.edition:"ru-v0.9",requestedEdition=arguments.length?arguments[0]:activeEdition||"ru-v0.9",edition=["lionwing","ru-v0.9"].includes(requestedEdition)?requestedEdition:"ru-v0.9";
+  return {schema:14,rulesEdition:edition,version:0,name:"Структурированный бой",view:"gm",turnApprovalMode:"self",round:1,turnSerial:0,tension:0,tool:"select",activeSpace:"main",activeActorId:null,spaces:[{id:"main",name:"Основное поле",mode:"standard",width:7,height:7}],actors:[],objects:[],walls:[],markers:[],topology:{cuts:[]},artworks:[],backgroundArt:null,backgroundView:{fit:"cover",position:"center",dim:28,gridOpacity:58},featuredArt:null,selectedActor:null,targetIds:[],targetCells:[],pendingActionPlan:null,pendingAction:null,pendingPrompt:null,triggerQueue:[],challengeRequest:null,opposedRoll:null,results:null,sessionClocks:[],reminders:[],ruleHandouts:[],tools:{clocksMigrated:false},rollFeed:[],log:[],undo:[],redo:[],turnUndo:[]};
 }
 
 function safeImage(value,maxLength=520000){
@@ -406,7 +407,7 @@ function migrateLegacy(raw){
   const outlookByName=new Map(D.outlooks.map(o=>[o.name,o.id]));
   const giftByName=new Map(D.outlooks.flatMap(o=>(o.builtin?[o.builtin]:[]).concat(o.gifts).map(g=>[g.name,g.id])));
   const heroes=(raw?.heroes||[]).map(old=>{
-    const h=blankHero(); Object.assign(h,{name:old.name||"",player:old.player||"",concept:old.concept||"",tier:old.tier||1});
+    const h=blankHero("ru-v0.9"); Object.assign(h,{rulesEdition:"ru-v0.9",name:old.name||"",player:old.player||"",concept:old.concept||"",tier:old.tier||1});
     h.attrs=old.attrs||h.attrs; h.attrBonus=old.bonus||old.attrBonus||h.attrBonus;
     const ol=outlookByName.get(old.outlook); if(ol){h.primaryOutlook=ol;h.outlooks=[ol];}
     h.gifts=(old.gifts||[]).map(name=>giftByName.get(name)).filter(Boolean);
@@ -415,7 +416,7 @@ function migrateLegacy(raw){
     for(const [name,level] of Object.entries(old.techniques||old.techs||{})){const id=techByName.get(name)||name;if(id)h.techniques[id]=level;}
     h.runtime={...h.runtime,...(old.rt||{})}; return normalizeHero(h);
   });
-  return {schema:APP_SCHEMA,current:clamp(raw?.current,0,Math.max(0,heroes.length-1)),mode:raw?.mode||"build",theme:"dark",heroes:heroes.length?heroes:[blankHero()],scene:blankScene(),gmLibrary:normalizeGmLibrary(null)};
+  return {schema:APP_SCHEMA,current:clamp(raw?.current,0,Math.max(0,heroes.length-1)),mode:raw?.mode||"build",theme:"dark",heroes:heroes.length?heroes:[blankHero("ru-v0.9")],scene:blankScene("ru-v0.9"),gmLibrary:normalizeGmLibrary(null)};
 }
 
 const HERO_MEDIA_DB="dawn-ru-companion-media",HERO_MEDIA_STORE="hero-media";
@@ -457,6 +458,27 @@ async function readHeroMedia(keys){
     for(const key of keys){const request=bucket.get(key);request.onsuccess=()=>{if(request.result?.value)values.set(key,request.result.value)}}
     tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error||new Error("Не удалось прочитать изображения"));
   });
+  const recoveryKey=typeof TABLE_RECOVERY_KEY==="string"?TABLE_RECOVERY_KEY:"";
+  if(recoveryKey){
+    for(const key of keys){
+      if(key!==recoveryKey)continue;
+      let fallback="";try{fallback=globalThis.localStorage?.getItem?.(key)||""}catch{}
+      const candidates=[];
+      const candidate=(value,source)=>{
+        if(typeof value!=="string"||!value)return;
+        try{
+          const parsed=JSON.parse(value),timestamp=Date.parse(parsed?.exportedAt||"");
+          if(!Number.isFinite(timestamp)||parsed?.format!==TABLE_BACKUP_FORMAT||Number(parsed?.schema)!==TABLE_BACKUP_SCHEMA)return;
+          normalizedTableBackup(parsed);
+          candidates.push({value,source,timestamp});
+        }catch{}
+      };
+      candidate(values.get(key),"indexedDB");
+      candidate(fallback,"localStorage");
+      candidates.sort((left,right)=>right.timestamp-left.timestamp||(left.source==="localStorage"?-1:1));
+      if(candidates.length)values.set(key,candidates[0].value);else values.delete(key);
+    }
+  }
   return values;
 }
 function restoreLocalHeroMedia(scene,heroes){
