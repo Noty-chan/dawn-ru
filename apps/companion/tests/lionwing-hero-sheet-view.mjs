@@ -23,6 +23,11 @@ assert.doesNotMatch(viewSource,/Scene\s*=|Scene\.[A-Za-z_$][\w$]*\s*=/,"the UI-o
 assert.match(viewSource,/activeCoreRules\(\)\?\.actions\|\|D\.actions/,"basic actions must reuse the active edition rules");
 assert.match(viewSource,/techniqueLevelStatus\(technique\.id,level\.n\)/,"learned levels must use the canonical readiness projection");
 assert.match(viewSource,/\["all","full","decision","partial","manual"\]/,"the sheet must expose all canonical readiness filters");
+assert.match(viewSource,/heroSheetPlaybookMarkup\(\)/,"the play sheet must explain the manual route and Table transition");
+assert.match(viewSource,/heroSheetGiftsAndBondsMarkup\(\)/,"the filled sheet must show selected Gifts and Bonds");
+assert.match(viewSource,/heroSheetConsequenceMarkup\(\)/,"the play sheet must show read-only consequence history when linked");
+assert.match(viewSource,/heroSheetBuildWarningMarkup\(\)/,"an incomplete build must remain playable with a clear warning");
+assert.match(viewSource,/heroSheetTechniqueGuideMarkup\(level,status,reason\)/,"partial and manual Levels must expose a manual action guide");
 assert.doesNotMatch(viewSource,/DAWN_LIONWING_AUTOMATION_STATUS\s*=/,"the sheet must not duplicate or replace the generated registry projection");
 assert.match(viewSource,/esc\(identity\)/);
 assert.match(viewSource,/esc\(S\.concept/);
@@ -34,6 +39,9 @@ assert.match(ru,/heroView\.dice\.rerolledHint[\s\S]+3 и выше/,"RU sheet cop
 assert.match(en,/heroView\.dice\.rerolledHint[\s\S]+3 or higher/,"EN sheet copy must explain the 3+ Influence reroll threshold");
 assert.match(events,/data-hero-sheet-tools[\s\S]+openToolsDicePreset/,"sheet rolls must reuse the existing Tools handler");
 assert.match(events,/data-hero-sheet-table[\s\S]+setMode\("play"\)/,"table actions must reuse the existing page mode handler");
+assert.match(events,/heroExportLionwingBridge/,"the LionWing hero export must expose the consequence bridge");
+assert.match(events,/heroImportLionwingBridge/,"the LionWing hero import must read the consequence bridge");
+assert.doesNotMatch(events,/Scene\.lionwing/,"the hero export bridge must not include combat queues");
 assert.match(css,/hero-sheet-resources[\s\S]+@media\(max-width:420px\)/,"the resource rail and small-screen layout must be styled");
 assert.match(css,/\.techniques \.catalog-card\{[^}]*max-width:620px/,"a single filtered technique must keep a readable card width");
 assert.match(heroUi,/class="tech-level-heading"/,"technique level headers must have an explicit styling hook");
