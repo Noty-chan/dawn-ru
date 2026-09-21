@@ -58,6 +58,17 @@ assert.equal(historyMerged.undo.length,20);
 assert.equal(historyMerged.turnUndo.length,1);
 assert.equal(historyMerged.turnUndo[0].checkpoint,"turn-start","network merges preserve Turn-start checkpoints separately from the 20 micro checkpoints");
 
+const consequenceScene=structuredClone(baseScene);
+consequenceScene.rulesEdition="lionwing";
+consequenceScene.actors[0].rulesEdition="lionwing";
+consequenceScene.actors[0].skills=[{id:"athletics",name:"Атлетика",rank:2}];
+consequenceScene.lionwing={sceneSerial:1,choices:[{id:"consequence-choice",actorId:"hero",kind:"consequence",title:"Последствие",options:["skill-ranks"],context:{reason:"vulnerable-knockout"}}],receipts:[],history:[]};
+const previousLionwingKernel=context.DAWN_LIONWING_ENGINE;
+context.DAWN_LIONWING_ENGINE={isScene:scene=>scene?.rulesEdition==="lionwing",prepare:(_scene,request)=>({ok:true,events:[{type:"lionwing.command",actorId:request.actorId,payload:request}]})};
+const consequenceEvents=Network.materializeIntent(consequenceScene,data,{kind:"lionwing",actorId:"hero",request:{kind:"choice",id:"consequence-choice",choice:"skill-ranks",lossTarget:{kind:"skill-ranks",id:"athletics"}}},"player-1",{sceneEngine:Engine});
+assert.deepEqual(JSON.parse(JSON.stringify(consequenceEvents[0].payload.lossTarget)),{kind:"skill-ranks",id:"athletics"},"network authority preserves the typed consequence target for validation");
+context.DAWN_LIONWING_ENGINE=previousLionwingKernel;
+
 const snapshotBase=structuredClone(baseScene);
 snapshotBase.objects=[{id:"old-object",label:"Старая область",space:"side"}];
 const narratorDesired=structuredClone(snapshotBase);
