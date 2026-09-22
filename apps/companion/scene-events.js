@@ -843,6 +843,7 @@ function reduceEvent(scene, event) {
     scene.actors.push(clone(payload.actor));
   } else if (event.type === "actor.despawn" && actor) {
     scene.actors = (scene.actors || []).filter(item => item.id !== actor.id);
+    for (const owner of scene.actors || []) if (owner.ruleState?.rangerHeadshotTargetId === actor.id) owner.ruleState.rangerHeadshotTargetId = null;
     // Attached markers never retain a dangling host/source reference.  A
     // source loss removes the entity by default; Narrator-created detached
     // markers may explicitly opt into detaching instead.

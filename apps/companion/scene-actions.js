@@ -955,6 +955,7 @@ function prepareEnemyRule(scene, data, request = {}) {
   if (actor && rule?.areaAnchor !== "self" && anchor && !wallTargetingStatus(scene, actor, { space: actor.space, x: Number(anchor.x), y: Number(anchor.y) }).available) errors.push("Стена перекрывает размещение области.");
   if (affectedCells.length && targets.some(target => target.space !== actor.space || !affectedCells.includes(`${target.x},${target.y}`))) errors.push("Все выбранные цели должны находиться в области.");
   if (!chargingAttack && (available?.requiresTarget ?? rule?.requiresTarget) && !targets.length && fullRule?.type !== "guardian-shield") errors.push(rule.kind === "attack" ? "Выберите хотя бы одну цель Атаки." : "Выберите цель действия.");
+  if (fullRule?.type === "ranger-headshot" && targets.length !== 1) errors.push("Выстрел в голову требует ровно одну доступную цель.");
   if (fullRule?.type === "executioner-bifurcate" && (targets.length !== 1 || targets[0]?.team === actor?.team)) errors.push("Рассечение требует одного противника.");
   if (fullRule?.type === "revenant-hollowed-eyes" && targets.length !== 1) errors.push("Для Пустых глаз нужен игрок с наименьшим Фокусом.");
   if (fullRule?.type === "healer-heal" && (targets.length !== 1 || targets[0]?.team !== actor?.team || distance(actor, targets[0]) > 3)) errors.push("Лечение требует самого Целителя или одного союзника в пределах 3 клеток.");
@@ -1213,7 +1214,7 @@ function prepareEnemyRule(scene, data, request = {}) {
     const tensionMultiplier = enemyAttackTensionMultiplier(rule.id);
     const effectAttack = effectAttackStatus(scene, actor.id, hostileTargets.map(target => target.id));
     const baseDamage = (hasRoll ? Number(request.roll.successes || 0) + Number(scene.tension || 0) * tensionMultiplier : Number.isFinite(canonicalDirectDamage) ? canonicalDirectDamage : Number(request.damage)) + Number(effectAttack.damageModifier || 0);
-    const headshotBonusByTarget = {};
+    const aimBonusByTarget = {}, headshotBonusByTarget = {};
     const damageByTarget = Object.fromEntries(hostileTargets.map(target => {
       let amount = baseDamage + Number(effectAttack.damageByTarget?.[target.id] || 0);
       if (family.bonusTensionAtRange && distance(attackOrigin, target) >= Number(family.bonusTensionAtRange)) amount += Number(scene.tension || 0);
@@ -1227,7 +1228,7 @@ function prepareEnemyRule(scene, data, request = {}) {
           return distance(attackOrigin,predicted)<=1;
         }).length;
       }
-      if (family.aimDamage) amount += Number(actor.ruleState?.enemyAim || 0);
+      if (family.aimDamage && Number(actor.ruleState?.enemyAim || 0) > 0) aimBonusByTarget[target.id] = Number(actor.ruleState.enemyAim);
       if (actor.ruleState?.rangerHeadshotTargetId === target.id) headshotBonusByTarget[target.id] = Number(request.roll?.successes || 0);
       return [target.id, amount];
     }));
@@ -1242,7 +1243,7 @@ function prepareEnemyRule(scene, data, request = {}) {
       allyEffectIds.forEach(effect => events.push({ type: "effect.apply", actorId: actor.id, payload: { targetId: target.id, effect, sourceActionId: rule.id, participantIds: [actor.id, target.id] } }));
     }
     const attackEffects = family.oniModes ? ((actor.effects || []).includes("positive.усилен") ? [effectIdByName(data, "Подброшен")] : []) : targetEffects;
-     if (hostileTargets.length) events.push({ type: "attack.pending", actorId: actor.id, payload: { actionId: rule.id, enemyRuleId: rule.id, sourceRuleId: rule.id, sourceDigest: rule.sourceDigest || null, name: rule.name, targetIds: hostileTargets.map(target => target.id), roll: hasRoll ? clone(request.roll) : null, damage: baseDamage, damageByTarget, headshotBonusByTarget, damageRepeats: Math.max(1, Number(family.damageRepeats || 1)), effects: attackEffects, reward: rule.reward || "", attackModifierIds: attackModifiers.selectedIds, attackModifierAdvantage: attackModifiers.advantage, postDisplacements, postResourceLoss, postSelfHealMissingFraction: Number(family.postSelfHealMissingFraction || 0), enemyAttackFamily: clone(family), attackAnchor: anchor ? clone(anchor) : null } });
+     if (hostileTargets.length) events.push({ type: "attack.pending", actorId: actor.id, payload: { actionId: rule.id, enemyRuleId: rule.id, sourceRuleId: rule.id, sourceDigest: rule.sourceDigest || null, name: rule.name, targetIds: hostileTargets.map(target => target.id), roll: hasRoll ? clone(request.roll) : null, damage: baseDamage, damageByTarget, aimBonusByTarget, headshotBonusByTarget, damageRepeats: Math.max(1, Number(family.damageRepeats || 1)), effects: attackEffects, reward: rule.reward || "", attackModifierIds: attackModifiers.selectedIds, attackModifierAdvantage: attackModifiers.advantage, postDisplacements, postResourceLoss, postSelfHealMissingFraction: Number(family.postSelfHealMissingFraction || 0), enemyAttackFamily: clone(family), attackAnchor: anchor ? clone(anchor) : null } });
     else events.push({ type: "enemy.action.resolve", actorId: actor.id, payload: { ...payload, targetIds } });
   } else {
     if (rule.kind !== "attack" && ["effect", "full"].includes(payload.automation)) targets.forEach(target => targetEffects.forEach(effect => events.push({ type: "effect.apply", actorId: actor.id, payload: { targetId: target.id, effect, sourceActionId: rule.id } })));
