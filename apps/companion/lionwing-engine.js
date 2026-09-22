@@ -17,6 +17,14 @@
   const dice = global.DAWN_LIONWING_DICE || null;
   const DICE_SCENE_ROLL_LIMIT = 128;
   const DICE_SCENE_JOURNAL_LIMIT = 256;
+  const SIMPLE_ENEMY_ACTIONS = new Map([
+    ["lionwing.npc.executioner.focus", { profileId: "lionwing.npc.executioner", digest: "sha256:6f5cfbc7ad5131d0f5028c3fb777602f7bbe3d06214a9e7ba68a663243a285c4", effects: ["source:positive.усилен", "source:positive.укреплен"] }],
+    ["lionwing.npc.cannoneer.aim", { profileId: "lionwing.npc.cannoneer", digest: "sha256:f7ba935d98676daa2494d0b0e9d43b8aa9af7965b0a7bdb946e8e6843311a4c1", effects: ["source:positive.усилен", "source:positive.устойчив"] }],
+    ["lionwing.npc.berserker.seethe", { profileId: "lionwing.npc.berserker", digest: "sha256:834d49d31b883e76d2a1db1bfdf25102c523f1876b97c8ee194ff8c9a21b9fb0", heal: true }],
+    ["lionwing.npc.assassin.neutralize-target", { profileId: "lionwing.npc.assassin", digest: "sha256:c0de180bc162c97ad1160eea26c0edf5d6ef8f9c34fc1c06dcf6cbc406a6656d", mark: true }],
+    ["lionwing.npc.paladin.gospel", { profileId: "lionwing.npc.paladin", digest: "sha256:cb2e13ee8dc238b9620bd5046ee86ca6af882fde0e0fd93be58fb842330975be", gospel: true }],
+    ["lionwing.npc.spright.discombobulate", { profileId: "lionwing.npc.spright", digest: "sha256:c04c88f43a64b370cca2c6c976955332410f28a78e6f8c5b23f7c99811630999", defenseComparison: true }],
+  ]);
   let preparedSerial = 0;
   const copy = value => JSON.parse(JSON.stringify(value));
   const sameJson = (left, right) => JSON.stringify(left) === JSON.stringify(right);
@@ -573,6 +581,41 @@
         spell: range(ids.spell, "spirit"),
       },
     };
+  };
+  const validateSimpleEnemyActionEvents = (scene, events) => {
+    const prepares = events.filter(event => event?.type === "enemy.action.prepare" && SIMPLE_ENEMY_ACTIONS.has(event.payload?.ruleId));
+    for (const prepare of prepares) {
+      const contract = SIMPLE_ENEMY_ACTIONS.get(prepare.payload.ruleId), source = requiredActor(scene, prepare.actorId);
+      if (source.profileId !== contract.profileId || prepare.payload.profileId !== contract.profileId || prepare.payload.sourceDigest !== contract.digest) fail("Канонический источник простого действия противника не совпадает");
+      const spends = events.filter(event => event?.type === "resource.spend" && event.actorId === source.id && event.payload?.sourceRuleId === prepare.payload.ruleId);
+      if (spends.length !== 1 || spends[0].payload?.resource !== "ap" || Number(spends[0].payload?.amount) !== 1 || spends[0].payload?.sourceDigest !== contract.digest) fail("Каноническая стоимость действия противника должна быть ровно 1 ОД");
+      const effects = events.filter(event => event?.type === "effect.apply" && event.actorId === source.id && event.payload?.sourceActionId === prepare.payload.ruleId);
+      const heals = events.filter(event => event?.type === "actor.heal" && event.actorId === source.id && event.payload?.sourceActionId === prepare.payload.ruleId);
+      let expectedEffects = contract.effects || [];
+      if (contract.heal) {
+        const expected = 2 + Number(source.tier || 1) * 2;
+        if (heals.length !== 1 || heals[0].payload?.targetId !== source.id || Number(heals[0].payload?.amount) !== expected || effects.length) fail("Каноническая формула лечения Seethe изменена");
+        continue;
+      }
+      if (heals.length) fail("Это действие противника не восстанавливает Здоровье");
+      if (contract.mark) {
+        const targetIds = [...new Set(prepare.payload?.targetIds || [])];
+        if (targetIds.length !== 1) fail("Neutralize Target требует ровно одну цель");
+        expectedEffects = [`${targetIds[0]}:negative.помечен`];
+      } else if (contract.gospel) {
+        const targetIds = (scene.actors || []).filter(target => target.id !== source.id && !target.knockedOut && target.team === source.team && effectActive(scene, target, "positive.регенерирует")).map(target => target.id);
+        if (JSON.stringify([...(prepare.payload?.targetIds || [])].sort()) !== JSON.stringify([...targetIds].sort())) fail("Gospel должен выбрать всех Регенерирующих союзников");
+        expectedEffects = targetIds.map(targetId => `${targetId}:positive.укреплен`);
+      } else if (contract.defenseComparison) {
+        const targetIds = [...new Set(prepare.payload?.targetIds || [])], target = targetIds.length === 1 ? actor(scene, targetIds[0]) : null;
+        if (!target || target.id === source.id || distance(source, target) !== 1) fail("Discombobulate требует одну смежную цель");
+        const stats = effectiveStats(scene, target), armor = Number(stats.armor.value || 0), evasion = Number(stats.evasion.value || 0);
+        const effect = evasion > armor ? "negative.замедлен" : armor > evasion ? "negative.разорван" : armor === 0 && evasion === 0 ? "negative.помечен" : null;
+        expectedEffects = effect ? [`${target.id}:${effect}`] : [];
+      }
+      const actualEffects = effects.map(event => `${event.payload?.targetId}:${event.payload?.effect}`).sort();
+      if (JSON.stringify(actualEffects) !== JSON.stringify([...expectedEffects].sort())) fail("Канонический набор Эффектов простого действия противника изменён");
+    }
   };
   const detectiveRuleId = "vagabond.dim-mak.3";
   const detectiveWeakPointRuleId = "vagabond.dim-mak.1";
@@ -2091,7 +2134,10 @@
       if(compound.active&&compound.defenseType==="evasion")for(const part of compound.parts)part.evasion=Math.min(Number(part.evasion||0),defender.evasion);
       const hpBefore = compound.active ? compound.hp : Number(a.hp);
       let dealt = Math.max(0, afterArmor - evaded);
-      if (attack && dealt > 0 && !p.irreducible && !p.finalDamage && effectActive(scene,a,"negative.помечен")) { dealt += Number(a.tier || 1); removeEffect(a, "negative.помечен"); }
+      if (attack && dealt > 0 && !p.irreducible && !p.finalDamage && effectActive(scene,a,"negative.помечен")) {
+        dealt += Number(a.tier || 1);
+        if (source?.profileId !== "lionwing.npc.assassin") removeEffect(a, "negative.помечен");
+      }
       const finalDamageQuote = global.DAWN_LIONWING_ADAPTERS?.damageQuote?.(a, { scene, key: "finalDamage", kind: "damage", actionId: p.sourceActionId || null, sourceActorId: source?.id || null, targetId: a.id, baseValue: dealt, immobilized: effectActive(scene, a, "negative.обездвижен"), tier: Number(a.tier || 1), roundUp: true });
       if (finalDamageQuote?.ok === false) fail(finalDamageQuote.reason || "Числовые модификаторы итогового урона конфликтуют");
       if (p.fixedDamage !== true && finalDamageQuote?.ok && Number.isFinite(Number(finalDamageQuote.value))) dealt = Math.max(0, Number(finalDamageQuote.value));
@@ -4047,7 +4093,10 @@
     const pendingEnemyFlow = scene.pendingAction?.enemyRuleId && events.some(event => ["reaction.respond", "rule.respond", "damage.apply", "effect.apply", "actor.move", "actor.enter", "attack.clear"].includes(event?.type));
     const rangerPromptFlow = scene.pendingPrompt?.kind === "enemy-ranger-retreat" && events.some(event => event?.type === "rule.respond");
     const enemyEventFlow = events.some(event => ["enemy.action.prepare", "enemy.action.resolve", "attack.pending", "attack.clear"].includes(event?.type)) || pendingEnemyFlow || rangerPromptFlow;
-    if (enemyEventFlow) return legacy.dispatchMany(scene, events, options);
+    if (enemyEventFlow) {
+      validateSimpleEnemyActionEvents(scene, events);
+      return legacy.dispatchMany(scene, events, options);
+    }
     if (options.expectedVersion !== undefined && Number(options.expectedVersion) !== Number(scene.version || 0)) {
       if(events.every(event=>event?.id&&(scene.lionwing?.receipts||[]).some(receipt=>receipt.id===event.id&&receipt.fingerprint===JSON.stringify([event.type,event.actorId||null,event.payload||{}]))))return {scene:copy(scene),events:[],event:null};
       fail("Конфликт версии Сцены: обновите состояние");
@@ -4235,7 +4284,19 @@
   // Canonical LionWing NPC profiles are read through the shared enemy rule
   // adapter.  Keep the public query on the routed engine so the GM panel can
   // choose a profile action and see its validated automation status.
-  route("availableEnemyRules", (scene, data, actorId) => legacy.availableEnemyRules(scene, data, actorId));
+  route("availableEnemyRules", (scene, data, actorId) => {
+    const source = actor(scene, actorId);
+    return legacy.availableEnemyRules(scene, data, actorId).map(rule => {
+      if (!SIMPLE_ENEMY_ACTIONS.has(rule.id)) return rule;
+      let reason = "";
+      if (!source) reason = "Профильный НПС больше не находится на Сцене";
+      else if (source.knockedOut) reason = "Профильный НПС выведен из строя";
+      else if (scene.pendingAction) reason = "Сначала разрешите текущие Реакции";
+      else if (Number(source.ap || 0) < 1) reason = "Нужно 1 ОД";
+      else if ((source.usedActions || []).includes(rule.id)) reason = "Это действие уже использовано в Раунде";
+      return { ...rule, automation: "full", available: !reason, reason };
+    });
+  });
   const sceneWithActiveEffects = scene => ({
     ...scene,
     actors: (scene.actors || []).map(participant => ({

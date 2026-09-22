@@ -154,6 +154,11 @@ function enemyTierFormula(formula, tier) {
   return match ? Number(match[1]) + Math.max(0, Number(tier || 1) - 1) * Number(match[2] || 0) : 0;
 }
 const ENEMY_AUTO_EFFECT_RULES = new Set([
+  "lionwing.npc.assassin.neutralize-target",
+  "lionwing.npc.executioner.focus",
+  "lionwing.npc.cannoneer.aim",
+  "lionwing.npc.paladin.gospel",
+  "lionwing.npc.spright.discombobulate",
   "enemy.common.assassin.action.neutralize-target",
   "enemy.common.assassin.trump.disappear",
   "enemy.common.executioner.action.focus-up",
@@ -168,6 +173,12 @@ const ENEMY_AUTO_EFFECT_RULES = new Set([
   "enemy.common.cannoneer.action.aim",
 ]);
 const ENEMY_FULL_RULES = new Map([
+  ["lionwing.npc.assassin.neutralize-target", { type: "assassin-mark", narratorOffTurn: true }],
+  ["lionwing.npc.executioner.focus", { type: "self-effects", effects: ["positive.усилен", "positive.укреплен"], narratorOffTurn: true }],
+  ["lionwing.npc.cannoneer.aim", { type: "self-effects", effects: ["positive.усилен", "positive.устойчив"], narratorOffTurn: true }],
+  ["lionwing.npc.berserker.seethe", { type: "berserker-heal", formula: "4(+2)", narratorOffTurn: true }],
+  ["lionwing.npc.paladin.gospel", { type: "regenerating-allies", narratorOffTurn: true }],
+  ["lionwing.npc.spright.discombobulate", { type: "defense-comparison-effect", narratorOffTurn: true }],
   ["enemy.common.assassin.trump.disappear", { type: "effects" }],
   ["enemy.common.assassin.action.neutralize-target", { type: "assassin-mark" }],
   ["enemy.common.executioner.action.focus-up", { type: "effects" }],
@@ -237,11 +248,20 @@ const ENEMY_TARGET_LIMITS = new Map([
 ]);
 for (const [ruleId, metadata] of LIONWING_AUTO_ATTACK_RULES) ENEMY_ATTACK_FAMILY_RULES.set(ruleId, metadata.family || {});
 
+const LIONWING_SIMPLE_ACTION_DIGESTS = new Map([
+  ["lionwing.npc.executioner.focus", "sha256:6f5cfbc7ad5131d0f5028c3fb777602f7bbe3d06214a9e7ba68a663243a285c4"],
+  ["lionwing.npc.cannoneer.aim", "sha256:f7ba935d98676daa2494d0b0e9d43b8aa9af7965b0a7bdb946e8e6843311a4c1"],
+  ["lionwing.npc.berserker.seethe", "sha256:834d49d31b883e76d2a1db1bfdf25102c523f1876b97c8ee194ff8c9a21b9fb0"],
+  ["lionwing.npc.assassin.neutralize-target", "sha256:c0de180bc162c97ad1160eea26c0edf5d6ef8f9c34fc1c06dcf6cbc406a6656d"],
+  ["lionwing.npc.paladin.gospel", "sha256:cb2e13ee8dc238b9620bd5046ee86ca6af882fde0e0fd93be58fb842330975be"],
+  ["lionwing.npc.spright.discombobulate", "sha256:c04c88f43a64b370cca2c6c976955332410f28a78e6f8c5b23f7c99811630999"],
+]);
+
 const enemyCanonicalRule = rule => {
-  const ruleId = typeof rule === "string" ? rule : rule?.id, metadata = ruleId ? LIONWING_AUTO_ATTACK_RULES.get(ruleId) : null;
-  if (!metadata) return rule;
+  const ruleId = typeof rule === "string" ? rule : rule?.id, metadata = ruleId ? LIONWING_AUTO_ATTACK_RULES.get(ruleId) : null, simpleDigest = LIONWING_SIMPLE_ACTION_DIGESTS.get(ruleId);
+  if (!metadata && !simpleDigest) return rule;
   const base = typeof rule === "string" ? { id: rule } : rule;
-  return { ...base, ...clone(metadata), sourceDigest: base.sourceDigest || LIONWING_ENEMY_SOURCE_DIGEST, apCost: Number(base.apCost || 1) };
+  return { ...base, ...(metadata ? clone(metadata) : {}), sourceDigest: simpleDigest || base.sourceDigest || LIONWING_ENEMY_SOURCE_DIGEST, apCost: Number(base.apCost || 1) };
 };
 const enemyAttackFamilyForRule = ruleId => ENEMY_ATTACK_FAMILY_RULES.get(ruleId) || {};
 const enemyAttackTensionMultiplier = ruleId => Number(ENEMY_AUTO_ATTACK_RULES.get(ruleId) || 0);
@@ -849,9 +869,9 @@ function availableEnemyRules(scene, data, actorId) {
     if (!(actor.kind === "enemy" || actor.profileId)) reason = "Это не профильный НПС";
     else if (actor.knockedOut) reason = "Профильный НПС выведен из строя";
     else if (scene.pendingAction) reason = "Сначала разрешите текущие Реакции";
-    else if (automation !== "assisted" && !scene.activeActorId) reason = "Сначала начните Ход противника";
-    else if (automation !== "assisted" && scene.activeActorId !== actor.id) reason = "Сейчас Ход другого участника";
-    else if (automation !== "assisted" && actor.acted) reason = "Ход противника уже завершён";
+    else if (automation !== "assisted" && !fullRule?.narratorOffTurn && !scene.activeActorId) reason = "Сначала начните Ход противника";
+    else if (automation !== "assisted" && !fullRule?.narratorOffTurn && scene.activeActorId !== actor.id) reason = "Сейчас Ход другого участника";
+    else if (automation !== "assisted" && !fullRule?.narratorOffTurn && actor.acted) reason = "Ход противника уже завершён";
     else if (Number(actor.ap || 0) < Number(rule.apCost || 1)) reason = `Нужно ${rule.apCost || 1} ОД`;
     else if ((actor.usedActions || []).includes(rule.id) && !(family.chargedAttack && (actor.effects || []).includes("positive.заряжен")) && !fullRule?.diminishEachRoundUse) reason = "Это действие уже использовано в Раунде";
     else if (rule.kind === "trump" && actor.usedTrump) reason = "Козырь уже использован в этой Сцене";
@@ -887,7 +907,7 @@ function prepareEnemyRule(scene, data, request = {}) {
   if (fullRule?.oncePerRound && roundRuleUses) errors.push("Это действие можно использовать только один раз за Раунд.");
   const isAttackRule = Boolean(rule && (rule.kind === "attack" || family.attack));
   const chargingAttack = Boolean(isAttackRule && family.chargedAttack && !(actor?.effects || []).includes("positive.заряжен"));
-  const crowdMovementReady = Boolean(actor?.ruleState?.enemyCrowdMovement?.ruleId === rule?.id && Number(actor.ruleState.enemyCrowdMovement.turnSerial) === Number(scene.turnSerial || 0));
+  const crowdMovementReady = Boolean(actor && rule && actor.ruleState?.enemyCrowdMovement?.ruleId === rule.id && Number(actor.ruleState.enemyCrowdMovement.turnSerial) === Number(scene.turnSerial || 0));
   if (actor && rule && family.crowdAdvance && request.options?.beginCrowdMovement && !crowdMovementReady) {
     const crowdIds = (scene.actors || []).filter(item => item.kind === "crowd" && !item.knockedOut && item.team === actor.team && item.space === actor.space).map(item => item.id);
     return { ok: true, errors: [], events: [{ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${eventId()}-enemy-crowds`, kind: "enemy-crowd-move-select", sourceActorId: actor.id, controller: "narrator", title: `${rule.name}: движение массовки`, text: `По очереди переместите каждую союзную Зону массовки на расстояние до ${family.crowdAdvance} клетки или оставьте её на месте.`, options: [...crowdIds.map(id => `target:${id}`), "finish"], context: { ruleId: rule.id, remainingTargetIds: crowdIds, maxDistance: Number(family.crowdAdvance), optionLabels: { finish: "Закончить движение" } }, participantIds: [actor.id, ...crowdIds] } }], rule: available || clone(rule) };
@@ -895,7 +915,7 @@ function prepareEnemyRule(scene, data, request = {}) {
   if (actor && rule && family.crowdAdvance && !crowdMovementReady) errors.push("Сначала разрешите движение всех союзных Зон массовки.");
   let targetIds = [...new Set(request.targetIds || [])];
   if (rule?.id === "enemy.common.paladin.trump.weal-and-woe" && actor) targetIds = (scene.actors || []).filter(target => target.id !== actor.id && !target.knockedOut && target.space === actor.space && distance(actor, target) <= 2).map(target => target.id);
-  if (fullRule?.type === "regenerating-allies" && actor) targetIds = (scene.actors || []).filter(target => !target.knockedOut && target.team === actor.team && (target.effects || []).some(effect => String(effect).includes("регенер"))).map(target => target.id);
+  if (fullRule?.type === "regenerating-allies" && actor) targetIds = (scene.actors || []).filter(target => target.id !== actor.id && !target.knockedOut && target.team === actor.team && (target.effects || []).includes("positive.регенерирует")).map(target => target.id);
   if (fullRule?.type === "corrupted-damage" && actor) targetIds = (scene.actors || []).filter(target => !target.knockedOut && target.team !== actor.team && (target.effects || []).some(effect => String(effect).includes("порчен"))).map(target => target.id);
   if (fullRule?.type === "guardian-shield" && actor) targetIds = (scene.actors || []).filter(target => !target.knockedOut && target.team !== actor.team && target.space === actor.space && distance(actor, target) <= 4).map(target => target.id);
   if (fullRule?.type === "revenant-hollowed-eyes" && actor) {
@@ -960,6 +980,8 @@ function prepareEnemyRule(scene, data, request = {}) {
   if (fullRule?.type === "revenant-hollowed-eyes" && targets.length !== 1) errors.push("Для Пустых глаз нужен игрок с наименьшим Фокусом.");
   if (fullRule?.type === "healer-heal" && (targets.length !== 1 || targets[0]?.team !== actor?.team || distance(actor, targets[0]) > 3)) errors.push("Лечение требует самого Целителя или одного союзника в пределах 3 клеток.");
   if (fullRule?.type === "healer-savior" && (targets.length !== 1 || targets[0]?.knockedOut || targets[0]?.id !== actor?.ruleState?.healerGuardianId)) errors.push("Для Спасителя сначала выберите доступного Стража в начале Хода Целителя.");
+  if (fullRule?.type === "assassin-mark" && targets.length !== 1) errors.push("Устранить цель требует ровно одного персонажа.");
+  if (fullRule?.type === "defense-comparison-effect" && (targets.length !== 1 || targets[0]?.id === actor?.id || distance(actor, targets[0]) !== 1)) errors.push("Сбить с толку требует ровно одну смежную цель.");
   const seekerCells = [];
   if (fullRule?.type === "hound-seekers" && actor && space) {
     const target = targets[0], destination = request.options?.destination;
@@ -1041,7 +1063,7 @@ function prepareEnemyRule(scene, data, request = {}) {
   const targetEffectNames = customTargetResolution ? [] : Object.prototype.hasOwnProperty.call(family, "effects") ? family.effects : (rule.targetEffects || rule.effects || []);
   const targetEffects = targetEffectNames.map(name => effectIdByName(data, name));
   const selfEffects = (rule.selfEffects || []).map(name => effectIdByName(data, name));
-  const payload = { ruleId: rule.id, sourceRuleId: rule.id, sourceDigest: rule.sourceDigest || null, profileId: profile.id, name: rule.name, kind: rule.kind, targetIds, text: rule.text, reward: rule.reward, automation: available?.automation || (targetEffects.length || selfEffects.length ? "effect" : "assisted") };
+  const payload = { ruleId: rule.id, sourceRuleId: rule.id, sourceDigest: rule.sourceDigest || null, profileId: profile.id, name: rule.name, kind: rule.kind, targetIds, text: rule.text, reward: rule.reward, automation: available?.automation || (targetEffects.length || selfEffects.length ? "effect" : "assisted"), ...(fullRule?.narratorOffTurn && scene.activeActorId !== actor.id ? { quickReaction: true } : {}) };
   if (normalizedTargetRequest.typedTargets?.typedTargets?.length) payload.typedTargets = clone(normalizedTargetRequest.typedTargets.typedTargets);
   if (fullRule?.type === "crowd-summon") payload.crowdSummon = { token: `crowd-summon-${eventId()}`, cells: crowdSummonCells.map(cellKey) };
   const events = [{ type: "enemy.action.prepare", actorId: actor.id, payload }, { type: "resource.spend", actorId: actor.id, payload: { resource: "ap", amount: Number(rule.apCost || 1), sourceRuleId: rule.id, sourceDigest: rule.sourceDigest || null } }];
@@ -1074,6 +1096,18 @@ function prepareEnemyRule(scene, data, request = {}) {
   if (fullRule?.type === "imposing-presence") events.push({ type: "actor.state", actorId: actor.id, payload: { key: "imposingPresence", value: true, sourceActionId: rule.id } });
   if (fullRule?.type === "assassin-mark") {
     targets.forEach(target => events.push({ type: "effect.apply", actorId: actor.id, payload: { targetId: target.id, effect: "negative.помечен", sourceActionId: rule.id, duration: "scene", removable: false, participantIds: [actor.id, target.id] } }));
+  }
+  if (fullRule?.type === "self-effects") {
+    for (const effect of fullRule.effects || []) events.push({ type: "effect.apply", actorId: actor.id, payload: { targetId: actor.id, effect, sourceActionId: rule.id, participantIds: [actor.id] } });
+  }
+  if (fullRule?.type === "regenerating-allies") {
+    for (const target of targets) events.push({ type: "effect.apply", actorId: actor.id, payload: { targetId: target.id, effect: "positive.укреплен", sourceActionId: rule.id, participantIds: [actor.id, target.id] } });
+  }
+  if (fullRule?.type === "defense-comparison-effect") {
+    const target = targets[0], runtime = (typeof window === "object" ? window.DAWN_LIONWING_ENGINE : globalThis.DAWN_LIONWING_ENGINE), stats = runtime?.effectiveActorStats?.(scene, target.id) || null;
+    const armor = Number(stats?.armor?.value ?? target.armor ?? 0), evasion = Number(stats?.evasion?.value ?? target.evasion ?? 0);
+    const effect = evasion > armor ? "negative.замедлен" : armor > evasion ? "negative.разорван" : armor === 0 && evasion === 0 ? "negative.помечен" : null;
+    if (effect) events.push({ type: "effect.apply", actorId: actor.id, payload: { targetId: target.id, effect, sourceActionId: rule.id, participantIds: [actor.id, target.id] } });
   }
   if (fullRule?.type === "guardian-shield") {
     events.push({ type: "effect.apply", actorId: actor.id, payload: { targetId: actor.id, effect: "negative.обездвижен", sourceActionId: rule.id, participantIds: [actor.id] } });
