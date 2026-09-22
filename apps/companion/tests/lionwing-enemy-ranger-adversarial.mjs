@@ -191,7 +191,10 @@ assert.equal(ranger(headshotHitResolved).ruleState.rangerHeadshotTargetId, null)
 // The Passive is keyed to being Attacked, not damage. Evasion reducing damage to
 // zero still yields the post-Attack movement prompt after attack.clear.
 let attacked = scene({ actors: [actor("attacker", "hero", 2, 2), actor("ranger", "enemy", 3, 2, { profileId: "lionwing.npc.ranger", evasion: 99 })], activeActorId: "attacker" });
-attacked = engine.dispatchMany(attacked, [{ id: "incoming", type: "attack.pending", actorId: "attacker", payload: { actionId: "test.attack", name: "Test", targetIds: ["ranger"], damage: 1, damageByTarget: { ranger: 1 } } }]).scene;
+attacked.actors.find(item => item.id === "attacker").ap = 0;
+attacked.actors.find(item => item.id === "attacker").usedActions = ["test.attack"];
+assert.throws(() => engine.dispatchMany(attacked, [{ id: "unprepared", type: "attack.pending", actorId: "attacker", payload: { actionId: "test.attack", targetIds: ["ranger"], damage: 1 } }]), /подготовленного действия/, "a direct hero attack cannot bypass AP or used-action limits");
+attacked = engine.dispatchMany(attacked, [{ id: "incoming", type: "attack.pending", actorId: "attacker", payload: { actionId: "test.attack", name: "Test", targetIds: ["ranger"], damage: 1, damageByTarget: { ranger: 1 } } }], { narratorOverride: true }).scene;
 attacked = passAndResolve(attacked, "incoming");
 assert.equal(attacked.actors.find(item => item.id === "ranger").hp, 30);
 assert.equal(attacked.pendingPrompt?.kind, "enemy-ranger-retreat");
@@ -203,7 +206,7 @@ let twoRangers = scene({ activeActorId: "attacker", actors: [
   actor("ranger", "enemy", 2, 1, { profileId: "lionwing.npc.ranger" }),
   actor("ranger-2", "enemy", 2, 2, { profileId: "lionwing.npc.ranger" }),
 ] });
-twoRangers = engine.dispatchMany(twoRangers, [{ id: "area", type: "attack.pending", actorId: "attacker", payload: { actionId: "test.area", name: "Area", targetIds: ["ranger", "ranger-2"], damage: 1, damageByTarget: { ranger: 1, "ranger-2": 1 } } }]).scene;
+twoRangers = engine.dispatchMany(twoRangers, [{ id: "area", type: "attack.pending", actorId: "attacker", payload: { actionId: "test.area", name: "Area", targetIds: ["ranger", "ranger-2"], damage: 1, damageByTarget: { ranger: 1, "ranger-2": 1 } } }], { narratorOverride: true }).scene;
 twoRangers = passAndResolve(twoRangers, "area");
 const areaPassiveOwners = new Set([
   twoRangers.pendingPrompt?.actorId,
@@ -228,7 +231,7 @@ let compound = scene({ activeActorId: "attacker", actors: [
   actor("bruiser-part", "enemy", 3, 1, { profileId: "lionwing.npc.bruiser", compoundId: "boss" }),
   actor("ranger", "enemy", 3, 1, { profileId: "lionwing.npc.ranger", compoundId: "boss" }),
 ] });
-compound = engine.dispatchMany(compound, [{ id: "compound-attack", type: "attack.pending", actorId: "attacker", payload: { actionId: "test.attack", name: "Test", targetIds: ["ranger"], damage: 1, damageByTarget: { ranger: 1 } } }]).scene;
+compound = engine.dispatchMany(compound, [{ id: "compound-attack", type: "attack.pending", actorId: "attacker", payload: { actionId: "test.attack", name: "Test", targetIds: ["ranger"], damage: 1, damageByTarget: { ranger: 1 } } }], { narratorOverride: true }).scene;
 compound = passAndResolve(compound, "compound");
 assert.equal(compound.pendingPrompt?.actorId, "ranger");
 

@@ -4153,6 +4153,20 @@
     // route only an explicitly identified enemy flow to avoid treating a
     // translated NPC rule as a new LionWing operation.
     if (!Array.isArray(events) || !events.length || events.length > 192) fail("Некорректный пакет событий");
+    // Ordinary hero attacks must come from a prepared action. The public
+    // reducer also accepts event batches for the GM, so a bare pending attack
+    // must not become a free extra action for a player.
+    const narratorEvents = options.narratorOverride === true || ["owner", "narrator", "gm"].includes(options.role);
+    for (const attack of events.filter(event => event?.type === "attack.pending")) {
+      const attacker = (scene.actors || []).find(actor => actor.id === attack.actorId);
+      if (!isPlayer(attacker) || attack.payload?.quickReaction || narratorEvents) continue;
+      const instanceId = attack.payload?.actionInstanceId;
+      if (typeof instanceId !== "string" || !instanceId) fail("Атака героя требует подготовленного действия");
+      const prior = [...(scene.log || []), ...events.slice(0, events.indexOf(attack))];
+      const prepared = prior.some(event => event.type === "action.prepare" && event.actorId === attack.actorId && event.payload?.actionInstanceId === instanceId && event.payload?.actionId === attack.payload?.actionId);
+      const alreadyAttacked = (scene.log || []).some(event => event.type === "attack.pending" && event.actorId === attack.actorId && event.payload?.actionInstanceId === instanceId);
+      if (!prepared || alreadyAttacked) fail("Атака героя не связана с доступным подготовленным действием");
+    }
     const pendingEnemyFlow = scene.pendingAction?.enemyRuleId && events.some(event => ["reaction.respond", "rule.respond", "damage.apply", "effect.apply", "actor.move", "actor.enter", "attack.clear"].includes(event?.type));
     const rangerPromptFlow = scene.pendingPrompt?.kind === "enemy-ranger-retreat" && events.some(event => event?.type === "rule.respond");
     const enemyEventFlow = events.some(event => ["enemy.action.prepare", "enemy.action.resolve", "attack.pending", "attack.clear"].includes(event?.type)) || pendingEnemyFlow || rangerPromptFlow;
