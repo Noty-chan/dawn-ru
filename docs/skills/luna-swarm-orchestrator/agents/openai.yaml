@@ -1,0 +1,4 @@
+interface:
+  display_name: "Luna Swarm Orchestrator"
+  short_description: "Оркестрация Luna Coder и Luna Destroyer"
+  default_prompt: "Разбей работу на независимые задачи для Luna Coder, проверь завершённые коммиты Luna Destroyer, затем сведи только прошедшие production acceptance gate блоки."
