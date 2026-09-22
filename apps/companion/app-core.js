@@ -230,7 +230,7 @@ function sceneCore(raw){
     if(actor.rulesEdition==="lionwing"){actor.guts=null;actor.wounds=clamp(source.wounds,0,3);actor.focus=Math.max(0,Number(source.focus)||0)}
     if(source.lionwing&&typeof source.lionwing==="object")actor.lionwing=JSON.parse(JSON.stringify(source.lionwing));
     actor.knownTechniques=source.knownTechniques&&typeof source.knownTechniques==="object"?{...source.knownTechniques}:{...actor.techniques};
-    actor.bonds=Array.isArray(source.bonds)?source.bonds.slice(0,30).filter(bond=>bond&&typeof bond.name==="string").map(bond=>({id:typeof bond.id==="string"?bond.id.slice(0,120):"",name:bond.name.slice(0,120)})):[];
+    actor.bonds=Array.isArray(source.bonds)?source.bonds.slice(0,30).filter(bond=>bond&&typeof bond.name==="string").map(bond=>({id:typeof bond.id==="string"?bond.id.slice(0,120):"",name:bond.name.slice(0,120),rank:clamp(bond.rank,0,4),tags:cleanArray(bond.tags).slice(0,12),quick:Boolean(bond.quick)})):[];
     actor.sacrifices=cleanArray(source.sacrifices).filter(item=>["eye","arm","leg","tongue","life"].includes(item));
     actor.compoundId=(actor.kind==="enemy"||Boolean(actor.profileId))&&typeof source.compoundId==="string"&&source.compoundId.trim()?source.compoundId.trim().slice(0,120):null;
     actor.compoundBaseSpeed=actor.compoundId?clamp(source.compoundBaseSpeed??actor.speed,0,99):null;

@@ -9,6 +9,10 @@
   const LOCAL_UI_KEYS=["view","tool","activeSpace","selectedActor","targetIds","targetCells","undo","redo","turnUndo"];
   const AUTOMATIC_COMMANDS=new Set(["intent_v2","dispatch_events","join_hero","update_runtime","set_targets"]);
   const clone=value=>value==null?value:JSON.parse(JSON.stringify(value));
+  function retryableAuthorityFailure(error){
+    const code=String(error?.code||""),message=String(error?.message||error||"").toLowerCase();
+    return error?.retryable===true||["40001","55P03","57014","08000","08003","08006","08001","08004","08P01","53300"].includes(code)||/failed to fetch|network\s*error|networkerror|load failed|fetch failed|connection (?:closed|terminated|timed? ?out)|websocket|statement timeout|canceling statement|lock timeout|could not obtain lock|deadlock detected|serialization failure|scene version conflict/i.test(message);
+  }
   const makeId=()=>{
     if(global.crypto?.randomUUID)return global.crypto.randomUUID();
     const bytes=new Uint8Array(16);
@@ -248,9 +252,12 @@
     if(intent.kind==="deployment"){
       const destination=intent.destination||{},space=(scene.spaces||[]).find(item=>item.id===destination.space),combatStarted=Boolean(scene.activeActorId||Number(scene.round||1)>1||(scene.actors||[]).some(item=>item.kind!=="crowd"&&item.acted));
       if(combatStarted)throw new Error("Развертывание уже завершено");
+      if(actor.team!=="hero"||!actor.heroId||!ownerId||actor.ownerId!==ownerId)throw new Error("Игрок может развернуть только собственного героя");
       if(!space||actor.space!==space.id||!Number.isInteger(Number(destination.x))||!Number.isInteger(Number(destination.y))||Number(destination.x)<0||Number(destination.y)<0||Number(destination.x)>=Number(space.width)||Number(destination.y)>=Number(space.height))throw new Error("Некорректная клетка развертывания");
       const team=actor.team==="enemy"?"enemy":"hero",explicit=[...new Set((scene.objects||[]).filter(object=>object.space===space.id&&object.type===`deploy-${team}`).flatMap(object=>object.cells||[]))],fallback=space.mode==="cinematic"?(team==="hero"?["0,0","1,0"]:["5,0","6,0"]):Array.from({length:Number(space.height)},(_,y)=>`${team==="hero"?0:Number(space.width)-1},${y}`),allowed=explicit.length?explicit:fallback,key=`${Number(destination.x)},${Number(destination.y)}`;
       if(!allowed.includes(key))throw new Error(`Развертывание ${team==="enemy"?"врага":"героя"} разрешено только в зоне его стороны`);
+      const occupancy=Engine.effectCellOccupancyStatus(scene,actor.id,{space:space.id,x:Number(destination.x),y:Number(destination.y),placement:true});
+      if(!occupancy.available)throw new Error(occupancy.reason||"Клетка недоступна для развертывания");
       return[{type:"actor.move",actorId:actor.id,payload:{space:space.id,x:Number(destination.x),y:Number(destination.y),movement:"Развертывание",placement:true}},{type:"actor.enter",actorId:actor.id,payload:{space:space.id,x:Number(destination.x),y:Number(destination.y),movement:"Развертывание",placement:true}}];
     }
     if(intent.kind==="action-plan-start"){
@@ -380,6 +387,7 @@
       this.timer=null;
       this.flushing=false;
       this.inFlight=null;
+      this.failed=[];
       this.failures=0;
       this.generation=0;
       this.discarded=new WeakSet();
@@ -391,18 +399,18 @@
         const index=this.queue.findIndex(entry=>coalesceKey(entry)===key);
         if(index>=0)this.queue[index]=normalized;
         else{
-          if(this.queue.length>=this.maxItems)throw new Error("Сетевая очередь Нарратора переполнена; дождитесь синхронизации");
+          if(this.queue.length+this.failed.length>=this.maxItems)throw new Error("Сетевая очередь Нарратора переполнена; дождитесь синхронизации");
           this.queue.push(normalized);
         }
       }else if(normalized.kind==="snapshot"){
         const index=this.queue.findIndex(entry=>entry.kind==="snapshot");
         if(index>=0)this.queue[index]=normalized;
         else{
-          if(this.queue.length>=this.maxItems)throw new Error("Сетевая очередь Нарратора переполнена; дождитесь синхронизации");
+          if(this.queue.length+this.failed.length>=this.maxItems)throw new Error("Сетевая очередь Нарратора переполнена; дождитесь синхронизации");
           this.queue.push(normalized);
         }
       }else{
-        if(this.queue.length>=this.maxItems)throw new Error("Сетевая очередь Нарратора переполнена; дождитесь синхронизации");
+        if(this.queue.length+this.failed.length>=this.maxItems)throw new Error("Сетевая очередь Нарратора переполнена; дождитесь синхронизации");
         this.queue.push(normalized);
       }
       this.schedule();
@@ -421,9 +429,16 @@
       try{await this.options.flush(source);this.failures=0}
       catch(error){
         if(generation===this.generation){
-          this.failures=Math.min(this.failures+1,5);
-          this.queue.unshift(...source.filter(item=>!this.discarded.has(item)));
-          this.options.onError?.(error);
+          const retained=source.filter(item=>!this.discarded.has(item));
+          if(retryableAuthorityFailure(error)){
+            this.failures=Math.min(this.failures+1,5);
+            this.queue.unshift(...retained);
+            this.options.onError?.(error,{retrying:true});
+          }else{
+            this.failures=0;
+            this.failed.push(...retained);
+            this.options.onError?.(error,{retrying:false});
+          }
         }
       }finally{
         source.forEach(item=>this.discarded.delete(item));
@@ -436,10 +451,12 @@
       if(typeof predicate!=="function")return 0;
       let removed=0;
       this.queue=this.queue.filter(item=>{if(!predicate(item))return true;removed++;return false});
+      this.failed=this.failed.filter(item=>{if(!predicate(item))return true;removed++;return false});
       for(const item of this.inFlight||[])if(predicate(item)){this.discarded.add(item);removed++}
       return removed;
     }
-    clear(){this.generation++;clearTimeout(this.timer);this.timer=null;this.queue=[];this.inFlight=null;this.failures=0;this.discarded=new WeakSet()}
+    retryFailed(){if(!this.failed.length)return 0;this.queue.unshift(...this.failed);const count=this.failed.length;this.failed=[];this.schedule();return count}
+    clear(){this.generation++;clearTimeout(this.timer);this.timer=null;this.queue=[];this.inFlight=null;this.failed=[];this.failures=0;this.discarded=new WeakSet()}
     latestQueuedSnapshot(){return[...this.queue].reverse().find(item=>item.kind==="snapshot")||null}
     latestSnapshot(){return[...(this.inFlight||[]),...this.queue].reverse().find(item=>item.kind==="snapshot")||null}
     pending(){return this.queue.length+(this.flushing?1:0)}
@@ -495,7 +512,7 @@
   }
 
   global.DAWN_NETWORK_V2={
-    AUTOMATIC_COMMANDS,AuthorityQueue,MAX_AUTHORITY_ITEMS,MAX_BATCH_EVENTS,MAX_OUTBOX_ITEMS,PROTOCOL,PlayerOutbox,TICK_MS,
+    AUTOMATIC_COMMANDS,AuthorityQueue,MAX_AUTHORITY_ITEMS,MAX_BATCH_EVENTS,MAX_OUTBOX_ITEMS,PROTOCOL,PlayerOutbox,TICK_MS,retryableAuthorityFailure,
     captureLocalUi,clearConfirmedScene,getConfirmedScene,intentFromEvents,materializeIntent,mergeRemoteScene,
     networkSceneState,rebaseSceneSnapshot,restoreLocalUi,setConfirmedScene,validateIntentEnvelope,
   };
