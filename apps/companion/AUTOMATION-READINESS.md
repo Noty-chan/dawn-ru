@@ -9,7 +9,7 @@
 | Контур | Всего | Заявлено исполнимым | Формально E2E-сертифицировано | Неполный путь |
 | --- | ---: | ---: | ---: | --- |
 | Уровни Техник | 333 | 84 shared/inherited (25.2%) | 0 | 57 частичных; 192 ручных |
-| Правила обычных врагов | 122 | 47 (38.5%) | 0 | 75 assisted |
+| Правила обычных врагов | 122 | 53 (43.4%) | 0 | 69 assisted |
 | Атаки врагов | 40 | 35 | 0 | не установлено независимым аудитом |
 
 Формально сертифицировано сейчас: **0** записей. Исполнимые уровни без evidence считаются **shared/inherited**, даже при совпавшем canonical digest: digest подтверждает текстовый источник, но не полноту поведения. Проценты выше измеряют охват кодом, а не верность правилам игры.
@@ -292,11 +292,11 @@
 
 | Профиль | Правил | Заявлено исполнимым | Assisted | Непокрытые правила |
 | --- | ---: | ---: | ---: | --- |
-| Assassin (`lionwing.npc.assassin`) | 3 | 1 | 2 | Neutralize Target; Hidden Blades |
+| Assassin (`lionwing.npc.assassin`) | 3 | 2 | 1 | Hidden Blades |
 | Bruiser (`lionwing.npc.bruiser`) | 3 | 1 | 2 | Beatdown; Decimate |
 | Behemoth (`lionwing.npc.behemoth`) | 3 | 1 | 2 | Leap; Meteor |
 | Captor (`lionwing.npc.captor`) | 3 | 1 | 2 | Watch And Wait; Sticky Bomb |
-| Executioner (`lionwing.npc.executioner`) | 3 | 1 | 2 | Focus; Bifurcate |
+| Executioner (`lionwing.npc.executioner`) | 3 | 2 | 1 | Bifurcate |
 | Javelin (`lionwing.npc.javelin`) | 3 | 1 | 2 | Call; Shockwave |
 | Pugilist (`lionwing.npc.pugilist`) | 3 | 2 | 1 | Take Stance |
 | Ranger (`lionwing.npc.ranger`) | 3 | 3 | 0 | — |
@@ -311,9 +311,9 @@
 | Guardian (`lionwing.npc.guardian`) | 3 | 2 | 1 | Guardian Shield |
 | Mount (`lionwing.npc.mount`) | 3 | 1 | 2 | Synergy; CHARGE! |
 | Oni (`lionwing.npc.oni`) | 3 | 0 | 3 | Stabilize; Polaris; Vibrant Terror |
-| Paladin (`lionwing.npc.paladin`) | 3 | 1 | 2 | Gospel; Weal And Woe |
+| Paladin (`lionwing.npc.paladin`) | 3 | 2 | 1 | Weal And Woe |
 | Revenant (`lionwing.npc.revenant`) | 3 | 2 | 1 | Lurk |
-| Spright (`lionwing.npc.spright`) | 3 | 1 | 2 | Discombobulate; Thunderous Ascension |
+| Spright (`lionwing.npc.spright`) | 3 | 2 | 1 | Thunderous Ascension |
 | Bannerman (`lionwing.npc.bannerman`) | 3 | 1 | 2 | In Position; Plant The Flag |
 | Builder (`lionwing.npc.builder`) | 3 | 1 | 2 | Landscape; Army Of Stone |
 | Coordinator (`lionwing.npc.coordinator`) | 3 | 1 | 2 | Fanaticize; Coordinated Charge |
@@ -323,8 +323,8 @@
 | Matriarch (`lionwing.npc.matriarch`) | 3 | 0 | 3 | Caress; Destroy The Interloper; Mother Of The Void |
 | Martyr (`lionwing.npc.martyr`) | 3 | 1 | 2 | Gorge On My Flesh; Sacrifice |
 | Baron (`lionwing.npc.baron`) | 3 | 1 | 2 | Prescript; Absolute Sovereignty |
-| Berserker (`lionwing.npc.berserker`) | 3 | 2 | 1 | Seethe |
-| Cannoneer (`lionwing.npc.cannoneer`) | 3 | 1 | 2 | Aim; Fire |
+| Berserker (`lionwing.npc.berserker`) | 3 | 3 | 0 | — |
+| Cannoneer (`lionwing.npc.cannoneer`) | 3 | 2 | 1 | Fire |
 | Cultist (`lionwing.npc.cultist`) | 3 | 1 | 2 | Ritual Drawings; Grand Calling |
 | Daredevil (`lionwing.npc.daredevil`) | 3 | 1 | 2 | Gloat; Adrenaline High |
 | Enchanter (`lionwing.npc.enchanter`) | 3 | 1 | 2 | Charm; By My Command |

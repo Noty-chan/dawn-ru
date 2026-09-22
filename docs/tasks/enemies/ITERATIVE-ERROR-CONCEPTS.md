@@ -2,6 +2,10 @@
 
 These are reusable failure patterns to check before calling a new adapter fully automated. Each came from a concrete review finding; the examples are brief so they can guide later reviews without becoming a second implementation spec.
 
+## Standing review directive
+
+When a check or fix reveals a defect, repair the shared cause where possible, test at least one sibling use, and record the general failure pattern here. Delegate the wider search across other consumers to Luna reviewers; they return concrete, reproducible cases and do not edit production code. The integrator accepts or rejects those findings, fixes confirmed cases, and records what remains unverified. This keeps broad checking continuous without making every local fix wait for a full manual audit.
+
 1. **One rule, one calculation owner.** Marked damage was added in the Attack preview and again in a proposed resolution patch. A modifier belongs at the phase named by its trigger. Check the actual committed result with different attacker/defender Tiers and with Armor/Evasion, not just the preview number.
 2. **A prepared event is a request, not proof.** S01 originally validated a valid-looking Prepare while allowing unrelated events in the same batch. Validate the exact event sequence, count, actor, payload and current scene before the shared writer mutates state.
 3. **Replay has two identities.** Reusing old event IDs should be idempotent; regenerating IDs for the same once-per-Round Action must still be rejected by game state. Test both cases.

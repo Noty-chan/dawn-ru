@@ -180,6 +180,249 @@
         "A diagonal or otherwise forged Blade path is rejected before target mutation.",
         "Live browser selection, network concurrency, persisted reload and direct PDF page render remain manual."
       ]
+    },
+    {
+      "id": "lionwing.npc.executioner.focus",
+      "kind": "enemy-rule",
+      "sourcePath": "../../source/editions/dawn-en-lionwing-cb2f8e67/extracted-companion.json",
+      "sourceDigest": "sha256:1228663d26bf3c87b3b94b0d2f3c4c02b302007df98aa407c40d13ee731c175f",
+      "confidence": "core-tested",
+      "auditedAtCommit": "4f91b41",
+      "claims": [
+        "Focus spends exactly 1 AP and applies Strengthen and Reinforce to its source."
+      ],
+      "surfaces": {
+        "core": true,
+        "ui": false,
+        "network": false,
+        "persistence": false
+      },
+      "tests": [
+        {
+          "path": "tests/lionwing-enemy-simple-actions.mjs",
+          "case": "Production prepare/commit/reaction path, stale targets, replay and adversarial rule boundaries"
+        }
+      ],
+      "edgeCases": [
+        "Real browser and two-client acceptance remain unverified.",
+        "The canonical English extraction was checked; source PDF page images were unavailable."
+      ]
+    },
+    {
+      "id": "lionwing.npc.cannoneer.aim",
+      "kind": "enemy-rule",
+      "sourcePath": "../../source/editions/dawn-en-lionwing-cb2f8e67/extracted-companion.json",
+      "sourceDigest": "sha256:1228663d26bf3c87b3b94b0d2f3c4c02b302007df98aa407c40d13ee731c175f",
+      "confidence": "core-tested",
+      "auditedAtCommit": "4f91b41",
+      "claims": [
+        "Aim spends exactly 1 AP and applies Strengthen and Steady to its source."
+      ],
+      "surfaces": {
+        "core": true,
+        "ui": false,
+        "network": false,
+        "persistence": false
+      },
+      "tests": [
+        {
+          "path": "tests/lionwing-enemy-simple-actions.mjs",
+          "case": "Production prepare/commit/reaction path, stale targets, replay and adversarial rule boundaries"
+        }
+      ],
+      "edgeCases": [
+        "Real browser and two-client acceptance remain unverified.",
+        "The canonical English extraction was checked; source PDF page images were unavailable."
+      ]
+    },
+    {
+      "id": "lionwing.npc.berserker.seethe",
+      "kind": "enemy-rule",
+      "sourcePath": "../../source/editions/dawn-en-lionwing-cb2f8e67/extracted-companion.json",
+      "sourceDigest": "sha256:1228663d26bf3c87b3b94b0d2f3c4c02b302007df98aa407c40d13ee731c175f",
+      "confidence": "core-tested",
+      "auditedAtCommit": "4f91b41",
+      "claims": [
+        "Seethe restores 2 + Tier × 2 Health, capped by maximum Health."
+      ],
+      "surfaces": {
+        "core": true,
+        "ui": false,
+        "network": false,
+        "persistence": false
+      },
+      "tests": [
+        {
+          "path": "tests/lionwing-enemy-simple-actions.mjs",
+          "case": "Production prepare/commit/reaction path, stale targets, replay and adversarial rule boundaries"
+        }
+      ],
+      "edgeCases": [
+        "Real browser and two-client acceptance remain unverified.",
+        "The canonical English extraction was checked; source PDF page images were unavailable."
+      ]
+    },
+    {
+      "id": "lionwing.npc.assassin.neutralize-target",
+      "kind": "enemy-rule",
+      "sourcePath": "../../source/editions/dawn-en-lionwing-cb2f8e67/extracted-companion.json",
+      "sourceDigest": "sha256:1228663d26bf3c87b3b94b0d2f3c4c02b302007df98aa407c40d13ee731c175f",
+      "confidence": "core-tested",
+      "auditedAtCommit": "4f91b41",
+      "claims": [
+        "Neutralize Target may Mark any living character; Assassin Attacks retain Mark and use the defender-Tier bonus only after damage."
+      ],
+      "surfaces": {
+        "core": true,
+        "ui": false,
+        "network": false,
+        "persistence": false
+      },
+      "tests": [
+        {
+          "path": "tests/lionwing-enemy-simple-actions.mjs",
+          "case": "Production prepare/commit/reaction path, stale targets, replay and adversarial rule boundaries"
+        }
+      ],
+      "edgeCases": [
+        "Real browser and two-client acceptance remain unverified.",
+        "The canonical English extraction was checked; source PDF page images were unavailable."
+      ]
+    },
+    {
+      "id": "lionwing.npc.paladin.gospel",
+      "kind": "enemy-rule",
+      "sourcePath": "../../source/editions/dawn-en-lionwing-cb2f8e67/extracted-companion.json",
+      "sourceDigest": "sha256:1228663d26bf3c87b3b94b0d2f3c4c02b302007df98aa407c40d13ee731c175f",
+      "confidence": "core-tested",
+      "auditedAtCommit": "4f91b41",
+      "claims": [
+        "Gospel reinforces every live ally with effective Regenerating, excluding suppressed sources."
+      ],
+      "surfaces": {
+        "core": true,
+        "ui": false,
+        "network": false,
+        "persistence": false
+      },
+      "tests": [
+        {
+          "path": "tests/lionwing-enemy-simple-actions.mjs",
+          "case": "Production prepare/commit/reaction path, stale targets, replay and adversarial rule boundaries"
+        }
+      ],
+      "edgeCases": [
+        "Real browser and two-client acceptance remain unverified.",
+        "The canonical English extraction was checked; source PDF page images were unavailable."
+      ]
+    },
+    {
+      "id": "lionwing.npc.spright.discombobulate",
+      "kind": "enemy-rule",
+      "sourcePath": "../../source/editions/dawn-en-lionwing-cb2f8e67/extracted-companion.json",
+      "sourceDigest": "sha256:1228663d26bf3c87b3b94b0d2f3c4c02b302007df98aa407c40d13ee731c175f",
+      "confidence": "core-tested",
+      "auditedAtCommit": "4f91b41",
+      "claims": [
+        "Discombobulate compares effective adjacent defenses and applies the corresponding effect; equal positive values yield no effect."
+      ],
+      "surfaces": {
+        "core": true,
+        "ui": false,
+        "network": false,
+        "persistence": false
+      },
+      "tests": [
+        {
+          "path": "tests/lionwing-enemy-simple-actions.mjs",
+          "case": "Production prepare/commit/reaction path, stale targets, replay and adversarial rule boundaries"
+        }
+      ],
+      "edgeCases": [
+        "Real browser and two-client acceptance remain unverified.",
+        "The canonical English extraction was checked; source PDF page images were unavailable."
+      ]
+    },
+    {
+      "id": "lionwing.npc.ranger.nest",
+      "kind": "enemy-rule",
+      "sourcePath": "../../source/editions/dawn-en-lionwing-cb2f8e67/extracted-companion.json",
+      "sourceDigest": "sha256:1228663d26bf3c87b3b94b0d2f3c4c02b302007df98aa407c40d13ee731c175f",
+      "confidence": "core-tested",
+      "auditedAtCommit": "4a80e8f",
+      "claims": [
+        "Nest stores Aim and loses it only on ordinary movement in the Ranger’s Turn."
+      ],
+      "surfaces": {
+        "core": true,
+        "ui": false,
+        "network": false,
+        "persistence": false
+      },
+      "tests": [
+        {
+          "path": "tests/lionwing-enemy-ranger-adversarial.mjs",
+          "case": "Production prepare/commit/reaction path, stale targets, replay and adversarial rule boundaries"
+        }
+      ],
+      "edgeCases": [
+        "Real browser and two-client acceptance remain unverified.",
+        "The canonical English extraction was checked; source PDF page images were unavailable."
+      ]
+    },
+    {
+      "id": "lionwing.npc.ranger.take-the-shot",
+      "kind": "enemy-attack",
+      "sourcePath": "../../source/editions/dawn-en-lionwing-cb2f8e67/extracted-companion.json",
+      "sourceDigest": "sha256:1228663d26bf3c87b3b94b0d2f3c4c02b302007df98aa407c40d13ee731c175f",
+      "confidence": "core-tested",
+      "auditedAtCommit": "4a80e8f",
+      "claims": [
+        "Take the Shot uses the shared Attack path; stored Aim adds damage only to a successful hit and cannot manufacture a hit."
+      ],
+      "surfaces": {
+        "core": true,
+        "ui": false,
+        "network": false,
+        "persistence": false
+      },
+      "tests": [
+        {
+          "path": "tests/lionwing-enemy-ranger-adversarial.mjs",
+          "case": "Production prepare/commit/reaction path, stale targets, replay and adversarial rule boundaries"
+        }
+      ],
+      "edgeCases": [
+        "Real browser and two-client acceptance remain unverified.",
+        "The canonical English extraction was checked; source PDF page images were unavailable."
+      ]
+    },
+    {
+      "id": "lionwing.npc.ranger.headshot",
+      "kind": "enemy-rule",
+      "sourcePath": "../../source/editions/dawn-en-lionwing-cb2f8e67/extracted-companion.json",
+      "sourceDigest": "sha256:1228663d26bf3c87b3b94b0d2f3c4c02b302007df98aa407c40d13ee731c175f",
+      "confidence": "core-tested",
+      "auditedAtCommit": "4a80e8f",
+      "claims": [
+        "Headshot binds exactly one live target and clears it when that target leaves the scene."
+      ],
+      "surfaces": {
+        "core": true,
+        "ui": false,
+        "network": false,
+        "persistence": false
+      },
+      "tests": [
+        {
+          "path": "tests/lionwing-enemy-ranger-adversarial.mjs",
+          "case": "Production prepare/commit/reaction path, stale targets, replay and adversarial rule boundaries"
+        }
+      ],
+      "edgeCases": [
+        "Real browser and two-client acceptance remain unverified.",
+        "The canonical English extraction was checked; source PDF page images were unavailable."
+      ]
     }
   ]
 }
