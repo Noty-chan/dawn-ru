@@ -268,7 +268,7 @@
       localMutationInFlight++;let result;try{result=await client.rpc("settle_scene_intent_batch",{p_scene_id:sceneId,p_expected_version:Number(expectedVersion),p_command_ids:ids,p_rejected_command_ids:rejected,p_events:payload,p_state:scene,p_label:label})}finally{localMutationInFlight--}
       if(!sceneSessionIsActive(sceneId,generation))throw new Error("Стол уже закрыт");
       if(result.error){
-        if(result.error.code==="40001"||/version conflict/i.test(result.error.message||"")){await loadScene(sceneId);const conflict=new Error("Сетевой такт столкнулся с новой версией Сцены и будет пересчитан");conflict.code=result.error.code;conflict.retryable=true;throw conflict}
+        if(result.error.code==="40001"||/version conflict|version[^.]*does not match|state version[^.]*event batch/i.test(result.error.message||"")){await loadScene(sceneId);const conflict=new Error("Сетевой такт столкнулся с новой версией Сцены и будет пересчитан");conflict.code=result.error.code;conflict.retryable=true;throw conflict}
         return fail(result.error);
       }
       const acceptedVersion=Number(result.data);patch({version:acceptedVersion,status:"online",lastSyncedAt:new Date().toISOString(),error:""});signalTable("scene-updated",{version:acceptedVersion});return acceptedVersion;

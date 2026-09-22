@@ -323,8 +323,8 @@ actor.modifierState=modifierProfile?{carrierId:typeof rawModifier.carrierId==="s
 }
 
 function normalizeScene(raw){
-  const history=(rows,limit=20)=>Array.isArray(rows)?rows.slice(0,limit).filter(row=>row&&typeof row==="object"&&row.state).map(row=>({id:typeof row.id==="string"?row.id:uid(),label:typeof row.label==="string"?row.label.slice(0,160):"Изменение",state:sceneCore(row.state),...(row.checkpoint==="turn-start"?{checkpoint:"turn-start"}:{})})):[];
-  const base=sceneCore(raw);base.undo=history(raw?.undo);base.redo=history(raw?.redo);base.turnUndo=history(raw?.turnUndo,120);return base;
+  const history=(rows,limit=12)=>Array.isArray(rows)?rows.slice(0,limit).filter(row=>row&&typeof row==="object"&&row.state).map(row=>({id:typeof row.id==="string"?row.id:uid(),label:typeof row.label==="string"?row.label.slice(0,160):"Изменение",state:sceneCore(row.state),...(row.checkpoint==="turn-start"?{checkpoint:"turn-start"}:{})})):[];
+  const base=sceneCore(raw);base.undo=history(raw?.undo);base.redo=history(raw?.redo);base.turnUndo=history(raw?.turnUndo,30);return base;
 }
 
 function validateTableEdit(before,after,options={}){
@@ -564,10 +564,10 @@ function activateHeroEdition(edition,{saveCurrent=true}={}){
 }
 function persistableStore(){
   const heroes=persistableHeroes(),scene=sceneCore(Scene),sourceById=new Map(store.heroes.map(hero=>[hero.id,hero]));
-  if(scene.rulesEdition==="lionwing"){
-    const history=normalizeScene(Scene);
-    scene.undo=history.undo;scene.redo=history.redo;scene.turnUndo=history.turnUndo;
-  }else scene.undo=[];
+  // Undo snapshots duplicate the complete Scene (including artwork) many times.
+  // Keep them in memory for the active session instead of blocking every small
+  // table interaction while localStorage serializes tens of full copies.
+  scene.undo=[];scene.redo=[];scene.turnUndo=[];
   for(const actor of scene.actors){const hero=sourceById.get(actor.heroId);if(!hero)continue;if(actor.tokenImage&&actor.tokenImage===hero.media?.token)actor.tokenImage="";if(actor.portraitImage&&actor.portraitImage===hero.media?.portrait)actor.portraitImage=""}
   return {...store,heroes,scene,gmLibrary:normalizeGmLibrary(store.gmLibrary),sceneUi:{zoom:sceneZoom,controlMode:sceneControlMode,interfaceVersion:sceneInterfaceVersion,interfaceRolloutVersion:SCENE_INTERFACE_ROLLOUT_VERSION,panelLayout:scenePanelLayoutMode,panelSides:scenePanelSides,panelWidths:scenePanelWidths,turnStripVisible:sceneTurnStripVisible,density:sceneInterfaceDensity,layoutVersion:2,fitVersion:9,viewport:sceneViewportMode}};
 }

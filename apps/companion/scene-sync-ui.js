@@ -77,7 +77,7 @@ async function acceptPreparedRemoteCommand(command,prepared){
 
 let networkV2Authority=null,networkV2Outbox=null,networkV2Reconciling=false;
 function mergeNetworkV2Scene(remote,current=Scene){
-  const canonical=NetworkV2.mergeRemoteScene(remote,current),sync=Sync?.state?.(),snapshot=networkV2Reconciling?networkV2Authority?.latestQueuedSnapshot?.():networkV2Authority?.latestSnapshot?.();
+  const canonical=NetworkV2.mergeRemoteScene(remote,current),sync=Sync?.state?.(),snapshot=networkV2Authority?.latestSnapshot?.();
   if(!sync?.canNarrate||!snapshot)return canonical;
   const overlay=NetworkV2.rebaseSceneSnapshot(snapshot.baseScene||canonical,snapshot.scene,canonical);
   return NetworkV2.restoreLocalUi(overlay,canonical);
@@ -189,7 +189,10 @@ async function flushNetworkV2Authority(items){
   const startsTurn=allEvents.some(event=>event.type==="turn.start"),endsRound=allEvents.some(event=>event.type==="round.end"),turnCheckpoint=startsTurn&&localUndoState?{id:uid(),label:"До начала Хода",state:localUndoState,checkpoint:"turn-start"}:null;
   if(!allEvents.length&&!rejectedCommandIds.length){deferred.forEach(item=>networkV2Authority.enqueue(item));return}
   const networkState=NetworkV2.networkSceneState(candidate);
-  const acceptedVersion=await Sync.settleIntentBatch({commandIds,rejectedCommandIds,events:allEvents,scene:networkState,expectedVersion,label:"network.v2.tick"});
+  let acceptedVersion;
+  networkV2Reconciling=true;
+  try{acceptedVersion=await Sync.settleIntentBatch({commandIds,rejectedCommandIds,events:allEvents,scene:networkState,expectedVersion,label:"network.v2.tick"})}
+  finally{networkV2Reconciling=false}
   if(acceptedVersion!==Number(candidate.version)){
     networkV2Reconciling=true;
     try{await Sync.refreshScene()}finally{networkV2Reconciling=false}

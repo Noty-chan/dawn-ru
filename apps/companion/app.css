@@ -202,6 +202,7 @@ main{min-width:0;padding:clamp(1rem,3vw,3rem)}.mode-page{display:none}.mode-page
 .enemy-rule>details>summary{font-size:0;color:var(--gold)}.enemy-rule>details>summary::after{content:"?";font-size:.72rem;font-weight:900}
 .enemy-rule>details[open]{grid-column:1/-1;border-top:1px solid var(--line);border-left:0}.enemy-rule>details[open]>summary{font-size:.65rem}.enemy-rule>details[open]>summary::after{content:""}
 .enemy-rule>details p{margin:.35rem 0;font-size:.67rem;line-height:1.45}
+.enemy-rule>.enemy-automation-note{grid-column:1/-1;min-width:0;margin:.2rem .45rem .45rem;overflow-wrap:anywhere}
 
 .scene-turn-strip{display:flex;gap:.35rem;margin:-.15rem 0 .5rem;overflow-x:auto;padding:.15rem .05rem .35rem;scrollbar-width:thin;overscroll-behavior-x:contain}
 .scene-turn-strip>.autosave{align-self:center;padding:.45rem}
