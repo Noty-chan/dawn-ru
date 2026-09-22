@@ -1193,7 +1193,8 @@ function reduceEvent(scene, event) {
         recipient.effects ||= []; recipient.effectStates ||= {};
         const added = !recipient.effects.includes(payload.effect), existing = effectStateFor(recipient, payload.effect);
         if (added) recipient.effects.push(payload.effect);
-        const sources = [...(existing?.sources || []).filter(item => item.actorId !== source?.actorId), ...(source ? [source] : [])].slice(-12);
+        const sources = [...(existing?.sources || []).filter(item => item.actorId !== source?.actorId), ...(source ? [source] : [])];
+        if (sources.length > 256) throw new Error("Слишком много независимых источников одного Эффекта; сначала завершите или снимите один из них.");
         recipient.effectStates[payload.effect] = {duration:existing?.removable===false?existing.duration:payload.duration||existing?.duration||definition.duration,removable:payload.removable===false?false:existing?.removable!==false,appliedTurnSerial:Number(scene.turnSerial||0),appliedRound:Number(scene.round||1),appliedEventId:event.id,sourceBound:existing?.sourceBound===true||definition.sourceBound,exclusiveBySource:payload.exclusiveBySource??existing?.exclusiveBySource??definition.exclusiveBySource,removeWithSource:existing?.removeWithSource===true||definition.removeWithSource,sources};
         if (recipient.id === target.id) {payload.added=added;payload.refreshed=!added;payload.duration=recipient.effectStates[payload.effect].duration;payload.sourceActorIds=sources.map(item=>item.actorId)}
       }
@@ -1259,6 +1260,7 @@ function reduceEvent(scene, event) {
     scene.triggerQueue ||= [];
     const key = payload.queueKey || `${payload.sourceEventId}:${payload.triggerId}`;
     if (payload.status === "queued" && !scene.triggerQueue.some(item => item.key === key)) {
+      if (scene.triggerQueue.length >= 128) throw new Error("Очередь решений заполнена; сначала разрешите ожидающие запросы.");
       scene.triggerQueueSequence = Number.isSafeInteger(Number(scene.triggerQueueSequence)) && Number(scene.triggerQueueSequence) >= 0 ? Number(scene.triggerQueueSequence) : 0;
       const deferred = clone(payload.deferredEvent);
       scene.triggerQueue.push({

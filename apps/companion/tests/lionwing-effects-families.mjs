@@ -43,6 +43,11 @@ scene=run(scene,"reaper-a",{kind:"turn-start"},"enemy-start");
 scene=run(scene,"reaper-a",{kind:"turn-end"},"enemy-end");
 scene=run(JSON.parse(JSON.stringify(scene)),"target",{kind:"round-end"},"round-end");
 assert.deepEqual(JSON.parse(JSON.stringify(Engine.effectInstanceStatus(scene,"target","negative.помечен").sources.map(x=>x.sourceId))),["long"],"suppressed short source expires independently of long source");
+const saturated=fixture();
+saturated.actors[0].effects=["negative.помечен"];
+saturated.actors[0].effectStates={"negative.помечен":{sources:Array.from({length:256},(_,index)=>({sourceId:`accepted:${index}`,actorId:"reaper-a",removable:true,sourceBound:true,duration:"scene"}))}};
+assert.throws(()=>run(saturated,"reaper-a",{kind:"effect",targetId:"target",effect:"negative.помечен",sourceId:"overflow"},"overflow"),/источников|слишком много/i,"the authoritative writer rejects a 257th independent source instead of letting save lose it");
+assert.equal(saturated.actors[0].effectStates["negative.помечен"].sources.length,256,"rejected source leaves the input scene intact");
 console.log("LionWing effects families: source identity, suppression, protected removal, reload, independent expiry and atomic rejection passed");
 
 scene=fixture();

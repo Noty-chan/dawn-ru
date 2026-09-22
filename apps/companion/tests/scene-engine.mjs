@@ -695,6 +695,10 @@ attackEffects = Engine.dispatch(empoweredOnlyScene, { type: "attack.pending", ac
 assert.equal(attackEffects.pendingAction.damageByTarget.enemy, 5, "Empowered applies once while Marked remains conditional on damage");
 const dividedAttackEffects = Engine.dispatch(empoweredOnlyScene, { type: "attack.pending", actorId: "hero", payload: { name: "Проверка порядка урона", targetIds: ["enemy"], damage: 2, damageByTarget: { enemy: 2 }, effectDamageBase: 3, effectDamageBaseByTarget: { enemy: 3 }, effectDamageDivisor: 2 } }).scene;
 assert.equal(dividedAttackEffects.pendingAction.damageByTarget.enemy, 3, "universal effect damage is applied before a technique halves the result; Marked remains conditional");
+const manyLegacySourcesScene = structuredClone(scene);
+manyLegacySourcesScene.actors.push(...Array.from({ length: 13 }, (_, index) => ({ ...structuredClone(scene.actors[1]), id: `source-${index}`, name: `Source ${index}`, x: 3 + index % 3, y: 2 + Math.floor(index / 3), effectStates: {} })));
+const manyLegacyEffects = Engine.dispatchMany(manyLegacySourcesScene, Array.from({ length: 13 }, (_, index) => ({ id: `source-effect-${index}`, type: "effect.apply", actorId: `source-${index}`, payload: { targetId: "hero", effect: "negative.помечен" } }))).scene;
+assert.equal(manyLegacyEffects.actors.find(actor => actor.id === "hero").effectStates["negative.помечен"].sources.length, 13, "the shared enemy writer preserves all thirteen independent sources instead of silently discarding the oldest");
 
 const defenseEffectScene = structuredClone(scene);
 defenseEffectScene.actors[1].tier = 2;

@@ -14,5 +14,7 @@ When a check or fix reveals a defect, repair the shared cause where possible, te
 6. **Movement type matters.** Ranger Aim is lost on ordinary movement in its own Turn, not on forced movement, teleportation, or placement. Record the cause of movement and test each route.
 7. **Damage bonuses cannot create their own trigger.** Marked requires an Attack that already deals damage; Evasion reducing damage to zero must preserve Mark. Apply the bonus after defenses and only once per Attack.
 8. **A prompt must reach its real writer.** Ranger had a valid-looking prompt, but `rule.respond` did not route through the enemy continuation path. Exercise the UI action through response and final commit, not only prompt creation.
+9. **Saving must preserve every accepted source.** The effect writer could accept 13 independent sources while save normalization kept 12; the legacy writer kept a different 12. Preserve accepted sources and reject overflow atomically at the writer rather than silently changing game state on reload.
+10. **Deferred work must survive persistence.** The prompt reducer accepted 29 queued decisions while save normalization kept 24, leaving audit entries for prompts that would never appear. Queue limits belong at the producer; save normalization must retain accepted work.
 
 For future slices, pair one normal scenario with a forged event, a stale scene, a replay with fresh IDs, and a boundary case that changes the outcome. Record unresolved cases before raising automation coverage.

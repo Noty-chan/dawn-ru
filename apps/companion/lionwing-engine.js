@@ -2109,6 +2109,7 @@
       a.effects = [...new Set([...(a.effects || []), p.effect])];
       a.effectStates ||= {};
       const previousSources=(a.effectStates[p.effect]?.sources||[]).filter(item=>(item.sourceId||item.actorId)!==sourceKey);
+      if (previousSources.length >= 256) fail("Слишком много независимых источников одного Эффекта; сначала завершите или снимите один из них");
       const source={sourceId:sourceKey,actorId:sourceId||null,ruleId:p.ruleId||provenance?.ruleId||null,sourceDigest:p.sourceDigest||provenance?.sourceDigest||null,actionId:p.sourceActionId||provenance?.actionId||null,actionInstanceId:provenance?.actionInstanceId||null,eventId:rootId,appliedSerial:Number(scene.turnSerial||0),appliedRound:Number(scene.round||0),duration,lifetime,ownerActorId:boundaryOwnerId,ownerTurnSerial:ownTurnSerial(boundaryOwner),removable:p.removable!==false,sourceBound:p.sourceBound!==false,suppressedBy:[],sourceType:"effect",active:true};
       a.effectStates[p.effect] = { duration, lifetime, removable: previousSources.concat(source).every(item=>item.removable!==false), appliedTurnSerial: Number(scene.turnSerial || 0), appliedRound: scene.round, appliedEventId: rootId, sources: [...previousSources,source] };
       astate(a).effectLifetimes ||= {};

@@ -68,6 +68,10 @@ assert.deepEqual(Array.from(simultaneous.triggerQueue, item => [item.priority, i
 assert.equal(Engine.triggerQueueStatus(simultaneous).active.id, "prompt-high", "Queue status exposes the one active prompt separately");
 assert.equal(Engine.triggerQueueStatus(simultaneous).next.event.payload.id, "prompt-medium");
 assert.equal(simultaneous.log.filter(event => event.type === "rule.trigger" && event.payload?.status === "queued").length, 2, "Every deferred prompt has one persisted queue audit");
+const manyPrompts=Engine.dispatchMany(sourceScene(),Array.from({length:30},(_,index)=>prompt(`bulk-${index}`,30-index,`bulk:${index}`))).scene;
+assert.equal(manyPrompts.triggerQueue.length,29,"the writer accepts a queue larger than the former 24-item save limit");
+assert.equal(manyPrompts.log.filter(event=>event.type==="rule.trigger"&&event.payload?.status==="queued").length,29,"each accepted deferred prompt has a matching journal entry");
+assert.throws(()=>Engine.dispatchMany(sourceScene(),Array.from({length:130},(_,index)=>prompt(`overflow-${index}`,130-index,`overflow:${index}`))),/очередь решений заполнена/i,"the writer blocks queue overflow before a saved scene could silently lose accepted work");
 
 const wrongParticipant = Engine.respondRulePrompt(simultaneous, data, { actorId: "enemy", choice: "pass" });
 assert.equal(wrongParticipant.ok, false);
