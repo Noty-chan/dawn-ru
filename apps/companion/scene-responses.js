@@ -1284,9 +1284,11 @@ function resolvePendingAction(scene, data) {
   for (const targetId of status.eligibleIds) {
     const outcome = pendingTargetOutcome(scene, pending, targetId), target = outcome.target, resolvedTargetId = target?.id || targetId, traitReaction = outcome.reaction?.enemyTrait;
     if (!outcome.cancelled) {
-      const { rawDamage, temporaryArmor, temporaryEvasion, expectedDamage } = outcome;
-      for (let repeat = 0; repeat < Math.max(1, Number(pending.damageRepeats || 1)); repeat += 1) events.push({ type: "damage.apply", actorId: pending.actorId, payload: { targetId: resolvedTargetId, amount: rawDamage, temporaryArmor, temporaryEvasion, dodgeEvasion: actionIdIs(outcome.response,"dodge"), attackMiss: expectedDamage === 0, attackPendingId: pending.id, damageRepeat: repeat + 1, damageRepeatCount: Math.max(1, Number(pending.damageRepeats || 1)), sourceActionId: pending.actionId, sourceRuleId: pending.sourceRuleId || pending.enemyRuleId || null, sourceDigest: pending.sourceDigest || null, participantIds: [pending.actorId, resolvedTargetId] } });
-      const attackSucceeded = Number(pending.roll?.successes || 0) > 0 || !pending.roll && rawDamage > 0;
+       const { rawDamage, temporaryArmor, temporaryEvasion, expectedDamage } = outcome;
+       for (let repeat = 0; repeat < Math.max(1, Number(pending.damageRepeats || 1)); repeat += 1) events.push({ type: "damage.apply", actorId: pending.actorId, payload: { targetId: resolvedTargetId, amount: rawDamage, temporaryArmor, temporaryEvasion, dodgeEvasion: actionIdIs(outcome.response,"dodge"), attackMiss: expectedDamage === 0, attackPendingId: pending.id, damageRepeat: repeat + 1, damageRepeatCount: Math.max(1, Number(pending.damageRepeats || 1)), sourceActionId: pending.actionId, sourceRuleId: pending.sourceRuleId || pending.enemyRuleId || null, sourceDigest: pending.sourceDigest || null, participantIds: [pending.actorId, resolvedTargetId] } });
+       const headshotBonus = Number(pending.headshotBonusByTarget?.[targetId] ?? pending.headshotBonusByTarget?.[resolvedTargetId] ?? 0);
+       if (expectedDamage > 0 && headshotBonus > 0) events.push({ type: "damage.apply", actorId: pending.actorId, payload: { targetId: resolvedTargetId, amount: headshotBonus, attackPendingId: pending.id, sourceActionId: pending.actionId, sourceRuleId: pending.sourceRuleId || pending.enemyRuleId || null, sourceDigest: pending.sourceDigest || null, headshotBonus: true, participantIds: [pending.actorId, resolvedTargetId] } });
+       const attackSucceeded = Number(pending.roll?.successes || 0) > 0 || !pending.roll && rawDamage > 0;
       const enemyFamily = pending.enemyAttackFamily || {};
       const untouchedThisRound = enemyTargetUntouchedThisRound(scene, resolvedTargetId, source?.team);
       if (expectedDamage > 0) successfulEnemyTargets.push(resolvedTargetId);

@@ -2135,7 +2135,7 @@
       if(a.compoundId)for(const part of scene.actors.filter(x=>x.compoundId===a.compoundId)){part.x=a.x;part.y=a.y;part.space=a.space;}
       const publicPayload={...p};delete publicPayload.__deferAuraTransitions;
       const moveRow=emit("actor.move", a.id, { ...publicPayload, from, x: a.x, y: a.y, space: a.space, path: result.path, distance: result.cost });
-      if(Number(result.cost||0)>0&&["enemy.common.ranger","lionwing.npc.ranger"].includes(a.profileId)&&Number(a.ruleState?.enemyAim||0)>0){a.ruleState||={};a.ruleState.enemyAim=0;emit("actor.state",a.id,{key:"enemyAim",value:0,sourceActionId:a.profileId==="lionwing.npc.ranger"?"lionwing.npc.ranger.nest":"enemy.common.ranger.action.nest"});}
+      if(Number(result.cost||0)>0&&scene.activeActorId===a.id&&["enemy.common.ranger","lionwing.npc.ranger"].includes(a.profileId)&&Number(a.ruleState?.enemyAim||0)>0){a.ruleState||={};a.ruleState.enemyAim=0;emit("actor.state",a.id,{key:"enemyAim",value:0,sourceActionId:a.profileId==="lionwing.npc.ranger"?"lionwing.npc.ranger.nest":"enemy.common.ranger.action.nest"});}
       syncAttachedMarkers(a, p.sourceActionId || p.movement || "movement");
       // Every supported move has a stable endpoint entry receipt.  The
       // segment id is derived from the authoritative execution root, so a

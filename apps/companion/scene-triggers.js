@@ -1059,8 +1059,15 @@ function triggeredEvents(scene, event, options = {}) {
   }
   if ((event.type === "area.remove" || event.type === "object.damage" && Number(payload.dealt || 0) > 0) && actor && Number(actor.techniques?.["ruiner.creation-ascetic"] || 0) >= 2) events.push({ type: "rule-resource.gain", actorId: actor.id, payload: { resource: "creation-marks", amount: 1, sourceActionId: "ruiner.creation-ascetic.2" } });
   if (event.type === "attack.clear" && !scene.pendingPrompt && !promptQueued()) {
-    const ranger = [...new Set(payload.targetIds || [])].map(id => actorById(scene, id)).find(target => !target?.knockedOut && ["enemy.common.ranger","lionwing.npc.ranger"].includes(target?.profileId));
-    if (ranger) events.push({ type: "rule.prompt", actorId: ranger.id, payload: { id: `prompt-${event.id}-ranger-retreat`, kind: "enemy-ranger-retreat", sourceActorId: ranger.id, controller: "narrator", title: "Снайперская дистанция", text: `${ranger.name} может переместиться на 1 клетку после Атаки по нему.`, options: ["move", "pass"], context: { optionLabels: { move: "Переместиться", pass: "Не использовать" } }, participantIds: [ranger.id, event.actorId].filter(Boolean) } });
+    const rangers = [...new Map([...new Set(payload.targetIds || [])]
+      .flatMap(id => compoundParts(scene, id, { includeKnockedOut: true }))
+      .filter(target => !target.knockedOut && ["enemy.common.ranger", "lionwing.npc.ranger"].includes(target.profileId))
+      .map(target => [target.id, target])).values()];
+    const prompts = rangers.map((ranger, index) => ({ type: "rule.prompt", actorId: ranger.id, payload: { id: `prompt-${event.id}-ranger-retreat-${index}`, kind: "enemy-ranger-retreat", sourceActorId: ranger.id, controller: "narrator", title: "Снайперская дистанция", text: `${ranger.name} может переместиться на 1 клетку после Атаки по нему.`, options: ["move", "pass"], context: { optionLabels: { move: "Переместиться", pass: "Не использовать" } }, participantIds: [ranger.id, event.actorId].filter(Boolean) } }));
+    if (prompts.length) {
+      events.push(prompts[0]);
+      prompts.slice(1).forEach((prompt, index) => events.push({ type: "rule.trigger", actorId: prompt.actorId, payload: { triggerId: `core.ranger.retreat.${prompt.actorId}.${index}`, sourceEventId: event.id, sourceEventType: event.type, status: "queued", reason: "Предыдущее перемещение Ranger разрешается первым.", priority: 0, emittedTypes: ["rule.prompt"], triggerOwnerId: prompt.actorId, participantIds: prompt.payload.participantIds, deferredEvent: prompt } }));
+    }
   }
   if (event.type === "turn.start" && actor && !scene.pendingPrompt && !promptQueued()) {
     if (actor.profileId === "enemy.common.healer") {
@@ -1117,7 +1124,7 @@ function triggeredEvents(scene, event, options = {}) {
     const berserker = actorById(scene, payload.targetId), attacker = actorById(scene, event.actorId);
     if (berserker && !berserker.knockedOut && ["enemy.common.berserker","lionwing.npc.berserker"].includes(berserker.profileId) && attacker && attacker.team !== berserker.team && Number(berserker.ruleState?.berserkerReactionTurnSerial || -1) !== Number(scene.turnSerial || 0)) events.push({ type: "rule.prompt", actorId: berserker.id, payload: { id: `prompt-${event.id}-berserker-retaliate`, kind: "enemy-berserker-retaliate", sourceActorId: berserker.id, targetId: attacker.id, controller: "narrator", title: "Неумолимое разрушение", text: `${berserker.name} получил не менее 4 урона: переместиться к ${attacker.name} и использовать Сокрушение?`, options: ["retaliate", "pass"], context: { maxDistance: berserker.ruleState?.berserkerLastStand ? 2 : 1, ruleId: berserker.profileId==="lionwing.npc.berserker"?"lionwing.npc.berserker.thrash":"enemy.common.berserker.attack.thrash", optionLabels: { retaliate: "Ответить Сокрушением", pass: "Не использовать" } }, participantIds: [berserker.id, attacker.id] } });
   }
-  if ((event.type === "actor.move" || event.type === "movement.end") && ["enemy.common.ranger","lionwing.npc.ranger"].includes(actor?.profileId) && Number(actor.ruleState?.enemyAim || 0) > 0) events.push({ type: "actor.state", actorId: actor.id, payload: { key: "enemyAim", value: 0, sourceActionId: actor.profileId === "lionwing.npc.ranger" ? "lionwing.npc.ranger.nest" : "enemy.common.ranger.action.nest" } });
+  if ((event.type === "actor.move" || event.type === "movement.end") && scene.activeActorId === actor?.id && ["enemy.common.ranger","lionwing.npc.ranger"].includes(actor?.profileId) && Number(actor.ruleState?.enemyAim || 0) > 0) events.push({ type: "actor.state", actorId: actor.id, payload: { key: "enemyAim", value: 0, sourceActionId: actor.profileId === "lionwing.npc.ranger" ? "lionwing.npc.ranger.nest" : "enemy.common.ranger.action.nest" } });
   if (event.type === "actor.move" && actor?.kind === "crowd" && actor.crowdSubtype === "seeker") {
     const target = actorById(scene, actor.seekerTargetId);
     if (target && !target.knockedOut && target.space === actor.space && distance(actor, target) <= 1) {

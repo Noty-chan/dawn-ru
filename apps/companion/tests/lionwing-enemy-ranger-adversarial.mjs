@@ -76,12 +76,6 @@ const passAndResolve = (current, label = "attack") => {
 };
 const ranger = current => current.actors.find(item => item.id === "ranger");
 const rule = (current, id) => engine.availableEnemyRules(current, data, "ranger").find(item => item.id === id);
-const expectKnownFailure = (name, body) => {
-  let failed = false;
-  try { body(); } catch (error) { if (error instanceof assert.AssertionError) failed = true; else throw error; }
-  assert.equal(failed, true, `KNOWN FAILING REPRODUCER unexpectedly passed: ${name}`);
-  console.log(`KNOWN FAILING REPRODUCER: ${name}`);
-};
 
 // Source binding: the test reads the shipped LionWing data rather than copying a
 // legacy Ranger profile into the fixture.
@@ -106,19 +100,17 @@ assert.ok(ranger(current).effects.includes("positive.устойчив"));
 assert.equal(ranger(JSON.parse(JSON.stringify(current))).ruleState.enemyAim, 1);
 
 // An off-turn retreat, forced move, or allied movement must not consume Aim.
-// Baseline currently loses it because the trigger has no active-Turn guard.
 const offTurn = { ...copy(current), activeActorId: "hero" };
 const offTurnMoved = engine.dispatchMany(offTurn, [{ id: "off-turn-move", type: "actor.move", actorId: "ranger", payload: { space: "main", x: 2, y: 2, movement: "Ranger passive" } }]).scene;
-expectKnownFailure("Aim survives movement outside the Ranger's Turn", () => assert.equal(ranger(offTurnMoved).ruleState.enemyAim, 1));
+assert.equal(ranger(offTurnMoved).ruleState.enemyAim, 1);
 const ownTurnMoved = engine.dispatchMany({ ...copy(current), activeActorId: "ranger" }, [{ id: "own-turn-move", type: "actor.move", actorId: "ranger", payload: { space: "main", x: 2, y: 2, movement: "Step" } }]).scene;
 assert.equal(ranger(ownTurnMoved).ruleState.enemyAim, 0);
 
-// Aim must add one damage to a successful LionWing Attack. The canonical family
-// omits the aimDamage flag that exists only on the legacy Ranger adapter.
+// Aim must add one damage to a successful LionWing Attack.
 let aimMiss = scene({ actors: [actor("ranger", "enemy", 1, 2, { profileId: "lionwing.npc.ranger", ruleState: { enemyAim: 1 } }), actor("hero", "hero", 2, 2)] });
 const aimedShot = engine.prepareEnemyRule(aimMiss, data, { actorId: "ranger", ruleId: "lionwing.npc.ranger.take-the-shot", targetIds: ["hero"], roll: dice([6,1,1,1,1,1]) });
 assert.equal(aimedShot.ok, true, aimedShot.errors?.join(" "));
-expectKnownFailure("LionWing Aim adds 1 damage to a successful Attack", () => assert.equal(aimedShot.events.find(event => event.type === "attack.pending").payload.damageByTarget.hero, 2));
+assert.equal(aimedShot.events.find(event => event.type === "attack.pending").payload.damageByTarget.hero, 2);
 
 // Headshot stores exactly the selected target, costs AP (not Tension), survives
 // reload/export-shaped JSON, rejects missing targets, and is replay-idempotent.
@@ -141,10 +133,40 @@ assert.equal(replayed.events.length, 0);
 assert.throws(() => engine.dispatch(headshotScene, { id: "missing-target-state", type: "actor.state", actorId: "ranger", payload: { key: "rangerHeadshotTargetId", value: "missing", sourceActionId: "lionwing.npc.ranger.headshot" } }), /цель|не перенесено/i);
 
 // The bonus must not manufacture the qualifying hit. Two Hits against 3 Evasion
-// miss before Headshot; baseline adds the two bonus damage before defense.
-headshotScene.actors.find(item => item.id === "hero").evasion = 3;
-const headshotMiss = engine.prepareEnemyRule(headshotScene, data, { actorId: "ranger", ruleId: "lionwing.npc.ranger.take-the-shot", targetIds: ["hero"], roll: dice([6,5,1,1,1,1]) });
-expectKnownFailure("Headshot bonus cannot turn its own miss into a hit", () => assert.equal(headshotMiss.events.find(event => event.type === "attack.pending").payload.damageByTarget.hero, 2));
+// miss before Headshot, so the target remains designated and takes no damage.
+const headshotMissScene = copy(headshotScene);
+headshotMissScene.tension = 0;
+headshotMissScene.actors.find(item => item.id === "ranger").x = 1;
+headshotMissScene.actors.find(item => item.id === "ranger").y = 2;
+headshotMissScene.actors.find(item => item.id === "hero").x = 2;
+headshotMissScene.actors.find(item => item.id === "hero").y = 2;
+headshotMissScene.actors.find(item => item.id === "hero").evasion = 3;
+const headshotMiss = engine.prepareEnemyRule(headshotMissScene, data, { actorId: "ranger", ruleId: "lionwing.npc.ranger.take-the-shot", targetIds: ["hero"], roll: dice([6,5,1,1,1,1]) });
+assert.equal(headshotMiss.ok, true, headshotMiss.errors?.join(" "));
+const headshotMissPending = headshotMiss.events.find(event => event.type === "attack.pending").payload;
+assert.equal(headshotMissPending.damageByTarget.hero, 2);
+assert.equal(headshotMissPending.headshotBonusByTarget.hero, 2);
+const headshotMissResolved = passAndResolve(commit(headshotMissScene, headshotMiss, "headshot-miss").result.scene, "headshot-miss");
+assert.equal(headshotMissResolved.actors.find(item => item.id === "hero").hp, 30);
+assert.equal(ranger(headshotMissResolved).ruleState.rangerHeadshotTargetId, "hero");
+
+// A later shot that already hits receives the stored Headshot Hits as a second
+// damage instance and then consumes the designation.
+const headshotHitScene = copy(headshotScene);
+headshotHitScene.tension = 0;
+headshotHitScene.actors.find(item => item.id === "ranger").x = 1;
+headshotHitScene.actors.find(item => item.id === "ranger").y = 2;
+headshotHitScene.actors.find(item => item.id === "hero").x = 2;
+headshotHitScene.actors.find(item => item.id === "hero").y = 2;
+headshotHitScene.actors.find(item => item.id === "hero").evasion = 0;
+const headshotHit = engine.prepareEnemyRule(headshotHitScene, data, { actorId: "ranger", ruleId: "lionwing.npc.ranger.take-the-shot", targetIds: ["hero"], roll: dice([6,1,1,1,1,1]) });
+assert.equal(headshotHit.ok, true, headshotHit.errors?.join(" "));
+const headshotHitPending = headshotHit.events.find(event => event.type === "attack.pending").payload;
+assert.equal(headshotHitPending.damageByTarget.hero, 1);
+assert.equal(headshotHitPending.headshotBonusByTarget.hero, 1);
+const headshotHitResolved = passAndResolve(commit(headshotHitScene, headshotHit, "headshot-hit").result.scene, "headshot-hit");
+assert.equal(headshotHitResolved.actors.find(item => item.id === "hero").hp, 28);
+assert.equal(ranger(headshotHitResolved).ruleState.rangerHeadshotTargetId, null);
 
 // The Passive is keyed to being Attacked, not damage. Evasion reducing damage to
 // zero still yields the post-Attack movement prompt after attack.clear.
@@ -163,7 +185,11 @@ let twoRangers = scene({ activeActorId: "attacker", actors: [
 ] });
 twoRangers = engine.dispatchMany(twoRangers, [{ id: "area", type: "attack.pending", actorId: "attacker", payload: { actionId: "test.area", name: "Area", targetIds: ["ranger", "ranger-2"], damage: 1, damageByTarget: { ranger: 1, "ranger-2": 1 } } }]).scene;
 twoRangers = passAndResolve(twoRangers, "area");
-expectKnownFailure("each Ranger Attacked by one area Attack receives its Passive choice", () => assert.deepEqual(new Set([twoRangers.pendingPrompt?.actorId, ...(twoRangers.triggerQueue || []).filter(item => item.type === "rule.prompt").map(item => item.actorId)]), new Set(["ranger", "ranger-2"])));
+const areaPassiveOwners = new Set([
+  twoRangers.pendingPrompt?.actorId,
+  ...(twoRangers.triggerQueue || []).flatMap(item => [item.actorId, item.event?.actorId, item.payload?.triggerOwnerId, item.payload?.deferredEvent?.actorId]),
+].filter(Boolean));
+assert.deepEqual(areaPassiveOwners, new Set(["ranger", "ranger-2"]));
 
 // A Ranger part of a Compound remains a Ranger rules consumer even when the
 // compound target is canonicalized to a different representative part.
@@ -174,14 +200,14 @@ let compound = scene({ activeActorId: "attacker", actors: [
 ] });
 compound = engine.dispatchMany(compound, [{ id: "compound-attack", type: "attack.pending", actorId: "attacker", payload: { actionId: "test.attack", name: "Test", targetIds: ["ranger"], damage: 1, damageByTarget: { ranger: 1 } } }]).scene;
 compound = passAndResolve(compound, "compound");
-expectKnownFailure("a Ranger Compound part receives its Passive when the Compound is Attacked", () => assert.equal(compound.pendingPrompt?.actorId, "ranger"));
+assert.equal(compound.pendingPrompt?.actorId, "ranger");
 
-// KO and vanished-target boundaries: KO actors cannot act; a vanished Headshot
-// target currently leaves a dangling state reference through JSON persistence.
+// KO and vanished-target boundaries: KO actors cannot act, and removing the
+// designated Headshot target clears the runtime and persistence references.
 const ko = scene(); ko.actors[0].knockedOut = true;
 assert.equal(engine.prepareEnemyRule(ko, data, { actorId: "ranger", ruleId: "lionwing.npc.ranger.nest" }).ok, false);
 const vanished = copy(headshotScene); vanished.actors = vanished.actors.filter(item => item.id !== "hero");
-expectKnownFailure("removing the designated Headshot target clears the dangling target id", () => assert.equal(ranger(JSON.parse(JSON.stringify(vanished))).ruleState.rangerHeadshotTargetId, null));
+assert.equal(ranger(persistence.normalize(JSON.parse(JSON.stringify(vanished)))).ruleState.rangerHeadshotTargetId, null);
 
 // Authoritative version and event identity boundaries.
 assert.throws(() => engine.dispatchMany(scene({ version: 1 }), [{ id: "stale", type: "actor.state", actorId: "ranger", payload: { key: "enemyAim", value: 1 } }], { expectedVersion: 0 }), /Конфликт версии|ожидалась|устар/i);
@@ -208,4 +234,4 @@ for (const [name, sourceMutations, probe] of mutations) {
   console.log(`MUTATION CAUGHT: ${name}`);
 }
 
-console.log("LionWing Ranger adversarial audit passed; six known failing reproducers are explicitly quarantined from npm test.");
+console.log("LionWing Ranger adversarial regression suite passed.");
