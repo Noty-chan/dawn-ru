@@ -481,7 +481,7 @@ assert.match(cockpitCss, /\.scene-mode \.scene-action-tray\{\s*position:absolute
 assert.match(cockpitCss, /grid-template-columns:minmax\(0,1fr\) var\(--scene-side-panel\) 68px/, "An open desktop Scene panel occupies an embedded column immediately left of the permanent right-hand rail");
 assert.match(cockpitCss, /\.scene-panel-open\.scene-mode \.scene-dock,[\s\S]*?grid-column:3;[\s\S]*?right:auto/, "The Scene tool rail remains the rightmost grid column when panels open");
 assert.match(cockpitCss, /\.scene-panel-open\.scene-mode \.scene-rail,[\s\S]*?display:block;[\s\S]*?grid-column:2;[\s\S]*?grid-row:4\/7/, "Desktop Scene panel content is embedded left of the fixed rail and below persistent top controls");
-assert.match(cockpitCss, /\.scene-mode:not\(\.scene-player-view\) \.scene-turn-strip\{\s*display:none/, "The Narrator cockpit replaces the duplicate horizontal participant strip");
+assert.match(cockpitCss, /\.scene-mode \.scene-turn-strip\{\s*position:absolute;top:96px;left:calc\(var\(--scene-left-used\) \+ \.45rem\);[\s\S]*?display:flex;flex-direction:column/, "The Narrator keeps a compact vertical participant strip for turn tracking");
 assert.match(cockpitCss, /padding:\.65rem 0 \.65rem \.65rem/, "The desktop Scene shell reaches the right viewport edge without a floating gutter");
 assert.match(cockpitCss, /border-right:0;\s*border-radius:0;\s*background:color-mix/, "The permanent right rail is rendered as a wall rather than a floating card");
 assert.match(cockpitCss, /\.scene-player-view \.scene-turn-strip\{[^}]*flex-direction:column/, "Players receive a compact vertical participant strip instead of the Narrator's duplicate top row");
