@@ -173,12 +173,12 @@ const ENEMY_AUTO_EFFECT_RULES = new Set([
   "enemy.common.cannoneer.action.aim",
 ]);
 const ENEMY_FULL_RULES = new Map([
-  ["lionwing.npc.assassin.neutralize-target", { type: "assassin-mark", narratorOffTurn: true }],
+  ["lionwing.npc.assassin.neutralize-target", { type: "assassin-mark", narratorOffTurn: true, requiresTarget: true, maxTargets: 1, audience: "any" }],
   ["lionwing.npc.executioner.focus", { type: "self-effects", effects: ["positive.усилен", "positive.укреплен"], narratorOffTurn: true }],
   ["lionwing.npc.cannoneer.aim", { type: "self-effects", effects: ["positive.усилен", "positive.устойчив"], narratorOffTurn: true }],
   ["lionwing.npc.berserker.seethe", { type: "berserker-heal", formula: "4(+2)", narratorOffTurn: true }],
   ["lionwing.npc.paladin.gospel", { type: "regenerating-allies", narratorOffTurn: true }],
-  ["lionwing.npc.spright.discombobulate", { type: "defense-comparison-effect", narratorOffTurn: true }],
+  ["lionwing.npc.spright.discombobulate", { type: "defense-comparison-effect", narratorOffTurn: true, requiresTarget: true, maxTargets: 1, audience: "any" }],
   ["enemy.common.assassin.trump.disappear", { type: "effects" }],
   ["enemy.common.assassin.action.neutralize-target", { type: "assassin-mark" }],
   ["enemy.common.executioner.action.focus-up", { type: "effects" }],
@@ -259,14 +259,35 @@ const LIONWING_SIMPLE_ACTION_DIGESTS = new Map([
 
 const enemyCanonicalRule = rule => {
   const ruleId = typeof rule === "string" ? rule : rule?.id, metadata = ruleId ? LIONWING_AUTO_ATTACK_RULES.get(ruleId) : null, simpleDigest = LIONWING_SIMPLE_ACTION_DIGESTS.get(ruleId);
-  if (!metadata && !simpleDigest) return rule;
+  const fullRule = ruleId ? ENEMY_FULL_RULES.get(ruleId) : null;
+  const targetMetadata = fullRule?.requiresTarget ? { requiresTarget: true, maxTargets: Number(fullRule.maxTargets || 1), audience: fullRule.audience || "any" } : null;
+  if (!metadata && !simpleDigest && !targetMetadata) return rule;
   const base = typeof rule === "string" ? { id: rule } : rule;
-  return { ...base, ...(metadata ? clone(metadata) : {}), sourceDigest: simpleDigest || base.sourceDigest || LIONWING_ENEMY_SOURCE_DIGEST, apCost: Number(base.apCost || 1) };
+  return { ...base, ...(metadata ? clone(metadata) : {}), ...(targetMetadata || {}), ...(simpleDigest ? { sourceDigest: simpleDigest } : {}), ...(metadata || simpleDigest ? { sourceDigest: simpleDigest || base.sourceDigest || LIONWING_ENEMY_SOURCE_DIGEST, apCost: Number(base.apCost || 1) } : {}) };
 };
 const enemyAttackFamilyForRule = ruleId => ENEMY_ATTACK_FAMILY_RULES.get(ruleId) || {};
 const enemyAttackTensionMultiplier = ruleId => Number(ENEMY_AUTO_ATTACK_RULES.get(ruleId) || 0);
 const enemyFullRuleForRule = ruleId => ENEMY_FULL_RULES.get(ruleId) || null;
 const enemyRuleIsAutoEffect = ruleId => ENEMY_AUTO_EFFECT_RULES.has(ruleId);
+// Gospel and its authoritative writer must ask the same question.  Raw
+// actor.effects can contain a suppressed source or a stale KO, so this query
+// deliberately goes through the effective effect/targeting layers and returns
+// only live, targetable allies.
+function lionwingRegeneratingAllyIds(scene, actorId) {
+  const source = actorById(scene, actorId);
+  if (!source) return [];
+  return (scene.actors || []).filter(target => {
+    if (!target || target.id === source.id || target.knockedOut || target.team !== source.team) return false;
+    const root = typeof window === "object" ? window : globalThis, effectiveQuery = root.DAWN_LIONWING_EFFECTIVE_EFFECT_ACTIVE || globalThis.DAWN_LIONWING_EFFECTIVE_EFFECT_ACTIVE, engine = root.DAWN_SCENE_ENGINE, effectiveEffects = engine?.effectiveEffects?.(scene, target.id);
+    const regenerating = typeof effectiveQuery === "function" ? effectiveQuery(scene, target.id, "positive.регенерирует") : Array.isArray(effectiveEffects) ? effectiveEffects.includes("positive.регенерирует") : typeof hasEffect === "function" ? hasEffect(scene, target, "positive.регенерирует") : (target.effects || []).includes("positive.регенерирует");
+    if (!regenerating) return false;
+    return effectTargetingStatus(scene, source.id, target.id).available;
+  }).map(target => target.id);
+}
+if (typeof globalThis !== "undefined") {
+  globalThis.DAWN_LIONWING_REGENERATING_ALLY_IDS = lionwingRegeneratingAllyIds;
+  if (typeof window === "object") window.DAWN_LIONWING_REGENERATING_ALLY_IDS = lionwingRegeneratingAllyIds;
+}
 const enemyTargetUntouchedThisRound = (scene, targetId, sourceTeam) => !currentRoundEvents(scene).some(event => {
   if (!(["attack.pending", "action.prepare", "enemy.action.prepare"].includes(event.type)) || !Array.isArray(event.payload?.targetIds) || !event.payload.targetIds.includes(targetId)) return false;
   const source = actorById(scene, event.actorId);
@@ -868,7 +889,7 @@ function availableEnemyRules(scene, data, actorId) {
     let reason = "";
     if (!(actor.kind === "enemy" || actor.profileId)) reason = "Это не профильный НПС";
     else if (actor.knockedOut) reason = "Профильный НПС выведен из строя";
-    else if (scene.pendingAction) reason = "Сначала разрешите текущие Реакции";
+    else if (scene.pendingAction || scene.pendingPrompt || scene.pendingActionPlan || scene.lionwing?.pendingActionPlan) reason = "Сначала разрешите текущую цепочку действия";
     else if (automation !== "assisted" && !fullRule?.narratorOffTurn && !scene.activeActorId) reason = "Сначала начните Ход противника";
     else if (automation !== "assisted" && !fullRule?.narratorOffTurn && scene.activeActorId !== actor.id) reason = "Сейчас Ход другого участника";
     else if (automation !== "assisted" && !fullRule?.narratorOffTurn && actor.acted) reason = "Ход противника уже завершён";
@@ -915,7 +936,7 @@ function prepareEnemyRule(scene, data, request = {}) {
   if (actor && rule && family.crowdAdvance && !crowdMovementReady) errors.push("Сначала разрешите движение всех союзных Зон массовки.");
   let targetIds = [...new Set(request.targetIds || [])];
   if (rule?.id === "enemy.common.paladin.trump.weal-and-woe" && actor) targetIds = (scene.actors || []).filter(target => target.id !== actor.id && !target.knockedOut && target.space === actor.space && distance(actor, target) <= 2).map(target => target.id);
-  if (fullRule?.type === "regenerating-allies" && actor) targetIds = (scene.actors || []).filter(target => target.id !== actor.id && !target.knockedOut && target.team === actor.team && (target.effects || []).includes("positive.регенерирует")).map(target => target.id);
+  if (fullRule?.type === "regenerating-allies" && actor) targetIds = lionwingRegeneratingAllyIds(scene, actor.id);
   if (fullRule?.type === "corrupted-damage" && actor) targetIds = (scene.actors || []).filter(target => !target.knockedOut && target.team !== actor.team && (target.effects || []).some(effect => String(effect).includes("порчен"))).map(target => target.id);
   if (fullRule?.type === "guardian-shield" && actor) targetIds = (scene.actors || []).filter(target => !target.knockedOut && target.team !== actor.team && target.space === actor.space && distance(actor, target) <= 4).map(target => target.id);
   if (fullRule?.type === "revenant-hollowed-eyes" && actor) {

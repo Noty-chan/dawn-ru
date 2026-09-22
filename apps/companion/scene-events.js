@@ -1126,6 +1126,21 @@ function reduceEvent(scene, event) {
       const evaded = Math.min(afterArmor, evasion);
       if (!payload.ignoreEvasion) evasionOwner.evasion = Math.max(0, Number(evasionOwner.evasion || 0) - Math.max(0, evaded - Number(payload.temporaryEvasion || 0)));
       let dealt = Math.max(0, afterArmor - evaded);
+      // Marked triggers once on the first damaging Attack. Resolve it after
+      // defenses so it cannot turn a fully Evaded Attack into a hit.
+      const markedAttack = Boolean(payload.attackPendingId && Number(payload.damageRepeat || 1) === 1 && dealt > 0 && !payload.fixedDamage && hasEffect(scene, target, "negative.помечен"));
+      if (markedAttack) {
+        const bonus = Number(target.tier || 1);
+        dealt += bonus;
+        payload.markedBonus = bonus;
+        if (!(["lionwing.npc.assassin", "enemy.common.assassin"].includes(actor?.profileId))) {
+          for (const recipient of compoundParts(scene, target)) {
+            recipient.effects = (recipient.effects || []).filter(effect => effect !== "negative.помечен");
+            if (recipient.effectStates) delete recipient.effectStates["negative.помечен"];
+          }
+          payload.markedConsumed = true;
+        }
+      }
       if (compound.active && dealt > 0) {
         const gate = Number(compound.gate || 0), nextGate = gate > 0 ? Math.max(0, (Math.ceil(compound.hp / gate - 1e-9) - 1) * gate) : 0;
         dealt = Math.min(dealt, Math.max(0, compound.hp - nextGate));

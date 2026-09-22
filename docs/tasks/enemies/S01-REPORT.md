@@ -11,11 +11,11 @@ General rule used by all six actions: every unique NPC Action costs 1 AP. Allies
 | Executioner / Focus | Apply Strengthen and Reinforce to self. | Existing effects remain a set; no duplicate entries. |
 | Cannoneer / Aim | Apply Strengthen and Steady to self. | Existing effects remain a set; no duplicate entries. |
 | Berserker / Seethe | Restore `2 + Tier × 2` Health. | Healing is capped at max Health; at max Health the action still costs 1 AP and records zero effective healing. |
-| Assassin / Neutralize Target | Apply Mark to one chosen character. | Any living character except the Assassin is legal, including an allied NPC. The Assassin gets the Mark damage bonus on its attacks without consuming Mark; other attackers retain the existing consume behavior. |
+| Assassin / Neutralize Target | Apply Mark to one chosen character. | Any living character is legal, including the Assassin and an allied NPC. The Assassin gets the defender-Tier Mark bonus on a damaging Attack without consuming Mark; other attackers consume it after the first damaging Attack. |
 | Paladin / Gospel | Reinforce every Regenerating ally. | Recomputed from live scene state; excludes self, opponents, and knocked-out allies. |
 | Spright / Discombobulate | Choose one adjacent character: Evasion greater than Armor → Slow; Armor greater than Evasion → Shred; neither → Mark. | Uses effective defenses. `0/0` has neither and receives Mark. Equal positive defenses are not covered by the canonical alternatives, so the action produces no effect but still spends AP and resolves. |
 
-Counterexamples guarded by the implementation: Seethe cannot forge a larger heal; Gospel cannot include a non-Regenerating character; Discombobulate cannot target at range or apply the wrong comparison result; Neutralize Target cannot select zero or multiple targets; an event batch cannot change the canonical digest or AP cost.
+Counterexamples guarded by the implementation: Seethe cannot forge a larger heal; Gospel cannot include a non-Regenerating character; Discombobulate cannot target at range or apply the wrong comparison result; Neutralize Target cannot select zero or multiple targets; an event batch cannot change the canonical digest or AP cost. Iterative review added strict pair/order/payload checks, live target revalidation, pending-chain and used-action guards, and tests for fresh-ID replay and foreign events.
 
 ## Production path and state ownership
 
@@ -23,13 +23,13 @@ The real UI button is rendered from `SceneEngine.availableEnemyRules`. A click r
 
 The six actions are declared fully automated. Their prepare event is marked as a quick reaction so the existing event contract permits narrator use during another participant's Turn. The availability query preserves AP, knockout, pending-chain and once-per-round guards while removing only the own-Turn guard for this family. Ordinary enemy movement and attacks keep their current Turn restrictions.
 
-The LionWing reducer validates the profile/action pairing, individual canonical digest, exactly one 1 AP spend, target set, effects and healing before any event reaches the legacy writer. This makes replay deterministic and rejects forged or stale batches. JSON export/import preserves the resulting scene state and journal events.
+The LionWing bridge validates the profile/action pairing, individual canonical digest, exactly one 1 AP spend, target set, effects and healing before any event reaches the legacy writer. This makes replay deterministic and rejects forged or stale batches. JSON export/import preserves the resulting scene state and journal events. The shared legacy damage writer now applies Mark only after a damaging Attack survives defenses, using the defender's Tier; a fully Evaded Attack leaves Mark in place.
 
 ## Verification
 
 Connected status: all six actions have the production prepare/commit/reducer path, full automation status and individual source digests. They are not marked PDF-verified because the PDF asset was unavailable.
 
-Automated integration coverage in `apps/companion/tests/lionwing-enemy-simple-actions.mjs` includes all six effects, Tier 1 and Tier 3 healing, max-Health cap, allied NPC targeting, Gospel filtering, all four Discombobulate comparisons, off-Turn use, AP/KO/missing-actor guards, prepare cancellation without payment, replay/idempotency, stale scene version, JSON reload, Assassin Mark retention, normal Mark consumption, forged heal and forged AP rejection.
+Automated integration coverage in `apps/companion/tests/lionwing-enemy-simple-actions.mjs` includes all six effects, Tier 1 and Tier 3 healing, max-Health cap, allied/self NPC targeting, effective Gospel filtering, all four Discombobulate comparisons, off-Turn use, AP/KO/missing-actor guards, prepare cancellation without payment, replay/idempotency, stale scene version, JSON reload, forged heal/AP/extra-event rejection. `lionwing-enemy-base-attacks.mjs` checks real Attack resolution, including Assassin Mark retention, ordinary consumption, defender-Tier bonus, Armor and complete Evasion.
 
 Commands run:
 

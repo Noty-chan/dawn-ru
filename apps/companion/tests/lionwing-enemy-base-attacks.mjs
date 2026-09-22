@@ -182,6 +182,48 @@ const neutralizeRule = engine.availableEnemyRules(coordinatorTurn, data, "coordi
 assert.equal(neutralizeRule?.automation, "full", "canonical Coordinator mark is fully automated");
 const markedTarget = commitWithIds(coordinatorTurn, engine.prepareEnemyRule(coordinatorTurn, data, { actorId: "coordinator", ruleId: neutralizeRule.id, targetIds: ["hostile"] }), "coordinator-mark").result.scene;
 assert.ok(markedTarget.actors.find(item => item.id === "hostile").effects.includes("negative.помечен"), "Neutralize Them Marks its target");
+
+// Mark consumption is checked through the real enemy attack/reaction writer,
+// rather than by dispatching a bare damage event: Assassin preserves Mark,
+// while an ordinary enemy attack consumes it after dealing damage.
+let assassinMarkScene = scene("lionwing.npc.assassin", { actors: [actor("enemy", "enemy", 2, 2, { profileId: "lionwing.npc.assassin", tier: 1 }), actor("hero", "hero", 3, 2, { tier: 3 })] });
+const assassinNeutralize = engine.prepareEnemyRule(assassinMarkScene, data, { actorId: "enemy", ruleId: "lionwing.npc.assassin.neutralize-target", targetIds: ["hero"] });
+assert.equal(assassinNeutralize.ok, true, assassinNeutralize.errors?.join(" "));
+assassinMarkScene = commitWithIds(assassinMarkScene, assassinNeutralize, "assassin-neutralize").result.scene;
+const assassinSlice = engine.prepareEnemyRule(assassinMarkScene, data, { actorId: "enemy", ruleId: "lionwing.npc.assassin.slice", targetIds: ["hero"], roll: dice(3, [6, 5, 4]) });
+assert.equal(assassinSlice.ok, true, assassinSlice.errors?.join(" "));
+const unmarkedAssassinScene = clone(assassinMarkScene);
+unmarkedAssassinScene.actors.find(item => item.id === "hero").effects = [];
+unmarkedAssassinScene.actors.find(item => item.id === "hero").effectStates = {};
+const unmarkedAssassinSlice = engine.prepareEnemyRule(unmarkedAssassinScene, data, { actorId: "enemy", ruleId: "lionwing.npc.assassin.slice", targetIds: ["hero"], roll: dice(3, [6, 5, 4]) });
+assert.equal(unmarkedAssassinSlice.ok, true, unmarkedAssassinSlice.errors?.join(" "));
+assert.equal(assassinSlice.events.find(item => item.type === "attack.pending").payload.damageByTarget.hero, unmarkedAssassinSlice.events.find(item => item.type === "attack.pending").payload.damageByTarget.hero, "Mark does not alter the prepared base damage");
+assassinMarkScene = commitWithIds(assassinMarkScene, assassinSlice, "assassin-slice").result.scene;
+assassinMarkScene = passAndResolve(assassinMarkScene, "assassin-slice");
+assert.ok(assassinMarkScene.actors.find(item => item.id === "hero").effects.includes("negative.помечен"), "Assassin's production attack preserves Mark");
+assert.equal(assassinMarkScene.log.find(item => item.type === "damage.apply" && item.payload?.attackPendingId)?.payload.markedBonus, 3, "Mark adds the defender's Tier exactly once after a damaging Attack");
+
+let executionerMarkScene = scene("lionwing.npc.executioner", { actors: [actor("enemy", "enemy", 2, 2, { profileId: "lionwing.npc.executioner", effects: ["positive.заряжен"] }), actor("hero", "hero", 3, 2, { effects: ["negative.помечен"] })] });
+const executionerCleave = engine.prepareEnemyRule(executionerMarkScene, data, { actorId: "enemy", ruleId: "lionwing.npc.executioner.cleave", targetIds: ["hero"], roll: dice(10, [6, 5, 4, 4, 1, 1, 1, 1, 1, 1]) });
+assert.equal(executionerCleave.ok, true, executionerCleave.errors?.join(" "));
+executionerMarkScene = commitWithIds(executionerMarkScene, executionerCleave, "executioner-cleave").result.scene;
+executionerMarkScene = passAndResolve(executionerMarkScene, "executioner-cleave");
+assert.equal(executionerMarkScene.actors.find(item => item.id === "hero").effects.includes("negative.помечен"), false, "a non-Assassin production attack consumes Mark");
+assert.equal(executionerMarkScene.log.find(item => item.type === "damage.apply" && item.payload?.attackPendingId)?.payload.markedBonus, 2, "ordinary Attack gets one defender-Tier bonus");
+for (const [defense, expectedBonus, expectedMarked] of [
+  [{ armor: 100 }, 2, false],
+  [{ evasion: 100 }, undefined, true],
+]) {
+  let defendedMarkScene = scene("lionwing.npc.executioner", { actors: [actor("enemy", "enemy", 2, 2, { profileId: "lionwing.npc.executioner", effects: ["positive.заряжен"] }), actor("hero", "hero", 3, 2, { effects: ["negative.помечен"], ...defense })] });
+  const defendedAttack = engine.prepareEnemyRule(defendedMarkScene, data, { actorId: "enemy", ruleId: "lionwing.npc.executioner.cleave", targetIds: ["hero"], roll: dice(10, [6, 5, 4, 4, 1, 1, 1, 1, 1, 1]) });
+  assert.equal(defendedAttack.ok, true, defendedAttack.errors?.join(" "));
+  defendedMarkScene = commitWithIds(defendedMarkScene, defendedAttack, `mark-defense-${Object.keys(defense)[0]}`).result.scene;
+  defendedMarkScene = passAndResolve(defendedMarkScene, `mark-defense-${Object.keys(defense)[0]}`);
+  const damage = defendedMarkScene.log.find(item => item.type === "damage.apply" && item.payload?.attackPendingId)?.payload;
+  assert.equal(damage?.markedBonus, expectedBonus, "Mark triggers only after defenses leave positive damage");
+  assert.equal(defendedMarkScene.actors.find(item => item.id === "hero").effects.includes("negative.помечен"), expectedMarked, "a fully Evaded Attack keeps Mark for the next hit");
+  if (defense.armor) assert.equal(damage?.dealt, 3, "Mark's extra damage is added after Armor reduces a successful Attack to one");
+}
 const canonicalNpcs = context.window.DAWN_LIONWING_DATA.coreRules.npcs.list;
 const canonicalAttackIds = canonicalNpcs.flatMap(profile => (profile.actions || []).filter(action => action.kind === "attack").map(action => action.id));
 assert.equal(canonicalAttackIds.length, 40, "all canonical NPC attack actions are audited");

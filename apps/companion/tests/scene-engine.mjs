@@ -688,13 +688,13 @@ attackEffectScene.actors[0].tier = 2;
 attackEffectScene.actors[0].effects = ["positive.усилен", "negative.ослаблен"];
 attackEffectScene.actors[1].effects = ["negative.помечен"];
 let attackEffects = Engine.dispatch(attackEffectScene, { type: "attack.pending", actorId: "hero", payload: { name: "Проверка Эффектов", targetIds: ["enemy"], damage: 3 } }).scene;
-assert.equal(attackEffects.pendingAction.damageByTarget.enemy, 5, "Empowered and Weakened cancel while Marked adds the attacker's Tier");
+assert.equal(attackEffects.pendingAction.damageByTarget.enemy, 3, "Empowered and Weakened cancel; Marked waits until the Attack actually deals damage");
 const empoweredOnlyScene = structuredClone(attackEffectScene);
 empoweredOnlyScene.actors[0].effects = ["positive.усилен"];
 attackEffects = Engine.dispatch(empoweredOnlyScene, { type: "attack.pending", actorId: "hero", payload: { name: "Проверка Усиления", targetIds: ["enemy"], damage: 3 } }).scene;
-assert.equal(attackEffects.pendingAction.damageByTarget.enemy, 7, "Empowered and Marked are applied once in the universal Attack pipeline");
+assert.equal(attackEffects.pendingAction.damageByTarget.enemy, 5, "Empowered applies once while Marked remains conditional on damage");
 const dividedAttackEffects = Engine.dispatch(empoweredOnlyScene, { type: "attack.pending", actorId: "hero", payload: { name: "Проверка порядка урона", targetIds: ["enemy"], damage: 2, damageByTarget: { enemy: 2 }, effectDamageBase: 3, effectDamageBaseByTarget: { enemy: 3 }, effectDamageDivisor: 2 } }).scene;
-assert.equal(dividedAttackEffects.pendingAction.damageByTarget.enemy, 4, "universal effect damage is applied before a technique halves the result");
+assert.equal(dividedAttackEffects.pendingAction.damageByTarget.enemy, 3, "universal effect damage is applied before a technique halves the result; Marked remains conditional");
 
 const defenseEffectScene = structuredClone(scene);
 defenseEffectScene.actors[1].tier = 2;

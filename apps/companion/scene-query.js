@@ -720,7 +720,10 @@ function effectAttackStatus(scene, sourceActorId, targetIds = []) {
   if (!source) return { available: false, reason: "Атакующий не найден.", source: null, targets, damageModifier: 0, damageByTarget: {}, hindrance: 0, hindranceEffects: [] };
   const tier = Number(source.tier || 1);
   const damageModifier = (hasEffect(scene, source, "positive.усилен") ? tier : 0) - (hasEffect(scene, source, "negative.ослаблен") ? tier : 0);
-  const damageByTarget = Object.fromEntries(targets.map(target => [target.id, hasEffect(scene, target, "negative.помечен") ? tier : 0]));
+  // Marked adds the defender's Tier only after an Attack actually deals
+  // damage. Applying it here would use the attacker's Tier and let Armor or
+  // Evasion absorb a bonus that has not triggered yet.
+  const damageByTarget = Object.fromEntries(targets.map(target => [target.id, 0]));
   const targetSet = new Set(targets.map(target => target.id)), hindranceEffects = [];
   const frightened = effectStateFor(source, "negative.испуган");
   if (frightened?.sources.some(item => targetSet.has(item.actorId))) hindranceEffects.push("Испуган");

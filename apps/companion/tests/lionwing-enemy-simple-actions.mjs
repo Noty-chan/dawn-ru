@@ -43,6 +43,10 @@ for (const [key, id] of Object.entries(ids)) {
   const status = engine.availableEnemyRules(scene(profileId), data, "source").find(rule => rule.id === id);
   assert.equal(status?.automation, "full", `${key} must use the full LionWing path`);
   assert.equal(status?.apCost, 1, `${key} has canonical NPC Action cost 1 AP`);
+  if (["lionwing.npc.assassin.neutralize-target", "lionwing.npc.spright.discombobulate"].includes(id)) {
+    assert.equal(status?.requiresTarget, true, `${key} exposes a target picker requirement`);
+    assert.equal(status?.maxTargets, 1, `${key} exposes its one-target picker limit`);
+  }
 }
 
 for (const [profileId, ruleId, expected] of [
@@ -96,6 +100,8 @@ assert.equal(prepare(scene("lionwing.npc.assassin", {}, [actor("a", "red", 3, 2)
 const alliedNpc = scene("lionwing.npc.assassin", { team: "heroes" }, [actor("target", "heroes", 3, 2)]);
 const markedAlly = commit(alliedNpc, prepare(alliedNpc, ids.neutralize, { targetIds: ["target"] }), "neutralize-ally");
 assert.ok(markedAlly.actors[1].effects.includes("negative.помечен"), "an allied NPC can target any character, including an ally");
+const selfMarked = commit(scene("lionwing.npc.assassin"), prepare(scene("lionwing.npc.assassin"), ids.neutralize, { targetIds: ["source"] }), "neutralize-self");
+assert.ok(sourceActor(selfMarked).effects.includes("negative.помечен"), "Target any character includes the Assassin itself");
 
 const offTurn = scene("lionwing.npc.executioner", { ap: 1, acted: true });
 assert.equal(prepare(offTurn, ids.focus).ok, true, "Narrator can use an NPC Action outside its Turn");
@@ -112,6 +118,50 @@ const replayEvents = replayPrepared.events.map((event, index) => ({ ...event, id
 const once = engine.dispatchMany(replayBase, replayEvents, { expectedVersion: 0 }).scene;
 assert.deepEqual(engine.dispatchMany(once, replayEvents).scene, once, "event replay is idempotent");
 assert.throws(() => engine.dispatchMany({ ...clone(replayBase), version: 1 }, replayEvents, { expectedVersion: 0 }), /ожидалась|устар|Конфликт версии/);
+const freshReplayEvents = replayEvents.map((event, index) => ({ ...event, id: `fresh-replay-${index}` }));
+assert.throws(() => engine.dispatchMany(once, freshReplayEvents), /использовано|повтор|Раунде/i, "a fresh-ID replay cannot bypass the usedActions guard");
+
+// The writer accepts one exact S01 event contract. Extra events and foreign
+// spend/heal/effect attempts are rejected before the legacy reducer can pay
+// or mutate anything.
+const strictSource = scene("lionwing.npc.executioner"), strictPrepared = prepare(strictSource, ids.focus), strictEvents = strictPrepared.events.map((event, index) => ({ ...event, id: `strict-${index}` }));
+const forgedExtra = { id: "strict-extra", type: "effect.apply", actorId: "source", payload: { targetId: "source", effect: "negative.испуган", sourceActionId: "forged.other", participantIds: ["source"] } };
+assert.throws(() => engine.dispatchMany(strictSource, [...strictEvents, forgedExtra]), /контракт|количество|канонич|Порядок/i, "an extra event cannot ride along with a valid action");
+const foreignSpend = { ...strictEvents[1], id: "strict-foreign-spend", actorId: "foreign" };
+assert.throws(() => engine.dispatchMany({ ...strictSource, actors: [...strictSource.actors, actor("foreign", "blue", 4, 2)] }, [strictEvents[0], foreignSpend, ...strictEvents.slice(2)]), /контракт|канонич|источник|Поля/i, "a foreign AP spend is rejected");
+const foreignHeal = { id: "strict-foreign-heal", type: "actor.heal", actorId: "foreign", payload: { targetId: "source", amount: 99, sourceActionId: ids.focus, participantIds: ["foreign", "source"] } };
+assert.throws(() => engine.dispatchMany({ ...strictSource, actors: [...strictSource.actors, actor("foreign", "blue", 4, 2)] }, [strictEvents[0], strictEvents[1], foreignHeal, ...strictEvents.slice(2)]), /контракт|количество|Порядок|канонич/i, "a foreign heal is rejected");
+const foreignEffect = { id: "strict-foreign-effect", type: "effect.apply", actorId: "foreign", payload: { targetId: "source", effect: "positive.укреплен", sourceActionId: ids.focus, participantIds: ["foreign", "source"] } };
+assert.throws(() => engine.dispatchMany({ ...strictSource, actors: [...strictSource.actors, actor("foreign", "blue", 4, 2)] }, [strictEvents[0], strictEvents[1], foreignEffect, ...strictEvents.slice(2)]), /контракт|количество|Порядок|канонич/i, "a foreign effect is rejected");
+assert.throws(() => engine.dispatchMany(strictSource, [{ ...strictEvents.at(-1), id: "standalone-resolve" }]), /Prepare|пару|контракт|ровно/i, "a standalone S01 resolve is rejected");
+
+for (const pendingKey of ["pendingAction", "pendingPrompt", "pendingActionPlan"]) {
+  const pendingScene = scene("lionwing.npc.executioner");
+  pendingScene[pendingKey] = { id: `pending-${pendingKey}`, actorId: "source", actionId: ids.focus };
+  assert.equal(engine.availableEnemyRules(pendingScene, data, "source").find(rule => rule.id === ids.focus)?.available, false, `${pendingKey} blocks the UI availability query`);
+  assert.throws(() => engine.dispatchMany(pendingScene, strictEvents.map((event, index) => ({ ...event, id: `pending-${pendingKey}-${index}` }))), /ожидающ|цепочк|pending/i, `${pendingKey} blocks direct event submission`);
+}
+
+const targetBefore = scene("lionwing.npc.assassin", {}, [actor("target", "blue", 3, 2)]), targetPrepared = prepare(targetBefore, ids.neutralize, { targetIds: ["target"] }), targetEvents = targetPrepared.events.map((event, index) => ({ ...event, id: `target-${index}` }));
+const koTarget = clone(targetBefore); koTarget.actors.find(item => item.id === "target").knockedOut = true; koTarget.actors.find(item => item.id === "target").hp = 0;
+assert.throws(() => engine.dispatchMany(koTarget, targetEvents), /цель|выведен|недоступ/i, "a target knocked out after preview is revalidated at commit");
+const removedTarget = clone(targetBefore); removedTarget.actors = removedTarget.actors.filter(item => item.id !== "target");
+assert.throws(() => engine.dispatchMany(removedTarget, targetEvents.map((event, index) => ({ ...event, id: `removed-${index}` }))), /цель|отсутств|найд/i, "a removed target is revalidated at commit");
+
+const gospelEffective = scene("lionwing.npc.paladin", {}, [
+  actor("suppressed-ally", "red", 3, 2, { effects: ["positive.регенерирует"], effectStates: { "positive.регенерирует": { sources: [{ sourceId: "silence", suppressedBy: ["silence"] }] } } }),
+  actor("ko-regen", "red", 3, 3, { effects: ["positive.регенерирует"], knockedOut: true }),
+]);
+const gospelEffectivePrepared = prepare(gospelEffective, ids.gospel);
+assert.equal(gospelEffectivePrepared.ok, true, gospelEffectivePrepared.errors?.join(" "));
+assert.deepEqual(gospelEffectivePrepared.events[0].payload.targetIds, [], "Gospel excludes suppressed and KO Regenerating allies");
+const gospelAura = scene("lionwing.npc.paladin", {}, [actor("aura-ally", "red", 4, 2)]);
+gospelAura.lionwing.auras = [{ id: "regen-aura", ownerActorId: "source", sourceEntityId: "source", effectId: "positive.регенерирует", lifetime: "scene", appliedTurnSerial: 1, distance: 10, filter: { relation: "ally" } }];
+const gospelAuraPrepared = prepare(gospelAura, ids.gospel);
+assert.equal(gospelAuraPrepared.ok, true, gospelAuraPrepared.errors?.join(" "));
+assert.deepEqual(gospelAuraPrepared.events[0].payload.targetIds, ["aura-ally"], "Gospel includes effective aura Regenerating allies");
+const gospelEffectiveNext = commit(gospelAura, gospelAuraPrepared, "gospel-effective");
+assert.ok(gospelEffectiveNext.actors.find(item => item.id === "aura-ally").effects.includes("positive.укреплен"));
 
 const saved = JSON.stringify(gospel), reloaded = JSON.parse(saved), exported = JSON.stringify({ schema: 1, scene: reloaded }), imported = JSON.parse(exported).scene;
 assert.equal(JSON.stringify(imported), JSON.stringify(gospel), "reload and export/import preserve effects, AP, version and journal separately from transient UI state");

@@ -18,12 +18,12 @@
   const DICE_SCENE_ROLL_LIMIT = 128;
   const DICE_SCENE_JOURNAL_LIMIT = 256;
   const SIMPLE_ENEMY_ACTIONS = new Map([
-    ["lionwing.npc.executioner.focus", { profileId: "lionwing.npc.executioner", digest: "sha256:6f5cfbc7ad5131d0f5028c3fb777602f7bbe3d06214a9e7ba68a663243a285c4", effects: ["source:positive.усилен", "source:positive.укреплен"] }],
-    ["lionwing.npc.cannoneer.aim", { profileId: "lionwing.npc.cannoneer", digest: "sha256:f7ba935d98676daa2494d0b0e9d43b8aa9af7965b0a7bdb946e8e6843311a4c1", effects: ["source:positive.усилен", "source:positive.устойчив"] }],
-    ["lionwing.npc.berserker.seethe", { profileId: "lionwing.npc.berserker", digest: "sha256:834d49d31b883e76d2a1db1bfdf25102c523f1876b97c8ee194ff8c9a21b9fb0", heal: true }],
-    ["lionwing.npc.assassin.neutralize-target", { profileId: "lionwing.npc.assassin", digest: "sha256:c0de180bc162c97ad1160eea26c0edf5d6ef8f9c34fc1c06dcf6cbc406a6656d", mark: true }],
-    ["lionwing.npc.paladin.gospel", { profileId: "lionwing.npc.paladin", digest: "sha256:cb2e13ee8dc238b9620bd5046ee86ca6af882fde0e0fd93be58fb842330975be", gospel: true }],
-    ["lionwing.npc.spright.discombobulate", { profileId: "lionwing.npc.spright", digest: "sha256:c04c88f43a64b370cca2c6c976955332410f28a78e6f8c5b23f7c99811630999", defenseComparison: true }],
+    ["lionwing.npc.executioner.focus", { profileId: "lionwing.npc.executioner", digest: "sha256:6f5cfbc7ad5131d0f5028c3fb777602f7bbe3d06214a9e7ba68a663243a285c4", name: "Focus", text: "Strengthen and Reinforce this NPC.", effects: ["source:positive.усилен", "source:positive.укреплен"] }],
+    ["lionwing.npc.cannoneer.aim", { profileId: "lionwing.npc.cannoneer", digest: "sha256:f7ba935d98676daa2494d0b0e9d43b8aa9af7965b0a7bdb946e8e6843311a4c1", name: "Aim", text: "Strengthen this NPC and make it Steady.", effects: ["source:positive.усилен", "source:positive.устойчив"] }],
+    ["lionwing.npc.berserker.seethe", { profileId: "lionwing.npc.berserker", digest: "sha256:834d49d31b883e76d2a1db1bfdf25102c523f1876b97c8ee194ff8c9a21b9fb0", name: "Seethe", text: "Restore 2 + [Tier × 2] Health to this NPC.", heal: true }],
+    ["lionwing.npc.assassin.neutralize-target", { profileId: "lionwing.npc.assassin", digest: "sha256:c0de180bc162c97ad1160eea26c0edf5d6ef8f9c34fc1c06dcf6cbc406a6656d", name: "Neutralize Target", text: "Target any character and Mark them. This NPC's Attacks do not remove Mark.", mark: true }],
+    ["lionwing.npc.paladin.gospel", { profileId: "lionwing.npc.paladin", digest: "sha256:cb2e13ee8dc238b9620bd5046ee86ca6af882fde0e0fd93be58fb842330975be", name: "Gospel", text: "Reinforce Regenerating allies.", gospel: true }],
+    ["lionwing.npc.spright.discombobulate", { profileId: "lionwing.npc.spright", digest: "sha256:c04c88f43a64b370cca2c6c976955332410f28a78e6f8c5b23f7c99811630999", name: "Discombobulate", text: "Choose an adjacent target. If it has more Evasion than Armor, Slow it; if more Armor than Evasion, Shred it; if it has neither, Mark it.", defenseComparison: true }],
   ]);
   let preparedSerial = 0;
   const copy = value => JSON.parse(JSON.stringify(value));
@@ -582,39 +582,98 @@
       },
     };
   };
+  const simplePayloadSubset = (stored, candidate) => {
+    if (Array.isArray(candidate)) return Array.isArray(stored) && stored.length === candidate.length && candidate.every((item, index) => simplePayloadSubset(stored[index], item));
+    if (plain(candidate)) return plain(stored) && Object.keys(candidate).every(key => candidate[key] === undefined && !Object.hasOwn(stored, key) || Object.hasOwn(stored, key) && simplePayloadSubset(stored[key], candidate[key]));
+    return Object.is(stored, candidate) || stored === candidate;
+  };
+  const simpleStoredEventMatches = (scene, event) => {
+    if (!event?.id || Object.keys(event).some(key => !["id", "type", "actorId", "payload"].includes(key))) return false;
+    const expectedFingerprint = JSON.stringify([event.type, event.actorId || null, event.payload || {}]);
+    const receipt = (scene.lionwing?.receipts || []).find(item => item?.id === event.id);
+    if (receipt?.fingerprint === expectedFingerprint) return true;
+    const stored = (scene.log || []).find(item => item?.id === event.id);
+    return Boolean(stored && stored.type === event.type && (stored.actorId || null) === (event.actorId || null) && simplePayloadSubset(stored.payload || {}, event.payload || {}));
+  };
+  const simpleEventEnvelope = (event, type, actorId, requiredKeys, optionalKeys = []) => {
+    if (!plain(event) || Object.keys(event).some(key => !["id", "type", "actorId", "payload"].includes(key)) || event.type !== type || event.actorId !== actorId) fail("Строгий контракт события простого действия нарушен");
+    if (event.id !== undefined && (typeof event.id !== "string" || !event.id.trim())) fail("ID события простого действия некорректен");
+    const payload = event.payload;
+    if (!plain(payload)) fail("Событие простого действия должно иметь объект payload");
+    const allowed = new Set([...requiredKeys, ...optionalKeys]);
+    if (Object.keys(payload).some(key => !allowed.has(key)) || requiredKeys.some(key => !Object.hasOwn(payload, key))) fail("Поля события простого действия не соответствуют каноническому контракту");
+    return payload;
+  };
+  const simpleIdsEqual = (actual, expected) => Array.isArray(actual) && actual.every(id => typeof id === "string" && id) && new Set(actual).size === actual.length && sameJson(actual, expected);
+  const simpleTargetingStatus = (scene, source, target) => {
+    if (!target || target.knockedOut) return { available: false, reason: "Цель отсутствует или выведена из боя" };
+    if (typeof legacy.effectTargetingStatus !== "function") return { available: true, reason: "" };
+    const projected = { ...scene, actors: (scene.actors || []).map(item => ({ ...item, effects: [...new Set(activeState(scene, item.id).effects.filter(status => status.activeSources.length).map(status => status.effect))] })) };
+    return legacy.effectTargetingStatus(projected, source.id, target.id) || { available: true, reason: "" };
+  };
+  const simpleEffectiveRegeneratingAllies = (scene, source) => {
+    const query = global.DAWN_LIONWING_REGENERATING_ALLY_IDS;
+    if (typeof query !== "function") fail("Общий effective Regenerating query недоступен");
+    const result = query(scene, source.id);
+    if (!Array.isArray(result)) fail("Общий effective Regenerating query вернул некорректный список");
+    return result;
+  };
   const validateSimpleEnemyActionEvents = (scene, events) => {
+    const simpleActionEvents = events.filter(event => ["enemy.action.prepare", "enemy.action.resolve"].includes(event?.type) && SIMPLE_ENEMY_ACTIONS.has(event.payload?.ruleId));
+    if (!simpleActionEvents.length) return;
+    const duplicateCount = events.filter(event => simpleStoredEventMatches(scene, event)).length;
+    if (duplicateCount === events.length) return;
+    if (duplicateCount) fail("Пакет простого действия содержит частичный повтор");
     const prepares = events.filter(event => event?.type === "enemy.action.prepare" && SIMPLE_ENEMY_ACTIONS.has(event.payload?.ruleId));
-    for (const prepare of prepares) {
-      const contract = SIMPLE_ENEMY_ACTIONS.get(prepare.payload.ruleId), source = requiredActor(scene, prepare.actorId);
-      if (source.profileId !== contract.profileId || prepare.payload.profileId !== contract.profileId || prepare.payload.sourceDigest !== contract.digest) fail("Канонический источник простого действия противника не совпадает");
-      const spends = events.filter(event => event?.type === "resource.spend" && event.actorId === source.id && event.payload?.sourceRuleId === prepare.payload.ruleId);
-      if (spends.length !== 1 || spends[0].payload?.resource !== "ap" || Number(spends[0].payload?.amount) !== 1 || spends[0].payload?.sourceDigest !== contract.digest) fail("Каноническая стоимость действия противника должна быть ровно 1 ОД");
-      const effects = events.filter(event => event?.type === "effect.apply" && event.actorId === source.id && event.payload?.sourceActionId === prepare.payload.ruleId);
-      const heals = events.filter(event => event?.type === "actor.heal" && event.actorId === source.id && event.payload?.sourceActionId === prepare.payload.ruleId);
-      let expectedEffects = contract.effects || [];
-      if (contract.heal) {
-        const expected = 2 + Number(source.tier || 1) * 2;
-        if (heals.length !== 1 || heals[0].payload?.targetId !== source.id || Number(heals[0].payload?.amount) !== expected || effects.length) fail("Каноническая формула лечения Seethe изменена");
-        continue;
-      }
-      if (heals.length) fail("Это действие противника не восстанавливает Здоровье");
-      if (contract.mark) {
-        const targetIds = [...new Set(prepare.payload?.targetIds || [])];
-        if (targetIds.length !== 1) fail("Neutralize Target требует ровно одну цель");
-        expectedEffects = [`${targetIds[0]}:negative.помечен`];
-      } else if (contract.gospel) {
-        const targetIds = (scene.actors || []).filter(target => target.id !== source.id && !target.knockedOut && target.team === source.team && effectActive(scene, target, "positive.регенерирует")).map(target => target.id);
-        if (JSON.stringify([...(prepare.payload?.targetIds || [])].sort()) !== JSON.stringify([...targetIds].sort())) fail("Gospel должен выбрать всех Регенерирующих союзников");
-        expectedEffects = targetIds.map(targetId => `${targetId}:positive.укреплен`);
-      } else if (contract.defenseComparison) {
-        const targetIds = [...new Set(prepare.payload?.targetIds || [])], target = targetIds.length === 1 ? actor(scene, targetIds[0]) : null;
-        if (!target || target.id === source.id || distance(source, target) !== 1) fail("Discombobulate требует одну смежную цель");
-        const stats = effectiveStats(scene, target), armor = Number(stats.armor.value || 0), evasion = Number(stats.evasion.value || 0);
-        const effect = evasion > armor ? "negative.замедлен" : armor > evasion ? "negative.разорван" : armor === 0 && evasion === 0 ? "negative.помечен" : null;
-        expectedEffects = effect ? [`${target.id}:${effect}`] : [];
-      }
-      const actualEffects = effects.map(event => `${event.payload?.targetId}:${event.payload?.effect}`).sort();
-      if (JSON.stringify(actualEffects) !== JSON.stringify([...expectedEffects].sort())) fail("Канонический набор Эффектов простого действия противника изменён");
+    const resolves = events.filter(event => event?.type === "enemy.action.resolve" && SIMPLE_ENEMY_ACTIONS.has(event.payload?.ruleId));
+    if (prepares.length !== 1 || resolves.length !== 1) fail("Простое действие требует ровно одну пару prepare/resolve");
+    const prepare = prepares[0], resolve = resolves[0], ruleId = prepare.payload.ruleId, contract = SIMPLE_ENEMY_ACTIONS.get(ruleId), source = requiredActor(scene, prepare.actorId);
+    if (resolve.actorId !== source.id || resolve.payload?.ruleId !== ruleId) fail("Resolve простого действия не связан с его Prepare");
+    if (source.profileId !== contract.profileId || source.knockedOut || (source.usedActions || []).includes(ruleId)) fail("Простое действие уже использовано или источник недоступен");
+    if (scene.pendingAction || scene.pendingPrompt || scene.pendingActionPlan || scene.lionwing?.pendingActionPlan) fail("Сначала завершите ожидающую цепочку действия противника");
+    const prepareKeys = ["ruleId", "sourceRuleId", "sourceDigest", "profileId", "name", "kind", "targetIds", "text", "automation"];
+    const preparePayload = simpleEventEnvelope(prepare, "enemy.action.prepare", source.id, prepareKeys, ["reward", "quickReaction"]);
+    const resolvePayload = simpleEventEnvelope(resolve, "enemy.action.resolve", source.id, prepareKeys, ["reward", "quickReaction"]);
+    if (preparePayload.ruleId !== ruleId || preparePayload.sourceRuleId !== ruleId || preparePayload.sourceDigest !== contract.digest || preparePayload.profileId !== contract.profileId || preparePayload.name !== contract.name || preparePayload.text !== contract.text || preparePayload.kind !== "action" || preparePayload.automation !== "full") fail("Канонический источник простого действия противника не совпадает");
+    if (Object.hasOwn(preparePayload, "reward") && preparePayload.reward != null && preparePayload.reward !== "") fail("Простое действие не принимает произвольную награду");
+    const offTurn = scene.activeActorId !== source.id;
+    if (offTurn ? preparePayload.quickReaction !== true : Object.hasOwn(preparePayload, "quickReaction")) fail("Quick Reaction простого действия не соответствует Ходу источника");
+    if (!simpleIdsEqual(preparePayload.targetIds, preparePayload.targetIds)) fail("Список целей простого действия некорректен");
+    if (!sameJson(resolvePayload, preparePayload)) fail("Prepare и Resolve простого действия должны совпадать");
+    const targetIds = [...preparePayload.targetIds];
+    let expectedTargetIds = [];
+    if (contract.mark || contract.defenseComparison) {
+      if (targetIds.length !== 1) fail(contract.mark ? "Neutralize Target требует ровно одну цель" : "Discombobulate требует одну смежную цель");
+      const target = actor(scene, targetIds[0]);
+      if (!target || !live(target) || !simpleTargetingStatus(scene, source, target).available) fail("Цель простого действия больше не существует, выведена из боя или недоступна");
+      if (contract.defenseComparison && (target.id === source.id || distance(source, target) !== 1)) fail("Discombobulate требует одну смежную цель");
+      expectedTargetIds = targetIds;
+    } else if (contract.gospel) {
+      expectedTargetIds = simpleEffectiveRegeneratingAllies(scene, source);
+      if (!simpleIdsEqual(targetIds, expectedTargetIds)) fail("Gospel должен выбрать всех доступных Регенерирующих союзников");
+    }
+    if (!simpleIdsEqual(targetIds, expectedTargetIds)) fail("Цели простого действия не соответствуют каноническому набору");
+    const spends = events.filter(event => event?.type === "resource.spend");
+    const spendPayload = spends.length === 1 ? simpleEventEnvelope(spends[0], "resource.spend", source.id, ["resource", "amount", "sourceRuleId", "sourceDigest"]) : null;
+    if (!spendPayload || spendPayload.resource !== "ap" || spendPayload.amount !== 1 || spendPayload.sourceRuleId !== ruleId || spendPayload.sourceDigest !== contract.digest) fail("Каноническая стоимость действия противника должна быть ровно 1 ОД");
+    const effects = [];
+    if (contract.effects) effects.push(...contract.effects.map(item => { const [targetKey, effect] = item.split(":"); return { targetId: targetKey === "source" ? source.id : targetKey, effect, sourceActionId: ruleId, participantIds: [source.id] }; }));
+    if (contract.mark) effects.push({ targetId: targetIds[0], effect: "negative.помечен", sourceActionId: ruleId, duration: "scene", removable: false, participantIds: [source.id, targetIds[0]] });
+    if (contract.gospel) effects.push(...targetIds.map(targetId => ({ targetId, effect: "positive.укреплен", sourceActionId: ruleId, participantIds: [source.id, targetId] })));
+    if (contract.defenseComparison) {
+      const target = actor(scene, targetIds[0]), stats = effectiveStats(scene, target), armor = Number(stats.armor.value || 0), evasion = Number(stats.evasion.value || 0), effect = evasion > armor ? "negative.замедлен" : armor > evasion ? "negative.разорван" : armor === 0 && evasion === 0 ? "negative.помечен" : null;
+      if (effect) effects.push({ targetId: target.id, effect, sourceActionId: ruleId, participantIds: [source.id, target.id] });
+    }
+    const middleCount = contract.heal ? 1 : effects.length;
+    if (events.length !== middleCount + 3 || events[0] !== prepare || events[1]?.type !== "resource.spend" || events.at(-1) !== resolve) fail("Порядок или количество событий простого действия не соответствует контракту");
+    if (contract.heal) {
+      const healPayload = simpleEventEnvelope(events[2], "actor.heal", source.id, ["targetId", "amount", "sourceActionId", "participantIds"]), expectedAmount = 2 + Number(source.tier || 1) * 2;
+      if (healPayload.targetId !== source.id || healPayload.amount !== expectedAmount || healPayload.sourceActionId !== ruleId || !sameJson(healPayload.participantIds, [source.id])) fail("Каноническая формула лечения Seethe изменена");
+    } else {
+      effects.forEach((expected, index) => {
+        const payload = simpleEventEnvelope(events[index + 2], "effect.apply", source.id, Object.keys(expected));
+        if (!sameJson(payload, expected)) fail("Канонический набор Эффектов простого действия противника изменён");
+      });
     }
   };
   const detectiveRuleId = "vagabond.dim-mak.3";
@@ -801,6 +860,9 @@
     return { actorId,effect,present:activeSources.length>0,sources,activeSources,suppressedBy:[...new Set(sources.flatMap(source=>source.suppressedBy||[]))],directSources:direct,auraSources:ambient,reasons:sources.map(source=>({sourceId:source.sourceId,active:source.active!==false&&!source.suppressedBy?.length,reason:source.reason})) };
   }
   const effectActive = (scene,a,effect) => Boolean(activeState(scene,a?.id,effect).activeSources.length);
+  const effectiveEffectActive = (scene, actorId, effect) => Boolean(actor(scene, actorId) && effectActive(scene, actor(scene, actorId), effect));
+  global.DAWN_LIONWING_EFFECTIVE_EFFECT_ACTIVE = effectiveEffectActive;
+  if (typeof globalThis !== "undefined") globalThis.DAWN_LIONWING_EFFECTIVE_EFFECT_ACTIVE = effectiveEffectActive;
   const activeEffectSources = (a,effect,scene=null) => scene ? activeState(scene,a?.id,effect).activeSources : (a?.effectStates?.[effect]?.sources||[]).filter(source=>!(source.suppressedBy||[]).length);
   function effectInstanceStatus(scene, actorId, effect) { return activeState(scene,actorId,effect); }
 
@@ -4291,7 +4353,7 @@
       let reason = "";
       if (!source) reason = "Профильный НПС больше не находится на Сцене";
       else if (source.knockedOut) reason = "Профильный НПС выведен из строя";
-      else if (scene.pendingAction) reason = "Сначала разрешите текущие Реакции";
+      else if (scene.pendingAction || scene.pendingPrompt || scene.pendingActionPlan || scene.lionwing?.pendingActionPlan) reason = "Сначала разрешите текущую цепочку действия";
       else if (Number(source.ap || 0) < 1) reason = "Нужно 1 ОД";
       else if ((source.usedActions || []).includes(rule.id)) reason = "Это действие уже использовано в Раунде";
       return { ...rule, automation: "full", available: !reason, reason };
