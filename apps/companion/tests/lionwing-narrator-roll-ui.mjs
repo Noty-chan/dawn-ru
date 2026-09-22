@@ -44,6 +44,7 @@ const parseControls=html=>{
 };
 const rootElement={
   _html:"",
+  querySelector(){return{insertAdjacentHTML(){}}},
   insertAdjacentHTML(_position,html){this._html+=String(html)},
   addEventListener(type,handler){listeners[type]=handler},
   classList:{toggle(){}},
@@ -90,7 +91,7 @@ vm.runInContext(`
     control:id=>$(id),
     html:()=>$("scene-utility").innerHTML,
     setScene:value=>{Scene=value},
-    setSheet:value=>{S=value},
+    setSheet:value=>{S={runtime:{funding:0},...value}},
     setSync:value=>{Sync=value},
     setMode:value=>{activeSceneMode=value},
     setUtilityActor:value=>{activeUtilityActorId=value},
