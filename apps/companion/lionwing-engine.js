@@ -4222,14 +4222,13 @@
     if (enemyEventFlow) {
       validateEnemySimpleWaveActionEvents(scene, events);
       const waveRuleId = events.find(event => event?.type === "enemy.action.prepare")?.payload?.ruleId;
-      if (waveRuleId === "lionwing.npc.daredevil.gloat" && !events.some(event => event?.type === "lionwing.command" && event.payload?.kind === "combat-meter") ||
-          waveRuleId === "lionwing.npc.viper.lick-the-knife" && !events.some(event => event?.type === "damage.apply" && event.payload?.attack === false)) fail("Действие требует полного канонического результата");
+      if (waveRuleId === "lionwing.npc.daredevil.gloat" && !events.some(event => event?.type === "lionwing.command" && event.payload?.kind === "combat-meter")) fail("Действие требует полного канонического результата");
       const nonAttackDamage = events.filter(event => event?.type === "damage.apply" && event.payload?.attack === false);
       const meterCommands = events.filter(event => event?.type === "lionwing.command" && event.payload?.kind === "combat-meter");
-      if (meterCommands.length || nonAttackDamage.length) {
+      if (meterCommands.length || nonAttackDamage.length || waveRuleId === "lionwing.npc.viper.lick-the-knife") {
         const prepare = events.find(event => event?.type === "enemy.action.prepare"), ruleId = prepare?.payload?.ruleId;
         const specialEvents = [...meterCommands, ...nonAttackDamage];
-        const sourceId = specialEvents[0]?.actorId || events.find(event => event?.type === "damage.apply")?.actorId;
+        const sourceId = specialEvents[0]?.actorId || events.find(event => event?.type === "damage.apply")?.actorId || prepare?.actorId;
         const source = requiredActor(scene, sourceId);
         const prepares = events.filter(event => event?.type === "enemy.action.prepare" && event.payload?.ruleId === ruleId);
         const resolves = events.filter(event => event?.type === "enemy.action.resolve" && event.payload?.ruleId === ruleId);
