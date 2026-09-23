@@ -383,6 +383,12 @@ function validateEvent(scene, event, options = {}) {
       if (metadata.current > payload.size || metadata.initial > payload.size || metadata.min > payload.size || metadata.threshold != null && metadata.threshold > payload.size) throw new Error("Новый размер часов меньше сохранённого значения.");
     }
   }
+  if (["enemy.action.prepare", "attack.pending"].includes(event.type) && scene.rulesEdition === "lionwing" && actor?.profileId === "lionwing.npc.ronin") {
+    const log = scene.log || [], turnStartIndex = log.findIndex(item => item.type === "turn.start" && item.actorId === actor.id);
+    const recentEvents = turnStartIndex < 0 ? [] : log.slice(0, turnStartIndex);
+    const priorTargetIds = recentEvents.filter(item => item.actorId === actor.id && ["enemy.action.prepare", "attack.pending"].includes(item.type) && !(event.type === "attack.pending" && item.type === "enemy.action.prepare" && item.payload?.ruleId === payload.enemyRuleId)).flatMap(item => item.payload?.targetIds || []).filter(id => actorById(scene, id)?.kind !== "crowd");
+    if ((payload.targetIds || []).some(targetId => actorById(scene, targetId)?.kind !== "crowd" && priorTargetIds.includes(targetId))) throw new Error("Ронин не может выбирать одного персонажа целью повторно за Ход.");
+  }
   if (event.type === "attack.pending") {
     const canonicalRule = typeof enemyCanonicalRule === "function" ? enemyCanonicalRule(payload.enemyRuleId || payload.actionId) : null;
     if (canonicalRule && typeof canonicalRule === "object" && canonicalRule.id && (payload.sourceRuleId !== canonicalRule.id || payload.sourceDigest !== canonicalRule.sourceDigest)) throw new Error("Источник или digest Атаки LionWing устарел или не совпадает с canonical-правилом.");
