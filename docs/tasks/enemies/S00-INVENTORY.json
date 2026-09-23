@@ -4308,6 +4308,7 @@
           "apps/companion/tests/lionwing-enemy-base-attacks.mjs",
           "apps/companion/tests/lionwing-enemy-simple-actions.mjs",
           "apps/companion/tests/lionwing-enemy-simple-wave.mjs",
+          "apps/companion/tests/lionwing-enemy-turn-passives.mjs",
           "apps/companion/tests/lionwing-engine.mjs",
           "apps/companion/tests/lionwing-execution-continuation.mjs",
           "apps/companion/tests/lionwing-family-integration.mjs",
@@ -4399,6 +4400,7 @@
             "apps/companion/tests/lionwing-enemy-base-attacks.mjs",
             "apps/companion/tests/lionwing-enemy-simple-actions.mjs",
             "apps/companion/tests/lionwing-enemy-simple-wave.mjs",
+            "apps/companion/tests/lionwing-enemy-turn-passives.mjs",
             "apps/companion/tests/lionwing-engine.mjs",
             "apps/companion/tests/lionwing-execution-continuation.mjs",
             "apps/companion/tests/lionwing-family-integration.mjs",
@@ -4484,6 +4486,7 @@
             "apps/companion/tests/lionwing-enemy-base-attacks.mjs",
             "apps/companion/tests/lionwing-enemy-simple-actions.mjs",
             "apps/companion/tests/lionwing-enemy-simple-wave.mjs",
+            "apps/companion/tests/lionwing-enemy-turn-passives.mjs",
             "apps/companion/tests/lionwing-engine.mjs",
             "apps/companion/tests/lionwing-execution-continuation.mjs",
             "apps/companion/tests/lionwing-family-integration.mjs",
@@ -4569,6 +4572,7 @@
             "apps/companion/tests/lionwing-enemy-base-attacks.mjs",
             "apps/companion/tests/lionwing-enemy-simple-actions.mjs",
             "apps/companion/tests/lionwing-enemy-simple-wave.mjs",
+            "apps/companion/tests/lionwing-enemy-turn-passives.mjs",
             "apps/companion/tests/lionwing-engine.mjs",
             "apps/companion/tests/lionwing-execution-continuation.mjs",
             "apps/companion/tests/lionwing-family-integration.mjs",
@@ -6793,6 +6797,7 @@
             "apps/companion/tests/lionwing-enemy-base-attacks.mjs",
             "apps/companion/tests/lionwing-enemy-simple-actions.mjs",
             "apps/companion/tests/lionwing-enemy-simple-wave.mjs",
+            "apps/companion/tests/lionwing-enemy-turn-passives.mjs",
             "apps/companion/tests/lionwing-engine.mjs",
             "apps/companion/tests/lionwing-execution-continuation.mjs",
             "apps/companion/tests/lionwing-family-integration.mjs",
@@ -7426,6 +7431,7 @@
         "uiEntryPoint": "unknown (passives are trigger/lifecycle driven; no generic action button)",
         "tests": [
           "apps/companion/tests/lionwing-enemy-base-attacks.mjs",
+          "apps/companion/tests/lionwing-enemy-turn-passives.mjs",
           "apps/companion/tests/lionwing-localization.mjs",
           "apps/companion/tests/lionwing-recovery-stress.mjs",
           "apps/companion/tests/scene-engine.mjs"
@@ -7476,6 +7482,7 @@
           "uiEntryPoint": "scene-actions-ui.js useEnemyRule → DAWN_SCENE_ENGINE.prepareEnemyRule → commitSceneEvents",
           "tests": [
             "apps/companion/tests/lionwing-enemy-base-attacks.mjs",
+            "apps/companion/tests/lionwing-enemy-turn-passives.mjs",
             "apps/companion/tests/lionwing-localization.mjs",
             "apps/companion/tests/lionwing-recovery-stress.mjs",
             "apps/companion/tests/scene-engine.mjs"
@@ -7528,6 +7535,7 @@
           "uiEntryPoint": "scene-actions-ui.js useEnemyRule → DAWN_SCENE_ENGINE.prepareEnemyRule → commitSceneEvents",
           "tests": [
             "apps/companion/tests/lionwing-enemy-base-attacks.mjs",
+            "apps/companion/tests/lionwing-enemy-turn-passives.mjs",
             "apps/companion/tests/lionwing-localization.mjs",
             "apps/companion/tests/lionwing-recovery-stress.mjs",
             "apps/companion/tests/scene-engine.mjs"
@@ -7575,6 +7583,7 @@
           "uiEntryPoint": "scene-actions-ui.js useEnemyRule → DAWN_SCENE_ENGINE.prepareEnemyRule → commitSceneEvents",
           "tests": [
             "apps/companion/tests/lionwing-enemy-base-attacks.mjs",
+            "apps/companion/tests/lionwing-enemy-turn-passives.mjs",
             "apps/companion/tests/lionwing-localization.mjs",
             "apps/companion/tests/lionwing-narrator-roll-ui.mjs",
             "apps/companion/tests/lionwing-recovery-stress.mjs",

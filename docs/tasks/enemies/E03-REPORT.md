@@ -1,6 +1,6 @@
 # E03 — Martyr and Ronin turn passives
 
-Base: `4ed5bc2` (working tree was clean before this task). This report covers a partial slice; neither NPC profile is marked complete.
+Base: `4ed5bc2` for the first slice; LionWing boundary integration followed on `f01fe1c`. This report covers the two passives, not complete NPC profiles.
 
 ## Mechanics brief
 
@@ -13,18 +13,19 @@ Examples: a Tier 1 Martyr with 6 missing HP would restore 6 at Round end; a Tier
 
 PDF text was checked from the available LionWing book at `D:\Dropzone\Downloads\DAWN_ The RPG (LionWing Edition) w Bookmarks.pdf`: physical PDF pages 116 and 121 (printed pages 115 and 120). Martyr's exact wording omits “to this NPC” in the PDF, while the canonical extraction includes it; both specify self-recovery. No visual/layout claim is made.
 
-## Implemented and blocked
+## Implemented
 
 Implemented Ronin's per-Turn target guard in the existing event validator. It checks both `enemy.action.prepare` and `attack.pending` target IDs against this Ronin's logged character targets since its newest `turn.start`; the same target guard is independent of team, so an allied Ronin is covered. A mixed/multiple-target attack is rejected if any selected character repeats. The runtime already rejects multiple uses of the same Ronin action in a Round, so a direct second Dissect is not a valid player path; the regression exercises a successful real Dissect flow, then tries a fresh event ID through the real dispatcher with the previous target. It also verifies that another target passes the validator and the same target passes after a fresh Turn boundary.
 
 The event path is UI selection in `scene-actions-ui.js` → `SceneEngine.prepareEnemyRule` → `commitSceneEvents` in `scene-ui.js` → `DAWN_SCENE_ENGINE.dispatchMany`. LionWing `dispatchMany` routes `enemy.action.prepare`/`attack.pending` through the existing event validator in `scene-events.js`. The new test reaches this path through the real loaded LionWing engine and dependencies.
 
-Martyr recovery and Ronin's +1 AP at Turn start remain blocked at the shared writer seam. The LionWing wrapper handles `turn.start` and `round.end` itself; those event types do not enter the legacy `scene-triggers.js` dispatcher. Its legacy turn-start reducer is likewise not called by the LionWing command writer. The Ronin target restriction is connected, but AP-at-start and extra Turns have not been implemented. These runtime boundaries belong to `lionwing-engine.js`, currently owned by E02; do not merge a dead legacy trigger as completion. Required next seam: dispatchable LionWing Turn/Round boundary hook that derives and commits passive events/stats through the one writer. The integrator has been notified.
+The authoritative `lionwing-engine.js` `turn-start` writer now grants Ronin one extra AP on each normal or granted extra Turn, while still applying Staggered's ordinary AP loss. Its `turn.start` receipt records the passive AP. The `round-end` writer restores 5 + Tier Health to each living LionWing Martyr after the Round boundary; the heal receipt links to that boundary and is capped at maximum Health. A Knocked Out Martyr has left the Scene and is not revived by this passive. Both rules follow the profile even when the NPC is allied with heroes. The old-edition profile is untouched. No dead legacy trigger is used.
 
 ## Evidence and limits
 
 - Targeted: `node apps/companion/tests/lionwing-enemy-turn-passives.mjs` — passed.
 - The test loads `data.js`, canonical `edition-lionwing.js`, `lionwing-table-data.js`, the real scene engine modules and LionWing wrapper. It does not replace the writer, action preparer, reducer, or target validator with mocks.
-- Covered in code/test: actual Turn start, successful Dissect dispatch and resolution, repeated single/mixed target rejection, alternate target acceptance, same target after a fresh boundary, stale version, reused old event ID, restored JSON state, allied Ronin, and a source-owned target choice.
-- Not run: `npm test`, browser UI click-through, storage reload/import/export via app persistence, network/two-client verification, Martyr HP-cap/KO scenarios, Martyr boundary event, +1 AP including an extra Turn, and source removal during an active Turn. These depend on complete boundary integration; this report does not claim verified status.
-- No code change was made to `lionwing-engine.js`, `scene-actions.js`, UI, package/index/service-worker files, generated files, or network code.
+- Covered in code/test: actual normal and granted extra Turn starts, Staggered, successful Dissect dispatch and resolution, repeated single/mixed target rejection, alternate target acceptance, same target after a fresh boundary, stale version, reused old event ID, restored JSON state, allied Ronin, Martyr healing and HP cap at the actual Round boundary, KO, allied Martyr, and removed source.
+- The integrator regenerated S00, added the E03 regression to `test:enemy-audit`, and ran the full `npm test` suite successfully on the combined tree.
+- Not run: browser UI click-through, app storage export/import, network/two-client verification. These passives are connected at the production writer, but neither full NPC profile is claimed verified.
+- No change to `scene-actions.js`, UI, index/service-worker files, generated rules, or network code.

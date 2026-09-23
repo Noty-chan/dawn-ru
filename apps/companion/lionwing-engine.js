@@ -2620,7 +2620,7 @@
       const after = specialSnapshot(scene, members.map(part => part.id), id);
       emitSpecial(operation === "remove" ? "compound.remove" : "compound.dissolve", sourceId, "compound", { operation, compoundId: id, removedPartIds: removed.map(part => part.id), partIds: remaining.map(part => part.id) }, before, after);
     };
-    const applyHealing = (p,sourceId) => { const target = requiredActor(scene, p.targetId || sourceId); const amount = integer(p.amount, "лечение"),compound=legacy.compoundEnemyStatus(scene,target),before=compound.active?compound.hp:target.hp;let after;if(compound.active){after=Math.min(Math.ceil(compound.hp/compound.gate)*compound.gate,compound.hp+amount);let remaining=after;for(const part of compound.parts){part.hp=Math.min(part.maxHp,remaining);remaining-=part.hp;}}else{target.hp=Math.min(maxHealth(target),target.hp+amount);after=target.hp;}emit("actor.heal",sourceId,{targetId:target.id,amount,restored:after-before,prevented:amount>0&&after===before});};
+    const applyHealing = (p,sourceId) => { const target = requiredActor(scene, p.targetId || sourceId); const amount = integer(p.amount, "лечение"),compound=legacy.compoundEnemyStatus(scene,target),before=compound.active?compound.hp:target.hp;let after;if(compound.active){after=Math.min(Math.ceil(compound.hp/compound.gate)*compound.gate,compound.hp+amount);let remaining=after;for(const part of compound.parts){part.hp=Math.min(part.maxHp,remaining);remaining-=part.hp;}}else{target.hp=Math.min(maxHealth(target),target.hp+amount);after=target.hp;}emit("actor.heal",sourceId,{targetId:target.id,amount,restored:after-before,prevented:amount>0&&after===before,...(p.passiveKey?{passiveKey:p.passiveKey}:{}),...(p.boundaryEventId?{boundaryEventId:p.boundaryEventId}:{})});};
     const applyHealthLoss = (a, p, sourceId) => {
       const requested = integer(p.amount, "потеря Здоровья"), compound = legacy.compoundEnemyStatus(scene, a), before = compound.active ? compound.hp : Number(a.hp || 0), lost = Math.min(before, requested);
       if(p.mode!=="lose"&&requested>before)fail("Недостаточно Здоровья для оплаты");
@@ -3905,7 +3905,8 @@
           const difficult=new Set(scene.objects.filter(o=>o.space===a.space&&o.type==="difficult").flatMap(o=>o.cells||[]));
           const start=[];for(let y=0;y<Number(a.occupiedHeight||1);y++)for(let x=0;x<Number(a.occupiedWidth||1);x++){const cell=`${a.x+x},${a.y+y}`;if(difficult.has(cell))start.push(cell);}
           if(start.length){const connected=new Set(start),queue=[...start];while(queue.length){const [x,y]=queue.shift().split(",").map(Number);for(const cell of [`${x+1},${y}`,`${x-1},${y}`,`${x},${y+1}`,`${x},${y-1}`])if(difficult.has(cell)&&!connected.has(cell)){connected.add(cell);queue.push(cell);}}astate(a).difficultTerrainIgnoreSerial=scene.turnSerial;astate(a).difficultTerrainIgnoreSpace=a.space;astate(a).difficultTerrainIgnoreCells=[...connected];}
-          a.ap = Math.max(0, Number(a.baseAp ?? 3) - (effectActive(scene,a,"negative.ошеломлен") ? 1 : 0)); a.stepRemaining = 0; s.breakout = null; s.opportunities = [];
+          const passiveAp = a.profileId === "lionwing.npc.ronin" ? 1 : 0;
+          a.ap = Math.max(0, Number(a.baseAp ?? 3) + passiveAp - (effectActive(scene,a,"negative.ошеломлен") ? 1 : 0)); a.stepRemaining = 0; s.breakout = null; s.opportunities = [];
           phase("startTurn", a);
           const duel=(s.duels||[]).find(item=>item.id===astate(a).duelId);
           if(duel&&scene.turnSerial>duel.startedSerial){
@@ -3917,7 +3918,7 @@
           if(["enemy.common.coordinator","lionwing.npc.coordinator"].includes(a.profileId))for(const ally of scene.actors.filter(item=>live(item)&&item.id!==a.id&&item.team===a.team&&item.space===a.space&&distance(a,item)<=4))applyEffect(ally,{effect:"positive.усилен",duration:"endTurn",ownerActorId:a.id,sourceId:`${a.id}:coordinator-passive`,sourceActionId:a.profileId==="lionwing.npc.coordinator"?"lionwing.npc.coordinator.passive":"enemy.common.coordinator.passive"},a.id);
           scheduleBoundary("anyTurnStart", a);
           scheduleBoundary("turnStart", a);
-          emit("turn.start", a.id, { ap: a.ap }); break;
+          emit("turn.start", a.id, { ap: a.ap, ...(passiveAp ? { passiveAp } : {}) }); break;
         }
         case "turn-end": {
           if (scene.activeActorId !== sourceId || scene.pendingAction || s.choices.length || s.pausedChains?.length) fail("Нельзя завершить этот Ход: есть незавершённое действие");
@@ -3936,7 +3937,11 @@
           phase("roundEnd", null); scene.round++; mutateCombatMeter({ operation: "add", delta: 1 }, sourceId, `${rootId}:round-tension`); s.lastTeam = null; s.breakout = null;
           for (const other of scene.actors) { other.acted = other.kind === "crowd"; other.usedActions = []; other.ap = 0; other.stepRemaining = 0; }
           scheduleBoundary("roundStart", null);
-          emit("round.end", null); break;
+          const roundEndEvent = emit("round.end", null);
+          for (const martyr of scene.actors.filter(item => live(item) && item.profileId === "lionwing.npc.martyr")) {
+            applyHealing({ targetId: martyr.id, amount: 5 + Number(martyr.tier || 1), passiveKey: "lionwing.npc.martyr#passive", boundaryEventId: roundEndEvent.id }, martyr.id);
+          }
+          break;
         }
         case "scene-reset": {
           if(scene.pendingAction||s.choices.length||s.deferred.length||s.duels?.length||s.pausedChains?.length)fail("Сначала завершите ожидающие решения и Дуэли");
