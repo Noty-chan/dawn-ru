@@ -9,7 +9,7 @@
 | Контур | Всего | Заявлено исполнимым | Формально E2E-сертифицировано | Неполный путь |
 | --- | ---: | ---: | ---: | --- |
 | Уровни Техник | 333 | 84 shared/inherited (25.2%) | 0 | 57 частичных; 192 ручных |
-| Правила обычных врагов | 122 | 62 (50.8%) | 0 | 60 assisted |
+| Правила обычных врагов | 122 | 64 (52.5%) | 0 | 58 assisted |
 | Атаки врагов | 40 | 35 | 0 | не установлено независимым аудитом |
 
 Формально сертифицировано сейчас: **0** записей. Исполнимые уровни без evidence считаются **shared/inherited**, даже при совпавшем canonical digest: digest подтверждает текстовый источник, но не полноту поведения. Проценты выше измеряют охват кодом, а не верность правилам игры.
@@ -307,7 +307,7 @@
 | Broodmother (`lionwing.npc.broodmother`) | 3 | 3 | 0 | — |
 | Cocoon (`lionwing.npc.cocoon`) | 3 | 2 | 1 | Menace |
 | Duelist (`lionwing.npc.duelist`) | 3 | 1 | 2 | Goad; Disassemble |
-| Glutton (`lionwing.npc.glutton`) | 3 | 2 | 1 | Regurgitate |
+| Glutton (`lionwing.npc.glutton`) | 3 | 3 | 0 | — |
 | Guardian (`lionwing.npc.guardian`) | 3 | 2 | 1 | Guardian Shield |
 | Mount (`lionwing.npc.mount`) | 3 | 1 | 2 | Synergy; CHARGE! |
 | Oni (`lionwing.npc.oni`) | 3 | 1 | 2 | Polaris; Vibrant Terror |
@@ -328,7 +328,7 @@
 | Cultist (`lionwing.npc.cultist`) | 3 | 1 | 2 | Ritual Drawings; Grand Calling |
 | Daredevil (`lionwing.npc.daredevil`) | 3 | 2 | 1 | Adrenaline High |
 | Enchanter (`lionwing.npc.enchanter`) | 3 | 1 | 2 | Charm; By My Command |
-| Hound Master (`lionwing.npc.hound-master`) | 3 | 2 | 1 | Fire Seeker |
+| Hound Master (`lionwing.npc.hound-master`) | 3 | 3 | 0 | — |
 | Necromancer (`lionwing.npc.necromancer`) | 3 | 1 | 2 | Call The Dead; The Danse Macabre |
 | Privateer (`lionwing.npc.privateer`) | 3 | 2 | 1 | Escort |
 | Rifter (`lionwing.npc.rifter`) | 3 | 1 | 2 | Wild Shifting; Implode |

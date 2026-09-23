@@ -218,6 +218,7 @@ const ENEMY_FULL_RULES = new Map([
   ["enemy.common.broodmother.trump.roar", { type: "broodmother-roar" }],
   ["lionwing.npc.broodmother.roar", { type: "broodmother-roar" }],
   ["enemy.common.hound-master.action.fire-seeker", { type: "hound-seekers", count: 1, minimumTargetDistance: 4 }],
+  ["lionwing.npc.hound-master.fire-seeker", { type: "hound-seekers", count: 1, minimumTargetDistance: 4 }],
   ["enemy.common.hound-master.trump.wild-hunt", { type: "hound-seekers", count: 3, minimumTargetDistance: 0 }],
   ["lionwing.npc.hound-master.wild-hunt", { type: "hound-seekers", count: 3, minimumTargetDistance: 0 }],
   ["enemy.common.privateer.trump.gear-change", { type: "privateer-gear-change" }],
@@ -230,6 +231,7 @@ const ENEMY_FULL_RULES = new Map([
   ["enemy.common.glutton.action.call", { type: "crowd-summon", formula: "2(+1)", range: 4, diminishEachRoundUse: true }],
   ["lionwing.npc.glutton.call", { type: "crowd-summon", formula: "2(+1)", range: 4, diminishEachRoundUse: true }],
   ["enemy.common.glutton.trump.regurgitate", { type: "crowd-summon", countState: "gluttonConsumed", knockUpOccupants: true }],
+  ["lionwing.npc.glutton.regurgitate", { type: "crowd-summon", countState: "gluttonConsumed", knockUpOccupants: true }],
   ["enemy.common.swarm.action.call", { type: "crowd-summon", formula: "2(+1)", range: 4, oncePerRound: true }],
   ["lionwing.npc.swarm.call", { type: "crowd-summon", formula: "2(+1)", edge: true, diminishEachRoundUse: true }],
   ["enemy.common.bodyguards.trump.reinforcements", { type: "crowd-summon", formula: "2(+1)", edge: true, grantTurn: true }],
@@ -267,6 +269,9 @@ const LIONWING_SIMPLE_ACTION_DIGESTS = new Map([
 ]);
 
 const LIONWING_CROWD_RULE_DIGESTS = new Map([
+  ["lionwing.npc.hound-master.fire-seeker", "sha256:e36b86b2ff64c119ab57c64b2b594c1b625ce3f422cc44729b049b5da3b87587"],
+  ["lionwing.npc.hound-master.wild-hunt", "sha256:fbd8c1a5a24a5de5246c06d50ebeac7881b7a05d30e3b2f8506e0c489b403c3a"],
+  ["lionwing.npc.glutton.regurgitate", "sha256:1c6837d4ea114196308fc593a4dcfd0859a0b2f8e0a3c3b92d8bce9bd3f46864"],
   ["lionwing.npc.javelin.call", "sha256:71efaab0e5fd5f9b1c62b310c4c1cad15d252de5021cc69bdc601349631a64c1"],
   ["lionwing.npc.broodmother.call", "sha256:71efaab0e5fd5f9b1c62b310c4c1cad15d252de5021cc69bdc601349631a64c1"],
   ["lionwing.npc.glutton.call", "sha256:71efaab0e5fd5f9b1c62b310c4c1cad15d252de5021cc69bdc601349631a64c1"],
@@ -1109,6 +1114,7 @@ function prepareEnemyRule(scene, data, request = {}) {
   const payload = { ruleId: rule.id, sourceRuleId: rule.id, sourceDigest: rule.sourceDigest || null, profileId: profile.id, name: rule.name, kind: rule.kind, targetIds, text: rule.text, reward: rule.reward, automation: available?.automation || (targetEffects.length || selfEffects.length ? "effect" : "assisted"), ...(fullRule?.narratorOffTurn && scene.activeActorId !== actor.id ? { quickReaction: true } : {}) };
   if (normalizedTargetRequest.typedTargets?.typedTargets?.length) payload.typedTargets = clone(normalizedTargetRequest.typedTargets.typedTargets);
   if (fullRule?.type === "crowd-summon") payload.crowdSummon = { token: `crowd-summon-${eventId()}`, cells: crowdSummonCells.map(cellKey) };
+  if (fullRule?.type === "hound-seekers") payload.seekerSummon = { token: `seeker-summon-${eventId()}`, targetId: targets[0].id, cells: seekerCells.map(cellKey) };
   const events = [{ type: "enemy.action.prepare", actorId: actor.id, payload }, { type: "resource.spend", actorId: actor.id, payload: { resource: "ap", amount: Number(rule.apCost || 1), sourceRuleId: rule.id, sourceDigest: rule.sourceDigest || null } }];
   if (attackDestination) {
     const movement = family.teleportAttack ? `${rule.name}: телепортация` : `${rule.name}: перемещение`, placement = Boolean(family.teleportAttack || family.preMoveIgnoreRestrictions);
@@ -1222,7 +1228,7 @@ function prepareEnemyRule(scene, data, request = {}) {
   }
   if (fullRule?.type === "hound-seekers") {
     const target = targets[0], damage = enemyTierFormula("7(+1)", actor.tier), groupId = `seekers-${eventId()}`;
-    for (const [index, point] of seekerCells.entries()) events.push({ type: "actor.spawn", actorId: actor.id, payload: { actor: { id: `seeker-${eventId()}-${index}`, kind: "crowd", crowdSubtype: "seeker", crowdType: "hounds", crowdGroupId: groupId, seekerTargetId: target.id, seekerOwnerId: actor.id, seekerDamage: damage, source: rule.id, sourceActionId: rule.id, team: actor.team, heroId: null, profileId: null, name: "Ищейка", tier: 0, space: actor.space, x: point.x, y: point.y, hp: 1, maxHp: 1, focus: 0, ap: 0, baseAp: 0, speed: 0, armor: 0, evasion: 0, effects: [], usedActions: [], acted: true, hidden: false, tokenSymbol: "◆", tokenColor: "#72558f", tokenImage: "", portraitImage: "" }, participantIds: [actor.id, target.id] } });
+    for (const [index, point] of seekerCells.entries()) events.push({ type: "actor.spawn", actorId: actor.id, payload: { seekerSummonToken: payload.seekerSummon.token, actor: { id: `seeker-${eventId()}-${index}`, kind: "crowd", crowdSubtype: "seeker", crowdType: "hounds", crowdGroupId: groupId, seekerTargetId: target.id, seekerOwnerId: actor.id, seekerDamage: damage, source: rule.id, sourceActionId: rule.id, team: actor.team, heroId: null, profileId: null, name: "Ищейка", tier: 0, space: actor.space, x: point.x, y: point.y, hp: 1, maxHp: 1, focus: 0, ap: 0, baseAp: 0, speed: 0, armor: 0, evasion: 0, effects: [], usedActions: [], acted: true, hidden: false, tokenSymbol: "◆", tokenColor: "#72558f", tokenImage: "", portraitImage: "" }, participantIds: [actor.id, target.id] } });
   }
   if (fullRule?.type === "cannoneer-load") {
     const clockId = "enemy.common.cannoneer.preparation", configured = clockStatus(scene, actor.id, clockId).available;

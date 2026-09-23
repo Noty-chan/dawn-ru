@@ -39,7 +39,7 @@
 
 - **Заявленный кодовый статус:** `full` (полная).
 - **Входная конфигурация:** `{"kind":"action","apCost":1,"target":"targetIds: 0"}`.
-- **Текущий адаптер:** статус `full`; реестр: `scene-actions.js:157`, `scene-actions.js:176`, `scene-actions.js:264`.
+- **Текущий адаптер:** статус `full`; реестр: `scene-actions.js:157`, `scene-actions.js:176`, `scene-actions.js:266`.
 - **Нужно добавить / проверить:** Кодовый пробел не выведен из статуса; нужны прямые pos/neg/boundary тесты и evidence для UI/сети/save-load.
 
 #### Рассечение `lionwing.npc.assassin.slice`
@@ -131,7 +131,7 @@
 
 - **Заявленный кодовый статус:** `full` (полная).
 - **Входная конфигурация:** `{"kind":"action","apCost":1,"target":"targetIds: 0"}`.
-- **Текущий адаптер:** статус `full`; реестр: `scene-actions.js:158`, `scene-actions.js:177`, `scene-actions.js:261`.
+- **Текущий адаптер:** статус `full`; реестр: `scene-actions.js:158`, `scene-actions.js:177`, `scene-actions.js:263`.
 - **Нужно добавить / проверить:** Кодовый пробел не выведен из статуса; нужны прямые pos/neg/boundary тесты и evidence для UI/сети/save-load.
 
 #### Разруб `lionwing.npc.executioner.cleave`
@@ -154,7 +154,7 @@
 
 - **Заявленный кодовый статус:** `full` (полная).
 - **Входная конфигурация:** `{"kind":"action","apCost":1,"target":"targetIds: 0"}`.
-- **Текущий адаптер:** статус `full`; реестр: `scene-actions.js:227`, `scene-actions.js:270`.
+- **Текущий адаптер:** статус `full`; реестр: `scene-actions.js:228`, `scene-actions.js:275`.
 - **Нужно добавить / проверить:** Кодовый пробел не выведен из статуса; нужны прямые pos/neg/boundary тесты и evidence для UI/сети/save-load.
 
 #### Сокрушительный удар `lionwing.npc.javelin.crushing-impact`
@@ -306,7 +306,7 @@
 
 - **Заявленный кодовый статус:** `full` (полная).
 - **Входная конфигурация:** `{"kind":"trump","apCost":2,"tension":2,"target":"targetIds: 0"}`.
-- **Текущий адаптер:** статус `full`; реестр: `scene-actions.js:236`, `scene-actions.js:274`.
+- **Текущий адаптер:** статус `full`; реестр: `scene-actions.js:238`, `scene-actions.js:279`.
 - **Нужно добавить / проверить:** Кодовый пробел не выведен из статуса; нужны прямые pos/neg/boundary тесты и evidence для UI/сети/save-load.
 
 ### Матка (Broodmother) `lionwing.npc.broodmother`
@@ -315,7 +315,7 @@
 
 - **Заявленный кодовый статус:** `full` (полная).
 - **Входная конфигурация:** `{"kind":"action","apCost":1,"target":"targetIds: 0"}`.
-- **Текущий адаптер:** статус `full`; реестр: `scene-actions.js:229`, `scene-actions.js:271`.
+- **Текущий адаптер:** статус `full`; реестр: `scene-actions.js:230`, `scene-actions.js:276`.
 - **Нужно добавить / проверить:** Кодовый пробел не выведен из статуса; нужны прямые pos/neg/boundary тесты и evidence для UI/сети/save-load.
 
 #### Роящаяся погоня `lionwing.npc.broodmother.swarming-chase`
@@ -384,7 +384,7 @@
 
 - **Заявленный кодовый статус:** `full` (полная).
 - **Входная конфигурация:** `{"kind":"action","apCost":1,"target":"targetIds: 0"}`.
-- **Текущий адаптер:** статус `full`; реестр: `scene-actions.js:231`, `scene-actions.js:272`.
+- **Текущий адаптер:** статус `full`; реестр: `scene-actions.js:232`, `scene-actions.js:277`.
 - **Нужно добавить / проверить:** Кодовый пробел не выведен из статуса; нужны прямые pos/neg/boundary тесты и evidence для UI/сети/save-load.
 
 #### Слюни `lionwing.npc.glutton.slobber`
@@ -396,10 +396,10 @@
 
 #### Regurgitate `lionwing.npc.glutton.regurgitate`
 
-- **Заявленный кодовый статус:** `assisted` (помощь Нарратора).
+- **Заявленный кодовый статус:** `full` (полная).
 - **Входная конфигурация:** `{"kind":"trump","apCost":2,"tension":4,"target":"targetIds: 0"}`.
-- **Текущий адаптер:** нет зарегистрированного исполняемого адаптера.
-- **Нужно добавить / проверить:** Добавить named resolver/семейную конфигурацию, которая целиком покрывает trigger, выбор, effect/reward и срок. Базовая форма входа: `targetIds: 0`.
+- **Текущий адаптер:** статус `full`; реестр: `scene-actions.js:234`, `scene-actions.js:274`.
+- **Нужно добавить / проверить:** Кодовый пробел не выведен из статуса; нужны прямые pos/neg/boundary тесты и evidence для UI/сети/save-load.
 
 ### Страж (Guardian) `lionwing.npc.guardian`
 
@@ -476,7 +476,7 @@
 
 - **Заявленный кодовый статус:** `full` (полная).
 - **Входная конфигурация:** `{"kind":"action","apCost":1,"target":"targetIds: 0"}`.
-- **Текущий адаптер:** статус `full`; реестр: `scene-actions.js:160`, `scene-actions.js:180`, `scene-actions.js:265`.
+- **Текущий адаптер:** статус `full`; реестр: `scene-actions.js:160`, `scene-actions.js:180`, `scene-actions.js:267`.
 - **Нужно добавить / проверить:** Кодовый пробел не выведен из статуса; нужны прямые pos/neg/boundary тесты и evidence для UI/сети/save-load.
 
 #### Дар от Бога `lionwing.npc.paladin.gift-from-god`
@@ -522,7 +522,7 @@
 
 - **Заявленный кодовый статус:** `full` (полная).
 - **Входная конфигурация:** `{"kind":"action","apCost":1,"target":"targetIds: 0"}`.
-- **Текущий адаптер:** статус `full`; реестр: `scene-actions.js:161`, `scene-actions.js:181`, `scene-actions.js:266`.
+- **Текущий адаптер:** статус `full`; реестр: `scene-actions.js:161`, `scene-actions.js:181`, `scene-actions.js:268`.
 - **Нужно добавить / проверить:** Кодовый пробел не выведен из статуса; нужны прямые pos/neg/boundary тесты и evidence для UI/сети/save-load.
 
 #### Надрез `lionwing.npc.spright.incision`
@@ -745,7 +745,7 @@
 
 - **Заявленный кодовый статус:** `full` (полная).
 - **Входная конфигурация:** `{"kind":"action","apCost":1,"target":"targetIds: 0"}`.
-- **Текущий адаптер:** статус `full`; реестр: `scene-actions.js:179`, `scene-actions.js:263`.
+- **Текущий адаптер:** статус `full`; реестр: `scene-actions.js:179`, `scene-actions.js:265`.
 - **Нужно добавить / проверить:** Кодовый пробел не выведен из статуса; нужны прямые pos/neg/boundary тесты и evidence для UI/сети/save-load.
 
 #### Молотить `lionwing.npc.berserker.thrash`
@@ -768,7 +768,7 @@
 
 - **Заявленный кодовый статус:** `full` (полная).
 - **Входная конфигурация:** `{"kind":"action","apCost":1,"target":"targetIds: 0"}`.
-- **Текущий адаптер:** статус `full`; реестр: `scene-actions.js:159`, `scene-actions.js:178`, `scene-actions.js:262`.
+- **Текущий адаптер:** статус `full`; реестр: `scene-actions.js:159`, `scene-actions.js:178`, `scene-actions.js:264`.
 - **Нужно добавить / проверить:** Кодовый пробел не выведен из статуса; нужны прямые pos/neg/boundary тесты и evidence для UI/сети/save-load.
 
 #### Зарядить `lionwing.npc.cannoneer.load`
@@ -858,10 +858,10 @@
 
 #### Запустить ищейку `lionwing.npc.hound-master.fire-seeker`
 
-- **Заявленный кодовый статус:** `assisted` (помощь Нарратора).
+- **Заявленный кодовый статус:** `full` (полная).
 - **Входная конфигурация:** `{"kind":"action","apCost":1,"target":"targetIds: 0"}`.
-- **Текущий адаптер:** нет зарегистрированного исполняемого адаптера.
-- **Нужно добавить / проверить:** Добавить named resolver/семейную конфигурацию, которая целиком покрывает trigger, выбор, effect/reward и срок. Базовая форма входа: `targetIds: 0`.
+- **Текущий адаптер:** статус `full`; реестр: `scene-actions.js:221`, `scene-actions.js:272`.
+- **Нужно добавить / проверить:** Кодовый пробел не выведен из статуса; нужны прямые pos/neg/boundary тесты и evidence для UI/сети/save-load.
 
 #### Толчок `lionwing.npc.hound-master.shove`
 
@@ -874,7 +874,7 @@
 
 - **Заявленный кодовый статус:** `full` (полная).
 - **Входная конфигурация:** `{"kind":"trump","apCost":2,"tension":2,"target":"targetIds: 0"}`.
-- **Текущий адаптер:** статус `full`; реестр: `scene-actions.js:222`.
+- **Текущий адаптер:** статус `full`; реестр: `scene-actions.js:223`, `scene-actions.js:273`.
 - **Нужно добавить / проверить:** Кодовый пробел не выведен из статуса; нужны прямые pos/neg/boundary тесты и evidence для UI/сети/save-load.
 
 ### Некромант (Necromancer) `lionwing.npc.necromancer`
@@ -920,7 +920,7 @@
 
 - **Заявленный кодовый статус:** `full` (полная).
 - **Входная конфигурация:** `{"kind":"trump","apCost":2,"tension":3,"target":"targetIds: 0"}`.
-- **Текущий адаптер:** статус `full`; реестр: `scene-actions.js:224`.
+- **Текущий адаптер:** статус `full`; реестр: `scene-actions.js:225`.
 - **Нужно добавить / проверить:** Кодовый пробел не выведен из статуса; нужны прямые pos/neg/boundary тесты и evidence для UI/сети/save-load.
 
 ### Разломщик (Rifter) `lionwing.npc.rifter`
@@ -952,7 +952,7 @@
 
 - **Заявленный кодовый статус:** `full` (полная).
 - **Входная конфигурация:** `{"kind":"action","apCost":1,"target":"targetIds: 0"}`.
-- **Текущий адаптер:** статус `full`; реестр: `scene-actions.js:234`, `scene-actions.js:273`.
+- **Текущий адаптер:** статус `full`; реестр: `scene-actions.js:236`, `scene-actions.js:278`.
 - **Нужно добавить / проверить:** Кодовый пробел не выведен из статуса; нужны прямые pos/neg/boundary тесты и evidence для UI/сети/save-load.
 
 #### Рвать `lionwing.npc.swarm.tear`
@@ -966,7 +966,7 @@
 
 - **Заявленный кодовый статус:** `full` (полная).
 - **Входная конфигурация:** `{"kind":"trump","apCost":2,"tension":2,"target":"targetIds: 0"}`.
-- **Текущий адаптер:** статус `full`; реестр: `scene-actions.js:238`, `scene-actions.js:275`.
+- **Текущий адаптер:** статус `full`; реестр: `scene-actions.js:240`, `scene-actions.js:280`.
 - **Нужно добавить / проверить:** Кодовый пробел не выведен из статуса; нужны прямые pos/neg/boundary тесты и evidence для UI/сети/save-load.
 
 ## Враги-модификаторы

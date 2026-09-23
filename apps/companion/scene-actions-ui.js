@@ -274,7 +274,7 @@ function useEnemyRule(actorId,ruleId,{anchor=null,areaReady=false,options={}}={}
   if(hiddenAssassinAttack&&!areaReady){pendingEnemyRule={actorId,ruleId,phase:"assassin-reappear",targetIds:[...Scene.targetIds]};Scene.tool="select";persist();renderScene();return toast(`«${rule.name}»: выберите свободную клетку рядом с целью для появления Ассасина`)}
   if(hiddenAssassinAttack&&areaReady){Scene.targetIds=[...(pendingEnemyRule?.targetIds||Scene.targetIds)];options={...options,reappearance:anchor}}
   const oniMoves=rule.oniModes&&(actor.effects||[]).includes("positive.усилен"),needsAttackDestination=automaticAttack&&(rule.teleportAttack||rule.preMoveMaximum&&(rule.id!=="enemy.common.oni.attack.polaris"||oniMoves));
-  const houndSeekerRule=["enemy.common.hound-master.action.fire-seeker","enemy.common.hound-master.trump.wild-hunt"].includes(rule.id);
+  const houndSeekerRule=["enemy.common.hound-master.action.fire-seeker","enemy.common.hound-master.trump.wild-hunt","lionwing.npc.hound-master.fire-seeker","lionwing.npc.hound-master.wild-hunt"].includes(rule.id);
   if(houndSeekerRule&&!Scene.targetIds.length){Scene.tool="target";persist();renderScene();return toast(`«${rule.name}»: сначала отметьте одного персонажа-противника`)}
   if(houndSeekerRule&&!areaReady){pendingEnemyRule={actorId,ruleId,phase:"hound-seeker"};Scene.tool="select";persist();renderScene();return toast(`«${rule.name}»: выберите клетку, смежную с Псарем; затраты пока не списаны`)}
   if(houndSeekerRule&&areaReady)options={...options,destination:anchor};

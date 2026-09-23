@@ -4223,7 +4223,8 @@
     }
     const pendingEnemyFlow = scene.pendingAction?.enemyRuleId && events.some(event => ["reaction.respond", "rule.respond", "damage.apply", "effect.apply", "actor.move", "actor.enter", "attack.clear"].includes(event?.type));
     const rangerPromptFlow = scene.pendingPrompt?.kind === "enemy-ranger-retreat" && events.some(event => event?.type === "rule.respond");
-    const enemyEventFlow = events.some(event => ["enemy.action.prepare", "enemy.action.resolve", "attack.pending", "attack.clear"].includes(event?.type)) || pendingEnemyFlow || rangerPromptFlow;
+    const fodderPromptFlow = scene.pendingPrompt?.kind?.startsWith("fodder-") && events.some(event => event?.type === "rule.respond");
+    const enemyEventFlow = events.some(event => ["enemy.action.prepare", "enemy.action.resolve", "attack.pending", "attack.clear"].includes(event?.type)) || pendingEnemyFlow || rangerPromptFlow || fodderPromptFlow;
     if (enemyEventFlow) {
       validateEnemySimpleWaveActionEvents(scene, events);
       const waveRuleId = events.find(event => event?.type === "enemy.action.prepare")?.payload?.ruleId;
@@ -4339,7 +4340,10 @@
         state(next).receipts = state(next).receipts.slice(-256);
         continue;
       }
-      if (sharedTypes.has(event.type)) {
+      const fodderMovement = event.type === "actor.move" && actor(next, event.actorId)?.kind === "crowd" && event.payload?.fodderMove;
+      const gluttonFodderDamage = event.type === "damage.apply" && actor(next, event.actorId)?.profileId === "lionwing.npc.glutton" && actor(next, event.payload?.targetId)?.kind === "crowd";
+      const outputStart = output.length;
+      if (sharedTypes.has(event.type) || fodderMovement || gluttonFodderDamage) {
         const structuralMarker = event.type === "marker.remove" ? (next.markers || []).find(item => item.id === event.payload?.markerId) : null;
         if (event.type === "marker.remove" && structuralMarker?.ownerActorId === event.actorId && structuralMarker.ruleId === event.payload?.ruleId) {
           const hostId = structuralMarker.hostActorId || structuralMarker.metadata?.hostActorId || structuralMarker.metadata?.carrierActorId;
@@ -4355,11 +4359,17 @@
           if(!["token","crowd"].includes(spawned?.kind)&&edition!=="lionwing")fail("Нельзя добавить участника другой редакции");
         }
         if(["actor.despawn","space.remove"].includes(event.type)&&(next.pendingAction||state(next).choices.length||state(next).duels?.length||state(next).pausedChains?.length))fail("Сначала завершите ожидающее действие");
-        const result = legacy.dispatch(next, event); next = result.scene; output.push(result.event);
+        const fodderBoundary = fodderMovement || gluttonFodderDamage;
+        const result = fodderBoundary ? legacy.dispatchMany(next, [event]) : legacy.dispatch(next, event);
+        next = result.scene; output.push(...(result.events || [result.event]));
         const lostSourceId=event.type==="marker.remove"?event.payload?.markerId:event.type==="actor.despawn"?event.actorId||event.payload?.actorId:null;
         removeAurasForLostSource(next,lostSourceId);
         if (inventory?.removeSource && lostSourceId) inventory.removeSource(next, lostSourceId);
       } else { execute(next, event, output, options); next.version = Number(next.version || 0) + 1; }
+      if (["turn.end", "round.end"].includes(event.type)) for (const boundary of output.slice(outputStart).filter(item => item.type === event.type)) {
+        const prompts = legacy.fodderBoundaryPromptEvents?.(next, boundary) || [];
+        if (prompts.length) { const prompted = legacy.dispatchMany(next, prompts); next = prompted.scene; output.push(...prompted.events); }
+      }
       state(next).receipts.push({ id: event.id, fingerprint }); state(next).receipts = state(next).receipts.slice(-256);
     }
     return { scene: next, events: output, event: output[output.length - 1] };

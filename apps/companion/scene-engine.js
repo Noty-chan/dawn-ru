@@ -69,4 +69,5 @@ function projectScene(scene, viewer = {}) {
 (typeof window === "object" ? window : globalThis).DAWN_SCENE_ENGINE.prepareCollateralRescue = prepareCollateralRescue;
 (typeof window === "object" ? window : globalThis).DAWN_SCENE_ENGINE.compoundEnemyStatus = compoundEnemyStatus;
 (typeof window === "object" ? window : globalThis).DAWN_SCENE_ENGINE.modifierRangeDistance = modifierRangeDistance;
+(typeof window === "object" ? window : globalThis).DAWN_SCENE_ENGINE.fodderBoundaryPromptEvents = fodderBoundaryPromptEvents;
 (typeof window === "object" ? window : globalThis).DAWN_SCENE_ENGINE.effectiveActorSpeed = effectiveActorSpeed;

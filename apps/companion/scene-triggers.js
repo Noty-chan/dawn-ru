@@ -605,9 +605,10 @@ function effectLifecycleEvents(scene, event) {
   const events = [], boundaryActorId = event.actorId || null;
   if (event.type === "damage.apply" && event.payload?.applied) {
     const glutton = actorById(scene, event.actorId), target = actorById(scene, event.payload.targetId);
-    if (glutton && !glutton.knockedOut && glutton.profileId === "enemy.common.glutton" && target?.kind === "crowd" && target.knockedOut) {
-      events.push({ type: "actor.heal", actorId: glutton.id, payload: { targetId: glutton.id, amount: enemyTierFormula("10(+5)", glutton.tier), sourceActionId: "enemy.common.glutton.passive", boundaryEventId: event.id, participantIds: [glutton.id, target.id] } });
-      events.push({ type: "actor.state", actorId: glutton.id, payload: { key: "gluttonConsumed", delta: 1, sourceActionId: "enemy.common.glutton.passive", boundaryEventId: event.id, participantIds: [glutton.id, target.id] } });
+    if (glutton && !glutton.knockedOut && ["enemy.common.glutton", "lionwing.npc.glutton"].includes(glutton.profileId) && target?.kind === "crowd" && target.knockedOut) {
+      const canonical = glutton.profileId === "lionwing.npc.glutton", sourceActionId = canonical ? "lionwing.npc.glutton.passive" : "enemy.common.glutton.passive";
+      events.push({ type: "actor.heal", actorId: glutton.id, payload: { targetId: glutton.id, amount: canonical ? 3 + Number(glutton.tier || 1) : enemyTierFormula("10(+5)", glutton.tier), sourceActionId, boundaryEventId: event.id, participantIds: [glutton.id, target.id] } });
+      events.push({ type: "actor.state", actorId: glutton.id, payload: { key: "gluttonConsumed", delta: 1, sourceActionId, boundaryEventId: event.id, participantIds: [glutton.id, target.id] } });
     }
   }
   if (["turn.start", "turn.end", "round.end", "action.prepare", "enemy.action.prepare"].includes(event.type)) {
@@ -719,6 +720,23 @@ function routeLegacyPromptEvents(scene, sourceEvent, prefixEvents, legacyEvents)
     }
   });
   return routed;
+}
+
+function fodderBoundaryPromptEvents(scene, event) {
+  const actor = event.actorId ? actorById(scene, event.actorId) : null, events = [];
+  if (event.type === "turn.end" && actor && actor.kind !== "crowd") {
+    const crowdIds = (scene.actors || []).filter(item => item.kind === "crowd" && !item.knockedOut && item.team === actor.team && item.space === actor.space).map(item => item.id);
+    if (crowdIds.length) events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${event.id}-fodder-move`, kind: "fodder-move-select", sourceActorId: actor.id, controller: "narrator", title: "Движение массовки", text: "Настройте все перемещения одним пакетом или откройте отдельную Зону на поле.", options: [...crowdIds.map(id => `target:${id}`), "custom", "finish"], context: { remainingTargetIds: crowdIds, optionLabels: { custom: "Применить пакет", finish: "Оставить остальные на месте" } }, participantIds: [actor.id, ...crowdIds] } });
+  }
+  if (event.type === "round.end") {
+    const eligibleCrowds = (scene.actors || []).filter(item => item.kind === "crowd" && !item.knockedOut).filter(crowd => (scene.actors || []).some(target => !target.knockedOut && target.team !== crowd.team && target.space === crowd.space && distance(crowd, target) <= 1));
+    const first = eligibleCrowds[0];
+    if (first) {
+      const remainingIds = eligibleCrowds.map(item => item.id), allTargets = [...new Map(eligibleCrowds.flatMap(crowd => (scene.actors || []).filter(target => !target.knockedOut && target.team !== crowd.team && target.space === crowd.space && distance(crowd, target) <= 1)).map(target => [target.id, target])).values()];
+      events.push({ type: "rule.prompt", actorId: first.id, payload: { id: `prompt-${event.id}-fodder-damage`, kind: "fodder-round-batch", sourceActorId: first.id, controller: "narrator", title: `Массовка · ${eligibleCrowds.length} зон могут атаковать`, text: "Назначьте цель каждой Зоне, проверьте сводку и примените весь урон одним пакетом.", options: ["custom", "pass"], context: { eligibleCrowdIds: remainingIds }, participantIds: [...remainingIds, ...allTargets.map(target => target.id)] } });
+    }
+  }
+  return events;
 }
 
 function triggeredEvents(scene, event, options = {}) {
@@ -1128,7 +1146,7 @@ function triggeredEvents(scene, event, options = {}) {
   if (event.type === "actor.move" && actor?.kind === "crowd" && actor.crowdSubtype === "seeker") {
     const target = actorById(scene, actor.seekerTargetId);
     if (target && !target.knockedOut && target.space === actor.space && distance(actor, target) <= 1) {
-      const victims = (scene.actors || []).filter(item => item.kind !== "crowd" && !item.knockedOut && item.space === actor.space && distance(actor, item) <= 1), amount = Math.max(1, Number(actor.seekerDamage || 7));
+      const victims = (scene.actors || []).filter(item => item.kind !== "crowd" && item.team !== actor.team && !item.knockedOut && item.space === actor.space && distance(actor, item) <= 1), amount = Math.max(1, Number(actor.seekerDamage || 7));
       for (const victim of victims) events.push({ type: "damage.apply", actorId: actor.id, payload: { targetId: victim.id, amount, sourceActionId: "enemy.common.hound-master.seeker.explode", participantIds: [actor.id, target.id, victim.id] } });
       events.push({ type: "actor.despawn", actorId: actor.id, payload: { reason: `Ищейка достигла цели ${target.name}`, sourceActionId: "enemy.common.hound-master.seeker.explode", participantIds: [target.id, ...victims.map(item => item.id)] } });
     }
@@ -1139,19 +1157,7 @@ function triggeredEvents(scene, event, options = {}) {
       events.push({ type: "rule.prompt", actorId: privateer.id, payload: { id: `prompt-${event.id}-privateer-gear-${privateer.id}`, kind: "enemy-move-cell", sourceActorId: privateer.id, controller: "narrator", title: "Смена снаряжения", text: `${privateer.name} может переместиться на 1 клетку в конце Хода ${actor?.name || "персонажа"}.`, options: ["cancel"], context: { maxDistance: 1, privateerGearChange: true, endedTurnActorId: event.actorId || null }, participantIds: [privateer.id, event.actorId].filter(Boolean) } });
     }
   }
-  if (event.type === "turn.end" && actor?.team === "enemy" && actor.kind !== "crowd") {
-    const crowdIds = (scene.actors || []).filter(item => item.kind === "crowd" && !item.knockedOut && item.team === actor.team && item.space === actor.space).map(item => item.id);
-    if (crowdIds.length) events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${event.id}-fodder-move`, kind: "fodder-move-select", sourceActorId: actor.id, controller: "narrator", title: "Движение массовки", text: "Настройте все перемещения одним пакетом или откройте отдельную Зону на поле.", options: [...crowdIds.map(id => `target:${id}`), "custom", "finish"], context: { remainingTargetIds: crowdIds, optionLabels: { custom: "Применить пакет", finish: "Оставить остальные на месте" } }, participantIds: [actor.id, ...crowdIds] } });
-  }
-  if (event.type === "round.end") {
-    const eligibleCrowds = (scene.actors || []).filter(item => item.kind === "crowd" && !item.knockedOut).filter(crowd => (scene.actors || []).some(target => !target.knockedOut && target.team !== crowd.team && target.space === crowd.space && distance(crowd, target) <= 1));
-    const first = eligibleCrowds[0];
-    if (first) {
-      const remainingIds = eligibleCrowds.map(item => item.id), targets = (scene.actors || []).filter(target => !target.knockedOut && target.team !== first.team && target.space === first.space && distance(first, target) <= 1);
-      const allTargets = [...new Map(eligibleCrowds.flatMap(crowd => (scene.actors || []).filter(target => !target.knockedOut && target.team !== crowd.team && target.space === crowd.space && distance(crowd, target) <= 1)).map(target => [target.id, target])).values()];
-      events.push({ type: "rule.prompt", actorId: first.id, payload: { id: `prompt-${event.id}-fodder-damage`, kind: "fodder-round-batch", sourceActorId: first.id, controller: "narrator", title: `Массовка · ${eligibleCrowds.length} зон могут атаковать`, text: "Назначьте цель каждой Зоне, проверьте сводку и примените весь урон одним пакетом.", options: ["custom", "pass"], context: { eligibleCrowdIds: remainingIds }, participantIds: [...remainingIds, ...allTargets.map(target => target.id)] } });
-    }
-  }
+  events.push(...fodderBoundaryPromptEvents(scene, event));
   events.push(...effectLifecycleEvents(scene, event));
   events.push(...entityLifecycleEvents(scene, event));
   events.push(...reminderLifecycleEvents(scene, event));

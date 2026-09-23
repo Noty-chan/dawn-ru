@@ -17,9 +17,9 @@
     "combinedAuditRecords": 163
   },
   "actualAutomationCounts": {
-    "assisted": 60,
+    "assisted": 58,
     "attack": 34,
-    "full": 26,
+    "full": 28,
     "state": 2
   },
   "profiles": [
@@ -3992,9 +3992,9 @@
           "declaredStatus": "assisted",
           "actualHandler": {
             "entry": "DAWN_SCENE_ENGINE.prepareEnemyRule",
-            "implementation": null,
-            "automation": "assisted",
-            "note": "The common entry exists, but no automatic rule handler is selected."
+            "implementation": "scene-actions.js prepareEnemyRule (full route)",
+            "automation": "full",
+            "note": "Presence is recorded without promoting readiness or verifying completeness."
           },
           "uiEntryPoint": "scene-actions-ui.js useEnemyRule → DAWN_SCENE_ENGINE.prepareEnemyRule → commitSceneEvents",
           "tests": [
@@ -4016,7 +4016,7 @@
           "ambiguities": [
             "Occupancy exceptions are rule-specific; Fodder is not forced through the ordinary empty-cell rule."
           ],
-          "remainder": "No selected production automation handler; full mechanics, payment, cancellation, persistence, and UI acceptance remain.",
+          "remainder": "Audit implementation against every clause; handler presence does not prove payment, lifecycle, persistence, browser, or network acceptance.",
           "wave": 3
         }
       ],
@@ -4324,6 +4324,7 @@
           "apps/companion/tests/lionwing-derived-actions.mjs",
           "apps/companion/tests/lionwing-duel-entry.mjs",
           "apps/companion/tests/lionwing-enemy-base-attacks.mjs",
+          "apps/companion/tests/lionwing-enemy-fodder-creators.mjs",
           "apps/companion/tests/lionwing-enemy-simple-actions.mjs",
           "apps/companion/tests/lionwing-enemy-simple-wave.mjs",
           "apps/companion/tests/lionwing-enemy-turn-passives.mjs",
@@ -4416,6 +4417,7 @@
             "apps/companion/tests/lionwing-derived-actions.mjs",
             "apps/companion/tests/lionwing-duel-entry.mjs",
             "apps/companion/tests/lionwing-enemy-base-attacks.mjs",
+            "apps/companion/tests/lionwing-enemy-fodder-creators.mjs",
             "apps/companion/tests/lionwing-enemy-simple-actions.mjs",
             "apps/companion/tests/lionwing-enemy-simple-wave.mjs",
             "apps/companion/tests/lionwing-enemy-turn-passives.mjs",
@@ -4502,6 +4504,7 @@
             "apps/companion/tests/lionwing-derived-actions.mjs",
             "apps/companion/tests/lionwing-duel-entry.mjs",
             "apps/companion/tests/lionwing-enemy-base-attacks.mjs",
+            "apps/companion/tests/lionwing-enemy-fodder-creators.mjs",
             "apps/companion/tests/lionwing-enemy-simple-actions.mjs",
             "apps/companion/tests/lionwing-enemy-simple-wave.mjs",
             "apps/companion/tests/lionwing-enemy-turn-passives.mjs",
@@ -4588,6 +4591,7 @@
             "apps/companion/tests/lionwing-derived-actions.mjs",
             "apps/companion/tests/lionwing-duel-entry.mjs",
             "apps/companion/tests/lionwing-enemy-base-attacks.mjs",
+            "apps/companion/tests/lionwing-enemy-fodder-creators.mjs",
             "apps/companion/tests/lionwing-enemy-simple-actions.mjs",
             "apps/companion/tests/lionwing-enemy-simple-wave.mjs",
             "apps/companion/tests/lionwing-enemy-turn-passives.mjs",
@@ -6817,6 +6821,7 @@
             "apps/companion/tests/lionwing-alpha-stress.mjs",
             "apps/companion/tests/lionwing-derived-actions.mjs",
             "apps/companion/tests/lionwing-enemy-base-attacks.mjs",
+            "apps/companion/tests/lionwing-enemy-fodder-creators.mjs",
             "apps/companion/tests/lionwing-enemy-simple-actions.mjs",
             "apps/companion/tests/lionwing-enemy-simple-wave.mjs",
             "apps/companion/tests/lionwing-enemy-turn-passives.mjs",
@@ -9147,6 +9152,7 @@
         "uiEntryPoint": "unknown (passives are trigger/lifecycle driven; no generic action button)",
         "tests": [
           "apps/companion/tests/lionwing-enemy-base-attacks.mjs",
+          "apps/companion/tests/lionwing-enemy-fodder-creators.mjs",
           "apps/companion/tests/lionwing-localization.mjs",
           "apps/companion/tests/scene-engine.mjs"
         ],
@@ -9191,13 +9197,14 @@
           "declaredStatus": "assisted",
           "actualHandler": {
             "entry": "DAWN_SCENE_ENGINE.prepareEnemyRule",
-            "implementation": null,
-            "automation": "assisted",
-            "note": "The common entry exists, but no automatic rule handler is selected."
+            "implementation": "scene-actions.js prepareEnemyRule (full route)",
+            "automation": "full",
+            "note": "Presence is recorded without promoting readiness or verifying completeness."
           },
           "uiEntryPoint": "scene-actions-ui.js useEnemyRule → DAWN_SCENE_ENGINE.prepareEnemyRule → commitSceneEvents",
           "tests": [
             "apps/companion/tests/lionwing-enemy-base-attacks.mjs",
+            "apps/companion/tests/lionwing-enemy-fodder-creators.mjs",
             "apps/companion/tests/lionwing-localization.mjs",
             "apps/companion/tests/scene-engine.mjs"
           ],
@@ -9217,7 +9224,7 @@
             "Audience is relative to actor/target; actor.kind or a hard-coded hero team is insufficient.",
             "Occupancy exceptions are rule-specific; Fodder is not forced through the ordinary empty-cell rule."
           ],
-          "remainder": "No selected production automation handler; full mechanics, payment, cancellation, persistence, and UI acceptance remain.",
+          "remainder": "Audit implementation against every clause; handler presence does not prove payment, lifecycle, persistence, browser, or network acceptance.",
           "wave": 3
         },
         {
@@ -9248,6 +9255,7 @@
           "uiEntryPoint": "scene-actions-ui.js useEnemyRule → DAWN_SCENE_ENGINE.prepareEnemyRule → commitSceneEvents",
           "tests": [
             "apps/companion/tests/lionwing-enemy-base-attacks.mjs",
+            "apps/companion/tests/lionwing-enemy-fodder-creators.mjs",
             "apps/companion/tests/lionwing-localization.mjs",
             "apps/companion/tests/scene-engine.mjs"
           ],
@@ -9293,6 +9301,7 @@
           "uiEntryPoint": "scene-actions-ui.js useEnemyRule → DAWN_SCENE_ENGINE.prepareEnemyRule → commitSceneEvents",
           "tests": [
             "apps/companion/tests/lionwing-enemy-base-attacks.mjs",
+            "apps/companion/tests/lionwing-enemy-fodder-creators.mjs",
             "apps/companion/tests/lionwing-localization.mjs",
             "apps/companion/tests/scene-engine.mjs"
           ],

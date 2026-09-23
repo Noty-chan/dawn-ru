@@ -27,6 +27,35 @@ const prepare = (state, id, cells) => Engine.prepareEnemyRule(state, data, { act
 const commit = (state, plan) => Engine.dispatchMany(state, plan.events.map((event, index) => ({ ...event, id: `fodder-${serial++}-${index}` })), { expectedVersion: state.version }).scene;
 const fodder = state => state.actors.filter(item => item.kind === "crowd" && !item.knockedOut);
 
+const alliedHound = scene("lionwing.npc.hound-master");
+alliedHound.actors.push(actor("hound-fodder", "heroes", 1, 1, { kind: "crowd", profileId: null, hp: 1, maxHp: 1, ap: 0, baseAp: 0, speed: 0, summonerId: "source" }));
+assert.equal(Engine.fodderMoveStatus(alliedHound, "hound-fodder").available, false, "allied Fodder waits for its side's Turn boundary");
+const alliedHoundAfterTurn = Engine.dispatchMany(alliedHound, [{ id: "allied-hound-turn-end", type: "turn.end", actorId: "source", payload: {} }]).scene;
+assert.equal(Engine.fodderMoveStatus(alliedHoundAfterTurn, "hound-fodder").remaining, 3, "canonical Hound Master grants three movement spaces to allied Fodder");
+assert.equal(alliedHoundAfterTurn.pendingPrompt?.kind, "fodder-move-select", "allied Hound Master receives the Fodder movement prompt");
+const alliedFodderChoice = Engine.respondRulePrompt(alliedHoundAfterTurn, data, { choice: "finish" });
+assert.equal(alliedFodderChoice.ok, true, alliedFodderChoice.errors?.join(" "));
+assert.equal(Engine.dispatchMany(alliedHoundAfterTurn, alliedFodderChoice.events).scene.pendingPrompt, null, "LionWing can finish the allied Fodder movement prompt");
+const distantFodderScene = scene("lionwing.npc.hound-master");
+distantFodderScene.spaces.push({ id: "annex", name: "Annex", width: 6, height: 6 });
+distantFodderScene.actors.push(actor("distant-fodder", "heroes", 1, 1, { kind: "crowd", profileId: null, space: "annex", hp: 1, maxHp: 1, ap: 0, baseAp: 0, speed: 0 }));
+const distantFodderTurn = Engine.dispatchMany(distantFodderScene, [{ id: "distant-fodder-turn-end", type: "turn.end", actorId: "source", payload: {} }]).scene;
+assert.equal(distantFodderTurn.pendingPrompt, undefined, "Fodder in another space does not open a movement prompt");
+assert.equal(distantFodderTurn.lionwing.lastActorId, "source", "Fodder in another space does not bypass LionWing Turn bookkeeping");
+const distantFodderRoundSource = clone(distantFodderTurn);
+distantFodderRoundSource.actors.filter(item => item.kind !== "crowd").forEach(item => { item.acted = true; });
+const distantFodderRound = Engine.dispatchMany(distantFodderRoundSource, [{ id: "distant-fodder-round-end", type: "round.end", actorId: null, payload: {} }]).scene;
+assert.equal(distantFodderRound.round, 2, "Fodder without an adjacent opponent does not bypass LionWing Round bookkeeping");
+assert.equal(distantFodderRound.pendingPrompt, undefined, "Fodder without an adjacent opponent does not open a damage prompt");
+const adjacentFodderRoundSource = clone(distantFodderRoundSource);
+const adjacentFodder = adjacentFodderRoundSource.actors.find(item => item.id === "distant-fodder");
+adjacentFodder.space = "main";
+adjacentFodder.x = 4;
+adjacentFodder.y = 3;
+const adjacentFodderRound = Engine.dispatchMany(adjacentFodderRoundSource, [{ id: "adjacent-fodder-round-end", type: "round.end", actorId: null, payload: {} }]).scene;
+assert.equal(adjacentFodderRound.round, 2);
+assert.equal(adjacentFodderRound.pendingPrompt?.kind, "fodder-round-batch", "LionWing Round end offers the adjacent Fodder damage choice");
+
 for (const profile of ["javelin", "broodmother", "glutton"]) {
   const id = `lionwing.npc.${profile}.call`, initial = scene(`lionwing.npc.${profile}`);
   const available = Engine.availableEnemyRules(initial, data, "source").find(rule => rule.id === id);
@@ -53,6 +82,21 @@ for (const profile of ["javelin", "broodmother", "glutton"]) {
   assert.equal(Engine.availableEnemyRules(restored, data, "source").find(rule => rule.id === id).crowdSummon.count, 1, "reload preserves round use count");
   assert.throws(() => commit(afterSecond, first), /.+/, "stale replay cannot reapply an old Call");
 }
+
+const gluttonScene = scene("lionwing.npc.glutton", { hp: 10 });
+gluttonScene.actors.push(actor("enemy-fodder", "enemies", 3, 3, { kind: "crowd", profileId: null, hp: 1, maxHp: 1, ap: 0, baseAp: 0, speed: 0 }));
+const gluttonAfterKill = Engine.dispatchMany(gluttonScene, [{ id: "glutton-fodder-kill", type: "damage.apply", actorId: "source", payload: { targetId: "enemy-fodder", amount: 1, sourceActionId: "manual-glutton-hit" } }]).scene;
+assert.equal(gluttonAfterKill.actors.find(item => item.id === "source").hp, 15, "canonical Glutton heals 3 + Tier after knocking out Fodder");
+assert.equal(gluttonAfterKill.actors.find(item => item.id === "source").ruleState.gluttonConsumed, 1, "Glutton tracks passive triggers for Regurgitate");
+const regurgitateId = "lionwing.npc.glutton.regurgitate";
+const regurgitateRule = Engine.availableEnemyRules(gluttonAfterKill, data, "source").find(item => item.id === regurgitateId);
+assert.equal(regurgitateRule.automation, "full");
+assert.equal(regurgitateRule.crowdSummon.count, 1);
+const regurgitatePlan = prepare(gluttonAfterKill, regurgitateId, ["4,2"]);
+assert.equal(regurgitatePlan.ok, true, regurgitatePlan.errors?.join(" "));
+const regurgitated = commit(gluttonAfterKill, regurgitatePlan);
+assert.equal(fodder(regurgitated).filter(item => item.team === "heroes").length, 1, "Regurgitate creates the tracked number of allied Fodder Zones");
+assert.equal(regurgitated.actors.find(item => item.id === "opponent").effects.includes("negative.подброшен"), true, "Regurgitate Launches an occupant under a placed Zone");
 
 const giantSummoner = scene("lionwing.npc.javelin");
 giantSummoner.actors[0].x = 0;

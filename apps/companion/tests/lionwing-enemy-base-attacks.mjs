@@ -258,7 +258,7 @@ for (const id of manualActionIds) {
   assert.equal(status.automation, "assisted", `${id} retains manual fallback`);
 }
 const canonicalAceIds = canonicalNpcs.flatMap(profile => profile.ace?.id ? [profile.ace.id] : []);
-const automatedAceIds=new Set(["lionwing.npc.pugilist.martial-perfection","lionwing.npc.ranger.headshot","lionwing.npc.bodyguards.reinforcements","lionwing.npc.broodmother.roar","lionwing.npc.cocoon.quick-growth","lionwing.npc.guardian.imposing-presence","lionwing.npc.revenant.hollowed-eyes","lionwing.npc.berserker.last-stand","lionwing.npc.hound-master.wild-hunt","lionwing.npc.privateer.gear-change","lionwing.npc.swarm.reinforcements"]);
+const automatedAceIds=new Set(["lionwing.npc.pugilist.martial-perfection","lionwing.npc.ranger.headshot","lionwing.npc.bodyguards.reinforcements","lionwing.npc.broodmother.roar","lionwing.npc.cocoon.quick-growth","lionwing.npc.guardian.imposing-presence","lionwing.npc.revenant.hollowed-eyes","lionwing.npc.berserker.last-stand","lionwing.npc.glutton.regurgitate","lionwing.npc.hound-master.wild-hunt","lionwing.npc.privateer.gear-change","lionwing.npc.swarm.reinforcements"]);
 for (const id of canonicalAceIds) {
   const profile = id.split(".").slice(0, 3).join(".");
   const status = engine.availableEnemyRules(scene(profile), data, "enemy").find(item => item.id === id);
@@ -293,6 +293,32 @@ aceScene=acePrepare("lionwing.npc.berserker","lionwing.npc.berserker.last-stand"
 assert.equal(aceScene.actors[0].hp,23);assert.equal(aceScene.actors[0].ruleState.berserkerLastStand,true);assert.equal(aceScene.actors[0].extraTurns,1);
 aceScene=acePrepare("lionwing.npc.hound-master","lionwing.npc.hound-master.wild-hunt",{targetIds:["hero"],options:{destination:{x:2,y:1}}});
 assert.equal(aceScene.actors.filter(item=>item.crowdSubtype==="seeker").length,3);
+const canonicalSeekerScene=scene("lionwing.npc.hound-master");canonicalSeekerScene.actors[1].x=6;
+const canonicalSeekerRule=engine.availableEnemyRules(canonicalSeekerScene,data,"enemy").find(item=>item.id==="lionwing.npc.hound-master.fire-seeker");
+assert.equal(canonicalSeekerRule.automation,"full");
+const canonicalSeeker=engine.prepareEnemyRule(canonicalSeekerScene,data,{actorId:"enemy",ruleId:canonicalSeekerRule.id,targetIds:["hero"],options:{destination:{x:3,y:2}}});
+assert.equal(canonicalSeeker.ok,true,canonicalSeeker.errors?.join(" "));
+const loneSeekerSpawn=clone(canonicalSeeker.events.find(item=>item.type==="actor.spawn"));
+assert.throws(()=>engine.dispatchMany(canonicalSeekerScene,[loneSeekerSpawn]),/авторитетному правилу Псаря/,"a direct Seeker spawn cannot skip prepare and AP");
+const overfilledSeekerPrepare=clone(canonicalSeeker.events[0]);overfilledSeekerPrepare.payload.seekerSummon.cells.push("2,1");
+assert.throws(()=>engine.dispatchMany(canonicalSeekerScene,[overfilledSeekerPrepare]),/авторитетная настройка Ищеек/,"a client cannot enlarge Fire Seeker's placement budget");
+const offTurnSeekerScene=clone(canonicalSeekerScene);offTurnSeekerScene.activeActorId="hero";
+const forgedQuickSeekerPrepare=clone(canonicalSeeker.events[0]);forgedQuickSeekerPrepare.payload.quickReaction=true;
+assert.throws(()=>engine.dispatchMany(offTurnSeekerScene,[forgedQuickSeekerPrepare]),/авторитетная настройка Ищеек/,"a client cannot forge an off-turn Fire Seeker");
+const seekerCreated=engine.dispatchMany(canonicalSeekerScene,canonicalSeeker.events).scene;
+assert.equal(seekerCreated.actors.filter(item=>item.crowdSubtype==="seeker").length,1);
+const extraSeekerSpawn=clone(loneSeekerSpawn);extraSeekerSpawn.payload.actor.id="seeker-extra";extraSeekerSpawn.payload.actor.x=2;extraSeekerSpawn.payload.actor.y=1;
+assert.throws(()=>engine.dispatchMany(seekerCreated,[extraSeekerSpawn]),/авторитетному правилу Псаря/,"a client cannot append another Seeker after the paid action");
+const seekerWithAlly=clone(seekerCreated);seekerWithAlly.actors.push(actor("hound-ally","enemy",5,1));
+const seekerTurnEnd=engine.dispatchMany(seekerWithAlly,[{id:"lionwing-hound-turn-end",type:"turn.end",actorId:"enemy",payload:{}}]).scene;
+const seekerActor=seekerTurnEnd.actors.find(item=>item.crowdSubtype==="seeker"),seekerMove=engine.fodderMoveStatus(seekerTurnEnd,seekerActor.id);
+assert.equal(seekerMove.remaining,3);
+const seekerExploded=engine.dispatchMany(seekerTurnEnd,[{id:"lionwing-seeker-move",type:"actor.move",actorId:seekerActor.id,payload:{space:"main",x:5,y:2,placement:true,fodderMove:true,boundaryEventId:seekerMove.boundaryEventId}}]).scene;
+assert.equal(seekerExploded.actors.some(item=>item.id===seekerActor.id),false,"canonical Seeker explodes on its LionWing Fodder move");
+assert.equal(seekerExploded.actors.find(item=>item.id==="hero").hp,22,"canonical Seeker damages its adjacent opponent");
+assert.equal(seekerExploded.actors.find(item=>item.id==="hound-ally").hp,25,"canonical Seeker preserves its adjacent ally");
+canonicalSeekerScene.actors[1].x=5;
+assert.equal(engine.prepareEnemyRule(canonicalSeekerScene,data,{actorId:"enemy",ruleId:canonicalSeekerRule.id,targetIds:["hero"],options:{destination:{x:3,y:2}}}).ok,false,"Fire Seeker rejects a target nearer than four spaces");
 aceScene=acePrepare("lionwing.npc.privateer","lionwing.npc.privateer.gear-change");
 assert.equal(aceScene.actors[0].ruleState.privateerGearChange,true);assert.equal(aceScene.actors[0].extraTurns,1);
 
