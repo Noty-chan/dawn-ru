@@ -17,8 +17,8 @@
     "combinedAuditRecords": 163
   },
   "actualAutomationCounts": {
-    "assisted": 58,
-    "attack": 34,
+    "assisted": 57,
+    "attack": 35,
     "full": 28,
     "state": 2
   },
@@ -10167,9 +10167,9 @@
           "declaredStatus": "assisted",
           "actualHandler": {
             "entry": "DAWN_SCENE_ENGINE.prepareEnemyRule",
-            "implementation": null,
-            "automation": "assisted",
-            "note": "The common entry exists, but no automatic rule handler is selected."
+            "implementation": "scene-actions.js prepareEnemyRule (attack route)",
+            "automation": "attack",
+            "note": "Presence is recorded without promoting readiness or verifying completeness."
           },
           "uiEntryPoint": "scene-actions-ui.js useEnemyRule → DAWN_SCENE_ENGINE.prepareEnemyRule → commitSceneEvents",
           "tests": [
@@ -10196,7 +10196,7 @@
             "Audience is relative to actor/target; actor.kind or a hard-coded hero team is insufficient.",
             "Occupancy exceptions are rule-specific; Fodder is not forced through the ordinary empty-cell rule."
           ],
-          "remainder": "No selected production automation handler; full mechanics, payment, cancellation, persistence, and UI acceptance remain.",
+          "remainder": "Audit implementation against every clause; handler presence does not prove payment, lifecycle, persistence, browser, or network acceptance.",
           "wave": 3
         },
         {

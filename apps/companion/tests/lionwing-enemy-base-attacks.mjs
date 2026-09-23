@@ -36,6 +36,7 @@ const npcActionIds = [
   "lionwing.npc.revenant.tear-from-the-soul",
   "lionwing.npc.bannerman.swing",
   "lionwing.npc.bodyguards.behind-me",
+  "lionwing.npc.swarm.tear",
   "lionwing.npc.broodmother.swarming-chase",
   "lionwing.npc.cocoon.rampage",
   "lionwing.npc.builder.violent-construction",
@@ -59,7 +60,6 @@ const manualActionIds = [
   "lionwing.npc.oni.polaris",
   "lionwing.npc.matriarch.destroy-the-interloper",
   "lionwing.npc.coordinator.fanaticize",
-  "lionwing.npc.swarm.tear",
 ];
 const fullActionIds = ["lionwing.npc.cannoneer.load"];
 const actor = (id, team, x, y, extra = {}) => ({
@@ -364,6 +364,42 @@ bodyguards=commitWithIds(bodyguards,behind,"behind-me").result.scene;
 assert.ok(bodyguards.actors.find(item=>item.id==="ally").effects.includes("positive.укреплен"),"Behind Me Reinforces allied targets immediately");
 bodyguards=passAndResolve(bodyguards,"behind-me");
 assert.ok(bodyguards.actors.find(item=>item.id==="hero").effects.includes("negative.ошеломлен"),"Behind Me Dazes an untouched opponent after damage");
+
+// Swarm Tear moves allied Fodder first and lets the Narrator choose which
+// successfully hit opponent receives its one Daze.
+let swarmTear=scene("lionwing.npc.swarm",{actors:[
+  actor("enemy","enemy",1,1,{profileId:"lionwing.npc.swarm"}),
+  actor("fodder","enemy",2,2,{kind:"crowd",heroId:null,profileId:null,hp:1,maxHp:1}),
+  actor("hero","hero",4,2),
+]});
+const blockedTear=engine.prepareEnemyRule({...swarmTear,activeActorId:"hero"},data,{actorId:"enemy",ruleId:"lionwing.npc.swarm.tear",options:{beginCrowdMovement:true}});
+assert.equal(blockedTear.ok,false,"Tear cannot begin its Fodder movement during another character's Turn");
+assert.throws(()=>engine.dispatchMany(swarmTear,[{id:"forged-tear-move",type:"actor.move",actorId:"fodder",payload:{space:"main",x:3,y:2,enemyRuleMove:"lionwing.npc.swarm.tear",sourceActorId:"enemy",maximum:1,participantIds:["enemy","fodder"]}}]),"a raw Fodder move cannot claim Tear's free pre-attack movement");
+const beginTear=engine.prepareEnemyRule(swarmTear,data,{actorId:"enemy",ruleId:"lionwing.npc.swarm.tear",options:{beginCrowdMovement:true}});
+assert.equal(beginTear.ok,true,beginTear.errors?.join(" "));
+swarmTear=commitWithIds(swarmTear,beginTear,"swarm-tear-begin").result.scene;
+assert.equal(swarmTear.pendingPrompt?.kind,"enemy-crowd-move-select");
+const selectTearFodder=engine.respondRulePrompt(swarmTear,data,{choice:"target:fodder"});
+assert.equal(selectTearFodder.ok,true,selectTearFodder.errors?.join(" "));
+swarmTear=commitWithIds(swarmTear,selectTearFodder,"swarm-tear-select").result.scene;
+assert.equal(swarmTear.pendingPrompt?.kind,"enemy-crowd-move-cell");
+const moveTearFodder=engine.preparePromptPlacement(swarmTear,{destination:{x:3,y:2}});
+assert.equal(moveTearFodder.ok,true,moveTearFodder.errors?.join(" "));
+swarmTear=commitWithIds(swarmTear,moveTearFodder,"swarm-tear-move").result.scene;
+assert.equal(swarmTear.actors.find(item=>item.id==="fodder").x,3);
+const finishTear=engine.respondRulePrompt(swarmTear,data,{choice:"finish"});
+assert.equal(finishTear.ok,true,finishTear.errors?.join(" "));
+swarmTear=commitWithIds(swarmTear,finishTear,"swarm-tear-finish").result.scene;
+assert.equal(swarmTear.actors.find(item=>item.id==="enemy").ruleState.enemyCrowdMovement.ruleId,"lionwing.npc.swarm.tear");
+const tear=engine.prepareEnemyRule(swarmTear,data,{actorId:"enemy",ruleId:"lionwing.npc.swarm.tear",targetIds:["hero"],roll:dice(6)});
+assert.equal(tear.ok,true,tear.errors?.join(" "));
+swarmTear=commitWithIds(swarmTear,tear,"swarm-tear").result.scene;
+swarmTear=passAndResolve(swarmTear,"swarm-tear");
+assert.equal(swarmTear.pendingPrompt?.kind,"enemy-swarm-stun","Tear offers the single Daze choice after a successful hit");
+const dazeTear=engine.respondRulePrompt(swarmTear,data,{choice:"target:hero"});
+assert.equal(dazeTear.ok,true,dazeTear.errors?.join(" "));
+swarmTear=commitWithIds(swarmTear,dazeTear,"swarm-tear-daze").result.scene;
+assert.equal(swarmTear.actors.find(item=>item.id==="hero").effects.includes("negative.ошеломлен"),true);
 
 // Broodmother moves as a one-cell group, derives only opponents newly entered
 // into adjacency, and counts the Fodder that actually follows her destination.
