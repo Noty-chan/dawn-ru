@@ -8405,6 +8405,7 @@
             "apps/companion/tests/lionwing-modifier-collateral.mjs",
             "apps/companion/tests/lionwing-modifier-contagion.mjs",
             "apps/companion/tests/lionwing-modifier-earthquake.mjs",
+            "apps/companion/tests/lionwing-modifier-giant.mjs",
             "apps/companion/tests/lionwing-modifier-haven.mjs",
             "apps/companion/tests/lionwing-modifier-isolation.mjs",
             "apps/companion/tests/lionwing-modifier-legion.mjs",

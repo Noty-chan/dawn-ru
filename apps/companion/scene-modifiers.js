@@ -23,6 +23,7 @@ const LIONWING_COLLATERAL_ID = "lionwing.modifier.collateral";
 const LIONWING_LEGION_ID = "lionwing.modifier.legion";
 const LIONWING_VORTEX_ID = "lionwing.modifier.vortex";
 const LIONWING_BLAZE_ID = "lionwing.modifier.blaze";
+const LIONWING_GIANT_ID = "lionwing.modifier.giant";
 const lionwingModifierTension = scene => Number(globalThis.DAWN_LIONWING_COMBAT_METER?.read?.(scene)?.current ?? scene?.tension ?? 0);
 const ATTACHED_MODIFIER_IDS = new Set([
   ENEMY_MODIFIER_IDS.contagion,
@@ -35,6 +36,7 @@ const ATTACHED_MODIFIER_IDS = new Set([
   ENEMY_MODIFIER_IDS.isolation,
   LIONWING_VORTEX_ID,
   LIONWING_BLAZE_ID,
+  LIONWING_GIANT_ID,
 ]);
 const AREA_MODIFIER_IDS = new Set([
   ENEMY_MODIFIER_IDS.artillery,
@@ -50,7 +52,7 @@ const PLAYER_ANCHOR_MODIFIER_IDS = new Set([
   LIONWING_CONTAGION_ID,
 ]);
 const isEnemyModifier = (actor) =>
-  Boolean(actor && (Object.values(ENEMY_MODIFIER_IDS).includes(actor.profileId) || [LIONWING_ISOLATION_ID,LIONWING_ARTILLERY_ID,LIONWING_HAVEN_ID,LIONWING_CONTAGION_ID,LIONWING_EARTHQUAKE_ID,LIONWING_VIP_ID,LIONWING_COLLATERAL_ID,LIONWING_LEGION_ID,LIONWING_VORTEX_ID,LIONWING_BLAZE_ID].includes(actor.profileId)));
+  Boolean(actor && (Object.values(ENEMY_MODIFIER_IDS).includes(actor.profileId) || [LIONWING_ISOLATION_ID,LIONWING_ARTILLERY_ID,LIONWING_HAVEN_ID,LIONWING_CONTAGION_ID,LIONWING_EARTHQUAKE_ID,LIONWING_VIP_ID,LIONWING_COLLATERAL_ID,LIONWING_LEGION_ID,LIONWING_VORTEX_ID,LIONWING_BLAZE_ID,LIONWING_GIANT_ID].includes(actor.profileId)));
 const isAttachedModifier = (actor) =>
   Boolean(actor && (ATTACHED_MODIFIER_IDS.has(actor.profileId) || actor.profileId === LIONWING_ISOLATION_ID));
 const lionwingSceneModifierActive = (scene) =>
@@ -197,7 +199,7 @@ function modifierConfigurationStatus(scene, actorId, request = {}) {
     errors = [];
   if (!isEnemyModifier(actor) || actor.knockedOut)
     errors.push("Модификатор недоступен.");
-  if ([LIONWING_ISOLATION_ID,LIONWING_ARTILLERY_ID,LIONWING_HAVEN_ID,LIONWING_CONTAGION_ID,LIONWING_EARTHQUAKE_ID,LIONWING_VIP_ID,LIONWING_COLLATERAL_ID,LIONWING_LEGION_ID,LIONWING_VORTEX_ID,LIONWING_BLAZE_ID].includes(actor?.profileId) && actor.team !== "enemy")
+  if ([LIONWING_ISOLATION_ID,LIONWING_ARTILLERY_ID,LIONWING_HAVEN_ID,LIONWING_CONTAGION_ID,LIONWING_EARTHQUAKE_ID,LIONWING_VIP_ID,LIONWING_COLLATERAL_ID,LIONWING_LEGION_ID,LIONWING_VORTEX_ID,LIONWING_BLAZE_ID,LIONWING_GIANT_ID].includes(actor?.profileId) && actor.team !== "enemy")
     errors.push("Модификатор LionWing размещается на стороне противников.");
   const carrier = request.carrierId
     ? actorById(scene, request.carrierId)
@@ -220,6 +222,8 @@ function modifierConfigurationStatus(scene, actorId, request = {}) {
     errors.push("Вихрь уже прикреплён в этой Сцене.");
   if (actor?.profileId === LIONWING_BLAZE_ID && modifierState(actor).carrierId)
     errors.push("Пламя уже прикреплено в этой Сцене.");
+  if (actor?.profileId === LIONWING_GIANT_ID && modifierState(actor).carrierId)
+    errors.push("Гигант уже прикреплён в этой Сцене.");
   if (actor?.profileId === LIONWING_ARTILLERY_ID && modifierState(actor).mode && request.mode !== modifierState(actor).mode)
     errors.push("Форма Артиллерии выбирается один раз при Развёртывании.");
   if (actor?.profileId === LIONWING_ARTILLERY_ID && modifierState(actor).cells?.length && !modifierRefreshDue(scene, actor))
@@ -873,7 +877,8 @@ function modifierActionStatus(scene, request = {}) {
     errors.push("Модификатор недоступен.");
   if (["gargantuan-strike", "giant-charge", "legion-return"].includes(action)) {
     if (["gargantuan-strike", "giant-charge"].includes(action) && (!carrier || scene.activeActorId !== carrier.id)) errors.push("Дополнительная Атака доступна только в Ход носителя.");
-    if (Number(modifierState(actor).lastActionRound || 0) === Number(scene.round || 1)) errors.push("Эта дополнительная Атака уже использована в текущем Раунде.");
+    if (![LIONWING_GIANT_ID].includes(actor?.profileId) && Number(modifierState(actor).lastActionRound || 0) === Number(scene.round || 1)) errors.push("Эта дополнительная Атака уже использована в текущем Раунде.");
+    if ([LIONWING_GIANT_ID].includes(actor?.profileId) && Number(carrier?.ap||0)<1) errors.push("Для Атаки Гиганта нужен 1 ОД носителя.");
   }
   if (action === "gargantuan-strike") {
     const count = modifierTierValue("5(+1)", actor?.tier),
@@ -898,7 +903,7 @@ function modifierActionStatus(scene, request = {}) {
       dy = Number(d.y) - Number(carrier?.y),
       space = (scene.spaces || []).find((item) => item.id === carrier?.space);
     const invalidGeometry =
-      actor?.profileId !== ENEMY_MODIFIER_IDS.giant ||
+      ![ENEMY_MODIFIER_IDS.giant,LIONWING_GIANT_ID].includes(actor?.profileId) ||
       !carrier ||
       !Number.isInteger(Number(d.x)) ||
       !Number.isInteger(Number(d.y)) ||
@@ -993,6 +998,7 @@ function prepareModifierAction(scene, request = {}) {
           ].filter(Boolean),
         },
       },
+      ...(status.actor.profileId===LIONWING_GIANT_ID?[{type:"resource.spend",actorId:status.carrier.id,payload:{resource:"ap",amount:1,sourceActionId:"lionwing.modifier.giant.attack",participantIds:[status.actor.id,status.carrier.id]}}]:[]),
     ],
   };
 }
@@ -1062,7 +1068,7 @@ function modifierActionEvents(scene, event) {
         y: Number(status.destination.y),
         placement: true,
         movement: "Гигант · рывок 2×2",
-        sourceActionId: "enemy.modifier.giant.attack",
+        sourceActionId: actor.profileId===LIONWING_GIANT_ID?"lionwing.modifier.giant.attack":"enemy.modifier.giant.attack",
         participantIds: [actor.id, status.carrier.id],
       },
     });
