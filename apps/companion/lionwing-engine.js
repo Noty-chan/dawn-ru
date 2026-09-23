@@ -4224,6 +4224,8 @@
     const pendingEnemyFlow = scene.pendingAction?.enemyRuleId && events.some(event => ["reaction.respond", "rule.respond", "damage.apply", "effect.apply", "actor.move", "actor.enter", "attack.clear"].includes(event?.type));
     const rangerPromptFlow = scene.pendingPrompt?.kind === "enemy-ranger-retreat" && events.some(event => event?.type === "rule.respond");
     const crowdPromptFlow = ["fodder-", "enemy-crowd-move-", "enemy-swarm-stun"].some(prefix => scene.pendingPrompt?.kind?.startsWith(prefix)) && events.some(event => event?.type === "rule.respond");
+    const modifierFlow = events.length > 0 && events.every(event => event?.type === "modifier.configure" && (scene.actors || []).some(actor => actor.id === event.actorId && actor.profileId === "lionwing.modifier.isolation") || event?.type === "rule.respond" && scene.pendingPrompt?.kind === "modifier-refresh" && scene.pendingPrompt?.sourceActorId === event.actorId && (scene.actors || []).some(actor => actor.id === event.actorId && actor.profileId === "lionwing.modifier.isolation"));
+    if (modifierFlow) return legacy.dispatchMany(scene, events, options);
     const enemyEventFlow = events.some(event => ["enemy.action.prepare", "enemy.action.resolve", "attack.pending", "attack.clear"].includes(event?.type) || event?.type === "rule.prompt" && event.payload?.kind?.startsWith("enemy-crowd-move-")) || pendingEnemyFlow || rangerPromptFlow || crowdPromptFlow;
     if (enemyEventFlow) {
       validateEnemySimpleWaveActionEvents(scene, events);
@@ -4369,6 +4371,10 @@
       if (["turn.end", "round.end"].includes(event.type)) for (const boundary of output.slice(outputStart).filter(item => item.type === event.type)) {
         const prompts = legacy.fodderBoundaryPromptEvents?.(next, boundary) || [];
         if (prompts.length) { const prompted = legacy.dispatchMany(next, prompts); next = prompted.scene; output.push(...prompted.events); }
+        if (boundary.type === "round.end") {
+          const modifierEvents = legacy.modifierRoundEndEvents?.(next, boundary, "lionwing") || [];
+          if (modifierEvents.length) { const result = legacy.dispatchMany(next, modifierEvents); next = result.scene; output.push(...result.events); }
+        }
       }
       state(next).receipts.push({ id: event.id, fingerprint }); state(next).receipts = state(next).receipts.slice(-256);
     }

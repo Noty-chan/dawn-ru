@@ -61,7 +61,7 @@
   function modifiers(coreRules){
     return (coreRules?.rules||[])
       .filter(rule=>String(rule.id||"").startsWith("lionwing.modifier.")&&["npc-modifier","scene-modifier"].includes(rule.kind))
-      .map(rule=>({id:rule.id,kind:rule.kind,name:rule.name,text:rule.text,source:rule.source||null,editionId:"lionwing"}));
+      .map(rule=>({id:rule.id,kind:rule.kind,name:rule.name,text:rule.text,source:rule.source||null,editionId:"lionwing",tags:rule.kind==="npc-modifier"?"NPC Modifier":"Scene Modifier",stats:{health:"0",speed:"0",armor:"0",evasion:"0"},rules:[]}));
   }
 
   function effects(coreRules){

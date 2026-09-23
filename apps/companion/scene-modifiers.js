@@ -13,6 +13,7 @@ const ENEMY_MODIFIER_IDS = Object.freeze({
   vip: "enemy.modifier.vip",
   vortex: "enemy.modifier.vortex",
 });
+const LIONWING_ISOLATION_ID = "lionwing.modifier.isolation";
 const lionwingModifierTension = scene => Number(globalThis.DAWN_LIONWING_COMBAT_METER?.read?.(scene)?.current ?? scene?.tension ?? 0);
 const ATTACHED_MODIFIER_IDS = new Set([
   ENEMY_MODIFIER_IDS.contagion,
@@ -30,11 +31,12 @@ const PLAYER_ANCHOR_MODIFIER_IDS = new Set([
   ENEMY_MODIFIER_IDS.contagion,
   ENEMY_MODIFIER_IDS.isolation,
   ENEMY_MODIFIER_IDS.vortex,
+  LIONWING_ISOLATION_ID,
 ]);
 const isEnemyModifier = (actor) =>
-  Boolean(actor && Object.values(ENEMY_MODIFIER_IDS).includes(actor.profileId));
+  Boolean(actor && (Object.values(ENEMY_MODIFIER_IDS).includes(actor.profileId) || actor.profileId === LIONWING_ISOLATION_ID));
 const isAttachedModifier = (actor) =>
-  Boolean(actor && ATTACHED_MODIFIER_IDS.has(actor.profileId));
+  Boolean(actor && (ATTACHED_MODIFIER_IDS.has(actor.profileId) || actor.profileId === LIONWING_ISOLATION_ID));
 const modifierTierValue = (formula, tier = 1) =>
   enemyTierFormula(formula, tier);
 const modifierState = (actor) =>
@@ -159,6 +161,10 @@ function modifierConfigurationStatus(scene, actorId, request = {}) {
   const carrier = request.carrierId
     ? actorById(scene, request.carrierId)
     : modifierCarrier(scene, actor);
+  if (actor?.profileId === LIONWING_ISOLATION_ID && modifierState(actor).carrierId && carrier?.id !== modifierState(actor).carrierId)
+    errors.push("Носитель Изоляции уже выбран для этой Сцены.");
+  if (actor?.profileId === LIONWING_ISOLATION_ID && modifierState(actor).carrierId && scene.pendingPrompt?.kind !== "modifier-refresh")
+    errors.push("Изоляция меняет указанного персонажа только после срабатывания в конце Раунда.");
   if (
     isAttachedModifier(actor) &&
     (!carrier ||
@@ -166,11 +172,15 @@ function modifierConfigurationStatus(scene, actorId, request = {}) {
       carrier.team !== actor.team ||
       carrier.knockedOut ||
       carrier.kind === "crowd" ||
-      carrier.profileId?.startsWith("enemy.modifier."))
+      (carrier.profileId?.startsWith("enemy.modifier.") || carrier.profileId?.startsWith("lionwing.modifier.")))
   )
     errors.push("Выберите живого обычного врага-носителя на той же стороне.");
   const targetId = request.targetId ?? modifierState(actor).targetId,
     target = actorById(scene, targetId);
+  if (actor?.profileId === LIONWING_ISOLATION_ID && target && target.team !== "hero")
+    errors.push("Изоляция требует персонажа игрока.");
+  if (actor?.profileId === LIONWING_ISOLATION_ID && scene.pendingPrompt?.kind === "modifier-refresh" && scene.pendingPrompt.sourceActorId === actor.id && Number(modifierState(actor).configuredRound || 0) !== Number(scene.round || 1) && target?.id === modifierState(actor).targetId)
+    errors.push("После срабатывания Изоляции выберите другого персонажа игрока.");
   if (
     PLAYER_ANCHOR_MODIFIER_IDS.has(actor?.profileId) &&
     (!target ||
@@ -303,6 +313,14 @@ function modifierDamageEvents(scene, actor, boundaryEvent) {
     events = [],
     sourceActionId = `${actor.profileId}.round-end`;
   let targets = [];
+  if (actor.profileId === LIONWING_ISOLATION_ID) {
+    const anchor = actorById(scene, state.targetId);
+    if (!carrier || carrier.knockedOut || !anchor || anchor.knockedOut || carrier.space !== anchor.space) return [];
+    targets = livePlayers(scene).filter(target => target.id !== anchor.id && target.space === anchor.space && distance(anchor, target) <= 3);
+    const total = (2 + Number(actor.tier || 1)) * livePlayers(scene).length;
+    const each = targets.length ? Math.ceil(total / targets.length) : 0;
+    return targets.map(target => ({type:"damage.apply",actorId:actor.id,payload:{targetId:target.id,amount:each,sourceActionId,boundaryEventId,participantIds:[actor.id,carrier.id,anchor.id,target.id]}}));
+  }
   if (actor.profileId === ENEMY_MODIFIER_IDS.artillery)
     targets = opponents.filter(
       (target) =>
@@ -367,10 +385,10 @@ function modifierDamageEvents(scene, actor, boundaryEvent) {
     });
   return events;
 }
-function modifierRoundEndEvents(scene, boundaryEvent) {
+function modifierRoundEndEvents(scene, boundaryEvent, edition = null) {
   const events = [];
   for (const actor of (scene.actors || []).filter(
-    (item) => isEnemyModifier(item) && !item.knockedOut,
+    (item) => isEnemyModifier(item) && !item.knockedOut && (edition !== "lionwing" || item.profileId === LIONWING_ISOLATION_ID),
   )) {
     events.push(...modifierDamageEvents(scene, actor, boundaryEvent));
     if (actor.profileId === ENEMY_MODIFIER_IDS.vortex) {
@@ -468,7 +486,9 @@ function modifierRoundEndEvents(scene, boundaryEvent) {
         ENEMY_MODIFIER_IDS.earthquake,
         ENEMY_MODIFIER_IDS.haven,
         ENEMY_MODIFIER_IDS.isolation,
+        LIONWING_ISOLATION_ID,
       ].includes(actor.profileId)
+      && (actor.profileId !== LIONWING_ISOLATION_ID || modifierCarrier(scene, actor) && !modifierCarrier(scene, actor).knockedOut && livePlayers(scene).some(player => player.id !== modifierState(actor).targetId))
     )
       events.push({
         type: "rule.prompt",
