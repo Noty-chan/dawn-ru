@@ -20,6 +20,18 @@ let plan=engine.prepareModifierConfigure(scene,{actorId:"isolation",carrierId:"h
 assert.equal(plan.ok,true,plan.errors?.join(" "));
 scene=commit(scene,plan,"isolation-configure");
 assert.equal(scene.actors.find(item=>item.id==="isolation").modifierState.carrierId,"host");
+assert.equal(engine.compoundEnemyStatus(scene,"host").active,false,"attached modifier must not turn Host into a Compound enemy");
+const appContext={console,crypto:{randomUUID:()=>"normalized-id"},APP_SCHEMA:14,contentPreferences:{edition:"lionwing"},uid:()=>"normalized-id",clamp:(value,min,max)=>Math.max(min,Math.min(max,Number(value)||0)),cleanArray:value=>Array.isArray(value)?value.filter(item=>typeof item==="string"):[]};
+vm.createContext(appContext);
+const appSource=fs.readFileSync(new URL("../app-core.js",import.meta.url),"utf8");
+vm.runInContext(appSource.slice(appSource.indexOf("function blankScene()"),appSource.indexOf("function normalizeScene(raw)")),appContext,{filename:"app-core.scene-normalizer.js"});
+const persisted=vm.runInContext(`sceneCore(${JSON.stringify(scene)})`,appContext);
+assert.equal(persisted.actors.find(item=>item.id==="isolation").modifierState.carrierId,"host","reload preserves the canonical attachment");
+assert.equal(persisted.actors.find(item=>item.id==="isolation").modifierState.targetId,"anchor","reload preserves the canonical player anchor");
+const oldCompound=structuredClone(scene);oldCompound.actors.find(item=>item.id==="host").compoundId="modifier-carrier-host";oldCompound.actors.find(item=>item.id==="isolation").compoundId="modifier-carrier-host";
+const normalizedOldCompound=vm.runInContext(`sceneCore(${JSON.stringify(oldCompound)})`,appContext);
+assert.equal(normalizedOldCompound.actors.find(item=>item.id==="host").compoundId,null,"reload repairs earlier Host-Modifier Compound grouping");
+assert.equal(normalizedOldCompound.actors.find(item=>item.id==="isolation").compoundId,null);
 assert.equal(engine.prepareModifierConfigure(scene,{actorId:"isolation",carrierId:"host",targetId:"near"}).ok,false,"the anchor cannot change before Round end");
 scene=engine.dispatchMany(scene,[{id:"isolation-round-1",type:"round.end",payload:{}}]).scene;
 assert.equal(scene.round,2,"LionWing round lifecycle remains authoritative");
