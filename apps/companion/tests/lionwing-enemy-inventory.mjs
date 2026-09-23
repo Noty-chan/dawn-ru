@@ -80,7 +80,7 @@ function sourceFor(profile) {
     pdfPath,
     pdfPage: profile.source?.pdfPage ?? null,
     printedPage: null,
-    pdfVerification: fs.existsSync(path.join(repo, pdfPath)) ? "available-not-visually-verified-by-this-test" : "not-run:file-absent",
+    pdfVerification: "not-run:S00-inventory-only",
   };
 }
 
@@ -105,7 +105,7 @@ function ruleEntry(profile, rule) {
     },
     uiEntryPoint: "scene-actions-ui.js useEnemyRule → DAWN_SCENE_ENGINE.prepareEnemyRule → commitSceneEvents",
     tests: evidenceTests(profile, rule),
-    notRun: ["real browser click path", "two-client network/reconnect", ...(fs.existsSync(path.join(repo, pdfPath)) ? ["visual PDF comparison"] : ["visual PDF comparison: PDF absent from worktree"])],
+    notRun: ["real browser click path", "two-client network/reconnect", "visual PDF comparison (outside S00 inventory)"],
     dependencies: dependencies(rule.text),
     ambiguities: ambiguities(rule.text),
     remainder: actual === "assisted" ? "No selected production automation handler; full mechanics, payment, cancellation, persistence, and UI acceptance remain." : "Audit implementation against every clause; handler presence does not prove payment, lifecycle, persistence, browser, or network acceptance.",
@@ -130,7 +130,7 @@ function passiveEntry(profile) {
     actualHandler: { entry: null, implementation: null, automation: "unknown", note: "Passive coverage cannot be inferred from action automation; production triggers require clause-by-clause audit." },
     uiEntryPoint: text ? "unknown (passives are trigger/lifecycle driven; no generic action button)" : null,
     tests: evidenceTests(profile, null),
-    notRun: text ? ["complete trigger-to-writer trace", "real browser lifecycle", "reload/export/import", "two-client network/reconnect", ...(fs.existsSync(path.join(repo, pdfPath)) ? ["visual PDF comparison"] : ["visual PDF comparison: PDF absent from worktree"])] : [],
+    notRun: text ? ["complete trigger-to-writer trace", "real browser lifecycle", "reload/export/import", "two-client network/reconnect", "visual PDF comparison (outside S00 inventory)"] : [],
     dependencies: dependencies(text),
     ambiguities: ambiguities(text),
     remainder: text ? "Find and prove exact trigger, choices, writer, persistence, allied-NPC behavior, and clause coverage; do not infer from an action handler." : "None: canonical profile has no passive text.",

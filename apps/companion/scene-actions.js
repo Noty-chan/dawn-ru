@@ -224,13 +224,18 @@ const ENEMY_FULL_RULES = new Map([
   ["lionwing.npc.privateer.gear-change", { type: "privateer-gear-change" }],
   ["enemy.common.ronin.action.sheath", { type: "ronin-sheath" }],
   ["enemy.common.javelin.action.call", { type: "crowd-summon", formula: "2(+1)", range: 4, diminishEachRoundUse: true }],
+  ["lionwing.npc.javelin.call", { type: "crowd-summon", formula: "2(+1)", range: 4, diminishEachRoundUse: true }],
   ["enemy.common.broodmother.action.call", { type: "crowd-summon", formula: "2(+1)", range: 4, diminishEachRoundUse: true }],
+  ["lionwing.npc.broodmother.call", { type: "crowd-summon", formula: "2(+1)", range: 4, diminishEachRoundUse: true }],
   ["enemy.common.glutton.action.call", { type: "crowd-summon", formula: "2(+1)", range: 4, diminishEachRoundUse: true }],
+  ["lionwing.npc.glutton.call", { type: "crowd-summon", formula: "2(+1)", range: 4, diminishEachRoundUse: true }],
   ["enemy.common.glutton.trump.regurgitate", { type: "crowd-summon", countState: "gluttonConsumed", knockUpOccupants: true }],
   ["enemy.common.swarm.action.call", { type: "crowd-summon", formula: "2(+1)", range: 4, oncePerRound: true }],
+  ["lionwing.npc.swarm.call", { type: "crowd-summon", formula: "2(+1)", edge: true, diminishEachRoundUse: true }],
   ["enemy.common.bodyguards.trump.reinforcements", { type: "crowd-summon", formula: "2(+1)", edge: true, grantTurn: true }],
   ["lionwing.npc.bodyguards.reinforcements", { type: "crowd-summon", formula: "4(+1)", edge: true, grantTurn: true }],
   ["enemy.common.swarm.trump.reinforcements", { type: "crowd-summon", formula: "5(+2)", edge: true, grantTurn: true }],
+  ["lionwing.npc.swarm.reinforcements", { type: "crowd-summon", formula: "5(+1)", edge: true, grantTurn: true }],
   ["enemy.named.leon-academy-spatial-mage.trump.elemental-breach", {
     type: "summon-profiles",
     profiles: ["enemy.named.leon-s-vayu-spirit", "enemy.named.leon-s-agni-spirit"],
@@ -261,13 +266,22 @@ const LIONWING_SIMPLE_ACTION_DIGESTS = new Map([
   ["lionwing.npc.spright.discombobulate", "sha256:c04c88f43a64b370cca2c6c976955332410f28a78e6f8c5b23f7c99811630999"],
 ]);
 
+const LIONWING_CROWD_RULE_DIGESTS = new Map([
+  ["lionwing.npc.javelin.call", "sha256:71efaab0e5fd5f9b1c62b310c4c1cad15d252de5021cc69bdc601349631a64c1"],
+  ["lionwing.npc.broodmother.call", "sha256:71efaab0e5fd5f9b1c62b310c4c1cad15d252de5021cc69bdc601349631a64c1"],
+  ["lionwing.npc.glutton.call", "sha256:71efaab0e5fd5f9b1c62b310c4c1cad15d252de5021cc69bdc601349631a64c1"],
+  ["lionwing.npc.swarm.call", "sha256:f2cc9f5797e4cefdb51fd7f6392c334ae89ed74ee7ed77becde1d6cb4c682dbf"],
+  ["lionwing.npc.bodyguards.reinforcements", "sha256:c9dcd60d0e5db74265396768bc1df6d0d6d963b8fcad8152a0489ae53691fed7"],
+  ["lionwing.npc.swarm.reinforcements", "sha256:3c3fbdf4687fc24dce30d03ad98c9fa9ba6ca08e38493b94e433892478ca215d"],
+]);
+
 const enemyCanonicalRule = rule => {
-  const ruleId = typeof rule === "string" ? rule : rule?.id, metadata = ruleId ? LIONWING_AUTO_ATTACK_RULES.get(ruleId) : null, simpleDigest = LIONWING_SIMPLE_ACTION_DIGESTS.get(ruleId);
+  const ruleId = typeof rule === "string" ? rule : rule?.id, metadata = ruleId ? LIONWING_AUTO_ATTACK_RULES.get(ruleId) : null, simpleDigest = LIONWING_SIMPLE_ACTION_DIGESTS.get(ruleId), crowdDigest = LIONWING_CROWD_RULE_DIGESTS.get(ruleId), digest = simpleDigest || crowdDigest;
   const fullRule = ruleId ? ENEMY_FULL_RULES.get(ruleId) : null;
   const targetMetadata = fullRule?.requiresTarget ? { requiresTarget: true, maxTargets: Number(fullRule.maxTargets || 1), audience: fullRule.audience || "any" } : null;
-  if (!metadata && !simpleDigest && !targetMetadata) return rule;
+  if (!metadata && !digest && !targetMetadata) return rule;
   const base = typeof rule === "string" ? { id: rule } : rule;
-  return { ...base, ...(metadata ? clone(metadata) : {}), ...(targetMetadata || {}), ...(simpleDigest ? { sourceDigest: simpleDigest } : {}), ...(metadata || simpleDigest ? { sourceDigest: simpleDigest || base.sourceDigest || LIONWING_ENEMY_SOURCE_DIGEST, apCost: Number(base.apCost || 1) } : {}) };
+  return { ...base, ...(metadata ? clone(metadata) : {}), ...(targetMetadata || {}), ...(metadata || digest ? { sourceDigest: digest || base.sourceDigest || LIONWING_ENEMY_SOURCE_DIGEST, apCost: Number(base.apCost || 1) } : {}) };
 };
 const enemyAttackFamilyForRule = ruleId => ENEMY_ATTACK_FAMILY_RULES.get(ruleId) || {};
 const enemyAttackTensionMultiplier = ruleId => Number(ENEMY_AUTO_ATTACK_RULES.get(ruleId) || 0);
@@ -903,7 +917,9 @@ function availableEnemyRules(scene, data, actorId) {
     else if (rule.kind === "trump" && Number(scene.tension || 0) < Number(rule.tension || 0)) reason = `Нужно Напряжение ${rule.tension}`;
     else if (rule.id === "enemy.common.cannoneer.trump.fire" && !clockStatus(scene, actor.id, "enemy.common.cannoneer.preparation").full) reason = "Сначала заполните Подготовку 4/4";
     const roninSheathed = rule.id === "enemy.common.ronin.attack.dissect" && actor.ruleState?.roninSheathed;
-    return { ...clone(rule), ...family, ...(roninSheathed ? { adjacent: false, range: Number(actor.speed || 0) } : {}), maxTargets, automation, available: !reason, reason };
+    const roundUses = fullRule?.type === "crowd-summon" ? currentRoundEvents(scene).filter(event => event.type === "enemy.action.prepare" && event.actorId === actor.id && event.payload?.ruleId === rule.id).length : 0;
+    const crowdSummon = fullRule?.type === "crowd-summon" ? { count: Math.max(0, fullRule.countState ? Number(actor.ruleState?.[fullRule.countState] || 0) : enemyTierFormula(fullRule.formula, actor.tier) - (fullRule.diminishEachRoundUse ? roundUses : 0)), edge: Boolean(fullRule.edge), range: fullRule.range == null ? null : Number(fullRule.range) } : null;
+    return { ...clone(rule), ...family, ...(roninSheathed ? { adjacent: false, range: Number(actor.speed || 0) } : {}), ...(crowdSummon ? { crowdSummon } : {}), maxTargets, automation, available: !reason, reason };
   });
 }
 

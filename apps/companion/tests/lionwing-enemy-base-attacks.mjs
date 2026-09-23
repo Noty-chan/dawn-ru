@@ -258,7 +258,7 @@ for (const id of manualActionIds) {
   assert.equal(status.automation, "assisted", `${id} retains manual fallback`);
 }
 const canonicalAceIds = canonicalNpcs.flatMap(profile => profile.ace?.id ? [profile.ace.id] : []);
-const automatedAceIds=new Set(["lionwing.npc.pugilist.martial-perfection","lionwing.npc.ranger.headshot","lionwing.npc.bodyguards.reinforcements","lionwing.npc.broodmother.roar","lionwing.npc.cocoon.quick-growth","lionwing.npc.guardian.imposing-presence","lionwing.npc.revenant.hollowed-eyes","lionwing.npc.berserker.last-stand","lionwing.npc.hound-master.wild-hunt","lionwing.npc.privateer.gear-change"]);
+const automatedAceIds=new Set(["lionwing.npc.pugilist.martial-perfection","lionwing.npc.ranger.headshot","lionwing.npc.bodyguards.reinforcements","lionwing.npc.broodmother.roar","lionwing.npc.cocoon.quick-growth","lionwing.npc.guardian.imposing-presence","lionwing.npc.revenant.hollowed-eyes","lionwing.npc.berserker.last-stand","lionwing.npc.hound-master.wild-hunt","lionwing.npc.privateer.gear-change","lionwing.npc.swarm.reinforcements"]);
 for (const id of canonicalAceIds) {
   const profile = id.split(".").slice(0, 3).join(".");
   const status = engine.availableEnemyRules(scene(profile), data, "enemy").find(item => item.id === id);
