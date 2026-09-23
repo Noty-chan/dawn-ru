@@ -16,9 +16,14 @@ const english=context.window.DAWN_LIONWING_DATA.coreRules;
 const russianOverlay=context.window.DAWN_LIONWING_RU.coreRules.npcs.entries;
 const table=context.window.DAWN_LIONWING_TABLE_DATA;
 const englishProfiles=table.profiles(english);
+const englishModifiers=table.modifiers(english);
 
 assert.equal(englishProfiles.length,english.npcs.list.length,"every LionWing NPC reaches the manual table adapter");
 assert.ok(englishProfiles.length>=30,"LionWing NPC catalog is unexpectedly small");
+assert.equal(englishModifiers.length,12,"all canonical LionWing modifiers remain in their own catalog");
+assert.ok(englishModifiers.every(modifier=>modifier.id.startsWith("lionwing.modifier.")&&modifier.source?.pdfPage>=125));
+assert.ok(englishModifiers.some(modifier=>modifier.id==="lionwing.modifier.blaze"&&modifier.kind==="npc-modifier"));
+assert.ok(englishProfiles.every(profile=>!profile.id.startsWith("lionwing.modifier.")),"modifiers do not inflate the ordinary NPC catalog");
 
 const cannoneer=englishProfiles.find(profile=>profile.id==="lionwing.npc.cannoneer");
 assert.ok(cannoneer,"Cannoneer is available to the table");
@@ -39,4 +44,4 @@ assert.equal(russianProfiles.find(profile=>profile.id==="lionwing.npc.viper")?.n
 assert.equal(JSON.stringify(russianProfiles.map(profile=>profile.id)),JSON.stringify(englishProfiles.map(profile=>profile.id)),"locale must not change stable NPC ids");
 assert.equal(JSON.stringify(table.effects(english).positive.map(effect=>effect.id)),JSON.stringify(english.effects.positive.map(effect=>effect.id)));
 
-console.log(`LionWing manual table data OK: ${englishProfiles.length} NPC profiles, stable RU/EN ids`);
+console.log(`LionWing manual table data OK: ${englishProfiles.length} NPC profiles and ${englishModifiers.length} separate modifiers, stable RU/EN ids`);

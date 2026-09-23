@@ -58,6 +58,12 @@
     return (coreRules?.npcs?.list||[]).map(normalizeNpc);
   }
 
+  function modifiers(coreRules){
+    return (coreRules?.rules||[])
+      .filter(rule=>String(rule.id||"").startsWith("lionwing.modifier.")&&["npc-modifier","scene-modifier"].includes(rule.kind))
+      .map(rule=>({id:rule.id,kind:rule.kind,name:rule.name,text:rule.text,source:rule.source||null,editionId:"lionwing"}));
+  }
+
   function effects(coreRules){
     return{
       positive:[...(coreRules?.effects?.positive||[])],
@@ -65,5 +71,5 @@
     };
   }
 
-  root.DAWN_LIONWING_TABLE_DATA=Object.freeze({normalizeNpc,profiles,effects});
+  root.DAWN_LIONWING_TABLE_DATA=Object.freeze({normalizeNpc,profiles,modifiers,effects});
 })(window);

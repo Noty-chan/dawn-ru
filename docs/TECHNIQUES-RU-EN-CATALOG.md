@@ -1,6 +1,6 @@
 # DAWN: каталог Техник RU/EN
 
-> Сгенерировано `npm run docs:rules` из новой канонической редакции `apps/companion/edition-lionwing.js` и RU-оверлея `apps/companion/edition-lionwing-ru.js` (SHA-256 `0aaa050eda811038dd3e33bf7f42ca3b428724994a076c29872540836d0aee78`).
+> Сгенерировано `npm run docs:rules` из новой канонической редакции `apps/companion/edition-lionwing.js` и RU-оверлея `apps/companion/edition-lionwing-ru.js` (SHA-256 `7340aa8d21fe921eb75c67d76655357766a98e4cfd13e4546febe2157c50d42b`).
 > Английский текст и механика берутся из canonical EN; русские названия и тексты — из отдельного reviewed RU overlay. Legacy-редакция в этот документ не входит.
 
 ## Как читать каталог
