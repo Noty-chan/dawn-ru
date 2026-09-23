@@ -163,6 +163,7 @@
     if(result.error)return fail(result.error);
     if(loadGeneration!==sceneLoadGeneration||!state.authenticated)return null;
     const scene={...result.data,id:result.data.id||result.data.scene_id};
+    if(String(state.sceneId||"")===String(scene.id)&&Number(scene.version)<Number(state.version))return null;
     if(state.sceneId&&state.sceneId!==scene.id){sceneSessionGeneration++;presenceCache.clear();presenceDetails={}}
     lastPendingCommandSignature="";patch({sceneId:scene.id,campaignId:scene.campaign_id,version:scene.version,status:"connecting",lastSyncedAt:new Date().toISOString(),error:""});await subscribe();if(loadGeneration!==sceneLoadGeneration||state.sceneId!==scene.id)return null;emit("scene",{state:scene.state,version:scene.version,initial:true});if(canNarrate)await refreshPendingCommands();return scene;
   }

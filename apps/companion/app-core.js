@@ -423,7 +423,9 @@ function migrateLegacy(raw){
 
 const HERO_MEDIA_DB="dawn-ru-companion-media",HERO_MEDIA_STORE="hero-media";
 let heroMediaDbPromise=null,heroMediaStorageReady=false,heroMediaWriteTimer=null,heroMediaWriteRunning=false,lastStorageWarningAt=0;
+let persistPending=false,persistTimer=null;
 const storedHeroMediaSignatures=new Map();
+let heroMediaReferenceSignature=null;
 const heroMediaKey=(heroId,kind)=>`hero:${heroId}:${kind}`;
 const mediaSignature=value=>`${String(value||"").length}:${String(value||"").slice(0,48)}:${String(value||"").slice(-48)}`;
 function heroMediaEntries(heroes){
@@ -452,6 +454,16 @@ async function writeHeroMedia(entries){
     tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error||new Error("Не удалось сохранить изображения"));tx.onabort=()=>reject(tx.error||new Error("Сохранение изображений отменено"));
   });
   pending.forEach(entry=>storedHeroMediaSignatures.set(entry.key,mediaSignature(entry.value)));
+}
+async function pruneOrphanedHeroMedia(heroes){
+  const keep=new Set();for(const hero of heroes||[])for(const kind of ["portrait","token"])if(hero?.media?.[kind]||hero?.media?.[`${kind}Stored`])keep.add(heroMediaKey(hero.id,kind));
+  const signature=[...keep].sort().join("|");if(signature===heroMediaReferenceSignature)return;
+  const db=await openHeroMediaDb();
+  await new Promise((resolve,reject)=>{
+    const tx=db.transaction(HERO_MEDIA_STORE,"readwrite"),bucket=tx.objectStore(HERO_MEDIA_STORE),request=bucket.getAllKeys();
+    request.onsuccess=()=>{for(const key of request.result||[])if(typeof key==="string"&&key.startsWith("hero:")&&!keep.has(key)){bucket.delete(key);storedHeroMediaSignatures.delete(key)}};
+    tx.oncomplete=()=>{heroMediaReferenceSignature=signature;resolve()};tx.onerror=()=>reject(tx.error||new Error("Не удалось очистить устаревшие изображения"));tx.onabort=()=>reject(tx.error||new Error("Очистка изображений отменена"));
+  });
 }
 async function readHeroMedia(keys){
   const db=await openHeroMediaDb(),values=new Map();
@@ -494,9 +506,8 @@ function scheduleHeroMediaPersistence(){
     heroMediaWriteTimer=null;
     if(heroMediaWriteRunning)return scheduleHeroMediaPersistence();
     const entries=heroMediaEntries(store?.heroes).filter(entry=>storedHeroMediaSignatures.get(entry.key)!==mediaSignature(entry.value));
-    if(!entries.length)return;
     heroMediaWriteRunning=true;
-    try{await writeHeroMedia(entries);persist()}
+    try{await writeHeroMedia(entries);await pruneOrphanedHeroMedia(store?.heroes);if(entries.length)persist()}
     catch(error){console.warn("DAWN hero media persistence failed",error);if(Date.now()-lastStorageWarningAt>5000){lastStorageWarningAt=Date.now();toast("Изображения пока не вынесены в расширенное хранилище")}}
     finally{heroMediaWriteRunning=false}
   },40);
@@ -504,6 +515,7 @@ function scheduleHeroMediaPersistence(){
 async function initializeHeroMediaStorage(){
   await openHeroMediaDb();
   await writeHeroMedia(heroMediaEntries(store.heroes));
+  await pruneOrphanedHeroMedia(store.heroes);
   const bindings=[];
   for(const hero of store.heroes)for(const kind of ["portrait","token"])if(!hero.media?.[kind]&&hero.media?.[`${kind}Stored`])bindings.push({hero,kind,key:heroMediaKey(hero.id,kind)});
   const stored=await readHeroMedia(bindings.map(binding=>binding.key));
@@ -562,8 +574,8 @@ function activateHeroEdition(edition,{saveCurrent=true}={}){
   if(index<0){store.heroes.push(blankHero(target));index=store.heroes.length-1}
   store.current=index;S=normalizeHero(store.heroes[index]);store.heroes[index]=S;
 }
-function persistableStore(){
-  const heroes=persistableHeroes(),scene=sceneCore(Scene),sourceById=new Map(store.heroes.map(hero=>[hero.id,hero]));
+function persistableStore(heroes=persistableHeroes()){
+  const scene=sceneCore(Scene),sourceById=new Map(store.heroes.map(hero=>[hero.id,hero]));
   // Undo snapshots duplicate the complete Scene (including artwork) many times.
   // Keep them in memory for the active session instead of blocking every small
   // table interaction while localStorage serializes tens of full copies.
@@ -579,8 +591,8 @@ function persistableHeroes(){
   }
   return heroes;
 }
-function persistHeroStore(){
-  const payload=JSON.stringify({schema:APP_SCHEMA,current:store.current,heroes:persistableHeroes()});
+function persistHeroStore(heroes=persistableHeroes()){
+  const payload=JSON.stringify({schema:APP_SCHEMA,current:store.current,heroes});
   try{localStorage.setItem(HERO_STORAGE_KEY,payload);return true}
   catch(error){
     const sync=Sync?.state?.();
@@ -588,19 +600,20 @@ function persistHeroStore(){
     console.warn("DAWN hero persistence failed",error);return false
   }
 }
-function persist(){
+function persistNow(){
   store.heroes[store.current]=S;store.scene=Scene;store.gmLibrary=normalizeGmLibrary(store.gmLibrary);store.sceneUi={zoom:sceneZoom,controlMode:sceneControlMode,interfaceVersion:sceneInterfaceVersion,interfaceRolloutVersion:SCENE_INTERFACE_ROLLOUT_VERSION,panelLayout:scenePanelLayoutMode,panelSides:scenePanelSides,panelWidths:scenePanelWidths,turnStripVisible:sceneTurnStripVisible,density:sceneInterfaceDensity,layoutVersion:2,fitVersion:9,viewport:sceneViewportMode};scheduleHeroMediaPersistence();
-  persistHeroStore();
-  try{localStorage.setItem(STORAGE_KEY,JSON.stringify(persistableStore()))}
+  const heroes=persistableHeroes();persistHeroStore(heroes);
+  try{localStorage.setItem(STORAGE_KEY,JSON.stringify(persistableStore(heroes)))}
   catch(error){console.warn("DAWN local state persistence failed",error);if(Date.now()-lastStorageWarningAt>5000){lastStorageWarningAt=Date.now();toast(heroMediaStorageReady?"Не удалось сохранить локально; удалите лишний арт Сцены":"Переношу изображения из тесного хранилища браузера…")}}
 }
-let paintPersistPending=false,paintPersistTimer=null;
-function persistAfterPaint(){
-  if(paintPersistPending)return;
-  paintPersistPending=true;
-  requestAnimationFrame(()=>{paintPersistTimer=setTimeout(()=>{paintPersistPending=false;paintPersistTimer=null;persist()},0)});
+function persist(){
+  store.heroes[store.current]=S;store.scene=Scene;
+  if(persistPending)return;
+  persistPending=true;
+  persistTimer=setTimeout(()=>{persistPending=false;persistTimer=null;persistNow()},80);
 }
-addEventListener("pagehide",()=>{if(!paintPersistPending)return;paintPersistPending=false;if(paintPersistTimer!=null)clearTimeout(paintPersistTimer);paintPersistTimer=null;persist()});
+function persistAfterPaint(){persist()}
+addEventListener("pagehide",()=>{if(!persistPending)return;persistPending=false;if(persistTimer!=null)clearTimeout(persistTimer);persistTimer=null;persistNow()});
 
 const allGifts=()=>activeOutlooks().flatMap(o=>(o.builtin?[o.builtin]:[]).concat(o.gifts));
 const giftById=id=>allGifts().find(g=>g.id===id);

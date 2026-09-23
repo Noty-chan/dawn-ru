@@ -426,7 +426,12 @@
       const generation=this.generation;
       const source=this.queue.splice(0,20);
       this.inFlight=source;
-      try{await this.options.flush(source);this.failures=0}
+      try{
+        await this.options.flush(source);
+        this.failures=0;
+        const acceptedSnapshotAt=source.filter(item=>item.kind==="snapshot").reduce((latest,item)=>Math.max(latest,Number(item.queuedAt)||0),0);
+        if(acceptedSnapshotAt)this.failed=this.failed.filter(item=>item.kind!=="snapshot"||(Number(item.queuedAt)||0)>acceptedSnapshotAt);
+      }
       catch(error){
         if(generation===this.generation){
           const retained=source.filter(item=>!this.discarded.has(item));
@@ -436,7 +441,11 @@
             this.options.onError?.(error,{retrying:true});
           }else{
             this.failures=0;
-            this.failed.push(...retained);
+            const queuedSnapshotAt=this.queue.filter(item=>item.kind==="snapshot").reduce((latest,item)=>Math.max(latest,Number(item.queuedAt)||0),0);
+            const retainedSnapshotAt=retained.filter(item=>item.kind==="snapshot").reduce((latest,item)=>Math.max(latest,Number(item.queuedAt)||0),0);
+            const newestSnapshotAt=Math.max(queuedSnapshotAt,retainedSnapshotAt);
+            if(newestSnapshotAt)this.failed=this.failed.filter(item=>item.kind!=="snapshot"||(Number(item.queuedAt)||0)>newestSnapshotAt);
+            this.failed.push(...retained.filter(item=>item.kind!=="snapshot"||(Number(item.queuedAt)||0)>queuedSnapshotAt));
             this.options.onError?.(error,{retrying:false});
           }
         }
@@ -458,7 +467,7 @@
     retryFailed(){if(!this.failed.length)return 0;this.queue.unshift(...this.failed);const count=this.failed.length;this.failed=[];this.schedule();return count}
     clear(){this.generation++;clearTimeout(this.timer);this.timer=null;this.queue=[];this.inFlight=null;this.failed=[];this.failures=0;this.discarded=new WeakSet()}
     latestQueuedSnapshot(){return[...this.queue].reverse().find(item=>item.kind==="snapshot")||null}
-    latestSnapshot(){return[...(this.inFlight||[]),...this.queue].reverse().find(item=>item.kind==="snapshot")||null}
+    latestSnapshot(){return[...this.failed,...(this.inFlight||[]),...this.queue].filter(item=>item.kind==="snapshot").reduce((latest,item)=>!latest||Number(item.queuedAt||0)>=Number(latest.queuedAt||0)?item:latest,null)}
     pending(){return this.queue.length+(this.flushing?1:0)}
   }
 
@@ -496,9 +505,10 @@
       try{await this.send(row);if(generation===this.generation)this.failures=0}
       catch(error){
         if(generation===this.generation){
-          this.failures=Math.min(this.failures+1,5);
-          this.queue.unshift(row);
-          this.onError?.(error,row);
+          const retrying=retryableAuthorityFailure(error);
+          if(retrying){this.failures=Math.min(this.failures+1,5);this.queue.unshift(row)}
+          else this.failures=0;
+          this.onError?.(error,row,{retrying});
         }
       }
       finally{
@@ -507,7 +517,7 @@
         if(generation===this.generation&&this.queue.length)this.schedule();
       }
     }
-    clear(){this.generation++;clearTimeout(this.timer);this.timer=null;this.queue=[];this.failures=0}
+    clear(){this.generation++;clearTimeout(this.timer);this.timer=null;this.queue=[];this.inFlight=null;this.failures=0}
     pending(){return this.queue.length+(this.inFlight?1:0)}
   }
 

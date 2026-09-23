@@ -97,7 +97,7 @@ function ensureNetworkV2Runtime(){
   if(!NetworkV2||!Sync)return null;
   if(!networkV2Outbox)networkV2Outbox=new NetworkV2.PlayerOutbox({
     send:payload=>Sync.submitCommand("intent_v2",payload),
-    onError:error=>toast(`Команда ждёт отправки: ${friendlySyncError(error,"нет соединения")}`),
+    onError:(error,row,{retrying=true}={})=>toast(retrying?`Команда ждёт отправки: ${friendlySyncError(error,"нет соединения")}`:`Команда не отправлена: ${friendlySyncError(error,"ошибка проверки")}. Проверьте действие и повторите его.`),
   });
   if(!networkV2Authority)networkV2Authority=new NetworkV2.AuthorityQueue({
     tickMs:NetworkV2.TICK_MS,

@@ -17,7 +17,10 @@
   };
   let rows=[];
   try{const saved=JSON.parse(sessionStorage.getItem(STORAGE_KEY)||"[]"),cutoff=Date.now()-MAX_AGE;rows=Array.isArray(saved)?saved.filter(row=>Date.parse(row.at)>=cutoff).slice(-MAX_ROWS):[]}catch{}
-  const persistRows=()=>{try{sessionStorage.setItem(STORAGE_KEY,JSON.stringify(rows.slice(-MAX_ROWS)))}catch{}};
+  let persistTimer=null;
+  const persistRowsNow=()=>{if(persistTimer!==null)clearTimeout(persistTimer);persistTimer=null;try{sessionStorage.setItem(STORAGE_KEY,JSON.stringify(rows.slice(-MAX_ROWS)))}catch{}};
+  const persistRows=()=>{if(persistTimer!==null)return;persistTimer=setTimeout(persistRowsNow,120)};
+  addEventListener("pagehide",persistRowsNow);
   function record(kind,summary,details={}){rows.push({at:now(),kind:String(kind).slice(0,60),summary:String(summary||kind).slice(0,300),details:scrub(details)});rows=rows.slice(-MAX_ROWS);persistRows()}
   function targetDescription(target){
     const element=target?.closest?.("button,a,input,select,textarea,summary,[data-mode],[data-enemy-rule],[data-action]");if(!element)return null;
@@ -76,5 +79,5 @@
   el("bug-report-copy")?.addEventListener("click",async()=>{const l=text[locale()],value=reportText();try{await navigator.clipboard.writeText(value);record("report.copy","Bug report copied",{length:value.length});toast(l.copied)}catch{record("report.copy.error","Clipboard rejected");toast(l.failed)}});
   el("bug-report-download")?.addEventListener("click",()=>{const value=reportText(),blob=new Blob([value],{type:"text/plain;charset=utf-8"}),link=document.createElement("a");link.href=URL.createObjectURL(blob);link.download=`dawn-companion-bug-${new Date().toISOString().replace(/[:.]/g,"-")}.txt`;link.click();setTimeout(()=>URL.revokeObjectURL(link.href),1000);record("report.download","Bug report downloaded",{length:value.length})});
   addEventListener("dawn:locale-change",localize);localize();record("session.start","Companion diagnostics started",{locale:locale(),path:location.pathname,mode:store?.mode,edition:contentPreferences?.edition});
-  window.DAWN_DIAGNOSTICS=Object.freeze({record,rows:()=>copy(rows),report:reportData,clear:()=>{rows=[];persistRows()}});
+  window.DAWN_DIAGNOSTICS=Object.freeze({record,rows:()=>copy(rows),report:reportData,clear:()=>{rows=[];persistRowsNow()}});
 })();

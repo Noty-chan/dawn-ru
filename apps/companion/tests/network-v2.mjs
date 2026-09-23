@@ -393,13 +393,20 @@ racingOutbox.clear();
 
 let retryAttempts=0;
 const retryIds=[];
-const retryOutbox=new Network.PlayerOutbox({tickMs:10000,send:async payload=>{retryIds.push(payload.clientIntentId);retryAttempts++;if(retryAttempts===1)throw new Error("temporary")}});
+const retryOutbox=new Network.PlayerOutbox({tickMs:10000,send:async payload=>{retryIds.push(payload.clientIntentId);retryAttempts++;if(retryAttempts===1)throw new Error("failed to fetch")}});
 const retryEnvelope=retryOutbox.enqueue({kind:"public-roll",actorId:"hero",payload:{}},7);
 await retryOutbox.flush();
 assert.equal(retryOutbox.pending(),1,"a failed request remains queued");
 await retryOutbox.flush();
 assert.deepEqual(retryIds,[retryEnvelope.clientIntentId,retryEnvelope.clientIntentId],"a retry preserves the idempotency key");
 retryOutbox.clear();
+
+const rejectedOutbox=new Network.PlayerOutbox({tickMs:10000,maxItems:1,send:async()=>{throw new Error("action is not permitted")}});
+rejectedOutbox.enqueue({kind:"public-roll",actorId:"hero",payload:{}},7);
+await rejectedOutbox.flush();
+assert.equal(rejectedOutbox.pending(),0,"a permanently rejected action does not occupy the outbox");
+assert.doesNotThrow(()=>rejectedOutbox.enqueue({kind:"public-roll",actorId:"hero",payload:{}},7),"the player can repeat the action after correcting it");
+rejectedOutbox.clear();
 
 const boundedOutbox=new Network.PlayerOutbox({tickMs:10000,maxItems:2,send:async()=>{}});
 boundedOutbox.enqueue({kind:"public-roll",actorId:"hero",payload:{roll:1}},7);
