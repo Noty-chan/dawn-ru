@@ -76,6 +76,10 @@ class FakeIndexedDB {
             this.records.set(value.key, clone(value));
             finish();
           },
+          delete: key => {
+            this.records.delete(key);
+            finish();
+          },
           get: key => {
             const request = { result: undefined, error: null };
             transaction.pending += 1;
@@ -457,7 +461,9 @@ app.Scene = scene;
 app.store.gmLibrary = null;
 const persisted = app.persist();
 assert.equal(persisted, undefined, "persist writes through the app persistence boundary");
-await new Promise(resolve => setTimeout(resolve, 120));
+await new Promise(resolve => setTimeout(resolve, 200));
+assert.equal(idb.records.has("scene:art:scene-art-1"), false, "removed Scene art releases its IndexedDB payload");
+assert.equal(idb.records.has("preset:preset-1:art:preset-art-1"), false, "removed encounter preset releases its IndexedDB payload");
 const goodLocalStorage = storage.getItem(app.STORAGE_KEY);
 assert.ok(goodLocalStorage, "localStorage receives a valid table snapshot");
 const localReload = vm.runInContext(`normalizeScene(${JSON.stringify(JSON.parse(goodLocalStorage).scene)})`, app);

@@ -426,7 +426,7 @@ const HERO_MEDIA_DB="dawn-ru-companion-media",HERO_MEDIA_STORE="hero-media";
 let heroMediaDbPromise=null,heroMediaStorageReady=false,heroMediaWriteTimer=null,heroMediaWriteRunning=false,lastStorageWarningAt=0;
 let persistPending=false,persistTimer=null;
 const storedHeroMediaSignatures=new Map();
-let heroMediaReferenceSignature=null;
+let mediaReferenceSignature=null;
 const heroMediaKey=(heroId,kind)=>`hero:${heroId}:${kind}`;
 const sceneArtworkKey=artId=>`scene:art:${artId}`;
 const presetArtworkKey=(encounterId,artId)=>`preset:${encounterId}:art:${artId}`;
@@ -460,14 +460,16 @@ async function writeHeroMedia(entries){
 }
 function sceneArtworkEntries(scene){return(scene?.artworks||[]).filter(art=>art?.image).map(art=>({key:sceneArtworkKey(art.id),value:art.image}))}
 function presetArtworkEntries(library){return(library?.encounters||[]).flatMap(encounter=>(encounter.templateScene?.artworks||[]).filter(art=>art?.image).map(art=>({key:presetArtworkKey(encounter.id,art.id),value:art.image})))}
-async function pruneOrphanedHeroMedia(heroes){
+async function pruneOrphanedMedia(heroes,scene,library){
   const keep=new Set();for(const hero of heroes||[])for(const kind of ["portrait","token"])if(hero?.media?.[kind]||hero?.media?.[`${kind}Stored`])keep.add(heroMediaKey(hero.id,kind));
-  const signature=[...keep].sort().join("|");if(signature===heroMediaReferenceSignature)return;
+  for(const art of scene?.artworks||[])if(art?.image||art?.imageStored)keep.add(sceneArtworkKey(art.id));
+  for(const encounter of library?.encounters||[])for(const art of encounter.templateScene?.artworks||[])if(art?.image||art?.imageStored)keep.add(presetArtworkKey(encounter.id,art.id));
+  const signature=[...keep].sort().join("|");if(signature===mediaReferenceSignature)return;
   const db=await openHeroMediaDb();
   await new Promise((resolve,reject)=>{
     const tx=db.transaction(HERO_MEDIA_STORE,"readwrite"),bucket=tx.objectStore(HERO_MEDIA_STORE),request=bucket.getAllKeys();
-    request.onsuccess=()=>{for(const key of request.result||[])if(typeof key==="string"&&key.startsWith("hero:")&&!keep.has(key)){bucket.delete(key);storedHeroMediaSignatures.delete(key)}};
-    tx.oncomplete=()=>{heroMediaReferenceSignature=signature;resolve()};tx.onerror=()=>reject(tx.error||new Error("Не удалось очистить устаревшие изображения"));tx.onabort=()=>reject(tx.error||new Error("Очистка изображений отменена"));
+    request.onsuccess=()=>{for(const key of request.result||[])if(typeof key==="string"&&["hero:","scene:art:","preset:"].some(prefix=>key.startsWith(prefix))&&!keep.has(key)){bucket.delete(key);storedHeroMediaSignatures.delete(key)}};
+    tx.oncomplete=()=>{mediaReferenceSignature=signature;resolve()};tx.onerror=()=>reject(tx.error||new Error("Не удалось очистить устаревшие изображения"));tx.onabort=()=>reject(tx.error||new Error("Очистка изображений отменена"));
   });
 }
 async function readHeroMedia(keys){
@@ -512,7 +514,7 @@ function scheduleHeroMediaPersistence(){
     if(heroMediaWriteRunning)return scheduleHeroMediaPersistence();
     const entries=[...heroMediaEntries(store?.heroes),...sceneArtworkEntries(Scene),...presetArtworkEntries(store?.gmLibrary)].filter(entry=>storedHeroMediaSignatures.get(entry.key)!==mediaSignature(entry.value));
     heroMediaWriteRunning=true;
-    try{await writeHeroMedia(entries);await pruneOrphanedHeroMedia(store?.heroes);if(entries.length)persist()}
+    try{await writeHeroMedia(entries);await pruneOrphanedMedia(store?.heroes,Scene,store?.gmLibrary);if(entries.length)persist()}
     catch(error){console.warn("DAWN hero media persistence failed",error);if(Date.now()-lastStorageWarningAt>5000){lastStorageWarningAt=Date.now();toast("Изображения пока не вынесены в расширенное хранилище")}}
     finally{heroMediaWriteRunning=false}
   },40);
@@ -520,7 +522,7 @@ function scheduleHeroMediaPersistence(){
 async function initializeHeroMediaStorage(){
   await openHeroMediaDb();
   await writeHeroMedia([...heroMediaEntries(store.heroes),...sceneArtworkEntries(Scene),...presetArtworkEntries(store.gmLibrary)]);
-  await pruneOrphanedHeroMedia(store.heroes);
+  await pruneOrphanedMedia(store.heroes,Scene,store.gmLibrary);
   const bindings=[];
   for(const hero of store.heroes)for(const kind of ["portrait","token"])if(!hero.media?.[kind]&&hero.media?.[`${kind}Stored`])bindings.push({hero,kind,key:heroMediaKey(hero.id,kind)});
   const stored=await readHeroMedia(bindings.map(binding=>binding.key));
