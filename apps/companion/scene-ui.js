@@ -61,7 +61,7 @@ function sceneEffects(){return sceneUsesLionwing()&&LionwingTable?LionwingTable.
 function sceneEffectList(){const effects=sceneEffects();return[...effects.positive,...effects.negative]}
 // Retired local profiles remain resolvable in saved legacy games.
 const RETIRED_ENEMY_PROFILE_IDS=new Set(["enemy.named.leon-academy-spatial-mage","enemy.named.leon-s-vayu-spirit","enemy.named.leon-s-agni-spirit"]);
-function allEnemyProfiles(){if(sceneUsesLionwing()&&LionwingTable){const core=localizedLionwingCoreRules();return [...LionwingTable.profiles(core),...LionwingTable.modifiers(core).filter(item=>["lionwing.modifier.isolation","lionwing.modifier.artillery","lionwing.modifier.haven","lionwing.modifier.contagion","lionwing.modifier.earthquake","lionwing.modifier.vip","lionwing.modifier.collateral"].includes(item.id))]}return Object.values(D.enemies||{}).flat()}
+function allEnemyProfiles(){if(sceneUsesLionwing()&&LionwingTable){const core=localizedLionwingCoreRules();return [...LionwingTable.profiles(core),...LionwingTable.modifiers(core).filter(item=>["lionwing.modifier.isolation","lionwing.modifier.artillery","lionwing.modifier.haven","lionwing.modifier.contagion","lionwing.modifier.earthquake","lionwing.modifier.vip","lionwing.modifier.collateral","lionwing.modifier.legion"].includes(item.id))]}return Object.values(D.enemies||{}).flat()}
 function enemyProfiles(){return allEnemyProfiles().filter(enemy=>!RETIRED_ENEMY_PROFILE_IDS.has(enemy.id))}
 function enemyProfile(id){return allEnemyProfiles().find(enemy=>enemy.id===id)}
 function antagonistTraits(){return sceneUsesLionwing()?[]:D.enemies?.antagonistTraits||[]}
