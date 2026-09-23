@@ -3122,9 +3122,8 @@ const healContract = profileRule("enemy.common.healer", "Heal"), saviorContract 
 healerContractScene.actors[1].usedActions = []; healerContractScene.actors[1].ap = 3;
 healerContractScene.actors[1].hp = 4;
 const selfHealPrepared = Engine.prepareEnemyRule(healerContractScene, data, { actorId: "enemy", ruleId: healContract.id, targetIds: ["enemy"] });
-assert.equal(selfHealPrepared.ok, true, "Guardian protection does not prevent the Healer from choosing itself for its helpful action");
-healerContractScene = Engine.dispatchMany(healerContractScene, selfHealPrepared.events).scene;
-assert.equal(healerContractScene.actors[1].hp, 8, "Tier 2 Heal restores 4 Health to the Healer itself");
+assert.equal(selfHealPrepared.ok, false, "LionWing Targeting Allies excludes the user, including for Healer Heal");
+assert.equal(healerContractScene.actors[1].hp, 4, "rejected self-Heal does not alter Health or pay AP");
 healerContractScene.actors[1].usedActions = []; healerContractScene.actors[1].ap = 3;
 healerContractScene = Engine.dispatchMany(healerContractScene, Engine.prepareEnemyRule(healerContractScene, data, { actorId: "enemy", ruleId: healContract.id, targetIds: ["healer-guard"] }).events).scene;
 assert.equal(healerContractScene.actors.find(actor => actor.id === "healer-guard").hp, 12, "Tier 2 Heal restores 4 Health, doubled to 8 for the Guardian");

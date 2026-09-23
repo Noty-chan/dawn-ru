@@ -676,6 +676,48 @@
       });
     }
   };
+  const validateEnemySimpleWaveActionEvents = (scene, events) => {
+    const prepare = events.find(event => event?.type === "enemy.action.prepare"), ruleId = prepare?.payload?.ruleId;
+    if (!["lionwing.npc.healer.heal", "lionwing.npc.oni.stabilize"].includes(ruleId)) return;
+    const contract = ruleId === "lionwing.npc.healer.heal"
+      ? { profileId: "lionwing.npc.healer", name: "Heal", text: "Restore 2 + [Tier] Health to an ally within 3 spaces. Double this healing for this NPC's Guardian." }
+      : { profileId: "lionwing.npc.oni", name: "Stabilize", text: "Lose this NPC's Effects and Hasten it." };
+    const source = requiredActor(scene, prepare.actorId), resolves = events.filter(event => event?.type === "enemy.action.resolve" && event.payload?.ruleId === ruleId);
+    const spends = events.filter(event => event?.type === "resource.spend" && event.actorId === source.id);
+    if (source.profileId !== contract.profileId || source.knockedOut || source.usedActions?.includes(ruleId) || Number(source.ap || 0) < 1 ||
+        scene.activeActorId !== source.id || scene.pendingAction || scene.pendingPrompt || scene.pendingActionPlan || scene.lionwing?.pendingActionPlan ||
+        resolves.length !== 1 || resolves[0].actorId !== source.id || spends.length !== 1 || !sameJson(prepare.payload, resolves[0].payload)) {
+      fail(`${contract.name} требует доступный канонический профиль и 1 ОД`);
+    }
+    const payloadKeys = ["ruleId", "sourceRuleId", "sourceDigest", "profileId", "name", "kind", "targetIds", "text", "automation"];
+    const preparedAction = simpleEventEnvelope(prepare, "enemy.action.prepare", source.id, payloadKeys, ["reward", "quickReaction"]);
+    if (preparedAction.ruleId !== ruleId || preparedAction.sourceRuleId !== ruleId || preparedAction.profileId !== source.profileId || preparedAction.name !== contract.name ||
+        preparedAction.kind !== "action" || preparedAction.automation !== "full" || preparedAction.text !== contract.text || preparedAction.reward != null || preparedAction.quickReaction != null ||
+        !Array.isArray(preparedAction.targetIds) || new Set(preparedAction.targetIds).size !== preparedAction.targetIds.length) fail(`Текст или цели ${contract.name} изменены`);
+    const spend = simpleEventEnvelope(spends[0], "resource.spend", source.id, ["resource", "amount", "sourceRuleId", "sourceDigest"]);
+    if (spend.resource !== "ap" || spend.amount !== 1 || spend.sourceRuleId !== ruleId || spend.sourceDigest !== (preparedAction.sourceDigest ?? null)) fail(`${contract.name} должен стоить ровно 1 ОД`);
+    const targets = preparedAction.targetIds.map(id => actor(scene, id)).filter(Boolean);
+    if (targets.length !== preparedAction.targetIds.length || targets.some(target => !live(target))) fail(`${contract.name}: выбранная цель отсутствует или выведена из боя`);
+    if (ruleId === "lionwing.npc.healer.heal") {
+      if (targets.length !== 1 || targets[0].id === source.id || targets[0].team !== source.team || distance(source, targets[0]) > 3) fail("Heal требует одного союзника, кроме самого Целителя, в пределах 3 клеток");
+      const expected = 2 + Number(source.tier || 1), amount = expected * (source.ruleState?.healerGuardianId === targets[0].id ? 2 : 1);
+      if (events.length !== 4 || events[0] !== prepare || events[1] !== spends[0] || events[3] !== resolves[0]) fail("Heal требует одну оплату и одно применение лечения");
+      const heal = simpleEventEnvelope(events[2], "actor.heal", source.id, ["targetId", "amount", "sourceActionId", "participantIds"]);
+      if (heal.targetId !== targets[0].id || heal.amount !== amount || heal.sourceActionId !== ruleId || !simpleIdsEqual(heal.participantIds, [source.id, targets[0].id])) fail("Формула лечения Heal не соответствует канону");
+      return;
+    }
+    if (preparedAction.targetIds.length) fail("Stabilize не выбирает цели");
+    const protectedEffect = Object.values(source.effectStates || {}).some(state => (state?.sources || []).some(effectSource => effectSource.removable === false));
+    if (protectedEffect) fail("Stabilize не может снять защищённый источник Эффекта");
+    const effects = [...new Set([...(source.effects || []), ...Object.keys(source.effectStates || {})])], expectedEvents = effects.length + 4;
+    if (events.length !== expectedEvents || events[0] !== prepare || events[1] !== spends[0] || events.at(-1) !== resolves[0]) fail("Stabilize должен снять все доступные Эффекты и применить Haste");
+    effects.forEach((effect, index) => {
+      const removal = simpleEventEnvelope(events[index + 2], "effect.remove", source.id, ["targetId", "effect", "sourceActionId", "participantIds"]);
+      if (removal.targetId !== source.id || removal.effect !== effect || removal.sourceActionId !== ruleId || !simpleIdsEqual(removal.participantIds, [source.id])) fail("Stabilize не удаляет полный набор Эффектов");
+    });
+    const haste = simpleEventEnvelope(events[effects.length + 2], "effect.apply", source.id, ["targetId", "effect", "sourceActionId", "participantIds"]);
+    if (haste.targetId !== source.id || haste.effect !== "positive.ускорен" || haste.sourceActionId !== ruleId || !simpleIdsEqual(haste.participantIds, [source.id])) fail("Stabilize должен применить Haste после снятия Эффектов");
+  };
   const detectiveRuleId = "vagabond.dim-mak.3";
   const detectiveWeakPointRuleId = "vagabond.dim-mak.1";
   const detectiveDigest = "8a5ddc5d808d41166abd99dd0c207a6070ebeacf382fe4b0f3275304d7f532dd";
@@ -3973,7 +4015,10 @@
     if (event.type !== "lionwing.command") {
       const p = event.payload || {}, mapped = {
         "turn.start": { kind: "turn-start" }, "turn.end": { kind: "turn-end" }, "round.end": { kind: "round-end" }, "intermission": { kind: "intermission" },
-        "damage.apply": { kind: "damage", ...p, sourceActorId: event.actorId, attack: p.attack === true || Boolean(p.sourceActionId && p.sourceActionId !== "manual.adjudication") },
+        // An explicit attack flag is authoritative: Actions such as Viper's
+        // Lick The Knife deal damage without making an Attack. Keep the
+        // source action for provenance while preserving that distinction.
+        "damage.apply": { kind: "damage", ...p, sourceActorId: event.actorId, attack: typeof p.attack === "boolean" ? p.attack : Boolean(p.sourceActionId && p.sourceActionId !== "manual.adjudication") },
         "actor.heal": { kind: "heal", ...p }, "actor.wound": { kind: "wound", ...p }, "actor.knockout": { kind: "knockout", ...p },
         "resource.gain": { kind: "resource", operation: "gain", ...p }, "resource.spend": { kind: "resource", operation: "spend", ...p },
         "effect.apply": { kind: "effect", ...p }, "effect.remove": { kind: "effect", ...p, remove: true },
@@ -4157,6 +4202,10 @@
     // reducer also accepts event batches for the GM, so a bare pending attack
     // must not become a free extra action for a player.
     const narratorEvents = options.narratorOverride === true || ["owner", "narrator", "gm"].includes(options.role);
+    if (options.expectedVersion !== undefined && Number(options.expectedVersion) !== Number(scene.version || 0)) {
+      if (events.every(event => event?.id && (scene.lionwing?.receipts || []).some(receipt => receipt.id === event.id && receipt.fingerprint === JSON.stringify([event.type, event.actorId || null, event.payload || {}])))) return { scene: copy(scene), events: [], event: null };
+      fail("Конфликт версии Сцены: обновите состояние");
+    }
     for (const attack of events.filter(event => event?.type === "attack.pending")) {
       const attacker = (scene.actors || []).find(actor => actor.id === attack.actorId);
       if (!isPlayer(attacker) || attack.payload?.quickReaction || narratorEvents) continue;
@@ -4171,6 +4220,81 @@
     const rangerPromptFlow = scene.pendingPrompt?.kind === "enemy-ranger-retreat" && events.some(event => event?.type === "rule.respond");
     const enemyEventFlow = events.some(event => ["enemy.action.prepare", "enemy.action.resolve", "attack.pending", "attack.clear"].includes(event?.type)) || pendingEnemyFlow || rangerPromptFlow;
     if (enemyEventFlow) {
+      validateEnemySimpleWaveActionEvents(scene, events);
+      const waveRuleId = events.find(event => event?.type === "enemy.action.prepare")?.payload?.ruleId;
+      if (waveRuleId === "lionwing.npc.daredevil.gloat" && !events.some(event => event?.type === "lionwing.command" && event.payload?.kind === "combat-meter") ||
+          waveRuleId === "lionwing.npc.viper.lick-the-knife" && !events.some(event => event?.type === "damage.apply" && event.payload?.attack === false)) fail("Действие требует полного канонического результата");
+      const nonAttackDamage = events.filter(event => event?.type === "damage.apply" && event.payload?.attack === false);
+      const meterCommands = events.filter(event => event?.type === "lionwing.command" && event.payload?.kind === "combat-meter");
+      if (meterCommands.length || nonAttackDamage.length) {
+        const prepare = events.find(event => event?.type === "enemy.action.prepare"), ruleId = prepare?.payload?.ruleId;
+        const specialEvents = [...meterCommands, ...nonAttackDamage];
+        const sourceId = specialEvents[0]?.actorId || events.find(event => event?.type === "damage.apply")?.actorId;
+        const source = requiredActor(scene, sourceId);
+        const prepares = events.filter(event => event?.type === "enemy.action.prepare" && event.payload?.ruleId === ruleId);
+        const resolves = events.filter(event => event?.type === "enemy.action.resolve" && event.payload?.ruleId === ruleId);
+        const spends = events.filter(event => event?.type === "resource.spend" && event.actorId === sourceId);
+        const resolve = resolves[0], payload = prepare?.payload || {};
+        if (prepares.length !== 1 || resolves.length !== 1 || spends.length !== 1 || source.knockedOut || scene.activeActorId !== source.id ||
+            source.usedActions?.includes(ruleId) || Number(source.ap || 0) < 1 || scene.pendingAction || scene.pendingPrompt || scene.pendingActionPlan || scene.lionwing?.pendingActionPlan ||
+            prepare.actorId !== source.id || resolve.actorId !== source.id || !sameJson(payload, resolve.payload) || payload.sourceRuleId !== ruleId ||
+            payload.profileId !== source.profileId || payload.kind !== "action" || payload.automation !== "full" ||
+            spends[0].payload?.resource !== "ap" || spends[0].payload?.amount !== 1 || spends[0].payload?.sourceRuleId !== ruleId) {
+          fail("Действие требует доступный канонический профиль и ровно 1 ОД");
+        }
+        if (ruleId === "lionwing.npc.daredevil.gloat") {
+          const command = meterCommands[0], cp = command?.payload || {};
+          if (source.profileId !== "lionwing.npc.daredevil" || payload.name !== "Gloat" || payload.text !== "Increase Tension by 1." ||
+              !simpleIdsEqual(payload.targetIds, []) || meterCommands.length !== 1 || nonAttackDamage.length || events.length !== 4 ||
+              events[0] !== prepare || events[1] !== spends[0] || events[2] !== command || events[3] !== resolve ||
+              command.actorId !== source.id || !sameJson(Object.keys(cp).sort(), ["delta", "id", "kind", "operation", "participantIds", "sourceActionId"].sort()) ||
+              cp.id !== "tension" || cp.operation !== "add" || cp.delta !== 1 || cp.sourceActionId !== ruleId || !simpleIdsEqual(cp.participantIds, [source.id])) {
+            fail("Gloat требует канонический пакет действия и ровно +1 Напряжение");
+          }
+        } else if (ruleId === "lionwing.npc.viper.lick-the-knife") {
+          const targetIds = (scene.actors || []).filter(target => live(target) && isPlayer(target) && effectActive(scene, target, "negative.порчен")).map(target => target.id);
+          const damageEvents = events.filter(event => event?.type === "damage.apply");
+          const amount = targetIds.length + Number(source.tier || 1);
+          if (source.profileId !== "lionwing.npc.viper" || payload.name !== "Lick The Knife" ||
+              payload.text !== "Deal damage to each Blighted player equal to the number of Blighted players + [Tier]." ||
+              !simpleIdsEqual(payload.targetIds, targetIds) || meterCommands.length || damageEvents.length !== targetIds.length ||
+              events.length !== targetIds.length + 3 || events[0] !== prepare || events[1] !== spends[0] || events.at(-1) !== resolve) {
+            fail("Lick The Knife должен выбрать всех и только живых Blighted players");
+          }
+          damageEvents.forEach((damage, index) => {
+            if (damage.actorId !== source.id || damage.payload?.targetId !== targetIds[index] || damage.payload?.amount !== amount ||
+                damage.payload?.attack !== false || damage.payload?.sourceActionId !== ruleId ||
+                !simpleIdsEqual(damage.payload?.participantIds, [source.id, targetIds[index]])) fail("Урон Lick The Knife не соответствует каноническому числу Blighted players");
+          });
+        } else fail("Неподдерживаемое действие с изменением Напряжения или не-Атакующим уроном");
+
+        let next = copy(scene), output = [], pending = [], usedOptions = options;
+        const flush = () => {
+          if (!pending.length) return;
+          const committed = legacy.dispatchMany(next, pending, usedOptions);
+          next = committed.scene; output.push(...(committed.events || []));
+          for (const raw of pending) if (raw.id) {
+            const fingerprint = JSON.stringify([raw.type, raw.actorId || null, raw.payload || {}]);
+            if (!state(next).receipts.some(receipt => receipt.id === raw.id)) state(next).receipts.push({ id: raw.id, fingerprint });
+          }
+          state(next).receipts = state(next).receipts.slice(-256); pending = []; usedOptions = { ...options }; delete usedOptions.expectedVersion;
+        };
+        for (const raw of events) {
+          const isCommand = raw.type === "lionwing.command" || raw.type === "damage.apply" && raw.payload?.attack === false;
+          if (!isCommand) { pending.push(raw); continue; }
+          flush();
+          const event = { ...copy(raw), id: raw.id || global.crypto?.randomUUID?.() || `lw-${Date.now()}-${Math.random().toString(36).slice(2)}`, payload: copy(raw.payload || {}) };
+          const fingerprint = JSON.stringify([raw.type, raw.actorId || null, raw.payload || {}]);
+          const existing = state(next).receipts.find(receipt => receipt.id === event.id);
+          if (existing) { if (existing.fingerprint !== fingerprint) fail("Конфликт ID события действия"); fail("Пакет действия содержит частичный повтор"); }
+          if (raw.type === "damage.apply") event.payload = { ...event.payload, kind: "damage", sourceActorId: event.actorId };
+          execute(next, { ...event, type: "lionwing.command" }, output, options);
+          next.version = Number(next.version || 0) + 1;
+          state(next).receipts.push({ id: event.id, fingerprint }); state(next).receipts = state(next).receipts.slice(-256);
+        }
+        flush();
+        return { scene: next, events: output, event: output[output.length - 1] };
+      }
       validateSimpleEnemyActionEvents(scene, events);
       return legacy.dispatchMany(scene, events, options);
     }

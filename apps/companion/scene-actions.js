@@ -204,6 +204,10 @@ const ENEMY_FULL_RULES = new Map([
   ["lionwing.npc.coordinator.neutralize-them", { type: "coordinator-mark" }],
   ["enemy.common.duelist.action.goad", { type: "duelist-goad" }],
   ["enemy.common.healer.action.heal", { type: "healer-heal", formula: "3(+1)" }],
+  ["lionwing.npc.healer.heal", { type: "healer-heal", formula: "3(+1)" }],
+  ["lionwing.npc.daredevil.gloat", { type: "daredevil-gloat" }],
+  ["lionwing.npc.viper.lick-the-knife", { type: "viper-lick-the-knife" }],
+  ["lionwing.npc.oni.stabilize", { type: "oni-stabilize" }],
   ["enemy.common.healer.trump.savior", { type: "healer-savior" }],
   ["enemy.common.cannoneer.attack.load", { type: "cannoneer-load" }],
   ["lionwing.npc.cannoneer.load", { type: "cannoneer-load" }],
@@ -946,6 +950,7 @@ function prepareEnemyRule(scene, data, request = {}) {
     targetIds = eligible.some(target => targetIds.includes(target.id)) ? [targetIds.find(id => eligible.some(target => target.id === id))] : eligible.slice(0, 1).map(target => target.id);
   }
   if (fullRule?.type === "healer-savior" && actor) targetIds = actor.ruleState?.healerGuardianId ? [actor.ruleState.healerGuardianId] : [];
+  if (fullRule?.type === "viper-lick-the-knife" && actor) targetIds = (scene.actors || []).filter(target => !target.knockedOut && (target.kind === "hero" || target.heroId) && (target.effects || []).includes("negative.порчен")).map(target => target.id);
   let targets = targetIds.map(id => actorById(scene, id)).filter(Boolean);
   const hiddenAssassinAttack = Boolean(family.hiddenAdvantage && (actor?.effects || []).includes("positive.исчез"));
   const assassinReappearance = hiddenAssassinAttack && request.options?.reappearance ? { x: Number(request.options.reappearance.x), y: Number(request.options.reappearance.y) } : null;
@@ -999,8 +1004,9 @@ function prepareEnemyRule(scene, data, request = {}) {
   if (fullRule?.type === "ranger-headshot" && targets.length !== 1) errors.push("Выстрел в голову требует ровно одну доступную цель.");
   if (fullRule?.type === "executioner-bifurcate" && (targets.length !== 1 || targets[0]?.team === actor?.team)) errors.push("Рассечение требует одного противника.");
   if (fullRule?.type === "revenant-hollowed-eyes" && targets.length !== 1) errors.push("Для Пустых глаз нужен игрок с наименьшим Фокусом.");
-  if (fullRule?.type === "healer-heal" && (targets.length !== 1 || targets[0]?.team !== actor?.team || distance(actor, targets[0]) > 3)) errors.push("Лечение требует самого Целителя или одного союзника в пределах 3 клеток.");
+  if (fullRule?.type === "healer-heal" && (targets.length !== 1 || targets[0]?.id === actor?.id || targets[0]?.team !== actor?.team || distance(actor, targets[0]) > 3)) errors.push("Лечение требует одного союзника, кроме самого Целителя, в пределах 3 клеток.");
   if (fullRule?.type === "healer-savior" && (targets.length !== 1 || targets[0]?.knockedOut || targets[0]?.id !== actor?.ruleState?.healerGuardianId)) errors.push("Для Спасителя сначала выберите доступного Стража в начале Хода Целителя.");
+  if (fullRule?.type === "oni-stabilize" && actor && Object.values(actor.effectStates || {}).some(state => (state?.sources || []).some(source => source.removable === false))) errors.push("Стабилизация не может снять защищённый источник Эффекта.");
   if (fullRule?.type === "assassin-mark" && targets.length !== 1) errors.push("Устранить цель требует ровно одного персонажа.");
   if (fullRule?.type === "defense-comparison-effect" && (targets.length !== 1 || targets[0]?.id === actor?.id || distance(actor, targets[0]) !== 1)) errors.push("Сбить с толку требует ровно одну смежную цель.");
   const seekerCells = [];
@@ -1157,13 +1163,18 @@ function prepareEnemyRule(scene, data, request = {}) {
     const target = targets[0], multiplier = actor.ruleState?.healerGuardianId === target.id ? 2 : 1;
     events.push({ type: "actor.heal", actorId: actor.id, payload: { targetId: target.id, amount: enemyTierFormula(fullRule.formula, actor.tier) * multiplier, sourceActionId: rule.id, participantIds: [actor.id, target.id] } });
   }
+  if (fullRule?.type === "daredevil-gloat") events.push({ type: "lionwing.command", actorId: actor.id, payload: { kind: "combat-meter", id: "tension", operation: "add", delta: 1, sourceActionId: rule.id, participantIds: [actor.id] } });
+  if (fullRule?.type === "viper-lick-the-knife") {
+    const amount = targets.length + Number(actor.tier || 1);
+    for (const target of targets) events.push({ type: "damage.apply", actorId: actor.id, payload: { targetId: target.id, amount, attack: false, sourceActionId: rule.id, participantIds: [actor.id, target.id] } });
+  }
   if (fullRule?.type === "healer-savior") {
     const guardian = targets[0];
     for (const effect of [...new Set(guardian.effects || [])]) events.push({ type: "effect.remove", actorId: actor.id, payload: { targetId: guardian.id, effect, force: true, sourceActionId: rule.id, participantIds: [actor.id, guardian.id] } });
     events.push({ type: "effect.apply", actorId: actor.id, payload: { targetId: guardian.id, effect: "positive.регенерирует", duration: "scene", sourceActionId: rule.id, participantIds: [actor.id, guardian.id] } });
   }
   if (fullRule?.type === "oni-stabilize") {
-    for (const effect of [...new Set(actor.effects || [])]) events.push({ type: "effect.remove", actorId: actor.id, payload: { targetId: actor.id, effect, force: true, sourceActionId: rule.id, participantIds: [actor.id] } });
+    for (const effect of [...new Set([...(actor.effects || []), ...Object.keys(actor.effectStates || {})])]) events.push({ type: "effect.remove", actorId: actor.id, payload: { targetId: actor.id, effect, sourceActionId: rule.id, participantIds: [actor.id] } });
     events.push({ type: "effect.apply", actorId: actor.id, payload: { targetId: actor.id, effect: "positive.ускорен", sourceActionId: rule.id, participantIds: [actor.id] } });
   }
   if (fullRule?.type === "revenant-lurk") {

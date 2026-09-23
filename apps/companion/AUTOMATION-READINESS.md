@@ -9,7 +9,7 @@
 | Контур | Всего | Заявлено исполнимым | Формально E2E-сертифицировано | Неполный путь |
 | --- | ---: | ---: | ---: | --- |
 | Уровни Техник | 333 | 84 shared/inherited (25.2%) | 0 | 57 частичных; 192 ручных |
-| Правила обычных врагов | 122 | 53 (43.4%) | 0 | 69 assisted |
+| Правила обычных врагов | 122 | 57 (46.7%) | 0 | 65 assisted |
 | Атаки врагов | 40 | 35 | 0 | не установлено независимым аудитом |
 
 Формально сертифицировано сейчас: **0** записей. Исполнимые уровни без evidence считаются **shared/inherited**, даже при совпавшем canonical digest: digest подтверждает текстовый источник, но не полноту поведения. Проценты выше измеряют охват кодом, а не верность правилам игры.
@@ -301,7 +301,7 @@
 | Pugilist (`lionwing.npc.pugilist`) | 3 | 2 | 1 | Take Stance |
 | Ranger (`lionwing.npc.ranger`) | 3 | 3 | 0 | — |
 | Ronin (`lionwing.npc.ronin`) | 3 | 1 | 2 | Sheath; Thunderclap And Flash |
-| Viper (`lionwing.npc.viper`) | 3 | 0 | 3 | Lick The Knife; Filet; Knife In The Dark |
+| Viper (`lionwing.npc.viper`) | 3 | 1 | 2 | Filet; Knife In The Dark |
 | Witch (`lionwing.npc.witch`) | 3 | 1 | 2 | Drawing Runes; EXPLOSION |
 | Bodyguards (`lionwing.npc.bodyguards`) | 3 | 2 | 1 | Brace |
 | Broodmother (`lionwing.npc.broodmother`) | 3 | 2 | 1 | Call |
@@ -310,7 +310,7 @@
 | Glutton (`lionwing.npc.glutton`) | 3 | 1 | 2 | Call; Regurgitate |
 | Guardian (`lionwing.npc.guardian`) | 3 | 2 | 1 | Guardian Shield |
 | Mount (`lionwing.npc.mount`) | 3 | 1 | 2 | Synergy; CHARGE! |
-| Oni (`lionwing.npc.oni`) | 3 | 0 | 3 | Stabilize; Polaris; Vibrant Terror |
+| Oni (`lionwing.npc.oni`) | 3 | 1 | 2 | Polaris; Vibrant Terror |
 | Paladin (`lionwing.npc.paladin`) | 3 | 2 | 1 | Weal And Woe |
 | Revenant (`lionwing.npc.revenant`) | 3 | 2 | 1 | Lurk |
 | Spright (`lionwing.npc.spright`) | 3 | 2 | 1 | Thunderous Ascension |
@@ -318,7 +318,7 @@
 | Builder (`lionwing.npc.builder`) | 3 | 1 | 2 | Landscape; Army Of Stone |
 | Coordinator (`lionwing.npc.coordinator`) | 3 | 1 | 2 | Fanaticize; Coordinated Charge |
 | Doppelgänger (`lionwing.npc.doppelganger`) | 2 | 0 | 2 | Imitate; Diplopia |
-| Healer (`lionwing.npc.healer`) | 3 | 1 | 2 | Heal; Savior |
+| Healer (`lionwing.npc.healer`) | 3 | 2 | 1 | Savior |
 | Illusionist (`lionwing.npc.illusionist`) | 3 | 1 | 2 | Spatial Rift; Shattered Skies |
 | Matriarch (`lionwing.npc.matriarch`) | 3 | 0 | 3 | Caress; Destroy The Interloper; Mother Of The Void |
 | Martyr (`lionwing.npc.martyr`) | 3 | 1 | 2 | Gorge On My Flesh; Sacrifice |
@@ -326,7 +326,7 @@
 | Berserker (`lionwing.npc.berserker`) | 3 | 3 | 0 | — |
 | Cannoneer (`lionwing.npc.cannoneer`) | 3 | 2 | 1 | Fire |
 | Cultist (`lionwing.npc.cultist`) | 3 | 1 | 2 | Ritual Drawings; Grand Calling |
-| Daredevil (`lionwing.npc.daredevil`) | 3 | 1 | 2 | Gloat; Adrenaline High |
+| Daredevil (`lionwing.npc.daredevil`) | 3 | 2 | 1 | Adrenaline High |
 | Enchanter (`lionwing.npc.enchanter`) | 3 | 1 | 2 | Charm; By My Command |
 | Hound Master (`lionwing.npc.hound-master`) | 3 | 2 | 1 | Fire Seeker |
 | Necromancer (`lionwing.npc.necromancer`) | 3 | 1 | 2 | Call The Dead; The Danse Macabre |
