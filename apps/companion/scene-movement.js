@@ -298,7 +298,7 @@ function fodderMoveDestinations(scene, actorId) {
     const path = movementPath(scene, actor.id, { x, y }, { maxDistance: status.remaining, placement: true, ignoreEnemies: true, ignoreDifficult: true });
     if (!path.length) continue;
     if (actor.crowdSubtype === "vortex") {
-      const owner = actorById(scene, actor.vortexOwnerId), carrier = actorById(scene, modifierState(owner).targetId), destination = { space: actor.space, x, y };
+      const owner = actorById(scene, actor.vortexOwnerId), carrier = actorById(scene, modifierState(owner)[owner?.profileId===LIONWING_VORTEX_ID?"carrierId":"targetId"]), destination = { space: actor.space, x, y };
       if (!carrier || carrier.knockedOut || modifierRangeDistance(scene, destination, carrier) >= modifierRangeDistance(scene, actor, carrier)) continue;
     }
     destinations.push({ x, y, path: path.map(cellKey), distance: path.length });

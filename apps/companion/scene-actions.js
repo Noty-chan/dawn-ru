@@ -1309,7 +1309,7 @@ function prepareEnemyRule(scene, data, request = {}) {
       let amount = baseDamage + Number(effectAttack.damageByTarget?.[target.id] || 0);
       if (family.bonusTensionAtRange && distance(attackOrigin, target) >= Number(family.bonusTensionAtRange)) amount += Number(scene.tension || 0);
       if (family.bonusDamageFormula && distance(attackOrigin, target) >= Number(family.bonusDamageMinimumRange || 0) && (!family.bonusDamageIfUntouched || enemyTargetUntouchedThisRound(scene, target.id, actor.team))) amount += enemyTierFormula(family.bonusDamageFormula, actor.tier);
-      if (family.isolatedBonusFormula && !(scene.actors || []).some(other => other.id !== target.id && other.id !== actor.id && !other.knockedOut && other.space === target.space && distance(other, target) <= 1)) amount += enemyTierFormula(family.isolatedBonusFormula, actor.tier);
+      if (family.isolatedBonusFormula && !(scene.actors || []).some(other => other.id !== target.id && other.id !== actor.id && !other.knockedOut && !isEnemyModifier(other) && other.space === target.space && distance(other, target) <= 1)) amount += enemyTierFormula(family.isolatedBonusFormula, actor.tier);
       if (family.provokedTierDamage && (target.effects || []).includes("negative.спровоцирован")) amount += Number(actor.tier || 1);
       if (family.broodmotherDamage) {
         const dx=Number(attackOrigin.x)-Number(actor.x),dy=Number(attackOrigin.y)-Number(actor.y);
