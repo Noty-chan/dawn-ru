@@ -9,7 +9,7 @@
 | Контур | Всего | Заявлено исполнимым | Формально E2E-сертифицировано | Неполный путь |
 | --- | ---: | ---: | ---: | --- |
 | Уровни Техник | 333 | 84 shared/inherited (25.2%) | 0 | 57 частичных; 192 ручных |
-| Правила обычных врагов | 122 | 57 (46.7%) | 0 | 65 assisted |
+| Правила обычных врагов | 122 | 62 (50.8%) | 0 | 60 assisted |
 | Атаки врагов | 40 | 35 | 0 | не установлено независимым аудитом |
 
 Формально сертифицировано сейчас: **0** записей. Исполнимые уровни без evidence считаются **shared/inherited**, даже при совпавшем canonical digest: digest подтверждает текстовый источник, но не полноту поведения. Проценты выше измеряют охват кодом, а не верность правилам игры.
@@ -297,17 +297,17 @@
 | Behemoth (`lionwing.npc.behemoth`) | 3 | 1 | 2 | Leap; Meteor |
 | Captor (`lionwing.npc.captor`) | 3 | 1 | 2 | Watch And Wait; Sticky Bomb |
 | Executioner (`lionwing.npc.executioner`) | 3 | 2 | 1 | Bifurcate |
-| Javelin (`lionwing.npc.javelin`) | 3 | 1 | 2 | Call; Shockwave |
+| Javelin (`lionwing.npc.javelin`) | 3 | 2 | 1 | Shockwave |
 | Pugilist (`lionwing.npc.pugilist`) | 3 | 2 | 1 | Take Stance |
 | Ranger (`lionwing.npc.ranger`) | 3 | 3 | 0 | — |
 | Ronin (`lionwing.npc.ronin`) | 3 | 1 | 2 | Sheath; Thunderclap And Flash |
 | Viper (`lionwing.npc.viper`) | 3 | 1 | 2 | Filet; Knife In The Dark |
 | Witch (`lionwing.npc.witch`) | 3 | 1 | 2 | Drawing Runes; EXPLOSION |
 | Bodyguards (`lionwing.npc.bodyguards`) | 3 | 2 | 1 | Brace |
-| Broodmother (`lionwing.npc.broodmother`) | 3 | 2 | 1 | Call |
+| Broodmother (`lionwing.npc.broodmother`) | 3 | 3 | 0 | — |
 | Cocoon (`lionwing.npc.cocoon`) | 3 | 2 | 1 | Menace |
 | Duelist (`lionwing.npc.duelist`) | 3 | 1 | 2 | Goad; Disassemble |
-| Glutton (`lionwing.npc.glutton`) | 3 | 1 | 2 | Call; Regurgitate |
+| Glutton (`lionwing.npc.glutton`) | 3 | 2 | 1 | Regurgitate |
 | Guardian (`lionwing.npc.guardian`) | 3 | 2 | 1 | Guardian Shield |
 | Mount (`lionwing.npc.mount`) | 3 | 1 | 2 | Synergy; CHARGE! |
 | Oni (`lionwing.npc.oni`) | 3 | 1 | 2 | Polaris; Vibrant Terror |
@@ -332,7 +332,7 @@
 | Necromancer (`lionwing.npc.necromancer`) | 3 | 1 | 2 | Call The Dead; The Danse Macabre |
 | Privateer (`lionwing.npc.privateer`) | 3 | 2 | 1 | Escort |
 | Rifter (`lionwing.npc.rifter`) | 3 | 1 | 2 | Wild Shifting; Implode |
-| Swarm (`lionwing.npc.swarm`) | 3 | 0 | 3 | Call; Tear; Reinforcements |
+| Swarm (`lionwing.npc.swarm`) | 3 | 2 | 1 | Tear |
 
 ### Кластеры следующей автоматизации врагов
 

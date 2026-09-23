@@ -54,6 +54,14 @@ for (const profile of ["javelin", "broodmother", "glutton"]) {
   assert.throws(() => commit(afterSecond, first), /.+/, "stale replay cannot reapply an old Call");
 }
 
+const giantSummoner = scene("lionwing.npc.javelin");
+giantSummoner.actors[0].x = 0;
+giantSummoner.actors[0].y = 0;
+giantSummoner.actors[0].occupiedWidth = 2;
+giantSummoner.actors[0].occupiedHeight = 2;
+assert.equal(Engine.modifierRangeDistance(giantSummoner, giantSummoner.actors[0], { space: "main", x: 5, y: 0 }), 4, "range starts at the nearest occupied cell");
+assert.equal(prepare(giantSummoner, "lionwing.npc.javelin.call", ["5,0", "0,2", "1,2"]).ok, true, "a large summoner can place Fodder at range 4 from its footprint");
+
 const swarm = scene("lionwing.npc.swarm");
 const swarmId = "lionwing.npc.swarm.call";
 const swarmRule = Engine.availableEnemyRules(swarm, data, "source").find(rule => rule.id === swarmId);
