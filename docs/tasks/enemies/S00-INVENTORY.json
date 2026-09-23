@@ -7397,6 +7397,7 @@
         "tests": [
           "apps/companion/tests/lionwing-enemy-base-attacks.mjs",
           "apps/companion/tests/lionwing-localization.mjs",
+          "apps/companion/tests/lionwing-recovery-stress.mjs",
           "apps/companion/tests/scene-engine.mjs"
         ],
         "notRun": [
@@ -7446,6 +7447,7 @@
           "tests": [
             "apps/companion/tests/lionwing-enemy-base-attacks.mjs",
             "apps/companion/tests/lionwing-localization.mjs",
+            "apps/companion/tests/lionwing-recovery-stress.mjs",
             "apps/companion/tests/scene-engine.mjs"
           ],
           "notRun": [
@@ -7497,6 +7499,7 @@
           "tests": [
             "apps/companion/tests/lionwing-enemy-base-attacks.mjs",
             "apps/companion/tests/lionwing-localization.mjs",
+            "apps/companion/tests/lionwing-recovery-stress.mjs",
             "apps/companion/tests/scene-engine.mjs"
           ],
           "notRun": [
@@ -7544,6 +7547,7 @@
             "apps/companion/tests/lionwing-enemy-base-attacks.mjs",
             "apps/companion/tests/lionwing-localization.mjs",
             "apps/companion/tests/lionwing-narrator-roll-ui.mjs",
+            "apps/companion/tests/lionwing-recovery-stress.mjs",
             "apps/companion/tests/qa.mjs",
             "apps/companion/tests/scene-engine.mjs"
           ],
