@@ -19,6 +19,7 @@ const LIONWING_HAVEN_ID = "lionwing.modifier.haven";
 const LIONWING_CONTAGION_ID = "lionwing.modifier.contagion";
 const LIONWING_EARTHQUAKE_ID = "lionwing.modifier.earthquake";
 const LIONWING_VIP_ID = "lionwing.modifier.vip";
+const LIONWING_COLLATERAL_ID = "lionwing.modifier.collateral";
 const lionwingModifierTension = scene => Number(globalThis.DAWN_LIONWING_COMBAT_METER?.read?.(scene)?.current ?? scene?.tension ?? 0);
 const ATTACHED_MODIFIER_IDS = new Set([
   ENEMY_MODIFIER_IDS.contagion,
@@ -44,7 +45,7 @@ const PLAYER_ANCHOR_MODIFIER_IDS = new Set([
   LIONWING_CONTAGION_ID,
 ]);
 const isEnemyModifier = (actor) =>
-  Boolean(actor && (Object.values(ENEMY_MODIFIER_IDS).includes(actor.profileId) || [LIONWING_ISOLATION_ID,LIONWING_ARTILLERY_ID,LIONWING_HAVEN_ID,LIONWING_CONTAGION_ID,LIONWING_EARTHQUAKE_ID,LIONWING_VIP_ID].includes(actor.profileId)));
+  Boolean(actor && (Object.values(ENEMY_MODIFIER_IDS).includes(actor.profileId) || [LIONWING_ISOLATION_ID,LIONWING_ARTILLERY_ID,LIONWING_HAVEN_ID,LIONWING_CONTAGION_ID,LIONWING_EARTHQUAKE_ID,LIONWING_VIP_ID,LIONWING_COLLATERAL_ID].includes(actor.profileId)));
 const isAttachedModifier = (actor) =>
   Boolean(actor && (ATTACHED_MODIFIER_IDS.has(actor.profileId) || actor.profileId === LIONWING_ISOLATION_ID));
 const lionwingSceneModifierActive = (scene) =>
@@ -177,7 +178,7 @@ function modifierConfigurationStatus(scene, actorId, request = {}) {
     errors = [];
   if (!isEnemyModifier(actor) || actor.knockedOut)
     errors.push("Модификатор недоступен.");
-  if ([LIONWING_ISOLATION_ID,LIONWING_ARTILLERY_ID,LIONWING_HAVEN_ID,LIONWING_CONTAGION_ID,LIONWING_EARTHQUAKE_ID,LIONWING_VIP_ID].includes(actor?.profileId) && actor.team !== "enemy")
+  if ([LIONWING_ISOLATION_ID,LIONWING_ARTILLERY_ID,LIONWING_HAVEN_ID,LIONWING_CONTAGION_ID,LIONWING_EARTHQUAKE_ID,LIONWING_VIP_ID,LIONWING_COLLATERAL_ID].includes(actor?.profileId) && actor.team !== "enemy")
     errors.push("Модификатор LionWing размещается на стороне противников.");
   const carrier = request.carrierId
     ? actorById(scene, request.carrierId)
@@ -261,8 +262,8 @@ function modifierConfigurationStatus(scene, actorId, request = {}) {
     errors.push(
       "Клетки не соответствуют выбранной канонической форме Артиллерии.",
     );
-  if (actor?.profileId === ENEMY_MODIFIER_IDS.collateral) {
-    const required = Math.ceil(livePlayers(scene).length * 1.5),
+  if ([ENEMY_MODIFIER_IDS.collateral,LIONWING_COLLATERAL_ID].includes(actor?.profileId)) {
+    const required = Math.ceil((actor.profileId === LIONWING_COLLATERAL_ID ? lionwingPlayerCharacters(scene) : livePlayers(scene)).length * 1.5),
       occupied = new Set(
         (scene.actors || [])
           .filter(
@@ -295,7 +296,7 @@ function prepareModifierConfigure(scene, request = {}) {
   const status = modifierConfigurationStatus(scene, request.actorId, request);
   if (!status.available)
     return { ok: false, errors: [status.reason], events: [] };
-  const collateral = status.actor.profileId === ENEMY_MODIFIER_IDS.collateral,
+  const collateral = [ENEMY_MODIFIER_IDS.collateral,LIONWING_COLLATERAL_ID].includes(status.actor.profileId),
     legion = status.actor.profileId === ENEMY_MODIFIER_IDS.legion,
     gargantuan = status.actor.profileId === ENEMY_MODIFIER_IDS.gargantuan,
     state = {
@@ -702,7 +703,7 @@ function modifierKnockoutEvents(scene, event) {
     for (const target of lionwingLivePlayerCharacters(scene))
       events.push({type:"actor.knockout",actorId:defeated.id,payload:{targetId:target.id,sourceActionId:"lionwing.modifier.vip.failure",participantIds:[defeated.id,target.id]}});
   if (
-    defeated.profileId === ENEMY_MODIFIER_IDS.collateral &&
+    [ENEMY_MODIFIER_IDS.collateral,LIONWING_COLLATERAL_ID].includes(defeated.profileId) &&
     defeated.modifierState?.deployed
   ) {
     const clock = (scene.sessionClocks || []).find(
@@ -721,7 +722,7 @@ function modifierKnockoutEvents(scene, event) {
         },
       });
     if (clock && value >= Number(clock.size || 0))
-      for (const target of livePlayers(scene))
+      for (const target of (defeated.profileId === LIONWING_COLLATERAL_ID ? lionwingLivePlayerCharacters(scene) : livePlayers(scene)))
         events.push({
           type: "actor.knockout",
           actorId: defeated.id,
