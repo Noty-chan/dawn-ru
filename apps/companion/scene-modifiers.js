@@ -18,6 +18,7 @@ const LIONWING_ARTILLERY_ID = "lionwing.modifier.artillery";
 const LIONWING_HAVEN_ID = "lionwing.modifier.haven";
 const LIONWING_CONTAGION_ID = "lionwing.modifier.contagion";
 const LIONWING_EARTHQUAKE_ID = "lionwing.modifier.earthquake";
+const LIONWING_VIP_ID = "lionwing.modifier.vip";
 const lionwingModifierTension = scene => Number(globalThis.DAWN_LIONWING_COMBAT_METER?.read?.(scene)?.current ?? scene?.tension ?? 0);
 const ATTACHED_MODIFIER_IDS = new Set([
   ENEMY_MODIFIER_IDS.contagion,
@@ -43,7 +44,7 @@ const PLAYER_ANCHOR_MODIFIER_IDS = new Set([
   LIONWING_CONTAGION_ID,
 ]);
 const isEnemyModifier = (actor) =>
-  Boolean(actor && (Object.values(ENEMY_MODIFIER_IDS).includes(actor.profileId) || [LIONWING_ISOLATION_ID,LIONWING_ARTILLERY_ID,LIONWING_HAVEN_ID,LIONWING_CONTAGION_ID,LIONWING_EARTHQUAKE_ID].includes(actor.profileId)));
+  Boolean(actor && (Object.values(ENEMY_MODIFIER_IDS).includes(actor.profileId) || [LIONWING_ISOLATION_ID,LIONWING_ARTILLERY_ID,LIONWING_HAVEN_ID,LIONWING_CONTAGION_ID,LIONWING_EARTHQUAKE_ID,LIONWING_VIP_ID].includes(actor.profileId)));
 const isAttachedModifier = (actor) =>
   Boolean(actor && (ATTACHED_MODIFIER_IDS.has(actor.profileId) || actor.profileId === LIONWING_ISOLATION_ID));
 const lionwingSceneModifierActive = (scene) =>
@@ -64,8 +65,9 @@ const livePlayers = (scene) =>
   );
 const lionwingPlayerCharacters = (scene) =>
   (scene.actors || []).filter(
-    (item) => item.team === "hero" && item.kind === "hero" && !item.profileId && !item.knockedOut,
+    (item) => item.team === "hero" && item.kind === "hero" && !item.profileId,
   );
+const lionwingLivePlayerCharacters = (scene) => lionwingPlayerCharacters(scene).filter(item => !item.knockedOut);
 const liveOpponents = (scene, actor) =>
   (scene.actors || []).filter(
     (item) =>
@@ -175,7 +177,7 @@ function modifierConfigurationStatus(scene, actorId, request = {}) {
     errors = [];
   if (!isEnemyModifier(actor) || actor.knockedOut)
     errors.push("Модификатор недоступен.");
-  if ([LIONWING_ISOLATION_ID,LIONWING_ARTILLERY_ID,LIONWING_HAVEN_ID,LIONWING_CONTAGION_ID,LIONWING_EARTHQUAKE_ID].includes(actor?.profileId) && actor.team !== "enemy")
+  if ([LIONWING_ISOLATION_ID,LIONWING_ARTILLERY_ID,LIONWING_HAVEN_ID,LIONWING_CONTAGION_ID,LIONWING_EARTHQUAKE_ID,LIONWING_VIP_ID].includes(actor?.profileId) && actor.team !== "enemy")
     errors.push("Модификатор LionWing размещается на стороне противников.");
   const carrier = request.carrierId
     ? actorById(scene, request.carrierId)
@@ -220,7 +222,7 @@ function modifierConfigurationStatus(scene, actorId, request = {}) {
     PLAYER_ANCHOR_MODIFIER_IDS.has(actor?.profileId) &&
     (!target ||
       target.team === actor.team ||
-      target.knockedOut ||
+      (target.knockedOut && ![LIONWING_ISOLATION_ID,LIONWING_CONTAGION_ID].includes(actor?.profileId)) ||
       target.kind === "crowd")
   )
     errors.push("Выберите живого персонажа игрока.");
@@ -354,7 +356,7 @@ function modifierDamageEvents(scene, actor, boundaryEvent) {
     const anchor = actorById(scene, state.targetId);
     const players = lionwingPlayerCharacters(scene);
     if (!carrier || carrier.knockedOut || !players.some(player => player.id === anchor?.id)) return [];
-    targets = players.filter(target => target.id !== anchor.id && target.space === anchor.space && distance(anchor, target) <= 3);
+    targets = lionwingLivePlayerCharacters(scene).filter(target => target.id !== anchor.id && target.space === anchor.space && distance(anchor, target) <= 3);
     const total = (2 + Number(actor.tier || 1)) * players.length;
     const each = targets.length ? Math.ceil(total / targets.length) : 0;
     return targets.map(target => ({type:"damage.apply",actorId:actor.id,payload:{targetId:target.id,amount:each,attack:false,ignoreArmor:true,sourceActionId,boundaryEventId,participantIds:[actor.id,carrier.id,anchor.id,target.id]}}));
@@ -566,13 +568,23 @@ function modifierRoundEndEvents(scene, boundaryEvent, edition = null) {
   return events;
 }
 function modifierMovementEvents(scene, event) {
+  const vipPrompts = [];
+  if (event.type === "actor.move" && event.payload?.from && actorById(scene, event.actorId)) {
+    const mover = actorById(scene, event.actorId), from = event.payload.from;
+    for (const vip of (scene.actors || []).filter(item => item.profileId === LIONWING_VIP_ID && !item.knockedOut && mover?.team !== item.team && !mover.knockedOut && mover.kind !== "crowd" && Number(item.modifierState?.lastFollowTurnSerial ?? -1) !== Number(scene.turnSerial || 0))) {
+      const wasAdjacent = from.space === vip.space && Math.max(Math.abs(Number(from.x) - Number(vip.x)), Math.abs(Number(from.y) - Number(vip.y))) <= 1;
+      const nowAdjacent = mover.space === vip.space && distance(mover, vip) <= 1;
+      if (!wasAdjacent || nowAdjacent) continue;
+      vipPrompts.push({type:"rule.prompt",actorId:vip.id,payload:{id:`prompt-${event.id}-${vip.id}`,kind:"lionwing-vip-follow",sourceActorId:vip.id,controller:"narrator",title:`${vip.name}: сопровождение`,text:`${mover.name} вышел из смежности. Переместить VIP в его новую позицию?`,options:["follow","stay"],context:{moverId:mover.id,moveEventId:event.id,turnSerial:Number(scene.turnSerial||0),optionLabels:{follow:"Следовать",stay:"Остаться"}},participantIds:[vip.id,mover.id]}});
+    }
+  }
   const crowd = actorById(scene, event.actorId);
   if (
     event.type !== "actor.move" ||
     crowd?.crowdSubtype !== "vortex" ||
     !event.payload?.fodderMove
   )
-    return [];
+    return vipPrompts;
   const owner = actorById(scene, crowd.vortexOwnerId),
     carrier = actorById(scene, modifierState(owner).targetId);
   if (
@@ -582,7 +594,7 @@ function modifierMovementEvents(scene, event) {
     carrier.knockedOut ||
     modifierRangeDistance(scene, crowd, carrier) > 0
   )
-    return [];
+    return vipPrompts;
   const nextArmor = Number(carrier.armor || 0) + 1,
     events = [
       {
@@ -617,7 +629,7 @@ function modifierMovementEvents(scene, event) {
           participantIds: [owner.id, carrier.id, target.id],
         },
       });
-  return events;
+  return [...vipPrompts,...events];
 }
 function modifierKnockoutEvents(scene, event) {
   if (event.type !== "actor.knockout") return [];
@@ -686,6 +698,9 @@ function modifierKnockoutEvents(scene, event) {
           participantIds: [defeated.id, target.id],
         },
       });
+  if (defeated.profileId === LIONWING_VIP_ID)
+    for (const target of lionwingLivePlayerCharacters(scene))
+      events.push({type:"actor.knockout",actorId:defeated.id,payload:{targetId:target.id,sourceActionId:"lionwing.modifier.vip.failure",participantIds:[defeated.id,target.id]}});
   if (
     defeated.profileId === ENEMY_MODIFIER_IDS.collateral &&
     defeated.modifierState?.deployed

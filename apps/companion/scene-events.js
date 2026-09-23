@@ -191,6 +191,9 @@ function validateEvent(scene, event, options = {}) {
   if (event.type === "actor.move") {
     const space = (scene.spaces || []).find(item => item.id === payload.space);
     let validCrowdRuleMove = false, validFodderMove = false;
+    const vipFollow=payload.vipFollow,response=vipFollow&&(scene.log||[]).find(item=>item.type==="rule.respond"&&item.payload?.promptId===vipFollow.promptId&&item.payload?.choice==="follow"&&item.actorId===actor?.id),followPrompt=response&&(scene.log||[]).find(item=>item.type==="rule.prompt"&&item.payload?.id===vipFollow.promptId&&item.payload?.kind==="lionwing-vip-follow"),followMover=actorById(scene,vipFollow?.moverId),validVipFollow=Boolean(actor?.profileId===LIONWING_VIP_ID&&!actor.knockedOut&&response&&followPrompt&&followPrompt.payload?.context?.moverId===followMover?.id&&followPrompt.payload?.context?.moveEventId===vipFollow.moveEventId&&Number(followPrompt.payload?.context?.turnSerial)===Number(scene.turnSerial||0)&&Number(modifierState(actor).lastFollowTurnSerial??-1)!==Number(scene.turnSerial||0)&&followMover?.team!==actor.team&&!followMover.knockedOut&&followMover.kind!=="crowd"&&followMover.space===payload.space&&Number(followMover.x)===Number(payload.x)&&Number(followMover.y)===Number(payload.y)&&payload.sourceActionId==="lionwing.modifier.vip.follow");
+    if(vipFollow&&!validVipFollow)throw new Error("Сопровождение VIP не подтверждено актуальным решением Нарратора.");
+    if(actor?.profileId===LIONWING_VIP_ID&&!validVipFollow&&!payload.placement)throw new Error("VIP перемещается только при сопровождении союзника.");
     if (!space || !Number.isInteger(Number(payload.x)) || !Number.isInteger(Number(payload.y)) || Number(payload.x) < 0 || Number(payload.y) < 0 || Number(payload.x) >= space.width || Number(payload.y) >= space.height) throw new Error("Некорректная клетка перемещения.");
     if (removedCellKeys(scene, payload.space).has(`${Number(payload.x)},${Number(payload.y)}`)) throw new Error("Нельзя переместиться в удалённую клетку.");
     if (actor?.knockedOut && !payload.allowKnockedOut && !payload.displacement?.allowKnockedOut) throw new Error("Выведенный из строя участник не может перемещаться.");
@@ -207,9 +210,9 @@ function validateEvent(scene, event, options = {}) {
       payload.path = canonicalPath.map(cellKey);
     }
     const movement = effectMovementStatus(scene, event.actorId, { forced: Boolean(payload.forced || payload.displacement), placement: Boolean(payload.placement), ignoreResistance: Boolean(payload.displacement?.ignoreResistance), ignoreVoluntaryRestrictions: Boolean(payload.ignoreVoluntaryRestrictions) });
-    if (!movement.available && !validCrowdRuleMove && !validFodderMove) throw new Error(movement.reason);
+    if (!movement.available && !validCrowdRuleMove && !validFodderMove && !validVipFollow) throw new Error(movement.reason);
     const occupancy = effectCellOccupancyStatus(scene, event.actorId, { space: payload.space, x: payload.x, y: payload.y });
-    if (!occupancy.available) throw new Error(occupancy.reason);
+    if (!occupancy.available && !validVipFollow) throw new Error(occupancy.reason);
     if (payload.from && (payload.from.space !== actor?.space || Number(payload.from.x) !== Number(actor?.x) || Number(payload.from.y) !== Number(actor?.y))) throw new Error("Исходная клетка перемещения устарела.");
     if(actor?.crowdSubtype==="vortex"&&payload.fodderMove){const owner=actorById(scene,actor.vortexOwnerId),carrier=actorById(scene,modifierState(owner).targetId),destination={space:payload.space,x:Number(payload.x),y:Number(payload.y)};if(!carrier||carrier.knockedOut||modifierRangeDistance(scene,destination,carrier)>=modifierRangeDistance(scene,actor,carrier))throw new Error("Массовка Вихря может двигаться только ближе к выбранному персонажу игрока.");}
     if (payload.path != null) {
@@ -886,6 +889,7 @@ function reduceEvent(scene, event) {
     const compoundId = (actor.kind === "enemy" || actor.profileId) && typeof actor.compoundId === "string" && actor.compoundId.trim() ? actor.compoundId.trim() : null;
     const moved = compoundId ? (scene.actors || []).filter(item => item.team === actor.team && (item.kind === "enemy" || item.profileId) && String(item.compoundId || "").trim() === compoundId) : [actor];
     for (const part of moved) Object.assign(part, { space: payload.space || actor.space, x: Number(payload.x), y: Number(payload.y) });
+    if(actor.profileId===LIONWING_VIP_ID&&payload.vipFollow)actor.modifierState={...modifierState(actor),lastFollowTurnSerial:Number(scene.turnSerial||0)};
     if (compoundId) payload.movedActorIds = moved.map(part => part.id);
   } else if (event.type === "area.create") {
     scene.objects ||= [];

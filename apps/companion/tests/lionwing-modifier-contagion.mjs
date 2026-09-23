@@ -41,6 +41,10 @@ const evasionConfigured=commit(evasionScene,engine.prepareModifierConfigure(evas
 const evasionRound=engine.dispatchMany(evasionConfigured,[{id:"contagion-evasion-round",type:"round.end",payload:{}}]).scene;
 assert.equal(evasionRound.actors.find(item=>item.id==="near").hp,30,"passive damage consumes temporary Evasion before Health");
 assert.equal(evasionRound.actors.find(item=>item.id==="near").lionwing.modifiers[0].remaining,2);
+const koAnchor=base();koAnchor.actors.find(item=>item.id==="anchor").knockedOut=true;
+const koConfigured=commit(koAnchor,engine.prepareModifierConfigure(koAnchor,{actorId:"contagion",carrierId:"host",targetId:"anchor"}),"contagion-ko-anchor");
+const koRound=engine.dispatchMany(koConfigured,[{id:"contagion-ko-anchor-round",type:"round.end",payload:{}}]).scene;
+assert.equal(koRound.actors.find(item=>item.id==="near").hp,27,"a knocked-out indicated PC remains the center while on the board");
 const stopped=structuredClone(scene);stopped.actors.find(item=>item.id==="contagion").knockedOut=true;
 assert.equal(engine.effectiveActorStats(stopped,"host").evasion.value,2,"source loss removes the bonus");
 console.log("LionWing Contagion: player anchor, Evasion, damage, refresh and source loss passed");

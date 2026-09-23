@@ -4230,7 +4230,7 @@
     const pendingEnemyFlow = scene.pendingAction?.enemyRuleId && events.some(event => ["reaction.respond", "rule.respond", "damage.apply", "effect.apply", "actor.move", "actor.enter", "attack.clear"].includes(event?.type));
     const rangerPromptFlow = scene.pendingPrompt?.kind === "enemy-ranger-retreat" && events.some(event => event?.type === "rule.respond");
     const crowdPromptFlow = ["fodder-", "enemy-crowd-move-", "enemy-swarm-stun"].some(prefix => scene.pendingPrompt?.kind?.startsWith(prefix)) && events.some(event => event?.type === "rule.respond");
-    const modifierFlow = events.length > 0 && events.every(event => event?.type === "modifier.configure" && (scene.actors || []).some(actor => actor.id === event.actorId && ["lionwing.modifier.isolation","lionwing.modifier.artillery","lionwing.modifier.haven","lionwing.modifier.contagion","lionwing.modifier.earthquake"].includes(actor.profileId)) || event?.type === "rule.respond" && scene.pendingPrompt?.kind === "modifier-refresh" && scene.pendingPrompt?.sourceActorId === event.actorId && (scene.actors || []).some(actor => actor.id === event.actorId && ["lionwing.modifier.isolation","lionwing.modifier.artillery","lionwing.modifier.haven","lionwing.modifier.contagion","lionwing.modifier.earthquake"].includes(actor.profileId)));
+    const modifierFlow = events.length > 0 && events.every(event => event?.type === "modifier.configure" && (scene.actors || []).some(actor => actor.id === event.actorId && ["lionwing.modifier.isolation","lionwing.modifier.artillery","lionwing.modifier.haven","lionwing.modifier.contagion","lionwing.modifier.earthquake","lionwing.modifier.vip"].includes(actor.profileId)) || event?.type === "rule.respond" && ["modifier-refresh","lionwing-vip-follow"].includes(scene.pendingPrompt?.kind) && scene.pendingPrompt?.sourceActorId === event.actorId && (scene.actors || []).some(actor => actor.id === event.actorId && ["lionwing.modifier.isolation","lionwing.modifier.artillery","lionwing.modifier.haven","lionwing.modifier.contagion","lionwing.modifier.earthquake","lionwing.modifier.vip"].includes(actor.profileId)) || event?.type === "actor.move" && event.payload?.vipFollow && (scene.actors || []).some(actor => actor.id === event.actorId && actor.profileId === "lionwing.modifier.vip"));
     if (modifierFlow) return legacy.dispatchMany(scene, events, options);
     const enemyEventFlow = events.some(event => ["enemy.action.prepare", "enemy.action.resolve", "attack.pending", "attack.clear"].includes(event?.type) || event?.type === "rule.prompt" && event.payload?.kind?.startsWith("enemy-crowd-move-")) || pendingEnemyFlow || rangerPromptFlow || crowdPromptFlow;
     if (enemyEventFlow) {
@@ -4374,6 +4374,16 @@
         removeAurasForLostSource(next,lostSourceId);
         if (inventory?.removeSource && lostSourceId) inventory.removeSource(next, lostSourceId);
       } else { execute(next, event, output, options); next.version = Number(next.version || 0) + 1; }
+      for (const knockout of output.slice(outputStart).filter(item => item.type === "actor.knockout")) {
+        const defeated = actor(next, knockout.payload?.targetId || knockout.actorId);
+        if (defeated?.profileId !== "lionwing.modifier.vip") continue;
+        const consequences = legacy.modifierKnockoutEvents?.(next, knockout) || [];
+        if (consequences.length) { const result = legacy.dispatchMany(next, consequences); next = result.scene; output.push(...result.events); }
+      }
+      for (const moved of output.slice(outputStart).filter(item => item.type === "actor.move")) {
+        const prompts = (legacy.modifierMovementEvents?.(next, moved) || []).filter(item => item.payload?.kind === "lionwing-vip-follow");
+        if (prompts.length) { const result = legacy.dispatchMany(next, prompts); next = result.scene; output.push(...result.events); }
+      }
       if (["turn.end", "round.end"].includes(event.type)) for (const boundary of output.slice(outputStart).filter(item => item.type === event.type)) {
         const prompts = legacy.fodderBoundaryPromptEvents?.(next, boundary) || [];
         if (prompts.length) { const prompted = legacy.dispatchMany(next, prompts); next = prompted.scene; output.push(...prompted.events); }

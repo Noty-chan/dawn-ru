@@ -58,6 +58,10 @@ const divided=base();divided.actors.find(item=>item.id==="far").x=2;divided.acto
 const dividedConfigured=commit(divided,engine.prepareModifierConfigure(divided,{actorId:"isolation",carrierId:"host",targetId:"anchor"}),"isolation-divided");
 const dividedRound=engine.dispatchMany(dividedConfigured,[{id:"isolation-divided-round",type:"round.end",payload:{}}]).scene;
 assert.equal(dividedRound.actors.find(item=>item.id==="far").hp,24,"16 damage divided among three recipients rounds up to 6 each");
+const koPlayer=base();koPlayer.actors.find(item=>item.id==="far").knockedOut=true;
+const koConfigured=commit(koPlayer,engine.prepareModifierConfigure(koPlayer,{actorId:"isolation",carrierId:"host",targetId:"anchor"}),"isolation-ko-player");
+const koRound=engine.dispatchMany(koConfigured,[{id:"isolation-ko-player-round",type:"round.end",payload:{}}]).scene;
+assert.equal(koRound.actors.find(item=>item.id==="near").hp,22,"KO party members still count as player characters in the damage formula");
 const mixed=base();
 mixed.actors.push(actor("ally-npc","hero",2,2,{profileId:"lionwing.npc.bruiser"}));
 mixed.actors.push(actor("ally-token","hero",3,1,{kind:"token"}));

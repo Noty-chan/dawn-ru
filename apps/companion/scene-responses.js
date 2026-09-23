@@ -310,6 +310,11 @@ function respondRulePrompt(scene, data, request = {}) {
     const state=modifierState(actor),status=modifierConfigurationStatus(scene,actor.id,state);
     if(!status.available||Number(state.configuredRound||0)!==Number(scene.round||1))return{ok:false,errors:[status.reason||"Сначала задайте новую настройку модификатора в его панели."],events:[]};
   }
+  if(prompt.kind==="lionwing-vip-follow"){
+    const mover=actorById(scene,prompt.context?.moverId),movement=(scene.log||[]).find(item=>item.id===prompt.context?.moveEventId);
+    if(actor.profileId!==LIONWING_VIP_ID||actor.knockedOut||!mover||mover.knockedOut||mover.team===actor.team||mover.kind==="crowd"||movement?.type!=="actor.move"||movement.actorId!==mover.id||Number(prompt.context?.turnSerial)!==Number(scene.turnSerial||0)||Number(modifierState(actor).lastFollowTurnSerial??-1)===Number(scene.turnSerial||0))return{ok:false,errors:["Сопровождение VIP больше недоступно."],events:[]};
+    if(choice==="follow")events.push({type:"actor.move",actorId:actor.id,payload:{space:mover.space,x:mover.x,y:mover.y,vipFollow:{moverId:mover.id,moveEventId:movement.id,promptId:prompt.id,turnSerial:Number(scene.turnSerial||0)},sourceActionId:"lionwing.modifier.vip.follow",participantIds:[actor.id,mover.id]}});
+  }
   if (prompt.kind === "enemy-coordinator-followup-ally" && choice.startsWith("ally:")) {
     const ally = actorById(scene, choice.slice(5));
     if (!ally || ally.knockedOut || ally.id === actor.id || ally.team !== actor.team || !effectPresenceStatus(scene, ally.id).onField) return { ok: false, errors: ["Выбранный союзник Координатора больше недоступен."], events: [] };

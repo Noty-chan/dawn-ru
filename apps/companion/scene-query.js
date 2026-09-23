@@ -657,8 +657,9 @@ function effectTargetingStatus(scene, sourceActorId, targetActorId, options = {}
     const guardian = actorById(scene, target.ruleState.healerGuardianId);
     if (guardian && !guardian.knockedOut && guardian.id !== target.id && guardian.space === target.space && distance(target, guardian) <= 1 && effectTargetingStatus(scene, sourceActorId, guardian.id, { ...options, ignoreHealerGuardian: true }).available) return { available: false, reason: `${target.name} защищён смежным Стражем ${guardian.name}.`, source, target, guardian };
   }
-  if(source.team===target.team&&[ENEMY_MODIFIER_IDS.collateral,ENEMY_MODIFIER_IDS.vip].includes(target.profileId)){
-    const protectedBy=(scene.actors||[]).find(item=>item.team!==target.team&&!item.knockedOut&&item.id!==target.id&&item.space===target.space&&distance(item,target)<=1&&(item.kind==="hero"||item.heroId));
+  if(source.team===target.team&&[ENEMY_MODIFIER_IDS.collateral,ENEMY_MODIFIER_IDS.vip,"lionwing.modifier.vip"].includes(target.profileId)){
+    const canonicalVip=target.profileId==="lionwing.modifier.vip";
+    const protectedBy=(scene.actors||[]).find(item=>item.team!==target.team&&!item.knockedOut&&item.id!==target.id&&item.space===target.space&&distance(item,target)<=1&&(canonicalVip?(item.kind==="hero"&&!item.profileId||(item.ownerId||item.heroId)&&(scene.actors||[]).some(owner=>owner.id===(item.ownerId||item.heroId)&&owner.kind==="hero"&&!owner.profileId)):item.kind==="hero"||item.heroId));
     if(protectedBy)return{available:false,reason:`${target.name} нельзя ранить врагом рядом с ${protectedBy.name}.`,source,target,guardian:protectedBy};
   }
   return { available: true, reason: "", source, target };
