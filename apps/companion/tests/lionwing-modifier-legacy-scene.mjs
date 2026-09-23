@@ -1,0 +1,25 @@
+import assert from "node:assert/strict";
+import fs from "node:fs";
+import vm from "node:vm";
+import {loadSceneEngine} from "./load-scene-engine.mjs";
+
+const app={console,window:{},APP_SCHEMA:14,contentPreferences:{edition:"lionwing"},uid:()=>"generated",clamp:(value,min,max)=>Math.max(min,Math.min(max,Number(value)||0)),cleanArray:value=>Array.isArray(value)?value.filter(item=>typeof item==="string"):[],safeColor:(_,fallback)=>fallback,safeImage:()=>"",safeTokenImage:()=>""};
+vm.createContext(app);
+const source=fs.readFileSync(new URL("../app-core.js",import.meta.url),"utf8");
+vm.runInContext(source.slice(source.indexOf("function blankScene()"),source.indexOf("const TABLE_BACKUP_FORMAT")),app,{filename:"app-core.normalizer.js"});
+const normalize=scene=>vm.runInContext(`normalizeScene(${JSON.stringify(scene)})`,app);
+const actor=(id,profileId=null)=>({id,name:id,kind:"enemy",team:"enemy",rulesEdition:"lionwing",profileId,space:"main",x:1,y:1,hp:10,maxHp:10,tier:1,ap:0,baseAp:0});
+const raw={rulesEdition:"lionwing",spaces:[{id:"main",width:7,height:7}],actors:[actor("host"),actor("old","enemy.modifier.isolation")],objects:[],log:[]};
+const scene=normalize(raw);
+assert.equal(scene.actors[1].profileId,"enemy.modifier.isolation","old profile remains intact for viewing and export");
+assert.throws(()=>vm.runInContext(`validateTableEdit(${JSON.stringify(scene)},${JSON.stringify(scene)})`,app),/Продолжение боя заблокировано/);
+const history=normalize({...raw,undo:[{id:"snapshot",state:raw}]});
+assert.equal(history.undo[0].state.actors[1].profileId,"enemy.modifier.isolation","history is preserved without conversion");
+const context={window:{},console};vm.createContext(context);
+for(const file of ["data.js","edition-lionwing.js","lionwing-table-data.js","logic.js"])vm.runInContext(fs.readFileSync(new URL(`../${file}`,import.meta.url),"utf8"),context,{filename:file});
+const engine=loadSceneEngine(context);
+assert.throws(()=>engine.dispatchMany(scene,[{id:"round",type:"round.end",payload:{}}]),/Продолжение боя заблокировано/);
+const ru=normalize({...raw,rulesEdition:"ru-v0.9",actors:raw.actors.map(item=>({...item,rulesEdition:"ru-v0.9"}))});
+assert.equal(ru.actors[1].profileId,"enemy.modifier.isolation","Russian scenes retain their original modifier profile");
+assert.doesNotThrow(()=>vm.runInContext(`validateTableEdit(${JSON.stringify(ru)},${JSON.stringify(ru)})`,app));
+console.log("Legacy LionWing modifier scenes: preserved read-only, event and edit gates passed");

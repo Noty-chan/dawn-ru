@@ -1,0 +1,36 @@
+import assert from "node:assert/strict";
+import fs from "node:fs";
+import vm from "node:vm";
+import {loadSceneEngine} from "./load-scene-engine.mjs";
+
+const context={window:{},console};vm.createContext(context);
+for(const file of ["data.js","edition-lionwing.js","lionwing-table-data.js","logic.js"])
+  vm.runInContext(fs.readFileSync(new URL(`../${file}`,import.meta.url),"utf8"),context,{filename:file});
+const engine=loadSceneEngine(context);
+const actor=(id,team,x,y,extra={})=>({id,name:id,kind:team==="hero"?"hero":"enemy",team,rulesEdition:"lionwing",space:"main",x,y,hp:30,maxHp:30,ap:3,baseAp:3,tier:2,speed:4,armor:0,evasion:0,attrs:{body:3,talent:3,spirit:3,mind:3},effects:[],effectStates:{},usedActions:[],acted:false,knockedOut:false,lionwing:{},...extra});
+let scene={rulesEdition:"lionwing",version:0,round:1,turnSerial:1,activeActorId:"host",tension:2,spaces:[{id:"main",width:7,height:7}],actors:[actor("host","enemy",3,3),actor("garg","enemy",0,0,{profileId:"lionwing.modifier.gargantuan",hp:0,maxHp:0,ap:0,baseAp:0,hidden:true,modifierState:{}}),actor("pc","hero",5,5),actor("other","hero",1,1)],objects:[{id:"old-terrain",space:"main",type:"terrain",cells:["5,5"],hp:8,maxHp:8},{id:"rival-garg-terrain",space:"main",type:"terrain",cells:["4,4"],hp:8,maxHp:8,metadata:{enemyModifier:"gargantuan",redirectTargetId:"host"}}],walls:[],markers:[],log:[],rollFeed:[],targetIds:[],targetCells:[],triggerQueue:[],lionwing:{started:true,lastTeam:"hero",lastActorId:"pc"}};
+const commit=(events,prefix)=>{scene=engine.dispatchMany(scene,events.map((event,index)=>({...event,id:`${prefix}-${index}`}))).scene};
+const config=engine.prepareModifierConfigure(scene,{actorId:"garg",carrierId:"host",mode:"right"});assert.equal(config.ok,true,config.errors?.join(" "));commit(config.events,"garg-config");
+assert.equal(scene.spaces[0].width,8);assert.equal(scene.spaces[0].height,7);
+assert.equal(scene.objects.some(item=>item.metadata?.enemyModifier==="gargantuan-body"&&item.metadata.redirectTargetId==="host"),true);
+assert.equal(engine.effectiveActorStats(scene,"host").armor.value,2);assert.equal(engine.effectiveActorStats(scene,"host").evasion.value,15);
+assert.equal(engine.effectiveActorSpeed(scene,"host"),0);
+const cells=["4,4","5,4","4,5","5,5"],roll={formula:"6D6",rolls:[6,5,4,1,1,1],successes:3,crits:1};
+const attack=engine.prepareModifierAction(scene,{actorId:"garg",action:"gargantuan-strike",cells,roll});assert.equal(attack.ok,true,attack.errors?.join(" "));
+assert.throws(()=>engine.dispatchMany(scene,[{id:"forged-roll",type:"roll.public",actorId:"host",payload:{...roll,rolls:[1,1,1,1,1,1],successes:0,targetIds:[],sourceActionId:"lionwing.modifier.gargantuan.attack"}},...attack.events.map((event,index)=>({...event,id:`forged-${index}`}))]),/публичным броском/i,"damage roll must match the published roll");
+commit([{type:"roll.public",actorId:"host",payload:{...roll,targetIds:[],sourceActionId:"lionwing.modifier.gargantuan.attack"}},...attack.events],"garg-attack");
+const pc=scene.actors.find(item=>item.id==="pc");assert.equal(cells.includes(`${pc.x},${pc.y}`),false,"struck PC is pushed from the new terrain");assert.equal(pc.hp<30,true,"moved PC takes Hits plus Tension damage");assert.equal(scene.actors.find(item=>item.id==="other").hp,30,"unmoved PC is not damaged");
+assert.equal(scene.objects.some(item=>item.id==="old-terrain"),false,"old terrain in the zone is destroyed");
+assert.equal(scene.objects.some(item=>item.id==="rival-garg-terrain"),false,"another Gargantuan's redirected terrain is destroyed by the zone");
+assert.equal(scene.objects.some(item=>item.metadata?.enemyModifier==="gargantuan"&&item.cells.length===4&&item.metadata.redirectTargetId==="host"),true,"new terrain targets Host");
+assert.equal(scene.actors.find(item=>item.id==="host").ap,2,"added Attack spends one AP");
+const secondCells=["0,0","1,0","0,1","1,1"],second=engine.prepareModifierAction(scene,{actorId:"garg",action:"gargantuan-strike",cells:secondCells,roll});assert.equal(second.ok,true,second.errors?.join(" "));commit([{type:"roll.public",actorId:"host",payload:{...roll,targetIds:[],sourceActionId:"lionwing.modifier.gargantuan.attack"}},...second.events],"garg-second");
+assert.equal(scene.objects.filter(item=>item.metadata?.enemyModifier==="gargantuan").length,1,"new Attack removes its previous terrain");
+assert.equal(scene.objects.find(item=>item.metadata?.enemyModifier==="gargantuan").cells.includes("0,0"),true);
+assert.equal(scene.actors.find(item=>item.id==="host").ap,1,"Attack may be used again while AP remains");
+let wideScene={rulesEdition:"lionwing",version:0,round:1,turnSerial:1,activeActorId:"host",tension:0,spaces:[{id:"main",width:7,height:7}],actors:[actor("host","enemy",3,3),actor("garg","enemy",0,0,{profileId:"lionwing.modifier.gargantuan",hp:0,maxHp:0,ap:0,baseAp:0,hidden:true,modifierState:{}}),actor("wide","hero",4,4,{occupiedWidth:2,occupiedHeight:2})],objects:[],walls:[],markers:[],log:[],rollFeed:[],targetIds:[],targetCells:[],triggerQueue:[],lionwing:{started:true,lastTeam:"hero",lastActorId:"wide"}};
+const wideConfig=engine.prepareModifierConfigure(wideScene,{actorId:"garg",carrierId:"host",mode:"right"});assert.equal(wideConfig.ok,true);wideScene=engine.dispatchMany(wideScene,wideConfig.events.map((event,index)=>({...event,id:`wide-config-${index}`}))).scene;
+const wideAttack=engine.prepareModifierAction(wideScene,{actorId:"garg",action:"gargantuan-strike",cells,roll});assert.equal(wideAttack.ok,true,wideAttack.errors?.join(" "));
+wideScene=engine.dispatchMany(wideScene,[{id:"wide-roll",type:"roll.public",actorId:"host",payload:{...roll,targetIds:[],sourceActionId:"lionwing.modifier.gargantuan.attack"}},...wideAttack.events.map((event,index)=>({...event,id:`wide-attack-${index}`}))]).scene;
+const wide=wideScene.actors.find(item=>item.id==="wide");assert.equal(cells.some(cell=>[`${wide.x},${wide.y}`,`${wide.x+1},${wide.y}`,`${wide.x},${wide.y+1}`,`${wide.x+1},${wide.y+1}`].includes(cell)),false,"2×2 character escapes with its full footprint");
+console.log("LionWing Gargantuan: board expansion, defenses, terrain, push and damage passed");
