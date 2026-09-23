@@ -293,7 +293,7 @@ actor.modifierState=modifierProfile?{carrierId:typeof rawModifier.carrierId==="s
   if(Array.isArray(base.areas))base.areas=base.areas.map(area=>({...area,cells:normalizedCells(area.space,area.cells)})).filter(area=>area.cells.length);
   base.markers.forEach(marker=>{const field=base.spaces.find(space=>space.id===marker.space)||base.spaces[0];marker.x=clamp(marker.x,0,field.width-1);marker.y=clamp(marker.y,0,field.height-1)});
   base.topology.cuts=base.topology.cuts.map(cut=>({...cut,cells:normalizedCells(cut.space,cut.cells)})).filter(cut=>cut.cells.length);
-  base.artworks=Array.isArray(scene.artworks)?scene.artworks.slice(0,12).map(art=>({id:typeof art.id==="string"?art.id:uid(),name:typeof art.name==="string"?art.name.slice(0,120):"Арт Сцены",kind:art.kind==="background"?"background":"art",image:safeImage(art.image),hidden:Boolean(art.hidden)})).filter(art=>art.image):[];const artIds=new Set(base.artworks.map(art=>art.id));base.backgroundArt=artIds.has(scene.backgroundArt)?scene.backgroundArt:null;base.featuredArt=artIds.has(scene.featuredArt)?scene.featuredArt:null;base.backgroundView={fit:scene.backgroundView?.fit==="contain"?"contain":"cover",position:["center","top","bottom","left","right"].includes(scene.backgroundView?.position)?scene.backgroundView.position:"center",dim:clamp(scene.backgroundView?.dim??28,0,85),gridOpacity:clamp(scene.backgroundView?.gridOpacity??58,12,96)};
+  base.artworks=Array.isArray(scene.artworks)?scene.artworks.slice(0,12).map(art=>({id:typeof art.id==="string"?art.id:uid(),name:typeof art.name==="string"?art.name.slice(0,120):"Арт Сцены",kind:art.kind==="background"?"background":"art",image:safeImage(art.image),imageStored:Boolean(art.imageStored),hidden:Boolean(art.hidden)})).filter(art=>art.image||art.imageStored):[];const artIds=new Set(base.artworks.map(art=>art.id));base.backgroundArt=artIds.has(scene.backgroundArt)?scene.backgroundArt:null;base.featuredArt=artIds.has(scene.featuredArt)?scene.featuredArt:null;base.backgroundView={fit:scene.backgroundView?.fit==="contain"?"contain":"cover",position:["center","top","bottom","left","right"].includes(scene.backgroundView?.position)?scene.backgroundView.position:"center",dim:clamp(scene.backgroundView?.dim??28,0,85),gridOpacity:clamp(scene.backgroundView?.gridOpacity??58,12,96)};
   base.selectedActor=actorIds.has(scene.selectedActor)?scene.selectedActor:null;base.activeActorId=actorIds.has(scene.activeActorId)?scene.activeActorId:null;base.targetIds=cleanArray(scene.targetIds).filter(id=>actorIds.has(id)).slice(0,40);base.pendingActionPlan=scene.pendingActionPlan&&typeof scene.pendingActionPlan==="object"&&actorIds.has(scene.pendingActionPlan.actorId)?scene.pendingActionPlan:null;base.pendingAction=scene.pendingAction&&typeof scene.pendingAction==="object"&&actorIds.has(scene.pendingAction.actorId)?scene.pendingAction:null;if(base.pendingAction){base.pendingAction.targetIds=cleanArray(base.pendingAction.targetIds).filter(id=>actorIds.has(id));const pendingActor=base.actors.find(actor=>actor.id===base.pendingAction.actorId);base.pendingAction.targetCells=normalizedCells(pendingActor?.space,base.pendingAction.targetCells,40);if(!base.pendingAction.targetIds.length&&!base.pendingAction.allowEmptyTargets)base.pendingAction=null}base.pendingPrompt=scene.pendingPrompt&&typeof scene.pendingPrompt==="object"&&actorIds.has(scene.pendingPrompt.sourceActorId)&&(!scene.pendingPrompt.targetId||actorIds.has(scene.pendingPrompt.targetId))?scene.pendingPrompt:null;base.triggerQueue=Array.isArray(scene.triggerQueue)?scene.triggerQueue.filter(item=>item&&typeof item.key==="string"&&item.event?.type==="rule.prompt"&&actorIds.has(item.event.actorId||item.event.payload?.sourceActorId)):[];if(!base.pendingPrompt&&scene.pendingPrompt)base.triggerQueue=[];const challenge=scene.challengeRequest;base.challengeRequest=challenge&&typeof challenge==="object"&&typeof challenge.id==="string"&&actorIds.has(challenge.actorId)&&Number.isInteger(Number(challenge.target))?{id:challenge.id.slice(0,120),actorId:challenge.actorId,target:clamp(challenge.target,1,99),requestedBy:typeof challenge.requestedBy==="string"?challenge.requestedBy.slice(0,120):"Нарратор",at:typeof challenge.at==="string"?challenge.at.slice(0,32):"",result:normalizedChallengeResult(challenge.result)}:null;base.opposedRoll=normalizedOpposedRoll(scene.opposedRoll,actorIds);if(base.opposedRoll)base.challengeRequest=null;base.sessionClocks=Array.isArray(scene.sessionClocks)?scene.sessionClocks.slice(0,30).filter(clock=>clock&&typeof clock.id==="string").map(clock=>{const size=[4,6,8,12].includes(Number(clock.max??clock.size))?Number(clock.max??clock.size):[4,6,8,12].includes(Number(clock.size))?Number(clock.size):6,min=Number.isSafeInteger(Number(clock.min))?clamp(clock.min,0,size):0,initial=Number.isSafeInteger(Number(clock.initial))?clamp(clock.initial,min,size):min,current=Number.isSafeInteger(Number(clock.current??clock.value))?clamp(clock.current??clock.value,min,size):initial,threshold=clock.threshold==null?size:clamp(clock.threshold,min,size);return{id:clock.id.slice(0,120),name:typeof clock.name==="string"?clock.name.slice(0,120):"Часы Сцены",kind:clock.kind==="progress"?"progress":"danger",size,value:current,current,min,max:size,initial,threshold,ownerActorId:null,sourceActorId:typeof clock.sourceActorId==="string"?clock.sourceActorId.slice(0,120):null,sourceEntityId:typeof clock.sourceEntityId==="string"?clock.sourceEntityId.slice(0,120):null,ruleId:typeof clock.ruleId==="string"?clock.ruleId.slice(0,180):null,scope:["manual","turn","round","scene","chapter","session"].includes(clock.scope)?clock.scope:"scene",lifetime:["manual","turn","round","scene","chapter","session","persistent"].includes(clock.lifetime)?clock.lifetime:"scene"}}):[];base.reminders=Array.isArray(scene.reminders)?scene.reminders.slice(0,80).filter(item=>item&&typeof item.id==="string"&&typeof item.label==="string").map(item=>({id:item.id.slice(0,120),label:item.label.slice(0,120),text:typeof item.text==="string"?item.text.slice(0,800):"",boundary:["turnStart","turnEnd","roundEnd","manual"].includes(item.boundary)?item.boundary:"manual",ownerActorId:actorIds.has(item.ownerActorId)?item.ownerActorId:null,createdTurnSerial:clamp(item.createdTurnSerial,0,999999999),createdRound:clamp(item.createdRound||base.round,1,999),due:Boolean(item.due),dueEventId:typeof item.dueEventId==="string"?item.dueEventId.slice(0,120):"",sourceActionId:typeof item.sourceActionId==="string"?item.sourceActionId.slice(0,180):"manual.reminder"})):[];base.ruleHandouts=Array.isArray(scene.ruleHandouts)?scene.ruleHandouts.slice(0,12).filter(item=>item&&typeof item.id==="string"&&typeof item.ruleId==="string").map(item=>({id:item.id.slice(0,120),ruleId:item.ruleId.slice(0,180),title:typeof item.title==="string"?item.title.slice(0,180):"Правило",kind:typeof item.kind==="string"?item.kind.slice(0,80):"Правило",sharedBy:typeof item.sharedBy==="string"?item.sharedBy.slice(0,120):"Правило",at:typeof item.at==="string"?item.at.slice(0,32):""})):[];base.tools={clocksMigrated:Boolean(scene.tools?.clocksMigrated)};base.rollFeed=Array.isArray(scene.rollFeed)?scene.rollFeed.slice(0,20):[];
   base.targetCells=normalizedCells(base.activeSpace,scene.targetCells,40);
   const actorFor=id=>base.actors.find(actor=>actor.id===id),actorAvailable=id=>Boolean(actorFor(id)&&!actorFor(id).knockedOut),markerIds=new Set(base.markers.map(marker=>marker.id));
@@ -427,6 +427,8 @@ let persistPending=false,persistTimer=null;
 const storedHeroMediaSignatures=new Map();
 let heroMediaReferenceSignature=null;
 const heroMediaKey=(heroId,kind)=>`hero:${heroId}:${kind}`;
+const sceneArtworkKey=artId=>`scene:art:${artId}`;
+const presetArtworkKey=(encounterId,artId)=>`preset:${encounterId}:art:${artId}`;
 const mediaSignature=value=>`${String(value||"").length}:${String(value||"").slice(0,48)}:${String(value||"").slice(-48)}`;
 function heroMediaEntries(heroes){
   const entries=[];
@@ -455,6 +457,8 @@ async function writeHeroMedia(entries){
   });
   pending.forEach(entry=>storedHeroMediaSignatures.set(entry.key,mediaSignature(entry.value)));
 }
+function sceneArtworkEntries(scene){return(scene?.artworks||[]).filter(art=>art?.image).map(art=>({key:sceneArtworkKey(art.id),value:art.image}))}
+function presetArtworkEntries(library){return(library?.encounters||[]).flatMap(encounter=>(encounter.templateScene?.artworks||[]).filter(art=>art?.image).map(art=>({key:presetArtworkKey(encounter.id,art.id),value:art.image})))}
 async function pruneOrphanedHeroMedia(heroes){
   const keep=new Set();for(const hero of heroes||[])for(const kind of ["portrait","token"])if(hero?.media?.[kind]||hero?.media?.[`${kind}Stored`])keep.add(heroMediaKey(hero.id,kind));
   const signature=[...keep].sort().join("|");if(signature===heroMediaReferenceSignature)return;
@@ -505,7 +509,7 @@ function scheduleHeroMediaPersistence(){
   heroMediaWriteTimer=setTimeout(async()=>{
     heroMediaWriteTimer=null;
     if(heroMediaWriteRunning)return scheduleHeroMediaPersistence();
-    const entries=heroMediaEntries(store?.heroes).filter(entry=>storedHeroMediaSignatures.get(entry.key)!==mediaSignature(entry.value));
+    const entries=[...heroMediaEntries(store?.heroes),...sceneArtworkEntries(Scene),...presetArtworkEntries(store?.gmLibrary)].filter(entry=>storedHeroMediaSignatures.get(entry.key)!==mediaSignature(entry.value));
     heroMediaWriteRunning=true;
     try{await writeHeroMedia(entries);await pruneOrphanedHeroMedia(store?.heroes);if(entries.length)persist()}
     catch(error){console.warn("DAWN hero media persistence failed",error);if(Date.now()-lastStorageWarningAt>5000){lastStorageWarningAt=Date.now();toast("Изображения пока не вынесены в расширенное хранилище")}}
@@ -514,13 +518,18 @@ function scheduleHeroMediaPersistence(){
 }
 async function initializeHeroMediaStorage(){
   await openHeroMediaDb();
-  await writeHeroMedia(heroMediaEntries(store.heroes));
+  await writeHeroMedia([...heroMediaEntries(store.heroes),...sceneArtworkEntries(Scene),...presetArtworkEntries(store.gmLibrary)]);
   await pruneOrphanedHeroMedia(store.heroes);
   const bindings=[];
   for(const hero of store.heroes)for(const kind of ["portrait","token"])if(!hero.media?.[kind]&&hero.media?.[`${kind}Stored`])bindings.push({hero,kind,key:heroMediaKey(hero.id,kind)});
   const stored=await readHeroMedia(bindings.map(binding=>binding.key));
   let hydrated=false;
   for(const binding of bindings){if(!binding.hero.media?.[`${binding.kind}Stored`]||binding.hero.media[binding.kind])continue;const value=stored.get(binding.key),safe=binding.kind==="token"?safeTokenImage(value):safeImage(value);if(!safe)continue;binding.hero.media[binding.kind]=safe;storedHeroMediaSignatures.set(binding.key,mediaSignature(safe));hydrated=true}
+  const missingArt=Scene.artworks.filter(art=>art.imageStored&&!art.image),artValues=await readHeroMedia(missingArt.map(art=>sceneArtworkKey(art.id)));
+  for(const art of missingArt){const value=safeImage(artValues.get(sceneArtworkKey(art.id)));if(!value)continue;art.image=value;storedHeroMediaSignatures.set(sceneArtworkKey(art.id),mediaSignature(value));hydrated=true}
+  const presetBindings=(store.gmLibrary?.encounters||[]).flatMap(encounter=>(encounter.templateScene?.artworks||[]).filter(art=>art.imageStored&&!art.image).map(art=>({art,key:presetArtworkKey(encounter.id,art.id)}))),presetValues=await readHeroMedia(presetBindings.map(binding=>binding.key));
+  for(const binding of presetBindings){const value=safeImage(presetValues.get(binding.key));if(!value)continue;binding.art.image=value;storedHeroMediaSignatures.set(binding.key,mediaSignature(value));hydrated=true}
+  if(missingArt.some(art=>!art.image)||presetBindings.some(binding=>!binding.art.image))toast("Часть арта Сцены не загрузилась из хранилища браузера");
   heroMediaStorageReady=true;
   S=store.heroes[store.current]||store.heroes[0];
   restoreLocalHeroMedia(Scene,store.heroes);
@@ -575,13 +584,15 @@ function activateHeroEdition(edition,{saveCurrent=true}={}){
   store.current=index;S=normalizeHero(store.heroes[index]);store.heroes[index]=S;
 }
 function persistableStore(heroes=persistableHeroes()){
-  const scene=sceneCore(Scene),sourceById=new Map(store.heroes.map(hero=>[hero.id,hero]));
+  const scene=sceneCore(Scene),library=normalizeGmLibrary(store.gmLibrary),sourceById=new Map(store.heroes.map(hero=>[hero.id,hero]));
   // Undo snapshots duplicate the complete Scene (including artwork) many times.
   // Keep them in memory for the active session instead of blocking every small
   // table interaction while localStorage serializes tens of full copies.
   scene.undo=[];scene.redo=[];scene.turnUndo=[];
+  for(const art of scene.artworks){if(art.image&&heroMediaStorageReady&&storedHeroMediaSignatures.get(sceneArtworkKey(art.id))===mediaSignature(art.image)){art.image="";art.imageStored=true}}
+  for(const encounter of library.encounters||[])for(const art of encounter.templateScene?.artworks||[]){if(art.image&&heroMediaStorageReady&&storedHeroMediaSignatures.get(presetArtworkKey(encounter.id,art.id))===mediaSignature(art.image)){art.image="";art.imageStored=true}}
   for(const actor of scene.actors){const hero=sourceById.get(actor.heroId);if(!hero)continue;if(actor.tokenImage&&actor.tokenImage===hero.media?.token)actor.tokenImage="";if(actor.portraitImage&&actor.portraitImage===hero.media?.portrait)actor.portraitImage=""}
-  return {...store,heroes,scene,gmLibrary:normalizeGmLibrary(store.gmLibrary),sceneUi:{zoom:sceneZoom,controlMode:sceneControlMode,interfaceVersion:sceneInterfaceVersion,interfaceRolloutVersion:SCENE_INTERFACE_ROLLOUT_VERSION,panelLayout:scenePanelLayoutMode,panelSides:scenePanelSides,panelWidths:scenePanelWidths,turnStripVisible:sceneTurnStripVisible,density:sceneInterfaceDensity,layoutVersion:2,fitVersion:9,viewport:sceneViewportMode}};
+  return {...store,heroes,scene,gmLibrary:library,sceneUi:{zoom:sceneZoom,controlMode:sceneControlMode,interfaceVersion:sceneInterfaceVersion,interfaceRolloutVersion:SCENE_INTERFACE_ROLLOUT_VERSION,panelLayout:scenePanelLayoutMode,panelSides:scenePanelSides,panelWidths:scenePanelWidths,turnStripVisible:sceneTurnStripVisible,density:sceneInterfaceDensity,layoutVersion:2,fitVersion:9,viewport:sceneViewportMode}};
 }
 function persistableHeroes(){
   const heroes=store.heroes.map(normalizeHero);
