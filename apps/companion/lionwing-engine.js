@@ -3933,11 +3933,12 @@
         }
         case "round-end": {
           const status = roundEndStatus(scene); if (!status.available) fail(status.reason);
+          const endedTension = tensionValue(scene);
           scheduleBoundary("roundEnd", null);
           phase("roundEnd", null); scene.round++; mutateCombatMeter({ operation: "add", delta: 1 }, sourceId, `${rootId}:round-tension`); s.lastTeam = null; s.breakout = null;
           for (const other of scene.actors) { other.acted = other.kind === "crowd"; other.usedActions = []; other.ap = 0; other.stepRemaining = 0; }
           scheduleBoundary("roundStart", null);
-          const roundEndEvent = emit("round.end", null);
+          const roundEndEvent = emit("round.end", null, { endedTension });
           for (const martyr of scene.actors.filter(item => live(item) && item.profileId === "lionwing.npc.martyr")) {
             applyHealing({ targetId: martyr.id, amount: 5 + Number(martyr.tier || 1), passiveKey: "lionwing.npc.martyr#passive", boundaryEventId: roundEndEvent.id }, martyr.id);
           }
@@ -4224,7 +4225,7 @@
     const pendingEnemyFlow = scene.pendingAction?.enemyRuleId && events.some(event => ["reaction.respond", "rule.respond", "damage.apply", "effect.apply", "actor.move", "actor.enter", "attack.clear"].includes(event?.type));
     const rangerPromptFlow = scene.pendingPrompt?.kind === "enemy-ranger-retreat" && events.some(event => event?.type === "rule.respond");
     const crowdPromptFlow = ["fodder-", "enemy-crowd-move-", "enemy-swarm-stun"].some(prefix => scene.pendingPrompt?.kind?.startsWith(prefix)) && events.some(event => event?.type === "rule.respond");
-    const modifierFlow = events.length > 0 && events.every(event => event?.type === "modifier.configure" && (scene.actors || []).some(actor => actor.id === event.actorId && actor.profileId === "lionwing.modifier.isolation") || event?.type === "rule.respond" && scene.pendingPrompt?.kind === "modifier-refresh" && scene.pendingPrompt?.sourceActorId === event.actorId && (scene.actors || []).some(actor => actor.id === event.actorId && actor.profileId === "lionwing.modifier.isolation"));
+    const modifierFlow = events.length > 0 && events.every(event => event?.type === "modifier.configure" && (scene.actors || []).some(actor => actor.id === event.actorId && ["lionwing.modifier.isolation","lionwing.modifier.artillery"].includes(actor.profileId)) || event?.type === "rule.respond" && scene.pendingPrompt?.kind === "modifier-refresh" && scene.pendingPrompt?.sourceActorId === event.actorId && (scene.actors || []).some(actor => actor.id === event.actorId && ["lionwing.modifier.isolation","lionwing.modifier.artillery"].includes(actor.profileId)));
     if (modifierFlow) return legacy.dispatchMany(scene, events, options);
     const enemyEventFlow = events.some(event => ["enemy.action.prepare", "enemy.action.resolve", "attack.pending", "attack.clear"].includes(event?.type) || event?.type === "rule.prompt" && event.payload?.kind?.startsWith("enemy-crowd-move-")) || pendingEnemyFlow || rangerPromptFlow || crowdPromptFlow;
     if (enemyEventFlow) {
