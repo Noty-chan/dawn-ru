@@ -518,7 +518,9 @@
   };
   const statQuote = (a, key, context = {}) => {
     const rawBase = attributes.has(key) ? Number(a.attrs?.[key] || 0) : Number(a[key] || 0);
-    const temporaryModifiers = (a.lionwing?.modifiers || []).filter(m => m.stat === key);
+    const modifierCandidates = (a.lionwing?.modifiers || []).filter(m => m.stat === key);
+    const canonicalModifier = modifierCandidates.filter(m => !a.knockedOut && String(m.ruleId || "").startsWith("lionwing.modifier.") && context.scene?.actors?.some(source => source.id === m.sourceActorId && !source.knockedOut && source.modifierState?.carrierId === a.id)).sort((left, right) => Number(right.remaining ?? right.amount) - Number(left.remaining ?? left.amount) || String(left.id).localeCompare(String(right.id)))[0];
+    const temporaryModifiers = [...modifierCandidates.filter(m => !String(m.ruleId || "").startsWith("lionwing.modifier.")), ...(canonicalModifier ? [canonicalModifier] : [])];
     const temporary = temporaryModifiers.reduce((sum, m) => sum + (key === "evasion" ? m.remaining ?? m.amount : m.amount), 0);
     const quote = global.DAWN_LIONWING_ADAPTERS?.statQuote?.(a, key, { ...context, baseValue: rawBase + temporary });
     const temporarySources = temporaryModifiers.map(modifier => ({
@@ -550,7 +552,7 @@
   };
   const maxHealth = a => stat(a, "maxHp");
   const scaledMove = (a, amount, scene=null) => Math.ceil(amount * ((scene?effectActive(scene,a,"positive.ускорен"):has(a,"positive.ускорен")) ? 2 : 1) / ((scene?effectActive(scene,a,"negative.замедлен"):has(a,"negative.замедлен")) ? 2 : 1));
-  const speed = (a,scene=null) => scaledMove(a, stat(a, "speed"), scene);
+  const speed = (a,scene=null) => scaledMove(a, stat(a, "speed", { scene }), scene);
   const sceneSpeed = (scene,a) => a?.profileId === "lionwing.npc.executioner" && effectActive(scene,a,"positive.заряжен") ? 1 : scene.activeActorId && Number(a.lionwing?.difficultTerrainStopSerial) === Number(scene.turnSerial) ? 0 : (() => { const group=legacy.compoundEnemyStatus(scene,a);return group.active?scaledMove(a,group.speed+(a.lionwing?.modifiers||[]).filter(m=>m.stat==="speed").reduce((sum,m)=>sum+m.amount,0),scene):speed(a,scene); })();
   const effectiveStats = (scene, a) => {
     if (!scene || !a) return null;
@@ -2234,7 +2236,10 @@
       const evasionAllowed = !p.irreducible && !p.ignoreEvasion && !effectActive(scene,a,"negative.обездвижен") && !effectActive(scene,a,"negative.пойман");
       const evaded = evasionAllowed ? Math.min(afterArmor, compound.active&&compound.defenseType!=="evasion"?0:stat(defender, "evasion", defenseContext(defender))) : 0;
       let toSpend=evaded;
-      for(const m of astate(defender).modifiers.filter(m=>m.stat==="evasion"&&m.amount>0)){const used=Math.min(toSpend,m.remaining??m.amount);m.remaining=(m.remaining??m.amount)-used;toSpend-=used;}
+      const evasionModifiers=astate(defender).modifiers.filter(m=>m.stat==="evasion"&&m.amount>0);
+      for(const m of evasionModifiers.filter(m=>!String(m.ruleId||"").startsWith("lionwing.modifier."))){const used=Math.min(toSpend,m.remaining??m.amount);m.remaining=(m.remaining??m.amount)-used;toSpend-=used;}
+      const canonicalEvasion=evasionModifiers.filter(m=>String(m.ruleId||"").startsWith("lionwing.modifier.")&&scene.actors.some(source=>source.id===m.sourceActorId&&!source.knockedOut&&source.modifierState?.carrierId===defender.id));
+      if(canonicalEvasion.length){const available=Math.max(...canonicalEvasion.map(m=>Number(m.remaining??m.amount)));const used=Math.min(toSpend,available);for(const m of canonicalEvasion)m.remaining=Math.max(0,Number(m.remaining??m.amount)-used);toSpend-=used;}
       defender.evasion = Math.max(0, Number(defender.evasion || 0) - toSpend);
       if(compound.active&&compound.defenseType==="evasion")for(const part of compound.parts)part.evasion=Math.min(Number(part.evasion||0),defender.evasion);
       const hpBefore = compound.active ? compound.hp : Number(a.hp);
@@ -4225,7 +4230,7 @@
     const pendingEnemyFlow = scene.pendingAction?.enemyRuleId && events.some(event => ["reaction.respond", "rule.respond", "damage.apply", "effect.apply", "actor.move", "actor.enter", "attack.clear"].includes(event?.type));
     const rangerPromptFlow = scene.pendingPrompt?.kind === "enemy-ranger-retreat" && events.some(event => event?.type === "rule.respond");
     const crowdPromptFlow = ["fodder-", "enemy-crowd-move-", "enemy-swarm-stun"].some(prefix => scene.pendingPrompt?.kind?.startsWith(prefix)) && events.some(event => event?.type === "rule.respond");
-    const modifierFlow = events.length > 0 && events.every(event => event?.type === "modifier.configure" && (scene.actors || []).some(actor => actor.id === event.actorId && ["lionwing.modifier.isolation","lionwing.modifier.artillery","lionwing.modifier.haven"].includes(actor.profileId)) || event?.type === "rule.respond" && scene.pendingPrompt?.kind === "modifier-refresh" && scene.pendingPrompt?.sourceActorId === event.actorId && (scene.actors || []).some(actor => actor.id === event.actorId && ["lionwing.modifier.isolation","lionwing.modifier.artillery","lionwing.modifier.haven"].includes(actor.profileId)));
+    const modifierFlow = events.length > 0 && events.every(event => event?.type === "modifier.configure" && (scene.actors || []).some(actor => actor.id === event.actorId && ["lionwing.modifier.isolation","lionwing.modifier.artillery","lionwing.modifier.haven","lionwing.modifier.contagion","lionwing.modifier.earthquake"].includes(actor.profileId)) || event?.type === "rule.respond" && scene.pendingPrompt?.kind === "modifier-refresh" && scene.pendingPrompt?.sourceActorId === event.actorId && (scene.actors || []).some(actor => actor.id === event.actorId && ["lionwing.modifier.isolation","lionwing.modifier.artillery","lionwing.modifier.haven","lionwing.modifier.contagion","lionwing.modifier.earthquake"].includes(actor.profileId)));
     if (modifierFlow) return legacy.dispatchMany(scene, events, options);
     const enemyEventFlow = events.some(event => ["enemy.action.prepare", "enemy.action.resolve", "attack.pending", "attack.clear"].includes(event?.type) || event?.type === "rule.prompt" && event.payload?.kind?.startsWith("enemy-crowd-move-")) || pendingEnemyFlow || rangerPromptFlow || crowdPromptFlow;
     if (enemyEventFlow) {
@@ -4374,7 +4379,12 @@
         if (prompts.length) { const prompted = legacy.dispatchMany(next, prompts); next = prompted.scene; output.push(...prompted.events); }
         if (boundary.type === "round.end") {
           const modifierEvents = legacy.modifierRoundEndEvents?.(next, boundary, "lionwing") || [];
-          if (modifierEvents.length) { const result = legacy.dispatchMany(next, modifierEvents); next = result.scene; output.push(...result.events); }
+          for (const modifierEvent of modifierEvents) {
+            const result = modifierEvent.type === "damage.apply" && modifierEvent.payload?.attack === false
+              ? dispatchMany(next, [modifierEvent])
+              : legacy.dispatchMany(next, [modifierEvent]);
+            next = result.scene; output.push(...result.events);
+          }
         }
       }
       state(next).receipts.push({ id: event.id, fingerprint }); state(next).receipts = state(next).receipts.slice(-256);
