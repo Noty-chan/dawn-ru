@@ -907,3 +907,11 @@ body[data-scene-control-mode="manual"] .scene-dock [data-scene-panel="director"]
     line-height:1.15;
   }
 }
+
+/* Deployment zones must remain visible after the interface-specific cell backgrounds. */
+.scene-mode .scene-board .scene-cell.has-deploy-hero{background:color-mix(in srgb,#2f8ed6 40%,var(--surface))}
+.scene-mode .scene-board .scene-cell.has-deploy-enemy{background:color-mix(in srgb,#d44256 40%,var(--surface))}
+.scene-mode .scene-board .scene-cell.has-deploy-hero.has-deploy-enemy{background:linear-gradient(135deg,color-mix(in srgb,#2f8ed6 46%,var(--surface)) 0 50%,color-mix(in srgb,#d44256 46%,var(--surface)) 50% 100%)}
+.scene-mode .scene-board.has-map .scene-cell.has-deploy-hero{background:linear-gradient(#2f8ed666,#2f8ed666),rgba(17,17,25,var(--scene-grid-opacity,.58))}
+.scene-mode .scene-board.has-map .scene-cell.has-deploy-enemy{background:linear-gradient(#d4425666,#d4425666),rgba(17,17,25,var(--scene-grid-opacity,.58))}
+.scene-mode .scene-board.has-map .scene-cell.has-deploy-hero.has-deploy-enemy{background:linear-gradient(135deg,#2f8ed666 0 50%,#d4425666 50% 100%),rgba(17,17,25,var(--scene-grid-opacity,.58))}
