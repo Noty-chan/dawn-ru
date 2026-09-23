@@ -15,7 +15,7 @@
     "test:enemy-base-attacks": "node tests/lionwing-enemy-base-attacks.mjs",
     "test:enemy-audit": "node tests/lionwing-enemy-inventory.mjs && node tests/lionwing-enemy-ranger-adversarial.mjs && node tests/lionwing-enemy-simple-actions.mjs",
     "test:hero-sheet-view": "node tests/lionwing-hero-sheet-view.mjs && node tests/lionwing-sheet-manual.mjs && node tests/lionwing-hero-bridge-persistence.mjs && node tests/lionwing-ui-localization-l09.mjs",
-    "pretest": "npm run test:families && npm run test:foundation-bridge && npm run test:typed-targets && npm run test:prompt-queue && npm run test:entities-removal && npm run test:derived-actions && npm run test:enemy-base-attacks && npm run test:enemy-audit",
+    "pretest": "npm run test:families && npm run test:foundation-bridge && npm run test:typed-targets && npm run test:prompt-queue && npm run test:entities-removal && npm run test:derived-actions && npm run test:enemy-base-attacks && npm run test:enemy-audit && node tests/lionwing-recovery-stress.mjs && node tests/lionwing-recovery-r10.mjs",
     "data": "python build_data.py",
     "docs:rules": "node build_rule_reference_docs.mjs",
     "edition": "python ../../tools/content/build_lionwing_companion.py",

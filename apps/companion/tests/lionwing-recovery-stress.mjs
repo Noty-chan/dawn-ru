@@ -272,6 +272,8 @@ function buildStorageContext(storage, idb) {
     Sync: { state: () => ({}), queueScene: () => {} },
     structuredClone: undefined,
     addEventListener: () => {},
+    setTimeout,
+    clearTimeout,
   };
   vm.createContext(context);
   vm.runInContext(entitySource, context, { filename: "lionwing-entities.js" });
@@ -419,6 +421,7 @@ app.sceneInterfaceDensity = "compact";
 app.sceneViewportMode = "desktop";
 const persisted = app.persist();
 assert.equal(persisted, undefined, "persist writes through the app persistence boundary");
+await new Promise(resolve => setTimeout(resolve, 120));
 const goodLocalStorage = storage.getItem(app.STORAGE_KEY);
 assert.ok(goodLocalStorage, "localStorage receives a valid table snapshot");
 const localReload = vm.runInContext(`normalizeScene(${JSON.stringify(JSON.parse(goodLocalStorage).scene)})`, app);
@@ -429,6 +432,7 @@ const beforeFailedLocalWrite = storage.getItem(app.STORAGE_KEY);
 storage.failKeys.add(app.STORAGE_KEY);
 app.Scene = { ...scene, name: "failed local write must not replace checkpoint" };
 app.persist();
+await new Promise(resolve => setTimeout(resolve, 120));
 assert.equal(storage.getItem(app.STORAGE_KEY), beforeFailedLocalWrite, "a localStorage write failure keeps the last valid save");
 storage.failKeys.delete(app.STORAGE_KEY);
 

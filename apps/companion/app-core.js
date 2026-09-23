@@ -323,7 +323,7 @@ actor.modifierState=modifierProfile?{carrierId:typeof rawModifier.carrierId==="s
 }
 
 function normalizeScene(raw){
-  const history=(rows,limit=12)=>Array.isArray(rows)?rows.slice(0,limit).filter(row=>row&&typeof row==="object"&&row.state).map(row=>({id:typeof row.id==="string"?row.id:uid(),label:typeof row.label==="string"?row.label.slice(0,160):"Изменение",state:sceneCore(row.state),...(row.checkpoint==="turn-start"?{checkpoint:"turn-start"}:{})})):[];
+  const history=(rows,limit=20)=>Array.isArray(rows)?rows.slice(0,limit).filter(row=>row&&typeof row==="object"&&row.state).map(row=>({id:typeof row.id==="string"?row.id:uid(),label:typeof row.label==="string"?row.label.slice(0,160):"Изменение",state:sceneCore(row.state),...(row.checkpoint==="turn-start"?{checkpoint:"turn-start"}:{})})):[];
   const base=sceneCore(raw);base.undo=history(raw?.undo);base.redo=history(raw?.redo);base.turnUndo=history(raw?.turnUndo,30);return base;
 }
 
