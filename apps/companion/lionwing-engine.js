@@ -4231,7 +4231,7 @@
     }
     const pendingEnemyFlow = scene.pendingAction?.enemyRuleId && events.some(event => ["reaction.respond", "rule.respond", "damage.apply", "effect.apply", "actor.move", "actor.enter", "attack.clear"].includes(event?.type));
     const rangerPromptFlow = scene.pendingPrompt?.kind === "enemy-ranger-retreat" && events.some(event => event?.type === "rule.respond");
-    const crowdPromptFlow = ["fodder-", "enemy-crowd-move-", "enemy-swarm-stun"].some(prefix => scene.pendingPrompt?.kind?.startsWith(prefix)) && events.some(event => event?.type === "rule.respond");
+    const crowdPromptFlow = ["fodder-", "enemy-crowd-move-", "enemy-swarm-stun", "enemy-broodmother-fodder"].some(prefix => scene.pendingPrompt?.kind?.startsWith(prefix)) && events.some(event => event?.type === "rule.respond");
     const modifierFlow = events.length > 0 && events.every(event => event?.type === "modifier.configure" && (scene.actors || []).some(actor => actor.id === event.actorId && ["lionwing.modifier.isolation","lionwing.modifier.artillery","lionwing.modifier.haven","lionwing.modifier.contagion","lionwing.modifier.earthquake","lionwing.modifier.vip","lionwing.modifier.collateral","lionwing.modifier.legion","lionwing.modifier.vortex","lionwing.modifier.blaze","lionwing.modifier.gargantuan","lionwing.modifier.giant"].includes(actor.profileId)) || event?.type === "rule.respond" && ["modifier-refresh","lionwing-vip-follow"].includes(scene.pendingPrompt?.kind) && scene.pendingPrompt?.sourceActorId === event.actorId && (scene.actors || []).some(actor => actor.id === event.actorId && ["lionwing.modifier.isolation","lionwing.modifier.artillery","lionwing.modifier.haven","lionwing.modifier.contagion","lionwing.modifier.earthquake","lionwing.modifier.vip","lionwing.modifier.collateral","lionwing.modifier.legion","lionwing.modifier.vortex","lionwing.modifier.blaze","lionwing.modifier.gargantuan","lionwing.modifier.giant"].includes(actor.profileId)) || event?.type === "actor.move" && event.payload?.vipFollow && (scene.actors || []).some(actor => actor.id === event.actorId && actor.profileId === "lionwing.modifier.vip"));
     if (modifierFlow) return legacy.dispatchMany(scene, events, options);
     const modifierAttack=events.find(event=>event?.type==="modifier.action"&&(scene.actors||[]).some(item=>item.id===event.actorId&&["lionwing.modifier.giant","lionwing.modifier.gargantuan"].includes(item.profileId)));
@@ -4359,8 +4359,9 @@
       }
       const fodderMovement = event.type === "actor.move" && actor(next, event.actorId)?.kind === "crowd" && event.payload?.fodderMove;
       const gluttonFodderDamage = event.type === "damage.apply" && actor(next, event.actorId)?.profileId === "lionwing.npc.glutton" && actor(next, event.payload?.targetId)?.kind === "crowd";
+      const broodmotherDamage = event.type === "damage.apply" && actor(next, event.payload?.targetId)?.profileId === "lionwing.npc.broodmother";
       const outputStart = output.length;
-      if (sharedTypes.has(event.type) || fodderMovement || gluttonFodderDamage) {
+      if (sharedTypes.has(event.type) || fodderMovement || gluttonFodderDamage || broodmotherDamage) {
         const structuralMarker = event.type === "marker.remove" ? (next.markers || []).find(item => item.id === event.payload?.markerId) : null;
         if (event.type === "marker.remove" && structuralMarker?.ownerActorId === event.actorId && structuralMarker.ruleId === event.payload?.ruleId) {
           const hostId = structuralMarker.hostActorId || structuralMarker.metadata?.hostActorId || structuralMarker.metadata?.carrierActorId;
@@ -4376,7 +4377,7 @@
           if(!["token","crowd"].includes(spawned?.kind)&&edition!=="lionwing")fail("Нельзя добавить участника другой редакции");
         }
         if(["actor.despawn","space.remove"].includes(event.type)&&(next.pendingAction||state(next).choices.length||state(next).duels?.length||state(next).pausedChains?.length))fail("Сначала завершите ожидающее действие");
-        const fodderBoundary = fodderMovement || gluttonFodderDamage;
+        const fodderBoundary = fodderMovement || gluttonFodderDamage || broodmotherDamage;
         const result = fodderBoundary ? legacy.dispatchMany(next, [event]) : legacy.dispatch(next, event);
         next = result.scene; output.push(...(result.events || [result.event]));
         const lostSourceId=event.type==="marker.remove"?event.payload?.markerId:event.type==="actor.despawn"?event.actorId||event.payload?.actorId:null;

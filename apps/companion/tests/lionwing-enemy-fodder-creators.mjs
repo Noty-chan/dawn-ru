@@ -145,4 +145,26 @@ for (const [profile, id, count] of [
   assert.equal(fodder(commit(initial, plan)).length, count);
 }
 
+const damagedBroodmotherResult = Engine.dispatchMany(scene("lionwing.npc.broodmother"), [{
+  id: "broodmother-damage", type: "damage.apply", actorId: "opponent", payload: { targetId: "source", amount: 1 },
+}]);
+const damagedBroodmother = damagedBroodmotherResult.scene;
+assert.equal(damagedBroodmother.pendingPrompt?.kind, "enemy-broodmother-fodder", "positive damage offers the passive at the permitted Fodder count");
+const broodChoice = damagedBroodmother.pendingPrompt.options.find(option => option.startsWith("cell:"));
+const broodPlan = Engine.respondRulePrompt(damagedBroodmother, data, { choice: broodChoice, role: "narrator" });
+assert.equal(broodPlan.ok, true, broodPlan.errors?.join(" "));
+const broodAfter = commit(damagedBroodmother, broodPlan);
+assert.equal(fodder(broodAfter).length, 1, "Broodmother creates one allied Fodder without AP cost");
+assert.equal(fodder(broodAfter)[0].sourceActionId, "lionwing.npc.broodmother.passive");
+assert.throws(() => Engine.dispatchMany(broodAfter, broodPlan.events), /.+/, "a passive response cannot spawn twice");
+const forgedBrood = clone(broodAfter);
+const fake = clone(broodPlan.events.find(event => event.type === "actor.spawn"));
+fake.payload.actor.id = "forged-broodmother-fodder";
+fake.payload.actor.x = 5;
+fake.payload.actor.y = 5;
+assert.throws(() => Engine.dispatchMany(forgedBrood, [fake]), /.+/, "a forged destination cannot reuse a valid damage receipt");
+const crowdedBrood = scene("lionwing.npc.broodmother");
+for (let index = 0; index < 10; index += 1) crowdedBrood.actors.push(actor(`fodder-${index}`, "heroes", index % 6, Math.floor(index / 6), { kind: "crowd", profileId: null, hp: 1, maxHp: 1 }));
+assert.equal(Engine.dispatchMany(crowdedBrood, [{ id: "crowded-brood-damage", type: "damage.apply", actorId: "opponent", payload: { targetId: "source", amount: 1 } }]).scene.pendingPrompt, undefined, "the passive stops above 5 + 2 Tier Fodder Zones");
+
 console.log("LionWing Fodder creators OK");

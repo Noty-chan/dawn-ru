@@ -601,6 +601,20 @@ function effectRetainedAtBoundary(scene, target, effect, event) {
   return { retained: false, reason: "", ruleId: "" };
 }
 
+function broodmotherFodderCells(scene, actor) {
+  const space = (scene.spaces || []).find(item => item.id === actor?.space);
+  if (!space || actor?.knockedOut) return [];
+  const removed = removedCellKeys(scene, space.id);
+  const occupied = new Set((scene.actors || []).filter(item => item.kind === "crowd" && !item.knockedOut && item.space === space.id).map(cellKey));
+  const cells = [];
+  for (let y = 0; y < space.height; y += 1) for (let x = 0; x < space.width; x += 1) {
+    const cell = { x, y, space: space.id }, key = cellKey(cell);
+    if (distance(actor, cell) <= 2 && !removed.has(key) && !occupied.has(key)
+      && effectCellOccupancyStatus(scene, null, { actor: { id: "broodmother-fodder-preview", kind: "crowd", space: space.id }, ...cell }).available) cells.push(key);
+  }
+  return cells;
+}
+
 function effectLifecycleEvents(scene, event) {
   const events = [], boundaryActorId = event.actorId || null;
   if (event.type === "damage.apply" && event.payload?.applied) {
@@ -609,6 +623,19 @@ function effectLifecycleEvents(scene, event) {
       const canonical = glutton.profileId === "lionwing.npc.glutton", sourceActionId = canonical ? "lionwing.npc.glutton.passive" : "enemy.common.glutton.passive";
       events.push({ type: "actor.heal", actorId: glutton.id, payload: { targetId: glutton.id, amount: canonical ? 3 + Number(glutton.tier || 1) : enemyTierFormula("10(+5)", glutton.tier), sourceActionId, boundaryEventId: event.id, participantIds: [glutton.id, target.id] } });
       events.push({ type: "actor.state", actorId: glutton.id, payload: { key: "gluttonConsumed", delta: 1, sourceActionId, boundaryEventId: event.id, participantIds: [glutton.id, target.id] } });
+    }
+  }
+  if (event.type === "damage.apply" && Number(event.payload?.dealt || 0) > 0) {
+    const broodmother = actorById(scene, event.payload.targetId);
+    if (scene.rulesEdition === "lionwing" && broodmother?.profileId === "lionwing.npc.broodmother" && !broodmother.knockedOut
+      && (scene.actors || []).filter(item => item.kind === "crowd" && !item.knockedOut).length <= 5 + 2 * Number(broodmother.tier || 1)) {
+      const cells = broodmotherFodderCells(scene, broodmother);
+      if (cells.length) events.push({ type: "rule.prompt", actorId: broodmother.id, payload: {
+        id: `prompt-${event.id}-broodmother-fodder`, kind: "enemy-broodmother-fodder", sourceActorId: broodmother.id,
+        controller: "narrator", title: "Матка · новая массовка", text: "После получения урона можно создать одну Зону массовки в пределах 2 клеток.",
+        options: [...cells.map(cell => `cell:${cell}`), "pass"],
+        context: { damageEventId: event.id, optionLabels: { pass: "Не создавать Зону" } }, participantIds: [broodmother.id],
+      } });
     }
   }
   if (["turn.start", "turn.end", "round.end", "action.prepare", "enemy.action.prepare"].includes(event.type)) {

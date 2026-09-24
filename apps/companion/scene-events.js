@@ -241,6 +241,21 @@ function validateEvent(scene, event, options = {}) {
       const owner = actorById(scene, event.actorId), token = payload.crowdSummonToken, prepared = [...(scene.log || [])].reverse().find(item => item.type === "enemy.action.prepare" && item.actorId === owner?.id && item.payload?.ruleId === spawned.sourceActionId && item.payload?.crowdSummon?.token === token), cells = prepared?.payload?.crowdSummon?.cells || [], prior = (scene.log || []).filter(item => item.type === "actor.spawn" && item.actorId === owner?.id && item.payload?.crowdSummonToken === token).length;
       if (!owner || !prepared || prior >= cells.length || !cells.includes(`${spawned.x},${spawned.y}`) || spawned.kind !== "crowd" || spawned.team !== owner.team || spawned.space !== owner.space || spawned.summonerId !== owner.id || Number(spawned.hp) !== 1 || Number(spawned.maxHp) !== 1 || Number(spawned.ap) !== 0 || Number(spawned.speed) !== 0) throw new Error("Зона массовки не соответствует авторитетному Призыву.");
     }
+    if (spawned.sourceActionId === "lionwing.npc.broodmother.passive" || payload.broodmotherPromptId) {
+      const owner = actorById(scene, event.actorId), promptId = payload.broodmotherPromptId;
+      const response = (scene.log || []).find(item => item.type === "rule.respond" && item.payload?.promptId === promptId && item.actorId === owner?.id);
+      const prompt = (scene.log || []).find(item => item.type === "rule.prompt" && item.payload?.id === promptId && item.actorId === owner?.id);
+      const damage = (scene.log || []).find(item => item.id === prompt?.payload?.context?.damageEventId);
+      const key = `${spawned.x},${spawned.y}`;
+      if (scene.rulesEdition !== "lionwing" || owner?.profileId !== "lionwing.npc.broodmother" || owner.knockedOut
+        || !promptId || prompt?.payload?.kind !== "enemy-broodmother-fodder" || response?.payload?.choice !== `cell:${key}`
+        || damage?.type !== "damage.apply" || damage.payload?.targetId !== owner.id || Number(damage.payload?.dealt || 0) <= 0
+        || spawned.sourceActionId !== "lionwing.npc.broodmother.passive" || spawned.kind !== "crowd" || spawned.team !== owner.team
+        || spawned.summonerId !== owner.id || spawned.space !== owner.space || Number(spawned.hp) !== 1 || Number(spawned.maxHp) !== 1
+        || Number(spawned.ap) !== 0 || Number(spawned.speed) !== 0 || !broodmotherFodderCells(scene, owner).includes(key)
+        || (scene.actors || []).filter(item => item.kind === "crowd" && !item.knockedOut).length > 5 + 2 * Number(owner.tier || 1)
+        || (scene.log || []).some(item => item.type === "actor.spawn" && item.payload?.broodmotherPromptId === promptId)) throw new Error("Новая Зона массовки Матки не соответствует полученному урону и выбранной клетке.");
+    }
     if(spawned.crowdSubtype==="vortex"){
       const owner=actorById(scene,spawned.vortexOwnerId),anchor=actorById(scene,modifierState(owner)[owner?.profileId===LIONWING_VORTEX_ID?"carrierId":"targetId"]),carrier=anchor,boundary=(scene.log||[]).find(item=>item.id===payload.boundaryEventId),space=(scene.spaces||[]).find(item=>item.id===spawned.space);
       const distances=anchor&&space?[(spawned.x===0?anchor.x:-1),(spawned.x===space.width-1?space.width-1-anchor.x:-1),(spawned.y===0?anchor.y:-1),(spawned.y===space.height-1?space.height-1-anchor.y:-1)]:[],farthest=anchor&&space?Math.max(anchor.x,space.width-1-anchor.x,anchor.y,space.height-1-anchor.y):-1;
@@ -451,6 +466,16 @@ const expectedTargets = (scene.actors || []).filter(target => !target.knockedOut
     const sourceEvent = promptSourceEvent(scene, payload), sourceEventType = payload.sourceEventType;
     const participantIds = promptParticipantIds(scene, payload);
     const invalidSource = payload.sourceEventId && (!sourceEvent && !(sourceEventType === "rule.prompt" && payload.sourceEventId === payload.id) || sourceEvent && sourceEventType && sourceEvent.type !== sourceEventType);
+    if (payload.kind === "enemy-broodmother-fodder") {
+      const damage = (scene.log || []).find(item => item.id === payload.context?.damageEventId);
+      const eligible = source && broodmotherFodderCells(scene, source);
+      if (scene.rulesEdition !== "lionwing" || source?.profileId !== "lionwing.npc.broodmother" || source.knockedOut
+        || event.actorId !== source.id || damage?.type !== "damage.apply" || damage.payload?.targetId !== source.id
+        || Number(damage.payload?.dealt || 0) <= 0 || payload.sourceEventId !== damage.id
+        || (scene.actors || []).filter(item => item.kind === "crowd" && !item.knockedOut).length > 5 + 2 * Number(source.tier || 1)
+        || !eligible?.length || payload.options?.length !== eligible.length + 1
+        || !eligible.every(cell => payload.options.includes(`cell:${cell}`)) || !payload.options.includes("pass")) throw new Error("Запрос Матки не соответствует полученному урону.");
+    }
     if (
       typeof payload.id !== "string" || !payload.id || payload.id.length > 160
       || typeof payload.kind !== "string" || !payload.kind

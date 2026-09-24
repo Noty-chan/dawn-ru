@@ -297,6 +297,23 @@ function respondRulePrompt(scene, data, request = {}) {
   if (errors.length) return { ok: false, errors, events: [] };
   const events = [promptResponseEvent(prompt, actor, target, choice, request)];
   if (request.stale === true) return { ok: true, errors: [], events };
+  if (prompt.kind === "enemy-broodmother-fodder" && choice !== "pass") {
+    const damage = (scene.log || []).find(item => item.id === prompt.context?.damageEventId);
+    const key = choice.startsWith("cell:") ? choice.slice(5) : "";
+    if (scene.rulesEdition !== "lionwing" || actor.profileId !== "lionwing.npc.broodmother" || damage?.type !== "damage.apply"
+      || damage.payload?.targetId !== actor.id || Number(damage.payload?.dealt || 0) <= 0
+      || (scene.actors || []).filter(item => item.kind === "crowd" && !item.knockedOut).length > 5 + 2 * Number(actor.tier || 1)
+      || !broodmotherFodderCells(scene, actor).includes(key)) return { ok: false, errors: ["Клетка или условие создания массовки Матки больше недоступны."], events: [] };
+    const [x, y] = key.split(",").map(Number), sourceActionId = "lionwing.npc.broodmother.passive";
+    events.push({ type: "actor.spawn", actorId: actor.id, payload: { broodmotherPromptId: prompt.id, actor: {
+      id: `broodmother-fodder-${eventId()}`, kind: "crowd", crowdType: "mob", crowdGroupId: `broodmother-${actor.id}`,
+      source: sourceActionId, sourceActionId, team: actor.team, heroId: null, profileId: null,
+      name: `${actor.name}: массовка`, tier: 0, space: actor.space, x, y,
+      hp: 1, maxHp: 1, focus: 0, ap: 0, baseAp: 0, speed: 0, armor: 0, evasion: 0,
+      effects: [], usedActions: [], acted: true, hidden: false, tokenSymbol: "♟",
+      tokenColor: actor.tokenColor || "#7f3044", tokenImage: "", portraitImage: "", summonerId: actor.id,
+    }, participantIds: [actor.id] } });
+  }
   if (prompt.kind === "dim-mak-jab" && choice === "jab") {
     const marker = markerById(scene, prompt.context?.markerId), host = marker && actorById(scene, markerHostId(marker)), enter = (scene.log || []).find(item => item.id === prompt.context?.enterEventId), expected = Math.ceil(Number(actor.attrs?.mind || 0) / 2);
     if (scene.rulesEdition !== "lionwing" || !marker || marker.ruleId !== "vagabond.dim-mak.1" || marker.ownerActorId !== actor.id || !host || host.id !== prompt.context?.fixedTargetId || host.knockedOut || actor.space !== marker.space || Number(actor.x) !== Number(marker.x) || Number(actor.y) !== Number(marker.y) || !enter || enter.type !== "actor.enter" || enter.actorId !== actor.id || enter.payload?.segmentId !== prompt.context?.segmentId && prompt.context?.segmentId != null) return { ok: false, errors: ["Слабая точка или подтверждённый вход больше недоступны."], events: [] };
