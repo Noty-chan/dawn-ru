@@ -167,4 +167,18 @@ const crowdedBrood = scene("lionwing.npc.broodmother");
 for (let index = 0; index < 10; index += 1) crowdedBrood.actors.push(actor(`fodder-${index}`, "heroes", index % 6, Math.floor(index / 6), { kind: "crowd", profileId: null, hp: 1, maxHp: 1 }));
 assert.equal(Engine.dispatchMany(crowdedBrood, [{ id: "crowded-brood-damage", type: "damage.apply", actorId: "opponent", payload: { targetId: "source", amount: 1 } }]).scene.pendingPrompt, undefined, "the passive stops above 5 + 2 Tier Fodder Zones");
 
+const necromancer = scene("lionwing.npc.necromancer");
+const callDeadId = "lionwing.npc.necromancer.call-the-dead";
+const callDead = Engine.availableEnemyRules(necromancer, data, "source").find(rule => rule.id === callDeadId);
+assert.equal(callDead?.crowdSummon?.count, 3, "Call The Dead creates 1 + Tier Fodder");
+const calledDead = commit(necromancer, prepare(necromancer, callDeadId, ["1,1", "2,1", "3,1"]));
+assert.equal(fodder(calledDead).length, 3);
+assert.ok(fodder(calledDead).every(item => item.crowdSubtype === "corpse"), "all summoned Fodder retain Corpse provenance");
+assert.equal(Engine.availableEnemyRules(calledDead, data, "source").find(rule => rule.id === callDeadId).crowdSummon.count, 2, "Call The Dead diminishes on reuse within the Round");
+const enemyKnockout = Engine.dispatchMany(calledDead, [{ id: "necromancer-enemy-knockout", type: "damage.apply", actorId: "source", payload: { targetId: "opponent", amount: 99 } }]).scene;
+const corpseMarker = enemyKnockout.markers.find(marker => marker.kind === "corpse" && marker.metadata?.victimActorId === "opponent");
+assert.ok(corpseMarker, "an opponent defeated while Necromancer is deployed leaves a Corpse");
+assert.equal(`${corpseMarker.x},${corpseMarker.y}`, "4,2", "the Corpse stays at the knockout space");
+assert.throws(() => Engine.dispatchMany(enemyKnockout, [{ type: "marker.create", actorId: "source", payload: { id: "forged-corpse", space: "main", x: 0, y: 0, markerKind: "corpse", ruleId: "lionwing.npc.necromancer.passive", sourceActorId: "source", sourceLossPolicy: "detach", ownerActorId: "source", duration: "scene", metadata: { victimActorId: "opponent", knockoutEventId: "necromancer-enemy-knockout" } } }]), /.+/, "a forged Corpse cannot reuse a knockout receipt");
+
 console.log("LionWing Fodder creators OK");

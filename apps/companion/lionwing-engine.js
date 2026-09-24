@@ -4360,8 +4360,9 @@
       const fodderMovement = event.type === "actor.move" && actor(next, event.actorId)?.kind === "crowd" && event.payload?.fodderMove;
       const gluttonFodderDamage = event.type === "damage.apply" && actor(next, event.actorId)?.profileId === "lionwing.npc.glutton" && actor(next, event.payload?.targetId)?.kind === "crowd";
       const broodmotherDamage = event.type === "damage.apply" && actor(next, event.payload?.targetId)?.profileId === "lionwing.npc.broodmother";
+      const necromancerKnockoutWatch = ["damage.apply", "actor.knockout"].includes(event.type) && (next.actors || []).some(item => item.profileId === "lionwing.npc.necromancer" && !item.knockedOut);
       const outputStart = output.length;
-      if (sharedTypes.has(event.type) || fodderMovement || gluttonFodderDamage || broodmotherDamage) {
+      if (sharedTypes.has(event.type) || fodderMovement || gluttonFodderDamage || broodmotherDamage || necromancerKnockoutWatch) {
         const structuralMarker = event.type === "marker.remove" ? (next.markers || []).find(item => item.id === event.payload?.markerId) : null;
         if (event.type === "marker.remove" && structuralMarker?.ownerActorId === event.actorId && structuralMarker.ruleId === event.payload?.ruleId) {
           const hostId = structuralMarker.hostActorId || structuralMarker.metadata?.hostActorId || structuralMarker.metadata?.carrierActorId;
@@ -4377,7 +4378,7 @@
           if(!["token","crowd"].includes(spawned?.kind)&&edition!=="lionwing")fail("Нельзя добавить участника другой редакции");
         }
         if(["actor.despawn","space.remove"].includes(event.type)&&(next.pendingAction||state(next).choices.length||state(next).duels?.length||state(next).pausedChains?.length))fail("Сначала завершите ожидающее действие");
-        const fodderBoundary = fodderMovement || gluttonFodderDamage || broodmotherDamage;
+        const fodderBoundary = fodderMovement || gluttonFodderDamage || broodmotherDamage || necromancerKnockoutWatch;
         const result = fodderBoundary ? legacy.dispatchMany(next, [event]) : legacy.dispatch(next, event);
         next = result.scene; output.push(...(result.events || [result.event]));
         const lostSourceId=event.type==="marker.remove"?event.payload?.markerId:event.type==="actor.despawn"?event.actorId||event.payload?.actorId:null;

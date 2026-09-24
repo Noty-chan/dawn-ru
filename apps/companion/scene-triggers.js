@@ -638,6 +638,20 @@ function effectLifecycleEvents(scene, event) {
       } });
     }
   }
+  if (scene.rulesEdition === "lionwing" && (event.type === "damage.apply" && event.payload?.applied || event.type === "actor.knockout" && event.payload?.applied)) {
+    const victim = actorById(scene, event.payload?.targetId);
+    const necromancer = (scene.actors || []).find(item => item.profileId === "lionwing.npc.necromancer" && !item.knockedOut
+      && item.kind !== "crowd" && item.team !== victim?.team && effectPresenceStatus(scene, item.id).onField);
+    if (victim?.knockedOut && necromancer && !(scene.markers || []).some(item => item.kind === "corpse" && item.metadata?.victimActorId === victim.id)) {
+      events.push({ type: "marker.create", actorId: necromancer.id, payload: {
+        id: `corpse-${event.id}`, space: victim.space, x: Number(victim.x), y: Number(victim.y), markerKind: "corpse",
+        label: `Труп · ${victim.name}`, color: "#8b7894", source: "lionwing.npc.necromancer.passive",
+        ruleId: "lionwing.npc.necromancer.passive", sourceActorId: necromancer.id, sourceLossPolicy: "detach",
+        ownerActorId: necromancer.id, duration: "scene", metadata: { victimActorId: victim.id, knockoutEventId: event.id },
+        participantIds: [necromancer.id, victim.id],
+      } });
+    }
+  }
   if (["turn.start", "turn.end", "round.end", "action.prepare", "enemy.action.prepare"].includes(event.type)) {
     for (const target of scene.actors || []) for (const effect of target.effects || []) {
       const expiry = effectExpiryStatus(scene, target.id, effect, { type: event.type, actorId: boundaryActorId, turnSerial: event.payload?.endedTurnSerial });

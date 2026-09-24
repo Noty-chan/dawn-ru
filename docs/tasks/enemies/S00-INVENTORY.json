@@ -17,9 +17,9 @@
     "combinedAuditRecords": 163
   },
   "actualAutomationCounts": {
-    "assisted": 57,
+    "assisted": 56,
     "attack": 35,
-    "full": 28,
+    "full": 29,
     "state": 2
   },
   "profiles": [
@@ -9478,6 +9478,7 @@
         "uiEntryPoint": "unknown (passives are trigger/lifecycle driven; no generic action button)",
         "tests": [
           "apps/companion/tests/lionwing-enemy-base-attacks.mjs",
+          "apps/companion/tests/lionwing-enemy-fodder-creators.mjs",
           "apps/companion/tests/lionwing-localization.mjs"
         ],
         "notRun": [
@@ -9520,13 +9521,14 @@
           "declaredStatus": "assisted",
           "actualHandler": {
             "entry": "DAWN_SCENE_ENGINE.prepareEnemyRule",
-            "implementation": null,
-            "automation": "assisted",
-            "note": "The common entry exists, but no automatic rule handler is selected."
+            "implementation": "scene-actions.js prepareEnemyRule (full route)",
+            "automation": "full",
+            "note": "Presence is recorded without promoting readiness or verifying completeness."
           },
           "uiEntryPoint": "scene-actions-ui.js useEnemyRule → DAWN_SCENE_ENGINE.prepareEnemyRule → commitSceneEvents",
           "tests": [
             "apps/companion/tests/lionwing-enemy-base-attacks.mjs",
+            "apps/companion/tests/lionwing-enemy-fodder-creators.mjs",
             "apps/companion/tests/lionwing-localization.mjs"
           ],
           "notRun": [
@@ -9543,7 +9545,7 @@
           "ambiguities": [
             "Occupancy exceptions are rule-specific; Fodder is not forced through the ordinary empty-cell rule."
           ],
-          "remainder": "No selected production automation handler; full mechanics, payment, cancellation, persistence, and UI acceptance remain.",
+          "remainder": "Audit implementation against every clause; handler presence does not prove payment, lifecycle, persistence, browser, or network acceptance.",
           "wave": 7
         },
         {
@@ -9574,6 +9576,7 @@
           "uiEntryPoint": "scene-actions-ui.js useEnemyRule → DAWN_SCENE_ENGINE.prepareEnemyRule → commitSceneEvents",
           "tests": [
             "apps/companion/tests/lionwing-enemy-base-attacks.mjs",
+            "apps/companion/tests/lionwing-enemy-fodder-creators.mjs",
             "apps/companion/tests/lionwing-localization.mjs"
           ],
           "notRun": [
@@ -9619,6 +9622,7 @@
           "uiEntryPoint": "scene-actions-ui.js useEnemyRule → DAWN_SCENE_ENGINE.prepareEnemyRule → commitSceneEvents",
           "tests": [
             "apps/companion/tests/lionwing-enemy-base-attacks.mjs",
+            "apps/companion/tests/lionwing-enemy-fodder-creators.mjs",
             "apps/companion/tests/lionwing-localization.mjs"
           ],
           "notRun": [

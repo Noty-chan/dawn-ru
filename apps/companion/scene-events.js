@@ -239,8 +239,9 @@ function validateEvent(scene, event, options = {}) {
     }
     if (spawned?.sourceActionId && ENEMY_FULL_RULES.get(spawned.sourceActionId)?.type === "crowd-summon") {
       const owner = actorById(scene, event.actorId), token = payload.crowdSummonToken, prepared = [...(scene.log || [])].reverse().find(item => item.type === "enemy.action.prepare" && item.actorId === owner?.id && item.payload?.ruleId === spawned.sourceActionId && item.payload?.crowdSummon?.token === token), cells = prepared?.payload?.crowdSummon?.cells || [], prior = (scene.log || []).filter(item => item.type === "actor.spawn" && item.actorId === owner?.id && item.payload?.crowdSummonToken === token).length;
-      if (!owner || !prepared || prior >= cells.length || !cells.includes(`${spawned.x},${spawned.y}`) || spawned.kind !== "crowd" || spawned.team !== owner.team || spawned.space !== owner.space || spawned.summonerId !== owner.id || Number(spawned.hp) !== 1 || Number(spawned.maxHp) !== 1 || Number(spawned.ap) !== 0 || Number(spawned.speed) !== 0) throw new Error("Зона массовки не соответствует авторитетному Призыву.");
+      if (!owner || !prepared || prior >= cells.length || !cells.includes(`${spawned.x},${spawned.y}`) || spawned.kind !== "crowd" || spawned.team !== owner.team || spawned.space !== owner.space || spawned.summonerId !== owner.id || Number(spawned.hp) !== 1 || Number(spawned.maxHp) !== 1 || Number(spawned.ap) !== 0 || Number(spawned.speed) !== 0 || (spawned.crowdSubtype || null) !== (ENEMY_FULL_RULES.get(spawned.sourceActionId)?.corpseFodder ? "corpse" : null)) throw new Error("Зона массовки не соответствует авторитетному Призыву.");
     }
+    if (spawned.crowdSubtype === "corpse" && spawned.sourceActionId !== "lionwing.npc.necromancer.call-the-dead") throw new Error("Труп массовки должен происходить от Призыва мёртвых.");
     if (spawned.sourceActionId === "lionwing.npc.broodmother.passive" || payload.broodmotherPromptId) {
       const owner = actorById(scene, event.actorId), promptId = payload.broodmotherPromptId;
       const response = (scene.log || []).find(item => item.type === "rule.respond" && item.payload?.promptId === promptId && item.actorId === owner?.id);
@@ -642,6 +643,16 @@ const expectedTargets = (scene.actors || []).filter(target => !target.knockedOut
     const space = (scene.spaces || []).find(item => item.id === payload.space);
     if ((scene.markers || []).length >= 240 || typeof payload.id !== "string" || !payload.id || payload.id.length > 120 || (scene.markers || []).some(marker => marker.id === payload.id) || typeof payload.markerKind !== "string" || !payload.markerKind || payload.markerKind.length > 40 || !space || !Number.isInteger(Number(payload.x)) || !Number.isInteger(Number(payload.y)) || Number(payload.x) < 0 || Number(payload.y) < 0 || Number(payload.x) >= space.width || Number(payload.y) >= space.height || !["endTurn","nextTurn","round","scene","persistent"].includes(payload.duration)) throw new Error("Некорректный маркер Техники.");
     if (removedCellKeys(scene, payload.space).has(`${Number(payload.x)},${Number(payload.y)}`)) throw new Error("Нельзя поставить маркер в удалённую клетку.");
+    if (payload.markerKind === "corpse" || payload.ruleId === "lionwing.npc.necromancer.passive") {
+      const necromancer = actorById(scene, event.actorId), victim = actorById(scene, payload.metadata?.victimActorId), knockout = (scene.log || []).find(item => item.id === payload.metadata?.knockoutEventId);
+      if (scene.rulesEdition !== "lionwing" || necromancer?.profileId !== "lionwing.npc.necromancer" || necromancer.knockedOut
+        || !victim?.knockedOut || victim.team === necromancer.team || !effectPresenceStatus(scene, necromancer.id).onField
+        || !knockout || !["damage.apply", "actor.knockout"].includes(knockout.type) || !knockout.payload?.applied || knockout.payload?.targetId !== victim.id
+        || payload.markerKind !== "corpse" || payload.ruleId !== "lionwing.npc.necromancer.passive" || payload.sourceActorId !== necromancer.id
+        || payload.ownerActorId !== necromancer.id || payload.sourceLossPolicy !== "detach" || payload.duration !== "scene"
+        || payload.space !== victim.space || Number(payload.x) !== Number(victim.x) || Number(payload.y) !== Number(victim.y)
+        || (scene.markers || []).some(item => item.kind === "corpse" && item.metadata?.victimActorId === victim.id)) throw new Error("Труп не соответствует выведенному из боя противнику Некроманта.");
+    }
     const hostId = payload.hostActorId || payload.metadata?.hostActorId || payload.carrierActorId || payload.metadata?.carrierActorId;
     if (hostId != null) {
       const host = actorById(scene, hostId), offset = payload.offset || payload.metadata?.offset;
