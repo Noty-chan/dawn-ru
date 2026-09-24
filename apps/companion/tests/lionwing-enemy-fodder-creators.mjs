@@ -201,5 +201,11 @@ assert.equal(danced.actors.find(item => item.id === "source").ap, 1, "Danse pays
 assert.equal(Engine.prepareEnemyRule(enemyKnockout, data, { actorId: "source", ruleId: danseId, options: { revivals: [danseChoices[0], danseChoices[0]] } }).ok, false, "one Corpse cannot be revived twice");
 assert.equal(Engine.prepareEnemyRule(enemyKnockout, data, { actorId: "source", ruleId: danseId, options: { revivals: [{ ...danseChoices[0], profileId: "lionwing.npc.necromancer" }, danseChoices[1]] } }).ok, false, "revival profiles are restricted to the PDF list");
 assert.throws(() => commit(danced, danse), /.+/, "Danse cannot replay the same corpses");
+const partialDanse = Engine.dispatchMany(enemyKnockout, danse.events.slice(0,3).map((event,index) => ({ ...event, id: `partial-danse-${index}` }))).scene;
+const forgedRevival = clone(danse.events.find(event => event.type === "actor.spawn"));
+forgedRevival.id = "forged-danse-spawn";
+forgedRevival.payload.actor.hp += 1;
+assert.throws(() => Engine.dispatchMany(partialDanse, [forgedRevival]), /.+/, "a client cannot inflate a revived profile after paying and consuming a Corpse");
+assert.throws(() => Engine.dispatchMany(partialDanse, [danse.events.at(-1)]), /.+/, "an incomplete Danse cannot resolve before both profiles spawn");
 
 console.log("LionWing Fodder creators OK");
