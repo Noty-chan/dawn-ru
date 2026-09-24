@@ -4,7 +4,7 @@ const syncPanel=$("scene-sync-panel"),sceneRail=document.querySelector(".scene-r
 const launchParams=new URLSearchParams(location.search),invitedToken=launchParams.get("invite"),sharedRuleQuery=launchParams.get("q"),requestedLocale=launchParams.get("lang"),requestedEdition=launchParams.get("edition");
 if(["ru","en"].includes(requestedLocale))contentPreferences.locale=requestedLocale;
 if(["ru-v0.9","lionwing"].includes(requestedEdition))contentPreferences.edition=requestedEdition;
-if(!Scene.actors.length)Scene.rulesEdition=contentPreferences.edition;
+if(!Scene.actors.length&&Scene.rulesEdition!==contentPreferences.edition){Scene.rulesEdition=contentPreferences.edition;Scene.undo=[];Scene.redo=[];Scene.turnUndo=[];persist();}
 if(invitedToken){store.mode="play";Scene.view="player";document.body.classList.add("invited-player");$("sync-invite-token").value=invitedToken;activeScenePanel="network"}if(sharedRuleQuery){store.mode="reference";$("ref-search").value=sharedRuleQuery.slice(0,180)}
 function syncContentUrl(){
   if(!history?.replaceState)return;
@@ -25,7 +25,7 @@ function closeAppSettings(){if(appSettingsDialog?.open)appSettingsDialog.close()
 document.addEventListener("click",event=>{if(event.target.closest("[data-open-app-settings]")){openAppSettings();return}if(event.target.closest("[data-close-app-settings]"))closeAppSettings()});
 appSettingsDialog?.addEventListener("click",event=>{if(event.target===appSettingsDialog)closeAppSettings()});
 function applyContentPreferences({render=false}={}){
-  if(!Scene.actors.length)Scene.rulesEdition=contentPreferences.edition;
+  if(!Scene.actors.length&&Scene.rulesEdition!==contentPreferences.edition){Scene.rulesEdition=contentPreferences.edition;Scene.undo=[];Scene.redo=[];Scene.turnUndo=[];persist();}
   saveContentPreferences();
   if(S.rulesEdition!==contentPreferences.edition)activateHeroEdition(contentPreferences.edition);
   I18n?.setLocale(contentPreferences.locale);

@@ -939,6 +939,16 @@ function modifierActionStatus(scene, request = {}) {
       }
       const destinationStatus = effectCellOccupancyStatus(scene, carrier.id, { space: carrier.space, x: Number(d.x), y: Number(d.y) });
       if (!destinationStatus.available && destinationStatus.blockers.some((blocker) => blocker.type === "terrain" || blocker.team === carrier.team)) errors.push(destinationStatus.reason);
+      if(actor?.profileId===LIONWING_GIANT_ID){
+        const path=[],footprint=[],reserved=new Set();
+        for(let step=1;step<=steps;step++)for(let ox=0;ox<2;ox++)for(let oy=0;oy<2;oy++)path.push(`${carrier.x+stepX*step+ox},${carrier.y+stepY*step+oy}`);
+        for(let ox=0;ox<2;ox++)for(let oy=0;oy<2;oy++)footprint.push(`${Number(d.x)+ox},${Number(d.y)+oy}`);
+        for(const target of (scene.actors||[]).filter(item=>!item.knockedOut&&item.team!==carrier.team&&item.space===carrier.space&&modifierTargetCells(scene,item).some(cell=>path.includes(cell)))){
+          const escape=firstModifierEscapeCell(scene,target,footprint,reserved);
+          if(!escape)errors.push(`Для ${target.name} нет свободной клетки после рывка Гиганта.`);
+          else reserveModifierEscape(target,escape,reserved);
+        }
+      }
     }
   } else if (action === "legion-return") {
     const space = (scene.spaces || []).find((item) => item.id === actor?.space),

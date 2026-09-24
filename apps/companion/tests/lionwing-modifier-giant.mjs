@@ -19,4 +19,9 @@ assert.equal(host().x,3);assert.equal(host().ap,2,"Giant Attack spends one Host 
 assert.equal(pc().effects.includes("negative.подброшен"),true,"crossed opponent is Launched");
 assert.equal(pc().x<3||pc().x>4||pc().y<1||pc().y>2,true,"crossed opponent is pushed outside the new footprint");
 const second=engine.prepareModifierAction(scene,{actorId:"giant",action:"giant-charge",destination:{x:4,y:1}});assert.equal(second.ok,true,second.errors?.join(" "));
+let trapped={rulesEdition:"lionwing",version:0,round:1,turnSerial:1,activeActorId:"host",tension:0,spaces:[{id:"main",width:8,height:7}],actors:[actor("host","enemy",1,1),actor("giant","enemy",0,0,{profileId:"lionwing.modifier.giant",hp:0,maxHp:0,ap:0,baseAp:0,hidden:true,modifierState:{}}),actor("pc","hero",3,1)],objects:[],walls:[],markers:[],log:[],rollFeed:[],targetIds:[],targetCells:[],triggerQueue:[]};
+const trapConfig=engine.prepareModifierConfigure(trapped,{actorId:"giant",carrierId:"host"});assert.equal(trapConfig.ok,true);trapped=engine.dispatchMany(trapped,trapConfig.events.map((event,index)=>({...event,id:`trap-config-${index}`}))).scene;
+const corridor=new Set(["1,1","2,1","3,1","4,1","1,2","2,2","3,2","4,2"]),sealed=[];for(let y=0;y<7;y++)for(let x=0;x<8;x++)if(!corridor.has(`${x},${y}`))sealed.push(`${x},${y}`);
+trapped.objects.push({id:"sealed",space:"main",type:"terrain",cells:sealed,hp:999,maxHp:999});
+assert.equal(engine.prepareModifierAction(trapped,{actorId:"giant",action:"giant-charge",destination:{x:3,y:1}}).ok,false,"Giant cannot charge through a target with no legal escape footprint");
 console.log("LionWing Giant: footprint, Armor, Speed, charge, push and Launch passed");

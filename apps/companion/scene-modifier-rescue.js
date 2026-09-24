@@ -21,13 +21,14 @@ function prepareCollateralRescue(scene, request = {}) {
   if (errors.length) return { ok: false, errors, events: [] };
   const sourceActionId = canonical ? "lionwing.modifier.collateral.rescue" : "enemy.modifier.collateral.rescue";
   const rollId = `collateral-rescue-roll-${eventId()}`;
+  const spendId = `collateral-rescue-spend-${eventId()}`;
   return {
     ok: true,
     errors: [],
     success: Number(roll.successes) >= threshold,
     events: [
-      { type: "resource.spend", actorId: rescuer.id, payload: { resource: "ap", amount: 1, sourceActionId, participantIds: [rescuer.id, collateral.id] } },
-      { id: rollId, type: "roll.public", actorId: rescuer.id, payload: { ...clone(roll), target: threshold, intent: `Спасти ${collateral.name}`, targetIds: [collateral.id] } },
+      { id: spendId, type: "resource.spend", actorId: rescuer.id, payload: { resource: "ap", amount: 1, sourceActionId, participantIds: [rescuer.id, collateral.id] } },
+      { id: rollId, type: "roll.public", actorId: rescuer.id, payload: { ...clone(roll), target: threshold, intent: `Спасти ${collateral.name}`, targetIds: [collateral.id], spendEventId: spendId } },
       ...(Number(roll.successes) >= threshold ? [{ type: "actor.despawn", actorId: collateral.id, payload: { reason: `Спасён Взаимодействием ${rescuer.name}`, sourceActionId, rescuerId: rescuer.id, rollEventId: rollId, threshold, participantIds: [rescuer.id] } }] : []),
     ],
   };

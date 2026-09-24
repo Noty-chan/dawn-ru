@@ -3189,16 +3189,17 @@
             break;
           }
           if (!resources.has(p.resource) && !attributes.has(p.resource) && !["knockedOut","vulnerable"].includes(p.resource)) fail("Это поле нельзя исправить");
-          const amount = integer(p.amount, "новое значение",p.resource==="knockedOut"?1:p.resource==="stress"?stressMaximum(target)-1:p.resource==="wounds"?2:attributes.has(p.resource)||["baseAp","armor","speed","tier"].includes(p.resource)?99:9999), before = attributes.has(p.resource) ? target.attrs[p.resource] : target[p.resource];
+          const amount = integer(p.amount, "новое значение",p.resource==="knockedOut"?1:p.resource==="stress"?stressMaximum(target)-1:p.resource==="wounds"?2:attributes.has(p.resource)||["baseAp","armor","speed","tier"].includes(p.resource)?99:9999), correctedResource=resourceKey(target,p.resource), before = attributes.has(p.resource) ? target.attrs[p.resource] : correctedResource!==p.resource ? target.ruleResources?.[correctedResource]?.value : target[p.resource];
           if(["maxHp","tier"].includes(p.resource)&&amount===0)fail("Значение должно быть положительным");
           const compound=legacy.compoundEnemyStatus(scene,target);
           if(p.resource==="hp"&&amount>(compound.active?compound.maxHp:maxHealth(target)))fail("Здоровье превышает максимум");
           if (attributes.has(p.resource)) target.attrs[p.resource] = amount;
           else if(p.resource==="vulnerable"){if(amount>1)fail("Уязвимость: 0 или 1");astate(target).vulnerable=Boolean(amount);}
-          else if (p.resource === "knockedOut") { for(const part of compound.active?compound.parts:[target]){part.knockedOut=Boolean(amount);if(part.knockedOut){part.ap=0;part.stepRemaining=0;if(scene.activeActorId===part.id){scene.activeActorId=null;s.lastTeam=part.team;}s.grantedTurns=(s.grantedTurns||[]).filter(item=>item.actorId!==part.id);for(const aura of [...s.auras])if(aura.sourceLossPolicy==="remove"&&(aura.sourceEntityId===part.id||aura.ownerActorId===part.id))removeAuraRecord(aura,"removed",part.id);}} }
+          else if (p.resource === "knockedOut") { for(const part of compound.active?compound.parts:[target]){if(amount)knockout(part,{kind:"narrator-correction",sourceActorId:sourceId||null,eventId:rootId});else part.knockedOut=false;} }
           else if(p.resource==="hp"&&compound.active){let remaining=amount;for(const part of compound.parts){part.hp=Math.min(part.maxHp,remaining);remaining-=part.hp;}}
+          else if(correctedResource!==p.resource){const definition=target.ruleResources?.[correctedResource];if(!definition)fail("Заменяющий ресурс не найден");if(definition.maximum!=null&&amount>Number(definition.maximum))fail("Значение ресурса превышает максимум");definition.value=amount;}
           else {target[p.resource] = amount;if(p.resource==="maxHp")target.hp=Math.min(target.hp,maxHealth(target));}
-          emit("actor.runtime.set", target.id, { resource: p.resource, value: amount, before, correction: true, note: p.note || "Ручное исправление" }); break;
+          emit("actor.runtime.set", target.id, { resource: p.resource, resolvedResource: correctedResource, value: amount, before, correction: true, note: p.note || "Ручное исправление" }); break;
         }
         case "automation": {
           const rule = global.DAWN_LIONWING_ADAPTERS.list(a).find(rule => rule.id === p.ruleId);

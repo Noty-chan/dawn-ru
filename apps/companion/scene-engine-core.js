@@ -152,7 +152,8 @@ function topologyStatus(scene, request = {}) {
     const match = cell.match(/^(\d{1,2}),(\d{1,2})$/);
     return !space || !match || Number(match[1]) >= Number(space.width) || Number(match[2]) >= Number(space.height);
   });
-  const occupiedCells = cells.filter(cell => (scene?.actors || []).some(actor => !actor.knockedOut && !hasEffect(scene, actor, "positive.исчез") && actor.space === request.space && cellKey(actor) === cell));
+  const actorOccupiesCell=(actor,cell)=>{const[x,y]=cell.split(",").map(Number);return x>=Number(actor.x)&&x<Number(actor.x)+Math.max(1,Number(actor.occupiedWidth||1))&&y>=Number(actor.y)&&y<Number(actor.y)+Math.max(1,Number(actor.occupiedHeight||1))};
+  const occupiedCells = cells.filter(cell => (scene?.actors || []).some(actor => !actor.knockedOut && !hasEffect(scene, actor, "positive.исчез") && actor.space === request.space && actorOccupiesCell(actor,cell)));
   const alreadyRemoved = cells.filter(cell => removed.has(cell));
   const operation = request.operation || "inspect";
   let reason = "";

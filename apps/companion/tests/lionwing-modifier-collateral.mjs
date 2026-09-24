@@ -35,6 +35,8 @@ assert.equal(engine.prepareCollateralRescue(rescueScene,{collateralId:"collatera
 assert.equal(engine.prepareCollateralRescue(rescueScene,{collateralId:"collateral",rescuerId:"p1",roll:{...roll,rolls:[4,4],successes:2}}).ok,false,"Spirit determines dice count");
 const rescue=engine.prepareCollateralRescue(rescueScene,{collateralId:"collateral",rescuerId:"p1",roll});
 assert.equal(rescue.ok,true,rescue.errors?.join(" "));
+assert.throws(()=>commit(rescueScene,{events:rescue.events.slice(1)},"rescue-without-ap"),/Спасение Случайной жертвы/);
+assert.throws(()=>commit(rescueScene,{events:rescue.events.map(event=>event.type==="roll.public"?{...event,payload:{...event.payload,rolls:[1,1,1],successes:3}}:event)},"rescue-forged-roll"),/Спасение Случайной жертвы/);
 const rescued=commit(rescueScene,rescue,"collateral-rescue");
 assert.equal(rescued.actors.some(item=>item.id==="collateral"),false,"successful Interact safely removes casualty");
 assert.equal(rescued.sessionClocks.find(item=>item.ruleId==="lionwing.modifier.collateral").value,0,"safe removal does not advance Peril");

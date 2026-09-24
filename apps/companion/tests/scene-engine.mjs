@@ -828,6 +828,14 @@ assert.equal(Engine.prepareDisplacements(scene, [
 const displacementTerrain = structuredClone(scene);
 displacementTerrain.objects.push({ id: "wall", space: "main", type: "terrain", label: "Стена", cells: ["3,1"] });
 assert.equal(Engine.displacementStatus(displacementTerrain, { actorId: "enemy", mode: "push", sourceActorId: "hero", maximum: 1 }).available, false, "Forced movement respects blocking terrain");
+const broadBodyScene = structuredClone(scene);
+broadBodyScene.actors.find(actor => actor.id === "hero").occupiedWidth = 2;
+broadBodyScene.actors.find(actor => actor.id === "hero").occupiedHeight = 2;
+broadBodyScene.actors.find(actor => actor.id === "enemy").x = 6;
+broadBodyScene.objects.push({ id: "lower-body-terrain", space: "main", type: "terrain", cells: ["3,2"] });
+assert.equal(Engine.displacementStatus(broadBodyScene, { actorId: "hero", direction: "east", maximum: 1 }).available, false, "Forced movement checks the full large-actor footprint");
+assert.deepEqual(Array.from(Engine.movementPath(broadBodyScene, "hero", { x: 2, y: 1 }, { maxDistance: 1 })), [], "Ordinary movement checks the full large-actor footprint");
+assert.equal(Engine.topologyStatus(broadBodyScene, { space: "main", cells: ["2,2"], operation: "remove" }).available, false, "Topology cannot remove a cell beneath a large actor's body");
 const optionalDisplacements = Engine.prepareDisplacements(displacementTerrain, [
   { actorId: "enemy", mode: "push", sourceActorId: "hero", maximum: 1, allowPartial: true, optional: true },
 ]);

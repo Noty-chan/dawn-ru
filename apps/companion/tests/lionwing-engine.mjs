@@ -137,6 +137,10 @@ throws(s,"h",{kind:"configure-resource",id:"custom",value:5,maximum:4},/макс
 throws(s,"h",{kind:"correct",resource:"hp",amount:17},/максимум/);
 throws(s,"h",{kind:"correct",resource:"knockedOut",amount:2},/значение/);
 s=run(s,"h",{kind:"configure-resource",id:"mana",value:5,replaces:"focus"});
+const unusedFocus=s.actors[0].focus;
+const correctedFocus=run(s,"h",{kind:"correct",resource:"focus",amount:3});
+assert.equal(correctedFocus.actors[0].ruleResources.mana.value,3,"Narrator correction updates replacement Focus");
+assert.equal(correctedFocus.actors[0].focus,unusedFocus,"Correction does not write an unused Focus field");
 s=run(s,"h",{kind:"turn-start"});s=prepare(s,"h",{kind:"action",actionId:ids.breathe});
 assert.equal(s.actors[0].ruleResources.mana.value,6);
 s=run(s,"e",{kind:"attack",targetIds:["h"],amount:1});s=run(s,"h",{kind:"reaction",choice:"block"});assert.equal(s.actors[0].ruleResources.mana.value,4);

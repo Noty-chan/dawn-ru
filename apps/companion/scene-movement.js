@@ -78,12 +78,14 @@ function movementPath(scene, actorId, destination, options = {}) {
   for(const cell of actor.difficultTerrainImmunity||[])difficult.delete(cell);
   const elevation = new Map((scene.objects || []).filter(object => object.space === actor.space && ["high","low"].includes(object.type)).flatMap(object => (object.cells || []).map(cell => [cell,object.type])));
   const removed = removedCellKeys(scene, actor.space);
+  const width=Math.max(1,Number(actor.occupiedWidth||1)),height=Math.max(1,Number(actor.occupiedHeight||1));
+  const footprint=point=>{const cells=[];for(let oy=0;oy<height;oy++)for(let ox=0;ox<width;ox++)cells.push({x:point.x+ox,y:point.y+oy});return cells};
   const actorBanished = hasEffect(scene, actor, "positive.изгнан");
   const opponents = new Set((scene.actors || []).filter(item => item.id !== actor.id && !item.knockedOut && item.space === actor.space && item.team !== actor.team && effectPresenceStatus(scene, item.id).onField)
-    .filter(item => !actorBanished && !hasEffect(scene, item, "positive.изгнан")).map(item => `${item.x},${item.y}`));
+    .filter(item => !actorBanished && !hasEffect(scene, item, "positive.изгнан")).flatMap(item=>{const cells=[];for(let oy=0;oy<Math.max(1,Number(item.occupiedHeight||1));oy++)for(let ox=0;ox<Math.max(1,Number(item.occupiedWidth||1));ox++)cells.push(`${Number(item.x)+ox},${Number(item.y)+oy}`);return cells}));
   const cinematic = space.mode === "cinematic";
   if (cinematic && !options.ignoreDifficult) opponents.forEach(cell => difficult.add(cell));
-  const blocked = point => removed.has(cellKey(point)) || (!options.ignoreTerrain && !movesThroughObstacles && terrain.has(cellKey(point))) || (!cinematic && !options.ignoreEnemies && opponents.has(cellKey(point)));
+  const blocked = point => footprint(point).some(cell=>cell.x<0||cell.y<0||cell.x>=space.width||cell.y>=space.height||removed.has(cellKey(cell))||(!options.ignoreTerrain&&!movesThroughObstacles&&terrain.has(cellKey(cell)))||(!cinematic&&!options.ignoreEnemies&&opponents.has(cellKey(cell))));
   if (options.straight) {
     const dx = end.x - actor.x, dy = end.y - actor.y, ax = Math.abs(dx), ay = Math.abs(dy);
     if (!(dx === 0 || dy === 0 || ax === ay)) return [];
@@ -94,7 +96,7 @@ function movementPath(scene, actorId, destination, options = {}) {
       const current = path.at(-1) || actor;
       if (current.x === end.x && current.y === end.y) return path;
       const attempted = { x: current.x + direction.x, y: current.y + direction.y };
-      if (!options.ignoreTerrain && wallBlocksStep(scene, actor.space, current, attempted)) return [];
+      if (!options.ignoreTerrain && footprint(current).some(cell=>wallBlocksStep(scene,actor.space,cell,{x:cell.x+direction.x,y:cell.y+direction.y}))) return [];
       const point = removed.has(cellKey(attempted)) ? topologyStepDestination(scene, { space: actor.space, from: current, attempted }) : attempted;
       if (!point) return [];
       if (blocked(point)) return [];
@@ -112,7 +114,7 @@ function movementPath(scene, actorId, destination, options = {}) {
     if (!options.ignoreTerrain && current.path.length) { const previous=current.path.length>1?current.path.at(-2):start,from=elevation.get(cellKey(previous))||"normal",to=elevation.get(cellKey(current.point))||"normal";if(from!==to)continue; }
     for (const direction of directions) {
       const attempted = { x: current.point.x + direction.x, y: current.point.y + direction.y };
-      if (!options.ignoreTerrain && wallBlocksStep(scene, actor.space, current.point, attempted)) continue;
+      if (!options.ignoreTerrain && footprint(current.point).some(cell=>wallBlocksStep(scene,actor.space,cell,{x:cell.x+direction.x,y:cell.y+direction.y}))) continue;
       const point = removed.has(cellKey(attempted)) ? topologyStepDestination(scene, { space: actor.space, from: current.point, attempted }) : attempted, key = point && cellKey(point);
       if (!point) continue;
       if (point.x < 0 || point.y < 0 || point.x >= space.width || point.y >= space.height || seen.has(key) || blocked(point)) continue;
@@ -163,9 +165,11 @@ function displacementStatus(scene, request = {}) {
   }
   if (!vector || !Number.isInteger(Number(vector.x)) || !Number.isInteger(Number(vector.y)) || Math.abs(Number(vector.x)) > 1 || Math.abs(Number(vector.y)) > 1 || !Number(vector.x) && !Number(vector.y)) return unavailable("Не задано допустимое направление перемещения.");
   vector = { x: Math.sign(Number(vector.x)), y: Math.sign(Number(vector.y)) };
+  const width=Math.max(1,Number(actor.occupiedWidth||1)),height=Math.max(1,Number(actor.occupiedHeight||1));
+  const footprint=point=>{const cells=[];for(let oy=0;oy<height;oy++)for(let ox=0;ox<width;ox++)cells.push({x:point.x+ox,y:point.y+oy});return cells};
 
   const occupied = new Set((scene.actors || []).filter(item => item.id !== actor.id && item.space === actor.space && effectPresenceStatus(scene, item.id).onField)
-    .filter(item => !hasEffect(scene, actor, "positive.изгнан") && !hasEffect(scene, item, "positive.изгнан")).map(cellKey));
+    .filter(item => !hasEffect(scene, actor, "positive.изгнан") && !hasEffect(scene, item, "positive.изгнан")).flatMap(item=>{const cells=[];for(let oy=0;oy<Math.max(1,Number(item.occupiedHeight||1));oy++)for(let ox=0;ox<Math.max(1,Number(item.occupiedWidth||1));ox++)cells.push(`${Number(item.x)+ox},${Number(item.y)+oy}`);return cells}));
   const blockingTypes = new Set(request.blockingTypes || ["terrain"]);
   const terrain = new Set((scene.objects || []).filter(object => object.space === actor.space && blockingTypes.has(object.type)).flatMap(object => object.cells || []));
   const removed = removedCellKeys(scene, actor.space), path = [], crossings = [];
@@ -174,14 +178,15 @@ function displacementStatus(scene, request = {}) {
   let stoppedReason = "", blockedAt = null;
   for (let step = 0; step < steps; step += 1) {
     const attempted = { x: current.x + vector.x, y: current.y + vector.y };
-    if (!request.ignoreTerrain && wallBlocksStep(scene, actor.space, current, attempted)) { stoppedReason = "Стена блокирует перемещение."; blockedAt = attempted; break; }
+    if (!request.ignoreTerrain && footprint(current).some(cell=>wallBlocksStep(scene,actor.space,cell,{x:cell.x+vector.x,y:cell.y+vector.y}))) { stoppedReason = "Стена блокирует перемещение."; blockedAt = attempted; break; }
+    if((width>1||height>1)&&footprint(attempted).some(cell=>removed.has(cellKey(cell)))){stoppedReason="Разрыв поля блокирует перемещение крупной фигуры.";blockedAt=attempted;break}
     const next = removed.has(cellKey(attempted)) ? topologyStepDestination(scene, { space: actor.space, from: current, attempted }) : attempted;
-    const key = next && cellKey(next);
+    const key = next && cellKey(next),nextCells=next?footprint(next):[];
     if (!next) { stoppedReason = "Разрыв поля блокирует перемещение."; blockedAt = attempted; break; }
-    if (next.x < 0 || next.y < 0 || next.x >= space.width || next.y >= space.height) { stoppedReason = "Перемещение выводит персонажа за границу поля."; blockedAt = next; break; }
-    if (!request.ignoreActors && occupied.has(key)) { stoppedReason = "Клетка назначения занята другим персонажем."; blockedAt = next; break; }
-    if (!request.ignoreTerrain && terrain.has(key)) { stoppedReason = "Клетка назначения занята непроходимой местностью."; blockedAt = next; break; }
-    if (removed.has(key)) { stoppedReason = "Нельзя закончить перемещение в удалённой клетке."; blockedAt = next; break; }
+    if (nextCells.some(cell=>cell.x<0||cell.y<0||cell.x>=space.width||cell.y>=space.height)) { stoppedReason = "Перемещение выводит персонажа за границу поля."; blockedAt = next; break; }
+    if (!request.ignoreActors && nextCells.some(cell=>occupied.has(cellKey(cell)))) { stoppedReason = "Клетка назначения занята другим персонажем."; blockedAt = next; break; }
+    if (!request.ignoreTerrain && nextCells.some(cell=>terrain.has(cellKey(cell)))) { stoppedReason = "Клетка назначения занята непроходимой местностью."; blockedAt = next; break; }
+    if (nextCells.some(cell=>removed.has(cellKey(cell)))) { stoppedReason = "Нельзя закончить перемещение в удалённой клетке."; blockedAt = next; break; }
     current = next;
     path.push(next);
     if (next.teleported) crossings.push({ destination: key, cutIds: [...(next.crossedCutIds || [])] });

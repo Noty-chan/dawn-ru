@@ -1166,6 +1166,10 @@ function triggeredEvents(scene, event, options = {}) {
 }
 
 function dispatchMany(scene, events, options = {}) {
+  for(const attack of (events||[]).filter(item=>item?.type==="modifier.action"&&actorById(scene,item.actorId)?.profileId===ENEMY_MODIFIER_IDS.gargantuan)){
+    const modifier=actorById(scene,attack.actorId),carrier=modifierCarrier(scene,modifier),published=(events||[]).filter(item=>item?.type==="roll.public"&&item.payload?.sourceActionId===`${modifier.profileId}.attack`);
+    if(published.length&& (published.length!==1||!carrier||published[0].actorId!==carrier.id||(events||[]).indexOf(published[0])>(events||[]).indexOf(attack)||JSON.stringify(published[0].payload?.rolls)!==JSON.stringify(attack.payload?.roll?.rolls)||Number(published[0].payload?.successes)!==Number(attack.payload?.roll?.successes)||Number(published[0].payload?.crits)!==Number(attack.payload?.roll?.crits)))throw new Error("Результат Атаки Громадины должен совпадать с публичным броском.");
+  }
   let next = clone(scene);
   const committed = [], duplicates = [];
   const queue = [...(events || [])];
