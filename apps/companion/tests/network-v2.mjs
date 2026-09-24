@@ -149,9 +149,20 @@ const deploymentEvents=[
 const deploymentIntent=Network.intentFromEvents(deploymentScene,deploymentEvents,"Развертывание: Герой");
 assert.equal(deploymentIntent.kind,"deployment","pre-combat placement has a dedicated safe online intent");
 const canonicalDeployment=Network.materializeIntent(deploymentScene,data,deploymentIntent,"player-1",{sceneEngine:Engine});
-const deployed=Engine.dispatchMany(deploymentScene,canonicalDeployment).scene;
+const deploymentBatch=Engine.dispatchMany(deploymentScene,canonicalDeployment,{expectedVersion:deploymentScene.version});
+const deployed=deploymentBatch.scene;
+assert.equal(deployed.version,deploymentScene.version+deploymentBatch.events.length,"deployment snapshot version matches its authoritative event batch");
 assert.deepEqual([deployed.actors[0].x,deployed.actors[0].y],[2,2],"a player can reposition inside a custom hero deployment zone");
 assert.throws(()=>Network.materializeIntent(deploymentScene,data,{...deploymentIntent,destination:{space:"side",x:3,y:3}},"player-1",{sceneEngine:Engine}),/только в зоне/i,"the authority still rejects placement outside the custom zone");
+const lionwingDeploymentScene=structuredClone(deploymentScene);
+lionwingDeploymentScene.rulesEdition="lionwing";
+lionwingDeploymentScene.actors[0].kind="hero";
+lionwingDeploymentScene.actors[0].rulesEdition="lionwing";
+lionwingDeploymentScene.actors[1].kind="enemy";
+lionwingDeploymentScene.actors[1].rulesEdition="lionwing";
+const lionwingDeployment=Network.materializeIntent(lionwingDeploymentScene,data,deploymentIntent,"player-1",{sceneEngine:Engine});
+const lionwingDeploymentBatch=Engine.dispatchMany(lionwingDeploymentScene,lionwingDeployment,{expectedVersion:lionwingDeploymentScene.version});
+assert.equal(lionwingDeploymentBatch.scene.version,lionwingDeploymentScene.version+lionwingDeploymentBatch.events.length,"LionWing deployment serializes the same number of events as the resulting version");
 
 const onlineBladeScene=structuredClone(baseScene);
 onlineBladeScene.actors[0].x=0;onlineBladeScene.actors[0].y=0;onlineBladeScene.actors[0].techniques={"vagabond.master-at-arms":1};

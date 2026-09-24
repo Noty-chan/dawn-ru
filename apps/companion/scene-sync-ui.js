@@ -188,7 +188,12 @@ async function flushNetworkV2Authority(items){
     :null;
   const startsTurn=allEvents.some(event=>event.type==="turn.start"),endsRound=allEvents.some(event=>event.type==="round.end"),turnCheckpoint=startsTurn&&localUndoState?{id:uid(),label:"До начала Хода",state:localUndoState,checkpoint:"turn-start"}:null;
   if(!allEvents.length&&!rejectedCommandIds.length){deferred.forEach(item=>networkV2Authority.enqueue(item));return}
+  // The database version is derived from the number of persisted events, not
+  // from any transient reducer bookkeeping in the local candidate.
+  const committedVersion=expectedVersion+allEvents.length;
+  candidate.version=committedVersion;
   const networkState=NetworkV2.networkSceneState(candidate);
+  networkState.version=committedVersion;
   let acceptedVersion;
   networkV2Reconciling=true;
   try{acceptedVersion=await Sync.settleIntentBatch({commandIds,rejectedCommandIds,events:allEvents,scene:networkState,expectedVersion,label:"network.v2.tick"})}

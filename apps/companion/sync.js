@@ -263,13 +263,15 @@
   async function settleIntentBatch({commandIds=[],rejectedCommandIds=[],events=[],scene,expectedVersion=state.version,label="network.v2.tick"}={}){
     return serializeSceneMutation(async()=>{
       await ensureConnected();if(!["owner","narrator"].includes(state.role))throw new Error("Сетевой такт выполняет Нарратор");
+      if(Number(scene?.version)!==Number(expectedVersion)+events.length){const mismatch=new Error("Неверная версия сетевого пакета; действие не отправлено. Обновите Сцену и повторите действие вручную");mismatch.code="NETWORK_BATCH_VERSION_MISMATCH";mismatch.retryable=false;throw mismatch}
       const ids=commandIds.map(value=>String(value)).filter(value=>/^\d+$/.test(value));
       const rejected=rejectedCommandIds.map(value=>String(value)).filter(value=>/^\d+$/.test(value));
       const sceneId=state.sceneId,generation=sceneSessionGeneration,payload=events.map(event=>({id:event.id,type:event.type,actorId:event.actorId,payload:event.payload,at:event.at}));
       localMutationInFlight++;let result;try{result=await client.rpc("settle_scene_intent_batch",{p_scene_id:sceneId,p_expected_version:Number(expectedVersion),p_command_ids:ids,p_rejected_command_ids:rejected,p_events:payload,p_state:scene,p_label:label})}finally{localMutationInFlight--}
       if(!sceneSessionIsActive(sceneId,generation))throw new Error("Стол уже закрыт");
       if(result.error){
-        if(result.error.code==="40001"||/version conflict|version[^.]*does not match|state version[^.]*event batch/i.test(result.error.message||"")){await loadScene(sceneId);const conflict=new Error("Сетевой такт столкнулся с новой версией Сцены и будет пересчитан");conflict.code=result.error.code;conflict.retryable=true;throw conflict}
+        if(result.error.code==="40001"||/version conflict/i.test(result.error.message||"")){await loadScene(sceneId);const conflict=new Error("Сетевой такт столкнулся с новой версией Сцены и будет пересчитан");conflict.code=result.error.code;conflict.retryable=true;throw conflict}
+        if(/state version[^.]*event batch/i.test(result.error.message||"")){const mismatch=new Error("Неверная версия сетевого пакета; действие не сохранено. Обновите Сцену и повторите действие вручную");mismatch.code="NETWORK_BATCH_VERSION_MISMATCH";mismatch.retryable=false;throw mismatch}
         return fail(result.error);
       }
       const acceptedVersion=Number(result.data);patch({version:acceptedVersion,status:"online",lastSyncedAt:new Date().toISOString(),error:""});signalTable("scene-updated",{version:acceptedVersion});return acceptedVersion;
