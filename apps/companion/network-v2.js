@@ -97,7 +97,9 @@
         const baseById=new Map(base.map(item=>[item.id,item])),desiredById=new Map(desired.map(item=>[item.id,item])),currentById=new Map(current.map(item=>[item.id,item])),result=[];
         for(const item of desired){
           const previous=baseById.get(item.id),canonical=currentById.get(item.id);
-          if(!canonical&&previous&&sameValue(item,previous))continue;
+          // A concurrent canonical deletion wins even if this stale snapshot
+          // also edited the entity; otherwise rebasing would resurrect it.
+          if(!canonical&&previous)continue;
           result.push(previous&&canonical?rebaseValue(previous,item,canonical,depth+1):clone(item));
         }
         for(const item of current)if(!desiredById.has(item.id)&&!baseById.has(item.id))result.push(clone(item));
@@ -387,6 +389,7 @@
       this.timer=null;
       this.flushing=false;
       this.inFlight=null;
+      this.retryBatch=null;
       this.failed=[];
       this.failures=0;
       this.generation=0;
@@ -394,23 +397,24 @@
     }
     enqueue(item){
       const normalized={...item,queuedAt:Date.now()};
+      const occupied=this.queue.length+this.failed.length+(this.inFlight?.length||this.retryBatch?.length||0);
       const key=coalesceKey(normalized);
       if(key){
         const index=this.queue.findIndex(entry=>coalesceKey(entry)===key);
         if(index>=0)this.queue[index]=normalized;
         else{
-          if(this.queue.length+this.failed.length>=this.maxItems)throw new Error("Сетевая очередь Нарратора переполнена; дождитесь синхронизации");
+          if(occupied>=this.maxItems)throw new Error("Сетевая очередь Нарратора переполнена; дождитесь синхронизации");
           this.queue.push(normalized);
         }
       }else if(normalized.kind==="snapshot"){
         const index=this.queue.findIndex(entry=>entry.kind==="snapshot");
         if(index>=0)this.queue[index]=normalized;
         else{
-          if(this.queue.length+this.failed.length>=this.maxItems)throw new Error("Сетевая очередь Нарратора переполнена; дождитесь синхронизации");
+          if(occupied>=this.maxItems)throw new Error("Сетевая очередь Нарратора переполнена; дождитесь синхронизации");
           this.queue.push(normalized);
         }
       }else{
-        if(this.queue.length+this.failed.length>=this.maxItems)throw new Error("Сетевая очередь Нарратора переполнена; дождитесь синхронизации");
+        if(occupied>=this.maxItems)throw new Error("Сетевая очередь Нарратора переполнена; дождитесь синхронизации");
         this.queue.push(normalized);
       }
       this.schedule();
@@ -421,14 +425,15 @@
       this.timer=setTimeout(()=>{this.timer=null;void this.flush()},Math.min(this.tickMs*2**this.failures,5000));
     }
     async flush(){
-      if(this.flushing||!this.queue.length)return;
+      if(this.flushing||(!this.retryBatch&&!this.queue.length))return;
       this.flushing=true;
       const generation=this.generation;
-      const source=this.queue.splice(0,20);
+      const source=this.retryBatch||this.queue.splice(0,20);
       this.inFlight=source;
       try{
         await this.options.flush(source);
         this.failures=0;
+        if(this.retryBatch===source)this.retryBatch=null;
         const acceptedSnapshotAt=source.filter(item=>item.kind==="snapshot").reduce((latest,item)=>Math.max(latest,Number(item.queuedAt)||0),0);
         if(acceptedSnapshotAt)this.failed=this.failed.filter(item=>item.kind!=="snapshot"||(Number(item.queuedAt)||0)>acceptedSnapshotAt);
       }
@@ -437,10 +442,11 @@
           const retained=source.filter(item=>!this.discarded.has(item));
           if(retryableAuthorityFailure(error)){
             this.failures=Math.min(this.failures+1,5);
-            this.queue.unshift(...retained);
+            this.retryBatch=retained;
             this.options.onError?.(error,{retrying:true});
           }else{
             this.failures=0;
+            if(this.retryBatch===source)this.retryBatch=null;
             const queuedSnapshotAt=this.queue.filter(item=>item.kind==="snapshot").reduce((latest,item)=>Math.max(latest,Number(item.queuedAt)||0),0);
             const retainedSnapshotAt=retained.filter(item=>item.kind==="snapshot").reduce((latest,item)=>Math.max(latest,Number(item.queuedAt)||0),0);
             const newestSnapshotAt=Math.max(queuedSnapshotAt,retainedSnapshotAt);
@@ -453,7 +459,7 @@
         source.forEach(item=>this.discarded.delete(item));
         if(this.inFlight===source)this.inFlight=null;
         this.flushing=false;
-        if(generation===this.generation&&this.queue.length)this.schedule();
+        if(generation===this.generation&&(this.retryBatch||this.queue.length))this.schedule();
       }
     }
     discard(predicate){
@@ -461,14 +467,18 @@
       let removed=0;
       this.queue=this.queue.filter(item=>{if(!predicate(item))return true;removed++;return false});
       this.failed=this.failed.filter(item=>{if(!predicate(item))return true;removed++;return false});
+      if(this.retryBatch&&this.retryBatch!==this.inFlight){
+        this.retryBatch=this.retryBatch.filter(item=>{if(!predicate(item))return true;removed++;return false});
+        if(!this.retryBatch.length)this.retryBatch=null;
+      }
       for(const item of this.inFlight||[])if(predicate(item)){this.discarded.add(item);removed++}
       return removed;
     }
     retryFailed(){if(!this.failed.length)return 0;this.queue.unshift(...this.failed);const count=this.failed.length;this.failed=[];this.schedule();return count}
-    clear(){this.generation++;clearTimeout(this.timer);this.timer=null;this.queue=[];this.inFlight=null;this.failed=[];this.failures=0;this.discarded=new WeakSet()}
+    clear(){this.generation++;clearTimeout(this.timer);this.timer=null;this.queue=[];this.inFlight=null;this.retryBatch=null;this.failed=[];this.failures=0;this.discarded=new WeakSet()}
     latestQueuedSnapshot(){return[...this.queue].reverse().find(item=>item.kind==="snapshot")||null}
-    latestSnapshot(){return[...this.failed,...(this.inFlight||[]),...this.queue].filter(item=>item.kind==="snapshot").reduce((latest,item)=>!latest||Number(item.queuedAt||0)>=Number(latest.queuedAt||0)?item:latest,null)}
-    pending(){return this.queue.length+(this.flushing?1:0)}
+    latestSnapshot(){return[...this.failed,...(this.inFlight||this.retryBatch||[]),...this.queue].filter(item=>item.kind==="snapshot").reduce((latest,item)=>!latest||Number(item.queuedAt||0)>=Number(latest.queuedAt||0)?item:latest,null)}
+    pending(){return this.queue.length+(this.inFlight?.length||this.retryBatch?.length||0)}
   }
 
   class PlayerOutbox{
@@ -490,7 +500,7 @@
       const index=key?this.queue.findIndex(item=>(item.intent?.kind==="runtime"?`runtime:${item.intent.actorId}:${item.intent.key}`:item.intent?.kind==="targets"?`targets:${item.intent.actorId}`:"")===key):-1;
       if(index>=0)this.queue[index]=row;
       else{
-        if(this.queue.length>=this.maxItems)throw new Error("Очередь действий заполнена; дождитесь связи со столом");
+        if(this.queue.length+(this.inFlight?1:0)>=this.maxItems)throw new Error("Очередь действий заполнена; дождитесь связи со столом");
         this.queue.push(row);
       }
       this.schedule();

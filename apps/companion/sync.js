@@ -165,7 +165,22 @@
     const scene={...result.data,id:result.data.id||result.data.scene_id};
     if(String(state.sceneId||"")===String(scene.id)&&Number(scene.version)<Number(state.version))return null;
     if(state.sceneId&&state.sceneId!==scene.id){sceneSessionGeneration++;presenceCache.clear();presenceDetails={}}
-    lastPendingCommandSignature="";patch({sceneId:scene.id,campaignId:scene.campaign_id,version:scene.version,status:"connecting",lastSyncedAt:new Date().toISOString(),error:""});await subscribe();if(loadGeneration!==sceneLoadGeneration||state.sceneId!==scene.id)return null;emit("scene",{state:scene.state,version:scene.version,initial:true});if(canNarrate)await refreshPendingCommands();return scene;
+    lastPendingCommandSignature="";patch({sceneId:scene.id,campaignId:scene.campaign_id,version:scene.version,status:"connecting",lastSyncedAt:new Date().toISOString(),error:""});await subscribe();if(loadGeneration!==sceneLoadGeneration||state.sceneId!==scene.id)return null;
+    // Realtime may have delivered a newer Scene while subscribe was pending.
+    // Read once after subscribing to close the gap before the channel became live.
+    const table=canNarrate?"scenes":"scene_public_snapshots",idColumn=canNarrate?"id":"scene_id";
+    const latestVersionRow=await client.from(table).select("version").eq(idColumn,requestedSceneId).single();
+    if(loadGeneration!==sceneLoadGeneration||state.sceneId!==scene.id)return null;
+    if(latestVersionRow.error){console.warn("DAWN post-subscribe scene check failed",latestVersionRow.error);if(Number(scene.version)===Number(state.version))emit("scene",{state:scene.state,version:scene.version,initial:true});if(canNarrate)await refreshPendingCommands();return scene}
+    const latestVersion=Number(latestVersionRow.data?.version||0),currentVersion=Number(state.version||0);
+    if(latestVersion>currentVersion){
+      const latest=await client.from(table).select("state,version").eq(idColumn,requestedSceneId).single();
+      if(loadGeneration!==sceneLoadGeneration||state.sceneId!==scene.id)return null;
+      if(latest.error){console.warn("DAWN post-subscribe scene read failed",latest.error);if(Number(scene.version)===Number(state.version))emit("scene",{state:scene.state,version:scene.version,initial:true});if(canNarrate)await refreshPendingCommands();return scene}
+      if(Number(latest.data.version)>Number(state.version)){patch({version:Number(latest.data.version),status:"online",lastSyncedAt:new Date().toISOString(),error:""});emit("scene",{state:latest.data.state,version:Number(latest.data.version),initial:true})}
+    }
+    else if(Number(scene.version)===currentVersion)emit("scene",{state:scene.state,version:scene.version,initial:true});
+    if(canNarrate)await refreshPendingCommands();return scene;
   }
 
   async function createCampaign(name,initialState){
@@ -274,7 +289,9 @@
         if(/state version[^.]*event batch/i.test(result.error.message||"")){const mismatch=new Error("Неверная версия сетевого пакета; действие не сохранено. Обновите Сцену и повторите действие вручную");mismatch.code="NETWORK_BATCH_VERSION_MISMATCH";mismatch.retryable=false;throw mismatch}
         return fail(result.error);
       }
-      const acceptedVersion=Number(result.data);patch({version:acceptedVersion,status:"online",lastSyncedAt:new Date().toISOString(),error:""});signalTable("scene-updated",{version:acceptedVersion});return acceptedVersion;
+      const acceptedVersion=Number(result.data);
+      if(acceptedVersion<Number(state.version)){await loadScene(sceneId);return acceptedVersion}
+      patch({version:acceptedVersion,status:"online",lastSyncedAt:new Date().toISOString(),error:""});signalTable("scene-updated",{version:acceptedVersion});return acceptedVersion;
     });
   }
   async function refreshScene(){await ensureConnected();if(state.sceneId)await loadScene(state.sceneId);return snapshot()}

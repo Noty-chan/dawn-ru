@@ -15,6 +15,7 @@ vm.runInNewContext(fs.readFileSync(new URL("../network-v2.js",import.meta.url),"
 
 const Network=context.DAWN_NETWORK_V2,Engine=context.DAWN_SCENE_ENGINE,Techniques=context.DAWN_TECHNIQUE_ENGINE,data=context.DAWN_DATA;
 assert.equal(Network.PROTOCOL,2);
+assert.equal(Network.retryableAuthorityFailure(new Error("scene state is too large")),false,"a permanently oversized scene is not retried as a transient transport failure");
 assert.equal(Network.TICK_MS,200,"the authoritative cadence is capped at five ticks per second");
 assert.equal(new Network.PlayerOutbox({tickMs:1,send:async()=>{}}).tickMs,200,"callers cannot bypass the five-per-second client cap");
 assert.equal(new Network.AuthorityQueue({tickMs:1,flush:async()=>{}}).tickMs,200,"callers cannot bypass the five-per-second authority cap");
@@ -85,6 +86,18 @@ assert.equal(rebasedSnapshot.actors.find(actor=>actor.id==="hero").hp,7,"an unre
 assert.equal(rebasedSnapshot.actors.find(actor=>actor.id==="enemy").hp,5);
 assert.ok(rebasedSnapshot.actors.some(actor=>actor.id==="remote-enemy"),"entities added by another narrator are not erased by a stale snapshot");
 assert.equal(rebasedSnapshot.objects.length,0,"an intentional local entity removal remains intentional");
+const localActorRemoval=structuredClone(snapshotBase);
+localActorRemoval.actors=localActorRemoval.actors.filter(actor=>actor.id!=="enemy");
+const remoteActorUpdate=structuredClone(snapshotBase);
+remoteActorUpdate.actors.find(actor=>actor.id==="enemy").hp=3;
+const deletionWins=Network.rebaseSceneSnapshot(snapshotBase,localActorRemoval,remoteActorUpdate);
+assert.ok(!deletionWins.actors.some(actor=>actor.id==="enemy"),"a local actor removal is retained when the canonical actor receives a concurrent update");
+const remoteActorRemoval=structuredClone(snapshotBase);
+remoteActorRemoval.actors=remoteActorRemoval.actors.filter(actor=>actor.id!=="enemy");
+const staleActorEdit=structuredClone(snapshotBase);
+staleActorEdit.actors.find(actor=>actor.id==="enemy").name="Устаревшая правка противника";
+const noResurrection=Network.rebaseSceneSnapshot(snapshotBase,staleActorEdit,remoteActorRemoval);
+assert.ok(!noResurrection.actors.some(actor=>actor.id==="enemy"),"a stale snapshot cannot resurrect an actor removed by the canonical scene");
 
 const actionIntent=Network.intentFromEvents(baseScene,[
   {type:"action.prepare",actorId:"hero",payload:{actionId:"action.step",targetIds:["enemy"],request:{useGrasp:true}}},
@@ -425,6 +438,19 @@ boundedOutbox.enqueue({kind:"public-roll",actorId:"hero",payload:{roll:2}},7);
 assert.throws(()=>boundedOutbox.enqueue({kind:"public-roll",actorId:"hero",payload:{roll:3}},7),/очередь действий заполнена/i);
 boundedOutbox.clear();
 
+let releaseBoundedSend;
+let markBoundedSend;
+const boundedSendStarted=new Promise(resolve=>{markBoundedSend=resolve});
+const boundedSendGate=new Promise(resolve=>{releaseBoundedSend=resolve});
+const inFlightBoundedOutbox=new Network.PlayerOutbox({tickMs:10000,maxItems:1,send:async()=>{markBoundedSend();await boundedSendGate}});
+inFlightBoundedOutbox.enqueue({kind:"public-roll",actorId:"hero",payload:{roll:1}},7);
+const boundedSend=inFlightBoundedOutbox.flush();
+await boundedSendStarted;
+assert.throws(()=>inFlightBoundedOutbox.enqueue({kind:"public-roll",actorId:"hero",payload:{roll:2}},7),/очередь действий заполнена/i,"the player outbox cap includes its in-flight request");
+releaseBoundedSend();
+await boundedSend;
+inFlightBoundedOutbox.clear();
+
 let authorityBatch=[];
 const authority=new Network.AuthorityQueue({tickMs:10000,flush:async items=>{authorityBatch=items}});
 authority.enqueue({kind:"snapshot",scene:{version:7},label:"first"});
@@ -437,6 +463,58 @@ assert.equal(authorityBatch.length,2);
 assert.equal(authorityBatch.find(item=>item.kind==="snapshot").label,"latest");
 assert.equal(authorityBatch.find(item=>item.kind==="events").events[0].payload.value,4);
 authority.clear();
+
+const authorityAttempts=[];
+const retryingAuthority=new Network.AuthorityQueue({tickMs:10000,flush:async items=>{
+  authorityAttempts.push(items.slice());
+  if(authorityAttempts.length===1){const error=new Error("dropped HTTP response");error.retryable=true;throw error}
+}});
+const retrySnapshot=retryingAuthority.enqueue({kind:"snapshot",scene:{version:7},label:"retry snapshot"});
+const retryEvent=retryingAuthority.enqueue({kind:"events",events:[{type:"round.end",payload:{id:"first"}}]});
+await retryingAuthority.flush();
+retryingAuthority.enqueue({kind:"snapshot",scene:{version:8},label:"new snapshot"});
+retryingAuthority.enqueue({kind:"events",events:[{type:"round.start",payload:{id:"second"}}]});
+assert.equal(retryingAuthority.latestSnapshot().label,"new snapshot","newer snapshots remain visible while an older batch awaits its receipt");
+await retryingAuthority.flush();
+assert.equal(authorityAttempts[1].length,2,"a retry preserves its exact batch boundary and excludes newly queued items");
+assert.equal(authorityAttempts[1][0],retrySnapshot,"the receipt retry reuses the original snapshot item");
+assert.equal(authorityAttempts[1][1],retryEvent,"the receipt retry reuses the original event item");
+assert.equal(authorityAttempts[1][0].label,"retry snapshot","a newer snapshot cannot replace the snapshot covered by the retry receipt");
+assert.equal(retryingAuthority.pending(),2,"new updates remain pending after the prior retry is acknowledged");
+assert.equal(retryingAuthority.retryBatch,null,"a successful receipt clears the retry batch");
+await retryingAuthority.flush();
+assert.equal(authorityAttempts[2].length,2,"the newer snapshot and event are sent in their own subsequent batch");
+assert.equal(authorityAttempts[2][0].label,"new snapshot");
+retryingAuthority.clear();
+
+let permanentRetryAttempt=0;
+const permanentAfterRetry=new Network.AuthorityQueue({tickMs:10000,flush:async()=>{
+  permanentRetryAttempt++;
+  if(permanentRetryAttempt===1){const error=new Error("dropped HTTP response");error.retryable=true;throw error}
+  throw new Error("scene state is too large");
+}});
+permanentAfterRetry.enqueue({kind:"events",events:[{type:"session-clock.set",payload:{id:"clock",value:2}}]});
+await permanentAfterRetry.flush();
+assert.ok(permanentAfterRetry.retryBatch,"a transient failure retains the batch for its receipt retry");
+await permanentAfterRetry.flush();
+assert.equal(permanentAfterRetry.retryBatch,null,"a permanent failure clears the retry batch");
+assert.equal(permanentAfterRetry.failed.length,1,"a permanently failed item moves to the manual failed queue");
+permanentAfterRetry.clear();
+assert.equal(permanentAfterRetry.retryBatch,null,"clear removes any retained retry batch");
+
+let releaseBoundedAuthority;
+let markBoundedAuthority;
+const boundedAuthorityStarted=new Promise(resolve=>{markBoundedAuthority=resolve});
+const boundedAuthorityGate=new Promise(resolve=>{releaseBoundedAuthority=resolve});
+const inFlightBoundedAuthority=new Network.AuthorityQueue({tickMs:10000,maxItems:1,flush:async()=>{markBoundedAuthority();await boundedAuthorityGate}});
+inFlightBoundedAuthority.enqueue({kind:"events",events:[{type:"round.end",payload:{}}]});
+const boundedAuthorityFlush=inFlightBoundedAuthority.flush();
+await boundedAuthorityStarted;
+assert.equal(inFlightBoundedAuthority.pending(),1,"pending reports the exact number of in-flight authority items");
+assert.throws(()=>inFlightBoundedAuthority.enqueue({kind:"events",events:[{type:"round.start",payload:{}}]}),/очередь Нарратора переполнена/i,"the narrator queue cap includes the in-flight batch");
+releaseBoundedAuthority();
+await boundedAuthorityFlush;
+inFlightBoundedAuthority.clear();
 
 const prunedAuthority=new Network.AuthorityQueue({tickMs:10000,flush:async()=>{}});
 prunedAuthority.enqueue({kind:"command",command:{id:"11"}});

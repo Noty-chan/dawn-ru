@@ -76,6 +76,31 @@ async function acceptPreparedRemoteCommand(command,prepared){
 }
 
 let networkV2Authority=null,networkV2Outbox=null,networkV2Reconciling=false;
+const pendingNetworkPlacements=new Map();
+function paintPendingNetworkPlacements(){
+  for(const [actorId,pending] of pendingNetworkPlacements){
+    const actor=Scene.actors.find(item=>item.id===actorId);
+    if(!actor||actor.space!==pending.space||actor.x===pending.x&&actor.y===pending.y){pendingNetworkPlacements.delete(actorId);continue}
+    if(Scene.activeSpace!==pending.space)continue;
+    const token=document.querySelector(`[data-scene-actor="${CSS.escape(actorId)}"]`);
+    const destination=document.querySelector(`[data-scene-cell="${pending.x},${pending.y}"] .scene-tokens`);
+    if(token&&destination){destination.appendChild(token);token.classList.add("pending-network");token.setAttribute("aria-label",`${actor.name}: позиция ожидает подтверждения стола`)}
+  }
+}
+const renderSceneBoardWithoutNetworkPreview=renderSceneBoard;
+renderSceneBoard=function(){renderSceneBoardWithoutNetworkPreview();paintPendingNetworkPlacements()};
+function clearPendingNetworkPlacement(row){
+  let changed=false;
+  for(const [actorId,pending] of pendingNetworkPlacements)if(String(pending.intentId)===String(row?.clientIntentId||row?.client_intent_id)||String(pending.commandId)===String(row?.id)&&pending.commandId){pendingNetworkPlacements.delete(actorId);changed=true}
+  if(changed&&Sync?.state?.().sceneId)renderSceneBoard();
+}
+function previewNetworkPlacement(row,events,actorId){
+  const move=[...events].reverse().find(event=>event.type==="actor.move"&&event.actorId===actorId);
+  const actor=move&&Scene.actors.find(item=>item.id===move.actorId),x=Number(move?.payload?.x),y=Number(move?.payload?.y),space=move?.payload?.space||actor?.space;
+  if(!actor||!Number.isSafeInteger(x)||!Number.isSafeInteger(y)||!Scene.spaces.some(item=>item.id===space&&x>=0&&y>=0&&x<item.width&&y<item.height))return;
+  pendingNetworkPlacements.set(actor.id,{intentId:row.clientIntentId,commandId:null,x,y,space});
+  paintPendingNetworkPlacements();
+}
 function mergeNetworkV2Scene(remote,current=Scene){
   const canonical=NetworkV2.mergeRemoteScene(remote,current),sync=Sync?.state?.(),snapshot=networkV2Authority?.latestSnapshot?.();
   if(!sync?.canNarrate||!snapshot)return canonical;
@@ -96,8 +121,8 @@ function renderNetworkScene(events=[]){
 function ensureNetworkV2Runtime(){
   if(!NetworkV2||!Sync)return null;
   if(!networkV2Outbox)networkV2Outbox=new NetworkV2.PlayerOutbox({
-    send:payload=>Sync.submitCommand("intent_v2",payload),
-    onError:(error,row,{retrying=true}={})=>toast(retrying?`Команда ждёт отправки: ${friendlySyncError(error,"нет соединения")}`:`Команда не отправлена: ${friendlySyncError(error,"ошибка проверки")}. Проверьте действие и повторите его.`),
+    send:async payload=>{const command=await Sync.submitCommand("intent_v2",payload);for(const pending of pendingNetworkPlacements.values())if(pending.intentId===payload.clientIntentId)pending.commandId=String(command.id);return command},
+    onError:(error,row,{retrying=true}={})=>{if(!retrying)clearPendingNetworkPlacement(row);toast(retrying?`Команда ждёт отправки: ${friendlySyncError(error,"нет соединения")}`:`Команда не отправлена: ${friendlySyncError(error,"ошибка проверки")}. Проверьте действие и повторите его.`)},
   });
   if(!networkV2Authority)networkV2Authority=new NetworkV2.AuthorityQueue({
     tickMs:NetworkV2.TICK_MS,
@@ -109,7 +134,7 @@ function ensureNetworkV2Runtime(){
   });
   return{authority:networkV2Authority,outbox:networkV2Outbox};
 }
-function resetNetworkV2Runtime(){networkV2Authority?.clear();networkV2Outbox?.clear();NetworkV2?.clearConfirmedScene?.();networkV2Authority=null;networkV2Outbox=null}
+function resetNetworkV2Runtime(){networkV2Authority?.clear();networkV2Outbox?.clear();pendingNetworkPlacements.clear();NetworkV2?.clearConfirmedScene?.();networkV2Authority=null;networkV2Outbox=null}
 function queueNetworkV2Snapshot(scene,label){
   const runtime=ensureNetworkV2Runtime(),sync=Sync?.state?.();
   if(!runtime||!sync?.sceneId||!sync.canNarrate)return false;
@@ -124,8 +149,9 @@ function submitNetworkV2Events(label,events){
     return{queued:true,pending:true,authority:true,events:[]};
   }
   const intent=NetworkV2.intentFromEvents(Scene,events,label);
-  runtime.outbox.enqueue(intent,NetworkV2.getConfirmedScene(Scene).version);
-  toast("Действие отправлено за общий стол");
+  const row=runtime.outbox.enqueue(intent,NetworkV2.getConfirmedScene(Scene).version);
+  previewNetworkPlacement(row,events,intent.actorId);
+  if(!pendingNetworkPlacements.has(intent.actorId))toast("Действие отправлено за общий стол");
   return{queued:true,pending:true,events:[]};
 }
 function submitNetworkV2Intent(intent){
@@ -142,13 +168,15 @@ function enqueueNetworkV2Command(command){
 }
 function retainPendingNetworkV2Commands(commandIds=[]){
   const pending=new Set(commandIds.map(String));
-  networkV2Authority?.discard?.(item=>item.kind==="command"&&!pending.has(String(item.command?.id)));
+  networkV2Authority?.discard?.(item=>item.kind==="command"&&!item._networkTick&&!pending.has(String(item.command?.id)));
 }
 function discardNetworkV2Commands(commandIds=[]){
   const settled=new Set(commandIds.map(String));
-  if(settled.size)networkV2Authority?.discard?.(item=>item.kind==="command"&&settled.has(String(item.command?.id)));
+  if(settled.size)networkV2Authority?.discard?.(item=>item.kind==="command"&&!item._networkTick&&settled.has(String(item.command?.id)));
 }
 async function flushNetworkV2Authority(items){
+  const cached=items[0]?._networkTick;
+  if(cached&&cached.items.length===items.length&&cached.items.every((item,index)=>item===items[index]))return commitNetworkV2Tick(cached);
   const sync=Sync.state();
   if(!sync.sceneId||!sync.canNarrate)throw new Error("Авторитетный стол Нарратора сейчас недоступен");
   const expectedVersion=Number(sync.version||0),confirmed=NetworkV2.getConfirmedScene(Scene);
@@ -194,11 +222,31 @@ async function flushNetworkV2Authority(items){
   candidate.version=committedVersion;
   const networkState=NetworkV2.networkSceneState(candidate);
   networkState.version=committedVersion;
+  assertNetworkSceneFits(networkState);
+  const tick={items:[...items],args:{commandIds,rejectedCommandIds,events:allEvents,scene:networkState,expectedVersion,label:"network.v2.tick"},candidate,allEvents,commandIds,rejectedCommandIds,deferred,localUndoEntry,turnCheckpoint,endsRound};
+  for(const item of items)item._networkTick=tick;
+  return commitNetworkV2Tick(tick);
+}
+async function commitNetworkV2Tick(tick){
+  const {items,args,candidate,allEvents,commandIds,rejectedCommandIds,deferred,localUndoEntry,turnCheckpoint,endsRound}=tick;
   let acceptedVersion;
+  tick.attempts=(tick.attempts||0)+1;
   networkV2Reconciling=true;
-  try{acceptedVersion=await Sync.settleIntentBatch({commandIds,rejectedCommandIds,events:allEvents,scene:networkState,expectedVersion,label:"network.v2.tick"})}
+  try{acceptedVersion=await Sync.settleIntentBatch(args)}
+  catch(error){if(String(error?.code||"")==="40001"){for(const item of items)delete item._networkTick;retainPendingNetworkV2Commands(pendingSceneCommands.map(command=>command.id))}throw error}
   finally{networkV2Reconciling=false}
-  if(acceptedVersion!==Number(candidate.version)){
+  if(tick.attempts>1){
+    // A lost reply may have hidden later canonical ticks. Read the server
+    // snapshot even when its exact receipt reports our original version.
+    networkV2Reconciling=true;
+    try{await Sync.refreshScene()}finally{networkV2Reconciling=false}
+    for(const item of items)delete item._networkTick;
+    globalThis.dispatchEvent(new CustomEvent("dawn-network-v2-settled",{detail:{commandIds,rejectedCommandIds,version:acceptedVersion}}));
+    deferred.forEach(item=>networkV2Authority.enqueue(item));
+    return;
+  }
+  for(const item of items)delete item._networkTick;
+  if(acceptedVersion!==Number(candidate.version)||Number(Sync.state().version)>acceptedVersion){
     networkV2Reconciling=true;
     try{await Sync.refreshScene()}finally{networkV2Reconciling=false}
     deferred.forEach(item=>networkV2Authority.enqueue(item));
