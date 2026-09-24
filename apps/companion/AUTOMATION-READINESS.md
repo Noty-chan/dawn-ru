@@ -9,7 +9,7 @@
 | Контур | Всего | Заявлено исполнимым | Формально E2E-сертифицировано | Неполный путь |
 | --- | ---: | ---: | ---: | --- |
 | Уровни Техник | 333 | 84 shared/inherited (25.2%) | 0 | 57 частичных; 192 ручных |
-| Правила обычных врагов | 122 | 65 (53.3%) | 0 | 57 assisted |
+| Правила обычных врагов | 122 | 67 (54.9%) | 0 | 55 assisted |
 | Атаки врагов | 40 | 36 | 0 | не установлено независимым аудитом |
 
 Формально сертифицировано сейчас: **0** записей. Исполнимые уровни без evidence считаются **shared/inherited**, даже при совпавшем canonical digest: digest подтверждает текстовый источник, но не полноту поведения. Проценты выше измеряют охват кодом, а не верность правилам игры.
@@ -329,7 +329,7 @@
 | Daredevil (`lionwing.npc.daredevil`) | 3 | 2 | 1 | Adrenaline High |
 | Enchanter (`lionwing.npc.enchanter`) | 3 | 1 | 2 | Charm; By My Command |
 | Hound Master (`lionwing.npc.hound-master`) | 3 | 3 | 0 | — |
-| Necromancer (`lionwing.npc.necromancer`) | 3 | 1 | 2 | Call The Dead; The Danse Macabre |
+| Necromancer (`lionwing.npc.necromancer`) | 3 | 3 | 0 | — |
 | Privateer (`lionwing.npc.privateer`) | 3 | 2 | 1 | Escort |
 | Rifter (`lionwing.npc.rifter`) | 3 | 1 | 2 | Wild Shifting; Implode |
 | Swarm (`lionwing.npc.swarm`) | 3 | 3 | 0 | — |
