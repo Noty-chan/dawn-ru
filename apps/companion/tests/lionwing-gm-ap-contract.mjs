@@ -25,6 +25,18 @@ vm.createContext(coreContext);
 vm.runInContext(`${coreSource.slice(coreStart, coreEnd)};this.normalizeGmLibrary=normalizeGmLibrary;this.normalizeGmLibraryEnemy=normalizeGmLibraryEnemy;`, coreContext, { filename: "app-core.js" });
 
 const gmSource = fs.readFileSync(path.join(root, "gm-library.js"), "utf8");
+const placementStart = gmSource.indexOf("function availableEncounterCell");
+const placementEnd = gmSource.indexOf("function resetGmVariantEditor", placementStart);
+assert.ok(placementStart >= 0 && placementEnd > placementStart);
+const placementContext = { clamp, gmDeployTerrainCells: new Set(), removedCellKeys: () => new Set(), Scene: null };
+vm.createContext(placementContext);
+vm.runInContext(`${gmSource.slice(placementStart, placementEnd)};this.availableEncounterCell=availableEncounterCell;`, placementContext, { filename: "gm-library.js" });
+const reinforcementScene = { objects: [{ space: "main", type: "terrain", cells: ["1,1"] }], actors: [] };
+const reinforcementCell = placementContext.availableEncounterCell({ id: "main", mode: "standard", width: 3, height: 3 }, { kind: "crowd", x: 1, y: 1 }, new Set(), { sceneState: reinforcementScene });
+assert.ok(reinforcementCell && `${reinforcementCell.x},${reinforcementCell.y}` !== "1,1", "Fodder reinforcement avoids existing blocking terrain");
+const occupiedFodderScene = { objects: [], actors: [{ kind: "crowd", space: "main", x: 1, y: 1, knockedOut: false }] };
+const separateFodderCell = placementContext.availableEncounterCell({ id: "main", mode: "standard", width: 3, height: 3 }, { kind: "crowd", x: 1, y: 1 }, new Set(), { sceneState: occupiedFodderScene });
+assert.ok(separateFodderCell && `${separateFodderCell.x},${separateFodderCell.y}` !== "1,1", "Fodder reinforcement cannot stack two live Zones");
 assert.match(gmSource, /edition=\["ru-v0\.9","lionwing"\]\.includes\(Scene\.rulesEdition\)\?Scene\.rulesEdition:contentPreferences\.edition/, "Newly saved encounters record their active edition");
 const builtinStart = gmSource.indexOf("const BUILTIN_ENCOUNTERS=Object.freeze([");
 const builtinEnd = gmSource.indexOf("\n]);", builtinStart) + 3;

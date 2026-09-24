@@ -55,6 +55,21 @@ adjacentFodder.y = 3;
 const adjacentFodderRound = Engine.dispatchMany(adjacentFodderRoundSource, [{ id: "adjacent-fodder-round-end", type: "round.end", actorId: null, payload: {} }]).scene;
 assert.equal(adjacentFodderRound.round, 2);
 assert.equal(adjacentFodderRound.pendingPrompt?.kind, "fodder-round-batch", "LionWing Round end offers the adjacent Fodder damage choice");
+const focusedFodderSource = clone(adjacentFodderRoundSource);
+const firstFodder = focusedFodderSource.actors.find(item => item.id === "distant-fodder");
+Object.assign(firstFodder, { space: "main", x: 4, y: 3 });
+const fragile = focusedFodderSource.actors.find(item => item.id === "opponent");
+Object.assign(fragile, { hp: 2, x: 4, y: 2 });
+focusedFodderSource.actors.push(actor("second-fodder", "heroes", 3, 2, { kind: "crowd", profileId: null, hp: 1, maxHp: 1, ap: 0, baseAp: 0, speed: 0 }));
+focusedFodderSource.actors.push(actor("third-fodder", "heroes", 1, 3, { kind: "crowd", profileId: null, hp: 1, maxHp: 1, ap: 0, baseAp: 0, speed: 0 }));
+focusedFodderSource.actors.push(actor("other-target", "enemies", 2, 3, { acted: true }));
+const focusedWindow = Engine.dispatchMany(focusedFodderSource, [{ id: "focused-fodder-round", type: "round.end", payload: {} }]).scene;
+const focusedChoice = Engine.respondRulePrompt(focusedWindow, data, { choice: "custom", assignments: { "distant-fodder": "opponent", "second-fodder": "opponent", "third-fodder": "other-target" } });
+assert.equal(focusedChoice.ok, true, focusedChoice.errors?.join(" "));
+const focusedResult = Engine.dispatchMany(focusedWindow, focusedChoice.events).scene;
+assert.equal(focusedResult.actors.find(item => item.id === "opponent").knockedOut, true, "first Fodder hit defeats the fragile target");
+assert.equal(focusedResult.actors.find(item => item.id === "other-target").hp, 18, "another target still takes damage from the same batch");
+assert.ok(focusedResult.log.some(item => item.type === "damage.apply" && item.actorId === "second-fodder" && item.payload?.ignored), "later hit on the defeated target is logged as ignored");
 
 for (const profile of ["javelin", "broodmother", "glutton"]) {
   const id = `lionwing.npc.${profile}.call`, initial = scene(`lionwing.npc.${profile}`);

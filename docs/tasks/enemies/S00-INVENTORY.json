@@ -3037,6 +3037,7 @@
           "tests": [
             "apps/companion/tests/lionwing-enemy-base-attacks.mjs",
             "apps/companion/tests/lionwing-enemy-fodder-creators.mjs",
+            "apps/companion/tests/lionwing-gm-ap-contract.mjs",
             "apps/companion/tests/lionwing-localization.mjs",
             "apps/companion/tests/scene-engine.mjs"
           ],
@@ -10325,6 +10326,7 @@
           "tests": [
             "apps/companion/tests/lionwing-enemy-base-attacks.mjs",
             "apps/companion/tests/lionwing-enemy-fodder-creators.mjs",
+            "apps/companion/tests/lionwing-gm-ap-contract.mjs",
             "apps/companion/tests/lionwing-localization.mjs",
             "apps/companion/tests/qa.mjs",
             "apps/companion/tests/scene-engine.mjs"
