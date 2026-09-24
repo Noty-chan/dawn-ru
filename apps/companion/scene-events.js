@@ -131,6 +131,17 @@ function promptResponseRole(event, payload, options = {}) {
   return options.role || payload.role || event?.role || null;
 }
 
+function corpseReviveReceipt(scene, ownerId, token) {
+  const log = scene.log || [];
+  const prepareIndex = log.findIndex(item => item.type === "enemy.action.prepare" && item.actorId === ownerId
+    && item.payload?.ruleId === "lionwing.npc.necromancer.the-danse-macabre" && item.payload?.corpseRevive?.token === token);
+  const prepared = log[prepareIndex];
+  const spent = prepareIndex >= 0 && log.some((item, index) => index < prepareIndex && item.type === "resource.spend"
+    && item.actorId === ownerId && item.payload?.sourceRuleId === "lionwing.npc.necromancer.the-danse-macabre"
+    && item.payload?.resource === "ap" && Number(item.payload?.amount) === 2);
+  return { prepared, spent, revivals: prepared?.payload?.corpseRevive?.revivals || [] };
+}
+
 function validateEvent(scene, event, options = {}) {
   if (!EVENT_TYPES.has(event.type) && event.type !== "movement-traces.clear") throw new Error(`Неизвестный тип события: ${event.type}.`);
   if (typeof event.id !== "string" || !event.id || event.id.length > 120) throw new Error("Некорректный id события.");
@@ -257,6 +268,19 @@ function validateEvent(scene, event, options = {}) {
         || (scene.actors || []).filter(item => item.kind === "crowd" && !item.knockedOut).length > 5 + 2 * Number(owner.tier || 1)
         || (scene.log || []).some(item => item.type === "actor.spawn" && item.payload?.broodmotherPromptId === promptId)) throw new Error("Новая Зона массовки Матки не соответствует полученному урону и выбранной клетке.");
     }
+    if (spawned.sourceActionId === "lionwing.npc.necromancer.the-danse-macabre" || payload.corpseReviveToken) {
+      const owner = actorById(scene, event.actorId), receipt = corpseReviveReceipt(scene, event.actorId, payload.corpseReviveToken);
+      const revival = receipt.revivals.find(item => item.corpseId === payload.corpseSourceId);
+      const consumed = (scene.log || []).find(item => item.payload?.corpseReviveToken === payload.corpseReviveToken
+        && item.payload?.corpseSourceId === payload.corpseSourceId && ["marker.remove", "actor.despawn"].includes(item.type));
+      const data = (typeof window === "object" ? window : globalThis).DAWN_DATA;
+      const expected = owner && revival && necromancerRevivedActor(data, owner, revival, revival, spawned.id);
+      if (scene.rulesEdition !== "lionwing" || owner?.profileId !== "lionwing.npc.necromancer" || owner.knockedOut
+        || !receipt.prepared || !receipt.spent || !revival || !consumed || !expected
+        || spawned.sourceActionId !== "lionwing.npc.necromancer.the-danse-macabre"
+        || JSON.stringify(spawned) !== JSON.stringify(expected)
+        || (scene.log || []).some(item => item.type === "actor.spawn" && item.payload?.corpseReviveToken === payload.corpseReviveToken && item.payload?.corpseSourceId === payload.corpseSourceId)) throw new Error("Воскрешённый НПС не соответствует Трупу и Плясу смерти.");
+    }
     if(spawned.crowdSubtype==="vortex"){
       const owner=actorById(scene,spawned.vortexOwnerId),anchor=actorById(scene,modifierState(owner)[owner?.profileId===LIONWING_VORTEX_ID?"carrierId":"targetId"]),carrier=anchor,boundary=(scene.log||[]).find(item=>item.id===payload.boundaryEventId),space=(scene.spaces||[]).find(item=>item.id===spawned.space);
       const distances=anchor&&space?[(spawned.x===0?anchor.x:-1),(spawned.x===space.width-1?space.width-1-anchor.x:-1),(spawned.y===0?anchor.y:-1),(spawned.y===space.height-1?space.height-1-anchor.y:-1)]:[],farthest=anchor&&space?Math.max(anchor.x,space.width-1-anchor.x,anchor.y,space.height-1-anchor.y):-1;
@@ -267,6 +291,13 @@ function validateEvent(scene, event, options = {}) {
     if (!occupancy.available) throw new Error(occupancy.reason || "Клетка призыва занята.");
   }
   if(event.type==="actor.despawn"){
+    if (payload.sourceActionId === "lionwing.npc.necromancer.the-danse-macabre" || payload.corpseReviveToken) {
+      const owner = actorById(scene, payload.reviverId), receipt = corpseReviveReceipt(scene, owner?.id, payload.corpseReviveToken);
+      if (actor?.kind !== "crowd" || actor.crowdSubtype !== "corpse" || actor.knockedOut || payload.corpseSourceId !== `actor:${actor.id}`
+        || owner?.profileId !== "lionwing.npc.necromancer" || !receipt.prepared || !receipt.spent
+        || !receipt.revivals.some(item => item.corpseId === payload.corpseSourceId && item.space === actor.space && Number(item.x) === Number(actor.x) && Number(item.y) === Number(actor.y))
+        || (scene.log || []).some(item => item.type === "actor.despawn" && item.payload?.corpseReviveToken === payload.corpseReviveToken && item.payload?.corpseSourceId === payload.corpseSourceId)) throw new Error("Пляс смерти может потратить только выбранный живой Труп массовки.");
+    }
     const collateralRescue=[ENEMY_MODIFIER_IDS.collateral,LIONWING_COLLATERAL_ID].includes(actor?.profileId)&&payload.sourceActionId===(actor?.profileId===LIONWING_COLLATERAL_ID?"lionwing.modifier.collateral.rescue":"enemy.modifier.collateral.rescue"),rescuer=actorById(scene,payload.rescuerId),roll=(scene.log||[]).find(item=>item.id===payload.rollEventId);
     if(!actor||typeof payload.reason!=="string"||!payload.reason.trim()||payload.reason.length>160||actor.kind!=="crowd"&&!collateralRescue)throw new Error("Некорректное удаление участника.");
     const spent=collateralRescue&&(scene.log||[]).find(item=>item.type==="resource.spend"&&item.actorId===rescuer?.id&&item.payload?.sourceActionId===payload.sourceActionId&&(item.id===roll?.payload?.spendEventId||item.payload?.causeEventId===roll?.payload?.spendEventId)&&item.payload?.resource==="ap"&&Number(item.payload?.amount)===1);
@@ -304,6 +335,12 @@ function validateEvent(scene, event, options = {}) {
     }
   }
   if (event.type === "marker.remove" && !markerById(scene, payload.markerId)) throw new Error("Удаляемый маркер уже отсутствует.");
+  if (event.type === "marker.remove" && (payload.sourceActionId === "lionwing.npc.necromancer.the-danse-macabre" || payload.corpseReviveToken)) {
+    const marker = markerById(scene, payload.markerId), owner = actorById(scene, event.actorId), receipt = corpseReviveReceipt(scene, event.actorId, payload.corpseReviveToken);
+    if (marker?.kind !== "corpse" || payload.corpseSourceId !== `marker:${marker.id}` || payload.reviverId !== owner?.id
+      || owner?.profileId !== "lionwing.npc.necromancer" || !receipt.prepared || !receipt.spent
+      || !receipt.revivals.some(item => item.corpseId === payload.corpseSourceId && item.space === marker.space && Number(item.x) === Number(marker.x) && Number(item.y) === Number(marker.y))) throw new Error("Пляс смерти может потратить только выбранный маркер Трупа.");
+  }
   if (event.type === "area.duration") {
     if (!(scene.objects || []).some(object => object.id === payload.id) || !["instant", "endTurn", "nextTurn", "round", "scene", "persistent"].includes(payload.duration)) throw new Error("Некорректная длительность области.");
   }
@@ -604,6 +641,21 @@ const expectedTargets = (scene.actors || []).filter(target => !target.knockedOut
   if (event.type === "enemy.action.prepare" && payload.crowdSummon) {
     const rule = ENEMY_FULL_RULES.get(payload.ruleId), space = (scene.spaces || []).find(item => item.id === actor?.space), cells = payload.crowdSummon.cells, uses = currentRoundEvents(scene).filter(item => item.type === "enemy.action.prepare" && item.actorId === actor?.id && item.payload?.ruleId === payload.ruleId).length, expected = rule?.type === "crowd-summon" ? Math.max(0, rule.countState ? Number(actor?.ruleState?.[rule.countState] || 0) : enemyTierFormula(rule.formula, actor?.tier) - (rule.diminishEachRoundUse ? uses : 0)) : -1, occupied = new Set((scene.actors || []).filter(item => item.kind === "crowd" && !item.knockedOut && item.space === actor?.space).map(cellKey));
     if (!actor || actor.profileId !== payload.profileId || !space || typeof payload.crowdSummon.token !== "string" || !payload.crowdSummon.token || !Array.isArray(cells) || new Set(cells).size !== cells.length || cells.length !== expected || rule.oncePerRound && uses || cells.some(key => { const match = String(key).match(/^(\d{1,2}),(\d{1,2})$/), x = match ? Number(match[1]) : -1, y = match ? Number(match[2]) : -1, invalid = !match || x < 0 || y < 0 || x >= Number(space.width) || y >= Number(space.height) || removedCellKeys(scene, actor.space).has(String(key)) || occupied.has(String(key)); if (invalid) return true; return rule.edge ? !(x === 0 || y === 0 || x === Number(space.width) - 1 || y === Number(space.height) - 1) : rule.range != null && modifierRangeDistance(scene, actor, { space: actor.space, x, y }) > Number(rule.range); })) throw new Error("Некорректная авторитетная настройка Призыва массовки.");
+  }
+  if (event.type === "enemy.action.prepare" && (payload.corpseRevive || payload.ruleId === "lionwing.npc.necromancer.the-danse-macabre")) {
+    const token = payload.corpseRevive?.token, revivals = payload.corpseRevive?.revivals;
+    const corpses = new Map(necromancerCorpses(scene, actor).map(item => [item.corpseId, item]));
+    if (scene.rulesEdition !== "lionwing" || actor?.profileId !== "lionwing.npc.necromancer" || typeof token !== "string" || !token
+      || (scene.log || []).some(item => item.type === "enemy.action.prepare" && item.payload?.corpseRevive?.token === token)
+      || !Array.isArray(revivals) || revivals.length !== 2 || new Set(revivals.map(item => item?.corpseId)).size !== 2
+      || revivals.some(item => !NECROMANCER_REVIVALS.has(item?.profileId) || !corpses.has(item?.corpseId)
+        || item.space !== corpses.get(item.corpseId).space || Number(item.x) !== corpses.get(item.corpseId).x || Number(item.y) !== corpses.get(item.corpseId).y)
+      || new Set(revivals.map(item => `${item.x},${item.y}`)).size !== 2) throw new Error("Пляс смерти требует двух разных доступных Трупов и канонических профилей.");
+  }
+  if (event.type === "enemy.action.resolve" && payload.ruleId === "lionwing.npc.necromancer.the-danse-macabre") {
+    const receipt = corpseReviveReceipt(scene, event.actorId, payload.corpseRevive?.token);
+    const revived = (scene.log || []).filter(item => item.type === "actor.spawn" && item.payload?.corpseReviveToken === payload.corpseRevive?.token);
+    if (!receipt.prepared || !receipt.spent || revived.length !== 2 || JSON.stringify(payload.corpseRevive) !== JSON.stringify(receipt.prepared.payload.corpseRevive)) throw new Error("Пляс смерти не воскресил ровно двух выбранных Трупов.");
   }
   if(event.type==="modifier.mode.flip"){
     const latestRound=(scene.log||[]).find(item=>item.type==="round.end");

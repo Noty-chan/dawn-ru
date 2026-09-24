@@ -83,6 +83,10 @@ function enemyAutomationDetails(rule,state=rule){
 }
 function enemyStepButtonHtml(actor){const step=SceneEngine.actionByKey(D,"step"),state=step&&SceneEngine.availableActions(Scene,D,actor.id).find(item=>item.id===step.id),label=state?.continuation?`Продолжить Шаг · ${state.remaining} кл.`:`Шаг · до ${actor.speed||0} кл.`;return `<button type="button" class="enemy-basic-step" data-enemy-step="${actor.id}" ${state?.available?"":"disabled"} title="${esc(state?.reason||"Каноническое базовое действие врага · 1 ОД")}"><strong>${esc(label)}</strong><small>${state?.continuation?"0 ОД · сохранённое движение":"1 ОД · единственное базовое действие врага"}</small></button>`}
 function enemyRuleOptionsHtml(rule,actor,state=null){
+  if(rule.id==="lionwing.npc.necromancer.the-danse-macabre"){
+    const corpses=state?.corpses||[],profiles=[["lionwing.npc.bruiser","Буйный"],["lionwing.npc.viper","Гадюка"],["lionwing.npc.ranger","Стрелок"]];
+    return `<div class="enemy-rule-options enemy-revival-options" aria-label="Выбрать двух Трупов и их новые профили">${[0,1].map(index=>`<label>Труп ${index+1}<select data-necromancer-corpse><option value="">Выберите труп</option>${corpses.map((corpse,optionIndex)=>`<option value="${esc(corpse.corpseId)}" ${optionIndex===index?"selected":""}>${esc(corpse.label)} · ${corpse.x+1},${corpse.y+1}</option>`).join("")}</select></label><label>Профиль<select data-necromancer-profile>${profiles.map(([id,name])=>`<option value="${id}" ${id===profiles[index][0]?"selected":""}>${name}</option>`).join("")}</select></label>`).join("")}</div>`;
+  }
   if(rule.id!=="enemy.common.pugilist.action.take-stance")return "";
   const current=Number(actor.ruleState?.pugilistStance||1);
   return `<div class="enemy-rule-options" aria-label="Выбрать шаг Пассива">${[1,2,3,4].map(step=>`<button type="button" data-enemy-rule="${esc(rule.id)}" data-enemy-actor="${actor.id}" data-stance-step="${step}" class="${current===step?"on":""}" ${state?.available?"":"disabled"}>Шаг ${step}</button>`).join("")}</div>`;

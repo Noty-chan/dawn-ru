@@ -154,6 +154,28 @@ function enemyTierFormula(formula, tier) {
   const match = String(formula || "").match(/^(\d+)(?:\(\+(\d+)\))?$/);
   return match ? Number(match[1]) + Math.max(0, Number(tier || 1) - 1) * Number(match[2] || 0) : 0;
 }
+const NECROMANCER_REVIVALS = new Set(["lionwing.npc.bruiser", "lionwing.npc.viper", "lionwing.npc.ranger"]);
+function necromancerCorpses(scene, actor) {
+  if (!actor?.space) return [];
+  const removed = removedCellKeys(scene, actor.space);
+  const refs = [
+    ...(scene.markers || []).filter(item => item.kind === "corpse" && item.space === actor.space).map(item => ({ corpseId: `marker:${item.id}`, space: item.space, x: Number(item.x), y: Number(item.y), label: item.label || "Труп" })),
+    ...(scene.actors || []).filter(item => item.kind === "crowd" && item.crowdSubtype === "corpse" && !item.knockedOut && item.space === actor.space).map(item => ({ corpseId: `actor:${item.id}`, space: item.space, x: Number(item.x), y: Number(item.y), label: item.name || "Труп массовки" })),
+  ];
+  return refs.filter(item => !removed.has(cellKey(item)) && effectCellOccupancyStatus(scene, null, { actor: { id: `revival-preview-${item.corpseId}`, kind: "enemy", space: item.space }, ...item }).available);
+}
+function necromancerRevivedActor(data, owner, revival, corpse, id) {
+  const profile = enemyProfileById(data, revival.profileId), tier = Math.max(1, Number(owner.tier || 1) - 1);
+  const logic = (typeof window === "object" ? window : globalThis).DAWN_LOGIC;
+  const stat = (key, fallback = 0) => Number(logic?.scaleTierFormula(profile?.stats?.[key], tier) ?? fallback);
+  const maxHp = Math.max(1, stat("health", 1)), baseAp = 3;
+  return { id, kind: owner.team === "hero" ? "hero" : "enemy", rulesEdition: "lionwing", team: owner.team,
+    heroId: null, profileId: profile.id, name: profile.name, tier, space: corpse.space, x: corpse.x, y: corpse.y,
+    hp: maxHp, maxHp, focus: 0, ap: baseAp, baseAp, speed: stat("speed"), armor: stat("armor"), evasion: stat("evasion"),
+    effects: [], usedActions: [], usedTrump: false, acted: false, knockedOut: false, hidden: false,
+    tokenSymbol: "☠", tokenColor: owner.tokenColor || "#902a3d", tokenImage: "", portraitImage: "",
+    summonerId: owner.id, corpseSourceId: revival.corpseId, sourceActionId: "lionwing.npc.necromancer.the-danse-macabre" };
+}
 const ENEMY_AUTO_EFFECT_RULES = new Set([
   "lionwing.npc.assassin.neutralize-target",
   "lionwing.npc.executioner.focus",
@@ -230,6 +252,7 @@ const ENEMY_FULL_RULES = new Map([
   ["enemy.common.broodmother.action.call", { type: "crowd-summon", formula: "2(+1)", range: 4, diminishEachRoundUse: true }],
   ["lionwing.npc.broodmother.call", { type: "crowd-summon", formula: "2(+1)", range: 4, diminishEachRoundUse: true }],
   ["lionwing.npc.necromancer.call-the-dead", { type: "crowd-summon", formula: "2(+1)", range: 4, diminishEachRoundUse: true, corpseFodder: true }],
+  ["lionwing.npc.necromancer.the-danse-macabre", { type: "corpse-revive" }],
   ["enemy.common.glutton.action.call", { type: "crowd-summon", formula: "2(+1)", range: 4, diminishEachRoundUse: true }],
   ["lionwing.npc.glutton.call", { type: "crowd-summon", formula: "2(+1)", range: 4, diminishEachRoundUse: true }],
   ["enemy.common.glutton.trump.regurgitate", { type: "crowd-summon", countState: "gluttonConsumed", knockUpOccupants: true }],
@@ -922,11 +945,12 @@ function availableEnemyRules(scene, data, actorId) {
     else if ((actor.usedActions || []).includes(rule.id) && !(family.chargedAttack && (actor.effects || []).includes("positive.заряжен")) && !fullRule?.diminishEachRoundUse) reason = "Это действие уже использовано в Раунде";
     else if (rule.kind === "trump" && actor.usedTrump) reason = "Козырь уже использован в этой Сцене";
     else if (rule.kind === "trump" && Number(scene.tension || 0) < Number(rule.tension || 0)) reason = `Нужно Напряжение ${rule.tension}`;
+    else if (fullRule?.type === "corpse-revive" && necromancerCorpses(scene, actor).length < 2) reason = "Для Пляса смерти нужны два доступных Трупа";
     else if (rule.id === "enemy.common.cannoneer.trump.fire" && !clockStatus(scene, actor.id, "enemy.common.cannoneer.preparation").full) reason = "Сначала заполните Подготовку 4/4";
     const roninSheathed = rule.id === "enemy.common.ronin.attack.dissect" && actor.ruleState?.roninSheathed;
     const roundUses = fullRule?.type === "crowd-summon" ? currentRoundEvents(scene).filter(event => event.type === "enemy.action.prepare" && event.actorId === actor.id && event.payload?.ruleId === rule.id).length : 0;
     const crowdSummon = fullRule?.type === "crowd-summon" ? { count: Math.max(0, fullRule.countState ? Number(actor.ruleState?.[fullRule.countState] || 0) : enemyTierFormula(fullRule.formula, actor.tier) - (fullRule.diminishEachRoundUse ? roundUses : 0)), edge: Boolean(fullRule.edge), range: fullRule.range == null ? null : Number(fullRule.range) } : null;
-    return { ...clone(rule), ...family, ...(roninSheathed ? { adjacent: false, range: Number(actor.speed || 0) } : {}), ...(crowdSummon ? { crowdSummon } : {}), maxTargets, automation, available: !reason, reason };
+    return { ...clone(rule), ...family, ...(roninSheathed ? { adjacent: false, range: Number(actor.speed || 0) } : {}), ...(crowdSummon ? { crowdSummon } : {}), ...(fullRule?.type === "corpse-revive" ? { corpses: necromancerCorpses(scene, actor) } : {}), maxTargets, automation, available: !reason, reason };
   });
 }
 
@@ -1031,6 +1055,13 @@ function prepareEnemyRule(scene, data, request = {}) {
   if (fullRule?.type === "healer-heal" && (targets.length !== 1 || targets[0]?.id === actor?.id || targets[0]?.team !== actor?.team || distance(actor, targets[0]) > 3)) errors.push("Лечение требует одного союзника, кроме самого Целителя, в пределах 3 клеток.");
   if (fullRule?.type === "healer-savior" && (targets.length !== 1 || targets[0]?.knockedOut || targets[0]?.id !== actor?.ruleState?.healerGuardianId)) errors.push("Для Спасителя сначала выберите доступного Стража в начале Хода Целителя.");
   if (fullRule?.type === "oni-stabilize" && actor && Object.values(actor.effectStates || {}).some(state => (state?.sources || []).some(source => source.removable === false))) errors.push("Стабилизация не может снять защищённый источник Эффекта.");
+  const corpseRevivals = fullRule?.type === "corpse-revive" ? request.options?.revivals : null;
+  if (fullRule?.type === "corpse-revive") {
+    const corpses = new Map(necromancerCorpses(scene, actor).map(item => [item.corpseId, item]));
+    if (!Array.isArray(corpseRevivals) || corpseRevivals.length !== 2 || new Set(corpseRevivals.map(item => item?.corpseId)).size !== 2
+      || corpseRevivals.some(item => !corpses.has(item?.corpseId) || !NECROMANCER_REVIVALS.has(item?.profileId))
+      || new Set(corpseRevivals.map(item => cellKey(corpses.get(item?.corpseId) || { x: -1, y: -1 }))).size !== 2) errors.push("Выберите два разных доступных Трупа и для каждого — Громилу, Гадюку или Стрелка.");
+  }
   if (fullRule?.type === "assassin-mark" && targets.length !== 1) errors.push("Устранить цель требует ровно одного персонажа.");
   if (fullRule?.type === "defense-comparison-effect" && (targets.length !== 1 || targets[0]?.id === actor?.id || distance(actor, targets[0]) !== 1)) errors.push("Сбить с толку требует ровно одну смежную цель.");
   const seekerCells = [];
@@ -1118,6 +1149,10 @@ function prepareEnemyRule(scene, data, request = {}) {
   if (normalizedTargetRequest.typedTargets?.typedTargets?.length) payload.typedTargets = clone(normalizedTargetRequest.typedTargets.typedTargets);
   if (fullRule?.type === "crowd-summon") payload.crowdSummon = { token: `crowd-summon-${eventId()}`, cells: crowdSummonCells.map(cellKey) };
   if (fullRule?.type === "hound-seekers") payload.seekerSummon = { token: `seeker-summon-${eventId()}`, targetId: targets[0].id, cells: seekerCells.map(cellKey) };
+  if (fullRule?.type === "corpse-revive") {
+    const corpses = new Map(necromancerCorpses(scene, actor).map(item => [item.corpseId, item]));
+    payload.corpseRevive = { token: `corpse-revive-${eventId()}`, revivals: corpseRevivals.map(item => ({ corpseId: item.corpseId, profileId: item.profileId, space: corpses.get(item.corpseId).space, x: corpses.get(item.corpseId).x, y: corpses.get(item.corpseId).y })) };
+  }
   const events = [{ type: "enemy.action.prepare", actorId: actor.id, payload }, { type: "resource.spend", actorId: actor.id, payload: { resource: "ap", amount: Number(rule.apCost || 1), sourceRuleId: rule.id, sourceDigest: rule.sourceDigest || null } }];
   if (attackDestination) {
     const movement = family.teleportAttack ? `${rule.name}: телепортация` : `${rule.name}: перемещение`, placement = Boolean(family.teleportAttack || family.preMoveIgnoreRestrictions);
@@ -1285,6 +1320,15 @@ function prepareEnemyRule(scene, data, request = {}) {
         },
       });
     });
+  }
+  if (fullRule?.type === "corpse-revive") {
+    const corpses = new Map(necromancerCorpses(scene, actor).map(item => [item.corpseId, item]));
+    for (const revival of corpseRevivals) {
+      const corpse = corpses.get(revival.corpseId);
+      if (revival.corpseId.startsWith("marker:")) events.push({ type: "marker.remove", actorId: actor.id, payload: { markerId: revival.corpseId.slice(7), corpseReviveToken: payload.corpseRevive.token, corpseSourceId: revival.corpseId, reviverId: actor.id, sourceActionId: rule.id, participantIds: [actor.id] } });
+      else events.push({ type: "actor.despawn", actorId: revival.corpseId.slice(6), payload: { reason: "Пляс смерти: воскрешение Трупа", corpseReviveToken: payload.corpseRevive.token, corpseSourceId: revival.corpseId, reviverId: actor.id, sourceActionId: rule.id, participantIds: [actor.id] } });
+      events.push({ type: "actor.spawn", actorId: actor.id, payload: { corpseReviveToken: payload.corpseRevive.token, corpseSourceId: revival.corpseId, actor: necromancerRevivedActor(data, actor, revival, corpse, `revived-${eventId()}`), participantIds: [actor.id] } });
+    }
   }
   if (isAttackRule && payload.automation === "attack") {
     if (family.chargedAttack && !(actor.effects || []).includes("positive.заряжен")) {

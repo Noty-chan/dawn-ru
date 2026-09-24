@@ -258,9 +258,18 @@ function commitEnemyStep(actorId,destination){
   const prepared=SceneEngine.prepareAction(Scene,D,{actorId:actor.id,actionId:step.id,targetIds:[],destination});if(!prepared.ok)return toast(prepared.errors.join(" "));
   pendingEnemyStepActorId=null;const committed=commitSceneEvents(`Шаг: ${actor.name}`,prepared.events);if(!committed)return;if(!isScenePanelOpen("director"))setScenePanel("roster");const updated=Scene.actors.find(item=>item.id===actor.id);toast(prepared.action?.continuation?`Шаг продолжен · осталось ${updated?.stepRemaining||0} клеток`:`Шаг выполнен${updated?.stepRemaining?` · сохранено ${updated.stepRemaining} клеток`:""}`)
 }
+function enemyRuleUiOptions(button){
+  const options={stanceStep:Number(button.dataset.stanceStep)||null},card=button.closest(".enemy-rule");
+  if(button.dataset.enemyRule==="lionwing.npc.necromancer.the-danse-macabre"&&card){
+    const corpses=[...card.querySelectorAll("[data-necromancer-corpse]")],profiles=[...card.querySelectorAll("[data-necromancer-profile]")];
+    options.revivals=corpses.map((item,index)=>({corpseId:item.value,profileId:profiles[index]?.value}));
+  }
+  return options;
+}
 function useEnemyRule(actorId,ruleId,{anchor=null,areaReady=false,options={}}={}){
   const actor=Scene.actors.find(item=>item.id===actorId),profile=enemyProfile(actor?.profileId),sourceRule=profile?.rules?.find(item=>item.id===ruleId);if(!actor||!sourceRule)return toast("Действие противника больше не доступно");
   const ruleState=SceneEngine.availableEnemyRules(Scene,D,actor.id).find(item=>item.id===sourceRule.id),rule={...sourceRule,...(ruleState||{})};
+  if(ruleId==="lionwing.npc.necromancer.the-danse-macabre"&&(!Array.isArray(options.revivals)||options.revivals.length!==2))return toast("Выберите два разных Трупа и профили в панели способностей Некроманта");
   const summon=ruleState?.crowdSummon;
   if(summon){const count=summon.count;if((Scene.targetCells||[]).length!==count){pendingEnemyRule={actorId,ruleId,phase:"crowd-summon",count,edge:summon.edge,range:Number(summon.range||0)};Scene.targetIds=[];Scene.tool="target";persist();renderScene();return toast(`«${rule.name}»: выберите ${count} клеток${summon.edge?" на краю Поля":summon.range?` в пределах ${summon.range} клеток`:" на Поле"} и снова нажмите действие для подтверждения`)}options={...options,cells:[...Scene.targetCells]}}
   const crowdMovementReady=actor.ruleState?.enemyCrowdMovement?.ruleId===rule.id&&Number(actor.ruleState.enemyCrowdMovement.turnSerial)===Number(Scene.turnSerial||0);

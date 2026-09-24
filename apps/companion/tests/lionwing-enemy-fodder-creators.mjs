@@ -181,4 +181,25 @@ assert.ok(corpseMarker, "an opponent defeated while Necromancer is deployed leav
 assert.equal(`${corpseMarker.x},${corpseMarker.y}`, "4,2", "the Corpse stays at the knockout space");
 assert.throws(() => Engine.dispatchMany(enemyKnockout, [{ type: "marker.create", actorId: "source", payload: { id: "forged-corpse", space: "main", x: 0, y: 0, markerKind: "corpse", ruleId: "lionwing.npc.necromancer.passive", sourceActorId: "source", sourceLossPolicy: "detach", ownerActorId: "source", duration: "scene", metadata: { victimActorId: "opponent", knockoutEventId: "necromancer-enemy-knockout" } } }]), /.+/, "a forged Corpse cannot reuse a knockout receipt");
 
+const danseId = "lionwing.npc.necromancer.the-danse-macabre";
+const danseCorpses = Engine.availableEnemyRules(enemyKnockout, data, "source").find(rule => rule.id === danseId).corpses;
+assert.ok(danseCorpses.some(item => item.corpseId === `marker:${corpseMarker.id}`), "defeated opponent is offered for revival");
+const danseChoices = [
+  { corpseId: `marker:${corpseMarker.id}`, profileId: "lionwing.npc.bruiser" },
+  { corpseId: danseCorpses.find(item => item.corpseId.startsWith("actor:"))?.corpseId, profileId: "lionwing.npc.ranger" },
+];
+const danse = Engine.prepareEnemyRule(enemyKnockout, data, { actorId: "source", ruleId: danseId, options: { revivals: danseChoices } });
+assert.equal(danse.ok, true, danse.errors?.join(" "));
+const danced = commit(enemyKnockout, danse);
+const revived = danced.actors.filter(item => item.sourceActionId === danseId);
+assert.equal(revived.length, 2, "Danse revives exactly two chosen Corpses");
+assert.deepEqual(clone(revived.map(item => item.profileId).sort()), ["lionwing.npc.bruiser", "lionwing.npc.ranger"]);
+assert.ok(revived.every(item => item.tier === 1 && item.summonerId === "source" && item.team === "heroes"));
+assert.equal(danced.markers.some(item => item.id === corpseMarker.id), false, "used Corpse marker is consumed");
+assert.equal(danced.actors.some(item => item.id === danseChoices[1].corpseId.slice(6)), false, "used Corpse Fodder is consumed");
+assert.equal(danced.actors.find(item => item.id === "source").ap, 1, "Danse pays two AP once");
+assert.equal(Engine.prepareEnemyRule(enemyKnockout, data, { actorId: "source", ruleId: danseId, options: { revivals: [danseChoices[0], danseChoices[0]] } }).ok, false, "one Corpse cannot be revived twice");
+assert.equal(Engine.prepareEnemyRule(enemyKnockout, data, { actorId: "source", ruleId: danseId, options: { revivals: [{ ...danseChoices[0], profileId: "lionwing.npc.necromancer" }, danseChoices[1]] } }).ok, false, "revival profiles are restricted to the PDF list");
+assert.throws(() => commit(danced, danse), /.+/, "Danse cannot replay the same corpses");
+
 console.log("LionWing Fodder creators OK");
