@@ -29,6 +29,18 @@ const persistedCorpseScene = json(coreContext.sceneCore({
   actors: [{ id: "corpse", kind: "crowd", team: "enemy", space: "main", x: 2, y: 2, crowdSubtype: "corpse", sourceActionId: "lionwing.npc.necromancer.call-the-dead", summonerId: "necro" }],
 }));
 assert.deepEqual([persistedCorpseScene.actors[0].crowdSubtype, persistedCorpseScene.actors[0].sourceActionId, persistedCorpseScene.actors[0].summonerId], ["corpse", "lionwing.npc.necromancer.call-the-dead", "necro"], "Saved scene normalization preserves Corpse subtype, rule provenance, and summoner ID");
+const persistedCorpseMarker = json(coreContext.sceneCore({
+  rulesEdition: "lionwing", spaces: [{ id: "main", mode: "standard", width: 7, height: 7 }], activeSpace: "main",
+  actors: [{ id: "necro", kind: "enemy", team: "enemy", profileId: "lionwing.npc.necromancer", space: "main", x: 1, y: 1 }],
+  markers: [{ id: "corpse-marker", kind: "corpse", space: "main", x: 2, y: 2, sourceActorId: "necro", ownerActorId: "necro", sourceLossPolicy: "detach", ruleId: "lionwing.npc.necromancer.passive", metadata: { victimActorId: "victim" } }],
+})).markers[0];
+assert.deepEqual([persistedCorpseMarker.kind, persistedCorpseMarker.sourceActorId, persistedCorpseMarker.sourceLossPolicy], ["corpse", "necro", "detach"], "Saved Corpse marker stays revivable and retains source-loss policy");
+const persistedAttachedMarker = json(coreContext.sceneCore({
+  rulesEdition: "lionwing", spaces: [{ id: "main", mode: "standard", width: 7, height: 7 }], activeSpace: "main",
+  actors: [{ id: "host", kind: "enemy", team: "enemy", space: "main", x: 1, y: 1 }],
+  markers: [{ id: "attached", kind: "mark", space: "main", x: 2, y: 1, hostActorId: "host", offset: { dx: 1, dy: 0 } }],
+})).markers[0];
+assert.deepEqual([persistedAttachedMarker.hostActorId, persistedAttachedMarker.offset], ["host", { dx: 1, dy: 0 }], "Saved attached marker retains its host and relative position");
 
 const gmSource = fs.readFileSync(path.join(root, "gm-library.js"), "utf8");
 const placementStart = gmSource.indexOf("function availableEncounterCell");
