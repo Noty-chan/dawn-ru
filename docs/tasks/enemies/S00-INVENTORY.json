@@ -1462,6 +1462,7 @@
             "apps/companion/tests/lionwing-entities-removal.mjs",
             "apps/companion/tests/lionwing-entities-ui.mjs",
             "apps/companion/tests/lionwing-geometry.mjs",
+            "apps/companion/tests/lionwing-gm-ap-contract.mjs",
             "apps/companion/tests/lionwing-inventory.mjs",
             "apps/companion/tests/lionwing-localization.mjs",
             "apps/companion/tests/lionwing-modifier-earthquake.mjs",
@@ -3199,6 +3200,7 @@
             "apps/companion/tests/lionwing-entities-removal.mjs",
             "apps/companion/tests/lionwing-entities-ui.mjs",
             "apps/companion/tests/lionwing-geometry.mjs",
+            "apps/companion/tests/lionwing-gm-ap-contract.mjs",
             "apps/companion/tests/lionwing-inventory.mjs",
             "apps/companion/tests/lionwing-localization.mjs",
             "apps/companion/tests/lionwing-modifier-earthquake.mjs",
@@ -3922,6 +3924,7 @@
             "apps/companion/tests/lionwing-entities-removal.mjs",
             "apps/companion/tests/lionwing-entities-ui.mjs",
             "apps/companion/tests/lionwing-geometry.mjs",
+            "apps/companion/tests/lionwing-gm-ap-contract.mjs",
             "apps/companion/tests/lionwing-inventory.mjs",
             "apps/companion/tests/lionwing-localization.mjs",
             "apps/companion/tests/lionwing-modifier-earthquake.mjs",
@@ -8517,6 +8520,7 @@
             "apps/companion/tests/lionwing-enemy-base-attacks.mjs",
             "apps/companion/tests/lionwing-enemy-simple-actions.mjs",
             "apps/companion/tests/lionwing-geometry-ui.mjs",
+            "apps/companion/tests/lionwing-gm-ap-contract.mjs",
             "apps/companion/tests/lionwing-localization.mjs",
             "apps/companion/tests/lionwing-narrator-roll-ui.mjs",
             "apps/companion/tests/lionwing-neutral-lifecycle.mjs",
@@ -9259,6 +9263,7 @@
         "tests": [
           "apps/companion/tests/lionwing-enemy-base-attacks.mjs",
           "apps/companion/tests/lionwing-enemy-fodder-creators.mjs",
+          "apps/companion/tests/lionwing-gm-ap-contract.mjs",
           "apps/companion/tests/lionwing-localization.mjs",
           "apps/companion/tests/scene-engine.mjs"
         ],
@@ -9311,6 +9316,7 @@
           "tests": [
             "apps/companion/tests/lionwing-enemy-base-attacks.mjs",
             "apps/companion/tests/lionwing-enemy-fodder-creators.mjs",
+            "apps/companion/tests/lionwing-gm-ap-contract.mjs",
             "apps/companion/tests/lionwing-localization.mjs",
             "apps/companion/tests/scene-engine.mjs"
           ],
@@ -9362,6 +9368,7 @@
           "tests": [
             "apps/companion/tests/lionwing-enemy-base-attacks.mjs",
             "apps/companion/tests/lionwing-enemy-fodder-creators.mjs",
+            "apps/companion/tests/lionwing-gm-ap-contract.mjs",
             "apps/companion/tests/lionwing-localization.mjs",
             "apps/companion/tests/scene-engine.mjs"
           ],
@@ -9408,6 +9415,7 @@
           "tests": [
             "apps/companion/tests/lionwing-enemy-base-attacks.mjs",
             "apps/companion/tests/lionwing-enemy-fodder-creators.mjs",
+            "apps/companion/tests/lionwing-gm-ap-contract.mjs",
             "apps/companion/tests/lionwing-localization.mjs",
             "apps/companion/tests/scene-engine.mjs"
           ],
@@ -9488,6 +9496,7 @@
         "tests": [
           "apps/companion/tests/lionwing-enemy-base-attacks.mjs",
           "apps/companion/tests/lionwing-enemy-fodder-creators.mjs",
+          "apps/companion/tests/lionwing-gm-ap-contract.mjs",
           "apps/companion/tests/lionwing-localization.mjs"
         ],
         "notRun": [
@@ -9538,6 +9547,7 @@
           "tests": [
             "apps/companion/tests/lionwing-enemy-base-attacks.mjs",
             "apps/companion/tests/lionwing-enemy-fodder-creators.mjs",
+            "apps/companion/tests/lionwing-gm-ap-contract.mjs",
             "apps/companion/tests/lionwing-localization.mjs"
           ],
           "notRun": [
@@ -9586,6 +9596,7 @@
           "tests": [
             "apps/companion/tests/lionwing-enemy-base-attacks.mjs",
             "apps/companion/tests/lionwing-enemy-fodder-creators.mjs",
+            "apps/companion/tests/lionwing-gm-ap-contract.mjs",
             "apps/companion/tests/lionwing-localization.mjs"
           ],
           "notRun": [
@@ -9632,6 +9643,7 @@
           "tests": [
             "apps/companion/tests/lionwing-enemy-base-attacks.mjs",
             "apps/companion/tests/lionwing-enemy-fodder-creators.mjs",
+            "apps/companion/tests/lionwing-gm-ap-contract.mjs",
             "apps/companion/tests/lionwing-localization.mjs"
           ],
           "notRun": [
@@ -10220,6 +10232,7 @@
             "apps/companion/tests/lionwing-entities-removal.mjs",
             "apps/companion/tests/lionwing-entities-ui.mjs",
             "apps/companion/tests/lionwing-geometry.mjs",
+            "apps/companion/tests/lionwing-gm-ap-contract.mjs",
             "apps/companion/tests/lionwing-inventory.mjs",
             "apps/companion/tests/lionwing-localization.mjs",
             "apps/companion/tests/lionwing-modifier-earthquake.mjs",

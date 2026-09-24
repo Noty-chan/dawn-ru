@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, "..");
 const clamp = (value, min, max) => Math.max(min, Math.min(max, Number(value) || 0));
+const json = value => JSON.parse(JSON.stringify(value));
 const coreSource = fs.readFileSync(path.join(root, "app-core.js"), "utf8");
 const coreStart = coreSource.indexOf("function safeImage");
 const coreEnd = coreSource.indexOf("function normalizedSceneObjectType", coreStart);
@@ -22,7 +23,12 @@ const coreContext = {
   sceneCore: value => value,
 };
 vm.createContext(coreContext);
-vm.runInContext(`${coreSource.slice(coreStart, coreEnd)};this.normalizeGmLibrary=normalizeGmLibrary;this.normalizeGmLibraryEnemy=normalizeGmLibraryEnemy;`, coreContext, { filename: "app-core.js" });
+vm.runInContext(`${coreSource.slice(coreStart, coreEnd)};this.normalizeGmLibrary=normalizeGmLibrary;this.normalizeGmLibraryEnemy=normalizeGmLibraryEnemy;this.sceneCore=sceneCore;`, coreContext, { filename: "app-core.js" });
+const persistedCorpseScene = json(coreContext.sceneCore({
+  rulesEdition: "lionwing", spaces: [{ id: "main", mode: "standard", width: 7, height: 7 }], activeSpace: "main",
+  actors: [{ id: "corpse", kind: "crowd", team: "enemy", space: "main", x: 2, y: 2, crowdSubtype: "corpse", sourceActionId: "lionwing.npc.necromancer.call-the-dead", summonerId: "necro" }],
+}));
+assert.deepEqual([persistedCorpseScene.actors[0].crowdSubtype, persistedCorpseScene.actors[0].sourceActionId, persistedCorpseScene.actors[0].summonerId], ["corpse", "lionwing.npc.necromancer.call-the-dead", "necro"], "Saved scene normalization preserves Corpse subtype, rule provenance, and summoner ID");
 
 const gmSource = fs.readFileSync(path.join(root, "gm-library.js"), "utf8");
 const placementStart = gmSource.indexOf("function availableEncounterCell");
@@ -37,6 +43,65 @@ assert.ok(reinforcementCell && `${reinforcementCell.x},${reinforcementCell.y}` !
 const occupiedFodderScene = { objects: [], actors: [{ kind: "crowd", space: "main", x: 1, y: 1, knockedOut: false }] };
 const separateFodderCell = placementContext.availableEncounterCell({ id: "main", mode: "standard", width: 3, height: 3 }, { kind: "crowd", x: 1, y: 1 }, new Set(), { sceneState: occupiedFodderScene });
 assert.ok(separateFodderCell && `${separateFodderCell.x},${separateFodderCell.y}` !== "1,1", "Fodder reinforcement cannot stack two live Zones");
+const relinkStart = gmSource.indexOf("function encounterTemplateActorForReinforcement");
+const relinkEnd = gmSource.indexOf("function deployEncounterTemplate", relinkStart);
+assert.ok(relinkStart >= 0 && relinkEnd > relinkStart, "Special Fodder reinforcement relinking stays directly testable");
+const relinkContext = { clamp };
+vm.createContext(relinkContext);
+vm.runInContext(`${gmSource.slice(relinkStart, relinkEnd)};this.encounterTemplateActorForReinforcement=encounterTemplateActorForReinforcement;this.linkEncounterSpecialFodder=linkEncounterSpecialFodder;`, relinkContext, { filename: "gm-library.js" });
+const owner = { id: "new-houndmaster", profileId: "lionwing.npc.hound-master", team: "enemy", space: "main" };
+const liveHero = { id: "live-hero", kind: "hero", team: "hero", space: "main", knockedOut: false };
+const linkedSeeker = { kind: "crowd", sourceActionId: "lionwing.npc.hound-master.fire-seeker" };
+assert.equal(relinkContext.linkEncounterSpecialFodder(linkedSeeker, { crowdSubtype: "seeker", sourceActionId: "lionwing.npc.hound-master.fire-seeker", seekerOwnerId: "old-houndmaster", seekerTargetId: "live-hero", seekerDamage: 9 }, new Map([["old-houndmaster", owner]]), [liveHero], "main"), true, "Seeker Fodder relinks to a newly reinforced Hound Master and an existing live target");
+assert.deepEqual(json(linkedSeeker), { kind: "crowd", sourceActionId: "lionwing.npc.hound-master.fire-seeker", crowdSubtype: "seeker", seekerOwnerId: "new-houndmaster", seekerTargetId: "live-hero", seekerDamage: 9 }, "Seeker provenance and target survive with current IDs");
+assert.equal(relinkContext.linkEncounterSpecialFodder({ kind: "crowd" }, { crowdSubtype: "seeker", seekerOwnerId: "old-houndmaster", seekerTargetId: "missing-hero", sourceActionId: "lionwing.npc.hound-master.fire-seeker" }, new Map([["old-houndmaster", owner]]), [], "main"), false, "A Seeker with a target absent from both the preset and current scene is skipped safely");
+const necromancer = { id: "new-necromancer", profileId: "lionwing.npc.necromancer", team: "enemy", space: "main", knockedOut: false };
+const linkedCorpse = { kind: "crowd" };
+assert.equal(relinkContext.linkEncounterSpecialFodder(linkedCorpse, { crowdSubtype: "corpse", sourceActionId: "lionwing.npc.necromancer.call-the-dead", summonerId: "old-necromancer" }, new Map([["old-necromancer", necromancer]]), [], "main"), true, "Corpse Fodder preserves its canonical source and relinks to the reinforced Necromancer");
+assert.deepEqual(json(linkedCorpse), { kind: "crowd", crowdSubtype: "corpse", sourceActionId: "lionwing.npc.necromancer.call-the-dead", summonerId: "new-necromancer" }, "Corpse provenance and owner use the replacement IDs");
+assert.equal(relinkContext.linkEncounterSpecialFodder({ kind: "crowd" }, { crowdSubtype: "vortex" }, new Map(), [], "main"), false, "Vortex zones are skipped because their modifier state is a separate active rule chain");
+assert.equal(relinkContext.encounterTemplateActorForReinforcement({ templateScene: { actors: [{ id: "saved", kind: "crowd", team: "enemy", name: "Corpse", x: 2, y: 3 }] } }, { kind: "crowd", team: "enemy", name: "Corpse", x: 2, y: 3 }, 0)?.id, "saved", "A matching saved scene actor supplies special Fodder provenance");
+assert.equal(relinkContext.encounterTemplateActorForReinforcement({ templateScene: { actors: [{ id: "wrong", kind: "crowd", team: "enemy", name: "Different", x: 2, y: 3 }] } }, { kind: "crowd", team: "enemy", name: "Corpse", x: 2, y: 3 }, 0), null, "Mismatched template actor metadata is not attached by array index alone");
+const deployStart = gmSource.indexOf("function deployEncounter(encounter,{replace=false}={})");
+const deployEnd = gmSource.indexOf("\n}", deployStart) + 2;
+assert.ok(deployStart >= 0 && deployEnd > deployStart, "Encounter reinforcement deployment remains directly testable");
+const deploymentToasts = [];
+Object.assign(relinkContext, {
+  Scene: { rulesEdition: "lionwing", activeActorId: null, pendingAction: null, pendingActionPlan: null, activeSpace: "main", spaces: [{ id: "main", mode: "standard", width: 7, height: 7 }], actors: [{ id: "live-hero", kind: "hero", team: "hero", space: "main", x: 1, y: 1, knockedOut: false }], objects: [], markers: [], targetIds: [] },
+  activeSceneSpace: () => relinkContext.Scene.spaces[0],
+  deployEncounterTemplate: () => false,
+  commitScene: (_label, change) => { const next = structuredClone(relinkContext.Scene); change(next); relinkContext.Scene = next; },
+  toast: message => deploymentToasts.push(message),
+  uid: (() => { let serial = 0; return () => `reinforcement-${++serial}`; })(),
+  availableEncounterCell: (_space, wanted, occupied) => { const options = [{ x: wanted.x, y: wanted.y }, { x: wanted.x + 1, y: wanted.y }, { x: wanted.x - 1, y: wanted.y }, { x: wanted.x, y: wanted.y + 1 }, { x: wanted.x, y: wanted.y - 1 }]; const cell = options.find(point => point.x >= 0 && point.y >= 0 && point.x < 7 && point.y < 7 && !occupied.has(`${point.x},${point.y}`)); if (cell) occupied.add(`${cell.x},${cell.y}`); return cell || null; },
+  enemyProfile: id => ({ id, name: id }),
+  enemyActorFromProfile: (profile, tier, { blueprint, spaceId, position }) => ({ id: `spawn-${profile.id}`, kind: "enemy", team: "enemy", profileId: profile.id, name: blueprint.name, tier, space: spaceId, ...position, knockedOut: false }),
+});
+vm.runInContext(`${gmSource.slice(deployStart, deployEnd)};this.deployEncounter=deployEncounter;`, relinkContext, { filename: "gm-library.js" });
+const reinforcementPreset = {
+  edition: "lionwing", name: "Hound and Seeker", enemies: [
+    { kind: "enemy", team: "enemy", profileId: "lionwing.npc.hound-master", name: "Hound Master", tier: 1, x: 4, y: 2 },
+    { kind: "enemy", team: "enemy", profileId: "lionwing.npc.necromancer", name: "Necromancer", tier: 1, x: 3, y: 2 },
+    { kind: "crowd", team: "enemy", name: "Seeker", x: 5, y: 2, crowdGroupId: "seekers" },
+    { kind: "crowd", team: "enemy", name: "Corpse", x: 3, y: 3, crowdGroupId: "corpses" },
+  ],
+  templateScene: { activeSpace: "main", spaces: [{ id: "main", width: 7, height: 7 }], actors: [
+    { id: "old-houndmaster", kind: "enemy", team: "enemy", profileId: "lionwing.npc.hound-master", name: "Hound Master", space: "main", x: 4, y: 2 },
+    { id: "old-necromancer", kind: "enemy", team: "enemy", profileId: "lionwing.npc.necromancer", name: "Necromancer", space: "main", x: 3, y: 2 },
+    { id: "old-seeker", kind: "crowd", team: "enemy", name: "Seeker", space: "main", x: 5, y: 2, crowdSubtype: "seeker", sourceActionId: "lionwing.npc.hound-master.fire-seeker", seekerOwnerId: "old-houndmaster", seekerTargetId: "live-hero", seekerDamage: 8 },
+    { id: "old-corpse", kind: "crowd", team: "enemy", name: "Corpse", space: "main", x: 3, y: 3, crowdSubtype: "corpse", sourceActionId: "lionwing.npc.necromancer.call-the-dead", summonerId: "old-necromancer" },
+  ] },
+};
+relinkContext.deployEncounter(reinforcementPreset);
+const deployedOwner = relinkContext.Scene.actors.find(actor => actor.profileId === "lionwing.npc.hound-master"), deployedNecromancer = relinkContext.Scene.actors.find(actor => actor.profileId === "lionwing.npc.necromancer"), deployedSeeker = relinkContext.Scene.actors.find(actor => actor.crowdSubtype === "seeker"), deployedCorpse = relinkContext.Scene.actors.find(actor => actor.crowdSubtype === "corpse");
+assert.ok(deployedOwner && deployedNecromancer && deployedSeeker && deployedCorpse, `Reinforcement deploys linked Hound Master/Seeker and Necromancer/Corpse pairs: ${JSON.stringify({ actors: relinkContext.Scene.actors, deploymentToasts })}`);
+assert.deepEqual([deployedSeeker.seekerOwnerId, deployedSeeker.seekerTargetId, deployedSeeker.sourceActionId, Math.abs(deployedSeeker.x - deployedOwner.x) + Math.abs(deployedSeeker.y - deployedOwner.y)], [deployedOwner.id, "live-hero", "lionwing.npc.hound-master.fire-seeker", 1], "Reinforced Seeker points to the new owner and current target and stays adjacent");
+assert.deepEqual([deployedCorpse.summonerId, deployedCorpse.sourceActionId], [deployedNecromancer.id, "lionwing.npc.necromancer.call-the-dead"], "Reinforced Corpse retains the canonical source and points to the new Necromancer");
+relinkContext.Scene = { rulesEdition: "lionwing", activeActorId: null, pendingAction: null, pendingActionPlan: null, activeSpace: "main", spaces: [{ id: "main", mode: "standard", width: 7, height: 7 }], actors: [], objects: [], markers: [], targetIds: [] };
+deploymentToasts.length = 0;
+relinkContext.deployEncounter(reinforcementPreset);
+assert.equal(relinkContext.Scene.actors.some(actor => actor.crowdSubtype === "seeker"), false, "A saved Seeker whose target is absent is not deployed with a stale or guessed target");
+assert.match(deploymentToasts.at(-1), /особых зон пропущено/u, "Unsafe special Fodder is reported to the Narrator");
 assert.match(gmSource, /edition=\["ru-v0\.9","lionwing"\]\.includes\(Scene\.rulesEdition\)\?Scene\.rulesEdition:contentPreferences\.edition/, "Newly saved encounters record their active edition");
 const builtinStart = gmSource.indexOf("const BUILTIN_ENCOUNTERS=Object.freeze([");
 const builtinEnd = gmSource.indexOf("\n]);", builtinStart) + 3;
@@ -63,7 +128,6 @@ const gmContext = {
 vm.createContext(gmContext);
 vm.runInContext(`${gmSource.slice(builtinStart, builtinEnd)};${gmSource.slice(materializeStart, materializeEnd)};this.BUILTIN_ENCOUNTERS=BUILTIN_ENCOUNTERS;this.materializeBuiltinEncounter=materializeBuiltinEncounter;`, gmContext, { filename: "gm-library.js" });
 
-const json = value => JSON.parse(JSON.stringify(value));
 const builtin = gmContext.BUILTIN_ENCOUNTERS.find(item => item.id === "builtin.lionwing-dune-runners-audit");
 assert.ok(builtin, "The canonical LionWing builtin remains available");
 assert.equal(builtin.edition, "lionwing", "The canonical LionWing builtin declares its edition");
