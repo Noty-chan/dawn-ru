@@ -282,17 +282,17 @@ function prepareEnemyDeployment(scene, actor) {
   const space = (scene.spaces || []).find(item => item.id === actor.space);
   if (!space || !Number.isInteger(Number(actor.x)) || !Number.isInteger(Number(actor.y))) return { ok: false, errors: ["Для Пассивa нужны координаты НПС на Поле."], owner: actor, zones: [] };
   const count = 4 + Math.max(1, Number(actor.tier || 1));
-  const occupied = new Set((scene.actors || []).filter(item => item.id !== actor.id && item.space === actor.space && !item.knockedOut && !item.deploymentProxy).map(cellKey));
-  for (const item of scene.actors || []) if (item.id !== actor.id && item.kind === "crowd" && item.space === actor.space && !item.knockedOut) occupied.add(cellKey(item));
+  const occupied = new Set((scene.actors || []).filter(item => item.id !== actor.id && item.kind === "crowd" && item.space === actor.space && !item.knockedOut).map(cellKey));
+  const characterOccupied = new Set((scene.actors || []).filter(item => item.id !== actor.id && item.kind !== "crowd" && !item.deploymentProxy && item.space === actor.space && !item.knockedOut).map(cellKey));
   const terrain = new Set((scene.objects || []).filter(item => item.space === actor.space && item.type === "terrain").flatMap(item => item.cells || []));
   const removed = removedCellKeys(scene, actor.space), designated = new Set((scene.objects || []).filter(item => item.space === actor.space && item.type === `deploy-${actor.team === "hero" ? "hero" : "enemy"}`).flatMap(item => item.cells || []));
   const candidates = [];
   for (let y = 0; y < Number(space.height || 0); y += 1) for (let x = 0; x < Number(space.width || 0); x += 1) {
     const key = `${x},${y}`;
     if (occupied.has(key) || terrain.has(key) || removed.has(key)) continue;
-    candidates.push({ key, x, y, designated: designated.has(key), distance: Math.max(Math.abs(x - Number(actor.x)), Math.abs(y - Number(actor.y))) });
+    candidates.push({ key, x, y, designated: designated.has(key), characterOccupied: characterOccupied.has(key), distance: Math.max(Math.abs(x - Number(actor.x)), Math.abs(y - Number(actor.y))) });
   }
-  candidates.sort((left, right) => Number(right.designated) - Number(left.designated) || left.distance - right.distance || left.y - right.y || left.x - right.x);
+  candidates.sort((left, right) => Number(right.designated) - Number(left.designated) || Number(left.characterOccupied) - Number(right.characterOccupied) || left.distance - right.distance || left.y - right.y || left.x - right.x);
   if (candidates.length < count) return { ok: false, owner: actor, zones: [], errors: [`Для ${actor.name || "этого НПС"} нужно ${count} свободных уникальных клеток массовки, найдено ${candidates.length}. Освободите место или разместите зоны вручную.`] };
   const owner = { ...actor, speed: 0, deploymentProxy: true, deploymentFodderIds: [] };
   const zones = candidates.slice(0, count).map((point, index) => ({

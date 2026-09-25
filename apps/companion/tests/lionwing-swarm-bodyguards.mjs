@@ -85,6 +85,14 @@ cramped.spaces[0].width = 2; cramped.spaces[0].height = 2;
 const noRoom = Engine.prepareEnemyDeployment(cramped, cramped.actors[0]);
 assert.equal(noRoom.ok, false);
 assert.match(noRoom.errors.join(" "), /разместите зоны вручную/i);
+const sharedCells = scene({ profileId: "lionwing.npc.swarm", actors: [
+  actor("occupant-1", "hero", 1, 0), actor("occupant-2", "hero", 0, 1),
+  actor("occupant-3", "hero", 1, 1), actor("occupant-4", "hero", 0, 2), actor("occupant-5", "hero", 1, 2),
+] });
+sharedCells.spaces[0].width = 2; sharedCells.spaces[0].height = 3;
+const sharedDeployment = Engine.prepareEnemyDeployment(sharedCells, sharedCells.actors[0]);
+assert.equal(sharedDeployment.ok, true, "Fodder may share a cell with a character when there are enough unique cells");
+assert.equal(sharedDeployment.zones.length, 6);
 const collidingDeployment = scene({ profileId: "lionwing.npc.bodyguards", actors: [actor("deployment-owner-1", "hero", 0, 0)] });
 const collisionResult = Engine.prepareEnemyDeployment(collidingDeployment, collidingDeployment.actors[0]);
 assert.equal(collisionResult.ok, false, "deployment cannot create a Zone with an existing actor ID");
