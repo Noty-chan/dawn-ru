@@ -185,7 +185,7 @@ assert.equal(calledScene.actors.filter(actor => actor.kind === "crowd" && actor.
 const forgedCallPrepare = structuredClone(call.events.find(event => event.type === "enemy.action.prepare")); forgedCallPrepare.id = "forged-call-prepare"; forgedCallPrepare.payload.crowdSummon.cells = ["1,1"];
 assert.throws(() => Engine.dispatch(callScene, forgedCallPrepare), /авторитетн.*Призыва/, "A network client cannot forge the canonical Call placement count");
 const forgedExtraCrowd = structuredClone(call.events.find(event => event.type === "actor.spawn")); forgedExtraCrowd.id = "forged-extra-crowd"; forgedExtraCrowd.payload.actor.id = "forged-extra-crowd"; forgedExtraCrowd.payload.actor.x = 2; forgedExtraCrowd.payload.actor.y = 2;
-assert.throws(() => Engine.dispatch(calledScene, forgedExtraCrowd), /авторитетному Призыву/, "A replay client cannot append an extra Fodder Zone to a consumed summon token");
+assert.throws(() => Engine.dispatch(calledScene, forgedExtraCrowd), /оплаченному Призыву/, "A replay client cannot append an extra Fodder Zone to a consumed summon token");
 assert.equal(Engine.prepareEnemyRule(callScene, data, { actorId: "enemy", ruleId: "enemy.common.javelin.action.call", options: { cells: ["1,1"] } }).ok, false, "Call rejects an incomplete placement before spending AP");
 assert.equal(Engine.prepareEnemyRule(callScene, data, { actorId: "enemy", ruleId: "enemy.common.javelin.action.call", options: { cells: ["1,1", "5,0"] } }).ok, false, "Call rejects a forged out-of-range cell");
 const removedCallScene = structuredClone(callScene); removedCallScene.topology = { cuts: [{ space: "main", cells: ["1,2"] }] };
