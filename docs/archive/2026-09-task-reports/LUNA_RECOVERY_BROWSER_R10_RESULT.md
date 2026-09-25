@@ -43,7 +43,7 @@ reader, включая:
 
 ## Production entry points
 
-- [`apps/companion/app-core.js`](../../apps/companion/app-core.js):
+- [`apps/companion/app-core.js`](../../../apps/companion/app-core.js):
   `blankScene` (стр. 47), `sceneCore`/`normalizeScene`,
   `tableBackupPayload` (стр. 344), `normalizedTableBackup` (стр. 345),
   `writeHeroMedia`, `readHeroMedia` (стр. 454) и `persist`.

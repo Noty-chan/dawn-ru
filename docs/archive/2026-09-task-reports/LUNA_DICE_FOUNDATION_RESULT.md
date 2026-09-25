@@ -74,7 +74,7 @@
   плоский список: очередь проверяет, что каждый Крит породил ровно одну грань;
 - конкретные Техники, их окна и стоимость не автоматизируются этим модулем.
 
-Автономный тест [lionwing-dice-foundation.mjs](../../apps/companion/tests/lionwing-dice-foundation.mjs)
+Автономный тест [lionwing-dice-foundation.mjs](../../../apps/companion/tests/lionwing-dice-foundation.mjs)
 запускается напрямую:
 
 ```text
