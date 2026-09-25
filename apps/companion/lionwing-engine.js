@@ -4275,15 +4275,25 @@
     }
     const enemyEventFlow = events.some(event => ["enemy.action.prepare", "enemy.action.resolve", "attack.pending", "attack.clear"].includes(event?.type) || event?.type === "rule.prompt" && (event.payload?.kind?.startsWith("enemy-crowd-move-") || event.payload?.kind === "bodyguards-brace-line")) || pendingEnemyFlow || rangerPromptFlow || crowdPromptFlow;
     if (enemyEventFlow) {
-      for (const attack of events.filter(event => event?.type === "attack.pending" && event.payload?.enemyRuleId)) {
-        const attackIndex = events.indexOf(attack), ruleId = attack.payload.enemyRuleId;
+      for (const attack of events.filter(event => event?.type === "attack.pending" && String((scene.actors || []).find(actor => actor.id === event.actorId)?.profileId || "").startsWith("lionwing.npc."))) {
+        if (events.every(event => event.id && (scene.log || []).some(record => record.id === event.id))) continue;
+        const attackIndex = events.indexOf(attack), ruleId = attack.payload?.enemyRuleId;
         const prior = events.slice(0, attackIndex), prepare = prior.find(event => event?.type === "enemy.action.prepare" && event.actorId === attack.actorId && event.payload?.ruleId === ruleId);
         const profile = (scene.actors || []).find(actor => actor.id === attack.actorId)?.profileId;
         const canonical = String(profile || "").startsWith("lionwing.npc.") && String(ruleId).startsWith("lionwing.npc.");
-        if (!canonical) continue;
-        const rule = enemyCanonicalRule(ruleId), cost = Number(rule?.apCost || 1);
+        if (!canonical) fail("Атака профильного врага требует канонический ID действия.");
+        const rule = legacy.availableEnemyRules(scene, global.DAWN_DATA, attack.actorId).find(item => item.id === ruleId), cost = Number(rule?.apCost || 1);
         const spend = prior.find(event => event?.type === "resource.spend" && event.actorId === attack.actorId && event.payload?.resource === "ap" && event.payload?.sourceRuleId === ruleId && Number(event.payload?.amount) === cost && event.payload?.sourceDigest === rule?.sourceDigest);
         if (!prepare || !spend || prior.indexOf(spend) < prior.indexOf(prepare) || attack.payload?.sourceRuleId !== ruleId || attack.payload?.sourceDigest !== rule?.sourceDigest) fail("Атака врага требует подготовленного и оплаченного канонического действия.");
+        const move = prior.find(event => event?.type === "actor.move" && event.actorId === attack.actorId && prior.indexOf(event) > prior.indexOf(spend));
+        const source = (scene.actors || []).find(actor => actor.id === attack.actorId);
+        const hiddenReappearance = Boolean(source?.effects?.includes("positive.исчез") && rule?.hiddenAdvantage);
+        const request = { actorId: attack.actorId, ruleId, targetIds: prepare.payload?.targetIds || [], roll: attack.payload.roll || null,
+          attackModifierIds: attack.payload.attackModifierIds || [], anchor: attack.payload.attackAnchor || null,
+          options: move ? { [hiddenReappearance ? "reappearance" : "destination"]: { x: move.payload.x, y: move.payload.y } } : {} };
+        const expected = legacy.prepareEnemyRule(scene, global.DAWN_DATA, request);
+        const expectedAttack = expected.ok && expected.events?.find(event => event.type === "attack.pending" && event.actorId === attack.actorId);
+        if (!expectedAttack || !sameJson(expectedAttack.payload, attack.payload)) fail("Атака врага не соответствует текущей дальности, целям, броску и каноническому результату.");
       }
       validateBuilderArmyOfStoneEvents(scene, events);
       validateEnemySimpleWaveActionEvents(scene, events);

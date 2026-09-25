@@ -308,6 +308,26 @@ assert.throws(()=>engine.dispatchMany(unpaidRevenantScene,disguisedAce),/тип 
 const unpaidAttack=engine.prepareEnemyRule(scene("lionwing.npc.revenant"),data,{actorId:"enemy",ruleId:"lionwing.npc.revenant.tear-from-the-soul",targetIds:["hero"],roll:dice(6)});
 assert.equal(unpaidAttack.ok,true,unpaidAttack.errors?.join(" "));
 assert.throws(()=>engine.dispatchMany(scene("lionwing.npc.revenant"),unpaidAttack.events.filter(event=>event.type==="attack.pending")),/подготовленного и оплаченного/,"a standalone enemy attack cannot skip AP");
+const distantRevenantScene=scene("lionwing.npc.revenant");
+distantRevenantScene.actors.push(actor("remote","hero",8,6));
+const forgedRange=structuredClone(unpaidAttack.events);
+for(const event of forgedRange) if(event.type==="enemy.action.prepare"||event.type==="attack.pending")event.payload.targetIds=["remote"];
+assert.throws(()=>engine.dispatchMany(distantRevenantScene,forgedRange),/дальности|целям/,"a paid package cannot move the target beyond canonical range");
+const forgedDamage=structuredClone(unpaidAttack.events);
+for(const event of forgedDamage) if(event.type==="attack.pending") {event.payload.damage=999;event.payload.damageByTarget.hero=999;}
+assert.throws(()=>engine.dispatchMany(scene("lionwing.npc.revenant"),forgedDamage),/каноническому результату/,"a paid package cannot inflate roll-derived damage");
+const missingRuleId=structuredClone(unpaidAttack.events);
+delete missingRuleId.find(event=>event.type==="attack.pending").payload.enemyRuleId;
+assert.throws(()=>engine.dispatchMany(scene("lionwing.npc.revenant"),missingRuleId),/канонический ID/,"removing rule provenance cannot bypass the enemy attack gate");
+const alteredPayment=structuredClone(unpaidAttack.events);
+alteredPayment.find(event=>event.type==="resource.spend").payload.amount=2;
+assert.throws(()=>engine.dispatchMany(scene("lionwing.npc.revenant"),alteredPayment),/подготовленного и оплаченного/,"an NPC attack must pay the canonical AP cost exactly");
+const alteredEffects=structuredClone(unpaidAttack.events);
+alteredEffects.find(event=>event.type==="attack.pending").payload.effects=["negative.ошеломлен"];
+assert.throws(()=>engine.dispatchMany(scene("lionwing.npc.revenant"),alteredEffects),/каноническому результату/,"a paid attack cannot inject a new Effect");
+const alteredRoll=structuredClone(unpaidAttack.events);
+alteredRoll.find(event=>event.type==="attack.pending").payload.roll.rolls=[6,6,6,6,6,6];
+assert.throws(()=>engine.dispatchMany(scene("lionwing.npc.revenant"),alteredRoll),/каноническому результату/,"the committed dice must match the canonical damage calculation");
 const revenantRound=scene("lionwing.npc.revenant");
 const knockedRevenant=engine.dispatchMany(revenantRound,[{type:"actor.knockout",actorId:"hero",payload:{targetId:"enemy"}}]).scene;
 assert.equal(knockedRevenant.tension,revenantRound.tension,"canonical Revenant gives no Tension on Knockout");

@@ -37,6 +37,8 @@ When a check or fix reveals a defect, repair the shared cause where possible, te
 
 For future slices, pair one normal scenario with a forged event, a stale scene, a replay with fresh IDs, and a boundary case that changes the outcome. Record unresolved cases before raising automation coverage.
 
-## Open boundary for the next review
+## Shared acceptance gate for new enemy attacks
 
-- The writer now requires a canonical `enemy.action.prepare` and matching AP payment before an NPC `attack.pending`, but it does not yet reconstruct and compare every target, range, roll-derived damage, and effect in a forged *paid* package. The previously reproduced free standalone Revenant attack is blocked; a same-batch payload mutation still needs a focused adversarial audit across attack families before this boundary is considered complete.
+Canonical LionWing NPC `attack.pending` events are now re-prepared from the pre-commit Scene and compared with the submitted attack payload. The gate requires the profile's rule ID, a matching Prepare and AP spend, and the same targets, geometry, roll, damage, effects and follow-ups that the canonical planner would produce. Do not bypass this gate for a new automated NPC Attack. If a new action needs another choice (movement, area anchor, or similar), make that choice reconstructible from the submitted event sequence and add an adversarial test before marking it automated.
+
+For each new attack family, test a valid package and mutations of at least its AP cost, range or area, target list, dice faces or success count, damage, effects, a missing rule ID, and replay with existing event IDs. This is a focused family test; the shared gate avoids copying these checks into every profile adapter. Hero actions, manual Narrator commands, and non-Attack enemy actions have separate entry points and still need their own authority review.
