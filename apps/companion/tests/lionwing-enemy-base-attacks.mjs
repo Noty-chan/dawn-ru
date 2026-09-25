@@ -299,6 +299,15 @@ aceScene=acePrepare("lionwing.npc.guardian","lionwing.npc.guardian.imposing-pres
 assert.equal(aceScene.actors[0].ruleState.imposingPresence,true);
 aceScene=acePrepare("lionwing.npc.revenant","lionwing.npc.revenant.hollowed-eyes",{targetIds:["hero"]});
 assert.equal(aceScene.actors[0].ruleState.revenantHollowedEyes.targetId,"hero");
+const unpaidRevenantScene=scene("lionwing.npc.revenant",{tension:0});
+const forgedRevenantAce=engine.prepareEnemyRule(scene("lionwing.npc.revenant"),data,{actorId:"enemy",ruleId:"lionwing.npc.revenant.hollowed-eyes",targetIds:["hero"]});
+assert.equal(forgedRevenantAce.ok,true);
+const disguisedAce=structuredClone(forgedRevenantAce.events);
+for(const event of disguisedAce) if(["enemy.action.prepare","enemy.action.resolve"].includes(event.type))event.payload.kind="action";
+assert.throws(()=>engine.dispatchMany(unpaidRevenantScene,disguisedAce),/каноническому типу|Напряжение/,"a Revenant Ace cannot be disguised as a normal action at zero Tension");
+const unpaidAttack=engine.prepareEnemyRule(scene("lionwing.npc.revenant"),data,{actorId:"enemy",ruleId:"lionwing.npc.revenant.tear-from-the-soul",targetIds:["hero"],roll:dice(6)});
+assert.equal(unpaidAttack.ok,true,unpaidAttack.errors?.join(" "));
+assert.throws(()=>engine.dispatchMany(scene("lionwing.npc.revenant"),unpaidAttack.events.filter(event=>event.type==="attack.pending")),/подготовленного и оплаченного/,"a standalone enemy attack cannot skip AP");
 aceScene=acePrepare("lionwing.npc.berserker","lionwing.npc.berserker.last-stand");
 assert.equal(aceScene.actors[0].hp,23);assert.equal(aceScene.actors[0].ruleState.berserkerLastStand,true);assert.equal(aceScene.actors[0].extraTurns,1);
 aceScene=acePrepare("lionwing.npc.hound-master","lionwing.npc.hound-master.wild-hunt",{targetIds:["hero"],options:{destination:{x:2,y:1}}});
@@ -314,7 +323,7 @@ const overfilledSeekerPrepare=clone(canonicalSeeker.events[0]);overfilledSeekerP
 assert.throws(()=>engine.dispatchMany(canonicalSeekerScene,[overfilledSeekerPrepare]),/авторитетная настройка Ищеек/,"a client cannot enlarge Fire Seeker's placement budget");
 const offTurnSeekerScene=clone(canonicalSeekerScene);offTurnSeekerScene.activeActorId="hero";
 const forgedQuickSeekerPrepare=clone(canonicalSeeker.events[0]);forgedQuickSeekerPrepare.payload.quickReaction=true;
-assert.throws(()=>engine.dispatchMany(offTurnSeekerScene,[forgedQuickSeekerPrepare]),/авторитетная настройка Ищеек/,"a client cannot forge an off-turn Fire Seeker");
+assert.throws(()=>engine.dispatchMany(offTurnSeekerScene,[forgedQuickSeekerPrepare]),/авторитетная настройка Ищеек|Сейчас Ход другого участника/,"a client cannot forge an off-turn Fire Seeker");
 const seekerCreated=engine.dispatchMany(canonicalSeekerScene,canonicalSeeker.events).scene;
 assert.equal(seekerCreated.actors.filter(item=>item.crowdSubtype==="seeker").length,1);
 const extraSeekerSpawn=clone(loneSeekerSpawn);extraSeekerSpawn.payload.actor.id="seeker-extra";extraSeekerSpawn.payload.actor.x=2;extraSeekerSpawn.payload.actor.y=1;
@@ -593,6 +602,6 @@ assert.equal(replay.events.length, 0);
 const forgedSource = clone(committedShove.events.find(event => event.type === "attack.pending"));
 forgedSource.id = "forged-source";
 forgedSource.payload.sourceDigest = "sha256:stale";
-assert.throws(() => engine.dispatch(current, forgedSource), /Источник|digest|canonical/);
+assert.throws(() => engine.dispatch(current, forgedSource), /Источник|digest|canonical|подготовленного и оплаченного/);
 
 console.log(`LionWing enemy automation: ${npcActionIds.length} canonical attacks, ${automatedAceIds.size} Aces, ${manualActionIds.length} manual attack fallbacks, ${canonicalAceIds.length-automatedAceIds.size} manual Aces; shared reaction/effect/damage pipeline and guards passed`);

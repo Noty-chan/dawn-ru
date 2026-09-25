@@ -4275,6 +4275,16 @@
     }
     const enemyEventFlow = events.some(event => ["enemy.action.prepare", "enemy.action.resolve", "attack.pending", "attack.clear"].includes(event?.type) || event?.type === "rule.prompt" && (event.payload?.kind?.startsWith("enemy-crowd-move-") || event.payload?.kind === "bodyguards-brace-line")) || pendingEnemyFlow || rangerPromptFlow || crowdPromptFlow;
     if (enemyEventFlow) {
+      for (const attack of events.filter(event => event?.type === "attack.pending" && event.payload?.enemyRuleId)) {
+        const attackIndex = events.indexOf(attack), ruleId = attack.payload.enemyRuleId;
+        const prior = events.slice(0, attackIndex), prepare = prior.find(event => event?.type === "enemy.action.prepare" && event.actorId === attack.actorId && event.payload?.ruleId === ruleId);
+        const profile = (scene.actors || []).find(actor => actor.id === attack.actorId)?.profileId;
+        const canonical = String(profile || "").startsWith("lionwing.npc.") && String(ruleId).startsWith("lionwing.npc.");
+        if (!canonical) continue;
+        const rule = enemyCanonicalRule(ruleId), cost = Number(rule?.apCost || 1);
+        const spend = prior.find(event => event?.type === "resource.spend" && event.actorId === attack.actorId && event.payload?.resource === "ap" && event.payload?.sourceRuleId === ruleId && Number(event.payload?.amount) === cost && event.payload?.sourceDigest === rule?.sourceDigest);
+        if (!prepare || !spend || prior.indexOf(spend) < prior.indexOf(prepare) || attack.payload?.sourceRuleId !== ruleId || attack.payload?.sourceDigest !== rule?.sourceDigest) fail("Атака врага требует подготовленного и оплаченного канонического действия.");
+      }
       validateBuilderArmyOfStoneEvents(scene, events);
       validateEnemySimpleWaveActionEvents(scene, events);
       const waveRuleId = events.find(event => event?.type === "enemy.action.prepare")?.payload?.ruleId;

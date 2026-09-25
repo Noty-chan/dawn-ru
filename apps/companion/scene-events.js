@@ -666,6 +666,14 @@ const expectedTargets = (scene.actors || []).filter(target => !target.knockedOut
   if (["enemy.action.prepare", "enemy.action.resolve"].includes(event.type)) {
     const canonicalRule = typeof enemyCanonicalRule === "function" ? enemyCanonicalRule(payload.ruleId) : null;
     if (canonicalRule && typeof canonicalRule === "object" && canonicalRule.id && (payload.sourceRuleId !== canonicalRule.id || payload.sourceDigest !== canonicalRule.sourceDigest)) throw new Error("Источник или digest действия LionWing устарел или не совпадает с canonical-правилом.");
+    if (event.type === "enemy.action.prepare" && scene.rulesEdition === "lionwing" && String(actor?.profileId || "").startsWith("lionwing.npc.")) {
+      const data = (typeof window === "object" ? window : globalThis).DAWN_DATA;
+      const profile = enemyProfileById(data, actor.profileId);
+      const ownedRule = profile?.rules?.find(item => item.id === payload.ruleId);
+      if (!ownedRule || payload.profileId !== actor.profileId || payload.kind !== ownedRule.kind) throw new Error("Действие врага не соответствует его каноническому типу и профилю.");
+      const status = availableEnemyRules(scene, data, actor.id).find(item => item.id === payload.ruleId);
+      if (!status?.available) throw new Error(status?.reason || "Каноническое действие врага сейчас недоступно.");
+    }
   }
   if (event.type === "enemy.action.prepare" && payload.crowdSummon) {
     const rule = ENEMY_FULL_RULES.get(payload.ruleId), space = (scene.spaces || []).find(item => item.id === actor?.space), cells = payload.crowdSummon.cells, uses = currentRoundEvents(scene).filter(item => item.type === "enemy.action.prepare" && item.actorId === actor?.id && item.payload?.ruleId === payload.ruleId).length, expected = rule?.type === "crowd-summon" ? Math.max(0, rule.countState ? Number(actor?.ruleState?.[rule.countState] || 0) : enemyTierFormula(rule.formula, actor?.tier) - (rule.diminishEachRoundUse ? uses : 0)) : -1, occupied = new Set((scene.actors || []).filter(item => item.kind === "crowd" && !item.knockedOut && item.space === actor?.space).map(cellKey));
