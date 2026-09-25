@@ -634,6 +634,12 @@ const expectedTargets = (scene.actors || []).filter(target => !target.knockedOut
     if (payload.key === "modifiedOverclockTurns" && (!Number.isInteger(Number(payload.value)) || Number(payload.value) < 0 || Number(payload.value) > 2)) throw new Error("Некорректная длительность Разгона.");
   }
   if (event.type === "turn.grant" && (!actorById(scene, event.actorId) || !Number.isInteger(Number(payload.amount)) || Number(payload.amount) < 1 || Number(payload.amount) > 4)) throw new Error("Некорректный дополнительный Ход.");
+  if (event.type === "terrain.convert-to-fodder") {
+    const token = payload.token, log = scene.log || [], prepareIndex = log.findIndex(item => item.type === "enemy.action.prepare" && item.actorId === actor?.id && item.payload?.ruleId === "lionwing.npc.builder.army-of-stone" && item.payload?.armyOfStone?.token === token), prepared = log[prepareIndex], spent = prepareIndex >= 0 && log.some((item, index) => index < prepareIndex && item.type === "resource.spend" && item.actorId === actor?.id && item.payload?.resource === "ap" && item.payload?.sourceRuleId === "lionwing.npc.builder.army-of-stone" && Number(item.payload?.amount) === 2), status = actor && typeof builderArmyOfStoneStatus === "function" ? builderArmyOfStoneStatus(scene, actor) : { available: false };
+    if (!actor || scene.rulesEdition !== "lionwing" || actor.profileId !== "lionwing.npc.builder" || event.actorId !== actor.id || typeof token !== "string" || !token || Object.keys(payload).some(key => key !== "token") || !prepared || prepared.payload?.sourceRuleId !== "lionwing.npc.builder.army-of-stone" || prepared.payload?.sourceDigest !== "sha256:8f3e506249b4ed9467ca33c7ee01b5a3227aa61aaa04b648675c214c6403a882" || !spent || !status.available || log.some(item => item.type === "terrain.convert-to-fodder" && item.actorId === actor.id && item.payload?.token === token)) throw new Error("Преобразование Местности не подтверждено доступной Армией камня.");
+    const generatedIds = status.spawnCells.map((_, index) => `as-${token.replace(/[^a-zA-Z0-9_-]/g, "").slice(-48)}-${index}`);
+    if (new Set(generatedIds).size !== generatedIds.length || generatedIds.some(id => (scene.actors || []).some(existing => existing.id === id))) throw new Error("Армия камня столкнулась с уже существующим идентификатором массовки.");
+  }
   if (["enemy.action.prepare", "enemy.action.resolve"].includes(event.type) && (typeof payload.ruleId !== "string" || typeof payload.name !== "string" || payload.ruleId.length > 180 || payload.name.length > 120)) throw new Error("Некорректное действие врага.");
   if (["enemy.action.prepare", "enemy.action.resolve"].includes(event.type)) {
     const canonicalRule = typeof enemyCanonicalRule === "function" ? enemyCanonicalRule(payload.ruleId) : null;
@@ -648,6 +654,18 @@ const expectedTargets = (scene.actors || []).filter(target => !target.knockedOut
     const sourceRule = enemyCanonicalRule(enemyProfileById(data, actor?.profileId)?.rules?.find(item => item.id === payload.ruleId));
     const status = availableEnemyRules(scene, data, actor?.id).find(item => item.id === payload.ruleId);
     if (!sourceRule || !status?.available || payload.kind !== sourceRule.kind || payload.profileId !== actor.profileId || Boolean(payload.quickReaction)) throw new Error(status?.reason || "Призыв недоступен или подменён тип действия.");
+  }
+  if (event.type === "enemy.action.prepare" && payload.ruleId === "lionwing.npc.builder.army-of-stone") {
+    const token = payload.armyOfStone?.token, used = (scene.log || []).some(item => item.type === "enemy.action.prepare" && item.payload?.armyOfStone?.token === token);
+    if (scene.rulesEdition !== "lionwing" || actor?.profileId !== "lionwing.npc.builder" || actor.knockedOut || scene.activeActorId !== actor.id || actor.acted || actor.usedTrump || actor.usedActions?.includes(payload.ruleId) || Number(actor.ap || 0) < 2 || Number(scene.tension || 0) < 2 || scene.pendingAction || scene.pendingPrompt || scene.pendingActionPlan || scene.lionwing?.pendingActionPlan || payload.profileId !== actor.profileId || payload.name !== "Army Of Stone" || payload.kind !== "trump" || payload.automation !== "full" || payload.sourceRuleId !== payload.ruleId || payload.sourceDigest !== "sha256:8f3e506249b4ed9467ca33c7ee01b5a3227aa61aaa04b648675c214c6403a882" || payload.text !== "Turn every piece of Terrain on the board into an allied Fodder Zone. This NPC immediately takes another Turn." || !Array.isArray(payload.targetIds) || payload.targetIds.length || !token || typeof token !== "string" || used || Object.keys(payload.armyOfStone || {}).some(key => key !== "token")) throw new Error("Армия камня требует доступный Козырь Строителя и точный канонический источник.");
+  }
+  if (event.type === "turn.grant" && payload.armyOfStoneToken != null) {
+    const token = payload.armyOfStoneToken, converted = (scene.log || []).some(item => item.type === "terrain.convert-to-fodder" && item.actorId === actor?.id && item.payload?.token === token);
+    if (actor?.profileId !== "lionwing.npc.builder" || payload.sourceActionId !== "lionwing.npc.builder.army-of-stone" || Number(payload.amount) !== 1 || !converted || JSON.stringify(payload.participantIds) !== JSON.stringify([actor.id])) throw new Error("Дополнительный Ход Армии камня требует завершённого преобразования Местности.");
+  }
+  if (event.type === "enemy.action.resolve" && payload.ruleId === "lionwing.npc.builder.army-of-stone") {
+    const log = scene.log || [], token = payload.armyOfStone?.token, prepareIndex = log.findIndex(item => item.type === "enemy.action.prepare" && item.actorId === actor?.id && item.payload?.ruleId === payload.ruleId && item.payload?.armyOfStone?.token === token), prepared = log[prepareIndex], conversionIndex = log.findIndex(item => item.type === "terrain.convert-to-fodder" && item.actorId === actor?.id && item.payload?.token === token), grantIndex = log.findIndex(item => item.type === "turn.grant" && item.actorId === actor?.id && item.payload?.armyOfStoneToken === token), grant = log[grantIndex], spendIndex = log.findIndex(item => item.type === "resource.spend" && item.actorId === actor?.id && item.payload?.sourceRuleId === payload.ruleId && item.payload?.resource === "ap" && Number(item.payload?.amount) === 2), { actorName: _preparedActorName, ...preparedPayload } = prepared?.payload || {};
+    if (!prepared || conversionIndex < 0 || !(grantIndex >= 0 && grantIndex < conversionIndex && conversionIndex < spendIndex && spendIndex < prepareIndex) || Number(grant.payload?.amount) !== 1 || JSON.stringify(payload) !== JSON.stringify(preparedPayload) || log.filter(item => item.type === "terrain.convert-to-fodder" && item.payload?.token === token).length !== 1) throw new Error("Армия камня должна преобразовать Местность и предоставить ровно один дополнительный Ход.");
   }
   if (event.type === "enemy.action.prepare" && (payload.corpseRevive || payload.ruleId === "lionwing.npc.necromancer.the-danse-macabre")) {
     const token = payload.corpseRevive?.token, revivals = payload.corpseRevive?.revivals;
@@ -1008,6 +1026,18 @@ function reduceEvent(scene, event) {
     const removed = (scene.objects || []).find(object => object.id === payload.id);
     payload.label = removed?.label || payload.label || "местность";
     scene.objects = (scene.objects || []).filter(object => object.id !== payload.id);
+  } else if (event.type === "terrain.convert-to-fodder") {
+    const status = builderArmyOfStoneStatus(scene, actor), ruleId = "lionwing.npc.builder.army-of-stone", groupId = `army-stone-${payload.token}`;
+    const terrainIds = new Set(status.terrainObjects.map(object => object.id));
+    scene.objects = (scene.objects || []).filter(object => !terrainIds.has(object.id));
+    scene.actors ||= [];
+    const spawned = [];
+    for (const [index, cell] of status.spawnCells.entries()) {
+      const id = `as-${String(payload.token).replace(/[^a-zA-Z0-9_-]/g, "").slice(-48)}-${index}`;
+      const fodder = { id, kind: "crowd", crowdType: "mob", crowdGroupId: groupId, source: ruleId, sourceActionId: ruleId, team: actor.team, heroId: null, profileId: null, name: `${actor.name}: Массовка`, tier: 0, space: cell.space, x: cell.x, y: cell.y, hp: 1, maxHp: 1, focus: 0, ap: 0, baseAp: 0, speed: 0, armor: 0, evasion: 0, effects: [], usedActions: [], acted: true, hidden: cell.hidden, tokenSymbol: "♟", tokenColor: actor.tokenColor || "#7f3044", tokenImage: "", portraitImage: "", summonerId: actor.id, rulesEdition: "lionwing" };
+      scene.actors.push(fodder); spawned.push(id);
+    }
+    Object.assign(payload, { terrainObjectIds: [...terrainIds], createdActorIds: spawned, reusedFodderIds: status.existingFodderIds, cellCount: status.cells.length });
   } else if (event.type === "area.duration") {
     const object = (scene.objects || []).find(item => item.id === payload.id);
     payload.before = object.duration;

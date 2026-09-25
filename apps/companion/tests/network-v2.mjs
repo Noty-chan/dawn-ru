@@ -15,6 +15,7 @@ vm.runInNewContext(fs.readFileSync(new URL("../network-v2.js",import.meta.url),"
 
 const Network=context.DAWN_NETWORK_V2,Engine=context.DAWN_SCENE_ENGINE,Techniques=context.DAWN_TECHNIQUE_ENGINE,data=context.DAWN_DATA;
 assert.equal(Network.PROTOCOL,2);
+assert.equal(Network.retryableAuthorityFailure(new Error("scene state is too large")),false,"a permanently oversized scene is not retried as a transient transport failure");
 assert.equal(Network.TICK_MS,200,"the authoritative cadence is capped at five ticks per second");
 assert.equal(new Network.PlayerOutbox({tickMs:1,send:async()=>{}}).tickMs,200,"callers cannot bypass the five-per-second client cap");
 assert.equal(new Network.AuthorityQueue({tickMs:1,flush:async()=>{}}).tickMs,200,"callers cannot bypass the five-per-second authority cap");
@@ -85,6 +86,18 @@ assert.equal(rebasedSnapshot.actors.find(actor=>actor.id==="hero").hp,7,"an unre
 assert.equal(rebasedSnapshot.actors.find(actor=>actor.id==="enemy").hp,5);
 assert.ok(rebasedSnapshot.actors.some(actor=>actor.id==="remote-enemy"),"entities added by another narrator are not erased by a stale snapshot");
 assert.equal(rebasedSnapshot.objects.length,0,"an intentional local entity removal remains intentional");
+const localActorRemoval=structuredClone(snapshotBase);
+localActorRemoval.actors=localActorRemoval.actors.filter(actor=>actor.id!=="enemy");
+const remoteActorUpdate=structuredClone(snapshotBase);
+remoteActorUpdate.actors.find(actor=>actor.id==="enemy").hp=3;
+const deletionWins=Network.rebaseSceneSnapshot(snapshotBase,localActorRemoval,remoteActorUpdate);
+assert.ok(!deletionWins.actors.some(actor=>actor.id==="enemy"),"a local actor removal is retained when the canonical actor receives a concurrent update");
+const remoteActorRemoval=structuredClone(snapshotBase);
+remoteActorRemoval.actors=remoteActorRemoval.actors.filter(actor=>actor.id!=="enemy");
+const staleActorEdit=structuredClone(snapshotBase);
+staleActorEdit.actors.find(actor=>actor.id==="enemy").name="Устаревшая правка противника";
+const noResurrection=Network.rebaseSceneSnapshot(snapshotBase,staleActorEdit,remoteActorRemoval);
+assert.ok(!noResurrection.actors.some(actor=>actor.id==="enemy"),"a stale snapshot cannot resurrect an actor removed by the canonical scene");
 
 const actionIntent=Network.intentFromEvents(baseScene,[
   {type:"action.prepare",actorId:"hero",payload:{actionId:"action.step",targetIds:["enemy"],request:{useGrasp:true}}},
@@ -425,6 +438,19 @@ boundedOutbox.enqueue({kind:"public-roll",actorId:"hero",payload:{roll:2}},7);
 assert.throws(()=>boundedOutbox.enqueue({kind:"public-roll",actorId:"hero",payload:{roll:3}},7),/очередь действий заполнена/i);
 boundedOutbox.clear();
 
+let releaseBoundedSend;
+let markBoundedSend;
+const boundedSendStarted=new Promise(resolve=>{markBoundedSend=resolve});
+const boundedSendGate=new Promise(resolve=>{releaseBoundedSend=resolve});
+const inFlightBoundedOutbox=new Network.PlayerOutbox({tickMs:10000,maxItems:1,send:async()=>{markBoundedSend();await boundedSendGate}});
+inFlightBoundedOutbox.enqueue({kind:"public-roll",actorId:"hero",payload:{roll:1}},7);
+const boundedSend=inFlightBoundedOutbox.flush();
+await boundedSendStarted;
+assert.throws(()=>inFlightBoundedOutbox.enqueue({kind:"public-roll",actorId:"hero",payload:{roll:2}},7),/очередь действий заполнена/i,"the player outbox cap includes its in-flight request");
+releaseBoundedSend();
+await boundedSend;
+inFlightBoundedOutbox.clear();
+
 let authorityBatch=[];
 const authority=new Network.AuthorityQueue({tickMs:10000,flush:async items=>{authorityBatch=items}});
 authority.enqueue({kind:"snapshot",scene:{version:7},label:"first"});
@@ -437,6 +463,58 @@ assert.equal(authorityBatch.length,2);
 assert.equal(authorityBatch.find(item=>item.kind==="snapshot").label,"latest");
 assert.equal(authorityBatch.find(item=>item.kind==="events").events[0].payload.value,4);
 authority.clear();
+
+const authorityAttempts=[];
+const retryingAuthority=new Network.AuthorityQueue({tickMs:10000,flush:async items=>{
+  authorityAttempts.push(items.slice());
+  if(authorityAttempts.length===1){const error=new Error("dropped HTTP response");error.retryable=true;throw error}
+}});
+const retrySnapshot=retryingAuthority.enqueue({kind:"snapshot",scene:{version:7},label:"retry snapshot"});
+const retryEvent=retryingAuthority.enqueue({kind:"events",events:[{type:"round.end",payload:{id:"first"}}]});
+await retryingAuthority.flush();
+retryingAuthority.enqueue({kind:"snapshot",scene:{version:8},label:"new snapshot"});
+retryingAuthority.enqueue({kind:"events",events:[{type:"round.start",payload:{id:"second"}}]});
+assert.equal(retryingAuthority.latestSnapshot().label,"new snapshot","newer snapshots remain visible while an older batch awaits its receipt");
+await retryingAuthority.flush();
+assert.equal(authorityAttempts[1].length,2,"a retry preserves its exact batch boundary and excludes newly queued items");
+assert.equal(authorityAttempts[1][0],retrySnapshot,"the receipt retry reuses the original snapshot item");
+assert.equal(authorityAttempts[1][1],retryEvent,"the receipt retry reuses the original event item");
+assert.equal(authorityAttempts[1][0].label,"retry snapshot","a newer snapshot cannot replace the snapshot covered by the retry receipt");
+assert.equal(retryingAuthority.pending(),2,"new updates remain pending after the prior retry is acknowledged");
+assert.equal(retryingAuthority.retryBatch,null,"a successful receipt clears the retry batch");
+await retryingAuthority.flush();
+assert.equal(authorityAttempts[2].length,2,"the newer snapshot and event are sent in their own subsequent batch");
+assert.equal(authorityAttempts[2][0].label,"new snapshot");
+retryingAuthority.clear();
+
+let permanentRetryAttempt=0;
+const permanentAfterRetry=new Network.AuthorityQueue({tickMs:10000,flush:async()=>{
+  permanentRetryAttempt++;
+  if(permanentRetryAttempt===1){const error=new Error("dropped HTTP response");error.retryable=true;throw error}
+  throw new Error("scene state is too large");
+}});
+permanentAfterRetry.enqueue({kind:"events",events:[{type:"session-clock.set",payload:{id:"clock",value:2}}]});
+await permanentAfterRetry.flush();
+assert.ok(permanentAfterRetry.retryBatch,"a transient failure retains the batch for its receipt retry");
+await permanentAfterRetry.flush();
+assert.equal(permanentAfterRetry.retryBatch,null,"a permanent failure clears the retry batch");
+assert.equal(permanentAfterRetry.failed.length,1,"a permanently failed item moves to the manual failed queue");
+permanentAfterRetry.clear();
+assert.equal(permanentAfterRetry.retryBatch,null,"clear removes any retained retry batch");
+
+let releaseBoundedAuthority;
+let markBoundedAuthority;
+const boundedAuthorityStarted=new Promise(resolve=>{markBoundedAuthority=resolve});
+const boundedAuthorityGate=new Promise(resolve=>{releaseBoundedAuthority=resolve});
+const inFlightBoundedAuthority=new Network.AuthorityQueue({tickMs:10000,maxItems:1,flush:async()=>{markBoundedAuthority();await boundedAuthorityGate}});
+inFlightBoundedAuthority.enqueue({kind:"events",events:[{type:"round.end",payload:{}}]});
+const boundedAuthorityFlush=inFlightBoundedAuthority.flush();
+await boundedAuthorityStarted;
+assert.equal(inFlightBoundedAuthority.pending(),1,"pending reports the exact number of in-flight authority items");
+assert.throws(()=>inFlightBoundedAuthority.enqueue({kind:"events",events:[{type:"round.start",payload:{}}]}),/очередь Нарратора переполнена/i,"the narrator queue cap includes the in-flight batch");
+releaseBoundedAuthority();
+await boundedAuthorityFlush;
+inFlightBoundedAuthority.clear();
 
 const prunedAuthority=new Network.AuthorityQueue({tickMs:10000,flush:async()=>{}});
 prunedAuthority.enqueue({kind:"command",command:{id:"11"}});
@@ -483,5 +561,39 @@ assert.match(migration,/event batch size must be 0\.\.192/i);
 assert.match(migration,/dropped HTTP response/i,"an acknowledged-but-lost tick has an idempotent retry receipt");
 assert.match(migration,/client_event_id in/i);
 assert.match(migration,/campaign_id = current_scene\.campaign_id[\s\S]+command_type = 'intent_v2'/i,"a retry receipt must verify the matching commands as well as event ids");
+
+const receiptMigration=fs.readFileSync(new URL("../../../supabase/migrations/202609240001_dawn_intent_batch_receipts.sql",import.meta.url),"utf8");
+assert.match(receiptMigration,/array_length\(p_command_ids, 1\)[\s\S]+event_count = 0[\s\S]+raise exception 'applied commands require at least one event'/i,"an applied command cannot commit without its atomic event batch");
+assert.match(receiptMigration,/request_hash := extensions\.digest\([\s\S]+'expected_version', p_expected_version[\s\S]+'command_ids', p_command_ids[\s\S]+'rejected_command_ids', p_rejected_command_ids[\s\S]+'events', p_events[\s\S]+'state', p_state[\s\S]+'label', p_label[\s\S]+'sha256'/i,"the receipt fingerprints every field that affects the committed tick");
+assert.match(receiptMigration,/select receipt\.result_version into receipt_version[\s\S]+if receipt_version is not null then return receipt_version; end if;[\s\S]+if current_scene\.version <> p_expected_version/i,"an exact retry returns its original version before checking the now-advanced scene version");
+assert.match(receiptMigration,/insert into public\.event_log[\s\S]+insert into public\.scene_intent_batch_receipts[\s\S]+return next_version/i,"the receipt is stored in the same transaction as the tick effects");
+
+const commandUpdateSource=fs.readFileSync(new URL("../scene-sync-ui.js",import.meta.url),"utf8");
+assert.match(commandUpdateSource,/function discardNetworkV2Commands\([\s\S]+item\.kind==="command"&&!item\._networkTick[\s\S]+settled\.has\(String\(item\.command\?\.id\)\)/,"a command update must not split an ambiguous atomic tick retry");
+
+let atomicRetryQueue;
+const atomicRetryAttempts=[];
+const tickCommand={kind:"command",command:{id:"14"}};
+const tickEvent={kind:"events",events:[{type:"round.end",payload:{id:"atomic"}}]};
+atomicRetryQueue=new Network.AuthorityQueue({tickMs:10000,flush:async items=>{
+  atomicRetryAttempts.push(items.slice());
+  if(atomicRetryAttempts.length===1){
+    // This is the same predicate used by discardNetworkV2Commands after a
+    // realtime command-update; tick-bound commands stay with their exact batch.
+    assert.equal(atomicRetryQueue.discard(item=>item.kind==="command"&&!item._networkTick&&String(item.command?.id)==="14"),0);
+    const error=new Error("dropped HTTP response");error.retryable=true;throw error;
+  }
+}});
+const queuedTickCommand=atomicRetryQueue.enqueue(tickCommand);
+const queuedTickEvent=atomicRetryQueue.enqueue(tickEvent);
+const atomicTick={items:[queuedTickCommand,queuedTickEvent]};
+queuedTickCommand._networkTick=atomicTick;
+queuedTickEvent._networkTick=atomicTick;
+await atomicRetryQueue.flush();
+await atomicRetryQueue.flush();
+assert.equal(atomicRetryAttempts[1].length,2,"a command update during a lost response retains the complete atomic retry");
+assert.equal(atomicRetryAttempts[1][0],queuedTickCommand);
+assert.equal(atomicRetryAttempts[1][1],queuedTickEvent);
+atomicRetryQueue.clear();
 
 console.log("Network v2 QA passed: local UI isolation, structured intents, ownership, coalescing, and atomic ticks");

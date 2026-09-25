@@ -17,9 +17,9 @@
     "combinedAuditRecords": 163
   },
   "actualAutomationCounts": {
-    "assisted": 55,
+    "assisted": 54,
     "attack": 35,
-    "full": 30,
+    "full": 31,
     "state": 2
   },
   "profiles": [
@@ -235,6 +235,9 @@
             "apps/companion/tests/lionwing-technician.mjs",
             "apps/companion/tests/lionwing-technique-status-ui.mjs",
             "apps/companion/tests/lionwing-turn-lifetimes.mjs",
+            "apps/companion/tests/network-flow.mjs",
+            "apps/companion/tests/network-placement-preview.mjs",
+            "apps/companion/tests/network-size-guard.mjs",
             "apps/companion/tests/network-v2.mjs",
             "apps/companion/tests/qa.mjs",
             "apps/companion/tests/scene-engine.mjs"
@@ -1477,6 +1480,8 @@
             "apps/companion/tests/lionwing-technique-status-ui.mjs",
             "apps/companion/tests/lionwing-turn-lifetimes.mjs",
             "apps/companion/tests/lionwing-ui-localization-l09.mjs",
+            "apps/companion/tests/network-flow.mjs",
+            "apps/companion/tests/network-load-race.mjs",
             "apps/companion/tests/network-mvp.mjs",
             "apps/companion/tests/network-v2.mjs",
             "apps/companion/tests/qa.mjs",
@@ -1957,6 +1962,7 @@
             "apps/companion/tests/lionwing-player-objects-o10.mjs",
             "apps/companion/tests/lionwing-replacements.mjs",
             "apps/companion/tests/lionwing-technician.mjs",
+            "apps/companion/tests/network-size-guard.mjs",
             "apps/companion/tests/network-v2.mjs",
             "apps/companion/tests/qa.mjs",
             "apps/companion/tests/scene-engine.mjs",
@@ -3215,6 +3221,8 @@
             "apps/companion/tests/lionwing-technique-status-ui.mjs",
             "apps/companion/tests/lionwing-turn-lifetimes.mjs",
             "apps/companion/tests/lionwing-ui-localization-l09.mjs",
+            "apps/companion/tests/network-flow.mjs",
+            "apps/companion/tests/network-load-race.mjs",
             "apps/companion/tests/network-mvp.mjs",
             "apps/companion/tests/network-v2.mjs",
             "apps/companion/tests/qa.mjs",
@@ -3939,6 +3947,8 @@
             "apps/companion/tests/lionwing-technique-status-ui.mjs",
             "apps/companion/tests/lionwing-turn-lifetimes.mjs",
             "apps/companion/tests/lionwing-ui-localization-l09.mjs",
+            "apps/companion/tests/network-flow.mjs",
+            "apps/companion/tests/network-load-race.mjs",
             "apps/companion/tests/network-mvp.mjs",
             "apps/companion/tests/network-v2.mjs",
             "apps/companion/tests/qa.mjs",
@@ -4833,7 +4843,9 @@
           "apps/companion/tests/lionwing-ui-localization-l09.mjs",
           "apps/companion/tests/lionwing-unbroken-complex.mjs",
           "apps/companion/tests/localization.mjs",
+          "apps/companion/tests/network-flow.mjs",
           "apps/companion/tests/network-mvp.mjs",
+          "apps/companion/tests/network-placement-preview.mjs",
           "apps/companion/tests/network-v2.mjs",
           "apps/companion/tests/qa.mjs",
           "apps/companion/tests/raasha.mjs",
@@ -4960,7 +4972,9 @@
             "apps/companion/tests/lionwing-ui-localization-l09.mjs",
             "apps/companion/tests/lionwing-unbroken-complex.mjs",
             "apps/companion/tests/localization.mjs",
+            "apps/companion/tests/network-flow.mjs",
             "apps/companion/tests/network-mvp.mjs",
+            "apps/companion/tests/network-placement-preview.mjs",
             "apps/companion/tests/network-v2.mjs",
             "apps/companion/tests/qa.mjs",
             "apps/companion/tests/raasha.mjs",
@@ -5081,7 +5095,9 @@
             "apps/companion/tests/lionwing-ui-localization-l09.mjs",
             "apps/companion/tests/lionwing-unbroken-complex.mjs",
             "apps/companion/tests/localization.mjs",
+            "apps/companion/tests/network-flow.mjs",
             "apps/companion/tests/network-mvp.mjs",
+            "apps/companion/tests/network-placement-preview.mjs",
             "apps/companion/tests/network-v2.mjs",
             "apps/companion/tests/qa.mjs",
             "apps/companion/tests/raasha.mjs",
@@ -5208,7 +5224,9 @@
             "apps/companion/tests/lionwing-ui-localization-l09.mjs",
             "apps/companion/tests/lionwing-unbroken-complex.mjs",
             "apps/companion/tests/localization.mjs",
+            "apps/companion/tests/network-flow.mjs",
             "apps/companion/tests/network-mvp.mjs",
+            "apps/companion/tests/network-placement-preview.mjs",
             "apps/companion/tests/network-v2.mjs",
             "apps/companion/tests/qa.mjs",
             "apps/companion/tests/raasha.mjs",
@@ -6205,6 +6223,7 @@
         "tests": [
           "apps/companion/tests/edition-isolation.mjs",
           "apps/companion/tests/lionwing-enemy-base-attacks.mjs",
+          "apps/companion/tests/lionwing-enemy-fodder-creators.mjs",
           "apps/companion/tests/lionwing-hero-sheet-view.mjs",
           "apps/companion/tests/lionwing-inventory.mjs",
           "apps/companion/tests/lionwing-localization.mjs",
@@ -6260,6 +6279,7 @@
           "tests": [
             "apps/companion/tests/edition-isolation.mjs",
             "apps/companion/tests/lionwing-enemy-base-attacks.mjs",
+            "apps/companion/tests/lionwing-enemy-fodder-creators.mjs",
             "apps/companion/tests/lionwing-hero-sheet-view.mjs",
             "apps/companion/tests/lionwing-inventory.mjs",
             "apps/companion/tests/lionwing-localization.mjs",
@@ -6314,6 +6334,7 @@
           "tests": [
             "apps/companion/tests/edition-isolation.mjs",
             "apps/companion/tests/lionwing-enemy-base-attacks.mjs",
+            "apps/companion/tests/lionwing-enemy-fodder-creators.mjs",
             "apps/companion/tests/lionwing-hero-sheet-view.mjs",
             "apps/companion/tests/lionwing-inventory.mjs",
             "apps/companion/tests/lionwing-localization.mjs",
@@ -6361,14 +6382,15 @@
           "declaredStatus": "assisted",
           "actualHandler": {
             "entry": "DAWN_SCENE_ENGINE.prepareEnemyRule",
-            "implementation": null,
-            "automation": "assisted",
-            "note": "The common entry exists, but no automatic rule handler is selected."
+            "implementation": "scene-actions.js prepareEnemyRule (full route)",
+            "automation": "full",
+            "note": "Presence is recorded without promoting readiness or verifying completeness."
           },
           "uiEntryPoint": "scene-actions-ui.js useEnemyRule → DAWN_SCENE_ENGINE.prepareEnemyRule → commitSceneEvents",
           "tests": [
             "apps/companion/tests/edition-isolation.mjs",
             "apps/companion/tests/lionwing-enemy-base-attacks.mjs",
+            "apps/companion/tests/lionwing-enemy-fodder-creators.mjs",
             "apps/companion/tests/lionwing-hero-sheet-view.mjs",
             "apps/companion/tests/lionwing-inventory.mjs",
             "apps/companion/tests/lionwing-localization.mjs",
@@ -6394,7 +6416,7 @@
           "ambiguities": [
             "Occupancy exceptions are rule-specific; Fodder is not forced through the ordinary empty-cell rule."
           ],
-          "remainder": "No selected production automation handler; full mechanics, payment, cancellation, persistence, and UI acceptance remain.",
+          "remainder": "Audit implementation against every clause; handler presence does not prove payment, lifecycle, persistence, browser, or network acceptance.",
           "wave": 6
         }
       ],
@@ -8469,7 +8491,10 @@
             "apps/companion/tests/lionwing-unbroken-complex.mjs",
             "apps/companion/tests/load-scene-engine.mjs",
             "apps/companion/tests/localization.mjs",
+            "apps/companion/tests/network-flow.mjs",
+            "apps/companion/tests/network-load-race.mjs",
             "apps/companion/tests/network-mvp.mjs",
+            "apps/companion/tests/network-placement-preview.mjs",
             "apps/companion/tests/network-v2.mjs",
             "apps/companion/tests/qa.mjs",
             "apps/companion/tests/raasha.mjs",
@@ -10247,6 +10272,8 @@
             "apps/companion/tests/lionwing-technique-status-ui.mjs",
             "apps/companion/tests/lionwing-turn-lifetimes.mjs",
             "apps/companion/tests/lionwing-ui-localization-l09.mjs",
+            "apps/companion/tests/network-flow.mjs",
+            "apps/companion/tests/network-load-race.mjs",
             "apps/companion/tests/network-mvp.mjs",
             "apps/companion/tests/network-v2.mjs",
             "apps/companion/tests/qa.mjs",

@@ -32,6 +32,7 @@ const EVENT_TYPES = new Set(["action.plan", "action.plan.update", "action.plan.c
 EVENT_TYPES.add("modifier.action");
 EVENT_TYPES.add("modifier.used");
 EVENT_TYPES.add("modifier.vortex.absorb");
+EVENT_TYPES.add("terrain.convert-to-fodder");
 const RESOURCES = new Set(["ap", "focus", "influence", "meals", "creationMarks", "innovationCharges"]);
 // Every prompt whose answer is a board placement must expose the typed `cell`
 // option at the event boundary. Keep this registry wider than the current UI
