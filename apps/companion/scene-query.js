@@ -55,6 +55,7 @@ function builderArmyOfStoneStatus(scene, actorOrId) {
 function actorMatchesQuery(actor, source, options = {}) {
   if (!actor || (!options.includeKnockedOut && actor.knockedOut)) return false;
   if (actor.deploymentProxy && !options.includeDeploymentProxy) return false;
+  if (actor.hidden && String(actor.profileId || "").startsWith("lionwing.modifier.") && !options.includeHiddenModifier) return false;
   if (!options.includeSelf && source && actor.id === source.id) return false;
   if (options.team && actor.team !== options.team) return false;
   if (options.audience === "allies" && source && actor.team !== source.team) return false;

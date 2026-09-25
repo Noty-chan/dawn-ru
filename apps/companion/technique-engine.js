@@ -619,7 +619,7 @@
         else if (selectedCells.some(cell => { const [x, y] = cell.split(",").map(Number); return !inBounds(sourceSpace, { x, y }); })) errors.push("Одна из клеток Живого идола находится вне поля.");
         else targetCells.push(...selectedCells);
       }
-      if (targetCells.length) targetIds.push(...(scene.actors || []).filter(target => !target.knockedOut && target.team !== actor.team && target.space === actor.space && targetCells.includes(pointKey(target))).map(target => target.id));
+      if (targetCells.length) targetIds.push(...(scene.actors || []).filter(target => !target.knockedOut && target.team !== actor.team && target.space === actor.space && targetCells.includes(pointKey(target)) && global.DAWN_SCENE_ENGINE?.effectTargetingStatus(scene, actor.id, target.id)?.available).map(target => target.id));
       if (!targetIds.length && ["mallet", "pile-arm"].includes(rule.form)) errors.push("В выбранной форме нет доступной цели.");
       if (errors.length) return { ok: false, engineVersion: VERSION, actorId: actor.id, rule: publicRule(rule), request: clone(request), errors, warnings: [], commands: [], events: [], affectedCells: targetCells, affectedActorIds: targetIds };
       const cost = global.DAWN_SCENE_ENGINE?.actionCost(action) || { resource: "ap", amount: rule.actionKey === "finish" ? 2 : 1 }, baseDamage = Number(request.roll.successes || 0) + (rule.actionKey === "finish" ? tensionValue(scene) : 0), chosenDistance = Number(request.options?.distance || 0), damageByTarget = Object.fromEntries(targetIds.map(id => [id, Math.max(0, baseDamage + (rule.form === "mallet" ? chosenDistance : 0))])), events = [
