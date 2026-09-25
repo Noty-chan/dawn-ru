@@ -54,6 +54,7 @@ function builderArmyOfStoneStatus(scene, actorOrId) {
 
 function actorMatchesQuery(actor, source, options = {}) {
   if (!actor || (!options.includeKnockedOut && actor.knockedOut)) return false;
+  if (actor.deploymentProxy && !options.includeDeploymentProxy) return false;
   if (!options.includeSelf && source && actor.id === source.id) return false;
   if (options.team && actor.team !== options.team) return false;
   if (options.audience === "allies" && source && actor.team !== source.team) return false;
@@ -685,7 +686,7 @@ function effectPresenceStatus(scene, actorId) {
     available: !actor.knockedOut && !disappeared,
     reason: actor.knockedOut ? "Участник выведен из боя." : disappeared ? "Участник Исчез и сейчас не находится на поле." : "",
     actor,
-    onField: !disappeared,
+    onField: !disappeared && !actor.deploymentProxy,
     disappeared,
     banished,
   };

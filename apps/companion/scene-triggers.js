@@ -617,9 +617,11 @@ function broodmotherFodderCells(scene, actor) {
 
 function effectLifecycleEvents(scene, event) {
   const events = [], boundaryActorId = event.actorId || null;
-  for (const owner of scene.actors || []) {
-    if (owner.profileId === "lionwing.npc.bodyguards" && owner.ruleState?.bodyguardsBrace && !bodyguardsBraceIntact(scene, owner)) {
-      events.push({ type: "actor.state", actorId: owner.id, payload: { key: "bodyguardsBrace", value: null, sourceActionId: "lionwing.npc.bodyguards.brace", automatic: true, reason: "Линия Зон массовки разорвана.", boundaryEventId: event.id, participantIds: [owner.id, ...(owner.ruleState.bodyguardsBrace.zoneIds || [])] } });
+  if (["actor.move", "actor.enter", "actor.knockout", "damage.apply", "actor.despawn", "actor.remove", "space.remove"].includes(event.type)) {
+    for (const owner of scene.actors || []) {
+      if (owner.profileId === "lionwing.npc.bodyguards" && owner.ruleState?.bodyguardsBrace && !bodyguardsBraceIntact(scene, owner)) {
+        events.push({ type: "actor.state", actorId: owner.id, payload: { key: "bodyguardsBrace", value: null, sourceActionId: "lionwing.npc.bodyguards.brace", automatic: true, reason: "Линия Зон массовки разорвана.", boundaryEventId: event.id, participantIds: [owner.id, ...(owner.ruleState.bodyguardsBrace.zoneIds || [])] } });
+      }
     }
   }
   if (scene.rulesEdition === "lionwing" && ((event.type === "damage.apply" && event.payload?.applied) || (event.type === "actor.knockout" && event.payload?.applied))) {

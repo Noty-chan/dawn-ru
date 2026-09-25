@@ -54,6 +54,8 @@ for (const [profileId, team] of [["lionwing.npc.bodyguards", "enemy"], ["lionwin
   assert.equal(new Set(zones.map(item => `${item.space}:${item.x},${item.y}`)).size, 6, "deployment zones occupy distinct cells");
   assert.ok(zones.every(item => item.team === team && item.deploymentFodderOwnerId === owner.id && item.summonerId === owner.id), "zones are linked to their owner and side");
   assert.equal(owner.deploymentProxy, true, "profile remains as a turn owner");
+  assert.equal(Engine.effectPresenceStatus(initial, owner.id).onField, false, "the turn owner is not a figure on the battlefield");
+  assert.ok(!Engine.actorIdsInCells(initial, owner.space, [`${owner.x},${owner.y}`], { ignoreEffectTargeting: true }).includes(owner.id), "raw area queries cannot include the off-board owner");
   assert.equal(owner.speed, 0, "off-board deployment owner has no movement speed");
   const step = Engine.availableActions(initial, data, owner.id).find(item => item.id === "action.движение.шаг");
   assert.equal(step?.available, false, "off-board deployment owner cannot use its base Step");
