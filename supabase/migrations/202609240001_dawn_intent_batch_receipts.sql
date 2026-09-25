@@ -77,6 +77,9 @@ begin
   end if;
   expected_commands := coalesce(array_length(p_command_ids, 1), 0)
     + coalesce(array_length(p_rejected_command_ids, 1), 0);
+  if coalesce(array_length(p_command_ids, 1), 0) > 0 and event_count = 0 then
+    raise exception 'applied commands require at least one event';
+  end if;
   if event_count = 0 and expected_commands = 0 then
     if current_scene.version <> p_expected_version then raise exception 'scene version conflict' using errcode = '40001'; end if;
     return current_scene.version;

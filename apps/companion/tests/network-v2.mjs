@@ -562,4 +562,38 @@ assert.match(migration,/dropped HTTP response/i,"an acknowledged-but-lost tick h
 assert.match(migration,/client_event_id in/i);
 assert.match(migration,/campaign_id = current_scene\.campaign_id[\s\S]+command_type = 'intent_v2'/i,"a retry receipt must verify the matching commands as well as event ids");
 
+const receiptMigration=fs.readFileSync(new URL("../../../supabase/migrations/202609240001_dawn_intent_batch_receipts.sql",import.meta.url),"utf8");
+assert.match(receiptMigration,/array_length\(p_command_ids, 1\)[\s\S]+event_count = 0[\s\S]+raise exception 'applied commands require at least one event'/i,"an applied command cannot commit without its atomic event batch");
+assert.match(receiptMigration,/request_hash := extensions\.digest\([\s\S]+'expected_version', p_expected_version[\s\S]+'command_ids', p_command_ids[\s\S]+'rejected_command_ids', p_rejected_command_ids[\s\S]+'events', p_events[\s\S]+'state', p_state[\s\S]+'label', p_label[\s\S]+'sha256'/i,"the receipt fingerprints every field that affects the committed tick");
+assert.match(receiptMigration,/select receipt\.result_version into receipt_version[\s\S]+if receipt_version is not null then return receipt_version; end if;[\s\S]+if current_scene\.version <> p_expected_version/i,"an exact retry returns its original version before checking the now-advanced scene version");
+assert.match(receiptMigration,/insert into public\.event_log[\s\S]+insert into public\.scene_intent_batch_receipts[\s\S]+return next_version/i,"the receipt is stored in the same transaction as the tick effects");
+
+const commandUpdateSource=fs.readFileSync(new URL("../scene-sync-ui.js",import.meta.url),"utf8");
+assert.match(commandUpdateSource,/function discardNetworkV2Commands\([\s\S]+item\.kind==="command"&&!item\._networkTick[\s\S]+settled\.has\(String\(item\.command\?\.id\)\)/,"a command update must not split an ambiguous atomic tick retry");
+
+let atomicRetryQueue;
+const atomicRetryAttempts=[];
+const tickCommand={kind:"command",command:{id:"14"}};
+const tickEvent={kind:"events",events:[{type:"round.end",payload:{id:"atomic"}}]};
+atomicRetryQueue=new Network.AuthorityQueue({tickMs:10000,flush:async items=>{
+  atomicRetryAttempts.push(items.slice());
+  if(atomicRetryAttempts.length===1){
+    // This is the same predicate used by discardNetworkV2Commands after a
+    // realtime command-update; tick-bound commands stay with their exact batch.
+    assert.equal(atomicRetryQueue.discard(item=>item.kind==="command"&&!item._networkTick&&String(item.command?.id)==="14"),0);
+    const error=new Error("dropped HTTP response");error.retryable=true;throw error;
+  }
+}});
+const queuedTickCommand=atomicRetryQueue.enqueue(tickCommand);
+const queuedTickEvent=atomicRetryQueue.enqueue(tickEvent);
+const atomicTick={items:[queuedTickCommand,queuedTickEvent]};
+queuedTickCommand._networkTick=atomicTick;
+queuedTickEvent._networkTick=atomicTick;
+await atomicRetryQueue.flush();
+await atomicRetryQueue.flush();
+assert.equal(atomicRetryAttempts[1].length,2,"a command update during a lost response retains the complete atomic retry");
+assert.equal(atomicRetryAttempts[1][0],queuedTickCommand);
+assert.equal(atomicRetryAttempts[1][1],queuedTickEvent);
+atomicRetryQueue.clear();
+
 console.log("Network v2 QA passed: local UI isolation, structured intents, ownership, coalescing, and atomic ticks");
