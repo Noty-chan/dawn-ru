@@ -1008,6 +1008,7 @@
 
   function actionStatus(scene, a, def, request = {}) {
     if (!live(a)) return unavailable("Участник выведен из боя");
+    if (a.deploymentProxy) return unavailable("Этот НПС не находится на Поле и не может использовать базовые Действия");
     if (scene.pendingAction || state(copy(scene)).choices?.length) return unavailable("Сначала завершите текущую цепочку");
     if (def.type === "reaction") return unavailable("Реакция доступна при соответствующем событии");
     const denial = actionGuardList(scene, a, "denials").find(item => item.actionId === def.id && Number(item.remaining ?? 1) > 0);
@@ -2085,7 +2086,7 @@
           removeEffect(other,e,{sourceId:source.sourceId||source.actorId,manual:false});
       }
       const knockoutSource=cause&&Object.hasOwn(cause,"sourceActorId")?cause.sourceActorId:a.id;
-      emit("actor.knockout", knockoutSource, { targetId: a.id, cause: cause ? { kind: cause.kind || "rule", sourceActorId: cause.sourceActorId ?? null, eventId: cause.eventId || rootId } : null });
+      emit("actor.knockout", knockoutSource, { targetId: a.id, applied: true, cause: cause ? { kind: cause.kind || "rule", sourceActorId: cause.sourceActorId ?? null, eventId: cause.eventId || rootId } : null });
       if (isPlayer(a) && astate(a).vulnerable) {
         // LionWing p. 37: the Vulnerable PC who is KOed gains 3 Influence.
         if (Number(astate(a).unbrokenInfluenceLockSceneSerial || 0) === Number(s.sceneSerial || 1)) {
@@ -4231,6 +4232,25 @@
       if (events.every(event => event?.id && (scene.lionwing?.receipts || []).some(receipt => receipt.id === event.id && receipt.fingerprint === JSON.stringify([event.type, event.actorId || null, event.payload || {}])))) return { scene: copy(scene), events: [], event: null };
       fail("Конфликт версии Сцены: обновите состояние");
     }
+    for (const event of events) {
+      const targetId = event?.type === "actor.knockout" || event?.type === "damage.apply" ? event.payload?.targetId : null;
+      const target = targetId && (scene.actors || []).find(item => item.id === targetId);
+      if (target?.deploymentProxy && event.type === "actor.knockout") fail("Некорректное выведение из строя.");
+      if (target?.deploymentProxy && event.type === "damage.apply") fail("Этот НПС нельзя атаковать до разрешения его Пассивa при Развёртывании.");
+      if (event?.type === "actor.move" && (scene.actors || []).some(item => item.id === event.actorId && item.deploymentProxy)) fail("Этот НПС не находится на Поле и не может перемещаться.");
+      const command = event?.type === "lionwing.command" ? event.payload || {} : null;
+      const commandTarget = command && ["damage", "knockout"].includes(command.kind) ? (scene.actors || []).find(item => item.id === command.targetId && item.deploymentProxy) : null;
+      if (commandTarget && command.kind === "damage") fail("Этот НПС нельзя атаковать до разрешения его Пассивa при Развёртывании.");
+      if (commandTarget && command.kind === "knockout") fail("Некорректное выведение из строя.");
+      if (command?.kind === "move" && (scene.actors || []).some(item => item.id === (command.targetId || event.actorId) && item.deploymentProxy)) fail("Этот НПС не находится на Поле и не может перемещаться.");
+      const effectTargetId = ["effect.apply", "effect.banish", "effect.vanish"].includes(event?.type) ? event.payload?.targetId
+        : command && ["effect", "banish", "vanish"].includes(command.kind) ? command.targetId || event.actorId : null;
+      const attackTargetIds = event?.type === "attack.pending" ? event.payload?.targetIds || [event.payload?.targetId]
+        : command?.kind === "attack" ? command.targetIds || [command.targetId] : [];
+      const proxyEffectTarget = effectTargetId && (scene.actors || []).find(item => item.id === effectTargetId && item.deploymentProxy);
+      if (proxyEffectTarget) fail("Этот НПС не находится на поле и не может быть выбран целью.");
+      if (attackTargetIds.some(id => (scene.actors || []).some(item => item.id === id && item.deploymentProxy))) fail("Этот НПС не находится на поле и не может быть выбран целью.");
+    }
     for (const attack of events.filter(event => event?.type === "attack.pending")) {
       const attacker = (scene.actors || []).find(actor => actor.id === attack.actorId);
       if (!isPlayer(attacker) || attack.payload?.quickReaction || narratorEvents) continue;
@@ -4243,7 +4263,7 @@
     }
     const pendingEnemyFlow = scene.pendingAction?.enemyRuleId && events.some(event => ["reaction.respond", "rule.respond", "damage.apply", "effect.apply", "actor.move", "actor.enter", "attack.clear"].includes(event?.type));
     const rangerPromptFlow = scene.pendingPrompt?.kind === "enemy-ranger-retreat" && events.some(event => event?.type === "rule.respond");
-    const crowdPromptFlow = ["fodder-", "enemy-crowd-move-", "enemy-swarm-stun", "enemy-broodmother-fodder"].some(prefix => scene.pendingPrompt?.kind?.startsWith(prefix)) && events.some(event => event?.type === "rule.respond");
+    const crowdPromptFlow = ["fodder-", "enemy-crowd-move-", "enemy-swarm-stun", "enemy-broodmother-fodder", "bodyguards-brace-line"].some(prefix => scene.pendingPrompt?.kind?.startsWith(prefix)) && events.some(event => event?.type === "rule.respond");
     const modifierFlow = events.length > 0 && events.every(event => event?.type === "modifier.configure" && (scene.actors || []).some(actor => actor.id === event.actorId && ["lionwing.modifier.isolation","lionwing.modifier.artillery","lionwing.modifier.haven","lionwing.modifier.contagion","lionwing.modifier.earthquake","lionwing.modifier.vip","lionwing.modifier.collateral","lionwing.modifier.legion","lionwing.modifier.vortex","lionwing.modifier.blaze","lionwing.modifier.gargantuan","lionwing.modifier.giant"].includes(actor.profileId)) || event?.type === "rule.respond" && ["modifier-refresh","lionwing-vip-follow"].includes(scene.pendingPrompt?.kind) && scene.pendingPrompt?.sourceActorId === event.actorId && (scene.actors || []).some(actor => actor.id === event.actorId && ["lionwing.modifier.isolation","lionwing.modifier.artillery","lionwing.modifier.haven","lionwing.modifier.contagion","lionwing.modifier.earthquake","lionwing.modifier.vip","lionwing.modifier.collateral","lionwing.modifier.legion","lionwing.modifier.vortex","lionwing.modifier.blaze","lionwing.modifier.gargantuan","lionwing.modifier.giant"].includes(actor.profileId)) || event?.type === "actor.move" && event.payload?.vipFollow && (scene.actors || []).some(actor => actor.id === event.actorId && actor.profileId === "lionwing.modifier.vip"));
     if (modifierFlow) return legacy.dispatchMany(scene, events, options);
     const modifierAttack=events.find(event=>event?.type==="modifier.action"&&(scene.actors||[]).some(item=>item.id===event.actorId&&["lionwing.modifier.giant","lionwing.modifier.gargantuan"].includes(item.profileId)));
@@ -4253,7 +4273,7 @@
       if(rolls){const published=events[0],embedded=modifierAttack.payload?.roll;if(published.actorId!==host.id||published.payload?.sourceActionId!==`${modifier.profileId}.attack`||!embedded||JSON.stringify(published.payload?.rolls)!==JSON.stringify(embedded.rolls)||Number(published.payload?.successes)!==Number(embedded.successes)||Number(published.payload?.crits)!==Number(embedded.crits))fail("Результат Атаки Громадины должен совпадать с публичным броском");}
       return legacy.dispatchMany(scene,events,options);
     }
-    const enemyEventFlow = events.some(event => ["enemy.action.prepare", "enemy.action.resolve", "attack.pending", "attack.clear"].includes(event?.type) || event?.type === "rule.prompt" && event.payload?.kind?.startsWith("enemy-crowd-move-")) || pendingEnemyFlow || rangerPromptFlow || crowdPromptFlow;
+    const enemyEventFlow = events.some(event => ["enemy.action.prepare", "enemy.action.resolve", "attack.pending", "attack.clear"].includes(event?.type) || event?.type === "rule.prompt" && (event.payload?.kind?.startsWith("enemy-crowd-move-") || event.payload?.kind === "bodyguards-brace-line")) || pendingEnemyFlow || rangerPromptFlow || crowdPromptFlow;
     if (enemyEventFlow) {
       validateBuilderArmyOfStoneEvents(scene, events);
       validateEnemySimpleWaveActionEvents(scene, events);
@@ -4398,6 +4418,10 @@
         removeAurasForLostSource(next,lostSourceId);
         if (inventory?.removeSource && lostSourceId) inventory.removeSource(next, lostSourceId);
       } else { execute(next, event, output, options); next.version = Number(next.version || 0) + 1; }
+      for (const boundary of output.slice(outputStart).filter(item => ["damage.apply", "actor.knockout", "actor.move", "actor.enter", "actor.despawn", "actor.remove", "space.remove"].includes(item.type))) {
+        const consequences = legacy.bodyguardsLifecycleEvents?.(next, boundary) || [];
+        if (consequences.length) { const result = legacy.dispatchMany(next, consequences); next = result.scene; output.push(...result.events); }
+      }
       for (const knockout of output.slice(outputStart).filter(item => item.type === "actor.knockout")) {
         const defeated = actor(next, knockout.payload?.targetId || knockout.actorId);
         if (!["lionwing.modifier.vip","lionwing.modifier.collateral"].includes(defeated?.profileId) && !(defeated?.team === "enemy" && defeated?.kind !== "crowd" && (next.actors || []).some(item => item.profileId === "lionwing.modifier.legion" && item.modifierState?.deployed || String(item.profileId||"").startsWith("lionwing.modifier.") && item.modifierState?.carrierId === defeated.id))) continue;

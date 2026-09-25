@@ -617,6 +617,21 @@ function broodmotherFodderCells(scene, actor) {
 
 function effectLifecycleEvents(scene, event) {
   const events = [], boundaryActorId = event.actorId || null;
+  for (const owner of scene.actors || []) {
+    if (owner.profileId === "lionwing.npc.bodyguards" && owner.ruleState?.bodyguardsBrace && !bodyguardsBraceIntact(scene, owner)) {
+      events.push({ type: "actor.state", actorId: owner.id, payload: { key: "bodyguardsBrace", value: null, sourceActionId: "lionwing.npc.bodyguards.brace", automatic: true, reason: "Линия Зон массовки разорвана.", boundaryEventId: event.id, participantIds: [owner.id, ...(owner.ruleState.bodyguardsBrace.zoneIds || [])] } });
+    }
+  }
+  if (scene.rulesEdition === "lionwing" && ((event.type === "damage.apply" && event.payload?.applied) || (event.type === "actor.knockout" && event.payload?.applied))) {
+    const defeated = actorById(scene, event.payload?.targetId);
+    if (defeated?.knockedOut) for (const owner of scene.actors || []) {
+      if (!owner.deploymentProxy || owner.knockedOut || !["lionwing.npc.bodyguards", "lionwing.npc.swarm"].includes(owner.profileId)
+        || !deploymentPassiveConditionMet(scene, owner)
+        || (scene.log || []).some(item => item.type === "damage.apply" && item.payload?.deploymentOwnerId === owner.id)) continue;
+      const sourceActionId = `${owner.profileId}.deployment`;
+      events.push({ type: "damage.apply", actorId: owner.id, payload: { targetId: owner.id, amount: 1, ignoreArmor: true, ignoreEvasion: true, sourceActionId, deploymentOwnerId: owner.id, boundaryEventId: event.id, participantIds: [owner.id, defeated.id] } });
+    }
+  }
   if (event.type === "damage.apply" && event.payload?.applied) {
     const glutton = actorById(scene, event.actorId), target = actorById(scene, event.payload.targetId);
     if (glutton && !glutton.knockedOut && ["enemy.common.glutton", "lionwing.npc.glutton"].includes(glutton.profileId) && target?.kind === "crowd" && target.knockedOut) {
@@ -778,6 +793,14 @@ function fodderBoundaryPromptEvents(scene, event) {
     }
   }
   return events;
+}
+
+function bodyguardsLifecycleEvents(scene, event) {
+  return effectLifecycleEvents(scene, event).filter(item =>
+    item.type === "actor.state" && item.payload?.key === "bodyguardsBrace"
+      && item.payload?.sourceActionId === "lionwing.npc.bodyguards.brace"
+    || item.type === "damage.apply" && ["lionwing.npc.bodyguards.deployment", "lionwing.npc.swarm.deployment"].includes(item.payload?.sourceActionId)
+  );
 }
 
 function triggeredEvents(scene, event, options = {}) {

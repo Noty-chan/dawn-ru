@@ -196,6 +196,7 @@ const ENEMY_AUTO_EFFECT_RULES = new Set([
   "enemy.common.cannoneer.action.aim",
 ]);
 const ENEMY_FULL_RULES = new Map([
+  ["lionwing.npc.bodyguards.brace", { type: "bodyguards-brace" }],
   ["lionwing.npc.assassin.neutralize-target", { type: "assassin-mark", narratorOffTurn: true, requiresTarget: true, maxTargets: 1, audience: "any" }],
   ["lionwing.npc.executioner.focus", { type: "self-effects", effects: ["positive.усилен", "positive.укреплен"], narratorOffTurn: true }],
   ["lionwing.npc.cannoneer.aim", { type: "self-effects", effects: ["positive.усилен", "positive.устойчив"], narratorOffTurn: true }],
@@ -269,6 +270,85 @@ const ENEMY_FULL_RULES = new Map([
     profiles: ["enemy.named.leon-s-vayu-spirit", "enemy.named.leon-s-agni-spirit"],
   }],
 ]);
+
+const LIONWING_DEPLOYMENT_PASSIVES = new Map([
+  ["lionwing.npc.bodyguards", { crowdType: "guards", crowdSubtype: "bodyguards-deployment", symbol: "♜", color: "#3f628f" }],
+  ["lionwing.npc.swarm", { crowdType: "swarm", crowdSubtype: "swarm-deployment", symbol: "✹", color: "#b45f35" }],
+]);
+
+function prepareEnemyDeployment(scene, actor) {
+  const passive = LIONWING_DEPLOYMENT_PASSIVES.get(actor?.profileId);
+  if (scene?.rulesEdition !== "lionwing" || !passive || !actor || actor.deploymentProxy) return { ok: true, owner: actor, zones: [], errors: [] };
+  const space = (scene.spaces || []).find(item => item.id === actor.space);
+  if (!space || !Number.isInteger(Number(actor.x)) || !Number.isInteger(Number(actor.y))) return { ok: false, errors: ["Для Пассивa нужны координаты НПС на Поле."], owner: actor, zones: [] };
+  const count = 4 + Math.max(1, Number(actor.tier || 1));
+  const occupied = new Set((scene.actors || []).filter(item => item.id !== actor.id && item.space === actor.space && !item.knockedOut && !item.deploymentProxy).map(cellKey));
+  for (const item of scene.actors || []) if (item.id !== actor.id && item.kind === "crowd" && item.space === actor.space && !item.knockedOut) occupied.add(cellKey(item));
+  const terrain = new Set((scene.objects || []).filter(item => item.space === actor.space && item.type === "terrain").flatMap(item => item.cells || []));
+  const removed = removedCellKeys(scene, actor.space), designated = new Set((scene.objects || []).filter(item => item.space === actor.space && item.type === `deploy-${actor.team === "hero" ? "hero" : "enemy"}`).flatMap(item => item.cells || []));
+  const candidates = [];
+  for (let y = 0; y < Number(space.height || 0); y += 1) for (let x = 0; x < Number(space.width || 0); x += 1) {
+    const key = `${x},${y}`;
+    if (occupied.has(key) || terrain.has(key) || removed.has(key)) continue;
+    candidates.push({ key, x, y, designated: designated.has(key), distance: Math.max(Math.abs(x - Number(actor.x)), Math.abs(y - Number(actor.y))) });
+  }
+  candidates.sort((left, right) => Number(right.designated) - Number(left.designated) || left.distance - right.distance || left.y - right.y || left.x - right.x);
+  if (candidates.length < count) return { ok: false, owner: actor, zones: [], errors: [`Для ${actor.name || "этого НПС"} нужно ${count} свободных уникальных клеток массовки, найдено ${candidates.length}. Освободите место или разместите зоны вручную.`] };
+  const owner = { ...actor, speed: 0, deploymentProxy: true, deploymentFodderIds: [] };
+  const zones = candidates.slice(0, count).map((point, index) => ({
+    id: `deployment-${actor.id}-${index + 1}`,
+    kind: "crowd", crowdType: passive.crowdType, crowdSubtype: passive.crowdSubtype,
+    crowdGroupId: `deployment-${actor.id}`, deploymentFodderOwnerId: actor.id, summonerId: actor.id,
+    source: `${actor.profileId}.passive`, sourceActionId: `${actor.profileId}.passive`, team: actor.team,
+    heroId: null, profileId: null, name: `${actor.name || "НПС"}: Зона ${index + 1}`, tier: 0,
+    space: actor.space, x: point.x, y: point.y, hp: 1, maxHp: 1, focus: 0,
+    ap: 0, baseAp: 0, speed: 0, armor: 0, evasion: 0, effects: [], usedActions: [],
+    acted: true, knockedOut: false, hidden: false, tokenSymbol: actor.tokenSymbol || passive.symbol,
+    tokenColor: actor.tokenColor || passive.color, tokenImage: "", portraitImage: "",
+  }));
+  owner.deploymentFodderIds = zones.map(item => item.id);
+  return { ok: true, owner, zones, errors: [] };
+}
+
+function bodyguardsBraceFodder(scene, actor) {
+  return (scene.actors || []).filter(item => item.kind === "crowd" && !item.knockedOut && item.space === actor?.space && item.team === actor?.team);
+}
+
+function bodyguardsBraceLines(scene, actor) {
+  const zones = bodyguardsBraceFodder(scene, actor), byCell = new Map(zones.map(item => [cellKey(item), item])), directions = [[1, 0], [0, 1], [1, 1], [1, -1]], lines = new Map();
+  for (const zone of zones) for (const [dx, dy] of directions) {
+    if (byCell.has(`${Number(zone.x) - dx},${Number(zone.y) - dy}`)) continue;
+    const members = []; let x = Number(zone.x), y = Number(zone.y);
+    while (byCell.has(`${x},${y}`)) { members.push(byCell.get(`${x},${y}`)); x += dx; y += dy; }
+    if (members.length >= 3) lines.set(members.map(item => item.id).join("|"), members.map(item => item.id));
+  }
+  return [...lines.values()];
+}
+
+function bodyguardsBraceIntact(scene, actor) {
+  const ids = actor?.ruleState?.bodyguardsBrace?.zoneIds;
+  if (!Array.isArray(ids) || ids.length < 3) return false;
+  const zones = ids.map(id => (scene.actors || []).find(item => item.id === id));
+  if (zones.some(item => !item || item.kind !== "crowd" || item.knockedOut || item.space !== actor.space || item.team !== actor.team)) return false;
+  return bodyguardsBraceLines(scene, actor).some(line => ids.every(id => line.includes(id)));
+}
+
+function bodyguardsBracedCells(scene, spaceId) {
+  const cells = new Set();
+  for (const actor of scene.actors || []) if (actor.profileId === "lionwing.npc.bodyguards" && actor.ruleState?.bodyguardsBrace && bodyguardsBraceIntact(scene, actor)) {
+    for (const id of actor.ruleState.bodyguardsBrace.zoneIds) { const zone = actorById(scene, id); if (zone?.space === spaceId) cells.add(cellKey(zone)); }
+  }
+  return cells;
+}
+
+function deploymentPassiveConditionMet(scene, owner) {
+  if (!owner || !LIONWING_DEPLOYMENT_PASSIVES.has(owner.profileId)) return false;
+  const ownedZones = (scene.actors || []).filter(item => item.kind === "crowd" && item.team === owner.team && (item.deploymentFodderOwnerId === owner.id || item.summonerId === owner.id));
+  const allZonesDefeated = ownedZones.length > 0 && ownedZones.every(item => item.knockedOut);
+  if (allZonesDefeated) return true;
+  if (owner.profileId === "lionwing.npc.swarm") return (scene.actors || []).filter(item => item.kind !== "crowd" && item.team !== owner.team).every(item => item.knockedOut);
+  return (scene.actors || []).filter(item => item.kind !== "crowd" && item.id !== owner.id).every(item => item.knockedOut);
+}
 const ENEMY_TARGET_LIMITS = new Map([
   ["enemy.common.behemoth.action.leap", 40],
   ["enemy.common.behemoth.trump.meteor", 40],
@@ -416,7 +496,8 @@ function availableActions(scene, data, actorId) {
     const automation = quickSource?.needsConfirmation ? "assist" : ["jump", "step", "spell", "block", "dodge", "breathe", "charge", "disappear", "study"].some(key => actionIs(action, key)) ? "full" : "assist";
     const offeredReaction = scene.pendingAction?.responses?.[actor.id]?.choice === "pending";
     let reason = "";
-    if (actor.knockedOut) reason = "Персонаж выведен из строя";
+    if (actor.deploymentProxy && actionIs(action, "step")) reason = "Этот НПС не находится на Поле и не может использовать Шаг";
+    else if (actor.knockedOut) reason = "Персонаж выведен из строя";
     else if (reaction && !offeredReaction) reason = "Доступно только в ответ на Атаку";
     else if (scene.pendingAction && !reaction) reason = "Сначала разрешите Реакцию";
     else if (scene.pendingPrompt && !reaction) reason = "Сначала ответьте на сработавшее правило";
@@ -934,7 +1015,7 @@ function availableEnemyRules(scene, data, actorId) {
   return (profile.rules || []).map(rawRule => {
     const rule = enemyCanonicalRule(rawRule), family = enemyAttackFamilyForRule(rule.id);
     const maxTargets = family.maxTargets || (ENEMY_TARGET_LIMITS.has(rule.id) ? ENEMY_TARGET_LIMITS.get(rule.id) : Number(rule.maxTargets || 0));
-    const fullRule = enemyFullRuleForRule(rule.id), stateOnly = ["pugilist-stance", "martial-perfection", "imposing-presence"].includes(fullRule?.type);
+    const fullRule = enemyFullRuleForRule(rule.id), stateOnly = ["pugilist-stance", "martial-perfection", "imposing-presence"].includes(fullRule?.type), braceLines = fullRule?.type === "bodyguards-brace" ? bodyguardsBraceLines(scene, actor) : null;
     const automation = ENEMY_AUTO_ATTACK_RULES.has(rule.id) ? "attack" : fullRule ? stateOnly ? "state" : "full" : ENEMY_AUTO_EFFECT_RULES.has(rule.id) ? "effect" : "assisted";
     let reason = "";
     if (!(actor.kind === "enemy" || actor.profileId)) reason = "Это не профильный НПС";
@@ -947,6 +1028,8 @@ function availableEnemyRules(scene, data, actorId) {
     else if ((actor.usedActions || []).includes(rule.id) && !(family.chargedAttack && (actor.effects || []).includes("positive.заряжен")) && !fullRule?.diminishEachRoundUse) reason = "Это действие уже использовано в Раунде";
     else if (rule.kind === "trump" && actor.usedTrump) reason = "Козырь уже использован в этой Сцене";
     else if (rule.kind === "trump" && Number(scene.tension || 0) < Number(rule.tension || 0)) reason = `Нужно Напряжение ${rule.tension}`;
+    else if (fullRule?.type === "bodyguards-brace" && !braceLines.length) reason = "Нужно минимум 3 Зоны массовки в одной непрерывной Линии";
+    else if (fullRule?.type === "bodyguards-brace" && bodyguardsBraceIntact(scene, actor)) reason = "Одна Линия уже укреплена; сначала она должна разорваться";
     else if (fullRule?.type === "corpse-revive" && necromancerCorpses(scene, actor).length < 2) reason = "Для Пляса смерти нужны два доступных Трупа";
     else if (rule.id === "enemy.common.cannoneer.trump.fire" && !clockStatus(scene, actor.id, "enemy.common.cannoneer.preparation").full) reason = "Сначала заполните Подготовку 4/4";
     const armyOfStoneStatus = fullRule?.type === "builder-army-of-stone" ? builderArmyOfStoneStatus(scene, actor) : null;
@@ -955,7 +1038,7 @@ function availableEnemyRules(scene, data, actorId) {
     const roundUses = fullRule?.type === "crowd-summon" ? currentRoundEvents(scene).filter(event => event.type === "enemy.action.prepare" && event.actorId === actor.id && event.payload?.ruleId === rule.id).length : 0;
     const crowdSummon = fullRule?.type === "crowd-summon" ? { count: Math.max(0, fullRule.countState ? Number(actor.ruleState?.[fullRule.countState] || 0) : enemyTierFormula(fullRule.formula, actor.tier) - (fullRule.diminishEachRoundUse ? roundUses : 0)), edge: Boolean(fullRule.edge), range: fullRule.range == null ? null : Number(fullRule.range) } : null;
     const armyOfStone = armyOfStoneStatus?.available ? { terrainPieceCount: armyOfStoneStatus.terrainObjects.length, cellCount: armyOfStoneStatus.cells.length, fodderCreated: armyOfStoneStatus.spawnCells.length, fodderReused: armyOfStoneStatus.existingFodderIds.length } : null;
-    return { ...clone(rule), ...family, ...(roninSheathed ? { adjacent: false, range: Number(actor.speed || 0) } : {}), ...(crowdSummon ? { crowdSummon } : {}), ...(armyOfStone ? { armyOfStone } : {}), ...(fullRule?.type === "corpse-revive" ? { corpses: necromancerCorpses(scene, actor) } : {}), maxTargets, automation, available: !reason, reason };
+    return { ...clone(rule), ...family, ...(roninSheathed ? { adjacent: false, range: Number(actor.speed || 0) } : {}), ...(crowdSummon ? { crowdSummon } : {}), ...(braceLines ? { braceLines: clone(braceLines) } : {}), ...(armyOfStone ? { armyOfStone } : {}), ...(fullRule?.type === "corpse-revive" ? { corpses: necromancerCorpses(scene, actor) } : {}), maxTargets, automation, available: !reason, reason };
   });
 }
 
@@ -1145,12 +1228,21 @@ function prepareEnemyRule(scene, data, request = {}) {
   if (canonicalAutoAttack && rule.directDamage && hasRoll) errors.push("Это canonical-действие использует прямой урон вместо броска.");
   if (attackModifiers.selectedIds.length && !hasRoll) errors.push("Модификатор Преимущества требует бросок Атаки.");
   if (isAttackRule && !chargingAttack && fullRule?.type !== "cannoneer-load" && !hasRoll && !hasDirectDamage) errors.push("Для Атаки нужен бросок или прямой урон из профиля.");
+  if (fullRule?.type === "bodyguards-brace" && !Array.isArray(request.options?.braceLineIds)) {
+    const lines = bodyguardsBraceLines(scene, actor), options = lines.map(ids => `line:${ids.join(",")}`), optionLabels = Object.fromEntries(lines.map((ids, index) => [`line:${ids.join(",")}`, `Линия ${index + 1}: ${ids.map(id => { const zone = actorById(scene, id); return `${String.fromCharCode(65 + Number(zone.x))}${Number(zone.y) + 1}`; }).join(" → ")}`]));
+    if (!errors.length && options.length) return { ok: true, errors: [], events: [{ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${eventId()}-bodyguards-brace`, kind: "bodyguards-brace-line", sourceActorId: actor.id, controller: "narrator", title: "Телохранители · Укрепиться", text: "Выберите одну непрерывную Линию из трёх или более Зон массовки. Она станет непроходимой, пока Линия не будет разорвана.", options, context: { ruleId: rule.id, braceLines: clone(lines), optionLabels }, participantIds: [actor.id, ...lines.flat()] } }], rule: available || clone(rule) };
+  }
+  if (fullRule?.type === "bodyguards-brace" && Array.isArray(request.options?.braceLineIds)) {
+    const chosen = request.options.braceLineIds.map(String), valid = bodyguardsBraceLines(scene, actor).some(ids => JSON.stringify(ids) === JSON.stringify(chosen));
+    if (!valid) errors.push("Выбранная Линия больше не состоит из трёх или более Зон массовки.");
+  }
   if (errors.length) return { ok: false, errors, events: [], rule: available || rule };
   const customTargetResolution = ["assassin-mark", "guardian-shield"].includes(fullRule?.type);
   const targetEffectNames = customTargetResolution ? [] : Object.prototype.hasOwnProperty.call(family, "effects") ? family.effects : (rule.targetEffects || rule.effects || []);
   const targetEffects = targetEffectNames.map(name => effectIdByName(data, name));
   const selfEffects = (rule.selfEffects || []).map(name => effectIdByName(data, name));
   const payload = { ruleId: rule.id, sourceRuleId: rule.id, sourceDigest: rule.sourceDigest || null, profileId: profile.id, name: rule.name, kind: rule.kind, targetIds, text: rule.text, reward: rule.reward, automation: available?.automation || (targetEffects.length || selfEffects.length ? "effect" : "assisted"), ...(fullRule?.narratorOffTurn && scene.activeActorId !== actor.id ? { quickReaction: true } : {}) };
+  if (fullRule?.type === "bodyguards-brace") payload.braceLineIds = request.options.braceLineIds.map(String);
   if (normalizedTargetRequest.typedTargets?.typedTargets?.length) payload.typedTargets = clone(normalizedTargetRequest.typedTargets.typedTargets);
   if (fullRule?.type === "crowd-summon") payload.crowdSummon = { token: `crowd-summon-${eventId()}`, cells: crowdSummonCells.map(cellKey) };
   if (fullRule?.type === "hound-seekers") payload.seekerSummon = { token: `seeker-summon-${eventId()}`, targetId: targets[0].id, cells: seekerCells.map(cellKey) };
@@ -1192,6 +1284,7 @@ function prepareEnemyRule(scene, data, request = {}) {
   if (payload.automation !== "assisted") selfEffects.forEach(effect => events.push({ type: "effect.apply", actorId: actor.id, payload: { targetId: actor.id, effect, sourceActionId: rule.id } }));
   if (affectedCells.length) events.push({ type: "area.create", actorId: actor.id, payload: { id: `area-${eventId()}`, space: actor.space, areaType: rule.kind === "attack" ? "attack" : "danger", label: rule.name, source: rule.id, duration: rule.kind === "attack" ? "instant" : "scene", ownerActorId: actor.id, cells: affectedCells } });
   if (fullRule?.type === "pugilist-stance") events.push({ type: "actor.state", actorId: actor.id, payload: { key: "pugilistStance", value: Number(request.options.stanceStep), sourceActionId: rule.id } });
+  if (fullRule?.type === "bodyguards-brace") events.push({ type: "actor.state", actorId: actor.id, payload: { key: "bodyguardsBrace", value: { zoneIds: payload.braceLineIds }, sourceActionId: rule.id, participantIds: [actor.id, ...payload.braceLineIds] } });
   if (fullRule?.type === "martial-perfection") {
     events.push({ type: "actor.state", actorId: actor.id, payload: { key: "martialPerfection", value: true, sourceActionId: rule.id } });
     events.push({ type: "turn.grant", actorId: actor.id, payload: { amount: 1, sourceActionId: rule.id } });

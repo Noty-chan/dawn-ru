@@ -201,6 +201,7 @@ function validateEvent(scene, event, options = {}) {
   }
   if (event.type === "actor.move") {
     const space = (scene.spaces || []).find(item => item.id === payload.space);
+    if (actor?.deploymentProxy) throw new Error("Этот НПС не находится на Поле и не может перемещаться.");
     let validCrowdRuleMove = false, validFodderMove = false;
     const vipFollow=payload.vipFollow,response=vipFollow&&(scene.log||[]).find(item=>item.type==="rule.respond"&&item.payload?.promptId===vipFollow.promptId&&item.payload?.choice==="follow"&&item.actorId===actor?.id),followPrompt=response&&(scene.log||[]).find(item=>item.type==="rule.prompt"&&item.payload?.id===vipFollow.promptId&&item.payload?.kind==="lionwing-vip-follow"),followMover=actorById(scene,vipFollow?.moverId),validVipFollow=Boolean(actor?.profileId===LIONWING_VIP_ID&&!actor.knockedOut&&response&&followPrompt&&followPrompt.payload?.context?.moverId===followMover?.id&&followPrompt.payload?.context?.moveEventId===vipFollow.moveEventId&&Number(followPrompt.payload?.context?.turnSerial)===Number(scene.turnSerial||0)&&Number(modifierState(actor).lastFollowTurnSerial??-1)!==Number(scene.turnSerial||0)&&followMover?.team!==actor.team&&!followMover.knockedOut&&followMover.kind!=="crowd"&&followMover.space===payload.space&&Number(followMover.x)===Number(payload.x)&&Number(followMover.y)===Number(payload.y)&&payload.sourceActionId==="lionwing.modifier.vip.follow");
     if(vipFollow&&!validVipFollow)throw new Error("Сопровождение VIP не подтверждено актуальным решением Нарратора.");
@@ -497,7 +498,7 @@ const expectedTargets = (scene.actors || []).filter(target => !target.knockedOut
     if (!["enemy.common.glutton", "lionwing.npc.glutton"].includes(actor?.profileId) || payload.sourceActionId !== expectedSource || payload.targetId !== actor.id || !boundary || boundary.type !== "damage.apply" || boundary.actorId !== actor.id || !boundary.payload?.applied || victim?.kind !== "crowd" || !victim.knockedOut || Number(payload.amount) !== amount || duplicate) throw new Error("Исцеление Обжоры не соответствует выведенной из строя массовке.");
   }
   if (event.type === "actor.wound" && (!actorById(scene, payload.targetId) || !Number.isInteger(Number(payload.delta)) || Math.abs(Number(payload.delta)) !== 1)) throw new Error("Некорректное изменение Ран.");
-  if (event.type === "actor.knockout" && !actorById(scene, payload.targetId)) throw new Error("Некорректное выведение из строя.");
+  if (event.type === "actor.knockout" && (!actorById(scene, payload.targetId) || actorById(scene, payload.targetId)?.deploymentProxy)) throw new Error("Некорректное выведение из строя.");
   if (event.type === "inventory.change" && (typeof payload.item !== "string" || payload.item.length > 80 || !Number.isInteger(Number(payload.delta)) || Math.abs(Number(payload.delta)) > 99)) throw new Error("Некорректное изменение инвентаря.");
   if (event.type === "rule.prompt") {
     Object.assign(payload, promptContractPayload(scene, event, payload));
@@ -514,6 +515,13 @@ const expectedTargets = (scene.actors || []).filter(target => !target.knockedOut
         || (scene.actors || []).filter(item => item.kind === "crowd" && !item.knockedOut).length > 5 + 2 * Number(source.tier || 1)
         || !eligible?.length || payload.options?.length !== eligible.length + 1
         || !eligible.every(cell => payload.options.includes(`cell:${cell}`)) || !payload.options.includes("pass")) throw new Error("Запрос Матки не соответствует полученному урону.");
+    }
+    if (payload.kind === "bodyguards-brace-line") {
+      const data = (typeof window === "object" ? window : globalThis).DAWN_DATA, lines = source && bodyguardsBraceLines(scene, source), expectedOptions = (payload.context?.braceLines || []).map(ids => `line:${ids.join(",")}`), braceRule = enemyCanonicalRule(enemyProfileById(data, source?.profileId)?.rules?.find(item => item.id === "lionwing.npc.bodyguards.brace"));
+      if (scene.rulesEdition !== "lionwing" || source?.profileId !== "lionwing.npc.bodyguards" || event.actorId !== source.id
+        || source.knockedOut || scene.activeActorId !== source.id || source.acted || Number(source.ap || 0) < Number(braceRule?.apCost || 1)
+        || payload.context?.ruleId !== "lionwing.npc.bodyguards.brace" || !Array.isArray(lines) || !lines.length
+        || JSON.stringify(payload.context?.braceLines) !== JSON.stringify(lines) || JSON.stringify(payload.options) !== JSON.stringify(expectedOptions)) throw new Error("Выбор Линии Телохранителей не соответствует текущим Зонам или Ходу.");
     }
     if (
       typeof payload.id !== "string" || !payload.id || payload.id.length > 160
@@ -621,6 +629,20 @@ const expectedTargets = (scene.actors || []).filter(target => !target.knockedOut
       const boundary = (scene.log || []).find(item => item.id === payload.boundaryEventId), victim = actorById(scene, boundary?.payload?.targetId), duplicate = (scene.log || []).some(item => item.type === "actor.state" && item.actorId === actor?.id && item.payload?.key === payload.key && item.payload?.boundaryEventId === payload.boundaryEventId);
       if (!["enemy.common.glutton", "lionwing.npc.glutton"].includes(actor?.profileId) || payload.sourceActionId !== (actor.profileId === "lionwing.npc.glutton" ? "lionwing.npc.glutton.passive" : "enemy.common.glutton.passive") || Number(payload.delta) !== 1 || !boundary || boundary.type !== "damage.apply" || boundary.actorId !== actor.id || !boundary.payload?.applied || victim?.kind !== "crowd" || !victim.knockedOut || duplicate) throw new Error("Счётчик Обжоры не соответствует выведенной из строя массовке.");
     }
+    if (payload.key === "bodyguardsBrace") {
+      const brace = actor?.ruleState?.bodyguardsBrace, boundary = (scene.log || []).find(item => item.id === payload.boundaryEventId);
+      if (payload.value === null) {
+        if (actor?.profileId !== "lionwing.npc.bodyguards" || payload.sourceActionId !== "lionwing.npc.bodyguards.brace" || !payload.automatic || !brace || bodyguardsBraceIntact(scene, actor)
+          || !boundary || !["actor.move", "actor.enter", "actor.knockout", "damage.apply", "actor.despawn", "actor.remove", "space.remove"].includes(boundary.type)) throw new Error("Снять Укрепление можно только автоматически после разрыва Линии.");
+      } else {
+        const zoneIds = payload.value?.zoneIds, line = Array.isArray(zoneIds) && bodyguardsBraceLines(scene, actor).find(ids => JSON.stringify(ids) === JSON.stringify(zoneIds));
+        const prepare = [...(scene.log || [])].reverse().find(item => item.type === "enemy.action.prepare" && item.actorId === actor?.id && item.payload?.ruleId === "lionwing.npc.bodyguards.brace" && JSON.stringify(item.payload?.braceLineIds) === JSON.stringify(zoneIds));
+        const resolve = [...(scene.log || [])].reverse().find(item => item.type === "enemy.action.resolve" && item.actorId === actor?.id && item.payload?.ruleId === "lionwing.npc.bodyguards.brace" && JSON.stringify(item.payload?.braceLineIds) === JSON.stringify(zoneIds));
+        const spent = (scene.log || []).some(item => item.type === "resource.spend" && item.actorId === actor?.id && item.payload?.sourceRuleId === "lionwing.npc.bodyguards.brace" && Number(item.payload?.amount) === 1);
+        if (scene.rulesEdition !== "lionwing" || actor?.profileId !== "lionwing.npc.bodyguards" || actor.knockedOut || payload.sourceActionId !== "lionwing.npc.bodyguards.brace"
+          || !line || !prepare || !resolve || !spent || prepare.payload?.sourceDigest !== resolve.payload?.sourceDigest || payload.sourceDigest !== prepare.payload?.sourceDigest) throw new Error("Укрепление должно быть подтверждено действием Телохранителей и текущей Линией массовки.");
+      }
+    }
     if (["evasion","armor"].includes(payload.key) && (!Number.isInteger(Number(payload.delta)) || Math.abs(Number(payload.delta)) > 20)) throw new Error("Некорректное изменение защиты.");
     if (["martialPerfection", "imposingPresence", "berserkerLastStand"].includes(payload.key) && typeof payload.value !== "boolean") throw new Error("Некорректный переключатель состояния.");
     if (["executionerBifurcate", "revenantHollowedEyes"].includes(payload.key) && payload.value !== null && (typeof payload.value !== "object" || !actorById(scene, payload.value.targetId) || !Number.isInteger(Number(payload.value.dueTurnSerial)))) throw new Error("Некорректное отложенное действие врага.");
@@ -696,7 +718,16 @@ const expectedTargets = (scene.actors || []).filter(target => !target.knockedOut
     if (!prepared || !token || prepared.payload.seekerSummon.targetId !== payload.seekerSummon.targetId || spawned.length !== prepared.payload.seekerSummon.cells.length) throw new Error("Действие Псаря не создало полное число Ищеек.");
   }
   if (event.type === "damage.apply") {
-    if (!actorById(scene, payload.targetId) || !finite(payload.amount) || Number(payload.amount) < 0 || Number(payload.amount) > 9999) throw new Error("Некорректный урон.");
+    const damageTarget = actorById(scene, payload.targetId);
+    if (!damageTarget || !finite(payload.amount) || Number(payload.amount) < 0 || Number(payload.amount) > 9999) throw new Error("Некорректный урон.");
+    if (damageTarget.deploymentProxy) {
+      const boundary = (scene.log || []).find(item => item.id === payload.boundaryEventId), sourceActionId = `${damageTarget.profileId}.deployment`, duplicate = (scene.log || []).some(item => item.type === "damage.apply" && item.payload?.deploymentOwnerId === damageTarget.id);
+      if (event.actorId !== damageTarget.id || scene.rulesEdition !== "lionwing"
+        || !["lionwing.npc.bodyguards", "lionwing.npc.swarm"].includes(damageTarget.profileId) || payload.deploymentOwnerId !== damageTarget.id
+        || payload.sourceActionId !== sourceActionId || Number(payload.amount) !== 1 || payload.ignoreArmor !== true || payload.ignoreEvasion !== true
+        || !boundary || !["damage.apply", "actor.knockout"].includes(boundary.type) || !boundary.payload?.applied
+        || !actorById(scene, boundary.payload?.targetId)?.knockedOut || !deploymentPassiveConditionMet(scene, damageTarget) || duplicate) throw new Error("Этот НПС нельзя атаковать до разрешения его Пассивa при Развёртывании.");
+    }
     if (payload.sourceActionId === "vagabond.dim-mak.1.jab") {
       const source = actorById(scene, event.actorId), target = actorById(scene, payload.targetId), removed = [...(scene.log || [])].reverse().find(item => item.type === "marker.remove" && item.payload?.sourceActionId === "vagabond.dim-mak.1.jab");
       if (!source || !target || !removed || removed.actorId !== source.id || removed.payload?.carrierActorId !== target.id || removed.payload?.ruleId !== "vagabond.dim-mak.1" || Number(payload.amount) !== Math.ceil(Number(source.attrs?.mind || 0) / 2) || payload.fixedTargetId !== target.id || payload.fixedDamage !== true || payload.attack !== true || payload.finalDamage !== true) throw new Error("Удар по Слабой точке не соответствует авторитетному источнику, цели или фиксированному урону.");

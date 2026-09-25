@@ -303,7 +303,7 @@
 | Ronin (`lionwing.npc.ronin`) | 3 | 1 | 2 | Sheath; Thunderclap And Flash |
 | Viper (`lionwing.npc.viper`) | 3 | 1 | 2 | Filet; Knife In The Dark |
 | Witch (`lionwing.npc.witch`) | 3 | 1 | 2 | Drawing Runes; EXPLOSION |
-| Bodyguards (`lionwing.npc.bodyguards`) | 3 | 2 | 1 | Brace |
+| Bodyguards (`lionwing.npc.bodyguards`) | 3 | 3 | 0 | — |
 | Broodmother (`lionwing.npc.broodmother`) | 3 | 3 | 0 | — |
 | Cocoon (`lionwing.npc.cocoon`) | 3 | 2 | 1 | Menace |
 | Duelist (`lionwing.npc.duelist`) | 3 | 1 | 2 | Goad; Disassemble |

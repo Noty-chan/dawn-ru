@@ -69,6 +69,7 @@ function movementPath(scene, actorId, destination, options = {}) {
   const end = { x: Number(destination.x), y: Number(destination.y) }, limit = Number.isFinite(Number(options.maxDistance)) ? Number(options.maxDistance) : Infinity;
   if (end.x < 0 || end.y < 0 || end.x >= space.width || end.y >= space.height) return [];
   const terrain = new Set((scene.objects || []).filter(object => object.space === actor.space && object.type === "terrain").flatMap(object => object.cells || []));
+  const braced = typeof bodyguardsBracedCells === "function" ? bodyguardsBracedCells(scene, actor.space) : new Set();
   const movesThroughObstacles = ["enemy.common.builder", "lionwing.npc.builder"].includes(actor.profileId);
   const difficult = new Set((scene.objects || []).filter(object => object.space === actor.space && object.type === "difficult").flatMap(object => object.cells || []));
   for (const zone of (scene.actors || []).filter(item => item.kind === "crowd" && !item.knockedOut && item.team !== actor.team && item.space === actor.space)) difficult.add(cellKey(zone));
@@ -81,11 +82,11 @@ function movementPath(scene, actorId, destination, options = {}) {
   const width=Math.max(1,Number(actor.occupiedWidth||1)),height=Math.max(1,Number(actor.occupiedHeight||1));
   const footprint=point=>{const cells=[];for(let oy=0;oy<height;oy++)for(let ox=0;ox<width;ox++)cells.push({x:point.x+ox,y:point.y+oy});return cells};
   const actorBanished = hasEffect(scene, actor, "positive.изгнан");
-  const opponents = new Set((scene.actors || []).filter(item => item.id !== actor.id && !item.knockedOut && item.space === actor.space && item.team !== actor.team && effectPresenceStatus(scene, item.id).onField)
+  const opponents = new Set((scene.actors || []).filter(item => item.id !== actor.id && !item.deploymentProxy && !item.knockedOut && item.space === actor.space && item.team !== actor.team && effectPresenceStatus(scene, item.id).onField)
     .filter(item => !actorBanished && !hasEffect(scene, item, "positive.изгнан")).flatMap(item=>{const cells=[];for(let oy=0;oy<Math.max(1,Number(item.occupiedHeight||1));oy++)for(let ox=0;ox<Math.max(1,Number(item.occupiedWidth||1));ox++)cells.push(`${Number(item.x)+ox},${Number(item.y)+oy}`);return cells}));
   const cinematic = space.mode === "cinematic";
   if (cinematic && !options.ignoreDifficult) opponents.forEach(cell => difficult.add(cell));
-  const blocked = point => footprint(point).some(cell=>cell.x<0||cell.y<0||cell.x>=space.width||cell.y>=space.height||removed.has(cellKey(cell))||(!options.ignoreTerrain&&!movesThroughObstacles&&terrain.has(cellKey(cell)))||(!cinematic&&!options.ignoreEnemies&&opponents.has(cellKey(cell))));
+  const blocked = point => footprint(point).some(cell=>cell.x<0||cell.y<0||cell.x>=space.width||cell.y>=space.height||removed.has(cellKey(cell))||braced.has(cellKey(cell))||(!options.ignoreTerrain&&!movesThroughObstacles&&terrain.has(cellKey(cell)))||(!cinematic&&!options.ignoreEnemies&&opponents.has(cellKey(cell))));
   if (options.straight) {
     const dx = end.x - actor.x, dy = end.y - actor.y, ax = Math.abs(dx), ay = Math.abs(dy);
     if (!(dx === 0 || dy === 0 || ax === ay)) return [];
@@ -169,7 +170,9 @@ function displacementStatus(scene, request = {}) {
   const footprint=point=>{const cells=[];for(let oy=0;oy<height;oy++)for(let ox=0;ox<width;ox++)cells.push({x:point.x+ox,y:point.y+oy});return cells};
 
   const occupied = new Set((scene.actors || []).filter(item => item.id !== actor.id && item.space === actor.space && effectPresenceStatus(scene, item.id).onField)
+    .filter(item => !item.deploymentProxy)
     .filter(item => !hasEffect(scene, actor, "positive.изгнан") && !hasEffect(scene, item, "positive.изгнан")).flatMap(item=>{const cells=[];for(let oy=0;oy<Math.max(1,Number(item.occupiedHeight||1));oy++)for(let ox=0;ox<Math.max(1,Number(item.occupiedWidth||1));ox++)cells.push(`${Number(item.x)+ox},${Number(item.y)+oy}`);return cells}));
+  for (const key of typeof bodyguardsBracedCells === "function" ? bodyguardsBracedCells(scene, actor.space) : []) occupied.add(key);
   const blockingTypes = new Set(request.blockingTypes || ["terrain"]);
   const terrain = new Set((scene.objects || []).filter(object => object.space === actor.space && blockingTypes.has(object.type)).flatMap(object => object.cells || []));
   const removed = removedCellKeys(scene, actor.space), path = [], crossings = [];

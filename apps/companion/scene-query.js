@@ -694,6 +694,7 @@ function effectPresenceStatus(scene, actorId) {
 function effectTargetingStatus(scene, sourceActorId, targetActorId, options = {}) {
   const source = sourceActorId ? actorById(scene, sourceActorId) : null, target = actorById(scene, targetActorId);
   if (!target) return { available: false, reason: "Цель не найдена.", source, target: null };
+  if (target.deploymentProxy && !options.includeDeploymentProxy) return { available: false, reason: "Этот НПС не находится на поле и не может быть выбран целью.", source, target };
   const targetPresence = effectPresenceStatus(scene, target.id);
   if (targetPresence.disappeared && !options.includeDisappeared) return { available: false, reason: "Исчезнувший персонаж не может быть целью.", source, target };
   if (!source) return { available: true, reason: "", source: null, target };
@@ -753,7 +754,8 @@ function effectCellOccupancyStatus(scene, actorId, request = {}) {
   const actor = request.actor || actorById(scene, actorId) || null, space = request.space || actor?.space, x = Number(request.x), y = Number(request.y);
   if (!actor || !space || !Number.isInteger(x) || !Number.isInteger(y)) return { available: false, reason: "Некорректная клетка назначения.", actor, blockers: [] };
   const battlefield = (scene.spaces || []).find(item => item.id === space);
-  if (battlefield?.mode === "cinematic") return { available: true, reason: "", actor, blockers: [] };
+  const bracedCells = typeof bodyguardsBracedCells === "function" ? bodyguardsBracedCells(scene, space) : new Set();
+  if (battlefield?.mode === "cinematic") return bracedCells.has(`${x},${y}`) ? { available: false, reason: "Линия массовки Телохранителей временно непроходима.", actor, blockers: [{ kind: "bodyguards-brace", cell: `${x},${y}` }] } : { available: true, reason: "", actor, blockers: [] };
   const banished = hasEffect(scene, actor, "positive.изгнан");
   const compoundId = (actor.kind === "enemy" || actor.profileId) && typeof actor.compoundId === "string" && actor.compoundId.trim() ? actor.compoundId.trim() : null;
   const width=Math.max(1,Number(actor.occupiedWidth||1)),height=Math.max(1,Number(actor.occupiedHeight||1));if(x+width>Number(battlefield?.width||0)||y+height>Number(battlefield?.height||0))return{available:false,reason:"Фигура целиком не помещается на поле.",actor,blockers:[]};
@@ -761,11 +763,12 @@ function effectCellOccupancyStatus(scene, actorId, request = {}) {
   const blockers = (scene.actors || []).filter(other => other.id !== actor.id && other.space === space && overlaps(other))
     .filter(other => effectPresenceStatus(scene, other.id).onField)
     .filter(other => !other.knockedOut)
+    .filter(other => !other.deploymentProxy)
     .filter(other => actor.kind !== "crowd" && other.kind !== "crowd")
     .filter(other => !compoundId || other.team !== actor.team || String(other.compoundId || "").trim() !== compoundId)
     .filter(other => !banished && !hasEffect(scene, other, "positive.изгнан"));
-  const footprint=[];for(let oy=0;oy<height;oy++)for(let ox=0;ox<width;ox++)footprint.push(`${x+ox},${y+oy}`);const terrain = !banished && (scene.objects || []).find(object => object.space === space && object.type === "terrain" && (object.cells || []).some(cell=>footprint.includes(cell)));
-  return { available: blockers.length === 0 && !terrain, reason: blockers.length ? "Клетка назначения уже занята." : terrain ? "Клетка занята непроходимой местностью." : "", actor, blockers: terrain ? blockers.concat(terrain) : blockers, ...(typedDestinationStatus ? { typedTarget: typedDestinationStatus.normalized } : {}) };
+  const footprint=[];for(let oy=0;oy<height;oy++)for(let ox=0;ox<width;ox++)footprint.push(`${x+ox},${y+oy}`);const terrain = !banished && (scene.objects || []).find(object => object.space === space && object.type === "terrain" && (object.cells || []).some(cell=>footprint.includes(cell))), bracedBlockers=footprint.filter(cell=>bracedCells.has(cell)).map(cell=>({kind:"bodyguards-brace",cell}));
+  return { available: blockers.length === 0 && !terrain && !bracedBlockers.length, reason: blockers.length ? "Клетка назначения уже занята." : terrain ? "Клетка занята непроходимой местностью." : bracedBlockers.length ? "Линия массовки временно непроходима." : "", actor, blockers: terrain ? blockers.concat(terrain) : blockers.concat(bracedBlockers), ...(typedDestinationStatus ? { typedTarget: typedDestinationStatus.normalized } : {}) };
 }
 
 function effectAttackStatus(scene, sourceActorId, targetIds = []) {

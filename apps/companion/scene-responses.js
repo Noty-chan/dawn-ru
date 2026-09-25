@@ -319,6 +319,21 @@ function respondRulePrompt(scene, data, request = {}) {
   if (errors.length) return { ok: false, errors, events: [] };
   const events = [promptResponseEvent(prompt, actor, target, choice, request)];
   if (request.stale === true) return { ok: true, errors: [], events };
+  if (prompt.kind === "bodyguards-brace-line") {
+    const lineIds = choice.startsWith("line:") ? choice.slice(5).split(",").filter(Boolean) : [];
+    const selectedLine = (prompt.context?.braceLines || []).find(ids => JSON.stringify(ids) === JSON.stringify(lineIds));
+    const stillValid = selectedLine && bodyguardsBraceLines(scene, actor).some(ids => JSON.stringify(ids) === JSON.stringify(lineIds));
+    const rule = enemyCanonicalRule(enemyProfileById(data, actor.profileId)?.rules?.find(item => item.id === "lionwing.npc.bodyguards.brace"));
+    const currentRules = availableEnemyRules({ ...scene, pendingPrompt: null }, data, actor.id), available = currentRules.find(item => item.id === rule?.id);
+    if (scene.rulesEdition !== "lionwing" || actor.profileId !== "lionwing.npc.bodyguards" || !stillValid || !rule || !available?.available) return { ok: false, errors: [available?.reason || "Выбранная Линия больше недоступна."], events: [] };
+    const sourceDigest = rule.sourceDigest || null, participants = [actor.id, ...lineIds], action = { ruleId: rule.id, sourceRuleId: rule.id, sourceDigest, profileId: actor.profileId, name: rule.name, kind: "action", targetIds: [], automation: "full", braceLineIds: lineIds, participantIds: participants };
+    events.push(
+      { type: "enemy.action.prepare", actorId: actor.id, payload: action },
+      { type: "resource.spend", actorId: actor.id, payload: { resource: "ap", amount: Number(rule.apCost || 1), sourceRuleId: rule.id, sourceDigest, participantIds: [actor.id] } },
+      { type: "enemy.action.resolve", actorId: actor.id, payload: action },
+      { type: "actor.state", actorId: actor.id, payload: { key: "bodyguardsBrace", value: { zoneIds: lineIds }, sourceActionId: rule.id, sourceDigest, participantIds: participants } },
+    );
+  }
   if (prompt.kind === "enemy-broodmother-fodder" && choice !== "pass") {
     const damage = (scene.log || []).find(item => item.id === prompt.context?.damageEventId);
     const key = choice.startsWith("cell:") ? choice.slice(5) : "";

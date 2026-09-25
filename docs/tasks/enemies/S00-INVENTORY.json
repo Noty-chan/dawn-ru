@@ -232,6 +232,7 @@
             "apps/companion/tests/lionwing-replacements.mjs",
             "apps/companion/tests/lionwing-scene-objects-ui.mjs",
             "apps/companion/tests/lionwing-sheet-manual.mjs",
+            "apps/companion/tests/lionwing-swarm-bodyguards.mjs",
             "apps/companion/tests/lionwing-technician.mjs",
             "apps/companion/tests/lionwing-technique-status-ui.mjs",
             "apps/companion/tests/lionwing-turn-lifetimes.mjs",
@@ -1202,6 +1203,7 @@
             "apps/companion/tests/lionwing-spatial-engine.mjs",
             "apps/companion/tests/lionwing-special-operations.mjs",
             "apps/companion/tests/lionwing-student-of-stars.mjs",
+            "apps/companion/tests/lionwing-swarm-bodyguards.mjs",
             "apps/companion/tests/lionwing-technician.mjs",
             "apps/companion/tests/lionwing-technique-surface.mjs",
             "apps/companion/tests/lionwing-turn-lifetimes.mjs",
@@ -1477,6 +1479,7 @@
             "apps/companion/tests/lionwing-recovery-r10.mjs",
             "apps/companion/tests/lionwing-segment-movement.mjs",
             "apps/companion/tests/lionwing-siren-three.mjs",
+            "apps/companion/tests/lionwing-swarm-bodyguards.mjs",
             "apps/companion/tests/lionwing-technique-status-ui.mjs",
             "apps/companion/tests/lionwing-turn-lifetimes.mjs",
             "apps/companion/tests/lionwing-ui-localization-l09.mjs",
@@ -1961,6 +1964,7 @@
             "apps/companion/tests/lionwing-passive-adapters.mjs",
             "apps/companion/tests/lionwing-player-objects-o10.mjs",
             "apps/companion/tests/lionwing-replacements.mjs",
+            "apps/companion/tests/lionwing-swarm-bodyguards.mjs",
             "apps/companion/tests/lionwing-technician.mjs",
             "apps/companion/tests/network-size-guard.mjs",
             "apps/companion/tests/network-v2.mjs",
@@ -2898,6 +2902,7 @@
           "apps/companion/tests/lionwing-enemy-base-attacks.mjs",
           "apps/companion/tests/lionwing-enemy-fodder-creators.mjs",
           "apps/companion/tests/lionwing-localization.mjs",
+          "apps/companion/tests/lionwing-swarm-bodyguards.mjs",
           "apps/companion/tests/scene-engine.mjs"
         ],
         "notRun": [
@@ -2943,15 +2948,16 @@
           "declaredStatus": "assisted",
           "actualHandler": {
             "entry": "DAWN_SCENE_ENGINE.prepareEnemyRule",
-            "implementation": null,
-            "automation": "assisted",
-            "note": "The common entry exists, but no automatic rule handler is selected."
+            "implementation": "scene-actions.js prepareEnemyRule (full route)",
+            "automation": "full",
+            "note": "Presence is recorded without promoting readiness or verifying completeness."
           },
           "uiEntryPoint": "scene-actions-ui.js useEnemyRule → DAWN_SCENE_ENGINE.prepareEnemyRule → commitSceneEvents",
           "tests": [
             "apps/companion/tests/lionwing-enemy-base-attacks.mjs",
             "apps/companion/tests/lionwing-enemy-fodder-creators.mjs",
             "apps/companion/tests/lionwing-localization.mjs",
+            "apps/companion/tests/lionwing-swarm-bodyguards.mjs",
             "apps/companion/tests/scene-engine.mjs"
           ],
           "notRun": [
@@ -2967,7 +2973,7 @@
           "ambiguities": [
             "Occupancy exceptions are rule-specific; Fodder is not forced through the ordinary empty-cell rule."
           ],
-          "remainder": "No selected production automation handler; full mechanics, payment, cancellation, persistence, and UI acceptance remain.",
+          "remainder": "Audit implementation against every clause; handler presence does not prove payment, lifecycle, persistence, browser, or network acceptance.",
           "wave": 3
         },
         {
@@ -3000,6 +3006,7 @@
             "apps/companion/tests/lionwing-enemy-base-attacks.mjs",
             "apps/companion/tests/lionwing-enemy-fodder-creators.mjs",
             "apps/companion/tests/lionwing-localization.mjs",
+            "apps/companion/tests/lionwing-swarm-bodyguards.mjs",
             "apps/companion/tests/scene-engine.mjs"
           ],
           "notRun": [
@@ -3054,6 +3061,7 @@
             "apps/companion/tests/lionwing-enemy-fodder-creators.mjs",
             "apps/companion/tests/lionwing-gm-ap-contract.mjs",
             "apps/companion/tests/lionwing-localization.mjs",
+            "apps/companion/tests/lionwing-swarm-bodyguards.mjs",
             "apps/companion/tests/scene-engine.mjs"
           ],
           "notRun": [
@@ -3218,6 +3226,7 @@
             "apps/companion/tests/lionwing-recovery-r10.mjs",
             "apps/companion/tests/lionwing-segment-movement.mjs",
             "apps/companion/tests/lionwing-siren-three.mjs",
+            "apps/companion/tests/lionwing-swarm-bodyguards.mjs",
             "apps/companion/tests/lionwing-technique-status-ui.mjs",
             "apps/companion/tests/lionwing-turn-lifetimes.mjs",
             "apps/companion/tests/lionwing-ui-localization-l09.mjs",
@@ -3944,6 +3953,7 @@
             "apps/companion/tests/lionwing-recovery-r10.mjs",
             "apps/companion/tests/lionwing-segment-movement.mjs",
             "apps/companion/tests/lionwing-siren-three.mjs",
+            "apps/companion/tests/lionwing-swarm-bodyguards.mjs",
             "apps/companion/tests/lionwing-technique-status-ui.mjs",
             "apps/companion/tests/lionwing-turn-lifetimes.mjs",
             "apps/companion/tests/lionwing-ui-localization-l09.mjs",
@@ -4404,6 +4414,7 @@
           "apps/companion/tests/lionwing-recovery-stress.mjs",
           "apps/companion/tests/lionwing-replacements.mjs",
           "apps/companion/tests/lionwing-special-operations.mjs",
+          "apps/companion/tests/lionwing-swarm-bodyguards.mjs",
           "apps/companion/tests/lionwing-technician.mjs",
           "apps/companion/tests/lionwing-technique-surface.mjs",
           "apps/companion/tests/lionwing-turn-lifetimes.mjs",
@@ -4501,6 +4512,7 @@
             "apps/companion/tests/lionwing-recovery-stress.mjs",
             "apps/companion/tests/lionwing-replacements.mjs",
             "apps/companion/tests/lionwing-special-operations.mjs",
+            "apps/companion/tests/lionwing-swarm-bodyguards.mjs",
             "apps/companion/tests/lionwing-technician.mjs",
             "apps/companion/tests/lionwing-technique-surface.mjs",
             "apps/companion/tests/lionwing-turn-lifetimes.mjs",
@@ -4592,6 +4604,7 @@
             "apps/companion/tests/lionwing-recovery-stress.mjs",
             "apps/companion/tests/lionwing-replacements.mjs",
             "apps/companion/tests/lionwing-special-operations.mjs",
+            "apps/companion/tests/lionwing-swarm-bodyguards.mjs",
             "apps/companion/tests/lionwing-technician.mjs",
             "apps/companion/tests/lionwing-technique-surface.mjs",
             "apps/companion/tests/lionwing-turn-lifetimes.mjs",
@@ -4683,6 +4696,7 @@
             "apps/companion/tests/lionwing-recovery-stress.mjs",
             "apps/companion/tests/lionwing-replacements.mjs",
             "apps/companion/tests/lionwing-special-operations.mjs",
+            "apps/companion/tests/lionwing-swarm-bodyguards.mjs",
             "apps/companion/tests/lionwing-technician.mjs",
             "apps/companion/tests/lionwing-technique-surface.mjs",
             "apps/companion/tests/lionwing-turn-lifetimes.mjs",
@@ -4834,6 +4848,7 @@
           "apps/companion/tests/lionwing-siren-bombardier-audit.mjs",
           "apps/companion/tests/lionwing-siren-three.mjs",
           "apps/companion/tests/lionwing-student-of-stars.mjs",
+          "apps/companion/tests/lionwing-swarm-bodyguards.mjs",
           "apps/companion/tests/lionwing-table-data.mjs",
           "apps/companion/tests/lionwing-technician.mjs",
           "apps/companion/tests/lionwing-technique-status-ui.mjs",
@@ -4963,6 +4978,7 @@
             "apps/companion/tests/lionwing-siren-bombardier-audit.mjs",
             "apps/companion/tests/lionwing-siren-three.mjs",
             "apps/companion/tests/lionwing-student-of-stars.mjs",
+            "apps/companion/tests/lionwing-swarm-bodyguards.mjs",
             "apps/companion/tests/lionwing-table-data.mjs",
             "apps/companion/tests/lionwing-technician.mjs",
             "apps/companion/tests/lionwing-technique-status-ui.mjs",
@@ -5086,6 +5102,7 @@
             "apps/companion/tests/lionwing-siren-bombardier-audit.mjs",
             "apps/companion/tests/lionwing-siren-three.mjs",
             "apps/companion/tests/lionwing-student-of-stars.mjs",
+            "apps/companion/tests/lionwing-swarm-bodyguards.mjs",
             "apps/companion/tests/lionwing-table-data.mjs",
             "apps/companion/tests/lionwing-technician.mjs",
             "apps/companion/tests/lionwing-technique-status-ui.mjs",
@@ -5215,6 +5232,7 @@
             "apps/companion/tests/lionwing-siren-bombardier-audit.mjs",
             "apps/companion/tests/lionwing-siren-three.mjs",
             "apps/companion/tests/lionwing-student-of-stars.mjs",
+            "apps/companion/tests/lionwing-swarm-bodyguards.mjs",
             "apps/companion/tests/lionwing-table-data.mjs",
             "apps/companion/tests/lionwing-technician.mjs",
             "apps/companion/tests/lionwing-technique-status-ui.mjs",
@@ -8482,6 +8500,7 @@
             "apps/companion/tests/lionwing-spatial-engine.mjs",
             "apps/companion/tests/lionwing-special-operations.mjs",
             "apps/companion/tests/lionwing-student-of-stars.mjs",
+            "apps/companion/tests/lionwing-swarm-bodyguards.mjs",
             "apps/companion/tests/lionwing-table-data.mjs",
             "apps/companion/tests/lionwing-technician.mjs",
             "apps/companion/tests/lionwing-technique-status-ui.mjs",
@@ -10187,6 +10206,7 @@
           "apps/companion/tests/lionwing-enemy-base-attacks.mjs",
           "apps/companion/tests/lionwing-enemy-fodder-creators.mjs",
           "apps/companion/tests/lionwing-localization.mjs",
+          "apps/companion/tests/lionwing-swarm-bodyguards.mjs",
           "apps/companion/tests/qa.mjs",
           "apps/companion/tests/scene-engine.mjs"
         ],
@@ -10269,6 +10289,7 @@
             "apps/companion/tests/lionwing-recovery-r10.mjs",
             "apps/companion/tests/lionwing-segment-movement.mjs",
             "apps/companion/tests/lionwing-siren-three.mjs",
+            "apps/companion/tests/lionwing-swarm-bodyguards.mjs",
             "apps/companion/tests/lionwing-technique-status-ui.mjs",
             "apps/companion/tests/lionwing-turn-lifetimes.mjs",
             "apps/companion/tests/lionwing-ui-localization-l09.mjs",
@@ -10328,6 +10349,7 @@
             "apps/companion/tests/lionwing-enemy-base-attacks.mjs",
             "apps/companion/tests/lionwing-enemy-fodder-creators.mjs",
             "apps/companion/tests/lionwing-localization.mjs",
+            "apps/companion/tests/lionwing-swarm-bodyguards.mjs",
             "apps/companion/tests/qa.mjs",
             "apps/companion/tests/scene-engine.mjs"
           ],
@@ -10381,6 +10403,7 @@
             "apps/companion/tests/lionwing-enemy-fodder-creators.mjs",
             "apps/companion/tests/lionwing-gm-ap-contract.mjs",
             "apps/companion/tests/lionwing-localization.mjs",
+            "apps/companion/tests/lionwing-swarm-bodyguards.mjs",
             "apps/companion/tests/qa.mjs",
             "apps/companion/tests/scene-engine.mjs"
           ],
