@@ -9,6 +9,28 @@ function antagonistDefenseRule(data, actor) {
   return rule ? { trait, rule } : null;
 }
 
+function reactionDestinationAvailable(scene, option, source) {
+  if (!option?.requiresDestination) return true;
+  const trait = option.enemyTrait, moverId = trait?.postMove ? trait.reactionActorId : trait?.defenderActorId;
+  const mover = actorById(scene, moverId), space = (scene.spaces || []).find(item => item.id === mover?.space);
+  if (!mover || !space) return false;
+  const anchor = option.destinationKind === "adjacent-attacker" ? source
+    : option.destinationKind === "adjacent-trait-owner" ? actorById(scene, trait?.reactionActorId)
+      : null;
+  const maximum = Math.max(0, Number(option.maxDistance || mover.speed || 0));
+  const movement = effectMovementStatus(scene, mover.id, { distance: maximum });
+  for (let y = 0; y < space.height; y += 1) for (let x = 0; x < space.width; x += 1) {
+    if (!effectCellOccupancyStatus(scene, mover.id, { space: space.id, x, y }).available) continue;
+    if (option.destinationKind === "edge" && x !== 0 && y !== 0 && x !== space.width - 1 && y !== space.height - 1) continue;
+    if (anchor && (anchor.space !== space.id || Math.max(Math.abs(anchor.x - x), Math.abs(anchor.y - y)) > 1)) continue;
+    if (option.destinationKind === "move" && (x !== mover.x || y !== mover.y)) {
+      if (!movement.available || !movementPath(scene, mover.id, { x, y }, { maxDistance: movement.distance }).length) continue;
+    }
+    return true;
+  }
+  return false;
+}
+
 function antagonistReactionOptions(scene, data, target, source) {
   if (!target || !(target.kind === "enemy" || target.profileId)) return [];
   const options = [];
@@ -58,7 +80,7 @@ function antagonistReactionOptions(scene, data, target, source) {
       }
     } else options.push(base);
   }
-  return options;
+  return options.filter(option => reactionDestinationAvailable(scene, option, source));
 }
 
 function reactionOptions(scene, data, actorId) {
@@ -68,8 +90,8 @@ function reactionOptions(scene, data, actorId) {
   if (!source || source.knockedOut) return [];
   if (!effectTargetingStatus(scene, source.id, actor.id).available) return [];
   const effectDefense = effectDefenseStatus(scene, actorId);
-  const profileActor = actor.kind === "enemy" || Boolean(actor.profileId);
-  const defenses = profileActor ? antagonistReactionOptions(scene, data, actor, source) : availableActions(scene, data, actorId).filter(action => action.reaction).map(action => actionIs(action, "dodge") && !effectDefense.dodgeAllowed ? { ...action, available: false, reason: effectDefense.dodgeReason } : action);
+  const profileActor = actor.kind === "enemy" || Boolean(actor.profileId), heroActor = actor.kind === "hero" && !actor.profileId;
+  const defenses = profileActor ? antagonistReactionOptions(scene, data, actor, source) : heroActor ? availableActions(scene, data, actorId).filter(action => action.reaction).map(action => actionIs(action, "dodge") && !effectDefense.dodgeAllowed ? { ...action, available: false, reason: effectDefense.dodgeReason } : action) : [];
   if (profileActor && !defenses.some(option => option.available)) return [];
   return [{ id: "pass", name: "Без Реакции", available: true, reason: "Принять исходную Атаку без защиты", costModel: { amount: 0, resource: null } }, ...defenses];
 }
@@ -84,7 +106,7 @@ function pendingActionStatus(scene, data = null) {
   const pendingIds = eligibleIds.filter(id => pending.responses?.[id]?.choice === "pending");
   const autoPassedIds = data ? pendingIds.filter(id => {
     const target = actorById(scene, id);
-    return Boolean(target?.kind === "enemy" || target?.profileId) && !reactionOptions(scene, data, id).some(option => option.id !== "pass" && option.available);
+    return Boolean(target && (target.kind !== "hero" || target.profileId)) && !reactionOptions(scene, data, id).some(option => option.id !== "pass" && option.available);
   }) : [];
   const waitingIds = pendingIds.filter(id => !autoPassedIds.includes(id));
   const answeredIds = eligibleIds.filter(id => autoPassedIds.includes(id) || pending.responses?.[id]?.choice && pending.responses[id].choice !== "pending" && pending.responses[id].choice !== "unavailable");

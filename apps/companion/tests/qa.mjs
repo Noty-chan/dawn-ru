@@ -501,7 +501,7 @@ assert.match(cockpitCss, /\.scene-map-tools \.scene-area-controls\{[^}]*position
 assert.match(html, /id="scene-rail-left"[\s\S]+id="scene-dock"[\s\S]+id="scene-rail-right"/, "The desktop Scene shell provides independent left and right workspaces around the permanent dock");
 assert.match(app, /activeScenePanels=\{left:null,right:null\}/, "Scene panels track one independently open workspace on each side");
 assert.match(app, /function syncScenePanels[\s\S]+scene-panel-open-both/, "Opening a second-side panel preserves the first workspace and exposes an explicit dual-panel state");
-assert.match(app, /DEFAULT_SCENE_PANEL_SIDES=\{director:"left"[\s\S]+reference:"right"[\s\S]+roster:"right"/, "The default Narrator layout keeps the console beside combat reference panels");
+assert.match(app, /DEFAULT_SCENE_PANEL_SIDES=\{director:"left"[\s\S]+reference:"right"/, "The default Narrator layout keeps the console beside combat reference panels");
 assert.match(html, /class="round"[^>]+aria-label="Раунд"[\s\S]+class="tension"[^>]+aria-label="Напряжение"/, "Round and Tension remain accessible while using compact symbolic status chips");
 assert.match(html, /scene-stage-head[\s\S]+id="scene-flow"[\s\S]+scene-chrome-menu/, "The current action and infrequent view controls share one compact top strip");
 assert.match(app, /scene-map-tool-picker[\s\S]+data-tool-cluster="create"/, "Narrator-only creation tools move out of the persistent play toolbar and into the Map panel");
@@ -673,7 +673,7 @@ assert.match(html, /scene-dock/);
 assert.match(html, /id="scene-control-mode"/);
 assert.match(html, /data-scene-panel="director"/);
 assert.match(html, /id="scene-director"/);
-assert.match(html, /scene-enemy-roster/);
+assert.doesNotMatch(html, /data-scene-panel="roster"|data-scene-panel-content="roster"|scene-enemy-roster/, "Enemy profiles must stay in the Narrator console instead of a second panel");
 assert.match(html, /scene-zoom-fit/);
 assert.match(html, /data-scene-tool="measure"/);
 assert.match(html, /scene-roll-feed/);

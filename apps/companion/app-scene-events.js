@@ -123,13 +123,6 @@ $("scene-layout-settings").addEventListener("change",event=>{
   if(event.target.id==="scene-turn-strip-visible"){sceneTurnStripVisible=event.target.checked;persist();renderScene();return}
   if(event.target.id==="scene-interface-density"){sceneInterfaceDensity=event.target.value==="comfortable"?"comfortable":"compact";persist();renderScene()}
 });
-$("scene-enemy-roster").addEventListener("click",event=>{
-  const ruleButton=event.target.closest("[data-enemy-rule]"),stepButton=event.target.closest("[data-enemy-step]"),turnButton=event.target.closest("[data-enemy-turn]"),actorButton=event.target.closest("[data-scene-roster-actor]");
-  if(ruleButton){useEnemyRule(ruleButton.dataset.enemyActor,ruleButton.dataset.enemyRule,{options:enemyRuleUiOptions(ruleButton)});return}
-  if(stepButton){startEnemyStep(stepButton.dataset.enemyStep);return}
-  if(turnButton){const actor=Scene.actors.find(item=>item.id===turnButton.dataset.enemyActor);if(actor)setActorTurn(actor);return}
-  if(actorButton){const actor=Scene.actors.find(item=>item.id===actorButton.dataset.sceneRosterActor);if(actor){Scene.activeSpace=actor.space;Scene.selectedActor=actor.id;persist();renderScene();setScenePanel("inspector")}}
-});
 $("scene-zoom").addEventListener("input",event=>applySceneZoom(event.target.value));
 $("scene-zoom-fit").addEventListener("click",()=>fitSceneZoom(false));
 window.addEventListener("resize",()=>{clearTimeout(sceneResizeTimer);sceneResizeTimer=setTimeout(()=>{if(store.mode!=="play")return;hideSceneTokenTip(0);const nextViewport=sceneViewportProfile(),changed=nextViewport!==sceneViewportMode;sceneViewportMode=nextViewport;if(changed){closeAllScenePanels();requestAnimationFrame(()=>fitSceneZoom(false))}else applySceneZoom()},140)});

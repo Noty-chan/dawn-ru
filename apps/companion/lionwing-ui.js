@@ -999,11 +999,20 @@ document.addEventListener("click", event => {
     if (damage) { event.preventDefault(); event.stopImmediatePropagation(); const a=lwActor(); if(a&&lwCanNarrate())lwSubmit(a.id,{kind:damage.hasAttribute("data-director-damage")?"damage":"heal",targetId:a.id,amount:Number(damage.dataset.directorDamage||damage.dataset.directorHeal),sourceActorId:null},"Здоровье LionWing"); }
     return;
   }
+  // The shared action UI owns the Step destination flow. Let its click handler
+  // open the cell picker instead of submitting an action with no destination.
+  if(button.hasAttribute("data-core-action")&&button.dataset.coreAction===SceneEngine.ACTION_IDS.step)return;
   event.preventDefault(); event.stopImmediatePropagation();
   const root = button.closest("[data-lw-root]") || button.closest(".lw-console"), actorId = button.dataset.lwActor || button.dataset.coreActor || root?.dataset.lwActor || lwActor()?.id;
   if(button.hasAttribute("data-lw-geometry-cancel")){lwClearGeometryPreview();return;}
   if((button.hasAttribute("data-lw-geometry-confirm")||button.hasAttribute("data-lw-geometry-add"))&&!lwCanNarrate())return toast("Подтвердить движение или добавить его в пакет может только Нарратор");
   if (!actorId || !lwOwns(actorId)) return toast("Этим участником управляет другой игрок");
+  if(button.hasAttribute("data-lw-action")&&button.dataset.lwAction===SceneEngine.ACTION_IDS.step){
+    const actor=Scene.actors.find(item=>item.id===actorId);
+    if(actor&&(actor.kind==="enemy"||actor.profileId))return startEnemyStep(actor.id);
+    if(!actor)return toast("Участник для Шага больше не найден");
+    pendingCoreActorId=actor.id;pendingCoreAction=button.dataset.lwAction;pendingCoreActionPlan=false;Scene.tool="select";renderScene();toast(`«Шаг»: выберите клетку для ${actor.name}; ОД пока не потрачено`);return;
+  }
   const val = (selector, fallback="") => root?.querySelector(selector)?.value ?? fallback;
   const num = (selector, fallback=0) => Number(val(selector,fallback));
   if (button.hasAttribute("data-lw-bombardier-area")) {

@@ -1713,6 +1713,13 @@ assert.deepEqual(Array.from(ordinaryEnemyStatus.autoPassedIds), ["enemy"]);
 assert.equal(ordinaryEnemyStatus.canResolve, true);
 assert.throws(() => Engine.dispatch(awaiting, { type: "round.end", payload: {} }), /завершите текущую цепочку Реакций/);
 assert.equal(Engine.respondReaction(awaiting, data, { actorId: "enemy", choice: "pass" }).ok, false, "An enemy without a Reaction cannot submit a redundant response");
+const tokenTargetScene = structuredClone(scene);
+tokenTargetScene.actors[1] = { ...tokenTargetScene.actors[1], kind: "token", profileId: null };
+const tokenPending = Engine.dispatch(tokenTargetScene, { type: "attack.pending", actorId: "hero", payload: { actionId: actionNamed("Стычка").id, name: "Тестовая атака", targetIds: ["enemy"], damage: 1 } }).scene;
+assert.deepEqual(Array.from(Engine.reactionOptions(tokenPending, data, "enemy"), option => option.id), ["pass"], "A free token cannot inherit unavailable hero Reactions");
+assert.deepEqual(Array.from(Engine.pendingActionStatus(tokenPending, data).waitingIds), [], "Non-hero targets without a profile Reaction do not open a false response prompt");
+assert.deepEqual(Array.from(Engine.pendingActionStatus(tokenPending, data).autoPassedIds), ["enemy"]);
+assert.equal(Engine.respondReaction(tokenPending, data, { actorId: "enemy", choice: actionNamed("Блок").id }).ok, false, "A token cannot submit a hero-only defense");
 const answered = awaiting;
 const resolution = Engine.resolvePendingAction(answered, data);
 assert.equal(resolution.ok, true);
@@ -1741,6 +1748,11 @@ for (const [en, mode] of [["Iron-Willed", "intercept-armor"], ["World-Renowned",
   const options = Engine.reactionOptions(traitReactionScene(en, { ownerSeparate: true }), data, "enemy").filter(option => option.enemyTrait);
   assert.ok(options.some(option => option.enemyTrait.mode === mode && option.enemyTrait.redirectTargetId === "trait-owner"), `${en} can intercept an Attack aimed at an ally`);
 }
+const blockedIntercept = traitReactionScene("Iron-Willed", { ownerSeparate: true });
+for (const [index, [x, y]] of [[2, 1], [3, 1], [4, 1], [2, 2], [4, 2], [2, 3], [4, 3]].entries()) blockedIntercept.actors.push({ ...structuredClone(blockedIntercept.actors[1]), id: `intercept-blocker-${index}`, name: `Blocker ${index}`, x, y, antagonistTraitId: null });
+assert.deepEqual(Array.from(Engine.reactionOptions(blockedIntercept, data, "enemy"), option => option.id), [], "An Antagonist interception is not offered when every adjacent destination is occupied");
+assert.deepEqual(Array.from(Engine.pendingActionStatus(blockedIntercept, data).waitingIds), [], "A profile with no legal defensive choice is auto-passed instead of holding the Attack");
+assert.deepEqual(Array.from(Engine.pendingActionStatus(blockedIntercept, data).autoPassedIds), ["enemy"]);
 const sacrificeOptions = Engine.reactionOptions(traitReactionScene("Back-Stabbling", { sacrifice: true }), data, "enemy").filter(option => option.enemyTrait);
 assert.ok(sacrificeOptions.some(option => option.enemyTrait.mode === "redirect-ally" && option.enemyTrait.redirectTargetId === "sacrifice"), "Back-Stabbling can make a chosen ally become the target");
 assert.deepEqual(Array.from(Engine.pendingActionStatus(traitReactionScene("Cruel-Hearted"), data).waitingIds), ["enemy"], "A direct Antagonist defense opens the Reaction window");

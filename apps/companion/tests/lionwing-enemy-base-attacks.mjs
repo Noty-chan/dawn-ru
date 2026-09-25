@@ -9,11 +9,21 @@ for (const file of ["data.js", "edition-lionwing.js", "lionwing-table-data.js", 
   vm.runInContext(fs.readFileSync(new URL(`../${file}`, import.meta.url), "utf8"), context, { filename: file });
 }
 loadSceneEngine(context);
-const sceneUi=fs.readFileSync(new URL("../scene-ui.js",import.meta.url),"utf8"),css=fs.readFileSync(new URL("../app.css",import.meta.url),"utf8");
+const sceneUi=fs.readFileSync(new URL("../scene-ui.js",import.meta.url),"utf8"),sceneActionsUi=fs.readFileSync(new URL("../scene-actions-ui.js",import.meta.url),"utf8"),sceneResponses=fs.readFileSync(new URL("../scene-responses.js",import.meta.url),"utf8"),appSceneEvents=fs.readFileSync(new URL("../app-scene-events.js",import.meta.url),"utf8"),index=fs.readFileSync(new URL("../index.html",import.meta.url),"utf8"),css=fs.readFileSync(new URL("../app.css",import.meta.url),"utf8");
 assert.match(sceneUi,/function enemyAutomationDetails\(rule,state=rule\)/,"enemy actions must explain their automation coverage");
 assert.match(sceneUi,/Автоматизировано:/,"enemy cards must label automated behavior");
 assert.match(sceneUi,/Вручную:/,"enemy cards must label Narrator-confirmed behavior");
 assert.match(css,/\.enemy-automation-note\{/,"enemy automation explanations must have a visible card treatment");
+assert.doesNotMatch(index,/data-scene-panel="roster"|data-scene-panel-content="roster"|scene-enemy-roster/,"Enemy profiles must not have a separate dock entry or panel");
+assert.doesNotMatch(appSceneEvents,/\$\("scene-enemy-roster"\)/,"Removing the Enemy panel must not leave a dead event listener");
+assert.match(sceneUi,/scene-inspector-identity[\s\S]+data-open-scene-panel="director"[\s\S]+Открыть способности в Пульте/,"The Inspector must route enemy-profile actions into the Narrator console");
+assert.match(sceneUi,/function renderSceneInspector\(\)[\s\S]+trait=antagonistTrait\(actor\.antagonistTraitId\)/,"The profile Inspector preserves its configured Antagonist trait details");
+assert.match(sceneUi,/function directorEnemyProfileSection\(actor\)[\s\S]+class="enemy-rule-description"[\s\S]+md\(rule\.text\)/,"The Narrator console must show complete enemy ability descriptions inline");
+assert.doesNotMatch(sceneUi,/function directorEnemyProfileSection\(actor\)[\s\S]+<details><summary>Полное правило/,"Enemy abilities in the Narrator console must not be hidden behind a question-mark disclosure");
+assert.match(sceneUi,/function sceneNarratorBasicActionsHtml\(actor\)\{\s*if\(actor\?\.kind!=="hero"\|\|actor\?\.profileId\)return "";/,"Generic base actions must be rendered for heroes only");
+assert.match(sceneActionsUi,/if\(actor\.kind!=="hero"\|\|actor\.profileId\)return `<section class="core-action-panel">/,"Selecting an NPC must not show the hero base-action list");
+assert.match(sceneResponses,/function reactionDestinationAvailable\([\s\S]+return options\.filter\(option => reactionDestinationAvailable\(scene, option, source\)\)/,"Profile Reactions without a legal destination must be removed before opening a prompt");
+assert.match(sceneResponses,/target\.kind !== "hero" \|\| target\.profileId/,"Non-hero targets without a profile defense must auto-pass instead of blocking the Attack");
 
 const data = context.window.DAWN_DATA;
 const engine = context.window.DAWN_SCENE_ENGINE;

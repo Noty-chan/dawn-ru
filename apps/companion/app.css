@@ -203,6 +203,7 @@ main{min-width:0;padding:clamp(1rem,3vw,3rem)}.mode-page{display:none}.mode-page
 .enemy-rule>details[open]{grid-column:1/-1;border-top:1px solid var(--line);border-left:0}.enemy-rule>details[open]>summary{font-size:.65rem}.enemy-rule>details[open]>summary::after{content:""}
 .enemy-rule>details p{margin:.35rem 0;font-size:.67rem;line-height:1.45}
 .enemy-rule>.enemy-automation-note{grid-column:1/-1;min-width:0;margin:.2rem .45rem .45rem;overflow-wrap:anywhere}
+.enemy-rule-description{grid-column:1/-1;margin:.15rem .55rem .45rem;color:var(--muted);font-size:.67rem;line-height:1.45}.enemy-rule-description p{margin:.15rem 0}.enemy-rule-reward{padding-top:.3rem;border-top:1px solid var(--line)}
 
 .scene-turn-strip{display:flex;gap:.35rem;margin:-.15rem 0 .5rem;overflow-x:auto;padding:.15rem .05rem .35rem;scrollbar-width:thin;overscroll-behavior-x:contain}
 .scene-turn-strip>.autosave{align-self:center;padding:.45rem}
