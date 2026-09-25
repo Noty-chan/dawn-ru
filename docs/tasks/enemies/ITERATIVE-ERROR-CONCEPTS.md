@@ -36,3 +36,7 @@ When a check or fix reveals a defect, repair the shared cause where possible, te
 28. **Canonical profile IDs must reach their passive lifecycle.** Legacy Revenant suppression of KO Tension and Round return matched only the legacy profile ID; the LionWing kernel had its own KO meter path. Check the actual kernel route and canonical ID before declaring a copied passive automated.
 
 For future slices, pair one normal scenario with a forged event, a stale scene, a replay with fresh IDs, and a boundary case that changes the outcome. Record unresolved cases before raising automation coverage.
+
+## Open boundary for the next review
+
+- The writer now requires a canonical `enemy.action.prepare` and matching AP payment before an NPC `attack.pending`, but it does not yet reconstruct and compare every target, range, roll-derived damage, and effect in a forged *paid* package. The previously reproduced free standalone Revenant attack is blocked; a same-batch payload mutation still needs a focused adversarial audit across attack families before this boundary is considered complete.
