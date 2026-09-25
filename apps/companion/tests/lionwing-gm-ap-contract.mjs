@@ -84,6 +84,7 @@ Object.assign(relinkContext, {
   Scene: { rulesEdition: "lionwing", activeActorId: null, pendingAction: null, pendingActionPlan: null, activeSpace: "main", spaces: [{ id: "main", mode: "standard", width: 7, height: 7 }], actors: [{ id: "live-hero", kind: "hero", team: "hero", space: "main", x: 1, y: 1, knockedOut: false }], objects: [], markers: [], targetIds: [] },
   activeSceneSpace: () => relinkContext.Scene.spaces[0],
   deployEncounterTemplate: () => false,
+  addEnemyDeploymentPassives: () => [],
   commitScene: (_label, change) => { const next = structuredClone(relinkContext.Scene); change(next); relinkContext.Scene = next; },
   toast: message => deploymentToasts.push(message),
   uid: (() => { let serial = 0; return () => `reinforcement-${++serial}`; })(),

@@ -17,9 +17,9 @@
     "combinedAuditRecords": 163
   },
   "actualAutomationCounts": {
-    "assisted": 54,
+    "assisted": 53,
     "attack": 35,
-    "full": 31,
+    "full": 32,
     "state": 2
   },
   "profiles": [
@@ -232,6 +232,7 @@
             "apps/companion/tests/lionwing-replacements.mjs",
             "apps/companion/tests/lionwing-scene-objects-ui.mjs",
             "apps/companion/tests/lionwing-sheet-manual.mjs",
+            "apps/companion/tests/lionwing-step-ui.mjs",
             "apps/companion/tests/lionwing-swarm-bodyguards.mjs",
             "apps/companion/tests/lionwing-technician.mjs",
             "apps/companion/tests/lionwing-technique-status-ui.mjs",
@@ -389,6 +390,7 @@
           "apps/companion/tests/lionwing-modifier-contagion.mjs",
           "apps/companion/tests/lionwing-modifier-isolation.mjs",
           "apps/companion/tests/lionwing-modifier-vip.mjs",
+          "apps/companion/tests/lionwing-step-ui.mjs",
           "apps/companion/tests/qa.mjs",
           "apps/companion/tests/scene-engine.mjs"
         ],
@@ -446,6 +448,7 @@
             "apps/companion/tests/lionwing-modifier-contagion.mjs",
             "apps/companion/tests/lionwing-modifier-isolation.mjs",
             "apps/companion/tests/lionwing-modifier-vip.mjs",
+            "apps/companion/tests/lionwing-step-ui.mjs",
             "apps/companion/tests/qa.mjs",
             "apps/companion/tests/scene-engine.mjs"
           ],
@@ -503,6 +506,7 @@
             "apps/companion/tests/lionwing-modifier-contagion.mjs",
             "apps/companion/tests/lionwing-modifier-isolation.mjs",
             "apps/companion/tests/lionwing-modifier-vip.mjs",
+            "apps/companion/tests/lionwing-step-ui.mjs",
             "apps/companion/tests/qa.mjs",
             "apps/companion/tests/scene-engine.mjs"
           ],
@@ -556,6 +560,7 @@
             "apps/companion/tests/lionwing-modifier-contagion.mjs",
             "apps/companion/tests/lionwing-modifier-isolation.mjs",
             "apps/companion/tests/lionwing-modifier-vip.mjs",
+            "apps/companion/tests/lionwing-step-ui.mjs",
             "apps/companion/tests/qa.mjs",
             "apps/companion/tests/scene-engine.mjs"
           ],
@@ -1202,6 +1207,7 @@
             "apps/companion/tests/lionwing-siren-three.mjs",
             "apps/companion/tests/lionwing-spatial-engine.mjs",
             "apps/companion/tests/lionwing-special-operations.mjs",
+            "apps/companion/tests/lionwing-step-ui.mjs",
             "apps/companion/tests/lionwing-student-of-stars.mjs",
             "apps/companion/tests/lionwing-swarm-bodyguards.mjs",
             "apps/companion/tests/lionwing-technician.mjs",
@@ -2903,6 +2909,7 @@
           "apps/companion/tests/lionwing-enemy-fodder-creators.mjs",
           "apps/companion/tests/lionwing-localization.mjs",
           "apps/companion/tests/lionwing-swarm-bodyguards.mjs",
+          "apps/companion/tests/qa.mjs",
           "apps/companion/tests/scene-engine.mjs"
         ],
         "notRun": [
@@ -2958,6 +2965,7 @@
             "apps/companion/tests/lionwing-enemy-fodder-creators.mjs",
             "apps/companion/tests/lionwing-localization.mjs",
             "apps/companion/tests/lionwing-swarm-bodyguards.mjs",
+            "apps/companion/tests/qa.mjs",
             "apps/companion/tests/scene-engine.mjs"
           ],
           "notRun": [
@@ -3007,6 +3015,7 @@
             "apps/companion/tests/lionwing-enemy-fodder-creators.mjs",
             "apps/companion/tests/lionwing-localization.mjs",
             "apps/companion/tests/lionwing-swarm-bodyguards.mjs",
+            "apps/companion/tests/qa.mjs",
             "apps/companion/tests/scene-engine.mjs"
           ],
           "notRun": [
@@ -3062,6 +3071,7 @@
             "apps/companion/tests/lionwing-gm-ap-contract.mjs",
             "apps/companion/tests/lionwing-localization.mjs",
             "apps/companion/tests/lionwing-swarm-bodyguards.mjs",
+            "apps/companion/tests/qa.mjs",
             "apps/companion/tests/scene-engine.mjs"
           ],
           "notRun": [
@@ -4847,6 +4857,7 @@
           "apps/companion/tests/lionwing-replacements.mjs",
           "apps/companion/tests/lionwing-siren-bombardier-audit.mjs",
           "apps/companion/tests/lionwing-siren-three.mjs",
+          "apps/companion/tests/lionwing-step-ui.mjs",
           "apps/companion/tests/lionwing-student-of-stars.mjs",
           "apps/companion/tests/lionwing-swarm-bodyguards.mjs",
           "apps/companion/tests/lionwing-table-data.mjs",
@@ -4977,6 +4988,7 @@
             "apps/companion/tests/lionwing-replacements.mjs",
             "apps/companion/tests/lionwing-siren-bombardier-audit.mjs",
             "apps/companion/tests/lionwing-siren-three.mjs",
+            "apps/companion/tests/lionwing-step-ui.mjs",
             "apps/companion/tests/lionwing-student-of-stars.mjs",
             "apps/companion/tests/lionwing-swarm-bodyguards.mjs",
             "apps/companion/tests/lionwing-table-data.mjs",
@@ -5101,6 +5113,7 @@
             "apps/companion/tests/lionwing-replacements.mjs",
             "apps/companion/tests/lionwing-siren-bombardier-audit.mjs",
             "apps/companion/tests/lionwing-siren-three.mjs",
+            "apps/companion/tests/lionwing-step-ui.mjs",
             "apps/companion/tests/lionwing-student-of-stars.mjs",
             "apps/companion/tests/lionwing-swarm-bodyguards.mjs",
             "apps/companion/tests/lionwing-table-data.mjs",
@@ -5231,6 +5244,7 @@
             "apps/companion/tests/lionwing-replacements.mjs",
             "apps/companion/tests/lionwing-siren-bombardier-audit.mjs",
             "apps/companion/tests/lionwing-siren-three.mjs",
+            "apps/companion/tests/lionwing-step-ui.mjs",
             "apps/companion/tests/lionwing-student-of-stars.mjs",
             "apps/companion/tests/lionwing-swarm-bodyguards.mjs",
             "apps/companion/tests/lionwing-table-data.mjs",
@@ -7942,6 +7956,7 @@
             "apps/companion/tests/lionwing-lifecycle-consumers.mjs",
             "apps/companion/tests/lionwing-localization.mjs",
             "apps/companion/tests/lionwing-martial-skirmisher.mjs",
+            "apps/companion/tests/lionwing-step-ui.mjs",
             "apps/companion/tests/lionwing-unbroken-complex.mjs",
             "apps/companion/tests/network-mvp.mjs",
             "apps/companion/tests/qa.mjs",
@@ -8499,6 +8514,7 @@
             "apps/companion/tests/lionwing-siren-three.mjs",
             "apps/companion/tests/lionwing-spatial-engine.mjs",
             "apps/companion/tests/lionwing-special-operations.mjs",
+            "apps/companion/tests/lionwing-step-ui.mjs",
             "apps/companion/tests/lionwing-student-of-stars.mjs",
             "apps/companion/tests/lionwing-swarm-bodyguards.mjs",
             "apps/companion/tests/lionwing-table-data.mjs",

@@ -94,7 +94,11 @@ assert.match(appSource, /feed\.innerHTML=\[\.\.\.rolls\]\.reverse\(\)\.map/, "Th
 assert.match(appSource, /function sceneTrayHeroActor\(\)[\s\S]+selected\.team==="hero"[\s\S]+active\.team==="hero"/, "The Narrator tray follows selected or active heroes and never exposes hero actions for enemies");
 assert.match(companionMarkup, /option value="crowd">Зона массовки/, "The terrain painter exposes canonical Fodder Zones");
 assert.match(appSource, /source\.kind==="crowd"[\s\S]+actor\.crowdGroupId/, "Scene normalization preserves Fodder identity and its shared visual type");
-assert.match(appSource, /actor\.crowdSubtype=\["seeker","vortex","corpse"\][\s\S]+actor\.seekerTargetId[\s\S]+actor\.seekerDamage[\s\S]+actor\.vortexOwnerId[\s\S]+actor\.sourceActionId[\s\S]+actor\.summonerId/, "Scene import preserves special Fodder provenance and ownership for Seekers, Vortex zones, and Corpses");
+const crowdImport = appSource.match(/if\(source\.kind==="crowd"\)\{([\s\S]*?)\}/)?.[1] || "";
+assert.match(crowdImport, /actor\.crowdSubtype=\["seeker","vortex","corpse","bodyguards-deployment","swarm-deployment"\]/, "Scene import accepts only the known special Fodder subtypes, including both deployment proxies");
+for (const field of ["seekerTargetId", "seekerDamage", "vortexOwnerId", "source", "sourceActionId", "summonerId", "deploymentFodderOwnerId"]) {
+  assert.match(crowdImport, new RegExp(`actor\\.${field}=`), `Scene import preserves Fodder provenance field ${field}`);
+}
 assert.match(appSource, /editTargets=actor\.kind==="crowd"[\s\S]+targets\.forEach\(item=>item\.tokenImage=image\)/, "Renaming or uploading a token updates every zone of that Fodder type");
 assert.match(companionCss, /\.scene-token\.crowd\{[^}]*border-radius:7px[^}]*repeating-linear-gradient/, "Fodder Zones are visually distinct from circular character tokens");
 assert.match(companionCss, /modifier-carrier-pulse[\s\S]+modifier-artillery-cell[\s\S]+modifier-gargantuan-body-cell[\s\S]+modifier-vortex-edge/, "Rule-critical Enemy Modifiers have distinct carrier, danger-area, body-edge, and spawn-edge visuals");

@@ -9,6 +9,13 @@ for (const file of ["data.js", "edition-lionwing.js", "lionwing-table-data.js", 
   vm.runInContext(fs.readFileSync(new URL(`../${file}`, import.meta.url), "utf8"), context, { filename: file });
 const Engine = loadSceneEngine(context);
 const data = context.window.DAWN_DATA;
+const appCore = fs.readFileSync(new URL("../app-core.js", import.meta.url), "utf8");
+const deploymentStart = appCore.indexOf("function addEnemyDeploymentPassives");
+const deploymentEnd = appCore.indexOf("\nfunction validateTableEdit", deploymentStart);
+assert.ok(deploymentStart >= 0 && deploymentEnd > deploymentStart, "The production deployment-passive hook must stay testable");
+const deploymentContext = { SceneEngine: Engine };
+vm.createContext(deploymentContext);
+vm.runInContext(`${appCore.slice(deploymentStart, deploymentEnd)};this.addEnemyDeploymentPassives=addEnemyDeploymentPassives;`, deploymentContext);
 const clone = value => JSON.parse(JSON.stringify(value));
 const actor = (id, team, x, y, extra = {}) => ({
   id, name: id, kind: "enemy", rulesEdition: "lionwing", team, space: "main", x, y,
@@ -27,10 +34,9 @@ let serial = 0;
 const stamp = events => events.map((event, index) => ({ ...event, id: event.id || `sw-bg-${serial++}-${index}` }));
 const commit = (current, events) => Engine.dispatchMany(current, stamp(events), { expectedVersion: current.version }).scene;
 const deploy = current => {
-  const owner = current.actors.find(item => item.id === "owner"), prepared = Engine.prepareEnemyDeployment(current, owner);
-  assert.equal(prepared.ok, true, prepared.errors?.join(" "));
-  Object.assign(owner, prepared.owner);
-  current.actors.push(...prepared.zones);
+  const owner = current.actors.find(item => item.id === "owner");
+  const zones = deploymentContext.addEnemyDeploymentPassives(current, owner);
+  assert.ok(Array.isArray(zones), "Production deployment hook returns its committed Fodder Zones");
   return current;
 };
 const zone = (id, team, x, y, ownerId = null) => actor(id, team, x, y, {
@@ -79,7 +85,6 @@ assert.equal(noRoom.ok, false);
 assert.match(noRoom.errors.join(" "), /разместите зоны вручную/i);
 
 // The owner, Fodder identities, links, and active Brace survive the actual app persistence normalizer and network snapshot path.
-const appCore = fs.readFileSync(new URL("../app-core.js", import.meta.url), "utf8");
 const persistenceSource = appCore.slice(appCore.indexOf("function blankScene"), appCore.indexOf("function addEnemyDeploymentPassives"));
 const persistence = { console, SceneEngine: Engine };
 vm.createContext(persistence);
