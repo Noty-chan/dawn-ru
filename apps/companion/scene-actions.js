@@ -289,7 +289,7 @@ function prepareEnemyDeployment(scene, actor) {
   const candidates = [];
   for (let y = 0; y < Number(space.height || 0); y += 1) for (let x = 0; x < Number(space.width || 0); x += 1) {
     const key = `${x},${y}`;
-    if (occupied.has(key) || terrain.has(key) || removed.has(key)) continue;
+    if (occupied.has(key) || terrain.has(key) || removed.has(key) || designated.size && !designated.has(key)) continue;
     candidates.push({ key, x, y, designated: designated.has(key), characterOccupied: characterOccupied.has(key), distance: Math.max(Math.abs(x - Number(actor.x)), Math.abs(y - Number(actor.y))) });
   }
   candidates.sort((left, right) => Number(right.designated) - Number(left.designated) || Number(left.characterOccupied) - Number(right.characterOccupied) || left.distance - right.distance || left.y - right.y || left.x - right.x);
