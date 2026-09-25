@@ -259,6 +259,12 @@ const forgedArmy = clone(armyPlan.events).map(item => ({ ...item, payload: { ...
 forgedArmy[2].payload.token = "forged-token";
 assert.throws(() => Engine.dispatchMany(builderArmy, forgedArmy), /.+/, "the engine rejects a forged conversion receipt before payment");
 assert.throws(() => Engine.dispatchMany(builderArmy, [armyPlan.events[2]]), /.+/, "a converter event alone cannot mint allied Fodder");
+const collidingArmy = clone(builderArmy);
+const armyToken = armyPlan.events[0].payload.armyOfStone.token;
+const collidingId = `as-${armyToken.replace(/[^a-zA-Z0-9_-]/g, "").slice(-48)}-0`;
+collidingArmy.actors.push(actor(collidingId, "heroes", 6, 6));
+assert.throws(() => Engine.dispatchMany(collidingArmy, armyPlan.events), /идентификатором/, "generated Fodder cannot overwrite an existing actor ID");
+assert.equal(collidingArmy.actors.find(item => item.id === "source").ap, 4, "a generated-ID conflict leaves the Builder's AP untouched");
 const wallBlockedArmy = clone(builderArmy);
 wallBlockedArmy.walls.push({ id: "real-wall", space: "main", a: "0,0", b: "1,0" });
 const wallBlockedRule = Engine.availableEnemyRules(wallBlockedArmy, data, "source").find(rule => rule.id === armyId);
