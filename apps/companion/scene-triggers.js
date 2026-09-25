@@ -805,6 +805,25 @@ function bodyguardsLifecycleEvents(scene, event) {
   );
 }
 
+function lionwingRevenantRoundEvents(scene, event) {
+  if (event?.type !== "round.end") return [];
+  const events = [];
+  for (const revenant of (scene.actors || []).filter(item => item.knockedOut && item.profileId === "lionwing.npc.revenant")) {
+    const space = (scene.spaces || []).find(item => item.id === revenant.space);
+    if (!space) continue;
+    const occupied = new Set((scene.actors || []).filter(item => !item.knockedOut && item.space === revenant.space).map(cellKey));
+    let destination = null;
+    for (let y = 0; y < Number(space.height) && !destination; y += 1) for (let x = 0; x < Number(space.width); x += 1) {
+      const key = `${x},${y}`;
+      if (!occupied.has(key) && !removedCellKeys(scene, revenant.space).has(key) && effectCellOccupancyStatus(scene, revenant.id, { actor: revenant, space: revenant.space, x, y }).available) { destination = { x, y }; break; }
+    }
+    if (!destination) continue;
+    events.push({ type: "actor.move", actorId: revenant.id, payload: { space: revenant.space, ...destination, placement: true, allowKnockedOut: true, movement: "Возвращение Ревенанта", participantIds: [revenant.id] } });
+    events.push({ type: "actor.knockout", actorId: revenant.id, payload: { targetId: revenant.id, restore: true, amount: Number(revenant.maxHp || 1), sourceActionId: "lionwing.npc.revenant.passive", participantIds: [revenant.id] } });
+  }
+  return events;
+}
+
 function triggeredEvents(scene, event, options = {}) {
   const payload = event.payload || {}, actor = event.actorId ? actorById(scene, event.actorId) : null, resumesQueue = event.type === "attack.clear" || event.type === "rule.respond" && !options.deferQueuedResume, resumed = resumesQueue ? resumeQueuedTriggers(scene, event) : { events: [], promptReserved: false }, routed = triggerRouteStatus(scene, event, { promptReserved: resumed.promptReserved || options.deferQueuedResume || Boolean(scene.triggerQueue?.length) }), prefixEvents = [...resumed.events, ...routed.events], events = [], promptQueued = () => prefixEvents.some(item => item.type === "rule.prompt") || events.some(item => item.type === "rule.prompt");
   events.push(...modifierKnockoutEvents(scene,event));

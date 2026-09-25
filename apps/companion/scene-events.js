@@ -670,7 +670,7 @@ const expectedTargets = (scene.actors || []).filter(target => !target.knockedOut
       const data = (typeof window === "object" ? window : globalThis).DAWN_DATA;
       const profile = enemyProfileById(data, actor.profileId);
       const ownedRule = profile?.rules?.find(item => item.id === payload.ruleId);
-      if (!ownedRule || payload.profileId !== actor.profileId || payload.kind !== ownedRule.kind) throw new Error("Действие врага не соответствует его каноническому типу и профилю.");
+      if (!ownedRule || payload.profileId !== actor.profileId || payload.kind !== ownedRule.kind) throw new Error("Неверный тип действия или профиль врага для канонического правила.");
       const status = availableEnemyRules(scene, data, actor.id).find(item => item.id === payload.ruleId);
       if (!status?.available) throw new Error(status?.reason || "Каноническое действие врага сейчас недоступно.");
     }
@@ -889,7 +889,7 @@ function applyKnockoutState(scene, target, payload) {
   }
   target.hp = 0;
   target.knockedOut = true;
-  if (target.profileId !== "enemy.common.revenant") scene.tension = Number(scene.tension || 0) + 1;
+  if (!["enemy.common.revenant", "lionwing.npc.revenant"].includes(target.profileId)) scene.tension = Number(scene.tension || 0) + 1;
   scene.targetIds = (scene.targetIds || []).filter(id => id !== target.id);
   if (scene.pendingAction?.responses?.[target.id]?.choice === "pending") scene.pendingAction.responses[target.id] = { choice: "unavailable", reason: "Цель выведена из боя" };
   if (scene.pendingAction?.actorId === target.id) scene.pendingAction.interruptedReason = "Атакующий выведен из боя";

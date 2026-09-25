@@ -2075,7 +2075,7 @@
       if (a.knockedOut) return;
       a.knockedOut = true; a.ap = 0; a.stepRemaining = 0; s.grantedTurns=(s.grantedTurns||[]).filter(turn=>turn.actorId!==a.id);
       if (scene.activeActorId === a.id) { scene.activeActorId = null; a.acted = true; s.lastTeam = a.team; s.lastActorId = a.id; }
-      if (!s.lowTension) mutateCombatMeter({ operation: "add", delta: 1 }, a.id, `${rootId}:ko-tension:${a.id}`);
+      if (!s.lowTension && a.profileId !== "lionwing.npc.revenant") mutateCombatMeter({ operation: "add", delta: 1 }, a.id, `${rootId}:ko-tension:${a.id}`);
       // Source loss is policy driven. The default `disable` keeps the aura in
       // saved state; only an explicitly configured `remove` policy deletes it.
       for(const aura of [...s.auras])if(aura.sourceLossPolicy==="remove"&&(aura.sourceEntityId===a.id||aura.ownerActorId===a.id))removeAuraRecord(aura,"removed",a.id);
@@ -4449,6 +4449,8 @@
         const prompts = legacy.fodderBoundaryPromptEvents?.(next, boundary) || [];
         if (prompts.length) { const prompted = legacy.dispatchMany(next, prompts); next = prompted.scene; output.push(...prompted.events); }
         if (boundary.type === "round.end") {
+          const revenantEvents = legacy.lionwingRevenantRoundEvents?.(next, boundary) || [];
+          if (revenantEvents.length) { const result = legacy.dispatchMany(next, revenantEvents); next = result.scene; output.push(...result.events); }
           const modifierEvents = legacy.modifierRoundEndEvents?.(next, boundary, "lionwing") || [];
           for (const modifierEvent of modifierEvents) {
             const result = modifierEvent.type === "damage.apply" && modifierEvent.payload?.attack === false

@@ -304,10 +304,17 @@ const forgedRevenantAce=engine.prepareEnemyRule(scene("lionwing.npc.revenant"),d
 assert.equal(forgedRevenantAce.ok,true);
 const disguisedAce=structuredClone(forgedRevenantAce.events);
 for(const event of disguisedAce) if(["enemy.action.prepare","enemy.action.resolve"].includes(event.type))event.payload.kind="action";
-assert.throws(()=>engine.dispatchMany(unpaidRevenantScene,disguisedAce),/каноническому типу|Напряжение/,"a Revenant Ace cannot be disguised as a normal action at zero Tension");
+assert.throws(()=>engine.dispatchMany(unpaidRevenantScene,disguisedAce),/тип действия|Напряжение/,"a Revenant Ace cannot be disguised as a normal action at zero Tension");
 const unpaidAttack=engine.prepareEnemyRule(scene("lionwing.npc.revenant"),data,{actorId:"enemy",ruleId:"lionwing.npc.revenant.tear-from-the-soul",targetIds:["hero"],roll:dice(6)});
 assert.equal(unpaidAttack.ok,true,unpaidAttack.errors?.join(" "));
 assert.throws(()=>engine.dispatchMany(scene("lionwing.npc.revenant"),unpaidAttack.events.filter(event=>event.type==="attack.pending")),/подготовленного и оплаченного/,"a standalone enemy attack cannot skip AP");
+const revenantRound=scene("lionwing.npc.revenant");
+const knockedRevenant=engine.dispatchMany(revenantRound,[{type:"actor.knockout",actorId:"hero",payload:{targetId:"enemy"}}]).scene;
+assert.equal(knockedRevenant.tension,revenantRound.tension,"canonical Revenant gives no Tension on Knockout");
+knockedRevenant.actors.find(item=>item.id==="hero").acted=true;
+const returnedRevenant=engine.dispatchMany(knockedRevenant,[{type:"round.end",actorId:"enemy",payload:{}}]).scene;
+assert.equal(returnedRevenant.actors.find(item=>item.id==="enemy").knockedOut,false,"canonical Revenant returns at the next Round boundary");
+assert.equal(returnedRevenant.actors.find(item=>item.id==="enemy").hp,returnedRevenant.actors.find(item=>item.id==="enemy").maxHp,"canonical Revenant returns at full Health");
 aceScene=acePrepare("lionwing.npc.berserker","lionwing.npc.berserker.last-stand");
 assert.equal(aceScene.actors[0].hp,23);assert.equal(aceScene.actors[0].ruleState.berserkerLastStand,true);assert.equal(aceScene.actors[0].extraTurns,1);
 aceScene=acePrepare("lionwing.npc.hound-master","lionwing.npc.hound-master.wild-hunt",{targetIds:["hero"],options:{destination:{x:2,y:1}}});
