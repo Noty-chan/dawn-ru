@@ -85,6 +85,10 @@ cramped.spaces[0].width = 2; cramped.spaces[0].height = 2;
 const noRoom = Engine.prepareEnemyDeployment(cramped, cramped.actors[0]);
 assert.equal(noRoom.ok, false);
 assert.match(noRoom.errors.join(" "), /разместите зоны вручную/i);
+const collidingDeployment = scene({ profileId: "lionwing.npc.bodyguards", actors: [actor("deployment-owner-1", "hero", 0, 0)] });
+const collisionResult = Engine.prepareEnemyDeployment(collidingDeployment, collidingDeployment.actors[0]);
+assert.equal(collisionResult.ok, false, "deployment cannot create a Zone with an existing actor ID");
+assert.equal(collisionResult.zones.length, 0, "ID collision does not leave a partial deployment");
 
 // The owner, Fodder identities, links, and active Brace survive the actual app persistence normalizer and network snapshot path.
 const persistenceSource = appCore.slice(appCore.indexOf("function blankScene"), appCore.indexOf("function addEnemyDeploymentPassives"));

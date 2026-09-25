@@ -306,6 +306,8 @@ function prepareEnemyDeployment(scene, actor) {
     acted: true, knockedOut: false, hidden: false, tokenSymbol: actor.tokenSymbol || passive.symbol,
     tokenColor: actor.tokenColor || passive.color, tokenImage: "", portraitImage: "",
   }));
+  const existingIds = new Set((scene.actors || []).map(item => item.id));
+  if (zones.some(zone => existingIds.has(zone.id))) return { ok: false, owner: actor, zones: [], errors: ["Идентификатор создаваемой Зоны массовки уже занят; измените ID профиля или разрешите размещение вручную."] };
   owner.deploymentFodderIds = zones.map(item => item.id);
   return { ok: true, owner, zones, errors: [] };
 }
