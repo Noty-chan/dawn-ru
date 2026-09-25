@@ -9,7 +9,7 @@
 | Контур | Всего | Заявлено исполнимым | Формально E2E-сертифицировано | Неполный путь |
 | --- | ---: | ---: | ---: | --- |
 | Уровни Техник | 333 | 84 shared/inherited (25.2%) | 0 | 57 частичных; 192 ручных |
-| Правила обычных врагов | 122 | 67 (54.9%) | 0 | 55 assisted |
+| Правила обычных врагов | 122 | 68 (55.7%) | 0 | 54 assisted |
 | Атаки врагов | 40 | 36 | 0 | не установлено независимым аудитом |
 
 Формально сертифицировано сейчас: **0** записей. Исполнимые уровни без evidence считаются **shared/inherited**, даже при совпавшем canonical digest: digest подтверждает текстовый источник, но не полноту поведения. Проценты выше измеряют охват кодом, а не верность правилам игры.
@@ -315,7 +315,7 @@
 | Revenant (`lionwing.npc.revenant`) | 3 | 2 | 1 | Lurk |
 | Spright (`lionwing.npc.spright`) | 3 | 2 | 1 | Thunderous Ascension |
 | Bannerman (`lionwing.npc.bannerman`) | 3 | 1 | 2 | In Position; Plant The Flag |
-| Builder (`lionwing.npc.builder`) | 3 | 1 | 2 | Landscape; Army Of Stone |
+| Builder (`lionwing.npc.builder`) | 3 | 2 | 1 | Landscape |
 | Coordinator (`lionwing.npc.coordinator`) | 3 | 1 | 2 | Fanaticize; Coordinated Charge |
 | Doppelgänger (`lionwing.npc.doppelganger`) | 2 | 0 | 2 | Imitate; Diplopia |
 | Healer (`lionwing.npc.healer`) | 3 | 2 | 1 | Savior |
