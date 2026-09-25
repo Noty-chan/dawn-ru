@@ -317,6 +317,9 @@ function modifierConfigurationStatus(scene, actorId, request = {}) {
       );
     if (cells.some((cell) => occupied.has(cell)))
       errors.push("Одна из клеток Случайных жертв занята.");
+    const actorIds = new Set((scene.actors || []).map(item => item.id));
+    if (cells.slice(1).some((_, index) => actorIds.has(`collateral-${actor.id}-${index + 1}`)))
+      errors.push("Идентификатор создаваемой Случайной жертвы уже занят.");
   }
   return {
     available: !errors.length,

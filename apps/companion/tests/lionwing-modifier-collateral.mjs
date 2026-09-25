@@ -15,6 +15,9 @@ const base=()=>({rulesEdition:"lionwing",version:0,round:1,turnSerial:1,activeAc
 ],objects:[],walls:[],markers:[],log:[],rollFeed:[],targetIds:[],targetCells:[],triggerQueue:[],lionwing:{started:true,lastTeam:"enemy",lastActorId:"foe"}});
 const cells=["0,4","1,4","2,4","3,4","4,4","6,4"];
 const commit=(scene,plan,prefix)=>engine.dispatchMany(scene,plan.events.map((event,index)=>({...event,id:event.id||`${prefix}-${index}`})),{expectedVersion:scene.version}).scene;
+const colliding=base();
+colliding.actors.push(actor("collateral-collateral-1","enemy",6,6));
+assert.equal(engine.prepareModifierConfigure(colliding,{actorId:"collateral",cells}).ok,false,"generated casualty IDs cannot collide with an existing actor");
 let scene=base();
 assert.equal(engine.prepareModifierConfigure(scene,{actorId:"collateral",cells:cells.slice(1)}).ok,false,"four PCs require six casualties");
 const plan=engine.prepareModifierConfigure(scene,{actorId:"collateral",cells});
