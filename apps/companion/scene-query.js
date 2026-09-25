@@ -1,5 +1,57 @@
 "use strict";
 
+const BUILDER_ARMY_OF_STONE_RULE_ID = "lionwing.npc.builder.army-of-stone";
+const BUILDER_ARMY_OF_STONE_TERRAIN_TYPES = new Set(["terrain", "difficult", "high", "low"]);
+
+function builderArmyOfStoneStatus(scene, actorOrId) {
+  const actor = typeof actorOrId === "string" ? actorById(scene, actorOrId) : actorOrId;
+  const fail = reason => ({ available: false, reason, terrainObjects: [], cells: [], spawnCells: [], existingFodderIds: [] });
+  if (!actor || actor.profileId !== "lionwing.npc.builder" || actor.knockedOut) return fail("Армия камня доступна только выведенному на поле Строителю.");
+  if ((scene?.walls || []).length) return fail("Армия камня пока не может превратить Стены: у них нет клетки, где разместить Зону массовки. Уберите Стены вручную или разрешите это правило Нарратором.");
+
+  const spaces = new Map((scene?.spaces || []).map(space => [space.id, space]));
+  const cuts = new Set((scene?.topology?.cuts || []).flatMap(cut => (cut.cells || []).map(key => `${cut.space}:${String(key)}`)));
+  const terrainObjects = (scene?.objects || [])
+    .filter(object => BUILDER_ARMY_OF_STONE_TERRAIN_TYPES.has(object?.type))
+    .map(object => {
+      const space = spaces.get(object.space), rawCells = Array.isArray(object.cells) ? object.cells : null;
+      if (!object.id || !space || !rawCells?.length || rawCells.length > 144) return { invalid: true, id: object.id || "?" };
+      const cells = [...new Set(rawCells.map(String))].sort((a, b) => {
+        const [ax, ay] = a.split(",").map(Number), [bx, by] = b.split(",").map(Number);
+        return ay - by || ax - bx;
+      });
+      if (cells.some(key => {
+        const match = key.match(/^(\d{1,2}),(\d{1,2})$/), x = match ? Number(match[1]) : -1, y = match ? Number(match[2]) : -1;
+        return !match || x < 0 || y < 0 || x >= Number(space.width) || y >= Number(space.height) || cuts.has(`${object.space}:${key}`);
+      })) return { invalid: true, id: object.id };
+      return { id: object.id, space: object.space, type: object.type, label: String(object.label || "Местность"), cells, hidden: Boolean(object.hidden) };
+    })
+    .sort((a, b) => String(a.id).localeCompare(String(b.id)));
+  if (terrainObjects.some(object => object.invalid)) return fail("На поле есть повреждённая область Местности; исправьте её до применения Армии камня.");
+
+  const cellSources = new Map();
+  for (const object of terrainObjects) for (const key of object.cells) {
+    const cellId = `${object.space}:${key}`;
+    const source = cellSources.get(cellId) || { space: object.space, ...spatialPoint(key), terrainObjectIds: [], hidden: true };
+    source.terrainObjectIds.push(object.id);
+    source.hidden = source.hidden && object.hidden;
+    cellSources.set(cellId, source);
+  }
+  const cells = [...cellSources.values()].sort((a, b) => String(a.space).localeCompare(String(b.space)) || a.y - b.y || a.x - b.x);
+  if (terrainObjects.length > 240 || cells.length > 144) return fail("Слишком много местности для одного безопасного преобразования; разрешите Армию камня вручную.");
+  const existingFodderIds = [];
+  const spawnCells = [];
+  for (const cell of cells) {
+    const fodder = (scene?.actors || []).filter(item => item.kind === "crowd" && !item.knockedOut && item.space === cell.space && Number(item.x) === cell.x && Number(item.y) === cell.y);
+    if (fodder.length > 1 || fodder.some(item => item.team !== actor.team)) return fail("На клетке Местности уже есть чужая или конфликтующая Зона массовки; разрешите её вручную перед применением Армии камня.");
+    if (fodder.length === 1) {
+      cell.existingFodderId = fodder[0].id;
+      existingFodderIds.push(fodder[0].id);
+    } else spawnCells.push(cell);
+  }
+  return { available: true, reason: "", terrainObjects, cells, spawnCells, existingFodderIds };
+}
+
 function actorMatchesQuery(actor, source, options = {}) {
   if (!actor || (!options.includeKnockedOut && actor.knockedOut)) return false;
   if (!options.includeSelf && source && actor.id === source.id) return false;

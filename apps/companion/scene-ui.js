@@ -78,8 +78,11 @@ function enemyAutomationDetails(rule,state=rule){
   if(details.crowdAdvance||details.targetAdjacentToCrowd||details.broodmotherDamage)parts.push("массовка");
   if(details.repeatFreshTargets)parts.push("повтор Атаки");
   if(details.id==="lionwing.npc.cannoneer.load")parts.push("Часы Подготовки");
+  if(details.id==="lionwing.npc.builder.army-of-stone"&&details.armyOfStone){parts.push(`${details.armyOfStone.terrainPieceCount} Местности → ${details.armyOfStone.fodderCreated} новых Зон массовки`);parts.push("дополнительный Ход");}
   if(!parts.length)parts.push(automation==="effect"?"Эффекты":automation==="state"?"состояние профиля":"правило целиком");
-  return `<small class="enemy-automation-note"><b>Автоматизировано:</b> ${esc([...new Set(parts)].join(" · "))}.</small>`;
+  const note=`<small class="enemy-automation-note"><b>Автоматизировано:</b> ${esc([...new Set(parts)].join(" · "))}.</small>`;
+  const javelinRangeNote=details.id==="lionwing.npc.javelin.crushing-impact"?`<small class="enemy-automation-note manual"><b>Вручную:</b> пассив дальности не автоматизирован; зона 2×2 остаётся размещённой на самом NPC.</small>`:"";
+  return note+javelinRangeNote;
 }
 function enemyStepButtonHtml(actor){const step=SceneEngine.actionByKey(D,"step"),state=step&&SceneEngine.availableActions(Scene,D,actor.id).find(item=>item.id===step.id),label=state?.continuation?`Продолжить Шаг · ${state.remaining} кл.`:`Шаг · до ${actor.speed||0} кл.`;return `<button type="button" class="enemy-basic-step" data-enemy-step="${actor.id}" ${state?.available?"":"disabled"} title="${esc(state?.reason||"Каноническое базовое действие врага · 1 ОД")}"><strong>${esc(label)}</strong><small>${state?.continuation?"0 ОД · сохранённое движение":"1 ОД · единственное базовое действие врага"}</small></button>`}
 function enemyRuleOptionsHtml(rule,actor,state=null){
@@ -141,6 +144,8 @@ const baseEventTextOpposed=eventText;
 eventText=function(event){const payload=event.payload||{},opposed=Scene.opposedRoll;if(event.type==="opposed.request")return`${payload.requestedBy||"Нарратор"} создал встречный бросок: ${(payload.participants||[]).map(item=>item.name).join(" против ")}`;if(event.type==="opposed.reroll")return`Ничья во встречном броске · переброс ${opposed?.attempt||""}`;if(event.type==="opposed.tie.resolve")return"Нарратор разрешил обе совместимые Награды";if(event.type==="opposed.clear")return"Нарратор завершил встречный бросок";return baseEventTextOpposed(event)};
 const baseEventTextActorSpawn=eventText;
 eventText=function(event){if(event.type==="actor.spawn"){const actor=Scene.actors.find(item=>item.id===event.actorId)?.name||"Система";return`${actor}: призывает «${event.payload?.actor?.name||"существо"}»`}return baseEventTextActorSpawn(event)};
+const baseEventTextArmyOfStone=eventText;
+eventText=function(event){if(event.type==="terrain.convert-to-fodder"){const actor=Scene.actors.find(item=>item.id===event.actorId)?.name||"Строитель",payload=event.payload||{};return`${actor}: преобразует ${payload.terrainObjectIds?.length||0} объектов Местности в ${payload.cellCount||0} Зон массовки (${payload.createdActorIds?.length||0} новых; ${payload.reusedFodderIds?.length||0} уже были на поле)`}return baseEventTextArmyOfStone(event)};
 const baseEventTextScheduler=eventText;
 eventText=function(event){const payload=event.payload||{},labels={"reminder.create":`Отложено: «${payload.label||"решение"}»`,"reminder.due":`Пора разрешить: «${payload.label||"отложенный эффект"}»`,"reminder.resolve":`Разрешено: «${payload.label||"отложенный эффект"}»`,"reminder.remove":`Удалено напоминание «${payload.label||""}»`,"area.duration":`Срок области «${payload.label||"область"}» изменён`,"marker.duration":`Срок маркера «${payload.label||"маркер"}» изменён`};return labels[event.type]||baseEventTextScheduler(event)};
 const baseEventTextInformation=eventText;

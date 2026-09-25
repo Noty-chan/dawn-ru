@@ -217,4 +217,95 @@ forgedRevival.payload.actor.hp += 1;
 assert.throws(() => Engine.dispatchMany(partialDanse, [forgedRevival]), /.+/, "a client cannot inflate a revived profile after paying and consuming a Corpse");
 assert.throws(() => Engine.dispatchMany(partialDanse, [danse.events.at(-1)]), /.+/, "an incomplete Danse cannot resolve before both profiles spawn");
 
+const builderArmy = scene("lionwing.npc.builder");
+builderArmy.actors[0].team = "enemies";
+builderArmy.spaces.push({ id: "annex", name: "Annex", width: 6, height: 6 });
+builderArmy.objects.push(
+  { id: "terrain-main", type: "terrain", label: "Obstacle", space: "main", cells: ["0,0", "1,0"], hidden: false },
+  { id: "difficult-main", type: "difficult", label: "Rubble", space: "main", cells: ["1,0", "2,0"], hidden: true },
+  { id: "high-main", type: "high", label: "High Ground", space: "main", cells: ["3,0"], hidden: false },
+  { id: "low-annex", type: "low", label: "Low Ground", space: "annex", cells: ["1,1"], hidden: false },
+  { id: "wall-ornament", type: "custom", label: "Wall Ornament", space: "main", cells: ["5,5"], hidden: false },
+);
+builderArmy.actors.push(
+  actor("overlapped-character", "heroes", 3, 0, { kind: "hero", profileId: null }),
+  actor("existing-allied-fodder", "enemies", 2, 0, { kind: "crowd", profileId: null, hp: 1, maxHp: 1, ap: 0, baseAp: 0, speed: 0, summonerId: "source" }),
+);
+const armyId = "lionwing.npc.builder.army-of-stone";
+const armyAvailable = Engine.availableEnemyRules(builderArmy, data, "source").find(rule => rule.id === armyId);
+assert.equal(armyAvailable?.automation, "full", "Army Of Stone is exposed as a full LionWing handler");
+assert.equal(armyAvailable?.available, true, "actual Terrain across multiple spaces permits the Trump");
+assert.deepEqual(clone(armyAvailable.armyOfStone), { terrainPieceCount: 4, cellCount: 5, fodderCreated: 4, fodderReused: 1 }, "overlapping Terrain is deduplicated by cell and allied Fodder is reused");
+const armyPlan = Engine.prepareEnemyRule(builderArmy, data, { actorId: "source", ruleId: armyId });
+assert.equal(armyPlan.ok, true, armyPlan.errors?.join(" "));
+assert.deepEqual(clone(armyPlan.events.map(item => item.type)), ["enemy.action.prepare", "resource.spend", "terrain.convert-to-fodder", "turn.grant", "enemy.action.resolve"], "the Trump is one ordered transaction");
+const armyAfter = commit(builderArmy, armyPlan);
+assert.equal(armyAfter.actors.find(item => item.id === "source").ap, 2, "Army Of Stone costs exactly 2 AP");
+assert.equal(armyAfter.tension, 4, "the Trump checks its Tension threshold without consuming Tension");
+assert.deepEqual(clone(armyAfter.log.filter(item => ["enemy.action.resolve", "turn.grant", "terrain.convert-to-fodder", "resource.spend", "enemy.action.prepare"].includes(item.type)).map(item => item.type)), ["enemy.action.resolve", "turn.grant", "terrain.convert-to-fodder", "resource.spend", "enemy.action.prepare"], "the committed receipt is validated in newest-first scene.log order");
+assert.equal(armyAfter.actors.find(item => item.id === "source").extraTurns, 1, "Builder immediately receives one extra Turn");
+assert.equal(armyAfter.objects.some(item => ["terrain", "difficult", "high", "low"].includes(item.type)), false, "all Terrain pieces in every space are consumed");
+assert.ok(armyAfter.objects.some(item => item.id === "wall-ornament"), "unrelated custom object with wall in its label remains untouched");
+assert.equal(armyAfter.actors.find(item => item.id === "overlapped-character").knockedOut, false, "Terrain conversion can overlap ordinary characters");
+assert.equal(fodder(armyAfter).filter(item => item.space === "main" && item.x === 2 && item.y === 0).length, 1, "one existing allied Fodder remains exactly one Zone");
+const newArmyFodder = fodder(armyAfter).filter(item => item.sourceActionId === armyId);
+assert.equal(newArmyFodder.length, 4, "Army creates one Fodder for each remaining unique Terrain cell");
+assert.ok(newArmyFodder.every(item => item.team === "enemies" && item.summonerId === "source"), "Army Fodder inherits the Builder's team and source");
+assert.ok(newArmyFodder.some(item => item.space === "annex"), "conversion includes terrain on non-active spaces");
+assert.equal(Engine.availableEnemyRules(clone(armyAfter), data, "source").find(rule => rule.id === armyId).available, false, "reload retains Trump use and cannot replay Army Of Stone");
+assert.throws(() => Engine.dispatchMany(armyAfter, armyPlan.events), /.+/, "a committed Army cannot replay after reload");
+assert.throws(() => Engine.dispatchMany(builderArmy, armyPlan.events.filter(item => item.type !== "terrain.convert-to-fodder")), /.+/, "the engine rejects a partial transaction before payment");
+const forgedArmy = clone(armyPlan.events).map(item => ({ ...item, payload: { ...item.payload } }));
+forgedArmy[2].payload.token = "forged-token";
+assert.throws(() => Engine.dispatchMany(builderArmy, forgedArmy), /.+/, "the engine rejects a forged conversion receipt before payment");
+assert.throws(() => Engine.dispatchMany(builderArmy, [armyPlan.events[2]]), /.+/, "a converter event alone cannot mint allied Fodder");
+const wallBlockedArmy = clone(builderArmy);
+wallBlockedArmy.walls.push({ id: "real-wall", space: "main", a: "0,0", b: "1,0" });
+const wallBlockedRule = Engine.availableEnemyRules(wallBlockedArmy, data, "source").find(rule => rule.id === armyId);
+assert.equal(wallBlockedRule.available, false, "a real scene wall makes conversion ambiguous and blocks Army Of Stone");
+assert.match(wallBlockedRule.reason, /Стены/);
+const wallBlockedPlan = Engine.prepareEnemyRule(wallBlockedArmy, data, { actorId: "source", ruleId: armyId });
+assert.equal(wallBlockedPlan.ok, false, "wall ambiguity cancels before preparing the action");
+assert.deepEqual(clone(wallBlockedPlan.events), []);
+assert.equal(wallBlockedArmy.actors.find(item => item.id === "source").ap, 4, "wall block spends no AP");
+assert.equal(wallBlockedArmy.tension, 4, "wall block spends no Tension");
+const lowTensionArmy = clone(builderArmy);
+lowTensionArmy.tension = 1;
+const lowTensionRule = Engine.availableEnemyRules(lowTensionArmy, data, "source").find(rule => rule.id === armyId);
+assert.equal(lowTensionRule.available, false, "Army Of Stone requires the canonical 2-Tension threshold");
+assert.match(lowTensionRule.reason, /Напряжение 2/);
+assert.equal(Engine.prepareEnemyRule(lowTensionArmy, data, { actorId: "source", ruleId: armyId }).ok, false, "low Tension rejects Army before preparing a transaction");
+assert.equal(lowTensionArmy.actors.find(item => item.id === "source").ap, 4, "low Tension spends no AP");
+assert.equal(lowTensionArmy.tension, 1, "low Tension remains unchanged on rejection");
+const hostileArmy = clone(builderArmy);
+hostileArmy.actors.push(actor("hostile-fodder-on-terrain", "heroes", 1, 1, { kind: "crowd", profileId: null, space: "annex", hp: 1, maxHp: 1, ap: 0, baseAp: 0, speed: 0 }));
+hostileArmy.objects.push({ id: "contested-low", type: "low", label: "Contested", space: "annex", cells: ["1,1"], hidden: false });
+assert.equal(Engine.prepareEnemyRule(hostileArmy, data, { actorId: "source", ruleId: armyId }).ok, false, "hostile Fodder conflict blocks conversion before payment");
+assert.equal(hostileArmy.actors.find(item => item.id === "source").ap, 4, "conflicting Fodder spends no AP");
+assert.equal(hostileArmy.tension, 4, "conflicting Fodder spends no Tension");
+
+const staleArmy = clone(builderArmy);
+assert.throws(() => Engine.dispatchMany(staleArmy, armyPlan.events.map((event, index) => ({ ...event, id: `stale-army-${index}` })), { expectedVersion: staleArmy.version + 1 }), error => /Конфликт версии Сцены/.test(error.message), "Army rejects a stale scene version before the transaction");
+assert.equal(staleArmy.actors.find(item => item.id === "source").ap, 4, "stale Army does not spend AP");
+assert.equal(fodder(staleArmy).length, fodder(builderArmy).length, "stale Army does not create or remove Fodder");
+assert.equal(staleArmy.objects.filter(item => ["terrain", "difficult", "high", "low"].includes(item.type)).length, 4, "stale Army does not consume Terrain");
+
+const javelinRange = scene("lionwing.npc.javelin");
+javelinRange.actors = [
+  actor("source", "enemies", 2, 2, { profileId: "lionwing.npc.javelin" }),
+  actor("nearby-target", "heroes", 3, 2),
+  actor("remote-target", "heroes", 5, 2),
+  actor("range-fodder", "enemies", 2, 1, { kind: "crowd", profileId: null, hp: 1, maxHp: 1, ap: 0, baseAp: 0, speed: 0 }),
+];
+const crushingImpact = "lionwing.npc.javelin.crushing-impact";
+const crushingImpactRule = Engine.availableEnemyRules(javelinRange, data, "source").find(rule => rule.id === crushingImpact);
+assert.deepEqual(clone(crushingImpactRule.area), [2, 2], "Crushing Impact keeps its canonical 2×2 area");
+assert.equal(crushingImpactRule.areaAnchor, "self", "Crushing Impact remains anchored on the Javelin");
+const remoteCrushingImpact = Engine.prepareEnemyRule(javelinRange, data, { actorId: "source", ruleId: crushingImpact, targetIds: ["remote-target"], roll: { formula: "5D6", rolls: [6, 5, 4, 1, 1], successes: 3, crits: 1 } });
+assert.equal(remoteCrushingImpact.ok, false, "an eligible adjacent Fodder does not turn self-anchored Crushing Impact into a remote Attack");
+assert.match(remoteCrushingImpact.errors.join(" "), /области/);
+assert.equal(fodder(javelinRange).some(item => item.id === "range-fodder"), true, "the unautomated optional range passive does not consume Fodder as a side effect");
+const javelinUi = fs.readFileSync(new URL("../scene-ui.js", import.meta.url), "utf8");
+assert.match(javelinUi, /пассив дальности не автоматизирован; зона 2×2 остаётся размещённой на самом NPC/, "the UI discloses Javelin's unautomated passive and canonical area boundary");
+
 console.log("LionWing Fodder creators OK");

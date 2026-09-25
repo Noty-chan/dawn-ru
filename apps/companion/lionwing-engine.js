@@ -720,6 +720,17 @@
     const haste = simpleEventEnvelope(events[effects.length + 2], "effect.apply", source.id, ["targetId", "effect", "sourceActionId", "participantIds"]);
     if (haste.targetId !== source.id || haste.effect !== "positive.ускорен" || haste.sourceActionId !== ruleId || !simpleIdsEqual(haste.participantIds, [source.id])) fail("Stabilize должен применить Haste после снятия Эффектов");
   };
+  const validateBuilderArmyOfStoneEvents = (scene, events) => {
+    const prepare = events.find(event => event?.type === "enemy.action.prepare" && event.payload?.ruleId === "lionwing.npc.builder.army-of-stone");
+    if (!prepare) return;
+    const ruleId = "lionwing.npc.builder.army-of-stone", digest = "sha256:8f3e506249b4ed9467ca33c7ee01b5a3227aa61aaa04b648675c214c6403a882", source = requiredActor(scene, prepare.actorId), payload = prepare.payload || {}, token = payload.armyOfStone?.token;
+    const sequence = ["enemy.action.prepare", "resource.spend", "terrain.convert-to-fodder", "turn.grant", "enemy.action.resolve"];
+    const eventsValid = events.length === sequence.length && events.every((event, index) => event?.type === sequence[index] && event.actorId === source.id);
+    const expectedFields = ["automation", "armyOfStone", "kind", "name", "profileId", "ruleId", "sourceDigest", "sourceRuleId", "targetIds", "text"].sort();
+    const actualFields = Object.keys(payload).filter(key => payload[key] !== undefined).sort();
+    const status = typeof builderArmyOfStoneStatus === "function" ? builderArmyOfStoneStatus(scene, source) : { available: false };
+    if (!eventsValid || source.profileId !== "lionwing.npc.builder" || source.knockedOut || source.acted || source.usedTrump || source.usedActions?.includes(ruleId) || scene.rulesEdition !== "lionwing" || scene.activeActorId !== source.id || Number(source.ap || 0) < 2 || Number(scene.tension || 0) < 2 || scene.pendingAction || scene.pendingPrompt || scene.pendingActionPlan || scene.lionwing?.pendingActionPlan || !status.available || !token || typeof token !== "string" || token.length > 120 || JSON.stringify(actualFields) !== JSON.stringify(expectedFields) || payload.sourceRuleId !== ruleId || payload.sourceDigest !== digest || payload.profileId !== source.profileId || payload.name !== "Army Of Stone" || payload.kind !== "trump" || payload.automation !== "full" || payload.text !== "Turn every piece of Terrain on the board into an allied Fodder Zone. This NPC immediately takes another Turn." || !sameJson(payload.targetIds, []) || !sameJson(payload.armyOfStone, { token }) || events[2].payload?.token !== token || !sameJson(events[2].payload, { token }) || !sameJson(events[1].payload, { resource: "ap", amount: 2, sourceRuleId: ruleId, sourceDigest: digest }) || !sameJson(events[3].payload, { amount: 1, sourceActionId: ruleId, armyOfStoneToken: token, participantIds: [source.id] }) || !sameJson(events[4].payload, payload)) fail("Army Of Stone requires its complete canonical package: 2 AP, Terrain conversion, and an extra Turn");
+  };
   const detectiveRuleId = "vagabond.dim-mak.3";
   const detectiveWeakPointRuleId = "vagabond.dim-mak.1";
   const detectiveDigest = "8a5ddc5d808d41166abd99dd0c207a6070ebeacf382fe4b0f3275304d7f532dd";
@@ -4188,6 +4199,7 @@
   }
 
   const sharedTypes = new Set(["movement-traces.clear", "topology.cells.remove", "topology.cells.restore", "roll.public", "challenge.request", "challenge.clear", "opposed.request", "opposed.reroll", "opposed.tie.resolve", "opposed.clear", "rule.share", "session-clock.create", "session-clock.set", "session-clock.add", "session-clock.reset", "session-clock.rename", "session-clock.kind", "session-clock.size", "session-clock.remove", "reminder.create", "reminder.due", "reminder.resolve", "reminder.remove", "actor.spawn", "actor.despawn", "area.create", "area.remove", "area.duration", "object.damage", "object.restore", "wall.create", "wall.damage", "wall.restore", "wall.remove", "marker.create", "marker.move", "marker.remove", "marker.duration", "targets.set", "space.ensure", "space.remove"]);
+  sharedTypes.add("terrain.convert-to-fodder");
   const prepareEntityRemoval = (scene, ref, options = {}) => {
     if (!entities?.prepareDestroy) fail("Реестр сущностей LionWing недоступен");
     return entities.prepareDestroy(scene, ref, options);
@@ -4243,6 +4255,7 @@
     }
     const enemyEventFlow = events.some(event => ["enemy.action.prepare", "enemy.action.resolve", "attack.pending", "attack.clear"].includes(event?.type) || event?.type === "rule.prompt" && event.payload?.kind?.startsWith("enemy-crowd-move-")) || pendingEnemyFlow || rangerPromptFlow || crowdPromptFlow;
     if (enemyEventFlow) {
+      validateBuilderArmyOfStoneEvents(scene, events);
       validateEnemySimpleWaveActionEvents(scene, events);
       const waveRuleId = events.find(event => event?.type === "enemy.action.prepare")?.payload?.ruleId;
       if (waveRuleId === "lionwing.npc.daredevil.gloat" && !events.some(event => event?.type === "lionwing.command" && event.payload?.kind === "combat-meter")) fail("Действие требует полного канонического результата");

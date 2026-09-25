@@ -246,6 +246,7 @@ const ENEMY_FULL_RULES = new Map([
   ["lionwing.npc.hound-master.wild-hunt", { type: "hound-seekers", count: 3, minimumTargetDistance: 0 }],
   ["enemy.common.privateer.trump.gear-change", { type: "privateer-gear-change" }],
   ["lionwing.npc.privateer.gear-change", { type: "privateer-gear-change" }],
+  ["lionwing.npc.builder.army-of-stone", { type: "builder-army-of-stone" }],
   ["enemy.common.ronin.action.sheath", { type: "ronin-sheath" }],
   ["enemy.common.javelin.action.call", { type: "crowd-summon", formula: "2(+1)", range: 4, diminishEachRoundUse: true }],
   ["lionwing.npc.javelin.call", { type: "crowd-summon", formula: "2(+1)", range: 4, diminishEachRoundUse: true }],
@@ -303,6 +304,7 @@ const LIONWING_CROWD_RULE_DIGESTS = new Map([
   ["lionwing.npc.swarm.call", "sha256:f2cc9f5797e4cefdb51fd7f6392c334ae89ed74ee7ed77becde1d6cb4c682dbf"],
   ["lionwing.npc.bodyguards.reinforcements", "sha256:c9dcd60d0e5db74265396768bc1df6d0d6d963b8fcad8152a0489ae53691fed7"],
   ["lionwing.npc.swarm.reinforcements", "sha256:3c3fbdf4687fc24dce30d03ad98c9fa9ba6ca08e38493b94e433892478ca215d"],
+  ["lionwing.npc.builder.army-of-stone", "sha256:8f3e506249b4ed9467ca33c7ee01b5a3227aa61aaa04b648675c214c6403a882"],
 ]);
 
 const enemyCanonicalRule = rule => {
@@ -947,10 +949,13 @@ function availableEnemyRules(scene, data, actorId) {
     else if (rule.kind === "trump" && Number(scene.tension || 0) < Number(rule.tension || 0)) reason = `Нужно Напряжение ${rule.tension}`;
     else if (fullRule?.type === "corpse-revive" && necromancerCorpses(scene, actor).length < 2) reason = "Для Пляса смерти нужны два доступных Трупа";
     else if (rule.id === "enemy.common.cannoneer.trump.fire" && !clockStatus(scene, actor.id, "enemy.common.cannoneer.preparation").full) reason = "Сначала заполните Подготовку 4/4";
+    const armyOfStoneStatus = fullRule?.type === "builder-army-of-stone" ? builderArmyOfStoneStatus(scene, actor) : null;
+    if (!reason && armyOfStoneStatus && !armyOfStoneStatus.available) reason = armyOfStoneStatus.reason;
     const roninSheathed = rule.id === "enemy.common.ronin.attack.dissect" && actor.ruleState?.roninSheathed;
     const roundUses = fullRule?.type === "crowd-summon" ? currentRoundEvents(scene).filter(event => event.type === "enemy.action.prepare" && event.actorId === actor.id && event.payload?.ruleId === rule.id).length : 0;
     const crowdSummon = fullRule?.type === "crowd-summon" ? { count: Math.max(0, fullRule.countState ? Number(actor.ruleState?.[fullRule.countState] || 0) : enemyTierFormula(fullRule.formula, actor.tier) - (fullRule.diminishEachRoundUse ? roundUses : 0)), edge: Boolean(fullRule.edge), range: fullRule.range == null ? null : Number(fullRule.range) } : null;
-    return { ...clone(rule), ...family, ...(roninSheathed ? { adjacent: false, range: Number(actor.speed || 0) } : {}), ...(crowdSummon ? { crowdSummon } : {}), ...(fullRule?.type === "corpse-revive" ? { corpses: necromancerCorpses(scene, actor) } : {}), maxTargets, automation, available: !reason, reason };
+    const armyOfStone = armyOfStoneStatus?.available ? { terrainPieceCount: armyOfStoneStatus.terrainObjects.length, cellCount: armyOfStoneStatus.cells.length, fodderCreated: armyOfStoneStatus.spawnCells.length, fodderReused: armyOfStoneStatus.existingFodderIds.length } : null;
+    return { ...clone(rule), ...family, ...(roninSheathed ? { adjacent: false, range: Number(actor.speed || 0) } : {}), ...(crowdSummon ? { crowdSummon } : {}), ...(armyOfStone ? { armyOfStone } : {}), ...(fullRule?.type === "corpse-revive" ? { corpses: necromancerCorpses(scene, actor) } : {}), maxTargets, automation, available: !reason, reason };
   });
 }
 
@@ -1154,6 +1159,21 @@ function prepareEnemyRule(scene, data, request = {}) {
     payload.corpseRevive = { token: `corpse-revive-${eventId()}`, revivals: corpseRevivals.map(item => ({ corpseId: item.corpseId, profileId: item.profileId, space: corpses.get(item.corpseId).space, x: corpses.get(item.corpseId).x, y: corpses.get(item.corpseId).y })) };
   }
   const events = [{ type: "enemy.action.prepare", actorId: actor.id, payload }, { type: "resource.spend", actorId: actor.id, payload: { resource: "ap", amount: Number(rule.apCost || 1), sourceRuleId: rule.id, sourceDigest: rule.sourceDigest || null } }];
+  if (fullRule?.type === "builder-army-of-stone") {
+    const status = builderArmyOfStoneStatus(scene, actor);
+    if (!status.available) return { ok: false, errors: [status.reason], events: [], rule: available || rule };
+    const token = `army-stone-${eventId()}`;
+    payload.targetIds = [];
+    payload.automation = "full";
+    payload.armyOfStone = { token };
+    events[0].payload = payload;
+    events.push(
+      { type: "terrain.convert-to-fodder", actorId: actor.id, payload: { token } },
+      { type: "turn.grant", actorId: actor.id, payload: { amount: 1, sourceActionId: rule.id, armyOfStoneToken: token, participantIds: [actor.id] } },
+      { type: "enemy.action.resolve", actorId: actor.id, payload: clone(payload) },
+    );
+    return { ok: true, errors: [], events, rule: available || clone(rule) };
+  }
   if (attackDestination) {
     const movement = family.teleportAttack ? `${rule.name}: телепортация` : `${rule.name}: перемещение`, placement = Boolean(family.teleportAttack || family.preMoveIgnoreRestrictions);
     events.push({ type: "actor.move", actorId: actor.id, payload: { space: actor.space, x: attackDestination.x, y: attackDestination.y, movement, path: attackMovePath.map(cellKey), placement, teleport: Boolean(family.teleportAttack), participantIds: [actor.id, ...targetIds] } });
