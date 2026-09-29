@@ -183,4 +183,12 @@ assert.deepEqual([npcMoved.x, npcMoved.y], [2, 1], "the NPC's confirmed Step mov
 assert.equal(uiContext.getStepState().pendingEnemyStepActorId, null, "committing the NPC destination clears its pending picker");
 assert.match(enemyStepFunctions, /SceneEngine\.prepareAction\(Scene,D,\{actorId:actor\.id,actionId:step\.id,targetIds:\[\],destination\}\)/, "the profile picker confirms through the canonical action preparation path");
 
+vm.runInContext(functionSource(sceneUi, "enemyStepButtonHtml", "enemyRuleOptionsHtml"), uiContext);
+uiContext.esc = value => String(value);
+assert.match(uiContext.enemyStepButtonHtml(npcMoved), /Продолжить Шаг · 3 кл\./, "saved movement displays its numeric remaining allowance");
+assert.equal(SceneEngine.availableActions(uiContext.getScene(), D, "npc").find(item => item.id === stepId).remaining, 3);
+const slowedScene = fixture("npc", [actor("npc", "enemy", 1, { profileId: "lionwing.npc.bruiser", effects: ["negative.замедлен"] }), actor("hero", "hero", 6)]);
+uiContext.replaceScene(slowedScene);
+assert.match(uiContext.enemyStepButtonHtml(slowedScene.actors[0]), /Шаг · до 2 кл\./, "the button displays the speed after Slow rather than the base stat");
+
 console.log("LionWing Step UI: hero sheet and tray choose a destination before payment; NPC action uses the same reachable-cell and canonical commit path");

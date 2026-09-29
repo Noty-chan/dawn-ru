@@ -84,7 +84,7 @@ function enemyAutomationDetails(rule,state=rule){
   const javelinRangeNote=details.id==="lionwing.npc.javelin.crushing-impact"?`<small class="enemy-automation-note manual"><b>Вручную:</b> пассив дальности не автоматизирован; зона 2×2 остаётся размещённой на самом NPC.</small>`:"";
   return note+javelinRangeNote;
 }
-function enemyStepButtonHtml(actor){const step=SceneEngine.actionByKey(D,"step"),state=step&&SceneEngine.availableActions(Scene,D,actor.id).find(item=>item.id===step.id),label=state?.continuation?`Продолжить Шаг · ${state.remaining} кл.`:`Шаг · до ${actor.speed||0} кл.`;return `<button type="button" class="enemy-basic-step" data-enemy-step="${actor.id}" ${state?.available?"":"disabled"} title="${esc(state?.reason||"Каноническое базовое действие врага · 1 ОД")}"><strong>${esc(label)}</strong><small>${state?.continuation?"0 ОД · сохранённое движение":"1 ОД · единственное базовое действие врага"}</small></button>`}
+function enemyStepButtonHtml(actor){const step=SceneEngine.actionByKey(D,"step"),state=step&&SceneEngine.availableActions(Scene,D,actor.id).find(item=>item.id===step.id),label=state?.continuation?`Продолжить Шаг · ${state.remaining} кл.`:`Шаг · до ${SceneEngine.effectiveActorSpeed(Scene,actor.id)} кл.`;return `<button type="button" class="enemy-basic-step" data-enemy-step="${actor.id}" ${state?.available?"":"disabled"} title="${esc(state?.reason||"Каноническое базовое действие врага · 1 ОД")}"><strong>${esc(label)}</strong><small>${state?.continuation?"0 ОД · сохранённое движение":"1 ОД · единственное базовое действие врага"}</small></button>`}
 function enemyRuleOptionsHtml(rule,actor,state=null){
   if(rule.id==="lionwing.npc.necromancer.the-danse-macabre"){
     const corpses=state?.corpses||[],profiles=[["lionwing.npc.bruiser","Буйный"],["lionwing.npc.viper","Гадюка"],["lionwing.npc.ranger","Стрелок"]];
@@ -830,7 +830,10 @@ function sceneTurnStatusAfterCurrent(actor){
   try{return SceneEngine.turnStartStatus(SceneEngine.dispatch(Scene,{type:"turn.end",actorId:current.id,payload:{}}).scene,actor.id)}catch(error){return{available:false,reason:error.message||"Нельзя начать этот Ход"}}
 }
 function sceneActionDisplayName(action){
-  if(window.DAWN_LIONWING_ENGINE?.isScene(Scene))return localizedLionwingCoreRules().actions.list.find(item=>item.id===action.id)?.name||action.name;
+  if(window.DAWN_LIONWING_ENGINE?.isScene(Scene)){
+    const core=localizedLionwingCoreRules(),npcRule=(core.npcs?.list||[]).flatMap(npc=>[...(npc.actions||[]),npc.ace].filter(Boolean)).find(item=>item.id===action.id);
+    return core.actions.list.find(item=>item.id===action.id)?.name||npcRule?.name||action.name;
+  }
   return action.name;
 }
 function refreshSceneControlStates(){

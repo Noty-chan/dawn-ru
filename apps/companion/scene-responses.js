@@ -1521,5 +1521,6 @@ function resolvePendingAction(scene, data) {
   if (!pending.enemyRuleId && events.at(-1)?.type === "action.resolve") events.at(-1).payload.actionInstanceId = pending.actionInstanceId || null;
   if (pending.techniqueRuleId && !masterArmament) events.push({ type: "technique.resolve", actorId: pending.actorId, payload: { ruleId: pending.techniqueRuleId, name: pending.techniqueName || pending.name, affectedActorIds: status.eligibleIds, skippedTargetIds: status.unavailableIds } });
   events.push({ type: "attack.clear", actorId: source?.id || pending.actorId, payload: { pendingId: pending.id, targetIds: status.eligibleIds, sourceActionId: pending.actionId, sourceRuleId: pending.sourceRuleId || pending.enemyRuleId || null, sourceDigest: pending.sourceDigest || null } });
+  if (pending.assassinDisappearAfterAttack && source?.profileId === "lionwing.npc.assassin" && !source.knockedOut) events.push({ type: "effect.apply", actorId: source.id, payload: { targetId: source.id, effect: "positive.исчез", sourceActionId: pending.actionId, sourceRuleId: pending.sourceRuleId || pending.enemyRuleId, sourceDigest: pending.sourceDigest || null, duration: "scene", participantIds: [source.id] } });
   return { ok: true, errors: [], events };
 }

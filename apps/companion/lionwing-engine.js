@@ -1021,7 +1021,7 @@
     } else if (scene.activeActorId !== a.id && !allowance?.reaction) return unavailable("Сейчас не Ход этого участника");
     const baseSwift = breakout || Boolean(allowance?.swift||allowance?.reaction) || !isPlayer(a) && def.id === ids.step;
     const continuation = def.id === ids.step && Number(a.stepRemaining || 0) > 0 && !breakout;
-    if (continuation) return { available: true, reason: "", cost: 0, resource: "ap", continuation: true };
+    if (continuation) return { available: true, reason: "", cost: 0, resource: "ap", continuation: true, remaining: Number(a.stepRemaining) };
     const requestedAttribute=request.attribute||(def.id===ids.finish?"spirit":null);
     const adapterStatus=global.DAWN_LIONWING_ADAPTERS?.actionStatus?.(a,{scene,actionId:def.id,attribute:requestedAttribute,techniqueId:request.techniqueId || null,techniqueRuleId:request.techniqueRuleId || null,techniqueIds:Array.isArray(request.techniqueIds) ? request.techniqueIds : [],techniqueTags:(request.techniqueTags||[]).map(tag=>String(tag).toLowerCase())})||{allowed:true};
     if(adapterStatus.allowed===false)return unavailable(adapterStatus.reason||"Действие запрещено Техникой");
@@ -4615,7 +4615,7 @@
   route("effectiveActorSpeed", (scene, id) => sceneSpeed(scene,requiredActor(scene, id, false)));
   route("effectiveActorMaxHealth", (scene, id) => maxHealth(requiredActor(scene, id, false)));
   route("effectiveActorStats", (scene, id) => effectiveStats(scene, requiredActor(scene, id, false)));
-  route("pendingActionStatus", (scene, data) => scene.pendingAction?.lionwing ? lionwingPendingActionStatus(scene) : legacy.pendingActionStatus(sceneWithActiveEffects(scene), data));
+  route("pendingActionStatus", (scene, data = global.DAWN_DATA) => scene.pendingAction?.lionwing ? lionwingPendingActionStatus(scene) : legacy.pendingActionStatus(sceneWithActiveEffects(scene), data));
   route("reactionOptions", (scene, data, id) => scene.pendingAction?.lionwing ? reactionOptions(scene, id) : legacy.reactionOptions(sceneWithActiveEffects(scene), data, id));
   // Canonical LionWing NPC profiles are read through the shared enemy rule
   // adapter.  Keep the public query on the routed engine so the GM panel can

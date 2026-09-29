@@ -1228,7 +1228,14 @@ function prepareEnemyRule(scene, data, request = {}) {
     const effectAttack = effectAttackStatus(scene, actor.id, hostileIds), baseDice = rule.dice ? enemyTierFormula(rule.dice, actor.tier) : 0;
     const hiddenBonus = hiddenAssassinAttack && family.hiddenAdvantage ? enemyTierFormula(family.hiddenAdvantage, actor.tier) : 0;
     const expectedDice = baseDice > 0 ? Math.max(1, baseDice + hiddenBonus + Number(attackModifiers.advantage || 0) - Number(effectAttack.hindrance || 0)) : 0;
-    if (expectedDice && rolls.length !== expectedDice) errors.push(`Бросок Атаки должен содержать ровно ${expectedDice} костей.`);
+    if (request.roll.initialCount != null) {
+      let outstanding = expectedDice, valid = Number.isInteger(request.roll.initialCount) && request.roll.initialCount === expectedDice && rolls.length <= 300;
+      for (const value of rolls) {
+        if (outstanding <= 0) valid = false;
+        outstanding += value === 6 ? 0 : -1;
+      }
+      if (!valid || outstanding !== 0 || request.roll.truncated) errors.push("Бросок Атаки не соответствует начальному пулу и цепочке критических костей.");
+    } else if (expectedDice && rolls.length !== expectedDice) errors.push(`Бросок Атаки должен содержать ровно ${expectedDice} костей.`);
   }
   if (canonicalAutoAttack && rule.directDamage && hasRoll) errors.push("Это canonical-действие использует прямой урон вместо броска.");
   if (attackModifiers.selectedIds.length && !hasRoll) errors.push("Модификатор Преимущества требует бросок Атаки.");
@@ -1496,7 +1503,8 @@ function prepareEnemyRule(scene, data, request = {}) {
       allyEffectIds.forEach(effect => events.push({ type: "effect.apply", actorId: actor.id, payload: { targetId: target.id, effect, sourceActionId: rule.id, participantIds: [actor.id, target.id] } }));
     }
     const attackEffects = family.oniModes ? ((actor.effects || []).includes("positive.усилен") ? [effectIdByName(data, "Подброшен")] : []) : targetEffects;
-     if (hostileTargets.length) events.push({ type: "attack.pending", actorId: actor.id, payload: { actionId: rule.id, enemyRuleId: rule.id, sourceRuleId: rule.id, sourceDigest: rule.sourceDigest || null, name: rule.name, targetIds: hostileTargets.map(target => target.id), roll: hasRoll ? clone(request.roll) : null, damage: baseDamage, damageByTarget, aimBonusByTarget, headshotBonusByTarget, damageRepeats: Math.max(1, Number(family.damageRepeats || 1)), effects: attackEffects, reward: rule.reward || "", attackModifierIds: attackModifiers.selectedIds, attackModifierAdvantage: attackModifiers.advantage, postDisplacements, postResourceLoss, postSelfHealMissingFraction: Number(family.postSelfHealMissingFraction || 0), enemyAttackFamily: clone(family), attackAnchor: anchor ? clone(anchor) : null } });
+    const assassinDisappearAfterAttack = actor.profileId === "lionwing.npc.assassin" && !hiddenAssassinAttack && hostileTargets.some(target => hasEffect(scene, target, "negative.помечен"));
+     if (hostileTargets.length) events.push({ type: "attack.pending", actorId: actor.id, payload: { actionId: rule.id, enemyRuleId: rule.id, sourceRuleId: rule.id, sourceDigest: rule.sourceDigest || null, name: rule.name, targetIds: hostileTargets.map(target => target.id), roll: hasRoll ? clone(request.roll) : null, damage: baseDamage, damageByTarget, aimBonusByTarget, headshotBonusByTarget, damageRepeats: Math.max(1, Number(family.damageRepeats || 1)), effects: attackEffects, reward: rule.reward || "", attackModifierIds: attackModifiers.selectedIds, attackModifierAdvantage: attackModifiers.advantage, postDisplacements, postResourceLoss, postSelfHealMissingFraction: Number(family.postSelfHealMissingFraction || 0), enemyAttackFamily: clone(family), assassinDisappearAfterAttack, attackAnchor: anchor ? clone(anchor) : null } });
     else events.push({ type: "enemy.action.resolve", actorId: actor.id, payload: { ...payload, targetIds } });
   } else {
     if (rule.kind !== "attack" && ["effect", "full"].includes(payload.automation)) targets.forEach(target => targetEffects.forEach(effect => events.push({ type: "effect.apply", actorId: actor.id, payload: { targetId: target.id, effect, sourceActionId: rule.id } })));

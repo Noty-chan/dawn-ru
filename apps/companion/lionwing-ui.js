@@ -751,7 +751,9 @@ function lwPendingHtml() {
     return `<section class="lw-pending lw-followups"><strong>Ожидающие продолжения</strong><ul>${rows}</ul></section>`;
   }
   const pending = Scene.pendingAction;
-  if (!pending?.lionwing) return "";
+  if (!pending) return "";
+  // Canonical NPC attacks use the shared defense and resolution pipeline.
+  if (!pending.lionwing) return lwOldActionPanel(currentHeroActor() || lwActor());
   const status = SceneEngine.pendingActionStatus(Scene), waiting = status.waitingIds;
   const pendingName = lwRules().actions.list.find(def => def.id === pending.sourceActionId)?.name || pending.name;
   return `<section class="lw-pending"><strong>${esc(pendingName)} · ${pending.damage} урона${pending.repeat > 1 ? ` × ${pending.repeat} отдельных нанесений` : ""}</strong>${waiting.map(id => { const a = Scene.actors.find(x => x.id === id); return `<div class="lw-reaction"><b>${esc(a.name)}</b>${lwOwns(id) ? `<div class="button-row">${LionwingEngine.reactionOptions(Scene,id).map(({id:key,name:label,costModel,available,reason}) => { const cost=costModel.amount; return `<button data-lw-reaction="${key}"${pending.actionPlanId?` data-lw-plan-id="${esc(pending.actionPlanId)}"`:""} data-lw-actor="${esc(id)}" ${!available ? `disabled title="${esc(reason)}"` : ""}>${esc(label)}${cost ? ` · ${cost} Фокуса` : ""}</button>`; }).join("")}</div>` : " · ожидается ответ"}</div>`; }).join("")}${status.canResolve && lwCanNarrate() ? `<button class="primary" data-lw-resolve${pending.actionPlanId?` data-lw-plan-id="${esc(pending.actionPlanId)}"`:""} data-lw-actor="${esc(pending.actorId)}">Применить урон</button>` : ""}${lwCanNarrate() ? `<button data-lw-cancel${pending.actionPlanId?` data-lw-plan-id="${esc(pending.actionPlanId)}"`:""} data-lw-actor="${esc(pending.actorId)}">Прервать</button>` : ""}</section>`;
@@ -968,6 +970,7 @@ document.addEventListener("click", event => {
     return;
   }
   const legacyAction=event.target.closest("[data-core-resolve], [data-core-cancel-pending]");
+  if(legacyAction && Scene.pendingAction && !Scene.pendingAction.lionwing)return;
   if(legacyAction){event.preventDefault();event.stopImmediatePropagation();const a=currentHeroActor()||lwActor();if(!a)return;if(legacyAction.hasAttribute("data-core-action"))return lwSubmit(a.id,{kind:"action",actionId:legacyAction.dataset.coreAction,targetIds:[...Scene.targetIds]},"Базовое действие");if(!lwCanNarrate())return;return lwSubmit(Scene.pendingAction?.actorId||a.id,{kind:legacyAction.hasAttribute("data-core-resolve")?"resolve-attack":"cancel-attack"},"Разрешение Атаки");}
   const duelTension=event.target.closest("[data-lw-set-duel-tension]");
   if(duelTension){event.preventDefault();event.stopImmediatePropagation();if(!lwCanNarrate())return;return lwSubmit(duelTension.dataset.lwActor,{kind:"tension",duelId:duelTension.dataset.lwSetDuelTension,amount:Number(duelTension.closest(".lw-pending").querySelector("[data-lw-duel-tension]").value)},"Напряжение Дуэли");}
