@@ -63,6 +63,16 @@ assert.match(html, /data-core-resolve/);
 scene = commit(clone(scene), engine.resolvePendingAction(scene, data));
 assert.equal(scene.pendingAction, null);
 
+for (const [effect, expectedDamage] of [["positive.усилен", 4], ["negative.ослаблен", 2]]) {
+  let modified = fixture(actor("hero", "hero", 2));
+  modified.actors[0].effects = [effect];
+  modified = attack(modified);
+  assert.equal(modified.pendingAction.damageByTarget.hero, expectedDamage, "NPC damage applies Strengthened/Weakened once across prepare and commit");
+  modified = commit(modified, engine.respondReaction(modified, data, { actorId: "hero", choice: "pass" }));
+  modified = commit(clone(modified), engine.resolvePendingAction(modified, data));
+  assert.equal(modified.actors[1].hp, 20 - expectedDamage);
+}
+
 // Exercise the production NPC button path with a critical that adds a die.
 let rollIndex = 0;
 const randomValues = [0.9, 0.55, 0.1, 0.75];
@@ -130,4 +140,72 @@ context.Scene = attack(fixture(actor("hero", "hero", 2)));
 let intercepted = false;
 captureHandler({ target: { closest: selector => selector === "[data-core-resolve], [data-core-cancel-pending]" ? {} : null }, preventDefault: () => { intercepted = true; }, stopImmediatePropagation: () => { intercepted = true; } });
 assert.equal(intercepted, false, "LionWing capture lets a shared NPC attack reach its shared resolution handler");
-console.log("LionWing NPC UI: shared hero defenses, finish controls, NPC auto-pass and serialized resolution passed");
+// Reappearing permits the source to act, but must not bypass target restrictions.
+for (const extra of [
+  { effects: ["positive.исчез"] },
+  { effects: ["positive.изгнан"] },
+  { deploymentProxy: true },
+]) {
+  const hidden = fixture(actor("hero", "hero", 2, extra));
+  hidden.actors[0].effects = ["positive.исчез"];
+  const rejected = engine.prepareEnemyRule(hidden, data, { actorId: "npc", ruleId: "lionwing.npc.assassin.slice", targetIds: ["hero"], options: { reappearance: { x: 1, y: 1 } }, roll: { rolls: [4, 4, 1, 1, 1], successes: 2, crits: 0 } });
+  assert.equal(rejected.ok, false, "reappearing Assassin cannot attack a disappeared, Banished or undeployed target");
+  assert.equal(rejected.events.length, 0, "a stale target cannot spend AP or reveal the Assassin");
+}
+
+// Reach the additional-attack prompt through the actual Coordinator attack.
+let coordinated = fixture(actor("hero", "hero", 2));
+coordinated.rulesEdition = "legacy";
+coordinated.actors[0].profileId = "enemy.common.coordinator";
+coordinated.actors.push(actor("assassin-ally", "enemy", 3, { profileId: "lionwing.npc.assassin" }), actor("fresh", "hero", 4, { effects: ["negative.помечен"] }));
+coordinated = commit(coordinated, engine.prepareEnemyRule(coordinated, data, { actorId: "npc", ruleId: "enemy.common.coordinator.attack.fanaticize", targetIds: ["hero"], roll: { rolls: [4, 4, 1, 1, 1, 1], successes: 2, crits: 0 } }));
+coordinated = commit(coordinated, engine.respondReaction(coordinated, data, { actorId: "hero", choice: "pass" }));
+coordinated = commit(coordinated, engine.resolvePendingAction(coordinated, data));
+assert.equal(coordinated.pendingPrompt.kind, "enemy-coordinator-followup-ally");
+coordinated = commit(coordinated, engine.respondRulePrompt(coordinated, data, { choice: "ally:assassin-ally" }));
+assert.ok(coordinated.pendingPrompt.options.includes("attack:fresh"));
+context.Scene = clone(coordinated);
+const promptRollStart = sceneEvents.indexOf("function enemyPromptRoll(");
+vm.runInContext(sceneEvents.slice(promptRollStart, sceneEvents.indexOf('$("scene-flow").addEventListener(', promptRollStart)), context);
+const followupRoll = context.enemyPromptRoll(context.Scene.actors[2], "lionwing.npc.assassin.slice", 0, ["fresh"]);
+assert.ok(followupRoll, "additional attacks derive dice from executable mechanics, not display prose");
+assert.equal(followupRoll.initialCount, 3);
+assert.doesNotMatch(followupRoll.formula, /Slice/);
+for (const invalid of [{ ...followupRoll, initialCount: 2 }, { ...followupRoll, truncated: true }, { ...followupRoll, successes: 99 }]) {
+  assert.equal(engine.respondRulePrompt(coordinated, data, { choice: "attack:fresh", roll: invalid }).ok, false);
+}
+const allyAp = coordinated.actors[2].ap;
+coordinated = commit(coordinated, engine.respondRulePrompt(coordinated, data, { choice: "attack:fresh", roll: followupRoll }));
+assert.equal(coordinated.actors[2].ap, allyAp, "critical follow-up still costs no AP");
+assert.equal(coordinated.pendingAction.assassinDisappearAfterAttack, true);
+coordinated = commit(coordinated, engine.respondReaction(coordinated, data, { actorId: "fresh", choice: "pass" }));
+coordinated = commit(clone(coordinated), engine.resolvePendingAction(coordinated, data));
+assert.ok(coordinated.actors[2].effects.includes("positive.исчез"), "Assassin's passive also applies to a free coordinated attack");
+assert.equal(coordinated.pendingAction, null);
+
+// Use the real decision button for a canonical Cocoon repeat, including a
+// target-dependent hindrance and an exploding critical die.
+let cocoon = fixture(actor("hero", "hero", 3));
+cocoon.actors[0].profileId = "lionwing.npc.cocoon";
+cocoon.actors.push(actor("fresh", "hero", 2, { y: 2 }));
+cocoon = commit(cocoon, engine.prepareEnemyRule(cocoon, data, { actorId: "npc", ruleId: "lionwing.npc.cocoon.rampage", targetIds: ["hero"], options: { destination: { x: 2, y: 1 } }, roll: { rolls: [4, 4, 1, 1], successes: 2, crits: 0 } }));
+cocoon = commit(cocoon, engine.respondReaction(cocoon, data, { actorId: "hero", choice: "pass" }));
+cocoon = commit(cocoon, engine.resolvePendingAction(cocoon, data));
+cocoon = commit(cocoon, { ok: true, events: [{ type: "effect.apply", actorId: "fresh", payload: { targetId: "npc", effect: "negative.испуган", sourceActionId: "manual.adjudication" } }] });
+context.Scene = clone(cocoon);
+let flowHandler;
+Object.assign(context, { $: () => ({ addEventListener: (_type, handler) => { flowHandler = handler; } }), canControlScenePrompt: () => true });
+context.Logic.rollXd6 = ({ count }) => { let i = 0; return context.window.DAWN_LOGIC.rollXd6({ count, random: () => i++ === 0 ? 0.9 : 0.75 }); };
+const flowStart = sceneEvents.indexOf('$("scene-flow").addEventListener(', promptRollStart);
+vm.runInContext(sceneEvents.slice(flowStart, sceneEvents.indexOf("\n", flowStart)), context);
+flowHandler({ target: { closest: selector => selector === "[data-rule-prompt-choice]" ? { dataset: { rulePromptChoice: "target:fresh" } } : null } });
+assert.ok(context.Scene.pendingAction, "the canonical repeat button commits a real attack");
+assert.equal(context.Scene.pendingAction.roll.initialCount, 3, "the selected target contributes its Fear hindrance");
+assert.equal(context.Scene.pendingAction.roll.rolls.length, 4, "the additional critical die is accepted");
+assert.match(context.Scene.pendingAction.roll.formula, /Помеха/);
+assert.doesNotMatch(context.Scene.pendingAction.roll.formula, /Rampage/);
+context.Scene = commit(context.Scene, engine.respondReaction(context.Scene, data, { actorId: "fresh", choice: "pass" }));
+context.Scene = commit(clone(context.Scene), engine.resolvePendingAction(context.Scene, data));
+assert.equal(context.Scene.pendingAction, null);
+assert.equal(context.Scene.pendingPrompt, null, "the real UI repeat completes without a stuck decision");
+console.log("LionWing NPC UI: defenses, serialized resolution, reappearance restrictions and coordinated critical attacks passed");

@@ -473,6 +473,8 @@ let cocoon=scene("lionwing.npc.cocoon",{actors:[
   actor("hero","hero",4,2),actor("hero-b","hero",3,3),
 ]});
 const rampageStatus=engine.availableEnemyRules(cocoon,data,"enemy").find(item=>item.id==="lionwing.npc.cocoon.rampage");
+// Real local scenes contain manual setup records before their first attack.
+cocoon.log.push({id:"manual-cocoon-setup",type:"legacy.note",actorId:null,payload:{}});
 assert.equal(rampageStatus.automation,"attack");
 const rampage=engine.prepareEnemyRule(cocoon,data,{actorId:"enemy",ruleId:rampageStatus.id,options:{destination:{x:3,y:2}},targetIds:["hero"],roll:dice(5,[6,5,1,1,1])});
 assert.equal(rampage.ok,true,rampage.errors?.join(" "));
@@ -484,6 +486,35 @@ const repeated=engine.respondRulePrompt(cocoon,data,{actorId:"enemy",choice:"tar
 assert.equal(repeated.ok,true,repeated.errors?.join(" "));
 const repeatedPending=repeated.events.find(event=>event.type==="attack.pending");
 assert.equal(repeatedPending.payload.damage,4,"LionWing repeat uses Hits + Tension, not the retired Tension × 2 rule");
+for (const extra of [{ effects: ["positive.исчез"] }, { space: "other" }]) {
+  const stale = clone(cocoon);
+  Object.assign(stale.actors.find(item => item.id === "hero-b"), extra);
+  assert.equal(engine.respondRulePrompt(stale,data,{choice:"target:hero-b",roll:dice(5,[6,5,1,1,1])}).ok,false,"a stale repeat target must be rejected before closing its prompt");
+}
+assert.equal(engine.respondRulePrompt(cocoon,data,{choice:"target:hero-b",roll:{...dice(5),successes:99}}).ok,false,"repeat damage cannot trust forged roll totals");
+const cocoonBeforeRepeat=clone(cocoon),repeatAp=cocoon.actors[0].ap;
+for(const [effect,damage] of [["positive.усилен",6],["negative.ослаблен",2]]){
+  const modified=clone(cocoon);modified.actors[0].effects.push(effect);
+  const response=engine.respondRulePrompt(modified,data,{choice:"target:hero-b",roll:dice(5,[6,5,1,1,1])});
+  assert.equal(response.ok,true,response.errors?.join(" "));
+  const applied=commitWithIds(modified,response,`repeat-modifier-${effect}`).result.scene;
+  assert.equal(applied.pendingAction.damageByTarget["hero-b"],damage,"repeat attacks apply damage modifiers exactly once");
+}
+const repeatPass=commitWithIds(clone(cocoon),engine.respondRulePrompt(cocoon,data,{choice:"pass"}),"rampage-repeat-pass");
+assert.equal(repeatPass.result.scene.pendingPrompt,null,"declining the repeat closes the prompt");
+assert.equal(engine.dispatchMany(clone(repeatPass.result.scene),repeatPass.events).scene.version,repeatPass.result.scene.version,"a repeated network acknowledgement of Pass remains idempotent");
+const repeatCommit=commitWithIds(cocoon,repeated,"rampage-repeat");
+cocoon=repeatCommit.result.scene;
+assert.equal(cocoon.pendingAction?.enemyRuleId,"lionwing.npc.cocoon.rampage","the repeated attack commits through the LionWing authority");
+assert.equal(cocoon.actors[0].ap,repeatAp,"repeating Rampage is free");
+assert.equal(engine.dispatchMany(clone(cocoon),repeatCommit.events).scene.version,cocoon.version,"replayed repeat events cannot attack twice");
+const tamperedRepeat=clone(repeatCommit.events);
+tamperedRepeat.find(event=>event.type==="attack.pending").payload.damage=99;
+assert.throws(()=>engine.dispatchMany(cocoonBeforeRepeat,tamperedRepeat),/повтор|Атака|канонич/i,"authority must re-derive the complete free-attack package");
+cocoon=commitWithIds(cocoon,engine.respondReaction(cocoon,data,{actorId:"hero-b",choice:"pass"}),"repeat-defense").result.scene;
+cocoon=commitWithIds(clone(cocoon),engine.resolvePendingAction(cocoon,data),"repeat-finish").result.scene;
+assert.equal(cocoon.pendingAction,null);
+assert.equal(cocoon.pendingPrompt,null,"after both targets are attacked the repeat chain ends");
 
 // Duelist Fleche reuses the shared Attack and post-resolution movement
 // contracts while its passive binds Provoked to this Duelist.

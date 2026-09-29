@@ -1054,6 +1054,19 @@ function enemyRuleAutomation(ruleId) {
   return enemyRuleIsAutoEffect(ruleId) ? "effect" : "assisted";
 }
 
+function enemyAttackRollMatchesPool(roll, expectedDice) {
+  if (!roll || !Array.isArray(roll.rolls) || roll.rolls.length > 300 || roll.truncated || roll.rolls.some(value => !Number.isInteger(value) || value < 1 || value > 6)) return false;
+  if (Number(roll.successes) !== roll.rolls.filter(value => value >= 4).length || Number(roll.crits) !== roll.rolls.filter(value => value === 6).length) return false;
+  if (roll.initialCount == null) return roll.rolls.length === expectedDice;
+  if (!Number.isInteger(roll.initialCount) || roll.initialCount !== expectedDice) return false;
+  let outstanding = expectedDice;
+  for (const value of roll.rolls) {
+    if (outstanding <= 0) return false;
+    if (value !== 6) outstanding -= 1;
+  }
+  return outstanding === 0;
+}
+
 function prepareEnemyRule(scene, data, request = {}) {
   const normalizedTargetRequest = typeof normalizeLionwingActionTargetRequest === "function" ? normalizeLionwingActionTargetRequest(scene, request) : { request, errors: [], typedTargets: null };
   request = normalizedTargetRequest.request;
@@ -1107,8 +1120,8 @@ function prepareEnemyRule(scene, data, request = {}) {
   let attackMovePath = [];
   if (targets.length !== targetIds.length) errors.push("Одна из выбранных целей больше не находится на Сцене.");
   if (targets.some(target => target.knockedOut)) errors.push("Выведенный из боя персонаж не может быть целью действия.");
-  const targetingOptions = fullRule?.type === "healer-heal" ? { ignoreHealerGuardian: true } : {};
-  const unavailableEffectTarget = actor && !hiddenAssassinAttack && targets.find(target => !effectTargetingStatus(scene, actor.id, target.id, targetingOptions).available);
+  const targetingOptions = { ...(fullRule?.type === "healer-heal" ? { ignoreHealerGuardian: true } : {}), sourceReappearing: hiddenAssassinAttack };
+  const unavailableEffectTarget = actor && targets.find(target => !effectTargetingStatus(scene, actor.id, target.id, targetingOptions).available);
   if (unavailableEffectTarget) errors.push(effectTargetingStatus(scene, actor.id, unavailableEffectTarget.id, targetingOptions).reason);
   const unavailableWallTarget = attackOrigin && targets.find(target => !wallTargetingStatus(scene, attackOrigin, target, { range: rule?.range }).available);
   if (unavailableWallTarget) errors.push("Стена перекрывает проведение цели.");
@@ -1221,21 +1234,11 @@ function prepareEnemyRule(scene, data, request = {}) {
   const canonicalAutoAttack = LIONWING_AUTO_ATTACK_RULES.has(rule?.id);
   const hasDirectDamage = Number.isFinite(canonicalDirectDamage) || !canonicalAutoAttack && Number.isFinite(Number(request.damage)) && Number(request.damage) >= 0;
   if (LIONWING_AUTO_ATTACK_RULES.has(rule?.id) && hasRoll) {
-    const rolls = request.roll.rolls;
-    if (rolls.some(value => !Number.isInteger(value) || value < 1 || value > 6)) errors.push("Бросок Атаки содержит недопустимую кость.");
-    if (Number(request.roll.successes) !== rolls.filter(value => value >= 4).length || Number(request.roll.crits) !== rolls.filter(value => value === 6).length) errors.push("Итоги броска Атаки не соответствуют выпавшим костям.");
     const hostileIds = targets.filter(target => target.team !== actor?.team).map(target => target.id);
     const effectAttack = effectAttackStatus(scene, actor.id, hostileIds), baseDice = rule.dice ? enemyTierFormula(rule.dice, actor.tier) : 0;
     const hiddenBonus = hiddenAssassinAttack && family.hiddenAdvantage ? enemyTierFormula(family.hiddenAdvantage, actor.tier) : 0;
     const expectedDice = baseDice > 0 ? Math.max(1, baseDice + hiddenBonus + Number(attackModifiers.advantage || 0) - Number(effectAttack.hindrance || 0)) : 0;
-    if (request.roll.initialCount != null) {
-      let outstanding = expectedDice, valid = Number.isInteger(request.roll.initialCount) && request.roll.initialCount === expectedDice && rolls.length <= 300;
-      for (const value of rolls) {
-        if (outstanding <= 0) valid = false;
-        outstanding += value === 6 ? 0 : -1;
-      }
-      if (!valid || outstanding !== 0 || request.roll.truncated) errors.push("Бросок Атаки не соответствует начальному пулу и цепочке критических костей.");
-    } else if (expectedDice && rolls.length !== expectedDice) errors.push(`Бросок Атаки должен содержать ровно ${expectedDice} костей.`);
+    if (!enemyAttackRollMatchesPool(request.roll, expectedDice)) errors.push("Бросок Атаки не соответствует начальному пулу и цепочке критических костей.");
   }
   if (canonicalAutoAttack && rule.directDamage && hasRoll) errors.push("Это canonical-действие использует прямой урон вместо броска.");
   if (attackModifiers.selectedIds.length && !hasRoll) errors.push("Модификатор Преимущества требует бросок Атаки.");
@@ -1473,7 +1476,8 @@ function prepareEnemyRule(scene, data, request = {}) {
     hostileTargets.forEach(target => events.push({ type: "reaction.offer", actorId: target.id, payload: { sourceActorId: actor.id, actionId: rule.id } }));
     const tensionMultiplier = enemyAttackTensionMultiplier(rule.id);
     const effectAttack = effectAttackStatus(scene, actor.id, hostileTargets.map(target => target.id));
-    const baseDamage = (hasRoll ? Number(request.roll.successes || 0) + Number(scene.tension || 0) * tensionMultiplier : Number.isFinite(canonicalDirectDamage) ? canonicalDirectDamage : Number(request.damage)) + Number(effectAttack.damageModifier || 0);
+    // Shared attack.pending applies effect damage modifiers at commit.
+    const baseDamage = hasRoll ? Number(request.roll.successes || 0) + Number(scene.tension || 0) * tensionMultiplier : Number.isFinite(canonicalDirectDamage) ? canonicalDirectDamage : Number(request.damage);
     const aimBonusByTarget = {}, headshotBonusByTarget = {};
     const damageByTarget = Object.fromEntries(hostileTargets.map(target => {
       let amount = baseDamage + Number(effectAttack.damageByTarget?.[target.id] || 0);

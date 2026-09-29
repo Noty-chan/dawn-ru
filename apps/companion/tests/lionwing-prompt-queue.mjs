@@ -57,6 +57,16 @@ function prompt(label, priority, tieBreak) {
   };
 }
 
+const newestSource = Engine.dispatch(sourceScene(), { id: "queue-newest-source", type: "resource.gain", actorId: "hero", payload: { resource: "focus", amount: 1 } }).scene;
+newestSource.log.unshift({ id: "manual-note-newest", type: "legacy.note", actorId: "hero", payload: {} });
+newestSource.log.push({ id: "manual-note-oldest", type: "legacy.note", actorId: "hero", payload: {} });
+const implicitPrompt = prompt("implicit", 0, "000:implicit");
+delete implicitPrompt.payload.sourceEventId;
+delete implicitPrompt.payload.sourceEventType;
+const implicit = Engine.dispatchMany(newestSource, [implicitPrompt]).scene;
+assert.equal(implicit.pendingPrompt.sourceEventId, "queue-newest-source", "implicit prompts use the newest valid rules event in the newest-first journal");
+assert.equal(implicit.pendingPrompt.sourceEventType, "resource.gain", "manual legacy notes cannot poison prompt provenance");
+
 const simultaneous = Engine.dispatchMany(sourceScene(), [
   prompt("low", 10, "030:low"),
   prompt("high", 30, "010:high"),

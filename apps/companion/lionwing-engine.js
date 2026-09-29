@@ -4267,6 +4267,19 @@
       if (!prepared || alreadyAttacked) fail("Атака героя не связана с доступным подготовленным действием");
     }
     const pendingEnemyFlow = scene.pendingAction?.enemyRuleId && events.some(event => ["reaction.respond", "rule.respond", "damage.apply", "effect.apply", "actor.move", "actor.enter", "attack.clear"].includes(event?.type));
+    const cocoonRepeatResponse = scene.pendingPrompt?.kind === "enemy-cocoon-repeat" && scene.pendingPrompt.context?.ruleId === "lionwing.npc.cocoon.rampage" && events.find(event => event?.type === "rule.respond");
+    if (cocoonRepeatResponse) {
+      const source = (scene.actors || []).find(actor => actor.id === scene.pendingPrompt.sourceActorId), response = cocoonRepeatResponse.payload || {};
+      if (source?.profileId !== "lionwing.npc.cocoon" || cocoonRepeatResponse.actorId !== source.id) fail("Повтор Буйства требует ожидающее решение Кокона.");
+      const attack = events.find(event => event?.type === "attack.pending");
+      const expected = legacy.respondRulePrompt(scene, global.DAWN_DATA, { actorId: source.id, choice: response.choice, roll: attack?.payload?.roll || null, stale: response.stale === true, role: response.role, narratorOverride: response.narratorOverride === true });
+      const shape = event => [event.type, event.actorId || null, event.payload || {}, event.visibility || null];
+      if (!expected.ok || !sameJson(events.map(shape), expected.events.map(shape))) fail("Повтор Буйства не соответствует каноническим цели, броску и результату.");
+      const committed = legacy.dispatchMany(scene, events, options);
+      for (const event of events) if (event.id) state(committed.scene).receipts.push({ id: event.id, fingerprint: JSON.stringify([event.type, event.actorId || null, event.payload || {}]) });
+      state(committed.scene).receipts = state(committed.scene).receipts.slice(-256);
+      return committed;
+    }
     const rangerPromptFlow = scene.pendingPrompt?.kind === "enemy-ranger-retreat" && events.some(event => event?.type === "rule.respond");
     const crowdPromptFlow = ["fodder-", "enemy-crowd-move-", "enemy-swarm-stun", "enemy-broodmother-fodder", "bodyguards-brace-line"].some(prefix => scene.pendingPrompt?.kind?.startsWith(prefix)) && events.some(event => event?.type === "rule.respond");
     const modifierFlow = events.length > 0 && events.every(event => event?.type === "modifier.configure" && (scene.actors || []).some(actor => actor.id === event.actorId && ["lionwing.modifier.isolation","lionwing.modifier.artillery","lionwing.modifier.haven","lionwing.modifier.contagion","lionwing.modifier.earthquake","lionwing.modifier.vip","lionwing.modifier.collateral","lionwing.modifier.legion","lionwing.modifier.vortex","lionwing.modifier.blaze","lionwing.modifier.gargantuan","lionwing.modifier.giant"].includes(actor.profileId)) || event?.type === "rule.respond" && ["modifier-refresh","lionwing-vip-follow"].includes(scene.pendingPrompt?.kind) && scene.pendingPrompt?.sourceActorId === event.actorId && (scene.actors || []).some(actor => actor.id === event.actorId && ["lionwing.modifier.isolation","lionwing.modifier.artillery","lionwing.modifier.haven","lionwing.modifier.contagion","lionwing.modifier.earthquake","lionwing.modifier.vip","lionwing.modifier.collateral","lionwing.modifier.legion","lionwing.modifier.vortex","lionwing.modifier.blaze","lionwing.modifier.gargantuan","lionwing.modifier.giant"].includes(actor.profileId)) || event?.type === "actor.move" && event.payload?.vipFollow && (scene.actors || []).some(actor => actor.id === event.actorId && actor.profileId === "lionwing.modifier.vip"));

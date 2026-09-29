@@ -364,7 +364,9 @@ function comparePromptEvents(left, right) {
 }
 
 function latestPromptSource(scene) {
-  return [...(scene?.log || [])].reverse().find(item => item?.type !== "rule.trigger") || null;
+  // The journal is newest first. Manual notes are outside the rules event
+  // contract and cannot be the source of an executable prompt.
+  return (scene?.log || []).find(item => EVENT_TYPES.has(item?.type) && item.type !== "rule.trigger") || null;
 }
 
 function decoratePromptEvent(scene, event, defaults = {}) {

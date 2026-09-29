@@ -3464,6 +3464,7 @@
         "uiEntryPoint": "unknown (passives are trigger/lifecycle driven; no generic action button)",
         "tests": [
           "apps/companion/tests/lionwing-enemy-base-attacks.mjs",
+          "apps/companion/tests/lionwing-enemy-reaction-ui.mjs",
           "apps/companion/tests/lionwing-localization.mjs",
           "apps/companion/tests/scene-engine.mjs"
         ],
@@ -3516,6 +3517,7 @@
           "uiEntryPoint": "scene-actions-ui.js useEnemyRule → DAWN_SCENE_ENGINE.prepareEnemyRule → commitSceneEvents",
           "tests": [
             "apps/companion/tests/lionwing-enemy-base-attacks.mjs",
+            "apps/companion/tests/lionwing-enemy-reaction-ui.mjs",
             "apps/companion/tests/lionwing-localization.mjs",
             "apps/companion/tests/scene-engine.mjs"
           ],
@@ -3564,6 +3566,7 @@
           "uiEntryPoint": "scene-actions-ui.js useEnemyRule → DAWN_SCENE_ENGINE.prepareEnemyRule → commitSceneEvents",
           "tests": [
             "apps/companion/tests/lionwing-enemy-base-attacks.mjs",
+            "apps/companion/tests/lionwing-enemy-reaction-ui.mjs",
             "apps/companion/tests/lionwing-localization.mjs",
             "apps/companion/tests/scene-engine.mjs"
           ],
@@ -3612,6 +3615,7 @@
           "uiEntryPoint": "scene-actions-ui.js useEnemyRule → DAWN_SCENE_ENGINE.prepareEnemyRule → commitSceneEvents",
           "tests": [
             "apps/companion/tests/lionwing-enemy-base-attacks.mjs",
+            "apps/companion/tests/lionwing-enemy-reaction-ui.mjs",
             "apps/companion/tests/lionwing-localization.mjs",
             "apps/companion/tests/scene-engine.mjs"
           ],
@@ -6578,6 +6582,7 @@
         "uiEntryPoint": "unknown (passives are trigger/lifecycle driven; no generic action button)",
         "tests": [
           "apps/companion/tests/lionwing-enemy-base-attacks.mjs",
+          "apps/companion/tests/lionwing-enemy-reaction-ui.mjs",
           "apps/companion/tests/scene-engine.mjs"
         ],
         "notRun": [
@@ -6628,6 +6633,7 @@
           "uiEntryPoint": "scene-actions-ui.js useEnemyRule → DAWN_SCENE_ENGINE.prepareEnemyRule → commitSceneEvents",
           "tests": [
             "apps/companion/tests/lionwing-enemy-base-attacks.mjs",
+            "apps/companion/tests/lionwing-enemy-reaction-ui.mjs",
             "apps/companion/tests/scene-engine.mjs"
           ],
           "notRun": [
@@ -6672,6 +6678,7 @@
           "uiEntryPoint": "scene-actions-ui.js useEnemyRule → DAWN_SCENE_ENGINE.prepareEnemyRule → commitSceneEvents",
           "tests": [
             "apps/companion/tests/lionwing-enemy-base-attacks.mjs",
+            "apps/companion/tests/lionwing-enemy-reaction-ui.mjs",
             "apps/companion/tests/scene-engine.mjs"
           ],
           "notRun": [
@@ -6720,6 +6727,7 @@
           "uiEntryPoint": "scene-actions-ui.js useEnemyRule → DAWN_SCENE_ENGINE.prepareEnemyRule → commitSceneEvents",
           "tests": [
             "apps/companion/tests/lionwing-enemy-base-attacks.mjs",
+            "apps/companion/tests/lionwing-enemy-reaction-ui.mjs",
             "apps/companion/tests/scene-engine.mjs"
           ],
           "notRun": [
