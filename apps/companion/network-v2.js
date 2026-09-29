@@ -42,6 +42,19 @@
     return ui;
   }
 
+  function resetLocalUiForSceneSwitch(scene){
+    const next=clone(scene||{});
+    next.tool="select";
+    next.activeSpace=null;
+    next.selectedActor=null;
+    next.targetIds=[];
+    next.targetCells=[];
+    next.undo=[];
+    next.redo=[];
+    next.turnUndo=[];
+    return next;
+  }
+
   function networkSceneState(scene){
     const state=typeof global.normalizeScene==="function"?global.normalizeScene(scene):typeof global.sceneCore==="function"?global.sceneCore(scene):clone(scene||{});
     state.view="gm";
@@ -552,7 +565,7 @@
 
   global.DAWN_NETWORK_V2={
     AUTOMATIC_COMMANDS,AuthorityQueue,MAX_AUTHORITY_ITEMS,MAX_BATCH_EVENTS,MAX_OUTBOX_ITEMS,PROTOCOL,PlayerOutbox,REQUEST_TIMEOUT_MS,TICK_MS,retryableAuthorityFailure,withTimeout,
-    captureLocalUi,clearConfirmedScene,getConfirmedScene,intentFromEvents,materializeIntent,mergeRemoteScene,
+    captureLocalUi,clearConfirmedScene,getConfirmedScene,intentFromEvents,materializeIntent,mergeRemoteScene,resetLocalUiForSceneSwitch,
     networkSceneState,rebaseSceneSnapshot,restoreLocalUi,setConfirmedScene,validateIntentEnvelope,
   };
 })(typeof window==="object"?window:globalThis);
