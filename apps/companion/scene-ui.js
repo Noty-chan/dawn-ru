@@ -214,7 +214,29 @@ function commitLionwingDestroy(target,options={}){
 let lastSceneEventSubmission={fingerprint:"",at:0};
 function captureSceneFxContext(events=[]){const wrap=$("scene-board-wrap");if(!wrap)return{};const wrapRect=wrap.getBoundingClientRect(),points={};for(const event of events.filter(item=>item.type==="actor.move")){const token=wrap.querySelector(`[data-scene-actor="${CSS.escape(event.actorId||"")}"]`),rect=token?.getBoundingClientRect();if(rect)points[event.actorId]={x:rect.left-wrapRect.left+wrap.scrollLeft+rect.width/2,y:rect.top-wrapRect.top+wrap.scrollTop+rect.height/2}}return{points}}
 function commitSceneEvents(label,events){if(Scene.rulesEdition==="lionwing"&&(Scene.actors||[]).some(actor=>String(actor.profileId||"").startsWith("enemy.modifier.")))return toast("В этой Сцене LionWing есть модификаторы старой редакции. Продолжение боя заблокировано; создайте новую Сцену с модификаторами LionWing.");const fingerprint=JSON.stringify([label,events]),now=performance.now();if(fingerprint===lastSceneEventSubmission.fingerprint&&now-lastSceneEventSubmission.at<450)return toast("Двойное нажатие пропущено; это не подтверждение сервера");lastSceneEventSubmission={fingerprint,at:now};const fxContext=captureSceneFxContext(events);let sharedResult;try{sharedResult=submitNetworkV2Events(label,events)}catch(error){lastSceneEventSubmission={fingerprint:"",at:0};toast(friendlySyncError(error,"Это действие пока нельзя отправить за общий стол"));return null}if(sharedResult)return sharedResult;const before=sceneSnapshot(),expectedVersion=Number(Scene.version||0);let result;try{result=SceneEngine.dispatchMany(Scene,events,{expectedVersion})}catch(error){lastSceneEventSubmission={fingerprint:"",at:0};return toast(error.message||"Не удалось применить события Сцены")}Scene=normalizeScene(result.scene);if(result.events.some(event=>event.type==="round.end"))Scene.turnUndo=[];if(result.events.some(event=>event.type==="turn.start"))Scene.turnUndo=[{id:uid(),label:"До начала Хода",state:before,checkpoint:"turn-start"},...(Scene.turnUndo||[])].slice(0,120);Scene.undo.unshift({id:uid(),label,state:before});Scene.undo=Scene.undo.slice(0,20);Scene.redo=[];syncHeroFromScene();persist();if(store.mode==="play")renderPlay();else if(store.mode==="tools")renderToolsWorkspace();else renderScene();renderChallengeRequestDock();playSceneEventFx(result.events,fxContext);return result}
-function restoreSceneHistory(step,source,target,prefix){const current=sceneSnapshot(),remaining=source.slice(1),restored=sceneCore(step.state),opposite=[{id:uid(),label:step.label,state:current},...target].slice(0,20),turnHistory=source===Scene.turnUndo?remaining:[...(Scene.turnUndo||[])];restored.version=Number(current.version||0)+1;if(source===Scene.undo){restored.undo=remaining;restored.redo=opposite}else if(source===Scene.turnUndo){restored.undo=[];restored.redo=opposite}else{restored.redo=remaining;restored.undo=opposite}restored.turnUndo=turnHistory;if(Sync?.state?.().sceneId){try{assertNetworkSceneFits(restored)}catch(error){toast(error.message);return}}Scene=restored;sceneEvent(`${prefix}: ${step.label}`);syncHeroFromScene();persist();if(store.mode==="play"){renderPlay();if($("scene-undo"))$("scene-undo").disabled=!(Scene.undo.length||(Scene.turnUndo||[]).length);if($("scene-redo"))$("scene-redo").disabled=!Scene.redo?.length}else renderScene();if(!queueNetworkV2Snapshot(sceneSnapshot(),`scene.history:${prefix}:${step.label}`))Sync?.queueScene(sceneSnapshot(),`scene.history:${prefix}:${step.label}`)}
+function restoreSceneHistory(step,source,target,prefix){
+  const previous=Scene,current=sceneSnapshot(),remaining=source.slice(1),restored=sceneCore(step.state),opposite=[{id:uid(),label:step.label,state:current},...target].slice(0,20),turnHistory=source===Scene.turnUndo?remaining:[...(Scene.turnUndo||[])],shared=Boolean(Sync?.state?.().sceneId),label=`scene.history:${prefix}:${step.label}`;
+  restored.version=Number(current.version||0)+1;
+  if(source===Scene.undo){restored.undo=remaining;restored.redo=opposite}
+  else if(source===Scene.turnUndo){restored.undo=[];restored.redo=opposite}
+  else{restored.redo=remaining;restored.undo=opposite}
+  restored.turnUndo=turnHistory;
+  try{
+    Scene=restored;
+    sceneEvent(`${prefix}: ${step.label}`);
+    if(shared){
+      assertNetworkSceneFits(Scene);
+      if(!queueNetworkV2Snapshot(sceneSnapshot(),label))throw new Error("Общий стол недоступен; отмена не отправлена");
+    }
+  }catch(error){Scene=previous;toast(error.message||"Не удалось отменить изменение Сцены");return null}
+  syncHeroFromScene();persist();
+  if(store.mode==="play"){
+    renderPlay();
+    if($("scene-undo"))$("scene-undo").disabled=!(Scene.undo.length||(Scene.turnUndo||[]).length);
+    if($("scene-redo"))$("scene-redo").disabled=!Scene.redo?.length;
+  }else renderScene();
+  return{scene:Scene,queued:shared};
+}
 function undoScene(){const source=Scene.undo.length?Scene.undo:Scene.turnUndo||[],step=source[0];if(!step)return toast("В журнале нет обратимого действия");const countDelta=key=>Math.abs(Number(step.state?.[key]?.length||0)-Number(Scene[key]?.length||0)),structural=Number(step.state?.round||1)!==Number(Scene.round||1)||countDelta("actors")>0||countDelta("spaces")>0||countDelta("objects")>1||countDelta("markers")>1||countDelta("walls")>1;if(structural&&!window.confirm(`«${step.label}» меняет Раунд или сразу несколько элементов Сцены. Отменить именно этот крупный шаг?`))return;restoreSceneHistory(step,source,Scene.redo||[],"Отменено")}
 function redoScene(){const step=Scene.redo?.[0];if(!step)return toast("Нет действия для повтора");restoreSceneHistory(step,Scene.redo,Scene.undo||[],"Повторено")}
 function applyNarratorOverride({targets,damage=0,effectId="",note=""}){
