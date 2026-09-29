@@ -127,12 +127,20 @@ function ensureNetworkV2Runtime(){
   if(!networkV2Authority)networkV2Authority=new NetworkV2.AuthorityQueue({
     tickMs:NetworkV2.TICK_MS,
     flush:flushNetworkV2Authority,
-    onError:(error,{retrying=true}={})=>{
+    onError:async(error,{retrying=true}={})=>{
       const message=friendlySyncError(error,error?.message||"неизвестная ошибка синхронизации");
       toast(retrying?`Сетевой такт не сохранён, будет повторён: ${message}`:`Сетевой такт не сохранён: ${message}. Исправьте причину и повторите действие.`);
+      if(!retrying)try{await NetworkV2.withTimeout(Sync.refreshScene(),"обновления Сцены",5000)}catch(refreshError){console.warn("DAWN canonical Scene refresh after rejected tick failed",refreshError)}
+      if(typeof renderSync==="function")renderSync();
     },
   });
   return{authority:networkV2Authority,outbox:networkV2Outbox};
+}
+function networkV2QueueStatus(){return{pending:networkV2Authority?.pending?.()||0,failed:networkV2Authority?.failed?.length||0}}
+function retryNetworkV2Failed(){
+  const runtime=ensureNetworkV2Runtime(),count=runtime?.authority?.retryFailed?.()||0;
+  if(count){toast(`Повторяем сохранение: ${count} сетевых изменений`);if(typeof renderSync==="function")renderSync()}
+  return count;
 }
 function resetNetworkV2Runtime(){networkV2Authority?.clear();networkV2Outbox?.clear();pendingNetworkPlacements.clear();NetworkV2?.clearConfirmedScene?.();networkV2Authority=null;networkV2Outbox=null}
 function queueNetworkV2Snapshot(scene,label){
@@ -168,11 +176,11 @@ function enqueueNetworkV2Command(command){
 }
 function retainPendingNetworkV2Commands(commandIds=[]){
   const pending=new Set(commandIds.map(String));
-  networkV2Authority?.discard?.(item=>item.kind==="command"&&!item._networkTick&&!pending.has(String(item.command?.id)));
+  networkV2Authority?.discard?.(item=>item.kind==="command"&&!pending.has(String(item.command?.id)));
 }
 function discardNetworkV2Commands(commandIds=[]){
   const settled=new Set(commandIds.map(String));
-  if(settled.size)networkV2Authority?.discard?.(item=>item.kind==="command"&&!item._networkTick&&settled.has(String(item.command?.id)));
+  if(settled.size)networkV2Authority?.discard?.(item=>item.kind==="command"&&settled.has(String(item.command?.id)));
 }
 async function flushNetworkV2Authority(items){
   const cached=items[0]?._networkTick;
@@ -191,7 +199,9 @@ async function flushNetworkV2Authority(items){
     candidate.version++;
     allEvents.push(audit);
   }
+  let deferRemainder=false;
   for(const item of items.filter(item=>item.kind!=="snapshot")){
+    if(deferRemainder){deferred.push(item);continue}
     try{
       const command=item.command;
       const envelope=item.kind==="command"?NetworkV2.validateIntentEnvelope(command.payload):null;
@@ -200,7 +210,7 @@ async function flushNetworkV2Authority(items){
         :item.events;
       if(!Array.isArray(prepared)||!prepared.length)throw new Error("Изменение не создало событий");
       if(prepared.length>NetworkV2.MAX_BATCH_EVENTS)throw new Error("Одно действие создало слишком много событий для безопасного сетевого такта");
-      if(allEvents.length+prepared.length>NetworkV2.MAX_BATCH_EVENTS){deferred.push(item);continue}
+      if(allEvents.length+prepared.length>NetworkV2.MAX_BATCH_EVENTS){deferRemainder=true;deferred.push(item);continue}
       const beforeItem=sceneCore(candidate),result=SceneEngine.dispatchMany(candidate,prepared,{expectedVersion:Number(candidate.version||0)});
       if(!localUndoState)localUndoState=beforeItem;
       undoableEventCount+=result.events.length;

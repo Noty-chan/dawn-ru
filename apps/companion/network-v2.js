@@ -3,6 +3,7 @@
 (function exposeDawnNetworkV2(global){
   const PROTOCOL=2;
   const TICK_MS=200;
+  const REQUEST_TIMEOUT_MS=25000;
   const MAX_BATCH_EVENTS=192;
   const MAX_AUTHORITY_ITEMS=200;
   const MAX_OUTBOX_ITEMS=40;
@@ -11,7 +12,13 @@
   const clone=value=>value==null?value:JSON.parse(JSON.stringify(value));
   function retryableAuthorityFailure(error){
     const code=String(error?.code||""),message=String(error?.message||error||"").toLowerCase();
-    return error?.retryable===true||["40001","55P03","57014","08000","08003","08006","08001","08004","08P01","53300"].includes(code)||/failed to fetch|network\s*error|networkerror|load failed|fetch failed|connection (?:closed|terminated|timed? ?out)|websocket|statement timeout|canceling statement|lock timeout|could not obtain lock|deadlock detected|serialization failure|scene version conflict/i.test(message);
+    const status=Number(error?.status??error?.statusCode??0);
+    return error?.retryable===true||status===408||status===425||status===429||status>=500&&status<600||["40001","40P01","55P03","57014","08000","08003","08006","08001","08004","08P01","53300"].includes(code)||/failed to fetch|network\s*error|networkerror|load failed|fetch failed|connection (?:closed|terminated|timed? ?out)|websocket|statement timeout|canceling statement|lock timeout|could not obtain lock|deadlock detected|serialization failure|scene version conflict/i.test(message);
+  }
+  function withTimeout(request,label="сетевого запроса",timeoutMs=REQUEST_TIMEOUT_MS){
+    let timer=null;
+    const timeout=new Promise((_,reject)=>{timer=setTimeout(()=>{const error=new Error(`Истекло время ожидания ${label}; запрос будет безопасно повторён`);error.code="DAWN_REQUEST_TIMEOUT";error.retryable=true;reject(error)},Math.max(1,Number(timeoutMs)||REQUEST_TIMEOUT_MS))});
+    return Promise.race([Promise.resolve(request),timeout]).finally(()=>clearTimeout(timer));
   }
   const makeId=()=>{
     if(global.crypto?.randomUUID)return global.crypto.randomUUID();
@@ -443,7 +450,7 @@
           if(retryableAuthorityFailure(error)){
             this.failures=Math.min(this.failures+1,5);
             this.retryBatch=retained;
-            this.options.onError?.(error,{retrying:true});
+            try{await this.options.onError?.(error,{retrying:true})}catch(onErrorFailure){console.warn("DAWN authority error handler failed",onErrorFailure)}
           }else{
             this.failures=0;
             if(this.retryBatch===source)this.retryBatch=null;
@@ -452,7 +459,7 @@
             const newestSnapshotAt=Math.max(queuedSnapshotAt,retainedSnapshotAt);
             if(newestSnapshotAt)this.failed=this.failed.filter(item=>item.kind!=="snapshot"||(Number(item.queuedAt)||0)>newestSnapshotAt);
             this.failed.push(...retained.filter(item=>item.kind!=="snapshot"||(Number(item.queuedAt)||0)>queuedSnapshotAt));
-            this.options.onError?.(error,{retrying:false});
+            try{await this.options.onError?.(error,{retrying:false})}catch(onErrorFailure){console.warn("DAWN authority error handler failed",onErrorFailure)}
           }
         }
       }finally{
@@ -465,19 +472,31 @@
     discard(predicate){
       if(typeof predicate!=="function")return 0;
       let removed=0;
-      this.queue=this.queue.filter(item=>{if(!predicate(item))return true;removed++;return false});
-      this.failed=this.failed.filter(item=>{if(!predicate(item))return true;removed++;return false});
+      const protectedItems=new Set(this.inFlight||[]);
+      if(this.retryBatch&&this.retryBatch!==this.inFlight)for(const item of this.retryBatch)protectedItems.add(item);
+      const selected=item=>!protectedItems.has(item)&&predicate(item);
+      const invalidatedTicks=new Set(this.failed.filter(selected).map(item=>item._networkTick).filter(Boolean));
+      if(invalidatedTicks.size){
+        const rebuilt=this.failed.filter(item=>invalidatedTicks.has(item._networkTick));
+        this.failed=this.failed.filter(item=>!invalidatedTicks.has(item._networkTick));
+        const retry=[];
+        for(const item of rebuilt){delete item._networkTick;if(predicate(item)){removed++;continue}retry.push(item)}
+        this.queue.unshift(...retry);
+        if(retry.length)this.schedule();
+      }
+      this.queue=this.queue.filter(item=>{if(!selected(item)){return true}removed++;return false});
+      this.failed=this.failed.filter(item=>{if(!selected(item)){return true}removed++;return false});
       if(this.retryBatch&&this.retryBatch!==this.inFlight){
-        this.retryBatch=this.retryBatch.filter(item=>{if(!predicate(item))return true;removed++;return false});
+        this.retryBatch=this.retryBatch.filter(item=>{if(!selected(item))return true;removed++;return false});
         if(!this.retryBatch.length)this.retryBatch=null;
       }
-      for(const item of this.inFlight||[])if(predicate(item)){this.discarded.add(item);removed++}
+      for(const item of this.inFlight||[])if(!item._networkTick&&predicate(item)){this.discarded.add(item);removed++}
       return removed;
     }
     retryFailed(){if(!this.failed.length)return 0;this.queue.unshift(...this.failed);const count=this.failed.length;this.failed=[];this.schedule();return count}
     clear(){this.generation++;clearTimeout(this.timer);this.timer=null;this.queue=[];this.inFlight=null;this.retryBatch=null;this.failed=[];this.failures=0;this.discarded=new WeakSet()}
     latestQueuedSnapshot(){return[...this.queue].reverse().find(item=>item.kind==="snapshot")||null}
-    latestSnapshot(){return[...this.failed,...(this.inFlight||this.retryBatch||[]),...this.queue].filter(item=>item.kind==="snapshot").reduce((latest,item)=>!latest||Number(item.queuedAt||0)>=Number(latest.queuedAt||0)?item:latest,null)}
+    latestSnapshot(){const failed=new Set(this.failed);return[...(this.inFlight||this.retryBatch||[]),...this.queue].filter(item=>item.kind==="snapshot"&&!failed.has(item)).reduce((latest,item)=>!latest||Number(item.queuedAt||0)>=Number(latest.queuedAt||0)?item:latest,null)}
     pending(){return this.queue.length+(this.inFlight?.length||this.retryBatch?.length||0)}
   }
 
@@ -532,7 +551,7 @@
   }
 
   global.DAWN_NETWORK_V2={
-    AUTOMATIC_COMMANDS,AuthorityQueue,MAX_AUTHORITY_ITEMS,MAX_BATCH_EVENTS,MAX_OUTBOX_ITEMS,PROTOCOL,PlayerOutbox,TICK_MS,retryableAuthorityFailure,
+    AUTOMATIC_COMMANDS,AuthorityQueue,MAX_AUTHORITY_ITEMS,MAX_BATCH_EVENTS,MAX_OUTBOX_ITEMS,PROTOCOL,PlayerOutbox,REQUEST_TIMEOUT_MS,TICK_MS,retryableAuthorityFailure,withTimeout,
     captureLocalUi,clearConfirmedScene,getConfirmedScene,intentFromEvents,materializeIntent,mergeRemoteScene,
     networkSceneState,rebaseSceneSnapshot,restoreLocalUi,setConfirmedScene,validateIntentEnvelope,
   };

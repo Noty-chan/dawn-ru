@@ -5,7 +5,7 @@
   const PROJECT=global.DAWN_CONFIG||{};
   const listeners=new Map();
   const presenceCache=new Map();
-  let client=null,clientConfigKey="",connectInFlight=null,channel=null,channelGeneration=0,authSubscription=null,saveTimer=null,saveInFlight=false,pendingSave=null,reconnectTimer=null,reconnectAttempt=0,sceneRefreshTimer=null,sceneRefreshInFlight=false,pendingCommandsRefreshInFlight=false,lastPendingCommandSignature="",localMutationInFlight=0,mutationChain=Promise.resolve(),sceneLoadGeneration=0,sceneSessionGeneration=0,presenceDetails={},storageWarningShown=false;
+  let client=null,clientConfigKey="",connectInFlight=null,channel=null,channelGeneration=0,authSubscription=null,saveTimer=null,saveInFlight=false,pendingSave=null,reconnectTimer=null,reconnectAttempt=0,sceneRefreshTimer=null,sceneRefreshInFlight=false,pendingCommandsRefreshInFlight=false,lastPendingCommandSignature="",localMutationInFlight=0,mutationChain=Promise.resolve(),sceneLoadGeneration=0,sceneSessionGeneration=0,sceneSelectionGeneration=0,presenceDetails={},storageWarningShown=false;
   let state={status:"offline",authenticated:false,userId:null,email:"",isAnonymous:true,accountPending:false,userIdChanged:false,url:String(PROJECT.supabaseUrl||""),publishableKey:String(PROJECT.publishableKey||""),displayName:"",campaignId:null,campaignName:"",sceneId:null,role:null,version:0,characterIds:{},presence:[],lastSyncedAt:"",error:""};
 
   function stored(){try{return JSON.parse(localStorage.getItem(STORAGE_KEY)||"{}")||{}}catch{return{}}}
@@ -13,7 +13,8 @@
   function snapshot(){return {...state,canNarrate:["owner","narrator"].includes(state.role),hasAccount:Boolean(state.email&&!state.isAnonymous)}}
   function emit(type,payload=snapshot()){for(const listener of listeners.get(type)||[])try{listener(payload)}catch(error){console.error(error)}}
   function patch(next){if(!Object.keys(next).some(key=>state[key]!==next[key]))return snapshot();state={...state,...next};persist();emit("status");return snapshot()}
-  function fail(error){const raw=error?.message||String(error||"Ошибка синхронизации"),code=String(error?.code||""),timedOut=code==="57014"||/statement timeout|canceling statement/i.test(raw),message=timedOut?"Сервер не успел обработать изменение; соединение восстанавливается, действие будет повторено":raw;if(timedOut)scheduleReconnect("statement-timeout");else patch({status:"error",error:message});const failure=new Error(message);failure.code=code;failure.retryable=timedOut||["40001","55P03"].includes(code)||/failed to fetch|network\s*error|networkerror|load failed|fetch failed|connection (?:closed|terminated|timed? ?out)|websocket|lock timeout|serialization failure/i.test(raw);throw failure}
+  function fail(error){const raw=error?.message||String(error||"Ошибка синхронизации"),code=String(error?.code||""),status=Number(error?.status??error?.statusCode??0),timedOut=code==="57014"||/statement timeout|canceling statement/i.test(raw),retryable=global.DAWN_NETWORK_V2?.retryableAuthorityFailure?.(error)??(timedOut||status===408||status===425||status===429||status>=500&&status<600||["40001","40P01","55P03"].includes(code)||/failed to fetch|network\s*error|networkerror|load failed|fetch failed|connection (?:closed|terminated|timed? ?out)|websocket|lock timeout|serialization failure|deadlock detected/i.test(raw)),message=timedOut?"Сервер не успел обработать изменение; соединение восстанавливается, действие будет повторено":raw;if(retryable)scheduleReconnect(timedOut?"statement-timeout":"transport");else patch({status:"error",error:message});const failure=new Error(message);failure.code=code;failure.status=status||undefined;failure.statusCode=Number(error?.statusCode)||undefined;failure.retryable=retryable;throw failure}
+  function withNetworkTimeout(request,label){const withTimeout=global.DAWN_NETWORK_V2?.withTimeout;return typeof withTimeout==="function"?withTimeout(request,label):request}
   function on(type,listener){if(!listeners.has(type))listeners.set(type,new Set());listeners.get(type).add(listener);return()=>listeners.get(type)?.delete(listener)}
   function hasConfig(){return Boolean(state.url&&state.publishableKey)}
   function configure({url,publishableKey,displayName}={}){const rawUrl=String(url||state.url||PROJECT.supabaseUrl||"").trim(),key=String(publishableKey||state.publishableKey||PROJECT.publishableKey||"").trim(),parsed=new URL(rawUrl);if(!["https:","http:"].includes(parsed.protocol))throw new Error("Некорректный Project URL");state.url=parsed.origin;state.publishableKey=key;state.displayName=String(displayName||state.displayName||"").trim().slice(0,80)||"Игрок";if(!state.publishableKey)throw new Error("Нужен publishable/anon key");persist();return snapshot()}
@@ -27,7 +28,7 @@
     const result=client?.auth?.onAuthStateChange?.((_event,session)=>{
       const next=authState(session),resetIdentity=!session||next.userIdChanged,sceneId=resetIdentity?null:state.sceneId;
       const keepSceneSession=Boolean(session&&sceneId&&!resetIdentity);
-      if(resetIdentity){sceneLoadGeneration++;sceneSessionGeneration++;presenceCache.clear();presenceDetails={}}
+      if(resetIdentity){sceneLoadGeneration++;sceneSessionGeneration++;sceneSelectionGeneration++;presenceCache.clear();presenceDetails={}}
       patch({...next,...(resetIdentity?{campaignId:null,campaignName:"",sceneId:null,role:null,version:0,characterIds:{},presence:[]}:{}),status:keepSceneSession?state.status:session?(sceneId?"connecting":"authenticated"):"offline",error:""});
     });
     authSubscription=result?.data?.subscription||null;
@@ -42,7 +43,7 @@
     if(!client){client=global.supabase.createClient(state.url,state.publishableKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});clientConfigKey=nextConfigKey;setupAuthListener()}
     let {data:{session},error}=await client.auth.getSession();if(error)return fail(error);
     if(!session){const signed=await client.auth.signInAnonymously({options:{data:{display_name:state.displayName||"Игрок"}}});if(signed.error)return fail(signed.error);session=signed.data.session}
-    const nextAuth=authState(session);patch({status:"authenticated",...nextAuth,...(nextAuth.userIdChanged?{campaignId:null,campaignName:"",sceneId:null,role:null,version:0,characterIds:{},presence:[]}:{}),error:""});
+    const nextAuth=authState(session);if(nextAuth.userIdChanged)sceneSelectionGeneration++;patch({status:"authenticated",...nextAuth,...(nextAuth.userIdChanged?{campaignId:null,campaignName:"",sceneId:null,role:null,version:0,characterIds:{},presence:[]}:{}),error:""});
     if(state.sceneId&&state.campaignId){
       const membership=await client.from("campaign_members").select("role,display_name").eq("campaign_id",state.campaignId).eq("user_id",session.user.id).maybeSingle();
       if(membership.error)return fail(membership.error);
@@ -114,7 +115,7 @@
     if(result.error)return fail(result.error);patch({email:safeEmail,accountPending:true,status:"authenticated",error:""});return{mode:"signin"};
   }
   async function signOutAccount(){
-    clearTimeout(saveTimer);pendingSave=null;sceneLoadGeneration++;sceneSessionGeneration++;presenceCache.clear();presenceDetails={};await unsubscribe();if(client){const result=await client.auth.signOut();if(result.error)return fail(result.error)}
+    sceneSelectionGeneration++;clearTimeout(saveTimer);pendingSave=null;sceneLoadGeneration++;sceneSessionGeneration++;presenceCache.clear();presenceDetails={};await unsubscribe();if(client){const result=await client.auth.signOut();if(result.error)return fail(result.error)}
     patch({status:"offline",authenticated:false,userId:null,email:"",isAnonymous:true,accountPending:false,campaignId:null,campaignName:"",sceneId:null,role:null,version:0,characterIds:{},presence:[],error:""});return snapshot();
   }
   function presencePayload(extra={}){return{userId:state.userId,displayName:state.displayName||"Игрок",role:state.role||"player",onlineAt:new Date().toISOString(),...extra}}
@@ -152,30 +153,32 @@
       .subscribe(status=>{if(!subscriptionIsActive())return;if(status==="SUBSCRIBED"){reconnectAttempt=0;patch({status:"online",lastSyncedAt:new Date().toISOString(),error:""});global.clearInterval?.(sceneRefreshTimer);sceneRefreshTimer=global.setInterval?.(()=>{void refreshSceneIfNewer();void refreshPendingCommands()},5000)||null;void updatePresence().catch(error=>console.warn("Presence update failed",error));void refreshPendingCommands()}else if(["CHANNEL_ERROR","TIMED_OUT","CLOSED"].includes(status))scheduleReconnect(status)});
   }
 
-  async function loadScene(sceneId){
+  async function loadScene(sceneId,selectionGeneration=sceneSelectionGeneration){
+    if(selectionGeneration!==sceneSelectionGeneration)return null;
     const requestedSceneId=String(sceneId||""),loadGeneration=++sceneLoadGeneration;
     await ensureConnected();
-    if(loadGeneration!==sceneLoadGeneration||!state.authenticated)return null;
+    if(selectionGeneration!==sceneSelectionGeneration||loadGeneration!==sceneLoadGeneration||!state.authenticated)return null;
     const canNarrate=["owner","narrator"].includes(state.role);
     const result=canNarrate
       ?await client.from("scenes").select("id,campaign_id,name,state,version").eq("id",requestedSceneId).single()
       :await client.from("scene_public_snapshots").select("scene_id,campaign_id,state,version").eq("scene_id",requestedSceneId).single();
+    if(selectionGeneration!==sceneSelectionGeneration||loadGeneration!==sceneLoadGeneration)return null;
     if(result.error)return fail(result.error);
-    if(loadGeneration!==sceneLoadGeneration||!state.authenticated)return null;
+    if(!state.authenticated)return null;
     const scene={...result.data,id:result.data.id||result.data.scene_id};
     if(String(state.sceneId||"")===String(scene.id)&&Number(scene.version)<Number(state.version))return null;
     if(state.sceneId&&state.sceneId!==scene.id){sceneSessionGeneration++;presenceCache.clear();presenceDetails={}}
-    lastPendingCommandSignature="";patch({sceneId:scene.id,campaignId:scene.campaign_id,version:scene.version,status:"connecting",lastSyncedAt:new Date().toISOString(),error:""});await subscribe();if(loadGeneration!==sceneLoadGeneration||state.sceneId!==scene.id)return null;
+    lastPendingCommandSignature="";patch({sceneId:scene.id,campaignId:scene.campaign_id,version:scene.version,status:"connecting",lastSyncedAt:new Date().toISOString(),error:""});await subscribe();if(selectionGeneration!==sceneSelectionGeneration||loadGeneration!==sceneLoadGeneration||state.sceneId!==scene.id)return null;
     // Realtime may have delivered a newer Scene while subscribe was pending.
     // Read once after subscribing to close the gap before the channel became live.
     const table=canNarrate?"scenes":"scene_public_snapshots",idColumn=canNarrate?"id":"scene_id";
     const latestVersionRow=await client.from(table).select("version").eq(idColumn,requestedSceneId).single();
-    if(loadGeneration!==sceneLoadGeneration||state.sceneId!==scene.id)return null;
+    if(selectionGeneration!==sceneSelectionGeneration||loadGeneration!==sceneLoadGeneration||state.sceneId!==scene.id)return null;
     if(latestVersionRow.error){console.warn("DAWN post-subscribe scene check failed",latestVersionRow.error);if(Number(scene.version)===Number(state.version))emit("scene",{state:scene.state,version:scene.version,initial:true});if(canNarrate)await refreshPendingCommands();return scene}
     const latestVersion=Number(latestVersionRow.data?.version||0),currentVersion=Number(state.version||0);
     if(latestVersion>currentVersion){
       const latest=await client.from(table).select("state,version").eq(idColumn,requestedSceneId).single();
-      if(loadGeneration!==sceneLoadGeneration||state.sceneId!==scene.id)return null;
+      if(selectionGeneration!==sceneSelectionGeneration||loadGeneration!==sceneLoadGeneration||state.sceneId!==scene.id)return null;
       if(latest.error){console.warn("DAWN post-subscribe scene read failed",latest.error);if(Number(scene.version)===Number(state.version))emit("scene",{state:scene.state,version:scene.version,initial:true});if(canNarrate)await refreshPendingCommands();return scene}
       if(Number(latest.data.version)>Number(state.version)){patch({version:Number(latest.data.version),status:"online",lastSyncedAt:new Date().toISOString(),error:""});emit("scene",{state:latest.data.state,version:Number(latest.data.version),initial:true})}
     }
@@ -184,8 +187,9 @@
   }
 
   async function createCampaign(name,initialState){
-    await ensureConnected();const result=await client.rpc("create_campaign",{p_name:String(name||"").trim(),p_display_name:state.displayName||"Нарратор",p_initial_state:initialState||{}}).single();if(result.error)return fail(result.error);
-    beginSceneSession(result.data.scene_id);patch({campaignId:result.data.campaign_id,sceneId:result.data.scene_id,role:result.data.role,campaignName:String(name||"").trim(),version:1});await loadScene(result.data.scene_id);return snapshot();
+    const selection=++sceneSelectionGeneration;await ensureConnected();if(selection!==sceneSelectionGeneration)return null;
+    const result=await client.rpc("create_campaign",{p_name:String(name||"").trim(),p_display_name:state.displayName||"Нарратор",p_initial_state:initialState||{}}).single();if(selection!==sceneSelectionGeneration)return null;if(result.error)return fail(result.error);
+    beginSceneSession(result.data.scene_id);patch({campaignId:result.data.campaign_id,sceneId:result.data.scene_id,role:result.data.role,campaignName:String(name||"").trim(),version:1});await loadScene(result.data.scene_id,selection);return selection===sceneSelectionGeneration?snapshot():null;
   }
   async function listCampaigns(){
     await ensureConnected();const memberships=await client.from("campaign_members").select("campaign_id,role,display_name").eq("user_id",state.userId);if(memberships.error)return fail(memberships.error);
@@ -213,9 +217,10 @@
     return true;
   }
   async function openCampaign(campaignId,sceneId){
-    await ensureConnected();const membership=await client.from("campaign_members").select("role,display_name").eq("campaign_id",campaignId).eq("user_id",state.userId).maybeSingle();if(membership.error)return fail(membership.error);if(!membership.data)throw new Error("Этот стол больше недоступен");
-    const campaign=await client.from("campaigns").select("id,name").eq("id",campaignId).single();if(campaign.error)return fail(campaign.error);
-    beginSceneSession(sceneId);patch({campaignId:campaign.data.id,campaignName:campaign.data.name,sceneId,role:membership.data.role,displayName:membership.data.display_name||state.displayName,version:0,error:""});return loadScene(sceneId);
+    const selection=++sceneSelectionGeneration;await ensureConnected();if(selection!==sceneSelectionGeneration)return null;
+    const membership=await client.from("campaign_members").select("role,display_name").eq("campaign_id",campaignId).eq("user_id",state.userId).maybeSingle();if(selection!==sceneSelectionGeneration)return null;if(membership.error)return fail(membership.error);if(!membership.data)throw new Error("Этот стол больше недоступен");
+    const campaign=await client.from("campaigns").select("id,name").eq("id",campaignId).single();if(selection!==sceneSelectionGeneration)return null;if(campaign.error)return fail(campaign.error);
+    beginSceneSession(sceneId);patch({campaignId:campaign.data.id,campaignName:campaign.data.name,sceneId,role:membership.data.role,displayName:membership.data.display_name||state.displayName,version:0,error:""});return loadScene(sceneId,selection);
   }
 
   async function createInvite(role="player"){
@@ -223,21 +228,22 @@
   }
 
   async function redeemInvite(token){
-    await ensureConnected();const result=await client.rpc("redeem_campaign_invite",{p_token:String(token||"").trim(),p_display_name:state.displayName||"Игрок"}).single();if(result.error)return fail(result.error);
-    beginSceneSession(result.data.scene_id);patch({campaignId:result.data.campaign_id,campaignName:result.data.campaign_name,sceneId:result.data.scene_id,role:result.data.role,version:0});await loadScene(result.data.scene_id);return snapshot();
+    const selection=++sceneSelectionGeneration;await ensureConnected();if(selection!==sceneSelectionGeneration)return null;
+    const result=await client.rpc("redeem_campaign_invite",{p_token:String(token||"").trim(),p_display_name:state.displayName||"Игрок"}).single();if(selection!==sceneSelectionGeneration)return null;if(result.error)return fail(result.error);
+    beginSceneSession(result.data.scene_id);patch({campaignId:result.data.campaign_id,campaignName:result.data.campaign_name,sceneId:result.data.scene_id,role:result.data.role,version:0});await loadScene(result.data.scene_id,selection);return selection===sceneSelectionGeneration?snapshot():null;
   }
 
   function serializeSceneMutation(work){const run=mutationChain.catch(()=>{}).then(work);mutationChain=run.catch(()=>{});return run}
   function sceneSessionIsActive(sceneId,generation){return generation===sceneSessionGeneration&&String(sceneId||"")===String(state.sceneId||"")}
   async function flushSave(){
-    if(saveInFlight||!pendingSave||!["owner","narrator"].includes(state.role))return;saveInFlight=true;const current=pendingSave;pendingSave=null;
-    try{await serializeSceneMutation(async()=>{await ensureConnected();const sceneId=state.sceneId,generation=sceneSessionGeneration,result=await client.rpc("save_scene_snapshot",{p_scene_id:sceneId,p_expected_version:state.version,p_state:current.scene,p_event_type:current.label||"scene.snapshot"});if(!sceneSessionIsActive(sceneId,generation))throw new Error("Стол уже закрыт");if(result.error){if(result.error.code==="40001"||/version conflict/i.test(result.error.message||"")){patch({error:"Сцена изменилась на другом устройстве; загружена свежая версия"});await loadScene(sceneId)}else return fail(result.error)}else{patch({version:Number(result.data),status:"online",lastSyncedAt:new Date().toISOString(),error:""});signalTable("scene-updated",{version:Number(result.data)})}})}finally{saveInFlight=false;if(pendingSave)void flushSave()}
+    if(saveInFlight||!pendingSave||!["owner","narrator"].includes(state.role))return;saveInFlight=true;const current=pendingSave,sceneId=String(state.sceneId||""),generation=sceneSessionGeneration;pendingSave=null;
+    try{await serializeSceneMutation(async()=>{await ensureConnected();if(!sceneSessionIsActive(sceneId,generation))throw new Error("Стол уже закрыт");const result=await client.rpc("save_scene_snapshot",{p_scene_id:sceneId,p_expected_version:state.version,p_state:current.scene,p_event_type:current.label||"scene.snapshot"});if(!sceneSessionIsActive(sceneId,generation))throw new Error("Стол уже закрыт");if(result.error){if(result.error.code==="40001"||/version conflict/i.test(result.error.message||"")){patch({error:"Сцена изменилась на другом устройстве; загружена свежая версия"});await loadScene(sceneId)}else return fail(result.error)}else{patch({version:Number(result.data),status:"online",lastSyncedAt:new Date().toISOString(),error:""});signalTable("scene-updated",{version:Number(result.data)})}})}finally{saveInFlight=false;if(pendingSave)void flushSave()}
   }
   function queueScene(scene,label="scene.snapshot"){if(!["owner","narrator"].includes(state.role)||!state.sceneId)return;pendingSave={scene:global.DAWN_NETWORK_V2?.networkSceneState?.(scene)||scene,label};clearTimeout(saveTimer);saveTimer=setTimeout(()=>void flushSave(),250)}
 
-  async function sendEventBatch(events,scene,label){
-    await ensureConnected();
-    const sceneId=state.sceneId,generation=sceneSessionGeneration,payload=events.map(event=>({id:event.id,type:event.type,actorId:event.actorId,payload:event.payload,at:event.at}));
+  async function sendEventBatch(events,scene,label,session){
+    const {sceneId,generation}=session;await ensureConnected();if(!sceneSessionIsActive(sceneId,generation))throw new Error("Стол уже закрыт");
+    const payload=events.map(event=>({id:event.id,type:event.type,actorId:event.actorId,payload:event.payload,at:event.at}));
     localMutationInFlight++;let result;try{result=await client.rpc("append_scene_events",{p_scene_id:sceneId,p_expected_version:state.version,p_events:payload,p_state:scene,p_label:label})}finally{localMutationInFlight--}
     if(!sceneSessionIsActive(sceneId,generation))throw new Error("Стол уже закрыт");
     if(result.error){if(result.error.code==="40001"||/version conflict/i.test(result.error.message||"")){await loadScene(sceneId);throw new Error("Сцена изменилась на другом устройстве; события не отправлены повторно автоматически")};return fail(result.error)}
@@ -246,15 +252,18 @@
   async function publishEvents(events,scene,label="scene.events"){
     if(!state.sceneId||!Array.isArray(events)||!events.length)return null;
     if(!["owner","narrator"].includes(state.role))return submitCommand("dispatch_events",{expectedVersion:state.version,events});
-    return serializeSceneMutation(()=>sendEventBatch(events,scene,label));
+    const session={sceneId:String(state.sceneId),generation:sceneSessionGeneration};return serializeSceneMutation(()=>sendEventBatch(events,scene,label,session));
   }
 
   async function submitCommand(commandType,payload={}){
-    await ensureConnected();if(!state.sceneId)throw new Error("Сначала войдите в кампанию");
-    const sceneId=state.sceneId,generation=sceneSessionGeneration,actorId=state.userId;
+    const sceneId=String(state.sceneId||""),campaignId=String(state.campaignId||""),generation=sceneSessionGeneration,expectedActorId=state.userId;
+    await ensureConnected();
+    if(!sceneSessionIsActive(sceneId,generation)||String(state.campaignId||"")!==campaignId||expectedActorId&&state.userId!==expectedActorId)throw new Error("Стол уже закрыт");
+    if(!sceneId)throw new Error("Сначала войдите в кампанию");
+    const actorId=state.userId;
     const record={campaign_id:state.campaignId,scene_id:sceneId,actor_id:actorId,command_type:commandType,payload};
     if(commandType==="intent_v2"){if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(payload?.clientIntentId||"")))throw new Error("У сетевой команды нет корректного id");record.client_intent_id=payload.clientIntentId}
-    const result=await client.from("scene_commands").insert(record).select().single();
+    const commandRequest=client.from("scene_commands").insert(record).select().single(),result=commandType==="intent_v2"?await withNetworkTimeout(commandRequest,"отправки намерения игрока"):await commandRequest;
     if(!sceneSessionIsActive(sceneId,generation))throw new Error("Стол уже закрыт");
     if(result.error?.code==="23505"&&record.client_intent_id){
       const existing=await client.from("scene_commands").select().eq("scene_id",sceneId).eq("actor_id",actorId).eq("client_intent_id",record.client_intent_id).single();
@@ -265,24 +274,26 @@
     if(result.error)return fail(result.error);signalTable("scene-command",{commandId:String(result.data.id)});return result.data;
   }
   async function acceptCommand(commandId,events,scene,label="scene.command.accepted"){
+    const targetSceneId=String(state.sceneId||""),targetGeneration=sceneSessionGeneration;
     return serializeSceneMutation(async()=>{
-      await ensureConnected();if(!["owner","narrator"].includes(state.role))throw new Error("Решение принимает Нарратор");if(!Array.isArray(events)||!events.length)throw new Error("Команда не содержит событий");
+      await ensureConnected();if(!sceneSessionIsActive(targetSceneId,targetGeneration))throw new Error("Стол уже закрыт");if(!["owner","narrator"].includes(state.role))throw new Error("Решение принимает Нарратор");if(!Array.isArray(events)||!events.length)throw new Error("Команда не содержит событий");
       const rawId=String(commandId??"").trim();if(!/^\d+$/.test(rawId))throw new Error("Некорректный id команды");
-      const sceneId=state.sceneId,generation=sceneSessionGeneration,payload=events.map(event=>({id:event.id,type:event.type,actorId:event.actorId,payload:event.payload,at:event.at}));
-      localMutationInFlight++;let result;try{result=await client.rpc("accept_scene_command",{p_command_id:rawId,p_expected_version:state.version,p_events:payload,p_state:scene,p_label:label})}finally{localMutationInFlight--}
+      const sceneId=targetSceneId,generation=targetGeneration,payload=events.map(event=>({id:event.id,type:event.type,actorId:event.actorId,payload:event.payload,at:event.at}));
+      localMutationInFlight++;let result;try{result=await withNetworkTimeout(client.rpc("accept_scene_command",{p_command_id:rawId,p_expected_version:state.version,p_events:payload,p_state:scene,p_label:label}),"сохранения команды игрока")}finally{localMutationInFlight--}
       if(!sceneSessionIsActive(sceneId,generation))throw new Error("Стол уже закрыт");
-      if(result.error){if(result.error.code==="40001"||/version conflict/i.test(result.error.message||"")){await loadScene(sceneId);throw new Error("Сцена изменилась; проверьте команду игрока ещё раз")};return fail(result.error)}
+      if(result.error){if(result.error.code==="40001"||/version conflict/i.test(result.error.message||"")){await loadScene(sceneId);const conflict=new Error("Сцена изменилась; команда игрока будет пересчитана");conflict.code=result.error.code;conflict.retryable=true;throw conflict};return fail(result.error)}
       const acceptedVersion=Number(result.data);patch({version:acceptedVersion,status:"online",lastSyncedAt:new Date().toISOString(),error:""});signalTable("scene-updated",{version:acceptedVersion});if(acceptedVersion!==Number(scene?.version))await loadScene(sceneId);return acceptedVersion;
     });
   }
   async function settleIntentBatch({commandIds=[],rejectedCommandIds=[],events=[],scene,expectedVersion=state.version,label="network.v2.tick"}={}){
+    const targetSceneId=String(state.sceneId||""),targetGeneration=sceneSessionGeneration;
     return serializeSceneMutation(async()=>{
-      await ensureConnected();if(!["owner","narrator"].includes(state.role))throw new Error("Сетевой такт выполняет Нарратор");
+      await ensureConnected();if(!sceneSessionIsActive(targetSceneId,targetGeneration))throw new Error("Стол уже закрыт");if(!["owner","narrator"].includes(state.role))throw new Error("Сетевой такт выполняет Нарратор");
       if(Number(scene?.version)!==Number(expectedVersion)+events.length){const mismatch=new Error("Неверная версия сетевого пакета; действие не отправлено. Обновите Сцену и повторите действие вручную");mismatch.code="NETWORK_BATCH_VERSION_MISMATCH";mismatch.retryable=false;throw mismatch}
       const ids=commandIds.map(value=>String(value)).filter(value=>/^\d+$/.test(value));
       const rejected=rejectedCommandIds.map(value=>String(value)).filter(value=>/^\d+$/.test(value));
-      const sceneId=state.sceneId,generation=sceneSessionGeneration,payload=events.map(event=>({id:event.id,type:event.type,actorId:event.actorId,payload:event.payload,at:event.at}));
-      localMutationInFlight++;let result;try{result=await client.rpc("settle_scene_intent_batch",{p_scene_id:sceneId,p_expected_version:Number(expectedVersion),p_command_ids:ids,p_rejected_command_ids:rejected,p_events:payload,p_state:scene,p_label:label})}finally{localMutationInFlight--}
+      const sceneId=targetSceneId,generation=targetGeneration,payload=events.map(event=>({id:event.id,type:event.type,actorId:event.actorId,payload:event.payload,at:event.at}));
+      localMutationInFlight++;let result;try{result=await withNetworkTimeout(client.rpc("settle_scene_intent_batch",{p_scene_id:sceneId,p_expected_version:Number(expectedVersion),p_command_ids:ids,p_rejected_command_ids:rejected,p_events:payload,p_state:scene,p_label:label}),"сохранения сетевого такта")}finally{localMutationInFlight--}
       if(!sceneSessionIsActive(sceneId,generation))throw new Error("Стол уже закрыт");
       if(result.error){
         if(result.error.code==="40001"||/version conflict/i.test(result.error.message||"")){await loadScene(sceneId);const conflict=new Error("Сетевой такт столкнулся с новой версией Сцены и будет пересчитан");conflict.code=result.error.code;conflict.retryable=true;throw conflict}
@@ -305,16 +316,18 @@
   async function loadLibraryCharacter(characterId){await ensureConnected();const result=await client.from("user_characters").select("id,local_id,name,state,version,updated_at").eq("id",characterId).single();if(result.error)throw new Error(result.error.message||"Не удалось загрузить персонажа");return result.data}
   async function deleteLibraryCharacter(characterId){await ensureConnected();const result=await client.from("user_characters").delete().eq("id",characterId).select("id").single();if(result.error)throw new Error(result.error.message||"Не удалось удалить облачную копию");return result.data}
   async function saveCharacter(hero){
-    await ensureConnected();if(!state.campaignId)throw new Error("Сначала войдите в кампанию");
-    const sceneId=state.sceneId,generation=sceneSessionGeneration,localId=String(hero?.id||""),key=`${state.campaignId}:${localId}`,known=state.characterIds?.[key],characterId=known||global.crypto?.randomUUID?.();
+    const campaignId=String(state.campaignId||""),sceneId=String(state.sceneId||""),generation=sceneSessionGeneration,expectedActorId=state.userId;
+    await ensureConnected();if(!campaignId)throw new Error("Сначала войдите в кампанию");
+    if(!sceneSessionIsActive(sceneId,generation)||String(state.campaignId||"")!==campaignId||expectedActorId&&state.userId!==expectedActorId)throw new Error("Стол уже закрыт");
+    const localId=String(hero?.id||""),key=`${campaignId}:${localId}`,known=state.characterIds?.[key],characterId=known||global.crypto?.randomUUID?.();
     if(!characterId)throw new Error("Браузер не смог создать id персонажа");
-    const result=await client.from("characters").upsert({id:characterId,campaign_id:state.campaignId,owner_id:state.userId,name:String(hero?.name||"Безымянный герой").slice(0,180),state:hero||{},updated_by:state.userId,updated_at:new Date().toISOString()},{onConflict:"id"}).select("id,version").single();
+    const result=await client.from("characters").upsert({id:characterId,campaign_id:campaignId,owner_id:expectedActorId||state.userId,name:String(hero?.name||"Безымянный герой").slice(0,180),state:hero||{},updated_by:expectedActorId||state.userId,updated_at:new Date().toISOString()},{onConflict:"id"}).select("id,version").single();
     if(result.error)return fail(result.error);state.characterIds={...(state.characterIds||{}),[key]:result.data.id};persist();if(sceneSessionIsActive(sceneId,generation))await updatePresence({heroName:String(hero?.name||"Безымянный герой").slice(0,180)});return result.data;
   }
   async function listCharacters(){await ensureConnected();if(!state.campaignId)return[];const result=await client.from("characters").select("id,owner_id,name,state,version,updated_at").eq("campaign_id",state.campaignId).order("updated_at",{ascending:false});if(result.error)return fail(result.error);return result.data||[]}
   async function loadCharacter(characterId){await ensureConnected();if(!["owner","narrator"].includes(state.role))throw new Error("Лист игрока открывает Нарратор");const result=await client.from("characters").select("id,owner_id,name,state,version").eq("id",characterId).eq("campaign_id",state.campaignId).single();if(result.error)return fail(result.error);return result.data}
   async function decideCommand(commandId,decision){await ensureConnected();if(!["owner","narrator"].includes(state.role))throw new Error("Решение принимает Нарратор");const status=decision==="applied"?"applied":"rejected",result=await client.from("scene_commands").update({status,decided_by:state.userId,decided_at:new Date().toISOString()}).eq("id",commandId).eq("status","pending").select().single();if(result.error)return fail(result.error);return result.data}
-  async function leave(){clearTimeout(saveTimer);pendingSave=null;sceneLoadGeneration++;sceneSessionGeneration++;presenceCache.clear();presenceDetails={};lastPendingCommandSignature="";await unsubscribe();patch({status:"authenticated",campaignId:null,campaignName:"",sceneId:null,role:null,version:0,presence:[],error:""});return snapshot()}
+  async function leave(){sceneSelectionGeneration++;clearTimeout(saveTimer);pendingSave=null;sceneLoadGeneration++;sceneSessionGeneration++;presenceCache.clear();presenceDetails={};lastPendingCommandSignature="";await unsubscribe();patch({status:"authenticated",campaignId:null,campaignName:"",sceneId:null,role:null,version:0,presence:[],error:""});return snapshot()}
 
   state={...state,...stored()};if(!state.characterIds||typeof state.characterIds!=="object"||Array.isArray(state.characterIds))state.characterIds={};
   global.addEventListener?.("offline",()=>patch({status:"offline",error:"Нет соединения; локальные данные сохранены"}));

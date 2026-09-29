@@ -133,6 +133,22 @@ const migration = fs.readFileSync(new URL("../../../supabase/migrations/20260729
 assert.match(migration, /p_state->>'version'[\s\S]+p_expected_version\s*\+\s*event_count/i);
 assert.match(migration, /raise exception 'state version does not match event batch'/i);
 
+// Once one action would overflow a tick, later actions must not overtake it
+// merely because they happen to be smaller.
+Scene = structuredClone(persisted);
+Network.setConfirmedScene(persisted);
+const requeuedAfterOverflow = [];
+context.networkV2Authority = { enqueue: item => requeuedAfterOverflow.push(item) };
+const crowdedEvents = Array.from({ length: Network.MAX_BATCH_EVENTS - 1 }, (_, index) => ({
+  type: "rule.share", payload: { ruleId: "action.skirmish", title: `Crowded ${index}`, kind: "Действие", sharedBy: "Narrator" },
+}));
+const tooLargeForRemainingSlot = { kind: "command", command: { id: "102", actor_id: "player-1", payload: { protocol: 2, clientIntentId: "00000000-0000-4000-8000-000000000102", baseVersion: persisted.version, intent: { ...deploymentIntent, destination: { space: "main", x: 0, y: 0 } } } } };
+const laterSmallAction = { kind: "events", events: [{ type: "rule.share", payload: { ruleId: "action.skirmish", title: "Later small action", kind: "Действие", sharedBy: "Narrator" } }] };
+await flush([{ kind: "events", events: crowdedEvents }, tooLargeForRemainingSlot, laterSmallAction]);
+assert.equal(rpcCalls[2].events.length, Network.MAX_BATCH_EVENTS - 1, "the full first tick stops at the first deferred item");
+assert.deepEqual(Array.from(rpcCalls[2].commandIds), [], "the two-event deployment is not pulled ahead of an earlier overflowing action");
+assert.deepEqual(requeuedAfterOverflow, [tooLargeForRemainingSlot, laterSmallAction], "the overflow item and every later action retain their original order");
+
 // A committed RPC can lose its HTTP response. The queue must repeat the
 // exact event IDs and state so the database can recognize its receipt.
 const lostResponseBatch = [];
@@ -155,4 +171,52 @@ await flush([retryItem]);
 assert.equal(lostResponseBatch.length, 2);
 assert.equal(Scene.version, persisted.version);
 
-console.log("Network flow integration QA passed: coalesced deployment, version invariant, enemy removal, reload and exact retry");
+// A deterministic server rejection must remove its speculative snapshot from
+// the live board immediately, while retaining the failed items for manual retry.
+const sceneSyncSource = fs.readFileSync(new URL("../scene-sync-ui.js", import.meta.url), "utf8");
+const runtimeStart = sceneSyncSource.indexOf("function ensureNetworkV2Runtime(){");
+const queueStatusStart = sceneSyncSource.indexOf("function networkV2QueueStatus(){", runtimeStart);
+const retryFailedStart = sceneSyncSource.indexOf("function retryNetworkV2Failed(){", queueStatusStart);
+assert.ok(runtimeStart >= 0 && queueStatusStart > runtimeStart && retryFailedStart > queueStatusStart);
+vm.runInNewContext(sceneSyncSource.slice(runtimeStart, retryFailedStart), context, { filename: "scene-sync-ui.js#authority-runtime" });
+context.networkV2Authority = null;
+context.networkV2Outbox = null;
+context.NetworkV2 = Network;
+const canonicalAfterRejection = structuredClone(persisted);
+const speculativeSnapshot = structuredClone(canonicalAfterRejection);
+speculativeSnapshot.actors[0].name = "Спекулятивная правка";
+Scene = structuredClone(speculativeSnapshot);
+context.Scene = Scene;
+Network.setConfirmedScene(canonicalAfterRejection);
+let canonicalRefreshes = 0;
+const unsavedStatuses = [];
+context.Sync = {
+  state: () => ({ sceneId: "scene-1", canNarrate: true, version: canonicalAfterRejection.version }),
+  settleIntentBatch: async () => { throw Object.assign(new Error('column reference "request_hash" is ambiguous'), { code: "42702", status: 400 }); },
+  async refreshScene() {
+    canonicalRefreshes++;
+    const merged = context.mergeNetworkV2Scene(canonicalAfterRejection, context.Scene);
+    context.Scene = merged;
+  },
+};
+context.mergeNetworkV2Scene = (remote, current) => {
+  const canonical = Network.mergeRemoteScene(remote, current);
+  const snapshot = context.networkV2Authority?.latestSnapshot?.();
+  if (!context.Sync?.state?.().canNarrate || !snapshot) return canonical;
+  return Network.restoreLocalUi(Network.rebaseSceneSnapshot(snapshot.baseScene || canonical, snapshot.scene, canonical), canonical);
+};
+context.friendlySyncError = error => error.message;
+context.toast = () => {};
+context.renderSync = () => unsavedStatuses.push(context.networkV2QueueStatus());
+const recoveryRuntime = context.ensureNetworkV2Runtime();
+context.networkV2Authority = recoveryRuntime.authority;
+recoveryRuntime.authority.enqueue({ kind: "snapshot", baseScene: canonicalAfterRejection, scene: speculativeSnapshot, label: "Rejected local edit" });
+await recoveryRuntime.authority.flush();
+assert.equal(canonicalRefreshes, 1, "permanent authority failures trigger an immediate canonical Scene refresh");
+assert.equal(context.Scene.actors[0].name, canonicalAfterRejection.actors[0].name, "the rejected speculative actor edit disappears from the live Scene");
+assert.equal(recoveryRuntime.authority.failed.length, 1, "canonical refresh preserves the rejected snapshot for explicit retry");
+assert.equal(recoveryRuntime.authority.latestSnapshot(), null, "the rejected snapshot is not overlaid after canonical refresh");
+assert.equal(unsavedStatuses.at(-1).failed, 1, "the sync UI rerenders with the unsaved-change state after refresh");
+recoveryRuntime.authority.clear();
+
+console.log("Network flow integration QA passed: ordered batches, immediate recovery, version invariant and exact retry");
