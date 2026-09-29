@@ -6,6 +6,7 @@ const db=new PGlite();
 const migrations=new URL("../../../supabase/migrations/",import.meta.url);
 const baseline=fs.readFileSync(new URL("202609240001_dawn_intent_batch_receipts.sql",migrations),"utf8");
 const fix=fs.readFileSync(new URL("202609290001_fix_intent_batch_receipt_hash_ambiguity.sql",migrations),"utf8");
+const legacyTimeouts=fs.readFileSync(new URL("202609290002_stabilize_legacy_command_timeouts.sql",migrations),"utf8");
 const actor="00000000-0000-4000-8000-000000000001";
 const sceneIds=Array.from({length:8},(_,index)=>`00000000-0000-4000-8000-${String(index+1).padStart(12,"0")}`);
 const rpc="select public.settle_scene_intent_batch($1::uuid,$2::bigint,$3::bigint[],$4::bigint[],$5::jsonb,$6::jsonb,$7::text) as version";
@@ -40,6 +41,8 @@ try {
       language sql stable as $$ select true $$;
     create function extensions.digest(data text,algorithm text) returns bytea
       language sql immutable as $$ select decode(md5(data)||md5(algorithm||data),'hex') $$;
+    create function public.accept_scene_command(bigint,bigint,jsonb,jsonb,text)
+      returns bigint language sql as $$ select 1::bigint $$;
     insert into auth.users values ('${actor}');
     insert into public.scenes(id,campaign_id,version,state)
     values ${sceneIds.map((id,index)=>`('${id}','10000000-0000-4000-8000-${String(index+1).padStart(12,"0")}',0,'{"version":0}'::jsonb)`).join(",")};
@@ -54,12 +57,19 @@ try {
   );
 
   await db.exec(fix);
+  await db.exec(legacyTimeouts);
   const functionConfig=(await db.query(`
     select proconfig from pg_proc
     where oid='public.settle_scene_intent_batch(uuid,bigint,bigint[],bigint[],jsonb,jsonb,text)'::regprocedure
   `)).rows[0].proconfig.join(" ");
   assert.match(functionConfig,/lock_timeout=2s/);
   assert.match(functionConfig,/statement_timeout=20s/);
+  const legacyConfig=(await db.query(`
+    select proconfig from pg_proc
+    where oid='public.accept_scene_command(bigint,bigint,jsonb,jsonb,text)'::regprocedure
+  `)).rows[0].proconfig.join(" ");
+  assert.match(legacyConfig,/lock_timeout=2s/);
+  assert.match(legacyConfig,/statement_timeout=20s/);
 
   const first=await db.query(rpc,tick(sceneIds[0],"retry-safe"));
   const retry=await db.query(rpc,tick(sceneIds[0],"retry-safe"));
@@ -87,7 +97,7 @@ try {
   const conflicts=raced.filter(result=>result.status==="rejected");
   assert.equal(conflicts.length,4,"the other distinct requests must lose the version race");
   for(const conflict of conflicts)assert.equal(conflict.reason.code,"40001","version losers are retryable serialization conflicts");
-  console.log("Intent-batch PostgreSQL RPC: old ambiguity reproduced; fix, receipt retry, five isolated scenes, one-winner expected-version race, and timeout settings passed. Simultaneous multi-connection row-lock contention is not covered by single-session PGlite.");
+  console.log("Network PostgreSQL RPCs: old receipt ambiguity reproduced; fix, exact retry receipt, five isolated scenes, one-winner expected-version race, and legacy/modern timeout settings passed. Simultaneous multi-connection row-lock contention is not covered by single-session PGlite.");
 } finally {
   await db.close();
 }
