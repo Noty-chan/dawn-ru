@@ -12,6 +12,7 @@ const legacyAcceptFix=fs.readFileSync(new URL("202609290003_harden_legacy_comman
 const legacyMvp=fs.readFileSync(new URL("202607130001_dawn_multiplayer.sql",migrations),"utf8");
 const legacyEvents=fs.readFileSync(new URL("202607230002_fix_append_scene_events.sql",migrations),"utf8");
 const snapshotRpcFix=fs.readFileSync(new URL("202609290004_harden_legacy_scene_snapshot_rpcs.sql",migrations),"utf8");
+const insertPolicyFix=fs.readFileSync(new URL("202609290005_scope_scene_command_insert_policy.sql",migrations),"utf8");
 const actor="00000000-0000-4000-8000-000000000001";
 const sceneIds=Array.from({length:11},(_,index)=>`00000000-0000-4000-8000-${String(index+1).padStart(12,"0")}`);
 const rpc="select public.settle_scene_intent_batch($1::uuid,$2::bigint,$3::bigint[],$4::bigint[],$5::jsonb,$6::jsonb,$7::text) as version";
@@ -146,6 +147,55 @@ try {
   const validSnapshot=await db.query(snapshotRpc,[sceneIds[10],0,{version:0,snapshot:"saved"},"network.test.snapshot"]);
   assert.equal(Number(validSnapshot.rows[0].version),1,"a valid snapshot commits at the next canonical version");
 
+  // Exercise the actual INSERT RLS policy as authenticated, first proving the
+  // old unqualified predicate admits a scene/campaign mismatch.
+  const campaignA="10000000-0000-4000-8000-000000000001";
+  const campaignB="10000000-0000-4000-8000-000000000002";
+  await db.exec(`
+    create table public.campaign_members(campaign_id uuid not null,user_id uuid not null,primary key(campaign_id,user_id));
+    create table public.scene_public_snapshots(scene_id uuid not null,campaign_id uuid not null);
+    insert into public.campaign_members values('${campaignA}','${actor}');
+    insert into public.scene_public_snapshots values('${sceneIds[0]}','${campaignA}'),('${sceneIds[1]}','${campaignB}');
+    create function public.is_campaign_member(target_campaign uuid) returns boolean
+      language sql stable security definer set search_path='' as $$
+        select exists(select 1 from public.campaign_members member where member.campaign_id=target_campaign and member.user_id=auth.uid())
+      $$;
+    grant select on public.scene_public_snapshots to authenticated;
+    alter table public.scene_commands enable row level security;
+    create policy commands_member_insert on public.scene_commands for insert to authenticated with check (
+      actor_id=(select auth.uid()) and public.is_campaign_member(campaign_id) and exists(
+        select 1 from public.scene_public_snapshots snapshot
+        where snapshot.scene_id=scene_id and snapshot.campaign_id=campaign_id
+      )
+    );
+    create policy commands_private_select on public.scene_commands for select to authenticated
+      using (actor_id=(select auth.uid()) or public.has_campaign_role(campaign_id,array['owner','narrator']));
+    grant select,insert on public.scene_commands to authenticated;
+  `);
+  const rlsPrivileges=await db.query(`select has_table_privilege('authenticated','public.scene_commands','insert') as insert_ok,
+    has_schema_privilege('authenticated','public','usage') as schema_ok`);
+  assert.deepEqual(rlsPrivileges.rows[0],{insert_ok:true,schema_ok:true},"authenticated has the base privileges needed to exercise the RLS policy");
+  await db.exec("set role authenticated");
+  try {
+    const oldPolicyInsert=await db.query(`insert into public.scene_commands(id,scene_id,campaign_id,actor_id,command_type,status)
+      values(9102,'${sceneIds[1]}','${campaignA}','${actor}','move_hero','pending') returning id`);
+    assert.equal(Number(oldPolicyInsert.rows[0].id),9102,"the old RLS policy reproduces the cross-campaign scene insert");
+  } finally {
+    await db.exec("reset role");
+  }
+  await db.exec(insertPolicyFix);
+  await db.exec("set role authenticated");
+  try {
+    await assert.rejects(db.query(`insert into public.scene_commands(id,scene_id,campaign_id,actor_id,command_type,status)
+      values(9103,'${sceneIds[1]}','${campaignA}','${actor}','move_hero','pending')`),
+    /row-level security policy/i,"the fixed policy rejects a target scene from another campaign");
+    const validPolicyInsert=await db.query(`insert into public.scene_commands(id,scene_id,campaign_id,actor_id,command_type,status)
+      values(9104,'${sceneIds[0]}','${campaignA}','${actor}','move_hero','pending') returning id`);
+    assert.equal(Number(validPolicyInsert.rows[0].id),9104,"the fixed policy still allows a scene in the member campaign");
+  } finally {
+    await db.exec("reset role");
+  }
+
   const functionConfig=(await db.query(`
     select proconfig from pg_proc
     where oid='public.settle_scene_intent_batch(uuid,bigint,bigint[],bigint[],jsonb,jsonb,text)'::regprocedure
@@ -191,7 +241,7 @@ try {
   const conflicts=raced.filter(result=>result.status==="rejected");
   assert.equal(conflicts.length,4,"the other distinct requests must lose the version race");
   for(const conflict of conflicts)assert.equal(conflict.reason.code,"40001","version losers are retryable serialization conflicts");
-  console.log("Network PostgreSQL RPCs: receipt ambiguity and SQL-NULL corruption in all legacy scene RPCs reproduced; fixes, exact retry receipt, five isolated scenes, one-winner expected-version race, consistent scene->command lock ordering, valid legacy commit paths, and RPC timeout settings passed. Simultaneous multi-connection row-lock contention is not covered by single-session PGlite.");
+  console.log("Network PostgreSQL tests: receipt ambiguity and SQL-NULL corruption in legacy RPCs reproduced; fixes, five isolated scenes, one-winner version race, consistent scene->command lock ordering, RLS cross-campaign insert rejection with valid insert preserved, and RPC timeout settings passed. Simultaneous multi-connection row-lock contention is not covered by single-session PGlite.");
 } finally {
   await db.close();
 }
