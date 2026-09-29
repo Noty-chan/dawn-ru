@@ -14,7 +14,16 @@
   function emit(type,payload=snapshot()){for(const listener of listeners.get(type)||[])try{listener(payload)}catch(error){console.error(error)}}
   function patch(next){if(!Object.keys(next).some(key=>state[key]!==next[key]))return snapshot();state={...state,...next};persist();emit("status");return snapshot()}
   function fail(error){const raw=error?.message||String(error||"Ошибка синхронизации"),code=String(error?.code||""),status=Number(error?.status??error?.statusCode??0),timedOut=code==="57014"||/statement timeout|canceling statement/i.test(raw),retryable=global.DAWN_NETWORK_V2?.retryableAuthorityFailure?.(error)??(timedOut||status===408||status===425||status===429||status>=500&&status<600||["40001","40P01","55P03"].includes(code)||/failed to fetch|network\s*error|networkerror|load failed|fetch failed|connection (?:closed|terminated|timed? ?out)|websocket|lock timeout|serialization failure|deadlock detected/i.test(raw)),message=timedOut?"Сервер не успел обработать изменение; соединение восстанавливается, действие будет повторено":raw;if(retryable)scheduleReconnect(timedOut?"statement-timeout":"transport");else patch({status:"error",error:message});const failure=new Error(message);failure.code=code;failure.status=status||undefined;failure.statusCode=Number(error?.statusCode)||undefined;failure.retryable=retryable;throw failure}
-  function withNetworkTimeout(request,label){const withTimeout=global.DAWN_NETWORK_V2?.withTimeout;return typeof withTimeout==="function"?withTimeout(request,label):request}
+  async function withNetworkTimeout(request,label){
+    const withTimeout=global.DAWN_NETWORK_V2?.withTimeout;
+    if(typeof withTimeout!=="function")return request;
+    const Controller=global.AbortController;
+    const controller=typeof Controller==="function"?new Controller():null;
+    const abortable=controller&&typeof request?.abortSignal==="function"?request.abortSignal(controller.signal):request;
+    // A timed-out browser transport may already have dispatched SQL that still commits.
+    try{return await withTimeout(abortable,label)}
+    catch(error){if(controller&&error?.code==="DAWN_REQUEST_TIMEOUT")controller.abort();throw error}
+  }
   function on(type,listener){if(!listeners.has(type))listeners.set(type,new Set());listeners.get(type).add(listener);return()=>listeners.get(type)?.delete(listener)}
   function hasConfig(){return Boolean(state.url&&state.publishableKey)}
   function configure({url,publishableKey,displayName}={}){const rawUrl=String(url||state.url||PROJECT.supabaseUrl||"").trim(),key=String(publishableKey||state.publishableKey||PROJECT.publishableKey||"").trim(),parsed=new URL(rawUrl);if(!["https:","http:"].includes(parsed.protocol))throw new Error("Некорректный Project URL");state.url=parsed.origin;state.publishableKey=key;state.displayName=String(displayName||state.displayName||"").trim().slice(0,80)||"Игрок";if(!state.publishableKey)throw new Error("Нужен publishable/anon key");persist();return snapshot()}
