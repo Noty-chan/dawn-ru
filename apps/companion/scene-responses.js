@@ -313,11 +313,50 @@ function wispMarkerPayload(actor, promptId, spiritTypes, destination, suffix = "
   return { id: `wisp-${promptId}-${suffix}`, space: actor.space, x: Number(destination.x), y: Number(destination.y), markerKind: "ritual", label: `Духовное пламя · ${rules.map(rule => rule.label).join(" + ")}`, color: "#ef9ac1", source: "altruist.will-o-wisp.1", ruleId: "altruist.will-o-wisp.1", duration: "scene", ownerActorId: actor.id, metadata: { spiritTypes: types, effectRules: rules.map(rule => ({ effect: rule.effect, audience: rule.audience })) } };
 }
 
+function berserkerPassiveTargets(scene, actor) {
+  return (scene.actors || []).filter(target => target.team !== actor.team && !target.knockedOut && target.space === actor.space && distance(actor, target) === 1 && effectTargetingStatus(scene, actor.id, target.id).available && wallTargetingStatus(scene, actor, target).available);
+}
+
+function berserkerPassivePrompt(scene, actor, id, afterMove = false) {
+  const targets = berserkerPassiveTargets(scene, actor), maximum = actor.ruleState?.berserkerLastStand ? 2 : 1;
+  const space = (scene.spaces || []).find(item => item.id === actor.space), movement = effectMovementStatus(scene, actor.id, { distance: maximum });
+  let canMove = false;
+  if (!afterMove && movement.available) for (let y = Math.max(0, actor.y - maximum); y <= Math.min(Number(space?.height || 0) - 1, actor.y + maximum); y += 1) for (let x = Math.max(0, actor.x - maximum); x <= Math.min(Number(space?.width || 0) - 1, actor.x + maximum); x += 1) {
+    if ((x !== actor.x || y !== actor.y) && movementPath(scene, actor.id, { x, y }, { maxDistance: movement.distance }).length) canMove = true;
+  }
+  if (!canMove && !targets.length) return null;
+  return { type: "rule.prompt", actorId: actor.id, payload: { id, kind: "enemy-berserker-passive", sourceActorId: actor.id, controller: "narrator", title: "Берсерк · пассивная способность", text: afterMove ? "Выберите смежного противника для урона [Ступень + 1]. Это не Атака." : `Получено не менее 4 урона одним случаем: можно переместиться до ${maximum} клетки и нанести смежному противнику [Ступень + 1] урона.`, options: [...(canMove ? ["move"] : []), ...targets.map(target => `target:${target.id}`), "pass"], context: { berserkerPassive: true, afterMove, maxDistance: maximum, optionLabels: { move: "Выбрать клетку перемещения", pass: afterMove ? "Завершить без урона" : "Не использовать", ...Object.fromEntries(targets.map(target => [`target:${target.id}`, `Нанести ${Number(actor.tier || 1) + 1} урона · ${target.name}`])) } }, participantIds: [actor.id, ...targets.map(target => target.id)] } };
+}
+
+function berserkerPassiveEvents(scene, event) {
+  if (event.type !== "damage.apply" || Number(event.payload?.dealt ?? event.payload?.healthLost ?? 0) < 4) return [];
+  const actor = actorById(scene, event.payload?.targetId);
+  if (actor?.profileId !== "lionwing.npc.berserker" || actor.knockedOut || actor.ruleState?.berserkerReactionTurnSerial === Number(scene.turnSerial || 0)) return [];
+  if ([scene.pendingPrompt, ...(scene.triggerQueue || []).map(item => item.event?.payload)].some(prompt => prompt?.context?.berserkerPassive && prompt.sourceActorId === actor.id)) return [];
+  const prompt = berserkerPassivePrompt(scene, actor, `prompt-${event.id}-berserker-passive`);
+  return prompt ? [prompt] : [];
+}
+
 function respondRulePrompt(scene, data, request = {}) {
   const choiceStatus = ruleChoiceStatus(scene, request), prompt = scene.pendingPrompt, actor = choiceStatus.source, target = choiceStatus.target, choice = choiceStatus.choice;
   const errors = choiceStatus.available ? [] : [choiceStatus.reason];
   if (errors.length) return { ok: false, errors, events: [] };
   const events = [promptResponseEvent(prompt, actor, target, choice, request)];
+  if (prompt.kind === "enemy-berserker-passive") {
+    if (actor.profileId !== "lionwing.npc.berserker" || !prompt.context?.berserkerPassive) return { ok: false, errors: ["Пассивная способность Берсерка больше недоступна."], events: [] };
+    if (choice === "move") {
+      if (prompt.context.afterMove || actor.ruleState?.berserkerReactionTurnSerial === Number(scene.turnSerial || 0)) return { ok: false, errors: ["Перемещение пассивной способности уже использовано."], events: [] };
+      const current = berserkerPassivePrompt(scene, actor, prompt.id);
+      if (!current?.payload.options.includes("move")) return { ok: false, errors: ["Нет доступного перемещения Берсерка."], events: [] };
+      events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${prompt.id}-move`, kind: "enemy-move-cell", sourceActorId: actor.id, controller: "narrator", title: "Берсерк · перемещение пассивной способности", text: "Выберите клетку на поле. После перемещения можно нанести смежному противнику [Ступень + 1] урона.", options: ["cancel"], context: { berserkerPassive: true, maxDistance: actor.ruleState?.berserkerLastStand ? 2 : 1, optionLabels: { cancel: "Отмена пассивной способности" } }, participantIds: [actor.id] } });
+    } else if (choice.startsWith("target:")) {
+      const victim = berserkerPassiveTargets(scene, actor).find(item => item.id === choice.slice(7));
+      if (!victim || !prompt.context.afterMove && actor.ruleState?.berserkerReactionTurnSerial === Number(scene.turnSerial || 0)) return { ok: false, errors: ["Цель пассивной способности Берсерка больше недоступна."], events: [] };
+      events.push({ type: "actor.state", actorId: actor.id, payload: { key: "berserkerReactionTurnSerial", value: Number(scene.turnSerial || 0), sourceActionId: "lionwing.npc.berserker.passive" } });
+      events.push({ type: "damage.apply", actorId: actor.id, payload: { targetId: victim.id, amount: Number(actor.tier || 1) + 1, attack: false, ignoreArmor: true, ignoreEvasion: true, sourceActionId: "lionwing.npc.berserker.passive", participantIds: [actor.id, victim.id] } });
+    }
+    return { ok: true, errors: [], events };
+  }
   if (request.stale === true) return { ok: true, errors: [], events };
   if (prompt.kind === "bodyguards-brace-line") {
     const lineIds = choice.startsWith("line:") ? choice.slice(5).split(",").filter(Boolean) : [];
@@ -574,6 +613,12 @@ function respondRulePrompt(scene, data, request = {}) {
     events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${prompt.id}-cell`, kind: "enemy-move-cell", sourceActorId: actor.id, controller: "narrator", title: "Снайперская дистанция", text: "Переместите Егеря на 1 клетку после Атаки по нему.", options: ["cancel"], context: { maxDistance: 1 }, participantIds: [actor.id] } });
   }
   if (prompt.kind === "enemy-berserker-retaliate" && choice === "retaliate") {
+    // Older LionWing saves may still contain the pre-fix Thrash prompt.
+    if (actor.profileId === "lionwing.npc.berserker") {
+      const canonicalPrompt = berserkerPassivePrompt(scene, actor, `prompt-${prompt.id}-canonical`);
+      if (canonicalPrompt) events.push(canonicalPrompt);
+      return { ok: true, errors: [], events };
+    }
     const roll = request.roll, maximum = actor.ruleState?.berserkerLastStand ? 2 : 1;
     if (!target || target.knockedOut || !roll || !Array.isArray(roll.rolls)) return { ok: false, errors: ["Цель или бросок ответного Сокрушения больше недоступны."], events: [] };
     let destination = { x: actor.x, y: actor.y }, path = [];
@@ -1164,6 +1209,13 @@ function preparePromptPlacement(scene, request = {}) {
     const mover = ["enemy-move-cell", "enemy-crowd-move-cell", "fodder-move-cell"].includes(prompt.kind) && (prompt.context?.moveTarget || prompt.kind === "fodder-move-cell") ? target : actor, forced = Boolean(["enemy-move-cell", "enemy-crowd-move-cell"].includes(prompt.kind) && prompt.context?.moveTarget);
     events.push({ type: "actor.move", actorId: mover.id, payload: { space: mover.space, x: destination.x, y: destination.y, movement: prompt.kind === "thunder-surge-cell" ? "Телепортация · Скачок" : prompt.title, path: ["enemy-move-cell", "enemy-crowd-move-cell", "fodder-move-cell"].includes(prompt.kind) ? enemyMovePath.map(cellKey) : undefined, placement: ["reappear-cell", "thunder-surge-cell"].includes(prompt.kind)||Boolean(prompt.context?.teleportFarthestAdjacent), teleport:Boolean(prompt.context?.teleportFarthestAdjacent), forced, privateerEscort: Boolean(prompt.context?.privateerEscort), fodderMove: prompt.kind === "fodder-move-cell", boundaryEventId: prompt.kind === "fodder-move-cell" ? prompt.context?.boundaryEventId : null, enemyRuleMove: prompt.kind === "enemy-crowd-move-cell" ? prompt.context?.ruleId : null, sourceActorId: prompt.kind === "enemy-crowd-move-cell" ? actor.id : null, maximum: prompt.kind === "enemy-crowd-move-cell" ? Number(prompt.context?.maxDistance || 1) : null, participantIds: [actor.id, target?.id].filter(Boolean) } });
     if (mover.kind !== "crowd") events.push({ type: "actor.enter", actorId: mover.id, payload: { space: mover.space, x: destination.x, y: destination.y, movement: prompt.title, forced } });
+    if (prompt.context?.berserkerPassive) {
+      if (actor.profileId !== "lionwing.npc.berserker" || actor.ruleState?.berserkerReactionTurnSerial === Number(scene.turnSerial || 0)) return { ok: false, errors: ["Перемещение пассивной способности Берсерка уже недоступно."], events: [] };
+      events.push({ type: "actor.state", actorId: actor.id, payload: { key: "berserkerReactionTurnSerial", value: Number(scene.turnSerial || 0), sourceActionId: "lionwing.npc.berserker.passive" } });
+      const moved = { ...actor, ...destination }, staged = { ...scene, actors: scene.actors.map(item => item.id === actor.id ? moved : item) };
+      const targetPrompt = berserkerPassivePrompt(staged, moved, `prompt-${prompt.id}-target`, true);
+      if (targetPrompt) events.push(targetPrompt);
+    }
     if (prompt.kind === "enemy-crowd-move-cell") {
       const remaining = [...new Set(prompt.context?.remainingTargetIds || [])].filter(id => { const crowd = actorById(scene, id); return crowd && !crowd.knockedOut && crowd.kind === "crowd" && crowd.team === actor.team && crowd.space === actor.space; });
       events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${prompt.id}-next`, kind: "enemy-crowd-move-select", sourceActorId: actor.id, controller: "narrator", title: prompt.title.split(": ")[0] + ": движение массовки", text: "Переместите следующую Зону массовки или закончите движение.", options: [...remaining.map(id => `target:${id}`), "finish"], context: { ...clone(prompt.context), remainingTargetIds: remaining }, participantIds: [actor.id, ...remaining] } });

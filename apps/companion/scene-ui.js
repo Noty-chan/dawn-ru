@@ -165,7 +165,7 @@ function commitScene(label,mutator,options={}){
   if(sync.sceneId&&!sync.canNarrate)return toast("Каноническую Сцену изменяет Нарратор");
   try{
     mutator(Scene);
-    validateTableEdit(before,Scene,options.plannedDestroy?{plannedDestroy:options.plannedDestroy}:{});
+    validateTableEdit(before,Scene,{plannedDestroy:options.plannedDestroy,tableRestore:options.tableRestore===true});
     Scene=normalizeScene(Scene);
     Scene.redo=[];
     if(sync.sceneId){

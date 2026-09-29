@@ -354,6 +354,9 @@ function validateTableEdit(before,after,options={}){
     if(actorEdition!==edition)throw new Error("Нельзя смешивать редакции персонажей в одной Сцене");
   }
   if(edition!=="lionwing")return;
+  // Restoring a confirmed full backup replaces runtime state as one undoable
+  // operation. Edition compatibility above still applies to every participant.
+  if(options.tableRestore===true)return;
   const fields=["hp","maxHp","ap","baseAp","focus","influence","wounds","stress","evasion","armor","speed","attrs","effects","effectStates","lionwing","ruleResources","ruleClocks","knockedOut"];
   const destroyPlan=options?.plannedDestroy?.type==="lionwing.destroy-plan"&&options.plannedDestroy.ok===true;
   for(const actor of after.actors){const old=before.actors.find(item=>item.id===actor.id);if(old&&!destroyPlan&&fields.some(key=>JSON.stringify(old[key])!==JSON.stringify(actor[key])))throw new Error("Для игровых изменений используйте операции LionWing, для точных значений — исправления Нарратора");}

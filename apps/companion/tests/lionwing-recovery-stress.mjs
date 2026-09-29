@@ -353,6 +353,11 @@ function installUndoHarness(context, scene) {
   context.queueNetworkV2Snapshot = () => false;
   vm.runInContext(`${sceneSource.slice(start, end)}
     this.commitScene=commitScene;this.undoScene=undoScene;this.redoScene=redoScene;`, context, { filename: "scene-ui.history.js" });
+  const eventsSource = fs.readFileSync(new URL("../app-scene-events.js", import.meta.url), "utf8");
+  const restoreStart = eventsSource.indexOf("function applyTableBackup(");
+  const restoreEnd = eventsSource.indexOf('$("scene-export-table")', restoreStart);
+  context.setScenePanel = () => {};
+  vm.runInContext(`${eventsSource.slice(restoreStart, restoreEnd)};this.applyTableBackup=applyTableBackup;`, context);
 }
 
 const { context: engineContext, sceneEngine, lw } = loadEngines();
@@ -408,6 +413,24 @@ const recoveredJson = await app.readTableRecovery();
 assert.ok(recoveredJson, "IndexedDB recovery checkpoint can be read");
 const recovered = vm.runInContext(`normalizedTableBackup(JSON.parse(${JSON.stringify(recoveredJson)}))`, app).scene;
 assertSemanticEqual(recovered, pendingCanonical, "IndexedDB recovery restores the checkpoint semantics");
+const restoreHarness = buildStorageContext(new MemoryStorage(), new FakeIndexedDB());
+const changedCheckpoint = clone(pendingCanonical);
+changedCheckpoint.actors[0].hp = Math.max(1, changedCheckpoint.actors[0].hp - 1);
+changedCheckpoint.lionwing.choices = [];
+installUndoHarness(restoreHarness, clone(changedCheckpoint));
+assert.throws(() => restoreHarness.validateTableEdit(changedCheckpoint, pendingCanonical), /операции LionWing/, "ordinary table edits still cannot rewrite gameplay values");
+assert.equal(restoreHarness.applyTableBackup({ scene: pendingCanonical }, "Restore checkpoint"), true, "confirmed backup restores a populated table with changed Health and pending choices");
+assert.equal(restoreHarness.Scene.version, changedCheckpoint.version + 1, "restoration advances the current table version");
+const restorationState = value => { const result = clone(value); for (const key of ["log", "undo", "redo", "version"]) delete result[key]; return result; };
+assertSemanticEqual(restorationState(restoreHarness.Scene), restorationState(pendingCanonical), "runtime mechanics and pending Resistance survive the actual import writer");
+restoreHarness.undoScene();
+assertSemanticEqual(restorationState(restoreHarness.Scene), restorationState(changedCheckpoint), "the table before restoration remains available in Undo");
+const wrongEdition = clone(pendingCanonical);
+wrongEdition.actors[0].rulesEdition = "ru-v0.9";
+assert.throws(() => restoreHarness.validateTableEdit(changedCheckpoint, wrongEdition, { tableRestore: true }), /смешивать редакции/, "restoration cannot bypass edition compatibility");
+const libraryBeforeFailedRestore = clone(restoreHarness.store.gmLibrary);
+assert.equal(restoreHarness.applyTableBackup({ scene: wrongEdition, gmLibrary: { encounters: [{ id: "rejected-copy" }] } }, "Invalid restore"), false);
+assert.deepEqual(restoreHarness.store.gmLibrary, libraryBeforeFailedRestore, "a rejected backup cannot partially replace the GM library");
 
 scene = runLionwing(lw, scene, "hero-a", { kind: "choice", id: resistance.id, choice: "resist" }, nextId("resistance-resolve"));
 eventCount += 1;

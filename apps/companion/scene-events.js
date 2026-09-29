@@ -1644,7 +1644,13 @@ function dispatch(scene, event, options = {}) {
       if (candidate && typeof candidate === "object") return canonical && typeof canonical === "object" && !Array.isArray(canonical) && Object.keys(candidate).every(key => subsetMatches(canonical[key], candidate[key]));
       return Object.is(canonical, candidate);
     };
-    const sameEvent = stored.type === event.type && (stored.actorId || null) === (event.actorId || null) && subsetMatches(stored.payload || {}, event.payload || {});
+    // Attack reduction enriches the log and replaces raw damage with its
+    // effect-adjusted value. A retry may carry either the original request or
+    // the committed event; both refer to the same attack without applying it again.
+    const originalPayload = stored.type === "attack.pending" && stored.payload?.baseDamage !== undefined
+      ? { ...stored.payload, damage: stored.payload.baseDamage, damageByTarget: stored.payload.baseDamageByTarget }
+      : stored.payload || {};
+    const sameEvent = stored.type === event.type && (stored.actorId || null) === (event.actorId || null) && (subsetMatches(stored.payload || {}, event.payload || {}) || subsetMatches(originalPayload, event.payload || {}));
     if (!sameEvent) {
       const error = new Error(`Конфликт id события «${event.id}»: под этим id уже записано другое событие.`);
       error.code = "SCENE_EVENT_ID_CONFLICT";

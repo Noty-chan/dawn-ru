@@ -148,6 +148,82 @@ const passAndResolve = (s, prefix) => {
   return engine.dispatchMany(answered, resolved.events.map((event, index) => ({ ...event, id: `${prefix}:resolve:${index}` }))).scene;
 };
 
+// Berserker's LionWing passive deals fixed damage, not a free Thrash attack.
+let berserkerPassive = scene("lionwing.npc.berserker", { activeActorId: "hero", actors: [actor("enemy", "enemy", 2, 2, { profileId: "lionwing.npc.berserker", ap: 0 }), actor("hero", "hero", 4, 2), actor("other", "hero", 2, 3)] });
+berserkerPassive = engine.dispatchMany(berserkerPassive, [{ id: "berserker-hit", type: "damage.apply", actorId: "hero", payload: { targetId: "enemy", amount: 4, attack: false, ignoreArmor: true } }]).scene;
+assert.equal(berserkerPassive.pendingPrompt?.kind, "enemy-berserker-passive", "canonical passive does not offer the legacy retaliation attack");
+assert.ok(berserkerPassive.pendingPrompt.options.includes("target:other"), "the passive may damage an adjacent opponent other than the attacker");
+const berserkerStart = clone(berserkerPassive);
+const berserkerMove = engine.respondRulePrompt(berserkerPassive, data, { choice: "move" });
+assert.equal(berserkerMove.ok, true, berserkerMove.errors?.join(" "));
+berserkerPassive = commitWithIds(berserkerPassive, berserkerMove, "berserker-choose-move").result.scene;
+assert.equal(berserkerPassive.pendingPrompt.kind, "enemy-move-cell");
+assert.equal(engine.preparePromptPlacement(berserkerPassive, { destination: { x: 4, y: 3 } }).ok, false, "the passive cannot move farther than one space");
+const berserkerPlacement = engine.preparePromptPlacement(berserkerPassive, { destination: { x: 3, y: 2 } });
+assert.equal(berserkerPlacement.ok, true, berserkerPlacement.errors?.join(" "));
+const berserkerPlacementCommit = commitWithIds(berserkerPassive, berserkerPlacement, "berserker-place");
+berserkerPassive = clone(berserkerPlacementCommit.result.scene);
+assert.ok(berserkerPassive.pendingPrompt.options.includes("target:hero"));
+assert.equal(engine.dispatchMany(berserkerPassive, berserkerPlacementCommit.events).scene.version, berserkerPassive.version, "movement replay cannot reopen the passive");
+const berserkerTargetStart = clone(berserkerPassive);
+const berserkerDamage = engine.respondRulePrompt(berserkerPassive, data, { choice: "target:hero" });
+assert.equal(berserkerDamage.ok, true, berserkerDamage.errors?.join(" "));
+assert.ok(!berserkerDamage.events.some(event => event.type === "attack.pending" || event.type === "reaction.offer"), "fixed passive damage has no defense stage or attack roll");
+const berserkerDamageCommit = commitWithIds(berserkerPassive, berserkerDamage, "berserker-damage");
+berserkerPassive = clone(berserkerDamageCommit.result.scene);
+assert.equal(berserkerPassive.actors[1].hp, 27, "Tier 2 passive deals exactly three damage");
+assert.equal(berserkerPassive.actors[0].ap, 0, "the passive works outside the NPC's Turn with zero AP");
+assert.equal(berserkerPassive.pendingPrompt, null);
+assert.equal(engine.dispatchMany(berserkerPassive, berserkerDamageCommit.events).scene.version, berserkerPassive.version, "damage replay is idempotent");
+const forgedBerserkerDamage = clone(berserkerDamageCommit.events);
+forgedBerserkerDamage.find(event => event.type === "damage.apply").payload.amount = 99;
+assert.throws(() => engine.dispatchMany(berserkerTargetStart, forgedBerserkerDamage), /пассив|канонич/i, "authority re-derives fixed passive damage");
+berserkerPassive = engine.dispatchMany(berserkerPassive, [{ id: "berserker-second-hit", type: "damage.apply", actorId: "hero", payload: { targetId: "enemy", amount: 4, attack: false, ignoreArmor: true } }]).scene;
+assert.equal(berserkerPassive.pendingPrompt, null, "the passive cannot be used twice in one Turn");
+const vanishedPassiveTarget = clone(berserkerStart);
+vanishedPassiveTarget.actors[2].effects.push("positive.исчез");
+assert.equal(engine.respondRulePrompt(vanishedPassiveTarget, data, { choice: "target:other" }).ok, false, "stale passive choices cannot damage disappeared opponents");
+for (const choice of ["pass", "target:other"]) {
+  const direct = clone(berserkerStart);
+  direct.actors[0].effects.push("positive.усилен");
+  direct.actors[2].armor = direct.actors[2].evasion = 10;
+  const result = commitWithIds(direct, engine.respondRulePrompt(direct, data, { choice }), `berserker-direct-${choice}`).result.scene;
+  assert.equal(result.pendingPrompt, null);
+  assert.equal(result.actors[2].hp, choice === "pass" ? 30 : 27, "fixed non-Attack damage ignores Attack effects, Armor and Evasion");
+}
+let secondTurnBerserker = clone(berserkerPassive);
+secondTurnBerserker.turnSerial += 1;
+secondTurnBerserker = engine.dispatchMany(secondTurnBerserker, [{ id: "berserker-new-turn-hit", type: "damage.apply", actorId: "hero", payload: { targetId: "enemy", amount: 4, attack: false, ignoreArmor: true } }]).scene;
+assert.equal(secondTurnBerserker.pendingPrompt?.kind, "enemy-berserker-passive", "once-per-Turn allowance resets on the next Turn");
+const lastStandBerserker = clone(berserkerStart);
+lastStandBerserker.actors[0].ruleState = { berserkerLastStand: true };
+const lastStandMove = commitWithIds(lastStandBerserker, engine.respondRulePrompt(lastStandBerserker, data, { choice: "move" }), "berserker-last-stand").result.scene;
+assert.equal(engine.preparePromptPlacement(lastStandMove, { destination: { x: 2, y: 0 } }).ok, true, "Last Stand extends passive movement to two spaces");
+let queuedBerserker = scene("lionwing.npc.berserker");
+queuedBerserker.actors.push(actor("holder", "enemy", 6, 5, { profileId: "lionwing.npc.ranger" }));
+queuedBerserker.pendingPrompt = { id: "existing-prompt", kind: "enemy-ranger-retreat", sourceActorId: "holder", controller: "narrator", options: ["move", "pass"] };
+queuedBerserker = engine.dispatchMany(queuedBerserker, [{ id: "berserker-queued-hit", type: "damage.apply", actorId: "hero", payload: { targetId: "enemy", amount: 4, attack: false, ignoreArmor: true } }]).scene;
+assert.equal(queuedBerserker.pendingPrompt.id, "existing-prompt", "the passive preserves a decision already in progress");
+assert.ok(queuedBerserker.triggerQueue.some(item => item.event?.payload?.kind === "enemy-berserker-passive"), "the passive waits in the persistent prompt queue");
+queuedBerserker = commitWithIds(clone(queuedBerserker), engine.respondRulePrompt(queuedBerserker, data, { choice: "pass" }), "berserker-close-prior").result.scene;
+assert.equal(queuedBerserker.pendingPrompt?.kind, "enemy-berserker-passive", "the queued passive resumes after the preceding decision closes");
+const core = context.window.DAWN_LIONWING_ENGINE;
+let heroHitsBerserker = scene("lionwing.npc.berserker", { activeActorId: "hero" });
+heroHitsBerserker.actors[1].attrs.spirit = 4;
+const heroSpell = core.prepare(heroHitsBerserker, { actorId: "hero", kind: "action", actionId: engine.ACTION_IDS.spell, targetIds: ["enemy"], roll: { initialCount: 4, rolls: [4,4,4,4] } });
+assert.equal(heroSpell.ok, true, heroSpell.errors?.join(" "));
+heroHitsBerserker = commitWithIds(heroHitsBerserker, heroSpell, "berserker-hero-spell").result.scene;
+heroHitsBerserker = core.dispatchMany(heroHitsBerserker, [core.command("enemy", { kind: "reaction", choice: "take" })]).scene;
+heroHitsBerserker = core.dispatchMany(heroHitsBerserker, [core.command("hero", { kind: "resolve-attack" })]).scene;
+assert.equal(heroHitsBerserker.pendingPrompt?.kind, "enemy-berserker-passive", "an actual canonical hero Spell opens the passive after damage resolves");
+const oldBerserkerSave = clone(berserkerStart);
+oldBerserkerSave.pendingPrompt.kind = "enemy-berserker-retaliate";
+oldBerserkerSave.pendingPrompt.options = ["retaliate", "pass"];
+oldBerserkerSave.pendingPrompt.context = { ruleId: "lionwing.npc.berserker.thrash" };
+const migratedBerserker = commitWithIds(oldBerserkerSave, engine.respondRulePrompt(oldBerserkerSave, data, { choice: "retaliate" }), "berserker-old-save").result.scene;
+assert.equal(migratedBerserker.pendingPrompt?.kind, "enemy-berserker-passive", "in-progress old saves resume through the corrected passive choices");
+assert.equal(migratedBerserker.pendingAction, undefined, "migrating an old passive prompt never opens a free Thrash");
+
 // Canonical actions are exposed through the GM query and carry the reviewed
 // automation status/source digest; complex clauses remain assisted.
 const available = engine.availableEnemyRules(scene("lionwing.npc.guardian"), data, "enemy");

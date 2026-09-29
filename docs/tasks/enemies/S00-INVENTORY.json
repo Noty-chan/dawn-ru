@@ -7057,6 +7057,7 @@
             "apps/companion/tests/lionwing-modifier-isolation.mjs",
             "apps/companion/tests/lionwing-passive-adapters.mjs",
             "apps/companion/tests/lionwing-projection-sql.mjs",
+            "apps/companion/tests/lionwing-recovery-stress.mjs",
             "apps/companion/tests/lionwing-replacements.mjs",
             "apps/companion/tests/lionwing-special-operations.mjs",
             "apps/companion/tests/lionwing-table-data.mjs",

@@ -25,6 +25,35 @@ const prepareAttack = (source, actorId, targetId, actionName = "Стычка") =
 });
 
 const actions = Engine.availableActions(scene, data, "hero");
+// Shared 0.9 attacks must apply effects once, including before Eclipse rounding.
+for (const [effect, modifier] of [["positive.усилен", 2], ["negative.ослаблен", -2]]) {
+  for (const [actionName, eclipse] of [["Стычка", false], ["Заклинание", false], ["Завершение", false], ["Завершение", true]]) {
+    let source = structuredClone(scene);
+    source.actors[0].effects = [effect];
+    source.actors[0].tier = 2;
+    source.actors[1].armor = 0;
+    source.actors[1].hp = source.actors[1].maxHp = 30;
+    if (eclipse) {
+      source.actors[0].techniques = { "ruiner.void-soul": 3 };
+      source.actors[0].ruleClocks = { "ruiner.void-soul.void": { clockId: "ruiner.void-soul.void", label: "Пустота", size: 6, minimumSize: 6, initial: 0, resetScope: "scene", active: true, value: 6 } };
+    }
+    const prepared = Engine.prepareAction(source, data, { actorId: "hero", actionId: actionNamed(actionName).id, targetIds: ["enemy"], useEclipseStars: eclipse, attribute: "spirit", roll: { rolls: [5,5,4,1], successes: 3, crits: 0 } });
+    assert.equal(prepared.ok, true, prepared.errors?.join(" "));
+    const expectedDamage = Math.ceil(Math.max(0, 3 + (actionName === "Завершение" ? 2 : 0) + modifier) / (eclipse ? 2 : 1));
+    const events = prepared.events.map((event, index) => ({ ...event, id: `hero-effect-${effect}-${actionName}-${eclipse}-${index}` }));
+    source = JSON.parse(JSON.stringify(Engine.dispatchMany(source, events).scene));
+    assert.equal(source.pendingAction.damageByTarget.enemy, expectedDamage, `${actionName} / ${effect}: damage effect is applied once`);
+    assert.equal(Engine.dispatchMany(source, events).scene.version, source.version, "network replay cannot apply the effect again");
+    const forged = structuredClone(events.find(event => event.type === "attack.pending"));
+    forged.payload.damage = 99;
+    assert.throws(() => Engine.dispatchMany(source, [forged]), /Конфликт id/, "replay must still reject a changed damage request");
+    source = Engine.dispatchMany(source, Engine.respondReaction(source, data, { actorId: "enemy", choice: "pass" }).events).scene;
+    const resolved = Engine.resolvePendingAction(source, data);
+    assert.equal(resolved.ok, true, resolved.errors?.join(" "));
+    source = Engine.dispatchMany(source, resolved.events).scene;
+    assert.equal(source.actors[1].hp, 30 - expectedDamage, "resolved Health matches the once-modified damage after reload");
+  }
+}
 assert.equal(actions.length, 15);
 assert.equal(actions.find(action => action.name === "Стычка").available, true);
 assert.ok(actions.filter(action => action.reaction).every(action => !action.available), "Defenses cannot be spent as standalone Turn actions");

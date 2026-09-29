@@ -4267,6 +4267,21 @@
       if (!prepared || alreadyAttacked) fail("Атака героя не связана с доступным подготовленным действием");
     }
     const pendingEnemyFlow = scene.pendingAction?.enemyRuleId && events.some(event => ["reaction.respond", "rule.respond", "damage.apply", "effect.apply", "actor.move", "actor.enter", "attack.clear"].includes(event?.type));
+    const canonicalBerserkerPrompt = scene.pendingPrompt?.context?.berserkerPassive || scene.pendingPrompt?.kind === "enemy-berserker-retaliate" && (scene.actors || []).some(actor => actor.id === scene.pendingPrompt.sourceActorId && actor.profileId === "lionwing.npc.berserker");
+    const berserkerPassiveResponse = canonicalBerserkerPrompt && events.find(event => event?.type === "rule.respond");
+    if (berserkerPassiveResponse) {
+      if (events.every(event => event.id && state(scene).receipts.some(receipt => receipt.id === event.id && receipt.fingerprint === JSON.stringify([event.type, event.actorId || null, event.payload || {}])))) return { scene: copy(scene), events: [], event: null };
+      const source = (scene.actors || []).find(actor => actor.id === scene.pendingPrompt.sourceActorId), response = berserkerPassiveResponse.payload || {};
+      if (source?.profileId !== "lionwing.npc.berserker" || berserkerPassiveResponse.actorId !== source.id) fail("Пассивная способность требует ожидающее решение Берсерка.");
+      const request = { actorId: source.id, choice: response.choice, destination: response.destination, stale: response.stale === true, role: response.role, narratorOverride: response.narratorOverride === true };
+      const expected = response.choice === "cell" ? legacy.preparePromptPlacement(scene, request) : legacy.respondRulePrompt(scene, global.DAWN_DATA, request);
+      const shape = event => [event.type, event.actorId || null, event.payload || {}, event.visibility || null];
+      if (!expected.ok || !sameJson(events.map(shape), expected.events.map(shape))) fail("Пассивная способность Берсерка не соответствует каноническим перемещению, цели и урону.");
+      const committed = legacy.dispatchMany(scene, events, options);
+      for (const event of events) if (event.id) state(committed.scene).receipts.push({ id: event.id, fingerprint: JSON.stringify([event.type, event.actorId || null, event.payload || {}]) });
+      state(committed.scene).receipts = state(committed.scene).receipts.slice(-256);
+      return committed;
+    }
     const cocoonRepeatResponse = scene.pendingPrompt?.kind === "enemy-cocoon-repeat" && scene.pendingPrompt.context?.ruleId === "lionwing.npc.cocoon.rampage" && events.find(event => event?.type === "rule.respond");
     if (cocoonRepeatResponse) {
       const source = (scene.actors || []).find(actor => actor.id === scene.pendingPrompt.sourceActorId), response = cocoonRepeatResponse.payload || {};
@@ -4457,6 +4472,8 @@
         if (inventory?.removeSource && lostSourceId) inventory.removeSource(next, lostSourceId);
       } else { execute(next, event, output, options); next.version = Number(next.version || 0) + 1; }
       for (const boundary of output.slice(outputStart).filter(item => ["damage.apply", "actor.knockout", "actor.move", "actor.enter", "actor.despawn", "actor.remove", "space.remove"].includes(item.type))) {
+        const berserkerEvents = legacy.berserkerPassiveEvents?.(next, boundary) || [];
+        if (berserkerEvents.length) { const result = legacy.dispatchMany(next, berserkerEvents); next = result.scene; output.push(...result.events); }
         const consequences = legacy.bodyguardsLifecycleEvents?.(next, boundary) || [];
         if (consequences.length) { const result = legacy.dispatchMany(next, consequences); next = result.scene; output.push(...result.events); }
       }

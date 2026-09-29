@@ -75,3 +75,4 @@ function projectScene(scene, viewer = {}) {
 (typeof window === "object" ? window : globalThis).DAWN_SCENE_ENGINE.modifierKnockoutEvents = modifierKnockoutEvents;
 (typeof window === "object" ? window : globalThis).DAWN_SCENE_ENGINE.modifierMovementEvents = modifierMovementEvents;
 (typeof window === "object" ? window : globalThis).DAWN_SCENE_ENGINE.effectiveActorSpeed = effectiveActorSpeed;
+(typeof window === "object" ? window : globalThis).DAWN_SCENE_ENGINE.berserkerPassiveEvents = (scene, event) => routeLegacyPromptEvents(scene, event, [], berserkerPassiveEvents(scene, event));
