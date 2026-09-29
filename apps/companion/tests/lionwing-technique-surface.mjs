@@ -2,20 +2,25 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import vm from "node:vm";
 
-const context = { window: {}, console };
+const listeners = new Map(), preferences = new Map();
+const context = { window: {
+  document: { addEventListener: (type, handler) => listeners.set(type, handler) },
+  localStorage: { getItem: key => preferences.get(key) ?? null, setItem: (key, value) => preferences.set(key, value) },
+}, console };
 vm.createContext(context);
 for (const file of ["localization.js", "locale-ru.js", "locale-en-builder.js", "edition-lionwing.js", "edition-lionwing-ru.js"]) {
   vm.runInContext(fs.readFileSync(new URL("../" + file, import.meta.url), "utf8"), context, { filename: file });
 }
+let adapterInstalled = true;
 context.window.DAWN_LIONWING_ADAPTERS = {
-  list: actor => actor?.lionwing?.automation?.["ruiner.cryomancer.1"] ? [{
+  list: actor => adapterInstalled ? [{
     id: "ruiner.cryomancer.1",
     techniqueId: "ruiner.cryomancer",
     level: 1,
     label: "Frost Veiler I · reviewed adapter",
     coverage: "partial",
     sourceDigest: "canonical",
-    enabled: true,
+    enabled: actor?.lionwing?.automation?.["ruiner.cryomancer.1"] === true,
   }] : [],
 };
 context.window.DAWN_SCENE_ENGINE = {
@@ -69,6 +74,8 @@ assert.equal(frost.previousName, "Cryomancer", "migration name remains a hint on
 assert.match(frost.canonicalText, /successful Casts Slow/i);
 assert.equal(frost.canonicalSource.locale, "en");
 assert.equal(frost.canonicalSource.pdfPage, 100);
+assert.equal(frost.displayLevelName, "Охлаждение", "RU overlay is applied even outside the application bootstrap");
+assert.equal(frost.displayText, "Ваши успешные Заклинания Замедляют цели.");
 
 const model = surface.model(baseScene, actor, { viewer: { role: "player", actorId: "hero" } });
 assert.equal(model.statuses[0].status.state, "assisted");
@@ -77,10 +84,28 @@ assert.equal(model.actionSummary.total, 1);
 assert.equal(model.actionSummary.available, 0);
 const html = surface.render(actor, { scene: baseScene, viewer: { role: "player", actorId: "hero" } });
 assert.match(html, /Канон: LionWing EN · стр\. 100/);
-assert.match(html, /Частично готово/);
+assert.match(html, /Автоматика частично/);
 assert.match(html, /Your successful Casts Slow/);
 assert.doesNotMatch(html, /reviewed adapter/);
 assert.match(html, /Сейчас Ход другого участника/);
+assert.match(html, /<p class="lw-technique-description lw-technique-canonical">Ваши успешные Заклинания Замедляют цели\.<\/p>/);
+assert.match(html, /<details class="lw-technique-original lw-technique-translation"><summary>Оригинал EN и источник<\/summary>[\s\S]*Your successful Casts Slow/);
+assert.doesNotMatch(html, /data-lw-technique-group="ruiner\.cryomancer" open/, "the first technique is not expanded by default");
+assert.doesNotMatch(html, /<strong>Криомант · Frost Veiler/, "the group heading has no duplicate EN name");
+assert.doesNotMatch(html, /data-lw-automation=/, "players cannot toggle automation");
+const narratorHtml = surface.render(actor, { scene: baseScene, viewer: { role: "narrator" } });
+assert.match(narratorHtml, /data-lw-automation="ruiner\.cryomancer\.1" data-lw-actor="hero" data-lw-enabled="false"/);
+assert.match(narratorHtml, /<details class="lw-technique-manual-panel"><summary>Записать результат вручную<\/summary>/);
+assert.doesNotMatch(narratorHtml, /<details class="lw-technique-manual-panel" open/);
+listeners.get("toggle")({ target: {
+  matches: () => true,
+  hasAttribute: name => name === "data-lw-technique-surface",
+  dataset: { lwTechniqueSurface: "", lwTechniqueActor: "hero" },
+  open: true,
+} });
+assert.equal(preferences.get("dawn-lionwing-techniques:surface:hero"), "1", "an empty HTML marker attribute still stores the outer menu preference");
+assert.match(surface.render(actor, { scene: baseScene, viewer: { role: "player", actorId: "hero" } }), /data-lw-technique-actor="hero" open/);
+preferences.clear();
 
 context.window.DAWN_LIONWING_AUTOMATION_STATUS = {
   rows: [{ id: "ruiner.cryomancer.1", reason: { ru: "Причина RU <проверена>", en: "Reason EN <checked> & \"quoted\"" } }],
@@ -96,8 +121,24 @@ const enHtml = surface.render(actor, { scene: baseScene, locale: "en", viewer: {
 assert.match(enHtml, /Partially automated/);
 assert.match(enHtml, /Reason EN &lt;checked&gt; &amp; &quot;quoted&quot;/);
 assert.match(enHtml, /Your successful Casts Slow/);
-assert.match(enHtml, /The EN text is the rule source/);
+assert.match(enHtml, /Enabled techniques trigger through their corresponding actions and events/);
 assert.doesNotMatch(enHtml, /Reason EN <checked>/);
+assert.match(enHtml, /<p class="lw-technique-description lw-technique-canonical">Your successful Casts Slow/, "English preview uses the canonical description");
+
+const disabledActor = structuredClone(actor);
+disabledActor.lionwing.automation["ruiner.cryomancer.1"] = false;
+const disabled = surface.model(baseScene, disabledActor, { viewer: { role: "narrator" } });
+assert.equal(disabled.statuses[0].status.state, "off");
+assert.match(disabled.statuses[0].status.detail, /выключена для этого персонажа/);
+assert.doesNotMatch(disabled.statuses[0].status.detail, /Причина RU/, "readiness text cannot overwrite the actual disabled status");
+assert.match(surface.render(disabledActor, { scene: baseScene, viewer: { role: "narrator" } }), /data-lw-automation="ruiner\.cryomancer\.1" data-lw-actor="hero" data-lw-enabled="true"/);
+adapterInstalled = false;
+const missing = surface.model(baseScene, actor, { viewer: { role: "narrator" } });
+assert.equal(missing.statuses[0].status.state, "manual", "saved enabled flag does not invent a missing runtime adapter");
+assert.match(missing.statuses[0].status.detail, /ещё не подключена/);
+assert.doesNotMatch(missing.statuses[0].status.detail, /Причина RU/);
+assert.doesNotMatch(surface.render(actor, { scene: baseScene, viewer: { role: "narrator" } }), /data-lw-automation=/);
+adapterInstalled = true;
 
 const offerScene = structuredClone(baseScene);
 offerScene.activeActorId = "hero";
@@ -124,6 +165,8 @@ assert.match(surface.pendingHtml({ ...offerScene.lionwing.choices[0], options: [
 assert.match(offerHtml, /Срок: до ответа на это решение/);
 assert.match(offerHtml, /Frost Veiler/);
 assert.match(offerHtml, /Цели: Другой/);
+assert.match(offerHtml, /<p class="lw-technique-description lw-technique-canonical">Ваши успешные Заклинания Замедляют цели/);
+assert.match(offerHtml, /<details class="lw-technique-original lw-technique-translation"><summary>Оригинал EN и источник/);
 assert.deepEqual(surface.visibleChoices(offerScene, { role: "player", actorId: "other" }), [], "another player cannot see private technique offer");
 assert.equal(surface.visibleChoices(offerScene, { role: "player", actorId: "hero" }).length, 1);
 assert.equal(surface.visibleChoices(offerScene, { role: "narrator" }).length, 1);

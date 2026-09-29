@@ -2741,6 +2741,7 @@
         if (effectActive(scene,target,"positive.исчез") || effectActive(scene,a,"positive.изгнан") !== effectActive(scene,target,"positive.изгнан")) fail("Цель недоступна из-за Эффекта");
       }
       scene.pendingAction = { id: rootId, actionInstanceId:p.actionInstanceId || provenance?.actionInstanceId||rootId, lionwing: true, actorId: a.id, name: p.name || "Атака", targetIds: targets, damage: integer(p.amount, "урон"), repeat: integer(p.repeat ?? 1, "повторы", 30), criticals: Number(p.criticals || 0), effects: copy(p.effects || []), finalDamage: Boolean(p.finalDamage), ignoreArmor:p.ignoreArmor===true, ignoreEvasion:p.ignoreEvasion===true, irreducible:p.irreducible===true, responses: Object.fromEntries(targets.map(id => [id, { choice: "pending" }])), sourceActionId: p.actionId || "manual.attack", techniqueRuleId: p.techniqueRuleId || null, techniqueSourceDigest: p.techniqueSourceDigest || null, techniqueId: p.techniqueId || null, techniqueIds: Array.isArray(p.techniqueIds) ? copy(p.techniqueIds) : null, ...(p.derivedActionId ? { derived: true, derivedActionId: p.derivedActionId, derivedLineage: copy(p.lineage || []), fixedTargetId: p.fixedTargetId || targets[0], fixedDamage: p.fixedDamage === true, derivedSourceDigest: p.sourceDigest || null } : {}), ...(p.breacherPush ? { breacherPush: true, breacherPushMultiplier: Number(p.breacherPushMultiplier || 1), breacherAttackSuccess: p.breacherAttackSuccess === true, breacherInitialDistances: copy(p.breacherInitialDistances || {}) } : {}), ...(p.breacherWeaken ? { breacherWeaken: true } : {}), ...(p.areaPlan ? { areaPlan: copy(p.areaPlan), areaCells: copy(p.areaPlan.result?.cells || []), areaCenter: copy(p.areaPlan.result?.center), emptyTargetCount: Number(p.emptyTargetCount || 0) } : {}), ...(p.__actionPlan ? { actionPlan: copy(p.__actionPlan), actionPlanId: p.__actionPlan.id } : {}), ...(p.__execution ? { execution: copy(p.__execution) } : {}) };
+      if(p.attackEffectsByTarget) scene.pendingAction.attackEffectsByTarget = copy(p.attackEffectsByTarget);
       if(p.targetDamage){if(typeof p.targetDamage!=="object"||Array.isArray(p.targetDamage))fail("Некорректный урон по целям");for(const[id,amount]of Object.entries(p.targetDamage)){if(!targets.includes(id))fail("Урон указан для посторонней цели");integer(amount,"урон цели");}scene.pendingAction.targetDamage=copy(p.targetDamage);}
       if (!scene.pendingAction.repeat) fail("Нужно хотя бы одно нанесение урона");
       emit("attack.pending", a.id, scene.pendingAction);
@@ -2891,7 +2892,8 @@
         const initialDistances = Object.fromEntries(targets.map(target => [target.id, distance(a, target)]));
         const breacherLevel = Number((a.knownTechniques ?? a.techniques)?.["powerhouse.breacher"] || 0);
         const breacherPush = def.id === ids.skirmish && breacherLevel >= 1 && a.lionwing?.automation?.["powerhouse.breacher.1"] === true;
-        beginAttack(a, { ...p, name: def.name, amount: result.successes + (def.id === ids.finish ? tensionValue(scene) : 0), breacherPush, breacherPushMultiplier: p.breacherBothBarrels === true ? 2 : 1, breacherAttackSuccess: result.successes > 0, breacherInitialDistances: initialDistances, breacherWeaken: p.breacherBothBarrels === true, criticals: result.crits, actionInstanceId: p.actionInstanceId, sourceActionId: def.id });
+        const attackEffectsByTarget = Object.fromEntries(targets.map(target => [target.id, global.DAWN_LIONWING_ADAPTERS?.attackEffects?.(a, { scene, actionId: def.id, successes: p.targetDamage[target.id] }) || []]));
+        beginAttack(a, { ...p, attackEffectsByTarget, name: def.name, amount: result.successes + (def.id === ids.finish ? tensionValue(scene) : 0), breacherPush, breacherPushMultiplier: p.breacherBothBarrels === true ? 2 : 1, breacherAttackSuccess: result.successes > 0, breacherInitialDistances: initialDistances, breacherWeaken: p.breacherBothBarrels === true, criticals: result.crits, actionInstanceId: p.actionInstanceId, sourceActionId: def.id });
       }
       else if (def.id === ids.charge || def.id === ids.breathe) {
         if (p.icicleReplacement) {
@@ -3782,6 +3784,9 @@
           if (p.planId != null && p.planId !== pending.actionPlanId) fail("Реакция относится к другому ActionPlan");
           if (!["take", "block", "dodge", "clash"].includes(p.choice)) fail("Неизвестная Реакция");
           requiredActor(scene, sourceId);
+          // Old clients may still send an explicit no-defense acknowledgement
+          // for NPCs. Hero defenses must pass the same gate as the UI.
+          if (p.choice !== "take" && !reactionOptions(scene, sourceId).some(option => option.id === p.choice && option.available)) fail("Эта Реакция недоступна участнику");
           const response = { choice: p.choice, temporaryArmor: 0, reduction: 0 };
           if (p.choice !== "take") spend(a, "focus", 2);
           const attacker = requiredActor(scene, pending.actorId, false);
@@ -3827,13 +3832,13 @@
         case "resolve-attack": {
           const pending = scene.pendingAction;
           if (p.planId != null && p.planId !== pending?.actionPlanId) fail("Разрешение относится к другому ActionPlan");
-          if (!pending?.lionwing || pending.targetIds.some(id => live(actor(scene, id)) && !effectActive(scene,actor(scene,id),"positive.исчез") && pending.responses[id]?.choice === "pending")) fail("Сначала дождитесь всех Реакций");
+          if (!pending?.lionwing || !lionwingPendingActionStatus(scene).canResolve) fail("Сначала дождитесь всех Реакций или прервите недоступную Атаку");
           scene.pendingAction = null;
           const operations = [];
           for (let i = 0; i < pending.repeat; i++) for (const targetId of pending.targetIds) {
             if(effectActive(scene,actor(scene,targetId),"positive.исчез"))continue;
             const response = pending.responses[targetId] || {};
-            operations.push({ kind: "damage", sourceActorId: pending.actorId, targetId, amount: pending.targetDamage?.[targetId]??pending.damage, attack: true, sourceActionId: pending.sourceActionId, actionInstanceId: pending.actionInstanceId, techniqueRuleId: pending.techniqueRuleId, techniqueSourceDigest: pending.techniqueSourceDigest, techniqueId: pending.techniqueId, techniqueIds: pending.techniqueIds, criticals: pending.criticals, reduction: response.reduction || 0, temporaryArmor: response.temporaryArmor || 0, effects: pending.effects, finalDamage: pending.finalDamage, ignoreArmor:pending.ignoreArmor, ignoreEvasion:pending.ignoreEvasion, irreducible:pending.irreducible, preventForcedMovement:response.preventForcedMovement, ...(pending.derived ? { derived: true, derivedActionId: pending.derivedActionId, derivedLineage: pending.derivedLineage, derivedSourceDigest: pending.derivedSourceDigest, fixedTargetId: pending.fixedTargetId, fixedDamage: pending.fixedDamage } : {}), ...(pending.breacherPush ? { breacherPush: true, breacherPushMultiplier: pending.breacherPushMultiplier, breacherAttackSuccess: pending.breacherAttackSuccess, breacherInitialDistance: pending.breacherInitialDistances?.[targetId] } : {}), ...(pending.actionPlanId ? { actionPlanId: pending.actionPlanId } : {}), });
+            operations.push({ kind: "damage", sourceActorId: pending.actorId, targetId, amount: pending.targetDamage?.[targetId]??pending.damage, attack: true, sourceActionId: pending.sourceActionId, actionInstanceId: pending.actionInstanceId, techniqueRuleId: pending.techniqueRuleId, techniqueSourceDigest: pending.techniqueSourceDigest, techniqueId: pending.techniqueId, techniqueIds: pending.techniqueIds, criticals: pending.criticals, reduction: response.reduction || 0, temporaryArmor: response.temporaryArmor || 0, effects: [...pending.effects, ...(pending.attackEffectsByTarget?.[targetId] || [])], finalDamage: pending.finalDamage, ignoreArmor:pending.ignoreArmor, ignoreEvasion:pending.ignoreEvasion, irreducible:pending.irreducible, preventForcedMovement:response.preventForcedMovement, ...(pending.derived ? { derived: true, derivedActionId: pending.derivedActionId, derivedLineage: pending.derivedLineage, derivedSourceDigest: pending.derivedSourceDigest, fixedTargetId: pending.fixedTargetId, fixedDamage: pending.fixedDamage } : {}), ...(pending.breacherPush ? { breacherPush: true, breacherPushMultiplier: pending.breacherPushMultiplier, breacherAttackSuccess: pending.breacherAttackSuccess, breacherInitialDistance: pending.breacherInitialDistances?.[targetId] } : {}), ...(pending.actionPlanId ? { actionPlanId: pending.actionPlanId } : {}), });
           }
           if (pending.breacherWeaken) operations.push({ kind: "effect", targetId: pending.actorId, sourceActorId: pending.actorId, effect: "negative.ослаблен", ruleId: "powerhouse.breacher.2", sourceActionId: pending.sourceActionId, duration: "default" });
           for(const tail of s.afterAttack||[]){
@@ -4561,11 +4566,29 @@
       legacyNotes: copy(l.legacyNotes || []),
     };
   }
+  function reactionOptions(scene, actorId) {
+    const pending = scene.pendingAction, target = actor(scene, actorId), source = actor(scene, pending?.actorId);
+    if (!pending?.lionwing || !pending.targetIds.includes(actorId) || pending.responses?.[actorId]?.choice !== "pending" || !live(target) || !live(source) || target.kind !== "hero" || target.profileId || effectActive(scene, target, "positive.исчез")) return [];
+    const defense = legacy.effectDefenseStatus?.(sceneWithActiveEffects(scene), actorId);
+    return [["take", "Принять", 0], ["block", "Блок", 2], ["dodge", "Уворот", 2], ["clash", "Столкновение", 2]].map(([id, name, cost]) => {
+      const reason = id === "dodge" && defense?.dodgeAllowed === false ? defense.dodgeReason : !canSpend(target, "focus", cost) ? "Недостаточно Фокуса" : "";
+      return { id, name, costModel: { amount: cost, resource: cost ? "focus" : null }, available: !reason, reason };
+    });
+  }
+  function lionwingPendingActionStatus(scene) {
+    const pending = scene.pendingAction, targets = pending?.targetIds || [];
+    const eligibleIds = targets.filter(id => live(actor(scene, id)) && !effectActive(scene, actor(scene, id), "positive.исчез"));
+    const pendingIds = eligibleIds.filter(id => pending.responses?.[id]?.choice === "pending");
+    const autoPassedIds = pendingIds.filter(id => { const target = actor(scene, id); return target.kind !== "hero" || Boolean(target.profileId); });
+    const waitingIds = pendingIds.filter(id => !autoPassedIds.includes(id));
+    const mustCancel = Boolean(pending && (!eligibleIds.length || !live(actor(scene, pending.actorId))));
+    return { exists: Boolean(pending), pending, targetIds: targets, eligibleIds, waitingIds, autoPassedIds, answeredIds: eligibleIds.filter(id => !waitingIds.includes(id)), unavailableIds: targets.filter(id => !eligibleIds.includes(id)), canResolve: Boolean(pending && !mustCancel && !waitingIds.length), mustCancel, interruptedReason: mustCancel ? "Источник или все цели недоступны" : "" };
+  }
   const api = {
     schema: 2, isScene, prepare, command, dispatchMany, replay, undo, reload, previewEvents, prepareEntityRemoval, cancelEntityRemoval, removeEntity, destroyEntity: removeEntity,
     combatMeter: combatMeter ? { read: (scene, id) => combatMeter.read(scene, id), quote: (scene, id, change) => combatMeter.quote(scene, id, change) } : null,
     turnStartStatus, roundEndStatus, turnIdentity, followupStatus, pendingFollowups,
-    movement, roll, actionStatus, actionGate, actionDef, speed, maxHealth, balance, canSpend, resourceQuote, targetIds, costQuote, detectiveMovementStatus, prepareDetectiveTeleport,
+    movement, roll, actionStatus, actionGate, actionDef, speed, maxHealth, balance, canSpend, resourceQuote, targetIds, costQuote, detectiveMovementStatus, prepareDetectiveTeleport, reactionOptions,
     createDiceRoll, createRoll: createDiceRoll, diceCreate: createDiceRoll,
     applyDiceRoll, applyRoll: applyDiceRoll, diceApply: applyDiceRoll,
     reloadDiceRoll, reloadRoll: reloadDiceRoll, diceReload: reloadDiceRoll,
@@ -4592,12 +4615,8 @@
   route("effectiveActorSpeed", (scene, id) => sceneSpeed(scene,requiredActor(scene, id, false)));
   route("effectiveActorMaxHealth", (scene, id) => maxHealth(requiredActor(scene, id, false)));
   route("effectiveActorStats", (scene, id) => effectiveStats(scene, requiredActor(scene, id, false)));
-  route("pendingActionStatus", scene => {
-    const pending = scene.pendingAction, targets = pending?.targetIds || [];
-    const eligibleIds = targets.filter(id => live(actor(scene, id)) && !effectActive(scene,actor(scene,id), "positive.исчез"));
-    const waitingIds = eligibleIds.filter(id => pending.responses[id]?.choice === "pending");
-    return { eligibleIds, waitingIds, answeredIds: eligibleIds.filter(id => !waitingIds.includes(id)), unavailableIds: targets.filter(id => !eligibleIds.includes(id)), mustCancel: Boolean(pending && !eligibleIds.length), interruptedReason: "Все цели недоступны" };
-  });
+  route("pendingActionStatus", (scene, data) => scene.pendingAction?.lionwing ? lionwingPendingActionStatus(scene) : legacy.pendingActionStatus(sceneWithActiveEffects(scene), data));
+  route("reactionOptions", (scene, data, id) => scene.pendingAction?.lionwing ? reactionOptions(scene, id) : legacy.reactionOptions(sceneWithActiveEffects(scene), data, id));
   // Canonical LionWing NPC profiles are read through the shared enemy rule
   // adapter.  Keep the public query on the routed engine so the GM panel can
   // choose a profile action and see its validated automation status.
@@ -4622,7 +4641,7 @@
     })),
   });
   route("effectiveEffects", (scene, actorId) => sceneWithActiveEffects(scene).actors.find(participant => participant.id === actorId)?.effects || []);
-  for(const name of ["effectStatus","effectExpiryStatus","effectPresenceStatus","effectTargetingStatus","effectMovementStatus","effectCellOccupancyStatus","effectAttackStatus","effectDefenseStatus","attackModifierStatus","attackModifierDestinationStatus","displacementStatus","movementPath","pendingTargetOutcome","reactionOptions","spatialShapeStatus","targetStatus","terrainStatus","topologyStatus","topologyStepDestination"]){
+  for(const name of ["effectStatus","effectExpiryStatus","effectPresenceStatus","effectTargetingStatus","effectMovementStatus","effectCellOccupancyStatus","effectAttackStatus","effectDefenseStatus","attackModifierStatus","attackModifierDestinationStatus","displacementStatus","movementPath","pendingTargetOutcome","spatialShapeStatus","targetStatus","terrainStatus","topologyStatus","topologyStepDestination"]){
     if(typeof legacy[name]==="function")route(name,(scene,...args)=>legacy[name](sceneWithActiveEffects(scene),...args));
   }
   route("projectScene",(scene,viewer={})=>{

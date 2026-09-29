@@ -12,28 +12,30 @@
   const statusFallbacks = Object.freeze({
     ru: Object.freeze({
       "manual.label": "Ручной режим",
-      "manual.detail": "Действие фиксируется через общий ручной конвейер.",
+      "manual.detail": "Автоматика для этого уровня ещё не подключена. Результат можно записать вручную.",
       "assisted.label": "Авто частично",
       "assisted.detail": "Автоматизируемая часть подключена; остальное остаётся решением Нарратора.",
       "automatic.label": "Автоматически",
       "automatic.detail": "Подключённый адаптер применяет эту часть правила через ядро.",
       "off.label": "Автоматизация выключена",
-      "off.detail": "Адаптер доступен в Пульте, но сейчас правило исполняется вручную.",
-      intro: "Текст EN — источник правила. Перевод показан отдельно; статус автоматизации не заменяет правило.",
+      "off.detail": "Автоматика доступна, но выключена для этого персонажа. Нарратор может включить её здесь.",
+      intro: "Включённые техники срабатывают при соответствующих действиях и событиях. Английский оригинал можно раскрыть под описанием.",
+      source: "Оригинал EN и источник",
       canonical: "Канон",
       adapter: "Адаптер",
       translation: "Русский перевод",
     }),
     en: Object.freeze({
       "manual.label": "Manual mode",
-      "manual.detail": "The action is recorded through the shared manual workflow.",
+      "manual.detail": "Automation is not connected for this level yet. You can record the result manually.",
       "assisted.label": "Partially automated",
       "assisted.detail": "The automatable part is connected; the Narrator decides the rest.",
       "automatic.label": "Automatic",
       "automatic.detail": "The connected adapter applies this part of the rule through the engine.",
       "off.label": "Automation off",
-      "off.detail": "The adapter is available in the Console, but the rule is currently handled manually.",
-      intro: "The EN text is the rule source. The translation is shown separately; automation status does not replace the rule.",
+      "off.detail": "Automation is available but turned off for this character. The Narrator can enable it here.",
+      intro: "Enabled techniques trigger through their corresponding actions and events. Expand the source below each description to inspect the original rule.",
+      source: "Original EN and source",
       canonical: "Canonical",
       adapter: "Adapter",
       translation: "Russian translation",
@@ -90,7 +92,16 @@
     return undefined;
   };
   const canonicalData = () => global.DAWN_LIONWING_DATA || { archetypes: [], editionId: "unknown", locale: "en" };
-  const displayArchetypes = () => {
+  const displayArchetypes = (options = {}) => {
+    if (localeOf(options) === "en") return canonicalData().archetypes || [];
+    const overlay = global.DAWN_LIONWING_RU;
+    if (overlay?.editionId === canonicalData().editionId) return (canonicalData().archetypes || []).map(archetype => {
+      const translation = overlay.archetypes?.[archetype.id];
+      return { ...archetype, name: translation?.name || archetype.name, techniques: (archetype.techniques || []).map(technique => {
+        const translated = translation?.techniques?.[technique.id];
+        return { ...technique, name: translated?.name || technique.name, levels: (technique.levels || []).map(level => ({ ...level, ...(translated?.levels?.[level.n] || {}) })) };
+      }) };
+    });
     try {
       if (typeof activeArchetypes === "function") {
         const result = activeArchetypes();
@@ -105,12 +116,12 @@
     const source = known && Object.keys(known).length ? known : actor?.techniques;
     return Number(source?.[techniqueId] || 0);
   };
-  const displayTechniqueMap = () => new Map(displayArchetypes().flatMap(archetype => (archetype.techniques || []).map(technique => [technique.id, technique])));
+  const displayTechniqueMap = options => new Map(displayArchetypes(options).flatMap(archetype => (archetype.techniques || []).map(technique => [technique.id, technique])));
   const canonicalTechniqueMap = () => new Map((canonicalData().archetypes || []).flatMap(archetype => (archetype.techniques || []).map(technique => [technique.id, technique])));
 
-  function entriesFor(actor) {
+  function entriesFor(actor, options = {}) {
     if (!actor) return [];
-    const displays = displayTechniqueMap();
+    const displays = displayTechniqueMap(options);
     return (canonicalData().archetypes || []).flatMap(archetype => (archetype.techniques || []).flatMap(technique => {
       const level = knownLevel(actor, technique.id);
       if (level < 1) return [];
@@ -219,9 +230,9 @@
       detail = copy("off.detail", { locale });
     }
     const reason = canonicalStatusReason(entry, { locale });
-    if (reason) detail = reason;
     const choices = visibleChoices(scene, viewer).filter(choice => choice.kind === "technique-trigger" && choice.context?.ruleId === entry.id);
     const receipt = [...(scene?.log || [])].reverse().find(event => {
+      if (event?.type === "automation.configure") return false;
       const payload = event?.payload || {};
       return (payload.ruleId || payload.techniqueRuleId || payload.sourceRuleId) === entry.id && (!event.actorId || event.actorId === actor?.id);
     }) || null;
@@ -314,7 +325,7 @@
   function modelFor(scene, actorOrId, options = {}) {
     const actor = typeof actorOrId === "string" ? actorById(scene, actorOrId) : actorOrId;
     const viewer = viewerFor(scene, options.viewer);
-    const entries = entriesFor(actor);
+    const entries = entriesFor(actor, options);
     const adapters = adapterRows(actor);
     const actions = actionStatuses(scene, actor);
     const locale = localeOf(options);
@@ -344,7 +355,7 @@
   function receiptLabel(receipt) {
     if (!receipt) return "";
     const payload = receipt.payload || {};
-    const kind = receipt.type === "rule.activated" ? "сработало" : receipt.type === "rule.completed" ? "завершено" : receipt.type === "technique.resolve" ? "применено" : "записано";
+    const kind = receipt.type === "rule.activated" ? "сработало" : receipt.type === "rule.completed" ? "завершено" : ["technique.resolve", "effect.apply"].includes(receipt.type) ? "применено" : "записано";
     return "Последнее: " + kind + (payload.outcome ? " · " + payload.outcome : "");
   }
 
@@ -487,19 +498,29 @@
   }
 
   function renderManualControls(entry, status, actor, model) {
-    const shouldShow = status.state === "manual" || status.state === "off" || model.viewer.role === "narrator" || model.viewer.role === "gm";
+    const shouldShow = status.state === "manual" || status.state === "off" || ["owner", "narrator", "gm"].includes(model.viewer.role);
     if (!shouldShow) return "";
     const label = status.state === "automatic" || status.state === "assisted" ? "Применить вручную" : "Зафиксировать вручную";
     const disabled = model.manual.available ? "" : " disabled";
     const title = model.manual.reason || "Сохранить источник и решение в журнале";
     const selectedTargets = (model.scene?.targetIds || []).map(id => actorById(model.scene, id)?.name || id).filter(Boolean);
     const targetHint = selectedTargets.length ? "Цели на поле: " + selectedTargets.join(", ") : "Цели выберите на поле; заметка сохранит остальные детали.";
-    return "<div class=\"lw-technique-manual\"><label>Заметка Нарратора<input data-lw-technique-note maxlength=\"500\" placeholder=\"Итог или выбранные цели\"></label><button type=\"button\" data-lw-technique-manual data-lw-technique-id=\"" + escapeHtml(entry.id) + "\" data-lw-actor=\"" + escapeHtml(actor.id) + "\"" + disabled + " title=\"" + escapeHtml(title) + "\">" + label + "</button><small>" + escapeHtml(targetHint) + "</small>" + (model.manual.available ? "" : "<small>" + escapeHtml(title) + "</small>") + "</div>";
+    return "<details class=\"lw-technique-manual-panel\"><summary>Записать результат вручную</summary><div class=\"lw-technique-manual\"><label>Заметка Нарратора<input data-lw-technique-note maxlength=\"500\" placeholder=\"Итог или выбранные цели\"></label><button type=\"button\" data-lw-technique-manual data-lw-technique-id=\"" + escapeHtml(entry.id) + "\" data-lw-actor=\"" + escapeHtml(actor.id) + "\"" + disabled + " title=\"" + escapeHtml(title) + "\">" + label + "</button><small>" + escapeHtml(targetHint) + "</small>" + (model.manual.available ? "" : "<small>" + escapeHtml(title) + "</small>") + "</div></details>";
+  }
+
+  function renderRuleSource(entry, adapterSource, locale, reason = "") {
+    return "<details class=\"lw-technique-original lw-technique-translation\"><summary>" + escapeHtml(copy("source", { locale })) + "</summary>" +
+      "<small class=\"lw-technique-source\">" + escapeHtml(copy("canonical", { locale })) + ": " + escapeHtml(sourceLabel(entry.canonicalSource)) + "</small>" +
+      adapterSource + "<p class=\"lw-technique-canonical\"><b>EN:</b> " + escapeHtml(entry.canonicalText) + "</p>" + (reason ? "<p>" + escapeHtml(reason) + "</p>" : "") + "</details>";
+  }
+
+  function renderAutomationControls(status, actor, model) {
+    if (!["owner", "narrator", "gm"].includes(model.viewer.role)) return "";
+    return status.rows.map(row => "<button type=\"button\" data-lw-automation=\"" + escapeHtml(row.id) + "\" data-lw-actor=\"" + escapeHtml(actor.id) + "\" data-lw-enabled=\"" + (!row.enabled) + "\">" + (row.enabled ? "Выключить автоматику" : "Включить автоматику") + "</button>").join("");
   }
 
   function renderLevel(item, actor, model) {
     const entry = item.entry, status = item.status;
-    const translated = entry.displayText !== entry.canonicalText || entry.displayLevelName !== entry.canonicalLevelName;
     const offer = status.offer;
     const offerLabels = offer?.context?.optionLabels || {};
     const optionText = offer ? (offer.options || []).map(option => offerLabels[option] || option).join(" · ") : "";
@@ -509,12 +530,10 @@
     const adapterSource = adapterDigests.length ? "<small class=\"lw-technique-source\">" + escapeHtml(copy("adapter", { locale: model.locale })) + ": " + escapeHtml(adapterDigests.join(" · ")) + "</small>" : "";
     return "<article class=\"lw-technique-level\" data-lw-technique-level=\"" + escapeHtml(entry.id) + "\">" +
       "<header><strong>" + escapeHtml(entry.level + ". " + (entry.displayLevelName || entry.canonicalLevelName)) + "</strong><span class=\"lw-technique-status " + escapeHtml(status.state) + "\">" + escapeHtml(status.label) + "</span></header>" +
-      "<small class=\"lw-technique-source\">" + escapeHtml(copy("canonical", { locale: model.locale })) + ": " + escapeHtml(sourceLabel(entry.canonicalSource)) + "</small>" +
-      adapterSource +
-      "<p class=\"lw-technique-canonical\"><b>EN:</b> " + escapeHtml(entry.canonicalText) + "</p>" +
-      (translated ? "<details class=\"lw-technique-translation\"><summary>" + escapeHtml(copy("translation", { locale: model.locale })) + "</summary><p>" + escapeHtml(entry.displayText) + "</p></details>" : "") +
+      "<p class=\"lw-technique-description lw-technique-canonical\">" + escapeHtml(entry.displayText) + "</p>" +
+      renderRuleSource(entry, adapterSource, model.locale, status.reason) +
       "<p class=\"lw-technique-automation\"><b>" + escapeHtml(status.label) + ":</b> " + escapeHtml(status.detail) + (status.receipt ? " · " + escapeHtml(receiptLabel(status.receipt)) : "") + "</p>" +
-      offerHtml + renderManualControls(entry, status, actor, model) + "</article>";
+      renderAutomationControls(status, actor, model) + offerHtml + renderManualControls(entry, status, actor, model) + "</article>";
   }
 
   function openPreference(key, fallback) {
@@ -540,33 +559,32 @@
     const activeCount = model.statuses.filter(item => ["automatic", "assisted"].includes(item.status.state)).length;
     const offerCount = model.offers.length;
     const directActions = (options.actions || []).map(item => operationAction(scene, model.actor, item));
-    const groupHtml = [...groups.values()].map((group, index) => {
-      const heading = group.name + (group.canonicalName !== group.name ? " · " + group.canonicalName : "") + (group.previousName ? " · ранее: " + group.previousName : "");
-      return "<details class=\"lw-technique-group\" data-lw-technique-group=\"" + escapeHtml(group.techniqueId) + "\"" + (openPreference(group.techniqueId, index === 0 || group.levels.some(item => item.status.offer)) ? " open" : "") + "><summary><strong>" + escapeHtml(heading) + "</strong><small>" + group.levels.length + " Уров." + (group.levels.some(item => item.status.offer) ? " · есть решение" : "") + "</small></summary><div>" + group.levels.map(item => renderLevel(item, model.actor, model)).join("") + "</div></details>";
+    const groupHtml = [...groups.values()].map(group => {
+      return "<details class=\"lw-technique-group\" data-lw-technique-group=\"" + escapeHtml(group.techniqueId) + "\"" + (openPreference(group.techniqueId, group.levels.some(item => item.status.offer)) ? " open" : "") + "><summary><strong>" + escapeHtml(group.name) + "</strong><small>" + group.levels.length + " Уров." + (group.levels.some(item => item.status.offer) ? " · есть решение" : "") + "</small></summary><div>" + group.levels.map(item => renderLevel(item, model.actor, model)).join("") + "</div></details>";
     }).join("");
     const outerOpen = offerCount > 0 || openPreference("surface:" + model.actor.id, false);
     const intro = "<p class=\"lw-technique-intro\">" + escapeHtml(copy("intro", { locale: model.locale })) + "</p>";
     const actionHtml = directActions.length ? "<div class=\"lw-technique-action-list\" aria-label=\"Действия Техник\">" + directActions.map(action => renderActionControl(action, { canRespond: model.manual.available })).join("") + "</div>" : "";
-    return "<details class=\"lw-technique-surface\" data-lw-technique-surface data-lw-technique-actor=\"" + escapeHtml(model.actor.id) + "\"" + (outerOpen ? " open" : "") + "><summary><strong>Техники · " + model.entries.length + "</strong><small>" + activeCount + " подключено" + (offerCount ? " · " + offerCount + " требует решения" : "") + "</small></summary>" + intro + actionHtml + renderActionShelf(model.actions, model.actionSummary) + "<div class=\"lw-technique-groups\">" + groupHtml + "</div></details>";
+    return "<details class=\"lw-technique-surface\" data-lw-technique-surface data-lw-technique-actor=\"" + escapeHtml(model.actor.id) + "\"" + (outerOpen ? " open" : "") + "><summary><strong>Техники · " + model.entries.length + "</strong><small>Автоматика включена: " + activeCount + "/" + model.entries.length + (offerCount ? " · " + offerCount + " требует решения" : "") + "</small></summary>" + intro + actionHtml + renderActionShelf(model.actions, model.actionSummary) + "<div class=\"lw-technique-groups\">" + groupHtml + "</div></details>";
   }
 
   function pendingHtml(choice, options = {}) {
     const scene = options.scene || currentScene(), actor = actorById(scene, choice?.actorId), viewer = viewerFor(scene, options.viewer);
     const canRespond = options.canRespond !== undefined ? Boolean(options.canRespond) : ["owner", "narrator", "gm"].includes(viewer.role) || viewer.actorId === choice?.actorId;
-    const entry = entryForId(actor, choice?.context?.ruleId);
+    const locale = localeOf(options), entry = entriesFor(actor, { locale }).find(item => item.id === choice?.context?.ruleId);
     const labels = choice?.context?.optionLabels || {};
     const optionsHtml = (choice?.options || []).map(option => {
       const label = labels[option] || option;
       const cancel = cancellationSuffix(option, label);
       return "<button type=\"button\" data-lw-technique-action=\"true\" data-lw-technique-choice=\"true\" data-lw-choice=\"" + escapeHtml(option) + "\" data-lw-choice-id=\"" + escapeHtml(choice.id) + "\" data-lw-actor=\"" + escapeHtml(choice.actorId) + "\"" + (canRespond ? "" : " disabled") + ">Проверить: " + escapeHtml(label + cancel) + "</button>";
     }).join("");
-    const source = entry ? "<small class=\"lw-technique-source\">Канон: " + escapeHtml(sourceLabel(entry.canonicalSource)) + "</small>" : "";
-    const canonical = entry ? "<p class=\"lw-technique-canonical\"><b>EN:</b> " + escapeHtml(entry.canonicalText) + "</p>" : "";
+    const description = entry ? "<p class=\"lw-technique-description lw-technique-canonical\">" + escapeHtml(entry.displayText) + "</p>" : "";
     const details = [choiceTargets(choice, scene), choiceVariant(choice)].filter(Boolean).join(" · ");
     const wait = canRespond ? "<div class=\"button-row\">" + optionsHtml + "</div>" : "<p>Ожидается решение владельца героя.</p>";
     const digests = [...new Set([choice.context?.sourceDigest, ...(choice.options || []).flatMap(option => operationSourceDigests(operationList({ choice, option })))].filter(Boolean))];
     const digestHtml = digests.length ? "<small class=\"lw-technique-source\">Источник адаптера: " + escapeHtml(digests.join(" · ")) + "</small>" : "";
-    return "<section class=\"lw-pending lw-technique-offer\" data-lw-technique-offer=\"" + escapeHtml(choice.id) + "\"><header><strong>" + escapeHtml(actor?.name || "Участник") + ": " + escapeHtml(choice.title || "Сработала Техника") + "</strong><span>Срок: " + escapeHtml(deadline(choice, scene)) + "</span></header>" + source + digestHtml + canonical + (details ? "<p><b>" + escapeHtml(details) + "</b></p>" : "") + "<p><b>Причина доступности:</b> " + escapeHtml(canRespond ? "решение принадлежит текущему участнику" : "ожидается решение владельца") + "</p><p><b>Стоимость:</b> " + escapeHtml(formatCosts(operationCosts(choice))) + "</p>" + wait + "<div data-lw-technique-preview-host></div></section>";
+    const source = entry ? renderRuleSource(entry, digestHtml, locale) : digestHtml;
+    return "<section class=\"lw-pending lw-technique-offer\" data-lw-technique-offer=\"" + escapeHtml(choice.id) + "\"><header><strong>" + escapeHtml(actor?.name || "Участник") + ": " + escapeHtml(choice.title || "Сработала Техника") + "</strong><span>Срок: " + escapeHtml(deadline(choice, scene)) + "</span></header>" + description + source + (details ? "<p><b>" + escapeHtml(details) + "</b></p>" : "") + "<p><b>Причина доступности:</b> " + escapeHtml(canRespond ? "решение принадлежит текущему участнику" : "ожидается решение владельца") + "</p><p><b>Стоимость:</b> " + escapeHtml(formatCosts(operationCosts(choice))) + "</p>" + wait + "<div data-lw-technique-preview-host></div></section>";
   }
 
   function dispatchOnce(key, action) {
@@ -686,10 +704,10 @@
       }
     }, true);
     global.document.addEventListener("toggle", event => {
-      const details = event.target.closest?.("[data-lw-technique-surface], [data-lw-technique-group]");
-      if (!details) return;
+      const details = event.target;
+      if (!details.matches?.("[data-lw-technique-surface], [data-lw-technique-group]")) return;
       try {
-        const key = details.dataset.lwTechniqueSurface ? "surface:" + details.dataset.lwTechniqueActor : details.dataset.lwTechniqueGroup;
+        const key = details.hasAttribute("data-lw-technique-surface") ? "surface:" + details.dataset.lwTechniqueActor : details.dataset.lwTechniqueGroup;
         global.localStorage?.setItem("dawn-lionwing-techniques:" + key, details.open ? "1" : "0");
       } catch {}
     }, true);

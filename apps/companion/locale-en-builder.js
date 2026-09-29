@@ -4,14 +4,15 @@
 // does not expose English in the public locale selector or change saved heroes.
 window.DAWN_I18N?.registerLocale("en", {
   "lionwing.technique.automation.manual.label": "Manual mode",
-  "lionwing.technique.automation.manual.detail": "The action is recorded through the shared manual workflow.",
+  "lionwing.technique.automation.manual.detail": "Automation is not connected for this level yet. You can record the result manually.",
   "lionwing.technique.automation.assisted.label": "Partially automated",
   "lionwing.technique.automation.assisted.detail": "The automatable part is connected; the Narrator decides the rest.",
   "lionwing.technique.automation.automatic.label": "Automatic",
   "lionwing.technique.automation.automatic.detail": "The connected adapter applies this part of the rule through the engine.",
   "lionwing.technique.automation.off.label": "Automation off",
-  "lionwing.technique.automation.off.detail": "The adapter is available in the Console, but the rule is currently handled manually.",
-  "lionwing.technique.automation.intro": "The EN text is the rule source. The translation is shown separately; automation status does not replace the rule.",
+  "lionwing.technique.automation.off.detail": "Automation is available but turned off for this character. The Narrator can enable it here.",
+  "lionwing.technique.automation.intro": "Enabled techniques trigger through their corresponding actions and events. Expand the source below each description to inspect the original rule.",
+  "lionwing.technique.automation.source": "Original EN and source",
   "lionwing.technique.automation.canonical": "Canonical",
   "lionwing.technique.automation.adapter": "Adapter",
   "lionwing.technique.automation.translation": "Russian translation",

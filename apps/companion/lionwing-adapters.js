@@ -8,9 +8,9 @@
   const lionwing = actor => actor?.rulesEdition === "lionwing";
   const knows = (actor, techniqueId, level) => lionwing(actor) && Number((actor.knownTechniques ?? actor.techniques)?.[techniqueId] || 0) >= level;
   const distance = (a, b) => a?.space === b?.space ? Math.abs(Number(a?.x || 0) - Number(b?.x || 0)) + Math.abs(Number(a?.y || 0) - Number(b?.y || 0)) : Infinity;
-  const passive = ({ id, label, sourceDigest, rollBonus, statBonus, statMinimum, rangeBonus, numeric, boundaryOperations, inventoryOperations, resourceGainStatus, actionStatus, triggerKey, match, operations = [], choices = [], choiceSet = false, maximumLevel = null, coverage = "full" }) => {
+  const passive = ({ id, label, sourceDigest, rollBonus, statBonus, statMinimum, rangeBonus, numeric, attackEffects, boundaryOperations, inventoryOperations, resourceGainStatus, actionStatus, triggerKey, match, operations = [], choices = [], choiceSet = false, maximumLevel = null, coverage = "full" }) => {
     const techniqueId = id.replace(/\.\d+$/, ""), level = Number(id.match(/\.(\d+)$/)?.[1] || 0);
-    return Object.freeze({ id, techniqueId, level, label, sourceDigest, coverage, available: actor => knows(actor, techniqueId, level) && (maximumLevel == null || Number((actor.knownTechniques ?? actor.techniques)?.[techniqueId] || 0) <= maximumLevel), rollBonus, statBonus, statMinimum, rangeBonus, numeric, boundaryOperations, inventoryOperations, resourceGainStatus, actionStatus, triggerKey, match, operations, choices, choiceSet });
+    return Object.freeze({ id, techniqueId, level, label, sourceDigest, coverage, available: actor => knows(actor, techniqueId, level) && (maximumLevel == null || Number((actor.knownTechniques ?? actor.techniques)?.[techniqueId] || 0) <= maximumLevel), rollBonus, statBonus, statMinimum, rangeBonus, numeric, attackEffects, boundaryOperations, inventoryOperations, resourceGainStatus, actionStatus, triggerKey, match, operations, choices, choiceSet });
   };
   const actionBonus = (actionId, amount = 1) => (_actor, context) => context?.kind === "attack" && context.actionId === actionId ? amount : 0;
   const attackIds = new Set(["action.атаки.заклинание", "action.атаки.завершение", "action.атаки.стычка"]);
@@ -43,6 +43,7 @@
   };
   const usesWeaponTechnique = (actor, context = {}) => trustedTechniqueTags(actor, context).has("weapon");
   const ACTIONS = Object.freeze({
+    spell: "action.атаки.заклинание",
     skirmish: "action.атаки.стычка",
     finish: "action.атаки.завершение",
     duel: "action.атаки.дуэль",
@@ -929,6 +930,12 @@
     passive({ id: "ruiner.feral-arcana.3", label: "Дикий арканист III: +1 Преимущество к Заклинаниям (пассивная часть)", sourceDigest: "9f6cfdd94da5ecb8aae12c24b3602fc117b2890191d51dabd3eb6d89a3b83df3", coverage: "partial", rollBonus: actionBonus("action.атаки.заклинание") }),
     passive({ id: "ruiner.flame-heart.3", label: "Пламенное сердце III: +1 Преимущество к Заклинаниям и дальность Духовного Завершения 5 (пассивная часть)", sourceDigest: "4896f18d23e7ba4de201859ecfb76d46c7049c32e532747831b973b2d75c6d29", coverage: "partial", rollBonus: actionBonus("action.атаки.заклинание"), numeric: (_actor, context) => context?.key === "range" && context.kind === "attack" && context.actionId === ACTIONS.finish && context.attribute === "spirit" ? { operation: "min", amount: 5, reason: "Пламенное сердце III даёт Духовному Завершению дальность 5." } : [] }),
     passive({ id: "ruiner.flame-heart.2", label: "Пламенное сердце II: +[Напряжение] Преимущества к магической Атаке в Порче (пассивная часть)", sourceDigest: "2259304d1ba4a37ae5e0850fa66ffcba7b9b70b1ce544d02f97fcbd6472809c2", coverage: "partial", rollBonus: (_actor, context) => context?.kind === "attack" && context.sourceEffectIds?.includes("negative.порчен") && (context.actionId === "action.атаки.заклинание" || context.actionId === "action.атаки.завершение" && context.attribute === "spirit") ? Number(context.tension || 0) : 0 }),
+    passive({
+      id: "ruiner.cryomancer.1", label: "Криомант I: успешное Заклинание замедляет цели",
+      sourceDigest: "604e45fc7a8fadb9fbe5fdad4a5e8981a97d1aabc01388a92d3e94b291fdd204",
+      attackEffects: (_actor, context) => context?.actionId === ACTIONS.spell && Number(context.successes) > 0
+        ? [{ effect: "negative.замедлен" }] : [],
+    }),
     passive({ id: "ruiner.cryomancer.2", label: "Ледяной покров II: +1 Преимущество к Заклинаниям и Сосулька", sourceDigest: "32667d8918127c1729dc39430bde0375999651854e06e8cd599d91b7fcd14f30", coverage: "partial", rollBonus: actionBonus("action.атаки.заклинание"), boundaryOperations: (actor, context) => context?.boundary === "sceneStart" ? clockConfiguration(actor, "ruiner.cryomancer.icicle", "Сосулька", 4, { ruleId: "ruiner.cryomancer.2" }) : [] }),
     passive({ id: "ruiner.sellsword-s-call.1", label: "Зов мечника I: +2 Преимущества к Заклинаниям (пассивная часть)", sourceDigest: "712c5d75aebe965eb606cb4b930e141138c87dd24cb14804cd367a1904d5c283", coverage: "partial", rollBonus: actionBonus("action.атаки.заклинание", 2) }),
     passive({ id: "vagabond.skirmisher.3", label: "Застрельщик III: +1 Преимущество к Стычкам (пассивная часть)", sourceDigest: "4933347df61d45014a553af1c97f078e20ee677081e433464ba9c96726513c61", coverage: "partial", rollBonus: actionBonus("action.атаки.стычка") }),
@@ -1378,6 +1385,12 @@
   // One deterministic read-only pipeline for every numeric value. Existing
   // stat/range/roll hooks are projected into it, while future adapters may
   // return typed operations without changing the engine again.
+  // The kernel supplies the verified roll result. These secondary effects stay
+  // attached to the Attack until its defenses resolve, so full Evasion ignores
+  // them together with the Attack's other secondary effects.
+  const attackEffects = (actor, context = {}) => enabled(actor).flatMap(rule =>
+    (rule.attackEffects?.(actor, context) || []).map(effect => ({ ...effect, ruleId: rule.id, sourceDigest: rule.sourceDigest, sourceActionId: rule.id }))
+  );
   const numericOperations = new Set(["replace", "multiply", "add", "min", "max"]);
   const normalizeNumericOperation = value => {
     if (value == null) return [];
@@ -1485,6 +1498,7 @@
     replacements: (actor, original) => enabled(actor).flatMap(rule => rule.replacements?.(actor, original) || []),
     afterEffect: (actor, original) => enabled(actor).flatMap(rule => rule.afterEffect?.(actor, original) || []),
     afterEvent,
+    attackEffects,
     lifecycle,
     rollBonuses: (actor, context = {}) => numericContributions(actor, "rollBonus", context),
     rollBonus: (actor, context = {}) => numericContributions(actor, "rollBonus", context).reduce((sum, item) => sum + item.amount, 0),

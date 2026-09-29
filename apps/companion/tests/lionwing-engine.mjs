@@ -82,7 +82,7 @@ let jumper=fixture();jumper.actors[1].x=5;jumper.objects=[{id:"mud",type:"diffic
 let blockedJump=fixture();blockedJump.actors[1].x=5;blockedJump.objects=[{id:"wall",type:"terrain",space:"main",cells:["2,1"]}];blockedJump=run(blockedJump,"h",{kind:"turn-start"});assert.equal(lw.prepare(blockedJump,{actorId:"h",kind:"action",actionId:ids.jump,destination:{x:3,y:1}}).ok,false,"Jump still respects blocking terrain");
 
 s=fixture();s.actors[1].x=2;s=run(s,"h",{kind:"turn-start"});s=prepare(s,"h",{kind:"action",actionId:ids.skirmish,targetIds:["e"]});assert.ok(s.pendingAction);assert.equal(s.actors[0].ap,2);
-throws(s,"h",{kind:"resolve-attack"},/Реакций/);
+assert.equal(engine.pendingActionStatus(s).canResolve,true,"NPCs without defenses do not require an acknowledgement");
 s=run(s,"e",{kind:"reaction",choice:"take"});s=run(s,"h",{kind:"resolve-attack"});assert.equal(s.pendingAction,null);assert.equal(s.actors[1].hp,16);
 
 s=fixture();s=run(s,"h",{kind:"turn-start"});s=run(s,"h",{kind:"effect",effect:"positive.укреплен"});s=run(s,"h",{kind:"turn-end"});assert.ok(s.actors[0].effects.includes("positive.укреплен"));
@@ -256,7 +256,7 @@ s=fixture();s.actors[1].armor=10;s.actors[1].evasion=10;
 s=run(s,"h",{kind:"attack",targetIds:["e"],amount:5,ignoreArmor:true,ignoreEvasion:true});
 s=run(JSON.parse(JSON.stringify(s)),"e",{kind:"reaction",choice:"take"});s=run(s,"h",{kind:"resolve-attack"});assert.equal(s.actors[1].hp,15);assert.equal(s.actors[1].evasion,10);
 // Dodge suppresses forced movement in the same manual attack package.
-s=fixture();s=run(s,"h",{kind:"batch",operations:[{kind:"attack",targetIds:["e"],amount:1},{kind:"move",targetId:"e",forced:true,destination:{x:4,y:1},maximum:2}]});
+s=fixture();s.actors[1].kind="hero";s.actors[1].heroId="e";s=run(s,"h",{kind:"batch",operations:[{kind:"attack",targetIds:["e"],amount:1},{kind:"move",targetId:"e",forced:true,destination:{x:4,y:1},maximum:2}]});
 s=run(s,"e",{kind:"reaction",choice:"dodge",destination:{x:3,y:2}});s=run(s,"h",{kind:"resolve-attack"});assert.equal(s.actors[1].x,3);assert.equal(s.actors[1].y,2);assert.ok(s.log.some(e=>e.type==="movement.prevented"));
 // A manual modifier can be removed without changing its base statistic.
 s=fixture();s=run(s,"h",{kind:"modifier",stat:"armor",amount:3,duration:"manual"});s=run(s,"h",{kind:"modifier",stat:"armor",remove:true});assert.equal(s.actors[0].armor,0);assert.equal(s.actors[0].lionwing.modifiers.length,0);
