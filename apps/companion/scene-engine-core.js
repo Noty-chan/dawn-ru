@@ -50,6 +50,20 @@ const EFFECT_LIFECYCLE = Object.freeze({
   "negative.пойман": Object.freeze({ duration: "default", sourceBound: true, removeWithSource: true }),
   "negative.спровоцирован": Object.freeze({ duration: "default", sourceBound: true, removeWithSource: true }),
 });
+function applyEnemyDeploymentPassive(scene, actor) {
+  const assassin = scene?.rulesEdition === "lionwing" && actor?.profileId === "lionwing.npc.assassin"
+    || scene?.rulesEdition !== "lionwing" && actor?.profileId === "enemy.common.assassin";
+  if (!assassin) return actor;
+  actor.effects ||= [];
+  if (!actor.effects.includes("positive.исчез")) actor.effects.push("positive.исчез");
+  actor.effectStates ||= {};
+  actor.effectStates["positive.исчез"] = {
+    duration: "actionOrStartTurn", removable: true,
+    appliedTurnSerial: Number(scene.turnSerial || 0), appliedRound: Number(scene.round || 1),
+    sources: [{ actorId: actor.id, actionId: `${actor.profileId}#passive`, eventId: "" }],
+  };
+  return actor;
+}
 const ACTOR_STATE_KEYS = new Set(["pugilistStance", "martialPerfection", "growth", "gluttonConsumed", "evasion", "armor", "imposingPresence", "enemyAim", "rangerHeadshotTargetId", "berserkerLastStand", "berserkerReactionTurnSerial", "executionerBifurcate", "revenantHollowedEyes", "healerGuardianId", "enemyCrowdMovement", "privateerGearChange", "roninSheathed", "grimTransformed", "grimUsed", "warringTransformed", "warringUsed", "lastCreationSpellMarks", "modifiedOverclockTurns", "icicleSpellsRemaining", "styleCarryRemaining", "timeStopUsed", "empathSupport", "masterArmament", "wispCreationUsed", "bodyguardsBrace"]);
 const clone = value => JSON.parse(JSON.stringify(value));
 const actorById = (scene, id) => (scene.actors || []).find(actor => actor.id === id) || null;

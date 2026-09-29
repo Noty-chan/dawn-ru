@@ -13,6 +13,13 @@ const scene = actors => ({ rulesEdition: "lionwing", version: 0, round: 2, turnS
 let sequence = 0;
 const commit = (current, events, opts = {}) => engine.dispatchMany(current, events.map(event => ({ ...event, id: event.id || `passive-${sequence++}` })), { expectedVersion: current.version, ...opts }).scene;
 const source = (current, id) => current.actors.find(item => item.id === id);
+const appCore = fs.readFileSync(new URL("../app-core.js", import.meta.url), "utf8");
+const deploymentStart = appCore.indexOf("function addEnemyDeploymentPassives");
+const deploymentEnd = appCore.indexOf("\nfunction validateTableEdit", deploymentStart);
+assert.ok(deploymentStart >= 0 && deploymentEnd > deploymentStart);
+const deploymentContext = { SceneEngine: engine };
+vm.createContext(deploymentContext);
+vm.runInContext(`${appCore.slice(deploymentStart, deploymentEnd)};this.addEnemyDeploymentPassives=addEnemyDeploymentPassives;`, deploymentContext);
 const resolveAttack = (current, prepared, label) => {
   let next = commit(current, prepared.events);
   if (next.pendingAction) {
@@ -23,6 +30,25 @@ const resolveAttack = (current, prepared, label) => {
   }
   return next;
 };
+
+// The Narrator's add-enemy control and the event-based spawn path both count
+// as Deployment. The Assassin must enter the board Disappeared in either case.
+const assassin = actor("assassin", "enemy", 2, 2, { profileId: "lionwing.npc.assassin" });
+const deployedAssassin = scene([assassin]);
+assert.equal(deploymentContext.addEnemyDeploymentPassives(deployedAssassin, assassin).length, 0);
+assert.ok(assassin.effects.includes("positive.исчез"), "the production add-enemy hook applies Assassin's deployment passive");
+assert.equal(assassin.effectStates["positive.исчез"]?.duration, "actionOrStartTurn");
+assert.equal(engine.effectPresenceStatus(deployedAssassin, assassin.id).onField, false, "the deployed Assassin is absent from the visible field");
+const spawnedAssassin = commit(scene([]), [{ type: "actor.spawn", actorId: null, payload: { actor: actor("spawned-assassin", "hero", 3, 3, { profileId: "lionwing.npc.assassin" }) } }]);
+assert.ok(source(spawnedAssassin, "spawned-assassin").effects.includes("positive.исчез"), "event-based allied Assassin deployment also applies the passive");
+const savedAssassin = context.window.DAWN_LIONWING_ENGINE.reload(JSON.stringify(spawnedAssassin));
+assert.ok(source(savedAssassin, "spawned-assassin").effects.includes("positive.исчез"), "deployment disappearance survives reload");
+const oldAssassin = actor("old-assassin", "enemy", 2, 2, { profileId: "enemy.common.assassin", rulesEdition: "ru-v0.9" });
+const oldEditionScene = { ...scene([oldAssassin]), rulesEdition: "ru-v0.9" };
+assert.equal(deploymentContext.addEnemyDeploymentPassives(oldEditionScene, oldAssassin).length, 0);
+assert.ok(oldAssassin.effects.includes("positive.исчез"), "RU 0.9 Assassin also Disappears through the production add-enemy hook");
+const spawnedOldAssassin = commit({ ...scene([]), rulesEdition: "ru-v0.9" }, [{ type: "actor.spawn", actorId: null, payload: { actor: actor("spawned-old-assassin", "enemy", 3, 3, { profileId: "enemy.common.assassin", rulesEdition: "ru-v0.9" }) } }]);
+assert.ok(source(spawnedOldAssassin, "spawned-old-assassin").effects.includes("positive.исчез"), "RU 0.9 event-based deployment also applies the passive");
 
 // Canonical LionWing turn/round passives enter through the same boundaries
 // used by the Scene UI; their state must survive reload and idempotent replay.
@@ -127,4 +153,4 @@ const nextTurnRepeat = engine.prepareEnemyRule(current, data, { actorId: "ronin"
 assert.equal(nextTurnRepeat.ok, false, "the canonical once-per-Round action gate remains separate from this passive");
 assert.doesNotThrow(() => engine.validateEvent(current, { ...duplicateTargetAttack, id: "fresh-turn-target", payload: { ...duplicateTargetAttack.payload } }, { narratorOverride: true }));
 
-console.log("LionWing Ronin Turn target passive checks passed");
+console.log("Enemy Assassin Deployment and Ronin Turn passive checks passed");

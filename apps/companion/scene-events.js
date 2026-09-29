@@ -1031,7 +1031,7 @@ function reduceEvent(scene, event) {
     Object.assign(payload, { label: status.label, size: status.size, before: status.value, value, appliedDelta: value - status.value, active: definition.active });
   } else if (event.type === "actor.spawn") {
     scene.actors ||= [];
-    scene.actors.push(clone(payload.actor));
+    scene.actors.push(applyEnemyDeploymentPassive(scene, clone(payload.actor)));
   } else if (event.type === "actor.despawn" && actor) {
     scene.actors = (scene.actors || []).filter(item => item.id !== actor.id);
     for (const owner of scene.actors || []) if (owner.ruleState?.rangerHeadshotTargetId === actor.id) owner.ruleState.rangerHeadshotTargetId = null;

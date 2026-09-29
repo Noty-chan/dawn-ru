@@ -278,6 +278,9 @@ const LIONWING_DEPLOYMENT_PASSIVES = new Map([
 
 function prepareEnemyDeployment(scene, actor) {
   const passive = LIONWING_DEPLOYMENT_PASSIVES.get(actor?.profileId);
+  if (scene?.rulesEdition === "lionwing" && actor?.profileId === "lionwing.npc.assassin"
+    || scene?.rulesEdition !== "lionwing" && actor?.profileId === "enemy.common.assassin")
+    return { ok: true, owner: applyEnemyDeploymentPassive(scene, clone(actor)), zones: [], errors: [] };
   if (scene?.rulesEdition !== "lionwing" || !passive || !actor || actor.deploymentProxy) return { ok: true, owner: actor, zones: [], errors: [] };
   const space = (scene.spaces || []).find(item => item.id === actor.space);
   if (!space || !Number.isInteger(Number(actor.x)) || !Number.isInteger(Number(actor.y))) return { ok: false, errors: ["Для Пассивa нужны координаты НПС на Поле."], owner: actor, zones: [] };
