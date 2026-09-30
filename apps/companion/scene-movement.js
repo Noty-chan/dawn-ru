@@ -44,7 +44,12 @@ function turnActionProgressStatus(scene, actorId) {
   const actor = actorById(scene, actorId);
   if (!actor) return { available: false, reason: "Участник не найден.", total: 0, used: 0, remaining: 0, currentAction: 0, readyToEnd: false, labels: [] };
   if (scene.activeActorId !== actor.id) return { available: false, reason: "Сейчас не Ход этого участника.", total: 0, used: 0, remaining: 0, currentAction: 0, readyToEnd: false, labels: [] };
-  const events = currentTurnEvents(scene, actor.id), base = Math.max(1, Number(actor.baseAp || (actor.team === "enemy" ? 2 : 3)));
+  const events = currentTurnEvents(scene, actor.id);
+  const lionwing = scene.rulesEdition === "lionwing";
+  // The Turn receipt includes passive bonuses and penalties. Reading remaining
+  // AP as the budget makes a Ronin lose a progress segment after its first action.
+  const start = lionwing && (scene.log || []).find(event => event.type === "turn.start" && event.actorId === actor.id);
+  const base = Math.max(0, Number(start?.payload?.ap ?? actor.baseAp ?? (lionwing || actor.team !== "enemy" ? 3 : 2)));
   const spent = events.filter(event => event.actorId === actor.id && event.type === "resource.spend" && event.payload?.resource === "ap" && !event.payload?.ignoredReason).reduce((sum, event) => sum + Math.max(0, Number(event.payload?.amount || 0)), 0);
   const gained = events.filter(event => event.actorId === actor.id && event.type === "resource.gain" && event.payload?.resource === "ap" && !event.payload?.ignoredReason).reduce((sum, event) => sum + Math.max(0, Number(event.payload?.amount || 0)), 0);
   const paidActions = events.filter(event => event.actorId === actor.id && ["action.prepare", "enemy.action.prepare", "technique.prepare"].includes(event.type) && !event.payload?.quick && !event.payload?.continuation).length;

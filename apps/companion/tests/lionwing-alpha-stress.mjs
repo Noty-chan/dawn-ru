@@ -153,6 +153,11 @@ assert.equal(scene.actors.find(item => item.id === "viper").ap, 2, "An NPC base 
 assert.ok(scene.actors.find(item => item.id === "hero").hp < heroBeforeEnemyAttack, "The Reaction window still resolves NPC base damage");
 scene = dispatch(scene, "viper", { kind: "turn-end" });
 
+assert.equal(scene.pendingPrompt?.kind, "fodder-move-select");
+assert.equal(LionWing.roundEndStatus(scene).available, false, "Round cannot bypass a pending Fodder decision");
+const holdFodder = Engine.respondRulePrompt(scene, context.window.DAWN_DATA, { choice: "finish" });
+assert.equal(holdFodder.ok, true, holdFodder.errors?.join(" "));
+scene = Engine.dispatchMany(scene, holdFodder.events).scene;
 scene = dispatch(scene, null, { kind: "round-end" });
 assert.equal(scene.round, 2, "The first Round resets after both sides finish the exchange");
 assert.ok(scene.actors.filter(item => item.kind === "enemy").every(item => item.ap === 0), "Round reset clears spent NPC AP");

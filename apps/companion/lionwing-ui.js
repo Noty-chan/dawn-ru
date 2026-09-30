@@ -5,6 +5,37 @@
 const LionwingEngine = window.DAWN_LIONWING_ENGINE;
 const lwActive = () => LionwingEngine.isScene(Scene);
 let lwDestination = null, lwGeometryPreview = null, lwDetectiveTeleport = null;
+function lwSetDestination(draft) {
+  lwDestination = { ...draft, selection: { sceneIdentity: lwGeometrySceneIdentity(), activeSpace: Scene.activeSpace, selectedActor: Scene.selectedActor, turnSerial: Scene.turnSerial, attackId: Scene.pendingAction?.id } };
+  renderScene();
+}
+function lwReconcileDestination() {
+  const selection = lwDestination?.selection;
+  if (!lwDestination) return;
+  const source = Scene.actors.find(actor => actor.id === lwDestination.actorId), payload = lwDestination.payload;
+  const obsoleteAction = payload?.kind === "action" && !LionwingEngine.actionGate(Scene, lwDestination.actorId, payload).available;
+  const obsoleteReaction = payload?.kind === "reaction" && (selection?.attackId !== Scene.pendingAction?.id || !LionwingEngine.reactionOptions(Scene, lwDestination.actorId).some(option => option.id === payload.choice && option.available));
+  const obsoleteChoice = payload?.kind === "choice" && !(Scene.lionwing?.choices || []).some(choice => choice.id === payload.id && choice.actorId === lwDestination.actorId);
+  if (!lwActive() || !lwOwns(lwDestination.actorId) || !source || source.knockedOut || obsoleteAction || obsoleteReaction || obsoleteChoice || selection && (selection.sceneIdentity !== lwGeometrySceneIdentity() || selection.activeSpace !== Scene.activeSpace || selection.selectedActor !== Scene.selectedActor || selection.turnSerial !== Scene.turnSerial)) lwCancelDestination();
+}
+function lwDestinationCellStatus(destination) {
+  if (!lwDestination) return { available: false, reason: "" };
+  return LionwingEngine.destinationStatus(Scene, { ...lwDestination, destination });
+}
+function lwApplyDestinationHighlights(board, space) {
+  lwReconcileDestination();
+  if (!lwDestination) return;
+  for (const cell of board.querySelectorAll("[data-scene-cell]")) {
+    const [x, y] = cell.dataset.sceneCell.split(",").map(Number), status = lwDestinationCellStatus({ space: space.id, x, y });
+    cell.classList.toggle("movement-valid", status.available);
+    cell.dataset.destinationAvailable = String(status.available);
+    cell.title = status.available ? lwDestination.label : `${lwDestination.label}: ${status.reason}`;
+  }
+}
+function lwCancelDestination() {
+  lwDestination = null; lwGeometryPreview = null;
+  if(typeof scenePreviewCells !== "undefined") scenePreviewCells.clear();
+}
 const lwRules = () => localizedLionwingCoreRules();
 const lwActor = () => Scene.actors.find(a => a.id === Scene.selectedActor) || Scene.actors.find(a => a.id === Scene.activeActorId) || currentHeroActor();
 const lwCanNarrate = () => !Sync?.state?.().sceneId || Sync.state().canNarrate;
@@ -963,9 +994,11 @@ document.addEventListener("click", event => {
     event.preventDefault(); event.stopImmediatePropagation();
     const point = cell.dataset.sceneCell.split(",").map(Number), draft = lwDestination;
     const destination = { x:point[0], y:point[1], space:Scene.activeSpace };
+    const status = lwDestinationCellStatus(destination);
+    if (!status.available) { toast(status.reason); return; }
     const payload={...draft.payload,[draft.field||"destination"]:destination};
     if(payload.kind==="geometry-move"){lwSetGeometryPreview(draft,payload);return;}
-    if(draft.field==="reappearance"&&[SceneEngine.ACTION_IDS.jump,SceneEngine.ACTION_IDS.shove,SceneEngine.ACTION_IDS.improvise].includes(payload.actionId)&&!payload.effect&&!payload.removeObstacleId){lwDestination={actorId:draft.actorId,payload,label:draft.label};toast("Теперь выберите клетку действия");return;}
+    if(draft.field==="reappearance"&&[SceneEngine.ACTION_IDS.jump,SceneEngine.ACTION_IDS.shove,SceneEngine.ACTION_IDS.improvise].includes(payload.actionId)&&!payload.effect&&!payload.removeObstacleId){lwSetDestination({actorId:draft.actorId,payload,label:draft.label});toast("Теперь выберите клетку действия");return;}
     if (lwSubmit(draft.actorId,payload,draft.label)) { lwDestination=null; renderScene(); }
     return;
   }
@@ -987,7 +1020,7 @@ document.addEventListener("click", event => {
     let operations=targets.map(targetId=>({kind:kind==="move"?movementKind:kind,targetId,...(kind==="record-action"?{actionId:get("action"),resource:get("resource"),amount,swift:root.querySelector("[data-lw-general-swift]").checked,reaction:root.querySelector("[data-lw-general-reaction]").checked}:{}),...(kind==="recover-track"?{track:get("track"),amount}:{}),...(kind==="resource"?{resource:get("resource"),operation:get("direction"),amount}:{}),...(["note","prompt"].includes(kind)?{note:get("note"),title:get("note"),text:get("note")}:{}),...(kind==="allow-action"?{actionId:get("action"),cost:Number(get("cost")),uses:amount,swift:root.querySelector("[data-lw-general-swift]").checked,reaction:root.querySelector("[data-lw-general-reaction]").checked}:{}),...(kind==="usage"?{ruleId:get("id"),scope:get("scope"),limit:amount,targetIds:targets}:{}),...(kind==="move"?(movementMode==="teleport"?{maximum:amount,ignoreOpponents:root.querySelector("[data-lw-general-ignore-opponents]").checked,ignoreTerrain:root.querySelector("[data-lw-general-ignore-terrain]").checked,line:root.querySelector("[data-lw-general-line]").checked,teleport:true}:{maximum:amount,ignoreEnemies:root.querySelector("[data-lw-general-ignore-opponents]").checked,ignoreTerrain:root.querySelector("[data-lw-general-ignore-terrain]").checked,straight:root.querySelector("[data-lw-general-line]").checked,mode:geometryMode}):{})}));
     if(["spend-health","lose-health"].includes(kind))operations=operations.map(operation=>({...operation,amount}));
     if(["wound","stress"].includes(kind)){if(!Number.isInteger(amount)||amount<1||amount*targets.length>192)return toast("Укажите целое количество от 1 до 192 операций");operations=operations.flatMap(operation=>Array.from({length:amount},()=>({...operation})));}
-    if(kind==="move"){if(targets.length!==1)return toast("Для движения выберите одну цель");lwDestination={actorId:sourceId,payload:operations[0],label:"Движение правила",stage:lwDraftEnabled&&movementKind==="geometry-move"};renderScene();toast(lwDestination.stage?"Выберите клетку: маршрут будет добавлен в пакет":"Выберите клетку назначения");return;}
+    if(kind==="move"){if(targets.length!==1)return toast("Для движения выберите одну цель");lwSetDestination({actorId:sourceId,payload:operations[0],label:"Движение правила",stage:lwDraftEnabled&&movementKind==="geometry-move"});toast(lwDestination.stage?"Выберите клетку: маршрут будет добавлен в пакет":"Выберите клетку назначения");return;}
     return lwSubmit(sourceId,operations.length===1?operations[0]:{kind:"batch",operations:["note","prompt","usage"].includes(kind)?[operations[0]]:operations},"Общая операция правила");
   }
   const button = event.target.closest("[data-core-action], [data-lw-automation], [data-lw-action], [data-lw-student-area], [data-lw-bombardier-area], [data-lw-reaction], [data-lw-choice], [data-lw-consequence-correct], [data-lw-resolve], [data-lw-cancel], [data-lw-clear-destination], [data-lw-geometry-confirm], [data-lw-geometry-add], [data-lw-geometry-cancel], [data-lw-operation], [data-lw-correct], [data-lw-custom], [data-lw-modifier], [data-lw-punish], [data-lw-invisible], [data-lw-inventory], [data-lw-detective-teleport], [data-lw-detective-confirm], [data-lw-detective-cancel]");
@@ -1024,13 +1057,13 @@ document.addEventListener("click", event => {
   const num = (selector, fallback=0) => Number(val(selector,fallback));
   if (button.hasAttribute("data-lw-bombardier-area")) {
     const level = Number(val("[data-lw-bombardier-level]", "1")), focusSpent = num("[data-lw-focus]"), actionId = SceneEngine.ACTION_IDS.finish;
-    lwDestination = { actorId, payload: { kind: "action", actionId, targetIds: [...Scene.targetIds], attribute: "spirit", focusSpent, advantage: num("[data-lw-advantage]"), disadvantage: num("[data-lw-disadvantage]"), techniqueRuleId: `ruiner.bombardier.${level}` }, field: "areaCenter", label: `Бомбардир ${level}: выбор центра` };
-    renderScene(); toast("Выберите центр области. Цели и пустые клетки перепроверит Engine"); return;
+    lwSetDestination({ actorId, payload: { kind: "action", actionId, targetIds: [...Scene.targetIds], attribute: "spirit", focusSpent, advantage: num("[data-lw-advantage]"), disadvantage: num("[data-lw-disadvantage]"), techniqueRuleId: `ruiner.bombardier.${level}` }, field: "areaCenter", label: `Бомбардир ${level}: выбор центра` });
+    toast("Выберите центр области. Допустимые клетки подсвечены"); return;
   }
   if (button.hasAttribute("data-lw-student-area")) {
     const actionId=SceneEngine.ACTION_IDS.finish, shape=val("[data-lw-student-shape]","line"), orientation=val("[data-lw-student-orientation]","horizontal"), focusSpent=num("[data-lw-focus]");
-    lwDestination={actorId,payload:{kind:"action",actionId,targetIds:[...Scene.targetIds],focusSpent,studentArea:{shape,orientation}},field:"areaCenter",label:"Ученик звёзд II: выбор центра"};
-    renderScene(); toast("Выберите соседнюю клетку: цели и линия будут вычислены Engine"); return;
+    lwSetDestination({actorId,payload:{kind:"action",actionId,targetIds:[...Scene.targetIds],focusSpent,studentArea:{shape,orientation}},field:"areaCenter",label:"Ученик звёзд II: выбор центра"});
+    toast("Выберите соседнюю подсвеченную клетку"); return;
   }
   if(button.hasAttribute("data-lw-inventory")){
     const operation=button.dataset.lwInventory, id=button.dataset.lwInventoryId, instanceId=button.dataset.lwInventoryInstance, amount=Number(button.dataset.lwInventoryAmount||1);
@@ -1081,11 +1114,11 @@ document.addEventListener("click", event => {
     if(root?.querySelector("[data-lw-spike]")?.checked)payload.spikeTargetIds=[...Scene.targetIds];
     if(actionId===SceneEngine.ACTION_IDS.improvise){if(val("[data-lw-improvise-effect]"))payload.effect=val("[data-lw-improvise-effect]");if(val("[data-lw-remove-obstacle]"))payload.removeObstacleId=val("[data-lw-remove-obstacle]");}
     const name=lwRules().actions.list.find(d=>d.id===actionId)?.name||"Действие";
-    if((Scene.actors.find(a=>a.id===actorId)?.effects||[]).includes("positive.исчез")){lwDestination={actorId,payload,label:name,field:"reappearance"};toast("Сначала выберите клетку появления");return;}
-    if([SceneEngine.ACTION_IDS.jump,SceneEngine.ACTION_IDS.shove,SceneEngine.ACTION_IDS.improvise].includes(actionId)&&!payload.effect&&!payload.removeObstacleId){lwDestination={actorId,payload,label:name};toast("Выберите клетку на поле");return;}
+    if((Scene.actors.find(a=>a.id===actorId)?.effects||[]).includes("positive.исчез")){lwSetDestination({actorId,payload,label:name,field:"reappearance"});toast("Сначала выберите клетку появления");return;}
+    if([SceneEngine.ACTION_IDS.jump,SceneEngine.ACTION_IDS.shove,SceneEngine.ACTION_IDS.improvise].includes(actionId)&&!payload.effect&&!payload.removeObstacleId){lwSetDestination({actorId,payload,label:name});toast("Выберите клетку на поле");return;}
     lwSubmit(actorId,payload,name); return;
   }
-  if (button.hasAttribute("data-lw-reaction")) { const payload={kind:"reaction",choice:button.dataset.lwReaction,...(button.dataset.lwPlanId?{planId:button.dataset.lwPlanId}:{})};if(payload.choice==="dodge"){lwDestination={actorId,payload,label:"Уворот"};toast("Выберите клетку Уворота");return;} lwSubmit(actorId,payload,"Реакция");return; }
+  if (button.hasAttribute("data-lw-reaction")) { const payload={kind:"reaction",choice:button.dataset.lwReaction,...(button.dataset.lwPlanId?{planId:button.dataset.lwPlanId}:{})};if(payload.choice==="dodge"){lwSetDestination({actorId,payload,label:"Уворот"});toast("Выберите клетку Уворота");return;} lwSubmit(actorId,payload,"Реакция");return; }
   if (button.hasAttribute("data-lw-choice")) {
     const pending = Scene.lionwing?.choices?.find(item => item.id === button.dataset.lwChoiceId), note = button.closest(".lw-pending")?.querySelector("[data-lw-choice-note]")?.value?.trim() || "";
     let payload = { kind: "choice", id: button.dataset.lwChoiceId, choice: button.dataset.lwChoice, note, ...(button.dataset.lwPlanId ? { planId: button.dataset.lwPlanId } : {}) };
@@ -1096,7 +1129,7 @@ document.addEventListener("click", event => {
       if (!typed) return toast("Выберите конкретную допустимую потерю из заполненного листа");
       payload = typed;
     }
-    if(payload.choice==="place"){lwDestination={actorId,payload,label:"Появление"};toast("Выберите клетку на поле");return;}lwSubmit(actorId,payload,"Решение игрока");return;
+    if(payload.choice==="place"){lwSetDestination({actorId,payload,label:"Появление"});toast("Выберите клетку на поле");return;}lwSubmit(actorId,payload,"Решение игрока");return;
   }
   if (button.hasAttribute("data-lw-resolve") || button.hasAttribute("data-lw-cancel")) { if(!lwCanNarrate())return;lwSubmit(actorId,{kind:button.hasAttribute("data-lw-resolve")?"resolve-attack":"cancel-attack",...(button.dataset.lwPlanId?{planId:button.dataset.lwPlanId}:{})},"Разрешение Атаки");return; }
   if (!lwCanNarrate()) return toast("Эта операция доступна Нарратору");

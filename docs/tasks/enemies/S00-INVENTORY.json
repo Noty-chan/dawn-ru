@@ -201,6 +201,7 @@
             "apps/companion/tests/lionwing-automation-registry.mjs",
             "apps/companion/tests/lionwing-consequence-ui.mjs",
             "apps/companion/tests/lionwing-counters.mjs",
+            "apps/companion/tests/lionwing-destination-contracts.mjs",
             "apps/companion/tests/lionwing-destroy-wiring.mjs",
             "apps/companion/tests/lionwing-dice-engine.mjs",
             "apps/companion/tests/lionwing-dice-foundation.mjs",
@@ -1182,6 +1183,7 @@
             "apps/companion/tests/lionwing-consequences.mjs",
             "apps/companion/tests/lionwing-counters.mjs",
             "apps/companion/tests/lionwing-derived-actions.mjs",
+            "apps/companion/tests/lionwing-destination-contracts.mjs",
             "apps/companion/tests/lionwing-destroy-plan.mjs",
             "apps/companion/tests/lionwing-destroy-wiring.mjs",
             "apps/companion/tests/lionwing-detective-three.mjs",
@@ -1519,6 +1521,7 @@
             "apps/companion/tests/network-timeout-abort.mjs",
             "apps/companion/tests/network-v2.mjs",
             "apps/companion/tests/qa.mjs",
+            "apps/companion/tests/scene-core-contracts.mjs",
             "apps/companion/tests/scene-engine.mjs",
             "apps/companion/tests/technique-engine.mjs"
           ],
@@ -2185,6 +2188,7 @@
           "apps/companion/tests/lionwing-alpha-stress.mjs",
           "apps/companion/tests/lionwing-enemy-base-attacks.mjs",
           "apps/companion/tests/lionwing-enemy-turn-passives.mjs",
+          "apps/companion/tests/lionwing-gm-ap-contract.mjs",
           "apps/companion/tests/lionwing-localization.mjs",
           "apps/companion/tests/scene-engine.mjs"
         ],
@@ -2234,6 +2238,7 @@
             "apps/companion/tests/lionwing-alpha-stress.mjs",
             "apps/companion/tests/lionwing-enemy-base-attacks.mjs",
             "apps/companion/tests/lionwing-enemy-turn-passives.mjs",
+            "apps/companion/tests/lionwing-gm-ap-contract.mjs",
             "apps/companion/tests/lionwing-localization.mjs",
             "apps/companion/tests/scene-engine.mjs"
           ],
@@ -2281,6 +2286,7 @@
             "apps/companion/tests/lionwing-alpha-stress.mjs",
             "apps/companion/tests/lionwing-enemy-base-attacks.mjs",
             "apps/companion/tests/lionwing-enemy-turn-passives.mjs",
+            "apps/companion/tests/lionwing-gm-ap-contract.mjs",
             "apps/companion/tests/lionwing-localization.mjs",
             "apps/companion/tests/scene-engine.mjs"
           ],
@@ -2329,6 +2335,7 @@
             "apps/companion/tests/lionwing-alpha-stress.mjs",
             "apps/companion/tests/lionwing-enemy-base-attacks.mjs",
             "apps/companion/tests/lionwing-enemy-turn-passives.mjs",
+            "apps/companion/tests/lionwing-gm-ap-contract.mjs",
             "apps/companion/tests/lionwing-localization.mjs",
             "apps/companion/tests/scene-engine.mjs"
           ],
@@ -3282,6 +3289,7 @@
             "apps/companion/tests/network-timeout-abort.mjs",
             "apps/companion/tests/network-v2.mjs",
             "apps/companion/tests/qa.mjs",
+            "apps/companion/tests/scene-core-contracts.mjs",
             "apps/companion/tests/scene-engine.mjs",
             "apps/companion/tests/technique-engine.mjs"
           ],
@@ -4017,6 +4025,7 @@
             "apps/companion/tests/network-timeout-abort.mjs",
             "apps/companion/tests/network-v2.mjs",
             "apps/companion/tests/qa.mjs",
+            "apps/companion/tests/scene-core-contracts.mjs",
             "apps/companion/tests/scene-engine.mjs",
             "apps/companion/tests/technique-engine.mjs"
           ],
@@ -4300,6 +4309,7 @@
           },
           "uiEntryPoint": "scene-actions-ui.js useEnemyRule → DAWN_SCENE_ENGINE.prepareEnemyRule → commitSceneEvents",
           "tests": [
+            "apps/companion/tests/lionwing-destination-contracts.mjs",
             "apps/companion/tests/lionwing-enemy-base-attacks.mjs",
             "apps/companion/tests/lionwing-enemy-simple-wave.mjs",
             "apps/companion/tests/scene-engine.mjs"
@@ -4438,6 +4448,7 @@
           "apps/companion/tests/lionwing-auras.mjs",
           "apps/companion/tests/lionwing-consequences.mjs",
           "apps/companion/tests/lionwing-derived-actions.mjs",
+          "apps/companion/tests/lionwing-destination-contracts.mjs",
           "apps/companion/tests/lionwing-duel-entry.mjs",
           "apps/companion/tests/lionwing-enemy-base-attacks.mjs",
           "apps/companion/tests/lionwing-enemy-fodder-creators.mjs",
@@ -4476,6 +4487,7 @@
           "apps/companion/tests/lionwing-turn-lifetimes.mjs",
           "apps/companion/tests/network-v2.mjs",
           "apps/companion/tests/qa.mjs",
+          "apps/companion/tests/scene-core-contracts.mjs",
           "apps/companion/tests/scene-engine.mjs",
           "apps/companion/tests/technique-engine.mjs"
         ],
@@ -4537,6 +4549,7 @@
             "apps/companion/tests/lionwing-auras.mjs",
             "apps/companion/tests/lionwing-consequences.mjs",
             "apps/companion/tests/lionwing-derived-actions.mjs",
+            "apps/companion/tests/lionwing-destination-contracts.mjs",
             "apps/companion/tests/lionwing-duel-entry.mjs",
             "apps/companion/tests/lionwing-enemy-base-attacks.mjs",
             "apps/companion/tests/lionwing-enemy-fodder-creators.mjs",
@@ -4575,6 +4588,7 @@
             "apps/companion/tests/lionwing-turn-lifetimes.mjs",
             "apps/companion/tests/network-v2.mjs",
             "apps/companion/tests/qa.mjs",
+            "apps/companion/tests/scene-core-contracts.mjs",
             "apps/companion/tests/scene-engine.mjs",
             "apps/companion/tests/technique-engine.mjs"
           ],
@@ -4630,6 +4644,7 @@
             "apps/companion/tests/lionwing-auras.mjs",
             "apps/companion/tests/lionwing-consequences.mjs",
             "apps/companion/tests/lionwing-derived-actions.mjs",
+            "apps/companion/tests/lionwing-destination-contracts.mjs",
             "apps/companion/tests/lionwing-duel-entry.mjs",
             "apps/companion/tests/lionwing-enemy-base-attacks.mjs",
             "apps/companion/tests/lionwing-enemy-fodder-creators.mjs",
@@ -4668,6 +4683,7 @@
             "apps/companion/tests/lionwing-turn-lifetimes.mjs",
             "apps/companion/tests/network-v2.mjs",
             "apps/companion/tests/qa.mjs",
+            "apps/companion/tests/scene-core-contracts.mjs",
             "apps/companion/tests/scene-engine.mjs",
             "apps/companion/tests/technique-engine.mjs"
           ],
@@ -4723,6 +4739,7 @@
             "apps/companion/tests/lionwing-auras.mjs",
             "apps/companion/tests/lionwing-consequences.mjs",
             "apps/companion/tests/lionwing-derived-actions.mjs",
+            "apps/companion/tests/lionwing-destination-contracts.mjs",
             "apps/companion/tests/lionwing-duel-entry.mjs",
             "apps/companion/tests/lionwing-enemy-base-attacks.mjs",
             "apps/companion/tests/lionwing-enemy-fodder-creators.mjs",
@@ -4761,6 +4778,7 @@
             "apps/companion/tests/lionwing-turn-lifetimes.mjs",
             "apps/companion/tests/network-v2.mjs",
             "apps/companion/tests/qa.mjs",
+            "apps/companion/tests/scene-core-contracts.mjs",
             "apps/companion/tests/scene-engine.mjs",
             "apps/companion/tests/technique-engine.mjs"
           ],
@@ -4861,6 +4879,7 @@
           "apps/companion/tests/lionwing-breacher.mjs",
           "apps/companion/tests/lionwing-counters.mjs",
           "apps/companion/tests/lionwing-derived-actions.mjs",
+          "apps/companion/tests/lionwing-destination-contracts.mjs",
           "apps/companion/tests/lionwing-destroy-wiring.mjs",
           "apps/companion/tests/lionwing-detective-three.mjs",
           "apps/companion/tests/lionwing-dice-foundation.mjs",
@@ -4929,6 +4948,7 @@
           "apps/companion/tests/network-v2.mjs",
           "apps/companion/tests/qa.mjs",
           "apps/companion/tests/raasha.mjs",
+          "apps/companion/tests/scene-core-contracts.mjs",
           "apps/companion/tests/scene-engine.mjs",
           "apps/companion/tests/technique-engine.mjs"
         ],
@@ -4997,6 +5017,7 @@
             "apps/companion/tests/lionwing-breacher.mjs",
             "apps/companion/tests/lionwing-counters.mjs",
             "apps/companion/tests/lionwing-derived-actions.mjs",
+            "apps/companion/tests/lionwing-destination-contracts.mjs",
             "apps/companion/tests/lionwing-destroy-wiring.mjs",
             "apps/companion/tests/lionwing-detective-three.mjs",
             "apps/companion/tests/lionwing-dice-foundation.mjs",
@@ -5065,6 +5086,7 @@
             "apps/companion/tests/network-v2.mjs",
             "apps/companion/tests/qa.mjs",
             "apps/companion/tests/raasha.mjs",
+            "apps/companion/tests/scene-core-contracts.mjs",
             "apps/companion/tests/scene-engine.mjs",
             "apps/companion/tests/technique-engine.mjs"
           ],
@@ -5127,6 +5149,7 @@
             "apps/companion/tests/lionwing-breacher.mjs",
             "apps/companion/tests/lionwing-counters.mjs",
             "apps/companion/tests/lionwing-derived-actions.mjs",
+            "apps/companion/tests/lionwing-destination-contracts.mjs",
             "apps/companion/tests/lionwing-destroy-wiring.mjs",
             "apps/companion/tests/lionwing-detective-three.mjs",
             "apps/companion/tests/lionwing-dice-foundation.mjs",
@@ -5195,6 +5218,7 @@
             "apps/companion/tests/network-v2.mjs",
             "apps/companion/tests/qa.mjs",
             "apps/companion/tests/raasha.mjs",
+            "apps/companion/tests/scene-core-contracts.mjs",
             "apps/companion/tests/scene-engine.mjs",
             "apps/companion/tests/technique-engine.mjs"
           ],
@@ -5263,6 +5287,7 @@
             "apps/companion/tests/lionwing-breacher.mjs",
             "apps/companion/tests/lionwing-counters.mjs",
             "apps/companion/tests/lionwing-derived-actions.mjs",
+            "apps/companion/tests/lionwing-destination-contracts.mjs",
             "apps/companion/tests/lionwing-destroy-wiring.mjs",
             "apps/companion/tests/lionwing-detective-three.mjs",
             "apps/companion/tests/lionwing-dice-foundation.mjs",
@@ -5331,6 +5356,7 @@
             "apps/companion/tests/network-v2.mjs",
             "apps/companion/tests/qa.mjs",
             "apps/companion/tests/raasha.mjs",
+            "apps/companion/tests/scene-core-contracts.mjs",
             "apps/companion/tests/scene-engine.mjs",
             "apps/companion/tests/technique-engine.mjs"
           ],
@@ -8521,6 +8547,7 @@
             "apps/companion/tests/lionwing-consequences.mjs",
             "apps/companion/tests/lionwing-counters.mjs",
             "apps/companion/tests/lionwing-derived-actions.mjs",
+            "apps/companion/tests/lionwing-destination-contracts.mjs",
             "apps/companion/tests/lionwing-destroy-plan.mjs",
             "apps/companion/tests/lionwing-destroy-wiring.mjs",
             "apps/companion/tests/lionwing-detective-three.mjs",
@@ -8550,6 +8577,7 @@
             "apps/companion/tests/lionwing-geometry-runtime.mjs",
             "apps/companion/tests/lionwing-geometry-ui.mjs",
             "apps/companion/tests/lionwing-geometry.mjs",
+            "apps/companion/tests/lionwing-gm-ap-contract.mjs",
             "apps/companion/tests/lionwing-hero-bridge-persistence.mjs",
             "apps/companion/tests/lionwing-information-query.mjs",
             "apps/companion/tests/lionwing-inventory.mjs",
@@ -8614,6 +8642,7 @@
             "apps/companion/tests/network-v2.mjs",
             "apps/companion/tests/qa.mjs",
             "apps/companion/tests/raasha.mjs",
+            "apps/companion/tests/scene-core-contracts.mjs",
             "apps/companion/tests/scene-engine.mjs",
             "apps/companion/tests/technique-engine.mjs"
           ],
@@ -9507,6 +9536,7 @@
           },
           "uiEntryPoint": "scene-actions-ui.js useEnemyRule → DAWN_SCENE_ENGINE.prepareEnemyRule → commitSceneEvents",
           "tests": [
+            "apps/companion/tests/lionwing-destination-contracts.mjs",
             "apps/companion/tests/lionwing-enemy-base-attacks.mjs",
             "apps/companion/tests/lionwing-enemy-fodder-creators.mjs",
             "apps/companion/tests/lionwing-gm-ap-contract.mjs",
@@ -10399,6 +10429,7 @@
             "apps/companion/tests/network-timeout-abort.mjs",
             "apps/companion/tests/network-v2.mjs",
             "apps/companion/tests/qa.mjs",
+            "apps/companion/tests/scene-core-contracts.mjs",
             "apps/companion/tests/scene-engine.mjs",
             "apps/companion/tests/technique-engine.mjs"
           ],

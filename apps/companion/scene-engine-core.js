@@ -1,6 +1,85 @@
 "use strict";
 
 const VERSION = 46;
+// Shared input boundary for both editions. Validate before JSON cloning, which
+// would silently turn NaN into null or drop functions/undefined array members.
+function eventPacketError(message, code = "SCENE_EVENT_PACKET_INVALID") {
+  const error = new Error(message); error.code = code; throw error;
+}
+function eventRequestFingerprint(event) {
+  const canonical = value => {
+    if (Array.isArray(value)) return value.map(canonical);
+    if (value && typeof value === "object") return Object.fromEntries(Object.keys(value).sort().filter(key => value[key] !== undefined).map(key => [key, canonical(value[key])]));
+    return value;
+  };
+  // Delivery timestamps are transport metadata; every other supplied field is
+  // part of the request, including visibility and provenance.
+  const { id, at, ...request } = event;
+  request.actorId ||= null; request.payload ||= {};
+  return JSON.stringify(canonical(request));
+}
+function eventRequestMetadata(event) {
+  const { id, at, type, actorId, payload, ...metadata } = event;
+  return eventRequestFingerprint({ type: "metadata", payload: metadata });
+}
+/** @param {Array<{id?: string, type: string, actorId?: string|null, payload?: object}>} events */
+function validateEventPacket(events) {
+  if (!Array.isArray(events) || events.length > 192) eventPacketError("Некорректный пакет событий");
+  const ancestors = new Set(), ids = new Map(); let nodes = 0;
+  const visit = (value, depth = 0, inArray = false) => {
+    if (++nodes > 100000 || depth > 64) eventPacketError("Пакет событий слишком сложный");
+    if (value === undefined && !inArray || value === null || typeof value === "string" || typeof value === "boolean") return;
+    if (typeof value === "number" && Number.isFinite(value)) return;
+    if (!value || typeof value !== "object" || Object.prototype.toString.call(value) !== "[object Object]" && !Array.isArray(value)) eventPacketError("События должны содержать только корректные JSON-значения");
+    if (ancestors.has(value)) eventPacketError("Пакет событий содержит циклическую ссылку");
+    ancestors.add(value);
+    if (Array.isArray(value)) { for (let index = 0; index < value.length; index++) visit(value[index], depth + 1, true); }
+    else { for (const item of Object.values(value)) visit(item, depth + 1); }
+    ancestors.delete(value);
+  };
+  for (const event of events) {
+    if (!event || Array.isArray(event) || typeof event !== "object" || typeof event.type !== "string" || !event.type.trim()) eventPacketError("Событие должно иметь тип");
+    if (event.id != null && (typeof event.id !== "string" || !event.id.trim())) eventPacketError("Некорректный ID события");
+    if (event.actorId != null && (typeof event.actorId !== "string" || !event.actorId.trim())) eventPacketError("Некорректный исполнитель события");
+    if (event.payload != null && (typeof event.payload !== "object" || Array.isArray(event.payload))) eventPacketError("Событие должно иметь объект payload");
+    visit(event);
+    if (event.id) {
+      const fingerprint = eventRequestFingerprint(event);
+      if (ids.has(event.id) && ids.get(event.id) !== fingerprint) eventPacketError("Конфликт ID внутри пакета событий", "SCENE_EVENT_ID_CONFLICT");
+      ids.set(event.id, fingerprint);
+    }
+  }
+}
+function eventRequestReceipts(scene) {
+  return scene.rulesEdition === "lionwing" ? scene.lionwing?.receipts || [] : scene.eventReceipts || [];
+}
+function eventPacketReplayStatus(scene, events) {
+  const receipts = new Map(eventRequestReceipts(scene).map(receipt => [receipt.id, receipt]));
+  let matched = 0;
+  for (const event of events) {
+    const receipt = event.id && receipts.get(event.id);
+    if (!receipt) continue;
+    const stored = (scene.log || []).find(item => item.id === event.id);
+    let matches = receipt.fingerprint === JSON.stringify([event.type, event.actorId || null, event.payload || {}]);
+    if (receipt.requestMetadata !== undefined) {
+      const [type, actorId, payload] = JSON.parse(receipt.fingerprint);
+      matches = eventRequestFingerprint({ type, actorId, payload }) === eventRequestFingerprint({ type: event.type, actorId: event.actorId, payload: event.payload }) && receipt.requestMetadata === eventRequestMetadata(event)
+        || stored && eventRequestFingerprint(stored) === eventRequestFingerprint(event);
+    }
+    if (!matches) eventPacketError("Конфликт ID события: запрос уже принят с другими данными", "SCENE_EVENT_ID_CONFLICT");
+    matched++;
+  }
+  return { complete: matched === events.length, matched };
+}
+function recordEventRequests(scene, events) {
+  const receipts = new Map(eventRequestReceipts(scene).map(receipt => [receipt.id, receipt]));
+  // Keep the existing payload fingerprint once. Only the small envelope is
+  // added, so canonical attack/geometry payloads do not double network saves.
+  for (const event of events) if (event.id && receipts.get(event.id)?.requestMetadata === undefined) receipts.set(event.id, { id: event.id, fingerprint: JSON.stringify([event.type, event.actorId || null, event.payload || {}]), requestMetadata: eventRequestMetadata(event) });
+  const retained = [...receipts.values()].slice(-256);
+  if (scene.rulesEdition === "lionwing") { scene.lionwing ||= {}; scene.lionwing.receipts = retained; }
+  else scene.eventReceipts = retained;
+}
 // Persisted ids are the rules contract. Display names may be translated and must
 // never be used as the only way to identify an action.
 const ACTION_IDS = Object.freeze({

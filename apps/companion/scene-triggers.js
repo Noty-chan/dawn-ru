@@ -1254,6 +1254,19 @@ function triggeredEvents(scene, event, options = {}) {
 }
 
 function dispatchMany(scene, events, options = {}) {
+  validateEventPacket(events);
+  const replay = eventPacketReplayStatus(scene, events);
+  if (replay.complete) return { scene: clone(scene), events: [], event: null, duplicates: [] };
+  // Filter accepted external requests before expanding the trigger queue.
+  // Deferred prompts reuse their request ID when they are eventually opened;
+  // their internal continuation must still execute exactly once.
+  const acceptedIds = replay.matched ? new Set(eventRequestReceipts(scene).map(receipt => receipt.id)) : null;
+  const pending = acceptedIds ? events.filter(event => !acceptedIds.has(event.id)) : events;
+  const result = dispatchEventPacket(scene, pending, options);
+  recordEventRequests(result.scene, events);
+  return result;
+}
+function dispatchEventPacket(scene, events, options = {}) {
   for(const attack of (events||[]).filter(item=>item?.type==="modifier.action"&&actorById(scene,item.actorId)?.profileId===ENEMY_MODIFIER_IDS.gargantuan)){
     const modifier=actorById(scene,attack.actorId),carrier=modifierCarrier(scene,modifier),published=(events||[]).filter(item=>item?.type==="roll.public"&&item.payload?.sourceActionId===`${modifier.profileId}.attack`);
     if(published.length&& (published.length!==1||!carrier||published[0].actorId!==carrier.id||(events||[]).indexOf(published[0])>(events||[]).indexOf(attack)||JSON.stringify(published[0].payload?.rolls)!==JSON.stringify(attack.payload?.roll?.rolls)||Number(published[0].payload?.successes)!==Number(attack.payload?.roll?.successes)||Number(published[0].payload?.crits)!==Number(attack.payload?.roll?.crits)))throw new Error("Результат Атаки Громадины должен совпадать с публичным броском.");

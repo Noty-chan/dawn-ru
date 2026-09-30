@@ -1637,6 +1637,7 @@ function reduceEvent(scene, event) {
 }
 
 function dispatch(scene, event, options = {}) {
+  validateEventPacket([event]);
   const stored = event?.id ? (scene?.log || []).find(item => item.id === event.id) : null;
   if (stored) {
     const subsetMatches = (canonical, candidate) => {

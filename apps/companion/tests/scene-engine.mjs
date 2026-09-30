@@ -46,7 +46,7 @@ for (const [effect, modifier] of [["positive.усилен", 2], ["negative.ос�
     assert.equal(Engine.dispatchMany(source, events).scene.version, source.version, "network replay cannot apply the effect again");
     const forged = structuredClone(events.find(event => event.type === "attack.pending"));
     forged.payload.damage = 99;
-    assert.throws(() => Engine.dispatchMany(source, [forged]), /Конфликт id/, "replay must still reject a changed damage request");
+    assert.throws(() => Engine.dispatchMany(source, [forged]), error => error.code === "SCENE_EVENT_ID_CONFLICT", "replay must still reject a changed damage request");
     source = Engine.dispatchMany(source, Engine.respondReaction(source, data, { actorId: "enemy", choice: "pass" }).events).scene;
     const resolved = Engine.resolvePendingAction(source, data);
     assert.equal(resolved.ok, true, resolved.errors?.join(" "));

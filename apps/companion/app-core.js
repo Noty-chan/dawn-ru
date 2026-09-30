@@ -326,6 +326,7 @@ actor.modifierState=modifierProfile?{carrierId:typeof rawModifier.carrierId==="s
   if(base.challengeRequest&&!actorAvailable(base.challengeRequest.actorId))base.challengeRequest=null;
   if(base.opposedRoll?.participants.some(participant=>participant.actorId&&!actorAvailable(participant.actorId)))base.opposedRoll=null;
   if(base.challengeRequest&&!base.challengeRequest.result){const legacyResult=base.rollFeed.find(roll=>roll?.challengeRequestId===base.challengeRequest.id);if(legacyResult)base.challengeRequest.result=normalizedChallengeResult(legacyResult)}
+  base.eventReceipts=Array.isArray(scene.eventReceipts)?scene.eventReceipts.filter(receipt=>receipt&&typeof receipt.id==="string"&&typeof receipt.fingerprint==="string").slice(-256).map(receipt=>({id:receipt.id,fingerprint:receipt.fingerprint,...(typeof receipt.requestMetadata==="string"?{requestMetadata:receipt.requestMetadata}:{})})):[];
   base.log=Array.isArray(scene.log)?scene.log.slice(0,200).map(row=>({id:typeof row.id==="string"?row.id:uid(),at:typeof row.at==="string"?row.at.slice(0,32):"",text:typeof row.text==="string"?row.text.slice(0,240):"",type:typeof row.type==="string"?row.type.slice(0,80):"legacy.note",actorId:typeof row.actorId==="string"?row.actorId:null,payload:row.payload&&typeof row.payload==="object"?row.payload:{},visibility:["gm","owner"].includes(row.visibility)?row.visibility:"public"})):[];
   normalizeLionwingEntities(base);
   return typeof structuredClone==="function"?structuredClone(base):JSON.parse(JSON.stringify(base));

@@ -6,6 +6,8 @@ function projectScene(scene, viewer = {}) {
   const ownActorIds = new Set(Array.isArray(viewer.actorIds) ? viewer.actorIds : []);
   if (typeof viewer.actorId === "string" && viewer.actorId) ownActorIds.add(viewer.actorId);
   if (!narrator) {
+    delete projected.eventReceipts;
+    if (projected.lionwing) delete projected.lionwing.receipts;
     projected.actors = (projected.actors || []).filter(actor => !actor.hidden).map(actor => {
       if (ownActorIds.has(actor.id)) return actor;
       const { notes, privateNotes, ownerId, ...publicActor } = actor;
@@ -47,6 +49,7 @@ function projectScene(scene, viewer = {}) {
 
 (typeof window === "object" ? window : globalThis).DAWN_SCENE_ENGINE = { VERSION, actionCost, actionHistoryStatus, actionPlanStatus, actorIdsInCells, actorIdsInRange, alternateResourceStatus, attackModifierDestinationStatus, attackModifierStatus, availableActions, availableEnemyRules, bodyguardsBraceIntact, bodyguardsBraceLines, bodyguardsBracedCells, bodyguardsLifecycleEvents, lionwingRevenantRoundEvents, cancelActionPlan, cancelPendingAction, clockStatus, cunningPlanStatus, defineTriggerRule, diceHookStatus, diceRollPayload, dispatch, dispatchMany, displacementStatus, effectiveEffects: (scene, actorId) => effectiveEffectsFor(scene, actorById(scene, actorId)), effectAttackStatus, effectCellOccupancyStatus, effectDefenseStatus, effectExpiryStatus, effectMovementStatus, effectPresenceStatus, effectStatus, effectTargetingStatus, enemyRuleAutomation, evaluateDiceRoll, eventParticipants, masterAtArmsStatus, movementPath, movementTraceStatus, ownedEntities, pendingActionStatus, pendingTargetOutcome, prepareAction, prepareActionPlan, prepareActionPlanContinuation, prepareActionPlanModifierDestination, prepareActionPlanReappearance, prepareDisplacements, prepareEnemyDeployment, prepareEnemyRule, prepareInvisibleDisappear, preparePotionUse, prepareSacrifice, preparePromptPlacement, prepareSurgery, prepareTechniqueCombo, previewEvents, projectScene, reactionOptions, removedCellKeys, resetRuleClocks, resetRuleResources, resourceOperationStatus, resourceStatus, respondReaction, respondRulePrompt, resolvePendingAction, roundEndStatus, ruleChoiceStatus, ruleClockDefinitions, ruleDiceAdvantage, ruleModeDefinitions, ruleModeStatus, ruleResourceDefinitions, ruleResourceStatus, sideBalanceStatus, spatialShapeStatus, stanceStatus, summarizeEvents, targetStatus, techniqueComboStatus, terrainComponentStatus, terrainStatus, topologyStatus, topologyStepDestination, triggerQueueStatus, triggerRegistryStatus, triggerRouteStatus, turnActionProgressStatus, turnStartStatus, usageLimitStatus, validateEvent };
 (typeof window === "object" ? window : globalThis).DAWN_SCENE_ENGINE.ruleModeContract = ruleModeContract;
+(typeof window === "object" ? window : globalThis).DAWN_SCENE_ENGINE.eventPacketContract = { validate: validateEventPacket, replayStatus: eventPacketReplayStatus, record: recordEventRequests };
 (typeof window === "object" ? window : globalThis).DAWN_SCENE_ENGINE.ruleModeState = ruleModeState;
 (typeof window === "object" ? window : globalThis).DAWN_SCENE_ENGINE.serializeRuleModeState = serializeRuleModeState;
 (typeof window === "object" ? window : globalThis).DAWN_SCENE_ENGINE.clearRuleModeState = clearRuleModeState;

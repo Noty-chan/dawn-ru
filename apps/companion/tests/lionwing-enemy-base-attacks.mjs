@@ -589,7 +589,7 @@ assert.deepEqual(afterRetry.scene, threeTargetRepeat, "a late retry preserves th
 assert.equal(afterRetry.events.length, 0);
 const changedLateRetry = clone(threeTargetCommit.events);
 changedLateRetry.find(event => event.type === "attack.pending").payload.damage = 99;
-assert.throws(() => engine.dispatchMany(clone(threeTargetRepeat), changedLateRetry), /Буйства|канонич/i, "the retry guard still rejects changed payloads under old event ids");
+assert.throws(() => engine.dispatchMany(clone(threeTargetRepeat), changedLateRetry), error => error.code === "SCENE_EVENT_ID_CONFLICT", "the packet boundary rejects changed payloads under old event ids");
 for(const [effect,damage] of [["positive.усилен",6],["negative.ослаблен",2]]){
   const modified=clone(cocoon);modified.actors[0].effects.push(effect);
   const response=engine.respondRulePrompt(modified,data,{choice:"target:hero-b",roll:dice(5,[6,5,1,1,1])});

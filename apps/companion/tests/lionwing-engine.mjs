@@ -247,9 +247,9 @@ s=fixture();s.actors[1].x=2;s.actors.push({...hero("e2",1,2),kind:"enemy",heroId
 s=run(s,"h",{kind:"turn-start"});s=run(s,"h",{kind:"effect",targetId:"e",effect:"negative.подброшен"});
 s=prepare(s,"h",{kind:"action",actionId:ids.skirmish,targetIds:["e","e2"],spikeTargetIds:["e"]});
 assert.equal(s.pendingAction.targetDamage.e,5);assert.equal(s.pendingAction.targetDamage.e2,4);assert.equal(s.actors[1].effects.includes("negative.подброшен"),false);
-// A diagonal Line still uses orthogonal distance for Jump's range.
-s=fixture();assert.throws(()=>lw.movement(s,s.actors[0],{x:3,y:3},{line:true,maximum:3,ignoreOpponents:true}),/дальности/);
-assert.equal(lw.movement(s,s.actors[0],{x:3,y:3},{line:true,maximum:4,ignoreOpponents:true}).cost,4);
+// Straight-Line movement counts diagonal spaces as one (canonical core rules).
+s=fixture();assert.throws(()=>lw.movement(s,s.actors[0],{x:3,y:3},{line:true,maximum:1,ignoreOpponents:true}),/дальности/);
+assert.equal(lw.movement(s,s.actors[0],{x:3,y:3},{line:true,maximum:2,ignoreOpponents:true}).cost,2,"canonical straight-Line movement counts diagonal spaces as one");
 
 // Manual attack exceptions survive the reaction window and serialization.
 s=fixture();s.actors[1].armor=10;s.actors[1].evasion=10;

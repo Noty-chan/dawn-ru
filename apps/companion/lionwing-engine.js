@@ -924,7 +924,7 @@
   function turnStartStatus(scene, id) {
     const a = actor(scene, id), s = state(copy(scene));
     if (!live(a) || a.kind === "crowd" || String(a.profileId || "").includes(".modifier.")) return unavailable("Этот участник не может совершать Ход");
-    if (scene.pendingAction || s.choices?.length || s.pausedChains?.length) return unavailable("Сначала завершите действие и ожидающие решения");
+    if (scene.pendingAction || scene.pendingPrompt || s.choices?.length || s.pausedChains?.length) return unavailable("Сначала завершите действие и ожидающие решения");
     if (scene.activeActorId) return unavailable("Сначала завершите текущий Ход");
     if(s.grantedTurns?.length)return s.grantedTurns[0].actorId===id?{available:true,reason:""}:unavailable("Сначала должен пройти предоставленный дополнительный Ход");
     const heroes = scene.actors.filter(x => live(x) && isPlayer(x)), enemies = scene.actors.filter(x => live(x) && x.team === "enemy" && x.kind !== "crowd" && !String(x.profileId || "").includes(".modifier."));
@@ -937,7 +937,7 @@
 
   function roundEndStatus(scene) {
     const s = state(copy(scene));
-    if (scene.activeActorId || scene.pendingAction || s.choices?.length || s.grantedTurns?.length || s.pausedChains?.length) return unavailable("Сначала завершите Ход и ожидающие решения");
+    if (scene.activeActorId || scene.pendingAction || scene.pendingPrompt || s.choices?.length || s.grantedTurns?.length || s.pausedChains?.length) return unavailable("Сначала завершите Ход и ожидающие решения");
     const heroes = scene.actors.filter(a => live(a) && isPlayer(a));
     if (heroes.some(a => !a.acted)) return unavailable("Не все герои совершили Ход");
     if (heroes.length && scene.actors.some(a => live(a) && a.team === "enemy" && a.kind !== "crowd") && s.lastTeam !== "enemy") return unavailable("После последнего героя должен походить противник");
@@ -977,13 +977,13 @@
     if (options.line) {
       const dx = destination.x - a.x, dy = destination.y - a.y;
       if (dx && dy && Math.abs(dx) !== Math.abs(dy)) fail("Нужна прямая ортогональная или диагональная Линия");
-      const steps = Math.max(Math.abs(dx), Math.abs(dy)), cost = Math.abs(dx) + Math.abs(dy), path = [];
+      const steps = Math.max(Math.abs(dx), Math.abs(dy)), cost = steps, path = [];
       if (!cost || cost > maximum) fail("Клетка вне дальности движения");
       let from = a, spent = 0;
       for (let i = 1; i <= steps; i++) {
         const point = { x: a.x + Math.sign(dx) * i, y: a.y + Math.sign(dy) * i };
         if (blocked(point) || crossesWall(from, point)) fail("Путь перекрыт препятствием");
-        spent += Math.abs(point.x-from.x)+Math.abs(point.y-from.y);
+        spent++;
         if(spent>maximum)fail("Клетка вне дальности движения");
         path.push(point); from = point;
         if(endsMovement(point))return { cost:spent,path,space:board.id,endedByDifficultTerrain:true };
@@ -1009,7 +1009,7 @@
   function actionStatus(scene, a, def, request = {}) {
     if (!live(a)) return unavailable("Участник выведен из боя");
     if (a.deploymentProxy) return unavailable("Этот НПС не находится на Поле и не может использовать базовые Действия");
-    if (scene.pendingAction || state(copy(scene)).choices?.length) return unavailable("Сначала завершите текущую цепочку");
+    if (scene.pendingAction || scene.pendingPrompt || state(copy(scene)).choices?.length) return unavailable("Сначала завершите текущую цепочку");
     if (def.type === "reaction") return unavailable("Реакция доступна при соответствующем событии");
     const denial = actionGuardList(scene, a, "denials").find(item => item.actionId === def.id && Number(item.remaining ?? 1) > 0);
     if (denial) return unavailable(denial.reason || "Действие запрещено активным правилом");
@@ -2807,7 +2807,7 @@
       }
       if (effectActive(scene,a,"positive.исчез") && !assassinStride) {
         if (!p.reappearance) fail("Сначала выберите клетку появления");
-        if (scene.actors.some(x => live(x) && x.id !== a.id && distance({ ...p.reappearance, space: p.reappearance.space || a.space }, x) <= 1)) fail("Появление запрещено рядом с персонажем");
+        validateActionReappearance(scene, a, p.reappearance);
         removeEffect(a, "positive.исчез",{reappear:false}); placeActor(a, p.reappearance, { reason: "reappear-action" });
       }
       if ([ids.skirmish, ids.finish].includes(def.id) && p.areaPlan) {
@@ -2913,7 +2913,7 @@
       else if (def.id === ids.study) { applyEffect(targets[0], { effect: "negative.помечен" }, a.id); const study = global.DAWN_LIONWING_INFORMATION_QUERY?.studyStatus?.(scene, "information:study:" + p.actionInstanceId); emit("rule.prompt", a.id, { targetId: targets[0].id, title: "Нарратор раскрывает выбранный параметр NPC", informationStudyId: study?.id || null, informationCategories: global.DAWN_LIONWING_INFORMATION_QUERY?.availableCategories?.(scene, study).map(item => ({ id: item.id, label: item.label })) || [] }); }
       else if (def.id === ids.improvise && !p.removeObstacleId) {
         if (p.effect) { if (targets.length !== 1 || distance(a, targets[0]) > 1 || p.effect === "positive.изгнан") fail("Импровизация: соседняя цель и Эффект кроме Изгнания"); applyEffect(targets[0], { effect: p.effect }, a.id); }
-        else { const d = p.destination; if (!d || distance(a, { ...d, space: a.space }) !== 1) fail("Выберите соседнюю клетку препятствия"); movement(scene, a, d, { placement: true }); scene.objects.push({ id: `${rootId}:obstacle`, type: "terrain", label: "Препятствие", space: a.space, cells: [`${d.x},${d.y}`], hp: 10, maxHp: 10, duration: "scene", ownerActorId: a.id }); }
+        else { const d = p.destination; if (!d || distance(a, { ...d, space: d.space || a.space }) !== 1) fail("Выберите соседнюю клетку препятствия"); movement(scene, a, d, { placement: true }); scene.objects.push({ id: `${rootId}:obstacle`, type: "terrain", label: "Препятствие", space: a.space, cells: [`${d.x},${d.y}`], hp: 10, maxHp: 10, duration: "scene", ownerActorId: a.id }); }
       } else if (def.id === "action.атаки.дуэль") {
         const opponent=targets[0];
         if(opponent.team===a.team)fail("Дуэль требует противника");
@@ -3944,7 +3944,7 @@
           emit("turn.start", a.id, { ap: a.ap, ...(passiveAp ? { passiveAp } : {}) }); break;
         }
         case "turn-end": {
-          if (scene.activeActorId !== sourceId || scene.pendingAction || s.choices.length || s.pausedChains?.length) fail("Нельзя завершить этот Ход: есть незавершённое действие");
+          if (scene.activeActorId !== sourceId || scene.pendingAction || scene.pendingPrompt || s.choices.length || s.pausedChains?.length) fail("Нельзя завершить этот Ход: есть незавершённое действие");
           if (effectActive(scene,a,"positive.регенерирует")) applyHealing({targetId:a.id,amount:4+Number(a.tier||1)},a.id);
           scheduleBoundary("anyTurnEnd", a);
           scheduleBoundary("turnEnd", a);
@@ -4220,6 +4220,13 @@
   };
   function dispatchMany(scene, events, options = {}) {
     if (!isScene(scene)) return legacy.dispatchMany(scene, events, options);
+    legacy.eventPacketContract.validate(events);
+    if (legacy.eventPacketContract.replayStatus(scene, events).complete) return { scene: copy(scene), events: [], event: null };
+    const result = dispatchEventPacket(scene, events, options);
+    legacy.eventPacketContract.record(result.scene, events);
+    return result;
+  }
+  function dispatchEventPacket(scene, events, options = {}) {
     if((scene.actors||[]).some(actor=>String(actor.profileId||"").startsWith("enemy.modifier.")))fail("В этой Сцене LionWing есть модификаторы старой редакции. Продолжение боя заблокировано; создайте новую Сцену с модификаторами LionWing.");
     // The GM enemy panel intentionally uses the established preview → commit
     // event pipeline.  Its enemy action/reaction events carry the canonical
@@ -4270,7 +4277,6 @@
     const canonicalBerserkerPrompt = scene.pendingPrompt?.context?.berserkerPassive || scene.pendingPrompt?.kind === "enemy-berserker-retaliate" && (scene.actors || []).some(actor => actor.id === scene.pendingPrompt.sourceActorId && actor.profileId === "lionwing.npc.berserker");
     const berserkerPassiveResponse = canonicalBerserkerPrompt && events.find(event => event?.type === "rule.respond");
     if (berserkerPassiveResponse) {
-      if (events.every(event => event.id && state(scene).receipts.some(receipt => receipt.id === event.id && receipt.fingerprint === JSON.stringify([event.type, event.actorId || null, event.payload || {}])))) return { scene: copy(scene), events: [], event: null };
       const source = (scene.actors || []).find(actor => actor.id === scene.pendingPrompt.sourceActorId), response = berserkerPassiveResponse.payload || {};
       if (source?.profileId !== "lionwing.npc.berserker" || berserkerPassiveResponse.actorId !== source.id) fail("Пассивная способность требует ожидающее решение Берсерка.");
       const request = { actorId: source.id, choice: response.choice, destination: response.destination, stale: response.stale === true, role: response.role, narratorOverride: response.narratorOverride === true };
@@ -4278,13 +4284,10 @@
       const shape = event => [event.type, event.actorId || null, event.payload || {}, event.visibility || null];
       if (!expected.ok || !sameJson(events.map(shape), expected.events.map(shape))) fail("Пассивная способность Берсерка не соответствует каноническим перемещению, цели и урону.");
       const committed = legacy.dispatchMany(scene, events, options);
-      for (const event of events) if (event.id) state(committed.scene).receipts.push({ id: event.id, fingerprint: JSON.stringify([event.type, event.actorId || null, event.payload || {}]) });
-      state(committed.scene).receipts = state(committed.scene).receipts.slice(-256);
       return committed;
     }
     const cocoonRepeatResponse = scene.pendingPrompt?.kind === "enemy-cocoon-repeat" && scene.pendingPrompt.context?.ruleId === "lionwing.npc.cocoon.rampage" && events.find(event => event?.type === "rule.respond");
     if (cocoonRepeatResponse) {
-      if (events.every(event => event.id && state(scene).receipts.some(receipt => receipt.id === event.id && receipt.fingerprint === JSON.stringify([event.type, event.actorId || null, event.payload || {}])))) return { scene: copy(scene), events: [], event: null };
       const source = (scene.actors || []).find(actor => actor.id === scene.pendingPrompt.sourceActorId), response = cocoonRepeatResponse.payload || {};
       if (source?.profileId !== "lionwing.npc.cocoon" || cocoonRepeatResponse.actorId !== source.id) fail("Повтор Буйства требует ожидающее решение Кокона.");
       const attack = events.find(event => event?.type === "attack.pending");
@@ -4292,8 +4295,6 @@
       const shape = event => [event.type, event.actorId || null, event.payload || {}, event.visibility || null];
       if (!expected.ok || !sameJson(events.map(shape), expected.events.map(shape))) fail("Повтор Буйства не соответствует каноническим цели, броску и результату.");
       const committed = legacy.dispatchMany(scene, events, options);
-      for (const event of events) if (event.id) state(committed.scene).receipts.push({ id: event.id, fingerprint: JSON.stringify([event.type, event.actorId || null, event.payload || {}]) });
-      state(committed.scene).receipts = state(committed.scene).receipts.slice(-256);
       return committed;
     }
     const rangerPromptFlow = scene.pendingPrompt?.kind === "enemy-ranger-retreat" && events.some(event => event?.type === "rule.respond");
@@ -4553,6 +4554,44 @@
     try { return { ok: true, ...dispatchMany(scene, events, options), errors: [] }; }
     catch (error) { return { ok: false, errors: [error.message], code: error.code || "LIONWING_RULE_BLOCKED" }; }
   }
+  function validateActionReappearance(scene, source, destination) {
+    if (scene.actors.some(target => live(target) && target.id !== source.id && distance({ ...destination, space: destination?.space || source.space }, target) <= 1)) fail("Появление запрещено рядом с персонажем");
+    return movement(scene, source, destination, { placement: true, ignoreTerrain: true, ignoreOpponents: true });
+  }
+  /** Read-only spatial query. Uses the command's actual preparation/commit
+   * validators on a disposable snapshot, without consuming gameplay randomness.
+   * Intermediate reappearance uses the same validator as action execution. */
+  function destinationStatus(scene, request = {}) {
+    try {
+      const snapshot = copy(scene), field = request.field || "destination", destination = request.destination;
+      if (!["destination", "reappearance", "areaCenter"].includes(field)) fail("Неизвестный выбор клетки");
+      if (!destination || !Number.isInteger(destination.x) || !Number.isInteger(destination.y)) fail("Выберите клетку внутри поля");
+      const board = snapshot.spaces?.find(space => space.id === (destination.space || actor(snapshot, request.actorId)?.space));
+      if (!board || destination.x < 0 || destination.y < 0 || destination.x >= board.width || destination.y >= board.height) fail("Выберите клетку внутри поля");
+      const payload = copy(request.payload || {});
+      // Quickly discard unreachable cells using the actual movement validator.
+      // Only surviving cells need a complete action/trigger preview.
+      if (field === "destination" && payload.kind === "action" && payload.actionId === ids.jump && !payload.reappearance) {
+        const source = requiredActor(snapshot, request.actorId);
+        movement(snapshot, source, destination, { maximum: scaledMove(source, Number(source.attrs.talent || 0), snapshot), line: true, ignoreOpponents: true, ignoreDifficultTerrain: true });
+      }
+      if (field === "destination" && payload.kind === "action" && payload.actionId === ids.improvise && !payload.reappearance && !payload.effect && !payload.removeObstacleId) {
+        const source = requiredActor(snapshot, request.actorId);
+        if (distance(source, { ...destination, space: destination.space || source.space }) !== 1) fail("Выберите соседнюю клетку препятствия");
+      }
+      if (field === "reappearance") {
+        const source = requiredActor(snapshot, request.actorId), definition = actionDef(payload.actionId);
+        if (payload.kind !== "action" || !definition || !effectActive(snapshot, source, "positive.исчез")) fail("Участник не ожидает появления перед действием");
+        const gate = actionStatus(snapshot, source, definition, payload);
+        if (!gate.available) fail(gate.reason);
+        validateActionReappearance(snapshot, source, destination);
+      } else {
+        const prepared = prepare(snapshot, { ...payload, actorId: request.actorId, [field]: copy(destination), eventId: "destination-preview" }, { random: () => 0 });
+        if (!prepared.ok) return { available: false, reason: prepared.errors.join(" ") };
+      }
+      return { available: true, reason: "" };
+    } catch (error) { return { available: false, reason: error.message }; }
+  }
   const followupStatus = (scene, id = null) => {
     const rows = state(copy(scene)).followups || [];
     const selected = id == null ? rows : rows.filter(item => item.id === id);
@@ -4616,7 +4655,7 @@
     return { exists: Boolean(pending), pending, targetIds: targets, eligibleIds, waitingIds, autoPassedIds, answeredIds: eligibleIds.filter(id => !waitingIds.includes(id)), unavailableIds: targets.filter(id => !eligibleIds.includes(id)), canResolve: Boolean(pending && !mustCancel && !waitingIds.length), mustCancel, interruptedReason: mustCancel ? "Источник или все цели недоступны" : "" };
   }
   const api = {
-    schema: 2, isScene, prepare, command, dispatchMany, replay, undo, reload, previewEvents, prepareEntityRemoval, cancelEntityRemoval, removeEntity, destroyEntity: removeEntity,
+    schema: 2, isScene, prepare, command, dispatchMany, replay, undo, reload, previewEvents, destinationStatus, prepareEntityRemoval, cancelEntityRemoval, removeEntity, destroyEntity: removeEntity,
     combatMeter: combatMeter ? { read: (scene, id) => combatMeter.read(scene, id), quote: (scene, id, change) => combatMeter.quote(scene, id, change) } : null,
     turnStartStatus, roundEndStatus, turnIdentity, followupStatus, pendingFollowups,
     movement, roll, actionStatus, actionGate, actionDef, speed, maxHealth, balance, canSpend, resourceQuote, targetIds, costQuote, detectiveMovementStatus, prepareDetectiveTeleport, reactionOptions,

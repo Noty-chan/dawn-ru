@@ -3,6 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import vm from "node:vm";
 import { fileURLToPath } from "node:url";
+import { fixture, runtime } from "./helpers/scene-contract-harness.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, "..");
@@ -209,4 +210,36 @@ assert.equal(byId("new-user-lionwing").edition, "lionwing", "New user records re
 assert.deepEqual(byId("legacy-ru").enemies[0] && [byId("legacy-ru").enemies[0].ap, byId("legacy-ru").enemies[0].baseAp], [2, 2], "RU-v0.9 keeps its 2 AP contract");
 assert.deepEqual(byId("legacy-lionwing-explicit").enemies[0] && [byId("legacy-lionwing-explicit").enemies[0].ap, byId("legacy-lionwing-explicit").enemies[0].baseAp], [2, 2], "Explicit AP in an old record is preserved rather than migrated");
 
-console.log("LionWing GM AP contract: builtin copy, new user record, Fodder, Modifier, summons, and old encounter policy passed");
+// Exercise real creation, Turn start and spending; preset-only checks cannot
+// detect an AP bonus disappearing from the progress UI after the first action.
+const combat = runtime();
+const legacyPacket = [{ id: "legacy-import-retry", type: "resource.gain", actorId: "hero", payload: { resource: "influence", amount: 1 } }];
+const legacySaved = combat.engine.dispatchMany(fixture("ru-v0.9"), legacyPacket).scene;
+const legacyImported = json(coreContext.sceneCore(legacySaved));
+assert.deepEqual(legacyImported.eventReceipts, json(legacySaved.eventReceipts), "backup normalization preserves 0.9 request receipts");
+assert.equal(combat.engine.dispatchMany(legacyImported, legacyPacket).scene.actors[0].influence, legacySaved.actors[0].influence, "a retry after importing the snapshot cannot spend or gain twice");
+const creatorStart = gmSource.indexOf("function enemyActorFromProfile");
+const creatorEnd = gmSource.indexOf("function encounterBlueprint", creatorStart);
+Object.assign(gmContext, { Scene: { activeSpace: "main" }, sceneEffectList: () => [], firstEmptyCell: () => ({ x: 4, y: 1 }) });
+vm.runInContext(`${gmSource.slice(creatorStart, creatorEnd)};this.createEnemy=enemyActorFromProfile;`, gmContext);
+let apSerial = 0;
+for (const profile of combat.context.window.DAWN_LIONWING_DATA.coreRules.npcs.list) {
+  const created = json(gmContext.createEnemy({ ...profile, editionId: "lionwing" }, 1));
+  assert.deepEqual([created.ap, created.baseAp], [3, 3], `${profile.id}: fresh NPC starts with canonical base AP`);
+  for (const stunned of [false, true]) {
+    let table = fixture(); table.activeActorId = null; table.actors[0].acted = true;
+    table.actors[1] = { ...table.actors[1], ...created, id: "enemy", effects: stunned ? ["negative.ошеломлен"] : [] };
+    table.lionwing.lastTeam = "hero";
+    table = combat.engine.dispatchMany(table, [{ ...combat.core.command("enemy", { kind: "turn-start" }), id: `ap-start:${++apSerial}` }]).scene;
+    const expected = 3 + (profile.id === "lionwing.npc.ronin" ? 1 : 0) - Number(stunned);
+    assert.equal(table.actors[1].ap, expected, `${profile.id}: passive and Staggered apply once at Turn start`);
+    assert.equal(combat.engine.turnActionProgressStatus(table, "enemy").total, expected);
+    // Passive prompts may block actions; resource corrections remain explicit
+    // Narrator operations and let us inspect the exact remaining budget.
+    table = combat.engine.dispatchMany(table, [{ ...combat.core.command("enemy", { kind: "resource", resource: "ap", operation: "spend", amount: 1 }), id: `ap-spend:${++apSerial}` }]).scene;
+    assert.equal(table.actors[1].ap, expected - 1);
+    assert.equal(combat.engine.turnActionProgressStatus(table, "enemy").total, expected, "spending cannot shrink the initial Turn budget");
+    assert.equal(combat.engine.turnActionProgressStatus(table, "enemy").used, 1);
+  }
+}
+console.log("LionWing GM AP contract: creation, all NPC Turn budgets, Ronin/Staggered, progress after spend, presets, Fodder, Modifier, summons, old encounter policy passed");

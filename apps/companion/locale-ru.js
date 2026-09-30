@@ -5,6 +5,12 @@
 // system messages. New or edited UI text must be added here rather than adding
 // a second language directly to feature code.
 window.DAWN_I18N?.registerLocale("ru", {
+  "scene.destination.title": "{action}: {field}",
+  "scene.destination.hint": "Выберите подсвеченную клетку. Ресурсы спишутся после корректного выбора; при подтверждении клетка проверяется повторно.",
+  "scene.destination.field.destination": "клетка назначения",
+  "scene.destination.field.reappearance": "клетка появления",
+  "scene.destination.field.areaCenter": "центр области",
+  "scene.destination.cancel": "Отменить без затрат",
   "lionwing.dice.title": "Сохраняемые броски",
   "lionwing.dice.hint": "Общий инструмент для ручных правил. Изменение костей сохраняется в журнале; уже нанесённый урон автоматически не пересчитывается.",
   "lionwing.dice.pool": "Число костей",
