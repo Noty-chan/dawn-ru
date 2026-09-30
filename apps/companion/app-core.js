@@ -667,9 +667,12 @@ const techniqueStatusIcon=status=>status==="partial"?"â—":status==="manual"?"â€
 function techniqueLevelStatus(techniqueId,level){
   const numericLevel=Number(level),canonical=isLionwingEdition()?canonicalLionwingTechniqueStatus(techniqueId,numericLevel):null;
   const entry=isLionwingEdition()?canonical:TechniqueEngine?.techniqueCoverage(D,{[techniqueId]:numericLevel}).find(item=>item.techniqueId===techniqueId&&Number(item.level)===numericLevel);
-  const automation=LIONWING_AUTOMATION_STATUSES.has(entry?.automation)?entry.automation:"manual";
+  const registryAutomation=LIONWING_AUTOMATION_STATUSES.has(entry?.automation)?entry.automation:"manual";
+  const executable=isLionwingEdition()?window.DAWN_LIONWING_ADAPTERS?.coverage?.(techniqueId,numericLevel):null;
+  const automation=executable==="manual"?"manual":executable==="partial"?"partial":registryAutomation;
   const notes=[entry?.reason,...(entry?.rules||[]).map(rule=>rule.note)].map(note=>String(note||"").replace(/\s+/g," ").trim()).filter(Boolean);
-  return{...(entry||{}),id:entry?.id||`${techniqueId}.${numericLevel}`,techniqueId,level:numericLevel,automation,reason:[...new Set(notes)].join(" ")};
+  const reason=executable==="manual"?t("lionwing.technique.automation.runtimeManual"):executable==="partial"?t("lionwing.technique.automation.runtimePartial"):[...new Set(notes)].join(" ");
+  return{...(entry||{}),id:entry?.id||`${techniqueId}.${numericLevel}`,techniqueId,level:numericLevel,automation,reason};
 }
 function techniqueLevelAutomation(techniqueId,level){return techniqueLevelStatus(techniqueId,level).automation}
 function techniqueAutomationStatusLabel(status,{short=false}={}){const normalized=LIONWING_AUTOMATION_STATUSES.has(status)?status:"manual";return t((short?TECHNIQUE_STATUS_SHORT_KEYS:TECHNIQUE_STATUS_LABEL_KEYS)[normalized]);}

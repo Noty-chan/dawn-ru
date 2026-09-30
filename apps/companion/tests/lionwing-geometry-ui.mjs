@@ -42,7 +42,7 @@ function commitSceneEvents(){commitCount+=1;Scene={...clone(Scene),version:Numbe
 function lwSubmit(actorId,payload,label){submitted.push({actorId,payload:clone(payload),label});return true}
 function $(id){return id==="scene-board"?board:null}
 function $$(selector){return selector==='[data-scene-cell]'?cells:[]}
-function makeRoot(actorId="mover"){return{dataset:{lwActor:actorId},querySelector:()=>null,closest:()=>null}}
+function makeRoot(actorId="mover"){return{dataset:{lwActor:actorId},querySelector:()=>null,querySelectorAll:()=>[],closest:()=>null}}
 function makeButton(attrs={},root=makeRoot(attrs["data-lw-actor"]||"mover")){
   const dataset={};
   for(const [key,value] of Object.entries(attrs))if(key.startsWith("data-")){const dataKey=key.slice(5).replace(/-([a-z])/g,(_,letter)=>letter.toUpperCase());dataset[dataKey]=String(value)}

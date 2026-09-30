@@ -2935,6 +2935,18 @@
       }
     };
 
+    // Bootstrap only explicitly declared missing state. Never replay Scene-start
+    // bonuses or reset a clock when a rule is enabled halfway through combat.
+    const initializeTechniqueState = (owner, onlyRuleId = null) => {
+      const registry = global.DAWN_LIONWING_ADAPTERS;
+      for (const rule of registry.list(owner).filter(rule => rule.enabled && (!onlyRuleId || rule.id === onlyRuleId))) {
+        for (const operation of registry.initializationOperations?.(owner, rule.id) || []) {
+          if (operation.kind !== "clock" || operation.operation !== "create") fail("Некорректная инициализация Техники");
+          mutateCounter(operation, owner.id, "clock");
+        }
+      }
+    };
+
     const validateSirenMutation = (p, sourceId, operationKind) => {
       const ruleId = p?.ruleId, sourceDigest = SIREN_SOURCE_DIGESTS[ruleId];
       if (!sourceDigest) return null;
@@ -3066,7 +3078,7 @@
           emit("cost.commit", sourceId, { costs: quoted.costs, targetIds: quoted.targetIds });
           break;
         }
-        case "action": performAction(requiredActor(scene, sourceId), p); break;
+        case "action": initializeTechniqueState(requiredActor(scene, sourceId)); performAction(requiredActor(scene, sourceId), p); break;
         case "derived-action": performDerivedAction(p, sourceId); break;
         case "information-study": {
           const information = global.DAWN_LIONWING_INFORMATION_QUERY;
@@ -3219,6 +3231,7 @@
           const rule = global.DAWN_LIONWING_ADAPTERS.list(a).find(rule => rule.id === p.ruleId);
           if (!rule || typeof p.enabled !== "boolean") fail("Автоматизация недоступна этому участнику");
           astate(a).automation ||= {}; a.lionwing.automation[p.ruleId] = p.enabled;
+          if (p.enabled) initializeTechniqueState(a, p.ruleId);
           emit("automation.configure", a.id, { ruleId: p.ruleId, enabled: p.enabled }); break;
         }
         case "aura": mutateAura(p,sourceId,event.actorId); break;

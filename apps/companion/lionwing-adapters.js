@@ -8,9 +8,9 @@
   const lionwing = actor => actor?.rulesEdition === "lionwing";
   const knows = (actor, techniqueId, level) => lionwing(actor) && Number((actor.knownTechniques ?? actor.techniques)?.[techniqueId] || 0) >= level;
   const distance = (a, b) => a?.space === b?.space ? Math.abs(Number(a?.x || 0) - Number(b?.x || 0)) + Math.abs(Number(a?.y || 0) - Number(b?.y || 0)) : Infinity;
-  const passive = ({ id, label, sourceDigest, rollBonus, statBonus, statMinimum, rangeBonus, numeric, attackEffects, boundaryOperations, inventoryOperations, resourceGainStatus, actionStatus, triggerKey, match, operations = [], choices = [], choiceSet = false, maximumLevel = null, coverage = "full" }) => {
+  const passive = ({ id, label, sourceDigest, initialize, rollBonus, statBonus, statMinimum, rangeBonus, numeric, attackEffects, boundaryOperations, inventoryOperations, resourceGainStatus, actionStatus, triggerKey, match, operations = [], choices = [], choiceSet = false, maximumLevel = null, coverage = "full" }) => {
     const techniqueId = id.replace(/\.\d+$/, ""), level = Number(id.match(/\.(\d+)$/)?.[1] || 0);
-    return Object.freeze({ id, techniqueId, level, label, sourceDigest, coverage, available: actor => knows(actor, techniqueId, level) && (maximumLevel == null || Number((actor.knownTechniques ?? actor.techniques)?.[techniqueId] || 0) <= maximumLevel), rollBonus, statBonus, statMinimum, rangeBonus, numeric, attackEffects, boundaryOperations, inventoryOperations, resourceGainStatus, actionStatus, triggerKey, match, operations, choices, choiceSet });
+    return Object.freeze({ id, techniqueId, level, label, sourceDigest, coverage, initialize, available: actor => knows(actor, techniqueId, level) && (maximumLevel == null || Number((actor.knownTechniques ?? actor.techniques)?.[techniqueId] || 0) <= maximumLevel), rollBonus, statBonus, statMinimum, rangeBonus, numeric, attackEffects, boundaryOperations, inventoryOperations, resourceGainStatus, actionStatus, triggerKey, match, operations, choices, choiceSet });
   };
   const actionBonus = (actionId, amount = 1) => (_actor, context) => context?.kind === "attack" && context.actionId === actionId ? amount : 0;
   const attackIds = new Set(["action.атаки.заклинание", "action.атаки.завершение", "action.атаки.стычка"]);
@@ -936,7 +936,7 @@
       attackEffects: (_actor, context) => context?.actionId === ACTIONS.spell && Number(context.successes) > 0
         ? [{ effect: "negative.замедлен" }] : [],
     }),
-    passive({ id: "ruiner.cryomancer.2", label: "Ледяной покров II: +1 Преимущество к Заклинаниям и Сосулька", sourceDigest: "32667d8918127c1729dc39430bde0375999651854e06e8cd599d91b7fcd14f30", coverage: "partial", rollBonus: actionBonus("action.атаки.заклинание"), boundaryOperations: (actor, context) => context?.boundary === "sceneStart" ? clockConfiguration(actor, "ruiner.cryomancer.icicle", "Сосулька", 4, { ruleId: "ruiner.cryomancer.2" }) : [] }),
+    passive({ id: "ruiner.cryomancer.2", label: "Ледяной покров II: +1 Преимущество к Заклинаниям и Сосулька", sourceDigest: "32667d8918127c1729dc39430bde0375999651854e06e8cd599d91b7fcd14f30", coverage: "partial", initialize: actor => actor.ruleClocks?.["ruiner.cryomancer.icicle"] ? [] : clockConfiguration(actor, "ruiner.cryomancer.icicle", "Сосулька", 4), rollBonus: actionBonus("action.атаки.заклинание"), boundaryOperations: (actor, context) => context?.boundary === "sceneStart" ? clockConfiguration(actor, "ruiner.cryomancer.icicle", "Сосулька", 4, { ruleId: "ruiner.cryomancer.2" }).map(operation => ({ ...operation, operation: actor.ruleClocks?.[operation.id] ? "configure" : "create" })) : [] }),
     passive({ id: "ruiner.sellsword-s-call.1", label: "Зов мечника I: +2 Преимущества к Заклинаниям (пассивная часть)", sourceDigest: "712c5d75aebe965eb606cb4b930e141138c87dd24cb14804cd367a1904d5c283", coverage: "partial", rollBonus: actionBonus("action.атаки.заклинание", 2) }),
     passive({ id: "vagabond.skirmisher.3", label: "Застрельщик III: +1 Преимущество к Стычкам (пассивная часть)", sourceDigest: "4933347df61d45014a553af1c97f078e20ee677081e433464ba9c96726513c61", coverage: "partial", rollBonus: actionBonus("action.атаки.стычка") }),
     passive({ id: "vagabond.knife-juggler.2", label: "Жонглёр ножами II: +1 Преимущество к Стычкам (пассивная часть)", sourceDigest: "4da1a911cf7ed1eb5a90e3c4aed8abbb87087a567f7ab38406c11d1130c6c54a", coverage: "partial", rollBonus: actionBonus("action.атаки.стычка") }),
@@ -1233,6 +1233,23 @@
     }),
   ];
   const adapters = Object.freeze([berserker, flagellant, ...passives, ...eventAdapters]);
+  // These commands are implemented by the engine (area selection / Duel
+  // quote), but still need authoritative, learnable opt-in entries.
+  const commandAdapters = Object.freeze([
+    { id: "ruiner.student-of-stars.2-line", techniqueId: "ruiner.student-of-stars", level: 2, label: "Бесформенная сила: линия", sourceDigest: "6fd4f1cf8b3ee7fbe492fd7a439792e61c568bd4c28d0b6efe80071d99482d7e", coverage: "partial" },
+    { id: "ruiner.student-of-stars.2-zone", techniqueId: "ruiner.student-of-stars", level: 2, label: "Бесформенная сила: зона 2×2", sourceDigest: "6fd4f1cf8b3ee7fbe492fd7a439792e61c568bd4c28d0b6efe80071d99482d7e", coverage: "partial" },
+    { id: "ruiner.student-of-stars.3", techniqueId: "ruiner.student-of-stars", level: 3, label: "Момент истины: Дуэль", sourceDigest: "806d52c0296048d69a25b379d8dcdfa5690dbee0cef391ea6894485016393f6e", coverage: "partial" },
+  ].map(rule => Object.freeze({ ...rule, available: actor => knows(actor, rule.techniqueId, rule.level) })));
+  function configurationRows(actor) {
+    const rows = [...adapters, ...actionModifiers, ...commandAdapters].filter(rule => rule.available(actor))
+      .concat((global.DAWN_LIONWING_INFORMATION_QUERY?.adapters || []).filter(rule => knows(actor, rule.techniqueId, rule.level)));
+    const byId = new Map();
+    for (const rule of rows) {
+      const previous = byId.get(rule.id);
+      byId.set(rule.id, { ...rule, sourceLevelId: rule.sourceLevelId || `${rule.techniqueId}.${rule.level}`, coverage: previous?.coverage === "partial" || rule.coverage === "partial" ? "partial" : "full" });
+    }
+    return [...byId.values()];
+  }
   const enabledActionModifiers = actor => actionModifiers.filter(rule => rule.available(actor) && actor?.lionwing?.automation?.[rule.id] === true);
   const actionQuote = (actor, context = {}) => {
     const baseCost = Number(context.baseCost || 0), baseResource = context.baseResource || null;
@@ -1489,12 +1506,19 @@
     nth: (actor, scene, n, query = {}) => Number.isSafeInteger(Number(n)) && Number(n) > 0 && lifecycle.count(actor, scene, query) === Number(n) - 1,
   });
   global.DAWN_LIONWING_ADAPTERS = Object.freeze({
-    list: actor => adapters.filter(rule => rule.available(actor)).map(({ id, techniqueId, level, label, sourceDigest, coverage }) => ({
-      id, techniqueId, level, label, sourceDigest, coverage,
+    initializationOperations: (actor, ruleId) => adapters.filter(rule => rule.id === ruleId && rule.available(actor) && typeof rule.initialize === "function")
+      .flatMap(rule => rule.initialize(actor).map(operation => ({ ...operation, ruleId: rule.id, sourceDigest: rule.sourceDigest }))),
+    // Catalogue readiness must describe executable LionWing rules, rather than
+    // coverage inherited from the legacy engine. No saved actor flags are read.
+    coverage: (techniqueId, level) => {
+      const probe = { rulesEdition: "lionwing", knownTechniques: { [techniqueId]: Number(level) } };
+      const rows = configurationRows(probe).filter(rule => rule.techniqueId === techniqueId && Number(rule.level) === Number(level));
+      return rows.length ? rows.some(rule => rule.coverage === "partial") ? "partial" : "full" : "manual";
+    },
+    list: actor => configurationRows(actor).map(({ id, techniqueId, level, label, sourceDigest, sourceLevelId, coverage }) => ({
+      id, techniqueId, level, label, sourceDigest, sourceLevelId, coverage,
       enabled: actor?.lionwing?.automation?.[id] === true,
-    })).concat((global.DAWN_LIONWING_INFORMATION_QUERY?.adapters || [])
-      .filter(rule => Number((actor?.knownTechniques ?? actor?.techniques)?.[rule.techniqueId] || 0) >= rule.level)
-      .map(rule => ({ ...rule, enabled: actor?.lionwing?.automation?.[rule.id] === true }))),
+    })),
     replacements: (actor, original) => enabled(actor).flatMap(rule => rule.replacements?.(actor, original) || []),
     afterEffect: (actor, original) => enabled(actor).flatMap(rule => rule.afterEffect?.(actor, original) || []),
     afterEvent,

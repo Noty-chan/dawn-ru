@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import vm from "node:vm";
+import { runtime, fixture, packet, clone } from "./helpers/scene-contract-harness.mjs";
 
 const listeners = new Map(), preferences = new Map();
 const context = { window: {
@@ -209,3 +210,77 @@ assert.equal(surface.dispatchOnce("failed", () => false), false);
 assert.equal(surface.dispatchOnce("failed", () => { dispatches += 1; return true; }), true, "failed dispatch can be retried");
 
 console.log("LionWing technique surface passed: canonical source, separate automation status, action availability, offer cancel/reload and visibility");
+
+// Execute the same bulk configuration that the console submits to the real core.
+const live = runtime();
+for (const file of ["localization.js", "locale-ru.js", "edition-lionwing-ru.js", "lionwing-technique-surface.js"]) {
+  vm.runInContext(fs.readFileSync(new URL("../" + file, import.meta.url), "utf8"), live.context, { filename: file });
+}
+const actualSurface = live.context.window.DAWN_LIONWING_TECHNIQUE_SURFACE;
+let table = fixture();
+const hero = table.actors[0];
+hero.knownTechniques = hero.techniques = { "vagabond.master-at-arms": 3, "ruiner.cryomancer": 2, "ruiner.bombardier": 2 };
+hero.lionwing.automation = { "vagabond.master-at-arms.1": true };
+const before = clone(table);
+const operations = actualSurface.enableOperations(hero, table);
+assert.ok(operations.length > 0);
+assert.ok(operations.every(operation => !operation.ruleId.startsWith("vagabond.master-at-arms")), "a saved flag cannot invent executable LionWing coverage");
+const prepared = live.core.prepare(table, { kind: "batch", actorId: hero.id, operations });
+table = live.core.dispatchMany(table, packet(prepared, "console-enable")).scene;
+assert.deepEqual(clone(table.actors[0].lionwing.automation), { ...before.actors[0].lionwing.automation, ...Object.fromEntries(operations.map(operation => [operation.ruleId, true])) });
+for (const resource of ["ap", "focus", "hp", "influence"]) assert.equal(table.actors[0][resource], before.actors[0][resource], "enabling automation does not spend " + resource);
+assert.equal(actualSurface.enableOperations(table.actors[0], table).length, 0, "repeated activation has no additional commands");
+const invalidInput = clone(before);
+const invalid = live.core.prepare(before, { kind: "batch", actorId: hero.id, operations: [...operations, { kind: "automation", ruleId: "unknown.technique.1", enabled: true }] });
+assert.equal(invalid.ok, false, "unknown rules reject the entire configuration batch");
+assert.deepEqual(clone(before), invalidInput, "prepare preserves the input snapshot");
+const actualModel = actualSurface.model(table, table.actors[0], { viewer: { role: "narrator" } });
+assert.equal(actualModel.entries.length, 7);
+assert.ok(actualModel.statuses.filter(item => item.entry.techniqueId === "vagabond.master-at-arms").every(item => item.status.state === "manual"));
+const actualHtml = actualSurface.render(table.actors[0], { scene: table, viewer: { role: "narrator" } });
+assert.match(actualHtml, /Пульт техник · 3/);
+assert.match(actualHtml, /7 изученных уровней/);
+assert.match(actualHtml, /Вручную: 3/);
+assert.doesNotMatch(actualHtml, /Автоматика включена: .*\/7/);
+assert.match(actualHtml, /data-lw-action="action\.атаки\.заклинание"/);
+assert.doesNotMatch(actualHtml, /preview|reviewed adapter/);
+const blockedManual = actualSurface.model({ ...table, pendingPrompt: { kind: "enemy-decision" } }, table.actors[0], { viewer: { role: "narrator" } });
+assert.equal(blockedManual.manual.available, false, "NPC decisions block manual recording too");
+assert.equal(live.context.window.DAWN_LIONWING_ADAPTERS.coverage("vagabond.master-at-arms", 1), "manual");
+assert.equal(live.context.window.DAWN_LIONWING_ADAPTERS.coverage("ruiner.bombardier", 2), "partial");
+console.log("Technique console: seven-level status, real atomic activation, resources, native Cast entry and pending NPC decision passed");
+
+let studentTable = fixture();
+studentTable.actors[0].knownTechniques = studentTable.actors[0].techniques = { "ruiner.student-of-stars": 2 };
+const studentOps = actualSurface.enableOperations(studentTable.actors[0], studentTable);
+assert.deepEqual(clone(studentOps.map(operation => operation.ruleId).sort()), ["ruiner.student-of-stars.1", "ruiner.student-of-stars.2-line", "ruiner.student-of-stars.2-zone"], "all native Student commands are configurable without editing stored flags");
+studentTable = live.core.dispatchMany(studentTable, packet(live.core.prepare(studentTable, { actorId: "hero", kind: "batch", operations: studentOps }), "student-connect")).scene;
+studentTable = live.core.dispatchMany(studentTable, packet(live.core.prepare(studentTable, { actorId: "hero", kind: "action", actionId: live.engine.ACTION_IDS.charge }, { random: () => 0.6 }), "student-charge")).scene;
+const charged = clone(studentTable);
+const area = live.core.prepare(studentTable, { actorId: "hero", kind: "action", actionId: live.engine.ACTION_IDS.finish, techniqueRuleId: "ruiner.student-of-stars.2-line", areaCenter: { space: "main", x: 2, y: 1 }, studentArea: { shape: "line", orientation: "horizontal" }, attribute: "spirit", focusSpent: 2 }, { random: () => 0.6 });
+assert.equal(area.ok, true, area.errors?.join(" "));
+assert.deepEqual(clone(studentTable), charged, "preparing an area is free and leaves the input untouched");
+studentTable = live.core.dispatchMany(studentTable, packet(area, "student-finish")).scene;
+assert.equal(studentTable.actors[0].ap, charged.actors[0].ap - 1, "connected Student I applies the authoritative reduced Finisher cost");
+assert.equal(studentTable.actors[0].focus, charged.actors[0].focus - 2);
+console.log("Student console: connect -> Charge -> line Finisher, no direct flag injection, atomic AP/Focus and free prepare passed");
+
+let frostTable = fixture();
+frostTable.actors[0].knownTechniques = frostTable.actors[0].techniques = { "ruiner.cryomancer": 2 };
+const frostEnable = live.core.prepare(frostTable, { actorId: "hero", kind: "automation", ruleId: "ruiner.cryomancer.2", enabled: true });
+frostTable = live.core.dispatchMany(frostTable, packet(frostEnable, "frost-enable")).scene;
+assert.equal(frostTable.actors[0].ruleClocks["ruiner.cryomancer.icicle"].current, 0, "mid-scene activation creates the missing Icicle clock");
+let frostChargeEvents = packet(live.core.prepare(frostTable, { actorId: "hero", kind: "action", actionId: live.engine.ACTION_IDS.charge }, { random: () => 0.6 }), "frost-charge");
+frostTable = live.core.dispatchMany(frostTable, frostChargeEvents).scene;
+assert.equal(frostTable.actors[0].ruleClocks["ruiner.cryomancer.icicle"].current, 1, "Charge succeeds and fills one segment");
+assert.equal(live.core.dispatchMany(frostTable, frostChargeEvents).scene.actors[0].ruleClocks["ruiner.cryomancer.icicle"].current, 1, "an exact retry cannot fill another segment");
+frostTable = live.core.dispatchMany(frostTable, packet(live.core.prepare(frostTable, { actorId: "hero", kind: "batch", operations: [{ kind: "automation", ruleId: "ruiner.cryomancer.2", enabled: false }, { kind: "automation", ruleId: "ruiner.cryomancer.2", enabled: true }] }), "frost-reconnect")).scene;
+assert.equal(frostTable.actors[0].ruleClocks["ruiner.cryomancer.icicle"].current, 1, "re-enabling never erases earned segments");
+const restoredFlags = fixture();
+restoredFlags.actors[0].knownTechniques = restoredFlags.actors[0].techniques = { "ruiner.cryomancer": 2 };
+restoredFlags.actors[0].lionwing.automation = { "ruiner.cryomancer.2": true };
+const restoredCharge = live.core.prepare(restoredFlags, { actorId: "hero", kind: "action", actionId: live.engine.ACTION_IDS.charge }, { random: () => 0.6 });
+const restoredResult = live.core.dispatchMany(restoredFlags, packet(restoredCharge, "frost-old-flags")).scene;
+assert.equal(restoredResult.actors[0].ruleClocks["ruiner.cryomancer.icicle"].current, 1, "restored enabled flags without clock state are repaired by the action transaction");
+assert.equal(restoredFlags.actors[0].ruleClocks, undefined, "prepare and dispatch leave the restored input untouched");
+console.log("Icicle activation: mid-scene create, Charge, exact retry, re-enable preservation and restored-flag recovery passed");

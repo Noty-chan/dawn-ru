@@ -30,6 +30,11 @@ vm.runInContext(sceneUi.slice(sceneUi.indexOf("function sceneActionDisplayName("
 vm.runInContext(actionUi.slice(actionUi.indexOf("function sceneActionPanel("), actionUi.indexOf("function coreActionRoll(")), context);
 vm.runInContext(`const lwOldActionPanel=sceneActionPanel;\n${lwUi.slice(lwUi.indexOf("function lwPendingHtml()"), lwUi.indexOf("function lwAutomationHtml("))}\nwindow.renderEnemyPending=lwPendingHtml;`, context);
 
+context.Scene = fixture(actor("hero", "hero", 2));
+assert.equal(context.sceneActionDisplayName(engine.ACTION_IDS.finish, "Finish"), "Завершение", "native attack flow accepts an action ID and uses its Russian name");
+assert.equal(context.sceneActionDisplayName(undefined, "Ручная атака"), "Ручная атака", "an attack without a core action ID cannot crash the entire scene render");
+assert.equal(context.sceneActionDisplayName({ id: engine.ACTION_IDS.spell, name: "Cast" }), "Заклинание");
+
 let scene = attack(fixture(actor("hero", "hero", 2)));
 assert.ok(scene.pendingAction?.enemyRuleId, "canonical NPC attack owns the shared pending action");
 assert.equal(scene.pendingAction.lionwing, undefined);

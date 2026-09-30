@@ -1981,6 +1981,7 @@
           "uiEntryPoint": "scene-actions-ui.js useEnemyRule → DAWN_SCENE_ENGINE.prepareEnemyRule → commitSceneEvents",
           "tests": [
             "apps/companion/tests/lionwing-action-plan-execution.mjs",
+            "apps/companion/tests/lionwing-destination-contracts.mjs",
             "apps/companion/tests/lionwing-dice-engine.mjs",
             "apps/companion/tests/lionwing-enemy-base-attacks.mjs",
             "apps/companion/tests/lionwing-enemy-fodder-creators.mjs",

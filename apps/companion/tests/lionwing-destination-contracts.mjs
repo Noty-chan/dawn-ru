@@ -96,13 +96,19 @@ vm.runInContext(`
  ${helpers}\n${handler}
  this.getScene=()=>Scene;this.getDestination=()=>lwDestination;this.cancel=lwCancelDestination;this.setScene=value=>{Scene=value};this.setDestination=lwSetDestination;
 `, Object.assign(ui, { board }));
-const root = { dataset: { lwActor: "hero" }, querySelector: () => null };
+const root = { dataset: { lwActor: "hero" }, querySelector: () => null,
+  querySelectorAll: selector => selector === "[data-lw-focus]" ? [
+    { value: "4", closest: () => nestedTechnique },
+    { value: "1", closest: () => root },
+  ] : [] };
+const nestedTechnique = { dataset: { lwActor: "hero" } };
 const button = { dataset: { lwAction: ids.jump, lwActor: "hero" }, hasAttribute: name => name === "data-lw-action", closest: selector => selector.includes("[data-lw-root]") ? root : null };
 const click = target => ui.click({ target, preventDefault() {}, stopImmediatePropagation() {} });
 click({ closest: selector => selector.includes("[data-lw-action]") ? button : null });
 assert.ok(ui.renders > 0, "starting Jump immediately repaints its destinations");
 assert.ok(cells.find(cell => cell.dataset.sceneCell === "4,4").classes.has("movement-valid"));
 assert.equal(ui.getScene().actors[0].ap, 3, "selection spends nothing");
+assert.equal(ui.getDestination().payload.focusSpent, 1, "a base action ignores Focus configured in a nested technique console");
 const cellTarget = key => ({ closest: selector => selector.includes("[data-scene-cell]") ? { dataset: { sceneCell: key } } : null });
 click(cellTarget("2,3"));
 assert.equal(ui.submissions, 0, "an invalid cell cannot submit a command");

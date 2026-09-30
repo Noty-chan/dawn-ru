@@ -832,12 +832,14 @@ function sceneTurnStatusAfterCurrent(actor){
   const current=Scene.actors.find(item=>item.id===Scene.activeActorId);if(!current||current.id===actor.id)return SceneEngine.turnStartStatus(Scene,actor.id);
   try{return SceneEngine.turnStartStatus(SceneEngine.dispatch(Scene,{type:"turn.end",actorId:current.id,payload:{}}).scene,actor.id)}catch(error){return{available:false,reason:error.message||"Нельзя начать этот Ход"}}
 }
-function sceneActionDisplayName(action){
+function sceneActionDisplayName(action,fallbackName="Действие"){
+  const actionId=typeof action==="string"?action:action?.id;
+  const fallback=action?.name||fallbackName;
   if(window.DAWN_LIONWING_ENGINE?.isScene(Scene)){
-    const core=localizedLionwingCoreRules(),npcRule=(core.npcs?.list||[]).flatMap(npc=>[...(npc.actions||[]),npc.ace].filter(Boolean)).find(item=>item.id===action.id);
-    return core.actions.list.find(item=>item.id===action.id)?.name||npcRule?.name||action.name;
+    const core=localizedLionwingCoreRules(),npcRule=(core.npcs?.list||[]).flatMap(npc=>[...(npc.actions||[]),npc.ace].filter(Boolean)).find(item=>item.id===actionId);
+    return core.actions.list.find(item=>item.id===actionId)?.name||npcRule?.name||fallback;
   }
-  return action.name;
+  return typeof action==="string"?(D.actions.list.find(item=>item.id===actionId)?.name||fallback):fallback;
 }
 function refreshSceneControlStates(){
   for(const button of $$("#scene-inspector .enemy-rule button:disabled")){const reason=button.title?.trim(),meta=button.querySelector("small");if(reason&&meta)meta.textContent=reason}
