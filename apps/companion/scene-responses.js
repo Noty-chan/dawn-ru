@@ -342,6 +342,7 @@ function respondRulePrompt(scene, data, request = {}) {
   const errors = choiceStatus.available ? [] : [choiceStatus.reason];
   if (errors.length) return { ok: false, errors, events: [] };
   const events = [promptResponseEvent(prompt, actor, target, choice, request)];
+  if (request.stale === true) return { ok: true, errors: [], events };
   if (prompt.kind === "enemy-berserker-passive") {
     if (actor.profileId !== "lionwing.npc.berserker" || !prompt.context?.berserkerPassive) return { ok: false, errors: ["Пассивная способность Берсерка больше недоступна."], events: [] };
     if (choice === "move") {
@@ -357,7 +358,6 @@ function respondRulePrompt(scene, data, request = {}) {
     }
     return { ok: true, errors: [], events };
   }
-  if (request.stale === true) return { ok: true, errors: [], events };
   if (prompt.kind === "bodyguards-brace-line") {
     const lineIds = choice.startsWith("line:") ? choice.slice(5).split(",").filter(Boolean) : [];
     const selectedLine = (prompt.context?.braceLines || []).find(ids => JSON.stringify(ids) === JSON.stringify(lineIds));

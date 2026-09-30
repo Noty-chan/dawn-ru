@@ -154,6 +154,14 @@ berserkerPassive = engine.dispatchMany(berserkerPassive, [{ id: "berserker-hit",
 assert.equal(berserkerPassive.pendingPrompt?.kind, "enemy-berserker-passive", "canonical passive does not offer the legacy retaliation attack");
 assert.ok(berserkerPassive.pendingPrompt.options.includes("target:other"), "the passive may damage an adjacent opponent other than the attacker");
 const berserkerStart = clone(berserkerPassive);
+const expiredBerserker = clone(berserkerStart);
+expiredBerserker.pendingPrompt.expiresAt = Date.now() - 1000;
+const expiredAnswer = engine.respondRulePrompt(expiredBerserker, data, { choice: "target:other", stale: true });
+assert.equal(expiredAnswer.ok, true, expiredAnswer.errors?.join(" "));
+assert.deepEqual(Array.from(expiredAnswer.events, event => event.type), ["rule.respond"], "closing an expired prompt cannot execute an old damage choice");
+const closedExpired = commitWithIds(expiredBerserker, expiredAnswer, "expired-berserker").result.scene;
+assert.equal(closedExpired.pendingPrompt, null);
+assert.equal(closedExpired.actors[2].hp, 30, "expired closure commits without damaging the old target");
 const berserkerMove = engine.respondRulePrompt(berserkerPassive, data, { choice: "move" });
 assert.equal(berserkerMove.ok, true, berserkerMove.errors?.join(" "));
 berserkerPassive = commitWithIds(berserkerPassive, berserkerMove, "berserker-choose-move").result.scene;
@@ -569,6 +577,19 @@ for (const extra of [{ effects: ["positive.исчез"] }, { space: "other" }]) 
 }
 assert.equal(engine.respondRulePrompt(cocoon,data,{choice:"target:hero-b",roll:{...dice(5),successes:99}}).ok,false,"repeat damage cannot trust forged roll totals");
 const cocoonBeforeRepeat=clone(cocoon),repeatAp=cocoon.actors[0].ap;
+let threeTargetRepeat = clone(cocoonBeforeRepeat);
+threeTargetRepeat.actors.push(actor("hero-c", "hero", 3, 1));
+const threeTargetCommit = commitWithIds(threeTargetRepeat, repeated, "three-target-repeat");
+threeTargetRepeat = threeTargetCommit.result.scene;
+threeTargetRepeat = commitWithIds(threeTargetRepeat, engine.respondReaction(threeTargetRepeat, data, { actorId: "hero-b", choice: "pass" }), "three-target-defense").result.scene;
+threeTargetRepeat = commitWithIds(threeTargetRepeat, engine.resolvePendingAction(threeTargetRepeat, data), "three-target-resolve").result.scene;
+assert.equal(threeTargetRepeat.pendingPrompt?.kind, "enemy-cocoon-repeat");
+const afterRetry = engine.dispatchMany(clone(threeTargetRepeat), threeTargetCommit.events);
+assert.deepEqual(afterRetry.scene, threeTargetRepeat, "a late retry preserves the next repeat prompt and cannot reopen the previous attack");
+assert.equal(afterRetry.events.length, 0);
+const changedLateRetry = clone(threeTargetCommit.events);
+changedLateRetry.find(event => event.type === "attack.pending").payload.damage = 99;
+assert.throws(() => engine.dispatchMany(clone(threeTargetRepeat), changedLateRetry), /Буйства|канонич/i, "the retry guard still rejects changed payloads under old event ids");
 for(const [effect,damage] of [["positive.усилен",6],["negative.ослаблен",2]]){
   const modified=clone(cocoon);modified.actors[0].effects.push(effect);
   const response=engine.respondRulePrompt(modified,data,{choice:"target:hero-b",roll:dice(5,[6,5,1,1,1])});

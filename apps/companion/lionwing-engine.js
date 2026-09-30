@@ -4284,6 +4284,7 @@
     }
     const cocoonRepeatResponse = scene.pendingPrompt?.kind === "enemy-cocoon-repeat" && scene.pendingPrompt.context?.ruleId === "lionwing.npc.cocoon.rampage" && events.find(event => event?.type === "rule.respond");
     if (cocoonRepeatResponse) {
+      if (events.every(event => event.id && state(scene).receipts.some(receipt => receipt.id === event.id && receipt.fingerprint === JSON.stringify([event.type, event.actorId || null, event.payload || {}])))) return { scene: copy(scene), events: [], event: null };
       const source = (scene.actors || []).find(actor => actor.id === scene.pendingPrompt.sourceActorId), response = cocoonRepeatResponse.payload || {};
       if (source?.profileId !== "lionwing.npc.cocoon" || cocoonRepeatResponse.actorId !== source.id) fail("Повтор Буйства требует ожидающее решение Кокона.");
       const attack = events.find(event => event?.type === "attack.pending");
