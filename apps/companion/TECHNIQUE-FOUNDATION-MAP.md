@@ -266,7 +266,7 @@ SHA-256 проверенных файлов: `ac147280aeb307b429846c56c1f597ee9a
 
 | Ур. | Название | Разметка | Адаптер | Возможности |
 | ---: | --- | --- | --- | --- |
-| 1 | Fade | проверено | ручная | `target-validation`, `event-participants`, `movement-lifecycle` |
+| 1 | Fade | проверено | полная | `target-validation`, `event-participants`, `movement-lifecycle` |
 | 2 | Flash Strike | проверено | полная | `movement-lifecycle`, `action-modifier`, `action-history` |
 | 3 | Flash Step [ Breathe → Stride ] | проверено | ручная | `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `movement-lifecycle`, `usage-limits`, `trigger-router`, `turn-lifecycle`, `damage-pipeline`, `action-modifier` |
 

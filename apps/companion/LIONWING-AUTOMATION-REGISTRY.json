@@ -8366,9 +8366,24 @@
       },
       "level": 1,
       "implementation": {
-        "automation": "manual",
-        "ruleIds": [],
-        "rules": [],
+        "automation": "full",
+        "ruleIds": [
+          "vagabond.speed-demon.1"
+        ],
+        "rules": [
+          {
+            "id": "vagabond.speed-demon.1",
+            "techniqueId": "vagabond.speed-demon",
+            "level": 1,
+            "name": "Проскользнуть",
+            "kind": "passive",
+            "automation": "full",
+            "sourceDigest": "6ce0b83cacbfaaa2049af3bab7a516247f0bea7c2fbbd53910fced7d29fb8b6e",
+            "note": "LionWing: добровольное движение проходит сквозь врагов, сохраняя проверку пустой конечной клетки, Стен, препятствий и запретов движения.",
+            "sourceLevelId": "vagabond.speed-demon.1",
+            "coverage": "full"
+          }
+        ],
         "foundationPlan": {
           "version": 11,
           "status": "reviewed",
@@ -8411,7 +8426,9 @@
           "text": "You can move through enemies. You must end your movement in an empty space."
         },
         "canonicalDigest": "6ce0b83cacbfaaa2049af3bab7a516247f0bea7c2fbbd53910fced7d29fb8b6e",
-        "engineRuleDigests": []
+        "engineRuleDigests": [
+          "6ce0b83cacbfaaa2049af3bab7a516247f0bea7c2fbbd53910fced7d29fb8b6e"
+        ]
       },
       "review": {
         "status": "unreviewed",
@@ -27952,9 +27969,9 @@
             "name": "Удушение",
             "kind": "passive",
             "automation": "full",
-            "note": "Завершения Телом и Талантом игнорируют дальность для собственных Пойманных целей, а любое Завершение наносит им дополнительный урон Ступени.",
-            "sourceLevelId": "disruptor.constrictor.2",
             "sourceDigest": "31497052acc5975d0710be32d338ee9b8f371577bde12aca4250b1ee967ace4f",
+            "note": "LionWing: Завершения Телом и Талантом игнорируют дальность для собственных активных Пойманных целей, а любое Завершение наносит им дополнительный урон Ступени. Источник Эффекта проверяется ядром.",
+            "sourceLevelId": "disruptor.constrictor.2",
             "coverage": "full"
           }
         ],

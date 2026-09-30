@@ -8,9 +8,9 @@
   const lionwing = actor => actor?.rulesEdition === "lionwing";
   const knows = (actor, techniqueId, level) => lionwing(actor) && Number((actor.knownTechniques ?? actor.techniques)?.[techniqueId] || 0) >= level;
   const distance = (a, b) => a?.space === b?.space ? Math.abs(Number(a?.x || 0) - Number(b?.x || 0)) + Math.abs(Number(a?.y || 0) - Number(b?.y || 0)) : Infinity;
-  const passive = ({ id, label, sourceDigest, initialize, rollBonus, statBonus, statMinimum, rangeBonus, numeric, attackEffects, boundaryOperations, inventoryOperations, resourceGainStatus, actionStatus, triggerKey, match, operations = [], choices = [], choiceSet = false, maximumLevel = null, coverage = "full" }) => {
+  const passive = ({ id, label, sourceDigest, initialize, movementFlags, rollBonus, statBonus, statMinimum, rangeBonus, numeric, attackEffects, boundaryOperations, inventoryOperations, resourceGainStatus, actionStatus, triggerKey, match, operations = [], choices = [], choiceSet = false, maximumLevel = null, coverage = "full" }) => {
     const techniqueId = id.replace(/\.\d+$/, ""), level = Number(id.match(/\.(\d+)$/)?.[1] || 0);
-    return Object.freeze({ id, techniqueId, level, label, sourceDigest, coverage, initialize, available: actor => knows(actor, techniqueId, level) && (maximumLevel == null || Number((actor.knownTechniques ?? actor.techniques)?.[techniqueId] || 0) <= maximumLevel), rollBonus, statBonus, statMinimum, rangeBonus, numeric, attackEffects, boundaryOperations, inventoryOperations, resourceGainStatus, actionStatus, triggerKey, match, operations, choices, choiceSet });
+    return Object.freeze({ id, techniqueId, level, label, sourceDigest, coverage, initialize, movementFlags, available: actor => knows(actor, techniqueId, level) && (maximumLevel == null || Number((actor.knownTechniques ?? actor.techniques)?.[techniqueId] || 0) <= maximumLevel), rollBonus, statBonus, statMinimum, rangeBonus, numeric, attackEffects, boundaryOperations, inventoryOperations, resourceGainStatus, actionStatus, triggerKey, match, operations, choices, choiceSet });
   };
   const actionBonus = (actionId, amount = 1) => (_actor, context) => context?.kind === "attack" && context.actionId === actionId ? amount : 0;
   const attackIds = new Set(["action.атаки.заклинание", "action.атаки.завершение", "action.атаки.стычка"]);
@@ -84,7 +84,7 @@
     { techniqueId: "powerhouse.dragonslayer", level: 3, sequenceKeys: ["breathe", "finish"] },
     { techniqueId: "powerhouse.spellsword", level: 3, sequenceKeys: ["spell", "finish"] },
     { techniqueId: "vagabond.assassin", level: 3, sequenceKeys: ["disappear", "step"] },
-    { techniqueId: "vagabond.speed-demon", level: 2, sequenceKeys: ["breathe", "step"] },
+    { techniqueId: "vagabond.speed-demon", level: 3, sequenceKeys: ["breathe", "step"] },
   ]);
   // Information-query owns authoritative Study receipts. Keep legacy actor
   // history as a compatibility fallback for old saves that predate the
@@ -891,6 +891,39 @@
     passive({ id: "bulwark.grappler.2", label: "Борец II: +1 Преимущество к Стычкам (пассивная часть)", sourceDigest: "87e908315db54db355c6fa2e4c772f05a08a0fbd835cd50e6339ac034f66ff4d", coverage: "partial", rollBonus: actionBonus("action.атаки.стычка") }),
     passive({ id: "disruptor.bloodletter.2", label: "Кровопускатель II: +1 Преимущество к Стычкам (пассивная часть)", sourceDigest: "c9c73dd242441bab4248e9a2726af8ed73cae41c41df3d09d6bb095c709f9d05", coverage: "partial", rollBonus: actionBonus("action.атаки.стычка") }),
     passive({ id: "disruptor.constrictor.3", label: "Удушитель III: +1 Преимущество к Стычкам (пассивная часть)", sourceDigest: "0103c5ab35c610ced640ee2b40b6bb0d0dc9c7552a1c961a6afb0877ba79bd80", coverage: "partial", rollBonus: actionBonus("action.атаки.стычка") }),
+    passive({
+      id: "disruptor.constrictor.2", label: "Удушитель II: Завершения против собственных Пойманных целей",
+      sourceDigest: "31497052acc5975d0710be32d338ee9b8f371577bde12aca4250b1ee967ace4f",
+      numeric: (owner, context) => {
+        if (context.actionId !== ACTIONS.finish || !context.scene) return [];
+        const ids = context.targetId ? [context.targetId] : context.targetIds || [];
+        if (!ids.length || !ids.every(id => global.DAWN_LIONWING_ENGINE?.effectInstanceStatus?.(context.scene, id, "negative.пойман")?.sources?.some(source => source.active && source.actorId === owner.id))) return [];
+        if (context.key === "damage") return { operation: "add", amount: Number(owner.tier || 1) };
+        if (context.key === "range" && ["body", "talent"].includes(context.attribute)) {
+          const board = context.scene.spaces?.find(space => space.id === owner.space);
+          return board ? { operation: "min", amount: Number(board.width) + Number(board.height), reason: "Собственная Пойманная цель доступна независимо от дальности." } : [];
+        }
+        return [];
+      },
+    }),
+    passive({
+      id: "vagabond.speed-demon.1", label: "Демон скорости I: проходить сквозь врагов",
+      sourceDigest: "6ce0b83cacbfaaa2049af3bab7a516247f0bea7c2fbbd53910fced7d29fb8b6e",
+      movementFlags: (_owner, context) => !context.forced && !context.placement ? { ignoreOpponents: true, endEmpty: true } : {},
+    }),
+    passive({
+      id: "powerhouse.spellsword.3", label: "Меч заклинаний III: урон Духа по цели предыдущего Заклинания",
+      sourceDigest: "ee60afad76ec4020051636adcbc32a8f8bc62e440b38b523e8e0386f73868f44", coverage: "partial",
+      numeric: (owner, context) => {
+        if (context.key !== "damage" || context.actionId !== ACTIONS.finish || !context.actionInstanceId || !context.scene) return [];
+        const history = turnHistory(owner, context.scene), index = history.findLastIndex(row => row.actionInstanceId === context.actionInstanceId);
+        const previous = history[index - 1], current = history[index];
+        const receipt = currentTurnActionRows(owner, context.scene).find(row => row.payload?.actionInstanceId === context.actionInstanceId);
+        if (index < 1 || current?.actionId !== ACTIONS.finish || previous?.actionId !== ACTIONS.spell
+          || !["body", "talent"].includes(receipt?.payload?.attribute) || !previous.targetIds?.includes(context.targetId) || !current.targetIds?.includes(context.targetId)) return [];
+        return { operation: "add", amount: Number(owner.attrs?.spirit || 0), reason: "Завершение комбо направлено в ту же цель, что предыдущее Заклинание." };
+      },
+    }),
     passive({ id: "disruptor.street-fighter.2", label: "Уличный боец II: Преимущество по числу Эффектов ошеломлённой цели (пассивная часть)", sourceDigest: "d2a047b0ae8184c4e9d98adedde7f5fe1a5db592efef26ab16556a230284a0a8", coverage: "partial", rollBonus: (actor, context) => context?.kind === "attack" && context.actionId === "action.атаки.стычка" && context.targetEffectIds?.includes("negative.ошеломлен") && !usesWeaponTechnique(actor, context) ? context.targetEffectIds.length : 0 }),
     passive({ id: "powerhouse.gunslinger.2", label: "Стрелок II: +1 Преимущество к Стычкам (пассивная часть)", sourceDigest: "6559e6a6b597f579ef43c6b7b20e4a6d92659d2b41de8338239a7059df0694ea", coverage: "partial", rollBonus: actionBonus("action.атаки.стычка") }),
     passive({ id: "powerhouse.martial-artist.3", label: "Мастер боевых искусств III: +1 Преимущество к Атакам (пассивная часть)", sourceDigest: "8428fb10aec3237aa82ef24d052a5610a5f9701fa3576d9be06b9219dc23176c", coverage: "partial", rollBonus: (actor, context) => context?.kind === "attack" && attackIds.has(context.actionId) && !usesWeaponTechnique(actor, context) ? 1 : 0 }),
@@ -1506,6 +1539,7 @@
     nth: (actor, scene, n, query = {}) => Number.isSafeInteger(Number(n)) && Number(n) > 0 && lifecycle.count(actor, scene, query) === Number(n) - 1,
   });
   global.DAWN_LIONWING_ADAPTERS = Object.freeze({
+    movementOptions: (actor, context = {}) => enabled(actor).reduce((options, rule) => ({ ...options, ...(rule.movementFlags?.(actor, context) || {}) }), {}),
     initializationOperations: (actor, ruleId) => adapters.filter(rule => rule.id === ruleId && rule.available(actor) && typeof rule.initialize === "function")
       .flatMap(rule => rule.initialize(actor).map(operation => ({ ...operation, ruleId: rule.id, sourceDigest: rule.sourceDigest }))),
     // Catalogue readiness must describe executable LionWing rules, rather than
@@ -1513,12 +1547,13 @@
     coverage: (techniqueId, level) => {
       const probe = { rulesEdition: "lionwing", knownTechniques: { [techniqueId]: Number(level) } };
       const rows = configurationRows(probe).filter(rule => rule.techniqueId === techniqueId && Number(rule.level) === Number(level));
+      rows.push(...(global.DAWN_LIONWING_ENGINE?.sharedTechniqueRows?.({ ...probe, kind: "hero" }) || []).filter(rule => Number(rule.level) === Number(level)));
       return rows.length ? rows.some(rule => rule.coverage === "partial") ? "partial" : "full" : "manual";
     },
     list: actor => configurationRows(actor).map(({ id, techniqueId, level, label, sourceDigest, sourceLevelId, coverage }) => ({
       id, techniqueId, level, label, sourceDigest, sourceLevelId, coverage,
       enabled: actor?.lionwing?.automation?.[id] === true,
-    })),
+    })).concat(global.DAWN_LIONWING_ENGINE?.sharedTechniqueRows?.(actor) || []),
     replacements: (actor, original) => enabled(actor).flatMap(rule => rule.replacements?.(actor, original) || []),
     afterEffect: (actor, original) => enabled(actor).flatMap(rule => rule.afterEffect?.(actor, original) || []),
     afterEvent,

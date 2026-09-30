@@ -8,7 +8,7 @@
 
 | Контур | Всего | Заявлено исполнимым | Формально E2E-сертифицировано | Неполный путь |
 | --- | ---: | ---: | ---: | --- |
-| Уровни Техник | 333 | 84 shared/inherited (25.2%) | 0 | 57 частичных; 192 ручных |
+| Уровни Техник | 333 | 85 shared/inherited (25.5%) | 0 | 57 частичных; 191 ручных |
 | Правила обычных врагов | 122 | 69 (56.6%) | 0 | 53 assisted |
 | Атаки врагов | 40 | 36 | 0 | не установлено независимым аудитом |
 
@@ -69,7 +69,7 @@
 | Архетип | Уровней | Заявлено full | Заявлено decision | Заявлено partial | Заявлено manual |
 | --- | ---: | ---: | ---: | ---: | ---: |
 | Powerhouse | 60 | 7 | 8 | 18 | 27 |
-| Vagabond | 60 | 10 | 12 | 10 | 28 |
+| Vagabond | 60 | 11 | 12 | 10 | 27 |
 | Bulwark | 48 | 3 | 3 | 4 | 38 |
 | Altruist | 57 | 2 | 11 | 2 | 42 |
 | Disruptor | 54 | 4 | 6 | 12 | 32 |
@@ -110,7 +110,6 @@
 | Heroic Ascendant (`powerhouse.heroic-ascendant`) | 3 | Mastered Strength | тонкий адаптер уникального условия поверх уже готового ядра |
 | Aerial Master (`vagabond.aerial-master`) | 2 | Hunt | тонкий адаптер уникального условия поверх уже готового ядра |
 | Sniper (`vagabond.sniper`) | 3 | Deadeye [ Hide → Talent Finisher ] | тонкий адаптер уникального условия поверх уже готового ядра |
-| Speed Demon (`vagabond.speed-demon`) | 1 | Fade | тонкий адаптер уникального условия поверх уже готового ядра |
 | Speed Demon (`vagabond.speed-demon`) | 3 | Flash Step [ Breathe → Stride ] | тонкий адаптер уникального условия поверх уже готового ядра |
 | Untouchable (`vagabond.untouchable`) | 3 | Fighter's Instinct [ Dodge → Skirmish ] | тонкий адаптер уникального условия поверх уже готового ядра |
 | Acrobat (`vagabond.acrobat`) | 1 | Flying Kick [ Jump → Skirmish ] | тонкий адаптер уникального условия поверх уже готового ядра |

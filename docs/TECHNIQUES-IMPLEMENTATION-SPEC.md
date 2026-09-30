@@ -630,10 +630,10 @@
 
 #### 1. Уход в тень (Fade) `vagabond.speed-demon.1`
 
-- **Заявленный статус:** `manual` (ручная).
-- **Текущий адаптер:** нет записи в `RULES`.
+- **Заявленный статус:** `full` (полная).
+- **Текущий адаптер:** `vagabond.speed-demon.1` · `passive` · {"kind":"passive","sourceDigest":"6ce0b83cacbfaaa2049af3bab7a516247f0bea7c2fbbd53910fced7d29fb8b6e","sourceLevelId":"vagabond.speed-demon.1","coverage":"full"}; LionWing: добровольное движение проходит сквозь врагов, сохраняя проверку пустой конечной клетки, Стен, препятствий и запретов движения..
 - **Готовые foundations:** `target-validation`, `event-participants`, `movement-lifecycle`.
-- **Нужно добавить:** Зарегистрировать отдельный adapter (trigger → validation → events/resolver) и прямые тесты; общая инфраструктура сама правило не исполняет.
+- **Нужно добавить:** Для кода явный следующий шаг не выведен автоматически; нужны direct pos/neg/boundary тесты и evidence до повышения доверия.
 
 #### 2. Мгновенный удар (Flash Strike) `vagabond.speed-demon.2`
 
@@ -1863,7 +1863,7 @@
 #### 2. Удушение (Choke) `disruptor.constrictor.2`
 
 - **Заявленный статус:** `full` (полная).
-- **Текущий адаптер:** `disruptor.constrictor.2` · `passive` · {"kind":"passive","sourceLevelId":"disruptor.constrictor.2","sourceDigest":"31497052acc5975d0710be32d338ee9b8f371577bde12aca4250b1ee967ace4f","coverage":"full"}; Завершения Телом и Талантом игнорируют дальность для собственных Пойманных целей, а любое Завершение наносит им дополнительный урон Ступени..
+- **Текущий адаптер:** `disruptor.constrictor.2` · `passive` · {"kind":"passive","sourceDigest":"31497052acc5975d0710be32d338ee9b8f371577bde12aca4250b1ee967ace4f","sourceLevelId":"disruptor.constrictor.2","coverage":"full"}; LionWing: Завершения Телом и Талантом игнорируют дальность для собственных активных Пойманных целей, а любое Завершение наносит им дополнительный урон Ступени. Источник Эффекта проверяется ядром..
 - **Готовые foundations:** `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `trigger-router`, `damage-pipeline`, `action-modifier`.
 - **Нужно добавить:** До повторного аудита дополнительный урон Ступени ошибочно требовал Пойман именно от этого Душителя, хотя ограничение владельца относится только к дистанционному targeting; исправлено для любого Пойманного персонажа с отдельным regression.
 

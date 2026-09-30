@@ -557,7 +557,7 @@
 
   function renderAutomationControls(status, actor, model) {
     if (!["owner", "narrator", "gm"].includes(model.viewer.role)) return "";
-    return status.rows.map(row => {
+    return status.rows.filter(row => row.configurable !== false).map(row => {
       const variant = row.id === "ruiner.student-of-stars.2-line" ? copy("line", model) : row.id === "ruiner.student-of-stars.2-zone" ? copy("zone", model) : "";
       return "<button type=\"button\" data-lw-automation=\"" + escapeHtml(row.id) + "\" data-lw-actor=\"" + escapeHtml(actor.id) + "\" data-lw-enabled=\"" + (!row.enabled) + "\">" + (row.enabled ? "Выключить автоматику" : "Включить автоматику") + (variant ? " · " + escapeHtml(variant) : "") + "</button>";
     }).join("");

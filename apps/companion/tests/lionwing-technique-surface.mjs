@@ -236,17 +236,18 @@ assert.equal(invalid.ok, false, "unknown rules reject the entire configuration b
 assert.deepEqual(clone(before), invalidInput, "prepare preserves the input snapshot");
 const actualModel = actualSurface.model(table, table.actors[0], { viewer: { role: "narrator" } });
 assert.equal(actualModel.entries.length, 7);
-assert.ok(actualModel.statuses.filter(item => item.entry.techniqueId === "vagabond.master-at-arms").every(item => item.status.state === "manual"));
+assert.ok(actualModel.statuses.filter(item => item.entry.techniqueId === "vagabond.master-at-arms").every(item => item.status.state === "automatic"));
 const actualHtml = actualSurface.render(table.actors[0], { scene: table, viewer: { role: "narrator" } });
 assert.match(actualHtml, /Пульт техник · 3/);
 assert.match(actualHtml, /7 изученных уровней/);
-assert.match(actualHtml, /Вручную: 3/);
+assert.doesNotMatch(actualHtml, /Вручную: 3/);
+assert.doesNotMatch(actualHtml, /data-lw-automation="vagabond\.master-at-arms/);
 assert.doesNotMatch(actualHtml, /Автоматика включена: .*\/7/);
 assert.match(actualHtml, /data-lw-action="action\.атаки\.заклинание"/);
 assert.doesNotMatch(actualHtml, /preview|reviewed adapter/);
 const blockedManual = actualSurface.model({ ...table, pendingPrompt: { kind: "enemy-decision" } }, table.actors[0], { viewer: { role: "narrator" } });
 assert.equal(blockedManual.manual.available, false, "NPC decisions block manual recording too");
-assert.equal(live.context.window.DAWN_LIONWING_ADAPTERS.coverage("vagabond.master-at-arms", 1), "manual");
+assert.equal(live.context.window.DAWN_LIONWING_ADAPTERS.coverage("vagabond.master-at-arms", 1), "full");
 assert.equal(live.context.window.DAWN_LIONWING_ADAPTERS.coverage("ruiner.bombardier", 2), "partial");
 console.log("Technique console: seven-level status, real atomic activation, resources, native Cast entry and pending NPC decision passed");
 
@@ -284,3 +285,18 @@ const restoredResult = live.core.dispatchMany(restoredFlags, packet(restoredChar
 assert.equal(restoredResult.actors[0].ruleClocks["ruiner.cryomancer.icicle"].current, 1, "restored enabled flags without clock state are repaired by the action transaction");
 assert.equal(restoredFlags.actors[0].ruleClocks, undefined, "prepare and dispatch leave the restored input untouched");
 console.log("Icicle activation: mid-scene create, Charge, exact retry, re-enable preservation and restored-flag recovery passed");
+
+// Keep historical declarations visible as explicit migration debt. A new lost
+// route (or a disconnected working adapter) must fail CI instead of silently
+// making an advertised automation manual in the player's console.
+const automationRegistry = JSON.parse(fs.readFileSync(new URL("../LIONWING-AUTOMATION-REGISTRY.json", import.meta.url), "utf8"));
+const expectedUnrouted = [
+  "powerhouse.dragonslayer.1", "powerhouse.dragonslayer.3", "powerhouse.gunslinger.3",
+  "vagabond.speed-demon.2", "vagabond.cunning-fighter.2", "vagabond.enchained.1",
+  "bulwark.mundane.2", "altruist.gourmand.2", "disruptor.chemist.1",
+  "disruptor.chemist.3", "disruptor.hunter.2", "ruiner.creation-ascetic.3",
+].sort();
+const actualUnrouted = automationRegistry.rows.filter(row => row.implementation.automation === "full"
+  && live.context.window.DAWN_LIONWING_ADAPTERS.coverage(row.id.replace(/\.\d+$/, ""), Number(row.id.match(/\.(\d+)$/)[1])) === "manual").map(row => row.id).sort();
+assert.deepEqual(actualUnrouted, expectedUnrouted, "full declarations must have executable LionWing routes except the documented routing audit backlog");
+console.log("Technique routing contract: only the 12 documented migration gaps remain; new disconnected full declarations fail QA");

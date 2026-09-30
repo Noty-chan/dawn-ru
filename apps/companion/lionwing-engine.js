@@ -945,6 +945,7 @@
   }
 
   function movement(scene, a, destination, options = {}) {
+    options = { ...options, ...(global.DAWN_LIONWING_ADAPTERS?.movementOptions?.(a, { ...options, scene, destination }) || {}) };
     const board = scene.spaces.find(s => s.id === (destination?.space || a.space));
     if (!board || !Number.isInteger(destination?.x) || !Number.isInteger(destination?.y) || destination.x < 0 || destination.y < 0 || destination.x >= board.width || destination.y >= board.height) fail("Выберите клетку внутри поля");
     if (!options.placement && board.id !== a.space && !options.teleport) fail("Это движение не меняет пространство");
@@ -970,7 +971,7 @@
     const entersDifficult = p => !options.ignoreTerrain && !options.ignoreDifficultTerrain && footprint(p).some(cell => difficult.has(key(cell)) && !ignoredDifficult.has(key(cell)));
     const entersEnemySpace = p => !options.ignoreOpponents && board.mode === "cinematic" && footprint(p).some(cell => occupied.some(x => x.team !== a.team && x.x === cell.x && x.y === cell.y));
     const endsMovement = p => entersDifficult(p) || entersEnemySpace(p);
-    if (blocked(destination) || board.mode !== "cinematic" && occupied.some(x => x.x === destination.x && x.y === destination.y)) fail("Клетка занята");
+    if (blocked(destination) || options.endEmpty && footprint(destination).some(cell => occupied.some(x => x.x === cell.x && x.y === cell.y)) || board.mode !== "cinematic" && occupied.some(x => x.x === destination.x && x.y === destination.y)) fail("Клетка занята");
       if (options.placement || options.teleport) {if(options.teleport&&options.maximum!=null&&distance(a,{...destination,space:board.id})>options.maximum)fail("Телепортация выходит за дальность");return { cost: 0, path: [{ x: destination.x, y: destination.y }], space: board.id };}
     const maximum = integer(options.maximum ?? 99, "дальность", 999);
     const crossesWall = (from, to) => typeof wallBlocksStep === "function" && wallBlocksStep(scene, a.space, from, to);
@@ -1019,13 +1020,22 @@
       if (!scene.lionwing?.breakout || scene.lionwing.breakout.actorId === a.id || attacks.has(def.id)) return unavailable("Прорыв: только не-Атака после чужого Хода");
       if (Number(a.influence || 0) < 1) return unavailable("Для Прорыва нужно 1 Влияние");
     } else if (scene.activeActorId !== a.id && !allowance?.reaction) return unavailable("Сейчас не Ход этого участника");
-    const baseSwift = breakout || Boolean(allowance?.swift||allowance?.reaction) || !isPlayer(a) && def.id === ids.step;
+    const armament = def.id === ids.skirmish && request.armamentMode ? effectActive(scene, a, "positive.исчез") && !request.reappearance
+      ? legacy.ruleModeStatus(masterScene(scene), a.id, { groupId: masterGroupId, modeId: request.armamentMode })
+      : masterArmamentStatus(scene, a.id, { modeId: request.armamentMode, targetIds: request.targetIds || [], reappearance: request.reappearance, requireDestination: false }) : null;
+    if (armament && !armament.available) return unavailable(armament.reason);
+    if (def.id === ids.skirmish && masterLevel(a) >= 1 && !request.armamentMode
+      && (!effectActive(scene, a, "positive.исчез") || request.reappearance)
+      && masterArmamentStatus(scene, a.id, { targetIds: request.targetIds || [], reappearance: request.reappearance, requireDestination: false }).available) {
+      return unavailable("Выберите Вооружение в Пульте техник");
+    }
+    const baseSwift = Boolean(armament?.available) || breakout || Boolean(allowance?.swift||allowance?.reaction) || !isPlayer(a) && def.id === ids.step;
     const continuation = def.id === ids.step && Number(a.stepRemaining || 0) > 0 && !breakout;
     if (continuation) return { available: true, reason: "", cost: 0, resource: "ap", continuation: true, remaining: Number(a.stepRemaining) };
     const requestedAttribute=request.attribute||(def.id===ids.finish?"spirit":null);
     const adapterStatus=global.DAWN_LIONWING_ADAPTERS?.actionStatus?.(a,{scene,actionId:def.id,attribute:requestedAttribute,techniqueId:request.techniqueId || null,techniqueRuleId:request.techniqueRuleId || null,techniqueIds:Array.isArray(request.techniqueIds) ? request.techniqueIds : [],techniqueTags:(request.techniqueTags||[]).map(tag=>String(tag).toLowerCase())})||{allowed:true};
     if(adapterStatus.allowed===false)return unavailable(adapterStatus.reason||"Действие запрещено Техникой");
-    const baseCost = breakout ? 0 : allowance?.cost??(def.id === "action.атаки.дуэль" ? Math.max(1, 4 - tensionValue(scene)) : def.id===ids.improvise&&request.removeObstacleId?1:def.cost.amount);
+    const baseCost = armament?.available || breakout ? 0 : allowance?.cost??(def.id === "action.атаки.дуэль" ? Math.max(1, 4 - tensionValue(scene)) : def.id===ids.improvise&&request.removeObstacleId?1:def.cost.amount);
     const actionHistory = Array.isArray(a.lionwing?.history) ? a.lionwing.history : [];
     const deploymentRows = (scene.log || []).map((event, index) => ({ event, index })).filter(({ event }) => event?.actorId === a.id && ["actor.move", "actor.place"].includes(event.type) && event.payload?.placement === true && /развер|deploy/i.test(String(event.payload?.movement || event.payload?.reason || "")));
     const latestDeployment = deploymentRows.length ? deploymentRows[deploymentRows.length - 1] : null;
@@ -1366,6 +1376,38 @@
     return checked.result;
   }
 
+  const masterTechniqueId = "vagabond.master-at-arms";
+  const masterGroupId = `${masterTechniqueId}.armament`;
+  const masterLevel = owner => Number((owner?.knownTechniques ?? owner?.techniques)?.[masterTechniqueId] || 0);
+  // Master at Arms was implemented against the LionWing source in the shared
+  // event core. Keep that implementation reachable through native commands.
+  // Project only this reviewed family; a known legacy ID is not permission to
+  // run every old hero technique in a LionWing scene.
+  function masterScene(scene) {
+    const projected = copy(scene);
+    for (const owner of projected.actors || []) if (isPlayer(owner)) {
+      owner.techniques = masterLevel(owner) ? { [masterTechniqueId]: masterLevel(owner) } : {};
+    }
+    return projected;
+  }
+  const isMasterAction = (owner, payload) => masterLevel(owner) >= 1 && payload.actionId === ids.skirmish && Boolean(payload.armamentMode)
+    || masterLevel(owner) >= 3 && payload.actionId === ids.finish && payload.attribute === "talent" && Boolean(owner.ruleModes?.[masterGroupId]?.modeId);
+  function masterArmamentStatus(scene, actorId, request = {}) {
+    const projected = masterScene(scene), owner = actor(projected, actorId);
+    if (owner && request.reappearance) Object.assign(owner, { x: request.reappearance.x, y: request.reappearance.y, space: request.reappearance.space || owner.space });
+    return legacy.masterAtArmsStatus(projected, actorId, request);
+  }
+  function sharedTechniqueRows(owner) {
+    if (!owner || owner.kind && !isPlayer(owner) || owner.rulesEdition !== "lionwing") return [];
+    return [
+      [1, "Многогранность", "d35f468065e84fbb0c86bc60015632bdbcfe9b0ced2ed2cfa370453f64a72371"],
+      [2, "Как вода", "743ae31f60f1a826d3346b6e07c7cff94983860c399cdc9484302e120fd726c4"],
+      [3, "Мастер за работой", "f104c7652bda2a425422af31d8d91b30515463c98f78892fe25eb204ac7508d3"],
+    ].filter(([level]) => level <= masterLevel(owner)).map(([level, label, sourceDigest]) => ({
+      id: `${masterTechniqueId}.${level}`, techniqueId: masterTechniqueId, level, label, sourceDigest,
+      sourceLevelId: `${masterTechniqueId}.${level}`, coverage: "full", enabled: true, configurable: false,
+    }));
+  }
   function prepare(scene, request, options = {}) {
     try {
       const eventId = request?.eventId ?? request?.commandId ?? request?.id ?? global.crypto?.randomUUID?.() ?? `lw-prepared-${Date.now()}-${preparedSerial++}`;
@@ -2788,6 +2830,43 @@
     const performAction = (a, p, internal = {}) => {
       const def = actionDef(p.actionId);
       if (!def) fail("Неизвестное базовое действие");
+      if (isMasterAction(a, p)) {
+        const gate = actionStatus(scene, a, def, p);
+        if (!gate.available) fail(gate.reason);
+        if (effectActive(scene, a, "positive.исчез")) {
+          if (!p.reappearance) fail("Сначала выберите клетку появления");
+          validateActionReappearance(scene, a, p.reappearance);
+          removeEffect(a, "positive.исчез", { reappear: false });
+          placeActor(a, p.reappearance, { reason: "reappear-action" });
+        }
+        const checkedRoll = validateRoll(p.roll);
+        if (dice) diceOwnerCheck(checkedRoll, a.id, "Бросок", true);
+        const pools = attackPools(scene, a, def, p);
+        if (checkedRoll.initialCount !== pools.base) fail("Пул броска не соответствует действию Мастера оружия");
+        const prepared = legacy.prepareAction(masterScene(scene), global.DAWN_DATA, { ...p, actorId: a.id,
+          roll: { rolls: copy(checkedRoll.rolls), successes: checkedRoll.successes, crits: checkedRoll.crits, initialCount: checkedRoll.initialCount, attribute: p.attribute || "talent" },
+          armamentDestination: p.armamentDestination || p.destination,
+          armamentAnchor: p.armamentAnchor || p.areaCenter,
+          attackModifierIds: p.spikeTargetIds?.map(id => `core.launch-spike:${id}`) || p.attackModifierIds || [],
+        });
+        if (!prepared.ok) fail(prepared.errors.join(" "));
+        const instanceId = prepared.events.find(item => item.type === "action.prepare")?.payload?.actionInstanceId;
+        const stable = value => typeof value === "string" && value === instanceId ? rootId
+          : Array.isArray(value) ? value.map(stable)
+          : value && typeof value === "object" ? Object.fromEntries(Object.entries(value).map(([key, item]) => [key, stable(item)])) : value;
+        const events = prepared.events.map((item, index) => ({ ...stable(item), id: `${rootId}:master:${index}`, at: event.at }));
+        const committed = legacy.dispatchMany(masterScene(scene), events);
+        for (const owner of committed.scene.actors) {
+          const original = actor(scene, owner.id);
+          if (original) owner.techniques = { ...(original.techniques || {}), ...(masterLevel(original) ? { [masterTechniqueId]: masterLevel(original) } : {}) };
+        }
+        Object.assign(s, committed.scene.lionwing || {});
+        Object.assign(scene, committed.scene, { lionwing: s });
+        emitted.push(...committed.events);
+        const pending = scene.pendingAction;
+        saveFact("apply", a.id, pending?.targetIds || [], { actionId: def.id, techniqueRuleId: pending?.techniqueRuleId, swift: Boolean(gate.swift) });
+        return;
+      }
       const derived = p.__derivedContract || null;
       const derivedQuote = derived ? global.DAWN_LIONWING_ADAPTERS?.actionQuote?.(a, { scene, actionId: def.id, targetIds: p.targetIds || [], attribute: p.attribute || null, baseCost: 0, baseResource: def.cost.resource, baseSwift: true, techniqueRuleId: derived.id, techniqueIds: [derived.id] }) : null;
       if (derivedQuote?.ok === false) fail(derivedQuote.reason || "Модификаторы производного действия конфликтуют");
@@ -2823,8 +2902,8 @@
       if ([ids.spell, ids.study, ids.shove, "action.атаки.дуэль"].includes(def.id) && targets.length !== 1 || def.id === ids.finish && !p.areaPlan && targets.length !== 1 || def.id === ids.skirmish && (!targets.length || !p.areaPlan && targets.length > 2)) fail("Неверное число целей");
       const finishContext = { scene, kind: "attack", actionId: def.id, attribute: p.attribute || (def.id === ids.finish ? "spirit" : null), activeEffectIds: activeState(scene, a.id).effects.filter(status => status.present).map(status => status.effect), techniqueRuleId: p.techniqueRuleId || null, techniqueSourceDigest: p.techniqueSourceDigest || null, breacherBuckShot: p.breacherBuckShot === true, tension: tensionValue(scene), spellCircleActive: p.spellCircleActive === true || spellCircleActive(scene, a), firstSpiritFinisherThisTurn: def.id === ids.finish && (p.firstSpiritFinisherThisTurn === true || firstSpiritFinisherThisTurn(scene, a, p.actionInstanceId || provenance?.actionInstanceId || rootId)) };
       const baseRange = def.id === ids.spell ? 5 : def.id === ids.finish ? Math.max(Number(status.actionQuote?.range || 0), 1) : def.id === ids.skirmish ? 1 : def.id === ids.study ? Number(status.actionQuote?.range ?? a.attrs.mind ?? 0) : 1;
-      const rangeQuote = global.DAWN_LIONWING_ADAPTERS?.rangeQuote?.(a, { ...finishContext, key: "range", baseValue: baseRange, roundUp: true })
-        || global.DAWN_LIONWING_ADAPTERS?.numericQuote?.(a, { ...finishContext, key: "range", baseValue: baseRange, roundUp: true })
+      const rangeQuote = global.DAWN_LIONWING_ADAPTERS?.rangeQuote?.(a, { ...finishContext, targetIds: targets.map(target => target.id), key: "range", baseValue: baseRange, roundUp: true })
+        || global.DAWN_LIONWING_ADAPTERS?.numericQuote?.(a, { ...finishContext, targetIds: targets.map(target => target.id), key: "range", baseValue: baseRange, roundUp: true })
         || { ok: true, value: baseRange };
       if (rangeQuote.ok === false) fail(rangeQuote.reason || "Числовые модификаторы дальности конфликтуют");
       const range = Math.max(0, Number(rangeQuote.value ?? baseRange));
@@ -3229,7 +3308,7 @@
         }
         case "automation": {
           const rule = global.DAWN_LIONWING_ADAPTERS.list(a).find(rule => rule.id === p.ruleId);
-          if (!rule || typeof p.enabled !== "boolean") fail("Автоматизация недоступна этому участнику");
+          if (!rule || rule.configurable === false || typeof p.enabled !== "boolean") fail("Автоматизация недоступна этому участнику");
           astate(a).automation ||= {}; a.lionwing.automation[p.ruleId] = p.enabled;
           if (p.enabled) initializeTechniqueState(a, p.ruleId);
           emit("automation.configure", a.id, { ruleId: p.ruleId, enabled: p.enabled }); break;
@@ -4668,7 +4747,7 @@
     return { exists: Boolean(pending), pending, targetIds: targets, eligibleIds, waitingIds, autoPassedIds, answeredIds: eligibleIds.filter(id => !waitingIds.includes(id)), unavailableIds: targets.filter(id => !eligibleIds.includes(id)), canResolve: Boolean(pending && !mustCancel && !waitingIds.length), mustCancel, interruptedReason: mustCancel ? "Источник или все цели недоступны" : "" };
   }
   const api = {
-    schema: 2, isScene, prepare, command, dispatchMany, replay, undo, reload, previewEvents, destinationStatus, prepareEntityRemoval, cancelEntityRemoval, removeEntity, destroyEntity: removeEntity,
+    schema: 2, isScene, prepare, command, dispatchMany, replay, undo, reload, previewEvents, destinationStatus, prepareEntityRemoval, cancelEntityRemoval, removeEntity, destroyEntity: removeEntity, sharedTechniqueRows, masterArmamentStatus,
     combatMeter: combatMeter ? { read: (scene, id) => combatMeter.read(scene, id), quote: (scene, id, change) => combatMeter.quote(scene, id, change) } : null,
     turnStartStatus, roundEndStatus, turnIdentity, followupStatus, pendingFollowups,
     movement, roll, actionStatus, actionGate, actionDef, speed, maxHealth, balance, canSpend, resourceQuote, targetIds, costQuote, detectiveMovementStatus, prepareDetectiveTeleport, reactionOptions,
@@ -4699,6 +4778,7 @@
   route("effectiveActorMaxHealth", (scene, id) => maxHealth(requiredActor(scene, id, false)));
   route("effectiveActorStats", (scene, id) => effectiveStats(scene, requiredActor(scene, id, false)));
   route("pendingActionStatus", (scene, data = global.DAWN_DATA) => scene.pendingAction?.lionwing ? lionwingPendingActionStatus(scene) : legacy.pendingActionStatus(sceneWithActiveEffects(scene), data));
+  route("resolvePendingAction", (scene, data, request) => legacy.resolvePendingAction(scene.pendingAction?.techniqueRuleId?.startsWith(`${masterTechniqueId}.`) ? masterScene(scene) : scene, data, request));
   route("reactionOptions", (scene, data, id) => scene.pendingAction?.lionwing ? reactionOptions(scene, id) : legacy.reactionOptions(sceneWithActiveEffects(scene), data, id));
   // Canonical LionWing NPC profiles are read through the shared enemy rule
   // adapter.  Keep the public query on the routed engine so the GM panel can

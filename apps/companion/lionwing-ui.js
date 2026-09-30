@@ -40,6 +40,27 @@ const lwRules = () => localizedLionwingCoreRules();
 const lwActor = () => Scene.actors.find(a => a.id === Scene.selectedActor) || Scene.actors.find(a => a.id === Scene.activeActorId) || currentHeroActor();
 const lwCanNarrate = () => !Sync?.state?.().sceneId || Sync.state().canNarrate;
 const lwOwns = actorId => lwCanNarrate() || currentHeroActor()?.id === actorId;
+function lwBeginMasterAction(actorId, payload, field, label) {
+  const disappeared = Scene.actors.find(owner => owner.id === actorId)?.effects?.includes("positive.исчез");
+  if (!field && !disappeared) return lwSubmit(actorId, payload, label);
+  lwSetDestination({ actorId, payload, label, field: disappeared ? "reappearance" : field, nextField: disappeared ? field : null });
+  toast(disappeared ? "Сначала выберите клетку появления" : "Выберите подсвеченную клетку Вооружения");
+}
+function lwMasterControls(a) {
+  const level = Number((a.knownTechniques ?? a.techniques)?.["vagabond.master-at-arms"] || 0);
+  if (!level) return "";
+  const targets = [...Scene.targetIds], actionId = SceneEngine.ACTION_IDS.skirmish;
+  const options = LionwingEngine.masterArmamentStatus(Scene, a.id, { targetIds: targets, requireDestination: false }).options;
+  const buttons = options.map(option => {
+    const gate = LionwingEngine.actionStatus(Scene, a, LionwingEngine.actionDef(actionId), { armamentMode: option.modeId, targetIds: targets });
+    const label = { blade: "Клинок", polearm: "Древко", chain: "Цепь" }[option.modeId];
+    return `<button type="button" data-lw-action="${esc(actionId)}" data-lw-master-mode="${esc(option.modeId)}" data-lw-actor="${esc(a.id)}" ${gate.available && lwOwns(a.id) ? "" : "disabled"} title="${esc(gate.reason || "Быстрая Стычка · 0 ОД")}">${esc(label)} · Стычка · 0 ОД</button>`;
+  }).join("");
+  const mode = a.ruleModes?.["vagabond.master-at-arms.armament"]?.modeId, finish = SceneEngine.ACTION_IDS.finish;
+  const gate = LionwingEngine.actionStatus(Scene, a, LionwingEngine.actionDef(finish), { attribute: "talent" });
+  const finisher = level >= 3 && mode ? `<button type="button" data-lw-action="${esc(finish)}" data-lw-master-finisher data-lw-actor="${esc(a.id)}" ${gate.available && lwOwns(a.id) ? "" : "disabled"} title="${esc(gate.reason || "Выберите клетку движения или направление области")}">Завершение Талантом · ${gate.cost ?? 2} ОД</button>` : "";
+  return `<section data-lw-root data-lw-actor="${esc(a.id)}" class="lw-technique-controls"><p>Выберите цели на поле, затем Вооружение. Клинок: движение на 1 клетку; Древко: 2 смежных врага; Цепь: 1 враг ровно в 4 клетках. Каждое Вооружение — один раз за Ход.</p><div class="button-row">${buttons}${finisher}</div><small>II: второе экипирование за Ход даёт 1 ОД и Ускорен. III: Завершение использует текущее Вооружение.</small><label>Фокус для Завершения<input data-lw-focus type="number" min="0" max="${Math.min(Number(a.focus || 0), Number(Scene.tension || 0))}" value="0"></label></section>`;
+}
 const lwEntities = () => window.DAWN_LIONWING_ENTITIES;
 const lwEntityViewer = () => {
   const sync = Sync?.state?.() || {};
@@ -837,7 +858,7 @@ function lwActionsHtml(a) {
   const breacher2 = Number((a.knownTechniques || a.techniques || {})["powerhouse.breacher"] || 0) >= 2 && a.lionwing?.automation?.["powerhouse.breacher.2"] === true;
   const breacher3 = Number((a.knownTechniques || a.techniques || {})["powerhouse.breacher"] || 0) >= 3 && a.lionwing?.automation?.["powerhouse.breacher.3"] === true;
   const areaControls = html => html ? `<section data-lw-root data-lw-actor="${esc(a.id)}" class="lw-technique-controls"><label>Фокус для Завершения<input data-lw-focus type="number" min="0" max="${focusCap}" value="0"></label>${html}</section>` : "";
-  const techniqueSurface=window.DAWN_LIONWING_TECHNIQUE_SURFACE?.render?.(a,{scene:Scene,viewer:lwEntityViewer(),controls:{"ruiner.student-of-stars":areaControls(studentAreaChoice),"ruiner.bombardier":areaControls(bombardierAreaChoice)}})||"";
+  const techniqueSurface=window.DAWN_LIONWING_TECHNIQUE_SURFACE?.render?.(a,{scene:Scene,viewer:lwEntityViewer(),controls:{"vagabond.master-at-arms":lwMasterControls(a),"ruiner.student-of-stars":areaControls(studentAreaChoice),"ruiner.bombardier":areaControls(bombardierAreaChoice)}})||"";
   return `<section class="lw-actions" data-lw-root data-lw-actor="${esc(a.id)}">${lwStatusHtml(a)}${lwConsequenceHistoryHtml(a)}${lwDiceHtml(a)}${lwInventoryHtml(a)}${techniqueSurface || lwAutomationHtml(a)}${lwPendingHtml()}${lwChainHtml(a)}${opportunities}${detectiveControls}${(a.effects||[]).includes("positive.невидим")?`<button data-lw-invisible data-lw-actor="${esc(a.id)}">Потратить Невидимость → Исчезнуть</button>`:""}${lwDestination ? '<p class="lw-hint">Выберите клетку на поле. <button data-lw-clear-destination>Отменить выбор</button></p>' : ""}<div class="core-action-list">${buttons}</div><details><summary>Параметры действия</summary><div class="lw-fields"><label>Атрибут<select data-lw-attribute><option value="">Подобрать по действию</option><option value="body">Тело</option><option value="talent">Талант</option><option value="spirit">Дух</option><option value="mind">Разум</option></select></label><label>Фокус для Завершения<input data-lw-focus type="number" min="0" max="${focusCap}" value="0"></label>${techniqueSurface ? "" : studentAreaChoice + bombardierAreaChoice}<label>Преимущество<input data-lw-advantage type="number" min="0" max="50" value="0"></label><label>Помеха<input data-lw-disadvantage type="number" min="0" max="50" value="0"></label>${breacher2?'<label><input type="checkbox" data-lw-both-barrels>Из обоих стволов</label>':""}${breacher3?'<small>Картечь III: для Завершения Телом выберите центр зоны 2×2 среди целей.</small>':""}<label>Импровизация<select data-lw-improvise-effect><option value="">Создать препятствие</option>${effects.map(e=>`<option value="${esc(e.id)}">${esc(e.name)}</option>`).join("")}</select></label><label>Убрать соседнее препятствие<select data-lw-remove-obstacle><option value="">Не убирать</option>${Scene.objects.filter(o=>o.type==="terrain"&&o.space===a.space).map(o=>`<option value="${esc(o.id)}">${esc(o.label||"Препятствие")}</option>`).join("")}</select></label><label><input type="checkbox" data-lw-spike>Использовать бонус по Подброшенным целям</label></div></details></section>`;
 }
 
@@ -999,6 +1020,7 @@ document.addEventListener("click", event => {
     const status = lwDestinationCellStatus(destination);
     if (!status.available) { toast(status.reason); return; }
     const payload={...draft.payload,[draft.field||"destination"]:destination};
+    if(draft.field==="reappearance"&&draft.nextField){lwSetDestination({actorId:draft.actorId,payload,label:draft.label,field:draft.nextField});toast("Теперь выберите клетку Вооружения");return;}
     if(payload.kind==="geometry-move"){lwSetGeometryPreview(draft,payload);return;}
     if(draft.field==="reappearance"&&[SceneEngine.ACTION_IDS.jump,SceneEngine.ACTION_IDS.shove,SceneEngine.ACTION_IDS.improvise].includes(payload.actionId)&&!payload.effect&&!payload.removeObstacleId){lwSetDestination({actorId:draft.actorId,payload,label:draft.label});toast("Теперь выберите клетку действия");return;}
     if (lwSubmit(draft.actorId,payload,draft.label)) { lwDestination=null; renderScene(); }
@@ -1122,6 +1144,9 @@ document.addEventListener("click", event => {
   if (button.hasAttribute("data-lw-action") || button.hasAttribute("data-core-action")) {
     const actionId=button.dataset.lwAction||button.dataset.coreAction, payload={kind:"action",actionId,targetIds:[...Scene.targetIds],breakout:button.dataset.lwBreakout==="true",focusSpent:num("[data-lw-focus]"),advantage:num("[data-lw-advantage]"),disadvantage:num("[data-lw-disadvantage]"),breacherBothBarrels:control("[data-lw-both-barrels]")?.checked===true};
     if(val("[data-lw-attribute]"))payload.attribute=val("[data-lw-attribute]");
+    if(button.dataset.lwMasterMode){payload.armamentMode=button.dataset.lwMasterMode;payload.attribute="talent";}
+    if(button.hasAttribute("data-lw-master-finisher")){payload.attribute="talent";const mode=Scene.actors.find(item=>item.id===actorId)?.ruleModes?.["vagabond.master-at-arms.armament"]?.modeId;if(control("[data-lw-spike]")?.checked)payload.spikeTargetIds=[...Scene.targetIds];lwBeginMasterAction(actorId,payload,mode==="blade"?"destination":"areaCenter","Мастер за работой");return;}
+    if(payload.armamentMode){lwBeginMasterAction(actorId,payload,payload.armamentMode==="blade"?"destination":null,"Стычка с Вооружением");return;}
     if(control("[data-lw-spike]")?.checked)payload.spikeTargetIds=[...Scene.targetIds];
     if(actionId===SceneEngine.ACTION_IDS.improvise){if(val("[data-lw-improvise-effect]"))payload.effect=val("[data-lw-improvise-effect]");if(val("[data-lw-remove-obstacle]"))payload.removeObstacleId=val("[data-lw-remove-obstacle]");}
     const name=lwRules().actions.list.find(d=>d.id===actionId)?.name||"Действие";

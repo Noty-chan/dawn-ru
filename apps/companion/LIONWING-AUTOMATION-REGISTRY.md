@@ -80,7 +80,7 @@ Canonical уровней: **333** · Явно исправленных review: *
 | `vagabond.skirmisher.1` | Skirmisher | 1 | `decision` | `unreviewed` | — | `uncertified` |
 | `vagabond.skirmisher.2` | Skirmisher | 2 | `partial` | `unreviewed` | — | `uncertified` |
 | `vagabond.skirmisher.3` | Skirmisher | 3 | `decision` | `unreviewed` | — | `uncertified` |
-| `vagabond.speed-demon.1` | Speed Demon | 1 | `manual` | `unreviewed` | — | `uncertified` |
+| `vagabond.speed-demon.1` | Speed Demon | 1 | `full` | `unreviewed` | — | `uncertified` |
 | `vagabond.speed-demon.2` | Speed Demon | 2 | `full` | `unreviewed` | — | `uncertified` |
 | `vagabond.speed-demon.3` | Speed Demon | 3 | `manual` | `unreviewed` | — | `uncertified` |
 | `vagabond.untouchable.1` | Untouchable | 1 | `full` | `unreviewed` | core | `uncertified` |

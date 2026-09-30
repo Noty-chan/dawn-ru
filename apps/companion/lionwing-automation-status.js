@@ -442,8 +442,8 @@ window.DAWN_LIONWING_AUTOMATION_STATUS = {
     },
     {
       "id": "vagabond.speed-demon.1",
-      "automation": "manual",
-      "reason": "",
+      "automation": "full",
+      "reason": "LionWing: добровольное движение проходит сквозь врагов, сохраняя проверку пустой конечной клетки, Стен, препятствий и запретов движения.",
       "canonicalDigest": "6ce0b83cacbfaaa2049af3bab7a516247f0bea7c2fbbd53910fced7d29fb8b6e"
     },
     {
@@ -1403,7 +1403,7 @@ window.DAWN_LIONWING_AUTOMATION_STATUS = {
     {
       "id": "disruptor.constrictor.2",
       "automation": "full",
-      "reason": "Завершения Телом и Талантом игнорируют дальность для собственных Пойманных целей, а любое Завершение наносит им дополнительный урон Ступени.",
+      "reason": "LionWing: Завершения Телом и Талантом игнорируют дальность для собственных активных Пойманных целей, а любое Завершение наносит им дополнительный урон Ступени. Источник Эффекта проверяется ядром.",
       "canonicalDigest": "31497052acc5975d0710be32d338ee9b8f371577bde12aca4250b1ee967ace4f"
     },
     {

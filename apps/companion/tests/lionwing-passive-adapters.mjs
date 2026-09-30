@@ -617,3 +617,64 @@ drunkard = run(drunkard, "h", { kind: "turn-start" });
 assert.equal(drunkard.actors[0].lionwing.modifiers.some(item => item.ruleId === "vagabond.drunkard.2"), false, "Drunkard's next-Turn modifier is removed at the owner's next start");
 
 console.log("LionWing passive adapters passed: canonical identity, bonuses and floors, lifecycle grants, replacement resources and action restrictions");
+
+// Two small native rules previously missing from the executable catalogue.
+let fade = fixture({ knownTechniques: { "vagabond.speed-demon": 1 } });
+fade.spaces[0].height = 1; fade.actors.forEach(owner => { owner.y = 0; });
+fade = run(fade, "h", { kind: "turn-start" });
+const crossing = { kind: "action", actionId: ids.step, destination: { x: 3, y: 0 } };
+assert.equal(lionwing.prepare(fade, { actorId: "h", ...crossing }).ok, false, "without Fade a blocking enemy cannot be crossed");
+fade = enable(fade, "vagabond.speed-demon.1");
+assert.equal(adapters.list(fade.actors[0]).find(row => row.id === "vagabond.speed-demon.1").sourceDigest, sourceDigest("vagabond.speed-demon.1"));
+const fadeBefore = copy(fade), fadePreview = prepare(fade, "h", crossing);
+assert.deepEqual(copy(fade), fadeBefore, "Fade preview and cancellation consume no AP");
+assert.equal(lionwing.destinationStatus(fade, { actorId: "h", payload: crossing, destination: crossing.destination }).available, true);
+fade = lionwing.dispatchMany(fade, fadePreview.events).scene;
+assert.equal(fade.actors[0].x, 3);
+assert.equal(fade.actors[0].ap, 2);
+assert.deepEqual(copy(lionwing.dispatchMany(lionwing.reload(JSON.stringify(fade)), fadePreview.events).scene), copy(fade), "Fade replays exactly after reload");
+const occupiedEnd = copy(fade); occupiedEnd.spaces[0].mode = "cinematic";
+assert.equal(lionwing.prepare(occupiedEnd, { actorId: "h", kind: "action", actionId: ids.step, destination: { x: 2, y: 0 } }).ok, false, "Fade must end on an empty cell even on a cinematic board");
+const obstacle = copy(fadeBefore); obstacle.objects.push({ id: "blocked", type: "terrain", space: "main", cells: ["2,0"] });
+assert.equal(lionwing.prepare(obstacle, { actorId: "h", ...crossing }).ok, false, "Fade cannot pass through Terrain");
+
+let choke = fixture({ knownTechniques: { "disruptor.constrictor": 2 }, tier: 2 });
+choke = enable(choke, "disruptor.constrictor.2");
+choke = run(choke, "h", { kind: "turn-start" });
+choke = run(choke, "h", { kind: "effect", targetId: "e", effect: "negative.пойман" });
+if (choke.lionwing.choices.length) choke = run(choke, "e", { kind: "choice", id: choke.lionwing.choices[0].id, choice: "place", destination: { x: 2, y: 1 } });
+choke = run(choke, "h", { kind: "move", targetId: "e", forced: true, destination: { x: 5, y: 1 } });
+assert.equal(adapters.list(choke.actors[0]).find(row => row.id === "disruptor.constrictor.2").sourceDigest, sourceDigest("disruptor.constrictor.2"));
+const finish = { kind: "action", actionId: ids.finish, attribute: "talent", targetIds: ["e"] };
+const chokePreview = prepare(choke, "h", finish);
+choke = lionwing.dispatchMany(choke, chokePreview.events).scene;
+const healthBefore = choke.actors[1].hp, baseDamage = choke.pendingAction.damage;
+choke = run(choke, "h", { kind: "resolve-attack" });
+assert.equal(healthBefore - choke.actors[1].hp, baseDamage + 2, "own Snared target receives Tier bonus damage");
+assert.deepEqual(copy(lionwing.dispatchMany(lionwing.reload(JSON.stringify(choke)), chokePreview.events).scene), copy(choke), "replaying Finisher cannot reopen it or spend AP twice");
+const foreignSnare = copy(chokePreview.scene); foreignSnare.pendingAction = null; foreignSnare.actors[0].ap = 3; foreignSnare.actors[0].usedActions = [];
+foreignSnare.actors[1].effectStates["negative.пойман"].sources.forEach(source => { source.actorId = "someone-else"; });
+assert.equal(lionwing.prepare(foreignSnare, { actorId: "h", ...finish }).ok, false, "another character's Snare cannot bypass Finisher range");
+const spiritSnare = copy(chokePreview.scene); spiritSnare.pendingAction = null; spiritSnare.actors[0].ap = 3; spiritSnare.actors[0].usedActions = [];
+assert.equal(lionwing.prepare(spiritSnare, { actorId: "h", ...finish, attribute: "spirit" }).ok, false, "Spirit Finisher retains its ordinary range");
+console.log("Fade and Choke native rules passed: enabled routes, canonical sources, board validation, source ownership, costs, cancellation and replay");
+
+function witchHunter({ otherTarget = false, interrupted = false } = {}) {
+  let table = fixture({ ap: 6, baseAp: 6, knownTechniques: { "powerhouse.spellsword": 3 } });
+  table.actors.push(actor("e2", "enemy", 1, { y: 2 }));
+  table = enable(table, "powerhouse.spellsword.3");
+  table = run(table, "h", { kind: "turn-start" });
+  const cast = prepare(table, "h", { kind: "action", actionId: ids.spell, targetIds: ["e"] });
+  table = lionwing.dispatchMany(table, cast.events).scene;
+  table = run(table, "h", { kind: "resolve-attack" });
+  if (interrupted) table = lionwing.dispatchMany(table, prepare(table, "h", { kind: "action", actionId: ids.breathe }).events).scene;
+  const targetId = otherTarget ? "e2" : "e", finisher = prepare(table, "h", { kind: "action", actionId: ids.finish, attribute: "body", targetIds: [targetId] });
+  table = lionwing.dispatchMany(table, finisher.events).scene;
+  const health = table.actors.find(owner => owner.id === targetId).hp, damage = table.pendingAction.damage;
+  table = run(table, "h", { kind: "resolve-attack" });
+  return { extra: health - table.actors.find(owner => owner.id === targetId).hp - damage, table };
+}
+assert.equal(witchHunter().extra, 3, "Witch Hunter adds Spirit only for the authoritative same-target Cast -> Body Finisher");
+assert.equal(witchHunter({ otherTarget: true }).extra, 0, "a different target does not inherit the combo bonus");
+assert.equal(witchHunter({ interrupted: true }).extra, 0, "an intervening Action breaks Witch Hunter");
+console.log("Witch Hunter native connection passed: same-target receipts, wrong target and interrupted combo; shared-geometry composition remains partial");
