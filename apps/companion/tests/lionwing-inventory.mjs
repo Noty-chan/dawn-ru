@@ -219,7 +219,7 @@ for (const ruleId of chosen) {
   assert.ok(rule, `${ruleId} is available at its known level`);
   assert.equal(rule.sourceDigest, canonicalDigests[ruleId]);
   assert.equal(rule.sourceDigest, canonicalDigest(ruleId), `${ruleId} uses the current canonical EN digest`);
-  assert.equal(rule.coverage, "partial");
+  assert.equal(rule.coverage, ruleId === "altruist.gourmand.1" ? "full" : "partial");
   const boundary = adapters.boundaryOperations(adapterHero, { scene: adapterScene, boundary: "sceneStart" }).find(item => item.id === ruleId);
   if (boundary) for (const operation of boundary.operations) direct(adapterScene, operation, { operationId: `adapter-${ruleId}-${operation.id}` });
 }

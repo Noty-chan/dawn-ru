@@ -1,6 +1,6 @@
 # DAWN: кодовая спецификация Техник
 
-> Сгенерировано `npm run docs:rules` из новой канонической редакции `apps/companion/edition-lionwing.js` и RU-оверлея `apps/companion/edition-lionwing-ru.js` (SHA-256 `0d33233035d2cfa60687be701b1d10b4ebbbc1367c7c12e39abea1dec8049e6f`).
+> Сгенерировано `npm run docs:rules` из новой канонической редакции `apps/companion/edition-lionwing.js` и RU-оверлея `apps/companion/edition-lionwing-ru.js` (SHA-256 `ebedf4a36647175253c793b61042adadf3e5ade0d82149f0dc2e07ff4280340d`).
 > Английский текст и механика берутся из canonical EN; русские названия и тексты — из отдельного reviewed RU overlay. Legacy-редакция в этот документ не входит.
 
 ## Границы этого документа
@@ -100,7 +100,7 @@
 #### 1. Скорость — это вес (Speed Is Weight) `powerhouse.dragonslayer.1`
 
 - **Заявленный статус:** `full` (полная).
-- **Текущий адаптер:** `powerhouse.dragonslayer.1` · `passive` · {"kind":"passive","sourceLevelId":"powerhouse.dragonslayer.1","sourceDigest":"5967f1ff724e990c007796133cc60b106a15c4d303d733bda7e73e4b4eb52f7d","coverage":"full"}; Успешное Завершение Телом после общего окна Реакций накладывает Разорван на доступные цели..
+- **Текущий адаптер:** `powerhouse.dragonslayer.1` · `passive` · {"kind":"passive","sourceLevelId":"powerhouse.dragonslayer.1","sourceDigest":"5967f1ff724e990c007796133cc60b106a15c4d303d733bda7e73e4b4eb52f7d","coverage":"full"}; Завершение Телом как первая Атака своего Хода даёт 2 Фокуса и накладывает Разорван до расчёта урона..
 - **Готовые foundations:** `target-validation`, `event-participants`, `effect-state`, `effect-lifecycle`, `trigger-router`, `damage-pipeline`, `action-modifier`.
 - **Нужно добавить:** Для кода явный следующий шаг не выведен автоматически; нужны direct pos/neg/boundary тесты и evidence до повышения доверия.
 
@@ -183,7 +183,7 @@
 #### 3. Жонглирование пулями (Bullet Juggle) `powerhouse.gunslinger.3`
 
 - **Заявленный статус:** `full` (полная).
-- **Текущий адаптер:** `powerhouse.gunslinger.3` · `passive` · {"kind":"passive","sourceLevelId":"powerhouse.gunslinger.3","sourceDigest":"fd9e3d44ce0f4c8bcff8c3b316c54ed304a10be26073d9242cbbe17f141f5950","coverage":"full"}; Одиночная Стычка за 3+ Пули автоматически накладывает Подброшен после разрешения Реакций..
+- **Текущий адаптер:** `powerhouse.gunslinger.3` · `passive` · {"kind":"passive","sourceLevelId":"powerhouse.gunslinger.3","sourceDigest":"fd9e3d44ce0f4c8bcff8c3b316c54ed304a10be26073d9242cbbe17f141f5950","coverage":"full"}; Атака с 2+ Критическими успехами предлагает Подбросить одну цель; бонусный урон Большого ствола по Подброшенным удваивается..
 - **Готовые foundations:** `target-validation`, `event-participants`, `resource-check`, `alternate-resource`, `effect-state`, `effect-lifecycle`, `trigger-router`, `action-modifier`.
 - **Нужно добавить:** Для кода явный следующий шаг не выведен автоматически; нужны direct pos/neg/boundary тесты и evidence до повышения доверия.
 
@@ -638,7 +638,7 @@
 #### 2. Мгновенный удар (Flash Strike) `vagabond.speed-demon.2`
 
 - **Заявленный статус:** `full` (полная).
-- **Текущий адаптер:** `vagabond.speed-demon.2` · `combo` · {"kind":"combo","sequenceKeys":["breathe","step"],"actionKey":"step","movementMultiplier":3,"sourceLevelId":"vagabond.speed-demon.2","sourceDigest":"0365cfb5ae901e4cac9e6571651dc2a256170a13afb47a2077b1c785eb368b62","coverage":"full"}.
+- **Текущий адаптер:** `vagabond.speed-demon.2` · `passive` · {"kind":"passive","sourceLevelId":"vagabond.speed-demon.2","sourceDigest":"0365cfb5ae901e4cac9e6571651dc2a256170a13afb47a2077b1c785eb368b62","coverage":"full"}; Выход из клетки персонажа с помощью Прохода предлагает не-Атакующий урон [Талант / 2], по каждой цели один раз за Раунд..
 - **Готовые foundations:** `movement-lifecycle`, `action-modifier`, `action-history`.
 - **Нужно добавить:** Для кода явный следующий шаг не выведен автоматически; нужны direct pos/neg/boundary тесты и evidence до повышения доверия.
 
@@ -1215,7 +1215,7 @@
 #### 2. Копай глубже, стой крепче (Dig Deep, Stand Firm) `bulwark.mundane.2`
 
 - **Заявленный статус:** `full` (полная).
-- **Текущий адаптер:** `bulwark.mundane.2` · `passive` · {"kind":"passive","sourceLevelId":"bulwark.mundane.2","sourceDigest":"9f2acd96734496115e4336cfba21ae1002107d282e903cc9e9a76fa209b81410","coverage":"full"}; Получение предложения Реакции как цели Атаки даёт 1 Упорство..
+- **Текущий адаптер:** `bulwark.mundane.2` · `passive` · {"kind":"passive","sourceLevelId":"bulwark.mundane.2","sourceDigest":"9f2acd96734496115e4336cfba21ae1002107d282e903cc9e9a76fa209b81410","coverage":"full"}; Когда выбран целью Атаки, получает 1 Упорство; несостоявшийся Фокус снижает ОД и дополнительную стоимость первого Завершения Раунда..
 - **Готовые foundations:** `target-validation`, `event-participants`, `resource-check`, `alternate-resource`, `trigger-router`, `reaction-window`.
 - **Нужно добавить:** Для кода явный следующий шаг не выведен автоматически; нужны direct pos/neg/boundary тесты и evidence до повышения доверия.
 
@@ -1470,7 +1470,7 @@
 #### 2. Фастфуд (Fast Food) `altruist.gourmand.2`
 
 - **Заявленный статус:** `full` (полная).
-- **Текущий адаптер:** `altruist.gourmand.2` · `passive` · {"kind":"passive","sourceLevelId":"altruist.gourmand.2","sourceDigest":"84ec37d54af70332e7bb2f4ed402265d3514db190bc24b400016b9444b4b8ce7","coverage":"full"}; Запас Трапез автоматически равен 3 за Интермиссию..
+- **Текущий адаптер:** `altruist.gourmand.2` · `passive` · {"kind":"passive","sourceLevelId":"altruist.gourmand.2","sourceDigest":"84ec37d54af70332e7bb2f4ed402265d3514db190bc24b400016b9444b4b8ce7","coverage":"full"}; Выход из смежности с союзником предлагает передать порцию без Взаимодействия; окончание её Эффекта лечит на 4 + Разум..
 - **Готовые foundations:** `inventory`, `intermission-reset`.
 - **Нужно добавить:** Для кода явный следующий шаг не выведен автоматически; нужны direct pos/neg/boundary тесты и evidence до повышения доверия.
 
@@ -1945,7 +1945,7 @@
 
 ### Уличный боец (Street Fighter) `disruptor.street-fighter`
 
-#### 1. Кровавая латунь (Bloody Brass) `disruptor.street-fighter.1`
+#### 1. Кровавые кастеты (Bloody Brass) `disruptor.street-fighter.1`
 
 - **Заявленный статус:** `manual` (ручная).
 - **Текущий адаптер:** нет записи в `RULES`.
@@ -2143,7 +2143,7 @@
 - **Готовые foundations:** `target-validation`, `event-participants`, `movement-lifecycle`, `effect-state`, `effect-lifecycle`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `turn-lifecycle`.
 - **Нужно добавить:** Зарегистрировать отдельный adapter (trigger → validation → events/resolver) и прямые тесты; общая инфраструктура сама правило не исполняет.
 
-#### 3. Резчик гор (Mountain Carver) `disruptor.gale-strider.3`
+#### 3. Рассекатель гор (Mountain Carver) `disruptor.gale-strider.3`
 
 - **Заявленный статус:** `manual` (ручная).
 - **Текущий адаптер:** нет записи в `RULES`.
@@ -2189,7 +2189,7 @@
 - **Готовые foundations:** `movement-lifecycle`, `owned-entities`, `entity-lifecycle`, `trigger-router`, `choice-flow`.
 - **Нужно добавить:** Зарегистрировать отдельный adapter (trigger → validation → events/resolver) и прямые тесты; общая инфраструктура сама правило не исполняет.
 
-#### 3. Тюрьма собственного устройства (Prison Of Your Own Design) `disruptor.mage-s-array.3`
+#### 3. Тюрьма собственного замысла (Prison Of Your Own Design) `disruptor.mage-s-array.3`
 
 - **Заявленный статус:** `manual` (ручная).
 - **Текущий адаптер:** нет записи в `RULES`.
@@ -2591,7 +2591,7 @@
 
 ### Творец (Creator) `ruiner.creation-ascetic`
 
-#### 1. Формирующие знаки (Forming Signs) `ruiner.creation-ascetic.1`
+#### 1. Формирование знаков (Forming Signs) `ruiner.creation-ascetic.1`
 
 - **Заявленный статус:** `decision` (решение).
 - **Текущий адаптер:** `ruiner.creation-ascetic.1` · `resource-replacement` · {"kind":"resource-replacement","sourceLevelId":"ruiner.creation-ascetic.1","sourceDigest":"6f4e55f851dd43392db08bf1fb2bd639f7921d6767a899dcde23c7492b8f41a3","coverage":"full"}; Метки творения заменяют Фокус; обычная Атака с Метками направляется к подходящей форме.<br>`ruiner.creation-ascetic.1.nails` · `creation-attack` · {"kind":"creation-attack","actionKey":"spell","markBand":"low","form":"nails","sourceLevelId":"ruiner.creation-ascetic.1","sourceDigest":"6f4e55f851dd43392db08bf1fb2bd639f7921d6767a899dcde23c7492b8f41a3","coverage":"partial"}<br>`ruiner.creation-ascetic.1.mallet` · `creation-attack` · {"kind":"creation-attack","actionKey":"spell","markBand":"high","form":"mallet","sourceLevelId":"ruiner.creation-ascetic.1","sourceDigest":"6f4e55f851dd43392db08bf1fb2bd639f7921d6767a899dcde23c7492b8f41a3","coverage":"partial"}<br>`ruiner.creation-ascetic.1.pile-arm` · `creation-attack` · {"kind":"creation-attack","actionKey":"finish","markBand":"low","form":"pile-arm","advantage":2,"sourceLevelId":"ruiner.creation-ascetic.1","sourceDigest":"6f4e55f851dd43392db08bf1fb2bd639f7921d6767a899dcde23c7492b8f41a3","coverage":"partial"}<br>`ruiner.creation-ascetic.1.idol` · `creation-attack` · {"kind":"creation-attack","actionKey":"finish","markBand":"high","form":"idol","advantage":4,"sourceLevelId":"ruiner.creation-ascetic.1","sourceDigest":"6f4e55f851dd43392db08bf1fb2bd639f7921d6767a899dcde23c7492b8f41a3","coverage":"partial"}.
@@ -2605,7 +2605,7 @@
 - **Готовые foundations:** `resource-check`, `alternate-resource`, `terrain`, `usage-limits`, `trigger-router`, `turn-lifecycle`, `damage-pipeline`, `action-modifier`.
 - **Нужно добавить:** Для кода явный следующий шаг не выведен автоматически; нужны direct pos/neg/boundary тесты и evidence до повышения доверия.
 
-#### 3. Труд верующего [Заклинание → Завершение] (Labor Of The Devout [ Cast → Finisher ]) `ruiner.creation-ascetic.3`
+#### 3. Труд благочестивых [Заклинание → Завершение] (Labor Of The Devout [ Cast → Finisher ]) `ruiner.creation-ascetic.3`
 
 - **Заявленный статус:** `full` (полная).
 - **Текущий адаптер:** `ruiner.creation-ascetic.3` · `passive` · {"kind":"passive","sourceLevelId":"ruiner.creation-ascetic.3","sourceDigest":"c7dc7bbd517cd65a2d221ae8066489b4aca652a6a2c2c0a3dadf771ea4962c82","coverage":"full"}; Форма Завершения получает число Меток непосредственно предшествовавшего Заклинания..

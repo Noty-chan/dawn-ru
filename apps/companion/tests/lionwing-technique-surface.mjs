@@ -290,13 +290,8 @@ console.log("Icicle activation: mid-scene create, Charge, exact retry, re-enable
 // route (or a disconnected working adapter) must fail CI instead of silently
 // making an advertised automation manual in the player's console.
 const automationRegistry = JSON.parse(fs.readFileSync(new URL("../LIONWING-AUTOMATION-REGISTRY.json", import.meta.url), "utf8"));
-const expectedUnrouted = [
-  "powerhouse.dragonslayer.1", "powerhouse.dragonslayer.3", "powerhouse.gunslinger.3",
-  "vagabond.speed-demon.2", "vagabond.cunning-fighter.2", "vagabond.enchained.1",
-  "bulwark.mundane.2", "altruist.gourmand.2", "disruptor.chemist.1",
-  "disruptor.chemist.3", "disruptor.hunter.2", "ruiner.creation-ascetic.3",
-].sort();
+const expectedUnrouted = [];
 const actualUnrouted = automationRegistry.rows.filter(row => row.implementation.automation === "full"
   && live.context.window.DAWN_LIONWING_ADAPTERS.coverage(row.id.replace(/\.\d+$/, ""), Number(row.id.match(/\.(\d+)$/)[1])) === "manual").map(row => row.id).sort();
-assert.deepEqual(actualUnrouted, expectedUnrouted, "full declarations must have executable LionWing routes except the documented routing audit backlog");
-console.log("Technique routing contract: only the 12 documented migration gaps remain; new disconnected full declarations fail QA");
+assert.deepEqual(actualUnrouted, expectedUnrouted, "full declarations must have executable LionWing routes with no routing audit exceptions");
+console.log("Technique routing contract: all previously disconnected full declarations are routed; any new gap fails QA");

@@ -537,6 +537,18 @@
     "ruiner.student-of-stars": ["action.утилитарные-действия.зарядка", "action.атаки.завершение"],
     "powerhouse.breacher": ["action.атаки.завершение"],
     "vagabond.skirmisher": ["action.движение.шаг", "action.атаки.стычка"],
+    "powerhouse.dragonslayer": ["action.утилитарные-действия.передышка", "action.атаки.завершение"],
+    "vagabond.cunning-fighter": ["action.утилитарные-действия.изучение"],
+    "disruptor.chemist": ["action.утилитарные-действия.импровизация"],
+  });
+  const usageGuides = Object.freeze({
+    "vagabond.cunning-fighter": "Изучение пополняет Хитрый план. Для скидки откройте «Параметры действия», отметьте «Хитрый план» и выполните действие, кроме Атаки.",
+    "disruptor.chemist": "Для Сублимации откройте «Параметры действия», выберите препятствие и выполните Атаку. Затем появится выбор создания Газа.",
+    "ruiner.creation-ascetic": "Передышка и Зарядка пополняют Материал. Используйте выбор формы выше; препятствие для Атаки выбирается в «Параметрах действия».",
+    "powerhouse.gunslinger": "Назначьте цели Пуль выше и выполните Стычку. Повторяющаяся цель получает отдельное попадание каждой Пули.",
+    "vagabond.enchained": "Выберите якорь кнопкой выше, подтвердите Заклинание, затем выберите и подтвердите клетку раскачивания в появившемся решении.",
+    "disruptor.hunter": "Выберите тип ловушки выше, клетку на поле и подтвердите Атаку. В появившемся решении подтвердите установку ловушки.",
+    "altruist.gourmand": "Выберите соседнего союзника на поле и передайте порцию кнопкой выше. Решение предложит Укрепление или Ускорение.",
   });
   function renderUsage(entry, status, model) {
     const key = status.state === "manual" ? "useManual" : status.state === "off" ? "useOff" : "useAutomatic";
@@ -547,7 +559,9 @@
       const available = owns && action.available;
       return '<button type="button" data-lw-action="' + escapeHtml(id) + '" data-lw-actor="' + escapeHtml(model.actor.id) + '"' + (available ? "" : " disabled") + ' title="' + escapeHtml(action.reason || actionCostLabel(action)) + '">' + escapeHtml(action.displayName || action.name) + "</button>";
     }).join("") : "";
-    return '<div class="lw-technique-usage"><b>' + escapeHtml(copy("use", model)) + '</b><p>' + escapeHtml(copy(key, model)) + '</p>' + (buttons ? '<div class="button-row">' + buttons + '</div>' : '') + '</div>';
+    const guide = ["automatic", "assisted"].includes(status.state) && model.locale !== "en" ? usageGuides[entry.techniqueId] : null;
+    const help = guide ? global.DAWN_I18N?.t?.(`lionwing.technique.usage.${entry.techniqueId}`, {}, {fallback:guide}) || guide : copy(key, model);
+    return '<div class="lw-technique-usage"><b>' + escapeHtml(copy("use", model)) + '</b><p>' + escapeHtml(help) + '</p>' + (buttons ? '<div class="button-row">' + buttons + '</div>' : '') + '</div>';
   }
 
   function enableOperations(actorOrId, scene = currentScene()) {

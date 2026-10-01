@@ -941,7 +941,7 @@ function reduceEvent(scene, event) {
     if (status.ignored) payload.ignoredReason = status.ignoredReason;
     if (status.replacement && !status.definition.externalResource) {
       actor.ruleResources ||= {};
-      actor.ruleResources[status.resolvedResource] = { ...status.definition, value: status.remaining };
+      actor.ruleResources[status.resolvedResource] = { ...status.definition, value: status.remaining, current: status.remaining };
       if (status.definition.legacyProperty) actor[status.definition.legacyProperty] = status.remaining;
     } else {
       const key = status.replacement ? null : payload.resource;
@@ -968,7 +968,7 @@ function reduceEvent(scene, event) {
     const definition = normalizeRuleResourceDefinition(actor, payload);
     const previous = ruleResourceDefinition(actor, definition.resource);
     actor.ruleResources ||= {};
-    actor.ruleResources[definition.resource] = { ...definition, value: previous ? ruleResourceBalance(actor, previous) : definition.initial };
+    actor.ruleResources[definition.resource] = { ...definition, value: previous ? ruleResourceBalance(actor, previous) : definition.initial, current: previous ? ruleResourceBalance(actor, previous) : definition.initial };
     payload.value = actor.ruleResources[definition.resource].value;
   } else if (["rule-resource.spend", "rule-resource.gain"].includes(event.type) && actor) {
     const definition = ruleResourceDefinition(actor, payload.resource), balance = ruleResourceBalance(actor, definition);

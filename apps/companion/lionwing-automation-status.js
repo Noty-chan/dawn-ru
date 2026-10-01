@@ -29,7 +29,7 @@ window.DAWN_LIONWING_AUTOMATION_STATUS = {
     {
       "id": "powerhouse.dragonslayer.1",
       "automation": "full",
-      "reason": "Успешное Завершение Телом после общего окна Реакций накладывает Разорван на доступные цели.",
+      "reason": "Завершение Телом как первая Атака своего Хода даёт 2 Фокуса и накладывает Разорван до расчёта урона.",
       "canonicalDigest": "5967f1ff724e990c007796133cc60b106a15c4d303d733bda7e73e4b4eb52f7d"
     },
     {
@@ -95,7 +95,7 @@ window.DAWN_LIONWING_AUTOMATION_STATUS = {
     {
       "id": "powerhouse.gunslinger.3",
       "automation": "full",
-      "reason": "Одиночная Стычка за 3+ Пули автоматически накладывает Подброшен после разрешения Реакций.",
+      "reason": "Атака с 2+ Критическими успехами предлагает Подбросить одну цель; бонусный урон Большого ствола по Подброшенным удваивается.",
       "canonicalDigest": "fd9e3d44ce0f4c8bcff8c3b316c54ed304a10be26073d9242cbbe17f141f5950"
     },
     {
@@ -449,7 +449,7 @@ window.DAWN_LIONWING_AUTOMATION_STATUS = {
     {
       "id": "vagabond.speed-demon.2",
       "automation": "full",
-      "reason": "",
+      "reason": "Выход из клетки персонажа с помощью Прохода предлагает не-Атакующий урон [Талант / 2], по каждой цели один раз за Раунд.",
       "canonicalDigest": "0365cfb5ae901e4cac9e6571651dc2a256170a13afb47a2077b1c785eb368b62"
     },
     {
@@ -899,7 +899,7 @@ window.DAWN_LIONWING_AUTOMATION_STATUS = {
     {
       "id": "bulwark.mundane.2",
       "automation": "full",
-      "reason": "Получение предложения Реакции как цели Атаки даёт 1 Упорство.",
+      "reason": "Когда выбран целью Атаки, получает 1 Упорство; несостоявшийся Фокус снижает ОД и дополнительную стоимость первого Завершения Раунда.",
       "canonicalDigest": "9f2acd96734496115e4336cfba21ae1002107d282e903cc9e9a76fa209b81410"
     },
     {
@@ -1097,7 +1097,7 @@ window.DAWN_LIONWING_AUTOMATION_STATUS = {
     {
       "id": "altruist.gourmand.2",
       "automation": "full",
-      "reason": "Запас Трапез автоматически равен 3 за Интермиссию.",
+      "reason": "Выход из смежности с союзником предлагает передать порцию без Взаимодействия; окончание её Эффекта лечит на 4 + Разум.",
       "canonicalDigest": "84ec37d54af70332e7bb2f4ed402265d3514db190bc24b400016b9444b4b8ce7"
     },
     {

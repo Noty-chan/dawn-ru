@@ -35,7 +35,7 @@ function activeSceneSpace(){return Scene.spaces.find(space=>space.id===Scene.act
 function activeSceneTool(){return activeSceneView()==="player"?playerSceneTool:Scene.tool}
 function canControlSceneActor(actor){return activeSceneView()==="gm"||Boolean(actor?.team==="hero"&&actor?.heroId&&actor.heroId===S.id)}
 function canControlScenePrompt(prompt=Scene.pendingPrompt){if(!prompt)return true;return prompt.controller==="narrator"?activeSceneView()==="gm":canControlSceneActor(Scene.actors.find(actor=>actor.id===prompt.sourceActorId))}
-function sceneHasLocalPendingSelection(){return Boolean(typeof lwDestination!=="undefined"&&lwDestination||pendingCoreAction||pendingCoreActionPlan||pendingCoreActionContext?.context?.armamentDestination||pendingCoreReaction||pendingTechniqueRule||pendingEnemyRule||pendingEnemyStepActorId||pendingZealotPlan)}
+function sceneHasLocalPendingSelection(){return Boolean(typeof lwDestination!=="undefined"&&lwDestination||typeof lwTechniqueDraft!=="undefined"&&lwTechniqueDraft||pendingCoreAction||pendingCoreActionPlan||pendingCoreActionContext?.context?.armamentDestination||pendingCoreReaction||pendingTechniqueRule||pendingEnemyRule||pendingEnemyStepActorId||pendingZealotPlan)}
 function canDragSceneActor(actor){const tool=activeSceneTool();if(!["select","place"].includes(tool)||Scene.pendingPrompt||Scene.pendingAction||Scene.pendingActionPlan||sceneHasLocalPendingSelection())return false;return activeSceneView()==="gm"||Boolean(actor?.team==="hero"&&actor?.heroId&&actor.heroId===S.id)}
 function moveSceneActorFromBoard(actor,x,y,{manual=false}={}){
   if(!actor)return;

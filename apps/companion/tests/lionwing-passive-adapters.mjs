@@ -118,7 +118,7 @@ const catalog = [...adapters.list(catalogActor), ...adapters.list(actor("spell-o
 assert.deepEqual(copy(catalog.map(rule => rule.id).sort()), [...passiveRules].sort());
 for (const rule of catalog) {
   assert.equal(rule.sourceDigest, sourceDigest(rule.id), `${rule.id} keeps its canonical source identity`);
-  assert.equal(rule.coverage, ["bulwark.iron-bodied.2", "bulwark.rising-challenger.3", "bulwark.absolute-bastard.3", "altruist.empath.3", "bulwark.mundane.1", "powerhouse.monastic-sage.1", "vagabond.sniper.1", "vagabond.untouchable.1"].includes(rule.id) ? "full" : "partial", `${rule.id} declares its actual scope`);
+  assert.equal(rule.coverage, ["powerhouse.gunslinger.1", "ruiner.creation-ascetic.1", "bulwark.iron-bodied.2", "bulwark.rising-challenger.3", "bulwark.absolute-bastard.3", "altruist.empath.3", "bulwark.mundane.1", "powerhouse.monastic-sage.1", "vagabond.sniper.1", "vagabond.untouchable.1"].includes(rule.id) ? "full" : "partial", `${rule.id} declares its actual scope`);
 }
 
 // The new blocks are opt-in and require their reviewed semantic context. A
@@ -194,7 +194,7 @@ let scene = fixture({ knownTechniques });
 let hero = scene.actors[0];
 assert.equal(adapters.rollBonus(hero, { scene, kind: "attack", actionId: ids.skirmish, targetId: "e" }), 0);
 assert.equal(adapters.statBonus(hero, "armor", { scene }), 0);
-scene = enableAll(scene, passiveRules.filter(id => id !== "ruiner.spellcrafter.1"));
+scene = enableAll(scene, passiveRules.filter(id => !["ruiner.spellcrafter.1", "powerhouse.gunslinger.1", "ruiner.creation-ascetic.1", "bulwark.mundane.1", "vagabond.knife-juggler.1", "altruist.heavenly-saint.1"].includes(id)));
 hero = scene.actors[0];
 assert.deepEqual(copy(adapters.rollBonuses(hero, { scene, kind: "attack", actionId: ids.skirmish, targetId: "e" }).map(item => item.id).sort()), [...skirmishRules, "powerhouse.martial-artist.3"].sort());
 assert.equal(adapters.rollBonus(hero, { scene, kind: "attack", actionId: ids.skirmish, targetId: "e" }), 7, "six Skirmish clauses and the all-Attack clause stack");

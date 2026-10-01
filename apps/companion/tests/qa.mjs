@@ -26,6 +26,7 @@ assert.deepEqual(JSON.parse(JSON.stringify(logic.reconcileSceneActorHealth({ cur
 const appFiles = ["localization.js", "locale-ru.js", "locale-en-builder.js", "edition-lionwing.js", "edition-lionwing-ru.js", "lionwing-display-mapping.js", "lionwing-table-data.js", "lionwing-automation-status.js", "app-bootstrap.js", "app-reference-data.js", "app-core.js", "hero-ui.js", "scene-ui.js", "gm-library.js", "scene-effects.js", "scene-actions-ui.js", "scene-sync-ui.js", "play-ui.js", "app-builder-events.js", "app-sync-events.js", "app-scene-events.js", "app-play-events.js", "app.js"];
 appFiles.splice(appFiles.indexOf("app.js"),0,"lionwing-ui.js");
 appFiles.push("lionwing-engine.js");
+appFiles.push("lionwing-restored-techniques.js");
 const appSource = appFiles.map(file => fs.readFileSync(path.join(root, file), "utf8")).join("\n");
 const companionMarkup = fs.readFileSync(path.join(root, "index.html"), "utf8");
 const companionCss = fs.readFileSync(path.join(root, "app.css"), "utf8");

@@ -944,6 +944,7 @@
     return s.started ? { available: true, reason: "" } : unavailable("Бой ещё не начат");
   }
 
+  const terrainElevation = (scene, point) => { const type = (scene.objects || []).filter(object => object.space === point.space && ["high", "low"].includes(object.type) && object.cells?.includes(`${point.x},${point.y}`)).at(-1)?.type; return type === "high" ? 1 : type === "low" ? -1 : 0; };
   function movement(scene, a, destination, options = {}) {
     options = { ...options, ...(global.DAWN_LIONWING_ADAPTERS?.movementOptions?.(a, { ...options, scene, destination }) || {}) };
     const board = scene.spaces.find(s => s.id === (destination?.space || a.space));
@@ -970,7 +971,11 @@
     const ignoredDifficult = new Set(scene.activeActorId && Number(a.lionwing?.difficultTerrainIgnoreSerial) === Number(scene.turnSerial) && a.lionwing?.difficultTerrainIgnoreSpace === board.id ? a.lionwing.difficultTerrainIgnoreCells || [] : []);
     const entersDifficult = p => !options.ignoreTerrain && !options.ignoreDifficultTerrain && footprint(p).some(cell => difficult.has(key(cell)) && !ignoredDifficult.has(key(cell)));
     const entersEnemySpace = p => !options.ignoreOpponents && board.mode === "cinematic" && footprint(p).some(cell => occupied.some(x => x.team !== a.team && x.x === cell.x && x.y === cell.y));
-    const endsMovement = p => entersDifficult(p) || entersEnemySpace(p);
+    const level = point => terrainElevation(scene, { ...point, space: board.id });
+    const startsAtHighEdge = [[1,0],[-1,0],[0,1],[0,-1]].some(([dx,dy]) => level({ x: a.x + dx, y: a.y + dy }) === 1);
+    const blockedAscent = (from, to) => !options.ignoreTerrain && level(from) === -1 && level(to) === 1 && !startsAtHighEdge;
+    const ascends = (from, to) => !options.ignoreTerrain && level(to) > level(from);
+    const endsMovement = p => p.endedByElevation || entersDifficult(p) || entersEnemySpace(p);
     if (blocked(destination) || options.endEmpty && footprint(destination).some(cell => occupied.some(x => x.x === cell.x && x.y === cell.y)) || board.mode !== "cinematic" && occupied.some(x => x.x === destination.x && x.y === destination.y)) fail("Клетка занята");
       if (options.placement || options.teleport) {if(options.teleport&&options.maximum!=null&&distance(a,{...destination,space:board.id})>options.maximum)fail("Телепортация выходит за дальность");return { cost: 0, path: [{ x: destination.x, y: destination.y }], space: board.id };}
     const maximum = integer(options.maximum ?? 99, "дальность", 999);
@@ -983,11 +988,12 @@
       let from = a, spent = 0;
       for (let i = 1; i <= steps; i++) {
         const point = { x: a.x + Math.sign(dx) * i, y: a.y + Math.sign(dy) * i };
-        if (blocked(point) || crossesWall(from, point)) fail("Путь перекрыт препятствием");
+        if (blocked(point) || crossesWall(from, point) || blockedAscent(from, point)) fail("Путь перекрыт препятствием");
+        const endedByElevation = ascends(from, point);
         spent++;
         if(spent>maximum)fail("Клетка вне дальности движения");
         path.push(point); from = point;
-        if(endsMovement(point))return { cost:spent,path,space:board.id,endedByDifficultTerrain:true };
+        if(endedByElevation || endsMovement(point))return { cost:spent,path,space:board.id,endedByDifficultTerrain:!endedByElevation,endedByElevation };
       }
       return { cost, path, space: board.id };
     }
@@ -995,13 +1001,13 @@
     while (queue.length) {
       queue.sort((x, y) => x.cost - y.cost);
       const p = queue.shift();
-      if (p.x === destination.x && p.y === destination.y) return { cost: p.cost, path: p.path, space: board.id, endedByDifficultTerrain: p.path.length > 0 && endsMovement(p) };
+      if (p.x === destination.x && p.y === destination.y) return { cost: p.cost, path: p.path, space: board.id, endedByDifficultTerrain: p.path.length > 0 && !p.endedByElevation && endsMovement(p), endedByElevation: Boolean(p.endedByElevation) };
       if (p.path.length && endsMovement(p)) continue;
       for (const [dx, dy] of [[1,0],[-1,0],[0,1],[0,-1]]) {
         const q = { x: p.x + dx, y: p.y + dy }, foe = occupied.some(x => x.team !== a.team && x.x === q.x && x.y === q.y);
         const cost = p.cost + 1;
-        if (q.x < 0 || q.y < 0 || q.x >= board.width || q.y >= board.height || blocked(q) || crossesWall(p, q) || foe && board.mode !== "cinematic" && !options.ignoreOpponents || cost > maximum || (best.get(key(q)) ?? Infinity) <= cost) continue;
-        best.set(key(q), cost); queue.push({ ...q, cost, path: [...p.path, q] });
+        if (q.x < 0 || q.y < 0 || q.x >= board.width || q.y >= board.height || blocked(q) || crossesWall(p, q) || blockedAscent(p, q) || foe && board.mode !== "cinematic" && !options.ignoreOpponents || cost > maximum || (best.get(key(q)) ?? Infinity) <= cost) continue;
+        best.set(key(q), cost); queue.push({ ...q, cost, path: [...p.path, q], endedByElevation: ascends(p, q) });
       }
     }
     fail("Нет доступного пути в пределах движения");
@@ -1061,7 +1067,10 @@
       if (effectActive(scene, a, "negative.ослаблен")) return unavailable("Ослаблен запрещает Из обоих стволов");
     }
     if (modifierQuote.ok === false) return unavailable(modifierQuote.reason || "Модификаторы действия конфликтуют");
-    const cost = Number(modifierQuote.cost ?? baseCost), swift = Boolean(modifierQuote.swift), used = isPlayer(a) ? (a.usedActions || []) : (a.lionwing?.turnActions || []);
+    let restoredQuote;
+    try { restoredQuote = global.DAWN_LIONWING_RESTORED_TECHNIQUES?.quote?.(scene, a, def.id, request, modifierQuote) || modifierQuote; }
+    catch (error) { return unavailable(error.message); }
+    const cost = Number(restoredQuote.cost ?? baseCost), swift = Boolean(restoredQuote.swift), used = isPlayer(a) ? (a.usedActions || []) : (a.lionwing?.turnActions || []);
     if (!swift && used.includes(def.id)) return unavailable("Действие уже использовано");
     if (!canSpend(a,def.cost.resource,cost)) return unavailable(`Недостаточно ${def.cost.resource === "ap" ? "ОД" : "ресурса"}: нужно ${cost}`);
     if (def.id === ids.disappear) {
@@ -1195,7 +1204,7 @@
       request: { breacherBuckShot: p.breacherBuckShot === true, breacherBothBarrels: p.breacherBothBarrels === true },
     }) || { ok: true, attackBonus: 0 };
     if (actionModifierQuote.ok === false) fail(actionModifierQuote.reason || "Модификаторы действия конфликтуют");
-    const base=baseDice+Number(actionModifierQuote.attackBonus||0);
+    const base=baseDice+Number(actionModifierQuote.attackBonus||0)+Number(p.restoredPlan?.advantage||0);
     if(!attacks.has(def.id)||!targets.length)return{base,counts:{}};
     const taunts=activeEffectSources(a,"negative.спровоцирован",scene).map(x=>x.actorId),fears=activeEffectSources(a,"negative.испуган",scene).map(x=>x.actorId);
     const sourceEffectIds=activeState(scene,a.id).effects.map(status=>status.effect),techniqueTags=[...(global.DAWN_LIONWING_ADAPTERS?.trustedTechniqueTags?.(a, p) || [])];
@@ -1218,7 +1227,7 @@
       enchainedCastMoveAdjacent: p.enchainedCastMoveAdjacent === true,
       speedValue: stat(a, "speed"), breacherBuckShot: p.breacherBuckShot === true,
     };
-    const counts=Object.fromEntries(targets.map(id=>{const target=actor(scene,id),targetEffectIds=activeState(scene,id).effects.map(status=>status.effect),tauntedByActor=activeEffectSources(target,"negative.спровоцирован",scene).some(source=>source.actorId===a.id),context={...targetContext,targetId:id,targetDistance:distance(a,target),targetEffectIds,tauntedByActor,flightStance:effectActive(scene,a,"positive.полёт")||a.lionwing?.stance==="flight",useSpeedAttribute:p.useSpeedAttribute===true};const quoted=global.DAWN_LIONWING_ADAPTERS?.attackQuote?.(a,{...context,baseValue:base,roundUp:true})||{ok:true,value:base};if(quoted.ok===false)fail(quoted.reason||"Числовые модификаторы Атаки конфликтуют");return[id,Math.max(0,Number(quoted.value)-(effectActive(scene,a,"negative.спровоцирован")&&!targets.some(t=>taunts.includes(t))?a.tier:0)-(effectActive(scene,a,"negative.испуган")&&fears.includes(id)?a.tier:0)+((p.spikeTargetIds||[]).includes(id)&&effectActive(scene,target,"negative.подброшен")?a.tier:0))]}));
+    const counts=Object.fromEntries(targets.map(id=>{const target=actor(scene,id),targetEffectIds=activeState(scene,id).effects.map(status=>status.effect),tauntedByActor=activeEffectSources(target,"negative.спровоцирован",scene).some(source=>source.actorId===a.id),context={...targetContext,targetId:id,targetDistance:distance(a,target),targetEffectIds,tauntedByActor,flightStance:effectActive(scene,a,"positive.полёт")||a.lionwing?.stance==="flight",useSpeedAttribute:p.useSpeedAttribute===true};const quoted=global.DAWN_LIONWING_ADAPTERS?.attackQuote?.(a,{...context,baseValue:base,roundUp:true})||{ok:true,value:base};if(quoted.ok===false)fail(quoted.reason||"Числовые модификаторы Атаки конфликтуют");const heightDifference = Math.sign(terrainElevation(scene,a)-terrainElevation(scene,target))*Math.ceil(Number(a.tier||1)/2);return[id,Math.max(0,Number(quoted.value)+heightDifference-(effectActive(scene,a,"negative.спровоцирован")&&!targets.some(t=>taunts.includes(t))?a.tier:0)-(effectActive(scene,a,"negative.испуган")&&fears.includes(id)?a.tier:0)+((p.spikeTargetIds||[]).includes(id)&&effectActive(scene,target,"negative.подброшен")?a.tier:0))]}));
     return{base:Math.min(...Object.values(counts)),counts};
   }
 
@@ -1391,7 +1400,7 @@
     return projected;
   }
   const isMasterAction = (owner, payload) => masterLevel(owner) >= 1 && payload.actionId === ids.skirmish && Boolean(payload.armamentMode)
-    || masterLevel(owner) >= 3 && payload.actionId === ids.finish && payload.attribute === "talent" && Boolean(owner.ruleModes?.[masterGroupId]?.modeId);
+    || masterLevel(owner) >= 3 && payload.actionId === ids.finish && payload.attribute === "talent" && !payload.creatorCells && !payload.restoredPlan?.form && !payload.obstacleId && Boolean(owner.ruleModes?.[masterGroupId]?.modeId);
   function masterArmamentStatus(scene, actorId, request = {}) {
     const projected = masterScene(scene), owner = actor(projected, actorId);
     if (owner && request.reappearance) Object.assign(owner, { x: request.reappearance.x, y: request.reappearance.y, space: request.reappearance.space || owner.space });
@@ -1417,6 +1426,7 @@
       if (payload.kind === "action") {
         const def = actionDef(payload.actionId);
         if (!def) fail("Базовое действие не найдено");
+        Object.assign(payload, global.DAWN_LIONWING_RESTORED_TECHNIQUES?.plan?.(scene, a, payload) || {});
         const status = actionStatus(scene, a, def, payload);
         if (!status.available) fail(status.reason);
         if (def.id === ids.finish) {
@@ -1488,6 +1498,10 @@
         payload.roll=roll(3+Number(a.tier||1)+adapterNumber("rollBonus",a,{scene,kind:"clash",opponentId:source.id}),options.random,rollMeta({rollId:`${eventId}:reroll`,kind:"check"}));payload.opponentRoll=roll(3+Number(source.tier||1)+adapterNumber("rollBonus",source,{scene,kind:"clash",opponentId:a.id}),options.random,{...rollMeta({rollId:`${eventId}:reroll-opponent`,kind:"check",ownerActorId:source.id}),ownerActorId:source.id});
       }
       if(payload.kind==="punish"&&!payload.roll)payload.roll=roll(Math.max(Number(a.attrs.body||0),Number(a.attrs.talent||0)),options.random,rollMeta({rollId:`${eventId}:punish`,kind:"check"}));
+      if (payload.kind === "choice" && payload.choice === "trap-attack" && scene.lionwing?.choices?.[0]?.kind === "restored-technique" && !payload.roll) {
+        const targetId = scene.lionwing.choices[0].context?.targetId, attribute = Number(a.attrs.body) >= Number(a.attrs.talent) ? "body" : "talent";
+        payload.roll = roll(attackPools(scene, a, actionDef(ids.skirmish), { targetIds: [targetId], attribute }).base, options.random, rollMeta({ rollId: `${eventId}:trap`, kind: "check" }));
+      }
       const events = [{ ...command(a?.id||null, payload), id: eventId }], preview = previewEvents(scene, events);
       // A preview rolls once. Commit and replay must use that exact snapshot.
       if (preview.ok && payload.kind === "dice-create") {
@@ -1503,7 +1517,7 @@
   function execute(scene, event, output, executionOptions = {}) {
     const s = state(scene), rootId = event.id, emitted = [];
     const scheduled = [];
-    let frameSerial = 0, choiceSerial = 0, historySerial = 0, rollSerial = 0, provenance = null;
+    let frameSerial = 0, choiceSerial = 0, historySerial = 0, rollSerial = 0, provenance = null, restored = null;
     let executionCursor = s.executionCursor ? foundations.openCursor(s.executionCursor) : null, completedSteps = 0, completedResults = [];
     const cursorSource = items => {
       const item = (items || []).find(entry => entry?.provenance?.rootActionId || entry?.__execution?.rootActionId || entry?.p?.__execution?.rootActionId || entry?.sourceId || entry?.p?.sourceActorId);
@@ -1585,6 +1599,7 @@
       emitted.push(row); scene.log.unshift(row); scene.log = scene.log.slice(0, 200);
       const targets = receiptPayload.targetIds || (receiptPayload.targetId ? [receiptPayload.targetId] : []);
       if (type === "action.resolve") saveFact("apply", actorId, targets, { actionId: receiptPayload.actionId, manual: receiptPayload.manual === true }, { ...provenance, actionId: receiptPayload.actionId || provenance?.actionId, ownerActorId: actorId });
+      else if (type === "attack.pending") saveFact("attack", actorId, targets, { actionId: receiptPayload.sourceActionId }, { ...provenance, actionInstanceId: receiptPayload.actionInstanceId, actionId: receiptPayload.sourceActionId, ownerActorId: actorId });
       else if (type === "damage.apply") {
         if (payload.attack && payload.hit !== false) saveFact("hit", actorId, targets, { planned: payload.raw, zeroDamage: payload.dealt === 0 });
         saveFact("damage", actorId, targets, { planned: payload.raw, actual: payload.dealt, hit: payload.hit !== false, ignored: payload.ignored === true });
@@ -1602,6 +1617,7 @@
       else if (type === "attack.clear" && payload.cancelled) saveFact("cancel", actorId, targets, { reason: payload.reason || "cancelled" });
       if (scheduleAfterEvent && ["clash.success", "combat-meter.change", "damage.apply", "actor.knockout", "effect.apply", "actor.enter", "actor.move", "action.resolve", "attack.clear", "marker.remove", "reaction.respond", "resource.gain", "rule.used", "movement.prepare", "movement.start", "movement.segment", "movement.enter", "movement.leave", "movement.cross", "movement.end", "movement.stop", "actor.despawn", "actor.remove", "space.remove"].includes(type)) scheduleAfterEvent(row);
       if (typeof cancelFollowupsForEvent === "function" && ["damage.apply", "actor.knockout", "actor.despawn", "actor.remove", "space.remove"].includes(type)) cancelFollowupsForEvent(row);
+      restored?.afterEvent(row);
       return row;
     };
     const mutateCombatMeter = (change = {}, sourceId = null, receiptId = `${rootId}:meter`) => {
@@ -2268,6 +2284,7 @@
       return null;
     };
     const applyDamage = p => {
+      restored?.beforeDamage(p);
       const a = requiredActor(scene, p.targetId, false);
       if (a.knockedOut) { emit("damage.apply", p.sourceActorId, { ...p, dealt: 0, ignored: true }); return; }
       const source = actor(scene, p.sourceActorId), raw = integer(p.amount, "урон"), attack = p.attack === true;
@@ -2339,9 +2356,10 @@
       const auraBefore=auraSnapshot();
       const firstMovementThisTurn=!(scene.log||[]).some(row=>row.type==="movement.start"&&row.actorId===a.id&&Number(row.execution?.turnSerial)===Number(scene.turnSerial));
       const result = p.__verifiedRoute ? {cost:p.__verifiedRoute.spent,path:p.__verifiedRoute.path.map(point=>({x:point.x,y:point.y})),space:p.__verifiedRoute.stoppedAt.space,endedByDifficultTerrain:p.__verifiedRoute.terminal&&p.__verifiedRoute.stopReason==="difficult-terrain"} : movement(scene, a, p.destination || p, p), from = { x: a.x, y: a.y, space: a.space };
+      if (restored) Object.assign(result, restored.limitMove(a, result, p));
       const endpoint=result.path[result.path.length-1]||p.destination||p;
       a.x = endpoint.x; a.y = endpoint.y; a.space = result.space;
-      if(result.endedByDifficultTerrain){astate(a).difficultTerrainStopSerial=scene.turnSerial;a.stepRemaining=0;}
+      if(result.endedByDifficultTerrain || result.endedByElevation){astate(a).difficultTerrainStopSerial=scene.turnSerial;a.stepRemaining=0;}
       if(a.compoundId)for(const part of scene.actors.filter(x=>x.compoundId===a.compoundId)){part.x=a.x;part.y=a.y;part.space=a.space;}
       const publicPayload={...p};delete publicPayload.__deferAuraTransitions;
       const moveRow=emit("actor.move", a.id, { ...publicPayload, from, x: a.x, y: a.y, space: a.space, path: result.path, distance: result.cost });
@@ -2379,6 +2397,7 @@
       if(!p.followSnare)for(const caught of scene.actors.filter(x=>live(x)&&x.id!==a.id&&effectActive(scene,x,"negative.пойман")&&activeEffectSources(x,"negative.пойман",scene).some(source=>source.actorId===a.id))){
         if(distance(caught,a)!==1&&!effectActive(scene,caught,"positive.устойчив"))choice(caught,"placement","Пойман: выберите клетку рядом с переместившимся источником",["place"],{adjacentTo:a.id,forced:true});
       }
+      restored?.afterMove(a, p, result, from);
       return {...result,auraTransitions};
     };
     const placeActor = (a, destination, options = {}) => {
@@ -2487,19 +2506,20 @@
       const balance = resources.has(resource) ? Number(a[resource] || 0) : Number(a.ruleResources?.[resource]?.value || 0);
       if (balance < amount) fail(`Недостаточно ${resource}: нужно ${amount}, доступно ${balance}`);
       if (resources.has(resource)) a[resource] = balance - amount;
-      else if (a.ruleResources?.[resource]) a.ruleResources[resource].value = balance - amount;
+      else if (a.ruleResources?.[resource]) a.ruleResources[resource].current = a.ruleResources[resource].value = balance - amount;
       else fail("Ресурс не настроен");
-      emit("resource.spend", a.id, { requestedResource, resource, amount, actionId: spendContext.actionId || provenance?.actionId || null, actionInstanceId: spendContext.actionInstanceId || provenance?.actionInstanceId || null, sourceActionId: spendContext.sourceActionId || null, sourceRuleId: spendContext.sourceRuleId || spendContext.ruleId || null, ruleId: spendContext.ruleId || spendContext.sourceRuleId || null, sourceDigest: spendContext.sourceDigest || provenance?.sourceDigest || null, causeEventId: spendContext.causeEventId || provenance?.causeEventId || null });
+      emit("resource.spend", a.id, { requestedResource, resource, amount, actionId: spendContext.actionId || provenance?.actionId || null, actionInstanceId: spendContext.actionInstanceId || provenance?.actionInstanceId || null, sourceActionId: spendContext.sourceActionId || null, sourceRuleId: spendContext.sourceRuleId || spendContext.ruleId || null, ruleId: spendContext.ruleId || spendContext.sourceRuleId || null, sourceDigest: spendContext.sourceDigest || provenance?.sourceDigest || null, causeEventId: spendContext.causeEventId || provenance?.causeEventId || null, bigIronHandled: spendContext.bigIronHandled === true });
     };
     const gain = (a, requestedResource, amount, gainContext = {}) => {
       integer(amount,"получение ресурса");
+      if (restored?.beforeGain(a, requestedResource, amount)) return;
       const gainStatus=global.DAWN_LIONWING_ADAPTERS?.resourceGainStatus?.(a,{scene,requestedResource,amount,actionId:gainContext.actionId||provenance?.actionId||null})||{allowed:true};
       if(gainStatus.allowed===false){emit("resource.gain.prevented",a.id,{requestedResource,amount,reason:gainStatus.reason||"Получение запрещено Техникой"});return;}
       const resource=resourceKey(a,requestedResource),before=balance(a,resource);
       if(!spendable.has(resource)&&!Object.hasOwn(a.ruleResources||{},resource))fail("Сначала настройте ресурс");
-      if(requestedResource==="focus"&&a.ruleResources?.[resource]?.inverted){a.ruleResources[resource].value=Math.max(0,before-amount);emit("resource.spend",a.id,{requestedResource,resource,amount:Math.min(before,amount),requestedAmount:amount,inverted:true,actionId:gainContext.actionId||provenance?.actionId||null,actionInstanceId:gainContext.actionInstanceId||provenance?.actionInstanceId||null,sourceActionId:gainContext.sourceActionId||null,sourceRuleId:gainContext.sourceRuleId||gainContext.ruleId||null,ruleId:gainContext.ruleId||gainContext.sourceRuleId||null,sourceDigest:gainContext.sourceDigest||provenance?.sourceDigest||null,causeEventId:gainContext.causeEventId||provenance?.causeEventId||null});return;}
+      if(requestedResource==="focus"&&a.ruleResources?.[resource]?.inverted){a.ruleResources[resource].current=a.ruleResources[resource].value=Math.max(0,before-amount);emit("resource.spend",a.id,{requestedResource,resource,amount:Math.min(before,amount),requestedAmount:amount,inverted:true,actionId:gainContext.actionId||provenance?.actionId||null,actionInstanceId:gainContext.actionInstanceId||provenance?.actionInstanceId||null,sourceActionId:gainContext.sourceActionId||null,sourceRuleId:gainContext.sourceRuleId||gainContext.ruleId||null,ruleId:gainContext.ruleId||gainContext.sourceRuleId||null,sourceDigest:gainContext.sourceDigest||provenance?.sourceDigest||null,causeEventId:gainContext.causeEventId||provenance?.causeEventId||null});return;}
       if(spendable.has(resource))a[resource]=before+amount;
-      else {const def=a.ruleResources[resource];if(def.maximum!=null&&before+amount>def.maximum)fail("Получение превышает максимум ресурса");def.value=before+amount;}
+      else {const def=a.ruleResources[resource];if(def.maximum!=null&&before+amount>def.maximum)fail("Получение превышает максимум ресурса");def.current=def.value=before+amount;}
       emit("resource.gain",a.id,{requestedResource,resource,amount,actionId:gainContext.actionId || provenance?.actionId || null,actionInstanceId:gainContext.actionInstanceId || provenance?.actionInstanceId || null,sourceActionId:gainContext.sourceActionId||null,sourceRuleId:gainContext.sourceRuleId||gainContext.ruleId||null,ruleId:gainContext.ruleId||gainContext.sourceRuleId||null,sourceDigest:gainContext.sourceDigest||provenance?.sourceDigest||null,causeEventId:gainContext.causeEventId||provenance?.causeEventId||null});
     };
     const specialString = (value, label, max = 180) => {
@@ -2787,6 +2807,7 @@
       if(p.targetDamage){if(typeof p.targetDamage!=="object"||Array.isArray(p.targetDamage))fail("Некорректный урон по целям");for(const[id,amount]of Object.entries(p.targetDamage)){if(!targets.includes(id))fail("Урон указан для посторонней цели");integer(amount,"урон цели");}scene.pendingAction.targetDamage=copy(p.targetDamage);}
       if (!scene.pendingAction.repeat) fail("Нужно хотя бы одно нанесение урона");
       emit("attack.pending", a.id, scene.pendingAction);
+      restored?.beforeAttack(a, scene.pendingAction);
       if(effectActive(scene,a,"negative.порчен"))s.afterAttack=[...(s.afterAttack||[]),{kind:"damage",targetId:a.id,amount:Number(a.tier||1),sourceActorId:a.id,irreducible:true}];
     };
     const detectiveFinisherOpen = (p, sourceId) => {
@@ -2830,6 +2851,7 @@
     const performAction = (a, p, internal = {}) => {
       const def = actionDef(p.actionId);
       if (!def) fail("Неизвестное базовое действие");
+      Object.assign(p, global.DAWN_LIONWING_RESTORED_TECHNIQUES?.plan?.(scene, a, p) || {});
       if (isMasterAction(a, p)) {
         const gate = actionStatus(scene, a, def, p);
         if (!gate.available) fail(gate.reason);
@@ -2899,7 +2921,7 @@
         fail("Для Бомбардира требуется подтверждённый план области");
       }
       const targets = targetIds(scene,p.targetIds).map(id => requiredActor(scene, id));
-      if ([ids.spell, ids.study, ids.shove, "action.атаки.дуэль"].includes(def.id) && targets.length !== 1 || def.id === ids.finish && !p.areaPlan && targets.length !== 1 || def.id === ids.skirmish && (!targets.length || !p.areaPlan && targets.length > 2)) fail("Неверное число целей");
+      if ([ids.spell, ids.study, ids.shove, "action.атаки.дуэль"].includes(def.id) && !p.restoredPlan?.emptyAttack && !p.restoredPlan?.cells && targets.length !== 1 || def.id === ids.finish && !p.areaPlan && !p.restoredPlan?.emptyAttack && !p.restoredPlan?.cells && targets.length !== 1 || def.id === ids.skirmish && (!p.restoredPlan?.emptyAttack && !targets.length || !p.areaPlan && !p.restoredPlan?.bullets && targets.length > 2)) fail("Неверное число целей");
       const finishContext = { scene, kind: "attack", actionId: def.id, attribute: p.attribute || (def.id === ids.finish ? "spirit" : null), activeEffectIds: activeState(scene, a.id).effects.filter(status => status.present).map(status => status.effect), techniqueRuleId: p.techniqueRuleId || null, techniqueSourceDigest: p.techniqueSourceDigest || null, breacherBuckShot: p.breacherBuckShot === true, tension: tensionValue(scene), spellCircleActive: p.spellCircleActive === true || spellCircleActive(scene, a), firstSpiritFinisherThisTurn: def.id === ids.finish && (p.firstSpiritFinisherThisTurn === true || firstSpiritFinisherThisTurn(scene, a, p.actionInstanceId || provenance?.actionInstanceId || rootId)) };
       const baseRange = def.id === ids.spell ? 5 : def.id === ids.finish ? Math.max(Number(status.actionQuote?.range || 0), 1) : def.id === ids.skirmish ? 1 : def.id === ids.study ? Number(status.actionQuote?.range ?? a.attrs.mind ?? 0) : 1;
       const rangeQuote = global.DAWN_LIONWING_ADAPTERS?.rangeQuote?.(a, { ...finishContext, targetIds: targets.map(target => target.id), key: "range", baseValue: baseRange, roundUp: true })
@@ -2907,7 +2929,7 @@
         || { ok: true, value: baseRange };
       if (rangeQuote.ok === false) fail(rangeQuote.reason || "Числовые модификаторы дальности конфликтуют");
       const range = Math.max(0, Number(rangeQuote.value ?? baseRange));
-      if ((!derived && ([ids.spell, ids.skirmish, ids.study, ids.shove, "action.атаки.дуэль"].includes(def.id) && !p.areaPlan && targets.some(t => t.id === a.id || distance(a, t) > range) || def.id === ids.finish && !p.areaPlan && targets.some(t => t.id === a.id || distance(a, t) > range)) || derived && !derived.ignoreRange && targets.some(t => t.id === a.id || distance(a, t) > range))) fail("Цель вне дальности действия");
+      if ((!derived && ([ids.spell, ids.skirmish, ids.study, ids.shove, "action.атаки.дуэль"].includes(def.id) && !p.areaPlan && !p.restoredPlan?.ignoreRange && targets.some(t => t.id === a.id || distance(a, t) > range) || def.id === ids.finish && !p.areaPlan && !p.restoredPlan?.ignoreRange && targets.some(t => t.id === a.id || distance(a, t) > range)) || derived && !derived.ignoreRange && targets.some(t => t.id === a.id || distance(a, t) > range))) fail("Цель вне дальности действия");
       if (def.id === ids.study && isPlayer(targets[0])) fail("Изучение требует NPC");
       if (def.id === "action.атаки.дуэль" && !internal.duelEntryAuthorized) {
         const opponent = targets[0], entry = duelEntryQuote(a, opponent);
@@ -2944,8 +2966,11 @@
         p.studentFocusCap = focusCap;
       }
       if (p.breakout) spend(a, "influence", 1);
+      const beforeBulletPools = p.restoredPlan?.bullets ? attackPools(scene, a, def, p) : null;
+      restored?.beforeAction(a, p);
+      if (p.restoredPlan?.bullets) { targets.splice(0, targets.length, ...targets.filter(live)); p.targetIds = targets.map(target => target.id); p.restoredPlan.emptyAttack = !targets.length; }
       if (!derived && status.cost) spend(a, status.resource, status.cost);
-      if (def.id === ids.finish && focusSpent) spend(a, "focus", focusSpent);
+      if (def.id === ids.finish && focusSpent && p.restoredPlan?.materialCount == null) spend(a, "focus", p.restoredPlan?.focusCost ?? focusSpent);
       if (duelEntry?.focusSpent) spend(a, "focus", duelEntry.focusSpent);
       if(status.allowanceId)astate(a).allowances.find(x=>x.id===status.allowanceId).remaining--;
       if(def.id===ids.improvise&&p.removeObstacleId){const index=scene.objects.findIndex(o=>o.id===p.removeObstacleId&&o.type==="terrain"&&o.space===a.space&&(o.cells||[]).some(cell=>{const[x,y]=cell.split(',').map(Number);return distance(a,{x,y,space:a.space})===1;}));if(index<0)fail("Соседнее препятствие не найдено");scene.objects.splice(index,1);}
@@ -2963,16 +2988,17 @@
       let result;
       if ([ids.spell, ids.skirmish, ids.finish, ids.charge].includes(def.id)) {
         result = publishRoll(a, p.roll, def.name);
-        const pools=attackPools(scene,a,def,p);if(result.initialCount!==pools.base)fail("Пул броска не соответствует действию");
+        const pools=beforeBulletPools || attackPools(scene,a,def,p);if(result.initialCount!==pools.base)fail("Пул броска не соответствует действию");
       p.targetDamage={};for(const[id,count]of Object.entries(pools.counts)){let extra=0;if(count>pools.base){const extraRoll=publishRoll(a,p.targetRolls?.[id],`Дополнительные кости: ${actor(scene,id).name}`);if(extraRoll.initialCount!==count-pools.base)fail("Неверный дополнительный пул");extra=extraRoll.successes;}p.targetDamage[id]=result.successes+extra+(def.id===ids.finish?tensionValue(scene):0);}
         for(const id of p.spikeTargetIds||[])if(targets.some(t=>t.id===id)&&effectActive(scene,actor(scene,id),"negative.подброшен"))removeEffect(actor(scene,id),"negative.подброшен");
       }
       if ([ids.spell, ids.skirmish, ids.finish].includes(def.id)) {
+        if (p.restoredPlan?.bullets) p.targetDamage = Object.fromEntries(Object.entries(p.targetDamage).filter(([id]) => p.targetIds.includes(id)));
         const initialDistances = Object.fromEntries(targets.map(target => [target.id, distance(a, target)]));
         const breacherLevel = Number((a.knownTechniques ?? a.techniques)?.["powerhouse.breacher"] || 0);
         const breacherPush = def.id === ids.skirmish && breacherLevel >= 1 && a.lionwing?.automation?.["powerhouse.breacher.1"] === true;
         const attackEffectsByTarget = Object.fromEntries(targets.map(target => [target.id, global.DAWN_LIONWING_ADAPTERS?.attackEffects?.(a, { scene, actionId: def.id, successes: p.targetDamage[target.id] }) || []]));
-        beginAttack(a, { ...p, attackEffectsByTarget, name: def.name, amount: result.successes + (def.id === ids.finish ? tensionValue(scene) : 0), breacherPush, breacherPushMultiplier: p.breacherBothBarrels === true ? 2 : 1, breacherAttackSuccess: result.successes > 0, breacherInitialDistances: initialDistances, breacherWeaken: p.breacherBothBarrels === true, criticals: result.crits, actionInstanceId: p.actionInstanceId, sourceActionId: def.id });
+        if (!p.restoredPlan?.emptyAttack) beginAttack(a, { ...p, attackEffectsByTarget, name: def.name, amount: result.successes + (def.id === ids.finish ? tensionValue(scene) : 0), breacherPush, breacherPushMultiplier: p.breacherBothBarrels === true ? 2 : 1, breacherAttackSuccess: result.successes > 0, breacherInitialDistances: initialDistances, breacherWeaken: p.breacherBothBarrels === true, criticals: result.crits, actionInstanceId: p.actionInstanceId, sourceActionId: def.id });
       }
       else if (def.id === ids.charge || def.id === ids.breathe) {
         if (p.icicleReplacement) {
@@ -2985,14 +3011,14 @@
           gain(a,"focus",amount,{actionId:def.id,actionInstanceId:p.actionInstanceId});
         }
       }
-      else if (def.id === ids.step) { if (assassinStride) { removeEffect(a, "positive.исчез", { reappear: false }); applyEffect(a, { effect: "positive.невидим", duration: "scene", sourceActionId: "vagabond.assassin.3" }, a.id); } if (!status.continuation) a.stepRemaining = sceneSpeed(scene,a); if (p.destination) {const moved=move(a, { destination: p.destination, maximum: a.stepRemaining, sourceActionId: def.id, actionInstanceId: p.actionInstanceId, ownerTurnInstanceId: p.ownerTurnInstanceId, turnSerial: scene.turnSerial });if(Number(astate(a).difficultTerrainStopSerial)!==Number(scene.turnSerial))a.stepRemaining-=moved.cost;} }
+      else if (def.id === ids.step) { if (assassinStride) { removeEffect(a, "positive.исчез", { reappear: false }); applyEffect(a, { effect: "positive.невидим", duration: "scene", sourceActionId: "vagabond.assassin.3" }, a.id); } if (!status.continuation) a.stepRemaining = sceneSpeed(scene,a); if (p.destination) {const moved=move(a, { destination: p.destination, maximum: a.stepRemaining, sourceActionId: def.id, actionInstanceId: p.actionInstanceId, ownerTurnInstanceId: p.ownerTurnInstanceId, turnSerial: scene.turnSerial });if(Number(astate(a).difficultTerrainStopSerial)!==Number(scene.turnSerial))a.stepRemaining=Math.max(0,a.stepRemaining-moved.cost);} }
       else if (def.id === ids.jump) move(a, { destination: p.destination, maximum: scaledMove(a, Number(a.attrs.talent || 0),scene), line: true, ignoreOpponents: true, ignoreDifficultTerrain:true, sourceActionId: def.id, actionInstanceId: p.actionInstanceId, ownerTurnInstanceId: p.ownerTurnInstanceId, turnSerial: scene.turnSerial });
       else if (def.id === ids.shove) move(targets[0], { destination: p.destination, maximum: 1, forced: true });
       else if (def.id === ids.disappear) applyEffect(a, { effect: "positive.исчез", duration: "actionOrStartTurn" }, a.id);
       else if (def.id === ids.study) { applyEffect(targets[0], { effect: "negative.помечен" }, a.id); const study = global.DAWN_LIONWING_INFORMATION_QUERY?.studyStatus?.(scene, "information:study:" + p.actionInstanceId); emit("rule.prompt", a.id, { targetId: targets[0].id, title: "Нарратор раскрывает выбранный параметр NPC", informationStudyId: study?.id || null, informationCategories: global.DAWN_LIONWING_INFORMATION_QUERY?.availableCategories?.(scene, study).map(item => ({ id: item.id, label: item.label })) || [] }); }
       else if (def.id === ids.improvise && !p.removeObstacleId) {
         if (p.effect) { if (targets.length !== 1 || distance(a, targets[0]) > 1 || p.effect === "positive.изгнан") fail("Импровизация: соседняя цель и Эффект кроме Изгнания"); applyEffect(targets[0], { effect: p.effect }, a.id); }
-        else { const d = p.destination; if (!d || distance(a, { ...d, space: d.space || a.space }) !== 1) fail("Выберите соседнюю клетку препятствия"); movement(scene, a, d, { placement: true }); scene.objects.push({ id: `${rootId}:obstacle`, type: "terrain", label: "Препятствие", space: a.space, cells: [`${d.x},${d.y}`], hp: 10, maxHp: 10, duration: "scene", ownerActorId: a.id }); }
+        else { const d = p.destination; if (!d || distance(a, { ...d, space: d.space || a.space }) < 1 || distance(a, { ...d, space: d.space || a.space }) > (global.DAWN_LIONWING_RESTORED_TECHNIQUES?.enabled?.(a, "disruptor.chemist.1") ? 4 : 1)) fail("Клетка препятствия вне дальности"); movement(scene, a, d, { placement: true }); scene.objects.push({ id: `${rootId}:obstacle`, type: "terrain", label: "Препятствие", space: a.space, cells: [`${d.x},${d.y}`], hp: 10, maxHp: 10, duration: "scene", ownerActorId: a.id }); }
       } else if (def.id === "action.атаки.дуэль") {
         const opponent=targets[0];
         if(opponent.team===a.team)fail("Дуэль требует противника");
@@ -3012,6 +3038,7 @@
         const damage={kind:"damage",targetId:a.id,amount:Number(a.tier||1),sourceActorId:a.id,irreducible:true};
         if(scene.pendingAction)s.afterAttack=[damage];else queue.unshift({p:damage,sourceId:a.id});
       }
+      restored?.afterAction(a, p, result);
     };
 
     // Bootstrap only explicitly declared missing state. Never replay Scene-start
@@ -3235,6 +3262,7 @@
         }
         case "spend-health": applyHealthLoss(requiredActor(scene, p.targetId || sourceId, false), { ...p, mode: "spend" }, sourceId); break;
         case "lose-health": applyHealthLoss(requiredActor(scene, p.targetId || sourceId, false), { ...p, mode: "lose" }, sourceId); break;
+        case "restored-technique": restored.operation(requiredActor(scene, sourceId, false), p); break;
         case "record-action": {
           const def=actionDef(p.actionId);if(!def||def.type!=="action")fail("Выберите базовое действие");
           if(scene.activeActorId!==sourceId&&!p.reaction)fail("Сейчас не Ход исполнителя");
@@ -3302,7 +3330,7 @@
           else if(p.resource==="vulnerable"){if(amount>1)fail("Уязвимость: 0 или 1");astate(target).vulnerable=Boolean(amount);}
           else if (p.resource === "knockedOut") { for(const part of compound.active?compound.parts:[target]){if(amount)knockout(part,{kind:"narrator-correction",sourceActorId:sourceId||null,eventId:rootId});else part.knockedOut=false;} }
           else if(p.resource==="hp"&&compound.active){let remaining=amount;for(const part of compound.parts){part.hp=Math.min(part.maxHp,remaining);remaining-=part.hp;}}
-          else if(correctedResource!==p.resource){const definition=target.ruleResources?.[correctedResource];if(!definition)fail("Заменяющий ресурс не найден");if(definition.maximum!=null&&amount>Number(definition.maximum))fail("Значение ресурса превышает максимум");definition.value=amount;}
+          else if(correctedResource!==p.resource){const definition=target.ruleResources?.[correctedResource];if(!definition)fail("Заменяющий ресурс не найден");if(definition.maximum!=null&&amount>Number(definition.maximum))fail("Значение ресурса превышает максимум");definition.current=definition.value=amount;}
           else {target[p.resource] = amount;if(p.resource==="maxHp")target.hp=Math.min(target.hp,maxHealth(target));}
           emit("actor.runtime.set", target.id, { resource: p.resource, resolvedResource: correctedResource, value: amount, before, correction: true, note: p.note || "Ручное исправление" }); break;
         }
@@ -3310,7 +3338,13 @@
           const rule = global.DAWN_LIONWING_ADAPTERS.list(a).find(rule => rule.id === p.ruleId);
           if (!rule || rule.configurable === false || typeof p.enabled !== "boolean") fail("Автоматизация недоступна этому участнику");
           astate(a).automation ||= {}; a.lionwing.automation[p.ruleId] = p.enabled;
+          if (p.enabled) for (const dependency of global.DAWN_LIONWING_RESTORED_TECHNIQUES?.dependencies?.(p.ruleId) || []) a.lionwing.automation[dependency] = true;
+          else for (const dependent of global.DAWN_LIONWING_RESTORED_TECHNIQUES?.defs || []) if (global.DAWN_LIONWING_RESTORED_TECHNIQUES.dependencies(dependent.id).includes(p.ruleId) && a.lionwing.automation[dependent.id]) {
+            a.lionwing.automation[dependent.id] = false;
+            emit("automation.configure", a.id, { ruleId: dependent.id, enabled: false, dependency: p.ruleId });
+          }
           if (p.enabled) initializeTechniqueState(a, p.ruleId);
+          if (p.enabled) restored?.ensure(a);
           emit("automation.configure", a.id, { ruleId: p.ruleId, enabled: p.enabled }); break;
         }
         case "aura": mutateAura(p,sourceId,event.actorId); break;
@@ -3506,7 +3540,7 @@
         case "chemist-health-check": {
           const target = requiredActor(scene, p.targetId, false), source = requiredActor(scene, p.sourceActorId || sourceId, false), health = Number(target.hp || 0), threshold = Number(source.attrs?.mind || 0);
           emit("rule.health-check", source.id, { targetId: target.id, health, threshold, ruleId: p.ruleId, private: true });
-          if (!target.knockedOut && health <= threshold) { knockout(target, { kind: "chemist-weaken-threshold", sourceActorId: source.id }); gain(source, "focus", 2, { actionId: p.ruleId }); }
+          if (!target.knockedOut && health <= threshold) { const center = { x: target.x, y: target.y, space: target.space }; knockout(target, { kind: "chemist-weaken-threshold", sourceActorId: source.id }); gain(source, "focus", 2, { actionId: p.ruleId }); if (global.DAWN_LIONWING_RESTORED_TECHNIQUES?.enabled?.(source, "disruptor.chemist.3")) restored.gas(source, center); }
           break;
         }
         case "geometry-move":{
@@ -3721,6 +3755,7 @@
             if (!item || item.p.frame.ownerActorId !== sourceId) fail("Продолжение последствия отсутствует");
             item.p.frame = global.DAWN_LIONWING_EXECUTION.choose(item.p.frame, p.choice);
           }
+          else if (pending.kind === "restored-technique") { restored.answer(a, pending, p); }
           else if (pending.kind === "technique-trigger") {
             const followup = pending.context?.followupId ? followupById(pending.context.followupId) : null;
             if (pending.context?.followupId && !followup) fail("Жизненный цикл follow-up не найден");
@@ -3933,6 +3968,7 @@
             operations.push({ kind: "damage", sourceActorId: pending.actorId, targetId, amount: pending.targetDamage?.[targetId]??pending.damage, attack: true, sourceActionId: pending.sourceActionId, actionInstanceId: pending.actionInstanceId, techniqueRuleId: pending.techniqueRuleId, techniqueSourceDigest: pending.techniqueSourceDigest, techniqueId: pending.techniqueId, techniqueIds: pending.techniqueIds, criticals: pending.criticals, reduction: response.reduction || 0, temporaryArmor: response.temporaryArmor || 0, effects: [...pending.effects, ...(pending.attackEffectsByTarget?.[targetId] || [])], finalDamage: pending.finalDamage, ignoreArmor:pending.ignoreArmor, ignoreEvasion:pending.ignoreEvasion, irreducible:pending.irreducible, preventForcedMovement:response.preventForcedMovement, ...(pending.derived ? { derived: true, derivedActionId: pending.derivedActionId, derivedLineage: pending.derivedLineage, derivedSourceDigest: pending.derivedSourceDigest, fixedTargetId: pending.fixedTargetId, fixedDamage: pending.fixedDamage } : {}), ...(pending.breacherPush ? { breacherPush: true, breacherPushMultiplier: pending.breacherPushMultiplier, breacherAttackSuccess: pending.breacherAttackSuccess, breacherInitialDistance: pending.breacherInitialDistances?.[targetId] } : {}), ...(pending.actionPlanId ? { actionPlanId: pending.actionPlanId } : {}), });
           }
           if (pending.breacherWeaken) operations.push({ kind: "effect", targetId: pending.actorId, sourceActorId: pending.actorId, effect: "negative.ослаблен", ruleId: "powerhouse.breacher.2", sourceActionId: pending.sourceActionId, duration: "default" });
+          restored?.resolve(pending, operations);
           for(const tail of s.afterAttack||[]){
             if(tail.kind==="move"&&tail.forced&&pending.responses[tail.targetId||tail.sourceActorId]?.preventForcedMovement)emit("movement.prevented",pending.actorId,{targetId:tail.targetId||tail.sourceActorId,reason:"Уворот",attackId:pending.id});
             else operations.push(tail);
@@ -4153,6 +4189,36 @@
       request = mapped[event.type];
       if (!request) fail(`Событие ${event.type} не перенесено в LionWing`);
     }
+    restored = global.DAWN_LIONWING_RESTORED_TECHNIQUES?.install?.({
+      scene, state: s, rootId, emit, actor: id => actor(scene, id), alive: live, fail,
+      effect: applyEffect, removeEffect, damage: applyDamage, gain, spend, choice, move,
+      clock: (payload, id) => mutateCounter(payload, id, "clock"),
+      configure: (payload, id) => mutateCounter(payload, id, "resource", "create"),
+      inventory: (payload, id) => inventory.applyOperation(scene, { ...payload, targetId: id }, { scene, actorId: id, sourceActorId: id, eventId: rootId, operationId: `${rootId}:restored-inventory:${emitted.length}`, emit }),
+      stackCount: (owner, id) => Number(owner.lionwing?.inventory?.records?.[id]?.current || 0),
+      heal: (target, amount, sourceId) => applyHealing({ targetId: target.id, amount }, sourceId),
+      actionDef,
+      interact: (owner, request) => performAction(owner, { actionId: ids.interact, targetIds: [], useCunningPlan: request?.useCunningPlan === true }),
+      trapAttack: (owner, target, savedRoll) => {
+        const attribute = Number(owner.attrs.body) >= Number(owner.attrs.talent) ? "body" : "talent";
+        const ruleId = "disruptor.hunter.1", sourceDigest = global.DAWN_LIONWING_RESTORED_TECHNIQUES.defs.find(row => row.id === ruleId).sourceDigest;
+        performAction(owner, { actionId: ids.skirmish, roll: savedRoll, attribute, targetIds: [target.id], techniqueRuleId: ruleId, techniqueSourceDigest: sourceDigest, effects: global.DAWN_LIONWING_RESTORED_TECHNIQUES.enabled(owner, "disruptor.hunter.2") ? [{ effect: "negative.обездвижен", ruleId: "disruptor.hunter.2" }] : [], __derivedContract: { id: ruleId, sourceDigest, ignoreRange: true } });
+      },
+      push: (source, target, maximum) => {
+        if (!live(target) || effectActive(scene, target, "positive.устойчив")) return 0;
+        const dx = target.x - source.x, dy = target.y - source.y;
+        const vector = Math.abs(dx) >= Math.abs(dy) ? { x: Math.sign(dx), y: 0 } : { x: 0, y: Math.sign(dy) };
+        let point = { x: target.x, y: target.y, space: target.space }, count = 0;
+        if (!vector.x && !vector.y) return 0;
+        for (let index = 0; index < maximum; index++) {
+          const next = { ...point, x: point.x + vector.x, y: point.y + vector.y };
+          try { movement(scene, target, next, { maximum: index + 1, forced: true, line: true }); } catch { break; }
+          point = next; count++;
+        }
+        if (count) move(target, { destination: point, maximum: count, forced: true, line: true });
+        return count;
+      },
+    }) || null;
     const pendingActionId = scene.pendingAction?.sourceActionId || null;
     provenance = foundations.identity({ rootActionId: rootId, actionId: request.actionId || pendingActionId || `operation.${request.kind}`, actionDefinitionId:request.actionId||pendingActionId||`operation.${request.kind}`, actionInstanceId:rootId, causeEventId: rootId, ownerActorId: event.actorId || "scene" });
     saveFact("attempt", event.actorId??null, request.targetIds || (request.targetId ? [request.targetId] : []), { kind: request.kind });
@@ -4669,7 +4735,9 @@
       }
       if (field === "destination" && payload.kind === "action" && payload.actionId === ids.improvise && !payload.reappearance && !payload.effect && !payload.removeObstacleId) {
         const source = requiredActor(snapshot, request.actorId);
-        if (distance(source, { ...destination, space: destination.space || source.space }) !== 1) fail("Выберите соседнюю клетку препятствия");
+        const chemist = global.DAWN_LIONWING_RESTORED_TECHNIQUES?.enabled?.(source, "disruptor.chemist.1");
+        const range = distance(source, { ...destination, space: destination.space || source.space });
+        if (range < 1 || range > (chemist ? 4 : 1)) fail("Клетка препятствия вне дальности");
       }
       if (field === "reappearance") {
         const source = requiredActor(snapshot, request.actorId), definition = actionDef(payload.actionId);
@@ -4765,7 +4833,7 @@
     lifetimeBoundary: foundations.lifetimeBoundary,
     normalizeLifetime: foundations.normalizeLifetime,
     isLifetimeExpired: foundations.lifetimeExpired,
-    operations: ["automation", "plan", "batch", "pause-chain", "resume-chain", "amend-attack", "recover-track", "record-action", "action", "derived-action", "attack", "information-study", "information-reveal", "information-cancel", "information-handout", "shatter-check", "damage", "breacher-push", "spend-health", "lose-health", "heal", "wound", "stress", "knockout", "resource", "inventory", "intermission", "correct", "effect", "effect-source", "banish", "vanish", "compound", "aura", "aura-create", "aura-update", "aura-suppress", "aura-restore", "aura-remove", "placement", "teleport", "displacement", "move", "forced-towards-group", "forced-towards-group-step", "forced-towards-group-after-route", "forced-towards", "forced-away", "martial-quick-step", "jab", "skirmisher-shift", "geometry-move", "geometry-segment", "modifier", "allow-action", "deny-action", "grant-turn", "usage", "punish", "invisible", "search", "configure-resource", "dice-create", "dice-apply", "dice-reload", "dice-opposed", "dice-resolve-tie", "counter", "clock", "prompt", "technique-choice", "choice", "roll", "reaction", "resolve-attack", "cancel-attack", "turn-start", "turn-end", "round-end", "scene-reset", "chapter-start", "tension", "combat-meter", "note", "marker-remove"]
+    operations: ["restored-technique", "automation", "plan", "batch", "pause-chain", "resume-chain", "amend-attack", "recover-track", "record-action", "action", "derived-action", "attack", "information-study", "information-reveal", "information-cancel", "information-handout", "shatter-check", "damage", "breacher-push", "spend-health", "lose-health", "heal", "wound", "stress", "knockout", "resource", "inventory", "intermission", "correct", "effect", "effect-source", "banish", "vanish", "compound", "aura", "aura-create", "aura-update", "aura-suppress", "aura-restore", "aura-remove", "placement", "teleport", "displacement", "move", "forced-towards-group", "forced-towards-group-step", "forced-towards-group-after-route", "forced-towards", "forced-away", "martial-quick-step", "jab", "skirmisher-shift", "geometry-move", "geometry-segment", "modifier", "allow-action", "deny-action", "grant-turn", "usage", "punish", "invisible", "search", "configure-resource", "dice-create", "dice-apply", "dice-reload", "dice-opposed", "dice-resolve-tie", "counter", "clock", "prompt", "technique-choice", "choice", "roll", "reaction", "resolve-attack", "cancel-attack", "turn-start", "turn-end", "round-end", "scene-reset", "chapter-start", "tension", "combat-meter", "note", "marker-remove"]
   };
   global.DAWN_LIONWING_ENGINE = api;
   const routed = global.DAWN_SCENE_ENGINE;

@@ -337,7 +337,7 @@
             "name": "Скорость — это вес",
             "kind": "passive",
             "automation": "full",
-            "note": "Успешное Завершение Телом после общего окна Реакций накладывает Разорван на доступные цели.",
+            "note": "Завершение Телом как первая Атака своего Хода даёт 2 Фокуса и накладывает Разорван до расчёта урона.",
             "sourceLevelId": "powerhouse.dragonslayer.1",
             "sourceDigest": "5967f1ff724e990c007796133cc60b106a15c4d303d733bda7e73e4b4eb52f7d",
             "coverage": "full"
@@ -1673,7 +1673,7 @@
             "name": "Жонглирование пулями",
             "kind": "passive",
             "automation": "full",
-            "note": "Одиночная Стычка за 3+ Пули автоматически накладывает Подброшен после разрешения Реакций.",
+            "note": "Атака с 2+ Критическими успехами предлагает Подбросить одну цель; бонусный урон Большого ствола по Подброшенным удваивается.",
             "sourceLevelId": "powerhouse.gunslinger.3",
             "sourceDigest": "fd9e3d44ce0f4c8bcff8c3b316c54ed304a10be26073d9242cbbe17f141f5950",
             "coverage": "full"
@@ -8472,14 +8472,9 @@
             "techniqueId": "vagabond.speed-demon",
             "level": 2,
             "name": "Мгновенный шаг",
-            "kind": "combo",
+            "kind": "passive",
             "automation": "full",
-            "sequenceKeys": [
-              "breathe",
-              "step"
-            ],
-            "actionKey": "step",
-            "movementMultiplier": 3,
+            "note": "Выход из клетки персонажа с помощью Прохода предлагает не-Атакующий урон [Талант / 2], по каждой цели один раз за Раунд.",
             "sourceLevelId": "vagabond.speed-demon.2",
             "sourceDigest": "0365cfb5ae901e4cac9e6571651dc2a256170a13afb47a2077b1c785eb368b62",
             "coverage": "full"
@@ -17737,7 +17732,7 @@
             "name": "Копнуть глубже, стоять твердо",
             "kind": "passive",
             "automation": "full",
-            "note": "Получение предложения Реакции как цели Атаки даёт 1 Упорство.",
+            "note": "Когда выбран целью Атаки, получает 1 Упорство; несостоявшийся Фокус снижает ОД и дополнительную стоимость первого Завершения Раунда.",
             "sourceLevelId": "bulwark.mundane.2",
             "sourceDigest": "9f2acd96734496115e4336cfba21ae1002107d282e903cc9e9a76fa209b81410",
             "coverage": "full"
@@ -21835,7 +21830,7 @@
             "name": "Бездонная кладовая",
             "kind": "passive",
             "automation": "full",
-            "note": "Запас Трапез автоматически равен 3 за Интермиссию.",
+            "note": "Выход из смежности с союзником предлагает передать порцию без Взаимодействия; окончание её Эффекта лечит на 4 + Разум.",
             "sourceLevelId": "altruist.gourmand.2",
             "sourceDigest": "84ec37d54af70332e7bb2f4ed402265d3514db190bc24b400016b9444b4b8ce7",
             "coverage": "full"
@@ -39992,7 +39987,7 @@
             "id": "ruiner.creation-ascetic.1.pile-arm",
             "techniqueId": "ruiner.creation-ascetic",
             "level": 1,
-            "name": "Небесный копер",
+            "name": "Небесный таран",
             "kind": "creation-attack",
             "automation": "decision",
             "actionKey": "finish",

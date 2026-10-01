@@ -890,9 +890,9 @@
     passive({ id: "altruist.chronomancer.2", label: "Хрономант II: +1 Преимущество к Заклинаниям (пассивная часть)", sourceDigest: "bab452f231f9a7c7c0ee1777945bb658db08a587663551cdcb857ccb1b3f5105", coverage: "partial", rollBonus: actionBonus("action.атаки.заклинание") }),
     passive({ id: "bulwark.grappler.2", label: "Борец II: +1 Преимущество к Стычкам (пассивная часть)", sourceDigest: "87e908315db54db355c6fa2e4c772f05a08a0fbd835cd50e6339ac034f66ff4d", coverage: "partial", rollBonus: actionBonus("action.атаки.стычка") }),
     passive({ id: "disruptor.bloodletter.2", label: "Кровопускатель II: +1 Преимущество к Стычкам (пассивная часть)", sourceDigest: "c9c73dd242441bab4248e9a2726af8ed73cae41c41df3d09d6bb095c709f9d05", coverage: "partial", rollBonus: actionBonus("action.атаки.стычка") }),
-    passive({ id: "disruptor.constrictor.3", label: "Удушитель III: +1 Преимущество к Стычкам (пассивная часть)", sourceDigest: "0103c5ab35c610ced640ee2b40b6bb0d0dc9c7552a1c961a6afb0877ba79bd80", coverage: "partial", rollBonus: actionBonus("action.атаки.стычка") }),
+    passive({ id: "disruptor.constrictor.3", label: "Душитель III: +1 Преимущество к Стычкам (пассивная часть)", sourceDigest: "0103c5ab35c610ced640ee2b40b6bb0d0dc9c7552a1c961a6afb0877ba79bd80", coverage: "partial", rollBonus: actionBonus("action.атаки.стычка") }),
     passive({
-      id: "disruptor.constrictor.2", label: "Удушитель II: Завершения против собственных Пойманных целей",
+      id: "disruptor.constrictor.2", label: "Душитель II: Завершения против собственных Пойманных целей",
       sourceDigest: "31497052acc5975d0710be32d338ee9b8f371577bde12aca4250b1ee967ace4f",
       numeric: (owner, context) => {
         if (context.actionId !== ACTIONS.finish || !context.scene) return [];
@@ -1281,6 +1281,7 @@
       const previous = byId.get(rule.id);
       byId.set(rule.id, { ...rule, sourceLevelId: rule.sourceLevelId || `${rule.techniqueId}.${rule.level}`, coverage: previous?.coverage === "partial" || rule.coverage === "partial" ? "partial" : "full" });
     }
+    for (const rule of global.DAWN_LIONWING_RESTORED_TECHNIQUES?.rows?.(actor) || []) byId.set(rule.id, rule);
     return [...byId.values()];
   }
   const enabledActionModifiers = actor => actionModifiers.filter(rule => rule.available(actor) && actor?.lionwing?.automation?.[rule.id] === true);

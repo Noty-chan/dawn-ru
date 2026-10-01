@@ -19,7 +19,8 @@ function normalizeRuleClockDefinition(definition = {}) {
   const size = Math.max(1, Math.min(100, Number(definition.size ?? definition.max ?? 6) || 6));
   const minimum = Math.max(0, Math.min(size, Number(definition.min ?? 0) || 0));
   const initial = Math.max(minimum, Math.min(size, Number(definition.initial ?? minimum) || minimum));
-  const value = Math.max(minimum, Math.min(size, Number(definition.current ?? definition.value ?? initial) || initial));
+  const savedCurrent = Number(definition.current ?? definition.value ?? initial);
+  const value = Math.max(minimum, Math.min(size, Number.isFinite(savedCurrent) ? savedCurrent : initial));
   return {
     clockId: String(definition.clockId || ""),
     id: String(definition.id || definition.clockId || ""),
@@ -227,7 +228,10 @@ const RULE_RESOURCE_ADAPTERS = [
 function normalizeRuleResourceDefinition(actor, definition = {}) {
   const initial = typeof definition.initial === "function" ? definition.initial(actor) : Number(definition.initial ?? 0);
   const minimum = Math.max(0, Number(definition.min ?? definition.minimum ?? 0) || 0), maximum = definition.max === null || definition.maximum === null ? null : definition.max != null || definition.maximum != null ? Math.max(minimum, Number(definition.max ?? definition.maximum) || 0) : null;
-  const current = Math.max(minimum, Math.min(maximum ?? 9999, Number(definition.current ?? definition.value ?? initial) || initial));
+  // Native resource operations historically wrote value while current could
+  // remain stale. Preserve that authoritative balance, including zero.
+  const savedCurrent = Number(definition.value ?? definition.current ?? initial);
+  const current = Math.max(minimum, Math.min(maximum ?? 9999, Number.isFinite(savedCurrent) ? savedCurrent : initial));
   const replaces = Array.isArray(definition.replaces) ? definition.replaces : definition.replaces == null ? [] : [definition.replaces];
   return {
     resource: String(definition.resource || ""),
