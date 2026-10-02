@@ -90,3 +90,16 @@ LionWing, десять тактов, точные повторы, 25 Realtime-п
 Это отдельные этапы, а не полное время от клика до результата; непрерывная
 длительная нагрузка и ухудшение соединения в эти цифры не входят.
 Артефакт локального прогона: `output/qa-net/live-five-tables-fixed-20261002.json`.
+
+Повторяемый сценарий сохранён в `tools/qa/live-network-supabase.mjs`. Он запускается
+только явно: создаёт гостевые сессии и временные кампании в проекте из
+`apps/companion/config.js`, удаляет свои кампании в `finally` и не выводит токены.
+Гостевые Auth-пользователи остаются в Supabase: публичный ключ не имеет права
+удалять аккаунты. По умолчанию и в обычном CI сценарий не исполняется.
+
+```powershell
+npm install --prefix output/qa-net --no-audit --no-fund @supabase/supabase-js@2.117.2
+$env:DAWN_LIVE_NETWORK_QA = 'disposable-campaigns'
+node tools/qa/live-network-supabase.mjs
+Remove-Item Env:DAWN_LIVE_NETWORK_QA
+```
