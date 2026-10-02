@@ -68,7 +68,7 @@ console.log("LionWing Master at Arms audit: Detective successor, page 79 provena
 
 // Exercise the native command entry point. A canonical registry entry and a
 // successful test of an unversioned shared scene cannot prove this route works.
-const { core, engine, data } = runtime();
+const { core, engine, data, context } = runtime();
 const masterId = "vagabond.master-at-arms", groupId = `${masterId}.armament`;
 function fresh() {
   const table = fixture();
@@ -250,6 +250,91 @@ assert.equal(student.actors[0].ap, 0, "native price reaches the shared preparer 
 assert.equal(student.actors[0].focus, studentFocus - 3, "extra dice above Tension are paid exactly once");
 assert.equal(student.pendingAction.roll.initialCount, 6);
 student = resolve(core.reload(JSON.stringify(student)));
+
+// Restored hooks apply inside the bridged Action transaction as well. Mundane
+// spends its first-Finisher discount once per Round, including an extra Turn.
+let mundaneMaster=fresh();
+mundaneMaster.lionwing.started=true;
+mundaneMaster.lionwing.activeTurnInstanceId="mundane-master-turn";
+mundaneMaster.actors[1].x=2;
+mundaneMaster.actors[0].knownTechniques["bulwark.mundane"]=2;
+mundaneMaster.actors[0].ruleModes={ [groupId]: {modeId:"chain",sourceDigest:expectedDigests[`${masterId}.1`]} };
+mundaneMaster=operation(mundaneMaster,{kind:"automation",ruleId:"bulwark.mundane.2",enabled:true});
+mundaneMaster=operation(mundaneMaster,{kind:"resource",resource:"focus",operation:"gain",amount:3});
+const mundaneFinisher={actionId:engine.ACTION_IDS.finish,attribute:"talent",focusSpent:1,targetIds:[],areaCenter:{x:2,y:1}};
+const mundaneBefore=clone(mundaneMaster),tenacityBefore=core.balance(mundaneMaster.actors[0],"focus");
+const mundaneQuote=core.actionStatus(mundaneMaster,mundaneMaster.actors[0],core.actionDef(mundaneFinisher.actionId),mundaneFinisher);
+assert.equal(mundaneQuote.cost,0);
+assert.deepEqual(clone(mundaneMaster),mundaneBefore,"preview does not consume the Round discount");
+const invalidMundane=core.prepare(mundaneMaster,{actorId:"hero",kind:"action",...mundaneFinisher,areaCenter:{x:99,y:99}},{random:()=>.8});
+assert.equal(invalidMundane.ok,false);
+assert.deepEqual(clone(mundaneMaster),mundaneBefore,"rejected geometry cannot consume the discount");
+mundaneMaster=use(mundaneMaster,mundaneFinisher,"mundane-master-first");
+assert.equal(mundaneMaster.actors[0].lionwing.mundaneDiscount,0);
+assert.deepEqual(clone(mundaneMaster.actors[0].lionwing.mundaneFinisherRound),[1]);
+assert.equal(core.balance(mundaneMaster.actors[0],"focus"),tenacityBefore,"three discounted units cover two AP and one extra die");
+mundaneMaster=resolve(core.reload(JSON.stringify(mundaneMaster)));
+mundaneMaster=operation(mundaneMaster,{kind:"grant-turn",targetId:"hero"});
+mundaneMaster=operation(mundaneMaster,{kind:"turn-end"});
+mundaneMaster=operation(mundaneMaster,{kind:"turn-start"});
+assert.equal(mundaneMaster.round,1);
+assert.equal(context.window.DAWN_LIONWING_RESTORED_TECHNIQUES.quote(mundaneMaster,mundaneMaster.actors[0],mundaneFinisher.actionId,mundaneFinisher,{cost:2}).cost,2,"another own Turn in the Round does not restore the first-Finisher discount");
+const laterTurnBefore=clone(mundaneMaster);
+assert.equal(core.prepare(mundaneMaster,{actorId:"hero",kind:"action",...mundaneFinisher},{random:()=>.8}).ok,false,"a normal Finisher remains limited to once per Round");
+assert.deepEqual(clone(mundaneMaster),laterTurnBefore,"a refused later Finisher consumes nothing");
+mundaneMaster=operation(mundaneMaster,{kind:"turn-end"});
+mundaneMaster=operation(mundaneMaster,{actorId:"enemy",kind:"turn-start"});
+mundaneMaster=operation(mundaneMaster,{actorId:"enemy",kind:"turn-end"});
+mundaneMaster=operation(mundaneMaster,{kind:"round-end"});
+mundaneMaster=operation(mundaneMaster,{kind:"turn-start"});
+mundaneMaster=operation(mundaneMaster,{kind:"resource",resource:"focus",operation:"gain",amount:3});
+assert.equal(mundaneMaster.round,2);
+assert.equal(core.actionStatus(mundaneMaster,mundaneMaster.actors[0],core.actionDef(mundaneFinisher.actionId),mundaneFinisher).cost,0,"a new Round permits a newly earned discount");
+mundaneMaster=use(mundaneMaster,mundaneFinisher,"mundane-master-new-round");
+assert.deepEqual(clone(mundaneMaster.actors[0].lionwing.mundaneFinisherRound),[2]);
+
+// The same missing hook also let Creator retain Material after a Master I
+// Skirmish. Payment and authoritative history must use the restored plan.
+let creatorMaster=fresh();
+creatorMaster.actors[0].knownTechniques["ruiner.creation-ascetic"]=1;
+creatorMaster=operation(creatorMaster,{kind:"automation",ruleId:"ruiner.creation-ascetic.1",enabled:true});
+creatorMaster=operation(creatorMaster,{kind:"resource",resource:"material",operation:"gain",amount:3});
+creatorMaster=use(creatorMaster,{actionId:engine.ACTION_IDS.skirmish,armamentMode:"chain",attribute:"talent",targetIds:["enemy"]},"creator-master-armament");
+assert.equal(creatorMaster.actors[0].ruleResources.material.value,0,"the shared Armament consumes all Material once");
+assert.equal(creatorMaster.actors[0].lionwing.history.at(-1).materialSpent,3,"shared history retains the material fact for Creator III inheritance");
+creatorMaster=resolve(core.reload(JSON.stringify(creatorMaster)));
+
+// Cunning Plan is restricted to non-Attacks. A single charge cannot be
+// consumed by a rejected Armament (nor passed to the legacy clock consumer).
+let cunningMaster=fresh();
+cunningMaster.actors[0].knownTechniques["vagabond.cunning-fighter"]=1;
+cunningMaster=operation(cunningMaster,{kind:"automation",ruleId:"vagabond.cunning-fighter.1",enabled:true});
+cunningMaster=operation(cunningMaster,{kind:"clock",id:"vagabond.cunning-fighter.plan",operation:"add",delta:1});
+const cunningBefore=clone(cunningMaster);
+const cunningRejected=core.prepare(cunningMaster,{kind:"action",actorId:"hero",actionId:engine.ACTION_IDS.skirmish,armamentMode:"chain",attribute:"talent",targetIds:["enemy"],useCunningPlan:true},{random:()=>.8});
+assert.equal(cunningRejected.ok,false);
+assert.match(cunningRejected.errors.join(" "),/не-Атакующее действие/);
+assert.deepEqual(clone(cunningMaster),cunningBefore,"a rejected Attack preserves the single Cunning Plan charge and all receipts");
+
+// Pre-Skirmish bullet damage precedes shared reactions. It spends once and
+// never leaves a defeated defender in attack.pending.
+for (const targetHp of [1,30]) {
+  let gunMaster=fresh();
+  gunMaster.actors[1].hp=targetHp;
+  gunMaster.actors[0].knownTechniques["powerhouse.gunslinger"]=1;
+  gunMaster=operation(gunMaster,{kind:"automation",ruleId:"powerhouse.gunslinger.1",enabled:true});
+  gunMaster=use(gunMaster,{actionId:engine.ACTION_IDS.skirmish,armamentMode:"chain",attribute:"talent",bulletsSpent:1,bulletTargets:["enemy"]},`gun-master-${targetHp}`);
+  assert.equal(gunMaster.actors[0].ruleResources.bullets.value,5);
+  assert.equal(gunMaster.actors[1].hp,targetHp-1);
+  if(targetHp===1) {
+    assert.equal(gunMaster.actors[1].knockedOut,true);
+    assert.ok(!gunMaster.pendingAction,"a lethal pre-Skirmish bullet completes without an unavailable defender");
+  } else {
+    assert.deepEqual(clone(gunMaster.pendingAction.targetIds),["enemy"]);
+    gunMaster=resolve(core.reload(JSON.stringify(gunMaster)));
+    assert.equal(gunMaster.actors[0].ruleResources.bullets.value,5,"resolving the Armament does not spend bullets twice");
+  }
+}
 
 // Shared reaction packets include payment and automatic Block displacement.
 // They must commit atomically through the shared route, with native modifiers.

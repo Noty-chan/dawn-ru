@@ -148,12 +148,53 @@ table=actual.core.prepare(table,{actorId:"hero",kind:"automation",ruleId:"vagabo
 table.actors[0].ap=0;table.actors[0].ruleClocks["vagabond.cunning-fighter.plan"].current=1;
 context.Scene=table;context.LionwingEngine=actual.core;context.SceneEngine.ACTION_IDS.step=actual.engine.ACTION_IDS.step;
 const gateNote={textContent:""},gateInput={checked:true},gateButton={dataset:{lwActor:"hero",lwAction:actual.engine.ACTION_IDS.step},disabled:true,querySelector:()=>gateNote};
-const gateRoot={dataset:{lwActor:"hero"},querySelectorAll:selector=>selector==="[data-lw-cunning-plan]"?[gateInput]:[gateButton]};gateInput.closest=gateButton.closest=()=>gateRoot;context.gateRoot=gateRoot;
+const gateRoot={dataset:{lwActor:"hero"},querySelectorAll:selector=>selector==="[data-lw-cunning-plan]"?[gateInput]:selector==="[data-lw-action]"?[gateButton]:[]};gateInput.closest=gateButton.closest=()=>gateRoot;context.gateRoot=gateRoot;
 run('lwRefreshCunningActions(gateRoot)');
 assert.equal(gateButton.disabled,false,"selecting a valid Cunning Plan enables a free Step even at zero AP");
 assert.match(gateNote.textContent,/0 ОД/);
 gateInput.checked=false;run('lwRefreshCunningActions(gateRoot)');
 assert.equal(gateButton.disabled,true,"clearing the plan restores the ordinary insufficient AP gate");
+let mundaneTable=fixture();mundaneTable.actors[0].knownTechniques={"bulwark.mundane":2};mundaneTable.actors[1].x=2;
+for(const request of [{kind:"automation",ruleId:"bulwark.mundane.2",enabled:true},{kind:"resource",resource:"focus",operation:"gain",amount:3}]){
+  const prepared=actual.core.prepare(mundaneTable,{actorId:"hero",...request});assert.equal(prepared.ok,true,prepared.errors?.join(" "));mundaneTable=prepared.scene;
+}
+context.Scene=mundaneTable;
+gateButton.dataset.lwAction=actual.engine.ACTION_IDS.finish;
+const selectedAttribute={value:"",closest:()=>gateRoot},selectedFocus={value:"1",closest:()=>gateRoot};
+const foreignAttribute={value:"spirit",closest:()=>({})};
+gateRoot.querySelectorAll=selector=>selector==="[data-lw-action]"?[gateButton]:selector==="[data-lw-attribute]"?[foreignAttribute,selectedAttribute]:selector==="[data-lw-focus]"?[selectedFocus]:[];
+const beforeGate=JSON.stringify(mundaneTable);
+run('lwRefreshCunningActions(gateRoot)');
+assert.equal(gateButton.disabled,true,"Mundane cannot use the default Spirit Finisher");
+const changeHandlers=[];context.document.addEventListener=(name,handler)=>{if(name==="change")changeHandlers.push(handler);};
+const changeStart=source.lastIndexOf('document.addEventListener("change", event => {');
+vm.runInContext(source.slice(changeStart,source.indexOf('// Native grid',changeStart)),context);
+for(const attribute of ["body","talent","spirit"]){
+  selectedAttribute.value=attribute;
+  changeHandlers[0]({target:{closest:selector=>selector==="[data-lw-root]"?gateRoot:selectedAttribute}});
+  assert.equal(gateButton.disabled,attribute==="spirit","changing Attribute updates the real action gate");
+}
+selectedAttribute.value="talent";selectedFocus.value="1";run('lwRefreshCunningActions(gateRoot)');
+assert.equal(gateButton.disabled,false);
+assert.match(gateNote.textContent,/0 ОД/);
+assert.equal(JSON.stringify(mundaneTable),beforeGate,"availability refresh pays no resources and writes no Round receipt");
+gateButton.dataset.lwMasterFinisher="";selectedAttribute.value="spirit";run('lwRefreshCunningActions(gateRoot)');
+assert.equal(gateButton.disabled,false,"Master controls retain their fixed Talent attribute");
+delete gateButton.dataset.lwMasterFinisher;
+vm.runInContext(source.slice(source.indexOf("const lwFormDraft ="),source.indexOf("let lwDraftEnabled=")),context);
+const draftPanel=(id,group)=>{
+  const fields=[],panel={dataset:{lwActor:id},className:"lw-actions",querySelectorAll:()=>fields,closest:()=>group?{dataset:{lwTechniqueGroup:group}}:null};
+  for(let i=0;i<(group==="powerhouse.gunslinger"?2:1);i++)fields.push({attributes:[{name:group==="powerhouse.gunslinger"?"data-lw-bullet-target":"data-lw-focus",value:""}],value:"0",closest:()=>panel});
+  return fields;
+};
+context.draftFields=[...draftPanel("hero"),...draftPanel("hero","vagabond.master-at-arms"),...draftPanel("hero","ruiner.creation-ascetic"),...draftPanel("other"),...draftPanel("hero","powerhouse.gunslinger")];
+const draftKeys=Array.from(run('draftFields.map(lwDraftKey)'));
+assert.equal(new Set(draftKeys).size,6,"drafts separate heroes, technique controls and individual bullet targets");
+run('lwFormDraft.set(lwDraftKey(draftFields[0]),"1");lwFormDraft.set(lwDraftKey(draftFields[4]),"enemy");');
+assert.deepEqual(Array.from(run('draftFields.map(field=>lwFormDraft.get(lwDraftKey(field))??field.value)')),["1","0","0","0","enemy","0"],"restoring a draft does not alter another control or bullet assignment");
+context.lwGeometrySceneIdentity=()=>"another-scene";
+assert.equal(run('lwFormDraft.has(lwDraftKey(draftFields[0]))'),false,"drafts cannot cross scene identity");
+context.lwGeometrySceneIdentity=()=>"scene";
 assert.ok(source.indexOf("${lwPendingHtml()}${lwTechniqueDraftHtml(a)}")<source.indexOf("${techniqueSurface || lwAutomationHtml(a)}"),"pending choices and the preview appear before long technique descriptions");
 let pileTable=fixture();pileTable.actors[0].knownTechniques={"ruiner.creation-ascetic":1};pileTable.actors[1].x=2;
 pileTable=actual.core.prepare(pileTable,{actorId:"hero",kind:"automation",ruleId:"ruiner.creation-ascetic.1",enabled:true}).scene;

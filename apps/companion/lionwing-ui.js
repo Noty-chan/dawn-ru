@@ -7,13 +7,23 @@ const lwActive = () => LionwingEngine.isScene(Scene);
 let lwDestination = null, lwGeometryPreview = null, lwDetectiveTeleport = null, lwTechniqueDraft = null;
 const lwTechniqueText = (key, fallback) => window.DAWN_I18N?.t?.(`lionwing.technique.controls.${key}`, {}, { fallback }) || fallback;
 const lwTechniqueEnabled = (a, id) => Number((a.knownTechniques ?? a.techniques)?.[id.replace(/\.\d+$/, "")] || 0) >= Number(id.match(/\.(\d+)$/)?.[1]) && a.lionwing?.automation?.[id] === true;
+function lwActionControlRequest(root, button) {
+  const control=selector=>[...root.querySelectorAll(selector)].find(input=>input.closest("[data-lw-root]")===root);
+  const actionId=button.dataset.lwAction||button.dataset.coreAction;
+  const attack=[SceneEngine.ACTION_IDS.spell,SceneEngine.ACTION_IDS.skirmish,SceneEngine.ACTION_IDS.finish].includes(actionId);
+  const attribute=button.dataset.lwMasterMode||button.dataset.lwMasterFinisher!==undefined?"talent":control("[data-lw-attribute]")?.value;
+  return {kind:"action",actionId,focusSpent:Number(control("[data-lw-focus]")?.value||0),
+    ...(attribute?{attribute}:{}),...(control("[data-lw-cunning-plan]")?.checked&&!attack?{useCunningPlan:true}:{}),
+    breakout:button.dataset.lwBreakout==="true",breacherBothBarrels:control("[data-lw-both-barrels]")?.checked===true,
+    ...(button.dataset.lwMasterMode?{armamentMode:button.dataset.lwMasterMode}:{})};
+}
 function lwRefreshCunningActions(root) {
   if(!root)return;
   const checked=[...root.querySelectorAll("[data-lw-cunning-plan]")].find(input=>input.closest("[data-lw-root]")===root)?.checked===true;
   for(const button of root.querySelectorAll("[data-lw-action]")){
     if(button.closest("[data-lw-root]")!==root)continue;
     const actionId=button.dataset.lwAction, attack=[SceneEngine.ACTION_IDS.spell,SceneEngine.ACTION_IDS.skirmish,SceneEngine.ACTION_IDS.finish].includes(actionId);
-    const status=LionwingEngine.actionGate(Scene,button.dataset.lwActor||root.dataset.lwActor,{kind:"action",actionId,...(checked&&!attack?{useCunningPlan:true}:{}),...(button.dataset.lwBreakout==="true"?{breakout:true}:{})});
+    const status=LionwingEngine.actionGate(Scene,button.dataset.lwActor||root.dataset.lwActor,lwActionControlRequest(root,button));
     button.disabled=!status.available||!lwOwns(button.dataset.lwActor||root.dataset.lwActor);button.title=status.reason||"";
     const note=button.querySelector("small");
     if(note)note.textContent=status.reason||(checked&&!attack?`${lwTechniqueText("cunningLabel","Хитрый план")} · `:"")+`${status.cost??0} ${status.resource==="ap"?lwTechniqueText("ap","ОД"):lwTechniqueText("influenceLabel","Влияния")}`;
@@ -453,7 +463,13 @@ function lwShowEntityOnField(value) {
   return true;
 }
 const lwFormDraft = new Map();
-const lwDraftKey=input=>{const attr=[...input.attributes].find(attr=>attr.name.startsWith("data-lw-"));return attr?attr.name+(attr.value?":"+attr.value:""):null;};
+function lwDraftKey(input) {
+  const attr=[...input.attributes].find(attr=>attr.name.startsWith("data-lw-")),root=input.closest("[data-lw-root]");
+  if(!attr||!root)return null;
+  const fields=[...root.querySelectorAll(`[${attr.name}]`)].filter(field=>field.closest("[data-lw-root]")===root);
+  const scope=root.closest("[data-lw-technique-group]")?.dataset.lwTechniqueGroup||root.className||"panel";
+  return JSON.stringify([lwGeometrySceneIdentity(),root.dataset.lwActor,scope,attr.name,attr.value,fields.indexOf(input)]);
+}
 let lwDraftEnabled=false,lwDraftBatch=null;
 
 const lwGeometryStopReasons=Object.freeze({
@@ -1003,6 +1019,7 @@ renderSceneDirector = function() {
   if(turnPane&&manualPane){turnPane.prepend(actions);manualPane.prepend(consoleNode);}
   else root.prepend(consoleNode);
   for(const input of root.querySelectorAll("[data-lw-root] input,[data-lw-root] select,[data-lw-root] textarea")){const key=lwDraftKey(input);if(key&&lwFormDraft.has(key)){if(input.type==="checkbox")input.checked=lwFormDraft.get(key);else input.value=lwFormDraft.get(key);}}
+  for(const actionRoot of root.querySelectorAll("[data-lw-root]"))lwRefreshCunningActions(actionRoot);
   // Keep library, clocks, reminders, media and table tools in their established place.
   for (const element of root.querySelectorAll(".director-resource-row.health, .director-outcome, .director-exact-grid")) if (!element.closest(".lw-console")) element.hidden = true;
   if(Scene.pendingAction||Scene.lionwing?.choices?.length)for(const element of root.querySelectorAll(".director-turn-handoff"))element.hidden=true;
@@ -1282,9 +1299,7 @@ document.addEventListener("click", event => {
     return lwSubmit(actor.id, payload, "Исправление последствия Нарратора");
   }
   if (button.hasAttribute("data-lw-action") || button.hasAttribute("data-core-action")) {
-    const actionId=button.dataset.lwAction||button.dataset.coreAction, payload={kind:"action",actionId,targetIds:[...Scene.targetIds],breakout:button.dataset.lwBreakout==="true",focusSpent:num("[data-lw-focus]"),advantage:num("[data-lw-advantage]"),disadvantage:num("[data-lw-disadvantage]"),breacherBothBarrels:control("[data-lw-both-barrels]")?.checked===true};
-    if(val("[data-lw-attribute]"))payload.attribute=val("[data-lw-attribute]");
-    if(control("[data-lw-cunning-plan]")?.checked&&! [SceneEngine.ACTION_IDS.spell,SceneEngine.ACTION_IDS.skirmish,SceneEngine.ACTION_IDS.finish].includes(actionId))payload.useCunningPlan=true;
+    const actionId=button.dataset.lwAction||button.dataset.coreAction, payload={...lwActionControlRequest(root,button),targetIds:[...Scene.targetIds],advantage:num("[data-lw-advantage]"),disadvantage:num("[data-lw-disadvantage]")};
     if(val("[data-lw-attack-obstacle]")&&[SceneEngine.ACTION_IDS.spell,SceneEngine.ACTION_IDS.skirmish,SceneEngine.ACTION_IDS.finish].includes(actionId)){payload.obstacleId=val("[data-lw-attack-obstacle]");payload.targetIds=[];}
     if(button.dataset.lwMasterMode){payload.armamentMode=button.dataset.lwMasterMode;payload.attribute="talent";}
     if(button.hasAttribute("data-lw-master-finisher")){payload.attribute="talent";const mode=Scene.actors.find(item=>item.id===actorId)?.ruleModes?.["vagabond.master-at-arms.armament"]?.modeId;if(control("[data-lw-spike]")?.checked)payload.spikeTargetIds=[...Scene.targetIds];lwBeginMasterAction(actorId,payload,mode==="blade"?"destination":"areaCenter","Мастер за работой");return;}
@@ -1353,6 +1368,7 @@ document.addEventListener("input",event=>{
   const entitySearch = event.target.closest?.("[data-lw-entity-search]");
   if (lwActive() && entitySearch) { lwEntityListQuery = String(entitySearch.value || ""); const caret = Number(entitySearch.selectionStart); renderLionwingEntities({ focusSearch: true, selectionStart: Number.isInteger(caret) ? caret : lwEntityListQuery.length }); return; }
   if(lwActive()&&event.target.closest("[data-lw-root]")){const key=lwDraftKey(event.target);if(key)lwFormDraft.set(key,event.target.type==="checkbox"?event.target.checked:event.target.value);}
+  if(lwActive()&&event.target.closest("[data-lw-focus]"))lwRefreshCunningActions(event.target.closest("[data-lw-root]"));
   const root=event.target.closest(".lw-console");if(!root||!lwActive())return;
   const output=root.querySelector("[data-lw-preview]");if(!output)return;
   const amount=Number(root.querySelector("[data-lw-amount]")?.value||0),actorId=root.dataset.lwActor;
@@ -1362,7 +1378,7 @@ document.addEventListener("input",event=>{
 });
 
 document.addEventListener("change", event => {
-  const input=event.target.closest("[data-lw-cunning-plan]");
+  const input=event.target.closest("[data-lw-cunning-plan], [data-lw-attribute], [data-lw-focus], [data-lw-both-barrels]");
   if(lwActive()&&input)lwRefreshCunningActions(input.closest("[data-lw-root]"));
 });
 

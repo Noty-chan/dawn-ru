@@ -2888,6 +2888,17 @@
           swift: gate.swift, focusCap: gate.actionQuote?.focusCap ?? tensionValue(scene),
           focusCost: p.restoredPlan?.focusCost ?? Number(p.focusSpent || 0) } });
         if (!prepared.ok) fail(prepared.errors.join(" "));
+        // Validate shared geometry against the quoted pre-action state, then
+        // consume native resources and once-per-Round rights in this transaction.
+        restored?.beforeAction(a, p);
+        if (p.restoredPlan?.bullets) {
+          // Pre-Skirmish bullets can defeat a defender before the Armament.
+          // Match the native route: complete the Action, but attack only survivors.
+          for (const item of prepared.events.filter(item => ["action.prepare", "attack.pending"].includes(item.type))) {
+            item.payload.targetIds = (item.payload.targetIds || []).filter(id => live(actor(scene, id)));
+          }
+          prepared.events = prepared.events.filter(item => item.type !== "attack.pending" || item.payload.targetIds.length);
+        }
         const instanceId = prepared.events.find(item => item.type === "action.prepare")?.payload?.actionInstanceId;
         // Shared geometry derives the real targets. Compose native damage on
         // that result, before the shared reducer applies attack Effects. Keep
@@ -2934,6 +2945,7 @@
         Object.assign(s, committed.scene.lionwing || {});
         Object.assign(scene, committed.scene, { lionwing: s });
         astate(actor(scene, a.id)).history.push(historyRow);
+        restored?.afterAction(actor(scene, a.id), p, checkedRoll);
         emitted.push(...committed.events);
         const pending = scene.pendingAction;
         saveFact("apply", a.id, pending?.targetIds || [], { actionId: def.id, techniqueRuleId: pending?.techniqueRuleId, swift: Boolean(gate.swift) });
