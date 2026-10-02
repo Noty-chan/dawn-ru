@@ -10,10 +10,11 @@
   const LOCAL_UI_KEYS=["view","tool","activeSpace","selectedActor","targetIds","targetCells","undo","redo","turnUndo"];
   const AUTOMATIC_COMMANDS=new Set(["intent_v2","dispatch_events","join_hero","update_runtime","set_targets"]);
   const clone=value=>value==null?value:JSON.parse(JSON.stringify(value));
+  function isSceneVersionConflict(error){return ["PT409","40001"].includes(String(error?.code||""))||/version conflict/i.test(String(error?.message||""))}
   function retryableAuthorityFailure(error){
     const code=String(error?.code||""),message=String(error?.message||error||"").toLowerCase();
     const status=Number(error?.status??error?.statusCode??0);
-    return error?.retryable===true||status===408||status===425||status===429||status>=500&&status<600||["40001","40P01","55P03","57014","08000","08003","08006","08001","08004","08P01","53300"].includes(code)||/failed to fetch|network\s*error|networkerror|load failed|fetch failed|connection (?:closed|terminated|timed? ?out)|websocket|statement timeout|canceling statement|lock timeout|could not obtain lock|deadlock detected|serialization failure|scene version conflict/i.test(message);
+    return error?.retryable===true||isSceneVersionConflict(error)||status===408||status===425||status===429||status>=500&&status<600||["40P01","55P03","57014","08000","08003","08006","08001","08004","08P01","53300"].includes(code)||/failed to fetch|network\s*error|networkerror|load failed|fetch failed|connection (?:closed|terminated|timed? ?out)|websocket|statement timeout|canceling statement|lock timeout|could not obtain lock|deadlock detected|serialization failure|scene version conflict/i.test(message);
   }
   function withTimeout(request,label="сетевого запроса",timeoutMs=REQUEST_TIMEOUT_MS){
     let timer=null;
@@ -506,6 +507,16 @@
       for(const item of this.inFlight||[])if(!item._networkTick&&predicate(item)){this.discarded.add(item);removed++}
       return removed;
     }
+    defer(items){
+      if(!items?.length)return;
+      const transferring=new Set(items);
+      if(transferring.size!==items.length||!this.inFlight||items.some(item=>!this.inFlight.includes(item)))throw new Error("Отложенный пакет не принадлежит текущему сетевому такту");
+      // Transfer existing slots instead of enqueueing new ones. These items
+      // preceded every queued arrival, including arrivals while the RPC ran.
+      const retained=this.inFlight.filter(item=>!transferring.has(item));
+      this.inFlight.splice(0,this.inFlight.length,...retained);
+      this.queue.unshift(...items);
+    }
     retryFailed(){if(!this.failed.length)return 0;this.queue.unshift(...this.failed);const count=this.failed.length;this.failed=[];this.schedule();return count}
     clear(){this.generation++;clearTimeout(this.timer);this.timer=null;this.queue=[];this.inFlight=null;this.retryBatch=null;this.failed=[];this.failures=0;this.discarded=new WeakSet()}
     latestQueuedSnapshot(){return[...this.queue].reverse().find(item=>item.kind==="snapshot")||null}
@@ -564,7 +575,7 @@
   }
 
   global.DAWN_NETWORK_V2={
-    AUTOMATIC_COMMANDS,AuthorityQueue,MAX_AUTHORITY_ITEMS,MAX_BATCH_EVENTS,MAX_OUTBOX_ITEMS,PROTOCOL,PlayerOutbox,REQUEST_TIMEOUT_MS,TICK_MS,retryableAuthorityFailure,withTimeout,
+    AUTOMATIC_COMMANDS,AuthorityQueue,MAX_AUTHORITY_ITEMS,MAX_BATCH_EVENTS,MAX_OUTBOX_ITEMS,PROTOCOL,PlayerOutbox,REQUEST_TIMEOUT_MS,TICK_MS,isSceneVersionConflict,retryableAuthorityFailure,withTimeout,
     captureLocalUi,clearConfirmedScene,getConfirmedScene,intentFromEvents,materializeIntent,mergeRemoteScene,resetLocalUiForSceneSwitch,
     networkSceneState,rebaseSceneSnapshot,restoreLocalUi,setConfirmedScene,validateIntentEnvelope,
   };

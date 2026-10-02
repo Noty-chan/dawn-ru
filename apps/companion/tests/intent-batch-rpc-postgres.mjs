@@ -13,6 +13,8 @@ const legacyMvp=fs.readFileSync(new URL("202607130001_dawn_multiplayer.sql",migr
 const legacyEvents=fs.readFileSync(new URL("202607230002_fix_append_scene_events.sql",migrations),"utf8");
 const snapshotRpcFix=fs.readFileSync(new URL("202609290004_harden_legacy_scene_snapshot_rpcs.sql",migrations),"utf8");
 const insertPolicyFix=fs.readFileSync(new URL("202609290005_scope_scene_command_insert_policy.sql",migrations),"utf8");
+const conflictFix=fs.readFileSync(new URL("202610020001_scene_version_conflict_http409.sql",migrations),"utf8");
+const trainSource=fs.readFileSync(new URL("202607160001_deus_mortuus.sql",migrations),"utf8");
 const actor="00000000-0000-4000-8000-000000000001";
 const sceneIds=Array.from({length:11},(_,index)=>`00000000-0000-4000-8000-${String(index+1).padStart(12,"0")}`);
 const rpc="select public.settle_scene_intent_batch($1::uuid,$2::bigint,$3::bigint[],$4::bigint[],$5::jsonb,$6::jsonb,$7::text) as version";
@@ -147,6 +149,24 @@ try {
   const validSnapshot=await db.query(snapshotRpc,[sceneIds[10],0,{version:0,snapshot:"saved"},"network.test.snapshot"]);
   assert.equal(Number(validSnapshot.rows[0].version),1,"a valid snapshot commits at the next canonical version");
 
+  await db.exec(`create table public.train_sessions(id uuid primary key,state jsonb,version bigint,status text,updated_at timestamptz);
+    create table public.train_members(session_id uuid,user_id uuid,last_seen timestamptz);
+    create function public.is_train_gm(uuid) returns boolean language sql as $$ select true $$;`);
+  await db.exec(extractFunction(trainSource,"save_train_state"));
+  await db.query("insert into public.train_sessions(id,state,version,status) values($1,'{}',1,'open')",[sceneIds[0]]);
+  const configBefore=(await db.query("select proname,proconfig,prosecdef,proacl from pg_proc where proname in ('settle_scene_intent_batch','accept_scene_command','append_scene_events','save_scene_snapshot','save_train_state') order by proname")).rows;
+  await db.exec(conflictFix);
+  await db.exec(conflictFix);
+  const configAfter=(await db.query("select proname,proconfig,prosecdef,proacl from pg_proc where proname in ('settle_scene_intent_batch','accept_scene_command','append_scene_events','save_scene_snapshot','save_train_state') order by proname")).rows;
+  assert.deepEqual(configAfter,configBefore,"the repeatable conflict migration preserves settings, security and grants");
+  await assert.rejects(db.query(snapshotRpc,[sceneIds[10],0,{version:0},"stale snapshot"]),error=>error.code==="PT409");
+  await assert.rejects(db.query(appendRpc,[sceneIds[9],0,[{id:"stale-append",type:"scene.test",payload:{}}],{version:1},"stale append"]),error=>error.code==="PT409");
+  await db.query(`insert into public.scene_commands(id,scene_id,campaign_id,actor_id,command_type,status)
+    values(9002,$1,'10000000-0000-4000-8000-000000000009',$2,'move_hero','pending')`,[sceneIds[8],actor]);
+  await assert.rejects(db.query(acceptRpc,[9002,0,[{id:"stale-accept",type:"scene.test",payload:{}}],{version:1},"stale accept"]),error=>error.code==="PT409");
+  await assert.rejects(db.query("select public.save_train_state($1::uuid,0,'{}'::jsonb)",[sceneIds[0]]),error=>error.code==="PT409","the optional train RPC uses the same HTTP conflict contract");
+  await assert.rejects(db.exec("do $$ begin raise exception 'engine serialization failure' using errcode='40001'; end $$;"),error=>error.code==="40001","unrelated serialization failures retain their PostgreSQL code");
+
   // Exercise the actual INSERT RLS policy as authenticated, first proving the
   // old unqualified predicate admits a scene/campaign mismatch.
   const campaignA="10000000-0000-4000-8000-000000000001";
@@ -219,6 +239,10 @@ try {
   const retry=await db.query(rpc,tick(sceneIds[0],"retry-safe"));
   assert.equal(Number(first.rows[0].version),1,"first tick commits the next version");
   assert.equal(Number(retry.rows[0].version),1,"an exact retry returns its receipt version");
+  const altered=tick(sceneIds[0],"retry-safe");
+  altered[6]="changed-label";
+  await assert.rejects(db.query(rpc,altered),error=>error.code==="PT409","an altered committed request promptly conflicts instead of earning the exact receipt");
+  await assert.rejects(db.query(rpc,[sceneIds[0],0,[],[],[],{version:0},"stale-noop"]),error=>error.code==="PT409","the no-event branch has the same version-conflict code");
 
   const independent=await Promise.all(sceneIds.slice(1,6).map((sceneId,index)=>db.query(rpc,tick(sceneId,`independent-${index}`))));
   assert.deepEqual(independent.map(result=>Number(result.rows[0].version)),[1,1,1,1,1],"five independent scenes commit independently");
@@ -240,7 +264,7 @@ try {
   assert.equal(raced.filter(result=>result.status==="fulfilled").length,1,"only one distinct request can commit at an expected version");
   const conflicts=raced.filter(result=>result.status==="rejected");
   assert.equal(conflicts.length,4,"the other distinct requests must lose the version race");
-  for(const conflict of conflicts)assert.equal(conflict.reason.code,"40001","version losers are retryable serialization conflicts");
+  for(const conflict of conflicts)assert.equal(conflict.reason.code,"PT409","version losers return a conflict for client recomputation, avoiding server serialization retries");
   console.log("Network PostgreSQL tests: receipt ambiguity and SQL-NULL corruption in legacy RPCs reproduced; fixes, five isolated scenes, one-winner version race, consistent scene->command lock ordering, RLS cross-campaign insert rejection with valid insert preserved, and RPC timeout settings passed. Simultaneous multi-connection row-lock contention is not covered by single-session PGlite.");
 } finally {
   await db.close();

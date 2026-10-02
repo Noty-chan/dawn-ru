@@ -15,6 +15,10 @@ vm.runInNewContext(fs.readFileSync(new URL("../network-v2.js",import.meta.url),"
 
 const Network=context.DAWN_NETWORK_V2,Engine=context.DAWN_SCENE_ENGINE,Techniques=context.DAWN_TECHNIQUE_ENGINE,data=context.DAWN_DATA;
 assert.equal(Network.PROTOCOL,2);
+assert.equal(Network.isSceneVersionConflict({code:"PT409",message:"conflict"}),true);
+assert.equal(Network.retryableAuthorityFailure({code:"PT409",status:409}),true,"business conflicts are retried by the client after recomputing");
+assert.equal(Network.retryableAuthorityFailure({code:"40001"}),true,"real PostgreSQL serialization failures remain retryable");
+assert.equal(Network.isSceneVersionConflict({code:"23505",status:409}),false,"a uniqueness HTTP 409 is not an optimistic Scene conflict");
 assert.equal(Network.retryableAuthorityFailure(new Error("scene state is too large")),false,"a permanently oversized scene is not retried as a transient transport failure");
 assert.equal(Network.retryableAuthorityFailure(Object.assign(new Error("internal server error"),{status:503})),true,"an HTTP 5xx may have hidden a committed atomic tick and must use the exact receipt retry");
 assert.equal(Network.retryableAuthorityFailure(Object.assign(new Error("too many requests"),{status:429})),true,"rate limits are retried with the same command identity");

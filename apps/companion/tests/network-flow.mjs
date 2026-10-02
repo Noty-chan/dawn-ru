@@ -138,7 +138,7 @@ assert.match(migration, /raise exception 'state version does not match event bat
 Scene = structuredClone(persisted);
 Network.setConfirmedScene(persisted);
 const requeuedAfterOverflow = [];
-context.networkV2Authority = { enqueue: item => requeuedAfterOverflow.push(item) };
+context.networkV2Authority = { defer: items => requeuedAfterOverflow.push(...items) };
 const crowdedEvents = Array.from({ length: Network.MAX_BATCH_EVENTS - 1 }, (_, index) => ({
   type: "rule.share", payload: { ruleId: "action.skirmish", title: `Crowded ${index}`, kind: "Действие", sharedBy: "Narrator" },
 }));
@@ -170,6 +170,89 @@ await assert.rejects(() => flush([retryItem]), /network response lost/);
 await flush([retryItem]);
 assert.equal(lostResponseBatch.length, 2);
 assert.equal(Scene.version, persisted.version);
+
+// PT409 must invalidate the cached tick as well as refresh the Scene. Merely
+// retrying the immutable old receipt would keep its stale expectedVersion.
+persisted=structuredClone(baseScene);
+context.Scene=structuredClone(baseScene);
+Network.setConfirmedScene(baseScene);
+context.pendingSceneCommands=[];
+context.retainPendingNetworkV2Commands=()=>{};
+const conflictCalls=[];
+Sync.settleIntentBatch=async args=>{
+  conflictCalls.push(structuredClone(args));
+  if(conflictCalls.length===1){
+    persisted.version++;
+    persisted.name="Concurrent edit";
+    await Sync.refreshScene();
+    throw Object.assign(new Error("scene version conflict"),{code:"PT409"});
+  }
+  assert.equal(args.expectedVersion,persisted.version);
+  persisted=structuredClone(args.scene);
+  return persisted.version;
+};
+const conflictQueue=new Network.AuthorityQueue({tickMs:10000,flush:items=>context.flushNetworkV2Authority(items)});
+context.networkV2Authority=conflictQueue;
+conflictQueue.enqueue({kind:"events",events:[narratorEvent]});
+await conflictQueue.flush();
+assert.equal(conflictQueue.retryBatch[0]._networkTick,undefined,"PT409 drops the stale materialized request");
+await conflictQueue.flush();
+assert.equal(conflictCalls.length,2);
+assert.equal(conflictCalls[1].expectedVersion,conflictCalls[0].expectedVersion+1,"retry recomputes from the refreshed version");
+assert.equal(persisted.name,"Concurrent edit","recomputation preserves the concurrent canonical change");
+assert.equal(conflictQueue.pending(),0);
+conflictQueue.clear();
+
+// Use the real queue with the real authority flush: deferred slots must move
+// ahead of existing queued work without counting twice at the 200-item cap.
+for (const { total, arrival, loseReply } of [
+  { total: 40 }, { total: 200 }, { total: 40, arrival: true },
+  { total: 40, loseReply: true }, { total: 200, loseReply: true },
+]) {
+  persisted = structuredClone(baseScene);
+  context.Scene = structuredClone(baseScene);
+  Network.setConfirmedScene(baseScene);
+  let releaseRpc, receipt = null, attempts = 0;
+  const gate = new Promise(resolve => { releaseRpc = resolve; });
+  const durableTitles = [], errors = [];
+  Sync.settleIntentBatch = async args => {
+    attempts++;
+    if (attempts === 1) await gate;
+    if (receipt && JSON.stringify(args) === JSON.stringify(receipt)) return persisted.version;
+    validateRpcVersion(args);
+    assert.equal(args.expectedVersion, persisted.version);
+    persisted = structuredClone(args.scene);
+    durableTitles.push(...args.events.map(event => event.payload.title));
+    if (loseReply && attempts === 1) {
+      receipt = structuredClone(args);
+      throw Object.assign(new Error("reply lost after commit"), { retryable: true });
+    }
+    return persisted.version;
+  };
+  const queue = new Network.AuthorityQueue({ tickMs: 10000, flush: items => context.flushNetworkV2Authority(items), onError: error => errors.push(error) });
+  context.networkV2Authority = queue;
+  const queuedItem = tag => ({ kind: "events", tag, events: Array.from({ length: tag === 0 ? 191 : 1 }, () => ({ type: "rule.share", payload: { ruleId: "action.skirmish", title: `queue-${tag}`, kind: "Действие", sharedBy: "Narrator" } })) });
+  for (let tag = 0; tag < total; tag++) queue.enqueue(queuedItem(tag));
+  const firstFlush = queue.flush();
+  assert.equal(queue.inFlight.length, 20);
+  if (arrival) queue.enqueue(queuedItem(total));
+  if (total === 200) assert.throws(() => queue.enqueue(queuedItem(total)), /переполнена/, "new arrivals cannot exceed capacity while the RPC is pending");
+  releaseRpc();
+  await firstFlush;
+  if (loseReply) {
+    assert.equal(queue.pending(), total, "a lost response retains the complete exact tick");
+    await queue.flush();
+  }
+  assert.equal(queue.failed.length, 0, "a committed full tick cannot report deferred slots as a capacity failure");
+  assert.equal(queue.pending(), total + Number(Boolean(arrival)) - 2);
+  assert.equal(queue.queue[0].tag, 2, "first deferred action precedes every later arrival");
+  while (queue.pending()) await queue.flush();
+  const order = durableTitles.filter((title, index) => title !== durableTitles[index - 1]);
+  assert.deepEqual(order, Array.from({ length: total + Number(Boolean(arrival)) }, (_, tag) => `queue-${tag}`), "all actions persist once in FIFO order across overflow and exact retry");
+  assert.equal(durableTitles.length, 190 + total + Number(Boolean(arrival)));
+  assert.equal(errors.length, loseReply ? 1 : 0);
+  queue.clear();
+}
 
 // A deterministic server rejection must remove its speculative snapshot from
 // the live board immediately, while retaining the failed items for manual retry.

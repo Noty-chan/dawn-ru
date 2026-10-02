@@ -225,7 +225,7 @@ async function flushNetworkV2Authority(items){
     ?{id:uid(),label:`Сетевой такт · ${undoableEventCount} событий`,state:localUndoState}
     :null;
   const startsTurn=allEvents.some(event=>event.type==="turn.start"),endsRound=allEvents.some(event=>event.type==="round.end"),turnCheckpoint=startsTurn&&localUndoState?{id:uid(),label:"До начала Хода",state:localUndoState,checkpoint:"turn-start"}:null;
-  if(!allEvents.length&&!rejectedCommandIds.length){deferred.forEach(item=>networkV2Authority.enqueue(item));return}
+  if(!allEvents.length&&!rejectedCommandIds.length){if(deferred.length)networkV2Authority.defer(deferred);return}
   // The database version is derived from the number of persisted events, not
   // from any transient reducer bookkeeping in the local candidate.
   const committedVersion=expectedVersion+allEvents.length;
@@ -243,7 +243,7 @@ async function commitNetworkV2Tick(tick){
   tick.attempts=(tick.attempts||0)+1;
   networkV2Reconciling=true;
   try{acceptedVersion=await Sync.settleIntentBatch(args)}
-  catch(error){if(String(error?.code||"")==="40001"){for(const item of items)delete item._networkTick;retainPendingNetworkV2Commands(pendingSceneCommands.map(command=>command.id))}throw error}
+  catch(error){if(NetworkV2.isSceneVersionConflict(error)){for(const item of items)delete item._networkTick;retainPendingNetworkV2Commands(pendingSceneCommands.map(command=>command.id))}throw error}
   finally{networkV2Reconciling=false}
   if(tick.attempts>1){
     // A lost reply may have hidden later canonical ticks. Read the server
@@ -252,14 +252,14 @@ async function commitNetworkV2Tick(tick){
     try{await Sync.refreshScene()}finally{networkV2Reconciling=false}
     for(const item of items)delete item._networkTick;
     globalThis.dispatchEvent(new CustomEvent("dawn-network-v2-settled",{detail:{commandIds,rejectedCommandIds,version:acceptedVersion}}));
-    deferred.forEach(item=>networkV2Authority.enqueue(item));
+    if(deferred.length)networkV2Authority.defer(deferred);
     return;
   }
   for(const item of items)delete item._networkTick;
   if(acceptedVersion!==Number(candidate.version)||Number(Sync.state().version)>acceptedVersion){
     networkV2Reconciling=true;
     try{await Sync.refreshScene()}finally{networkV2Reconciling=false}
-    deferred.forEach(item=>networkV2Authority.enqueue(item));
+    if(deferred.length)networkV2Authority.defer(deferred);
     return;
   }
   Scene=mergeNetworkV2Scene(candidate,Scene);
@@ -274,5 +274,5 @@ async function commitNetworkV2Tick(tick){
   }
   renderNetworkScene(allEvents);
   globalThis.dispatchEvent(new CustomEvent("dawn-network-v2-settled",{detail:{commandIds,rejectedCommandIds,version:acceptedVersion}}));
-  deferred.forEach(item=>networkV2Authority.enqueue(item));
+  if(deferred.length)networkV2Authority.defer(deferred);
 }

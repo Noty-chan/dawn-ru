@@ -143,5 +143,16 @@ const transportFailure = await Sync.settleIntentBatch({
 }).catch(error => error);
 assert.equal(transportFailure.status, 503, "the sync layer preserves an HTTP status for transport classification");
 assert.equal(transportFailure.retryable, true, "HTTP 5xx RPC failures retain the exact idempotent batch for retry");
+for(const code of ["PT409","40001"]){
+  nextRpcError={code,message:"scene version conflict",status:code==="PT409"?409:500};
+  const conflict=await Sync.settleIntentBatch({events:[{id:`conflict-${code}`,type:"round.end",payload:{}}],scene:{version:2},expectedVersion:1}).catch(error=>error);
+  assert.equal(conflict.code,code);
+  assert.equal(conflict.retryable,true,"business and serialization conflicts both refresh and return to the client queue");
+  assert.equal(Sync.state().version,1,"conflict handling loads the canonical Scene before retrying");
+  nextRpcError={code,message:"scene version conflict"};
+  const acceptedConflict=await Sync.acceptCommand("203",[{id:`accept-${code}`,type:"round.end",payload:{}}],{version:2}).catch(error=>error);
+  assert.equal(acceptedConflict.code,code);
+  assert.equal(acceptedConflict.retryable,true,"legacy acceptance recognizes the forward and previous server error codes");
+}
 
 console.log("Network session-switch QA passed: queued writes, character saves, and overlapping table selections stay session-bound");

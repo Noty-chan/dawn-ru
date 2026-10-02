@@ -14,6 +14,7 @@
   function emit(type,payload=snapshot()){for(const listener of listeners.get(type)||[])try{listener(payload)}catch(error){console.error(error)}}
   function patch(next){if(!Object.keys(next).some(key=>state[key]!==next[key]))return snapshot();state={...state,...next};persist();emit("status");return snapshot()}
   function fail(error){const raw=error?.message||String(error||"Ошибка синхронизации"),code=String(error?.code||""),status=Number(error?.status??error?.statusCode??0),timedOut=code==="57014"||/statement timeout|canceling statement/i.test(raw),retryable=global.DAWN_NETWORK_V2?.retryableAuthorityFailure?.(error)??(timedOut||status===408||status===425||status===429||status>=500&&status<600||["40001","40P01","55P03"].includes(code)||/failed to fetch|network\s*error|networkerror|load failed|fetch failed|connection (?:closed|terminated|timed? ?out)|websocket|lock timeout|serialization failure|deadlock detected/i.test(raw)),message=timedOut?"Сервер не успел обработать изменение; соединение восстанавливается, действие будет повторено":raw;if(retryable)scheduleReconnect(timedOut?"statement-timeout":"transport");else patch({status:"error",error:message});const failure=new Error(message);failure.code=code;failure.status=status||undefined;failure.statusCode=Number(error?.statusCode)||undefined;failure.retryable=retryable;throw failure}
+  function sceneVersionConflict(error){return global.DAWN_NETWORK_V2?.isSceneVersionConflict?.(error)??(["PT409","40001"].includes(String(error?.code||""))||/version conflict/i.test(String(error?.message||"")))}
   async function withNetworkTimeout(request,label){
     const withTimeout=global.DAWN_NETWORK_V2?.withTimeout;
     if(typeof withTimeout!=="function")return request;
@@ -54,7 +55,7 @@
     if(!session){const signed=await client.auth.signInAnonymously({options:{data:{display_name:state.displayName||"Игрок"}}});if(signed.error)return fail(signed.error);session=signed.data.session}
     const nextAuth=authState(session);if(nextAuth.userIdChanged)sceneSelectionGeneration++;patch({status:"authenticated",...nextAuth,...(nextAuth.userIdChanged?{campaignId:null,campaignName:"",sceneId:null,role:null,version:0,characterIds:{},presence:[]}:{}),error:""});
     if(state.sceneId&&state.campaignId){
-      const membership=await client.from("campaign_members").select("role,display_name").eq("campaign_id",state.campaignId).eq("user_id",session.user.id).maybeSingle();
+      const membership=await withNetworkTimeout(client.from("campaign_members").select("role,display_name").eq("campaign_id",state.campaignId).eq("user_id",session.user.id).maybeSingle(),"восстановления доступа к столу");
       if(membership.error)return fail(membership.error);
       if(membership.data){patch({role:membership.data.role,displayName:membership.data.display_name});await loadScene(state.sceneId)}
       else patch({campaignId:null,campaignName:"",sceneId:null,role:null,version:0,presence:[],error:"Прежняя кампания недоступна для этого аккаунта"});
@@ -78,11 +79,11 @@
     sceneRefreshInFlight=true;
     try{
       const canNarrate=["owner","narrator"].includes(state.role),table=canNarrate?"scenes":"scene_public_snapshots",idColumn=canNarrate?"id":"scene_id";
-      const versionResult=await client.from(table).select("version").eq(idColumn,sceneId).single();
+      const versionResult=await withNetworkTimeout(client.from(table).select("version").eq(idColumn,sceneId).single(),"проверки версии Сцены");
       if(!sceneSessionIsActive(sceneId,generation))return;
       if(versionResult.error)throw versionResult.error;
       if(Number(versionResult.data?.version)>Number(state.version)){
-        const result=await client.from(table).select("state,version").eq(idColumn,sceneId).single();
+        const result=await withNetworkTimeout(client.from(table).select("state,version").eq(idColumn,sceneId).single(),"обновления Сцены");
         if(!sceneSessionIsActive(sceneId,generation))return;
         if(result.error)throw result.error;
         if(Number(result.data?.version)>Number(state.version)){patch({version:Number(result.data.version),status:"online",lastSyncedAt:new Date().toISOString(),error:""});emit("scene",{state:result.data.state,version:Number(result.data.version),polled:true})}
@@ -95,7 +96,7 @@
     const sceneId=state.sceneId,generation=sceneSessionGeneration;
     pendingCommandsRefreshInFlight=true;
     try{
-      const result=await client.from("scene_commands").select("id,actor_id,command_type,payload,status,created_at").eq("scene_id",sceneId).eq("status","pending").order("created_at",{ascending:true}).limit(30);
+      const result=await withNetworkTimeout(client.from("scene_commands").select("id,actor_id,command_type,payload,status,created_at").eq("scene_id",sceneId).eq("status","pending").order("created_at",{ascending:true}).limit(30),"обновления очереди команд");
       if(!sceneSessionIsActive(sceneId,generation))return;
       if(result.error)throw result.error;
       const commands=result.data||[],signature=commands.map(command=>`${command.id}:${command.command_type}`).join("|");
@@ -168,9 +169,10 @@
     await ensureConnected();
     if(selectionGeneration!==sceneSelectionGeneration||loadGeneration!==sceneLoadGeneration||!state.authenticated)return null;
     const canNarrate=["owner","narrator"].includes(state.role);
-    const result=canNarrate
-      ?await client.from("scenes").select("id,campaign_id,name,state,version").eq("id",requestedSceneId).single()
-      :await client.from("scene_public_snapshots").select("scene_id,campaign_id,state,version").eq("scene_id",requestedSceneId).single();
+    const sceneRequest=canNarrate
+      ?client.from("scenes").select("id,campaign_id,name,state,version").eq("id",requestedSceneId).single()
+      :client.from("scene_public_snapshots").select("scene_id,campaign_id,state,version").eq("scene_id",requestedSceneId).single();
+    const result=await withNetworkTimeout(sceneRequest,"загрузки Сцены");
     if(selectionGeneration!==sceneSelectionGeneration||loadGeneration!==sceneLoadGeneration)return null;
     if(result.error)return fail(result.error);
     if(!state.authenticated)return null;
@@ -181,12 +183,12 @@
     // Realtime may have delivered a newer Scene while subscribe was pending.
     // Read once after subscribing to close the gap before the channel became live.
     const table=canNarrate?"scenes":"scene_public_snapshots",idColumn=canNarrate?"id":"scene_id";
-    const latestVersionRow=await client.from(table).select("version").eq(idColumn,requestedSceneId).single();
+    const latestVersionRow=await withNetworkTimeout(client.from(table).select("version").eq(idColumn,requestedSceneId).single(),"проверки Сцены после подписки");
     if(selectionGeneration!==sceneSelectionGeneration||loadGeneration!==sceneLoadGeneration||state.sceneId!==scene.id)return null;
     if(latestVersionRow.error){console.warn("DAWN post-subscribe scene check failed",latestVersionRow.error);if(Number(scene.version)===Number(state.version))emit("scene",{state:scene.state,version:scene.version,initial:true});if(canNarrate)await refreshPendingCommands();return scene}
     const latestVersion=Number(latestVersionRow.data?.version||0),currentVersion=Number(state.version||0);
     if(latestVersion>currentVersion){
-      const latest=await client.from(table).select("state,version").eq(idColumn,requestedSceneId).single();
+      const latest=await withNetworkTimeout(client.from(table).select("state,version").eq(idColumn,requestedSceneId).single(),"загрузки Сцены после подписки");
       if(selectionGeneration!==sceneSelectionGeneration||loadGeneration!==sceneLoadGeneration||state.sceneId!==scene.id)return null;
       if(latest.error){console.warn("DAWN post-subscribe scene read failed",latest.error);if(Number(scene.version)===Number(state.version))emit("scene",{state:scene.state,version:scene.version,initial:true});if(canNarrate)await refreshPendingCommands();return scene}
       if(Number(latest.data.version)>Number(state.version)){patch({version:Number(latest.data.version),status:"online",lastSyncedAt:new Date().toISOString(),error:""});emit("scene",{state:latest.data.state,version:Number(latest.data.version),initial:true})}
@@ -246,7 +248,7 @@
   function sceneSessionIsActive(sceneId,generation){return generation===sceneSessionGeneration&&String(sceneId||"")===String(state.sceneId||"")}
   async function flushSave(){
     if(saveInFlight||!pendingSave||!["owner","narrator"].includes(state.role))return;saveInFlight=true;const current=pendingSave,sceneId=String(state.sceneId||""),generation=sceneSessionGeneration;pendingSave=null;
-    try{await serializeSceneMutation(async()=>{await ensureConnected();if(!sceneSessionIsActive(sceneId,generation))throw new Error("Стол уже закрыт");const result=await client.rpc("save_scene_snapshot",{p_scene_id:sceneId,p_expected_version:state.version,p_state:current.scene,p_event_type:current.label||"scene.snapshot"});if(!sceneSessionIsActive(sceneId,generation))throw new Error("Стол уже закрыт");if(result.error){if(result.error.code==="40001"||/version conflict/i.test(result.error.message||"")){patch({error:"Сцена изменилась на другом устройстве; загружена свежая версия"});await loadScene(sceneId)}else return fail(result.error)}else{patch({version:Number(result.data),status:"online",lastSyncedAt:new Date().toISOString(),error:""});signalTable("scene-updated",{version:Number(result.data)})}})}finally{saveInFlight=false;if(pendingSave)void flushSave()}
+    try{await serializeSceneMutation(async()=>{await ensureConnected();if(!sceneSessionIsActive(sceneId,generation))throw new Error("Стол уже закрыт");const result=await client.rpc("save_scene_snapshot",{p_scene_id:sceneId,p_expected_version:state.version,p_state:current.scene,p_event_type:current.label||"scene.snapshot"});if(!sceneSessionIsActive(sceneId,generation))throw new Error("Стол уже закрыт");if(result.error){if(sceneVersionConflict(result.error)){patch({error:"Сцена изменилась на другом устройстве; загружена свежая версия"});await loadScene(sceneId)}else return fail(result.error)}else{patch({version:Number(result.data),status:"online",lastSyncedAt:new Date().toISOString(),error:""});signalTable("scene-updated",{version:Number(result.data)})}})}finally{saveInFlight=false;if(pendingSave)void flushSave()}
   }
   function queueScene(scene,label="scene.snapshot"){if(!["owner","narrator"].includes(state.role)||!state.sceneId)return;pendingSave={scene:global.DAWN_NETWORK_V2?.networkSceneState?.(scene)||scene,label};clearTimeout(saveTimer);saveTimer=setTimeout(()=>void flushSave(),250)}
 
@@ -255,7 +257,7 @@
     const payload=events.map(event=>({id:event.id,type:event.type,actorId:event.actorId,payload:event.payload,at:event.at}));
     localMutationInFlight++;let result;try{result=await client.rpc("append_scene_events",{p_scene_id:sceneId,p_expected_version:state.version,p_events:payload,p_state:scene,p_label:label})}finally{localMutationInFlight--}
     if(!sceneSessionIsActive(sceneId,generation))throw new Error("Стол уже закрыт");
-    if(result.error){if(result.error.code==="40001"||/version conflict/i.test(result.error.message||"")){await loadScene(sceneId);throw new Error("Сцена изменилась на другом устройстве; события не отправлены повторно автоматически")};return fail(result.error)}
+    if(result.error){if(sceneVersionConflict(result.error)){await loadScene(sceneId);throw new Error("Сцена изменилась на другом устройстве; события не отправлены повторно автоматически")};return fail(result.error)}
     patch({version:Number(result.data),status:"online",lastSyncedAt:new Date().toISOString(),error:""});signalTable("scene-updated",{version:Number(result.data)});return result.data;
   }
   async function publishEvents(events,scene,label="scene.events"){
@@ -275,7 +277,7 @@
     const commandRequest=client.from("scene_commands").insert(record).select().single(),result=commandType==="intent_v2"?await withNetworkTimeout(commandRequest,"отправки намерения игрока"):await commandRequest;
     if(!sceneSessionIsActive(sceneId,generation))throw new Error("Стол уже закрыт");
     if(result.error?.code==="23505"&&record.client_intent_id){
-      const existing=await client.from("scene_commands").select().eq("scene_id",sceneId).eq("actor_id",actorId).eq("client_intent_id",record.client_intent_id).single();
+      const existing=await withNetworkTimeout(client.from("scene_commands").select().eq("scene_id",sceneId).eq("actor_id",actorId).eq("client_intent_id",record.client_intent_id).single(),"проверки уже отправленного намерения");
       if(!sceneSessionIsActive(sceneId,generation))throw new Error("Стол уже закрыт");
       if(existing.error)return fail(existing.error);
       signalTable("scene-command",{commandId:String(existing.data.id)});return existing.data;
@@ -290,7 +292,7 @@
       const sceneId=targetSceneId,generation=targetGeneration,payload=events.map(event=>({id:event.id,type:event.type,actorId:event.actorId,payload:event.payload,at:event.at}));
       localMutationInFlight++;let result;try{result=await withNetworkTimeout(client.rpc("accept_scene_command",{p_command_id:rawId,p_expected_version:state.version,p_events:payload,p_state:scene,p_label:label}),"сохранения команды игрока")}finally{localMutationInFlight--}
       if(!sceneSessionIsActive(sceneId,generation))throw new Error("Стол уже закрыт");
-      if(result.error){if(result.error.code==="40001"||/version conflict/i.test(result.error.message||"")){await loadScene(sceneId);const conflict=new Error("Сцена изменилась; команда игрока будет пересчитана");conflict.code=result.error.code;conflict.retryable=true;throw conflict};return fail(result.error)}
+      if(result.error){if(sceneVersionConflict(result.error)){await loadScene(sceneId);const conflict=new Error("Сцена изменилась; команда игрока будет пересчитана");conflict.code=result.error.code;conflict.retryable=true;throw conflict};return fail(result.error)}
       const acceptedVersion=Number(result.data);patch({version:acceptedVersion,status:"online",lastSyncedAt:new Date().toISOString(),error:""});signalTable("scene-updated",{version:acceptedVersion});if(acceptedVersion!==Number(scene?.version))await loadScene(sceneId);return acceptedVersion;
     });
   }
@@ -305,7 +307,7 @@
       localMutationInFlight++;let result;try{result=await withNetworkTimeout(client.rpc("settle_scene_intent_batch",{p_scene_id:sceneId,p_expected_version:Number(expectedVersion),p_command_ids:ids,p_rejected_command_ids:rejected,p_events:payload,p_state:scene,p_label:label}),"сохранения сетевого такта")}finally{localMutationInFlight--}
       if(!sceneSessionIsActive(sceneId,generation))throw new Error("Стол уже закрыт");
       if(result.error){
-        if(result.error.code==="40001"||/version conflict/i.test(result.error.message||"")){await loadScene(sceneId);const conflict=new Error("Сетевой такт столкнулся с новой версией Сцены и будет пересчитан");conflict.code=result.error.code;conflict.retryable=true;throw conflict}
+        if(sceneVersionConflict(result.error)){await loadScene(sceneId);const conflict=new Error("Сетевой такт столкнулся с новой версией Сцены и будет пересчитан");conflict.code=result.error.code;conflict.retryable=true;throw conflict}
         if(/state version[^.]*event batch/i.test(result.error.message||"")){const mismatch=new Error("Неверная версия сетевого пакета; действие не сохранено. Обновите Сцену и повторите действие вручную");mismatch.code="NETWORK_BATCH_VERSION_MISMATCH";mismatch.retryable=false;throw mismatch}
         return fail(result.error);
       }
