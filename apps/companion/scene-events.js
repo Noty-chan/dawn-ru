@@ -1331,12 +1331,20 @@ function reduceEvent(scene, event) {
       }
       const raw = Math.max(0, Number(payload.amount || 0));
       const compound = compoundEnemyStatus(scene, target), defense = effectDefenseStatus(scene, target.id);
-      const armor = payload.ignoreArmor || !defense.armorAllowed ? 0 : Math.max(0, Number(compound.active ? compound.armor : target.armor || 0) + Number(payload.temporaryArmor || 0) + Number(defense.armorBonus || 0));
+      const nativeDefense = scene.rulesEdition === "lionwing" ? (typeof window === "object" ? window : globalThis).DAWN_LIONWING_ENGINE : null;
+      const armorBase = compound.active ? compound.armor : nativeDefense?.statQuote?.(target, "armor", { scene, kind: "defense" })?.value ?? Number(target.armor || 0);
+      const armor = payload.ignoreArmor || !defense.armorAllowed ? 0 : Math.max(0, Number(armorBase) + Number(payload.temporaryArmor || 0) + Number(defense.armorBonus || 0));
       const afterArmor = raw > 0 ? Math.max(1, raw - armor) : 0;
       const evasionOwner = compound.active ? compound.parts.reduce((best, part) => Number(part.evasion || 0) > Number(best.evasion || 0) ? part : best, compound.parts[0]) : target;
-      const evasion = payload.ignoreEvasion ? 0 : Math.max(0, Number(evasionOwner.evasion || 0) + Number(payload.temporaryEvasion || 0));
+      const evasionAllowed = !payload.ignoreEvasion && (!nativeDefense || defense.evasionAllowed);
+      const evasionBase = nativeDefense?.statQuote?.(evasionOwner, "evasion", { scene, kind: "defense" })?.value ?? Number(evasionOwner.evasion || 0);
+      const evasion = !evasionAllowed ? 0 : Math.max(0, Number(evasionBase) + Number(payload.temporaryEvasion || 0));
       const evaded = Math.min(afterArmor, evasion);
-      if (!payload.ignoreEvasion) evasionOwner.evasion = Math.max(0, Number(evasionOwner.evasion || 0) - Math.max(0, evaded - Number(payload.temporaryEvasion || 0)));
+      if (evasionAllowed) {
+        const spent = Math.max(0, evaded - Number(payload.temporaryEvasion || 0));
+        if (nativeDefense?.consumeEvasion) nativeDefense.consumeEvasion(scene, evasionOwner, spent);
+        else evasionOwner.evasion = Math.max(0, Number(evasionOwner.evasion || 0) - spent);
+      }
       let dealt = Math.max(0, afterArmor - evaded);
       // Marked triggers once on the first damaging Attack. Resolve it after
       // defenses so it cannot turn a fully Evaded Attack into a hit.
@@ -1352,6 +1360,14 @@ function reduceEvent(scene, event) {
           }
           payload.markedConsumed = true;
         }
+      }
+      const finalDamageQuote = nativeDefense?.numericQuote?.(target, { scene, key: "finalDamage", kind: "damage",
+        actionId: payload.sourceActionId || null, sourceActorId: actor?.id || null, targetId: target.id,
+        baseValue: dealt, immobilized: hasEffect(scene, target, "negative.обездвижен"), tier: Number(target.tier || 1), roundUp: true });
+      if (finalDamageQuote?.ok === false) throw new Error(finalDamageQuote.reason || "Модификаторы итогового урона конфликтуют.");
+      if (!payload.fixedDamage && finalDamageQuote?.ok) {
+        dealt = Math.max(0, Number(finalDamageQuote.value));
+        if (finalDamageQuote.sources?.length) payload.finalDamageSources = clone(finalDamageQuote.sources);
       }
       if (compound.active && dealt > 0) {
         const gate = Number(compound.gate || 0), nextGate = gate > 0 ? Math.max(0, (Math.ceil(compound.hp / gate - 1e-9) - 1) * gate) : 0;

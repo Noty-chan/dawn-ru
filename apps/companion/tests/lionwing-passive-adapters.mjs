@@ -677,4 +677,4 @@ function witchHunter({ otherTarget = false, interrupted = false } = {}) {
 assert.equal(witchHunter().extra, 3, "Witch Hunter adds Spirit only for the authoritative same-target Cast -> Body Finisher");
 assert.equal(witchHunter({ otherTarget: true }).extra, 0, "a different target does not inherit the combo bonus");
 assert.equal(witchHunter({ interrupted: true }).extra, 0, "an intervening Action breaks Witch Hunter");
-console.log("Witch Hunter native connection passed: same-target receipts, wrong target and interrupted combo; shared-geometry composition remains partial");
+console.log("Witch Hunter native connection passed: same-target receipts, wrong target and interrupted combo");

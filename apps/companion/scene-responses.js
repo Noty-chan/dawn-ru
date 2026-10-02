@@ -158,8 +158,21 @@ function pendingTargetOutcome(scene, pending, targetId) {
   if (!pending || !source || !target || target.knockedOut) return { available: false, reason: "Источник или цель Атаки больше не доступны.", source, target, cancelled: true, rawDamage: 0, armor: 0, evasion: 0, expectedDamage: 0 };
   const clashCancelled = (actionIdIs(response, "clash") || reaction.enemyTrait?.clash) && reaction.clash?.defenderWins, giftCancelled = Boolean(reaction.giftReaction?.cancelAttack), body = Number(target.attrs?.body || 0);
   const alliedGas = (scene.objects || []).find(object => object.type === "gas" && object.space === target.space && object.cells?.includes(`${target.x},${target.y}`) && actorById(scene, object.ownerActorId)?.team === target.team), sourceInsideGas = alliedGas && source.space === alliedGas.space && alliedGas.cells?.includes(`${source.x},${source.y}`), gasEvasion = alliedGas && !sourceInsideGas ? 3 : 0;
-  const defense = effectDefenseStatus(scene, target.id), temporaryArmor = actionIdIs(response, "block") ? body : Number(reaction.temporaryArmor || 0), temporaryEvasion = Number(reaction.temporaryEvasion || 0) + gasEvasion;
-  const rawDamage = pending.damageByTarget && Number.isFinite(Number(pending.damageByTarget[targetId])) ? Number(pending.damageByTarget[targetId]) : Number(pending.damage || 0), raw = Math.max(0, rawDamage), armor = defense.armorAllowed ? Math.max(0, Number(target.armor || 0) + temporaryArmor + defense.armorBonus) : 0, afterArmor = raw > 0 ? Math.max(1, raw - armor) : 0, evasion = Math.max(0, Number(target.evasion || 0) + temporaryEvasion), expectedDamage = clashCancelled || giftCancelled ? 0 : Math.max(0, afterArmor - Math.min(afterArmor, evasion));
+  const blockQuote = scene.rulesEdition === "lionwing" && actionIdIs(response, "block")
+    ? (typeof window === "object" ? window : globalThis).DAWN_LIONWING_ADAPTERS?.numericQuote?.(target, {
+      scene, kind: "block", key: "blockArmor", baseValue: body, attackId: pending.id, attackerId: source.id,
+    }) : null;
+  if (blockQuote?.ok === false) return { available: false, reason: blockQuote.reason, source, target, cancelled: true, expectedDamage: 0 };
+  const defense = effectDefenseStatus(scene, target.id), temporaryArmor = actionIdIs(response, "block") ? blockQuote?.value ?? body : Number(reaction.temporaryArmor || 0), temporaryEvasion = Number(reaction.temporaryEvasion || 0) + gasEvasion;
+  const nativeDefense = scene.rulesEdition === "lionwing" ? (typeof window === "object" ? window : globalThis).DAWN_LIONWING_ENGINE : null;
+  const armorBase = nativeDefense?.statQuote?.(target, "armor", { scene, kind: "defense" })?.value ?? Number(target.armor || 0);
+  const evasionBase = nativeDefense?.statQuote?.(target, "evasion", { scene, kind: "defense" })?.value ?? Number(target.evasion || 0);
+  const rawDamage = pending.damageByTarget && Number.isFinite(Number(pending.damageByTarget[targetId])) ? Number(pending.damageByTarget[targetId]) : Number(pending.damage || 0), raw = Math.max(0, rawDamage), armor = defense.armorAllowed ? Math.max(0, Number(armorBase) + temporaryArmor + defense.armorBonus) : 0, afterArmor = raw > 0 ? Math.max(1, raw - armor) : 0, evasion = nativeDefense && !defense.evasionAllowed ? 0 : Math.max(0, Number(evasionBase) + temporaryEvasion);
+  let expectedDamage = clashCancelled || giftCancelled ? 0 : Math.max(0, afterArmor - Math.min(afterArmor, evasion));
+  if (expectedDamage > 0 && !pending.fixedDamage && hasEffect(scene, target, "negative.помечен")) expectedDamage += Number(target.tier || 1);
+  const finalQuote = nativeDefense?.numericQuote?.(target, { scene, key: "finalDamage", kind: "damage", actionId: pending.actionId,
+    sourceActorId: source.id, targetId: target.id, baseValue: expectedDamage, immobilized: hasEffect(scene, target, "negative.обездвижен"), tier: Number(target.tier || 1), roundUp: true });
+  if (!pending.fixedDamage && finalQuote?.ok) expectedDamage = Math.max(0, Number(finalQuote.value));
   return { available: true, reason: "", source, originalTarget, target, reaction, response, cancelled: clashCancelled || giftCancelled, rawDamage, raw, armor, evasion, temporaryArmor, temporaryEvasion, afterArmor, expectedDamage };
 }
 

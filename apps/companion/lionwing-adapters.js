@@ -913,14 +913,14 @@
     }),
     passive({
       id: "powerhouse.spellsword.3", label: "Меч заклинаний III: урон Духа по цели предыдущего Заклинания",
-      sourceDigest: "ee60afad76ec4020051636adcbc32a8f8bc62e440b38b523e8e0386f73868f44", coverage: "partial",
+      sourceDigest: "ee60afad76ec4020051636adcbc32a8f8bc62e440b38b523e8e0386f73868f44", coverage: "full",
       numeric: (owner, context) => {
         if (context.key !== "damage" || context.actionId !== ACTIONS.finish || !context.actionInstanceId || !context.scene) return [];
         const history = turnHistory(owner, context.scene), index = history.findLastIndex(row => row.actionInstanceId === context.actionInstanceId);
         const previous = history[index - 1], current = history[index];
         const receipt = currentTurnActionRows(owner, context.scene).find(row => row.payload?.actionInstanceId === context.actionInstanceId);
         if (index < 1 || current?.actionId !== ACTIONS.finish || previous?.actionId !== ACTIONS.spell
-          || !["body", "talent"].includes(receipt?.payload?.attribute) || !previous.targetIds?.includes(context.targetId) || !current.targetIds?.includes(context.targetId)) return [];
+          || !["body", "talent"].includes(current?.attribute || receipt?.payload?.attribute) || !previous.targetIds?.includes(context.targetId) || !current.targetIds?.includes(context.targetId)) return [];
         return { operation: "add", amount: Number(owner.attrs?.spirit || 0), reason: "Завершение комбо направлено в ту же цель, что предыдущее Заклинание." };
       },
     }),

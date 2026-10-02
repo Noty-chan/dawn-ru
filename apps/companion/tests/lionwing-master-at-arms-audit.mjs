@@ -77,9 +77,10 @@ function fresh() {
   table.actors[1].x = 5;
   return table;
 }
-function use(table, request, eventId) {
+function randomSource(value) { let rolls = 0; return () => value === "one-crit" ? (rolls++ === 0 ? .99 : .8) : value; }
+function use(table, request, eventId, randomValue = .8) {
   const before = clone(table);
-  const prepared = core.prepare(table, { kind: "action", actorId: "hero", eventId, ...request }, { random: () => .8 });
+  const prepared = core.prepare(table, { kind: "action", actorId: "hero", eventId, ...request }, { random: randomSource(randomValue) });
   assert.equal(prepared.ok, true, prepared.errors?.join(" "));
   assert.deepEqual(clone(table), before, "preparation and cancellation before commit are free");
   const result = core.dispatchMany(table, prepared.events, { expectedVersion: table.version });
@@ -164,3 +165,165 @@ for (const mode of ["blade", "polearm", "chain"]) {
   if (mode === "blade") assert.ok(sample.actors[1].effects.includes("negative.помечен"));
 }
 console.log("LionWing Master native route: all Armaments/Finishers, learned-level projection, II bonus, board cells, NPC auto-pass, cancellation, reload, replay and version conflict passed");
+
+// Native passive rules must compose with the shared geometry and with its
+// authoritative action history. Only the Cast's target receives Witch Hunter.
+function operation(sample, request) {
+  const prepared = core.prepare(sample, { actorId: "hero", ...request }, { random: () => .8 });
+  assert.equal(prepared.ok, true, prepared.errors?.join(" "));
+  return core.dispatchMany(sample, prepared.events, { expectedVersion: sample.version }).scene;
+}
+function comboTable(enabled = true) {
+  let sample = fresh();
+  sample.activeActorId = null;
+  Object.assign(sample.actors[0], { ap: 12, baseAp: 12, speed: 6, knownTechniques: { [masterId]: 3, "powerhouse.spellsword": 3 } });
+  sample.actors[0].ruleModes = { [groupId]: { modeId: "chain", sourceDigest: expectedDigests[`${masterId}.1`] } };
+  sample.actors[1].x = 2;
+  sample.actors.push(actor("enemy-two", "enemy", 3, 1));
+  if (enabled) sample = operation(sample, { kind: "automation", ruleId: "powerhouse.spellsword.3", enabled: true });
+  return operation(sample, { kind: "turn-start" });
+}
+function cast(sample) {
+  sample = use(sample, { actionId: engine.ACTION_IDS.spell, targetIds: ["enemy"] }, "composition-cast");
+  return operation(sample, { kind: "resolve-attack" });
+}
+for (const mode of ["blade", "polearm", "chain"]) {
+  let sample = cast(comboTable());
+  sample.actors[0].ruleModes[groupId].modeId = mode;
+  if (mode === "blade") sample.actors[2].y = 3;
+  const request = { actionId: engine.ACTION_IDS.finish, attribute: "talent", targetIds: [],
+    ...(mode === "blade" ? { destination: { x: 3, y: 1 } } : { areaCenter: { x: 2, y: 1 } }) };
+  const randomValue = mode === "chain" ? "one-crit" : .8;
+  const before = clone(sample), preview = core.prepare(sample, { kind: "action", actorId: "hero", ...request }, { random: randomSource(randomValue) });
+  assert.equal(preview.ok, true, preview.errors?.join(" "));
+  assert.deepEqual(clone(sample), before, "composition preview remains cancellable and free");
+  rejectedWithoutMutation(sample, () => core.dispatchMany(sample, preview.events, { expectedVersion: sample.version + 1 }), /Конфликт версии/);
+  sample = use(sample, request, `composition-${mode}`, randomValue);
+  const pending = sample.pendingAction;
+  assert.deepEqual(clone(pending.targetIds).sort(), mode === "blade" ? ["enemy"] : ["enemy", "enemy-two"], `${mode} derives its targets`);
+  assert.equal(pending.damageByTarget.enemy - (pending.damageByTarget["enemy-two"] ?? pending.damage), 3, `${mode} adds Spirit only to the Cast target`);
+  assert.deepEqual(clone(pending.nativeDamageSources.enemy.map(row => row.id)), ["powerhouse.spellsword.3"]);
+  if (mode !== "blade") assert.equal(pending.nativeDamageSources["enemy-two"].length, 0);
+  assert.equal(sample.actors[0].lionwing.history.at(-1).attribute, "talent");
+  sample = core.reload(JSON.stringify(sample));
+  const health = sample.actors[1].hp;
+  sample = resolve(sample);
+  assert.equal(health - sample.actors[1].hp, pending.damageByTarget.enemy, "resolution applies the bonus exactly once after reload");
+  const receipt = sample.log.find(row => row.type === "action.resolve" && row.payload.actionInstanceId === pending.actionInstanceId);
+  assert.equal(receipt.payload.ownerTurnInstanceId, sample.lionwing.activeTurnInstanceId, "shared resolution retains native Turn identity");
+  assert.ok(sample.log.find(row => row.type === "damage.apply" && row.payload.targetId === "enemy").payload.nativeDamageSources.some(row => row.id === "powerhouse.spellsword.3"));
+}
+for (const scenario of ["disabled", "breathe", "armament", "wrong-target"]) {
+  let sample = cast(comboTable(scenario !== "disabled"));
+  if (scenario === "breathe") sample = use(sample, { actionId: engine.ACTION_IDS.breathe }, "composition-intervening-breathe");
+  if (scenario === "armament") {
+    sample.actors[1].x = 5;
+    sample = use(sample, { actionId: engine.ACTION_IDS.skirmish, attribute: "talent", armamentMode: "chain", targetIds: ["enemy"] }, "composition-intervening-armament");
+    sample = resolve(sample);
+    sample.actors[1].x = 2;
+    sample.actors[0].ruleModes[groupId].modeId = "chain";
+  }
+  if (scenario === "wrong-target") Object.assign(sample.actors[1], { x: 7, y: 5 });
+  sample = use(sample, { actionId: engine.ACTION_IDS.finish, attribute: "talent", targetIds: [], areaCenter: { x: 2, y: 1 }, combo: true }, `composition-no-bonus-${scenario}`);
+  assert.ok(Object.values(sample.pendingAction.nativeDamageSources).every(rows => !rows.some(row => row.id === "powerhouse.spellsword.3")), `${scenario} does not grant a forged Combo bonus`);
+}
+console.log("LionWing native/shared composition: all three Master Finishers, per-target Witch Hunter, intervening Armament, disabled rule, immutable preview, conflict, reload, exact replay and source log passed");
+
+// Price and extra-dice limits must have exactly the same quote in the console
+// and in the shared geometry preparer; one AP is sufficient after Charge.
+let student = fresh();
+student.lionwing.activeTurnInstanceId = "composition-student-turn";
+student.actors[0].knownTechniques["ruiner.student-of-stars"] = 1;
+student = operation(student, { kind: "automation", ruleId: "ruiner.student-of-stars.1", enabled: true });
+student = use(student, { actionId: engine.ACTION_IDS.skirmish, armamentMode: "chain", attribute: "talent", targetIds: ["enemy"] }, "composition-student-equip");
+student = resolve(student);
+student.actors[1].x = 2;
+student = use(student, { actionId: engine.ACTION_IDS.charge }, "composition-student-charge");
+student.actors[0].ap = 1;
+const studentRequest = { actionId: engine.ACTION_IDS.finish, attribute: "talent", targetIds: [], areaCenter: { x: 2, y: 1 }, focusSpent: 3 };
+const studentGate = core.actionStatus(student, student.actors[0], core.actionDef(engine.ACTION_IDS.finish), studentRequest);
+assert.equal(studentGate.cost, 1);
+assert.equal(studentGate.actionQuote.focusCap, 6);
+const studentFocus = student.actors[0].focus;
+student = use(student, studentRequest, "composition-student-finisher");
+assert.equal(student.actors[0].ap, 0, "native price reaches the shared preparer and reducer");
+assert.equal(student.actors[0].focus, studentFocus - 3, "extra dice above Tension are paid exactly once");
+assert.equal(student.pendingAction.roll.initialCount, 6);
+student = resolve(core.reload(JSON.stringify(student)));
+
+// Shared reaction packets include payment and automatic Block displacement.
+// They must commit atomically through the shared route, with native modifiers.
+for (const canPush of [false, true]) {
+  let block = fresh();
+  block.actors[0].attrs.talent = 6;
+  Object.assign(block.actors[1], { x: 5, kind: "hero", heroId: "enemy", attrs: { body: 1, talent: 3, spirit: 3, mind: 3 }, knownTechniques: { "powerhouse.duelist": 2 } });
+  block.actors[1].lionwing.automation = { "powerhouse.duelist.2": true };
+  block.spaces[0].width = canPush ? 8 : 6;
+  block = use(block, { actionId: engine.ACTION_IDS.skirmish, armamentMode: "chain", attribute: "talent", targetIds: ["enemy"] }, `composition-block-${canPush}`);
+  const response = engine.respondReaction(block, data, { actorId: "enemy", choice: engine.ACTION_IDS.block });
+  assert.equal(response.ok, true, response.errors?.join(" "));
+  response.events = response.events.map((event, index) => ({ ...event, id: `composition-block-response-${canPush}:${index}` }));
+  const before = clone(block);
+  rejectedWithoutMutation(block, () => engine.dispatchMany(block, response.events, { expectedVersion: block.version + 1 }), /Конфликт версии/);
+  assert.deepEqual(clone(block), before);
+  block = engine.dispatchMany(block, response.events, { expectedVersion: block.version }).scene;
+  exactReplay(core, block, response.events);
+  const outcome = engine.pendingTargetOutcome(block, block.pendingAction, "enemy");
+  assert.equal(outcome.temporaryArmor, 3, "shared Block includes native Duelist Tension Armor");
+  assert.equal(block.actors[1].x, canPush ? 6 : 5, "automatic Block push survives native packet routing");
+  block = resolve(core.reload(JSON.stringify(block)));
+  assert.equal(block.actors[1].hp, 27, "reaction modifier matches the native attack pipeline");
+}
+console.log("LionWing native/shared quotes: Student price and Focus cap, Block modifiers/payment/displacement, conflict, replay and reload passed");
+
+let defenseSerial = 0;
+function sharedCommit(sample, prepared) {
+  assert.equal(prepared.ok, true, prepared.errors?.join(" "));
+  const events = prepared.events.map(event => ({ ...event, id: `composition-defense:${defenseSerial++}` }));
+  const before = clone(sample), committed = engine.dispatchMany(sample, events, { expectedVersion: sample.version });
+  assert.deepEqual(clone(sample), before);
+  exactReplay(core, committed.scene, events);
+  return committed.scene;
+}
+for (const scenario of ["armor", "cap", "cap-marked", "modifier", "stacked-evasion", "negative.обездвижен", "negative.пойман", "disabled"]) {
+  let sample = fixture();
+  sample.activeActorId = "enemy";
+  sample.actors[1].profileId = "lionwing.npc.ranger";
+  const hero = sample.actors[0];
+  if (["armor", "cap", "cap-marked", "disabled"].includes(scenario)) {
+    hero.attrs.body = 4;
+    hero.knownTechniques = { "bulwark.iron-bodied": 3 };
+    hero.lionwing.automation = { "bulwark.iron-bodied.2": scenario !== "disabled", "bulwark.iron-bodied.3": scenario.startsWith("cap") };
+    if (scenario.startsWith("cap")) hero.effects = ["negative.обездвижен"];
+    if (scenario === "cap-marked") hero.effects.push("negative.помечен");
+  } else if (["modifier", "stacked-evasion"].includes(scenario)) {
+    hero.lionwing.modifiers = [{ id: "evasion-reserve", stat: "evasion", amount: 4, remaining: 4, boundary: "manual", duration: "manual", sourceActorId: "hero" }];
+    if (scenario === "stacked-evasion") hero.evasion = 2;
+  } else { hero.evasion = 4; hero.effects = [scenario]; }
+  const original = clone(sample);
+  sample = sharedCommit(sample, engine.prepareEnemyRule(sample, data, { actorId: "enemy", ruleId: "lionwing.npc.ranger.take-the-shot", targetIds: ["hero"], roll: { rolls: Array(7).fill(5), initialCount: 7, successes: 7, crits: 0 } }));
+  sample = sharedCommit(sample, engine.respondReaction(sample, data, { actorId: "hero", choice: "pass" }));
+  const beforePreview = clone(sample), outcome = engine.pendingTargetOutcome(sample, sample.pendingAction, "hero");
+  assert.deepEqual(clone(sample), beforePreview, "defense preview never spends Evasion");
+  const raw = sample.pendingAction.damage;
+  sample = sharedCommit(core.reload(JSON.stringify(sample)), engine.resolvePendingAction(sample, data));
+  const native = sharedCommit(original, core.prepare(original, { kind: "damage", actorId: "enemy", targetId: "hero", amount: raw, attack: true }));
+  assert.equal(sample.actors[0].hp, native.actors[0].hp, `${scenario}: NPC/shared damage matches native damage`);
+  assert.equal(30 - sample.actors[0].hp, outcome.expectedDamage, `${scenario}: preview matches actual HP loss`);
+  assert.equal(sample.actors[0].evasion, native.actors[0].evasion, `${scenario}: both routes spend the same base Evasion`);
+  assert.deepEqual(clone(sample.actors[0].lionwing.modifiers || []), clone(native.actors[0].lionwing.modifiers || []), `${scenario}: temporary Evasion is consumed once`);
+  if (scenario.startsWith("cap")) assert.ok(sample.log.find(event => event.type === "damage.apply").payload.finalDamageSources.some(row => row.id === "bulwark.iron-bodied.3"));
+}
+let headshot = fixture();
+headshot.activeActorId = "enemy";
+headshot.actors[1].profileId = "lionwing.npc.ranger";
+Object.assign(headshot.actors[0], { attrs: { body: 4, talent: 3, spirit: 3, mind: 3 }, knownTechniques: { "bulwark.iron-bodied": 3 }, effects: ["negative.обездвижен", "negative.помечен"] });
+headshot.actors[0].lionwing.automation = { "bulwark.iron-bodied.2": true, "bulwark.iron-bodied.3": true };
+headshot = sharedCommit(headshot, engine.prepareEnemyRule(headshot, data, { actorId: "enemy", ruleId: "lionwing.npc.ranger.headshot", targetIds: ["hero"] }));
+headshot = sharedCommit(headshot, engine.prepareEnemyRule(headshot, data, { actorId: "enemy", ruleId: "lionwing.npc.ranger.take-the-shot", targetIds: ["hero"], roll: { rolls: Array(7).fill(5), initialCount: 7, successes: 7, crits: 0 } }));
+headshot = sharedCommit(headshot, engine.respondReaction(headshot, data, { actorId: "hero", choice: "pass" }));
+headshot = sharedCommit(headshot, engine.resolvePendingAction(headshot, data));
+assert.equal(headshot.actors[0].hp, 20, "Armor protects the separate Headshot; cap applies after Marked on the primary damage");
+assert.equal(headshot.actors[0].effects.includes("negative.помечен"), false);
+assert.equal(headshot.log.filter(event => event.type === "damage.apply" && event.payload.markedBonus).length, 1);
+console.log("LionWing shared defenses: native Armor/cap, Marked/Headshot order, consumable Evasion, Immobilized/Caught, disabled rules, preview/commit parity, reload and replay passed");

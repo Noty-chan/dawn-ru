@@ -538,6 +538,24 @@
     return { ok: true, key, rawBase, temporary, temporarySources, base: rawBase + temporary, value: fallbackValue, effective: fallbackValue, sources: temporarySources, sourceDigests: temporarySources.map(item => item.sourceDigest).filter(Boolean), coverage: temporarySources.some(item => item.coverage === "partial") ? "partial" : "full", reason: "Совместимый статический расчёт" };
   };
   const stat = (a, key, context = {}) => Number(statQuote(a, key, context).value || 0);
+  function consumeEvasion(scene, defender, amount) {
+    let toSpend = Math.max(0, Number(amount || 0));
+    const modifiers = astate(defender).modifiers.filter(m => m.stat === "evasion" && m.amount > 0);
+    for (const m of modifiers.filter(m => !String(m.ruleId || "").startsWith("lionwing.modifier."))) {
+      const used = Math.min(toSpend, m.remaining ?? m.amount);
+      m.remaining = (m.remaining ?? m.amount) - used;
+      toSpend -= used;
+    }
+    const canonical = modifiers.filter(m => String(m.ruleId || "").startsWith("lionwing.modifier.")
+      && scene.actors.some(source => source.id === m.sourceActorId && !source.knockedOut && source.modifierState?.carrierId === defender.id));
+    if (canonical.length) {
+      const available = Math.max(...canonical.map(m => Number(m.remaining ?? m.amount)));
+      const used = Math.min(toSpend, available);
+      for (const m of canonical) m.remaining = Math.max(0, Number(m.remaining ?? m.amount) - used);
+      toSpend -= used;
+    }
+    defender.evasion = Math.max(0, Number(defender.evasion || 0) - toSpend);
+  }
   const currentTurnInstance = scene => state(copy(scene)).activeTurnInstanceId || null;
   const spellCircleActive = (scene, a) => (scene.markers || []).some(marker =>
     marker?.ownerActorId === a.id && (marker.kind === "ritual" || marker.kind === "spell-circle") && marker.space === a.space && Number(marker.x) === Number(a.x) && Number(marker.y) === Number(a.y));
@@ -1070,15 +1088,16 @@
     let restoredQuote;
     try { restoredQuote = global.DAWN_LIONWING_RESTORED_TECHNIQUES?.quote?.(scene, a, def.id, request, modifierQuote) || modifierQuote; }
     catch (error) { return unavailable(error.message); }
+    if (def.id === ids.finish) restoredQuote.focusLimit = Math.min(Number(restoredQuote.focusCap ?? tensionValue(scene)), Number(restoredQuote.materialCount ?? (balance(a, "focus") + Number(restoredQuote.focusDiscount || 0))));
     const cost = Number(restoredQuote.cost ?? baseCost), swift = Boolean(restoredQuote.swift), used = isPlayer(a) ? (a.usedActions || []) : (a.lionwing?.turnActions || []);
     if (!swift && used.includes(def.id)) return unavailable("Действие уже использовано");
-    if (!canSpend(a,def.cost.resource,cost)) return unavailable(`Недостаточно ${def.cost.resource === "ap" ? "ОД" : "ресурса"}: нужно ${cost}`);
+    if (!canSpend(a,def.cost.resource,cost)) return { ...unavailable(`Недостаточно ${def.cost.resource === "ap" ? "ОД" : "ресурса"}: нужно ${cost}`), cost, resource: def.cost.resource, swift, actionQuote: restoredQuote };
     if (def.id === ids.disappear) {
       const board = scene.spaces.find(b => b.id === a.space);
       const ignored = new Set(modifierQuote.ignoreRequirements || []);
       if (!ignored.has("boardEdge") && (!board || ![0, board.width - 1].includes(a.x) && ![0, board.height - 1].includes(a.y)) || !ignored.has("startedDisappeared") && a.lionwing?.startedDisappeared) return unavailable("Скрыться можно на краю поля, если Ход начат без Исчезновения");
     }
-    return { available: true, reason: modifierQuote.reason || "", cost, resource: def.cost.resource, swift, actionQuote: modifierQuote, actionModifierIds: modifierQuote.modifierIds || [], allowanceId:allowance?.id, denialId: null };
+    return { available: true, reason: restoredQuote.reason || "", cost, resource: def.cost.resource, swift, actionQuote: restoredQuote, actionModifierIds: restoredQuote.modifierIds || [], allowanceId:allowance?.id, denialId: null };
   }
 
   function roll(count, random = Math.random, options = {}) {
@@ -2306,12 +2325,7 @@
       const afterArmor = amount > 0 ? Math.max(1, amount - armor) : 0;
       const evasionAllowed = !p.irreducible && !p.ignoreEvasion && !effectActive(scene,a,"negative.обездвижен") && !effectActive(scene,a,"negative.пойман");
       const evaded = evasionAllowed ? Math.min(afterArmor, compound.active&&compound.defenseType!=="evasion"?0:stat(defender, "evasion", defenseContext(defender))) : 0;
-      let toSpend=evaded;
-      const evasionModifiers=astate(defender).modifiers.filter(m=>m.stat==="evasion"&&m.amount>0);
-      for(const m of evasionModifiers.filter(m=>!String(m.ruleId||"").startsWith("lionwing.modifier."))){const used=Math.min(toSpend,m.remaining??m.amount);m.remaining=(m.remaining??m.amount)-used;toSpend-=used;}
-      const canonicalEvasion=evasionModifiers.filter(m=>String(m.ruleId||"").startsWith("lionwing.modifier.")&&scene.actors.some(source=>source.id===m.sourceActorId&&!source.knockedOut&&source.modifierState?.carrierId===defender.id));
-      if(canonicalEvasion.length){const available=Math.max(...canonicalEvasion.map(m=>Number(m.remaining??m.amount)));const used=Math.min(toSpend,available);for(const m of canonicalEvasion)m.remaining=Math.max(0,Number(m.remaining??m.amount)-used);toSpend-=used;}
-      defender.evasion = Math.max(0, Number(defender.evasion || 0) - toSpend);
+      consumeEvasion(scene, defender, evaded);
       if(compound.active&&compound.defenseType==="evasion")for(const part of compound.parts)part.evasion=Math.min(Number(part.evasion||0),defender.evasion);
       const hpBefore = compound.active ? compound.hp : Number(a.hp);
       let dealt = Math.max(0, afterArmor - evaded);
@@ -2870,9 +2884,44 @@
           armamentDestination: p.armamentDestination || p.destination,
           armamentAnchor: p.armamentAnchor || p.areaCenter,
           attackModifierIds: p.spikeTargetIds?.map(id => `core.launch-spike:${id}`) || p.attackModifierIds || [],
-        });
+        }, { nativeActionQuote: { actorId: a.id, actionId: def.id, cost: gate.cost, resource: gate.resource,
+          swift: gate.swift, focusCap: gate.actionQuote?.focusCap ?? tensionValue(scene),
+          focusCost: p.restoredPlan?.focusCost ?? Number(p.focusSpent || 0) } });
         if (!prepared.ok) fail(prepared.errors.join(" "));
         const instanceId = prepared.events.find(item => item.type === "action.prepare")?.payload?.actionInstanceId;
+        // Shared geometry derives the real targets. Compose native damage on
+        // that result, before the shared reducer applies attack Effects. Keep
+        // the same authoritative Action history as the ordinary native route:
+        // a special Armament must also interrupt (or complete) a Combo.
+        const attackEvent = prepared.events.find(item => item.type === "attack.pending");
+        const historyRow = { actionId: def.id, actionDefinitionId: def.id, actionInstanceId: rootId,
+          attribute: p.attribute || "talent", targetIds: copy(attackEvent?.payload?.targetIds || []),
+          round: scene.round, turnSerial: scene.turnSerial, ownerTurnActorId: scene.activeActorId,
+          ownerTurnSerial: ownTurnSerial(a), ownerTurnInstanceId: s.activeTurnInstanceId || null,
+          ownerTurnKey: ownerTurnKey(s.sceneSerial, a, ownTurnSerial(a)), swift: Boolean(gate.swift),
+          techniqueRuleId: attackEvent?.payload?.techniqueRuleId || null };
+        const quoteScene = copy(scene), quoteOwner = actor(quoteScene, a.id);
+        astate(quoteOwner).history.push(copy(historyRow));
+        if (attackEvent) {
+          const payload = attackEvent.payload;
+          payload.nativeDamageSources = {};
+          payload.ownerTurnInstanceId = historyRow.ownerTurnInstanceId;
+          payload.turnSerial = historyRow.turnSerial;
+          for (const targetId of payload.targetIds || []) {
+            const base = Number(payload.effectDamageBaseByTarget?.[targetId] ?? payload.effectDamageBase ?? payload.damage);
+            const quote = global.DAWN_LIONWING_ADAPTERS?.damageQuote?.(quoteOwner, { scene: quoteScene,
+              kind: "attack", actionId: def.id, actionInstanceId: rootId, attribute: historyRow.attribute,
+              techniqueRuleId: payload.techniqueRuleId, targetId, targetIds: payload.targetIds,
+              baseValue: base, roundUp: true });
+            if (quote?.ok === false) fail(quote.reason || "Модификаторы урона Мастера оружия конфликтуют");
+            const amount = quote?.ok ? quote.value : base;
+            payload.effectDamageBaseByTarget ||= {};
+            payload.damageByTarget ||= {};
+            payload.effectDamageBaseByTarget[targetId] = amount;
+            payload.damageByTarget[targetId] = amount;
+            payload.nativeDamageSources[targetId] = copy(quote?.sources || []);
+          }
+        }
         const stable = value => typeof value === "string" && value === instanceId ? rootId
           : Array.isArray(value) ? value.map(stable)
           : value && typeof value === "object" ? Object.fromEntries(Object.entries(value).map(([key, item]) => [key, stable(item)])) : value;
@@ -2884,6 +2933,7 @@
         }
         Object.assign(s, committed.scene.lionwing || {});
         Object.assign(scene, committed.scene, { lionwing: s });
+        astate(actor(scene, a.id)).history.push(historyRow);
         emitted.push(...committed.events);
         const pending = scene.pendingAction;
         saveFact("apply", a.id, pending?.targetIds || [], { actionId: def.id, techniqueRuleId: pending?.techniqueRuleId, swift: Boolean(gate.swift) });
@@ -4431,7 +4481,8 @@
       const alreadyAttacked = (scene.log || []).some(event => event.type === "attack.pending" && event.actorId === attack.actorId && event.payload?.actionInstanceId === instanceId);
       if (!prepared || alreadyAttacked) fail("Атака героя не связана с доступным подготовленным действием");
     }
-    const pendingEnemyFlow = scene.pendingAction?.enemyRuleId && events.some(event => ["reaction.respond", "rule.respond", "damage.apply", "effect.apply", "actor.move", "actor.enter", "attack.clear"].includes(event?.type));
+    const pendingEnemyFlow = (scene.pendingAction?.enemyRuleId || scene.pendingAction?.techniqueRuleId?.startsWith(`${masterTechniqueId}.`))
+      && events.some(event => ["reaction.respond", "rule.respond", "damage.apply", "effect.apply", "actor.move", "actor.enter", "attack.clear"].includes(event?.type));
     const canonicalBerserkerPrompt = scene.pendingPrompt?.context?.berserkerPassive || scene.pendingPrompt?.kind === "enemy-berserker-retaliate" && (scene.actors || []).some(actor => actor.id === scene.pendingPrompt.sourceActorId && actor.profileId === "lionwing.npc.berserker");
     const berserkerPassiveResponse = canonicalBerserkerPrompt && events.find(event => event?.type === "rule.respond");
     if (berserkerPassiveResponse) {
@@ -4824,7 +4875,7 @@
     reloadDiceRoll, reloadRoll: reloadDiceRoll, diceReload: reloadDiceRoll,
     opposedDiceRoll, opposedRoll: opposedDiceRoll, diceOpposed: opposedDiceRoll,
     resolveDiceTie: (value, resolution) => diceAvailable().resolveTie(value, resolution),
-    historyStatus, effectInstanceStatus, activeState, auraRecord, auraStatus, lifetimeExpired, compoundStatus, lifecycleContext, statQuote, effectiveStats,
+    historyStatus, effectInstanceStatus, activeState, auraRecord, auraStatus, lifetimeExpired, compoundStatus, lifecycleContext, statQuote, effectiveStats, consumeEvasion,
     consequenceCategories: () => copy(CONSEQUENCE_CATEGORIES), consequenceStatus,
     lifecycle: lifecycleContext,
     composeNumeric: (base, operations, context = {}) => global.DAWN_LIONWING_ADAPTERS?.composeNumeric?.(base, operations, context) || { ok: false, reason: "Числовой конвейер недоступен." },
@@ -4846,7 +4897,20 @@
   route("effectiveActorMaxHealth", (scene, id) => maxHealth(requiredActor(scene, id, false)));
   route("effectiveActorStats", (scene, id) => effectiveStats(scene, requiredActor(scene, id, false)));
   route("pendingActionStatus", (scene, data = global.DAWN_DATA) => scene.pendingAction?.lionwing ? lionwingPendingActionStatus(scene) : legacy.pendingActionStatus(sceneWithActiveEffects(scene), data));
-  route("resolvePendingAction", (scene, data, request) => legacy.resolvePendingAction(scene.pendingAction?.techniqueRuleId?.startsWith(`${masterTechniqueId}.`) ? masterScene(scene) : scene, data, request));
+  route("resolvePendingAction", (scene, data, request) => {
+    const pending = scene.pendingAction;
+    if (!pending?.techniqueRuleId?.startsWith(`${masterTechniqueId}.`)) return legacy.resolvePendingAction(scene, data, request);
+    const prepared = legacy.resolvePendingAction(masterScene(scene), data, request);
+    if (prepared.ok) for (const event of prepared.events) {
+      if (event.type === "action.resolve") Object.assign(event.payload, {
+        ownerTurnInstanceId: pending.ownerTurnInstanceId || null, turnSerial: pending.turnSerial ?? scene.turnSerial,
+      });
+      if (event.type === "damage.apply" && pending.nativeDamageSources?.[event.payload.targetId]?.length) {
+        event.payload.nativeDamageSources = copy(pending.nativeDamageSources[event.payload.targetId]);
+      }
+    }
+    return prepared;
+  });
   route("reactionOptions", (scene, data, id) => scene.pendingAction?.lionwing ? reactionOptions(scene, id) : legacy.reactionOptions(sceneWithActiveEffects(scene), data, id));
   // Canonical LionWing NPC profiles are read through the shared enemy rule
   // adapter.  Keep the public query on the routed engine so the GM panel can

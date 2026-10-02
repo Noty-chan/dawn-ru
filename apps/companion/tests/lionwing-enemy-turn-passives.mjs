@@ -123,7 +123,7 @@ let current = scene([actor("ronin", "enemy", 2, 2, { profileId: "lionwing.npc.ro
 current.log.push({ id: "previous-hero-turn-end", type: "turn.end", actorId: "previous-hero", at: "2026-09-23T09:59:00.000Z", payload: {} });
 current = commit(current, [{ type: "turn.start", actorId: "ronin", payload: {} }]);
 assert.equal(current.activeActorId, "ronin");
-const roll = { formula: "4D6 · Dissect", rolls: [6, 5, 2, 1], successes: 2, crits: 1 };
+const roll = { formula: "5D6 · Dissect", rolls: [6, 5, 2, 1, 1], successes: 2, crits: 1 };
 const dissect = id => engine.prepareEnemyRule(current, data, { actorId: "ronin", ruleId: "lionwing.npc.ronin.dissect", targetIds: [id], roll });
 const first = dissect("target-a");
 assert.equal(first.ok, true, first.errors?.join(" "));

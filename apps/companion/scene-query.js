@@ -812,6 +812,7 @@ function effectDefenseStatus(scene, targetActorId) {
     target,
     compound,
     armorAllowed,
+    evasionAllowed: !defendedParts.some(part => hasEffect(scene, part, "negative.обездвижен") || hasEffect(scene, part, "negative.пойман")),
     armorBonus,
     dodgeAllowed: dodgeBlockers.length === 0,
     dodgeReason: dodgeBlockers.length ? `${dodgeBlockers.join(", ")} не позволяет получить преимущество Уворота.` : "",

@@ -43,6 +43,8 @@
   };
   const ownResource = (owner, id) => Math.max(0, Number(owner.ruleResources?.[id]?.value || 0));
   const dependencies = id => ({ "vagabond.cunning-fighter.2": ["vagabond.cunning-fighter.1"], "disruptor.hunter.2": ["disruptor.hunter.1"], "altruist.gourmand.2": ["altruist.gourmand.1"], "powerhouse.gunslinger.3": ["powerhouse.gunslinger.1"], "ruiner.creation-ascetic.3": ["ruiner.creation-ascetic.1"], "disruptor.chemist.3": ["disruptor.chemist.1"], "vagabond.speed-demon.2": ["vagabond.speed-demon.1"], "bulwark.mundane.2": ["bulwark.mundane.1"] }[id] || []);
+  const finisherDiscount = (scene, owner) => enabled(owner, "bulwark.mundane.2") && !owner.lionwing?.mundaneFinisherRound?.includes(scene.round) ? Math.max(0, Number(owner.lionwing?.mundaneDiscount || 0)) : 0;
+  const finisherMaterial = (scene, owner) => enabled(owner, "ruiner.creation-ascetic.3") && previous(scene, owner)?.actionId === A.spell ? Number(previous(scene, owner).materialSpent || 0) : ownResource(owner, "material");
   function quote(scene, owner, actionId, request = {}, base = {}) {
     const result = { ...base };
     if (enabled(owner, "disruptor.chemist.1") && actionId === A.improvise) result.cost = 1;
@@ -52,7 +54,12 @@
       result.cost = Math.max(0, Number(result.cost || 0) - 1); result.swift = true;
     }
     if (enabled(owner, "disruptor.hunter.1") && actionId === A.skirmish && request.areaCenter && !request.targetIds?.length) result.swift = true;
-    if (enabled(owner, "bulwark.mundane.2") && actionId === A.finish && !owner.lionwing?.mundaneFinisherRound?.includes(scene.round)) result.cost = Math.max(0, Number(result.cost || 0) - Number(owner.lionwing?.mundaneDiscount || 0));
+    if (actionId === A.finish) {
+      const discount = finisherDiscount(scene, owner);
+      result.cost = Math.max(0, Number(result.cost || 0) - discount);
+      result.focusDiscount = Math.max(0, discount - 2);
+      if (enabled(owner, "ruiner.creation-ascetic.1")) result.materialCount = finisherMaterial(scene, owner);
+    }
     return result;
   }
   function plan(scene, owner, request) {
@@ -60,7 +67,7 @@
     // Derived facts are recomputed from the current state at preview and commit.
     delete p.restoredPlan;
     const facts = {};
-    if (enabled(owner, "bulwark.mundane.2") && actionId === A.finish && !(owner.lionwing?.mundaneFinisherRound || []).includes(scene.round)) facts.focusCost = Math.max(0, Number(p.focusSpent || 0) - Math.max(0, Number(owner.lionwing?.mundaneDiscount || 0) - 2));
+    if (actionId === A.finish && enabled(owner, "bulwark.mundane.2")) facts.focusCost = Math.max(0, Number(p.focusSpent || 0) - Math.max(0, finisherDiscount(scene, owner) - 2));
     if (enabled(owner, "powerhouse.dragonslayer.3") && actionId === A.finish && p.attribute === "body" && previous(scene, owner)?.actionId === A.breathe) facts.titanic = true;
     if (enabled(owner, "vagabond.enchained.1") && actionId === A.spell && p.areaCenter && !p.targetIds?.length && !p.creatorCells && !p.creatorRadius) {
       facts.emptyCell = cell(scene, owner, p.areaCenter, true);
@@ -90,9 +97,8 @@
       p.targetIds = [...new Set(selections)]; facts.bullets = count; facts.bulletTargets = selections; facts.ignoreRange = true;
     }
     if (enabled(owner, "ruiner.creation-ascetic.1") && [A.spell, A.finish, A.skirmish].includes(actionId)) {
-      const actual = ownResource(owner, "material"), prior = previous(scene, owner);
-      const inherited = enabled(owner, "ruiner.creation-ascetic.3") && actionId === A.finish && prior?.actionId === A.spell ? Number(prior.materialSpent || 0) : null;
-      const amount = inherited ?? actual;
+      const actual = ownResource(owner, "material");
+      const amount = actionId === A.finish ? finisherMaterial(scene, owner) : actual;
       facts.materialSpent = actual; facts.materialCount = amount;
       if (actionId === A.finish && Number(p.focusSpent || 0) > amount) throw new Error("Недостаточно Материала для дополнительных костей Завершения");
       if (amount > 0 && [A.spell, A.finish].includes(actionId) && !facts.obstacleId) {

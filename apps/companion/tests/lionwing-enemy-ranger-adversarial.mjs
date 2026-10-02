@@ -119,7 +119,7 @@ for (const [label, payload] of [
 
 // Aim adds one damage only after the unmodified Attack has already hit.
 let aimMiss = scene({ actors: [actor("ranger", "enemy", 1, 2, { profileId: "lionwing.npc.ranger", ruleState: { enemyAim: 1 } }), actor("hero", "hero", 2, 2, { evasion: 1 })] });
-const aimedShot = engine.prepareEnemyRule(aimMiss, data, { actorId: "ranger", ruleId: "lionwing.npc.ranger.take-the-shot", targetIds: ["hero"], roll: dice([6,1,1,1,1,1]) });
+const aimedShot = engine.prepareEnemyRule(aimMiss, data, { actorId: "ranger", ruleId: "lionwing.npc.ranger.take-the-shot", targetIds: ["hero"], roll: dice([6,1,1,1,1,1,1]) });
 assert.equal(aimedShot.ok, true, aimedShot.errors?.join(" "));
 const aimedPending = aimedShot.events.find(event => event.type === "attack.pending").payload;
 assert.equal(aimedPending.damageByTarget.hero, 1);
@@ -127,7 +127,7 @@ assert.equal(aimedPending.aimBonusByTarget.hero, 1);
 const aimedMissResolved = passAndResolve(commit(aimMiss, aimedShot, "aim-miss").result.scene, "aim-miss");
 assert.equal(aimedMissResolved.actors.find(item => item.id === "hero").hp, 30, "Aim cannot manufacture its own successful Attack");
 const aimHit = scene({ actors: [actor("ranger", "enemy", 1, 2, { profileId: "lionwing.npc.ranger", ruleState: { enemyAim: 1 } }), actor("hero", "hero", 2, 2)] });
-const aimHitPrepared = engine.prepareEnemyRule(aimHit, data, { actorId: "ranger", ruleId: "lionwing.npc.ranger.take-the-shot", targetIds: ["hero"], roll: dice([6,1,1,1,1,1]) });
+const aimHitPrepared = engine.prepareEnemyRule(aimHit, data, { actorId: "ranger", ruleId: "lionwing.npc.ranger.take-the-shot", targetIds: ["hero"], roll: dice([6,1,1,1,1,1,1]) });
 assert.equal(passAndResolve(commit(aimHit, aimHitPrepared, "aim-hit").result.scene, "aim-hit").actors.find(item => item.id === "hero").hp, 28, "Aim adds exactly one damage to a successful Attack");
 
 // Headshot stores exactly the selected target, costs AP (not Tension), survives
@@ -161,7 +161,7 @@ headshotMissScene.actors.find(item => item.id === "ranger").y = 2;
 headshotMissScene.actors.find(item => item.id === "hero").x = 2;
 headshotMissScene.actors.find(item => item.id === "hero").y = 2;
 headshotMissScene.actors.find(item => item.id === "hero").evasion = 3;
-const headshotMiss = engine.prepareEnemyRule(headshotMissScene, data, { actorId: "ranger", ruleId: "lionwing.npc.ranger.take-the-shot", targetIds: ["hero"], roll: dice([6,5,1,1,1,1]) });
+const headshotMiss = engine.prepareEnemyRule(headshotMissScene, data, { actorId: "ranger", ruleId: "lionwing.npc.ranger.take-the-shot", targetIds: ["hero"], roll: dice([6,5,1,1,1,1,1]) });
 assert.equal(headshotMiss.ok, true, headshotMiss.errors?.join(" "));
 const headshotMissPending = headshotMiss.events.find(event => event.type === "attack.pending").payload;
 assert.equal(headshotMissPending.damageByTarget.hero, 2);
@@ -179,7 +179,7 @@ headshotHitScene.actors.find(item => item.id === "ranger").y = 2;
 headshotHitScene.actors.find(item => item.id === "hero").x = 2;
 headshotHitScene.actors.find(item => item.id === "hero").y = 2;
 headshotHitScene.actors.find(item => item.id === "hero").evasion = 0;
-const headshotHit = engine.prepareEnemyRule(headshotHitScene, data, { actorId: "ranger", ruleId: "lionwing.npc.ranger.take-the-shot", targetIds: ["hero"], roll: dice([6,1,1,1,1,1]) });
+const headshotHit = engine.prepareEnemyRule(headshotHitScene, data, { actorId: "ranger", ruleId: "lionwing.npc.ranger.take-the-shot", targetIds: ["hero"], roll: dice([6,1,1,1,1,1,1]) });
 assert.equal(headshotHit.ok, true, headshotHit.errors?.join(" "));
 const headshotHitPending = headshotHit.events.find(event => event.type === "attack.pending").payload;
 assert.equal(headshotHitPending.damageByTarget.hero, 1);

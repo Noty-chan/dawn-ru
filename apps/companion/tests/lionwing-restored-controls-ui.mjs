@@ -8,7 +8,7 @@ const scene={actors:[actor,{id:"enemy",name:"Враг",team:"enemies",space:"mai
 const commands=[], context={window:{},Scene:scene,esc:String,lwOwns:()=>true,lwActive:()=>true,lwCanNarrate:()=>true,lwGeometrySceneIdentity:()=>"scene",renderScene:()=>{},toast:()=>{},SceneEngine:{ACTION_IDS:{spell:"action.атаки.заклинание",finish:"action.атаки.завершение",skirmish:"action.атаки.стычка"}},document:{addEventListener:(_,handler)=>handlers.push(handler)},lwDraftEnabled:false,lwSubmit:(actorId,payload)=>{commands.push({actorId,payload});return true;}};
 vm.createContext(context);
 vm.runInContext(read("lionwing-restored-techniques.js"),context);
-context.LionwingEngine={prepare:(scene,payload)=>{try{context.window.DAWN_LIONWING_RESTORED_TECHNIQUES.plan(scene,actor,payload);return {ok:true};}catch(error){return {ok:false,errors:[error.message]};}}};
+context.LionwingEngine={actionDef:id=>({id}),actionStatus:()=>({actionQuote:{focusLimit:2}}),prepare:(scene,payload)=>{try{context.window.DAWN_LIONWING_RESTORED_TECHNIQUES.plan(scene,actor,payload);return {ok:true};}catch(error){return {ok:false,errors:[error.message]};}}};
 vm.runInContext('let lwTechniqueDraft=null,lwDestination=null;'+source.slice(source.indexOf("const lwTechniqueText"),source.indexOf("function lwSetDestination")),context);
 const run=script=>vm.runInContext(script,context);
 assert.match(run('lwRestoredControls(Scene.actors[0])["ruiner.creation-ascetic"]'),/data-lw-technique-mode="nails"/);
@@ -81,6 +81,7 @@ run('lwApplyRestoredAreaHighlights(board,{id:"main"})');
 assert.ok(classes.has("has-gas"),"gas areas are visibly projected on board cells");
 assert.ok(tokenClasses.has("inside-gas"),"tokens show that they are inside Gas");
 assert.match(gasCell.title,/Газ/);
+vm.runInContext('let lwGeometryPreview=null;'+source.slice(source.indexOf('function lwCancelDestination()'),source.indexOf('const lwRules =')),context);
 vm.runInContext(source.slice(source.lastIndexOf('document.addEventListener("keydown", event => {')),context);
 run('lwTechniqueDraft={actorId:"hero",mode:"idol",cells:[],payload:{},...lwTechniqueDraftContext("hero","ruiner.creation-ascetic.1")}');
 let keyboardClicks=0;
@@ -90,6 +91,16 @@ assert.equal(keyboardClicks,1,"Enter selects a focused grid cell through the poi
 handlers.at(-1)({target:keyboardCell,key:"Escape",preventDefault(){}});
 assert.equal(run('lwTechniqueDraft'),null,"Escape cancels the uncommitted technique selection");
 assert.equal(commands.length,paid,"keyboard cancellation pays no resources");
+for(const draft of [{payload:{kind:"action",actionId:"jump"}},{payload:{kind:"reaction",choice:"dodge"}},{payload:{kind:"action",actionId:"finish"},field:"destination"},{payload:{kind:"choice"},field:"destination"},{payload:{kind:"action",actionId:"finish"},field:"areaCenter"}]){
+  context.keyboardDraft=draft;run('lwDestination=keyboardDraft');
+  const beforeClicks=keyboardClicks;
+  handlers.at(-1)({target:keyboardCell,key:"Enter",preventDefault(){}});
+  handlers.at(-1)({target:keyboardCell,key:" ",preventDefault(){}});
+  assert.equal(keyboardClicks,beforeClicks+2,"ordinary action, reaction, Master, placement and area drafts share keyboard activation");
+  handlers.at(-1)({target:keyboardCell,key:"Escape",preventDefault(){}});
+  assert.equal(run('lwDestination'),null,"Escape cancels an ordinary destination without payment");
+}
+assert.equal(commands.length,paid);
 context.SceneEngine.ACTION_IDS.step="action.перемещение.шаг";context.SceneEngine.ACTION_IDS.jump="action.перемещение.прыжок";context.SceneEngine.ACTION_IDS.improvise="action.утилитарные-действия.импровизация";
 context.lwRules=()=>({actions:{list:[]}});context.lwSetDestination=draft=>context.destinationDraft=draft;
 vm.runInContext('let pendingCoreActorId=null,pendingCoreAction=null,pendingCoreActionPlan=false,pendingCoreActionContext={actionId:SceneEngine.ACTION_IDS.step,context:{useCunningPlan:false}};',context);
@@ -168,7 +179,7 @@ for(const attribute of ["body","talent","spirit","mind"]){
   assert.equal(commands.at(-1).payload.targetIds[0],"enemy");
 }
 assert.equal(scrolls,4,"each new Finisher preview scrolls into view");
-pileTable.tension=5;pileTable.actors[0].knownTechniques["ruiner.creation-ascetic"]=3;pileTable.actors[0].lionwing.automation["ruiner.creation-ascetic.3"]=true;pileTable.actors[0].lionwing.history=[{turnSerial:pileTable.turnSerial,actionId:actual.engine.ACTION_IDS.spell,materialSpent:3}];
+pileTable=actual.core.dispatchMany(pileTable,actual.core.prepare(pileTable,{actorId:"hero",kind:"combat-meter",id:"tension",operation:"set",value:5}).events).scene;context.Scene=pileTable;pileTable.actors[0].knownTechniques["ruiner.creation-ascetic"]=3;pileTable.actors[0].lionwing.automation["ruiner.creation-ascetic.3"]=true;pileTable.actors[0].lionwing.history=[{turnSerial:pileTable.turnSerial,actionId:actual.engine.ACTION_IDS.spell,materialSpent:3}];
 const inheritedControls=run('lwRestoredControls(Scene.actors[0])["ruiner.creation-ascetic"]');
 assert.ok(!inheritedControls.includes("data-lw-creator-cast-material"),"Cast has no input for buying additional dice");
 click({lwTechniqueMode:"nails"});
@@ -183,4 +194,45 @@ run('lwDestination=null;pendingCoreAction=null;pendingCoreActionPlan=false;pendi
 assert.equal(run('sceneHasLocalPendingSelection()'),true,"shape previews block unrelated token dragging and destructive table controls");
 run('lwTechniqueDraft=null');
 assert.equal(run('sceneHasLocalPendingSelection()'),false,"cancelling the shape restores normal table controls");
+let masterStudent=fixture();
+masterStudent.actors[0].knownTechniques={"vagabond.master-at-arms":3,"ruiner.student-of-stars":1};
+masterStudent.actors[0].ruleModes={"vagabond.master-at-arms.armament":{modeId:"chain",sourceDigest:"d35f468065e84fbb0c86bc60015632bdbcfe9b0ced2ed2cfa370453f64a72371"}};
+for(const request of [{kind:"automation",ruleId:"ruiner.student-of-stars.1",enabled:true},{kind:"action",actionId:actual.engine.ACTION_IDS.charge}]){
+  const prepared=actual.core.prepare(masterStudent,{actorId:"hero",...request},{random:()=>.8});
+  assert.equal(prepared.ok,true,prepared.errors?.join(" "));
+  masterStudent=actual.core.dispatchMany(masterStudent,prepared.events).scene;
+}
+context.Scene=masterStudent;context.LionwingEngine=actual.core;
+vm.runInContext(source.slice(source.indexOf('function lwMasterControls(a)'),source.indexOf('const lwEntities')),context);
+const masterControls=run('lwMasterControls(Scene.actors[0])');
+assert.match(masterControls,/Завершение Талантом · 1 ОД/);
+assert.match(masterControls,/data-lw-focus type="number" min="0" max="6"/,'Master uses the native Student Focus cap rather than hardcoded Tension');
+let creatorStudent=fixture();creatorStudent.actors[0].ap=12;
+creatorStudent.actors[0].knownTechniques={"ruiner.creation-ascetic":1,"ruiner.student-of-stars":1};
+for(const request of [{kind:"automation",ruleId:"ruiner.creation-ascetic.1",enabled:true},{kind:"automation",ruleId:"ruiner.student-of-stars.1",enabled:true},{kind:"resource",resource:"material",operation:"gain",amount:3},{kind:"action",actionId:actual.engine.ACTION_IDS.charge}]){
+  const prepared=actual.core.prepare(creatorStudent,{actorId:"hero",...request},{random:()=>.8});
+  assert.equal(prepared.ok,true,prepared.errors?.join(" "));
+  creatorStudent=actual.core.dispatchMany(creatorStudent,prepared.events).scene;
+}
+context.Scene=creatorStudent;
+assert.match(run('lwRestoredControls(Scene.actors[0])["ruiner.creation-ascetic"]'),/data-lw-focus type="number" min="0" max="6"/);
+const creatorRequest={actorId:"hero",kind:"action",actionId:actual.engine.ACTION_IDS.finish,attribute:"body",focusSpent:3,creatorCells:[{x:2,y:1},{x:3,y:1},{x:4,y:1}]};
+const creatorPrepared=actual.core.prepare(creatorStudent,creatorRequest,{random:()=>.8});
+assert.equal(creatorPrepared.ok,true,creatorPrepared.errors?.join(" "));
+assert.equal(actual.core.prepare(creatorStudent,{...creatorRequest,focusSpent:7},{random:()=>.8}).ok,false,"the native Student cap still rejects overspending");
+let mundane=fixture();mundane.actors[0].knownTechniques={"bulwark.mundane":2};mundane.actors[1].x=2;
+for(const request of [{kind:"automation",ruleId:"bulwark.mundane.2",enabled:true},{kind:"resource",resource:"focus",operation:"gain",amount:3}]){
+  const prepared=actual.core.prepare(mundane,{actorId:"hero",...request},{random:()=>.8});
+  assert.equal(prepared.ok,true,prepared.errors?.join(" "));
+  mundane=actual.core.dispatchMany(mundane,prepared.events).scene;
+}
+mundane=actual.core.dispatchMany(mundane,actual.core.prepare(mundane,{actorId:"hero",kind:"resource",resource:"tenacity",operation:"spend",amount:mundane.actors[0].ruleResources.tenacity.value}).events).scene;
+context.Scene=mundane;
+assert.equal(actual.core.balance(mundane.actors[0],"focus"),0);
+assert.equal(run('lwFinisherFocusLimit(Scene.actors[0])'),1,"the UI offers a discounted extra die with no Tenacity balance and the allowed Body attribute");
+const mundaneRequest={actorId:"hero",kind:"action",actionId:actual.engine.ACTION_IDS.finish,attribute:"body",focusSpent:1,targetIds:["enemy"]};
+const mundanePrepared=actual.core.prepare(mundane,mundaneRequest,{random:()=>.8});
+assert.equal(mundanePrepared.ok,true,mundanePrepared.errors?.join(" "));
+assert.equal(actual.core.dispatchMany(mundane,mundanePrepared.events).scene.actors[0].ruleResources.tenacity.value,0);
+assert.equal(actual.core.prepare(mundane,{...mundaneRequest,focusSpent:2},{random:()=>.8}).ok,false,"the discount never grants a second unpaid die");
 console.log("LionWing restored technique controls: OK");

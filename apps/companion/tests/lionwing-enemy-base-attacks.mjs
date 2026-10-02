@@ -284,12 +284,12 @@ let assassinMarkScene = scene("lionwing.npc.assassin", { actors: [actor("enemy",
 const assassinNeutralize = engine.prepareEnemyRule(assassinMarkScene, data, { actorId: "enemy", ruleId: "lionwing.npc.assassin.neutralize-target", targetIds: ["hero"] });
 assert.equal(assassinNeutralize.ok, true, assassinNeutralize.errors?.join(" "));
 assassinMarkScene = commitWithIds(assassinMarkScene, assassinNeutralize, "assassin-neutralize").result.scene;
-const assassinSlice = engine.prepareEnemyRule(assassinMarkScene, data, { actorId: "enemy", ruleId: "lionwing.npc.assassin.slice", targetIds: ["hero"], roll: dice(3, [6, 5, 4]) });
+const assassinSlice = engine.prepareEnemyRule(assassinMarkScene, data, { actorId: "enemy", ruleId: "lionwing.npc.assassin.slice", targetIds: ["hero"], roll: dice(4, [6, 5, 4, 1]) });
 assert.equal(assassinSlice.ok, true, assassinSlice.errors?.join(" "));
 const unmarkedAssassinScene = clone(assassinMarkScene);
 unmarkedAssassinScene.actors.find(item => item.id === "hero").effects = [];
 unmarkedAssassinScene.actors.find(item => item.id === "hero").effectStates = {};
-const unmarkedAssassinSlice = engine.prepareEnemyRule(unmarkedAssassinScene, data, { actorId: "enemy", ruleId: "lionwing.npc.assassin.slice", targetIds: ["hero"], roll: dice(3, [6, 5, 4]) });
+const unmarkedAssassinSlice = engine.prepareEnemyRule(unmarkedAssassinScene, data, { actorId: "enemy", ruleId: "lionwing.npc.assassin.slice", targetIds: ["hero"], roll: dice(4, [6, 5, 4, 1]) });
 assert.equal(unmarkedAssassinSlice.ok, true, unmarkedAssassinSlice.errors?.join(" "));
 assert.equal(assassinSlice.events.find(item => item.type === "attack.pending").payload.damageByTarget.hero, unmarkedAssassinSlice.events.find(item => item.type === "attack.pending").payload.damageByTarget.hero, "Mark does not alter the prepared base damage");
 assassinMarkScene = commitWithIds(assassinMarkScene, assassinSlice, "assassin-slice").result.scene;
@@ -321,6 +321,53 @@ for (const [defense, expectedBonus, expectedMarked] of [
 const canonicalNpcs = context.window.DAWN_LIONWING_DATA.coreRules.npcs.list;
 const canonicalAttackIds = canonicalNpcs.flatMap(profile => (profile.actions || []).filter(action => action.kind === "attack").map(action => action.id));
 assert.equal(canonicalAttackIds.length, 40, "all canonical NPC attack actions are audited");
+// The English source uses an additive constant plus Tier. The executable
+// shorthand instead stores the Tier 1 value; compare independently at several
+// Tiers so copying the constant into that shorthand cannot regress silently.
+const literalCore = JSON.parse(fs.readFileSync(new URL("../../../source/editions/dawn-en-lionwing-cb2f8e67/canonical/core-rules.json", import.meta.url), "utf8"));
+let checkedPools = 0;
+for (const profile of literalCore.npcs.list) for (const action of profile.actions || []) {
+  const literal = action.text?.match(/roll\s+(\d+)\s*\+\s*\[Tier(?:\s*×\s*(\d+))?\]/i);
+  if (!literal || !npcActionIds.includes(action.id)) continue;
+  checkedPools += 1;
+  for (const tier of [1, 2, 6]) {
+    const current = scene(profile.id);
+    current.actors[0].tier = tier;
+    const executable = engine.availableEnemyRules(current, data, "enemy").find(item => item.id === action.id);
+    assert.equal(context.window.DAWN_LOGIC.scaleTierFormula(executable.dice, tier), Number(literal[1]) + tier * Number(literal[2] || 1), `${action.id}: literal canonical pool at Tier ${tier}`);
+  }
+}
+assert.equal(checkedPools, 34, "33 additive pools and Executioner's doubled Tier are checked against literal English");
+for (const tier of [1, 2, 6]) {
+  const current = scene("lionwing.npc.ranger");
+  current.actors[0].tier = tier;
+  const expected = 5 + tier;
+  const request = count => ({ actorId: "enemy", ruleId: "lionwing.npc.ranger.take-the-shot", targetIds: ["hero"], roll: { initialCount: count, rolls: Array(count).fill(4), successes: count, crits: 0 } });
+  const shot = engine.prepareEnemyRule(current, data, request(expected));
+  assert.equal(shot.ok, true, `Ranger Tier ${tier}: ${shot.errors?.join(" ")}`);
+  const committed = commitWithIds(current, shot, `canonical-pool-${tier}`).result.scene;
+  assert.equal(committed.pendingAction.roll.initialCount, expected);
+  assert.equal(committed.pendingAction.damageByTarget.hero, expected + current.tension);
+  for (const count of [expected - 1, expected + 1]) {
+    const rejected = engine.prepareEnemyRule(current, data, request(count));
+    assert.equal(rejected.ok, false, `Ranger Tier ${tier} rejects ${count} initial dice`);
+    assert.equal(rejected.events.length, 0, "invalid pool cannot spend AP or open a pending Attack");
+  }
+  const revenant = scene("lionwing.npc.revenant");
+  revenant.actors[0].tier = tier;
+  const soul = engine.prepareEnemyRule(revenant, data, { actorId: "enemy", ruleId: "lionwing.npc.revenant.tear-from-the-soul", targetIds: ["hero"], roll: { initialCount: expected, rolls: Array(expected).fill(4), successes: expected, crits: 0 } });
+  assert.equal(soul.ok, true, soul.errors?.join(" "));
+  const pendingSoul = commitWithIds(revenant, soul, `canonical-soul-${tier}`).result.scene;
+  assert.equal(pendingSoul.pendingAction.postResourceLoss.amount, 1 + tier, "Revenant loses the canonical 1 + Tier Focus");
+  const hidden = scene("lionwing.npc.assassin");
+  hidden.actors[0].tier = tier;
+  hidden.actors[0].effects = ["positive.исчез"];
+  const hiddenCount = (3 + tier) + (2 + tier);
+  const slice = engine.prepareEnemyRule(hidden, data, { actorId: "enemy", ruleId: "lionwing.npc.assassin.slice", targetIds: ["hero"], options: { reappearance: { x: 2, y: 2 } }, roll: { initialCount: hiddenCount, rolls: Array(hiddenCount).fill(4), successes: hiddenCount, crits: 0 } });
+  assert.equal(slice.ok, true, `hidden Assassin Tier ${tier}: ${slice.errors?.join(" ")}`);
+  const pendingSlice = commitWithIds(hidden, slice, `canonical-hidden-${tier}`).result.scene;
+  assert.equal(pendingSlice.pendingAction.roll.initialCount, hiddenCount, "Assassin combines canonical base and 2 + Tier hidden Advantage");
+}
 for (const id of npcActionIds) {
   const profile = id.split(".").slice(0, 3).join(".");
   const current = scene(profile);
@@ -342,7 +389,7 @@ const alliedRanger = scene("lionwing.npc.ranger", {
 const alliedShot = engine.availableEnemyRules(alliedRanger, data, "ally").find(item => item.id === "lionwing.npc.ranger.take-the-shot");
 assert.equal(alliedShot?.automation, "attack", "Allied NPC keeps canonical automated profile actions");
 assert.equal(alliedShot?.available, true, alliedShot?.reason);
-const alliedPreparedShot = engine.prepareEnemyRule(alliedRanger, data, { actorId: "ally", ruleId: alliedShot.id, targetIds: ["hostile"], roll: dice(6, [6, 5, 4, 4, 1, 1]) });
+const alliedPreparedShot = engine.prepareEnemyRule(alliedRanger, data, { actorId: "ally", ruleId: alliedShot.id, targetIds: ["hostile"], roll: dice(7, [6, 5, 4, 4, 1, 1, 1]) });
 assert.equal(alliedPreparedShot.ok, true, alliedPreparedShot.errors?.join(" "));
 assert.ok(alliedPreparedShot.events.some(event => event.type === "attack.pending" && event.actorId === "ally"), "Allied profile attack opens the shared reaction chain");
 for (const id of manualActionIds) {
@@ -389,7 +436,7 @@ assert.equal(forgedRevenantAce.ok,true);
 const disguisedAce=structuredClone(forgedRevenantAce.events);
 for(const event of disguisedAce) if(["enemy.action.prepare","enemy.action.resolve"].includes(event.type))event.payload.kind="action";
 assert.throws(()=>engine.dispatchMany(unpaidRevenantScene,disguisedAce),/тип действия|Напряжение/,"a Revenant Ace cannot be disguised as a normal action at zero Tension");
-const unpaidAttack=engine.prepareEnemyRule(scene("lionwing.npc.revenant"),data,{actorId:"enemy",ruleId:"lionwing.npc.revenant.tear-from-the-soul",targetIds:["hero"],roll:dice(6)});
+const unpaidAttack=engine.prepareEnemyRule(scene("lionwing.npc.revenant"),data,{actorId:"enemy",ruleId:"lionwing.npc.revenant.tear-from-the-soul",targetIds:["hero"],roll:dice(7)});
 assert.equal(unpaidAttack.ok,true,unpaidAttack.errors?.join(" "));
 assert.throws(()=>engine.dispatchMany(scene("lionwing.npc.revenant"),unpaidAttack.events.filter(event=>event.type==="attack.pending")),/подготовленного и оплаченного/,"a standalone enemy attack cannot skip AP");
 const distantRevenantScene=scene("lionwing.npc.revenant");
@@ -488,7 +535,7 @@ let bodyguards=scene("lionwing.npc.bodyguards",{actors:[
 ]});
 const behindStatus=engine.availableEnemyRules(bodyguards,data,"enemy").find(item=>item.id==="lionwing.npc.bodyguards.behind-me");
 assert.equal(behindStatus.automation,"attack");
-const behind=engine.prepareEnemyRule(bodyguards,data,{actorId:"enemy",ruleId:behindStatus.id,targetIds:["ally","hero"],roll:dice(6,[6,5,1,1,1,1])});
+const behind=engine.prepareEnemyRule(bodyguards,data,{actorId:"enemy",ruleId:behindStatus.id,targetIds:["ally","hero"],roll:dice(7,[6,5,1,1,1,1, 1])});
 assert.equal(behind.ok,true,behind.errors?.join(" "));
 bodyguards=commitWithIds(bodyguards,behind,"behind-me").result.scene;
 assert.ok(bodyguards.actors.find(item=>item.id==="ally").effects.includes("positive.укреплен"),"Behind Me Reinforces allied targets immediately");
@@ -521,7 +568,7 @@ const finishTear=engine.respondRulePrompt(swarmTear,data,{choice:"finish"});
 assert.equal(finishTear.ok,true,finishTear.errors?.join(" "));
 swarmTear=commitWithIds(swarmTear,finishTear,"swarm-tear-finish").result.scene;
 assert.equal(swarmTear.actors.find(item=>item.id==="enemy").ruleState.enemyCrowdMovement.ruleId,"lionwing.npc.swarm.tear");
-const tear=engine.prepareEnemyRule(swarmTear,data,{actorId:"enemy",ruleId:"lionwing.npc.swarm.tear",targetIds:["hero"],roll:dice(6)});
+const tear=engine.prepareEnemyRule(swarmTear,data,{actorId:"enemy",ruleId:"lionwing.npc.swarm.tear",targetIds:["hero"],roll:dice(7)});
 assert.equal(tear.ok,true,tear.errors?.join(" "));
 swarmTear=commitWithIds(swarmTear,tear,"swarm-tear").result.scene;
 swarmTear=passAndResolve(swarmTear,"swarm-tear");
@@ -541,7 +588,7 @@ let broodmother=scene("lionwing.npc.broodmother",{actors:[
 ]});
 const chaseStatus=engine.availableEnemyRules(broodmother,data,"enemy").find(item=>item.id==="lionwing.npc.broodmother.swarming-chase");
 assert.equal(chaseStatus.automation,"attack");
-const chase=engine.prepareEnemyRule(broodmother,data,{actorId:"enemy",ruleId:chaseStatus.id,options:{destination:{x:3,y:2}},targetIds:[],roll:dice(5,[6,5,1,1,1])});
+const chase=engine.prepareEnemyRule(broodmother,data,{actorId:"enemy",ruleId:chaseStatus.id,options:{destination:{x:3,y:2}},targetIds:[],roll:dice(6,[6,5,1,1,1, 1])});
 assert.equal(chase.ok,true,chase.errors?.join(" "));
 const chasePending=chase.events.find(event=>event.type==="attack.pending");
 assert.deepEqual(chasePending.payload.targetIds,["hero"],"Swarming Chase derives the newly adjacent opponent");
@@ -560,22 +607,22 @@ const rampageStatus=engine.availableEnemyRules(cocoon,data,"enemy").find(item=>i
 // Real local scenes contain manual setup records before their first attack.
 cocoon.log.push({id:"manual-cocoon-setup",type:"legacy.note",actorId:null,payload:{}});
 assert.equal(rampageStatus.automation,"attack");
-const rampage=engine.prepareEnemyRule(cocoon,data,{actorId:"enemy",ruleId:rampageStatus.id,options:{destination:{x:3,y:2}},targetIds:["hero"],roll:dice(5,[6,5,1,1,1])});
+const rampage=engine.prepareEnemyRule(cocoon,data,{actorId:"enemy",ruleId:rampageStatus.id,options:{destination:{x:3,y:2}},targetIds:["hero"],roll:dice(6,[6,5,1,1,1, 1])});
 assert.equal(rampage.ok,true,rampage.errors?.join(" "));
 cocoon=commitWithIds(cocoon,rampage,"rampage").result.scene;
 cocoon=passAndResolve(cocoon,"rampage");
 assert.equal(cocoon.pendingPrompt?.kind,"enemy-cocoon-repeat");
 assert.equal(cocoon.pendingPrompt?.context?.ruleId,"lionwing.npc.cocoon.rampage");
-const repeated=engine.respondRulePrompt(cocoon,data,{actorId:"enemy",choice:"target:hero-b",roll:dice(5,[6,5,1,1,1])});
+const repeated=engine.respondRulePrompt(cocoon,data,{actorId:"enemy",choice:"target:hero-b",roll:dice(6,[6,5,1,1,1, 1])});
 assert.equal(repeated.ok,true,repeated.errors?.join(" "));
 const repeatedPending=repeated.events.find(event=>event.type==="attack.pending");
 assert.equal(repeatedPending.payload.damage,4,"LionWing repeat uses Hits + Tension, not the retired Tension × 2 rule");
 for (const extra of [{ effects: ["positive.исчез"] }, { space: "other" }]) {
   const stale = clone(cocoon);
   Object.assign(stale.actors.find(item => item.id === "hero-b"), extra);
-  assert.equal(engine.respondRulePrompt(stale,data,{choice:"target:hero-b",roll:dice(5,[6,5,1,1,1])}).ok,false,"a stale repeat target must be rejected before closing its prompt");
+  assert.equal(engine.respondRulePrompt(stale,data,{choice:"target:hero-b",roll:dice(6,[6,5,1,1,1, 1])}).ok,false,"a stale repeat target must be rejected before closing its prompt");
 }
-assert.equal(engine.respondRulePrompt(cocoon,data,{choice:"target:hero-b",roll:{...dice(5),successes:99}}).ok,false,"repeat damage cannot trust forged roll totals");
+assert.equal(engine.respondRulePrompt(cocoon,data,{choice:"target:hero-b",roll:{...dice(6),successes:99}}).ok,false,"repeat damage cannot trust forged roll totals");
 const cocoonBeforeRepeat=clone(cocoon),repeatAp=cocoon.actors[0].ap;
 let threeTargetRepeat = clone(cocoonBeforeRepeat);
 threeTargetRepeat.actors.push(actor("hero-c", "hero", 3, 1));
@@ -592,7 +639,7 @@ changedLateRetry.find(event => event.type === "attack.pending").payload.damage =
 assert.throws(() => engine.dispatchMany(clone(threeTargetRepeat), changedLateRetry), error => error.code === "SCENE_EVENT_ID_CONFLICT", "the packet boundary rejects changed payloads under old event ids");
 for(const [effect,damage] of [["positive.усилен",6],["negative.ослаблен",2]]){
   const modified=clone(cocoon);modified.actors[0].effects.push(effect);
-  const response=engine.respondRulePrompt(modified,data,{choice:"target:hero-b",roll:dice(5,[6,5,1,1,1])});
+  const response=engine.respondRulePrompt(modified,data,{choice:"target:hero-b",roll:dice(6,[6,5,1,1,1, 1])});
   assert.equal(response.ok,true,response.errors?.join(" "));
   const applied=commitWithIds(modified,response,`repeat-modifier-${effect}`).result.scene;
   assert.equal(applied.pendingAction.damageByTarget["hero-b"],damage,"repeat attacks apply damage modifiers exactly once");
@@ -618,7 +665,7 @@ assert.equal(cocoon.pendingPrompt,null,"after both targets are attacked the repe
 let duelist = scene("lionwing.npc.duelist", { actors: [actor("enemy", "enemy", 2, 2, { profileId: "lionwing.npc.duelist" }), actor("hero", "hero", 4, 2, { effects: ["negative.спровоцирован"] })] });
 const flecheStatus = engine.availableEnemyRules(duelist, data, "enemy").find(item => item.id === "lionwing.npc.duelist.fleche");
 assert.equal(flecheStatus.automation, "attack");
-const flechePrepared = engine.prepareEnemyRule(duelist, data, { actorId: "enemy", ruleId: flecheStatus.id, targetIds: ["hero"], roll: dice(6, [6,5,1,1,1,1]) });
+const flechePrepared = engine.prepareEnemyRule(duelist, data, { actorId: "enemy", ruleId: flecheStatus.id, targetIds: ["hero"], roll: dice(7, [6,5,1,1,1,1, 1]) });
 assert.equal(flechePrepared.ok, true, flechePrepared.errors?.join(" "));
 assert.equal(flechePrepared.events.find(event => event.type === "attack.pending").payload.damageByTarget.hero, 6, "Fleche adds Tier damage against a Provoked target");
 duelist = commitWithIds(duelist, flechePrepared, "fleche").result.scene;
@@ -631,7 +678,7 @@ assert.equal(duelist.pendingPrompt?.kind, "enemy-move-cell", "Fleche offers its 
 let spright = scene("lionwing.npc.spright");
 const incisionStatus = engine.availableEnemyRules(spright, data, "enemy").find(item => item.id === "lionwing.npc.spright.incision");
 assert.equal(incisionStatus.automation, "attack");
-const incisionPrepared = engine.prepareEnemyRule(spright, data, { actorId: "enemy", ruleId: incisionStatus.id, targetIds: ["hero"], roll: dice(6, [6,5,1,1,1,1]) });
+const incisionPrepared = engine.prepareEnemyRule(spright, data, { actorId: "enemy", ruleId: incisionStatus.id, targetIds: ["hero"], roll: dice(7, [6,5,1,1,1,1, 1]) });
 assert.equal(incisionPrepared.ok, true, incisionPrepared.errors?.join(" "));
 spright = commitWithIds(spright, incisionPrepared, "incision").result.scene;
 spright = passAndResolve(spright, "incision");
@@ -652,7 +699,7 @@ let rifter=scene("lionwing.npc.rifter",{actors:[
 ]});
 const emergeStatus=engine.availableEnemyRules(rifter,data,"enemy").find(item=>item.id==="lionwing.npc.rifter.emerge");
 assert.equal(emergeStatus.automation,"attack");
-const emergePrepared=engine.prepareEnemyRule(rifter,data,{actorId:"enemy",ruleId:emergeStatus.id,options:{destination:{x:4,y:2}},targetIds:[],roll:dice(6,[6,5,1,1,1,1])});
+const emergePrepared=engine.prepareEnemyRule(rifter,data,{actorId:"enemy",ruleId:emergeStatus.id,options:{destination:{x:4,y:2}},targetIds:[],roll:dice(7,[6,5,1,1,1,1, 1])});
 assert.equal(emergePrepared.ok,true,emergePrepared.errors?.join(" "));
 assert.deepEqual(new Set(emergePrepared.events.find(event=>event.type==="attack.pending").payload.targetIds),new Set(["hero-a","hero-b","ally"]),"Emerge attacks every adjacent character, including allies");
 assert.equal(emergePrepared.events.filter(event=>event.type==="marker.create"&&event.payload.markerKind==="rift").length,2,"Emerge creates Rifts at departure and arrival");
@@ -670,7 +717,7 @@ const preparedShove = engine.prepareEnemyRule(current, data, {
   actorId: "enemy",
   ruleId: shove.id,
   targetIds: ["hero"],
-  roll: dice(5, [6, 5, 4, 1, 2]),
+  roll: dice(6, [6, 5, 4, 1, 2, 1]),
 });
 assert.equal(preparedShove.ok, true, preparedShove.errors?.join(" "));
 const pendingEvent = preparedShove.events.find(event => event.type === "attack.pending");
@@ -728,26 +775,26 @@ let privateer = scene("lionwing.npc.privateer", { actors: [
   actor("hero-b", "hero", 4, 2),
   actor("hero-c", "hero", 3, 3),
 ] });
-const spray = engine.prepareEnemyRule(privateer, data, { actorId: "enemy", ruleId: "lionwing.npc.privateer.spray-and-pray", targetIds: ["hero-a", "hero-b"], roll: dice(5, [6, 5, 4, 1, 2]) });
+const spray = engine.prepareEnemyRule(privateer, data, { actorId: "enemy", ruleId: "lionwing.npc.privateer.spray-and-pray", targetIds: ["hero-a", "hero-b"], roll: dice(6, [6, 5, 4, 1, 2, 1]) });
 assert.equal(spray.ok, true, spray.errors?.join(" "));
 assert.equal(spray.events.find(event => event.type === "attack.pending").payload.targetIds.length, 2);
-assert.equal(engine.prepareEnemyRule(privateer, data, { actorId: "enemy", ruleId: "lionwing.npc.privateer.spray-and-pray", targetIds: ["hero-a", "hero-c"], roll: dice(5, [6, 5, 4, 1, 2]) }).ok, false, "a non-line target selection is rejected");
-assert.equal(engine.prepareEnemyRule(privateer, data, { actorId: "enemy", ruleId: "lionwing.npc.privateer.spray-and-pray", targetIds: ["missing"], roll: dice(5, [6, 5, 4, 1, 2]) }).ok, false, "a missing target is rejected");
+assert.equal(engine.prepareEnemyRule(privateer, data, { actorId: "enemy", ruleId: "lionwing.npc.privateer.spray-and-pray", targetIds: ["hero-a", "hero-c"], roll: dice(6, [6, 5, 4, 1, 2, 1]) }).ok, false, "a non-line target selection is rejected");
+assert.equal(engine.prepareEnemyRule(privateer, data, { actorId: "enemy", ruleId: "lionwing.npc.privateer.spray-and-pray", targetIds: ["missing"], roll: dice(6, [6, 5, 4, 1, 2, 1]) }).ok, false, "a missing target is rejected");
 privateer.walls = [{ id: "wall", space: "main", a: { x: 2, y: 2 }, b: { x: 3, y: 2 } }];
-assert.equal(engine.prepareEnemyRule(privateer, data, { actorId: "enemy", ruleId: "lionwing.npc.privateer.spray-and-pray", targetIds: ["hero-a"], roll: dice(5, [6, 5, 4, 1, 2]) }).ok, false, "a wall blocks target resolution");
+assert.equal(engine.prepareEnemyRule(privateer, data, { actorId: "enemy", ruleId: "lionwing.npc.privateer.spray-and-pray", targetIds: ["hero-a"], roll: dice(6, [6, 5, 4, 1, 2, 1]) }).ok, false, "a wall blocks target resolution");
 
 // AP and target state are enforced before event creation.
 const noAp = scene("lionwing.npc.guardian", { actors: [actor("enemy", "enemy", 2, 2, { profileId: "lionwing.npc.guardian", ap: 0 }), actor("hero", "hero", 3, 2)] });
 const noApStatus = engine.availableEnemyRules(noAp, data, "enemy").find(item => item.id === "lionwing.npc.guardian.shove");
 assert.equal(noApStatus.available, false);
 assert.match(noApStatus.reason, /ОД/);
-assert.equal(engine.prepareEnemyRule(noAp, data, { actorId: "enemy", ruleId: noApStatus.id, targetIds: ["hero"], roll: dice(5, [6, 5, 4, 1, 2]) }).ok, false, "wrong AP is rejected");
+assert.equal(engine.prepareEnemyRule(noAp, data, { actorId: "enemy", ruleId: noApStatus.id, targetIds: ["hero"], roll: dice(6, [6, 5, 4, 1, 2, 1]) }).ok, false, "wrong AP is rejected");
 const knocked = scene("lionwing.npc.guardian", { actors: [actor("enemy", "enemy", 2, 2, { profileId: "lionwing.npc.guardian" }), actor("hero", "hero", 3, 2, { knockedOut: true })] });
-assert.equal(engine.prepareEnemyRule(knocked, data, { actorId: "enemy", ruleId: "lionwing.npc.guardian.shove", targetIds: ["hero"], roll: dice(5, [6, 5, 4, 1, 2]) }).ok, false, "a knocked-out target is rejected");
+assert.equal(engine.prepareEnemyRule(knocked, data, { actorId: "enemy", ruleId: "lionwing.npc.guardian.shove", targetIds: ["hero"], roll: dice(6, [6, 5, 4, 1, 2, 1]) }).ok, false, "a knocked-out target is rejected");
 
 // Roll pool, canonical provenance, stale preview, and replay/idempotency are
 // checked at the event boundary.
-const forgedRoll = engine.prepareEnemyRule(scene("lionwing.npc.guardian"), data, { actorId: "enemy", ruleId: "lionwing.npc.guardian.shove", targetIds: ["hero"], roll: dice(4, [6, 5, 4, 1]) });
+const forgedRoll = engine.prepareEnemyRule(scene("lionwing.npc.guardian"), data, { actorId: "enemy", ruleId: "lionwing.npc.guardian.shove", targetIds: ["hero"], roll: dice(5, [6, 5, 4, 1, 1]) });
 assert.equal(forgedRoll.ok, false, "a roll with the wrong canonical pool is rejected");
 const staleEvents = committedShove.events.map(event => ({ ...event, id: `stale:${event.id}` }));
 assert.throws(() => engine.dispatchMany({ ...clone(beforePreview), version: 1 }, staleEvents, { expectedVersion: 0 }), /ожидалась|устар|Конфликт версии/);
