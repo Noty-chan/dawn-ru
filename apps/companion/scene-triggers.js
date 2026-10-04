@@ -1264,19 +1264,20 @@ function dispatchEventContinuation(scene, events, options = {}) {
 }
 function dispatchManyChecked(scene, events, options, continuation) {
   validateEventPacket(events);
-  const replay = eventPacketReplayStatus(scene, events);
-  if (replay.complete) return { scene: clone(scene), events: [], event: null, duplicates: [] };
+  const replay = eventPacketReplayStatus(scene, events, !continuation);
+  if (replay.complete) return { scene: clone(scene), events: [], event: null, duplicates: events.map(event => clone((scene.log || []).find(row => row.id === event.id) || event)) };
   // Filter accepted external requests before expanding the trigger queue.
   // Deferred prompts reuse their request ID when they are eventually opened;
   // their internal continuation must still execute exactly once.
-  const acceptedIds = new Set(replay.matched ? eventRequestReceipts(scene).map(receipt => receipt.id) : []);
+  const acceptedIds = new Set(replay.matchedIds);
   const pending = events.filter(event => {
     if (!event.id) return true;
     if (acceptedIds.has(event.id)) return false;
     acceptedIds.add(event.id); return true;
   });
   if (!continuation) validateEnemySummonPacket(scene, pending);
-  const result = dispatchEventPacket(scene, pending, options);
+  const result = dispatchEventPacket(scene, pending, reserveEventIds(scene, events, options));
+  result.duplicates.unshift(...events.filter(event => replay.matchedIds.includes(event.id)).map(event => clone((scene.log || []).find(row => row.id === event.id) || event)));
   recordEventRequests(result.scene, events);
   return result;
 }

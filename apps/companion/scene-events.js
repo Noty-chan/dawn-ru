@@ -916,7 +916,7 @@ function setCompoundHealth(scene, status, total) {
   if (total <= 0) for (const part of status.parts) part.knockedOut = true;
 }
 
-function reduceEvent(scene, event) {
+function reduceEvent(scene, event, options = {}) {
   const actor = event.actorId ? actorById(scene, event.actorId) : null;
   const payload = event.payload;
   const target = payload?.targetId ? actorById(scene, payload.targetId) : null;
@@ -1646,7 +1646,7 @@ function reduceEvent(scene, event) {
   scene.log ||= [];
   scene.log.unshift(event);
   if (event.payload?.thresholdCrossed === true) {
-    const thresholdEvent = { id: `${event.id}:threshold`, at: event.at, type: "counter.threshold", actorId: event.actorId || null, payload: { counterId: event.payload.id, id: event.payload.id, kind: "clock", ownerActorId: null, sourceActorId: event.payload.sourceActorId ?? null, sourceEntityId: event.payload.sourceEntityId ?? null, ruleId: event.payload.ruleId ?? null, before: event.payload.before, value: event.payload.value, threshold: event.payload.threshold ?? (scene.sessionClocks || []).find(clock => clock.id === event.payload.id)?.threshold ?? null }, visibility: event.visibility || "public" };
+    const thresholdEvent = { id: generatedEventId(scene, `${event.id}:threshold`, options), at: event.at, type: "counter.threshold", actorId: event.actorId || null, payload: { counterId: event.payload.id, id: event.payload.id, kind: "clock", ownerActorId: null, sourceActorId: event.payload.sourceActorId ?? null, sourceEntityId: event.payload.sourceEntityId ?? null, ruleId: event.payload.ruleId ?? null, before: event.payload.before, value: event.payload.value, threshold: event.payload.threshold ?? (scene.sessionClocks || []).find(clock => clock.id === event.payload.id)?.threshold ?? null }, visibility: event.visibility || "public" };
     scene.log.unshift(thresholdEvent);
   }
   scene.log = scene.log.slice(0, 200);
@@ -1698,6 +1698,10 @@ function dispatch(scene, event, options = {}) {
 }
 function dispatchTransition(scene, event, options, continuation) {
   validateEventPacket([event]);
+  if (!continuation) {
+    const replay = eventPacketReplayStatus(scene, [event]);
+    if (replay.complete) return { scene: clone(scene), event: clone((scene.log || []).find(row => row.id === event.id) || event), duplicate: true };
+  }
   const stored = event?.id ? (scene?.log || []).find(item => item.id === event.id) : null;
   if (stored) {
     const subsetMatches = (canonical, candidate) => {
@@ -1725,13 +1729,16 @@ function dispatchTransition(scene, event, options, continuation) {
     error.code = "SCENE_VERSION_CONFLICT";
     throw error;
   }
+  options = reserveEventIds(scene, [event], options);
   const normalized = normalizeEvent(event, options);
+  if (!event.id) normalized.id = generatedEventId(scene, normalized.id, options);
   if(actorById(scene,normalized.actorId)?.hidden&&!event.visibility)normalized.visibility="gm";else if(event.visibility==="gm")normalized.visibility="gm";
   validateEvent(scene, normalized, options);
   validateTransition(scene, normalized, options);
   const next = clone(scene);
-  reduceEvent(next, normalized);
+  reduceEvent(next, normalized, options);
   next.version = Number(next.version || 0) + 1;
+  if (!continuation) recordEventRequests(next, [event]);
   return { scene: next, event: normalized };
 }
 

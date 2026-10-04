@@ -62,6 +62,7 @@ window.DAWN_I18N?.registerLocale("ru", {
   "lionwing.technique.controls.preview": "Проверьте выбранную область перед подтверждением.",
   "lionwing.technique.controls.ready": "Форма допустима. Подтверждение выполнит действие и оплатит его стоимость.",
   "lionwing.technique.controls.selectCells": "Выберите клетки на поле; ресурсы пока не потрачены.",
+  "lionwing.technique.controls.chooseDestination": "Выберите подсвеченную клетку, затем подтвердите перемещение.",
   "lionwing.technique.controls.confirm": "Подтвердить действие",
   "lionwing.technique.controls.undo": "Убрать последнюю клетку",
   "lionwing.technique.controls.cancel": "Отменить выбор",

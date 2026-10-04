@@ -53,6 +53,65 @@ for (const edition of ["ru-v0.9", "lionwing"]) {
   rejectedWithoutMutation(battle, () => engine.dispatchMany(battle, forged), idConflict);
 }
 
+// Authoritative consequences are also events: replaying a saved result must
+// never turn it into a new request for the same damage, healing or resource.
+for (const [kind, payload, rowType] of [
+  ["resource", { kind: "resource", operation: "gain", resource: "focus", amount: 1 }, "resource.gain"],
+  ["damage", { kind: "damage", targetId: "enemy", amount: 2, attack: false }, "damage.apply"],
+  ["heal", { kind: "heal", targetId: "hero", amount: 2 }, "actor.heal"],
+  ["effect", { kind: "effect", targetId: "enemy", effect: "negative.замедлен" }, "effect.apply"],
+]) {
+  const scene = fixture(); scene.actors[0].hp = 20;
+  const accepted = engine.dispatchMany(scene, [command(`result:${kind}`, payload)]).scene;
+  const committed = clone(accepted.log.find(event => event.type === rowType));
+  exactReplay(engine, core.reload(JSON.stringify(accepted)), [committed], { expectedVersion: 0 });
+  exactReplay(engine, accepted, clone(accepted.log));
+  const mixed = engine.dispatchMany(accepted, [committed, command(`fresh:${kind}`, { kind: "resource", operation: "gain", resource: "influence", amount: 1 })]);
+  assert.equal(mixed.scene.actors[0].influence, accepted.actors[0].influence + 1);
+  assert.equal(mixed.scene.actors[0].focus, accepted.actors[0].focus);
+  assert.equal(mixed.scene.actors[0].hp, accepted.actors[0].hp);
+  assert.equal(mixed.scene.actors[1].hp, accepted.actors[1].hp);
+  assert.equal(mixed.scene.version, accepted.version + 1, "mixed replay applies only the fresh request");
+  rejectedWithoutMutation(accepted, () => engine.dispatchMany(accepted, [command(committed.id, { kind: "resource", operation: "gain", resource: "focus", amount: 2 })]), idConflict);
+  rejectedWithoutMutation(accepted, () => engine.dispatchMany(accepted, [{ ...committed, visibility: "gm" }]), idConflict);
+}
+
+const targets = id => ({ id, type: "targets.set", actorId: "hero", payload: { actorIds: ["enemy"], cells: [] } });
+for (const collisionFirst of [true, false]) {
+  let scene = fixture();
+  const gain = command("generated", { kind: "resource", operation: "gain", resource: "focus", amount: 1 });
+  const reserved = targets("generated:0");
+  if (collisionFirst) scene = engine.dispatchMany(scene, [reserved]).scene;
+  const events = collisionFirst ? [gain] : [gain, reserved];
+  const result = engine.dispatchMany(scene, events);
+  const ids = result.scene.log.map(event => event.id);
+  assert.equal(new Set(ids).size, ids.length, "generated consequences cannot collide with existing or later packet requests");
+  assert.equal(result.scene.actors[0].focus, 7);
+  assert.equal(result.scene.log.find(event => event.id === reserved.id).type, reserved.type);
+  assert.equal(result.events.find(event => event.type === "resource.gain").id, "generated:0:generated:1");
+  exactReplay(engine, result.scene, events);
+}
+
+const shared = runtime().context;
+for (const dispatch of [engine.dispatch, shared.dispatch]) {
+  let scene = fixture();
+  scene = dispatch(scene, { id: "clock-create", type: "session-clock.create", payload: { id: "clock", name: "Проверка", kind: "danger", size: 4, initial: 0 } }).scene;
+  scene = dispatch(scene, targets("clock-fill:threshold")).scene;
+  scene = dispatch(scene, { id: "clock-fill", type: "session-clock.add", payload: { id: "clock", delta: 4 } }).scene;
+  assert.equal(new Set(scene.log.map(event => event.id)).size, scene.log.length, "shared clock thresholds have distinct generated IDs");
+  assert.equal(scene.log.find(event => event.type === "counter.threshold").id, "clock-fill:threshold:generated:1");
+  const saved = clone(scene), duplicate = dispatch(scene, clone(scene.log.find(event => event.type === "counter.threshold")));
+  assert.deepEqual(clone(duplicate.scene), saved);
+}
+const sharedRequest = { ...targets("shared-single"), visibility: "public" };
+const sharedScene = shared.dispatch(fixture(), sharedRequest).scene;
+rejectedWithoutMutation(sharedScene, () => shared.dispatch(sharedScene, { ...sharedRequest, visibility: "gm" }), idConflict);
+const sharedMixed = shared.dispatchMany(sharedScene, [sharedRequest, { id: "shared-fresh", type: "resource.gain", actorId: "hero", payload: { resource: "focus", amount: 1 } }]);
+assert.equal(sharedMixed.events.length, 1);
+assert.equal(sharedMixed.duplicates.length, 1, "mixed replies retain canonical acknowledgements for accepted requests");
+assert.equal(sharedMixed.duplicates[0].payload.actorName, "hero");
+assert.equal(sharedMixed.scene.actors[0].focus, sharedScene.actors[0].focus + 1);
+
 // Reproducible scheduling probe: five independent tables, each with five
 // writers preparing against one version; delayed duplicates and reloads.
 // This exercises the real dispatcher, not a mock implementation of its rules.

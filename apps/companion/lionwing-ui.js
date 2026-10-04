@@ -52,6 +52,15 @@ function lwRestoredControls(a) {
 function lwScrollTechniqueDraft() {
   document.querySelector?.("[data-lw-technique-preview], [data-lw-destination-hint]")?.scrollIntoView?.({block:"nearest"});
 }
+function lwBeginTechniqueChoiceDestination(choice, payload, label = "") {
+  const operations = choice?.context?.choices?.[payload?.choice];
+  if (choice?.kind !== "technique-trigger" || !choice.context?.destinationRequired || !Array.isArray(operations) || !operations.some(operation => operation.kind === "move" && !operation.destination)) return false;
+  if (Scene.lionwing?.choices?.[0]?.id !== choice.id || payload.id !== choice.id || !lwOwns(choice.actorId)) return false;
+  lwTechniqueDraft = null;
+  lwSetDestination({ actorId: choice.actorId, payload, ruleId: choice.context.ruleId, previewTechnique: true, label: label || choice.context.optionLabels?.[payload.choice] || choice.title });
+  toast(lwTechniqueText("chooseDestination", "Выберите подсвеченную клетку, затем подтвердите перемещение."));
+  return true;
+}
 function lwTechniqueDraftPayload(draft) {
   return {...draft.payload, ...(draft.mode === "nails" ? {creatorLines:[draft.cells.slice(0,3),draft.cells.slice(3,6)]} : draft.mode === "idol" ? {creatorCells:draft.cells} : {})};
 }
@@ -693,6 +702,7 @@ function lwSubmit(actorId, payload, label = "Действие LionWing") {
     if (!lwOwns(actorId) || pending.actorId !== actorId || pending.id !== payload.id || !pending.options.includes(payload.choice)) return false;
     const forwarded = { kind: "choice", id: payload.id, choice: payload.choice };
     if (pending.kind === "restored-technique" && payload.destination) forwarded.destination = structuredClone(payload.destination);
+    if (pending.kind === "technique-trigger" && pending.context?.destinationRequired && payload.destination) forwarded.destination = structuredClone(payload.destination);
     if (pending.kind === "consequence" && !(Array.isArray(pending.options) && pending.options.includes("record"))) {
       if (!payload.lossTarget || typeof payload.lossTarget !== "object") return false;
       forwarded.lossTarget = structuredClone(payload.lossTarget);
@@ -906,7 +916,7 @@ function lwPendingHtml() {
     return `<section class="lw-pending"><strong>${esc(owner?.name || "Участник")}: ${esc(choice.kind==="duel-wounds"?"Продолжить сохранённую Дуэль: 1 Рана по уточнению автора":choice.title)}</strong>${duelControls}${choice.kind==="replacement"?`<p>${esc([...lwRules().effects.positive,...lwRules().effects.negative].find(e=>e.id===choice.context.effect)?.name||choice.context.effect)}. Исходный Эффект ещё не наложен.</p>`:""}${choice.context?.text ? `<p>${esc(choice.context.text)}</p>` : ""}${can ? `${choice.options.includes("record") ? '<input data-lw-choice-note placeholder="Принятое решение" aria-label="Принятое решение">' : ""}<div class="button-row">${(choice.kind==="duel-wounds"?["one-wound"]:choice.options).map(option => `<button data-lw-choice="${option}" data-lw-choice-id="${esc(choice.id)}"${choice.context?.actionPlanId?` data-lw-plan-id="${esc(choice.context.actionPlanId)}"`:""} data-lw-actor="${esc(choice.actorId)}">${esc(choice.context?.optionLabels?.[option] || choice.context?.labels?.[option] || labels[option] || option)}</button>`).join("")}</div>` : "<p>Ожидается решение владельца героя.</p>"}</section>`;
   }
   const followups = typeof LionwingEngine.pendingFollowups === "function" ? LionwingEngine.pendingFollowups(Scene).filter(item => ["offered", "active"].includes(item.status)) : [];
-  if (followups.length) {
+  if (followups.length && !Scene.pendingAction) {
     const rows = followups.map(item => {
       const participants = (item.participantIds || []).map(id => Scene.actors.find(actor => actor.id === id)?.name || id).join(", ");
       const deadline = item.endBoundary === "anyTurnStart" ? "до начала следующего Хода любого участника" : item.endBoundary === "anyTurnEnd" ? "до конца следующего Хода любого участника" : item.endBoundary || "до установленной границы";
@@ -1322,6 +1332,7 @@ document.addEventListener("click", event => {
       if (!typed) return toast("Выберите конкретную допустимую потерю из заполненного листа");
       payload = typed;
     }
+    if (lwBeginTechniqueChoiceDestination(pending, payload)) return;
     if(pending?.kind==="restored-technique"&&payload.choice==="swing"){lwSetDestination({actorId,payload,ruleId:pending.context?.ruleId,previewTechnique:true,label:lwTechniqueText("swing","Раскачаться: выбрать клетку телепортации")});return;}
     if(payload.choice==="place"){lwSetDestination({actorId,payload,label:"Появление"});toast("Выберите клетку на поле");return;}lwSubmit(actorId,payload,"Решение игрока");return;
   }

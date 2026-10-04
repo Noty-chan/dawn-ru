@@ -309,7 +309,14 @@ function cancelPendingAction(scene, request = {}) {
   if (!status.exists) return { ok: false, errors: ["Нет ожидающего действия."], events: [] };
   const reason = String(request.reason || status.interruptedReason || "Цепочка прервана Нарратором").slice(0, 240);
   const events = [];
-  events.push({ type: "attack.clear", actorId: status.source?.id || null, payload: { pendingId: status.pending.id, cancelled: true, reason } });
+  const pending = status.pending, actionId = pending.sourceActionId || pending.actionId || null;
+  events.push({ type: "attack.clear", actorId: status.source?.id || pending.actorId || null, payload: {
+    pendingId: pending.id, actionId, sourceActionId: actionId,
+    actionInstanceId: pending.actionInstanceId || pending.id,
+    ownerTurnInstanceId: pending.ownerTurnInstanceId || scene.lionwing?.activeTurnInstanceId || null,
+    targetIds: clone(pending.targetIds || []), cancelled: true, reason,
+    ...(pending.derived ? { derived: true, derivedActionId: pending.derivedActionId, fixedTargetId: pending.fixedTargetId, lineage: clone(pending.derivedLineage || []) } : {}),
+  } });
   return { ok: true, errors: [], cancelled: true, events };
 }
 

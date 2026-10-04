@@ -1488,11 +1488,11 @@
       if (payload.kind === "plan") {
         const actionPlanApi = global.DAWN_LIONWING_ACTION_PLAN;
         if (typeof actionPlanApi?.open === "function" && typeof actionPlanApi.preview === "function" && typeof actionPlanApi.prepareExecution === "function") {
-          const planInput = payload.actionPlan || actionPlanApi.open({
+          let planInput = payload.actionPlan || actionPlanApi.open({
           id: payload.planId || eventId,
-          rootActionId: payload.rootActionId || eventId,
+          rootActionId: eventId,
           definitionId: payload.actionId || "manual.attack",
-          actionInstanceId: payload.actionInstanceId || eventId,
+          actionInstanceId: eventId,
           source: { id: a.id, kind: "actor", actorId: a.id, causeEventId: eventId },
           owner: { id: a.id, kind: "actor", actorId: a.id },
           sceneVersion: Number(scene.version || 0),
@@ -1506,6 +1506,11 @@
           });
           const normalizedInput = actionPlanApi.normalizePlan(planInput);
           if (normalizedInput.ownerActorId !== a.id || normalizedInput.source.actorId !== a.id) fail("ActionPlan принадлежит другому участнику");
+          if (normalizedInput.status === "committed" || normalizedInput.receipts.length || normalizedInput.modifiers.some(modifier => modifier.consumedByActionId)) fail("Подтверждённый экземпляр ActionPlan нельзя использовать для нового действия");
+          // A supplied preview is uncommitted input. Bind its execution to the
+          // new command and recompute its quote instead of trusting old IDs.
+          planInput = { ...normalizedInput, rootActionId: eventId, actionInstanceId: eventId, source: { ...normalizedInput.source, causeEventId: eventId } };
+          delete planInput.quote; delete planInput.result;
           const previewed = actionPlanApi.preview(planInput, { scene, expectedRevision: planInput.revision });
           const execution = actionPlanApi.prepareExecution(previewed.plan, { scene, expectedRevision: previewed.plan.revision });
           payload.actionPlan = previewed.plan;
@@ -1544,6 +1549,10 @@
   // Techniques may compose these operations without registering imperative code.
   function execute(scene, event, output, executionOptions = {}) {
     const s = state(scene), rootId = event.id, emitted = [];
+    const actionLike = new Set(["action", "record-action", "attack", "derived-action"]);
+    const assertFreshActionIdentity = id => {
+      if ((scene.actors || []).some(owner => (owner.lionwing?.history || []).some(row => row.actionInstanceId === id)) || s.history.some(fact => ["apply", "attack"].includes(fact.type) && fact.actionInstanceId === id)) fail("Экземпляр действия уже исполнен");
+    };
     const scheduled = [];
     let frameSerial = 0, choiceSerial = 0, historySerial = 0, rollSerial = 0, provenance = null, restored = null;
     let executionCursor = s.executionCursor ? foundations.openCursor(s.executionCursor) : null, completedSteps = 0, completedResults = [];
@@ -1614,6 +1623,7 @@
     let scheduleAfterEvent = null;
     const acceptEvent = (row, alreadyLogged = false) => {
       const { type, actorId } = row, receiptPayload = row.payload || {}, payload = receiptPayload;
+      if (!row.execution && provenance) row.execution = copy(provenance);
       emitted.push(row);
       if (!alreadyLogged) { scene.log.unshift(row); scene.log = scene.log.slice(0, 200); }
       const targets = receiptPayload.targetIds || (receiptPayload.targetId ? [receiptPayload.targetId] : []);
@@ -1637,7 +1647,13 @@
       else if (type === "rule.used") saveFact("apply", actorId, targets, { scope: payload.scope }, { ...provenance, ruleId: payload.ruleId, ownerActorId: actorId });
       else if (type === "counter.threshold") saveFact("counter.threshold", actorId, targets, { counterId: payload.counterId || payload.id, kind: payload.kind || payload.type, before: payload.before, value: payload.value, threshold: payload.threshold });
       else if (type === "aura.enter" || type === "aura.exit") saveFact(type, actorId, [actorId], { auraId:payload.auraId, effectId:payload.effectId, ruleId:payload.ruleId, ownerActorId:payload.ownerActorId, sourceEntityId:payload.sourceEntityId, movementTargetId:payload.movementTargetId||null, segmentIndex:payload.segmentIndex??null });
-      else if (type === "attack.clear" && payload.cancelled) saveFact("cancel", actorId, targets, { reason: payload.reason || "cancelled" });
+      else if (type === "attack.clear" && payload.cancelled) saveFact("cancel", actorId, targets, { reason: payload.reason || "cancelled" }, {
+        ...provenance,
+        actionId: payload.actionId || payload.sourceActionId || provenance?.actionId,
+        actionDefinitionId: payload.actionId || payload.sourceActionId || provenance?.actionId,
+        actionInstanceId: payload.actionInstanceId || provenance?.actionInstanceId,
+        ownerActorId: actorId,
+      });
       if (scheduleAfterEvent && ["clash.success", "combat-meter.change", "damage.apply", "actor.knockout", "effect.apply", "actor.enter", "actor.move", "action.resolve", "attack.clear", "marker.remove", "reaction.respond", "resource.gain", "rule.used", "movement.prepare", "movement.start", "movement.segment", "movement.enter", "movement.leave", "movement.cross", "movement.end", "movement.stop", "actor.despawn", "actor.remove", "space.remove"].includes(type)) scheduleAfterEvent(row);
       if (typeof cancelFollowupsForEvent === "function" && ["damage.apply", "actor.knockout", "actor.despawn", "actor.remove", "space.remove"].includes(type)) cancelFollowupsForEvent(row);
       restored?.afterEvent(row);
@@ -1653,7 +1669,7 @@
         ...(payload.actionInstanceId || !provenance?.actionInstanceId ? {} : { actionInstanceId: provenance.actionInstanceId }),
         ...(payload.ownerTurnInstanceId || !provenance?.ownerTurnInstanceId ? {} : { ownerTurnInstanceId: provenance.ownerTurnInstanceId }),
       } : payload;
-      const row = { id: `${rootId}:${emitted.length}`, at: event.at, type, actorId: actorId || null, payload: copy(receiptPayload), visibility: ["gm", "owner"].includes(receiptPayload.visibility) ? receiptPayload.visibility : event.visibility || "public" };
+      const row = { id: legacy.eventPacketContract.generatedId(scene, `${rootId}:${emitted.length}`, executionOptions), at: event.at, type, actorId: actorId || null, payload: copy(receiptPayload), visibility: ["gm", "owner"].includes(receiptPayload.visibility) ? receiptPayload.visibility : event.visibility || "public" };
       if (provenance) row.execution = copy(provenance);
       return acceptEvent(row);
     };
@@ -2922,7 +2938,8 @@
     // independently pay, consume a once-only right or append Action history.
     const executeAction = (a, p, def, status, route, apply, extra = {}) => {
       p.actionInstanceId ||= provenance?.actionInstanceId || rootId;
-      p.ownerTurnInstanceId ||= s.activeTurnInstanceId || null;
+      p.ownerTurnInstanceId = s.activeTurnInstanceId || null;
+      assertFreshActionIdentity(p.actionInstanceId);
       provenance = foundations.identity({ ...provenance, actionId: def.id, actionDefinitionId: def.id, actionInstanceId: p.actionInstanceId, ownerActorId: a.id });
       const focusSpent = integer(p.focusSpent || 0, "Фокус");
       const focusCap = Number(status.actionQuote?.focusCap ?? tensionValue(scene));
@@ -3352,7 +3369,17 @@
             if (!sameJson(execution.operations, p.operations)) fail("Операции не совпадают с execution descriptor ActionPlan");
           }
           payReservation(a, quoted);
-          queue.unshift(...p.operations.map(operation => ({ p: { ...operation, ...(actionPlan ? { __actionPlan: actionPlan, __execution: execution } : {}) }, sourceId: operation.sourceActorId ?? sourceId, provenance: { ...provenance, actionId: p.actionId || provenance?.actionId } })));
+          const actionCount = p.operations.filter(operation => actionLike.has(operation.kind)).length;
+          queue.unshift(...p.operations.map((operation, index) => {
+            const context = { ...provenance, actionId: p.actionId || provenance?.actionId };
+            const prepared = { ...operation, ...(actionPlan ? { __actionPlan: actionPlan, __execution: execution } : {}) };
+            if (actionLike.has(operation.kind)) {
+              context.actionInstanceId = actionCount > 1 ? `${provenance.actionInstanceId}:action:${index}` : provenance.actionInstanceId;
+              prepared.actionInstanceId = context.actionInstanceId;
+              prepared.ownerTurnInstanceId = s.activeTurnInstanceId || null;
+            }
+            return { p: prepared, sourceId: operation.sourceActorId ?? sourceId, provenance: context };
+          }));
           emit("cost.commit", sourceId, { costs: quoted.costs, targetIds: quoted.targetIds });
           break;
         }
@@ -3387,7 +3414,7 @@
           emit("information.handout", sourceId || "narrator", { factId: handed.fact?.id || null, targetId: p.targetId || null, visibility: handed.fact?.visibility || p.visibility || "public" });
           break;
         }
-        case "attack": if (p.cost) spend(requiredActor(scene, sourceId), p.cost.resource || "ap", integer(p.cost.amount, "стоимость")); beginAttack(requiredActor(scene, sourceId), p); break;
+        case "attack": assertFreshActionIdentity(p.actionInstanceId || provenance?.actionInstanceId || rootId); if (p.cost) spend(requiredActor(scene, sourceId), p.cost.resource || "ap", integer(p.cost.amount, "стоимость")); beginAttack(requiredActor(scene, sourceId), p); break;
         case "marker-remove": {
           const marker = (scene.markers || []).find(item => item.id === p.markerId), hostId = marker && (marker.hostActorId || marker.metadata?.hostActorId || marker.metadata?.carrierActorId);
           if (!marker || marker.ruleId !== p.ruleId || marker.ownerActorId !== sourceId || hostId !== p.targetId) fail("Слабая точка уже отсутствует или принадлежит другой цели");
@@ -4202,7 +4229,15 @@
           if(previous.executionCursor){executionCursor=foundations.openCursor(previous.executionCursor);s.executionCursor=executionCursor;}else{executionCursor=null;delete s.executionCursor;}
           emit("chain.resume",sourceId,{depth:s.pausedChains.length});break;
         }
-        case "cancel-attack": { const pending = scene.pendingAction; scene.pendingAction = null; s.afterAttack = []; emit("attack.clear", sourceId, { cancelled: true, ...(pending?.derived ? { actionId: pending.sourceActionId, actionInstanceId: pending.actionInstanceId, targetIds: pending.targetIds, derived: true, derivedActionId: pending.derivedActionId, fixedTargetId: pending.fixedTargetId, lineage: pending.derivedLineage } : {}) }); break; }
+        case "cancel-attack": {
+          const pending = scene.pendingAction;
+          if (!pending) fail("Нет ожидающей Атаки для отмены");
+          const actionId = pending.sourceActionId || pending.actionId || "manual.attack";
+          provenance = foundations.identity({ ...provenance, actionId, actionDefinitionId: actionId, actionInstanceId: pending.actionInstanceId || pending.id, ownerActorId: pending.actorId });
+          scene.pendingAction = null; s.afterAttack = [];
+          emit("attack.clear", pending.actorId, { pendingId: pending.id, actionId, sourceActionId: actionId, actionInstanceId: pending.actionInstanceId || pending.id, ownerTurnInstanceId: pending.ownerTurnInstanceId || s.activeTurnInstanceId || null, targetIds: copy(pending.targetIds || []), cancelled: true, reason: String(p.reason || "cancelled").slice(0, 240), ...(pending.derived ? { derived: true, derivedActionId: pending.derivedActionId, fixedTargetId: pending.fixedTargetId, lineage: pending.derivedLineage } : {}) });
+          break;
+        }
         case "turn-start": {
           const status = turnStartStatus(scene, sourceId); if (!status.available) fail(status.reason);
           const extraTurn = Boolean(s.grantedTurns?.length && s.grantedTurns[0].actorId === a.id);
@@ -4393,8 +4428,8 @@
       },
     }) || null;
     const pendingActionId = scene.pendingAction?.sourceActionId || null;
-    provenance = foundations.identity({ rootActionId: rootId, actionId: request.actionId || pendingActionId || `operation.${request.kind}`, actionDefinitionId:request.actionId||pendingActionId||`operation.${request.kind}`, actionInstanceId:rootId, causeEventId: rootId, ownerActorId: event.actorId || "scene" });
     const sharedPacket = executionOptions[sharedLifecycleAuthority];
+    provenance = foundations.identity({ rootActionId: rootId, actionId: request.actionId || pendingActionId || `operation.${request.kind}`, actionDefinitionId:request.actionId||pendingActionId||`operation.${request.kind}`, actionInstanceId:rootId, causeEventId: rootId, ownerActorId: event.actorId || "scene", ...(sharedPacket?.identity || {}) });
     saveFact("attempt", event.actorId??null, request.targetIds || (request.targetId ? [request.targetId] : []), { kind: request.kind });
     const duelPreparation=s.choices[0]?.kind==="duel-outcome"&&["roll","resource"].includes(request.kind)&&(s.duels||[]).some(duel=>duel.id===s.choices[0].context.duelId&&[duel.actorId,duel.targetId].includes(request.targetId||event.actorId));
     const pendingFollowup = s.choices[0]?.context?.followupId && followupById(s.choices[0].context.followupId);
@@ -4481,16 +4516,18 @@
       for (const operation of operations) {
         if (!operation.__sharedEvent) { grouped.push(operation); continue; }
         const previous = grouped.at(-1);
-        if (previous?.__sharedEvents) previous.__sharedEvents.push(operation.__sharedEvent);
-        else grouped.push({ kind: "shared-event", sourceActorId: operation.sourceActorId, __sharedEvents: [operation.__sharedEvent] });
+        if (previous?.__sharedEvents && sameJson(previous.__sharedIdentity, operation.__sharedIdentity)) previous.__sharedEvents.push(operation.__sharedEvent);
+        else grouped.push({ kind: "shared-event", sourceActorId: operation.sourceActorId, __sharedEvents: [operation.__sharedEvent], __sharedIdentity: operation.__sharedIdentity });
       }
       operations.splice(0, operations.length, ...grouped);
     }
     if (request.kind === "choice" && s.deferred.length && !executionCursor) setCursor(s.deferred, 0, s.choices[0]?.id);
-    const actionLike = new Set(["action", "record-action", "attack", "derived-action"]);
     const queue = operations.map((p, index) => {
-      const operationProvenance = copy(provenance);
-      if (actionLike.has(p.kind)) operationProvenance.actionInstanceId = p.actionInstanceId || (operations.length > 1 ? `${rootId}:action:${index}` : operationProvenance.actionInstanceId);
+      const operationProvenance = copy(sharedPacket && p.__sharedIdentity || provenance);
+      if (actionLike.has(p.kind)) {
+        operationProvenance.actionInstanceId = sharedPacket && p.actionInstanceId || (operations.length > 1 ? `${rootId}:action:${index}` : rootId);
+        p = { ...p, actionInstanceId: operationProvenance.actionInstanceId, ownerTurnInstanceId: s.activeTurnInstanceId || null };
+      }
       return { p, sourceId: p.sourceActorId ?? event.actorId, provenance: operationProvenance };
     });
     if (request.kind === "choice") queue.push(...s.deferred.splice(0));
@@ -4570,10 +4607,10 @@
     legacy.eventPacketContract.validate(events);
     const replay = legacy.eventPacketContract.replayStatus(scene, events);
     if (replay.complete) return { scene: copy(scene), events: [], event: null };
-    const acceptedIds = new Set(replay.matched ? (scene.lionwing?.receipts || []).map(receipt=>receipt.id) : []);
+    const acceptedIds = new Set(replay.matchedIds);
     const pending = events.filter(event=>{ if (!event.id) return true; if (acceptedIds.has(event.id)) return false; acceptedIds.add(event.id); return true; });
     legacy.eventPacketContract.validateConsequences(scene, pending);
-    const result = dispatchEventPacket(scene, pending, options);
+    const result = dispatchEventPacket(scene, pending, legacy.eventPacketContract.reserveIds(scene, events, options));
     legacy.eventPacketContract.record(result.scene, events);
     return result;
   }
@@ -4581,6 +4618,7 @@
     events = events.map(row=>({ ...copy(row), id: row.id || global.crypto?.randomUUID?.() || `lw-shared-${Date.now()}-${preparedSerial++}`, at: row.at || new Date().toISOString() }));
     const next = copy(scene), output = [], pending = next.pendingAction;
     const anchor = events.find(row => row.type === "attack.clear") || events[0];
+    const pendingIdentity = pending && { rootActionId: pending.actionInstanceId || pending.id, actionId: pending.sourceActionId || pending.actionId || "manual.attack", actionDefinitionId: pending.sourceActionId || pending.actionId || "manual.attack", actionInstanceId: pending.actionInstanceId || pending.id, causeEventId: anchor.id, ownerActorId: pending.actorId };
     const operations = events.map((row,index) => {
       const p = copy(row.payload || {}), sourceActorId = row.actorId;
       // Shared adapters describe consequences; native foundations own their
@@ -4599,9 +4637,15 @@
       // before/after queue surrounds these results and observes their receipts.
       return { ...p, kind: row.type === "damage.apply" ? "damage" : "shared-event", sourceActorId, __sharedEvent: copy(row) };
     });
+    let identity = pendingIdentity;
+    for (const [index, operation] of operations.entries()) {
+      const row = events[index];
+      if (row.type === "enemy.action.prepare") identity = { rootActionId: row.id, actionId: row.payload.ruleId, actionDefinitionId: row.payload.ruleId, actionInstanceId: `${row.id}:action`, causeEventId: row.id, ownerActorId: row.actorId };
+      if (identity) operation.__sharedIdentity = copy(identity);
+    }
     execute(next, { id: `${anchor.id}:lifecycle`, at: anchor.at, type: "lionwing.command", actorId: pending?.actorId || anchor.actorId,
       payload: { kind: "batch", operations, actionId: pending?.sourceActionId || pending?.actionId } }, output,
-      { ...options, [sharedLifecycleAuthority]: true });
+      { ...options, [sharedLifecycleAuthority]: { identity: pendingIdentity } });
     return { scene: next, events: output, event: output.at(-1) || null };
   }
   function dispatchEventPacket(scene, events, options = {}) {
@@ -5091,12 +5135,22 @@
     if(typeof legacy[name]==="function")route(name,(scene,...args)=>legacy[name](sceneWithActiveEffects(scene),...args));
   }
   route("projectScene",(scene,viewer={})=>{
-    const projected=legacy.projectScene(scene,viewer);
+    const narrator = ["owner", "narrator", "gm"].includes(viewer.role);
+    const entityProjection = !narrator && entities?.projectScene ? entities.projectScene(scene, viewer) : scene;
+    const projected=legacy.projectScene(entityProjection,viewer);
     if (inventory?.project && projected?.actors) {
       const inventoryProjection = inventory.project(scene, viewer);
       for (const projectedActor of projected.actors) {
         projectedActor.lionwing ||= {};
-        if (inventoryProjection[projectedActor.id]) projectedActor.lionwing.inventory = inventoryProjection[projectedActor.id];
+        if (inventoryProjection[projectedActor.id]) {
+          projectedActor.lionwing.inventory = inventoryProjection[projectedActor.id];
+          if (!narrator && projectedActor.inventory) {
+            const source = actor(scene, projectedActor.id);
+            for (const id of Object.keys(source?.lionwing?.inventory?.definitions || {})) {
+              if (!Object.values(inventoryProjection[projectedActor.id].records || {}).some(record => record.definitionId === id && !record.instanceId)) delete projectedActor.inventory[id];
+            }
+          }
+        }
         else delete projectedActor.lionwing.inventory;
       }
     }

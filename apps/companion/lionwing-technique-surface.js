@@ -690,7 +690,10 @@
       return result.ok;
     }
     if (!scene || !actor || !choice || !option || !choice.options?.includes(option)) return false;
-    const action = actionFromChoice(scene, choice, option, actor), result = previewAction(scene, action), key = scene.version + ":" + action.id;
+    const action = actionFromChoice(scene, choice, option, actor);
+    const pickDestination = global.lwBeginTechniqueChoiceDestination || (() => { try { return typeof lwBeginTechniqueChoiceDestination === "function" ? lwBeginTechniqueChoiceDestination : null; } catch { return null; } })();
+    if (action.destinationRequired && typeof pickDestination === "function" && pickDestination(choice, actionRequest(action), action.label)) return true;
+    const result = previewAction(scene, action), key = scene.version + ":" + action.id;
     const host = button.closest("[data-lw-technique-offer]")?.querySelector("[data-lw-technique-preview-host]");
     if (result.ok) actionPreviews.set(key, result); else actionPreviews.delete(key);
     if (host) host.innerHTML = previewHtml(action, result, key);

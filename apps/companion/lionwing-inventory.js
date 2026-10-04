@@ -595,6 +595,7 @@
   }
 
   function status(scene, actorId, payload = {}) {
+    scene = clone(scene);
     normalizeScene(scene);
     const actor = actorById(scene, actorId), id = payload.id || payload.itemId || payload.definitionId;
     if (!actor || !id) return { available: false, reason: "Запись инвентаря не выбрана" };
@@ -703,6 +704,21 @@
       const records = Object.fromEntries(Object.entries(state.records || {}).filter(([, record]) => definitions[record.definitionId] && allowed(record)).map(([id, record]) => [id, clone(record)]));
       result[actor.id] = { schema: VERSION, actorId: actor.id, definitions, records };
       if (narrator) { result[actor.id].reservations = clone(state.reservations || {}); result[actor.id].journal = clone(state.journal || []); }
+      else {
+        // Availability must include held costs for visible records. Project
+        // only their active cost summary, never operation/journal metadata or
+        // costs belonging to hidden definitions and instances.
+        const reservations = {};
+        for (const [id, reservation] of Object.entries(state.reservations || {})) {
+          if (reservation.status !== "reserved") continue;
+          const costs = (reservation.costs || []).filter(cost => definitions[cost.itemId]
+            && Object.values(records).some(record => record.definitionId === cost.itemId
+              && (record.instanceId || null) === (cost.instanceId || null)))
+            .map(cost => ({ itemId: cost.itemId, instanceId: cost.instanceId || null, amount: cost.amount, sourceDigest: cost.sourceDigest }));
+          if (costs.length) reservations[id] = { schema: VERSION, id, reservationId: id, actorId: actor.id, status: "reserved", costs };
+        }
+        result[actor.id].reservations = reservations;
+      }
     }
     return result;
   }

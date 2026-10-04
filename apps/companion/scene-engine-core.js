@@ -53,13 +53,18 @@ function validateEventPacket(events) {
 function eventRequestReceipts(scene) {
   return scene.rulesEdition === "lionwing" ? scene.lionwing?.receipts || [] : scene.eventReceipts || [];
 }
-function eventPacketReplayStatus(scene, events) {
+function eventPacketReplayStatus(scene, events, includeCommitted = true) {
   const receipts = new Map(eventRequestReceipts(scene).map(receipt => [receipt.id, receipt]));
   let matched = 0;
+  const matchedIds = [];
   for (const event of events) {
     const receipt = event.id && receipts.get(event.id);
-    if (!receipt) continue;
     const stored = (scene.log || []).find(item => item.id === event.id);
+    if (!receipt) {
+      if (!includeCommitted || !stored) continue;
+      if (eventRequestFingerprint(stored) !== eventRequestFingerprint(event)) eventPacketError("Конфликт ID события: в журнале уже записано другое событие", "SCENE_EVENT_ID_CONFLICT");
+      matched++; matchedIds.push(event.id); continue;
+    }
     let matches = receipt.fingerprint === JSON.stringify([event.type, event.actorId || null, event.payload || {}]);
     if (receipt.requestMetadata !== undefined) {
       const [type, actorId, payload] = JSON.parse(receipt.fingerprint);
@@ -67,9 +72,26 @@ function eventPacketReplayStatus(scene, events) {
         || stored && eventRequestFingerprint(stored) === eventRequestFingerprint(event);
     }
     if (!matches) eventPacketError("Конфликт ID события: запрос уже принят с другими данными", "SCENE_EVENT_ID_CONFLICT");
-    matched++;
+    matched++; matchedIds.push(event.id);
   }
-  return { complete: matched === events.length, matched };
+  return { complete: matched === events.length, matched, matchedIds };
+}
+const generatedEventReservations = Symbol("generated event reservations");
+function reserveEventIds(scene, events, options = {}) {
+  return { ...options, [generatedEventReservations]: new Set([
+    ...(options[generatedEventReservations] || []),
+    ...(scene.log || []).map(event => event.id),
+    ...eventRequestReceipts(scene).map(receipt => receipt.id),
+    ...events.map(event => event.id).filter(Boolean),
+  ]) };
+}
+function generatedEventId(scene, base, options = {}) {
+  const reserved = options[generatedEventReservations];
+  const occupied = new Set([...(reserved || []), ...(scene.log || []).map(event => event.id), ...eventRequestReceipts(scene).map(receipt => receipt.id)]);
+  let id = base, serial = 0;
+  while (occupied.has(id)) id = `${base}:generated:${++serial}`;
+  reserved?.add(id);
+  return id;
 }
 function recordEventRequests(scene, events) {
   const receipts = new Map(eventRequestReceipts(scene).map(receipt => [receipt.id, receipt]));
