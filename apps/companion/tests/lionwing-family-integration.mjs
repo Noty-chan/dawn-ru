@@ -202,7 +202,8 @@ scene = run(scene, "enemy", { kind: "resolve-attack" }, "flow:resolve-attack");
 assert.equal(findActor(scene, "hero").hp, 16, "the Wound restores Health before the pending Resistance choice");
 assert.equal(findActor(scene, "hero").wounds, 2);
 assert.equal(scene.lionwing.choices[0].kind, "knockout");
-assert.equal(scene.lionwing.deferred.length, 1, "the second damage case waits behind Resistance");
+assert.equal(scene.lionwing.deferred.filter(item=>item.p?.kind === "damage").length, 1, "the second damage case waits behind Resistance");
+assert.equal(scene.log.some(row=>row.type === "attack.clear"), false, "the Attack completion waits for its damage and Resistance decision");
 
 const damageSave = entities.reload(entities.serialize(scene));
 const resistanceId = damageSave.lionwing.choices[0].id;

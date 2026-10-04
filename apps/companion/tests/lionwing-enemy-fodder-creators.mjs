@@ -173,7 +173,7 @@ const callDead = Engine.availableEnemyRules(necromancer, data, "source").find(ru
 assert.equal(callDead?.crowdSummon?.count, 3, "Call The Dead creates 1 + Tier Fodder");
 const callDeadPlan = prepare(necromancer, callDeadId, ["1,1", "2,1", "3,1"]);
 assert.equal(callDeadPlan.ok, true, callDeadPlan.errors?.join(" "));
-assert.throws(() => Engine.dispatchMany(necromancer, [callDeadPlan.events[0], callDeadPlan.events.find(event => event.type === "actor.spawn")]), /оплаченному Призыву/, "a prepared Call cannot create free Corpse Fodder without AP spend");
+assert.throws(() => Engine.dispatchMany(necromancer, [callDeadPlan.events[0], callDeadPlan.events.find(event => event.type === "actor.spawn")]), /полного канонического пакета/, "a prepared Call cannot create free Corpse Fodder without AP spend");
 const calledDead = commit(necromancer, callDeadPlan);
 assert.equal(fodder(calledDead).length, 3);
 assert.ok(fodder(calledDead).every(item => item.crowdSubtype === "corpse"), "all summoned Fodder retain Corpse provenance");
@@ -195,7 +195,12 @@ const danse = Engine.prepareEnemyRule(enemyKnockout, data, { actorId: "source", 
 assert.equal(danse.ok, true, danse.errors?.join(" "));
 const forgedActionDanse = clone(danse.events[0]); forgedActionDanse.id = "forged-action-danse"; forgedActionDanse.payload.kind = "action";
 assert.throws(() => Engine.dispatch(enemyKnockout, forgedActionDanse), /тип действия/, "Danse cannot pretend to be an ordinary Action to avoid Ace limits");
-const noTensionDanse = clone(enemyKnockout); noTensionDanse.tension = 1;
+// Tension is owned by the typed meter once the Scene has executed a command;
+// lower it through the writer rather than changing its compatibility projection.
+const lowerTension = context.window.DAWN_LIONWING_ENGINE.prepare(enemyKnockout, { kind: "tension", amount: 1 });
+assert.equal(lowerTension.ok, true, lowerTension.errors?.join(" "));
+const noTensionDanse = Engine.dispatchMany(enemyKnockout, lowerTension.events).scene;
+assert.equal(noTensionDanse.tension, 1);
 assert.throws(() => Engine.dispatch(noTensionDanse, danse.events[0]), /Напряжение/, "Danse requires its canonical Tension threshold at the writer");
 const usedTrumpDanse = clone(enemyKnockout); usedTrumpDanse.actors[0].usedTrump = true;
 assert.throws(() => Engine.dispatch(usedTrumpDanse, danse.events[0]), /Козырь/, "Danse cannot run after an Ace was spent");
@@ -313,5 +318,103 @@ assert.match(remoteCrushingImpact.errors.join(" "), /области/);
 assert.equal(fodder(javelinRange).some(item => item.id === "range-fodder"), true, "the unautomated optional range passive does not consume Fodder as a side effect");
 const javelinUi = fs.readFileSync(new URL("../scene-ui.js", import.meta.url), "utf8");
 assert.match(javelinUi, /пассив дальности не автоматизирован; зона 2×2 остаётся размещённой на самом NPC/, "the UI discloses Javelin's unautomated passive and canonical area boundary");
+
+// Writer authority covers the complete consequences, not merely each supplied
+// spawn. Run the same forged requests against both public edition adapters.
+for (const [profile, rule, cells, extra] of [
+  ["javelin", "call", ["2,2", "3,2", "4,2"], {}],
+  ["broodmother", "call", ["2,2", "3,2", "4,2"], {}],
+  ["glutton", "call", ["2,2", "3,2", "4,2"], {}],
+  ["necromancer", "call-the-dead", ["2,2", "3,2", "4,2"], {}],
+  ["swarm", "call", ["0,0", "1,0", "2,0"], {}],
+  ["bodyguards", "reinforcements", ["0,0", "1,0", "2,0", "3,0", "4,0"], {}],
+  ["swarm", "reinforcements", ["0,0", "1,0", "2,0", "3,0", "4,0", "5,0"], {}],
+  ["glutton", "regurgitate", ["2,2", "3,2"], { ruleState: { gluttonConsumed: 2 } }],
+]) {
+  const initial = scene(`lionwing.npc.${profile}`, extra), ruleId = `lionwing.npc.${profile}.${rule}`;
+  const planned = prepare(initial, ruleId, cells);
+  assert.equal(planned.ok, true, planned.errors?.join(" "));
+  const events = planned.events.map((event, index) => ({ ...clone(event), id: `atomic-${profile}-${rule}-${index}` }));
+  for (const dispatchSingle of [Engine.dispatch, context.dispatch]) {
+    const before = JSON.stringify(initial);
+    assert.throws(() => dispatchSingle(initial, clone(events[0])), /полного канонического пакета/, "single-event entry cannot partially prepare an atomic summon");
+    assert.equal(JSON.stringify(initial), before);
+  }
+  const alterations = [];
+  for (const type of ["enemy.action.prepare", "resource.spend", "actor.spawn", "enemy.action.resolve", "turn.grant", "effect.apply"]) {
+    const index = events.findIndex(event => event.type === type);
+    if (index >= 0) alterations.push([`missing ${type}`, rows => rows.filter((_, offset) => offset !== index)]);
+  }
+  alterations.push(["duplicate declared cell", rows => {
+    for (const event of rows) if (event.payload.crowdSummon) event.payload.crowdSummon.cells[1] = event.payload.crowdSummon.cells[0];
+    return rows;
+  }], ["empty result", rows => {
+    for (const event of rows) if (event.payload.crowdSummon) event.payload.crowdSummon.cells = [];
+    return rows.filter(event => event.type !== "actor.spawn" && event.type !== "effect.apply");
+  }], ["missing spawn actor", rows => {
+    rows.find(event => event.type === "actor.spawn").payload.actor = null;
+    return rows;
+  }]);
+  for (const [adapter, dispatchPacket] of [["native", Engine.dispatchMany], ["shared", context.dispatchMany]]) {
+    for (const [label, alter] of alterations) {
+      const before = JSON.stringify(initial), packet = alter(clone(events));
+      assert.throws(() => dispatchPacket(initial, packet), /.+/, `${adapter} ${ruleId}: ${label} must be refused`);
+      assert.equal(JSON.stringify(initial), before, `${adapter} ${ruleId}: ${label} cannot spend or mutate the source`);
+    }
+    const result = dispatchPacket(initial, clone(events)).scene;
+    const repeatedSpawn = events.find(event => event.type === "actor.spawn");
+    const repeatedIndex = events.indexOf(repeatedSpawn);
+    const duplicated = dispatchPacket(initial, [...clone(events.slice(0, repeatedIndex + 1)), clone(repeatedSpawn), ...clone(events.slice(repeatedIndex + 1))]).scene;
+    assert.equal(duplicated.actors[0].ap, result.actors[0].ap, "an identical fresh event ID is removed before whole-packet validation");
+    assert.equal(fodder(duplicated).length, cells.length);
+    assert.equal(fodder(result).length, cells.length, `${adapter} ${ruleId}: all canonical Fodder exist`);
+    assert.equal(result.actors[0].ap, 4 - (rule === "reinforcements" || rule === "regurgitate" ? 2 : 1));
+    if (rule === "reinforcements") assert.equal(result.actors[0].extraTurns, 1);
+    if (rule === "regurgitate") for (const id of ["source", "friend"]) assert.ok(result.actors.find(item => item.id === id).effects.includes("negative.подброшен"));
+    assert.equal(dispatchPacket(clone(result), clone(events)).scene.actors[0].ap, result.actors[0].ap, "exact replay never pays again");
+    const mixed = dispatchPacket(clone(result), [...clone(events), { id: `fresh-${adapter}-${profile}-${rule}`, type: "resource.gain", actorId: "source", payload: { resource: "ap", amount: 1 } }]).scene;
+    assert.equal(mixed.actors[0].ap, result.actors[0].ap + 1, "accepted summon rows are filtered before validating and applying the fresh command");
+    assert.equal(fodder(mixed).length, cells.length, "mixed retry cannot recreate the accepted summon");
+  }
+}
+
+let exhaustedCall = scene("lionwing.npc.javelin");
+for (const cells of [["0,0", "1,0", "2,0"], ["0,1", "1,1"], ["0,2"]]) {
+  const planned = prepare(exhaustedCall, "lionwing.npc.javelin.call", cells);
+  assert.equal(planned.ok, true, planned.errors?.join(" "));
+  exhaustedCall = commit(exhaustedCall, planned);
+}
+const zeroCall = prepare(exhaustedCall, "lionwing.npc.javelin.call", []);
+assert.equal(zeroCall.ok, true, zeroCall.errors?.join(" "));
+assert.deepEqual(clone(zeroCall.events.map(event => event.type)), ["enemy.action.prepare", "resource.spend", "enemy.action.resolve"]);
+const zeroBefore = JSON.stringify(exhaustedCall);
+assert.throws(() => Engine.dispatchMany(exhaustedCall, zeroCall.events.filter(event => event.type !== "resource.spend")), /полного канонического пакета/, "a canonical zero-result Call still costs AP");
+assert.equal(JSON.stringify(exhaustedCall), zeroBefore);
+const zeroAfter = commit(exhaustedCall, zeroCall);
+assert.equal(zeroAfter.actors[0].ap, 0, "a complete zero-result Call pays its final AP");
+assert.equal(fodder(zeroAfter).length, 6, "zero-result Call creates no extra Fodder");
+
+let pausedRegurgitate = scene("lionwing.npc.glutton", { ruleState: { gluttonConsumed: 2 } });
+Object.assign(pausedRegurgitate.actors[1], { kind: "hero", heroId: "friend", attrs: { body: 3, talent: 3, spirit: 3, mind: 3 }, knownTechniques: { "powerhouse.berserker": 2 } });
+pausedRegurgitate = Engine.dispatch(pausedRegurgitate, { id: "summon-enable-replacement", type: "lionwing.command", actorId: "friend", payload: { kind: "automation", actorId: "friend", ruleId: "powerhouse.berserker.2", enabled: true } }).scene;
+const pausedPlan = prepare(pausedRegurgitate, "lionwing.npc.glutton.regurgitate", ["2,2", "3,2"]);
+assert.equal(pausedPlan.ok, true, pausedPlan.errors?.join(" "));
+const pausedEvents = pausedPlan.events.map((event, index) => ({ ...event, id: `paused-regurgitate-${index}` }));
+pausedRegurgitate = Engine.dispatchMany(pausedRegurgitate, pausedEvents).scene;
+assert.equal(pausedRegurgitate.lionwing.choices[0]?.kind, "replacement", "Regurgitate's mandatory Launch can pause on a native replacement");
+assert.equal(pausedRegurgitate.lionwing.choices[0]?.context.effect, "negative.подброшен");
+assert.equal(pausedRegurgitate.actors[0].ap, 2);
+assert.equal(fodder(pausedRegurgitate).length, 2, "all Fodder exist before the replacement pause");
+pausedRegurgitate = clone(pausedRegurgitate);
+const pausedReplay = Engine.dispatchMany(pausedRegurgitate, clone(pausedEvents)).scene;
+assert.deepEqual(clone(pausedReplay), clone(pausedRegurgitate), "packet retry while paused cannot pay or spawn again");
+pausedRegurgitate = Engine.dispatch(pausedRegurgitate, { id: "summon-keep-launch", type: "lionwing.command", actorId: "friend", payload: { kind: "choice", actorId: "friend", id: pausedRegurgitate.lionwing.choices[0].id, choice: "keep" } }).scene;
+assert.equal(pausedRegurgitate.lionwing.choices.length, 0);
+assert.equal(pausedRegurgitate.lionwing.deferred.length, 0, "trusted continuation finishes after the saved decision");
+assert.equal(pausedRegurgitate.actors[0].ap, 2);
+assert.equal(fodder(pausedRegurgitate).length, 2);
+assert.ok(pausedRegurgitate.actors[1].effects.includes("negative.подброшен"));
+assert.equal(pausedRegurgitate.log.filter(event => event.type === "enemy.action.resolve" && event.payload?.ruleId === "lionwing.npc.glutton.regurgitate").length, 1);
+assert.deepEqual(clone(Engine.dispatchMany(clone(pausedRegurgitate), clone(pausedEvents)).scene), clone(pausedRegurgitate), "retry after resumed resolution is exact");
 
 console.log("LionWing Fodder creators OK");

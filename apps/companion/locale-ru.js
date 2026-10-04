@@ -5,6 +5,16 @@
 // system messages. New or edited UI text must be added here rather than adding
 // a second language directly to feature code.
 window.DAWN_I18N?.registerLocale("ru", {
+  "scene.flow.native-choice.title": "{actor}: {title}",
+  "scene.flow.native-choice.actor": "Участник",
+  "scene.flow.native-choice.fallback": "Решение последствия",
+  "scene.flow.native-choice.hint": "Ответьте на решение в пульте. После ответа действие продолжится.",
+  "scene.flow.native-choice.action": "Действие",
+  "scene.flow.native-choice.consequence": "Последствие",
+  "scene.flow.native-choice.decision": "Решение",
+  "scene.flow.native-choice.continue": "Продолжение",
+  "scene.flow.native-choice.open": "Открыть решение",
+  "scene.tray.native-choice.lock": "Сначала ответьте на решение в пульте",
   "lionwing.technique.controls.attributeBody": "Тело",
   "lionwing.technique.controls.attributeTalent": "Талант",
   "lionwing.technique.controls.attributeSpirit": "Дух",

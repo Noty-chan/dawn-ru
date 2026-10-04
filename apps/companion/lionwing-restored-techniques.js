@@ -140,7 +140,11 @@
     const mark = (owner, ruleId, detail = {}) => emit("technique.resolve", owner.id, { ruleId, sourceDigest: byId.get(ruleId)?.sourceDigest, ...detail });
     const stateFor = owner => owner.lionwing ||= {};
     function ensure(owner) {
-      for (const [id, ruleId, label, value, replacesAp] of [["bullets", "powerhouse.gunslinger.1", "Пули", 6, false], ["material", "ruiner.creation-ascetic.1", "Материал", 0, false], ["tenacity", "bulwark.mundane.1", "Упорство", 2 + Math.ceil(owner.attrs.body / 2), true]]) if (enabled(owner, ruleId) && !owner.ruleResources?.[id]) k.configure({ id, label, value, current: value, replaces: "focus", replacesAp, ruleId }, owner.id);
+      for (const [id, ruleId, label, initial, replacesAp] of [["bullets", "powerhouse.gunslinger.1", "Пули", () => 6, false], ["material", "ruiner.creation-ascetic.1", "Материал", () => 0, false], ["tenacity", "bulwark.mundane.1", "Упорство", () => 2 + Math.ceil(owner.attrs.body / 2), true]]) {
+        if (!enabled(owner, ruleId) || owner.ruleResources?.[id]) continue;
+        const value = initial();
+        k.configure({ id, label, value, current: value, replaces: "focus", replacesAp, ruleId }, owner.id);
+      }
       if (enabled(owner, "vagabond.cunning-fighter.1") && !owner.ruleClocks?.["vagabond.cunning-fighter.plan"]) clock({ id: "vagabond.cunning-fighter.plan", operation: "create", size: 4, current: 0, initial: 0, scope: "scene", lifetime: "scene", label: "Хитрый план" }, owner.id);
       if (enabled(owner, "altruist.gourmand.1") && !owner.lionwing?.inventory?.definitions?.["altruist.gourmand.meals"]) inventory({ operation: "create", id: "altruist.gourmand.meals", kind: "stack", ruleId: "altruist.gourmand.1", sourceDigest: byId.get("altruist.gourmand.1").sourceDigest, label: "Порции", current: Math.ceil(owner.attrs.mind / 2), initial: Math.ceil(owner.attrs.mind / 2), maximum: Math.ceil(owner.attrs.mind / 2), resetAt: "intermission", lifetime: "scene" }, owner.id);
     }
@@ -176,16 +180,23 @@
       if (!(owner.lionwing?.mundaneFinisherRound || []).includes(scene.round)) { stateFor(owner).mundaneDiscount = Number(owner.lionwing.mundaneDiscount || 0) + amount; mark(owner, "bulwark.mundane.2", { discount: amount, total: owner.lionwing.mundaneDiscount }); }
       return true;
     }
-    function beforeAction(owner, p) {
+    function actionCosts(p) {
+      const f = p.restoredPlan || {}, costs = [];
+      if (p.useCunningPlan) costs.push({ kind: "clock", id: "vagabond.cunning-fighter.plan", amount: 1, ruleId: "vagabond.cunning-fighter.1" });
+      if (f.materialSpent) costs.push({ kind: "resource", resource: "material", amount: f.materialSpent, ruleId: "ruiner.creation-ascetic.1" });
+      if (f.bullets) costs.push({ kind: "resource", resource: "bullets", amount: f.bullets, ruleId: "powerhouse.gunslinger.1", bigIronHandled: true });
+      return costs;
+    }
+    function beforeAction(owner, p, context = {}) {
       ensure(owner);
       const f = p.restoredPlan || {};
-      if (p.useCunningPlan) { clock({ id: "vagabond.cunning-fighter.plan", operation: "add", delta: -1 }, owner.id); stateFor(owner).cunningSpentTurn = s.activeTurnInstanceId || scene.turnSerial; mark(owner, "vagabond.cunning-fighter.1", { actionId: p.actionId }); }
+      if (p.useCunningPlan) { if (!context.pricePaid) clock({ id: "vagabond.cunning-fighter.plan", operation: "add", delta: -1 }, owner.id); stateFor(owner).cunningSpentTurn = s.activeTurnInstanceId || scene.turnSerial; mark(owner, "vagabond.cunning-fighter.1", { actionId: p.actionId }); }
       if (enabled(owner, "bulwark.mundane.2") && p.actionId === A.finish) {
         const discount = Number(owner.lionwing?.mundaneDiscount || 0), base = k.actionDef(A.finish).cost.amount;
         stateFor(owner).mundaneFinisherRound ||= []; owner.lionwing.mundaneFinisherRound.push(scene.round); owner.lionwing.mundaneDiscount = 0;
       }
-      if (f.materialSpent) spend(owner, "material", f.materialSpent, { ruleId: "ruiner.creation-ascetic.1" });
-      if (f.bullets) { spend(owner, "bullets", f.bullets, { ruleId: "powerhouse.gunslinger.1", bigIronHandled: true }); for (const id of f.bulletTargets) if (alive(actor(id))) damage({ targetId: id, sourceActorId: owner.id, amount: enabled(owner, "powerhouse.gunslinger.3") && actor(id).effects?.includes("negative.подброшен") ? 2 : 1, attack: false, sourceActionId: "powerhouse.gunslinger.1" }); }
+      if (f.materialSpent && !context.pricePaid) spend(owner, "material", f.materialSpent, { ruleId: "ruiner.creation-ascetic.1" });
+      if (f.bullets) { if (!context.pricePaid) spend(owner, "bullets", f.bullets, { ruleId: "powerhouse.gunslinger.1", bigIronHandled: true }); for (const id of f.bulletTargets) if (alive(actor(id))) damage({ targetId: id, sourceActorId: owner.id, amount: enabled(owner, "powerhouse.gunslinger.3") && actor(id).effects?.includes("negative.подброшен") ? 2 : 1, attack: false, sourceActionId: "powerhouse.gunslinger.1" }); }
     }
     function terrain(owner, f) {
       const cells = f.cells.map(key), selected = new Set(cells);
@@ -206,7 +217,7 @@
         if (enabled(owner, "disruptor.chemist.1") && obstacle) offer(owner, "disruptor.chemist.1", "Сублимация: уничтожить препятствие и создать Газ?", ["gas"], { obstacleId: f.obstacleId, cell: f.obstacleCell, optionLabels: { gas: "Уничтожить и создать Газ" } });
         else if (obstacle?.hp === 0) { scene.objects = scene.objects.filter(item => item.id !== obstacle.id); emit("object.destroy", owner.id, { objectId: obstacle.id }); }
       }
-      if (scene.pendingAction?.actorId === owner.id) {
+      if (scene.pendingAction?.actorId === owner.id && scene.pendingAction.actionInstanceId === p.actionInstanceId) {
         scene.pendingAction.restoredPlan = clone(f);
         if (f.titanic) { scene.pendingAction.damage = result.rolls.length + scene.tension; for (const id of scene.pendingAction.targetIds) scene.pendingAction.targetDamage[id] = result.rolls.length + Number(p.targetRolls?.[id]?.rolls?.length || 0) + scene.tension; }
         if (f.extraDamage) { scene.pendingAction.damage += f.extraDamage; for (const id of scene.pendingAction.targetIds) scene.pendingAction.targetDamage[id] += f.extraDamage; }
@@ -244,6 +255,10 @@
       if (enabled(owner, "disruptor.chemist.3")) for (const targetId of targetsIn(scene, owner, cells)) damage({ targetId, sourceActorId: owner.id, amount: owner.attrs.mind, attack: false, sourceActionId: "disruptor.chemist.3" });
     }
     function beforeAttack(owner, pending) {
+      // An adjudicated Attack also pays Creator's mandatory resource. Base
+      // Actions already settled this charge through actionCosts(), leaving
+      // no Material to charge again; fixed Jabs use that same path.
+      if (enabled(owner, "ruiner.creation-ascetic.1") && ownResource(owner, "material") > 0) spend(owner, "material", ownResource(owner, "material"), { ruleId: "ruiner.creation-ascetic.1", actionInstanceId: pending.actionInstanceId });
       for (const targetId of pending.targetIds) { const target = actor(targetId); if (!target) continue;
         if ((scene.areas || []).some(area => area.ruleId === "disruptor.chemist.1" && area.space === target.space && area.cells.includes(key(target)) && actor(area.ownerActorId)?.team === target.team && (owner.space !== area.space || !area.cells.includes(key(owner)))) && remember(receipt(target, "gas-evasion", pending.actionInstanceId || pending.id))) { target.evasion = Number(target.evasion || 0) + 3; emit("stat.gain", target.id, { stat: "evasion", amount: 3, ruleId: "disruptor.chemist.1", attackId: pending.id }); }
       }
@@ -310,7 +325,7 @@
       else if (p.operation === "meal") { const target = actor(p.targetId); if (!enabled(owner, "altruist.gourmand.1") || scene.activeActorId !== owner.id || !alive(target) || target.team !== owner.team || distance(owner, target) !== 1 || k.stackCount(owner, "altruist.gourmand.meals") < 1) fail("Порция требует соседнего союзника и запас в свой Ход"); k.interact(owner, p); mealOffer(owner, target, "altruist.gourmand.1"); }
       else fail("Неизвестная операция Техники");
     }
-    return { ensure, afterEvent, beforeGain, beforeAction, afterAction, beforeDamage, resolve, gas, beforeAttack, limitMove, afterMove, answer, operation };
+    return { ensure, afterEvent, beforeGain, actionCosts, beforeAction, afterAction, beforeDamage, resolve, gas, beforeAttack, limitMove, afterMove, answer, operation };
   }
   global.DAWN_LIONWING_RESTORED_TECHNIQUES = Object.freeze({ defs, enabled, dependencies, quote, plan, install, rows: owner => defs.filter(row => knows(owner, row.id)).map(row => ({ ...row, enabled: enabled(owner, row.id) })) });
 })(window);

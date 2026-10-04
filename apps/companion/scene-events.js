@@ -1652,7 +1652,51 @@ function reduceEvent(scene, event) {
   scene.log = scene.log.slice(0, 200);
 }
 
+// A public summon request is one transaction. Per-event checks alone cannot
+// detect an omitted spawn, Launch, or extra Turn. Rebuild its canonical result
+// with the existing planner; only generated entity identifiers may differ.
+function validateEnemySummonPacket(scene, events) {
+  if (scene.rulesEdition !== "lionwing") return;
+  const prepares = events.filter(event => event.type === "enemy.action.prepare"
+    && ENEMY_FULL_RULES.get(event.payload?.ruleId)?.type === "crowd-summon"
+    && String(event.payload?.ruleId).startsWith("lionwing.npc."));
+  const summonRows = events.filter(event => event.payload?.crowdSummonToken != null
+    || event.type === "enemy.action.resolve" && ENEMY_FULL_RULES.get(event.payload?.ruleId)?.type === "crowd-summon"
+      && String(event.payload?.ruleId).startsWith("lionwing.npc."));
+  if (!prepares.length && !summonRows.length) return;
+  const reject = () => eventPacketError("Призыв требует полного канонического пакета: оплату, все Зоны, обязательные Эффекты и дополнительный Ход.");
+  if (prepares.length !== 1) reject();
+  const prepare = prepares[0], payload = prepare.payload || {}, cells = payload.crowdSummon?.cells;
+  if (!Array.isArray(cells) || new Set(cells).size !== cells.length
+      || typeof payload.crowdSummon?.token !== "string" || !payload.crowdSummon.token.trim()) reject();
+  const data = (typeof window === "object" ? window : globalThis).DAWN_DATA;
+  const expected = prepareEnemyRule(scene, data, { actorId: prepare.actorId, ruleId: payload.ruleId,
+    targetIds: payload.targetIds || [], options: { cells } });
+  if (!expected.ok || expected.events.length !== events.length) reject();
+  const spawns = events.filter(event => event.type === "actor.spawn");
+  if (spawns.some(event => !event.payload?.actor || typeof event.payload.actor.id !== "string" || !event.payload.actor.id.trim()
+      || typeof event.payload.actor.crowdGroupId !== "string" || !event.payload.actor.crowdGroupId.trim())) reject();
+  const normalize = rows => rows.map(event => {
+    const p = clone(event.payload || {});
+    if (p.crowdSummon) p.crowdSummon.token = "summon-token";
+    if (p.crowdSummonToken != null) p.crowdSummonToken = "summon-token";
+    if (event.type === "actor.spawn" && p.crowdSummonToken != null) {
+      p.actor.id = "summon-actor";
+      p.actor.crowdGroupId = "summon-group";
+    }
+    return eventRequestFingerprint({ type: event.type, actorId: event.actorId || null, payload: p });
+  });
+  if (JSON.stringify(normalize(expected.events)) !== JSON.stringify(normalize(events))) reject();
+  if (new Set(spawns.map(event => event.payload.actor.id)).size !== spawns.length
+      || spawns.length > 0 && new Set(spawns.map(event => event.payload.actor.crowdGroupId)).size !== 1
+      || events.some(event => event.payload?.crowdSummon?.token != null && event.payload.crowdSummon.token !== payload.crowdSummon.token
+        || event.payload?.crowdSummonToken != null && event.payload.crowdSummonToken !== payload.crowdSummon.token)) reject();
+}
+
 function dispatch(scene, event, options = {}) {
+  return dispatchTransition(scene, event, options, false);
+}
+function dispatchTransition(scene, event, options, continuation) {
   validateEventPacket([event]);
   const stored = event?.id ? (scene?.log || []).find(item => item.id === event.id) : null;
   if (stored) {
@@ -1675,6 +1719,7 @@ function dispatch(scene, event, options = {}) {
     }
     return { scene: clone(scene), event: clone(stored), duplicate: true };
   }
+  if (!continuation) validateEnemySummonPacket(scene, [event]);
   if (options.expectedVersion !== undefined && Number(scene?.version || 0) !== Number(options.expectedVersion)) {
     const error = new Error(`Конфликт версии Сцены: ожидалась ${options.expectedVersion}, получена ${Number(scene?.version || 0)}.`);
     error.code = "SCENE_VERSION_CONFLICT";

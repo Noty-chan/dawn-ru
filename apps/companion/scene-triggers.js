@@ -1254,14 +1254,28 @@ function triggeredEvents(scene, event, options = {}) {
 }
 
 function dispatchMany(scene, events, options = {}) {
+  return dispatchManyChecked(scene, events, options, false);
+}
+// Trusted adapters use this function. Continuations retain all JSON,
+// ID, replay, transition and per-event validation, but have already passed the
+// public whole-packet consequence check before any native replacement pause.
+function dispatchEventContinuation(scene, events, options = {}) {
+  return dispatchManyChecked(scene, events, options, true);
+}
+function dispatchManyChecked(scene, events, options, continuation) {
   validateEventPacket(events);
   const replay = eventPacketReplayStatus(scene, events);
   if (replay.complete) return { scene: clone(scene), events: [], event: null, duplicates: [] };
   // Filter accepted external requests before expanding the trigger queue.
   // Deferred prompts reuse their request ID when they are eventually opened;
   // their internal continuation must still execute exactly once.
-  const acceptedIds = replay.matched ? new Set(eventRequestReceipts(scene).map(receipt => receipt.id)) : null;
-  const pending = acceptedIds ? events.filter(event => !acceptedIds.has(event.id)) : events;
+  const acceptedIds = new Set(replay.matched ? eventRequestReceipts(scene).map(receipt => receipt.id) : []);
+  const pending = events.filter(event => {
+    if (!event.id) return true;
+    if (acceptedIds.has(event.id)) return false;
+    acceptedIds.add(event.id); return true;
+  });
+  if (!continuation) validateEnemySummonPacket(scene, pending);
   const result = dispatchEventPacket(scene, pending, options);
   recordEventRequests(result.scene, events);
   return result;
@@ -1336,7 +1350,7 @@ function dispatchEventPacket(scene, events, options = {}) {
           : queue.some(candidate => candidate.type === "actor.move" && candidate.actorId === placementActorId && Number(candidate.payload?.x) === Number(destination.x) && Number(candidate.payload?.y) === Number(destination.y))
     );
     const dispatchOptions = { ...options, expectedVersion: versionPending ? options.expectedVersion : undefined, placementResponse, internalChain: !externalEvents.has(event) };
-    const result = dispatch(next, event, dispatchOptions);
+    const result = dispatchTransition(next, event, dispatchOptions, true);
     next = result.scene;
     if (result.event.type === "actor.knockout" && result.event.payload?.applied && result.event.payload?.targetId) {
       invalidatedActorIds.add(result.event.payload.targetId);
