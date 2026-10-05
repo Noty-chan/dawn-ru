@@ -9,6 +9,7 @@
   <title>DAWN RU · Компаньон</title>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="stylesheet" href="app.css?v=__BUILD_VERSION__">
+  <link rel="stylesheet" href="hero-gadgets.css?v=__BUILD_VERSION__">
   <script>try{const sceneUi=JSON.parse(localStorage.getItem("dawn-ru-companion-v2")||"null")?.sceneUi||{};if(Number(sceneUi.interfaceRolloutVersion||0)<3||sceneUi.interfaceVersion==="next")document.documentElement.classList.add("scene-interface-next")}catch{document.documentElement.classList.add("scene-interface-next")}</script>
   <link id="scene-interface-classic-styles" rel="stylesheet" href="vtt-interface-classic.css?v=__BUILD_VERSION__">
   <link id="scene-interface-next-styles" rel="stylesheet" href="vtt-cockpit.css?v=__BUILD_VERSION__" disabled>
@@ -153,6 +154,7 @@
             </div>
           </div>
           <div id="tainted-ability-section" class="subpanel tainted-ability" hidden><div class="subpanel-head"><div><h3 data-i18n="builder.ability.tainted">Новая Способность «Порченого тела»</h3><small data-i18n="builder.ability.taintedHelp">Отдельна от исходной Способности и оплачивается только особым резервом Дара.</small></div></div><div id="tainted-ability-builder"></div></div>
+          <div id="hero-gadgets" class="subpanel" hidden></div>
           <details class="rules-details"><summary data-i18n="builder.ranks.sources">Особые источники Рангов</summary><div id="rank-modifiers"></div></details>
         </section>
 
@@ -406,6 +408,7 @@
   <script src="lionwing-display-mapping.js?v=__BUILD_VERSION__"></script>
   <script src="lionwing-table-data.js?v=__BUILD_VERSION__"></script>
   <script src="logic.js?v=__BUILD_VERSION__"></script>
+  <script src="hero-gadgets.js?v=__BUILD_VERSION__"></script>
   <script src="scene-engine-core.js?v=__BUILD_VERSION__"></script>
   <script src="scene-query.js?v=__BUILD_VERSION__"></script>
   <script src="scene-movement.js?v=__BUILD_VERSION__"></script>

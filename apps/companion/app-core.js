@@ -37,7 +37,7 @@ function blankHero(rulesEdition=contentPreferences?.edition||"ru-v0.9"){
     schema:APP_SCHEMA,rulesEdition:["ru-v0.9","lionwing"].includes(rulesEdition)?rulesEdition:"ru-v0.9",id:uid(),name:"",player:"",concept:"",tier:1,media:{portrait:"",token:"",portraitStored:false,tokenStored:false},
     attrs:{body:4,talent:3,spirit:2,mind:2},attrBonus:{body:0,talent:0,spirit:0,mind:0},
     techConversions:0,conversionAttr:"body",primaryOutlook:null,outlooks:[],gifts:[],bonds:[],supplementIds:[],
-    skills:[{id:uid(),name:"",rank:1}],
+    skills:[{id:uid(),name:"",rank:1}],gadgets:[],
     ability:blankAbility(),taintedAbility:blankAbility(),
     techniques:{},mods:{taintedBody:false,gadgetSpent:0,performanceSkill:null,spellcrafterAugments:[],wispSpiritTypes:[]},
     runtime:{hp:null,maxHp:null,wounds:0,focus:null,influence:1,stress:0,ap:3,tension:0,funding:null,fundingTier:0,sacrifices:[],notes:"",effects:[],clocks:[],diceHistory:[],freeplay:{target:null}}
@@ -388,6 +388,7 @@ function normalizeHero(raw){
   if(base.primaryOutlook&&!base.outlooks.includes(base.primaryOutlook)) base.outlooks.unshift(base.primaryOutlook);
   base.bonds=Array.isArray(h.bonds)?h.bonds.slice(0,30).filter(bond=>bond&&typeof bond==="object").map(bond=>({id:typeof bond.id==="string"?bond.id:uid(),name:typeof bond.name==="string"?bond.name.trim().slice(0,120):"",rank:clamp(bond.rank||1,1,3),tags:cleanArray(bond.tags).map(tag=>tag.trim().slice(0,40)).filter(Boolean).slice(0,6),quick:Boolean(bond.quick)})).filter(bond=>bond.name):[];
   base.skills=Array.isArray(h.skills)?h.skills.slice(0,30).map(s=>({id:typeof s.id==="string"?s.id:uid(),name:typeof s.name==="string"?s.name.slice(0,180):"",definitionId:typeof s.definitionId==="string"?s.definitionId.slice(0,180):null,rank:clamp(s.rank,1,3)})):base.skills;
+  base.gadgets=Array.isArray(h.gadgets)&&h.gadgets.length?window.DAWN_GADGETS.normalize(h.gadgets,{normalizeAbility,uid}):[];
   base.ability=normalizeAbility(h.ability);base.taintedAbility=normalizeAbility(h.taintedAbility);
   base.techniques={}; if(h.techniques&&typeof h.techniques==="object") for(const [id,level] of Object.entries(h.techniques)) base.techniques[id]=clamp(level,0,3);
   const spellcrafterLevel=Number(base.techniques["ruiner.spellcrafter"]||0),spellcrafterLearnedLimit=spellcrafterLearnedLimitFor(spellcrafterLevel),spellcrafterIds=new Set(["fierce","focused","wild","outstanding"]);
@@ -650,7 +651,7 @@ function budgets(){
   // each discipline can keep its own rank. Account for them as Ability ranks.
   const budgetSkills=S.skills.filter(skill=>!isRaashaPsionicSkill(S,skill));
   const psionicAbilityCost=S.skills.filter(skill=>isRaashaPsionicSkill(S,skill)).reduce((sum,skill)=>sum+clamp(skill.rank,1,3),0);
-  const rankAccounting=Logic.calculateCreationBudgets({tier:t,builderRules:rules,gifts:selectedGiftNames(),skillRanks:budgetSkills.map(s=>s.rank),performanceTargetRank:performanceSkill?.rank||0,abilityCost:aCost+psionicAbilityCost,taintedBodyUsed:S.mods.taintedBody,taintedAbilityCost:taintedCost,gadgetSpent:S.mods.gadgetSpent});
+  const rankAccounting=Logic.calculateCreationBudgets({tier:t,builderRules:rules,gifts:selectedGiftNames(),skillRanks:budgetSkills.map(s=>s.rank),performanceTargetRank:performanceSkill?.rank||0,abilityCost:aCost+psionicAbilityCost,taintedBodyUsed:S.mods.taintedBody,taintedAbilityCost:taintedCost,gadgetSpent:gadgetRankSpendFor().total});
   const giftPool=rules?rules.boons.startingChoices+rules.boons.perTier*(t-1):t+1,activeGiftIds=new Set(allGifts().map(gift=>gift.id)),giftSpent=S.gifts.filter(id=>activeGiftIds.has(id)).length;
   const activeTechniqueIds=new Set(activeArchetypes().flatMap(archetype=>archetype.techniques.map(technique=>technique.id)));
   const techPool=(rules?rules.techniques.startingLevels+rules.techniques.levelsPerTier*(t-1):5+2*(t-1))-(rules?.techniques.levelsPerAttributeConversion||2)*S.techConversions,techSpent=Object.entries(S.techniques).filter(([id])=>activeTechniqueIds.has(id)).reduce((n,[,v])=>n+v,0);
@@ -689,7 +690,7 @@ function issues(){
   if(b.techSpent>b.techPool)problem("bad","builder.issue.techniquesOver");
   if(b.techSpent<b.techPool)problem("","builder.issue.techniquesRemaining",{count:b.techPool-b.techSpent});
   if(b.archUsed>(activeBuilderRules()?.techniques.maximumArchetypes||3))problem("bad","builder.issue.archetypeLimit");
-  return problems;
+  return problems.concat(heroGadgetIssues());
 }
 
 function budgetRow(label,spent,total,forcedOver=false){const pct=total?Math.min(100,spent/total*100):0;return `<div class="budget-row ${forcedOver||spent>total?"over":""}"><span>${esc(label)}</span><strong>${spent}/${total}</strong><span class="bar"><i style="--pct:${pct}%"></i></span></div>`}
