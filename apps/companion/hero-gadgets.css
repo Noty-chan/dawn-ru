@@ -1,0 +1,8 @@
+.hero-gadget-list{display:grid;gap:12px;margin-top:12px;min-width:0}
+.hero-gadget-card{min-width:0;border:1px solid var(--line);border-radius:12px;padding:12px}
+.hero-gadget-card summary{display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;cursor:pointer;overflow-wrap:anywhere}
+.hero-gadget-card summary span{font-size:.85em;opacity:.8}
+.hero-gadget-card .ability-grid{margin-top:12px}
+.hero-gadget-card .button-row{margin-top:12px;flex-wrap:wrap}
+.hero-gadgets-sheet article{border-top:1px solid var(--line);padding-top:8px;overflow-wrap:anywhere}
+@media(max-width:420px){.hero-gadget-card{padding:8px}.hero-gadget-card .button-row button{width:100%}}
