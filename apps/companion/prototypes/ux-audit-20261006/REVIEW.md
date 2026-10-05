@@ -53,7 +53,7 @@ Root не объявляет выполненными: полный keyboard-onl
 
 ## Проверки кода
 
-`node --check` всех JS черновиков, HUD regression tests, pointer routing и `git diff --check` прошли. Первый полный npm run остановился в тесте fingerprint во время изменения Git HEAD; отдельный повтор `tests/automation-verification.mjs` на стабильном HEAD прошёл. Итог полного набора записывается после стабильного прогона; во время него изменения/коммиты не выполняются.
+`node --check` всех JS черновиков, HUD regression tests, pointer routing и `git diff --check` прошли. Первый полный npm run остановился в тесте fingerprint во время изменения Git HEAD; отдельный повтор `tests/automation-verification.mjs` на стабильном HEAD прошёл. Стабильный полный `npm test` завершился с exit 0. Во время него изменения/коммиты не выполнялись. Предусмотренные пропуски: Windows symlink permission и optional legacy 0.9 Raasha exact-sheet fixture. Лог: output/ui-redesign-2026-10-06/npm-test.log в основном рабочем каталоге.
 
 ## Что дальше
 
