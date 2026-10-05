@@ -35,7 +35,9 @@
     if(!actor||!token||menu.hidden)return close();
     const rect=token.getBoundingClientRect(),field=wrap.getBoundingClientRect();
     if(rect.bottom<field.top||rect.top>field.bottom||rect.right<field.left||rect.left>field.right)return close();
-    menu.style.maxHeight=`${Math.max(44,Math.min(innerHeight-8,field.bottom-8)-Math.max(8,field.top+8))}px`;
+    const visibleHeight=Math.min(innerHeight-8,field.bottom-8)-Math.max(8,field.top+8);
+    if(visibleHeight<44)return close();
+    menu.style.maxHeight=`${visibleHeight}px`;
     const width=menu.offsetWidth,height=menu.offsetHeight,minLeft=Math.max(8,field.left+8),maxLeft=Math.max(minLeft,Math.min(innerWidth-8,field.right-8)-width);
     const minTop=Math.max(8,field.top+8),maxTop=Math.max(minTop,Math.min(innerHeight-8,field.bottom-8)-height);
     const above=rect.top-height-12,top=above>=minTop?above:rect.bottom+12;
@@ -46,6 +48,7 @@
   function draw({resetHealth=false}={}){
     const actor=liveActor();if(!actor)return close();
     const focusedAction=document.activeElement?.dataset?.tokenHudAction;
+    const focusedHealth=document.activeElement&&(document.activeElement===menu.querySelector("input")?"input":document.activeElement===menu.querySelector('button[type="submit"]')?"submit":null);
     const hp=health(actor),gm=activeSceneView()==="gm",owns=gm||actor.heroId===S.id,targeted=Scene.targetIds.includes(actor.id);
     const input=menu.querySelector("input"),draft=gm&&!resetHealth&&input&&input.value!==String(state.health)?input.value:null;
     if(draft===null)state.health=hp.value;
@@ -55,12 +58,14 @@
       <div class="token-hud-actions">${owns?`<button type="button" data-token-hud-action="cockpit" title="${copy("Действия и Техники в Пульте","Actions and Techniques in the cockpit")}"><i aria-hidden="true">⌘</i>${copy("Действия","Actions")}</button>`:""}<button type="button" data-token-hud-action="inspect"><i aria-hidden="true">ⓘ</i>${copy("Профиль","Profile")}</button><button type="button" data-token-hud-action="target" aria-pressed="${targeted}" ${actor.knockedOut?"disabled":""} title="${copy("Отметить или снять цель · T","Toggle target · T")}"><i aria-hidden="true">◎</i>${copy(targeted?"Снять цель":"Цель",targeted?"Untarget":"Target")}</button><button type="button" class="token-hud-more" data-token-hud-action="more" aria-label="${copy("Другие команды токена","More token commands")}" title="${copy("Другие команды токена","More token commands")}"><i aria-hidden="true">•••</i>${copy("Ещё","More")}</button></div>
       <p class="token-hud-status" role="status" aria-live="polite"></p>`;
     menu.hidden=false;updateHealthControls();position();
+    if(menu.hidden)return;
     if(focusedAction)menu.querySelector(`[data-token-hud-action="${focusedAction}"]`)?.focus({preventScroll:true});
+    else if(focusedHealth){const control=menu.querySelector(focusedHealth==="input"?"input":'button[type="submit"]');(control?.disabled?menu.querySelector("input"):control)?.focus({preventScroll:true});}
   }
   function show(actor){
     state={actorId:actor.id,identity:identity(),health:health(actor).value};
     sceneContextTarget={actorId:actor.id,cell:`${actor.x},${actor.y}`,markerId:null};
-    hideSceneTokenTip(0);draw({resetHealth:true});menu.querySelector('[data-token-hud-action="target"]')?.focus({preventScroll:true});
+    hideSceneTokenTip(0);draw({resetHealth:true});if(!menu.hidden)menu.querySelector('[data-token-hud-action="target"]')?.focus({preventScroll:true});
   }
   function refresh(){
     if(!state||menu.hidden)return;

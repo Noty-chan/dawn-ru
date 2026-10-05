@@ -991,7 +991,7 @@ body[data-scene-control-mode="manual"] .scene-dock [data-scene-panel="director"]
 .scene-context-menu.is-token-hud :is(button,input):focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
 .token-hud-health-read{display:flex;justify-content:space-between;padding:.4rem .55rem;border-radius:9px;background:var(--surface-2);font-size:.8rem}
 .token-hud-actions{display:flex;gap:.3rem}
-.scene-context-menu .token-hud-actions button{display:grid;place-items:center;gap:.2rem;flex:1;min-width:0;min-height:44px;padding:.4rem .2rem;border:1px solid var(--line);border-radius:9px;background:var(--surface-2);font-size:.68rem;text-align:center}
+.scene-context-menu .token-hud-actions button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.2rem;flex:1;min-width:0;min-height:44px;padding:.4rem .2rem;border:1px solid var(--line);border-radius:9px;background:var(--surface-2);font-size:.68rem;text-align:center}
 .token-hud-actions button i{font-style:normal;font-size:.95rem;line-height:1}
 .scene-context-menu .token-hud-actions button[aria-pressed="true"]{border-color:var(--gold);color:var(--gold);background:color-mix(in srgb,var(--gold) 12%,var(--surface-2))}
 .scene-context-menu .token-hud-actions .token-hud-more{flex:0 0 44px;color:var(--muted)}

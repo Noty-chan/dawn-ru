@@ -21,7 +21,7 @@ class Element{
     this.html=html;this.controls={};document.activeElement=null;
     const value=html.match(/id="token-hud-health-input"[^>]*value="([^"]*)"/);
     if(value){const input=new Element("input");input.value=value[1];this.controls.input=input;
-      const form=new Element("form"),submit=new Element("submit");form.controls['button[type="submit"]']=submit;this.controls.form=form;}
+      const form=new Element("form"),submit=new Element("submit");form.controls['button[type="submit"]']=submit;this.controls['button[type="submit"]']=submit;this.controls.form=form;}
     const status=new Element("status");status.textContent="";this.controls[".token-hud-status"]=status;
     for(const action of ["target","cockpit","inspect","close","more"]){
       if(html.includes(`data-token-hud-action="${action}"`)){const control=new Element(action);control.dataset.tokenHudAction=action;this.controls[`[data-token-hud-action="${action}"]`]=control;}
@@ -84,6 +84,11 @@ assert.equal(input().value,"-5","Tab to Apply and a background refresh do not di
 hud.action("target");assert.equal(input().value,"-5","targeting preserves an unfinished health edit");assert.equal(hud.applyHealth(),true);assert.equal(enemy().hp,25);
 assert.equal(document.activeElement,input(),"Enter keeps the health editor ready for another edit");
 
+reset();open();document.activeElement=menu.querySelector('button[type="submit"]');hud.refresh();
+assert.equal(document.activeElement,menu.querySelector('button[type="submit"]'),"background draw preserves Tab focus on Apply when HP has not been edited");
+reset();shared="table-a";open();document.activeElement=menu.querySelector('button[type="submit"]');queued.pending=1;hud.refresh();
+assert.equal(document.activeElement,input(),"a now-disabled Apply returns keyboard focus to the health input");
+
 reset();shared="table-a";open();assert.equal(apply("-5"),true);assert.equal(enemy().hp,30,"shared corrections wait for the canonical update");
 assert.equal(menu.querySelector("form").querySelector('button[type="submit"]').disabled,true);assert.match(status(),/Сохранение/);
 assert.equal(apply("-5"),false);assert.equal(commands.length,1,"a second delta cannot be derived from unconfirmed health");
@@ -119,6 +124,12 @@ token.getBoundingClientRect=()=>({left:400,right:440,top:775,bottom:815,width:40
 hud.refresh();assert.ok(Number.parseFloat(menu.style.top)+menu.offsetHeight<=792,"HUD stays inside the field bottom margin");
 assert.equal(menu.style.maxHeight,"684px","HUD height is bounded by the visible field");
 token.getBoundingClientRect=originalTokenRect;
+const originalFieldRect=wrap.getBoundingClientRect;
+wrap.getBoundingClientRect=()=>({left:100,right:1000,top:870,bottom:1200});
+token.getBoundingClientRect=()=>({left:400,right:440,top:875,bottom:915,width:40,height:40});
+hud.refresh();assert.equal(menu.hidden,true,"a field with only 14px of visible control space closes the HUD instead of overflowing the viewport");
+assert.equal(menu.style.maxHeight,"","closing a clipped field leaves no minimum-height override");
+wrap.getBoundingClientRect=originalFieldRect;token.getBoundingClientRect=originalTokenRect;
 
 for(const change of [()=>{context.Scene.id="local-b";},()=>{shared="table-b";},()=>{context.Scene.lionwing.sceneSerial++;},()=>{context.Scene.actors.pop();},()=>{context.store.mode="hero";}]){
   reset();open();change();assert.equal(hud.applyHealth(),undefined);assert.equal(menu.hidden,true);assert.equal(commands.length,0,"stale token binding cannot write to a different scene");
