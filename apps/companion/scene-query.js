@@ -1,7 +1,61 @@
 "use strict";
 
+const BUILDER_ARMY_OF_STONE_RULE_ID = "lionwing.npc.builder.army-of-stone";
+const BUILDER_ARMY_OF_STONE_TERRAIN_TYPES = new Set(["terrain", "difficult", "high", "low"]);
+
+function builderArmyOfStoneStatus(scene, actorOrId) {
+  const actor = typeof actorOrId === "string" ? actorById(scene, actorOrId) : actorOrId;
+  const fail = reason => ({ available: false, reason, terrainObjects: [], cells: [], spawnCells: [], existingFodderIds: [] });
+  if (!actor || actor.profileId !== "lionwing.npc.builder" || actor.knockedOut) return fail("Армия камня доступна только выведенному на поле Строителю.");
+  if ((scene?.walls || []).length) return fail("Армия камня пока не может превратить Стены: у них нет клетки, где разместить Зону массовки. Уберите Стены вручную или разрешите это правило Нарратором.");
+
+  const spaces = new Map((scene?.spaces || []).map(space => [space.id, space]));
+  const cuts = new Set((scene?.topology?.cuts || []).flatMap(cut => (cut.cells || []).map(key => `${cut.space}:${String(key)}`)));
+  const terrainObjects = (scene?.objects || [])
+    .filter(object => BUILDER_ARMY_OF_STONE_TERRAIN_TYPES.has(object?.type))
+    .map(object => {
+      const space = spaces.get(object.space), rawCells = Array.isArray(object.cells) ? object.cells : null;
+      if (!object.id || !space || !rawCells?.length || rawCells.length > 144) return { invalid: true, id: object.id || "?" };
+      const cells = [...new Set(rawCells.map(String))].sort((a, b) => {
+        const [ax, ay] = a.split(",").map(Number), [bx, by] = b.split(",").map(Number);
+        return ay - by || ax - bx;
+      });
+      if (cells.some(key => {
+        const match = key.match(/^(\d{1,2}),(\d{1,2})$/), x = match ? Number(match[1]) : -1, y = match ? Number(match[2]) : -1;
+        return !match || x < 0 || y < 0 || x >= Number(space.width) || y >= Number(space.height) || cuts.has(`${object.space}:${key}`);
+      })) return { invalid: true, id: object.id };
+      return { id: object.id, space: object.space, type: object.type, label: String(object.label || "Местность"), cells, hidden: Boolean(object.hidden) };
+    })
+    .sort((a, b) => String(a.id).localeCompare(String(b.id)));
+  if (terrainObjects.some(object => object.invalid)) return fail("На поле есть повреждённая область Местности; исправьте её до применения Армии камня.");
+
+  const cellSources = new Map();
+  for (const object of terrainObjects) for (const key of object.cells) {
+    const cellId = `${object.space}:${key}`;
+    const source = cellSources.get(cellId) || { space: object.space, ...spatialPoint(key), terrainObjectIds: [], hidden: true };
+    source.terrainObjectIds.push(object.id);
+    source.hidden = source.hidden && object.hidden;
+    cellSources.set(cellId, source);
+  }
+  const cells = [...cellSources.values()].sort((a, b) => String(a.space).localeCompare(String(b.space)) || a.y - b.y || a.x - b.x);
+  if (terrainObjects.length > 240 || cells.length > 144) return fail("Слишком много местности для одного безопасного преобразования; разрешите Армию камня вручную.");
+  const existingFodderIds = [];
+  const spawnCells = [];
+  for (const cell of cells) {
+    const fodder = (scene?.actors || []).filter(item => item.kind === "crowd" && !item.knockedOut && item.space === cell.space && Number(item.x) === cell.x && Number(item.y) === cell.y);
+    if (fodder.length > 1 || fodder.some(item => item.team !== actor.team)) return fail("На клетке Местности уже есть чужая или конфликтующая Зона массовки; разрешите её вручную перед применением Армии камня.");
+    if (fodder.length === 1) {
+      cell.existingFodderId = fodder[0].id;
+      existingFodderIds.push(fodder[0].id);
+    } else spawnCells.push(cell);
+  }
+  return { available: true, reason: "", terrainObjects, cells, spawnCells, existingFodderIds };
+}
+
 function actorMatchesQuery(actor, source, options = {}) {
   if (!actor || (!options.includeKnockedOut && actor.knockedOut)) return false;
+  if (actor.deploymentProxy && !options.includeDeploymentProxy) return false;
+  if (actor.hidden && String(actor.profileId || "").startsWith("lionwing.modifier.") && !options.includeHiddenModifier) return false;
   if (!options.includeSelf && source && actor.id === source.id) return false;
   if (options.team && actor.team !== options.team) return false;
   if (options.audience === "allies" && source && actor.team !== source.team) return false;
@@ -633,7 +687,7 @@ function effectPresenceStatus(scene, actorId) {
     available: !actor.knockedOut && !disappeared,
     reason: actor.knockedOut ? "Участник выведен из боя." : disappeared ? "Участник Исчез и сейчас не находится на поле." : "",
     actor,
-    onField: !disappeared,
+    onField: !disappeared && !actor.deploymentProxy,
     disappeared,
     banished,
   };
@@ -642,6 +696,7 @@ function effectPresenceStatus(scene, actorId) {
 function effectTargetingStatus(scene, sourceActorId, targetActorId, options = {}) {
   const source = sourceActorId ? actorById(scene, sourceActorId) : null, target = actorById(scene, targetActorId);
   if (!target) return { available: false, reason: "Цель не найдена.", source, target: null };
+  if (target.deploymentProxy && !options.includeDeploymentProxy) return { available: false, reason: "Этот НПС не находится на поле и не может быть выбран целью.", source, target };
   const targetPresence = effectPresenceStatus(scene, target.id);
   if (targetPresence.disappeared && !options.includeDisappeared) return { available: false, reason: "Исчезнувший персонаж не может быть целью.", source, target };
   if (!source) return { available: true, reason: "", source: null, target };
@@ -657,8 +712,9 @@ function effectTargetingStatus(scene, sourceActorId, targetActorId, options = {}
     const guardian = actorById(scene, target.ruleState.healerGuardianId);
     if (guardian && !guardian.knockedOut && guardian.id !== target.id && guardian.space === target.space && distance(target, guardian) <= 1 && effectTargetingStatus(scene, sourceActorId, guardian.id, { ...options, ignoreHealerGuardian: true }).available) return { available: false, reason: `${target.name} защищён смежным Стражем ${guardian.name}.`, source, target, guardian };
   }
-  if(source.team===target.team&&[ENEMY_MODIFIER_IDS.collateral,ENEMY_MODIFIER_IDS.vip].includes(target.profileId)){
-    const protectedBy=(scene.actors||[]).find(item=>item.team!==target.team&&!item.knockedOut&&item.id!==target.id&&item.space===target.space&&distance(item,target)<=1&&(item.kind==="hero"||item.heroId));
+  if(source.team===target.team&&[ENEMY_MODIFIER_IDS.collateral,ENEMY_MODIFIER_IDS.vip,LIONWING_COLLATERAL_ID,LIONWING_VIP_ID].includes(target.profileId)){
+    const canonicalProtected=[LIONWING_COLLATERAL_ID,LIONWING_VIP_ID].includes(target.profileId);
+    const protectedBy=(scene.actors||[]).find(item=>item.team!==target.team&&!item.knockedOut&&item.id!==target.id&&item.space===target.space&&distance(item,target)<=1&&(canonicalProtected?(item.kind==="hero"&&!item.profileId||(item.ownerId||item.heroId)&&(scene.actors||[]).some(owner=>owner.id===(item.ownerId||item.heroId)&&owner.kind==="hero"&&!owner.profileId)):item.kind==="hero"||item.heroId));
     if(protectedBy)return{available:false,reason:`${target.name} нельзя ранить врагом рядом с ${protectedBy.name}.`,source,target,guardian:protectedBy};
   }
   return { available: true, reason: "", source, target };
@@ -700,7 +756,8 @@ function effectCellOccupancyStatus(scene, actorId, request = {}) {
   const actor = request.actor || actorById(scene, actorId) || null, space = request.space || actor?.space, x = Number(request.x), y = Number(request.y);
   if (!actor || !space || !Number.isInteger(x) || !Number.isInteger(y)) return { available: false, reason: "Некорректная клетка назначения.", actor, blockers: [] };
   const battlefield = (scene.spaces || []).find(item => item.id === space);
-  if (battlefield?.mode === "cinematic") return { available: true, reason: "", actor, blockers: [] };
+  const bracedCells = typeof bodyguardsBracedCells === "function" ? bodyguardsBracedCells(scene, space) : new Set();
+  if (battlefield?.mode === "cinematic") return bracedCells.has(`${x},${y}`) ? { available: false, reason: "Линия массовки Телохранителей временно непроходима.", actor, blockers: [{ kind: "bodyguards-brace", cell: `${x},${y}` }] } : { available: true, reason: "", actor, blockers: [] };
   const banished = hasEffect(scene, actor, "positive.изгнан");
   const compoundId = (actor.kind === "enemy" || actor.profileId) && typeof actor.compoundId === "string" && actor.compoundId.trim() ? actor.compoundId.trim() : null;
   const width=Math.max(1,Number(actor.occupiedWidth||1)),height=Math.max(1,Number(actor.occupiedHeight||1));if(x+width>Number(battlefield?.width||0)||y+height>Number(battlefield?.height||0))return{available:false,reason:"Фигура целиком не помещается на поле.",actor,blockers:[]};
@@ -708,11 +765,12 @@ function effectCellOccupancyStatus(scene, actorId, request = {}) {
   const blockers = (scene.actors || []).filter(other => other.id !== actor.id && other.space === space && overlaps(other))
     .filter(other => effectPresenceStatus(scene, other.id).onField)
     .filter(other => !other.knockedOut)
+    .filter(other => !other.deploymentProxy)
     .filter(other => actor.kind !== "crowd" && other.kind !== "crowd")
     .filter(other => !compoundId || other.team !== actor.team || String(other.compoundId || "").trim() !== compoundId)
     .filter(other => !banished && !hasEffect(scene, other, "positive.изгнан"));
-  const footprint=[];for(let oy=0;oy<height;oy++)for(let ox=0;ox<width;ox++)footprint.push(`${x+ox},${y+oy}`);const terrain = !banished && (scene.objects || []).find(object => object.space === space && object.type === "terrain" && (object.cells || []).some(cell=>footprint.includes(cell)));
-  return { available: blockers.length === 0 && !terrain, reason: blockers.length ? "Клетка назначения уже занята." : terrain ? "Клетка занята непроходимой местностью." : "", actor, blockers: terrain ? blockers.concat(terrain) : blockers, ...(typedDestinationStatus ? { typedTarget: typedDestinationStatus.normalized } : {}) };
+  const footprint=[];for(let oy=0;oy<height;oy++)for(let ox=0;ox<width;ox++)footprint.push(`${x+ox},${y+oy}`);const terrain = !banished && (scene.objects || []).find(object => object.space === space && object.type === "terrain" && (object.cells || []).some(cell=>footprint.includes(cell))), bracedBlockers=footprint.filter(cell=>bracedCells.has(cell)).map(cell=>({kind:"bodyguards-brace",cell}));
+  return { available: blockers.length === 0 && !terrain && !bracedBlockers.length, reason: blockers.length ? "Клетка назначения уже занята." : terrain ? "Клетка занята непроходимой местностью." : bracedBlockers.length ? "Линия массовки временно непроходима." : "", actor, blockers: terrain ? blockers.concat(terrain) : blockers.concat(bracedBlockers), ...(typedDestinationStatus ? { typedTarget: typedDestinationStatus.normalized } : {}) };
 }
 
 function effectAttackStatus(scene, sourceActorId, targetIds = []) {
@@ -720,7 +778,10 @@ function effectAttackStatus(scene, sourceActorId, targetIds = []) {
   if (!source) return { available: false, reason: "Атакующий не найден.", source: null, targets, damageModifier: 0, damageByTarget: {}, hindrance: 0, hindranceEffects: [] };
   const tier = Number(source.tier || 1);
   const damageModifier = (hasEffect(scene, source, "positive.усилен") ? tier : 0) - (hasEffect(scene, source, "negative.ослаблен") ? tier : 0);
-  const damageByTarget = Object.fromEntries(targets.map(target => [target.id, hasEffect(scene, target, "negative.помечен") ? tier : 0]));
+  // Marked adds the defender's Tier only after an Attack actually deals
+  // damage. Applying it here would use the attacker's Tier and let Armor or
+  // Evasion absorb a bonus that has not triggered yet.
+  const damageByTarget = Object.fromEntries(targets.map(target => [target.id, 0]));
   const targetSet = new Set(targets.map(target => target.id)), hindranceEffects = [];
   const frightened = effectStateFor(source, "negative.испуган");
   if (frightened?.sources.some(item => targetSet.has(item.actorId))) hindranceEffects.push("Испуган");
@@ -751,6 +812,7 @@ function effectDefenseStatus(scene, targetActorId) {
     target,
     compound,
     armorAllowed,
+    evasionAllowed: !defendedParts.some(part => hasEffect(scene, part, "negative.обездвижен") || hasEffect(scene, part, "negative.пойман")),
     armorBonus,
     dodgeAllowed: dodgeBlockers.length === 0,
     dodgeReason: dodgeBlockers.length ? `${dodgeBlockers.join(", ")} не позволяет получить преимущество Уворота.` : "",

@@ -25,6 +25,35 @@ const prepareAttack = (source, actorId, targetId, actionName = "Стычка") =
 });
 
 const actions = Engine.availableActions(scene, data, "hero");
+// Shared 0.9 attacks must apply effects once, including before Eclipse rounding.
+for (const [effect, modifier] of [["positive.усилен", 2], ["negative.ослаблен", -2]]) {
+  for (const [actionName, eclipse] of [["Стычка", false], ["Заклинание", false], ["Завершение", false], ["Завершение", true]]) {
+    let source = structuredClone(scene);
+    source.actors[0].effects = [effect];
+    source.actors[0].tier = 2;
+    source.actors[1].armor = 0;
+    source.actors[1].hp = source.actors[1].maxHp = 30;
+    if (eclipse) {
+      source.actors[0].techniques = { "ruiner.void-soul": 3 };
+      source.actors[0].ruleClocks = { "ruiner.void-soul.void": { clockId: "ruiner.void-soul.void", label: "Пустота", size: 6, minimumSize: 6, initial: 0, resetScope: "scene", active: true, value: 6 } };
+    }
+    const prepared = Engine.prepareAction(source, data, { actorId: "hero", actionId: actionNamed(actionName).id, targetIds: ["enemy"], useEclipseStars: eclipse, attribute: "spirit", roll: { rolls: [5,5,4,1], successes: 3, crits: 0 } });
+    assert.equal(prepared.ok, true, prepared.errors?.join(" "));
+    const expectedDamage = Math.ceil(Math.max(0, 3 + (actionName === "Завершение" ? 2 : 0) + modifier) / (eclipse ? 2 : 1));
+    const events = prepared.events.map((event, index) => ({ ...event, id: `hero-effect-${effect}-${actionName}-${eclipse}-${index}` }));
+    source = JSON.parse(JSON.stringify(Engine.dispatchMany(source, events).scene));
+    assert.equal(source.pendingAction.damageByTarget.enemy, expectedDamage, `${actionName} / ${effect}: damage effect is applied once`);
+    assert.equal(Engine.dispatchMany(source, events).scene.version, source.version, "network replay cannot apply the effect again");
+    const forged = structuredClone(events.find(event => event.type === "attack.pending"));
+    forged.payload.damage = 99;
+    assert.throws(() => Engine.dispatchMany(source, [forged]), error => error.code === "SCENE_EVENT_ID_CONFLICT", "replay must still reject a changed damage request");
+    source = Engine.dispatchMany(source, Engine.respondReaction(source, data, { actorId: "enemy", choice: "pass" }).events).scene;
+    const resolved = Engine.resolvePendingAction(source, data);
+    assert.equal(resolved.ok, true, resolved.errors?.join(" "));
+    source = Engine.dispatchMany(source, resolved.events).scene;
+    assert.equal(source.actors[1].hp, 30 - expectedDamage, "resolved Health matches the once-modified damage after reload");
+  }
+}
 assert.equal(actions.length, 15);
 assert.equal(actions.find(action => action.name === "Стычка").available, true);
 assert.ok(actions.filter(action => action.reaction).every(action => !action.available), "Defenses cannot be spent as standalone Turn actions");
@@ -185,7 +214,7 @@ assert.equal(calledScene.actors.filter(actor => actor.kind === "crowd" && actor.
 const forgedCallPrepare = structuredClone(call.events.find(event => event.type === "enemy.action.prepare")); forgedCallPrepare.id = "forged-call-prepare"; forgedCallPrepare.payload.crowdSummon.cells = ["1,1"];
 assert.throws(() => Engine.dispatch(callScene, forgedCallPrepare), /авторитетн.*Призыва/, "A network client cannot forge the canonical Call placement count");
 const forgedExtraCrowd = structuredClone(call.events.find(event => event.type === "actor.spawn")); forgedExtraCrowd.id = "forged-extra-crowd"; forgedExtraCrowd.payload.actor.id = "forged-extra-crowd"; forgedExtraCrowd.payload.actor.x = 2; forgedExtraCrowd.payload.actor.y = 2;
-assert.throws(() => Engine.dispatch(calledScene, forgedExtraCrowd), /авторитетному Призыву/, "A replay client cannot append an extra Fodder Zone to a consumed summon token");
+assert.throws(() => Engine.dispatch(calledScene, forgedExtraCrowd), /оплаченному Призыву/, "A replay client cannot append an extra Fodder Zone to a consumed summon token");
 assert.equal(Engine.prepareEnemyRule(callScene, data, { actorId: "enemy", ruleId: "enemy.common.javelin.action.call", options: { cells: ["1,1"] } }).ok, false, "Call rejects an incomplete placement before spending AP");
 assert.equal(Engine.prepareEnemyRule(callScene, data, { actorId: "enemy", ruleId: "enemy.common.javelin.action.call", options: { cells: ["1,1", "5,0"] } }).ok, false, "Call rejects a forged out-of-range cell");
 const removedCallScene = structuredClone(callScene); removedCallScene.topology = { cuts: [{ space: "main", cells: ["1,2"] }] };
@@ -226,9 +255,10 @@ assert.equal(wildHunt.ok, true, "Wild Hunt accepts one shared target and a valid
 assert.equal(wildHunt.events.filter(event => event.type === "actor.spawn" && event.payload.actor?.crowdSubtype === "seeker").length, 3, "Wild Hunt creates exactly three distinct canonical Seekers");
 assert.deepEqual([...new Set(wildHunt.events.filter(event => event.type === "actor.spawn").map(event => event.payload.actor.seekerTargetId))], ["hero"], "All Wild Hunt Seekers retain the same chosen target");
 const seekerWindow = structuredClone(houndWindow), seeker = seekerWindow.actors.find(actor => actor.id === "fodder-a-1"); seeker.crowdSubtype = "seeker"; seeker.seekerTargetId = "hero"; seeker.seekerOwnerId = "enemy"; seeker.seekerDamage = 7; seeker.x = 3; seeker.y = 1;
-const seekerBoundary = Engine.fodderMoveStatus(seekerWindow, seeker.id).boundaryEventId, heroHpBeforeSeeker = seekerWindow.actors.find(actor => actor.id === "hero").hp, explodedSeeker = Engine.dispatchMany(seekerWindow, [{ type: "actor.move", actorId: seeker.id, payload: { space: "main", x: 2, y: 1, placement: true, fodderMove: true, boundaryEventId: seekerBoundary } }]).scene;
+const seekerBoundary = Engine.fodderMoveStatus(seekerWindow, seeker.id).boundaryEventId, heroHpBeforeSeeker = seekerWindow.actors.find(actor => actor.id === "hero").hp, allyHpBeforeSeeker = seekerWindow.actors.find(actor => actor.id === "enemy").hp, explodedSeeker = Engine.dispatchMany(seekerWindow, [{ type: "actor.move", actorId: seeker.id, payload: { space: "main", x: 2, y: 1, placement: true, fodderMove: true, boundaryEventId: seekerBoundary } }]).scene;
 assert.equal(explodedSeeker.actors.some(actor => actor.id === seeker.id), false, "A Seeker disappears atomically after moving adjacent to its chosen target");
-assert.equal(explodedSeeker.actors.find(actor => actor.id === "hero").hp, heroHpBeforeSeeker - 7, "The Seeker explosion damages every adjacent character with its canonical tier formula");
+assert.equal(explodedSeeker.actors.find(actor => actor.id === "hero").hp, heroHpBeforeSeeker - 7, "The Seeker explosion damages adjacent opponents with its canonical tier formula");
+assert.equal(explodedSeeker.actors.find(actor => actor.id === "enemy").hp, allyHpBeforeSeeker, "The Seeker explosion does not damage an adjacent ally");
 const seekerBatchSource = structuredClone(houndFodderScene), seekerBatchActor = seekerBatchSource.actors.find(actor => actor.id === "fodder-a-1"); seekerBatchActor.crowdSubtype = "seeker"; seekerBatchActor.seekerTargetId = "hero"; seekerBatchActor.seekerOwnerId = "enemy"; seekerBatchActor.seekerDamage = 7; seekerBatchActor.x = 3; seekerBatchActor.y = 1;
 let seekerBatchWindow = Engine.dispatchMany(seekerBatchSource, [{ id: "hound-turn-seeker-batch", type: "turn.end", actorId: "enemy", payload: {} }]).scene; const seekerBatchHp = seekerBatchWindow.actors.find(actor => actor.id === "hero").hp;
 const seekerBatchMove = Engine.respondRulePrompt(seekerBatchWindow, data, { choice: "custom", assignments: { "fodder-a-1": "1,0" } }); assert.equal(seekerBatchMove.ok, true, seekerBatchMove.errors?.join(" ")); seekerBatchWindow = Engine.dispatchMany(seekerBatchWindow, seekerBatchMove.events).scene;
@@ -688,13 +718,17 @@ attackEffectScene.actors[0].tier = 2;
 attackEffectScene.actors[0].effects = ["positive.усилен", "negative.ослаблен"];
 attackEffectScene.actors[1].effects = ["negative.помечен"];
 let attackEffects = Engine.dispatch(attackEffectScene, { type: "attack.pending", actorId: "hero", payload: { name: "Проверка Эффектов", targetIds: ["enemy"], damage: 3 } }).scene;
-assert.equal(attackEffects.pendingAction.damageByTarget.enemy, 5, "Empowered and Weakened cancel while Marked adds the attacker's Tier");
+assert.equal(attackEffects.pendingAction.damageByTarget.enemy, 3, "Empowered and Weakened cancel; Marked waits until the Attack actually deals damage");
 const empoweredOnlyScene = structuredClone(attackEffectScene);
 empoweredOnlyScene.actors[0].effects = ["positive.усилен"];
 attackEffects = Engine.dispatch(empoweredOnlyScene, { type: "attack.pending", actorId: "hero", payload: { name: "Проверка Усиления", targetIds: ["enemy"], damage: 3 } }).scene;
-assert.equal(attackEffects.pendingAction.damageByTarget.enemy, 7, "Empowered and Marked are applied once in the universal Attack pipeline");
+assert.equal(attackEffects.pendingAction.damageByTarget.enemy, 5, "Empowered applies once while Marked remains conditional on damage");
 const dividedAttackEffects = Engine.dispatch(empoweredOnlyScene, { type: "attack.pending", actorId: "hero", payload: { name: "Проверка порядка урона", targetIds: ["enemy"], damage: 2, damageByTarget: { enemy: 2 }, effectDamageBase: 3, effectDamageBaseByTarget: { enemy: 3 }, effectDamageDivisor: 2 } }).scene;
-assert.equal(dividedAttackEffects.pendingAction.damageByTarget.enemy, 4, "universal effect damage is applied before a technique halves the result");
+assert.equal(dividedAttackEffects.pendingAction.damageByTarget.enemy, 3, "universal effect damage is applied before a technique halves the result; Marked remains conditional");
+const manyLegacySourcesScene = structuredClone(scene);
+manyLegacySourcesScene.actors.push(...Array.from({ length: 13 }, (_, index) => ({ ...structuredClone(scene.actors[1]), id: `source-${index}`, name: `Source ${index}`, x: 3 + index % 3, y: 2 + Math.floor(index / 3), effectStates: {} })));
+const manyLegacyEffects = Engine.dispatchMany(manyLegacySourcesScene, Array.from({ length: 13 }, (_, index) => ({ id: `source-effect-${index}`, type: "effect.apply", actorId: `source-${index}`, payload: { targetId: "hero", effect: "negative.помечен" } }))).scene;
+assert.equal(manyLegacyEffects.actors.find(actor => actor.id === "hero").effectStates["negative.помечен"].sources.length, 13, "the shared enemy writer preserves all thirteen independent sources instead of silently discarding the oldest");
 
 const defenseEffectScene = structuredClone(scene);
 defenseEffectScene.actors[1].tier = 2;
@@ -787,6 +821,9 @@ choiceScene.actors.find(actor => actor.id === "enemy").knockedOut = true;
 assert.equal(Engine.ruleChoiceStatus(choiceScene, { choice: "accept" }).available, false, "A typed choice cannot retain an unavailable target");
 assert.deepEqual(Array.from(Engine.actorIdsInCells(scene, "main", ["2,1"], { sourceActorId: "hero", audience: "enemies" })), ["enemy"]);
 assert.deepEqual(Array.from(Engine.actorIdsInRange(scene, "hero", 1, { audience: "enemies" })), ["enemy"]);
+const hiddenModifierScene = structuredClone(scene);
+hiddenModifierScene.actors.push({ ...structuredClone(hiddenModifierScene.actors[1]), id: "hidden-modifier", profileId: "lionwing.modifier.blaze", hidden: true });
+assert.deepEqual(Array.from(Engine.actorIdsInCells(hiddenModifierScene, "main", ["2,1"], { sourceActorId: "hero", audience: "enemies" })), ["enemy"], "Attached hidden modifiers cannot become a second area target");
 const squareShape = Engine.spatialShapeStatus(scene, { space: "main", shape: "square3", anchor: { x: 2, y: 2 }, targets: { sourceActorId: "hero", audience: "enemies" } });
 assert.equal(squareShape.available, true);
 assert.equal(squareShape.cells.length, 9);
@@ -823,6 +860,14 @@ assert.equal(Engine.prepareDisplacements(scene, [
 const displacementTerrain = structuredClone(scene);
 displacementTerrain.objects.push({ id: "wall", space: "main", type: "terrain", label: "Стена", cells: ["3,1"] });
 assert.equal(Engine.displacementStatus(displacementTerrain, { actorId: "enemy", mode: "push", sourceActorId: "hero", maximum: 1 }).available, false, "Forced movement respects blocking terrain");
+const broadBodyScene = structuredClone(scene);
+broadBodyScene.actors.find(actor => actor.id === "hero").occupiedWidth = 2;
+broadBodyScene.actors.find(actor => actor.id === "hero").occupiedHeight = 2;
+broadBodyScene.actors.find(actor => actor.id === "enemy").x = 6;
+broadBodyScene.objects.push({ id: "lower-body-terrain", space: "main", type: "terrain", cells: ["3,2"] });
+assert.equal(Engine.displacementStatus(broadBodyScene, { actorId: "hero", direction: "east", maximum: 1 }).available, false, "Forced movement checks the full large-actor footprint");
+assert.deepEqual(Array.from(Engine.movementPath(broadBodyScene, "hero", { x: 2, y: 1 }, { maxDistance: 1 })), [], "Ordinary movement checks the full large-actor footprint");
+assert.equal(Engine.topologyStatus(broadBodyScene, { space: "main", cells: ["2,2"], operation: "remove" }).available, false, "Topology cannot remove a cell beneath a large actor's body");
 const optionalDisplacements = Engine.prepareDisplacements(displacementTerrain, [
   { actorId: "enemy", mode: "push", sourceActorId: "hero", maximum: 1, allowPartial: true, optional: true },
 ]);
@@ -1700,6 +1745,13 @@ assert.deepEqual(Array.from(ordinaryEnemyStatus.autoPassedIds), ["enemy"]);
 assert.equal(ordinaryEnemyStatus.canResolve, true);
 assert.throws(() => Engine.dispatch(awaiting, { type: "round.end", payload: {} }), /завершите текущую цепочку Реакций/);
 assert.equal(Engine.respondReaction(awaiting, data, { actorId: "enemy", choice: "pass" }).ok, false, "An enemy without a Reaction cannot submit a redundant response");
+const tokenTargetScene = structuredClone(scene);
+tokenTargetScene.actors[1] = { ...tokenTargetScene.actors[1], kind: "token", profileId: null };
+const tokenPending = Engine.dispatch(tokenTargetScene, { type: "attack.pending", actorId: "hero", payload: { actionId: actionNamed("Стычка").id, name: "Тестовая атака", targetIds: ["enemy"], damage: 1 } }).scene;
+assert.deepEqual(Array.from(Engine.reactionOptions(tokenPending, data, "enemy"), option => option.id), ["pass"], "A free token cannot inherit unavailable hero Reactions");
+assert.deepEqual(Array.from(Engine.pendingActionStatus(tokenPending, data).waitingIds), [], "Non-hero targets without a profile Reaction do not open a false response prompt");
+assert.deepEqual(Array.from(Engine.pendingActionStatus(tokenPending, data).autoPassedIds), ["enemy"]);
+assert.equal(Engine.respondReaction(tokenPending, data, { actorId: "enemy", choice: actionNamed("Блок").id }).ok, false, "A token cannot submit a hero-only defense");
 const answered = awaiting;
 const resolution = Engine.resolvePendingAction(answered, data);
 assert.equal(resolution.ok, true);
@@ -1728,6 +1780,11 @@ for (const [en, mode] of [["Iron-Willed", "intercept-armor"], ["World-Renowned",
   const options = Engine.reactionOptions(traitReactionScene(en, { ownerSeparate: true }), data, "enemy").filter(option => option.enemyTrait);
   assert.ok(options.some(option => option.enemyTrait.mode === mode && option.enemyTrait.redirectTargetId === "trait-owner"), `${en} can intercept an Attack aimed at an ally`);
 }
+const blockedIntercept = traitReactionScene("Iron-Willed", { ownerSeparate: true });
+for (const [index, [x, y]] of [[2, 1], [3, 1], [4, 1], [2, 2], [4, 2], [2, 3], [4, 3]].entries()) blockedIntercept.actors.push({ ...structuredClone(blockedIntercept.actors[1]), id: `intercept-blocker-${index}`, name: `Blocker ${index}`, x, y, antagonistTraitId: null });
+assert.deepEqual(Array.from(Engine.reactionOptions(blockedIntercept, data, "enemy"), option => option.id), [], "An Antagonist interception is not offered when every adjacent destination is occupied");
+assert.deepEqual(Array.from(Engine.pendingActionStatus(blockedIntercept, data).waitingIds), [], "A profile with no legal defensive choice is auto-passed instead of holding the Attack");
+assert.deepEqual(Array.from(Engine.pendingActionStatus(blockedIntercept, data).autoPassedIds), ["enemy"]);
 const sacrificeOptions = Engine.reactionOptions(traitReactionScene("Back-Stabbling", { sacrifice: true }), data, "enemy").filter(option => option.enemyTrait);
 assert.ok(sacrificeOptions.some(option => option.enemyTrait.mode === "redirect-ally" && option.enemyTrait.redirectTargetId === "sacrifice"), "Back-Stabbling can make a chosen ally become the target");
 assert.deepEqual(Array.from(Engine.pendingActionStatus(traitReactionScene("Cruel-Hearted"), data).waitingIds), ["enemy"], "A direct Antagonist defense opens the Reaction window");
@@ -3118,9 +3175,8 @@ const healContract = profileRule("enemy.common.healer", "Heal"), saviorContract 
 healerContractScene.actors[1].usedActions = []; healerContractScene.actors[1].ap = 3;
 healerContractScene.actors[1].hp = 4;
 const selfHealPrepared = Engine.prepareEnemyRule(healerContractScene, data, { actorId: "enemy", ruleId: healContract.id, targetIds: ["enemy"] });
-assert.equal(selfHealPrepared.ok, true, "Guardian protection does not prevent the Healer from choosing itself for its helpful action");
-healerContractScene = Engine.dispatchMany(healerContractScene, selfHealPrepared.events).scene;
-assert.equal(healerContractScene.actors[1].hp, 8, "Tier 2 Heal restores 4 Health to the Healer itself");
+assert.equal(selfHealPrepared.ok, false, "LionWing Targeting Allies excludes the user, including for Healer Heal");
+assert.equal(healerContractScene.actors[1].hp, 4, "rejected self-Heal does not alter Health or pay AP");
 healerContractScene.actors[1].usedActions = []; healerContractScene.actors[1].ap = 3;
 healerContractScene = Engine.dispatchMany(healerContractScene, Engine.prepareEnemyRule(healerContractScene, data, { actorId: "enemy", ruleId: healContract.id, targetIds: ["healer-guard"] }).events).scene;
 assert.equal(healerContractScene.actors.find(actor => actor.id === "healer-guard").hp, 12, "Tier 2 Heal restores 4 Health, doubled to 8 for the Guardian");
@@ -3277,7 +3333,9 @@ const takeTheShot = profileRule("enemy.common.ranger", "Take The Shot");
 const rangerAttack = Engine.prepareEnemyRule(rangerShotScene, data, { actorId: "enemy", ruleId: takeTheShot.id, targetIds: ["hero"], roll: { rolls: [6, 5, 4, 2, 1, 1], successes: 3, crits: 1 } });
 assert.equal(rangerAttack.ok, true, "Ranger can shoot a target at range 4 or more");
 const rangerPending = rangerAttack.events.find(event => event.type === "attack.pending");
-assert.equal(rangerPending.payload.damageByTarget.hero, 11, "Take The Shot combines successes, Tension, Aim, long-range bonus, and Headshot bonus");
+assert.equal(rangerPending.payload.damageByTarget.hero, 7, "Take The Shot combines successes, Tension, and long-range bonus before success-only additions");
+assert.equal(rangerPending.payload.aimBonusByTarget.hero, 1, "Aim is stored as a post-hit damage addition");
+assert.equal(rangerPending.payload.headshotBonusByTarget.hero, 3, "Headshot stores its Hits as a post-hit damage addition");
 let rangerResolved = Engine.dispatchMany(rangerShotScene, rangerAttack.events).scene;
 rangerResolved = Engine.dispatchMany(rangerResolved, Engine.respondReaction(rangerResolved, data, { actorId: "hero", choice: "pass" }).events).scene;
 rangerResolved = Engine.dispatchMany(rangerResolved, Engine.resolvePendingAction(rangerResolved, data).events).scene;

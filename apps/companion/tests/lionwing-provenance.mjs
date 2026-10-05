@@ -43,7 +43,8 @@ const catalogActor = { id: "provenance", rulesEdition: "lionwing", knownTechniqu
 const adapterRules = adapters.list(catalogActor);
 for (const rule of adapterRules) {
   assert.match(rule.sourceDigest || "", /^[0-9a-f]{64}$/u, `${rule.id} must carry a full SHA-256 digest`);
-  assert.equal(rule.sourceDigest, sourceDigest(rule.id), `${rule.id} must match the canonical payload`);
+  assert.ok(rule.sourceLevelId, `${rule.id} explicitly identifies its canonical level, including area variants`);
+  assert.equal(rule.sourceDigest, sourceDigest(rule.sourceLevelId), `${rule.id} must match the canonical payload`);
   assert.ok(["full", "partial", "manual"].includes(rule.coverage), `${rule.id} must declare coverage`);
 }
 

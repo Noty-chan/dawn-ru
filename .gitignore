@@ -2,6 +2,7 @@
 !/build/.gitkeep
 /archive/
 /output/
+node_modules/
 /release/*.pdf
 /release/*.zip
 /.agents/

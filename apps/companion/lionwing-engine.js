@@ -17,6 +17,14 @@
   const dice = global.DAWN_LIONWING_DICE || null;
   const DICE_SCENE_ROLL_LIMIT = 128;
   const DICE_SCENE_JOURNAL_LIMIT = 256;
+  const SIMPLE_ENEMY_ACTIONS = new Map([
+    ["lionwing.npc.executioner.focus", { profileId: "lionwing.npc.executioner", digest: "sha256:6f5cfbc7ad5131d0f5028c3fb777602f7bbe3d06214a9e7ba68a663243a285c4", name: "Focus", text: "Strengthen and Reinforce this NPC.", effects: ["source:positive.усилен", "source:positive.укреплен"] }],
+    ["lionwing.npc.cannoneer.aim", { profileId: "lionwing.npc.cannoneer", digest: "sha256:f7ba935d98676daa2494d0b0e9d43b8aa9af7965b0a7bdb946e8e6843311a4c1", name: "Aim", text: "Strengthen this NPC and make it Steady.", effects: ["source:positive.усилен", "source:positive.устойчив"] }],
+    ["lionwing.npc.berserker.seethe", { profileId: "lionwing.npc.berserker", digest: "sha256:834d49d31b883e76d2a1db1bfdf25102c523f1876b97c8ee194ff8c9a21b9fb0", name: "Seethe", text: "Restore 2 + [Tier × 2] Health to this NPC.", heal: true }],
+    ["lionwing.npc.assassin.neutralize-target", { profileId: "lionwing.npc.assassin", digest: "sha256:c0de180bc162c97ad1160eea26c0edf5d6ef8f9c34fc1c06dcf6cbc406a6656d", name: "Neutralize Target", text: "Target any character and Mark them. This NPC's Attacks do not remove Mark.", mark: true }],
+    ["lionwing.npc.paladin.gospel", { profileId: "lionwing.npc.paladin", digest: "sha256:cb2e13ee8dc238b9620bd5046ee86ca6af882fde0e0fd93be58fb842330975be", name: "Gospel", text: "Reinforce Regenerating allies.", gospel: true }],
+    ["lionwing.npc.spright.discombobulate", { profileId: "lionwing.npc.spright", digest: "sha256:c04c88f43a64b370cca2c6c976955332410f28a78e6f8c5b23f7c99811630999", name: "Discombobulate", text: "Choose an adjacent target. If it has more Evasion than Armor, Slow it; if more Armor than Evasion, Shred it; if it has neither, Mark it.", defenseComparison: true }],
+  ]);
   let preparedSerial = 0;
   const copy = value => JSON.parse(JSON.stringify(value));
   const sameJson = (left, right) => JSON.stringify(left) === JSON.stringify(right);
@@ -510,7 +518,9 @@
   };
   const statQuote = (a, key, context = {}) => {
     const rawBase = attributes.has(key) ? Number(a.attrs?.[key] || 0) : Number(a[key] || 0);
-    const temporaryModifiers = (a.lionwing?.modifiers || []).filter(m => m.stat === key);
+    const modifierCandidates = (a.lionwing?.modifiers || []).filter(m => m.stat === key);
+    const canonicalModifier = modifierCandidates.filter(m => !a.knockedOut && String(m.ruleId || "").startsWith("lionwing.modifier.") && context.scene?.actors?.some(source => source.id === m.sourceActorId && !source.knockedOut && source.modifierState?.carrierId === a.id)).sort((left, right) => Number(right.remaining ?? right.amount) - Number(left.remaining ?? left.amount) || String(left.id).localeCompare(String(right.id)))[0];
+    const temporaryModifiers = [...modifierCandidates.filter(m => !String(m.ruleId || "").startsWith("lionwing.modifier.")), ...(canonicalModifier ? [canonicalModifier] : [])];
     const temporary = temporaryModifiers.reduce((sum, m) => sum + (key === "evasion" ? m.remaining ?? m.amount : m.amount), 0);
     const quote = global.DAWN_LIONWING_ADAPTERS?.statQuote?.(a, key, { ...context, baseValue: rawBase + temporary });
     const temporarySources = temporaryModifiers.map(modifier => ({
@@ -528,6 +538,24 @@
     return { ok: true, key, rawBase, temporary, temporarySources, base: rawBase + temporary, value: fallbackValue, effective: fallbackValue, sources: temporarySources, sourceDigests: temporarySources.map(item => item.sourceDigest).filter(Boolean), coverage: temporarySources.some(item => item.coverage === "partial") ? "partial" : "full", reason: "Совместимый статический расчёт" };
   };
   const stat = (a, key, context = {}) => Number(statQuote(a, key, context).value || 0);
+  function consumeEvasion(scene, defender, amount) {
+    let toSpend = Math.max(0, Number(amount || 0));
+    const modifiers = astate(defender).modifiers.filter(m => m.stat === "evasion" && m.amount > 0);
+    for (const m of modifiers.filter(m => !String(m.ruleId || "").startsWith("lionwing.modifier."))) {
+      const used = Math.min(toSpend, m.remaining ?? m.amount);
+      m.remaining = (m.remaining ?? m.amount) - used;
+      toSpend -= used;
+    }
+    const canonical = modifiers.filter(m => String(m.ruleId || "").startsWith("lionwing.modifier.")
+      && scene.actors.some(source => source.id === m.sourceActorId && !source.knockedOut && source.modifierState?.carrierId === defender.id));
+    if (canonical.length) {
+      const available = Math.max(...canonical.map(m => Number(m.remaining ?? m.amount)));
+      const used = Math.min(toSpend, available);
+      for (const m of canonical) m.remaining = Math.max(0, Number(m.remaining ?? m.amount) - used);
+      toSpend -= used;
+    }
+    defender.evasion = Math.max(0, Number(defender.evasion || 0) - toSpend);
+  }
   const currentTurnInstance = scene => state(copy(scene)).activeTurnInstanceId || null;
   const spellCircleActive = (scene, a) => (scene.markers || []).some(marker =>
     marker?.ownerActorId === a.id && (marker.kind === "ritual" || marker.kind === "spell-circle") && marker.space === a.space && Number(marker.x) === Number(a.x) && Number(marker.y) === Number(a.y));
@@ -542,8 +570,8 @@
   };
   const maxHealth = a => stat(a, "maxHp");
   const scaledMove = (a, amount, scene=null) => Math.ceil(amount * ((scene?effectActive(scene,a,"positive.ускорен"):has(a,"positive.ускорен")) ? 2 : 1) / ((scene?effectActive(scene,a,"negative.замедлен"):has(a,"negative.замедлен")) ? 2 : 1));
-  const speed = (a,scene=null) => scaledMove(a, stat(a, "speed"), scene);
-  const sceneSpeed = (scene,a) => a?.profileId === "lionwing.npc.executioner" && effectActive(scene,a,"positive.заряжен") ? 1 : scene.activeActorId && Number(a.lionwing?.difficultTerrainStopSerial) === Number(scene.turnSerial) ? 0 : (() => { const group=legacy.compoundEnemyStatus(scene,a);return group.active?scaledMove(a,group.speed+(a.lionwing?.modifiers||[]).filter(m=>m.stat==="speed").reduce((sum,m)=>sum+m.amount,0),scene):speed(a,scene); })();
+  const speed = (a,scene=null) => scaledMove(a, stat(a, "speed", { scene }), scene);
+  const sceneSpeed = (scene,a) => (scene.actors||[]).some(mod=>mod.profileId==="lionwing.modifier.gargantuan"&&!mod.knockedOut&&mod.modifierState?.carrierId&&(mod.modifierState.carrierId===a.id||a.compoundId&&scene.actors.some(host=>host.id===mod.modifierState.carrierId&&host.compoundId===a.compoundId))) ? 0 : a?.profileId === "lionwing.npc.executioner" && effectActive(scene,a,"positive.заряжен") ? 1 : scene.activeActorId && Number(a.lionwing?.difficultTerrainStopSerial) === Number(scene.turnSerial) ? 0 : (() => { const group=legacy.compoundEnemyStatus(scene,a);if(!group.active)return speed(a,scene);const modifiers=(a.lionwing?.modifiers||[]).filter(m=>m.stat==="speed"),persistent=modifiers.filter(m=>!String(m.ruleId||"").startsWith("lionwing.modifier.")).reduce((sum,m)=>sum+Number(m.amount||0),0),canonical=Math.max(0,...modifiers.filter(m=>String(m.ruleId||"").startsWith("lionwing.modifier.")&&scene.actors.some(source=>source.id===m.sourceActorId&&!source.knockedOut&&source.modifierState?.carrierId===a.id)).map(m=>Number(m.amount||0)));return scaledMove(a,group.speed+persistent+canonical,scene); })();
   const effectiveStats = (scene, a) => {
     if (!scene || !a) return null;
     const activeEffectIds = activeState(scene, a.id).effects.filter(status => status.present).map(status => status.effect);
@@ -573,6 +601,153 @@
         spell: range(ids.spell, "spirit"),
       },
     };
+  };
+  const simplePayloadSubset = (stored, candidate) => {
+    if (Array.isArray(candidate)) return Array.isArray(stored) && stored.length === candidate.length && candidate.every((item, index) => simplePayloadSubset(stored[index], item));
+    if (plain(candidate)) return plain(stored) && Object.keys(candidate).every(key => candidate[key] === undefined && !Object.hasOwn(stored, key) || Object.hasOwn(stored, key) && simplePayloadSubset(stored[key], candidate[key]));
+    return Object.is(stored, candidate) || stored === candidate;
+  };
+  const simpleStoredEventMatches = (scene, event) => {
+    if (!event?.id || Object.keys(event).some(key => !["id", "type", "actorId", "payload"].includes(key))) return false;
+    const expectedFingerprint = JSON.stringify([event.type, event.actorId || null, event.payload || {}]);
+    const receipt = (scene.lionwing?.receipts || []).find(item => item?.id === event.id);
+    if (receipt?.fingerprint === expectedFingerprint) return true;
+    const stored = (scene.log || []).find(item => item?.id === event.id);
+    return Boolean(stored && stored.type === event.type && (stored.actorId || null) === (event.actorId || null) && simplePayloadSubset(stored.payload || {}, event.payload || {}));
+  };
+  const simpleEventEnvelope = (event, type, actorId, requiredKeys, optionalKeys = []) => {
+    if (!plain(event) || Object.keys(event).some(key => !["id", "type", "actorId", "payload"].includes(key)) || event.type !== type || event.actorId !== actorId) fail("Строгий контракт события простого действия нарушен");
+    if (event.id !== undefined && (typeof event.id !== "string" || !event.id.trim())) fail("ID события простого действия некорректен");
+    const payload = event.payload;
+    if (!plain(payload)) fail("Событие простого действия должно иметь объект payload");
+    const allowed = new Set([...requiredKeys, ...optionalKeys]);
+    if (Object.keys(payload).some(key => !allowed.has(key)) || requiredKeys.some(key => !Object.hasOwn(payload, key))) fail("Поля события простого действия не соответствуют каноническому контракту");
+    return payload;
+  };
+  const simpleIdsEqual = (actual, expected) => Array.isArray(actual) && actual.every(id => typeof id === "string" && id) && new Set(actual).size === actual.length && sameJson(actual, expected);
+  const simpleTargetingStatus = (scene, source, target) => {
+    if (!target || target.knockedOut) return { available: false, reason: "Цель отсутствует или выведена из боя" };
+    if (typeof legacy.effectTargetingStatus !== "function") return { available: true, reason: "" };
+    const projected = { ...scene, actors: (scene.actors || []).map(item => ({ ...item, effects: [...new Set(activeState(scene, item.id).effects.filter(status => status.activeSources.length).map(status => status.effect))] })) };
+    return legacy.effectTargetingStatus(projected, source.id, target.id) || { available: true, reason: "" };
+  };
+  const simpleEffectiveRegeneratingAllies = (scene, source) => {
+    const query = global.DAWN_LIONWING_REGENERATING_ALLY_IDS;
+    if (typeof query !== "function") fail("Общий effective Regenerating query недоступен");
+    const result = query(scene, source.id);
+    if (!Array.isArray(result)) fail("Общий effective Regenerating query вернул некорректный список");
+    return result;
+  };
+  const validateSimpleEnemyActionEvents = (scene, events) => {
+    const simpleActionEvents = events.filter(event => ["enemy.action.prepare", "enemy.action.resolve"].includes(event?.type) && SIMPLE_ENEMY_ACTIONS.has(event.payload?.ruleId));
+    if (!simpleActionEvents.length) return;
+    const duplicateCount = events.filter(event => simpleStoredEventMatches(scene, event)).length;
+    if (duplicateCount === events.length) return;
+    if (duplicateCount) fail("Пакет простого действия содержит частичный повтор");
+    const prepares = events.filter(event => event?.type === "enemy.action.prepare" && SIMPLE_ENEMY_ACTIONS.has(event.payload?.ruleId));
+    const resolves = events.filter(event => event?.type === "enemy.action.resolve" && SIMPLE_ENEMY_ACTIONS.has(event.payload?.ruleId));
+    if (prepares.length !== 1 || resolves.length !== 1) fail("Простое действие требует ровно одну пару prepare/resolve");
+    const prepare = prepares[0], resolve = resolves[0], ruleId = prepare.payload.ruleId, contract = SIMPLE_ENEMY_ACTIONS.get(ruleId), source = requiredActor(scene, prepare.actorId);
+    if (resolve.actorId !== source.id || resolve.payload?.ruleId !== ruleId) fail("Resolve простого действия не связан с его Prepare");
+    if (source.profileId !== contract.profileId || source.knockedOut || (source.usedActions || []).includes(ruleId)) fail("Простое действие уже использовано или источник недоступен");
+    if (scene.pendingAction || scene.pendingPrompt || scene.pendingActionPlan || scene.lionwing?.pendingActionPlan) fail("Сначала завершите ожидающую цепочку действия противника");
+    const prepareKeys = ["ruleId", "sourceRuleId", "sourceDigest", "profileId", "name", "kind", "targetIds", "text", "automation"];
+    const preparePayload = simpleEventEnvelope(prepare, "enemy.action.prepare", source.id, prepareKeys, ["reward", "quickReaction"]);
+    const resolvePayload = simpleEventEnvelope(resolve, "enemy.action.resolve", source.id, prepareKeys, ["reward", "quickReaction"]);
+    if (preparePayload.ruleId !== ruleId || preparePayload.sourceRuleId !== ruleId || preparePayload.sourceDigest !== contract.digest || preparePayload.profileId !== contract.profileId || preparePayload.name !== contract.name || preparePayload.text !== contract.text || preparePayload.kind !== "action" || preparePayload.automation !== "full") fail("Канонический источник простого действия противника не совпадает");
+    if (Object.hasOwn(preparePayload, "reward") && preparePayload.reward != null && preparePayload.reward !== "") fail("Простое действие не принимает произвольную награду");
+    const offTurn = scene.activeActorId !== source.id;
+    if (offTurn ? preparePayload.quickReaction !== true : Object.hasOwn(preparePayload, "quickReaction")) fail("Quick Reaction простого действия не соответствует Ходу источника");
+    if (!simpleIdsEqual(preparePayload.targetIds, preparePayload.targetIds)) fail("Список целей простого действия некорректен");
+    if (!sameJson(resolvePayload, preparePayload)) fail("Prepare и Resolve простого действия должны совпадать");
+    const targetIds = [...preparePayload.targetIds];
+    let expectedTargetIds = [];
+    if (contract.mark || contract.defenseComparison) {
+      if (targetIds.length !== 1) fail(contract.mark ? "Neutralize Target требует ровно одну цель" : "Discombobulate требует одну смежную цель");
+      const target = actor(scene, targetIds[0]);
+      if (!target || !live(target) || !simpleTargetingStatus(scene, source, target).available) fail("Цель простого действия больше не существует, выведена из боя или недоступна");
+      if (contract.defenseComparison && (target.id === source.id || distance(source, target) !== 1)) fail("Discombobulate требует одну смежную цель");
+      expectedTargetIds = targetIds;
+    } else if (contract.gospel) {
+      expectedTargetIds = simpleEffectiveRegeneratingAllies(scene, source);
+      if (!simpleIdsEqual(targetIds, expectedTargetIds)) fail("Gospel должен выбрать всех доступных Регенерирующих союзников");
+    }
+    if (!simpleIdsEqual(targetIds, expectedTargetIds)) fail("Цели простого действия не соответствуют каноническому набору");
+    const spends = events.filter(event => event?.type === "resource.spend");
+    const spendPayload = spends.length === 1 ? simpleEventEnvelope(spends[0], "resource.spend", source.id, ["resource", "amount", "sourceRuleId", "sourceDigest"]) : null;
+    if (!spendPayload || spendPayload.resource !== "ap" || spendPayload.amount !== 1 || spendPayload.sourceRuleId !== ruleId || spendPayload.sourceDigest !== contract.digest) fail("Каноническая стоимость действия противника должна быть ровно 1 ОД");
+    const effects = [];
+    if (contract.effects) effects.push(...contract.effects.map(item => { const [targetKey, effect] = item.split(":"); return { targetId: targetKey === "source" ? source.id : targetKey, effect, sourceActionId: ruleId, participantIds: [source.id] }; }));
+    if (contract.mark) effects.push({ targetId: targetIds[0], effect: "negative.помечен", sourceActionId: ruleId, duration: "scene", removable: false, participantIds: [source.id, targetIds[0]] });
+    if (contract.gospel) effects.push(...targetIds.map(targetId => ({ targetId, effect: "positive.укреплен", sourceActionId: ruleId, participantIds: [source.id, targetId] })));
+    if (contract.defenseComparison) {
+      const target = actor(scene, targetIds[0]), stats = effectiveStats(scene, target), armor = Number(stats.armor.value || 0), evasion = Number(stats.evasion.value || 0), effect = evasion > armor ? "negative.замедлен" : armor > evasion ? "negative.разорван" : armor === 0 && evasion === 0 ? "negative.помечен" : null;
+      if (effect) effects.push({ targetId: target.id, effect, sourceActionId: ruleId, participantIds: [source.id, target.id] });
+    }
+    const middleCount = contract.heal ? 1 : effects.length;
+    if (events.length !== middleCount + 3 || events[0] !== prepare || events[1]?.type !== "resource.spend" || events.at(-1) !== resolve) fail("Порядок или количество событий простого действия не соответствует контракту");
+    if (contract.heal) {
+      const healPayload = simpleEventEnvelope(events[2], "actor.heal", source.id, ["targetId", "amount", "sourceActionId", "participantIds"]), expectedAmount = 2 + Number(source.tier || 1) * 2;
+      if (healPayload.targetId !== source.id || healPayload.amount !== expectedAmount || healPayload.sourceActionId !== ruleId || !sameJson(healPayload.participantIds, [source.id])) fail("Каноническая формула лечения Seethe изменена");
+    } else {
+      effects.forEach((expected, index) => {
+        const payload = simpleEventEnvelope(events[index + 2], "effect.apply", source.id, Object.keys(expected));
+        if (!sameJson(payload, expected)) fail("Канонический набор Эффектов простого действия противника изменён");
+      });
+    }
+  };
+  const validateEnemySimpleWaveActionEvents = (scene, events) => {
+    const prepare = events.find(event => event?.type === "enemy.action.prepare"), ruleId = prepare?.payload?.ruleId;
+    if (!["lionwing.npc.healer.heal", "lionwing.npc.oni.stabilize"].includes(ruleId)) return;
+    const contract = ruleId === "lionwing.npc.healer.heal"
+      ? { profileId: "lionwing.npc.healer", name: "Heal", text: "Restore 2 + [Tier] Health to an ally within 3 spaces. Double this healing for this NPC's Guardian." }
+      : { profileId: "lionwing.npc.oni", name: "Stabilize", text: "Lose this NPC's Effects and Hasten it." };
+    const source = requiredActor(scene, prepare.actorId), resolves = events.filter(event => event?.type === "enemy.action.resolve" && event.payload?.ruleId === ruleId);
+    const spends = events.filter(event => event?.type === "resource.spend" && event.actorId === source.id);
+    if (source.profileId !== contract.profileId || source.knockedOut || source.usedActions?.includes(ruleId) || Number(source.ap || 0) < 1 ||
+        scene.activeActorId !== source.id || scene.pendingAction || scene.pendingPrompt || scene.pendingActionPlan || scene.lionwing?.pendingActionPlan ||
+        resolves.length !== 1 || resolves[0].actorId !== source.id || spends.length !== 1 || !sameJson(prepare.payload, resolves[0].payload)) {
+      fail(`${contract.name} требует доступный канонический профиль и 1 ОД`);
+    }
+    const payloadKeys = ["ruleId", "sourceRuleId", "sourceDigest", "profileId", "name", "kind", "targetIds", "text", "automation"];
+    const preparedAction = simpleEventEnvelope(prepare, "enemy.action.prepare", source.id, payloadKeys, ["reward", "quickReaction"]);
+    if (preparedAction.ruleId !== ruleId || preparedAction.sourceRuleId !== ruleId || preparedAction.profileId !== source.profileId || preparedAction.name !== contract.name ||
+        preparedAction.kind !== "action" || preparedAction.automation !== "full" || preparedAction.text !== contract.text || preparedAction.reward != null || preparedAction.quickReaction != null ||
+        !Array.isArray(preparedAction.targetIds) || new Set(preparedAction.targetIds).size !== preparedAction.targetIds.length) fail(`Текст или цели ${contract.name} изменены`);
+    const spend = simpleEventEnvelope(spends[0], "resource.spend", source.id, ["resource", "amount", "sourceRuleId", "sourceDigest"]);
+    if (spend.resource !== "ap" || spend.amount !== 1 || spend.sourceRuleId !== ruleId || spend.sourceDigest !== (preparedAction.sourceDigest ?? null)) fail(`${contract.name} должен стоить ровно 1 ОД`);
+    const targets = preparedAction.targetIds.map(id => actor(scene, id)).filter(Boolean);
+    if (targets.length !== preparedAction.targetIds.length || targets.some(target => !live(target))) fail(`${contract.name}: выбранная цель отсутствует или выведена из боя`);
+    if (ruleId === "lionwing.npc.healer.heal") {
+      if (targets.length !== 1 || targets[0].id === source.id || targets[0].team !== source.team || distance(source, targets[0]) > 3) fail("Heal требует одного союзника, кроме самого Целителя, в пределах 3 клеток");
+      const expected = 2 + Number(source.tier || 1), amount = expected * (source.ruleState?.healerGuardianId === targets[0].id ? 2 : 1);
+      if (events.length !== 4 || events[0] !== prepare || events[1] !== spends[0] || events[3] !== resolves[0]) fail("Heal требует одну оплату и одно применение лечения");
+      const heal = simpleEventEnvelope(events[2], "actor.heal", source.id, ["targetId", "amount", "sourceActionId", "participantIds"]);
+      if (heal.targetId !== targets[0].id || heal.amount !== amount || heal.sourceActionId !== ruleId || !simpleIdsEqual(heal.participantIds, [source.id, targets[0].id])) fail("Формула лечения Heal не соответствует канону");
+      return;
+    }
+    if (preparedAction.targetIds.length) fail("Stabilize не выбирает цели");
+    const protectedEffect = Object.values(source.effectStates || {}).some(state => (state?.sources || []).some(effectSource => effectSource.removable === false));
+    if (protectedEffect) fail("Stabilize не может снять защищённый источник Эффекта");
+    const effects = [...new Set([...(source.effects || []), ...Object.keys(source.effectStates || {})])], expectedEvents = effects.length + 4;
+    if (events.length !== expectedEvents || events[0] !== prepare || events[1] !== spends[0] || events.at(-1) !== resolves[0]) fail("Stabilize должен снять все доступные Эффекты и применить Haste");
+    effects.forEach((effect, index) => {
+      const removal = simpleEventEnvelope(events[index + 2], "effect.remove", source.id, ["targetId", "effect", "sourceActionId", "participantIds"]);
+      if (removal.targetId !== source.id || removal.effect !== effect || removal.sourceActionId !== ruleId || !simpleIdsEqual(removal.participantIds, [source.id])) fail("Stabilize не удаляет полный набор Эффектов");
+    });
+    const haste = simpleEventEnvelope(events[effects.length + 2], "effect.apply", source.id, ["targetId", "effect", "sourceActionId", "participantIds"]);
+    if (haste.targetId !== source.id || haste.effect !== "positive.ускорен" || haste.sourceActionId !== ruleId || !simpleIdsEqual(haste.participantIds, [source.id])) fail("Stabilize должен применить Haste после снятия Эффектов");
+  };
+  const validateBuilderArmyOfStoneEvents = (scene, events) => {
+    const prepare = events.find(event => event?.type === "enemy.action.prepare" && event.payload?.ruleId === "lionwing.npc.builder.army-of-stone");
+    if (!prepare) return;
+    const ruleId = "lionwing.npc.builder.army-of-stone", digest = "sha256:8f3e506249b4ed9467ca33c7ee01b5a3227aa61aaa04b648675c214c6403a882", source = requiredActor(scene, prepare.actorId), payload = prepare.payload || {}, token = payload.armyOfStone?.token;
+    const sequence = ["enemy.action.prepare", "resource.spend", "terrain.convert-to-fodder", "turn.grant", "enemy.action.resolve"];
+    const eventsValid = events.length === sequence.length && events.every((event, index) => event?.type === sequence[index] && event.actorId === source.id);
+    const expectedFields = ["automation", "armyOfStone", "kind", "name", "profileId", "ruleId", "sourceDigest", "sourceRuleId", "targetIds", "text"].sort();
+    const actualFields = Object.keys(payload).filter(key => payload[key] !== undefined).sort();
+    const status = typeof builderArmyOfStoneStatus === "function" ? builderArmyOfStoneStatus(scene, source) : { available: false };
+    if (!eventsValid || source.profileId !== "lionwing.npc.builder" || source.knockedOut || source.acted || source.usedTrump || source.usedActions?.includes(ruleId) || scene.rulesEdition !== "lionwing" || scene.activeActorId !== source.id || Number(source.ap || 0) < 2 || Number(scene.tension || 0) < 2 || scene.pendingAction || scene.pendingPrompt || scene.pendingActionPlan || scene.lionwing?.pendingActionPlan || !status.available || !token || typeof token !== "string" || token.length > 120 || JSON.stringify(actualFields) !== JSON.stringify(expectedFields) || payload.sourceRuleId !== ruleId || payload.sourceDigest !== digest || payload.profileId !== source.profileId || payload.name !== "Army Of Stone" || payload.kind !== "trump" || payload.automation !== "full" || payload.text !== "Turn every piece of Terrain on the board into an allied Fodder Zone. This NPC immediately takes another Turn." || !sameJson(payload.targetIds, []) || !sameJson(payload.armyOfStone, { token }) || events[2].payload?.token !== token || !sameJson(events[2].payload, { token }) || !sameJson(events[1].payload, { resource: "ap", amount: 2, sourceRuleId: ruleId, sourceDigest: digest }) || !sameJson(events[3].payload, { amount: 1, sourceActionId: ruleId, armyOfStoneToken: token, participantIds: [source.id] }) || !sameJson(events[4].payload, payload)) fail("Army Of Stone requires its complete canonical package: 2 AP, Terrain conversion, and an extra Turn");
   };
   const detectiveRuleId = "vagabond.dim-mak.3";
   const detectiveWeakPointRuleId = "vagabond.dim-mak.1";
@@ -758,13 +933,16 @@
     return { actorId,effect,present:activeSources.length>0,sources,activeSources,suppressedBy:[...new Set(sources.flatMap(source=>source.suppressedBy||[]))],directSources:direct,auraSources:ambient,reasons:sources.map(source=>({sourceId:source.sourceId,active:source.active!==false&&!source.suppressedBy?.length,reason:source.reason})) };
   }
   const effectActive = (scene,a,effect) => Boolean(activeState(scene,a?.id,effect).activeSources.length);
+  const effectiveEffectActive = (scene, actorId, effect) => Boolean(actor(scene, actorId) && effectActive(scene, actor(scene, actorId), effect));
+  global.DAWN_LIONWING_EFFECTIVE_EFFECT_ACTIVE = effectiveEffectActive;
+  if (typeof globalThis !== "undefined") globalThis.DAWN_LIONWING_EFFECTIVE_EFFECT_ACTIVE = effectiveEffectActive;
   const activeEffectSources = (a,effect,scene=null) => scene ? activeState(scene,a?.id,effect).activeSources : (a?.effectStates?.[effect]?.sources||[]).filter(source=>!(source.suppressedBy||[]).length);
   function effectInstanceStatus(scene, actorId, effect) { return activeState(scene,actorId,effect); }
 
   function turnStartStatus(scene, id) {
     const a = actor(scene, id), s = state(copy(scene));
     if (!live(a) || a.kind === "crowd" || String(a.profileId || "").includes(".modifier.")) return unavailable("Этот участник не может совершать Ход");
-    if (scene.pendingAction || s.choices?.length || s.pausedChains?.length) return unavailable("Сначала завершите действие и ожидающие решения");
+    if (scene.pendingAction || scene.pendingPrompt || s.choices?.length || s.pausedChains?.length) return unavailable("Сначала завершите действие и ожидающие решения");
     if (scene.activeActorId) return unavailable("Сначала завершите текущий Ход");
     if(s.grantedTurns?.length)return s.grantedTurns[0].actorId===id?{available:true,reason:""}:unavailable("Сначала должен пройти предоставленный дополнительный Ход");
     const heroes = scene.actors.filter(x => live(x) && isPlayer(x)), enemies = scene.actors.filter(x => live(x) && x.team === "enemy" && x.kind !== "crowd" && !String(x.profileId || "").includes(".modifier."));
@@ -777,14 +955,16 @@
 
   function roundEndStatus(scene) {
     const s = state(copy(scene));
-    if (scene.activeActorId || scene.pendingAction || s.choices?.length || s.grantedTurns?.length || s.pausedChains?.length) return unavailable("Сначала завершите Ход и ожидающие решения");
+    if (scene.activeActorId || scene.pendingAction || scene.pendingPrompt || s.choices?.length || s.grantedTurns?.length || s.pausedChains?.length) return unavailable("Сначала завершите Ход и ожидающие решения");
     const heroes = scene.actors.filter(a => live(a) && isPlayer(a));
     if (heroes.some(a => !a.acted)) return unavailable("Не все герои совершили Ход");
     if (heroes.length && scene.actors.some(a => live(a) && a.team === "enemy" && a.kind !== "crowd") && s.lastTeam !== "enemy") return unavailable("После последнего героя должен походить противник");
     return s.started ? { available: true, reason: "" } : unavailable("Бой ещё не начат");
   }
 
+  const terrainElevation = (scene, point) => { const type = (scene.objects || []).filter(object => object.space === point.space && ["high", "low"].includes(object.type) && object.cells?.includes(`${point.x},${point.y}`)).at(-1)?.type; return type === "high" ? 1 : type === "low" ? -1 : 0; };
   function movement(scene, a, destination, options = {}) {
+    options = { ...options, ...(global.DAWN_LIONWING_ADAPTERS?.movementOptions?.(a, { ...options, scene, destination }) || {}) };
     const board = scene.spaces.find(s => s.id === (destination?.space || a.space));
     if (!board || !Number.isInteger(destination?.x) || !Number.isInteger(destination?.y) || destination.x < 0 || destination.y < 0 || destination.x >= board.width || destination.y >= board.height) fail("Выберите клетку внутри поля");
     if (!options.placement && board.id !== a.space && !options.teleport) fail("Это движение не меняет пространство");
@@ -809,24 +989,29 @@
     const ignoredDifficult = new Set(scene.activeActorId && Number(a.lionwing?.difficultTerrainIgnoreSerial) === Number(scene.turnSerial) && a.lionwing?.difficultTerrainIgnoreSpace === board.id ? a.lionwing.difficultTerrainIgnoreCells || [] : []);
     const entersDifficult = p => !options.ignoreTerrain && !options.ignoreDifficultTerrain && footprint(p).some(cell => difficult.has(key(cell)) && !ignoredDifficult.has(key(cell)));
     const entersEnemySpace = p => !options.ignoreOpponents && board.mode === "cinematic" && footprint(p).some(cell => occupied.some(x => x.team !== a.team && x.x === cell.x && x.y === cell.y));
-    const endsMovement = p => entersDifficult(p) || entersEnemySpace(p);
-    if (blocked(destination) || board.mode !== "cinematic" && occupied.some(x => x.x === destination.x && x.y === destination.y)) fail("Клетка занята");
+    const level = point => terrainElevation(scene, { ...point, space: board.id });
+    const startsAtHighEdge = [[1,0],[-1,0],[0,1],[0,-1]].some(([dx,dy]) => level({ x: a.x + dx, y: a.y + dy }) === 1);
+    const blockedAscent = (from, to) => !options.ignoreTerrain && level(from) === -1 && level(to) === 1 && !startsAtHighEdge;
+    const ascends = (from, to) => !options.ignoreTerrain && level(to) > level(from);
+    const endsMovement = p => p.endedByElevation || entersDifficult(p) || entersEnemySpace(p);
+    if (blocked(destination) || options.endEmpty && footprint(destination).some(cell => occupied.some(x => x.x === cell.x && x.y === cell.y)) || board.mode !== "cinematic" && occupied.some(x => x.x === destination.x && x.y === destination.y)) fail("Клетка занята");
       if (options.placement || options.teleport) {if(options.teleport&&options.maximum!=null&&distance(a,{...destination,space:board.id})>options.maximum)fail("Телепортация выходит за дальность");return { cost: 0, path: [{ x: destination.x, y: destination.y }], space: board.id };}
     const maximum = integer(options.maximum ?? 99, "дальность", 999);
     const crossesWall = (from, to) => typeof wallBlocksStep === "function" && wallBlocksStep(scene, a.space, from, to);
     if (options.line) {
       const dx = destination.x - a.x, dy = destination.y - a.y;
       if (dx && dy && Math.abs(dx) !== Math.abs(dy)) fail("Нужна прямая ортогональная или диагональная Линия");
-      const steps = Math.max(Math.abs(dx), Math.abs(dy)), cost = Math.abs(dx) + Math.abs(dy), path = [];
+      const steps = Math.max(Math.abs(dx), Math.abs(dy)), cost = steps, path = [];
       if (!cost || cost > maximum) fail("Клетка вне дальности движения");
       let from = a, spent = 0;
       for (let i = 1; i <= steps; i++) {
         const point = { x: a.x + Math.sign(dx) * i, y: a.y + Math.sign(dy) * i };
-        if (blocked(point) || crossesWall(from, point)) fail("Путь перекрыт препятствием");
-        spent += Math.abs(point.x-from.x)+Math.abs(point.y-from.y);
+        if (blocked(point) || crossesWall(from, point) || blockedAscent(from, point)) fail("Путь перекрыт препятствием");
+        const endedByElevation = ascends(from, point);
+        spent++;
         if(spent>maximum)fail("Клетка вне дальности движения");
         path.push(point); from = point;
-        if(endsMovement(point))return { cost:spent,path,space:board.id,endedByDifficultTerrain:true };
+        if(endedByElevation || endsMovement(point))return { cost:spent,path,space:board.id,endedByDifficultTerrain:!endedByElevation,endedByElevation };
       }
       return { cost, path, space: board.id };
     }
@@ -834,13 +1019,13 @@
     while (queue.length) {
       queue.sort((x, y) => x.cost - y.cost);
       const p = queue.shift();
-      if (p.x === destination.x && p.y === destination.y) return { cost: p.cost, path: p.path, space: board.id, endedByDifficultTerrain: p.path.length > 0 && endsMovement(p) };
+      if (p.x === destination.x && p.y === destination.y) return { cost: p.cost, path: p.path, space: board.id, endedByDifficultTerrain: p.path.length > 0 && !p.endedByElevation && endsMovement(p), endedByElevation: Boolean(p.endedByElevation) };
       if (p.path.length && endsMovement(p)) continue;
       for (const [dx, dy] of [[1,0],[-1,0],[0,1],[0,-1]]) {
         const q = { x: p.x + dx, y: p.y + dy }, foe = occupied.some(x => x.team !== a.team && x.x === q.x && x.y === q.y);
         const cost = p.cost + 1;
-        if (q.x < 0 || q.y < 0 || q.x >= board.width || q.y >= board.height || blocked(q) || crossesWall(p, q) || foe && board.mode !== "cinematic" && !options.ignoreOpponents || cost > maximum || (best.get(key(q)) ?? Infinity) <= cost) continue;
-        best.set(key(q), cost); queue.push({ ...q, cost, path: [...p.path, q] });
+        if (q.x < 0 || q.y < 0 || q.x >= board.width || q.y >= board.height || blocked(q) || crossesWall(p, q) || blockedAscent(p, q) || foe && board.mode !== "cinematic" && !options.ignoreOpponents || cost > maximum || (best.get(key(q)) ?? Infinity) <= cost) continue;
+        best.set(key(q), cost); queue.push({ ...q, cost, path: [...p.path, q], endedByElevation: ascends(p, q) });
       }
     }
     fail("Нет доступного пути в пределах движения");
@@ -848,7 +1033,8 @@
 
   function actionStatus(scene, a, def, request = {}) {
     if (!live(a)) return unavailable("Участник выведен из боя");
-    if (scene.pendingAction || state(copy(scene)).choices?.length) return unavailable("Сначала завершите текущую цепочку");
+    if (a.deploymentProxy) return unavailable("Этот НПС не находится на Поле и не может использовать базовые Действия");
+    if (scene.pendingAction || scene.pendingPrompt || state(copy(scene)).choices?.length) return unavailable("Сначала завершите текущую цепочку");
     if (def.type === "reaction") return unavailable("Реакция доступна при соответствующем событии");
     const denial = actionGuardList(scene, a, "denials").find(item => item.actionId === def.id && Number(item.remaining ?? 1) > 0);
     if (denial) return unavailable(denial.reason || "Действие запрещено активным правилом");
@@ -858,13 +1044,22 @@
       if (!scene.lionwing?.breakout || scene.lionwing.breakout.actorId === a.id || attacks.has(def.id)) return unavailable("Прорыв: только не-Атака после чужого Хода");
       if (Number(a.influence || 0) < 1) return unavailable("Для Прорыва нужно 1 Влияние");
     } else if (scene.activeActorId !== a.id && !allowance?.reaction) return unavailable("Сейчас не Ход этого участника");
-    const baseSwift = breakout || Boolean(allowance?.swift||allowance?.reaction) || !isPlayer(a) && def.id === ids.step;
+    const armament = def.id === ids.skirmish && request.armamentMode ? effectActive(scene, a, "positive.исчез") && !request.reappearance
+      ? legacy.ruleModeStatus(masterScene(scene), a.id, { groupId: masterGroupId, modeId: request.armamentMode })
+      : masterArmamentStatus(scene, a.id, { modeId: request.armamentMode, targetIds: request.targetIds || [], reappearance: request.reappearance, requireDestination: false }) : null;
+    if (armament && !armament.available) return unavailable(armament.reason);
+    if (def.id === ids.skirmish && masterLevel(a) >= 1 && !request.armamentMode
+      && (!effectActive(scene, a, "positive.исчез") || request.reappearance)
+      && masterArmamentStatus(scene, a.id, { targetIds: request.targetIds || [], reappearance: request.reappearance, requireDestination: false }).available) {
+      return unavailable("Выберите Вооружение в Пульте техник");
+    }
+    const baseSwift = Boolean(armament?.available) || breakout || Boolean(allowance?.swift||allowance?.reaction) || !isPlayer(a) && def.id === ids.step;
     const continuation = def.id === ids.step && Number(a.stepRemaining || 0) > 0 && !breakout;
-    if (continuation) return { available: true, reason: "", cost: 0, resource: "ap", continuation: true };
+    if (continuation) return { available: true, reason: "", cost: 0, resource: "ap", continuation: true, remaining: Number(a.stepRemaining) };
     const requestedAttribute=request.attribute||(def.id===ids.finish?"spirit":null);
     const adapterStatus=global.DAWN_LIONWING_ADAPTERS?.actionStatus?.(a,{scene,actionId:def.id,attribute:requestedAttribute,techniqueId:request.techniqueId || null,techniqueRuleId:request.techniqueRuleId || null,techniqueIds:Array.isArray(request.techniqueIds) ? request.techniqueIds : [],techniqueTags:(request.techniqueTags||[]).map(tag=>String(tag).toLowerCase())})||{allowed:true};
     if(adapterStatus.allowed===false)return unavailable(adapterStatus.reason||"Действие запрещено Техникой");
-    const baseCost = breakout ? 0 : allowance?.cost??(def.id === "action.атаки.дуэль" ? Math.max(1, 4 - tensionValue(scene)) : def.id===ids.improvise&&request.removeObstacleId?1:def.cost.amount);
+    const baseCost = armament?.available || breakout ? 0 : allowance?.cost??(def.id === "action.атаки.дуэль" ? Math.max(1, 4 - tensionValue(scene)) : def.id===ids.improvise&&request.removeObstacleId?1:def.cost.amount);
     const actionHistory = Array.isArray(a.lionwing?.history) ? a.lionwing.history : [];
     const deploymentRows = (scene.log || []).map((event, index) => ({ event, index })).filter(({ event }) => event?.actorId === a.id && ["actor.move", "actor.place"].includes(event.type) && event.payload?.placement === true && /развер|deploy/i.test(String(event.payload?.movement || event.payload?.reason || "")));
     const latestDeployment = deploymentRows.length ? deploymentRows[deploymentRows.length - 1] : null;
@@ -890,15 +1085,19 @@
       if (effectActive(scene, a, "negative.ослаблен")) return unavailable("Ослаблен запрещает Из обоих стволов");
     }
     if (modifierQuote.ok === false) return unavailable(modifierQuote.reason || "Модификаторы действия конфликтуют");
-    const cost = Number(modifierQuote.cost ?? baseCost), swift = Boolean(modifierQuote.swift), used = isPlayer(a) ? (a.usedActions || []) : (a.lionwing?.turnActions || []);
+    let restoredQuote;
+    try { restoredQuote = global.DAWN_LIONWING_RESTORED_TECHNIQUES?.quote?.(scene, a, def.id, request, modifierQuote) || modifierQuote; }
+    catch (error) { return unavailable(error.message); }
+    if (def.id === ids.finish) restoredQuote.focusLimit = Math.min(Number(restoredQuote.focusCap ?? tensionValue(scene)), Number(restoredQuote.materialCount ?? (balance(a, "focus") + Number(restoredQuote.focusDiscount || 0))));
+    const cost = Number(restoredQuote.cost ?? baseCost), swift = Boolean(restoredQuote.swift), used = isPlayer(a) ? (a.usedActions || []) : (a.lionwing?.turnActions || []);
     if (!swift && used.includes(def.id)) return unavailable("Действие уже использовано");
-    if (!canSpend(a,def.cost.resource,cost)) return unavailable(`Недостаточно ${def.cost.resource === "ap" ? "ОД" : "ресурса"}: нужно ${cost}`);
+    if (!canSpend(a,def.cost.resource,cost)) return { ...unavailable(`Недостаточно ${def.cost.resource === "ap" ? "ОД" : "ресурса"}: нужно ${cost}`), cost, resource: def.cost.resource, swift, actionQuote: restoredQuote };
     if (def.id === ids.disappear) {
       const board = scene.spaces.find(b => b.id === a.space);
       const ignored = new Set(modifierQuote.ignoreRequirements || []);
       if (!ignored.has("boardEdge") && (!board || ![0, board.width - 1].includes(a.x) && ![0, board.height - 1].includes(a.y)) || !ignored.has("startedDisappeared") && a.lionwing?.startedDisappeared) return unavailable("Скрыться можно на краю поля, если Ход начат без Исчезновения");
     }
-    return { available: true, reason: modifierQuote.reason || "", cost, resource: def.cost.resource, swift, actionQuote: modifierQuote, actionModifierIds: modifierQuote.modifierIds || [], allowanceId:allowance?.id, denialId: null };
+    return { available: true, reason: restoredQuote.reason || "", cost, resource: def.cost.resource, swift, actionQuote: restoredQuote, actionModifierIds: restoredQuote.modifierIds || [], allowanceId:allowance?.id, denialId: null };
   }
 
   function roll(count, random = Math.random, options = {}) {
@@ -1024,7 +1223,7 @@
       request: { breacherBuckShot: p.breacherBuckShot === true, breacherBothBarrels: p.breacherBothBarrels === true },
     }) || { ok: true, attackBonus: 0 };
     if (actionModifierQuote.ok === false) fail(actionModifierQuote.reason || "Модификаторы действия конфликтуют");
-    const base=baseDice+Number(actionModifierQuote.attackBonus||0);
+    const base=baseDice+Number(actionModifierQuote.attackBonus||0)+Number(p.restoredPlan?.advantage||0);
     if(!attacks.has(def.id)||!targets.length)return{base,counts:{}};
     const taunts=activeEffectSources(a,"negative.спровоцирован",scene).map(x=>x.actorId),fears=activeEffectSources(a,"negative.испуган",scene).map(x=>x.actorId);
     const sourceEffectIds=activeState(scene,a.id).effects.map(status=>status.effect),techniqueTags=[...(global.DAWN_LIONWING_ADAPTERS?.trustedTechniqueTags?.(a, p) || [])];
@@ -1047,7 +1246,7 @@
       enchainedCastMoveAdjacent: p.enchainedCastMoveAdjacent === true,
       speedValue: stat(a, "speed"), breacherBuckShot: p.breacherBuckShot === true,
     };
-    const counts=Object.fromEntries(targets.map(id=>{const target=actor(scene,id),targetEffectIds=activeState(scene,id).effects.map(status=>status.effect),tauntedByActor=activeEffectSources(target,"negative.спровоцирован",scene).some(source=>source.actorId===a.id),context={...targetContext,targetId:id,targetDistance:distance(a,target),targetEffectIds,tauntedByActor,flightStance:effectActive(scene,a,"positive.полёт")||a.lionwing?.stance==="flight",useSpeedAttribute:p.useSpeedAttribute===true};const quoted=global.DAWN_LIONWING_ADAPTERS?.attackQuote?.(a,{...context,baseValue:base,roundUp:true})||{ok:true,value:base};if(quoted.ok===false)fail(quoted.reason||"Числовые модификаторы Атаки конфликтуют");return[id,Math.max(0,Number(quoted.value)-(effectActive(scene,a,"negative.спровоцирован")&&!targets.some(t=>taunts.includes(t))?a.tier:0)-(effectActive(scene,a,"negative.испуган")&&fears.includes(id)?a.tier:0)+((p.spikeTargetIds||[]).includes(id)&&effectActive(scene,target,"negative.подброшен")?a.tier:0))]}));
+    const counts=Object.fromEntries(targets.map(id=>{const target=actor(scene,id),targetEffectIds=activeState(scene,id).effects.map(status=>status.effect),tauntedByActor=activeEffectSources(target,"negative.спровоцирован",scene).some(source=>source.actorId===a.id),context={...targetContext,targetId:id,targetDistance:distance(a,target),targetEffectIds,tauntedByActor,flightStance:effectActive(scene,a,"positive.полёт")||a.lionwing?.stance==="flight",useSpeedAttribute:p.useSpeedAttribute===true};const quoted=global.DAWN_LIONWING_ADAPTERS?.attackQuote?.(a,{...context,baseValue:base,roundUp:true})||{ok:true,value:base};if(quoted.ok===false)fail(quoted.reason||"Числовые модификаторы Атаки конфликтуют");const heightDifference = Math.sign(terrainElevation(scene,a)-terrainElevation(scene,target))*Math.ceil(Number(a.tier||1)/2);return[id,Math.max(0,Number(quoted.value)+heightDifference-(effectActive(scene,a,"negative.спровоцирован")&&!targets.some(t=>taunts.includes(t))?a.tier:0)-(effectActive(scene,a,"negative.испуган")&&fears.includes(id)?a.tier:0)+((p.spikeTargetIds||[]).includes(id)&&effectActive(scene,target,"negative.подброшен")?a.tier:0))]}));
     return{base:Math.min(...Object.values(counts)),counts};
   }
 
@@ -1205,15 +1404,57 @@
     return checked.result;
   }
 
+  const masterTechniqueId = "vagabond.master-at-arms";
+  const masterGroupId = `${masterTechniqueId}.armament`;
+  const masterLevel = owner => Number((owner?.knownTechniques ?? owner?.techniques)?.[masterTechniqueId] || 0);
+  // Master at Arms was implemented against the LionWing source in the shared
+  // event core. Keep that implementation reachable through native commands.
+  // Project only this reviewed family; a known legacy ID is not permission to
+  // run every old hero technique in a LionWing scene.
+  function masterScene(scene) {
+    const projected = copy(scene);
+    for (const owner of projected.actors || []) if (isPlayer(owner)) {
+      owner.techniques = masterLevel(owner) ? { [masterTechniqueId]: masterLevel(owner) } : {};
+    }
+    return projected;
+  }
+  const isMasterAction = (owner, payload) => masterLevel(owner) >= 1 && payload.actionId === ids.skirmish && Boolean(payload.armamentMode)
+    || masterLevel(owner) >= 3 && payload.actionId === ids.finish && payload.attribute === "talent" && !payload.creatorCells && !payload.restoredPlan?.form && !payload.obstacleId && Boolean(owner.ruleModes?.[masterGroupId]?.modeId);
+  function masterArmamentStatus(scene, actorId, request = {}) {
+    const projected = masterScene(scene), owner = actor(projected, actorId);
+    if (owner && request.reappearance) Object.assign(owner, { x: request.reappearance.x, y: request.reappearance.y, space: request.reappearance.space || owner.space });
+    return legacy.masterAtArmsStatus(projected, actorId, request);
+  }
+  function sharedTechniqueRows(owner) {
+    if (!owner || owner.kind && !isPlayer(owner) || owner.rulesEdition !== "lionwing") return [];
+    return [
+      [1, "Многогранность", "d35f468065e84fbb0c86bc60015632bdbcfe9b0ced2ed2cfa370453f64a72371"],
+      [2, "Как вода", "743ae31f60f1a826d3346b6e07c7cff94983860c399cdc9484302e120fd726c4"],
+      [3, "Мастер за работой", "f104c7652bda2a425422af31d8d91b30515463c98f78892fe25eb204ac7508d3"],
+    ].filter(([level]) => level <= masterLevel(owner)).map(([level, label, sourceDigest]) => ({
+      id: `${masterTechniqueId}.${level}`, techniqueId: masterTechniqueId, level, label, sourceDigest,
+      sourceLevelId: `${masterTechniqueId}.${level}`, coverage: "full", enabled: true, configurable: false,
+    }));
+  }
+  const sharedLifecycleAuthority = Symbol("native shared lifecycle");
+  function validatePublicRequest(value) {
+    if(!value||typeof value!=="object")return;
+    for(const [key,item]of Object.entries(value)){
+      if(key.startsWith("__"))fail("Внутренние параметры нельзя передавать в запросе");
+      validatePublicRequest(item);
+    }
+  }
   function prepare(scene, request, options = {}) {
     try {
       const eventId = request?.eventId ?? request?.commandId ?? request?.id ?? global.crypto?.randomUUID?.() ?? `lw-prepared-${Date.now()}-${preparedSerial++}`;
       const payload = copy(request), actorlessKinds = ["scene-reset","round-end","intermission","tension","note","banish","vanish","compound","information-reveal","information-cancel","information-handout"], optionalActorKinds = ["choice","correct","resolve-attack","cancel-attack","batch","banish","vanish","compound","information-reveal","information-cancel","information-handout"], actorlessInventoryReset = payload.kind === "inventory" && payload.operation === "reset" && !payload.actorId, a = (actorlessKinds.includes(payload.kind) && !payload.actorId || actorlessInventoryReset) ? null : requiredActor(scene, payload.actorId, !optionalActorKinds.includes(payload.kind));
       const rollMeta = (extra = {}) => ({ rootActionId: eventId, actionInstanceId: eventId, causeEventId: eventId, ownerActorId: a?.id || null, ...extra });
+      validatePublicRequest(payload);
       delete payload.actorId;
       if (payload.kind === "action") {
         const def = actionDef(payload.actionId);
         if (!def) fail("Базовое действие не найдено");
+        Object.assign(payload, global.DAWN_LIONWING_RESTORED_TECHNIQUES?.plan?.(scene, a, payload) || {});
         const status = actionStatus(scene, a, def, payload);
         if (!status.available) fail(status.reason);
         if (def.id === ids.finish) {
@@ -1247,11 +1488,11 @@
       if (payload.kind === "plan") {
         const actionPlanApi = global.DAWN_LIONWING_ACTION_PLAN;
         if (typeof actionPlanApi?.open === "function" && typeof actionPlanApi.preview === "function" && typeof actionPlanApi.prepareExecution === "function") {
-          const planInput = payload.actionPlan || actionPlanApi.open({
+          let planInput = payload.actionPlan || actionPlanApi.open({
           id: payload.planId || eventId,
-          rootActionId: payload.rootActionId || eventId,
+          rootActionId: eventId,
           definitionId: payload.actionId || "manual.attack",
-          actionInstanceId: payload.actionInstanceId || eventId,
+          actionInstanceId: eventId,
           source: { id: a.id, kind: "actor", actorId: a.id, causeEventId: eventId },
           owner: { id: a.id, kind: "actor", actorId: a.id },
           sceneVersion: Number(scene.version || 0),
@@ -1265,6 +1506,11 @@
           });
           const normalizedInput = actionPlanApi.normalizePlan(planInput);
           if (normalizedInput.ownerActorId !== a.id || normalizedInput.source.actorId !== a.id) fail("ActionPlan принадлежит другому участнику");
+          if (normalizedInput.status === "committed" || normalizedInput.receipts.length || normalizedInput.modifiers.some(modifier => modifier.consumedByActionId)) fail("Подтверждённый экземпляр ActionPlan нельзя использовать для нового действия");
+          // A supplied preview is uncommitted input. Bind its execution to the
+          // new command and recompute its quote instead of trusting old IDs.
+          planInput = { ...normalizedInput, rootActionId: eventId, actionInstanceId: eventId, source: { ...normalizedInput.source, causeEventId: eventId } };
+          delete planInput.quote; delete planInput.result;
           const previewed = actionPlanApi.preview(planInput, { scene, expectedRevision: planInput.revision });
           const execution = actionPlanApi.prepareExecution(previewed.plan, { scene, expectedRevision: previewed.plan.revision });
           payload.actionPlan = previewed.plan;
@@ -1285,6 +1531,10 @@
         payload.roll=roll(3+Number(a.tier||1)+adapterNumber("rollBonus",a,{scene,kind:"clash",opponentId:source.id}),options.random,rollMeta({rollId:`${eventId}:reroll`,kind:"check"}));payload.opponentRoll=roll(3+Number(source.tier||1)+adapterNumber("rollBonus",source,{scene,kind:"clash",opponentId:a.id}),options.random,{...rollMeta({rollId:`${eventId}:reroll-opponent`,kind:"check",ownerActorId:source.id}),ownerActorId:source.id});
       }
       if(payload.kind==="punish"&&!payload.roll)payload.roll=roll(Math.max(Number(a.attrs.body||0),Number(a.attrs.talent||0)),options.random,rollMeta({rollId:`${eventId}:punish`,kind:"check"}));
+      if (payload.kind === "choice" && payload.choice === "trap-attack" && scene.lionwing?.choices?.[0]?.kind === "restored-technique" && !payload.roll) {
+        const targetId = scene.lionwing.choices[0].context?.targetId, attribute = Number(a.attrs.body) >= Number(a.attrs.talent) ? "body" : "talent";
+        payload.roll = roll(attackPools(scene, a, actionDef(ids.skirmish), { targetIds: [targetId], attribute }).base, options.random, rollMeta({ rollId: `${eventId}:trap`, kind: "check" }));
+      }
       const events = [{ ...command(a?.id||null, payload), id: eventId }], preview = previewEvents(scene, events);
       // A preview rolls once. Commit and replay must use that exact snapshot.
       if (preview.ok && payload.kind === "dice-create") {
@@ -1299,8 +1549,12 @@
   // Techniques may compose these operations without registering imperative code.
   function execute(scene, event, output, executionOptions = {}) {
     const s = state(scene), rootId = event.id, emitted = [];
+    const actionLike = new Set(["action", "record-action", "attack", "derived-action"]);
+    const assertFreshActionIdentity = id => {
+      if ((scene.actors || []).some(owner => (owner.lionwing?.history || []).some(row => row.actionInstanceId === id)) || s.history.some(fact => ["apply", "attack"].includes(fact.type) && fact.actionInstanceId === id)) fail("Экземпляр действия уже исполнен");
+    };
     const scheduled = [];
-    let frameSerial = 0, choiceSerial = 0, historySerial = 0, rollSerial = 0, provenance = null;
+    let frameSerial = 0, choiceSerial = 0, historySerial = 0, rollSerial = 0, provenance = null, restored = null;
     let executionCursor = s.executionCursor ? foundations.openCursor(s.executionCursor) : null, completedSteps = 0, completedResults = [];
     const cursorSource = items => {
       const item = (items || []).find(entry => entry?.provenance?.rootActionId || entry?.__execution?.rootActionId || entry?.p?.__execution?.rootActionId || entry?.sourceId || entry?.p?.sourceActorId);
@@ -1367,21 +1621,18 @@
       s.history.push(fact);
     };
     let scheduleAfterEvent = null;
-    const emit = (type, actorId, payload = {}) => {
-      // Every resolved Action carries its engine provenance in the public
-      // receipt as well as in execution metadata.  Manual record-action used
-      // to omit this field, which made downstream combo adapters depend on a
-      // client supplied payload flag instead of the authoritative history.
-      const receiptPayload = type === "action.resolve" ? {
-        ...payload,
-        ...(payload.actionInstanceId || !provenance?.actionInstanceId ? {} : { actionInstanceId: provenance.actionInstanceId }),
-        ...(payload.ownerTurnInstanceId || !provenance?.ownerTurnInstanceId ? {} : { ownerTurnInstanceId: provenance.ownerTurnInstanceId }),
-      } : payload;
-      const row = { id: `${rootId}:${emitted.length}`, at: event.at, type, actorId: actorId || null, payload: copy(receiptPayload), visibility: ["gm", "owner"].includes(receiptPayload.visibility) ? receiptPayload.visibility : event.visibility || "public" };
-      if (provenance) row.execution = copy(provenance);
-      emitted.push(row); scene.log.unshift(row); scene.log = scene.log.slice(0, 200);
+    const acceptEvent = (row, alreadyLogged = false) => {
+      const { type, actorId } = row, receiptPayload = row.payload || {}, payload = receiptPayload;
+      if (!row.execution && provenance) row.execution = copy(provenance);
+      emitted.push(row);
+      if (!alreadyLogged) { scene.log.unshift(row); scene.log = scene.log.slice(0, 200); }
       const targets = receiptPayload.targetIds || (receiptPayload.targetId ? [receiptPayload.targetId] : []);
-      if (type === "action.resolve") saveFact("apply", actorId, targets, { actionId: receiptPayload.actionId, manual: receiptPayload.manual === true }, { ...provenance, actionId: receiptPayload.actionId || provenance?.actionId, ownerActorId: actorId });
+      if (type === "action.resolve" || type === "enemy.action.resolve") {
+        const profileHistory = type === "enemy.action.resolve" && (actor(scene,actorId)?.lionwing?.history || []).findLast(item => item.ruleId === receiptPayload.ruleId);
+        const context = { ...provenance, actionId: receiptPayload.actionId || receiptPayload.ruleId || provenance?.actionId, actionInstanceId: receiptPayload.actionInstanceId || profileHistory?.actionInstanceId || provenance?.actionInstanceId, ownerActorId: actorId };
+        if (!s.history.some(fact => fact.type === "apply" && fact.actionInstanceId === context.actionInstanceId && fact.actionId === context.actionId)) saveFact("apply", actorId, targets, { actionId: receiptPayload.actionId, manual: receiptPayload.manual === true }, context);
+      }
+      else if (type === "attack.pending") saveFact("attack", actorId, targets, { actionId: receiptPayload.sourceActionId || receiptPayload.actionId }, { ...provenance, actionInstanceId: receiptPayload.actionInstanceId, actionId: receiptPayload.sourceActionId || receiptPayload.actionId, ownerActorId: actorId });
       else if (type === "damage.apply") {
         if (payload.attack && payload.hit !== false) saveFact("hit", actorId, targets, { planned: payload.raw, zeroDamage: payload.dealt === 0 });
         saveFact("damage", actorId, targets, { planned: payload.raw, actual: payload.dealt, hit: payload.hit !== false, ignored: payload.ignored === true });
@@ -1396,10 +1647,31 @@
       else if (type === "rule.used") saveFact("apply", actorId, targets, { scope: payload.scope }, { ...provenance, ruleId: payload.ruleId, ownerActorId: actorId });
       else if (type === "counter.threshold") saveFact("counter.threshold", actorId, targets, { counterId: payload.counterId || payload.id, kind: payload.kind || payload.type, before: payload.before, value: payload.value, threshold: payload.threshold });
       else if (type === "aura.enter" || type === "aura.exit") saveFact(type, actorId, [actorId], { auraId:payload.auraId, effectId:payload.effectId, ruleId:payload.ruleId, ownerActorId:payload.ownerActorId, sourceEntityId:payload.sourceEntityId, movementTargetId:payload.movementTargetId||null, segmentIndex:payload.segmentIndex??null });
-      else if (type === "attack.clear" && payload.cancelled) saveFact("cancel", actorId, targets, { reason: payload.reason || "cancelled" });
+      else if (type === "attack.clear" && payload.cancelled) saveFact("cancel", actorId, targets, { reason: payload.reason || "cancelled" }, {
+        ...provenance,
+        actionId: payload.actionId || payload.sourceActionId || provenance?.actionId,
+        actionDefinitionId: payload.actionId || payload.sourceActionId || provenance?.actionId,
+        actionInstanceId: payload.actionInstanceId || provenance?.actionInstanceId,
+        ownerActorId: actorId,
+      });
       if (scheduleAfterEvent && ["clash.success", "combat-meter.change", "damage.apply", "actor.knockout", "effect.apply", "actor.enter", "actor.move", "action.resolve", "attack.clear", "marker.remove", "reaction.respond", "resource.gain", "rule.used", "movement.prepare", "movement.start", "movement.segment", "movement.enter", "movement.leave", "movement.cross", "movement.end", "movement.stop", "actor.despawn", "actor.remove", "space.remove"].includes(type)) scheduleAfterEvent(row);
       if (typeof cancelFollowupsForEvent === "function" && ["damage.apply", "actor.knockout", "actor.despawn", "actor.remove", "space.remove"].includes(type)) cancelFollowupsForEvent(row);
+      restored?.afterEvent(row);
       return row;
+    };
+    const emit = (type, actorId, payload = {}) => {
+      // Every resolved Action carries its engine provenance in the public
+      // receipt as well as in execution metadata.  Manual record-action used
+      // to omit this field, which made downstream combo adapters depend on a
+      // client supplied payload flag instead of the authoritative history.
+      const receiptPayload = type === "action.resolve" ? {
+        ...payload,
+        ...(payload.actionInstanceId || !provenance?.actionInstanceId ? {} : { actionInstanceId: provenance.actionInstanceId }),
+        ...(payload.ownerTurnInstanceId || !provenance?.ownerTurnInstanceId ? {} : { ownerTurnInstanceId: provenance.ownerTurnInstanceId }),
+      } : payload;
+      const row = { id: legacy.eventPacketContract.generatedId(scene, `${rootId}:${emitted.length}`, executionOptions), at: event.at, type, actorId: actorId || null, payload: copy(receiptPayload), visibility: ["gm", "owner"].includes(receiptPayload.visibility) ? receiptPayload.visibility : event.visibility || "public" };
+      if (provenance) row.execution = copy(provenance);
+      return acceptEvent(row);
     };
     const mutateCombatMeter = (change = {}, sourceId = null, receiptId = `${rootId}:meter`) => {
       if (!combatMeter?.apply) fail("Фундамент боевого счётчика LionWing недоступен");
@@ -1914,7 +2186,7 @@
       if (a.knockedOut) return;
       a.knockedOut = true; a.ap = 0; a.stepRemaining = 0; s.grantedTurns=(s.grantedTurns||[]).filter(turn=>turn.actorId!==a.id);
       if (scene.activeActorId === a.id) { scene.activeActorId = null; a.acted = true; s.lastTeam = a.team; s.lastActorId = a.id; }
-      if (!s.lowTension) mutateCombatMeter({ operation: "add", delta: 1 }, a.id, `${rootId}:ko-tension:${a.id}`);
+      if (!s.lowTension && a.profileId !== "lionwing.npc.revenant") mutateCombatMeter({ operation: "add", delta: 1 }, a.id, `${rootId}:ko-tension:${a.id}`);
       // Source loss is policy driven. The default `disable` keeps the aura in
       // saved state; only an explicitly configured `remove` policy deletes it.
       for(const aura of [...s.auras])if(aura.sourceLossPolicy==="remove"&&(aura.sourceEntityId===a.id||aura.ownerActorId===a.id))removeAuraRecord(aura,"removed",a.id);
@@ -1925,7 +2197,7 @@
           removeEffect(other,e,{sourceId:source.sourceId||source.actorId,manual:false});
       }
       const knockoutSource=cause&&Object.hasOwn(cause,"sourceActorId")?cause.sourceActorId:a.id;
-      emit("actor.knockout", knockoutSource, { targetId: a.id, cause: cause ? { kind: cause.kind || "rule", sourceActorId: cause.sourceActorId ?? null, eventId: cause.eventId || rootId } : null });
+      emit("actor.knockout", knockoutSource, { targetId: a.id, applied: true, cause: cause ? { kind: cause.kind || "rule", sourceActorId: cause.sourceActorId ?? null, eventId: cause.eventId || rootId } : null });
       if (isPlayer(a) && astate(a).vulnerable) {
         // LionWing p. 37: the Vulnerable PC who is KOed gains 3 Influence.
         if (Number(astate(a).unbrokenInfluenceLockSceneSerial || 0) === Number(s.sceneSerial || 1)) {
@@ -2004,7 +2276,8 @@
       a.effects = [...new Set([...(a.effects || []), p.effect])];
       a.effectStates ||= {};
       const previousSources=(a.effectStates[p.effect]?.sources||[]).filter(item=>(item.sourceId||item.actorId)!==sourceKey);
-      const source={sourceId:sourceKey,actorId:sourceId||null,ruleId:p.ruleId||provenance?.ruleId||null,sourceDigest:p.sourceDigest||provenance?.sourceDigest||null,actionId:p.sourceActionId||provenance?.actionId||null,actionInstanceId:provenance?.actionInstanceId||null,eventId:rootId,appliedSerial:Number(scene.turnSerial||0),appliedRound:Number(scene.round||0),duration,lifetime,ownerActorId:boundaryOwnerId,ownerTurnSerial:ownTurnSerial(boundaryOwner),removable:p.removable!==false,sourceBound:p.sourceBound!==false,suppressedBy:[],sourceType:"effect",active:true};
+      if (previousSources.length >= 256) fail("Слишком много независимых источников одного Эффекта; сначала завершите или снимите один из них");
+      const source={sourceId:sourceKey,actorId:sourceId||null,ruleId:p.ruleId||p.sourceRuleId||provenance?.ruleId||null,sourceDigest:p.sourceDigest||provenance?.sourceDigest||null,actionId:p.sourceActionId||provenance?.actionId||null,actionInstanceId:p.actionInstanceId||provenance?.actionInstanceId||null,eventId:rootId,appliedSerial:Number(scene.turnSerial||0),appliedRound:Number(scene.round||0),duration,lifetime,ownerActorId:boundaryOwnerId,ownerTurnSerial:ownTurnSerial(boundaryOwner),removable:p.removable!==false,sourceBound:p.sourceBound!==false,suppressedBy:[],sourceType:"effect",active:true};
       a.effectStates[p.effect] = { duration, lifetime, removable: previousSources.concat(source).every(item=>item.removable!==false), appliedTurnSerial: Number(scene.turnSerial || 0), appliedRound: scene.round, appliedEventId: rootId, sources: [...previousSources,source] };
       astate(a).effectLifetimes ||= {};
       astate(a).effectLifetimes[p.effect] = { ownerActorId: boundaryOwnerId, duration, lifetime, appliedSerial: Number(scene.turnSerial || 0), ownerTurnSerial: ownTurnSerial(boundaryOwner), appliedRound: scene.round };
@@ -2064,6 +2337,7 @@
       return null;
     };
     const applyDamage = p => {
+      restored?.beforeDamage(p);
       const a = requiredActor(scene, p.targetId, false);
       if (a.knockedOut) { emit("damage.apply", p.sourceActorId, { ...p, dealt: 0, ignored: true }); return; }
       const source = actor(scene, p.sourceActorId), raw = integer(p.amount, "урон"), attack = p.attack === true;
@@ -2085,13 +2359,14 @@
       const afterArmor = amount > 0 ? Math.max(1, amount - armor) : 0;
       const evasionAllowed = !p.irreducible && !p.ignoreEvasion && !effectActive(scene,a,"negative.обездвижен") && !effectActive(scene,a,"negative.пойман");
       const evaded = evasionAllowed ? Math.min(afterArmor, compound.active&&compound.defenseType!=="evasion"?0:stat(defender, "evasion", defenseContext(defender))) : 0;
-      let toSpend=evaded;
-      for(const m of astate(defender).modifiers.filter(m=>m.stat==="evasion"&&m.amount>0)){const used=Math.min(toSpend,m.remaining??m.amount);m.remaining=(m.remaining??m.amount)-used;toSpend-=used;}
-      defender.evasion = Math.max(0, Number(defender.evasion || 0) - toSpend);
+      consumeEvasion(scene, defender, evaded);
       if(compound.active&&compound.defenseType==="evasion")for(const part of compound.parts)part.evasion=Math.min(Number(part.evasion||0),defender.evasion);
       const hpBefore = compound.active ? compound.hp : Number(a.hp);
       let dealt = Math.max(0, afterArmor - evaded);
-      if (attack && dealt > 0 && !p.irreducible && !p.finalDamage && effectActive(scene,a,"negative.помечен")) { dealt += Number(a.tier || 1); removeEffect(a, "negative.помечен"); }
+      if (attack && dealt > 0 && !p.irreducible && !p.finalDamage && effectActive(scene,a,"negative.помечен")) {
+        dealt += Number(a.tier || 1);
+        if (source?.profileId !== "lionwing.npc.assassin") removeEffect(a, "negative.помечен");
+      }
       const finalDamageQuote = global.DAWN_LIONWING_ADAPTERS?.damageQuote?.(a, { scene, key: "finalDamage", kind: "damage", actionId: p.sourceActionId || null, sourceActorId: source?.id || null, targetId: a.id, baseValue: dealt, immobilized: effectActive(scene, a, "negative.обездвижен"), tier: Number(a.tier || 1), roundUp: true });
       if (finalDamageQuote?.ok === false) fail(finalDamageQuote.reason || "Числовые модификаторы итогового урона конфликтуют");
       if (p.fixedDamage !== true && finalDamageQuote?.ok && Number.isFinite(Number(finalDamageQuote.value))) dealt = Math.max(0, Number(finalDamageQuote.value));
@@ -2129,13 +2404,14 @@
       const auraBefore=auraSnapshot();
       const firstMovementThisTurn=!(scene.log||[]).some(row=>row.type==="movement.start"&&row.actorId===a.id&&Number(row.execution?.turnSerial)===Number(scene.turnSerial));
       const result = p.__verifiedRoute ? {cost:p.__verifiedRoute.spent,path:p.__verifiedRoute.path.map(point=>({x:point.x,y:point.y})),space:p.__verifiedRoute.stoppedAt.space,endedByDifficultTerrain:p.__verifiedRoute.terminal&&p.__verifiedRoute.stopReason==="difficult-terrain"} : movement(scene, a, p.destination || p, p), from = { x: a.x, y: a.y, space: a.space };
+      if (restored) Object.assign(result, restored.limitMove(a, result, p));
       const endpoint=result.path[result.path.length-1]||p.destination||p;
       a.x = endpoint.x; a.y = endpoint.y; a.space = result.space;
-      if(result.endedByDifficultTerrain){astate(a).difficultTerrainStopSerial=scene.turnSerial;a.stepRemaining=0;}
+      if(result.endedByDifficultTerrain || result.endedByElevation){astate(a).difficultTerrainStopSerial=scene.turnSerial;a.stepRemaining=0;}
       if(a.compoundId)for(const part of scene.actors.filter(x=>x.compoundId===a.compoundId)){part.x=a.x;part.y=a.y;part.space=a.space;}
       const publicPayload={...p};delete publicPayload.__deferAuraTransitions;
       const moveRow=emit("actor.move", a.id, { ...publicPayload, from, x: a.x, y: a.y, space: a.space, path: result.path, distance: result.cost });
-      if(Number(result.cost||0)>0&&["enemy.common.ranger","lionwing.npc.ranger"].includes(a.profileId)&&Number(a.ruleState?.enemyAim||0)>0){a.ruleState||={};a.ruleState.enemyAim=0;emit("actor.state",a.id,{key:"enemyAim",value:0,sourceActionId:a.profileId==="lionwing.npc.ranger"?"lionwing.npc.ranger.nest":"enemy.common.ranger.action.nest"});}
+      if(Number(result.cost||0)>0&&scene.activeActorId===a.id&&!p.forced&&!p.teleport&&!p.placement&&!["forced","teleport"].includes(p.mode)&&["enemy.common.ranger","lionwing.npc.ranger"].includes(a.profileId)&&Number(a.ruleState?.enemyAim||0)>0){a.ruleState||={};a.ruleState.enemyAim=0;emit("actor.state",a.id,{key:"enemyAim",value:0,sourceActionId:a.profileId==="lionwing.npc.ranger"?"lionwing.npc.ranger.nest":"enemy.common.ranger.action.nest"});}
       syncAttachedMarkers(a, p.sourceActionId || p.movement || "movement");
       // Every supported move has a stable endpoint entry receipt.  The
       // segment id is derived from the authoritative execution root, so a
@@ -2169,6 +2445,7 @@
       if(!p.followSnare)for(const caught of scene.actors.filter(x=>live(x)&&x.id!==a.id&&effectActive(scene,x,"negative.пойман")&&activeEffectSources(x,"negative.пойман",scene).some(source=>source.actorId===a.id))){
         if(distance(caught,a)!==1&&!effectActive(scene,caught,"positive.устойчив"))choice(caught,"placement","Пойман: выберите клетку рядом с переместившимся источником",["place"],{adjacentTo:a.id,forced:true});
       }
+      restored?.afterMove(a, p, result, from);
       return {...result,auraTransitions};
     };
     const placeActor = (a, destination, options = {}) => {
@@ -2277,19 +2554,20 @@
       const balance = resources.has(resource) ? Number(a[resource] || 0) : Number(a.ruleResources?.[resource]?.value || 0);
       if (balance < amount) fail(`Недостаточно ${resource}: нужно ${amount}, доступно ${balance}`);
       if (resources.has(resource)) a[resource] = balance - amount;
-      else if (a.ruleResources?.[resource]) a.ruleResources[resource].value = balance - amount;
+      else if (a.ruleResources?.[resource]) a.ruleResources[resource].current = a.ruleResources[resource].value = balance - amount;
       else fail("Ресурс не настроен");
-      emit("resource.spend", a.id, { requestedResource, resource, amount, actionId: spendContext.actionId || provenance?.actionId || null, actionInstanceId: spendContext.actionInstanceId || provenance?.actionInstanceId || null, sourceActionId: spendContext.sourceActionId || null, sourceRuleId: spendContext.sourceRuleId || spendContext.ruleId || null, ruleId: spendContext.ruleId || spendContext.sourceRuleId || null, sourceDigest: spendContext.sourceDigest || provenance?.sourceDigest || null, causeEventId: spendContext.causeEventId || provenance?.causeEventId || null });
+      emit("resource.spend", a.id, { requestedResource, resource, amount, actionId: spendContext.actionId || provenance?.actionId || null, actionInstanceId: spendContext.actionInstanceId || provenance?.actionInstanceId || null, sourceActionId: spendContext.sourceActionId || null, sourceRuleId: spendContext.sourceRuleId || spendContext.ruleId || null, ruleId: spendContext.ruleId || spendContext.sourceRuleId || null, sourceDigest: spendContext.sourceDigest || provenance?.sourceDigest || null, causeEventId: spendContext.causeEventId || provenance?.causeEventId || null, bigIronHandled: spendContext.bigIronHandled === true });
     };
     const gain = (a, requestedResource, amount, gainContext = {}) => {
       integer(amount,"получение ресурса");
+      if (restored?.beforeGain(a, requestedResource, amount)) return;
       const gainStatus=global.DAWN_LIONWING_ADAPTERS?.resourceGainStatus?.(a,{scene,requestedResource,amount,actionId:gainContext.actionId||provenance?.actionId||null})||{allowed:true};
       if(gainStatus.allowed===false){emit("resource.gain.prevented",a.id,{requestedResource,amount,reason:gainStatus.reason||"Получение запрещено Техникой"});return;}
       const resource=resourceKey(a,requestedResource),before=balance(a,resource);
       if(!spendable.has(resource)&&!Object.hasOwn(a.ruleResources||{},resource))fail("Сначала настройте ресурс");
-      if(requestedResource==="focus"&&a.ruleResources?.[resource]?.inverted){a.ruleResources[resource].value=Math.max(0,before-amount);emit("resource.spend",a.id,{requestedResource,resource,amount:Math.min(before,amount),requestedAmount:amount,inverted:true,actionId:gainContext.actionId||provenance?.actionId||null,actionInstanceId:gainContext.actionInstanceId||provenance?.actionInstanceId||null,sourceActionId:gainContext.sourceActionId||null,sourceRuleId:gainContext.sourceRuleId||gainContext.ruleId||null,ruleId:gainContext.ruleId||gainContext.sourceRuleId||null,sourceDigest:gainContext.sourceDigest||provenance?.sourceDigest||null,causeEventId:gainContext.causeEventId||provenance?.causeEventId||null});return;}
+      if(requestedResource==="focus"&&a.ruleResources?.[resource]?.inverted){a.ruleResources[resource].current=a.ruleResources[resource].value=Math.max(0,before-amount);emit("resource.spend",a.id,{requestedResource,resource,amount:Math.min(before,amount),requestedAmount:amount,inverted:true,actionId:gainContext.actionId||provenance?.actionId||null,actionInstanceId:gainContext.actionInstanceId||provenance?.actionInstanceId||null,sourceActionId:gainContext.sourceActionId||null,sourceRuleId:gainContext.sourceRuleId||gainContext.ruleId||null,ruleId:gainContext.ruleId||gainContext.sourceRuleId||null,sourceDigest:gainContext.sourceDigest||provenance?.sourceDigest||null,causeEventId:gainContext.causeEventId||provenance?.causeEventId||null});return;}
       if(spendable.has(resource))a[resource]=before+amount;
-      else {const def=a.ruleResources[resource];if(def.maximum!=null&&before+amount>def.maximum)fail("Получение превышает максимум ресурса");def.value=before+amount;}
+      else {const def=a.ruleResources[resource];if(def.maximum!=null&&before+amount>def.maximum)fail("Получение превышает максимум ресурса");def.current=def.value=before+amount;}
       emit("resource.gain",a.id,{requestedResource,resource,amount,actionId:gainContext.actionId || provenance?.actionId || null,actionInstanceId:gainContext.actionInstanceId || provenance?.actionInstanceId || null,sourceActionId:gainContext.sourceActionId||null,sourceRuleId:gainContext.sourceRuleId||gainContext.ruleId||null,ruleId:gainContext.ruleId||gainContext.sourceRuleId||null,sourceDigest:gainContext.sourceDigest||provenance?.sourceDigest||null,causeEventId:gainContext.causeEventId||provenance?.causeEventId||null});
     };
     const specialString = (value, label, max = 180) => {
@@ -2322,7 +2600,7 @@
       const sourceKey = p.sourceId ?? sourceActorId ?? `${rootId}:banish`;
       if (typeof sourceKey !== "string" || !sourceKey || sourceKey.length > 180) fail("Некорректный источник Изгнания");
       if (operation === "apply") {
-        commitEffect(target, { effect: "positive.изгнан", duration: "startTurn", sourceId: sourceKey, removable: p.removable !== false, sourceBound: true }, sourceActorId);
+        commitEffect(target, { ...p, effect: "positive.изгнан", duration: "startTurn", sourceId: sourceKey, removable: p.removable !== false, sourceBound: true }, sourceActorId);
       } else {
         const sources = target.effectStates?.["positive.изгнан"]?.sources || [];
         const selected = p.sourceId || p.sourceActorId || sourceActorId ? sources.filter(item => (item.sourceId || item.actorId) === (p.sourceId || p.sourceActorId || sourceActorId)) : sources;
@@ -2354,7 +2632,7 @@
         if (effectActive(scene, target, "positive.исчез")) fail("Участник уже Исчез");
         const sourceKey = p.sourceId ?? sourceActorId ?? `${rootId}:vanish`;
         if (typeof sourceKey !== "string" || !sourceKey || sourceKey.length > 180) fail("Некорректный источник Исчезновения");
-        commitEffect(target, { effect: "positive.исчез", duration: "actionOrStartTurn", sourceId: sourceKey, removable: p.removable !== false, sourceBound: false }, sourceActorId);
+        commitEffect(target, { ...p, effect: "positive.исчез", duration: "actionOrStartTurn", sourceId: sourceKey, removable: p.removable !== false, sourceBound: false }, sourceActorId);
       } else {
         if (!effectActive(scene, target, "positive.исчез")) fail("Участник не Исчез");
         reappear(target, { ...p, operation }, operation === "expire" ? "reappear-expire" : operation === "remove" ? "reappear-remove" : "reappear");
@@ -2469,7 +2747,7 @@
       const after = specialSnapshot(scene, members.map(part => part.id), id);
       emitSpecial(operation === "remove" ? "compound.remove" : "compound.dissolve", sourceId, "compound", { operation, compoundId: id, removedPartIds: removed.map(part => part.id), partIds: remaining.map(part => part.id) }, before, after);
     };
-    const applyHealing = (p,sourceId) => { const target = requiredActor(scene, p.targetId || sourceId); const amount = integer(p.amount, "лечение"),compound=legacy.compoundEnemyStatus(scene,target),before=compound.active?compound.hp:target.hp;let after;if(compound.active){after=Math.min(Math.ceil(compound.hp/compound.gate)*compound.gate,compound.hp+amount);let remaining=after;for(const part of compound.parts){part.hp=Math.min(part.maxHp,remaining);remaining-=part.hp;}}else{target.hp=Math.min(maxHealth(target),target.hp+amount);after=target.hp;}emit("actor.heal",sourceId,{targetId:target.id,amount,restored:after-before,prevented:amount>0&&after===before});};
+    const applyHealing = (p,sourceId) => { const target = requiredActor(scene, p.targetId || sourceId); const amount = integer(p.amount, "лечение"),compound=legacy.compoundEnemyStatus(scene,target),before=compound.active?compound.hp:target.hp;let after;if(compound.active){after=Math.min(Math.ceil(compound.hp/compound.gate)*compound.gate,compound.hp+amount);let remaining=after;for(const part of compound.parts){part.hp=Math.min(part.maxHp,remaining);remaining-=part.hp;}}else{target.hp=Math.min(maxHealth(target),target.hp+amount);after=target.hp;}emit("actor.heal",sourceId,{targetId:target.id,amount,restored:after-before,prevented:amount>0&&after===before,...(p.passiveKey?{passiveKey:p.passiveKey}:{}),...(p.boundaryEventId?{boundaryEventId:p.boundaryEventId}:{})});};
     const applyHealthLoss = (a, p, sourceId) => {
       const requested = integer(p.amount, "потеря Здоровья"), compound = legacy.compoundEnemyStatus(scene, a), before = compound.active ? compound.hp : Number(a.hp || 0), lost = Math.min(before, requested);
       if(p.mode!=="lose"&&requested>before)fail("Недостаточно Здоровья для оплаты");
@@ -2564,6 +2842,45 @@
       scene.rollFeed ||= []; scene.rollFeed.unshift({ id: row.id, actorId: a.id, actor: a.name, ...result, outcome: label, visibility: event.visibility || "public" }); scene.rollFeed = scene.rollFeed.slice(0, 40);
       return result;
     };
+    const openAttackLifecycle = (a, pending) => {
+      if(pending.nativeLifecycle?.opened)return;
+      pending.sourceActionId ||= pending.actionId || "manual.attack";
+      pending.criticals ??= Number(pending.roll?.crits||0);
+      const history = (a.lionwing?.history || []).findLast(item => item.ruleId === pending.enemyRuleId && item.execution?.route === "profile");
+      if (history) { pending.actionInstanceId = history.actionInstanceId; history.targetIds = copy(pending.targetIds); }
+      pending.nativeLifecycle={schema:1,opened:true};
+      restored?.beforeAttack(a,pending);
+    };
+    const closeAttackLifecycle = (pending, operations) => {
+      if (pending.nativeLifecycle?.closed) return;
+      pending.sourceActionId ||= pending.actionId || "manual.attack";
+      pending.criticals ??= Number(pending.roll?.crits || 0);
+      pending.nativeLifecycle = { ...pending.nativeLifecycle, schema: 1, closed: true };
+      restored?.resolve(pending, operations);
+    };
+    // Shared geometry and NPC reducers apply their canonical event, then
+    // publish it through the same history/trigger/technique observers. This
+    // operation can only be created inside this module or resumed from the
+    // engine-owned continuation; a public request cannot supply __sharedEvent.
+    const applySharedEvent = raw => {
+      const previousPending = scene.pendingAction;
+      const packet = Array.isArray(raw) ? raw : [raw];
+      legacy.eventPacketContract.validate(packet);
+      legacy.eventPacketContract.replayStatus(scene, packet);
+      const executionScene = copy(scene), executingIds = new Set(packet.map(row => row.id).filter(Boolean));
+      // The external packet is acknowledged when its continuation is saved.
+      // Those receipts mean accepted, even for a tail waiting on a native
+      // replacement. Execute that engine-owned tail without treating its
+      // acknowledgement as an already-applied result. The shared event log
+      // still rejects conflicting ids and prevents reapplying completed rows.
+      state(executionScene).receipts = state(executionScene).receipts.filter(receipt => !executingIds.has(receipt.id));
+      const committed = legacy.eventPacketContract.dispatchContinuation(executionScene, packet);
+      Object.assign(s, committed.scene.lionwing || {});
+      Object.assign(scene, committed.scene, { lionwing: s });
+      for (const row of committed.events || []) acceptEvent(row, true);
+      const pending = scene.pendingAction;
+      if (pending && (!previousPending || previousPending.id !== pending.id)) openAttackLifecycle(requiredActor(scene, pending.actorId, false), pending);
+    };
     const beginAttack = (a, p) => {
       if (scene.pendingAction) fail("Атака уже ожидает разрешения");
       const seen=new Set(),targets=[...new Set(p.targetIds||[])].filter(id=>{const a=actor(scene,id),key=a?.compoundId||id;if(seen.has(key))return false;seen.add(key);return true;});
@@ -2573,9 +2890,11 @@
         if (effectActive(scene,target,"positive.исчез") || effectActive(scene,a,"positive.изгнан") !== effectActive(scene,target,"positive.изгнан")) fail("Цель недоступна из-за Эффекта");
       }
       scene.pendingAction = { id: rootId, actionInstanceId:p.actionInstanceId || provenance?.actionInstanceId||rootId, lionwing: true, actorId: a.id, name: p.name || "Атака", targetIds: targets, damage: integer(p.amount, "урон"), repeat: integer(p.repeat ?? 1, "повторы", 30), criticals: Number(p.criticals || 0), effects: copy(p.effects || []), finalDamage: Boolean(p.finalDamage), ignoreArmor:p.ignoreArmor===true, ignoreEvasion:p.ignoreEvasion===true, irreducible:p.irreducible===true, responses: Object.fromEntries(targets.map(id => [id, { choice: "pending" }])), sourceActionId: p.actionId || "manual.attack", techniqueRuleId: p.techniqueRuleId || null, techniqueSourceDigest: p.techniqueSourceDigest || null, techniqueId: p.techniqueId || null, techniqueIds: Array.isArray(p.techniqueIds) ? copy(p.techniqueIds) : null, ...(p.derivedActionId ? { derived: true, derivedActionId: p.derivedActionId, derivedLineage: copy(p.lineage || []), fixedTargetId: p.fixedTargetId || targets[0], fixedDamage: p.fixedDamage === true, derivedSourceDigest: p.sourceDigest || null } : {}), ...(p.breacherPush ? { breacherPush: true, breacherPushMultiplier: Number(p.breacherPushMultiplier || 1), breacherAttackSuccess: p.breacherAttackSuccess === true, breacherInitialDistances: copy(p.breacherInitialDistances || {}) } : {}), ...(p.breacherWeaken ? { breacherWeaken: true } : {}), ...(p.areaPlan ? { areaPlan: copy(p.areaPlan), areaCells: copy(p.areaPlan.result?.cells || []), areaCenter: copy(p.areaPlan.result?.center), emptyTargetCount: Number(p.emptyTargetCount || 0) } : {}), ...(p.__actionPlan ? { actionPlan: copy(p.__actionPlan), actionPlanId: p.__actionPlan.id } : {}), ...(p.__execution ? { execution: copy(p.__execution) } : {}) };
+      if(p.attackEffectsByTarget) scene.pendingAction.attackEffectsByTarget = copy(p.attackEffectsByTarget);
       if(p.targetDamage){if(typeof p.targetDamage!=="object"||Array.isArray(p.targetDamage))fail("Некорректный урон по целям");for(const[id,amount]of Object.entries(p.targetDamage)){if(!targets.includes(id))fail("Урон указан для посторонней цели");integer(amount,"урон цели");}scene.pendingAction.targetDamage=copy(p.targetDamage);}
       if (!scene.pendingAction.repeat) fail("Нужно хотя бы одно нанесение урона");
       emit("attack.pending", a.id, scene.pendingAction);
+      openAttackLifecycle(a, scene.pendingAction);
       if(effectActive(scene,a,"negative.порчен"))s.afterAttack=[...(s.afterAttack||[]),{kind:"damage",targetId:a.id,amount:Number(a.tier||1),sourceActorId:a.id,irreducible:true}];
     };
     const detectiveFinisherOpen = (p, sourceId) => {
@@ -2607,23 +2926,153 @@
       if (!runtime?.prepare) fail("Планировщик пространства недоступен");
       const planned = runtime.prepare(scene, { operation: "teleport", sourceActorId: source.id, targetId: source.id, destination: p.destination, ruleId: detectiveRuleId, label: "Детектив III: телепортация к цели" });
       if (!planned.ok) fail(planned.errors?.join(" ") || "Клетка телепортации недоступна");
+      const def = actionDef(ids.finish), rollValue = roll(diceCount(scene, source, def, { attribute: "mind", targetIds: [target.id] }), executionOptions.random, { ...provenance, rollId: `${rootId}:detective-finisher:roll`, kind: "check", actionId: ids.finish, actionDefinitionId: ids.finish, ownerActorId: source.id });
       const checked = runtime.commit(scene, planned.plan);
       for (const saved of checked.after.actors || []) { const current = requiredActor(scene, saved.id, false); current.space = saved.space; current.x = Number(saved.x); current.y = Number(saved.y); }
       emit("geometry.teleport.commit", source.id, { ...checked.event.payload.summary, operation: "teleport", targetId: source.id, ruleId: detectiveRuleId, free: true });
-      const def = actionDef(ids.finish), rollValue = roll(diceCount(scene, source, def, { attribute: "mind" }), executionOptions.random, { ...provenance, rollId: `${rootId}:detective-finisher:roll`, kind: "check", actionId: ids.finish, actionDefinitionId: ids.finish, ownerActorId: source.id });
-      emit("action.resolve", source.id, { actionId: ids.finish, name: "Завершение Разумом", targetIds: [target.id], actionInstanceId: `${rootId}:detective-finisher`, ownerTurnInstanceId: s.activeTurnInstanceId || null, attribute: "mind", techniqueRuleId: detectiveRuleId, finisherMode: "mind", free: true, fixedTargetId: target.id, triggerKey: p.triggerKey });
-      const result = publishRoll(source, rollValue, "Завершение Разумом (Детектив III)");
-      astate(source).history.push({ actionId: ids.finish, actionDefinitionId: ids.finish, actionInstanceId: `${rootId}:detective-finisher`, targetIds: [target.id], round: scene.round, turnSerial: scene.turnSerial, ownerTurnActorId: source.id, ownerTurnSerial: ownTurnSerial(source), ownerTurnInstanceId: s.activeTurnInstanceId || null, ownerTurnKey: ownerTurnKey(s.sceneSerial, source, ownTurnSerial(source)), swift: false, free: true, ruleId: detectiveRuleId, triggerKey: p.triggerKey });
-      beginAttack(source, { actionId: ids.finish, actionInstanceId: `${rootId}:detective-finisher`, name: "Завершение Разумом", targetIds: [target.id], amount: result.successes + tensionValue(scene), targetDamage: { [target.id]: result.successes + tensionValue(scene) }, attribute: "mind", finisherMode: "mind", techniqueRuleId: detectiveRuleId, finalDamage: false });
+      performAction(source, { actionId: ids.finish, actionInstanceId: `${rootId}:detective-finisher`, targetIds: [target.id], attribute: "mind", finisherMode: "mind", techniqueRuleId: detectiveRuleId, roll: rollValue, triggerKey: p.triggerKey }, { derivedContract: { id: detectiveRuleId, sourceDigest: provenance?.sourceDigest } });
+    };
+    // All executable base Actions, including geometry bridges and rolled
+    // continuations, settle one native price and run the same lifecycle.
+    // Route adapters validate geometry and apply their result; they cannot
+    // independently pay, consume a once-only right or append Action history.
+    const executeAction = (a, p, def, status, route, apply, extra = {}) => {
+      p.actionInstanceId ||= provenance?.actionInstanceId || rootId;
+      p.ownerTurnInstanceId = s.activeTurnInstanceId || null;
+      assertFreshActionIdentity(p.actionInstanceId);
+      provenance = foundations.identity({ ...provenance, actionId: def.id, actionDefinitionId: def.id, actionInstanceId: p.actionInstanceId, ownerActorId: a.id });
+      const focusSpent = integer(p.focusSpent || 0, "Фокус");
+      const focusCap = Number(status.actionQuote?.focusCap ?? tensionValue(scene));
+      if (def.id === ids.finish && focusSpent > focusCap) fail(`Расход Фокуса превышает допустимый предел ${focusCap}`);
+      const costs = [];
+      const addCost = (resource, amount) => { amount=integer(amount||0,"стоимость");if(amount)costs.push({kind:"resource",resource,amount,...status.costContext}); };
+      addCost(status.resource, status.cost);
+      if (extra.hooks !== false && p.breakout) addCost("influence",1);
+      if (extra.hooks !== false && def.id === ids.finish && p.restoredPlan?.materialCount == null) addCost("focus",p.restoredPlan?.focusCost ?? focusSpent);
+      if (extra.focusCost) addCost("focus",extra.focusCost);
+      if (extra.hooks !== false) costs.push(...(restored?.actionCosts(p) || []));
+      // Check the entire reservation, including repeated use of one resource.
+      const reservation = {};
+      for (const cost of costs) {
+        if (cost.kind === "clock") {
+          const clock = a.ruleClocks?.[cost.id];
+          if (!clock || Number(clock.current ?? clock.value ?? 0) < integer(cost.amount,"стоимость счётчика")) fail("Недостаточно сегментов счётчика");
+          continue;
+        }
+        const resource = resourceKey(a, cost.resource), direction = cost.resource === "focus" && a.ruleResources?.[resource]?.inverted ? 1 : -1;
+        reservation[resource] = (reservation[resource] || 0) + direction * cost.amount;
+        const next = balance(a, resource) + reservation[resource];
+        if (next < 0 || a.ruleResources?.[resource]?.maximum != null && next > a.ruleResources[resource].maximum) fail(`Недостаточно ресурса ${resource}`);
+      }
+      for (const cost of costs) {
+        if (cost.kind === "clock") mutateCounter({ id: cost.id, operation: "add", delta: -cost.amount },a.id,"clock");
+        else spend(a,cost.resource,cost.amount,cost);
+      }
+      if (extra.hooks !== false) restored?.beforeAction(a,p,{pricePaid:true});
+      if(status.allowanceId)astate(a).allowances.find(item=>item.id===status.allowanceId).remaining--;
+      if(!status.continuation&&!status.swift){a.usedActions=[...new Set([...(a.usedActions||[]),def.id])];astate(a).turnActions=[...new Set([...(astate(a).turnActions||[]),def.id])];}
+      const owner=scene.activeActorId?actor(scene,scene.activeActorId):null,serial=owner?ownTurnSerial(owner):null;
+      const historyRow={actionId:def.id,actionDefinitionId:def.id,actionInstanceId:p.actionInstanceId,
+        targetIds:copy(p.targetIds||[]),attribute:p.attribute||null,round:scene.round,turnSerial:scene.turnSerial,
+        ownerTurnActorId:owner?.id||null,ownerTurnSerial:serial,ownerTurnInstanceId:p.ownerTurnInstanceId,
+        ownerTurnKey:owner?ownerTurnKey(s.sceneSerial,owner,serial):null,swift:Boolean(status.swift),
+        ...extra.history,execution:{schema:1,route,costs:copy(costs),phases:["validated","paid","before"]}};
+      astate(a).history=[...(astate(a).history||[]),historyRow].filter((item,index,list)=>item.ruleId||item.techniqueRuleId||item.derivedActionId||index>=list.length-200);
+      const result=apply(historyRow);
+      // A shared reducer can replace Actor objects. Always reacquire the owner.
+      const current=actor(scene,a.id),row=astate(current).history.findLast(item=>item.actionInstanceId===p.actionInstanceId);
+      if (extra.hooks !== false) restored?.afterAction(current,p,result);
+      if(row?.execution)row.execution.phases.push("applied","after","recorded");
+      return result;
     };
     const performAction = (a, p, internal = {}) => {
       const def = actionDef(p.actionId);
       if (!def) fail("Неизвестное базовое действие");
-      const derived = p.__derivedContract || null;
-      const derivedQuote = derived ? global.DAWN_LIONWING_ADAPTERS?.actionQuote?.(a, { scene, actionId: def.id, targetIds: p.targetIds || [], attribute: p.attribute || null, baseCost: 0, baseResource: def.cost.resource, baseSwift: true, techniqueRuleId: derived.id, techniqueIds: [derived.id] }) : null;
-      if (derivedQuote?.ok === false) fail(derivedQuote.reason || "Модификаторы производного действия конфликтуют");
-      const status = derived ? { available: true, reason: "", cost: 0, resource: def.cost.resource, swift: true, actionQuote: derivedQuote || {} } : actionStatus(scene, a, def, p);
-      if (!status.available) fail(status.reason);
+      if(Object.hasOwn(p,"__derivedContract"))fail("Внутренний контракт действия нельзя передавать в запросе");
+      Object.assign(p, global.DAWN_LIONWING_RESTORED_TECHNIQUES?.plan?.(scene, a, p) || {});
+      const derived=internal.derivedContract||null;
+      const derivedQuote=derived?global.DAWN_LIONWING_ADAPTERS?.actionQuote?.(a,{scene,actionId:def.id,targetIds:p.targetIds||[],attribute:p.attribute||null,baseCost:0,baseResource:def.cost.resource,baseSwift:true,techniqueRuleId:derived.id,techniqueIds:[derived.id]}):null;
+      if(derivedQuote?.ok===false)fail(derivedQuote.reason||"Модификаторы производного действия конфликтуют");
+      const status=derived?{available:true,reason:"",cost:0,resource:def.cost.resource,swift:true,actionQuote:derivedQuote||{}}:actionStatus(scene,a,def,p);
+      if(!status.available)fail(status.reason);
+      if (isMasterAction(a, p)) {
+        const gate = status;
+        if (effectActive(scene, a, "positive.исчез")) {
+          if (!p.reappearance) fail("Сначала выберите клетку появления");
+          validateActionReappearance(scene, a, p.reappearance);
+          removeEffect(a, "positive.исчез", { reappear: false });
+          placeActor(a, p.reappearance, { reason: "reappear-action" });
+        }
+        const checkedRoll = validateRoll(p.roll,{ownerActorId:a.id,rollId:`${rootId}:roll:${rollSerial}`});
+        if (dice) diceOwnerCheck(checkedRoll, a.id, "Бросок", true);
+        const pools = attackPools(scene, a, def, p);
+        if (checkedRoll.initialCount !== pools.base) fail("Пул броска не соответствует действию Мастера оружия");
+        const prepared = legacy.prepareAction(masterScene(scene), global.DAWN_DATA, { ...p, actorId: a.id,
+          roll: { rolls: copy(checkedRoll.rolls), successes: checkedRoll.successes, crits: checkedRoll.crits, initialCount: checkedRoll.initialCount, attribute: p.attribute || "talent" },
+          armamentDestination: p.armamentDestination || p.destination,
+          armamentAnchor: p.armamentAnchor || p.areaCenter,
+          attackModifierIds: p.spikeTargetIds?.map(id => `core.launch-spike:${id}`) || p.attackModifierIds || [],
+        }, { nativeActionQuote: { actorId: a.id, actionId: def.id, cost: gate.cost, resource: gate.resource,
+          swift: gate.swift, focusCap: gate.actionQuote?.focusCap ?? tensionValue(scene),
+          focusCost: p.restoredPlan?.focusCost ?? Number(p.focusSpent || 0) } });
+        if (!prepared.ok) fail(prepared.errors.join(" "));
+        // Validate shared geometry against the quoted pre-action state, then
+        // consume native resources and once-per-Round rights in this transaction.
+        return executeAction(a,p,def,gate,"armament",historyRow=>{
+        if (p.restoredPlan?.bullets) {
+          // Pre-Skirmish bullets can defeat a defender before the Armament.
+          // Match the native route: complete the Action, but attack only survivors.
+          for (const item of prepared.events.filter(item => ["action.prepare", "attack.pending"].includes(item.type))) {
+            item.payload.targetIds = (item.payload.targetIds || []).filter(id => live(actor(scene, id)));
+          }
+          prepared.events = prepared.events.filter(item => item.type !== "attack.pending" || item.payload.targetIds.length);
+        }
+        const instanceId = prepared.events.find(item => item.type === "action.prepare")?.payload?.actionInstanceId;
+        // Shared geometry derives the real targets. Compose native damage on
+        // that result, before the shared reducer applies attack Effects. Keep
+        // the same authoritative Action history as the ordinary native route:
+        // a special Armament must also interrupt (or complete) a Combo.
+        const attackEvent = prepared.events.find(item => item.type === "attack.pending");
+        Object.assign(historyRow,{attribute:p.attribute||"talent",targetIds:copy(attackEvent?.payload?.targetIds||[]),techniqueRuleId:attackEvent?.payload?.techniqueRuleId||null});
+        const quoteScene = copy(scene), quoteOwner = actor(quoteScene, a.id);
+        if (attackEvent) {
+          const payload = attackEvent.payload;
+          payload.nativeDamageSources = {};
+          payload.ownerTurnInstanceId = historyRow.ownerTurnInstanceId;
+          payload.turnSerial = historyRow.turnSerial;
+          for (const targetId of payload.targetIds || []) {
+            const base = Number(payload.effectDamageBaseByTarget?.[targetId] ?? payload.effectDamageBase ?? payload.damage);
+            const quote = global.DAWN_LIONWING_ADAPTERS?.damageQuote?.(quoteOwner, { scene: quoteScene,
+              kind: "attack", actionId: def.id, actionInstanceId: rootId, attribute: historyRow.attribute,
+              techniqueRuleId: payload.techniqueRuleId, targetId, targetIds: payload.targetIds,
+              baseValue: base, roundUp: true });
+            if (quote?.ok === false) fail(quote.reason || "Модификаторы урона Мастера оружия конфликтуют");
+            const amount = quote?.ok ? quote.value : base;
+            payload.effectDamageBaseByTarget ||= {};
+            payload.damageByTarget ||= {};
+            payload.effectDamageBaseByTarget[targetId] = amount;
+            payload.damageByTarget[targetId] = amount;
+            payload.nativeDamageSources[targetId] = copy(quote?.sources || []);
+          }
+        }
+        const stable = value => typeof value === "string" && value === instanceId ? p.actionInstanceId
+          : Array.isArray(value) ? value.map(stable)
+          : value && typeof value === "object" ? Object.fromEntries(Object.entries(value).map(([key, item]) => [key, stable(item)])) : value;
+        const events = prepared.events.filter(item=>item.type!=="resource.spend").map((item, index) => ({ ...stable(item), id: `${rootId}:master:${index}`, at: event.at }));
+        const committed = legacy.dispatchMany(masterScene(scene), events);
+        for (const owner of committed.scene.actors) {
+          const original = actor(scene, owner.id);
+          if (original) owner.techniques = { ...(original.techniques || {}), ...(masterLevel(original) ? { [masterTechniqueId]: masterLevel(original) } : {}) };
+        }
+        Object.assign(s, committed.scene.lionwing || {});
+        Object.assign(scene, committed.scene, { lionwing: s });
+        for (const row of committed.events) acceptEvent(row, true);
+        const pending = scene.pendingAction;
+        if(pending)openAttackLifecycle(actor(scene,a.id),pending);
+        saveFact("apply", a.id, pending?.targetIds || [], { actionId: def.id, techniqueRuleId: pending?.techniqueRuleId, swift: Boolean(gate.swift) });
+        return checkedRoll;
+        },{history:derived?{derived:true,derivedActionId:derived.id,causeEventId:provenance?.causeEventId||null,sourceDigest:derived.sourceDigest,lineage:copy(p.lineage||[])}:{}});
+      }
       const assassinStride = def.id === ids.step && status.actionQuote?.modifierIds?.includes("vagabond.assassin.3");
       const icicleRequested = def.id === ids.breathe && (p.icicle === true || p.useIcicle === true || p.cryomancerIcicle === true || p.icicleChoice === "empty");
       const icicleClock = a.ruleClocks?.["ruiner.cryomancer.icicle"];
@@ -2638,7 +3087,7 @@
       }
       if (effectActive(scene,a,"positive.исчез") && !assassinStride) {
         if (!p.reappearance) fail("Сначала выберите клетку появления");
-        if (scene.actors.some(x => live(x) && x.id !== a.id && distance({ ...p.reappearance, space: p.reappearance.space || a.space }, x) <= 1)) fail("Появление запрещено рядом с персонажем");
+        validateActionReappearance(scene, a, p.reappearance);
         removeEffect(a, "positive.исчез",{reappear:false}); placeActor(a, p.reappearance, { reason: "reappear-action" });
       }
       if ([ids.skirmish, ids.finish].includes(def.id) && p.areaPlan) {
@@ -2651,15 +3100,15 @@
         fail("Для Бомбардира требуется подтверждённый план области");
       }
       const targets = targetIds(scene,p.targetIds).map(id => requiredActor(scene, id));
-      if ([ids.spell, ids.study, ids.shove, "action.атаки.дуэль"].includes(def.id) && targets.length !== 1 || def.id === ids.finish && !p.areaPlan && targets.length !== 1 || def.id === ids.skirmish && (!targets.length || !p.areaPlan && targets.length > 2)) fail("Неверное число целей");
+      if ([ids.spell, ids.study, ids.shove, "action.атаки.дуэль"].includes(def.id) && !p.restoredPlan?.emptyAttack && !p.restoredPlan?.cells && targets.length !== 1 || def.id === ids.finish && !p.areaPlan && !p.restoredPlan?.emptyAttack && !p.restoredPlan?.cells && targets.length !== 1 || def.id === ids.skirmish && (!p.restoredPlan?.emptyAttack && !targets.length || !p.areaPlan && !p.restoredPlan?.bullets && targets.length > 2)) fail("Неверное число целей");
       const finishContext = { scene, kind: "attack", actionId: def.id, attribute: p.attribute || (def.id === ids.finish ? "spirit" : null), activeEffectIds: activeState(scene, a.id).effects.filter(status => status.present).map(status => status.effect), techniqueRuleId: p.techniqueRuleId || null, techniqueSourceDigest: p.techniqueSourceDigest || null, breacherBuckShot: p.breacherBuckShot === true, tension: tensionValue(scene), spellCircleActive: p.spellCircleActive === true || spellCircleActive(scene, a), firstSpiritFinisherThisTurn: def.id === ids.finish && (p.firstSpiritFinisherThisTurn === true || firstSpiritFinisherThisTurn(scene, a, p.actionInstanceId || provenance?.actionInstanceId || rootId)) };
       const baseRange = def.id === ids.spell ? 5 : def.id === ids.finish ? Math.max(Number(status.actionQuote?.range || 0), 1) : def.id === ids.skirmish ? 1 : def.id === ids.study ? Number(status.actionQuote?.range ?? a.attrs.mind ?? 0) : 1;
-      const rangeQuote = global.DAWN_LIONWING_ADAPTERS?.rangeQuote?.(a, { ...finishContext, key: "range", baseValue: baseRange, roundUp: true })
-        || global.DAWN_LIONWING_ADAPTERS?.numericQuote?.(a, { ...finishContext, key: "range", baseValue: baseRange, roundUp: true })
+      const rangeQuote = global.DAWN_LIONWING_ADAPTERS?.rangeQuote?.(a, { ...finishContext, targetIds: targets.map(target => target.id), key: "range", baseValue: baseRange, roundUp: true })
+        || global.DAWN_LIONWING_ADAPTERS?.numericQuote?.(a, { ...finishContext, targetIds: targets.map(target => target.id), key: "range", baseValue: baseRange, roundUp: true })
         || { ok: true, value: baseRange };
       if (rangeQuote.ok === false) fail(rangeQuote.reason || "Числовые модификаторы дальности конфликтуют");
       const range = Math.max(0, Number(rangeQuote.value ?? baseRange));
-      if ((!derived && ([ids.spell, ids.skirmish, ids.study, ids.shove, "action.атаки.дуэль"].includes(def.id) && !p.areaPlan && targets.some(t => t.id === a.id || distance(a, t) > range) || def.id === ids.finish && !p.areaPlan && targets.some(t => t.id === a.id || distance(a, t) > range)) || derived && !derived.ignoreRange && targets.some(t => t.id === a.id || distance(a, t) > range))) fail("Цель вне дальности действия");
+      if ((!derived && ([ids.spell, ids.skirmish, ids.study, ids.shove, "action.атаки.дуэль"].includes(def.id) && !p.areaPlan && !p.restoredPlan?.ignoreRange && targets.some(t => t.id === a.id || distance(a, t) > range) || def.id === ids.finish && !p.areaPlan && !p.restoredPlan?.ignoreRange && targets.some(t => t.id === a.id || distance(a, t) > range)) || derived && !derived.ignoreRange && targets.some(t => t.id === a.id || distance(a, t) > range))) fail("Цель вне дальности действия");
       if (def.id === ids.study && isPlayer(targets[0])) fail("Изучение требует NPC");
       if (def.id === "action.атаки.дуэль" && !internal.duelEntryAuthorized) {
         const opponent = targets[0], entry = duelEntryQuote(a, opponent);
@@ -2695,15 +3144,21 @@
         p.studentPowerUnleashed = true;
         p.studentFocusCap = focusCap;
       }
-      if (p.breakout) spend(a, "influence", 1);
-      if (!derived && status.cost) spend(a, status.resource, status.cost);
-      if (def.id === ids.finish && focusSpent) spend(a, "focus", focusSpent);
-      if (duelEntry?.focusSpent) spend(a, "focus", duelEntry.focusSpent);
-      if(status.allowanceId)astate(a).allowances.find(x=>x.id===status.allowanceId).remaining--;
+      const beforeBulletPools = [ids.spell,ids.skirmish,ids.finish,ids.charge].includes(def.id) ? attackPools(scene,a,def,p) : null;
+      if (beforeBulletPools) {
+        const checked = validateRoll(p.roll,{ownerActorId:a.id,rollId:`${rootId}:roll:${rollSerial}`});
+        if (dice) diceOwnerCheck(checked,a.id,"Бросок",true);
+        if (checked.initialCount !== beforeBulletPools.base) fail("Пул броска не соответствует действию");
+        for (const [id,count] of Object.entries(beforeBulletPools.counts)) if (count > beforeBulletPools.base) {
+          const extraRoll = validateRoll(p.targetRolls?.[id],{ownerActorId:a.id,rollId:`${rootId}:validation-extra:${id}`});
+          if (dice) diceOwnerCheck(extraRoll,a.id,"Дополнительный бросок",true);
+          if (extraRoll.initialCount !== count-beforeBulletPools.base) fail("Неверный дополнительный пул");
+        }
+      }
+      return executeAction(a,p,def,status,derived?"derived":"native",historyRow=>{
+      if (p.restoredPlan?.bullets) { targets.splice(0, targets.length, ...targets.filter(live)); p.targetIds = targets.map(target => target.id); p.restoredPlan.emptyAttack = !targets.length; }
+      historyRow.targetIds = targets.map(target => target.id);
       if(def.id===ids.improvise&&p.removeObstacleId){const index=scene.objects.findIndex(o=>o.id===p.removeObstacleId&&o.type==="terrain"&&o.space===a.space&&(o.cells||[]).some(cell=>{const[x,y]=cell.split(',').map(Number);return distance(a,{x,y,space:a.space})===1;}));if(index<0)fail("Соседнее препятствие не найдено");scene.objects.splice(index,1);}
-      if (!status.continuation && !status.swift) { a.usedActions = [...new Set([...(a.usedActions || []), def.id])]; astate(a).turnActions = [...new Set([...(astate(a).turnActions || []), def.id])]; }
-      const activeTurnOwner = scene.activeActorId ? actor(scene, scene.activeActorId) : null, activeOwnerSerial = activeTurnOwner ? ownTurnSerial(activeTurnOwner) : null;
-      astate(a).history = [...(astate(a).history || []), { actionId: def.id, actionDefinitionId: def.id, actionInstanceId: provenance?.actionInstanceId || null, ...(derived ? { causeEventId: provenance?.causeEventId || null } : {}), targetIds: targets.map(t => t.id), round: scene.round, turnSerial: scene.turnSerial, ownerTurnActorId: activeTurnOwner?.id || null, ownerTurnSerial: activeOwnerSerial, ownerTurnInstanceId: s.activeTurnInstanceId || null, ownerTurnKey: activeTurnOwner ? ownerTurnKey(s.sceneSerial, activeTurnOwner, activeOwnerSerial) : null, swift: Boolean(status.swift), ...(derived ? { derived: true, derivedActionId: derived.id, sourceDigest: derived.sourceDigest, lineage: copy(p.lineage || []) } : {}), ...(p.techniqueRuleId ? { techniqueRuleId: p.techniqueRuleId } : {}), ...(p.studentPowerUnleashed ? { studentPowerUnleashed: true, studentFocusCap: focusCap } : {}), ...(assassinStride ? { ruleId: "vagabond.assassin.3" } : {}) }].filter((item,index,list)=>item.ruleId||item.techniqueRuleId||item.derivedActionId||index>=list.length-200);
       p.actionInstanceId ||= provenance?.actionInstanceId || rootId;
       p.ownerTurnInstanceId ||= s.activeTurnInstanceId || null;
       const actionResolve = emit("action.resolve", a.id, { actionId: def.id, name: def.name, targetIds: targets.map(t => t.id), actionInstanceId: p.actionInstanceId, ownerTurnInstanceId: p.ownerTurnInstanceId, attribute: finishContext.attribute, techniqueRuleId: p.techniqueRuleId || null, techniqueSourceDigest: p.techniqueSourceDigest || null, techniqueId: p.techniqueId || null, techniqueIds: Array.isArray(p.techniqueIds) ? p.techniqueIds : null, ...(derived ? { derived: true, derivedActionId: derived.id, sourceDigest: derived.sourceDigest, lineage: copy(p.lineage || []), swift: true, free: true, fixedTargetId: p.fixedTargetId || null } : {}), studentPowerRuleId: p.studentPowerUnleashed ? "ruiner.student-of-stars.1" : null, studentFocusCap: p.studentPowerUnleashed ? focusCap : null, finisherMode: p.finisherMode || null });
@@ -2715,15 +3170,17 @@
       let result;
       if ([ids.spell, ids.skirmish, ids.finish, ids.charge].includes(def.id)) {
         result = publishRoll(a, p.roll, def.name);
-        const pools=attackPools(scene,a,def,p);if(result.initialCount!==pools.base)fail("Пул броска не соответствует действию");
+        const pools=beforeBulletPools || attackPools(scene,a,def,p);if(result.initialCount!==pools.base)fail("Пул броска не соответствует действию");
       p.targetDamage={};for(const[id,count]of Object.entries(pools.counts)){let extra=0;if(count>pools.base){const extraRoll=publishRoll(a,p.targetRolls?.[id],`Дополнительные кости: ${actor(scene,id).name}`);if(extraRoll.initialCount!==count-pools.base)fail("Неверный дополнительный пул");extra=extraRoll.successes;}p.targetDamage[id]=result.successes+extra+(def.id===ids.finish?tensionValue(scene):0);}
         for(const id of p.spikeTargetIds||[])if(targets.some(t=>t.id===id)&&effectActive(scene,actor(scene,id),"negative.подброшен"))removeEffect(actor(scene,id),"negative.подброшен");
       }
       if ([ids.spell, ids.skirmish, ids.finish].includes(def.id)) {
+        if (p.restoredPlan?.bullets) p.targetDamage = Object.fromEntries(Object.entries(p.targetDamage).filter(([id]) => p.targetIds.includes(id)));
         const initialDistances = Object.fromEntries(targets.map(target => [target.id, distance(a, target)]));
         const breacherLevel = Number((a.knownTechniques ?? a.techniques)?.["powerhouse.breacher"] || 0);
         const breacherPush = def.id === ids.skirmish && breacherLevel >= 1 && a.lionwing?.automation?.["powerhouse.breacher.1"] === true;
-        beginAttack(a, { ...p, name: def.name, amount: result.successes + (def.id === ids.finish ? tensionValue(scene) : 0), breacherPush, breacherPushMultiplier: p.breacherBothBarrels === true ? 2 : 1, breacherAttackSuccess: result.successes > 0, breacherInitialDistances: initialDistances, breacherWeaken: p.breacherBothBarrels === true, criticals: result.crits, actionInstanceId: p.actionInstanceId, sourceActionId: def.id });
+        const attackEffectsByTarget = Object.fromEntries(targets.map(target => [target.id, global.DAWN_LIONWING_ADAPTERS?.attackEffects?.(a, { scene, actionId: def.id, successes: p.targetDamage[target.id] }) || []]));
+        if (!p.restoredPlan?.emptyAttack) beginAttack(a, { ...p, attackEffectsByTarget, name: def.name, amount: result.successes + (def.id === ids.finish ? tensionValue(scene) : 0), breacherPush, breacherPushMultiplier: p.breacherBothBarrels === true ? 2 : 1, breacherAttackSuccess: result.successes > 0, breacherInitialDistances: initialDistances, breacherWeaken: p.breacherBothBarrels === true, criticals: result.crits, actionInstanceId: p.actionInstanceId, sourceActionId: def.id });
       }
       else if (def.id === ids.charge || def.id === ids.breathe) {
         if (p.icicleReplacement) {
@@ -2736,14 +3193,14 @@
           gain(a,"focus",amount,{actionId:def.id,actionInstanceId:p.actionInstanceId});
         }
       }
-      else if (def.id === ids.step) { if (assassinStride) { removeEffect(a, "positive.исчез", { reappear: false }); applyEffect(a, { effect: "positive.невидим", duration: "scene", sourceActionId: "vagabond.assassin.3" }, a.id); } if (!status.continuation) a.stepRemaining = sceneSpeed(scene,a); if (p.destination) {const moved=move(a, { destination: p.destination, maximum: a.stepRemaining, sourceActionId: def.id, actionInstanceId: p.actionInstanceId, ownerTurnInstanceId: p.ownerTurnInstanceId, turnSerial: scene.turnSerial });if(Number(astate(a).difficultTerrainStopSerial)!==Number(scene.turnSerial))a.stepRemaining-=moved.cost;} }
+      else if (def.id === ids.step) { if (assassinStride) { removeEffect(a, "positive.исчез", { reappear: false }); applyEffect(a, { effect: "positive.невидим", duration: "scene", sourceActionId: "vagabond.assassin.3" }, a.id); } if (!status.continuation) a.stepRemaining = sceneSpeed(scene,a); if (p.destination) {const moved=move(a, { destination: p.destination, maximum: a.stepRemaining, sourceActionId: def.id, actionInstanceId: p.actionInstanceId, ownerTurnInstanceId: p.ownerTurnInstanceId, turnSerial: scene.turnSerial });if(Number(astate(a).difficultTerrainStopSerial)!==Number(scene.turnSerial))a.stepRemaining=Math.max(0,a.stepRemaining-moved.cost);} }
       else if (def.id === ids.jump) move(a, { destination: p.destination, maximum: scaledMove(a, Number(a.attrs.talent || 0),scene), line: true, ignoreOpponents: true, ignoreDifficultTerrain:true, sourceActionId: def.id, actionInstanceId: p.actionInstanceId, ownerTurnInstanceId: p.ownerTurnInstanceId, turnSerial: scene.turnSerial });
       else if (def.id === ids.shove) move(targets[0], { destination: p.destination, maximum: 1, forced: true });
       else if (def.id === ids.disappear) applyEffect(a, { effect: "positive.исчез", duration: "actionOrStartTurn" }, a.id);
       else if (def.id === ids.study) { applyEffect(targets[0], { effect: "negative.помечен" }, a.id); const study = global.DAWN_LIONWING_INFORMATION_QUERY?.studyStatus?.(scene, "information:study:" + p.actionInstanceId); emit("rule.prompt", a.id, { targetId: targets[0].id, title: "Нарратор раскрывает выбранный параметр NPC", informationStudyId: study?.id || null, informationCategories: global.DAWN_LIONWING_INFORMATION_QUERY?.availableCategories?.(scene, study).map(item => ({ id: item.id, label: item.label })) || [] }); }
       else if (def.id === ids.improvise && !p.removeObstacleId) {
         if (p.effect) { if (targets.length !== 1 || distance(a, targets[0]) > 1 || p.effect === "positive.изгнан") fail("Импровизация: соседняя цель и Эффект кроме Изгнания"); applyEffect(targets[0], { effect: p.effect }, a.id); }
-        else { const d = p.destination; if (!d || distance(a, { ...d, space: a.space }) !== 1) fail("Выберите соседнюю клетку препятствия"); movement(scene, a, d, { placement: true }); scene.objects.push({ id: `${rootId}:obstacle`, type: "terrain", label: "Препятствие", space: a.space, cells: [`${d.x},${d.y}`], hp: 10, maxHp: 10, duration: "scene", ownerActorId: a.id }); }
+        else { const d = p.destination; if (!d || distance(a, { ...d, space: d.space || a.space }) < 1 || distance(a, { ...d, space: d.space || a.space }) > (global.DAWN_LIONWING_RESTORED_TECHNIQUES?.enabled?.(a, "disruptor.chemist.1") ? 4 : 1)) fail("Клетка препятствия вне дальности"); movement(scene, a, d, { placement: true }); scene.objects.push({ id: `${rootId}:obstacle`, type: "terrain", label: "Препятствие", space: a.space, cells: [`${d.x},${d.y}`], hp: 10, maxHp: 10, duration: "scene", ownerActorId: a.id }); }
       } else if (def.id === "action.атаки.дуэль") {
         const opponent=targets[0];
         if(opponent.team===a.team)fail("Дуэль требует противника");
@@ -2762,6 +3219,20 @@
       if (def.id==="action.атаки.дуэль" && effectActive(scene,a,"negative.порчен")) {
         const damage={kind:"damage",targetId:a.id,amount:Number(a.tier||1),sourceActorId:a.id,irreducible:true};
         if(scene.pendingAction)s.afterAttack=[damage];else queue.unshift({p:damage,sourceId:a.id});
+      }
+      return result;
+      },{focusCost:duelEntry?.focusSpent,history:{...(derived?{causeEventId:provenance?.causeEventId||null,derived:true,derivedActionId:derived.id,sourceDigest:derived.sourceDigest,lineage:copy(p.lineage||[])}:{}),...(p.techniqueRuleId?{techniqueRuleId:p.techniqueRuleId}:{}),...(p.studentPowerUnleashed?{studentPowerUnleashed:true,studentFocusCap:focusCap}:{}),...(assassinStride?{ruleId:"vagabond.assassin.3"}:{})}});
+    };
+
+    // Bootstrap only explicitly declared missing state. Never replay Scene-start
+    // bonuses or reset a clock when a rule is enabled halfway through combat.
+    const initializeTechniqueState = (owner, onlyRuleId = null) => {
+      const registry = global.DAWN_LIONWING_ADAPTERS;
+      for (const rule of registry.list(owner).filter(rule => rule.enabled && (!onlyRuleId || rule.id === onlyRuleId))) {
+        for (const operation of registry.initializationOperations?.(owner, rule.id) || []) {
+          if (operation.kind !== "clock" || operation.operation !== "create") fail("Некорректная инициализация Техники");
+          mutateCounter(operation, owner.id, "clock");
+        }
       }
     };
 
@@ -2848,20 +3319,26 @@
       if ((astate(source).history || []).some(row => row.derivedActionId === contract.id && (row.causeEventId === provenance?.causeEventId || row.actionInstanceId === actionInstanceId))) fail("Производное действие уже выполнено для этого события причины");
       if (contract.mode === "roll") {
         const base = actionDef(contract.actionId), rollValue = payload.roll || roll(diceCount(scene, source, base, payload), executionOptions.random, { ...provenance, rollId: `${rootId}:derived:${contract.id}:roll`, kind: "check", actionId: contract.actionId, actionDefinitionId: contract.actionId, actionInstanceId, ownerActorId: source.id });
-        performAction(source, { ...payload, roll: rollValue, kind: "action", actionId: contract.actionId, techniqueRuleId: contract.id, sourceDigest: contract.sourceDigest, actionInstanceId, ownerTurnInstanceId: s.activeTurnInstanceId || null, derivedAction: true, derivedActionId: contract.id, lineage: identity.lineage, __derivedContract: contract, fixedTargetId: target.id });
+        performAction(source, { ...payload, roll: rollValue, kind: "action", actionId: contract.actionId, techniqueRuleId: contract.id, sourceDigest: contract.sourceDigest, actionInstanceId, ownerTurnInstanceId: s.activeTurnInstanceId || null, derivedAction: true, derivedActionId: contract.id, lineage: identity.lineage, fixedTargetId: target.id },{derivedContract:contract});
         return;
       }
       const attribute = contract.damageAttribute === "choice-body-talent" ? payload.damageAttribute : contract.damageAttribute;
       if (!attribute || !attributes.has(attribute)) fail("Производное действие требует допустимый Атрибут урона");
       const amount = Math.ceil(Number(source.attrs?.[attribute] || 0) / 2);
+      const request = global.DAWN_LIONWING_RESTORED_TECHNIQUES.plan(scene, source, { actionId: contract.actionId, actionInstanceId, attribute, targetIds: [target.id], techniqueRuleId: contract.id });
+      executeAction(source, request, actionDef(contract.actionId), { cost: 0, resource: "ap", swift: true }, "derived-fixed", () => {
       emit("action.resolve", source.id, { actionId: contract.actionId, name: payload.name || "Производная атака", targetIds: [target.id], actionInstanceId, ownerTurnInstanceId: s.activeTurnInstanceId || null, attribute, techniqueRuleId: contract.id, derived: true, derivedActionId: contract.id, sourceDigest: contract.sourceDigest, lineage: identity.lineage, swift: true, free: true, fixedTargetId: target.id, fixedDamage: true });
-      astate(source).history.push({ actionId: contract.actionId, actionDefinitionId: contract.actionId, actionInstanceId, causeEventId: provenance?.causeEventId || null, targetIds: [target.id], round: scene.round, turnSerial: scene.turnSerial, ownerTurnActorId: source.id, ownerTurnSerial: ownTurnSerial(source), ownerTurnInstanceId: s.activeTurnInstanceId || null, ownerTurnKey: ownerTurnKey(s.sceneSerial, source, ownTurnSerial(source)), swift: true, free: true, derived: true, derivedActionId: contract.id, sourceDigest: contract.sourceDigest, lineage: identity.lineage, ruleId: contract.id });
       // Fixed Jabs are already a deterministic consequence in the canonical
       // text. They still emit the same identity/damage/clear lifecycle so
       // after-event consumers can observe them, but have no ordinary reaction
       // choice or editable pending attack to alter the locked target/amount.
-      applyDamage({ targetId: target.id, sourceActorId: source.id, amount, attack: true, fixedDamage: true, finalDamage: true, ignoreEvasion: contract.ignoreEvasion === true, sourceActionId: contract.actionId, actionInstanceId, techniqueRuleId: contract.id, derived: true, derivedActionId: contract.id, derivedLineage: identity.lineage, derivedSourceDigest: contract.sourceDigest, fixedTargetId: target.id });
-      emit("attack.clear", source.id, { name: payload.name || "Производная атака", actionId: contract.actionId, actionInstanceId, derived: true, derivedActionId: contract.id, targetIds: [target.id], fixedTargetId: target.id, lineage: identity.lineage });
+      const pending = { id: actionInstanceId, actionInstanceId, actorId: source.id, sourceActionId: contract.actionId, targetIds: [target.id], responses: {}, criticals: 0, restoredPlan: request.restoredPlan, restoredAttribute: attribute };
+      openAttackLifecycle(source, pending);
+      const operations = [{ kind: "damage", targetId: target.id, sourceActorId: source.id, amount, attack: true, fixedDamage: true, finalDamage: true, ignoreEvasion: contract.ignoreEvasion === true, sourceActionId: contract.actionId, actionInstanceId, techniqueRuleId: contract.id, derived: true, derivedActionId: contract.id, derivedLineage: identity.lineage, derivedSourceDigest: contract.sourceDigest, fixedTargetId: target.id }];
+      closeAttackLifecycle(pending, operations);
+      operations.push({ kind: "attack-completed", sourceActorId: source.id, pending: { name: payload.name || "Производная атака", actionId: contract.actionId, actionInstanceId, derived: true, derivedActionId: contract.id, targetIds: [target.id], fixedTargetId: target.id, lineage: identity.lineage } });
+      queue.unshift(...operations.map(p => ({ p, sourceId: p.sourceActorId || source.id, provenance: { ...provenance, actionId: contract.actionId, actionInstanceId } })));
+      }, { history: { free: true, derived: true, derivedActionId: contract.id, causeEventId: provenance?.causeEventId || null, sourceDigest: contract.sourceDigest, lineage: identity.lineage, ruleId: contract.id } });
     };
 
     function op(p, sourceId) {
@@ -2892,11 +3369,21 @@
             if (!sameJson(execution.operations, p.operations)) fail("Операции не совпадают с execution descriptor ActionPlan");
           }
           payReservation(a, quoted);
-          queue.unshift(...p.operations.map(operation => ({ p: { ...operation, ...(actionPlan ? { __actionPlan: actionPlan, __execution: execution } : {}) }, sourceId: operation.sourceActorId ?? sourceId, provenance: { ...provenance, actionId: p.actionId || provenance?.actionId } })));
+          const actionCount = p.operations.filter(operation => actionLike.has(operation.kind)).length;
+          queue.unshift(...p.operations.map((operation, index) => {
+            const context = { ...provenance, actionId: p.actionId || provenance?.actionId };
+            const prepared = { ...operation, ...(actionPlan ? { __actionPlan: actionPlan, __execution: execution } : {}) };
+            if (actionLike.has(operation.kind)) {
+              context.actionInstanceId = actionCount > 1 ? `${provenance.actionInstanceId}:action:${index}` : provenance.actionInstanceId;
+              prepared.actionInstanceId = context.actionInstanceId;
+              prepared.ownerTurnInstanceId = s.activeTurnInstanceId || null;
+            }
+            return { p: prepared, sourceId: operation.sourceActorId ?? sourceId, provenance: context };
+          }));
           emit("cost.commit", sourceId, { costs: quoted.costs, targetIds: quoted.targetIds });
           break;
         }
-        case "action": performAction(requiredActor(scene, sourceId), p); break;
+        case "action": initializeTechniqueState(requiredActor(scene, sourceId)); performAction(requiredActor(scene, sourceId), p); break;
         case "derived-action": performDerivedAction(p, sourceId); break;
         case "information-study": {
           const information = global.DAWN_LIONWING_INFORMATION_QUERY;
@@ -2927,7 +3414,7 @@
           emit("information.handout", sourceId || "narrator", { factId: handed.fact?.id || null, targetId: p.targetId || null, visibility: handed.fact?.visibility || p.visibility || "public" });
           break;
         }
-        case "attack": if (p.cost) spend(requiredActor(scene, sourceId), p.cost.resource || "ap", integer(p.cost.amount, "стоимость")); beginAttack(requiredActor(scene, sourceId), p); break;
+        case "attack": assertFreshActionIdentity(p.actionInstanceId || provenance?.actionInstanceId || rootId); if (p.cost) spend(requiredActor(scene, sourceId), p.cost.resource || "ap", integer(p.cost.amount, "стоимость")); beginAttack(requiredActor(scene, sourceId), p); break;
         case "marker-remove": {
           const marker = (scene.markers || []).find(item => item.id === p.markerId), hostId = marker && (marker.hostActorId || marker.metadata?.hostActorId || marker.metadata?.carrierActorId);
           if (!marker || marker.ruleId !== p.ruleId || marker.ownerActorId !== sourceId || hostId !== p.targetId) fail("Слабая точка уже отсутствует или принадлежит другой цели");
@@ -2974,18 +3461,26 @@
         }
         case "spend-health": applyHealthLoss(requiredActor(scene, p.targetId || sourceId, false), { ...p, mode: "spend" }, sourceId); break;
         case "lose-health": applyHealthLoss(requiredActor(scene, p.targetId || sourceId, false), { ...p, mode: "lose" }, sourceId); break;
+        case "restored-technique": restored.operation(requiredActor(scene, sourceId, false), p); break;
+        case "shared-event": {
+          if (!p.__sharedEvents && !p.__sharedEvent) fail("Общее событие создаётся только движком");
+          applySharedEvent(p.__sharedEvents || p.__sharedEvent); break;
+        }
+        case "attack-completed": emit("attack.clear", sourceId, p.pending); break;
+        case "profile-action": {
+          const prepared = p.__profileAction;
+          if (!prepared || prepared.actorId !== sourceId || prepared.payload.ruleId !== p.sourceRuleId) fail("Профильное действие требует каноническую подготовку");
+          const payload = prepared.payload, def = { id: payload.ruleId, name: payload.name, type: "action" };
+          executeAction(a,{actionId:def.id,actionInstanceId:`${prepared.id}:action`,targetIds:payload.targetIds||[]},def,
+            {resource:p.resource,cost:p.amount,swift:payload.quickReaction === true,costContext:{sourceRuleId:p.sourceRuleId,sourceDigest:p.sourceDigest}},
+            "profile",()=>null,{history:{ruleId:def.id,profileId:payload.profileId,sourceDigest:payload.sourceDigest}}); break;
+        }
         case "record-action": {
           const def=actionDef(p.actionId);if(!def||def.type!=="action")fail("Выберите базовое действие");
           if(scene.activeActorId!==sourceId&&!p.reaction)fail("Сейчас не Ход исполнителя");
           const swift=p.swift===true||p.reaction===true,used=isPlayer(a)?a.usedActions||[]:astate(a).turnActions||[];
           if(!swift&&used.includes(def.id))fail("Действие уже использовано");
-          spend(a,p.resource||"ap",integer(p.amount??0,"стоимость"));
-          if(!swift){a.usedActions=[...new Set([...(a.usedActions||[]),def.id])];astate(a).turnActions=[...new Set([...(astate(a).turnActions||[]),def.id])];}
-          p.actionInstanceId ||= provenance?.actionInstanceId || rootId;
-          p.ownerTurnInstanceId ||= s.activeTurnInstanceId || null;
-          const activeTurnOwner = scene.activeActorId ? actor(scene, scene.activeActorId) : null, activeOwnerSerial = activeTurnOwner ? ownTurnSerial(activeTurnOwner) : null;
-          astate(a).history.push({actionId:def.id,actionDefinitionId:def.id,actionInstanceId:p.actionInstanceId,round:scene.round,turnSerial:scene.turnSerial,ownerTurnActorId:activeTurnOwner?.id||null,ownerTurnSerial:activeOwnerSerial,ownerTurnInstanceId:p.ownerTurnInstanceId,ownerTurnKey:activeTurnOwner?ownerTurnKey(s.sceneSerial,activeTurnOwner,activeOwnerSerial):null,swift,manual:true});
-          emit("action.resolve",sourceId,{actionId:def.id,name:def.name,manual:true,actionInstanceId:p.actionInstanceId,ownerTurnInstanceId:p.ownerTurnInstanceId});break;
+          executeAction(a,p,def,{resource:p.resource||"ap",cost:integer(p.amount??0,"стоимость"),swift},"manual",()=>emit("action.resolve",sourceId,{actionId:def.id,name:def.name,manual:true,actionInstanceId:p.actionInstanceId,ownerTurnInstanceId:p.ownerTurnInstanceId}),{hooks:false,history:{manual:true}});break;
         }
         case "recover-track": {const target=requiredActor(scene,p.targetId||sourceId,false);if(!["wounds","stress"].includes(p.track))fail("Выберите Раны или Стресс");const amount=integer(p.amount,"восстановление",3),before=Number(target[p.track]||0);target[p.track]=Math.max(0,before-amount);emit("actor.track.recover",sourceId,{targetId:target.id,track:p.track,amount:before-target[p.track],value:target[p.track]});break;}
         case "heal": applyHealing(p,sourceId);break;
@@ -3033,21 +3528,29 @@
             break;
           }
           if (!resources.has(p.resource) && !attributes.has(p.resource) && !["knockedOut","vulnerable"].includes(p.resource)) fail("Это поле нельзя исправить");
-          const amount = integer(p.amount, "новое значение",p.resource==="knockedOut"?1:p.resource==="stress"?stressMaximum(target)-1:p.resource==="wounds"?2:attributes.has(p.resource)||["baseAp","armor","speed","tier"].includes(p.resource)?99:9999), before = attributes.has(p.resource) ? target.attrs[p.resource] : target[p.resource];
+          const amount = integer(p.amount, "новое значение",p.resource==="knockedOut"?1:p.resource==="stress"?stressMaximum(target)-1:p.resource==="wounds"?2:attributes.has(p.resource)||["baseAp","armor","speed","tier"].includes(p.resource)?99:9999), correctedResource=resourceKey(target,p.resource), before = attributes.has(p.resource) ? target.attrs[p.resource] : correctedResource!==p.resource ? target.ruleResources?.[correctedResource]?.value : target[p.resource];
           if(["maxHp","tier"].includes(p.resource)&&amount===0)fail("Значение должно быть положительным");
           const compound=legacy.compoundEnemyStatus(scene,target);
           if(p.resource==="hp"&&amount>(compound.active?compound.maxHp:maxHealth(target)))fail("Здоровье превышает максимум");
           if (attributes.has(p.resource)) target.attrs[p.resource] = amount;
           else if(p.resource==="vulnerable"){if(amount>1)fail("Уязвимость: 0 или 1");astate(target).vulnerable=Boolean(amount);}
-          else if (p.resource === "knockedOut") { for(const part of compound.active?compound.parts:[target]){part.knockedOut=Boolean(amount);if(part.knockedOut){part.ap=0;part.stepRemaining=0;if(scene.activeActorId===part.id){scene.activeActorId=null;s.lastTeam=part.team;}s.grantedTurns=(s.grantedTurns||[]).filter(item=>item.actorId!==part.id);for(const aura of [...s.auras])if(aura.sourceLossPolicy==="remove"&&(aura.sourceEntityId===part.id||aura.ownerActorId===part.id))removeAuraRecord(aura,"removed",part.id);}} }
+          else if (p.resource === "knockedOut") { for(const part of compound.active?compound.parts:[target]){if(amount)knockout(part,{kind:"narrator-correction",sourceActorId:sourceId||null,eventId:rootId});else part.knockedOut=false;} }
           else if(p.resource==="hp"&&compound.active){let remaining=amount;for(const part of compound.parts){part.hp=Math.min(part.maxHp,remaining);remaining-=part.hp;}}
+          else if(correctedResource!==p.resource){const definition=target.ruleResources?.[correctedResource];if(!definition)fail("Заменяющий ресурс не найден");if(definition.maximum!=null&&amount>Number(definition.maximum))fail("Значение ресурса превышает максимум");definition.current=definition.value=amount;}
           else {target[p.resource] = amount;if(p.resource==="maxHp")target.hp=Math.min(target.hp,maxHealth(target));}
-          emit("actor.runtime.set", target.id, { resource: p.resource, value: amount, before, correction: true, note: p.note || "Ручное исправление" }); break;
+          emit("actor.runtime.set", target.id, { resource: p.resource, resolvedResource: correctedResource, value: amount, before, correction: true, note: p.note || "Ручное исправление" }); break;
         }
         case "automation": {
           const rule = global.DAWN_LIONWING_ADAPTERS.list(a).find(rule => rule.id === p.ruleId);
-          if (!rule || typeof p.enabled !== "boolean") fail("Автоматизация недоступна этому участнику");
+          if (!rule || rule.configurable === false || typeof p.enabled !== "boolean") fail("Автоматизация недоступна этому участнику");
           astate(a).automation ||= {}; a.lionwing.automation[p.ruleId] = p.enabled;
+          if (p.enabled) for (const dependency of global.DAWN_LIONWING_RESTORED_TECHNIQUES?.dependencies?.(p.ruleId) || []) a.lionwing.automation[dependency] = true;
+          else for (const dependent of global.DAWN_LIONWING_RESTORED_TECHNIQUES?.defs || []) if (global.DAWN_LIONWING_RESTORED_TECHNIQUES.dependencies(dependent.id).includes(p.ruleId) && a.lionwing.automation[dependent.id]) {
+            a.lionwing.automation[dependent.id] = false;
+            emit("automation.configure", a.id, { ruleId: dependent.id, enabled: false, dependency: p.ruleId });
+          }
+          if (p.enabled) initializeTechniqueState(a, p.ruleId);
+          if (p.enabled) restored?.ensure(a);
           emit("automation.configure", a.id, { ruleId: p.ruleId, enabled: p.enabled }); break;
         }
         case "aura": mutateAura(p,sourceId,event.actorId); break;
@@ -3232,18 +3735,12 @@
           break;
         }
         case "jab": {
-          const owner = requiredActor(scene, p.sourceActorId || sourceId, false), target = requiredActor(scene, p.targetId, false), ruleId = p.ruleId === "vagabond.skirmisher.3" ? "vagabond.skirmisher.3" : "vagabond.skirmisher.1", sourceDigest = ruleId === "vagabond.skirmisher.3" ? "4933347df61d45014a553af1c97f078e20ee677081e433464ba9c96726513c61" : "a14b57ddcf585e19b76a19e20b3ab1dc5190a59a5b044ed5df6d0bc2141a503e";
-          if (owner.team === target.team || owner.space !== target.space || distance(owner, target) !== 1) fail("Тычок требует вражескую смежную цель");
-          if (Number((owner.knownTechniques ?? owner.techniques)?.["vagabond.skirmisher"] || 0) < 1 || owner.lionwing?.automation?.[ruleId] !== true) fail("Тычок Застрельщика недоступен");
-          const amount = Math.ceil(Number(owner.attrs?.talent || 0) / 2);
-          applyDamage({ targetId: target.id, sourceActorId: owner.id, amount, attack: true, fixedDamage: true, finalDamage: true, ignoreEvasion: false, sourceActionId: `${ruleId}.jab`, techniqueRuleId: ruleId, actionInstanceId: provenance?.actionInstanceId || rootId });
-          emit("technique.resolve", owner.id, { ruleId, name: "Jab", fixedDamage: amount, fixedTargetId: target.id, affectedActorIds: [target.id], participantIds: [owner.id, target.id] });
-          break;
+          fail("Тычок доступен только после канонического триггера производного действия");
         }
         case "chemist-health-check": {
           const target = requiredActor(scene, p.targetId, false), source = requiredActor(scene, p.sourceActorId || sourceId, false), health = Number(target.hp || 0), threshold = Number(source.attrs?.mind || 0);
           emit("rule.health-check", source.id, { targetId: target.id, health, threshold, ruleId: p.ruleId, private: true });
-          if (!target.knockedOut && health <= threshold) { knockout(target, { kind: "chemist-weaken-threshold", sourceActorId: source.id }); gain(source, "focus", 2, { actionId: p.ruleId }); }
+          if (!target.knockedOut && health <= threshold) { const center = { x: target.x, y: target.y, space: target.space }; knockout(target, { kind: "chemist-weaken-threshold", sourceActorId: source.id }); gain(source, "focus", 2, { actionId: p.ruleId }); if (global.DAWN_LIONWING_RESTORED_TECHNIQUES?.enabled?.(source, "disruptor.chemist.3")) restored.gas(source, center); }
           break;
         }
         case "geometry-move":{
@@ -3458,6 +3955,7 @@
             if (!item || item.p.frame.ownerActorId !== sourceId) fail("Продолжение последствия отсутствует");
             item.p.frame = global.DAWN_LIONWING_EXECUTION.choose(item.p.frame, p.choice);
           }
+          else if (pending.kind === "restored-technique") { restored.answer(a, pending, p); }
           else if (pending.kind === "technique-trigger") {
             const followup = pending.context?.followupId ? followupById(pending.context.followupId) : null;
             if (pending.context?.followupId && !followup) fail("Жизненный цикл follow-up не найден");
@@ -3613,6 +4111,9 @@
           if (p.planId != null && p.planId !== pending.actionPlanId) fail("Реакция относится к другому ActionPlan");
           if (!["take", "block", "dodge", "clash"].includes(p.choice)) fail("Неизвестная Реакция");
           requiredActor(scene, sourceId);
+          // Old clients may still send an explicit no-defense acknowledgement
+          // for NPCs. Hero defenses must pass the same gate as the UI.
+          if (p.choice !== "take" && !reactionOptions(scene, sourceId).some(option => option.id === p.choice && option.available)) fail("Эта Реакция недоступна участнику");
           const response = { choice: p.choice, temporaryArmor: 0, reduction: 0 };
           if (p.choice !== "take") spend(a, "focus", 2);
           const attacker = requiredActor(scene, pending.actorId, false);
@@ -3658,21 +4159,22 @@
         case "resolve-attack": {
           const pending = scene.pendingAction;
           if (p.planId != null && p.planId !== pending?.actionPlanId) fail("Разрешение относится к другому ActionPlan");
-          if (!pending?.lionwing || pending.targetIds.some(id => live(actor(scene, id)) && !effectActive(scene,actor(scene,id),"positive.исчез") && pending.responses[id]?.choice === "pending")) fail("Сначала дождитесь всех Реакций");
+          if (!pending?.lionwing || !lionwingPendingActionStatus(scene).canResolve) fail("Сначала дождитесь всех Реакций или прервите недоступную Атаку");
           scene.pendingAction = null;
           const operations = [];
           for (let i = 0; i < pending.repeat; i++) for (const targetId of pending.targetIds) {
             if(effectActive(scene,actor(scene,targetId),"positive.исчез"))continue;
             const response = pending.responses[targetId] || {};
-            operations.push({ kind: "damage", sourceActorId: pending.actorId, targetId, amount: pending.targetDamage?.[targetId]??pending.damage, attack: true, sourceActionId: pending.sourceActionId, actionInstanceId: pending.actionInstanceId, techniqueRuleId: pending.techniqueRuleId, techniqueSourceDigest: pending.techniqueSourceDigest, techniqueId: pending.techniqueId, techniqueIds: pending.techniqueIds, criticals: pending.criticals, reduction: response.reduction || 0, temporaryArmor: response.temporaryArmor || 0, effects: pending.effects, finalDamage: pending.finalDamage, ignoreArmor:pending.ignoreArmor, ignoreEvasion:pending.ignoreEvasion, irreducible:pending.irreducible, preventForcedMovement:response.preventForcedMovement, ...(pending.derived ? { derived: true, derivedActionId: pending.derivedActionId, derivedLineage: pending.derivedLineage, derivedSourceDigest: pending.derivedSourceDigest, fixedTargetId: pending.fixedTargetId, fixedDamage: pending.fixedDamage } : {}), ...(pending.breacherPush ? { breacherPush: true, breacherPushMultiplier: pending.breacherPushMultiplier, breacherAttackSuccess: pending.breacherAttackSuccess, breacherInitialDistance: pending.breacherInitialDistances?.[targetId] } : {}), ...(pending.actionPlanId ? { actionPlanId: pending.actionPlanId } : {}), });
+            operations.push({ kind: "damage", sourceActorId: pending.actorId, targetId, amount: pending.targetDamage?.[targetId]??pending.damage, attack: true, sourceActionId: pending.sourceActionId, actionInstanceId: pending.actionInstanceId, techniqueRuleId: pending.techniqueRuleId, techniqueSourceDigest: pending.techniqueSourceDigest, techniqueId: pending.techniqueId, techniqueIds: pending.techniqueIds, criticals: pending.criticals, reduction: response.reduction || 0, temporaryArmor: response.temporaryArmor || 0, effects: [...pending.effects, ...(pending.attackEffectsByTarget?.[targetId] || [])], finalDamage: pending.finalDamage, ignoreArmor:pending.ignoreArmor, ignoreEvasion:pending.ignoreEvasion, irreducible:pending.irreducible, preventForcedMovement:response.preventForcedMovement, ...(pending.derived ? { derived: true, derivedActionId: pending.derivedActionId, derivedLineage: pending.derivedLineage, derivedSourceDigest: pending.derivedSourceDigest, fixedTargetId: pending.fixedTargetId, fixedDamage: pending.fixedDamage } : {}), ...(pending.breacherPush ? { breacherPush: true, breacherPushMultiplier: pending.breacherPushMultiplier, breacherAttackSuccess: pending.breacherAttackSuccess, breacherInitialDistance: pending.breacherInitialDistances?.[targetId] } : {}), ...(pending.actionPlanId ? { actionPlanId: pending.actionPlanId } : {}), });
           }
           if (pending.breacherWeaken) operations.push({ kind: "effect", targetId: pending.actorId, sourceActorId: pending.actorId, effect: "negative.ослаблен", ruleId: "powerhouse.breacher.2", sourceActionId: pending.sourceActionId, duration: "default" });
+          closeAttackLifecycle(pending, operations);
           for(const tail of s.afterAttack||[]){
             if(tail.kind==="move"&&tail.forced&&pending.responses[tail.targetId||tail.sourceActorId]?.preventForcedMovement)emit("movement.prevented",pending.actorId,{targetId:tail.targetId||tail.sourceActorId,reason:"Уворот",attackId:pending.id});
             else operations.push(tail);
           } s.afterAttack = [];
           queue.unshift(...operations.map(p => { const saved=p.__execution;const operation={...p};delete operation.__execution;return { p: operation, sourceId: p.sourceActorId ?? pending.actorId, provenance: saved || { rootActionId: pending.id, actionId: pending.sourceActionId, actionDefinitionId:pending.sourceActionId, actionInstanceId:pending.actionInstanceId||pending.id, causeEventId: rootId, ownerActorId: pending.actorId } }; }));
-          emit("attack.clear", pending.actorId, { name: pending.name, actionId: pending.sourceActionId, actionInstanceId: pending.actionInstanceId, targetIds: pending.targetIds, ...(pending.derived ? { derived: true, derivedActionId: pending.derivedActionId, fixedTargetId: pending.fixedTargetId, lineage: pending.derivedLineage } : {}) }); break;
+          queue.push({p:{kind:"attack-completed",pending:{ name: pending.name, actionId: pending.sourceActionId, actionInstanceId: pending.actionInstanceId, targetIds: pending.targetIds, ...(pending.derived ? { derived: true, derivedActionId: pending.derivedActionId, fixedTargetId: pending.fixedTargetId, lineage: pending.derivedLineage } : {}) }},sourceId:pending.actorId,provenance:{rootActionId:pending.id,actionId:pending.sourceActionId,actionInstanceId:pending.actionInstanceId||pending.id,ownerActorId:pending.actorId,causeEventId:rootId}}); break;
         }
         case "amend-attack": {
           const pending=scene.pendingAction;if(!pending?.lionwing||s.choices.length)fail("Изменение Атаки доступно до разрешения и вне ожидающего решения");
@@ -3727,7 +4229,15 @@
           if(previous.executionCursor){executionCursor=foundations.openCursor(previous.executionCursor);s.executionCursor=executionCursor;}else{executionCursor=null;delete s.executionCursor;}
           emit("chain.resume",sourceId,{depth:s.pausedChains.length});break;
         }
-        case "cancel-attack": { const pending = scene.pendingAction; scene.pendingAction = null; s.afterAttack = []; emit("attack.clear", sourceId, { cancelled: true, ...(pending?.derived ? { actionId: pending.sourceActionId, actionInstanceId: pending.actionInstanceId, targetIds: pending.targetIds, derived: true, derivedActionId: pending.derivedActionId, fixedTargetId: pending.fixedTargetId, lineage: pending.derivedLineage } : {}) }); break; }
+        case "cancel-attack": {
+          const pending = scene.pendingAction;
+          if (!pending) fail("Нет ожидающей Атаки для отмены");
+          const actionId = pending.sourceActionId || pending.actionId || "manual.attack";
+          provenance = foundations.identity({ ...provenance, actionId, actionDefinitionId: actionId, actionInstanceId: pending.actionInstanceId || pending.id, ownerActorId: pending.actorId });
+          scene.pendingAction = null; s.afterAttack = [];
+          emit("attack.clear", pending.actorId, { pendingId: pending.id, actionId, sourceActionId: actionId, actionInstanceId: pending.actionInstanceId || pending.id, ownerTurnInstanceId: pending.ownerTurnInstanceId || s.activeTurnInstanceId || null, targetIds: copy(pending.targetIds || []), cancelled: true, reason: String(p.reason || "cancelled").slice(0, 240), ...(pending.derived ? { derived: true, derivedActionId: pending.derivedActionId, fixedTargetId: pending.fixedTargetId, lineage: pending.derivedLineage } : {}) });
+          break;
+        }
         case "turn-start": {
           const status = turnStartStatus(scene, sourceId); if (!status.available) fail(status.reason);
           const extraTurn = Boolean(s.grantedTurns?.length && s.grantedTurns[0].actorId === a.id);
@@ -3754,7 +4264,8 @@
           const difficult=new Set(scene.objects.filter(o=>o.space===a.space&&o.type==="difficult").flatMap(o=>o.cells||[]));
           const start=[];for(let y=0;y<Number(a.occupiedHeight||1);y++)for(let x=0;x<Number(a.occupiedWidth||1);x++){const cell=`${a.x+x},${a.y+y}`;if(difficult.has(cell))start.push(cell);}
           if(start.length){const connected=new Set(start),queue=[...start];while(queue.length){const [x,y]=queue.shift().split(",").map(Number);for(const cell of [`${x+1},${y}`,`${x-1},${y}`,`${x},${y+1}`,`${x},${y-1}`])if(difficult.has(cell)&&!connected.has(cell)){connected.add(cell);queue.push(cell);}}astate(a).difficultTerrainIgnoreSerial=scene.turnSerial;astate(a).difficultTerrainIgnoreSpace=a.space;astate(a).difficultTerrainIgnoreCells=[...connected];}
-          a.ap = Math.max(0, Number(a.baseAp ?? 3) - (effectActive(scene,a,"negative.ошеломлен") ? 1 : 0)); a.stepRemaining = 0; s.breakout = null; s.opportunities = [];
+          const passiveAp = a.profileId === "lionwing.npc.ronin" ? 1 : 0;
+          a.ap = Math.max(0, Number(a.baseAp ?? 3) + passiveAp - (effectActive(scene,a,"negative.ошеломлен") ? 1 : 0)); a.stepRemaining = 0; s.breakout = null; s.opportunities = [];
           phase("startTurn", a);
           const duel=(s.duels||[]).find(item=>item.id===astate(a).duelId);
           if(duel&&scene.turnSerial>duel.startedSerial){
@@ -3766,10 +4277,10 @@
           if(["enemy.common.coordinator","lionwing.npc.coordinator"].includes(a.profileId))for(const ally of scene.actors.filter(item=>live(item)&&item.id!==a.id&&item.team===a.team&&item.space===a.space&&distance(a,item)<=4))applyEffect(ally,{effect:"positive.усилен",duration:"endTurn",ownerActorId:a.id,sourceId:`${a.id}:coordinator-passive`,sourceActionId:a.profileId==="lionwing.npc.coordinator"?"lionwing.npc.coordinator.passive":"enemy.common.coordinator.passive"},a.id);
           scheduleBoundary("anyTurnStart", a);
           scheduleBoundary("turnStart", a);
-          emit("turn.start", a.id, { ap: a.ap }); break;
+          emit("turn.start", a.id, { ap: a.ap, ...(passiveAp ? { passiveAp } : {}) }); break;
         }
         case "turn-end": {
-          if (scene.activeActorId !== sourceId || scene.pendingAction || s.choices.length || s.pausedChains?.length) fail("Нельзя завершить этот Ход: есть незавершённое действие");
+          if (scene.activeActorId !== sourceId || scene.pendingAction || scene.pendingPrompt || s.choices.length || s.pausedChains?.length) fail("Нельзя завершить этот Ход: есть незавершённое действие");
           if (effectActive(scene,a,"positive.регенерирует")) applyHealing({targetId:a.id,amount:4+Number(a.tier||1)},a.id);
           scheduleBoundary("anyTurnEnd", a);
           scheduleBoundary("turnEnd", a);
@@ -3781,11 +4292,16 @@
         }
         case "round-end": {
           const status = roundEndStatus(scene); if (!status.available) fail(status.reason);
+          const endedTension = tensionValue(scene);
           scheduleBoundary("roundEnd", null);
           phase("roundEnd", null); scene.round++; mutateCombatMeter({ operation: "add", delta: 1 }, sourceId, `${rootId}:round-tension`); s.lastTeam = null; s.breakout = null;
           for (const other of scene.actors) { other.acted = other.kind === "crowd"; other.usedActions = []; other.ap = 0; other.stepRemaining = 0; }
           scheduleBoundary("roundStart", null);
-          emit("round.end", null); break;
+          const roundEndEvent = emit("round.end", null, { endedTension });
+          for (const martyr of scene.actors.filter(item => live(item) && item.profileId === "lionwing.npc.martyr")) {
+            applyHealing({ targetId: martyr.id, amount: 5 + Number(martyr.tier || 1), passiveKey: "lionwing.npc.martyr#passive", boundaryEventId: roundEndEvent.id }, martyr.id);
+          }
+          break;
         }
         case "scene-reset": {
           if(scene.pendingAction||s.choices.length||s.deferred.length||s.duels?.length||s.pausedChains?.length)fail("Сначала завершите ожидающие решения и Дуэли");
@@ -3864,7 +4380,10 @@
     if (event.type !== "lionwing.command") {
       const p = event.payload || {}, mapped = {
         "turn.start": { kind: "turn-start" }, "turn.end": { kind: "turn-end" }, "round.end": { kind: "round-end" }, "intermission": { kind: "intermission" },
-        "damage.apply": { kind: "damage", ...p, sourceActorId: event.actorId, attack: p.attack === true || Boolean(p.sourceActionId && p.sourceActionId !== "manual.adjudication") },
+        // An explicit attack flag is authoritative: Actions such as Viper's
+        // Lick The Knife deal damage without making an Attack. Keep the
+        // source action for provenance while preserving that distinction.
+        "damage.apply": { kind: "damage", ...p, sourceActorId: event.actorId, attack: typeof p.attack === "boolean" ? p.attack : Boolean(p.sourceActionId && p.sourceActionId !== "manual.adjudication") },
         "actor.heal": { kind: "heal", ...p }, "actor.wound": { kind: "wound", ...p }, "actor.knockout": { kind: "knockout", ...p },
         "resource.gain": { kind: "resource", operation: "gain", ...p }, "resource.spend": { kind: "resource", operation: "spend", ...p },
         "effect.apply": { kind: "effect", ...p }, "effect.remove": { kind: "effect", ...p, remove: true },
@@ -3878,19 +4397,50 @@
       request = mapped[event.type];
       if (!request) fail(`Событие ${event.type} не перенесено в LionWing`);
     }
+    restored = global.DAWN_LIONWING_RESTORED_TECHNIQUES?.install?.({
+      scene, state: s, rootId, emit, actor: id => actor(scene, id), alive: live, fail,
+      effect: applyEffect, removeEffect, damage: applyDamage, gain, spend, choice, move,
+      clock: (payload, id) => mutateCounter(payload, id, "clock"),
+      configure: (payload, id) => mutateCounter(payload, id, "resource", "create"),
+      inventory: (payload, id) => inventory.applyOperation(scene, { ...payload, targetId: id }, { scene, actorId: id, sourceActorId: id, eventId: rootId, operationId: `${rootId}:restored-inventory:${emitted.length}`, emit }),
+      stackCount: (owner, id) => Number(owner.lionwing?.inventory?.records?.[id]?.current || 0),
+      heal: (target, amount, sourceId) => applyHealing({ targetId: target.id, amount }, sourceId),
+      actionDef,
+      interact: (owner, request) => performAction(owner, { actionId: ids.interact, targetIds: [], useCunningPlan: request?.useCunningPlan === true }),
+      trapAttack: (owner, target, savedRoll) => {
+        const attribute = Number(owner.attrs.body) >= Number(owner.attrs.talent) ? "body" : "talent";
+        const ruleId = "disruptor.hunter.1", sourceDigest = global.DAWN_LIONWING_RESTORED_TECHNIQUES.defs.find(row => row.id === ruleId).sourceDigest;
+        performAction(owner, { actionId: ids.skirmish, roll: savedRoll, attribute, targetIds: [target.id], techniqueRuleId: ruleId, techniqueSourceDigest: sourceDigest, effects: global.DAWN_LIONWING_RESTORED_TECHNIQUES.enabled(owner, "disruptor.hunter.2") ? [{ effect: "negative.обездвижен", ruleId: "disruptor.hunter.2" }] : [] },{derivedContract:{id:ruleId,sourceDigest,ignoreRange:true}});
+      },
+      push: (source, target, maximum) => {
+        if (!live(target) || effectActive(scene, target, "positive.устойчив")) return 0;
+        const dx = target.x - source.x, dy = target.y - source.y;
+        const vector = Math.abs(dx) >= Math.abs(dy) ? { x: Math.sign(dx), y: 0 } : { x: 0, y: Math.sign(dy) };
+        let point = { x: target.x, y: target.y, space: target.space }, count = 0;
+        if (!vector.x && !vector.y) return 0;
+        for (let index = 0; index < maximum; index++) {
+          const next = { ...point, x: point.x + vector.x, y: point.y + vector.y };
+          try { movement(scene, target, next, { maximum: index + 1, forced: true, line: true }); } catch { break; }
+          point = next; count++;
+        }
+        if (count) move(target, { destination: point, maximum: count, forced: true, line: true });
+        return count;
+      },
+    }) || null;
     const pendingActionId = scene.pendingAction?.sourceActionId || null;
-    provenance = foundations.identity({ rootActionId: rootId, actionId: request.actionId || pendingActionId || `operation.${request.kind}`, actionDefinitionId:request.actionId||pendingActionId||`operation.${request.kind}`, actionInstanceId:rootId, causeEventId: rootId, ownerActorId: event.actorId || "scene" });
+    const sharedPacket = executionOptions[sharedLifecycleAuthority];
+    provenance = foundations.identity({ rootActionId: rootId, actionId: request.actionId || pendingActionId || `operation.${request.kind}`, actionDefinitionId:request.actionId||pendingActionId||`operation.${request.kind}`, actionInstanceId:rootId, causeEventId: rootId, ownerActorId: event.actorId || "scene", ...(sharedPacket?.identity || {}) });
     saveFact("attempt", event.actorId??null, request.targetIds || (request.targetId ? [request.targetId] : []), { kind: request.kind });
     const duelPreparation=s.choices[0]?.kind==="duel-outcome"&&["roll","resource"].includes(request.kind)&&(s.duels||[]).some(duel=>duel.id===s.choices[0].context.duelId&&[duel.actorId,duel.targetId].includes(request.targetId||event.actorId));
     const pendingFollowup = s.choices[0]?.context?.followupId && followupById(s.choices[0].context.followupId);
     const followupCancellationTarget = pendingFollowup && (request.targetId || event.actorId);
     const followupCancellationEvent = pendingFollowup && ["damage", "knockout"].includes(request.kind) && pendingFollowup.participantIds?.includes(followupCancellationTarget);
-    if (s.choices.length && !duelPreparation && !followupCancellationEvent && !["choice", "correct", "note", "tension", "pause-chain", "information-reveal", "information-cancel", "information-handout"].includes(request.kind)) fail("Сначала ответьте на ожидающее решение");
-    if (scene.pendingAction && !["reaction", "resolve-attack", "cancel-attack", "correct", "note", "choice", "tension","invisible","pause-chain","amend-attack", "information-reveal", "information-cancel", "information-handout"].includes(request.kind)) fail("Сначала завершите Атаку");
+    if (!sharedPacket && s.choices.length && !duelPreparation && !followupCancellationEvent && !["choice", "correct", "note", "tension", "pause-chain", "information-reveal", "information-cancel", "information-handout"].includes(request.kind)) fail("Сначала ответьте на ожидающее решение");
+    if (!sharedPacket && scene.pendingAction && !["reaction", "resolve-attack", "cancel-attack", "correct", "note", "choice", "tension","invisible","pause-chain","amend-attack", "information-reveal", "information-cancel", "information-handout"].includes(request.kind)) fail("Сначала завершите Атаку");
     const operations = request.kind === "batch" ? request.operations : [request];
     if (!Array.isArray(operations) || !operations.length || operations.length > 192 || operations.some(p => !p || p.kind === "batch")) fail("Некорректный пакет операций");
     for(const p of operations){
-      if(!api.operations.includes(p.kind))fail("Неизвестная публичная операция LionWing");
+      if(!api.operations.includes(p.kind) && !(sharedPacket && (p.kind === "shared-event" && p.__sharedEvent || p.kind === "profile-action" && p.__profileAction)))fail("Неизвестная публичная операция LionWing");
       if(p.kind==="geometry-segment")fail("Сегмент движения создаётся только подтверждённым geometry-move");
       if(p.kind === "derived-action") {
         if (!derivedActions) fail("Контракты производных действий LionWing недоступны");
@@ -3956,11 +4506,28 @@
         if (p.kind === "information-reveal" && !p.category) fail("Раскрытие информации требует категорию");
       }
     }
+    if (sharedPacket && scene.pendingAction && operations.some(p => p.__sharedEvent?.type === "attack.clear" && !p.__sharedEvent.payload?.cancelled)) closeAttackLifecycle(scene.pendingAction, operations);
+    if (sharedPacket) {
+      // Preserve the shared reducer's transactional validations (a placement
+      // response requires its movement in the same packet). Native pre/post
+      // operations split only at the hook boundary, and persist with the
+      // surrounding shared packet when a replacement asks for a decision.
+      const grouped = [];
+      for (const operation of operations) {
+        if (!operation.__sharedEvent) { grouped.push(operation); continue; }
+        const previous = grouped.at(-1);
+        if (previous?.__sharedEvents && sameJson(previous.__sharedIdentity, operation.__sharedIdentity)) previous.__sharedEvents.push(operation.__sharedEvent);
+        else grouped.push({ kind: "shared-event", sourceActorId: operation.sourceActorId, __sharedEvents: [operation.__sharedEvent], __sharedIdentity: operation.__sharedIdentity });
+      }
+      operations.splice(0, operations.length, ...grouped);
+    }
     if (request.kind === "choice" && s.deferred.length && !executionCursor) setCursor(s.deferred, 0, s.choices[0]?.id);
-    const actionLike = new Set(["action", "record-action", "attack", "derived-action"]);
     const queue = operations.map((p, index) => {
-      const operationProvenance = copy(provenance);
-      if (actionLike.has(p.kind)) operationProvenance.actionInstanceId = p.actionInstanceId || (operations.length > 1 ? `${rootId}:action:${index}` : operationProvenance.actionInstanceId);
+      const operationProvenance = copy(sharedPacket && p.__sharedIdentity || provenance);
+      if (actionLike.has(p.kind)) {
+        operationProvenance.actionInstanceId = sharedPacket && p.actionInstanceId || (operations.length > 1 ? `${rootId}:action:${index}` : rootId);
+        p = { ...p, actionInstanceId: operationProvenance.actionInstanceId, ownerTurnInstanceId: s.activeTurnInstanceId || null };
+      }
       return { p, sourceId: p.sourceActorId ?? event.actorId, provenance: operationProvenance };
     });
     if (request.kind === "choice") queue.push(...s.deferred.splice(0));
@@ -4022,6 +4589,7 @@
   }
 
   const sharedTypes = new Set(["movement-traces.clear", "topology.cells.remove", "topology.cells.restore", "roll.public", "challenge.request", "challenge.clear", "opposed.request", "opposed.reroll", "opposed.tie.resolve", "opposed.clear", "rule.share", "session-clock.create", "session-clock.set", "session-clock.add", "session-clock.reset", "session-clock.rename", "session-clock.kind", "session-clock.size", "session-clock.remove", "reminder.create", "reminder.due", "reminder.resolve", "reminder.remove", "actor.spawn", "actor.despawn", "area.create", "area.remove", "area.duration", "object.damage", "object.restore", "wall.create", "wall.damage", "wall.restore", "wall.remove", "marker.create", "marker.move", "marker.remove", "marker.duration", "targets.set", "space.ensure", "space.remove"]);
+  sharedTypes.add("terrain.convert-to-fodder");
   const prepareEntityRemoval = (scene, ref, options = {}) => {
     if (!entities?.prepareDestroy) fail("Реестр сущностей LionWing недоступен");
     return entities.prepareDestroy(scene, ref, options);
@@ -4036,6 +4604,52 @@
   };
   function dispatchMany(scene, events, options = {}) {
     if (!isScene(scene)) return legacy.dispatchMany(scene, events, options);
+    legacy.eventPacketContract.validate(events);
+    const replay = legacy.eventPacketContract.replayStatus(scene, events);
+    if (replay.complete) return { scene: copy(scene), events: [], event: null };
+    const acceptedIds = new Set(replay.matchedIds);
+    const pending = events.filter(event=>{ if (!event.id) return true; if (acceptedIds.has(event.id)) return false; acceptedIds.add(event.id); return true; });
+    legacy.eventPacketContract.validateConsequences(scene, pending);
+    const result = dispatchEventPacket(scene, pending, legacy.eventPacketContract.reserveIds(scene, events, options));
+    legacy.eventPacketContract.record(result.scene, events);
+    return result;
+  }
+  function commitSharedPacket(scene, events, options = {}) {
+    events = events.map(row=>({ ...copy(row), id: row.id || global.crypto?.randomUUID?.() || `lw-shared-${Date.now()}-${preparedSerial++}`, at: row.at || new Date().toISOString() }));
+    const next = copy(scene), output = [], pending = next.pendingAction;
+    const anchor = events.find(row => row.type === "attack.clear") || events[0];
+    const pendingIdentity = pending && { rootActionId: pending.actionInstanceId || pending.id, actionId: pending.sourceActionId || pending.actionId || "manual.attack", actionDefinitionId: pending.sourceActionId || pending.actionId || "manual.attack", actionInstanceId: pending.actionInstanceId || pending.id, causeEventId: anchor.id, ownerActorId: pending.actorId };
+    const operations = events.map((row,index) => {
+      const p = copy(row.payload || {}), sourceActorId = row.actorId;
+      // Shared adapters describe consequences; native foundations own their
+      // replacement, lifetime, alias, payment and continuation semantics.
+      if (row.type === "lionwing.command") return { ...p, sourceActorId };
+      if ((row.type === "effect.apply" || row.type === "effect.remove") && effectIds.has(p.effect)) return { ...p, kind: "effect", remove: row.type === "effect.remove", sourceActorId };
+      if (row.type === "effect.banish" || row.type === "effect.vanish") return { ...p, kind: row.type === "effect.banish" ? "banish" : "vanish", sourceActorId };
+      if (row.type === "resource.gain" || row.type === "resource.spend") {
+        const prepared = row.type === "resource.spend" && events.slice(0,index).findLast(item => item.type === "enemy.action.prepare" && item.actorId === row.actorId && item.payload?.ruleId === p.sourceRuleId);
+        if (prepared) return { ...p, kind: "profile-action", sourceActorId, __profileAction: copy(prepared) };
+        return { ...p, kind: "resource", operation: row.type === "resource.spend" ? "spend" : "gain", targetId: sourceActorId, sourceActorId };
+      }
+      if (row.type === "damage.apply" && p.attack === false) return { ...p, kind: "damage", sourceActorId };
+      if (row.type === "actor.heal") return { ...p, kind: "heal", sourceActorId };
+      // Keep canonical shared attack arithmetic and geometry. The native
+      // before/after queue surrounds these results and observes their receipts.
+      return { ...p, kind: row.type === "damage.apply" ? "damage" : "shared-event", sourceActorId, __sharedEvent: copy(row) };
+    });
+    let identity = pendingIdentity;
+    for (const [index, operation] of operations.entries()) {
+      const row = events[index];
+      if (row.type === "enemy.action.prepare") identity = { rootActionId: row.id, actionId: row.payload.ruleId, actionDefinitionId: row.payload.ruleId, actionInstanceId: `${row.id}:action`, causeEventId: row.id, ownerActorId: row.actorId };
+      if (identity) operation.__sharedIdentity = copy(identity);
+    }
+    execute(next, { id: `${anchor.id}:lifecycle`, at: anchor.at, type: "lionwing.command", actorId: pending?.actorId || anchor.actorId,
+      payload: { kind: "batch", operations, actionId: pending?.sourceActionId || pending?.actionId } }, output,
+      { ...options, [sharedLifecycleAuthority]: { identity: pendingIdentity } });
+    return { scene: next, events: output, event: output.at(-1) || null };
+  }
+  function dispatchEventPacket(scene, events, options = {}) {
+    if((scene.actors||[]).some(actor=>String(actor.profileId||"").startsWith("enemy.modifier.")))fail("В этой Сцене LionWing есть модификаторы старой редакции. Продолжение боя заблокировано; создайте новую Сцену с модификаторами LionWing.");
     // The GM enemy panel intentionally uses the established preview → commit
     // event pipeline.  Its enemy action/reaction events carry the canonical
     // rule id and are validated by the legacy event reducer, which already
@@ -4044,9 +4658,156 @@
     // route only an explicitly identified enemy flow to avoid treating a
     // translated NPC rule as a new LionWing operation.
     if (!Array.isArray(events) || !events.length || events.length > 192) fail("Некорректный пакет событий");
-    const pendingEnemyFlow = scene.pendingAction?.enemyRuleId && events.some(event => ["reaction.respond", "rule.respond", "damage.apply", "effect.apply", "actor.move", "actor.enter", "attack.clear"].includes(event?.type));
-    const enemyEventFlow = events.some(event => ["enemy.action.prepare", "enemy.action.resolve", "attack.pending", "attack.clear"].includes(event?.type)) || pendingEnemyFlow;
-    if (enemyEventFlow) return legacy.dispatchMany(scene, events, options);
+    if (scene.lionwing?.choices?.length && events.some(row => ["attack.pending", "attack.clear", "reaction.respond"].includes(row.type))) fail("Сначала ответьте на ожидающее решение");
+    // Ordinary hero attacks must come from a prepared action. The public
+    // reducer also accepts event batches for the GM, so a bare pending attack
+    // must not become a free extra action for a player.
+    const narratorEvents = options.narratorOverride === true || ["owner", "narrator", "gm"].includes(options.role);
+    if (options.expectedVersion !== undefined && Number(options.expectedVersion) !== Number(scene.version || 0)) {
+      if (events.every(event => event?.id && (scene.lionwing?.receipts || []).some(receipt => receipt.id === event.id && receipt.fingerprint === JSON.stringify([event.type, event.actorId || null, event.payload || {}])))) return { scene: copy(scene), events: [], event: null };
+      fail("Конфликт версии Сцены: обновите состояние");
+    }
+    for (const event of events) {
+      const targetId = event?.type === "actor.knockout" || event?.type === "damage.apply" ? event.payload?.targetId : null;
+      const target = targetId && (scene.actors || []).find(item => item.id === targetId);
+      if (target?.deploymentProxy && event.type === "actor.knockout") fail("Некорректное выведение из строя.");
+      if (target?.deploymentProxy && event.type === "damage.apply") fail("Этот НПС нельзя атаковать до разрешения его Пассивa при Развёртывании.");
+      if (event?.type === "actor.move" && (scene.actors || []).some(item => item.id === event.actorId && item.deploymentProxy)) fail("Этот НПС не находится на Поле и не может перемещаться.");
+      const command = event?.type === "lionwing.command" ? event.payload || {} : null;
+      if (command) validatePublicRequest(command);
+      const commandTarget = command && ["damage", "knockout"].includes(command.kind) ? (scene.actors || []).find(item => item.id === command.targetId && item.deploymentProxy) : null;
+      if (commandTarget && command.kind === "damage") fail("Этот НПС нельзя атаковать до разрешения его Пассивa при Развёртывании.");
+      if (commandTarget && command.kind === "knockout") fail("Некорректное выведение из строя.");
+      if (command?.kind === "move" && (scene.actors || []).some(item => item.id === (command.targetId || event.actorId) && item.deploymentProxy)) fail("Этот НПС не находится на Поле и не может перемещаться.");
+      const effectTargetId = ["effect.apply", "effect.banish", "effect.vanish"].includes(event?.type) ? event.payload?.targetId
+        : command && ["effect", "banish", "vanish"].includes(command.kind) ? command.targetId || event.actorId : null;
+      const attackTargetIds = event?.type === "attack.pending" ? event.payload?.targetIds || [event.payload?.targetId]
+        : command?.kind === "attack" ? command.targetIds || [command.targetId] : [];
+      const proxyEffectTarget = effectTargetId && (scene.actors || []).find(item => item.id === effectTargetId && item.deploymentProxy);
+      if (proxyEffectTarget) fail("Этот НПС не находится на поле и не может быть выбран целью.");
+      if (attackTargetIds.some(id => (scene.actors || []).some(item => item.id === id && item.deploymentProxy))) fail("Этот НПС не находится на поле и не может быть выбран целью.");
+    }
+    for (const attack of events.filter(event => event?.type === "attack.pending")) {
+      const attacker = (scene.actors || []).find(actor => actor.id === attack.actorId);
+      if (!isPlayer(attacker) || attack.payload?.quickReaction || narratorEvents) continue;
+      const instanceId = attack.payload?.actionInstanceId;
+      if (typeof instanceId !== "string" || !instanceId) fail("Атака героя требует подготовленного действия");
+      const prior = [...(scene.log || []), ...events.slice(0, events.indexOf(attack))];
+      const prepared = prior.some(event => event.type === "action.prepare" && event.actorId === attack.actorId && event.payload?.actionInstanceId === instanceId && event.payload?.actionId === attack.payload?.actionId);
+      const alreadyAttacked = (scene.log || []).some(event => event.type === "attack.pending" && event.actorId === attack.actorId && event.payload?.actionInstanceId === instanceId);
+      if (!prepared || alreadyAttacked) fail("Атака героя не связана с доступным подготовленным действием");
+    }
+    const pendingEnemyFlow = (scene.pendingAction?.enemyRuleId || scene.pendingAction?.techniqueRuleId?.startsWith(`${masterTechniqueId}.`))
+      && events.some(event => ["reaction.respond", "rule.respond", "damage.apply", "effect.apply", "actor.move", "actor.enter", "attack.clear"].includes(event?.type));
+    const canonicalBerserkerPrompt = scene.pendingPrompt?.context?.berserkerPassive || scene.pendingPrompt?.kind === "enemy-berserker-retaliate" && (scene.actors || []).some(actor => actor.id === scene.pendingPrompt.sourceActorId && actor.profileId === "lionwing.npc.berserker");
+    const berserkerPassiveResponse = canonicalBerserkerPrompt && events.find(event => event?.type === "rule.respond");
+    if (berserkerPassiveResponse) {
+      const source = (scene.actors || []).find(actor => actor.id === scene.pendingPrompt.sourceActorId), response = berserkerPassiveResponse.payload || {};
+      if (source?.profileId !== "lionwing.npc.berserker" || berserkerPassiveResponse.actorId !== source.id) fail("Пассивная способность требует ожидающее решение Берсерка.");
+      const request = { actorId: source.id, choice: response.choice, destination: response.destination, stale: response.stale === true, role: response.role, narratorOverride: response.narratorOverride === true };
+      const expected = response.choice === "cell" ? legacy.preparePromptPlacement(scene, request) : legacy.respondRulePrompt(scene, global.DAWN_DATA, request);
+      const shape = event => [event.type, event.actorId || null, event.payload || {}, event.visibility || null];
+      if (!expected.ok || !sameJson(events.map(shape), expected.events.map(shape))) fail("Пассивная способность Берсерка не соответствует каноническим перемещению, цели и урону.");
+      const committed = commitSharedPacket(scene, events, options);
+      return committed;
+    }
+    const cocoonRepeatResponse = scene.pendingPrompt?.kind === "enemy-cocoon-repeat" && scene.pendingPrompt.context?.ruleId === "lionwing.npc.cocoon.rampage" && events.find(event => event?.type === "rule.respond");
+    if (cocoonRepeatResponse) {
+      const source = (scene.actors || []).find(actor => actor.id === scene.pendingPrompt.sourceActorId), response = cocoonRepeatResponse.payload || {};
+      if (source?.profileId !== "lionwing.npc.cocoon" || cocoonRepeatResponse.actorId !== source.id) fail("Повтор Буйства требует ожидающее решение Кокона.");
+      const attack = events.find(event => event?.type === "attack.pending");
+      const expected = legacy.respondRulePrompt(scene, global.DAWN_DATA, { actorId: source.id, choice: response.choice, roll: attack?.payload?.roll || null, stale: response.stale === true, role: response.role, narratorOverride: response.narratorOverride === true });
+      const shape = event => [event.type, event.actorId || null, event.payload || {}, event.visibility || null];
+      if (!expected.ok || !sameJson(events.map(shape), expected.events.map(shape))) fail("Повтор Буйства не соответствует каноническим цели, броску и результату.");
+      const committed = commitSharedPacket(scene, events, options);
+      return committed;
+    }
+    const rangerPromptFlow = scene.pendingPrompt?.kind === "enemy-ranger-retreat" && events.some(event => event?.type === "rule.respond");
+    const crowdPromptFlow = ["fodder-", "enemy-crowd-move-", "enemy-swarm-stun", "enemy-broodmother-fodder", "bodyguards-brace-line"].some(prefix => scene.pendingPrompt?.kind?.startsWith(prefix)) && events.some(event => event?.type === "rule.respond");
+    const modifierFlow = events.length > 0 && events.every(event => event?.type === "modifier.configure" && (scene.actors || []).some(actor => actor.id === event.actorId && ["lionwing.modifier.isolation","lionwing.modifier.artillery","lionwing.modifier.haven","lionwing.modifier.contagion","lionwing.modifier.earthquake","lionwing.modifier.vip","lionwing.modifier.collateral","lionwing.modifier.legion","lionwing.modifier.vortex","lionwing.modifier.blaze","lionwing.modifier.gargantuan","lionwing.modifier.giant"].includes(actor.profileId)) || event?.type === "rule.respond" && ["modifier-refresh","lionwing-vip-follow"].includes(scene.pendingPrompt?.kind) && scene.pendingPrompt?.sourceActorId === event.actorId && (scene.actors || []).some(actor => actor.id === event.actorId && ["lionwing.modifier.isolation","lionwing.modifier.artillery","lionwing.modifier.haven","lionwing.modifier.contagion","lionwing.modifier.earthquake","lionwing.modifier.vip","lionwing.modifier.collateral","lionwing.modifier.legion","lionwing.modifier.vortex","lionwing.modifier.blaze","lionwing.modifier.gargantuan","lionwing.modifier.giant"].includes(actor.profileId)) || event?.type === "actor.move" && event.payload?.vipFollow && (scene.actors || []).some(actor => actor.id === event.actorId && actor.profileId === "lionwing.modifier.vip"));
+    if (modifierFlow) return legacy.dispatchMany(scene, events, options);
+    const modifierAttack=events.find(event=>event?.type==="modifier.action"&&(scene.actors||[]).some(item=>item.id===event.actorId&&["lionwing.modifier.giant","lionwing.modifier.gargantuan"].includes(item.profileId)));
+    if(modifierAttack){
+      const modifier=(scene.actors||[]).find(item=>item.id===modifierAttack.actorId),host=(scene.actors||[]).find(item=>item.id===modifier?.modifierState?.carrierId),rolls=modifier.profileId==="lionwing.modifier.gargantuan"?1:0,spends=events.filter(event=>event?.type==="resource.spend"&&event.actorId===host?.id&&event.payload?.resource==="ap"&&event.payload?.amount===1&&event.payload?.sourceActionId===`${modifier.profileId}.attack`);
+      if(!host||events.length!==2+rolls||events[rolls]!==modifierAttack||spends.length!==1||events.at(-1)!==spends[0]||rolls&&events[0]?.type!=="roll.public")fail("Дополнительная Атака требует бросок и ровно 1 ОД носителя");
+      if(rolls){const published=events[0],embedded=modifierAttack.payload?.roll;if(published.actorId!==host.id||published.payload?.sourceActionId!==`${modifier.profileId}.attack`||!embedded||JSON.stringify(published.payload?.rolls)!==JSON.stringify(embedded.rolls)||Number(published.payload?.successes)!==Number(embedded.successes)||Number(published.payload?.crits)!==Number(embedded.crits))fail("Результат Атаки Громадины должен совпадать с публичным броском");}
+      return legacy.dispatchMany(scene,events,options);
+    }
+    const enemyEventFlow = events.some(event => ["enemy.action.prepare", "enemy.action.resolve", "attack.pending", "attack.clear"].includes(event?.type) || event?.type === "rule.prompt" && (event.payload?.kind?.startsWith("enemy-crowd-move-") || event.payload?.kind === "bodyguards-brace-line")) || pendingEnemyFlow || rangerPromptFlow || crowdPromptFlow;
+    if (enemyEventFlow) {
+      for (const attack of events.filter(event => event?.type === "attack.pending" && String((scene.actors || []).find(actor => actor.id === event.actorId)?.profileId || "").startsWith("lionwing.npc."))) {
+        if (events.every(event => event.id && (scene.log || []).some(record => record.id === event.id))) continue;
+        const attackIndex = events.indexOf(attack), ruleId = attack.payload?.enemyRuleId;
+        const prior = events.slice(0, attackIndex), prepare = prior.find(event => event?.type === "enemy.action.prepare" && event.actorId === attack.actorId && event.payload?.ruleId === ruleId);
+        const profile = (scene.actors || []).find(actor => actor.id === attack.actorId)?.profileId;
+        const canonical = String(profile || "").startsWith("lionwing.npc.") && String(ruleId).startsWith("lionwing.npc.");
+        if (!canonical) fail("Атака профильного врага требует канонический ID действия.");
+        const rule = legacy.availableEnemyRules(scene, global.DAWN_DATA, attack.actorId).find(item => item.id === ruleId), cost = Number(rule?.apCost || 1);
+        const spend = prior.find(event => event?.type === "resource.spend" && event.actorId === attack.actorId && event.payload?.resource === "ap" && event.payload?.sourceRuleId === ruleId && Number(event.payload?.amount) === cost && event.payload?.sourceDigest === rule?.sourceDigest);
+        if (!prepare || !spend || prior.indexOf(spend) < prior.indexOf(prepare) || attack.payload?.sourceRuleId !== ruleId || attack.payload?.sourceDigest !== rule?.sourceDigest) fail("Атака врага требует подготовленного и оплаченного канонического действия.");
+        const move = prior.find(event => event?.type === "actor.move" && event.actorId === attack.actorId && prior.indexOf(event) > prior.indexOf(spend));
+        const source = (scene.actors || []).find(actor => actor.id === attack.actorId);
+        const hiddenReappearance = Boolean(source?.effects?.includes("positive.исчез") && rule?.hiddenAdvantage);
+        const request = { actorId: attack.actorId, ruleId, targetIds: prepare.payload?.targetIds || [], roll: attack.payload.roll || null,
+          attackModifierIds: attack.payload.attackModifierIds || [], anchor: attack.payload.attackAnchor || null,
+          options: move ? { [hiddenReappearance ? "reappearance" : "destination"]: { x: move.payload.x, y: move.payload.y } } : {} };
+        const expected = legacy.prepareEnemyRule(scene, global.DAWN_DATA, request);
+        const expectedAttack = expected.ok && expected.events?.find(event => event.type === "attack.pending" && event.actorId === attack.actorId);
+        if (!expectedAttack || !sameJson(expectedAttack.payload, attack.payload)) fail("Атака врага не соответствует текущей дальности, целям, броску и каноническому результату.");
+      }
+      validateBuilderArmyOfStoneEvents(scene, events);
+      validateEnemySimpleWaveActionEvents(scene, events);
+      const waveRuleId = events.find(event => event?.type === "enemy.action.prepare")?.payload?.ruleId;
+      if (waveRuleId === "lionwing.npc.daredevil.gloat" && !events.some(event => event?.type === "lionwing.command" && event.payload?.kind === "combat-meter")) fail("Действие требует полного канонического результата");
+      const nonAttackDamage = events.filter(event => event?.type === "damage.apply" && event.payload?.attack === false);
+      const meterCommands = events.filter(event => event?.type === "lionwing.command" && event.payload?.kind === "combat-meter");
+      if (meterCommands.length || nonAttackDamage.length || waveRuleId === "lionwing.npc.viper.lick-the-knife") {
+        const prepare = events.find(event => event?.type === "enemy.action.prepare"), ruleId = prepare?.payload?.ruleId;
+        const specialEvents = [...meterCommands, ...nonAttackDamage];
+        const sourceId = specialEvents[0]?.actorId || events.find(event => event?.type === "damage.apply")?.actorId || prepare?.actorId;
+        const source = requiredActor(scene, sourceId);
+        const prepares = events.filter(event => event?.type === "enemy.action.prepare" && event.payload?.ruleId === ruleId);
+        const resolves = events.filter(event => event?.type === "enemy.action.resolve" && event.payload?.ruleId === ruleId);
+        const spends = events.filter(event => event?.type === "resource.spend" && event.actorId === sourceId);
+        const resolve = resolves[0], payload = prepare?.payload || {};
+        if (prepares.length !== 1 || resolves.length !== 1 || spends.length !== 1 || source.knockedOut || scene.activeActorId !== source.id ||
+            source.usedActions?.includes(ruleId) || Number(source.ap || 0) < 1 || scene.pendingAction || scene.pendingPrompt || scene.pendingActionPlan || scene.lionwing?.pendingActionPlan ||
+            prepare.actorId !== source.id || resolve.actorId !== source.id || !sameJson(payload, resolve.payload) || payload.sourceRuleId !== ruleId ||
+            payload.profileId !== source.profileId || payload.kind !== "action" || payload.automation !== "full" ||
+            spends[0].payload?.resource !== "ap" || spends[0].payload?.amount !== 1 || spends[0].payload?.sourceRuleId !== ruleId) {
+          fail("Действие требует доступный канонический профиль и ровно 1 ОД");
+        }
+        if (ruleId === "lionwing.npc.daredevil.gloat") {
+          const command = meterCommands[0], cp = command?.payload || {};
+          if (source.profileId !== "lionwing.npc.daredevil" || payload.name !== "Gloat" || payload.text !== "Increase Tension by 1." ||
+              !simpleIdsEqual(payload.targetIds, []) || meterCommands.length !== 1 || nonAttackDamage.length || events.length !== 4 ||
+              events[0] !== prepare || events[1] !== spends[0] || events[2] !== command || events[3] !== resolve ||
+              command.actorId !== source.id || !sameJson(Object.keys(cp).sort(), ["delta", "id", "kind", "operation", "participantIds", "sourceActionId"].sort()) ||
+              cp.id !== "tension" || cp.operation !== "add" || cp.delta !== 1 || cp.sourceActionId !== ruleId || !simpleIdsEqual(cp.participantIds, [source.id])) {
+            fail("Gloat требует канонический пакет действия и ровно +1 Напряжение");
+          }
+        } else if (ruleId === "lionwing.npc.viper.lick-the-knife") {
+          const targetIds = (scene.actors || []).filter(target => live(target) && isPlayer(target) && effectActive(scene, target, "negative.порчен")).map(target => target.id);
+          const damageEvents = events.filter(event => event?.type === "damage.apply");
+          const amount = targetIds.length + Number(source.tier || 1);
+          if (source.profileId !== "lionwing.npc.viper" || payload.name !== "Lick The Knife" ||
+              payload.text !== "Deal damage to each Blighted player equal to the number of Blighted players + [Tier]." ||
+              !simpleIdsEqual(payload.targetIds, targetIds) || meterCommands.length || damageEvents.length !== targetIds.length ||
+              events.length !== targetIds.length + 3 || events[0] !== prepare || events[1] !== spends[0] || events.at(-1) !== resolve) {
+            fail("Lick The Knife должен выбрать всех и только живых Blighted players");
+          }
+          damageEvents.forEach((damage, index) => {
+            if (damage.actorId !== source.id || damage.payload?.targetId !== targetIds[index] || damage.payload?.amount !== amount ||
+                damage.payload?.attack !== false || damage.payload?.sourceActionId !== ruleId ||
+                !simpleIdsEqual(damage.payload?.participantIds, [source.id, targetIds[index]])) fail("Урон Lick The Knife не соответствует каноническому числу Blighted players");
+          });
+        } else fail("Неподдерживаемое действие с изменением Напряжения или не-Атакующим уроном");
+
+        return commitSharedPacket(scene, events, options);
+      }
+      validateSimpleEnemyActionEvents(scene, events);
+      return commitSharedPacket(scene, events, options);
+    }
     if (options.expectedVersion !== undefined && Number(options.expectedVersion) !== Number(scene.version || 0)) {
       if(events.every(event=>event?.id&&(scene.lionwing?.receipts||[]).some(receipt=>receipt.id===event.id&&receipt.fingerprint===JSON.stringify([event.type,event.actorId||null,event.payload||{}]))))return {scene:copy(scene),events:[],event:null};
       fail("Конфликт версии Сцены: обновите состояние");
@@ -4084,7 +4845,12 @@
         state(next).receipts = state(next).receipts.slice(-256);
         continue;
       }
-      if (sharedTypes.has(event.type)) {
+      const fodderMovement = event.type === "actor.move" && actor(next, event.actorId)?.kind === "crowd" && event.payload?.fodderMove;
+      const gluttonFodderDamage = event.type === "damage.apply" && actor(next, event.actorId)?.profileId === "lionwing.npc.glutton" && actor(next, event.payload?.targetId)?.kind === "crowd";
+      const broodmotherDamage = event.type === "damage.apply" && actor(next, event.payload?.targetId)?.profileId === "lionwing.npc.broodmother";
+      const necromancerKnockoutWatch = ["damage.apply", "actor.knockout"].includes(event.type) && (next.actors || []).some(item => item.profileId === "lionwing.npc.necromancer" && !item.knockedOut);
+      const outputStart = output.length;
+      if (sharedTypes.has(event.type) || fodderMovement || gluttonFodderDamage || broodmotherDamage || necromancerKnockoutWatch) {
         const structuralMarker = event.type === "marker.remove" ? (next.markers || []).find(item => item.id === event.payload?.markerId) : null;
         if (event.type === "marker.remove" && structuralMarker?.ownerActorId === event.actorId && structuralMarker.ruleId === event.payload?.ruleId) {
           const hostId = structuralMarker.hostActorId || structuralMarker.metadata?.hostActorId || structuralMarker.metadata?.carrierActorId;
@@ -4100,11 +4866,49 @@
           if(!["token","crowd"].includes(spawned?.kind)&&edition!=="lionwing")fail("Нельзя добавить участника другой редакции");
         }
         if(["actor.despawn","space.remove"].includes(event.type)&&(next.pendingAction||state(next).choices.length||state(next).duels?.length||state(next).pausedChains?.length))fail("Сначала завершите ожидающее действие");
-        const result = legacy.dispatch(next, event); next = result.scene; output.push(result.event);
+        const fodderBoundary = fodderMovement || gluttonFodderDamage || broodmotherDamage || necromancerKnockoutWatch;
+        const result = fodderBoundary ? legacy.dispatchMany(next, [event]) : legacy.dispatch(next, event);
+        next = result.scene; output.push(...(result.events || [result.event]));
         const lostSourceId=event.type==="marker.remove"?event.payload?.markerId:event.type==="actor.despawn"?event.actorId||event.payload?.actorId:null;
         removeAurasForLostSource(next,lostSourceId);
         if (inventory?.removeSource && lostSourceId) inventory.removeSource(next, lostSourceId);
       } else { execute(next, event, output, options); next.version = Number(next.version || 0) + 1; }
+      for (const boundary of output.slice(outputStart).filter(item => ["damage.apply", "actor.knockout", "actor.move", "actor.enter", "actor.despawn", "actor.remove", "space.remove"].includes(item.type))) {
+        const berserkerEvents = legacy.berserkerPassiveEvents?.(next, boundary) || [];
+        if (berserkerEvents.length) { const result = legacy.dispatchMany(next, berserkerEvents); next = result.scene; output.push(...result.events); }
+        const consequences = legacy.bodyguardsLifecycleEvents?.(next, boundary) || [];
+        if (consequences.length) { const result = legacy.dispatchMany(next, consequences); next = result.scene; output.push(...result.events); }
+      }
+      for (const knockout of output.slice(outputStart).filter(item => item.type === "actor.knockout")) {
+        const defeated = actor(next, knockout.payload?.targetId || knockout.actorId);
+        if (!["lionwing.modifier.vip","lionwing.modifier.collateral"].includes(defeated?.profileId) && !(defeated?.team === "enemy" && defeated?.kind !== "crowd" && (next.actors || []).some(item => item.profileId === "lionwing.modifier.legion" && item.modifierState?.deployed || String(item.profileId||"").startsWith("lionwing.modifier.") && item.modifierState?.carrierId === defeated.id))) continue;
+        const consequences = (legacy.modifierKnockoutEvents?.(next, knockout) || []).filter(item => String(item.payload?.sourceActionId || "").startsWith("lionwing.modifier.") || ["enemy.modifier.collateral.failure","enemy.modifier.collateral.clock-full"].includes(item.payload?.sourceActionId) && defeated?.profileId === "lionwing.modifier.collateral");
+        if (consequences.length) { const result = legacy.dispatchMany(next, consequences); next = result.scene; output.push(...result.events); }
+      }
+      for (const moved of output.slice(outputStart).filter(item => item.type === "actor.move")) {
+        const consequences = (legacy.modifierMovementEvents?.(next, moved) || []).filter(item => item.payload?.kind === "lionwing-vip-follow" || String(item.payload?.sourceActionId || "").startsWith("lionwing.modifier.vortex."));
+        for (const consequence of consequences) {
+          const result=consequence.type==="damage.apply"?dispatchMany(next,[consequence]):legacy.dispatchMany(next,[consequence]);
+          next=result.scene;output.push(...result.events);
+        }
+      }
+      for (const boundary of output.slice(outputStart).filter(item => ["turn.end", "round.end"].includes(item.type))) {
+        const prompts = legacy.fodderBoundaryPromptEvents?.(next, boundary) || [];
+        if (prompts.length) { const prompted = legacy.dispatchMany(next, prompts); next = prompted.scene; output.push(...prompted.events); }
+        if (boundary.type === "round.end") {
+          const revenantEvents = legacy.lionwingRevenantRoundEvents?.(next, boundary) || [];
+          if (revenantEvents.length) { const result = legacy.dispatchMany(next, revenantEvents); next = result.scene; output.push(...result.events); }
+          const modifierEvents = legacy.modifierRoundEndEvents?.(next, boundary, "lionwing") || [];
+          for (const modifierEvent of modifierEvents) {
+            const result = modifierEvent.type === "damage.apply" && modifierEvent.payload?.attack === false
+              ? dispatchMany(next, [modifierEvent])
+              : legacy.dispatchMany(next, [modifierEvent]);
+            next = result.scene; output.push(...result.events);
+          }
+          const legionEvents = legacy.lionwingLegionRoundStartEvents?.(next, boundary) || [];
+          if (legionEvents.length) { const result = legacy.dispatchMany(next, legionEvents); next = result.scene; output.push(...result.events); }
+        }
+      }
       state(next).receipts.push({ id: event.id, fingerprint }); state(next).receipts = state(next).receipts.slice(-256);
     }
     return { scene: next, events: output, event: output[output.length - 1] };
@@ -4150,6 +4954,46 @@
     try { return { ok: true, ...dispatchMany(scene, events, options), errors: [] }; }
     catch (error) { return { ok: false, errors: [error.message], code: error.code || "LIONWING_RULE_BLOCKED" }; }
   }
+  function validateActionReappearance(scene, source, destination) {
+    if (scene.actors.some(target => live(target) && target.id !== source.id && distance({ ...destination, space: destination?.space || source.space }, target) <= 1)) fail("Появление запрещено рядом с персонажем");
+    return movement(scene, source, destination, { placement: true, ignoreTerrain: true, ignoreOpponents: true });
+  }
+  /** Read-only spatial query. Uses the command's actual preparation/commit
+   * validators on a disposable snapshot, without consuming gameplay randomness.
+   * Intermediate reappearance uses the same validator as action execution. */
+  function destinationStatus(scene, request = {}) {
+    try {
+      const snapshot = copy(scene), field = request.field || "destination", destination = request.destination;
+      if (!["destination", "reappearance", "areaCenter"].includes(field)) fail("Неизвестный выбор клетки");
+      if (!destination || !Number.isInteger(destination.x) || !Number.isInteger(destination.y)) fail("Выберите клетку внутри поля");
+      const board = snapshot.spaces?.find(space => space.id === (destination.space || actor(snapshot, request.actorId)?.space));
+      if (!board || destination.x < 0 || destination.y < 0 || destination.x >= board.width || destination.y >= board.height) fail("Выберите клетку внутри поля");
+      const payload = copy(request.payload || {});
+      // Quickly discard unreachable cells using the actual movement validator.
+      // Only surviving cells need a complete action/trigger preview.
+      if (field === "destination" && payload.kind === "action" && payload.actionId === ids.jump && !payload.reappearance) {
+        const source = requiredActor(snapshot, request.actorId);
+        movement(snapshot, source, destination, { maximum: scaledMove(source, Number(source.attrs.talent || 0), snapshot), line: true, ignoreOpponents: true, ignoreDifficultTerrain: true });
+      }
+      if (field === "destination" && payload.kind === "action" && payload.actionId === ids.improvise && !payload.reappearance && !payload.effect && !payload.removeObstacleId) {
+        const source = requiredActor(snapshot, request.actorId);
+        const chemist = global.DAWN_LIONWING_RESTORED_TECHNIQUES?.enabled?.(source, "disruptor.chemist.1");
+        const range = distance(source, { ...destination, space: destination.space || source.space });
+        if (range < 1 || range > (chemist ? 4 : 1)) fail("Клетка препятствия вне дальности");
+      }
+      if (field === "reappearance") {
+        const source = requiredActor(snapshot, request.actorId), definition = actionDef(payload.actionId);
+        if (payload.kind !== "action" || !definition || !effectActive(snapshot, source, "positive.исчез")) fail("Участник не ожидает появления перед действием");
+        const gate = actionStatus(snapshot, source, definition, payload);
+        if (!gate.available) fail(gate.reason);
+        validateActionReappearance(snapshot, source, destination);
+      } else {
+        const prepared = prepare(snapshot, { ...payload, actorId: request.actorId, [field]: copy(destination), eventId: "destination-preview" }, { random: () => 0 });
+        if (!prepared.ok) return { available: false, reason: prepared.errors.join(" ") };
+      }
+      return { available: true, reason: "" };
+    } catch (error) { return { available: false, reason: error.message }; }
+  }
   const followupStatus = (scene, id = null) => {
     const rows = state(copy(scene)).followups || [];
     const selected = id == null ? rows : rows.filter(item => item.id === id);
@@ -4194,17 +5038,35 @@
       legacyNotes: copy(l.legacyNotes || []),
     };
   }
+  function reactionOptions(scene, actorId) {
+    const pending = scene.pendingAction, target = actor(scene, actorId), source = actor(scene, pending?.actorId);
+    if (!pending?.lionwing || !pending.targetIds.includes(actorId) || pending.responses?.[actorId]?.choice !== "pending" || !live(target) || !live(source) || target.kind !== "hero" || target.profileId || effectActive(scene, target, "positive.исчез")) return [];
+    const defense = legacy.effectDefenseStatus?.(sceneWithActiveEffects(scene), actorId);
+    return [["take", "Принять", 0], ["block", "Блок", 2], ["dodge", "Уворот", 2], ["clash", "Столкновение", 2]].map(([id, name, cost]) => {
+      const reason = id === "dodge" && defense?.dodgeAllowed === false ? defense.dodgeReason : !canSpend(target, "focus", cost) ? "Недостаточно Фокуса" : "";
+      return { id, name, costModel: { amount: cost, resource: cost ? "focus" : null }, available: !reason, reason };
+    });
+  }
+  function lionwingPendingActionStatus(scene) {
+    const pending = scene.pendingAction, targets = pending?.targetIds || [];
+    const eligibleIds = targets.filter(id => live(actor(scene, id)) && !effectActive(scene, actor(scene, id), "positive.исчез"));
+    const pendingIds = eligibleIds.filter(id => pending.responses?.[id]?.choice === "pending");
+    const autoPassedIds = pendingIds.filter(id => { const target = actor(scene, id); return target.kind !== "hero" || Boolean(target.profileId); });
+    const waitingIds = pendingIds.filter(id => !autoPassedIds.includes(id));
+    const mustCancel = Boolean(pending && (!eligibleIds.length || !live(actor(scene, pending.actorId))));
+    return { exists: Boolean(pending), pending, targetIds: targets, eligibleIds, waitingIds, autoPassedIds, answeredIds: eligibleIds.filter(id => !waitingIds.includes(id)), unavailableIds: targets.filter(id => !eligibleIds.includes(id)), canResolve: Boolean(pending && !mustCancel && !waitingIds.length), mustCancel, interruptedReason: mustCancel ? "Источник или все цели недоступны" : "" };
+  }
   const api = {
-    schema: 2, isScene, prepare, command, dispatchMany, replay, undo, reload, previewEvents, prepareEntityRemoval, cancelEntityRemoval, removeEntity, destroyEntity: removeEntity,
+    schema: 2, isScene, prepare, command, dispatchMany, replay, undo, reload, previewEvents, destinationStatus, prepareEntityRemoval, cancelEntityRemoval, removeEntity, destroyEntity: removeEntity, sharedTechniqueRows, masterArmamentStatus,
     combatMeter: combatMeter ? { read: (scene, id) => combatMeter.read(scene, id), quote: (scene, id, change) => combatMeter.quote(scene, id, change) } : null,
     turnStartStatus, roundEndStatus, turnIdentity, followupStatus, pendingFollowups,
-    movement, roll, actionStatus, actionGate, actionDef, speed, maxHealth, balance, canSpend, resourceQuote, targetIds, costQuote, detectiveMovementStatus, prepareDetectiveTeleport,
+    movement, roll, actionStatus, actionGate, actionDef, speed, maxHealth, balance, canSpend, resourceQuote, targetIds, costQuote, detectiveMovementStatus, prepareDetectiveTeleport, reactionOptions,
     createDiceRoll, createRoll: createDiceRoll, diceCreate: createDiceRoll,
     applyDiceRoll, applyRoll: applyDiceRoll, diceApply: applyDiceRoll,
     reloadDiceRoll, reloadRoll: reloadDiceRoll, diceReload: reloadDiceRoll,
     opposedDiceRoll, opposedRoll: opposedDiceRoll, diceOpposed: opposedDiceRoll,
     resolveDiceTie: (value, resolution) => diceAvailable().resolveTie(value, resolution),
-    historyStatus, effectInstanceStatus, activeState, auraRecord, auraStatus, lifetimeExpired, compoundStatus, lifecycleContext, statQuote, effectiveStats,
+    historyStatus, effectInstanceStatus, activeState, auraRecord, auraStatus, lifetimeExpired, compoundStatus, lifecycleContext, statQuote, effectiveStats, consumeEvasion,
     consequenceCategories: () => copy(CONSEQUENCE_CATEGORIES), consequenceStatus,
     lifecycle: lifecycleContext,
     composeNumeric: (base, operations, context = {}) => global.DAWN_LIONWING_ADAPTERS?.composeNumeric?.(base, operations, context) || { ok: false, reason: "Числовой конвейер недоступен." },
@@ -4213,7 +5075,7 @@
     lifetimeBoundary: foundations.lifetimeBoundary,
     normalizeLifetime: foundations.normalizeLifetime,
     isLifetimeExpired: foundations.lifetimeExpired,
-    operations: ["automation", "plan", "batch", "pause-chain", "resume-chain", "amend-attack", "recover-track", "record-action", "action", "derived-action", "attack", "information-study", "information-reveal", "information-cancel", "information-handout", "shatter-check", "damage", "breacher-push", "spend-health", "lose-health", "heal", "wound", "stress", "knockout", "resource", "inventory", "intermission", "correct", "effect", "effect-source", "banish", "vanish", "compound", "aura", "aura-create", "aura-update", "aura-suppress", "aura-restore", "aura-remove", "placement", "teleport", "displacement", "move", "forced-towards-group", "forced-towards-group-step", "forced-towards-group-after-route", "forced-towards", "forced-away", "martial-quick-step", "jab", "skirmisher-shift", "geometry-move", "geometry-segment", "modifier", "allow-action", "deny-action", "grant-turn", "usage", "punish", "invisible", "search", "configure-resource", "dice-create", "dice-apply", "dice-reload", "dice-opposed", "dice-resolve-tie", "counter", "clock", "prompt", "technique-choice", "choice", "roll", "reaction", "resolve-attack", "cancel-attack", "turn-start", "turn-end", "round-end", "scene-reset", "chapter-start", "tension", "combat-meter", "note", "marker-remove"]
+    operations: ["restored-technique", "automation", "plan", "batch", "pause-chain", "resume-chain", "amend-attack", "recover-track", "record-action", "action", "derived-action", "attack", "information-study", "information-reveal", "information-cancel", "information-handout", "shatter-check", "damage", "spend-health", "lose-health", "heal", "wound", "stress", "knockout", "resource", "inventory", "intermission", "correct", "effect", "effect-source", "banish", "vanish", "compound", "aura", "aura-create", "aura-update", "aura-suppress", "aura-restore", "aura-remove", "placement", "teleport", "displacement", "move", "forced-towards-group", "forced-towards-group-step", "forced-towards-group-after-route", "forced-towards", "forced-away", "geometry-move", "geometry-segment", "modifier", "allow-action", "deny-action", "grant-turn", "usage", "punish", "invisible", "search", "configure-resource", "dice-create", "dice-apply", "dice-reload", "dice-opposed", "dice-resolve-tie", "counter", "clock", "prompt", "technique-choice", "choice", "roll", "reaction", "resolve-attack", "cancel-attack", "turn-start", "turn-end", "round-end", "scene-reset", "chapter-start", "tension", "combat-meter", "note", "marker-remove"]
   };
   global.DAWN_LIONWING_ENGINE = api;
   const routed = global.DAWN_SCENE_ENGINE;
@@ -4225,16 +5087,42 @@
   route("effectiveActorSpeed", (scene, id) => sceneSpeed(scene,requiredActor(scene, id, false)));
   route("effectiveActorMaxHealth", (scene, id) => maxHealth(requiredActor(scene, id, false)));
   route("effectiveActorStats", (scene, id) => effectiveStats(scene, requiredActor(scene, id, false)));
-  route("pendingActionStatus", scene => {
-    const pending = scene.pendingAction, targets = pending?.targetIds || [];
-    const eligibleIds = targets.filter(id => live(actor(scene, id)) && !effectActive(scene,actor(scene,id), "positive.исчез"));
-    const waitingIds = eligibleIds.filter(id => pending.responses[id]?.choice === "pending");
-    return { eligibleIds, waitingIds, answeredIds: eligibleIds.filter(id => !waitingIds.includes(id)), unavailableIds: targets.filter(id => !eligibleIds.includes(id)), mustCancel: Boolean(pending && !eligibleIds.length), interruptedReason: "Все цели недоступны" };
+  route("pendingActionStatus", (scene, data = global.DAWN_DATA) => scene.pendingAction?.lionwing ? lionwingPendingActionStatus(scene) : legacy.pendingActionStatus(sceneWithActiveEffects(scene), data));
+  route("resolvePendingAction", (scene, data, request) => {
+    if (scene.lionwing?.choices?.length) return { ok: false, events: [], errors: ["Сначала ответьте на ожидающее решение"] };
+    const pending = scene.pendingAction;
+    if (!pending?.techniqueRuleId?.startsWith(`${masterTechniqueId}.`)) return legacy.resolvePendingAction(scene, data, request);
+    const prepared = legacy.resolvePendingAction(masterScene(scene), data, request);
+    if (prepared.ok) for (const event of prepared.events) {
+      if (event.type === "action.resolve") Object.assign(event.payload, {
+        ownerTurnInstanceId: pending.ownerTurnInstanceId || null, turnSerial: pending.turnSerial ?? scene.turnSerial,
+      });
+      if (event.type === "damage.apply" && pending.nativeDamageSources?.[event.payload.targetId]?.length) {
+        event.payload.nativeDamageSources = copy(pending.nativeDamageSources[event.payload.targetId]);
+      }
+    }
+    return prepared;
   });
+  route("cancelPendingAction", (scene, request) => scene.lionwing?.choices?.length
+    ? { ok: false, events: [], errors: ["Сначала ответьте на ожидающее решение"] }
+    : legacy.cancelPendingAction(scene, request));
+  route("reactionOptions", (scene, data, id) => scene.pendingAction?.lionwing ? reactionOptions(scene, id) : legacy.reactionOptions(sceneWithActiveEffects(scene), data, id));
   // Canonical LionWing NPC profiles are read through the shared enemy rule
   // adapter.  Keep the public query on the routed engine so the GM panel can
   // choose a profile action and see its validated automation status.
-  route("availableEnemyRules", (scene, data, actorId) => legacy.availableEnemyRules(scene, data, actorId));
+  route("availableEnemyRules", (scene, data, actorId) => {
+    const source = actor(scene, actorId);
+    return legacy.availableEnemyRules(scene, data, actorId).map(rule => {
+      if (!SIMPLE_ENEMY_ACTIONS.has(rule.id)) return rule;
+      let reason = "";
+      if (!source) reason = "Профильный НПС больше не находится на Сцене";
+      else if (source.knockedOut) reason = "Профильный НПС выведен из строя";
+      else if (scene.pendingAction || scene.pendingPrompt || scene.pendingActionPlan || scene.lionwing?.pendingActionPlan) reason = "Сначала разрешите текущую цепочку действия";
+      else if (Number(source.ap || 0) < 1) reason = "Нужно 1 ОД";
+      else if ((source.usedActions || []).includes(rule.id)) reason = "Это действие уже использовано в Раунде";
+      return { ...rule, automation: "full", available: !reason, reason };
+    });
+  });
   const sceneWithActiveEffects = scene => ({
     ...scene,
     actors: (scene.actors || []).map(participant => ({
@@ -4243,16 +5131,26 @@
     })),
   });
   route("effectiveEffects", (scene, actorId) => sceneWithActiveEffects(scene).actors.find(participant => participant.id === actorId)?.effects || []);
-  for(const name of ["effectStatus","effectExpiryStatus","effectPresenceStatus","effectTargetingStatus","effectMovementStatus","effectCellOccupancyStatus","effectAttackStatus","effectDefenseStatus","attackModifierStatus","attackModifierDestinationStatus","displacementStatus","movementPath","pendingTargetOutcome","reactionOptions","spatialShapeStatus","targetStatus","terrainStatus","topologyStatus","topologyStepDestination"]){
+  for(const name of ["effectStatus","effectExpiryStatus","effectPresenceStatus","effectTargetingStatus","effectMovementStatus","effectCellOccupancyStatus","effectAttackStatus","effectDefenseStatus","attackModifierStatus","attackModifierDestinationStatus","displacementStatus","movementPath","pendingTargetOutcome","spatialShapeStatus","targetStatus","terrainStatus","topologyStatus","topologyStepDestination"]){
     if(typeof legacy[name]==="function")route(name,(scene,...args)=>legacy[name](sceneWithActiveEffects(scene),...args));
   }
   route("projectScene",(scene,viewer={})=>{
-    const projected=legacy.projectScene(scene,viewer);
+    const narrator = ["owner", "narrator", "gm"].includes(viewer.role);
+    const entityProjection = !narrator && entities?.projectScene ? entities.projectScene(scene, viewer) : scene;
+    const projected=legacy.projectScene(entityProjection,viewer);
     if (inventory?.project && projected?.actors) {
       const inventoryProjection = inventory.project(scene, viewer);
       for (const projectedActor of projected.actors) {
         projectedActor.lionwing ||= {};
-        if (inventoryProjection[projectedActor.id]) projectedActor.lionwing.inventory = inventoryProjection[projectedActor.id];
+        if (inventoryProjection[projectedActor.id]) {
+          projectedActor.lionwing.inventory = inventoryProjection[projectedActor.id];
+          if (!narrator && projectedActor.inventory) {
+            const source = actor(scene, projectedActor.id);
+            for (const id of Object.keys(source?.lionwing?.inventory?.definitions || {})) {
+              if (!Object.values(inventoryProjection[projectedActor.id].records || {}).some(record => record.definitionId === id && !record.instanceId)) delete projectedActor.inventory[id];
+            }
+          }
+        }
         else delete projectedActor.lionwing.inventory;
       }
     }

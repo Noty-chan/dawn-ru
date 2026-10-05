@@ -76,6 +76,10 @@ class FakeIndexedDB {
             this.records.set(value.key, clone(value));
             finish();
           },
+          delete: key => {
+            this.records.delete(key);
+            finish();
+          },
           get: key => {
             const request = { result: undefined, error: null };
             transaction.pending += 1;
@@ -92,8 +96,20 @@ class FakeIndexedDB {
             });
             return request;
           },
+          getAllKeys: () => {
+            const request = { result: undefined, error: null };
+            transaction.pending += 1;
+            queueMicrotask(() => {
+              request.result = [...this.records.keys()];
+              request.onsuccess?.();
+              transaction.pending -= 1;
+              finish();
+            });
+            return request;
+          },
         };
         transaction.objectStore = () => bucket;
+        queueMicrotask(finish);
         return transaction;
       },
     };
@@ -272,6 +288,9 @@ function buildStorageContext(storage, idb) {
     Sync: { state: () => ({}), queueScene: () => {} },
     structuredClone: undefined,
     addEventListener: () => {},
+    setTimeout,
+    clearTimeout,
+    renderAll: () => {},
   };
   vm.createContext(context);
   vm.runInContext(entitySource, context, { filename: "lionwing-entities.js" });
@@ -285,7 +304,7 @@ function buildStorageContext(storage, idb) {
   const mediaEnd = appSource.indexOf("function normalizedStoredState", mediaStart);
   assert.ok(mediaStart >= 0 && mediaEnd > mediaStart, "app-core media range exists");
   vm.runInContext(`${appSource.slice(mediaStart, mediaEnd)}
-    this.writeHeroMedia=writeHeroMedia;this.readHeroMedia=readHeroMedia;`, context, { filename: "app-core.media-storage.js" });
+    this.writeHeroMedia=writeHeroMedia;this.readHeroMedia=readHeroMedia;this.initializeHeroMediaStorage=initializeHeroMediaStorage;`, context, { filename: "app-core.media-storage.js" });
 
   const backupStart = appSource.indexOf("const TABLE_BACKUP_FORMAT");
   const backupEnd = appSource.indexOf("function cleanArray", backupStart);
@@ -319,6 +338,7 @@ function installUndoHarness(context, scene) {
   context.S = { id: "hero-a", runtime: {} };
   context.store = { mode: "tools", gmLibrary: null, heroes: [context.S], current: 0 };
   context.sceneZoom = 70;
+  context.sceneZoomMode = "fit";
   context.sceneControlMode = "guided";
   context.sceneInterfaceVersion = "next";
   context.SCENE_INTERFACE_ROLLOUT_VERSION = 3;
@@ -334,6 +354,11 @@ function installUndoHarness(context, scene) {
   context.queueNetworkV2Snapshot = () => false;
   vm.runInContext(`${sceneSource.slice(start, end)}
     this.commitScene=commitScene;this.undoScene=undoScene;this.redoScene=redoScene;`, context, { filename: "scene-ui.history.js" });
+  const eventsSource = fs.readFileSync(new URL("../app-scene-events.js", import.meta.url), "utf8");
+  const restoreStart = eventsSource.indexOf("function applyTableBackup(");
+  const restoreEnd = eventsSource.indexOf('$("scene-export-table")', restoreStart);
+  context.setScenePanel = () => {};
+  vm.runInContext(`${eventsSource.slice(restoreStart, restoreEnd)};this.applyTableBackup=applyTableBackup;`, context);
 }
 
 const { context: engineContext, sceneEngine, lw } = loadEngines();
@@ -389,6 +414,24 @@ const recoveredJson = await app.readTableRecovery();
 assert.ok(recoveredJson, "IndexedDB recovery checkpoint can be read");
 const recovered = vm.runInContext(`normalizedTableBackup(JSON.parse(${JSON.stringify(recoveredJson)}))`, app).scene;
 assertSemanticEqual(recovered, pendingCanonical, "IndexedDB recovery restores the checkpoint semantics");
+const restoreHarness = buildStorageContext(new MemoryStorage(), new FakeIndexedDB());
+const changedCheckpoint = clone(pendingCanonical);
+changedCheckpoint.actors[0].hp = Math.max(1, changedCheckpoint.actors[0].hp - 1);
+changedCheckpoint.lionwing.choices = [];
+installUndoHarness(restoreHarness, clone(changedCheckpoint));
+assert.throws(() => restoreHarness.validateTableEdit(changedCheckpoint, pendingCanonical), /операции LionWing/, "ordinary table edits still cannot rewrite gameplay values");
+assert.equal(restoreHarness.applyTableBackup({ scene: pendingCanonical }, "Restore checkpoint"), true, "confirmed backup restores a populated table with changed Health and pending choices");
+assert.equal(restoreHarness.Scene.version, changedCheckpoint.version + 1, "restoration advances the current table version");
+const restorationState = value => { const result = clone(value); for (const key of ["log", "undo", "redo", "version"]) delete result[key]; return result; };
+assertSemanticEqual(restorationState(restoreHarness.Scene), restorationState(pendingCanonical), "runtime mechanics and pending Resistance survive the actual import writer");
+restoreHarness.undoScene();
+assertSemanticEqual(restorationState(restoreHarness.Scene), restorationState(changedCheckpoint), "the table before restoration remains available in Undo");
+const wrongEdition = clone(pendingCanonical);
+wrongEdition.actors[0].rulesEdition = "ru-v0.9";
+assert.throws(() => restoreHarness.validateTableEdit(changedCheckpoint, wrongEdition, { tableRestore: true }), /смешивать редакции/, "restoration cannot bypass edition compatibility");
+const libraryBeforeFailedRestore = clone(restoreHarness.store.gmLibrary);
+assert.equal(restoreHarness.applyTableBackup({ scene: wrongEdition, gmLibrary: { encounters: [{ id: "rejected-copy" }] } }, "Invalid restore"), false);
+assert.deepEqual(restoreHarness.store.gmLibrary, libraryBeforeFailedRestore, "a rejected backup cannot partially replace the GM library");
 
 scene = runLionwing(lw, scene, "hero-a", { kind: "choice", id: resistance.id, choice: "resist" }, nextId("resistance-resolve"));
 eventCount += 1;
@@ -409,6 +452,7 @@ app.Scene = scene;
 app.store = { mode: "tools", gmLibrary: null, heroes: [{ id: "hero-a", rulesEdition: "lionwing", runtime: {} }], current: 0 };
 app.S = app.store.heroes[0];
 app.sceneZoom = 70;
+app.sceneZoomMode = "fit";
 app.sceneControlMode = "guided";
 app.sceneInterfaceVersion = "next";
 app.scenePanelLayoutMode = "split";
@@ -417,8 +461,34 @@ app.scenePanelWidths = { left: "wide", right: "normal" };
 app.sceneTurnStripVisible = true;
 app.sceneInterfaceDensity = "compact";
 app.sceneViewportMode = "desktop";
+const artImage = `data:image/png;base64,${"A".repeat(400000)}`;
+const collidingImages = vm.runInContext(`sceneCore({...Scene,artworks:[{id:"same-art",image:"data:image/png;base64,AAAA"},{id:"same-art",image:"data:image/png;base64,BBBB"}]})`, app);
+assert.equal(collidingImages.artworks.length, 2, "imported artwork remains present after normalization");
+assert.notEqual(collidingImages.artworks[0].id, collidingImages.artworks[1].id, "duplicate imported artwork IDs cannot collide in IndexedDB");
+app.Scene = { ...scene, artworks: [{ id: "scene-art-1", name: "Large scene art", kind: "background", image: artImage, hidden: false }], backgroundArt: "scene-art-1" };
+app.store.gmLibrary = { encounters: [{ id: "preset-1", name: "Art preset", enemies: [{ profileId: "lionwing.npc.martyr", name: "Martyr", tier: 1 }], templateScene: { ...scene, artworks: [{ id: "preset-art-1", name: "Preset art", kind: "background", image: artImage, hidden: false }], backgroundArt: "preset-art-1" } }] };
+await app.initializeHeroMediaStorage();
+await new Promise(resolve => setTimeout(resolve, 120));
+const compactArtScene = JSON.parse(storage.getItem(app.STORAGE_KEY)).scene;
+assert.equal(compactArtScene.artworks[0].image, "", "frequent localStorage snapshots omit artwork after its IndexedDB write");
+assert.equal(compactArtScene.artworks[0].imageStored, true, "localStorage keeps an explicit artwork reference");
+assert.equal(JSON.parse(storage.getItem(app.STORAGE_KEY)).gmLibrary.encounters[0].templateScene.artworks[0].image, "", "saved encounter templates also omit repeated artwork bytes");
+assert.equal(idb.records.get("scene:art:scene-art-1")?.value, artImage, "the complete artwork is written to IndexedDB first");
+assert.equal(idb.records.get("preset:preset-1:art:preset-art-1")?.value, artImage, "preset artwork has its own stable storage key");
+app.Scene = vm.runInContext(`sceneCore(${JSON.stringify(compactArtScene)})`, app);
+app.store.gmLibrary = JSON.parse(storage.getItem(app.STORAGE_KEY)).gmLibrary;
+await app.initializeHeroMediaStorage();
+assert.equal(app.Scene.artworks[0].image, artImage, "a reload restores artwork before exporting the table");
+assert.equal(app.store.gmLibrary.encounters[0].templateScene.artworks[0].image, artImage, "a reload restores saved encounter artwork");
+assert.equal(vm.runInContext("tableBackupPayload(Scene).scene.artworks[0].image", app), artImage, "portable table backup retains the full artwork");
+assert.equal(vm.runInContext("tableBackupPayload(Scene).gmLibrary.encounters[0].templateScene.artworks[0].image", app), artImage, "portable table backup retains preset artwork");
+app.Scene = scene;
+app.store.gmLibrary = null;
 const persisted = app.persist();
 assert.equal(persisted, undefined, "persist writes through the app persistence boundary");
+await new Promise(resolve => setTimeout(resolve, 200));
+assert.equal(idb.records.has("scene:art:scene-art-1"), false, "removed Scene art releases its IndexedDB payload");
+assert.equal(idb.records.has("preset:preset-1:art:preset-art-1"), false, "removed encounter preset releases its IndexedDB payload");
 const goodLocalStorage = storage.getItem(app.STORAGE_KEY);
 assert.ok(goodLocalStorage, "localStorage receives a valid table snapshot");
 const localReload = vm.runInContext(`normalizeScene(${JSON.stringify(JSON.parse(goodLocalStorage).scene)})`, app);
@@ -429,6 +499,7 @@ const beforeFailedLocalWrite = storage.getItem(app.STORAGE_KEY);
 storage.failKeys.add(app.STORAGE_KEY);
 app.Scene = { ...scene, name: "failed local write must not replace checkpoint" };
 app.persist();
+await new Promise(resolve => setTimeout(resolve, 120));
 assert.equal(storage.getItem(app.STORAGE_KEY), beforeFailedLocalWrite, "a localStorage write failure keeps the last valid save");
 storage.failKeys.delete(app.STORAGE_KEY);
 

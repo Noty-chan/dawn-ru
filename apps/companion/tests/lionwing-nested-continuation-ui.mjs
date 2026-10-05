@@ -31,7 +31,7 @@ const escapeHtml = value => String(value ?? "").replaceAll("&", "&amp;").replace
 // it consumes only the serializable scene fields already owned by the kernel.
 const helperStart = source.indexOf("const lwChainChoiceStages");
 const helperEnd = source.indexOf("function lwGeneralHtml");
-const ui = { Scene: null, lwCanNarrate: () => true, esc: escapeHtml };
+const ui = { Scene: null, SceneEngine: engineContext.window.DAWN_SCENE_ENGINE, lwCanNarrate: () => true, esc: escapeHtml };
 vm.createContext(ui);
 vm.runInContext(`${source.slice(helperStart, helperEnd)}\nthis.renderChain=lwChainHtml;this.frameInfo=lwChainFrameInfo;`, ui);
 
@@ -113,6 +113,12 @@ assert.equal(scene.lionwing.choices.length, 0);
 assert.equal(scene.pendingAction, null);
 assert.equal(scene.lionwing.pausedChains.length, 0);
 assert.equal(render(scene), "", "the chain shelf disappears after the final continuation");
+
+const npcAttack = run(fixture(), "h", { kind: "attack", targetIds: ["e"], amount: 1 });
+const npcHtml = render(npcAttack);
+assert.match(npcHtml, /data-lw-chain-stage="Урон"/);
+assert.match(npcHtml, /data-lw-chain-path="Атака → Урон"/);
+assert.doesNotMatch(npcHtml, /ожидается ответов/);
 
 // The submission boundary keeps the director on the turn pane for both stack
 // controls, so a rerender cannot strand the manual continuation in another tab.

@@ -6,13 +6,13 @@
 
 ## Результат
 
-Добавлен самостоятельный модуль [`apps/companion/lionwing-destroy-plan.js`](../../apps/companion/lionwing-destroy-plan.js), который устанавливает read-only API `DAWN_LIONWING_DESTROY_PLAN`. Он не подключает обработчики, не меняет живую `Scene` во время подготовки и не редактирует `lionwing-entities.js`.
+Добавлен самостоятельный модуль [`apps/companion/lionwing-destroy-plan.js`](../../../apps/companion/lionwing-destroy-plan.js), который устанавливает read-only API `DAWN_LIONWING_DESTROY_PLAN`. Он не подключает обработчики, не меняет живую `Scene` во время подготовки и не редактирует `lionwing-entities.js`.
 
 В модуле зафиксирована явная таблица actor / registry row / backing / space. `planDestroy` принимает типизированную цель (`actor`, `space`, `entity`/`registry-row` или `backing`) и возвращает снимок, операции, переносы, инвалидируемые ссылки, registry/source-loss результат и конкретные cleanup descriptors. Сканируются только перечисленные поля и пути; похожая строка в неизвестном поле не считается ссылкой.
 
 Применение работает на копии Сцены и проверяет `expectedVersion` и fingerprint исходного снимка. Защищённая или неразрешимая зависимость отклоняет весь план до выдачи результата. `cancel` не применяет план. `apply` повторно вызывает публичные `Entities.prepareDestroy/destroy/sourceLoss` на изолированной копии registry, сохраняет source-loss policy `disable`/`remove`/`detach`, инвалидирует только затронутые pending-пути, удаляет typed backing, переносит Compound целиком и добавляет полный undo snapshot. При наличии адаптеров используются `validateTableEdit`, `placeActorsSafely`, `removeManagedSceneSpace` и `DAWN_LIONWING_ENGINE` (`space.remove`/допустимый `actor.despawn`); иначе применяются копии тех же структурных действий без UI writer.
 
-Собственный тест [`apps/companion/tests/lionwing-destroy-plan.mjs`](../../apps/companion/tests/lionwing-destroy-plan.mjs) покрывает owner/target во время pending, unrelated actor, заполненное поле, несколько пространств, Compound, cancel/no mutation, typed lookalike field, source-loss policies, actor runtime, protected rollback, stale plan, JSON reload, replay/idempotency, undo и engine operation.
+Собственный тест [`apps/companion/tests/lionwing-destroy-plan.mjs`](../../../apps/companion/tests/lionwing-destroy-plan.mjs) покрывает owner/target во время pending, unrelated actor, заполненное поле, несколько пространств, Compound, cancel/no mutation, typed lookalike field, source-loss policies, actor runtime, protected rollback, stale plan, JSON reload, replay/idempotency, undo и engine operation.
 
 ## Проверки
 

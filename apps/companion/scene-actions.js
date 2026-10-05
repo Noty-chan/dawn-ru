@@ -25,41 +25,44 @@ const LIONWING_ENEMY_SOURCE_DIGEST = "sha256:1228663d26bf3c87b3b94b0d2f3c4c02b30
 // Only deterministic attack parts are listed here.  Conditional movement,
 // passives, delayed attacks, and Trump rules remain assisted until their
 // complete English semantics have a reviewed event adapter.
+// N(+S) means N dice at Tier 1, then +S per Tier. A literal English
+// constant + [Tier × S] therefore starts at constant + S here.
 const LIONWING_AUTO_ATTACK_RULES = new Map([
-  ["lionwing.npc.assassin.slice", { dice: "3(+1)", tensionMultiplier: 1, targetEffects: [], reward: "Deal [Hits] + [Tension] damage; add [Tier] damage when the target has no adjacent characters.", family: { adjacent: true, maxTargets: 1, hiddenAdvantage: "2(+1)", isolatedBonusFormula: "1(+1)" } }],
-  ["lionwing.npc.bruiser.skulduggery", { dice: "4(+1)", tensionMultiplier: 1, targetEffects: [], reward: "Deal [Hits] + [Tension] damage and push each target [Tier × 2] spaces.", family: { area: [2, 2], areaAnchor: "self", maxTargets: 40, postPushFormula: "2(+2)" } }],
-  ["lionwing.npc.behemoth.tore-from-earth", { dice: "5(+1)", tensionMultiplier: 1, targetEffects: [], reward: "Deal [Hits] + [Tension] damage and place a 15 + [Tier × 5] Health Obstacle adjacent to each target.", family: { maxTargets: 2, range: 6, createTerrainAdjacent: "20(+5)" } }],
-  ["lionwing.npc.captor.catch-and-release", { dice: "5(+1)", tensionMultiplier: 1, targetEffects: [], reward: "Deal [Hits] + [Tension] damage; Weaken and Snare the target if enemies have not Attacked them this Round.", family: { maxTargets: 1, range: 4, conditionalEffectsIfUntouched: ["negative.ослаблен", "negative.пойман"] } }],
+  ["lionwing.npc.assassin.slice", { dice: "4(+1)", tensionMultiplier: 1, targetEffects: [], reward: "Deal [Hits] + [Tension] damage; add [Tier] damage when the target has no adjacent characters.", family: { adjacent: true, maxTargets: 1, hiddenAdvantage: "3(+1)", isolatedBonusFormula: "1(+1)" } }],
+  ["lionwing.npc.bruiser.skulduggery", { dice: "5(+1)", tensionMultiplier: 1, targetEffects: [], reward: "Deal [Hits] + [Tension] damage and push each target [Tier × 2] spaces.", family: { area: [2, 2], areaAnchor: "self", maxTargets: 40, postPushFormula: "2(+2)" } }],
+  ["lionwing.npc.behemoth.tore-from-earth", { dice: "6(+1)", tensionMultiplier: 1, targetEffects: [], reward: "Deal [Hits] + [Tension] damage and place a 15 + [Tier × 5] Health Obstacle adjacent to each target.", family: { maxTargets: 2, range: 6, createTerrainAdjacent: "20(+5)" } }],
+  ["lionwing.npc.captor.catch-and-release", { dice: "6(+1)", tensionMultiplier: 1, targetEffects: [], reward: "Deal [Hits] + [Tension] damage; Weaken and Snare the target if enemies have not Attacked them this Round.", family: { maxTargets: 1, range: 4, conditionalEffectsIfUntouched: ["negative.ослаблен", "negative.пойман"] } }],
   ["lionwing.npc.executioner.cleave", { dice: "8(+2)", tensionMultiplier: 2, targetEffects: [], reward: "Deal [Hits] + [Tension × 2] damage; Shred a target if enemies have not Attacked them this Round.", family: { maxTargets: 2, lineLength: 2, chargedAttack: true, conditionalEffectsIfUntouched: ["negative.разорван"] } }],
-  ["lionwing.npc.javelin.crushing-impact", { dice: "4(+1)", tensionMultiplier: 1, targetEffects: [], reward: "Deal [Hits] + [Tension] damage and Launch the target if it is the only target.", family: { area: [2, 2], areaAnchor: "self", maxTargets: 40, conditionalSingleEffect: "negative.подброшен" } }],
-  ["lionwing.npc.pugilist.flurry-of-strikes", { dice: "5(+1)", tensionMultiplier: 1, targetEffects: [], reward: "Deal [Hits] + [Tension] damage; Slow the target if enemies have not Attacked them this Round.", family: { adjacent: true, maxTargets: 1, conditionalEffectsIfUntouched: ["negative.замедлен"] } }],
-  ["lionwing.npc.ranger.take-the-shot", { dice: "5(+1)", tensionMultiplier: 1, targetEffects: [], reward: "Deal [Hits] + [Tension] damage; add [Tier + 2] damage at range when enemies have not Attacked the target this Round.", family: { range: 8, maxTargets: 1, bonusDamageFormula: "3(+1)", bonusDamageMinimumRange: 4, bonusDamageIfUntouched: true } }],
-  ["lionwing.npc.ronin.dissect", { dice: "4(+1)", tensionMultiplier: 1, targetEffects: [], reward: "Deal [Hits] + [Tension] damage; Shred and Slow the target after at least 2 Crits.", family: { adjacent: true, maxTargets: 1, conditionalEffectsOnCrits: { minimum: 2, effects: ["negative.разорван", "negative.замедлен"] } } }],
-  ["lionwing.npc.witch.expelling-force", { dice: "5(+1)", tensionMultiplier: 1, targetEffects: [], reward: "Deal [Hits] + [Tension] damage and push the target 2 spaces away.", family: { range: 5, maxTargets: 1, postPush: 2 } }],
-  ["lionwing.npc.glutton.slobber", { dice: "5(+1)", tensionMultiplier: 1, targetEffects: [], reward: "Deal [Hits] + [Tension] damage and Slow targets enemies have not Attacked this Round.", family: { adjacent: true, maxTargets: 2, conditionalEffectsIfUntouched: ["negative.замедлен"] } }],
-  ["lionwing.npc.guardian.shove", { dice: "4(+1)", tensionMultiplier: 1, targetEffects: ["negative.подброшен"], reward: "Deal [Hits] + [Tension] damage, push the target 2 spaces away, and Launch it.", family: { adjacent: true, maxTargets: 1, postPush: 2 } }],
-  ["lionwing.npc.mount.thrash", { dice: "5(+1)", tensionMultiplier: 1, targetEffects: [], reward: "Deal [Hits] + [Tension] damage.", family: { adjacent: true, maxTargets: 2 } }],
-  ["lionwing.npc.paladin.gift-from-god", { dice: "4(+1)", tensionMultiplier: 1, targetEffects: [], reward: "Deal [Hits] + [Tension] damage and Daze one untouched opposing target, or give an allied target Regenerating.", family: { adjacent: true, maxTargets: 2, audience: "any", allyEffects: ["positive.регенерирует"], enemyEffectsIfUntouched: ["negative.ошеломлен"] } }],
-  ["lionwing.npc.revenant.tear-from-the-soul", { dice: "5(+1)", tensionMultiplier: 1, targetEffects: [], reward: "Deal [Hits] + [Tension] damage and make the target lose 1 + [Tier] Focus.", family: { range: 3, maxTargets: 1, postResourceLoss: { resource: "focus", formula: "1(+1)" } } }],
-  ["lionwing.npc.bannerman.swing", { dice: "4(+1)", tensionMultiplier: 1, targetEffects: [], reward: "Deal [Hits] + [Tension] damage and Weaken an untouched target.", family: { adjacent: true, maxTargets: 1, conditionalEffectsIfUntouched: ["negative.ослаблен"] } }],
-  ["lionwing.npc.bodyguards.behind-me", { dice: "5(+1)", tensionMultiplier: 1, targetEffects: [], reward: "Reinforce allied targets; deal [Hits] + [Tension] damage and Daze untouched opponents.", family: { maxTargets: 3, audience: "any", allyEffects: ["positive.укреплен"], enemyEffectsIfUntouched: ["negative.ошеломлен"], crowdAdvance: 1, targetAdjacentToCrowd: true } }],
-  ["lionwing.npc.broodmother.swarming-chase", { dice: "4(+1)", tensionMultiplier: 1, targetEffects: [], reward: "Deal [Hits] + [Tension] damage, plus 1 for each Fodder Zone adjacent to the Broodmother.", family: { maxTargets: 40, broodmotherDamage: true, preMoveMaximum: 1, moveAdjacentAllies: true, targetsAdjacentAfterMove: true, selectNewAdjacentAfterMove: true } }],
-  ["lionwing.npc.cocoon.rampage", { dice: "4(+1)", tensionMultiplier: 1, targetEffects: [], reward: "Deal [Hits] + [Tension] damage and repeat against characters not Attacked this Turn.", family: { adjacent: true, maxTargets: 1, preMoveMaximum: 3, preMoveStraight: true, preMoveIgnoreRestrictions: true, repeatFreshTargets: true } }],
+  ["lionwing.npc.javelin.crushing-impact", { dice: "5(+1)", tensionMultiplier: 1, targetEffects: [], reward: "Deal [Hits] + [Tension] damage and Launch the target if it is the only target.", family: { area: [2, 2], areaAnchor: "self", maxTargets: 40, conditionalSingleEffect: "negative.подброшен" } }],
+  ["lionwing.npc.pugilist.flurry-of-strikes", { dice: "6(+1)", tensionMultiplier: 1, targetEffects: [], reward: "Deal [Hits] + [Tension] damage; Slow the target if enemies have not Attacked them this Round.", family: { adjacent: true, maxTargets: 1, conditionalEffectsIfUntouched: ["negative.замедлен"] } }],
+  ["lionwing.npc.ranger.take-the-shot", { dice: "6(+1)", tensionMultiplier: 1, targetEffects: [], reward: "Deal [Hits] + [Tension] damage; add [Tier + 2] damage at range when enemies have not Attacked the target this Round.", family: { range: 8, maxTargets: 1, bonusDamageFormula: "3(+1)", bonusDamageMinimumRange: 4, bonusDamageIfUntouched: true, aimDamage: true } }],
+  ["lionwing.npc.ronin.dissect", { dice: "5(+1)", tensionMultiplier: 1, targetEffects: [], reward: "Deal [Hits] + [Tension] damage; Shred and Slow the target after at least 2 Crits.", family: { adjacent: true, maxTargets: 1, conditionalEffectsOnCrits: { minimum: 2, effects: ["negative.разорван", "negative.замедлен"] } } }],
+  ["lionwing.npc.witch.expelling-force", { dice: "6(+1)", tensionMultiplier: 1, targetEffects: [], reward: "Deal [Hits] + [Tension] damage and push the target 2 spaces away.", family: { range: 5, maxTargets: 1, postPush: 2 } }],
+  ["lionwing.npc.glutton.slobber", { dice: "6(+1)", tensionMultiplier: 1, targetEffects: [], reward: "Deal [Hits] + [Tension] damage and Slow targets enemies have not Attacked this Round.", family: { adjacent: true, maxTargets: 2, conditionalEffectsIfUntouched: ["negative.замедлен"] } }],
+  ["lionwing.npc.guardian.shove", { dice: "5(+1)", tensionMultiplier: 1, targetEffects: ["negative.подброшен"], reward: "Deal [Hits] + [Tension] damage, push the target 2 spaces away, and Launch it.", family: { adjacent: true, maxTargets: 1, postPush: 2 } }],
+  ["lionwing.npc.mount.thrash", { dice: "6(+1)", tensionMultiplier: 1, targetEffects: [], reward: "Deal [Hits] + [Tension] damage.", family: { adjacent: true, maxTargets: 2 } }],
+  ["lionwing.npc.paladin.gift-from-god", { dice: "5(+1)", tensionMultiplier: 1, targetEffects: [], reward: "Deal [Hits] + [Tension] damage and Daze one untouched opposing target, or give an allied target Regenerating.", family: { adjacent: true, maxTargets: 2, audience: "any", allyEffects: ["positive.регенерирует"], enemyEffectsIfUntouched: ["negative.ошеломлен"] } }],
+  ["lionwing.npc.revenant.tear-from-the-soul", { dice: "6(+1)", tensionMultiplier: 1, targetEffects: [], reward: "Deal [Hits] + [Tension] damage and make the target lose 1 + [Tier] Focus.", family: { range: 3, maxTargets: 1, postResourceLoss: { resource: "focus", formula: "2(+1)" } } }],
+  ["lionwing.npc.bannerman.swing", { dice: "5(+1)", tensionMultiplier: 1, targetEffects: [], reward: "Deal [Hits] + [Tension] damage and Weaken an untouched target.", family: { adjacent: true, maxTargets: 1, conditionalEffectsIfUntouched: ["negative.ослаблен"] } }],
+  ["lionwing.npc.bodyguards.behind-me", { dice: "6(+1)", tensionMultiplier: 1, targetEffects: [], reward: "Reinforce allied targets; deal [Hits] + [Tension] damage and Daze untouched opponents.", family: { maxTargets: 3, audience: "any", allyEffects: ["positive.укреплен"], enemyEffectsIfUntouched: ["negative.ошеломлен"], crowdAdvance: 1, targetAdjacentToCrowd: true } }],
+  ["lionwing.npc.swarm.tear", { dice: "6(+1)", tensionMultiplier: 1, targetEffects: [], reward: "Deal [Hits] + [Tension] damage and Daze one target.", family: { maxTargets: 3, crowdAdvance: 1, targetAdjacentToCrowd: true, chooseOneEffect: "Ошеломлен" } }],
+  ["lionwing.npc.broodmother.swarming-chase", { dice: "5(+1)", tensionMultiplier: 1, targetEffects: [], reward: "Deal [Hits] + [Tension] damage, plus 1 for each Fodder Zone adjacent to the Broodmother.", family: { maxTargets: 40, broodmotherDamage: true, preMoveMaximum: 1, moveAdjacentAllies: true, targetsAdjacentAfterMove: true, selectNewAdjacentAfterMove: true } }],
+  ["lionwing.npc.cocoon.rampage", { dice: "5(+1)", tensionMultiplier: 1, targetEffects: [], reward: "Deal [Hits] + [Tension] damage and repeat against characters not Attacked this Turn.", family: { adjacent: true, maxTargets: 1, preMoveMaximum: 3, preMoveStraight: true, preMoveIgnoreRestrictions: true, repeatFreshTargets: true } }],
   ["lionwing.npc.builder.violent-construction", { directDamage: "3(+1)", tensionMultiplier: 0, targetEffects: [], reward: "Deal 2 + [Tier] damage and place a 15 + [Tier × 5] Health Obstacle adjacent to the target.", family: { range: 6, maxTargets: 1, createTerrainAdjacent: "20(+5)" } }],
-  ["lionwing.npc.healer.exsanguinate", { dice: "5(+1)", tensionMultiplier: 1, targetEffects: [], reward: "Deal [Hits] + [Tension] damage and Mark the target.", family: { range: 5, maxTargets: 1, healerMark: true } }],
-  ["lionwing.npc.illusionist.distort-reality", { dice: "4(+1)", tensionMultiplier: 1, targetEffects: [], reward: "Deal [Hits] + [Tension] damage and put each target in Flux.", family: { adjacent: true, maxTargets: 40, flux: true } }],
-  ["lionwing.npc.martyr.savor-my-blood", { dice: "5(+1)", tensionMultiplier: 1, targetEffects: [], reward: "Deal [Hits] + [Tension] damage and restore half this NPC's missing Health.", family: { range: 5, maxTargets: 1, postSelfHealMissingFraction: 0.5 } }],
-  ["lionwing.npc.baron.suppress", { dice: "4(+1)", tensionMultiplier: 1, targetEffects: [], reward: "Deal [Hits] + [Tension] damage and Weaken an untouched target.", family: { adjacent: true, maxTargets: 1, conditionalEffectsIfUntouched: ["negative.ослаблен"] } }],
-  ["lionwing.npc.berserker.thrash", { dice: "5(+1)", tensionMultiplier: 1, targetEffects: [], reward: "Deal [Hits] + [Tension] damage and push the target 1 space away.", family: { adjacent: true, maxTargets: 1, postPush: 1 } }],
-  ["lionwing.npc.cultist.swipe", { dice: "4(+1)", tensionMultiplier: 1, targetEffects: [], reward: "Deal [Hits] + [Tension] damage.", family: { adjacent: true, maxTargets: 1 } }],
-  ["lionwing.npc.duelist.fleche", { dice: "5(+1)", tensionMultiplier: 1, targetEffects: [], reward: "Deal [Hits] + [Tension] damage and move 1 space.", family: { range: 2, maxTargets: 1, provokedTierDamage: true, postSelfMove: 1 } }],
-  ["lionwing.npc.spright.incision", { dice: "5(+1)", tensionMultiplier: 1, targetEffects: [], reward: "Deal [Hits] + [Tension] damage and Teleport to the farthest space adjacent to the target.", family: { adjacent: true, maxTargets: 1, postTeleportFarthestAdjacent: true } }],
-  ["lionwing.npc.rifter.emerge", { dice: "5(+1)", tensionMultiplier: 1, targetEffects: [], reward: "Deal [Hits] + [Tension] damage.", family: { maxTargets: 40, audience: "any", teleportAttack: true, preMoveMaximum: 5, targetsAdjacentAfterMove: true, selectAllAdjacentAfterMove: true, damageAllTargets: true } }],
-  ["lionwing.npc.daredevil.dance", { dice: "4(+1)", tensionMultiplier: 1, targetEffects: ["negative.подброшен"], reward: "Deal [Hits] + [Tension] damage and Launch the targets.", family: { adjacent: true, maxTargets: 2 } }],
-  ["lionwing.npc.enchanter.heartbreaker", { dice: "5(+1)", tensionMultiplier: 1, targetEffects: [], reward: "Deal [Hits] + [Tension] damage; Weaken and Slow a Feared or Taunted target.", family: { range: 5, maxTargets: 1, conditionalEffectsByTarget: { any: ["negative.испуган", "negative.спровоцирован"], apply: ["negative.ослаблен", "negative.замедлен"] } } }],
-  ["lionwing.npc.hound-master.shove", { dice: "5(+1)", tensionMultiplier: 1, targetEffects: [], reward: "Deal [Hits] + [Tension] damage and push the target 2 spaces away.", family: { range: 3, maxTargets: 1, postPush: 2 } }],
-  ["lionwing.npc.necromancer.terrifying-shot", { dice: "4(+1)", tensionMultiplier: 2, targetEffects: ["negative.испуган"], reward: "Deal [Hits] + [Tension × 2] damage and Fear the target.", family: { range: 5, maxTargets: 1 } }],
-  ["lionwing.npc.privateer.spray-and-pray", { dice: "4(+1)", tensionMultiplier: 2, targetEffects: [], reward: "Deal [Hits] + [Tension × 2] damage to all targets in the adjacent 2-space Line.", family: { maxTargets: 40, lineLength: 2, lineFromSelf: true } }],
+  ["lionwing.npc.healer.exsanguinate", { dice: "6(+1)", tensionMultiplier: 1, targetEffects: [], reward: "Deal [Hits] + [Tension] damage and Mark the target.", family: { range: 5, maxTargets: 1, healerMark: true } }],
+  ["lionwing.npc.illusionist.distort-reality", { dice: "5(+1)", tensionMultiplier: 1, targetEffects: [], reward: "Deal [Hits] + [Tension] damage and put each target in Flux.", family: { adjacent: true, maxTargets: 40, flux: true } }],
+  ["lionwing.npc.martyr.savor-my-blood", { dice: "6(+1)", tensionMultiplier: 1, targetEffects: [], reward: "Deal [Hits] + [Tension] damage and restore half this NPC's missing Health.", family: { range: 5, maxTargets: 1, postSelfHealMissingFraction: 0.5 } }],
+  ["lionwing.npc.baron.suppress", { dice: "5(+1)", tensionMultiplier: 1, targetEffects: [], reward: "Deal [Hits] + [Tension] damage and Weaken an untouched target.", family: { adjacent: true, maxTargets: 1, conditionalEffectsIfUntouched: ["negative.ослаблен"] } }],
+  ["lionwing.npc.berserker.thrash", { dice: "6(+1)", tensionMultiplier: 1, targetEffects: [], reward: "Deal [Hits] + [Tension] damage and push the target 1 space away.", family: { adjacent: true, maxTargets: 1, postPush: 1 } }],
+  ["lionwing.npc.cultist.swipe", { dice: "5(+1)", tensionMultiplier: 1, targetEffects: [], reward: "Deal [Hits] + [Tension] damage.", family: { adjacent: true, maxTargets: 1 } }],
+  ["lionwing.npc.duelist.fleche", { dice: "6(+1)", tensionMultiplier: 1, targetEffects: [], reward: "Deal [Hits] + [Tension] damage and move 1 space.", family: { range: 2, maxTargets: 1, provokedTierDamage: true, postSelfMove: 1 } }],
+  ["lionwing.npc.spright.incision", { dice: "6(+1)", tensionMultiplier: 1, targetEffects: [], reward: "Deal [Hits] + [Tension] damage and Teleport to the farthest space adjacent to the target.", family: { adjacent: true, maxTargets: 1, postTeleportFarthestAdjacent: true } }],
+  ["lionwing.npc.rifter.emerge", { dice: "6(+1)", tensionMultiplier: 1, targetEffects: [], reward: "Deal [Hits] + [Tension] damage.", family: { maxTargets: 40, audience: "any", teleportAttack: true, preMoveMaximum: 5, targetsAdjacentAfterMove: true, selectAllAdjacentAfterMove: true, damageAllTargets: true } }],
+  ["lionwing.npc.daredevil.dance", { dice: "5(+1)", tensionMultiplier: 1, targetEffects: ["negative.подброшен"], reward: "Deal [Hits] + [Tension] damage and Launch the targets.", family: { adjacent: true, maxTargets: 2 } }],
+  ["lionwing.npc.enchanter.heartbreaker", { dice: "6(+1)", tensionMultiplier: 1, targetEffects: [], reward: "Deal [Hits] + [Tension] damage; Weaken and Slow a Feared or Taunted target.", family: { range: 5, maxTargets: 1, conditionalEffectsByTarget: { any: ["negative.испуган", "negative.спровоцирован"], apply: ["negative.ослаблен", "negative.замедлен"] } } }],
+  ["lionwing.npc.hound-master.shove", { dice: "6(+1)", tensionMultiplier: 1, targetEffects: [], reward: "Deal [Hits] + [Tension] damage and push the target 2 spaces away.", family: { range: 3, maxTargets: 1, postPush: 2 } }],
+  ["lionwing.npc.necromancer.terrifying-shot", { dice: "5(+1)", tensionMultiplier: 2, targetEffects: ["negative.испуган"], reward: "Deal [Hits] + [Tension × 2] damage and Fear the target.", family: { range: 5, maxTargets: 1 } }],
+  ["lionwing.npc.privateer.spray-and-pray", { dice: "5(+1)", tensionMultiplier: 2, targetEffects: [], reward: "Deal [Hits] + [Tension × 2] damage to all targets in the adjacent 2-space Line.", family: { maxTargets: 40, lineLength: 2, lineFromSelf: true } }],
 ]);
 const ENEMY_AUTO_ATTACK_RULES = new Map([
   ["enemy.common.bruiser.attack.skulduggery", 2],
@@ -153,7 +156,34 @@ function enemyTierFormula(formula, tier) {
   const match = String(formula || "").match(/^(\d+)(?:\(\+(\d+)\))?$/);
   return match ? Number(match[1]) + Math.max(0, Number(tier || 1) - 1) * Number(match[2] || 0) : 0;
 }
+const NECROMANCER_REVIVALS = new Set(["lionwing.npc.bruiser", "lionwing.npc.viper", "lionwing.npc.ranger"]);
+function necromancerCorpses(scene, actor) {
+  if (!actor?.space) return [];
+  const removed = removedCellKeys(scene, actor.space);
+  const refs = [
+    ...(scene.markers || []).filter(item => item.kind === "corpse" && item.space === actor.space).map(item => ({ corpseId: `marker:${item.id}`, space: item.space, x: Number(item.x), y: Number(item.y), label: item.label || "Труп" })),
+    ...(scene.actors || []).filter(item => item.kind === "crowd" && item.crowdSubtype === "corpse" && !item.knockedOut && item.space === actor.space).map(item => ({ corpseId: `actor:${item.id}`, space: item.space, x: Number(item.x), y: Number(item.y), label: item.name || "Труп массовки" })),
+  ];
+  return refs.filter(item => !removed.has(cellKey(item)) && effectCellOccupancyStatus(scene, null, { actor: { id: `revival-preview-${item.corpseId}`, kind: "enemy", space: item.space }, ...item }).available);
+}
+function necromancerRevivedActor(data, owner, revival, corpse, id) {
+  const profile = enemyProfileById(data, revival.profileId), tier = Math.max(1, Number(owner.tier || 1) - 1);
+  const logic = (typeof window === "object" ? window : globalThis).DAWN_LOGIC;
+  const stat = (key, fallback = 0) => Number(logic?.scaleTierFormula(profile?.stats?.[key], tier) ?? fallback);
+  const maxHp = Math.max(1, stat("health", 1)), baseAp = 3;
+  return { id, kind: owner.team === "hero" ? "hero" : "enemy", rulesEdition: "lionwing", team: owner.team,
+    heroId: null, profileId: profile.id, name: profile.name, tier, space: corpse.space, x: corpse.x, y: corpse.y,
+    hp: maxHp, maxHp, focus: 0, ap: baseAp, baseAp, speed: stat("speed"), armor: stat("armor"), evasion: stat("evasion"),
+    effects: [], usedActions: [], usedTrump: false, acted: false, knockedOut: false, hidden: false,
+    tokenSymbol: "☠", tokenColor: owner.tokenColor || "#902a3d", tokenImage: "", portraitImage: "",
+    summonerId: owner.id, corpseSourceId: revival.corpseId, sourceActionId: "lionwing.npc.necromancer.the-danse-macabre" };
+}
 const ENEMY_AUTO_EFFECT_RULES = new Set([
+  "lionwing.npc.assassin.neutralize-target",
+  "lionwing.npc.executioner.focus",
+  "lionwing.npc.cannoneer.aim",
+  "lionwing.npc.paladin.gospel",
+  "lionwing.npc.spright.discombobulate",
   "enemy.common.assassin.action.neutralize-target",
   "enemy.common.assassin.trump.disappear",
   "enemy.common.executioner.action.focus-up",
@@ -168,6 +198,13 @@ const ENEMY_AUTO_EFFECT_RULES = new Set([
   "enemy.common.cannoneer.action.aim",
 ]);
 const ENEMY_FULL_RULES = new Map([
+  ["lionwing.npc.bodyguards.brace", { type: "bodyguards-brace" }],
+  ["lionwing.npc.assassin.neutralize-target", { type: "assassin-mark", narratorOffTurn: true, requiresTarget: true, maxTargets: 1, audience: "any" }],
+  ["lionwing.npc.executioner.focus", { type: "self-effects", effects: ["positive.усилен", "positive.укреплен"], narratorOffTurn: true }],
+  ["lionwing.npc.cannoneer.aim", { type: "self-effects", effects: ["positive.усилен", "positive.устойчив"], narratorOffTurn: true }],
+  ["lionwing.npc.berserker.seethe", { type: "berserker-heal", formula: "4(+2)", narratorOffTurn: true }],
+  ["lionwing.npc.paladin.gospel", { type: "regenerating-allies", narratorOffTurn: true }],
+  ["lionwing.npc.spright.discombobulate", { type: "defense-comparison-effect", narratorOffTurn: true, requiresTarget: true, maxTargets: 1, audience: "any" }],
   ["enemy.common.assassin.trump.disappear", { type: "effects" }],
   ["enemy.common.assassin.action.neutralize-target", { type: "assassin-mark" }],
   ["enemy.common.executioner.action.focus-up", { type: "effects" }],
@@ -193,6 +230,10 @@ const ENEMY_FULL_RULES = new Map([
   ["lionwing.npc.coordinator.neutralize-them", { type: "coordinator-mark" }],
   ["enemy.common.duelist.action.goad", { type: "duelist-goad" }],
   ["enemy.common.healer.action.heal", { type: "healer-heal", formula: "3(+1)" }],
+  ["lionwing.npc.healer.heal", { type: "healer-heal", formula: "3(+1)" }],
+  ["lionwing.npc.daredevil.gloat", { type: "daredevil-gloat" }],
+  ["lionwing.npc.viper.lick-the-knife", { type: "viper-lick-the-knife" }],
+  ["lionwing.npc.oni.stabilize", { type: "oni-stabilize" }],
   ["enemy.common.healer.trump.savior", { type: "healer-savior" }],
   ["enemy.common.cannoneer.attack.load", { type: "cannoneer-load" }],
   ["lionwing.npc.cannoneer.load", { type: "cannoneer-load" }],
@@ -203,24 +244,118 @@ const ENEMY_FULL_RULES = new Map([
   ["enemy.common.broodmother.trump.roar", { type: "broodmother-roar" }],
   ["lionwing.npc.broodmother.roar", { type: "broodmother-roar" }],
   ["enemy.common.hound-master.action.fire-seeker", { type: "hound-seekers", count: 1, minimumTargetDistance: 4 }],
+  ["lionwing.npc.hound-master.fire-seeker", { type: "hound-seekers", count: 1, minimumTargetDistance: 4 }],
   ["enemy.common.hound-master.trump.wild-hunt", { type: "hound-seekers", count: 3, minimumTargetDistance: 0 }],
   ["lionwing.npc.hound-master.wild-hunt", { type: "hound-seekers", count: 3, minimumTargetDistance: 0 }],
   ["enemy.common.privateer.trump.gear-change", { type: "privateer-gear-change" }],
   ["lionwing.npc.privateer.gear-change", { type: "privateer-gear-change" }],
+  ["lionwing.npc.builder.army-of-stone", { type: "builder-army-of-stone" }],
   ["enemy.common.ronin.action.sheath", { type: "ronin-sheath" }],
   ["enemy.common.javelin.action.call", { type: "crowd-summon", formula: "2(+1)", range: 4, diminishEachRoundUse: true }],
+  ["lionwing.npc.javelin.call", { type: "crowd-summon", formula: "2(+1)", range: 4, diminishEachRoundUse: true }],
   ["enemy.common.broodmother.action.call", { type: "crowd-summon", formula: "2(+1)", range: 4, diminishEachRoundUse: true }],
+  ["lionwing.npc.broodmother.call", { type: "crowd-summon", formula: "2(+1)", range: 4, diminishEachRoundUse: true }],
+  ["lionwing.npc.necromancer.call-the-dead", { type: "crowd-summon", formula: "2(+1)", range: 4, diminishEachRoundUse: true, corpseFodder: true }],
+  ["lionwing.npc.necromancer.the-danse-macabre", { type: "corpse-revive" }],
   ["enemy.common.glutton.action.call", { type: "crowd-summon", formula: "2(+1)", range: 4, diminishEachRoundUse: true }],
+  ["lionwing.npc.glutton.call", { type: "crowd-summon", formula: "2(+1)", range: 4, diminishEachRoundUse: true }],
   ["enemy.common.glutton.trump.regurgitate", { type: "crowd-summon", countState: "gluttonConsumed", knockUpOccupants: true }],
+  ["lionwing.npc.glutton.regurgitate", { type: "crowd-summon", countState: "gluttonConsumed", knockUpOccupants: true }],
   ["enemy.common.swarm.action.call", { type: "crowd-summon", formula: "2(+1)", range: 4, oncePerRound: true }],
+  ["lionwing.npc.swarm.call", { type: "crowd-summon", formula: "2(+1)", edge: true, diminishEachRoundUse: true }],
   ["enemy.common.bodyguards.trump.reinforcements", { type: "crowd-summon", formula: "2(+1)", edge: true, grantTurn: true }],
   ["lionwing.npc.bodyguards.reinforcements", { type: "crowd-summon", formula: "4(+1)", edge: true, grantTurn: true }],
   ["enemy.common.swarm.trump.reinforcements", { type: "crowd-summon", formula: "5(+2)", edge: true, grantTurn: true }],
+  ["lionwing.npc.swarm.reinforcements", { type: "crowd-summon", formula: "5(+1)", edge: true, grantTurn: true }],
   ["enemy.named.leon-academy-spatial-mage.trump.elemental-breach", {
     type: "summon-profiles",
     profiles: ["enemy.named.leon-s-vayu-spirit", "enemy.named.leon-s-agni-spirit"],
   }],
 ]);
+
+const LIONWING_DEPLOYMENT_PASSIVES = new Map([
+  ["lionwing.npc.bodyguards", { crowdType: "guards", crowdSubtype: "bodyguards-deployment", symbol: "♜", color: "#3f628f" }],
+  ["lionwing.npc.swarm", { crowdType: "swarm", crowdSubtype: "swarm-deployment", symbol: "✹", color: "#b45f35" }],
+]);
+
+function prepareEnemyDeployment(scene, actor) {
+  const passive = LIONWING_DEPLOYMENT_PASSIVES.get(actor?.profileId);
+  if (scene?.rulesEdition === "lionwing" && actor?.profileId === "lionwing.npc.assassin"
+    || scene?.rulesEdition !== "lionwing" && actor?.profileId === "enemy.common.assassin")
+    return { ok: true, owner: applyEnemyDeploymentPassive(scene, clone(actor)), zones: [], errors: [] };
+  if (scene?.rulesEdition !== "lionwing" || !passive || !actor || actor.deploymentProxy) return { ok: true, owner: actor, zones: [], errors: [] };
+  const space = (scene.spaces || []).find(item => item.id === actor.space);
+  if (!space || !Number.isInteger(Number(actor.x)) || !Number.isInteger(Number(actor.y))) return { ok: false, errors: ["Для Пассивa нужны координаты НПС на Поле."], owner: actor, zones: [] };
+  const count = 4 + Math.max(1, Number(actor.tier || 1));
+  const occupied = new Set((scene.actors || []).filter(item => item.id !== actor.id && item.kind === "crowd" && item.space === actor.space && !item.knockedOut).map(cellKey));
+  const characterOccupied = new Set((scene.actors || []).filter(item => item.id !== actor.id && item.kind !== "crowd" && !item.deploymentProxy && item.space === actor.space && !item.knockedOut).map(cellKey));
+  const terrain = new Set((scene.objects || []).filter(item => item.space === actor.space && item.type === "terrain").flatMap(item => item.cells || []));
+  const removed = removedCellKeys(scene, actor.space), designated = new Set((scene.objects || []).filter(item => item.space === actor.space && item.type === `deploy-${actor.team === "hero" ? "hero" : "enemy"}`).flatMap(item => item.cells || []));
+  const candidates = [];
+  for (let y = 0; y < Number(space.height || 0); y += 1) for (let x = 0; x < Number(space.width || 0); x += 1) {
+    const key = `${x},${y}`;
+    if (occupied.has(key) || terrain.has(key) || removed.has(key) || designated.size && !designated.has(key)) continue;
+    candidates.push({ key, x, y, designated: designated.has(key), characterOccupied: characterOccupied.has(key), distance: Math.max(Math.abs(x - Number(actor.x)), Math.abs(y - Number(actor.y))) });
+  }
+  candidates.sort((left, right) => Number(right.designated) - Number(left.designated) || Number(left.characterOccupied) - Number(right.characterOccupied) || left.distance - right.distance || left.y - right.y || left.x - right.x);
+  if (candidates.length < count) return { ok: false, owner: actor, zones: [], errors: [`Для ${actor.name || "этого НПС"} нужно ${count} свободных уникальных клеток массовки, найдено ${candidates.length}. Освободите место или разместите зоны вручную.`] };
+  const owner = { ...actor, speed: 0, deploymentProxy: true, deploymentFodderIds: [] };
+  const zones = candidates.slice(0, count).map((point, index) => ({
+    id: `deployment-${actor.id}-${index + 1}`,
+    kind: "crowd", crowdType: passive.crowdType, crowdSubtype: passive.crowdSubtype,
+    crowdGroupId: `deployment-${actor.id}`, deploymentFodderOwnerId: actor.id, summonerId: actor.id,
+    source: `${actor.profileId}.passive`, sourceActionId: `${actor.profileId}.passive`, team: actor.team,
+    heroId: null, profileId: null, name: `${actor.name || "НПС"}: Зона ${index + 1}`, tier: 0,
+    space: actor.space, x: point.x, y: point.y, hp: 1, maxHp: 1, focus: 0,
+    ap: 0, baseAp: 0, speed: 0, armor: 0, evasion: 0, effects: [], usedActions: [],
+    acted: true, knockedOut: false, hidden: false, tokenSymbol: actor.tokenSymbol || passive.symbol,
+    tokenColor: actor.tokenColor || passive.color, tokenImage: "", portraitImage: "",
+  }));
+  const existingIds = new Set((scene.actors || []).map(item => item.id));
+  if (zones.some(zone => existingIds.has(zone.id))) return { ok: false, owner: actor, zones: [], errors: ["Идентификатор создаваемой Зоны массовки уже занят; измените ID профиля или разрешите размещение вручную."] };
+  owner.deploymentFodderIds = zones.map(item => item.id);
+  return { ok: true, owner, zones, errors: [] };
+}
+
+function bodyguardsBraceFodder(scene, actor) {
+  return (scene.actors || []).filter(item => item.kind === "crowd" && !item.knockedOut && item.space === actor?.space && item.team === actor?.team);
+}
+
+function bodyguardsBraceLines(scene, actor) {
+  const zones = bodyguardsBraceFodder(scene, actor), byCell = new Map(zones.map(item => [cellKey(item), item])), directions = [[1, 0], [0, 1], [1, 1], [1, -1]], lines = new Map();
+  for (const zone of zones) for (const [dx, dy] of directions) {
+    if (byCell.has(`${Number(zone.x) - dx},${Number(zone.y) - dy}`)) continue;
+    const members = []; let x = Number(zone.x), y = Number(zone.y);
+    while (byCell.has(`${x},${y}`)) { members.push(byCell.get(`${x},${y}`)); x += dx; y += dy; }
+    if (members.length >= 3) lines.set(members.map(item => item.id).join("|"), members.map(item => item.id));
+  }
+  return [...lines.values()];
+}
+
+function bodyguardsBraceIntact(scene, actor) {
+  const ids = actor?.ruleState?.bodyguardsBrace?.zoneIds;
+  if (!Array.isArray(ids) || ids.length < 3) return false;
+  const zones = ids.map(id => (scene.actors || []).find(item => item.id === id));
+  if (zones.some(item => !item || item.kind !== "crowd" || item.knockedOut || item.space !== actor.space || item.team !== actor.team)) return false;
+  return bodyguardsBraceLines(scene, actor).some(line => ids.every(id => line.includes(id)));
+}
+
+function bodyguardsBracedCells(scene, spaceId) {
+  const cells = new Set();
+  for (const actor of scene.actors || []) if (actor.profileId === "lionwing.npc.bodyguards" && actor.ruleState?.bodyguardsBrace && bodyguardsBraceIntact(scene, actor)) {
+    for (const id of actor.ruleState.bodyguardsBrace.zoneIds) { const zone = actorById(scene, id); if (zone?.space === spaceId) cells.add(cellKey(zone)); }
+  }
+  return cells;
+}
+
+function deploymentPassiveConditionMet(scene, owner) {
+  if (!owner || !LIONWING_DEPLOYMENT_PASSIVES.has(owner.profileId)) return false;
+  const ownedZones = (scene.actors || []).filter(item => item.kind === "crowd" && item.team === owner.team && (item.deploymentFodderOwnerId === owner.id || item.summonerId === owner.id));
+  const allZonesDefeated = ownedZones.length > 0 && ownedZones.every(item => item.knockedOut);
+  if (allZonesDefeated) return true;
+  if (owner.profileId === "lionwing.npc.swarm") return (scene.actors || []).filter(item => item.kind !== "crowd" && item.team !== owner.team).every(item => item.knockedOut);
+  return (scene.actors || []).filter(item => item.kind !== "crowd" && item.id !== owner.id).every(item => item.knockedOut);
+}
 const ENEMY_TARGET_LIMITS = new Map([
   ["enemy.common.behemoth.action.leap", 40],
   ["enemy.common.behemoth.trump.meteor", 40],
@@ -237,16 +372,59 @@ const ENEMY_TARGET_LIMITS = new Map([
 ]);
 for (const [ruleId, metadata] of LIONWING_AUTO_ATTACK_RULES) ENEMY_ATTACK_FAMILY_RULES.set(ruleId, metadata.family || {});
 
+const LIONWING_SIMPLE_ACTION_DIGESTS = new Map([
+  ["lionwing.npc.executioner.focus", "sha256:6f5cfbc7ad5131d0f5028c3fb777602f7bbe3d06214a9e7ba68a663243a285c4"],
+  ["lionwing.npc.cannoneer.aim", "sha256:f7ba935d98676daa2494d0b0e9d43b8aa9af7965b0a7bdb946e8e6843311a4c1"],
+  ["lionwing.npc.berserker.seethe", "sha256:834d49d31b883e76d2a1db1bfdf25102c523f1876b97c8ee194ff8c9a21b9fb0"],
+  ["lionwing.npc.assassin.neutralize-target", "sha256:c0de180bc162c97ad1160eea26c0edf5d6ef8f9c34fc1c06dcf6cbc406a6656d"],
+  ["lionwing.npc.paladin.gospel", "sha256:cb2e13ee8dc238b9620bd5046ee86ca6af882fde0e0fd93be58fb842330975be"],
+  ["lionwing.npc.spright.discombobulate", "sha256:c04c88f43a64b370cca2c6c976955332410f28a78e6f8c5b23f7c99811630999"],
+]);
+
+const LIONWING_CROWD_RULE_DIGESTS = new Map([
+  ["lionwing.npc.hound-master.fire-seeker", "sha256:e36b86b2ff64c119ab57c64b2b594c1b625ce3f422cc44729b049b5da3b87587"],
+  ["lionwing.npc.hound-master.wild-hunt", "sha256:fbd8c1a5a24a5de5246c06d50ebeac7881b7a05d30e3b2f8506e0c489b403c3a"],
+  ["lionwing.npc.glutton.regurgitate", "sha256:1c6837d4ea114196308fc593a4dcfd0859a0b2f8e0a3c3b92d8bce9bd3f46864"],
+  ["lionwing.npc.javelin.call", "sha256:71efaab0e5fd5f9b1c62b310c4c1cad15d252de5021cc69bdc601349631a64c1"],
+  ["lionwing.npc.broodmother.call", "sha256:71efaab0e5fd5f9b1c62b310c4c1cad15d252de5021cc69bdc601349631a64c1"],
+  ["lionwing.npc.glutton.call", "sha256:71efaab0e5fd5f9b1c62b310c4c1cad15d252de5021cc69bdc601349631a64c1"],
+  ["lionwing.npc.swarm.call", "sha256:f2cc9f5797e4cefdb51fd7f6392c334ae89ed74ee7ed77becde1d6cb4c682dbf"],
+  ["lionwing.npc.bodyguards.reinforcements", "sha256:c9dcd60d0e5db74265396768bc1df6d0d6d963b8fcad8152a0489ae53691fed7"],
+  ["lionwing.npc.swarm.reinforcements", "sha256:3c3fbdf4687fc24dce30d03ad98c9fa9ba6ca08e38493b94e433892478ca215d"],
+  ["lionwing.npc.builder.army-of-stone", "sha256:8f3e506249b4ed9467ca33c7ee01b5a3227aa61aaa04b648675c214c6403a882"],
+]);
+
 const enemyCanonicalRule = rule => {
-  const ruleId = typeof rule === "string" ? rule : rule?.id, metadata = ruleId ? LIONWING_AUTO_ATTACK_RULES.get(ruleId) : null;
-  if (!metadata) return rule;
+  const ruleId = typeof rule === "string" ? rule : rule?.id, metadata = ruleId ? LIONWING_AUTO_ATTACK_RULES.get(ruleId) : null, simpleDigest = LIONWING_SIMPLE_ACTION_DIGESTS.get(ruleId), crowdDigest = LIONWING_CROWD_RULE_DIGESTS.get(ruleId), digest = simpleDigest || crowdDigest;
+  const fullRule = ruleId ? ENEMY_FULL_RULES.get(ruleId) : null;
+  const targetMetadata = fullRule?.requiresTarget ? { requiresTarget: true, maxTargets: Number(fullRule.maxTargets || 1), audience: fullRule.audience || "any" } : null;
+  if (!metadata && !digest && !targetMetadata) return rule;
   const base = typeof rule === "string" ? { id: rule } : rule;
-  return { ...base, ...clone(metadata), sourceDigest: base.sourceDigest || LIONWING_ENEMY_SOURCE_DIGEST, apCost: Number(base.apCost || 1) };
+  return { ...base, ...(metadata ? clone(metadata) : {}), ...(targetMetadata || {}), ...(metadata || digest ? { sourceDigest: digest || base.sourceDigest || LIONWING_ENEMY_SOURCE_DIGEST, apCost: Number(base.apCost || 1) } : {}) };
 };
 const enemyAttackFamilyForRule = ruleId => ENEMY_ATTACK_FAMILY_RULES.get(ruleId) || {};
 const enemyAttackTensionMultiplier = ruleId => Number(ENEMY_AUTO_ATTACK_RULES.get(ruleId) || 0);
 const enemyFullRuleForRule = ruleId => ENEMY_FULL_RULES.get(ruleId) || null;
 const enemyRuleIsAutoEffect = ruleId => ENEMY_AUTO_EFFECT_RULES.has(ruleId);
+// Gospel and its authoritative writer must ask the same question.  Raw
+// actor.effects can contain a suppressed source or a stale KO, so this query
+// deliberately goes through the effective effect/targeting layers and returns
+// only live, targetable allies.
+function lionwingRegeneratingAllyIds(scene, actorId) {
+  const source = actorById(scene, actorId);
+  if (!source) return [];
+  return (scene.actors || []).filter(target => {
+    if (!target || target.id === source.id || target.knockedOut || target.team !== source.team) return false;
+    const root = typeof window === "object" ? window : globalThis, effectiveQuery = root.DAWN_LIONWING_EFFECTIVE_EFFECT_ACTIVE || globalThis.DAWN_LIONWING_EFFECTIVE_EFFECT_ACTIVE, engine = root.DAWN_SCENE_ENGINE, effectiveEffects = engine?.effectiveEffects?.(scene, target.id);
+    const regenerating = typeof effectiveQuery === "function" ? effectiveQuery(scene, target.id, "positive.регенерирует") : Array.isArray(effectiveEffects) ? effectiveEffects.includes("positive.регенерирует") : typeof hasEffect === "function" ? hasEffect(scene, target, "positive.регенерирует") : (target.effects || []).includes("positive.регенерирует");
+    if (!regenerating) return false;
+    return effectTargetingStatus(scene, source.id, target.id).available;
+  }).map(target => target.id);
+}
+if (typeof globalThis !== "undefined") {
+  globalThis.DAWN_LIONWING_REGENERATING_ALLY_IDS = lionwingRegeneratingAllyIds;
+  if (typeof window === "object") window.DAWN_LIONWING_REGENERATING_ALLY_IDS = lionwingRegeneratingAllyIds;
+}
 const enemyTargetUntouchedThisRound = (scene, targetId, sourceTeam) => !currentRoundEvents(scene).some(event => {
   if (!(["attack.pending", "action.prepare", "enemy.action.prepare"].includes(event.type)) || !Array.isArray(event.payload?.targetIds) || !event.payload.targetIds.includes(targetId)) return false;
   const source = actorById(scene, event.actorId);
@@ -325,7 +503,8 @@ function availableActions(scene, data, actorId) {
     const automation = quickSource?.needsConfirmation ? "assist" : ["jump", "step", "spell", "block", "dodge", "breathe", "charge", "disappear", "study"].some(key => actionIs(action, key)) ? "full" : "assist";
     const offeredReaction = scene.pendingAction?.responses?.[actor.id]?.choice === "pending";
     let reason = "";
-    if (actor.knockedOut) reason = "Персонаж выведен из строя";
+    if (actor.deploymentProxy && actionIs(action, "step")) reason = "Этот НПС не находится на Поле и не может использовать Шаг";
+    else if (actor.knockedOut) reason = "Персонаж выведен из строя";
     else if (reaction && !offeredReaction) reason = "Доступно только в ответ на Атаку";
     else if (scene.pendingAction && !reaction) reason = "Сначала разрешите Реакцию";
     else if (scene.pendingPrompt && !reaction) reason = "Сначала ответьте на сработавшее правило";
@@ -361,7 +540,7 @@ function cunningPlanStatus(scene, data, actorId, actionId) {
   return { available: !reason, reason, segments, unlimited, discountedCost: Math.max(0, Number(actionCost(action).amount || 0) - 1) };
 }
 
-function prepareAction(scene, data, request = {}) {
+function prepareAction(scene, data, request = {}, bridge = {}) {
   const normalizedTargetRequest = typeof normalizeLionwingActionTargetRequest === "function" ? normalizeLionwingActionTargetRequest(scene, request) : { request, errors: [], typedTargets: null };
   request = normalizedTargetRequest.request;
   const actionInstanceId = eventId();
@@ -373,6 +552,13 @@ function prepareAction(scene, data, request = {}) {
   if (!declaredAction) errors.push("Неизвестное базовое действие.");
   if (scene.pendingActionPlan && (request.planId !== scene.pendingActionPlan.id || request.actorId !== scene.pendingActionPlan.actorId || request.actionId !== scene.pendingActionPlan.actionId)) errors.push("Действие не совпадает с сохранённым составным планом.");
   let available = actor && declaredAction ? availableActions(scene, data, actor.id).find(item => item.id === declaredAction.id) : null;
+  // The native LionWing caller owns this fourth argument. Geometry remains
+  // shared, while its price/Swift/Focus contract comes from the native rules.
+  // No field in a user's action request can supply this contract.
+  const nativeQuote = scene.rulesEdition === "lionwing" && bridge.nativeActionQuote?.actorId === actor?.id
+    && bridge.nativeActionQuote.actionId === declaredAction?.id ? bridge.nativeActionQuote : null;
+  if (nativeQuote && available) available = { ...available, available: true, reason: "",
+    quick: Boolean(nativeQuote.swift), costModel: { amount: nativeQuote.cost, resource: nativeQuote.resource } };
   if (actor && declaredAction && !available) errors.push("Это базовое действие недоступно этому типу участника.");
   const planStatus = actor && declaredAction ? cunningPlanStatus(scene, data, actor.id, declaredAction.id) : null;
   if (request.useCunningPlan) {
@@ -503,7 +689,8 @@ function prepareAction(scene, data, request = {}) {
   // itself (or provide a target list) for a Talent Finisher.
   if (actionIs(action, "finish") && masterLevel >= 3 && request.armamentMode) errors.push("Завершение Мастера за работой использует только текущее авторитетное Вооружение.");
   const ritualistCircle = actionIs(action, "finish") && actionAttribute === "spirit" && Number(actor.techniques?.["ruiner.ritualist"] || 0) >= 1 && (scene.markers || []).some(marker => marker.ownerActorId === actor.id && marker.kind === "ritual" && marker.duration === "scene" && /ritualist/.test(String(marker.ruleId || "")) && marker.space === actor.space && Number(marker.x) === Number(actor.x) && Number(marker.y) === Number(actor.y));
-  const finisherFocusCap = Number(scene.tension || 0) + (ritualistCircle ? 2 : 0);
+  const finisherFocusCap = nativeQuote?.focusCap ?? Number(scene.tension || 0) + (ritualistCircle ? 2 : 0);
+  const finisherFocusCost = nativeQuote?.focusCost ?? finisherFocus;
   const attackModifierDestination = attackModifiers.requiresDestination ? attackModifierDestinationStatus(scene, actor.id, targetIds, attackModifiers.selectedIds, request.attackModifierDestination, { actionId: declaredAction.id }) : null;
   if (attackModifierDestination && !attackModifierDestination.available) errors.push(attackModifierDestination.reason);
   const thunderDischarge = Boolean(request.useThunderDischarge) && actionIs(action, "finish") && actionAttribute === "spirit" && Number(actor.techniques?.["ruiner.thunder-blood"] || 0) >= 3 && clockStatus(scene, actor.id, "ruiner.thunder-blood.static").value >= 3;
@@ -558,7 +745,7 @@ function prepareAction(scene, data, request = {}) {
   if (knifeThrow && !ruleResourceStatus(scene, actor.id, { resource: "weapons", amount: 1 }).available) errors.push("Для Метания нужно 1 Оружие.");
   if (knifeThrow && (targetIds.length !== 1 || targetCells.length)) errors.push("Метание выбирает ровно одного персонажа.");
   if (meisterOverload && !Array.isArray(request.roll?.rolls)) errors.push("Для Перегрузки нужен зафиксированный бросок Атаки.");
-  if (!Number.isInteger(finisherFocus) || finisherFocus < 0 || finisherFocus > finisherFocusCap || finisherFocus > Number(actor.focus || 0)) errors.push(`Фокус Завершения должен быть целым числом от 0 до ${finisherFocusCap} и не больше доступного Фокуса.`);
+  if (!Number.isInteger(finisherFocus) || finisherFocus < 0 || finisherFocus > finisherFocusCap || !Number.isInteger(finisherFocusCost) || finisherFocusCost < 0 || finisherFocusCost > Number(actor.focus || 0)) errors.push(`Фокус Завершения должен быть целым числом от 0 до ${finisherFocusCap} и не больше доступного Фокуса.`);
   if (mundaneLevel >= 1 && actionIs(action, "spell")) errors.push("Обычный не может использовать Заклинание.");
   if (mundaneLevel >= 1 && actionIs(action, "finish") && actionAttribute === "spirit") errors.push("Обычный не может использовать Завершение Духом.");
   const modifierQuick = Boolean(attackModifiers.quick), armamentQuick = Boolean(armament?.available);
@@ -586,7 +773,7 @@ function prepareAction(scene, data, request = {}) {
   }
   const cost = knifeThrow || modifierQuick || armamentQuick ? { resource: null, amount: 0 } : available?.costModel || actorActionCost(actor, declaredAction);
   if (cost.resource && cost.amount) events.push({ type: "resource.spend", actorId: actor.id, payload: cost });
-  if (finisherFocus) events.push({ type: "resource.spend", actorId: actor.id, payload: { resource: "focus", amount: finisherFocus, sourceActionId: action.id, reason: "Преимущество Завершения", participantIds: [actor.id, ...targetIds] } });
+  if (finisherFocusCost) events.push({ type: "resource.spend", actorId: actor.id, payload: { resource: "focus", amount: finisherFocusCost, sourceActionId: action.id, reason: "Преимущество Завершения", participantIds: [actor.id, ...targetIds] } });
   if (gunslingerSkirmish) {
     events[0].payload.ruleResource = { resource: "bullets", spent: bulletsSpent, advantage: bulletAdvantage, additionalTargets: Math.max(0, selectedTargetCount - 1), passiveAdvantage: Number(actor.techniques?.["powerhouse.gunslinger"] || 0) >= 2 ? 1 : 0, ruleId: "powerhouse.gunslinger.1" };
     events.push({ type: "rule-resource.spend", actorId: actor.id, payload: { resource: "bullets", amount: bulletsSpent, sourceActionId: "powerhouse.gunslinger.1", participantIds: [actor.id, ...targetIds] } });
@@ -694,13 +881,13 @@ function prepareAction(scene, data, request = {}) {
       const areaDamage = value => eclipseStars ? Math.ceil(adjustedDamage(value) / 2) : adjustedDamage(value);
       const effectAttack = effectAttackStatus(scene, actor.id, targetIds);
       const empathSupport = Math.max(0, Number(actor.ruleState?.empathSupport || 0)), rawHindrance = Number(effectAttack.hindrance || 0), assassinationManualAdvantage = Number(attackModifiers.advantage || 0) + finisherFocus + (gunslingerSkirmish ? bulletAdvantage + (Number(actor.techniques?.["powerhouse.gunslinger"] || 0) >= 2 ? 1 : 0) : 0) + (actionIs(action, "skirmish") && Number(actor.techniques?.["vagabond.knife-juggler"] || 0) >= 2 ? 1 : 0) + (meisterOverload ? Math.floor(Number(actor.attrs?.mind || 0) / 2) : 0) + (grasp ? Number(scene.tension || 0) : 0) + (assassination ? Number(actor.tier || 1) : 0) + (empathSupport && !rawHindrance ? empathSupport : 0), assassinationManualHindrance = empathSupport ? 0 : rawHindrance;
-      const masterFinisherDamage = Number(masterFinisher?.extraDamage || 0), effectDamageBase = Number(request.roll?.successes || 0) + bonus + Number(effectAttack.damageModifier || 0) + masterFinisherDamage;
-      const effectDamageBaseByTarget = Object.fromEntries(targets.map(target => [target.id, effectDamageBase + Number(effectAttack.damageByTarget?.[target.id] || 0) + (thunderDischarge && hasEffect(scene, target, "negative.ошеломлен") ? Number(actor.tier || 1) : 0) + (actionIs(action, "finish") && Number(actor.techniques?.["disruptor.constrictor"] || 0) >= 2 && hasEffect(scene, target, "negative.пойман") ? Number(actor.tier || 1) : 0)]));
+      const masterFinisherDamage = Number(masterFinisher?.extraDamage || 0), effectDamageBase = Number(request.roll?.successes || 0) + bonus + masterFinisherDamage;
+      const effectDamageBaseByTarget = Object.fromEntries(targets.map(target => [target.id, effectDamageBase + (thunderDischarge && hasEffect(scene, target, "negative.ошеломлен") ? Number(actor.tier || 1) : 0) + (actionIs(action, "finish") && Number(actor.techniques?.["disruptor.constrictor"] || 0) >= 2 && hasEffect(scene, target, "negative.пойман") ? Number(actor.tier || 1) : 0)]));
       const armamentOperations = armament?.contract?.postOperations || [];
       const postDisplacements = armamentOperations.filter(operation => operation.type === "displacement").flatMap(operation => operation.target === "targets" ? targets.map(target => ({ targetId: target.id, mode: operation.mode || "push", maximum: Number(operation.maximum || 0), name: armament.label, ruleId: armament.contract.sourceRuleId, collisionDamagePerCell: 0 })) : []).concat(breacherSkirmish ? targets.filter(target => distance(attackOrigin, target) <= 2).map(target => ({ targetId: target.id, mode: "push", maximum: 1, name: "Картечь", ruleId: "powerhouse.breacher.1", collisionDamagePerCell: 0, requiresSuccess: true })) : []);
       const dragonslayerTear = actionIs(action, "finish") && actionAttribute === "body" && Number(actor.techniques?.["powerhouse.dragonslayer"] || 0) >= 1 ? ["negative.разорван"] : [];
       const postSelfEffects = armamentOperations.filter(operation => operation.type === "effect" && operation.target === "self" && operation.timing === "after-resolve").map(operation => operation.effect), postTargetEffects = armamentOperations.filter(operation => operation.type === "effect" && operation.target === "targets" && operation.timing === "after-resolve").map(operation => operation.effect);
-      events.push({ type: "attack.pending", actorId: actor.id, payload: { actionId: action.id, declaredActionId: declaredAction.id, declaredActionName: declaredAction.name, name: armamentQuick ? `Стычка · ${armament.label}` : masterFinisher ? `Завершение · ${masterFinisher.modeId === "blade" ? "Клинок" : masterFinisher.modeId === "polearm" ? "Древко" : "Цепь"}` : assassination ? "Ликвидация" : thunderDischarge ? "Разрядка" : eclipseStars ? "Затмить звезды" : zealotRupture ? "Так не должно было быть" : action.name, attribute: actionAttribute, targetIds, targetCells, allowEmptyTargets: zealotRupture || Boolean(masterFinisher) || targetCells.length > 0, roll: clone(request.roll || null), damage: areaDamage(effectDamageBase), damageByTarget: Object.fromEntries(Object.entries(effectDamageBaseByTarget).map(([targetId, value]) => [targetId, areaDamage(value)])), effectDamageBase, effectDamageBaseByTarget, effectDamageDivisor, attackModifierIds: attackModifiers.selectedIds, attackModifierAdvantage: attackModifiers.advantage, attackModifierDestination: attackModifierDestination?.destination || null, actionTransform: attackModifiers.actionTransform, techniqueRuleId: armamentQuick ? "vagabond.master-at-arms.1" : masterFinisher ? "vagabond.master-at-arms.3" : assassination ? "vagabond.assassin.2" : null, techniqueSourceDigest: armament?.contract?.sourceDigest || (masterFinisher ? MASTER_AT_ARMS_3_SOURCE_DIGEST : null), armamentContract: armament?.contract ? clone(armament.contract) : null, assassination, expectedManualAdvantage: assassination ? assassinationManualAdvantage : null, expectedManualHindrance: assassination ? assassinationManualHindrance : null, finisherFocus, armamentMode, masterFinisher: masterFinisher ? clone(masterFinisher) : null, successEffects: dragonslayerTear, postSelfEffects, postTargetEffects, postOperations: armament?.contract?.postOperations || [], thunderDischarge, eclipseStars, zealotRupture, zealotCells, postDisplacements, gunslingerBulletJuggle: gunslingerSkirmish && Number(actor.techniques?.["powerhouse.gunslinger"] || 0) >= 3 && bulletsSpent >= 3 && targetIds.length === 1 && !targetCells.length, knifeThrow: knifeThrow && Number(actor.techniques?.["vagabond.knife-juggler"] || 0) >= 2, overload: meisterOverload ? clone(events[0].payload.overload) : null } });
+      events.push({ type: "attack.pending", actorId: actor.id, payload: { actionInstanceId, actionId: action.id, declaredActionId: declaredAction.id, declaredActionName: declaredAction.name, name: armamentQuick ? `Стычка · ${armament.label}` : masterFinisher ? `Завершение · ${masterFinisher.modeId === "blade" ? "Клинок" : masterFinisher.modeId === "polearm" ? "Древко" : "Цепь"}` : assassination ? "Ликвидация" : thunderDischarge ? "Разрядка" : eclipseStars ? "Затмить звезды" : zealotRupture ? "Так не должно было быть" : action.name, attribute: actionAttribute, targetIds, targetCells, allowEmptyTargets: zealotRupture || Boolean(masterFinisher) || targetCells.length > 0, roll: clone(request.roll || null), damage: areaDamage(effectDamageBase), damageByTarget: Object.fromEntries(Object.entries(effectDamageBaseByTarget).map(([targetId, value]) => [targetId, areaDamage(value)])), effectDamageBase, effectDamageBaseByTarget, effectDamageDivisor, attackModifierIds: attackModifiers.selectedIds, attackModifierAdvantage: attackModifiers.advantage, attackModifierDestination: attackModifierDestination?.destination || null, actionTransform: attackModifiers.actionTransform, techniqueRuleId: armamentQuick ? "vagabond.master-at-arms.1" : masterFinisher ? "vagabond.master-at-arms.3" : assassination ? "vagabond.assassin.2" : null, techniqueSourceDigest: armament?.contract?.sourceDigest || (masterFinisher ? MASTER_AT_ARMS_3_SOURCE_DIGEST : null), armamentContract: armament?.contract ? clone(armament.contract) : null, assassination, expectedManualAdvantage: assassination ? assassinationManualAdvantage : null, expectedManualHindrance: assassination ? assassinationManualHindrance : null, finisherFocus, armamentMode, masterFinisher: masterFinisher ? clone(masterFinisher) : null, successEffects: dragonslayerTear, postSelfEffects, postTargetEffects, postOperations: armament?.contract?.postOperations || [], thunderDischarge, eclipseStars, zealotRupture, zealotCells, postDisplacements, gunslingerBulletJuggle: gunslingerSkirmish && Number(actor.techniques?.["powerhouse.gunslinger"] || 0) >= 3 && bulletsSpent >= 3 && targetIds.length === 1 && !targetCells.length, knifeThrow: knifeThrow && Number(actor.techniques?.["vagabond.knife-juggler"] || 0) >= 2, overload: meisterOverload ? clone(events[0].payload.overload) : null } });
       if (request.roll?.rolls) events.push({ type: "roll.public", actorId: actor.id, payload: clone(request.roll) });
     }
     if (masterFinisher?.advantage && events.find(event => event.type === "attack.pending")) {
@@ -843,22 +1030,30 @@ function availableEnemyRules(scene, data, actorId) {
   return (profile.rules || []).map(rawRule => {
     const rule = enemyCanonicalRule(rawRule), family = enemyAttackFamilyForRule(rule.id);
     const maxTargets = family.maxTargets || (ENEMY_TARGET_LIMITS.has(rule.id) ? ENEMY_TARGET_LIMITS.get(rule.id) : Number(rule.maxTargets || 0));
-    const fullRule = enemyFullRuleForRule(rule.id), stateOnly = ["pugilist-stance", "martial-perfection", "imposing-presence"].includes(fullRule?.type);
+    const fullRule = enemyFullRuleForRule(rule.id), stateOnly = ["pugilist-stance", "martial-perfection", "imposing-presence"].includes(fullRule?.type), braceLines = fullRule?.type === "bodyguards-brace" ? bodyguardsBraceLines(scene, actor) : null;
     const automation = ENEMY_AUTO_ATTACK_RULES.has(rule.id) ? "attack" : fullRule ? stateOnly ? "state" : "full" : ENEMY_AUTO_EFFECT_RULES.has(rule.id) ? "effect" : "assisted";
     let reason = "";
     if (!(actor.kind === "enemy" || actor.profileId)) reason = "Это не профильный НПС";
     else if (actor.knockedOut) reason = "Профильный НПС выведен из строя";
-    else if (scene.pendingAction) reason = "Сначала разрешите текущие Реакции";
-    else if (automation !== "assisted" && !scene.activeActorId) reason = "Сначала начните Ход противника";
-    else if (automation !== "assisted" && scene.activeActorId !== actor.id) reason = "Сейчас Ход другого участника";
-    else if (automation !== "assisted" && actor.acted) reason = "Ход противника уже завершён";
+    else if (scene.pendingAction || scene.pendingPrompt || scene.pendingActionPlan || scene.lionwing?.pendingActionPlan) reason = "Сначала разрешите текущую цепочку действия";
+    else if (automation !== "assisted" && !fullRule?.narratorOffTurn && !scene.activeActorId) reason = "Сначала начните Ход противника";
+    else if (automation !== "assisted" && !fullRule?.narratorOffTurn && scene.activeActorId !== actor.id) reason = "Сейчас Ход другого участника";
+    else if (automation !== "assisted" && !fullRule?.narratorOffTurn && actor.acted) reason = "Ход противника уже завершён";
     else if (Number(actor.ap || 0) < Number(rule.apCost || 1)) reason = `Нужно ${rule.apCost || 1} ОД`;
     else if ((actor.usedActions || []).includes(rule.id) && !(family.chargedAttack && (actor.effects || []).includes("positive.заряжен")) && !fullRule?.diminishEachRoundUse) reason = "Это действие уже использовано в Раунде";
     else if (rule.kind === "trump" && actor.usedTrump) reason = "Козырь уже использован в этой Сцене";
     else if (rule.kind === "trump" && Number(scene.tension || 0) < Number(rule.tension || 0)) reason = `Нужно Напряжение ${rule.tension}`;
+    else if (fullRule?.type === "bodyguards-brace" && !braceLines.length) reason = "Нужно минимум 3 Зоны массовки в одной непрерывной Линии";
+    else if (fullRule?.type === "bodyguards-brace" && bodyguardsBraceIntact(scene, actor)) reason = "Одна Линия уже укреплена; сначала она должна разорваться";
+    else if (fullRule?.type === "corpse-revive" && necromancerCorpses(scene, actor).length < 2) reason = "Для Пляса смерти нужны два доступных Трупа";
     else if (rule.id === "enemy.common.cannoneer.trump.fire" && !clockStatus(scene, actor.id, "enemy.common.cannoneer.preparation").full) reason = "Сначала заполните Подготовку 4/4";
+    const armyOfStoneStatus = fullRule?.type === "builder-army-of-stone" ? builderArmyOfStoneStatus(scene, actor) : null;
+    if (!reason && armyOfStoneStatus && !armyOfStoneStatus.available) reason = armyOfStoneStatus.reason;
     const roninSheathed = rule.id === "enemy.common.ronin.attack.dissect" && actor.ruleState?.roninSheathed;
-    return { ...clone(rule), ...family, ...(roninSheathed ? { adjacent: false, range: Number(actor.speed || 0) } : {}), maxTargets, automation, available: !reason, reason };
+    const roundUses = fullRule?.type === "crowd-summon" ? currentRoundEvents(scene).filter(event => event.type === "enemy.action.prepare" && event.actorId === actor.id && event.payload?.ruleId === rule.id).length : 0;
+    const crowdSummon = fullRule?.type === "crowd-summon" ? { count: Math.max(0, fullRule.countState ? Number(actor.ruleState?.[fullRule.countState] || 0) : enemyTierFormula(fullRule.formula, actor.tier) - (fullRule.diminishEachRoundUse ? roundUses : 0)), edge: Boolean(fullRule.edge), range: fullRule.range == null ? null : Number(fullRule.range) } : null;
+    const armyOfStone = armyOfStoneStatus?.available ? { terrainPieceCount: armyOfStoneStatus.terrainObjects.length, cellCount: armyOfStoneStatus.cells.length, fodderCreated: armyOfStoneStatus.spawnCells.length, fodderReused: armyOfStoneStatus.existingFodderIds.length } : null;
+    return { ...clone(rule), ...family, ...(roninSheathed ? { adjacent: false, range: Number(actor.speed || 0) } : {}), ...(crowdSummon ? { crowdSummon } : {}), ...(braceLines ? { braceLines: clone(braceLines) } : {}), ...(armyOfStone ? { armyOfStone } : {}), ...(fullRule?.type === "corpse-revive" ? { corpses: necromancerCorpses(scene, actor) } : {}), maxTargets, automation, available: !reason, reason };
   });
 }
 
@@ -867,6 +1062,19 @@ function enemyRuleAutomation(ruleId) {
   if (ENEMY_AUTO_ATTACK_RULES.has(ruleId)) return "attack";
   if (fullRule) return ["pugilist-stance", "martial-perfection", "imposing-presence"].includes(fullRule.type) ? "state" : "full";
   return enemyRuleIsAutoEffect(ruleId) ? "effect" : "assisted";
+}
+
+function enemyAttackRollMatchesPool(roll, expectedDice) {
+  if (!roll || !Array.isArray(roll.rolls) || roll.rolls.length > 300 || roll.truncated || roll.rolls.some(value => !Number.isInteger(value) || value < 1 || value > 6)) return false;
+  if (Number(roll.successes) !== roll.rolls.filter(value => value >= 4).length || Number(roll.crits) !== roll.rolls.filter(value => value === 6).length) return false;
+  if (roll.initialCount == null) return roll.rolls.length === expectedDice;
+  if (!Number.isInteger(roll.initialCount) || roll.initialCount !== expectedDice) return false;
+  let outstanding = expectedDice;
+  for (const value of roll.rolls) {
+    if (outstanding <= 0) return false;
+    if (value !== 6) outstanding -= 1;
+  }
+  return outstanding === 0;
 }
 
 function prepareEnemyRule(scene, data, request = {}) {
@@ -887,15 +1095,16 @@ function prepareEnemyRule(scene, data, request = {}) {
   if (fullRule?.oncePerRound && roundRuleUses) errors.push("Это действие можно использовать только один раз за Раунд.");
   const isAttackRule = Boolean(rule && (rule.kind === "attack" || family.attack));
   const chargingAttack = Boolean(isAttackRule && family.chargedAttack && !(actor?.effects || []).includes("positive.заряжен"));
-  const crowdMovementReady = Boolean(actor?.ruleState?.enemyCrowdMovement?.ruleId === rule?.id && Number(actor.ruleState.enemyCrowdMovement.turnSerial) === Number(scene.turnSerial || 0));
+  const crowdMovementReady = Boolean(actor && rule && actor.ruleState?.enemyCrowdMovement?.ruleId === rule.id && Number(actor.ruleState.enemyCrowdMovement.turnSerial) === Number(scene.turnSerial || 0));
   if (actor && rule && family.crowdAdvance && request.options?.beginCrowdMovement && !crowdMovementReady) {
+    if (errors.length) return { ok: false, errors, events: [], rule: available || rule };
     const crowdIds = (scene.actors || []).filter(item => item.kind === "crowd" && !item.knockedOut && item.team === actor.team && item.space === actor.space).map(item => item.id);
     return { ok: true, errors: [], events: [{ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${eventId()}-enemy-crowds`, kind: "enemy-crowd-move-select", sourceActorId: actor.id, controller: "narrator", title: `${rule.name}: движение массовки`, text: `По очереди переместите каждую союзную Зону массовки на расстояние до ${family.crowdAdvance} клетки или оставьте её на месте.`, options: [...crowdIds.map(id => `target:${id}`), "finish"], context: { ruleId: rule.id, remainingTargetIds: crowdIds, maxDistance: Number(family.crowdAdvance), optionLabels: { finish: "Закончить движение" } }, participantIds: [actor.id, ...crowdIds] } }], rule: available || clone(rule) };
   }
   if (actor && rule && family.crowdAdvance && !crowdMovementReady) errors.push("Сначала разрешите движение всех союзных Зон массовки.");
   let targetIds = [...new Set(request.targetIds || [])];
   if (rule?.id === "enemy.common.paladin.trump.weal-and-woe" && actor) targetIds = (scene.actors || []).filter(target => target.id !== actor.id && !target.knockedOut && target.space === actor.space && distance(actor, target) <= 2).map(target => target.id);
-  if (fullRule?.type === "regenerating-allies" && actor) targetIds = (scene.actors || []).filter(target => !target.knockedOut && target.team === actor.team && (target.effects || []).some(effect => String(effect).includes("регенер"))).map(target => target.id);
+  if (fullRule?.type === "regenerating-allies" && actor) targetIds = lionwingRegeneratingAllyIds(scene, actor.id);
   if (fullRule?.type === "corrupted-damage" && actor) targetIds = (scene.actors || []).filter(target => !target.knockedOut && target.team !== actor.team && (target.effects || []).some(effect => String(effect).includes("порчен"))).map(target => target.id);
   if (fullRule?.type === "guardian-shield" && actor) targetIds = (scene.actors || []).filter(target => !target.knockedOut && target.team !== actor.team && target.space === actor.space && distance(actor, target) <= 4).map(target => target.id);
   if (fullRule?.type === "revenant-hollowed-eyes" && actor) {
@@ -905,6 +1114,7 @@ function prepareEnemyRule(scene, data, request = {}) {
     targetIds = eligible.some(target => targetIds.includes(target.id)) ? [targetIds.find(id => eligible.some(target => target.id === id))] : eligible.slice(0, 1).map(target => target.id);
   }
   if (fullRule?.type === "healer-savior" && actor) targetIds = actor.ruleState?.healerGuardianId ? [actor.ruleState.healerGuardianId] : [];
+  if (fullRule?.type === "viper-lick-the-knife" && actor) targetIds = (scene.actors || []).filter(target => !target.knockedOut && (target.kind === "hero" || target.heroId) && (target.effects || []).includes("negative.порчен")).map(target => target.id);
   let targets = targetIds.map(id => actorById(scene, id)).filter(Boolean);
   const hiddenAssassinAttack = Boolean(family.hiddenAdvantage && (actor?.effects || []).includes("positive.исчез"));
   const assassinReappearance = hiddenAssassinAttack && request.options?.reappearance ? { x: Number(request.options.reappearance.x), y: Number(request.options.reappearance.y) } : null;
@@ -920,8 +1130,8 @@ function prepareEnemyRule(scene, data, request = {}) {
   let attackMovePath = [];
   if (targets.length !== targetIds.length) errors.push("Одна из выбранных целей больше не находится на Сцене.");
   if (targets.some(target => target.knockedOut)) errors.push("Выведенный из боя персонаж не может быть целью действия.");
-  const targetingOptions = fullRule?.type === "healer-heal" ? { ignoreHealerGuardian: true } : {};
-  const unavailableEffectTarget = actor && !hiddenAssassinAttack && targets.find(target => !effectTargetingStatus(scene, actor.id, target.id, targetingOptions).available);
+  const targetingOptions = { ...(fullRule?.type === "healer-heal" ? { ignoreHealerGuardian: true } : {}), sourceReappearing: hiddenAssassinAttack };
+  const unavailableEffectTarget = actor && targets.find(target => !effectTargetingStatus(scene, actor.id, target.id, targetingOptions).available);
   if (unavailableEffectTarget) errors.push(effectTargetingStatus(scene, actor.id, unavailableEffectTarget.id, targetingOptions).reason);
   const unavailableWallTarget = attackOrigin && targets.find(target => !wallTargetingStatus(scene, attackOrigin, target, { range: rule?.range }).available);
   if (unavailableWallTarget) errors.push("Стена перекрывает проведение цели.");
@@ -955,10 +1165,21 @@ function prepareEnemyRule(scene, data, request = {}) {
   if (actor && rule?.areaAnchor !== "self" && anchor && !wallTargetingStatus(scene, actor, { space: actor.space, x: Number(anchor.x), y: Number(anchor.y) }).available) errors.push("Стена перекрывает размещение области.");
   if (affectedCells.length && targets.some(target => target.space !== actor.space || !affectedCells.includes(`${target.x},${target.y}`))) errors.push("Все выбранные цели должны находиться в области.");
   if (!chargingAttack && (available?.requiresTarget ?? rule?.requiresTarget) && !targets.length && fullRule?.type !== "guardian-shield") errors.push(rule.kind === "attack" ? "Выберите хотя бы одну цель Атаки." : "Выберите цель действия.");
+  if (fullRule?.type === "ranger-headshot" && targets.length !== 1) errors.push("Выстрел в голову требует ровно одну доступную цель.");
   if (fullRule?.type === "executioner-bifurcate" && (targets.length !== 1 || targets[0]?.team === actor?.team)) errors.push("Рассечение требует одного противника.");
   if (fullRule?.type === "revenant-hollowed-eyes" && targets.length !== 1) errors.push("Для Пустых глаз нужен игрок с наименьшим Фокусом.");
-  if (fullRule?.type === "healer-heal" && (targets.length !== 1 || targets[0]?.team !== actor?.team || distance(actor, targets[0]) > 3)) errors.push("Лечение требует самого Целителя или одного союзника в пределах 3 клеток.");
+  if (fullRule?.type === "healer-heal" && (targets.length !== 1 || targets[0]?.id === actor?.id || targets[0]?.team !== actor?.team || distance(actor, targets[0]) > 3)) errors.push("Лечение требует одного союзника, кроме самого Целителя, в пределах 3 клеток.");
   if (fullRule?.type === "healer-savior" && (targets.length !== 1 || targets[0]?.knockedOut || targets[0]?.id !== actor?.ruleState?.healerGuardianId)) errors.push("Для Спасителя сначала выберите доступного Стража в начале Хода Целителя.");
+  if (fullRule?.type === "oni-stabilize" && actor && Object.values(actor.effectStates || {}).some(state => (state?.sources || []).some(source => source.removable === false))) errors.push("Стабилизация не может снять защищённый источник Эффекта.");
+  const corpseRevivals = fullRule?.type === "corpse-revive" ? request.options?.revivals : null;
+  if (fullRule?.type === "corpse-revive") {
+    const corpses = new Map(necromancerCorpses(scene, actor).map(item => [item.corpseId, item]));
+    if (!Array.isArray(corpseRevivals) || corpseRevivals.length !== 2 || new Set(corpseRevivals.map(item => item?.corpseId)).size !== 2
+      || corpseRevivals.some(item => !corpses.has(item?.corpseId) || !NECROMANCER_REVIVALS.has(item?.profileId))
+      || new Set(corpseRevivals.map(item => cellKey(corpses.get(item?.corpseId) || { x: -1, y: -1 }))).size !== 2) errors.push("Выберите два разных доступных Трупа и для каждого — Громилу, Гадюку или Стрелка.");
+  }
+  if (fullRule?.type === "assassin-mark" && targets.length !== 1) errors.push("Устранить цель требует ровно одного персонажа.");
+  if (fullRule?.type === "defense-comparison-effect" && (targets.length !== 1 || targets[0]?.id === actor?.id || distance(actor, targets[0]) !== 1)) errors.push("Сбить с толку требует ровно одну смежную цель.");
   const seekerCells = [];
   if (fullRule?.type === "hound-seekers" && actor && space) {
     const target = targets[0], destination = request.options?.destination;
@@ -1023,27 +1244,53 @@ function prepareEnemyRule(scene, data, request = {}) {
   const canonicalAutoAttack = LIONWING_AUTO_ATTACK_RULES.has(rule?.id);
   const hasDirectDamage = Number.isFinite(canonicalDirectDamage) || !canonicalAutoAttack && Number.isFinite(Number(request.damage)) && Number(request.damage) >= 0;
   if (LIONWING_AUTO_ATTACK_RULES.has(rule?.id) && hasRoll) {
-    const rolls = request.roll.rolls;
-    if (rolls.some(value => !Number.isInteger(value) || value < 1 || value > 6)) errors.push("Бросок Атаки содержит недопустимую кость.");
-    if (Number(request.roll.successes) !== rolls.filter(value => value >= 4).length || Number(request.roll.crits) !== rolls.filter(value => value === 6).length) errors.push("Итоги броска Атаки не соответствуют выпавшим костям.");
     const hostileIds = targets.filter(target => target.team !== actor?.team).map(target => target.id);
     const effectAttack = effectAttackStatus(scene, actor.id, hostileIds), baseDice = rule.dice ? enemyTierFormula(rule.dice, actor.tier) : 0;
     const hiddenBonus = hiddenAssassinAttack && family.hiddenAdvantage ? enemyTierFormula(family.hiddenAdvantage, actor.tier) : 0;
     const expectedDice = baseDice > 0 ? Math.max(1, baseDice + hiddenBonus + Number(attackModifiers.advantage || 0) - Number(effectAttack.hindrance || 0)) : 0;
-    if (expectedDice && rolls.length !== expectedDice) errors.push(`Бросок Атаки должен содержать ровно ${expectedDice} костей.`);
+    if (!enemyAttackRollMatchesPool(request.roll, expectedDice)) errors.push("Бросок Атаки не соответствует начальному пулу и цепочке критических костей.");
   }
   if (canonicalAutoAttack && rule.directDamage && hasRoll) errors.push("Это canonical-действие использует прямой урон вместо броска.");
   if (attackModifiers.selectedIds.length && !hasRoll) errors.push("Модификатор Преимущества требует бросок Атаки.");
   if (isAttackRule && !chargingAttack && fullRule?.type !== "cannoneer-load" && !hasRoll && !hasDirectDamage) errors.push("Для Атаки нужен бросок или прямой урон из профиля.");
+  if (fullRule?.type === "bodyguards-brace" && !Array.isArray(request.options?.braceLineIds)) {
+    const lines = bodyguardsBraceLines(scene, actor), options = lines.map(ids => `line:${ids.join(",")}`), optionLabels = Object.fromEntries(lines.map((ids, index) => [`line:${ids.join(",")}`, `Линия ${index + 1}: ${ids.map(id => { const zone = actorById(scene, id); return `${String.fromCharCode(65 + Number(zone.x))}${Number(zone.y) + 1}`; }).join(" → ")}`]));
+    if (!errors.length && options.length) return { ok: true, errors: [], events: [{ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${eventId()}-bodyguards-brace`, kind: "bodyguards-brace-line", sourceActorId: actor.id, controller: "narrator", title: "Телохранители · Укрепиться", text: "Выберите одну непрерывную Линию из трёх или более Зон массовки. Она станет непроходимой, пока Линия не будет разорвана.", options, context: { ruleId: rule.id, braceLines: clone(lines), optionLabels }, participantIds: [actor.id, ...lines.flat()] } }], rule: available || clone(rule) };
+  }
+  if (fullRule?.type === "bodyguards-brace" && Array.isArray(request.options?.braceLineIds)) {
+    const chosen = request.options.braceLineIds.map(String), valid = bodyguardsBraceLines(scene, actor).some(ids => JSON.stringify(ids) === JSON.stringify(chosen));
+    if (!valid) errors.push("Выбранная Линия больше не состоит из трёх или более Зон массовки.");
+  }
   if (errors.length) return { ok: false, errors, events: [], rule: available || rule };
   const customTargetResolution = ["assassin-mark", "guardian-shield"].includes(fullRule?.type);
   const targetEffectNames = customTargetResolution ? [] : Object.prototype.hasOwnProperty.call(family, "effects") ? family.effects : (rule.targetEffects || rule.effects || []);
   const targetEffects = targetEffectNames.map(name => effectIdByName(data, name));
   const selfEffects = (rule.selfEffects || []).map(name => effectIdByName(data, name));
-  const payload = { ruleId: rule.id, sourceRuleId: rule.id, sourceDigest: rule.sourceDigest || null, profileId: profile.id, name: rule.name, kind: rule.kind, targetIds, text: rule.text, reward: rule.reward, automation: available?.automation || (targetEffects.length || selfEffects.length ? "effect" : "assisted") };
+  const payload = { ruleId: rule.id, sourceRuleId: rule.id, sourceDigest: rule.sourceDigest || null, profileId: profile.id, name: rule.name, kind: rule.kind, targetIds, text: rule.text, reward: rule.reward, automation: available?.automation || (targetEffects.length || selfEffects.length ? "effect" : "assisted"), ...(fullRule?.narratorOffTurn && scene.activeActorId !== actor.id ? { quickReaction: true } : {}) };
+  if (fullRule?.type === "bodyguards-brace") payload.braceLineIds = request.options.braceLineIds.map(String);
   if (normalizedTargetRequest.typedTargets?.typedTargets?.length) payload.typedTargets = clone(normalizedTargetRequest.typedTargets.typedTargets);
   if (fullRule?.type === "crowd-summon") payload.crowdSummon = { token: `crowd-summon-${eventId()}`, cells: crowdSummonCells.map(cellKey) };
+  if (fullRule?.type === "hound-seekers") payload.seekerSummon = { token: `seeker-summon-${eventId()}`, targetId: targets[0].id, cells: seekerCells.map(cellKey) };
+  if (fullRule?.type === "corpse-revive") {
+    const corpses = new Map(necromancerCorpses(scene, actor).map(item => [item.corpseId, item]));
+    payload.corpseRevive = { token: `corpse-revive-${eventId()}`, revivals: corpseRevivals.map(item => ({ corpseId: item.corpseId, profileId: item.profileId, space: corpses.get(item.corpseId).space, x: corpses.get(item.corpseId).x, y: corpses.get(item.corpseId).y })) };
+  }
   const events = [{ type: "enemy.action.prepare", actorId: actor.id, payload }, { type: "resource.spend", actorId: actor.id, payload: { resource: "ap", amount: Number(rule.apCost || 1), sourceRuleId: rule.id, sourceDigest: rule.sourceDigest || null } }];
+  if (fullRule?.type === "builder-army-of-stone") {
+    const status = builderArmyOfStoneStatus(scene, actor);
+    if (!status.available) return { ok: false, errors: [status.reason], events: [], rule: available || rule };
+    const token = `army-stone-${eventId()}`;
+    payload.targetIds = [];
+    payload.automation = "full";
+    payload.armyOfStone = { token };
+    events[0].payload = payload;
+    events.push(
+      { type: "terrain.convert-to-fodder", actorId: actor.id, payload: { token } },
+      { type: "turn.grant", actorId: actor.id, payload: { amount: 1, sourceActionId: rule.id, armyOfStoneToken: token, participantIds: [actor.id] } },
+      { type: "enemy.action.resolve", actorId: actor.id, payload: clone(payload) },
+    );
+    return { ok: true, errors: [], events, rule: available || clone(rule) };
+  }
   if (attackDestination) {
     const movement = family.teleportAttack ? `${rule.name}: телепортация` : `${rule.name}: перемещение`, placement = Boolean(family.teleportAttack || family.preMoveIgnoreRestrictions);
     events.push({ type: "actor.move", actorId: actor.id, payload: { space: actor.space, x: attackDestination.x, y: attackDestination.y, movement, path: attackMovePath.map(cellKey), placement, teleport: Boolean(family.teleportAttack), participantIds: [actor.id, ...targetIds] } });
@@ -1062,6 +1309,7 @@ function prepareEnemyRule(scene, data, request = {}) {
   if (payload.automation !== "assisted") selfEffects.forEach(effect => events.push({ type: "effect.apply", actorId: actor.id, payload: { targetId: actor.id, effect, sourceActionId: rule.id } }));
   if (affectedCells.length) events.push({ type: "area.create", actorId: actor.id, payload: { id: `area-${eventId()}`, space: actor.space, areaType: rule.kind === "attack" ? "attack" : "danger", label: rule.name, source: rule.id, duration: rule.kind === "attack" ? "instant" : "scene", ownerActorId: actor.id, cells: affectedCells } });
   if (fullRule?.type === "pugilist-stance") events.push({ type: "actor.state", actorId: actor.id, payload: { key: "pugilistStance", value: Number(request.options.stanceStep), sourceActionId: rule.id } });
+  if (fullRule?.type === "bodyguards-brace") events.push({ type: "actor.state", actorId: actor.id, payload: { key: "bodyguardsBrace", value: { zoneIds: payload.braceLineIds }, sourceActionId: rule.id, participantIds: [actor.id, ...payload.braceLineIds] } });
   if (fullRule?.type === "martial-perfection") {
     events.push({ type: "actor.state", actorId: actor.id, payload: { key: "martialPerfection", value: true, sourceActionId: rule.id } });
     events.push({ type: "turn.grant", actorId: actor.id, payload: { amount: 1, sourceActionId: rule.id } });
@@ -1073,6 +1321,18 @@ function prepareEnemyRule(scene, data, request = {}) {
   if (fullRule?.type === "imposing-presence") events.push({ type: "actor.state", actorId: actor.id, payload: { key: "imposingPresence", value: true, sourceActionId: rule.id } });
   if (fullRule?.type === "assassin-mark") {
     targets.forEach(target => events.push({ type: "effect.apply", actorId: actor.id, payload: { targetId: target.id, effect: "negative.помечен", sourceActionId: rule.id, duration: "scene", removable: false, participantIds: [actor.id, target.id] } }));
+  }
+  if (fullRule?.type === "self-effects") {
+    for (const effect of fullRule.effects || []) events.push({ type: "effect.apply", actorId: actor.id, payload: { targetId: actor.id, effect, sourceActionId: rule.id, participantIds: [actor.id] } });
+  }
+  if (fullRule?.type === "regenerating-allies") {
+    for (const target of targets) events.push({ type: "effect.apply", actorId: actor.id, payload: { targetId: target.id, effect: "positive.укреплен", sourceActionId: rule.id, participantIds: [actor.id, target.id] } });
+  }
+  if (fullRule?.type === "defense-comparison-effect") {
+    const target = targets[0], runtime = (typeof window === "object" ? window.DAWN_LIONWING_ENGINE : globalThis.DAWN_LIONWING_ENGINE), stats = runtime?.effectiveActorStats?.(scene, target.id) || null;
+    const armor = Number(stats?.armor?.value ?? target.armor ?? 0), evasion = Number(stats?.evasion?.value ?? target.evasion ?? 0);
+    const effect = evasion > armor ? "negative.замедлен" : armor > evasion ? "negative.разорван" : armor === 0 && evasion === 0 ? "negative.помечен" : null;
+    if (effect) events.push({ type: "effect.apply", actorId: actor.id, payload: { targetId: target.id, effect, sourceActionId: rule.id, participantIds: [actor.id, target.id] } });
   }
   if (fullRule?.type === "guardian-shield") {
     events.push({ type: "effect.apply", actorId: actor.id, payload: { targetId: actor.id, effect: "negative.обездвижен", sourceActionId: rule.id, participantIds: [actor.id] } });
@@ -1101,13 +1361,18 @@ function prepareEnemyRule(scene, data, request = {}) {
     const target = targets[0], multiplier = actor.ruleState?.healerGuardianId === target.id ? 2 : 1;
     events.push({ type: "actor.heal", actorId: actor.id, payload: { targetId: target.id, amount: enemyTierFormula(fullRule.formula, actor.tier) * multiplier, sourceActionId: rule.id, participantIds: [actor.id, target.id] } });
   }
+  if (fullRule?.type === "daredevil-gloat") events.push({ type: "lionwing.command", actorId: actor.id, payload: { kind: "combat-meter", id: "tension", operation: "add", delta: 1, sourceActionId: rule.id, participantIds: [actor.id] } });
+  if (fullRule?.type === "viper-lick-the-knife") {
+    const amount = targets.length + Number(actor.tier || 1);
+    for (const target of targets) events.push({ type: "damage.apply", actorId: actor.id, payload: { targetId: target.id, amount, attack: false, sourceActionId: rule.id, participantIds: [actor.id, target.id] } });
+  }
   if (fullRule?.type === "healer-savior") {
     const guardian = targets[0];
     for (const effect of [...new Set(guardian.effects || [])]) events.push({ type: "effect.remove", actorId: actor.id, payload: { targetId: guardian.id, effect, force: true, sourceActionId: rule.id, participantIds: [actor.id, guardian.id] } });
     events.push({ type: "effect.apply", actorId: actor.id, payload: { targetId: guardian.id, effect: "positive.регенерирует", duration: "scene", sourceActionId: rule.id, participantIds: [actor.id, guardian.id] } });
   }
   if (fullRule?.type === "oni-stabilize") {
-    for (const effect of [...new Set(actor.effects || [])]) events.push({ type: "effect.remove", actorId: actor.id, payload: { targetId: actor.id, effect, force: true, sourceActionId: rule.id, participantIds: [actor.id] } });
+    for (const effect of [...new Set([...(actor.effects || []), ...Object.keys(actor.effectStates || {})])]) events.push({ type: "effect.remove", actorId: actor.id, payload: { targetId: actor.id, effect, sourceActionId: rule.id, participantIds: [actor.id] } });
     events.push({ type: "effect.apply", actorId: actor.id, payload: { targetId: actor.id, effect: "positive.ускорен", sourceActionId: rule.id, participantIds: [actor.id] } });
   }
   if (fullRule?.type === "revenant-lurk") {
@@ -1133,13 +1398,13 @@ function prepareEnemyRule(scene, data, request = {}) {
   if (fullRule?.type === "ronin-sheath") events.push({ type: "actor.state", actorId: actor.id, payload: { key: "roninSheathed", value: true, sourceActionId: rule.id, participantIds: [actor.id] } });
   if (fullRule?.type === "crowd-summon") {
     const groupId = `crowd-${eventId()}`;
-    for (const [index, point] of crowdSummonCells.entries()) events.push({ type: "actor.spawn", actorId: actor.id, payload: { crowdSummonToken: payload.crowdSummon.token, actor: { id: `crowd-${eventId()}-${index}`, kind: "crowd", crowdType: "mob", crowdGroupId: groupId, source: rule.id, sourceActionId: rule.id, team: actor.team, heroId: null, profileId: null, name: `${actor.name}: массовка`, tier: 0, space: actor.space, x: point.x, y: point.y, hp: 1, maxHp: 1, focus: 0, ap: 0, baseAp: 0, speed: 0, armor: 0, evasion: 0, effects: [], usedActions: [], acted: true, hidden: false, tokenSymbol: "♟", tokenColor: actor.tokenColor || "#7f3044", tokenImage: "", portraitImage: "", summonerId: actor.id }, participantIds: [actor.id] } });
+    for (const [index, point] of crowdSummonCells.entries()) events.push({ type: "actor.spawn", actorId: actor.id, payload: { crowdSummonToken: payload.crowdSummon.token, actor: { id: `crowd-${eventId()}-${index}`, kind: "crowd", ...(fullRule.corpseFodder ? { crowdSubtype: "corpse" } : {}), crowdType: "mob", crowdGroupId: groupId, source: rule.id, sourceActionId: rule.id, team: actor.team, heroId: null, profileId: null, name: fullRule.corpseFodder ? `${actor.name}: труп` : `${actor.name}: массовка`, tier: 0, space: actor.space, x: point.x, y: point.y, hp: 1, maxHp: 1, focus: 0, ap: 0, baseAp: 0, speed: 0, armor: 0, evasion: 0, effects: [], usedActions: [], acted: true, hidden: false, tokenSymbol: fullRule.corpseFodder ? "✝" : "♟", tokenColor: actor.tokenColor || "#7f3044", tokenImage: "", portraitImage: "", summonerId: actor.id }, participantIds: [actor.id] } });
     if (fullRule.knockUpOccupants) for (const target of (scene.actors || []).filter(item => !item.knockedOut && item.kind !== "crowd" && item.space === actor.space && crowdSummonCells.some(point => point.x === Number(item.x) && point.y === Number(item.y)))) events.push({ type: "effect.apply", actorId: actor.id, payload: { targetId: target.id, effect: effectIdByName(data, "Подброшен"), sourceActionId: rule.id, participantIds: [actor.id, target.id] } });
     if (fullRule.grantTurn) events.push({ type: "turn.grant", actorId: actor.id, payload: { amount: 1, sourceActionId: rule.id, participantIds: [actor.id] } });
   }
   if (fullRule?.type === "hound-seekers") {
     const target = targets[0], damage = enemyTierFormula("7(+1)", actor.tier), groupId = `seekers-${eventId()}`;
-    for (const [index, point] of seekerCells.entries()) events.push({ type: "actor.spawn", actorId: actor.id, payload: { actor: { id: `seeker-${eventId()}-${index}`, kind: "crowd", crowdSubtype: "seeker", crowdType: "hounds", crowdGroupId: groupId, seekerTargetId: target.id, seekerOwnerId: actor.id, seekerDamage: damage, source: rule.id, sourceActionId: rule.id, team: actor.team, heroId: null, profileId: null, name: "Ищейка", tier: 0, space: actor.space, x: point.x, y: point.y, hp: 1, maxHp: 1, focus: 0, ap: 0, baseAp: 0, speed: 0, armor: 0, evasion: 0, effects: [], usedActions: [], acted: true, hidden: false, tokenSymbol: "◆", tokenColor: "#72558f", tokenImage: "", portraitImage: "" }, participantIds: [actor.id, target.id] } });
+    for (const [index, point] of seekerCells.entries()) events.push({ type: "actor.spawn", actorId: actor.id, payload: { seekerSummonToken: payload.seekerSummon.token, actor: { id: `seeker-${eventId()}-${index}`, kind: "crowd", crowdSubtype: "seeker", crowdType: "hounds", crowdGroupId: groupId, seekerTargetId: target.id, seekerOwnerId: actor.id, seekerDamage: damage, source: rule.id, sourceActionId: rule.id, team: actor.team, heroId: null, profileId: null, name: "Ищейка", tier: 0, space: actor.space, x: point.x, y: point.y, hp: 1, maxHp: 1, focus: 0, ap: 0, baseAp: 0, speed: 0, armor: 0, evasion: 0, effects: [], usedActions: [], acted: true, hidden: false, tokenSymbol: "◆", tokenColor: "#72558f", tokenImage: "", portraitImage: "" }, participantIds: [actor.id, target.id] } });
   }
   if (fullRule?.type === "cannoneer-load") {
     const clockId = "enemy.common.cannoneer.preparation", configured = clockStatus(scene, actor.id, clockId).available;
@@ -1194,6 +1459,15 @@ function prepareEnemyRule(scene, data, request = {}) {
       });
     });
   }
+  if (fullRule?.type === "corpse-revive") {
+    const corpses = new Map(necromancerCorpses(scene, actor).map(item => [item.corpseId, item]));
+    for (const revival of corpseRevivals) {
+      const corpse = corpses.get(revival.corpseId);
+      if (revival.corpseId.startsWith("marker:")) events.push({ type: "marker.remove", actorId: actor.id, payload: { markerId: revival.corpseId.slice(7), corpseReviveToken: payload.corpseRevive.token, corpseSourceId: revival.corpseId, reviverId: actor.id, sourceActionId: rule.id, participantIds: [actor.id] } });
+      else events.push({ type: "actor.despawn", actorId: revival.corpseId.slice(6), payload: { reason: "Пляс смерти: воскрешение Трупа", corpseReviveToken: payload.corpseRevive.token, corpseSourceId: revival.corpseId, reviverId: actor.id, sourceActionId: rule.id, participantIds: [actor.id] } });
+      events.push({ type: "actor.spawn", actorId: actor.id, payload: { corpseReviveToken: payload.corpseRevive.token, corpseSourceId: revival.corpseId, actor: necromancerRevivedActor(data, actor, revival, corpse, `revived-${eventId()}`), participantIds: [actor.id] } });
+    }
+  }
   if (isAttackRule && payload.automation === "attack") {
     if (family.chargedAttack && !(actor.effects || []).includes("positive.заряжен")) {
       events.push({ type: "effect.apply", actorId: actor.id, payload: { targetId: actor.id, effect: "positive.заряжен", sourceActionId: rule.id, participantIds: [actor.id] } });
@@ -1212,12 +1486,14 @@ function prepareEnemyRule(scene, data, request = {}) {
     hostileTargets.forEach(target => events.push({ type: "reaction.offer", actorId: target.id, payload: { sourceActorId: actor.id, actionId: rule.id } }));
     const tensionMultiplier = enemyAttackTensionMultiplier(rule.id);
     const effectAttack = effectAttackStatus(scene, actor.id, hostileTargets.map(target => target.id));
-    const baseDamage = (hasRoll ? Number(request.roll.successes || 0) + Number(scene.tension || 0) * tensionMultiplier : Number.isFinite(canonicalDirectDamage) ? canonicalDirectDamage : Number(request.damage)) + Number(effectAttack.damageModifier || 0);
+    // Shared attack.pending applies effect damage modifiers at commit.
+    const baseDamage = hasRoll ? Number(request.roll.successes || 0) + Number(scene.tension || 0) * tensionMultiplier : Number.isFinite(canonicalDirectDamage) ? canonicalDirectDamage : Number(request.damage);
+    const aimBonusByTarget = {}, headshotBonusByTarget = {};
     const damageByTarget = Object.fromEntries(hostileTargets.map(target => {
       let amount = baseDamage + Number(effectAttack.damageByTarget?.[target.id] || 0);
       if (family.bonusTensionAtRange && distance(attackOrigin, target) >= Number(family.bonusTensionAtRange)) amount += Number(scene.tension || 0);
       if (family.bonusDamageFormula && distance(attackOrigin, target) >= Number(family.bonusDamageMinimumRange || 0) && (!family.bonusDamageIfUntouched || enemyTargetUntouchedThisRound(scene, target.id, actor.team))) amount += enemyTierFormula(family.bonusDamageFormula, actor.tier);
-      if (family.isolatedBonusFormula && !(scene.actors || []).some(other => other.id !== target.id && other.id !== actor.id && !other.knockedOut && other.space === target.space && distance(other, target) <= 1)) amount += enemyTierFormula(family.isolatedBonusFormula, actor.tier);
+      if (family.isolatedBonusFormula && !(scene.actors || []).some(other => other.id !== target.id && other.id !== actor.id && !other.knockedOut && !isEnemyModifier(other) && other.space === target.space && distance(other, target) <= 1)) amount += enemyTierFormula(family.isolatedBonusFormula, actor.tier);
       if (family.provokedTierDamage && (target.effects || []).includes("negative.спровоцирован")) amount += Number(actor.tier || 1);
       if (family.broodmotherDamage) {
         const dx=Number(attackOrigin.x)-Number(actor.x),dy=Number(attackOrigin.y)-Number(actor.y);
@@ -1226,8 +1502,8 @@ function prepareEnemyRule(scene, data, request = {}) {
           return distance(attackOrigin,predicted)<=1;
         }).length;
       }
-      if (family.aimDamage) amount += Number(actor.ruleState?.enemyAim || 0);
-      if (actor.ruleState?.rangerHeadshotTargetId === target.id) amount += Number(request.roll?.successes || 0);
+      if (family.aimDamage && Number(actor.ruleState?.enemyAim || 0) > 0) aimBonusByTarget[target.id] = Number(actor.ruleState.enemyAim);
+      if (actor.ruleState?.rangerHeadshotTargetId === target.id) headshotBonusByTarget[target.id] = Number(request.roll?.successes || 0);
       return [target.id, amount];
     }));
     const push = Number(family.postPush || enemyTierFormula(family.postPushFormula, actor.tier) || 0);
@@ -1241,7 +1517,8 @@ function prepareEnemyRule(scene, data, request = {}) {
       allyEffectIds.forEach(effect => events.push({ type: "effect.apply", actorId: actor.id, payload: { targetId: target.id, effect, sourceActionId: rule.id, participantIds: [actor.id, target.id] } }));
     }
     const attackEffects = family.oniModes ? ((actor.effects || []).includes("positive.усилен") ? [effectIdByName(data, "Подброшен")] : []) : targetEffects;
-     if (hostileTargets.length) events.push({ type: "attack.pending", actorId: actor.id, payload: { actionId: rule.id, enemyRuleId: rule.id, sourceRuleId: rule.id, sourceDigest: rule.sourceDigest || null, name: rule.name, targetIds: hostileTargets.map(target => target.id), roll: hasRoll ? clone(request.roll) : null, damage: baseDamage, damageByTarget, damageRepeats: Math.max(1, Number(family.damageRepeats || 1)), effects: attackEffects, reward: rule.reward || "", attackModifierIds: attackModifiers.selectedIds, attackModifierAdvantage: attackModifiers.advantage, postDisplacements, postResourceLoss, postSelfHealMissingFraction: Number(family.postSelfHealMissingFraction || 0), enemyAttackFamily: clone(family), attackAnchor: anchor ? clone(anchor) : null } });
+    const assassinDisappearAfterAttack = actor.profileId === "lionwing.npc.assassin" && !hiddenAssassinAttack && hostileTargets.some(target => hasEffect(scene, target, "negative.помечен"));
+     if (hostileTargets.length) events.push({ type: "attack.pending", actorId: actor.id, payload: { actionId: rule.id, enemyRuleId: rule.id, sourceRuleId: rule.id, sourceDigest: rule.sourceDigest || null, name: rule.name, targetIds: hostileTargets.map(target => target.id), roll: hasRoll ? clone(request.roll) : null, damage: baseDamage, damageByTarget, aimBonusByTarget, headshotBonusByTarget, damageRepeats: Math.max(1, Number(family.damageRepeats || 1)), effects: attackEffects, reward: rule.reward || "", attackModifierIds: attackModifiers.selectedIds, attackModifierAdvantage: attackModifiers.advantage, postDisplacements, postResourceLoss, postSelfHealMissingFraction: Number(family.postSelfHealMissingFraction || 0), enemyAttackFamily: clone(family), assassinDisappearAfterAttack, attackAnchor: anchor ? clone(anchor) : null } });
     else events.push({ type: "enemy.action.resolve", actorId: actor.id, payload: { ...payload, targetIds } });
   } else {
     if (rule.kind !== "attack" && ["effect", "full"].includes(payload.automation)) targets.forEach(target => targetEffects.forEach(effect => events.push({ type: "effect.apply", actorId: actor.id, payload: { targetId: target.id, effect, sourceActionId: rule.id } })));

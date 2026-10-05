@@ -4,11 +4,230 @@
 // boundary as a future Technique; the UI never edits the result of an operation.
 const LionwingEngine = window.DAWN_LIONWING_ENGINE;
 const lwActive = () => LionwingEngine.isScene(Scene);
-let lwDestination = null, lwGeometryPreview = null, lwDetectiveTeleport = null;
+let lwDestination = null, lwGeometryPreview = null, lwDetectiveTeleport = null, lwTechniqueDraft = null;
+const lwTechniqueText = (key, fallback) => window.DAWN_I18N?.t?.(`lionwing.technique.controls.${key}`, {}, { fallback }) || fallback;
+const lwCockpitText = (key, fallback, params = {}) => window.DAWN_I18N?.t?.(`lionwing.cockpit.${key}`, params, { fallback }) || fallback.replace(/\{(\w+)\}/g, (_, name) => String(params[name] ?? ""));
+const lwTechniqueEnabled = (a, id) => Number((a.knownTechniques ?? a.techniques)?.[id.replace(/\.\d+$/, "")] || 0) >= Number(id.match(/\.(\d+)$/)?.[1]) && a.lionwing?.automation?.[id] === true;
+function lwActionControlRequest(root, button) {
+  const control=selector=>[...(root?.querySelectorAll?.(selector)||[])].find(input=>input.closest("[data-lw-root]")===root);
+  const actionId=button.dataset.lwAction||button.dataset.coreAction;
+  const attack=[SceneEngine.ACTION_IDS.spell,SceneEngine.ACTION_IDS.skirmish,SceneEngine.ACTION_IDS.finish].includes(actionId);
+  const attribute=button.dataset.lwMasterMode||button.dataset.lwMasterFinisher!==undefined?"talent":control("[data-lw-attribute]")?.value;
+  const request = {kind:"action",actionId,targetIds:[...(Scene.targetIds||[])],focusSpent:Number(control("[data-lw-focus]")?.value||0),
+    ...(attribute?{attribute}:{}),...(control("[data-lw-cunning-plan]")?.checked&&!attack?{useCunningPlan:true}:{}),
+    breakout:button.dataset.lwBreakout==="true",breacherBothBarrels:control("[data-lw-both-barrels]")?.checked===true,
+    ...(button.dataset.lwMasterMode?{armamentMode:button.dataset.lwMasterMode}:{})};
+  if (attack && control("[data-lw-attack-obstacle]")?.value) { request.obstacleId=control("[data-lw-attack-obstacle]").value;request.targetIds=[]; }
+  if (actionId===SceneEngine.ACTION_IDS.improvise) {
+    if(control("[data-lw-improvise-effect]")?.value)request.effect=control("[data-lw-improvise-effect]").value;
+    if(control("[data-lw-remove-obstacle]")?.value)request.removeObstacleId=control("[data-lw-remove-obstacle]").value;
+  }
+  return request;
+}
+function lwRefreshCunningActions(root) {
+  if(!root)return;
+  const checked=[...root.querySelectorAll("[data-lw-cunning-plan]")].find(input=>input.closest("[data-lw-root]")===root)?.checked===true;
+  for(const button of root.querySelectorAll("[data-lw-action]")){
+    if(button.closest("[data-lw-root]")!==root)continue;
+    const actionId=button.dataset.lwAction, attack=[SceneEngine.ACTION_IDS.spell,SceneEngine.ACTION_IDS.skirmish,SceneEngine.ACTION_IDS.finish].includes(actionId);
+    const actorId=button.dataset.lwActor||root.dataset.lwActor,request=lwActionControlRequest(root,button);
+    const presentation=window.DAWN_LIONWING_TECHNIQUE_SURFACE?.actionPresentation?.(Scene,actorId,request);
+    const status=presentation?.gate||LionwingEngine.actionGate(Scene,actorId,request),reason=!lwOwns(actorId)?lwCockpitText("cannotControl","Этим участником управляет другой игрок"):presentation?.reason||status.reason||"";
+    button.disabled=!status.available||!lwOwns(actorId);button.title=reason;
+    const note=button.querySelector("small");
+    const price=presentation?.costLabel||(Number.isFinite(status.cost)?`${status.cost} ${status.resource==="ap"?lwTechniqueText("ap","ОД"):lwTechniqueText("influenceLabel","Влияния")}`:lwCockpitText("unknownPrice","Цена уточнится в предпросмотре"));
+    if(note)note.textContent=(checked&&!attack?`${lwTechniqueText("cunningLabel","Хитрый план")} · `:"")+price+(reason?` · ${reason}`:"");
+  }
+}
+function lwOpenCockpitAction(actorId, actionId) {
+  if (lwCanNarrate() && typeof openSceneActorCockpit === "function") openSceneActorCockpit(actorId, { section: "turn" });
+  else if (typeof setScenePanel === "function") setScenePanel("sheet");
+  const button=[...(document.querySelectorAll?.("[data-lw-action]")||[])].find(row=>row.dataset.lwActor===actorId&&row.dataset.lwAction===actionId&&!row.dataset.lwMasterMode&&!row.hasAttribute("data-lw-master-finisher"));
+  for(let details=button?.parentElement?.closest?.("details");details;details=details.parentElement?.closest?.("details"))details.open=true;
+  button?.scrollIntoView?.({block:"nearest"});button?.focus?.();
+  const reason=button?.title;
+  if(button?.disabled&&reason)toast(reason);
+  return Boolean(button);
+}
+window.lwOpenCockpitAction=lwOpenCockpitAction;
+function lwBeginActionPreview(actorId, payload, label = "") {
+  lwDestination=null;
+  const ids=SceneEngine.ACTION_IDS,followTargets=payload.kind==="action"&&!payload.obstacleId&&!payload.bulletTargets&&[ids.spell,ids.skirmish,ids.finish,ids.study,ids.shove,...(payload.effect?[ids.improvise]:[]),"action.атаки.дуэль"].includes(payload.actionId);
+  if(followTargets){if(typeof activeSceneView==="function"&&activeSceneView()==="player"&&typeof playerSceneTool!=="undefined")playerSceneTool="target";else Scene.tool="target";}
+  lwTechniqueDraft={actorId,payload,mode:"action",cells:[],followTargets,label,...lwTechniqueDraftContext(actorId,null)};
+  renderScene();lwScrollTechniqueDraft();
+  return true;
+}
+function lwFinisherFocusLimit(a, attribute = "body") {
+  return Number(LionwingEngine.actionStatus(Scene, a, LionwingEngine.actionDef(SceneEngine.ACTION_IDS.finish), { attribute }).actionQuote?.focusLimit || 0);
+}
+function lwRestoredControls(a) {
+  const wrap = body => `<section data-lw-root data-lw-actor="${esc(a.id)}" class="lw-technique-controls">${body}</section>`;
+  const button = (mode, label, available = true) => {
+    const actionId=mode==="meal"?SceneEngine.ACTION_IDS.interact:["hook","nails","mallet"].includes(mode)?SceneEngine.ACTION_IDS.spell:["mind-trap","idol","pile-arm"].includes(mode)?SceneEngine.ACTION_IDS.finish:SceneEngine.ACTION_IDS.skirmish;
+    const presentation=window.DAWN_LIONWING_TECHNIQUE_SURFACE?.actionPresentation?.(Scene,a.id,{kind:"action",actionId,targetIds:mode==="meal"?[...(Scene.targetIds||[])]:[],...(mode==="mind-trap"?{attribute:"mind"}:{})});
+    const reason=!lwOwns(a.id)?lwCockpitText("cannotControl","Этим участником управляет другой игрок"):!available?lwCockpitText("noAvailableTargets","Сейчас нет допустимых целей"):presentation?.gate?.reason||"";
+    return `<button type="button" data-lw-technique-mode="${mode}" ${lwOwns(a.id) && available ? "" : "disabled"} title="${esc(reason)}"><strong>${esc(label)}</strong><small>${esc(presentation?.costComplete?presentation.costLabel:lwCockpitText("unknownPrice","Цена уточнится в предпросмотре"))}${reason?` · ${esc(reason)}`:""}</small></button>`;
+  };
+  const controls = {};
+  if (lwTechniqueEnabled(a, "vagabond.enchained.1")) controls["vagabond.enchained"] = wrap(`<p>${esc(lwTechniqueText("hookHelp", "Заклинание по пустой клетке в 2–5 клетках создаёт якорь. Затем выберите клетку раскачивания."))}</p>${button("hook", lwTechniqueText("hook", "Выбрать якорь на поле"))}`);
+  if (lwTechniqueEnabled(a, "disruptor.hunter.1")) controls["disruptor.hunter"] = wrap(`<p>${esc(lwTechniqueText("trapHelp", "Выберите пустую клетку для ловушки. Цели будут определены, когда враг войдёт в неё."))}</p>${button("trap", lwTechniqueText("trap", "Ловушка Стычкой"))}<label>${esc(lwTechniqueText("focus", "Фокус для Завершения"))}<input data-lw-focus type="number" min="0" value="0"></label>${button("mind-trap", lwTechniqueText("mindTrap", "Ловушка Завершением Разумом"))}`);
+  if (lwTechniqueEnabled(a, "altruist.gourmand.1")) controls["altruist.gourmand"] = wrap(`<p>${esc(lwTechniqueText("mealHelp", "Выберите на поле одного соседнего союзника. Передача порции использует Взаимодействие; затем выберите Эффект."))}</p>${lwTechniqueEnabled(a,"vagabond.cunning-fighter.1")?`<label><input data-lw-cunning-plan type="checkbox">${esc(lwTechniqueText("cunning","Хитрый план: −1 ОД для действия, кроме Атак"))}</label>`:""}${button("meal", lwTechniqueText("meal", "Передать порцию выбранному союзнику"))}`);
+  if (lwTechniqueEnabled(a, "ruiner.creation-ascetic.1")) {
+    const material = Number(a.ruleResources?.material?.value || 0), previous=(a.lionwing?.history||[]).filter(row=>row.actionId&&(row.ownerTurnInstanceId?row.ownerTurnInstanceId===Scene.lionwing?.activeTurnInstanceId:row.turnSerial===Scene.turnSerial)).at(-1), finishMaterial=lwTechniqueEnabled(a,"ruiner.creation-ascetic.3")&&previous?.actionId===SceneEngine.ACTION_IDS.spell?Number(previous.materialSpent||0):material;
+    controls["ruiner.creation-ascetic"] = wrap(`<p>${esc(lwTechniqueText("creatorHelp", "Форма зависит от запаса Материала. Выбранные клетки можно проверить и отменить до оплаты."))} ${material}</p>${finishMaterial>0?`<label>${esc(lwTechniqueText("finishMaterialDice","Завершение: Материал на дополнительные кости"))}<input data-lw-focus type="number" min="0" max="${lwFinisherFocusLimit(a)}" value="0"></label>`:""}${material>=3?`<label>${esc(lwTechniqueText("radius", "Расстояние Молота (1–5)"))}<select data-lw-creator-radius>${[1,2,3,4,5].map(n => `<option>${n}</option>`).join("")}</select></label>`:""}${material>0?button(material < 3 ? "nails" : "mallet", material < 3 ? lwTechniqueText("nails", "Заклинание: Скрещённые гвозди") : lwTechniqueText("mallet", "Заклинание: Невозможный молот")):""}${finishMaterial>0&&finishMaterial<3?`<label>${esc(lwTechniqueText("finisherAttribute","Атрибут Завершения"))}<select data-lw-creator-attribute><option value="spirit">${esc(lwTechniqueText("attributeSpirit","Дух"))}</option><option value="body">${esc(lwTechniqueText("attributeBody","Тело"))}</option><option value="talent">${esc(lwTechniqueText("attributeTalent","Талант"))}</option><option value="mind">${esc(lwTechniqueText("attributeMind","Разум"))}</option></select></label>${button("pile-arm",lwTechniqueText("pileArm","Завершение: Небесный таран по выбранной цели"))}`:""}${finishMaterial!==material?`<small>${esc(lwTechniqueText("inheritedMaterial","Материал для следующего Завершения"))}: ${finishMaterial}</small>`:""}${finishMaterial >= 3 ? button("idol", lwTechniqueText("idol", "Завершение: выбрать форму Живого идола")) : ""}`);
+  }
+  if (lwTechniqueEnabled(a, "powerhouse.gunslinger.1")) {
+    const bullets = Math.max(0, Number(a.ruleResources?.bullets?.value || 0)), targets = Scene.actors.filter(t => t.team !== a.team && !t.knockedOut && t.space === a.space && Math.abs(t.x-a.x)+Math.abs(t.y-a.y)<=4);
+    controls["powerhouse.gunslinger"] = wrap(`<p>${esc(lwTechniqueText("bulletsHelp", "Назначьте цель каждой Пуле. Одного врага можно выбрать несколько раз; пустые строки не расходуют Пули."))}</p>${Array.from({length:Math.min(100,bullets)}, (_,i) => `<label>${esc(lwTechniqueText("bullet", "Пуля"))} ${i+1}<select data-lw-bullet-target><option value="">—</option>${targets.map(t => `<option value="${esc(t.id)}">${esc(t.name)}</option>`).join("")}</select></label>`).join("")}${button("bullets", lwTechniqueText("bullets", "Стычка выбранными Пулями"), bullets > 0 && targets.length > 0)}`);
+  }
+  return controls;
+}
+function lwScrollTechniqueDraft() {
+  document.querySelector?.("[data-lw-technique-preview], [data-lw-destination-hint]")?.scrollIntoView?.({block:"nearest"});
+}
+function lwBeginTechniqueChoiceDestination(choice, payload, label = "") {
+  const operations = choice?.context?.choices?.[payload?.choice];
+  if (choice?.kind !== "technique-trigger" || !choice.context?.destinationRequired || !Array.isArray(operations) || !operations.some(operation => operation.kind === "move" && !operation.destination)) return false;
+  if (Scene.lionwing?.choices?.[0]?.id !== choice.id || payload.id !== choice.id || !lwOwns(choice.actorId)) return false;
+  lwTechniqueDraft = null;
+  lwSetDestination({ actorId: choice.actorId, payload, ruleId: choice.context.ruleId, previewTechnique: true, label: label || choice.context.optionLabels?.[payload.choice] || choice.title });
+  toast(lwTechniqueText("chooseDestination", "Выберите подсвеченную клетку, затем подтвердите перемещение."));
+  return true;
+}
+function lwTechniqueDraftPayload(draft) {
+  return {...draft.payload, ...(draft.followTargets ? {targetIds:[...(Scene.targetIds||[])]} : {}), ...(draft.mode === "nails" ? {creatorLines:[draft.cells.slice(0,3),draft.cells.slice(3,6)]} : draft.mode === "idol" ? {creatorCells:draft.cells} : {})};
+}
+function lwTechniqueDraftContext(actorId, ruleId) {
+  return {ruleId,sceneIdentity:lwGeometrySceneIdentity(),space:Scene.activeSpace,turnSerial:Scene.turnSerial,selectedActor:Scene.selectedActor,pendingId:Scene.pendingAction?.id||null,choiceId:Scene.lionwing?.choices?.[0]?.id||null};
+}
+function lwTechniqueDraftValid(draft) {
+  const actor=Scene.actors.find(a=>a.id===draft.actorId);
+  const directorView=typeof activeSceneView==="function"?activeSceneView()==="gm":lwCanNarrate();
+  const sameSource=draft.mode!=="action"||typeof sceneDirectorActor!=="function"||!directorView||sceneDirectorActor()?.id===draft.actorId;
+  return actor&&!actor.knockedOut&&lwOwns(actor.id)&&sameSource&&(!draft.ruleId||lwTechniqueEnabled(actor,draft.ruleId))&&draft.sceneIdentity===lwGeometrySceneIdentity()&&draft.space===Scene.activeSpace&&draft.turnSerial===Scene.turnSerial&&(draft.followTargets||draft.selectedActor===Scene.selectedActor)&&(draft.pendingId||null)===(Scene.pendingAction?.id||null)&&(draft.choiceId||null)===(Scene.lionwing?.choices?.[0]?.id||null);
+}
+function lwTechniqueCellStatus(draft, point) {
+  const a=Scene.actors.find(actor=>actor.id===draft.actorId), space=Scene.spaces.find(s=>s.id===point.space);
+  if(!a||point.space!==a.space||!space||point.x<0||point.y<0||point.x>=space.width||point.y>=space.height||(Scene.topology?.cuts||[]).some(cut=>cut.space===point.space&&cut.cells?.includes(`${point.x},${point.y}`)))return {available:false};
+  const same=(p,q)=>p.x===q.x&&p.y===q.y, distance=(p,q)=>Math.abs(p.x-q.x)+Math.abs(p.y-q.y);
+  if(draft.mode==="idol")return {available:draft.cells.some(p=>same(p,point))||draft.cells.length<6&&(draft.cells.length?draft.cells.some(p=>distance(p,point)===1):distance(a,point)===1)};
+  if(draft.mode!=="nails"||draft.cells.length>=6||distance(a,point)>5)return {available:false};
+  const line=draft.cells.slice(Math.floor(draft.cells.length/3)*3), step=line.length;
+  if(step===0)return {available:true};
+  const dx=point.x-line[0].x,dy=point.y-line[0].y;
+  if(step===1)return {available:Math.max(Math.abs(dx),Math.abs(dy))===1};
+  return {available:point.x===2*line[1].x-line[0].x&&point.y===2*line[1].y-line[0].y};
+}
+function lwTechniqueDraftHtml(a) {
+  const draft = lwTechniqueDraft;
+  if (!draft || draft.actorId !== a.id) return "";
+  if (!lwTechniqueDraftValid(draft)) { lwTechniqueDraft=null; return ""; }
+  const ready = draft.mode === "nails" ? draft.cells.length === 6 : draft.mode === "idol" ? draft.cells.length > 0 : true;
+  const payload=lwTechniqueDraftPayload(draft),sceneVersion=Number(Scene.version||0),previewKey=JSON.stringify([sceneVersion,payload]);
+  if(ready&&draft.previewKey!==previewKey){
+    draft.previewNotice=draft.previewKey&&draft.previewVersion!==sceneVersion?lwCockpitText("stale","Сцена изменилась. Проверьте обновлённый предпросмотр перед подтверждением."):"";
+    draft.preview=LionwingEngine.prepare(Scene,{...payload,actorId:a.id});draft.previewKey=previewKey;draft.previewVersion=sceneVersion;
+  }
+  const prepared=ready?draft.preview:null,summary=window.DAWN_LIONWING_TECHNIQUE_SURFACE?.previewCosts?.(Scene,prepared,a.id);
+  const presentation=payload.kind==="action"?window.DAWN_LIONWING_TECHNIQUE_SURFACE?.actionPresentation?.(Scene,a.id,payload):null;
+  const costs=summary?.complete?summary.label:presentation?.costLabel||lwCockpitText("unknownPrice","Цена уточнится в предпросмотре");
+  const targets=prepared?.scene?.pendingAction?.targetIds||payload.targetIds||[payload.targetId].filter(Boolean);
+  const previewHtml=`<p>${esc(lwCockpitText("price","Стоимость: {price}",{price:costs}))}</p><p>${esc(lwCockpitText("targets","Выбранные цели: {targets}",{targets:targets.map(id=>Scene.actors.find(actor=>actor.id===id)?.name||id).join(", ")||lwCockpitText("noTargets","Цели ещё не выбраны")}))}</p>${summary?.deferred?`<small>${esc(lwCockpitText("deferred","Дальнейшие решения и Реакции оплачиваются отдельно, если правило требует расхода."))}</small>`:""}`;
+  const targetKey=JSON.stringify([Number(Scene.version||0),{...payload,targetIds:[]}]);
+  if(draft.followTargets&&draft.targetKey!==targetKey){draft.targets=window.DAWN_LIONWING_TECHNIQUE_SURFACE?.actionTargets?.(Scene,a.id,payload)||[];draft.targetKey=targetKey;}
+  const available=(draft.targets||[]).filter(target=>target.available),unavailable=(draft.targets||[]).filter(target=>!target.available);
+  const targetHtml=draft.followTargets&&(draft.targets||[]).length?`<p>${esc(lwCockpitText("targetOnField","Выберите цель на поле или в списке ниже. Ресурсы пока не потрачены."))}</p><div><b>${esc(lwCockpitText("availableTargets","Допустимые цели"))}</b><div class="button-row">${available.map(target=>`<button type="button" data-lw-action-target="${esc(target.id)}" data-lw-actor="${esc(a.id)}" aria-pressed="${targets.includes(target.id)}">${esc(target.name)}</button>`).join("")||esc(lwCockpitText("noAvailableTargets","Сейчас нет допустимых целей"))}</div></div>${unavailable.length?`<details><summary>${esc(lwCockpitText("unavailableTargets","Почему другие цели недоступны"))}</summary>${unavailable.map(target=>`<p>${esc(target.name)}: ${esc(target.reason)}</p>`).join("")}</details>`:""}`:"";
+  const hint = draft.mode === "nails" ? lwTechniqueText("nailsPicker", "Нажмите три клетки первой прямой линии, затем три клетки второй. Линии должны пересекаться.") : draft.mode === "idol" ? lwTechniqueText("idolPicker", "Выберите 1–6 связанных клеток, начиная рядом с героем. Повторный клик убирает клетку.") : draft.mode==="action"?draft.label||lwCockpitText("preview","Предпросмотр действия"):lwTechniqueText("preview", "Проверьте выбранную область перед подтверждением.");
+  const pickDestination=presentation?.needsDestination&&payload.actionId===SceneEngine.ACTION_IDS.shove;
+  const confirmHtml=pickDestination?`<button data-lw-action-destination ${presentation?.available&&targets.length===1&&available.some(target=>target.id===targets[0])?"":"disabled"}>${esc(lwCockpitText("destination","Выбрать клетку на поле"))}</button>`:`<button data-lw-technique-confirm ${prepared?.ok ? "" : "disabled"}>${esc(lwTechniqueText("confirm", "Подтвердить действие"))}</button>`;
+  const status=prepared ? prepared.ok ? lwTechniqueText("ready", "Форма допустима. Подтверждение выполнит действие и оплатит его стоимость.") : prepared.errors.join(" ") : lwTechniqueText("selectCells", "Выберите клетки на поле; ресурсы пока не потрачены.");
+  return `<section data-lw-root data-lw-actor="${esc(a.id)}" class="lw-pending" data-lw-technique-preview><strong>${esc(hint)}</strong>${draft.cells.length?`<p>${draft.cells.map((p,i)=>`${i+1}: (${p.x+1}, ${p.y+1})`).join(" · ")}</p>`:""}<p role="status">${esc([draft.previewNotice,status].filter(Boolean).join(" "))}</p>${previewHtml}${targetHtml}${confirmHtml}${["nails","idol"].includes(draft.mode)?`<button data-lw-technique-undo>${esc(lwTechniqueText("undo", "Убрать последнюю клетку"))}</button>`:""}<button data-lw-shape-cancel>${esc(lwTechniqueText("cancel", "Отменить выбор"))}</button></section>`;
+}
+function lwSetDestination(draft) {
+  lwDestination = { ...draft, selection: { sceneIdentity: lwGeometrySceneIdentity(), activeSpace: Scene.activeSpace, selectedActor: Scene.selectedActor, turnSerial: Scene.turnSerial, attackId: Scene.pendingAction?.id } };
+  renderScene();
+  if(draft.previewTechnique)lwScrollTechniqueDraft();
+}
+function lwReconcileDestination() {
+  const selection = lwDestination?.selection;
+  if (!lwDestination) return;
+  const source = Scene.actors.find(actor => actor.id === lwDestination.actorId), payload = lwDestination.payload;
+  const obsoleteAction = payload?.kind === "action" && !LionwingEngine.actionGate(Scene, lwDestination.actorId, payload).available;
+  const obsoleteReaction = payload?.kind === "reaction" && (selection?.attackId !== Scene.pendingAction?.id || !LionwingEngine.reactionOptions(Scene, lwDestination.actorId).some(option => option.id === payload.choice && option.available));
+  const obsoleteChoice = payload?.kind === "choice" && !(Scene.lionwing?.choices || []).some(choice => choice.id === payload.id && choice.actorId === lwDestination.actorId);
+  if (!lwActive() || !lwOwns(lwDestination.actorId) || !source || source.knockedOut || lwDestination.ruleId && !lwTechniqueEnabled(source,lwDestination.ruleId) || obsoleteAction || obsoleteReaction || obsoleteChoice || selection && (selection.sceneIdentity !== lwGeometrySceneIdentity() || selection.activeSpace !== Scene.activeSpace || selection.selectedActor !== Scene.selectedActor || selection.turnSerial !== Scene.turnSerial)) lwCancelDestination();
+}
+function lwDestinationCellStatus(destination) {
+  if (!lwDestination) return { available: false, reason: "" };
+  return LionwingEngine.destinationStatus(Scene, { ...lwDestination, destination });
+}
+function lwApplyRestoredAreaHighlights(board, space) {
+  const gas=(Scene.areas||[]).filter(area=>area.ruleId==="disruptor.chemist.1"&&area.space===space.id);
+  for(const element of board.querySelectorAll("[data-scene-cell]")){
+    const areas=gas.filter(area=>area.cells?.includes(element.dataset.sceneCell));
+    if(!areas.length)continue;
+    element.classList.add("has-gas");
+    element.title=[element.title,...areas.map(area=>`${area.label||lwTechniqueText("gas","Газ")} · ${Scene.actors.find(a=>a.id===area.ownerActorId)?.name||""}`)].filter(Boolean).join(" · ");
+    for(const token of element.querySelectorAll(".scene-token"))token.classList.add("inside-gas");
+  }
+}
+function lwApplyDestinationHighlights(board, space) {
+  lwReconcileDestination();
+  lwApplyRestoredAreaHighlights(board,space);
+  if (lwTechniqueDraft) {
+    const draft=lwTechniqueDraft, source=Scene.actors.find(a=>a.id===draft.actorId);
+    if(!lwTechniqueDraftValid(draft)){lwTechniqueDraft=null;return;}
+    for(const element of ["nails","idol"].includes(draft.mode)?board.querySelectorAll("[data-scene-cell]"):[]){
+      const [x,y]=element.dataset.sceneCell.split(",").map(Number), selected=draft.cells.some(p=>p.space===space.id&&p.x===x&&p.y===y);
+      const available=lwTechniqueCellStatus(draft,{x,y,space:space.id}).available;
+      element.classList.toggle("movement-valid",available);element.classList.toggle("preview",selected);
+      element.title=selected?lwTechniqueText("selectedCell","Выбранная клетка формы"):available?lwTechniqueText("chooseCell","Добавить клетку формы"):lwTechniqueText("outside","Клетка вне области выбора");
+    }
+    if(!["nails","idol"].includes(draft.mode)&&draft.cells?.length)for(const element of board.querySelectorAll("[data-scene-cell]")){const[x,y]=element.dataset.sceneCell.split(",").map(Number);if(draft.cells.some(point=>point.space===space.id&&point.x===x&&point.y===y))element.classList.add("preview");}
+  }
+  if (!lwDestination) return;
+  for (const cell of board.querySelectorAll("[data-scene-cell]")) {
+    const [x, y] = cell.dataset.sceneCell.split(",").map(Number), status = lwDestinationCellStatus({ space: space.id, x, y });
+    cell.classList.toggle("movement-valid", status.available);
+    cell.dataset.destinationAvailable = String(status.available);
+    cell.title = status.available ? lwDestination.label : `${lwDestination.label}: ${status.reason}`;
+  }
+}
+function lwCancelDestination() {
+  lwDestination = null; lwGeometryPreview = null;
+  if(typeof scenePreviewCells !== "undefined") scenePreviewCells.clear();
+}
 const lwRules = () => localizedLionwingCoreRules();
-const lwActor = () => Scene.actors.find(a => a.id === Scene.selectedActor) || Scene.actors.find(a => a.id === Scene.activeActorId) || currentHeroActor();
+const lwActor = () => (typeof sceneDirectorActor === "function" ? sceneDirectorActor() : null) || Scene.actors.find(a => a.id === Scene.activeActorId) || Scene.actors.find(a => a.id === Scene.selectedActor) || currentHeroActor();
 const lwCanNarrate = () => !Sync?.state?.().sceneId || Sync.state().canNarrate;
 const lwOwns = actorId => lwCanNarrate() || currentHeroActor()?.id === actorId;
+function lwBeginMasterAction(actorId, payload, field, label) {
+  const disappeared = Scene.actors.find(owner => owner.id === actorId)?.effects?.includes("positive.исчез");
+  if (!field && !disappeared) return lwBeginActionPreview(actorId, payload, label);
+  lwSetDestination({ actorId, payload, label, previewTechnique: true, field: disappeared ? "reappearance" : field, nextField: disappeared ? field : null });
+  toast(disappeared ? "Сначала выберите клетку появления" : "Выберите подсвеченную клетку Вооружения");
+}
+function lwMasterControls(a) {
+  const level = Number((a.knownTechniques ?? a.techniques)?.["vagabond.master-at-arms"] || 0);
+  if (!level) return "";
+  const targets = [...Scene.targetIds], actionId = SceneEngine.ACTION_IDS.skirmish;
+  const options = LionwingEngine.masterArmamentStatus(Scene, a.id, { targetIds: targets, requireDestination: false }).options;
+  const buttons = options.map(option => {
+    const gate = LionwingEngine.actionStatus(Scene, a, LionwingEngine.actionDef(actionId), { armamentMode: option.modeId, targetIds: targets });
+    const label = { blade: "Клинок", polearm: "Древко", chain: "Цепь" }[option.modeId];
+    const presentation=window.DAWN_LIONWING_TECHNIQUE_SURFACE?.actionPresentation?.(Scene,a.id,{kind:"action",actionId,armamentMode:option.modeId,targetIds:targets,attribute:"talent"});
+    return `<button type="button" data-lw-action="${esc(actionId)}" data-lw-master-mode="${esc(option.modeId)}" data-lw-actor="${esc(a.id)}" ${gate.available && lwOwns(a.id) ? "" : "disabled"} title="${esc(gate.reason || "")}"><strong>${esc(label)} · Стычка</strong><small>${esc(presentation?.costLabel||lwCockpitText("unknownPrice","Цена уточнится в предпросмотре"))}${gate.reason?` · ${esc(gate.reason)}`:""}</small></button>`;
+  }).join("");
+  const mode = a.ruleModes?.["vagabond.master-at-arms.armament"]?.modeId, finish = SceneEngine.ACTION_IDS.finish;
+  const gate = LionwingEngine.actionStatus(Scene, a, LionwingEngine.actionDef(finish), { attribute: "talent" });
+  const focusCap = lwFinisherFocusLimit(a, "talent");
+  const presentation=window.DAWN_LIONWING_TECHNIQUE_SURFACE?.actionPresentation?.(Scene,a.id,{kind:"action",actionId:finish,targetIds:targets,attribute:"talent"});
+  const finisher = level >= 3 && mode ? `<button type="button" data-lw-action="${esc(finish)}" data-lw-master-finisher data-lw-actor="${esc(a.id)}" ${gate.available && lwOwns(a.id) ? "" : "disabled"} title="${esc(gate.reason || "Выберите клетку движения или направление области")}"><strong>Завершение Талантом</strong><small>${esc(presentation?.costLabel||lwCockpitText("unknownPrice","Цена уточнится в предпросмотре"))}${gate.reason?` · ${esc(gate.reason)}`:""}</small></button>` : "";
+  const notes=[level>=2?"II: второе экипирование за Ход даёт 1 ОД и Ускорен.":"",level>=3?"III: Завершение использует текущее Вооружение.":""].filter(Boolean).join(" ");
+  const focusControl=finisher?`<label>Фокус для Завершения<input data-lw-focus type="number" min="0" max="${focusCap}" value="0"></label>`:"";
+  return `<section data-lw-root data-lw-actor="${esc(a.id)}" class="lw-technique-controls"><p>Выберите цели на поле, затем Вооружение. Клинок: движение на 1 клетку; Древко: 2 смежных врага; Цепь: 1 враг ровно в 4 клетках. Каждое Вооружение — один раз за Ход.</p><div class="button-row">${buttons}${finisher}</div>${notes?`<small>${esc(notes)}</small>`:""}${focusControl}</section>`;
+}
 const lwEntities = () => window.DAWN_LIONWING_ENTITIES;
 const lwEntityViewer = () => {
   const sync = Sync?.state?.() || {};
@@ -306,7 +525,18 @@ function lwShowEntityOnField(value) {
   return true;
 }
 const lwFormDraft = new Map();
-const lwDraftKey=input=>{const attr=[...input.attributes].find(attr=>attr.name.startsWith("data-lw-"));return attr?attr.name+(attr.value?":"+attr.value:""):null;};
+function lwDraftKey(input) {
+  const attr=[...input.attributes].find(attr=>attr.name.startsWith("data-lw-")),root=input.closest("[data-lw-root]");
+  if(!attr||!root)return null;
+  const fields=[...root.querySelectorAll(`[${attr.name}]`)].filter(field=>field.closest("[data-lw-root]")===root);
+  const scope=root.closest("[data-lw-technique-group]")?.dataset.lwTechniqueGroup||root.className||"panel";
+  return JSON.stringify([lwGeometrySceneIdentity(),root.dataset.lwActor,scope,attr.name,attr.value,fields.indexOf(input)]);
+}
+function lwRestoreFormDrafts(root) {
+  if(!root)return;
+  for(const input of root.querySelectorAll("[data-lw-root] input,[data-lw-root] select,[data-lw-root] textarea")){const key=lwDraftKey(input);if(key&&lwFormDraft.has(key)){if(input.type==="checkbox"||input.type==="radio")input.checked=lwFormDraft.get(key);else input.value=lwFormDraft.get(key);}}
+  for(const actionRoot of root.querySelectorAll("[data-lw-root]"))lwRefreshCunningActions(actionRoot);
+}
 let lwDraftEnabled=false,lwDraftBatch=null;
 
 const lwGeometryStopReasons=Object.freeze({
@@ -464,8 +694,10 @@ function lwChainFrameInfo(frame){
     return {stage,path:stage==="Сопротивление"&&choice.context?.track==="wounds"?lwChainPathForStage.Сопротивление:lwChainPathForStage[stage]||stage,actorId,choiceId:choice.id};
   }
   if(pending){
-    const waiting=Object.values(pending.responses||{}).filter(response=>response?.choice==="pending").length;
-    return {stage:"Реакция",path:lwChainPathForStage.Реакция,actorId,pendingId:pending.id,waiting};
+    const status=pending.id===Scene.pendingAction?.id?SceneEngine.pendingActionStatus?.(Scene):null;
+    const waiting=status?.waitingIds?.length??Object.values(pending.responses||{}).filter(response=>response?.choice==="pending").length;
+    const stage=waiting?"Реакция":"Урон",path=!waiting&&status?.autoPassedIds?.length===status?.eligibleIds?.length?"Атака → Урон":lwChainPathForStage[stage];
+    return {stage,path,actorId,pendingId:pending.id,waiting};
   }
   const deferred=Array.isArray(data.deferred)?data.deferred:[],afterAttack=Array.isArray(data.afterAttack)?data.afterAttack:[],item=deferred[0]||afterAttack[0],kind=lwChainOperationKind(item);
   if(kind){
@@ -513,6 +745,11 @@ function lwGeneralHtml(){
 }
 
 function lwSubmit(actorId, payload, label = "Действие LionWing") {
+  // These UI commands carry absolute numbers, sometimes derived from +/-.
+  // Derive the next value only after previous canonical writes are confirmed.
+  const numericCorrection=payload.kind==="correct"&&!["consequence","knockedOut"].includes(payload.resource)||["tension","configure-resource"].includes(payload.kind)||payload.kind==="clock"&&payload.value!=null;
+  const correctionReason=numericCorrection&&typeof sceneNumericCorrectionReason==="function"?sceneNumericCorrectionReason():"";
+  if(correctionReason){toast(correctionReason);return false;}
   if(lwDraftEnabled&&["plan","batch","attack","damage","heal","effect","move","geometry-move","resource","modifier","wound","stress","recover-track","record-action","allow-action","grant-turn","usage","note","prompt"].includes(payload.kind)){
     if(!lwCanNarrate())return false;
     if(lwDraftBatch&&lwDraftBatch.actorId!==actorId){toast("Сначала примените или отмените пакет прежнего источника");return false;}
@@ -523,10 +760,12 @@ function lwSubmit(actorId, payload, label = "Действие LionWing") {
   }
   // A player's public snapshot intentionally has no authoritative continuation.
   // Send the selected option; the Narrator validates and resumes its saved frame.
-  if (!lwCanNarrate() && payload.kind === "choice" && ["replacement","rule-trigger","technique-trigger","consequence"].includes(Scene.lionwing?.choices?.[0]?.kind)) {
+  if (!lwCanNarrate() && payload.kind === "choice" && ["replacement","rule-trigger","technique-trigger","restored-technique","consequence"].includes(Scene.lionwing?.choices?.[0]?.kind)) {
     const pending = Scene.lionwing.choices[0];
     if (!lwOwns(actorId) || pending.actorId !== actorId || pending.id !== payload.id || !pending.options.includes(payload.choice)) return false;
     const forwarded = { kind: "choice", id: payload.id, choice: payload.choice };
+    if (pending.kind === "restored-technique" && payload.destination) forwarded.destination = structuredClone(payload.destination);
+    if (pending.kind === "technique-trigger" && pending.context?.destinationRequired && payload.destination) forwarded.destination = structuredClone(payload.destination);
     if (pending.kind === "consequence" && !(Array.isArray(pending.options) && pending.options.includes("record"))) {
       if (!payload.lossTarget || typeof payload.lossTarget !== "object") return false;
       forwarded.lossTarget = structuredClone(payload.lossTarget);
@@ -737,21 +976,26 @@ function lwPendingHtml() {
     const duel=choice.kind==="duel-outcome"?Scene.lionwing.duels.find(item=>item.id===choice.context.duelId):null;
     const duelControls=duel&&can?`<label>Напряжение Дуэли<input type="number" min="0" max="999" data-lw-duel-tension value="${duel.tension}"></label><button data-lw-set-duel-tension="${esc(duel.id)}" data-lw-actor="${esc(choice.actorId)}">Задать Напряжение Дуэли</button><p>Подходы и ресурсы разрешите до определения победителя. Используйте панель бросков и общие операции ресурсов; Напряжение исходного боя сохраняется.</p>`:"";
     const labels = { keep:"Применить Эффект", "bail":"Отступить — без ставки", "take-it":"Принять удар — вернуть Влияние", "double-down":"Удвоить ставку — переброс", "one-wound":"1 Рана (стр. 38)", "two-wounds":"2 Раны (стр. 62)", resist: "Сопротивляться", accept: choice.kind==="clash-loss"?"Принять Атаку":"Принять выведение", reroll:"5 урона → перебросить", win:choice.kind==="duel-outcome"?"Инициатор победил":"Защитник победил",lose:choice.kind==="duel-outcome"?"Инициатор проиграл":"Атакующий победил",record: "Записать решение", place: "Выбрать клетку", "call-help": "Подтянуть Испуганных врагов и нанести урон" };
-    return `<section class="lw-pending"><strong>${esc(owner?.name || "Участник")}: ${esc(choice.kind==="duel-wounds"?"Продолжить сохранённую Дуэль: 1 Рана по уточнению автора":choice.title)}</strong>${duelControls}${choice.kind==="replacement"?`<p>${esc([...lwRules().effects.positive,...lwRules().effects.negative].find(e=>e.id===choice.context.effect)?.name||choice.context.effect)}. Исходный Эффект ещё не наложен.</p>`:""}${choice.context?.text ? `<p>${esc(choice.context.text)}</p>` : ""}${can ? `${choice.options.includes("record") ? '<input data-lw-choice-note placeholder="Принятое решение" aria-label="Принятое решение">' : ""}<div class="button-row">${(choice.kind==="duel-wounds"?["one-wound"]:choice.options).map(option => `<button data-lw-choice="${option}" data-lw-choice-id="${esc(choice.id)}"${choice.context?.actionPlanId?` data-lw-plan-id="${esc(choice.context.actionPlanId)}"`:""} data-lw-actor="${esc(choice.actorId)}">${esc(choice.context?.labels?.[option] || labels[option] || option)}</button>`).join("")}</div>` : "<p>Ожидается решение владельца героя.</p>"}</section>`;
+    return `<section class="lw-pending"><strong>${esc(owner?.name || "Участник")}: ${esc(choice.kind==="duel-wounds"?"Продолжить сохранённую Дуэль: 1 Рана по уточнению автора":choice.title)}</strong>${duelControls}${choice.kind==="replacement"?`<p>${esc([...lwRules().effects.positive,...lwRules().effects.negative].find(e=>e.id===choice.context.effect)?.name||choice.context.effect)}. Исходный Эффект ещё не наложен.</p>`:""}${choice.context?.text ? `<p>${esc(choice.context.text)}</p>` : ""}${can ? `${choice.options.includes("record") ? '<input data-lw-choice-note placeholder="Принятое решение" aria-label="Принятое решение">' : ""}<div class="button-row">${(choice.kind==="duel-wounds"?["one-wound"]:choice.options).map(option => `<button data-lw-choice="${option}" data-lw-choice-id="${esc(choice.id)}"${choice.context?.actionPlanId?` data-lw-plan-id="${esc(choice.context.actionPlanId)}"`:""} data-lw-actor="${esc(choice.actorId)}">${esc(choice.context?.optionLabels?.[option] || choice.context?.labels?.[option] || labels[option] || option)}</button>`).join("")}</div>` : "<p>Ожидается решение владельца героя.</p>"}</section>`;
   }
   const followups = typeof LionwingEngine.pendingFollowups === "function" ? LionwingEngine.pendingFollowups(Scene).filter(item => ["offered", "active"].includes(item.status)) : [];
-  if (followups.length) {
+  if (followups.length && !Scene.pendingAction) {
     const rows = followups.map(item => {
       const participants = (item.participantIds || []).map(id => Scene.actors.find(actor => actor.id === id)?.name || id).join(", ");
       const deadline = item.endBoundary === "anyTurnStart" ? "до начала следующего Хода любого участника" : item.endBoundary === "anyTurnEnd" ? "до конца следующего Хода любого участника" : item.endBoundary || "до установленной границы";
-      return `<li><b>${esc(item.ruleId)}</b><span>${esc(item.status === "active" ? "активно" : "ожидает выбора")} · ${esc(deadline)}${participants ? ` · ${esc(participants)}` : ""}</span></li>`;
+      const owner=Scene.actors.find(actor=>actor.id===item.ownerActorId||actor.id===item.actorId),entry=window.DAWN_LIONWING_TECHNIQUE_SURFACE?.entries?.(owner)?.find(level=>level.id===item.ruleId);
+      const label=entry?`${entry.displayTechniqueName} · ${entry.displayLevelName}`:lwCockpitText("followup","Продолжение Техники");
+      return `<li><b>${esc(label)}</b><span>${esc(item.status === "active" ? "активно" : "ожидает выбора")} · ${esc(deadline)}${participants ? ` · ${esc(participants)}` : ""}</span></li>`;
     }).join("");
     return `<section class="lw-pending lw-followups"><strong>Ожидающие продолжения</strong><ul>${rows}</ul></section>`;
   }
   const pending = Scene.pendingAction;
-  if (!pending?.lionwing) return "";
-  const waiting = SceneEngine.pendingActionStatus(Scene).waitingIds;
-  return `<section class="lw-pending"><strong>${esc(pending.name)} · ${pending.damage} урона${pending.repeat > 1 ? ` × ${pending.repeat} отдельных нанесений` : ""}</strong>${waiting.map(id => { const a = Scene.actors.find(x => x.id === id); return `<div class="lw-reaction"><b>${esc(a.name)}</b>${lwOwns(id) ? `<div class="button-row">${[["take", "Принять", 0], ["block", "Блок", 2], ["dodge", "Уворот", 2], ["clash", "Столкновение", 2]].map(([key,label,cost]) => `<button data-lw-reaction="${key}"${pending.actionPlanId?` data-lw-plan-id="${esc(pending.actionPlanId)}"`:""} data-lw-actor="${esc(id)}" ${!LionwingEngine.canSpend(a,"focus",cost) ? 'disabled title="Недостаточно Фокуса"' : ""}>${label}${cost ? ` · ${cost} Фокуса` : ""}</button>`).join("")}</div>` : " · ожидается ответ"}</div>`; }).join("")}${!waiting.length && lwCanNarrate() ? `<button class="primary" data-lw-resolve${pending.actionPlanId?` data-lw-plan-id="${esc(pending.actionPlanId)}"`:""} data-lw-actor="${esc(pending.actorId)}">Применить урон</button>` : ""}${lwCanNarrate() ? `<button data-lw-cancel${pending.actionPlanId?` data-lw-plan-id="${esc(pending.actionPlanId)}"`:""} data-lw-actor="${esc(pending.actorId)}">Прервать</button>` : ""}</section>`;
+  if (!pending) return "";
+  // Canonical NPC attacks use the shared defense and resolution pipeline.
+  if (!pending.lionwing) return lwOldActionPanel(currentHeroActor() || lwActor());
+  const status = SceneEngine.pendingActionStatus(Scene), waiting = status.waitingIds;
+  const pendingName = lwRules().actions.list.find(def => def.id === pending.sourceActionId)?.name || pending.name;
+  return `<section class="lw-pending"><strong>${esc(pendingName)} · ${pending.damage} урона${pending.repeat > 1 ? ` × ${pending.repeat} отдельных нанесений` : ""}</strong>${waiting.map(id => { const a = Scene.actors.find(x => x.id === id); return `<div class="lw-reaction"><b>${esc(a.name)}</b>${lwOwns(id) ? `<div class="button-row">${LionwingEngine.reactionOptions(Scene,id).map(({id:key,name:label,costModel,available,reason}) => { const cost=costModel.amount,price=cost?window.DAWN_LIONWING_TECHNIQUE_SURFACE?.resourceCostLabel?.(Scene,id,costModel.resource,cost)||`${cost} Фокуса`:lwCockpitText("noSpend","Сейчас без расхода ресурсов"); return `<button data-lw-reaction="${key}"${pending.actionPlanId?` data-lw-plan-id="${esc(pending.actionPlanId)}"`:""} data-lw-actor="${esc(id)}" ${!available ? `disabled title="${esc(reason)}"` : ""}>${esc(label)}<small>${esc(price)}${reason?` · ${esc(reason)}`:""}</small></button>`; }).join("")}</div>` : " · ожидается ответ"}</div>`; }).join("")}${status.canResolve && lwCanNarrate() ? `<button class="primary" data-lw-resolve${pending.actionPlanId?` data-lw-plan-id="${esc(pending.actionPlanId)}"`:""} data-lw-actor="${esc(pending.actorId)}">Применить урон</button>` : ""}${lwCanNarrate() ? `<button data-lw-cancel${pending.actionPlanId?` data-lw-plan-id="${esc(pending.actionPlanId)}"`:""} data-lw-actor="${esc(pending.actorId)}">Прервать</button>` : ""}</section>`;
 }
 
 function lwAutomationHtml(a) {
@@ -775,31 +1019,41 @@ function lwInventoryHtml(a) {
     const definition = definitions[record.definitionId];
     if (!definition) return "";
     const numeric = ["stack", "count", "charges", "slots"].includes(definition.kind), value = numeric ? api.readNumeric(record) : definition.kind === "recorded-value" ? (record.values || []).map(item => item.value).join(", ") || "—" : (record.selectedItems || (record.selectedItemId ? [record.selectedItemId] : [])).join(", ") || "—";
-    if (!numeric) return `<div class="lw-inventory-row" data-lw-inventory-row><span><b>${esc(definition.label)}</b>${record.instanceId ? ` · ${esc(record.instanceId)}` : ""}<small>${esc(definition.kind)} · ${esc(String(value))}</small></span></div>`;
+    const kindLabel=lwCockpitText("inventory."+definition.kind,lwCockpitText("inventory.item","Предмет"));
+    if (!numeric) return `<div class="lw-inventory-row" data-lw-inventory-row><span><b>${esc(definition.label)}</b><small>${esc(kindLabel)} · ${esc(String(value))}</small></span></div>`;
     const spend = api.status(Scene, a.id, { id: definition.id, instanceId: record.instanceId, operation: "spend", amount: 1 }), gain = api.status(Scene, a.id, { id: definition.id, instanceId: record.instanceId, operation: "gain", amount: 1 }), max = definition.maximum == null ? "∞" : definition.maximum;
-    return `<div class="lw-inventory-row" data-lw-inventory-row><span><b>${esc(definition.label)}</b>${record.instanceId ? ` · ${esc(record.instanceId)}` : ""}<small>${esc(definition.kind)} · ${value} / ${max}${spend.reserved ? ` · зарезервировано ${spend.reserved}` : ""}</small></span><span class="button-row"><button type="button" data-lw-inventory="spend" data-lw-inventory-id="${esc(definition.id)}"${record.instanceId ? ` data-lw-inventory-instance="${esc(record.instanceId)}"` : ""} data-lw-actor="${esc(a.id)}" ${spend.available && lwOwns(a.id) ? "" : `disabled title="${esc(spend.reason || "Расход недоступен")}"`}>−</button>${lwCanNarrate() ? `<button type="button" data-lw-inventory="gain" data-lw-inventory-id="${esc(definition.id)}"${record.instanceId ? ` data-lw-inventory-instance="${esc(record.instanceId)}"` : ""} data-lw-actor="${esc(a.id)}" ${gain.available ? "" : `disabled title="${esc(gain.reason || "Получение недоступно")}"`}>+</button>` : ""}</span></div>`;
+    return `<div class="lw-inventory-row" data-lw-inventory-row><span><b>${esc(definition.label)}</b><small>${esc(kindLabel)} · ${value} / ${max}${spend.reserved ? ` · зарезервировано ${spend.reserved}` : ""}${!spend.available?` · ${esc(spend.reason||"Расход недоступен")}`:""}</small></span><span class="button-row"><button type="button" data-lw-inventory="spend" data-lw-inventory-id="${esc(definition.id)}"${record.instanceId ? ` data-lw-inventory-instance="${esc(record.instanceId)}"` : ""} data-lw-actor="${esc(a.id)}" ${spend.available && lwOwns(a.id) ? "" : `disabled title="${esc(spend.reason || "Расход недоступен")}"`}>−</button>${lwCanNarrate() ? `<button type="button" data-lw-inventory="gain" data-lw-inventory-id="${esc(definition.id)}"${record.instanceId ? ` data-lw-inventory-instance="${esc(record.instanceId)}"` : ""} data-lw-actor="${esc(a.id)}" ${gain.available ? "" : `disabled title="${esc(gain.reason || "Получение недоступно")}"`}>+</button>` : ""}</span></div>`;
   }).join("");
-  return `<details class="lw-inventory" open><summary>Инвентарь и заряды</summary><p>Текущие значения принадлежат ядру Сцены. Кнопки меняют только проверяемую запись; служебные receipt игроку не показываются.</p><div class="lw-inventory-list">${rows}</div></details>`;
+  return `<details class="lw-inventory" open><summary>Инвентарь и заряды</summary><p>${esc(lwCockpitText("inventoryHelp","Доступные предметы и заряды. Расход проверяется перед применением."))}</p><div class="lw-inventory-list">${rows}</div></details>`;
 }
 
 function lwActionsHtml(a) {
   if (!a) return "<p>Выберите участника на поле.</p>";
-  const techniqueSurface=window.DAWN_LIONWING_TECHNIQUE_SURFACE?.render?.(a,{scene:Scene,viewer:lwEntityViewer()})||"";
+  if (a.kind !== "hero" || a.profileId) return `<section class="lw-actions" data-lw-root data-lw-actor="${esc(a.id)}">${lwStatusHtml(a)}${lwDiceHtml(a)}${lwPendingHtml()}</section>`;
+
   const finisherDef=lwRules().actions.list.find(def=>def.id===SceneEngine.ACTION_IDS.finish),finisherStatus=finisherDef?LionwingEngine.actionStatus(Scene,a,finisherDef):null;
-  const focusBalance=LionwingEngine.balance(a,"focus"),focusCap=Math.min(focusBalance,Number(finisherStatus?.actionQuote?.studentPowerUnleashed?finisherStatus.actionQuote.focusCap:(window.DAWN_LIONWING_COMBAT_METER?.read?.(Scene)?.current??0)));
-  const knownTechniques=a.knownTechniques??a.techniques??{},studentLineEnabled=a.lionwing?.automation?.["ruiner.student-of-stars.2-line"]===true,studentZoneEnabled=a.lionwing?.automation?.["ruiner.student-of-stars.2-zone"]===true,studentAreaChoice=Number(knownTechniques["ruiner.student-of-stars"]||0)>=2&&(studentLineEnabled||studentZoneEnabled)?`<fieldset class="technique-focus-choice"><legend>Ученик звёзд II · Бесформенная сила (после Зарядки)</legend><label>Форма <select data-lw-student-shape>${studentLineEnabled?`<option value="line">∞ линия</option>`:""}${studentZoneEnabled?`<option value="square2">Зона 2×2</option>`:""}</select></label><label>Направление линии <select data-lw-student-orientation><option value="horizontal">горизонталь</option><option value="vertical">вертикаль</option><option value="diagonal-down">диагональ ↘</option><option value="diagonal-up">диагональ ↗</option></select></label><button type="button" data-lw-student-area data-lw-actor="${esc(a.id)}">Выбрать центр на поле</button><small>Центр должен быть в соседней клетке; цели и клетки область определит Engine.</small></fieldset>`:"",bombardierLevels=Number(knownTechniques["ruiner.bombardier"]||0),bombardierChoices=Array.from({length:Math.min(3,bombardierLevels)},(_,index)=>index+1).filter(level=>a.lionwing?.automation?.[`ruiner.bombardier.${level}`]===true),bombardierAreaChoice=bombardierChoices.length?`<fieldset class="technique-focus-choice"><legend>Бомбардир · Завершение Духом по области</legend><label>Уровень <select data-lw-bombardier-level>${bombardierChoices.map(level=>`<option value="${level}">${level === 1 ? "I · центр и смежные клетки" : level === 2 ? "II · зона 3×3" : "III · зона 5×5"}</option>`).join("")}</select></label><button type="button" data-lw-bombardier-area data-lw-actor="${esc(a.id)}">Выбрать центр на поле</button><small>I: вражеская цель в центре, дальность 4. II: 3×3, дальность 5, минимум 2 Фокуса. III: 5×5, дальность 6, минимум 4 Фокуса. Цели и пустые клетки перепроверит Engine.</small></fieldset>`:"";
-  const buttons = lwRules().actions.list.filter(d => d.type === "action"&&(a.kind!=="enemy"||d.id===SceneEngine.ACTION_IDS.step)).map(def => {
-    const normal = LionwingEngine.actionStatus(Scene, a, def), breakout = !normal.available && Scene.lionwing?.breakout ? LionwingEngine.actionStatus(Scene, a, def, { breakout: true }) : null;
+  const focusCap=lwFinisherFocusLimit(a);
+  const knownTechniques=a.knownTechniques??a.techniques??{},studentLineEnabled=a.lionwing?.automation?.["ruiner.student-of-stars.2-line"]===true,studentZoneEnabled=a.lionwing?.automation?.["ruiner.student-of-stars.2-zone"]===true,studentAreaChoice=Number(knownTechniques["ruiner.student-of-stars"]||0)>=2&&(studentLineEnabled||studentZoneEnabled)?`<fieldset class="technique-focus-choice"><legend>Ученик звёзд II · Бесформенная сила (после Зарядки)</legend><label>Форма <select data-lw-student-shape>${studentLineEnabled?`<option value="line">∞ линия</option>`:""}${studentZoneEnabled?`<option value="square2">Зона 2×2</option>`:""}</select></label><label>Направление линии <select data-lw-student-orientation><option value="horizontal">горизонталь</option><option value="vertical">вертикаль</option><option value="diagonal-down">диагональ ↘</option><option value="diagonal-up">диагональ ↗</option></select></label><button type="button" data-lw-student-area data-lw-actor="${esc(a.id)}" ${finisherStatus?.available&&finisherStatus.actionQuote?.studentPowerUnleashed&&lwOwns(a.id)?"":"disabled"} title="${esc(finisherStatus?.reason||"Сначала выполните Зарядку в этом Ходе")}">Выбрать центр на поле</button><small>Центр должен быть в соседней клетке; клетки области и цели определяются автоматически.</small></fieldset>`:"",bombardierLevels=Number(knownTechniques["ruiner.bombardier"]||0),bombardierChoices=Array.from({length:Math.min(3,bombardierLevels)},(_,index)=>index+1).filter(level=>a.lionwing?.automation?.[`ruiner.bombardier.${level}`]===true),bombardierAreaChoice=bombardierChoices.length?`<fieldset class="technique-focus-choice"><legend>Бомбардир · Завершение Духом по области</legend><label>Уровень <select data-lw-bombardier-level>${bombardierChoices.map(level=>`<option value="${level}">${level === 1 ? "I · центр и смежные клетки" : level === 2 ? "II · зона 3×3" : "III · зона 5×5"}</option>`).join("")}</select></label><button type="button" data-lw-bombardier-area data-lw-actor="${esc(a.id)}" ${finisherStatus?.available&&lwOwns(a.id)?"":"disabled"} title="${esc(finisherStatus?.reason||"Выберите уровень и Фокус, затем центр области")}">Выбрать центр на поле</button><small>${bombardierChoices.map(level=>({1:"I: вражеская цель в центре, дальность 4.",2:"II: 3×3, дальность 5, минимум 2 Фокуса.",3:"III: 5×5, дальность 6, минимум 4 Фокуса."})[level]).join(" ")} Допустимые клетки подсвечиваются; цели проверяются перед применением.</small></fieldset>`:"";
+  const primaryActions=new Set([SceneEngine.ACTION_IDS.step,SceneEngine.ACTION_IDS.spell,SceneEngine.ACTION_IDS.skirmish,SceneEngine.ACTION_IDS.finish,SceneEngine.ACTION_IDS.breathe,SceneEngine.ACTION_IDS.charge]);
+  const actionButtons = lwRules().actions.list.filter(d => d.type === "action"&&(a.kind!=="enemy"||d.id===SceneEngine.ACTION_IDS.step)).map(def => {
+    const request={kind:"action",actionId:def.id,targetIds:[...(Scene.targetIds||[])],focusSpent:0};
+    const normal = LionwingEngine.actionStatus(Scene, a, def, request), breakout = !normal.available && Scene.lionwing?.breakout ? LionwingEngine.actionStatus(Scene, a, def, { ...request, breakout: true }) : null;
     const status = breakout?.available ? breakout : normal, reason = status.reason || "";
-    return `<button data-lw-action="${esc(def.id)}" data-lw-actor="${esc(a.id)}" ${breakout?.available ? 'data-lw-breakout="true"' : ""} ${status.available && lwOwns(a.id) ? "" : "disabled"} title="${esc(reason || def.text)}"><strong>${esc(def.name)}</strong><small>${esc(reason || (breakout?.available ? "Прорыв · 1 Влияние" : status.continuation ? `Продолжить · ${a.stepRemaining} кл.` : `${status.cost} ${status.resource === "ap" ? "ОД" : "Влияния"}`))}</small></button>`;
-  }).join("");
+    const presentation=window.DAWN_LIONWING_TECHNIQUE_SURFACE?.actionPresentation?.(Scene,a.id,{...request,...(breakout?.available?{breakout:true}:{})});
+    const visibleReason=!lwOwns(a.id)?lwCockpitText("cannotControl","Этим участником управляет другой игрок"):reason||presentation?.reason||"";
+    return {id:def.id,html:`<button data-lw-action="${esc(def.id)}" data-lw-actor="${esc(a.id)}" ${breakout?.available ? 'data-lw-breakout="true"' : ""} ${status.available && lwOwns(a.id) ? "" : "disabled"} title="${esc(visibleReason || def.text)}"><strong>${esc(def.name)}</strong><small>${esc(presentation?.costLabel||lwCockpitText("unknownPrice","Цена уточнится в предпросмотре"))}${visibleReason?` · ${esc(visibleReason)}`:""}</small></button>`};
+  });
+  const buttons=actionButtons.filter(button=>primaryActions.has(button.id)).map(button=>button.html).join(""),otherButtons=actionButtons.filter(button=>!primaryActions.has(button.id));
+  const moreActions=otherButtons.length?`<details class="lw-other-actions" data-lw-action-section="other" data-lw-technique-actor="${esc(a.id)}"${window.DAWN_LIONWING_TECHNIQUE_SURFACE?.actionSectionOpen?.(a.id)?" open":""}><summary>${esc(lwCockpitText("otherActions","Другие действия"))}<small>${otherButtons.length}</small></summary><div class="core-action-list">${otherButtons.map(button=>button.html).join("")}</div></details>`:"";
   const opportunities=(Scene.lionwing?.opportunities||[]).filter(o=>o.actorId===a.id&&lwOwns(a.id)).map(o=>`<button data-lw-punish="${esc(o.id)}" data-lw-actor="${esc(a.id)}" ${!LionwingEngine.canSpend(a,"focus",2)?"disabled":""}>Наказать · 2 Фокуса: ${esc(Scene.actors.find(x=>x.id===o.targetId)?.name||"цель")}</button>`).join("");
   const detective=LionwingEngine.detectiveMovementStatus?.(Scene,a.id), detectiveState=lwDetectiveTeleport?.actorId===a.id?lwDetectiveTeleport:null;
   const detectiveControls=detective?.available&&lwOwns(a.id)?`<div class="lw-detective-teleport"><button data-lw-detective-teleport data-lw-actor="${esc(a.id)}">Детектив III: заменить Шаг телепортом</button><small>Допустимые Слабые точки: ${detective.markers.map(item=>`(${item.destination.x}, ${item.destination.y})`).join(", ")} · до ${detective.allowance} кл.</small>${detectiveState?.plan?`<p>Предпросмотр: (${detectiveState.plan.preview.stoppedAt.x}, ${detectiveState.plan.preview.stoppedAt.y}) · ${detectiveState.plan.preview.distance ?? ""} кл. <button data-lw-detective-confirm data-lw-actor="${esc(a.id)}">Подтвердить</button> <button data-lw-detective-cancel>Отмена</button></p>`:detectiveState?`<p>Выберите подсвеченную Слабую точку на поле. <button data-lw-detective-cancel>Отмена</button></p>`:""}</div>`:"";
   const effects=[...lwRules().effects.positive,...lwRules().effects.negative].filter(e=>e.id!=="positive.изгнан");
   const breacher2 = Number((a.knownTechniques || a.techniques || {})["powerhouse.breacher"] || 0) >= 2 && a.lionwing?.automation?.["powerhouse.breacher.2"] === true;
   const breacher3 = Number((a.knownTechniques || a.techniques || {})["powerhouse.breacher"] || 0) >= 3 && a.lionwing?.automation?.["powerhouse.breacher.3"] === true;
-  return `<section class="lw-actions" data-lw-root data-lw-actor="${esc(a.id)}">${lwStatusHtml(a)}${lwConsequenceHistoryHtml(a)}${lwDiceHtml(a)}${lwInventoryHtml(a)}${lwAutomationHtml(a)}${techniqueSurface}${lwPendingHtml()}${lwChainHtml(a)}${opportunities}${detectiveControls}${(a.effects||[]).includes("positive.невидим")?`<button data-lw-invisible data-lw-actor="${esc(a.id)}">Потратить Невидимость → Исчезнуть</button>`:""}${lwDestination ? '<p class="lw-hint">Выберите клетку на поле. <button data-lw-clear-destination>Отменить выбор</button></p>' : ""}<div class="core-action-list">${buttons}</div><details><summary>Параметры действия</summary><div class="lw-fields"><label>Атрибут<select data-lw-attribute><option value="">Подобрать по действию</option><option value="body">Тело</option><option value="talent">Талант</option><option value="spirit">Дух</option><option value="mind">Разум</option></select></label><label>Фокус для Завершения<input data-lw-focus type="number" min="0" max="${focusCap}" value="0"></label>${studentAreaChoice}${bombardierAreaChoice}<label>Преимущество<input data-lw-advantage type="number" min="0" max="50" value="0"></label><label>Помеха<input data-lw-disadvantage type="number" min="0" max="50" value="0"></label>${breacher2?'<label><input type="checkbox" data-lw-both-barrels>Из обоих стволов</label>':""}${breacher3?'<small>Картечь III: для Завершения Телом выберите центр зоны 2×2 среди целей.</small>':""}<label>Импровизация<select data-lw-improvise-effect><option value="">Создать препятствие</option>${effects.map(e=>`<option value="${esc(e.id)}">${esc(e.name)}</option>`).join("")}</select></label><label>Убрать соседнее препятствие<select data-lw-remove-obstacle><option value="">Не убирать</option>${Scene.objects.filter(o=>o.type==="terrain"&&o.space===a.space).map(o=>`<option value="${esc(o.id)}">${esc(o.label||"Препятствие")}</option>`).join("")}</select></label><label><input type="checkbox" data-lw-spike>Использовать бонус по Подброшенным целям</label></div></details></section>`;
+  const areaControls = html => html ? `<section data-lw-root data-lw-actor="${esc(a.id)}" class="lw-technique-controls"><label>Фокус для Завершения<input data-lw-focus type="number" min="0" max="${focusCap}" value="0"></label>${html}</section>` : "";
+  const techniqueSurface=window.DAWN_LIONWING_TECHNIQUE_SURFACE?.render?.(a,{scene:Scene,viewer:lwEntityViewer(),controls:{...lwRestoredControls(a),"vagabond.master-at-arms":lwMasterControls(a),"ruiner.student-of-stars":areaControls(studentAreaChoice),"ruiner.bombardier":areaControls(bombardierAreaChoice)}})||"";
+  return `<section class="lw-actions" data-lw-root data-lw-actor="${esc(a.id)}">${lwStatusHtml(a)}${lwConsequenceHistoryHtml(a)}${lwDiceHtml(a)}${lwInventoryHtml(a)}${lwPendingHtml()}${lwTechniqueDraftHtml(a)}${lwDestination ? '<p class="lw-hint" data-lw-destination-hint>Выберите клетку на поле. <button data-lw-clear-destination>Отменить выбор</button></p>' : ""}${techniqueSurface || lwAutomationHtml(a)}<div class="core-action-list" aria-label="Основные действия">${buttons}</div>${moreActions}${lwChainHtml(a)}${opportunities}${detectiveControls}${(a.effects||[]).includes("positive.невидим")?`<button data-lw-invisible data-lw-actor="${esc(a.id)}">Потратить Невидимость → Исчезнуть</button>`:""}<details><summary>Параметры действия</summary><div class="lw-fields">${lwTechniqueEnabled(a,"vagabond.cunning-fighter.1")?`<label><input data-lw-cunning-plan type="checkbox">${esc(lwTechniqueText("cunning","Хитрый план: −1 ОД для действия, кроме Атак"))}</label>`:""}${lwTechniqueEnabled(a,"disruptor.chemist.1")||lwTechniqueEnabled(a,"ruiner.creation-ascetic.1")?`<label>${esc(lwTechniqueText("obstacle","Атаковать препятствие"))}<select data-lw-attack-obstacle><option value="">—</option>${Scene.objects.filter(o=>o.type==="terrain"&&o.space===a.space).map(o=>`<option value="${esc(o.id)}">${esc(o.label||"Препятствие")}</option>`).join("")}</select></label>`:""}<label>Атрибут<select data-lw-attribute><option value="">Подобрать по действию</option><option value="body">Тело</option><option value="talent">Талант</option><option value="spirit">Дух</option><option value="mind">Разум</option></select></label><label>Фокус для Завершения<input data-lw-focus type="number" min="0" max="${focusCap}" value="0"></label>${techniqueSurface ? "" : studentAreaChoice + bombardierAreaChoice}<label>Преимущество<input data-lw-advantage type="number" min="0" max="50" value="0"></label><label>Помеха<input data-lw-disadvantage type="number" min="0" max="50" value="0"></label>${breacher2?'<label><input type="checkbox" data-lw-both-barrels>Из обоих стволов</label>':""}${breacher3?'<small>Картечь III: для Завершения Телом выберите центр зоны 2×2 среди целей.</small>':""}<label>Импровизация<select data-lw-improvise-effect><option value="">Создать препятствие</option>${effects.map(e=>`<option value="${esc(e.id)}">${esc(e.name)}</option>`).join("")}</select></label><label>Убрать соседнее препятствие<select data-lw-remove-obstacle><option value="">Не убирать</option>${Scene.objects.filter(o=>o.type==="terrain"&&o.space===a.space).map(o=>`<option value="${esc(o.id)}">${esc(o.label||"Препятствие")}</option>`).join("")}</select></label><label><input type="checkbox" data-lw-spike>Использовать бонус по Подброшенным целям</label></div></details></section>`;
 }
 
 function lwEffectSourcesHtml(targets) {
@@ -846,7 +1100,7 @@ renderSceneDirector = function() {
   consoleNode.querySelector(".lw-operation")?.insertAdjacentHTML("beforeend",lwEffectSourcesHtml((Scene.targetIds.length?Scene.targetIds:[a.id]).map(id=>Scene.actors.find(actor=>actor.id===id)).filter(Boolean)));
   if(turnPane&&manualPane){turnPane.prepend(actions);manualPane.prepend(consoleNode);}
   else root.prepend(consoleNode);
-  for(const input of root.querySelectorAll("[data-lw-root] input,[data-lw-root] select,[data-lw-root] textarea")){const key=lwDraftKey(input);if(key&&lwFormDraft.has(key)){if(input.type==="checkbox")input.checked=lwFormDraft.get(key);else input.value=lwFormDraft.get(key);}}
+  lwRestoreFormDrafts(root);
   // Keep library, clocks, reminders, media and table tools in their established place.
   for (const element of root.querySelectorAll(".director-resource-row.health, .director-outcome, .director-exact-grid")) if (!element.closest(".lw-console")) element.hidden = true;
   if(Scene.pendingAction||Scene.lionwing?.choices?.length)for(const element of root.querySelectorAll(".director-turn-handoff"))element.hidden=true;
@@ -875,11 +1129,21 @@ eventText = function(event) {
   if(event.type==="duel.end")return "Дуэль завершена: оба участника вернулись на край поля";
   if(event.type==="scene.tension")return `Напряжение Сцены: ${p.amount}`;
   if(event.type==="scene.reset")return "Бой завершён: здоровье восстановлено, временное состояние очищено; Раны и Стресс сохранены";
-  if(event.type==="rule.used")return `${who}: учтено применение ${p.ruleId} (${({turn:"Ход",round:"Раунд",scene:"Сцена"})[p.scope]||p.scope})`;
+  if(event.type==="rule.used"){
+    const match=String(p.ruleId||"").match(/^(.*)\.(\d+)$/),entry=match?window.DAWN_LIONWING_TECHNIQUE_SURFACE?.entries?.({knownTechniques:{[match[1]]:Number(match[2])}})?.find(item=>item.id===p.ruleId):null;
+    const rule=lwRules().rules?.find(item=>item.id===p.ruleId)||(lwRules().npcs?.list||[]).flatMap(profile=>profile.rules||[]).find(item=>item.id===p.ruleId);
+    const name=entry?`${entry.displayTechniqueName} · ${entry.level} ур.`:rule?.name||p.ruleId||"правила",scope=({turn:"Ход",round:"Раунд",scene:"Сцена",chapter:"Глава"})[p.scope]||"по правилу";
+    return `${who}: учтено применение ${name} (${scope})`;
+  }
   if(event.type==="action.allow")return `${who}: допуск ${lwRules().actions.list.find(d=>d.id===p.actionId)?.name||p.actionId}, применений ${p.uses??1}${p.swift?", Быстрое":""}`;
   if(event.type==="modifier.configure"&&p.stat)return `${who}: временное изменение ${resourceNames[p.stat]||p.stat} ${p.amount>0?"+":""}${p.amount}`;
   if(event.type==="modifier.remove")return `${who}: сняты временные изменения ${resourceNames[p.stat]||p.stat}`;
-  if(event.type.startsWith("inventory."))return `${who}: ${p.operation||event.type.replace("inventory.","")} · ${p.itemId||p.id||"запись"}${p.value!=null?` → ${p.value}`:""}${p.boundary?` · ${p.boundary}`:""}`;
+  if(event.type.startsWith("inventory.")){
+    const id=p.itemId||p.id,inventory=a?.lionwing?.inventory,label=p.label||p.name||p.definition?.label||inventory?.definitions?.[id]?.label||inventory?.records?.[p.instanceId||id]?.label||id||"предмет";
+    const operation=p.operation||event.type.replace("inventory.",""),verb=({configure:"Настроен запас",create:"Создан запас",gain:"Получено",spend:"Потрачено",reset:"Сброшен запас",remove:"Удалена запись",select:"Выбран предмет",reserve:"Зарезервировано",release:"Снят резерв",commit:"Подтверждён расход",add:"Добавлен предмет",set:"Задано количество",transfer:"Передано"})[operation]||"Инвентарь обновлён";
+    const boundary=({startTurn:"в начале своего Хода",endTurn:"в конце своего Хода",roundEnd:"в конце Раунда",scene:"при завершении Сцены",sceneStart:"при начале Сцены",manual:"вручную"})[p.boundary]||"по правилу";
+    return `${who}: ${verb} · ${label}${p.value!=null?` → ${p.value}`:""}${p.boundary?` · ${boundary}`:""}`;
+  }
   if(event.type==="movement.prevented")return `${who}: принудительное движение предотвращено (${p.reason})`;
   if(event.type==="geometry.route.commit"){
     const stopped=p.stoppedAt?`${String.fromCharCode(65+Number(p.stoppedAt.x))}${Number(p.stoppedAt.y)+1}`:"—",reason=p.terminal?lwGeometryStopReason(p.stopReason):p.partial?"цель недостижима, показана ближайшая клетка":"";
@@ -921,6 +1185,19 @@ moveSceneActorFromBoard = function(a,x,y,options={}) {
 
 document.addEventListener("click", event => {
   if (!lwActive()) return;
+  const actionGuide=event.target.closest("[data-lw-action-guide]");
+  if(actionGuide){event.preventDefault();event.stopImmediatePropagation();lwOpenCockpitAction(actionGuide.dataset.lwActor,actionGuide.dataset.lwActionGuide);return;}
+  const selectedTarget=event.target.closest("[data-lw-action-target]");
+  if(selectedTarget){
+    event.preventDefault();event.stopImmediatePropagation();
+    const draft=lwTechniqueDraft,targetId=selectedTarget.dataset.lwActionTarget;
+    if(!draft||!draft.followTargets||!lwTechniqueDraftValid(draft)||!(draft.targets||[]).some(target=>target.id===targetId&&target.available))return;
+    const multiple=draft.payload.actionId===SceneEngine.ACTION_IDS.skirmish,selected=[...(Scene.targetIds||[])];
+    Scene.targetIds=multiple?selected.includes(targetId)?selected.filter(id=>id!==targetId):selected.length<2?[...selected,targetId]:[targetId]:[targetId];
+    renderScene();lwScrollTechniqueDraft();return;
+  }
+  const destinationButton=event.target.closest("[data-lw-action-destination]");
+  if(destinationButton){event.preventDefault();event.stopImmediatePropagation();const draft=lwTechniqueDraft;if(!draft||!lwTechniqueDraftValid(draft))return;const payload=lwTechniqueDraftPayload(draft);lwTechniqueDraft=null;lwSetDestination({actorId:draft.actorId,payload,previewTechnique:true,label:draft.label});return;}
   const diceButton = event.target.closest("[data-lw-dice-create],[data-lw-dice-op]");
   if (diceButton) { event.preventDefault(); event.stopImmediatePropagation(); return lwDiceClick(diceButton); }
   const entityShow = event.target.closest("[data-lw-entity-show]");
@@ -953,17 +1230,34 @@ document.addEventListener("click", event => {
     return lwSubmit(actorId,{kind:"note",note:note||"Ручное решение Нарратора"},"Ручное решение");
   }
   const cell = event.target.closest("[data-scene-cell]");
+  if (typeof lwTechniqueDraft !== "undefined" && lwTechniqueDraft && ["nails","idol"].includes(lwTechniqueDraft.mode) && cell) {
+    event.preventDefault(); event.stopImmediatePropagation();
+    const draft=lwTechniqueDraft;
+    if(!lwTechniqueDraftValid(draft)){lwTechniqueDraft=null;renderScene();return;}
+    const [x,y]=cell.dataset.sceneCell.split(",").map(Number), point={x,y,space:Scene.activeSpace};
+    if(!lwTechniqueCellStatus(draft,point).available)return toast(lwTechniqueText("invalidCell","Выберите подсвеченную клетку формы."));
+    const index=draft.cells.findIndex(p=>p.x===x&&p.y===y);
+    if(draft.mode==="idol"&&index>=0)draft.cells.splice(index,1);
+    else if(draft.cells.length<6)draft.cells.push(point);
+    else return toast(lwTechniqueText("sixCells","Выбраны шесть клеток. Уберите последнюю клетку или подтвердите форму."));
+    renderScene();document.querySelector?.(`[data-scene-cell="${x},${y}"]`)?.focus?.();return;
+  }
   if (lwDestination && cell) {
     event.preventDefault(); event.stopImmediatePropagation();
     const point = cell.dataset.sceneCell.split(",").map(Number), draft = lwDestination;
     const destination = { x:point[0], y:point[1], space:Scene.activeSpace };
+    const status = lwDestinationCellStatus(destination);
+    if (!status.available) { toast(status.reason); return; }
     const payload={...draft.payload,[draft.field||"destination"]:destination};
+    if(draft.field==="reappearance"&&draft.nextField){lwSetDestination({...draft,payload,field:draft.nextField,nextField:null});toast("Теперь выберите клетку Вооружения");return;}
     if(payload.kind==="geometry-move"){lwSetGeometryPreview(draft,payload);return;}
-    if(draft.field==="reappearance"&&[SceneEngine.ACTION_IDS.jump,SceneEngine.ACTION_IDS.shove,SceneEngine.ACTION_IDS.improvise].includes(payload.actionId)&&!payload.effect&&!payload.removeObstacleId){lwDestination={actorId:draft.actorId,payload,label:draft.label};toast("Теперь выберите клетку действия");return;}
+    if(draft.field==="reappearance"&&[SceneEngine.ACTION_IDS.jump,SceneEngine.ACTION_IDS.shove,SceneEngine.ACTION_IDS.improvise].includes(payload.actionId)&&!payload.effect&&!payload.removeObstacleId){lwSetDestination({...draft,payload,field:null});toast("Теперь выберите клетку действия");return;}
+    if(draft.previewTechnique){lwDestination=null;lwTechniqueDraft={actorId:draft.actorId,payload,mode:"point",cells:[destination],...lwTechniqueDraftContext(draft.actorId,draft.ruleId)};renderScene();lwScrollTechniqueDraft();return;}
     if (lwSubmit(draft.actorId,payload,draft.label)) { lwDestination=null; renderScene(); }
     return;
   }
   const legacyAction=event.target.closest("[data-core-resolve], [data-core-cancel-pending]");
+  if(legacyAction && Scene.pendingAction && !Scene.pendingAction.lionwing)return;
   if(legacyAction){event.preventDefault();event.stopImmediatePropagation();const a=currentHeroActor()||lwActor();if(!a)return;if(legacyAction.hasAttribute("data-core-action"))return lwSubmit(a.id,{kind:"action",actionId:legacyAction.dataset.coreAction,targetIds:[...Scene.targetIds]},"Базовое действие");if(!lwCanNarrate())return;return lwSubmit(Scene.pendingAction?.actorId||a.id,{kind:legacyAction.hasAttribute("data-core-resolve")?"resolve-attack":"cancel-attack"},"Разрешение Атаки");}
   const duelTension=event.target.closest("[data-lw-set-duel-tension]");
   if(duelTension){event.preventDefault();event.stopImmediatePropagation();if(!lwCanNarrate())return;return lwSubmit(duelTension.dataset.lwActor,{kind:"tension",duelId:duelTension.dataset.lwSetDuelTension,amount:Number(duelTension.closest(".lw-pending").querySelector("[data-lw-duel-tension]").value)},"Напряжение Дуэли");}
@@ -980,10 +1274,10 @@ document.addEventListener("click", event => {
     let operations=targets.map(targetId=>({kind:kind==="move"?movementKind:kind,targetId,...(kind==="record-action"?{actionId:get("action"),resource:get("resource"),amount,swift:root.querySelector("[data-lw-general-swift]").checked,reaction:root.querySelector("[data-lw-general-reaction]").checked}:{}),...(kind==="recover-track"?{track:get("track"),amount}:{}),...(kind==="resource"?{resource:get("resource"),operation:get("direction"),amount}:{}),...(["note","prompt"].includes(kind)?{note:get("note"),title:get("note"),text:get("note")}:{}),...(kind==="allow-action"?{actionId:get("action"),cost:Number(get("cost")),uses:amount,swift:root.querySelector("[data-lw-general-swift]").checked,reaction:root.querySelector("[data-lw-general-reaction]").checked}:{}),...(kind==="usage"?{ruleId:get("id"),scope:get("scope"),limit:amount,targetIds:targets}:{}),...(kind==="move"?(movementMode==="teleport"?{maximum:amount,ignoreOpponents:root.querySelector("[data-lw-general-ignore-opponents]").checked,ignoreTerrain:root.querySelector("[data-lw-general-ignore-terrain]").checked,line:root.querySelector("[data-lw-general-line]").checked,teleport:true}:{maximum:amount,ignoreEnemies:root.querySelector("[data-lw-general-ignore-opponents]").checked,ignoreTerrain:root.querySelector("[data-lw-general-ignore-terrain]").checked,straight:root.querySelector("[data-lw-general-line]").checked,mode:geometryMode}):{})}));
     if(["spend-health","lose-health"].includes(kind))operations=operations.map(operation=>({...operation,amount}));
     if(["wound","stress"].includes(kind)){if(!Number.isInteger(amount)||amount<1||amount*targets.length>192)return toast("Укажите целое количество от 1 до 192 операций");operations=operations.flatMap(operation=>Array.from({length:amount},()=>({...operation})));}
-    if(kind==="move"){if(targets.length!==1)return toast("Для движения выберите одну цель");lwDestination={actorId:sourceId,payload:operations[0],label:"Движение правила",stage:lwDraftEnabled&&movementKind==="geometry-move"};renderScene();toast(lwDestination.stage?"Выберите клетку: маршрут будет добавлен в пакет":"Выберите клетку назначения");return;}
+    if(kind==="move"){if(targets.length!==1)return toast("Для движения выберите одну цель");lwSetDestination({actorId:sourceId,payload:operations[0],label:"Движение правила",stage:lwDraftEnabled&&movementKind==="geometry-move"});toast(lwDestination.stage?"Выберите клетку: маршрут будет добавлен в пакет":"Выберите клетку назначения");return;}
     return lwSubmit(sourceId,operations.length===1?operations[0]:{kind:"batch",operations:["note","prompt","usage"].includes(kind)?[operations[0]]:operations},"Общая операция правила");
   }
-  const button = event.target.closest("[data-core-action], [data-lw-automation], [data-lw-action], [data-lw-student-area], [data-lw-bombardier-area], [data-lw-reaction], [data-lw-choice], [data-lw-consequence-correct], [data-lw-resolve], [data-lw-cancel], [data-lw-clear-destination], [data-lw-geometry-confirm], [data-lw-geometry-add], [data-lw-geometry-cancel], [data-lw-operation], [data-lw-correct], [data-lw-custom], [data-lw-modifier], [data-lw-punish], [data-lw-invisible], [data-lw-inventory], [data-lw-detective-teleport], [data-lw-detective-confirm], [data-lw-detective-cancel]");
+  const button = event.target.closest("[data-core-action], [data-lw-enable-techniques], [data-lw-automation], [data-lw-action], [data-lw-technique-mode], [data-lw-technique-confirm], [data-lw-shape-cancel], [data-lw-technique-undo], [data-lw-student-area], [data-lw-bombardier-area], [data-lw-reaction], [data-lw-choice], [data-lw-consequence-correct], [data-lw-resolve], [data-lw-cancel], [data-lw-clear-destination], [data-lw-geometry-confirm], [data-lw-geometry-add], [data-lw-geometry-cancel], [data-lw-operation], [data-lw-correct], [data-lw-custom], [data-lw-modifier], [data-lw-punish], [data-lw-invisible], [data-lw-inventory], [data-lw-detective-teleport], [data-lw-detective-confirm], [data-lw-detective-cancel]");
   if (!button) {
     const oldControl=event.target.closest("[data-director-set-field], [data-director-knockout], [data-director-tension], [data-director-open-reactions], [data-director-set-rule-resource], [data-director-set-rule-clock]");
     if(oldControl){event.preventDefault();event.stopImmediatePropagation();const a=lwActor();if(!a||!lwCanNarrate())return;
@@ -999,22 +1293,68 @@ document.addEventListener("click", event => {
     if (damage) { event.preventDefault(); event.stopImmediatePropagation(); const a=lwActor(); if(a&&lwCanNarrate())lwSubmit(a.id,{kind:damage.hasAttribute("data-director-damage")?"damage":"heal",targetId:a.id,amount:Number(damage.dataset.directorDamage||damage.dataset.directorHeal),sourceActorId:null},"Здоровье LionWing"); }
     return;
   }
+  // The shared action UI owns the Step destination flow. Let its click handler
+  // open the cell picker instead of submitting an action with no destination.
+  if(button.hasAttribute("data-core-action")&&button.dataset.coreAction===SceneEngine.ACTION_IDS.step)return;
   event.preventDefault(); event.stopImmediatePropagation();
   const root = button.closest("[data-lw-root]") || button.closest(".lw-console"), actorId = button.dataset.lwActor || button.dataset.coreActor || root?.dataset.lwActor || lwActor()?.id;
   if(button.hasAttribute("data-lw-geometry-cancel")){lwClearGeometryPreview();return;}
   if((button.hasAttribute("data-lw-geometry-confirm")||button.hasAttribute("data-lw-geometry-add"))&&!lwCanNarrate())return toast("Подтвердить движение или добавить его в пакет может только Нарратор");
   if (!actorId || !lwOwns(actorId)) return toast("Этим участником управляет другой игрок");
-  const val = (selector, fallback="") => root?.querySelector(selector)?.value ?? fallback;
+  if(button.hasAttribute("data-lw-action")&&button.dataset.lwAction===SceneEngine.ACTION_IDS.step){
+    const actor=Scene.actors.find(item=>item.id===actorId);
+    if(actor&&(actor.kind==="enemy"||actor.profileId))return startEnemyStep(actor.id);
+    if(!actor)return toast("Участник для Шага больше не найден");
+    const cunning=[...(root?.querySelectorAll?.("[data-lw-cunning-plan]")||[])].find(input=>input.closest("[data-lw-root]")===root)?.checked===true;
+    pendingCoreActorId=actor.id;pendingCoreAction=button.dataset.lwAction;pendingCoreActionPlan=cunning;pendingCoreActionContext=null;Scene.tool="select";renderScene();toast(`«Шаг»: выберите клетку для ${actor.name}; ОД пока не потрачено`);return;
+  }
+  // Nested technique controls own their parameters. A basic action must not
+  // accidentally take Focus from the first technique's fieldset.
+  const control = selector => root ? [...root.querySelectorAll(selector)].find(input => input.closest("[data-lw-root]") === root) : null;
+  const val = (selector, fallback="") => control(selector)?.value ?? fallback;
   const num = (selector, fallback=0) => Number(val(selector,fallback));
+  if(button.hasAttribute("data-lw-shape-cancel")){lwTechniqueDraft=null;renderScene();return;}
+  if(button.hasAttribute("data-lw-technique-undo")){lwTechniqueDraft?.cells.pop();renderScene();return;}
+  if(button.hasAttribute("data-lw-technique-confirm")){
+    const draft=lwTechniqueDraft;
+    if(!draft||draft.actorId!==actorId||!lwTechniqueDraftValid(draft)){lwTechniqueDraft=null;renderScene();return toast(lwTechniqueText("stale","Сцена изменилась. Выберите форму заново."));}
+    const payload=lwTechniqueDraftPayload(draft),previewKey=JSON.stringify([Number(Scene.version||0),payload]);
+    if(draft.previewKey&&draft.previewKey!==previewKey){renderScene();return toast(lwCockpitText("stale","Сцена изменилась. Проверьте обновлённый предпросмотр перед подтверждением."));}
+    const committed=draft.preview?.ok&&Array.isArray(draft.preview.events)&&payload.kind!=="choice"&&typeof commitSceneEvents==="function"?commitSceneEvents(draft.label||lwTechniqueText("techniqueAction","Действие техники"),draft.preview.events):lwSubmit(actorId,payload,draft.label||lwTechniqueText("techniqueAction","Действие техники"));
+    if(committed){lwTechniqueDraft=null;renderScene();}return;
+  }
+  if(button.hasAttribute("data-lw-technique-mode")){
+    const mode=button.dataset.lwTechniqueMode, actor=Scene.actors.find(a=>a.id===actorId);
+    if(!actor||!lwOwns(actorId))return;
+    if(mode==="meal"){
+      if(Scene.targetIds.length!==1)return toast(lwTechniqueText("oneAlly","Выберите одного соседнего союзника на поле."));
+      return lwBeginActionPreview(actorId,{kind:"restored-technique",operation:"meal",targetId:Scene.targetIds[0],useCunningPlan:control("[data-lw-cunning-plan]")?.checked===true},lwTechniqueText("meal","Передать порцию"));
+    }
+    const actionId=["hook","nails","mallet"].includes(mode)?SceneEngine.ACTION_IDS.spell:["mind-trap","idol","pile-arm"].includes(mode)?SceneEngine.ACTION_IDS.finish:SceneEngine.ACTION_IDS.skirmish;
+    const payload={kind:"action",actionId,targetIds:[],focusSpent:["nails","mallet"].includes(mode)?0:num("[data-lw-focus]"),...(["bullets","trap"].includes(mode)?{}:{attribute:mode==="mind-trap"?"mind":"spirit"})};
+    if(mode==="pile-arm"){
+      if(Scene.targetIds.length!==1)return toast(lwTechniqueText("oneTarget","Выберите одну цель Завершения на поле."));
+      payload.targetIds=[...Scene.targetIds];payload.attribute=val("[data-lw-creator-attribute]","spirit");
+      lwDestination=null;lwTechniqueDraft={actorId,payload,mode,cells:[],...lwTechniqueDraftContext(actorId,"ruiner.creation-ascetic.1")};renderScene();lwScrollTechniqueDraft();return;
+    }
+    if(mode==="bullets"){
+      payload.bulletTargets=[...root.querySelectorAll("[data-lw-bullet-target]")].map(input=>input.value).filter(Boolean);payload.bulletsSpent=payload.bulletTargets.length;
+      if(!payload.bulletsSpent)return toast(lwTechniqueText("assignBullets","Назначьте хотя бы одну Пулю врагу."));
+      return lwBeginActionPreview(actorId,payload,lwTechniqueText("bullets","Стычка Пулями"));
+    }
+    if(["hook","trap","mind-trap"].includes(mode)){lwTechniqueDraft=null;lwSetDestination({actorId,payload,field:"areaCenter",ruleId:mode==="hook"?"vagabond.enchained.1":"disruptor.hunter.1",previewTechnique:true,label:lwTechniqueText("emptyCell","Выберите пустую клетку техники")});return;}
+    if(mode==="mallet"){payload.creatorRadius=num("[data-lw-creator-radius]",1);const space=Scene.spaces.find(s=>s.id===actor.space),cells=[];for(let x=0;x<space.width;x++)for(let y=0;y<space.height;y++)if(Math.abs(x-actor.x)+Math.abs(y-actor.y)===payload.creatorRadius)cells.push({x,y,space:actor.space});lwDestination=null;lwTechniqueDraft={actorId,payload,mode,cells,...lwTechniqueDraftContext(actorId,"ruiner.creation-ascetic.1")};renderScene();lwScrollTechniqueDraft();return;}
+    lwDestination=null;lwTechniqueDraft={actorId,payload,mode,cells:[],...lwTechniqueDraftContext(actorId,"ruiner.creation-ascetic.1")};renderScene();lwScrollTechniqueDraft();return;
+  }
   if (button.hasAttribute("data-lw-bombardier-area")) {
     const level = Number(val("[data-lw-bombardier-level]", "1")), focusSpent = num("[data-lw-focus]"), actionId = SceneEngine.ACTION_IDS.finish;
-    lwDestination = { actorId, payload: { kind: "action", actionId, targetIds: [...Scene.targetIds], attribute: "spirit", focusSpent, advantage: num("[data-lw-advantage]"), disadvantage: num("[data-lw-disadvantage]"), techniqueRuleId: `ruiner.bombardier.${level}` }, field: "areaCenter", label: `Бомбардир ${level}: выбор центра` };
-    renderScene(); toast("Выберите центр области. Цели и пустые клетки перепроверит Engine"); return;
+    lwSetDestination({ actorId, payload: { kind: "action", actionId, targetIds: [...Scene.targetIds], attribute: "spirit", focusSpent, advantage: num("[data-lw-advantage]"), disadvantage: num("[data-lw-disadvantage]"), techniqueRuleId: `ruiner.bombardier.${level}` }, previewTechnique:true, field: "areaCenter", label: `Бомбардир ${level}: выбор центра` });
+    toast("Выберите центр области. Допустимые клетки подсвечены"); return;
   }
   if (button.hasAttribute("data-lw-student-area")) {
     const actionId=SceneEngine.ACTION_IDS.finish, shape=val("[data-lw-student-shape]","line"), orientation=val("[data-lw-student-orientation]","horizontal"), focusSpent=num("[data-lw-focus]");
-    lwDestination={actorId,payload:{kind:"action",actionId,targetIds:[...Scene.targetIds],focusSpent,studentArea:{shape,orientation}},field:"areaCenter",label:"Ученик звёзд II: выбор центра"};
-    renderScene(); toast("Выберите соседнюю клетку: цели и линия будут вычислены Engine"); return;
+    lwSetDestination({actorId,payload:{kind:"action",actionId,targetIds:[...Scene.targetIds],focusSpent,studentArea:{shape,orientation}},previewTechnique:true,field:"areaCenter",label:"Ученик звёзд II: выбор центра"});
+    toast("Выберите соседнюю подсвеченную клетку"); return;
   }
   if(button.hasAttribute("data-lw-inventory")){
     const operation=button.dataset.lwInventory, id=button.dataset.lwInventoryId, instanceId=button.dataset.lwInventoryInstance, amount=Number(button.dataset.lwInventoryAmount||1);
@@ -1042,6 +1382,12 @@ document.addEventListener("click", event => {
     if(after&&!after.ok&&after.stale)return lwRefreshGeometryPreview(preview);
     return;
   }
+  if(button.hasAttribute("data-lw-enable-techniques")){
+    if(!lwCanNarrate())return;
+    const operations=window.DAWN_LIONWING_TECHNIQUE_SURFACE.enableOperations(actorId,Scene);
+    if(!operations.length)return;
+    return lwSubmit(actorId,{kind:"batch",operations},"Включение автоматики техник");
+  }
   if(button.hasAttribute("data-lw-automation")){if(!lwCanNarrate())return;return lwSubmit(actorId,{kind:"automation",ruleId:button.dataset.lwAutomation,enabled:button.dataset.lwEnabled==="true"},"Настройка автоматизации");}
   if(button.hasAttribute("data-lw-punish"))return lwSubmit(actorId,{kind:"punish",id:button.dataset.lwPunish},"Наказание");
   if(button.hasAttribute("data-lw-invisible"))return lwSubmit(actorId,{kind:"invisible"},"Исчезновение");
@@ -1060,16 +1406,20 @@ document.addEventListener("click", event => {
     return lwSubmit(actor.id, payload, "Исправление последствия Нарратора");
   }
   if (button.hasAttribute("data-lw-action") || button.hasAttribute("data-core-action")) {
-    const actionId=button.dataset.lwAction||button.dataset.coreAction, payload={kind:"action",actionId,targetIds:[...Scene.targetIds],breakout:button.dataset.lwBreakout==="true",focusSpent:num("[data-lw-focus]"),advantage:num("[data-lw-advantage]"),disadvantage:num("[data-lw-disadvantage]"),breacherBothBarrels:root?.querySelector("[data-lw-both-barrels]")?.checked===true};
-    if(val("[data-lw-attribute]"))payload.attribute=val("[data-lw-attribute]");
-    if(root?.querySelector("[data-lw-spike]")?.checked)payload.spikeTargetIds=[...Scene.targetIds];
+    const actionId=button.dataset.lwAction||button.dataset.coreAction, payload={...lwActionControlRequest(root,button),targetIds:[...Scene.targetIds],advantage:num("[data-lw-advantage]"),disadvantage:num("[data-lw-disadvantage]")};
+    if(val("[data-lw-attack-obstacle]")&&[SceneEngine.ACTION_IDS.spell,SceneEngine.ACTION_IDS.skirmish,SceneEngine.ACTION_IDS.finish].includes(actionId)){payload.obstacleId=val("[data-lw-attack-obstacle]");payload.targetIds=[];}
+    if(button.dataset.lwMasterMode){payload.armamentMode=button.dataset.lwMasterMode;payload.attribute="talent";}
+    if(button.hasAttribute("data-lw-master-finisher")){payload.attribute="talent";const mode=Scene.actors.find(item=>item.id===actorId)?.ruleModes?.["vagabond.master-at-arms.armament"]?.modeId;if(control("[data-lw-spike]")?.checked)payload.spikeTargetIds=[...Scene.targetIds];lwBeginMasterAction(actorId,payload,mode==="blade"?"destination":"areaCenter","Мастер за работой");return;}
+    if(payload.armamentMode){lwBeginMasterAction(actorId,payload,payload.armamentMode==="blade"?"destination":null,"Стычка с Вооружением");return;}
+    if(control("[data-lw-spike]")?.checked)payload.spikeTargetIds=[...Scene.targetIds];
     if(actionId===SceneEngine.ACTION_IDS.improvise){if(val("[data-lw-improvise-effect]"))payload.effect=val("[data-lw-improvise-effect]");if(val("[data-lw-remove-obstacle]"))payload.removeObstacleId=val("[data-lw-remove-obstacle]");}
     const name=lwRules().actions.list.find(d=>d.id===actionId)?.name||"Действие";
-    if((Scene.actors.find(a=>a.id===actorId)?.effects||[]).includes("positive.исчез")){lwDestination={actorId,payload,label:name,field:"reappearance"};toast("Сначала выберите клетку появления");return;}
-    if([SceneEngine.ACTION_IDS.jump,SceneEngine.ACTION_IDS.shove,SceneEngine.ACTION_IDS.improvise].includes(actionId)&&!payload.effect&&!payload.removeObstacleId){lwDestination={actorId,payload,label:name};toast("Выберите клетку на поле");return;}
-    lwSubmit(actorId,payload,name); return;
+    if((Scene.actors.find(a=>a.id===actorId)?.effects||[]).includes("positive.исчез")){lwSetDestination({actorId,payload,previewTechnique:true,label:name,field:"reappearance"});toast("Сначала выберите клетку появления");return;}
+    if(actionId===SceneEngine.ACTION_IDS.shove){lwBeginActionPreview(actorId,payload,name);return;}
+    if([SceneEngine.ACTION_IDS.jump,SceneEngine.ACTION_IDS.improvise].includes(actionId)&&!payload.effect&&!payload.removeObstacleId){lwSetDestination({actorId,payload,previewTechnique:true,label:name});toast("Выберите клетку на поле");return;}
+    lwBeginActionPreview(actorId,payload,name); return;
   }
-  if (button.hasAttribute("data-lw-reaction")) { const payload={kind:"reaction",choice:button.dataset.lwReaction,...(button.dataset.lwPlanId?{planId:button.dataset.lwPlanId}:{})};if(payload.choice==="dodge"){lwDestination={actorId,payload,label:"Уворот"};toast("Выберите клетку Уворота");return;} lwSubmit(actorId,payload,"Реакция");return; }
+  if (button.hasAttribute("data-lw-reaction")) { const payload={kind:"reaction",choice:button.dataset.lwReaction,...(button.dataset.lwPlanId?{planId:button.dataset.lwPlanId}:{})};if(payload.choice==="dodge"){lwSetDestination({actorId,payload,label:"Уворот"});toast("Выберите клетку Уворота");return;} lwSubmit(actorId,payload,"Реакция");return; }
   if (button.hasAttribute("data-lw-choice")) {
     const pending = Scene.lionwing?.choices?.find(item => item.id === button.dataset.lwChoiceId), note = button.closest(".lw-pending")?.querySelector("[data-lw-choice-note]")?.value?.trim() || "";
     let payload = { kind: "choice", id: button.dataset.lwChoiceId, choice: button.dataset.lwChoice, note, ...(button.dataset.lwPlanId ? { planId: button.dataset.lwPlanId } : {}) };
@@ -1080,7 +1430,9 @@ document.addEventListener("click", event => {
       if (!typed) return toast("Выберите конкретную допустимую потерю из заполненного листа");
       payload = typed;
     }
-    if(payload.choice==="place"){lwDestination={actorId,payload,label:"Появление"};toast("Выберите клетку на поле");return;}lwSubmit(actorId,payload,"Решение игрока");return;
+    if (lwBeginTechniqueChoiceDestination(pending, payload)) return;
+    if(pending?.kind==="restored-technique"&&payload.choice==="swing"){lwSetDestination({actorId,payload,ruleId:pending.context?.ruleId,previewTechnique:true,label:lwTechniqueText("swing","Раскачаться: выбрать клетку телепортации")});return;}
+    if(payload.choice==="place"){lwSetDestination({actorId,payload,label:"Появление"});toast("Выберите клетку на поле");return;}lwSubmit(actorId,payload,"Решение игрока");return;
   }
   if (button.hasAttribute("data-lw-resolve") || button.hasAttribute("data-lw-cancel")) { if(!lwCanNarrate())return;lwSubmit(actorId,{kind:button.hasAttribute("data-lw-resolve")?"resolve-attack":"cancel-attack",...(button.dataset.lwPlanId?{planId:button.dataset.lwPlanId}:{})},"Разрешение Атаки");return; }
   if (!lwCanNarrate()) return toast("Эта операция доступна Нарратору");
@@ -1125,10 +1477,25 @@ document.addEventListener("input",event=>{
   const entitySearch = event.target.closest?.("[data-lw-entity-search]");
   if (lwActive() && entitySearch) { lwEntityListQuery = String(entitySearch.value || ""); const caret = Number(entitySearch.selectionStart); renderLionwingEntities({ focusSearch: true, selectionStart: Number.isInteger(caret) ? caret : lwEntityListQuery.length }); return; }
   if(lwActive()&&event.target.closest("[data-lw-root]")){const key=lwDraftKey(event.target);if(key)lwFormDraft.set(key,event.target.type==="checkbox"?event.target.checked:event.target.value);}
+  if(lwActive()&&event.target.closest("[data-lw-focus]"))lwRefreshCunningActions(event.target.closest("[data-lw-root]"));
   const root=event.target.closest(".lw-console");if(!root||!lwActive())return;
   const output=root.querySelector("[data-lw-preview]");if(!output)return;
   const amount=Number(root.querySelector("[data-lw-amount]")?.value||0),actorId=root.dataset.lwActor;
   const operations=Scene.targetIds.map(targetId=>({kind:"damage",targetId,amount}));if(!operations.length){output.textContent="Выберите цели для предпросмотра.";return;}
   const preview=LionwingEngine.previewEvents(Scene,[LionwingEngine.command(actorId,{kind:"batch",operations})]);
   output.textContent=preview.ok?Scene.targetIds.map(id=>{const before=Scene.actors.find(a=>a.id===id),after=preview.scene.actors.find(a=>a.id===id);return`${before.name}: ${before.hp} → ${after.hp} ЗД${after.wounds!==before.wounds?`, Раны ${after.wounds}/3`:""}`;}).join(" · ")+(preview.scene.lionwing.choices.length?" · потребуется решение игрока":""):preview.errors.join(" ");
+});
+
+document.addEventListener("change", event => {
+  const input=event.target.closest("[data-lw-cunning-plan], [data-lw-attribute], [data-lw-focus], [data-lw-both-barrels]");
+  if(lwActive()&&input)lwRefreshCunningActions(input.closest("[data-lw-root]"));
+});
+
+// Native grid cells are focusable; all cell selections use the same click path
+// for keyboard and pointer input.
+document.addEventListener("keydown", event => {
+  if(!lwActive())return;
+  if(event.key==="Escape"&&(lwTechniqueDraft||lwDestination)){if(event.defaultPrevented||store.mode!=="play"||document.querySelector("dialog[open]"))return;event.preventDefault();lwTechniqueDraft=null;if(lwDestination)lwCancelDestination();renderScene();return;}
+  const cell=event.target.closest("[data-scene-cell]");
+  if(cell&&event.target===cell&&(event.key==="Enter"||event.key===" ")){event.preventDefault();cell.click();}
 });

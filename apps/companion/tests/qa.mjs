@@ -26,6 +26,7 @@ assert.deepEqual(JSON.parse(JSON.stringify(logic.reconcileSceneActorHealth({ cur
 const appFiles = ["localization.js", "locale-ru.js", "locale-en-builder.js", "edition-lionwing.js", "edition-lionwing-ru.js", "lionwing-display-mapping.js", "lionwing-table-data.js", "lionwing-automation-status.js", "app-bootstrap.js", "app-reference-data.js", "app-core.js", "hero-gadgets.js", "hero-ui.js", "scene-ui.js", "gm-library.js", "scene-effects.js", "scene-actions-ui.js", "scene-sync-ui.js", "play-ui.js", "app-builder-events.js", "app-sync-events.js", "app-scene-events.js", "app-play-events.js", "app.js"];
 appFiles.splice(appFiles.indexOf("app.js"),0,"lionwing-ui.js");
 appFiles.push("lionwing-engine.js");
+appFiles.push("lionwing-restored-techniques.js");
 const appSource = appFiles.map(file => fs.readFileSync(path.join(root, file), "utf8")).join("\n");
 const companionMarkup = fs.readFileSync(path.join(root, "index.html"), "utf8");
 const companionCss = fs.readFileSync(path.join(root, "app.css"), "utf8");
@@ -67,7 +68,11 @@ assert.doesNotMatch(fs.readFileSync(path.join(root, "sync.js"), "utf8"), /if\(se
 assert.match(appSource, /acceptPreparedRemoteCommand[\s\S]+setConfirmedScene\?\.\(Scene\)/, "Accepting a joined hero must update the Narrator's confirmed network Scene before the next roll");
 assert.match(fs.readFileSync(path.join(root, "sync.js"), "utf8"), /subscriptionIsActive=\(\)=>generation===channelGeneration/, "Callbacks from an intentionally removed realtime channel must be ignored");
 assert.doesNotMatch(appSource, /Sync\?\.on\("status",\(\)=>\{[^}]*renderScene\(\)/, "A connection-status repaint must not rebuild the table");
-assert.match(appSource, /openDetails=new Map/, "Expanded hero rules must survive a canonical Scene repaint");
+const playUiSource = fs.readFileSync(path.join(root, "play-ui.js"), "utf8"), sceneUiSource = fs.readFileSync(path.join(root, "scene-ui.js"), "utf8");
+const heroSheetRefresh = playUiSource.slice(playUiSource.indexOf("function renderSceneHeroSheet("), playUiSource.indexOf("function renderPlay("));
+assert.match(heroSheetRefresh, /entries\("details",detailKey\)[\s\S]+details\.has\(key\)\)element\.open=details\.get\(key\)/, "Expanded hero rules must survive the shared sheet repaint");
+const canonicalSceneRefresh = sceneUiSource.slice(sceneUiSource.indexOf("function renderScene(){"), sceneUiSource.indexOf("function activeSceneView(){"));
+assert.match(canonicalSceneRefresh, /renderSceneHeroSheet\(\);renderSceneChrome\(\);/, "Every canonical Scene repaint refreshes the Hero cockpit before its navigation shortcuts");
 assert.match(companionMarkup, /id="stress-trackers"/, "Tools must expose the shared Stress tracker");
 assert.match(appSource, /key:"stress",value:next/, "The narrator edits Stress through a canonical Scene event");
 assert.match(appSource, /scene\.undo=\[\]/, "Recursive undo snapshots must never fill localStorage");
@@ -94,7 +99,11 @@ assert.match(appSource, /feed\.innerHTML=\[\.\.\.rolls\]\.reverse\(\)\.map/, "Th
 assert.match(appSource, /function sceneTrayHeroActor\(\)[\s\S]+selected\.team==="hero"[\s\S]+active\.team==="hero"/, "The Narrator tray follows selected or active heroes and never exposes hero actions for enemies");
 assert.match(companionMarkup, /option value="crowd">Зона массовки/, "The terrain painter exposes canonical Fodder Zones");
 assert.match(appSource, /source\.kind==="crowd"[\s\S]+actor\.crowdGroupId/, "Scene normalization preserves Fodder identity and its shared visual type");
-assert.match(appSource, /actor\.crowdSubtype=\["seeker","vortex"\][\s\S]+actor\.seekerTargetId[\s\S]+actor\.seekerDamage[\s\S]+actor\.vortexOwnerId/, "Scene import preserves special Fodder provenance for Hound Master Seekers and Vortex flows");
+const crowdImport = appSource.match(/if\(source\.kind==="crowd"\)\{([\s\S]*?)\}/)?.[1] || "";
+assert.match(crowdImport, /actor\.crowdSubtype=\["seeker","vortex","corpse","bodyguards-deployment","swarm-deployment"\]/, "Scene import accepts only the known special Fodder subtypes, including both deployment proxies");
+for (const field of ["seekerTargetId", "seekerDamage", "vortexOwnerId", "source", "sourceActionId", "summonerId", "deploymentFodderOwnerId"]) {
+  assert.match(crowdImport, new RegExp(`actor\\.${field}=`), `Scene import preserves Fodder provenance field ${field}`);
+}
 assert.match(appSource, /editTargets=actor\.kind==="crowd"[\s\S]+targets\.forEach\(item=>item\.tokenImage=image\)/, "Renaming or uploading a token updates every zone of that Fodder type");
 assert.match(companionCss, /\.scene-token\.crowd\{[^}]*border-radius:7px[^}]*repeating-linear-gradient/, "Fodder Zones are visually distinct from circular character tokens");
 assert.match(companionCss, /modifier-carrier-pulse[\s\S]+modifier-artillery-cell[\s\S]+modifier-gargantuan-body-cell[\s\S]+modifier-vortex-edge/, "Rule-critical Enemy Modifiers have distinct carrier, danger-area, body-edge, and spawn-edge visuals");
@@ -117,7 +126,7 @@ assert.match(appSource, /function renderSceneManager[\s\S]+ownerActorId[\s\S]+С
 assert.match(appSource, /function removeManagedSceneSpace[\s\S]+id==="main"[\s\S]+Основное поле удалить нельзя/, "The canonical main space cannot be removed even when the spaces array is reordered");
 assert.match(appSource, /function removeManagedSceneSpace[\s\S]+placeActorsSafely\(scene,moving,fallback[\s\S]+scene\.objects=scene\.objects\.filter[\s\S]+scene\.spaces=scene\.spaces\.filter/, "Space removal evacuates its actors to the main field before deleting field entities and the space itself");
 assert.match(appSource, /const canonicalCell=[\s\S]+normalizedCells=[\s\S]+base\.objects=base\.objects\.map[\s\S]+base\.topology\.cuts=/, "Imported actors and field entities are repaired to canonical cells within their actual space bounds");
-assert.match(appSource, /mutator\(Scene\);validateTableEdit\(before,Scene\)[^\n]+Scene=normalizeScene\(Scene\)/, "Every direct Narrator transaction repairs stale references before persistence or networking");
+assert.match(appSource, /mutator\(Scene\);\s*validateTableEdit\(before,Scene,[^\n]+\);\s*Scene=normalizeScene\(Scene\)/, "Every direct Narrator transaction repairs stale references before persistence or networking");
 assert.match(appSource, /restoreSceneHistory[\s\S]+restored\.version=Number\(current\.version[\s\S]+syncHeroFromScene\(\)/, "Undo and redo are monotonic Scene revisions and refresh the linked hero runtime");
 assert.match(appSource, /function sceneCore[\s\S]+structuredClone\(base\)[\s\S]+JSON\.parse\(JSON\.stringify\(base\)\)/, "Scene snapshots must not share nested mutable action or resource state with the live table");
 assert.match(appSource, /pendingActionPlan=null;scene\.pendingPrompt=null;scene\.triggerQueue=\[\];scene\.challengeRequest=null;scene\.opposedRoll=null/, "Starting a new Scene must close every Action, prompt, trigger, and roll-request lifecycle");
@@ -128,7 +137,6 @@ assert.match(publicProjectionMigration, /'pendingAction'[\s\S]+'pendingPrompt'[\
 assert.match(appSource, /deployment=new Set\([\s\S]+type==="deploy-enemy"/, "Encounter deployment uses explicit enemy deployment zones");
 assert.match(appSource, /gmDeployTerrainCells[\s\S]+availableEncounterCell/, "Encounter deployment avoids saved blocking Terrain");
 assert.match(appSource, /return findCell\(true\)\|\|\(allowedCells\?findCell\(false\):null\)/, "A crowded deployment zone falls back to the rest of the playable field instead of dropping preset participants");
-assert.match(appSource, /if\(Scene\.selectedActor!==actor\.id\)\{Scene\.targetIds=\[\];Scene\.targetCells=\[\]\}[\s\S]+Scene\.targetIds=\[\];Scene\.targetCells=\[\];Scene\.selectedActor=actor\.id/, "Switching the controlled actor cannot retain stale empty-cell targets from another character");
 assert.match(appSource, /const BUILTIN_ENCOUNTERS=Object\.freeze\(\[/, "Narrator tools provide reusable built-in encounter presets");
 assert.match(appSource, /data-gm-encounter-copy/, "A built-in encounter can be copied into the user's editable library");
 assert.doesNotMatch(appSource, /commitScene\(`Стены расстановки:/, "Encounter deployment must not split Walls into a second undo transaction");
@@ -481,7 +489,7 @@ assert.match(cockpitCss, /\.scene-mode \.scene-action-tray\{\s*position:absolute
 assert.match(cockpitCss, /grid-template-columns:minmax\(0,1fr\) var\(--scene-side-panel\) 68px/, "An open desktop Scene panel occupies an embedded column immediately left of the permanent right-hand rail");
 assert.match(cockpitCss, /\.scene-panel-open\.scene-mode \.scene-dock,[\s\S]*?grid-column:3;[\s\S]*?right:auto/, "The Scene tool rail remains the rightmost grid column when panels open");
 assert.match(cockpitCss, /\.scene-panel-open\.scene-mode \.scene-rail,[\s\S]*?display:block;[\s\S]*?grid-column:2;[\s\S]*?grid-row:4\/7/, "Desktop Scene panel content is embedded left of the fixed rail and below persistent top controls");
-assert.match(cockpitCss, /\.scene-mode:not\(\.scene-player-view\) \.scene-turn-strip\{\s*display:none/, "The Narrator cockpit replaces the duplicate horizontal participant strip");
+assert.match(cockpitCss, /\.scene-mode \.scene-turn-strip\{\s*position:absolute;top:96px;left:calc\(var\(--scene-left-used\) \+ \.45rem\);[\s\S]*?display:flex;flex-direction:column/, "The Narrator keeps a compact vertical participant strip for turn tracking");
 assert.match(cockpitCss, /padding:\.65rem 0 \.65rem \.65rem/, "The desktop Scene shell reaches the right viewport edge without a floating gutter");
 assert.match(cockpitCss, /border-right:0;\s*border-radius:0;\s*background:color-mix/, "The permanent right rail is rendered as a wall rather than a floating card");
 assert.match(cockpitCss, /\.scene-player-view \.scene-turn-strip\{[^}]*flex-direction:column/, "Players receive a compact vertical participant strip instead of the Narrator's duplicate top row");
@@ -501,7 +509,7 @@ assert.match(cockpitCss, /\.scene-map-tools \.scene-area-controls\{[^}]*position
 assert.match(html, /id="scene-rail-left"[\s\S]+id="scene-dock"[\s\S]+id="scene-rail-right"/, "The desktop Scene shell provides independent left and right workspaces around the permanent dock");
 assert.match(app, /activeScenePanels=\{left:null,right:null\}/, "Scene panels track one independently open workspace on each side");
 assert.match(app, /function syncScenePanels[\s\S]+scene-panel-open-both/, "Opening a second-side panel preserves the first workspace and exposes an explicit dual-panel state");
-assert.match(app, /DEFAULT_SCENE_PANEL_SIDES=\{director:"left"[\s\S]+reference:"right"[\s\S]+roster:"right"/, "The default Narrator layout keeps the console beside combat reference panels");
+assert.match(app, /DEFAULT_SCENE_PANEL_SIDES=\{director:"left"[\s\S]+reference:"right"/, "The default Narrator layout keeps the console beside combat reference panels");
 assert.match(html, /class="round"[^>]+aria-label="Раунд"[\s\S]+class="tension"[^>]+aria-label="Напряжение"/, "Round and Tension remain accessible while using compact symbolic status chips");
 assert.match(html, /scene-stage-head[\s\S]+id="scene-flow"[\s\S]+scene-chrome-menu/, "The current action and infrequent view controls share one compact top strip");
 assert.match(app, /scene-map-tool-picker[\s\S]+data-tool-cluster="create"/, "Narrator-only creation tools move out of the persistent play toolbar and into the Map panel");
@@ -673,7 +681,7 @@ assert.match(html, /scene-dock/);
 assert.match(html, /id="scene-control-mode"/);
 assert.match(html, /data-scene-panel="director"/);
 assert.match(html, /id="scene-director"/);
-assert.match(html, /scene-enemy-roster/);
+assert.doesNotMatch(html, /data-scene-panel="roster"|data-scene-panel-content="roster"|scene-enemy-roster/, "Enemy profiles must stay in the Narrator console instead of a second panel");
 assert.match(html, /scene-zoom-fit/);
 assert.match(html, /data-scene-tool="measure"/);
 assert.match(html, /scene-roll-feed/);

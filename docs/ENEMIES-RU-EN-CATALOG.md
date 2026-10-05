@@ -1,6 +1,6 @@
 # DAWN: каталог способностей врагов RU/EN
 
-> Сгенерировано `npm run docs:rules` из новой канонической редакции `apps/companion/edition-lionwing.js` и RU-оверлея `apps/companion/edition-lionwing-ru.js` (SHA-256 `0aaa050eda811038dd3e33bf7f42ca3b428724994a076c29872540836d0aee78`).
+> Сгенерировано `npm run docs:rules` из новой канонической редакции `apps/companion/edition-lionwing.js` и RU-оверлея `apps/companion/edition-lionwing-ru.js` (SHA-256 `ebedf4a36647175253c793b61042adadf3e5ade0d82149f0dc2e07ff4280340d`).
 > Английский текст и механика берутся из canonical EN; русские названия и тексты — из отдельного reviewed RU overlay. Legacy-редакция в этот документ не входит.
 
 ## Область каталога

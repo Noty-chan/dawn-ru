@@ -3,6 +3,7 @@
 > Генерируется командой `npm run build:lionwing-registry`. Реестр строится из canonical EN, `techniqueCoverage` и `automation-evidence.json`.
 > `review=unreviewed/inherited` означает отсутствие явной записи в аудите; это не сертификация и не повышение readiness.
 > Общий lifecycle scheduler проверяется `tests/lionwing-neutral-lifecycle.mjs` и `tests/lionwing-lifecycle-consumers.mjs`; эти тесты не являются E2E-сертификацией отдельных Техник.
+> Исторический audit/evidence не подтверждает текущую реализацию. Результаты конкретных сценариев с SHA сборки и хэшами зависимостей публикуются CI отдельно; без такого результата проверка сборки отсутствует.
 
 Canonical уровней: **333** · Явно исправленных review: **9** · Сертифицированных evidence: **0**
 
@@ -80,7 +81,7 @@ Canonical уровней: **333** · Явно исправленных review: *
 | `vagabond.skirmisher.1` | Skirmisher | 1 | `decision` | `unreviewed` | — | `uncertified` |
 | `vagabond.skirmisher.2` | Skirmisher | 2 | `partial` | `unreviewed` | — | `uncertified` |
 | `vagabond.skirmisher.3` | Skirmisher | 3 | `decision` | `unreviewed` | — | `uncertified` |
-| `vagabond.speed-demon.1` | Speed Demon | 1 | `manual` | `unreviewed` | — | `uncertified` |
+| `vagabond.speed-demon.1` | Speed Demon | 1 | `full` | `unreviewed` | — | `uncertified` |
 | `vagabond.speed-demon.2` | Speed Demon | 2 | `full` | `unreviewed` | — | `uncertified` |
 | `vagabond.speed-demon.3` | Speed Demon | 3 | `manual` | `unreviewed` | — | `uncertified` |
 | `vagabond.untouchable.1` | Untouchable | 1 | `full` | `unreviewed` | core | `uncertified` |

@@ -1,0 +1,132 @@
+{
+  "schemaVersion": 1,
+  "editionId": "dawn-en-lionwing-cb2f8e67",
+  "description": "Scoped executable contracts, not recorded successes. Actual runs live under ignored output/qa-verification and are invalidated by revision, canonical rule, implementation, test or contract changes. Rules omitted from this manifest have no run evidence.",
+  "dependencyGroups": {
+    "native-scene-runtime": {
+      "files": [
+        "apps/companion/data.js",
+        "apps/companion/edition-lionwing.js",
+        "apps/companion/lionwing-table-data.js",
+        "apps/companion/logic.js",
+        "apps/companion/scene-engine-core.js",
+        "apps/companion/scene-query.js",
+        "apps/companion/scene-movement.js",
+        "apps/companion/scene-foundations.js",
+        "apps/companion/scene-modifiers.js",
+        "apps/companion/scene-modifier-rescue.js",
+        "apps/companion/scene-modifier-deployment.js",
+        "apps/companion/scene-modifier-advanced.js",
+        "apps/companion/scene-modifier-redirect.js",
+        "apps/companion/scene-events.js",
+        "apps/companion/scene-triggers.js",
+        "apps/companion/scene-actions.js",
+        "apps/companion/scene-responses.js",
+        "apps/companion/scene-engine.js",
+        "apps/companion/lionwing-execution.js",
+        "apps/companion/lionwing-dice.js",
+        "apps/companion/lionwing-geometry.js",
+        "apps/companion/lionwing-geometry-runtime.js",
+        "apps/companion/lionwing-aura-transitions.js",
+        "apps/companion/lionwing-action-plan.js",
+        "apps/companion/lionwing-entities.js",
+        "apps/companion/lionwing-information-query.js",
+        "apps/companion/lionwing-inventory.js",
+        "apps/companion/lionwing-derived-actions.js",
+        "apps/companion/lionwing-restored-techniques.js",
+        "apps/companion/lionwing-adapters.js",
+        "apps/companion/lionwing-combat-meter.js",
+        "apps/companion/lionwing-engine.js"
+      ]
+    }
+  },
+  "rules": [
+    {
+      "id": "vagabond.sniper.1",
+      "kind": "technique",
+      "implemented": true,
+      "coverage": "focused",
+      "requiredSurfaces": ["core", "ui", "network", "persistence"],
+      "source": { "path": "source/editions/dawn-en-lionwing-cb2f8e67/extracted-companion.json", "ruleId": "vagabond.sniper.1" },
+      "implementationGroups": ["native-scene-runtime"],
+      "checks": [
+        {
+          "id": "vagabond.sniper.1.core-range",
+          "surface": "core",
+          "environment": "node-core",
+          "claim": "Talent Finisher range floor 5 composes with greater range; Body, disabled and non-LionWing owners receive no contribution; quoting is read-only.",
+          "command": { "path": "apps/companion/tests/automation-verification-cases.mjs", "args": ["--case", "vagabond.sniper.1.core-range"] },
+          "testFiles": ["apps/companion/tests/automation-verification-cases.mjs", "apps/companion/tests/helpers/scene-contract-harness.mjs", "apps/companion/tests/load-scene-engine.mjs"],
+          "timeoutMs": 30000
+        },
+        {
+          "id": "vagabond.sniper.1.persisted-range",
+          "surface": "persistence",
+          "environment": "json-reload",
+          "claim": "The native scene JSON export/reload preserves learned ownership, explicit automation and the read-only range quote across repeated reloads.",
+          "command": { "path": "apps/companion/tests/automation-verification-cases.mjs", "args": ["--case", "vagabond.sniper.1.persisted-range"] },
+          "testFiles": ["apps/companion/tests/automation-verification-cases.mjs", "apps/companion/tests/helpers/scene-contract-harness.mjs", "apps/companion/tests/load-scene-engine.mjs"],
+          "timeoutMs": 30000
+        }
+      ]
+    },
+    {
+      "id": "vagabond.untouchable.1",
+      "kind": "technique",
+      "implemented": true,
+      "coverage": "focused",
+      "requiredSurfaces": ["core", "ui", "network", "persistence"],
+      "source": { "path": "source/editions/dawn-en-lionwing-cb2f8e67/extracted-companion.json", "ruleId": "vagabond.untouchable.1" },
+      "implementationGroups": ["native-scene-runtime"],
+      "checks": [
+        {
+          "id": "vagabond.untouchable.1.core-round-gate",
+          "surface": "core",
+          "environment": "node-core",
+          "claim": "Only the first Dodge each Round adds Talent to Evasion; the next Round reopens the gate; disabled and non-LionWing owners receive no contribution.",
+          "command": { "path": "apps/companion/tests/automation-verification-cases.mjs", "args": ["--case", "vagabond.untouchable.1.core-round-gate"] },
+          "testFiles": ["apps/companion/tests/automation-verification-cases.mjs", "apps/companion/tests/helpers/scene-contract-harness.mjs", "apps/companion/tests/load-scene-engine.mjs"],
+          "timeoutMs": 30000
+        },
+        {
+          "id": "vagabond.untouchable.1.persisted-round-gate",
+          "surface": "persistence",
+          "environment": "json-reload",
+          "claim": "JSON export/reload retains the current-Round Dodge receipt, prevents a duplicate bonus and restores the bonus only after a Round boundary.",
+          "command": { "path": "apps/companion/tests/automation-verification-cases.mjs", "args": ["--case", "vagabond.untouchable.1.persisted-round-gate"] },
+          "testFiles": ["apps/companion/tests/automation-verification-cases.mjs", "apps/companion/tests/helpers/scene-contract-harness.mjs", "apps/companion/tests/load-scene-engine.mjs"],
+          "timeoutMs": 30000
+        }
+      ]
+    },
+    {
+      "id": "vagabond.master-at-arms.2",
+      "kind": "technique",
+      "implemented": true,
+      "coverage": "focused",
+      "requiredSurfaces": ["core", "ui", "network", "persistence"],
+      "source": { "path": "source/editions/dawn-en-lionwing-cb2f8e67/extracted-companion.json", "ruleId": "vagabond.master-at-arms.2" },
+      "implementationGroups": ["native-scene-runtime"],
+      "checks": [
+        {
+          "id": "vagabond.master-at-arms.2.core-second-equip",
+          "surface": "core",
+          "environment": "node-core",
+          "claim": "The native action route grants 1 AP and Hasten on the second distinct Equip only; the first/third Equip and same-mode refusal do not duplicate the reward.",
+          "command": { "path": "apps/companion/tests/automation-verification-cases.mjs", "args": ["--case", "vagabond.master-at-arms.2.core-second-equip"] },
+          "testFiles": ["apps/companion/tests/automation-verification-cases.mjs", "apps/companion/tests/helpers/scene-contract-harness.mjs", "apps/companion/tests/load-scene-engine.mjs"],
+          "timeoutMs": 30000
+        },
+        {
+          "id": "vagabond.master-at-arms.2.persisted-second-equip",
+          "surface": "persistence",
+          "environment": "json-reload",
+          "claim": "Reloading during the second Armament attack retains pending identity and resolves exactly one AP/Hasten reward; replay of accepted packets after reload is a no-op.",
+          "command": { "path": "apps/companion/tests/automation-verification-cases.mjs", "args": ["--case", "vagabond.master-at-arms.2.persisted-second-equip"] },
+          "testFiles": ["apps/companion/tests/automation-verification-cases.mjs", "apps/companion/tests/helpers/scene-contract-harness.mjs", "apps/companion/tests/load-scene-engine.mjs"],
+          "timeoutMs": 30000
+        }
+      ]
+    }
+  ]
+}

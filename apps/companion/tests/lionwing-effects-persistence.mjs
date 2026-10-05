@@ -30,6 +30,10 @@ const migrated=context.normalizeEffects(oldSource,{effects:["negative.помеч
 assert.equal(Object.hasOwn(migrated,"duration"),false,"old sources keep the lifetime fallback instead of receiving a fabricated default");
 assert.equal(Object.hasOwn(migrated,"appliedSerial"),false,"null serials retain the legacy fallback");
 
+const manySources=Array.from({length:13},(_,index)=>({sourceId:`source:${index}`,actorId:"caster",sourceBound:true,duration:"scene"}));
+const manyRestored=context.normalizeEffects({effects:["negative.помечен"],rulesEdition:"lionwing",effectStates:{"negative.помечен":{sources:manySources}}},{effects:["negative.помечен"],rulesEdition:"lionwing"},ids);
+assert.deepEqual(JSON.parse(JSON.stringify(manyRestored["negative.помечен"].sources.map(source=>source.sourceId))),manySources.map(source=>source.sourceId),"persistence retains every accepted independent Effect source beyond the old 12-source clipping point");
+
 context.window={};context.console=console;
 for(const file of ["data.js","edition-lionwing.js","logic.js"])vm.runInContext(fs.readFileSync(new URL(`../${file}`,import.meta.url),"utf8"),context);
 loadSceneEngine(context);

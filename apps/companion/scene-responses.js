@@ -9,6 +9,28 @@ function antagonistDefenseRule(data, actor) {
   return rule ? { trait, rule } : null;
 }
 
+function reactionDestinationAvailable(scene, option, source) {
+  if (!option?.requiresDestination) return true;
+  const trait = option.enemyTrait, moverId = trait?.postMove ? trait.reactionActorId : trait?.defenderActorId;
+  const mover = actorById(scene, moverId), space = (scene.spaces || []).find(item => item.id === mover?.space);
+  if (!mover || !space) return false;
+  const anchor = option.destinationKind === "adjacent-attacker" ? source
+    : option.destinationKind === "adjacent-trait-owner" ? actorById(scene, trait?.reactionActorId)
+      : null;
+  const maximum = Math.max(0, Number(option.maxDistance || mover.speed || 0));
+  const movement = effectMovementStatus(scene, mover.id, { distance: maximum });
+  for (let y = 0; y < space.height; y += 1) for (let x = 0; x < space.width; x += 1) {
+    if (!effectCellOccupancyStatus(scene, mover.id, { space: space.id, x, y }).available) continue;
+    if (option.destinationKind === "edge" && x !== 0 && y !== 0 && x !== space.width - 1 && y !== space.height - 1) continue;
+    if (anchor && (anchor.space !== space.id || Math.max(Math.abs(anchor.x - x), Math.abs(anchor.y - y)) > 1)) continue;
+    if (option.destinationKind === "move" && (x !== mover.x || y !== mover.y)) {
+      if (!movement.available || !movementPath(scene, mover.id, { x, y }, { maxDistance: movement.distance }).length) continue;
+    }
+    return true;
+  }
+  return false;
+}
+
 function antagonistReactionOptions(scene, data, target, source) {
   if (!target || !(target.kind === "enemy" || target.profileId)) return [];
   const options = [];
@@ -58,7 +80,7 @@ function antagonistReactionOptions(scene, data, target, source) {
       }
     } else options.push(base);
   }
-  return options;
+  return options.filter(option => reactionDestinationAvailable(scene, option, source));
 }
 
 function reactionOptions(scene, data, actorId) {
@@ -68,8 +90,8 @@ function reactionOptions(scene, data, actorId) {
   if (!source || source.knockedOut) return [];
   if (!effectTargetingStatus(scene, source.id, actor.id).available) return [];
   const effectDefense = effectDefenseStatus(scene, actorId);
-  const profileActor = actor.kind === "enemy" || Boolean(actor.profileId);
-  const defenses = profileActor ? antagonistReactionOptions(scene, data, actor, source) : availableActions(scene, data, actorId).filter(action => action.reaction).map(action => actionIs(action, "dodge") && !effectDefense.dodgeAllowed ? { ...action, available: false, reason: effectDefense.dodgeReason } : action);
+  const profileActor = actor.kind === "enemy" || Boolean(actor.profileId), heroActor = actor.kind === "hero" && !actor.profileId;
+  const defenses = profileActor ? antagonistReactionOptions(scene, data, actor, source) : heroActor ? availableActions(scene, data, actorId).filter(action => action.reaction).map(action => actionIs(action, "dodge") && !effectDefense.dodgeAllowed ? { ...action, available: false, reason: effectDefense.dodgeReason } : action) : [];
   if (profileActor && !defenses.some(option => option.available)) return [];
   return [{ id: "pass", name: "Без Реакции", available: true, reason: "Принять исходную Атаку без защиты", costModel: { amount: 0, resource: null } }, ...defenses];
 }
@@ -84,7 +106,7 @@ function pendingActionStatus(scene, data = null) {
   const pendingIds = eligibleIds.filter(id => pending.responses?.[id]?.choice === "pending");
   const autoPassedIds = data ? pendingIds.filter(id => {
     const target = actorById(scene, id);
-    return Boolean(target?.kind === "enemy" || target?.profileId) && !reactionOptions(scene, data, id).some(option => option.id !== "pass" && option.available);
+    return Boolean(target && (target.kind !== "hero" || target.profileId)) && !reactionOptions(scene, data, id).some(option => option.id !== "pass" && option.available);
   }) : [];
   const waitingIds = pendingIds.filter(id => !autoPassedIds.includes(id));
   const answeredIds = eligibleIds.filter(id => autoPassedIds.includes(id) || pending.responses?.[id]?.choice && pending.responses[id].choice !== "pending" && pending.responses[id].choice !== "unavailable");
@@ -136,8 +158,21 @@ function pendingTargetOutcome(scene, pending, targetId) {
   if (!pending || !source || !target || target.knockedOut) return { available: false, reason: "Источник или цель Атаки больше не доступны.", source, target, cancelled: true, rawDamage: 0, armor: 0, evasion: 0, expectedDamage: 0 };
   const clashCancelled = (actionIdIs(response, "clash") || reaction.enemyTrait?.clash) && reaction.clash?.defenderWins, giftCancelled = Boolean(reaction.giftReaction?.cancelAttack), body = Number(target.attrs?.body || 0);
   const alliedGas = (scene.objects || []).find(object => object.type === "gas" && object.space === target.space && object.cells?.includes(`${target.x},${target.y}`) && actorById(scene, object.ownerActorId)?.team === target.team), sourceInsideGas = alliedGas && source.space === alliedGas.space && alliedGas.cells?.includes(`${source.x},${source.y}`), gasEvasion = alliedGas && !sourceInsideGas ? 3 : 0;
-  const defense = effectDefenseStatus(scene, target.id), temporaryArmor = actionIdIs(response, "block") ? body : Number(reaction.temporaryArmor || 0), temporaryEvasion = Number(reaction.temporaryEvasion || 0) + gasEvasion;
-  const rawDamage = pending.damageByTarget && Number.isFinite(Number(pending.damageByTarget[targetId])) ? Number(pending.damageByTarget[targetId]) : Number(pending.damage || 0), raw = Math.max(0, rawDamage), armor = defense.armorAllowed ? Math.max(0, Number(target.armor || 0) + temporaryArmor + defense.armorBonus) : 0, afterArmor = raw > 0 ? Math.max(1, raw - armor) : 0, evasion = Math.max(0, Number(target.evasion || 0) + temporaryEvasion), expectedDamage = clashCancelled || giftCancelled ? 0 : Math.max(0, afterArmor - Math.min(afterArmor, evasion));
+  const blockQuote = scene.rulesEdition === "lionwing" && actionIdIs(response, "block")
+    ? (typeof window === "object" ? window : globalThis).DAWN_LIONWING_ADAPTERS?.numericQuote?.(target, {
+      scene, kind: "block", key: "blockArmor", baseValue: body, attackId: pending.id, attackerId: source.id,
+    }) : null;
+  if (blockQuote?.ok === false) return { available: false, reason: blockQuote.reason, source, target, cancelled: true, expectedDamage: 0 };
+  const defense = effectDefenseStatus(scene, target.id), temporaryArmor = actionIdIs(response, "block") ? blockQuote?.value ?? body : Number(reaction.temporaryArmor || 0), temporaryEvasion = Number(reaction.temporaryEvasion || 0) + gasEvasion;
+  const nativeDefense = scene.rulesEdition === "lionwing" ? (typeof window === "object" ? window : globalThis).DAWN_LIONWING_ENGINE : null;
+  const armorBase = nativeDefense?.statQuote?.(target, "armor", { scene, kind: "defense" })?.value ?? Number(target.armor || 0);
+  const evasionBase = nativeDefense?.statQuote?.(target, "evasion", { scene, kind: "defense" })?.value ?? Number(target.evasion || 0);
+  const rawDamage = pending.damageByTarget && Number.isFinite(Number(pending.damageByTarget[targetId])) ? Number(pending.damageByTarget[targetId]) : Number(pending.damage || 0), raw = Math.max(0, rawDamage), armor = defense.armorAllowed ? Math.max(0, Number(armorBase) + temporaryArmor + defense.armorBonus) : 0, afterArmor = raw > 0 ? Math.max(1, raw - armor) : 0, evasion = nativeDefense && !defense.evasionAllowed ? 0 : Math.max(0, Number(evasionBase) + temporaryEvasion);
+  let expectedDamage = clashCancelled || giftCancelled ? 0 : Math.max(0, afterArmor - Math.min(afterArmor, evasion));
+  if (expectedDamage > 0 && !pending.fixedDamage && hasEffect(scene, target, "negative.помечен")) expectedDamage += Number(target.tier || 1);
+  const finalQuote = nativeDefense?.numericQuote?.(target, { scene, key: "finalDamage", kind: "damage", actionId: pending.actionId,
+    sourceActorId: source.id, targetId: target.id, baseValue: expectedDamage, immobilized: hasEffect(scene, target, "negative.обездвижен"), tier: Number(target.tier || 1), roundUp: true });
+  if (!pending.fixedDamage && finalQuote?.ok) expectedDamage = Math.max(0, Number(finalQuote.value));
   return { available: true, reason: "", source, originalTarget, target, reaction, response, cancelled: clashCancelled || giftCancelled, rawDamage, raw, armor, evasion, temporaryArmor, temporaryEvasion, afterArmor, expectedDamage };
 }
 
@@ -274,7 +309,14 @@ function cancelPendingAction(scene, request = {}) {
   if (!status.exists) return { ok: false, errors: ["Нет ожидающего действия."], events: [] };
   const reason = String(request.reason || status.interruptedReason || "Цепочка прервана Нарратором").slice(0, 240);
   const events = [];
-  events.push({ type: "attack.clear", actorId: status.source?.id || null, payload: { pendingId: status.pending.id, cancelled: true, reason } });
+  const pending = status.pending, actionId = pending.sourceActionId || pending.actionId || null;
+  events.push({ type: "attack.clear", actorId: status.source?.id || pending.actorId || null, payload: {
+    pendingId: pending.id, actionId, sourceActionId: actionId,
+    actionInstanceId: pending.actionInstanceId || pending.id,
+    ownerTurnInstanceId: pending.ownerTurnInstanceId || scene.lionwing?.activeTurnInstanceId || null,
+    targetIds: clone(pending.targetIds || []), cancelled: true, reason,
+    ...(pending.derived ? { derived: true, derivedActionId: pending.derivedActionId, fixedTargetId: pending.fixedTargetId, lineage: clone(pending.derivedLineage || []) } : {}),
+  } });
   return { ok: true, errors: [], cancelled: true, events };
 }
 
@@ -291,12 +333,83 @@ function wispMarkerPayload(actor, promptId, spiritTypes, destination, suffix = "
   return { id: `wisp-${promptId}-${suffix}`, space: actor.space, x: Number(destination.x), y: Number(destination.y), markerKind: "ritual", label: `Духовное пламя · ${rules.map(rule => rule.label).join(" + ")}`, color: "#ef9ac1", source: "altruist.will-o-wisp.1", ruleId: "altruist.will-o-wisp.1", duration: "scene", ownerActorId: actor.id, metadata: { spiritTypes: types, effectRules: rules.map(rule => ({ effect: rule.effect, audience: rule.audience })) } };
 }
 
+function berserkerPassiveTargets(scene, actor) {
+  return (scene.actors || []).filter(target => target.team !== actor.team && !target.knockedOut && target.space === actor.space && distance(actor, target) === 1 && effectTargetingStatus(scene, actor.id, target.id).available && wallTargetingStatus(scene, actor, target).available);
+}
+
+function berserkerPassivePrompt(scene, actor, id, afterMove = false) {
+  const targets = berserkerPassiveTargets(scene, actor), maximum = actor.ruleState?.berserkerLastStand ? 2 : 1;
+  const space = (scene.spaces || []).find(item => item.id === actor.space), movement = effectMovementStatus(scene, actor.id, { distance: maximum });
+  let canMove = false;
+  if (!afterMove && movement.available) for (let y = Math.max(0, actor.y - maximum); y <= Math.min(Number(space?.height || 0) - 1, actor.y + maximum); y += 1) for (let x = Math.max(0, actor.x - maximum); x <= Math.min(Number(space?.width || 0) - 1, actor.x + maximum); x += 1) {
+    if ((x !== actor.x || y !== actor.y) && movementPath(scene, actor.id, { x, y }, { maxDistance: movement.distance }).length) canMove = true;
+  }
+  if (!canMove && !targets.length) return null;
+  return { type: "rule.prompt", actorId: actor.id, payload: { id, kind: "enemy-berserker-passive", sourceActorId: actor.id, controller: "narrator", title: "Берсерк · пассивная способность", text: afterMove ? "Выберите смежного противника для урона [Ступень + 1]. Это не Атака." : `Получено не менее 4 урона одним случаем: можно переместиться до ${maximum} клетки и нанести смежному противнику [Ступень + 1] урона.`, options: [...(canMove ? ["move"] : []), ...targets.map(target => `target:${target.id}`), "pass"], context: { berserkerPassive: true, afterMove, maxDistance: maximum, optionLabels: { move: "Выбрать клетку перемещения", pass: afterMove ? "Завершить без урона" : "Не использовать", ...Object.fromEntries(targets.map(target => [`target:${target.id}`, `Нанести ${Number(actor.tier || 1) + 1} урона · ${target.name}`])) } }, participantIds: [actor.id, ...targets.map(target => target.id)] } };
+}
+
+function berserkerPassiveEvents(scene, event) {
+  if (event.type !== "damage.apply" || Number(event.payload?.dealt ?? event.payload?.healthLost ?? 0) < 4) return [];
+  const actor = actorById(scene, event.payload?.targetId);
+  if (actor?.profileId !== "lionwing.npc.berserker" || actor.knockedOut || actor.ruleState?.berserkerReactionTurnSerial === Number(scene.turnSerial || 0)) return [];
+  if ([scene.pendingPrompt, ...(scene.triggerQueue || []).map(item => item.event?.payload)].some(prompt => prompt?.context?.berserkerPassive && prompt.sourceActorId === actor.id)) return [];
+  const prompt = berserkerPassivePrompt(scene, actor, `prompt-${event.id}-berserker-passive`);
+  return prompt ? [prompt] : [];
+}
+
 function respondRulePrompt(scene, data, request = {}) {
   const choiceStatus = ruleChoiceStatus(scene, request), prompt = scene.pendingPrompt, actor = choiceStatus.source, target = choiceStatus.target, choice = choiceStatus.choice;
   const errors = choiceStatus.available ? [] : [choiceStatus.reason];
   if (errors.length) return { ok: false, errors, events: [] };
   const events = [promptResponseEvent(prompt, actor, target, choice, request)];
   if (request.stale === true) return { ok: true, errors: [], events };
+  if (prompt.kind === "enemy-berserker-passive") {
+    if (actor.profileId !== "lionwing.npc.berserker" || !prompt.context?.berserkerPassive) return { ok: false, errors: ["Пассивная способность Берсерка больше недоступна."], events: [] };
+    if (choice === "move") {
+      if (prompt.context.afterMove || actor.ruleState?.berserkerReactionTurnSerial === Number(scene.turnSerial || 0)) return { ok: false, errors: ["Перемещение пассивной способности уже использовано."], events: [] };
+      const current = berserkerPassivePrompt(scene, actor, prompt.id);
+      if (!current?.payload.options.includes("move")) return { ok: false, errors: ["Нет доступного перемещения Берсерка."], events: [] };
+      events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${prompt.id}-move`, kind: "enemy-move-cell", sourceActorId: actor.id, controller: "narrator", title: "Берсерк · перемещение пассивной способности", text: "Выберите клетку на поле. После перемещения можно нанести смежному противнику [Ступень + 1] урона.", options: ["cancel"], context: { berserkerPassive: true, maxDistance: actor.ruleState?.berserkerLastStand ? 2 : 1, optionLabels: { cancel: "Отмена пассивной способности" } }, participantIds: [actor.id] } });
+    } else if (choice.startsWith("target:")) {
+      const victim = berserkerPassiveTargets(scene, actor).find(item => item.id === choice.slice(7));
+      if (!victim || !prompt.context.afterMove && actor.ruleState?.berserkerReactionTurnSerial === Number(scene.turnSerial || 0)) return { ok: false, errors: ["Цель пассивной способности Берсерка больше недоступна."], events: [] };
+      events.push({ type: "actor.state", actorId: actor.id, payload: { key: "berserkerReactionTurnSerial", value: Number(scene.turnSerial || 0), sourceActionId: "lionwing.npc.berserker.passive" } });
+      events.push({ type: "damage.apply", actorId: actor.id, payload: { targetId: victim.id, amount: Number(actor.tier || 1) + 1, attack: false, ignoreArmor: true, ignoreEvasion: true, sourceActionId: "lionwing.npc.berserker.passive", participantIds: [actor.id, victim.id] } });
+    }
+    return { ok: true, errors: [], events };
+  }
+  if (prompt.kind === "bodyguards-brace-line") {
+    const lineIds = choice.startsWith("line:") ? choice.slice(5).split(",").filter(Boolean) : [];
+    const selectedLine = (prompt.context?.braceLines || []).find(ids => JSON.stringify(ids) === JSON.stringify(lineIds));
+    const stillValid = selectedLine && bodyguardsBraceLines(scene, actor).some(ids => JSON.stringify(ids) === JSON.stringify(lineIds));
+    const rule = enemyCanonicalRule(enemyProfileById(data, actor.profileId)?.rules?.find(item => item.id === "lionwing.npc.bodyguards.brace"));
+    const currentRules = availableEnemyRules({ ...scene, pendingPrompt: null }, data, actor.id), available = currentRules.find(item => item.id === rule?.id);
+    if (scene.rulesEdition !== "lionwing" || actor.profileId !== "lionwing.npc.bodyguards" || !stillValid || !rule || !available?.available) return { ok: false, errors: [available?.reason || "Выбранная Линия больше недоступна."], events: [] };
+    const sourceDigest = rule.sourceDigest || null, participants = [actor.id, ...lineIds], action = { ruleId: rule.id, sourceRuleId: rule.id, sourceDigest, profileId: actor.profileId, name: rule.name, kind: "action", targetIds: [], automation: "full", braceLineIds: lineIds, participantIds: participants };
+    events.push(
+      { type: "enemy.action.prepare", actorId: actor.id, payload: action },
+      { type: "resource.spend", actorId: actor.id, payload: { resource: "ap", amount: Number(rule.apCost || 1), sourceRuleId: rule.id, sourceDigest, participantIds: [actor.id] } },
+      { type: "enemy.action.resolve", actorId: actor.id, payload: action },
+      { type: "actor.state", actorId: actor.id, payload: { key: "bodyguardsBrace", value: { zoneIds: lineIds }, sourceActionId: rule.id, sourceDigest, participantIds: participants } },
+    );
+  }
+  if (prompt.kind === "enemy-broodmother-fodder" && choice !== "pass") {
+    const damage = (scene.log || []).find(item => item.id === prompt.context?.damageEventId);
+    const key = choice.startsWith("cell:") ? choice.slice(5) : "";
+    if (scene.rulesEdition !== "lionwing" || actor.profileId !== "lionwing.npc.broodmother" || damage?.type !== "damage.apply"
+      || damage.payload?.targetId !== actor.id || Number(damage.payload?.dealt || 0) <= 0
+      || (scene.actors || []).filter(item => item.kind === "crowd" && !item.knockedOut).length > 5 + 2 * Number(actor.tier || 1)
+      || !broodmotherFodderCells(scene, actor).includes(key)) return { ok: false, errors: ["Клетка или условие создания массовки Матки больше недоступны."], events: [] };
+    const [x, y] = key.split(",").map(Number), sourceActionId = "lionwing.npc.broodmother.passive";
+    events.push({ type: "actor.spawn", actorId: actor.id, payload: { broodmotherPromptId: prompt.id, actor: {
+      id: `broodmother-fodder-${eventId()}`, kind: "crowd", crowdType: "mob", crowdGroupId: `broodmother-${actor.id}`,
+      source: sourceActionId, sourceActionId, team: actor.team, heroId: null, profileId: null,
+      name: `${actor.name}: массовка`, tier: 0, space: actor.space, x, y,
+      hp: 1, maxHp: 1, focus: 0, ap: 0, baseAp: 0, speed: 0, armor: 0, evasion: 0,
+      effects: [], usedActions: [], acted: true, hidden: false, tokenSymbol: "♟",
+      tokenColor: actor.tokenColor || "#7f3044", tokenImage: "", portraitImage: "", summonerId: actor.id,
+    }, participantIds: [actor.id] } });
+  }
   if (prompt.kind === "dim-mak-jab" && choice === "jab") {
     const marker = markerById(scene, prompt.context?.markerId), host = marker && actorById(scene, markerHostId(marker)), enter = (scene.log || []).find(item => item.id === prompt.context?.enterEventId), expected = Math.ceil(Number(actor.attrs?.mind || 0) / 2);
     if (scene.rulesEdition !== "lionwing" || !marker || marker.ruleId !== "vagabond.dim-mak.1" || marker.ownerActorId !== actor.id || !host || host.id !== prompt.context?.fixedTargetId || host.knockedOut || actor.space !== marker.space || Number(actor.x) !== Number(marker.x) || Number(actor.y) !== Number(marker.y) || !enter || enter.type !== "actor.enter" || enter.actorId !== actor.id || enter.payload?.segmentId !== prompt.context?.segmentId && prompt.context?.segmentId != null) return { ok: false, errors: ["Слабая точка или подтверждённый вход больше недоступны."], events: [] };
@@ -309,6 +422,11 @@ function respondRulePrompt(scene, data, request = {}) {
   if(prompt.kind==="modifier-refresh"){
     const state=modifierState(actor),status=modifierConfigurationStatus(scene,actor.id,state);
     if(!status.available||Number(state.configuredRound||0)!==Number(scene.round||1))return{ok:false,errors:[status.reason||"Сначала задайте новую настройку модификатора в его панели."],events:[]};
+  }
+  if(prompt.kind==="lionwing-vip-follow"){
+    const mover=actorById(scene,prompt.context?.moverId),movement=(scene.log||[]).find(item=>item.id===prompt.context?.moveEventId);
+    if(actor.profileId!==LIONWING_VIP_ID||actor.knockedOut||!mover||mover.knockedOut||mover.team===actor.team||mover.kind==="crowd"||movement?.type!=="actor.move"||movement.actorId!==mover.id||Number(prompt.context?.turnSerial)!==Number(scene.turnSerial||0)||Number(modifierState(actor).lastFollowTurnSerial??-1)===Number(scene.turnSerial||0))return{ok:false,errors:["Сопровождение VIP больше недоступно."],events:[]};
+    if(choice==="follow")events.push({type:"actor.move",actorId:actor.id,payload:{space:mover.space,x:mover.x,y:mover.y,vipFollow:{moverId:mover.id,moveEventId:movement.id,promptId:prompt.id,turnSerial:Number(scene.turnSerial||0)},sourceActionId:"lionwing.modifier.vip.follow",participantIds:[actor.id,mover.id]}});
   }
   if (prompt.kind === "enemy-coordinator-followup-ally" && choice.startsWith("ally:")) {
     const ally = actorById(scene, choice.slice(5));
@@ -338,12 +456,12 @@ function respondRulePrompt(scene, data, request = {}) {
       if ((rule.adjacent || family.adjacent) && distance(actor, target) > 1 || rule.range && distance(actor, target) > Number(rule.range)) return { ok: false, errors: ["Цель больше не находится в дальности основной Атаки союзника."], events: [] };
       const baseDice = enemyTierFormula(rule.dice || "0", actor.tier), effectAttack = effectAttackStatus(scene, actor.id, [target.id]), expectedDice = Math.max(baseDice > 0 ? 1 : 0, baseDice - Number(effectAttack.hindrance || 0)), roll = request.roll;
       const directDamage = rule.directDamage ? enemyTierFormula(rule.directDamage, actor.tier) : null;
-      if (expectedDice && (!roll || !Array.isArray(roll.rolls) || roll.rolls.length !== expectedDice || roll.rolls.some(value => !Number.isInteger(value) || value < 1 || value > 6) || Number(roll.successes) !== roll.rolls.filter(value => value >= 4).length || Number(roll.crits) !== roll.rolls.filter(value => value === 6).length)) return { ok: false, errors: ["Бросок дополнительной Атаки не соответствует текущему пулу костей."], events: [] };
+      if (expectedDice && !enemyAttackRollMatchesPool(roll, expectedDice)) return { ok: false, errors: ["Бросок дополнительной Атаки не соответствует текущему пулу костей."], events: [] };
       if (!expectedDice && !Number.isFinite(directDamage)) return { ok: false, errors: ["Основная Атака союзника пока не имеет исполняемого броска или урона."], events: [] };
-      const tensionMultiplier = enemyAttackTensionMultiplier(rule.id), damage = (expectedDice ? Number(roll.successes || 0) + Number(scene.tension || 0) * tensionMultiplier : directDamage) + Number(effectAttack.damageModifier || 0) + Number(effectAttack.damageByTarget?.[target.id] || 0), targetEffects = (Object.prototype.hasOwnProperty.call(family, "effects") ? family.effects : rule.targetEffects || rule.effects || []).map(name => effectIdByName(data, name));
+      const tensionMultiplier = enemyAttackTensionMultiplier(rule.id), damage = expectedDice ? Number(roll.successes || 0) + Number(scene.tension || 0) * tensionMultiplier : directDamage, targetEffects = (Object.prototype.hasOwnProperty.call(family, "effects") ? family.effects : rule.targetEffects || rule.effects || []).map(name => effectIdByName(data, name));
       events.push({ type: "enemy.action.prepare", actorId: actor.id, payload: { ruleId: rule.id, sourceRuleId: rule.sourceRuleId || rule.id, sourceDigest: rule.sourceDigest || null, profileId: actor.profileId, name: `${rule.name} · Фанатизировать`, kind: "attack", targetIds: [target.id], automation: "attack", quickReaction: true, free: true, sourceActionId: "enemy.common.coordinator.attack.fanaticize", participantIds: [actor.id, target.id, coordinator?.id].filter(Boolean) } });
       events.push({ type: "reaction.offer", actorId: target.id, payload: { sourceActorId: actor.id, actionId: rule.id, participantIds: [actor.id, target.id] } });
-      events.push({ type: "attack.pending", actorId: actor.id, payload: { actionId: rule.id, enemyRuleId: rule.id, sourceRuleId: rule.sourceRuleId || rule.id, sourceDigest: rule.sourceDigest || null, name: `${rule.name} · Фанатизировать`, targetIds: [target.id], roll: expectedDice ? clone(roll) : null, damage, damageByTarget: { [target.id]: damage }, effects: targetEffects, reward: rule.reward || "", enemyAttackFamily: clone(family), quickReaction: true, sourceActionId: "enemy.common.coordinator.attack.fanaticize", participantIds: [actor.id, target.id, coordinator?.id].filter(Boolean) } });
+      events.push({ type: "attack.pending", actorId: actor.id, payload: { actionId: rule.id, enemyRuleId: rule.id, sourceRuleId: rule.sourceRuleId || rule.id, sourceDigest: rule.sourceDigest || null, name: `${rule.name} · Фанатизировать`, targetIds: [target.id], roll: expectedDice ? clone(roll) : null, damage, damageByTarget: { [target.id]: damage }, effects: targetEffects, reward: rule.reward || "", enemyAttackFamily: clone(family), assassinDisappearAfterAttack: actor.profileId === "lionwing.npc.assassin" && hasEffect(scene, target, "negative.помечен"), quickReaction: true, sourceActionId: "enemy.common.coordinator.attack.fanaticize", participantIds: [actor.id, target.id, coordinator?.id].filter(Boolean) } });
     }
   }
   if (prompt.kind === "enemy-crowd-move-select") {
@@ -515,6 +633,12 @@ function respondRulePrompt(scene, data, request = {}) {
     events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${prompt.id}-cell`, kind: "enemy-move-cell", sourceActorId: actor.id, controller: "narrator", title: "Снайперская дистанция", text: "Переместите Егеря на 1 клетку после Атаки по нему.", options: ["cancel"], context: { maxDistance: 1 }, participantIds: [actor.id] } });
   }
   if (prompt.kind === "enemy-berserker-retaliate" && choice === "retaliate") {
+    // Older LionWing saves may still contain the pre-fix Thrash prompt.
+    if (actor.profileId === "lionwing.npc.berserker") {
+      const canonicalPrompt = berserkerPassivePrompt(scene, actor, `prompt-${prompt.id}-canonical`);
+      if (canonicalPrompt) events.push(canonicalPrompt);
+      return { ok: true, errors: [], events };
+    }
     const roll = request.roll, maximum = actor.ruleState?.berserkerLastStand ? 2 : 1;
     if (!target || target.knockedOut || !roll || !Array.isArray(roll.rolls)) return { ok: false, errors: ["Цель или бросок ответного Сокрушения больше недоступны."], events: [] };
     let destination = { x: actor.x, y: actor.y }, path = [];
@@ -536,7 +660,10 @@ function respondRulePrompt(scene, data, request = {}) {
   }
   if (prompt.kind === "enemy-cocoon-repeat" && choice.startsWith("target:")) {
     const repeatTarget = actorById(scene, choice.slice(7)), ruleId=prompt.context?.ruleId||"enemy.common.cocoon.attack.rampage", rule = enemyCanonicalRule(enemyProfileById(data, actor.profileId)?.rules?.find(item => item.id === ruleId)), roll = request.roll, tensionMultiplier=Number(prompt.context?.tensionMultiplier??enemyAttackTensionMultiplier(ruleId));
-    if (!repeatTarget || repeatTarget.knockedOut || repeatTarget.team === actor.team || distance(actor, repeatTarget) > 1 || !rule || !roll || !Array.isArray(roll.rolls)) return { ok: false, errors: ["Новая цель Буйства или бросок больше недоступны."], events: [] };
+    const attacked = new Set(currentTurnEvents(scene, actor.id).filter(event => event.actorId === actor.id && event.type === "attack.pending").flatMap(event => event.payload?.targetIds || []));
+    if (!repeatTarget || repeatTarget.knockedOut || repeatTarget.team === actor.team || repeatTarget.space !== actor.space || attacked.has(repeatTarget.id) || distance(actor, repeatTarget) > 1 || !effectTargetingStatus(scene, actor.id, repeatTarget.id).available || !wallTargetingStatus(scene, actor, repeatTarget).available || !rule) return { ok: false, errors: ["Новая цель Буйства больше недоступна."], events: [] };
+    const effectAttack = effectAttackStatus(scene, actor.id, [repeatTarget.id]), baseDice = enemyTierFormula(rule.dice || "0", actor.tier), expectedDice = Math.max(baseDice > 0 ? 1 : 0, baseDice - Number(effectAttack.hindrance || 0));
+    if (!enemyAttackRollMatchesPool(roll, expectedDice)) return { ok: false, errors: ["Бросок повторного Буйства не соответствует текущему пулу костей."], events: [] };
     events.push({ type: "reaction.offer", actorId: repeatTarget.id, payload: { sourceActorId: actor.id, actionId: rule.id, participantIds: [actor.id, repeatTarget.id] } });
     const damage=Number(roll.successes||0)+Number(scene.tension||0)*tensionMultiplier;
     events.push({ type: "attack.pending", actorId: actor.id, payload: { actionId: rule.id, enemyRuleId: rule.id, sourceRuleId:rule.id, sourceDigest:rule.sourceDigest||null, name: `${rule.name} · повтор`, targetIds: [repeatTarget.id], roll: clone(roll), damage, damageByTarget: { [repeatTarget.id]:damage }, quickReaction: true, enemyAttackFamily: { repeatFreshTargets: true }, participantIds: [actor.id, repeatTarget.id] } });
@@ -1102,6 +1229,13 @@ function preparePromptPlacement(scene, request = {}) {
     const mover = ["enemy-move-cell", "enemy-crowd-move-cell", "fodder-move-cell"].includes(prompt.kind) && (prompt.context?.moveTarget || prompt.kind === "fodder-move-cell") ? target : actor, forced = Boolean(["enemy-move-cell", "enemy-crowd-move-cell"].includes(prompt.kind) && prompt.context?.moveTarget);
     events.push({ type: "actor.move", actorId: mover.id, payload: { space: mover.space, x: destination.x, y: destination.y, movement: prompt.kind === "thunder-surge-cell" ? "Телепортация · Скачок" : prompt.title, path: ["enemy-move-cell", "enemy-crowd-move-cell", "fodder-move-cell"].includes(prompt.kind) ? enemyMovePath.map(cellKey) : undefined, placement: ["reappear-cell", "thunder-surge-cell"].includes(prompt.kind)||Boolean(prompt.context?.teleportFarthestAdjacent), teleport:Boolean(prompt.context?.teleportFarthestAdjacent), forced, privateerEscort: Boolean(prompt.context?.privateerEscort), fodderMove: prompt.kind === "fodder-move-cell", boundaryEventId: prompt.kind === "fodder-move-cell" ? prompt.context?.boundaryEventId : null, enemyRuleMove: prompt.kind === "enemy-crowd-move-cell" ? prompt.context?.ruleId : null, sourceActorId: prompt.kind === "enemy-crowd-move-cell" ? actor.id : null, maximum: prompt.kind === "enemy-crowd-move-cell" ? Number(prompt.context?.maxDistance || 1) : null, participantIds: [actor.id, target?.id].filter(Boolean) } });
     if (mover.kind !== "crowd") events.push({ type: "actor.enter", actorId: mover.id, payload: { space: mover.space, x: destination.x, y: destination.y, movement: prompt.title, forced } });
+    if (prompt.context?.berserkerPassive) {
+      if (actor.profileId !== "lionwing.npc.berserker" || actor.ruleState?.berserkerReactionTurnSerial === Number(scene.turnSerial || 0)) return { ok: false, errors: ["Перемещение пассивной способности Берсерка уже недоступно."], events: [] };
+      events.push({ type: "actor.state", actorId: actor.id, payload: { key: "berserkerReactionTurnSerial", value: Number(scene.turnSerial || 0), sourceActionId: "lionwing.npc.berserker.passive" } });
+      const moved = { ...actor, ...destination }, staged = { ...scene, actors: scene.actors.map(item => item.id === actor.id ? moved : item) };
+      const targetPrompt = berserkerPassivePrompt(staged, moved, `prompt-${prompt.id}-target`, true);
+      if (targetPrompt) events.push(targetPrompt);
+    }
     if (prompt.kind === "enemy-crowd-move-cell") {
       const remaining = [...new Set(prompt.context?.remainingTargetIds || [])].filter(id => { const crowd = actorById(scene, id); return crowd && !crowd.knockedOut && crowd.kind === "crowd" && crowd.team === actor.team && crowd.space === actor.space; });
       events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${prompt.id}-next`, kind: "enemy-crowd-move-select", sourceActorId: actor.id, controller: "narrator", title: prompt.title.split(": ")[0] + ": движение массовки", text: "Переместите следующую Зону массовки или закончите движение.", options: [...remaining.map(id => `target:${id}`), "finish"], context: { ...clone(prompt.context), remainingTargetIds: remaining }, participantIds: [actor.id, ...remaining] } });
@@ -1284,9 +1418,12 @@ function resolvePendingAction(scene, data) {
   for (const targetId of status.eligibleIds) {
     const outcome = pendingTargetOutcome(scene, pending, targetId), target = outcome.target, resolvedTargetId = target?.id || targetId, traitReaction = outcome.reaction?.enemyTrait;
     if (!outcome.cancelled) {
-      const { rawDamage, temporaryArmor, temporaryEvasion, expectedDamage } = outcome;
-      for (let repeat = 0; repeat < Math.max(1, Number(pending.damageRepeats || 1)); repeat += 1) events.push({ type: "damage.apply", actorId: pending.actorId, payload: { targetId: resolvedTargetId, amount: rawDamage, temporaryArmor, temporaryEvasion, dodgeEvasion: actionIdIs(outcome.response,"dodge"), attackMiss: expectedDamage === 0, attackPendingId: pending.id, damageRepeat: repeat + 1, damageRepeatCount: Math.max(1, Number(pending.damageRepeats || 1)), sourceActionId: pending.actionId, sourceRuleId: pending.sourceRuleId || pending.enemyRuleId || null, sourceDigest: pending.sourceDigest || null, participantIds: [pending.actorId, resolvedTargetId] } });
-      const attackSucceeded = Number(pending.roll?.successes || 0) > 0 || !pending.roll && rawDamage > 0;
+       const { rawDamage, temporaryArmor, temporaryEvasion, expectedDamage } = outcome;
+       const aimBonus = expectedDamage > 0 ? Number(pending.aimBonusByTarget?.[targetId] ?? pending.aimBonusByTarget?.[resolvedTargetId] ?? 0) : 0;
+       for (let repeat = 0; repeat < Math.max(1, Number(pending.damageRepeats || 1)); repeat += 1) events.push({ type: "damage.apply", actorId: pending.actorId, payload: { targetId: resolvedTargetId, amount: rawDamage + aimBonus, temporaryArmor, temporaryEvasion, dodgeEvasion: actionIdIs(outcome.response,"dodge"), attackMiss: expectedDamage === 0, attackPendingId: pending.id, damageRepeat: repeat + 1, damageRepeatCount: Math.max(1, Number(pending.damageRepeats || 1)), sourceActionId: pending.actionId, sourceRuleId: pending.sourceRuleId || pending.enemyRuleId || null, sourceDigest: pending.sourceDigest || null, participantIds: [pending.actorId, resolvedTargetId] } });
+       const headshotBonus = Number(pending.headshotBonusByTarget?.[targetId] ?? pending.headshotBonusByTarget?.[resolvedTargetId] ?? 0);
+       if (expectedDamage > 0 && headshotBonus > 0) events.push({ type: "damage.apply", actorId: pending.actorId, payload: { targetId: resolvedTargetId, amount: headshotBonus, attackPendingId: pending.id, sourceActionId: pending.actionId, sourceRuleId: pending.sourceRuleId || pending.enemyRuleId || null, sourceDigest: pending.sourceDigest || null, headshotBonus: true, participantIds: [pending.actorId, resolvedTargetId] } });
+       const attackSucceeded = Number(pending.roll?.successes || 0) > 0 || !pending.roll && rawDamage > 0;
       const enemyFamily = pending.enemyAttackFamily || {};
       const untouchedThisRound = enemyTargetUntouchedThisRound(scene, resolvedTargetId, source?.team);
       if (expectedDamage > 0) successfulEnemyTargets.push(resolvedTargetId);
@@ -1400,7 +1537,7 @@ function resolvePendingAction(scene, data) {
   }
   if (source && enemyFamily.repeatFreshTargets) {
     const attacked = new Set(currentTurnEvents(scene, source.id).filter(event => event.actorId === source.id && event.type === "attack.pending").flatMap(event => event.payload?.targetIds || []).concat(pending.targetIds || []));
-    const candidates = (scene.actors || []).filter(target => !target.knockedOut && target.team !== source.team && target.space === source.space && distance(source, target) <= 1 && !attacked.has(target.id));
+    const candidates = (scene.actors || []).filter(target => !target.knockedOut && target.team !== source.team && target.space === source.space && distance(source, target) <= 1 && !attacked.has(target.id) && effectTargetingStatus(scene, source.id, target.id).available && wallTargetingStatus(scene, source, target).available);
     if (candidates.length) events.push({ type: "rule.prompt", actorId: source.id, payload: { id: `prompt-${pending.id}-cocoon-repeat`, kind: "enemy-cocoon-repeat", sourceActorId: source.id, controller: "narrator", title: "Буйство · повтор", text: "Бесплатно повторите Буйство против персонажа, которого Кокон ещё не атаковал в этот Ход.", options: [...candidates.map(target => `target:${target.id}`), "pass"], context: { ruleId:pending.actionId,tensionMultiplier:enemyAttackTensionMultiplier(pending.actionId),optionLabels: Object.fromEntries(candidates.map(target => [`target:${target.id}`, target.name])) }, participantIds: [source.id, ...candidates.map(target => target.id)] } });
   }
   if (source && enemyFamily.pugilistSequence && successfulEnemyTargets.length) {
@@ -1459,5 +1596,6 @@ function resolvePendingAction(scene, data) {
   if (!pending.enemyRuleId && events.at(-1)?.type === "action.resolve") events.at(-1).payload.actionInstanceId = pending.actionInstanceId || null;
   if (pending.techniqueRuleId && !masterArmament) events.push({ type: "technique.resolve", actorId: pending.actorId, payload: { ruleId: pending.techniqueRuleId, name: pending.techniqueName || pending.name, affectedActorIds: status.eligibleIds, skippedTargetIds: status.unavailableIds } });
   events.push({ type: "attack.clear", actorId: source?.id || pending.actorId, payload: { pendingId: pending.id, targetIds: status.eligibleIds, sourceActionId: pending.actionId, sourceRuleId: pending.sourceRuleId || pending.enemyRuleId || null, sourceDigest: pending.sourceDigest || null } });
+  if (pending.assassinDisappearAfterAttack && source?.profileId === "lionwing.npc.assassin" && !source.knockedOut) events.push({ type: "effect.apply", actorId: source.id, payload: { targetId: source.id, effect: "positive.исчез", sourceActionId: pending.actionId, sourceRuleId: pending.sourceRuleId || pending.enemyRuleId, sourceDigest: pending.sourceDigest || null, duration: "scene", participantIds: [source.id] } });
   return { ok: true, errors: [], events };
 }

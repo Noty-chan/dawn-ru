@@ -2,7 +2,7 @@
 
 Дата: 2026-09-21. База и проверяемый срез: `d7e24a1565806e074189a640fce9c2229b05cf94` (`origin/main`). Ветка: `codex/luna-l06-recovery-stress`.
 
-Это read-only аудит существующего хранения. Runtime, UI, БД, supplements, generated maps и пользовательские сохранения не менялись. Добавлены только [тест](../../apps/companion/tests/lionwing-recovery-stress.mjs) и этот отчёт.
+Это read-only аудит существующего хранения. Runtime, UI, БД, supplements, generated maps и пользовательские сохранения не менялись. Добавлены только [тест](../../../apps/companion/tests/lionwing-recovery-stress.mjs) и этот отчёт.
 
 Fixture нейтральная и полностью синтетическая: три пространства (`main`, `vault`, `balcony`), два героя и два врага, источник Эффекта от актора и источник от местности/маркера, обычный Фокус и ресурс `momentum`, часы актора и часы Сцены, Стена/область, ручная Атака с ожидающей Реакцией и pending Resistance. События проходят через LionWing dispatcher и Scene event path.
 

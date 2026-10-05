@@ -528,6 +528,7 @@
   function applyActorRemoval(scene, actorIds) {
     const ids = new Set(actorIds);
     scene.actors = (scene.actors || []).filter(actor => !ids.has(actor.id));
+    for (const owner of scene.actors) if (ids.has(owner.ruleState?.rangerHeadshotTargetId)) owner.ruleState.rangerHeadshotTargetId = null;
     scene.targetIds = (scene.targetIds || []).filter(id => !ids.has(id));
     if (ids.has(scene.selectedActor)) scene.selectedActor = null;
     if (ids.has(scene.activeActorId)) scene.activeActorId = null;

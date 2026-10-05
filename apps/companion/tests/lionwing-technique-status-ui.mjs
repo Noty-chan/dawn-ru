@@ -59,6 +59,7 @@ const canonicalRows = new Map([
 ]);
 let coverageCalls = 0;
 const helperContext = {
+  window: {},
   console,
   t: key => translations[key] || key,
   esc,
@@ -103,5 +104,10 @@ assert.match(heroUi, /data-automation-status=/);
 assert.match(heroUi, /esc\(reason\)/);
 assert.match(heroUi, /esc\(statusValues\)/);
 assert.match(index, /lionwing-automation-status\.js[\s\S]+app-bootstrap\.js/);
+
+helperContext.window.DAWN_LIONWING_ADAPTERS = { coverage: () => "manual" };
+assert.equal(api.techniqueLevelStatus("demo.technique", 2).automation, "manual", "general implementation readiness cannot advertise a missing LionWing command");
+helperContext.window.DAWN_LIONWING_ADAPTERS = { coverage: () => "partial" };
+assert.equal(api.techniqueLevelStatus("demo.technique", 2).automation, "partial", "catalogue reflects the actual runtime's partial coverage");
 
 console.log("LionWing technique status UI/logic QA passed: canonical rows, filters, partial/manual help and HTML escaping");

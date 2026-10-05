@@ -364,7 +364,9 @@ function comparePromptEvents(left, right) {
 }
 
 function latestPromptSource(scene) {
-  return [...(scene?.log || [])].reverse().find(item => item?.type !== "rule.trigger") || null;
+  // The journal is newest first. Manual notes are outside the rules event
+  // contract and cannot be the source of an executable prompt.
+  return (scene?.log || []).find(item => EVENT_TYPES.has(item?.type) && item.type !== "rule.trigger") || null;
 }
 
 function decoratePromptEvent(scene, event, defaults = {}) {
@@ -601,13 +603,72 @@ function effectRetainedAtBoundary(scene, target, effect, event) {
   return { retained: false, reason: "", ruleId: "" };
 }
 
+function broodmotherFodderCells(scene, actor) {
+  const space = (scene.spaces || []).find(item => item.id === actor?.space);
+  if (!space || actor?.knockedOut) return [];
+  const removed = removedCellKeys(scene, space.id);
+  const occupied = new Set((scene.actors || []).filter(item => item.kind === "crowd" && !item.knockedOut && item.space === space.id).map(cellKey));
+  const cells = [];
+  for (let y = 0; y < space.height; y += 1) for (let x = 0; x < space.width; x += 1) {
+    const cell = { x, y, space: space.id }, key = cellKey(cell);
+    if (distance(actor, cell) <= 2 && !removed.has(key) && !occupied.has(key)
+      && effectCellOccupancyStatus(scene, null, { actor: { id: "broodmother-fodder-preview", kind: "crowd", space: space.id }, ...cell }).available) cells.push(key);
+  }
+  return cells;
+}
+
 function effectLifecycleEvents(scene, event) {
   const events = [], boundaryActorId = event.actorId || null;
+  if (["actor.move", "actor.enter", "actor.knockout", "damage.apply", "actor.despawn", "actor.remove", "space.remove"].includes(event.type)) {
+    for (const owner of scene.actors || []) {
+      if (owner.profileId === "lionwing.npc.bodyguards" && owner.ruleState?.bodyguardsBrace && !bodyguardsBraceIntact(scene, owner)) {
+        events.push({ type: "actor.state", actorId: owner.id, payload: { key: "bodyguardsBrace", value: null, sourceActionId: "lionwing.npc.bodyguards.brace", automatic: true, reason: "Линия Зон массовки разорвана.", boundaryEventId: event.id, participantIds: [owner.id, ...(owner.ruleState.bodyguardsBrace.zoneIds || [])] } });
+      }
+    }
+  }
+  if (scene.rulesEdition === "lionwing" && ((event.type === "damage.apply" && event.payload?.applied) || (event.type === "actor.knockout" && event.payload?.applied))) {
+    const defeated = actorById(scene, event.payload?.targetId);
+    if (defeated?.knockedOut) for (const owner of scene.actors || []) {
+      if (!owner.deploymentProxy || owner.knockedOut || !["lionwing.npc.bodyguards", "lionwing.npc.swarm"].includes(owner.profileId)
+        || !deploymentPassiveConditionMet(scene, owner)
+        || (scene.log || []).some(item => item.type === "damage.apply" && item.payload?.deploymentOwnerId === owner.id)) continue;
+      const sourceActionId = `${owner.profileId}.deployment`;
+      events.push({ type: "damage.apply", actorId: owner.id, payload: { targetId: owner.id, amount: 1, ignoreArmor: true, ignoreEvasion: true, sourceActionId, deploymentOwnerId: owner.id, boundaryEventId: event.id, participantIds: [owner.id, defeated.id] } });
+    }
+  }
   if (event.type === "damage.apply" && event.payload?.applied) {
     const glutton = actorById(scene, event.actorId), target = actorById(scene, event.payload.targetId);
-    if (glutton && !glutton.knockedOut && glutton.profileId === "enemy.common.glutton" && target?.kind === "crowd" && target.knockedOut) {
-      events.push({ type: "actor.heal", actorId: glutton.id, payload: { targetId: glutton.id, amount: enemyTierFormula("10(+5)", glutton.tier), sourceActionId: "enemy.common.glutton.passive", boundaryEventId: event.id, participantIds: [glutton.id, target.id] } });
-      events.push({ type: "actor.state", actorId: glutton.id, payload: { key: "gluttonConsumed", delta: 1, sourceActionId: "enemy.common.glutton.passive", boundaryEventId: event.id, participantIds: [glutton.id, target.id] } });
+    if (glutton && !glutton.knockedOut && ["enemy.common.glutton", "lionwing.npc.glutton"].includes(glutton.profileId) && target?.kind === "crowd" && target.knockedOut) {
+      const canonical = glutton.profileId === "lionwing.npc.glutton", sourceActionId = canonical ? "lionwing.npc.glutton.passive" : "enemy.common.glutton.passive";
+      events.push({ type: "actor.heal", actorId: glutton.id, payload: { targetId: glutton.id, amount: canonical ? 3 + Number(glutton.tier || 1) : enemyTierFormula("10(+5)", glutton.tier), sourceActionId, boundaryEventId: event.id, participantIds: [glutton.id, target.id] } });
+      events.push({ type: "actor.state", actorId: glutton.id, payload: { key: "gluttonConsumed", delta: 1, sourceActionId, boundaryEventId: event.id, participantIds: [glutton.id, target.id] } });
+    }
+  }
+  if (event.type === "damage.apply" && Number(event.payload?.dealt || 0) > 0) {
+    const broodmother = actorById(scene, event.payload.targetId);
+    if (scene.rulesEdition === "lionwing" && broodmother?.profileId === "lionwing.npc.broodmother" && !broodmother.knockedOut
+      && (scene.actors || []).filter(item => item.kind === "crowd" && !item.knockedOut).length <= 5 + 2 * Number(broodmother.tier || 1)) {
+      const cells = broodmotherFodderCells(scene, broodmother);
+      if (cells.length) events.push({ type: "rule.prompt", actorId: broodmother.id, payload: {
+        id: `prompt-${event.id}-broodmother-fodder`, kind: "enemy-broodmother-fodder", sourceActorId: broodmother.id,
+        controller: "narrator", title: "Матка · новая массовка", text: "После получения урона можно создать одну Зону массовки в пределах 2 клеток.",
+        options: [...cells.map(cell => `cell:${cell}`), "pass"],
+        context: { damageEventId: event.id, optionLabels: { pass: "Не создавать Зону" } }, participantIds: [broodmother.id],
+      } });
+    }
+  }
+  if (scene.rulesEdition === "lionwing" && (event.type === "damage.apply" && event.payload?.applied || event.type === "actor.knockout" && event.payload?.applied)) {
+    const victim = actorById(scene, event.payload?.targetId);
+    const necromancer = (scene.actors || []).find(item => item.profileId === "lionwing.npc.necromancer" && !item.knockedOut
+      && item.kind !== "crowd" && item.team !== victim?.team && effectPresenceStatus(scene, item.id).onField);
+    if (victim?.knockedOut && necromancer && !(scene.markers || []).some(item => item.kind === "corpse" && item.metadata?.victimActorId === victim.id)) {
+      events.push({ type: "marker.create", actorId: necromancer.id, payload: {
+        id: `corpse-${event.id}`, space: victim.space, x: Number(victim.x), y: Number(victim.y), markerKind: "corpse",
+        label: `Труп · ${victim.name}`, color: "#8b7894", source: "lionwing.npc.necromancer.passive",
+        ruleId: "lionwing.npc.necromancer.passive", sourceActorId: necromancer.id, sourceLossPolicy: "detach",
+        ownerActorId: necromancer.id, duration: "scene", metadata: { victimActorId: victim.id, knockoutEventId: event.id },
+        participantIds: [necromancer.id, victim.id],
+      } });
     }
   }
   if (["turn.start", "turn.end", "round.end", "action.prepare", "enemy.action.prepare"].includes(event.type)) {
@@ -721,14 +782,59 @@ function routeLegacyPromptEvents(scene, sourceEvent, prefixEvents, legacyEvents)
   return routed;
 }
 
+function fodderBoundaryPromptEvents(scene, event) {
+  const actor = event.actorId ? actorById(scene, event.actorId) : null, events = [];
+  if (event.type === "turn.end" && actor && actor.kind !== "crowd") {
+    const crowdIds = (scene.actors || []).filter(item => item.kind === "crowd" && !item.knockedOut && item.team === actor.team && item.space === actor.space).map(item => item.id);
+    if (crowdIds.length) events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${event.id}-fodder-move`, kind: "fodder-move-select", sourceActorId: actor.id, controller: "narrator", title: "Движение массовки", text: "Настройте все перемещения одним пакетом или откройте отдельную Зону на поле.", options: [...crowdIds.map(id => `target:${id}`), "custom", "finish"], context: { remainingTargetIds: crowdIds, optionLabels: { custom: "Применить пакет", finish: "Оставить остальные на месте" } }, participantIds: [actor.id, ...crowdIds] } });
+  }
+  if (event.type === "round.end") {
+    const eligibleCrowds = (scene.actors || []).filter(item => item.kind === "crowd" && !item.knockedOut).filter(crowd => (scene.actors || []).some(target => !target.knockedOut && target.team !== crowd.team && target.space === crowd.space && distance(crowd, target) <= 1));
+    const first = eligibleCrowds[0];
+    if (first) {
+      const remainingIds = eligibleCrowds.map(item => item.id), allTargets = [...new Map(eligibleCrowds.flatMap(crowd => (scene.actors || []).filter(target => !target.knockedOut && target.team !== crowd.team && target.space === crowd.space && distance(crowd, target) <= 1)).map(target => [target.id, target])).values()];
+      events.push({ type: "rule.prompt", actorId: first.id, payload: { id: `prompt-${event.id}-fodder-damage`, kind: "fodder-round-batch", sourceActorId: first.id, controller: "narrator", title: `Массовка · ${eligibleCrowds.length} зон могут атаковать`, text: "Назначьте цель каждой Зоне, проверьте сводку и примените весь урон одним пакетом.", options: ["custom", "pass"], context: { eligibleCrowdIds: remainingIds }, participantIds: [...remainingIds, ...allTargets.map(target => target.id)] } });
+    }
+  }
+  return events;
+}
+
+function bodyguardsLifecycleEvents(scene, event) {
+  return effectLifecycleEvents(scene, event).filter(item =>
+    item.type === "actor.state" && item.payload?.key === "bodyguardsBrace"
+      && item.payload?.sourceActionId === "lionwing.npc.bodyguards.brace"
+    || item.type === "damage.apply" && ["lionwing.npc.bodyguards.deployment", "lionwing.npc.swarm.deployment"].includes(item.payload?.sourceActionId)
+  );
+}
+
+function lionwingRevenantRoundEvents(scene, event) {
+  if (event?.type !== "round.end") return [];
+  const events = [];
+  for (const revenant of (scene.actors || []).filter(item => item.knockedOut && item.profileId === "lionwing.npc.revenant")) {
+    const space = (scene.spaces || []).find(item => item.id === revenant.space);
+    if (!space) continue;
+    const occupied = new Set((scene.actors || []).filter(item => !item.knockedOut && item.space === revenant.space).map(cellKey));
+    let destination = null;
+    for (let y = 0; y < Number(space.height) && !destination; y += 1) for (let x = 0; x < Number(space.width); x += 1) {
+      const key = `${x},${y}`;
+      if (!occupied.has(key) && !removedCellKeys(scene, revenant.space).has(key) && effectCellOccupancyStatus(scene, revenant.id, { actor: revenant, space: revenant.space, x, y }).available) { destination = { x, y }; break; }
+    }
+    if (!destination) continue;
+    events.push({ type: "actor.move", actorId: revenant.id, payload: { space: revenant.space, ...destination, placement: true, allowKnockedOut: true, movement: "Возвращение Ревенанта", participantIds: [revenant.id] } });
+    events.push({ type: "actor.knockout", actorId: revenant.id, payload: { targetId: revenant.id, restore: true, amount: Number(revenant.maxHp || 1), sourceActionId: "lionwing.npc.revenant.passive", participantIds: [revenant.id] } });
+  }
+  return events;
+}
+
 function triggeredEvents(scene, event, options = {}) {
   const payload = event.payload || {}, actor = event.actorId ? actorById(scene, event.actorId) : null, resumesQueue = event.type === "attack.clear" || event.type === "rule.respond" && !options.deferQueuedResume, resumed = resumesQueue ? resumeQueuedTriggers(scene, event) : { events: [], promptReserved: false }, routed = triggerRouteStatus(scene, event, { promptReserved: resumed.promptReserved || options.deferQueuedResume || Boolean(scene.triggerQueue?.length) }), prefixEvents = [...resumed.events, ...routed.events], events = [], promptQueued = () => prefixEvents.some(item => item.type === "rule.prompt") || events.some(item => item.type === "rule.prompt");
   events.push(...modifierKnockoutEvents(scene,event));
-  events.push(...modifierMovementEvents(scene,event));
+  if(!(scene.rulesEdition==="lionwing"&&event.type==="actor.move"&&actor?.crowdSubtype==="vortex"&&actorById(scene,actor.vortexOwnerId)?.profileId===LIONWING_VORTEX_ID))events.push(...modifierMovementEvents(scene,event));
   events.push(...modifierConfigureEvents(scene,event));
   events.push(...modifierPreActionEvents(scene,event));
   events.push(...modifierTerrainRedirectEvents(scene,event));
   events.push(...modifierActionEvents(scene,event));
+  if(event.type==="attack.pending"&&scene.rulesEdition==="lionwing")events.push(...lionwingBlazeTriggerEvents(scene,event));
   if(event.type==="round.end")events.push(...modifierRoundEndEvents(scene,event));
   if (event.type === "actor.knockout" && payload.applied && scene.pendingActionPlan?.actorId === payload.targetId) {
     events.push({ type: "action.plan.cancel", actorId: payload.targetId, payload: { planId: scene.pendingActionPlan.id, reason: "Исполнитель выведен из боя.", participantIds: [payload.targetId] } });
@@ -1059,8 +1165,15 @@ function triggeredEvents(scene, event, options = {}) {
   }
   if ((event.type === "area.remove" || event.type === "object.damage" && Number(payload.dealt || 0) > 0) && actor && Number(actor.techniques?.["ruiner.creation-ascetic"] || 0) >= 2) events.push({ type: "rule-resource.gain", actorId: actor.id, payload: { resource: "creation-marks", amount: 1, sourceActionId: "ruiner.creation-ascetic.2" } });
   if (event.type === "attack.clear" && !scene.pendingPrompt && !promptQueued()) {
-    const ranger = [...new Set(payload.targetIds || [])].map(id => actorById(scene, id)).find(target => !target?.knockedOut && ["enemy.common.ranger","lionwing.npc.ranger"].includes(target?.profileId));
-    if (ranger) events.push({ type: "rule.prompt", actorId: ranger.id, payload: { id: `prompt-${event.id}-ranger-retreat`, kind: "enemy-ranger-retreat", sourceActorId: ranger.id, controller: "narrator", title: "Снайперская дистанция", text: `${ranger.name} может переместиться на 1 клетку после Атаки по нему.`, options: ["move", "pass"], context: { optionLabels: { move: "Переместиться", pass: "Не использовать" } }, participantIds: [ranger.id, event.actorId].filter(Boolean) } });
+    const rangers = [...new Map([...new Set(payload.targetIds || [])]
+      .flatMap(id => compoundParts(scene, id, { includeKnockedOut: true }))
+      .filter(target => !target.knockedOut && ["enemy.common.ranger", "lionwing.npc.ranger"].includes(target.profileId))
+      .map(target => [target.id, target])).values()];
+    const prompts = rangers.map((ranger, index) => ({ type: "rule.prompt", actorId: ranger.id, payload: { id: `prompt-${event.id}-ranger-retreat-${index}`, kind: "enemy-ranger-retreat", sourceActorId: ranger.id, controller: "narrator", title: "Снайперская дистанция", text: `${ranger.name} может переместиться на 1 клетку после Атаки по нему.`, options: ["move", "pass"], context: { optionLabels: { move: "Переместиться", pass: "Не использовать" } }, participantIds: [ranger.id, event.actorId].filter(Boolean) } }));
+    if (prompts.length) {
+      events.push(prompts[0]);
+      prompts.slice(1).forEach((prompt, index) => events.push({ type: "rule.trigger", actorId: prompt.actorId, payload: { triggerId: `core.ranger.retreat.${prompt.actorId}.${index}`, sourceEventId: event.id, sourceEventType: event.type, status: "queued", reason: "Предыдущее перемещение Ranger разрешается первым.", priority: 0, emittedTypes: ["rule.prompt"], triggerOwnerId: prompt.actorId, participantIds: prompt.payload.participantIds, deferredEvent: prompt } }));
+    }
   }
   if (event.type === "turn.start" && actor && !scene.pendingPrompt && !promptQueued()) {
     if (actor.profileId === "enemy.common.healer") {
@@ -1113,15 +1226,16 @@ function triggeredEvents(scene, event, options = {}) {
       events.push({ type: "actor.heal", actorId: healerSource.actorId, payload: { targetId: actor.id, amount: enemyTierFormula("5(+2)", actorById(scene, healerSource.actorId)?.tier), sourceActionId: "enemy.common.healer.attack.exsanguinate", participantIds: [healerSource.actorId, actor.id, targetId] } });
     }
   }
+  events.push(...berserkerPassiveEvents(scene, event));
   if (event.type === "damage.apply" && Number(payload.dealt || 0) >= 4 && !scene.pendingPrompt && !promptQueued()) {
     const berserker = actorById(scene, payload.targetId), attacker = actorById(scene, event.actorId);
-    if (berserker && !berserker.knockedOut && ["enemy.common.berserker","lionwing.npc.berserker"].includes(berserker.profileId) && attacker && attacker.team !== berserker.team && Number(berserker.ruleState?.berserkerReactionTurnSerial || -1) !== Number(scene.turnSerial || 0)) events.push({ type: "rule.prompt", actorId: berserker.id, payload: { id: `prompt-${event.id}-berserker-retaliate`, kind: "enemy-berserker-retaliate", sourceActorId: berserker.id, targetId: attacker.id, controller: "narrator", title: "Неумолимое разрушение", text: `${berserker.name} получил не менее 4 урона: переместиться к ${attacker.name} и использовать Сокрушение?`, options: ["retaliate", "pass"], context: { maxDistance: berserker.ruleState?.berserkerLastStand ? 2 : 1, ruleId: berserker.profileId==="lionwing.npc.berserker"?"lionwing.npc.berserker.thrash":"enemy.common.berserker.attack.thrash", optionLabels: { retaliate: "Ответить Сокрушением", pass: "Не использовать" } }, participantIds: [berserker.id, attacker.id] } });
+    if (berserker && !berserker.knockedOut && berserker.profileId === "enemy.common.berserker" && attacker && attacker.team !== berserker.team && Number(berserker.ruleState?.berserkerReactionTurnSerial || -1) !== Number(scene.turnSerial || 0)) events.push({ type: "rule.prompt", actorId: berserker.id, payload: { id: `prompt-${event.id}-berserker-retaliate`, kind: "enemy-berserker-retaliate", sourceActorId: berserker.id, targetId: attacker.id, controller: "narrator", title: "Неумолимое разрушение", text: `${berserker.name} получил не менее 4 урона: переместиться к ${attacker.name} и использовать Сокрушение?`, options: ["retaliate", "pass"], context: { maxDistance: berserker.ruleState?.berserkerLastStand ? 2 : 1, ruleId: "enemy.common.berserker.attack.thrash", optionLabels: { retaliate: "Ответить Сокрушением", pass: "Не использовать" } }, participantIds: [berserker.id, attacker.id] } });
   }
-  if ((event.type === "actor.move" || event.type === "movement.end") && ["enemy.common.ranger","lionwing.npc.ranger"].includes(actor?.profileId) && Number(actor.ruleState?.enemyAim || 0) > 0) events.push({ type: "actor.state", actorId: actor.id, payload: { key: "enemyAim", value: 0, sourceActionId: actor.profileId === "lionwing.npc.ranger" ? "lionwing.npc.ranger.nest" : "enemy.common.ranger.action.nest" } });
+  if ((event.type === "actor.move" || event.type === "movement.end") && scene.activeActorId === actor?.id && !payload.forced && !payload.teleport && !payload.placement && !["forced", "teleport"].includes(payload.mode) && ["enemy.common.ranger","lionwing.npc.ranger"].includes(actor?.profileId) && Number(actor.ruleState?.enemyAim || 0) > 0) events.push({ type: "actor.state", actorId: actor.id, payload: { key: "enemyAim", value: 0, sourceActionId: actor.profileId === "lionwing.npc.ranger" ? "lionwing.npc.ranger.nest" : "enemy.common.ranger.action.nest" } });
   if (event.type === "actor.move" && actor?.kind === "crowd" && actor.crowdSubtype === "seeker") {
     const target = actorById(scene, actor.seekerTargetId);
     if (target && !target.knockedOut && target.space === actor.space && distance(actor, target) <= 1) {
-      const victims = (scene.actors || []).filter(item => item.kind !== "crowd" && !item.knockedOut && item.space === actor.space && distance(actor, item) <= 1), amount = Math.max(1, Number(actor.seekerDamage || 7));
+      const victims = (scene.actors || []).filter(item => item.kind !== "crowd" && item.team !== actor.team && !item.knockedOut && item.space === actor.space && distance(actor, item) <= 1), amount = Math.max(1, Number(actor.seekerDamage || 7));
       for (const victim of victims) events.push({ type: "damage.apply", actorId: actor.id, payload: { targetId: victim.id, amount, sourceActionId: "enemy.common.hound-master.seeker.explode", participantIds: [actor.id, target.id, victim.id] } });
       events.push({ type: "actor.despawn", actorId: actor.id, payload: { reason: `Ищейка достигла цели ${target.name}`, sourceActionId: "enemy.common.hound-master.seeker.explode", participantIds: [target.id, ...victims.map(item => item.id)] } });
     }
@@ -1132,19 +1246,7 @@ function triggeredEvents(scene, event, options = {}) {
       events.push({ type: "rule.prompt", actorId: privateer.id, payload: { id: `prompt-${event.id}-privateer-gear-${privateer.id}`, kind: "enemy-move-cell", sourceActorId: privateer.id, controller: "narrator", title: "Смена снаряжения", text: `${privateer.name} может переместиться на 1 клетку в конце Хода ${actor?.name || "персонажа"}.`, options: ["cancel"], context: { maxDistance: 1, privateerGearChange: true, endedTurnActorId: event.actorId || null }, participantIds: [privateer.id, event.actorId].filter(Boolean) } });
     }
   }
-  if (event.type === "turn.end" && actor?.team === "enemy" && actor.kind !== "crowd") {
-    const crowdIds = (scene.actors || []).filter(item => item.kind === "crowd" && !item.knockedOut && item.team === actor.team && item.space === actor.space).map(item => item.id);
-    if (crowdIds.length) events.push({ type: "rule.prompt", actorId: actor.id, payload: { id: `prompt-${event.id}-fodder-move`, kind: "fodder-move-select", sourceActorId: actor.id, controller: "narrator", title: "Движение массовки", text: "Настройте все перемещения одним пакетом или откройте отдельную Зону на поле.", options: [...crowdIds.map(id => `target:${id}`), "custom", "finish"], context: { remainingTargetIds: crowdIds, optionLabels: { custom: "Применить пакет", finish: "Оставить остальные на месте" } }, participantIds: [actor.id, ...crowdIds] } });
-  }
-  if (event.type === "round.end") {
-    const eligibleCrowds = (scene.actors || []).filter(item => item.kind === "crowd" && !item.knockedOut).filter(crowd => (scene.actors || []).some(target => !target.knockedOut && target.team !== crowd.team && target.space === crowd.space && distance(crowd, target) <= 1));
-    const first = eligibleCrowds[0];
-    if (first) {
-      const remainingIds = eligibleCrowds.map(item => item.id), targets = (scene.actors || []).filter(target => !target.knockedOut && target.team !== first.team && target.space === first.space && distance(first, target) <= 1);
-      const allTargets = [...new Map(eligibleCrowds.flatMap(crowd => (scene.actors || []).filter(target => !target.knockedOut && target.team !== crowd.team && target.space === crowd.space && distance(crowd, target) <= 1)).map(target => [target.id, target])).values()];
-      events.push({ type: "rule.prompt", actorId: first.id, payload: { id: `prompt-${event.id}-fodder-damage`, kind: "fodder-round-batch", sourceActorId: first.id, controller: "narrator", title: `Массовка · ${eligibleCrowds.length} зон могут атаковать`, text: "Назначьте цель каждой Зоне, проверьте сводку и примените весь урон одним пакетом.", options: ["custom", "pass"], context: { eligibleCrowdIds: remainingIds }, participantIds: [...remainingIds, ...allTargets.map(target => target.id)] } });
-    }
-  }
+  events.push(...fodderBoundaryPromptEvents(scene, event));
   events.push(...effectLifecycleEvents(scene, event));
   events.push(...entityLifecycleEvents(scene, event));
   events.push(...reminderLifecycleEvents(scene, event));
@@ -1152,6 +1254,38 @@ function triggeredEvents(scene, event, options = {}) {
 }
 
 function dispatchMany(scene, events, options = {}) {
+  return dispatchManyChecked(scene, events, options, false);
+}
+// Trusted adapters use this function. Continuations retain all JSON,
+// ID, replay, transition and per-event validation, but have already passed the
+// public whole-packet consequence check before any native replacement pause.
+function dispatchEventContinuation(scene, events, options = {}) {
+  return dispatchManyChecked(scene, events, options, true);
+}
+function dispatchManyChecked(scene, events, options, continuation) {
+  validateEventPacket(events);
+  const replay = eventPacketReplayStatus(scene, events, !continuation);
+  if (replay.complete) return { scene: clone(scene), events: [], event: null, duplicates: events.map(event => clone((scene.log || []).find(row => row.id === event.id) || event)) };
+  // Filter accepted external requests before expanding the trigger queue.
+  // Deferred prompts reuse their request ID when they are eventually opened;
+  // their internal continuation must still execute exactly once.
+  const acceptedIds = new Set(replay.matchedIds);
+  const pending = events.filter(event => {
+    if (!event.id) return true;
+    if (acceptedIds.has(event.id)) return false;
+    acceptedIds.add(event.id); return true;
+  });
+  if (!continuation) validateEnemySummonPacket(scene, pending);
+  const result = dispatchEventPacket(scene, pending, reserveEventIds(scene, events, options));
+  result.duplicates.unshift(...events.filter(event => replay.matchedIds.includes(event.id)).map(event => clone((scene.log || []).find(row => row.id === event.id) || event)));
+  recordEventRequests(result.scene, events);
+  return result;
+}
+function dispatchEventPacket(scene, events, options = {}) {
+  for(const attack of (events||[]).filter(item=>item?.type==="modifier.action"&&actorById(scene,item.actorId)?.profileId===ENEMY_MODIFIER_IDS.gargantuan)){
+    const modifier=actorById(scene,attack.actorId),carrier=modifierCarrier(scene,modifier),published=(events||[]).filter(item=>item?.type==="roll.public"&&item.payload?.sourceActionId===`${modifier.profileId}.attack`);
+    if(published.length&& (published.length!==1||!carrier||published[0].actorId!==carrier.id||(events||[]).indexOf(published[0])>(events||[]).indexOf(attack)||JSON.stringify(published[0].payload?.rolls)!==JSON.stringify(attack.payload?.roll?.rolls)||Number(published[0].payload?.successes)!==Number(attack.payload?.roll?.successes)||Number(published[0].payload?.crits)!==Number(attack.payload?.roll?.crits)))throw new Error("Результат Атаки Громадины должен совпадать с публичным броском.");
+  }
   let next = clone(scene);
   const committed = [], duplicates = [];
   const queue = [...(events || [])];
@@ -1217,7 +1351,7 @@ function dispatchMany(scene, events, options = {}) {
           : queue.some(candidate => candidate.type === "actor.move" && candidate.actorId === placementActorId && Number(candidate.payload?.x) === Number(destination.x) && Number(candidate.payload?.y) === Number(destination.y))
     );
     const dispatchOptions = { ...options, expectedVersion: versionPending ? options.expectedVersion : undefined, placementResponse, internalChain: !externalEvents.has(event) };
-    const result = dispatch(next, event, dispatchOptions);
+    const result = dispatchTransition(next, event, dispatchOptions, true);
     next = result.scene;
     if (result.event.type === "actor.knockout" && result.event.payload?.applied && result.event.payload?.targetId) {
       invalidatedActorIds.add(result.event.payload.targetId);

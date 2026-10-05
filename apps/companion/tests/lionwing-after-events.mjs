@@ -149,4 +149,62 @@ assert.equal("drainLife" in (engine.reload(JSON.parse(JSON.stringify({ ...grimSc
 
 // Meal/Bond identity is deliberately unavailable in the current runtime.
 assert.equal(adapters.afterEvent(catalogActor, { id: "meal", type: "meal.eaten", actorId: "catalog", payload: {} }, {}).length, 0);
+
+// Frost Veiler I is a live opt-in adapter. Its secondary effect is attached to
+// the verified Cast, survives a reload, and resolves through the normal Attack
+// defenses. A successful roll alone must not bypass full Evasion.
+const frostId = "ruiner.cryomancer.1";
+const frostFixture = (enemyExtra = {}, enabled = true) => {
+  let result = fixture({ knownTechniques: { "ruiner.cryomancer": 1 } }, enemyExtra);
+  if (enabled) result = enable(result, frostId);
+  return run(result, "h", { kind: "turn-start" });
+};
+const frostCast = (snapshot, random = () => 0.6, extra = {}) => {
+  const prepared = engine.prepare(snapshot, { actorId: "h", eventId: `frost-cast:${++serial}`, kind: "action", actionId: "action.атаки.заклинание", targetIds: ["e"], ...extra }, { random });
+  assert.equal(prepared.ok, true, prepared.errors?.join(" "));
+  return engine.dispatchMany(snapshot, prepared.events).scene;
+};
+const slowed = snapshot => snapshot.actors.find(item => item.id === "e").effects.includes("negative.замедлен");
+let frostScene = frostFixture();
+const frostRule = adapters.list(frostScene.actors[0]).find(item => item.id === frostId);
+assert.ok(frostRule, "Frost Veiler I has a real live adapter");
+assert.equal(frostRule.coverage, "full");
+assert.equal(frostRule.sourceDigest, sourceDigest(frostId));
+assert.equal(adapters.attackEffects(frostScene.actors[0], { actionId: "action.атаки.заклинание", successes: 0, success: true }).length, 0, "a client success flag does not create a successful Cast");
+assert.equal(adapters.attackEffects(frostScene.actors[0], { actionId: "action.атаки.заклинание", successes: 1 }).length, 1, "each target's verified roll result can contribute its own secondary effect");
+assert.equal(adapters.attackEffects(frostScene.actors[0], { actionId: "action.атаки.стычка", successes: 2 }).length, 0);
+frostScene = frostCast(frostScene);
+assert.equal(slowed(frostScene), false, "Slow waits until Attack resolution");
+frostScene = engine.reload(JSON.parse(JSON.stringify(frostScene)));
+const frostResolution = event("h", { kind: "resolve-attack" }, "frost-resolution");
+frostScene = engine.dispatchMany(frostScene, [frostResolution]).scene;
+assert.equal(slowed(frostScene), true, "successful Cast slows a surviving target");
+const slowReceipt = frostScene.log.find(item => item.type === "effect.apply" && item.payload?.effect === "negative.замедлен");
+assert.equal(slowReceipt.payload.ruleId, frostId);
+assert.equal(slowReceipt.payload.sourceDigest, sourceDigest(frostId));
+assert.deepEqual(engine.dispatchMany(engine.reload(JSON.parse(JSON.stringify(frostScene))), [frostResolution]).scene, engine.reload(JSON.parse(JSON.stringify(frostScene))), "replayed resolution does not duplicate the effect");
+
+for (const [label, enemyExtra, enabled, random, extra] of [
+  ["full Evasion", { evasion: 5 }, true, () => 0.6, {}],
+  ["zero verified Hits despite success flag", {}, true, () => 0.1, { success: true }],
+  ["disabled automation", {}, false, () => 0.6, {}],
+  ["knocked out target", { hp: 1, maxHp: 1 }, true, () => 0.6, {}],
+]) {
+  let snapshot = frostCast(frostFixture(enemyExtra, enabled), random, extra);
+  snapshot = run(snapshot, "h", { kind: "resolve-attack" });
+  assert.equal(slowed(snapshot), false, label);
+}
+let cancelledFrost = frostCast(frostFixture());
+cancelledFrost = run(cancelledFrost, "h", { kind: "cancel-attack" });
+assert.equal(slowed(cancelledFrost), false, "cancelled Cast has no secondary effect");
+let dodgedFrost = frostCast(frostFixture({ kind: "hero", heroId: "e", attrs: { body: 2, talent: 4, spirit: 2, mind: 2 } }));
+assert.equal(slowed(dodgedFrost), false);
+const dodgePrepared = engine.prepare(dodgedFrost, { actorId: "e", eventId: "frost-dodge", kind: "reaction", choice: "dodge", attribute: "talent", destination: { x: 4, y: 1, space: "main" } }, { random: () => 0.6 });
+assert.equal(dodgePrepared.ok, true, dodgePrepared.errors?.join(" "));
+dodgedFrost = engine.dispatchMany(dodgedFrost, dodgePrepared.events).scene;
+dodgedFrost = run(dodgedFrost, "h", { kind: "resolve-attack" });
+assert.equal(slowed(dodgedFrost), false, "Evasion gained from the defender's actual Dodge ignores Slow");
+let manualFrost = run(frostFixture(), "h", { kind: "attack", actionId: "action.атаки.заклинание", targetIds: ["e"], amount: 2, rollSuccesses: 2, success: true });
+manualFrost = run(manualFrost, "h", { kind: "resolve-attack" });
+assert.equal(slowed(manualFrost), false, "manual damage cannot impersonate a verified Cast");
 console.log("LionWing after-event adapters passed: opt-in, Clash reward choice, Turn limit, KO rewards, Fear/Weaken choices, reload/replay and unsupported Meal/Bond exclusion");

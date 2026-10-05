@@ -40,6 +40,36 @@ function canonicalLionwingTechniqueStatus(techniqueId, level) {
   return lionwingAutomationRows.get(`${techniqueId}.${numericLevel}`) || null;
 }
 
+const LIONWING_VERIFICATION_SURFACES = Object.freeze(["core", "ui", "network", "persistence"]);
+function normalizeLionwingVerification(bundle, canonicalRows, buildVersion) {
+  const result = new Map(), run = bundle?.verificationRun;
+  if (!run || run.schemaVersion !== 1 || !Array.isArray(bundle.verificationRows)) return result;
+  const seen = new Set();
+  for (const row of bundle.verificationRows) {
+    if (!row || typeof row.id !== "string" || seen.has(row.id)) return new Map();
+    seen.add(row.id);
+    const canonical = canonicalRows.get(row.id);
+    if (!canonical || row.canonicalDigest !== canonical.canonicalDigest) continue;
+    const sameBuild = /^[0-9a-f]{40}$/i.test(String(run.commit || "")) && run.commit === buildVersion && run.clean === true;
+    const state = sameBuild && ["unverified", "current", "stale", "failed"].includes(row.state) ? row.state : "stale";
+    const currentSurfaces = state === "current" && Array.isArray(row.currentSurfaces)
+      ? LIONWING_VERIFICATION_SURFACES.filter(surface => row.currentSurfaces.includes(surface)) : [];
+    result.set(row.id, Object.freeze({
+      id: row.id,
+      state,
+      currentSurfaces: Object.freeze(currentSurfaces),
+      fullPath: state === "current" && row.fullPath === true && LIONWING_VERIFICATION_SURFACES.every(surface => currentSurfaces.includes(surface)),
+    }));
+  }
+  return result;
+}
+const lionwingVerificationRows = normalizeLionwingVerification(LionwingAutomationStatus, lionwingAutomationRows, APP_BUILD_VERSION);
+function canonicalLionwingTechniqueVerification(techniqueId, level) {
+  const numericLevel = Number(level);
+  if (typeof techniqueId !== "string" || !Number.isInteger(numericLevel) || numericLevel < 1 || numericLevel > 3) return null;
+  return lionwingVerificationRows.get(`${techniqueId}.${numericLevel}`) || null;
+}
+
 const STORAGE_KEY = "dawn-ru-companion-v2";
 const HERO_STORAGE_KEY = "dawn-ru-companion-heroes-v1";
 const CONTENT_PREFERENCES_KEY = "dawn-companion-content-preferences-v1";

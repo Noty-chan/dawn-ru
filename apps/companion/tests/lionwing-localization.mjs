@@ -8,6 +8,12 @@ await import("../logic.js");
 
 const english = window.DAWN_LIONWING_DATA;
 const russian = window.DAWN_LIONWING_RU;
+const translatedTechnique = id => Object.values(russian.archetypes).flatMap(archetype => Object.entries(archetype.techniques || {})).find(([key]) => key === id)?.[1];
+assert.equal(translatedTechnique("disruptor.constrictor").name, "Душитель");
+assert.match(translatedTechnique("ruiner.creation-ascetic").levels[1].text, /Небесный таран/);
+assert.equal(translatedTechnique("disruptor.street-fighter").levels[1].name, "Кровавые кастеты");
+assert.equal(translatedTechnique("disruptor.gale-strider").levels[3].name, "Рассекатель гор");
+assert.equal(translatedTechnique("disruptor.mage-s-array").levels[3].name, "Тюрьма собственного замысла");
 const appBootstrapSource = fs.readFileSync(new URL("../app-bootstrap.js", import.meta.url), "utf8");
 const worklist = JSON.parse(fs.readFileSync(new URL("../../../source/editions/dawn-en-lionwing-cb2f8e67/translation-worklist.json", import.meta.url), "utf8"));
 assert.equal(russian.editionId, english.editionId);

@@ -57,6 +57,16 @@ function prompt(label, priority, tieBreak) {
   };
 }
 
+const newestSource = Engine.dispatch(sourceScene(), { id: "queue-newest-source", type: "resource.gain", actorId: "hero", payload: { resource: "focus", amount: 1 } }).scene;
+newestSource.log.unshift({ id: "manual-note-newest", type: "legacy.note", actorId: "hero", payload: {} });
+newestSource.log.push({ id: "manual-note-oldest", type: "legacy.note", actorId: "hero", payload: {} });
+const implicitPrompt = prompt("implicit", 0, "000:implicit");
+delete implicitPrompt.payload.sourceEventId;
+delete implicitPrompt.payload.sourceEventType;
+const implicit = Engine.dispatchMany(newestSource, [implicitPrompt]).scene;
+assert.equal(implicit.pendingPrompt.sourceEventId, "queue-newest-source", "implicit prompts use the newest valid rules event in the newest-first journal");
+assert.equal(implicit.pendingPrompt.sourceEventType, "resource.gain", "manual legacy notes cannot poison prompt provenance");
+
 const simultaneous = Engine.dispatchMany(sourceScene(), [
   prompt("low", 10, "030:low"),
   prompt("high", 30, "010:high"),
@@ -68,6 +78,10 @@ assert.deepEqual(Array.from(simultaneous.triggerQueue, item => [item.priority, i
 assert.equal(Engine.triggerQueueStatus(simultaneous).active.id, "prompt-high", "Queue status exposes the one active prompt separately");
 assert.equal(Engine.triggerQueueStatus(simultaneous).next.event.payload.id, "prompt-medium");
 assert.equal(simultaneous.log.filter(event => event.type === "rule.trigger" && event.payload?.status === "queued").length, 2, "Every deferred prompt has one persisted queue audit");
+const manyPrompts=Engine.dispatchMany(sourceScene(),Array.from({length:30},(_,index)=>prompt(`bulk-${index}`,30-index,`bulk:${index}`))).scene;
+assert.equal(manyPrompts.triggerQueue.length,29,"the writer accepts a queue larger than the former 24-item save limit");
+assert.equal(manyPrompts.log.filter(event=>event.type==="rule.trigger"&&event.payload?.status==="queued").length,29,"each accepted deferred prompt has a matching journal entry");
+assert.throws(()=>Engine.dispatchMany(sourceScene(),Array.from({length:130},(_,index)=>prompt(`overflow-${index}`,130-index,`overflow:${index}`))),/очередь решений заполнена/i,"the writer blocks queue overflow before a saved scene could silently lose accepted work");
 
 const wrongParticipant = Engine.respondRulePrompt(simultaneous, data, { actorId: "enemy", choice: "pass" });
 assert.equal(wrongParticipant.ok, false);

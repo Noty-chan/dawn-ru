@@ -4,6 +4,7 @@ import vm from "node:vm";
 import crypto from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { loadSceneEngine } from "./tests/load-scene-engine.mjs";
+import { loadVerificationManifest } from "./automation-verification.mjs";
 
 const root = path.dirname(fileURLToPath(import.meta.url));
 const context = { console, Date };
@@ -57,7 +58,11 @@ for (const entry of evidence.entries) {
   }
 }
 const staleEvidenceIds = new Set(staleEvidence.map(({ entry }) => entry.id));
-const certifiedEvidence = evidence.entries.filter(entry => entry.confidence === "certified" && !staleEvidenceIds.has(entry.id));
+// Historical source audits contain no execution receipt for this build.
+// Current results are generated separately by CI and are never inferred from
+// these declarations or from the overall npm exit code.
+const certifiedEvidence = [];
+const verificationManifest = loadVerificationManifest({ repoRoot: path.resolve(root, "../..") });
 
 const techniqueCounts = countBy(coverage, "automation");
 const executableTechniqueLevels = Number(techniqueCounts.full || 0) + Number(techniqueCounts.decision || 0);
@@ -81,7 +86,7 @@ const lines = [
   "",
   "> Генерируется командой `npm run readiness`. Таблицы не редактируются вручную.",
   "> **Важно:** статусы `full`, `decision`, `attack`, `effect` и `state` — заявления реализации, а не независимая сертификация корректности.",
-  "> Источник заявлений по Уровням Техник — `technique-foundation-map.js`; по врагам — контракт `enemyRuleAutomation`. Независимые доказательства хранятся только в `automation-evidence.json`.",
+  "> Источник заявлений по Уровням Техник — `technique-foundation-map.js`; по врагам — контракт `enemyRuleAutomation`. Исторические аудиты хранятся в `automation-evidence.json`; актуальные результаты конкретных сценариев создаёт `npm run verify:automation`.",
   "",
   "## Сводка",
   "",
@@ -127,6 +132,18 @@ const lines = [
   "Для повышения до `certified` в `automation-evidence.json` нужны: стабильный id правила, `sourceDigest`, заявленный статус, уровень доверия, проверяемые claims, точные тестовые файлы с конкретным `case` или командой запуска, применимые поверхности `core/ui/network/persistence`, граничные случаи и commit аудита. CI отклоняет неполную запись и пропавший тестовый файл. Изменение исходника меняет digest: генератор автоматически отзывает и явно перечисляет прежнее evidence, не принимая его за действующую сертификацию.",
   "",
   "До независимого прохода системные оценки ниже означают зрелость инфраструктуры и объём найденных тестов, а не процент буквально верных игровых правил.",
+  "",
+  "## Учёт проверок конкретной сборки",
+  "",
+  "Этот коммитируемый отчёт не содержит результатов запуска. CI сохраняет отдельный `automation-verification.json` и `verification-summary.json`, привязанные к полному Git SHA, каноническому правилу, реализации, сценарию и его зависимостям. Изменённая или отсутствующая зависимость, непрошедший тест, пропущенный сценарий и результат другой сборки не дают актуальной отметки.",
+  "",
+  "Проверки ядра, интерфейса, сети и сохранения учитываются отдельно. VM-интерфейс, моделируемая сеть и JSON-загрузка не подтверждают полный браузерный путь. Успех всего `npm test` не повышает статус отдельных правил. Исторический audit не повышает сертификацию без актуального запуска.",
+  "",
+  "| Правило | Конкретный сценарий | Поверхность и среда | Проверяемое утверждение |",
+  "| --- | --- | --- | --- |",
+  ...verificationManifest.rules.flatMap(rule => rule.checks.map(check => `| \`${escape(rule.id)}\` | \`${escape(check.id)}\` | ${escape(check.surface)} · ${escape(check.environment)} | ${escape(check.claim)} |`)),
+  "",
+  "Таблица перечисляет исполняемые контракты, а не записанные успехи. Правила вне манифеста не получают результат чужого теста. Порядок расширения и запуска: [AUTOMATION-VERIFICATION.md](AUTOMATION-VERIFICATION.md).",
   "",
   "Числовой контракт и разбивка источников характеристик на столе описаны в [numeric pass handoff](../../docs/tasks/LIONWING_NUMERIC_PASSIVES_HANDOFF_2026-09-11.md). Статусы `partial` сохраняют честный объём автоматизации и не создают evidence-сертификацию.",
   "",

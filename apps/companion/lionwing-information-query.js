@@ -109,7 +109,7 @@
   const isLive = value => Boolean(value && !value.knockedOut && value.removed !== true && value.despawned !== true);
   const isLionWing = scene => Boolean(scene && (scene.rulesEdition === "lionwing" || !scene.rulesEdition && (scene.lionwing || (scene.actors || []).some(item => item?.rulesEdition === "lionwing"))));
   const normalizeCategory = value => {
-    const raw = text(value);
+    const raw = text(value && typeof value === "object" ? value.id : value);
     return CATEGORY_ALIASES[raw] || raw;
   };
   const categoryDef = value => CATEGORY_DEFS[normalizeCategory(value)] || null;
@@ -153,6 +153,9 @@
     if (!info || typeof info !== "object" || Array.isArray(info)) fail("Реестр информации LionWing имеет неподдерживаемый формат");
     info.schema = SCHEMA;
     for (const key of ["studies", "facts", "receipts", "pending", "warnings", "handouts", "journal"]) {
+      // Player projections omit private ledgers. Queries may normalize that
+      // redacted snapshot locally without inventing authoritative receipts.
+      if (info[key] === undefined) info[key] = [];
       if (!Array.isArray(info[key])) fail("Реестр информации LionWing имеет неподдерживаемый список: " + key);
     }
     info.studies = info.studies.slice(-MAX_STUDIES);
@@ -161,10 +164,16 @@
     info.warnings = info.warnings.slice(-MAX_WARNINGS);
     info.handouts = info.handouts.slice(-MAX_FACTS);
     info.journal = info.journal.slice(-MAX_JOURNAL);
-    info.pending = info.pending.filter(studyId => info.studies.some(item => item.id === studyId && item.status === "pending" || item.id === studyId && item.status === "blocked"));
+    info.pending = info.pending.map(value => typeof value === "string" ? value : value?.studyId).filter(studyId => info.studies.some(item => item.id === studyId && item.status === "pending" || item.id === studyId && item.status === "blocked"));
     return info;
   };
   const infoState = scene => ensureState(scene);
+  // Projected snapshots omit private ledgers. A query may fill those defaults
+  // on a disposable information record, never on its caller's scene.
+  const readState = scene => {
+    if (!scene || typeof scene !== "object") fail("Сцена Изучения отсутствует");
+    return ensureState({ ...scene, lionwing: { ...scene.lionwing, information: copy(scene.lionwing?.information) } });
+  };
   // Journal rows contain before/after snapshots. Exclude the journal itself
   // from those snapshots so every new operation stays bounded and replay or
   // undo cannot build a recursively expanding history tree.
@@ -297,7 +306,7 @@
     return result;
   };
   const availableCategories = (scene, query = {}) => {
-    const info = ensureState(scene);
+    const info = readState(scene);
     const study = typeof query === "string" ? info.studies.find(item => item.id === query) : query.studyId ? info.studies.find(item => item.id === query.studyId) : query.id ? info.studies.find(item => item.id === query.id) : query;
     return categoryList(study?.categories);
   };
@@ -470,7 +479,7 @@
     return { actorId: actorOrQuery, targetId, scope, ...(options || {}) };
   };
   const studies = (scene, query = {}) => {
-    const info = ensureState(scene);
+    const info = readState(scene);
     const normalized = typeof query === "string" ? { actorId: query } : query || {};
     return info.studies.filter(study => {
       if (normalized.actorId && study.actorId !== normalized.actorId) return false;
@@ -487,11 +496,11 @@
   const studiedThisTurn = (scene, actorId, targetId) => studyCount(scene, { actorId, targetId, scope: "turn" }) > 0;
   const firstStudy = (scene, actorOrQuery, targetId, scope, options) => studies(scene, queryArgs(actorOrQuery, targetId, scope || "scene", options))[0] || null;
   const studyStatus = (scene, studyId) => {
-    const study = ensureState(scene).studies.find(item => item.id === (typeof studyId === "string" ? studyId : studyId?.studyId));
+    const study = readState(scene).studies.find(item => item.id === (typeof studyId === "string" ? studyId : studyId?.studyId));
     return study ? copy(study) : null;
   };
   const factForViewer = (scene, factOrQuery, viewer = {}) => {
-    const info = ensureState(scene);
+    const info = readState(scene);
     const query = typeof factOrQuery === "string" ? { id: factOrQuery } : factOrQuery || {};
     const found = info.facts.find(item => (query.id && item.id === query.id) || query.studyId && item.studyId === query.studyId && (!query.category || item.category === normalizeCategory(query.category)) || query.actorId && item.actorId === query.actorId && item.targetId === query.targetId && (!query.category || item.category === normalizeCategory(query.category)));
     if (!found || !visibleTo(found, viewer) || !entityVisible(scene, found.actorId, viewer) || !entityVisible(scene, found.targetId, viewer)) return null;
@@ -514,12 +523,12 @@
     return factForViewer(scene, query, viewer);
   };
   const facts = (scene, query = {}, viewer = { role: "narrator" }) => {
-    const info = ensureState(scene);
+    const info = readState(scene);
     const normalized = typeof query === "string" ? { studyId: query } : query || {};
     return info.facts.filter(item => (!normalized.studyId || item.studyId === normalized.studyId) && (!normalized.actorId || item.actorId === normalized.actorId) && (!normalized.targetId || item.targetId === normalized.targetId) && (!normalized.category || item.category === normalizeCategory(normalized.category)) && visibleTo(item, viewer) && entityVisible(scene, item.actorId, viewer) && entityVisible(scene, item.targetId, viewer)).map(copy);
   };
   const markedTargetStatus = (scene, actorId, targetId) => {
-    const target = actor(scene, targetId), info = ensureState(scene);
+    const target = actor(scene, targetId), info = readState(scene);
     if (!target) return { marked: false, source: null };
     const effects = Array.isArray(target.effects) ? target.effects : [];
     const states = target.effectStates && typeof target.effectStates === "object" ? target.effectStates : {};
@@ -594,6 +603,7 @@
     };
   };
   const project = (scene, viewer = {}) => {
+    scene = copy(scene);
     const info = ensureState(scene);
     const projectedViewer = { ...viewer, scene };
     const studies = info.studies.filter(study => studyVisibleTo(study, projectedViewer, scene)).map(study => ({
@@ -602,8 +612,17 @@
       targetId: study.targetId,
       status: study.status,
       scope: study.scope,
+      visibility: study.visibility,
+      actionId: study.actionId,
+      actionInstanceId: study.actionInstanceId,
+      actionEventId: study.actionEventId,
       round: study.round,
       turnSerial: study.turnSerial,
+      turnInstanceId: study.turnInstanceId,
+      ownerTurnSerial: study.ownerTurnSerial,
+      ownerTurnInstanceId: study.ownerTurnInstanceId,
+      sceneSerial: study.sceneSerial,
+      chapterSerial: study.chapterSerial,
       categories: availableCategories(scene, study).map(item => ({ id: item.id, label: item.label })),
       revealedFactIds: study.revealedFactIds || [],
     }));
@@ -616,7 +635,12 @@
       label: fact.label,
       value: copy(fact.value),
       visibility: fact.visibility,
-      manual: Boolean(fact.handout),
+      ownerActorId: fact.ownerActorId,
+      ownerPlayerId: fact.ownerPlayerId,
+      scope: fact.scope,
+      createdAt: fact.createdAt,
+      handout: Boolean(fact.handout || fact.manual),
+      manual: Boolean(fact.handout || fact.manual),
     }));
     const output = { schema: SCHEMA, studies, facts: visibleFacts, handouts: visibleFacts.filter(item => item.manual) };
     if (viewer.role === "narrator" || viewer.role === "gm") {

@@ -86,7 +86,7 @@ const initialScene = () => ({
     actor("crowd", "crowd", "enemy", 3, 4, { crowdGroupId: "alpha-crowd" }),
     actor("colossus-bruiser", "enemy", "enemy", 1, 2, { profileId: "lionwing.npc.bruiser", compoundId: "colossus", maxHp: 12, hp: 12 }),
     actor("colossus-behemoth", "enemy", "enemy", 1, 2, { profileId: "lionwing.npc.behemoth", compoundId: "colossus", maxHp: 12, hp: 12 }),
-    actor("colossus-giant", "enemy", "enemy", 1, 2, { profileId: "enemy.modifier.giant", compoundId: "colossus", maxHp: 12, hp: 12, baseAp: 0 }),
+    actor("colossus-giant", "enemy", "enemy", 1, 2, { profileId: "lionwing.modifier.giant", maxHp: 0, hp: 0, baseAp: 0, modifierState: { carrierId: "colossus-bruiser" } }),
   ],
   objects: [{ id: "mud", type: "difficult", space: "main", cells: ["2,2"] }],
   walls: [{ id: "wall", space: "main", a: "3,5", b: "4,5", hp: 10, maxHp: 10 }],
@@ -153,10 +153,15 @@ assert.equal(scene.actors.find(item => item.id === "viper").ap, 2, "An NPC base 
 assert.ok(scene.actors.find(item => item.id === "hero").hp < heroBeforeEnemyAttack, "The Reaction window still resolves NPC base damage");
 scene = dispatch(scene, "viper", { kind: "turn-end" });
 
+assert.equal(scene.pendingPrompt?.kind, "fodder-move-select");
+assert.equal(LionWing.roundEndStatus(scene).available, false, "Round cannot bypass a pending Fodder decision");
+const holdFodder = Engine.respondRulePrompt(scene, context.window.DAWN_DATA, { choice: "finish" });
+assert.equal(holdFodder.ok, true, holdFodder.errors?.join(" "));
+scene = Engine.dispatchMany(scene, holdFodder.events).scene;
 scene = dispatch(scene, null, { kind: "round-end" });
 assert.equal(scene.round, 2, "The first Round resets after both sides finish the exchange");
 assert.ok(scene.actors.filter(item => item.kind === "enemy").every(item => item.ap === 0), "Round reset clears spent NPC AP");
-assert.ok(scene.actors.filter(item => item.kind === "enemy" && item.profileId !== "enemy.modifier.giant").every(item => item.baseAp === 3), "Round reset retains canonical NPC base AP");
+assert.ok(scene.actors.filter(item => item.kind === "enemy" && item.profileId !== "lionwing.modifier.giant").every(item => item.baseAp === 3), "Round reset retains canonical NPC base AP");
 assert.equal(scene.actors.find(item => item.id === "crowd").acted, true, "Fodder remains outside the Turn reset queue");
 
 scene = dispatch(scene, "hero", { kind: "turn-start" });

@@ -6,7 +6,7 @@ document.querySelector('.mode-page[data-page="build"]').addEventListener("click"
   if(mode){setHeroViewMode(mode.dataset.heroViewMode);return}
   if(status){heroSheetTechniqueStatus=status.dataset.heroSheetStatus;renderHeroPlaySheet();return}
   if(tools){openToolsDicePreset();return}
-  if(table){setMode("play");return}
+  if(table){openHeroSheetTable({section:table.dataset.heroSheetSection||"turn"});return}
 });
 $("hero-play-sheet").addEventListener("click",event=>{
   const resource=event.target.closest("[data-hero-resource]"),pin=event.target.closest("[data-pin-rule]"),remove=event.target.closest("[data-pinned-rule-remove]"),open=event.target.closest("[data-pinned-rule-open]"),choose=event.target.closest("[data-pinned-rules-mode]"),field=event.target.closest("[data-hero-dice-field]"),roll=event.target.closest("[data-hero-dice-roll]"),reroll=event.target.closest("[data-hero-dice-reroll]"),starApply=event.target.closest("[data-hero-dice-star-apply]"),attr=event.target.closest("[data-sheet-tool-attr]"),skill=event.target.closest("[data-sheet-tool-skill]"),ability=event.target.closest("[data-sheet-tool-ability]");

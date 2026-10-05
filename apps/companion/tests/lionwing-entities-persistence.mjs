@@ -103,6 +103,11 @@ const common = (id, backing, extra = {}) => ({
 });
 const normalize = scene => vm.runInContext(`normalizeScene(${JSON.stringify(scene)})`, context);
 
+const queuedScene = fixture();
+queuedScene.pendingPrompt = { id: "active", kind: "review", sourceActorId: "owner", ownerActorId: "owner", options: ["pass"], expiresAt: Date.now() + 600000 };
+queuedScene.triggerQueue = Array.from({ length: 29 }, (_, index) => ({ key: `queued:${index}`, event: { type: "rule.prompt", actorId: "owner", payload: { id: `prompt:${index}`, sourceActorId: "owner", options: ["pass"] } } }));
+assert.equal(normalize(queuedScene).triggerQueue.length, 29, "scene save/restore retains all accepted prompts beyond the former 24-item clipping point");
+
 let scene = fixture();
 for (const entity of [
   common("entity-actor", { actorId: "secret" }),

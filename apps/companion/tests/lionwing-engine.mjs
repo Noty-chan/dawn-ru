@@ -82,7 +82,7 @@ let jumper=fixture();jumper.actors[1].x=5;jumper.objects=[{id:"mud",type:"diffic
 let blockedJump=fixture();blockedJump.actors[1].x=5;blockedJump.objects=[{id:"wall",type:"terrain",space:"main",cells:["2,1"]}];blockedJump=run(blockedJump,"h",{kind:"turn-start"});assert.equal(lw.prepare(blockedJump,{actorId:"h",kind:"action",actionId:ids.jump,destination:{x:3,y:1}}).ok,false,"Jump still respects blocking terrain");
 
 s=fixture();s.actors[1].x=2;s=run(s,"h",{kind:"turn-start"});s=prepare(s,"h",{kind:"action",actionId:ids.skirmish,targetIds:["e"]});assert.ok(s.pendingAction);assert.equal(s.actors[0].ap,2);
-throws(s,"h",{kind:"resolve-attack"},/Реакций/);
+assert.equal(engine.pendingActionStatus(s).canResolve,true,"NPCs without defenses do not require an acknowledgement");
 s=run(s,"e",{kind:"reaction",choice:"take"});s=run(s,"h",{kind:"resolve-attack"});assert.equal(s.pendingAction,null);assert.equal(s.actors[1].hp,16);
 
 s=fixture();s=run(s,"h",{kind:"turn-start"});s=run(s,"h",{kind:"effect",effect:"positive.укреплен"});s=run(s,"h",{kind:"turn-end"});assert.ok(s.actors[0].effects.includes("positive.укреплен"));
@@ -137,6 +137,10 @@ throws(s,"h",{kind:"configure-resource",id:"custom",value:5,maximum:4},/макс
 throws(s,"h",{kind:"correct",resource:"hp",amount:17},/максимум/);
 throws(s,"h",{kind:"correct",resource:"knockedOut",amount:2},/значение/);
 s=run(s,"h",{kind:"configure-resource",id:"mana",value:5,replaces:"focus"});
+const unusedFocus=s.actors[0].focus;
+const correctedFocus=run(s,"h",{kind:"correct",resource:"focus",amount:3});
+assert.equal(correctedFocus.actors[0].ruleResources.mana.value,3,"Narrator correction updates replacement Focus");
+assert.equal(correctedFocus.actors[0].focus,unusedFocus,"Correction does not write an unused Focus field");
 s=run(s,"h",{kind:"turn-start"});s=prepare(s,"h",{kind:"action",actionId:ids.breathe});
 assert.equal(s.actors[0].ruleResources.mana.value,6);
 s=run(s,"e",{kind:"attack",targetIds:["h"],amount:1});s=run(s,"h",{kind:"reaction",choice:"block"});assert.equal(s.actors[0].ruleResources.mana.value,4);
@@ -243,16 +247,16 @@ s=fixture();s.actors[1].x=2;s.actors.push({...hero("e2",1,2),kind:"enemy",heroId
 s=run(s,"h",{kind:"turn-start"});s=run(s,"h",{kind:"effect",targetId:"e",effect:"negative.подброшен"});
 s=prepare(s,"h",{kind:"action",actionId:ids.skirmish,targetIds:["e","e2"],spikeTargetIds:["e"]});
 assert.equal(s.pendingAction.targetDamage.e,5);assert.equal(s.pendingAction.targetDamage.e2,4);assert.equal(s.actors[1].effects.includes("negative.подброшен"),false);
-// A diagonal Line still uses orthogonal distance for Jump's range.
-s=fixture();assert.throws(()=>lw.movement(s,s.actors[0],{x:3,y:3},{line:true,maximum:3,ignoreOpponents:true}),/дальности/);
-assert.equal(lw.movement(s,s.actors[0],{x:3,y:3},{line:true,maximum:4,ignoreOpponents:true}).cost,4);
+// Straight-Line movement counts diagonal spaces as one (canonical core rules).
+s=fixture();assert.throws(()=>lw.movement(s,s.actors[0],{x:3,y:3},{line:true,maximum:1,ignoreOpponents:true}),/дальности/);
+assert.equal(lw.movement(s,s.actors[0],{x:3,y:3},{line:true,maximum:2,ignoreOpponents:true}).cost,2,"canonical straight-Line movement counts diagonal spaces as one");
 
 // Manual attack exceptions survive the reaction window and serialization.
 s=fixture();s.actors[1].armor=10;s.actors[1].evasion=10;
 s=run(s,"h",{kind:"attack",targetIds:["e"],amount:5,ignoreArmor:true,ignoreEvasion:true});
 s=run(JSON.parse(JSON.stringify(s)),"e",{kind:"reaction",choice:"take"});s=run(s,"h",{kind:"resolve-attack"});assert.equal(s.actors[1].hp,15);assert.equal(s.actors[1].evasion,10);
 // Dodge suppresses forced movement in the same manual attack package.
-s=fixture();s=run(s,"h",{kind:"batch",operations:[{kind:"attack",targetIds:["e"],amount:1},{kind:"move",targetId:"e",forced:true,destination:{x:4,y:1},maximum:2}]});
+s=fixture();s.actors[1].kind="hero";s.actors[1].heroId="e";s=run(s,"h",{kind:"batch",operations:[{kind:"attack",targetIds:["e"],amount:1},{kind:"move",targetId:"e",forced:true,destination:{x:4,y:1},maximum:2}]});
 s=run(s,"e",{kind:"reaction",choice:"dodge",destination:{x:3,y:2}});s=run(s,"h",{kind:"resolve-attack"});assert.equal(s.actors[1].x,3);assert.equal(s.actors[1].y,2);assert.ok(s.log.some(e=>e.type==="movement.prevented"));
 // A manual modifier can be removed without changing its base statistic.
 s=fixture();s=run(s,"h",{kind:"modifier",stat:"armor",amount:3,duration:"manual"});s=run(s,"h",{kind:"modifier",stat:"armor",remove:true});assert.equal(s.actors[0].armor,0);assert.equal(s.actors[0].lionwing.modifiers.length,0);

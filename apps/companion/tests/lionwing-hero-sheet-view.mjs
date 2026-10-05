@@ -38,7 +38,8 @@ assert.match(viewSource,/const threshold=reroll\?3:4/,"an Influence reroll must 
 assert.match(ru,/heroView\.dice\.rerolledHint[\s\S]+3 и выше/,"RU sheet copy must explain the 3+ Influence reroll threshold");
 assert.match(en,/heroView\.dice\.rerolledHint[\s\S]+3 or higher/,"EN sheet copy must explain the 3+ Influence reroll threshold");
 assert.match(events,/data-hero-sheet-tools[\s\S]+openToolsDicePreset/,"sheet rolls must reuse the existing Tools handler");
-assert.match(events,/data-hero-sheet-table[\s\S]+setMode\("play"\)/,"table actions must reuse the existing page mode handler");
+assert.match(events,/data-hero-sheet-table[\s\S]+openHeroSheetTable/,"table references must use the actor-aware canonical route");
+assert.match(heroUi,/function openHeroSheetTable\([\s\S]+setMode\("play"\)/,"the canonical sheet route must reuse the existing page mode handler");
 assert.match(events,/heroExportLionwingBridge/,"the LionWing hero export must expose the consequence bridge");
 assert.match(events,/heroImportLionwingBridge/,"the LionWing hero import must read the consequence bridge");
 assert.doesNotMatch(events,/Scene\.lionwing/,"the hero export bridge must not include combat queues");
@@ -81,6 +82,59 @@ const countContext={};vm.createContext(countContext);
 const countStart=appCore.indexOf("function spellcrafterLearnedLimitFor"),countEnd=appCore.indexOf("function sceneCore");
 vm.runInContext(`${appCore.slice(countStart,countEnd)}\nthis.limit=spellcrafterLearnedLimitFor;`,countContext);
 assert.deepEqual([0,1,2,3,4].map(level=>countContext.limit(level)),[0,1,2,3,3],"Spellcrafter learns one, two, then three total Modifications");
+
+// Resource availability follows the existing correction route. Queue changes
+// refresh only the two counters, preserving the rest of the Hero sheet and focus.
+let englishResources=false;
+const resourceQueue={pending:0,failed:0},resourceRole={sceneId:"table-a",canNarrate:false};
+const resourceActor={id:"own",heroId:"hero",team:"hero",hp:10,maxHp:10,influence:1,stress:1,attrs:{}};
+const resourceCards=new Map(["influence","stress"].map(key=>{
+  const count={textContent:""},note={textContent:"",hidden:true},buttons=[-1,1].map(delta=>({dataset:{heroResource:key,heroResourceDelta:String(delta)},disabled:false,attributes:{},setAttribute(name,value){this.attributes[name]=value;}}));
+  return[key,{count,note,buttons,querySelector:selector=>selector==="strong"?count:selector===".hero-sheet-resource-reason"?note:null,querySelectorAll:()=>buttons}];
+}));
+const resourceRoot={querySelector:selector=>resourceCards.get(selector.match(/data-resource="([^"]+)"/)?.[1])||null};
+const resourceContext={Scene:{rulesEdition:"lionwing",actors:[resourceActor]},S:{id:"hero",runtime:{influence:1,stress:1}},Sync:{state:()=>resourceRole},
+  $:()=>resourceRoot,networkV2QueueStatus:()=>resourceQueue,isEnglishPreview:()=>englishResources,
+  ensureRuntime(){},derived:()=>({hp:10,focus:2,speed:4}),stressMaximumFor:()=>3,
+  clamp:(value,min,max)=>Math.max(min,Math.min(max,Number(value)||0)),t:key=>key};
+vm.createContext(resourceContext);
+const resourceLoad=code=>vm.runInContext(code,resourceContext),resourceRun=code=>vm.runInContext(code,resourceContext);
+resourceLoad(appCore.slice(appCore.indexOf("const esc ="),appCore.indexOf("const uid =")));
+resourceLoad(heroUi.slice(heroUi.indexOf("function heroViewRuntime("),heroUi.indexOf("function heroSheetClone(")));
+resourceLoad(heroUi.slice(heroUi.indexOf("function heroSheetCopy("),heroUi.indexOf("function heroSheetFirstSentence(")));
+resourceLoad(heroUi.slice(heroUi.indexOf("function heroSheetLinkedActor("),heroUi.indexOf("function heroSheetTableButton(")));
+resourceLoad(read("lionwing-ui.js").split(/\r?\n/).find(line=>line.startsWith("const lwCanNarrate =")));
+const numericReasonSource=read("scene-ui.js");
+resourceLoad(numericReasonSource.slice(numericReasonSource.indexOf("function sceneNumericCorrectionReason("),numericReasonSource.indexOf("function narratorActorValue(")));
+resourceLoad(heroUi.slice(heroUi.indexOf("function heroSheetResourceCorrectionReason("),heroUi.indexOf("function heroSheetActionCost(")));
+const resourceMarkup=key=>resourceRun(`heroSheetResourceMarkup(${JSON.stringify(key)},1)`);
+const buttonsIn=html=>[...html.matchAll(/<button\b[^>]*>/g)].map(match=>match[0]);
+for(const key of ["influence","stress"]){
+  const markup=resourceMarkup(key);
+  assert.ok(buttonsIn(markup).every(button=>/\bdisabled\b/.test(button)),"Player corrections are visibly disabled instead of promising an unavailable route");
+  assert.match(markup,/<small class="hero-sheet-resource-reason" >Изменяет Нарратор<\/small>/,"the reason is visible outside a tooltip");
+}
+resourceRole.canNarrate=true;
+assert.ok(buttonsIn(resourceMarkup("influence")).every(button=>!/\bdisabled\b/.test(button)),"the Narrator retains valid corrections");
+resourceQueue.pending=1;resourceRun("refreshHeroSheetResourceControls()");
+assert.ok([...resourceCards.values()].every(card=>card.buttons.every(button=>button.disabled)));
+assert.equal(resourceCards.get("influence").note.textContent,"Сохранение…");
+assert.equal(resourceCards.get("influence").note.hidden,false);
+resourceQueue.pending=0;resourceActor.influence=2;resourceRun("refreshHeroSheetResourceControls()");
+assert.equal(resourceCards.get("influence").count.textContent,"2","acknowledgement updates the displayed count");
+assert.ok(resourceCards.get("influence").buttons.every(button=>!button.disabled),"acknowledgement restores available controls without rebuilding the sheet");
+assert.equal(resourceCards.get("influence").note.hidden,true);
+resourceQueue.failed=1;resourceRun("refreshHeroSheetResourceControls()");
+assert.match(resourceCards.get("stress").note.textContent,/несохранённые изменения/);
+assert.ok(resourceCards.get("stress").buttons.every(button=>button.disabled));
+resourceQueue.failed=0;resourceActor.stress=3;resourceRun("refreshHeroSheetResourceControls()");
+assert.equal(resourceCards.get("stress").buttons[0].disabled,false);assert.equal(resourceCards.get("stress").buttons[1].disabled,true,"Stress still respects its maximum");
+resourceRole.canNarrate=false;englishResources=true;resourceRun("refreshHeroSheetResourceControls()");
+assert.equal(resourceCards.get("influence").note.textContent,"Only the Narrator can edit.");
+assert.match(resourceCards.get("influence").buttons[1].attributes["aria-label"],/Only the Narrator can edit/);
+resourceContext.Scene.actors=[];
+assert.ok(buttonsIn(resourceMarkup("influence")).every(button=>!/\bdisabled\b/.test(button)),"an unlinked Hero retains the existing local resource route");
+assert.doesNotMatch(resourceRun("heroSheetResourceMarkup('hp',10)"),/data-hero-resource/,"health remains read-only in the Hero resource rail");
 
 const heroContext={console,contentPreferences:{edition:"lionwing"},APP_SCHEMA:14,ATTRS:[["body"],["talent"],["spirit"],["mind"]],Logic:{normalizeAttributeBases:values=>values,normalizeAttributeGrowth:values=>values},crypto:{randomUUID:()=>"hero-test-id"}};heroContext.globalThis=heroContext;vm.createContext(heroContext);
 const heroStart=appCore.indexOf("const $ ="),heroEnd=appCore.indexOf("function normalizePinnedRules");

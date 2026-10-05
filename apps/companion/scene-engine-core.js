@@ -1,6 +1,107 @@
 "use strict";
 
 const VERSION = 46;
+// Shared input boundary for both editions. Validate before JSON cloning, which
+// would silently turn NaN into null or drop functions/undefined array members.
+function eventPacketError(message, code = "SCENE_EVENT_PACKET_INVALID") {
+  const error = new Error(message); error.code = code; throw error;
+}
+function eventRequestFingerprint(event) {
+  const canonical = value => {
+    if (Array.isArray(value)) return value.map(canonical);
+    if (value && typeof value === "object") return Object.fromEntries(Object.keys(value).sort().filter(key => value[key] !== undefined).map(key => [key, canonical(value[key])]));
+    return value;
+  };
+  // Delivery timestamps are transport metadata; every other supplied field is
+  // part of the request, including visibility and provenance.
+  const { id, at, ...request } = event;
+  request.actorId ||= null; request.payload ||= {};
+  return JSON.stringify(canonical(request));
+}
+function eventRequestMetadata(event) {
+  const { id, at, type, actorId, payload, ...metadata } = event;
+  return eventRequestFingerprint({ type: "metadata", payload: metadata });
+}
+/** @param {Array<{id?: string, type: string, actorId?: string|null, payload?: object}>} events */
+function validateEventPacket(events) {
+  if (!Array.isArray(events) || events.length > 192) eventPacketError("Некорректный пакет событий");
+  const ancestors = new Set(), ids = new Map(); let nodes = 0;
+  const visit = (value, depth = 0, inArray = false) => {
+    if (++nodes > 100000 || depth > 64) eventPacketError("Пакет событий слишком сложный");
+    if (value === undefined && !inArray || value === null || typeof value === "string" || typeof value === "boolean") return;
+    if (typeof value === "number" && Number.isFinite(value)) return;
+    if (!value || typeof value !== "object" || Object.prototype.toString.call(value) !== "[object Object]" && !Array.isArray(value)) eventPacketError("События должны содержать только корректные JSON-значения");
+    if (ancestors.has(value)) eventPacketError("Пакет событий содержит циклическую ссылку");
+    ancestors.add(value);
+    if (Array.isArray(value)) { for (let index = 0; index < value.length; index++) visit(value[index], depth + 1, true); }
+    else { for (const item of Object.values(value)) visit(item, depth + 1); }
+    ancestors.delete(value);
+  };
+  for (const event of events) {
+    if (!event || Array.isArray(event) || typeof event !== "object" || typeof event.type !== "string" || !event.type.trim()) eventPacketError("Событие должно иметь тип");
+    if (event.id != null && (typeof event.id !== "string" || !event.id.trim())) eventPacketError("Некорректный ID события");
+    if (event.actorId != null && (typeof event.actorId !== "string" || !event.actorId.trim())) eventPacketError("Некорректный исполнитель события");
+    if (event.payload != null && (typeof event.payload !== "object" || Array.isArray(event.payload))) eventPacketError("Событие должно иметь объект payload");
+    visit(event);
+    if (event.id) {
+      const fingerprint = eventRequestFingerprint(event);
+      if (ids.has(event.id) && ids.get(event.id) !== fingerprint) eventPacketError("Конфликт ID внутри пакета событий", "SCENE_EVENT_ID_CONFLICT");
+      ids.set(event.id, fingerprint);
+    }
+  }
+}
+function eventRequestReceipts(scene) {
+  return scene.rulesEdition === "lionwing" ? scene.lionwing?.receipts || [] : scene.eventReceipts || [];
+}
+function eventPacketReplayStatus(scene, events, includeCommitted = true) {
+  const receipts = new Map(eventRequestReceipts(scene).map(receipt => [receipt.id, receipt]));
+  let matched = 0;
+  const matchedIds = [];
+  for (const event of events) {
+    const receipt = event.id && receipts.get(event.id);
+    const stored = (scene.log || []).find(item => item.id === event.id);
+    if (!receipt) {
+      if (!includeCommitted || !stored) continue;
+      if (eventRequestFingerprint(stored) !== eventRequestFingerprint(event)) eventPacketError("Конфликт ID события: в журнале уже записано другое событие", "SCENE_EVENT_ID_CONFLICT");
+      matched++; matchedIds.push(event.id); continue;
+    }
+    let matches = receipt.fingerprint === JSON.stringify([event.type, event.actorId || null, event.payload || {}]);
+    if (receipt.requestMetadata !== undefined) {
+      const [type, actorId, payload] = JSON.parse(receipt.fingerprint);
+      matches = eventRequestFingerprint({ type, actorId, payload }) === eventRequestFingerprint({ type: event.type, actorId: event.actorId, payload: event.payload }) && receipt.requestMetadata === eventRequestMetadata(event)
+        || stored && eventRequestFingerprint(stored) === eventRequestFingerprint(event);
+    }
+    if (!matches) eventPacketError("Конфликт ID события: запрос уже принят с другими данными", "SCENE_EVENT_ID_CONFLICT");
+    matched++; matchedIds.push(event.id);
+  }
+  return { complete: matched === events.length, matched, matchedIds };
+}
+const generatedEventReservations = Symbol("generated event reservations");
+function reserveEventIds(scene, events, options = {}) {
+  return { ...options, [generatedEventReservations]: new Set([
+    ...(options[generatedEventReservations] || []),
+    ...(scene.log || []).map(event => event.id),
+    ...eventRequestReceipts(scene).map(receipt => receipt.id),
+    ...events.map(event => event.id).filter(Boolean),
+  ]) };
+}
+function generatedEventId(scene, base, options = {}) {
+  const reserved = options[generatedEventReservations];
+  const occupied = new Set([...(reserved || []), ...(scene.log || []).map(event => event.id), ...eventRequestReceipts(scene).map(receipt => receipt.id)]);
+  let id = base, serial = 0;
+  while (occupied.has(id)) id = `${base}:generated:${++serial}`;
+  reserved?.add(id);
+  return id;
+}
+function recordEventRequests(scene, events) {
+  const receipts = new Map(eventRequestReceipts(scene).map(receipt => [receipt.id, receipt]));
+  // Keep the existing payload fingerprint once. Only the small envelope is
+  // added, so canonical attack/geometry payloads do not double network saves.
+  for (const event of events) if (event.id && receipts.get(event.id)?.requestMetadata === undefined) receipts.set(event.id, { id: event.id, fingerprint: JSON.stringify([event.type, event.actorId || null, event.payload || {}]), requestMetadata: eventRequestMetadata(event) });
+  const retained = [...receipts.values()].slice(-256);
+  if (scene.rulesEdition === "lionwing") { scene.lionwing ||= {}; scene.lionwing.receipts = retained; }
+  else scene.eventReceipts = retained;
+}
 // Persisted ids are the rules contract. Display names may be translated and must
 // never be used as the only way to identify an action.
 const ACTION_IDS = Object.freeze({
@@ -28,9 +129,11 @@ const actionIs = (action, key) => Boolean(action && ACTION_IDS[key] && action.id
 const actionIsAny = (action, keys) => Array.isArray(keys) && keys.some(key => actionIs(action, key));
 const actionIdIs = (actionId, key) => Boolean(ACTION_IDS[key] && canonicalActionId(actionId) === ACTION_IDS[key]);
 const actionByKey = (data, key) => data?.actions?.list?.find(action => actionIs(action, key)) || null;
-const EVENT_TYPES = new Set(["action.plan", "action.plan.update", "action.plan.cancel", "action.prepare", "action.resolve", "enemy.action.prepare", "enemy.action.resolve", "reaction.offer", "reaction.respond", "roll.public", "roll.redirect", "gift.sacrifice", "challenge.request", "challenge.clear", "opposed.request", "opposed.reroll", "opposed.tie.resolve", "opposed.clear", "rule.share", "session-clock.create", "session-clock.set", "session-clock.add", "session-clock.reset", "session-clock.rename", "session-clock.kind", "session-clock.size", "session-clock.remove", "counter.threshold", "combat-meter.change", "reminder.create", "reminder.due", "reminder.resolve", "reminder.remove", "resource.spend", "resource.gain", "actor.runtime.set", "rule-mode.set", "rule-resource.configure", "rule-resource.spend", "rule-resource.gain", "rule-resource.set", "rule-resource.reset", "rule-clock.configure", "rule-clock.tick", "rule-clock.set", "rule-clock.reset", "rule.trigger", "modifier.configure", "actor.spawn", "actor.despawn", "actor.move", "actor.enter", "actor.heal", "actor.wound", "actor.knockout", "turn.start", "turn.end", "turn.grant", "round.end", "attack.pending", "attack.clear", "damage.apply", "effect.apply", "effect.remove", "inventory.change", "rule.prompt", "rule.respond", "technique.prepare", "technique.resolve", "technique.manual", "technique.state", "actor.state", "area.create", "area.remove", "area.duration", "object.damage", "object.restore", "wall.create", "wall.damage", "wall.restore", "wall.remove", "marker.create", "marker.move", "marker.remove", "marker.duration", "topology.cells.remove", "topology.cells.restore", "targets.set", "space.ensure", "space.remove"]);
+const EVENT_TYPES = new Set(["action.plan", "action.plan.update", "action.plan.cancel", "action.prepare", "action.resolve", "enemy.action.prepare", "enemy.action.resolve", "reaction.offer", "reaction.respond", "roll.public", "roll.redirect", "gift.sacrifice", "challenge.request", "challenge.clear", "opposed.request", "opposed.reroll", "opposed.tie.resolve", "opposed.clear", "rule.share", "session-clock.create", "session-clock.set", "session-clock.add", "session-clock.reset", "session-clock.rename", "session-clock.kind", "session-clock.size", "session-clock.remove", "counter.threshold", "combat-meter.change", "reminder.create", "reminder.due", "reminder.resolve", "reminder.remove", "resource.spend", "resource.gain", "actor.runtime.set", "rule-mode.set", "rule-resource.configure", "rule-resource.spend", "rule-resource.gain", "rule-resource.set", "rule-resource.reset", "rule-clock.configure", "rule-clock.tick", "rule-clock.set", "rule-clock.reset", "rule.trigger", "modifier.configure", "modifier.mode.flip", "actor.spawn", "actor.despawn", "actor.move", "actor.enter", "actor.heal", "actor.wound", "actor.knockout", "turn.start", "turn.end", "turn.grant", "round.end", "attack.pending", "attack.clear", "damage.apply", "effect.apply", "effect.remove", "inventory.change", "rule.prompt", "rule.respond", "technique.prepare", "technique.resolve", "technique.manual", "technique.state", "actor.state", "area.create", "area.remove", "area.duration", "object.damage", "object.restore", "wall.create", "wall.damage", "wall.restore", "wall.remove", "marker.create", "marker.move", "marker.remove", "marker.duration", "topology.cells.remove", "topology.cells.restore", "targets.set", "space.ensure", "space.remove"]);
 EVENT_TYPES.add("modifier.action");
 EVENT_TYPES.add("modifier.used");
+EVENT_TYPES.add("modifier.vortex.absorb");
+EVENT_TYPES.add("terrain.convert-to-fodder");
 const RESOURCES = new Set(["ap", "focus", "influence", "meals", "creationMarks", "innovationCharges"]);
 // Every prompt whose answer is a board placement must expose the typed `cell`
 // option at the event boundary. Keep this registry wider than the current UI
@@ -48,7 +151,21 @@ const EFFECT_LIFECYCLE = Object.freeze({
   "negative.пойман": Object.freeze({ duration: "default", sourceBound: true, removeWithSource: true }),
   "negative.спровоцирован": Object.freeze({ duration: "default", sourceBound: true, removeWithSource: true }),
 });
-const ACTOR_STATE_KEYS = new Set(["pugilistStance", "martialPerfection", "growth", "gluttonConsumed", "evasion", "armor", "imposingPresence", "enemyAim", "rangerHeadshotTargetId", "berserkerLastStand", "berserkerReactionTurnSerial", "executionerBifurcate", "revenantHollowedEyes", "healerGuardianId", "enemyCrowdMovement", "privateerGearChange", "roninSheathed", "grimTransformed", "grimUsed", "warringTransformed", "warringUsed", "lastCreationSpellMarks", "modifiedOverclockTurns", "icicleSpellsRemaining", "styleCarryRemaining", "timeStopUsed", "empathSupport", "masterArmament", "wispCreationUsed"]);
+function applyEnemyDeploymentPassive(scene, actor) {
+  const assassin = scene?.rulesEdition === "lionwing" && actor?.profileId === "lionwing.npc.assassin"
+    || scene?.rulesEdition !== "lionwing" && actor?.profileId === "enemy.common.assassin";
+  if (!assassin) return actor;
+  actor.effects ||= [];
+  if (!actor.effects.includes("positive.исчез")) actor.effects.push("positive.исчез");
+  actor.effectStates ||= {};
+  actor.effectStates["positive.исчез"] = {
+    duration: "actionOrStartTurn", removable: true,
+    appliedTurnSerial: Number(scene.turnSerial || 0), appliedRound: Number(scene.round || 1),
+    sources: [{ actorId: actor.id, actionId: `${actor.profileId}#passive`, eventId: "" }],
+  };
+  return actor;
+}
+const ACTOR_STATE_KEYS = new Set(["pugilistStance", "martialPerfection", "growth", "gluttonConsumed", "evasion", "armor", "imposingPresence", "enemyAim", "rangerHeadshotTargetId", "berserkerLastStand", "berserkerReactionTurnSerial", "executionerBifurcate", "revenantHollowedEyes", "healerGuardianId", "enemyCrowdMovement", "privateerGearChange", "roninSheathed", "grimTransformed", "grimUsed", "warringTransformed", "warringUsed", "lastCreationSpellMarks", "modifiedOverclockTurns", "icicleSpellsRemaining", "styleCarryRemaining", "timeStopUsed", "empathSupport", "masterArmament", "wispCreationUsed", "bodyguardsBrace"]);
 const clone = value => JSON.parse(JSON.stringify(value));
 const actorById = (scene, id) => (scene.actors || []).find(actor => actor.id === id) || null;
 const compoundParts = (scene, actorOrId, options = {}) => {
@@ -151,7 +268,8 @@ function topologyStatus(scene, request = {}) {
     const match = cell.match(/^(\d{1,2}),(\d{1,2})$/);
     return !space || !match || Number(match[1]) >= Number(space.width) || Number(match[2]) >= Number(space.height);
   });
-  const occupiedCells = cells.filter(cell => (scene?.actors || []).some(actor => !actor.knockedOut && !hasEffect(scene, actor, "positive.исчез") && actor.space === request.space && cellKey(actor) === cell));
+  const actorOccupiesCell=(actor,cell)=>{const[x,y]=cell.split(",").map(Number);return x>=Number(actor.x)&&x<Number(actor.x)+Math.max(1,Number(actor.occupiedWidth||1))&&y>=Number(actor.y)&&y<Number(actor.y)+Math.max(1,Number(actor.occupiedHeight||1))};
+  const occupiedCells = cells.filter(cell => (scene?.actors || []).some(actor => !actor.knockedOut && !hasEffect(scene, actor, "positive.исчез") && actor.space === request.space && actorOccupiesCell(actor,cell)));
   const alreadyRemoved = cells.filter(cell => removed.has(cell));
   const operation = request.operation || "inspect";
   let reason = "";

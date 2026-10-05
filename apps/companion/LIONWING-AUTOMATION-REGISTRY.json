@@ -9,7 +9,8 @@
   "inputs": {
     "review": "apps/companion/lionwing-automation-registry.review.json",
     "automationEvidence": "apps/companion/automation-evidence.json",
-    "techniqueCoverage": "apps/companion/technique-engine.js"
+    "techniqueCoverage": "apps/companion/technique-engine.js",
+    "verificationManifest": "apps/companion/automation-verification.manifest.json"
   },
   "rows": [
     {
@@ -136,7 +137,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -215,7 +217,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -310,7 +313,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -337,7 +341,7 @@
             "name": "Скорость — это вес",
             "kind": "passive",
             "automation": "full",
-            "note": "Успешное Завершение Телом после общего окна Реакций накладывает Разорван на доступные цели.",
+            "note": "Завершение Телом как первая Атака своего Хода даёт 2 Фокуса и накладывает Разорван до расчёта урона.",
             "sourceLevelId": "powerhouse.dragonslayer.1",
             "sourceDigest": "5967f1ff724e990c007796133cc60b106a15c4d303d733bda7e73e4b4eb52f7d",
             "coverage": "full"
@@ -438,7 +442,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -549,7 +554,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -695,7 +701,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -814,7 +821,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -942,7 +950,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -1053,7 +1062,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -1140,7 +1150,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -1275,7 +1286,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -1379,7 +1391,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -1526,7 +1539,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -1646,7 +1660,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -1673,7 +1688,7 @@
             "name": "Жонглирование пулями",
             "kind": "passive",
             "automation": "full",
-            "note": "Одиночная Стычка за 3+ Пули автоматически накладывает Подброшен после разрешения Реакций.",
+            "note": "Атака с 2+ Критическими успехами предлагает Подбросить одну цель; бонусный урон Большого ствола по Подброшенным удваивается.",
             "sourceLevelId": "powerhouse.gunslinger.3",
             "sourceDigest": "fd9e3d44ce0f4c8bcff8c3b316c54ed304a10be26073d9242cbbe17f141f5950",
             "coverage": "full"
@@ -1782,7 +1797,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -1885,7 +1901,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -2004,7 +2021,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -2083,7 +2101,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -2178,7 +2197,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -2287,7 +2307,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -2435,7 +2456,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -2571,7 +2593,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -2691,7 +2714,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -2801,7 +2825,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -2921,7 +2946,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -3000,7 +3026,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -3104,7 +3131,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -3240,7 +3268,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -3352,7 +3381,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -3448,7 +3478,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -3568,7 +3599,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -3688,7 +3720,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -3808,7 +3841,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -3943,7 +3977,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -4054,7 +4089,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -4197,7 +4233,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -4265,7 +4302,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -4333,7 +4371,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -4401,7 +4440,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -4553,7 +4593,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -4681,7 +4722,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -4785,7 +4827,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -4897,7 +4940,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -5029,7 +5073,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -5133,7 +5178,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -5245,7 +5291,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -5357,7 +5404,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -5501,7 +5549,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -5628,7 +5677,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -5731,7 +5781,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -5850,7 +5901,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -6005,7 +6057,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -6100,7 +6153,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -6211,7 +6265,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -6407,7 +6462,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -6494,7 +6550,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -6622,7 +6679,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -6690,7 +6748,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -6758,7 +6817,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -6826,7 +6886,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -6963,7 +7024,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -7066,7 +7128,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -7210,7 +7273,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -7314,7 +7378,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -7474,7 +7539,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -7594,7 +7660,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -7728,7 +7795,8 @@
             "Body Finishers and disabled or non-LionWing owners receive no range contribution.",
             "The range quote is read-only and remains stable after JSON reload and repeated evaluation."
           ]
-        }
+        },
+        "requiresCurrentRun": true
       }
     },
     {
@@ -7856,7 +7924,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -7975,7 +8044,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -8111,7 +8181,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -8215,7 +8286,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -8351,7 +8423,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -8366,9 +8439,24 @@
       },
       "level": 1,
       "implementation": {
-        "automation": "manual",
-        "ruleIds": [],
-        "rules": [],
+        "automation": "full",
+        "ruleIds": [
+          "vagabond.speed-demon.1"
+        ],
+        "rules": [
+          {
+            "id": "vagabond.speed-demon.1",
+            "techniqueId": "vagabond.speed-demon",
+            "level": 1,
+            "name": "Проскользнуть",
+            "kind": "passive",
+            "automation": "full",
+            "sourceDigest": "6ce0b83cacbfaaa2049af3bab7a516247f0bea7c2fbbd53910fced7d29fb8b6e",
+            "note": "LionWing: добровольное движение проходит сквозь врагов, сохраняя проверку пустой конечной клетки, Стен, препятствий и запретов движения.",
+            "sourceLevelId": "vagabond.speed-demon.1",
+            "coverage": "full"
+          }
+        ],
         "foundationPlan": {
           "version": 11,
           "status": "reviewed",
@@ -8411,7 +8499,9 @@
           "text": "You can move through enemies. You must end your movement in an empty space."
         },
         "canonicalDigest": "6ce0b83cacbfaaa2049af3bab7a516247f0bea7c2fbbd53910fced7d29fb8b6e",
-        "engineRuleDigests": []
+        "engineRuleDigests": [
+          "6ce0b83cacbfaaa2049af3bab7a516247f0bea7c2fbbd53910fced7d29fb8b6e"
+        ]
       },
       "review": {
         "status": "unreviewed",
@@ -8430,7 +8520,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -8455,14 +8546,9 @@
             "techniqueId": "vagabond.speed-demon",
             "level": 2,
             "name": "Мгновенный шаг",
-            "kind": "combo",
+            "kind": "passive",
             "automation": "full",
-            "sequenceKeys": [
-              "breathe",
-              "step"
-            ],
-            "actionKey": "step",
-            "movementMultiplier": 3,
+            "note": "Выход из клетки персонажа с помощью Прохода предлагает не-Атакующий урон [Талант / 2], по каждой цели один раз за Раунд.",
             "sourceLevelId": "vagabond.speed-demon.2",
             "sourceDigest": "0365cfb5ae901e4cac9e6571651dc2a256170a13afb47a2077b1c785eb368b62",
             "coverage": "full"
@@ -8531,7 +8617,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -8666,7 +8753,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -8800,7 +8888,8 @@
             "Changing the Round restores the first-Dodge contribution without changing the actor stat.",
             "A known but disabled or non-LionWing owner receives no contribution."
           ]
-        }
+        },
+        "requiresCurrentRun": true
       }
     },
     {
@@ -8904,7 +8993,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -9007,7 +9097,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -9118,7 +9209,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -9221,7 +9313,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -9316,7 +9409,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -9419,7 +9513,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -9530,7 +9625,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -9625,7 +9721,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -9773,7 +9870,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -9869,7 +9967,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -10004,7 +10103,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -10168,7 +10268,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -10320,7 +10421,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -10440,7 +10542,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -10568,7 +10671,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -10679,7 +10783,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -10790,7 +10895,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -10929,7 +11035,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -11077,7 +11184,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -11237,7 +11345,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -11364,7 +11473,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -11459,7 +11569,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -11562,7 +11673,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -11630,7 +11742,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -11698,7 +11811,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -11766,7 +11880,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -11904,7 +12019,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -12056,7 +12172,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -12208,7 +12325,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -12351,7 +12469,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -12470,7 +12589,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -12605,7 +12725,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -12708,7 +12829,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -12795,7 +12917,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -12922,7 +13045,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -13084,7 +13208,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -13230,7 +13355,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -13357,7 +13483,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -13516,7 +13643,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -13628,7 +13756,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -13739,7 +13868,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -13947,7 +14077,8 @@
             "A stale source digest cannot commit an Armament Finisher path.",
             "Direct browser/network and saved-scene surface evidence remains manual."
           ]
-        }
+        },
+        "requiresCurrentRun": true
       }
     },
     {
@@ -14123,7 +14254,8 @@
             "A third Armament in the same Turn leaves the reward count at one.",
             "UI, network races and persisted browser reload are not independently evidenced."
           ]
-        }
+        },
+        "requiresCurrentRun": true
       }
     },
     {
@@ -14339,7 +14471,8 @@
             "A diagonal or otherwise forged Blade path is rejected before target mutation.",
             "Live browser selection, network concurrency, persisted reload and direct PDF page render remain manual."
           ]
-        }
+        },
+        "requiresCurrentRun": true
       }
     },
     {
@@ -14458,7 +14591,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -14593,7 +14727,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -14688,7 +14823,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -14821,7 +14957,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -14932,7 +15069,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -15067,7 +15205,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -15138,7 +15277,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -15218,7 +15358,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -15346,7 +15487,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -15465,7 +15607,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -15584,7 +15727,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -15703,7 +15847,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -15830,7 +15975,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -15973,7 +16119,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -16084,7 +16231,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -16187,7 +16335,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -16306,7 +16455,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -16473,7 +16623,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -16576,7 +16727,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -16712,7 +16864,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -16863,7 +17016,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -16990,7 +17144,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -17117,7 +17272,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -17204,7 +17360,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -17315,7 +17472,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -17450,7 +17608,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -17577,7 +17736,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -17693,7 +17853,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -17720,7 +17881,7 @@
             "name": "Копнуть глубже, стоять твердо",
             "kind": "passive",
             "automation": "full",
-            "note": "Получение предложения Реакции как цели Атаки даёт 1 Упорство.",
+            "note": "Когда выбран целью Атаки, получает 1 Упорство; несостоявшийся Фокус снижает ОД и дополнительную стоимость первого Завершения Раунда.",
             "sourceLevelId": "bulwark.mundane.2",
             "sourceDigest": "9f2acd96734496115e4336cfba21ae1002107d282e903cc9e9a76fa209b81410",
             "coverage": "full"
@@ -17813,7 +17974,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -17965,7 +18127,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -18060,7 +18223,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -18171,7 +18335,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -18259,7 +18424,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -18370,7 +18536,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -18489,7 +18656,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -18608,7 +18776,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -18687,7 +18856,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -18795,7 +18965,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -18930,7 +19101,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -19113,7 +19285,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -19208,7 +19381,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -19327,7 +19501,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -19430,7 +19605,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -19541,7 +19717,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -19684,7 +19861,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -19843,7 +20021,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -20002,7 +20181,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -20145,7 +20325,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -20272,7 +20453,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -20375,7 +20557,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -20494,7 +20677,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -20621,7 +20805,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -20740,7 +20925,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -20859,7 +21045,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -20987,7 +21174,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -21131,7 +21319,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -21245,7 +21434,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -21384,7 +21574,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -21528,7 +21719,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -21672,7 +21864,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -21791,7 +21984,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -21818,7 +22012,7 @@
             "name": "Бездонная кладовая",
             "kind": "passive",
             "automation": "full",
-            "note": "Запас Трапез автоматически равен 3 за Интермиссию.",
+            "note": "Выход из смежности с союзником предлагает передать порцию без Взаимодействия; окончание её Эффекта лечит на 4 + Разум.",
             "sourceLevelId": "altruist.gourmand.2",
             "sourceDigest": "84ec37d54af70332e7bb2f4ed402265d3514db190bc24b400016b9444b4b8ce7",
             "coverage": "full"
@@ -21879,7 +22073,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -21982,7 +22177,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -22106,7 +22302,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -22225,7 +22422,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -22352,7 +22550,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -22479,7 +22678,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -22582,7 +22782,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -22685,7 +22886,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -22788,7 +22990,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -22891,7 +23094,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -22986,7 +23190,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -23054,7 +23259,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -23122,7 +23328,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -23190,7 +23397,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -23334,7 +23542,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -23462,7 +23671,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -23565,7 +23775,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -23700,7 +23911,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -23787,7 +23999,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -23890,7 +24103,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -24033,7 +24247,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -24136,7 +24351,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -24271,7 +24487,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -24382,7 +24599,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -24509,7 +24727,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -24588,7 +24807,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -24723,7 +24943,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -24810,7 +25031,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -24921,7 +25143,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -25048,7 +25271,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -25192,7 +25416,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -25372,7 +25597,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -25515,7 +25741,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -25626,7 +25853,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -25721,7 +25949,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -25880,7 +26109,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -25999,7 +26229,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -26134,7 +26365,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -26301,7 +26533,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -26444,7 +26677,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -26523,7 +26757,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -26699,7 +26934,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -26843,7 +27079,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -26947,7 +27184,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -27050,7 +27288,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -27185,7 +27424,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -27312,7 +27552,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -27498,7 +27739,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -27638,7 +27880,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -27781,7 +28024,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -27925,7 +28169,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -27952,9 +28197,9 @@
             "name": "Удушение",
             "kind": "passive",
             "automation": "full",
-            "note": "Завершения Телом и Талантом игнорируют дальность для собственных Пойманных целей, а любое Завершение наносит им дополнительный урон Ступени.",
-            "sourceLevelId": "disruptor.constrictor.2",
             "sourceDigest": "31497052acc5975d0710be32d338ee9b8f371577bde12aca4250b1ee967ace4f",
+            "note": "LionWing: Завершения Телом и Талантом игнорируют дальность для собственных активных Пойманных целей, а любое Завершение наносит им дополнительный урон Ступени. Источник Эффекта проверяется ядром.",
+            "sourceLevelId": "disruptor.constrictor.2",
             "coverage": "full"
           }
         ],
@@ -28053,7 +28298,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -28180,7 +28426,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -28315,7 +28562,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -28402,7 +28650,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -28505,7 +28754,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -28573,7 +28823,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -28641,7 +28892,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -28709,7 +28961,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -28836,7 +29089,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -28952,7 +29206,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -29095,7 +29350,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -29198,7 +29454,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -29309,7 +29566,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -29428,7 +29686,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -29559,7 +29818,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -29699,7 +29959,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -29848,7 +30109,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -29951,7 +30213,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -30086,7 +30349,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -30221,7 +30485,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -30348,7 +30613,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -30451,7 +30717,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -30554,7 +30821,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -30697,7 +30965,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -30792,7 +31061,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -30919,7 +31189,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -31055,7 +31326,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -31191,7 +31463,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -31319,7 +31592,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -31486,7 +31760,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -31597,7 +31872,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -31724,7 +32000,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -31851,7 +32128,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -31959,7 +32237,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -32107,7 +32386,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -32258,7 +32538,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -32385,7 +32666,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -32512,7 +32794,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -32666,7 +32949,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -32794,7 +33078,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -32929,7 +33214,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -33056,7 +33342,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -33151,7 +33438,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -33254,7 +33542,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -33386,7 +33675,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -33541,7 +33831,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -33661,7 +33952,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -33777,7 +34069,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -33922,7 +34215,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -34067,7 +34361,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -34194,7 +34489,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -34329,7 +34625,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -34440,7 +34737,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -34575,7 +34873,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -34710,7 +35009,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -34821,7 +35121,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -34973,7 +35274,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -35085,7 +35387,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -35189,7 +35492,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -35301,7 +35605,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -35438,7 +35743,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -35550,7 +35856,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -35645,7 +35952,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -35780,7 +36088,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -35891,7 +36200,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -36002,7 +36312,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -36081,7 +36392,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -36216,7 +36528,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -36327,7 +36640,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -36507,7 +36821,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -36651,7 +36966,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -36762,7 +37078,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -36889,7 +37206,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -37025,7 +37343,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -37145,7 +37464,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -37319,7 +37639,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -37454,7 +37775,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -37654,7 +37976,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -37784,7 +38107,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -37903,7 +38227,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -37998,7 +38323,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -38077,7 +38403,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -38212,7 +38539,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -38379,7 +38707,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -38514,7 +38843,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -38681,7 +39011,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -38792,7 +39123,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -38887,7 +39219,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -39051,7 +39384,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -39183,7 +39517,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -39335,7 +39670,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -39487,7 +39823,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -39627,7 +39964,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -39763,7 +40101,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -39907,7 +40246,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -39975,7 +40315,7 @@
             "id": "ruiner.creation-ascetic.1.pile-arm",
             "techniqueId": "ruiner.creation-ascetic",
             "level": 1,
-            "name": "Небесный копер",
+            "name": "Небесный таран",
             "kind": "creation-attack",
             "automation": "decision",
             "actionKey": "finish",
@@ -40161,7 +40501,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -40297,7 +40638,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -40401,7 +40743,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -40528,7 +40871,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -40687,7 +41031,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     },
     {
@@ -40822,7 +41167,8 @@
         "confidence": null,
         "evidenceId": null,
         "staleEvidence": false,
-        "evidence": null
+        "evidence": null,
+        "requiresCurrentRun": true
       }
     }
   ]

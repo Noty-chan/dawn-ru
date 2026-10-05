@@ -69,15 +69,40 @@ async function prepareRemoteHeroCommand(command){
 function prepareRuntimeCommand(command){if(window.DAWN_LIONWING_ENGINE?.isScene(Scene))throw new Error("Точные исправления LionWing доступны Нарратору");const {actorId,key,value}=command.payload||{},actor=Scene.actors.find(item=>item.id===actorId),allowed=new Set(["hp","wounds","stress","focus","influence","ap"]);if(!actor||actor.ownerId!==command.actor_id)throw new Error("Игрок не владеет этим героем");if(!allowed.has(key)||!Number.isFinite(Number(value)))throw new Error("Некорректное изменение ресурса");const label=`${actor.name}: изменён ресурс ${key}`,event=remoteCommandEvent("command.update-runtime",command,{actorId,key,value:Number(value)});return snapshotCommandCandidate(label,event,scene=>{const target=scene.actors.find(item=>item.id===actorId),maximum={hp:9999,wounds:99,stress:stressMaximumFor(target),focus:9999,influence:999,ap:99}[key];target[key]=clamp(value,0,maximum)})}
 function prepareTargetsCommand(command){const ids=Array.isArray(command.payload?.targetIds)?command.payload.targetIds:[],allowed=new Set(Scene.actors.filter(actor=>!actor.knockedOut).map(actor=>actor.id)),targetIds=ids.filter(id=>typeof id==="string"&&allowed.has(id)).slice(0,40),event=remoteCommandEvent("command.set-targets",command,{targetIds});return snapshotCommandCandidate("Нарратор принял цели игрока",event,scene=>{scene.targetIds=targetIds})}
 function applyTransientTargetsCommand(command){const ids=Array.isArray(command.payload?.targetIds)?command.payload.targetIds:[],allowed=new Set(Scene.actors.filter(actor=>!actor.knockedOut).map(actor=>actor.id));Scene.targetIds=[...new Set(ids.filter(id=>typeof id==="string"&&allowed.has(id)))].slice(0,40);persist();if(store.mode==="play")renderScene();return Scene.targetIds}
-function prepareUndoCommand(command){const step=Scene.undo?.[0];if(!step)throw new Error("В журнале нет обратимого действия");const before=sceneSnapshot(),event=remoteCommandEvent("command.undo",command,{stepId:step.id,label:step.label}),candidate=normalizeScene(step.state);candidate.version=Number(before.version||0)+1;candidate.undo=(Scene.undo||[]).slice(1);candidate.log.unshift({id:event.id,at:event.at,text:`По запросу игрока отменено: ${step.label}`,type:event.type,actorId:null,payload:event.payload,visibility:"public"});candidate.log=candidate.log.slice(0,200);return{candidate,events:[event],label:`scene.undo:${step.label}`}}
+function prepareUndoCommand(command){const step=Scene.undo?.[0];if(!step)throw new Error("В журнале нет обратимого действия");const before=sceneSnapshot(),event=remoteCommandEvent("command.undo",command,{stepId:step.id,label:step.label}),candidate=normalizeScene(step.state);candidate.version=Number(before.version||0)+1;candidate.undo=(Scene.undo||[]).slice(1);candidate.redo=[{id:uid(),label:step.label,state:before},...(Scene.redo||[])].slice(0,20);candidate.log.unshift({id:event.id,at:event.at,text:`По запросу игрока отменено: ${step.label}`,type:event.type,actorId:null,payload:event.payload,visibility:"public"});candidate.log=candidate.log.slice(0,200);return{candidate,events:[event],label:`scene.undo:${step.label}`}}
 function prepareEventCommand(command){const events=canonicalPlayerEvents(command),before=sceneSnapshot(),expectedVersion=Number(Scene.version||0),result=SceneEngine.dispatchMany(Scene,events,{expectedVersion}),candidate=normalizeScene(result.scene);candidate.undo.unshift({id:uid(),label:commandSummary(command),state:before});candidate.undo=candidate.undo.slice(0,20);return{candidate,events:result.events,label:commandSummary(command),effects:result.events}}
 async function acceptPreparedRemoteCommand(command,prepared){
   const acceptedVersion=await Sync.acceptCommand(command.id,prepared.events,sceneCore(prepared.candidate),prepared.label);if(acceptedVersion!==Number(prepared.candidate.version))return{...prepared,reconciled:true};const fxContext=captureSceneFxContext(prepared.effects);Scene=normalizeScene(prepared.candidate);NetworkV2?.setConfirmedScene?.(Scene);syncHeroFromScene();persist();if(store.mode==="play")renderPlay();else renderScene();if(prepared.effects)playSceneEventFx(prepared.effects,fxContext);return prepared;
 }
 
 let networkV2Authority=null,networkV2Outbox=null,networkV2Reconciling=false;
+const pendingNetworkPlacements=new Map();
+function paintPendingNetworkPlacements(){
+  for(const [actorId,pending] of pendingNetworkPlacements){
+    const actor=Scene.actors.find(item=>item.id===actorId);
+    if(!actor||actor.space!==pending.space||actor.x===pending.x&&actor.y===pending.y){pendingNetworkPlacements.delete(actorId);continue}
+    if(Scene.activeSpace!==pending.space)continue;
+    const token=document.querySelector(`[data-scene-actor="${CSS.escape(actorId)}"]`);
+    const destination=document.querySelector(`[data-scene-cell="${pending.x},${pending.y}"] .scene-tokens`);
+    if(token&&destination){destination.appendChild(token);token.classList.add("pending-network");token.setAttribute("aria-label",`${actor.name}: позиция ожидает подтверждения стола`)}
+  }
+}
+const renderSceneBoardWithoutNetworkPreview=renderSceneBoard;
+renderSceneBoard=function(){renderSceneBoardWithoutNetworkPreview();paintPendingNetworkPlacements()};
+function clearPendingNetworkPlacement(row){
+  let changed=false;
+  for(const [actorId,pending] of pendingNetworkPlacements)if(String(pending.intentId)===String(row?.clientIntentId||row?.client_intent_id)||String(pending.commandId)===String(row?.id)&&pending.commandId){pendingNetworkPlacements.delete(actorId);changed=true}
+  if(changed&&Sync?.state?.().sceneId)renderSceneBoard();
+}
+function previewNetworkPlacement(row,events,actorId){
+  const move=[...events].reverse().find(event=>event.type==="actor.move"&&event.actorId===actorId);
+  const actor=move&&Scene.actors.find(item=>item.id===move.actorId),x=Number(move?.payload?.x),y=Number(move?.payload?.y),space=move?.payload?.space||actor?.space;
+  if(!actor||!Number.isSafeInteger(x)||!Number.isSafeInteger(y)||!Scene.spaces.some(item=>item.id===space&&x>=0&&y>=0&&x<item.width&&y<item.height))return;
+  pendingNetworkPlacements.set(actor.id,{intentId:row.clientIntentId,commandId:null,x,y,space});
+  paintPendingNetworkPlacements();
+}
 function mergeNetworkV2Scene(remote,current=Scene){
-  const canonical=NetworkV2.mergeRemoteScene(remote,current),sync=Sync?.state?.(),snapshot=networkV2Reconciling?networkV2Authority?.latestQueuedSnapshot?.():networkV2Authority?.latestSnapshot?.();
+  const canonical=NetworkV2.mergeRemoteScene(remote,current),sync=Sync?.state?.(),snapshot=networkV2Authority?.latestSnapshot?.();
   if(!sync?.canNarrate||!snapshot)return canonical;
   const overlay=NetworkV2.rebaseSceneSnapshot(snapshot.baseScene||canonical,snapshot.scene,canonical);
   return NetworkV2.restoreLocalUi(overlay,canonical);
@@ -96,17 +121,28 @@ function renderNetworkScene(events=[]){
 function ensureNetworkV2Runtime(){
   if(!NetworkV2||!Sync)return null;
   if(!networkV2Outbox)networkV2Outbox=new NetworkV2.PlayerOutbox({
-    send:payload=>Sync.submitCommand("intent_v2",payload),
-    onError:error=>toast(`Команда ждёт отправки: ${friendlySyncError(error,"нет соединения")}`),
+    send:async payload=>{const command=await Sync.submitCommand("intent_v2",payload);for(const pending of pendingNetworkPlacements.values())if(pending.intentId===payload.clientIntentId)pending.commandId=String(command.id);return command},
+    onError:(error,row,{retrying=true}={})=>{if(!retrying)clearPendingNetworkPlacement(row);toast(retrying?`Команда ждёт отправки: ${friendlySyncError(error,"нет соединения")}`:`Команда не отправлена: ${friendlySyncError(error,"ошибка проверки")}. Проверьте действие и повторите его.`)},
   });
   if(!networkV2Authority)networkV2Authority=new NetworkV2.AuthorityQueue({
     tickMs:NetworkV2.TICK_MS,
     flush:flushNetworkV2Authority,
-    onError:error=>toast(friendlySyncError(error,"Сетевой такт будет повторён")),
+    onError:async(error,{retrying=true}={})=>{
+      const message=friendlySyncError(error,error?.message||"неизвестная ошибка синхронизации");
+      toast(retrying?`Сетевой такт не сохранён, будет повторён: ${message}`:`Сетевой такт не сохранён: ${message}. Исправьте причину и повторите действие.`);
+      if(!retrying)try{await NetworkV2.withTimeout(Sync.refreshScene(),"обновления Сцены",5000)}catch(refreshError){console.warn("DAWN canonical Scene refresh after rejected tick failed",refreshError)}
+      if(typeof renderSync==="function")renderSync();
+    },
   });
   return{authority:networkV2Authority,outbox:networkV2Outbox};
 }
-function resetNetworkV2Runtime(){networkV2Authority?.clear();networkV2Outbox?.clear();NetworkV2?.clearConfirmedScene?.();networkV2Authority=null;networkV2Outbox=null}
+function networkV2QueueStatus(){return{pending:networkV2Authority?.pending?.()||0,failed:networkV2Authority?.failed?.length||0}}
+function retryNetworkV2Failed(){
+  const runtime=ensureNetworkV2Runtime(),count=runtime?.authority?.retryFailed?.()||0;
+  if(count){toast(`Повторяем сохранение: ${count} сетевых изменений`);if(typeof renderSync==="function")renderSync()}
+  return count;
+}
+function resetNetworkV2Runtime(){networkV2Authority?.clear();networkV2Outbox?.clear();pendingNetworkPlacements.clear();NetworkV2?.clearConfirmedScene?.();networkV2Authority=null;networkV2Outbox=null}
 function queueNetworkV2Snapshot(scene,label){
   const runtime=ensureNetworkV2Runtime(),sync=Sync?.state?.();
   if(!runtime||!sync?.sceneId||!sync.canNarrate)return false;
@@ -121,8 +157,9 @@ function submitNetworkV2Events(label,events){
     return{queued:true,pending:true,authority:true,events:[]};
   }
   const intent=NetworkV2.intentFromEvents(Scene,events,label);
-  runtime.outbox.enqueue(intent,NetworkV2.getConfirmedScene(Scene).version);
-  toast("Действие отправлено за общий стол");
+  const row=runtime.outbox.enqueue(intent,NetworkV2.getConfirmedScene(Scene).version);
+  previewNetworkPlacement(row,events,intent.actorId);
+  if(!pendingNetworkPlacements.has(intent.actorId))toast("Действие отправлено за общий стол");
   return{queued:true,pending:true,events:[]};
 }
 function submitNetworkV2Intent(intent){
@@ -146,6 +183,8 @@ function discardNetworkV2Commands(commandIds=[]){
   if(settled.size)networkV2Authority?.discard?.(item=>item.kind==="command"&&settled.has(String(item.command?.id)));
 }
 async function flushNetworkV2Authority(items){
+  const cached=items[0]?._networkTick;
+  if(cached&&cached.items.length===items.length&&cached.items.every((item,index)=>item===items[index]))return commitNetworkV2Tick(cached);
   const sync=Sync.state();
   if(!sync.sceneId||!sync.canNarrate)throw new Error("Авторитетный стол Нарратора сейчас недоступен");
   const expectedVersion=Number(sync.version||0),confirmed=NetworkV2.getConfirmedScene(Scene);
@@ -160,7 +199,9 @@ async function flushNetworkV2Authority(items){
     candidate.version++;
     allEvents.push(audit);
   }
+  let deferRemainder=false;
   for(const item of items.filter(item=>item.kind!=="snapshot")){
+    if(deferRemainder){deferred.push(item);continue}
     try{
       const command=item.command;
       const envelope=item.kind==="command"?NetworkV2.validateIntentEnvelope(command.payload):null;
@@ -169,7 +210,7 @@ async function flushNetworkV2Authority(items){
         :item.events;
       if(!Array.isArray(prepared)||!prepared.length)throw new Error("Изменение не создало событий");
       if(prepared.length>NetworkV2.MAX_BATCH_EVENTS)throw new Error("Одно действие создало слишком много событий для безопасного сетевого такта");
-      if(allEvents.length+prepared.length>NetworkV2.MAX_BATCH_EVENTS){deferred.push(item);continue}
+      if(allEvents.length+prepared.length>NetworkV2.MAX_BATCH_EVENTS){deferRemainder=true;deferred.push(item);continue}
       const beforeItem=sceneCore(candidate),result=SceneEngine.dispatchMany(candidate,prepared,{expectedVersion:Number(candidate.version||0)});
       if(!localUndoState)localUndoState=beforeItem;
       undoableEventCount+=result.events.length;
@@ -184,13 +225,41 @@ async function flushNetworkV2Authority(items){
     ?{id:uid(),label:`Сетевой такт · ${undoableEventCount} событий`,state:localUndoState}
     :null;
   const startsTurn=allEvents.some(event=>event.type==="turn.start"),endsRound=allEvents.some(event=>event.type==="round.end"),turnCheckpoint=startsTurn&&localUndoState?{id:uid(),label:"До начала Хода",state:localUndoState,checkpoint:"turn-start"}:null;
-  if(!allEvents.length&&!rejectedCommandIds.length){deferred.forEach(item=>networkV2Authority.enqueue(item));return}
+  if(!allEvents.length&&!rejectedCommandIds.length){if(deferred.length)networkV2Authority.defer(deferred);return}
+  // The database version is derived from the number of persisted events, not
+  // from any transient reducer bookkeeping in the local candidate.
+  const committedVersion=expectedVersion+allEvents.length;
+  candidate.version=committedVersion;
   const networkState=NetworkV2.networkSceneState(candidate);
-  const acceptedVersion=await Sync.settleIntentBatch({commandIds,rejectedCommandIds,events:allEvents,scene:networkState,expectedVersion,label:"network.v2.tick"});
-  if(acceptedVersion!==Number(candidate.version)){
+  networkState.version=committedVersion;
+  assertNetworkSceneFits(networkState);
+  const tick={items:[...items],args:{commandIds,rejectedCommandIds,events:allEvents,scene:networkState,expectedVersion,label:"network.v2.tick"},candidate,allEvents,commandIds,rejectedCommandIds,deferred,localUndoEntry,turnCheckpoint,endsRound};
+  for(const item of items)item._networkTick=tick;
+  return commitNetworkV2Tick(tick);
+}
+async function commitNetworkV2Tick(tick){
+  const {items,args,candidate,allEvents,commandIds,rejectedCommandIds,deferred,localUndoEntry,turnCheckpoint,endsRound}=tick;
+  let acceptedVersion;
+  tick.attempts=(tick.attempts||0)+1;
+  networkV2Reconciling=true;
+  try{acceptedVersion=await Sync.settleIntentBatch(args)}
+  catch(error){if(NetworkV2.isSceneVersionConflict(error)){for(const item of items)delete item._networkTick;retainPendingNetworkV2Commands(pendingSceneCommands.map(command=>command.id))}throw error}
+  finally{networkV2Reconciling=false}
+  if(tick.attempts>1){
+    // A lost reply may have hidden later canonical ticks. Read the server
+    // snapshot even when its exact receipt reports our original version.
     networkV2Reconciling=true;
     try{await Sync.refreshScene()}finally{networkV2Reconciling=false}
-    deferred.forEach(item=>networkV2Authority.enqueue(item));
+    for(const item of items)delete item._networkTick;
+    globalThis.dispatchEvent(new CustomEvent("dawn-network-v2-settled",{detail:{commandIds,rejectedCommandIds,version:acceptedVersion}}));
+    if(deferred.length)networkV2Authority.defer(deferred);
+    return;
+  }
+  for(const item of items)delete item._networkTick;
+  if(acceptedVersion!==Number(candidate.version)||Number(Sync.state().version)>acceptedVersion){
+    networkV2Reconciling=true;
+    try{await Sync.refreshScene()}finally{networkV2Reconciling=false}
+    if(deferred.length)networkV2Authority.defer(deferred);
     return;
   }
   Scene=mergeNetworkV2Scene(candidate,Scene);
@@ -205,5 +274,5 @@ async function flushNetworkV2Authority(items){
   }
   renderNetworkScene(allEvents);
   globalThis.dispatchEvent(new CustomEvent("dawn-network-v2-settled",{detail:{commandIds,rejectedCommandIds,version:acceptedVersion}}));
-  deferred.forEach(item=>networkV2Authority.enqueue(item));
+  if(deferred.length)networkV2Authority.defer(deferred);
 }
