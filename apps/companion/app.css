@@ -331,3 +331,19 @@ main{min-width:0;padding:clamp(1rem,3vw,3rem)}.mode-page{display:none}.mode-page
 .lw-technique-group>summary strong,.lw-technique-level header>strong{font-size:.8rem}
 .lw-technique-intro,.lw-technique-description,.lw-technique-automation{font-size:.78rem;line-height:1.55}
 .lw-technique-description p{margin:.2rem 0}.lw-technique-original>summary{font-size:.73rem}
+.lw-other-actions>summary,.lw-technique-help>summary{display:flex;align-items:center;gap:.5rem;cursor:pointer;color:var(--muted);font-size:.72rem;list-style:none}
+.lw-other-actions>summary::-webkit-details-marker,.lw-technique-help>summary::-webkit-details-marker{display:none}
+.lw-other-actions>summary small{margin-left:auto}
+.lw-other-actions[open]>.core-action-list{margin-top:.45rem}
+.lw-technique-help{padding:.3rem 0;border-bottom:1px solid var(--line)}
+.lw-technique-help .lw-technique-intro{margin:.4rem 0}
+.lw-technique-surface>summary::before,.lw-technique-group>summary::before,.lw-other-actions>summary::before,.lw-technique-help>summary::before{content:"▸";flex:0 0 .75rem;color:var(--cyan);transition:transform .15s}
+.lw-technique-surface[open]>summary::before,.lw-technique-group[open]>summary::before,.lw-other-actions[open]>summary::before,.lw-technique-help[open]>summary::before{transform:rotate(90deg)}
+.lw-technique-surface>summary,.lw-technique-group>summary{align-items:center;gap:.45rem}
+.lw-technique-surface>summary strong,.lw-technique-group>summary strong{flex:1;min-width:0}
+.lw-technique-surface>summary small{max-width:50%;white-space:normal}
+.enemy-action-unavailable{display:block;margin:.25rem 0;color:var(--gold);font-size:.72rem;line-height:1.4;overflow-wrap:anywhere}
+.lw-technique-controls .button-row,.lw-technique-usage .button-row,.lw-technique-offer>.button-row,.lw-reaction>.button-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,13rem),1fr));align-items:start}
+.lw-technique-controls .button-row>button,.lw-technique-usage .button-row>button,.lw-reaction>.button-row>button{display:grid;align-content:start;gap:.3rem;min-width:0;width:100%;text-align:left;white-space:normal}
+.lw-technique-controls button>strong,.lw-technique-controls button>small,.lw-reaction button>small{display:block;white-space:normal;overflow-wrap:anywhere;line-height:1.4}
+.lw-technique-choice-option{display:grid;gap:.3rem;min-width:0}.lw-technique-choice-option>button{width:100%;white-space:normal}.lw-technique-choice-option>small{display:block;line-height:1.4;overflow-wrap:anywhere}

@@ -1202,6 +1202,7 @@
             "apps/companion/tests/lionwing-auras.mjs",
             "apps/companion/tests/lionwing-breacher.mjs",
             "apps/companion/tests/lionwing-cockpit-preview.mjs",
+            "apps/companion/tests/lionwing-cockpit-routes.mjs",
             "apps/companion/tests/lionwing-combat-meter.mjs",
             "apps/companion/tests/lionwing-consequence-ui.mjs",
             "apps/companion/tests/lionwing-consequences.mjs",
@@ -10415,6 +10416,7 @@
           },
           "uiEntryPoint": "scene-actions-ui.js useEnemyRule → DAWN_SCENE_ENGINE.prepareEnemyRule → commitSceneEvents",
           "tests": [
+            "apps/companion/tests/lionwing-cockpit-routes.mjs",
             "apps/companion/tests/lionwing-enemy-base-attacks.mjs",
             "apps/companion/tests/lionwing-localization.mjs"
           ],

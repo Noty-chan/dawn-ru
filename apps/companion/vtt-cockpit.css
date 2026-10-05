@@ -917,3 +917,11 @@ body[data-scene-control-mode="manual"] .scene-dock [data-scene-panel="director"]
 .scene-mode .scene-board.has-map .scene-cell.has-deploy-hero{background:linear-gradient(#2f8ed666,#2f8ed666),rgba(17,17,25,var(--scene-grid-opacity,.58))}
 .scene-mode .scene-board.has-map .scene-cell.has-deploy-enemy{background:linear-gradient(#d4425666,#d4425666),rgba(17,17,25,var(--scene-grid-opacity,.58))}
 .scene-mode .scene-board.has-map .scene-cell.has-deploy-hero.has-deploy-enemy{background:linear-gradient(135deg,#2f8ed666 0 50%,#d4425666 50% 100%),rgba(17,17,25,var(--scene-grid-opacity,.58))}
+.scene-mode .scene-stage-head .scene-flow-steps li{font-size:.62rem}
+.scene-mode .scene-stage-head .scene-flow-steps span{white-space:normal;overflow:visible;text-overflow:clip;line-height:1.2}
+.scene-flow-steps .scene-flow-gap{display:flex;justify-content:center;align-items:center;font-size:.8rem}
+.scene-flow-steps .scene-flow-gap::after{display:none}
+.scene-mode .director-mode-help{padding:.5rem .6rem;border:1px solid var(--line);border-radius:10px;color:var(--muted);font-size:.7rem}
+.scene-mode .director-mode-help>summary{cursor:pointer}
+.scene-mode .director-mode-help .director-mode{display:block;margin-top:.5rem}
+.scene-mode .director-mode-help .director-mode p{white-space:normal;overflow:visible;text-overflow:clip;line-height:1.45}

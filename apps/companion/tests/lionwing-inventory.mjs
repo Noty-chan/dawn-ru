@@ -325,4 +325,17 @@ uiContext.lwCanNarrate = () => true;
 const narratorHtml = uiContext.renderInventory({ id: "h", lionwing: { inventory: { records: { ammo: {} } } } });
 assert.match(narratorHtml, /data-lw-inventory="gain"/);
 
+// Render the actual journal boundary: typed labels and reset timing remain
+// readable without exposing engine verbs as the ordinary player text.
+Object.assign(uiContext,{lwActive:()=>true,eventText:()=>"Старый журнал",lwRules:()=>({rules:[],npcs:{list:[]}})});
+uiContext.Scene.actors[0].name="Герой";
+uiContext.Scene.actors[0].lionwing={inventory:{definitions:{"altruist.gourmand.meals":{label:"Порции"}}}};
+uiContext.window.DAWN_LIONWING_TECHNIQUE_SURFACE={entries:()=>[{id:"vagabond.cunning-fighter.1",displayTechniqueName:"Хитроумный боец",level:1}]};
+vm.runInContext(uiSource.slice(uiSource.indexOf("const lwOldEventText ="),uiSource.indexOf("const lwOldSetValue =")),uiContext);
+const journalBefore=JSON.stringify(uiContext.Scene);
+assert.equal(uiContext.eventText({type:"inventory.spend",actorId:"h",payload:{itemId:"altruist.gourmand.meals",value:0}}),"Герой: Потрачено · Порции → 0");
+assert.equal(uiContext.eventText({type:"inventory.reset",actorId:"h",payload:{itemId:"altruist.gourmand.meals",value:3,boundary:"sceneStart"}}),"Герой: Сброшен запас · Порции → 3 · при начале Сцены");
+assert.equal(uiContext.eventText({type:"inventory.create",actorId:"h",payload:{id:"custom-supply",label:"Зелье",value:2}}),"Герой: Создан запас · Зелье → 2");
+assert.match(uiContext.eventText({type:"rule.used",actorId:"h",payload:{ruleId:"vagabond.cunning-fighter.1",scope:"round"}}),/Хитроумный боец · 1 ур\. \(Раунд\)/);
+assert.equal(JSON.stringify(uiContext.Scene),journalBefore,"journal presentation never changes inventory or rules");
 console.log("LionWing inventory: typed records, atomic costs, boundaries, provenance, replacement, visibility, transfer, adapters, network and UI passed");

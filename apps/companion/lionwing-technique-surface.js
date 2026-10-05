@@ -24,6 +24,7 @@
       "off.label": "Автоматизация выключена",
       "off.detail": "Автоматика доступна, но выключена для этого персонажа. Нарратор может включить её здесь.",
       intro: "Включённые техники срабатывают при соответствующих действиях и событиях. Английский оригинал можно раскрыть под описанием.",
+      help: "Как использовать техники",
       source: "Оригинал EN и источник",
       canonical: "Канон",
       adapter: "Адаптер",
@@ -52,6 +53,7 @@
       "off.label": "Automation off",
       "off.detail": "Automation is available but turned off for this character. The Narrator can enable it here.",
       intro: "Enabled techniques trigger through their corresponding actions and events. Expand the source below each description to inspect the original rule.",
+      help: "How to use techniques",
       source: "Original EN and source",
       canonical: "Canonical",
       adapter: "Adapter",
@@ -722,7 +724,7 @@
       return "<details class=\"lw-technique-group\" data-lw-technique-group=\"" + escapeHtml(group.techniqueId) + "\"" + (group.levels.some(item => item.status.offer) || openPreference(group.techniqueId, false) ? " open" : "") + "><summary><strong>" + escapeHtml(group.name) + "</strong><small>" + group.levels.length + " Уров." + (group.levels.some(item => item.status.offer) ? " · есть решение" : "") + "</small></summary><div>" + controls + renderUsage(usage.entry, usage.status, model) + group.levels.map(item => renderLevel(item, model.actor, model)).join("") + "</div></details>";
     }).join("");
     const outerOpen = offerCount > 0 || openPreference("surface:" + model.actor.id, true);
-    const intro = "<p class=\"lw-technique-intro\">" + escapeHtml(copy("intro", { locale: model.locale })) + "</p>";
+    const intro = "<details class=\"lw-technique-help\"><summary>" + escapeHtml(copy("help", model)) + "</summary><p class=\"lw-technique-intro\">" + escapeHtml(copy("intro", { locale: model.locale })) + "</p></details>";
     const actionHtml = directActions.length ? "<div class=\"lw-technique-action-list\" aria-label=\"Действия Техник\">" + directActions.map(action => renderActionControl(action, { canRespond: model.manual.available, reason: model.manual.reason })).join("") + "</div>" : "";
     const summary = [["enabled", activeCount], ["disabled", offCount], ["manualCount", manualCount]].filter(([, count]) => count).map(([key, count]) => copy(key, model) + ": " + count).join(" · ");
     const enable = ["owner", "narrator", "gm"].includes(model.viewer.role) && enableOperations(model.actor, scene).length ? '<button type="button" data-lw-enable-techniques data-lw-actor="' + escapeHtml(model.actor.id) + '">' + escapeHtml(copy("enableAll", model)) + '</button>' : '';
@@ -873,9 +875,9 @@
     }, true);
     global.document.addEventListener("toggle", event => {
       const details = event.target;
-      if (!details.matches?.("[data-lw-technique-surface], [data-lw-technique-group]")) return;
+      if (!details.matches?.("[data-lw-technique-surface], [data-lw-technique-group], [data-lw-action-section]")) return;
       try {
-        const key = details.hasAttribute("data-lw-technique-surface") ? "surface:" + details.dataset.lwTechniqueActor : details.dataset.lwTechniqueGroup;
+        const key = details.hasAttribute("data-lw-action-section") ? "actions:" + details.dataset.lwTechniqueActor : details.hasAttribute("data-lw-technique-surface") ? "surface:" + details.dataset.lwTechniqueActor : details.dataset.lwTechniqueGroup;
         global.localStorage?.setItem("dawn-lionwing-techniques:" + key, details.open ? "1" : "0");
       } catch {}
     }, true);
@@ -883,6 +885,7 @@
 
   global.DAWN_LIONWING_TECHNIQUE_SURFACE = Object.freeze({
     entries: entriesFor,
+    actionSectionOpen: actorId => openPreference("actions:" + actorId, false),
     model: modelFor,
     render,
     pendingHtml,

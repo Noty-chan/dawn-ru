@@ -156,18 +156,106 @@ for (const [id, start, end] of [
   assert.equal(run("sceneDirectorActor().id"), "hero", `${id} preserves the explicit source route`);
   assert.equal(run("JSON.stringify(Scene)"), snapshot, `${id} navigation is read-only`);
 }
+const learnedTechnique=kernel.window.DAWN_LIONWING_DATA.archetypes.flatMap(archetype=>archetype.techniques).find(technique=>technique.id==="vagabond.master-at-arms");
+table.actors[0].knownTechniques={ [learnedTechnique.id]:2 };
+table.actors[0].ability={name:"Способность героя",rank:2,desc:"Сохранённый текст Способности"};
+table.actors[0].taintedAbility={name:"Способность Порченого тела",rank:1,desc:"Сохранённый текст Порченого тела"};
 Object.assign(context, {
-  ATTRS: [], activeOutlooks: () => [], techById: () => null, sceneRollShortcuts: () => "", hasGift: () => false,
-  sceneActionPanel: () => { profileCalls.push("sheet-executor"); return '<button data-lw-action="spell">execute</button>'; },
+  ATTRS: [], activeOutlooks: () => [], techById: id => id===learnedTechnique.id?learnedTechnique:null, sceneRollShortcuts: () => "", hasGift: () => false,
+  sceneActionPanel: actor => { profileCalls.push("sheet-executor"); return '<button data-lw-action="spell">execute</button>'+kernel.window.DAWN_LIONWING_TECHNIQUE_SURFACE.render(actor,{scene:table,viewer:{role:"player",actorIds:[actor.id]}}); },
 });
 vm.runInContext(functionBlock(sceneUi, "sceneSheetPanel", "sceneUtilityActorAvailable"), context);
 run("Scene.selectedActor='hero'");
 const gmSheet = run("sceneSheetPanel()");
 assert.doesNotMatch(gmSheet, /data-lw-action=/, "the Narrator's reference sheet has no second executor");
 assert.match(gmSheet, /data-scene-cockpit-links="hero"/);
+assert.match(gmSheet, /class="full-rules"/, "the Narrator keeps the independent reference beside the cockpit route");
+assert.ok(gmSheet.includes(learnedTechnique.levels[0].text), "the Narrator reference retains learned Technique text");
 view = "player";
-assert.match(run("sceneSheetPanel()"), /data-lw-action="spell"/, "the player's own sheet retains the canonical action controls");
+const playerSheet=run("sceneSheetPanel()");
+assert.match(playerSheet, /data-lw-action="spell"/, "the player's own sheet retains the canonical action controls");
+assert.doesNotMatch(playerSheet, /class="full-rules"/, "LionWing Player combat has one Technique reference in the control surface");
+for(const level of kernel.window.DAWN_LIONWING_TECHNIQUE_SURFACE.entries(table.actors[0])){
+  const text=String(level.displayText).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#39;");
+  assert.ok(playerSheet.includes(text), "removing the duplicate reference preserves full learned Level text in the Technique surface");
+}
+assert.match(playerSheet, /Сохранённый текст Способности/);
+assert.match(playerSheet, /Сохранённый текст Порченого тела/);
 assert.deepEqual(profileCalls, ["sheet-executor"]);
+run('Scene.rulesEdition="0.9";Scene.actors.forEach(actor=>actor.rulesEdition="0.9")');
+assert.match(run("sceneSheetPanel()"), /class="full-rules"/, "legacy Player reference remains available");
+run('Scene.rulesEdition="lionwing";Scene.actors.forEach(actor=>actor.rulesEdition="lionwing")');
 assert.deepEqual(clone(table.log), [], "all route and reference checks left the journal untouched");
 
-console.log("LionWing cockpit routes passed: independent action source, explicit read-only navigation, one executor, readable NPC reference and lexical Hero linkage");
+context.document.createElement=()=>({className:"",innerHTML:""});
+context.antagonistDefense=()=>null;
+vm.runInContext(functionBlock(sceneUi,"enemyAutomationName","enemyAutomationDetails"),context);
+vm.runInContext(functionBlock(sceneUi,"enemyAutomationDetails","enemyStepButtonHtml"),context);
+vm.runInContext(functionBlock(sceneUi,"enemyStepButtonHtml","enemyRuleOptionsHtml"),context);
+vm.runInContext(functionBlock(sceneUi,"enemyRuleOptionsHtml","enemyRuleStateLabel"),context);
+vm.runInContext(between(sceneUi,"function directorEnemyProfileSection(","\nconst renderSceneDirectorEnemyProfileBase="),context);
+table.actors[1].ap=0;
+const npcSnapshot=run("JSON.stringify(Scene)"),visibleText=markup=>markup.replace(/<[^>]*>/g,"");
+const step=engine.actionByKey(context.D,"step"),stepState=engine.availableActions(table,context.D,"enemy").find(action=>action.id===step.id);
+assert.equal(stepState.available,false);
+assert.ok(stepState.reason);
+const npcStep=run("enemyStepButtonHtml(Scene.actors[1])");
+assert.ok(visibleText(npcStep).includes(stepState.reason), "an unavailable NPC Step explains its actual gate without hover");
+assert.match(visibleText(npcStep),/1 ОД/, "showing a disabled reason never replaces the action price");
+const npcControls=run("directorEnemyProfileSection(Scene.actors[1]).innerHTML");
+const disabledRules=engine.availableEnemyRules(table,context.D,"enemy").filter(rule=>!rule.available&&rule.reason);
+assert.ok(disabledRules.length>0);
+for(const rule of disabledRules)assert.ok(visibleText(npcControls).includes(rule.reason), `NPC ${rule.id} explains its gate in visible text`);
+assert.equal(run("JSON.stringify(Scene)"),npcSnapshot,"rendering NPC gate reasons remains read-only");
+
+class DirectorNode {
+  constructor(className="",title=""){this.className=className;this.title=title;this.children=[];this.dataset={};this.hidden=false;this.open=false;this.markup="";this.parentElement=null;}
+  remove(){if(this.parentElement)this.parentElement.children=this.parentElement.children.filter(child=>child!==this);this.parentElement=null;}
+  append(...nodes){for(const node of nodes){node.remove();node.parentElement=this;this.children.push(node);}}
+  prepend(...nodes){for(const node of nodes)node.remove();for(const node of nodes)node.parentElement=this;this.children.unshift(...nodes);}
+  setAttribute(){}
+  get innerHTML(){return this.markup;}
+  set innerHTML(markup){this.markup=markup;this.children=[];const details=markup.match(/^<details class="([^"]+)"/);if(details)this.append(new DirectorNode(details[1]));}
+  get firstElementChild(){return this.children[0]||null;}
+  querySelector(selector){if(selector===":scope > header span")return this.title?{textContent:this.title}:null;return this.querySelectorAll(selector)[0]||null;}
+  querySelectorAll(selector){if(selector===":scope > .director-section")return this.children.filter(node=>node.className.split(" ").includes("director-section"));const descendants=this.children.flatMap(node=>[node,...node.querySelectorAll("*")]);return selector==="*"?descendants:selector.startsWith(".")?descendants.filter(node=>node.className.split(" ").includes(selector.slice(1))):[];}
+}
+const directorRoot=new DirectorNode(),directorNodes={
+  overview:new DirectorNode("director-overview"),mode:new DirectorNode("director-mode"),
+  roster:new DirectorNode("director-section director-roster"),actor:new DirectorNode("director-actor"),
+  resources:new DirectorNode("director-section","ЗД И РЕСУРСЫ"),enemy:new DirectorNode("director-section director-active-enemy"),
+  quickEffect:new DirectorNode("director-section","ЭФФЕКТ ВЫБРАННОМУ"),outcome:new DirectorNode("director-outcome"),round:new DirectorNode("director-round"),
+};
+directorRoot.append(...Object.values(directorNodes));
+context.document.createElement=()=>new DirectorNode();
+vm.runInContext(functionBlock(sceneUi,"sceneTurnStatusAfterCurrent","sceneActionDisplayName"),context);
+vm.runInContext(functionBlock(sceneUi,"directorManualStateEditor","organizeSceneDirector"),context);
+vm.runInContext(between(sceneUi,"function organizeSceneDirector(","\nconst renderSceneDirectorOrganizedBase="),context);
+view="gm";context.directorRoot=directorRoot;
+const beforeOrganize=run("JSON.stringify(Scene)");
+run("organizeSceneDirector(directorRoot)");
+const panes=Object.fromEntries(directorRoot.querySelectorAll(".director-pane").map(node=>[node.dataset.directorPane,node]));
+assert.equal(directorNodes.overview.parentElement,panes.roster,"readiness and Tension are in Roster instead of occupying the action pane");
+assert.equal(directorNodes.roster.parentElement,panes.roster);
+assert.equal(directorNodes.round.parentElement,panes.roster);
+const help=directorRoot.querySelector(".director-mode-help");
+assert.equal(help.parentElement,panes.manual,"mode help is beside the Narrator's manual controls");
+assert.equal(help.open,false,"mode help starts collapsed");
+assert.match(help.innerHTML,/Как работает пульт/);
+assert.equal(directorNodes.mode.parentElement,help,"help keeps the original mode explanation");
+assert.equal(directorRoot.children[0].className,"director-tabs");
+assert.equal(directorRoot.children[1].className,"director-focus-bar","the explicit source selector remains visible before the panes");
+assert.deepEqual(directorRoot.children.slice(2).map(node=>node.dataset.directorPane),["turn","manual","roster"]);
+assert.equal(directorNodes.resources.parentElement,panes.turn);
+assert.equal(directorNodes.enemy.parentElement,panes.turn,"the canonical NPC executor stays in the action pane");
+assert.equal(directorNodes.outcome.parentElement,panes.manual);
+assert.equal(directorNodes.quickEffect.parentElement,panes.manual,"manual emergency controls remain available");
+assert.equal(run("JSON.stringify(Scene)"),beforeOrganize,"organizing the cockpit cannot change the scene or action source");
+
+Object.assign(context,{scenePanelWidths:{left:"normal",right:"normal"},sceneInterfaceVersion:"next",scenePanelLayoutMode:"custom",scenePanelSides:{},sceneInterfaceDensity:"compact",sceneTurnStripVisible:true});
+vm.runInContext(functionBlock(sceneUi,"renderSceneLayoutSettings","sceneBattleComplete"),context);
+run("renderSceneLayoutSettings()");
+assert.match(element("scene-layout-settings").innerHTML,/<span>Инфо<\/span><select data-scene-panel-side="inspector"/,"layout settings use the same Info label as the main navigation");
+assert.doesNotMatch(element("scene-layout-settings").innerHTML,/<span>Цель<\/span>/);
+
+console.log("LionWing cockpit routes passed: independent action source, explicit read-only navigation, one executor/reference, visible NPC gate reasons, compact panes and lexical Hero linkage");

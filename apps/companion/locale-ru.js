@@ -35,6 +35,7 @@ window.DAWN_I18N?.registerLocale("ru", {
   "lionwing.cockpit.cannotControl": "Этим участником управляет другой игрок",
   "lionwing.cockpit.inventoryHelp": "Доступные предметы и заряды. Расход проверяется перед применением.",
   "lionwing.cockpit.followup": "Продолжение Техники",
+  "lionwing.cockpit.otherActions": "Другие действия",
   "lionwing.cockpit.inventory.stack": "Запас",
   "lionwing.cockpit.inventory.count": "Количество",
   "lionwing.cockpit.inventory.charges": "Заряды",

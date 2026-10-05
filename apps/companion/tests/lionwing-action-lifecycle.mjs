@@ -30,6 +30,13 @@ function assertPausedUi(scene) {
   for (const file of ["localization.js", "locale-ru.js"]) vm.runInContext(fs.readFileSync(new URL(`../${file}`, import.meta.url), "utf8"), ui, { filename: file });
   const flow = fs.readFileSync(new URL("../scene-effects.js", import.meta.url), "utf8");
   vm.runInContext(flow.slice(flow.indexOf("function sceneFlowSteps")), ui);
+  const manySteps=["Ход начат",...Array.from({length:12},(_,index)=>`Действие ${index+1}`),"Завершить Ход"];
+  const compactSteps=ui.sceneFlowSteps(manySteps,6);
+  assert.match(compactSteps,/aria-current="step"[^>]*><i>7<\/i><span>Действие 6/);
+  assert.match(compactSteps,/Завершить Ход/);
+  assert.match(compactSteps,/class="scene-flow-gap"/);
+  assert.ok((compactSteps.match(/<li/g)||[]).length<=7,"large action budgets keep the current, neighbouring and boundary steps readable");
+  assert.doesNotMatch(ui.sceneFlowSteps(["Цель","Реакция","Урон"],1),/scene-flow-gap/,"short attack chains retain every step");
   vm.runInContext("renderSceneFlow()", ui);
   assert.equal(roots.get("scene-flow").dataset.phase, "reaction", "a saved native decision takes priority over shared damage resolution");
   assert.match(roots.get("scene-flow").innerHTML, /Открыть решение/, "the flow opens the actual decision panel");
