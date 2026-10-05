@@ -146,7 +146,7 @@
         k.configure({ id, label, value, current: value, replaces: "focus", replacesAp, ruleId }, owner.id);
       }
       if (enabled(owner, "vagabond.cunning-fighter.1") && !owner.ruleClocks?.["vagabond.cunning-fighter.plan"]) clock({ id: "vagabond.cunning-fighter.plan", operation: "create", size: 4, current: 0, initial: 0, scope: "scene", lifetime: "scene", label: "Хитрый план" }, owner.id);
-      if (enabled(owner, "altruist.gourmand.1") && !owner.lionwing?.inventory?.definitions?.["altruist.gourmand.meals"]) inventory({ operation: "create", id: "altruist.gourmand.meals", kind: "stack", ruleId: "altruist.gourmand.1", sourceDigest: byId.get("altruist.gourmand.1").sourceDigest, label: "Порции", current: Math.ceil(owner.attrs.mind / 2), initial: Math.ceil(owner.attrs.mind / 2), maximum: Math.ceil(owner.attrs.mind / 2), resetAt: "intermission", lifetime: "scene" }, owner.id);
+      if (enabled(owner, "altruist.gourmand.1") && !owner.lionwing?.inventory?.definitions?.["altruist.gourmand.meals"]) inventory({ operation: "create", id: "altruist.gourmand.meals", kind: "stack", ruleId: "altruist.gourmand.1", sourceDigest: byId.get("altruist.gourmand.1").sourceDigest, label: "Порции", current: Math.ceil(owner.attrs.mind / 2), initial: Math.ceil(owner.attrs.mind / 2), maximum: Math.ceil(owner.attrs.mind / 2), resetAt: "intermission", lifetime: "scene", visibility: "owner" }, owner.id);
     }
     function afterEvent(row) {
       const p = row.payload || {}, owner = actor(row.actorId);

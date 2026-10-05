@@ -497,6 +497,11 @@
         try {
           const canonical = definitionPayload(scene, actor, { ...definition, id }, definition);
           if (options.strict && canonical.ownerActorId !== actor.id) fail("Сохранённый владелец записи инвентаря недействителен", "LIONWING_INVENTORY_OWNER");
+          // Older Gourmand bootstrap records omitted visibility while the
+          // Scene-start adapter declared owner visibility. Narrow only that
+          // canonical legacy contract on reload; balances and provenance stay
+          // unchanged, and configure operations keep their immutable guards.
+          if (id === "altruist.gourmand.meals" && canonical.ruleId === "altruist.gourmand.1" && canonical.sourceDigest === "d7dabbe3ac7be7d0ded9c75f214be072cd634c54e318455cbd28f6e02d401d73" && canonical.kind === "stack" && canonical.ownerActorId === actor.id && canonical.sourceActorId === actor.id && !canonical.sourceEntityId && canonical.resetAt === "intermission" && canonical.lifetime === "scene" && canonical.visibility === "public") canonical.visibility = "owner";
           state.definitions[id] = canonical;
         } catch (error) {
           if (options.strict) throw error;

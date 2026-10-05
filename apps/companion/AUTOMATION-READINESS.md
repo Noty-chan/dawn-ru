@@ -2,7 +2,7 @@
 
 > Генерируется командой `npm run readiness`. Таблицы не редактируются вручную.
 > **Важно:** статусы `full`, `decision`, `attack`, `effect` и `state` — заявления реализации, а не независимая сертификация корректности.
-> Источник заявлений по Уровням Техник — `technique-foundation-map.js`; по врагам — контракт `enemyRuleAutomation`. Независимые доказательства хранятся только в `automation-evidence.json`.
+> Источник заявлений по Уровням Техник — `technique-foundation-map.js`; по врагам — контракт `enemyRuleAutomation`. Исторические аудиты хранятся в `automation-evidence.json`; актуальные результаты конкретных сценариев создаёт `npm run verify:automation`.
 
 ## Сводка
 
@@ -46,6 +46,23 @@
 Для повышения до `certified` в `automation-evidence.json` нужны: стабильный id правила, `sourceDigest`, заявленный статус, уровень доверия, проверяемые claims, точные тестовые файлы с конкретным `case` или командой запуска, применимые поверхности `core/ui/network/persistence`, граничные случаи и commit аудита. CI отклоняет неполную запись и пропавший тестовый файл. Изменение исходника меняет digest: генератор автоматически отзывает и явно перечисляет прежнее evidence, не принимая его за действующую сертификацию.
 
 До независимого прохода системные оценки ниже означают зрелость инфраструктуры и объём найденных тестов, а не процент буквально верных игровых правил.
+
+## Учёт проверок конкретной сборки
+
+Этот коммитируемый отчёт не содержит результатов запуска. CI сохраняет отдельный `automation-verification.json` и `verification-summary.json`, привязанные к полному Git SHA, каноническому правилу, реализации, сценарию и его зависимостям. Изменённая или отсутствующая зависимость, непрошедший тест, пропущенный сценарий и результат другой сборки не дают актуальной отметки.
+
+Проверки ядра, интерфейса, сети и сохранения учитываются отдельно. VM-интерфейс, моделируемая сеть и JSON-загрузка не подтверждают полный браузерный путь. Успех всего `npm test` не повышает статус отдельных правил. Исторический audit не повышает сертификацию без актуального запуска.
+
+| Правило | Конкретный сценарий | Поверхность и среда | Проверяемое утверждение |
+| --- | --- | --- | --- |
+| `vagabond.sniper.1` | `vagabond.sniper.1.core-range` | core · node-core | Talent Finisher range floor 5 composes with greater range; Body, disabled and non-LionWing owners receive no contribution; quoting is read-only. |
+| `vagabond.sniper.1` | `vagabond.sniper.1.persisted-range` | persistence · json-reload | The native scene JSON export/reload preserves learned ownership, explicit automation and the read-only range quote across repeated reloads. |
+| `vagabond.untouchable.1` | `vagabond.untouchable.1.core-round-gate` | core · node-core | Only the first Dodge each Round adds Talent to Evasion; the next Round reopens the gate; disabled and non-LionWing owners receive no contribution. |
+| `vagabond.untouchable.1` | `vagabond.untouchable.1.persisted-round-gate` | persistence · json-reload | JSON export/reload retains the current-Round Dodge receipt, prevents a duplicate bonus and restores the bonus only after a Round boundary. |
+| `vagabond.master-at-arms.2` | `vagabond.master-at-arms.2.core-second-equip` | core · node-core | The native action route grants 1 AP and Hasten on the second distinct Equip only; the first/third Equip and same-mode refusal do not duplicate the reward. |
+| `vagabond.master-at-arms.2` | `vagabond.master-at-arms.2.persisted-second-equip` | persistence · json-reload | Reloading during the second Armament attack retains pending identity and resolves exactly one AP/Hasten reward; replay of accepted packets after reload is a no-op. |
+
+Таблица перечисляет исполняемые контракты, а не записанные успехи. Правила вне манифеста не получают результат чужого теста. Порядок расширения и запуска: [AUTOMATION-VERIFICATION.md](AUTOMATION-VERIFICATION.md).
 
 Числовой контракт и разбивка источников характеристик на столе описаны в [numeric pass handoff](../../docs/tasks/LIONWING_NUMERIC_PASSIVES_HANDOFF_2026-09-11.md). Статусы `partial` сохраняют честный объём автоматизации и не создают evidence-сертификацию.
 

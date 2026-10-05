@@ -24,6 +24,7 @@ function assertPausedUi(scene) {
     $: id => roots.get(id), esc: value => String(value ?? ""), activeSceneView: () => "gm",
     sceneTurnApprovalMode: () => "self", matchMedia: () => ({ matches: false }),
     sceneTrayHeroActor: () => scene.actors[0], sceneResourceChips: () => "", sceneBattleComplete: () => false,
+    sceneUsesLionwing: () => true,
   };
   vm.createContext(ui);
   for (const file of ["localization.js", "locale-ru.js"]) vm.runInContext(fs.readFileSync(new URL(`../${file}`, import.meta.url), "utf8"), ui, { filename: file });
@@ -34,7 +35,7 @@ function assertPausedUi(scene) {
   assert.match(roots.get("scene-flow").innerHTML, /Открыть решение/, "the flow opens the actual decision panel");
   assert.doesNotMatch(roots.get("scene-flow").innerHTML, /data-core-resolve|data-core-cancel-pending/, "a paused consequence cannot offer a second resolution or cancellation");
   const chrome = fs.readFileSync(new URL("../scene-ui.js", import.meta.url), "utf8");
-  vm.runInContext(chrome.slice(chrome.indexOf("function renderSceneChrome(){"), chrome.indexOf("const renderSceneChromeWithoutActionPlanLock")), ui);
+  vm.runInContext(chrome.slice(chrome.indexOf("function sceneTrayMoreActionsHtml("), chrome.indexOf("const renderSceneChromeWithoutActionPlanLock")), ui);
   vm.runInContext("renderSceneChrome()", ui);
   assert.match(roots.get("scene-action-tray").innerHTML, /Сначала ответьте на решение в пульте/);
   assert.doesNotMatch(roots.get("scene-action-tray").innerHTML, /data-core-action=|Примените урон|прервите Атаку/, "quick actions remain locked at the actual native decision");

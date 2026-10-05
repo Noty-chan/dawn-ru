@@ -3,6 +3,7 @@
 > Генерируется командой `npm run build:lionwing-registry`. Реестр строится из canonical EN, `techniqueCoverage` и `automation-evidence.json`.
 > `review=unreviewed/inherited` означает отсутствие явной записи в аудите; это не сертификация и не повышение readiness.
 > Общий lifecycle scheduler проверяется `tests/lionwing-neutral-lifecycle.mjs` и `tests/lionwing-lifecycle-consumers.mjs`; эти тесты не являются E2E-сертификацией отдельных Техник.
+> Исторический audit/evidence не подтверждает текущую реализацию. Результаты конкретных сценариев с SHA сборки и хэшами зависимостей публикуются CI отдельно; без такого результата проверка сборки отсутствует.
 
 Canonical уровней: **333** · Явно исправленных review: **9** · Сертифицированных evidence: **0**
 

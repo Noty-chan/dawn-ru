@@ -312,7 +312,8 @@ const uiContext = {
   Scene: { actors: [{ id: "h" }] }, lwCanNarrate: () => false, lwOwns: id => id === "h", esc: value => String(value),
 };
 vm.createContext(uiContext);
-vm.runInContext(`${uiHelper}\nthis.renderInventory = lwInventoryHtml;`, uiContext);
+const cockpitText = uiSource.split(/\r?\n/).find(line => line.startsWith("const lwCockpitText ="));
+vm.runInContext(`${cockpitText}\n${uiHelper}\nthis.renderInventory = lwInventoryHtml;`, uiContext);
 const uiHtml = uiContext.renderInventory({ id: "h", lionwing: { inventory: { records: { ammo: {} } } } });
 assert.doesNotMatch(uiHtml, /data-lw-inventory="gain"/);
 assert.match(uiHtml, /data-lw-inventory="spend"[^>]+disabled/);

@@ -63,6 +63,22 @@ jobs:
           npm run docs:rules
           npm test
 
+      - name: Execute rule verification for this revision
+        working-directory: apps/companion
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run verify:automation
+          node build_lionwing_automation_registry.mjs --verification-report output/qa-verification/automation-verification.json --runtime-output output/qa-verification/lionwing-automation-status.js --expected-commit "${GITHUB_SHA}"
+
+      - name: Save rule verification evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: automation-verification-${{ github.sha }}
+          path: output/qa-verification/
+          if-no-files-found: ignore
+
       - name: Assemble static site
         shell: bash
         run: |
@@ -74,6 +90,9 @@ jobs:
           cp apps/companion/*.html _site/companion/
           cp apps/companion/*.webmanifest _site/companion/
           cp apps/companion/*.svg _site/companion/
+          cp output/qa-verification/lionwing-automation-status.js _site/companion/lionwing-automation-status.js
+          cp output/qa-verification/automation-verification.json _site/companion/automation-verification.json
+          cp output/qa-verification/verification-summary.json _site/companion/verification-summary.json
           sed -i "s/__BUILD_VERSION__/${GITHUB_SHA}/g" _site/companion/sw.js _site/companion/index.html
           cp -R media/tutorials/. _site/tutorials/
           cp -R media/tokens/. _site/media/tokens/

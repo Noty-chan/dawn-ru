@@ -2006,5 +2006,7 @@ window.DAWN_LIONWING_AUTOMATION_STATUS = {
       "reason": "",
       "canonicalDigest": "4ff2a28e389fa7d16d68a6ae6d2078820e9f6e736cf6fe0e6e5b7c1e7f55d139"
     }
-  ]
+  ],
+  "verificationRun": null,
+  "verificationRows": []
 };

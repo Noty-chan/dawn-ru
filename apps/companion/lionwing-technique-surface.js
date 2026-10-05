@@ -8,6 +8,10 @@
   const text = value => String(value == null ? "" : value);
   const escapeHtml = value => text(value).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#39;");
   const resourceNames = Object.freeze({ ap: "ОД", focus: "Фокус", influence: "Влияние", health: "Здоровье" });
+  const cockpitText = (key, fallback, params = {}) => {
+    const plain = () => fallback.replace(/\{(\w+)\}/g, (_, name) => text(params[name] ?? ""));
+    try { return global.DAWN_I18N?.t?.("lionwing.cockpit." + key, params, { fallback }) || plain(); } catch { return plain(); }
+  };
   const dispatchKeys = new Set();
   const statusFallbacks = Object.freeze({
     ru: Object.freeze({
@@ -286,7 +290,7 @@
     return { available: true, reason: "" };
   }
 
-  function operationCosts(choice) {
+  function operationCosts(choice, option = null) {
     const context = choice?.context || {};
     const raw = Array.isArray(context.costs) ? context.costs : [];
     const costs = raw.map(cost => ({
@@ -294,19 +298,108 @@
       resource: cost.resource || cost.id,
     })).filter(cost => Number.isFinite(cost.amount) && cost.amount > 0 && cost.resource);
     if (costs.length) return costs;
-    const operations = context.choices && typeof context.choices === "object" ? Object.values(context.choices).flatMap(value => Array.isArray(value) ? value : []) : [];
+    // Options are mutually exclusive. Without a selected option there is no
+    // single price; do not add all the offers together.
+    const options = context.choices && typeof context.choices === "object" ? Object.entries(context.choices).filter(([, value]) => Array.isArray(value)) : [];
+    const operations = option != null ? context.choices?.[option] || [] : options.length === 1 ? options[0][1] : [];
     return operations.filter(operation => operation?.kind === "resource" && operation.operation === "spend").map(operation => ({
       amount: Number(operation.amount),
       resource: operation.resource,
     })).filter(cost => Number.isFinite(cost.amount) && cost.amount > 0 && cost.resource);
   }
 
-  function formatCosts(costs) {
-    const rows = (costs || []).map(cost => Number(cost.amount) + " " + (resourceNames[cost.resource] || cost.resource)).filter(Boolean);
-    return rows.length ? rows.join(" · ") : "отдельной цены нет";
+  function resourceLabel(scene, actorId, id) {
+    const owner = actorById(scene, actorId);
+    return owner?.ruleResources?.[id]?.label || owner?.ruleResources?.[id]?.name || owner?.ruleClocks?.[id]?.label || owner?.ruleClocks?.[id]?.name || owner?.lionwing?.inventory?.definitions?.[id]?.label || resourceNames[id] || (id === "hp" ? cockpitText("health", "Здоровье") : id);
   }
 
-  function choiceTargetIds(choice) {
+  function formatCosts(costs, scene = currentScene(), actorId = null, complete = false) {
+    const rows = (costs || []).map(cost => {
+      const name = resourceLabel(scene, cost.actorId || actorId, cost.resource || cost.id);
+      const label = Number(cost.amount) + " " + name;
+      return cost.direction === "gain" ? cockpitText("invertedPrice", "{price} (увеличение ресурса)", { price: label }) : label;
+    });
+    return rows.length ? rows.join(" · ") : complete ? cockpitText("noSpend", "Сейчас без расхода ресурсов") : cockpitText("unknownPrice", "Цена уточнится в предпросмотре");
+  }
+
+  function previewCosts(scene, result, actorId = null) {
+    const after = result?.preview?.scene || result?.prepared?.scene || result?.scene;
+    if (!result?.ok || !after || !Array.isArray(after.log)) return { complete: false, costs: [], label: formatCosts([], scene, actorId) };
+    const existing = new Set((scene?.log || []).map(event => event.id)), totals = new Map();
+    const invertedCosts = new Map();
+    const expectFocus = (ownerId, resource, amount) => {
+      if(resource!=="focus"||!Number.isFinite(Number(amount))||Number(amount)<=0)return;
+      const owner=actorById(scene,ownerId),resolved=Object.entries(owner?.ruleResources||{}).find(([,definition])=>definition.replaces==="focus"&&definition.inverted)?.[0];
+      if(resolved){const key=JSON.stringify([ownerId,resolved]);invertedCosts.set(key,Number(invertedCosts.get(key)||0)+Number(amount));}
+    };
+    for(const owner of after.actors||[]){
+      const previous=new Set((actorById(scene,owner.id)?.lionwing?.history||[]).map(row=>row.actionInstanceId));
+      for(const action of owner.lionwing?.history||[])if(!previous.has(action.actionInstanceId))for(const cost of action.execution?.costs||[])expectFocus(owner.id,cost.resource,cost.amount);
+    }
+    const scanRequest=(request,ownerId)=>{
+      if(!request)return;
+      if(request.kind==="resource"&&request.operation==="spend")expectFocus(request.targetId||ownerId,request.resource,request.amount);
+      if(request.kind==="reaction"){const reaction=global.DAWN_LIONWING_ENGINE?.reactionOptions?.(scene,ownerId)?.find(row=>row.id===request.choice);expectFocus(ownerId,reaction?.costModel?.resource,reaction?.costModel?.amount);}
+      for(const cost of request.costs||[])expectFocus(ownerId,cost.resource,cost.amount);
+      for(const operation of request.operations||[])scanRequest(operation,operation.sourceActorId||ownerId);
+      if(request.kind==="choice"){const choice=(scene?.lionwing?.choices||[]).find(row=>row.id===request.id);for(const operation of choice?.context?.choices?.[request.choice]||[])scanRequest(operation,ownerId);}
+    };
+    for(const event of result?.prepared?.events||result?.events||[])if(event.type==="lionwing.command")scanRequest(event.payload,event.actorId);
+    const add = (ownerId, resource, amount, direction = "spend") => {
+      if (!Number.isFinite(amount) || amount <= 0 || !resource) return;
+      const key = JSON.stringify([ownerId, resource, direction]), before = totals.get(key);
+      totals.set(key, { actorId: ownerId, resource, amount: Number(before?.amount || 0) + amount, direction });
+    };
+    for (const event of after.log.filter(row => !existing.has(row.id)).reverse()) {
+      const p = event.payload || {}, ownerId = p.ownerActorId || event.actorId;
+      if (actorId && ownerId !== actorId && p.targetId !== actorId) continue;
+      if (event.type === "resource.spend" && !(p.requestedResource==="focus"&&p.inverted)) add(ownerId, p.resource, Number(p.amount));
+      else if (event.type === "resource.gain" && actorById(scene, ownerId)?.ruleResources?.[p.resource]?.inverted) {
+        const key=JSON.stringify([ownerId,p.resource]),amount=Math.min(Number(p.amount||0),Number(invertedCosts.get(key)||0));
+        add(ownerId,p.resource,amount,"gain");invertedCosts.set(key,Math.max(0,Number(invertedCosts.get(key)||0)-amount));
+      }
+      else if (["rule-clock.add", "rule-clock.set", "rule-clock.reset", "rule-resource.add", "rule-resource.set", "rule-resource.reset"].includes(event.type) && p.before != null) add(ownerId, p.id, Number(p.before) - Number(p.value ?? p.current));
+      else if (event.type === "health.spend") add(p.targetId || ownerId, "hp", Number(p.lost));
+      else if (event.type === "inventory.spend") add(ownerId, p.itemId, Number(p.before) - Number(p.value ?? p.current));
+    }
+    const costs = [...totals.values()];
+    return { complete: true, costs, label: formatCosts(costs, scene, actorId, true), deferred: Boolean(after.pendingAction || after.pendingPrompt || after.lionwing?.choices?.length) };
+  }
+
+  function actionPresentation(scene, actorId, request = {}) {
+    const engine = global.DAWN_LIONWING_ENGINE, actor = actorById(scene, actorId);
+    const gate = engine?.actionGate?.(scene, actorId, request) || { available: false, reason: cockpitText("engineUnavailable", "Проверка действия недоступна") };
+    const needsDestination = [global.DAWN_SCENE_ENGINE?.ACTION_IDS?.jump, global.DAWN_SCENE_ENGINE?.ACTION_IDS?.shove, global.DAWN_SCENE_ENGINE?.ACTION_IDS?.improvise].includes(request.actionId) && !request.destination && !request.effect && !request.removeObstacleId;
+    let prepared = null;
+    if (gate.available && !needsDestination) prepared = engine?.prepare?.(scene, { ...request, kind: "action", actorId }, { random: () => 0 });
+    const confirmed = previewCosts(scene, prepared, actorId);
+    const quoted = Number.isFinite(gate.cost) && gate.resource ? engine?.resourceQuote?.(scene, actorId, { resource: gate.resource, amount: gate.cost, operation: "spend" }) : null;
+    const baseResource = quoted?.resolvedResource || gate.resource;
+    const baseLabel = Number.isFinite(gate.cost) && baseResource ? formatCosts([{ actorId, resource: baseResource, amount: gate.cost, direction: actor?.ruleResources?.[baseResource]?.inverted && gate.resource === "focus" ? "gain" : "spend" }], scene, actorId) : "";
+    const costLabel = confirmed.complete ? gate.cost === 0 && baseLabel ? baseLabel + (confirmed.costs.length ? " · " + confirmed.label : "") : confirmed.label : baseLabel ? cockpitText("priceAfterSelection", "{price} · итог после выбора", { price: baseLabel }) : cockpitText("unknownPrice", "Цена уточнится в предпросмотре");
+    return { gate, available: gate.available, reason: gate.reason || prepared?.errors?.join(" ") || "", costLabel, costComplete: confirmed.complete, costs: confirmed.costs, selectedTargetIds: [...(request.targetIds || [])], needsDestination };
+  }
+
+  function resourceCostLabel(scene, actorId, resource, amount) {
+    if(!Number.isFinite(Number(amount))||!resource)return cockpitText("unknownPrice","Цена уточнится в предпросмотре");
+    const quote=global.DAWN_LIONWING_ENGINE?.resourceQuote?.(scene,actorId,{resource,amount:Number(amount),operation:"spend"}),resolved=quote?.resolvedResource||resource;
+    return formatCosts([{actorId,resource:resolved,amount:Number(amount),direction:resource==="focus"&&actorById(scene,actorId)?.ruleResources?.[resolved]?.inverted?"gain":"spend"}],scene,actorId);
+  }
+
+  function actionTargets(scene, actorId, request = {}) {
+    const engine = global.DAWN_LIONWING_ENGINE, ids = global.DAWN_SCENE_ENGINE?.ACTION_IDS || {};
+    if (![ids.spell, ids.skirmish, ids.finish, ids.study, ids.shove, ...(request.effect ? [ids.improvise] : []), "action.атаки.дуэль"].includes(request.actionId) || request.armamentMode || request.areaCenter || request.obstacleId) return [];
+    // Probe the complete action contract rather than duplicate range, team,
+    // Technique or effect conditions in the interface. No roll is committed.
+    return (scene?.actors || []).filter(actor => actor.id !== actorId || request.actionId === ids.improvise).map(actor => {
+      const destinations=request.actionId===ids.shove&&!request.destination?[{space:actor.space,x:actor.x+1,y:actor.y},{space:actor.space,x:actor.x-1,y:actor.y},{space:actor.space,x:actor.x,y:actor.y+1},{space:actor.space,x:actor.x,y:actor.y-1}]:[request.destination];
+      let prepared=null;
+      for(const destination of destinations){prepared=engine?.prepare?.(scene,{...request,kind:"action",actorId,targetIds:[actor.id],...(destination?{destination}:{})},{random:()=>0});if(prepared?.ok)break;}
+      return { id: actor.id, name: actor.name || actor.id, available: prepared?.ok === true, reason: prepared?.errors?.join(" ") || "" };
+    });
+  }
+
+  function choiceTargetIds(choice, option = null) {
     const context = choice?.context || {}, ids = [];
     const add = value => {
       if (typeof value === "string" && value) ids.push(value);
@@ -314,8 +407,8 @@
     add(context.targetId);
     if (Array.isArray(context.targetIds)) context.targetIds.forEach(add);
     if (context.choices && typeof context.choices === "object") {
-      for (const operations of Object.values(context.choices)) {
-        for (const operation of Array.isArray(operations) ? operations : []) add(operation?.targetId);
+      for (const operations of option == null ? Object.values(context.choices) : [context.choices[option]]) {
+        for (const operation of Array.isArray(operations) ? operations : []) {add(operation?.targetId);if(Array.isArray(operation?.targetIds))operation.targetIds.forEach(add);}
       }
     }
     return [...new Set(ids)];
@@ -422,7 +515,7 @@
       label: context.optionLabels?.[option] || option,
       choice,
       operations,
-      targetIds: choiceTargetIds(choice),
+      targetIds: choiceTargetIds(choice, option),
       destinationRequired: Boolean(context.destinationRequired),
       sourceDigest: context.sourceDigest || (digests.length === 1 ? digests[0] : digests),
       available: true,
@@ -501,9 +594,9 @@
   }
   function previewHtml(action, result = null, key = "") {
     const targets = (action?.targetIds || []).map(id => actorById(currentScene(), id)?.name || id).join(", ");
-    const cost = formatCosts(operationCosts({ context: { choices: { apply: operationList(action) } } }));
+    const cost = previewCosts(currentScene(), result, action?.actorId).label;
     const status = result?.ok ? "Предпросмотр подтверждён ядром. Проверьте цель и стоимость." : result?.errors?.join(" ") || "";
-    return "<div class=\"lw-technique-action-preview\" data-lw-technique-preview-result=\"" + escapeHtml(key) + "\"><p><b>Предпросмотр:</b> " + escapeHtml(status || "нажмите «Проверить»") + "</p><p>Цель: " + escapeHtml(targets || (action?.destinationRequired ? "выберите клетку на поле" : "указана в операции")) + " · Стоимость: " + escapeHtml(cost) + " · Источник: " + escapeHtml(actionSourceLabel(action)) + "</p>" + (result?.ok ? "<div class=\"button-row\"><button type=\"button\" data-lw-technique-commit=\"" + escapeHtml(key) + "\">Выполнить</button><button type=\"button\" data-lw-technique-cancel=\"" + escapeHtml(key) + "\">Отменить</button></div>" : "") + "</div>";
+    return "<div class=\"lw-technique-action-preview\" data-lw-technique-preview-result=\"" + escapeHtml(key) + "\"><p><b>Предпросмотр:</b> " + escapeHtml(status || "нажмите «Проверить»") + "</p><p>Цель: " + escapeHtml(targets || (action?.destinationRequired ? "выберите клетку на поле" : "указана в операции")) + " · Стоимость: " + escapeHtml(cost) + "</p><details><summary>" + escapeHtml(cockpitText("ruleSource","Источник правила")) + "</summary>" + escapeHtml(actionSourceLabel(action)) + "</details>" + (result?.ok ? "<div class=\"button-row\"><button type=\"button\" data-lw-technique-commit=\"" + escapeHtml(key) + "\">Выполнить</button><button type=\"button\" data-lw-technique-cancel=\"" + escapeHtml(key) + "\">Отменить</button></div>" : "") + "</div>";
   }
   function renderActionControl(action, options = {}) {
     if (!action) return "";
@@ -511,13 +604,13 @@
     const disabled = action.available === false || options.canRespond === false ? " disabled" : "";
     const targets = (action.targetIds || []).map(id => actorById(currentScene(), id)?.name || id).join(", ");
     actionPreviews.set("action:" + key, { action });
-    return "<article class=\"lw-technique-action\" data-lw-technique-action-card=\"" + escapeHtml(key) + "\"><header><strong>" + escapeHtml(action.title || action.label || "Действие Техники") + (action.level ? " · " + escapeHtml(action.level) : "") + "</strong><small>" + escapeHtml(action.available === false ? "недоступно" : "доступно") + "</small></header><p>Причина: " + escapeHtml(action.reason || "условия выполнены") + "</p><p>Цель: " + escapeHtml(targets || (action.destinationRequired ? "выберите клетку на поле" : "указана в операции")) + " · Источник: " + escapeHtml(actionSourceLabel(action)) + "</p><button type=\"button\" data-lw-technique-action=\"true\" data-lw-action-id=\"" + escapeHtml(key) + "\" data-lw-actor=\"" + escapeHtml(action.actorId || "") + "\"" + disabled + ">Проверить</button><div data-lw-technique-preview-host></div></article>";
+    return "<article class=\"lw-technique-action\" data-lw-technique-action-card=\"" + escapeHtml(key) + "\"><header><strong>" + escapeHtml(action.title || action.label || "Действие Техники") + (action.level ? " · " + escapeHtml(action.level) : "") + "</strong><small>" + escapeHtml(action.available === false || options.canRespond === false ? "недоступно" : "доступно для проверки") + "</small></header><p>Причина: " + escapeHtml(options.canRespond === false ? options.reason || cockpitText("otherOwner", "Решение доступно владельцу участника") : action.reason || "условия выполнены") + "</p><p>Цель: " + escapeHtml(targets || (action.destinationRequired ? "выберите клетку на поле" : "указана в операции")) + " · Стоимость: " + escapeHtml(cockpitText("unknownPrice", "Цена уточнится в предпросмотре")) + "</p><details><summary>" + escapeHtml(cockpitText("ruleSource", "Источник правила")) + "</summary>" + escapeHtml(actionSourceLabel(action)) + "</details><button type=\"button\" data-lw-technique-action=\"true\" data-lw-action-id=\"" + escapeHtml(key) + "\" data-lw-actor=\"" + escapeHtml(action.actorId || "") + "\"" + disabled + ">Проверить</button><div data-lw-technique-preview-host></div></article>";
   }
 
   function renderManualControls(entry, status, actor, model) {
     const shouldShow = status.state === "manual" || status.state === "off" || ["owner", "narrator", "gm"].includes(model.viewer.role);
     if (!shouldShow) return "";
-    const label = status.state === "automatic" || status.state === "assisted" ? "Применить вручную" : "Зафиксировать вручную";
+    const label = cockpitText("recordNote", "Сохранить заметку");
     const disabled = model.manual.available ? "" : " disabled";
     const title = model.manual.reason || "Сохранить источник и решение в журнале";
     const selectedTargets = (model.scene?.targetIds || []).map(id => actorById(model.scene, id)?.name || id).filter(Boolean);
@@ -552,12 +645,10 @@
   });
   function renderUsage(entry, status, model) {
     const key = status.state === "manual" ? "useManual" : status.state === "off" ? "useOff" : "useAutomatic";
-    const owns = ["owner", "narrator", "gm"].includes(model.viewer.role) || model.viewer.actorId === model.actor.id;
     const buttons = ["automatic", "assisted"].includes(status.state) ? (actionGuides[entry.techniqueId] || []).map(id => {
       const action = model.actions.find(row => row.id === id);
       if (!action) return "";
-      const available = owns && action.available;
-      return '<button type="button" data-lw-action="' + escapeHtml(id) + '" data-lw-actor="' + escapeHtml(model.actor.id) + '"' + (available ? "" : " disabled") + ' title="' + escapeHtml(action.reason || actionCostLabel(action)) + '">' + escapeHtml(action.displayName || action.name) + "</button>";
+      return '<button type="button" data-lw-action-guide="' + escapeHtml(id) + '" data-lw-actor="' + escapeHtml(model.actor.id) + '" title="' + escapeHtml(action.reason || actionCostLabel(action)) + '">' + escapeHtml(cockpitText("openAction", "К действию «{action}»", { action: action.displayName || action.name })) + "</button>";
     }).join("") : "";
     const guide = ["automatic", "assisted"].includes(status.state) && model.locale !== "en" ? usageGuides[entry.techniqueId] : null;
     const help = guide ? global.DAWN_I18N?.t?.(`lionwing.technique.usage.${entry.techniqueId}`, {}, {fallback:guide}) || guide : copy(key, model);
@@ -596,7 +687,8 @@
       descriptionHtml(entry) +
       renderRuleSource(entry, adapterSource, model.locale, status.reason) +
       "<p class=\"lw-technique-automation\"><b>" + escapeHtml(status.label) + ":</b> " + escapeHtml(status.detail) + (status.receipt ? " · " + escapeHtml(receiptLabel(status.receipt)) : "") + "</p>" +
-      renderUsage(entry, status, model) + renderAutomationControls(status, actor, model) + offerHtml + renderManualControls(entry, status, actor, model) + "</article>";
+      (typeof techniqueVerificationMarkup === "function" ? techniqueVerificationMarkup(entry.techniqueId, entry.level) : "") +
+      renderAutomationControls(status, actor, model) + offerHtml + renderManualControls(entry, status, actor, model) + "</article>";
   }
 
   function openPreference(key, fallback) {
@@ -626,11 +718,12 @@
     const directActions = (options.actions || []).map(item => operationAction(scene, model.actor, item));
     const groupHtml = [...groups.values()].map(group => {
       const controls = options.controls?.[group.techniqueId] || "";
-      return "<details class=\"lw-technique-group\" data-lw-technique-group=\"" + escapeHtml(group.techniqueId) + "\"" + (group.levels.some(item => item.status.offer) || openPreference(group.techniqueId, false) ? " open" : "") + "><summary><strong>" + escapeHtml(group.name) + "</strong><small>" + group.levels.length + " Уров." + (group.levels.some(item => item.status.offer) ? " · есть решение" : "") + "</small></summary><div>" + controls + group.levels.map(item => renderLevel(item, model.actor, model)).join("") + "</div></details>";
+      const usage = group.levels.find(item => ["automatic", "assisted"].includes(item.status.state)) || group.levels[0];
+      return "<details class=\"lw-technique-group\" data-lw-technique-group=\"" + escapeHtml(group.techniqueId) + "\"" + (group.levels.some(item => item.status.offer) || openPreference(group.techniqueId, false) ? " open" : "") + "><summary><strong>" + escapeHtml(group.name) + "</strong><small>" + group.levels.length + " Уров." + (group.levels.some(item => item.status.offer) ? " · есть решение" : "") + "</small></summary><div>" + controls + renderUsage(usage.entry, usage.status, model) + group.levels.map(item => renderLevel(item, model.actor, model)).join("") + "</div></details>";
     }).join("");
     const outerOpen = offerCount > 0 || openPreference("surface:" + model.actor.id, true);
     const intro = "<p class=\"lw-technique-intro\">" + escapeHtml(copy("intro", { locale: model.locale })) + "</p>";
-    const actionHtml = directActions.length ? "<div class=\"lw-technique-action-list\" aria-label=\"Действия Техник\">" + directActions.map(action => renderActionControl(action, { canRespond: model.manual.available })).join("") + "</div>" : "";
+    const actionHtml = directActions.length ? "<div class=\"lw-technique-action-list\" aria-label=\"Действия Техник\">" + directActions.map(action => renderActionControl(action, { canRespond: model.manual.available, reason: model.manual.reason })).join("") + "</div>" : "";
     const summary = [["enabled", activeCount], ["disabled", offCount], ["manualCount", manualCount]].filter(([, count]) => count).map(([key, count]) => copy(key, model) + ": " + count).join(" · ");
     const enable = ["owner", "narrator", "gm"].includes(model.viewer.role) && enableOperations(model.actor, scene).length ? '<button type="button" data-lw-enable-techniques data-lw-actor="' + escapeHtml(model.actor.id) + '">' + escapeHtml(copy("enableAll", model)) + '</button>' : '';
     return "<details class=\"lw-technique-surface\" data-lw-technique-surface data-lw-technique-actor=\"" + escapeHtml(model.actor.id) + "\"" + (outerOpen ? " open" : "") + "><summary><strong>" + escapeHtml(copy("title", model)) + " · " + groups.size + "</strong><small>" + model.entries.length + " " + escapeHtml(copy("levels", model)) + " · " + escapeHtml(summary) + (offerCount ? " · " + offerCount + " требует решения" : "") + "</small></summary>" + intro + enable + actionHtml + "<div class=\"lw-technique-groups\">" + groupHtml + "</div></details>";
@@ -644,15 +737,19 @@
     const optionsHtml = (choice?.options || []).map(option => {
       const label = labels[option] || option;
       const cancel = cancellationSuffix(option, label);
-      return "<button type=\"button\" data-lw-technique-action=\"true\" data-lw-technique-choice=\"true\" data-lw-choice=\"" + escapeHtml(option) + "\" data-lw-choice-id=\"" + escapeHtml(choice.id) + "\" data-lw-actor=\"" + escapeHtml(choice.actorId) + "\"" + (canRespond ? "" : " disabled") + ">Проверить: " + escapeHtml(label + cancel) + "</button>";
+      const selectedAction = actionFromChoice(scene, choice, option, actor);
+      const checked = selectedAction.destinationRequired && operationList(selectedAction).some(operation => operation.kind === "move" && !operation.destination) ? null : previewAction(scene, selectedAction);
+      const price = previewCosts(scene, checked, choice.actorId).label;
+      const reason = !canRespond ? cockpitText("otherOwner", "Решение доступно владельцу участника") : checked?.ok === false ? checked.errors?.join(" ") || "" : "";
+      return "<div class=\"lw-technique-choice-option\"><button type=\"button\" data-lw-technique-action=\"true\" data-lw-technique-choice=\"true\" data-lw-choice=\"" + escapeHtml(option) + "\" data-lw-choice-id=\"" + escapeHtml(choice.id) + "\" data-lw-actor=\"" + escapeHtml(choice.actorId) + "\"" + (canRespond && checked?.ok !== false ? "" : " disabled") + ">Проверить: " + escapeHtml(label + cancel) + "</button><small>" + escapeHtml(price) + (reason ? " · " + escapeHtml(reason) : "") + "</small></div>";
     }).join("");
     const description = entry ? descriptionHtml(entry) : "";
     const details = [choiceTargets(choice, scene), choiceVariant(choice)].filter(Boolean).join(" · ");
     const wait = canRespond ? "<div class=\"button-row\">" + optionsHtml + "</div>" : "<p>Ожидается решение владельца героя.</p>";
     const digests = [...new Set([choice.context?.sourceDigest, ...(choice.options || []).flatMap(option => operationSourceDigests(operationList({ choice, option })))].filter(Boolean))];
     const digestHtml = digests.length ? "<small class=\"lw-technique-source\">Источник адаптера: " + escapeHtml(digests.join(" · ")) + "</small>" : "";
-    const source = entry ? renderRuleSource(entry, digestHtml, locale) : digestHtml;
-    return "<section class=\"lw-pending lw-technique-offer\" data-lw-technique-offer=\"" + escapeHtml(choice.id) + "\"><header><strong>" + escapeHtml(actor?.name || "Участник") + ": " + escapeHtml(entry ? entry.displayTechniqueName + " · " + entry.displayLevelName : choice.title || "Сработала Техника") + "</strong><span>Срок: " + escapeHtml(deadline(choice, scene)) + "</span></header>" + description + source + (details ? "<p><b>" + escapeHtml(details) + "</b></p>" : "") + "<p><b>Причина доступности:</b> " + escapeHtml(canRespond ? "решение принадлежит текущему участнику" : "ожидается решение владельца") + "</p><p><b>Стоимость:</b> " + escapeHtml(formatCosts(operationCosts(choice))) + "</p>" + wait + "<div data-lw-technique-preview-host></div></section>";
+    const source = entry ? renderRuleSource(entry, digestHtml, locale) : digestHtml ? "<details><summary>" + escapeHtml(cockpitText("ruleSource","Источник правила")) + "</summary>" + digestHtml + "</details>" : "";
+    return "<section class=\"lw-pending lw-technique-offer\" data-lw-technique-offer=\"" + escapeHtml(choice.id) + "\"><header><strong>" + escapeHtml(actor?.name || "Участник") + ": " + escapeHtml(entry ? entry.displayTechniqueName + " · " + entry.displayLevelName : choice.title || "Сработала Техника") + "</strong><span>Срок: " + escapeHtml(deadline(choice, scene)) + "</span></header>" + description + source + (details ? "<p><b>" + escapeHtml(details) + "</b></p>" : "") + "<p><b>Причина доступности:</b> " + escapeHtml(canRespond ? "решение принадлежит текущему участнику" : "ожидается решение владельца") + "</p><p>" + escapeHtml(cockpitText("optionPrices", "Стоимость показана для каждого варианта; итог проверяется перед подтверждением.")) + "</p>" + wait + "<div data-lw-technique-preview-host></div></section>";
   }
 
   function dispatchOnce(key, action) {
@@ -799,6 +896,10 @@
     actionStatuses,
     enableOperations,
     operationCosts,
+    previewCosts,
+    actionPresentation,
+    actionTargets,
+    resourceCostLabel,
     dispatchOnce,
     resetDispatchGuards: () => dispatchKeys.clear(),
   });

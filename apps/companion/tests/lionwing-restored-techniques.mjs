@@ -26,6 +26,34 @@ function answer(table, value, extras = {}) { const pending = table.lionwing.choi
 function resolve(table) { for (const id of engine.pendingActionStatus(table).waitingIds || []) table = run(table, { kind: "reaction", choice: "take" }, id); return run(table, { kind: "resolve-attack" }); }
 function denied(table, request) { const before = clone(table); assert.equal(core.prepare(table, { actorId: "hero", ...request }).ok, false); assert.deepEqual(clone(table), before); }
 
+// Enabling a learned Technique before the first Turn must agree with the
+// Scene-start boundary contract, just as it does when enabled during combat.
+let preCombatMeals = fresh("altruist.gourmand", 1);
+preCombatMeals.activeActorId = null; preCombatMeals.turnSerial = 0;
+preCombatMeals = enable(preCombatMeals, "altruist.gourmand.1");
+assert.equal(preCombatMeals.actors[0].lionwing.inventory.definitions["altruist.gourmand.meals"].visibility, "owner");
+const firstMealTurn = run(preCombatMeals, { kind: "turn-start" });
+assert.equal(firstMealTurn.activeActorId, "hero");
+assert.equal(firstMealTurn.actors[0].lionwing.inventory.records["altruist.gourmand.meals"].count, Math.ceil(firstMealTurn.actors[0].attrs.mind / 2));
+
+const legacyMealSnapshot = clone(preCombatMeals);
+legacyMealSnapshot.actors[0].lionwing.inventory.definitions["altruist.gourmand.meals"].visibility = "public";
+const oldMealRecord = legacyMealSnapshot.actors[0].lionwing.inventory.records["altruist.gourmand.meals"];
+oldMealRecord.visibility = "public"; oldMealRecord.count = oldMealRecord.current = oldMealRecord.value = 0;
+const reloadedMeals = core.reload(JSON.stringify(legacyMealSnapshot));
+const migratedDefinition = reloadedMeals.actors[0].lionwing.inventory.definitions["altruist.gourmand.meals"];
+assert.equal(migratedDefinition.visibility, "owner", "reload narrows the known legacy bootstrap visibility");
+assert.equal(reloadedMeals.actors[0].lionwing.inventory.records["altruist.gourmand.meals"].visibility, "owner");
+assert.equal(reloadedMeals.actors[0].lionwing.inventory.records["altruist.gourmand.meals"].count, 0, "migration never refills consumed portions");
+assert.equal(migratedDefinition.sourceDigest, legacyMealSnapshot.actors[0].lionwing.inventory.definitions["altruist.gourmand.meals"].sourceDigest);
+assert.equal(core.prepare(reloadedMeals, { kind: "turn-start", actorId: "hero", eventId: "legacy-meal:first-turn" }).ok, true, "a saved public bootstrap can start combat after reload");
+const forgedMeals = clone(legacyMealSnapshot);
+forgedMeals.actors[0].lionwing.inventory.definitions["altruist.gourmand.meals"].sourceDigest = "foreign-source";
+const foreignMeals = core.reload(JSON.stringify(forgedMeals));
+assert.equal(foreignMeals.actors[0].lionwing.inventory.definitions["altruist.gourmand.meals"].visibility, "public", "migration cannot overwrite another source's contract");
+assert.equal(core.prepare(foreignMeals, { kind: "turn-start", actorId: "hero", eventId: "foreign-meal:first-turn" }).ok, false, "a changed provenance remains rejected");
+denied(preCombatMeals, { kind: "inventory", operation: "configure", id: "altruist.gourmand.meals", inventoryKind: "stack", maximum: 99 });
+
 let dragon = enable(fresh("powerhouse.dragonslayer", 3), "powerhouse.dragonslayer.1");
 dragon = enable(dragon, "powerhouse.dragonslayer.3"); dragon.actors[1].armor = 20;
 dragon = run(dragon, { kind: "action", actionId: ids.breathe });

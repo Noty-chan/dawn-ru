@@ -38,7 +38,8 @@ assert.match(viewSource,/const threshold=reroll\?3:4/,"an Influence reroll must 
 assert.match(ru,/heroView\.dice\.rerolledHint[\s\S]+3 и выше/,"RU sheet copy must explain the 3+ Influence reroll threshold");
 assert.match(en,/heroView\.dice\.rerolledHint[\s\S]+3 or higher/,"EN sheet copy must explain the 3+ Influence reroll threshold");
 assert.match(events,/data-hero-sheet-tools[\s\S]+openToolsDicePreset/,"sheet rolls must reuse the existing Tools handler");
-assert.match(events,/data-hero-sheet-table[\s\S]+setMode\("play"\)/,"table actions must reuse the existing page mode handler");
+assert.match(events,/data-hero-sheet-table[\s\S]+openHeroSheetTable/,"table references must use the actor-aware canonical route");
+assert.match(heroUi,/function openHeroSheetTable\([\s\S]+setMode\("play"\)/,"the canonical sheet route must reuse the existing page mode handler");
 assert.match(events,/heroExportLionwingBridge/,"the LionWing hero export must expose the consequence bridge");
 assert.match(events,/heroImportLionwingBridge/,"the LionWing hero import must read the consequence bridge");
 assert.doesNotMatch(events,/Scene\.lionwing/,"the hero export bridge must not include combat queues");

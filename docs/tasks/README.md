@@ -6,6 +6,7 @@
 
 - **Правила и редакция:** [граница редакций](../../apps/companion/EDITION-BOUNDARIES.md), затем [архитектура компаньона](../../apps/companion/ARCHITECTURE.md) и ближайший `CODEX.md`.
 - **Готовность автоматизации:** [реестр](../../apps/companion/LIONWING-AUTOMATION-REGISTRY.md) и [генерируемый отчёт](../../apps/companion/AUTOMATION-READINESS.md). Проверяйте фактический код и тесты перед утверждением о готовности.
+- **Результаты проверок конкретной сборки:** [контракт запуска](../../apps/companion/AUTOMATION-VERIFICATION.md). Реализация, исторический аудит и актуальный результат CI учитываются отдельно; результаты не коммитятся как вечные успехи.
 - **Интерфейс стола:** [подтверждённый бриф](VTT_INTERFACE_REDESIGN_BRIEF.md), [критерии приёмки](VTT_INTERFACE_ACCEPTANCE.md), [боевой сценарий](../../apps/companion/BATTLE-CYCLE-QA.md).
 - **Сетевой слой:** [README Supabase](../../supabase/README.md) и миграции; применённое состояние базы проверяйте отдельно от истории Git.
 - **Исторический контекст LionWing:** [аудит от 20 сентября](LIONWING_PROJECT_AUDIT_2026-09-20.md) и [снимок передачи от 21 сентября](../archive/2026-09-task-reports/LIONWING_LATEST_HANDOFF_2026-09-21.md). Их TODO требуют повторной проверки на текущем `main`.

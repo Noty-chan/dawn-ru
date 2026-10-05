@@ -32,10 +32,11 @@ for (const choice of ["block", "dodge", "clash"]) {
 
 // Render the production pending UI against the localized catalog.
 const ui = read("lionwing-ui.js"), pendingFunction = ui.slice(ui.indexOf("function lwPendingHtml()"), ui.indexOf("function lwAutomationHtml("));
+const uiTextHelpers = ui.slice(ui.indexOf("const lwTechniqueText ="), ui.indexOf("const lwTechniqueEnabled ="));
 const canonical = context.window.DAWN_LIONWING_DATA.coreRules, translation = context.window.DAWN_LIONWING_RU.coreRules;
 const display = { ...canonical, actions: { ...canonical.actions, list: canonical.actions.list.map(def => ({ ...def, ...(translation.actions.entries[def.id] || {}) })) } };
 Object.assign(context, { Scene: scene, SceneEngine: engine, LionwingEngine: lw, lwRules: () => display, lwOwns: () => true, lwCanNarrate: () => true, esc: value => String(value ?? ""), lwDestination: null });
-vm.runInContext(`${pendingFunction}\nwindow.renderPending = lwPendingHtml;`, context);
+vm.runInContext(`${uiTextHelpers}\n${pendingFunction}\nwindow.renderPending = lwPendingHtml;`, context);
 let html = context.window.renderPending();
 assert.match(html, /Заклинание ·/);
 assert.doesNotMatch(html, /Cast ·|data-lw-reaction=/);
@@ -53,6 +54,7 @@ assert.throws(() => run(scene, "source", { kind: "resolve-attack" }), /Реак�
 context.Scene = scene;
 html = context.window.renderPending();
 assert.match(html, /data-lw-reaction="block"/);
+assert.match(html, /Сейчас без расхода ресурсов/, "the actual cockpit helper labels the no-cost defense");
 assert.doesNotMatch(html, /class="lw-reaction"><b>assassin/);
 scene = run(clone(scene), "hero-target", { kind: "reaction", choice: "block" });
 scene = run(clone(scene), "source", { kind: "resolve-attack" });

@@ -82,7 +82,15 @@ for (const seed of [1, 4, 17, 904]) {
 const uiSource = fs.readFileSync(new URL("../lionwing-ui.js", import.meta.url), "utf8");
 const helpers = uiSource.slice(uiSource.indexOf("let lwDestination ="), uiSource.indexOf("const lwRules ="));
 const handler = uiSource.slice(uiSource.indexOf('document.addEventListener("click", event => {'), uiSource.indexOf('document.addEventListener("change",event=>{'));
-const cells = Array.from({ length: 48 }, (_, index) => ({ dataset: { sceneCell: `${index % 8},${Math.floor(index / 8)}` }, classes: new Set(), classList: { toggle(name, value) { if (value) cells[index].classes.add(name); else cells[index].classes.delete(name); } } }));
+const cells = Array.from({ length: 48 }, (_, index) => {
+  const classes = new Set();
+  return { dataset: { sceneCell: `${index % 8},${Math.floor(index / 8)}` }, classes, classList: {
+    add(...names) { names.forEach(name => classes.add(name)); },
+    remove(...names) { names.forEach(name => classes.delete(name)); },
+    contains(name) { return classes.has(name); },
+    toggle(name, force) { const enabled = force === undefined ? !classes.has(name) : Boolean(force); enabled ? classes.add(name) : classes.delete(name); return enabled; },
+  } };
+});
 const board = { querySelectorAll: () => cells }, toasts = [], ui = { window: { DAWN_LIONWING_ENGINE: core }, Scene: fixture(), console,
   SceneEngine: engine, document: { addEventListener(type, fn) { if (type === "click") ui.click = fn; }, querySelector: () => null },
   CSS: { escape: value => value }, toast: message => toasts.push(message), renders: 0, submissions: 0 };
@@ -94,7 +102,7 @@ vm.runInContext(`
  function renderScene(){this.renders++;lwApplyDestinationHighlights(this.board,Scene.spaces[0])}
  function lwSubmit(actorId,payload){const p=LionwingEngine.prepare(Scene,{actorId,...payload});if(!p.ok)throw new Error(p.errors.join(" "));Scene=SceneEngine.dispatchMany(Scene,p.events).scene;this.submissions++;return true}
  ${helpers}\n${handler}
- this.getScene=()=>Scene;this.getDestination=()=>lwDestination;this.cancel=lwCancelDestination;this.setScene=value=>{Scene=value};this.setDestination=lwSetDestination;
+ this.getScene=()=>Scene;this.getDestination=()=>lwDestination;this.getDraft=()=>lwTechniqueDraft;this.cancel=lwCancelDestination;this.setScene=value=>{Scene=value};this.setDestination=lwSetDestination;
 `, Object.assign(ui, { board }));
 const root = { dataset: { lwActor: "hero" }, querySelector: () => null,
   querySelectorAll: selector => selector === "[data-lw-focus]" ? [
@@ -119,10 +127,17 @@ click(cellTarget("4,4"));
 assert.equal(ui.submissions, 0, "the click rechecks a cell occupied after the highlight was drawn");
 ui.setScene(fixture());
 click(cellTarget("4,4"));
+assert.equal(ui.submissions, 0, "a valid cell opens an unpaid confirmation preview");
+assert.equal(ui.getScene().actors[0].ap, 3);
+assert.deepEqual(clone(ui.getDraft().cells), [{ space: "main", x: 4, y: 4 }]);
+assert.ok(cells.find(cell => cell.dataset.sceneCell === "4,4").classes.has("preview"), "the selected point has a visible preview marker");
+const confirmButton = { dataset: { lwActor: "hero" }, hasAttribute: name => name === "data-lw-technique-confirm", closest: selector => selector.includes("[data-lw-root]") ? root : null };
+click({ closest: selector => selector.includes("[data-lw-technique-confirm]") ? confirmButton : null });
 assert.equal(ui.submissions, 1);
 assert.equal(ui.getScene().actors[0].ap, 2);
 assert.deepEqual([ui.getScene().actors[0].x, ui.getScene().actors[0].y], [4, 4]);
 assert.equal(ui.getDestination(), null);
+assert.equal(ui.getDraft(), null, "confirmation closes the temporary point preview");
 ui.setScene(fixture()); ui.setDestination({ ...draft(ids.jump), label: "Прыжок" }); ui.cancel();
 assert.equal(ui.getDestination(), null);
 assert.equal(ui.getScene().actors[0].ap, 3, "canceling the picker is free");

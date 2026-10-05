@@ -52,6 +52,9 @@ const click=attrs=>{
   handlers[0]({target:{closest:selector=>selector.includes("[data-lw-technique-mode]")?button:null},preventDefault(){},stopImmediatePropagation(){}});
 };
 click({lwTechniqueMode:"bullets"});
+assert.equal(commands.length,0,"assigning Bullets opens an unpaid preview");
+assert.equal(run('lwTechniqueDraft.payload.bulletsSpent'),2);
+click({lwTechniqueConfirm:""});
 assert.equal(commands.at(-1).payload.bulletsSpent,2);
 assert.equal(commands.at(-1).payload.attribute,undefined,"specialized Skirmishes let the engine select the stronger Body/Talent");
 assert.deepEqual(Array.from(commands.at(-1).payload.bulletTargets),["enemy","enemy"],"UI preserves repeated per-bullet targets");
@@ -141,12 +144,15 @@ actor.lionwing.automation["altruist.gourmand.1"]=true;actor.lionwing.automation[
 assert.match(run('lwRestoredControls(Scene.actors[0])["altruist.gourmand"]'),/data-lw-cunning-plan/);
 scene.targetIds=["ally"];
 click({lwTechniqueMode:"meal"});
+assert.equal(run('lwTechniqueDraft.payload.operation'),"meal");
+click({lwTechniqueConfirm:""});
 assert.equal(commands.at(-1).payload.operation,"meal");
 assert.equal(commands.at(-1).payload.useCunningPlan,true,"Gourmand passes the local Cunning Plan selection to its Interact operation");
 table.actors[0].knownTechniques["vagabond.cunning-fighter"]=1;
 table=actual.core.prepare(table,{actorId:"hero",kind:"automation",ruleId:"vagabond.cunning-fighter.1",enabled:true}).scene;
 table.actors[0].ap=0;table.actors[0].ruleClocks["vagabond.cunning-fighter.plan"].current=1;
 context.Scene=table;context.LionwingEngine=actual.core;context.SceneEngine.ACTION_IDS.step=actual.engine.ACTION_IDS.step;
+context.window.DAWN_LIONWING_ENGINE=actual.core;context.window.DAWN_SCENE_ENGINE=actual.engine;
 const gateNote={textContent:""},gateInput={checked:true},gateButton={dataset:{lwActor:"hero",lwAction:actual.engine.ACTION_IDS.step},disabled:true,querySelector:()=>gateNote};
 const gateRoot={dataset:{lwActor:"hero"},querySelectorAll:selector=>selector==="[data-lw-cunning-plan]"?[gateInput]:selector==="[data-lw-action]"?[gateButton]:[]};gateInput.closest=gateButton.closest=()=>gateRoot;context.gateRoot=gateRoot;
 run('lwRefreshCunningActions(gateRoot)');
@@ -176,7 +182,7 @@ for(const attribute of ["body","talent","spirit"]){
 }
 selectedAttribute.value="talent";selectedFocus.value="1";run('lwRefreshCunningActions(gateRoot)');
 assert.equal(gateButton.disabled,false);
-assert.match(gateNote.textContent,/0 ОД/);
+assert.match(gateNote.textContent,/0 Упорство/,"price follows the authoritative replacement of AP");
 assert.equal(JSON.stringify(mundaneTable),beforeGate,"availability refresh pays no resources and writes no Round receipt");
 gateButton.dataset.lwMasterFinisher="";selectedAttribute.value="spirit";run('lwRefreshCunningActions(gateRoot)');
 assert.equal(gateButton.disabled,false,"Master controls retain their fixed Talent attribute");
@@ -246,7 +252,7 @@ for(const request of [{kind:"automation",ruleId:"ruiner.student-of-stars.1",enab
 context.Scene=masterStudent;context.LionwingEngine=actual.core;
 vm.runInContext(source.slice(source.indexOf('function lwMasterControls(a)'),source.indexOf('const lwEntities')),context);
 const masterControls=run('lwMasterControls(Scene.actors[0])');
-assert.match(masterControls,/Завершение Талантом · 1 ОД/);
+assert.match(masterControls,/Завершение Талантом<\/strong><small>1 ОД/);
 assert.match(masterControls,/data-lw-focus type="number" min="0" max="6"/,'Master uses the native Student Focus cap rather than hardcoded Tension');
 let creatorStudent=fixture();creatorStudent.actors[0].ap=12;
 creatorStudent.actors[0].knownTechniques={"ruiner.creation-ascetic":1,"ruiner.student-of-stars":1};

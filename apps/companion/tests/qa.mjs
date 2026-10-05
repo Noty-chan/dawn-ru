@@ -68,7 +68,11 @@ assert.doesNotMatch(fs.readFileSync(path.join(root, "sync.js"), "utf8"), /if\(se
 assert.match(appSource, /acceptPreparedRemoteCommand[\s\S]+setConfirmedScene\?\.\(Scene\)/, "Accepting a joined hero must update the Narrator's confirmed network Scene before the next roll");
 assert.match(fs.readFileSync(path.join(root, "sync.js"), "utf8"), /subscriptionIsActive=\(\)=>generation===channelGeneration/, "Callbacks from an intentionally removed realtime channel must be ignored");
 assert.doesNotMatch(appSource, /Sync\?\.on\("status",\(\)=>\{[^}]*renderScene\(\)/, "A connection-status repaint must not rebuild the table");
-assert.match(appSource, /openDetails=new Map/, "Expanded hero rules must survive a canonical Scene repaint");
+const playUiSource = fs.readFileSync(path.join(root, "play-ui.js"), "utf8"), sceneUiSource = fs.readFileSync(path.join(root, "scene-ui.js"), "utf8");
+const heroSheetRefresh = playUiSource.slice(playUiSource.indexOf("function renderSceneHeroSheet("), playUiSource.indexOf("function renderPlay("));
+assert.match(heroSheetRefresh, /entries\("details",detailKey\)[\s\S]+details\.has\(key\)\)element\.open=details\.get\(key\)/, "Expanded hero rules must survive the shared sheet repaint");
+const canonicalSceneRefresh = sceneUiSource.slice(sceneUiSource.indexOf("function renderScene(){"), sceneUiSource.indexOf("function activeSceneView(){"));
+assert.match(canonicalSceneRefresh, /renderSceneHeroSheet\(\);renderSceneChrome\(\);/, "Every canonical Scene repaint refreshes the Hero cockpit before its navigation shortcuts");
 assert.match(companionMarkup, /id="stress-trackers"/, "Tools must expose the shared Stress tracker");
 assert.match(appSource, /key:"stress",value:next/, "The narrator edits Stress through a canonical Scene event");
 assert.match(appSource, /scene\.undo=\[\]/, "Recursive undo snapshots must never fill localStorage");

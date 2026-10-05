@@ -22,13 +22,14 @@ const attack = scene => commit(scene, engine.prepareEnemyRule(scene, data, {
 }));
 
 const actionUi = read("scene-actions-ui.js"), lwUi = read("lionwing-ui.js");
+const uiTextHelpers = lwUi.slice(lwUi.indexOf("const lwTechniqueText ="), lwUi.indexOf("const lwTechniqueEnabled ="));
 Object.assign(context, { Scene: null, D: data, SceneEngine: engine, LionwingEngine: lw, Sync: { state: () => ({}) }, currentHeroActor: () => context.Scene.actors.find(item => item.kind === "hero"), lwActor: () => context.Scene.actors[0], lwCanNarrate: () => true, lwOwns: () => true, esc: value => String(value ?? ""), md: value => String(value ?? ""), lwRules: () => context.window.DAWN_LIONWING_DATA.coreRules });
 Object.assign(context, { Lionwing: context.window.DAWN_LIONWING_DATA, LionwingRu: context.window.DAWN_LIONWING_RU, contentPreferences: { locale: "ru" } });
 const bootstrap = read("app-bootstrap.js"), sceneUi = read("scene-ui.js");
 vm.runInContext(bootstrap.slice(bootstrap.indexOf("function localizedLionwingCoreRules()"), bootstrap.indexOf("const activeCoreRules=")), context);
 vm.runInContext(sceneUi.slice(sceneUi.indexOf("function sceneActionDisplayName("), sceneUi.indexOf("function refreshSceneControlStates(")), context);
 vm.runInContext(actionUi.slice(actionUi.indexOf("function sceneActionPanel("), actionUi.indexOf("function coreActionRoll(")), context);
-vm.runInContext(`const lwOldActionPanel=sceneActionPanel;\n${lwUi.slice(lwUi.indexOf("function lwPendingHtml()"), lwUi.indexOf("function lwAutomationHtml("))}\nwindow.renderEnemyPending=lwPendingHtml;`, context);
+vm.runInContext(`${uiTextHelpers}\nconst lwOldActionPanel=sceneActionPanel;\n${lwUi.slice(lwUi.indexOf("function lwPendingHtml()"), lwUi.indexOf("function lwAutomationHtml("))}\nwindow.renderEnemyPending=lwPendingHtml;`, context);
 
 context.Scene = fixture(actor("hero", "hero", 2));
 assert.equal(context.sceneActionDisplayName(engine.ACTION_IDS.finish, "Finish"), "Завершение", "native attack flow accepts an action ID and uses its Russian name");
