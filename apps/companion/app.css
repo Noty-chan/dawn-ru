@@ -347,3 +347,60 @@ main{min-width:0;padding:clamp(1rem,3vw,3rem)}.mode-page{display:none}.mode-page
 .lw-technique-controls .button-row>button,.lw-technique-usage .button-row>button,.lw-reaction>.button-row>button{display:grid;align-content:start;gap:.3rem;min-width:0;width:100%;text-align:left;white-space:normal}
 .lw-technique-controls button>strong,.lw-technique-controls button>small,.lw-reaction button>small{display:block;white-space:normal;overflow-wrap:anywhere;line-height:1.4}
 .lw-technique-choice-option{display:grid;gap:.3rem;min-width:0}.lw-technique-choice-option>button{width:100%;white-space:normal}.lw-technique-choice-option>small{display:block;line-height:1.4;overflow-wrap:anywhere}
+/* The left rail follows the current workspace instead of showing build budgets everywhere. */
+.sidebar>[hidden],.workspace-navigation[hidden],.workspace-navigation>[hidden]{display:none!important}
+.workspace-navigation{display:grid;gap:.6rem;margin:1rem 0}
+.workspace-navigation>h2{margin:0;color:var(--muted);font-size:.7rem;font-weight:850;letter-spacing:.09em;text-transform:uppercase}
+#workspace-links{display:grid;gap:.25rem}
+#workspace-links a,.sidebar #rules-index a{min-width:0;padding:.55rem .65rem;border-radius:8px;color:var(--muted);text-decoration:none;font-size:.8rem;line-height:1.4;white-space:normal}
+#workspace-links a:hover,.sidebar #rules-index a:hover,#workspace-links a[aria-current="location"],.sidebar #rules-index a[aria-current="location"]{background:var(--surface-2);color:var(--ink)}
+#workspace-links a[aria-current="location"],.sidebar #rules-index a[aria-current="location"]{box-shadow:inset 3px 0 var(--red)}
+.sidebar #rules-index{position:static;display:grid;gap:.25rem;margin:0;padding:0;max-height:none;overflow:visible;border:0;background:none}
+.sidebar #rules-index a{display:grid;grid-template-columns:1.4rem minmax(0,1fr);gap:.2rem}
+.hero-files{margin-top:1rem;padding-top:.65rem;border-top:1px solid var(--line)}.hero-files>summary{cursor:pointer;color:var(--muted);font-size:.78rem}.hero-files .button-stack{margin-top:.6rem}
+.active-edition-badge{min-height:34px;padding:.3rem .55rem;color:var(--cyan);font-size:.65rem;white-space:nowrap}
+.workspace-results,.workspace-result-state{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:.5rem;margin:.8rem 0}
+.workspace-result-count{margin:.5rem 0 .75rem;color:var(--muted);font-size:.75rem;line-height:1.4}
+.workspace-results{justify-content:center}.workspace-results>button{min-width:180px}
+.hero-sheet-build-warning>summary{cursor:pointer;font-weight:750;font-size:.8rem}.hero-sheet-build-warning[open]>strong{display:block;margin-top:.65rem}
+.tools-outcome-help{margin-top:.6rem;color:var(--muted);font-size:.72rem}.tools-outcome-help>summary{cursor:pointer}.tools-outcome-help .dice-outcome-guide{margin-top:.5rem}
+.reference-rules-link{display:flex;align-items:center;justify-content:flex-end;gap:.75rem;margin:0 0 .7rem;padding:0;border:0;background:none;box-shadow:none}
+.reference-rules-link strong{font-size:.74rem;font-weight:500;color:var(--muted)}.reference-rules-link a{padding:.35rem .6rem;font-size:.72rem}
+#workspace-links a,.rules-chapter,.hero-sheet-card,[id^="tools-"]{scroll-margin-top:85px}
+@media(min-width:981px){
+  body[data-workspace-view="sheet"] .app-shell,body.rules-mode .app-shell,body.tools-mode .app-shell{display:grid;grid-template-columns:240px minmax(0,1fr);max-width:1540px}
+  body.tools-mode .sidebar{display:block}
+  body[data-workspace-view="sheet"] .hero-switcher>.button-row{display:none}
+  body[data-workspace-view="sheet"] main,body.rules-mode main,body.tools-mode main,.reference-mode main{padding:1.4rem 1.65rem}
+  .mode-page>.page-heading{align-items:center;gap:1rem;margin-bottom:1rem}
+  .mode-page>.page-heading h1,.hero-sheet-toolbar h1{margin:.15rem 0;font-size:2rem;line-height:1.15;letter-spacing:-.03em}
+  .hero-sheet-toolbar{margin-bottom:.7rem}.hero-view-switch{margin-bottom:.7rem}
+  .hero-sheet-identity{grid-template-columns:88px minmax(0,1fr) auto;gap:1rem;padding:1rem;margin-bottom:.75rem}
+  .hero-sheet-portrait{width:88px;height:106px}.hero-sheet-identity h2{font-size:2rem;line-height:1.15}.hero-sheet-identity p{margin:.3rem 0}
+  .hero-sheet-build-warning{margin:.6rem 0;padding:.6rem .8rem}
+  .tools-mode .freeplay-grid,.tools-mode .freeplay-grid[data-tools-role="network-narrator"]{grid-template-columns:minmax(0,1.15fr) minmax(300px,1fr);grid-template-areas:"dice sheet" "context context" "feed bonds" "clocks stress";gap:.8rem;align-items:start}
+  .tools-mode .freeplay-grid>.panel{margin:0;padding:1rem;grid-column:auto;grid-row:auto}
+  .tools-mode .freeplay-grid>.freeplay-director-tool{grid-area:context;padding:.75rem 1rem}
+  .tools-mode .freeplay-grid>.dice-tool{grid-area:dice}
+  .tools-mode .freeplay-grid>.freeplay-hero-tool{grid-area:sheet}
+  .tools-mode .freeplay-grid>.roll-feed-tool{grid-area:feed}
+  .tools-mode .freeplay-grid>.freeplay-bonds-tool{grid-area:bonds}
+  .tools-mode .freeplay-grid>.clocks-tool{grid-area:clocks}
+  .tools-mode .freeplay-grid>.stress-tool{grid-area:stress}
+  .tools-mode .freeplay-director-tool>.tools-step,.tools-mode .dice-tool>.tools-step{display:none}
+  .tools-mode .freeplay-hero-tool .tools-step>span{display:none}
+  .tools-mode .tools-view-switch{float:right;margin:0 0 .4rem 1rem;padding:0}
+  .tools-mode .freeplay-director-tool>.subpanel-head{margin-bottom:.5rem}
+  .tools-mode .freeplay-director-tool>.subpanel-head h2{font-size:1rem}
+  .tools-mode .freeplay-director-controls{clear:both;margin-top:.4rem;gap:.5rem}
+  .tools-mode .freeplay-request-state{margin-top:.5rem;padding:.4rem .6rem}
+  .tools-mode .dice-tool h2,.tools-mode .freeplay-hero-head h2{font-size:1.1rem}
+  .tools-mode .dice-result:empty{display:none}
+  .tools-mode .freeplay-hero-head{grid-template-columns:40px minmax(0,1fr);gap:.5rem;padding-bottom:.6rem}
+  .tools-mode .freeplay-hero-head>img,.tools-mode .freeplay-hero-head>i{width:40px;height:40px}
+  .tools-mode .freeplay-resources{grid-column:1/-1;justify-content:flex-start}
+  .tools-mode .freeplay-sheet-picks{grid-template-columns:repeat(2,minmax(0,1fr));gap:.6rem}
+  .tools-mode .freeplay-sheet-picks>section>div{grid-template-columns:minmax(0,1fr)}
+  .tools-mode .freeplay-sheet-picks button{min-height:36px;gap:.4rem;white-space:normal}
+  .tools-mode .freeplay-sheet-picks button>span{white-space:normal;overflow:visible;text-overflow:clip;line-height:1.35}
+}

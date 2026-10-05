@@ -28,7 +28,7 @@
       <button type="button" data-mode="rules" data-i18n="nav.rules">Правила</button>
       <button type="button" data-mode="reference" data-i18n="nav.reference">Справочник</button>
     </nav>
-    <div class="topbar-actions"><button type="button" class="bug-report-open" id="bug-report-open">Баг-репорт</button><button type="button" class="icon-button app-settings-open" id="app-settings-open" data-open-app-settings aria-label="Открыть настройки" title="Настройки">⚙</button></div>
+    <div class="topbar-actions"><button type="button" id="active-edition-badge" class="active-edition-badge" data-open-app-settings aria-label="Редакция правил">LionWing</button><button type="button" class="bug-report-open" id="bug-report-open">Баг-репорт</button><button type="button" class="icon-button app-settings-open" id="app-settings-open" data-open-app-settings aria-label="Открыть настройки" title="Настройки">⚙</button></div>
   </header>
 
   <dialog id="app-settings-dialog" class="app-settings-dialog" aria-labelledby="app-settings-title">
@@ -55,7 +55,7 @@
   </dialog>
 
   <div class="app-shell">
-    <aside class="sidebar" aria-label="Персонажи и состояние сборки" data-i18n-aria-label="sidebar.label">
+    <aside class="sidebar" aria-label="Персонажи и разделы" data-i18n-aria-label="sidebar.label">
       <div class="hero-switcher">
         <label for="hero-select" data-i18n="sidebar.hero">Персонаж</label>
         <select id="hero-select"></select>
@@ -65,17 +65,22 @@
           <button type="button" id="hero-delete" class="danger" data-i18n="sidebar.delete">Удалить</button>
         </div>
       </div>
+      <section id="workspace-navigation" class="workspace-navigation" hidden>
+        <h2 id="workspace-nav-title"></h2>
+        <nav id="workspace-links" aria-labelledby="workspace-nav-title"></nav>
+        <nav id="rules-index" class="rules-index" aria-label="Главы правил" hidden></nav>
+      </section>
       <section class="summary" aria-labelledby="summary-title">
         <h2 id="summary-title" data-i18n="sidebar.summary">Сводка</h2>
         <div id="derived" class="derived-grid"></div>
         <div id="budgets" class="budget-list"></div>
         <div id="warnings" class="warnings" aria-live="polite"></div>
       </section>
-      <div class="button-stack">
+      <details class="hero-files"><summary data-i18n="sidebar.files">Файлы героя</summary><div class="button-stack">
         <button type="button" id="export-hero" data-i18n="sidebar.export">Экспорт героя</button>
         <label class="file-button"><span data-i18n="sidebar.import">Импорт героя</span><input id="import-hero" type="file" accept="application/json,.json"></label>
         <button type="button" id="print-sheet" data-i18n="sidebar.print">Печать листа</button>
-      </div>
+      </div></details>
       <p class="autosave" data-i18n="sidebar.autosave">Сохраняется автоматически на этом устройстве.</p>
     </aside>
 
@@ -303,7 +308,7 @@
       <section class="mode-page" data-page="tools" aria-labelledby="tools-title">
         <div class="page-heading tools-heading"><div><p class="eyebrow" data-i18n="tools.eyebrow">ИНСТРУМЕНТЫ</p><h1 id="tools-title" data-i18n="tools.title">Неструктурированная игра</h1><p data-i18n="tools.description">Соберите действие из листа героя, бросьте открыто и продолжайте сцену без боевого Стола.</p></div><output id="tools-sync-state" class="tools-sync-state">Локальные инструменты</output></div>
         <div class="freeplay-grid">
-          <section class="panel freeplay-director-tool">
+          <section id="tools-context" class="panel freeplay-director-tool">
             <div class="tools-step"><span>1</span><div><strong data-i18n="tools.context.title">Контекст действия</strong><small data-i18n="tools.context.help">Источник листа и адресат сетевого запроса выбираются независимо.</small></div></div>
             <div id="tools-view-switch" class="tools-view-switch" role="group" aria-label="Вид Инструментов"><span data-i18n="tools.view.label">Рабочий вид</span><button type="button" data-tools-view="player" data-i18n="tools.view.player">Игрок</button><button type="button" data-tools-view="narrator" data-i18n="tools.view.narrator">Нарратор</button></div>
             <div class="subpanel-head"><div><span class="kind" id="freeplay-director-kind">ЛОКАЛЬНЫЙ СТОЛ</span><h2 id="freeplay-director-title">Испытание</h2><small id="freeplay-director-help">Нарратор назначает сложность, затем передаёт устройство нужному игроку.</small></div></div>
@@ -317,14 +322,13 @@
               <div id="freeplay-request-actions" class="button-row" hidden><button type="button" id="freeplay-request-roll" class="primary">Запросить бросок</button><button type="button" id="freeplay-request-clear" hidden>Отменить запрос</button></div>
             </div>
             <output id="freeplay-request-state" class="freeplay-request-state" aria-live="polite"></output>
-            <output id="dice-outcome-guide" class="dice-outcome-guide" aria-live="polite"></output>
             <div id="freeplay-opposed-status" class="freeplay-opposed-status" aria-live="polite" hidden></div>
           </section>
-          <section class="panel freeplay-hero-tool">
+          <section id="tools-sheet" class="panel freeplay-hero-tool">
             <div class="tools-step"><span>2</span><div><strong data-i18n="tools.sheet.title">Источник листа</strong><small data-i18n="tools.sheet.help">Атрибуты, Навыки, Способности, Связи, Дары и ресурсы выбранного локального героя.</small></div></div>
             <div id="freeplay-hero-panel"></div>
           </section>
-          <section class="panel dice-tool">
+          <section id="tools-dice" class="panel dice-tool">
             <div class="tools-step"><span>3</span><div><strong data-i18n="tools.pool.title">Соберите пул</strong><small data-i18n="tools.pool.help">Выберите по одному источнику с листа и добавьте ситуативные Преимущество и Помеху.</small></div></div>
             <div class="dice-tool-head"><div><span id="dice-tool-kind" class="kind">БРОСОК ИСПЫТАНИЯ</span><h2 id="dice-tool-title">Разрешить действие</h2></div><div id="dice-hero-context" class="dice-hero-context"></div></div>
             <div class="dice-composer"><label><span data-i18n="tools.baseAttribute">Базовый Атрибут</span><select id="dice-attr"><option value="manual" data-i18n="tools.manualPool">Ручной пул</option><option value="body" data-i18n="tools.attr.body">Тело</option><option value="talent" data-i18n="tools.attr.talent">Талант</option><option value="spirit" data-i18n="tools.attr.spirit">Дух</option><option value="mind" data-i18n="tools.attr.mind">Разум</option></select></label><label><span data-i18n="tools.oneSkill">Один Навык</span><select id="dice-skill"><option value="">Без Навыка</option></select></label><label><span data-i18n="tools.oneAbility">Одна Способность</span><select id="dice-ability"><option value="">Без Способности</option></select></label><label><span data-i18n="tools.oneBond">Одна Связь</span><select id="dice-bond"><option value="">Без Связи</option></select></label><fieldset class="dice-count-field"><legend data-i18n="tools.baseDice">Базовые кости</legend><div class="dice-stepper"><button type="button" data-dice-delta="-1" aria-label="Убрать одну кость">−</button><input id="dice-count" type="number" min="1" max="40" value="4" aria-label="Количество базовых костей"><button type="button" data-dice-delta="1" aria-label="Добавить одну кость">+</button></div></fieldset><fieldset class="dice-modifier-field"><legend data-i18n="tools.otherAdvantage">Прочее Преимущество</legend><div class="dice-stepper"><button type="button" data-dice-modifier="dice-adv" data-dice-modifier-delta="-1" aria-label="Уменьшить Преимущество">−</button><input id="dice-adv" type="number" min="0" max="30" value="0" aria-label="Прочее Преимущество"><button type="button" data-dice-modifier="dice-adv" data-dice-modifier-delta="1" aria-label="Увеличить Преимущество">+</button></div></fieldset><fieldset class="dice-modifier-field"><legend data-i18n="tools.hindrance">Помеха</legend><div class="dice-stepper"><button type="button" data-dice-modifier="dice-dis" data-dice-modifier-delta="-1" aria-label="Уменьшить Помеху">−</button><input id="dice-dis" type="number" min="0" max="30" value="0" aria-label="Помеха"><button type="button" data-dice-modifier="dice-dis" data-dice-modifier-delta="1" aria-label="Увеличить Помеху">+</button></div></fieldset><div class="dice-quick-count" aria-label="Быстрый выбор количества базовых костей"><button type="button" data-dice-count="1">1</button><button type="button" data-dice-count="2">2</button><button type="button" data-dice-count="3">3</button><button type="button" data-dice-count="4">4</button><button type="button" data-dice-count="5">5</button><button type="button" data-dice-count="6">6</button><button type="button" data-dice-count="7">7</button></div></div>
@@ -339,21 +343,22 @@
             <p id="all-in-hint" class="autosave">Сначала совершите обычный бросок.</p>
             <div id="dice-result" class="dice-result" aria-live="polite"></div>
             <div id="freeplay-risk-actions" class="freeplay-risk-actions"></div>
+            <details class="tools-outcome-help"><summary data-i18n="tools.outcomeHelp">Как определяется результат</summary><output id="dice-outcome-guide" class="dice-outcome-guide" aria-live="polite"></output></details>
           </section>
-          <section class="panel roll-feed-tool">
+          <section id="tools-feed" class="panel roll-feed-tool">
             <div class="subpanel-head"><div><span class="kind" data-i18n="tools.feed.eyebrow">ОБЩИЙ СТОЛ</span><h2 data-i18n="tools.feed.title">Лента бросков</h2><small data-i18n="tools.feed.help">Кубики и итоги всех публичных бросков видны участникам Сцены.</small></div></div>
             <ol id="dice-history" class="history roll-feed" aria-live="polite"></ol>
           </section>
-          <section class="panel freeplay-bonds-tool">
+          <section id="tools-bonds" class="panel freeplay-bonds-tool">
             <div class="subpanel-head"><div><h2 data-i18n="tools.bonds.title">Связи персонажа</h2><small data-i18n="tools.bonds.help">В испытании можно применить Ранг одной Связи. Нестандартный тег даёт ещё 1 Преимущество.</small></div></div>
             <div class="freeplay-bond-create"><label><span data-i18n="tools.bonds.name">Имя Связи</span><input id="freeplay-bond-name" maxlength="120" placeholder="Имя персонажа или оружия" data-i18n-placeholder="tools.bonds.placeholder"></label><label class="switch"><input id="freeplay-bond-quick" type="checkbox"><span data-i18n="tools.bonds.quick">Быстрая Связь</span></label><button type="button" id="freeplay-bond-add" data-i18n="tools.bonds.add">+ Создать Связь</button></div>
             <div id="freeplay-bonds" class="freeplay-bonds"></div>
           </section>
-          <section class="panel clocks-tool">
+          <section id="tools-clocks" class="panel clocks-tool">
             <div class="subpanel-head"><h2 data-i18n="tools.clocks.title">Часы сцены</h2><div class="clock-add-actions"><button type="button" id="clock-add-progress" data-i18n="tools.clocks.good">+ Хорошие</button><button type="button" id="clock-add-danger" data-i18n="tools.clocks.bad">+ Плохие</button></div></div>
             <div id="clocks" class="clock-list"></div>
           </section>
-          <section class="panel stress-tool">
+          <section id="tools-stress" class="panel stress-tool">
             <div class="subpanel-head"><div><h2 data-i18n="tools.stress.title">Стресс героев</h2><small data-i18n="tools.stress.help">При заполнении шкалы (обычно 3; 4 с «Глухотой к сверхъестественному») герой выводится из строя и возвращается в следующей Сцене с лимитом минус 1.</small></div></div>
             <div id="stress-trackers" class="stress-trackers"></div>
           </section>
@@ -367,19 +372,20 @@
           <div id="rules-filters" class="chip-row" aria-label="Для кого правила"></div>
           <div class="button-row compact rules-fold-actions"><button type="button" id="rules-expand">Развернуть всё</button><button type="button" id="rules-collapse">Свернуть всё</button></div>
         </div>
-        <nav id="rules-index" class="rules-index" aria-label="Главы правил"></nav>
         <div id="rules-chapters" class="rules-chapters"></div>
       </section>
 
       <section class="mode-page" data-page="reference" aria-labelledby="reference-title">
         <div class="page-heading"><div><p class="eyebrow" data-i18n="reference.eyebrow">ТЕРМИНЫ БЕЗ ЛИСТАНИЯ</p><h1 id="reference-title" data-i18n="reference.title">Справочник</h1></div></div>
-        <aside class="panel reference-rules-link"><div><span>Нужно понять механику целиком?</span><strong>Последовательные объяснения перенесены в «Правила».</strong></div><a class="file-button" href="?mode=rules">Открыть Правила</a></aside>
+        <aside class="reference-rules-link"><div><strong data-i18n="reference.ruleLinkHelp">Полные объяснения механик — в Правилах</strong></div><a class="file-button" href="?mode=rules" data-i18n="reference.openRules">Открыть Правила</a></aside>
         <div class="catalog-tools sticky-tools">
           <input id="ref-search" type="search" placeholder="Искать Стресс, термины, действия, Эффекты, Техники…" data-i18n-placeholder="reference.search">
           <div class="chip-row" id="ref-filters"></div>
           <div class="catalog-filter-row"><div class="chip-row" id="ref-tag-filters" aria-label="Reference tags" data-i18n-aria-label="reference.tags"></div><label><span data-i18n="catalog.sort">Порядок</span><select id="ref-sort"><option value="source" data-i18n="catalog.sort.source">Как в книге</option><option value="name" data-i18n="catalog.sort.name">По названию</option></select></label></div>
         </div>
+        <p id="reference-count" class="workspace-result-count" role="status" aria-live="polite" tabindex="-1"></p>
         <div id="reference-list" class="catalog-grid reference-grid"></div>
+        <footer class="workspace-results"><button id="reference-more" type="button" data-workspace-more="reference" hidden>Показать ещё</button></footer>
       </section>
     </main>
   </div>
@@ -450,6 +456,8 @@
   <script src="scene-effects.js?v=__BUILD_VERSION__"></script>
   <script src="scene-actions-ui.js?v=__BUILD_VERSION__"></script>
   <script src="scene-sync-ui.js?v=__BUILD_VERSION__"></script>
+  <script src="app-workspace.js?v=__BUILD_VERSION__"></script>
+  <script src="app-navigation.js?v=__BUILD_VERSION__"></script>
   <script src="play-ui.js?v=__BUILD_VERSION__"></script>
   <script src="app-builder-events.js?v=__BUILD_VERSION__"></script>
   <script src="app-sync-events.js?v=__BUILD_VERSION__"></script>

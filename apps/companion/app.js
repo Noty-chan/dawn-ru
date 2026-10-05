@@ -32,7 +32,8 @@ function applyContentPreferences({render=false}={}){
   $("locale-select").value=contentPreferences.locale;
   $("edition-select").value=contentPreferences.edition;
   document.body.dataset.contentEdition=contentPreferences.edition;
-  const banner=$("content-preview-banner");banner.hidden=!isLionwingEdition();if(!banner.hidden)banner.textContent=t(`preview.lionwing.${contentPreferences.locale}`);
+  const banner=$("content-preview-banner");banner.hidden=true;
+  const editionBadge=$("active-edition-badge");if(editionBadge){editionBadge.textContent=isLionwingEdition()?"LionWing":"RU 0.9";editionBadge.title=isLionwingEdition()?t(`preview.lionwing.${contentPreferences.locale}`):t("settings.edition")}
   if(isLionwingEdition()&&sceneControlMode!=="manual")sceneControlMode="manual";
   if(typeof relocalizeSceneContent==="function")relocalizeSceneContent();
   if(!activeArchetypes().some(archetype=>archetype.id===activeArch))activeArch=activeArchetypes()[0]?.id;

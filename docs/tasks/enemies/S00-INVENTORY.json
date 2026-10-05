@@ -195,6 +195,8 @@
           },
           "uiEntryPoint": "scene-actions-ui.js useEnemyRule → DAWN_SCENE_ENGINE.prepareEnemyRule → commitSceneEvents",
           "tests": [
+            "apps/companion/tests/app-navigation.mjs",
+            "apps/companion/tests/app-workspace.mjs",
             "apps/companion/tests/automation-verification-cases.mjs",
             "apps/companion/tests/automation-verification.mjs",
             "apps/companion/tests/catalog-smoke.mjs",
@@ -268,7 +270,8 @@
             "apps/companion/tests/network-table-switch-history.mjs",
             "apps/companion/tests/network-v2.mjs",
             "apps/companion/tests/qa.mjs",
-            "apps/companion/tests/scene-engine.mjs"
+            "apps/companion/tests/scene-engine.mjs",
+            "apps/companion/tests/scene-reference-pagination.mjs"
           ],
           "notRun": [
             "real browser click path",
@@ -1185,6 +1188,8 @@
           },
           "uiEntryPoint": "scene-actions-ui.js useEnemyRule → DAWN_SCENE_ENGINE.prepareEnemyRule → commitSceneEvents",
           "tests": [
+            "apps/companion/tests/app-navigation.mjs",
+            "apps/companion/tests/app-workspace.mjs",
             "apps/companion/tests/automation-verification.mjs",
             "apps/companion/tests/catalog-smoke.mjs",
             "apps/companion/tests/dim-mak-siren.mjs",
@@ -1273,6 +1278,7 @@
             "apps/companion/tests/raasha.mjs",
             "apps/companion/tests/scene-core-contracts.mjs",
             "apps/companion/tests/scene-engine.mjs",
+            "apps/companion/tests/scene-reference-pagination.mjs",
             "apps/companion/tests/technique-engine.mjs"
           ],
           "notRun": [
@@ -1512,6 +1518,8 @@
           },
           "uiEntryPoint": "scene-actions-ui.js useEnemyRule → DAWN_SCENE_ENGINE.prepareEnemyRule → commitSceneEvents",
           "tests": [
+            "apps/companion/tests/app-navigation.mjs",
+            "apps/companion/tests/app-workspace.mjs",
             "apps/companion/tests/catalog-smoke.mjs",
             "apps/companion/tests/edition-isolation.mjs",
             "apps/companion/tests/hero-builds.mjs",
@@ -1562,6 +1570,7 @@
             "apps/companion/tests/qa.mjs",
             "apps/companion/tests/scene-core-contracts.mjs",
             "apps/companion/tests/scene-engine.mjs",
+            "apps/companion/tests/scene-reference-pagination.mjs",
             "apps/companion/tests/technique-engine.mjs"
           ],
           "notRun": [
@@ -3316,6 +3325,8 @@
           },
           "uiEntryPoint": "scene-actions-ui.js useEnemyRule → DAWN_SCENE_ENGINE.prepareEnemyRule → commitSceneEvents",
           "tests": [
+            "apps/companion/tests/app-navigation.mjs",
+            "apps/companion/tests/app-workspace.mjs",
             "apps/companion/tests/catalog-smoke.mjs",
             "apps/companion/tests/edition-isolation.mjs",
             "apps/companion/tests/hero-builds.mjs",
@@ -3366,6 +3377,7 @@
             "apps/companion/tests/qa.mjs",
             "apps/companion/tests/scene-core-contracts.mjs",
             "apps/companion/tests/scene-engine.mjs",
+            "apps/companion/tests/scene-reference-pagination.mjs",
             "apps/companion/tests/technique-engine.mjs"
           ],
           "notRun": [
@@ -4062,6 +4074,8 @@
           },
           "uiEntryPoint": "scene-actions-ui.js useEnemyRule → DAWN_SCENE_ENGINE.prepareEnemyRule → commitSceneEvents",
           "tests": [
+            "apps/companion/tests/app-navigation.mjs",
+            "apps/companion/tests/app-workspace.mjs",
             "apps/companion/tests/catalog-smoke.mjs",
             "apps/companion/tests/edition-isolation.mjs",
             "apps/companion/tests/hero-builds.mjs",
@@ -4112,6 +4126,7 @@
             "apps/companion/tests/qa.mjs",
             "apps/companion/tests/scene-core-contracts.mjs",
             "apps/companion/tests/scene-engine.mjs",
+            "apps/companion/tests/scene-reference-pagination.mjs",
             "apps/companion/tests/technique-engine.mjs"
           ],
           "notRun": [
@@ -4976,6 +4991,8 @@
         },
         "uiEntryPoint": "unknown (passives are trigger/lifecycle driven; no generic action button)",
         "tests": [
+          "apps/companion/tests/app-navigation.mjs",
+          "apps/companion/tests/app-workspace.mjs",
           "apps/companion/tests/automation-verification-cases.mjs",
           "apps/companion/tests/automation-verification.mjs",
           "apps/companion/tests/catalog-smoke.mjs",
@@ -5078,6 +5095,7 @@
           "apps/companion/tests/raasha.mjs",
           "apps/companion/tests/scene-core-contracts.mjs",
           "apps/companion/tests/scene-engine.mjs",
+          "apps/companion/tests/scene-reference-pagination.mjs",
           "apps/companion/tests/technique-engine.mjs"
         ],
         "notRun": [
@@ -5125,6 +5143,8 @@
           },
           "uiEntryPoint": "scene-actions-ui.js useEnemyRule → DAWN_SCENE_ENGINE.prepareEnemyRule → commitSceneEvents",
           "tests": [
+            "apps/companion/tests/app-navigation.mjs",
+            "apps/companion/tests/app-workspace.mjs",
             "apps/companion/tests/automation-verification-cases.mjs",
             "apps/companion/tests/automation-verification.mjs",
             "apps/companion/tests/catalog-smoke.mjs",
@@ -5227,6 +5247,7 @@
             "apps/companion/tests/raasha.mjs",
             "apps/companion/tests/scene-core-contracts.mjs",
             "apps/companion/tests/scene-engine.mjs",
+            "apps/companion/tests/scene-reference-pagination.mjs",
             "apps/companion/tests/technique-engine.mjs"
           ],
           "notRun": [
@@ -5268,6 +5289,8 @@
           },
           "uiEntryPoint": "scene-actions-ui.js useEnemyRule → DAWN_SCENE_ENGINE.prepareEnemyRule → commitSceneEvents",
           "tests": [
+            "apps/companion/tests/app-navigation.mjs",
+            "apps/companion/tests/app-workspace.mjs",
             "apps/companion/tests/automation-verification-cases.mjs",
             "apps/companion/tests/automation-verification.mjs",
             "apps/companion/tests/catalog-smoke.mjs",
@@ -5370,6 +5393,7 @@
             "apps/companion/tests/raasha.mjs",
             "apps/companion/tests/scene-core-contracts.mjs",
             "apps/companion/tests/scene-engine.mjs",
+            "apps/companion/tests/scene-reference-pagination.mjs",
             "apps/companion/tests/technique-engine.mjs"
           ],
           "notRun": [
@@ -5417,6 +5441,8 @@
           },
           "uiEntryPoint": "scene-actions-ui.js useEnemyRule → DAWN_SCENE_ENGINE.prepareEnemyRule → commitSceneEvents",
           "tests": [
+            "apps/companion/tests/app-navigation.mjs",
+            "apps/companion/tests/app-workspace.mjs",
             "apps/companion/tests/automation-verification-cases.mjs",
             "apps/companion/tests/automation-verification.mjs",
             "apps/companion/tests/catalog-smoke.mjs",
@@ -5519,6 +5545,7 @@
             "apps/companion/tests/raasha.mjs",
             "apps/companion/tests/scene-core-contracts.mjs",
             "apps/companion/tests/scene-engine.mjs",
+            "apps/companion/tests/scene-reference-pagination.mjs",
             "apps/companion/tests/technique-engine.mjs"
           ],
           "notRun": [
@@ -6510,6 +6537,7 @@
         },
         "uiEntryPoint": "unknown (passives are trigger/lifecycle driven; no generic action button)",
         "tests": [
+          "apps/companion/tests/app-workspace.mjs",
           "apps/companion/tests/edition-isolation.mjs",
           "apps/companion/tests/lionwing-cockpit-preview.mjs",
           "apps/companion/tests/lionwing-cockpit-routes.mjs",
@@ -6568,6 +6596,7 @@
           },
           "uiEntryPoint": "scene-actions-ui.js useEnemyRule → DAWN_SCENE_ENGINE.prepareEnemyRule → commitSceneEvents",
           "tests": [
+            "apps/companion/tests/app-workspace.mjs",
             "apps/companion/tests/edition-isolation.mjs",
             "apps/companion/tests/lionwing-cockpit-preview.mjs",
             "apps/companion/tests/lionwing-cockpit-routes.mjs",
@@ -6625,6 +6654,7 @@
           },
           "uiEntryPoint": "scene-actions-ui.js useEnemyRule → DAWN_SCENE_ENGINE.prepareEnemyRule → commitSceneEvents",
           "tests": [
+            "apps/companion/tests/app-workspace.mjs",
             "apps/companion/tests/edition-isolation.mjs",
             "apps/companion/tests/lionwing-cockpit-preview.mjs",
             "apps/companion/tests/lionwing-cockpit-routes.mjs",
@@ -6683,6 +6713,7 @@
           },
           "uiEntryPoint": "scene-actions-ui.js useEnemyRule → DAWN_SCENE_ENGINE.prepareEnemyRule → commitSceneEvents",
           "tests": [
+            "apps/companion/tests/app-workspace.mjs",
             "apps/companion/tests/edition-isolation.mjs",
             "apps/companion/tests/lionwing-cockpit-preview.mjs",
             "apps/companion/tests/lionwing-cockpit-routes.mjs",
@@ -7271,6 +7302,7 @@
             "apps/companion/tests/raasha.mjs",
             "apps/companion/tests/scene-core-contracts.mjs",
             "apps/companion/tests/scene-engine.mjs",
+            "apps/companion/tests/scene-reference-pagination.mjs",
             "apps/companion/tests/technique-engine.mjs"
           ],
           "notRun": [
@@ -8230,6 +8262,7 @@
           },
           "uiEntryPoint": "scene-actions-ui.js useEnemyRule → DAWN_SCENE_ENGINE.prepareEnemyRule → commitSceneEvents",
           "tests": [
+            "apps/companion/tests/app-navigation.mjs",
             "apps/companion/tests/lionwing-action-identity.mjs",
             "apps/companion/tests/lionwing-aura-movement.mjs",
             "apps/companion/tests/lionwing-auras.mjs",
@@ -8722,6 +8755,7 @@
           },
           "uiEntryPoint": "scene-actions-ui.js useEnemyRule → DAWN_SCENE_ENGINE.prepareEnemyRule → commitSceneEvents",
           "tests": [
+            "apps/companion/tests/app-navigation.mjs",
             "apps/companion/tests/automation-verification-cases.mjs",
             "apps/companion/tests/automation-verification.mjs",
             "apps/companion/tests/catalog-smoke.mjs",
@@ -8853,6 +8887,7 @@
             "apps/companion/tests/raasha.mjs",
             "apps/companion/tests/scene-core-contracts.mjs",
             "apps/companion/tests/scene-engine.mjs",
+            "apps/companion/tests/scene-reference-pagination.mjs",
             "apps/companion/tests/technique-engine.mjs"
           ],
           "notRun": [
@@ -10597,6 +10632,8 @@
           },
           "uiEntryPoint": "scene-actions-ui.js useEnemyRule → DAWN_SCENE_ENGINE.prepareEnemyRule → commitSceneEvents",
           "tests": [
+            "apps/companion/tests/app-navigation.mjs",
+            "apps/companion/tests/app-workspace.mjs",
             "apps/companion/tests/catalog-smoke.mjs",
             "apps/companion/tests/edition-isolation.mjs",
             "apps/companion/tests/hero-builds.mjs",
@@ -10647,6 +10684,7 @@
             "apps/companion/tests/qa.mjs",
             "apps/companion/tests/scene-core-contracts.mjs",
             "apps/companion/tests/scene-engine.mjs",
+            "apps/companion/tests/scene-reference-pagination.mjs",
             "apps/companion/tests/technique-engine.mjs"
           ],
           "notRun": [
